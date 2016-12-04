@@ -5186,8 +5186,8 @@ void test61()
         0xC5, 0xFE, 0x6F, 0xC0,                   // vmovdqu YMM0, YMM0;
         0xC5, 0xFE, 0x7F, 0x00,                   // vmovdqu [RAX],YMM0;
 
-        0xC5, 0xF8, 0x12, 0xC0,                   // vmovlhps XMM0, XMM0, XMM0;
-        0xC5, 0xF8, 0x16, 0xC0,                   // vmovhlps XMM0, XMM0, XMM0;
+        0xC5, 0xF8, 0x12, 0xC0,                   // vmovhlps XMM0, XMM0, XMM0;
+        0xC5, 0xF8, 0x16, 0xC0,                   // vmovlhps XMM0, XMM0, XMM0;
 
         0xC5, 0xF9, 0x16, 0x00,                   // vmovhpd XMM0, XMM0, [RAX];
         0xC5, 0xF9, 0x17, 0x00,                   // vmovhpd [RAX], XMM0;
@@ -5976,8 +5976,8 @@ void test61()
         vmovdqu YMM0, YMM0;
         vmovdqu [RAX],YMM0;
 
-        vmovlhps XMM0, XMM0, XMM0;
         vmovhlps XMM0, XMM0, XMM0;
+        vmovlhps XMM0, XMM0, XMM0;
 
         vmovhpd XMM0, XMM0, [RAX];
         vmovhpd [RAX], XMM0;

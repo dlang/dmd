@@ -5540,10 +5540,10 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("vmovddup",       2,              (P) aptb2VMOVDDUP )             \
         X("vmovdqa",        2,              (P) aptb2VMOVDQA )              \
         X("vmovdqu",        2,              (P) aptb2VMOVDQU )              \
-        X("vmovhlps",       3,              (P) aptb3VMOVLHPS )             \
+        X("vmovhlps",       3,              (P) aptb3VMOVHLPS )             \
         X("vmovhpd",        ITopt | 3,      (P) aptb3VMOVHPD )              \
         X("vmovhps",        ITopt | 3,      (P) aptb3VMOVHPS )              \
-        X("vmovlhps",       3,              (P) aptb3VMOVHLPS )             \
+        X("vmovlhps",       3,              (P) aptb3VMOVLHPS )             \
         X("vmovlpd",        ITopt | 3,      (P) aptb3VMOVLPD )              \
         X("vmovlps",        ITopt | 3,      (P) aptb3VMOVLPS )              \
         X("vmovmskpd",      2,              (P) aptb2VMOVMSKPD )            \
