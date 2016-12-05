@@ -488,6 +488,7 @@ code *save87 (void );
 code *save87regs(unsigned n);
 void gensaverestore87(regm_t, code **, code **);
 code *genfltreg(code *c,unsigned opcode,unsigned reg,targ_size_t offset);
+code *genxmmreg(code *c,unsigned opcode,unsigned xreg,targ_size_t offset, tym_t tym);
 code *genfwait(code *c);
 code *comsub87(elem *e, regm_t *pretregs);
 code *fixresult87 (elem *e , regm_t retregs , regm_t *pretregs );

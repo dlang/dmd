@@ -5757,7 +5757,7 @@ unsigned calccodsize(code *c)
 #endif
     iflags = c->Iflags;
     op = c->Iop;
-    if (iflags & CFvex)
+    if (iflags & CFvex && op != NOP)
     {
         ins = vex_inssize(c);
         size = ins & 7;

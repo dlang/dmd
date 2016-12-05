@@ -1736,10 +1736,10 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
             {
                 reg = findreg(retregs & XMMREGS);
                 // MOVSD floatreg, XMM?
-                ce = genfltreg(ce,xmmstore(tym),reg - XMM0,0);
+                ce = genxmmreg(ce,xmmstore(tym),reg,0,tym);
                 if (mask[rreg] & XMMREGS)
                     // MOVSD XMM?, floatreg
-                    ce = genfltreg(ce,xmmload(tym),rreg - XMM0,0);
+                    ce = genxmmreg(ce,xmmload(tym),rreg,0,tym);
                 else
                 {
                     // MOV rreg,floatreg
@@ -1772,7 +1772,7 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
                         code_orrex(ce,REX_W);
                 }
                 // MOVSS/MOVSD XMMreg,floatreg
-                ce = genfltreg(ce,xmmload(tym),rreg - XMM0,0);
+                ce = genxmmreg(ce,xmmload(tym),rreg,0,tym);
             }
             else if (sz > REGSIZE)
             {
@@ -3127,7 +3127,9 @@ code *cdfunc(elem *e,regm_t *pretregs)
                         {
                             if (mask[preg] & XMMREGS)
                             {   unsigned op = xmmload(ty1);            // MOVSS/D preg,lreg
-                                c1 = gen2(c1,op,modregxrmx(3,preg-XMM0,lreg-XMM0));
+                                code *cd = gen2(CNIL,op,modregxrmx(3,preg-XMM0,lreg-XMM0));
+                                checkSetVex(cd,ty1);
+                                c1 = cat(c1,cd);
                             }
                             else
                                 c1 = genmovreg(c1, preg, lreg);
@@ -3139,7 +3141,9 @@ code *cdfunc(elem *e,regm_t *pretregs)
                         {
                             if (mask[preg2] & XMMREGS)
                             {   unsigned op = xmmload(ty2);            // MOVSS/D preg2,mreg
-                                c1 = gen2(c1,op,modregxrmx(3,preg2-XMM0,mreg-XMM0));
+                                code *cd = gen2(CNIL,op,modregxrmx(3,preg2-XMM0,mreg-XMM0));
+                                checkSetVex(cd,ty2);
+                                c1 = cat(c1,cd);
                             }
                             else
                                 c1 = genmovreg(c1, preg2, mreg);
@@ -3734,7 +3738,9 @@ static code *movParams(elem *e,unsigned stackalign, unsigned funcargtos)
         c = cat(c,codelem(e,&retregs,FALSE));
         unsigned op = xmmstore(tym);
         unsigned r = findreg(retregs);
-        c = genc1(c,op,modregxrm(2,r - XMM0,BPRM),FLfuncarg,funcargtos - 16);   // MOV funcarg[EBP],r
+        code *cd = genc1(CNIL,op,modregxrm(2,r - XMM0,BPRM),FLfuncarg,funcargtos - 16);   // MOV funcarg[EBP],r
+        checkSetVex(cd,tym);
+        c = cat(c,cd);
         goto ret;
     }
     else if (tyfloating(tym))
@@ -4339,7 +4345,9 @@ code *pushParams(elem *e,unsigned stackalign)
         c = cod3_stackadj(c, sz);
         unsigned op = xmmstore(tym);
         unsigned r = findreg(retregs);
-        c = gen2sib(c,op,modregxrm(0,r - XMM0,4),modregrm(0,4,SP));   // MOV [ESP],r
+        code *cd = gen2sib(CNIL,op,modregxrm(0,r - XMM0,4),modregrm(0,4,SP));   // MOV [ESP],r
+        checkSetVex(cd,tym);
+        c = cat(c,cd);
         goto ret;
   }
   else if (tyfloating(tym))
@@ -4653,7 +4661,7 @@ code *loaddata(elem *e,regm_t *pretregs)
                     code_orrex(ce, REX_W);
                 assert(sz == 4 || sz == 8);             // float or double
                 unsigned op = xmmload(tym);
-                ce = genfltreg(ce,op,reg - XMM0,0);     // MOVSS/MOVSD XMMreg,floatreg
+                ce = genxmmreg(ce,op,reg,0,tym);        // MOVSS/MOVSD XMMreg,floatreg
             }
             else
             {   ce = movregconst(CNIL,reg,value,flags);
@@ -4707,7 +4715,7 @@ code *loaddata(elem *e,regm_t *pretregs)
                     ce = genfltreg(ce,0x89,r,4);            // MOV floatreg+4,r
 
                     unsigned op = xmmload(tym);
-                    ce = genfltreg(ce,op,reg - XMM0,0);     // MOVSS/MOVSD XMMreg,floatreg
+                    ce = genxmmreg(ce,op,reg,0,tym);        // MOVSS/MOVSD XMMreg,floatreg
                 }
                 else
                 {
@@ -4811,6 +4819,7 @@ code *loaddata(elem *e,regm_t *pretregs)
             }
         }
         ce = loadea(e,&cs,op,reg,0,RMload,0); // MOVSS/MOVSD reg,data
+        checkSetVex(code_last(ce),tym);
         c = cat(c,ce);
     }
     else if (sz <= REGSIZE)

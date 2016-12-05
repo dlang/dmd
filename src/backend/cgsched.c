@@ -73,7 +73,7 @@ struct Cinfo
 };
 
 code *simpleops(code *c,regm_t scratch);
-code *schedule(code *c,regm_t scratch);
+static code *schedule(code *c,regm_t scratch);
 code *peephole(code *c,regm_t scratch);
 
 /*****************************************
@@ -82,7 +82,7 @@ code *peephole(code *c,regm_t scratch);
  *      scratch         scratch registers we can use
  */
 
-void cgsched_pentium(code **pc,regm_t scratch)
+static void cgsched_pentium(code **pc,regm_t scratch)
 {
     //printf("scratch = x%02x\n",scratch);
     if (config.target_scheduler >= TARGET_80486)
@@ -99,6 +99,9 @@ void cgsched_pentium(code **pc,regm_t scratch)
     }
 }
 
+/************************************
+ * Entry point
+ */
 void cgsched_block(block* b)
 {
     if (config.flags4 & CFG4speed &&
@@ -1839,7 +1842,7 @@ STATIC int conflict(Cinfo *ci1,Cinfo *ci2,int fpsched)
     //printf("r1 %lx w1 %lx a1 %lx sz1 %x\n",r1,w1,a1,sz1);
     //printf("r2 %lx w2 %lx a2 %lx sz2 %x\n",r2,w2,a2,sz2);
 
-    if ((c1->Iflags | c2->Iflags) & CFvolatile)
+    if ((c1->Iflags | c2->Iflags) & (CFvolatile | CFvex))
         goto Lconflict;
 
     // Determine if we should handle FPU register conflicts separately
@@ -2585,7 +2588,7 @@ int Schedule::stage(code *c)
     ci = &cinfo[cinfomax++];
     getinfo(ci,c);
 
-    if (c->Iflags & (CFtarg | CFtarg2 | CFvolatile))
+    if (c->Iflags & (CFtarg | CFtarg2 | CFvolatile | CFvex))
     {
         // Insert anything in stagelist
         for (l = stagelist; l; l = ln)
@@ -2701,7 +2704,7 @@ STATIC code * csnip(code *c)
  * based on Steve Russell's algorithm.
  */
 
-code *schedule(code *c,regm_t scratch)
+static code *schedule(code *c,regm_t scratch)
 {
     code *cresult = NULL;
     code **pctail = &cresult;
