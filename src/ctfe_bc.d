@@ -462,8 +462,8 @@ struct SharedCtfeState(BCGenT)
             }
         }
         // if we get here the type was not found and has to be registerd.
-        scope bcv = new BCV!BCGenT(null, null);
-        auto elemType = bcv.toBCType(tsa.nextOf);
+        scope bct = new BCTypeVisitor();
+        auto elemType = bct.toBCType(tsa.nextOf);
         auto arraySize = evaluateUlong(tsa.dim);
         assert(arraySize < uint.max);
         arrays[++arrayCount] = BCArray(elemType, cast(uint) arraySize);
@@ -501,9 +501,9 @@ struct SharedCtfeState(BCGenT)
         }
 
         //register structType
-        scope bcv = new BCV!BCGenT(null, null);
+        scope bct = new BCTypeVisitor();
         auto oldStructCount = structCount;
-        bcv.visit(sd);
+        bct.visit(sd);
         assert(oldStructCount < structCount);
         return structCount;
     }
@@ -522,9 +522,9 @@ struct SharedCtfeState(BCGenT)
         }
 
         //register pointerType
-        scope bcv = new BCV!BCGenT(null, null);
+        scope bct = new BCTypeVisitor();
         auto oldPointerCount = pointerCount;
-        bcv.visit(pt);
+        bct.visit(pt);
         assert(oldPointerCount < pointerCount);
         return pointerCount;
     }
@@ -542,8 +542,8 @@ struct SharedCtfeState(BCGenT)
             }
         }
         //register structType
-        scope bcv = new BCV!BCGenT(null, null);
-        auto elemType = bcv.toBCType(tda.nextOf);
+        scope bct = new BCTypeVisitor();
+        auto elemType = bct.toBCType(tda.nextOf);
         if (slices.length - 1 > sliceCount)
         {
             dArrayTypePointers[sliceCount] = tda;
@@ -723,8 +723,8 @@ Expression toExpression(const BCValue value, Type expressionType,
     case Tarray:
         {
             auto tda = cast(TypeDArray) expressionType;
-            scope bcv = new BCV!BCGenT(null, null);
-            auto baseType = bcv.toBCType(tda.nextOf);
+            scope bct = new BCTypeVisitor();
+            auto baseType = bct.toBCType(tda.nextOf);
             auto elmLength = align4(_sharedCtfeState.size(baseType));
             auto arrayLength = heapPtr._heap[value.heapAddr.addr];
             debug (ctfe)
@@ -806,33 +806,11 @@ Expression toExpression(const BCValue value, Type expressionType,
     return result;
 }
 
-extern (C++) final class BCV(BCGenT) : Visitor
+extern (C++) final class BCTypeVisitor : Visitor 
 {
-    BCGenT gen;
-    alias gen this;
+    alias visit = super.visit;
 
-    // for now!
-    BCValue[] arguments;
-    BCType[] parameterTypes;
-
-    typeof(this)* parent;
-
-    uint processedArgs;
-    bool processingArguments;
-    bool insideArgumentProcessing;
-    bool processingParameters;
-    bool insideArrayLiteralExp;
-
-    bool IGaveUp;
-
-    UnrolledLoopState* unrolledLoopState;
-    SwitchState* switchState = new SwitchState();
-    SwitchFixupEntry* switchFixup;
-
-    FuncDeclaration me;
-    bool inReturnStatement;
-
-    const(BCType) toBCType(Type t) /*pure*/
+    static const(BCType) toBCType(Type t) /*pure*/
     {
         assert(t !is null);
         TypeBasic bt = t.isTypeBasic;
@@ -859,9 +837,6 @@ extern (C++) final class BCV(BCGenT) : Visitor
             case ENUMTY.Tuns64:
                 return BCType(BCTypeEnum.i64);
             default:
-                IGaveUp = true;
-                debug (ctfe)
-                    assert(0, "Type unsupported " ~ (cast(Type)(t)).toString());
                 return BCType.init;
             }
         }
@@ -912,7 +887,6 @@ extern (C++) final class BCV(BCGenT) : Visitor
                     return BCType(BCTypeEnum.Ptr, _sharedCtfeState.pointerCount);
                 }
             }
-            IGaveUp = true;
 
             debug (ctfe)
                 assert(0, "NBT Type unsupported " ~ (cast(Type)(t)).toString);
@@ -921,7 +895,68 @@ extern (C++) final class BCV(BCGenT) : Visitor
         }
     }
 
+    override void visit(StructDeclaration sd)
+    {
+        auto st = sharedCtfeState.beginStruct(sd);
+
+        foreach (sMember; sd.fields)
+        {
+            st.addField(&_sharedCtfeState, toBCType(sMember.type));
+        }
+
+        sharedCtfeState.endStruct(st);
+    }
+
+
+}
+
+
+extern (C++) final class BCV(BCGenT) : Visitor
+{
+    BCGenT gen;
+    alias gen this;
+
+    // for now!
+    BCValue[] arguments;
+    BCType[] parameterTypes;
+
+    typeof(this)* parent;
+
+    uint processedArgs;
+    bool processingArguments;
+    bool insideArgumentProcessing;
+    bool processingParameters;
+    bool insideArrayLiteralExp;
+
+    bool IGaveUp;
+
+    UnrolledLoopState* unrolledLoopState;
+    SwitchState* switchState = new SwitchState();
+    SwitchFixupEntry* switchFixup;
+
+    scope bct = new BCTypeVisitor();
+
+    FuncDeclaration me;
+    bool inReturnStatement;
+
     alias visit = super.visit;
+    //alias toBCType = bct.toBCType;
+    const(BCType) toBCType(Type t)
+    {
+        auto bct = bct.toBCType(t);
+        if(bct != BCType.init)
+        {
+            return bct;
+        }
+        else
+        {
+            IGaveUp = true;
+	    debug (ctfe)
+                assert(0, "Type unsupported " ~ (cast(Type)(t)).toString());
+            else
+                return BCType.init;
+        }
+    }
 
     import ddmd.tokens;
 
@@ -943,6 +978,8 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     BCAddr[ubyte.max] breakFixups;
     uint breakFixupCount;
+    BCAddr[ubyte.max] continueFixups;
+    uint continueFixupCount;
 
     BCValue retval;
     BCValue assignTo;
@@ -1445,18 +1482,6 @@ public:
             }
         }
 
-    }
-
-    override void visit(StructDeclaration sd)
-    {
-        auto st = sharedCtfeState.beginStruct(sd);
-
-        foreach (sMember; sd.fields)
-        {
-            st.addField(&_sharedCtfeState, toBCType(sMember.type));
-        }
-
-        sharedCtfeState.endStruct(st);
     }
 
     override void visit(SymOffExp se)
