@@ -926,7 +926,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     import ddmd.tokens;
 
     BCBlock[void* ] labeledBlocks;
-
+    bool ignoreVoid;
     BCValue[void* ] vars;
 
     //BCValue _this;
@@ -1000,8 +1000,14 @@ public:
 
     BCValue getVariable(VarDeclaration vd)
     {
-        auto value = (cast(void*) vd) in vars;
-        return value ? *value : BCValue.init;
+        if (auto value = (cast(void*) vd) in vars)
+        {
+            return *value;
+        }
+        else
+        {
+            return BCValue.init;
+        }
     }
     /*
 	BCValue pushOntoHeap(BCValue v)
@@ -1630,11 +1636,11 @@ public:
 
     override void visit(ForStatement fs)
     {
-		//FIXME
-		// There might be a problem with continueing for loops
-		// I think we should execute the increment step when we continue
-		// However that will not be done with the current system
-		
+        //FIXME
+        // There might be a problem with continueing for loops
+        // I think we should execute the increment step when we continue
+        // However that will not be done with the current system
+
         debug (ctfe)
         {
             import std.stdio;
@@ -2121,6 +2127,13 @@ public:
             debug (ctfe)
                 assert(sv, "Variable " ~ ve.toString ~ " not in StackFrame");
 
+            if (!ignoreVoid && sv.vType == BCValueType.VoidValue)
+            {
+                IGaveUp = true;
+                ve.error("Trying to read form an uninitialized Variable");
+                return;
+            }
+
             if (sv == BCValue.init)
             {
                 IGaveUp = true;
@@ -2189,10 +2202,8 @@ public:
         {
             if (vd._init.isVoidInitializer)
             {
-                debug (ctfe)
-                    assert(0, "We don't support void initialisation at this point");
-                IGaveUp = true;
-                return;
+                var.vType = BCValueType.VoidValue;
+                setVariable(vd, var);
             }
             else if (auto ci = vd.getConstInitializer)
             {
@@ -2791,8 +2802,23 @@ public:
         }
         else
         {
+            ignoreVoid = true;
             auto lhs = genExpr(ae.e1);
+            if (lhs.vType == BCValueType.VoidValue)
+            {
+                if (ae.e2.op == TOKvar)
+                {
+                    auto ve = cast(VarExp) ae.e2;
+                    if (auto vd = ve.var.isVarDeclaration)
+                    {
+                        lhs.vType = BCValueType.StackValue;
+                        setVariable(vd, lhs);
+                    }
+                }
+            }
+
             assignTo = lhs;
+            ignoreVoid = false;
             auto rhs = genExpr(ae.e2);
 
             debug (ctfe)

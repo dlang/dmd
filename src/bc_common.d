@@ -118,12 +118,14 @@ enum BCValueType : ubyte
     Parameter = 0x2,
 
     StackValue = 0x4,
+    VoidValue = 0x20,
     Immediate = 0x8,
 
     HeapValue = 0x10,
 
     LastCond = 0xFE,
-    Error = 0xFF,//Pinned = 0x80,
+    Error = 0xFF, 
+    //Pinned = 0x80,
     /// Pinned values can be returned
     /// And should be kept in the compacted heap
 
@@ -312,7 +314,7 @@ struct BCValue
         {
             final switch (this.vType)
             {
-            case BCValueType.StackValue,
+            case BCValueType.StackValue, BCValueType.VoidValue,
                     BCValueType.Parameter:
                     return this.stackAddr == rhs.stackAddr;
             case BCValueType.Temporary:
