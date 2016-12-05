@@ -1630,6 +1630,11 @@ public:
 
     override void visit(ForStatement fs)
     {
+		//FIXME
+		// There might be a problem with continueing for loops
+		// I think we should execute the increment step when we continue
+		// However that will not be done with the current system
+		
         debug (ctfe)
         {
             import std.stdio;
@@ -1677,11 +1682,13 @@ public:
         {
             BCLabel condEval = genLabel();
             BCValue condExpr = genExpr(fs.condition);
+            auto condJmp = beginCndJmp(condExpr);
             if (fs.increment)
             {
                 fs.increment.accept(this);
             }
             genJump(condEval);
+            endCndJmp(condJmp, genLabel());
         }
         else
         { // fs.condition is null && fs._body !is null
