@@ -3730,23 +3730,19 @@ code *cdpopcnt(elem *e,regm_t *pretregs)
 
 code *cdpair(elem *e, regm_t *pretregs)
 {
-    regm_t retregs;
-    regm_t regs1;
-    regm_t regs2;
-    code *cg;
-    code *c1;
-    code *c2;
-
     if (*pretregs == 0)                         // if don't want result
-    {   c1 = codelem(e->E1,pretregs,FALSE);     // eval left leaf
+    {
+        CodeBuilder cdb;
+        cdb.append(codelem(e->E1,pretregs,FALSE));     // eval left leaf
         *pretregs = 0;                          // in case they got set
-        return cat(c1,codelem(e->E2,pretregs,FALSE));
+        cdb.append(codelem(e->E2,pretregs,FALSE));
+        return cdb.finish();
     }
 
     //printf("\ncdpair(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     //printf("Ecount = %d\n", e->Ecount);
 
-    retregs = *pretregs;
+    regm_t retregs = *pretregs;
     if (retregs == mPSW && tycomplex(e->Ety) && config.inline8087)
     {
         if (config.fpxmmregs)
@@ -3758,6 +3754,8 @@ code *cdpair(elem *e, regm_t *pretregs)
     if (retregs & mST01)
         return loadPair87(e, pretregs);
 
+    regm_t regs1;
+    regm_t regs2;
     if (retregs & XMMREGS)
     {
         retregs &= XMMREGS;
@@ -3781,17 +3779,19 @@ code *cdpair(elem *e, regm_t *pretregs)
         regs1 ^= regs2;
     }
     //printf("1: regs1 = %s, regs2 = %s\n", regm_str(regs1), regm_str(regs2));
-    c1 = codelem(e->E1, &regs1, FALSE);
-    c2 = scodelem(e->E2, &regs2, regs1, FALSE);
 
-    cg = NULL;
+    CodeBuilder cdb;
+    cdb.append(codelem(e->E1, &regs1, FALSE));
+    cdb.append(scodelem(e->E2, &regs2, regs1, FALSE));
+    //printf("2: regs1 = %s, regs2 = %s\n", regm_str(regs1), regm_str(regs2));
+
     if (e->E1->Ecount)
-        cg = getregs(regs1);
+        cdb.append(getregs(regs1));
     if (e->E2->Ecount)
-        cg = cat(cg, getregs(regs2));
+        cdb.append(getregs(regs2));
 
-    //printf("regs1 = %s, regs2 = %s\n", regm_str(regs1), regm_str(regs2));
-    return cat4(c1,c2,cg,fixresult(e,regs1 | regs2,pretregs));
+    cdb.append(fixresult(e,regs1 | regs2,pretregs));
+    return cdb.finish();
 }
 
 /*************************
@@ -3931,13 +3931,17 @@ code *cdprefetch(elem *e, regm_t *pretregs)
     }
 
     freenode(e->E2);
+
+    CodeBuilder cdb;
+
     code cs;
     code *c = getlvalue(&cs,e1,0);
+    cdb.append(c);
     cs.Iop = op;
     cs.Irm |= modregrm(0,reg,0);
-    c = gen(c,&cs);
-    c->Iflags |= CFvolatile;            // do not schedule
-    return c;
+    cs.Iflags |= CFvolatile;            // do not schedule
+    cdb.gen(&cs);
+    return cdb.finish();
 }
 
 #endif // !SPP
