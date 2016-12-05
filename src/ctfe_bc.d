@@ -417,6 +417,7 @@ struct SharedCtfeState(BCGenT)
     TypeSArray[ubyte.max * 4] sArrayTypePointers;
     TypeDArray[ubyte.max * 4] dArrayTypePointers;
     TypePointer[ubyte.max * 4] pointerTypePointers;
+    BCTypeVisitor btv; 
 
     BCStruct[ubyte.max * 4] structs;
     uint structCount;
@@ -428,6 +429,13 @@ struct SharedCtfeState(BCGenT)
     uint pointerCount;
     RetainedError[ubyte.max * 4] errors;
     uint errorCount;
+    
+
+
+    void initTypeVisitor()
+    {
+        btv = new BCTypeVisitor();
+    }
 
     static if (is(BCFunction))
     {
@@ -462,8 +470,7 @@ struct SharedCtfeState(BCGenT)
             }
         }
         // if we get here the type was not found and has to be registerd.
-        scope bct = new BCTypeVisitor();
-        auto elemType = bct.toBCType(tsa.nextOf);
+        auto elemType = btv.toBCType(tsa.nextOf);
         auto arraySize = evaluateUlong(tsa.dim);
         assert(arraySize < uint.max);
         arrays[++arrayCount] = BCArray(elemType, cast(uint) arraySize);
@@ -501,9 +508,8 @@ struct SharedCtfeState(BCGenT)
         }
 
         //register structType
-        scope bct = new BCTypeVisitor();
         auto oldStructCount = structCount;
-        bct.visit(sd);
+        btv.visit(sd);
         assert(oldStructCount < structCount);
         return structCount;
     }
@@ -522,9 +528,8 @@ struct SharedCtfeState(BCGenT)
         }
 
         //register pointerType
-        scope bct = new BCTypeVisitor();
         auto oldPointerCount = pointerCount;
-        bct.visit(pt);
+        btv.visit(pt);
         assert(oldPointerCount < pointerCount);
         return pointerCount;
     }
@@ -542,8 +547,7 @@ struct SharedCtfeState(BCGenT)
             }
         }
         //register structType
-        scope bct = new BCTypeVisitor();
-        auto elemType = bct.toBCType(tda.nextOf);
+        auto elemType = btv.toBCType(tda.nextOf);
         if (slices.length - 1 > sliceCount)
         {
             dArrayTypePointers[sliceCount] = tda;
@@ -723,8 +727,8 @@ Expression toExpression(const BCValue value, Type expressionType,
     case Tarray:
         {
             auto tda = cast(TypeDArray) expressionType;
-            scope bct = new BCTypeVisitor();
-            auto baseType = bct.toBCType(tda.nextOf);
+            
+            auto baseType = _sharedCtfeState.btv.toBCType(tda.nextOf);
             auto elmLength = align4(_sharedCtfeState.size(baseType));
             auto arrayLength = heapPtr._heap[value.heapAddr.addr];
             debug (ctfe)
