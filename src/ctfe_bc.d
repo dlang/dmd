@@ -2078,7 +2078,9 @@ public:
     {
         if (arr)
         {
-            auto length = target ? target : genTemporary(BCType(BCTypeEnum.i32));
+            // HACK we cast the target to i32 in order to make it work
+            // this will propbably never fail in practice but still
+            auto length = target ? target.i32 : genTemporary(BCType(BCTypeEnum.i32));
             Load32(length, arr.i32);
             return length;
         }
@@ -2397,7 +2399,7 @@ public:
         auto bct = toBCType(ie.type);
 
         //assert(bct == BCType.i32, "only 32bit is suppoorted for now");
-        if (bct == BCTypeEnum.i64)
+        if (ie.value > int.max)
         {
             retval = BCValue(Imm64(ie.value));
         }
