@@ -3338,13 +3338,13 @@ public:
             writefln("IfStatement %s", fs.toString);
         }
 
-        if (fs.condition.is__ctfe == 1)
+        if (fs.condition.is__ctfe == 1 || fs.condition.isBool(true))
         {
             if (fs.ifbody)
                 genBlock(fs.ifbody);
             return;
         }
-        else if (fs.condition.is__ctfe == -1)
+        else if (fs.condition.is__ctfe == -1 || fs.condition.isBool(false))
         {
             if (fs.elsebody)
                 genBlock(fs.elsebody);
