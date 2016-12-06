@@ -253,7 +253,7 @@ code *REGSAVE::restore(code *c, int reg, unsigned idx)
 
 unsigned char vex_inssize(code *c)
 {
-    assert(c->Iflags & CFvex);
+    assert(c->Iflags & CFvex && c->Ivex.pfx == 0xC4);
     unsigned char ins;
     if (c->Iflags & CFvex3)
     {
@@ -4640,7 +4640,7 @@ void assignaddrc(code *c)
         if (code_next(c) && code_next(code_next(c)) == c)
             assert(0);
 #endif
-        if (c->Iflags & CFvex)
+        if (c->Iflags & CFvex && c->Ivex.pfx == 0xC4)
             ins = vex_inssize(c);
         else if ((c->Iop & 0xFFFD00) == 0x0F3800)
             ins = inssize2[(c->Iop >> 8) & 0xFF];
@@ -5057,7 +5057,7 @@ void pinholeopt(code *c,block *b)
   {
     L1:
         op = c->Iop;
-        if (c->Iflags & CFvex)
+        if (c->Iflags & CFvex && c->Ivex.pfx == 0xC4)
             ins = vex_inssize(c);
         else if ((op & 0xFFFD00) == 0x0F3800)
             ins = inssize2[(op >> 8) & 0xFF];
@@ -5757,7 +5757,7 @@ unsigned calccodsize(code *c)
 #endif
     iflags = c->Iflags;
     op = c->Iop;
-    if (iflags & CFvex && op != NOP)
+    if (iflags & CFvex && c->Ivex.pfx == 0xC4)
     {
         ins = vex_inssize(c);
         size = ins & 7;
@@ -6868,7 +6868,7 @@ void code_hydrate(code **pc)
     while (*pc)
     {
         c = (code *) ph_hydrate(pc);
-        if (c->Iflags & CFvex)
+        if (c->Iflags & CFvex && c->Ivex.pfx == 0xC4)
             ins = vex_inssize(c);
         else if ((c->Iop & 0xFFFD00) == 0x0F3800)
             ins = inssize2[(c->Iop >> 8) & 0xFF];
@@ -7038,7 +7038,7 @@ void code_dehydrate(code **pc)
     {
         ph_dehydrate(pc);
 
-        if (c->Iflags & CFvex)
+        if (c->Iflags & CFvex && c->Ivex.pfx == 0xC4)
             ins = vex_inssize(c);
         else if ((c->Iop & 0xFFFD00) == 0x0F3800)
             ins = inssize2[(c->Iop >> 8) & 0xFF];
@@ -7213,7 +7213,7 @@ void code::print()
     }
 
     unsigned op = c->Iop;
-    if (c->Iflags & CFvex)
+    if (c->Iflags & CFvex && c->Ivex.pfx == 0xC4)
         ins = vex_inssize(c);
     else if ((c->Iop & 0xFFFD00) == 0x0F3800)
         ins = inssize2[(op >> 8) & 0xFF];
