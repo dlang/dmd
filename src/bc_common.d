@@ -1,5 +1,4 @@
 module ddmd.ctfe.bc_common;
-import ddmd.root.rmem;
 
 struct CndJmpBegin
 {
@@ -159,12 +158,6 @@ struct BCHeap
     uint[] _heap = new uint[](2 ^^ 15);
     uint heapMax = (2 ^^ 15) - 32;
     uint heapSize = 4;
-
-    void initHeap()
-    {
-        _heap = (cast(uint*)(allocmemory((2 ^^ 24) * uint.sizeof)))[0 .. 2 ^^ 24];
-        heapMax = (2 ^^ 24) - 32;
-    }
 
     HeapAddr pushString(const char* _string, const uint size) pure
     {

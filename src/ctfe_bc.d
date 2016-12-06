@@ -135,7 +135,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 {
     import std.stdio;
 
-    static if (is(typeof(_sharedCtfeState.functionCount)))
+    static if (is(typeof(_sharedCtfeState.functionCount)) && is(BCGen))
     {
         if (auto i = _sharedCtfeState.getFunctionIndex(fd))
         {
@@ -166,7 +166,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
     StopWatch hiw;
     hiw.start();
-    _sharedCtfeState.heap.initHeap();
+    _sharedCtfeState.initHeap();
     hiw.stop();
     writeln("Initalizing heap took " ~ hiw.peek.usecs.to!string ~ " usecs");
 
@@ -450,6 +450,13 @@ struct SharedCtfeState(BCGenT)
     uint errorCount;
     
 
+    void initHeap(uint maxHeapSize = 2 ^^ 24)
+    {
+        import ddmd.root.rmem;
+        void *mem = allocmemory(maxHeapSize * uint.sizeof);
+        heap._heap = (cast(uint*)mem)[0 .. maxHeapSize];
+        heap.heapMax = (maxHeapSize) - 32;
+    }
 
     void initTypeVisitor()
     {
