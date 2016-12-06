@@ -161,7 +161,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     //if (bcv is null)
     //{
     isw.start();
-    scope bcv = new BCV!BCGenT(fd, _this);
+    scope BCV!BCGenT bcv = new BCV!BCGenT(fd, null); 
+    //bcv.clear();
     pragma(msg, "size of ", typeof(bcv), __traits(classInstanceSize, typeof(bcv)));
     bcv.Initialize();
     isw.stop();
@@ -917,7 +918,12 @@ extern (C++) final class BCTypeVisitor : Visitor
 
 extern (C++) final class BCV(BCGenT) : Visitor
 {
-    BCGenT gen;
+    uint unresolvedGotoCount;
+    uint breakFixupCount;
+    uint continueFixupCount;
+    uint fixupTableCount;
+
+    BCGenT gen = void;
     alias gen this;
 
     // for now!
@@ -940,6 +946,11 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     FuncDeclaration me;
     bool inReturnStatement;
+
+    UnresolvedGoto[ubyte.max] unresolvedGotos = void;
+    BCAddr[ubyte.max] breakFixups = void;
+    BCAddr[ubyte.max] continueFixups = void;
+    BoolExprFixupEntry[ubyte.max] fixupTable = void;
 
     alias visit = super.visit;
 
@@ -969,19 +980,9 @@ extern (C++) final class BCV(BCGenT) : Visitor
     //BCValue _this;
     Expression _this;
 
-    BoolExprFixupEntry[ubyte.max] fixupTable;
-    uint fixupTableCount;
-
-    UnresolvedGoto[ubyte.max] unresolvedGotos;
-    uint unresolvedGotoCount;
-
     BCBlock* currentBlock;
     BCValue currentIndexed;
 
-    BCAddr[ubyte.max] breakFixups;
-    uint breakFixupCount;
-    BCAddr[ubyte.max] continueFixups;
-    uint continueFixupCount;
 
     BCValue retval;
     BCValue assignTo;
@@ -1033,6 +1034,7 @@ public:
 
     void endArguments()
     {
+        processedArgs = 0;
         processingArguments = false;
         insideArgumentProcessing = false;
     }
@@ -1144,10 +1146,11 @@ public:
         {
             if (auto i = _sharedCtfeState.getFunctionIndex(fd))
             {
-                //     auto bc = _sharedCtfeState.functions[i - 1].byteCode;
-                //      this.byteCodeArray[0 .. bc.length] = bc;
-                //       this.ip = cast(uint) bc.length;
-                //       return;
+                     auto bc = _sharedCtfeState.functions[i - 1].byteCode;
+                      this.byteCodeArray[0 .. bc.length] = bc;
+                       this.ip = cast(uint) bc.length;
+                       this.arguments.length = _sharedCtfeState.functions[i - 1].nArgs;
+                       return;
             }
         }
 
@@ -1206,7 +1209,7 @@ public:
                 {
                     _sharedCtfeState.functions[_sharedCtfeState.functionCount++] = BCFunction(cast(void*) fd,
                         BCFunctionTypeEnum.Bytecode,
-                        _sharedCtfeState.functionCount, byteCodeArray[0 .. ip].dup);
+                        _sharedCtfeState.functionCount, byteCodeArray[0 .. ip].dup, cast(uint) parameterTypes.length);
                 }
                 else
                 {

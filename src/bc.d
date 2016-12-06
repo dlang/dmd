@@ -294,20 +294,22 @@ struct BCFunction
         BCValue function(const BCValue[] arguments, uint[] heapPtr) _fBuiltin;
         BCValue function(const BCValue[] arguments, uint[] heapPtr, uint[] stackPtr) fPtr;
     }
-
-    this(void* fd, BCFunctionTypeEnum type, int nr, const int[] byteCode) pure
+    uint nArgs;
+    this(void* fd, BCFunctionTypeEnum type, int nr, const int[] byteCode, uint nArgs) pure
     {
         this.funcDecl = fd;
         this.nr = nr;
         this.type = BCFunctionTypeEnum.Builtin;
         this.byteCode = cast(immutable(int)[]) byteCode;
+        this.nArgs = nArgs;
     }
 
-    this(int nr, BCValue function(const BCValue[] arguments, uint[] heapPtr) _fBuiltin) pure
+    this(int nr, BCValue function(const BCValue[] arguments, uint[] heapPtr) _fBuiltin, uint nArgs) pure
     {
         this.nr = nr;
         this.type = BCFunctionTypeEnum.Builtin;
         this._fBuiltin = _fBuiltin;
+        this.nArgs = nArgs;
     }
 
     debug
@@ -323,12 +325,6 @@ struct BCGen
     BCAddr ip = BCAddr(4);
     StackAddr sp = StackAddr(4);
     ubyte parameterCount;
-
-    BCLabel[short.max / 4] unresolvedLabels;
-
-    uint conditionsUsedFlags = 0b11111;
-
-    short unreslovedLabelCount;
     ubyte temporaryCount;
 @safe pure:
     auto interpret(BCValue[] args, BCHeap* heapPtr) const
@@ -373,10 +369,16 @@ struct BCGen
 
     void Initialize()
     {
+      parameterCount = 0;
+      temporaryCount = 0;
+
+      ip = BCAddr(4);
+      sp = StackAddr(4);
     }
 
     void Finalize()
     {
+       byteCodeArray[ip+1] = 0;
     }
 
     void beginFunction()
@@ -458,11 +460,6 @@ struct BCGen
 
         byteCodeArray[atIp] = lj.lw;
         byteCodeArray[atIp + 1] = lj.hi;
-    }
-
-    BCLabel* unresolvedLabel()
-    {
-        return &unresolvedLabels[unreslovedLabelCount++];
     }
 
     void genJump(BCLabel target)
@@ -1976,6 +1973,7 @@ int[] testRelJmp()
     BCGen gen;
     with (gen)
     {
+        Initialize();
         auto result = genTemporary(i32Type);
         Set(result, BCValue(Imm32(2)));
         auto evalCond = genLabel();
@@ -1985,7 +1983,7 @@ int[] testRelJmp()
         endCndJmp(cndJmp, genLabel());
         Add3(result, result, BCValue(Imm32(1)));
         genJump(evalCond);
-
+        Finalize();
         return byteCodeArray[0 .. ip].dup;
     }
 }
