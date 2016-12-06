@@ -94,7 +94,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 }
 
 import ddmd.ctfe.bc_common;
-enum cacheBC = 1;
+enum cacheBC = 0;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
@@ -158,10 +158,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         }
     }
  
-    __gshared static uint recursionLevel = 0;
     //__gshared static BCV!BCGenT bcv;
     writefln("%x", cast(void*) fd.vthis);
-    recursionLevel++;
     debug (ctfe)
         writeln("recursionLevel: ", recursionLevel);
     //writeln("Evaluating function: ", fd.toString);
@@ -176,17 +174,13 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
     StopWatch csw;
     StopWatch isw;
-    if (fd && fd.ident && (fd.ident.toString == "_ArrayEq"
-            || fd.ident.toString == "uIntArrayToString"))
-        return null;
-
+ 
     writeln("trying ", fd.toString);
     //if (bcv is null)
     //{
     isw.start();
     scope BCV!BCGenT bcv = new BCV!BCGenT(fd, null); 
     //bcv.clear();
-    pragma(msg, "size of ", typeof(bcv), __traits(classInstanceSize, typeof(bcv)));
     bcv.Initialize();
     isw.stop();
     csw.start();
@@ -196,11 +190,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     writeln("Creating and Initialzing bcGen took ", isw.peek.usecs.to!string, " usecs");
     writeln("Generting bc for ", fd.ident.toString, " took ", csw.peek.usecs.to!string,
         " usecs");
-    if (csw.peek.usecs > 500)
-    {
-        //    writeln(fd.fbody.toString);
-    }
-
+ 
     debug (ctfe)
     {
         import std.stdio;
@@ -225,7 +215,14 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         StopWatch sw;
         sw.start();
         bcv.beginArguments();
-        auto bc_args = args.map!(a => bcv.genExpr(a)).array;
+        BCValue[] bc_args;
+        bc_args.length = args.length;
+        bcv.beginArguments();
+        foreach(i, arg;args)
+        {
+            bc_args[i] = bcv.genExpr(arg);
+        }
+        bcv.endArguments();
         if (bcv.IGaveUp)
         {
             writeln("Ctfe died on argument processing");
@@ -234,12 +231,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         writeln("BC complied: ", fd.ident.toString);
         bcv.endArguments();
         bcv.Finalize();
-        if (--recursionLevel == 0)
-        {
-            recursionLevel = uint.max;
-
-        }
-
+        
         static if (UseLLVMBackend)
         {
             bcv.gen.print();
