@@ -1657,7 +1657,7 @@ public:
         }
     }
 
-    BCBlock genBlock(Statement stmt, bool setCurrent = false, bool infiniteLoop = false)
+    BCBlock genBlock(Statement stmt, bool setCurrent = false, bool infiniteLoop = false, bool incrementContinue = false)
     {
         BCBlock result;
         auto oldBlock = currentBlock;
