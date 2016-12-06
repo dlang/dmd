@@ -135,6 +135,25 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 {
     import std.stdio;
 
+    static if (is(typeof(_sharedCtfeState.functionCount)))
+    {
+        if (auto i = _sharedCtfeState.getFunctionIndex(fd))
+        {
+            auto fn = _sharedCtfeState.functions[i - 1];
+            __gshared static arg_bcv = new BCV!(BCGenT)(null, null);
+            arg_bcv.arguments.length = fn.nArgs;
+            arg_bcv.beginArguments();
+            import std.algorithm : map;
+            import std.range : array;
+            auto bc_args = args.map!(a => arg_bcv.genExpr(a)).array;
+            arg_bcv.endArguments();
+
+            auto retval = interpret_(fn.byteCode, bc_args,
+                &_sharedCtfeState.heap, _sharedCtfeState.functions.ptr);
+
+            return toExpression(retval, (cast(TypeFunction)fd.type).nextOf, &_sharedCtfeState.heap);
+        }
+    }
     __gshared static uint recursionLevel = 0;
     //__gshared static BCV!BCGenT bcv;
     writefln("%x", cast(void*) fd.vthis);
@@ -245,7 +264,6 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                 bcv.gen.byteCodeArray[0 .. bcv.ip].printInstructions.writeln();
 
             }
-
             auto retval = interpret_(bcv.byteCodeArray[0 .. bcv.ip], bc_args,
                 &_sharedCtfeState.heap, _sharedCtfeState.functions.ptr);
         }
