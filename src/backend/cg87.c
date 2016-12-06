@@ -569,14 +569,6 @@ code *genfwait(code *c)
     return c;
 }
 
-/***************************************
- * Generate floating point instruction.
- */
-
-code * genf2(code *c,unsigned op,unsigned rm)
-{
-    return gen2(genfwait(c),op,rm);
-}
 
 /***************************
  * Put the 8087 flags into the CPU flags.
@@ -3812,8 +3804,6 @@ __body
 #endif
 {
     tym_t ty = tybasic(e->Ety);
-    code *c = NULL;
-    code *cpush = NULL;
     code cs;
     unsigned mf;
     unsigned sz;
@@ -3833,25 +3823,27 @@ __body
         case TYcldouble:    break;
         default:            assert(0);
     }
+    CodeBuilder cdb;
     switch (e->Eoper)
     {
         case OPvar:
             notreg(e);                  // never enregister this variable
         case OPind:
-            cpush = cat(push87(), push87());
+            cdb.append(push87());
+            cdb.append(push87());
             switch (ty)
             {
                 case TYcfloat:
                 case TYcdouble:
-                    c = loadea(e,&cs,ESC(mf,1),0,0,0,0);        // FLD var
+                    cdb.append(loadea(e,&cs,ESC(mf,1),0,0,0,0));        // FLD var
                     cs.IEVoffset1 += sz;
-                    c = gen(c, &cs);
+                    cdb.gen(&cs);
                     break;
 
                 case TYcldouble:
-                    c = loadea(e,&cs,0xDB,5,0,0,0);             // FLD var
+                    cdb.append(loadea(e,&cs,0xDB,5,0,0,0));             // FLD var
                     cs.IEVoffset1 += sz;
-                    c = gen(c, &cs);
+                    cdb.gen(&cs);
                     break;
 
                 default:
@@ -3864,18 +3856,19 @@ __body
         case OPld_d:
         case OPf_d:
         case OPd_f:
-            c = cload87(e->E1, pretregs);
+            cdb.append(cload87(e->E1, pretregs));
             freenode(e->E1);
-            return c;
+            return cdb.finish();
 
         case OPconst:
-            cpush = cat(push87(), push87());
+            cdb.append(push87());
+            cdb.append(push87());
             for (i = 0; i < 2; i++)
             {
                 ldop = loadconst(e, i);
                 if (ldop)
                 {
-                    c = genf2(c,0xD9,ldop);             // FLDx
+                    cdb.genf2(0xD9,ldop);             // FLDx
                 }
                 else
                 {
@@ -3891,7 +3884,8 @@ __body
 #endif
             assert(0);
     }
-    return cat4(cpush,c,fixresult_complex87(e, retregs, pretregs), NULL);
+    cdb.append(fixresult_complex87(e, retregs, pretregs));
+    return cdb.finish();
 }
 
 /**********************************************
@@ -3901,15 +3895,16 @@ code *loadPair87(elem *e, regm_t *pretregs)
 {
     assert(e->Eoper == OPpair || e->Eoper == OPrpair);
     regm_t retregs = mST0;
-    code *c1 = codelem(e->E1, &retregs, FALSE);
+    CodeBuilder cdb;
+    cdb.append(codelem(e->E1, &retregs, FALSE));
     note87(e->E1, 0, 0);
-    code *c2 = codelem(e->E2, &retregs, FALSE);
-    code *c3 = makesure87(e->E1, 0, 1, 0);
+    cdb.append(codelem(e->E2, &retregs, FALSE));
+    cdb.append(makesure87(e->E1, 0, 1, 0));
     if (e->Eoper == OPrpair)
-        c3 = genf2(c3, 0xD9, 0xC8 + 1); // FXCH ST(1)
+        cdb.genf2(0xD9, 0xC8 + 1);   // FXCH ST(1)
     retregs = mST01;
-    code *c4 = fixresult_complex87(e, retregs, pretregs);
-    return cat4(c1,c2,c3,c4);
+    cdb.append(fixresult_complex87(e, retregs, pretregs));
+    return cdb.finish();
 }
 
 #endif // !SPP
