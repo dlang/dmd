@@ -938,16 +938,14 @@ extern (C++) final class BCV(BCGenT) : Visitor
     SwitchState* switchState = new SwitchState();
     SwitchFixupEntry* switchFixup;
 
-    scope bct = new BCTypeVisitor();
-
     FuncDeclaration me;
     bool inReturnStatement;
 
     alias visit = super.visit;
-    //alias toBCType = bct.toBCType;
+
     const(BCType) toBCType(Type t)
     {
-        auto bct = bct.toBCType(t);
+        auto bct = _sharedCtfeState.btv.toBCType(t);
         if(bct != BCType.init)
         {
             return bct;
