@@ -94,7 +94,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 }
 
 import ddmd.ctfe.bc_common;
-
+enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
@@ -135,17 +135,20 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 {
     import std.stdio;
 
-    static if (is(typeof(_sharedCtfeState.functionCount)) && is(BCGen))
+    static if (cacheBC && is(typeof(_sharedCtfeState.functionCount)) && is(BCGen))
     {
-        if (auto i = _sharedCtfeState.getFunctionIndex(fd))
+        if (auto fnIdx = _sharedCtfeState.getFunctionIndex(fd))
         {
-            auto fn = _sharedCtfeState.functions[i - 1];
+            auto fn = _sharedCtfeState.functions[fnIdx - 1];
             __gshared static arg_bcv = new BCV!(BCGenT)(null, null);
             arg_bcv.arguments.length = fn.nArgs;
+            BCValue[] bc_args;
+            bc_args.length = fn.nArgs;
             arg_bcv.beginArguments();
-            import std.algorithm : map;
-            import std.range : array;
-            auto bc_args = args.map!(a => arg_bcv.genExpr(a)).array;
+            foreach(i, arg;args)
+            {
+                bc_args[i] = arg_bcv.genExpr(arg);
+            }
             arg_bcv.endArguments();
 
             auto retval = interpret_(fn.byteCode, bc_args,
@@ -154,6 +157,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             return toExpression(retval, (cast(TypeFunction)fd.type).nextOf, &_sharedCtfeState.heap);
         }
     }
+ 
     __gshared static uint recursionLevel = 0;
     //__gshared static BCV!BCGenT bcv;
     writefln("%x", cast(void*) fd.vthis);
