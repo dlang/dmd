@@ -2930,8 +2930,9 @@ code *cdind(elem *e,regm_t *pretregs)
         {
             assert(sz == 4 || sz == 8 || sz == 16); // float, double or vector
             cs.Iop = xmmload(tym);
-            reg -= XMM0;
-            goto L2;
+            code_newreg(&cs,reg - XMM0);
+            ce = gen(CNIL,&cs);     // MOV reg,[idx]
+            checkSetVex(ce,tym);
         }
         else if (sz <= REGSIZE)
         {
