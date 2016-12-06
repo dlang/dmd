@@ -94,7 +94,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 }
 
 import ddmd.ctfe.bc_common;
-enum cacheBC = 0;
+enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
@@ -159,7 +159,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     }
  
     //__gshared static BCV!BCGenT bcv;
-    writefln("%x", cast(void*) fd.vthis);
+    static uint recursionLevel; 
     debug (ctfe)
         writeln("recursionLevel: ", recursionLevel);
     //writeln("Evaluating function: ", fd.toString);
@@ -719,6 +719,7 @@ Expression toExpression(const BCValue value, Type expressionType,
 
         auto resultString = (cast(void*)(heapPtr._heap.ptr + offset + 1))[0 .. length].dup;
         result = new StringExp(Loc(), resultString.ptr, length);
+        (cast(StringExp)result).ownedByCtfe = OWNEDctfe;
 
         //HACK to avoid TypePainting!
         result.type = expressionType;
@@ -743,6 +744,7 @@ Expression toExpression(const BCValue value, Type expressionType,
                 offset += align4(_sharedCtfeState.size(member));
             }
             result = new StructLiteralExp(Loc(), sd, elmExprs);
+            (cast(StructLiteralExp)result).ownedByCtfe = OWNEDctfe;
             result.type = expressionType;
         }
         break;
@@ -788,6 +790,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             }
 
             result = new ArrayLiteralExp(Loc(), elmExprs);
+            (cast(ArrayLiteralExp)result).ownedByCtfe = OWNEDctfe;
             result.type = expressionType;
         }
         break;
