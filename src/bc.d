@@ -320,7 +320,7 @@ struct BCFunction
 
 struct BCGen
 {
-    int[ushort.max] byteCodeArray;
+    int[ushort.max/4] byteCodeArray = void;
     /// ip starts at 4 because 0 should be an invalid address;
     BCAddr ip = BCAddr(4);
     StackAddr sp = StackAddr(4);
@@ -371,14 +371,20 @@ struct BCGen
     {
       parameterCount = 0;
       temporaryCount = 0;
-      byteCodeArray[0 .. 4] = 0;
+      byteCodeArray[0] = 0;
+      byteCodeArray[1] = 0;
+      byteCodeArray[2] = 0;
+      byteCodeArray[3] = 0;
+
       ip = BCAddr(4);
       sp = StackAddr(4);
     }
 
     void Finalize()
     {
-       byteCodeArray[ip+1] = 0;
+       // the [ip-1] may be wrong in some cases ?
+       byteCodeArray[ip-1] = 0;
+       byteCodeArray[ip] = 0;
     }
 
     void beginFunction()
@@ -476,6 +482,7 @@ struct BCGen
     {
         assert(lhs.vType == BCValueType.StackValue, "Can only store flags in Stack Values");
         byteCodeArray[ip] = ShortInst16(LongInst.Flg, lhs.stackAddr.addr);
+        byteCodeArray[ip + 1] = 0;
         ip += 2;
     }
 
@@ -517,6 +524,7 @@ struct BCGen
             val = pushOntoStack(val);
 
         byteCodeArray[ip] = ShortInst16(LongInst.Not, val.stackAddr);
+        byteCodeArray[ip + 1] = 0;
         ip += 2;
     }
 
@@ -868,6 +876,7 @@ struct BCGen
 
             byteCodeArray[ip] = ShortInst16(LongInst.Ret, val.stackAddr,
                 val.type == BCTypeEnum.i32Ptr);
+            byteCodeArray[ip + 1] = 0;
             ip += 2;
         }
         else if (val.vType == BCValueType.Immediate)
@@ -875,6 +884,7 @@ struct BCGen
             auto sv = pushOntoStack(val);
             assert(sv.vType == BCValueType.StackValue);
             byteCodeArray[ip] = ShortInst16(LongInst.Ret, sv.stackAddr);
+            byteCodeArray[ip + 1] = 0;
             ip += 2;
         }
         else

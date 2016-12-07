@@ -1002,11 +1002,9 @@ extern (C++) final class BCV(BCGenT) : Visitor
     }
 
     import ddmd.tokens;
-
     BCBlock[void* ] labeledBlocks;
     bool ignoreVoid;
     BCValue[void* ] vars;
-
     //BCValue _this;
     Expression _this;
 
