@@ -1948,11 +1948,11 @@ private void addDefaultVersionIdentifiers()
 
 private void printPredefinedVersions()
 {
-    if (global.params.verbose && global.params.versionids) {
-        fprintf(global.stdmsg, "predefs   ");
-        for (int i = 0; i < global.params.versionids.dim; i++) {
-            fprintf(global.stdmsg, "%s ", global.params.versionids.data[i]);
-        }
+    if (global.params.verbose && global.params.versionids)
+    {
+        fprintf(global.stdmsg, "predefs  ");
+        foreach (const s; *global.params.versionids)
+            fprintf(global.stdmsg, " %s", s);
         fprintf(global.stdmsg, "\n");
     }
 }
