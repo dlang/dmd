@@ -911,6 +911,8 @@ extern (C++) final class BCTypeVisitor : Visitor
                         indirectionCount++;
                         baseType = baseType.nextOf;
                     }
+                    _sharedCtfeState.pointerTypePointers[_sharedCtfeState.pointerCount] = 
+                       cast(TypePointer)t;
                     _sharedCtfeState.pointers[_sharedCtfeState.pointerCount++] = BCPointer(
                         toBCType(baseType), indirectionCount);
                     return BCType(BCTypeEnum.Ptr, _sharedCtfeState.pointerCount);
