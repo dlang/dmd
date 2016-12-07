@@ -739,8 +739,11 @@ Expression toExpression(const BCValue value, Type expressionType,
             uint offset = 0;
             foreach (idx, member; _struct.memberTypes[0 .. _struct.memberTypeCount])
             {
-                Expression elm = new IntegerExp(*(heapPtr._heap.ptr + value.heapAddr.addr + offset));
-                elm.type = sd.fields[idx].type;
+                auto type = sd.fields[idx].type;
+
+                Expression elm = toExpression(
+                    BCValue(Imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset))),
+                    type);
                 elmExprs.insert(idx, elm);
                 offset += align4(_sharedCtfeState.size(member));
             }
