@@ -1960,4 +1960,17 @@ private void addDefaultVersionIdentifiers()
     if (global.params.useArrayBounds == BOUNDSCHECKoff)
         VersionCondition.addPredefinedGlobalIdent("D_NoBoundsChecks");
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
+
+    printPredefinedVersions();
+}
+
+private void printPredefinedVersions()
+{
+    if (global.params.verbose && global.params.versionids)
+    {
+        fprintf(global.stdmsg, "predefs  ");
+        foreach (const s; *global.params.versionids)
+            fprintf(global.stdmsg, " %s", s);
+        fprintf(global.stdmsg, "\n");
+    }
 }
