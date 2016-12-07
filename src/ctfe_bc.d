@@ -133,14 +133,15 @@ ulong evaluateUlong(Expression e)
 
 Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _this = null)
 {
+    __gshared static arg_bcv = new BCV!(BCGenT)(null, null);
+
     import std.stdio;
 
-    static if (cacheBC && is(typeof(_sharedCtfeState.functionCount)) && is(BCGen))
+    static if (cacheBC && is(typeof(_sharedCtfeState.functionCount)) && is(BCGenT == BCGen))
     {
         if (auto fnIdx = _sharedCtfeState.getFunctionIndex(fd))
         {
             auto fn = _sharedCtfeState.functions[fnIdx - 1];
-            __gshared static arg_bcv = new BCV!(BCGenT)(null, null);
             arg_bcv.arguments.length = fn.nArgs;
             BCValue[] bc_args;
             bc_args.length = fn.nArgs;
@@ -2465,7 +2466,7 @@ public:
 
         auto bct = toBCType(ie.type);
 
-        //assert(bct == BCType.i32, "only 32bit is suppoorted for now");
+        // HACK regardless of the literal type we register it as 32bit if it's smaller then int.max;
         if (ie.value > int.max)
         {
             retval = BCValue(Imm64(ie.value));

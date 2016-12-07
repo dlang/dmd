@@ -371,7 +371,7 @@ struct BCGen
     {
       parameterCount = 0;
       temporaryCount = 0;
-
+      byteCodeArray[0 .. 4] = 0;
       ip = BCAddr(4);
       sp = StackAddr(4);
     }
