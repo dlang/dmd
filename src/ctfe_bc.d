@@ -1153,11 +1153,9 @@ public:
                 || fd.ident == Identifier.idPool("wrapperParameters")
                 || fd.ident == Identifier.idPool("defaultMatrix")
                 || fd.ident == Identifier.idPool("bug4910") // this one is strange
-
-                
-
                 || fd.ident == Identifier.idPool("extSeparatorPos")
-                || fd.ident == Identifier.idPool("args") || fd.ident == Identifier.idPool("check"))
+                || fd.ident == Identifier.idPool("args")
+                || fd.ident == Identifier.idPool("check"))
         {
             IGaveUp = true;
             debug (ctfe)
