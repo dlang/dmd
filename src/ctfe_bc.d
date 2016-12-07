@@ -94,6 +94,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 }
 
 import ddmd.ctfe.bc_common;
+
+enum perf = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
@@ -146,7 +148,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             BCValue[] bc_args;
             bc_args.length = fn.nArgs;
             arg_bcv.beginArguments();
-            foreach(i, arg;args)
+            foreach (i, arg; args)
             {
                 bc_args[i] = arg_bcv.genExpr(arg);
             }
@@ -155,12 +157,13 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             auto retval = interpret_(fn.byteCode, bc_args,
                 &_sharedCtfeState.heap, _sharedCtfeState.functions.ptr);
 
-            return toExpression(retval, (cast(TypeFunction)fd.type).nextOf, &_sharedCtfeState.heap);
+            return toExpression(retval, (cast(TypeFunction) fd.type).nextOf,
+                &_sharedCtfeState.heap);
         }
     }
- 
+
     //__gshared static BCV!BCGenT bcv;
-    static uint recursionLevel; 
+    static uint recursionLevel;
     debug (ctfe)
         writeln("recursionLevel: ", recursionLevel);
     //writeln("Evaluating function: ", fd.toString);
@@ -168,30 +171,42 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     import std.datetime : StopWatch;
 
     StopWatch hiw;
-    hiw.start();
+    static if (perf)
+        hiw.start();
     _sharedCtfeState.initHeap();
-    hiw.stop();
-    writeln("Initalizing heap took " ~ hiw.peek.usecs.to!string ~ " usecs");
+    static if (perf)
+        hiw.stop();
+    static if (perf)
+        writeln("Initalizing heap took " ~ hiw.peek.usecs.to!string ~ " usecs");
 
-    StopWatch csw;
-    StopWatch isw;
- 
-    writeln("trying ", fd.toString);
+    static if (perf)
+        StopWatch csw;
+    static if (perf)
+        StopWatch isw;
+
+    static if (perf)
+        writeln("trying ", fd.toString);
     //if (bcv is null)
     //{
-    isw.start();
-    scope BCV!BCGenT bcv = new BCV!BCGenT(fd, null); 
+    static if (perf)
+        isw.start();
+    scope BCV!BCGenT bcv = new BCV!BCGenT(fd, null);
     //bcv.clear();
     bcv.Initialize();
-    isw.stop();
-    csw.start();
+    static if (perf)
+        isw.stop();
+    static if (perf)
+        csw.start();
     //}
     bcv.visit(fd);
-    csw.stop;
-    writeln("Creating and Initialzing bcGen took ", isw.peek.usecs.to!string, " usecs");
-    writeln("Generting bc for ", fd.ident.toString, " took ", csw.peek.usecs.to!string,
-        " usecs");
- 
+    static if (perf)
+        csw.stop;
+    static if (perf)
+        writeln("Creating and Initialzing bcGen took ", isw.peek.usecs.to!string, " usecs");
+    static if (perf)
+        writeln("Generting bc for ", fd.ident.toString, " took ",
+            csw.peek.usecs.to!string, " usecs");
+
     debug (ctfe)
     {
         import std.stdio;
@@ -219,7 +234,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         BCValue[] bc_args;
         bc_args.length = args.length;
         bcv.beginArguments();
-        foreach(i, arg;args)
+        foreach (i, arg; args)
         {
             bc_args[i] = bcv.genExpr(arg);
         }
@@ -229,10 +244,9 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             writeln("Ctfe died on argument processing");
             return null;
         }
-        writeln("BC complied: ", fd.ident.toString);
         bcv.endArguments();
         bcv.Finalize();
-        
+
         static if (UseLLVMBackend)
         {
             bcv.gen.print();
@@ -270,14 +284,19 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         auto ft = cast(TypeFunction) fd.type;
         assert(ft.nextOf);
 
-        writeln("Executing bc took " ~ sw.peek.usecs.to!string ~ " us");
+        static if (perf)
+            writeln("Executing bc took " ~ sw.peek.usecs.to!string ~ " us");
         {
-            StopWatch esw;
-            esw.start();
+            static if (perf)
+                StopWatch esw;
+            static if (perf)
+                esw.start();
             if (auto exp = toExpression(retval, ft.nextOf, &_sharedCtfeState.heap))
             {
-                esw.stop();
-                writeln("Converting to AST Expression took " ~ esw.peek.usecs.to!string ~ "us");
+                static if (perf)
+                    esw.stop();
+                static if (perf)
+                    writeln("Converting to AST Expression took " ~ esw.peek.usecs.to!string ~ "us");
                 return exp;
             }
             else
@@ -433,7 +452,7 @@ struct SharedCtfeState(BCGenT)
     TypeSArray[ubyte.max * 4] sArrayTypePointers;
     TypeDArray[ubyte.max * 4] dArrayTypePointers;
     TypePointer[ubyte.max * 4] pointerTypePointers;
-    BCTypeVisitor btv; 
+    BCTypeVisitor btv;
 
     BCStruct[ubyte.max * 4] structs;
     uint structCount;
@@ -445,13 +464,13 @@ struct SharedCtfeState(BCGenT)
     uint pointerCount;
     RetainedError[ubyte.max * 4] errors;
     uint errorCount;
-    
 
     void initHeap(uint maxHeapSize = 2 ^^ 24)
     {
         import ddmd.root.rmem;
-        void *mem = allocmemory(maxHeapSize * uint.sizeof);
-        heap._heap = (cast(uint*)mem)[0 .. maxHeapSize];
+
+        void* mem = allocmemory(maxHeapSize * uint.sizeof);
+        heap._heap = (cast(uint*) mem)[0 .. maxHeapSize];
         heap.heapMax = (maxHeapSize) - 32;
     }
 
@@ -720,7 +739,7 @@ Expression toExpression(const BCValue value, Type expressionType,
 
         auto resultString = (cast(void*)(heapPtr._heap.ptr + offset + 1))[0 .. length].dup;
         result = new StringExp(Loc(), resultString.ptr, length);
-        (cast(StringExp)result).ownedByCtfe = OWNEDctfe;
+        (cast(StringExp) result).ownedByCtfe = OWNEDctfe;
 
         //HACK to avoid TypePainting!
         result.type = expressionType;
@@ -748,14 +767,14 @@ Expression toExpression(const BCValue value, Type expressionType,
                 offset += align4(_sharedCtfeState.size(member));
             }
             result = new StructLiteralExp(Loc(), sd, elmExprs);
-            (cast(StructLiteralExp)result).ownedByCtfe = OWNEDctfe;
+            (cast(StructLiteralExp) result).ownedByCtfe = OWNEDctfe;
             result.type = expressionType;
         }
         break;
     case Tarray:
         {
             auto tda = cast(TypeDArray) expressionType;
-            
+
             auto baseType = _sharedCtfeState.btv.toBCType(tda.nextOf);
             auto elmLength = align4(_sharedCtfeState.size(baseType));
             auto arrayLength = heapPtr._heap[value.heapAddr.addr];
@@ -794,7 +813,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             }
 
             result = new ArrayLiteralExp(Loc(), elmExprs);
-            (cast(ArrayLiteralExp)result).ownedByCtfe = OWNEDctfe;
+            (cast(ArrayLiteralExp) result).ownedByCtfe = OWNEDctfe;
             result.type = expressionType;
         }
         break;
@@ -839,7 +858,7 @@ Expression toExpression(const BCValue value, Type expressionType,
     return result;
 }
 
-extern (C++) final class BCTypeVisitor : Visitor 
+extern (C++) final class BCTypeVisitor : Visitor
 {
     alias visit = super.visit;
 
@@ -915,8 +934,8 @@ extern (C++) final class BCTypeVisitor : Visitor
                         indirectionCount++;
                         baseType = baseType.nextOf;
                     }
-                    _sharedCtfeState.pointerTypePointers[_sharedCtfeState.pointerCount] = 
-                       cast(TypePointer)t;
+                    _sharedCtfeState.pointerTypePointers[_sharedCtfeState.pointerCount] = cast(
+                        TypePointer) t;
                     _sharedCtfeState.pointers[_sharedCtfeState.pointerCount++] = BCPointer(
                         toBCType(baseType), indirectionCount);
                     return BCType(BCTypeEnum.Ptr, _sharedCtfeState.pointerCount);
@@ -942,19 +961,17 @@ extern (C++) final class BCTypeVisitor : Visitor
         sharedCtfeState.endStruct(st);
     }
 
-
 }
-
 
 extern (C++) final class BCV(BCGenT) : Visitor
 {
+    BCGenT gen = void;
+    alias gen this;
+
     uint unresolvedGotoCount;
     uint breakFixupCount;
     uint continueFixupCount;
     uint fixupTableCount;
-
-    BCGenT gen = void;
-    alias gen this;
 
     // for now!
     BCValue[] arguments;
@@ -987,21 +1004,22 @@ extern (C++) final class BCV(BCGenT) : Visitor
     const(BCType) toBCType(Type t)
     {
         auto bct = _sharedCtfeState.btv.toBCType(t);
-        if(bct != BCType.init)
+        if (bct != BCType.init)
         {
             return bct;
         }
         else
         {
             IGaveUp = true;
-	    debug (ctfe)
+            debug (ctfe)
                 assert(0, "Type unsupported " ~ (cast(Type)(t)).toString());
-            else
-                return BCType.init;
+        else
+                    return BCType.init;
         }
     }
 
     import ddmd.tokens;
+
     BCBlock[void* ] labeledBlocks;
     bool ignoreVoid;
     BCValue[void* ] vars;
@@ -1010,7 +1028,6 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     BCBlock* currentBlock;
     BCValue currentIndexed;
-
 
     BCValue retval;
     BCValue assignTo;
@@ -1154,9 +1171,11 @@ public:
                 || fd.ident == Identifier.idPool("wrapperParameters")
                 || fd.ident == Identifier.idPool("defaultMatrix")
                 || fd.ident == Identifier.idPool("bug4910") // this one is strange
+
+                
+
                 || fd.ident == Identifier.idPool("extSeparatorPos")
-                || fd.ident == Identifier.idPool("args")
-                || fd.ident == Identifier.idPool("check"))
+                || fd.ident == Identifier.idPool("args") || fd.ident == Identifier.idPool("check"))
         {
             IGaveUp = true;
             debug (ctfe)
@@ -1172,11 +1191,11 @@ public:
         {
             if (auto i = _sharedCtfeState.getFunctionIndex(fd))
             {
-                     auto bc = _sharedCtfeState.functions[i - 1].byteCode;
-                      this.byteCodeArray[0 .. bc.length] = bc;
-                       this.ip = cast(uint) bc.length;
-                       this.arguments.length = _sharedCtfeState.functions[i - 1].nArgs;
-                       return;
+                auto bc = _sharedCtfeState.functions[i - 1].byteCode;
+                this.byteCodeArray[0 .. bc.length] = bc;
+                this.ip = cast(uint) bc.length;
+                this.arguments.length = _sharedCtfeState.functions[i - 1].nArgs;
+                return;
             }
         }
 
@@ -1235,7 +1254,8 @@ public:
                 {
                     _sharedCtfeState.functions[_sharedCtfeState.functionCount++] = BCFunction(cast(void*) fd,
                         BCFunctionTypeEnum.Bytecode,
-                        _sharedCtfeState.functionCount, byteCodeArray[0 .. ip].dup, cast(uint) parameterTypes.length);
+                        _sharedCtfeState.functionCount,
+                        byteCodeArray[0 .. ip].dup, cast(uint) parameterTypes.length);
                 }
                 else
                 {
@@ -1659,11 +1679,31 @@ public:
         }
     }
 
-    BCBlock genBlock(Statement stmt, bool setCurrent = false, bool infiniteLoop = false, bool incrementContinue = false)
+    void fixupBreak(uint oldBreakFixupCount, BCLabel breakHere)
+    {
+        foreach (Jmp; breakFixups[oldBreakFixupCount .. breakFixupCount])
+        {
+            endJmp(Jmp, breakHere);
+        }
+        breakFixupCount = oldBreakFixupCount;
+    }
+
+    void fixupContinue(uint oldContinueFixupCount, BCLabel continueHere)
+    {
+        foreach (Jmp; continueFixups[oldContinueFixupCount .. continueFixupCount])
+        {
+            endJmp(Jmp, continueHere);
+        }
+        continueFixupCount = oldContinueFixupCount;
+    }
+
+    BCBlock genBlock(Statement stmt, bool setCurrent = false,
+        bool infiniteLoop = false, bool incrementContinue = false)
     {
         BCBlock result;
         auto oldBlock = currentBlock;
-        const oldbreakFixupCount = breakFixupCount;
+        const oldBreakFixupCount = breakFixupCount;
+        const oldContinueFixupCount = continueFixupCount;
 
         if (setCurrent)
         {
@@ -1676,14 +1716,16 @@ public:
         // Now let's fixup thoose breaks
         if (setCurrent)
         {
+            if (!incrementContinue)
+            {
+                fixupContinue(oldContinueFixupCount, result.begin);
+            }
+
             if (!infiniteLoop)
             {
-                foreach (Jmp; breakFixups[oldbreakFixupCount .. breakFixupCount])
-                {
-                    endJmp(Jmp, result.end);
-                }
-                breakFixupCount = oldbreakFixupCount;
+                fixupBreak(oldBreakFixupCount, result.end);
             }
+
             currentBlock = oldBlock;
         }
 
@@ -1729,12 +1771,14 @@ public:
                 }
 
             auto condJmp = beginCndJmp(cond);
-
-            auto _body = genBlock(fs._body, true);
+            const oldContinueFixupCount = continueFixupCount;
+            auto _body = genBlock(fs._body, true, false, true);
             if (fs.increment)
             {
+                typeof(genLabel()) beforeIncrement;
+                beforeIncrement = genLabel();
                 fs.increment.accept(this);
-                _body.end = genLabel();
+                fixupContinue(oldContinueFixupCount, beforeIncrement);
             }
             genJump(condEval);
             auto afterJmp = genLabel();
@@ -3221,8 +3265,7 @@ public:
         }
         else
         {
-            assert(currentBlock, "ContinueStatement has no block to continue from" ~ cs.toString);
-            genJump(currentBlock.begin);
+            continueFixups[continueFixupCount++] = beginJmp();
         }
     }
 
