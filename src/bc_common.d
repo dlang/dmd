@@ -297,10 +297,13 @@ struct BCValue
                return stackAddr;
             case BCValueType.HeapValue :
                 return heapAddr;
-            case BCValueType.Immidiate :
+            case BCValueType.Immediate :
                 return imm32;
-            default :
-                assert("toUint not implement for " ~ vType.to!string);
+            default : 
+                {
+                    import std.conv : to;
+                    assert(0, "toUint not implement for " ~ vType.to!string);
+                }
         }
 
     }
