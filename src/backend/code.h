@@ -725,6 +725,7 @@ struct CodeBuilder
     void gen(code *cs);
     void gen1(unsigned op);
     void gen2(unsigned op, unsigned rm);
+    void genf2(unsigned op, unsigned rm);
     void gen2sib(unsigned op, unsigned rm, unsigned sib);
     void genasm(char *s, unsigned slen);
     void genasm(LabelDsymbol *label);

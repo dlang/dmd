@@ -325,6 +325,22 @@ void CodeBuilder::gen2(unsigned op, unsigned rm)
     pTail = &ce->next;
 }
 
+/***************************************
+ * Generate floating point instruction.
+ */
+
+code *genf2(code *c,unsigned op,unsigned rm)
+{
+    return gen2(genfwait(c),op,rm);
+}
+
+
+void CodeBuilder::genf2(unsigned op, unsigned rm)
+{
+    append(genfwait(CNIL));
+    gen2(op, rm);
+}
+
 code *gen2sib(code *c,unsigned op,unsigned rm,unsigned sib)
 { code *ce,*cstart;
 
