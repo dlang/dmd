@@ -1426,7 +1426,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
     BCValue returnValue;
 
     // debug(bc) { import std.stdio; writeln("BC.len = ", byteCode.length); }
-    if (byteCode.length < 6)
+    if (byteCode.length < 6 || byteCode.length <= ip)
         return typeof(return).init;
 
     while (true)
@@ -1443,16 +1443,13 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                 }
             }
 
-        if (byteCode.length <= ip)
-
-            return typeof(return).init;
         const lw = byteCode[ip++];
 
         if (!lw)
         { // Skip NOPS
             continue;
         }
-
+        // consider splitting the stackPointer in stackHigh and stackLow
         const hi = byteCode[ip++];
 
         bool indirect = !!(lw & IndirectionFlagMask);
