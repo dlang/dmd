@@ -2030,7 +2030,7 @@ printf("\n");
 
 elem *el_convxmm(elem *e)
 {
-    unsigned char buffer[16];
+    unsigned char buffer[sizeof(eve)];
 
 #if TX86
     // Do not convert if the constants can be loaded with the special XMM instructions
@@ -2043,7 +2043,7 @@ elem *el_convxmm(elem *e)
     tym_t ty = e->Ety;
     int sz = tysize(ty);
     assert(sz <= sizeof(buffer));
-    void *p = &e->EV.Vcent;
+    void *p = &e->EV;
 
 #if 0
 printf("el_convxmm(): sz = %d\n", sz);
