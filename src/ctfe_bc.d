@@ -96,7 +96,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 import ddmd.ctfe.bc_common;
 
 enum perf = 0;
-enum cacheBC = 1;
+enum cacheBC = 0;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
@@ -190,8 +190,9 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     //{
     static if (perf)
         isw.start();
-    scope BCV!BCGenT bcv = new BCV!BCGenT(fd, null);
-    //bcv.clear();
+    __gshared static BCV!BCGenT bcv = new BCV!BCGenT(null, null);
+    bcv.clear();
+    bcv.me = fd; 
     bcv.Initialize();
     static if (perf)
         isw.stop();
@@ -199,6 +200,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         csw.start();
     //}
     bcv.visit(fd);
+
+
     static if (perf)
         csw.stop;
     static if (perf)
@@ -274,9 +277,9 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
             }
             BCValue[2] errorValues;
-
+            
             auto retval = interpret_(bcv.byteCodeArray[0 .. bcv.ip], bc_args,
-                &_sharedCtfeState.heap, _sharedCtfeState.functions.ptr, &errorValues);
+                &_sharedCtfeState.heap, _sharedCtfeState.functions.ptr, &errorValues, &_sharedCtfeState.errors[0], _sharedCtfeState.stack[]);
         }
         sw.stop();
         import std.stdio;
@@ -447,7 +450,7 @@ struct SharedCtfeState(BCGenT)
 {
     uint _threadLock;
     BCHeap heap;
-    uint[ushort.max] Stack; // a Stack of 64K*4 is the Hard Limit;    //Type 0 beeing the terminator for chainedTypes
+    long[ushort.max/4] stack; // a Stack of 64K*4 is the Hard Limit;    //Type 0 beeing the terminator for chainedTypes
     StructDeclaration[ubyte.max * 4] structDeclPointers;
     TypeSArray[ubyte.max * 4] sArrayTypePointers;
     TypeDArray[ubyte.max * 4] dArrayTypePointers;
@@ -996,13 +999,13 @@ extern (C++) final class BCTypeVisitor : Visitor
 
 extern (C++) final class BCV(BCGenT) : Visitor
 {
-    BCGenT gen = void;
-    alias gen this;
-
     uint unresolvedGotoCount;
     uint breakFixupCount;
     uint continueFixupCount;
     uint fixupTableCount;
+
+    BCGenT gen = void;
+    alias gen this;
 
     // for now!
     BCValue[] arguments;
@@ -1018,8 +1021,42 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     bool IGaveUp;
 
+    void clear()
+    {
+      unresolvedGotoCount = 0;
+      breakFixupCount = 0;
+      continueFixupCount = 0;
+      fixupTableCount = 0;
+
+     arguments = [];
+     parameterTypes = [];
+     processedArgs = 0;
+     processingArguments = 0;
+     insideArgumentProcessing = 0;
+     processingParameters = 0;
+    insideArrayLiteralExp = 0;
+     unrolledLoopState = null;
+     switchState = new SwitchState();
+     switchFixup = null;
+
+     IGaveUp = 0;
+     me = null;
+
+     currentBlock = null;
+     currentIndexed = BCValue.init;
+     retval = BCValue.init;
+     assignTo = BCValue.init;
+
+    discardValue = false;
+
+    labeledBlocks.clear();
+    ignoreVoid = false;
+    vars.clear();
+
+    }
+
     UnrolledLoopState* unrolledLoopState;
-    SwitchState* switchState = new SwitchState();
+    SwitchState* switchState;
     SwitchFixupEntry* switchFixup;
 
     FuncDeclaration me;
