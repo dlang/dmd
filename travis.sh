@@ -61,7 +61,7 @@ test_dmd() {
     if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_OS_NAME" == "linux"  ]; then
         make -j$N -C test MODEL=$MODEL # all ARGS by default
     else
-        make -j$N -C test MODEL=$MODEL ARGS="-O -inline -release"
+        travis_wait 30 make -j$N -C test MODEL=$MODEL ARGS="-O -inline -release"
     fi
 }
 
