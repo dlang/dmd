@@ -149,6 +149,7 @@ Where:
   -map             generate linker .map file
   -mavx            use AVX instruction set" ~
   "%s" /* placeholder for mscrtlib */ ~ "
+  -mv=<package.module>=<filespec>  use <filespec> as source file for <package.module>
   -noboundscheck   no array bounds checking (deprecated, use -boundscheck=off)
   -O               optimize
   -o-              do not write object file
@@ -793,6 +794,17 @@ Language changes listed by -transition=id:
                 if (!global.params.imppath)
                     global.params.imppath = new Strings();
                 global.params.imppath.push(p + 2 + (p[2] == '='));
+            }
+            else if (p[1] == 'm' && p[2] == 'v' && p[3] == '=')
+            {
+                if (p[4] && strchr(p + 5, '='))
+                {
+                    if (!global.params.modFileAliasStrings)
+                        global.params.modFileAliasStrings = new Strings();
+                    global.params.modFileAliasStrings.push(p + 4);
+                }
+                else
+                    goto Lerror;
             }
             else if (p[1] == 'J')
             {

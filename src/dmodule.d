@@ -417,10 +417,42 @@ extern (C++) final class Module : Package
         if (packages && packages.dim)
         {
             OutBuffer buf;
+            OutBuffer dotmods;
+            auto ms = global.params.modFileAliasStrings;
+            const msdim = ms ? ms.dim : 0;
+
+            void checkModFileAlias(const(char)* p)
+            {
+                /* Check and replace the contents of buf[] with
+                 * an alias string from global.params.modFileAliasStrings[]
+                 */
+                dotmods.writestring(p);
+            Lmain:
+                for (size_t j = msdim; j--;)
+                {
+                    const m = (*ms)[j];
+                    const q = strchr(m, '=');
+                    assert(q);
+                    if (dotmods.offset <= q - m && memcmp(dotmods.peekString(), m, q - m) == 0)
+                    {
+                        buf.reset();
+                        auto qlen = strlen(q + 1);
+                        if (qlen && (q[qlen] == '/' || q[qlen] == '\\'))
+                            --qlen;             // remove trailing separator
+                        buf.writestring(q[1 .. qlen + 1]);
+                        break Lmain;            // last matching entry in ms[] wins
+                    }
+                }
+                dotmods.writeByte('.');
+            }
+
             for (size_t i = 0; i < packages.dim; i++)
             {
                 Identifier pid = (*packages)[i];
-                buf.writestring(pid.toChars());
+                const p = pid.toChars();
+                buf.writestring(p);
+                if (msdim)
+                    checkModFileAlias(p);
                 version (Windows)
                 {
                     buf.writeByte('\\');
@@ -431,6 +463,8 @@ extern (C++) final class Module : Package
                 }
             }
             buf.writestring(filename);
+            if (msdim)
+                checkModFileAlias(filename);
             buf.writeByte(0);
             filename = buf.extractData();
         }
