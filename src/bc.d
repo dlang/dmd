@@ -1356,13 +1356,15 @@ string printInstructions(const int* startInstructions, uint length) pure
 }
 
 BCValue interpret(const BCGen* gen, const BCValue[] args,
-    BCFunction* functions = null, BCHeap* heapPtr = null) pure @safe
+    BCFunction* functions = null, BCHeap* heapPtr = null,
+    BCValue[2]* errorValues = null) pure @safe
 {
-    return interpret_(gen.byteCodeArray[0 .. gen.ip], args, heapPtr, functions);
+    return interpret_(gen.byteCodeArray[0 .. gen.ip], args, heapPtr, functions, errorValues);
 }
 
 BCValue interpret_(const int[] byteCode, const BCValue[] args,
     BCHeap* heapPtr = null, const BCFunction* functions = null,
+    BCValue[2]* errorValues = null,
     long[] stackPtr = null, uint stackOffset = 4) pure @trusted
 {
     import std.conv;
@@ -1967,7 +1969,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                     continue;
                 }
                 returnValue = interpret_((functions + opRefOffset).byteCode,
-                    args, heapPtr, functions, stack, stackOffsetCall);
+                    args, heapPtr, functions, errorValues, stack, stackOffsetCall);
 
             }
             break;

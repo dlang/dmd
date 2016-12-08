@@ -698,8 +698,35 @@ struct RetainedError // Name is still undecided
     BCValue v2;
 }
 
+const(char*) buildErrorMessage(const RetainedError error, const BCHeap* heapPtr) pure
+{
+    uint insertPos1 = uint.max;
+    uint insertPos2 = uint.max;
+    uint seenArgs;
+    uint pos = cast(uint)error.msg.length;
+
+    char* result;
+
+    while(pos--)
+    {
+        char c = error.msg.ptr[pos];
+        if (c == 'd' && pos && error.msg.ptr[pos-1] == '%')
+        {
+
+            --pos;
+        }
+        else if (c == 's' && pos && error.msg.ptr[pos-1] == '%')
+        {
+            --pos;
+            assert(0, "String errors not implemented yet");
+        }
+    }
+
+    return result ? result : error.msg.ptr; 
+}
+
 Expression toExpression(const BCValue value, Type expressionType,
-    const BCHeap* heapPtr = &_sharedCtfeState.heap)
+    const BCHeap* heapPtr = &_sharedCtfeState.heap, const BCValue[2] errorValue = [BCValue.init, BCValue.init])
 {
     import ddmd.parse : Loc;
 
@@ -714,7 +741,9 @@ Expression toExpression(const BCValue value, Type expressionType,
         auto err = _sharedCtfeState.errors[value.imm32 - 1];
         import ddmd.errors;
 
-        error(err.loc, err.msg.ptr);
+
+
+        error(err.loc, buildErrorMessage(err, heapPtr));
         return CTFEExp.cantexp;
     }
 
