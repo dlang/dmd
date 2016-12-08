@@ -500,6 +500,22 @@ struct SharedCtfeState(BCGenT)
         return retval;
     }
 
+    BCValue addError(Loc loc, string msg, BCValue v1)
+    {
+        errors[errorCount++] = RetainedError(loc, msg, v1);
+        auto retval = BCValue(Imm32(errorCount));
+        retval.vType = BCValueType.Error;
+        return retval;
+    }
+
+    BCValue addError(Loc loc, string msg, BCValue v1, BCValue v2)
+    {
+        errors[errorCount++] = RetainedError(loc, msg, v1, v2);
+        auto retval = BCValue(Imm32(errorCount));
+        retval.vType = BCValueType.Error;
+        return retval;
+    }
+
     int getArrayIndex(TypeSArray tsa)
     {
         foreach (i, sArrayTypePtr; sArrayTypePointers[0 .. arrayCount])
@@ -694,6 +710,8 @@ struct RetainedError // Name is still undecided
 
     Loc loc;
     string msg;
+    BCValue v1;
+    BCValue v2;
 }
 
 Expression toExpression(const BCValue value, Type expressionType,
@@ -1550,7 +1568,7 @@ public:
 
         debug (ctfe)
         {
-            import std.stdio;fn
+            import std.stdio;
 
             writefln("IndexExp %s ... \n\tdiscardReturnValue %d", ie.toString, discardValue);
             writefln("ie.type : %s ", ie.type.toString);
