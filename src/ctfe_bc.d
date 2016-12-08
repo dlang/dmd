@@ -128,6 +128,7 @@ else
 __gshared SharedCtfeState!BCGenT _sharedCtfeState;
 __gshared SharedCtfeState!BCGenT* sharedCtfeState = &_sharedCtfeState;
 
+
 ulong evaluateUlong(Expression e)
 {
     return e.toUInteger;
@@ -190,7 +191,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     //{
     static if (perf)
         isw.start();
-    __gshared static BCV!BCGenT bcv = new BCV!BCGenT(null, null);
+    __gshared static  bcv = new BCV!BCGenT(null, null);
+
     bcv.clear();
     bcv.me = fd; 
     bcv.Initialize();
@@ -1049,9 +1051,9 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     discardValue = false;
 
-    labeledBlocks.clear();
+    labeledBlocks.destroy();
     ignoreVoid = false;
-    vars.clear();
+    vars.destroy();
 
     }
 
