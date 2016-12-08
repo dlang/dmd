@@ -135,9 +135,6 @@ ulong evaluateUlong(Expression e)
 
 Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _this = null)
 {
-    import core.memory;
-
-    GC.disable();
     __gshared static arg_bcv = new BCV!(BCGenT)(null, null);
 
     import std.stdio;
@@ -217,8 +214,6 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
         bcv.vars.keys.each!(k => (cast(VarDeclaration) k).print);
         bcv.vars.writeln;
-        writeln("Initializing bcGen took " ~ isw.peek.usecs.to!string ~ "usecs");
-        writeln("Generting bc took " ~ csw.peek.usecs.to!string ~ "usecs");
 
         writeln(" stackUsage = ", (bcv.sp - 4).to!string ~ " byte");
         writeln(" TemporaryCount = ", (bcv.temporaryCount).to!string);
@@ -1555,7 +1550,7 @@ public:
 
         debug (ctfe)
         {
-            import std.stdio;
+            import std.stdio;fn
 
             writefln("IndexExp %s ... \n\tdiscardReturnValue %d", ie.toString, discardValue);
             writefln("ie.type : %s ", ie.type.toString);
@@ -1701,7 +1696,7 @@ public:
     }
 
     BCBlock genBlock(Statement stmt, bool setCurrent = false,
-        bool infiniteLoop = false, bool incrementContinue = false)
+        bool costumBreak = false, bool costumContinue = false)
     {
         BCBlock result;
         auto oldBlock = currentBlock;
@@ -1719,12 +1714,12 @@ public:
         // Now let's fixup thoose breaks
         if (setCurrent)
         {
-            if (!incrementContinue)
+            if (!costumContinue)
             {
                 fixupContinue(oldContinueFixupCount, result.begin);
             }
 
-            if (!infiniteLoop)
+            if (!costumContinue)
             {
                 fixupBreak(oldBreakFixupCount, result.end);
             }
@@ -1978,15 +1973,22 @@ public:
         foreach (elem; *ale.elements)
         {
             auto elexpr = genExpr(elem);
-            if (elexpr.type.type == BCTypeEnum.i32 && elexpr.vType == BCValueType.Immediate)
+            if (elexpr.type.type == BCTypeEnum.i32)
             {
-                _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = elexpr.imm32;
+                if (elexpr.vType == BCValueType.Immediate)
+                {
+                    _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = elexpr.imm32;
+                }
+                else
+                {
+                    Store32(BCValue(Imm32(_sharedCtfeState.heap.heapSize)), elexpr);
+                }
                 _sharedCtfeState.heap.heapSize += heapAdd;
             }
             else
             {
                 debug (ctfe)
-                    assert(0, "ArrayElement is not an Immediate but an " ~ to!string(elexpr.vType));
+                    assert(0, "ArrayElement is not an i32 but an " ~ to!string(elexpr.type.type));
                 IGaveUp = true;
             }
         }
@@ -3164,10 +3166,6 @@ public:
 
     override void visit(GotoCaseStatement gcs)
     {
-        //FIXME this is horrible broken, the index might not represent the right statement
-        // because our number can diffent from dmd's one
-        // dmd seems to sort the cases, we dont.
-
         with (switchState)
         {
             *switchFixup = SwitchFixupEntry(beginJmp(), gcs.cs.index + 1);

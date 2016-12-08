@@ -824,23 +824,34 @@ struct BCGen
 
     void Load32(BCValue _to, BCValue from)
     {
-        assert(_to.vType == BCValueType.StackValue
-            || _to.vType == BCValueType.Parameter, "to has the vType " ~ to!string(_to.vType));
         if (from.vType != BCValueType.StackValue)
         {
             from = pushOntoStack(from);
         }
+        if (_to.vType != BCValueType.StackValue)
+        {
+            _to = pushOntoStack(_to);
+        }
+        assert(_to.vType == BCValueType.StackValue
+            || _to.vType == BCValueType.Parameter, "to has the vType " ~ to!string(_to.vType));
+
         emitLongInst(LongInst64(LongInst.HeapLoad32, _to.stackAddr, from.stackAddr));
     }
 
     void Store32(BCValue _to, BCValue value)
     {
-        assert(_to.vType == BCValueType.StackValue
-            || _to.vType == BCValueType.Parameter, "to has the vType " ~ to!string(_to.vType));
         if (value.vType != BCValueType.StackValue)
         {
             value = pushOntoStack(value);
         }
+        if (_to.vType != BCValueType.StackValue)
+        {
+            _to = pushOntoStack(_to);
+        }
+
+        assert(_to.vType == BCValueType.StackValue
+            || _to.vType == BCValueType.Parameter, "to has the vType " ~ to!string(_to.vType));
+
         emitLongInst(LongInst64(LongInst.HeapStore32, _to.stackAddr, value.stackAddr));
     }
 
