@@ -2293,21 +2293,23 @@ code* gen_loadcse(code *c, unsigned reg, targ_uns i)
 
 code *cdframeptr(elem *e, regm_t *pretregs)
 {
-    unsigned reg;
-    code cs;
+    CodeBuilder cdb;
 
     regm_t retregs = *pretregs & allregs;
     if  (!retregs)
         retregs = allregs;
-    code *cg = allocreg(&retregs, &reg, TYint);
+    unsigned reg;
+    cdb.append(allocreg(&retregs, &reg, TYint));
 
+    code cs;
     cs.Iop = ESCAPE | ESCframeptr;
     cs.Iflags = 0;
     cs.Irex = 0;
     cs.Irm = reg;
-    cg = gen(cg,&cs);
+    cdb.gen(&cs);
+    cdb.append(fixresult(e,retregs,pretregs));
 
-    return cat(cg,fixresult(e,retregs,pretregs));
+    return cdb.finish();
 }
 
 /***************************************
@@ -2318,46 +2320,44 @@ code *cdframeptr(elem *e, regm_t *pretregs)
 code *cdgot(elem *e, regm_t *pretregs)
 {
 #if TARGET_OSX
-    regm_t retregs;
-    unsigned reg;
-    code *c;
-
-    retregs = *pretregs & allregs;
+    CodeBuilder cdb;
+    regm_t retregs = *pretregs & allregs;
     if  (!retregs)
         retregs = allregs;
-    c = allocreg(&retregs, &reg, TYnptr);
+    unsigned reg;
+    cdb.append(allocreg(&retregs, &reg, TYnptr));
 
-    c = genc(c,CALL,0,0,0,FLgot,0);     //     CALL L1
-    gen1(c, 0x58 + reg);                // L1: POP reg
+    cdb.genc(CALL,0,0,0,FLgot,0);     //     CALL L1
+    cdb.gen1(0x58 + reg);             // L1: POP reg
 
-    return cat(c,fixresult(e,retregs,pretregs));
+    cdb.append(fixresult(e,retregs,pretregs));
+    return cdb.finish();
 #elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    regm_t retregs;
-    unsigned reg;
-    code *c;
-    code *cgot;
-
-    retregs = *pretregs & allregs;
+    CodeBuilder cdb;
+    regm_t retregs = *pretregs & allregs;
     if  (!retregs)
         retregs = allregs;
-    c = allocreg(&retregs, &reg, TYnptr);
+    unsigned reg;
+    cdb.append(allocreg(&retregs, &reg, TYnptr));
 
-    c = genc2(c,CALL,0,0);      //     CALL L1
-    gen1(c, 0x58 + reg);        // L1: POP reg
+    cdb.genc2(CALL,0,0);        //     CALL L1
+    cdb.gen1(0x58 + reg);       // L1: POP reg
 
                                 //     ADD reg,_GLOBAL_OFFSET_TABLE_+3
     symbol *gotsym = Obj::getGOTsym();
-    cgot = gencs(CNIL,0x81,modregrm(3,0,reg),FLextern,gotsym);
+    cdb.gencs(0x81,modregrm(3,0,reg),FLextern,gotsym);
     /* Because the 2:3 offset from L1: is hardcoded,
      * this sequence of instructions must not
      * have any instructions in between,
      * so set CFvolatile to prevent the scheduler from rearranging it.
      */
+    code *cgot = cdb.last();
     cgot->Iflags = CFoff | CFvolatile;
     cgot->IEVoffset2 = (reg == AX) ? 2 : 3;
 
     makeitextern(gotsym);
-    return cat3(c,cgot,fixresult(e,retregs,pretregs));
+    cdb.append(fixresult(e,retregs,pretregs));
+    return cdb.finish();
 #else
     assert(0);
     return NULL;
