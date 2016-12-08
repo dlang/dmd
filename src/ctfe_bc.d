@@ -273,8 +273,10 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                 bcv.gen.byteCodeArray[0 .. bcv.ip].printInstructions.writeln();
 
             }
+            BCValue[2] errorValues;
+
             auto retval = interpret_(bcv.byteCodeArray[0 .. bcv.ip], bc_args,
-                &_sharedCtfeState.heap, _sharedCtfeState.functions.ptr);
+                &_sharedCtfeState.heap, _sharedCtfeState.functions.ptr, &errorValues);
         }
         sw.stop();
         import std.stdio;
@@ -289,7 +291,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                 StopWatch esw;
             static if (perf)
                 esw.start();
-            if (auto exp = toExpression(retval, ft.nextOf, &_sharedCtfeState.heap))
+            if (auto exp = toExpression(retval, ft.nextOf, &_sharedCtfeState.heap, &errorValues))
             {
                 static if (perf)
                     esw.stop();
@@ -698,7 +700,7 @@ struct RetainedError // Name is still undecided
     BCValue v2;
 }
 
-const(char*) buildErrorMessage(const RetainedError error, const BCHeap* heapPtr) pure
+const(char*) buildErrorMessage(const RetainedError error, const BCHeap* heapPtr, const BCValue[2]* errorValues) pure
 {
     uint insertPos1 = uint.max;
     uint insertPos2 = uint.max;
@@ -726,7 +728,7 @@ const(char*) buildErrorMessage(const RetainedError error, const BCHeap* heapPtr)
 }
 
 Expression toExpression(const BCValue value, Type expressionType,
-    const BCHeap* heapPtr = &_sharedCtfeState.heap, const BCValue[2] errorValue = [BCValue.init, BCValue.init])
+    const BCHeap* heapPtr = &_sharedCtfeState.heap, const BCValue[2]* errorValues = null)
 {
     import ddmd.parse : Loc;
 
@@ -743,7 +745,7 @@ Expression toExpression(const BCValue value, Type expressionType,
 
 
 
-        error(err.loc, buildErrorMessage(err, heapPtr));
+        error(err.loc, buildErrorMessage(err, heapPtr, errorValues));
         return CTFEExp.cantexp;
     }
 
