@@ -291,7 +291,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                 StopWatch esw;
             static if (perf)
                 esw.start();
-            if (auto exp = toExpression(retval, ft.nextOf, &_sharedCtfeState.heap, &errorValues))
+            if (auto exp = toExpression(retval, ft.nextOf, &_sharedCtfeState.heap, &errorValues, &_sharedCtfeState.errors[0]))
             {
                 static if (perf)
                     esw.stop();
@@ -728,7 +728,7 @@ const(char*) buildErrorMessage(const RetainedError error, const BCHeap* heapPtr,
 }
 
 Expression toExpression(const BCValue value, Type expressionType,
-    const BCHeap* heapPtr = &_sharedCtfeState.heap, const BCValue[2]* errorValues = null)
+    const BCHeap* heapPtr = &_sharedCtfeState.heap, const BCValue[2]* errorValues = null, const RetainedError* errors = null)
 {
     import ddmd.parse : Loc;
 

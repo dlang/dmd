@@ -287,6 +287,25 @@ struct BCValue
         void* voidStar;
     }
 
+    uint toUint() const pure
+    {
+        switch(this.vType)
+        {
+            case BCValueType.Parameter,
+            BCValueType.Temporary,
+            BCValueType.StackValue :
+               return stackAddr;
+            case BCValueType.HeapValue :
+                return heapAddr;
+            case BCValueType.Immidiate :
+                return imm32;
+            default :
+                assert("toUint not implement for " ~ vType.to!string);
+        }
+
+    }
+
+
     string toString() const pure
     {
         import std.format;
