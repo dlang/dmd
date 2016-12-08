@@ -2928,7 +2928,7 @@ code *cdind(elem *e,regm_t *pretregs)
         }
         if (retregs & XMMREGS)
         {
-            assert(sz == 4 || sz == 8 || sz == 16); // float, double or vector
+            assert(sz == 4 || sz == 8 || sz == 16 || sz == 32); // float, double or vector
             cs.Iop = xmmload(tym);
             code_newreg(&cs,reg - XMM0);
             ce = gen(CNIL,&cs);     // MOV reg,[idx]

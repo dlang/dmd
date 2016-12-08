@@ -673,7 +673,9 @@ unsigned xmmload(tym_t tym, bool aligned)
         case TYcdouble:
         case TYidouble: op = LODSD; break;       // MOVSD
 
+        case TYfloat8:
         case TYfloat4:  op = aligned ? LODAPS : LODUPS; break;      // MOVAPS / MOVUPS
+        case TYdouble4:
         case TYdouble2: op = aligned ? LODAPD : LODUPD; break;      // MOVAPD / MOVUPD
         case TYschar16:
         case TYuchar16:
@@ -682,7 +684,15 @@ unsigned xmmload(tym_t tym, bool aligned)
         case TYlong4:
         case TYulong4:
         case TYllong2:
-        case TYullong2: op = aligned ? LODDQA : LODDQU; break;      // MOVDQA / MOVDQU
+        case TYullong2:
+        case TYschar32:
+        case TYuchar32:
+        case TYshort16:
+        case TYushort16:
+        case TYlong8:
+        case TYulong8:
+        case TYllong4:
+        case TYullong4: op = aligned ? LODDQA : LODDQU; break;      // MOVDQA / MOVDQU
 
         default:
             printf("tym = x%x\n", tym);
@@ -712,7 +722,9 @@ unsigned xmmstore(tym_t tym, bool aligned)
         case TYcdouble:
         case TYcfloat:  op = STOSD; break;       // MOVSD
 
+        case TYfloat8:
         case TYfloat4:  op = aligned ? STOAPS : STOUPS; break;      // MOVAPS / MOVUPS
+        case TYdouble4:
         case TYdouble2: op = aligned ? STOAPD : STOUPD; break;      // MOVAPD / MOVUPD
         case TYschar16:
         case TYuchar16:
@@ -721,7 +733,15 @@ unsigned xmmstore(tym_t tym, bool aligned)
         case TYlong4:
         case TYulong4:
         case TYllong2:
-        case TYullong2: op = aligned ? STODQA : STODQU; break;      // MOVDQA / MOVDQU
+        case TYullong2:
+        case TYschar32:
+        case TYuchar32:
+        case TYshort16:
+        case TYushort16:
+        case TYlong8:
+        case TYulong8:
+        case TYllong4:
+        case TYullong4: op = aligned ? STODQA : STODQU; break;      // MOVDQA / MOVDQU
 
         default:
             printf("tym = x%x\n", tym);
@@ -752,14 +772,24 @@ static unsigned xmmoperator(tym_t tym, unsigned oper)
                 case TYidouble: op = ADDSD;  break;
 
                 // SIMD vector types
+                case TYfloat8:
                 case TYfloat4:  op = ADDPS;  break;
+                case TYdouble4:
                 case TYdouble2: op = ADDPD;  break;
+                case TYschar32:
+                case TYuchar32:
                 case TYschar16:
                 case TYuchar16: op = PADDB;  break;
+                case TYshort16:
+                case TYushort16:
                 case TYshort8:
                 case TYushort8: op = PADDW;  break;
+                case TYlong8:
+                case TYulong8:
                 case TYlong4:
                 case TYulong4:  op = PADDD;  break;
+                case TYllong4:
+                case TYullong4:
                 case TYllong2:
                 case TYullong2: op = PADDQ;  break;
 
@@ -780,14 +810,24 @@ static unsigned xmmoperator(tym_t tym, unsigned oper)
                 case TYidouble: op = SUBSD;  break;
 
                 // SIMD vector types
+                case TYfloat8:
                 case TYfloat4:  op = SUBPS;  break;
+                case TYdouble4:
                 case TYdouble2: op = SUBPD;  break;
+                case TYschar32:
+                case TYuchar32:
                 case TYschar16:
                 case TYuchar16: op = PSUBB;  break;
+                case TYshort16:
+                case TYushort16:
                 case TYshort8:
                 case TYushort8: op = PSUBW;  break;
+                case TYlong8:
+                case TYulong8:
                 case TYlong4:
                 case TYulong4:  op = PSUBD;  break;
+                case TYllong4:
+                case TYullong4:
                 case TYllong2:
                 case TYullong2: op = PSUBQ;  break;
 
@@ -805,8 +845,12 @@ static unsigned xmmoperator(tym_t tym, unsigned oper)
                 case TYidouble: op = MULSD;  break;
 
                 // SIMD vector types
+                case TYfloat8:
                 case TYfloat4:  op = MULPS;  break;
+                case TYdouble4:
                 case TYdouble2: op = MULPD;  break;
+                case TYshort16:
+                case TYushort16:
                 case TYshort8:
                 case TYushort8: op = PMULLW; break;
 
@@ -824,7 +868,9 @@ static unsigned xmmoperator(tym_t tym, unsigned oper)
                 case TYidouble: op = DIVSD;  break;
 
                 // SIMD vector types
+                case TYfloat8:
                 case TYfloat4:  op = DIVPS;  break;
+                case TYdouble4:
                 case TYdouble2: op = DIVPD;  break;
 
                 default:        assert(0);
@@ -843,7 +889,15 @@ static unsigned xmmoperator(tym_t tym, unsigned oper)
                 case TYlong4:
                 case TYulong4:
                 case TYllong2:
-                case TYullong2: op = POR; break;
+                case TYullong2:
+                case TYschar32:
+                case TYuchar32:
+                case TYshort16:
+                case TYushort16:
+                case TYlong8:
+                case TYulong8:
+                case TYllong4:
+                case TYullong4: op = POR; break;
 
                 default:        assert(0);
             }
@@ -861,7 +915,15 @@ static unsigned xmmoperator(tym_t tym, unsigned oper)
                 case TYlong4:
                 case TYulong4:
                 case TYllong2:
-                case TYullong2: op = PAND; break;
+                case TYullong2:
+                case TYschar32:
+                case TYuchar32:
+                case TYshort16:
+                case TYushort16:
+                case TYlong8:
+                case TYulong8:
+                case TYllong4:
+                case TYullong4: op = PAND; break;
 
                 default:        assert(0);
             }
@@ -879,7 +941,15 @@ static unsigned xmmoperator(tym_t tym, unsigned oper)
                 case TYlong4:
                 case TYulong4:
                 case TYllong2:
-                case TYullong2: op = PXOR; break;
+                case TYullong2:
+                case TYschar32:
+                case TYuchar32:
+                case TYshort16:
+                case TYushort16:
+                case TYlong8:
+                case TYulong8:
+                case TYllong4:
+                case TYullong4: op = PXOR; break;
 
                 default:        assert(0);
             }
