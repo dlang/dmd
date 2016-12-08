@@ -135,6 +135,9 @@ ulong evaluateUlong(Expression e)
 
 Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _this = null)
 {
+    import core.memory;
+
+    GC.disable();
     __gshared static arg_bcv = new BCV!(BCGenT)(null, null);
 
     import std.stdio;
@@ -3367,16 +3370,19 @@ public:
 
     void infiniteLoop(Statement _body, Expression increment = null)
     {
-        auto oldBreakFixupCount = breakFixupCount;
+        const oldBreakFixupCount = breakFixupCount;
+        const oldContinueFixupCount = continueFixupCount;
         auto block = genBlock(_body, true, true);
         if (increment)
+        {
+            fixupContinue(oldContinueFixupCount, block.end);
             increment.accept(this);
+        }
+        continueFixupCount = oldContinueFixupCount;
         genJump(block.begin);
         auto after_jmp = genLabel();
-        foreach (Jmp; breakFixups[oldBreakFixupCount .. breakFixupCount])
-        {
-            endJmp(Jmp, after_jmp);
-        }
+        fixupBreak(oldBreakFixupCount, after_jmp);
+
     }
 
     override void visit(ExpStatement es)
