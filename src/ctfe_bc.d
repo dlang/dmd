@@ -492,23 +492,7 @@ struct SharedCtfeState(BCGenT)
 
     import ddmd.tokens : Loc;
 
-    BCValue addError(Loc loc, string msg)
-    {
-        errors[errorCount++] = RetainedError(loc, msg);
-        auto retval = BCValue(Imm32(errorCount));
-        retval.vType = BCValueType.Error;
-        return retval;
-    }
-
-    BCValue addError(Loc loc, string msg, BCValue v1)
-    {
-        errors[errorCount++] = RetainedError(loc, msg, v1);
-        auto retval = BCValue(Imm32(errorCount));
-        retval.vType = BCValueType.Error;
-        return retval;
-    }
-
-    BCValue addError(Loc loc, string msg, BCValue v1, BCValue v2)
+    BCValue addError(Loc loc, string msg, BCValue v1 = BCValue.init, BCValue v2 = BCValue.init)
     {
         errors[errorCount++] = RetainedError(loc, msg, v1, v2);
         auto retval = BCValue(Imm32(errorCount));
@@ -1483,19 +1467,22 @@ public:
 
                 case TOK.TOKshr:
                     {
-                        Lt3(BCValue.init, rhs, BCValue(Imm32(basicTypeSize(lhs.type) * 8)));
+                        auto maxShift = BCValue(Imm32(basicTypeSize(lhs.type) * 8));
+                        Lt3(BCValue.init, rhs, maxShift);
                         AssertError(BCValue.init,
-                            _sharedCtfeState.addError(e.loc, "shift out of bounds"));
+                            _sharedCtfeState.addError(e.loc,
+                            "%d out of range(0..%d)", rhs, maxShift));
                         Rsh3(retval, lhs, rhs);
                     }
                     break;
 
                 case TOK.TOKshl:
                     {
-
-                        Lt3(BCValue.init, rhs, BCValue(Imm32(basicTypeSize(lhs.type) * 8)));
+                        auto maxShift = BCValue(Imm32(basicTypeSize(lhs.type) * 8));
+                        Lt3(BCValue.init, rhs, maxShift);
                         AssertError(BCValue.init,
-                            _sharedCtfeState.addError(e.loc, "shift out of bounds"));
+                            _sharedCtfeState.addError(e.loc,
+                            "%d out of range(0..%d)", rhs, maxShift));
                         Lsh3(retval, lhs, rhs);
                     }
                     break;
