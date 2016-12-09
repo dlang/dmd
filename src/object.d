@@ -3200,7 +3200,15 @@ struct Test
 size_t hashOf(T)(auto ref T arg, size_t seed = 0)
 {
     import core.internal.hash;
-    return core.internal.hash.hashOf((cast(void*)&arg)[0 .. T.sizeof], seed);
+    return core.internal.hash.hashOf(arg, seed);
+}
+
+unittest
+{
+    // Issue # 16654 / 16764
+    auto a = [1];
+    auto b = a.dup;
+    assert(hashOf(a) == hashOf(b));
 }
 
 bool _xopEquals(in void*, in void*)
