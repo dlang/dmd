@@ -253,7 +253,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         import std.range;
         import std.datetime : StopWatch;
         import std.stdio;
-           BCValue[2] errorValues;
+        BCValue[2] errorValues;
 
         StopWatch sw;
         sw.start();
@@ -305,7 +305,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
  
             auto retval = interpret_(bcv.byteCodeArray[0 .. bcv.ip], bc_args,
                 &_sharedCtfeState.heap, &_sharedCtfeState.functions[0],
-                &errorValues, &_sharedCtfeState.errors[0], _sharedCtfeState.stack[]);
+                &errorValues[0], &errorValues[1], &_sharedCtfeState.errors[0], _sharedCtfeState.stack[]);
         }
         sw.stop();
         import std.stdio;
@@ -774,8 +774,9 @@ Expression toExpression(const BCValue value, Type expressionType,
 
         auto err = _sharedCtfeState.errors[value.imm32 - 1];
         import ddmd.errors;
-
-        error(err.loc, buildErrorMessage(err, heapPtr, errorValues));
+        uint e1 = (*errorValues)[0].imm32;
+        uint e2 = (*errorValues)[1].imm32;
+        error(err.loc, buildErrorMessage(err, heapPtr, errorValues), e1, e2);
         return CTFEExp.cantexp;
     }
 
@@ -1552,8 +1553,8 @@ public:
 
                 case TOK.TOKshr:
                     {
-                        auto maxShift = BCValue(Imm32(basicTypeSize(lhs.type) * 8));
-                        Lt3(BCValue.init, rhs, maxShift);
+                        auto maxShift = BCValue(Imm32(basicTypeSize(lhs.type) * 8 - 1));
+                        Le3(BCValue.init, rhs, maxShift);
                         AssertError(BCValue.init,
                             _sharedCtfeState.addError(e.loc,
                             "%d out of range(0..%d)", rhs, maxShift));
@@ -1563,8 +1564,8 @@ public:
 
                 case TOK.TOKshl:
                     {
-                        auto maxShift = BCValue(Imm32(basicTypeSize(lhs.type) * 8));
-                        Lt3(BCValue.init, rhs, maxShift);
+                        auto maxShift = BCValue(Imm32(basicTypeSize(lhs.type) * 8 - 1));
+                        Le3(BCValue.init, rhs, maxShift);
                         AssertError(BCValue.init,
                             _sharedCtfeState.addError(e.loc,
                             "%d out of range(0..%d)", rhs, maxShift));
@@ -1672,7 +1673,7 @@ public:
         //and set isString to true;
         auto idx = genExpr(ie.e2).i32; // HACK
         Gt3(BCValue.init, length, idx);
-        AssertError(BCValue.init, _sharedCtfeState.addError(ie.loc, "ArrayIndex out of bounds"));
+        AssertError(BCValue.init, _sharedCtfeState.addError(ie.loc, "ArrayIndex %d out of bounds %d", idx, length));
         BCArray* arrayType;
         BCSlice* sliceType;
 
@@ -2605,7 +2606,7 @@ public:
         auto bct = toBCType(ie.type);
 
         // HACK regardless of the literal type we register it as 32bit if it's smaller then int.max;
-        if (ie.value > int.max)
+        if (ie.value > uint.max)
         {
             retval = BCValue(Imm64(ie.value));
         }
@@ -2979,7 +2980,7 @@ public:
             auto length = getLength(indexed);
             Gt3(BCValue.init, length, index);
             AssertError(BCValue.init, _sharedCtfeState.addError(ae.loc,
-                "ArrayIndex out of bounds"));
+                "ArrayIndex %d out of bounds %d", index, length));
             auto effectiveAddr = genTemporary(i32Type);
             auto elemType = toBCType(ie.e1.type.nextOf);
             auto elemSize = align4(_sharedCtfeState.size(elemType));

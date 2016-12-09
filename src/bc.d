@@ -1360,14 +1360,14 @@ string printInstructions(const int* startInstructions, uint length) pure
 import ddmd.ctfe.ctfe_bc : RetainedError;
 BCValue interpret(const BCGen* gen, const BCValue[] args,
     BCFunction* functions = null, BCHeap* heapPtr = null,
-    BCValue[2]* errorValues = null, const RetainedError* errors = null) pure @safe
+    BCValue* ev1 = null, BCValue* ev2 = null, const RetainedError* errors = null) pure @safe
 {
-    return interpret_(gen.byteCodeArray[0 .. gen.ip], args, heapPtr, functions, errorValues, errors);
+    return interpret_(gen.byteCodeArray[0 .. gen.ip], args, heapPtr, functions, ev2, ev2, errors);
 }
 
 BCValue interpret_(const int[] byteCode, const BCValue[] args,
     BCHeap* heapPtr = null, const BCFunction* functions = null,
-    BCValue[2]* errorValues = null, const RetainedError* errors = null,
+    BCValue* ev1 = null, BCValue* ev2 = null, const RetainedError* errors = null,
     long[] stackPtr = null, uint stackOffset = 4) pure @trusted
 {
     import std.conv;
@@ -1681,13 +1681,22 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                     BCValue retval = BCValue(Imm32((*rhs) & uint.max));
                     retval.vType = BCValueType.Error;
                     auto err = errors[cast(uint)(*rhs - 1)];
-                    if (err.v1.vType != BCValueType.Immediate)
+                    if (err.v1.vType != BCValueType.Immediate) 
                     {
-                        errorValues[0] = BCValue(Imm32(stack[err.v1.toUint] & uint.max));
+                        *ev1 = BCValue(Imm32(stack[err.v1.toUint/4] & uint.max));
                     }
+                    else
+                    {
+                        *ev1 = err.v1;
+                    }
+
                     if (err.v2.vType != BCValueType.Immediate)
                     {
-                        errorValues[1] = BCValue(Imm32(stack[err.v2.toUint] & uint.max));
+                        *ev2 = BCValue(Imm32(stack[err.v2.toUint/4] & uint.max));
+                    }
+                    else
+                    {
+                        *ev2 = err.v2;
                     }
 
                     return retval;
@@ -1699,6 +1708,25 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                 {
                     BCValue retval = BCValue(Imm32((*rhs) & uint.max));
                     retval.vType = BCValueType.Error;
+                    auto err = errors[cast(uint)(*rhs - 1)];
+                    if (err.v1.vType != BCValueType.Immediate) 
+                    {
+                        *ev1 = BCValue(Imm32(stack[err.v1.toUint/4] & uint.max));
+                    }
+                    else
+                    {
+                        *ev1 = err.v1;
+                    }
+
+                    if (err.v2.vType != BCValueType.Immediate)
+                    {
+                        *ev2 = BCValue(Imm32(stack[err.v2.toUint/4] & uint.max));
+                    }
+                    else
+                    {
+                        *ev2 = err.v2;
+                    }
+
                     return retval;
                 }
             }
@@ -1979,7 +2007,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                     continue;
                 }
                 returnValue = interpret_((functions + opRefOffset).byteCode,
-                    args, heapPtr, functions, errorValues, errors, stack, stackOffsetCall);
+                    args, heapPtr, functions, ev1, ev2, errors, stack, stackOffsetCall);
 
             }
             break;

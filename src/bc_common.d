@@ -318,7 +318,7 @@ struct BCValue
     }
 
 @safe pure:
-    bool opCast(T : bool)()
+    bool opCast(T : bool)() const pure
     {
         return this.vType != vType.Unknown;
     }
