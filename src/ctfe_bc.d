@@ -128,7 +128,6 @@ else
 __gshared SharedCtfeState!BCGenT _sharedCtfeState;
 __gshared SharedCtfeState!BCGenT* sharedCtfeState = &_sharedCtfeState;
 
-
 ulong evaluateUlong(Expression e)
 {
     return e.toUInteger;
@@ -191,10 +190,10 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     //{
     static if (perf)
         isw.start();
-    __gshared static  bcv = new BCV!BCGenT(null, null);
+    __gshared static bcv = new BCV!BCGenT(null, null);
 
     bcv.clear();
-    bcv.me = fd; 
+    bcv.me = fd;
     bcv.Initialize();
     static if (perf)
         isw.stop();
@@ -202,7 +201,6 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         csw.start();
     //}
     bcv.visit(fd);
-
 
     static if (perf)
         csw.stop;
@@ -279,9 +277,10 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
             }
             BCValue[2] errorValues;
-            
+
             auto retval = interpret_(bcv.byteCodeArray[0 .. bcv.ip], bc_args,
-                &_sharedCtfeState.heap, _sharedCtfeState.functions.ptr, &errorValues, &_sharedCtfeState.errors[0], _sharedCtfeState.stack[]);
+                &_sharedCtfeState.heap, _sharedCtfeState.functions.ptr,
+                &errorValues, &_sharedCtfeState.errors[0], _sharedCtfeState.stack[]);
         }
         sw.stop();
         import std.stdio;
@@ -296,7 +295,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                 StopWatch esw;
             static if (perf)
                 esw.start();
-            if (auto exp = toExpression(retval, ft.nextOf, &_sharedCtfeState.heap, &errorValues, &_sharedCtfeState.errors[0]))
+            if (auto exp = toExpression(retval, ft.nextOf,
+                    &_sharedCtfeState.heap, &errorValues, &_sharedCtfeState.errors[0]))
             {
                 static if (perf)
                     esw.stop();
@@ -452,7 +452,7 @@ struct SharedCtfeState(BCGenT)
 {
     uint _threadLock;
     BCHeap heap;
-    long[ushort.max/4] stack; // a Stack of 64K*4 is the Hard Limit;    //Type 0 beeing the terminator for chainedTypes
+    long[ushort.max / 4] stack; // a Stack of 64K*4 is the Hard Limit;    //Type 0 beeing the terminator for chainedTypes
     StructDeclaration[ubyte.max * 4] structDeclPointers;
     TypeSArray[ubyte.max * 4] sArrayTypePointers;
     TypeDArray[ubyte.max * 4] dArrayTypePointers;
@@ -705,35 +705,37 @@ struct RetainedError // Name is still undecided
     BCValue v2;
 }
 
-const(char*) buildErrorMessage(const RetainedError error, const BCHeap* heapPtr, const BCValue[2]* errorValues) pure
+const(char*) buildErrorMessage(const RetainedError error, const BCHeap* heapPtr,
+    const BCValue[2]* errorValues) pure
 {
     uint insertPos1 = uint.max;
     uint insertPos2 = uint.max;
     uint seenArgs;
-    uint pos = cast(uint)error.msg.length;
+    uint pos = cast(uint) error.msg.length;
 
     char* result;
 
-    while(pos--)
+    while (pos--)
     {
         char c = error.msg.ptr[pos];
-        if (c == 'd' && pos && error.msg.ptr[pos-1] == '%')
+        if (c == 'd' && pos && error.msg.ptr[pos - 1] == '%')
         {
 
             --pos;
         }
-        else if (c == 's' && pos && error.msg.ptr[pos-1] == '%')
+        else if (c == 's' && pos && error.msg.ptr[pos - 1] == '%')
         {
             --pos;
             assert(0, "String errors not implemented yet");
         }
     }
 
-    return result ? result : error.msg.ptr; 
+    return result ? result : error.msg.ptr;
 }
 
 Expression toExpression(const BCValue value, Type expressionType,
-    const BCHeap* heapPtr = &_sharedCtfeState.heap, const BCValue[2]* errorValues = null, const RetainedError* errors = null)
+    const BCHeap* heapPtr = &_sharedCtfeState.heap,
+    const BCValue[2]* errorValues = null, const RetainedError* errors = null)
 {
     import ddmd.parse : Loc;
 
@@ -747,8 +749,6 @@ Expression toExpression(const BCValue value, Type expressionType,
 
         auto err = _sharedCtfeState.errors[value.imm32 - 1];
         import ddmd.errors;
-
-
 
         error(err.loc, buildErrorMessage(err, heapPtr, errorValues));
         return CTFEExp.cantexp;
@@ -1025,35 +1025,35 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     void clear()
     {
-      unresolvedGotoCount = 0;
-      breakFixupCount = 0;
-      continueFixupCount = 0;
-      fixupTableCount = 0;
+        unresolvedGotoCount = 0;
+        breakFixupCount = 0;
+        continueFixupCount = 0;
+        fixupTableCount = 0;
 
-     arguments = [];
-     parameterTypes = [];
-     processedArgs = 0;
-     processingArguments = 0;
-     insideArgumentProcessing = 0;
-     processingParameters = 0;
-    insideArrayLiteralExp = 0;
-     unrolledLoopState = null;
-     switchState = new SwitchState();
-     switchFixup = null;
+        arguments = [];
+        parameterTypes = [];
+        processedArgs = 0;
+        processingArguments = 0;
+        insideArgumentProcessing = 0;
+        processingParameters = 0;
+        insideArrayLiteralExp = 0;
+        unrolledLoopState = null;
+        switchState = new SwitchState();
+        switchFixup = null;
 
-     IGaveUp = 0;
-     me = null;
+        IGaveUp = 0;
+        me = null;
 
-     currentBlock = null;
-     currentIndexed = BCValue.init;
-     retval = BCValue.init;
-     assignTo = BCValue.init;
+        currentBlock = null;
+        currentIndexed = BCValue.init;
+        retval = BCValue.init;
+        assignTo = BCValue.init;
 
-    discardValue = false;
+        discardValue = false;
 
-    labeledBlocks.destroy();
-    ignoreVoid = false;
-    vars.destroy();
+        labeledBlocks.destroy();
+        ignoreVoid = false;
+        vars.destroy();
 
     }
 

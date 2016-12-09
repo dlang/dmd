@@ -211,10 +211,10 @@ struct BCAddr
     uint addr;
     alias addr this;
 
-    T opCast(T : bool)()
-    {
-        return addr != 0;
-    }
+//    T opCast(T : bool)()
+//    {
+//        return addr != 0;
+//    }
 }
 
 struct BCParameter
