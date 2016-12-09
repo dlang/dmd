@@ -1258,18 +1258,6 @@ public:
             return;
         }
 
-        static if (is(typeof(_sharedCtfeState.functionCount)))
-        {
-            if (auto i = _sharedCtfeState.getFunctionIndex(fd))
-            {
-                auto bc = _sharedCtfeState.functions[i - 1].byteCode;
-                this.byteCodeArray[0 .. bc.length] = bc;
-                this.ip = cast(uint) bc.length;
-                this.arguments.length = _sharedCtfeState.functions[i - 1].nArgs;
-                return;
-            }
-        }
-
         if (auto fbody = fd.fbody.isCompoundStatement)
         {
             beginParameters();
@@ -3391,14 +3379,38 @@ public:
 
     override void visit(CallExp ce)
     {
-        debug (ctfe)
+
+        BCValue[] bc_args;
+        bc_args.length = ce.arguments.dim;
+        foreach(i,arg;*ce.arguments)
         {
-            assert(0, "We don't handle CallExp yet " ~ ce.toString);
+            bc_args[i] = genExpr(arg);
+        }
+
+        if (auto fnIdx = _sharedCtfeState.getFunctionIndex(ce.f))
+        {
+            Call(retval, BCValue(Imm32(fnIdx - 1)), bc_args);
+            return ;
+        }
+        import ddmd.dinterpret : ctfeInterpret;
+        ctfeInterpret(ce);
+
+
+        if (auto fnIdx = _sharedCtfeState.getFunctionIndex(ce.f))
+        {
+            Call(retval, BCValue(Imm32(fnIdx - 1)), bc_args);
         }
         else
         {
-            IGaveUp = true;
-            return;
+            debug (ctfe)
+            {
+                assert(0, "We could not compile " ~ ce.toString);
+            }
+            else
+            {
+                IGaveUp = true;
+                return;
+            }
         }
 
     }

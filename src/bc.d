@@ -388,7 +388,7 @@ struct BCGen
        byteCodeArray[ip] = 0;
     }
 
-    void beginFunction(uint fnId)
+    void beginFunction(uint fnId = 0)
     {
       functionId = fnId;
     }
@@ -766,7 +766,7 @@ struct BCGen
 
     void Call(BCValue result, BCValue fn, BCValue[] args, short spOffset = 0)
     {
-        returnInformations[callDepth++] = ReturnInformation(FunctionId, ip);
+       // returnInformations[callDepth++] = ReturnInformation(FunctionId, ip);
         StackAddr oldSp = currSp();
         auto returnAddr = StackAddr(currSp());
         StackAddr nextSp = StackAddr(cast(short)(returnAddr.addr + args.length * 4));
