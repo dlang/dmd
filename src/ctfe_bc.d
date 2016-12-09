@@ -114,6 +114,7 @@ else static if (UseCBackend)
     alias BCGenT = C_BCGen;
 }
 else static if (UsePrinterBackend)
+
 {
     import ddmd.ctfe.bc_printer_backend;
 
@@ -228,6 +229,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         import std.range;
         import std.datetime : StopWatch;
         import std.stdio;
+           BCValue[2] errorValues;
 
         StopWatch sw;
         sw.start();
@@ -276,8 +278,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                 bcv.gen.byteCodeArray[0 .. bcv.ip].printInstructions.writeln();
 
             }
-            BCValue[2] errorValues;
-
+ 
             auto retval = interpret_(bcv.byteCodeArray[0 .. bcv.ip], bc_args,
                 &_sharedCtfeState.heap, _sharedCtfeState.functions.ptr,
                 &errorValues, &_sharedCtfeState.errors[0], _sharedCtfeState.stack[]);
@@ -1464,8 +1465,12 @@ public:
             {
                 auto lhs = genExpr(e.e1);
                 auto rhs = genExpr(e.e2);
-                if (canWorkWithType(lhs.type) && canWorkWithType(rhs.type)
-                        && basicTypeSize(lhs.type) == basicTypeSize(rhs.type))
+                assert(lhs.type.type == BCTypeEnum.Slice);
+                assert(rhs.type.type == BCTypeEnum.Slice);
+                auto lhsBaseType = _sharedCtfeState.slices[lhs.type.typeIndex - 1].elementType;
+                auto rhsBaseType = _sharedCtfeState.slices[rhs.type.typeIndex - 1].elementType;
+                if (canWorkWithType(lhsBaseType) && canWorkWithType(rhsBaseType)
+                        && basicTypeSize(lhsBaseType) == basicTypeSize(rhsBaseType))
                 {
                     Cat(retval, lhs, rhs, basicTypeSize(lhs.type));
                 }
