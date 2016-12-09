@@ -325,7 +325,8 @@ struct BCGen
     BCAddr ip = BCAddr(4);
     StackAddr sp = StackAddr(4);
     ubyte parameterCount;
-    ubyte temporaryCount;
+    ushort temporaryCount;
+    uint functionId;   
 @safe pure:
     auto interpret(BCValue[] args, BCHeap* heapPtr) const
     {
@@ -387,8 +388,9 @@ struct BCGen
        byteCodeArray[ip] = 0;
     }
 
-    void beginFunction()
+    void beginFunction(uint fnId)
     {
+      functionId = fnId;
     }
 
     void endFunction()
@@ -764,6 +766,7 @@ struct BCGen
 
     void Call(BCValue result, BCValue fn, BCValue[] args, short spOffset = 0)
     {
+        returnInformations[callDepth++] = ReturnInformation(FunctionId, ip);
         StackAddr oldSp = currSp();
         auto returnAddr = StackAddr(currSp());
         StackAddr nextSp = StackAddr(cast(short)(returnAddr.addr + args.length * 4));

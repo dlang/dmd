@@ -1424,7 +1424,6 @@ public:
                     else
                     {
                         import ddmd.ctfe.bc_macro : StringEq3Macro;
-
                         StringEq3Macro(&gen, retval, lhs, rhs);
                     }
 
