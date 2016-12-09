@@ -95,10 +95,10 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 
 import ddmd.ctfe.bc_common;
 
-enum perf = 0;
+enum perf = 1;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 1;
+enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
 
 static if (UseLLVMBackend)
@@ -502,11 +502,6 @@ struct SharedCtfeState(BCGenT)
         void* mem = allocmemory(maxHeapSize * uint.sizeof);
         heap._heap = (cast(uint*) mem)[0 .. maxHeapSize];
         heap.heapMax = (maxHeapSize) - 32;
-    }
-
-    void initTypeVisitor()
-    {
-        btv = new BCTypeVisitor();
     }
 
     static if (is(BCFunction))

@@ -294,6 +294,7 @@ struct BCFunction
         BCValue function(const BCValue[] arguments, uint[] heapPtr) _fBuiltin;
         BCValue function(const BCValue[] arguments, uint[] heapPtr, uint[] stackPtr) fPtr;
     }
+
     uint nArgs;
     this(void* fd, BCFunctionTypeEnum type, int nr, const int[] byteCode, uint nArgs) pure
     {
@@ -304,7 +305,8 @@ struct BCFunction
         this.nArgs = nArgs;
     }
 
-    this(int nr, BCValue function(const BCValue[] arguments, uint[] heapPtr) _fBuiltin, uint nArgs) pure
+    this(int nr, BCValue function(const BCValue[] arguments, uint[] heapPtr) _fBuiltin,
+        uint nArgs) pure
     {
         this.nr = nr;
         this.type = BCFunctionTypeEnum.Builtin;
@@ -320,13 +322,13 @@ struct BCFunction
 
 struct BCGen
 {
-    int[ushort.max/4] byteCodeArray = void;
+    int[ushort.max / 4] byteCodeArray = void;
     /// ip starts at 4 because 0 should be an invalid address;
     BCAddr ip = BCAddr(4);
     StackAddr sp = StackAddr(4);
     ubyte parameterCount;
     ushort temporaryCount;
-    uint functionId;   
+    uint functionId;
 @safe pure:
     auto interpret(BCValue[] args, BCHeap* heapPtr) const
     {
@@ -370,27 +372,27 @@ struct BCGen
 
     void Initialize()
     {
-      parameterCount = 0;
-      temporaryCount = 0;
-      byteCodeArray[0] = 0;
-      byteCodeArray[1] = 0;
-      byteCodeArray[2] = 0;
-      byteCodeArray[3] = 0;
+        parameterCount = 0;
+        temporaryCount = 0;
+        byteCodeArray[0] = 0;
+        byteCodeArray[1] = 0;
+        byteCodeArray[2] = 0;
+        byteCodeArray[3] = 0;
 
-      ip = BCAddr(4);
-      sp = StackAddr(4);
+        ip = BCAddr(4);
+        sp = StackAddr(4);
     }
 
     void Finalize()
     {
-       // the [ip-1] may be wrong in some cases ?
-       byteCodeArray[ip-1] = 0;
-       byteCodeArray[ip] = 0;
+        // the [ip-1] may be wrong in some cases ?
+        byteCodeArray[ip - 1] = 0;
+        byteCodeArray[ip] = 0;
     }
 
     void beginFunction(uint fnId = 0)
     {
-      functionId = fnId;
+        functionId = fnId;
     }
 
     void endFunction()
@@ -766,7 +768,7 @@ struct BCGen
 
     void Call(BCValue result, BCValue fn, BCValue[] args, short spOffset = 0)
     {
-       // returnInformations[callDepth++] = ReturnInformation(FunctionId, ip);
+        // returnInformations[callDepth++] = ReturnInformation(FunctionId, ip);
         StackAddr oldSp = currSp();
         auto returnAddr = StackAddr(currSp());
         StackAddr nextSp = StackAddr(cast(short)(returnAddr.addr + args.length * 4));
@@ -1357,17 +1359,28 @@ string printInstructions(const int* startInstructions, uint length) pure
     }
     return result ~ "\n EndInstructionDump";
 }
-import ddmd.ctfe.ctfe_bc : RetainedError;
-BCValue interpret(const BCGen* gen, const BCValue[] args,
-    BCFunction* functions = null, BCHeap* heapPtr = null,
-    BCValue* ev1 = null, BCValue* ev2 = null, const RetainedError* errors = null) pure @safe
+
+static if (is(typeof(() { import ddmd.ctfe.ctfe_bc : RetainedError;  })))
 {
-    return interpret_(gen.byteCodeArray[0 .. gen.ip], args, heapPtr, functions, ev2, ev2, errors);
+    import ddmd.ctfe.ctfe_bc : RetainedError;
+
+    alias RE = RetainedError;
+}
+else
+{
+    alias RE = void;
+}
+BCValue interpret(const BCGen* gen, const BCValue[] args,
+    BCFunction* functions = null, BCHeap* heapPtr = null, BCValue* ev1 = null,
+    BCValue* ev2 = null, const RE* errors = null) pure @safe
+{
+    return interpret_(gen.byteCodeArray[0 .. gen.ip], args, heapPtr, functions, ev2,
+        ev2, errors);
 }
 
 BCValue interpret_(const int[] byteCode, const BCValue[] args,
     BCHeap* heapPtr = null, const BCFunction* functions = null,
-    BCValue* ev1 = null, BCValue* ev2 = null, const RetainedError* errors = null,
+    BCValue* ev1 = null, BCValue* ev2 = null, const RE* errors = null,
     long[] stackPtr = null, uint stackOffset = 4) pure @trusted
 {
     import std.conv;
@@ -1680,53 +1693,59 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                 {
                     BCValue retval = BCValue(Imm32((*rhs) & uint.max));
                     retval.vType = BCValueType.Error;
-                    auto err = errors[cast(uint)(*rhs - 1)];
-                    if (err.v1.vType != BCValueType.Immediate) 
+                    static if (is(RetainedError))
                     {
-                        *ev1 = BCValue(Imm32(stack[err.v1.toUint/4] & uint.max));
-                    }
-                    else
-                    {
-                        *ev1 = err.v1;
-                    }
+                        auto err = errors[cast(uint)(*rhs - 1)];
+                        if (err.v1.vType != BCValueType.Immediate)
+                        {
+                            *ev1 = BCValue(Imm32(stack[err.v1.toUint / 4] & uint.max));
+                        }
+                        else
+                        {
+                            *ev1 = err.v1;
+                        }
 
-                    if (err.v2.vType != BCValueType.Immediate)
-                    {
-                        *ev2 = BCValue(Imm32(stack[err.v2.toUint/4] & uint.max));
+                        if (err.v2.vType != BCValueType.Immediate)
+                        {
+                            *ev2 = BCValue(Imm32(stack[err.v2.toUint / 4] & uint.max));
+                        }
+                        else
+                        {
+                            *ev2 = err.v2;
+                        }
                     }
-                    else
-                    {
-                        *ev2 = err.v2;
-                    }
-
                     return retval;
                 }
-            } break;
+            }
+            break;
         case LongInst.AssertCnd:
             {
                 if (!cond)
                 {
                     BCValue retval = BCValue(Imm32((*rhs) & uint.max));
                     retval.vType = BCValueType.Error;
-                    auto err = errors[cast(uint)(*rhs - 1)];
-                    if (err.v1.vType != BCValueType.Immediate) 
+                    static if (is(RetainedError))
                     {
-                        *ev1 = BCValue(Imm32(stack[err.v1.toUint/4] & uint.max));
-                    }
-                    else
-                    {
-                        *ev1 = err.v1;
-                    }
 
-                    if (err.v2.vType != BCValueType.Immediate)
-                    {
-                        *ev2 = BCValue(Imm32(stack[err.v2.toUint/4] & uint.max));
-                    }
-                    else
-                    {
-                        *ev2 = err.v2;
-                    }
+                        auto err = errors[cast(uint)(*rhs - 1)];
+                        if (err.v1.vType != BCValueType.Immediate)
+                        {
+                            *ev1 = BCValue(Imm32(stack[err.v1.toUint / 4] & uint.max));
+                        }
+                        else
+                        {
+                            *ev1 = err.v1;
+                        }
 
+                        if (err.v2.vType != BCValueType.Immediate)
+                        {
+                            *ev2 = BCValue(Imm32(stack[err.v2.toUint / 4] & uint.max));
+                        }
+                        else
+                        {
+                            *ev2 = err.v2;
+                        }
+                    }
                     return retval;
                 }
             }
