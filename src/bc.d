@@ -1680,7 +1680,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                 {
                     BCValue retval = BCValue(Imm32((*rhs) & uint.max));
                     retval.vType = BCValueType.Error;
-                    auto err = errors[*rhs - 1];
+                    auto err = errors[cast(uint)(*rhs - 1)];
                     if (err.v1.vType != BCValueType.Immediate)
                     {
                         errorValues[0] = BCValue(Imm32(stack[err.v1.toUint] & uint.max));
