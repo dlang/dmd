@@ -5,8 +5,12 @@ import std.conv;
 
 /**
  * Written By Stefan Koch in 2016
- * All Rights Reserved.
  */
+
+//IMPORTANT FIXME 
+// it becomes clear that supporting indirect instructions aka i32ptr
+// is a pretty bad idea in terms of performance.
+
 
 enum InstKind
 {
