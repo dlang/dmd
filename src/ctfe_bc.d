@@ -95,10 +95,10 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 
 import ddmd.ctfe.bc_common;
 
-enum perf = 1;
+enum perf = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 0;
+enum UsePrinterBackend = 1;
 enum UseCBackend = 0;
 
 static if (UseLLVMBackend)
@@ -140,7 +140,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
     import std.stdio;
 
-    static if (cacheBC && is(typeof(_sharedCtfeState.functionCount)) && is(BCGenT == BCGen))
+    static if (cacheBC && is(typeof(_sharedCtfeState.functionCount)) && is(BCGen))
     {
         import std.datetime : StopWatch;
         static if (perf)
@@ -1033,7 +1033,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     uint fixupTableCount;
     uint processedArgs;
 
-    BCGenT gen = void;
+    BCGenT gen;
     alias gen this;
 
     // for now!

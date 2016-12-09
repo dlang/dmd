@@ -15,6 +15,7 @@ struct BCFunction
     void* funcDecl;
     BCFunctionTypeEnum type;
     int nr;
+    short maxUsedStackSize;
 }
 
 struct Print_BCGen
@@ -38,12 +39,12 @@ struct Print_BCGen
 
     @property FunctionState* currentFunctionState()
     {
-        return &functionStates[currentFunctionStateNumber ? currentFunctionStateNumber : 1];
+        return &functionStates[currentFunctionStateNumber];
     }
 
     @property string functionSuffix()
     {
-        return currentFunctionStateNumber > 1 ? "_fn_" ~ to!string(currentFunctionStateNumber) : "";
+        return currentFunctionStateNumber > 0 ? "_fn_" ~ to!string(currentFunctionStateNumber) : "";
     }
 
     alias currentFunctionState this;
@@ -148,7 +149,7 @@ struct Print_BCGen
     StackAddr currSp()
     {
         result ~= "//currSp();//SP[" ~ to!string(sp.addr) ~ "]\n";
-        return StackAddr(cast(short) sp);
+        return sp;
     }
 
     void Initialize()
@@ -164,19 +165,18 @@ struct Print_BCGen
     void beginFunction()
     {
         sameLabel = false;
-        currentFunctionStateNumber++;
-        result ~= "    beginFunction(" ~ ");//fn(" ~ to!string(currentFunctionStateNumber) ~ "\n";
+        result ~= "    beginFunction(" ~ to!string(currentFunctionStateNumber) ~ ");\n";
     }
 
     void endFunction()
     {
-        currentFunctionStateNumber--;
+        currentFunctionStateNumber++;
         result ~= "    endFunction(" ~ ");\n\n";
     }
 
     BCValue genParameter(BCType bct)
     {
-        currentFunctionStateNumber++;
+        //currentFunctionStateNumber++;
         if (!parameterCount)
         {
             //write a newline when we effectivly begin a new function;
@@ -184,7 +184,7 @@ struct Print_BCGen
         }
         result ~= "    auto p" ~ to!string(++parameterCount) ~ functionSuffix ~ " = genParameter(" ~ print(
             bct) ~ ");//SP[" ~ to!string(sp) ~ "]\n";
-        currentFunctionStateNumber--;
+        //currentFunctionStateNumber--;
         sp += 4;
         return BCValue(BCParameter(parameterCount, bct));
     }
