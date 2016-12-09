@@ -160,6 +160,11 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             BCValue[] bc_args;
             bc_args.length = fn.nArgs;
             arg_bcv.beginArguments();
+            static if (perf)
+                StopWatch isw;
+            static if (perf)
+                isw.start();
+
             foreach (i, arg; args)
             {
                 bc_args[i] = arg_bcv.genExpr(arg);
@@ -168,7 +173,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
             auto retval = interpret_(fn.byteCode, bc_args,
                 &_sharedCtfeState.heap, _sharedCtfeState.functions.ptr);
-
+            isw.stop();
+            writeln("Interpretation took ", isw.peek.usecs, "us");
             return toExpression(retval, (cast(TypeFunction) fd.type).nextOf,
                 &_sharedCtfeState.heap);
         }
