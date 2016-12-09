@@ -150,6 +150,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
         if (auto fnIdx = _sharedCtfeState.getFunctionIndex(fd))
         {
+            //FIXME TOOD add a branchHint to say that it is likely to find the function!
             static if (perf)
                 ffw.stop();
             static if (perf)
