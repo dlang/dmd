@@ -10,7 +10,7 @@
  * Source:      $(DMDSRC backend/_iasm.d)
  */
 
-module ddmd.backend.diasm;
+module ddmd.backend.iasm;
 
 import ddmd.backend.cc : block;
 
@@ -397,7 +397,8 @@ version (SCPP)
 }
 version (MARS)
 {
-    enum OP_DB
+    alias OP_DB = int;
+    enum
     {
         // Integral types
         OPdb,
@@ -471,13 +472,14 @@ struct PTRNTAB0 {
 alias PPTRNTAB0 = PTRNTAB0*;
 alias PPPTRNTAB0 = PTRNTAB0**;
 
-union PTRNTAB {
+union _PTRNTAB {
         PTRNTAB0        *pptb0;
         PTRNTAB1        *pptb1;
         PTRNTAB2        *pptb2;
         PTRNTAB3        *pptb3;
         PTRNTAB4        *pptb4;
 }
+alias PTRNTAB = _PTRNTAB;
 alias PPTRNTAB = PTRNTAB*;
 alias PPPTRNTAB = PTRNTAB**;
 

@@ -200,6 +200,8 @@ struct FuncParamRegs
     const(ubyte)* floatregs;    // map to fp register
 }
 
+extern __gshared int BPRM;
+
 /* cgxmm.c */
 bool isXMMstore(uint op);
 
@@ -207,12 +209,75 @@ extern __gshared LocalSection Alloca;
 
 /* cgcod.c */
 extern __gshared targ_size_t retoffset;
+extern __gshared int refparam;
 
 /* cod3.c */
 targ_size_t cod3_spoff();
 uint calccodsize(code *c);
 targ_size_t cod3_bpoffset(Symbol *s);
 
+/* cgxmm.c */
+void checkSetVex3(code *c);
+void checkSetVex(code *c, tym_t ty);
+
 // nteh.c
 code *nteh_patchindex(code* c, int index);
+
+
+extern (C++) struct CodeBuilder
+{
+  private:
+
+    code *head;
+    code **pTail;
+
+  public:
+    //this() { pTail = &head; }
+    //this(code *c);
+    void ctor() { pTail = &head; }
+
+  extern (C++):
+  final:
+    code *finish() { return head; }
+
+    void append(ref CodeBuilder cdb);
+    void append(ref CodeBuilder cdb1, ref CodeBuilder cdb2);
+    void append(ref CodeBuilder cdb1, ref CodeBuilder cdb2, ref CodeBuilder cdb3);
+    void append(ref CodeBuilder cdb1, ref CodeBuilder cdb2, ref CodeBuilder cdb3, ref CodeBuilder cdb4);
+    void append(ref CodeBuilder cdb1, ref CodeBuilder cdb2, ref CodeBuilder cdb3, ref CodeBuilder cdb4, ref CodeBuilder cdb5);
+
+    void append(code *c);
+
+    void gen(code *cs);
+    void gen1(uint op);
+    void gen2(uint op, uint rm);
+    void genf2(uint op, uint rm);
+    void gen2sib(uint op, uint rm, uint sib);
+    void genasm(char *s, uint slen);
+    void genasm(_LabelDsymbol *label);
+    void genasm(block *label);
+    void gencsi(uint op, uint rm, uint FL2, SYMIDX si);
+    void gencs(uint op, uint rm, uint FL2, Symbol *s);
+    void genc2(uint op, uint rm, targ_size_t EV2);
+    void genc1(uint op, uint rm, uint FL1, targ_size_t EV1);
+    void genc(uint op, uint rm, uint FL1, targ_size_t EV1, uint FL2, targ_size_t EV2);
+    void genlinnum(Srcpos);
+    void genadjesp(int offset);
+    void genadjfpu(int offset);
+    void gennop();
+
+    /*****************
+     * Returns:
+     *  code that pTail points to
+     */
+    code *last()
+    {
+        // g++ and clang++ complain about offsetof() because of the code::code() constructor.
+        // return (code *)((char *)pTail - offsetof(code, next));
+        // So do our own.
+        return cast(code *)(cast(void *)pTail - (cast(void*)&(*pTail).next - cast(void*)*pTail));
+    }
+}
+
+
 
