@@ -95,7 +95,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 
 import ddmd.ctfe.bc_common;
 
-enum perf = 0;
+enum perf = 1;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
@@ -142,8 +142,19 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
     static if (cacheBC && is(typeof(_sharedCtfeState.functionCount)) && is(BCGenT == BCGen))
     {
+        import std.datetime : StopWatch;
+        static if (perf)
+            StopWatch ffw;
+        static if (perf)
+            ffw.start();
+
         if (auto fnIdx = _sharedCtfeState.getFunctionIndex(fd))
         {
+            static if (perf)
+                ffw.stop();
+            static if (perf)
+                writeln("function found! search took ", ffw.peek.nsecs, "ns");
+
             auto fn = _sharedCtfeState.functions[fnIdx - 1];
             arg_bcv.arguments.length = fn.nArgs;
             BCValue[] bc_args;
@@ -161,17 +172,23 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             return toExpression(retval, (cast(TypeFunction) fd.type).nextOf,
                 &_sharedCtfeState.heap);
         }
+        static if (perf)
+            ffw.stop();
+        static if (perf)
+            writeln("function not found, search took ", ffw.peek.nsecs, "ns");
     }
 
-    //__gshared static BCV!BCGenT bcv;
-    static uint recursionLevel;
+    __gshared static uint recursionLevel;
+    ++recursionLevel;
+
     debug (ctfe)
         writeln("recursionLevel: ", recursionLevel);
     //writeln("Evaluating function: ", fd.toString);
     import ddmd.identifier;
     import std.datetime : StopWatch;
 
-    StopWatch hiw;
+    static if (perf)
+        StopWatch hiw;
     static if (perf)
         hiw.start();
     _sharedCtfeState.initHeap();
@@ -280,7 +297,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             }
  
             auto retval = interpret_(bcv.byteCodeArray[0 .. bcv.ip], bc_args,
-                &_sharedCtfeState.heap, _sharedCtfeState.functions.ptr,
+                &_sharedCtfeState.heap, &_sharedCtfeState.functions[0],
                 &errorValues, &_sharedCtfeState.errors[0], _sharedCtfeState.stack[]);
         }
         sw.stop();
@@ -1006,6 +1023,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     uint breakFixupCount;
     uint continueFixupCount;
     uint fixupTableCount;
+    uint processedArgs;
 
     BCGenT gen = void;
     alias gen this;
@@ -1016,7 +1034,6 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     typeof(this)* parent;
 
-    uint processedArgs;
     bool processingArguments;
     bool insideArgumentProcessing;
     bool processingParameters;
@@ -1030,32 +1047,31 @@ extern (C++) final class BCV(BCGenT) : Visitor
         breakFixupCount = 0;
         continueFixupCount = 0;
         fixupTableCount = 0;
+        processedArgs = 0;
 
         arguments = [];
         parameterTypes = [];
-        processedArgs = 0;
-        processingArguments = 0;
-        insideArgumentProcessing = 0;
-        processingParameters = 0;
-        insideArrayLiteralExp = 0;
+    
+        processingArguments = false;
+        insideArgumentProcessing = false;
+        processingParameters = false;
+        insideArrayLiteralExp = false;
+        IGaveUp = false;
+        discardValue = false;
+        ignoreVoid = false;
+
         unrolledLoopState = null;
         switchState = new SwitchState();
         switchFixup = null;
-
-        IGaveUp = 0;
         me = null;
-
         currentBlock = null;
+
         currentIndexed = BCValue.init;
         retval = BCValue.init;
         assignTo = BCValue.init;
 
-        discardValue = false;
-
         labeledBlocks.destroy();
-        ignoreVoid = false;
         vars.destroy();
-
     }
 
     UnrolledLoopState* unrolledLoopState;
@@ -3392,15 +3408,13 @@ public:
             Call(retval, BCValue(Imm32(fnIdx - 1)), bc_args);
             return ;
         }
-        import ddmd.dinterpret : ctfeInterpret;
-        ctfeInterpret(ce);
+
+        // if we get here the function was not already there.
+        // allocate the next free function index, take note of the function
+        // and move on as if we had compiled it :)
+        // by defering this we avoid a host of nasty issues!
 
 
-        if (auto fnIdx = _sharedCtfeState.getFunctionIndex(ce.f))
-        {
-            Call(retval, BCValue(Imm32(fnIdx - 1)), bc_args);
-        }
-        else
         {
             debug (ctfe)
             {
