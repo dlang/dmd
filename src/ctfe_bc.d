@@ -3405,30 +3405,37 @@ public:
         {
             bc_args[i] = genExpr(arg);
         }
-
-        if (auto fnIdx = _sharedCtfeState.getFunctionIndex(ce.f))
+        auto f  = ce.f;
+        uint fnIdx = _sharedCtfeState.getFunctionIndex(f);
+        if (!fnIdx)
         {
-            Call(retval, BCValue(Imm32(fnIdx - 1)), bc_args);
-            return ;
-        }
+            // if we get here the function was not already there.
+            // allocate the next free function index, take note of the function
+            // and move on as if we had compiled it :)
+            // by defering this we avoid a host of nasty issues!
 
-        // if we get here the function was not already there.
-        // allocate the next free function index, take note of the function
-        // and move on as if we had compiled it :)
-        // by defering this we avoid a host of nasty issues!
-
-
-        {
-            debug (ctfe)
+            static if(is(_sharedCtfeState.functions))
             {
-                assert(0, "We could not compile " ~ ce.toString);
+                _sharedCtfeState.functions[_sharedCtfeState.functionCount] = BCFunction(ce.f, BCFunctionTypeEnum.Bytecode, _sharedCtfeState.functionCount, [], cast(uint)ce.f.parameters.dim);
+                //AddToCompilationQueue(ce.f, _sharedCtfeState.functionCount);
             }
-            else
             {
-                IGaveUp = true;
-                return;
+                debug (ctfe)
+                {
+                    assert(0, "We could not compile " ~ ce.toString);
+                }
+                else
+                {
+                    IGaveUp = true;
+                    return;
+                }
             }
         }
+        Call(retval, BCValue(Imm32(fnIdx - 1)), bc_args);
+        return ;
+ 
+
+
 
     }
 
