@@ -1549,6 +1549,10 @@ public:
                 TOK.TOKand, TOK.TOKor, TOK.TOKshr, TOK.TOKshl:
                 auto lhs = genExpr(e.e1);
             auto rhs = genExpr(e.e2);
+				//FIXME IMPORRANT 
+				// The whole rhs == retval situation should be fixed in the bc evaluator
+				// since targets with native 3 address code can do this!
+
                 if (wasAssignTo && rhs == retval)
                 {
                     retval = genTemporary(rhs.type);
