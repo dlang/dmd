@@ -1337,7 +1337,8 @@ public:
 
             static if (is(typeof(_sharedCtfeState.functions)))
             {
-
+                auto myPTypes = parameterTypes.dup;
+                auto myArgs = arguments.dup;
                 debug (ctfe)
                 {
                     writeln("FnCnt: ", _sharedCtfeState.functionCount);
@@ -1389,7 +1390,8 @@ public:
                     }
 
                 }
-                parameterTypes.length = _sharedCtfeState.functions[_sharedCtfeState.getFunctionIndex(me) - 1].nArgs;
+                parameterTypes = myPTypes;
+                arguments = myArgs;
             }
             else
             {
