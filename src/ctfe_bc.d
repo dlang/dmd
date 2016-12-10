@@ -1347,7 +1347,7 @@ public:
                     _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
                         BCFunctionTypeEnum.Bytecode, fnIdx,
                         byteCodeArray[0 .. ip].dup, cast(uint) parameterTypes.length);
-                    clear();
+            //        clear();
                 }
                 else
                 {
