@@ -104,7 +104,7 @@ import ddmd.ctfe.bc_common;
 enum perf = 1;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 0;
+enum UsePrinterBackend = 1;
 enum UseCBackend = 0;
 
 static if (UseLLVMBackend)
@@ -2224,7 +2224,7 @@ public:
             offset += align4(_sharedCtfeState.size(elexpr.type));
 
         }
-        //if (!processingArguments) Set(retval.i32, result.i32);
+       //if (!processingArguments) Set(retval.i32, result.i32);
         debug (ctfe)
         {
             writeln("Done with struct ... revtval: ", retval);
@@ -3453,7 +3453,6 @@ public:
 
     override void visit(CallExp ce)
     {
-
         BCValue[] bc_args;
         bc_args.length = ce.arguments.dim;
         foreach (i, arg; *ce.arguments)
@@ -3461,8 +3460,9 @@ public:
             bc_args[i] = genExpr(arg);
         }
         auto f = ce.f;
+
         uint fnIdx = _sharedCtfeState.getFunctionIndex(f);
-        if (!fnIdx)
+        if (!fnIdx && f)
         {
             // if we get here the function was not already there.
             // allocate the next free function index, take note of the function
@@ -3472,15 +3472,14 @@ public:
             const oldFunctionCount = _sharedCtfeState.functionCount++;
             fnIdx = oldFunctionCount + 1;
 
-            static if (is(_sharedCtfeState.functions))
+            static if (is(typeof(_sharedCtfeState.functions)))
             {
-                _sharedCtfeState.functions[oldFunctionCount] = BCFunction(f,
-                    BCFunctionTypeEnum.Bytecode, oldFunctionCount, null,
-                    cast(uint) f.parameters.dim);
+                _sharedCtfeState.functions[fnIdx] = BCFunction(cast(void*)f);
                 uncompiledFunctions[uncompiledFunctionCount++] = UncompiledFunction(f,
                     oldFunctionCount);
 
             }
+            else
             {
                 debug (ctfe)
                 {
@@ -3488,7 +3487,7 @@ public:
                 }
                 else
                 {
-                    IGaveUp = true;
+                   // IGaveUp = true;
                     return;
                 }
             }
