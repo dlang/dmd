@@ -162,42 +162,7 @@
     <CustomBuild Include="..\idgen.d">
       <Message>Building and running $(IntDir)%(Filename).exe</Message>
       <Outputs>$(IntDir)generated\id.d;$(IntDir)generated\id.c;$(IntDir)generated\id.h;$(IntDir)%(Filename).exe;%(Outputs)</Outputs>
-      <Command>set DMDDir=
-for /F "tokens=1,2*" %%i in ('reg query HKLM\Software\DMD /v "InstallationFolder" /reg:32') DO (
-  if "%%i"=="InstallationFolder" set DMDDir=%%k\dmd2\windows\bin;
-)
-set PATH=%DMDDir%;%PATH%
-dmd -od$(IntDir)generated -of$(IntDir)generated\%(Filename).exe %(Identity) 
-if errorlevel 1 exit /B %ERRORLEVEL%
-pushd $(IntDir)generated
-%(Filename).exe
-if errorlevel 1 exit /B %ERRORLEVEL%
-popd</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">set DMDDir=$(DMDBinDir)
-set PATH=%DMDDir%;%PATH%
-dmd -od$(IntDir)generated -of$(IntDir)generated\%(Filename).exe %(Identity) 
-if errorlevel 1 exit /B %ERRORLEVEL%
-pushd $(IntDir)generated
-%(Filename).exe
-if errorlevel 1 exit /B %ERRORLEVEL%
-popd</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">set DMDDir=$(DMDBinDir)
-set PATH=%DMDDir%;%PATH%
-dmd -od$(IntDir)generated -of$(IntDir)generated\%(Filename).exe %(Identity) 
-if errorlevel 1 exit /B %ERRORLEVEL%
-pushd $(IntDir)generated
-%(Filename).exe
-if errorlevel 1 exit /B %ERRORLEVEL%
-popd</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">set DMDDir=$(DMDBinDir)
-set PATH=%DMDDir%;%PATH%
-dmd -od$(IntDir)generated -of$(IntDir)generated\%(Filename).exe %(Identity) 
-if errorlevel 1 exit /B %ERRORLEVEL%
-pushd $(IntDir)generated
-%(Filename).exe
-if errorlevel 1 exit /B %ERRORLEVEL%
-popd</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">set DMDDir=$(DMDBinDir)
+      <Command>set DMDDir=$(DMDBinDir)
 set PATH=%DMDDir%;%PATH%
 dmd -od$(IntDir)generated -of$(IntDir)generated\%(Filename).exe %(Identity) 
 if errorlevel 1 exit /B %ERRORLEVEL%
