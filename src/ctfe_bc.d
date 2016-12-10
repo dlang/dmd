@@ -150,6 +150,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     {
 
         import std.datetime : StopWatch;
+
         static if (perf)
             StopWatch ffw;
         static if (perf)
@@ -260,6 +261,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         import std.range;
         import std.datetime : StopWatch;
         import std.stdio;
+
         BCValue[2] errorValues;
 
         StopWatch sw;
@@ -272,7 +274,6 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         {
             bc_args[i] = bcv.genExpr(arg);
         }
-        bcv.endArguments();
         if (bcv.IGaveUp)
         {
             writeln("Ctfe died on argument processing");
@@ -309,10 +310,11 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                 bcv.gen.byteCodeArray[0 .. bcv.ip].printInstructions.writeln();
 
             }
- 
+
             auto retval = interpret_(bcv.byteCodeArray[0 .. bcv.ip], bc_args,
                 &_sharedCtfeState.heap, &_sharedCtfeState.functions[0],
-                &errorValues[0], &errorValues[1], &_sharedCtfeState.errors[0], _sharedCtfeState.stack[]);
+                &errorValues[0], &errorValues[1],
+                &_sharedCtfeState.errors[0], _sharedCtfeState.stack[]);
         }
         sw.stop();
         import std.stdio;
@@ -451,7 +453,7 @@ struct BCArray
 
 struct BCStruct
 {
-    BCType[ubyte.max] memberTypes;
+    BCType[ubyte.max / 2] memberTypes;
     uint memberTypeCount;
 
     uint size;
@@ -776,6 +778,7 @@ Expression toExpression(const BCValue value, Type expressionType,
 
         auto err = _sharedCtfeState.errors[value.imm32 - 1];
         import ddmd.errors;
+
         uint e1 = (*errorValues)[0].imm32;
         uint e2 = (*errorValues)[1].imm32;
         error(err.loc, buildErrorMessage(err, heapPtr, errorValues), e1, e2);
@@ -1063,7 +1066,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
         arguments = [];
         parameterTypes = [];
-    
+
         processingArguments = false;
         insideArgumentProcessing = false;
         processingParameters = false;
@@ -1097,7 +1100,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     BCAddr[ubyte.max] breakFixups = void;
     BCAddr[ubyte.max] continueFixups = void;
     BoolExprFixupEntry[ubyte.max] fixupTable = void;
-    UncompiledFunction[255] uncompiledFunctions = void;
+    UncompiledFunction[ubyte.max] uncompiledFunctions = void;
 
     alias visit = super.visit;
 
@@ -1310,7 +1313,9 @@ public:
             }
             import std.stdio;
 
-            beginFunction();
+            auto fnIdx = _sharedCtfeState.getFunctionIndex(me);
+            fnIdx = fnIdx ? fnIdx : ++_sharedCtfeState.functionCount;
+            beginFunction(fnIdx);
             visit(fbody);
             endFunction();
             if (IGaveUp)
@@ -1340,16 +1345,50 @@ public:
                 }
                 static if (is(BCGen))
                 {
-                    _sharedCtfeState.functions[_sharedCtfeState.functionCount++] = BCFunction(cast(void*) fd,
-                        BCFunctionTypeEnum.Bytecode,
-                        _sharedCtfeState.functionCount,
+                    _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
+                        BCFunctionTypeEnum.Bytecode, fnIdx,
                         byteCodeArray[0 .. ip].dup, cast(uint) parameterTypes.length);
                 }
                 else
                 {
-                    _sharedCtfeState.functions[_sharedCtfeState.functionCount++] = BCFunction(cast(void*) fd,
-                        BCFunctionTypeEnum.Bytecode, _sharedCtfeState.functionCount);
+                    _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
+                        BCFunctionTypeEnum.Bytecode, fnIdx);
                 }
+
+                foreach (const ref uf; uncompiledFunctions[0 .. uncompiledFunctionCount])
+                {
+                    beginParameters();
+                    if (fd.parameters)
+                        foreach (i, p; *(fd.parameters))
+                        {
+                            debug (ctfe)
+                            {
+                                import std.stdio;
+
+                                writeln("parameter [", i, "] : ", p.toString);
+                            }
+                            p.accept(this);
+                        }
+                    endParameters();
+                    fnIdx = uf.fn;
+                    beginFunction(fnIdx);
+                    visit(cast(Statement) uf.fd.fbody);
+                    endFunction();
+
+                    static if (is(BCGen))
+                    {
+                        _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
+                            BCFunctionTypeEnum.Bytecode, fnIdx,
+                            byteCodeArray[0 .. ip].dup, cast(uint) parameterTypes.length);
+                    }
+                    else
+                    {
+                        _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
+                            BCFunctionTypeEnum.Bytecode, fnIdx);
+                    }
+
+                }
+
             }
             else
             {
@@ -1441,6 +1480,7 @@ public:
                     else
                     {
                         import ddmd.ctfe.bc_macro : StringEq3Macro;
+
                         StringEq3Macro(&gen, retval, lhs, rhs);
                     }
 
@@ -1485,7 +1525,8 @@ public:
                 assert(rhs.type.type == BCTypeEnum.Slice);
                 auto lhsBaseType = _sharedCtfeState.slices[lhs.type.typeIndex - 1].elementType;
                 auto rhsBaseType = _sharedCtfeState.slices[rhs.type.typeIndex - 1].elementType;
-                if (canWorkWithType(lhsBaseType) && canWorkWithType(rhsBaseType)
+                if (canWorkWithType(lhsBaseType)
+                        && canWorkWithType(rhsBaseType)
                         && basicTypeSize(lhsBaseType) == basicTypeSize(rhsBaseType))
                 {
                     Cat(retval, lhs, rhs, basicTypeSize(lhs.type));
@@ -1678,7 +1719,8 @@ public:
         //and set isString to true;
         auto idx = genExpr(ie.e2).i32; // HACK
         Gt3(BCValue.init, length, idx);
-        AssertError(BCValue.init, _sharedCtfeState.addError(ie.loc, "ArrayIndex %d out of bounds %d", idx, length));
+        AssertError(BCValue.init, _sharedCtfeState.addError(ie.loc,
+            "ArrayIndex %d out of bounds %d", idx, length));
         BCArray* arrayType;
         BCSlice* sliceType;
 
@@ -3411,11 +3453,11 @@ public:
 
         BCValue[] bc_args;
         bc_args.length = ce.arguments.dim;
-        foreach(i,arg;*ce.arguments)
+        foreach (i, arg; *ce.arguments)
         {
             bc_args[i] = genExpr(arg);
         }
-        auto f  = ce.f;
+        auto f = ce.f;
         uint fnIdx = _sharedCtfeState.getFunctionIndex(f);
         if (!fnIdx)
         {
@@ -3427,12 +3469,14 @@ public:
             const oldFunctionCount = _sharedCtfeState.functionCount++;
             fnIdx = oldFunctionCount + 1;
 
-            static if(is(_sharedCtfeState.functions))
+            static if (is(_sharedCtfeState.functions))
             {
-                _sharedCtfeState.functions[oldFunctionCount] = BCFunction(f, BCFunctionTypeEnum.Bytecode, oldFunctionCount, [], cast(uint)f.parameters.dim);
-                uncompiledFunctions[uncompiledFunctionCount++] = UncompiledFunction(f, oldFunctionCount);
+                _sharedCtfeState.functions[oldFunctionCount] = BCFunction(f,
+                    BCFunctionTypeEnum.Bytecode, oldFunctionCount, null,
+                    cast(uint) f.parameters.dim);
+                uncompiledFunctions[uncompiledFunctionCount++] = UncompiledFunction(f,
+                    oldFunctionCount);
 
-                //AddToCompilationQueue(ce.f, _sharedCtfeState.functionCount);
             }
             {
                 debug (ctfe)
@@ -3447,8 +3491,8 @@ public:
             }
         }
         Call(retval, BCValue(Imm32(fnIdx - 1)), bc_args);
-        return ;
- 
+        return;
+
     }
 
     override void visit(ReturnStatement rs)

@@ -11,7 +11,6 @@ import std.conv;
 // it becomes clear that supporting indirect instructions aka i32ptr
 // is a pretty bad idea in terms of performance.
 
-
 enum InstKind
 {
     ShortInst,
