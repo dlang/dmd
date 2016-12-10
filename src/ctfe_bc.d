@@ -1346,14 +1346,13 @@ public:
                 static if (is(BCGen))
                 {
                     _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
-                        BCFunctionTypeEnum.Bytecode, fnIdx,
-                        byteCodeArray[0 .. ip].dup, cast(uint) parameterTypes.length);
+                        BCFunctionTypeEnum.Bytecode, cast(uint) parameterTypes.length,
+                        sp.addr, byteCodeArray[0 .. ip].dup);
                     clear();
                 }
                 else
                 {
-                    _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
-                        BCFunctionTypeEnum.Bytecode, fnIdx);
+                    _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
                 }
 
                 foreach (const ref uf; uncompiledFunctions[0 .. uncompiledFunctionCount])
@@ -1379,14 +1378,13 @@ public:
                     static if (is(BCGen))
                     {
                         _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
-                            BCFunctionTypeEnum.Bytecode, fnIdx,
-                            byteCodeArray[0 .. ip].dup, cast(uint) parameterTypes.length);
+                            BCFunctionTypeEnum.Bytecode, cast(uint) parameterTypes.length,
+                            sp.addr, byteCodeArray[0 .. ip].dup);
                         clear();
                     }
                     else
                     {
-                        _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
-                            BCFunctionTypeEnum.Bytecode, fnIdx);
+                        _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
                     }
 
                 }

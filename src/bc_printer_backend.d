@@ -10,12 +10,19 @@ enum BCFunctionTypeEnum : byte
     Compiled,
 }
 
+//static if (is(typeof(() { import ddmd.declaration : FuncDeclaration; })))
+//{
+//    import ddmd.declaration : FuncDeclaration;
+//    alias FT = FuncDeclaration;
+//}
+//else
+//{
+//    alias FT = void*;
+//}
+
 struct BCFunction
 {
     void* funcDecl;
-    BCFunctionTypeEnum type;
-    int nr;
-    short maxUsedStackSize;
 }
 
 struct Print_BCGen

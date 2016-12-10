@@ -286,11 +286,25 @@ enum BCFunctionTypeEnum : byte
     Compiled,
 }
 
+//static if (is(typeof(() { import ddmd.declaration : FuncDeclaration; })))
+//{
+//    import ddmd.declaration : FuncDeclaration;
+//    alias FT = FuncDeclaration;
+//}
+//else
+//{
+//    alias FT = void*;
+//}
+
 struct BCFunction
 {
     void* funcDecl;
+    
     BCFunctionTypeEnum type;
-    int nr;
+    ushort nArgs;
+    ushort maxStackUsed;
+
+
     union
     {
         immutable(int)[] byteCode;
@@ -298,30 +312,26 @@ struct BCFunction
         BCValue function(const BCValue[] arguments, uint[] heapPtr, uint[] stackPtr) fPtr;
     }
 
-    uint nArgs;
-    this(void* fd, BCFunctionTypeEnum type, int nr, const int[] byteCode, uint nArgs) pure
-    {
-        this.funcDecl = fd;
-        this.nr = nr;
-        this.type = BCFunctionTypeEnum.Builtin;
-        this.byteCode = cast(immutable(int)[]) byteCode;
-        this.nArgs = nArgs;
-    }
-
-    this(int nr, BCValue function(const BCValue[] arguments, uint[] heapPtr) _fBuiltin,
-        uint nArgs) pure
-    {
-        this.nr = nr;
-        this.type = BCFunctionTypeEnum.Builtin;
-        this._fBuiltin = _fBuiltin;
-        this.nArgs = nArgs;
-    }
-
-    debug
-    {
-        string name;
-    }
-}
+   
+//    this(void* fd, BCFunctionTypeEnum type, int nr, const int[] byteCode, uint nArgs) pure
+//    {
+//        this.funcDecl = fd;
+//        this.nr = nr;
+//        this.type = BCFunctionTypeEnum.Builtin;
+//        this.byteCode = cast(immutable(int)[]) byteCode;
+//        this.nArgs = nArgs;
+//    }
+//
+//    this(int nr, BCValue function(const BCValue[] arguments, uint[] heapPtr) _fBuiltin,
+//        uint nArgs) pure
+//    {
+//        this.nr = nr;
+//        this.type = BCFunctionTypeEnum.Builtin;
+//        this._fBuiltin = _fBuiltin;
+//        this.nArgs = nArgs;
+//    }
+//
+ }
 
 struct BCGen
 {
@@ -2071,7 +2081,7 @@ int[] testRelJmp()
     }
 }
 
-static assert(interpret_(testRelJmp(), []) == BCValue(Imm32(12)));
+//static assert(interpret_(testRelJmp(), []) == BCValue(Imm32(12)));
 //import bc_test;
 
 //static assert(test!BCGen());
