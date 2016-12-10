@@ -1062,7 +1062,6 @@ extern (C++) final class BCV(BCGenT) : Visitor
         continueFixupCount = 0;
         fixupTableCount = 0;
         processedArgs = 0;
-        uncompiledFunctionCount = 0;
 
         arguments = [];
         parameterTypes = [];
@@ -1348,6 +1347,7 @@ public:
                     _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
                         BCFunctionTypeEnum.Bytecode, fnIdx,
                         byteCodeArray[0 .. ip].dup, cast(uint) parameterTypes.length);
+                    clear();
                 }
                 else
                 {
@@ -1380,6 +1380,7 @@ public:
                         _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
                             BCFunctionTypeEnum.Bytecode, fnIdx,
                             byteCodeArray[0 .. ip].dup, cast(uint) parameterTypes.length);
+                        clear();
                     }
                     else
                     {
