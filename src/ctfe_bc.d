@@ -105,7 +105,7 @@ enum perf = 1;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
-enum UseCBackend = 1;
+enum UseCBackend = 0;
 
 static if (UseLLVMBackend)
 {
@@ -1549,6 +1549,11 @@ public:
                 TOK.TOKand, TOK.TOKor, TOK.TOKshr, TOK.TOKshl:
                 auto lhs = genExpr(e.e1);
             auto rhs = genExpr(e.e2);
+                if (wasAssignTo && rhs == retval)
+                {
+                    retval = genTemporary(rhs.type);
+                }
+
             if (canHandleBinExpTypes(lhs.type.type, rhs.type.type))
             {
                 const oldDiscardValue = discardValue;
@@ -3472,7 +3477,7 @@ public:
                 // allocate the next free function index, take note of the function
                 // and move on as if we had compiled it :)
                 // by defering this we avoid a host of nasty issues!
-                static if (_sharedCtfeState.functionCount)
+                static if (is(typeof(_sharedCtfeState.functionCount)))
                 {
 
                     const oldFunctionCount = _sharedCtfeState.functionCount++;
