@@ -113,7 +113,6 @@ test_repo()
         DUBFLAGS="--arch x86_64"
     fi
 
-    export DFLAGS="-conf= -I${DIR}/../druntime/import -w -dip25 -defaultlib=${DIR}/../phobos/generated/linux/release/64/libphobos2.a"
     (cd ${testdir} &&
         dub test --compiler=${DIR}/src/dmd --build=debug $DUBFLAGS
         dub test --compiler=${DIR}/src/dmd --build=release $DUBFLAGS
@@ -124,6 +123,11 @@ test_repos()
 {
     local projectfolder="projects"
     mkdir -p ${projectfolder}
+
+    # load DUB if run via CircleCi
+    if [ -f ~/dlang/install.sh ] ; then
+        source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
+    fi
 
     # list of popular D projects with a fixed release (update from time to time)
     (cat <<EOF
