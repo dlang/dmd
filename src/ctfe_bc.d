@@ -104,8 +104,8 @@ import ddmd.ctfe.bc_common;
 enum perf = 1;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 1;
-enum UseCBackend = 0;
+enum UsePrinterBackend = 0;
+enum UseCBackend = 1;
 
 static if (UseLLVMBackend)
 {
@@ -1313,7 +1313,10 @@ public:
             import std.stdio;
 
             auto fnIdx = _sharedCtfeState.getFunctionIndex(me);
-            fnIdx = fnIdx ? fnIdx : ++_sharedCtfeState.functionCount;
+            static if (is(typeof(_sharedCtfeState.functionCount)))
+            {
+                fnIdx = fnIdx ? fnIdx : ++_sharedCtfeState.functionCount;
+            }
             beginFunction(fnIdx);
             visit(fbody);
             endFunction();
@@ -1346,8 +1349,8 @@ public:
                 static if (is(BCGen))
                 {
                     _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
-                        BCFunctionTypeEnum.Bytecode, cast(uint) parameterTypes.length,
-                        sp.addr, byteCodeArray[0 .. ip].dup);
+                        BCFunctionTypeEnum.Bytecode,
+                        cast(ushort) parameterTypes.length, sp.addr, byteCodeArray[0 .. ip].dup);
                     clear();
                 }
                 else
@@ -1378,8 +1381,9 @@ public:
                     static if (is(BCGen))
                     {
                         _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
-                            BCFunctionTypeEnum.Bytecode, cast(uint) parameterTypes.length,
-                            sp.addr, byteCodeArray[0 .. ip].dup);
+                            BCFunctionTypeEnum.Bytecode,
+                            cast(ushort) parameterTypes.length, sp.addr,
+                            byteCodeArray[0 .. ip].dup);
                         clear();
                     }
                     else
@@ -2222,7 +2226,7 @@ public:
             offset += align4(_sharedCtfeState.size(elexpr.type));
 
         }
-       //if (!processingArguments) Set(retval.i32, result.i32);
+        //if (!processingArguments) Set(retval.i32, result.i32);
         debug (ctfe)
         {
             writeln("Done with struct ... revtval: ", retval);
@@ -3458,39 +3462,45 @@ public:
             bc_args[i] = genExpr(arg);
         }
         auto f = ce.f;
-
-        uint fnIdx = _sharedCtfeState.getFunctionIndex(f);
-        if (!fnIdx && f)
+        static if (is(BCFunction))
         {
-            // if we get here the function was not already there.
-            // allocate the next free function index, take note of the function
-            // and move on as if we had compiled it :)
-            // by defering this we avoid a host of nasty issues!
 
-            const oldFunctionCount = _sharedCtfeState.functionCount++;
-            fnIdx = oldFunctionCount + 1;
-
-            static if (is(typeof(_sharedCtfeState.functions)))
+            uint fnIdx = _sharedCtfeState.getFunctionIndex(f);
+            if (!fnIdx && f)
             {
-                _sharedCtfeState.functions[fnIdx] = BCFunction(cast(void*)f);
-                uncompiledFunctions[uncompiledFunctionCount++] = UncompiledFunction(f,
-                    oldFunctionCount);
-
-            }
-            else
-            {
-                debug (ctfe)
+                // if we get here the function was not already there.
+                // allocate the next free function index, take note of the function
+                // and move on as if we had compiled it :)
+                // by defering this we avoid a host of nasty issues!
+                static if (_sharedCtfeState.functionCount)
                 {
-                    assert(0, "We could not compile " ~ ce.toString);
+
+                    const oldFunctionCount = _sharedCtfeState.functionCount++;
+                    fnIdx = oldFunctionCount + 1;
+                    _sharedCtfeState.functions[fnIdx] = BCFunction(cast(void*) f);
+                    uncompiledFunctions[uncompiledFunctionCount++] = UncompiledFunction(f,
+                        oldFunctionCount);
+
                 }
                 else
                 {
-                   // IGaveUp = true;
-                    return;
+                    debug (ctfe)
+                    {
+                        assert(0, "We could not compile " ~ ce.toString);
+                    }
+                else
+                    {
+                        // IGaveUp = true;
+                        return;
+                    }
                 }
             }
+            Call(retval, BCValue(Imm32(fnIdx - 1)), bc_args);
         }
-        Call(retval, BCValue(Imm32(fnIdx - 1)), bc_args);
+        else
+        {
+
+        }
         return;
 
     }
@@ -3671,7 +3681,6 @@ public:
         BCBlock elsebody = fs.elsebody ? genBlock(fs.elsebody) : BCBlock.init;
         endJmp(to_end, genLabel());
         endCndJmp(cj, elseLabel);
-
         doFixup(oldFixupTableCount, ifbody ? &ifbody.begin : null,
             elsebody ? &elsebody.begin : null);
         assert(oldFixupTableCount == fixupTableCount);

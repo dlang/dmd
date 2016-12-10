@@ -95,7 +95,7 @@ pure:
     {
     }
 
-    void beginFunction()
+    void beginFunction(uint fn = 0)
     {
         sameLabel = false;
     }
