@@ -173,7 +173,7 @@ pushd $(IntDir)generated
 %(Filename).exe
 if errorlevel 1 exit /B %ERRORLEVEL%
 popd</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">set DMDDir=C:\Program Files (x86)\dlang\2.071.1\dmd2\windows\bin
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">set DMDDir=$(DMDBinDir)
 set PATH=%DMDDir%;%PATH%
 dmd -od$(IntDir)generated -of$(IntDir)generated\%(Filename).exe %(Identity) 
 if errorlevel 1 exit /B %ERRORLEVEL%
@@ -181,7 +181,23 @@ pushd $(IntDir)generated
 %(Filename).exe
 if errorlevel 1 exit /B %ERRORLEVEL%
 popd</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">set DMDDir=C:\Program Files (x86)\dlang\2.071.1\dmd2\windows\bin
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">set DMDDir=$(DMDBinDir)
+set PATH=%DMDDir%;%PATH%
+dmd -od$(IntDir)generated -of$(IntDir)generated\%(Filename).exe %(Identity) 
+if errorlevel 1 exit /B %ERRORLEVEL%
+pushd $(IntDir)generated
+%(Filename).exe
+if errorlevel 1 exit /B %ERRORLEVEL%
+popd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">set DMDDir=$(DMDBinDir)
+set PATH=%DMDDir%;%PATH%
+dmd -od$(IntDir)generated -of$(IntDir)generated\%(Filename).exe %(Identity) 
+if errorlevel 1 exit /B %ERRORLEVEL%
+pushd $(IntDir)generated
+%(Filename).exe
+if errorlevel 1 exit /B %ERRORLEVEL%
+popd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">set DMDDir=$(DMDBinDir)
 set PATH=%DMDDir%;%PATH%
 dmd -od$(IntDir)generated -of$(IntDir)generated\%(Filename).exe %(Identity) 
 if errorlevel 1 exit /B %ERRORLEVEL%
