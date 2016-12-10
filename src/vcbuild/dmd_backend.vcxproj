@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -29,16 +29,16 @@
     <WholeProgramOptimization Condition="'$(Configuration)'=='Release'">false</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -166,6 +166,22 @@
 for /F "tokens=1,2*" %%i in ('reg query HKLM\Software\DMD /v "InstallationFolder" /reg:32') DO (
   if "%%i"=="InstallationFolder" set DMDDir=%%k\dmd2\windows\bin;
 )
+set PATH=%DMDDir%;%PATH%
+dmd -od$(IntDir)generated -of$(IntDir)generated\%(Filename).exe %(Identity) 
+if errorlevel 1 exit /B %ERRORLEVEL%
+pushd $(IntDir)generated
+%(Filename).exe
+if errorlevel 1 exit /B %ERRORLEVEL%
+popd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">set DMDDir=C:\Program Files (x86)\dlang\2.071.1\dmd2\windows\bin
+set PATH=%DMDDir%;%PATH%
+dmd -od$(IntDir)generated -of$(IntDir)generated\%(Filename).exe %(Identity) 
+if errorlevel 1 exit /B %ERRORLEVEL%
+pushd $(IntDir)generated
+%(Filename).exe
+if errorlevel 1 exit /B %ERRORLEVEL%
+popd</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">set DMDDir=C:\Program Files (x86)\dlang\2.071.1\dmd2\windows\bin
 set PATH=%DMDDir%;%PATH%
 dmd -od$(IntDir)generated -of$(IntDir)generated\%(Filename).exe %(Identity) 
 if errorlevel 1 exit /B %ERRORLEVEL%
