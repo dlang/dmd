@@ -8,6 +8,7 @@ test:
   override:
     - ./circleci.sh coverage:
         parallel: true
+    - ./circleci.sh test-repos
 
   post:
     # CodeCov gets confused by lst files which it can't matched
