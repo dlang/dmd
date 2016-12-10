@@ -30,6 +30,12 @@ struct UnresolvedGoto
     uint jumpCount = 1;
 }
 
+struct UncompiledFunction
+{
+    FuncDeclaration fd;
+    uint fn;
+}
+
 struct SwitchFixupEntry
 {
     BCAddr atIp;
@@ -142,6 +148,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
     static if (cacheBC && is(typeof(_sharedCtfeState.functionCount)) && is(BCGen))
     {
+
         import std.datetime : StopWatch;
         static if (perf)
             StopWatch ffw;
@@ -1027,6 +1034,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     uint continueFixupCount;
     uint fixupTableCount;
     uint processedArgs;
+    uint uncompiledFunctionCount;
 
     BCGenT gen;
     alias gen this;
@@ -1051,6 +1059,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         continueFixupCount = 0;
         fixupTableCount = 0;
         processedArgs = 0;
+        uncompiledFunctionCount = 0;
 
         arguments = [];
         parameterTypes = [];
@@ -1088,6 +1097,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     BCAddr[ubyte.max] breakFixups = void;
     BCAddr[ubyte.max] continueFixups = void;
     BoolExprFixupEntry[ubyte.max] fixupTable = void;
+    UncompiledFunction[255] uncompiledFunctions = void;
 
     alias visit = super.visit;
 
@@ -3414,9 +3424,14 @@ public:
             // and move on as if we had compiled it :)
             // by defering this we avoid a host of nasty issues!
 
+            const oldFunctionCount = _sharedCtfeState.functionCount++;
+            fnIdx = oldFunctionCount + 1;
+
             static if(is(_sharedCtfeState.functions))
             {
-                _sharedCtfeState.functions[_sharedCtfeState.functionCount] = BCFunction(ce.f, BCFunctionTypeEnum.Bytecode, _sharedCtfeState.functionCount, [], cast(uint)ce.f.parameters.dim);
+                _sharedCtfeState.functions[oldFunctionCount] = BCFunction(f, BCFunctionTypeEnum.Bytecode, oldFunctionCount, [], cast(uint)f.parameters.dim);
+                uncompiledFunctions[uncompiledFunctionCount++] = UncompiledFunction(f, oldFunctionCount);
+
                 //AddToCompilationQueue(ce.f, _sharedCtfeState.functionCount);
             }
             {
@@ -3434,9 +3449,6 @@ public:
         Call(retval, BCValue(Imm32(fnIdx - 1)), bc_args);
         return ;
  
-
-
-
     }
 
     override void visit(ReturnStatement rs)
