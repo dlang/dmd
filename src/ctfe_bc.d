@@ -102,7 +102,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 import ddmd.ctfe.bc_common;
 
 enum perf = 1;
-enum cacheBC = 1;
+enum cacheBC = 0;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
@@ -1159,7 +1159,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
    void bailout()
    {
 	   IGaveUp = true;
-	   const fi = getFunctionIndex(me);
+	   const fi = _sharedCtfeState.getFunctionIndex(me);
 	   if (fi)
 	   static if (is(BCFunction))
 	   {
@@ -3231,11 +3231,11 @@ public:
     override void visit(SwitchStatement ss)
     {
         switchState = &switchStates[switchStateCount++];
+        switchState.beginCaseStatementsCount = 0;
+        switchState.switchFixupTableCount = 0;
 
         scope (exit)
         {
-            switchState.beginCaseStatementsCount = 0;
-            switchState.switchFixupTableCount = 0;
             if (!switchStateCount)
             {
                 switchState = null;
