@@ -3140,7 +3140,8 @@ final class Parser(AST) : Lexer
         case TOKstruct:
             if (id)
             {
-                a = new AST.StructDeclaration(loc, id);
+                bool inObject = md && !md.packages && md.id == Id.object;
+                a = new AST.StructDeclaration(loc, id, inObject);
                 a.members = members;
             }
             else
