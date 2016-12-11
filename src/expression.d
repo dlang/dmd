@@ -1696,7 +1696,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                 /* Argument value can escape from the called function.
                  * Check arg to see if it matters.
                  */
-                if (global.params.safe)
+                if (global.params.vsafe)
                     err |= checkParamArgumentEscape(sc, fd, p, arg, false);
             }
             else
@@ -10601,7 +10601,7 @@ extern (C++) final class AddrExp : UnaExp
                 if (sc.func && !sc.intypeof && !v.isDataseg())
                 {
                     const(char)* p = v.isParameter() ? "parameter" : "local";
-                    if (global.params.safe)
+                    if (global.params.vsafe)
                     {
                         v.storage_class &= ~STCmaybescope;
                         if (v.storage_class & STCscope && sc.func.setUnsafe())
@@ -10644,7 +10644,7 @@ extern (C++) final class AddrExp : UnaExp
             if (checkUnsafeAccess(sc, dve, !type.isMutable(), true))
                 return new ErrorExp();
 
-            if (dve.e1.op == TOKvar && global.params.safe)
+            if (dve.e1.op == TOKvar && global.params.vsafe)
             {
                 VarExp ve = cast(VarExp)dve.e1;
                 VarDeclaration v = ve.var.isVarDeclaration();
@@ -10654,7 +10654,7 @@ extern (C++) final class AddrExp : UnaExp
                         return new ErrorExp();
                 }
             }
-            else if ((dve.e1.op == TOKthis || dve.e1.op == TOKsuper) && global.params.safe)
+            else if ((dve.e1.op == TOKthis || dve.e1.op == TOKsuper) && global.params.vsafe)
             {
                 ThisExp ve = cast(ThisExp)dve.e1;
                 VarDeclaration v = ve.var.isVarDeclaration();
@@ -10724,7 +10724,7 @@ extern (C++) final class AddrExp : UnaExp
                 }
             }
         }
-        else if ((e1.op == TOKthis || e1.op == TOKsuper) && global.params.safe)
+        else if ((e1.op == TOKthis || e1.op == TOKsuper) && global.params.vsafe)
         {
             ThisExp ve = cast(ThisExp)e1;
             VarDeclaration v = ve.var.isVarDeclaration();

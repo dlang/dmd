@@ -597,7 +597,7 @@ Language changes listed by -transition=id:
                             global.params.bug10378 = true;
                             break;
                         case "safe":
-                            global.params.safe = true;
+                            global.params.vsafe = true;
                             global.params.useDIP25 = true;
                             break;
                         case "tls":
