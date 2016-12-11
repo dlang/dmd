@@ -102,7 +102,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 import ddmd.ctfe.bc_common;
 
 enum perf = 1;
-enum cacheBC = 1;
+enum cacheBC = 0;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
@@ -1549,14 +1549,14 @@ public:
                 TOK.TOKand, TOK.TOKor, TOK.TOKshr, TOK.TOKshl:
                 auto lhs = genExpr(e.e1);
             auto rhs = genExpr(e.e2);
-				//FIXME IMPORRANT 
-				// The whole rhs == retval situation should be fixed in the bc evaluator
-				// since targets with native 3 address code can do this!
+            //FIXME IMPORRANT 
+            // The whole rhs == retval situation should be fixed in the bc evaluator
+            // since targets with native 3 address code can do this!
 
-                if (wasAssignTo && rhs == retval)
-                {
-                    retval = genTemporary(rhs.type);
-                }
+            if (wasAssignTo && rhs == retval)
+            {
+                retval = genTemporary(rhs.type);
+            }
 
             if (canHandleBinExpTypes(lhs.type.type, rhs.type.type))
             {
@@ -3499,7 +3499,7 @@ public:
                     }
                 else
                     {
-                        // IGaveUp = true;
+                        IGaveUp = true;
                         return;
                     }
                 }
@@ -3674,22 +3674,32 @@ public:
 
         uint oldFixupTableCount = fixupTableCount;
         auto cond = genExpr(fs.condition);
-        debug (ctfe)
-            assert(cond);
-            else if (!cond)
-            {
-                IGaveUp = true;
-                return;
-            }
+        if (!cond)
+        {
+            debug (ctfe)
+                assert(0, "IfCond is BCValue.init");
 
-        auto cj = beginCndJmp(cond);
+            IGaveUp = true;
+            return;
+        }
+
+        auto cj = fs.ifbody ? beginCndJmp(cond) : beginCndJmp(cond, true);
 
         BCBlock ifbody = fs.ifbody ? genBlock(fs.ifbody) : BCBlock.init;
-        auto to_end = beginJmp();
-        auto elseLabel = genLabel();
-        BCBlock elsebody = fs.elsebody ? genBlock(fs.elsebody) : BCBlock.init;
-        endJmp(to_end, genLabel());
-        endCndJmp(cj, elseLabel);
+        BCBlock elsebody;
+        if (fs.elsebody && ifbody)
+        {
+            auto to_end = beginJmp();
+            auto elseLabel = genLabel();
+            elsebody = genBlock(fs.elsebody);
+            endJmp(to_end, genLabel());
+            endCndJmp(cj, elseLabel);
+        }
+        else if (fs.elsebody && !ifbody)
+        {
+            elsebody = genBlock(fs.elsebody);
+            endCndJmp(cj, genLabel());
+        }
         doFixup(oldFixupTableCount, ifbody ? &ifbody.begin : null,
             elsebody ? &elsebody.begin : null);
         assert(oldFixupTableCount == fixupTableCount);
