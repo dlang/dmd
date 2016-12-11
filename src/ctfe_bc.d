@@ -1078,10 +1078,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
         unrolledLoopState = null;
         switchFixup = null;
-        switchState = &switchStates[0];
-        switchState.switchFixupTableCount = 0;
-        switchState.beginCaseStatementsCount = 0;
-
+        switchState = null;
         me = null;
         currentBlock = null;
 
@@ -3221,8 +3218,7 @@ public:
 
     override void visit(SwitchStatement ss)
     {
-        switchState = &switchState[switchStateCount++];
-        assert(switchState, to!string(switchStateCount));
+        switchState = &switchStates[switchStateCount++];
 
         scope (exit)
         {
