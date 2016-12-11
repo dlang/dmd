@@ -6599,7 +6599,7 @@ extern (C++) final class TypeFunction : TypeNext
     final StorageClass parameterStorageClass(Parameter p)
     {
         auto stc = p.storageClass;
-        if (!global.params.safe)
+        if (!global.params.vsafe)
             return stc;
 
         if (stc & (STCscope | STCreturn | STClazy) || purity == PUREimpure)

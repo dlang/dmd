@@ -1447,7 +1447,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
                 else
                 {
-                    if (global.params.safe)
+                    if (global.params.vsafe)
                     {
                         fprintf(
                             global.stdmsg,
