@@ -4141,7 +4141,7 @@ extern (C++) final class TypeBasic : Type
 
     override MATCH implicitConvTo(Type to)
     {
-        //printf("TypeBasic::implicitConvTo(%s) from %s\n", to->toChars(), toChars());
+        //printf("TypeBasic::implicitConvTo(%s) from %s\n", to.toChars(), toChars());
         if (this == to)
             return MATCHexact;
 

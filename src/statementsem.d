@@ -1196,7 +1196,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     {
                         tfld = cast(TypeFunction)tab.nextOf();
                     Lget:
-                        //printf("tfld = %s\n", tfld->toChars());
+                        //printf("tfld = %s\n", tfld.toChars());
                         if (tfld.parameters.dim == 1)
                         {
                             Parameter p = Parameter.getNth(tfld.parameters, 0);
@@ -1206,6 +1206,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                                 assert(t.ty == Tdelegate);
                                 tfld = cast(TypeFunction)t.nextOf();
                             }
+                            //printf("tfld = %s\n", tfld.toChars());
                         }
                     }
                 }
@@ -1225,7 +1226,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     if (tfld)
                     {
                         Parameter prm = Parameter.getNth(tfld.parameters, i);
-                        //printf("\tprm = %s%s\n", (prm->storageClass&STCref?"ref ":""), prm->ident->toChars());
+                        //printf("\tprm = %s%s\n", (prm.storageClass&STCref?"ref ":"").ptr, prm.ident.toChars());
                         stc = prm.storageClass & STCref;
                         id = p.ident; // argument copy is not need.
                         if ((p.storageClass & STCref) != stc)
@@ -2413,7 +2414,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
     override void visit(ReturnStatement rs)
     {
-        //printf("ReturnStatement.semantic() %s\n", rs.toChars());
+        //printf("ReturnStatement.semantic() %p, %s\n", rs, rs.toChars());
 
         FuncDeclaration fd = sc.parent.isFuncDeclaration();
         if (fd.fes)
