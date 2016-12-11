@@ -508,9 +508,19 @@ struct SharedCtfeState(BCGenT)
     {
         import ddmd.root.rmem;
 
-        void* mem = allocmemory(maxHeapSize * uint.sizeof);
-        heap._heap = (cast(uint*) mem)[0 .. maxHeapSize];
-        heap.heapMax = (maxHeapSize) - 32;
+        if (heap.heapMax < maxHeapSize)
+        {
+            void* mem = allocmemory(maxHeapSize * uint.sizeof);
+            heap._heap = (cast(uint*) mem)[0 .. maxHeapSize];
+            heap.heapMax = maxHeapSize;
+        }
+        else
+        {
+            import core.stdc.string : memset;
+
+            memset(&heap._heap[0], 0, heap._heap[0].sizeof * heap.heapSize);
+            heap.heapSize = 4;
+        }
     }
 
     static if (is(BCFunction))
@@ -1156,19 +1166,18 @@ extern (C++) final class BCV(BCGenT) : Visitor
         }
     }
 
-   void bailout()
-   {
-	   IGaveUp = true;
-	   const fi = _sharedCtfeState.getFunctionIndex(me);
-	   if (fi)
-	   static if (is(BCFunction))
-	   {
-	     _sharedCtfeState.functions[fi - 1] = BCFunction(null);
-	   }
-   }
+    void bailout()
+    {
+        IGaveUp = true;
+        const fi = _sharedCtfeState.getFunctionIndex(me);
+        if (fi)
+            static if (is(BCFunction))
+            {
+                _sharedCtfeState.functions[fi - 1] = BCFunction(null);
+            }
+    }
 
 public:
-
 
     this(FuncDeclaration fd, Expression _this, typeof(this)* parent = null)
     {
@@ -1291,6 +1300,8 @@ public:
 
                 
 
+                || fd.ident == Identifier.idPool("_ArrayEq")
+
                 || fd.ident == Identifier.idPool("extSeparatorPos")
                 || fd.ident == Identifier.idPool("args") || fd.ident == Identifier.idPool("check"))
         {
@@ -1368,10 +1379,10 @@ public:
                 {
                     _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
                         BCFunctionTypeEnum.Bytecode,
-                        cast(ushort) parameterTypes.length, sp.addr, 
+                        cast(ushort) parameterTypes.length, sp.addr,
                         //FIXME IMPORTANT PERFORMANCE!!!
                         // get rid of dup!
-                        cast(immutable)byteCodeArray[0 .. ip]);
+                        cast(immutable) byteCodeArray[0 .. ip]);
                     clear();
                 }
                 else
@@ -1403,11 +1414,10 @@ public:
                     {
                         _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
                             BCFunctionTypeEnum.Bytecode,
-                            cast(ushort) parameterTypes.length, sp.addr,
-                            //FIXME IMPORTANT PERFORMANCE!!!
-                            // get rid of dup!
+                            cast(ushort) parameterTypes.length, sp.addr, //FIXME IMPORTANT PERFORMANCE!!!
+                        // get rid of dup!
 
-                            byteCodeArray[0 .. ip].dup);
+                        byteCodeArray[0 .. ip].dup);
                         clear();
                     }
                     else

@@ -156,7 +156,7 @@ struct BCHeap
 
     HeapEntry[] entries;
     uint[] _heap = new uint[](2 ^^ 15);
-    uint heapMax = (2 ^^ 15) - 32;
+    uint heapMax = (2 ^^ 15);
     uint heapSize = 4;
 
     HeapAddr pushString(const char* _string, const uint size) pure

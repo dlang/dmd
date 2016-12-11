@@ -1395,7 +1395,7 @@ BCValue interpret(const BCGen* gen, const BCValue[] args,
 BCValue interpret_(const int[] byteCode, const BCValue[] args,
     BCHeap* heapPtr = null, const BCFunction* functions = null,
     BCValue* ev1 = null, BCValue* ev2 = null, const RE* errors = null,
-    long[] stackPtr = null, uint stackOffset = 4) pure @trusted
+    long[] stackPtr = null, uint stackOffset = 0) pure @trusted
 {
     import std.conv;
     import std.stdio;
@@ -1420,20 +1420,21 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
 
             writeln("before pushing args");
         }
+    size_t argOffset = 4;
     foreach (arg; args)
     {
         switch (arg.type.type)
         {
         case BCTypeEnum.i32:
             {
-                *(stack.ptr + stackOffset / 4) = arg.imm32;
-                stackOffset += uint.sizeof;
+                *(stack.ptr + argOffset / 4) = arg.imm32;
+                argOffset += uint.sizeof;
             }
             break;
         case BCTypeEnum.i64:
             {
-                *(stack.ptr + stackOffset / 4) = arg.imm64;
-                stackOffset += uint.sizeof;
+                *(stack.ptr + argOffset / 4) = arg.imm64;
+                argOffset += uint.sizeof;
                 //TODO find out why adding ulong.sizeof does not work here
                 //make variable-sized stack possible ... if it should be needed
 
@@ -1441,7 +1442,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
             break;
         case BCTypeEnum.Struct, BCTypeEnum.String, BCTypeEnum.Array:
             {
-
+                argOffset += uint.sizeof;
             }
             break;
         default:
@@ -1458,6 +1459,8 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
     // debug(bc) { import std.stdio; writeln("BC.len = ", byteCode.length); }
     if (byteCode.length < 6 || byteCode.length <= ip)
         return typeof(return).init;
+
+    long* stackP = &stack[0]; 
 
     while (true)
     {
@@ -1488,10 +1491,10 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
         auto rhsOffset = (hi >> 16) & 0xFFFF;
         auto opRefOffset = (lw >> 16) & 0xFFFF;
 
-        auto lhsRef = (stack.ptr + (lhsOffset / 4));
-        auto rhs = (stack.ptr + (rhsOffset / 4));
-        auto lhsStackRef = (stack.ptr + (((lw >> 16) & 0xFFFF) / 4));
-        auto opRef = stack.ptr + (opRefOffset / 4);
+        auto lhsRef = (stackP + (lhsOffset / 4));
+        auto rhs = (stackP + (rhsOffset / 4));
+        auto lhsStackRef = (stackP + (((lw >> 16) & 0xFFFF) / 4));
+        auto opRef = stackP + (opRefOffset / 4);
 
         if (indirect)
         {
