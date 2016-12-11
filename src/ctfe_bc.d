@@ -1355,6 +1355,9 @@ public:
 
             static if (is(typeof(_sharedCtfeState.functions)))
             {
+                //FIXME IMPORTANT PERFORMANCE!!!
+                // get rid of dup!
+
                 auto myPTypes = parameterTypes.dup;
                 auto myArgs = arguments.dup;
                 debug (ctfe)
@@ -1365,7 +1368,10 @@ public:
                 {
                     _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
                         BCFunctionTypeEnum.Bytecode,
-                        cast(ushort) parameterTypes.length, sp.addr, byteCodeArray[0 .. ip].dup);
+                        cast(ushort) parameterTypes.length, sp.addr, 
+                        //FIXME IMPORTANT PERFORMANCE!!!
+                        // get rid of dup!
+                        cast(immutable)byteCodeArray[0 .. ip]);
                     clear();
                 }
                 else
@@ -1398,6 +1404,9 @@ public:
                         _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
                             BCFunctionTypeEnum.Bytecode,
                             cast(ushort) parameterTypes.length, sp.addr,
+                            //FIXME IMPORTANT PERFORMANCE!!!
+                            // get rid of dup!
+
                             byteCodeArray[0 .. ip].dup);
                         clear();
                     }
