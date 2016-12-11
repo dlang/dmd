@@ -1077,10 +1077,10 @@ extern (C++) final class BCV(BCGenT) : Visitor
         ignoreVoid = false;
 
         unrolledLoopState = null;
-        switchState = &switchStates[0];
         switchFixup = null;
-        switchStates[0].switchFixupTableCount = 0;
-        switchStates[0].beginCaseStatementsCount = 0;
+        switchState = &switchStates[0];
+        switchState.switchFixupTableCount = 0;
+        switchState.beginCaseStatementsCount = 0;
 
         me = null;
         currentBlock = null;
@@ -1105,7 +1105,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     BCAddr[ubyte.max] continueFixups = void;
     BoolExprFixupEntry[ubyte.max] fixupTable = void;
     UncompiledFunction[ubyte.max] uncompiledFunctions = void;
-    SwitchState[16] switchStates;
+    SwitchState[16] switchStates = void;
 
     alias visit = super.visit;
 
@@ -1555,14 +1555,14 @@ public:
                 TOK.TOKand, TOK.TOKor, TOK.TOKshr, TOK.TOKshl:
                 auto lhs = genExpr(e.e1);
             auto rhs = genExpr(e.e2);
-				//FIXME IMPORRANT 
-				// The whole rhs == retval situation should be fixed in the bc evaluator
-				// since targets with native 3 address code can do this!
+            //FIXME IMPORRANT 
+            // The whole rhs == retval situation should be fixed in the bc evaluator
+            // since targets with native 3 address code can do this!
 
-                if (wasAssignTo && rhs == retval)
-                {
-                    retval = genTemporary(rhs.type);
-                }
+            if (wasAssignTo && rhs == retval)
+            {
+                retval = genTemporary(rhs.type);
+            }
 
             if (canHandleBinExpTypes(lhs.type.type, rhs.type.type))
             {
@@ -3223,14 +3223,19 @@ public:
     {
         switchState = &switchState[switchStateCount++];
         assert(switchState, to!string(switchStateCount));
-        switchState.switchFixupTableCount = 0;
-        switchState.beginCaseStatementsCount = 0;
 
         scope (exit)
         {
-            if(--switchStateCount == 0)
+            switchState.beginCaseStatementsCount = 0;
+            switchState.switchFixupTableCount = 0;
+            if (!switchStateCount)
             {
-               switchState = null;
+                switchState = null;
+                switchFixup = null;
+            }
+            else
+            {
+                switchState = &switchState[--switchStateCount];
             }
         }
 
