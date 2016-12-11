@@ -1038,6 +1038,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     uint fixupTableCount;
     uint processedArgs;
     uint uncompiledFunctionCount;
+    uint switchStateCount;
 
     BCGenT gen;
     alias gen this;
@@ -1062,6 +1063,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         continueFixupCount = 0;
         fixupTableCount = 0;
         processedArgs = 0;
+        switchStateCount = 0;
 
         arguments = [];
         parameterTypes = [];
@@ -1075,8 +1077,11 @@ extern (C++) final class BCV(BCGenT) : Visitor
         ignoreVoid = false;
 
         unrolledLoopState = null;
-        switchState = new SwitchState();
+        switchState = &switchStates[0];
         switchFixup = null;
+        switchStates[0].switchFixupTableCount = 0;
+        switchStates[0].beginCaseStatementsCount = 0;
+
         me = null;
         currentBlock = null;
 
@@ -1100,6 +1105,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     BCAddr[ubyte.max] continueFixups = void;
     BoolExprFixupEntry[ubyte.max] fixupTable = void;
     UncompiledFunction[ubyte.max] uncompiledFunctions = void;
+    SwitchState[16] switchStates;
 
     alias visit = super.visit;
 
@@ -3215,11 +3221,17 @@ public:
 
     override void visit(SwitchStatement ss)
     {
-        SwitchState* oldSwitchState = switchState;
-        switchState = new SwitchState();
+        switchState = &switchState[switchStateCount++];
+        assert(switchState, to!string(switchStateCount));
+        switchState.switchFixupTableCount = 0;
+        switchState.beginCaseStatementsCount = 0;
+
         scope (exit)
         {
-            switchState = oldSwitchState;
+            if(--switchStateCount == 0)
+            {
+               switchState = null;
+            }
         }
 
         with (switchState)

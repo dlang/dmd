@@ -335,7 +335,7 @@ struct BCFunction
 
 struct BCGen
 {
-    int[ushort.max / 4] byteCodeArray = void;
+    int[ushort.max / 4] byteCodeArray;
     /// ip starts at 4 because 0 should be an invalid address;
     BCAddr ip = BCAddr(4);
     StackAddr sp = StackAddr(4);
@@ -398,9 +398,10 @@ struct BCGen
 
     void Finalize()
     {
-        // the [ip-1] may be wrong in some cases ?
+        //the [ip-1] may be wrong in some cases ?
         byteCodeArray[ip - 1] = 0;
         byteCodeArray[ip] = 0;
+        byteCodeArray[ip + 1] = 0;
     }
 
     void beginFunction(uint fnId = 0)
@@ -2081,7 +2082,7 @@ int[] testRelJmp()
     }
 }
 
-//static assert(interpret_(testRelJmp(), []) == BCValue(Imm32(12)));
-//import bc_test;
+static assert(interpret_(testRelJmp(), []) == BCValue(Imm32(12)));
+import bc_test;
 
-//static assert(test!BCGen());
+static assert(test!BCGen());
