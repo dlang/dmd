@@ -822,6 +822,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             case OPbtc:
             case OPbtr:
             case OPbts:
+            case OPvecfill:
                 e1 = e->E1;
                 e1free = TRUE;
                 e1isadd = e1->Eoper == OPadd;
