@@ -299,11 +299,10 @@ enum BCFunctionTypeEnum : byte
 struct BCFunction
 {
     void* funcDecl;
-    
+
     BCFunctionTypeEnum type;
     ushort nArgs;
     ushort maxStackUsed;
-
 
     union
     {
@@ -312,26 +311,25 @@ struct BCFunction
         BCValue function(const BCValue[] arguments, uint[] heapPtr, uint[] stackPtr) fPtr;
     }
 
-   
-//    this(void* fd, BCFunctionTypeEnum type, int nr, const int[] byteCode, uint nArgs) pure
-//    {
-//        this.funcDecl = fd;
-//        this.nr = nr;
-//        this.type = BCFunctionTypeEnum.Builtin;
-//        this.byteCode = cast(immutable(int)[]) byteCode;
-//        this.nArgs = nArgs;
-//    }
-//
-//    this(int nr, BCValue function(const BCValue[] arguments, uint[] heapPtr) _fBuiltin,
-//        uint nArgs) pure
-//    {
-//        this.nr = nr;
-//        this.type = BCFunctionTypeEnum.Builtin;
-//        this._fBuiltin = _fBuiltin;
-//        this.nArgs = nArgs;
-//    }
-//
- }
+    //    this(void* fd, BCFunctionTypeEnum type, int nr, const int[] byteCode, uint nArgs) pure
+    //    {
+    //        this.funcDecl = fd;
+    //        this.nr = nr;
+    //        this.type = BCFunctionTypeEnum.Builtin;
+    //        this.byteCode = cast(immutable(int)[]) byteCode;
+    //        this.nArgs = nArgs;
+    //    }
+    //
+    //    this(int nr, BCValue function(const BCValue[] arguments, uint[] heapPtr) _fBuiltin,
+    //        uint nArgs) pure
+    //    {
+    //        this.nr = nr;
+    //        this.type = BCFunctionTypeEnum.Builtin;
+    //        this._fBuiltin = _fBuiltin;
+    //        this.nArgs = nArgs;
+    //    }
+    //
+}
 
 struct BCGen
 {
@@ -1460,7 +1458,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
     if (byteCode.length < 6 || byteCode.length <= ip)
         return typeof(return).init;
 
-    long* stackP = &stack[0]; 
+    long* stackP = &stack[0] + (stackOffset / 4);
 
     while (true)
     {
@@ -1493,7 +1491,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
 
         auto lhsRef = (stackP + (lhsOffset / 4));
         auto rhs = (stackP + (rhsOffset / 4));
-        auto lhsStackRef = (stackP + (((lw >> 16) & 0xFFFF) / 4));
+        auto lhsStackRef = (stackP + (opRefOffset / 4));
         auto opRef = stackP + (opRefOffset / 4);
 
         if (indirect)
@@ -1715,7 +1713,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                         auto err = errors[cast(uint)(*rhs - 1)];
                         if (err.v1.vType != BCValueType.Immediate)
                         {
-                            *ev1 = BCValue(Imm32(stack[err.v1.toUint / 4] & uint.max));
+                            *ev1 = BCValue(Imm32(stackP[err.v1.toUint / 4] & uint.max));
                         }
                         else
                         {
@@ -1724,7 +1722,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
 
                         if (err.v2.vType != BCValueType.Immediate)
                         {
-                            *ev2 = BCValue(Imm32(stack[err.v2.toUint / 4] & uint.max));
+                            *ev2 = BCValue(Imm32(stackP[err.v2.toUint / 4] & uint.max));
                         }
                         else
                         {
@@ -1747,7 +1745,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                         auto err = errors[cast(uint)(*rhs - 1)];
                         if (err.v1.vType != BCValueType.Immediate)
                         {
-                            *ev1 = BCValue(Imm32(stack[err.v1.toUint / 4] & uint.max));
+                            *ev1 = BCValue(Imm32(stackP[err.v1.toUint / 4] & uint.max));
                         }
                         else
                         {
@@ -1756,7 +1754,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
 
                         if (err.v2.vType != BCValueType.Immediate)
                         {
-                            *ev2 = BCValue(Imm32(stack[err.v2.toUint / 4] & uint.max));
+                            *ev2 = BCValue(Imm32(stackP[err.v2.toUint / 4] & uint.max));
                         }
                         else
                         {
@@ -1910,9 +1908,10 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
         case LongInst.Lsb:
             {
 
-                uint _dr = (*(stack.ptr + (*rhs / 4)) & 0xFF_FF_FF_FF);
+                uint _dr = stackP[(*rhs / 4)] & 0xFF_FF_FF_FF;
                 final switch (*rhs & 3)
                 {
+
                 case 0:
                     (*lhsRef) = _dr & 0xFF;
                     break;
