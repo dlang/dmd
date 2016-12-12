@@ -85,7 +85,7 @@ struct BlackList
     import ddmd.identifier : Identifier;
     bool isInitialized() pure const
     {
-        return list[0] is Identifier.init;
+        return list[0] !is Identifier.init;
     }
     Identifier[16] list;
 
@@ -101,7 +101,7 @@ struct BlackList
         }
     }
 
-    bool isInBlacklist(Identifier i) pure const
+    bool isInBlacklist(Identifier i) pure
     {
         foreach(const ref bi;list)
         {
@@ -139,7 +139,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 
 import ddmd.ctfe.bc_common;
 
-enum perf = 0;
+enum perf = 1;
 enum cacheBC = 0;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
