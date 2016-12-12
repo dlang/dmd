@@ -1688,8 +1688,8 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                 else
                     arg = toDelegate(arg, arg.type, sc);
             }
-            //printf("arg: %s\n", arg->toChars());
-            //printf("type: %s\n", arg->type->toChars());
+            //printf("arg: %s\n", arg.toChars());
+            //printf("type: %s\n", arg.type.toChars());
 
             if (tf.parameterEscapes(p))
             {
@@ -11067,7 +11067,6 @@ extern (C++) final class DeleteExp : UnaExp
                     error("cannot delete instance of COM interface %s", cd.toChars());
                     return new ErrorExp();
                 }
-
                 ad = cd;
                 break;
             }
