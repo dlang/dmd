@@ -50,7 +50,6 @@ struct BoolExprFixupEntry
 {
     BCAddr unconditional;
     CndJmpBegin conditional;
-
     this(BCAddr unconditional) pure
     {
         this.unconditional = unconditional;
@@ -1129,7 +1128,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         switchFixup = null;
         switchState = null;
         me = null;
-        currentBlock = null;
+        lastContinue = typeof(lastContinue).init;
 
         currentIndexed = BCValue.init;
         retval = BCValue.init;
@@ -1180,7 +1179,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     //BCValue _this;
     Expression _this;
 
-    BCBlock* currentBlock;
+    typeof(gen.genLabel()) lastContinue;
     BCValue currentIndexed;
 
     BCValue retval;
@@ -1901,6 +1900,7 @@ public:
 
     void fixupContinue(uint oldContinueFixupCount, BCLabel continueHere)
     {
+        lastContinue = continueHere;
         foreach (Jmp; continueFixups[oldContinueFixupCount .. continueFixupCount])
         {
             endJmp(Jmp, continueHere);
@@ -1912,14 +1912,9 @@ public:
         bool costumBreak = false, bool costumContinue = false)
     {
         BCBlock result;
-        auto oldBlock = currentBlock;
         const oldBreakFixupCount = breakFixupCount;
         const oldContinueFixupCount = continueFixupCount;
 
-        if (setCurrent)
-        {
-            currentBlock = &result;
-        }
         result.begin = genLabel();
         stmt.accept(this);
         result.end = genLabel();
@@ -1936,8 +1931,6 @@ public:
             {
                 fixupBreak(oldBreakFixupCount, result.end);
             }
-
-            currentBlock = oldBlock;
         }
 
         return result;
@@ -1949,7 +1942,6 @@ public:
         // There might be a problem with continueing for loops
         // I think we should execute the increment step when we continue
         // However that will not be done with the current system
-
         debug (ctfe)
         {
             import std.stdio;
@@ -3447,7 +3439,9 @@ public:
             bailout();
             return;
         }
-        auto block = labeledBlocks[cast(void*) ls.ident] = genBlock(ls.statement);
+        auto block = genBlock(ls.statement);
+        block.begin = begin = lastContinue;
+        labeledBlocks[cast(void*) ls.ident] = block;
 
         foreach (i, const ref unresolvedGoto; unresolvedGotos[0 .. unresolvedGotoCount])
         {
@@ -3478,8 +3472,6 @@ public:
         }
         else if (unrolledLoopState)
         {
-            bailout();
-            return;
             unrolledLoopState.continueFixups[unrolledLoopState.continueFixupCount++] = beginJmp();
         }
         else
