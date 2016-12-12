@@ -1448,7 +1448,8 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
             //       assert(0, "unsupported Type " ~ to!string(arg.type));
         }
     }
-
+    uint cacheIp;
+    uint[16] iCache; // not used right now... but we should!
     uint ip = 4;
     bool cond;
 
@@ -1474,14 +1475,11 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                 }
             }
 
-        const lw = byteCode[ip++];
+        const lw = byteCode[ip];
+        const hi = byteCode[ip+1];
+        ip += 2;
 
-        if (!lw)
-        { // Skip NOPS
-            continue;
-        }
         // consider splitting the stackPointer in stackHigh and stackLow
-        const hi = byteCode[ip++];
 
         bool indirect = !!(lw & IndirectionFlagMask);
 
@@ -1499,6 +1497,11 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
             lhsStackRef = (stack.ptr + ((*lhsStackRef) / 4));
             lhsRef = (stack.ptr + ((*lhsRef) / 4));
             opRef = (stack.ptr + ((*opRef) / 4));
+        }
+
+        if (!lw)
+        { // Skip NOPS
+            continue;
         }
 
         final switch (cast(LongInst)(lw & InstMask))
