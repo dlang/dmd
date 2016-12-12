@@ -1973,11 +1973,12 @@ public:
             BCLabel condEval = genLabel();
 
             BCValue cond = genExpr(fs.condition);
-            debug (ctfe)
-                assert(cond, "No cond generated");
-        else if (!cond)
+           if (!cond)
                 {
                     bailout();
+                debug (ctfe)
+                    assert(0, "No cond generated");
+                else
                     return;
                 }
 
@@ -2056,7 +2057,7 @@ public:
             //assert(0, "Cannot handleExpression");
         }
 
-        if (!se.lwr && !se.upr)
+        if (!se.lwr && !se.upr && se.e1.type.isString())
         {
             // "If there is no lwr and upr bound forward"
             retval = genExpr(se.e1);
@@ -2390,12 +2391,6 @@ public:
                 assert(0, "We only handle StringLengths for now att: " ~ to!string(array.type.type));
             bailout();
         }
-        //Set(, array);
-        //emitPrt(retval);
-        /*
-        uint_32 length
-        uint_32 [length/4+1] chars;
-         */
     }
 
     BCValue getLength(BCValue arr, BCValue target = BCValue.init)
@@ -3745,13 +3740,14 @@ public:
 
         uint oldFixupTableCount = fixupTableCount;
         auto cond = genExpr(fs.condition);
-        debug (ctfe)
-            assert(cond);
-            else if (!cond)
-            {
-                bailout();
+        if (!cond)
+        {
+            bailout();
+            debug (ctfe)
+                assert(0);
+            else 
                 return;
-            }
+        }
 
         auto cj = beginCndJmp(cond);
 
