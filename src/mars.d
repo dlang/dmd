@@ -147,7 +147,8 @@ Where:
   -main            add default main() (e.g. for unittesting)
   -man             open web browser on manual page
   -map             generate linker .map file
-  -mavx            use AVX instruction set" ~
+  -cpu=<id>        generate instructions for architecture identified by 'id'
+  -cpu=?           list all architecture options " ~
   "%s" /* placeholder for mscrtlib */ ~ "
   -mv=<package.module>=<filespec>  use <filespec> as source file for <package.module>
   -noboundscheck   no array bounds checking (deprecated, use -boundscheck=off)
@@ -305,6 +306,7 @@ private int tryMain(size_t argc, const(char)** argv)
     // Default to -m32 for 32 bit dmd, -m64 for 64 bit dmd
     global.params.is64bit = (size_t.sizeof == 8);
     global.params.mscoff = false;
+    global.params.cpu = CPU.baseline;
 
     // Temporary: Use 32 bits as the default on Windows, for config parsing
     static if (TARGET_WINDOS)
@@ -481,10 +483,6 @@ private int tryMain(size_t argc, const(char)** argv)
                     global.params.mscoff = true;
                 }
             }
-            else if (strcmp(p + 1, "mavx") == 0)
-            {
-                global.params.avx = true;
-            }
             else if (strcmp(p + 1, "m32mscoff") == 0)
             {
                 static if (TARGET_WINDOS)
@@ -547,6 +545,47 @@ private int tryMain(size_t argc, const(char)** argv)
                 else if (memcmp(p + 9, cast(char*)"spec", 4) == 0)
                 {
                     global.params.showGaggedErrors = true;
+                }
+                else
+                    goto Lerror;
+            }
+            else if (memcmp(p + 1, "mcpu".ptr, 4) == 0)
+            {
+                // Parse:
+                //      -mcpu=identifier
+                if (p[5] == '=')
+                {
+                    if (strcmp(p + 6, "?") == 0)
+                    {
+                        printf("
+CPU architectures supported by -mcpu=id:
+  =?             list information on all architecture choices
+  =baseline      use default architecture as determined by target
+  =avx           use AVX 1 instructions
+  =native        use CPU architecture that this compiler is running on
+");
+                        exit(EXIT_SUCCESS);
+                    }
+                    else if (Identifier.isValidIdentifier(p + 6))
+                    {
+                        const ident = p + 6;
+                        switch (ident[0 .. strlen(ident)])
+                        {
+                        case "baseline":
+                            global.params.cpu = CPU.baseline;
+                            break;
+                        case "avx":
+                            global.params.cpu = CPU.avx;
+                            break;
+                        case "native":
+                            global.params.cpu = CPU.native;
+                            break;
+                        default:
+                            goto Lerror;
+                        }
+                    }
+                    else
+                        goto Lerror;
                 }
                 else
                     goto Lerror;
@@ -999,6 +1038,12 @@ Language changes listed by -transition=id:
             }
             files.push(p);
         }
+    }
+    if (global.params.cpu == CPU.native)
+    {
+        import core.cpuid;
+        if (core.cpuid.avx)
+            global.params.cpu = CPU.avx;
     }
     if (global.params.is64bit != is64bit)
         error(Loc(), "the architecture must not be changed in the %s section of %s", envsection.ptr, global.inifilename);

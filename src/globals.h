@@ -32,6 +32,15 @@ enum BOUNDSCHECK
     BOUNDSCHECKsafeonly // do bounds checking only in @safe functions
 };
 
+enum CPU
+{
+    baseline,           // (default) the minimum capability CPU
+    avx,                // AVX1 instruction set
+    avx2,               // AVX2 instruction set
+    avx512,             // AVX-512 instruction set
+    native              // the machine the compiler is being run on
+};
+
 
 // Put command line switches in here
 struct Param
@@ -96,9 +105,9 @@ struct Param
     bool check10378;    // check for issues transitioning to 10738
     bool bug10378;      // use pre-bugzilla 10378 search strategy
     bool safe;          // use enhanced @safe checking
-    bool avx;               // use AVX instruction set
     bool showGaggedErrors;  // print gagged errors anyway
 
+    CPU cpu;                // CPU instruction set to target
     BOUNDSCHECK useArrayBounds;
 
     const char *argv0;    // program name

@@ -1,3 +1,6 @@
+/*
+REQUIRED_ARGS: -mcpu=native
+*/
 
 import core.stdc.stdio;
 
