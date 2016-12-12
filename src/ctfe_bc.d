@@ -21,6 +21,7 @@ struct BCBlockJump
 {
     BCAddr at;
     bool toBegin;
+    bool toContinue;
 }
 
 struct UnresolvedGoto
@@ -3404,6 +3405,7 @@ public:
         }
 
         unresolvedGotos[unresolvedGotoCount].ident = ident;
+        unresolvedGotos[unresolvedGotoCount].jumpCount = 1;
         unresolvedGotos[unresolvedGotoCount++].jumps[0] = jmp;
 
     }
@@ -3440,7 +3442,7 @@ public:
             return;
         }
         auto block = genBlock(ls.statement);
-        block.begin = begin = lastContinue;
+       
         labeledBlocks[cast(void*) ls.ident] = block;
 
         foreach (i, const ref unresolvedGoto; unresolvedGotos[0 .. unresolvedGotoCount])
@@ -3448,7 +3450,7 @@ public:
             if (unresolvedGoto.ident == cast(void*) ls.ident)
             {
                 foreach (jmp; unresolvedGoto.jumps[0 .. unresolvedGoto.jumpCount])
-                    jmp.toBegin ? endJmp(jmp.at, block.begin) : endJmp(jmp.at, block.end);
+                    jmp.toBegin ? endJmp(jmp.at, block.begin) : jmp.toContinue ? endJmp(jmp.at, lastContinue) : endJmp(jmp.at, block.end);
 
                 // write the last one into here and decrease the count
                 unresolvedGotos[i] = unresolvedGotos[unresolvedGotoCount--];
@@ -3467,7 +3469,7 @@ public:
             }
             else
             {
-                addUnresolvedGoto(cast(void*) cs.ident, BCBlockJump(beginJmp(), true));
+                addUnresolvedGoto(cast(void*) cs.ident, BCBlockJump(beginJmp(), false, true));
             }
         }
         else if (unrolledLoopState)
