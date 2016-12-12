@@ -80,6 +80,44 @@ struct SwitchState
     uint beginCaseStatementsCount;
 }
 
+struct BlackList
+{
+    import ddmd.identifier : Identifier;
+    bool isInitialized() pure const
+    {
+        return list[0] is Identifier.init;
+    }
+    Identifier[16] list;
+
+    void initialize(string[] blacklistNames)
+    {
+        if (isInitialized)
+            return;
+
+        assert(blacklistNames.length <= list.length);
+        foreach(i,const ref name;blacklistNames)
+        {
+            list[i] = Identifier.idPool(name);
+        }
+    }
+
+    bool isInBlacklist(Identifier i) pure const
+    {
+        foreach(const ref bi;list)
+        {
+            if (bi is i)
+                return true;
+        }
+        return false;
+    }
+
+    void defaultBlackList()
+    {
+        initialize(["_ArrayEq", "isRooted", "__lambda2", "isSameLength", "bug4910", "wrapperParameters", "defaultMatrix", "extSeparatorPos", "args", "check"]);
+    }
+
+}
+
 Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression thisExp)
 {
     Expression[] _args;
@@ -134,6 +172,7 @@ else
 }
 __gshared SharedCtfeState!BCGenT _sharedCtfeState;
 __gshared SharedCtfeState!BCGenT* sharedCtfeState = &_sharedCtfeState;
+__gshared BlackList _blacklist;
 
 ulong evaluateUlong(Expression e)
 {
@@ -143,7 +182,7 @@ ulong evaluateUlong(Expression e)
 Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _this = null)
 {
     __gshared static arg_bcv = new BCV!(BCGenT)(null, null);
-
+    _blacklist.defaultBlackList();
     import std.stdio;
 
     static if (cacheBC && is(typeof(_sharedCtfeState.functionCount)) && is(BCGen))
@@ -1291,19 +1330,7 @@ public:
         //HACK this filters out functions which I know produce incorrect results
         //this is only so I can see where else are problems.
 
-        if (fd.ident == Identifier.idPool("isRooted")
-                || fd.ident == Identifier.idPool("__lambda2")
-                || fd.ident == Identifier.idPool("isSameLength")
-                || fd.ident == Identifier.idPool("wrapperParameters")
-                || fd.ident == Identifier.idPool("defaultMatrix")
-                || fd.ident == Identifier.idPool("bug4910") // this one is strange
-
-                
-
-                || fd.ident == Identifier.idPool("_ArrayEq")
-
-                || fd.ident == Identifier.idPool("extSeparatorPos")
-                || fd.ident == Identifier.idPool("args") || fd.ident == Identifier.idPool("check"))
+        if (_blacklist.isInBlacklist(fd.ident))
         {
             bailout();
             debug (ctfe)
