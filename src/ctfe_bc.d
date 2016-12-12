@@ -83,10 +83,12 @@ struct SwitchState
 struct BlackList
 {
     import ddmd.identifier : Identifier;
+
     bool isInitialized() pure const
     {
-        return list[0] !is Identifier.init;
+        return list[0]!is Identifier.init;
     }
+
     Identifier[16] list;
 
     void initialize(string[] blacklistNames)
@@ -95,7 +97,7 @@ struct BlackList
             return;
 
         assert(blacklistNames.length <= list.length);
-        foreach(i,const ref name;blacklistNames)
+        foreach (i, const ref name; blacklistNames)
         {
             list[i] = Identifier.idPool(name);
         }
@@ -103,7 +105,7 @@ struct BlackList
 
     bool isInBlacklist(Identifier i) pure
     {
-        foreach(const ref bi;list)
+        foreach (const ref bi; list)
         {
             if (bi is i)
                 return true;
@@ -113,7 +115,9 @@ struct BlackList
 
     void defaultBlackList()
     {
-        initialize(["_ArrayEq", "isRooted", "__lambda2", "isSameLength", "bug4910", "wrapperParameters", "defaultMatrix", "extSeparatorPos", "args", "check"]);
+        initialize(["_ArrayEq", "isRooted", "__lambda2", "isSameLength",
+            "bug4910", "wrapperParameters", "defaultMatrix", "extSeparatorPos", "args",
+            "check"]);
     }
 
 }
@@ -191,10 +195,10 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         import std.datetime : StopWatch;
 
         static if (perf)
+        {
             StopWatch ffw;
-        static if (perf)
             ffw.start();
-
+        }
         if (auto fnIdx = _sharedCtfeState.getFunctionIndex(fd))
         {
             //FIXME TOOD add a branchHint to say that it is likely to find the function!
@@ -209,9 +213,10 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             bc_args.length = fn.nArgs;
             arg_bcv.beginArguments();
             static if (perf)
+            {
                 StopWatch isw;
-            static if (perf)
                 isw.start();
+            }
 
             foreach (i, arg; args)
             {
@@ -221,8 +226,11 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
             auto retval = interpret_(fn.byteCode, bc_args,
                 &_sharedCtfeState.heap, _sharedCtfeState.functions.ptr);
-            isw.stop();
-            writeln("Interpretation took ", isw.peek.usecs, "us");
+            static if (perf)
+            {
+                isw.stop();
+                writeln("Interpretation took ", isw.peek.usecs, "us");
+            }
             return toExpression(retval, (cast(TypeFunction) fd.type).nextOf,
                 &_sharedCtfeState.heap);
         }
@@ -1962,14 +1970,14 @@ public:
             BCLabel condEval = genLabel();
 
             BCValue cond = genExpr(fs.condition);
-           if (!cond)
-                {
-                    bailout();
+            if (!cond)
+            {
+                bailout();
                 debug (ctfe)
                     assert(0, "No cond generated");
-                else
-                    return;
-                }
+            else
+                        return;
+            }
 
             auto condJmp = beginCndJmp(cond);
             const oldContinueFixupCount = continueFixupCount;
@@ -3438,7 +3446,7 @@ public:
             return;
         }
         auto block = genBlock(ls.statement);
-       
+
         labeledBlocks[cast(void*) ls.ident] = block;
 
         foreach (i, const ref unresolvedGoto; unresolvedGotos[0 .. unresolvedGotoCount])
@@ -3446,7 +3454,9 @@ public:
             if (unresolvedGoto.ident == cast(void*) ls.ident)
             {
                 foreach (jmp; unresolvedGoto.jumps[0 .. unresolvedGoto.jumpCount])
-                    jmp.toBegin ? endJmp(jmp.at, block.begin) : jmp.toContinue ? endJmp(jmp.at, lastContinue) : endJmp(jmp.at, block.end);
+                    jmp.toBegin ? endJmp(jmp.at,
+                        block.begin) : jmp.toContinue ? endJmp(jmp.at,
+                        lastContinue) : endJmp(jmp.at, block.end);
 
                 // write the last one into here and decrease the count
                 unresolvedGotos[i] = unresolvedGotos[unresolvedGotoCount--];
@@ -3465,7 +3475,8 @@ public:
             }
             else
             {
-                addUnresolvedGoto(cast(void*) cs.ident, BCBlockJump(beginJmp(), false, true));
+                addUnresolvedGoto(cast(void*) cs.ident, BCBlockJump(beginJmp(), false,
+                    true));
             }
         }
         else if (unrolledLoopState)
@@ -3735,8 +3746,8 @@ public:
             bailout();
             debug (ctfe)
                 assert(0);
-            else 
-                return;
+        else
+                    return;
         }
 
         auto cj = beginCndJmp(cond);
