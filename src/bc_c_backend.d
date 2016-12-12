@@ -13,7 +13,9 @@ enum CInst : ushort
     Eq, //sets condflags
     Neq, //sets condflag
     Lt, //sets condflags
+    Le,
     Gt, //sets condflags
+    Ge,
     Set,
     And,
     Or,
@@ -35,7 +37,7 @@ struct C_BCGen
         return (
             (
             (fname is null) ? "((BCValue[] args, BCHeap* heapPtr) @safe {\n"
-            : "BCValue " ~ fname ~ "(BCValue[] args) {\n") ~ intrinsicFunctions ~ "\n\tint stackOffset;\n\tBCValue retval;\n\tint[" ~ to!string(
+            : "BCValue " ~ fname ~ "(BCValue[] args) {\n") ~ (requireIntrinsics ? intrinsicFunctions : "") ~ "\n\tint stackOffset;\n\tBCValue retval;\n\tint[" ~ to!string(
             align4(sp + 400)) ~ "] stack;\n\tint cond;\n\n" ~ q{
         foreach(i, arg;args)
         {
@@ -171,10 +173,10 @@ pure:
         endJmp(beginJmp(), target);
     }
 
-    CndJmpBegin beginCndJmp(BCValue cond = BCValue.init, bool ifFalse = true)
+    CndJmpBegin beginCndJmp(BCValue cond = BCValue.init, bool ifTrue = false)
     {
         sameLabel = false;
-        string prefix = ifFalse ? "!" : "";
+        string prefix = ifTrue ? "" : "!";
         if (cond.vType == BCValueType.StackValue && cond.type == BCType.i32)
         {
             code ~= "\tif (" ~ prefix ~ "(" ~ toCode(cond) ~ "))\n\t";
@@ -185,7 +187,7 @@ pure:
         }
         auto labelAt = beginJmp();
 
-        return CndJmpBegin(labelAt, cond, ifFalse);
+        return CndJmpBegin(labelAt, cond, ifTrue);
     }
 
     void endCndJmp(CndJmpBegin jmp, BCLabel target)
@@ -276,6 +278,12 @@ pure:
         case CInst.Gt:
             code ~= "cond = (" ~ toCode(lhs) ~ " > " ~ toCode(rhs) ~ ");\n";
             break;
+        case CInst.Le:
+            code ~= "cond = (" ~ toCode(lhs) ~ " <= " ~ toCode(rhs) ~ ");\n";
+            break;
+        case CInst.Ge:
+            code ~= "cond = (" ~ toCode(lhs) ~ " >= " ~ toCode(rhs) ~ ");\n";
+            break;
         default:
             assert(0, "Inst unsupported " ~ to!string(inst));
 
@@ -296,7 +304,7 @@ pure:
         },
             toCode(size), toCode(heapPtr), toCode(size));
     }
-
+    void AssertError(BCValue val, BCValue error) {}
     void Load32(BCValue to, BCValue from)
     {
         sameLabel = false;
@@ -344,6 +352,31 @@ pure:
             || result.vType == BCValueType.StackValue,
             "The result for this must be Empty or a StackValue");
         emitArithInstruction(CInst.Gt, lhs, rhs);
+        if (result.vType == BCValueType.StackValue)
+        {
+            emitFlg(result);
+        }
+
+    }
+    void Le3(BCValue result, BCValue lhs, BCValue rhs)
+    {
+        assert(result.vType == BCValueType.Unknown
+            || result.vType == BCValueType.StackValue,
+            "The result for this must be Empty or a StackValue");
+        emitArithInstruction(CInst.Le, lhs, rhs);
+        if (result.vType == BCValueType.StackValue)
+        {
+            emitFlg(result);
+        }
+
+    }
+
+    void Ge3(BCValue result, BCValue lhs, BCValue rhs)
+    {
+        assert(result.vType == BCValueType.Unknown
+            || result.vType == BCValueType.StackValue,
+            "The result for this must be Empty or a StackValue");
+        emitArithInstruction(CInst.Ge, lhs, rhs);
         if (result.vType == BCValueType.StackValue)
         {
             emitFlg(result);
@@ -505,11 +538,11 @@ pure:
         emitArithInstruction(CInst.Mod, result, rhs);
     }
 
-    void Not(BCValue val)
+    void Not(BCValue result, BCValue val)
     {
         sameLabel = false;
-        assert(val.vType == BCValueType.StackValue);
-        code ~= "\t" ~ toCode(val) ~ " = ~" ~ toCode(val) ~ ";\n";
+        assert(val.vType == BCValueType.StackValue || val.vType == BCValueType.Parameter);
+        code ~= "\t" ~ toCode(result) ~ " = ~" ~ toCode(val) ~ ";\n";
     }
 
     void Ret(BCValue val)
@@ -556,7 +589,7 @@ pure:
     {
     }
 }
-
+static assert(ensureIsBCGen!C_BCGen);
 int interpret(const C_BCGen gen)(BCValue[] args)
 {
     auto fn = mixin(gen.functionalize(null));

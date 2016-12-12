@@ -23,7 +23,7 @@ auto instKind(LongInst i)
 {
     final switch (i)
     {
-    case  /*LongInst.Prt,*/ LongInst.RelJmp, LongInst.Ret, LongInst.Not,
+    case  /*LongInst.Prt,*/ LongInst.RelJmp, LongInst.Ret, LongInstc,
             LongInst.Flg, LongInst.Drb, LongInst.Mod4:
         {
             return InstKind.ShortInst;
@@ -348,7 +348,7 @@ struct BCGen
         ip += 2;
     }
 
-    auto genTemporary(BCType bct)
+    BCValue genTemporary(BCType bct)
     {
         auto tmpAddr = sp.addr;
         if (isBasicBCType(bct))
@@ -403,7 +403,7 @@ struct BCGen
         return sp;
     }
 
-    auto endJmp(BCAddr atIp, BCLabel target)
+    void endJmp(BCAddr atIp, BCLabel target)
     {
         if (auto offset = isShortJump(target.addr - atIp))
         {
@@ -417,7 +417,7 @@ struct BCGen
         }
     }
 
-    auto genLabel()
+    BCLabel genLabel()
     {
         return BCLabel(ip);
     }
@@ -497,8 +497,16 @@ struct BCGen
 
     }
 
-    void Not(BCValue val)
+    void Not(BCValue result, BCValue val)
     {
+        if (result != val)
+        {
+            Set(result, val);
+            val = result;
+        }
+        if (val.vType == BCValueType.Immediate)
+            val = pushOntoStack(val);
+
         byteCodeArray[ip] = ShortInst16(LongInst.Not, val.stackAddr);
         ip += 2;
     }
@@ -800,7 +808,8 @@ struct BCGen
 
     void Load32(BCValue _to, BCValue from)
     {
-        assert(_to.vType == BCValueType.StackValue, "to has the vType " ~ to!string(_to.vType));
+        assert(_to.vType == BCValueType.StackValue
+            || _to.vType == BCValueType.Parameter, "to has the vType " ~ to!string(_to.vType));
         if (from.vType != BCValueType.StackValue)
         {
             from = pushOntoStack(from);
@@ -810,7 +819,8 @@ struct BCGen
 
     void Store32(BCValue _to, BCValue value)
     {
-        assert(_to.vType == BCValueType.StackValue, "to has the vType " ~ to!string(_to.vType));
+        assert(_to.vType == BCValueType.StackValue
+            || _to.vType == BCValueType.Parameter, "to has the vType " ~ to!string(_to.vType));
         if (value.vType != BCValueType.StackValue)
         {
             value = pushOntoStack(value);
@@ -1148,12 +1158,13 @@ string printInstructions(const int* startInstructions, uint length) pure
             break;
         case LongInst.Assert:
             {
-                result ~= "Assert SP[" ~ to!string(hi & 0xFFFF) ~ "], HEAP[SP[" ~ to!string(hi >> 16) ~ "]]\n";
+                result ~= "Assert SP[" ~ to!string(hi & 0xFFFF) ~ "], ErrNo SP[" ~ to!string(
+                    hi >> 16) ~ "]\n";
             }
             break;
         case LongInst.AssertCnd:
             {
-                result ~= "AssertCnd HEAP[SP[" ~ to!string(hi >> 16) ~ "]]\n";
+                result ~= "AssertCnd ErrNo SP[" ~ to!string(hi >> 16) ~ "]]\n";
             }
             break;
         case LongInst.Eq:
@@ -1356,6 +1367,15 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
             {
                 *(stack.ptr + stackOffset / 4) = arg.imm32;
                 stackOffset += uint.sizeof;
+            }
+            break;
+        case BCTypeEnum.i64:
+            {
+                *(stack.ptr + stackOffset / 4) = arg.imm64;
+                stackOffset += uint.sizeof;
+                //TODO find out why adding ulong.sizeof does not work here
+                //make variable-sized stack possible ... if it should be needed
+
             }
             break;
         case BCTypeEnum.Struct, BCTypeEnum.String, BCTypeEnum.Array:
@@ -1625,8 +1645,13 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
             break;
         case LongInst.Assert:
             {
-                assert(0, "Not Implemented yet");
-            }
+                if (*lhsRef == 0)
+                {
+                    BCValue retval = BCValue(Imm32((*rhs) & uint.max));
+                    retval.vType = BCValueType.Error;
+                    return retval;
+                }
+            } break;
         case LongInst.AssertCnd:
             {
                 if (!cond)
@@ -1636,7 +1661,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                     return retval;
                 }
             }
-			break;
+            break;
         case LongInst.Eq:
             {
                 if ((*lhsRef) == *rhs)
@@ -1956,6 +1981,6 @@ int[] testRelJmp()
 
 pragma(msg, printInstructions(testRelJmp));
 static assert(interpret_(testRelJmp(), []) == BCValue(Imm32(12)));
-import bc_test;
+//import bc_test;
 
-static assert(test!BCGen());
+//static assert(test!BCGen());

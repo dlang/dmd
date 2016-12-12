@@ -34,7 +34,7 @@ bool test(BCGenT)()
         with (gen)
         {
             auto p1 = genParameter(BCType(BCTypeEnum.i32));
-            
+
             beginFunction();
             Eq3(BCValue.init, p1, BCValue(Imm32(16)));
             auto cndJmp = beginCndJmp();
@@ -302,9 +302,31 @@ bool test(BCGenT)()
     });
 
     static assert(testString([], ({
-        BCHeap *h1 = new BCHeap();
-        h1.pushString("This is the world we live in.".ptr, cast(uint)"This is the World we live in.".length);
+        BCHeap* h1 = new BCHeap();
+        h1.pushString("This is the world we live in.".ptr,
+            cast(uint) "This is the World we live in.".length);
         return h1;
     }())) == BCValue(Imm32(166784)));
+
+    static immutable testCndJmp = BCGenFunction!(BCGenT, () {
+        BCGenT gen;
+        with (gen)
+        {
+
+            beginFunction();
+            auto p1 = genTemporary(BCType(BCTypeEnum.i32)); //SP[4]
+            auto label1 = genLabel();
+            Add3(p1, p1, BCValue(Imm32(1)));
+            auto tmp1 = genTemporary(BCType(BCTypeEnum.i32)); //SP[8]
+            Lt3(tmp1, p1, BCValue(Imm32(3)));
+            auto cndJmp1 = beginCndJmp(tmp1, true);
+            endCndJmp(cndJmp1, label1);
+            Ret(p1);
+            endFunction();
+        }
+        return gen;
+    });
+    static assert(testCndJmp([], null) == BCValue(Imm32(3)));
+
     return true;
 }

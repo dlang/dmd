@@ -105,6 +105,10 @@ struct Print_BCGen
             {
                 return "p" ~ to!string(val.param) ~ functionSuffix;
             }
+        case BCValueType.Error:
+            {
+                return "Imm32(" ~ to!string(val.imm32) ~ ")/*Error*/";
+            }
         case BCValueType.Unknown:
             {
                 return "BCValue.init";
@@ -237,6 +241,8 @@ struct Print_BCGen
 
     void Set(BCValue lhs, BCValue rhs)
     {
+		if (lhs == rhs)
+			return;
         sameLabel = false;
         result ~= "    Set(" ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
     }
@@ -363,7 +369,7 @@ struct Print_BCGen
     void Store32(BCValue to, BCValue from)
     {
         sameLabel = false;
-        result ~= "    Store(" ~ print(to) ~ ", " ~ print(from) ~ ");\n";
+        result ~= "    Store32(" ~ print(to) ~ ", " ~ print(from) ~ ");\n";
     }
 
     void Alloc(BCValue heapPtr, BCValue size)
@@ -372,10 +378,10 @@ struct Print_BCGen
         result ~= "    Alloc(" ~ print(heapPtr) ~ ", " ~ print(size) ~ ");\n";
     }
 
-    void Not(BCValue val)
+    void Not(BCValue _result, BCValue val)
     {
         sameLabel = false;
-        result ~= "    Not(" ~ print(val) ~ ");\n";
+        result ~= "    Not(" ~ print(_result) ~ ", " ~ print(val) ~ ");\n";
     }
 
     void Ret(BCValue val)
@@ -390,6 +396,11 @@ struct Print_BCGen
         result ~= "    Cat(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ", " ~ to!string(
             elmSize) ~ ");\n";
     }
+
+    void AssertError(BCValue value, BCValue err)
+    {
+        result ~= "    AssertError(" ~ print(value) ~ ", " ~ print(err) ~ ");\n";
+    }
 }
 
 enum genString = q{
@@ -400,12 +411,4 @@ enum genString = q{
     Ret(tmp1);
 };
 
-static assert(() {
-    Print_BCGen gen;
-    with (gen)
-    {
-        mixin(genString);
-    }
-    return gen;
-}().result == genString);
 static assert(ensureIsBCGen!Print_BCGen);
