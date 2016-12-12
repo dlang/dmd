@@ -1209,7 +1209,7 @@ code *cdvecsto(elem *e, regm_t *pretregs)
 }
 
 /***************
- * Generate code for OPvecfill.
+ * Generate code for OPvecfill (broadcast).
  * OPvecfill takes the single value in e1 and
  * fills the vector type with it.
  */
@@ -1246,36 +1246,88 @@ code *cdvecfill(elem *e, regm_t *pretregs)
 
     unsigned reg;
     unsigned rreg;
-    switch (tybasic(e->Ety))
+    unsigned varreg;
+    regm_t varregm;
+    tym_t ty = tybasic(e->Ety);
+    switch (ty)
     {
         case TYfloat4:
-            // SHUFPS XMM0,XMM0,0    0F C6 /r ib
-            c = codelem(e1,&retregs,FALSE); // eval left leaf
-            cdb.append(c);
-            reg = findreg(retregs) - XMM0;
-            cdb.append(getregs(retregs));
-            cs.Iop = SHUFPS;
-            cs.Irm = modregxrmx(3,reg,reg);
-            cs.Iflags = 0;
-            cs.IFL2 = FLconst;
-            cs.IEV2.Vsize_t = 0;
-            cdb.gen(&cs);
+        case TYfloat8:
+            if (config.avx &&
+                ((e1->Eoper == OPind && !e1->Ecount) || e1->Eoper == OPvar && !isregvar(e1,&varregm,&varreg)))
+            {
+              Lint:
+                // VBROADCASTSS XMM,MEM
+                cdb.append(getlvalue(&cs, e1, 0));         // get addressing mode
+                assert((cs.Irm & 0xC0) != 0xC0);           // AVX1 doesn't have register source operands
+                cdb.append(allocreg(&retregs,&reg,ty));
+                cs.Iop = VBROADCASTSS;
+                cs.Irex &= ~REX_W;
+                code_newreg(&cs,reg - XMM0);
+                checkSetVex(&cs,ty);
+                cdb.gen(&cs);
+            }
+            else
+            {
+                // SHUFPS XMM0,XMM0,0    0F C6 /r ib
+                c = codelem(e1,&retregs,FALSE); // eval left leaf
+                cdb.append(c);
+                reg = findreg(retregs) - XMM0;
+                cdb.append(getregs(retregs));
+                cs.Iop = SHUFPS;
+                cs.Irm = modregxrmx(3,reg,reg);
+                cs.Iflags = 0;
+                cs.IFL2 = FLconst;
+                cs.IEV2.Vsize_t = 0;
+                if (config.avx >= 2 || tysize(ty) == 32)
+                {
+                    // VBROADCASTSS XMM,XMM
+                    cs.Iop = VBROADCASTSS;
+                    checkSetVex(&cs, ty);
+                }
+                cdb.gen(&cs);
+            }
             break;
 
         case TYdouble2:
-            // UNPCKLPD XMM0,XMM0     66 0F 14 /r
-            c = codelem(e1,&retregs,FALSE); // eval left leaf
-            cdb.append(c);
-            reg = findreg(retregs) - XMM0;
-            cdb.append(getregs(retregs));
-            cs.Iop = UNPCKLPD;
-            cs.Irm = modregxrmx(3,reg,reg);
-            cs.Iflags = 0;
-            cdb.gen(&cs);
+        case TYdouble4:
+            if (config.avx &&
+                ((e1->Eoper == OPind && !e1->Ecount) || e1->Eoper == OPvar && !isregvar(e1,&varregm,&varreg)))
+            {
+                // VBROADCASTSD XMM,MEM
+                cdb.append(getlvalue(&cs, e1, 0));         // get addressing mode
+                assert((cs.Irm & 0xC0) != 0xC0);           // AVX1 doesn't have register source operands
+                cdb.append(allocreg(&retregs,&reg,ty));
+                cs.Iop = VBROADCASTSD;
+                cs.Irex &= ~REX_W;
+                code_newreg(&cs,reg - XMM0);
+                checkSetVex(&cs,ty);
+                cdb.gen(&cs);
+            }
+            else
+            {
+                // UNPCKLPD XMM0,XMM0     66 0F 14 /r
+                c = codelem(e1,&retregs,FALSE); // eval left leaf
+                cdb.append(c);
+                reg = findreg(retregs) - XMM0;
+                cdb.append(getregs(retregs));
+                cs.Iop = UNPCKLPD;
+                cs.Irm = modregxrmx(3,reg,reg);
+                cs.Iflags = 0;
+                if (config.avx >= 2 || tysize(ty) == 32)
+                {
+                    // VBROADCASTSD XMM,XMM
+                    cs.Iop = VBROADCASTSD;
+                    checkSetVex(&cs, ty);
+                }
+                cdb.gen(&cs);
+            }
             break;
 
         case TYschar16:
         case TYuchar16:
+        case TYschar32:
+        case TYuchar32:
         {
             /* MOVD      XMM0,r
              * PUNPCKLBW XMM0,XMM0
@@ -1291,6 +1343,7 @@ code *cdvecfill(elem *e, regm_t *pretregs)
             cdb.append(c);
             reg -= XMM0;
             cdb.gen2(LODD,modregxrmx(3,reg,r));     // MOVD reg,r
+            checkSetVex(cdb.last(),ty);
 
             cs.Iop = PUNPCKLBW;
             cs.Irm = modregxrmx(3,reg,reg);
@@ -1302,42 +1355,96 @@ code *cdvecfill(elem *e, regm_t *pretregs)
             cs.Iop = PSHUFD;
             cs.IFL2 = FLconst;
             cs.IEV2.Vsize_t = 0;
+            checkSetVex(&cs,ty);
             cdb.gen(&cs);
+            if (tysize(ty) == 32)
+            {
+                // VINSERTF128 YMM0,YMM0,XMM0,1
+                cs.Iop = VINSERTF128;
+                cs.Irm = modregxrmx(3,reg,reg);
+                cs.Iflags = 0;
+                cs.IFL2 = FLconst;
+                cs.IEV2.Vsize_t = 1;
+                checkSetVex(&cs,ty);
+                cdb.gen(&cs);
+            }
             break;
         }
 
         case TYshort8:
         case TYushort8:
+        case TYshort16:
+        case TYushort16:
         {
-            /* MOVD      XMM0,r
-             * PUNPCKLWD XMM0,XMM0
-             * PSHUFD    XMM0,XMM0,0
-             */
             regm_t regm = ALLREGS;
             c = codelem(e1,&regm,FALSE); // eval left leaf
             cdb.append(c);
             unsigned r = findreg(regm);
 
-            c = allocreg(&retregs,&reg, e->Ety);
-            cdb.append(c);
-            reg -= XMM0;
-            cdb.gen2(LODD,modregxrmx(3,reg,r));     // MOVD reg,r
+            if (config.avx || tysize(ty) == 32)
+            {
+                /*
+                 * VPXOR XMM0,XMM0,XMM0
+                 * VPINSRW XMM0,XMM0,r,0
+                 * VPINSRW XMM0,XMM0,r,1
+                 * VPINSRW XMM0,XMM0,r,2
+                 * VPINSRW XMM0,XMM0,r,3
+                 */
+                cdb.append(allocreg(&retregs,&reg, ty));
+                cdb.gen2(PXOR,modregxrmx(3,reg-XMM0,reg-XMM0));
+                checkSetVex(cdb.last(), ty);
+                for (int i = 0; i < 4; ++i)
+                {
+                    cdb.genc2(PINSRW,modregxrmx(3,reg-XMM0,r),i);
+                    checkSetVex(cdb.last(), ty);
+                }
+                if (tysize(ty) == 32)
+                {
+                    // VINSERTF128 YMM0,YMM0,XMM0,1
+                    cs.Iop = VINSERTF128;
+                    cs.Irm = modregxrmx(3,reg-XMM0,reg-XMM0);
+                    cs.Iflags = 0;
+                    cs.IFL2 = FLconst;
+                    cs.IEV2.Vsize_t = 1;
+                    checkSetVex(&cs,ty);
+                    cdb.gen(&cs);
+                }
+            }
+            else
+            {
+                /* MOVD      XMM0,r
+                 * PUNPCKLWD XMM0,XMM0
+                 * PSHUFD    XMM0,XMM0,0
+                 */
+                c = allocreg(&retregs,&reg, e->Ety);
+                cdb.append(c);
+                reg -= XMM0;
+                cdb.gen2(LODD,modregxrmx(3,reg,r));     // MOVD reg,r
+                checkSetVex(cdb.last(),e->Ety);
 
-            cs.Iop = PUNPCKLWD;
-            cs.Irm = modregxrmx(3,reg,reg);
-            cs.Iflags = 0;
-            cdb.gen(&cs);
+                cs.Iop = PUNPCKLWD;
+                cs.Irm = modregxrmx(3,reg,reg);
+                cs.Iflags = 0;
+                cdb.gen(&cs);
 
-            cs.Iop = PSHUFD;
-            cs.IFL2 = FLconst;
-            cs.IEV2.Vsize_t = 0;
-            cdb.gen(&cs);
+                cs.Iop = PSHUFD;
+                cs.IFL2 = FLconst;
+                cs.IEV2.Vsize_t = 0;
+                cdb.gen(&cs);
+            }
             break;
         }
 
+        case TYlong8:
+        case TYulong8:
         case TYlong4:
         case TYulong4:
         {
+            if (config.avx &&
+                ((e1->Eoper == OPind && !e1->Ecount) || e1->Eoper == OPvar && !isregvar(e1,&varregm,&varreg)))
+            {
+                goto Lint;
+            }
             /* MOVD      XMM1,r
              * PSHUFD    XMM0,XMM1,0
              */
@@ -1356,28 +1463,65 @@ code *cdvecfill(elem *e, regm_t *pretregs)
             cs.Iflags = 0;
             cs.IFL2 = FLconst;
             cs.IEV2.Vsize_t = 0;
+            if (config.avx >= 2 || tysize(ty) == 32)
+            {
+                // VBROADCASTSS XMM,XMM
+                cs.Iop = VBROADCASTSS;
+                checkSetVex(&cs, ty);
+            }
             cdb.gen(&cs);
             break;
         }
 
         case TYllong2:
         case TYullong2:
-        {
-            /* MOVQ XMM0,mem128
-             * PUNPCKLQDQ XMM0,XMM0
-             */
-            c = codelem(e1,&retregs,FALSE); // eval left leaf
-            cdb.append(c);
-            unsigned reg = findreg(retregs);
-            reg -= XMM0;
-            //cdb.gen2(LODD,modregxrmx(3,reg,r));     // MOVQ reg,r
+        case TYllong4:
+        case TYullong4:
+            if (config.avx || tysize(ty) >= 32)
+            {
+                // VMOVDDUP XMM,MEM
+                cdb.append(getlvalue(&cs, e1, 0));         // get addressing mode
+                if ((cs.Irm & 0xC0) == 0xC0)
+                {
+                    unsigned sreg = ((cs.Irm & 7) | (cs.Irex & REX_B ? 8 : 0));
+                    regm_t sregm = XMMREGS;
+                    cdb.append(fixresult(e1, mask[sreg], &sregm));
+                    unsigned rmreg = findreg(sregm);
+                    cs.Irm = (cs.Irm & ~7) | ((rmreg - XMM0) & 7);
+                    if ((rmreg - XMM0) & 8)
+                        cs.Irex |= REX_B;
+                    else
+                        cs.Irex &= ~REX_B;
+                }
+                cdb.append(allocreg(&retregs,&reg,ty));
+                if (config.avx >= 2 ||  tysize(ty) >= 32)
+                {
+                    cs.Iop = VBROADCASTSD;
+                    cs.Irex &= ~REX_W;
+                }
+                else
+                    cs.Iop = MOVDDUP;
+                code_newreg(&cs,reg - XMM0);
+                checkSetVex(&cs,ty);
+                cdb.gen(&cs);
+            }
+            else
+            {
+                /* MOVQ XMM0,mem128
+                 * PUNPCKLQDQ XMM0,XMM0
+                 */
+                c = codelem(e1,&retregs,FALSE); // eval left leaf
+                cdb.append(c);
+                unsigned reg = findreg(retregs);
+                reg -= XMM0;
+                //cdb.gen2(LODD,modregxrmx(3,reg,r));     // MOVQ reg,r
 
-            cs.Iop = PUNPCKLQDQ;
-            cs.Irm = modregxrmx(3,reg,reg);
-            cs.Iflags = 0;
-            cdb.gen(&cs);
+                cs.Iop = PUNPCKLQDQ;
+                cs.Irm = modregxrmx(3,reg,reg);
+                cs.Iflags = 0;
+                cdb.gen(&cs);
+            }
             break;
-        }
 
         default:
             assert(0);
@@ -1440,6 +1584,7 @@ void checkSetVex(code *c, tym_t ty)
         unsigned vreg = (c->Irm >> 3) & 7;
         if (c->Irex & REX_R)
             vreg |= 8;
+        int VEX_L = 0;
         switch (c->Iop)
         {
             case LODSS:
@@ -1468,6 +1613,14 @@ void checkSetVex(code *c, tym_t ty)
             case COMISD:
             case UCOMISS:
             case UCOMISD:
+            case MOVDDUP:
+            case VBROADCASTSS:
+                vreg = 0;       // for 2 operand vex instructions
+                break;
+
+            case VBROADCASTSD:
+            case VBROADCASTF128:
+                VEX_L = 1;
                 vreg = 0;       // for 2 operand vex instructions
                 break;
         }
@@ -1488,11 +1641,12 @@ void checkSetVex(code *c, tym_t ty)
             #undef MM_PP
         }
         c->Iop = op;
+        c->Ivex.pfx = 0xC4;
         c->Ivex.r = !(c->Irex & REX_R);
         c->Ivex.x = !(c->Irex & REX_X);
         c->Ivex.b = !(c->Irex & REX_B);
         c->Ivex.w = (c->Irex & REX_W) != 0;
-        c->Ivex.l = (tysize(ty) == 32);
+        c->Ivex.l = (tysize(ty) == 32) | VEX_L;
 
         c->Ivex.vvvv = ~vreg;
 

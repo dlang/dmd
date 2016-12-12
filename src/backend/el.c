@@ -3226,7 +3226,7 @@ void elem_print(elem *e)
   else
   {
         if ((e->Eoper == OPstrpar || e->Eoper == OPstrctor || e->Eoper == OPstreq) ||
-            e->Ety == TYstruct)
+            e->Ety == TYstruct || e->Ety == TYarray)
             if (e->ET)
                 dbg_printf("%d ", (int)type_size(e->ET));
         WRTYxx(e->Ety);
@@ -3241,7 +3241,7 @@ void elem_print(elem *e)
   }
   else if (OTbinary(e->Eoper))
   {
-        if (!PARSER && e->Eoper == OPstreq)
+        if (!PARSER && e->Eoper == OPstreq && e->ET)
                 dbg_printf("bytes=%d ", (int)type_size(e->ET));
         dbg_printf("%p %p\n",e->E1,e->E2);
         elem_print(e->E1);

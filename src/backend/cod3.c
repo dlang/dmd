@@ -2911,6 +2911,7 @@ code* prolog_ifunc2(tym_t tyf, tym_t tym, bool pushds)
             c = gen1(c,0x1E);                   // PUSH DS
         spoff += intsize;
         c1 = genc(CNIL,0xC7,modregrm(3,0,AX),0,0,FLdatseg,(targ_uns) 0); /* MOV  AX,DGROUP      */
+        c1->IEVseg2 = DATA;
         c1->Iflags ^= CFseg | CFoff;            /* turn off CFoff, on CFseg */
         c = cat(c,c1);
         gen2(c,0x8E,modregrm(3,3,AX));            /* MOV  DS,AX         */
@@ -2940,6 +2941,7 @@ code* prolog_16bit_windows_farfunc(tym_t* tyf, bool* pushds)
             if (wflags & WFreduced)
                 *tyf &= ~mTYloadds;          // remove redundancy
             c = genc(c,0xC7,modregrm(3,0,AX),0,0,FLdatseg,(targ_uns) 0);
+            c->IEVseg2 = DATA;
             c->Iflags ^= CFseg | CFoff;     // turn off CFoff, on CFseg
             break;
         case WFss:
@@ -3384,7 +3386,7 @@ code* prolog_trace(bool farfunc, unsigned* regsaved)
     char name[IDMAX+IDOHD+1];
     size_t len = objmod->mangle(funcsym_p,name);
     assert(len < sizeof(name));
-    genasm(c,name,len);                             // append func name
+    genasm(c,(unsigned char *)name,len);                             // append func name
 #endif
     *regsaved = s->Sregsaved;
     return c;
@@ -4753,7 +4755,7 @@ void assignaddrc(code *c)
                     c->IFL1 = FLextern;
                 goto do2;
             case FLdatseg:
-                c->IEVseg1 = DATA;
+                //c->IEVseg1 = DATA;
                 goto do2;
 
 #if TARGET_SEGMENTED
@@ -4920,7 +4922,7 @@ void assignaddrc(code *c)
                 goto done;
 
             case FLdatseg:
-                c->IEVseg2 = DATA;
+                //c->IEVseg2 = DATA;
                 goto done;
 #if TARGET_SEGMENTED
             case FLcsdata:
