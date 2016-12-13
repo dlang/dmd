@@ -125,12 +125,12 @@ struct BlackList
 Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression thisExp)
 {
     Expression[] _args;
-    /*if (thisExp)
+    if (thisExp)
     {
         debug (ctfe)
             assert(0, "Implicit State via _this_ is not supported right now");
         return null;
-    }*/
+    }
 
     if (args)
         foreach (a; *args)
@@ -146,7 +146,7 @@ import ddmd.ctfe.bc_common;
 enum perf = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 1;
+enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
 
 static if (UseLLVMBackend)
@@ -808,10 +808,25 @@ Expression toExpression(const BCValue value, Type expressionType,
 
         auto err = _sharedCtfeState.errors[value.imm32 - 1];
         import ddmd.errors;
+        uint e1;
+        uint e2;
 
-        uint e1 = (*errorValues)[0].imm32;
-        uint e2 = (*errorValues)[1].imm32;
+        if (errorValues)
+        {
+            e1 = (*errorValues)[0].imm32;
+            e2 = (*errorValues)[1].imm32;
+        }
+        else
+        {
+            // HACK
+            // Bailing out if we have no error values.
+            // this is not good!
+            // it indicates that we miscompile something!
+            return null;
+        }
+        if (err.msg.ptr)
         error(err.loc, err.msg.ptr, e1, e2);
+        
         return CTFEExp.cantexp;
     }
 
@@ -925,7 +940,7 @@ Expression toExpression(const BCValue value, Type expressionType,
         break;
     case Tbool:
         {
-            assert(value.imm32 == 0 || value.imm32 == 1, "Not a valid bool");
+            //assert(value.imm32 == 0 || value.imm32 == 1, "Not a valid bool");
             result = new IntegerExp(value.imm32);
         }
         break;
@@ -1324,7 +1339,7 @@ public:
             }
             return;
         }
-
+        import std.stdio; writeln("going to eval: ", fd.ident.toString);
         if (auto fbody = fd.fbody.isCompoundStatement)
         {
             beginParameters();
@@ -1571,8 +1586,12 @@ public:
             {
                 auto lhs = genExpr(e.e1);
                 auto rhs = genExpr(e.e2);
-                assert(lhs.type.type == BCTypeEnum.Slice);
-                assert(rhs.type.type == BCTypeEnum.Slice);
+                if(lhs.type.type != BCTypeEnum.Slice ||
+                rhs.type.type != BCTypeEnum.Slice)
+                {
+                    bailout();
+                    return ;
+                }
                 auto lhsBaseType = _sharedCtfeState.slices[lhs.type.typeIndex - 1].elementType;
                 auto rhsBaseType = _sharedCtfeState.slices[rhs.type.typeIndex - 1].elementType;
                 if (canWorkWithType(lhsBaseType)
@@ -3507,6 +3526,8 @@ public:
 
     override void visit(CallExp ce)
     {
+        bailout();
+       
         FuncDeclaration fd;
         BCValue[] bc_args;
         bc_args.length = ce.arguments.dim;
@@ -3515,10 +3536,16 @@ public:
         {
             fd = (cast(VarExp)ce.e1).var.isFuncDeclaration();
         }
-        assert(fd, "Could not get funcDecl");
+        if(!fd, "Could not get funcDecl")
+        {
+          bailout();
+          return;
+        }
         if (!fd.functionSemantic3())
         {
-			assert(0, "could not interpret " ~ ce.toString);
+           bailout();
+           return ;
+	//		assert(0, "could not interpret " ~ ce.toString);
             // return cantInterpret();
         }
           
