@@ -53,7 +53,7 @@ else
     //bllockCount and blocks are function-LocalState,
     //this needs to be pushed on a stack if we are to allow nested function definitions
 
-    LLVMBasicBlockRef[255] blocks;
+    LLVMBasicBlockRef[512] blocks;
     uint blockCount;
     char* error = null; // Used to retrieve messages from functions
 
@@ -64,6 +64,8 @@ else
         LLVMInitializeX86TargetMC();
         LLVMInitializeX86AsmPrinter();
         LLVMLinkInMCJIT();
+
+        functionCount = 0;
 
         mod = LLVMModuleCreateWithName("CTFE");
         heap = LLVMAddGlobal(mod, LLVMArrayType(LLVMInt32Type(), 2 ^^ 16), "heap");
@@ -82,6 +84,7 @@ else
         LLVMAddGVNPass(pass);
         LLVMAddCFGSimplificationPass(pass);
         LLVMRunPassManager(pass, mod);
+        LLVMDisposeBuilder(builder);
     }
 
     void print()
@@ -156,7 +159,7 @@ else
         }
     }
 
-    uint beginFunction()
+    uint beginFunction(uint fnn = 0)
     {
         LLVMTypeRef[] parameterTypes;
 
@@ -169,7 +172,7 @@ else
             LLVMFunctionType(LLVMInt32Type(), parameterTypes.ptr,
             cast(uint) parameterTypes.length, 0));
         LLVMSetFunctionCallConv(fn, LLVMCallConv.C);
-        assert(blockCount == 0);
+        //assert(blockCount == 0);
         blocks[blockCount] = LLVMAppendBasicBlock(fn, ("Block_" ~ to!string(blockCount)).ptr);
         assert(builder, "Me no have no builder. Have you called Initialize() man ?");
         LLVMPositionBuilderAtEnd(builder, blocks[blockCount++]);
@@ -185,6 +188,7 @@ else
         {
             LLVMBuildUnreachable(builder);
         }
+        parameterCount = 0;
     }
 
     BCValue interpret(BCValue[] args, BCHeap* heapPtr)
@@ -236,7 +240,6 @@ else
         auto res = cast(int) LLVMGenericValueToInt(exec_res, 1);
         auto ret = BCValue(Imm32(res));
         //LLVMDisposePassManager(pass);
-        LLVMDisposeBuilder(builder);
         LLVMDisposeExecutionEngine(engine);
         return ret;
     }
@@ -255,7 +258,6 @@ else
         return p;
     }
 
-    //BCValue genLocal(BCType bct, string name);
     BCAddr beginJmp()
     {
         assert(!LLVMGetBasicBlockTerminator(blocks[blockCount - 1]));
@@ -267,8 +269,20 @@ else
     void endJmp(BCAddr atIp, BCLabel target)
     {
         LLVMPositionBuilderAtEnd(builder, blocks[atIp]);
-        LLVMBuildBr(builder, blocks[target.addr]);
+        if (atIp != target.addr)
+        {
+            LLVMBuildBr(builder, blocks[target.addr]);
+        }
+        else // SkipJumps to myself same as the interpreter backend;
+        {
+            debug(ctfe)
+            {
+                assert(0, "We should never jump to ourselfs");
+            }
+            LLVMBuildBr(builder, blocks[target.addr+1]);
+        }
         LLVMPositionBuilderAtEnd(builder, blocks[blockCount - 1]);
+
     }
 
     void incSp()
@@ -414,6 +428,18 @@ else
         return LLVMBuildInBoundsGEP(builder, heap, addr1.ptr, 2, "");
     }
 
+    LLVMValueRef heapPtr(BCValue v)
+    {
+        //auto addr1 = [LLVMConstInt(LLVMInt32Type(), 0, false), toLLVMValueRef(v)];
+        auto ptrAsInt = LLVMBuildPtrToInt(builder, heap,
+            LLVMInt32Type(), "");
+        auto addResult = LLVMBuildAdd(builder, ptrAsInt, toLLVMValueRef(v), "");
+        return LLVMBuildIntToPtr(builder, addResult,
+            LLVMTypeOf(heap), "");
+
+
+    }
+
     void StoreStack(BCValue value, BCValue addr)
     {
         StoreStack(toLLVMValueRef(value), addr);
@@ -440,6 +466,28 @@ else
     {
         sameLabel = false;
         ccond = LLVMBuildICmp(builder, LLVMIntPredicate.SGT,
+            toLLVMValueRef(lhs), toLLVMValueRef(rhs), "");
+        if (_result)
+        {
+            emitFlg(_result);
+        }
+    }
+
+    void Le3(BCValue _result, BCValue lhs, BCValue rhs)
+    {
+        sameLabel = false;
+        ccond = LLVMBuildICmp(builder, LLVMIntPredicate.SLE,
+            toLLVMValueRef(lhs), toLLVMValueRef(rhs), "");
+        if (_result)
+        {
+            emitFlg(_result);
+        }
+    }
+
+    void Ge3(BCValue _result, BCValue lhs, BCValue rhs)
+    {
+        sameLabel = false;
+        ccond = LLVMBuildICmp(builder, LLVMIntPredicate.SGE,
             toLLVMValueRef(lhs), toLLVMValueRef(rhs), "");
         if (_result)
         {
@@ -566,6 +614,7 @@ else
     void Store32(BCValue _to, BCValue value)
     {
         sameLabel = false;
+        LLVMBuildStore(builder, toLLVMValueRef(value), heapGEP(_to)); 
     }
 
     void Ret(BCValue val)
