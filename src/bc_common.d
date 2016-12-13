@@ -448,10 +448,10 @@ template BCGenFunction(T, alias fn)
 
 template ensureIsBCGen(BCGenT)
 {
-    static assert(is(typeof(BCGenT.beginFunction()) == void),
-        BCGenT.stringof ~ " is missing void beginFunction()");
-    static assert(is(typeof(BCGenT.endFunction()) == void),
-        BCGenT.stringof ~ " is missing void endFunction()");
+    static assert(is(typeof(BCGenT.beginFunction(uint.init)) == void),
+        BCGenT.stringof ~ " is missing void beginFunction(uint)");
+    static assert(is(typeof(BCGenT.endFunction())),
+        BCGenT.stringof ~ " is missing endFunction()");
     static assert(is(typeof(BCGenT.Initialize()) == void),
         BCGenT.stringof ~ " is missing void Initialize()");
     static assert(is(typeof(BCGenT.Finalize()) == void),

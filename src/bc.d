@@ -131,7 +131,7 @@ enum LongInst : ushort
 
 }
 //Imm-Intructuins and corrospinding 2Operand instructions have to be in the same order
-pragma(msg, LongInst.max);
+pragma(msg, 2 ^^ 6 - LongInst.max, " opcodes remaining");
 static assert(LongInst.ImmAdd - LongInst.Add == LongInst.ImmRsh - LongInst.Rsh);
 static assert(LongInst.ImmAnd - LongInst.And == LongInst.ImmMod - LongInst.Mod);
 
@@ -299,7 +299,7 @@ enum BCFunctionTypeEnum : byte
 struct BCFunction
 {
     void* funcDecl;
-
+    uint fn;
     BCFunctionTypeEnum type;
     ushort nArgs;
     ushort maxStackUsed;
@@ -334,12 +334,14 @@ struct BCFunction
 struct BCGen
 {
     int[ushort.max / 4] byteCodeArray;
+
     /// ip starts at 4 because 0 should be an invalid address;
     BCAddr ip = BCAddr(4);
     StackAddr sp = StackAddr(4);
     ubyte parameterCount;
     ushort temporaryCount;
     uint functionId;
+    void* fd;
 @safe pure:
     auto interpret(BCValue[] args, BCHeap* heapPtr) const
     {
@@ -402,13 +404,24 @@ struct BCGen
         byteCodeArray[ip + 1] = 0;
     }
 
-    void beginFunction(uint fnId = 0)
+    void beginFunction(uint fnId = 0, void* fd = null)
     {
         functionId = fnId;
     }
 
-    void endFunction()
+    BCFunction endFunction()
     {
+        BCFunction result;
+        result.type = BCFunctionTypeEnum.Bytecode;
+        result.maxStackUsed = sp;
+        result.funcDecl = fd;
+        result.fn = functionId;
+        {
+        // MUTEX BEGIN
+        // result.byteCode = byteCodeArray[4 .. ip];
+        // MUTEX END
+        }
+        return result;
     }
 
     BCValue genParameter(BCType bct)
@@ -1382,6 +1395,9 @@ else
 {
     alias RE = void;
 }
+
+__gshared int[ushort.max*2] byteCodeCache;
+__gshared int byteCodeCacheTop = 4;
 
 BCValue interpret(const BCGen* gen, const BCValue[] args,
     BCFunction* functions = null, BCHeap* heapPtr = null, BCValue* ev1 = null,

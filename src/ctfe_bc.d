@@ -1096,6 +1096,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     uint processedArgs;
     uint uncompiledFunctionCount;
     uint switchStateCount;
+    uint currentFunction;
 
     BCGenT gen;
     alias gen this;
@@ -1121,6 +1122,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         fixupTableCount = 0;
         processedArgs = 0;
         switchStateCount = 0;
+        currentFunction = 0;
 
         arguments = [];
         parameterTypes = [];
@@ -1413,7 +1415,7 @@ public:
                 static if (is(BCGen))
                 {
                     _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
-                        BCFunctionTypeEnum.Bytecode,
+                        fnIdx, BCFunctionTypeEnum.Bytecode,
                         cast(ushort) parameterTypes.length, sp.addr,
                         //FIXME IMPORTANT PERFORMANCE!!!
                         // get rid of dup!
@@ -1448,7 +1450,7 @@ public:
                     static if (is(BCGen))
                     {
                         _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
-                            BCFunctionTypeEnum.Bytecode,
+                            fnIdx, BCFunctionTypeEnum.Bytecode,
                             cast(ushort) parameterTypes.length, sp.addr, //FIXME IMPORTANT PERFORMANCE!!!
                         // get rid of dup!
 
