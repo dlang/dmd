@@ -113,7 +113,7 @@ void backend_init()
         params.symdebug,
         params.alwaysframe,
         params.stackstomp,
-        params.cpu == CPU.avx
+        params.cpu >= CPU.avx
     );
 
     debug

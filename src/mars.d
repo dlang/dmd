@@ -1039,12 +1039,7 @@ Language changes listed by -transition=id:
             files.push(p);
         }
     }
-    if (global.params.cpu == CPU.native)
-    {
-        import core.cpuid;
-        if (core.cpuid.avx)
-            global.params.cpu = CPU.avx;
-    }
+    global.params.cpu = setTargetCPU(global.params.cpu);
     if (global.params.is64bit != is64bit)
         error(Loc(), "the architecture must not be changed in the %s section of %s", envsection.ptr, global.inifilename);
     if (global.params.enforcePropertySyntax)
@@ -1966,11 +1961,19 @@ private void addDefaultVersionIdentifiers()
     VersionCondition.addPredefinedGlobalIdent("D_Version2");
     VersionCondition.addPredefinedGlobalIdent("all");
 
+    if (global.params.cpu >= CPU.sse2)
+    {
+        VersionCondition.addPredefinedGlobalIdent("D_SIMD");
+        if (global.params.cpu >= CPU.avx)
+        {
+            VersionCondition.addPredefinedGlobalIdent("D_AVX");
+        }
+    }
+
     if (global.params.is64bit)
     {
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
         VersionCondition.addPredefinedGlobalIdent("X86_64");
-        VersionCondition.addPredefinedGlobalIdent("D_SIMD");
         static if (TARGET_WINDOS)
         {
             VersionCondition.addPredefinedGlobalIdent("Win64");
@@ -1981,10 +1984,6 @@ private void addDefaultVersionIdentifiers()
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
         VersionCondition.addPredefinedGlobalIdent("X86");
-        static if (TARGET_OSX)
-        {
-            VersionCondition.addPredefinedGlobalIdent("D_SIMD");
-        }
         static if (TARGET_WINDOS)
         {
             VersionCondition.addPredefinedGlobalIdent("Win32");
@@ -2031,3 +2030,51 @@ private void printPredefinedVersions()
         fprintf(global.stdmsg, "\n");
     }
 }
+
+
+/****************************************
+ * Determine the instruction set to be used.
+ * Params:
+ *      cpu = value set by command line switch
+ * Returns:
+ *      value to generate code for
+ */
+
+private CPU setTargetCPU(CPU cpu)
+{
+    // Determine base line for target
+    CPU baseline = CPU.x87;
+    if (global.params.is64bit)
+        baseline = CPU.sse2;
+    else
+    {
+        static if (TARGET_OSX)
+        {
+            baseline = CPU.sse2;
+        }
+    }
+
+    if (baseline < CPU.sse2)
+        return baseline;        // can't support other instruction sets
+
+    switch (cpu)
+    {
+        case CPU.baseline:
+            cpu = baseline;
+            break;
+
+        case CPU.native:
+        {
+            import core.cpuid;
+            cpu = baseline;
+            if (core.cpuid.avx)
+                cpu = CPU.avx;
+            break;
+        }
+
+        default:
+            break;
+    }
+    return cpu;
+}
+

@@ -5,6 +5,7 @@ $(COMMENT Pending changelog for 2.073. This will get copied to dlang.org and
 )
 
 $(BUGSTITLE Language Changes,
+    $(LI Add `D_AVX` predefined version when $(TT -mcpu=avx) is used.)
 )
 
 $(BUGSTITLE Compiler Changes,
