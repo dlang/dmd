@@ -143,10 +143,10 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 
 import ddmd.ctfe.bc_common;
 
-enum perf = 1;
+enum perf = 0;
 enum cacheBC = 0;
 enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 0;
+enum UsePrinterBackend = 1;
 enum UseCBackend = 0;
 
 static if (UseLLVMBackend)
@@ -574,7 +574,7 @@ struct SharedCtfeState(BCGenT)
     {
         static assert(is(typeof(BCFunction.funcDecl) == void*));
         BCFunction[ubyte.max * 4] functions;
-        uint functionCount = 1;
+        uint functionCount = 0;
     }
     else
     {
@@ -811,7 +811,7 @@ Expression toExpression(const BCValue value, Type expressionType,
 
         uint e1 = (*errorValues)[0].imm32;
         uint e2 = (*errorValues)[1].imm32;
-        error(err.loc, err.msg, e1, e2);
+        error(err.loc, err.msg.ptr, e1, e2);
         return CTFEExp.cantexp;
     }
 
@@ -1400,24 +1400,26 @@ public:
                     _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
                 }
 
-                foreach (const ref uf; uncompiledFunctions[0 .. uncompiledFunctionCount])
+                foreach (uf; uncompiledFunctions[0 .. uncompiledFunctionCount])
                 {
+                    clear();
+                    import ddmd.dinterpret;
                     beginParameters();
-                    if (fd.parameters)
-                        foreach (i, p; *(fd.parameters))
+                    if (uf.fd.parameters)
+                        foreach (i, p; (*(uf.fd.parameters)))
                         {
                             debug (ctfe)
                             {
                                 import std.stdio;
 
-                                writeln("parameter [", i, "] : ", p.toString);
+                                writeln("uc parameter [", i, "] : ", p.toString);
                             }
                             p.accept(this);
                         }
                     endParameters();
                     fnIdx = uf.fn;
                     beginFunction(fnIdx);
-                    visit(cast(Statement) uf.fd.fbody);
+                    uf.fd.fbody.accept(this);
                     endFunction();
 
                     static if (is(BCGen))
@@ -3506,13 +3508,26 @@ public:
 
     override void visit(CallExp ce)
     {
+        FuncDeclaration fd;
         BCValue[] bc_args;
         bc_args.length = ce.arguments.dim;
+
+       if (ce.e1.op == TOKvar) 
+        {
+            fd = (cast(VarExp)ce.e1).var.isFuncDeclaration();
+        }
+        assert(fd, "Could not get funcDecl");
+        if (!fd.functionSemantic3())
+        {
+			assert(0, "could not interpret " ~ ce.toString);
+            // return cantInterpret();
+        }
+          
         foreach (i, arg; *ce.arguments)
         {
             bc_args[i] = genExpr(arg);
         }
-        auto f = ce.f;
+        auto f = fd;
         static if (is(BCFunction))
         {
 
@@ -3528,9 +3543,9 @@ public:
 
                     const oldFunctionCount = _sharedCtfeState.functionCount++;
                     fnIdx = oldFunctionCount + 1;
-                    _sharedCtfeState.functions[fnIdx] = BCFunction(cast(void*) f);
+                    _sharedCtfeState.functions[oldFunctionCount] = BCFunction(cast(void*) f);
                     uncompiledFunctions[uncompiledFunctionCount++] = UncompiledFunction(f,
-                        oldFunctionCount);
+                        fnIdx);
 
                 }
                 else
@@ -3546,7 +3561,13 @@ public:
                     }
                 }
             }
-            Call(retval, BCValue(Imm32(fnIdx - 1)), bc_args);
+            if (assignTo)
+            {
+                retval = assignTo;
+                assignTo = BCValue.init;
+            }
+
+            Call(retval, BCValue(Imm32(fnIdx)), bc_args);
         }
         else
         {
