@@ -1382,6 +1382,7 @@ else
 {
     alias RE = void;
 }
+
 BCValue interpret(const BCGen* gen, const BCValue[] args,
     BCFunction* functions = null, BCHeap* heapPtr = null, BCValue* ev1 = null,
     BCValue* ev2 = null, const RE* errors = null) pure @safe

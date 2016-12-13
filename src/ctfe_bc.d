@@ -533,7 +533,7 @@ struct SharedCtfeState(BCGenT)
 {
     uint _threadLock;
     BCHeap heap;
-    long[ushort.max / 4] stack; // a Stack of 64K*4 is the Hard Limit;    //Type 0 beeing the terminator for chainedTypes
+    long[ushort.max / 4] stack; // a Stack of 64K/4 is the Hard Limit;
     StructDeclaration[ubyte.max * 4] structDeclPointers;
     TypeSArray[ubyte.max * 4] sArrayTypePointers;
     TypeDArray[ubyte.max * 4] dArrayTypePointers;
@@ -606,7 +606,7 @@ struct SharedCtfeState(BCGenT)
         auto elemType = btv.toBCType(tsa.nextOf);
         auto arraySize = evaluateUlong(tsa.dim);
         assert(arraySize < uint.max);
-        arrays[++arrayCount] = BCArray(elemType, cast(uint) arraySize);
+        arrays[arrayCount++] = BCArray(elemType, cast(uint) arraySize);
         return arrayCount;
     }
 
