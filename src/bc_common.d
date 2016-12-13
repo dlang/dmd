@@ -242,6 +242,12 @@ struct Imm32
     alias imm32 this;
 }
 
+
+BCValue imm32(uint value)
+{
+  return BCValue(Imm32(value));
+]
+
 struct Imm64
 {
     ulong imm64;

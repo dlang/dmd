@@ -588,7 +588,7 @@ struct SharedCtfeState(BCGenT)
     BCValue addError(Loc loc, string msg, BCValue v1 = BCValue.init, BCValue v2 = BCValue.init)
     {
         errors[errorCount++] = RetainedError(loc, msg, v1, v2);
-        auto retval = BCValue(Imm32(errorCount));
+        auto retval = imm32(errorCount);
         retval.vType = BCValueType.Error;
         return retval;
     }
@@ -873,7 +873,7 @@ Expression toExpression(const BCValue value, Type expressionType,
                 auto type = sd.fields[idx].type;
 
                 Expression elm = toExpression(
-                    BCValue(Imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset))),
+                    imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset)),
                     type);
                 elmExprs.insert(idx, elm);
                 offset += align4(_sharedCtfeState.size(member));
@@ -919,7 +919,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             {
                 elmExprs.insert(idx,
                     toExpression(
-                    BCValue(Imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset))),
+                    imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset)),
                     tda.nextOf));
                 offset += elmLength;
             }
@@ -1505,7 +1505,7 @@ public:
                 discardValue = oldDiscardValue;
                 Set(retval, expr);
 
-                Add3(expr, expr, BCValue(Imm32(1)));
+                Add3(expr, expr, imm32(1));
 
             }
             break;
@@ -1527,7 +1527,7 @@ public:
                 discardValue = oldDiscardValue;
                 Set(retval, expr);
 
-                Sub3(expr, expr, BCValue(Imm32(1)));
+                Sub3(expr, expr, imm32(1));
             }
             break;
         case TOK.TOKequal, TOK.TOKnotequal:
@@ -1677,7 +1677,7 @@ public:
 
                 case TOK.TOKshr:
                     {
-                        auto maxShift = BCValue(Imm32(basicTypeSize(lhs.type) * 8 - 1));
+                        auto maxShift = imm32(basicTypeSize(lhs.type) * 8 - 1);
                         Le3(BCValue.init, rhs, maxShift);
                         AssertError(BCValue.init,
                             _sharedCtfeState.addError(e.loc,
@@ -1688,7 +1688,7 @@ public:
 
                 case TOK.TOKshl:
                     {
-                        auto maxShift = BCValue(Imm32(basicTypeSize(lhs.type) * 8 - 1));
+                        auto maxShift = imm32(basicTypeSize(lhs.type) * 8 - 1);
                         Le3(BCValue.init, rhs, maxShift);
                         AssertError(BCValue.init,
                             _sharedCtfeState.addError(e.loc,
@@ -1793,9 +1793,10 @@ public:
         }
 
         bool isString = indexed.type.type == BCTypeEnum.String;
-        //FIXME check if Slice.ElementType == Char
+        //FIXME check if Slice.ElementType == Char;
         //and set isString to true;
         auto idx = genExpr(ie.e2).i32; // HACK
+
         Gt3(BCValue.init, length, idx);
         AssertError(BCValue.init, _sharedCtfeState.addError(ie.loc,
             "ArrayIndex %d out of bounds %d", idx, length));
@@ -1858,7 +1859,7 @@ public:
                 int elmSize = sharedCtfeState.size(elmType);
                 assert(cast(int) elmSize > -1);
                 //elmSize = (elmSize / 4 > 0 ? elmSize / 4 : 1);
-                Mul3(offset, idx, BCValue(Imm32(elmSize)));
+                Mul3(offset, idx, imm32(elmSize));
                 Add3(ptr, ptr, offset);
                 Load32(retval, ptr);
             }
@@ -2111,7 +2112,7 @@ public:
                 }
 
                 auto ptr = genTemporary(BCType(BCTypeEnum.i32));
-                Add3(ptr, lhs.i32, BCValue(Imm32(offset)));
+                Add3(ptr, lhs.i32, imm32(offset));
                 Load32(retval.i32, ptr);
 
                 debug (ctfe)
@@ -2187,7 +2188,7 @@ public:
                 }
                 else
                 {
-                    Store32(BCValue(Imm32(_sharedCtfeState.heap.heapSize)), elexpr);
+                    Store32(imm32(_sharedCtfeState.heap.heapSize), elexpr);
                 }
                 _sharedCtfeState.heap.heapSize += heapAdd;
             }
@@ -2200,7 +2201,7 @@ public:
         }
         //        if (!oldInsideArrayLiteralExp)
 
-        retval = BCValue(Imm32(arrayAddr.addr));
+        retval = imm32(arrayAddr.addr);
         debug (ctfe)
         {
             import std.stdio;
@@ -2249,7 +2250,7 @@ public:
 
         retval = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.i32));
         if (!insideArgumentProcessing)
-            Alloc(retval, BCValue(Imm32(size)));
+            Alloc(retval, imm32(size));
         else
         {
             retval = BCValue(HeapAddr(heap.heapSize));
@@ -2278,7 +2279,7 @@ public:
             }
             if (!insideArgumentProcessing)
             {
-                Add3(fieldAddr, retval.i32, BCValue(Imm32(offset)));
+                Add3(fieldAddr, retval.i32, imm32(offset));
                 Store32(fieldAddr, elexpr);
             }
             else
@@ -2358,7 +2359,7 @@ public:
     {
         auto ptr = genTemporary(i32Type);
         auto size = genTemporary(i32Type);
-        Set(size, BCValue(Imm32(basicTypeSize(toBCType(ne.newtype)))));
+        Set(size, imm32(basicTypeSize(toBCType(ne.newtype))));
 
         Alloc(ptr, size);
         retval = ptr;
@@ -2392,7 +2393,16 @@ public:
             // HACK we cast the target to i32 in order to make it work
             // this will propbably never fail in practice but still
             auto length = target ? target.i32 : genTemporary(BCType(BCTypeEnum.i32));
-            Load32(length, arr.i32);
+            if (arr.type.type == BCTypeEnum.Array)
+            {
+              auto idx = arr.type.typeIndex;
+              assert(idx);
+              length = imm32(_sharedCtfeState.arrays[idx - 1].length);
+            }
+            else
+            {
+              Load32(length, arr.i32);
+            }
             return length;
         }
         else
@@ -2435,7 +2445,7 @@ public:
             if (!ignoreVoid && sv.vType == BCValueType.VoidValue)
             {
                 bailout();
-                ve.error("Trying to read form an uninitialized Variable");
+                //ve.error("wTrying to read form an uninitialized Variable");
                 return;
             }
 
@@ -2543,9 +2553,13 @@ public:
         }
         else
         {
-
             var = BCValue(currSp(), type);
             incSp();
+
+            if (type.type == BCTypeEnum.Array)
+            {
+              Alloc(result, imm32(_sharedCtfeState.size(type))); 
+            }
         }
 
         setVariable(vd, var);
@@ -2721,10 +2735,10 @@ public:
         }
         else
         {
-            retval = BCValue(Imm32(cast(uint) ie.value));
+            retval = imm32(cast(uint) ie.value);
         }
         //auto value = evaluateUlong(ie);
-        //retval = value <= int.max ? BCValue(Imm32(cast(uint) value)) : BCValue(Imm64(value));
+        //retval = value <= int.max ? imm32(cast(uint) value) : BCValue(Imm64(value));
         assert(retval.vType == BCValueType.Immediate);
     }
 
@@ -2770,7 +2784,7 @@ public:
             //assert(se.string[se.len] == '\0', "string should be 0-terminated");
         }
         auto stringAddr = _sharedCtfeState.heap.pushString(se.string, cast(uint) se.len);
-        auto stringAddrValue = BCValue(Imm32(stringAddr.addr));
+        auto stringAddrValue = imm32(stringAddr.addr);
         if (insideArgumentProcessing)
         {
             retval = stringAddrValue;
@@ -2976,7 +2990,7 @@ public:
             if (!rhs)
             {
                 //Not sure if this is really correct :)
-                rhs = BCValue(Imm32(0));
+                rhs = imm32(0);
             }
             if (rhs.type.type != BCTypeEnum.i32)
             {
@@ -2990,7 +3004,7 @@ public:
 
             auto ptr = genTemporary(BCType(BCTypeEnum.i32));
 
-            Add3(ptr, lhs.i32, BCValue(Imm32(bcStructType.offset(fIndex))));
+            Add3(ptr, lhs.i32, imm32(bcStructType.offset(fIndex)));
             Store32(ptr, rhs);
             retval = rhs;
         }
@@ -3013,7 +3027,7 @@ public:
             auto effectiveSize = genTemporary(i32Type);
             auto elemType = toBCType(ale.e1.type);
             auto elemSize = align4(basicTypeSize(elemType));
-            Mul3(effectiveSize, newLength, BCValue(Imm32(elemSize)));
+            Mul3(effectiveSize, newLength, imm32(elemSize));
             Add3(effectiveSize, effectiveSize, bcFour);
 
             typeof(beginJmp()) jmp;
@@ -3093,7 +3107,7 @@ public:
             auto effectiveAddr = genTemporary(i32Type);
             auto elemType = toBCType(ie.e1.type.nextOf);
             auto elemSize = align4(_sharedCtfeState.size(elemType));
-            Mul3(effectiveAddr, index, BCValue(Imm32(elemSize)));
+            Mul3(effectiveAddr, index, imm32(elemSize));
             Add3(effectiveAddr, effectiveAddr, indexed.i32);
             Add3(effectiveAddr, effectiveAddr, bcFour);
             if (elemSize != 4)
@@ -3189,7 +3203,7 @@ public:
 
         if (ne.e1.op == TOKidentifier && (cast(IdentifierExp) ne.e1).ident == Id.ctfe)
         {
-            retval = BCValue(Imm32(0));
+            retval = imm32(0);
         }
         else
         {
@@ -3596,7 +3610,7 @@ public:
             {
                 retval = genTemporary(toBCType(ce.type));
             }
-            Call(retval, BCValue(Imm32(fnIdx - 1)), bc_args);
+            Call(retval, imm32(fnIdx - 1), bc_args);
         }
         else
         {
@@ -3636,7 +3650,7 @@ public:
         }
         else
         {
-            Ret(BCValue(Imm32(0)));
+            Ret(imm32(0));
         }
     }
 
