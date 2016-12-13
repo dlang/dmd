@@ -41,7 +41,7 @@ version (NoBackend)
         void backend_term() {}
 
         // iasm
-        Statement asmSemantic(AsmStatement s, Scope* sc) { assert(0); }
+        AsmStatement asmSemantic(AsmStatement s, Scope* sc) { assert(0); }
 
         // toir
         RET retStyle(TypeFunction tf)               { return RETregs; }
@@ -70,7 +70,7 @@ else
         void backend_init();
         void backend_term();
 
-        Statement asmSemantic(AsmStatement s, Scope* sc);
+        AsmStatement asmSemantic(AsmStatement s, Scope* sc);
 
         RET retStyle(TypeFunction tf);
         void toObjFile(Dsymbol ds, bool multiobj);

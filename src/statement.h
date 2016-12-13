@@ -643,7 +643,7 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-Statement* asmSemantic(AsmStatement *s, Scope *sc);
+AsmStatement* asmSemantic(AsmStatement *s, Scope *sc);
 
 class AsmStatement : public Statement
 {

@@ -3393,14 +3393,25 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
     override void visit(AsmStatement s)
     {
-        result = asmSemantic(s, sc);
+        s = asmSemantic(s, sc);
+        if (!s)
+            return setError();
+        result = s;
     }
 
     override void visit(CompoundAsmStatement cas)
     {
         foreach (ref s; *cas.statements)
         {
-            s = s ? s.semantic(sc) : null;
+            if (s)
+            {
+                s = s.semantic(sc);
+                if (cast(AsmStatement) s &&
+                    !(cast(AsmStatement) s).asmcode)
+                    s = null; // empty statement
+            }
+            else
+                s = null;
         }
 
         assert(sc.func);
