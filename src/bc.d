@@ -414,7 +414,6 @@ struct BCGen
         BCFunction result;
         result.type = BCFunctionTypeEnum.Bytecode;
         result.maxStackUsed = sp;
-        result.funcDecl = fd;
         result.fn = functionId;
         {
         // MUTEX BEGIN

@@ -146,7 +146,7 @@ import ddmd.ctfe.bc_common;
 enum perf = 0;
 enum cacheBC = 0;
 enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 1;
+enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
 
 static if (UseLLVMBackend)
@@ -3555,7 +3555,7 @@ public:
                     }
                 else
                     {
-                        // bailout();
+                        bailout();
                         return;
                     }
                 }
@@ -3565,8 +3565,11 @@ public:
                 retval = assignTo;
                 assignTo = BCValue.init;
             }
-
-            Call(retval, BCValue(Imm32(fnIdx)), bc_args);
+            else
+            {
+                retval = genTemporary(toBCType(ce.type));
+            }
+            Call(retval, BCValue(Imm32(fnIdx - 1)), bc_args);
         }
         else
         {
