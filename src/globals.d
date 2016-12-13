@@ -152,9 +152,6 @@ struct Param
     uint debuglevel;                    // debug level
     Array!(const(char)*)* debugids;     // debug identifiers
 
-    uint versionlevel;                  // version level
-    Array!(const(char)*)* versionids;   // version identifiers
-
     const(char)* defaultlibname;        // default library for non-debug builds
     const(char)* debuglibname;          // default library for debug builds
     const(char)* mscrtlib;              // MS C runtime library
