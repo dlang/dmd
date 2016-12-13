@@ -1448,6 +1448,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
                 else
                 {
+version (none)
+{
                     if (global.params.vsafe)
                     {
                         fprintf(
@@ -1458,7 +1460,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         fflush(global.stdmsg);
                     }
                     fld.tookAddressOf = 1;
-
+}
+else
+{
+                    if (global.params.vsafe)
+                        fld.tookAddressOf = 1;  // allocate a closure unless the opApply() uses 'scope'
+}
                     assert(tab.ty == Tstruct || tab.ty == Tclass);
                     assert(sapply);
                     /* Call:
