@@ -172,7 +172,6 @@ struct Print_BCGen
     void beginFunction(uint f = 0)
     {
         sameLabel = false;
-      //  result ~= "    beginFunction(" ~ to!string(currentFunctionStateNumber) ~ ");\n";
         result ~= "    beginFunction(" ~ to!string(f) ~ ");\n";
     }
 

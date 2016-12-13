@@ -1353,7 +1353,7 @@ public:
             {
                 fnIdx = fnIdx ? fnIdx : ++_sharedCtfeState.functionCount;
             }
-            beginFunction(fnIdx);
+            beginFunction(fnIdx - 1);
             visit(fbody);
             endFunction();
             if (IGaveUp)
@@ -1403,7 +1403,6 @@ public:
                 foreach (uf; uncompiledFunctions[0 .. uncompiledFunctionCount])
                 {
                     clear();
-                    import ddmd.dinterpret;
                     beginParameters();
                     if (uf.fd.parameters)
                         foreach (i, p; (*(uf.fd.parameters)))
@@ -1418,7 +1417,7 @@ public:
                         }
                     endParameters();
                     fnIdx = uf.fn;
-                    beginFunction(fnIdx);
+                    beginFunction(fnIdx - 1);
                     uf.fd.fbody.accept(this);
                     endFunction();
 
