@@ -508,7 +508,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             (cast(TypeStruct)(fs.aggr.type.toBasetype())).sym.dtor &&
             fs.aggr.op != TOKtype && !fs.aggr.isLvalue())
         {
-            // Bugzilla 14653: Extend the life of rvalue aggregate till the end of foreach.
+            // https://issues.dlang.org/show_bug.cgi?id=14653
+            // Extend the life of rvalue aggregate till the end of foreach.
             vinit = copyToTemp(STCrvalue, "__aggr", fs.aggr);
             vinit.endlinnum = fs.endloc.linnum;
             vinit.semantic(sc);
