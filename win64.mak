@@ -553,6 +553,9 @@ $(IMPDIR)\core\sys\posix\fcntl.d : src\core\sys\posix\fcntl.d
 $(IMPDIR)\core\sys\posix\grp.d : src\core\sys\posix\grp.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\posix\iconv.d : src\core\sys\posix\iconv.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\posix\inttypes.d : src\core\sys\posix\inttypes.d
 	copy $** $@
 
