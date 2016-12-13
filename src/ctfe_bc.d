@@ -115,7 +115,7 @@ struct BlackList
 
     void defaultBlackList()
     {
-        initialize(["_ArrayEq", "isRooted", "__lambda2", "isSameLength",
+        initialize([/*"_ArrayEq",*/ "isRooted", "__lambda2", "isSameLength",
             "bug4910", "wrapperParameters", "defaultMatrix", "extSeparatorPos", "args",
             "check"]);
     }
@@ -144,9 +144,9 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 import ddmd.ctfe.bc_common;
 
 enum perf = 0;
-enum cacheBC = 0;
+enum cacheBC = 1;
 enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 0;
+enum UsePrinterBackend = 1;
 enum UseCBackend = 0;
 
 static if (UseLLVMBackend)
@@ -1517,7 +1517,7 @@ public:
             break;
         case TOK.TOKequal, TOK.TOKnotequal:
             {
-                if (e.e1.type.isString && e.e1.type.isString)
+                if (e.e1.type.isString && e.e2.type.isString)
                 {
                     auto lhs = genExpr(e.e1);
                     auto rhs = genExpr(e.e2);
@@ -1535,7 +1535,7 @@ public:
                     }
 
                 }
-                else
+                else if (canHandleBinExpTypes(toBCType(e.e1.type), toBCType(e.e2.type)))
                 {
                     goto case TOK.TOKadd;
                 }
