@@ -28,7 +28,7 @@ struct UnresolvedGoto
 {
     void* ident;
     BCBlockJump[ubyte.max] jumps;
-    uint jumpCount = 1;
+    uint jumpCount;
 }
 
 struct UncompiledFunction
@@ -2054,7 +2054,7 @@ public:
             //assert(0, "Cannot handleExpression");
         }
 
-        if (!se.lwr && !se.upr && se.e1.type.isString())
+        if (!se.lwr && !se.upr)
         {
             // "If there is no lwr and upr bound forward"
             retval = genExpr(se.e1);

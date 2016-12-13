@@ -299,6 +299,7 @@ struct BCValue
                 return heapAddr;
             case BCValueType.Immediate :
                 return imm32;
+            case BCValueType.Unknown : return this.imm32;
             default : 
                 {
                     import std.conv : to;
