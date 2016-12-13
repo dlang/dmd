@@ -1,6 +1,6 @@
 include ../common.mak
 
-TESTS:=stderr_msg unittest_assert invalid_memory_operation unknown_gc static_dtor
+TESTS:=stderr_msg unittest_assert invalid_memory_operation unknown_gc static_dtor chain
 ifeq ($(OS)-$(BUILD),linux-debug)
 	TESTS:=$(TESTS) line_trace
 endif
@@ -19,6 +19,12 @@ $(ROOT)/line_trace.done: $(ROOT)/line_trace
 	$(QUIET)$(TIMELIMIT)$(ROOT)/line_trace $(RUN_ARGS) > $(ROOT)/line_trace.output
 	$(QUIET)$(SED) "s/\[0x[0-9a-f]*\]/\[ADDR\]/g" $(ROOT)/line_trace.output | $(DIFF) line_trace.exp -
 	@rm -f $(ROOT)/line_trace.output
+	@touch $@
+
+$(ROOT)/chain.done: $(ROOT)/chain
+	@echo Testing chain
+	$(QUIET)$(TIMELIMIT)$(ROOT)/chain $(RUN_ARGS) > $(ROOT)/chain.output
+	@rm -f $(ROOT)/chain.output
 	@touch $@
 
 $(ROOT)/stderr_msg.done: STDERR_EXP="stderr_msg msg"
