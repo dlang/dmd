@@ -1898,7 +1898,7 @@ public:
                 //auto arrayLength = genTemporary(BCType(BCTypeEnum.i32));
                 //Load32(arrayLength, indexed.i32);
                 //Lt3(inBounds,  idx, arrayLength);
-                Add3(ptr, indexed.i32, bcOne);
+                Add3(ptr, indexed.i32, bcFour);
 
                 auto modv = genTemporary(BCType(BCTypeEnum.i32));
                 Mod3(modv, idx, bcFour);
