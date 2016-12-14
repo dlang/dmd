@@ -143,8 +143,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 
 import ddmd.ctfe.bc_common;
 
-enum perf = 1;
-enum cacheBC = 1;
+enum perf = 0;
+enum cacheBC = 0;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
@@ -239,9 +239,6 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         static if (perf)
             writeln("function not found, search took ", ffw.peek.nsecs, "ns");
     }
-
-    __gshared static uint recursionLevel;
-    ++recursionLevel;
 
     debug (ctfe)
         writeln("recursionLevel: ", recursionLevel);
@@ -1166,7 +1163,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
             debug (ctfe)
                 assert(0, "Type unsupported " ~ (cast(Type)(t)).toString());
         else
-                    return BCType.init;
+            return BCType.init;
         }
     }
 
@@ -1339,7 +1336,7 @@ public:
             }
             return;
         }
-        import std.stdio; writeln("going to eval: ", fd.ident.toString);
+        import std.stdio; writeln("going to eval: ", fd.toString);
         if (auto fbody = fd.fbody.isCompoundStatement)
         {
             beginParameters();
@@ -1364,7 +1361,7 @@ public:
             import std.stdio;
 
             auto fnIdx = _sharedCtfeState.getFunctionIndex(me);
-            static if (is(typeof(_sharedCtfeState.functionCount)))
+            static if (is(typeof(_sharedCtfeState.functionCount)) && cacheBC)
             {
                 fnIdx = fnIdx ? fnIdx : ++_sharedCtfeState.functionCount;
             }
@@ -1400,6 +1397,7 @@ public:
                 {
                     writeln("FnCnt: ", _sharedCtfeState.functionCount);
                 }
+                static if (cacheBC){
                 static if (is(BCGen))
                 {
                     _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
@@ -1459,6 +1457,7 @@ public:
             {
                 //static assert(0, "No functions for old man");
             }
+        }
         }
     }
 
@@ -1796,10 +1795,10 @@ public:
         //FIXME check if Slice.ElementType == Char;
         //and set isString to true;
         auto idx = genExpr(ie.e2).i32; // HACK
-
-        Gt3(BCValue.init, length, idx);
-        AssertError(BCValue.init, _sharedCtfeState.addError(ie.loc,
-            "ArrayIndex %d out of bounds %d", idx, length));
+        auto bCheck = genTemporary(i32Type);
+        Gt3(BCValue.init, idx, length);
+        //AssertError(BCValue.init, _sharedCtfeState.addError(ie.loc,
+        //    "ArrayIndex %d out of bounds %d", idx, length));
         BCArray* arrayType;
         BCSlice* sliceType;
 
@@ -2607,6 +2606,11 @@ public:
             debug (ctfe)
                 assert(0, "We could not gen lhs or rhs");
             return;
+        }
+        else if (!canHandleBinExpTypes(lhs.type, rhs.type))
+        {
+            bailout();
+            return ;
         }
 
         switch (e.op)
@@ -3576,7 +3580,7 @@ public:
         {
 
             uint fnIdx = _sharedCtfeState.getFunctionIndex(f);
-            if (!fnIdx && f)
+            if (!fnIdx && f && cacheBC)
             {
                 // if we get here the function was not already there.
                 // allocate the next free function index, take note of the function
