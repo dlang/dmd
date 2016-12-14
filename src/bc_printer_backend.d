@@ -406,6 +406,7 @@ struct Print_BCGen
 
     void AssertError(BCValue value, BCValue err)
     {
+        sameLabel = false;
         result ~= "    AssertError(" ~ print(value) ~ ", " ~ print(err) ~ ");\n";
     }
 }
