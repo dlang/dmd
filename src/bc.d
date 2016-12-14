@@ -67,7 +67,6 @@ enum LongInst : ushort
 
     Flg, // writes the conditionFlag into [lw >> 16]
     Drb, /// sets db = DS[align4(SP[lw >> 16])[SP[lw >> 16] % 4]]
-    Mod4, ///SP[lw >> 16] = SP[lw >> 16] & 3
     //End Former ShortInst
 
     Jmp,
@@ -1347,11 +1346,6 @@ string printInstructions(const int* startInstructions, uint length) pure
             }
             break;
 
-        case LongInst.Mod4:
-            {
-                result ~= "Mod4 SP[" ~ to!string(lw >> 16) ~ "] \n";
-            }
-            break;
         case LongInst.Flg:
             {
                 result ~= "Flg SP[" ~ to!string(lw >> 16) ~ "] \n";
@@ -2022,11 +2016,6 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
             }
             break;
 
-        case LongInst.Mod4:
-            {
-                (*opRef) &= 3;
-            }
-            break;
         case LongInst.BuiltinCall:
             {
                 assert(0, "Unsupported right now: BCBuiltin");
