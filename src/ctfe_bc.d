@@ -1807,7 +1807,7 @@ public:
         {
             import std.stdio;
 
-            writeln(indexed.type.type.to!string);
+            writeln("IndexedType", indexed.type.type.to!string);
         }
         if (!(indexed.type.type == BCTypeEnum.String
                 || indexed.type.type == BCTypeEnum.Array || indexed.type.type == BCTypeEnum.Slice))
@@ -1820,14 +1820,14 @@ public:
             return;
         }
 
-        bool isString = indexed.type.type == BCTypeEnum.String;
+        bool isString = (indexed.type.type == BCTypeEnum.String);
         //FIXME check if Slice.ElementType == Char;
         //and set isString to true;
         auto idx = genExpr(ie.e2).i32; // HACK
         auto bCheck = genTemporary(i32Type);
-        Gt3(BCValue.init, idx, length);
-        //AssertError(BCValue.init, _sharedCtfeState.addError(ie.loc,
-        //    "ArrayIndex %d out of bounds %d", idx, length));
+        Lt3(BCValue.init, idx, length);
+        AssertError(BCValue.init, _sharedCtfeState.addError(ie.loc,
+            "ArrayIndex %d out of bounds %d", idx, length));
         BCArray* arrayType;
         BCSlice* sliceType;
 

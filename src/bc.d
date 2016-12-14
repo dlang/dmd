@@ -565,6 +565,11 @@ struct BCGen
             || lhs.type == BCTypeEnum.i64 || lhs.type == BCTypeEnum.Char,
             "only i32 or i32Ptr is supported for now not: " ~ to!string(lhs.type.type));
 
+        if (lhs.vType == BCValueType.Immediate)
+        {
+            lhs = pushOntoStack(lhs);
+        }
+
         immutable bool isIndirect = lhs.type == BCTypeEnum.i32Ptr;
         if (rhs.vType == BCValueType.Immediate)
         {
