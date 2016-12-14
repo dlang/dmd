@@ -69,7 +69,7 @@ void StringEq3Macro(BCGen)(BCGen* gen, BCValue _result, BCValue lhs, BCValue rhs
         auto p1 = lhs.i32; //SP[4]
         auto p2 = rhs.i32; //SP[8]
         auto p3 = genTemporary(BCType(BCTypeEnum.i32)); //SP[12]
-        auto p4 = _result.i32; //SP[16]
+        auto p4 = (_result ? _result.i32 : genTemporary(BCType(BCTypeEnum.i32))); //SP[16]
         Set(p4, BCValue(Imm32(0)));
         auto tmp1 = genTemporary(BCType(BCTypeEnum.i32)); //SP[20]
         auto tmp2 = genTemporary(BCType(BCTypeEnum.i32)); //SP[24]
@@ -125,8 +125,8 @@ void StringEq3Macro(BCGen)(BCGen* gen, BCValue _result, BCValue lhs, BCValue rhs
         auto label8 = genLabel();
         endCndJmp(cndJmp2, label8);
         auto label9 = genLabel();
-
         endCndJmp(cndJmp1, label9);
+        if (!_result) Eq3(BCValue.init, p4, BCValue(Imm32(1)));
     }
 }
 

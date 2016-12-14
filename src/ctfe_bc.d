@@ -89,7 +89,7 @@ struct BlackList
         return list[0]!is Identifier.init;
     }
 
-    Identifier[16] list;
+    Identifier[32] list;
 
     void initialize(string[] blacklistNames)
     {
@@ -115,9 +115,9 @@ struct BlackList
 
     void defaultBlackList()
     {
-        initialize([/*"_ArrayEq",*/ "isRooted", "__lambda2", "isSameLength",
-            "bug4910", "wrapperParameters", "defaultMatrix", "extSeparatorPos", "args",
-            "check", "hashOf", "allAreAcceptedUnits"]);
+        initialize([ /*"_ArrayEq",*/ "isRooted", "__lambda2", "isSameLength", "bug4910",
+            "wrapperParameters", "defaultMatrix", "extSeparatorPos", "args",
+                "check", "hashOf", "allAreAcceptedUnits", "back", "front", "generateFunction"]);
     }
 
 }
@@ -143,7 +143,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 
 import ddmd.ctfe.bc_common;
 
-enum perf = 0;
+enum perf = 1;
 enum cacheBC = 0;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
@@ -208,7 +208,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             static if (perf)
                 ffw.stop();
             static if (perf)
-                writeln("function ", fd.ident.toString, " found! search took ", ffw.peek.nsecs, "ns");
+                writeln("function ", fd.ident.toString, " found! search took ",
+                    ffw.peek.nsecs, "ns");
 
             auto fn = _sharedCtfeState.functions[fnIdx - 1];
             arg_bcv.arguments.length = fn.nArgs;
@@ -366,12 +367,13 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             {
                 import ddmd.hdrgen;
                 import ddmd.root.outbuffer;
+
                 OutBuffer ob;
                 HdrGenState hgs;
                 scope PrettyPrintVisitor v = new PrettyPrintVisitor(&ob, &hgs);
 
                 fd.accept(v);
-                writeln(cast(char[])ob.data[0 .. ob.size]);
+                writeln(cast(char[]) ob.data[0 .. ob.size]);
                 bcv.byteCodeArray[0 .. bcv.ip].printInstructions.writeln;
             }
         }
@@ -803,7 +805,6 @@ struct RetainedError // Name is still undecided
     BCValue v2;
 }
 
-
 Expression toExpression(const BCValue value, Type expressionType,
     const BCHeap* heapPtr = &_sharedCtfeState.heap,
     const BCValue[2]* errorValues = null, const RetainedError* errors = null)
@@ -820,6 +821,7 @@ Expression toExpression(const BCValue value, Type expressionType,
 
         auto err = _sharedCtfeState.errors[value.imm32 - 1];
         import ddmd.errors;
+
         uint e1;
         uint e2;
 
@@ -837,8 +839,8 @@ Expression toExpression(const BCValue value, Type expressionType,
             return null;
         }
         if (err.msg.ptr)
-        error(err.loc, err.msg.ptr, e1, e2);
-        
+            error(err.loc, err.msg.ptr, e1, e2);
+
         return CTFEExp.cantexp;
     }
 
@@ -885,8 +887,7 @@ Expression toExpression(const BCValue value, Type expressionType,
                 auto type = sd.fields[idx].type;
 
                 Expression elm = toExpression(
-                    imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset)),
-                    type);
+                    imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset)), type);
                 elmExprs.insert(idx, elm);
                 offset += align4(_sharedCtfeState.size(member));
             }
@@ -930,8 +931,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             foreach (idx; 0 .. arrayLength)
             {
                 elmExprs.insert(idx,
-                    toExpression(
-                    imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset)),
+                    toExpression(imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset)),
                     tda.nextOf));
                 offset += elmLength;
             }
@@ -1178,7 +1178,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
             debug (ctfe)
                 assert(0, "Type unsupported " ~ (cast(Type)(t)).toString());
         else
-            return BCType.init;
+                    return BCType.init;
         }
     }
 
@@ -1224,6 +1224,31 @@ extern (C++) final class BCV(BCGenT) : Visitor
             {
                 _sharedCtfeState.functions[fi - 1] = BCFunction(null);
             }
+    }
+
+    void StringEq(BCValue retval, BCValue lhs, BCValue rhs)
+    {
+        static if (is(typeof(StringEq3) == function)
+                && is(typeof(StringEq3(BCValue.init, BCValue.init, BCValue.init)) == void))
+        {
+            StringEq3(retval, lhs, rhs);
+        }
+
+        else
+        {
+            import ddmd.ctfe.bc_macro : StringEq3Macro;
+            bool wasInit;
+            if (!retval)
+            {
+                wasInit = true;
+                retval = genTemporary(i32Type);
+            }
+            StringEq3Macro(&gen, retval, lhs, rhs);
+            if (wasInit)
+            {
+                Eq3(BCValue.init, retval, imm32(1));
+            }
+        }
     }
 
 public:
@@ -1351,7 +1376,9 @@ public:
             }
             return;
         }
-        import std.stdio; writeln("going to eval: ", fd.toString);
+        import std.stdio;
+
+        writeln("going to eval: ", fd.toString);
         if (auto fbody = fd.fbody.isCompoundStatement)
         {
             beginParameters();
@@ -1412,51 +1439,16 @@ public:
                 {
                     writeln("FnCnt: ", _sharedCtfeState.functionCount);
                 }
-                static if (cacheBC){
-                static if (is(BCGen))
+                static if (cacheBC)
                 {
-                    _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
-                        fnIdx, BCFunctionTypeEnum.Bytecode,
-                        cast(ushort) parameterTypes.length, sp.addr,
-                        //FIXME IMPORTANT PERFORMANCE!!!
-                        // get rid of dup!
-                        cast(immutable) byteCodeArray[0 .. ip]);
-                    clear();
-                }
-                else
-                {
-                    _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
-                }
-
-                foreach (uf; uncompiledFunctions[0 .. uncompiledFunctionCount])
-                {
-                    clear();
-                    beginParameters();
-                    if (uf.fd.parameters)
-                        foreach (i, p; (*(uf.fd.parameters)))
-                        {
-                            debug (ctfe)
-                            {
-                                import std.stdio;
-
-                                writeln("uc parameter [", i, "] : ", p.toString);
-                            }
-                            p.accept(this);
-                        }
-                    endParameters();
-                    fnIdx = uf.fn;
-                    beginFunction(fnIdx - 1);
-                    uf.fd.fbody.accept(this);
-                    endFunction();
-
                     static if (is(BCGen))
                     {
                         _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
                             fnIdx, BCFunctionTypeEnum.Bytecode,
-                            cast(ushort) parameterTypes.length, sp.addr, //FIXME IMPORTANT PERFORMANCE!!!
-                        // get rid of dup!
-
-                        byteCodeArray[0 .. ip].dup);
+                            cast(ushort) parameterTypes.length, sp.addr,
+                            //FIXME IMPORTANT PERFORMANCE!!!
+                            // get rid of dup!
+                            cast(immutable) byteCodeArray[0 .. ip]);
                         clear();
                     }
                     else
@@ -1464,15 +1456,51 @@ public:
                         _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
                     }
 
+                    foreach (uf; uncompiledFunctions[0 .. uncompiledFunctionCount])
+                    {
+                        clear();
+                        beginParameters();
+                        if (uf.fd.parameters)
+                            foreach (i, p; (*(uf.fd.parameters)))
+                            {
+                                debug (ctfe)
+                                {
+                                    import std.stdio;
+
+                                    writeln("uc parameter [", i, "] : ", p.toString);
+                                }
+                                p.accept(this);
+                            }
+                        endParameters();
+                        fnIdx = uf.fn;
+                        beginFunction(fnIdx - 1);
+                        uf.fd.fbody.accept(this);
+                        endFunction();
+
+                        static if (is(BCGen))
+                        {
+                            _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
+                                fnIdx, BCFunctionTypeEnum.Bytecode,
+                                cast(ushort) parameterTypes.length, sp.addr, //FIXME IMPORTANT PERFORMANCE!!!
+                                // get rid of dup!
+
+                                byteCodeArray[0 .. ip].dup);
+                            clear();
+                        }
+                        else
+                        {
+                            _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
+                        }
+
+                    }
+                    parameterTypes = myPTypes;
+                    arguments = myArgs;
                 }
-                parameterTypes = myPTypes;
-                arguments = myArgs;
+                else
+                {
+                    //static assert(0, "No functions for old man");
+                }
             }
-            else
-            {
-                //static assert(0, "No functions for old man");
-            }
-        }
         }
     }
 
@@ -1550,19 +1578,8 @@ public:
                 {
                     auto lhs = genExpr(e.e1);
                     auto rhs = genExpr(e.e2);
-                    static if (is(typeof(StringEq3) == function)
-                            && is(typeof(StringEq3(BCValue.init, BCValue.init,
-                            BCValue.init)) == void))
-                    {
-                        StringEq3(retval, lhs, rhs);
-                    }
-                    else
-                    {
-                        import ddmd.ctfe.bc_macro : StringEq3Macro;
 
-                        StringEq3Macro(&gen, retval, lhs, rhs);
-                    }
-
+                    StringEq(retval, lhs, rhs);
                 }
                 else if (canHandleBinExpTypes(toBCType(e.e1.type), toBCType(e.e2.type)))
                 {
@@ -1600,11 +1617,10 @@ public:
             {
                 auto lhs = genExpr(e.e1);
                 auto rhs = genExpr(e.e2);
-                if(lhs.type.type != BCTypeEnum.Slice ||
-                rhs.type.type != BCTypeEnum.Slice)
+                if (lhs.type.type != BCTypeEnum.Slice || rhs.type.type != BCTypeEnum.Slice)
                 {
                     bailout();
-                    return ;
+                    return;
                 }
                 auto lhsBaseType = _sharedCtfeState.slices[lhs.type.typeIndex - 1].elementType;
                 auto rhsBaseType = _sharedCtfeState.slices[rhs.type.typeIndex - 1].elementType;
@@ -2409,13 +2425,13 @@ public:
             auto length = target ? target.i32 : genTemporary(BCType(BCTypeEnum.i32));
             if (arr.type.type == BCTypeEnum.Array)
             {
-              auto idx = arr.type.typeIndex;
-              assert(idx);
-              length = imm32(_sharedCtfeState.arrays[idx - 1].length);
+                auto idx = arr.type.typeIndex;
+                assert(idx);
+                length = imm32(_sharedCtfeState.arrays[idx - 1].length);
             }
             else
             {
-              Load32(length, arr.i32);
+                Load32(length, arr.i32);
             }
             return length;
         }
@@ -2572,11 +2588,11 @@ public:
 
             if (type.type == BCTypeEnum.Array)
             {
-               auto idx = type.typeIndex;
-               assert(idx);
-               auto array = _sharedCtfeState.arrays[idx - 1];
-               Alloc(var.i32, imm32(_sharedCtfeState.size(type) + 4));
-               Store32(var.i32, array.length.imm32);
+                auto idx = type.typeIndex;
+                assert(idx);
+                auto array = _sharedCtfeState.arrays[idx - 1];
+                Alloc(var.i32, imm32(_sharedCtfeState.size(type) + 4));
+                Store32(var.i32, array.length.imm32);
             }
         }
 
@@ -2625,7 +2641,7 @@ public:
         else if (!canHandleBinExpTypes(lhs.type, rhs.type))
         {
             bailout();
-            return ;
+            return;
         }
 
         switch (e.op)
@@ -3331,10 +3347,6 @@ public:
             }
 
             auto lhs = genExpr(ss.condition);
-import std.stdio;
-writeln(ss.condition.type.toString);
-writeln(toBCType(ss.condition.type).type);
-writeln(lhs.type.type);
             if (!lhs)
             {
                 bailout();
@@ -3342,13 +3354,15 @@ writeln(lhs.type.type);
                     assert(0, "swtiching on undefined value " ~ ss.toString);
                 return;
             }
-            if (lhs.type.type == BCTypeEnum.String || lhs.type.type == BCTypeEnum.Slice)
+            bool stringSwitch = lhs.type.type == BCTypeEnum.String;
+/*            if (lhs.type.type == BCTypeEnum.String || lhs.type.type == BCTypeEnum.Slice)
             {
                 bailout();
                 debug (ctfe)
                     assert(0, "StringSwitches unsupported for now " ~ ss.toString);
                 return;
             }
+*/
             if (ss.cases.dim > beginCaseStatements.length)
                 assert(0, "We will not have enough array space to store all cases for gotos");
 
@@ -3359,7 +3373,8 @@ writeln(lhs.type.type);
                 // apperantly I have to set the index myself;
 
                 auto rhs = genExpr(caseStmt.exp);
-                Eq3(BCValue.init, lhs, rhs);
+                stringSwitch ? StringEq(BCValue.init, lhs, rhs) : Eq3(BCValue.init, lhs,
+                    rhs);
                 auto jump = beginCndJmp();
                 if (caseStmt.statement)
                 {
@@ -3571,28 +3586,28 @@ writeln(lhs.type.type);
     override void visit(CallExp ce)
     {
         bailout();
-       
+
         FuncDeclaration fd;
         BCValue[] bc_args;
         bc_args.length = ce.arguments.dim;
 
-       if (ce.e1.op == TOKvar) 
+        if (ce.e1.op == TOKvar)
         {
-            fd = (cast(VarExp)ce.e1).var.isFuncDeclaration();
+            fd = (cast(VarExp) ce.e1).var.isFuncDeclaration();
         }
-        if(!fd, "Could not get funcDecl")
+        if (!fd, "Could not get funcDecl")
         {
-          bailout();
-          return;
+            bailout();
+            return;
         }
         if (!fd.functionSemantic3())
         {
-           bailout();
-           return ;
-	//		assert(0, "could not interpret " ~ ce.toString);
+            bailout();
+            return;
+            //		assert(0, "could not interpret " ~ ce.toString);
             // return cantInterpret();
         }
-          
+
         foreach (i, arg; *ce.arguments)
         {
             bc_args[i] = genExpr(arg);
