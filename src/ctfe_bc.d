@@ -189,6 +189,9 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     _blacklist.defaultBlackList();
     import std.stdio;
 
+    if (_sharedCtfeState.btv.toBCType(fd.type.nextOf) == BCType.init)
+        return null;
+    writeln(fd.type.nextOf.toString);
     static if (cacheBC && is(typeof(_sharedCtfeState.functionCount)) && is(BCGen))
     {
 
@@ -359,6 +362,18 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                 &_sharedCtfeState.heap, &_sharedCtfeState.functions[0],
                 &errorValues[0], &errorValues[1],
                 &_sharedCtfeState.errors[0], _sharedCtfeState.stack[]);
+            if (fd.ident == Identifier.idPool("extractAttribFlags"))
+            {
+                import ddmd.hdrgen;
+                import ddmd.root.outbuffer;
+                OutBuffer ob;
+                HdrGenState hgs;
+                scope PrettyPrintVisitor v = new PrettyPrintVisitor(&ob, &hgs);
+
+                fd.accept(v);
+                writeln(cast(char[])ob.data[0 .. ob.size]);
+                bcv.byteCodeArray[0 .. bcv.ip].printInstructions.writeln;
+            }
         }
         sw.stop();
         import std.stdio;
@@ -2808,7 +2823,10 @@ public:
             retval = genTemporary(BCType(BCTypeEnum.String));
         }
         Set(retval.i32, stringAddrValue);
-        retval = stringAddrValue;
+        if (insideArgumentProcessing)
+        {
+            retval = stringAddrValue;
+        }
         debug (ctfe)
         {
             writefln("String %s, is in %d, first uint is %d",
@@ -3313,6 +3331,10 @@ public:
             }
 
             auto lhs = genExpr(ss.condition);
+import std.stdio;
+writeln(ss.condition.type.toString);
+writeln(toBCType(ss.condition.type).type);
+writeln(lhs.type.type);
             if (!lhs)
             {
                 bailout();
