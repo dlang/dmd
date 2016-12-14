@@ -244,8 +244,6 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             writeln("function not found, search took ", ffw.peek.nsecs, "ns");
     }
 
-    debug (ctfe)
-        writeln("recursionLevel: ", recursionLevel);
     //writeln("Evaluating function: ", fd.toString);
     import ddmd.identifier;
     import std.datetime : StopWatch;
@@ -774,7 +772,7 @@ struct SharedCtfeState(BCGenT)
         case BCType.Array:
             {
                 assert(type.typeIndex <= arrayCount);
-                BCArray _array = arrays[type.typeIndex];
+                BCArray _array = arrays[type.typeIndex - 1];
                 debug (ctfe)
                 {
                     import std.stdio;
@@ -2230,8 +2228,14 @@ public:
             }
         }
         //        if (!oldInsideArrayLiteralExp)
-
-        retval = imm32(arrayAddr.addr);
+        if (insideArgumentProcessing)
+        {
+            retval = imm32(arrayAddr.addr);
+        }
+        else
+        {
+            retval.type = BCType(BCTypeEnum.Array, _sharedCtfeState.arrayCount);
+        }
         debug (ctfe)
         {
             import std.stdio;
@@ -2591,6 +2595,9 @@ public:
                 auto idx = type.typeIndex;
                 assert(idx);
                 auto array = _sharedCtfeState.arrays[idx - 1];
+
+                writeln("ArrayType:", vd.type.toString, " BCArrayType: ", type.type,
+                " ElmentTypeOfBCArrayType: ", array.elementType);
                 Alloc(var.i32, imm32(_sharedCtfeState.size(type) + 4));
                 Store32(var.i32, array.length.imm32);
             }
