@@ -243,10 +243,10 @@ struct Imm32
 }
 
 
-BCValue imm32(uint value)
+BCValue imm32(uint value) pure
 {
   return BCValue(Imm32(value));
-]
+}
 
 struct Imm64
 {

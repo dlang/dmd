@@ -117,7 +117,7 @@ struct BlackList
     {
         initialize([/*"_ArrayEq",*/ "isRooted", "__lambda2", "isSameLength",
             "bug4910", "wrapperParameters", "defaultMatrix", "extSeparatorPos", "args",
-            "check"]);
+            "check", "hashOf", "allAreAcceptedUnits"]);
     }
 
 }
@@ -143,7 +143,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 
 import ddmd.ctfe.bc_common;
 
-enum perf = 0;
+enum perf = 1;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
@@ -205,7 +205,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             static if (perf)
                 ffw.stop();
             static if (perf)
-                writeln("function found! search took ", ffw.peek.nsecs, "ns");
+                writeln("function ", fd.ident.toString, " found! search took ", ffw.peek.nsecs, "ns");
 
             auto fn = _sharedCtfeState.functions[fnIdx - 1];
             arg_bcv.arguments.length = fn.nArgs;
@@ -2558,7 +2558,11 @@ public:
 
             if (type.type == BCTypeEnum.Array)
             {
-              Alloc(result, imm32(_sharedCtfeState.size(type))); 
+               auto idx = type.typeIndex;
+               assert(idx);
+               auto array = _sharedCtfeState.arrays[idx - 1];
+               Alloc(var.i32, imm32(_sharedCtfeState.size(type) + 4));
+               Store32(var.i32, array.length.imm32);
             }
         }
 

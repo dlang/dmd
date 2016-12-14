@@ -1471,7 +1471,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
 
     long* stackP = &stack[0] + (stackOffset / 4);
 
-    while (true)
+    while (true && ip <= byteCode.length - 1)
     {
         import std.range;
 
@@ -2072,6 +2072,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
             break;
         }
     }
+    // return bcEvalOutOfBoundsError();
     assert(0, "I would be surprised if we got here");
 }
 
