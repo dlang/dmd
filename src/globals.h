@@ -34,13 +34,22 @@ enum BOUNDSCHECK
 
 enum CPU
 {
-    baseline,           // (default) the minimum capability CPU
+    x87,
+    mmx,
+    sse,
+    sse2,
+    sse3,
+    ssse3,
+    sse4_1,
+    sse4_2,
     avx,                // AVX1 instruction set
     avx2,               // AVX2 instruction set
     avx512,             // AVX-512 instruction set
+
+    // Special values that don't survive past the command line processing
+    baseline,           // (default) the minimum capability CPU
     native              // the machine the compiler is being run on
 };
-
 
 // Put command line switches in here
 struct Param
