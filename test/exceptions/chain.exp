@@ -1,0 +1,7 @@
+Caught
+TestError: d
+ TestException: e
+Bypassed chain was:
+TestException: a
+ TestException: b
+  TestException: c

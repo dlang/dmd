@@ -373,16 +373,11 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
     if (exceptionClass == dmdExceptionClass)
     {
         auto eh = ExceptionHeader.toExceptionHeader(exceptionObject);
+        auto currentLsd = language_specific_data;
+        bool bypassed = false;
         while (eh.next)
         {
             ExceptionHeader* ehn = eh.next;
-
-            // Don't combine when the exceptions are from different functions
-            if (language_specific_data != ehn.languageSpecificData)
-            {
-                //printf("break: %p %p\n", language_specific_data, ehn.languageSpecificData);
-                break;
-            }
 
             Error e = cast(Error)eh.object;
             if (e !is null && !cast(Error)ehn.object)
@@ -390,8 +385,21 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
                 /* eh is an Error, ehn is not. Skip ehn.
                  */
                 //printf("bypass\n");
-                e.bypassedException = ehn.object;
+                currentLsd = ehn.languageSpecificData;
+
+                // Continuing to construct the bypassed chain
+                eh = ehn;
+                bypassed = true;
+                continue;
             }
+
+            // Don't combine when the exceptions are from different functions
+            if (currentLsd != ehn.languageSpecificData)
+            {
+                //printf("break: %p %p\n", currentLsd, ehn.languageSpecificData);
+                break;
+            }
+
             else
             {
                 //printf("chain\n");
@@ -403,7 +411,7 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
 
                 // Replace our exception object with in-flight one
                 eh.object = ehn.object;
-                if (ehn.handler != handler)
+                if (ehn.handler != handler && !bypassed)
                 {
                     handler = ehn.handler;
 
@@ -417,6 +425,15 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
             eh.next = ehn.next;
             //printf("delete %p\n", ehn);
             _Unwind_DeleteException(&ehn.exception_object); // discard ehn
+        }
+        if (bypassed)
+        {
+            eh = ExceptionHeader.toExceptionHeader(exceptionObject);
+            Error e = cast(Error)eh.object;
+            auto ehn = eh.next;
+            e.bypassedException = ehn.object;
+            eh.next = ehn.next;
+            _Unwind_DeleteException(&ehn.exception_object);
         }
     }
 
