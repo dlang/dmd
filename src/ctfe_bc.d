@@ -572,6 +572,7 @@ struct SharedCtfeState(BCGenT)
             void* mem = allocmemory(maxHeapSize * uint.sizeof);
             heap._heap = (cast(uint*) mem)[0 .. maxHeapSize];
             heap.heapMax = maxHeapSize;
+            heap.heapSize = 4;
         }
         else
         {
@@ -1824,7 +1825,6 @@ public:
         //FIXME check if Slice.ElementType == Char;
         //and set isString to true;
         auto idx = genExpr(ie.e2).i32; // HACK
-        auto bCheck = genTemporary(i32Type);
         Lt3(BCValue.init, idx, length);
         AssertError(BCValue.init, _sharedCtfeState.addError(ie.loc,
             "ArrayIndex %d out of bounds %d", idx, length));
@@ -1833,17 +1833,14 @@ public:
 
         if (indexed.type.type == BCTypeEnum.Array)
         {
-            auto _arrayType = (
-                !isString ? &_sharedCtfeState.arrays[indexed.type.typeIndex - 1] : null);
+            arrayType = &_sharedCtfeState.arrays[indexed.type.typeIndex - 1];
 
             debug (ctfe)
             {
                 import std.stdio;
 
-                if (_arrayType)
-                    writeln("arrayType: ", *_arrayType);
-
-                arrayType = _arrayType;
+                if (arrayType)
+                    writeln("arrayType: ", *arrayType);
             }
         }
         else if (indexed.type.type == BCTypeEnum.Slice)
@@ -1878,17 +1875,17 @@ public:
             }
 
             // We add one to go over the length;
-
             auto offset = genTemporary(BCType(BCTypeEnum.i32));
 
             if (!isString)
             {
-                Add3(ptr, indexed.i32, bcFour);
+            if (!arrayType) {}
                 int elmSize = sharedCtfeState.size(elmType);
                 assert(cast(int) elmSize > -1);
                 //elmSize = (elmSize / 4 > 0 ? elmSize / 4 : 1);
                 Mul3(offset, idx, imm32(elmSize));
-                Add3(ptr, ptr, offset);
+                Add3(offset, offset, bcFour);
+                Add3(ptr, indexed.i32, offset);
                 Load32(retval, ptr);
             }
             else
@@ -2196,8 +2193,7 @@ public:
         }
 
         _sharedCtfeState.arrays[_sharedCtfeState.arrayCount++] = arrayType;
-        if (!oldInsideArrayLiteralExp)
-            retval = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.i32));
+        retval = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.i32));
 
         HeapAddr arrayAddr = HeapAddr(_sharedCtfeState.heap.heapSize);
         _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = arrayLength;
@@ -2228,11 +2224,9 @@ public:
             }
         }
         //        if (!oldInsideArrayLiteralExp)
-        if (insideArgumentProcessing)
-        {
             retval = imm32(arrayAddr.addr);
-        }
-        else
+
+        if (!insideArgumentProcessing)
         {
             retval.type = BCType(BCTypeEnum.Array, _sharedCtfeState.arrayCount);
         }
@@ -2596,8 +2590,6 @@ public:
                 assert(idx);
                 auto array = _sharedCtfeState.arrays[idx - 1];
 
-                writeln("ArrayType:", vd.type.toString, " BCArrayType: ", type.type,
-                " ElmentTypeOfBCArrayType: ", array.elementType);
                 Alloc(var.i32, imm32(_sharedCtfeState.size(type) + 4));
                 Store32(var.i32, array.length.imm32);
             }
@@ -3150,7 +3142,7 @@ public:
             }
 
             auto length = getLength(indexed);
-            Gt3(BCValue.init, length, index);
+            Lt3(BCValue.init, index, length);
             AssertError(BCValue.init, _sharedCtfeState.addError(ae.loc,
                 "ArrayIndex %d out of bounds %d", index, length));
             auto effectiveAddr = genTemporary(i32Type);
@@ -3216,7 +3208,7 @@ public:
                 {
                     Set(lhs.i32, rhs.i32);
                 }
-                else if (rhs.type.type == BCTypeEnum.Slice || lhs.type.type == BCTypeEnum.Slice)
+                else if (rhs.type.type == BCTypeEnum.Slice && lhs.type.type == BCTypeEnum.Slice)
                 {
                     Set(lhs.i32, rhs.i32);
                 }
@@ -3602,8 +3594,11 @@ public:
         {
             fd = (cast(VarExp) ce.e1).var.isFuncDeclaration();
         }
-        if (!fd, "Could not get funcDecl")
+        if (!fd)
         {
+            debug (ctfe)
+                assert(0, "could not get funcDecl");
+
             bailout();
             return;
         }
