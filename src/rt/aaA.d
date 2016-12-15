@@ -662,7 +662,7 @@ extern (C) hash_t _aaGetHash(in AA* aa, in TypeInfo tiRaw) nothrow
             continue;
         size_t[2] h2 = [b.hash, valHash(b.entry + off)];
         // use XOR here, so that hash is independent of element order
-        h ^= hashOf(h2.ptr, h2.length * h2[0].sizeof);
+        h ^= hashOf(h2);
     }
     return h;
 }
@@ -1000,4 +1000,16 @@ pure nothrow unittest
     aa2[5] = 6;
     assert(aa.length == 1);
     assert(aa[5] == 6);
+}
+
+// test AA as key (Issue 16974)
+unittest
+{
+    int[int] a = [1 : 2], a2 = [1 : 2];
+
+    assert([a : 3] == [a : 3]);
+    assert([a : 3] == [a2 : 3]);
+
+    assert(typeid(a).getHash(&a) == typeid(a).getHash(&a));
+    assert(typeid(a).getHash(&a) == typeid(a).getHash(&a2));
 }
