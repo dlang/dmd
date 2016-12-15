@@ -263,6 +263,9 @@ enum
     LEA     = 0x8D,
     LOCK    = 0xF0,
 
+    STO     = 0x89,
+    LOD     = 0x8B,
+
     JO      = 0x70,
     JNO     = 0x71,
     JC      = 0x72,

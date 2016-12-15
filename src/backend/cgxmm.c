@@ -71,12 +71,12 @@ code *movxmmconst(unsigned xreg, unsigned sz, targ_size_t value, regm_t flags)
         u.s = value;
         targ_long *p = &u.l[0];
         cdb.append(movregconst(CNIL,r,p[0],0));
-        cdb.append(genfltreg(CNIL,0x89,r,0));            // MOV floatreg,r
+        cdb.genfltreg(STO,r,0);                     // MOV floatreg,r
         cdb.append(movregconst(CNIL,r,p[1],0));
-        cdb.append(genfltreg(CNIL,0x89,r,4));            // MOV floatreg+4,r
+        cdb.genfltreg(STO,r,4);                     // MOV floatreg+4,r
 
         unsigned op = xmmload(TYdouble, true);
-        cdb.append(genxmmreg(CNIL,op,xreg,0,TYdouble));  // MOVSD XMMreg,floatreg
+        cdb.genxmmreg(op,xreg,0,TYdouble);          // MOVSD XMMreg,floatreg
     }
     else
     {
@@ -410,7 +410,7 @@ code *xmmcnvt(elem *e,regm_t *pretregs)
     else if (zx)
     {   assert(I64);
         cdb.append(getregs(regs));
-        cdb.append(genregs(CNIL,0x89,reg,reg)); // MOV reg,reg to zero upper 32-bit
+        cdb.append(genregs(CNIL,STO,reg,reg)); // MOV reg,reg to zero upper 32-bit
         code_orflag(cdb.last(),CFvolatile);
     }
 
