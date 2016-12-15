@@ -267,3 +267,23 @@ void escape5() @safe
     pp = &p; // error
 }
 
+/***********************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(287): Error: escaping reference to local variable b
+---
+*/
+
+@safe int* foo6()(int* arg)
+{
+    return arg;
+}
+
+int* escape6() @safe
+{
+    int b;
+    return foo6(&b);
+}
+
