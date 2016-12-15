@@ -189,9 +189,6 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     _blacklist.defaultBlackList();
     import std.stdio;
 
-    if (_sharedCtfeState.btv.toBCType(fd.type.nextOf) == BCType.init)
-        return null;
-    writeln(fd.type.nextOf.toString);
     static if (cacheBC && is(typeof(_sharedCtfeState.functionCount)) && is(BCGen))
     {
 
@@ -512,10 +509,11 @@ struct BCArray
 
 struct BCStruct
 {
-    BCType[ubyte.max / 2] memberTypes;
     uint memberTypeCount;
-
     uint size;
+
+    BCType[64] memberTypes;
+
 
     void addField(SharedCtfeState!BCGenT* state, const BCType bct)
     {
@@ -1957,7 +1955,7 @@ public:
                 fixupContinue(oldContinueFixupCount, result.begin);
             }
 
-            if (!costumContinue)
+            if (!costumBreak)
             {
                 fixupBreak(oldBreakFixupCount, result.end);
             }
@@ -3719,7 +3717,6 @@ public:
             fixupContinue(oldContinueFixupCount, block.end);
             increment.accept(this);
         }
-        continueFixupCount = oldContinueFixupCount;
         genJump(block.begin);
         auto after_jmp = genLabel();
         fixupBreak(oldBreakFixupCount, after_jmp);
