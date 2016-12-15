@@ -287,3 +287,18 @@ int* escape6() @safe
     return foo6(&b);
 }
 
+/***************************************************/
+
+struct S7
+{
+    int[10] a;
+    int[3] abc(int i) @safe
+    {
+        return a[0 .. 3]; // should not error
+    }
+}
+
+/***************************************************/
+
+int[3] escape8(scope int[] p) @safe { return p[0 .. 3]; } // should not error
+char*[3] escape9(scope char*[] p) @safe { return p[0 .. 3]; }
