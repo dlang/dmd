@@ -406,7 +406,7 @@ void CodeBuilder::genasm(char *s, unsigned slen)
     pTail = &ce->next;
 }
 
-void CodeBuilder::genasm(LabelDsymbol *label)
+void CodeBuilder::genasm(_LabelDsymbol *label)
 {
     code *ce = code_calloc();
     ce->Iop = ASM;

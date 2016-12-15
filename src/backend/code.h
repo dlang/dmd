@@ -11,7 +11,7 @@
 
 #include <stddef.h>
 
-class LabelDsymbol;             // D only
+struct _LabelDsymbol;             // D only
 class Declaration;              // D only
 
 typedef int segidx_t;           // index into SegData[]
@@ -53,7 +53,7 @@ union evc
     struct
     {
         targ_size_t Voffset;    // offset from symbol
-        LabelDsymbol *Vsym;     // pointer to D Label
+        _LabelDsymbol *Vsym;    // pointer to D Label
     } lab;
 
     struct
@@ -728,7 +728,7 @@ struct CodeBuilder
     void genf2(unsigned op, unsigned rm);
     void gen2sib(unsigned op, unsigned rm, unsigned sib);
     void genasm(char *s, unsigned slen);
-    void genasm(LabelDsymbol *label);
+    void genasm(_LabelDsymbol *label);
     void genasm(block *label);
     void gencsi(unsigned op, unsigned rm, unsigned FL2, SYMIDX si);
     void gencs(unsigned op, unsigned rm, unsigned FL2, symbol *s);
