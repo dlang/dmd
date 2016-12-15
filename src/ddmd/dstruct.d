@@ -586,7 +586,8 @@ extern (C++) final class UnionDeclaration : StructDeclaration
 {
     extern (D) this(Loc loc, Identifier id)
     {
-        super(loc, id);
+        immutable inObject = false; // no magic unions in object.d yet
+        super(loc, id, inObject);
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
