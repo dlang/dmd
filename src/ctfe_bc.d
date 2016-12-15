@@ -117,7 +117,7 @@ struct BlackList
     {
         initialize([ /*"_ArrayEq",*/ "isRooted", "__lambda2", "isSameLength", "bug4910",
             "wrapperParameters", "defaultMatrix", "extSeparatorPos", "args",
-                "check", "hashOf", "allAreAcceptedUnits", "back", "front", "generateFunction"]);
+            "check", "hashOf", "allAreAcceptedUnits", "back", "front", "generateFunction"]);
     }
 
 }
@@ -513,7 +513,6 @@ struct BCStruct
     uint size;
 
     BCType[64] memberTypes;
-
 
     void addField(SharedCtfeState!BCGenT* state, const BCType bct)
     {
@@ -1234,6 +1233,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         else
         {
             import ddmd.ctfe.bc_macro : StringEq3Macro;
+
             bool wasInit;
             if (!retval)
             {
@@ -1823,9 +1823,15 @@ public:
         //FIXME check if Slice.ElementType == Char;
         //and set isString to true;
         auto idx = genExpr(ie.e2).i32; // HACK
-        Lt3(BCValue.init, idx, length);
-        AssertError(BCValue.init, _sharedCtfeState.addError(ie.loc,
-            "ArrayIndex %d out of bounds %d", idx, length));
+        version (ctfe_noboundscheck)
+        {
+        }
+        else
+        {
+            Lt3(BCValue.init, idx, length);
+            AssertError(BCValue.init, _sharedCtfeState.addError(ie.loc,
+                "ArrayIndex %d out of bounds %d", idx, length));
+        }
         BCArray* arrayType;
         BCSlice* sliceType;
 
@@ -1877,13 +1883,15 @@ public:
 
             if (!isString)
             {
-            if (!arrayType) {}
+                if (!arrayType)
+                {
+                }
                 int elmSize = sharedCtfeState.size(elmType);
                 assert(cast(int) elmSize > -1);
                 //elmSize = (elmSize / 4 > 0 ? elmSize / 4 : 1);
                 Mul3(offset, idx, imm32(elmSize));
                 Add3(offset, offset, bcFour);
-                Add3(ptr, indexed.i32, offset);
+                Add3(ptr, offset, indexed.i32);
                 Load32(retval, ptr);
             }
             else
@@ -2222,7 +2230,7 @@ public:
             }
         }
         //        if (!oldInsideArrayLiteralExp)
-            retval = imm32(arrayAddr.addr);
+        retval = imm32(arrayAddr.addr);
 
         if (!insideArgumentProcessing)
         {
@@ -3140,9 +3148,15 @@ public:
             }
 
             auto length = getLength(indexed);
-            Lt3(BCValue.init, index, length);
-            AssertError(BCValue.init, _sharedCtfeState.addError(ae.loc,
-                "ArrayIndex %d out of bounds %d", index, length));
+            version (ctfe_noboundscheck)
+            {
+            }
+            else
+            {
+                Lt3(BCValue.init, index, length);
+                AssertError(BCValue.init, _sharedCtfeState.addError(ae.loc,
+                    "ArrayIndex %d out of bounds %d", index, length));
+            }
             auto effectiveAddr = genTemporary(i32Type);
             auto elemType = toBCType(ie.e1.type.nextOf);
             auto elemSize = align4(_sharedCtfeState.size(elemType));
@@ -3352,7 +3366,7 @@ public:
                 return;
             }
             bool stringSwitch = lhs.type.type == BCTypeEnum.String;
-/*            if (lhs.type.type == BCTypeEnum.String || lhs.type.type == BCTypeEnum.Slice)
+            /*            if (lhs.type.type == BCTypeEnum.String || lhs.type.type == BCTypeEnum.Slice)
             {
                 bailout();
                 debug (ctfe)
@@ -3370,8 +3384,8 @@ public:
                 // apperantly I have to set the index myself;
 
                 auto rhs = genExpr(caseStmt.exp);
-                stringSwitch ? StringEq(BCValue.init, lhs, rhs) : Eq3(BCValue.init, lhs,
-                    rhs);
+                stringSwitch ? StringEq(BCValue.init, lhs, rhs) : Eq3(BCValue.init,
+                    lhs, rhs);
                 auto jump = beginCndJmp();
                 if (caseStmt.statement)
                 {
