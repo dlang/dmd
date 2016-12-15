@@ -86,7 +86,7 @@ struct BlackList
 
     bool isInitialized() pure const
     {
-        return list[0]!is Identifier.init;
+        return list[0] !is Identifier.init;
     }
 
     Identifier[32] list;
@@ -117,7 +117,8 @@ struct BlackList
     {
         initialize([ /*"_ArrayEq",*/ "isRooted", "__lambda2", "isSameLength", "bug4910",
             "wrapperParameters", "defaultMatrix", "extSeparatorPos", "args",
-            "check", "hashOf", "allAreAcceptedUnits", "back", "front", "generateFunction"]);
+            "check", "hashOf", "allAreAcceptedUnits", "back", "front", "generateFunction",
+            "parseJSON"]);
     }
 
 }
@@ -526,7 +527,11 @@ struct BCStruct
         if (idx == -1)
             return -1;
 
-        assert(idx < memberTypeCount);
+        debug (ctfe)
+            assert(idx < memberTypeCount);
+        else
+            if (idx < memberTypeCount)
+                return -1;
 
         foreach (t; memberTypes[0 .. idx])
         {
@@ -1075,7 +1080,11 @@ extern (C++) final class BCTypeVisitor : Visitor
 
         foreach (sMember; sd.fields)
         {
-            st.addField(&_sharedCtfeState, toBCType(sMember.type));
+            if(sMember.type.ty == Tstruct && (cast(TypeStruct)sMember.type).sym == sd)
+                assert(0);
+
+            auto bcType = toBCType(sMember.type);
+            st.addField(&_sharedCtfeState, bcType);
         }
 
         sharedCtfeState.endStruct(st);
@@ -2116,6 +2125,13 @@ public:
                     return;
                 }
                 int offset = _struct.offset(fIndex);
+                if (offset == -1)
+                {
+                    debug (ctfe)
+                        assert(0, "Could not get field-offset of" ~ vd.toString);
+                    else
+                      return;
+                }
                 assert(offset != -1);
 
                 debug (ctfe)
@@ -2129,7 +2145,15 @@ public:
                     BCType(BCTypeEnum.i32));
 
                 auto lhs = genExpr(dve.e1);
-                assert(lhs.type == BCTypeEnum.Struct);
+                if (lhs.type != BCTypeEnum.Struct)
+                {
+                    bailout();
+                    debug(ctfe)
+                        assert(0, "lhs.type != Struct but: " ~ to!string(lhs.type.type) ~ " " ~ dve.e1.toString);
+                    else
+                    return ;
+                }
+
 
                 if (!(lhs.vType == BCValueType.StackValue
                         || lhs.vType == BCValueType.Parameter || lhs.vType == BCValueType.Temporary))
@@ -2819,13 +2843,22 @@ public:
             writefln("StringExp %s", se.toString);
         }
 
-        if (se.sz < 1 || se.string[se.len] != 0)
+        if (!se || se.sz > 1/* || se.string[se.len] != 0*/)
         {
             debug (ctfe)
                 assert(0, "only zero terminated char strings are supported for now");
             bailout();
             return;
             //assert(se.string[se.len] == '\0', "string should be 0-terminated");
+        }
+        if (!se.len)
+        {
+            debug(ctfe)
+            {
+                assert(0, "length-0 StringExp encontered, What do I do ?");
+            }
+            bailout();
+            return ;
         }
         auto stringAddr = _sharedCtfeState.heap.pushString(se.string, cast(uint) se.len);
         auto stringAddrValue = imm32(stringAddr.addr);
@@ -3597,7 +3630,7 @@ public:
     override void visit(CallExp ce)
     {
         bailout();
-
+        return ;
         FuncDeclaration fd;
         BCValue[] bc_args;
         bc_args.length = ce.arguments.dim;
