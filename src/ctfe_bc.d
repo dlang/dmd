@@ -2127,12 +2127,12 @@ public:
                 int offset = _struct.offset(fIndex);
                 if (offset == -1)
                 {
+                    bailout();
                     debug (ctfe)
                         assert(0, "Could not get field-offset of" ~ vd.toString);
                     else
                       return;
                 }
-                assert(offset != -1);
 
                 debug (ctfe)
                 {
