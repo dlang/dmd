@@ -989,6 +989,8 @@ extern (C++) final class BCTypeVisitor : Visitor
 
     static const(BCType) toBCType(Type t) /*pure*/
     {
+        Type topLevelAggregate;
+
         assert(t !is null);
         TypeBasic bt = t.isTypeBasic;
         if (bt)
@@ -1025,6 +1027,15 @@ extern (C++) final class BCTypeVisitor : Visitor
             }
             else if (t.ty == Tstruct)
             {
+                if(!topLevelAggregate)
+                {
+                    topLevelAggregate = t;
+                }
+                else if (topLevelAggregate == t)
+                {
+                    // struct S { S s } is illegal!
+                    assert(0, "This should never happen");
+                }
                 auto sd = (cast(TypeStruct) t).sym;
                 return BCType(BCTypeEnum.Struct, _sharedCtfeState.getStructIndex(sd));
             }
@@ -1050,7 +1061,7 @@ extern (C++) final class BCTypeVisitor : Visitor
                 //{
                 //return BCType(BCTypeEnum.Ptr, pi);
                 //}
-            else
+                else
                 {
                     uint indirectionCount = 1;
                     Type baseType = t.nextOf;
