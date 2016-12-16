@@ -774,7 +774,11 @@ private void escapeByValue(Expression e, EscapeByResults* er)
             }
             Type t1b = e.e1.type.toBasetype();
             if (t1b.ty == Tsarray)
-                escapeByRef(e.e1, er);
+            {
+                Type tb = e.type.toBasetype();
+                if (tb.ty != Tsarray)
+                    escapeByRef(e.e1, er);
+            }
             else
                 e.e1.accept(this);
         }
