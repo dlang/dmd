@@ -2802,6 +2802,7 @@ extern (C++) abstract class Expression : RootObject
      */
     Expression resolveLoc(Loc loc, Scope* sc)
     {
+        this.loc = loc;
         return this;
     }
 
