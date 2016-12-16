@@ -414,6 +414,7 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
 
 private bool checkEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 {
+    //printf("[%s] checkEscapeImpl, e = %s\n", e.loc.toChars(), e.toChars());
     EscapeByResults er;
 
     if (refs)
@@ -433,19 +434,21 @@ private bool checkEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
         Dsymbol p = v.toParent2();
 
+        if ((v.isScope() || (v.storage_class & STCmaybescope)) &&
+            !(v.storage_class & STCreturn) &&
+            v.isParameter() &&
+            sc.func.flags & FUNCFLAGreturnInprocess &&
+            p == sc.func)
+        {
+            inferReturn(sc.func, v);        // infer addition of 'return'
+            continue;
+        }
+
         if (v.isScope())
         {
             if (v.storage_class & STCreturn)
                 continue;
 
-            if (v.isParameter())
-            {
-                if (sc.func.flags & FUNCFLAGreturnInprocess && p == sc.func)
-                {
-                    inferReturn(sc.func, v);        // infer addition of 'return'
-                    continue;
-                }
-            }
             if (sc._module && sc._module.isRoot() &&
                 /* This case comes up when the ReturnStatement of a __foreachbody is
                  * checked for escapes by the caller of __foreachbody. Skip it.
