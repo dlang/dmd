@@ -55,7 +55,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\root;..\tk;..\backend;.;.;..;$(IntDir)generated;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(IntDir)generated;..\root;..\tk;..\backend;.;.;..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">DEBUG;_DEBUG;TARGET_WINDOS%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)'=='Release'">TARGET_WINDOS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebug</RuntimeLibrary>
@@ -93,7 +93,6 @@
     <ClCompile Include="..\backend\ph2.c" />
     <ClCompile Include="..\backend\util2.c" />
     <ClCompile Include="..\backend\varstats.c" />
-    <ClCompile Include="..\iasm.c" />
     <ClCompile Include="..\tk.c" />
     <ClCompile Include="..\backend\aa.c" />
     <ClCompile Include="..\backend\bcomplex.c" />
@@ -204,7 +203,6 @@ popd</Command>
     <ClInclude Include="..\intrange.h" />
     <ClInclude Include="..\irstate.h" />
     <ClInclude Include="..\json.h" />
-    <ClInclude Include="..\lib.h" />
     <ClInclude Include="..\mars.h" />
     <ClInclude Include="..\module.h" />
     <ClInclude Include="..\mtype.h" />

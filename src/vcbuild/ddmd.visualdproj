@@ -447,12 +447,14 @@
     <File path="..\backend\el.d" />
     <File path="..\backend\exh.d" />
     <File path="..\backend\global.d" />
+    <File path="..\backend\iasm.d" />
     <File path="..\backend\obj.d" />
     <File path="..\backend\oper.d" />
     <File path="..\backend\outbuf.d" />
     <File path="..\backend\rtlsym.d" />
     <File path="..\backend\ty.d" />
     <File path="..\backend\type.d" />
+    <File path="..\backend\xmm.d" />
    </Folder>
    <Folder name="root">
     <File path="..\root\aav.d" />
@@ -515,8 +517,10 @@
    <File path="..\expression.d" />
    <File path="..\func.d" />
    <File path="..\globals.d" />
+   <File path="..\glue.d" />
    <File path="..\gluelayer.d" />
    <File path="..\hdrgen.d" />
+   <File path="..\iasm.d" />
    <File path="..\identifier.d" />
    <File path="..\impcnvtab.d" />
    <File path="..\imphint.d" />
@@ -566,6 +570,5 @@
    <File path="..\visitor.d" />
    <File path="..\win32.mak" />
   </Folder>
-  <File path="..\glue.d" />
  </Folder>
 </DProject>
