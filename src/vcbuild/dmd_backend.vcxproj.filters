@@ -21,9 +21,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\iasm.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\tk.c">
       <Filter>src</Filter>
     </ClCompile>
@@ -273,9 +270,6 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\json.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\mars.h">
