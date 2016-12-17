@@ -417,9 +417,9 @@ struct BCGen
         result.maxStackUsed = sp;
         result.fn = functionId;
         {
-        // MUTEX BEGIN
-        // result.byteCode = byteCodeArray[4 .. ip];
-        // MUTEX END
+            // MUTEX BEGIN
+            // result.byteCode = byteCodeArray[4 .. ip];
+            // MUTEX END
         }
         return result;
     }
@@ -945,10 +945,8 @@ struct BCGen
         assert(result.vType == BCValueType.Unknown
             || result.vType == BCValueType.StackValue,
             "The result for this must be Empty or a StackValue");
-        assert(lhs.vType == BCValueType.StackValue,
-            "The lhs of StrEq3 a StackValue");
-        assert(rhs.vType == BCValueType.StackValue,
-            "The rhs of StrEq3 a StackValue");
+        assert(lhs.vType == BCValueType.StackValue, "The lhs of StrEq3 a StackValue");
+        assert(rhs.vType == BCValueType.StackValue, "The rhs of StrEq3 a StackValue");
 
         emitLongInst(LongInst64(LongInst.StrEq, lhs.stackAddr, rhs.stackAddr, false));
 
@@ -960,24 +958,24 @@ struct BCGen
 
     void StrCat3(BCValue result, BCValue lhs, BCValue rhs)
     {
-        assert(result.vType == BCValueType.StackValue,
-            "The result of StrCat3 a StackValue");
-        assert(result.vType == BCValueType.StackValue,
-            "The lhs of StrCat3 a StackValue");
-        assert(result.vType == BCValueType.StackValue,
-            "The rhs of StrCat3 a StackValue");
+        assert(result.vType == BCValueType.StackValue, "The result of StrCat3 a StackValue");
+        assert(result.vType == BCValueType.StackValue, "The lhs of StrCat3 a StackValue");
+        assert(result.vType == BCValueType.StackValue, "The rhs of StrCat3 a StackValue");
         auto aLength = genTemporary(i32Type);
         auto bLength = genTemporary(i32Type);
         auto cLength = genTemporary(i32Type);
         auto newString = genTemporary(i32Type);
-        Set(cLength, imm32(4));
+        Set(cLength, imm32(8));
         Load32(aLength, lhs);
         Load32(bLength, rhs);
         Add3(cLength, cLength, bLength);
         Add3(cLength, cLength, bLength);
+        Div3(cLength, cLength, imm32(4));
         Alloc(newString, cLength);
-        emitLongInst(LongInst64(LongInst.StrCat, newString.stackAddr, lhs.stackAddr, false));
-        emitLongInst(LongInst64(LongInst.StrCat, newString.stackAddr, rhs.stackAddr, false));
+        emitLongInst(LongInst64(LongInst.StrCat, newString.stackAddr, lhs.stackAddr,
+            false));
+        emitLongInst(LongInst64(LongInst.StrCat, newString.stackAddr, rhs.stackAddr,
+            false));
         Set(result, newString);
     }
 
@@ -1447,7 +1445,7 @@ else
     alias RE = void;
 }
 
-__gshared int[ushort.max*2] byteCodeCache;
+__gshared int[ushort.max * 2] byteCodeCache;
 __gshared int byteCodeCacheTop = 4;
 
 BCValue interpret(const BCGen* gen, const BCValue[] args,
@@ -1544,7 +1542,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
             }
 
         const lw = byteCode[ip];
-        const hi = byteCode[ip+1];
+        const hi = byteCode[ip + 1];
         ip += 2;
 
         // consider splitting the stackPointer in stackHigh and stackLow
@@ -1780,30 +1778,32 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                     BCValue retval = BCValue(Imm32((*rhs) & uint.max));
                     retval.vType = BCValueType.Error;
 
-                    static if (is(RetainedError)) {
-                    if (*rhs-1 < ubyte.sizeof*4) {
-                        auto err = errors[cast(uint)(*rhs - 1)];
-                        if (err.v1.vType != BCValueType.Immediate)
+                    static if (is(RetainedError))
+                    {
+                        if (*rhs - 1 < ubyte.sizeof * 4)
                         {
-                            *ev1 = BCValue(Imm32(stackP[err.v1.toUint / 4] & uint.max));
-                        }
-                        else
-                        {
-                            *ev1 = err.v1;
-                        }
+                            auto err = errors[cast(uint)(*rhs - 1)];
+                            if (err.v1.vType != BCValueType.Immediate)
+                            {
+                                *ev1 = BCValue(Imm32(stackP[err.v1.toUint / 4] & uint.max));
+                            }
+                            else
+                            {
+                                *ev1 = err.v1;
+                            }
 
-                        if (err.v2.vType != BCValueType.Immediate)
-                        {
-                            *ev2 = BCValue(Imm32(stackP[err.v2.toUint / 4] & uint.max));
-                        }
-                        else
-                        {
-                            *ev2 = err.v2;
-                        }
+                            if (err.v2.vType != BCValueType.Immediate)
+                            {
+                                *ev2 = BCValue(Imm32(stackP[err.v2.toUint / 4] & uint.max));
+                            }
+                            else
+                            {
+                                *ev2 = err.v2;
+                            }
                         }
                     }
                     return retval;
-                    
+
                 }
             }
             break;
@@ -1813,25 +1813,27 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                 {
                     BCValue retval = BCValue(Imm32((*rhs) & uint.max));
                     retval.vType = BCValueType.Error;
-                    static if (is(RetainedError)) {
-                        if (*rhs-1 < ubyte.sizeof*4) {
-                        auto err = errors[cast(uint)(*rhs - 1)];
-                        if (err.v1.vType != BCValueType.Immediate)
+                    static if (is(RetainedError))
+                    {
+                        if (*rhs - 1 < ubyte.sizeof * 4)
                         {
-                            *ev1 = BCValue(Imm32(stackP[err.v1.toUint / 4] & uint.max));
-                        }
-                        else
-                        {
-                            *ev1 = err.v1;
-                        }
+                            auto err = errors[cast(uint)(*rhs - 1)];
+                            if (err.v1.vType != BCValueType.Immediate)
+                            {
+                                *ev1 = BCValue(Imm32(stackP[err.v1.toUint / 4] & uint.max));
+                            }
+                            else
+                            {
+                                *ev1 = err.v1;
+                            }
 
-                        if (err.v2.vType != BCValueType.Immediate)
-                        {
-                            *ev2 = BCValue(Imm32(stackP[err.v2.toUint / 4] & uint.max));
-                        }
-                        else
-                        {
-                            *ev2 = err.v2;
+                            if (err.v2.vType != BCValueType.Immediate)
+                            {
+                                *ev2 = BCValue(Imm32(stackP[err.v2.toUint / 4] & uint.max));
+                            }
+                            else
+                            {
+                                *ev2 = err.v2;
                             }
                         }
                     }
@@ -2148,7 +2150,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                     if (lhsLength == rhsLength)
                     {
                         cond = true;
-                        foreach(i;0 .. align4(lhsLength)/4)
+                        foreach (i; 0 .. align4(lhsLength) / 4)
                         {
                             if (heapPtr._heap[_lhs + i] != heapPtr._heap[_rhs + i])
                             {
@@ -2168,10 +2170,41 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
 
                 assert(_lhs && _rhs, "trying to deref nullPointers");
                 assert(_lhs != _rhs);
-                auto lhsLength = heapPtr._heap[_lhs++];
+                auto result = &heapPtr._heap[0] + _lhs;
+                auto b = &heapPtr._heap[0] + _rhs;
+                uint bi = 1;
+                auto lhsLength = heapPtr._heap[_lhs];
                 auto rhsLength = heapPtr._heap[_rhs++];
                 auto cLength = lhsLength + rhsLength;
-                assert(0, "Currently not implemented");
+                heapPtr._heap[_lhs++] = cLength;
+                auto bDollar = (align4(rhsLength) / 4);
+                auto resultPosition = (align4(lhsLength) / 4) + 1;
+                auto end = resultPosition + bDollar;
+                auto offset = lhsLength & 3;
+
+                if (offset)
+                {
+                    auto OffsetTimesEight = offset * 8;
+                    auto FourMinusOffsetTimesEight = (4 - offset) * 8;
+                    auto FirstAnd = (1 << FourMinusOffsetTimesEight) - 1;
+                    auto SecondAnd = (~FirstAnd) & uint.max;
+
+                    resultPosition--;
+                    for (uint cb = b[bi]; bi != bDollar; bi++)
+                    {
+                        result[resultPosition++] |= (cb & FirstAnd) << OffsetTimesEight;
+                        if (resultPosition == end)
+                            break;
+                        result[resultPosition] |= (cb & SecondAnd) >> FourMinusOffsetTimesEight;
+                    }
+                }
+                else
+                {
+                    for (uint cb = b[bi]; bi != bDollar; bi++)
+                    {
+                        result[resultPosition++] = cb;
+                    }
+                }
             }
             break;
 
