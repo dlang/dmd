@@ -3568,6 +3568,7 @@ public:
                         lastContinue) : endJmp(jmp.at, block.end);
 
                 // write the last one into here and decrease the count
+                // FIXME PERFORMANCE this copies a large struct everytime revise!
                 unresolvedGotos[i] = unresolvedGotos[unresolvedGotoCount--];
                 break;
             }
@@ -3677,6 +3678,7 @@ public:
             uint fnIdx = _sharedCtfeState.getFunctionIndex(f);
             if (!fnIdx && f && cacheBC)
             {
+                // FIXME deferring can only be done if we are NOT in a closure
                 // if we get here the function was not already there.
                 // allocate the next free function index, take note of the function
                 // and move on as if we had compiled it :)
