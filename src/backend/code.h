@@ -739,6 +739,8 @@ struct CodeBuilder
     void genadjesp(int offset);
     void genadjfpu(int offset);
     void gennop();
+    void genfltreg(unsigned opcode,unsigned reg,targ_size_t offset);
+    void genxmmreg(unsigned opcode,unsigned xreg,targ_size_t offset, tym_t tym);
 
     /*****************
      * Returns:

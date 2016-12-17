@@ -667,6 +667,47 @@ void CodeBuilder::gennop()
 }
 
 
+/**************************
+ * Generate code to deal with floatreg.
+ */
+
+code *genfltreg(code *c,unsigned opcode,unsigned reg,targ_size_t offset)
+{
+    floatreg = TRUE;
+    reflocal = TRUE;
+    if ((opcode & ~7) == 0xD8)
+        c = genfwait(c);
+    return genc1(c,opcode,modregxrm(2,reg,BPRM),FLfltreg,offset);
+}
+
+void CodeBuilder::genfltreg(unsigned opcode,unsigned reg,targ_size_t offset)
+{
+    floatreg = TRUE;
+    reflocal = TRUE;
+    if ((opcode & ~7) == 0xD8)
+        append(genfwait(CNIL));
+    genc1(opcode,modregxrm(2,reg,BPRM),FLfltreg,offset);
+}
+
+code *genxmmreg(code *c,unsigned opcode,unsigned xreg,targ_size_t offset, tym_t tym)
+{
+    assert(xreg >= XMM0);
+    floatreg = TRUE;
+    reflocal = TRUE;
+    code *c1 = genc1(CNIL,opcode,modregxrm(2,xreg - XMM0,BPRM),FLfltreg,offset);
+    checkSetVex(c1, tym);
+    return cat(c, c1);
+}
+
+void CodeBuilder::genxmmreg(unsigned opcode,unsigned xreg,targ_size_t offset, tym_t tym)
+{
+    assert(xreg >= XMM0);
+    floatreg = TRUE;
+    reflocal = TRUE;
+    genc1(opcode,modregxrm(2,xreg - XMM0,BPRM),FLfltreg,offset);
+    checkSetVex(last(), tym);
+}
+
 /****************************************
  * Clean stack after call to codelem().
  */

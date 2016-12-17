@@ -545,29 +545,6 @@ code *comsub87(elem *e,regm_t *pretregs)
 }
 
 
-/**************************
- * Generate code to deal with floatreg.
- */
-
-code * genfltreg(code *c,unsigned opcode,unsigned reg,targ_size_t offset)
-{
-        floatreg = TRUE;
-        reflocal = TRUE;
-        if ((opcode & ~7) == 0xD8)
-            c = genfwait(c);
-        return genc1(c,opcode,modregxrm(2,reg,BPRM),FLfltreg,offset);
-}
-
-code * genxmmreg(code *c,unsigned opcode,unsigned xreg,targ_size_t offset, tym_t tym)
-{
-        assert(xreg >= XMM0);
-        floatreg = TRUE;
-        reflocal = TRUE;
-        code *c1 = genc1(CNIL,opcode,modregxrm(2,xreg - XMM0,BPRM),FLfltreg,offset);
-        checkSetVex(c1, tym);
-        return cat(c, c1);
-}
-
 /*******************************
  * Decide if we need to gen an FWAIT.
  */
@@ -867,7 +844,7 @@ code *fixresult87(elem *e,regm_t retregs,regm_t *pretregs)
             if (sz == REGSIZE || (I64 && sz == 4))
             {
                 unsigned reg = findreg(retregs);
-                c2 = genfltreg(c2,0x89,reg,0);          // MOV fltreg,reg
+                c2 = genfltreg(c2,STO,reg,0);           // MOV fltreg,reg
                 genfltreg(c2,0xD9,0,0);                 // FLD float ptr fltreg
             }
             else
@@ -875,8 +852,8 @@ code *fixresult87(elem *e,regm_t retregs,regm_t *pretregs)
 
                 msreg = findregmsw(retregs);
                 lsreg = findreglsw(retregs);
-                c2 = genfltreg(c2,0x89,lsreg,0);        // MOV fltreg,lsreg
-                genfltreg(c2,0x89,msreg,4);             // MOV fltreg+4,msreg
+                c2 = genfltreg(c2,STO,lsreg,0);         // MOV fltreg,lsreg
+                genfltreg(c2,STO,msreg,4);              // MOV fltreg+4,msreg
                 genfltreg(c2,0xDD,0,0);                 // FLD double ptr fltreg
             }
         }
@@ -907,27 +884,27 @@ code *fixresult87(elem *e,regm_t retregs,regm_t *pretregs)
         if (sz == FLOATSIZE)
         {
             if (!I16)
-                c2 = genfltreg(c2,0x8B,reg,0);
+                c2 = genfltreg(c2,LOD,reg,0);
             else
-            {   c2 = genfltreg(c2,0x8B,reg,REGSIZE);
-                genfltreg(c2,0x8B,findreglsw(*pretregs),0);
+            {   c2 = genfltreg(c2,LOD,reg,REGSIZE);
+                genfltreg(c2,LOD,findreglsw(*pretregs),0);
             }
         }
         else
         {   assert(sz == DOUBLESIZE);
             if (I16)
-            {   c2 = genfltreg(c2,0x8B,AX,6);
-                genfltreg(c2,0x8B,BX,4);
-                genfltreg(c2,0x8B,CX,2);
-                genfltreg(c2,0x8B,DX,0);
+            {   c2 = genfltreg(c2,LOD,AX,6);
+                genfltreg(c2,LOD,BX,4);
+                genfltreg(c2,LOD,CX,2);
+                genfltreg(c2,LOD,DX,0);
             }
             else if (I32)
-            {   c2 = genfltreg(c2,0x8B,reg,REGSIZE);
-                genfltreg(c2,0x8B,findreglsw(*pretregs),0);
+            {   c2 = genfltreg(c2,LOD,reg,REGSIZE);
+                genfltreg(c2,LOD,findreglsw(*pretregs),0);
             }
             else // I64
             {
-                c2 = genfltreg(c2,0x8B,reg,0);
+                c2 = genfltreg(c2,LOD,reg,0);
                 code_orrex(c2, REX_W);
             }
         }
@@ -1800,7 +1777,7 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                     retregs = ALLREGS;
                     c = codelem(e->E1,&retregs,FALSE);
                     reg = findreg(retregs);
-                    c = genfltreg(c,0x89,reg,0);        // MOV floatreg,reg
+                    c = genfltreg(c,STO,reg,0);         // MOV floatreg,reg
                     code_orrex(c, REX_W);
                     c = cat(c,push87());
                     c = genfltreg(c,0xDF,5,0);          // FILD long long ptr floatreg
@@ -1810,9 +1787,9 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                     retregs = ALLREGS;
                     c = codelem(e->E1,&retregs,FALSE);
                     reg = findreglsw(retregs);
-                    c = genfltreg(c,0x89,reg,0);        // MOV floatreg,reglsw
+                    c = genfltreg(c,STO,reg,0);         // MOV floatreg,reglsw
                     reg = findregmsw(retregs);
-                    c = genfltreg(c,0x89,reg,4);        // MOV floatreg+4,regmsw
+                    c = genfltreg(c,STO,reg,4);         // MOV floatreg+4,regmsw
                     c = cat(c,push87());
                     c = genfltreg(c,0xDF,5,0);          // FILD long long ptr floatreg
                 }
@@ -1874,11 +1851,11 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                     {
                         /* MOV floatreg+2,reg   */
                         reg = findregmsw(retregs);
-                        c = genfltreg(c,0x89,reg,REGSIZE);
+                        c = genfltreg(c,STO,reg,REGSIZE);
                         retregs &= mLSW;
                     }
                     reg = findreg(retregs);
-                    c = genfltreg(c,0x89,reg,0);        /* MOV floatreg,reg */
+                    c = genfltreg(c,STO,reg,0);         // MOV floatreg,reg
                     if (op != -1)
                     {   c = cat(c,makesure87(eleft,eoffset,0,0));
                         genfltreg(c,ESC(mf1,0),op,0);   /* Fop floatreg */
@@ -2993,7 +2970,7 @@ code *cdd_u64(elem *e, regm_t *pretregs)
         code *cf1 = genfltreg(CNIL,0xC7,0,0);
         cf1->IFL2 = FLconst;
         cf1->IEV2.Vint = 0;                             // MOV floatreg+0,0
-        genfltreg(cf1,0x89,reg2,4);                     // MOV floatreg+4,EDX
+        genfltreg(cf1,STO,reg2,4);                      // MOV floatreg+4,EDX
         code *cf3 = genfltreg(CNIL,0xC7,0,8);
         cf3->IFL2 = FLconst;
         cf3->IEV2.Vint = 0xFBF403E;                     // MOV floatreg+8,(roundTo0<<16)|adjust
@@ -3012,15 +2989,15 @@ code *cdd_u64(elem *e, regm_t *pretregs)
         genfltreg(cf4,0xDB,5,0);                        // FLD real ptr floatreg
         genf2(cf4,0xDE,0xE8+1);                         // FSUBP ST(1),ST
         genfltreg(cf4,0xDF,7,0);                        // FISTP dword ptr floatreg
-        genfltreg(cf4,0x8B,reg,0);                      // MOV reg,floatreg
+        genfltreg(cf4,LOD,reg,0);                       // MOV reg,floatreg
         genfltreg(cf4,0x03,reg2,4);                     // ADD reg,floatreg+4
         genfltreg(cf4,0xD9,5,12);                       // FLDCW floatreg+12
         code *cnop2 = gennop(CNIL);
         genjmp(cf4,JMP,FLcode,(block *)cnop2);          // JMP L2
 
         genfltreg(cnop1,0xDF,7,0);                      // FISTP dword ptr floatreg
-        genfltreg(cnop1,0x8B,reg,0);                    // MOV reg,floatreg
-        genfltreg(cnop1,0x8B,reg2,4);                   // MOV reg,floatreg+4
+        genfltreg(cnop1,LOD,reg,0);                     // MOV reg,floatreg
+        genfltreg(cnop1,LOD,reg2,4);                    // MOV reg,floatreg+4
         genfltreg(cnop1,0xD9,5,12);                     // FLDCW floatreg+12
 
         pop87();
@@ -3074,7 +3051,7 @@ code *cdd_u64(elem *e, regm_t *pretregs)
         code *cf1 = genfltreg(CNIL,0xC7,0,0);
         cf1->IFL2 = FLconst;
         cf1->IEV2.Vint = 0;                             // MOV floatreg+0,0
-        genfltreg(cf1,0x89,reg2,4);                     // MOV floatreg+4,EDX
+        genfltreg(cf1,STO,reg2,4);                      // MOV floatreg+4,EDX
         code *cf3 = genfltreg(CNIL,0xC7,0,8);
         cf3->IFL2 = FLconst;
         cf3->IEV2.Vint = 0xFBF403E;                     // MOV floatreg+8,(roundTo0<<16)|adjust
@@ -3093,7 +3070,7 @@ code *cdd_u64(elem *e, regm_t *pretregs)
         genfltreg(cf4,0xDB,5,0);                        // FLD real ptr floatreg
         genf2(cf4,0xDE,0xE8+1);                         // FSUBP ST(1),ST
         genfltreg(cf4,0xDF,7,0);                        // FISTP dword ptr floatreg
-        genfltreg(cf4,0x8B,reg,0);                      // MOV reg,floatreg
+        genfltreg(cf4,LOD,reg,0);                       // MOV reg,floatreg
         code_orrex(cf4, REX_W);
         genc2(cf4,0xC1,(REX_W << 16) | modregrmx(3,4,reg2),32); // SHL reg2,32
         gen2(cf4,0x03,(REX_W << 16) | modregxrmx(3,reg,reg2));  // ADD reg,reg2
@@ -3102,7 +3079,7 @@ code *cdd_u64(elem *e, regm_t *pretregs)
         genjmp(cf4,JMP,FLcode,(block *)cnop2);          // JMP L2
 
         genfltreg(cnop1,0xDF,7,0);                      // FISTP dword ptr floatreg
-        genfltreg(cnop1,0x8B,reg,0);                    // MOV reg,floatreg
+        genfltreg(cnop1,LOD,reg,0);                     // MOV reg,floatreg
         code_orrex(cnop1, REX_W);
         genfltreg(cnop1,0xD9,5,12);                     // FLDCW floatreg+12
 
@@ -3149,7 +3126,7 @@ code *cdd_u32(elem *e, regm_t *pretregs)
 
     genfltreg(cf3,0xDF,7,0);                     // FISTP dword ptr floatreg
     genfltreg(cf3,0xD9,5,12);                    // FLDCW floatreg+12
-    genfltreg(cf3,0x8B,reg,0);                   // MOV reg,floatreg
+    genfltreg(cf3,LOD,reg,0);                    // MOV reg,floatreg
 
     pop87();
     c = cat4(c,c2,cf3,fixresult(e,retregs,pretregs));
@@ -3301,12 +3278,12 @@ code *cnvt87(elem *e,regm_t *pretregs)
             c2 = genfwait(c2);
 
             if (sz > REGSIZE)
-            {   c2 = genfltreg(c2,0x8B,reg,REGSIZE);    // MOV reg,floatreg + REGSIZE
+            {   c2 = genfltreg(c2,LOD,reg,REGSIZE);     // MOV reg,floatreg + REGSIZE
                                                         // MOV lsreg,floatreg
-                genfltreg(c2,0x8B,findreglsw(retregs),0);
+                genfltreg(c2,LOD,findreglsw(retregs),0);
             }
             else
-                c2 = genfltreg(c2,0x8B,reg,0);  // MOV reg,floatreg
+                c2 = genfltreg(c2,LOD,reg,0);   // MOV reg,floatreg
             c2 = genrnd(c2, CW_roundtonearest); // FLDCW roundtonearest
             c2 = cat(c2,fixresult(e,retregs,pretregs));
         }
@@ -3358,13 +3335,13 @@ code *cdrndtol(elem *e,regm_t *pretregs)
         c2 = allocreg(&retregs,&reg,tym);
         c2 = genfwait(c2);                      // FWAIT
         if (tysize(tym) > REGSIZE)
-        {   c2 = genfltreg(c2,0x8B,reg,REGSIZE);        // MOV reg,floatreg + REGSIZE
+        {   c2 = genfltreg(c2,LOD,reg,REGSIZE);         // MOV reg,floatreg + REGSIZE
                                                         // MOV lsreg,floatreg
-            genfltreg(c2,0x8B,findreglsw(retregs),0);
+            genfltreg(c2,LOD,findreglsw(retregs),0);
         }
         else
         {
-            c2 = genfltreg(c2,0x8B,reg,0);      // MOV reg,floatreg
+            c2 = genfltreg(c2,LOD,reg,0);       // MOV reg,floatreg
             if (tysize(tym) == 8 && I64)
                 code_orrex(c2, REX_W);
         }
@@ -3555,11 +3532,9 @@ STATIC code *genrnd(code *c, short cw)
  * Set the PSW based on the state of ST01.
  * Input:
  *      pop     if stack should be popped after test
- * Returns:
- *      start of code appended to c.
  */
 
-STATIC code * genctst(code *c,elem *e,int pop)
+static void genctst(CodeBuilder& cdb,elem *e,int pop)
 #if __DMC__
 __in
 {
@@ -3606,48 +3581,48 @@ __body
     // FUCOMP doesn't raise exceptions on QNANs, unlike FTST
 
     code *cnop = gennop(CNIL);
-    c = cat(c,push87());
-    c = gen2(c,0xD9,0xEE);              // FLDZ
+    cdb.append(push87());
+    cdb.gen2(0xD9,0xEE);                       // FLDZ
     if (NOSAHF)
     {
-        gen2(c,0xDF,0xE9);              // FUCOMIP
+        cdb.gen2(0xDF,0xE9);                   // FUCOMIP
         pop87();
-        genjmp(c,JNE,FLcode,(block *) cnop); // JNE     L1
-        genjmp(c,JP, FLcode,(block *) cnop); // JP      L1
-        gen2(c,0xD9,0xEE);                   // FLDZ
-        gen2(c,0xDF,0xEA);                   // FUCOMIP ST(2)
+        cdb.append(genjmp(CNIL,JNE,FLcode,(block *) cnop)); // JNE     L1
+        cdb.append(genjmp(CNIL,JP, FLcode,(block *) cnop)); // JP      L1
+        cdb.gen2(0xD9,0xEE);                   // FLDZ
+        cdb.gen2(0xDF,0xEA);                   // FUCOMIP ST(2)
         if (pop)
         {
-            genf2(cnop,0xDD,modregrm(3,3,0));   // FPOP
-            genf2(cnop,0xDD,modregrm(3,3,0));   // FPOP
+            genf2(cnop,0xDD,modregrm(3,3,0));  // FPOP
+            genf2(cnop,0xDD,modregrm(3,3,0));  // FPOP
             pop87();
             pop87();
         }
     }
     else if (pop)
     {
-        gen2(c,0xDA,0xE9);              // FUCOMPP
+        cdb.gen2(0xDA,0xE9);                   // FUCOMPP
         pop87();
         pop87();
-        cg87_87topsw(c);                // put 8087 flags in CPU flags
-        gen2(c,0xD9,0xEE);              // FLDZ
-        gen2(c,0xDA,0xE9);              // FUCOMPP
+        cdb.append(cg87_87topsw(CNIL));        // put 8087 flags in CPU flags
+        cdb.gen2(0xD9,0xEE);                   // FLDZ
+        cdb.gen2(0xDA,0xE9);                   // FUCOMPP
         pop87();
-        genjmp(c,JNE,FLcode,(block *) cnop); // JNE     L1
-        genjmp(c,JP, FLcode,(block *) cnop); // JP      L1
-        cg87_87topsw(c);                // put 8087 flags in CPU flags
+        cdb.append(genjmp(CNIL,JNE,FLcode,(block *) cnop)); // JNE     L1
+        cdb.append(genjmp(CNIL,JP, FLcode,(block *) cnop)); // JP      L1
+        cdb.append(cg87_87topsw(CNIL));        // put 8087 flags in CPU flags
     }
     else
     {
-        gen2(c,0xDD,0xE1);              // FUCOM
-        cg87_87topsw(c);                // put 8087 flags in CPU flags
-        gen2(c,0xDD,0xEA);              // FUCOMP ST(2)
+        cdb.gen2(0xDD,0xE1);                   // FUCOM
+        cdb.append(cg87_87topsw(CNIL));        // put 8087 flags in CPU flags
+        cdb.gen2(0xDD,0xEA);                   // FUCOMP ST(2)
         pop87();
-        genjmp(c,JNE,FLcode,(block *) cnop); // JNE     L1
-        genjmp(c,JP, FLcode,(block *) cnop); // JP      L1
-        cg87_87topsw(c);                // put 8087 flags in CPU flags
+        cdb.append(genjmp(CNIL,JNE,FLcode,(block *) cnop)); // JNE     L1
+        cdb.append(genjmp(CNIL,JP, FLcode,(block *) cnop)); // JP      L1
+        cdb.append(cg87_87topsw(CNIL));        // put 8087 flags in CPU flags
     }
-    return cat(c, cnop);
+    cdb.append(cnop);
 }
 
 /******************************
@@ -3658,54 +3633,49 @@ __body
 
 code *fixresult_complex87(elem *e,regm_t retregs,regm_t *pretregs)
 {
-    tym_t tym;
-    code *c1,*c2;
-    unsigned sz;
-
 #if 0
     printf("fixresult_complex87(e = %p, retregs = %s, *pretregs = %s)\n",
         e,regm_str(retregs),regm_str(*pretregs));
 #endif
     assert(!*pretregs || retregs);
-    c1 = CNIL;
-    c2 = CNIL;
-    tym = tybasic(e->Ety);
-    sz = _tysize[tym];
+    tym_t tym = tybasic(e->Ety);
+    unsigned sz = _tysize[tym];
+    CodeBuilder cdb;
 
     if (*pretregs == 0 && retregs == mST01)
     {
-        c1 = genf2(c1,0xDD,modregrm(3,3,0));    // FPOP
+        cdb.genf2(0xDD,modregrm(3,3,0));        // FPOP
         pop87();
-        c1 = genf2(c1,0xDD,modregrm(3,3,0));    // FPOP
+        cdb.genf2(0xDD,modregrm(3,3,0));        // FPOP
         pop87();
     }
     else if (tym == TYcfloat && *pretregs & (mAX|mDX) && retregs & mST01)
     {
         if (*pretregs & mPSW && !(retregs & mPSW))
-            c1 = genctst(c1,e,0);               // FTST
+            genctst(cdb,e,0);                   // FTST
         pop87();
-        c1 = genfltreg(c1, ESC(MFfloat,1),3,0); // FSTP floatreg
-        genfwait(c1);
-        c2 = getregs(mDX|mAX);
-        c2 = genfltreg(c2, 0x8B, DX, 0);        // MOV EDX,floatreg
+        cdb.genfltreg(ESC(MFfloat,1),3,0);      // FSTP floatreg
+        cdb.append(genfwait(CNIL));
+        cdb.append(getregs(mDX|mAX));
+        cdb.genfltreg(LOD, DX, 0);              // MOV EDX,floatreg
 
         pop87();
-        c2 = genfltreg(c2, ESC(MFfloat,1),3,0); // FSTP floatreg
-        genfwait(c2);
-        c2 = genfltreg(c2, 0x8B, AX, 0);        // MOV EAX,floatreg
+        cdb.genfltreg(ESC(MFfloat,1),3,0);      // FSTP floatreg
+        cdb.append(genfwait(CNIL));
+        cdb.genfltreg(LOD, AX, 0);              // MOV EAX,floatreg
     }
     else if (tym == TYcfloat && retregs & (mAX|mDX) && *pretregs & mST01)
     {
-        c1 = push87();
-        c1 = genfltreg(c1, 0x89, AX, 0);        // MOV floatreg, EAX
-        genfltreg(c1, 0xD9, 0, 0);              // FLD float ptr floatreg
+        cdb.append(push87());
+        cdb.genfltreg(STO, AX, 0);              // MOV floatreg, EAX
+        cdb.genfltreg(0xD9, 0, 0);              // FLD float ptr floatreg
 
-        c2 = push87();
-        c2 = genfltreg(c2, 0x89, DX, 0);        // MOV floatreg, EDX
-        genfltreg(c2, 0xD9, 0, 0);              // FLD float ptr floatreg
+        cdb.append(push87());
+        cdb.genfltreg(STO, DX, 0);              // MOV floatreg, EDX
+        cdb.genfltreg(0xD9, 0, 0);              // FLD float ptr floatreg
 
         if (*pretregs & mPSW)
-            c2 = genctst(c2,e,0);               // FTST
+            genctst(cdb,e,0);                   // FTST
     }
     else if ((tym == TYcfloat || tym == TYcdouble) &&
              *pretregs & (mXMM0|mXMM1) && retregs & mST01)
@@ -3714,17 +3684,17 @@ code *fixresult_complex87(elem *e,regm_t retregs,regm_t *pretregs)
         unsigned xop = xmmload(tyf);
         unsigned mf = tyf == TYfloat ? MFfloat : MFdouble;
         if (*pretregs & mPSW && !(retregs & mPSW))
-            c1 = genctst(c1,e,0);               // FTST
+            genctst(cdb,e,0);                   // FTST
         pop87();
-        c1 = genfltreg(c1, ESC(mf,1),3,0);      // FSTP floatreg
-        genfwait(c1);
-        c2 = getregs(mXMM0|mXMM1);
-        c2 = genxmmreg(c2,xop,XMM1,0,tyf);
+        cdb.genfltreg(ESC(mf,1),3,0);           // FSTP floatreg
+        cdb.append(genfwait(CNIL));
+        cdb.append(getregs(mXMM0|mXMM1));
+        cdb.genxmmreg(xop,XMM1,0,tyf);
 
         pop87();
-        c2 = genfltreg(c2, ESC(mf,1),3,0);       // FSTP floatreg
-        genfwait(c2);
-        c2 = genxmmreg(c2, xop, XMM0, 0, tyf);   // MOVD XMM0,floatreg
+        cdb.genfltreg(ESC(mf,1),3,0);           // FSTP floatreg
+        cdb.append(genfwait(CNIL));
+        cdb.genxmmreg(xop, XMM0, 0, tyf);       // MOVD XMM0,floatreg
     }
     else if ((tym == TYcfloat || tym == TYcdouble) &&
              retregs & (mXMM0|mXMM1) && *pretregs & mST01)
@@ -3732,24 +3702,23 @@ code *fixresult_complex87(elem *e,regm_t retregs,regm_t *pretregs)
         tym_t tyf = tym == TYcfloat ? TYfloat : TYdouble;
         unsigned xop = xmmstore(tyf);
         unsigned fop = tym == TYcfloat ? 0xD9 : 0xDD;
-        c1 = push87();
-        code *c3 = genfltreg(CNIL, xop, XMM0-XMM0, 0);  // STOS(SD) floatreg, XMM0
-        checkSetVex(c3,tyf);
-        c1 = cat(c1, c3);
-        genfltreg(c1, fop, 0, 0);               // FLD double ptr floatreg
+        cdb.append(push87());
+        cdb.genfltreg(xop, XMM0-XMM0, 0);       // STOS(SD) floatreg, XMM0
+        checkSetVex(cdb.last(),tyf);
+        cdb.genfltreg(fop, 0, 0);               // FLD double ptr floatreg
 
-        c2 = push87();
-        c2 = genxmmreg(c2, xop, XMM1, 0, tyf);  // MOV floatreg, XMM1
-        genfltreg(c2, fop, 0, 0);               // FLD double ptr floatreg
+        cdb.append(push87());
+        cdb.genxmmreg(xop, XMM1, 0, tyf);       // MOV floatreg, XMM1
+        cdb.genfltreg(fop, 0, 0);               // FLD double ptr floatreg
 
         if (*pretregs & mPSW)
-            c2 = genctst(c2,e,0);               // FTST
+            genctst(cdb,e,0);                   // FTST
     }
     else
     {   if (*pretregs & mPSW)
         {   if (!(retregs & mPSW))
             {   assert(retregs & mST01);
-                c1 = genctst(c1,e,!(*pretregs & mST01));        // FTST
+                genctst(cdb,e,!(*pretregs & mST01));        // FTST
             }
         }
         assert(!(*pretregs & mST01) || (retregs & mST01));
@@ -3758,7 +3727,7 @@ code *fixresult_complex87(elem *e,regm_t retregs,regm_t *pretregs)
     {   note87(e,0,1);
         note87(e,sz/2,0);
     }
-    return cat(c1,c2);
+    return cdb.finish();
 }
 
 /*****************************************
@@ -3767,20 +3736,18 @@ code *fixresult_complex87(elem *e,regm_t retregs,regm_t *pretregs)
 
 code *cdconvt87(elem *e, regm_t *pretregs)
 {
-    regm_t retregs;
-    code *c;
-
-    retregs = mST01;
-    c = codelem(e->E1, &retregs, FALSE);
+    regm_t retregs = mST01;
+    CodeBuilder cdb;
+    cdb.append(codelem(e->E1, &retregs, FALSE));
     switch (e->Eoper)
     {
         case OPc_r:
-            c = genf2(c,0xDD,0xD8 + 0); // FPOP
+            cdb.genf2(0xDD,0xD8 + 0); // FPOP
             pop87();
             break;
 
         case OPc_i:
-            c = genf2(c,0xDD,0xD8 + 1); // FSTP ST(1)
+            cdb.genf2(0xDD,0xD8 + 1); // FSTP ST(1)
             pop87();
             break;
 
@@ -3788,8 +3755,8 @@ code *cdconvt87(elem *e, regm_t *pretregs)
             assert(0);
     }
     retregs = mST0;
-    c = cat(c, fixresult87(e, retregs, pretregs));
-    return c;
+    cdb.append(fixresult87(e, retregs, pretregs));
+    return cdb.finish();
 }
 
 /**************************************
