@@ -526,9 +526,9 @@ struct BCStruct
             return -1;
 
         debug (ctfe)
-            assert(idx < memberTypeCount);
+            assert(idx <= memberTypeCount);
         else
-            if (idx < memberTypeCount)
+            if (idx > memberTypeCount)
                 return -1;
 
         foreach (t; memberTypes[0 .. idx])
