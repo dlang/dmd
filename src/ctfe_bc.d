@@ -3558,7 +3558,7 @@ public:
 
         labeledBlocks[cast(void*) ls.ident] = block;
 
-        foreach (i, const ref unresolvedGoto; unresolvedGotos[0 .. unresolvedGotoCount])
+        foreach (i, ref unresolvedGoto; unresolvedGotos[0 .. unresolvedGotoCount])
         {
             if (unresolvedGoto.ident == cast(void*) ls.ident)
             {
@@ -3568,8 +3568,13 @@ public:
                         lastContinue) : endJmp(jmp.at, block.end);
 
                 // write the last one into here and decrease the count
-                // FIXME PERFORMANCE this copies a large struct everytime revise!
-                unresolvedGotos[i] = unresolvedGotos[unresolvedGotoCount--];
+                auto lastGoto = &unresolvedGotos[--unresolvedGotoCount];
+                foreach(j;0 .. lastGoto.jumpCount)
+                {
+                    unresolvedGoto.jumps[j] = lastGoto.jumps[j];
+                }
+                unresolvedGoto.jumpCount = lastGoto.jumpCount;
+
                 break;
             }
         }
