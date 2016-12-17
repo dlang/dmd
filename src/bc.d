@@ -95,6 +95,7 @@ enum LongInst : ushort
     Mod,
 
     StrEq,
+    StrCat,
     Assert,
     AssertCnd,
 
@@ -944,13 +945,40 @@ struct BCGen
         assert(result.vType == BCValueType.Unknown
             || result.vType == BCValueType.StackValue,
             "The result for this must be Empty or a StackValue");
-        //assert(lhs.vType ==)
+        assert(lhs.vType == BCValueType.StackValue,
+            "The lhs of StrEq3 a StackValue");
+        assert(rhs.vType == BCValueType.StackValue,
+            "The rhs of StrEq3 a StackValue");
+
         emitLongInst(LongInst64(LongInst.StrEq, lhs.stackAddr, rhs.stackAddr, false));
 
         if (result.vType == BCValueType.StackValue)
         {
             emitFlg(result);
         }
+    }
+
+    void StrCat3(BCValue result, BCValue lhs, BCValue rhs)
+    {
+        assert(result.vType == BCValueType.StackValue,
+            "The result of StrCat3 a StackValue");
+        assert(result.vType == BCValueType.StackValue,
+            "The lhs of StrCat3 a StackValue");
+        assert(result.vType == BCValueType.StackValue,
+            "The rhs of StrCat3 a StackValue");
+        auto aLength = genTemporary(i32Type);
+        auto bLength = genTemporary(i32Type);
+        auto cLength = genTemporary(i32Type);
+        auto newString = genTemporary(i32Type);
+        Set(cLength, imm32(4));
+        Load32(aLength, lhs);
+        Load32(bLength, rhs);
+        Add3(cLength, cLength, bLength);
+        Add3(cLength, cLength, bLength);
+        Alloc(newString, cLength);
+        emitLongInst(LongInst64(LongInst.StrCat, newString.stackAddr, lhs.stackAddr, false));
+        emitLongInst(LongInst64(LongInst.StrCat, newString.stackAddr, rhs.stackAddr, false));
+        Set(result, newString);
     }
 
     void LoadIndexed(BCValue result, BCValue array, BCValue idx, BCValue arrayLength)
@@ -1247,6 +1275,11 @@ string printInstructions(const int* startInstructions, uint length) pure
         case LongInst.StrEq:
             {
                 result ~= "StrEq SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+        case LongInst.StrCat:
+            {
+                result ~= "StrCat SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
             break;
         case LongInst.Eq:
@@ -2125,6 +2158,20 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                         }
                     }
                 }
+            }
+            break;
+
+        case LongInst.StrCat:
+            {
+                auto _lhs = *lhsRef;
+                auto _rhs = *rhs;
+
+                assert(_lhs && _rhs, "trying to deref nullPointers");
+                assert(_lhs != _rhs);
+                auto lhsLength = heapPtr._heap[_lhs++];
+                auto rhsLength = heapPtr._heap[_rhs++];
+                auto cLength = lhsLength + rhsLength;
+                assert(0, "Currently not implemented");
             }
             break;
 

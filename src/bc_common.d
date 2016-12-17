@@ -243,9 +243,9 @@ struct Imm32
 }
 
 
-BCValue imm32(uint value) pure
+BCValue imm32(uint value) pure @safe
 {
-  return BCValue(Imm32(value));
+    return BCValue(Imm32(value));
 }
 
 struct Imm64

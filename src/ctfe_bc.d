@@ -3254,22 +3254,26 @@ public:
             }
             else
             {
-                if (rhs.type.type == BCTypeEnum.Char || lhs.type.type == BCTypeEnum.Char)
+                if (lhs.type.type == BCTypeEnum.Char && rhs.type.type == BCTypeEnum.Char)
                 {
                     Set(lhs.i32, rhs.i32);
                 }
-                else if (rhs.type.type == BCTypeEnum.String || lhs.type.type == BCTypeEnum.String)
+                else if (lhs.type.type == BCTypeEnum.String && rhs.type.type == BCTypeEnum.String)
                 {
                     Set(lhs.i32, rhs.i32);
                 }
-                else if (rhs.type.type == BCTypeEnum.Slice && lhs.type.type == BCTypeEnum.Slice)
+                else if (lhs.type.type == BCTypeEnum.Slice && rhs.type.type == BCTypeEnum.Slice)
                 {
                     Set(lhs.i32, rhs.i32);
+                }
+                else if (lhs.type.type == BCTypeEnum.Slice && rhs.type.type == BCTypeEnum.Null)
+                {
+                    Set(lhs.i32, imm32(0));
                 }
                 else
                 {
                     debug (ctfe)
-                        assert(0, "I cannot work with toose types");
+                        assert(0, "I cannot work with thoose types" ~ to!string(lhs.type.type) ~ " " ~ to!string(rhs.type.type));
                     bailout();
                 }
             }
