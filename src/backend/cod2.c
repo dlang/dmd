@@ -3288,7 +3288,28 @@ code *cdmemcmp(elem *e,regm_t *pretregs)
 
     // Get nbytes into CX
     regm_t retregs3 = mCX;
-    c1 = cat(c1,scodelem(e->E2,&retregs3,retregs | retregs1,FALSE));
+    bool single = false;
+    char cmpSize = 1;
+    if (!I16 && e->E2->Eoper == OPconst && e->E2->EV.Vlong >= 0)
+    {
+        // We know that it's positive, so avoid warning about implicit
+        // signed to unsigned conversion when calling movregconst.
+        targ_size_t immVal = e->E2->EV.Vulong;
+        if (I64 && ((immVal & 0x07) == 0))
+            cmpSize = 8;
+        else if ((immVal & 0x03) == 0)
+            cmpSize = 4;
+        else if ((immVal & 0x01) == 0)
+            cmpSize = 2;
+
+        immVal /= cmpSize;
+        single = immVal == 1;
+
+        if (!single)
+            c1 = movregconst(c1, CL, immVal, 0);
+    }
+    else
+        c1 = cat(c1,scodelem(e->E2, &retregs3, retregs | retregs1, FALSE));
 
     /* Make sure ES contains proper segment value       */
     c2 = cod2_setES(ty2);
@@ -3335,8 +3356,28 @@ code *cdmemcmp(elem *e,regm_t *pretregs)
 #endif
 
     c3 = cat(c3,getregs(mCX | mSI | mDI));
-    c3 = gen1(c3,0xF3);                         /* REPE                 */
-    gen1(c3,0xA6);                              /* CMPSB                */
+    if (!single)
+        c3 = gen1(c3,0xF3);                     /* REPE                 */
+    switch (cmpSize)
+    {
+        case 1:
+            gen1(c3, 0xA6);                     /* CMPSB                */
+            break;
+        case 2:
+            gen1(c3, 0x66);
+            gen1(c3, 0xA7);                     /* CMPSW                */
+            break;
+        case 4:
+            gen1(c3, 0xA7);                     /* CMPSD                */
+            break;
+        case 8:
+            c3 = gen2(c3, 0xA7, modregrmx(0, 0, 0));    /* CMPSQ                */
+            code_orrex(c3, REX_W);
+            break;
+        default:
+            assert(0);
+            break;
+    }
     if (need_DS)
         gen1(c3,0x1F);                          /* POP DS               */
     if (*pretregs != mPSW)                      /* if not flags only    */
