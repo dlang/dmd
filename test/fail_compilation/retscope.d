@@ -327,3 +327,25 @@ int* bar10( scope int** ptr ) @safe
     return *ptr;
 }
 
+/******************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(343): Error: cannot take address of scope local aa in @safe function escape11
+---
+*/
+
+int* escape11() @safe
+{
+    int i;
+    int*[3] aa = [ &i, null, null ];
+    return bar11(&aa[0]);
+}
+
+int* bar11(scope int** x) @safe
+{
+    return foo11(*x);
+}
+
+int* foo11(int* x) @safe { return x; }

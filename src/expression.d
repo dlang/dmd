@@ -10749,6 +10749,28 @@ extern (C++) final class AddrExp : UnaExp
                 }
             }
         }
+        else if (e1.op == TOKindex)
+        {
+            /* For:
+             *   int[3] a;
+             *   &a[i]
+             * check 'a' the same as for a regular variable
+             */
+            IndexExp ei = cast(IndexExp)e1;
+            Type tyi = ei.e1.type.toBasetype();
+            if (tyi.ty == Tsarray && ei.e1.op == TOKvar)
+            {
+                VarExp ve = cast(VarExp)ei.e1;
+                VarDeclaration v = ve.var.isVarDeclaration();
+                if (v)
+                {
+                    if (!checkAddressVar(v))
+                        return new ErrorExp();
+
+                    ve.checkPurity(sc, v);
+                }
+            }
+        }
         else if (wasCond)
         {
             /* a ? b : c was transformed to *(a ? &b : &c), but we still
