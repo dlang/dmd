@@ -3569,6 +3569,9 @@ public:
 
                 // write the last one into here and decrease the count
                 auto lastGoto = &unresolvedGotos[--unresolvedGotoCount];
+                // maybe we should not do this if (unresolvedGoto == lastGoto)
+                // but that will happen infrequently and even if it happens is just a L1 to L1 tranfer
+                // so who cares ... in fact I suspect the branch would be more expensive :) 
                 foreach(j;0 .. lastGoto.jumpCount)
                 {
                     unresolvedGoto.jumps[j] = lastGoto.jumps[j];
