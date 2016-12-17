@@ -1244,10 +1244,10 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     void StringEq(BCValue retval, BCValue lhs, BCValue rhs)
     {
-        static if (is(typeof(StringEq3) == function)
-                && is(typeof(StringEq3(BCValue.init, BCValue.init, BCValue.init)) == void))
+        static if (is(typeof(StrEq3) == function)
+                && is(typeof(StrEq3(BCValue.init, BCValue.init, BCValue.init)) == void))
         {
-            StringEq3(retval, lhs, rhs);
+            StrEq3(retval, lhs, rhs);
         }
 
         else

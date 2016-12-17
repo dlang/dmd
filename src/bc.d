@@ -94,6 +94,7 @@ enum LongInst : ushort
     Rsh,
     Mod,
 
+    StrEq,
     Assert,
     AssertCnd,
 
@@ -938,6 +939,20 @@ struct BCGen
         }
     }
 
+    void StrEq3(BCValue result, BCValue lhs, BCValue rhs)
+    {
+        assert(result.vType == BCValueType.Unknown
+            || result.vType == BCValueType.StackValue,
+            "The result for this must be Empty or a StackValue");
+        //assert(lhs.vType ==)
+        emitLongInst(LongInst64(LongInst.StrEq, lhs.stackAddr, rhs.stackAddr, false));
+
+        if (result.vType == BCValueType.StackValue)
+        {
+            emitFlg(result);
+        }
+    }
+
     void LoadIndexed(BCValue result, BCValue array, BCValue idx, BCValue arrayLength)
     {
 
@@ -1227,6 +1242,11 @@ string printInstructions(const int* startInstructions, uint length) pure
         case LongInst.AssertCnd:
             {
                 result ~= "AssertCnd ErrNo SP[" ~ to!string(hi >> 16) ~ "]]\n";
+            }
+            break;
+        case LongInst.StrEq:
+            {
+                result ~= "StrEq SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
             break;
         case LongInst.Eq:
@@ -1912,11 +1932,13 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
 
         case LongInst.HeapLoad32:
             {
+                assert(*rhs, "trying to deref null pointer");
                 (*lhsRef) = *(heapPtr._heap.ptr + *rhs);
             }
             break;
         case LongInst.HeapStore32:
             {
+                assert(*lhsRef, "trying to deref null pointer");
                 (*(heapPtr._heap.ptr + *lhsRef)) = (*rhs) & 0xFF_FF_FF_FF;
             }
             break;
@@ -2075,6 +2097,37 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                 }
             }
             break;
+
+        case LongInst.StrEq:
+            {
+                auto _lhs = *lhsRef;
+                auto _rhs = *rhs;
+
+                assert(_lhs && _rhs, "trying to deref nullPointers");
+                if (_lhs == _rhs)
+                {
+                    cond = true;
+                }
+                else
+                {
+                    auto lhsLength = heapPtr._heap[_lhs++];
+                    auto rhsLength = heapPtr._heap[_rhs++];
+                    if (lhsLength == rhsLength)
+                    {
+                        cond = true;
+                        foreach(i;0 .. align4(lhsLength)/4)
+                        {
+                            if (heapPtr._heap[_lhs + i] != heapPtr._heap[_rhs + i])
+                            {
+                                cond = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+
         }
     }
     // return bcEvalOutOfBoundsError();
