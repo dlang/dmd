@@ -115,10 +115,8 @@ struct BlackList
 
     void defaultBlackList()
     {
-        initialize([ /*"_ArrayEq",*/ "isRooted", "__lambda2", "isSameLength", "bug4910",
-            "wrapperParameters", "defaultMatrix", "extSeparatorPos", "args",
-            "check", "hashOf", "allAreAcceptedUnits", "back", "front", "generateFunction",
-            "parseJSON"]);
+        initialize([ /*"_ArrayEq", */ "__lambda2" /* needed because of std.traits.ParameterDefaults*/,
+                 "back", "front", "empty"]);
     }
 
 }
