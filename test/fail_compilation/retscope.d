@@ -302,3 +302,28 @@ struct S7
 
 int[3] escape8(scope int[] p) @safe { return p[0 .. 3]; } // should not error
 char*[3] escape9(scope char*[] p) @safe { return p[0 .. 3]; }
+
+/***************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(320): Error: reference to local variable i assigned to non-scope f
+---
+*/
+
+int* escape10() @safe
+{
+    int i;
+    int* f;
+    scope int** x = &f;
+    f = &i;
+
+    return bar10(x);
+}
+
+int* bar10( scope int** ptr ) @safe
+{
+    return *ptr;
+}
+

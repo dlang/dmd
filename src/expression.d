@@ -10603,7 +10603,9 @@ extern (C++) final class AddrExp : UnaExp
                     const(char)* p = v.isParameter() ? "parameter" : "local";
                     if (global.params.vsafe)
                     {
+                        // Taking the address of v means it cannot be set to 'scope' later
                         v.storage_class &= ~STCmaybescope;
+                        v.doNotInferScope = true;
                         if (v.storage_class & STCscope && sc.func.setUnsafe())
                         {
                             error("cannot take address of scope %s %s in @safe function %s", p, v.toChars(), sc.func.toChars());
