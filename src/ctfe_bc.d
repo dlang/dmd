@@ -1061,7 +1061,9 @@ extern (C++) final class BCTypeVisitor : Visitor
                     assert(0, "This should never happen");
                 }
                 auto sd = (cast(TypeStruct) t).sym;
-                return BCType(BCTypeEnum.Struct, _sharedCtfeState.getStructIndex(sd));
+                auto result =  BCType(BCTypeEnum.Struct, _sharedCtfeState.getStructIndex(sd));
+                topLevelAggregate = typeof(topLevelAggregate).init;
+                return result;
             }
             else if (t.ty == Tarray)
             {
