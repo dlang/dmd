@@ -86,7 +86,7 @@ struct BlackList
 
     bool isInitialized() pure const
     {
-        return list[0] !is Identifier.init;
+        return list[0]!is Identifier.init;
     }
 
     Identifier[32] list;
@@ -115,8 +115,8 @@ struct BlackList
 
     void defaultBlackList()
     {
-        initialize([ /*"_ArrayEq", */ "__lambda2" /* needed because of std.traits.ParameterDefaults*/,
-                 "back", "front", "empty"]);
+        initialize([ /*"_ArrayEq", */ "__lambda2" /* needed because of std.traits.ParameterDefaults*/ ,
+            "back", "front", "empty"]);
     }
 
 }
@@ -202,11 +202,11 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         {
             //FIXME TOOD add a branchHint to say that it is likely to find the function!
             static if (perf)
+            {
                 ffw.stop();
-            static if (perf)
                 writeln("function ", fd.ident.toString, " found! search took ",
                     ffw.peek.nsecs, "ns");
-
+            }
             auto fn = _sharedCtfeState.functions[fnIdx - 1];
             arg_bcv.arguments.length = fn.nArgs;
             BCValue[] bc_args;
@@ -235,55 +235,52 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                 &_sharedCtfeState.heap);
         }
         static if (perf)
+        {
             ffw.stop();
-        static if (perf)
             writeln("function not found, search took ", ffw.peek.nsecs, "ns");
+        }
     }
 
     //writeln("Evaluating function: ", fd.toString);
     import ddmd.identifier;
     import std.datetime : StopWatch;
 
+    writeln("trying ", fd.toString);
+
     static if (perf)
+    {
+        StopWatch csw;
+        StopWatch isw;
         StopWatch hiw;
-    static if (perf)
         hiw.start();
+    }
     _sharedCtfeState.initHeap();
     static if (perf)
+    {
         hiw.stop();
-    static if (perf)
         writeln("Initalizing heap took " ~ hiw.peek.usecs.to!string ~ " usecs");
-
-    static if (perf)
-        StopWatch csw;
-    static if (perf)
-        StopWatch isw;
-
-    static if (perf)
-        writeln("trying ", fd.toString);
-    //if (bcv is null)
-    //{
-    static if (perf)
         isw.start();
+    }
     __gshared static bcv = new BCV!BCGenT(null, null);
 
     bcv.clear();
     bcv.me = fd;
     bcv.Initialize();
     static if (perf)
+    {
         isw.stop();
-    static if (perf)
         csw.start();
-    //}
+    }
+
     bcv.visit(fd);
 
     static if (perf)
+    {
         csw.stop;
-    static if (perf)
         writeln("Creating and Initialzing bcGen took ", isw.peek.usecs.to!string, " usecs");
-    static if (perf)
         writeln("Generting bc for ", fd.ident.toString, " took ",
             csw.peek.usecs.to!string, " usecs");
+    }
 
     debug (ctfe)
     {
@@ -357,7 +354,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                 &_sharedCtfeState.heap, &_sharedCtfeState.functions[0],
                 &errorValues[0], &errorValues[1],
                 &_sharedCtfeState.errors[0], _sharedCtfeState.stack[]);
-            if (fd.ident == Identifier.idPool("extractAttribFlags"))
+            /*            if (fd.ident == Identifier.idPool("extractAttribFlags"))
             {
                 import ddmd.hdrgen;
                 import ddmd.root.outbuffer;
@@ -370,6 +367,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                 writeln(cast(char[]) ob.data[0 .. ob.size]);
                 bcv.byteCodeArray[0 .. bcv.ip].printInstructions.writeln;
             }
+*/
         }
         sw.stop();
         import std.stdio;
@@ -381,16 +379,18 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             writeln("Executing bc took " ~ sw.peek.usecs.to!string ~ " us");
         {
             static if (perf)
+            {
                 StopWatch esw;
-            static if (perf)
                 esw.start();
+            }
             if (auto exp = toExpression(retval, ft.nextOf,
                     &_sharedCtfeState.heap, &errorValues, &_sharedCtfeState.errors[0]))
             {
                 static if (perf)
+                {
                     esw.stop();
-                static if (perf)
                     writeln("Converting to AST Expression took " ~ esw.peek.usecs.to!string ~ "us");
+                }
                 return exp;
             }
             else
@@ -527,8 +527,7 @@ struct BCStruct
 
         debug (ctfe)
             assert(idx <= memberTypeCount);
-        else
-            if (idx > memberTypeCount)
+            else if (idx > memberTypeCount)
                 return -1;
 
         foreach (t; memberTypes[0 .. idx])
@@ -1025,7 +1024,7 @@ extern (C++) final class BCTypeVisitor : Visitor
             }
             else if (t.ty == Tstruct)
             {
-                if(!topLevelAggregate)
+                if (!topLevelAggregate)
                 {
                     topLevelAggregate = t;
                 }
@@ -1059,7 +1058,7 @@ extern (C++) final class BCTypeVisitor : Visitor
                 //{
                 //return BCType(BCTypeEnum.Ptr, pi);
                 //}
-                else
+            else
                 {
                     uint indirectionCount = 1;
                     Type baseType = t.nextOf;
@@ -1089,7 +1088,7 @@ extern (C++) final class BCTypeVisitor : Visitor
 
         foreach (sMember; sd.fields)
         {
-            if(sMember.type.ty == Tstruct && (cast(TypeStruct)sMember.type).sym == sd)
+            if (sMember.type.ty == Tstruct && (cast(TypeStruct) sMember.type).sym == sd)
                 assert(0);
 
             auto bcType = toBCType(sMember.type);
@@ -2139,8 +2138,8 @@ public:
                     bailout();
                     debug (ctfe)
                         assert(0, "Could not get field-offset of" ~ vd.toString);
-                    else
-                      return;
+                else
+                            return;
                 }
 
                 debug (ctfe)
@@ -2157,12 +2156,13 @@ public:
                 if (lhs.type != BCTypeEnum.Struct)
                 {
                     bailout();
-                    debug(ctfe)
-                        assert(0, "lhs.type != Struct but: " ~ to!string(lhs.type.type) ~ " " ~ dve.e1.toString);
-                    else
-                    return ;
+                    debug (ctfe)
+                        assert(0,
+                            "lhs.type != Struct but: " ~ to!string(lhs.type.type) ~ " " ~ dve
+                            .e1.toString);
+                else
+                            return;
                 }
-
 
                 if (!(lhs.vType == BCValueType.StackValue
                         || lhs.vType == BCValueType.Parameter || lhs.vType == BCValueType.Temporary))
@@ -2852,7 +2852,7 @@ public:
             writefln("StringExp %s", se.toString);
         }
 
-        if (!se || se.sz > 1/* || se.string[se.len] != 0*/)
+        if (!se || se.sz > 1 /* || se.string[se.len] != 0*/ )
         {
             debug (ctfe)
                 assert(0, "only zero terminated char strings are supported for now");
@@ -2862,12 +2862,12 @@ public:
         }
         if (!se.len)
         {
-            debug(ctfe)
+            debug (ctfe)
             {
                 assert(0, "length-0 StringExp encontered, What do I do ?");
             }
             bailout();
-            return ;
+            return;
         }
         auto stringAddr = _sharedCtfeState.heap.pushString(se.string, cast(uint) se.len);
         auto stringAddrValue = imm32(stringAddr.addr);
@@ -3051,7 +3051,7 @@ public:
                 bailout();
                 return;
             }
-            auto structDeclPtr = ((cast(TypeStruct) dve.e1.type).sym);
+            auto structDeclPtr = (cast(TypeStruct) dve.e1.type).sym;
             auto structTypeIndex = _sharedCtfeState.getStructIndex(structDeclPtr);
             if (!structTypeIndex)
             {
@@ -3060,7 +3060,6 @@ public:
                     assert(0, "could not get StructType");
                 return;
             }
-            BCStruct bcStructType = _sharedCtfeState.structs[structTypeIndex - 1];
             auto vd = dve.var.isVarDeclaration();
             assert(vd);
 
@@ -3068,6 +3067,8 @@ public:
 
             auto fIndex = findFieldIndexByName(structDeclPtr, vd);
             assert(fIndex != -1, "field " ~ vd.toString ~ "could not be found in" ~ dve.e1.toString);
+            BCStruct bcStructType = _sharedCtfeState.structs[structTypeIndex - 1];
+
             if (bcStructType.memberTypes[fIndex].type != BCTypeEnum.i32)
             {
                 bailout();
@@ -3273,7 +3274,9 @@ public:
                 else
                 {
                     debug (ctfe)
-                        assert(0, "I cannot work with thoose types" ~ to!string(lhs.type.type) ~ " " ~ to!string(rhs.type.type));
+                        assert(0,
+                            "I cannot work with thoose types" ~ to!string(lhs.type.type) ~ " " ~ to!string(
+                            rhs.type.type));
                     bailout();
                 }
             }
@@ -3314,6 +3317,8 @@ public:
 
     override void visit(UnrolledLoopStatement uls)
     {
+        //FIXME This will break if UnrolledLoopStatements if are nested,
+        // I am not sure if this can ever happen
         auto _uls = UnrolledLoopState();
         unrolledLoopState = &_uls;
         uint end = cast(uint) uls.statements.dim - 1;
@@ -3336,7 +3341,8 @@ public:
             else
             {
                 //FIXME Be aware that a break fixup has to be checked aginst the ip
-                //TODO investigate why
+                //If there if an unrolledLoopStatement that has no statemetns in it,
+                // we end up fixing the jump up to ourselfs.
                 foreach (fixup; _uls.breakFixups[0 .. _uls.breakFixupCount])
                 {
                     //HACK the will leave a nop in the bcgen
@@ -3574,7 +3580,7 @@ public:
                 // maybe we should not do this if (unresolvedGoto == lastGoto)
                 // but that will happen infrequently and even if it happens is just a L1 to L1 tranfer
                 // so who cares ... in fact I suspect the branch would be more expensive :) 
-                foreach(j;0 .. lastGoto.jumpCount)
+                foreach (j; 0 .. lastGoto.jumpCount)
                 {
                     unresolvedGoto.jumps[j] = lastGoto.jumps[j];
                 }
@@ -3652,7 +3658,7 @@ public:
     override void visit(CallExp ce)
     {
         bailout();
-        return ;
+        return;
         FuncDeclaration fd;
         BCValue[] bc_args;
         bc_args.length = ce.arguments.dim;
