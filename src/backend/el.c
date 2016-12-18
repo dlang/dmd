@@ -3331,16 +3331,16 @@ case_tym:
 
         case TYllong:
         L2:
-            dbg_printf("%lldLL ",e->EV.Vllong);
+            dbg_printf("%lldLL ",(unsigned long long)e->EV.Vllong);
             break;
 
         case TYullong:
-            dbg_printf("%lluLL ",e->EV.Vullong);
+            dbg_printf("%lluLL ",(unsigned long long)e->EV.Vullong);
             break;
 
         case TYcent:
         case TYucent:
-            dbg_printf("%lluLL+%lluLL ", e->EV.Vcent.msw, e->EV.Vcent.lsw);
+            dbg_printf("%lluLL+%lluLL ", (unsigned long long)e->EV.Vcent.msw, (unsigned long long)e->EV.Vcent.lsw);
             break;
 
         case TYfloat:
@@ -3395,7 +3395,7 @@ case_tym:
         case TYulong4:
         case TYllong2:
         case TYullong2:
-            dbg_printf("%llxLL+%llxLL ", e->EV.Vcent.msw, e->EV.Vcent.lsw);
+            dbg_printf("%llxLL+%llxLL ", (long long)e->EV.Vcent.msw, (long long)e->EV.Vcent.lsw);
             break;
 
 #if !MARS
