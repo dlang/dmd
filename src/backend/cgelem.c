@@ -5387,7 +5387,7 @@ elem *doptelem(elem *e, goal_t goal)
 
     /* If entire expression is a struct, and we can replace it with     */
     /* something simpler, do so.                                        */
-    if (goal & GOALstruct && e && tybasic(e->Ety) == TYstruct)
+    if (goal & GOALstruct && e && (tybasic(e->Ety) == TYstruct || tybasic(e->Ety) == TYarray))
         e = elstruct(e, goal);
 
     if (topair)

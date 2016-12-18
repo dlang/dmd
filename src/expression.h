@@ -906,6 +906,7 @@ public:
 
 class DeleteExp : public UnaExp
 {
+    bool isRAII;
 public:
     Expression *semantic(Scope *sc);
     Expression *toBoolean(Scope *sc);

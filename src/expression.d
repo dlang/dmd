@@ -11021,9 +11021,12 @@ extern (C++) final class NotExp : UnaExp
  */
 extern (C++) final class DeleteExp : UnaExp
 {
-    extern (D) this(Loc loc, Expression e)
+    bool isRAII;        // true if called automatically as a result of scoped destruction
+
+    extern (D) this(Loc loc, Expression e, bool isRAII)
     {
         super(loc, TOKdelete, __traits(classInstanceSize, DeleteExp), e);
+        this.isRAII = isRAII;
     }
 
     override Expression semantic(Scope* sc)
@@ -11050,7 +11053,6 @@ extern (C++) final class DeleteExp : UnaExp
                     error("cannot delete instance of COM interface %s", cd.toChars());
                     return new ErrorExp();
                 }
-
                 ad = cd;
                 break;
             }
@@ -11139,8 +11141,9 @@ extern (C++) final class DeleteExp : UnaExp
                 return new ErrorExp();
         }
 
-        // unsafe
-        if (!sc.intypeof && sc.func && sc.func.setUnsafe())
+        if (!sc.intypeof && sc.func &&
+            !isRAII &&
+            sc.func.setUnsafe())
         {
             error("%s is not @safe but is used in @safe function %s", toChars(), sc.func.toChars());
             err = true;
