@@ -192,10 +192,17 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
     VarDeclaration va;
     while (e1.op == TOKdotvar)
         e1 = (cast(DotVarExp)e1).e1;
+
     if (e1.op == TOKvar)
         va = (cast(VarExp)e1).var.isVarDeclaration();
     else if (e1.op == TOKthis)
         va = (cast(ThisExp)e1).var.isVarDeclaration();
+    else if (e1.op == TOKindex)
+    {
+        auto ie = cast(IndexExp)e1;
+        if (ie.e1.op == TOKvar && ie.e1.type.toBasetype().ty == Tsarray)
+            va = (cast(VarExp)ie.e1).var.isVarDeclaration();
+    }
 
     // Try to infer 'scope' for va if in a function not marked @system
     bool inferScope = false;
@@ -1058,9 +1065,9 @@ private void escapeByRef(Expression e, EscapeByResults* er)
                     DotVarExp dve = cast(DotVarExp)e.e1;
                     if (dve.var.storage_class & STCreturn || tf.isreturn)
                     {
-                        if (dve.var.storage_class & STCscope)
+                        if (dve.var.storage_class & STCscope || tf.isscope)
                             escapeByValue(dve.e1, er);
-                        else if (dve.var.storage_class & STCref)
+                        else if (dve.var.storage_class & STCref || tf.isref)
                             dve.e1.accept(this);
                     }
                 }

@@ -6,7 +6,7 @@ TEST_OUTPUT:
 fail_compilation/retscope.d(23): Error: scope variable p may not be returned
 fail_compilation/retscope.d(33): Error: escaping reference to local variable j
 fail_compilation/retscope.d(46): Error: scope variable p assigned to non-scope q
-fail_compilation/retscope.d(48): Error: cannot take address of local i in @safe function test2
+fail_compilation/retscope.d(48): Error: address of variable i assigned to q with longer lifetime
 fail_compilation/retscope.d(49): Error: variadic variable a assigned to non-scope b
 fail_compilation/retscope.d(50): Error: reference to stack allocated value returned by (*fp2)() assigned to non-scope q
 ---
@@ -127,10 +127,10 @@ char[] bar9() @safe
 /*************************************************/
 
 /*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(143): To enforce @safe compiler allocates a closure unless the opApply() uses 'scope'
----
+//
+//
+//fail_compilation/retscope.d(143): To enforce @safe compiler allocates a closure unless the opApply() uses 'scope'
+//
 */
 
 struct S10
@@ -235,10 +235,10 @@ void* funretscope(scope dg_t ptr) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(247): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
-fail_compilation/retscope.d(247): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
-fail_compilation/retscope.d(248): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
-fail_compilation/retscope.d(248): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
+fail_compilation/retscope.d(249): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
+fail_compilation/retscope.d(249): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
+fail_compilation/retscope.d(250): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
+fail_compilation/retscope.d(250): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
 ---
 */
 
@@ -349,3 +349,71 @@ int* bar11(scope int** x) @safe
 }
 
 int* foo11(int* x) @safe { return x; }
+
+/******************************************/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/********************************************/
+
+void escape15() @safe
+{
+    int arg;
+    const(void)*[1] argsAddresses;
+    argsAddresses[0] = // MUST be an array assignment
+        (ref arg)@trusted{ return cast(const void*) &arg; }(arg);
+}
+
+

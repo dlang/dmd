@@ -10,7 +10,7 @@ fail_compilation/test14238.d(29): Error: escaping reference to stack allocated v
 
 @safe:
 
-alias Fn = ref int delegate();
+alias Fn = ref int delegate() return;
 
 ref int foo(return scope Fn fn)
 {
