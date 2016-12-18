@@ -16,7 +16,7 @@ import ddmd.arraytypes : Expressions;
  */
 
 import std.conv : to;
-
+version = ctfe_noboundscheck;
 struct BCBlockJump
 {
     BCAddr at;
@@ -107,6 +107,8 @@ struct BlackList
     {
         foreach (const ref bi; list)
         {
+            if (bi is null)
+                return false;
             if (bi is i)
                 return true;
         }
@@ -145,7 +147,7 @@ import ddmd.ctfe.bc_common;
 enum perf = 1;
 enum cacheBC = 0;
 enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 0;
+enum UsePrinterBackend = 1;
 enum UseCBackend = 0;
 
 static if (UseLLVMBackend)
@@ -461,18 +463,26 @@ switch_head:
 string toString(T)(T value) if (is(T : Statement) || is(T : Declaration)
         || is(T : Expression) || is(T : Dsymbol) || is(T : Type))
 {
+    string result;
     import std.string : fromStringz;
 
-    const(char)* cPtr = value.toChars();
+    const(char)* cPtr = value ? value.toChars() : T.stringof ~ "(null)";
 
     static if (is(typeof(T.loc)))
     {
-        const(char)* lPtr = value.loc.toChars();
-        string result = cPtr.fromStringz.idup ~ "\t" ~ lPtr.fromStringz.idup;
+        if (value)
+        {
+            const(char)* lPtr = value.loc.toChars();
+            result = cPtr.fromStringz.idup ~ "\t" ~ lPtr.fromStringz.idup;
+        }
+        else
+        {
+            result = T.stringof ~ "(null)";
+        }
     }
     else
     {
-        string result = cPtr.fromStringz.idup;
+        result = cPtr.fromStringz.idup;
     }
 
     return result;
@@ -506,6 +516,13 @@ struct BCArray
     }
 }
 
+struct BeginStructResult
+{
+    uint structCount;
+    BCStruct* _struct;
+    alias _struct this;
+}
+
 struct BCStruct
 {
     uint memberTypeCount;
@@ -527,7 +544,8 @@ struct BCStruct
 
         debug (ctfe)
             assert(idx <= memberTypeCount);
-            else if (idx > memberTypeCount)
+        else 
+            if (idx > memberTypeCount)
                 return -1;
 
         foreach (t; memberTypes[0 .. idx])
@@ -549,7 +567,7 @@ struct SharedCtfeState(BCGenT)
     TypeSArray[ubyte.max * 4] sArrayTypePointers;
     TypeDArray[ubyte.max * 4] dArrayTypePointers;
     TypePointer[ubyte.max * 4] pointerTypePointers;
-    BCTypeVisitor btv;
+    BCTypeVisitor btv = new BCTypeVisitor();
 
     BCStruct[ubyte.max * 4] structs;
     uint structCount;
@@ -708,15 +726,15 @@ struct SharedCtfeState(BCGenT)
 
     //NOTE beginStruct and endStruct are not threadsafe at this point.
 
-    BCStruct* beginStruct(StructDeclaration sd)
+    BeginStructResult beginStruct(StructDeclaration sd)
     {
         structDeclPointers[structCount] = sd;
-        return &structs[structCount];
+        return BeginStructResult(structCount, &structs[structCount++]);
     }
 
-    const(BCType) endStruct(BCStruct* s)
+    const(BCType) endStruct(BeginStructResult* s)
     {
-        return BCType(BCTypeEnum.Struct, structCount++);
+        return BCType(BCTypeEnum.Struct, s.structCount);
     }
     /*
     string getTypeString(BCType type)
@@ -781,7 +799,14 @@ struct SharedCtfeState(BCGenT)
                 }
                 return size(_array.elementType) * _array.length;
             }
-
+            case BCType.Slice:
+            {
+                return 4+4; // 4 for pointer 4 for length;
+            }
+            case BCType.Ptr:
+            {
+                return 4; // 4 for pointer;
+            }
         default:
             {
                 debug (ctfe)
@@ -983,10 +1008,12 @@ Expression toExpression(const BCValue value, Type expressionType,
 extern (C++) final class BCTypeVisitor : Visitor
 {
     alias visit = super.visit;
+    Type topLevelAggregate;
+    uint prevAggregateTypeCount;
+    Type[32] prevAggregateTypes;
 
-    static const(BCType) toBCType(Type t) /*pure*/
+    const(BCType) toBCType(Type t, Type tla = null) /*pure*/
     {
-        Type topLevelAggregate;
 
         assert(t !is null);
         TypeBasic bt = t.isTypeBasic;
@@ -1070,7 +1097,7 @@ extern (C++) final class BCTypeVisitor : Visitor
                     _sharedCtfeState.pointerTypePointers[_sharedCtfeState.pointerCount] = cast(
                         TypePointer) t;
                     _sharedCtfeState.pointers[_sharedCtfeState.pointerCount++] = BCPointer(
-                        toBCType(baseType), indirectionCount);
+                       baseType != topLevelAggregate ? toBCType(baseType) : BCType(BCTypeEnum.Struct, _sharedCtfeState.structCount+1), indirectionCount);
                     return BCType(BCTypeEnum.Ptr, _sharedCtfeState.pointerCount);
                 }
             }
@@ -1095,7 +1122,8 @@ extern (C++) final class BCTypeVisitor : Visitor
             st.addField(&_sharedCtfeState, bcType);
         }
 
-        sharedCtfeState.endStruct(st);
+        sharedCtfeState.endStruct(&st);
+        
     }
 
 }
@@ -1420,6 +1448,10 @@ public:
             static if (is(typeof(_sharedCtfeState.functionCount)) && cacheBC)
             {
                 fnIdx = fnIdx ? fnIdx : ++_sharedCtfeState.functionCount;
+            }
+            else
+            {
+                fnIdx = 1;
             }
             beginFunction(fnIdx - 1);
             visit(fbody);
@@ -1796,11 +1828,14 @@ public:
     {
         debug (ctfe)
             assert(toBCType(se.type).type == BCTypeEnum.i32Ptr, "only int* is supported for now");
-        bailout();
+        //bailout();
         auto v = getVariable(cast(VarDeclaration) se.var);
         //retval = BCValue(v.stackAddr
         import std.stdio;
-
+        if (v)
+        {
+            retval = v;
+        }
         writeln("Se.var.genExpr == ", v);
     }
 
@@ -2302,7 +2337,7 @@ public:
 
         foreach (ty; _struct.memberTypes[0 .. _struct.memberTypeCount])
         {
-            if (ty.type != BCTypeEnum.i32)
+        /*    if (ty.type != BCTypeEnum.i32)
             {
                 debug (ctfe)
                     assert(0,
@@ -2311,7 +2346,8 @@ public:
                 bailout();
                 return;
             }
-        }
+          */  
+        } 
         auto heap = _sharedCtfeState.heap;
         auto size = align4(_sharedCtfeState.size(BCType(BCTypeEnum.Struct, idx)));
 
@@ -2333,6 +2369,7 @@ public:
             {
                 writeln("elExpr: ", elexpr.toString, " elem ", elem.toString);
             }
+            /*
             if (elexpr.type != BCTypeEnum.i32
                     && (elexpr.vType != BCValueType.Immediate
                     || elexpr.vType != BCValueType.StackValue))
@@ -2343,7 +2380,7 @@ public:
                         ~ " is currently not handeled");
                 bailout();
                 return;
-            }
+            }*/
             if (!insideArgumentProcessing)
             {
                 Add3(fieldAddr, retval.i32, imm32(offset));
@@ -3707,7 +3744,6 @@ public:
                     _sharedCtfeState.functions[oldFunctionCount] = BCFunction(cast(void*) f);
                     uncompiledFunctions[uncompiledFunctionCount++] = UncompiledFunction(f,
                         fnIdx);
-
                 }
                 else
                 {
