@@ -147,7 +147,7 @@ import ddmd.ctfe.bc_common;
 enum perf = 1;
 enum cacheBC = 0;
 enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 1;
+enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
 
 static if (UseLLVMBackend)

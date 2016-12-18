@@ -193,7 +193,7 @@ struct LongInst64
 
 static assert(LongInst.max < 0x3F, "Instruction do not fit in 6 bit anymore");
 
-static auto isShortJump(const int offset) pure @safe
+static short isShortJump(const int offset) pure @safe
 {
     assert(offset != 0, "An Jump to the Jump itself is invalid");
 
