@@ -352,62 +352,6 @@ int* foo11(int* x) @safe { return x; }
 
 /******************************************/
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/********************************************/
-
 void escape15() @safe
 {
     int arg;
@@ -416,4 +360,67 @@ void escape15() @safe
         (ref arg)@trusted{ return cast(const void*) &arg; }(arg);
 }
 
+/******************************************/
+/*
+TEST_OUTPUT:
+// FIXME FIXME FIXME
+fail_compilation/retscope.d(1003): Error: escaping reference to local variable f
+// FIXME FIXME FIXME
+---
+---
+*/
 
+#line 1000
+int* escape12() @safe
+{
+    Foo12 f;
+    return f.foo;
+}
+
+struct Foo12
+{
+    int* foo() return @safe;
+}
+
+/******************************************/
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(1103): Error: scope variable f assigned to non-scope parameter this calling retscope.Foo13.foo
+---
+*/
+
+#line 1100
+int* escape13() @safe
+{
+    scope Foo13 f;
+    return f.foo;
+}
+
+class Foo13
+{
+    int* foo() return @safe;
+}
+
+/******************************************/
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(1205): Error: scope variable f14 assigned to non-scope parameter this calling retscope.Foo14.foo
+---
+*/
+
+#line 1200
+int* escape14() @safe
+{
+    int i;
+    Foo14 f14;
+    f14.v = &i;
+    return f14.foo;
+}
+
+struct Foo14
+{
+    int* v;
+    int* foo () @safe { return this.v; }
+}

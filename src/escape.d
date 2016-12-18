@@ -19,6 +19,7 @@ import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
+import ddmd.identifier;
 import ddmd.init;
 import ddmd.mtype;
 import ddmd.root.rootobject;
@@ -33,13 +34,13 @@ import ddmd.arraytypes;
  * Print error messages when these are detected.
  * Params:
  *      sc = used to determine current function and module
- *      par = function parameter
+ *      par = identifier of function parameter
  *      arg = initializer for param
  *      gag = do not print error messages
  * Returns:
  *      true if pointers to the stack can escape via assignment
  */
-bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Expression arg, bool gag)
+bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier par, Expression arg, bool gag)
 {
     //printf("checkParamArgumentEscape(arg: %s par: %s)\n", arg.toChars(), par.toChars());
     //printf("type = %s, %d\n", arg.type.toChars(), arg.type.hasPointers());
