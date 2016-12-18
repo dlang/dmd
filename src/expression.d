@@ -1697,7 +1697,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                  * Check arg to see if it matters.
                  */
                 if (global.params.vsafe)
-                    err |= checkParamArgumentEscape(sc, fd, p, arg, false);
+                    err |= checkParamArgumentEscape(sc, fd, p.ident, arg, false);
             }
             else
             {
@@ -9972,6 +9972,11 @@ extern (C++) final class CallExp : UnaExp
                     return ue.e1;
                 ethis = ue.e1;
                 tthis = ue.e1.type;
+                if (!f.type.isscope())
+                {
+                    if (checkParamArgumentEscape(sc, f, Id.This, ethis, false))
+                        return new ErrorExp();
+                }
             }
 
             /* Cannot call public functions from inside invariant
