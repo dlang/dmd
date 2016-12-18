@@ -2225,7 +2225,7 @@ extern (C++) class VarDeclaration : Declaration
                     // delete this;
                     Expression ec;
                     ec = new VarExp(loc, this);
-                    e = new DeleteExp(loc, ec);
+                    e = new DeleteExp(loc, ec, true);
                     e.type = Type.tvoid;
                     break;
                 }
