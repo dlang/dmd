@@ -224,7 +224,7 @@ void vec_setbit(size_t b,vec_t v)
 #ifdef DEBUG
   if (!(v && b < vec_numbits(v)))
         printf("vec_setbit(v = %p,b = %d): numbits = %d dim = %d\n",
-            v,b,v ? vec_numbits(v) : 0, v ? vec_dim(v) : 0);
+            v,(int)b,v ? (int)vec_numbits(v) : 0, v ? (int)vec_dim(v) : 0);
 #endif
   assert(v && b < vec_numbits(v));
   *(v + (b >> VECSHIFT)) |= MASK(b);
@@ -259,7 +259,7 @@ size_t vec_testbit(size_t b,vec_t v)
 #ifdef DEBUG
   if (b >= vec_numbits(v))
   {     printf("vec_testbit(v = %p,b = %d): numbits = %d dim = %d\n",
-            v,b,vec_numbits(v),vec_dim(v));
+            v,(int)b,(int)vec_numbits(v),(int)vec_dim(v));
         b = (size_t)-1;
   }
 #endif
@@ -541,7 +541,7 @@ void vec_copy(vec_t to,vec_t from)
 #ifdef DEBUG
         if (!(to && from && vec_numbits(to) == vec_numbits(from)))
             printf("to = x%lx, from = x%lx, numbits(to) = %d, numbits(from) = %d\n",
-                (long)to,(long)from,to ? vec_numbits(to) : 0, from ? vec_numbits(from): 0);
+                (long)to,(long)from,to ? (int)vec_numbits(to) : 0, from ? (int)vec_numbits(from): 0);
 #endif
         assert(to && from && vec_numbits(to) == vec_numbits(from));
         memcpy(to,from,sizeof(to[0]) * vec_dim(to));
@@ -604,7 +604,7 @@ void vec_println(vec_t v)
 void vec_print(vec_t v)
 {
 #ifdef DEBUG
-  printf(" Vec %p, numbits %d dim %d",v,vec_numbits(v),vec_dim(v));
+  printf(" Vec %p, numbits %d dim %d",v,(int)vec_numbits(v),(int)vec_dim(v));
   if (v)
   {     fputc('\t',stdout);
         for (size_t i = 0; i < vec_numbits(v); i++)
