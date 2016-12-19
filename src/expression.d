@@ -9974,7 +9974,7 @@ extern (C++) final class CallExp : UnaExp
                 tthis = ue.e1.type;
                 if (!f.type.isscope())
                 {
-                    if (checkParamArgumentEscape(sc, f, Id.This, ethis, false))
+                    if (global.params.vsafe && checkParamArgumentEscape(sc, f, Id.This, ethis, false))
                         return new ErrorExp();
                 }
             }
