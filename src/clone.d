@@ -205,7 +205,6 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     //printf("StructDeclaration::buildOpAssign() %s\n", sd.toChars());
     StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = sd.loc;
-    Loc loc = Loc(); // internal code should have no loc to prevent coverage
 
     // One of our sub-field might have `@disable opAssign` so we need to
     // check for it.
@@ -240,16 +239,67 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     auto fop = new FuncDeclaration(declLoc, Loc(), Id.assign, stc, tf);
     fop.storage_class |= STCinference;
     fop.generated = true;
-    Expression e = null;
-    if (stc & STCdisable)
+
+    if (!(stc & STCdisable))
+        fop.fbody = buildOpAssignBody(sd);
+
+    sd.members.push(fop);
+    fop.addMember(sc, sd);
+    sd.hasIdentityAssign = true; // temporary mark identity assignable
+    uint errors = global.startGagging(); // Do not report errors, even if the
+    Scope* sc2 = sc.push();
+    sc2.stc = 0;
+    sc2.linkage = LINKd;
+    fop.semantic(sc2);
+    fop.semantic2(sc2);
+    // Bugzilla 15044: fop.semantic3 isn't run here for lazy forward reference resolution.
+
+    sc2.pop();
+    if (global.endGagging(errors)) // if errors happened
     {
+        // Disable generated opAssign, because some members forbid identity assignment.
+        fop.storage_class |= STCdisable;
+        fop.fbody = null; // remove fbody which contains the error
     }
-    else if (sd.dtor || sd.postblit)
+
+    //printf("-StructDeclaration::buildOpAssign() %s, errors = %d, disabled = %d\n", sd.toChars(), errors, (fop.storage_class & STCdisable) != 0);
+    return fop;
+}
+
+/**
+ * Build the generated opAssign's body
+ *
+ * The `sd` struct is the "target" struct, opAssign's parameter is the "source".
+ * The generated `opAssign` is either a memberwise copy or a blit of the source
+ * over the target.
+ * TODO: Why ?
+ *
+ * Params:
+ *   sd = `StructDeclaration` this `opAssign` will be built for
+ *
+ * Returns:
+ *   A `CompoundStatement` containing the whole body
+ */
+private CompoundStatement buildOpAssignBody (StructDeclaration sd)
+{
+    // internal code should have no loc to prevent coverage
+    Loc loc = Loc();
+    Expression e;
+    if (sd.dtor || sd.postblit)
     {
-        /* Do swap this and rhs.
-         *    __swap = this; this = s; __swap.dtor();
+        /**
+         * Do swap this and rhs.
+         * If there is a destructor, this generates the following code:
+         * ----
+         * __swap = this; this = p; __swap.dtor();
+         * ----
+         *
+         * However, without destructor the `__swap` is unnecessary,
+         * and the code would just be:
+         * ----
+         * this = p;
+         * ----
          */
-        //printf("\tswap copy\n");
         Identifier idtmp = Identifier.generateId("__swap");
         VarDeclaration tmp = null;
         AssignExp ec = null;
@@ -281,11 +331,13 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
          * 1. If it's nested in a class, it's a rebind of class reference.
          * 2. If it's nested in a function or struct, it's an update of void*.
          * In both cases, it will change the parent context.
+         *
+         * By the time this is called, `buildDtor` and `buildPostblit` should
+         * have been run already, and they would have generated a dtor or
+         * postblit if any of our nested fields required one.
          */
-        //printf("\tmemberwise copy\n");
-        for (size_t i = 0; i < sd.fields.dim; i++)
+        foreach (i, v; sd.fields)
         {
-            VarDeclaration v = sd.fields[i];
             // this.v = s.v;
             auto ec = new AssignExp(loc,
                 new DotVarExp(loc, new ThisExp(loc), v),
@@ -293,39 +345,17 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
             e = Expression.combine(e, ec);
         }
     }
-    if (e)
-    {
-        Statement s1 = new ExpStatement(loc, e);
-        /* Add:
-         *   return this;
-         */
-        e = new ThisExp(loc);
-        Statement s2 = new ReturnStatement(loc, e);
-        fop.fbody = new CompoundStatement(loc, s1, s2);
-        tf.isreturn = true;
-    }
-    sd.members.push(fop);
-    fop.addMember(sc, sd);
-    sd.hasIdentityAssign = true; // temporary mark identity assignable
-    uint errors = global.startGagging(); // Do not report errors, even if the
-    Scope* sc2 = sc.push();
-    sc2.stc = 0;
-    sc2.linkage = LINKd;
-    fop.semantic(sc2);
-    fop.semantic2(sc2);
-    // Bugzilla 15044: fop.semantic3 isn't run here for lazy forward reference resolution.
-
-    sc2.pop();
-    if (global.endGagging(errors)) // if errors happened
-    {
-        // Disable generated opAssign, because some members forbid identity assignment.
-        fop.storage_class |= STCdisable;
-        fop.fbody = null; // remove fbody which contains the error
-    }
-
-    //printf("-StructDeclaration::buildOpAssign() %s, errors = %d\n", sd.toChars(), (fop.storage_class & STCdisable) != 0);
-    return fop;
+    Statement s1 = new ExpStatement(loc, e);
+    /* Add:
+     * ----
+     * return this;
+     * ----
+     */
+    e = new ThisExp(loc);
+    Statement s2 = new ReturnStatement(loc, e);
+    return new CompoundStatement(loc, s1, s2);
 }
+
 
 /*******************************************
  * We need an opEquals for the struct if
