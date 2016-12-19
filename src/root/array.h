@@ -113,12 +113,24 @@ struct Array
         dim = newdim;
     }
 
+    TYPE pop()
+    {
+        return data[--dim];
+    }
+
     void shift(TYPE ptr)
     {
         reserve(1);
         memmove(data + 1, data, dim * sizeof(*data));
         data[0] = ptr;
         dim++;
+    }
+
+    void remove(size_t i)
+    {
+        if (dim - i - 1)
+            memmove(data + i, data + i + 1, (dim - i - 1) * sizeof(data[0]));
+        dim--;
     }
 
     void zero()
@@ -149,6 +161,11 @@ struct Array
         }
     }
 
+    TYPE *tdata()
+    {
+        return data;
+    }
+
     TYPE& operator[] (d_size_t index)
     {
 #ifdef DEBUG
@@ -157,12 +174,45 @@ struct Array
         return data[index];
     }
 
+    void insert(size_t index, TYPE v)
+    {
+        reserve(1);
+        memmove(data + index + 1, data + index, (dim - index) * sizeof(*data));
+        data[index] = v;
+        dim++;
+    }
+
+    void insert(size_t index, Array *a)
+    {
+        if (a)
+        {
+            size_t d = a->dim;
+            reserve(d);
+            if (dim != index)
+                memmove(data + index + d, data + index, (dim - index) * sizeof(*data));
+            memcpy(data + index, a->data, d * sizeof(*data));
+            dim += d;
+        }
+    }
+
+    void append(Array *a)
+    {
+        insert(dim, a);
+    }
+
     void push(TYPE a)
     {
         reserve(1);
         data[dim++] = a;
     }
 
+    Array *copy()
+    {
+        Array *a = new Array();
+        a->setDim(dim);
+        memcpy(a->data, data, dim * sizeof(*data));
+        return a;
+    }
 };
 
 struct BitArray
