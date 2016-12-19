@@ -147,8 +147,8 @@ Where:
   -main            add default main() (e.g. for unittesting)
   -man             open web browser on manual page
   -map             generate linker .map file
-  -cpu=<id>        generate instructions for architecture identified by 'id'
-  -cpu=?           list all architecture options " ~
+  -mcpu=<id>       generate instructions for architecture identified by 'id'
+  -mcpu=?          list all architecture options " ~
   "%s" /* placeholder for mscrtlib */ ~ "
   -mv=<package.module>=<filespec>  use <filespec> as source file for <package.module>
   -noboundscheck   no array bounds checking (deprecated, use -boundscheck=off)
