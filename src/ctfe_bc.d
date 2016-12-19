@@ -1130,14 +1130,20 @@ extern (C++) final class BCTypeVisitor : Visitor
 
 }
 
+struct BCScope
+{
+	
+}
+
 extern (C++) final class BCV(BCGenT) : Visitor
 {
     uint unresolvedGotoCount;
     uint breakFixupCount;
     uint continueFixupCount;
     uint fixupTableCount;
-    uint processedArgs;
     uint uncompiledFunctionCount;
+    uint scopeCount;
+    uint processedArgs;
     uint switchStateCount;
     uint currentFunction;
 
@@ -1145,10 +1151,11 @@ extern (C++) final class BCV(BCGenT) : Visitor
     alias gen this;
 
     // for now!
+    
     BCValue[] arguments;
     BCType[] parameterTypes;
 
-    typeof(this)* parent;
+//    typeof(this)* parent;
 
     bool processingArguments;
     bool insideArgumentProcessing;
@@ -1162,6 +1169,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         unresolvedGotoCount = 0;
         breakFixupCount = 0;
         continueFixupCount = 0;
+        scopeCount = 0;
         fixupTableCount = 0;
         processedArgs = 0;
         switchStateCount = 0;
@@ -1202,6 +1210,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     UnresolvedGoto[ubyte.max] unresolvedGotos = void;
     BCAddr[ubyte.max] breakFixups = void;
     BCAddr[ubyte.max] continueFixups = void;
+    BCScope[16] scopes = void;
     BoolExprFixupEntry[ubyte.max] fixupTable = void;
     UncompiledFunction[ubyte.max] uncompiledFunctions = void;
     SwitchState[16] switchStates = void;
@@ -1297,10 +1306,9 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
 public:
 
-    this(FuncDeclaration fd, Expression _this, typeof(this)* parent = null)
+    this(FuncDeclaration fd, Expression _this)
     {
         me = fd;
-        this.parent = parent;
         if (_this)
             this._this = _this;
     }
@@ -2004,7 +2012,11 @@ public:
         BCBlock result;
         const oldBreakFixupCount = breakFixupCount;
         const oldContinueFixupCount = continueFixupCount;
-
+        auto oldSwitchFixup = switchFixup;
+        if (setCurrent)
+        {
+            switchFixup = null;
+        }
         result.begin = genLabel();
         stmt.accept(this);
         result.end = genLabel();
@@ -2012,6 +2024,7 @@ public:
         // Now let's fixup thoose breaks
         if (setCurrent)
         {
+            switchFixup = oldSwitchFixup;
             if (!costumContinue)
             {
                 fixupContinue(oldContinueFixupCount, result.begin);
