@@ -12,6 +12,7 @@ module ddmd.escape;
 
 import core.stdc.stdio : printf;
 
+import ddmd.aggregate;
 import ddmd.declaration;
 import ddmd.dscope;
 import ddmd.dsymbol;
@@ -61,7 +62,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier par, Ex
      */
     void unsafeAssign(VarDeclaration v, const char* desc)
     {
-        if (sc.func.setUnsafe())
+        if (global.params.vsafe && sc.func.setUnsafe())
         {
             if (!gag)
                 error(arg.loc, "%s %s assigned to non-scope parameter %s calling %s",
@@ -824,6 +825,7 @@ private void escapeByValue(Expression e, EscapeByResults* er)
 
         override void visit(CallExp e)
         {
+            //printf("CallExp(): %s\n", e.toChars());
             /* Check each argument that is
              * passed as 'return scope'.
              */
@@ -865,7 +867,16 @@ private void escapeByValue(Expression e, EscapeByResults* er)
             if (e.e1.op == TOKdotvar && t1.ty == Tfunction)
             {
                 DotVarExp dve = cast(DotVarExp)e.e1;
-                if (dve.var.storage_class & STCreturn || tf.isreturn)
+                FuncDeclaration fd = dve.var.isFuncDeclaration();
+                AggregateDeclaration ad;
+                if (global.params.vsafe && tf.isreturn && fd && (ad = fd.isThis()) !is null)
+                {
+                    if (ad.isClassDeclaration())       // this is 'return scope'
+                        dve.e1.accept(this);
+                    else if (ad.isStructDeclaration()) // this is 'return ref'
+                        escapeByRef(dve.e1, er);
+                }
+                else if (dve.var.storage_class & STCreturn || tf.isreturn)
                 {
                     if (dve.var.storage_class & STCscope)
                         dve.e1.accept(this);

@@ -363,10 +363,8 @@ void escape15() @safe
 /******************************************/
 /*
 TEST_OUTPUT:
-// FIXME FIXME FIXME
-fail_compilation/retscope.d(1003): Error: escaping reference to local variable f
-// FIXME FIXME FIXME
 ---
+fail_compilation/retscope.d(1003): Error: escaping reference to local variable f
 ---
 */
 
