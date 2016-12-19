@@ -260,6 +260,15 @@ void test7049() @safe
 
 /********************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=16747
+
+void test16747() @safe
+{
+    scope o = new Object();
+}
+
+/********************************************/
+
 void main()
 {
     test1();
@@ -274,6 +283,7 @@ void main()
     test10();
     test7435();
     test7049();
+    test16747();
 
     printf("Success\n");
 }

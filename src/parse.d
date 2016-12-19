@@ -7616,7 +7616,7 @@ final class Parser : Lexer
         case TOKdelete:
             nextToken();
             e = parseUnaryExp();
-            e = new DeleteExp(loc, e);
+            e = new DeleteExp(loc, e, false);
             break;
 
         case TOKcast: // cast(type) expression
