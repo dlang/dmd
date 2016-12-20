@@ -173,12 +173,10 @@ int foo();
 
 $(H4 $(LNAME2 pure-functions, Pure Functions))
 
-        $(P Pure functions are functions which cannot access global or static, mutable
-        state save through their arguments.
-    This enables optimizations based on the fact that a pure function may at most mutate state
-    reachable through its parameters.
-        To that end, a pure function:
-        )
+        $(P Pure functions are functions which cannot access global or static,
+        mutable state save through their arguments. This enables optimizations
+        based on the fact that a pure function may at most mutate state
+        reachable through its parameters. To that end, a pure function:)
 
         $(UL
         $(LI does not read or write any global or static mutable state)
@@ -224,6 +222,26 @@ pure int foo(int i,
 }
 ---
 
+    $(P An implementation may assume that a `pure` function that (a) accepts
+    only parameters without mutable indirections, and (b) returns a result
+    without mutable indirections, will have the same effect for all invocation
+    with equivalent arguments, and is allowed to memoize the result of the
+    function. These are termed "strongly `pure`" functions in this document.
+    Note that a strongly pure function may still have behavior inconsistent with
+    memoization by e.g. using `cast`s or by changing behavior depending on the
+    address of its parameters. An implementation is currently not required to
+    enforce validity of memoization in all cases.)
+
+    $(P Any `pure` function that is not strongly pure cannot be memoized. The
+    compiler is required to honor all calls to the function, even if it appears
+    to do nothing. (Example: a pure function taking no arguments and returning
+    `int*` cannot be memoized. It also should not because it may be a typical
+    factory function returning a fresh pointer with each call.))
+
+    $(P `pure` functions returning `void` will be always called even if it is
+    strongly `pure`. The implementation must assume the function does something
+    outside the confines of the type system and is therefore not allowed to
+    elide the call, even if it appears to have no possible effect.)
 
 $(H4 $(LNAME2 nothrow-functions, Nothrow Functions))
 
@@ -872,10 +890,10 @@ void main()
 
 $(H4 $(LNAME2 inline-functions, Inline Functions))
 
-        $(P The compiler makes the decision whether to inline a function or not. 
+        $(P The compiler makes the decision whether to inline a function or not.
         This decision may be controlled by $(LINK2 pragma.html#inline, `pragma(inline)`),
         assuming that the compiler implements it, which is not mandatory.)
-        
+
         $(P Note that any $(GLINK2 expression, FunctionLiteral) should be inlined
         when used in its declaration scope.
         )
