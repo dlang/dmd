@@ -1,5 +1,5 @@
 module ddmd.ctfe.ctfe_bc;
-
+debug = ctfe;
 import ddmd.expression;
 import ddmd.declaration : FuncDeclaration, VarDeclaration, Declaration,
     SymbolDeclaration;
@@ -29,6 +29,12 @@ struct UnresolvedGoto
     void* ident;
     BCBlockJump[ubyte.max] jumps;
     uint jumpCount;
+}
+
+struct JumpTarget
+{
+//    Identifier ident;
+    uint scopeId;
 }
 
 struct UncompiledFunction
@@ -1132,7 +1138,9 @@ extern (C++) final class BCTypeVisitor : Visitor
 
 struct BCScope
 {
-	
+    
+//    Identifier[64] identifiers;
+    BCBlock[64] blocks;
 }
 
 extern (C++) final class BCV(BCGenT) : Visitor
@@ -1806,21 +1814,30 @@ public:
             break;
 
         case TOK.TOKoror:
-        case TOK.TOKandand:
             {
                 bailout();
                 debug (ctfe)
                 {
-                    assert(0, "|| and && are unsupported at the moment");
+                    assert(0, "|| is unsupported at the moment");
                 }
+   
+            }
+        case TOK.TOKandand:
+            {
+                // If lhs is false jump to false
+                // If lhs is true keep going
                 const oldFixupTableCount = fixupTableCount;
-                return;
                 auto lhs = genExpr(e.e1);
-                doFixup(oldFixupTableCount, null, null);
+                auto afterLhs = genLabel();
+                //doFixup(oldFixupTableCount, &afterLhs, null);
                 fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(lhs,
-                    true));
+                    false));
+                auto rhs = genExpr(e.e2);
+                auto afterRhs = genLabel();
 
-                //auto rhs =
+                //doFixup(oldFixupTableCount, &afterRhs, null);
+                fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(rhs,
+                    false));
             }
 
             break;
@@ -2469,7 +2486,7 @@ public:
         {
             import std.stdio;
 
-            writeln(retval);
+            writeln("PtrExp: ", retval);
         }
 
     }
@@ -3300,8 +3317,7 @@ public:
                     assert(0, "rhs or lhs do not exist " ~ ae.toString);
                 return;
             }
-            if ((lhs.type.type == BCTypeEnum.i32
-                    || lhs.type.type == BCTypeEnum.i32Ptr) && rhs.type.type == BCTypeEnum.i32)
+            if ((lhs.type.type == BCTypeEnum.i32 && rhs.type.type == BCTypeEnum.i32)
             {
                 Set(lhs, rhs);
             }
@@ -3323,6 +3339,11 @@ public:
                 {
                     Set(lhs.i32, imm32(0));
                 }
+                else if (lhs.type.type == BCTypeEnum.i32Ptr && rhs.type.type == BCTypeEnum.i32Ptr)
+                {
+                    Set(lhs.i32, rhs.i32);
+                }
+
                 else
                 {
                     debug (ctfe)
@@ -3959,6 +3980,12 @@ public:
         else
                     return;
         }
+        /* TODO we need to do something else if we deal with cained && and || Exps
+        if (isChainedBoolExp())
+        {
+            BCBlock ifbody = fs.ifbody ? genBlock(fs.ifbody) : BCBlock.init;
+            BCBlock elsebody = fs.elsebody ? genBlock(fs.elsebody) : BCBlock.init;
+        }*/
 
         auto cj = beginCndJmp(cond);
 
