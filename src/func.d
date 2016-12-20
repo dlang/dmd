@@ -1975,6 +1975,7 @@ extern (C++) class FuncDeclaration : Declaration
                 // BUG: need to disallow returns and throws
                 // BUG: verify that all in and ref parameters are read
                 freq = freq.semantic(sc2);
+                freq.blockExit(this, false);
 
                 sc2 = sc2.pop();
 
@@ -2003,6 +2004,7 @@ extern (C++) class FuncDeclaration : Declaration
                     p.type = f.next;
                 }
                 fens = fens.semantic(sc2);
+                fens.blockExit(this, false);
 
                 sc2 = sc2.pop();
 
