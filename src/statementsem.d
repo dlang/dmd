@@ -821,6 +821,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
                     if (dim == 2 && i == 0)
                     {
+                        if (!p.type.isintegral())
+                        {
+                            fs.error("foreach: key cannot be of non-integral type %s", p.type.toChars());
+                            goto case Terror;
+                        }
                         var = new VarDeclaration(loc, p.type.mutableOf(), Identifier.generateId("__key"), null);
                         var.storage_class |= STCtemp | STCforeach;
                         if (var.storage_class & (STCref | STCout))
@@ -847,6 +852,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                                 goto case Terror;
                             }
                             fs.key.range = new IntRange(SignExtendedNumber(0), dimrange.imax);
+                        }
+                        else if (!Type.tsize_t.implicitConvTo(var.type))
+                        {
+                            fs.deprecation("foreach: loop index implicitly converted from %s to %s",
+                                               Type.tsize_t.toChars(), fs.key.type.toChars());
                         }
                     }
                     else
@@ -914,6 +924,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     fs.key = new VarDeclaration(loc, Type.tsize_t, idkey, null);
                     fs.key.storage_class |= STCtemp;
                 }
+                else if (fs.key.type.ty != Tsize_t)
+                {
+                    tmp_length = new CastExp(loc, tmp_length, fs.key.type);
+                }
+
                 if (fs.op == TOKforeach_reverse)
                     fs.key._init = new ExpInitializer(loc, tmp_length);
                 else

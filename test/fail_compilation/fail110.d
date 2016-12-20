@@ -1,4 +1,4 @@
-/*
+/* REQUIRED_ARGS: -m32
 TEST_OUTPUT:
 ---
 fail_compilation/fail110.d(16): Error: variable i is shadowing variable fail110.main.i
