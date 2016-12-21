@@ -226,22 +226,47 @@ pure int foo(int i,
     only parameters without mutable indirections, and (b) returns a result
     without mutable indirections, will have the same effect for all invocation
     with equivalent arguments, and is allowed to memoize the result of the
-    function. These are termed "strongly `pure`" functions in this document.
-    Note that a strongly pure function may still have behavior inconsistent with
-    memoization by e.g. using `cast`s or by changing behavior depending on the
-    address of its parameters. An implementation is currently not required to
-    enforce validity of memoization in all cases.)
+    function under the assumption that equivalent parameters always produce
+    equivalent results. Such functions are termed $(I strongly `pure`) functions
+    in this document. Note that a strongly pure function may still have behavior
+    inconsistent with memoization by e.g. using `cast`s or by changing behavior
+    depending on the address of its parameters. An implementation is currently
+    not required to enforce validity of memoization in all cases.)
 
-    $(P Any `pure` function that is not strongly pure cannot be memoized. The
-    compiler is required to honor all calls to the function, even if it appears
-    to do nothing. (Example: a pure function taking no arguments and returning
-    `int*` cannot be memoized. It also should not because it may be a typical
-    factory function returning a fresh pointer with each call.))
+    $(P Any `pure` function that is not strongly pure cannot be assumed to be
+    memoizable and enjoys no special treatment compared to a regular non-pure
+    function. (Example: a pure function taking no arguments and returning `int*`
+    should not be memoized. It also should not because it may be a typical
+    factory function returning a fresh pointer with each call.) Function calls
+    may still be elided, or results be memoized, by means of traditional
+    inlining and optimization techniques available for all functions.)
 
-    $(P `pure` functions returning `void` will be always called even if it is
-    strongly `pure`. The implementation must assume the function does something
-    outside the confines of the type system and is therefore not allowed to
-    elide the call, even if it appears to have no possible effect.)
+    $(P A function that accepts only parameters without mutable indirections and
+    returns a result that has mutable indirections is called a $(I pure factory
+    function). An implementation may assume that all mutable memory returned by
+    the call is not referenced by any other part of the program, i.e. it is
+    newly allocated by the function. Conversely, the mutable references of the
+    result may be assumed to not refer to any object that existed before the
+    function call. For example:)
+
+---
+struct List { int payload; List* next; }
+pure List* make(int a, int b)
+{
+    auto result = new List(a, null);
+    result.next = new List(b, result);
+    return result;
+}
+---
+
+    $(P Here, an implementation may assume (without having knowledge of the body
+    of `make`) that all references in `make`'s result refer to other `List`
+    objects created by `make`, and that no other part of the program refers to
+    any of these objects.)
+
+    $(P If a strongly pure function throws an exception or an error, the
+    assumptions related to memoization and references do not carry to the thrown
+    exception.)
 
 $(H4 $(LNAME2 nothrow-functions, Nothrow Functions))
 
