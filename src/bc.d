@@ -7,7 +7,7 @@ import std.conv;
  * Written By Stefan Koch in 2016
  */
 
-//IMPORTANT FIXME 
+//IMPORTANT FIXME
 // it becomes clear that supporting indirect instructions aka i32ptr
 // is a pretty bad idea in terms of performance.
 
@@ -189,6 +189,11 @@ struct LongInst64
         lw = i | indirect << 6 | stackAddrLhs.addr << 16;
         hi = rhs.imm32;
     }
+}
+
+static bool isStackValueOrParameter(BCValue val) pure @safe nothrow
+{
+    return (val.vType == BCValueType.StackValue || val.vType == BCValueType.Parameter);
 }
 
 static assert(LongInst.max < 0x3F, "Instruction do not fit in 6 bit anymore");
@@ -481,8 +486,7 @@ struct BCGen
         auto ifTrue = jmp.ifTrue;
 
         LongInst64 lj;
-        if ((cond.vType == BCValueType.StackValue
-                || cond.vType == BCValueType.Parameter) && cond.type == BCType.i32)
+        if (isStackValueOrParameter(cond) && cond.type == BCType.i32)
         {
             lj = (ifTrue ? LongInst64(LongInst.JmpNZ, cond.stackAddr,
                 target.addr) : LongInst64(LongInst.JmpZ, cond.stackAddr, target.addr));
@@ -522,8 +526,9 @@ struct BCGen
         {
             size = pushOntoStack(size);
         }
-        assert(size.vType == BCValueType.StackValue || size.vType == BCValueType.Parameter);
-        assert(heapPtr.vType == BCValueType.StackValue || heapPtr.vType == BCValueType.Parameter);
+        assert(isStackValueOrParameter(size));
+        assert(isStackValueOrParameter(heapPtr));
+
         emitLongInst(LongInst64(LongInst.Alloc, heapPtr.stackAddr, size.stackAddr));
     }
 
@@ -579,7 +584,7 @@ struct BCGen
             inst += (LongInst.ImmAdd - LongInst.Add);
             emitLongInst(LongInst64(inst, lhs.stackAddr, rhs.imm32, isIndirect));
         }
-        else if (rhs.vType == BCValueType.StackValue || rhs.vType == BCValueType.Parameter)
+        else if (isStackValueOrParameter(rhs))
         {
             emitLongInst(LongInst64(inst, lhs.stackAddr, rhs.stackAddr, isIndirect));
         }
@@ -867,8 +872,8 @@ struct BCGen
         {
             _to = pushOntoStack(_to);
         }
-        assert(_to.vType == BCValueType.StackValue
-            || _to.vType == BCValueType.Parameter, "to has the vType " ~ to!string(_to.vType));
+        assert(isStackValueOrParameter(_to), "to has the vType " ~ to!string(_to.vType));
+        assert(isStackValueOrParameter(from), "from has the vType " ~ to!string(from.vType));
 
         emitLongInst(LongInst64(LongInst.HeapLoad32, _to.stackAddr, from.stackAddr));
     }
@@ -884,8 +889,8 @@ struct BCGen
             _to = pushOntoStack(_to);
         }
 
-        assert(_to.vType == BCValueType.StackValue
-            || _to.vType == BCValueType.Parameter, "to has the vType " ~ to!string(_to.vType));
+        assert(isStackValueOrParameter(_to), "to has the vType " ~ to!string(_to.vType));
+        assert(isStackValueOrParameter(value), "value has the vType " ~ to!string(value.vType));
 
         emitLongInst(LongInst64(LongInst.HeapStore32, _to.stackAddr, value.stackAddr));
     }
@@ -945,8 +950,17 @@ struct BCGen
         assert(result.vType == BCValueType.Unknown
             || result.vType == BCValueType.StackValue,
             "The result for this must be Empty or a StackValue");
+        if (lhs.vType == BCValueType.Immediate)
+        {
+            lhs = pushOntoStack(lhs);
+        }
+        if (rhs.vType == BCValueType.Immediate)
+        {
+            rhs = pushOntoStack(rhs);
+        }
         assert(lhs.vType == BCValueType.StackValue, "The lhs of StrEq3 a StackValue");
-        assert(rhs.vType == BCValueType.StackValue, "The rhs of StrEq3 a StackValue");
+        assert(isStackValueOrParameter(rhs),
+            "The rhs of StrEq3 not a StackValue" ~ to!string(rhs.vType));
 
         emitLongInst(LongInst64(LongInst.StrEq, lhs.stackAddr, rhs.stackAddr, false));
 
