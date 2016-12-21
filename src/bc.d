@@ -958,7 +958,8 @@ struct BCGen
         {
             rhs = pushOntoStack(rhs);
         }
-        assert(isStackValueOrParameter(lhs), "The lhs of StrEq3 is not a StackValue " ~ to!string(rhs.vType));
+        assert(isStackValueOrParameter(lhs),
+            "The lhs of StrEq3 is not a StackValue " ~ to!string(rhs.vType));
         assert(isStackValueOrParameter(rhs),
             "The rhs of StrEq3 not a StackValue" ~ to!string(rhs.vType));
 

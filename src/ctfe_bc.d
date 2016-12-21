@@ -16,6 +16,7 @@ import ddmd.arraytypes : Expressions;
  */
 
 import std.conv : to;
+
 version = ctfe_noboundscheck;
 struct BCBlockJump
 {
@@ -33,7 +34,7 @@ struct UnresolvedGoto
 
 struct JumpTarget
 {
-//    Identifier ident;
+    //    Identifier ident;
     uint scopeId;
 }
 
@@ -57,7 +58,7 @@ struct BoolExprFixupEntry
 {
     BCAddr unconditional;
     CndJmpBegin conditional;
-/*
+    /*
     this(BCAddr unconditional) pure
     {
         this.unconditional = unconditional;
@@ -551,8 +552,7 @@ struct BCStruct
 
         debug (ctfe)
             assert(idx <= memberTypeCount);
-        else
-            if (idx > memberTypeCount)
+            else if (idx > memberTypeCount)
                 return -1;
 
         foreach (t; memberTypes[0 .. idx])
@@ -806,11 +806,11 @@ struct SharedCtfeState(BCGenT)
                 }
                 return size(_array.elementType) * _array.length;
             }
-            case BCType.Slice:
+        case BCType.Slice:
             {
-                return 4+4; // 4 for pointer 4 for length;
+                return 4 + 4; // 4 for pointer 4 for length;
             }
-            case BCType.Ptr:
+        case BCType.Ptr:
             {
                 return 4; // 4 for pointer;
             }
@@ -1023,99 +1023,95 @@ extern (C++) final class BCTypeVisitor : Visitor
     {
 
         assert(t !is null);
-        TypeBasic bt = t.isTypeBasic;
-        if (bt)
+        switch (t.ty)
         {
-            switch (bt.ty)
-            {
-            case ENUMTY.Tbool:
-                //return BCType(BCTypeEnum.i1);
-                return BCType(BCTypeEnum.i32);
-            case ENUMTY.Tchar:
-            case ENUMTY.Tdchar:
-                return BCType(BCTypeEnum.Char);
-            case ENUMTY.Tint8:
-            case ENUMTY.Tuns8:
-                //return BCType(BCTypeEnum.i8);
-            case ENUMTY.Tint16:
-            case ENUMTY.Tuns16:
-                //return BCType(BCTypeEnum.i16);
-            case ENUMTY.Tint32:
-            case ENUMTY.Tuns32:
-                return BCType(BCTypeEnum.i32);
-            case ENUMTY.Tint64:
-            case ENUMTY.Tuns64:
-                return BCType(BCTypeEnum.i64);
-            default:
-                return BCType.init;
-            }
+        case ENUMTY.Tbool:
+            //return BCType(BCTypeEnum.i1);
+            return BCType(BCTypeEnum.i32);
+        case ENUMTY.Tchar:
+        case ENUMTY.Tdchar:
+            return BCType(BCTypeEnum.Char);
+        case ENUMTY.Tint8:
+        case ENUMTY.Tuns8:
+            //return BCType(BCTypeEnum.i8);
+        case ENUMTY.Tint16:
+        case ENUMTY.Tuns16:
+            //return BCType(BCTypeEnum.i16);
+        case ENUMTY.Tint32:
+        case ENUMTY.Tuns32:
+            return BCType(BCTypeEnum.i32);
+        case ENUMTY.Tint64:
+        case ENUMTY.Tuns64:
+            return BCType(BCTypeEnum.i64);
+        default:
+            break;
         }
+        // If we get here it's not a basic type;
+        assert(!t.isTypeBasic());
+        if (t.isString)
+        {
+            return BCType(BCTypeEnum.String);
+        }
+        else if (t.ty == Tstruct)
+        {
+            if (!topLevelAggregate)
+            {
+                topLevelAggregate = t;
+            }
+            else if (topLevelAggregate == t)
+            {
+                // struct S { S s } is illegal!
+                assert(0, "This should never happen");
+            }
+            auto sd = (cast(TypeStruct) t).sym;
+            auto result = BCType(BCTypeEnum.Struct, _sharedCtfeState.getStructIndex(sd));
+            topLevelAggregate = typeof(topLevelAggregate).init;
+            return result;
+        }
+        else if (t.ty == Tarray)
+        {
+            auto tarr = (cast(TypeDArray) t);
+            return BCType(BCTypeEnum.Slice, _sharedCtfeState.getSliceIndex(tarr));
+        }
+        else if (t.ty == Tenum)
+        {
+            return toBCType(t.toBasetype);
+        }
+        else if (t.ty == Tsarray)
+        {
+            auto tsa = cast(TypeSArray) t;
+            return BCType(BCTypeEnum.Array, _sharedCtfeState.getArrayIndex(tsa));
+        }
+        else if (t.ty == Tpointer)
+        {
+            if (t.nextOf.ty == Tint32 || t.nextOf.ty == Tuns32)
+                return BCType(BCTypeEnum.i32Ptr);
+            //else if (auto pi =_sharedCtfeState.getPointerIndex(cast(TypePointer)t))
+            //{
+            //return BCType(BCTypeEnum.Ptr, pi);
+            //}
         else
-        {
-            if (t.isString)
             {
-                return BCType(BCTypeEnum.String);
-            }
-            else if (t.ty == Tstruct)
-            {
-                if (!topLevelAggregate)
+                uint indirectionCount = 1;
+                Type baseType = t.nextOf;
+                while (baseType.ty == Tpointer)
                 {
-                    topLevelAggregate = t;
+                    indirectionCount++;
+                    baseType = baseType.nextOf;
                 }
-                else if (topLevelAggregate == t)
-                {
-                    // struct S { S s } is illegal!
-                    assert(0, "This should never happen");
-                }
-                auto sd = (cast(TypeStruct) t).sym;
-                auto result =  BCType(BCTypeEnum.Struct, _sharedCtfeState.getStructIndex(sd));
-                topLevelAggregate = typeof(topLevelAggregate).init;
-                return result;
+                _sharedCtfeState.pointerTypePointers[_sharedCtfeState.pointerCount] = cast(
+                    TypePointer) t;
+                _sharedCtfeState.pointers[_sharedCtfeState.pointerCount++] = BCPointer(
+                    baseType != topLevelAggregate ? toBCType(baseType) : BCType(BCTypeEnum.Struct,
+                    _sharedCtfeState.structCount + 1), indirectionCount);
+                return BCType(BCTypeEnum.Ptr, _sharedCtfeState.pointerCount);
             }
-            else if (t.ty == Tarray)
-            {
-                auto tarr = (cast(TypeDArray) t);
-                return BCType(BCTypeEnum.Slice, _sharedCtfeState.getSliceIndex(tarr));
-            }
-            else if (t.ty == Tenum)
-            {
-                return toBCType(t.toBasetype);
-            }
-            else if (t.ty == Tsarray)
-            {
-                auto tsa = cast(TypeSArray) t;
-                return BCType(BCTypeEnum.Array, _sharedCtfeState.getArrayIndex(tsa));
-            }
-            else if (t.ty == Tpointer)
-            {
-                if (t.nextOf.ty == Tint32 || t.nextOf.ty == Tuns32)
-                    return BCType(BCTypeEnum.i32Ptr);
-                //else if (auto pi =_sharedCtfeState.getPointerIndex(cast(TypePointer)t))
-                //{
-                //return BCType(BCTypeEnum.Ptr, pi);
-                //}
-            else
-                {
-                    uint indirectionCount = 1;
-                    Type baseType = t.nextOf;
-                    while (baseType.ty == Tpointer)
-                    {
-                        indirectionCount++;
-                        baseType = baseType.nextOf;
-                    }
-                    _sharedCtfeState.pointerTypePointers[_sharedCtfeState.pointerCount] = cast(
-                        TypePointer) t;
-                    _sharedCtfeState.pointers[_sharedCtfeState.pointerCount++] = BCPointer(
-                       baseType != topLevelAggregate ? toBCType(baseType) : BCType(BCTypeEnum.Struct, _sharedCtfeState.structCount+1), indirectionCount);
-                    return BCType(BCTypeEnum.Ptr, _sharedCtfeState.pointerCount);
-                }
-            }
-
-            debug (ctfe)
-                assert(0, "NBT Type unsupported " ~ (cast(Type)(t)).toString);
-
-            return BCType.init;
         }
+
+        debug (ctfe)
+            assert(0, "NBT Type unsupported " ~ (cast(Type)(t)).toString);
+
+        return BCType.init;
     }
 
     override void visit(StructDeclaration sd)
@@ -1140,7 +1136,7 @@ extern (C++) final class BCTypeVisitor : Visitor
 struct BCScope
 {
 
-//    Identifier[64] identifiers;
+    //    Identifier[64] identifiers;
     BCBlock[64] blocks;
 }
 
@@ -1164,7 +1160,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     BCValue[] arguments;
     BCType[] parameterTypes;
 
-//    typeof(this)* parent;
+    //    typeof(this)* parent;
 
     bool processingArguments;
     bool insideArgumentProcessing;
@@ -1823,28 +1819,29 @@ public:
                 }
 
             }
-debug(andand)
-                {        case TOK.TOKandand:
+            debug (andand)
             {
+        case TOK.TOKandand:
+                {
 
-                // If lhs is false jump to false
-                // If lhs is true keep going
-                const oldFixupTableCount = fixupTableCount;
-                auto lhs = genExpr(e.e1);
-                auto afterLhs = genLabel();
-                //doFixup(oldFixupTableCount, &afterLhs, null);
-                fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(lhs,
-                    false));
-                auto rhs = genExpr(e.e2);
-                auto afterRhs = genLabel();
+                    // If lhs is false jump to false
+                    // If lhs is true keep going
+                    const oldFixupTableCount = fixupTableCount;
+                    auto lhs = genExpr(e.e1);
+                    auto afterLhs = genLabel();
+                    //doFixup(oldFixupTableCount, &afterLhs, null);
+                    fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(lhs,
+                        false));
+                    auto rhs = genExpr(e.e2);
+                    auto afterRhs = genLabel();
 
-                //doFixup(oldFixupTableCount, &afterRhs, null);
-                fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(rhs,
-                    false));
-            }
-
-            break;
+                    //doFixup(oldFixupTableCount, &afterRhs, null);
+                    fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(rhs,
+                        false));
                 }
+
+                break;
+            }
         default:
             {
                 bailout();
@@ -1863,6 +1860,7 @@ debug(andand)
         auto v = getVariable(cast(VarDeclaration) se.var);
         //retval = BCValue(v.stackAddr
         import std.stdio;
+
         if (v)
         {
             retval = v;
@@ -2373,7 +2371,7 @@ debug(andand)
 
         foreach (ty; _struct.memberTypes[0 .. _struct.memberTypeCount])
         {
-        /*    if (ty.type != BCTypeEnum.i32)
+            /*    if (ty.type != BCTypeEnum.i32)
             {
                 debug (ctfe)
                     assert(0,
