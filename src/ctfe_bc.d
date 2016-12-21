@@ -16,7 +16,6 @@ import ddmd.arraytypes : Expressions;
  */
 
 import std.conv : to;
-
 version = ctfe_noboundscheck;
 struct BCBlockJump
 {
@@ -34,7 +33,7 @@ struct UnresolvedGoto
 
 struct JumpTarget
 {
-    //    Identifier ident;
+//    Identifier ident;
     uint scopeId;
 }
 
@@ -58,11 +57,12 @@ struct BoolExprFixupEntry
 {
     BCAddr unconditional;
     CndJmpBegin conditional;
+/*
     this(BCAddr unconditional) pure
     {
         this.unconditional = unconditional;
     }
-
+*/
     this(CndJmpBegin conditional) pure
     {
         this.conditional = conditional;
@@ -551,7 +551,8 @@ struct BCStruct
 
         debug (ctfe)
             assert(idx <= memberTypeCount);
-            else if (idx > memberTypeCount)
+        else
+            if (idx > memberTypeCount)
                 return -1;
 
         foreach (t; memberTypes[0 .. idx])
@@ -805,11 +806,11 @@ struct SharedCtfeState(BCGenT)
                 }
                 return size(_array.elementType) * _array.length;
             }
-        case BCType.Slice:
+            case BCType.Slice:
             {
-                return 4 + 4; // 4 for pointer 4 for length;
+                return 4+4; // 4 for pointer 4 for length;
             }
-        case BCType.Ptr:
+            case BCType.Ptr:
             {
                 return 4; // 4 for pointer;
             }
@@ -1067,7 +1068,7 @@ extern (C++) final class BCTypeVisitor : Visitor
                     assert(0, "This should never happen");
                 }
                 auto sd = (cast(TypeStruct) t).sym;
-                auto result = BCType(BCTypeEnum.Struct, _sharedCtfeState.getStructIndex(sd));
+                auto result =  BCType(BCTypeEnum.Struct, _sharedCtfeState.getStructIndex(sd));
                 topLevelAggregate = typeof(topLevelAggregate).init;
                 return result;
             }
@@ -1105,8 +1106,7 @@ extern (C++) final class BCTypeVisitor : Visitor
                     _sharedCtfeState.pointerTypePointers[_sharedCtfeState.pointerCount] = cast(
                         TypePointer) t;
                     _sharedCtfeState.pointers[_sharedCtfeState.pointerCount++] = BCPointer(
-                        baseType != topLevelAggregate ? toBCType(baseType) : BCType(BCTypeEnum.Struct,
-                        _sharedCtfeState.structCount + 1), indirectionCount);
+                       baseType != topLevelAggregate ? toBCType(baseType) : BCType(BCTypeEnum.Struct, _sharedCtfeState.structCount+1), indirectionCount);
                     return BCType(BCTypeEnum.Ptr, _sharedCtfeState.pointerCount);
                 }
             }
@@ -1140,7 +1140,7 @@ extern (C++) final class BCTypeVisitor : Visitor
 struct BCScope
 {
 
-    //    Identifier[64] identifiers;
+//    Identifier[64] identifiers;
     BCBlock[64] blocks;
 }
 
@@ -1164,7 +1164,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     BCValue[] arguments;
     BCType[] parameterTypes;
 
-    //    typeof(this)* parent;
+//    typeof(this)* parent;
 
     bool processingArguments;
     bool insideArgumentProcessing;
@@ -1357,11 +1357,11 @@ public:
         }
     }
     /*
-	BCValue pushOntoHeap(BCValue v)
-	{
-		assert(isBasicBCType(toBCType(v)), "For now only basicBCTypes are supported");
+    BCValue pushOntoHeap(BCValue v)
+    {
+        assert(isBasicBCType(toBCType(v)), "For now only basicBCTypes are supported");
 
-	}
+    }
 */
     BCValue genExpr(Expression expr)
     {
@@ -1708,7 +1708,7 @@ public:
                 TOK.TOKand, TOK.TOKor, TOK.TOKshr, TOK.TOKshl:
                 auto lhs = genExpr(e.e1);
             auto rhs = genExpr(e.e2);
-            //FIXME IMPORRANT 
+            //FIXME IMPORRANT
             // The whole rhs == retval situation should be fixed in the bc evaluator
             // since targets with native 3 address code can do this!
 
@@ -1823,29 +1823,28 @@ public:
                 }
 
             }
-            debug (andand)
+debug(andand)
+                {        case TOK.TOKandand:
             {
-        case TOK.TOKandand:
-                {
 
-                    // If lhs is false jump to false
-                    // If lhs is true keep going
-                    const oldFixupTableCount = fixupTableCount;
-                    auto lhs = genExpr(e.e1);
-                    auto afterLhs = genLabel();
-                    //doFixup(oldFixupTableCount, &afterLhs, null);
-                    fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(lhs,
-                        false));
-                    auto rhs = genExpr(e.e2);
-                    auto afterRhs = genLabel();
+                // If lhs is false jump to false
+                // If lhs is true keep going
+                const oldFixupTableCount = fixupTableCount;
+                auto lhs = genExpr(e.e1);
+                auto afterLhs = genLabel();
+                //doFixup(oldFixupTableCount, &afterLhs, null);
+                fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(lhs,
+                    false));
+                auto rhs = genExpr(e.e2);
+                auto afterRhs = genLabel();
 
-                    //doFixup(oldFixupTableCount, &afterRhs, null);
-                    fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(rhs,
-                        false));
-                }
-
-                break;
+                //doFixup(oldFixupTableCount, &afterRhs, null);
+                fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(rhs,
+                    false));
             }
+
+            break;
+                }
         default:
             {
                 bailout();
@@ -1864,7 +1863,6 @@ public:
         auto v = getVariable(cast(VarDeclaration) se.var);
         //retval = BCValue(v.stackAddr
         import std.stdio;
-
         if (v)
         {
             retval = v;
@@ -2375,7 +2373,7 @@ public:
 
         foreach (ty; _struct.memberTypes[0 .. _struct.memberTypeCount])
         {
-            /*    if (ty.type != BCTypeEnum.i32)
+        /*    if (ty.type != BCTypeEnum.i32)
             {
                 debug (ctfe)
                     assert(0,
@@ -3658,7 +3656,7 @@ public:
                 auto lastGoto = &unresolvedGotos[--unresolvedGotoCount];
                 // maybe we should not do this if (unresolvedGoto == lastGoto)
                 // but that will happen infrequently and even if it happens is just a L1 to L1 tranfer
-                // so who cares ... in fact I suspect the branch would be more expensive :) 
+                // so who cares ... in fact I suspect the branch would be more expensive :)
                 foreach (j; 0 .. lastGoto.jumpCount)
                 {
                     unresolvedGoto.jumps[j] = lastGoto.jumps[j];
@@ -3758,7 +3756,7 @@ public:
         {
             bailout();
             return;
-            //		assert(0, "could not interpret " ~ ce.toString);
+            //        assert(0, "could not interpret " ~ ce.toString);
             // return cantInterpret();
         }
 

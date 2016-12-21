@@ -123,7 +123,7 @@ enum BCValueType : ubyte
     HeapValue = 0x10,
 
     LastCond = 0xFE,
-    Error = 0xFF, 
+    Error = 0xFF,
     //Pinned = 0x80,
     /// Pinned values can be returned
     /// And should be kept in the compacted heap
@@ -306,7 +306,7 @@ struct BCValue
             case BCValueType.Immediate :
                 return imm32;
             case BCValueType.Unknown : return this.imm32;
-            default : 
+            default :
                 {
                     import std.conv : to;
                     assert(0, "toUint not implement for " ~ vType.to!string);
