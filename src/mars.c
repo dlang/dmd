@@ -382,6 +382,7 @@ Usage:\n\
   -Ipath         where to look for imports\n\
   -ignore        ignore unsupported pragmas\n\
   -inline        do function inlining\n\
+  -invariant=off Disable invariant regardless of -debug / -release\n\
   -Jpath         where to look for string imports\n\
   -Llinkerflag   pass linkerflag to link\n\
   -lib           generate library rather than object files\n"
@@ -812,6 +813,8 @@ int main(int iargc, const char *argv[])
                 global.params.ignoreUnsupportedPragmas = 1;
             else if (strcmp(p + 1, "inline") == 0)
                 global.params.useInline = 1;
+            else if (strcmp(p + 1, "invariant=off") == 0)
+                global.params.useInvariants = 0;
             else if (strcmp(p + 1, "lib") == 0)
                 global.params.lib = 1;
             else if (strcmp(p + 1, "nofloat") == 0)
