@@ -1531,7 +1531,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                             {
                                 a = a.implicitCastTo(sc, tret);
                                 a = a.optimize(WANTvalue);
-                                a = toDelegate(a, a.type, sc);
+                                a = toDelegate(a, a.type, sc, fd);
                             }
                             else
                                 a = a.implicitCastTo(sc, tbn);
@@ -1684,9 +1684,9 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
             {
                 // Convert lazy argument to a delegate
                 if (p.type.ty == Tvoid)
-                    arg = toDelegate(arg, p.type, sc);
+                    arg = toDelegate(arg, p.type, sc, fd);
                 else
-                    arg = toDelegate(arg, arg.type, sc);
+                    arg = toDelegate(arg, arg.type, sc, fd);
             }
             //printf("arg: %s\n", arg.toChars());
             //printf("type: %s\n", arg.type.toChars());
@@ -9733,10 +9733,11 @@ extern (C++) final class CallExp : UnaExp
                 VarExp ve = cast(VarExp)e1;
                 if (ve.var.storage_class & STClazy)
                 {
-                    // lazy paramaters can be called without violating purity and safety
+                    // lazy paramaters can be called without violating purity, safety, no-gc
+                    // or nothrow contracts
                     Type tw = ve.var.type;
                     Type tc = ve.var.type.substWildTo(MODconst);
-                    auto tf = new TypeFunction(null, tc, 0, LINKd, STCsafe | STCpure);
+                    auto tf = new TypeFunction(null, tc, 0, LINKd, STCsafe | STCpure | STCnogc | STCnothrow);
                     (tf = cast(TypeFunction)tf.semantic(loc, sc)).next = tw; // hack for bug7757
                     auto t = new TypeDelegate(tf);
                     ve.type = t.semantic(loc, sc);
