@@ -1818,7 +1818,8 @@ public:
                     assert(0, "|| is unsupported at the moment");
                 }
 
-            }
+            } break;
+
             debug (andand)
             {
         case TOK.TOKandand:
