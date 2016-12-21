@@ -3317,7 +3317,7 @@ public:
                     assert(0, "rhs or lhs do not exist " ~ ae.toString);
                 return;
             }
-            if ((lhs.type.type == BCTypeEnum.i32 && rhs.type.type == BCTypeEnum.i32)
+            if (lhs.type.type == BCTypeEnum.i32 && rhs.type.type == BCTypeEnum.i32)
             {
                 Set(lhs, rhs);
             }
