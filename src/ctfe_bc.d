@@ -1031,6 +1031,7 @@ extern (C++) final class BCTypeVisitor : Visitor
             //return BCType(BCTypeEnum.i1);
             return BCType(BCTypeEnum.i32);
         case ENUMTY.Tchar:
+        case ENUMTY.Twchar:
         case ENUMTY.Tdchar:
             return BCType(BCTypeEnum.Char);
         case ENUMTY.Tint8:
@@ -1045,11 +1046,19 @@ extern (C++) final class BCTypeVisitor : Visitor
         case ENUMTY.Tint64:
         case ENUMTY.Tuns64:
             return BCType(BCTypeEnum.i64);
+        case ENUMTY.Tfloat32:
+            //return BCType(BCTypeEnum.f324);
+        case ENUMTY.Tfloat64:
+            //return BCType(BCTypeEnum.f64);
+        case ENUMTY.Tfloat80:
+            return BCType.init; //return BCType(BCTypeEnum.f64);
+        case ENUMTY.Tvoid:
+            return BCType(BCTypeEnum.Void);
         default:
             break;
         }
         // If we get here it's not a basic type;
-        assert(!t.isTypeBasic());
+        assert(!t.isTypeBasic(), "Is a basicType: " ~ t.ty.to!string());
         if (t.isString)
         {
             return BCType(BCTypeEnum.String);
