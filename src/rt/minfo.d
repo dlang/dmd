@@ -523,6 +523,13 @@ struct ModuleGroup
         }
     }
 
+    /// ditto
+    void sortCtors()
+    {
+        import rt.config : rt_configOption;
+        sortCtors(rt_configOption("oncycle"));
+    }
+
     /******************************
      * This is the old ctor sorting algorithm that does not find all cycles.
      *
@@ -780,10 +787,9 @@ extern (C)
 {
 void rt_moduleCtor()
 {
-    import rt.config : rt_configOption;
     foreach (ref sg; SectionGroup)
     {
-        sg.moduleGroup.sortCtors(rt_configOption("oncycle"));
+        sg.moduleGroup.sortCtors();
         sg.moduleGroup.runCtors();
     }
 }
