@@ -107,6 +107,8 @@ typedef unsigned char TY;       // ENUMTY
 extern int Tsize_t;
 extern int Tptrdiff_t;
 
+#define SIZE_INVALID (~(d_uns64)0)   // error return from size() functions
+
 
 /**
  * type modifiers
@@ -240,7 +242,6 @@ public:
     char *toPrettyChars(bool QualifyTypes = false);
     static void init();
 
-    #define SIZE_INVALID (~(d_uns64)0)
     d_uns64 size();
     virtual d_uns64 size(Loc loc);
     virtual unsigned alignsize();
