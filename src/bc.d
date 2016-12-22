@@ -1112,7 +1112,7 @@ string printInstructions(const int* startInstructions, uint length) pure
     while (length--)
     {
         uint lw = arr[pos];
-        result ~= pos.to!string ~ ":\t" ~ (!!(lw & IndirectionFlagMask) ? "* " : "");
+        result ~= pos.to!string ~ ":\t";
         ++pos;
         if (lw == 0)
         {
@@ -1562,23 +1562,14 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
 
         // consider splitting the stackPointer in stackHigh and stackLow
 
-        bool indirect = !!(lw & IndirectionFlagMask);
-
+        auto opRefOffset = (lw >> 16) & 0xFFFF;
         auto lhsOffset = hi & 0xFFFF;
         auto rhsOffset = (hi >> 16) & 0xFFFF;
-        auto opRefOffset = (lw >> 16) & 0xFFFF;
 
         auto lhsRef = (stackP + (lhsOffset / 4));
         auto rhs = (stackP + (rhsOffset / 4));
         auto lhsStackRef = (stackP + (opRefOffset / 4));
         auto opRef = stackP + (opRefOffset / 4);
-
-        if (indirect)
-        {
-            lhsStackRef = (stack.ptr + ((*lhsStackRef) / 4));
-            lhsRef = (stack.ptr + ((*lhsRef) / 4));
-            opRef = (stack.ptr + ((*opRef) / 4));
-        }
 
         if (!lw)
         { // Skip NOPS

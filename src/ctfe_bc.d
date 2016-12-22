@@ -153,7 +153,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 import ddmd.ctfe.bc_common;
 
 enum perf = 1;
-enum cacheBC = 0;
+enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
@@ -1095,13 +1095,13 @@ extern (C++) final class BCTypeVisitor : Visitor
         }
         else if (t.ty == Tpointer)
         {
-            if (t.nextOf.ty == Tint32 || t.nextOf.ty == Tuns32)
-                return BCType(BCTypeEnum.i32Ptr);
+            //if (t.nextOf.ty == Tint32 || t.nextOf.ty == Tuns32)
+            //    return BCType(BCTypeEnum.i32Ptr);
             //else if (auto pi =_sharedCtfeState.getPointerIndex(cast(TypePointer)t))
             //{
             //return BCType(BCTypeEnum.Ptr, pi);
             //}
-        else
+            //else
             {
                 uint indirectionCount = 1;
                 Type baseType = t.nextOf;
@@ -3774,10 +3774,8 @@ public:
     override void visit(CallExp ce)
     {
         bailout();
-        return;
+        return ;
         FuncDeclaration fd;
-        BCValue[] bc_args;
-        bc_args.length = ce.arguments.dim;
 
         if (ce.e1.op == TOKvar)
         {
@@ -3798,17 +3796,19 @@ public:
             //        assert(0, "could not interpret " ~ ce.toString);
             // return cantInterpret();
         }
+        BCValue[] bc_args;
+        bc_args.length = ce.arguments.dim;
 
         foreach (i, arg; *ce.arguments)
         {
             bc_args[i] = genExpr(arg);
         }
-        auto f = fd;
+
         static if (is(BCFunction))
         {
 
-            uint fnIdx = _sharedCtfeState.getFunctionIndex(f);
-            if (!fnIdx && f && cacheBC)
+            uint fnIdx = _sharedCtfeState.getFunctionIndex(fd);
+            if (!fnIdx && fd && cacheBC)
             {
                 // FIXME deferring can only be done if we are NOT in a closure
                 // if we get here the function was not already there.
@@ -3820,8 +3820,8 @@ public:
 
                     const oldFunctionCount = _sharedCtfeState.functionCount++;
                     fnIdx = oldFunctionCount + 1;
-                    _sharedCtfeState.functions[oldFunctionCount] = BCFunction(cast(void*) f);
-                    uncompiledFunctions[uncompiledFunctionCount++] = UncompiledFunction(f,
+                    _sharedCtfeState.functions[oldFunctionCount] = BCFunction(cast(void*) fd);
+                    uncompiledFunctions[uncompiledFunctionCount++] = UncompiledFunction(fd,
                         fnIdx);
                 }
                 else
@@ -3830,7 +3830,7 @@ public:
                     {
                         assert(0, "We could not compile " ~ ce.toString);
                     }
-                else
+                    else
                     {
                         bailout();
                         return;
@@ -3850,7 +3850,7 @@ public:
         }
         else
         {
-
+            bailout();
         }
         return;
 

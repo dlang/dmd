@@ -58,26 +58,6 @@ bool test(BCGenT)()
     static assert(testBCFn([BCValue(Imm32(12))], null) == BCValue(Imm32(24)));
     static assert(testBCFn([BCValue(Imm32(16))], null) == BCValue(Imm32(16)));
 
-    static immutable testIndirectReturnFn = BCGenFunction!(BCGenT, () {
-        BCGenT gen;
-
-        with (gen)
-        {
-            beginFunction();
-            Set(BCValue(StackAddr(4), BCType(BCTypeEnum.i32)), BCValue(Imm32(8)));
-            Set(BCValue(StackAddr(8), BCType(BCTypeEnum.i32)), BCValue(Imm32(32)));
-
-            auto result = BCValue(StackAddr(4), BCType(BCTypeEnum.i32Ptr));
-
-            Ret(result); // return result;
-            endFunction();
-        }
-
-        return gen;
-    });
-
-    static assert(testIndirectReturnFn([], null) == BCValue(Imm32(32)));
-
     static immutable testLtFn = BCGenFunction!(BCGenT, () {
         BCGenT gen;
 
