@@ -1141,7 +1141,7 @@ struct BCScope
     //    Identifier[64] identifiers;
     BCBlock[64] blocks;
 }
-
+debug = nullPtrCheck;
 extern (C++) final class BCV(BCGenT) : Visitor
 {
     uint unresolvedGotoCount;
@@ -1256,6 +1256,23 @@ extern (C++) final class BCV(BCGenT) : Visitor
     BCValue assignTo;
 
     bool discardValue = false;
+
+    debug (nullPtrCheck)
+    {
+        import ddmd.lexer : Loc;
+        void Load32(BCValue _to, BCValue from)
+        {
+            AssertError(from.i32, _sharedCtfeState.addError(Loc.init, "Load Source may not be null"));
+            gen.Load32(_to, from);
+        }
+
+        void Store32(BCValue _to, BCValue value)
+        {
+            AssertError(_to.i32, _sharedCtfeState.addError(Loc.init, "Store Destination may not be null"));
+            gen.Store32(_to, value);
+        }
+
+    }
 
     void doFixup(uint oldFixupTableCount, BCLabel* ifTrue, BCLabel* ifFalse)
     {
