@@ -999,7 +999,9 @@ Expression toExpression(const BCValue value, Type expressionType,
         break;
     case Tpointer:
         {
-            result = new PtrExp(Loc.init, new IntegerExp(value.imm32));
+            //FIXME this will _probably_ only work for basic types with one level of indirection (eg, int*, uint*)
+            result = new AddrExp(Loc.init, toExpression(imm32(*(heapPtr._heap.ptr + value.imm32 )), expressionType.nextOf));
+            result.type = expressionType;
         }
         break;
     default:
@@ -2498,9 +2500,20 @@ public:
     {
         auto ptr = genTemporary(i32Type);
         auto size = genTemporary(i32Type);
-        Set(size, imm32(basicTypeSize(toBCType(ne.newtype))));
+        auto type = toBCType(ne.newtype);
+        auto typeSize = basicTypeSize(type);
+        if (!isBasicBCType(type) && typeSize > 4)
+        {
+            bailout();
+            debug(ctfe)
+                assert(0, "Can only new basic Types under <=4 bytes for now");
+            return ;
+        }
+        Set(size, imm32(typeSize));
 
         Alloc(ptr, size);
+        auto value = genExpr((*ne.arguments)[0]);
+        Store32(ptr, value);
         retval = ptr;
         {
             import std.stdio;
