@@ -8342,8 +8342,7 @@ void unSpeculative(Scope* sc, RootObject o)
     if (!s)
         return;
 
-    Declaration d = s.isDeclaration();
-    if (d)
+    if (Declaration d = s.isDeclaration())
     {
         if (VarDeclaration vd = d.isVarDeclaration())
             o = vd.type;
