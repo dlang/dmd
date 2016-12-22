@@ -2981,27 +2981,21 @@ public:
             bailout();
             return;
         }
+
         auto stringAddr = _sharedCtfeState.heap.pushString(se.string, cast(uint) se.len);
         auto stringAddrValue = imm32(stringAddr.addr);
+
         if (insideArgumentProcessing)
         {
             retval = stringAddrValue;
             return;
         }
-
-        if (assignTo)
-        {
-            retval = assignTo;
-        }
         else
         {
-            retval = genTemporary(BCType(BCTypeEnum.String));
+            retval = assignTo ? assignTo : genTemporary(BCType(BCTypeEnum.String));
+            Set(retval.i32, stringAddrValue);
         }
-        Set(retval.i32, stringAddrValue);
-        if (insideArgumentProcessing)
-        {
-            retval = stringAddrValue;
-        }
+
         debug (ctfe)
         {
             writefln("String %s, is in %d, first uint is %d",
