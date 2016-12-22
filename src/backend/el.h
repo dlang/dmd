@@ -95,6 +95,8 @@ struct elem
             #define Ety _EU._EO.Ety_
             unsigned Eexp_;             // index into expnod[]
             #define Eexp _EU._EO.Eexp_
+            unsigned Edef_;             // index into defnod[]
+            #define Edef _EU._EO.Edef_
 
             // These flags are all temporary markers, used once and then
             // thrown away.

@@ -1241,12 +1241,14 @@ STATIC void markinvar(elem *n,vec_t rd)
 void updaterd(elem *n,vec_t GEN,vec_t KILL)
 {   unsigned op = n->Eoper;
     unsigned i;
-    unsigned ni;
     elem *t;
 
     assert(OTdef(op));
     assert(GEN);
     elem_debug(n);
+
+    unsigned ni = n->Edef;
+    assert(ni != -1);
 
     // If unambiguous def
     if (OTassign(op) && (t = n->E1)->Eoper == OPvar)
@@ -1260,16 +1262,12 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
 
         //printf("updaterd: "); WReqn(n); printf(" toff=%d, tsize=%d\n", toff, tsize);
 
-        ni = (unsigned)-1;
 
         /* for all unambig defs in go.defnod[] */
         for (i = 0; i < go.deftop; i++)
         {   elem *tn = go.defnod[i].DNelem;
             elem *tn1;
             targ_size_t tn1size;
-
-            if (tn == n)
-                ni = i;
 
             if (!OTassign(tn->Eoper))
                 continue;
@@ -1290,13 +1288,10 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
                 vec_clearbit(i,GEN);
             }
         }
-        assert(ni != -1);
     }
 #if 0
     else if (OTassign(op) && t->Eoper != OPvar && t->Ejty)
     {
-        ni = -1;
-
         // for all unambig defs in go.defnod[]
         for (i = 0; i < go.deftop; i++)
         {   elem *tn = go.defnod[i].DNelem;
@@ -1317,20 +1312,8 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
                 vec_setbit(i,KILL);
             vec_clearbit(i,GEN);
         }
-        assert(ni != -1);
     }
 #endif
-    else
-    {
-        /* Set bit in GEN for this def */
-        for (i = 0; 1; i++)
-        {   assert(i < go.deftop);         // should find n in go.defnod[]
-            if (go.defnod[i].DNelem == n)
-            {   ni = i;
-                break;
-            }
-        }
-    }
 
     vec_setbit(ni,GEN);                 // set bit in GEN for this def
 }
