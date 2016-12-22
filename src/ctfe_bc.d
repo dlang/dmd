@@ -2538,7 +2538,8 @@ public:
         Set(size, imm32(typeSize));
 
         Alloc(ptr, size);
-        auto value = genExpr((*ne.arguments)[0]);
+        // TODO do proper handling of the arguments to the newExp.
+        auto value = ne.arguments && ne.arguments.dim == 1 ? genExpr((*ne.arguments)[0]) : imm32(0);
         Store32(ptr, value);
         retval = ptr;
         {
