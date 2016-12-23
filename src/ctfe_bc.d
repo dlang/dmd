@@ -1372,7 +1372,17 @@ public:
 
     BCValue getVariable(VarDeclaration vd)
     {
-        if (auto value = (cast(void*) vd) in vars)
+        import ddmd.declaration : STCmanifest;
+
+        if ((vd.isDataseg() || vd.storage_class & STCmanifest) && !vd.isCTFE())
+        {
+            if (auto ci = vd.getConstInitializer())
+            {
+                return genExpr(ci);
+            }
+            return BCValue.init;
+         }
+        else if (auto value = (cast(void*) vd) in vars)
         {
             return *value;
         }
