@@ -38,8 +38,9 @@ static int flowxx;              /* one of the above values              */
 static vec_t ambigsym = NULL;
 
 STATIC void rdgenkill(void);
-STATIC unsigned numdefelems(elem *n);
+STATIC unsigned numdefelems(elem *n, unsigned *pnum_unambig_def);
 STATIC void asgdefelems(block *b , elem *n);
+static void initDNunambigVectors();
 STATIC void aecpgenkill(void);
 STATIC int  numaeelems(elem *n);
 STATIC void numcpelems(elem *n);
@@ -137,11 +138,12 @@ void flowrd()
 STATIC void rdgenkill()
 {
         /* Compute number of definition elems. */
+        unsigned num_unambig_def = 0;
         go.deftop = 0;
         for (unsigned i = 0; i < dfotop; i++)
                 if (dfo[i]->Belem)
                 {
-                    go.deftop += numdefelems(dfo[i]->Belem);
+                    go.deftop += numdefelems(dfo[i]->Belem, &num_unambig_def);
                 }
         if (go.deftop == 0)
                 return;
@@ -157,12 +159,26 @@ STATIC void rdgenkill()
         }
         memset(go.defnod, 0, go.deftop * sizeof(DefNode));
 
+        /* Allocate buffer for the DNunambig vectors
+         */
+        size_t numbits = go.deftop;
+        size_t dim = (numbits + (VECBITS - 1)) >> VECSHIFT;
+        unsigned sz = (dim + 2) * num_unambig_def;
+        if (sz > go.dnunambigmax)
+        {
+            go.dnunambigmax = sz;
+            go.dnunambig = (vec_base_t *) util_realloc(go.dnunambig, sz, sizeof(vec_base_t));
+        }
+        memset(go.dnunambig, 0, go.dnunambigmax * sizeof(vec_base_t));
+
         unsigned deftopsave = go.deftop;
         go.deftop = 0;
         for (unsigned i = 0; i < dfotop; i++)
                 if (dfo[i]->Belem)
                         asgdefelems(dfo[i],dfo[i]->Belem);
         assert(go.deftop == deftopsave);
+
+        initDNunambigVectors();
 
         for (unsigned i = 0; i < dfotop; i++)    // for each block
         {       block *b = dfo[i];
@@ -188,17 +204,21 @@ STATIC void rdgenkill()
  * Compute and return # of definition elems in e.
  */
 
-STATIC unsigned numdefelems(elem *e)
+STATIC unsigned numdefelems(elem *e, unsigned *pnum_unambig_def)
 {
     unsigned n = 0;
     while (1)
     {
         assert(e);
         if (OTdef(e->Eoper))
+        {
             ++n;
+            if (OTassign(e->Eoper) && e->E1->Eoper == OPvar)
+                ++*pnum_unambig_def;
+        }
         if (OTbinary(e->Eoper))
         {
-            n += numdefelems(e->E1);
+            n += numdefelems(e->E1, pnum_unambig_def);
             e = e->E2;
         }
         else if (OTunary(e->Eoper))
@@ -241,6 +261,34 @@ STATIC void asgdefelems(block *b,elem *n)
         }
         else
             n->Edef = ~0;       // just to ensure it is not in the array
+}
+
+/*************************************
+ * Allocate and initialize DNumambig vectors in go.defnod[]
+ */
+
+static void initDNunambigVectors()
+{
+    //printf("initDNunambigVectors()\n");
+    size_t numbits = go.deftop;
+    size_t dim = (numbits + (VECBITS - 1)) >> VECSHIFT;
+
+    unsigned j = 0;
+    for (unsigned i = 0; i < go.deftop; ++i)
+    {
+        elem *e = go.defnod[i].DNelem;
+        if (OTassign(e->Eoper) && e->E1->Eoper == OPvar)
+        {
+            vec_t v = &go.dnunambig[j] + 2;
+            assert(vec_dim(v) == 0);
+            vec_dim(v) = dim;
+            vec_numbits(v) = numbits;
+            j += dim + 2;
+            fillInDNunambig(v, e);
+            go.defnod[i].DNunambig = v;
+        }
+    }
+    assert(j <= go.dnunambigmax);
 }
 
 /*************************************
