@@ -62,6 +62,7 @@ struct GlobalOptimizer
 
     DefNode *defnod;    // array of definition elems
     unsigned deftop;    // # of entries in defnod[]
+    unsigned defmax;    // capacity of defnod[]
 
     elem **expnod;      // array of expression elems
     unsigned exptop;    // top of expnod[]

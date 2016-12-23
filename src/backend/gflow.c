@@ -12,6 +12,7 @@
 #if (SCPP || MARS) && !HTOD
 
 #include        <stdio.h>
+#include        <string.h>
 #include        <time.h>
 
 #include        "cc.h"
@@ -37,7 +38,7 @@ static int flowxx;              /* one of the above values              */
 static vec_t ambigsym = NULL;
 
 STATIC void rdgenkill(void);
-STATIC void numdefelems(elem *n);
+STATIC unsigned numdefelems(elem *n);
 STATIC void asgdefelems(block *b , elem *n);
 STATIC void aecpgenkill(void);
 STATIC int  numaeelems(elem *n);
@@ -134,18 +135,13 @@ void flowrd()
  */
 
 STATIC void rdgenkill()
-{       unsigned i,deftopsave;
-
-        util_free(go.defnod);              /* free existing junk           */
-
-        go.defnod = NULL;
-
+{
         /* Compute number of definition elems. */
         go.deftop = 0;
-        for (i = 0; i < dfotop; i++)
+        for (unsigned i = 0; i < dfotop; i++)
                 if (dfo[i]->Belem)
                 {
-                        numdefelems(dfo[i]->Belem);
+                    go.deftop += numdefelems(dfo[i]->Belem);
                 }
         if (go.deftop == 0)
                 return;
@@ -154,15 +150,21 @@ STATIC void rdgenkill()
         /*      The elems are in dfo order.                     */
         /*      go.defnod[]s consist of a elem pointer and a pointer */
         /*      to the enclosing block.                         */
-        go.defnod = (DefNode *) util_calloc(sizeof(DefNode),go.deftop);
-        deftopsave = go.deftop;
+        if (go.deftop > go.defmax)
+        {
+            go.defmax = go.deftop;
+            go.defnod = (DefNode *) util_realloc(go.defnod, go.defmax, sizeof(DefNode));
+        }
+        memset(go.defnod, 0, go.deftop * sizeof(DefNode));
+
+        unsigned deftopsave = go.deftop;
         go.deftop = 0;
-        for (i = 0; i < dfotop; i++)
+        for (unsigned i = 0; i < dfotop; i++)
                 if (dfo[i]->Belem)
                         asgdefelems(dfo[i],dfo[i]->Belem);
         assert(go.deftop == deftopsave);
 
-        for (i = 0; i < dfotop; i++)    /* for each block               */
+        for (unsigned i = 0; i < dfotop; i++)    // for each block
         {       block *b = dfo[i];
 
                 /* dump any existing vectors */
@@ -183,27 +185,30 @@ STATIC void rdgenkill()
 }
 
 /**********************
- * Compute # of definition elems (go.deftop).
+ * Compute and return # of definition elems in e.
  */
 
-STATIC void numdefelems(elem *n)
+STATIC unsigned numdefelems(elem *e)
 {
-  while (1)
-  {     assert(n);
-        if (OTdef(n->Eoper))
-                go.deftop++;
-        if (OTbinary(n->Eoper))
+    unsigned n = 0;
+    while (1)
+    {
+        assert(e);
+        if (OTdef(e->Eoper))
+            ++n;
+        if (OTbinary(e->Eoper))
         {
-                numdefelems(n->E1);
-                n = n->E2;
+            n += numdefelems(e->E1);
+            e = e->E2;
         }
-        else if (OTunary(n->Eoper))
+        else if (OTunary(e->Eoper))
         {
-                n = n->E1;
+            e = e->E1;
         }
         else
-                break;
-  }
+            break;
+    }
+    return n;
 }
 
 /**************************
