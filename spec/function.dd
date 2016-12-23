@@ -173,7 +173,7 @@ int foo();
 
 $(H4 $(LNAME2 pure-functions, Pure Functions))
 
-        $(P Pure functions are functions which cannot access global or static,
+        $(P Pure functions are functions that cannot access global or static,
         mutable state save through their arguments. This enables optimizations
         based on the fact that a pure function may at most mutate state
         reachable through its parameters. To that end, a pure function:)
