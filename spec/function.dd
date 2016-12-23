@@ -182,8 +182,7 @@ $(H4 $(LNAME2 pure-functions, Pure Functions))
         $(UL
         $(LI does not read or write any global or static mutable state)
         $(LI cannot call functions that are not pure)
-        $(LI can override an impure function, but an impure function
-        cannot override a pure one)
+        $(LI can override an impure function, but cannot be overridden by an impure function)
         $(LI is covariant with an impure function)
         $(LI cannot perform I/O)
         )
