@@ -153,7 +153,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 import ddmd.ctfe.bc_common;
 
 enum perf = 1;
-enum cacheBC = 1;
+enum cacheBC = 0;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
@@ -322,11 +322,12 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         foreach (i, arg; args)
         {
             bc_args[i] = bcv.genExpr(arg);
-        }
-        if (bcv.IGaveUp)
-        {
-            writeln("Ctfe died on argument processing");
-            return null;
+            if (bcv.IGaveUp)
+            {
+                writeln("Ctfe died on argument processing for ", arg ? arg.toString : "Null-Argument");
+                return null;
+            }
+
         }
         bcv.endArguments();
         bcv.Finalize();
@@ -2972,17 +2973,16 @@ public:
             return;
             //assert(se.string[se.len] == '\0', "string should be 0-terminated");
         }
-        /*if (!se.len)
+        HeapAddr stringAddr;
+        if (!se.len)
         {
-            debug (ctfe)
-            {
-                assert(0, "length-0 StringExp encontered, What do I do ?");
-            }
-            bailout();
-            return;
-        }*/
-
-        auto stringAddr = _sharedCtfeState.heap.pushString(se.string, cast(uint) se.len);
+            //We encountered ""
+            stringAddr = _sharedCtfeState.heap.pushString("", 0);
+        }
+        else
+        {
+            stringAddr = _sharedCtfeState.heap.pushString(se.string, cast(uint) se.len);
+        }
         auto stringAddrValue = imm32(stringAddr.addr);
 
         if (insideArgumentProcessing)
@@ -3527,15 +3527,9 @@ public:
                     assert(0, "swtiching on undefined value " ~ ss.toString);
                 return;
             }
+
             bool stringSwitch = lhs.type.type == BCTypeEnum.String;
-            /*            if (lhs.type.type == BCTypeEnum.String || lhs.type.type == BCTypeEnum.Slice)
-            {
-                bailout();
-                debug (ctfe)
-                    assert(0, "StringSwitches unsupported for now " ~ ss.toString);
-                return;
-            }
-*/
+
             if (ss.cases.dim > beginCaseStatements.length)
                 assert(0, "We will not have enough array space to store all cases for gotos");
 
