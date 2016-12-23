@@ -247,13 +247,13 @@ pure int foo(int i,
     may still be elided, or results be memoized, by means of traditional
     inlining and optimization techniques available for all functions.)
 
-    $(P A function that accepts only parameters without mutable indirections and
-    returns a result that has mutable indirections is called a $(I pure factory
-    function). An implementation may assume that all mutable memory returned by
-    the call is not referenced by any other part of the program, i.e. it is
-    newly allocated by the function. Conversely, the mutable references of the
-    result may be assumed to not refer to any object that existed before the
-    function call. For example:)
+    $(P A pure function that accepts only parameters without mutable
+    indirections and returns a result that has mutable indirections is called a
+    $(I pure factory function). An implementation may assume that all mutable
+    memory returned by the call is not referenced by any other part of the
+    program, i.e. it is newly allocated by the function. Conversely, the mutable
+    references of the result may be assumed to not refer to any object that
+    existed before the function call. For example:)
 
 ---
 struct List { int payload; List* next; }
