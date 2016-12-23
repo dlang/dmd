@@ -2972,7 +2972,7 @@ public:
             return;
             //assert(se.string[se.len] == '\0', "string should be 0-terminated");
         }
-        if (!se.len)
+        /*if (!se.len)
         {
             debug (ctfe)
             {
@@ -2980,7 +2980,7 @@ public:
             }
             bailout();
             return;
-        }
+        }*/
 
         auto stringAddr = _sharedCtfeState.heap.pushString(se.string, cast(uint) se.len);
         auto stringAddrValue = imm32(stringAddr.addr);
