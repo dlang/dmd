@@ -271,6 +271,9 @@ pure List* make(int a, int b)
     assumptions related to memoization and references do not carry to the thrown
     exception.)
 
+    $(P Destructors will always be called even if they appear to be strongly
+    pure.)
+
 $(H4 $(LNAME2 nothrow-functions, Nothrow Functions))
 
         $(P Nothrow functions can only throw exceptions derived
