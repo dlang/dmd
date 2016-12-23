@@ -263,8 +263,10 @@ pure List* make(int a, int b)
     any of these objects.)
 
     $(P Any `pure` function that is not strongly pure cannot be assumed to be
-    memoizable. Function calls may still be elided, or results be memoized, by
-    means of traditional inlining and optimization techniques available for all
+    memoizable, and calls to it may not be elided even if it returns `void`
+    (save for compiler optimizations that prove the function has no effect).
+    Function calls may still be elided, or results be memoized, by means of
+    traditional inlining and optimization techniques available for all
     functions.)
 
     $(P If a strongly pure function throws an exception or an error, the
