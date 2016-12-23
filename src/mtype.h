@@ -744,6 +744,7 @@ class TypeStruct : public Type
 public:
     StructDeclaration *sym;
     AliasThisRec att;
+    CPPMANGLE cppmangle;
 
     const char *kind();
     d_uns64 size(Loc loc);
@@ -812,6 +813,7 @@ class TypeClass : public Type
 public:
     ClassDeclaration *sym;
     AliasThisRec att;
+    CPPMANGLE cppmangle;
 
     const char *kind();
     d_uns64 size(Loc loc) /*const*/;

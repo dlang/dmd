@@ -35,8 +35,8 @@ public:
     virtual Dsymbols *include(Scope *sc, ScopeDsymbol *sds);
     int apply(Dsymbol_apply_ft_t fp, void *param);
     static Scope *createNewScope(Scope *sc,
-        StorageClass newstc, LINK linkage, Prot protection, int explictProtection,
-        structalign_t structalign, PINLINE inlining);
+        StorageClass newstc, LINK linkage, CPPMANGLE cppmangle, Prot protection,
+        int explictProtection, structalign_t structalign, PINLINE inlining);
     virtual Scope *newScope(Scope *sc);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void setScope(Scope *sc);
