@@ -239,14 +239,6 @@ pure int foo(int i,
     depending on the address of its parameters. An implementation is currently
     not required to enforce validity of memoization in all cases.)
 
-    $(P Any `pure` function that is not strongly pure cannot be assumed to be
-    memoizable and enjoys no special treatment compared to a regular non-pure
-    function. (Example: a pure function taking no arguments and returning `int*`
-    should not be memoized. It also should not because it may be a typical
-    factory function returning a fresh pointer with each call.) Function calls
-    may still be elided, or results be memoized, by means of traditional
-    inlining and optimization techniques available for all functions.)
-
     $(P A pure function that accepts only parameters without mutable
     indirections and returns a result that has mutable indirections is called a
     $(I pure factory function). An implementation may assume that all mutable
@@ -269,6 +261,11 @@ pure List* make(int a, int b)
     of `make`) that all references in `make`'s result refer to other `List`
     objects created by `make`, and that no other part of the program refers to
     any of these objects.)
+
+    $(P Any `pure` function that is not strongly pure cannot be assumed to be
+    memoizable. Function calls may still be elided, or results be memoized, by
+    means of traditional inlining and optimization techniques available for all
+    functions.)
 
     $(P If a strongly pure function throws an exception or an error, the
     assumptions related to memoization and references do not carry to the thrown
