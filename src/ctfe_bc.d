@@ -1374,7 +1374,11 @@ public:
     {
         import ddmd.declaration : STCmanifest;
 
-        if ((vd.isDataseg() || vd.storage_class & STCmanifest) && !vd.isCTFE())
+        if (auto value = (cast(void*) vd) in vars)
+        {
+            return *value;
+        }
+        else if ((vd.isDataseg() || vd.storage_class & STCmanifest) && !vd.isCTFE())
         {
             if (auto ci = vd.getConstInitializer())
             {
@@ -1382,10 +1386,6 @@ public:
             }
             return BCValue.init;
          }
-        else if (auto value = (cast(void*) vd) in vars)
-        {
-            return *value;
-        }
         else
         {
             return BCValue.init;
