@@ -228,11 +228,14 @@ STATIC void asgdefelems(block *b,elem *n)
         else if (OTunary(op))
                 asgdefelems(b,n->E1);
         if (OTdef(op))
-        {       assert(go.defnod);
-                go.defnod[go.deftop].DNblock = b;
-                go.defnod[go.deftop].DNelem = n;
-                go.deftop++;
+        {
+            unsigned i = go.deftop++;
+            go.defnod[i].DNblock = b;
+            go.defnod[i].DNelem = n;
+            n->Edef = i;
         }
+        else
+            n->Edef = ~0;       // just to ensure it is not in the array
 }
 
 /*************************************

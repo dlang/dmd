@@ -90,6 +90,7 @@ struct elem
         {
             tym_t Ety;         // data type (TYxxxx)
             uint Eexp;         // index into expnod[]
+            uint Edef;         // index into expdef[]
 
             // These flags are all temporary markers, used once and then
             // thrown away.
