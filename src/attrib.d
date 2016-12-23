@@ -1379,26 +1379,31 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
         Dsymbol.setScope(sc);
     }
 
-    void compileIt(Scope* sc)
+    private Dsymbols* compileIt(Scope* sc)
     {
-        //printf("CompileDeclaration::compileIt(loc = %d) %s\n", loc.linnum, exp->toChars());
+        //printf("CompileDeclaration::compileIt() %s\n", exp.toChars());
         auto se = semanticString(sc, exp, "argument to mixin");
         if (!se)
-            return;
+            return null;
         se = se.toUTF8(sc);
 
         uint errors = global.errors;
         scope Parser p = new Parser(loc, sc._module, se.toStringz(), false);
         p.nextToken();
+        //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
-        decl = p.parseDeclDefs(0);
-        if (p.token.value != TOKeof)
-            exp.error("incomplete mixin declaration (%s)", se.toChars());
+        auto d = p.parseDeclDefs(0);
         if (p.errors)
         {
-            assert(global.errors != errors);
-            decl = null;
+            assert(global.errors != errors); // should have caught all these cases
+            return null;
         }
+        if (p.token.value != TOKeof)
+        {
+            exp.error("incomplete mixin declaration (%s)", se.toChars());
+            return null;
+        }
+        return d;
     }
 
     override void semantic(Scope* sc)
@@ -1406,7 +1411,7 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
         //printf("CompileDeclaration::semantic()\n");
         if (!compiled)
         {
-            compileIt(sc);
+            decl = compileIt(sc);
             AttribDeclaration.addMember(sc, scopesym);
             compiled = true;
 

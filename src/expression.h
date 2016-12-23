@@ -743,6 +743,7 @@ public:
 class CompileExp : public UnaExp
 {
 public:
+    Expression *compileIt(Scope *sc);
     Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };

@@ -1247,9 +1247,9 @@ extern (C++) final class CompileStatement : Statement
         return new CompileStatement(loc, exp.syntaxCopy());
     }
 
-    override Statements* flatten(Scope* sc)
+    private Statements* compileIt(Scope* sc)
     {
-        //printf("CompileStatement::flatten() %s\n", exp->toChars());
+        //printf("CompileStatement::compileIt() %s\n", exp.toChars());
 
         auto errorStatements()
         {
@@ -1266,6 +1266,7 @@ extern (C++) final class CompileStatement : Statement
         uint errors = global.errors;
         scope Parser p = new Parser(loc, sc._module, se.toStringz(), false);
         p.nextToken();
+        //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
         auto a = new Statements();
         while (p.token.value != TOKeof)
@@ -1279,6 +1280,12 @@ extern (C++) final class CompileStatement : Statement
             a.push(s);
         }
         return a;
+    }
+
+    override Statements* flatten(Scope* sc)
+    {
+        //printf("CompileStatement::flatten() %s\n", exp.toChars());
+        return compileIt(sc);
     }
 
     override void accept(Visitor v)

@@ -8240,13 +8240,9 @@ extern (C++) final class CompileExp : UnaExp
         super(loc, TOKmixin, __traits(classInstanceSize, CompileExp), e);
     }
 
-    override Expression semantic(Scope* sc)
+    private Expression compileIt(Scope* sc)
     {
-        static if (LOGSEMANTIC)
-        {
-            printf("CompileExp::semantic('%s')\n", toChars());
-        }
-
+        //printf("CompileExp::compileIt() %s\n", exp.toChars());
         auto se = semanticString(sc, e1, "argument to mixin");
         if (!se)
             return new ErrorExp();
@@ -8257,7 +8253,7 @@ extern (C++) final class CompileExp : UnaExp
         p.nextToken();
         //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
-        Expression e = p.parseExpression();
+        auto e = p.parseExpression();
         if (p.errors)
         {
             assert(global.errors != errors); // should have caught all these cases
@@ -8268,7 +8264,17 @@ extern (C++) final class CompileExp : UnaExp
             error("incomplete mixin expression (%s)", se.toChars());
             return new ErrorExp();
         }
+        return e;
+    }
 
+    override Expression semantic(Scope* sc)
+    {
+        static if (LOGSEMANTIC)
+        {
+            printf("CompileExp::semantic('%s')\n", toChars());
+        }
+
+        auto e = compileIt(sc);
         return e.semantic(sc);
     }
 
