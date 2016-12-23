@@ -14,11 +14,13 @@ SRC:=src
 GENERATED:=./generated
 ROOT:=$(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
 
+OPTIONAL_PIC:=$(if $(PIC),-fPIC,)
+
 ifneq (default,$(MODEL))
 	MODEL_FLAG:=-m$(MODEL)
 endif
 CFLAGS:=$(MODEL_FLAG) -Wall
-DFLAGS:=$(MODEL_FLAG) -w -I../../src -I../../import -I$(SRC) -defaultlib= -debuglib= -dip1000
+DFLAGS:=$(MODEL_FLAG) -w -I../../src -I../../import -I$(SRC) -defaultlib= -debuglib= -dip1000 $(OPTIONAL_PIC)
 # LINK_SHARED may be set by importing makefile
 DFLAGS+=$(if $(LINK_SHARED),-L$(DRUNTIMESO),-L$(DRUNTIME))
 ifeq ($(BUILD),debug)
