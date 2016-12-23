@@ -173,10 +173,11 @@ int foo();
 
 $(H4 $(LNAME2 pure-functions, Pure Functions))
 
-        $(P Pure functions are functions that cannot access global or static,
-        mutable state save through their arguments. This enables optimizations
-        based on the fact that a pure function may at most mutate state
-        reachable through its parameters. To that end, a pure function:)
+        $(P Pure functions are functions that cannot access global/static
+        mutable state, except if their arguments contain pointers to such. This
+        enables optimizations based on the fact that a pure function may at most
+        mutate state reachable through its parameters. To that end, a pure
+        function:)
 
         $(UL
         $(LI does not read or write any global or static mutable state)
@@ -187,14 +188,20 @@ $(H4 $(LNAME2 pure-functions, Pure Functions))
         $(LI cannot perform I/O)
         )
 
-        $(P As a concession to practicality, a pure function can:)
+        $(P This definition of mutable functions is more general than the one
+        traditionally employed by pure functional languages because it allows a
+        D pure function to use state mutation, as long as all state is created
+        internally or reachable through its arguments. In particular, a pure
+        function may allocate memory by means of e.g. `new` or `malloc` without
+        these being special cases. A pure function is allowed to loop
+        indefinitely or terminate the program.)
+
+        $(P As a concession to practicality, a pure function can also:)
 
         $(UL
-        $(LI allocate memory via a $(GLINK2 expression, NewExpression))
-        $(LI terminate the program)
         $(LI read and write the floating point exception flags)
-        $(LI read and write the floating point mode flags, as long as those flags
-        are restored to their initial state upon function entry)
+        $(LI read and write the floating point mode flags, as long as those
+        flags are restored to their initial state upon function entry)
         $(LI perform impure operations in statements that are in a
         $(GLINK2 version, ConditionalStatement)
         controlled by a $(GLINK2 version, DebugCondition).)
