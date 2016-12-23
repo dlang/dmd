@@ -1,0 +1,4 @@
+general:
+  branches:
+    ignore:
+      - dmd-1.x
