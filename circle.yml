@@ -2,3 +2,6 @@ general:
   branches:
     ignore:
       - dmd-1.x
+test:
+  override:
+    - echo pass
