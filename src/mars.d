@@ -1359,7 +1359,7 @@ Language changes listed by -transition=id:
             fprintf(global.stdmsg, "parse     %s\n", m.toChars());
         if (!Module.rootModule)
             Module.rootModule = m;
-        m.importedFrom = m; // m->isRoot() == true
+        m.importedFrom = m; // m.isRoot() == true
         if (!global.params.oneobj || modi == 0 || m.isDocFile)
             m.deleteObjFile();
         static if (ASYNCREAD)

@@ -368,7 +368,7 @@ extern (C++) abstract class Statement : RootObject
 
             override void visit(ScopeStatement s)
             {
-                //printf("ScopeStatement::blockExit(%p)\n", s->statement);
+                //printf("ScopeStatement::blockExit(%p)\n", s.statement);
                 result = s.statement ? s.statement.blockExit(func, mustNotThrow) : BEfallthru;
             }
 
@@ -553,7 +553,7 @@ extern (C++) abstract class Statement : RootObject
 
             override void visit(BreakStatement s)
             {
-                //printf("BreakStatement::blockExit(%p) = x%x\n", s, s->ident ? BEgoto : BEbreak);
+                //printf("BreakStatement::blockExit(%p) = x%x\n", s, s.ident ? BEgoto : BEbreak);
                 result = s.ident ? BEgoto : BEbreak;
             }
 
@@ -1249,7 +1249,7 @@ extern (C++) final class CompileStatement : Statement
 
     override Statements* flatten(Scope* sc)
     {
-        //printf("CompileStatement::flatten() %s\n", exp->toChars());
+        //printf("CompileStatement::flatten() %s\n", exp.toChars());
 
         auto errorStatements()
         {
@@ -2343,7 +2343,7 @@ extern (C++) final class Catch : RootObject
 
     extern (D) this(Loc loc, Type t, Identifier id, Statement handler)
     {
-        //printf("Catch(%s, loc = %s)\n", id->toChars(), loc.toChars());
+        //printf("Catch(%s, loc = %s)\n", id.toChars(), loc.toChars());
         this.loc = loc;
         this.type = t;
         this.ident = id;

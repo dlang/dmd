@@ -152,7 +152,7 @@ extern (C++) bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymb
         return false; // then it is accessible
     }
     // BUG: should enable this check
-    //assert(smember->parent->isBaseOf(this, NULL));
+    //assert(smember.parent.isBaseOf(this, NULL));
     bool result;
     Prot access;
     if (smemberparent == ad)
@@ -192,7 +192,7 @@ extern (C++) bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymb
     {
         ad.error(loc, "member %s is not accessible", smember.toChars());
         //printf("smember = %s %s, prot = %d, semanticRun = %d\n",
-        //        smember->kind(), smember->toPrettyChars(), smember->prot(), smember->semanticRun);
+        //        smember.kind(), smember.toPrettyChars(), smember.prot(), smember.semanticRun);
         return true;
     }
     return false;
@@ -210,7 +210,7 @@ extern (C++) bool isFriendOf(AggregateDeclaration ad, AggregateDeclaration cd)
     if (ad == cd)
         return true;
     // Friends if both are in the same module
-    //if (toParent() == cd->toParent())
+    //if (toParent() == cd.toParent())
     if (cd && ad.getAccessModule() == cd.getAccessModule())
     {
         static if (LOG)
@@ -238,7 +238,7 @@ extern (C++) bool hasPackageAccess(Module mod, Dsymbol s)
 {
     static if (LOG)
     {
-        printf("hasPackageAccess(s = '%s', mod = '%s', s->protection.pkg = '%s')\n", s.toChars(), mod.toChars(), s.prot().pkg ? s.prot().pkg.toChars() : "NULL");
+        printf("hasPackageAccess(s = '%s', mod = '%s', s.protection.pkg = '%s')\n", s.toChars(), mod.toChars(), s.prot().pkg ? s.prot().pkg.toChars() : "NULL");
     }
     Package pkg = null;
     if (s.prot().pkg)
@@ -396,7 +396,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
         if (e)
         {
             printf("checkAccess(%s . %s)\n", e.toChars(), d.toChars());
-            printf("\te->type = %s\n", e.type.toChars());
+            printf("\te.type = %s\n", e.type.toChars());
         }
         else
         {

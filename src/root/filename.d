@@ -545,7 +545,7 @@ nothrow:
                     const(char)* cname = null;
                     const(char)* cpath = canonicalName((*path)[i]);
                     //printf("FileName::safeSearchPath(): name=%s; path=%s; cpath=%s\n",
-                    //      name, (char *)path->data[i], cpath);
+                    //      name, (char *)path.data[i], cpath);
                     if (cpath is null)
                         goto cont;
                     cname = canonicalName(combine(cpath, name));

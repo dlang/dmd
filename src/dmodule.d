@@ -376,7 +376,7 @@ extern (C++) final class Module : Package
     {
         super(ident);
         const(char)* srcfilename;
-        //printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident->toChars());
+        //printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident.toChars());
         this.arg = filename;
         srcfilename = FileName.defaultExt(filename, global.mars_ext);
         if (global.run_noext && global.params.run && !FileName.ext(filename) && FileName.exists(srcfilename) == 0 && FileName.exists(filename) == 1)
@@ -408,7 +408,7 @@ extern (C++) final class Module : Package
 
     static Module load(Loc loc, Identifiers* packages, Identifier ident)
     {
-        //printf("Module::load(ident = '%s')\n", ident->toChars());
+        //printf("Module::load(ident = '%s')\n", ident.toChars());
         // Build module filename by turning:
         //  foo.bar.baz
         // into:
@@ -556,7 +556,7 @@ extern (C++) final class Module : Package
     // read file, returns 'true' if succeed, 'false' otherwise.
     bool read(Loc loc)
     {
-        //printf("Module::read('%s') file '%s'\n", toChars(), srcfile->toChars());
+        //printf("Module::read('%s') file '%s'\n", toChars(), srcfile.toChars());
         if (srcfile.read())
         {
             if (!strcmp(srcfile.toChars(), "object.d"))
@@ -598,7 +598,7 @@ extern (C++) final class Module : Package
     // syntactic parse
     Module parse()
     {
-        //printf("Module::parse(srcfile='%s') this=%p\n", srcfile->name->toChars(), this);
+        //printf("Module::parse(srcfile='%s') this=%p\n", srcfile.name.toChars(), this);
         const(char)* srcname = srcfile.name.toChars();
         //printf("Module::parse(srcname = '%s')\n", srcname);
         isPackageFile = (strcmp(srcfile.name.name(), "package.d") == 0);
@@ -1042,7 +1042,7 @@ extern (C++) final class Module : Package
         {
             Scope.createGlobal(this); // create root scope
         }
-        //printf("Module = %p, linkage = %d\n", sc->scopesym, sc->linkage);
+        //printf("Module = %p, linkage = %d\n", sc.scopesym, sc.linkage);
         // Pass 1 semantic routines: do public side of the definition
         for (size_t i = 0; i < members.dim; i++)
         {
@@ -1108,7 +1108,7 @@ extern (C++) final class Module : Package
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
-            //printf("Module %s: %s.semantic3()\n", toChars(), s->toChars());
+            //printf("Module %s: %s.semantic3()\n", toChars(), s.toChars());
             s.semantic3(sc);
 
             runDeferredSemantic2();
@@ -1151,7 +1151,7 @@ extern (C++) final class Module : Package
         if (searchCacheIdent == ident && searchCacheFlags == flags)
         {
             //printf("%s Module::search('%s', flags = %d) insearch = %d searchCacheSymbol = %s\n",
-            //        toChars(), ident->toChars(), flags, insearch, searchCacheSymbol ? searchCacheSymbol->toChars() : "null");
+            //        toChars(), ident.toChars(), flags, insearch, searchCacheSymbol ? searchCacheSymbol.toChars() : "null");
             return searchCacheSymbol;
         }
 
@@ -1322,7 +1322,7 @@ extern (C++) final class Module : Package
      */
     int imports(Module m)
     {
-        //printf("%s Module::imports(%s)\n", toChars(), m->toChars());
+        //printf("%s Module::imports(%s)\n", toChars(), m.toChars());
         version (none)
         {
             for (size_t i = 0; i < aimports.dim; i++)

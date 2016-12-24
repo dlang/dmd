@@ -279,7 +279,7 @@ private Type stripDefaultArgs(Type t)
         tf = cast(TypeFunction)tf.copy();
         tf.parameters = params;
         tf.next = tret;
-        //printf("strip %s\n   <- %s\n", tf->toChars(), t->toChars());
+        //printf("strip %s\n   <- %s\n", tf.toChars(), t.toChars());
         t = tf;
     }
     else if (t.ty == Ttuple)
@@ -305,7 +305,7 @@ private Type stripDefaultArgs(Type t)
         t = t.copy();
         (cast(TypeNext)t).next = n;
     }
-    //printf("strip %s\n", t->toChars());
+    //printf("strip %s\n", t.toChars());
 Lnot:
     return t;
 }
@@ -621,15 +621,15 @@ extern (C++) abstract class Type : RootObject
     override bool equals(RootObject o)
     {
         Type t = cast(Type)o;
-        //printf("Type::equals(%s, %s)\n", toChars(), t->toChars());
+        //printf("Type::equals(%s, %s)\n", toChars(), t.toChars());
         // deco strings are unique
         // and semantic() has been run
         if (this == o || ((t && deco == t.deco) && deco !is null))
         {
-            //printf("deco = '%s', t->deco = '%s'\n", deco, t->deco);
+            //printf("deco = '%s', t.deco = '%s'\n", deco, t.deco);
             return true;
         }
-        //if (deco && t && t->deco) printf("deco = '%s', t->deco = '%s'\n", deco, t->deco);
+        //if (deco && t && t.deco) printf("deco = '%s', t.deco = '%s'\n", deco, t.deco);
         return false;
     }
 
@@ -661,7 +661,7 @@ extern (C++) abstract class Type : RootObject
         {
             printf("Type::covariant(t = %s) %s\n", t.toChars(), toChars());
             printf("deco = %p, %p\n", deco, t.deco);
-            //    printf("ty = %d\n", next->ty);
+            //    printf("ty = %d\n", next.ty);
             printf("mod = %x, %x\n", mod, t.mod);
         }
         if (pstc)
@@ -1030,13 +1030,13 @@ extern (C++) abstract class Type : RootObject
                         printf("t = %s\n", t.toChars());
                 }
                 assert(t.deco);
-                //printf("old value, deco = '%s' %p\n", t->deco, t->deco);
+                //printf("old value, deco = '%s' %p\n", t.deco, t.deco);
             }
             else
             {
                 sv.ptrvalue = cast(char*)(t = stripDefaultArgs(t));
                 deco = t.deco = cast(char*)sv.toDchars();
-                //printf("new value, deco = '%s' %p\n", t->deco, t->deco);
+                //printf("new value, deco = '%s' %p\n", t.deco, t.deco);
             }
         }
         return t;
@@ -1237,7 +1237,7 @@ extern (C++) abstract class Type : RootObject
         uint sz = sizeTy[ty];
         Type t = cast(Type)mem.xmalloc(sz);
         memcpy(cast(void*)t, cast(void*)this, sz);
-        // t->mod = NULL;  // leave mod unchanged
+        // t.mod = NULL;  // leave mod unchanged
         t.deco = null;
         t.arrayof = null;
         t.pto = null;
@@ -1275,7 +1275,7 @@ extern (C++) abstract class Type : RootObject
         Type t = makeConst();
         t = t.merge();
         t.fixTo(this);
-        //printf("-Type::constOf() %p %s\n", t, t->toChars());
+        //printf("-Type::constOf() %p %s\n", t, t.toChars());
         return t;
     }
 
@@ -1449,7 +1449,7 @@ extern (C++) abstract class Type : RootObject
         Type t = makeWild();
         t = t.merge();
         t.fixTo(this);
-        //printf("\t%p %s\n", t, t->toChars());
+        //printf("\t%p %s\n", t, t.toChars());
         return t;
     }
 
@@ -1466,7 +1466,7 @@ extern (C++) abstract class Type : RootObject
         Type t = makeWildConst();
         t = t.merge();
         t.fixTo(this);
-        //printf("\t%p %s\n", t, t->toChars());
+        //printf("\t%p %s\n", t, t.toChars());
         return t;
     }
 
@@ -1483,7 +1483,7 @@ extern (C++) abstract class Type : RootObject
         Type t = makeSharedWild();
         t = t.merge();
         t.fixTo(this);
-        //printf("\t%p %s\n", t, t->toChars());
+        //printf("\t%p %s\n", t, t.toChars());
         return t;
     }
 
@@ -1500,7 +1500,7 @@ extern (C++) abstract class Type : RootObject
         Type t = makeSharedWildConst();
         t = t.merge();
         t.fixTo(this);
-        //printf("\t%p %s\n", t, t->toChars());
+        //printf("\t%p %s\n", t, t.toChars());
         return t;
     }
 
@@ -1511,7 +1511,7 @@ extern (C++) abstract class Type : RootObject
     final void fixTo(Type t)
     {
         // If fixing this: immutable(T*) by t: immutable(T)*,
-        // cache t to this->xto won't break transitivity.
+        // cache t to this.xto won't break transitivity.
         Type mto = null;
         Type tn = nextOf();
         if (!tn || ty != Tsarray && tn.mod == t.nextOf().mod)
@@ -1629,7 +1629,7 @@ extern (C++) abstract class Type : RootObject
 
         check();
         t.check();
-        //printf("fixTo: %s, %s\n", toChars(), t->toChars());
+        //printf("fixTo: %s, %s\n", toChars(), t.toChars());
     }
 
     /***************************
@@ -2314,7 +2314,7 @@ extern (C++) abstract class Type : RootObject
     {
         //printf("Type::implicitConvTo(this=%p, to=%p)\n", this, to);
         //printf("from: %s\n", toChars());
-        //printf("to  : %s\n", to->toChars());
+        //printf("to  : %s\n", to.toChars());
         if (this.equals(to))
             return MATCHexact;
         return MATCHnomatch;
@@ -2330,7 +2330,7 @@ extern (C++) abstract class Type : RootObject
      */
     MATCH constConv(Type to)
     {
-        //printf("Type::constConv(this = %s, to = %s)\n", toChars(), to->toChars());
+        //printf("Type::constConv(this = %s, to = %s)\n", toChars(), to.toChars());
         if (equals(to))
             return MATCHexact;
         if (ty == to.ty && MODimplicitConv(mod, to.mod))
@@ -2343,7 +2343,7 @@ extern (C++) abstract class Type : RootObject
      */
     ubyte deduceWild(Type t, bool isRef)
     {
-        //printf("Type::deduceWild this = '%s', tprm = '%s'\n", toChars(), tprm->toChars());
+        //printf("Type::deduceWild this = '%s', tprm = '%s'\n", toChars(), tprm.toChars());
         if (t.isWild())
         {
             if (isImmutable())
@@ -2445,7 +2445,7 @@ extern (C++) abstract class Type : RootObject
         if (isShared())
             t = t.addMod(MODshared);
 
-        //printf("-Type::substWildTo t = %s\n", t->toChars());
+        //printf("-Type::substWildTo t = %s\n", t.toChars());
         return t;
     }
 
@@ -2582,7 +2582,7 @@ extern (C++) abstract class Type : RootObject
     }
 
     /***************************************
-     * Access the members of the object e. This type is same as e->type.
+     * Access the members of the object e. This type is same as e.type.
      * Params:
      *  flag = DotExpFlag bit flags
      * Returns:
@@ -2636,7 +2636,7 @@ extern (C++) abstract class Type : RootObject
         }
         if (ident == Id.stringof)
         {
-            /* Bugzilla 3796: this should demangle e->type->deco rather than
+            /* Bugzilla 3796: this should demangle e.type.deco rather than
              * pretty-printing the type.
              */
             const s = e.toChars();
@@ -3175,7 +3175,7 @@ extern (C++) abstract class TypeNext : Type
                     t.next = next.constOf();
             }
         }
-        //printf("TypeNext::makeConst() returns %p, %s\n", t, t->toChars());
+        //printf("TypeNext::makeConst() returns %p, %s\n", t, t.toChars());
         return t;
     }
 
@@ -3221,7 +3221,7 @@ extern (C++) abstract class TypeNext : Type
                     t.next = next.sharedOf();
             }
         }
-        //printf("TypeNext::makeShared() returns %p, %s\n", t, t->toChars());
+        //printf("TypeNext::makeShared() returns %p, %s\n", t, t.toChars());
         return t;
     }
 
@@ -3241,7 +3241,7 @@ extern (C++) abstract class TypeNext : Type
             else
                 t.next = next.sharedConstOf();
         }
-        //printf("TypeNext::makeSharedConst() returns %p, %s\n", t, t->toChars());
+        //printf("TypeNext::makeSharedConst() returns %p, %s\n", t, t.toChars());
         return t;
     }
 
@@ -3271,7 +3271,7 @@ extern (C++) abstract class TypeNext : Type
                     t.next = next.wildOf();
             }
         }
-        //printf("TypeNext::makeWild() returns %p, %s\n", t, t->toChars());
+        //printf("TypeNext::makeWild() returns %p, %s\n", t, t.toChars());
         return t;
     }
 
@@ -3291,7 +3291,7 @@ extern (C++) abstract class TypeNext : Type
             else
                 t.next = next.wildConstOf();
         }
-        //printf("TypeNext::makeWildConst() returns %p, %s\n", t, t->toChars());
+        //printf("TypeNext::makeWildConst() returns %p, %s\n", t, t.toChars());
         return t;
     }
 
@@ -3311,7 +3311,7 @@ extern (C++) abstract class TypeNext : Type
             else
                 t.next = next.sharedWildOf();
         }
-        //printf("TypeNext::makeSharedWild() returns %p, %s\n", t, t->toChars());
+        //printf("TypeNext::makeSharedWild() returns %p, %s\n", t, t.toChars());
         return t;
     }
 
@@ -3328,7 +3328,7 @@ extern (C++) abstract class TypeNext : Type
         {
             t.next = next.sharedWildConstOf();
         }
-        //printf("TypeNext::makeSharedWildConst() returns %p, %s\n", t, t->toChars());
+        //printf("TypeNext::makeSharedWildConst() returns %p, %s\n", t, t.toChars());
         return t;
     }
 
@@ -3340,13 +3340,13 @@ extern (C++) abstract class TypeNext : Type
         {
             t.next = next.mutableOf();
         }
-        //printf("TypeNext::makeMutable() returns %p, %s\n", t, t->toChars());
+        //printf("TypeNext::makeMutable() returns %p, %s\n", t, t.toChars());
         return t;
     }
 
     override MATCH constConv(Type to)
     {
-        //printf("TypeNext::constConv from = %s, to = %s\n", toChars(), to->toChars());
+        //printf("TypeNext::constConv from = %s, to = %s\n", toChars(), to.toChars());
         if (equals(to))
             return MATCHexact;
 
@@ -3367,7 +3367,7 @@ extern (C++) abstract class TypeNext : Type
         }
         else
         {
-            //printf("\tnext => %s, to->next => %s\n", next->toChars(), tn->toChars());
+            //printf("\tnext => %s, to.next => %s\n", next.toChars(), tn.toChars());
             m = next.equals(tn) ? MATCHconst : MATCHnomatch;
         }
         return m;
@@ -3649,7 +3649,7 @@ extern (C++) final class TypeBasic : Type
         Expression e;
         dinteger_t ivalue;
         real_t fvalue = 0;
-        //printf("TypeBasic::getProperty('%s')\n", ident->toChars());
+        //printf("TypeBasic::getProperty('%s')\n", ident.toChars());
         if (ident == Id.max)
         {
             switch (ty)
@@ -4149,7 +4149,7 @@ extern (C++) final class TypeBasic : Type
 
     override MATCH implicitConvTo(Type to)
     {
-        //printf("TypeBasic::implicitConvTo(%s) from %s\n", to->toChars(), toChars());
+        //printf("TypeBasic::implicitConvTo(%s) from %s\n", to.toChars(), toChars());
         if (this == to)
             return MATCHexact;
 
@@ -4199,7 +4199,7 @@ extern (C++) final class TypeBasic : Type
                     return MATCHnomatch;
                 /* Can't change sign if same size
                  */
-                //if (sz == tosz && (flags ^ tob->flags) & TFLAGSunsigned)
+                //if (sz == tosz && (flags ^ tob.flags) & TFLAGSunsigned)
                 //    return MATCHnomatch;
             }
         }
@@ -4402,7 +4402,7 @@ extern (C++) final class TypeVector : Type
         }
         if (ident == Id.array)
         {
-            //e = e->castTo(sc, basetype);
+            //e = e.castTo(sc, basetype);
             // Keep lvalue-ness
             e = e.copy();
             e.type = basetype;
@@ -4446,7 +4446,7 @@ extern (C++) final class TypeVector : Type
 
     override MATCH implicitConvTo(Type to)
     {
-        //printf("TypeVector::implicitConvTo(%s) from %s\n", to->toChars(), toChars());
+        //printf("TypeVector::implicitConvTo(%s) from %s\n", to.toChars(), toChars());
         if (this == to)
             return MATCHexact;
         if (ty == to.ty)
@@ -4656,7 +4656,7 @@ extern (C++) final class TypeSArray : TypeArray
     extern (D) this(Type t, Expression dim)
     {
         super(Tsarray, t);
-        //printf("TypeSArray(%s)\n", dim->toChars());
+        //printf("TypeSArray(%s)\n", dim.toChars());
         this.dim = dim;
     }
 
@@ -4979,7 +4979,7 @@ extern (C++) final class TypeSArray : TypeArray
 
     override MATCH implicitConvTo(Type to)
     {
-        //printf("TypeSArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
+        //printf("TypeSArray::implicitConvTo(to = %s) this = %s\n", to.toChars(), toChars());
         if (to.ty == Tarray)
         {
             TypeDArray ta = cast(TypeDArray)to;
@@ -5072,7 +5072,7 @@ extern (C++) final class TypeSArray : TypeArray
          *    struct S { T* array[0]; }
          * may be a variable length struct.
          */
-        //if (dim->toInteger() == 0)
+        //if (dim.toInteger() == 0)
         //    return false;
 
         if (next.ty == Tvoid)
@@ -5264,7 +5264,7 @@ extern (C++) final class TypeDArray : TypeArray
 
     override MATCH implicitConvTo(Type to)
     {
-        //printf("TypeDArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
+        //printf("TypeDArray::implicitConvTo(to = %s) this = %s\n", to.toChars(), toChars());
         if (equals(to))
             return MATCHexact;
 
@@ -5358,7 +5358,7 @@ extern (C++) final class TypeAArray : TypeArray
 
     override Type semantic(Loc loc, Scope* sc)
     {
-        //printf("TypeAArray::semantic() %s index->ty = %d\n", toChars(), index->ty);
+        //printf("TypeAArray::semantic() %s index.ty = %d\n", toChars(), index.ty);
         if (deco)
             return this;
 
@@ -5401,12 +5401,12 @@ extern (C++) final class TypeAArray : TypeArray
             {
                 printf("index is %p %s\n", index, index.toChars());
                 index.check();
-                printf("index->mod = x%x\n", index.mod);
-                printf("index->ito = x%x\n", index.ito);
+                printf("index.mod = x%x\n", index.mod);
+                printf("index.ito = x%x\n", index.ito);
                 if (index.ito)
                 {
-                    printf("index->ito->mod = x%x\n", index.ito.mod);
-                    printf("index->ito->ito = x%x\n", index.ito.ito);
+                    printf("index.ito.mod = x%x\n", index.ito.mod);
+                    printf("index.ito.ito = x%x\n", index.ito.ito);
                 }
             }
         }
@@ -5444,11 +5444,11 @@ extern (C++) final class TypeAArray : TypeArray
                     sd.xeq = sd.xerreq;
             }
 
-            //printf("AA = %s, key: xeq = %p, xhash = %p\n", toChars(), sd->xeq, sd->xhash);
+            //printf("AA = %s, key: xeq = %p, xhash = %p\n", toChars(), sd.xeq, sd.xhash);
             const(char)* s = (index.toBasetype().ty != Tstruct) ? "bottom of " : "";
             if (!sd.xeq)
             {
-                // If sd->xhash != NULL:
+                // If sd.xhash != NULL:
                 //   sd or its fields have user-defined toHash.
                 //   AA assumes that its result is consistent with bitwise equality.
                 // else:
@@ -5643,7 +5643,7 @@ extern (C++) final class TypeAArray : TypeArray
 
     override MATCH implicitConvTo(Type to)
     {
-        //printf("TypeAArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
+        //printf("TypeAArray::implicitConvTo(to = %s) this = %s\n", to.toChars(), toChars());
         if (equals(to))
             return MATCHexact;
 
@@ -5761,7 +5761,7 @@ extern (C++) final class TypePointer : TypeNext
 
     override MATCH implicitConvTo(Type to)
     {
-        //printf("TypePointer::implicitConvTo(to = %s) %s\n", to->toChars(), toChars());
+        //printf("TypePointer::implicitConvTo(to = %s) %s\n", to.toChars(), toChars());
         if (equals(to))
             return MATCHexact;
 
@@ -6083,7 +6083,7 @@ extern (C++) final class TypeFunction : TypeNext
             return this;
         }
         //printf("TypeFunction::semantic() this = %p\n", this);
-        //printf("TypeFunction::semantic() %s, sc->stc = %llx, fargs = %p\n", toChars(), sc->stc, fargs);
+        //printf("TypeFunction::semantic() %s, sc.stc = %llx, fargs = %p\n", toChars(), sc.stc, fargs);
 
         bool errors = false;
 
@@ -6299,7 +6299,7 @@ extern (C++) final class TypeFunction : TypeNext
                 if (t.hasWild())
                 {
                     wildparams |= 1;
-                    //if (tf->next && !wildreturn)
+                    //if (tf.next && !wildreturn)
                     //    error(loc, "inout on parameter means inout must be on return type as well (if from D1 code, replace with 'ref')");
                 }
 
@@ -6861,7 +6861,7 @@ extern (C++) final class TypeFunction : TypeNext
             {
                 Expression arg = (*args)[u];
                 assert(arg);
-                //printf("arg: %s, type: %s\n", arg->toChars(), arg->type->toChars());
+                //printf("arg: %s, type: %s\n", arg.toChars(), arg.type.toChars());
 
                 Type targ = arg.type;
                 Type tprm = wildmatch ? p.type.substWildTo(wildmatch) : p.type;
@@ -6870,7 +6870,7 @@ extern (C++) final class TypeFunction : TypeNext
                     m = MATCHconvert;
                 else
                 {
-                    //printf("%s of type %s implicitConvTo %s\n", arg->toChars(), targ->toChars(), tprm->toChars());
+                    //printf("%s of type %s implicitConvTo %s\n", arg.toChars(), targ.toChars(), tprm.toChars());
                     if (flag)
                     {
                         // for partial ordering, value is an irrelevant mockup, just look at the type
@@ -6887,7 +6887,7 @@ extern (C++) final class TypeFunction : TypeNext
                     // Bugzilla 13783: Don't use toBasetype() to handle enum types.
                     Type ta = targ;
                     Type tp = tprm;
-                    //printf("fparam[%d] ta = %s, tp = %s\n", u, ta->toChars(), tp->toChars());
+                    //printf("fparam[%d] ta = %s, tp = %s\n", u, ta.toChars(), tp.toChars());
 
                     if (m && !arg.isLvalue())
                     {
@@ -7134,7 +7134,7 @@ extern (C++) final class TypeDelegate : TypeNext
     {
         //printf("TypeDelegate::implicitConvTo(this=%p, to=%p)\n", this, to);
         //printf("from: %s\n", toChars());
-        //printf("to  : %s\n", to->toChars());
+        //printf("to  : %s\n", to.toChars());
         if (this == to)
             return MATCHexact;
 
@@ -7239,7 +7239,7 @@ extern (C++) abstract class TypeQualified : Type
 
     final void syntaxCopyHelper(TypeQualified t)
     {
-        //printf("TypeQualified::syntaxCopyHelper(%s) %s\n", t->toChars(), toChars());
+        //printf("TypeQualified::syntaxCopyHelper(%s) %s\n", t.toChars(), toChars());
         idents.setDim(t.idents.dim);
         for (size_t i = 0; i < idents.dim; i++)
         {
@@ -7412,14 +7412,14 @@ extern (C++) abstract class TypeQualified : Type
         *ps = null;
         if (s)
         {
-            //printf("\t1: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
+            //printf("\t1: s = '%s' %p, kind = '%s'\n",s.toChars(), s, s.kind());
             Declaration d = s.isDeclaration();
             if (d && (d.storage_class & STCtemplateparameter))
                 s = s.toAlias();
             else
                 s.checkDeprecated(loc, sc); // check for deprecated aliases
             s = s.toAlias();
-            //printf("\t2: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
+            //printf("\t2: s = '%s' %p, kind = '%s'\n",s.toChars(), s, s.kind());
             for (size_t i = 0; i < idents.dim; i++)
             {
                 RootObject id = idents[i];
@@ -7458,7 +7458,7 @@ extern (C++) abstract class TypeQualified : Type
                     *pt = Type.terror;
                     return;
                 }
-                //printf("\t3: s = %p %s %s, sm = %p\n", s, s->kind(), s->toChars(), sm);
+                //printf("\t3: s = %p %s %s, sm = %p\n", s, s.kind(), s.toChars(), sm);
                 if (intypeid && !t && sm && sm.needThis())
                     goto L3;
                 if (VarDeclaration v = s.isVarDeclaration())
@@ -7743,7 +7743,7 @@ extern (C++) final class TypeIdentifier : TypeQualified
         resolve(loc, sc, &e, &t, &s);
         if (t)
         {
-            //printf("\tit's a type %d, %s, %s\n", t->ty, t->toChars(), t->deco);
+            //printf("\tit's a type %d, %s, %s\n", t.ty, t.toChars(), t.deco);
             t = t.addMod(mod);
         }
         else
@@ -7757,7 +7757,7 @@ extern (C++) final class TypeIdentifier : TypeQualified
                 error(loc, "%s is used as a type", toChars());
             t = terror;
         }
-        //t->print();
+        //t.print();
         return t;
     }
 
@@ -8553,7 +8553,7 @@ extern (C++) final class TypeStruct : Type
         for (size_t i = 0; i < sym.fields.dim; i++)
         {
             VarDeclaration v = sym.fields[i];
-            //printf("%s [%d] v = (%s) %s, v->offset = %d, v->parent = %s", sym->toChars(), i, v->kind(), v->toChars(), v->offset, v->parent->kind());
+            //printf("%s [%d] v = (%s) %s, v.offset = %d, v.parent = %s", sym.toChars(), i, v.kind(), v.toChars(), v.offset, v.parent.kind());
             if (i == 0)
             {
             }
@@ -8678,7 +8678,7 @@ extern (C++) final class TypeStruct : Type
 
                         // field match
                         MATCH mf = tvf.implicitConvTo(tv);
-                        //printf("\t%s => %s, match = %d\n", v->type->toChars(), tv->toChars(), mf);
+                        //printf("\t%s => %s, match = %d\n", v.type.toChars(), tv.toChars(), mf);
 
                         if (mf <= MATCHnomatch)
                             return mf;
@@ -9430,7 +9430,7 @@ extern (C++) final class TypeClass : Type
                         e1.type = tcd.vthis.type;
                         e1.type = e1.type.addMod(t.mod);
                         // Do not call checkNestedRef()
-                        //e1 = e1->semantic(sc);
+                        //e1 = e1.semantic(sc);
 
                         // Skip up over nested functions, and get the enclosing
                         // class type.
@@ -9440,7 +9440,7 @@ extern (C++) final class TypeClass : Type
                             FuncDeclaration f = s.isFuncDeclaration();
                             if (f.vthis)
                             {
-                                //printf("rewriting e1 to %s's this\n", f->toChars());
+                                //printf("rewriting e1 to %s's this\n", f.toChars());
                                 n++;
                                 e1 = new VarExp(e.loc, f.vthis);
                             }
@@ -9463,7 +9463,7 @@ extern (C++) final class TypeClass : Type
                     }
                 }
             }
-            //printf("e = %s, d = %s\n", e->toChars(), d->toChars());
+            //printf("e = %s, d = %s\n", e.toChars(), d.toChars());
             if (d.semanticRun == PASSinit && d._scope)
                 d.semantic(d._scope);
             checkAccess(e.loc, sc, e, d);
@@ -9507,7 +9507,7 @@ extern (C++) final class TypeClass : Type
 
     override MATCH implicitConvTo(Type to)
     {
-        //printf("TypeClass::implicitConvTo(to = '%s') %s\n", to->toChars(), toChars());
+        //printf("TypeClass::implicitConvTo(to = '%s') %s\n", to.toChars(), toChars());
         MATCH m = constConv(to);
         if (m > MATCHnomatch)
             return m;
@@ -9515,7 +9515,7 @@ extern (C++) final class TypeClass : Type
         ClassDeclaration cdto = to.isClassHandle();
         if (cdto)
         {
-            //printf("TypeClass::implicitConvTo(to = '%s') %s, isbase = %d %d\n", to->toChars(), toChars(), cdto->isBaseInfoComplete(), sym->isBaseInfoComplete());
+            //printf("TypeClass::implicitConvTo(to = '%s') %s, isbase = %d %d\n", to.toChars(), toChars(), cdto.isBaseInfoComplete(), sym.isBaseInfoComplete());
             if (cdto._scope && !cdto.isBaseInfoComplete())
                 cdto.semantic(null);
             if (sym._scope && !sym.isBaseInfoComplete())
@@ -9725,7 +9725,7 @@ extern (C++) final class TypeTuple : Type
     override bool equals(RootObject o)
     {
         Type t = cast(Type)o;
-        //printf("TypeTuple::equals(%s, %s)\n", toChars(), t->toChars());
+        //printf("TypeTuple::equals(%s, %s)\n", toChars(), t.toChars());
         if (this == t)
             return true;
         if (t.ty == Ttuple)
@@ -9806,7 +9806,7 @@ extern (C++) final class TypeSlice : TypeNext
     extern (D) this(Type next, Expression lwr, Expression upr)
     {
         super(Tslice, next);
-        //printf("TypeSlice[%s .. %s]\n", lwr->toChars(), upr->toChars());
+        //printf("TypeSlice[%s .. %s]\n", lwr.toChars(), upr.toChars());
         this.lwr = lwr;
         this.upr = upr;
     }
@@ -9827,7 +9827,7 @@ extern (C++) final class TypeSlice : TypeNext
     {
         //printf("TypeSlice::semantic() %s\n", toChars());
         Type tn = next.semantic(loc, sc);
-        //printf("next: %s\n", tn->toChars());
+        //printf("next: %s\n", tn.toChars());
 
         Type tbn = tn.toBasetype();
         if (tbn.ty != Ttuple)
@@ -9966,13 +9966,13 @@ extern (C++) final class TypeNull : Type
     {
         //printf("TypeNull::implicitConvTo(this=%p, to=%p)\n", this, to);
         //printf("from: %s\n", toChars());
-        //printf("to  : %s\n", to->toChars());
+        //printf("to  : %s\n", to.toChars());
         MATCH m = Type.implicitConvTo(to);
         if (m != MATCHnomatch)
             return m;
 
         // NULL implicitly converts to any pointer type or dynamic array
-        //if (type->ty == Tpointer && type->nextOf()->ty == Tvoid)
+        //if (type.ty == Tpointer && type.nextOf()->ty == Tvoid)
         {
             Type tb = to.toBasetype();
             if (tb.ty == Tnull || tb.ty == Tpointer || tb.ty == Tarray || tb.ty == Taarray || tb.ty == Tclass || tb.ty == Tdelegate)

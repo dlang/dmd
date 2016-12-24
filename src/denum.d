@@ -94,7 +94,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             {
                 EnumMember em = (*members)[i].isEnumMember();
                 em.ed = this;
-                //printf("add %s to scope %s\n", em->toChars(), scopesym->toChars());
+                //printf("add %s to scope %s\n", em.toChars(), scopesym.toChars());
                 em.addMember(sc, isAnonymous() ? scopesym : this);
             }
         }
@@ -110,7 +110,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
 
     override void semantic(Scope* sc)
     {
-        //printf("EnumDeclaration::semantic(sd = %p, '%s') %s\n", sc->scopesym, sc->scopesym->toChars(), toChars());
+        //printf("EnumDeclaration::semantic(sd = %p, '%s') %s\n", sc.scopesym, sc.scopesym.toChars(), toChars());
         //printf("EnumDeclaration::semantic() %p %s\n", this, toChars());
         if (semanticRun >= PASSsemanticdone)
             return; // semantic() already completed
@@ -284,8 +284,8 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         }
         //printf("defaultval = %lld\n", defaultval);
 
-        //if (defaultval) printf("defaultval: %s %s\n", defaultval->toChars(), defaultval->type->toChars());
-        //printf("members = %s\n", members->toChars());
+        //if (defaultval) printf("defaultval: %s %s\n", defaultval.toChars(), defaultval.type.toChars());
+        //printf("members = %s\n", members.toChars());
     }
 
     override bool oneMember(Dsymbol* ps, Identifier ident)
@@ -307,7 +307,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
 
     override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
-        //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident->toChars());
+        //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident.toChars());
         if (_scope)
         {
             // Try one last time to resolve this enum
