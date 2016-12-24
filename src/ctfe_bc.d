@@ -324,7 +324,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             bc_args[i] = bcv.genExpr(arg);
             if (bcv.IGaveUp)
             {
-                writeln("Ctfe died on argument processing for ", arg ? arg.toString : "Null-Argument");
+                writeln("Ctfe died on argument processing for ", arg ? arg.toString
+                    : "Null-Argument");
                 return null;
             }
 
@@ -467,6 +468,38 @@ switch_head:
         }
 
     }
+}
+
+Expression getBoolExprLhs(Expression be)
+{
+    import ddmd.tokens;
+
+    if (be.op == TOKandand)
+    {
+        return (cast(AndAndExp) be).e1;
+    }
+    if (be.op == TOKoror)
+    {
+        return (cast(OrOrExp) be).e1;
+    }
+
+    return null;
+}
+
+Expression getBoolExprRhs(Expression be)
+{
+    import ddmd.tokens;
+
+    if (be.op == TOKandand)
+    {
+        return (cast(AndAndExp) be).e2;
+    }
+    if (be.op == TOKoror)
+    {
+        return (cast(OrOrExp) be).e2;
+    }
+
+    return null;
 }
 
 string toString(T)(T value) if (is(T : Statement) || is(T : Declaration)
@@ -1001,7 +1034,8 @@ Expression toExpression(const BCValue value, Type expressionType,
     case Tpointer:
         {
             //FIXME this will _probably_ only work for basic types with one level of indirection (eg, int*, uint*)
-            result = new AddrExp(Loc.init, toExpression(imm32(*(heapPtr._heap.ptr + value.imm32 )), expressionType.nextOf));
+            result = new AddrExp(Loc.init,
+                toExpression(imm32(*(heapPtr._heap.ptr + value.imm32)), expressionType.nextOf));
             result.type = expressionType;
         }
         break;
@@ -1151,7 +1185,9 @@ struct BCScope
     //    Identifier[64] identifiers;
     BCBlock[64] blocks;
 }
+
 debug = nullPtrCheck;
+debug = andand;
 extern (C++) final class BCV(BCGenT) : Visitor
 {
     uint unresolvedGotoCount;
@@ -1202,6 +1238,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         IGaveUp = false;
         discardValue = false;
         ignoreVoid = false;
+        noRetval = false;
 
         unrolledLoopState = null;
         switchFixup = null;
@@ -1223,6 +1260,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     FuncDeclaration me;
     bool inReturnStatement;
+    Expression lastExpr;
 
     UnresolvedGoto[ubyte.max] unresolvedGotos = void;
     BCAddr[ubyte.max] breakFixups = void;
@@ -1255,6 +1293,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     BCBlock[void* ] labeledBlocks;
     bool ignoreVoid;
+    bool noRetval;
     BCValue[void* ] vars;
     //BCValue _this;
     Expression _this;
@@ -1270,15 +1309,18 @@ extern (C++) final class BCV(BCGenT) : Visitor
     debug (nullPtrCheck)
     {
         import ddmd.lexer : Loc;
+
         void Load32(BCValue _to, BCValue from)
         {
-            AssertError(from.i32, _sharedCtfeState.addError(Loc.init, "Load Source may not be null"));
+            AssertError(from.i32, _sharedCtfeState.addError(Loc.init,
+                "Load Source may not be null"));
             gen.Load32(_to, from);
         }
 
         void Store32(BCValue _to, BCValue value)
         {
-            AssertError(_to.i32, _sharedCtfeState.addError(Loc.init, "Store Destination may not be null"));
+            AssertError(_to.i32, _sharedCtfeState.addError(Loc.init,
+                "Store Destination may not be null"));
             gen.Store32(_to, value);
         }
 
@@ -1385,7 +1427,7 @@ public:
                 return genExpr(ci);
             }
             return BCValue.init;
-         }
+        }
         else
         {
             return BCValue.init;
@@ -1624,7 +1666,8 @@ public:
         }
         else
         {
-            retval = genTemporary(toBCType(e.type));
+            if (!noRetval)
+                retval = genTemporary(toBCType(e.type));
         }
         switch (e.op)
         {
@@ -1857,27 +1900,41 @@ public:
                     assert(0, "|| is unsupported at the moment");
                 }
 
-            } break;
+            }
+            break;
 
             debug (andand)
             {
         case TOK.TOKandand:
                 {
-
+                    noRetval = true;
                     // If lhs is false jump to false
                     // If lhs is true keep going
                     const oldFixupTableCount = fixupTableCount;
-                    auto lhs = genExpr(e.e1);
-                    auto afterLhs = genLabel();
-                    //doFixup(oldFixupTableCount, &afterLhs, null);
-                    fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(lhs,
-                        false));
-                    auto rhs = genExpr(e.e2);
-                    auto afterRhs = genLabel();
 
-                    //doFixup(oldFixupTableCount, &afterRhs, null);
-                    fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(rhs,
-                        false));
+                    if (!lastExpr || getBoolExprLhs(e.e2) != getBoolExprRhs(e.e1))
+                    {
+                        auto lhs = genExpr(e.e1);
+                        lastExpr = e.e1;
+
+                        //auto afterLhs = genLabel();
+                        //doFixup(oldFixupTableCount, &afterLhs, null);
+                        fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(lhs,
+                            false));
+                    }
+                    //HACK HACK HACK
+                    if (getBoolExprLhs(e.e1) == e.e1)
+                    {
+                        auto rhs = genExpr(e.e2);
+                        //lastExpr = e.e2;
+
+                        //auto afterRhs = genLabel();
+
+                        //doFixup(oldFixupTableCount, &afterRhs, null);
+                        fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(rhs,
+                            false));
+                    }
+                    noRetval = false;
                 }
 
                 break;
@@ -1897,7 +1954,9 @@ public:
         debug (ctfe)
             assert(toBCType(se.type).type == BCTypeEnum.i32Ptr, "only int* is supported for now");
         //bailout();
-        auto v = getVariable(cast(VarDeclaration) se.var);
+        auto vd = se.var.isVarDeclaration();
+        assert(vd, se.var.toString() ~ " is not a variable declarartion");
+        auto v = getVariable(vd);
         //retval = BCValue(v.stackAddr
         import std.stdio;
 
@@ -2542,9 +2601,9 @@ public:
         if (!isBasicBCType(type) && typeSize > 4)
         {
             bailout();
-            debug(ctfe)
+            debug (ctfe)
                 assert(0, "Can only new basic Types under <=4 bytes for now");
-            return ;
+            return;
         }
         Set(size, imm32(typeSize));
 
@@ -3772,7 +3831,7 @@ public:
     override void visit(CallExp ce)
     {
         bailout();
-        return ;
+        return;
         FuncDeclaration fd;
 
         if (ce.e1.op == TOKvar)
@@ -3828,7 +3887,7 @@ public:
                     {
                         assert(0, "We could not compile " ~ ce.toString);
                     }
-                    else
+                else
                     {
                         bailout();
                         return;
@@ -4012,6 +4071,11 @@ public:
         }
 
         uint oldFixupTableCount = fixupTableCount;
+        if (fs.condition.op == TOKandand || fs.condition.op == TOKoror)
+        {
+            lastExpr = null;
+            noRetval = true;
+        }
         auto cond = genExpr(fs.condition);
         if (!cond)
         {
