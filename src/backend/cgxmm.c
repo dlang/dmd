@@ -1254,7 +1254,9 @@ code *cdvecfill(elem *e, regm_t *pretregs)
         case TYfloat4:
         case TYfloat8:
             if (config.avx &&
-                ((e1->Eoper == OPind && !e1->Ecount) || e1->Eoper == OPvar && !isregvar(e1,&varregm,&varreg)))
+                ((e1->Eoper == OPind && !e1->Ecount) || e1->Eoper == OPvar && !isregvar(e1,&varregm,&varreg)) ||
+                tysize(ty) == 32
+               )
             {
               Lint:
                 // VBROADCASTSS XMM,MEM
@@ -1292,7 +1294,9 @@ code *cdvecfill(elem *e, regm_t *pretregs)
         case TYdouble2:
         case TYdouble4:
             if (config.avx &&
-                ((e1->Eoper == OPind && !e1->Ecount) || e1->Eoper == OPvar && !isregvar(e1,&varregm,&varreg)))
+                ((e1->Eoper == OPind && !e1->Ecount) || e1->Eoper == OPvar && !isregvar(e1,&varregm,&varreg)) ||
+                tysize(ty) == 32
+               )
             {
                 // VBROADCASTSD XMM,MEM
                 cdb.append(getlvalue(&cs, e1, 0));         // get addressing mode
@@ -1343,7 +1347,7 @@ code *cdvecfill(elem *e, regm_t *pretregs)
             cdb.append(c);
             reg -= XMM0;
             cdb.gen2(LODD,modregxrmx(3,reg,r));     // MOVD reg,r
-            checkSetVex(cdb.last(),ty);
+            checkSetVex(cdb.last(),TYschar16);
 
             cs.Iop = PUNPCKLBW;
             cs.Irm = modregxrmx(3,reg,reg);
@@ -1355,7 +1359,7 @@ code *cdvecfill(elem *e, regm_t *pretregs)
             cs.Iop = PSHUFD;
             cs.IFL2 = FLconst;
             cs.IEV2.Vsize_t = 0;
-            checkSetVex(&cs,ty);
+            checkSetVex(&cs,TYschar16);
             cdb.gen(&cs);
             if (tysize(ty) == 32)
             {
@@ -1392,11 +1396,11 @@ code *cdvecfill(elem *e, regm_t *pretregs)
                  */
                 cdb.append(allocreg(&retregs,&reg, ty));
                 cdb.gen2(PXOR,modregxrmx(3,reg-XMM0,reg-XMM0));
-                checkSetVex(cdb.last(), ty);
-                for (int i = 0; i < 4; ++i)
+                checkSetVex(cdb.last(), TYshort8);
+                for (int i = 0; i < tysize(ty) / 4; ++i)
                 {
                     cdb.genc2(PINSRW,modregxrmx(3,reg-XMM0,r),i);
-                    checkSetVex(cdb.last(), ty);
+                    checkSetVex(cdb.last(), TYshort8);
                 }
                 if (tysize(ty) == 32)
                 {
@@ -1406,6 +1410,17 @@ code *cdvecfill(elem *e, regm_t *pretregs)
                     cs.Iflags = 0;
                     cs.IFL2 = FLconst;
                     cs.IEV2.Vsize_t = 1;
+                    checkSetVex(&cs,ty);
+                    cdb.gen(&cs);
+                }
+                else
+                {
+                    // VPSHUFD XMM0,XMM0,0
+                    cs.Iop = PSHUFD;
+                    cs.Irm = modregxrmx(3,reg-XMM0,reg-XMM0);
+                    cs.Iflags = 0;
+                    cs.IFL2 = FLconst;
+                    cs.IEV2.Vsize_t = 0;
                     checkSetVex(&cs,ty);
                     cdb.gen(&cs);
                 }
@@ -1441,7 +1456,8 @@ code *cdvecfill(elem *e, regm_t *pretregs)
         case TYulong4:
         {
             if (config.avx &&
-                ((e1->Eoper == OPind && !e1->Ecount) || e1->Eoper == OPvar && !isregvar(e1,&varregm,&varreg)))
+                ((e1->Eoper == OPind && !e1->Ecount) || e1->Eoper == OPvar && !isregvar(e1,&varregm,&varreg)) ||
+                tysize(ty) == 32)
             {
                 goto Lint;
             }
@@ -1533,7 +1549,7 @@ code *cdvecfill(elem *e, regm_t *pretregs)
 }
 
 /*******************************************
- * Determine if lvalue e is a vector aligned on a 16 byte boundary.
+ * Determine if lvalue e is a vector aligned on a 16/32 byte boundary.
  * Assume it to be aligned unless can prove it is not.
  * Params:
  *      e = lvalue
@@ -1547,7 +1563,9 @@ bool xmmIsAligned(elem *e)
     {
         Symbol *s = e->EV.sp.Vsym;
         if (s->Salignsize() < 16 ||
-            e->EV.sp.Voffset & (16 - 1))
+            e->EV.sp.Voffset & (16 - 1) ||
+            tysize(e->Ety) > STACKALIGN
+           )
             return false;       // definitely not aligned
     }
     return true;        // assume aligned
