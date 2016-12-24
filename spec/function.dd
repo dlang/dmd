@@ -28,6 +28,7 @@ $(DIVC page-contents quickindex,
         ))
         $(LI $(RELATIVE_LINK2 parameters, Function Parameters)$(OL
             $(LI $(RELATIVE_LINK2 function-default-args, Function Default Arguments))
+            $(LI $(RELATIVE_LINK2 return-ref-parameters, Return Ref Parameters))
             $(LI $(RELATIVE_LINK2 variadic, Variadic Functions))
         ))
         $(LI $(RELATIVE_LINK2 nested, Nested Functions)$(OL
@@ -96,6 +97,7 @@ $(GNAME InOutX):
     $(D lazy)
     $(D out)
     $(D ref)
+    $(RELATIVE_LINK2 return-ref-parameters, $(D return ref))
     $(D scope)
 
 $(GNAME FunctionAttributes):
@@ -872,10 +874,10 @@ void main()
 
 $(H4 $(LNAME2 inline-functions, Inline Functions))
 
-        $(P The compiler makes the decision whether to inline a function or not. 
+        $(P The compiler makes the decision whether to inline a function or not.
         This decision may be controlled by $(LINK2 pragma.html#inline, `pragma(inline)`),
         assuming that the compiler implements it, which is not mandatory.)
-        
+
         $(P Note that any $(GLINK2 expression, FunctionLiteral) should be inlined
         when used in its declaration scope.
         )
@@ -1144,6 +1146,52 @@ foo(4);   // same as foo(4, 3);
         If the default value for a parameter is given, all following
         parameters must also have default values.
         )
+
+$(H4 $(LNAME2 return-ref-parameters, Return Ref Parameters))
+
+        $(P Note: The `return` attribute is currently only enforced by `dmd`
+        when the `-dip25` switch is passed.
+        )
+
+        $(P Return ref parameters are used with
+        $(RELATIVE_LINK2 ref-functions, ref functions) to ensure that the
+        returned reference will not outlive the matching argument's lifetime.
+        )
+
+---
+ref int identity(return ref int x) {
+  return x; // pass-through function that does nothing
+}
+
+ref int fun() {
+  int x;
+  return identity(x); // Error: escaping reference to local variable x
+}
+
+ref int gun(return ref int x) {
+  return identity(x); // OK
+}
+---
+
+        $(P Ref methods marked with the `return` attribute ensure the returned
+        reference will not outlive the respective aggregate instance.
+        )
+
+---
+struct S
+{
+    private int x;
+    ref int get() return { return x; }
+}
+
+ref int escape()
+{
+    S s;
+    return s.get(); // Error: escaping reference to local variable s
+}
+---
+
+Template functions and lambdas can deduce the `return` attribute.
 
 $(H3 $(LNAME2 variadic, Variadic Functions))
 
