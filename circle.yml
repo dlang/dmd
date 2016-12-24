@@ -13,3 +13,7 @@ test:
     # CodeCov gets confused by lst files which it can't matched
     - rm -rf test/runnable/extra-files
     - bash <(curl -s https://codecov.io/bash)
+general:
+  branches:
+    ignore:
+      - stable # list of branches to ignore
