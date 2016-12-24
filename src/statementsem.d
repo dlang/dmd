@@ -113,7 +113,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
     override void visit(CompileStatement cs)
     {
-        //printf("CompileStatement::semantic() %s\n", exp->toChars());
+        //printf("CompileStatement::semantic() %s\n", exp.toChars());
         Statements* a = cs.flatten(sc);
         if (!a)
             return;
@@ -294,7 +294,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         {
             if (s)
             {
-                //printf("[%d]: %s\n", i, s->toChars());
+                //printf("[%d]: %s\n", i, s.toChars());
                 s = s.semantic(scd);
                 if (s && !serror)
                     serror = s.isErrorStatement();
@@ -561,7 +561,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
             }
 
-            //printf("dim = %d, parameters->dim = %d\n", dim, parameters->dim);
+            //printf("dim = %d, parameters.dim = %d\n", dim, parameters.dim);
             if (foundMismatch && dim != foreachParamCount)
             {
                 const(char)* plural = foreachParamCount > 1 ? "s" : "";
@@ -594,7 +594,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
             TypeTuple tuple = cast(TypeTuple)tab;
             auto statements = new Statements();
-            //printf("aggr: op = %d, %s\n", fs.aggr->op, fs.aggr->toChars());
+            //printf("aggr: op = %d, %s\n", fs.aggr.op, fs.aggr.toChars());
             size_t n;
             TupleExp te = null;
             if (fs.aggr.op == TOKtuple) // expression tuple
@@ -1196,7 +1196,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     {
                         tfld = cast(TypeFunction)tab.nextOf();
                     Lget:
-                        //printf("tfld = %s\n", tfld->toChars());
+                        //printf("tfld = %s\n", tfld.toChars());
                         if (tfld.parameters.dim == 1)
                         {
                             Parameter p = Parameter.getNth(tfld.parameters, 0);
@@ -1225,7 +1225,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     if (tfld)
                     {
                         Parameter prm = Parameter.getNth(tfld.parameters, i);
-                        //printf("\tprm = %s%s\n", (prm->storageClass&STCref?"ref ":""), prm->ident->toChars());
+                        //printf("\tprm = %s%s\n", (prm.storageClass&STCref?"ref ":""), prm.ident.toChars());
                         stc = prm.storageClass & STCref;
                         id = p.ident; // argument copy is not need.
                         if ((p.storageClass & STCref) != stc)
@@ -1544,7 +1544,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
             else
             {
-                // See if upr-1 fits in prm->type
+                // See if upr-1 fits in prm.type
                 Expression limit = new MinExp(loc, fs.upr, new IntegerExp(1));
                 limit = limit.semantic(sc);
                 limit = limit.optimize(WANTvalue);
@@ -2194,7 +2194,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         L1:
             foreach (cs2; *sw.cases)
             {
-                //printf("comparing '%s' with '%s'\n", exp->toChars(), cs->exp->toChars());
+                //printf("comparing '%s' with '%s'\n", exp.toChars(), cs.exp.toChars());
                 if (cs2.exp.equals(cs.exp))
                 {
                     cs.error("duplicate case %s in switch statement", cs.exp.toChars());
@@ -2539,7 +2539,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     int m1 = rs.exp.type.implicitConvTo(tret);
                     int m2 = tret.implicitConvTo(rs.exp.type);
-                    //printf("exp->type = %s m2<-->m1 tret %s\n", exp->type->toChars(), tret->toChars());
+                    //printf("exp.type = %s m2<-->m1 tret %s\n", exp.type.toChars(), tret.toChars());
                     //printf("m1 = %d, m2 = %d\n", m1, m2);
 
                     if (m1 && m2)
@@ -2601,7 +2601,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     if (!v.isDataseg() && !v.isParameter() && v.toParent2() == fd)
                     {
-                        //printf("Setting nrvo to %s\n", v->toChars());
+                        //printf("Setting nrvo to %s\n", v.toChars());
                         fd.nrvo_var = v;
                     }
                     else
@@ -2610,7 +2610,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 else if (fd.nrvo_var != v)
                     fd.nrvo_can = 0;
             }
-            else //if (!exp->isLvalue())    // keep NRVO-ability
+            else //if (!exp.isLvalue())    // keep NRVO-ability
                 fd.nrvo_can = 0;
         }
         else
@@ -2691,7 +2691,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 sc.fes.cases.push(s);
 
                 // Immediately rewrite "this" return statement as:
-                //  return cases->dim+1;
+                //  return cases.dim+1;
                 rs.exp = new IntegerExp(sc.fes.cases.dim + 1);
                 if (e0)
                 {
@@ -3445,7 +3445,7 @@ Statement semantic(Statement s, Scope* sc)
 
 void semantic(Catch c, Scope* sc)
 {
-    //printf("Catch::semantic(%s)\n", ident->toChars());
+    //printf("Catch::semantic(%s)\n", ident.toChars());
 
     static if (!IN_GCC)
     {

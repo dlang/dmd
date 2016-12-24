@@ -865,7 +865,7 @@ extern (C++) final class ExpInitializer : Initializer
 
     override Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
     {
-        //printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
+        //printf("ExpInitializer::semantic(%s), type = %s\n", exp.toChars(), t.toChars());
         if (needInterpret)
             sc = sc.startCTFE();
         exp = exp.semantic(sc);
@@ -998,7 +998,7 @@ extern (C++) final class ExpInitializer : Initializer
             exp = exp.ctfeInterpret();
         else
             exp = exp.optimize(WANTvalue);
-        //printf("-ExpInitializer::semantic(): "); exp->print();
+        //printf("-ExpInitializer::semantic(): "); exp.print();
         return this;
     }
 
@@ -1006,7 +1006,7 @@ extern (C++) final class ExpInitializer : Initializer
     {
         if (t)
         {
-            //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", t->toChars(), exp->toChars());
+            //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", t.toChars(), exp.toChars());
             Type tb = t.toBasetype();
             Expression e = (exp.op == TOKconstruct || exp.op == TOKblit) ? (cast(AssignExp)exp).e2 : exp;
             if (tb.ty == Tsarray && e.implicitConvTo(tb.nextOf()))

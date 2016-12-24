@@ -40,7 +40,7 @@ private:
         {
             if (table.name == name)
             {
-                //printf("\tfound %d\n", table->textlen);
+                //printf("\tfound %d\n", table.textlen);
                 break;
             }
         }
@@ -95,7 +95,7 @@ public:
         arg = memdup(arg, arglen);
         for (size_t u = start; u + 1 < end;)
         {
-            char* p = cast(char*)buf.data; // buf->data is not loop invariant
+            char* p = cast(char*)buf.data; // buf.data is not loop invariant
             /* Look for $0, but not $$0, and replace it with arg.
              */
             if (p[u] == '$' && (isdigit(p[u + 1]) || p[u + 1] == '+'))
@@ -155,7 +155,7 @@ public:
                     u = mend;
                 }
                 //printf("u = %d, end = %d\n", u, end);
-                //printf("#%.*s#\n", end, &buf->data[0]);
+                //printf("#%.*s#\n", end, &buf.data[0]);
                 continue;
             }
             u++;
@@ -164,7 +164,7 @@ public:
          */
         for (size_t u = start; u + 4 < end;)
         {
-            char* p = cast(char*)buf.data; // buf->data is not loop invariant
+            char* p = cast(char*)buf.data; // buf.data is not loop invariant
             /* A valid start of macro expansion is $(c, where c is
              * an id start character, and not $$(c.
              */
@@ -245,7 +245,7 @@ public:
                         }
                         else
                         {
-                            //printf("\tmacro '%.*s'(%.*s) = '%.*s'\n", m->namelen, m->name, marglen, marg, m->textlen, m->text);
+                            //printf("\tmacro '%.*s'(%.*s) = '%.*s'\n", m.namelen, m.name, marglen, marg, m.textlen, m.text);
                             marg = memdup(marg, marglen);
                             // Insert replacement text
                             buf.spread(v + 1, 2 + m.text.length + 2);
@@ -266,7 +266,7 @@ public:
                             u += mend - (v + 1);
                             mem.xfree(cast(char*)marg);
                             //printf("u = %d, end = %d\n", u, end);
-                            //printf("#%.*s#\n", end - u, &buf->data[u]);
+                            //printf("#%.*s#\n", end - u, &buf.data[u]);
                             continue;
                         }
                     }

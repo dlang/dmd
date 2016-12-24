@@ -785,7 +785,7 @@ extern (C++) void emitMemberComments(ScopeDsymbol sds, OutBuffer* buf, Scope* sc
     for (size_t i = 0; i < sds.members.dim; i++)
     {
         Dsymbol s = (*sds.members)[i];
-        //printf("\ts = '%s'\n", s->toChars());
+        //printf("\ts = '%s'\n", s.toChars());
         // only expand if parent is a non-template (semantic won't work)
         if (s.comment && s.isTemplateMixin() && s.parent && !s.parent.isTemplateDeclaration())
             expandTemplateMixinComments(cast(TemplateMixin)s, buf, sc);
@@ -914,7 +914,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                 }
                 buf.writestring(ddoc_decl_dd_e);
                 buf.writeByte(')');
-                //printf("buf.2 = [[%.*s]]\n", buf->offset - o0, buf->data + o0);
+                //printf("buf.2 = [[%.*s]]\n", buf.offset - o0, buf.data + o0);
             }
             if (s)
             {
@@ -959,7 +959,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
 
         override void visit(AggregateDeclaration ad)
         {
-            //printf("AggregateDeclaration::emitComment() '%s'\n", ad->toChars());
+            //printf("AggregateDeclaration::emitComment() '%s'\n", ad.toChars());
             const(char)* com = ad.comment;
             if (TemplateDeclaration td = getEponymousParent(ad))
             {
@@ -982,7 +982,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
 
         override void visit(TemplateDeclaration td)
         {
-            //printf("TemplateDeclaration::emitComment() '%s', kind = %s\n", td->toChars(), td->kind());
+            //printf("TemplateDeclaration::emitComment() '%s', kind = %s\n", td.toChars(), td.kind());
             if (td.prot().kind == PROTprivate || sc.protection.kind == PROTprivate)
                 return;
             if (!td.comment)
@@ -1017,7 +1017,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
 
         override void visit(EnumMember em)
         {
-            //printf("EnumMember::emitComment(%p '%s'), comment = '%s'\n", em, em->toChars(), em->comment);
+            //printf("EnumMember::emitComment(%p '%s'), comment = '%s'\n", em, em.toChars(), em.comment);
             if (em.prot().kind == PROTprivate || sc.protection.kind == PROTprivate)
                 return;
             if (!em.comment)
@@ -1041,7 +1041,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                 for (size_t i = 0; i < d.dim; i++)
                 {
                     Dsymbol s = (*d)[i];
-                    //printf("AttribDeclaration::emitComment %s\n", s->toChars());
+                    //printf("AttribDeclaration::emitComment %s\n", s.toChars());
                     emitComment(s, buf, sc);
                 }
             }
@@ -1104,7 +1104,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
 
         override void visit(Dsymbol s)
         {
-            //printf("Dsymbol::toDocbuffer() %s\n", s->toChars());
+            //printf("Dsymbol::toDocbuffer() %s\n", s.toChars());
             HdrGenState hgs;
             hgs.ddoc = true;
             .toCBuffer(s, buf, &hgs);
@@ -1157,7 +1157,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             if (!d.ident)
                 return;
             TemplateDeclaration td = getEponymousParent(d);
-            //printf("Declaration::toDocbuffer() %s, originalType = %s, td = %s\n", d->toChars(), d->originalType ? d->originalType->toChars() : "--", td ? td->toChars() : "--");
+            //printf("Declaration::toDocbuffer() %s, originalType = %s, td = %s\n", d.toChars(), d.originalType ? d.originalType.toChars() : "--", td ? td.toChars() : "--");
             HdrGenState hgs;
             hgs.ddoc = true;
             if (d.isDeprecated())
@@ -1212,7 +1212,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
 
         override void visit(AliasDeclaration ad)
         {
-            //printf("AliasDeclaration::toDocbuffer() %s\n", ad->toChars());
+            //printf("AliasDeclaration::toDocbuffer() %s\n", ad.toChars());
             if (!ad.ident)
                 return;
             if (ad.isDeprecated())
@@ -1300,7 +1300,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
 
         override void visit(StructDeclaration sd)
         {
-            //printf("StructDeclaration::toDocbuffer() %s\n", sd->toChars());
+            //printf("StructDeclaration::toDocbuffer() %s\n", sd.toChars());
             if (!sd.ident)
                 return;
             version (none)
@@ -1320,7 +1320,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
 
         override void visit(ClassDeclaration cd)
         {
-            //printf("ClassDeclaration::toDocbuffer() %s\n", cd->toChars());
+            //printf("ClassDeclaration::toDocbuffer() %s\n", cd.toChars());
             if (!cd.ident)
                 return;
             version (none)
@@ -1405,7 +1405,7 @@ struct DocComment
 
     extern (C++) static DocComment* parse(Scope* sc, Dsymbol s, const(char)* comment)
     {
-        //printf("parse(%s): '%s'\n", s->toChars(), comment);
+        //printf("parse(%s): '%s'\n", s.toChars(), comment);
         auto dc = new DocComment();
         dc.a.push(s);
         if (!comment)
@@ -1689,7 +1689,7 @@ struct DocComment
                 s._body = pstart;
                 s.bodylen = pend - pstart;
                 s.nooutput = 0;
-                //printf("Section: '%.*s' = '%.*s'\n", s->namelen, s->name, s->bodylen, s->body);
+                //printf("Section: '%.*s' = '%.*s'\n", s.namelen, s.name, s.bodylen, s.body);
                 sections.push(s);
                 if (!summary && !namelen)
                     summary = s;
@@ -1727,7 +1727,7 @@ struct DocComment
             Section sec = sections[i];
             if (sec.nooutput)
                 continue;
-            //printf("Section: '%.*s' = '%.*s'\n", sec->namelen, sec->name, sec->bodylen, sec->body);
+            //printf("Section: '%.*s' = '%.*s'\n", sec.namelen, sec.name, sec.bodylen, sec.body);
             if (!sec.namelen && i == 0)
             {
                 buf.writestring("$(DDOC_SUMMARY ");
@@ -1972,7 +1972,7 @@ extern (C++) bool isKeyword(const(char)* p, size_t len)
 extern (C++) TypeFunction isTypeFunction(Dsymbol s)
 {
     FuncDeclaration f = s.isFuncDeclaration();
-    /* f->type may be NULL for template members.
+    /* f.type may be NULL for template members.
      */
     if (f && f.type)
     {
@@ -2443,7 +2443,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
                 if (isFunctionParameter(a, start, len))
                 {
-                    //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
+                    //printf("highlighting arg '%s', i = %d, j = %d\n", arg.ident.toChars(), i, j);
                     i = buf.bracket(i, "$(DDOC_PARAM ", j, ")") - 1;
                     break;
                 }
@@ -2461,7 +2461,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
  */
 extern (C++) void highlightCode(Scope* sc, Dsymbol s, OutBuffer* buf, size_t offset)
 {
-    //printf("highlightCode(s = %s '%s')\n", s->kind(), s->toChars());
+    //printf("highlightCode(s = %s '%s')\n", s.kind(), s.toChars());
     OutBuffer ancbuf;
     emitAnchor(&ancbuf, s, sc);
     buf.insert(offset, ancbuf.peekSlice());
@@ -2475,7 +2475,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbol s, OutBuffer* buf, size_t off
  */
 extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset)
 {
-    //printf("highlightCode(a = '%s')\n", a->toChars());
+    //printf("highlightCode(a = '%s')\n", a.toChars());
     bool resolvedTemplateParameters = false;
 
     for (size_t i = offset; i < buf.offset; i++)
@@ -2504,7 +2504,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
                 if (isFunctionParameter(a, start, len))
                 {
-                    //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
+                    //printf("highlighting arg '%s', i = %d, j = %d\n", arg.ident.toChars(), i, j);
                     i = buf.bracket(i, "$(DDOC_PARAM ", j, ")") - 1;
                     continue;
                 }
@@ -2612,7 +2612,7 @@ extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t 
     scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, 0, 1);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf.data;
-    //printf("highlightCode2('%.*s')\n", buf->offset - 1, buf->data);
+    //printf("highlightCode2('%.*s')\n", buf.offset - 1, buf.data);
     res.reserve(buf.offset);
     while (1)
     {
@@ -2634,7 +2634,7 @@ extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t 
                 }
                 if (isFunctionParameter(a, tok.ptr, len))
                 {
-                    //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
+                    //printf("highlighting arg '%s', i = %d, j = %d\n", arg.ident.toChars(), i, j);
                     highlight = "$(D_PARAM ";
                     break;
                 }

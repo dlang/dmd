@@ -300,12 +300,12 @@ private bool match(RootObject o1, RootObject o2)
     }
 Lmatch:
     static if (debugPrint)
-        printf("\t-> match\n");
+        printf("\t. match\n");
     return true;
 
 Lnomatch:
     static if (debugPrint)
-        printf("\t-> nomatch\n");
+        printf("\t. nomatch\n");
     return false;
 }
 

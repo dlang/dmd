@@ -3032,7 +3032,7 @@ final class Parser : Lexer
         else
             error("enum declaration is invalid");
 
-        //printf("-parseEnum() %s\n", e->toChars());
+        //printf("-parseEnum() %s\n", e.toChars());
         return e;
     }
 
@@ -4329,7 +4329,7 @@ final class Parser : Lexer
         if (pAttrs)
         {
             storage_class |= pAttrs.storageClass;
-            //pAttrs->storageClass = STCundefined;
+            //pAttrs.storageClass = STCundefined;
         }
 
         while (1)
@@ -4432,7 +4432,7 @@ final class Parser : Lexer
                     }
                 }
 
-                //printf("%s funcdecl t = %s, storage_class = x%lx\n", loc.toChars(), t->toChars(), storage_class);
+                //printf("%s funcdecl t = %s, storage_class = x%lx\n", loc.toChars(), t.toChars(), storage_class);
                 auto f = new FuncDeclaration(loc, Loc(), ident, storage_class | (disable ? STCdisable : 0), t);
                 if (pAttrs)
                     pAttrs.storageClass = STCundefined;
@@ -4658,7 +4658,7 @@ final class Parser : Lexer
 
         bool literal = f.isFuncLiteralDeclaration() !is null;
 
-        // The following is irrelevant, as it is overridden by sc->linkage in
+        // The following is irrelevant, as it is overridden by sc.linkage in
         // TypeFunction::semantic
         linkage = LINKd; // nested functions have D linkage
     L1:
@@ -6230,7 +6230,7 @@ final class Parser : Lexer
             goto Lisnot;
 
     Lis:
-        //printf("\tis declaration, t = %s\n", t->toChars());
+        //printf("\tis declaration, t = %s\n", t.toChars());
         return true;
 
     Lisnot:
@@ -6416,7 +6416,7 @@ final class Parser : Lexer
         Token* t = *pt;
         int parens;
 
-        //printf("Parser::isDeclarator() %s\n", t->toChars());
+        //printf("Parser::isDeclarator() %s\n", t.toChars());
         if (t.value == TOKassign)
             return false;
 
@@ -7015,7 +7015,7 @@ final class Parser : Lexer
                 Token* t2 = peek(t1);
                 if (t1.value == TOKmin && t2.value == TOKgt)
                 {
-                    // skip ident->
+                    // skip ident.
                     nextToken();
                     nextToken();
                     nextToken();

@@ -738,7 +738,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             ex = ex.semantic(scx);
             if (errors < global.errors)
                 e.error("%s cannot be resolved", eorig.toChars());
-            //ex->print();
+            //ex.print();
 
             /* Create tuple of functions of ex
              */
@@ -858,7 +858,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             s = imp.mod;
         }
 
-        //printf("getAttributes %s, attrs = %p, scope = %p\n", s->toChars(), s->userAttribDecl, s->scope);
+        //printf("getAttributes %s, attrs = %p, scope = %p\n", s.toChars(), s.userAttribDecl, s.scope);
         auto udad = s.userAttribDecl;
         auto exps = udad ? udad.getAttributes() : new Expressions();
         auto tup = new TupleExp(e.loc, exps);
@@ -937,7 +937,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             if (!sm)
                 return 1;
-            //printf("\t[%i] %s %s\n", i, sm->kind(), sm->toChars());
+            //printf("\t[%i] %s %s\n", i, sm.kind(), sm.toChars());
             if (sm.ident)
             {
                 const idx = sm.ident.toChars();
@@ -958,7 +958,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 if (sm.isTypeInfoDeclaration()) // Bugzilla 15177
                     return 0;
 
-                //printf("\t%s\n", sm->ident->toChars());
+                //printf("\t%s\n", sm.ident.toChars());
 
                 /* Skip if already present in idents[]
                  */
@@ -1089,7 +1089,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto o2 = (*e.args)[1];
         auto s1 = getDsymbol(o1);
         auto s2 = getDsymbol(o2);
-        //printf("isSame: %s, %s\n", o1->toChars(), o2->toChars());
+        //printf("isSame: %s, %s\n", o1.toChars(), o2.toChars());
         version (none)
         {
             printf("o1: %p\n", o1);

@@ -265,7 +265,7 @@ extern (C++) void discardValue(Expression e)
                         s = ce.f.toPrettyChars();
                     else if (ce.e1.op == TOKstar)
                     {
-                        // print 'fp' if ce->e1 is (*fp)
+                        // print 'fp' if ce.e1 is (*fp)
                         s = (cast(PtrExp)ce.e1).e1.toChars();
                     }
                     else
@@ -334,7 +334,7 @@ extern (C++) void discardValue(Expression e)
                 return;
             }
             // Don't check e1 until we cast(void) the a,b code generation
-            //discardValue(ce->e1);
+            //discardValue(ce.e1);
             discardValue(ce.e2);
             return;
         }

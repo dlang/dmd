@@ -246,7 +246,7 @@ struct CompiledCtfeFunction
 
     extern (C++) void onDeclaration(VarDeclaration v)
     {
-        //printf("%s CTFE declare %s\n", v->loc.toChars(), v->toChars());
+        //printf("%s CTFE declare %s\n", v.loc.toChars(), v.toChars());
         ++numVars;
     }
 
@@ -712,7 +712,7 @@ extern (C++) Expression ctfeInterpret(Expression e)
     if (e.op == TOKerror)
         return e;
     assert(e.type); // Bugzilla 14642
-    //assert(e->type->ty != Terror);    // FIXME
+    //assert(e.type.ty != Terror);    // FIXME
     if (e.type.ty == Terror)
         return new ErrorExp();
 
@@ -949,7 +949,7 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
             ctfeStack.push(vx);
             assert(!hasValue(vx)); // vx is made uninitialized
 
-            // Bugzilla 14299: v->ctfeAdrOnStack should be saved already
+            // Bugzilla 14299: v.ctfeAdrOnStack should be saved already
             // in the stack before the overwrite.
             v.ctfeAdrOnStack = oldadr;
             assert(hasValue(v)); // ref parameter v should refer existing value.
@@ -1496,7 +1496,7 @@ public:
         Expression ei = interpret(s._init, istate);
         if (exceptionOrCant(ei))
             return;
-        assert(!ei); // s->init never returns from function, or jumps out from it
+        assert(!ei); // s.init never returns from function, or jumps out from it
 
         while (1)
         {
@@ -3276,11 +3276,11 @@ public:
             Expression e2 = interpret(e.e2, istate);
             if (exceptionOrCant(e2))
                 return;
-            //printf("e1 = %s %s, e2 = %s %s\n", e1->type->toChars(), e1->toChars(), e2->type->toChars(), e2->toChars());
+            //printf("e1 = %s %s, e2 = %s %s\n", e1.type.toChars(), e1.toChars(), e2.type.toChars(), e2.toChars());
             dinteger_t ofs1, ofs2;
             Expression agg1 = getAggregateFromPointer(e1, &ofs1);
             Expression agg2 = getAggregateFromPointer(e2, &ofs2);
-            //printf("agg1 = %p %s, agg2 = %p %s\n", agg1, agg1->toChars(), agg2, agg2->toChars());
+            //printf("agg1 = %p %s, agg2 = %p %s\n", agg1, agg1.toChars(), agg2, agg2.toChars());
             int cmp = comparePointers(e.loc, e.op, e.type, agg1, ofs1, agg2, ofs2);
             if (cmp == -1)
             {
@@ -3761,7 +3761,7 @@ public:
             }
 
             //printf("\t+L%d existingAA = %s, lastIndex = %s, oldval = %s, newval = %s\n",
-            //    __LINE__, existingAA->toChars(), lastIndex->toChars(), oldval ? oldval->toChars() : NULL, newval->toChars());
+            //    __LINE__, existingAA.toChars(), lastIndex.toChars(), oldval ? oldval.toChars() : NULL, newval.toChars());
             assignAssocArrayElement(e.loc, existingAA, lastIndex, newval);
 
             // Determine the return value
@@ -4268,8 +4268,8 @@ public:
                 const wantCopy = (newval.type.toBasetype().nextOf().baseElemOf().ty == Tstruct);
 
                 //printf("oldval = %p %s[%d..%u]\nnewval = %p %s[%llu..%llu] wantCopy = %d\n",
-                //    aggregate, aggregate->toChars(), lowerbound, upperbound,
-                //    aggr2, aggr2->toChars(), srclower, srcupper, wantCopy);
+                //    aggregate, aggregate.toChars(), lowerbound, upperbound,
+                //    aggr2, aggr2.toChars(), srclower, srcupper, wantCopy);
                 if (wantCopy)
                 {
                     // Currently overlapping for struct array is allowed.
@@ -4913,13 +4913,13 @@ public:
             {
                 assert(e.arguments.dim == 1);
                 Expression ea = (*e.arguments)[0];
-                //printf("1 ea = %s %s\n", ea->type->toChars(), ea->toChars());
+                //printf("1 ea = %s %s\n", ea.type.toChars(), ea.toChars());
                 if (ea.op == TOKslice)
                     ea = (cast(SliceExp)ea).e1;
                 if (ea.op == TOKcast)
                     ea = (cast(CastExp)ea).e1;
 
-                //printf("2 ea = %s, %s %s\n", ea->type->toChars(), Token::toChars(ea->op), ea->toChars());
+                //printf("2 ea = %s, %s %s\n", ea.type.toChars(), Token::toChars(ea.op), ea.toChars());
                 if (ea.op == TOKvar || ea.op == TOKsymoff)
                     result = getVarExp(e.loc, istate, (cast(SymbolExp)ea).var, ctfeNeedRvalue);
                 else if (ea.op == TOKaddress)
@@ -5481,7 +5481,7 @@ public:
             }
             assert(agg.op == TOKarrayliteral || agg.op == TOKstring);
             dinteger_t len = ArrayLength(Type.tsize_t, agg).exp().toInteger();
-            //Type *pointee = ((TypePointer *)agg->type)->next;
+            //Type *pointee = ((TypePointer *)agg.type)->next;
             if (iupr > (len + 1) || iupr < ilwr)
             {
                 e.error("pointer slice [%lld..%lld] exceeds allocated memory block [0..%lld]", ilwr, iupr, len);
@@ -5965,7 +5965,7 @@ public:
         if (e.to.ty == Tarray && e1.op == TOKslice)
         {
             // Note that the slice may be void[], so when checking for dangerous
-            // casts, we need to use the original type, which is se->e1.
+            // casts, we need to use the original type, which is se.e1.
             SliceExp se = cast(SliceExp)e1;
             if (!isSafePointerCast(se.e1.type.nextOf(), e.to.nextOf()))
             {
@@ -6289,7 +6289,7 @@ public:
 
     override void visit(ClassReferenceExp e)
     {
-        //printf("ClassReferenceExp::interpret() %s\n", e->value->toChars());
+        //printf("ClassReferenceExp::interpret() %s\n", e.value.toChars());
         result = e;
     }
 
@@ -6559,7 +6559,7 @@ extern (C++) Expression interpret_values(InterState* istate, Expression earg, Ty
     auto ae = new ArrayLiteralExp(aae.loc, aae.values);
     ae.ownedByCtfe = aae.ownedByCtfe;
     ae.type = returnType;
-    //printf("result is %s\n", e->toChars());
+    //printf("result is %s\n", e.toChars());
     return copyLiteral(ae).copy();
 }
 
@@ -6586,7 +6586,7 @@ extern (C++) Expression interpret_dup(InterState* istate, Expression earg)
             return e;
     }
     aae.type = earg.type.mutableOf(); // repaint type from const(int[int]) to const(int)[int]
-    //printf("result is %s\n", aae->toChars());
+    //printf("result is %s\n", aae.toChars());
     return aae;
 }
 
