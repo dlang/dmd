@@ -930,10 +930,6 @@ Expression toExpression(const BCValue value, Type expressionType,
         auto resultString = (cast(void*)(heapPtr._heap.ptr + offset + 1))[0 .. length].dup;
         result = new StringExp(Loc(), resultString.ptr, length);
         (cast(StringExp) result).ownedByCtfe = OWNEDctfe;
-
-        //HACK to avoid TypePainting!
-        result.type = expressionType;
-
     }
     else
         switch (expressionType.ty)
@@ -957,7 +953,6 @@ Expression toExpression(const BCValue value, Type expressionType,
             }
             result = new StructLiteralExp(Loc(), sd, elmExprs);
             (cast(StructLiteralExp) result).ownedByCtfe = OWNEDctfe;
-            result.type = expressionType;
         }
         break;
     case Tarray:
@@ -1002,7 +997,6 @@ Expression toExpression(const BCValue value, Type expressionType,
 
             result = new ArrayLiteralExp(Loc(), elmExprs);
             (cast(ArrayLiteralExp) result).ownedByCtfe = OWNEDctfe;
-            result.type = expressionType;
         }
         break;
     case Tsarray:
@@ -1027,8 +1021,7 @@ Expression toExpression(const BCValue value, Type expressionType,
         break;
     case Tint64, Tuns64:
         {
-            // result = new IntegerExp(value.imm64);
-            // for now bail out on 64bit values
+            result = new IntegerExp(value.imm64);
         }
         break;
     case Tpointer:
@@ -1036,7 +1029,6 @@ Expression toExpression(const BCValue value, Type expressionType,
             //FIXME this will _probably_ only work for basic types with one level of indirection (eg, int*, uint*)
             result = new AddrExp(Loc.init,
                 toExpression(imm32(*(heapPtr._heap.ptr + value.imm32)), expressionType.nextOf));
-            result.type = expressionType;
         }
         break;
     default:
@@ -1045,6 +1037,8 @@ Expression toExpression(const BCValue value, Type expressionType,
                 assert(0, "Cannot convert to " ~ expressionType.toString!Type ~ " yet.");
         }
     }
+    if (result)
+        result.type = expressionType;
 
     return result;
 }
@@ -4077,6 +4071,7 @@ public:
             noRetval = true;
         }
         auto cond = genExpr(fs.condition);
+        noRetval = false;
         if (!cond)
         {
             bailout();
