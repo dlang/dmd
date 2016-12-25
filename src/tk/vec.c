@@ -337,15 +337,16 @@ size_t vec_index(size_t b,vec_t vec)
  */
 
 void vec_andass(vec_t v1,vec_t v2)
-{   vec_t vtop;
-
+{
     if (v1)
     {
-        assert(v2);
         assert(vec_numbits(v1)==vec_numbits(v2));
-        vtop = &v1[vec_dim(v1)];
-        for (; v1 < vtop; v1++,v2++)
-            *v1 &= *v2;
+        vec_t vtop = &v1[vec_dim(v1)];
+        ptrdiff_t offset = (char *)v2 - (char *)v1;
+        for (; v1 < vtop; ++v1)
+        {
+            *v1 &= *(vec_base_t *)((char *)v1 + offset);
+        }
     }
     else
         assert(!v2);
@@ -379,11 +380,13 @@ void vec_xorass(vec_t v1,vec_t v2)
 
     if (v1)
     {
-        assert(v2);
         assert(vec_numbits(v1)==vec_numbits(v2));
-        vtop = &v1[vec_dim(v1)];
-        for (; v1 < vtop; v1++,v2++)
-            *v1 ^= *v2;
+        vec_t vtop = &v1[vec_dim(v1)];
+        ptrdiff_t offset = (char *)v2 - (char *)v1;
+        for (; v1 < vtop; ++v1)
+        {
+            *v1 ^= *(vec_base_t *)((char *)v1 + offset);
+        }
     }
     else
         assert(!v2);
@@ -417,35 +420,13 @@ void vec_orass(vec_t v1,vec_t v2)
 
     if (v1)
     {
-#ifdef DEBUG
-        assert(v2);
         assert(vec_numbits(v1)==vec_numbits(v2));
-#endif
-        vtop = &v1[vec_dim(v1)];
-#if __INTSIZE == 2 && __I86__ && (__COMPACT__ || __LARGE__ || __VCM__)
-        _asm
+        vec_t vtop = &v1[vec_dim(v1)];
+        ptrdiff_t offset = (char *)v2 - (char *)v1;
+        for (; v1 < vtop; ++v1)
         {
-                push    DS
-                lds     SI,v2
-                les     DI,v1
-                mov     CX,word ptr vtop
-                cmp     CX,DI
-                jz      L1
-            L2: mov     AX,[SI]
-                add     SI,2
-                or      ES:[DI],AX
-                add     DI,2
-                cmp     DI,CX
-                jb      L2
-            L1: pop     DS
-        #if __SC__ <= 0x610
-                jmp     Lret
-        #endif
+            *v1 |= *(vec_base_t *)((char *)v1 + offset);
         }
-#else
-        for (; v1 < vtop; v1++,v2++)
-            *v1 |= *v2;
-#endif
     }
     else
         assert(!v2);
@@ -479,11 +460,13 @@ void vec_subass(vec_t v1,vec_t v2)
 
     if (v1)
     {
-        assert(v2);
         assert(vec_numbits(v1)==vec_numbits(v2));
-        vtop = &v1[vec_dim(v1)];
-        for (; v1 < vtop; v1++,v2++)
-            *v1 &= ~*v2;
+        vec_t vtop = &v1[vec_dim(v1)];
+        ptrdiff_t offset = (char *)v2 - (char *)v1;
+        for (; v1 < vtop; ++v1)
+        {
+            *v1 &= ~*(vec_base_t *)((char *)v1 + offset);
+        }
     }
     else
         assert(!v2);
