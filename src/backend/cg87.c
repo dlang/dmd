@@ -1612,31 +1612,31 @@ code *orth87(elem *e,regm_t *pretregs)
  */
 
 code *loadComplex(elem *e)
-{   int sz;
+{
     regm_t retregs;
-    code *c;
+    CodeBuilder cdb;
 
-    sz = tysize(e->Ety);
+    int sz = tysize(e->Ety);
     switch (tybasic(e->Ety))
     {
         case TYfloat:
         case TYdouble:
         case TYldouble:
             retregs = mST0;
-            c = codelem(e,&retregs,FALSE);
+            cdb.append(codelem(e,&retregs,FALSE));
             // Convert to complex with a 0 for the imaginary part
-            c = cat(c, push87());
-            c = gen2(c,0xD9,0xEE);              // FLDZ
+            cdb.append(push87());
+            cdb.gen2(0xD9,0xEE);              // FLDZ
             break;
 
         case TYifloat:
         case TYidouble:
         case TYildouble:
             // Convert to complex with a 0 for the real part
-            c = push87();
-            c = gen2(c,0xD9,0xEE);              // FLDZ
+            cdb.append(push87());
+            cdb.gen2(0xD9,0xEE);              // FLDZ
             retregs = mST0;
-            c = cat(c, codelem(e,&retregs,FALSE));
+            cdb.append(codelem(e,&retregs,FALSE));
             break;
 
         case TYcfloat:
@@ -1644,7 +1644,7 @@ code *loadComplex(elem *e)
         case TYcldouble:
             sz /= 2;
             retregs = mST01;
-            c = codelem(e,&retregs,FALSE);
+            cdb.append(codelem(e,&retregs,FALSE));
             break;
 
         default:
@@ -1652,7 +1652,7 @@ code *loadComplex(elem *e)
     }
     note87(e, 0, 1);
     note87(e, sz, 0);
-    return c;
+    return cdb.finish();
 }
 
 /*************************
@@ -1663,13 +1663,10 @@ code *loadComplex(elem *e)
 
 code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
 {
-        code *ccomma,*c,*c2,*cpush;
         code cs;
         regm_t retregs;
-        unsigned reg,mf,mf1;
-        int opr;
+        unsigned reg,mf1;
         unsigned char ldop;
-        tym_t ty;
         int i;
 
 #if NDPP
@@ -1677,26 +1674,23 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
 #endif
         assert(!(NOSAHF && op == 3));
         elem_debug(e);
-        ccomma = NULL;
-        cpush = NULL;
+        CodeBuilder cdb;
         if (ADDFWAIT())
             cs.Iflags = CFwait;
         else
             cs.Iflags = 0;
         cs.Irex = 0;
-        opr = oprev[op + 1];
-        ty = tybasic(e->Ety);
+        int opr = oprev[op + 1];
+        tym_t ty = tybasic(e->Ety);
+        unsigned mf = (ty == TYfloat || ty == TYifloat || ty == TYcfloat) ? MFfloat : MFdouble;
         if ((ty == TYldouble || ty == TYildouble) &&
             op != -1 && e->Eoper != OPd_ld)
             goto Ldefault;
-        mf = (ty == TYfloat || ty == TYifloat || ty == TYcfloat) ? MFfloat : MFdouble;
     L5:
         switch (e->Eoper)
         {
             case OPcomma:
-                ccomma = docommas(&e);
-//              if (op != -1)
-//                  ccomma = cat(ccomma,makesure87(eleft,eoffset,0,0));
+                cdb.append(docommas(&e));
                 goto L5;
 
             case OPvar:
@@ -1709,20 +1703,20 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                         (i = cse_get(e, 0)) >= 0)
                     {   static unsigned char b2[8] = {0xC0,0xC8,0xD0,0xD8,0xE0,0xE8,0xF0,0xF8};
 
-                        c = genf2(NULL,0xD8,b2[op] + i);        // Fop ST(i)
+                        cdb.genf2(0xD8,b2[op] + i);        // Fop ST(i)
                     }
                     else
                     {
-                        c = getlvalue87(&cs,e,0);
-                        c = cat(c,makesure87(eleft,eoffset,0,0));
+                        cdb.append(getlvalue87(&cs,e,0));
+                        cdb.append(makesure87(eleft,eoffset,0,0));
                         cs.Iop = ESC(mf,0);
                         cs.Irm |= modregrm(0,op,0);
-                        c = gen(c,&cs);
+                        cdb.gen(&cs);
                     }
                 }
                 else
                 {
-                    cpush = push87();
+                    cdb.append(push87());
                     switch (ty)
                     {
                         case TYfloat:
@@ -1732,12 +1726,12 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                         case TYcfloat:
                         case TYcdouble:
                         case TYdouble_alias:
-                            c = loadea(e,&cs,ESC(mf,1),0,0,0,0);        // FLD var
+                            cdb.append(loadea(e,&cs,ESC(mf,1),0,0,0,0)); // FLD var
                             break;
                         case TYldouble:
                         case TYildouble:
                         case TYcldouble:
-                            c = loadea(e,&cs,0xDB,5,0,0,0);             // FLD var
+                            cdb.append(loadea(e,&cs,0xDB,5,0,0,0));      // FLD var
                             break;
                         default:
                             printf("ty = x%x\n", ty);
@@ -1758,19 +1752,19 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                 {
 #if 1
                 L4:
-                    c = getlvalue87(&cs,e->E1,0);
+                    cdb.append(getlvalue87(&cs,e->E1,0));
                     cs.Iop = ESC(mf1,0);
                     if (op != -1)
                     {   cs.Irm |= modregrm(0,op,0);
-                        c = cat(c,makesure87(eleft,eoffset,0,0));
+                        cdb.append(makesure87(eleft,eoffset,0,0));
                     }
                     else
                     {   cs.Iop |= 1;
-                        c = cat(c,push87());
+                        cdb.append(push87());
                     }
-                    c = gen(c,&cs);                     /* FLD / Fop    */
+                    cdb.gen(&cs);                     // FLD / Fop
 #else
-                    c = loadea(e->E1,&cs,ESC(mf1,1),0,0,0,0); /* FLD e->E1 */
+                    cdb.append(loadea(e->E1,&cs,ESC(mf1,1),0,0,0,0)); /* FLD e->E1 */
 #endif
                     /* Variable cannot be put into a register anymore   */
                     if (e->E1->Eoper == OPvar)
@@ -1780,10 +1774,11 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                 else
                 {
                     retregs = mST0;
-                    c = codelem(e->E1,&retregs,FALSE);
+                    cdb.append(codelem(e->E1,&retregs,FALSE));
                     if (op != -1)
-                    {   c = cat(c,makesure87(eleft,eoffset,1,0));
-                        c = genf2(c,0xDE,modregrm(3,opr,1)); // FopRP
+                    {
+                        cdb.append(makesure87(eleft,eoffset,1,0));
+                        cdb.genf2(0xDE,modregrm(3,opr,1)); // FopRP
                         pop87();
                     }
                 }
@@ -1793,11 +1788,11 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                 if (e->E1->Eoper == OPvar ||
                     (e->E1->Eoper == OPind && e->E1->Ecount == 0))
                 {
-                    c = getlvalue87(&cs,e->E1,0);
+                    cdb.append(getlvalue87(&cs,e->E1,0));
                     cs.Iop = 0xDF;
-                    c = cat(c,push87());
+                    cdb.append(push87());
                     cs.Irm |= modregrm(0,5,0);
-                    c = gen(c,&cs);                     // FILD m64
+                    cdb.gen(&cs);                     // FILD m64
                     // Variable cannot be put into a register anymore
                     if (e->E1->Eoper == OPvar)
                         notreg(e->E1);
@@ -1806,27 +1801,28 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                 else if (I64)
                 {
                     retregs = ALLREGS;
-                    c = codelem(e->E1,&retregs,FALSE);
+                    cdb.append(codelem(e->E1,&retregs,FALSE));
                     reg = findreg(retregs);
-                    c = genfltreg(c,STO,reg,0);         // MOV floatreg,reg
-                    code_orrex(c, REX_W);
-                    c = cat(c,push87());
-                    c = genfltreg(c,0xDF,5,0);          // FILD long long ptr floatreg
+                    cdb.genfltreg(STO,reg,0);         // MOV floatreg,reg
+                    code_orrex(cdb.last(), REX_W);
+                    cdb.append(push87());
+                    cdb.genfltreg(0xDF,5,0);          // FILD long long ptr floatreg
                 }
                 else
                 {
                     retregs = ALLREGS;
-                    c = codelem(e->E1,&retregs,FALSE);
+                    cdb.append(codelem(e->E1,&retregs,FALSE));
                     reg = findreglsw(retregs);
-                    c = genfltreg(c,STO,reg,0);         // MOV floatreg,reglsw
+                    cdb.genfltreg(STO,reg,0);         // MOV floatreg,reglsw
                     reg = findregmsw(retregs);
-                    c = genfltreg(c,STO,reg,4);         // MOV floatreg+4,regmsw
-                    c = cat(c,push87());
-                    c = genfltreg(c,0xDF,5,0);          // FILD long long ptr floatreg
+                    cdb.genfltreg(STO,reg,4);         // MOV floatreg+4,regmsw
+                    cdb.append(push87());
+                    cdb.genfltreg(0xDF,5,0);          // FILD long long ptr floatreg
                 }
                 if (op != -1)
-                {   c = cat(c,makesure87(eleft,eoffset,1,0));
-                    c = genf2(c,0xDE,modregrm(3,opr,1)); // FopRP
+                {
+                    cdb.append(makesure87(eleft,eoffset,1,0));
+                    cdb.genf2(0xDE,modregrm(3,opr,1)); // FopRP
                     pop87();
                 }
                 break;
@@ -1835,10 +1831,11 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                 ldop = loadconst(e, 0);
                 if (ldop)
                 {
-                    cpush = push87();
-                    c = genf2(NULL,0xD9,ldop);          // FLDx
+                    cdb.append(push87());
+                    cdb.genf2(0xD9,ldop);          // FLDx
                     if (op != -1)
-                    {   genf2(c,0xDE,modregrm(3,opr,1));        // FopRP
+                    {
+                        cdb.genf2(0xDE,modregrm(3,opr,1));        // FopRP
                         pop87();
                     }
                 }
@@ -1857,8 +1854,8 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                 if (op != -1)
                     note87(eleft,eoffset,0);    // don't trash this value
                 retregs = ALLREGS & mLSW;
-                c = codelem(e->E1,&retregs,FALSE);
-                c = regwithvalue(c,ALLREGS & mMSW,0,&reg,0);  // 0-extend
+                cdb.append(codelem(e->E1,&retregs,FALSE));
+                cdb.append(regwithvalue(CNIL,ALLREGS & mMSW,0,&reg,0));  // 0-extend
                 retregs |= mask[reg];
                 mf1 = MFlong;
                 goto L3;
@@ -1876,26 +1873,27 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                 else
                 {
                     retregs = ALLREGS;
-                    c = codelem(e->E1,&retregs,FALSE);
+                    cdb.append(codelem(e->E1,&retregs,FALSE));
                 L3:
                     if (I16 && e->Eoper != OPs16_d)
                     {
                         /* MOV floatreg+2,reg   */
                         reg = findregmsw(retregs);
-                        c = genfltreg(c,STO,reg,REGSIZE);
+                        cdb.genfltreg(STO,reg,REGSIZE);
                         retregs &= mLSW;
                     }
                     reg = findreg(retregs);
-                    c = genfltreg(c,STO,reg,0);         // MOV floatreg,reg
+                    cdb.genfltreg(STO,reg,0);         // MOV floatreg,reg
                     if (op != -1)
-                    {   c = cat(c,makesure87(eleft,eoffset,0,0));
-                        genfltreg(c,ESC(mf1,0),op,0);   /* Fop floatreg */
+                    {
+                        cdb.append(makesure87(eleft,eoffset,0,0));
+                        cdb.genfltreg(ESC(mf1,0),op,0);   // Fop floatreg
                     }
                     else
                     {
                         /* FLD long ptr floatreg        */
-                        c = cat(c,push87());
-                        c = genfltreg(c,ESC(mf1,1),0,0);
+                        cdb.append(push87());
+                        cdb.genfltreg(ESC(mf1,1),0,0);
                     }
                 }
                 break;
@@ -1906,39 +1904,38 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                    We also lose CSE capability  */
                 if (e->Eoper == OPconst)
                 {
-                    c = load87(e, 0, &retregs, NULL, -1);
+                    cdb.append(load87(e, 0, &retregs, NULL, -1));
                 }
                 else
-                    c = (*cdxxx[e->Eoper])(e,&retregs);
+                    cdb.append((*cdxxx[e->Eoper])(e,&retregs));
 #else
-                c = codelem(e,&retregs,FALSE);
+                cdb.append(codelem(e,&retregs,FALSE));
 #endif
                 if (op != -1)
                 {
-                    c = cat(c,makesure87(eleft,eoffset,1,(op == 0 || op == 1)));
+                    cdb.append(makesure87(eleft,eoffset,1,(op == 0 || op == 1)));
                     pop87();
                     if (op == 4 || op == 6)     // sub or div
-                    {   code *cl;
-
-                        cl = code_last(c);
+                    {
+                        code *cl = cdb.last();
                         if (cl && cl->Iop == 0xD9 && cl->Irm == 0xC9)   // FXCH ST(1)
                         {   cl->Iop = NOP;
                             opr = op;           // reverse operands
                         }
                     }
-                    c = genf2(c,0xDE,modregrm(3,opr,1));        // FopRP
+                    cdb.genf2(0xDE,modregrm(3,opr,1));        // FopRP
                 }
                 break;
         }
         if (op == 3)                    // FCOMP
         {   pop87();                    // extra pop was done
-            cg87_87topsw(c);
+            cdb.append(cg87_87topsw(CNIL));
         }
-        c2 = fixresult87(e,((op == 3) ? mPSW : mST0),pretregs);
+        cdb.append(fixresult87(e,((op == 3) ? mPSW : mST0),pretregs));
 #if NDPP
         printf("-load87(e=%p, eoffset=%d, *pretregs=%s, eleft=%p, op=%d, stackused = %d)\n",e,eoffset,regm_str(*pretregs),eleft,op,stackused);
 #endif
-        return cat4(ccomma,cpush,c,c2);
+        return cdb.finish();
 }
 
 /********************************
@@ -2001,18 +1998,16 @@ ret0:   return 0;
 
 code *eq87(elem *e,regm_t *pretregs)
 {
-        regm_t retregs;
-        code *c1,*c2;
         code cs;
         unsigned op1;
         unsigned op2;
-        tym_t ty1;
 
         //printf("+eq87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
+        CodeBuilder cdb;
         assert(e->Eoper == OPeq);
-        retregs = mST0 | (*pretregs & mPSW);
-        c1 = codelem(e->E2,&retregs,FALSE);
-        ty1 = tybasic(e->E1->Ety);
+        regm_t retregs = mST0 | (*pretregs & mPSW);
+        cdb.append(codelem(e->E2,&retregs,FALSE));
+        tym_t ty1 = tybasic(e->E1->Ety);
         switch (ty1)
         {   case TYdouble_alias:
             case TYidouble:
@@ -2028,8 +2023,8 @@ code *eq87(elem *e,regm_t *pretregs)
         {
             if (ty1 == TYldouble || ty1 == TYildouble)
             {
-                c1 = cat(c1,push87());
-                c1 = genf2(c1,0xD9,0xC0);       // FLD ST(0)
+                cdb.append(push87());
+                cdb.genf2(0xD9,0xC0);           // FLD ST(0)
                 pop87();
             }
             else
@@ -2041,7 +2036,7 @@ code *eq87(elem *e,regm_t *pretregs)
         }
 #if 0
         // Doesn't work if ST(0) gets saved to the stack by getlvalue()
-        c2 = loadea(e->E1,&cs,op1,op2,0,0,0);
+        cdb.append(loadea(e->E1,&cs,op1,op2,0,0,0));
 #else
         cs.Irex = 0;
         cs.Iflags = 0;
@@ -2052,15 +2047,15 @@ code *eq87(elem *e,regm_t *pretregs)
             while (e2->Eoper == OPcomma)
                 e2 = e2->E2;
             note87(e2,0,0);
-            c2 = getlvalue87(&cs, e->E1, 0);
-            c2 = cat(c2,makesure87(e2,0,0,1));
+            cdb.append(getlvalue87(&cs, e->E1, 0));
+            cdb.append(makesure87(e2,0,0,1));
         }
         else
         {
-            c2 = getlvalue87(&cs, e->E1, 0);
+            cdb.append(getlvalue87(&cs, e->E1, 0));
         }
         cs.Irm |= modregrm(0,op2,0);            // OR in reg field
-        c2 = gen(c2, &cs);
+        cdb.gen(&cs);
         if (tysize(TYldouble) == 12)
         {
         /* This deals with the fact that 10 byte reals really
@@ -2074,7 +2069,7 @@ code *eq87(elem *e,regm_t *pretregs)
             cs.IFL2 = FLconst;
             cs.IEV2.Vint = 0;
             cs.Iflags |= CFopsize;
-            c2 = gen(c2, &cs);
+            cdb.gen(&cs);
         }
         }
         else if (tysize(TYldouble) == 16)
@@ -2091,18 +2086,18 @@ code *eq87(elem *e,regm_t *pretregs)
             cs.IFL2 = FLconst;
             cs.IEV2.Vint = 0;
             cs.Iflags |= CFopsize;
-            c2 = gen(c2, &cs);
+            cdb.gen(&cs);
 
             cs.IEV1.sp.Voffset += 2;
             cs.Iflags &= ~CFopsize;
-            c2 = gen(c2, &cs);
+            cdb.gen(&cs);
         }
         }
 #endif
-        c2 = genfwait(c2);
+        cdb.append(genfwait(CNIL));
         freenode(e->E1);
-        c1 = cat3(c1,c2,fixresult87(e,mST0 | mPSW,pretregs));
-        return c1;
+        cdb.append(fixresult87(e,mST0 | mPSW,pretregs));
+        return cdb.finish();
 }
 
 /*******************************
@@ -2111,22 +2106,20 @@ code *eq87(elem *e,regm_t *pretregs)
 
 code *complex_eq87(elem *e,regm_t *pretregs)
 {
-        regm_t retregs;
-        code *c1,*c2;
         code cs;
         unsigned op1;
         unsigned op2;
         unsigned sz;
-        tym_t ty1;
         int fxch = 0;
 
         //printf("complex_eq87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
+        CodeBuilder cdb;
         assert(e->Eoper == OPeq);
         cs.Iflags = ADDFWAIT() ? CFwait : 0;
         cs.Irex = 0;
-        retregs = mST01 | (*pretregs & mPSW);
-        c1 = codelem(e->E2,&retregs,FALSE);
-        ty1 = tybasic(e->E1->Ety);
+        regm_t retregs = mST01 | (*pretregs & mPSW);
+        cdb.append(codelem(e->E2,&retregs,FALSE));
+        tym_t ty1 = tybasic(e->E1->Ety);
         switch (ty1)
         {
             case TYcdouble:     op1 = ESC(MFdouble,1);  op2 = 3; break;
@@ -2139,10 +2132,10 @@ code *complex_eq87(elem *e,regm_t *pretregs)
         {
             if (ty1 == TYcldouble)
             {
-                c1 = cat(c1,push87());
-                c1 = cat(c1,push87());
-                c1 = genf2(c1,0xD9,0xC0 + 1);   // FLD ST(1)
-                genf2(c1,0xD9,0xC0 + 1);        // FLD ST(1)
+                cdb.append(push87());
+                cdb.append(push87());
+                cdb.genf2(0xD9,0xC0 + 1);       // FLD ST(1)
+                cdb.genf2(0xD9,0xC0 + 1);       // FLD ST(1)
                 pop87();
                 pop87();
             }
@@ -2162,68 +2155,69 @@ code *complex_eq87(elem *e,regm_t *pretregs)
             cs.Iflags = 0;
             cs.Irex = 0;
             cs.Iop = op1;
-            c2 = getlvalue87(&cs, e->E1, 0);
+            cdb.append(getlvalue87(&cs, e->E1, 0));
             cs.IEVoffset1 += sz;
             cs.Irm |= modregrm(0, op2, 0);
-            c2 = cat(c2, makesure87(e->E2, sz, 0, 0));
-            c2 = gen(c2, &cs);
-            c2 = genfwait(c2);
-            c2 = cat(c2, makesure87(e->E2,  0, 1, 0));
+            cdb.append(makesure87(e->E2, sz, 0, 0));
+            cdb.gen(&cs);
+            cdb.append(genfwait(CNIL));
+            cdb.append(makesure87(e->E2,  0, 1, 0));
         }
         else
         {
-            c2 = loadea(e->E1,&cs,op1,op2,sz,0,0);
-            c2 = genfwait(c2);
+            cdb.append(loadea(e->E1,&cs,op1,op2,sz,0,0));
+            cdb.append(genfwait(CNIL));
         }
         if (fxch)
-            c2 = genf2(c2,0xD9,0xC8 + 1);       // FXCH ST(1)
+            cdb.genf2(0xD9,0xC8 + 1);       // FXCH ST(1)
         cs.IEVoffset1 -= sz;
-        gen(c2, &cs);
+        cdb.gen(&cs);
         if (fxch)
-            genf2(c2,0xD9,0xC8 + 1);            // FXCH ST(1)
+            cdb.genf2(0xD9,0xC8 + 1);       // FXCH ST(1)
         if (tysize(TYldouble) == 12)
         {
             if (op1 == 0xDB)
             {
-                cs.Iop = 0xC7;                      // MOV EA+10,0
+                cs.Iop = 0xC7;              // MOV EA+10,0
                 NEWREG(cs.Irm, 0);
                 cs.IEV1.sp.Voffset += 10;
                 cs.IFL2 = FLconst;
                 cs.IEV2.Vint = 0;
                 cs.Iflags |= CFopsize;
-                c2 = gen(c2, &cs);
+                cdb.gen(&cs);
                 cs.IEVoffset1 += 12;
-                c2 = gen(c2, &cs);                  // MOV EA+22,0
+                cdb.gen(&cs);               // MOV EA+22,0
             }
         }
         if (tysize(TYldouble) == 16)
         {
             if (op1 == 0xDB)
             {
-                cs.Iop = 0xC7;                      // MOV EA+10,0
+                cs.Iop = 0xC7;              // MOV EA+10,0
                 NEWREG(cs.Irm, 0);
                 cs.IEV1.sp.Voffset += 10;
                 cs.IFL2 = FLconst;
                 cs.IEV2.Vint = 0;
                 cs.Iflags |= CFopsize;
-                c2 = gen(c2, &cs);
+                cdb.gen(&cs);
 
                 cs.IEV1.sp.Voffset += 2;
                 cs.Iflags &= ~CFopsize;
-                c2 = gen(c2, &cs);
+                cdb.gen(&cs);
 
                 cs.IEV1.sp.Voffset += 14;
                 cs.Iflags |= CFopsize;
-                c2 = gen(c2, &cs);
+                cdb.gen(&cs);
 
                 cs.IEV1.sp.Voffset += 2;
                 cs.Iflags &= ~CFopsize;
-                c2 = gen(c2, &cs);
+                cdb.gen(&cs);
             }
         }
-        c2 = genfwait(c2);
+        cdb.append(genfwait(CNIL));
         freenode(e->E1);
-        return cat3(c1,c2,fixresult_complex87(e,mST01 | mPSW,pretregs));
+        cdb.append(fixresult_complex87(e,mST01 | mPSW,pretregs));
+        return cdb.finish();
 }
 
 /*******************************
@@ -2233,17 +2227,16 @@ code *complex_eq87(elem *e,regm_t *pretregs)
 
 code *cnvteq87(elem *e,regm_t *pretregs)
 {
-        regm_t retregs;
-        code *c1,*c2;
         code cs;
         unsigned op1;
         unsigned op2;
+        CodeBuilder cdb;
 
         assert(e->Eoper == OPeq);
         assert(!*pretregs);
-        retregs = mST0;
+        regm_t retregs = mST0;
         elem_debug(e->E2);
-        c1 = codelem(e->E2->E1,&retregs,FALSE);
+        cdb.append(codelem(e->E2->E1,&retregs,FALSE));
 
         switch (e->E2->Eoper)
         {   case OPd_s16:
@@ -2264,20 +2257,20 @@ code *cnvteq87(elem *e,regm_t *pretregs)
         }
         freenode(e->E2);
 
-        c1 = genfwait(c1);
-        c1 = genrnd(c1, CW_roundto0);   // FLDCW roundto0
+        cdb.append(genfwait(CNIL));
+        cdb.append(genrnd(CNIL, CW_roundto0));  // FLDCW roundto0
 
         pop87();
         cs.Iflags = ADDFWAIT() ? CFwait : 0;
         if (e->E1->Eoper == OPvar)
             notreg(e->E1);                      // cannot be put in register anymore
-        c2 = loadea(e->E1,&cs,op1,op2,0,0,0);
+        cdb.append(loadea(e->E1,&cs,op1,op2,0,0,0));
 
-        c2 = genfwait(c2);
-        c2 = genrnd(c2, CW_roundtonearest);     // FLDCW roundtonearest
+        cdb.append(genfwait(CNIL));
+        cdb.append(genrnd(CNIL, CW_roundtonearest));   // FLDCW roundtonearest
 
         freenode(e->E1);
-        return cat(c1,c2);
+        return cdb.finish();
 }
 
 /**********************************
@@ -2286,8 +2279,6 @@ code *cnvteq87(elem *e,regm_t *pretregs)
 
 code *opass87(elem *e,regm_t *pretregs)
 {
-        regm_t retregs;
-        code *cl,*cr,*c;
         code cs;
         unsigned op;
         unsigned opld;
@@ -2325,20 +2316,21 @@ code *opass87(elem *e,regm_t *pretregs)
             case OPmodass:      break;
             default:            assert(0);
         }
-        retregs = mST0;
-        cr = codelem(e->E2,&retregs,FALSE);     // evaluate rvalue
+        CodeBuilder cdb;
+        regm_t retregs = mST0;
+        cdb.append(codelem(e->E2,&retregs,FALSE));     // evaluate rvalue
         note87(e->E2,0,0);
-        cl = getlvalue87(&cs,e->E1,e->Eoper==OPmodass?mAX:0);
-        cl = cat(cl,makesure87(e->E2,0,0,0));
+        cdb.append(getlvalue87(&cs,e->E1,e->Eoper==OPmodass?mAX:0));
+        cdb.append(makesure87(e->E2,0,0,0));
         if (config.flags4 & CFG4fdivcall && e->Eoper == OPdivass)
         {
-            c = push87();
+            cdb.append(push87());
             cs.Iop = op1;
             if (ty1 == TYldouble || ty1 == TYildouble)
                 cs.Irm |= modregrm(0, 5, 0);    // FLD tbyte ptr ...
-            c = gen(c,&cs);
-            c = genf2(c,0xD9,0xC8 + 1);         // FXCH ST(1)
-            c = cat(c,callclib(e,CLIBfdiv87,&retregs,0));
+            cdb.gen(&cs);
+            cdb.genf2(0xD9,0xC8 + 1);           // FXCH ST(1)
+            cdb.append(callclib(e,CLIBfdiv87,&retregs,0));
             pop87();
         }
         else if (e->Eoper == OPmodass)
@@ -2358,42 +2350,42 @@ code *opass87(elem *e,regm_t *pretregs)
              */
             code *c1;
 
-            c = push87();
+            cdb.append(push87());
             cs.Iop = op1;
             if (ty1 == TYldouble || ty1 == TYildouble)
                 cs.Irm |= modregrm(0, 5, 0);    // FLD tbyte ptr ...
-            c = gen(c,&cs);                     // FLD   e->E1
+            cdb.gen(&cs);                       // FLD   e->E1
 
-            c1 = gen2(NULL, 0xD9, 0xF8);        // FPREM
-            c1 = genjmpifC2(c1, c1);            // JC2 FM1
-            c1 = genf2(c1,0xDD,0xD8 + 1);       // FSTP ST(1)
-            c = cat(c,c1);
+            cdb.gen2(0xD9, 0xF8);               // FPREM
+            code *cfm1 = cdb.last();
+            cdb.append(genjmpifC2(CNIL, cfm1)); // JC2 FM1
+            cdb.genf2(0xDD,0xD8 + 1);           // FSTP ST(1)
 
             pop87();
         }
         else if (ty1 == TYldouble || ty1 == TYildouble)
         {
-            c = push87();
+            cdb.append(push87());
             cs.Iop = op1;
             cs.Irm |= modregrm(0, 5, 0);        // FLD tbyte ptr ...
-            c = gen(c,&cs);                     // FLD   e->E1
-            genf2(c,0xDE,opld);                 // FopP  ST(1)
+            cdb.gen(&cs);                       // FLD   e->E1
+            cdb.genf2(0xDE,opld);               // FopP  ST(1)
             pop87();
         }
         else
         {   cs.Iop = op1 & ~1;
             cs.Irm |= op;
-            c = gen(CNIL,&cs);                  // Fop e->E1
+            cdb.gen(&cs);                       // Fop e->E1
         }
         if (*pretregs & mPSW)
-            genftst(c,e,0);                     // FTST ST0
+            cdb.append(genftst(CNIL,e,0));      // FTST ST0
         /* if want result in registers  */
         if (*pretregs & (mST0 | ALLREGS | mBP))
         {
             if (ty1 == TYldouble || ty1 == TYildouble)
             {
-                c = cat(c,push87());
-                c = genf2(c,0xD9,0xC0);         // FLD ST(0)
+                cdb.append(push87());
+                cdb.genf2(0xD9,0xC0);           // FLD ST(0)
                 pop87();
             }
             else
@@ -2406,9 +2398,10 @@ code *opass87(elem *e,regm_t *pretregs)
         cs.Iop = op1;
         NEWREG(cs.Irm,op2);                     // FSTx e->E1
         freenode(e->E1);
-        gen(c,&cs);
-        genfwait(c);
-        return cat4(cr,cl,c,fixresult87(e,mST0 | mPSW,pretregs));
+        cdb.gen(&cs);
+        cdb.append(genfwait(CNIL));
+        cdb.append(fixresult87(e,mST0 | mPSW,pretregs));
+        return cdb.finish();
 }
 
 /***********************************
@@ -2417,11 +2410,6 @@ code *opass87(elem *e,regm_t *pretregs)
 
 code *opmod_complex87(elem *e,regm_t *pretregs)
 {
-    regm_t retregs;
-    code *cl,*cr,*c;
-    code cs;
-    tym_t ty1;
-    unsigned sz2;
 
     /*          fld     E2
                 fld     E1.re
@@ -2440,16 +2428,19 @@ code *opmod_complex87(elem *e,regm_t *pretregs)
                 fstp    ST(1)
      */
 
-    ty1 = tybasic(e->E1->Ety);
-    sz2 = _tysize[ty1] / 2;
+    CodeBuilder cdb;
+    code cs;
 
-    retregs = mST0;
-    cr = codelem(e->E2,&retregs,FALSE);         // FLD E2
+    tym_t ty1 = tybasic(e->E1->Ety);
+    unsigned sz2 = _tysize[ty1] / 2;
+
+    regm_t retregs = mST0;
+    cdb.append(codelem(e->E2,&retregs,FALSE));         // FLD E2
     note87(e->E2,0,0);
-    cl = getlvalue87(&cs,e->E1,0);
-    cl = cat(cl,makesure87(e->E2,0,0,0));
+    cdb.append(getlvalue87(&cs,e->E1,0));
+    cdb.append(makesure87(e->E2,0,0,0));
 
-    c = push87();
+    cdb.append(push87());
     switch (ty1)
     {
         case TYcdouble:  cs.Iop = ESC(MFdouble,1);      break;
@@ -2458,47 +2449,46 @@ code *opmod_complex87(elem *e,regm_t *pretregs)
         default:
             assert(0);
     }
-    c = gen(c,&cs);                             // FLD E1.re
+    cdb.gen(&cs);                               // FLD E1.re
 
-    code *c1;
+    cdb.gen2(0xD9, 0xF8);                       // FPREM
+    code *cfm1 = cdb.last();
+    cdb.append(genjmpifC2(CNIL, cfm1));         // JC2 FM1
+    cdb.genf2(0xD9, 0xC8 + 1);                  // FXCH ST(1)
 
-    c1 = gen2(NULL, 0xD9, 0xF8);                // FPREM
-    c1 = genjmpifC2(c1, c1);                    // JC2 FM1
-    c1 = genf2(c1, 0xD9, 0xC8 + 1);             // FXCH ST(1)
-    c = cat(c,c1);
-
-    c = cat(c, push87());
+    cdb.append(push87());
     cs.IEVoffset1 += sz2;
-    gen(c, &cs);                                // FLD E1.im
+    cdb.gen(&cs);                               // FLD E1.im
 
-    c1 = gen2(NULL, 0xD9, 0xF8);                // FPREM
-    c1 = genjmpifC2(c1, c1);                    // JC2 FM2
-    c1 = genf2(c1,0xDD,0xD8 + 1);               // FSTP ST(1)
-    c = cat(c,c1);
+    cdb.gen2(0xD9, 0xF8);                       // FPREM
+    code *cfm2 = cdb.last();
+    cdb.append(genjmpifC2(CNIL, cfm2));         // JC2 FM2
+    cdb.genf2(0xDD,0xD8 + 1);                   // FSTP ST(1)
 
     pop87();
 
     if (*pretregs & (mST01 | mPSW))
     {
         cs.Irm |= modregrm(0, 2, 0);
-        gen(c, &cs);            // FST mreal.im
+        cdb.gen(&cs);            // FST mreal.im
         cs.IEVoffset1 -= sz2;
-        gen(c, &cs);            // FST mreal.re
+        cdb.gen(&cs);            // FST mreal.re
         retregs = mST01;
     }
     else
     {
         cs.Irm |= modregrm(0, 3, 0);
-        gen(c, &cs);            // FSTP mreal.im
+        cdb.gen(&cs);            // FSTP mreal.im
         cs.IEVoffset1 -= sz2;
-        gen(c, &cs);            // FSTP mreal.re
+        cdb.gen(&cs);            // FSTP mreal.re
         pop87();
         pop87();
         retregs = 0;
     }
     freenode(e->E1);
-    genfwait(c);
-    return cat4(cr,cl,c,fixresult_complex87(e,retregs,pretregs));
+    cdb.append(genfwait(CNIL));
+    cdb.append(fixresult_complex87(e,retregs,pretregs));
+    return cdb.finish();
 }
 
 /**********************************
@@ -2513,11 +2503,9 @@ code *opass_complex87(elem *e,regm_t *pretregs)
     code cs;
     unsigned op;
     unsigned op2;
-    tym_t ty1;
-    unsigned sz2;
 
-    ty1 = tybasic(e->E1->Ety);
-    sz2 = _tysize[ty1] / 2;
+    tym_t ty1 = tybasic(e->E1->Ety);
+    unsigned sz2 = _tysize[ty1] / 2;
     switch (e->Eoper)
     {   case OPpostinc:
         case OPaddass:  op = 0 << 3;            // FADD
@@ -2536,24 +2524,26 @@ code *opass_complex87(elem *e,regm_t *pretregs)
         default:        assert(0);
     }
 
+    CodeBuilder cdb;
+
     if (!tycomplex(e->E2->Ety) &&
         (e->Eoper == OPmulass || e->Eoper == OPdivass))
     {
         retregs = mST0;
-        cr = codelem(e->E2, &retregs, FALSE);
+        cdb.append(codelem(e->E2, &retregs, FALSE));
         note87(e->E2, 0, 0);
-        cl = getlvalue87(&cs, e->E1, 0);
-        cl = cat(cl,makesure87(e->E2,0,0,0));
-        cl = cat(cl,push87());
-        cl = genf2(cl,0xD9,0xC0);               // FLD ST(0)
+        cdb.append(getlvalue87(&cs, e->E1, 0));
+        cdb.append(makesure87(e->E2,0,0,0));
+        cdb.append(push87());
+        cdb.genf2(0xD9,0xC0);                   // FLD ST(0)
         goto L1;
     }
     else
     {
-        cr = loadComplex(e->E2);
-        cl = getlvalue87(&cs,e->E1,0);
-        cl = cat(cl,makesure87(e->E2,sz2,0,0));
-        cl = cat(cl,makesure87(e->E2,0,1,0));
+        cdb.append(loadComplex(e->E2));
+        cdb.append(getlvalue87(&cs,e->E1,0));
+        cdb.append(makesure87(e->E2,sz2,0,0));
+        cdb.append(makesure87(e->E2,0,1,0));
     }
 
     switch (e->Eoper)
@@ -2565,46 +2555,46 @@ code *opass_complex87(elem *e,regm_t *pretregs)
         L1:
             if (ty1 == TYcldouble)
             {
-                c = push87();
-                c = cat(c, push87());
+                cdb.append(push87());
+                cdb.append(push87());
                 cs.Iop = 0xDB;
                 cs.Irm |= modregrm(0, 5, 0);    // FLD tbyte ptr ...
-                c = gen(c,&cs);                 // FLD e->E1.re
+                cdb.gen(&cs);                   // FLD e->E1.re
                 cs.IEVoffset1 += sz2;
-                gen(c,&cs);                     // FLD e->E1.im
-                genf2(c, 0xDE, op2 + 2);        // FADDP/FSUBRP ST(2),ST
-                genf2(c, 0xDE, op2 + 2);        // FADDP/FSUBRP ST(2),ST
+                cdb.gen(&cs);                   // FLD e->E1.im
+                cdb.genf2(0xDE, op2 + 2);       // FADDP/FSUBRP ST(2),ST
+                cdb.genf2(0xDE, op2 + 2);       // FADDP/FSUBRP ST(2),ST
                 pop87();
                 pop87();
                 if (tyimaginary(e->E2->Ety))
                 {
                     if (e->Eoper == OPmulass)
                     {
-                        genf2(c, 0xD9, 0xE0);   // FCHS
-                        genf2(c, 0xD9, 0xC8+1); // FXCH ST(1)
+                        cdb.genf2(0xD9, 0xE0);   // FCHS
+                        cdb.genf2(0xD9, 0xC8+1); // FXCH ST(1)
                     }
                     else if (e->Eoper == OPdivass)
                     {
-                        genf2(c, 0xD9, 0xC8+1); // FXCH ST(1)
-                        genf2(c, 0xD9, 0xE0);   // FCHS
+                        cdb.genf2(0xD9, 0xC8+1); // FXCH ST(1)
+                        cdb.genf2(0xD9, 0xE0);   // FCHS
                     }
                 }
             L2:
                 if (*pretregs & (mST01 | mPSW))
                 {
-                    c = cat(c,push87());
-                    c = cat(c,push87());
-                    c = genf2(c,0xD9,0xC1);     // FLD ST(1)
-                    c = genf2(c,0xD9,0xC1);     // FLD ST(1)
+                    cdb.append(push87());
+                    cdb.append(push87());
+                    cdb.genf2(0xD9,0xC1);       // FLD ST(1)
+                    cdb.genf2(0xD9,0xC1);       // FLD ST(1)
                     retregs = mST01;
                 }
                 else
                     retregs = 0;
                 cs.Iop = 0xDB;
                 cs.Irm |= modregrm(0,7,0);
-                gen(c,&cs);                     // FSTP e->E1.im
+                cdb.gen(&cs);                   // FSTP e->E1.im
                 cs.IEVoffset1 -= sz2;
-                gen(c,&cs);                     // FSTP e->E1.re
+                cdb.gen(&cs);                   // FSTP e->E1.re
                 pop87();
                 pop87();
 
@@ -2619,26 +2609,26 @@ code *opass_complex87(elem *e,regm_t *pretregs)
                 cs.Iop = iop;
                 cs.Irm = rmop;
                 cs.IEVoffset1 += sz2;
-                c = gen(NULL, &cs);             // FSUBR mreal.im
+                cdb.gen(&cs);                           // FSUBR mreal.im
                 if (tyimaginary(e->E2->Ety) && (e->Eoper == OPmulass || e->Eoper == OPdivass))
                 {
                     if (e->Eoper == OPmulass)
-                        genf2(c, 0xD9, 0xE0);           // FCHS
-                    genf2(c,0xD9,0xC8 + 1);             // FXCH ST(1)
+                        cdb.genf2(0xD9, 0xE0);          // FCHS
+                    cdb.genf2(0xD9,0xC8 + 1);           // FXCH ST(1)
                     cs.IEVoffset1 -= sz2;
-                    gen(c, &cs);                        // FMUL mreal.re
+                    cdb.gen(&cs);                       // FMUL mreal.re
                     if (e->Eoper == OPdivass)
-                        genf2(c, 0xD9, 0xE0);           // FCHS
+                        cdb.genf2(0xD9, 0xE0);          // FCHS
                     if (*pretregs & (mST01 | mPSW))
                     {
                         cs.Iop = iopfst;
                         cs.Irm = rmfst;
                         cs.IEVoffset1 += sz2;
-                        gen(c, &cs);                    // FST mreal.im
-                        genf2(c,0xD9,0xC8 + 1);         // FXCH ST(1)
+                        cdb.gen(&cs);                   // FST mreal.im
+                        cdb.genf2(0xD9,0xC8 + 1);       // FXCH ST(1)
                         cs.IEVoffset1 -= sz2;
-                        gen(c, &cs);                    // FST mreal.re
-                        genf2(c,0xD9,0xC8 + 1);         // FXCH ST(1)
+                        cdb.gen(&cs);                   // FST mreal.re
+                        cdb.genf2(0xD9,0xC8 + 1);       // FXCH ST(1)
                         retregs = mST01;
                     }
                     else
@@ -2646,10 +2636,10 @@ code *opass_complex87(elem *e,regm_t *pretregs)
                         cs.Iop = iopfst;
                         cs.Irm = rmfstp;
                         cs.IEVoffset1 += sz2;
-                        gen(c, &cs);                    // FSTP mreal.im
+                        cdb.gen(&cs);                   // FSTP mreal.im
                         pop87();
                         cs.IEVoffset1 -= sz2;
-                        gen(c, &cs);                    // FSTP mreal.re
+                        cdb.gen(&cs);                   // FSTP mreal.re
                         pop87();
                         retregs = 0;
                     }
@@ -2660,77 +2650,78 @@ code *opass_complex87(elem *e,regm_t *pretregs)
                 {
                     cs.Iop = iopfst;
                     cs.Irm = rmfst;
-                    gen(c, &cs);                // FST mreal.im
-                    genf2(c,0xD9,0xC8 + 1);     // FXCH ST(1)
+                    cdb.gen(&cs);               // FST mreal.im
+                    cdb.genf2(0xD9,0xC8 + 1);   // FXCH ST(1)
                     cs.Iop = iop;
                     cs.Irm = rmop;
                     cs.IEVoffset1 -= sz2;
-                    gen(c, &cs);                // FSUBR mreal.re
+                    cdb.gen(&cs);               // FSUBR mreal.re
                     cs.Iop = iopfst;
                     cs.Irm = rmfst;
-                    gen(c, &cs);                // FST mreal.re
-                    genf2(c,0xD9,0xC8 + 1);     // FXCH ST(1)
+                    cdb.gen(&cs);               // FST mreal.re
+                    cdb.genf2(0xD9,0xC8 + 1);   // FXCH ST(1)
                     retregs = mST01;
                 }
                 else
                 {
                     cs.Iop = iopfst;
                     cs.Irm = rmfstp;
-                    gen(c, &cs);                // FSTP mreal.im
+                    cdb.gen(&cs);               // FSTP mreal.im
                     pop87();
                     cs.Iop = iop;
                     cs.Irm = rmop;
                     cs.IEVoffset1 -= sz2;
-                    gen(c, &cs);                // FSUBR mreal.re
+                    cdb.gen(&cs);               // FSUBR mreal.re
                     cs.Iop = iopfst;
                     cs.Irm = rmfstp;
-                    gen(c, &cs);                // FSTP mreal.re
+                    cdb.gen(&cs);               // FSTP mreal.re
                     pop87();
                     retregs = 0;
                 }
             }
         L3:
             freenode(e->E1);
-            genfwait(c);
-            return cat4(cr,cl,c,fixresult_complex87(e,retregs,pretregs));
+            cdb.append(genfwait(CNIL));
+            cdb.append(fixresult_complex87(e,retregs,pretregs));
+            return cdb.finish();
 
         case OPmulass:
-            c = push87();
-            c = cat(c, push87());
+            cdb.append(push87());
+            cdb.append(push87());
             if (ty1 == TYcldouble)
             {
                 cs.Iop = 0xDB;
                 cs.Irm |= modregrm(0, 5, 0);    // FLD tbyte ptr ...
-                c = gen(c,&cs);                 // FLD e->E1.re
+                cdb.gen(&cs);                   // FLD e->E1.re
                 cs.IEVoffset1 += sz2;
-                gen(c,&cs);                     // FLD e->E1.im
+                cdb.gen(&cs);                   // FLD e->E1.im
                 retregs = mST01;
-                c = cat(c,callclib(e, CLIBcmul, &retregs, 0));
+                cdb.append(callclib(e, CLIBcmul, &retregs, 0));
                 goto L2;
             }
             else
             {
                 cs.Iop = (ty1 == TYcfloat) ? 0xD9 : 0xDD;
                 cs.Irm |= modregrm(0, 0, 0);    // FLD tbyte ptr ...
-                c = gen(c,&cs);                 // FLD e->E1.re
+                cdb.gen(&cs);                   // FLD e->E1.re
                 cs.IEVoffset1 += sz2;
-                gen(c,&cs);                     // FLD e->E1.im
+                cdb.gen(&cs);                   // FLD e->E1.im
                 retregs = mST01;
-                c = cat(c,callclib(e, CLIBcmul, &retregs, 0));
+                cdb.append(callclib(e, CLIBcmul, &retregs, 0));
                 if (*pretregs & (mST01 | mPSW))
                 {
                     cs.Irm |= modregrm(0, 2, 0);
-                    gen(c, &cs);                // FST mreal.im
+                    cdb.gen(&cs);               // FST mreal.im
                     cs.IEVoffset1 -= sz2;
-                    gen(c, &cs);                // FST mreal.re
+                    cdb.gen(&cs);               // FST mreal.re
                     retregs = mST01;
                 }
                 else
                 {
                     cs.Irm |= modregrm(0, 3, 0);
-                    gen(c, &cs);                // FSTP mreal.im
+                    cdb.gen(&cs);               // FSTP mreal.im
                     cs.IEVoffset1 -= sz2;
-                    gen(c, &cs);                // FSTP mreal.re
+                    cdb.gen(&cs);               // FSTP mreal.re
                     pop87();
                     pop87();
                     retregs = 0;
@@ -2739,47 +2730,47 @@ code *opass_complex87(elem *e,regm_t *pretregs)
             }
 
         case OPdivass:
-            c = push87();
-            c = cat(c, push87());
+            cdb.append(push87());
+            cdb.append(push87());
             idxregs = idxregm(&cs);             // mask of index regs used
             if (ty1 == TYcldouble)
             {
                 cs.Iop = 0xDB;
                 cs.Irm |= modregrm(0, 5, 0);    // FLD tbyte ptr ...
-                c = gen(c,&cs);                 // FLD e->E1.re
-                genf2(c,0xD9,0xC8 + 2);         // FXCH ST(2)
+                cdb.gen(&cs);                   // FLD e->E1.re
+                cdb.genf2(0xD9,0xC8 + 2);       // FXCH ST(2)
                 cs.IEVoffset1 += sz2;
-                gen(c,&cs);                     // FLD e->E1.im
-                genf2(c,0xD9,0xC8 + 2);         // FXCH ST(2)
+                cdb.gen(&cs);                   // FLD e->E1.im
+                cdb.genf2(0xD9,0xC8 + 2);       // FXCH ST(2)
                 retregs = mST01;
-                c = cat(c,callclib(e, CLIBcdiv, &retregs, idxregs));
+                cdb.append(callclib(e, CLIBcdiv, &retregs, idxregs));
                 goto L2;
             }
             else
             {
                 cs.Iop = (ty1 == TYcfloat) ? 0xD9 : 0xDD;
                 cs.Irm |= modregrm(0, 0, 0);    // FLD tbyte ptr ...
-                c = gen(c,&cs);                 // FLD e->E1.re
-                genf2(c,0xD9,0xC8 + 2);         // FXCH ST(2)
+                cdb.gen(&cs);                   // FLD e->E1.re
+                cdb.genf2(0xD9,0xC8 + 2);       // FXCH ST(2)
                 cs.IEVoffset1 += sz2;
-                gen(c,&cs);                     // FLD e->E1.im
-                genf2(c,0xD9,0xC8 + 2);         // FXCH ST(2)
+                cdb.gen(&cs);                   // FLD e->E1.im
+                cdb.genf2(0xD9,0xC8 + 2);       // FXCH ST(2)
                 retregs = mST01;
-                c = cat(c,callclib(e, CLIBcdiv, &retregs, idxregs));
+                cdb.append(callclib(e, CLIBcdiv, &retregs, idxregs));
                 if (*pretregs & (mST01 | mPSW))
                 {
                     cs.Irm |= modregrm(0, 2, 0);
-                    gen(c, &cs);                // FST mreal.im
+                    cdb.gen(&cs);               // FST mreal.im
                     cs.IEVoffset1 -= sz2;
-                    gen(c, &cs);                // FST mreal.re
+                    cdb.gen(&cs);               // FST mreal.re
                     retregs = mST01;
                 }
                 else
                 {
                     cs.Irm |= modregrm(0, 3, 0);
-                    gen(c, &cs);                // FSTP mreal.im
+                    cdb.gen(&cs);               // FSTP mreal.im
                     cs.IEVoffset1 -= sz2;
-                    gen(c, &cs);                // FSTP mreal.re
+                    cdb.gen(&cs);               // FSTP mreal.re
                     pop87();
                     pop87();
                     retregs = 0;
