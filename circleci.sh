@@ -19,7 +19,8 @@ install_deps() {
     fi
 
     for i in {0..4}; do
-        if curl -fsS -A "$CURL_USER_AGENT" --max-time 5 https://dlang.org/install.sh -O; then
+        if curl -fsS -A "$CURL_USER_AGENT" --max-time 5 https://dlang.org/install.sh -O ||
+           curl -fsS -A "$CURL_USER_AGENT" --max-time 5 https://nightlies.dlang.org/install.sh -O ; then
             break
         elif [ $i -ge 4 ]; then
             sleep $((1 << $i))
@@ -51,12 +52,15 @@ clone() {
     done
 }
 
-coverage() {
+setup_repos() {
+    # set a default in case we run into rate limit restrictions
+    local base_branch=""
     if [ -n "${CIRCLE_PR_NUMBER:-}" ]; then
-        local base_branch=$(curl -fsSL https://api.github.com/repos/dlang/$CIRCLE_PROJECT_REPONAME/pulls/$CIRCLE_PR_NUMBER | jq -r '.base.ref')
+        base_branch=$((curl -fsSL https://api.github.com/repos/dlang/$CIRCLE_PROJECT_REPONAME/pulls/$CIRCLE_PR_NUMBER || echo) | jq -r '.base.ref')
     else
-        local base_branch=$CIRCLE_BRANCH
+        base_branch=$CIRCLE_BRANCH
     fi
+    base_branch=${base_branch:-"master"}
 
    # merge upstream branch with changes, s.t. we check with the latest changes
     if [ -n "${CIRCLE_PR_NUMBER:-}" ]; then
@@ -69,9 +73,18 @@ coverage() {
         git merge -m "Automatic merge" $current_branch
     fi
 
+    for proj in dmd ; do
+        if [ $base_branch != master ] && [ $base_branch != stable ] &&
+            ! git ls-remote --exit-code --heads https://github.com/dlang/$proj.git $base_branch > /dev/null; then
+            # use master as fallback for other repos to test feature branches
+            clone https://github.com/dlang/$proj.git ../$proj master --depth 1
+        else
+            clone https://github.com/dlang/$proj.git ../$proj $base_branch --depth 1
+        fi
+    done
+}
 
-    clone https://github.com/dlang/dmd.git ../dmd $base_branch --depth 1
-
+coverage() {
     # load environment for bootstrap compiler
     source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
 
@@ -83,5 +96,6 @@ coverage() {
 
 case $1 in
     install-deps) install_deps ;;
+    setup-repos) setup_repos ;;
     coverage) coverage ;;
 esac

@@ -7,6 +7,7 @@ dependencies:
 test:
   override:
     - make -f posix.mak style
+    - ./circleci.sh setup-repos
     - ./circleci.sh coverage:
         parallel: true
         timeout: 1200
