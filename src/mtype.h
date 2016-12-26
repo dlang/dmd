@@ -761,6 +761,7 @@ public:
     bool needsDestruction() /*const*/;
     bool needsNested();
     bool hasPointers();
+    bool hasVoidInitPointers();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     unsigned char deduceWild(Type *t, bool isRef);
@@ -800,6 +801,7 @@ public:
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
     bool hasPointers();
+    bool hasVoidInitPointers();
     Type *nextOf();
 
     void accept(Visitor *v) { v->visit(this); }
