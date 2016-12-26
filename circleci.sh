@@ -57,15 +57,15 @@ coverage() {
         local base_branch=$CIRCLE_BRANCH
     fi
 
-    # merge upstream branch with changes, s.t. we check with the latest changes
+    # merge testee PR with base branch (master) before testing
     if [ -n "${CIRCLE_PR_NUMBER:-}" ]; then
-        local current_branch=$(git rev-parse --abbrev-ref HEAD)
-        git config user.name dummyuser
-        git config user.email dummyuser@dummyserver.com
-        git remote add upstream https://github.com/dlang/dmd.git
-        git fetch upstream
-        git checkout -f upstream/$base_branch
-        git merge -m "Automatic merge" $current_branch
+        local head=$(git rev-parse HEAD)
+        git fetch https://github.com/dlang/dmd.git $base_branch --depth=1
+        git checkout -f FETCH_HEAD
+        local base=$(git rev-parse HEAD)
+        git config user.name 'CI'
+        git config user.email '<>'
+        git merge -m "Merge $head into $base" $head
     fi
 
     for proj in druntime phobos; do
