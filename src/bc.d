@@ -1994,7 +1994,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
         case LongInst.Lsb:
             {
 
-                uint _dr = stackP[(*rhs / 4)] & 0xFF_FF_FF_FF;
+                uint _dr = stackP[cast(uint)(*rhs / 4)] & 0xFF_FF_FF_FF;
                 final switch (*rhs & 3)
                 {
 
@@ -2143,8 +2143,8 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
 
         case LongInst.StrEq:
             {
-                auto _lhs = *lhsRef;
-                auto _rhs = *rhs;
+                auto _lhs = cast(uint)*lhsRef;
+                auto _rhs = cast(uint)*rhs;
 
                 assert(_lhs && _rhs, "trying to deref nullPointers");
                 if (_lhs == _rhs)
@@ -2173,8 +2173,8 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
 
         case LongInst.StrCat:
             {
-                auto _lhs = *lhsRef;
-                auto _rhs = *rhs;
+                auto _lhs = cast(uint)*lhsRef;
+                auto _rhs = cast(uint)*rhs;
 
                 assert(_lhs && _rhs, "trying to deref nullPointers");
                 assert(_lhs != _rhs);
