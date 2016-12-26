@@ -4786,6 +4786,44 @@ void test5012()
 
 /****************************************************/
 
+void test17027()
+{
+    ubyte* p;
+
+    static ubyte[] data =
+    [
+
+        0xF3, 0x0F, 0xBC, 0x00,
+        0xF3, 0x0F, 0xBC, 0x40, 0x08,
+        0xF3, 0x0F, 0xBC, 0xC0,
+        0xF3, 0x0F, 0xBD, 0x00,
+        0xF3, 0x0F, 0xBD, 0x40, 0x08,
+        0xF3, 0x0F, 0xBD, 0xC0,
+    ];
+
+    asm
+    {
+        call  L1;
+
+        tzcnt EAX, [EAX];
+        tzcnt EAX, [EAX+8];
+        tzcnt EAX, EAX;
+        lzcnt EAX, [EAX];
+        lzcnt EAX, [EAX+8];
+        lzcnt EAX, EAX;
+
+L1:     pop     EAX;
+        mov     p[EBP],EAX;
+    }
+
+    foreach (ref i, b; data)
+    {
+        //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+        assert(p[i] == b);
+    }
+}
+
+/****************************************************/
 int main()
 {
     printf("Testing iasm.d\n");
@@ -4855,6 +4893,7 @@ int main()
     test59();
     test60();
     test9866();
+    test17027();
   }
     printf("Success\n");
     return 0;

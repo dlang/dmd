@@ -673,6 +673,18 @@ PTRNTAB2  aptb2MUL[] = /* MUL */ {
         { 0xf7, _4|_64_bit|_modaxdx,    _rm64,  0 },
         { ASM_END }
 };
+PTRNTAB2  aptb2TZCNT[] = /* TZCNT */ {
+        { 0xf30fbc,       _cw|_16_bit,            _r16,   _rm16 },
+        { 0xf30fbc,       _cd|_32_bit,            _r32,   _rm32 },
+        { 0xf30fbc,       _cq|_64_bit,            _r64,   _rm64 },
+        { ASM_END }
+};
+PTRNTAB2  aptb2LZCNT[] = /* LZCNT */ {
+        { 0xf30fbd,       _cw|_16_bit,            _r16,   _rm16 },
+        { 0xf30fbd,       _cd|_32_bit,            _r32,   _rm32 },
+        { 0xf30fbd,       _cq|_64_bit,            _r64,   _rm64 },
+        { ASM_END }
+};
 PTRNTAB2  aptb2OUT[] = /* OUT */ {
         { 0xe6, _ib,            _imm8,  _al },
         { 0xe7, _ib|_16_bit,            _imm8,  _ax },
@@ -5076,6 +5088,7 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("lsl",            2,              (P) aptb2LSL )                  \
         X("lss",            2,              (P) aptb2LSS )                  \
         X("ltr",            1,              (P) aptb1LTR )                  \
+        X("lzcnt",          2,              (P) aptb2LZCNT )                \
         X("maskmovdqu",     2,              (P) aptb2MASKMOVDQU )           \
         X("maskmovq",       2,              (P) aptb2MASKMOVQ )             \
         X("maxpd",          2,              (P) aptb2MAXPD )                \
@@ -5414,6 +5427,7 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("sysexit",        0,              aptb0SYSEXIT )                  \
         X("sysret",         0,              aptb0SYSRET )                   \
         X("test",           2,              (P) aptb2TEST )                 \
+        X("tzcnt",          2,              (P) aptb2TZCNT )                \
         X("ucomisd",        2,              (P) aptb2UCOMISD )              \
         X("ucomiss",        2,              (P) aptb2UCOMISS )              \
         X("ud2",            0,              aptb0UD2 )                      \
