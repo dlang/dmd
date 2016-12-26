@@ -60,7 +60,7 @@ coverage() {
     # merge testee PR with base branch (master) before testing
     if [ -n "${CIRCLE_PR_NUMBER:-}" ]; then
         local head=$(git rev-parse HEAD)
-        git fetch https://github.com/dlang/dmd.git $base_branch --depth=1
+        git fetch https://github.com/dlang/dmd.git $base_branch
         git checkout -f FETCH_HEAD
         local base=$(git rev-parse HEAD)
         git config user.name 'CI'
