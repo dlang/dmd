@@ -98,7 +98,7 @@ private
 
     /// __inflight is per-stack, not per-thread, and as such needs to be
     /// swapped out on fiber context switches.
-    extern(C) void* _d_eh_swapContext(void* newContext) nothrow
+    extern(C) void* _d_eh_swapContext(void* newContext) nothrow @nogc
     {
         auto old = __inflight;
         __inflight = cast(InFlight*)newContext;

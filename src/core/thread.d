@@ -125,7 +125,7 @@ private
      *         where the stack was last swapped out, or null when a fiber stack
      *         is switched in for the first time.
      */
-    extern(C) void* _d_eh_swapContext(void* newContext) nothrow;
+    extern(C) void* _d_eh_swapContext(void* newContext) nothrow @nogc;
 
     version (DigitalMars)
     {
@@ -133,9 +133,9 @@ private
             alias _d_eh_swapContext swapContext;
         else
         {
-            extern(C) void* _d_eh_swapContextDwarf(void* newContext) nothrow;
+            extern(C) void* _d_eh_swapContextDwarf(void* newContext) nothrow @nogc;
 
-            void* swapContext(void* newContext) nothrow
+            void* swapContext(void* newContext) nothrow @nogc
             {
                 /* Detect at runtime which scheme is being used.
                  * Eventually, determine it statically.
@@ -1509,7 +1509,7 @@ private:
     ///////////////////////////////////////////////////////////////////////////
 
 
-    final void pushContext( Context* c ) nothrow
+    final void pushContext( Context* c ) nothrow @nogc
     in
     {
         assert( !c.within );
@@ -1522,7 +1522,7 @@ private:
     }
 
 
-    final void popContext() nothrow
+    final void popContext() nothrow @nogc
     in
     {
         assert( m_curr && m_curr.within );
@@ -4067,7 +4067,7 @@ class Fiber
         return rethrow ? call!(Rethrow.yes)() : call!(Rethrow.no);
     }
 
-    private void callImpl() nothrow
+    private void callImpl() nothrow @nogc
     in
     {
         assert( m_state == State.HOLD );
@@ -4842,7 +4842,7 @@ private:
     //
     // Switches into the stack held by this fiber.
     //
-    final void switchIn() nothrow
+    final void switchIn() nothrow @nogc
     {
         Thread  tobj = Thread.getThis();
         void**  oldp = &tobj.m_curr.tstack;
