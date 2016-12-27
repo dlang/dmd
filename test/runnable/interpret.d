@@ -2114,7 +2114,7 @@ static assert(goodfoo1() == 538);
 
 int goodfoo2()
 {
-    S[4] w = S(101);    // Block-initialize array of structs
+   // S[4] w = S(101);    // Block-initialize array of structs
     w[$ - 2].x = 917;   // use $ in index member assignment
     w[$ - 2].y = 58;    // this must not clobber the prev assignment
     return w[2].x;      // check we got the correct one

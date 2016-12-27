@@ -209,7 +209,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         }
         if (auto fnIdx = _sharedCtfeState.getFunctionIndex(fd))
         {
-            //FIXME TOOD add a branchHint to say that it is likely to find the function!
+            //FIXME TODO add a branchHint to say that it is likely to find the function!
             static if (perf)
             {
                 ffw.stop();
@@ -1976,7 +1976,40 @@ public:
         //Everything has to be of made up of immediates
         if (insideArgumentProcessing)
         {
-            // if (ie.e1.op == TOKArrayLiteal && ie.e2.op == TOKint64)
+            import std.stdio;
+            writeln("ie.e1.op ", ie.e1.op.to!string);
+            writeln("ie.e2.op ", ie.e2.op.to!string);
+            assert(ie.e2.op == TOKint64);
+            auto idx = cast(uint)(cast(IntegerExp)ie.e2).toInteger;
+            if (ie.e1.op == TOKvar)
+            {
+                if(auto vd = (cast(VarExp)ie.e1).var.isVarDeclaration)
+                {
+                    import ddmd.declaration : STCmanifest;
+
+                    if((vd.isDataseg() || vd.storage_class & STCmanifest) && !vd.isCTFE())
+                    {
+                        auto ci = vd.getConstInitializer();
+                        if (ci && ci.op == TOKarrayliteral)
+                        {
+                            auto al = cast(ArrayLiteralExp) ci;
+                            //auto galp = _sharedCtfeState.getGlobalArrayLiteralPointer(al);
+                            foreach(i,elm;*al.elements)
+                            {
+                                if (i == idx)
+                                {
+                                    retval = genExpr(elm);
+                                    break;
+                                }
+                            }
+                        }
+                        writeln(ci.op.to!string);
+                    }
+                    import ddmd.asttypename;
+                    writeln("VD:", vd.getConstInitializer().astTypeName);
+                }
+            }
+
         }
 
         auto indexed = genExpr(ie.e1);
@@ -3971,7 +4004,14 @@ public:
         //FIXME make this handle casts properly
         //e.g. calling opCast do truncation and so on
         retval = genExpr(ce.e1);
-        retval.type = toBCType(ce.type);
+        if (ce.type.ty == Tuns32 || ce.type.ty == Tint32)
+        {
+            retval.type = toBCType(ce.type);
+        }
+        else
+        {
+           bailout();
+        }
     }
 
     void infiniteLoop(Statement _body, Expression increment = null)
