@@ -171,7 +171,6 @@ else static if (UseCBackend)
     alias BCGenT = C_BCGen;
 }
 else static if (UsePrinterBackend)
-
 {
     import ddmd.ctfe.bc_printer_backend;
 
@@ -1972,6 +1971,14 @@ public:
             writefln("ie.type : %s ", ie.type.toString);
         }
 
+        //first do the ArgumentProcessing Path
+        //We cannot emit any calls to the BCgen here
+        //Everything has to be of made up of immediates
+        if (insideArgumentProcessing)
+        {
+            // if (ie.e1.op == TOKArrayLiteal && ie.e2.op == TOKint64)
+        }
+
         auto indexed = genExpr(ie.e1);
         auto length = getLength(indexed);
 
@@ -2426,10 +2433,10 @@ public:
         }
         //        if (!oldInsideArrayLiteralExp)
         retval = imm32(arrayAddr.addr);
-
+        retval.type = BCType(BCTypeEnum.Array, _sharedCtfeState.arrayCount);
         if (!insideArgumentProcessing)
         {
-            retval.type = BCType(BCTypeEnum.Array, _sharedCtfeState.arrayCount);
+
         }
         debug (ctfe)
         {
@@ -2644,7 +2651,15 @@ public:
             }
             else
             {
-                Load32(length, arr.i32);
+                if (insideArgumentProcessing)
+                {
+                    assert(arr.vType == BCValueType.Immediate);
+                    length = imm32(_sharedCtfeState.heap._heap[arr.imm32]);
+                }
+                else
+                {
+                    Load32(length, arr.i32);
+                }
             }
             return length;
         }
@@ -3267,6 +3282,7 @@ public:
             Store32(ptr, rhs);
             retval = rhs;
         }
+        //        else if (ae.e1.op == TOKarray && (cast(ArrayExp)ae.e1).)
         else if (ae.e1.op == TOKarraylength)
         {
             auto ale = cast(ArrayLengthExp) ae.e1;
@@ -3357,6 +3373,15 @@ public:
                 debug (ctfe)
                     assert(0, "could not fetch index in " ~ ae.toString);
                 return;
+            }
+
+            if (processingArguments)
+            {
+                assert(indexed.vType == BCValueType.Immediate);
+                assert(index.vType == BCValueType.Immediate);
+                {
+
+                }
             }
 
             auto length = getLength(indexed);
