@@ -807,12 +807,12 @@ private void escapeByValue(Expression e, EscapeByResults* er)
 
         override void visit(BinAssignExp e)
         {
-            e.e2.accept(this);
+            e.e1.accept(this);
         }
 
         override void visit(AssignExp e)
         {
-            e.e2.accept(this);
+            e.e1.accept(this);
         }
 
         override void visit(CommaExp e)
