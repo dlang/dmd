@@ -1683,7 +1683,8 @@ code *cdshass(elem *e,regm_t *pretregs)
         if (sz == 2 * REGSIZE && *pretregs)
         {   retregs = *pretregs & (ALLREGS | mBP);
             if (retregs)
-            {   ce = allocreg(&retregs,&reg,tym);
+            {   retregs &= ~idxregm(&cs);
+                ce = allocreg(&retregs,&reg,tym);
                 cs.Iop = 0x8B;
 
                 /* be careful not to trash any index regs       */
