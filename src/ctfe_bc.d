@@ -10,7 +10,7 @@ import ddmd.mtype;
 import ddmd.statement;
 import ddmd.visitor;
 import ddmd.arraytypes : Expressions;
-
+debug = ctfe;
 /**
  * Written By Stefan Koch in 2016
  */
@@ -1999,12 +1999,14 @@ public:
                                 if (i == idx)
                                 {
                                     retval = genExpr(elm);
-                                    break;
+                                    return ;
                                 }
+                                assert(0);
                             }
                         }
                         writeln(ci.op.to!string);
                     }
+
                     import ddmd.asttypename;
                     writeln("VD:", vd.getConstInitializer().astTypeName);
                 }
