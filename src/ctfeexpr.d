@@ -458,7 +458,7 @@ extern (C++) UnionExp copyLiteral(Expression e)
 
 /* Deal with type painting.
  * Type painting is a major nuisance: we can't just set
- * e->type = type, because that would change the original literal.
+ * e.type = type, because that would change the original literal.
  * But, we can't simply copy the literal either, because that would change
  * the values of any pointers.
  */
@@ -1178,8 +1178,8 @@ extern (C++) int ctfeRawCmp(Loc loc, Expression e1, Expression e2)
     }
     if (e1.op == TOKtypeid && e2.op == TOKtypeid)
     {
-        // printf("e1: %s\n", e1->toChars());
-        // printf("e2: %s\n", e2->toChars());
+        // printf("e1: %s\n", e1.toChars());
+        // printf("e2: %s\n", e2.toChars());
         Type t1 = isType((cast(TypeidExp)e1).obj);
         Type t2 = isType((cast(TypeidExp)e2).obj);
         assert(t1);
@@ -1352,7 +1352,7 @@ extern (C++) int ctfeEqual(Loc loc, TOK op, Expression e1, Expression e2)
 extern (C++) int ctfeIdentity(Loc loc, TOK op, Expression e1, Expression e2)
 {
     //printf("ctfeIdentity op = '%s', e1 = %s %s, e2 = %s %s\n", Token::toChars(op),
-    //    Token::toChars(e1->op), e1->toChars(), Token::toChars(e2->op), e1->toChars());
+    //    Token::toChars(e1.op), e1.toChars(), Token::toChars(e2.op), e1.toChars());
     int cmp;
     if (e1.op == TOKnull)
     {
@@ -1463,7 +1463,7 @@ extern (C++) UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
         emplaceExp!(StringExp)(&ue, loc, s, len);
         StringExp es = cast(StringExp)ue.exp();
         es.sz = sz;
-        es.committed = 0; //es1->committed;
+        es.committed = 0; //es1.committed;
         es.type = type;
         return ue;
     }
@@ -1520,7 +1520,7 @@ extern (C++) Expression findKeyInAA(Loc loc, AssocArrayLiteralExp ae, Expression
  */
 extern (C++) Expression ctfeIndex(Loc loc, Type type, Expression e1, uinteger_t indx)
 {
-    //printf("ctfeIndex(e1 = %s)\n", e1->toChars());
+    //printf("ctfeIndex(e1 = %s)\n", e1.toChars());
     assert(e1.type);
     if (e1.op == TOKstring)
     {

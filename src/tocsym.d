@@ -19,6 +19,7 @@ import ddmd.root.rmem;
 import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.complex;
+import ddmd.cppmangle;
 import ddmd.ctfeexpr;
 import ddmd.declaration;
 import ddmd.dclass;
@@ -31,11 +32,14 @@ import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
+import ddmd.glue;
 import ddmd.identifier;
 import ddmd.id;
 import ddmd.init;
 import ddmd.mtype;
 import ddmd.target;
+import ddmd.toctype;
+import ddmd.todt;
 import ddmd.tokens;
 import ddmd.typinf;
 import ddmd.visitor;
@@ -53,14 +57,6 @@ import ddmd.backend.ty;
 
 extern (C++):
 
-
-Classsym *fake_classsym(Identifier id);
-type *Type_toCtype(Type t);
-void ClassReferenceExp_toInstanceDt(ClassReferenceExp ce, DtBuilder dtb);
-void Expression_toDt(Expression e, DtBuilder dtb);
-void cpp_type_info_ptr_toDt(ClassDeclaration cd, DtBuilder dtb);
-Symbol *toInitializer(AggregateDeclaration ad);
-const(char) *cppTypeInfoMangle(Dsymbol cd);
 
 /*************************************
  * Helper
@@ -453,14 +449,19 @@ Symbol *toSymbol(Dsymbol s)
 /*************************************
  */
 
-private Symbol *toImport(Symbol *sym)
+Symbol *toImport(Symbol *sym)
 {
     //printf("Dsymbol.toImport('%s')\n", sym.Sident);
     char *n = sym.Sident.ptr;
     import core.stdc.stdlib : alloca;
     char *id = cast(char *) alloca(6 + strlen(n) + 1 + type_paramsize(sym.Stype).sizeof*3 + 1);
     int idlen;
-    if (sym.Stype.Tmangle == mTYman_std && tyfunc(sym.Stype.Tty))
+    if (config.exe != EX_WIN32 && config.exe != EX_WIN64)
+    {
+        id = n;
+        idlen = cast(int)strlen(n);
+    }
+    else if (sym.Stype.Tmangle == mTYman_std && tyfunc(sym.Stype.Tty))
     {
         if (config.exe == EX_WIN64)
             idlen = sprintf(id,"__imp_%s",n);

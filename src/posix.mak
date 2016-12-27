@@ -221,13 +221,7 @@ ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
 	filename man outbuffer port response rmem rootobject speller \
 	stringtable))
 
-GLUE_OBJS = iasm.o
-
-ifeq ($(D_OBJC),1)
-	GLUE_OBJS += objc_glue.o
-else
-	GLUE_OBJS += objc_glue_stubs.o
-endif
+GLUE_OBJS =
 
 ifeq (osx,$(OS))
     FRONT_SRCS += libmach.d scanmach.d
@@ -235,8 +229,14 @@ else
     FRONT_SRCS += libelf.d scanelf.d
 endif
 
-GLUE_SRCS=$(addsuffix .d, irstate toelfdebug toctype glue gluelayer todt tocsym toir dmsc \
-	tocvdebug s2ir toobj e2ir)
+GLUE_SRCS=$(addsuffix .d, irstate toctype glue gluelayer todt tocsym toir dmsc \
+	tocvdebug s2ir toobj e2ir eh iasm)
+
+ifeq ($(D_OBJC),1)
+	GLUE_SRCS += objc_glue.d
+else
+	GLUE_SRCS += objc_glue_stubs.d
+endif
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
@@ -249,7 +249,7 @@ BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o gsroa.o var.o el.o \
 	bcomplex.o aa.o ti_achar.o \
 	ti_pvoid.o pdata.o cv8.o backconfig.o \
 	divcoeff.o dwarf.o dwarfeh.o varstats.o \
-	ph2.o util2.o eh.o tk.o strtold.o \
+	ph2.o util2.o tk.o strtold.o \
 	$(TARGET_OBJS)
 
 ifeq (osx,$(OS))
@@ -272,13 +272,13 @@ ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h file.h filename.h \
 	rmem.h root.h stringtable.h)
 
 GLUE_SRC = \
-	toir.h irstate.h iasm.c \
+	toir.h irstate.h \
 	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
-	tk.c eh.c gluestub.d objc_glue.c objc_glue_stubs.c
+	tk.c gluestub.d objc_glue.d
 
 BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
-	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d \
-	$C/ty.d $C/type.d $C/exh.d
+	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d $C/iasm.d \
+	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d
 
 TK_HDRS= $(TK)/dlist.d
 
@@ -332,7 +332,7 @@ ifdef ENABLE_LTO
 dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o $(GLUE_OBJS) $(BACK_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 else
-dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o glue.a backend.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o backend.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 endif
 

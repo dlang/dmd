@@ -37,14 +37,22 @@ import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
+import ddmd.glue;
 import ddmd.id;
 import ddmd.init;
 import ddmd.irstate;
+import ddmd.mars;
 import ddmd.mtype;
+import ddmd.s2ir;
+import ddmd.sideeffect;
 import ddmd.statement;
 import ddmd.target;
+import ddmd.tocsym;
+import ddmd.toctype;
 import ddmd.toir;
 import ddmd.tokens;
+import ddmd.toobj;
+import ddmd.typinf;
 import ddmd.visitor;
 
 import ddmd.backend.cc;
@@ -65,35 +73,9 @@ import ddmd.backend.type;
 extern (C++):
 
 alias Elems = Array!(elem *);
-RET retStyle(TypeFunction tf);
 
-elem *addressElem(elem *e, Type t, bool alwaysCopy = false);
-elem *array_toPtr(Type t, elem *e);
-VarDeclarations *VarDeclarations_create();
-type *Type_toCtype(Type t);
-uint totym(Type tx);
-Symbol *toSymbol(Dsymbol s);
-elem *toElem(Expression e, IRState *irs);
-elem *toElemDtor(Expression e, IRState *irs);
-elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol *sym, bool fillHoles);
-Symbol *toStringSymbol(const(char) *str, size_t len, size_t sz);
-Symbol *toStringSymbol(StringExp se);
-void toObjFile(Dsymbol ds, bool multiobj);
-Symbol *toModuleAssert(Module m);
-Symbol *toModuleUnittest(Module m);
-Symbol *toModuleArray(Module m);
-Symbol *toImport(Dsymbol ds);
-Symbol *toInitializer(AggregateDeclaration ad);
-Symbol *aaGetSymbol(TypeAArray taa, const(char)* func, int flags);
-Symbol* toSymbol(StructLiteralExp sle);
-Symbol* toSymbol(ClassReferenceExp cre);
-elem *filelinefunction(IRState *irs, Expression e);
-void toTraceGC(IRState *irs, elem *e, Loc *loc);
-void genTypeInfo(Type t, Scope *sc);
-void setClosureVarOffset(FuncDeclaration fd);
-
-int callSideEffectLevel(FuncDeclaration f);
-int callSideEffectLevel(Type t);
+alias toSymbol = ddmd.tocsym.toSymbol;
+alias toSymbol = ddmd.glue.toSymbol;
 
 void objc_callfunc_setupMethodSelector(Type tret, FuncDeclaration fd, Type t, elem *ehidden, elem **esel);
 void objc_callfunc_setupMethodCall(elem **ec, elem *ehidden, elem *ethis, TypeFunction tf);
@@ -101,10 +83,6 @@ void objc_callfunc_setupEp(elem *esel, elem **ep, int reverse);
 
 void* mem_malloc(size_t);
 
-// s2ir.d
-void elem_setLoc(elem *e, Loc loc);
-void block_setLoc(block *b, Loc loc);
-void srcpos_setLoc(Srcpos *s, Loc loc);
 
 @property int REGSIZE() { return _tysize[TYnptr]; }
 
@@ -170,7 +148,7 @@ elem *callfunc(Loc loc,
     int op;
     elem *eresult = ehidden;
 
-    debug
+    version (none)
     {
         printf("callfunc(directcall = %d, tret = '%s', ec = %p, fd = %p)\n",
             directcall, tret.toChars(), ec, fd);
@@ -209,6 +187,13 @@ elem *callfunc(Loc loc,
     op = fd ? intrinsic_op(fd) : -1;
     if (arguments)
     {
+        if (op == OPvector)
+        {
+            Expression arg = (*arguments)[0];
+            if (arg.op != TOKint64)
+                arg.error("simd operator must be an integer constant, not '%s'", arg.toChars());
+        }
+
         for (size_t i = 0; i < arguments.dim; i++)
         {
         Lagain:
@@ -502,7 +487,7 @@ if (!global.params.is64bit) assert(tysize(TYnptr) == 4);
  * Take address of an elem.
  */
 
-elem *addressElem(elem *e, Type t, bool alwaysCopy)
+elem *addressElem(elem *e, Type t, bool alwaysCopy = false)
 {
     //printf("addressElem()\n");
 
@@ -3871,52 +3856,60 @@ elem *toElem(Expression e, IRState *irs)
                 printf("\tto  : %s\n", ve.to.toChars());
             }
 
-            elem *e = el_calloc();
-            e.Eoper = OPconst;
-            e.Ety = totym(ve.type);
-
-            for (size_t i = 0; i < ve.dim; i++)
+            elem* e;
+            if (ve.e1.op == TOKarrayliteral)
             {
-                Expression elem;
-                if (ve.e1.op == TOKarrayliteral)
-                    elem = (cast(ArrayLiteralExp)ve.e1).getElement(i);
-                else
-                    elem = ve.e1;
-                switch (elem.type.toBasetype().ty)
+                e = el_calloc();
+                e.Eoper = OPconst;
+                e.Ety = totym(ve.type);
+
+                foreach (const i; 0 .. ve.dim)
                 {
-                    case Tfloat32:
-                        // Must not call toReal directly, to avoid dmd bug 14203 from breaking ddmd
-                        e.EV.Vfloat4[i] = elem.toComplex().re;
-                        break;
+                    Expression elem = (cast(ArrayLiteralExp)ve.e1).getElement(i);
+                    const complex = elem.toComplex();
+                    const integer = elem.toInteger();
+                    switch (elem.type.toBasetype().ty)
+                    {
+                        case Tfloat32:
+                            // Must not call toReal directly, to avoid dmd bug 14203 from breaking ddmd
+                            e.EV.Vfloat8[i] = complex.re;
+                            break;
 
-                    case Tfloat64:
-                        // Must not call toReal directly, to avoid dmd bug 14203 from breaking ddmd
-                        e.EV.Vdouble2[i] = elem.toComplex().re;
-                        break;
+                        case Tfloat64:
+                            // Must not call toReal directly, to avoid dmd bug 14203 from breaking ddmd
+                            e.EV.Vdouble4[i] = complex.re;
+                            break;
 
-                    case Tint64:
-                    case Tuns64:
-                        (cast(targ_ullong *)&e.EV.Vcent)[i] = elem.toInteger();
-                        break;
+                        case Tint64:
+                        case Tuns64:
+                            e.EV.Vullong4[i] = integer;
+                            break;
 
-                    case Tint32:
-                    case Tuns32:
-                        (cast(targ_ulong *)&e.EV.Vcent)[i] = cast(uint)elem.toInteger();
-                        break;
+                        case Tint32:
+                        case Tuns32:
+                            e.EV.Vulong8[i] = cast(uint)integer;
+                            break;
 
-                    case Tint16:
-                    case Tuns16:
-                        (cast(targ_ushort *)&e.EV.Vcent)[i] = cast(ushort)elem.toInteger();
-                        break;
+                        case Tint16:
+                        case Tuns16:
+                            e.EV.Vushort16[i] = cast(ushort)integer;
+                            break;
 
-                    case Tint8:
-                    case Tuns8:
-                        (cast(targ_uchar *)&e.EV.Vcent)[i] = cast(ubyte)elem.toInteger();
-                        break;
+                        case Tint8:
+                        case Tuns8:
+                            e.EV.Vuchar32[i] = cast(ubyte)integer;
+                            break;
 
-                    default:
-                        assert(0);
+                        default:
+                            assert(0);
+                    }
                 }
+            }
+            else
+            {
+                // Create vecfill(e1)
+                elem* e1 = toElem(ve.e1, irs);
+                e = el_una(OPvecfill, totym(ve.type), e1);
             }
             elem_setLoc(e, ve.loc);
             result = e;

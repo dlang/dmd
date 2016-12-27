@@ -497,7 +497,7 @@ class Lexer
                                 p++;
                         }
                     }
-                    //printf("t->value = %d\n",t->value);
+                    //printf("t.value = %d\n",t.value);
                     return;
                 }
             case '/':
@@ -1066,7 +1066,7 @@ class Lexer
         while (1)
         {
             tk = peek(tk);
-            //tk->print();
+            //tk.print();
             switch (tk.value)
             {
             case TOKlparen:
@@ -1449,7 +1449,7 @@ class Lexer
                     else
                     {
                         hereid = tok.ident;
-                        //printf("hereid = '%s'\n", hereid->toChars());
+                        //printf("hereid = '%s'\n", hereid.toChars());
                         blankrol = 1;
                     }
                     nest = 0;
@@ -1489,7 +1489,7 @@ class Lexer
                     auto psave = p;
                     p--;
                     scan(&tok); // read in possible heredoc identifier
-                    //printf("endid = '%s'\n", tok.ident->toChars());
+                    //printf("endid = '%s'\n", tok.ident.toChars());
                     if (tok.value == TOKidentifier && tok.ident.equals(hereid))
                     {
                         /* should check that rest of line is blank
@@ -2319,7 +2319,7 @@ class Lexer
     }
 
     /***************************************************
-     * Parse doc comment embedded between t->ptr and p.
+     * Parse doc comment embedded between t.ptr and p.
      * Remove trailing blanks and tabs from lines.
      * Replace all newlines with \n.
      * Remove leading comment character from each line.

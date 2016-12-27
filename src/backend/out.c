@@ -173,7 +173,7 @@ void outdata(symbol *s)
 
                         case mTYcs:
                             s->Sseg = cseg;
-                            Coffset = align(datasize,Coffset);
+                            Coffset = _align(datasize,Coffset);
                             s->Soffset = Coffset;
                             Coffset += datasize;
                             s->Sfl = FLcsdata;
@@ -279,7 +279,7 @@ void outdata(symbol *s)
 
         case mTYcs:
             seg = cseg;
-            Coffset = align(datasize,Coffset);
+            Coffset = _align(datasize,Coffset);
             s->Soffset = Coffset;
             s->Sfl = FLcsdata;
             break;
@@ -1358,7 +1358,7 @@ void alignOffset(int seg,targ_size_t datasize)
 {
     targ_size_t alignbytes;
 
-    alignbytes = align(datasize,Offset(seg)) - Offset(seg);
+    alignbytes = _align(datasize,Offset(seg)) - Offset(seg);
     //dbg_printf("seg %d datasize = x%x, Offset(seg) = x%x, alignbytes = x%x\n",
       //seg,datasize,Offset(seg),alignbytes);
     if (alignbytes)
