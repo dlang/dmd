@@ -29,8 +29,8 @@ private
     // interface to rt.tlsgc
     import core.internal.traits : externDFunc;
 
-    alias rt_tlsgc_init = externDFunc!("rt.tlsgc.init", void* function());
-    alias rt_tlsgc_destroy = externDFunc!("rt.tlsgc.destroy", void function(void*));
+    alias rt_tlsgc_init = externDFunc!("rt.tlsgc.init", void* function() nothrow @nogc);
+    alias rt_tlsgc_destroy = externDFunc!("rt.tlsgc.destroy", void function(void*) nothrow @nogc);
 
     alias ScanDg = void delegate(void* pstart, void* pend) nothrow;
     alias rt_tlsgc_scan =
@@ -193,7 +193,7 @@ version( Windows )
         //
         // Entry point for Windows threads
         //
-        extern (Windows) uint thread_entryPoint( void* arg )
+        extern (Windows) uint thread_entryPoint( void* arg ) nothrow
         {
             Thread  obj = cast(Thread) arg;
             assert( obj );
@@ -298,7 +298,7 @@ else version( Posix )
         //
         // Entry point for POSIX threads
         //
-        extern (C) void* thread_entryPoint( void* arg )
+        extern (C) void* thread_entryPoint( void* arg ) nothrow
         {
             version (Shared)
             {
@@ -602,7 +602,7 @@ class Thread
     /**
      * Cleans up any remaining resources used by this object.
      */
-    ~this()
+    ~this() nothrow @nogc
     {
         if( m_addr == m_addr.init )
         {

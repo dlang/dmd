@@ -78,7 +78,7 @@ __gshared bool _isRuntimeInitialized;
 /****
  * Gets called on program startup just before GC is initialized.
  */
-void initSections()
+void initSections() nothrow @nogc
 {
     _dyld_register_func_for_add_image(&sections_osx_onAddImage);
     _isRuntimeInitialized = true;
@@ -87,13 +87,13 @@ void initSections()
 /***
  * Gets called on program shutdown just after GC is terminated.
  */
-void finiSections()
+void finiSections() nothrow @nogc
 {
     _sections._gcRanges.reset();
     _isRuntimeInitialized = false;
 }
 
-void[] initTLSRanges()
+void[] initTLSRanges() nothrow @nogc
 {
     void* start = null;
     size_t size = 0;
@@ -102,7 +102,7 @@ void[] initTLSRanges()
     return start[0 .. size];
 }
 
-void finiTLSRanges(void[] rng)
+void finiTLSRanges(void[] rng) nothrow @nogc
 {
 
 }
@@ -114,7 +114,7 @@ void scanTLSRanges(void[] rng, scope void delegate(void* pbeg, void* pend) nothr
 
 private:
 
-extern(C) void _d_dyld_getTLSRange(void*, void**, size_t*);
+extern(C) void _d_dyld_getTLSRange(void*, void**, size_t*) nothrow @nogc;
 
 __gshared SectionGroup _sections;
 ubyte dummyTlsSymbol;

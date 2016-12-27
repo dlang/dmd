@@ -43,12 +43,12 @@ enum
 
 struct ModuleGroup
 {
-    this(immutable(ModuleInfo*)[] modules)
+    this(immutable(ModuleInfo*)[] modules) nothrow @nogc
     {
         _modules = modules;
     }
 
-    @property immutable(ModuleInfo*)[] modules() const
+    @property immutable(ModuleInfo*)[] modules() const nothrow @nogc
     {
         return _modules;
     }

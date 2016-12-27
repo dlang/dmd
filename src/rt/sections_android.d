@@ -32,24 +32,24 @@ struct SectionGroup
         return dg(_sections);
     }
 
-    @property immutable(ModuleInfo*)[] modules() const
+    @property immutable(ModuleInfo*)[] modules() const nothrow @nogc
     {
         return _moduleGroup.modules;
     }
 
-    @property ref inout(ModuleGroup) moduleGroup() inout
+    @property ref inout(ModuleGroup) moduleGroup() inout nothrow @nogc
     {
         return _moduleGroup;
     }
 
-    @property immutable(FuncTable)[] ehTables() const
+    @property immutable(FuncTable)[] ehTables() const nothrow @nogc
     {
         auto pbeg = cast(immutable(FuncTable)*)&__start_deh;
         auto pend = cast(immutable(FuncTable)*)&__stop_deh;
         return pbeg[0 .. pend - pbeg];
     }
 
-    @property inout(void[])[] gcRanges() inout
+    @property inout(void[])[] gcRanges() inout nothrow @nogc
     {
         return _gcRanges[];
     }
@@ -59,7 +59,7 @@ private:
     void[][1] _gcRanges;
 }
 
-void initSections()
+void initSections() nothrow @nogc
 {
     pthread_key_create(&_tlsKey, null);
 
@@ -72,17 +72,17 @@ void initSections()
     _sections._gcRanges[0] = pbeg[0 .. pend - pbeg];
 }
 
-void finiSections()
+void finiSections() nothrow @nogc
 {
     pthread_key_delete(_tlsKey);
 }
 
-void[]* initTLSRanges()
+void[]* initTLSRanges() nothrow @nogc
 {
     return &getTLSBlock();
 }
 
-void finiTLSRanges(void[]* rng)
+void finiTLSRanges(void[]* rng) nothrow @nogc
 {
     .free(rng.ptr);
     .free(rng);
@@ -108,7 +108,7 @@ version(X86)
 {
     // NB: the compiler mangles this function as '___tls_get_addr'
     // even though it is extern(D)
-    extern(D) void* ___tls_get_addr( void* p )
+    extern(D) void* ___tls_get_addr( void* p ) nothrow @nogc
     {
         debug(PRINTF) printf("  ___tls_get_addr input - %p\n", p);
         immutable offset = cast(size_t)(p - cast(void*)&_tlsstart);
@@ -119,7 +119,7 @@ version(X86)
 }
 else version(ARM)
 {
-    extern(C) void* __tls_get_addr( void** p )
+    extern(C) void* __tls_get_addr( void** p ) nothrow @nogc
     {
         debug(PRINTF) printf("  __tls_get_addr input - %p\n", *p);
         immutable offset = cast(size_t)(*p - cast(void*)&_tlsstart);
@@ -135,7 +135,7 @@ private:
 
 __gshared pthread_key_t _tlsKey;
 
-ref void[] getTLSBlock()
+ref void[] getTLSBlock() nothrow @nogc
 {
     auto pary = cast(void[]*)pthread_getspecific(_tlsKey);
     if (pary is null)
@@ -151,7 +151,7 @@ ref void[] getTLSBlock()
     return *pary;
 }
 
-ref void[] getTLSBlockAlloc()
+ref void[] getTLSBlockAlloc() nothrow @nogc
 {
     auto pary = &getTLSBlock();
     if (!pary.length)

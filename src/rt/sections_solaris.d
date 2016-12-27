@@ -56,7 +56,7 @@ private:
     void[][1] _gcRanges;
 }
 
-void initSections()
+void initSections() nothrow @nogc
 {
     auto mbeg = cast(immutable ModuleInfo**)&__start_minfo;
     auto mend = cast(immutable ModuleInfo**)&__stop_minfo;
@@ -67,18 +67,18 @@ void initSections()
     _sections._gcRanges[0] = pbeg[0 .. pend - pbeg];
 }
 
-void finiSections()
+void finiSections() nothrow @nogc
 {
 }
 
-void[] initTLSRanges()
+void[] initTLSRanges() nothrow @nogc
 {
     auto pbeg = cast(void*)&_tlsstart;
     auto pend = cast(void*)&_tlsend;
     return pbeg[0 .. pend - pbeg];
 }
 
-void finiTLSRanges(void[] rng)
+void finiTLSRanges(void[] rng) nothrow @nogc
 {
 }
 
