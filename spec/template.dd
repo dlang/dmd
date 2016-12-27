@@ -147,7 +147,7 @@ $(GNAME TemplateSingleArgument):
     )
 
     $(P Even if template arguments are implicitly converted to the same
-        template parameter type, they still refer to same instance:
+        template parameter type, they still refer to the same instance:
 
         -----
         struct TFoo(int x) { }
@@ -156,7 +156,7 @@ $(GNAME TemplateSingleArgument):
         static assert(is(TFoo!(3) == TFoo!(2 + 1)));
 
         // 3u is implicitly converted to 3 to match int parameter,
-        // and refers exactly same instance with TFoo!(3).
+        // and refers to exactly the same instance as TFoo!(3)
         static assert(is(TFoo!(3) == TFoo!(3u)));
         -----
     )
@@ -190,7 +190,7 @@ $(GNAME TemplateSingleArgument):
 
 $(H2 $(LNAME2 instantiation_scope, Instantiation Scope))
 
-    $(P $(I TemplateInstantance)s are always performed in the scope of where
+    $(P $(I TemplateInstance)s are always instantiated in the scope of where
         the $(I TemplateDeclaration) is declared, with the addition of the
         template parameters being declared as aliases for their deduced types.
     )
@@ -254,7 +254,7 @@ $(H2 Argument Deduction)
         the type of that parameter is set to be the corresponding part
         of the type argument.)
 
-        $(LI If after all the type arguments are examined there are any
+        $(LI If after all the type arguments are examined, there are any
         type parameters left with no type assigned, they are assigned
         types corresponding to the template argument in the same position
         in the $(I TemplateArgumentList).)
@@ -351,7 +351,7 @@ $(H3 $(LNAME2 parameters_specialization, Specialization))
 
     $(P The template picked to instantiate is the one that is most specialized
         that fits the types of the $(I TemplateArgumentList).
-        Determine which is more specialized is done the same way as the
+        Determining which is more specialized is done in the same way as the
         C++ partial ordering rules.
         If the result is ambiguous, it is an error.
     )
@@ -868,7 +868,7 @@ $(H2 $(LNAME2 template_parameter_def_values, Template Parameter Default Values))
 
 $(H2 $(LNAME2 implicit_template_properties, Eponymous Templates))
 
-    $(P If a template contains members whose the name is the same as the
+    $(P If a template contains members whose name is the same as the
         template identifier and if the type or the parameters type of these
         members include at least all the template parameters then these members
         are assumed to be referred to in a template instantiation:
