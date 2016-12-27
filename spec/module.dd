@@ -549,7 +549,12 @@ $(H3 $(LNAME2 override_cycle_abort, Overriding Cycle Detection Abort))
         )
 
         $(OL
-            $(LI `abort` The default behavior.)
+            $(LI `deprecate` The default behavior. This functions just like `abort`,
+            but will use the pre-2.072 algorithm to determine if the cycle was
+            undetected. If so, the old algorithm is used, but a deprecation
+            message is printed. After 2.073, the `abort` option will be the default.)
+            $(LI `abort` The normal behavior as described in the previous section.
+            After 2.073, this will be the default behavior.)
             $(LI `print` Print all cycles detected, but do not abort execution.
             Order of static construction is implementation defined, and not
             guaranteed to be valid.)
