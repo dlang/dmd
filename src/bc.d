@@ -654,7 +654,7 @@ struct BCGen
     {
         assert(result.vType == BCValueType.Unknown
             || result.vType == BCValueType.StackValue,
-            "The result for this must be Empty or a StackValue");
+            "The result for this must be Empty or a StackValue not " ~ to!string(result.vType) );
         emitArithInstruction(LongInst.Eq, lhs, rhs);
 
         if (result.vType == BCValueType.StackValue)

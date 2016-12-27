@@ -10,7 +10,7 @@ import ddmd.mtype;
 import ddmd.statement;
 import ddmd.visitor;
 import ddmd.arraytypes : Expressions;
-debug = ctfe;
+//debug = ctfe;
 /**
  * Written By Stefan Koch in 2016
  */
@@ -1079,14 +1079,21 @@ extern (C++) final class BCTypeVisitor : Visitor
         case ENUMTY.Tfloat64:
             //return BCType(BCTypeEnum.f64);
         case ENUMTY.Tfloat80:
-            return BCType.init; //return BCType(BCTypeEnum.f64);
+            //return BCType(BCTypeEnum.f64);
+        case ENUMTY.Timaginary32:
+        case ENUMTY.Timaginary64:
+        case ENUMTY.Timaginary80:
+        case ENUMTY.Tcomplex32:
+        case ENUMTY.Tcomplex64:
+        case ENUMTY.Tcomplex80:
+            return BCType.init;
         case ENUMTY.Tvoid:
             return BCType(BCTypeEnum.Void);
         default:
             break;
         }
         // If we get here it's not a basic type;
-        assert(!t.isTypeBasic(), "Is a basicType: " ~ t.ty.to!string());
+        assert(!t.isTypeBasic(), "Is a basicType: " ~ (cast(ENUMTY)t.ty).to!string());
         if (t.isString)
         {
             return BCType(BCTypeEnum.String);
@@ -1180,7 +1187,7 @@ struct BCScope
 }
 
 debug = nullPtrCheck;
-debug = andand;
+//debug = andand;
 extern (C++) final class BCV(BCGenT) : Visitor
 {
     uint unresolvedGotoCount;
@@ -1799,6 +1806,8 @@ public:
                 {
                 case TOK.TOKequal:
                     {
+                            import std.stdio;
+                            writeln("Issueing Eq3 for ", e.toString);
                         Eq3(retval, lhs, rhs);
                     }
                     break;
@@ -3682,10 +3691,10 @@ public:
                 }
                 endCndJmp(jump, genLabel());
             }
-            if (ss.sdefault)
+            if (ss.sdefault) // maybe we should ss.sdefault.statement as well ... jsut to be sure ?
             {
                 auto defaultBlock = genBlock(ss.sdefault.statement);
-
+                // if you are wondering ac_jmp stands for after case jump
                 foreach (ac_jmp; switchFixupTable[0 .. switchFixupTableCount])
                 {
                     if (ac_jmp.fixupFor == 0)
