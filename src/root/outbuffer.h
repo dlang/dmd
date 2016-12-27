@@ -27,11 +27,11 @@ struct OutBuffer
 {
     unsigned char *data;
     size_t offset;
-private:
     size_t size;
 
     int level;
     bool doindent;
+private:
     bool notlinehead;
 public:
 
