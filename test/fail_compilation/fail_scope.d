@@ -3,13 +3,6 @@ PERMUTE_ARGS:
 REQUIRED_ARGS: -dip25
 TEST_OUTPUT:
 ---
-fail_compilation/fail_scope.d(30): Error: scope variable da may not be returned
-fail_compilation/fail_scope.d(32): Error: scope variable o may not be returned
-fail_compilation/fail_scope.d(33): Error: scope variable dg may not be returned
-fail_compilation/fail_scope.d(35): Error: scope variable da may not be returned
-fail_compilation/fail_scope.d(37): Error: scope variable o may not be returned
-fail_compilation/fail_scope.d(38): Error: scope variable dg may not be returned
-fail_compilation/fail_scope.d(40): Error: scope variable p may not be returned
 fail_compilation/fail_scope.d(45): Error: escaping reference to local variable string
 fail_compilation/fail_scope.d(63): Error: escaping reference to local variable s
 fail_compilation/fail_scope.d(74): Error: fail_scope.foo8 called with argument types (int) matches both:
@@ -23,6 +16,13 @@ fail_compilation/fail_scope.d(108): Error: escaping reference to outer local var
 fail_compilation/fail_scope.d(127): Error: escaping reference to local variable s
 fail_compilation/fail_scope.d(137): Error: escaping reference to local variable i
 ---
+//fail_compilation/fail_scope.d(30): Error: scope variable da may not be returned
+//fail_compilation/fail_scope.d(32): Error: scope variable o may not be returned
+//fail_compilation/fail_scope.d(33): Error: scope variable dg may not be returned
+//fail_compilation/fail_scope.d(35): Error: scope variable da may not be returned
+//fail_compilation/fail_scope.d(37): Error: scope variable o may not be returned
+//fail_compilation/fail_scope.d(38): Error: scope variable dg may not be returned
+//fail_compilation/fail_scope.d(40): Error: scope variable p may not be returned
 */
 
 alias int delegate() dg_t;
