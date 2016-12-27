@@ -1545,6 +1545,46 @@ void test16102()
 
 ////////////////////////////////////////////////////////////////////////
 
+// https://issues.dlang.org/show_bug.cgi?id=16699
+
+ulong[1] parseDateRange()
+{
+    try
+    {
+        ulong[1] result;
+        result[0] = 6;
+        return result;
+    }
+    finally
+    {
+    }
+}
+
+void test16699()
+{
+    ulong[1] range = parseDateRange();
+    assert(range[0] == 6);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+// https://issues.dlang.org/show_bug.cgi?id=16102
+
+struct S16102 { ~this() { } }
+
+long[1] f16102()
+{
+    S16102 a;
+    return [1];
+}
+
+void test16102()
+{
+    assert( f16102() == [1] );
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();

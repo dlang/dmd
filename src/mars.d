@@ -655,9 +655,6 @@ Language changes listed by -transition=id:
                         case "import":
                             global.params.bug10378 = true;
                             break;
-                        case "safe":
-                            global.params.vsafe = true;
-                            break;
                         case "tls":
                             global.params.vtls = true;
                             break;
