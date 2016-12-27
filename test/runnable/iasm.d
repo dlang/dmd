@@ -153,7 +153,7 @@ L1:
 void test6()
 {
     ubyte *p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0x8B, 0x01,             // mov  EAX,[ECX]
         0x8B, 0x04, 0x19,       // mov  EAX,[EBX][ECX]
@@ -220,7 +220,7 @@ L1:
 void test7()
 {
     ubyte *p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0x26,0xA1,0x24,0x13,0x00,0x00,          // mov  EAX,ES:[01324h]
         0x36,0x66,0xA1,0x78,0x56,0x00,0x00,     // mov  AX,SS:[05678h]
@@ -258,7 +258,7 @@ L1:                                     ;
 void test8()
 {
     ubyte *p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0x8C,0xD0,              // mov  AX,SS
         0x8C,0xDB,              // mov  BX,DS
@@ -367,7 +367,7 @@ L1:                                     ;
 void test9()
 {
     ubyte *p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0x67,0x66,0x8B,0x00,            // mov  AX,[BX+SI]
         0x67,0x66,0x8B,0x01,            // mov  AX,[BX+DI]
@@ -441,13 +441,13 @@ L1:                                     ;
 /****************************************************/
 
 shared int bar10 = 78;
-shared int baz10[2];
+shared int[2] baz10;
 
 void test10()
 {
     ubyte *p;
     int foo;
-    static ubyte data[] =
+    static ubyte[] data =
     [
     ];
     int i;
@@ -501,7 +501,7 @@ void test11()
 void test12()
 {
     ubyte *p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0x37,                           // aaa
         0xD5,0x0A,                      // aad
@@ -709,7 +709,7 @@ void test13()
     long m64;
     M128 m128;
     ubyte *p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0x0F,0x0B,              // ud2
         0x0F,0x05,              // syscall
@@ -1126,7 +1126,7 @@ void test14()
     long m64;
     M128 m128;
     ubyte *p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
 0x66,   0x0F,0x50,0xF3,         // movmskpd     ESI,XMM3
         0x0F,0x50,0xF3,         // movmskps     ESI,XMM3
@@ -1877,7 +1877,7 @@ void test15()
     long m64;
     M128 m128;
     ubyte *p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0x0F,0x0F,0xDC,0xBF,            // pavgusb      MM3,MM4
         0x0F,0x0F,0x5D,0xE0,0xBF,       // pavgusb      MM3,-020h[EBP]
@@ -1993,13 +1993,13 @@ L1:                                     ;
 
 /****************************************************/
 
-struct S17 { char x[6]; }
+struct S17 { char[6] x; }
 __gshared S17 xx17;
 
 void test17()
 {
     ubyte *p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0x0F, 0x01, 0x10,       // lgdt [EAX]
         0x0F, 0x01, 0x18,       // lidt [EAX]
@@ -2039,7 +2039,7 @@ L1:
 void test18()
 {
     ubyte *p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0xDB, 0xF1,             // fcomi ST,ST(1)
         0xDB, 0xF0,             // fcomi ST,ST(0)
@@ -2118,7 +2118,7 @@ void test19()
 void test20()
 {
     ubyte *p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0x9B, 0xDB, 0xE0,       // feni
         0xDB, 0xE0,             // fneni
@@ -2168,7 +2168,7 @@ L1:
 void test21()
 {
     ubyte *p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0xE4, 0x06,             // in   AL,6
         0x66, 0xE5, 0x07,       // in   AX,7
@@ -2219,7 +2219,7 @@ L1:
 void test22()
 {
     ubyte *p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0x0F, 0xC7, 0x4D, 0xF8  // cmpxchg8b
     ];
@@ -2251,7 +2251,7 @@ void test23()
     long m64;
     M128 m128;
     ubyte *p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0xD9, 0xC9,             // fxch         ST(1), ST(0)
 
@@ -2370,7 +2370,7 @@ void test25()
     long m64;
     M128 m128;
     ubyte *p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0x66, 0x0F, 0x7E, 0xC1,         // movd ECX,XMM0
         0x66, 0x0F, 0x7E, 0xC9,         // movd ECX,XMM1
@@ -2660,7 +2660,7 @@ void test30()
 void test31()
 {
     ubyte *p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0xF7, 0xD8,             // neg  EAX
         0x74, 0x04,             // je   L8
@@ -2945,7 +2945,7 @@ void test40()
 void test41()
 {
     ubyte *p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0x66,0x0F,0x28,0x0C,0x06,       // movapd       XMM1,[EAX][ESI]
         0x66,0x0F,0x28,0x0C,0x06,       // movapd       XMM1,[EAX][ESI]
@@ -3034,7 +3034,7 @@ void test44()
 void test45()
 {
     ubyte *p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0xDA, 0xC0,       // fcmovb     ST(0)
         0xDA, 0xC1,       // fcmovb
@@ -3078,7 +3078,7 @@ L1:                                     ;
 void test46()
 {
     ubyte *p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0x66, 0x0F, 0x3A, 0x41, 0xCA, 0x08,     // dppd XMM1,XMM2,8
         0x66, 0x0F, 0x3A, 0x40, 0xDC, 0x07,     // dpps XMM3,XMM4,7
@@ -3154,7 +3154,7 @@ void test48()
 void test49()
 {
     ubyte *p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0x00, 0xC0,             // add  AL,AL
         0x00, 0xD8,             // add  AL,BL
@@ -3595,7 +3595,7 @@ L1:                                     ;
 void test50()
 {
     ubyte *p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0x66, 0x98,     // cbw
         0xF8,           // clc
@@ -3858,7 +3858,7 @@ class Test51
 void test52()
 {   int x;
     ubyte* p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0xF6, 0xD8,                     // neg  AL
 0x66,   0xF7, 0xD8,                     // neg  AX
@@ -3900,7 +3900,7 @@ L1:     pop     EAX     ;
 void test53()
 {   int x;
     ubyte* p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0x8D, 0x04, 0x00,               // lea  EAX,[EAX][EAX]
         0x8D, 0x04, 0x08,               // lea  EAX,[ECX][EAX]
@@ -3972,7 +3972,7 @@ L1:     pop     EAX     ;
 void test54()
 {   int x;
     ubyte* p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0xFE, 0xC8,                // dec    AL
         0xFE, 0xCC,                // dec    AH
@@ -4036,7 +4036,7 @@ void test55()
 {   int x;
     ubyte* p;
     enum NOP = 0x9090_9090_9090_9090;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0x0F, 0x87, 0xFF, 0xFF, 0, 0,    //    ja    $ + 0xFFFF
         0x72, 0x18,                      //    jb    Lb
@@ -4117,7 +4117,7 @@ void test57()
     ubyte* p;
     M64  m64;
     M128 m128;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0x0F, 0x3A, 0x0F, 0xCA,       0x03,    // palignr   MM1,  MM2, 3
   0x66, 0x0F, 0x3A, 0x0F, 0xCA,       0x03,    // palignr  XMM1, XMM2, 3
@@ -4292,7 +4292,7 @@ void test58()
     int   m32;
     M64   m64;
     M128 m128;
-    static ubyte data[] =
+    static ubyte[] data =
     [
   0x66,       0x0F, 0x3A, 0x0D, 0xCA,        3,// blendpd  XMM1,XMM2,0x3
   0x66,       0x0F, 0x3A, 0x0D, 0x5D, 0xE0,  3,// blendpd  XMM3,XMMWORD PTR [RBP-0x20],0x3
@@ -4586,7 +4586,7 @@ void test59()
     int   m32;
     M64   m64;
     M128 m128;
-    static ubyte data[] =
+    static ubyte[] data =
     [
 0xF2,       0x0F, 0x38, 0xF0, 0xC1,           // crc32   EAX,  CL
 0x66, 0xF2, 0x0F, 0x38, 0xF1, 0xC1,           // crc32   EAX,  CX
@@ -4662,7 +4662,7 @@ void test60()
     int   m32;
     M64   m64;
     M128 m128;
-    static ubyte data[] =
+    static ubyte[] data =
     [
 0x0F,       0x3A, 0xCC, 0xD1, 0x01,           // sha1rnds4 XMM2, XMM1, 1;
 0x0F,       0x3A, 0xCC, 0x10, 0x01,           // sha1rnds4 XMM2, [RAX], 1;
@@ -4719,7 +4719,7 @@ L1:     pop     EAX;
 void test9866()
 {
     ubyte* p;
-    static ubyte data[] =
+    static ubyte[] data =
     [
         0x66, 0x0f, 0xbe, 0xc0, // movsx AX, AL;
         0x66, 0x0f, 0xbe, 0x00, // movsx AX, byte ptr [EAX];
@@ -4786,6 +4786,44 @@ void test5012()
 
 /****************************************************/
 
+void test17027()
+{
+    ubyte* p;
+
+    static ubyte[] data =
+    [
+
+        0xF3, 0x0F, 0xBC, 0x00,
+        0xF3, 0x0F, 0xBC, 0x40, 0x08,
+        0xF3, 0x0F, 0xBC, 0xC0,
+        0xF3, 0x0F, 0xBD, 0x00,
+        0xF3, 0x0F, 0xBD, 0x40, 0x08,
+        0xF3, 0x0F, 0xBD, 0xC0,
+    ];
+
+    asm
+    {
+        call  L1;
+
+        tzcnt EAX, [EAX];
+        tzcnt EAX, [EAX+8];
+        tzcnt EAX, EAX;
+        lzcnt EAX, [EAX];
+        lzcnt EAX, [EAX+8];
+        lzcnt EAX, EAX;
+
+L1:     pop     EAX;
+        mov     p[EBP],EAX;
+    }
+
+    foreach (ref i, b; data)
+    {
+        //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+        assert(p[i] == b);
+    }
+}
+
+/****************************************************/
 int main()
 {
     printf("Testing iasm.d\n");
@@ -4855,6 +4893,7 @@ int main()
     test59();
     test60();
     test9866();
+    test17027();
   }
     printf("Success\n");
     return 0;

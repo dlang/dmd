@@ -100,7 +100,12 @@ TypeIdentifier getThrowable()
     tid.addIdent(Id.Throwable);
     return tid;
 }
-
+/**
+ * BE stands for BlockExit.
+ *
+ * It indicates If a statement does transfer controlflow to another Block.
+ * A Block is a sequence of statements enclosed in {  }
+ */
 enum BE : int
 {
     BEnone = 0,
@@ -236,7 +241,7 @@ extern (C++) abstract class Statement : RootObject
     }
 
     /* ============================================== */
-    /* Only valid after semantic analysis
+    /** Only valid after semantic analysis
      * If 'mustNotThrow' is true, generate an error if it throws
      */
     final int blockExit(FuncDeclaration func, bool mustNotThrow)
@@ -326,7 +331,7 @@ extern (C++) abstract class Statement : RootObject
                                 else
                                 {
                                     const(char)* gototype = s.isCaseStatement() ? "case" : "default";
-                                    s.error("switch case fallthrough - use 'goto %s;' if intended", gototype);
+                                    s.deprecation("switch case fallthrough - use 'goto %s;' if intended", gototype);
                                 }
                             }
                         }
@@ -363,7 +368,7 @@ extern (C++) abstract class Statement : RootObject
 
             override void visit(ScopeStatement s)
             {
-                //printf("ScopeStatement::blockExit(%p)\n", s->statement);
+                //printf("ScopeStatement::blockExit(%p)\n", s.statement);
                 result = s.statement ? s.statement.blockExit(func, mustNotThrow) : BEfallthru;
             }
 
@@ -548,7 +553,7 @@ extern (C++) abstract class Statement : RootObject
 
             override void visit(BreakStatement s)
             {
-                //printf("BreakStatement::blockExit(%p) = x%x\n", s, s->ident ? BEgoto : BEbreak);
+                //printf("BreakStatement::blockExit(%p) = x%x\n", s, s.ident ? BEgoto : BEbreak);
                 result = s.ident ? BEgoto : BEbreak;
             }
 
@@ -1244,7 +1249,7 @@ extern (C++) final class CompileStatement : Statement
 
     override Statements* flatten(Scope* sc)
     {
-        //printf("CompileStatement::flatten() %s\n", exp->toChars());
+        //printf("CompileStatement::flatten() %s\n", exp.toChars());
 
         auto errorStatements()
         {
@@ -2338,7 +2343,7 @@ extern (C++) final class Catch : RootObject
 
     extern (D) this(Loc loc, Type t, Identifier id, Statement handler)
     {
-        //printf("Catch(%s, loc = %s)\n", id->toChars(), loc.toChars());
+        //printf("Catch(%s, loc = %s)\n", id.toChars(), loc.toChars());
         this.loc = loc;
         this.type = t;
         this.ident = id;

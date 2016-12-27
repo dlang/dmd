@@ -104,7 +104,7 @@ final class LibOMF : Library
         if (lh.recTyp == 0xF0)
         {
             /* OMF library
-             * The modules are all at buf[g_page_size .. lh->lSymSeek]
+             * The modules are all at buf[g_page_size .. lh.lSymSeek]
              */
             islibrary = 1;
             g_page_size = lh.pagesize + 3;

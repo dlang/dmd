@@ -822,6 +822,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             case OPbtc:
             case OPbtr:
             case OPbts:
+            case OPvecfill:
                 e1 = e->E1;
                 e1free = TRUE;
                 e1isadd = e1->Eoper == OPadd;
@@ -1736,10 +1737,10 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
             {
                 reg = findreg(retregs & XMMREGS);
                 // MOVSD floatreg, XMM?
-                ce = genfltreg(ce,xmmstore(tym),reg - XMM0,0);
+                ce = genxmmreg(ce,xmmstore(tym),reg,0,tym);
                 if (mask[rreg] & XMMREGS)
                     // MOVSD XMM?, floatreg
-                    ce = genfltreg(ce,xmmload(tym),rreg - XMM0,0);
+                    ce = genxmmreg(ce,xmmload(tym),rreg,0,tym);
                 else
                 {
                     // MOV rreg,floatreg
@@ -1772,7 +1773,7 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
                         code_orrex(ce,REX_W);
                 }
                 // MOVSS/MOVSD XMMreg,floatreg
-                ce = genfltreg(ce,xmmload(tym),rreg - XMM0,0);
+                ce = genxmmreg(ce,xmmload(tym),rreg,0,tym);
             }
             else if (sz > REGSIZE)
             {
@@ -1799,7 +1800,14 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
         retregs = *pretregs & ~mPSW;
   }
   if (forccs)                           /* if return result in flags    */
-        c = cat(c,tstresult(retregs,tym,forregs));
+  {
+        code *cf;
+        if (retregs & (mST01 | mST0))
+            cf = fixresult87(e,retregs,pretregs);
+        else
+            cf = tstresult(retregs,tym,forregs);
+        c = cat(c, cf);
+  }
   return c;
 }
 
@@ -2861,7 +2869,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
     for (int i = np; --i >= 0;)
     {
         elem *ep = parameters[i].e;
-        unsigned psize = align(stackalign, paramsize(ep));     // align on stack boundary
+        unsigned psize = _align(stackalign, paramsize(ep));     // align on stack boundary
         if (config.exe == EX_WIN64)
         {
             //printf("[%d] size = %u, numpara = %d ep = %p ", i, psize, numpara, ep); WRTYxx(ep->Ety); printf("\n");
@@ -3036,7 +3044,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
             unsigned numalign = parameters[i].numalign;
             if (usefuncarg)
             {
-                funcargtos -= align(stackalign, paramsize(ep)) + numalign;
+                funcargtos -= _align(stackalign, paramsize(ep)) + numalign;
                 cgstate.funcargtos = funcargtos;
             }
             else if (numalign)
@@ -3120,7 +3128,9 @@ code *cdfunc(elem *e,regm_t *pretregs)
                         {
                             if (mask[preg] & XMMREGS)
                             {   unsigned op = xmmload(ty1);            // MOVSS/D preg,lreg
-                                c1 = gen2(c1,op,modregxrmx(3,preg-XMM0,lreg-XMM0));
+                                code *cd = gen2(CNIL,op,modregxrmx(3,preg-XMM0,lreg-XMM0));
+                                checkSetVex(cd,ty1);
+                                c1 = cat(c1,cd);
                             }
                             else
                                 c1 = genmovreg(c1, preg, lreg);
@@ -3132,7 +3142,9 @@ code *cdfunc(elem *e,regm_t *pretregs)
                         {
                             if (mask[preg2] & XMMREGS)
                             {   unsigned op = xmmload(ty2);            // MOVSS/D preg2,mreg
-                                c1 = gen2(c1,op,modregxrmx(3,preg2-XMM0,mreg-XMM0));
+                                code *cd = gen2(CNIL,op,modregxrmx(3,preg2-XMM0,mreg-XMM0));
+                                checkSetVex(cd,ty2);
+                                c1 = cat(c1,cd);
                             }
                             else
                                 c1 = genmovreg(c1, preg2, mreg);
@@ -3616,7 +3628,7 @@ static code *movParams(elem *e,unsigned stackalign, unsigned funcargtos)
     int grex = I64 ? REX_W << 16 : 0;
 
     targ_size_t szb = paramsize(e);               // size before alignment
-    targ_size_t sz = align(stackalign,szb);       // size after alignment
+    targ_size_t sz = _align(stackalign,szb);       // size after alignment
     assert((sz & (stackalign - 1)) == 0);         // ensure that alignment worked
     assert((sz & (REGSIZE - 1)) == 0);
     //printf("szb = %d sz = %d\n", (int)szb, (int)sz);
@@ -3727,7 +3739,9 @@ static code *movParams(elem *e,unsigned stackalign, unsigned funcargtos)
         c = cat(c,codelem(e,&retregs,FALSE));
         unsigned op = xmmstore(tym);
         unsigned r = findreg(retregs);
-        c = genc1(c,op,modregxrm(2,r - XMM0,BPRM),FLfuncarg,funcargtos - 16);   // MOV funcarg[EBP],r
+        code *cd = genc1(CNIL,op,modregxrm(2,r - XMM0,BPRM),FLfuncarg,funcargtos - 16);   // MOV funcarg[EBP],r
+        checkSetVex(cd,tym);
+        c = cat(c,cd);
         goto ret;
     }
     else if (tyfloating(tym))
@@ -3830,7 +3844,7 @@ code *pushParams(elem *e,unsigned stackalign)
   int grex = I64 ? REX_W << 16 : 0;
 
   targ_size_t szb = paramsize(e);               // size before alignment
-  targ_size_t sz = align(stackalign,szb);       // size after alignment
+  targ_size_t sz = _align(stackalign,szb);       // size after alignment
   assert((sz & (stackalign - 1)) == 0);         // ensure that alignment worked
   assert((sz & (REGSIZE - 1)) == 0);
 
@@ -4332,7 +4346,9 @@ code *pushParams(elem *e,unsigned stackalign)
         c = cod3_stackadj(c, sz);
         unsigned op = xmmstore(tym);
         unsigned r = findreg(retregs);
-        c = gen2sib(c,op,modregxrm(0,r - XMM0,4),modregrm(0,4,SP));   // MOV [ESP],r
+        code *cd = gen2sib(CNIL,op,modregxrm(0,r - XMM0,4),modregrm(0,4,SP));   // MOV [ESP],r
+        checkSetVex(cd,tym);
+        c = cat(c,cd);
         goto ret;
   }
   else if (tyfloating(tym))
@@ -4472,9 +4488,9 @@ code *loaddata(elem *e,regm_t *pretregs)
   regm_t flags,forregs,regm;
 
 #ifdef DEBUG
-  if (debugw)
-        printf("loaddata(e = %p,*pretregs = %s)\n",e,regm_str(*pretregs));
-  //elem_print(e);
+//  if (debugw)
+//        printf("loaddata(e = %p,*pretregs = %s)\n",e,regm_str(*pretregs));
+//  elem_print(e);
 #endif
   assert(e);
   elem_debug(e);
@@ -4646,7 +4662,7 @@ code *loaddata(elem *e,regm_t *pretregs)
                     code_orrex(ce, REX_W);
                 assert(sz == 4 || sz == 8);             // float or double
                 unsigned op = xmmload(tym);
-                ce = genfltreg(ce,op,reg - XMM0,0);     // MOVSS/MOVSD XMMreg,floatreg
+                ce = genxmmreg(ce,op,reg,0,tym);        // MOVSS/MOVSD XMMreg,floatreg
             }
             else
             {   ce = movregconst(CNIL,reg,value,flags);
@@ -4700,7 +4716,7 @@ code *loaddata(elem *e,regm_t *pretregs)
                     ce = genfltreg(ce,0x89,r,4);            // MOV floatreg+4,r
 
                     unsigned op = xmmload(tym);
-                    ce = genfltreg(ce,op,reg - XMM0,0);     // MOVSS/MOVSD XMMreg,floatreg
+                    ce = genxmmreg(ce,op,reg,0,tym);        // MOVSS/MOVSD XMMreg,floatreg
                 }
                 else
                 {
@@ -4739,8 +4755,8 @@ code *loaddata(elem *e,regm_t *pretregs)
         reg = e->EV.sp.Voffset ? e->EV.sp.Vsym->Spreg2 : e->EV.sp.Vsym->Spreg;
         forregs = mask[reg];
 #ifdef DEBUG
-        if (debugr)
-            printf("%s is fastpar and using register %s\n", e->EV.sp.Vsym->Sident, regm_str(forregs));
+//        if (debugr)
+//            printf("%s is fastpar and using register %s\n", e->EV.sp.Vsym->Sident, regm_str(forregs));
 #endif
         mfuncreg &= ~forregs;
         regcon.used |= forregs;
@@ -4795,7 +4811,7 @@ code *loaddata(elem *e,regm_t *pretregs)
         // Can't load from registers directly to XMM regs
         //e->EV.sp.Vsym->Sflags &= ~GTregcand;
 
-        op = xmmload(tym);
+        op = xmmload(tym, xmmIsAligned(e));
         if (e->Eoper == OPvar)
         {   symbol *s = e->EV.sp.Vsym;
             if (s->Sfl == FLreg && !(mask[s->Sreglsw] & XMMREGS))
@@ -4804,6 +4820,7 @@ code *loaddata(elem *e,regm_t *pretregs)
             }
         }
         ce = loadea(e,&cs,op,reg,0,RMload,0); // MOVSS/MOVSD reg,data
+        checkSetVex(code_last(ce),tym);
         c = cat(c,ce);
     }
     else if (sz <= REGSIZE)

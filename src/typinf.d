@@ -79,7 +79,7 @@ extern (C++) Type getTypeInfoType(Type t, Scope* sc)
 
 extern (C++) TypeInfoDeclaration getTypeInfoDeclaration(Type t)
 {
-    //printf("Type::getTypeInfoDeclaration() %s\n", t->toChars());
+    //printf("Type::getTypeInfoDeclaration() %s\n", t.toChars());
     switch (t.ty)
     {
     case Tpointer:

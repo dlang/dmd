@@ -45,7 +45,11 @@ import ddmd.nspace;
 import ddmd.statement;
 import ddmd.staticassert;
 import ddmd.target;
+import ddmd.tocsym;
+import ddmd.tocvdebug;
+import ddmd.todt;
 import ddmd.tokens;
+import ddmd.typinf;
 import ddmd.visitor;
 
 import ddmd.backend.cc;
@@ -64,30 +68,9 @@ import ddmd.backend.type;
 
 extern (C++):
 
-bool obj_includelib(const(char)* name);
-void obj_startaddress(Symbol *s);
-void obj_lzext(Symbol *s1,Symbol *s2);
+alias toSymbol = ddmd.tocsym.toSymbol;
+alias toSymbol = ddmd.glue.toSymbol;
 
-void TypeInfo_toDt(DtBuilder dtb, TypeInfoDeclaration d);
-void Initializer_toDt(Initializer init, DtBuilder dtb);
-void Type_toDt(Type t, DtBuilder dtb);
-void ClassDeclaration_toDt(ClassDeclaration cd, DtBuilder dtb);
-void StructDeclaration_toDt(StructDeclaration sd, DtBuilder dtb);
-Symbol *toSymbol(Dsymbol s);
-void Expression_toDt(Expression e, DtBuilder dtb);
-void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj);
-Symbol *toThunkSymbol(FuncDeclaration fd, int offset);
-Symbol *toVtblSymbol(ClassDeclaration cd);
-Symbol *toInitializer(AggregateDeclaration ad);
-Symbol *toInitializer(EnumDeclaration ed);
-void genTypeInfo(Type t, Scope *sc);
-bool isSpeculativeType(Type t);
-
-void toDebug(EnumDeclaration ed);
-void toDebug(StructDeclaration sd);
-void toDebug(ClassDeclaration cd);
-
-void objc_Module_genmoduleinfo_classes();
 
 /* ================================================================== */
 

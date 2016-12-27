@@ -1,3 +1,6 @@
+/*
+REQUIRED_ARGS: -mcpu=native
+*/
 
 import core.stdc.stdio;
 
@@ -207,7 +210,7 @@ void test11565()
 
 ///////////////////////
 
-int array1[3] = [1:1,2,0:3];
+int[3] array1 = [1:1,2,0:3];
 
 void testarrayinit()
 {
@@ -1454,6 +1457,94 @@ void writeln(int v, int[] a)
 
 ////////////////////////////////////////////////////////////////////////
 
+real binPosPow2() { return 1.0L; }
+
+real binPow2()
+{
+    return 1.0L/binPosPow2();
+}
+
+void test4()
+{
+    assert(binPow2() == 1.0L);
+}
+
+////////////////////////////////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=13474
+
+
+double sumKBN(double s = 0.0)
+{
+    import std.math : fabs;
+    double c = 0.0;
+        foreach(double x; [1, 1e100, 1, -1e100])
+        {
+            x = multiply(x);
+            double t = s + x;
+            if(s.fabs >= x.fabs)
+            {
+                double y = s-t;
+                c += y+x;
+            }
+            else
+            {
+                double y = x-t;
+                c += y+s;
+            }
+            s = t;
+        }
+    return s + c;
+}
+
+double multiply(double a) { return a * 10000; }
+
+void test13474()
+{
+    double r = 20000;
+    assert(r == sumKBN());
+}
+
+////////////////////////////////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=16699
+
+ulong[1] parseDateRange()
+{
+    try
+    {
+        ulong[1] result;
+        result[0] = 6;
+        return result;
+    }
+    finally
+    {
+    }
+}
+
+void test16699()
+{
+    ulong[1] range = parseDateRange();
+    assert(range[0] == 6);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+// https://issues.dlang.org/show_bug.cgi?id=16102
+
+struct S16102 { ~this() { } }
+
+long[1] f16102()
+{
+    S16102 a;
+    return [1];
+}
+
+void test16102()
+{
+    assert( f16102() == [1] );
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -1504,6 +1595,10 @@ int main()
     test15272();
     test15861();
     test15629();
+    test4();
+    test13474();
+    test16699();
+    test16102();
     printf("Success\n");
     return 0;
 }

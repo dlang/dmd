@@ -19,11 +19,10 @@ import ddmd.backend.type;
 import ddmd.declaration;
 import ddmd.dstruct;
 import ddmd.globals;
+import ddmd.glue;
 import ddmd.id;
 import ddmd.mtype;
 import ddmd.visitor;
-
-extern extern (C++) uint totym(Type tx);
 
 extern (C++) final class ToCtypeVisitor : Visitor
 {
@@ -57,7 +56,7 @@ public:
 
     override void visit(TypePointer t)
     {
-        //printf("TypePointer::toCtype() %s\n", t->toChars());
+        //printf("TypePointer::toCtype() %s\n", t.toChars());
         t.ctype = type_pointer(Type_toCtype(t.next));
     }
 
@@ -121,7 +120,7 @@ public:
 
     override void visit(TypeStruct t)
     {
-        //printf("TypeStruct::toCtype() '%s'\n", t->sym->toChars());
+        //printf("TypeStruct::toCtype() '%s'\n", t.sym.toChars());
         if (t.mod == 0)
         {
             // Create a new backend type
@@ -156,12 +155,12 @@ public:
             t.ctype.Ttag = mctype.Ttag; // structure tag name
         }
         addMod(t);
-        //printf("t = %p, Tflags = x%x\n", ctype, ctype->Tflags);
+        //printf("t = %p, Tflags = x%x\n", ctype, ctype.Tflags);
     }
 
     override void visit(TypeEnum t)
     {
-        //printf("TypeEnum::toCtype() '%s'\n", t->sym->toChars());
+        //printf("TypeEnum::toCtype() '%s'\n", t.sym.toChars());
         if (t.mod == 0)
         {
             if (!t.sym.memtype)
@@ -195,7 +194,7 @@ public:
         }
         else
             t.ctype = mctype;
-        //printf("t = %p, Tflags = x%x\n", t, t->Tflags);
+        //printf("t = %p, Tflags = x%x\n", t, t.Tflags);
     }
 
     override void visit(TypeClass t)

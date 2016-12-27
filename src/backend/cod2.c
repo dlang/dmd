@@ -161,7 +161,7 @@ code *opdouble(elem *e,regm_t *pretregs,unsigned clib)
  */
 
 code *cdorth(elem *e,regm_t *pretregs)
-{ tym_t ty1;
+{
   regm_t retregs,rretregs,posregs;
   unsigned reg,rreg,op1,op2,mode;
   int rval;
@@ -180,23 +180,32 @@ code *cdorth(elem *e,regm_t *pretregs)
         return cat(c,codelem(e2,pretregs,FALSE));
   }
 
-  ty1 = tybasic(e1->Ety);
-  if (tyfloating(ty1))
-  {
-        if (*pretregs & XMMREGS || tyvector(ty1))
+    tym_t ty = tybasic(e->Ety);
+    tym_t ty1 = tybasic(e1->Ety);
+
+    if (tyfloating(ty1))
+    {
+        if (tyvector(ty1) ||
+            config.fpxmmregs && tyxmmreg(ty1) &&
+            !(*pretregs & mST0) &&
+            !(ty == TYldouble || ty == TYildouble)  // watch out for shrinkLongDoubleConstantIfPossible()
+           )
+        {
             return orthxmm(e,pretregs);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        return orth87(e,pretregs);
-#else
+        }
+        if (config.inline8087)
+            return orth87(e,pretregs);
+#if TARGET_WINDOS
         return opdouble(e,pretregs,(e->Eoper == OPadd) ? CLIBdadd
                                                        : CLIBdsub);
+#else
+        assert(0);
 #endif
-  }
+    }
   if (tyxmmreg(ty1))
         return orthxmm(e,pretregs);
   tym_t ty2 = tybasic(e2->Ety);
   int e2oper = e2->Eoper;
-  tym_t ty = tybasic(e->Ety);
   unsigned sz = _tysize[ty];
   unsigned byte = (sz == 1);
   unsigned char word = (!I16 && sz == SHORTSIZE) ? CFopsize : 0;
@@ -860,6 +869,7 @@ code *cdmul(elem *e,regm_t *pretregs)
     e2 = e->E2;
     e1 = e->E1;
     tyml = tybasic(e1->Ety);
+    tym_t ty = tybasic(e->Ety);
     sz = _tysize[tyml];
     byte = tybyte(e->Ety) != 0;
     uns = tyuns(tyml) || tyuns(e2->Ety);
@@ -869,7 +879,12 @@ code *cdmul(elem *e,regm_t *pretregs)
 
     if (tyfloating(tyml))
     {
-        if (*pretregs & XMMREGS && oper != OPmod && tyxmmreg(tyml))
+        if (tyvector(tyml) ||
+            config.fpxmmregs && oper != OPmod && tyxmmreg(tyml) &&
+            !(*pretregs & mST0) &&
+            !(ty == TYldouble || ty == TYildouble) &&  // watch out for shrinkLongDoubleConstantIfPossible()
+            !tycomplex(ty) // SIMD code is not set up to deal with complex mul/div
+           )
             return orthxmm(e,pretregs);
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         return orth87(e,pretregs);
@@ -2913,10 +2928,11 @@ code *cdind(elem *e,regm_t *pretregs)
         }
         if (retregs & XMMREGS)
         {
-            assert(sz == 4 || sz == 8 || sz == 16); // float, double or vector
+            assert(sz == 4 || sz == 8 || sz == 16 || sz == 32); // float, double or vector
             cs.Iop = xmmload(tym);
-            reg -= XMM0;
-            goto L2;
+            code_newreg(&cs,reg - XMM0);
+            ce = gen(CNIL,&cs);     // MOV reg,[idx]
+            checkSetVex(ce,tym);
         }
         else if (sz <= REGSIZE)
         {
@@ -4605,11 +4621,14 @@ code *cdpost(elem *e,regm_t *pretregs)
 
   if (tyfloating(tyml))
   {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        return post87(e,pretregs);
-#else
+        if (config.fpxmmregs && tyxmmreg(tyml) &&
+            !tycomplex(tyml) // SIMD code is not set up to deal with complex
+           )
+            return xmmpost(e,pretregs);
+
         if (config.inline8087)
-                return post87(e,pretregs);
+            return post87(e,pretregs);
+#if TARGET_WINDOS
         assert(sz <= 8);
         c1 = getlvalue(&cs,e->E1,DOUBLEREGS);
         freenode(e->E1);

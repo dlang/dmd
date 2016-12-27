@@ -300,12 +300,12 @@ private bool match(RootObject o1, RootObject o2)
     }
 Lmatch:
     static if (debugPrint)
-        printf("\t-> match\n");
+        printf("\t. match\n");
     return true;
 
 Lnomatch:
     static if (debugPrint)
-        printf("\t-> nomatch\n");
+        printf("\t. nomatch\n");
     return false;
 }
 
@@ -1774,11 +1774,30 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                 Expression e;
                                 Type t;
                                 Dsymbol s;
-                                taa.index.resolve(instLoc, sc, &e, &t, &s);
+                                Scope *sco;
+
+                                uint errors = global.startGagging();
+                                /* ref: https://issues.dlang.org/show_bug.cgi?id=11118
+                                 * The parameter isn't part of the template
+                                 * ones, let's try to find it in the
+                                 * instantiation scope 'sc' and the one
+                                 * belonging to the template itself. */
+                                sco = sc;
+                                taa.index.resolve(instLoc, sco, &e, &t, &s);
                                 if (!e)
+                                {
+                                    sco = paramscope;
+                                    taa.index.resolve(instLoc, sco, &e, &t, &s);
+                                }
+                                global.endGagging(errors);
+
+                                if (!e)
+                                {
                                     goto Lnomatch;
+                                }
+
                                 e = e.ctfeInterpret();
-                                e = e.implicitCastTo(sc, Type.tsize_t);
+                                e = e.implicitCastTo(sco, Type.tsize_t);
                                 e = e.optimize(WANTvalue);
                                 if (!dim.equals(e))
                                     goto Lnomatch;
@@ -6744,7 +6763,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         return buf.extractString();
     }
 
-    override final char* toPrettyCharsHelper()
+    override final const(char)* toPrettyCharsHelper()
     {
         OutBuffer buf;
         toCBufferInstance(this, &buf, true);

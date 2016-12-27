@@ -10,7 +10,8 @@
 
 module ddmd.tocvdebug;
 
-version (Windows):
+version (Windows)
+{
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -318,7 +319,7 @@ void toDebug(EnumDeclaration ed)
             cv8_udt(id, typidx);
         else
         {
-            uint len = strlen(id);
+            auto len = strlen(id);
             ubyte *debsym = cast(ubyte *) alloca(39 + IDOHD + len);
 
             // Output a 'user-defined type' for the tag name
@@ -577,9 +578,9 @@ void toDebug(ClassDeclaration cd)
         size_t n = cd.vtbl.dim;                   // number of virtual functions
         if (n)
         {   // 4 bits per descriptor
-            debtyp_t *vshape = debtyp_alloc(4 + (n + 1) / 2);
+            debtyp_t *vshape = debtyp_alloc(cast(uint)(4 + (n + 1) / 2));
             TOWORD(vshape.data.ptr,LF_VTSHAPE);
-            TOWORD(vshape.data.ptr + 2,n);
+            TOWORD(vshape.data.ptr + 2, cast(uint)n);
 
             n = 0;
             ubyte descriptor = 0;
@@ -1053,4 +1054,29 @@ int cvMember(Dsymbol s, ubyte *p)
     scope v = new CVMember(p);
     s.accept(v);
     return v.result;
+}
+
+}
+else
+{
+    import ddmd.denum;
+    import ddmd.dstruct;
+    import ddmd.dclass;
+
+    /****************************
+     * Stub them out.
+     */
+
+    extern (C++) void toDebug(EnumDeclaration ed)
+    {
+        //printf("EnumDeclaration::toDebug('%s')\n", ed.toChars());
+    }
+
+    extern (C++) void toDebug(StructDeclaration sd)
+    {
+    }
+
+    extern (C++) void toDebug(ClassDeclaration cd)
+    {
+    }
 }

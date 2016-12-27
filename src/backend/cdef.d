@@ -665,6 +665,7 @@ struct Config
     windows_flags_t wflags;     // flags for Windows code generation
 
     bool fpxmmregs;             // use XMM registers for floating point
+    bool avx;                   // use AVX instruction set
     ubyte inline8087;           /* 0:   emulator
                                    1:   IEEE 754 inline 8087 code
                                    2:   fast inline 8087 code
@@ -782,8 +783,6 @@ union eve
         targ_llong      Vllong;
         targ_ullong     Vullong;
         Cent            Vcent;
-        targ_float[4]   Vfloat4;
-        targ_double[2]  Vdouble2;
         targ_float      Vfloat;
         targ_double     Vdouble;
         targ_ldouble    Vldouble;
@@ -793,6 +792,31 @@ union eve
         targ_size_t     Vpointer;
         targ_ptrdiff_t  Vptrdiff;
         targ_uchar      Vreg;   // register number for OPreg elems
+
+        // 16 byte vector types
+        targ_float[4]   Vfloat4;   // float[4]
+        targ_double[2]  Vdouble2;  // double[2]
+        targ_schar[16]  Vschar16;  // byte[16]
+        targ_uchar[16]  Vuchar16;  // ubyte[16]
+        targ_short[8]   Vshort8;   // short[8]
+        targ_ushort[8]  Vushort8;  // ushort[8]
+        targ_long[4]    Vlong4;    // int[4]
+        targ_ulong[4]   Vulong4;   // uint[4]
+        targ_llong[2]   Vllong2;   // long[2]
+        targ_ullong[2]  Vullong2;  // ulong[2]
+
+        // 32 byte vector types
+        targ_float[8]   Vfloat8;   // float[8]
+        targ_double[4]  Vdouble4;  // double[4]
+        targ_schar[32]  Vschar32;  // byte[32]
+        targ_uchar[32]  Vuchar32;  // ubyte[32]
+        targ_short[16]  Vshort16;  // short[16]
+        targ_ushort[16] Vushort16; // ushort[16]
+        targ_long[8]    Vlong8;    // int[8]
+        targ_ulong[8]   Vulong8;   // uint[8]
+        targ_llong[4]   Vllong4;   // long[4]
+        targ_ullong[4]  Vullong4;  // ulong[4]
+
         struct                  // 48 bit 386 far pointer
         {   targ_long   Voff;
             targ_ushort Vseg;

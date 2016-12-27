@@ -673,6 +673,18 @@ PTRNTAB2  aptb2MUL[] = /* MUL */ {
         { 0xf7, _4|_64_bit|_modaxdx,    _rm64,  0 },
         { ASM_END }
 };
+PTRNTAB2  aptb2TZCNT[] = /* TZCNT */ {
+        { 0xf30fbc,       _cw|_16_bit,            _r16,   _rm16 },
+        { 0xf30fbc,       _cd|_32_bit,            _r32,   _rm32 },
+        { 0xf30fbc,       _cq|_64_bit,            _r64,   _rm64 },
+        { ASM_END }
+};
+PTRNTAB2  aptb2LZCNT[] = /* LZCNT */ {
+        { 0xf30fbd,       _cw|_16_bit,            _r16,   _rm16 },
+        { 0xf30fbd,       _cd|_32_bit,            _r32,   _rm32 },
+        { 0xf30fbd,       _cq|_64_bit,            _r64,   _rm64 },
+        { ASM_END }
+};
 PTRNTAB2  aptb2OUT[] = /* OUT */ {
         { 0xe6, _ib,            _imm8,  _al },
         { 0xe7, _ib|_16_bit,            _imm8,  _ax },
@@ -4310,6 +4322,16 @@ PTRNTAB1  aptb1XSAVE64[] = /* XSAVE64 */ {
         { ASM_END }
 };
 
+PTRNTAB1  aptb1XSAVEC[] = /* XSAVEC */ {
+        { 0x0FC7, _4, _m512 },
+        { ASM_END }
+};
+
+PTRNTAB1  aptb1XSAVEC64[] = /* XSAVEC64 */ {
+        { 0x0FC7, _4|_64_bit, _m512 }, // TODO: REX_W override is implicit
+        { ASM_END }
+};
+
 PTRNTAB1  aptb1XSAVEOPT[] = /* XSAVEOPT */ {
         { 0x0FAE, _6, _m512 },
         { ASM_END }
@@ -5066,6 +5088,7 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("lsl",            2,              (P) aptb2LSL )                  \
         X("lss",            2,              (P) aptb2LSS )                  \
         X("ltr",            1,              (P) aptb1LTR )                  \
+        X("lzcnt",          2,              (P) aptb2LZCNT )                \
         X("maskmovdqu",     2,              (P) aptb2MASKMOVDQU )           \
         X("maskmovq",       2,              (P) aptb2MASKMOVQ )             \
         X("maxpd",          2,              (P) aptb2MAXPD )                \
@@ -5404,6 +5427,7 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("sysexit",        0,              aptb0SYSEXIT )                  \
         X("sysret",         0,              aptb0SYSRET )                   \
         X("test",           2,              (P) aptb2TEST )                 \
+        X("tzcnt",          2,              (P) aptb2TZCNT )                \
         X("ucomisd",        2,              (P) aptb2UCOMISD )              \
         X("ucomiss",        2,              (P) aptb2UCOMISS )              \
         X("ud2",            0,              aptb0UD2 )                      \
@@ -5530,10 +5554,10 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("vmovddup",       2,              (P) aptb2VMOVDDUP )             \
         X("vmovdqa",        2,              (P) aptb2VMOVDQA )              \
         X("vmovdqu",        2,              (P) aptb2VMOVDQU )              \
-        X("vmovhlps",       3,              (P) aptb3VMOVLHPS )             \
+        X("vmovhlps",       3,              (P) aptb3VMOVHLPS )             \
         X("vmovhpd",        ITopt | 3,      (P) aptb3VMOVHPD )              \
         X("vmovhps",        ITopt | 3,      (P) aptb3VMOVHPS )              \
-        X("vmovlhps",       3,              (P) aptb3VMOVHLPS )             \
+        X("vmovlhps",       3,              (P) aptb3VMOVLHPS )             \
         X("vmovlpd",        ITopt | 3,      (P) aptb3VMOVLPD )              \
         X("vmovlps",        ITopt | 3,      (P) aptb3VMOVLPS )              \
         X("vmovmskpd",      2,              (P) aptb2VMOVMSKPD )            \
@@ -5724,6 +5748,8 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("xrstor64",       ITfloat | 1,    (P) aptb1XRSTOR64 )             \
         X("xsave",          ITfloat | 1,    (P) aptb1XSAVE )                \
         X("xsave64",        ITfloat | 1,    (P) aptb1XSAVE64 )              \
+        X("xsavec",         ITfloat | 1,    (P) aptb1XSAVEC )               \
+        X("xsavec64",       ITfloat | 1,    (P) aptb1XSAVEC64 )             \
         X("xsaveopt",       ITfloat | 1,    (P) aptb1XSAVEOPT )             \
         X("xsaveopt64",     ITfloat | 1,    (P) aptb1XSAVEOPT64 )           \
         X("xsetbv",         0,              aptb0XSETBV)                    \

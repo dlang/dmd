@@ -223,7 +223,7 @@ unsigned type_paramsize(type *t)
         for (param_t *p = t->Tparamtypes; p; p = p->Pnext)
         {
             size_t n = type_size(p->Ptype);
-            n = align(REGSIZE,n);       // align to REGSIZE boundary
+            n = _align(REGSIZE,n);       // align to REGSIZE boundary
             sz += n;
         }
     }
