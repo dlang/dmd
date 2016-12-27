@@ -16,9 +16,9 @@
 module ddmd.iasm;
 
 import core.stdc.stdio;
-import core.stdc.string;
 import core.stdc.stdarg;
 import core.stdc.stdlib;
+import core.stdc.string;
 
 import ddmd.declaration;
 import ddmd.denum;
@@ -55,6 +55,9 @@ import ddmd.backend.iasm;
 import ddmd.backend.xmm;
 
 //debug = EXTRA_DEBUG;
+//debug = debuga;
+
+private:
 
 enum ADDFWAIT = false;
 
@@ -115,23 +118,21 @@ struct ASM_STATE
     Dsymbol psLocalsize;
     bool bReturnax;
     AsmStatement statement;
-    Scope *sc;
+    Scope* sc;
+    Token* tok;
+    TOK tokValue;
+    int lbracketNestCount;
 }
 
-extern (C++):
-
-extern (C++) __gshared ASM_STATE asmstate;
-
-__gshared Token *asmtok;
-__gshared TOK tok_value;
-//debug = debuga;
+__gshared ASM_STATE asmstate;
 
 // From ptrntab.c
-const(char)* asm_opstr(OP *pop);
-OP *asm_op_lookup(const(char)* s);
-void init_optab();
-
-__gshared ubyte asm_TKlbra_seen = 0;
+extern (C++)
+{
+    const(char)* asm_opstr(OP *pop);
+    OP *asm_op_lookup(const(char)* s);
+    void init_optab();
+}
 
 struct REG
 {
@@ -150,9 +151,9 @@ struct REG
     }
 }
 
-extern (C) __gshared const(REG) regFp =      { "ST", 0, _st };
+immutable REG regFp =      { "ST", 0, _st };
 
-extern (C) const REG[8] aregFp =
+immutable REG[8] aregFp =
 [
     { "ST(0)", 0, _sti },
     { "ST(1)", 1, _sti },
@@ -199,7 +200,7 @@ enum // the x86 CPU numbers for these registers
     _FS           = 4,
 }
 
-extern (C) const REG[63] regtab =
+immutable REG[63] regtab =
 [
     {"AL",   _AL,    _r8 | _al},
     {"AH",   _AH,    _r8},
@@ -318,7 +319,7 @@ enum // 64 bit only registers
     _R15B = 15,
 }
 
-extern (C) const REG[73] regtab64 =
+immutable REG[73] regtab64 =
 [
     {"RAX",  _RAX,   _r64 | _rax},
     {"RBX",  _RBX,   _r64},
@@ -403,7 +404,7 @@ enum
     ASM_JUMPTYPE_SHORT,
     ASM_JUMPTYPE_NEAR,
     ASM_JUMPTYPE_FAR
-}             // ajt
+}
 
 struct OPND
 {
@@ -423,68 +424,20 @@ struct OPND
     ASM_JUMPTYPE ajt;
 }
 
-//
-// Exported functions called from the compiler
-//
-void iasm_term();
-
-//
-// Local functions defined and only used here
-//
-OPND *asm_add_exp();
-OPND *asm_and_exp();
-OPND *asm_cond_exp();
-opflag_t asm_determine_operand_flags(OPND *popnd);
-int asm_getnum();
-
-void asmerr(const(char)* , ...);
-
-OPND *asm_equal_exp();
-OPND *asm_inc_or_exp();
-OPND *asm_log_and_exp();
-OPND *asm_log_or_exp();
-void asm_token();
-void asm_token_trans(Token *tok);
-bool asm_match_flags(opflag_t usOp , opflag_t usTable );
-bool asm_match_float_flags(opflag_t usOp, opflag_t usTable);
-regm_t asm_modify_regs(PTRNTAB ptb, OPND *popnd1, OPND *popnd2);
-debug
-{
-    void asm_output_flags(opflag_t usFlags);
-    void asm_output_popnd(OPND *popnd);
-}
-void asm_make_modrm_byte(
-    ubyte *puchOpcode, uint *pusIdx,
-    code *pc,
-    uint usFlags,
-    OPND *popnd, OPND *popnd2);
-uint asm_type_size(Type  ptype);
-opflag_t asm_float_type_size(Type ptype, opflag_t *pusFloat);
-OPND *asm_mul_exp();
-OPND *asm_br_exp();
-OPND *asm_primary_exp();
-OPND *asm_prim_post(OPND *);
-OPND *asm_rel_exp();
-OPND *asm_shift_exp();
-OPND *asm_una_exp();
-OPND *asm_xor_exp();
-void asm_chktok(TOK toknum, const(char)* msg);
-code *asm_db_parse(OP *pop);
-code *asm_da_parse(OP *pop);
 
 /*******************************
  */
 
 void asm_chktok(TOK toknum, const(char)* msg)
 {
-    if (tok_value == toknum)
+    if (asmstate.tokValue == toknum)
         asm_token();                    // scan past token
     else
     {
-        /* When we run out of tokens, asmtok is null.
+        /* When we run out of tokens, asmstate.tok is null.
          * But when this happens when a ';' was hit.
          */
-        asmerr(msg, asmtok ? asmtok.toChars() : ";");
+        asmerr(msg, asmstate.tok ? asmstate.tok.toChars() : ";");
     }
 }
 
@@ -3281,9 +3234,9 @@ const(REG)* asm_reg_lookup(const(char)* s)
 
 void asm_token()
 {
-    if (asmtok)
-        asmtok = asmtok.next;
-    asm_token_trans(asmtok);
+    if (asmstate.tok)
+        asmstate.tok = asmstate.tok.next;
+    asm_token_trans(asmstate.tok);
 }
 
 /*******************************
@@ -3291,11 +3244,11 @@ void asm_token()
 
 void asm_token_trans(Token *tok)
 {
-    tok_value = TOKeof;
+    asmstate.tokValue = TOKeof;
     if (tok)
     {
-        tok_value = tok.value;
-        if (tok_value == TOKidentifier)
+        asmstate.tokValue = tok.value;
+        if (asmstate.tokValue == TOKidentifier)
         {
             size_t len;
             const(char)* id;
@@ -3306,7 +3259,7 @@ void asm_token_trans(Token *tok)
             {
                 ASMTK asmtk = cast(ASMTK) binary(id, cast(const(char)**)apszAsmtk.ptr, ASMTKmax);
                 if (cast(int)asmtk >= 0)
-                    tok_value = cast(TOK) (asmtk + TOKMAX + 1);
+                    asmstate.tokValue = cast(TOK) (asmtk + TOKMAX + 1);
             }
         }
     }
@@ -3361,11 +3314,11 @@ code *asm_da_parse(OP *pop)
     cdb.ctor();
     while (1)
     {
-        if (tok_value == TOKidentifier)
+        if (asmstate.tokValue == TOKidentifier)
         {
-            LabelDsymbol label = asmstate.sc.func.searchLabel(asmtok.ident);
+            LabelDsymbol label = asmstate.sc.func.searchLabel(asmstate.tok.ident);
             if (!label)
-                error(asmstate.loc, "label '%s' not found", asmtok.ident.toChars());
+                error(asmstate.loc, "label '%s' not found", asmstate.tok.ident.toChars());
 
             if (global.params.symdebug)
                 cdb.genlinnum(Srcpos.create(asmstate.loc.filename, asmstate.loc.linnum, asmstate.loc.charnum));
@@ -3374,7 +3327,7 @@ code *asm_da_parse(OP *pop)
         else
             error(asmstate.loc, "label expected as argument to DA pseudo-op"); // illegal addressing mode
         asm_token();
-        if (tok_value != TOKcomma)
+        if (asmstate.tokValue != TOKcomma)
             break;
         asm_token();
     }
@@ -3421,19 +3374,19 @@ code *asm_db_parse(OP *pop)
             usMaxbytes = usBytes + usSize + 10;
             bytes = cast(byte *)mem.xrealloc(bytes, usMaxbytes);
         }
-        switch (tok_value)
+        switch (asmstate.tokValue)
         {
             case TOKint32v:
-                dt.ul = cast(d_int32)asmtok.int64value;
+                dt.ul = cast(d_int32)asmstate.tok.int64value;
                 goto L1;
             case TOKuns32v:
-                dt.ul = cast(d_uns32)asmtok.uns64value;
+                dt.ul = cast(d_uns32)asmstate.tok.uns64value;
                 goto L1;
             case TOKint64v:
-                dt.ul = asmtok.int64value;
+                dt.ul = asmstate.tok.int64value;
                 goto L1;
             case TOKuns64v:
-                dt.ul = asmtok.uns64value;
+                dt.ul = asmstate.tok.uns64value;
                 goto L1;
             L1:
                 switch (op)
@@ -3454,13 +3407,13 @@ code *asm_db_parse(OP *pop)
                 switch (op)
                 {
                     case OPdf:
-                        dt.f = asmtok.floatvalue;
+                        dt.f = asmstate.tok.floatvalue;
                         break;
                     case OPdd:
-                        dt.d = asmtok.floatvalue;
+                        dt.d = asmstate.tok.floatvalue;
                         break;
                     case OPde:
-                        dt.ld = asmtok.floatvalue;
+                        dt.ld = asmstate.tok.floatvalue;
                         break;
                     default:
                         asmerr("integer expected");
@@ -3473,14 +3426,14 @@ code *asm_db_parse(OP *pop)
                 break;
 
             case TOKstring:
-                len = asmtok.len;
-                q = cast(ubyte*)asmtok.ustring;
+                len = asmstate.tok.len;
+                q = cast(ubyte*)asmstate.tok.ustring;
             L3:
                 if (len)
                 {
                     usMaxbytes += len * usSize;
                     bytes = cast(byte *)mem.xrealloc(bytes, usMaxbytes);
-                    memcpy(bytes + usBytes, asmtok.ustring, len);
+                    memcpy(bytes + usBytes, asmstate.tok.ustring, len);
 
                     auto p = bytes + usBytes;
                     for (size_t i = 0; i < len; i++)
@@ -3524,7 +3477,7 @@ code *asm_db_parse(OP *pop)
 
             case TOKidentifier:
             {
-                Expression e = IdentifierExp.create(asmstate.loc, asmtok.ident);
+                Expression e = IdentifierExp.create(asmstate.loc, asmstate.tok.ident);
                 Scope *sc = asmstate.sc.startCTFE();
                 e = e.semantic(sc);
                 sc.endCTFE();
@@ -3575,7 +3528,7 @@ code *asm_db_parse(OP *pop)
         }
 
         asm_token();
-        if (tok_value != TOKcomma)
+        if (asmstate.tokValue != TOKcomma)
             break;
         asm_token();
     }
@@ -3604,19 +3557,19 @@ int asm_getnum()
     int v;
     dinteger_t i;
 
-    switch (tok_value)
+    switch (asmstate.tokValue)
     {
         case TOKint32v:
-            v = cast(d_int32)asmtok.int64value;
+            v = cast(d_int32)asmstate.tok.int64value;
             break;
 
         case TOKuns32v:
-            v = cast(d_uns32)asmtok.uns64value;
+            v = cast(d_uns32)asmstate.tok.uns64value;
             break;
 
         case TOKidentifier:
         {
-            Expression e = IdentifierExp.create(asmstate.loc, asmtok.ident);
+            Expression e = IdentifierExp.create(asmstate.loc, asmstate.tok.ident);
             Scope *sc = asmstate.sc.startCTFE();
             e = e.semantic(sc);
             sc.endCTFE();
@@ -3645,7 +3598,7 @@ OPND *asm_cond_exp()
 
     //printf("asm_cond_exp()\n");
     o1 = asm_log_or_exp();
-    if (tok_value == TOKquestion)
+    if (asmstate.tokValue == TOKquestion)
     {
         asm_token();
         o2 = asm_cond_exp();
@@ -3664,7 +3617,7 @@ OPND *asm_log_or_exp()
     OPND* o1, o2;
 
     o1 = asm_log_and_exp();
-    while (tok_value == TOKoror)
+    while (asmstate.tokValue == TOKoror)
     {
         asm_token();
         o2 = asm_log_and_exp();
@@ -3686,7 +3639,7 @@ OPND *asm_log_and_exp()
     OPND* o1, o2;
 
     o1 = asm_inc_or_exp();
-    while (tok_value == TOKandand)
+    while (asmstate.tokValue == TOKandand)
     {
         asm_token();
         o2 = asm_inc_or_exp();
@@ -3708,7 +3661,7 @@ OPND *asm_inc_or_exp()
     OPND* o1, o2;
 
     o1 = asm_xor_exp();
-    while (tok_value == TOKor)
+    while (asmstate.tokValue == TOKor)
     {
         asm_token();
         o2 = asm_xor_exp();
@@ -3730,7 +3683,7 @@ OPND *asm_xor_exp()
     OPND* o1, o2;
 
     o1 = asm_and_exp();
-    while (tok_value == TOKxor)
+    while (asmstate.tokValue == TOKxor)
     {
         asm_token();
         o2 = asm_and_exp();
@@ -3752,7 +3705,7 @@ OPND *asm_and_exp()
     OPND* o1, o2;
 
     o1 = asm_equal_exp();
-    while (tok_value == TOKand)
+    while (asmstate.tokValue == TOKand)
     {
         asm_token();
         o2 = asm_equal_exp();
@@ -3776,7 +3729,7 @@ OPND *asm_equal_exp()
     o1 = asm_rel_exp();
     while (1)
     {
-        switch (tok_value)
+        switch (asmstate.tokValue)
         {
             case TOKequal:
                 asm_token();
@@ -3817,13 +3770,13 @@ OPND *asm_rel_exp()
     o1 = asm_shift_exp();
     while (1)
     {
-        switch (tok_value)
+        switch (asmstate.tokValue)
         {
             case TOKgt:
             case TOKge:
             case TOKlt:
             case TOKle:
-                tok_save = tok_value;
+                tok_save = asmstate.tokValue;
                 asm_token();
                 o2 = asm_shift_exp();
                 if (asm_isint(o1) && asm_isint(o2))
@@ -3867,9 +3820,9 @@ OPND *asm_shift_exp()
     TOK tk;
 
     o1 = asm_add_exp();
-    while (tok_value == TOKshl || tok_value == TOKshr || tok_value == TOKushr)
+    while (asmstate.tokValue == TOKshl || asmstate.tokValue == TOKshr || asmstate.tokValue == TOKushr)
     {
-        tk = tok_value;
+        tk = asmstate.tokValue;
         asm_token();
         o2 = asm_add_exp();
         if (asm_isint(o1) && asm_isint(o2))
@@ -3899,7 +3852,7 @@ OPND *asm_add_exp()
     o1 = asm_mul_exp();
     while (1)
     {
-        switch (tok_value)
+        switch (asmstate.tokValue)
         {
             case TOKadd:
                 asm_token();
@@ -3938,21 +3891,21 @@ OPND *asm_mul_exp()
     o1 = asm_br_exp();
     while (1)
     {
-        switch (tok_value)
+        switch (asmstate.tokValue)
         {
             case TOKmul:
                 asm_token();
                 o2 = asm_br_exp();
                 debug (EXTRA_DEBUG) printf("Star  o1.isint=%d, o2.isint=%d, lbra_seen=%d\n",
-                    asm_isint(o1), asm_isint(o2), asm_TKlbra_seen );
+                    asm_isint(o1), asm_isint(o2), asmstate.lbracketNestCount );
                 if (asm_isNonZeroInt(o1) && asm_isNonZeroInt(o2))
                     o1.disp *= o2.disp;
-                else if (asm_TKlbra_seen && o1.pregDisp1 && asm_isNonZeroInt(o2))
+                else if (asmstate.lbracketNestCount && o1.pregDisp1 && asm_isNonZeroInt(o2))
                 {
                     o1.uchMultiplier = cast(uint)o2.disp;
                     debug (EXTRA_DEBUG) printf("Multiplier: %d\n", o1.uchMultiplier);
                 }
-                else if (asm_TKlbra_seen && o2.pregDisp1 && asm_isNonZeroInt(o1))
+                else if (asmstate.lbracketNestCount && o2.pregDisp1 && asm_isNonZeroInt(o1))
                 {
                     popndTmp = o2;
                     o2 = o1;
@@ -4008,19 +3961,19 @@ OPND *asm_br_exp()
     o1 = asm_una_exp();
     while (1)
     {
-        switch (tok_value)
+        switch (asmstate.tokValue)
         {
             case TOKlbracket:
             {
                 debug (EXTRA_DEBUG) printf("Saw a left bracket\n");
                 asm_token();
-                asm_TKlbra_seen++;
+                asmstate.lbracketNestCount++;
                 o2 = asm_cond_exp();
-                asm_TKlbra_seen--;
+                asmstate.lbracketNestCount--;
                 asm_chktok(TOKrbracket,"] expected instead of '%s'");
                 debug (EXTRA_DEBUG) printf("Saw a right bracket\n");
                 o1 = asm_merge_opnds(o1, o2);
-                if (tok_value == TOKidentifier)
+                if (asmstate.tokValue == TOKidentifier)
                 {
                     o2 = asm_una_exp();
                     o1 = asm_merge_opnds(o1, o2);
@@ -4043,7 +3996,7 @@ OPND *asm_una_exp()
     ASM_JUMPTYPE ajt = ASM_JUMPTYPE_UNSPECIFIED;
     bool bPtr = false;
 
-    switch (cast(int)tok_value)
+    switch (cast(int)asmstate.tokValue)
     {
         case TOKadd:
             asm_token();
@@ -4100,12 +4053,12 @@ version (none)
 
         case TOKidentifier:
             // Check for offset keyword
-            if (asmtok.ident == Id.offset)
+            if (asmstate.tok.ident == Id.offset)
             {
                 error(asmstate.loc, "use offsetof instead of offset");
                 goto Loffset;
             }
-            if (asmtok.ident == Id.offsetof)
+            if (asmstate.tok.ident == Id.offsetof)
             {
             Loffset:
                 asm_token();
@@ -4201,7 +4154,7 @@ OPND *asm_primary_exp()
 
     const(REG)* regp;
 
-    switch (tok_value)
+    switch (asmstate.tokValue)
     {
         case TOKdollar:
             o1 = new OPND();
@@ -4212,14 +4165,14 @@ OPND *asm_primary_exp()
         case TOKthis:
         case TOKidentifier:
             o1 = new OPND();
-            regp = asm_reg_lookup(asmtok.ident.toChars());
+            regp = asm_reg_lookup(asmstate.tok.ident.toChars());
             if (regp != null)
             {
                 asm_token();
                 // see if it is segment override (like SS:)
-                if (!asm_TKlbra_seen &&
+                if (!asmstate.lbracketNestCount &&
                         (regp.ty & _seg) &&
-                        tok_value == TOKcolon)
+                        asmstate.tokValue == TOKcolon)
                 {
                     o1.segreg = regp;
                     asm_token();
@@ -4228,7 +4181,7 @@ OPND *asm_primary_exp()
                         o2.segreg = null; // The segment register was specified explicitly.
                     o1 = asm_merge_opnds(o1, o2);
                 }
-                else if (asm_TKlbra_seen)
+                else if (asmstate.lbracketNestCount)
                 {
                     // should be a register
                     if (o1.pregDisp1)
@@ -4247,15 +4200,15 @@ OPND *asm_primary_exp()
             }
             // If floating point instruction and id is a floating register
             else if (asmstate.ucItype == ITfloat &&
-                     asm_is_fpreg(asmtok.ident.toChars()))
+                     asm_is_fpreg(asmstate.tok.ident.toChars()))
             {
                 asm_token();
-                if (tok_value == TOKlparen)
+                if (asmstate.tokValue == TOKlparen)
                 {
                     asm_token();
-                    if (tok_value == TOKint32v)
+                    if (asmstate.tokValue == TOKint32v)
                     {
-                        uint n = cast(uint)asmtok.uns64value;
+                        uint n = cast(uint)asmstate.tok.uns64value;
                         if (n > 7)
                             asmerr("bad operand");
                         else
@@ -4271,20 +4224,20 @@ OPND *asm_primary_exp()
             {
                 s = null;
                 if (asmstate.sc.func.labtab)
-                    s = asmstate.sc.func.labtab.lookup(asmtok.ident);
+                    s = asmstate.sc.func.labtab.lookup(asmstate.tok.ident);
                 if (!s)
-                    s = asmstate.sc.search(Loc(), asmtok.ident, &scopesym);
+                    s = asmstate.sc.search(Loc(), asmstate.tok.ident, &scopesym);
                 if (!s)
                 {
                     // Assume it is a label, and define that label
-                    s = asmstate.sc.func.searchLabel(asmtok.ident);
+                    s = asmstate.sc.func.searchLabel(asmstate.tok.ident);
                 }
                 if (s.isLabel())
                     o1.segreg = &regtab[25]; // Make it use CS as a base for a label
 
-                Identifier id = asmtok.ident;
+                Identifier id = asmstate.tok.ident;
                 asm_token();
-                if (tok_value == TOKdot)
+                if (asmstate.tokValue == TOKdot)
                 {
                     Expression e;
                     VarExp v;
@@ -4293,11 +4246,11 @@ OPND *asm_primary_exp()
                     while (1)
                     {
                         asm_token();
-                        if (tok_value == TOKidentifier)
+                        if (asmstate.tokValue == TOKidentifier)
                         {
-                            e = DotIdExp.create(asmstate.loc, e, asmtok.ident);
+                            e = DotIdExp.create(asmstate.loc, e, asmstate.tok.ident);
                             asm_token();
-                            if (tok_value != TOKdot)
+                            if (asmstate.tokValue != TOKdot)
                                 break;
                         }
                         else
@@ -4346,7 +4299,7 @@ OPND *asm_primary_exp()
                  * of size 1 or size 8? Presume it is 8 if foo
                  * is the last token of the operand.
                  */
-                if (o1.ptype && tok_value != TOKcomma && tok_value != TOKeof)
+                if (o1.ptype && asmstate.tokValue != TOKcomma && asmstate.tokValue != TOKeof)
                 {
                     for (;
                          o1.ptype.ty == Tsarray;
@@ -4357,7 +4310,7 @@ OPND *asm_primary_exp()
 
             Lpost:
                 // for []
-                //if (tok_value == TOKlbracket)
+                //if (asmstate.tokValue == TOKlbracket)
                         //o1 = asm_prim_post(o1);
                 goto Lret;
             }
@@ -4365,40 +4318,40 @@ OPND *asm_primary_exp()
 
         case TOKint32v:
             o1 = new OPND();
-            o1.disp = cast(d_int32)asmtok.int64value;
+            o1.disp = cast(d_int32)asmstate.tok.int64value;
             asm_token();
             break;
 
         case TOKuns32v:
             o1 = new OPND();
-            o1.disp = cast(d_uns32)asmtok.uns64value;
+            o1.disp = cast(d_uns32)asmstate.tok.uns64value;
             asm_token();
             break;
 
         case TOKint64v:
         case TOKuns64v:
             o1 = new OPND();
-            o1.disp = asmtok.int64value;
+            o1.disp = asmstate.tok.int64value;
             asm_token();
             break;
 
         case TOKfloat32v:
             o1 = new OPND();
-            o1.vreal = asmtok.floatvalue;
+            o1.vreal = asmstate.tok.floatvalue;
             o1.ptype = Type.tfloat32;
             asm_token();
             break;
 
         case TOKfloat64v:
             o1 = new OPND();
-            o1.vreal = asmtok.floatvalue;
+            o1.vreal = asmstate.tok.floatvalue;
             o1.ptype = Type.tfloat64;
             asm_token();
             break;
 
         case TOKfloat80v:
             o1 = new OPND();
-            o1.vreal = asmtok.floatvalue;
+            o1.vreal = asmstate.tok.floatvalue;
             o1.ptype = Type.tfloat80;
             asm_token();
             break;
@@ -4435,7 +4388,7 @@ public void iasm_term()
  * Called from back end.
  */
 
-regm_t iasm_regs(block *bp)
+extern (C++) public regm_t iasm_regs(block *bp)
 {
     debug (debuga)
         printf("Block iasm regs = 0x%X\n", bp.usIasmregs);
@@ -4447,7 +4400,7 @@ regm_t iasm_regs(block *bp)
 
 /************************ AsmStatement ***************************************/
 
-Statement asmSemantic(AsmStatement s, Scope *sc)
+extern (C++) public Statement asmSemantic(AsmStatement s, Scope *sc)
 {
     //printf("AsmStatement.semantic()\n");
 
@@ -4492,10 +4445,10 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
 
     asmstate.loc = s.loc;
 
-    asmtok = s.tokens;
-    asm_token_trans(asmtok);
+    asmstate.tok = s.tokens;
+    asm_token_trans(asmstate.tok);
 
-    switch (tok_value)
+    switch (asmstate.tokValue)
     {
         case cast(TOK)ASMTKnaked:
             s.naked = true;
@@ -4534,7 +4487,7 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
             goto Lopcode;
 
         case TOKidentifier:
-            o = asm_op_lookup(asmtok.ident.toChars());
+            o = asm_op_lookup(asmstate.tok.ident.toChars());
             if (!o)
                 goto OPCODE_EXPECTED;
 
@@ -4559,17 +4512,17 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
             }
             // get the first part of an expr
             o1 = asm_cond_exp();
-            if (tok_value == TOKcomma)
+            if (asmstate.tokValue == TOKcomma)
             {
                 asm_token();
                 o2 = asm_cond_exp();
             }
-            if (tok_value == TOKcomma)
+            if (asmstate.tokValue == TOKcomma)
             {
                 asm_token();
                 o3 = asm_cond_exp();
             }
-            if (tok_value == TOKcomma)
+            if (asmstate.tokValue == TOKcomma)
             {
                 asm_token();
                 o4 = asm_cond_exp();
@@ -4618,7 +4571,7 @@ version (none)
 
         default:
         OPCODE_EXPECTED:
-            asmerr("opcode expected, not %s", asmtok.toChars());
+            asmerr("opcode expected, not %s", asmstate.tok.toChars());
             break;
     }
 
@@ -4628,9 +4581,9 @@ AFTER_EMIT:
     delete o3;
     o1 = o2 = o3 = null;
 
-    if (tok_value != TOKeof)
+    if (asmstate.tokValue != TOKeof)
     {
-        asmerr("end of instruction expected, not '%s'", asmtok.toChars());  // end of line expected
+        asmerr("end of instruction expected, not '%s'", asmstate.tok.toChars());  // end of line expected
     }
     //return asmstate.bReturnax;
     return s;
