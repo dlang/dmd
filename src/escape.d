@@ -91,9 +91,12 @@ private bool checkEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
         if (v.isScope())
         {
-            if (!gag)
-                error(e.loc, "scope variable %s may not be returned", v.toChars());
-            result = true;
+            if (global.params.vsafe) // https://issues.dlang.org/show_bug.cgi?id=17029
+            {
+                if (!gag)
+                    error(e.loc, "scope variable %s may not be returned", v.toChars());
+                result = true;
+            }
         }
         else if (v.storage_class & STCvariadic)
         {
