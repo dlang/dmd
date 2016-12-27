@@ -6705,6 +6705,49 @@ L1:     pop     RAX;
 
 /****************************************************/
 
+void test17027()
+{
+    ubyte* p;
+
+    static ubyte[] data =
+    [
+
+        0xF3, 0x48, 0x0F, 0xBC, 0xC0,
+        0xF3, 0x48, 0x0F, 0xBC, 0x00,
+        0xF3, 0x48, 0x0F, 0xBC, 0x40, 0x08,
+        0xF3, 0x0F, 0xBC, 0xC0,
+        0xF3, 0x48, 0x0F, 0xBD, 0xC0,
+        0xF3, 0x48, 0x0F, 0xBD, 0x00,
+        0xF3, 0x48, 0x0F, 0xBD, 0x40, 0x08,
+        0xF3, 0x0F, 0xBD, 0xC0,
+    ];
+
+    asm
+    {
+        call  L1;
+
+        tzcnt RAX, RAX;
+        tzcnt RAX, [RAX];
+        tzcnt RAX, [RAX+8];
+        tzcnt EAX, EAX;
+        lzcnt RAX, RAX;
+        lzcnt RAX, [RAX];
+        lzcnt RAX, [RAX+8];
+        lzcnt EAX, EAX;
+
+L1:     pop     RAX;
+        mov     p[RBP],RAX;
+    }
+
+    foreach (ref i, b; data)
+    {
+        //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+        assert(p[i] == b);
+    }
+}
+
+/****************************************************/
+
 int main()
 {
     printf("Testing iasm64.d\n");
@@ -6778,6 +6821,7 @@ int main()
     test12968();
     test15999();
     testconst();
+    test17027();
 
     printf("Success\n");
     return 0;
