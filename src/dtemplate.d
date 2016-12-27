@@ -139,6 +139,9 @@ extern (C++) Type getType(RootObject o)
     return t;
 }
 
+/**************************************
+ * Convert Expression or Type to corresponding Dsymbol.
+ */
 extern (C++) Dsymbol getDsymbol(RootObject oarg)
 {
     //printf("getDsymbol()\n");
@@ -161,13 +164,18 @@ extern (C++) Dsymbol getDsymbol(RootObject oarg)
             sa = (cast(TemplateExp)ea).td;
         else
             sa = null;
+
+        // TODO: Have to support conversion: TypeExp -> Type -> Dsymbol?
     }
     else
     {
         // Try to convert Type to symbol
         Type ta = isType(oarg);
         if (ta)
+        {
+            // Note: Strip off type qualifier information.
             sa = ta.toDsymbol(null);
+        }
         else
             sa = isDsymbol(oarg); // if already a symbol
     }
@@ -7346,7 +7354,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             {
                 //printf("type %s\n", ta.toChars());
                 // It might really be an Expression or an Alias
-                ta.resolve(loc, sc, &ea, &ta, &sa);
+                ta.resolve(loc, sc, &ea, &ta, &sa, (flags & 1) != 0);
                 if (ea)
                     goto Lexpr;
                 if (sa)
@@ -7395,7 +7403,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     ea = ea.semantic(sc);
 
                     // must not interpret the args, excepting template parameters
-                    if (ea.op != TOKvar || ((cast(VarExp)ea).var.storage_class & STCtemplateparameter))
+                    if (ea.op != TOKvar ||
+                        ((cast(VarExp)ea).var.storage_class & STCtemplateparameter))
                     {
                         ea = ea.optimize(WANTvalue);
                     }
@@ -7460,11 +7469,13 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 if (ea.op == TOKfunction)
                 {
                     FuncExp fe = cast(FuncExp)ea;
+
                     /* A function literal, that is passed to template and
                      * already semanticed as function pointer, never requires
                      * outer frame. So convert it to global function is valid.
                      */
-                    if (fe.fd.tok == TOKreserved && fe.type.ty == Tpointer)
+                    if (fe.fd.tok == TOKreserved &&
+                        fe.type.ty == Tpointer)
                     {
                         // change to non-nested
                         fe.fd.tok = TOKfunction;
@@ -7478,7 +7489,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         //goto Ldsym;
                     }
                 }
-                if (ea.op == TOKdotvar)
+                if (ea.op == TOKdotvar && !(flags & 1))
                 {
                     // translate expression to dsymbol.
                     sa = (cast(DotVarExp)ea).var;
@@ -7489,7 +7500,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     sa = (cast(TemplateExp)ea).td;
                     goto Ldsym;
                 }
-                if (ea.op == TOKdottd)
+                if (ea.op == TOKdottd && !(flags & 1))
                 {
                     // translate expression to dsymbol.
                     sa = (cast(DotTemplateExp)ea).td;
@@ -7506,18 +7517,17 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     continue;
                 }
 
-                TupleDeclaration d = sa.toAlias().isTupleDeclaration();
-                if (d)
+                if (auto tup = sa.toAlias().isTupleDeclaration())
                 {
                     // Expand tuple
                     tiargs.remove(j);
-                    tiargs.insert(j, d.objects);
+                    tiargs.insert(j, tup.objects);
                     j--;
                     continue;
                 }
-                if (FuncAliasDeclaration fa = sa.isFuncAliasDeclaration())
+                if (auto fa = sa.isFuncAliasDeclaration())
                 {
-                    FuncDeclaration f = fa.toAliasFunc();
+                    auto f = fa.toAliasFunc();
                     if (!fa.hasOverloads && f.isUnique())
                     {
                         // Strip FuncAlias only when the aliased function
@@ -7527,13 +7537,12 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 }
                 (*tiargs)[j] = sa;
 
-                TemplateDeclaration td = sa.isTemplateDeclaration();
-                if (td && td.semanticRun == PASSinit && td.literal)
+                if (auto td = sa.isTemplateDeclaration())
                 {
-                    td.semantic(sc);
+                    if (td.semanticRun == PASSinit && td.literal)
+                        td.semantic(sc);
                 }
-                FuncDeclaration fd = sa.isFuncDeclaration();
-                if (fd)
+                if (auto fd = sa.isFuncDeclaration())
                     fd.functionSemantic();
             }
             else if (isParameter(o))
@@ -7550,11 +7559,11 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             printf("-TemplateInstance.semanticTiargs()\n");
             for (size_t j = 0; j < tiargs.dim; j++)
             {
-                RootObject o = (*tiargs)[j];
-                Type ta = isType(o);
-                Expression ea = isExpression(o);
-                Dsymbol sa = isDsymbol(o);
-                Tuple va = isTuple(o);
+                auto o = (*tiargs)[j];
+                auto ta = isType(o);
+                auto ea = isExpression(o);
+                auto sa = isDsymbol(o);
+                auto va = isTuple(o);
                 printf("\ttiargs[%d] = ta %p, ea %p, sa %p, va %p\n", j, ta, ea, sa, va);
             }
         }
