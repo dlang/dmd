@@ -58,9 +58,21 @@ class Mutex :
      */
     this() @trusted nothrow @nogc
     {
+        this(true);
+    }
+
+    /// ditto
+    this() shared @trusted nothrow @nogc
+    {
+        this(true);
+    }
+
+    private this(this Q)(bool _unused_) @trusted nothrow @nogc
+        if (is(Q == Mutex) || is(Q == shared Mutex))
+    {
         version (Windows)
         {
-            InitializeCriticalSection(&m_hndl);
+            InitializeCriticalSection(cast(CRITICAL_SECTION*)&m_hndl);
         }
         else version (Posix)
         {
@@ -74,12 +86,12 @@ class Mutex :
             !pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE) ||
                 assert (0, "Unable to initialize mutex");
 
-            !pthread_mutex_init(&m_hndl, &attr) ||
+            !pthread_mutex_init(cast(pthread_mutex_t*)&m_hndl, &attr) ||
                 assert (0, "Unable to initialize mutex");
         }
 
         m_proxy.link = this;
-        this.__monitor = &m_proxy;
+        this.__monitor = cast(void*)&m_proxy;
     }
 
 
@@ -90,6 +102,18 @@ class Mutex :
      *  o must not already have a monitor.
      */
     this(Object o) @trusted nothrow @nogc
+    {
+        this(o, true);
+    }
+
+    /// ditto
+    this(Object o) shared @trusted nothrow @nogc
+    {
+        this(o, true);
+    }
+
+    this(this Q)(Object o, bool _unused_) @trusted nothrow @nogc
+        if (is(Q == Mutex) || is(Q == shared Mutex))
     in
     {
         assert(o.__monitor is null);
@@ -97,7 +121,7 @@ class Mutex :
     body
     {
         this();
-        o.__monitor = &m_proxy;
+        o.__monitor = cast(void*)&m_proxy;
     }
 
 
@@ -133,8 +157,15 @@ class Mutex :
         lock_nothrow();
     }
 
+    /// ditto
+    @trusted void lock() shared
+    {
+        lock_nothrow();
+    }
+
     // undocumented function for internal use
-    final void lock_nothrow() nothrow @trusted @nogc
+    final void lock_nothrow(this Q)() nothrow @trusted @nogc
+        if (is(Q == Mutex) || is(Q == shared Mutex))
     {
         version (Windows)
         {
@@ -163,8 +194,15 @@ class Mutex :
         unlock_nothrow();
     }
 
+    /// ditto
+    @trusted void unlock() shared
+    {
+        unlock_nothrow();
+    }
+
     // undocumented function for internal use
-    final void unlock_nothrow() nothrow @trusted @nogc
+    final void unlock_nothrow(this Q)() nothrow @trusted @nogc
+        if (is(Q == Mutex) || is(Q == shared Mutex))
     {
         version (Windows)
         {
@@ -192,7 +230,20 @@ class Mutex :
      * Returns:
      *  true if the lock was acquired and false if not.
      */
-    bool tryLock()
+    bool tryLock() @trusted
+    {
+        return tryLock_nothrow();
+    }
+
+    /// ditto
+    bool tryLock() shared @trusted
+    {
+        return tryLock_nothrow();
+    }
+
+    // undocumented function for internal use
+    final bool tryLock_nothrow(this Q)() nothrow @trusted @nogc
+        if (is(Q == Mutex) || is(Q == shared Mutex))
     {
         version (Windows)
         {
