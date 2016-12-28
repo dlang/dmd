@@ -12,6 +12,13 @@
      "static"
     ],
     "deco" : "FZv",
+    "nothrow" : false,
+    "nogc" : false,
+    "property" : false,
+    "ref" : false,
+    "return" : false,
+    "scope" : false,
+    "returnType" : "void",
     "endline" : 8,
     "endchar" : 16
    },
@@ -24,6 +31,13 @@
      "static"
     ],
     "deco" : "FZv",
+    "nothrow" : false,
+    "nogc" : false,
+    "property" : false,
+    "ref" : false,
+    "return" : false,
+    "scope" : false,
+    "returnType" : "void",
     "endline" : 10,
     "endchar" : 17
    },
@@ -125,7 +139,14 @@
         "kind" : "function",
         "line" : 18,
         "char" : 28,
-        "type" : "const T[0]()"
+        "type" : "const T[0]()",
+        "nothrow" : false,
+        "nogc" : false,
+        "property" : false,
+        "ref" : false,
+        "return" : false,
+        "scope" : false,
+        "returnType" : "T[0]"
        }
       ]
      }
@@ -161,6 +182,13 @@
       "char" : 5,
       "deco" : "FZC4json4Bar2",
       "originalType" : "()",
+      "nothrow" : false,
+      "nogc" : false,
+      "property" : false,
+      "ref" : false,
+      "return" : false,
+      "scope" : false,
+      "returnType" : "json.Bar2",
       "endline" : 23,
       "endchar" : 13
      },
@@ -170,6 +198,13 @@
       "line" : 24,
       "char" : 5,
       "deco" : "FZv",
+      "nothrow" : false,
+      "nogc" : false,
+      "property" : false,
+      "ref" : false,
+      "return" : false,
+      "scope" : false,
+      "returnType" : "void",
       "endline" : 24,
       "endchar" : 14
      },
@@ -183,6 +218,15 @@
       ],
       "deco" : "FNaNbNiNfZv",
       "originalType" : "()",
+      "trust" : "safe",
+      "nothrow" : true,
+      "nogc" : true,
+      "property" : false,
+      "ref" : false,
+      "return" : false,
+      "scope" : false,
+      "purity" : "fwdref",
+      "returnType" : "void",
       "endline" : 26,
       "endchar" : 19
      },
@@ -195,7 +239,14 @@
       "storageClass" : [
        "abstract"
       ],
-      "deco" : "FZS4json10__T3FooTiZ3Foo"
+      "deco" : "FZS4json10__T3FooTiZ3Foo",
+      "nothrow" : false,
+      "nogc" : false,
+      "property" : false,
+      "ref" : false,
+      "return" : false,
+      "scope" : false,
+      "returnType" : "Foo!int"
      },
      {
       "name" : "t",
@@ -206,6 +257,13 @@
        "override"
       ],
       "deco" : "xFZi",
+      "nothrow" : false,
+      "nogc" : false,
+      "property" : false,
+      "ref" : false,
+      "return" : false,
+      "scope" : false,
+      "returnType" : "int",
       "endline" : 28,
       "endchar" : 40,
       "overrides" : [
@@ -246,6 +304,13 @@
         "deco" : "i"
        }
       ],
+      "nothrow" : false,
+      "nogc" : false,
+      "property" : false,
+      "ref" : false,
+      "return" : false,
+      "scope" : false,
+      "returnType" : "json.Bar3",
       "endline" : 33,
       "endchar" : 28
      },
@@ -259,6 +324,13 @@
        "override"
       ],
       "deco" : "FZS4json10__T3FooTiZ3Foo",
+      "nothrow" : false,
+      "nogc" : false,
+      "property" : false,
+      "ref" : false,
+      "return" : false,
+      "scope" : false,
+      "returnType" : "Foo!int",
       "endline" : 35,
       "endchar" : 61,
       "overrides" : [
@@ -334,6 +406,14 @@
       "default" : "new Bar3(7)"
      }
     ],
+    "trust" : "trusted",
+    "nothrow" : false,
+    "nogc" : false,
+    "property" : false,
+    "ref" : false,
+    "return" : false,
+    "scope" : false,
+    "returnType" : "int",
     "endline" : 55,
     "endchar" : 1
    },
@@ -343,6 +423,13 @@
     "line" : 57,
     "char" : 15,
     "deco" : "FNbNdZi",
+    "nothrow" : true,
+    "nogc" : false,
+    "property" : true,
+    "ref" : false,
+    "return" : false,
+    "scope" : false,
+    "returnType" : "int",
     "endline" : 74,
     "endchar" : 1
    },
@@ -419,6 +506,12 @@
           "type" : "T"
          }
         ],
+        "nothrow" : false,
+        "nogc" : false,
+        "property" : false,
+        "ref" : false,
+        "return" : false,
+        "scope" : false,
         "endline" : 85,
         "endchar" : 20
        }
