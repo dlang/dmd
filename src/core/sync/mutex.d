@@ -31,7 +31,6 @@ else
     static assert(false, "Platform not supported");
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // Mutex
 //
@@ -43,6 +42,9 @@ else
 
 /**
  * This class represents a general purpose, recursive mutex.
+ *
+ * Implemented using pthread_mutex on Posix and CRITICAL_SECTION
+ * on Windows.
  */
 class Mutex :
     Object.Monitor
@@ -67,6 +69,7 @@ class Mutex :
         this(true);
     }
 
+    // Undocumented, useful only in Mutex.this().
     private this(this Q)(bool _unused_) @trusted nothrow @nogc
         if (is(Q == Mutex) || is(Q == shared Mutex))
     {
@@ -112,7 +115,8 @@ class Mutex :
         this(o, true);
     }
 
-    this(this Q)(Object o, bool _unused_) @trusted nothrow @nogc
+    // Undocumented, useful only in Mutex.this(Object).
+    private this(this Q)(Object o, bool _unused_) @trusted nothrow @nogc
         if (is(Q == Mutex) || is(Q == shared Mutex))
     in
     {
@@ -163,7 +167,7 @@ class Mutex :
         lock_nothrow();
     }
 
-    // undocumented function for internal use
+    /// ditto
     final void lock_nothrow(this Q)() nothrow @trusted @nogc
         if (is(Q == Mutex) || is(Q == shared Mutex))
     {
@@ -200,7 +204,7 @@ class Mutex :
         unlock_nothrow();
     }
 
-    // undocumented function for internal use
+    /// ditto
     final void unlock_nothrow(this Q)() nothrow @trusted @nogc
         if (is(Q == Mutex) || is(Q == shared Mutex))
     {
@@ -241,7 +245,7 @@ class Mutex :
         return tryLock_nothrow();
     }
 
-    // undocumented function for internal use
+    /// ditto
     final bool tryLock_nothrow(this Q)() nothrow @trusted @nogc
         if (is(Q == Mutex) || is(Q == shared Mutex))
     {
