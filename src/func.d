@@ -3080,6 +3080,9 @@ extern (C++) class FuncDeclaration : Declaration
                 return true;
         }
 
+        if (protection.kind == PROTprivate)
+            return true;
+
         return false;
     }
 
