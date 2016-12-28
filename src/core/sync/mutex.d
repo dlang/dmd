@@ -18,11 +18,11 @@ module core.sync.mutex;
 
 public import core.sync.exception;
 
-version( Windows )
+version (Windows)
 {
     private import core.sys.windows.windows;
 }
-else version( Posix )
+else version (Posix)
 {
     private import core.sys.posix.pthread;
 }
@@ -58,13 +58,13 @@ class Mutex :
      * Throws:
      *  SyncError on error.
      */
-    this() nothrow @trusted
+    this() @trusted nothrow
     {
-        version( Windows )
+        version (Windows)
         {
-            InitializeCriticalSection( &m_hndl );
+            InitializeCriticalSection(&m_hndl);
         }
-        else version( Posix )
+        else version (Posix)
         {
             pthread_mutexattr_t attr = void;
 
@@ -78,6 +78,7 @@ class Mutex :
             if( pthread_mutex_init( &m_hndl, &attr ) )
                 throw new SyncError( "Unable to initialize mutex" );
         }
+
         m_proxy.link = this;
         this.__monitor = &m_proxy;
     }
@@ -89,10 +90,10 @@ class Mutex :
      * In:
      *  o must not already have a monitor.
      */
-    this( Object o ) nothrow @trusted
+    this(Object o) @trusted nothrow
     in
     {
-        assert( o.__monitor is null );
+        assert(o.__monitor is null);
     }
     body
     {
@@ -103,11 +104,11 @@ class Mutex :
 
     ~this()
     {
-        version( Windows )
+        version (Windows)
         {
-            DeleteCriticalSection( &m_hndl );
+            DeleteCriticalSection(&m_hndl);
         }
-        else version( Posix )
+        else version (Posix)
         {
             int rc = pthread_mutex_destroy( &m_hndl );
             assert( !rc, "Unable to destroy mutex" );
@@ -136,19 +137,18 @@ class Mutex :
     // undocumented function for internal use
     final void lock_nothrow() nothrow @trusted @nogc
     {
-        version( Windows )
+        version (Windows)
         {
-            EnterCriticalSection( &m_hndl );
+            EnterCriticalSection(&m_hndl);
         }
-        else version( Posix )
+        else version (Posix)
         {
-            int rc = pthread_mutex_lock( &m_hndl );
-            if( rc )
-            {
-                SyncError syncErr = cast(SyncError) cast(void*) typeid(SyncError).initializer;
-                syncErr.msg = "Unable to lock mutex.";
-                throw syncErr;
-            }
+            if (pthread_mutex_lock(&m_hndl) == 0)
+                return;
+
+            SyncError syncErr = cast(SyncError) cast(void*) typeid(SyncError).initializer;
+            syncErr.msg = "Unable to lock mutex.";
+            throw syncErr;
         }
     }
 
@@ -167,19 +167,18 @@ class Mutex :
     // undocumented function for internal use
     final void unlock_nothrow() nothrow @trusted @nogc
     {
-        version( Windows )
+        version (Windows)
         {
-            LeaveCriticalSection( &m_hndl );
+            LeaveCriticalSection(&m_hndl);
         }
-        else version( Posix )
+        else version (Posix)
         {
-            int rc = pthread_mutex_unlock( &m_hndl );
-            if( rc )
-            {
-                SyncError syncErr = cast(SyncError) cast(void*) typeid(SyncError).initializer;
-                syncErr.msg = "Unable to unlock mutex.";
-                throw syncErr;
-            }
+            if (pthread_mutex_unlock(&m_hndl) == 0)
+                return;
+
+            SyncError syncErr = cast(SyncError) cast(void*) typeid(SyncError).initializer;
+            syncErr.msg = "Unable to unlock mutex.";
+            throw syncErr;
         }
     }
 
@@ -196,23 +195,23 @@ class Mutex :
      */
     bool tryLock()
     {
-        version( Windows )
+        version (Windows)
         {
-            return TryEnterCriticalSection( &m_hndl ) != 0;
+            return TryEnterCriticalSection(&m_hndl) != 0;
         }
-        else version( Posix )
+        else version (Posix)
         {
-            return pthread_mutex_trylock( &m_hndl ) == 0;
+            return pthread_mutex_trylock(&m_hndl) == 0;
         }
     }
 
 
 private:
-    version( Windows )
+    version (Windows)
     {
         CRITICAL_SECTION    m_hndl;
     }
-    else version( Posix )
+    else version (Posix)
     {
         pthread_mutex_t     m_hndl;
     }
@@ -226,7 +225,7 @@ private:
 
 
 package:
-    version( Posix )
+    version (Posix)
     {
         pthread_mutex_t* handleAddr()
         {
@@ -241,7 +240,7 @@ package:
 ////////////////////////////////////////////////////////////////////////////////
 
 
-version( unittest )
+version (unittest)
 {
     private import core.thread;
 
@@ -255,9 +254,9 @@ version( unittest )
 
         void testFn()
         {
-            for( int i = 0; i < numTries; ++i )
+            for (int i = 0; i < numTries; ++i)
             {
-                synchronized( mutex )
+                synchronized (mutex)
                 {
                     ++lockCount;
                 }
@@ -266,10 +265,10 @@ version( unittest )
 
         auto group = new ThreadGroup;
 
-        for( int i = 0; i < numThreads; ++i )
-            group.create( &testFn );
+        for (int i = 0; i < numThreads; ++i)
+            group.create(&testFn);
 
         group.joinAll();
-        assert( lockCount == numThreads * numTries );
+        assert(lockCount == numThreads * numTries);
     }
 }
