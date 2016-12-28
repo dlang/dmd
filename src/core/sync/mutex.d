@@ -55,10 +55,8 @@ class Mutex :
     /**
      * Initializes a mutex object.
      *
-     * Throws:
-     *  SyncError on error.
      */
-    this() @trusted nothrow
+    this() @trusted nothrow @nogc
     {
         version (Windows)
         {
@@ -68,15 +66,16 @@ class Mutex :
         {
             pthread_mutexattr_t attr = void;
 
-            if( pthread_mutexattr_init( &attr ) )
-                throw new SyncError( "Unable to initialize mutex" );
-            scope(exit) pthread_mutexattr_destroy( &attr );
+            !pthread_mutexattr_init(&attr) ||
+                assert (0, "Unable to initialize mutex");
 
-            if( pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE ) )
-                throw new SyncError( "Unable to initialize mutex" );
+            scope (exit) pthread_mutexattr_destroy(&attr);
 
-            if( pthread_mutex_init( &m_hndl, &attr ) )
-                throw new SyncError( "Unable to initialize mutex" );
+            !pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE) ||
+                assert (0, "Unable to initialize mutex");
+
+            !pthread_mutex_init(&m_hndl, &attr) ||
+                assert (0, "Unable to initialize mutex");
         }
 
         m_proxy.link = this;
@@ -90,7 +89,7 @@ class Mutex :
      * In:
      *  o must not already have a monitor.
      */
-    this(Object o) @trusted nothrow
+    this(Object o) @trusted nothrow @nogc
     in
     {
         assert(o.__monitor is null);
@@ -102,7 +101,7 @@ class Mutex :
     }
 
 
-    ~this()
+    ~this() @trusted nothrow @nogc
     {
         version (Windows)
         {
@@ -110,8 +109,8 @@ class Mutex :
         }
         else version (Posix)
         {
-            int rc = pthread_mutex_destroy( &m_hndl );
-            assert( !rc, "Unable to destroy mutex" );
+            !pthread_mutex_destroy(&m_hndl) ||
+                assert (0, "Unable to destroy mutex");
         }
         this.__monitor = null;
     }
