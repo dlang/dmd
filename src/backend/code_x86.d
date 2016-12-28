@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1996 by Symantec
- *              Copyright (c) 2000-2016 by Digital Mars, All Rights Reserved
+ *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     backendlicense.txt
  * Source:      $(DMDSRC backend/_code_x86.d)

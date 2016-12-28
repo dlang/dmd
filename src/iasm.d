@@ -4,7 +4,7 @@
  * Inline assembler for the D programming language compiler
  *
  * Copyright:   Copyright (c) 1992-1999 by Symantec
- *              Copyright (c) 1999-2016 by Digital Mars
+ *              Copyright (c) 1999-2017 by Digital Mars
  *              All Rights Reserved
  * Authors:     Mike Cote, John Micco and $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     This source file is made available for personal use

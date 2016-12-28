@@ -1,7 +1,7 @@
 /**
  * Compiler implementation of the $(LINK2 http://www.dlang.org, D programming language)
  *
- * Copyright: Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright: Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(DMDSRC _dmangle.d)
