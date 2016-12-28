@@ -3590,26 +3590,38 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             // Extra check that function characteristics must match
             if (tparam && tparam.ty == Tfunction)
             {
-                TypeFunction tp = cast(TypeFunction)tparam;
-                if (t.varargs != tp.varargs || t.linkage != tp.linkage)
+                auto tp = cast(TypeFunction)tparam;
+                if (t.varargs != tp.varargs ||
+                    t.linkage != tp.linkage)
                 {
                     result = MATCHnomatch;
                     return;
                 }
 
-                size_t nfargs = Parameter.dim(t.parameters);
-                size_t nfparams = Parameter.dim(tp.parameters);
-
-                // https://issues.dlang.org/show_bug.cgi?id=2579
-                // Apply function parameter storage classes to parameter types
-                for (size_t i = 0; i < nfparams; i++)
+                foreach (fparam; *tp.parameters)
                 {
-                    Parameter fparam = Parameter.getNth(tp.parameters, i);
+                    // https://issues.dlang.org/show_bug.cgi?id=2579
+                    // Apply function parameter storage classes to parameter types
                     fparam.type = fparam.type.addStorageClass(fparam.storageClass);
                     fparam.storageClass &= ~(STC_TYPECTOR | STCin);
+
+                    // Bugzilla 15243: Resolve parameter type if it's not related with template parameters
+                    if (!reliesOnTident(fparam.type, parameters, inferStart))
+                    {
+                        Type tx = fparam.type.semantic(Loc(), sc);
+                        if (tx.ty == Terror)
+                        {
+                            result = MATCHnomatch;
+                            return;
+                        }
+                        fparam.type = tx;
+                    }
                 }
                 //printf("\t. this   = %d, ", t.ty); t.print();
                 //printf("\t. tparam = %d, ", tparam.ty); tparam.print();
+
+                size_t nfargs = Parameter.dim(t.parameters);
+                size_t nfparams = Parameter.dim(tp.parameters);
 
                 /* See if tuple match
                  */
@@ -3618,12 +3630,12 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     /* See if 'A' of the template parameter matches 'A'
                      * of the type of the last function parameter.
                      */
-                    Parameter fparam = Parameter.getNth(tp.parameters, nfparams - 1);
+                    auto fparam = Parameter.getNth(tp.parameters, nfparams - 1);
                     assert(fparam);
                     assert(fparam.type);
                     if (fparam.type.ty != Tident)
                         goto L1;
-                    TypeIdentifier tid = cast(TypeIdentifier)fparam.type;
+                    auto tid = cast(TypeIdentifier)fparam.type;
                     if (tid.idents.dim)
                         goto L1;
 
@@ -3634,8 +3646,8 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     {
                         if (tupi == parameters.dim)
                             goto L1;
-                        TemplateParameter tx = (*parameters)[tupi];
-                        TemplateTupleParameter tup = tx.isTemplateTupleParameter();
+                        auto tx = (*parameters)[tupi];
+                        auto tup = tx.isTemplateTupleParameter();
                         if (tup && tup.ident.equals(tid.ident))
                             break;
                     }
@@ -3647,11 +3659,10 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
                     /* See if existing tuple, and whether it matches or not
                      */
-                    RootObject o = (*dedtypes)[tupi];
-                    if (o)
+                    if (auto o = (*dedtypes)[tupi])
                     {
                         // Existing deduced argument must be a tuple, and must match
-                        Tuple tup = isTuple(o);
+                        auto tup = isTuple(o);
                         if (!tup || tup.objects.dim != tuple_dim)
                         {
                             result = MATCHnomatch;
@@ -3659,7 +3670,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         }
                         for (size_t i = 0; i < tuple_dim; i++)
                         {
-                            Parameter arg = Parameter.getNth(t.parameters, nfparams - 1 + i);
+                            auto arg = Parameter.getNth(t.parameters, nfparams - 1 + i);
                             if (!arg.type.equals(tup.objects[i]))
                             {
                                 result = MATCHnomatch;
@@ -3674,7 +3685,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         tup.objects.setDim(tuple_dim);
                         for (size_t i = 0; i < tuple_dim; i++)
                         {
-                            Parameter arg = Parameter.getNth(t.parameters, nfparams - 1 + i);
+                            auto arg = Parameter.getNth(t.parameters, nfparams - 1 + i);
                             tup.objects[i] = arg.type;
                         }
                         (*dedtypes)[tupi] = tup;
@@ -3692,9 +3703,10 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             L2:
                 for (size_t i = 0; i < nfparams; i++)
                 {
-                    Parameter a = Parameter.getNth(t.parameters, i);
-                    Parameter ap = Parameter.getNth(tp.parameters, i);
-                    if (a.storageClass != ap.storageClass || !deduceType(a.type, sc, ap.type, parameters, dedtypes))
+                    auto a = Parameter.getNth(t.parameters, i);
+                    auto ap = Parameter.getNth(tp.parameters, i);
+                    if (a.storageClass != ap.storageClass ||
+                        !deduceType(a.type, sc, ap.type, parameters, dedtypes))
                     {
                         result = MATCHnomatch;
                         return;
@@ -4953,7 +4965,7 @@ private bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t i
         }
     }
 
-    if (!t)
+    if (!t || t.deco)
         return false;
 
     assert(tparams);

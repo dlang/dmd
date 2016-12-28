@@ -4848,6 +4848,35 @@ void test15781()
 }
 
 /******************************************/
+// 15243
+
+struct S15243(Types...)
+{
+    void apply1(U)(U delegate(Types[0]) f0) {}
+
+    void apply2(U)(U delegate(Types) f0) {}
+
+    void apply3(U)(U delegate(Types[1..$]) f0) {}
+}
+
+void test15243()
+{
+    int f1(int) { return 0; }
+    int f2(int, long) { return 0; }
+    int f3(long, string) { return 0; }
+
+    S15243!(int) s1;
+    s1.apply1(&f1);
+    s1.apply2(&f1);
+
+    S15243!(int, long) s2;
+    s2.apply2(&f2);
+
+    S15243!(int, long, string) s3;
+    s3.apply3(&f3);
+}
+
+/******************************************/
 
 int main()
 {
