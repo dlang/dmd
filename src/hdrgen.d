@@ -1742,10 +1742,11 @@ public:
         //printf("FuncDeclaration::toCBuffer() '%s'\n", f->toChars());
         if (stcToBuffer(buf, f.storage_class))
             buf.writeByte(' ');
-        typeToBuffer(f.type, f.ident);
+        auto tf = cast(TypeFunction)f.type;
+        typeToBuffer(tf, f.ident);
         if (hgs.hdrgen == 1)
         {
-            if (f.storage_class & STCauto)
+            if (!tf.next)
             {
                 hgs.autoMember++;
                 bodyToBuffer(f);
