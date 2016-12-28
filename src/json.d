@@ -619,7 +619,22 @@ public:
         jsonProperties(d);
         TypeFunction tf = cast(TypeFunction)d.type;
         if (tf && tf.ty == Tfunction)
+        {
             property("parameters", tf.parameters);
+            property("trust", tf.trust);
+            propertyBool("nothrow", tf.isnothrow);
+            propertyBool("nogc", tf.isnogc);
+            propertyBool("property", tf.isproperty);
+            propertyBool("ref", tf.isref);
+            propertyBool("return", tf.isreturn);
+            propertyBool("scope", tf.isscope);
+            property("linkage", tf.linkage);
+            property("purity", tf.purity);
+            if (tf.next)
+            {
+                property("returnType", tf.next);
+            }
+        }
         property("endline", "endchar", &d.endloc);
         if (d.foverrides.dim)
         {
