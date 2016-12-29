@@ -24,7 +24,7 @@ template Foo(T)
     }
 }
 
-int main(char[][] args)
+int main(string[] args)
 {
     auto prng = new Quux();
     alias Foo!(int).bar baz;

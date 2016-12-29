@@ -1183,34 +1183,7 @@ extern (C++) class FuncDeclaration : Declaration
         }
 
         if (isMain())
-        {
-            // Check parameters to see if they are either () or (char[][] args)
-            switch (nparams)
-            {
-            case 0:
-                break;
-
-            case 1:
-                {
-                    Parameter fparam0 = Parameter.getNth(f.parameters, 0);
-                    if (fparam0.type.ty != Tarray || fparam0.type.nextOf().ty != Tarray || fparam0.type.nextOf().nextOf().ty != Tchar || fparam0.storageClass & (STCout | STCref | STClazy))
-                        goto Lmainerr;
-                    break;
-                }
-            default:
-                goto Lmainerr;
-            }
-
-            if (!f.nextOf())
-                error("must return int or void");
-            else if (f.nextOf().ty != Tint32 && f.nextOf().ty != Tvoid)
-                error("must return int or void, not %s", f.nextOf().toChars());
-            if (f.varargs)
-            {
-            Lmainerr:
-                error("parameters must be main() or main(string[] args)");
-            }
-        }
+            checkDmain();       // Check main() parameters and return type
 
         if (isVirtual() && semanticRun != PASSsemanticdone)
         {
@@ -3970,6 +3943,39 @@ extern (C++) class FuncDeclaration : Declaration
             st.insert(fd);
         }
         return fd;
+    }
+
+    /******************
+     * Check parameters and return type of D main() function.
+     * Issue error messages.
+     */
+    final void checkDmain()
+    {
+        TypeFunction tf = cast(TypeFunction)type;
+        const nparams = Parameter.dim(tf.parameters);
+        bool argerr;
+        if (nparams == 1)
+        {
+            auto fparam0 = Parameter.getNth(tf.parameters, 0);
+            auto t = fparam0.type.toBasetype();
+            if (t.ty != Tarray || t.nextOf() != Type.tstring)
+            {
+                if (t.ty == Tarray && t.nextOf().ty == Tarray && t.nextOf().nextOf().ty == Tchar)
+                    deprecation("use main(string[]) instead of main(char[][])");
+                else
+                    argerr = true;
+            }
+
+            if (fparam0.storageClass & (STCout | STCref | STClazy))
+                argerr = true;
+        }
+
+        if (!tf.nextOf())
+            error("must return int or void");
+        else if (tf.nextOf().ty != Tint32 && tf.nextOf().ty != Tvoid)
+            error("must return int or void, not %s", tf.nextOf().toChars());
+        else if (tf.varargs || nparams >= 2 || argerr)
+            error("parameters must be main() or main(string[] args)");
     }
 
     override final inout(FuncDeclaration) isFuncDeclaration() inout
