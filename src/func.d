@@ -14,6 +14,7 @@ import core.stdc.stdio;
 import core.stdc.string;
 import ddmd.aggregate;
 import ddmd.arraytypes;
+import ddmd.blockexit;
 import ddmd.gluelayer;
 import ddmd.dclass;
 import ddmd.declaration;

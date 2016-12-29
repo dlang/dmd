@@ -16,6 +16,7 @@ import ddmd.aggregate;
 import ddmd.aliasthis;
 import ddmd.arrayop;
 import ddmd.arraytypes;
+import ddmd.blockexit;
 import ddmd.clone;
 import ddmd.cond;
 import ddmd.dcast;

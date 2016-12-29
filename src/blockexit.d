@@ -26,6 +26,38 @@ import ddmd.statement;
 import ddmd.tokens;
 import ddmd.visitor;
 
+/**
+ * BE stands for BlockExit.
+ *
+ * It indicates if a statement does transfer control to another block.
+ * A block is a sequence of statements enclosed in { }
+ */
+enum BE : int
+{
+    BEnone = 0,
+    BEfallthru = 1,
+    BEthrow    = 2,
+    BEreturn   = 4,
+    BEgoto     = 8,
+    BEhalt     = 0x10,
+    BEbreak    = 0x20,
+    BEcontinue = 0x40,
+    BEerrthrow = 0x80,
+    BEany      = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt),
+}
+
+alias BEnone = BE.BEnone;
+alias BEfallthru = BE.BEfallthru;
+alias BEthrow = BE.BEthrow;
+alias BEreturn = BE.BEreturn;
+alias BEgoto = BE.BEgoto;
+alias BEhalt = BE.BEhalt;
+alias BEbreak = BE.BEbreak;
+alias BEcontinue = BE.BEcontinue;
+alias BEerrthrow = BE.BEerrthrow;
+alias BEany = BE.BEany;
+
+
 
 /*********************************************
  * Only valid after semantic analysis
