@@ -4014,11 +4014,28 @@ public:
     {
         //FIXME make this handle casts properly
         //e.g. calling opCast do truncation and so on
-        retval = genExpr(ce.e1);
-        if (ce.type.ty == Tuns32 || ce.type.ty == Tint32)
+        debug(ctfe)
         {
-            retval.type = toBCType(ce.type);
+            import std.stdio;
+            writeln("CastExp: ", ce.toString());
+            writeln("CastToBCType: ", toBCType(ce.type).type);
+            writeln("CastFromBCType: ", toBCType(ce.e1.type).type);
         }
+
+        auto toType = toBCType(ce.type);
+        auto fromType = toBCType(ce.e1.type);
+
+        retval = genExpr(ce.e1);
+        if (toType.type == BCTypeEnum.i32)
+        {
+            retval.type = toType;
+        }
+        /*
+        else if (fromType.type == BCTypeEnum.Array && fromType.typeIndex && toType.type == BCTypeEnum.Slice && toType.typeIndex && _sharedCtfeState.arrays[fromType.typeIndex - 1].elementType == _sharedCtfeState.slices[toType.typeIndex - 1].elementType)
+        {
+            // e.g. cast(uint[])uint[10]
+            retval.type = toType;
+        }*/
         else
         {
            bailout();
