@@ -562,6 +562,9 @@ $(IMPDIR)\core\sys\posix\iconv.d : src\core\sys\posix\iconv.d
 $(IMPDIR)\core\sys\posix\inttypes.d : src\core\sys\posix\inttypes.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\posix\libgen.d : src\core\sys\posix\libgen.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\posix\netdb.d : src\core\sys\posix\netdb.d
 	copy $** $@
 

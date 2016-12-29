@@ -127,6 +127,7 @@ COPY=\
 	$(IMPDIR)\core\sys\posix\grp.d \
 	$(IMPDIR)\core\sys\posix\iconv.d \
 	$(IMPDIR)\core\sys\posix\inttypes.d \
+	$(IMPDIR)\core\sys\posix\libgen.d \
 	$(IMPDIR)\core\sys\posix\netdb.d \
 	$(IMPDIR)\core\sys\posix\poll.d \
 	$(IMPDIR)\core\sys\posix\pthread.d \
