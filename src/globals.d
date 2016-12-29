@@ -130,7 +130,7 @@ struct Param
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
     bool check10378;        // check for issues transitioning to 10738
-    bool bug10378;          // use pre-bugzilla 10378 search strategy
+    bool bug10378;          // use pre- https://issues.dlang.org/show_bug.cgi?id=10378 search strategy
     bool vsafe;             // shows places with hidden change in semantics needed
                             // for better @safe guarantees
     bool showGaggedErrors;  // print gagged errors anyway

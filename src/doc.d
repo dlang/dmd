@@ -418,7 +418,8 @@ extern (C++) void gendocfile(Module m)
         Loc loc = m.md ? m.md.loc : m.loc;
         size_t commentlen = strlen(cast(char*)m.comment);
         Dsymbols a;
-        // Bugzilla 9764: Don't push m in a, to prevent emphasize ddoc file name.
+        // https://issues.dlang.org/show_bug.cgi?id=9764
+        // Don't push m in a, to prevent emphasize ddoc file name.
         if (dc.macros)
         {
             commentlen = dc.macros.name - m.comment;
@@ -1028,7 +1029,8 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
         override void visit(AttribDeclaration ad)
         {
             //printf("AttribDeclaration::emitComment(sc = %p)\n", sc);
-            /* A general problem with this, illustrated by BUGZILLA 2516,
+            /* A general problem with this,
+             * illustrated by https://issues.dlang.org/show_bug.cgi?id=2516
              * is that attributes are not transmitted through to the underlying
              * member declarations for template bodies, because semantic analysis
              * is not done for template declaration bodies
@@ -2657,7 +2659,11 @@ extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t 
             size_t o = res.offset;
             highlightCode3(sc, &res, tok.ptr, lex.p);
             if (tok.value == TOKcomment || tok.value == TOKstring)
-                escapeDdocString(&res, o); // Bugzilla 7656, 7715, and 10519
+                /* https://issues.dlang.org/show_bug.cgi?id=7656
+                 * https://issues.dlang.org/show_bug.cgi?id=7715
+                 * https://issues.dlang.org/show_bug.cgi?id=10519
+                 */
+                escapeDdocString(&res, o);
             res.writeByte(')');
         }
         else
