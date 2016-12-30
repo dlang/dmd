@@ -9,6 +9,7 @@ module core.sys.linux.sys.prctl;
 version (linux):
 extern (C):
 @system:
+@nogc:
 nothrow:
 
 enum: uint
@@ -142,4 +143,20 @@ struct prctl_mm_map
     uint     exe_fd;
 };
 
-int prctl(int option, ...);
+int prctl(int option, size_t arg2, size_t arg3, size_t arg4, size_t arg5);
+
+//
+// Example usage to set and get the task name.
+//
+// byte[16] oldname = cast(byte[]) "1234567890123456";
+// oldname[oldname.length-1] = 0;
+// prctl(PR_SET_NAME, cast(size_t) oldname.ptr, cast(size_t) null, cast(size_t) null, cast(size_t) null);
+// byte[16] newname;
+// prctl(PR_GET_NAME, cast(size_t) newname.ptr, cast(size_t) null, cast(size_t) null, cast(size_t) null);
+// int i;
+// foreach (b; newname)
+// {
+//         assert(b == oldname[i]);
+//             i++;
+// }
+// writeln(cast(string) newname);
