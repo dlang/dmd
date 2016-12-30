@@ -3167,9 +3167,15 @@ bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
 {
     if (a1.length != a2.length)
         return false;
-    foreach(i, a; a1)
+
+    // This is function is used as a compiler intrinsic and explicitly written
+    // in a lowered flavor to use as few CTFE instructions as possible.
+    auto idx = 0;
+    auto length = a1.length;
+
+    for(;idx < length;++idx)
     {
-        if (a != a2[i])
+        if (a1[idx] != a2[idx])
             return false;
     }
     return true;
