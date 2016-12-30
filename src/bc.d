@@ -10,7 +10,8 @@ import std.conv;
 //IMPORTANT FIXME
 // it becomes clear that supporting indirect instructions aka i32ptr
 // is a pretty bad idea in terms of performance.
-
+debug = bc;
+debug = bc_stack;
 enum InstKind
 {
     ShortInst,
@@ -1549,7 +1550,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
         import std.range;
 
         debug (bc_stack)
-            foreach (si; 0 .. stackOffset + 8)
+            foreach (si; 0 .. stackOffset + 17)
             {
                 if (!__ctfe)
                 {
@@ -1977,6 +1978,11 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
             {
                 assert(*rhs, "trying to deref null pointer");
                 (*lhsRef) = *(heapPtr._heap.ptr + *rhs);
+                debug(bc)
+                {
+                    import std.stdio;
+                    writeln("Loaded[",*rhs,"] = ",*lhsRef);
+                }
             }
             break;
         case LongInst.HeapStore32:

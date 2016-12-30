@@ -1341,7 +1341,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         }
     }
 
-    void bailout(string message)
+    extern (D) void bailout(const(char)[] message)
     {
         IGaveUp = true;
         const fi = _sharedCtfeState.getFunctionIndex(me);
@@ -1352,13 +1352,13 @@ extern (C++) final class BCV(BCGenT) : Visitor
             }
         debug (ctfe)
         {
-            assert(0, "bailout: " ~ message);
+        //    assert(0, "bailout: " ~ message);
         }
         else
         {
             import std.stdio;
 
-            writeln("bailout: ", message);
+        //    writeln("bailout: ", message);
         }
     }
 
