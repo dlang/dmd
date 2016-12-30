@@ -10,12 +10,19 @@ enum BCFunctionTypeEnum : byte
     Compiled,
 }
 
+//static if (is(typeof(() { import ddmd.declaration : FuncDeclaration; })))
+//{
+//    import ddmd.declaration : FuncDeclaration;
+//    alias FT = FuncDeclaration;
+//}
+//else
+//{
+//    alias FT = void*;
+//}
+
 struct BCFunction
 {
     void* funcDecl;
-    BCFunctionTypeEnum type;
-    int nr;
-    short maxUsedStackSize;
 }
 
 struct Print_BCGen
@@ -162,10 +169,11 @@ struct Print_BCGen
         result ~= "    Finalize(" ~ ");\n";
     }
 
-    void beginFunction()
+    void beginFunction(uint f = 0)
     {
         sameLabel = false;
-        result ~= "    beginFunction(" ~ to!string(currentFunctionStateNumber) ~ ");\n";
+      //  result ~= "    beginFunction(" ~ to!string(currentFunctionStateNumber) ~ ");\n";
+        result ~= "    beginFunction(" ~ to!string(f) ~ ");\n";
     }
 
     void endFunction()

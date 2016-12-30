@@ -286,11 +286,24 @@ enum BCFunctionTypeEnum : byte
     Compiled,
 }
 
+//static if (is(typeof(() { import ddmd.declaration : FuncDeclaration; })))
+//{
+//    import ddmd.declaration : FuncDeclaration;
+//    alias FT = FuncDeclaration;
+//}
+//else
+//{
+//    alias FT = void*;
+//}
+
 struct BCFunction
 {
     void* funcDecl;
+
     BCFunctionTypeEnum type;
-    int nr;
+    ushort nArgs;
+    ushort maxStackUsed;
+
     union
     {
         immutable(int)[] byteCode;
@@ -298,34 +311,29 @@ struct BCFunction
         BCValue function(const BCValue[] arguments, uint[] heapPtr, uint[] stackPtr) fPtr;
     }
 
-    uint nArgs;
-    this(void* fd, BCFunctionTypeEnum type, int nr, const int[] byteCode, uint nArgs) pure
-    {
-        this.funcDecl = fd;
-        this.nr = nr;
-        this.type = BCFunctionTypeEnum.Builtin;
-        this.byteCode = cast(immutable(int)[]) byteCode;
-        this.nArgs = nArgs;
-    }
-
-    this(int nr, BCValue function(const BCValue[] arguments, uint[] heapPtr) _fBuiltin,
-        uint nArgs) pure
-    {
-        this.nr = nr;
-        this.type = BCFunctionTypeEnum.Builtin;
-        this._fBuiltin = _fBuiltin;
-        this.nArgs = nArgs;
-    }
-
-    debug
-    {
-        string name;
-    }
+    //    this(void* fd, BCFunctionTypeEnum type, int nr, const int[] byteCode, uint nArgs) pure
+    //    {
+    //        this.funcDecl = fd;
+    //        this.nr = nr;
+    //        this.type = BCFunctionTypeEnum.Builtin;
+    //        this.byteCode = cast(immutable(int)[]) byteCode;
+    //        this.nArgs = nArgs;
+    //    }
+    //
+    //    this(int nr, BCValue function(const BCValue[] arguments, uint[] heapPtr) _fBuiltin,
+    //        uint nArgs) pure
+    //    {
+    //        this.nr = nr;
+    //        this.type = BCFunctionTypeEnum.Builtin;
+    //        this._fBuiltin = _fBuiltin;
+    //        this.nArgs = nArgs;
+    //    }
+    //
 }
 
 struct BCGen
 {
-    int[ushort.max / 4] byteCodeArray = void;
+    int[ushort.max / 4] byteCodeArray;
     /// ip starts at 4 because 0 should be an invalid address;
     BCAddr ip = BCAddr(4);
     StackAddr sp = StackAddr(4);
@@ -388,9 +396,10 @@ struct BCGen
 
     void Finalize()
     {
-        // the [ip-1] may be wrong in some cases ?
+        //the [ip-1] may be wrong in some cases ?
         byteCodeArray[ip - 1] = 0;
         byteCodeArray[ip] = 0;
+        byteCodeArray[ip + 1] = 0;
     }
 
     void beginFunction(uint fnId = 0)
@@ -1384,7 +1393,7 @@ BCValue interpret(const BCGen* gen, const BCValue[] args,
 BCValue interpret_(const int[] byteCode, const BCValue[] args,
     BCHeap* heapPtr = null, const BCFunction* functions = null,
     BCValue* ev1 = null, BCValue* ev2 = null, const RE* errors = null,
-    long[] stackPtr = null, uint stackOffset = 4) pure @trusted
+    long[] stackPtr = null, uint stackOffset = 0) pure @trusted
 {
     import std.conv;
     import std.stdio;
@@ -1409,20 +1418,21 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
 
             writeln("before pushing args");
         }
+    size_t argOffset = 4;
     foreach (arg; args)
     {
         switch (arg.type.type)
         {
         case BCTypeEnum.i32:
             {
-                *(stack.ptr + stackOffset / 4) = arg.imm32;
-                stackOffset += uint.sizeof;
+                *(stack.ptr + argOffset / 4) = arg.imm32;
+                argOffset += uint.sizeof;
             }
             break;
         case BCTypeEnum.i64:
             {
-                *(stack.ptr + stackOffset / 4) = arg.imm64;
-                stackOffset += uint.sizeof;
+                *(stack.ptr + argOffset / 4) = arg.imm64;
+                argOffset += uint.sizeof;
                 //TODO find out why adding ulong.sizeof does not work here
                 //make variable-sized stack possible ... if it should be needed
 
@@ -1430,7 +1440,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
             break;
         case BCTypeEnum.Struct, BCTypeEnum.String, BCTypeEnum.Array:
             {
-
+                argOffset += uint.sizeof;
             }
             break;
         default:
@@ -1447,6 +1457,8 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
     // debug(bc) { import std.stdio; writeln("BC.len = ", byteCode.length); }
     if (byteCode.length < 6 || byteCode.length <= ip)
         return typeof(return).init;
+
+    long* stackP = &stack[0] + (stackOffset / 4);
 
     while (true)
     {
@@ -1477,10 +1489,10 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
         auto rhsOffset = (hi >> 16) & 0xFFFF;
         auto opRefOffset = (lw >> 16) & 0xFFFF;
 
-        auto lhsRef = (stack.ptr + (lhsOffset / 4));
-        auto rhs = (stack.ptr + (rhsOffset / 4));
-        auto lhsStackRef = (stack.ptr + (((lw >> 16) & 0xFFFF) / 4));
-        auto opRef = stack.ptr + (opRefOffset / 4);
+        auto lhsRef = (stackP + (lhsOffset / 4));
+        auto rhs = (stackP + (rhsOffset / 4));
+        auto lhsStackRef = (stackP + (opRefOffset / 4));
+        auto opRef = stackP + (opRefOffset / 4);
 
         if (indirect)
         {
@@ -1701,7 +1713,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                         auto err = errors[cast(uint)(*rhs - 1)];
                         if (err.v1.vType != BCValueType.Immediate)
                         {
-                            *ev1 = BCValue(Imm32(stack[err.v1.toUint / 4] & uint.max));
+                            *ev1 = BCValue(Imm32(stackP[err.v1.toUint / 4] & uint.max));
                         }
                         else
                         {
@@ -1710,7 +1722,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
 
                         if (err.v2.vType != BCValueType.Immediate)
                         {
-                            *ev2 = BCValue(Imm32(stack[err.v2.toUint / 4] & uint.max));
+                            *ev2 = BCValue(Imm32(stackP[err.v2.toUint / 4] & uint.max));
                         }
                         else
                         {
@@ -1733,7 +1745,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                         auto err = errors[cast(uint)(*rhs - 1)];
                         if (err.v1.vType != BCValueType.Immediate)
                         {
-                            *ev1 = BCValue(Imm32(stack[err.v1.toUint / 4] & uint.max));
+                            *ev1 = BCValue(Imm32(stackP[err.v1.toUint / 4] & uint.max));
                         }
                         else
                         {
@@ -1742,7 +1754,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
 
                         if (err.v2.vType != BCValueType.Immediate)
                         {
-                            *ev2 = BCValue(Imm32(stack[err.v2.toUint / 4] & uint.max));
+                            *ev2 = BCValue(Imm32(stackP[err.v2.toUint / 4] & uint.max));
                         }
                         else
                         {
@@ -1896,9 +1908,10 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
         case LongInst.Lsb:
             {
 
-                uint _dr = (*(stack.ptr + (*rhs / 4)) & 0xFF_FF_FF_FF);
+                uint _dr = stackP[(*rhs / 4)] & 0xFF_FF_FF_FF;
                 final switch (*rhs & 3)
                 {
+
                 case 0:
                     (*lhsRef) = _dr & 0xFF;
                     break;
@@ -2072,6 +2085,6 @@ int[] testRelJmp()
 }
 
 static assert(interpret_(testRelJmp(), []) == BCValue(Imm32(12)));
-//import bc_test;
+import bc_test;
 
-//static assert(test!BCGen());
+static assert(test!BCGen());

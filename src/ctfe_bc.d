@@ -102,7 +102,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 import ddmd.ctfe.bc_common;
 
 enum perf = 1;
-enum cacheBC = 1;
+enum cacheBC = 0;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
@@ -508,9 +508,19 @@ struct SharedCtfeState(BCGenT)
     {
         import ddmd.root.rmem;
 
-        void* mem = allocmemory(maxHeapSize * uint.sizeof);
-        heap._heap = (cast(uint*) mem)[0 .. maxHeapSize];
-        heap.heapMax = (maxHeapSize) - 32;
+        if (heap.heapMax < maxHeapSize)
+        {
+            void* mem = allocmemory(maxHeapSize * uint.sizeof);
+            heap._heap = (cast(uint*) mem)[0 .. maxHeapSize];
+            heap.heapMax = maxHeapSize;
+        }
+        else
+        {
+            import core.stdc.string : memset;
+
+            memset(&heap._heap[0], 0, heap._heap[0].sizeof * heap.heapSize);
+            heap.heapSize = 4;
+        }
     }
 
     static if (is(BCFunction))
@@ -1038,6 +1048,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     uint fixupTableCount;
     uint processedArgs;
     uint uncompiledFunctionCount;
+    uint switchStateCount;
 
     BCGenT gen;
     alias gen this;
@@ -1062,6 +1073,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         continueFixupCount = 0;
         fixupTableCount = 0;
         processedArgs = 0;
+        switchStateCount = 0;
 
         arguments = [];
         parameterTypes = [];
@@ -1075,8 +1087,8 @@ extern (C++) final class BCV(BCGenT) : Visitor
         ignoreVoid = false;
 
         unrolledLoopState = null;
-        switchState = new SwitchState();
         switchFixup = null;
+        switchState = null;
         me = null;
         currentBlock = null;
 
@@ -1100,6 +1112,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     BCAddr[ubyte.max] continueFixups = void;
     BoolExprFixupEntry[ubyte.max] fixupTable = void;
     UncompiledFunction[ubyte.max] uncompiledFunctions = void;
+    SwitchState[16] switchStates = void;
 
     alias visit = super.visit;
 
@@ -1112,7 +1125,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         }
         else
         {
-            IGaveUp = true;
+            bailout();
             debug (ctfe)
                 assert(0, "Type unsupported " ~ (cast(Type)(t)).toString());
         else
@@ -1151,6 +1164,17 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
             --fixupTableCount;
         }
+    }
+
+    void bailout()
+    {
+        IGaveUp = true;
+        const fi = _sharedCtfeState.getFunctionIndex(me);
+        if (fi)
+            static if (is(BCFunction))
+            {
+                _sharedCtfeState.functions[fi - 1] = BCFunction(null);
+            }
     }
 
 public:
@@ -1233,7 +1257,7 @@ public:
             }
             else
             {
-                IGaveUp = true;
+                bailout();
                 assert(0, "passed too many arguments");
 
             }
@@ -1276,10 +1300,12 @@ public:
 
                 
 
+                || fd.ident == Identifier.idPool("_ArrayEq")
+
                 || fd.ident == Identifier.idPool("extSeparatorPos")
                 || fd.ident == Identifier.idPool("args") || fd.ident == Identifier.idPool("check"))
         {
-            IGaveUp = true;
+            bailout();
             debug (ctfe)
             {
                 import std.stdio;
@@ -1313,7 +1339,10 @@ public:
             import std.stdio;
 
             auto fnIdx = _sharedCtfeState.getFunctionIndex(me);
-            fnIdx = fnIdx ? fnIdx : ++_sharedCtfeState.functionCount;
+            static if (is(typeof(_sharedCtfeState.functionCount)))
+            {
+                fnIdx = fnIdx ? fnIdx : ++_sharedCtfeState.functionCount;
+            }
             beginFunction(fnIdx);
             visit(fbody);
             endFunction();
@@ -1337,6 +1366,9 @@ public:
 
             static if (is(typeof(_sharedCtfeState.functions)))
             {
+                //FIXME IMPORTANT PERFORMANCE!!!
+                // get rid of dup!
+
                 auto myPTypes = parameterTypes.dup;
                 auto myArgs = arguments.dup;
                 debug (ctfe)
@@ -1346,14 +1378,16 @@ public:
                 static if (is(BCGen))
                 {
                     _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
-                        BCFunctionTypeEnum.Bytecode, fnIdx,
-                        byteCodeArray[0 .. ip].dup, cast(uint) parameterTypes.length);
+                        BCFunctionTypeEnum.Bytecode,
+                        cast(ushort) parameterTypes.length, sp.addr,
+                        //FIXME IMPORTANT PERFORMANCE!!!
+                        // get rid of dup!
+                        cast(immutable) byteCodeArray[0 .. ip]);
                     clear();
                 }
                 else
                 {
-                    _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
-                        BCFunctionTypeEnum.Bytecode, fnIdx);
+                    _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
                 }
 
                 foreach (const ref uf; uncompiledFunctions[0 .. uncompiledFunctionCount])
@@ -1379,14 +1413,16 @@ public:
                     static if (is(BCGen))
                     {
                         _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
-                            BCFunctionTypeEnum.Bytecode, fnIdx,
-                            byteCodeArray[0 .. ip].dup, cast(uint) parameterTypes.length);
+                            BCFunctionTypeEnum.Bytecode,
+                            cast(ushort) parameterTypes.length, sp.addr, //FIXME IMPORTANT PERFORMANCE!!!
+                        // get rid of dup!
+
+                        byteCodeArray[0 .. ip].dup);
                         clear();
                     }
                     else
                     {
-                        _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
-                            BCFunctionTypeEnum.Bytecode, fnIdx);
+                        _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
                     }
 
                 }
@@ -1432,7 +1468,7 @@ public:
                 auto expr = genExpr(e.e1);
                 if (!canWorkWithType(expr.type))
                 {
-                    IGaveUp = true;
+                    bailout();
                     debug (ctfe)
                         assert(0, "only i32 is supported not " ~ to!string(expr.type.type));
                     return;
@@ -1454,7 +1490,7 @@ public:
                 auto expr = genExpr(e.e1);
                 if (!canWorkWithType(expr.type))
                 {
-                    IGaveUp = true;
+                    bailout();
                     debug (ctfe)
                         assert(0, "only i32 is supported not " ~ to!string(expr.type.type));
                     return;
@@ -1502,7 +1538,7 @@ public:
                     assert(cond);
                     else if (!cond)
                     {
-                        IGaveUp = true;
+                        bailout();
                         return;
                     }
 
@@ -1536,7 +1572,7 @@ public:
                 }
                 else
                 {
-                    IGaveUp = true;
+                    bailout();
                     debug (ctfe)
                         assert(0, "We cannot cat " ~ e.e1.toString ~ " and " ~ e.e2.toString);
                 }
@@ -1547,6 +1583,15 @@ public:
                 TOK.TOKand, TOK.TOKor, TOK.TOKshr, TOK.TOKshl:
                 auto lhs = genExpr(e.e1);
             auto rhs = genExpr(e.e2);
+            //FIXME IMPORRANT 
+            // The whole rhs == retval situation should be fixed in the bc evaluator
+            // since targets with native 3 address code can do this!
+
+            if (wasAssignTo && rhs == retval)
+            {
+                retval = genTemporary(rhs.type);
+            }
+
             if (canHandleBinExpTypes(lhs.type.type, rhs.type.type))
             {
                 const oldDiscardValue = discardValue;
@@ -1623,7 +1668,7 @@ public:
                     break;
                 default:
                     {
-                        IGaveUp = true;
+                        bailout();
                         debug (ctfe)
                             assert(0, "Binary Expression " ~ to!string(e.op) ~ " unsupported");
                         return;
@@ -1634,7 +1679,7 @@ public:
 
             else
             {
-                IGaveUp = true;
+                bailout();
                 debug (ctfe)
                 {
                     assert(0, "Only binary operations on i32s are supported");
@@ -1647,7 +1692,7 @@ public:
         case TOK.TOKoror:
         case TOK.TOKandand:
             {
-                IGaveUp = true;
+                bailout();
                 debug (ctfe)
                 {
                     assert(0, "|| and && are unsupported at the moment");
@@ -1665,7 +1710,7 @@ public:
             break;
         default:
             {
-                IGaveUp = true;
+                bailout();
                 debug (ctfe)
                     assert(0, "BinExp.Op " ~ to!string(e.op) ~ " not handeled");
             }
@@ -1677,7 +1722,7 @@ public:
     {
         debug (ctfe)
             assert(toBCType(se.type).type == BCTypeEnum.i32Ptr, "only int* is supported for now");
-        IGaveUp = true;
+        bailout();
         auto v = getVariable(cast(VarDeclaration) se.var);
         //retval = BCValue(v.stackAddr
         import std.stdio;
@@ -1713,7 +1758,7 @@ public:
                 assert(0,
                     "Unexpected IndexedType: " ~ to!string(indexed.type.type) ~ " ie: " ~ ie
                     .toString);
-            IGaveUp = true;
+            bailout();
             return;
         }
 
@@ -1811,7 +1856,7 @@ public:
             /*
         else
         {
-            IGaveUp = true;
+            bailout();
             debug (ctfe)
                 assert(0, "Type of IndexExp unsupported " ~ ie.e1.type.toString);
         }*/
@@ -1905,7 +1950,7 @@ public:
                 assert(cond, "No cond generated");
         else if (!cond)
                 {
-                    IGaveUp = true;
+                    bailout();
                     return;
                 }
 
@@ -1951,7 +1996,7 @@ public:
             writefln("Expression %s", e.toString);
 
         }
-        IGaveUp = true;
+        bailout();
         debug (ctfe)
             assert(0, "Cannot handleExpression: " ~ e.toString);
     }
@@ -1991,7 +2036,7 @@ public:
         }
         else
         {
-            IGaveUp = true;
+            bailout();
             debug (ctfe)
                 assert(0, "We don't handle [xx .. yy] for now");
         }
@@ -2015,7 +2060,7 @@ public:
                 {
                     debug (ctfe)
                         assert(0, "Field cannot be found " ~ dve.toString);
-                    IGaveUp = true;
+                    bailout();
                     return;
                 }
                 int offset = _struct.offset(fIndex);
@@ -2041,7 +2086,7 @@ public:
                     {
                         assert(0, "Unexpected: " ~ to!string(lhs.vType));
                     }
-                    IGaveUp = true;
+                    bailout();
                     return;
                 }
 
@@ -2062,7 +2107,7 @@ public:
         {
             debug (ctfe)
                 assert(0, "Can only take members of a struct for now");
-            IGaveUp = true;
+            bailout();
         }
 
     }
@@ -2085,7 +2130,7 @@ public:
         auto elmType = toBCType(ale.type.nextOf);
         if (elmType.type != BCTypeEnum.i32 && elmType.type != BCTypeEnum.Struct)
         {
-            IGaveUp = true;
+            bailout();
             debug (ctfe)
             {
                 assert(0,
@@ -2130,7 +2175,7 @@ public:
             {
                 debug (ctfe)
                     assert(0, "ArrayElement is not an i32 but an " ~ to!string(elexpr.type.type));
-                IGaveUp = true;
+                bailout();
             }
         }
         //        if (!oldInsideArrayLiteralExp)
@@ -2162,7 +2207,7 @@ public:
             assert(idx);
             else if (!idx)
             {
-                IGaveUp = true;
+                bailout();
                 return;
             }
         BCStruct _struct = _sharedCtfeState.structs[idx - 1];
@@ -2175,7 +2220,7 @@ public:
                     assert(0,
                         "can only deal with ints and uints atm. not: (" ~ to!string(ty.type) ~ ", " ~ to!string(
                         ty.typeIndex) ~ ")");
-                IGaveUp = true;
+                bailout();
                 return;
             }
         }
@@ -2208,7 +2253,7 @@ public:
                     assert(0,
                         "StructLiteralExp-Element " ~ elexpr.type.type.to!string
                         ~ " is currently not handeled");
-                IGaveUp = true;
+                bailout();
                 return;
             }
             if (!insideArgumentProcessing)
@@ -2247,7 +2292,7 @@ public:
             {
                 assert(0, "We could not find an indexed variable for " ~ de.toString);
             }
-            IGaveUp = true;
+            bailout();
             return;
         }
     }
@@ -2316,7 +2361,7 @@ public:
         {
             debug (ctfe)
                 assert(0, "We only handle StringLengths for now att: " ~ to!string(array.type.type));
-            IGaveUp = true;
+            bailout();
         }
         //Set(, array);
         //emitPrt(retval);
@@ -2340,7 +2385,7 @@ public:
         {
             debug (ctfe)
                 assert(0, "cannot get length without a valid arr");
-            IGaveUp = true;
+            bailout();
             return BCValue.init;
         }
     }
@@ -2375,14 +2420,14 @@ public:
 
             if (!ignoreVoid && sv.vType == BCValueType.VoidValue)
             {
-                IGaveUp = true;
+                bailout();
                 ve.error("Trying to read form an uninitialized Variable");
                 return;
             }
 
             if (sv == BCValue.init)
             {
-                IGaveUp = true;
+                bailout();
                 return;
             }
             retval = sv;
@@ -2432,7 +2477,7 @@ public:
             debug (ctfe)
                 assert(vd, "DeclarationExps are expected to be VariableDeclarations");
 
-            IGaveUp = true;
+            bailout();
             return;
         }
         visit(vd);
@@ -2526,7 +2571,7 @@ public:
         //FIXE we should not get into that situation!
         if (!lhs || !rhs)
         {
-            IGaveUp = true;
+            bailout();
             debug (ctfe)
                 assert(0, "We could not gen lhs or rhs");
             return;
@@ -2581,7 +2626,7 @@ public:
 
         case TOK.TOKcatass:
             {
-                IGaveUp = true;
+                bailout();
                 if (lhs.type.type == BCTypeEnum.String && rhs.type.type == BCTypeEnum.String)
                 {
                     assert(lhs.vType == BCValueType.StackValue,
@@ -2603,7 +2648,7 @@ public:
                 {
                     if (rhs.type.type != BCTypeEnum.i32)
                     {
-                        IGaveUp = true;
+                        bailout();
                         debug (ctfe)
                             assert(0, "rhs must not be i32 for now");
                         return;
@@ -2616,7 +2661,7 @@ public:
                     }
                     else
                     {
-                        IGaveUp = true;
+                        bailout();
                         debug (ctfe)
                             assert(0, "Can only concat on slices");
                         return;
@@ -2632,7 +2677,7 @@ public:
             break;
         default:
             {
-                IGaveUp = true;
+                bailout();
                 debug (ctfe)
                     assert(0, "Unsupported for now");
             }
@@ -2678,7 +2723,7 @@ public:
             writefln("RealExp %s", re.toString);
         }
 
-        IGaveUp = true;
+        bailout();
     }
 
     override void visit(ComplexExp ce)
@@ -2690,7 +2735,7 @@ public:
             writefln("ComplexExp %s", ce.toString);
         }
 
-        IGaveUp = true;
+        bailout();
     }
 
     override void visit(StringExp se)
@@ -2706,7 +2751,7 @@ public:
         {
             debug (ctfe)
                 assert(0, "only zero terminated char strings are supported for now");
-            IGaveUp = true;
+            bailout();
             return;
             //assert(se.string[se.len] == '\0', "string should be 0-terminated");
         }
@@ -2768,7 +2813,7 @@ public:
                 break;
 
             default:
-                IGaveUp = true;
+                bailout();
                 debug (ctfe)
                     assert(0, "Unsupported Operation " ~ to!string(ce.op));
             }
@@ -2779,7 +2824,7 @@ public:
                 assert(0,
                     "cannot work with thoose types lhs: " ~ to!string(lhs.type.type) ~ " rhs: " ~ to!string(
                     rhs.type.type));
-            IGaveUp = true;
+            bailout();
         }
     }
 
@@ -2801,7 +2846,7 @@ public:
         }
         else if (!ce.e1.type.equivalent(ce.e2.type) && !ce.type.baseElemOf.equivalent(ce.e2.type))
         {
-            IGaveUp = true;
+            bailout();
             debug (ctfe)
                 assert(0, "Appearntly the types are not equivalent");
             return;
@@ -2813,7 +2858,7 @@ public:
         //FIXME that should never happen
         if (!lhs || lhs.type.type == BCType.Undef)
         {
-            IGaveUp = true;
+            bailout();
             debug (ctfe)
                 assert(0, "could not get " ~ ce.e1.toString);
             return;
@@ -2850,7 +2895,7 @@ public:
         //FIXME that should never happen
         if (!rhs)
         {
-            IGaveUp = true;
+            bailout();
             return;
         }
         Set(lhs.i32, rhs.i32);
@@ -2886,14 +2931,14 @@ public:
             {
                 debug (ctfe)
                     assert(0, "only structs are supported for now");
-                IGaveUp = true;
+                bailout();
                 return;
             }
             auto structDeclPtr = ((cast(TypeStruct) dve.e1.type).sym);
             auto structTypeIndex = _sharedCtfeState.getStructIndex(structDeclPtr);
             if (!structTypeIndex)
             {
-                IGaveUp = true;
+                bailout();
                 debug (ctfe)
                     assert(0, "could not get StructType");
                 return;
@@ -2908,7 +2953,7 @@ public:
             assert(fIndex != -1, "field " ~ vd.toString ~ "could not be found in" ~ dve.e1.toString);
             if (bcStructType.memberTypes[fIndex].type != BCTypeEnum.i32)
             {
-                IGaveUp = true;
+                bailout();
                 debug (ctfe)
                     assert(0, "only i32 structMembers are supported for now");
                 return;
@@ -2921,7 +2966,7 @@ public:
             }
             if (rhs.type.type != BCTypeEnum.i32)
             {
-                IGaveUp = true;
+                bailout();
                 debug (ctfe)
                     assert(0, "only i32 are supported for now. not:" ~ rhs.type.type.to!string);
                 return;
@@ -2944,7 +2989,7 @@ public:
             auto arrayPtr = genExpr(ale.e1);
             if (!arrayPtr)
             {
-                IGaveUp = true;
+                bailout();
                 debug (ctfe)
                     assert(0, "I don't have an array to load the length from :(");
                 return;
@@ -3013,7 +3058,7 @@ public:
             auto indexed = genExpr(ie.e1);
             if (!indexed)
             {
-                IGaveUp = true;
+                bailout();
                 debug (ctfe)
                     assert(0, "could not fetch indexed_var in " ~ ae.toString);
                 return;
@@ -3021,7 +3066,7 @@ public:
             auto index = genExpr(ie.e2);
             if (!index)
             {
-                IGaveUp = true;
+                bailout();
                 debug (ctfe)
                     assert(0, "could not fetch index in " ~ ae.toString);
                 return;
@@ -3039,7 +3084,7 @@ public:
             Add3(effectiveAddr, effectiveAddr, bcFour);
             if (elemSize != 4)
             {
-                IGaveUp = true;
+                bailout();
                 debug (ctfe)
                     assert(0, "only 32 bit array loads are supported right now");
             }
@@ -3074,7 +3119,7 @@ public:
             }
             if (lhs.vType == BCValueType.Unknown || rhs.vType == BCValueType.Unknown)
             {
-                IGaveUp = true;
+                bailout();
                 debug (ctfe)
                     assert(0, "rhs or lhs do not exist " ~ ae.toString);
                 return;
@@ -3102,7 +3147,7 @@ public:
                 {
                     debug (ctfe)
                         assert(0, "I cannot work with toose types");
-                    IGaveUp = true;
+                    bailout();
                 }
             }
         }
@@ -3119,7 +3164,7 @@ public:
 
     override void visit(NegExp ne)
     {
-        IGaveUp = true;
+        bailout();
         debug (ctfe)
             assert(0, "NegExp (unary minus) expression not supported right now");
     }
@@ -3197,18 +3242,28 @@ public:
         {
             debug (ctfe)
                 assert(0, "Non Integral expression in assert");
-            IGaveUp = true;
+            bailout();
             return;
         }
     }
 
     override void visit(SwitchStatement ss)
     {
-        SwitchState* oldSwitchState = switchState;
-        switchState = new SwitchState();
+        switchState = &switchStates[switchStateCount++];
+        switchState.beginCaseStatementsCount = 0;
+        switchState.switchFixupTableCount = 0;
+
         scope (exit)
         {
-            switchState = oldSwitchState;
+            if (!switchStateCount)
+            {
+                switchState = null;
+                switchFixup = null;
+            }
+            else
+            {
+                switchState = &switchState[--switchStateCount];
+            }
         }
 
         with (switchState)
@@ -3224,14 +3279,14 @@ public:
             auto lhs = genExpr(ss.condition);
             if (!lhs)
             {
-                IGaveUp = true;
+                bailout();
                 debug (ctfe)
                     assert(0, "swtiching on undefined value " ~ ss.toString);
                 return;
             }
             if (lhs.type.type == BCTypeEnum.String || lhs.type.type == BCTypeEnum.Slice)
             {
-                IGaveUp = true;
+                bailout();
                 debug (ctfe)
                     assert(0, "StringSwitches unsupported for now " ~ ss.toString);
                 return;
@@ -3367,7 +3422,7 @@ public:
 
         if (cast(void*) ls.ident in labeledBlocks)
         {
-            IGaveUp = true;
+            bailout();
             return;
         }
         auto block = labeledBlocks[cast(void*) ls.ident] = genBlock(ls.statement);
@@ -3401,7 +3456,7 @@ public:
         }
         else if (unrolledLoopState)
         {
-            IGaveUp = true;
+            bailout();
             return;
             unrolledLoopState.continueFixups[unrolledLoopState.continueFixupCount++] = beginJmp();
         }
@@ -3453,7 +3508,6 @@ public:
 
     override void visit(CallExp ce)
     {
-
         BCValue[] bc_args;
         bc_args.length = ce.arguments.dim;
         foreach (i, arg; *ce.arguments)
@@ -3461,39 +3515,45 @@ public:
             bc_args[i] = genExpr(arg);
         }
         auto f = ce.f;
-        uint fnIdx = _sharedCtfeState.getFunctionIndex(f);
-        if (!fnIdx)
+        static if (is(BCFunction))
         {
-            // if we get here the function was not already there.
-            // allocate the next free function index, take note of the function
-            // and move on as if we had compiled it :)
-            // by defering this we avoid a host of nasty issues!
 
-            const oldFunctionCount = _sharedCtfeState.functionCount++;
-            fnIdx = oldFunctionCount + 1;
-
-            static if (is(_sharedCtfeState.functions))
+            uint fnIdx = _sharedCtfeState.getFunctionIndex(f);
+            if (!fnIdx && f)
             {
-                _sharedCtfeState.functions[oldFunctionCount] = BCFunction(f,
-                    BCFunctionTypeEnum.Bytecode, oldFunctionCount, null,
-                    cast(uint) f.parameters.dim);
-                uncompiledFunctions[uncompiledFunctionCount++] = UncompiledFunction(f,
-                    oldFunctionCount);
-
-            }
-            {
-                debug (ctfe)
+                // if we get here the function was not already there.
+                // allocate the next free function index, take note of the function
+                // and move on as if we had compiled it :)
+                // by defering this we avoid a host of nasty issues!
+                static if (is(typeof(_sharedCtfeState.functionCount)))
                 {
-                    assert(0, "We could not compile " ~ ce.toString);
+
+                    const oldFunctionCount = _sharedCtfeState.functionCount++;
+                    fnIdx = oldFunctionCount + 1;
+                    _sharedCtfeState.functions[fnIdx] = BCFunction(cast(void*) f);
+                    uncompiledFunctions[uncompiledFunctionCount++] = UncompiledFunction(f,
+                        oldFunctionCount);
+
                 }
                 else
                 {
-                    IGaveUp = true;
-                    return;
+                    debug (ctfe)
+                    {
+                        assert(0, "We could not compile " ~ ce.toString);
+                    }
+                else
+                    {
+                        // bailout();
+                        return;
+                    }
                 }
             }
+            Call(retval, BCValue(Imm32(fnIdx - 1)), bc_args);
         }
-        Call(retval, BCValue(Imm32(fnIdx - 1)), bc_args);
+        else
+        {
+
+        }
         return;
 
     }
@@ -3522,7 +3582,7 @@ public:
                         "could not handle returnStatement with BCType " ~ to!string(
                         retval.type.type));
                 }
-                IGaveUp = true;
+                bailout();
                 return;
             }
         }
@@ -3597,7 +3657,7 @@ public:
                 assert(cond);
         else if (!cond)
                 {
-                    IGaveUp = true;
+                    bailout();
                     return;
                 }
 
@@ -3617,7 +3677,7 @@ public:
 
             assert(0, "We don't handle WithStatements");
         }
-        IGaveUp = true;
+        bailout();
 
     }
 
@@ -3629,7 +3689,7 @@ public:
 
             writefln("Statement %s", s.toString);
         }
-        IGaveUp = true;
+        bailout();
         debug (ctfe)
             assert(0, "Statement unsupported " ~ s.toString);
     }
@@ -3662,7 +3722,7 @@ public:
             assert(cond);
             else if (!cond)
             {
-                IGaveUp = true;
+                bailout();
                 return;
             }
 
@@ -3674,7 +3734,6 @@ public:
         BCBlock elsebody = fs.elsebody ? genBlock(fs.elsebody) : BCBlock.init;
         endJmp(to_end, genLabel());
         endCndJmp(cj, elseLabel);
-
         doFixup(oldFixupTableCount, ifbody ? &ifbody.begin : null,
             elsebody ? &elsebody.begin : null);
         assert(oldFixupTableCount == fixupTableCount);
@@ -3710,7 +3769,7 @@ public:
                 }
                 else
                 {
-                    IGaveUp = true;
+                    bailout();
                     return;
                 }
             }
@@ -3718,7 +3777,7 @@ public:
         else
         {
             //TODO figure out if this is an invalid case.
-            //IGaveUp = true;
+            //bailout();
             return;
         }
     }

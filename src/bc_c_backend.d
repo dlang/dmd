@@ -95,7 +95,7 @@ pure:
     {
     }
 
-    void beginFunction()
+    void beginFunction(uint fn = 0)
     {
         sameLabel = false;
     }
@@ -599,4 +599,4 @@ int interpret(const C_BCGen gen)(BCValue[] args)
 
 import bc_test;
 
-//static assert(bc_test.test!C_BCGen);
+static assert(bc_test.test!C_BCGen);
