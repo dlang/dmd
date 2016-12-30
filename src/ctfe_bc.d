@@ -3805,10 +3805,8 @@ public:
         }
         if (!fd.functionSemantic3())
         {
-            bailout();
+            bailout("could not interpret (did not pass functionSemantic3())" ~ ce.toString);
             return;
-            //        assert(0, "could not interpret " ~ ce.toString);
-            // return cantInterpret();
         }
         BCValue[] bc_args;
         bc_args.length = ce.arguments.dim;
