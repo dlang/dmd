@@ -476,6 +476,9 @@ $(IMPDIR)\core\sys\linux\sys\auxv.d : src\core\sys\linux\sys\auxv.d
 $(IMPDIR)\core\sys\linux\sys\inotify.d : src\core\sys\linux\sys\inotify.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\linux\sys\prctl.d : src\core\sys\linux\sys\prctl.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\linux\sys\mman.d : src\core\sys\linux\sys\mman.d
 	copy $** $@
 
