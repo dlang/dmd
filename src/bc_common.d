@@ -1,5 +1,4 @@
 module ddmd.ctfe.bc_common;
-import ddmd.root.rmem;
 
 struct CndJmpBegin
 {
@@ -30,7 +29,7 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
     final switch (bct) with (BCTypeEnum)
     {
 
-    case undef:
+    case Undef:
         {
             debug (ctfe)
                 assert(0, "We should never encounter undef");
@@ -40,10 +39,6 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
         {
             //TODO add 64bit mode
             return  /* m64 ? 8 :*/ 4;
-        }
-    case i1:
-        {
-            return 1;
         }
     case i8, u8:
         {
@@ -71,12 +66,13 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
 
 bool isBasicBCType(BCTypeEnum bct) @safe pure
 {
-    return !(bct == BCTypeEnum.Struct || bct == BCTypeEnum.Array || bct == BCType.Slice);
+    return !(bct == BCTypeEnum.Struct || bct == BCTypeEnum.Array
+        || bct == BCType.Slice || bct == BCTypeEnum.Undef);
 }
 
 enum BCTypeEnum : ubyte
 {
-    undef,
+    Undef,
 
     Null,
     Void,
@@ -84,7 +80,6 @@ enum BCTypeEnum : ubyte
     i32Ptr,
 
     Char,
-    i1,
     // signed by default
     i8,
     i16,
@@ -122,13 +117,17 @@ enum BCValueType : ubyte
     Parameter = 0x2,
 
     StackValue = 0x4,
+    VoidValue = 0x20,
     Immediate = 0x8,
 
     HeapValue = 0x10,
 
-    Error = 0xFF, /// Pinned values can be returned
-    /// And should be kept in the compacted heap
+    LastCond = 0xFE,
+    Error = 0xFF, 
     //Pinned = 0x80,
+    /// Pinned values can be returned
+    /// And should be kept in the compacted heap
+
 }
 
 const(ubyte) toParamCode(const BCValue val) pure @safe @nogc
@@ -158,13 +157,7 @@ struct BCHeap
     HeapEntry[] entries;
     uint[] _heap = new uint[](2 ^^ 15);
     uint heapMax = (2 ^^ 15) - 32;
-    uint heapSize;
-
-    void initHeap()
-    {
-        _heap = (cast(uint*)(allocmemory((2 ^^ 24) * uint.sizeof)))[0 .. 2 ^^ 24];
-        heapMax = (2 ^^ 24) - 32;
-    }
+    uint heapSize = 4;
 
     HeapAddr pushString(const char* _string, const uint size) pure
     {
@@ -218,10 +211,10 @@ struct BCAddr
     uint addr;
     alias addr this;
 
-    T opCast(T : bool)()
-    {
-        return addr != 0;
-    }
+//    T opCast(T : bool)()
+//    {
+//        return addr != 0;
+//    }
 }
 
 struct BCParameter
@@ -294,6 +287,28 @@ struct BCValue
         void* voidStar;
     }
 
+    uint toUint() const pure
+    {
+        switch(this.vType)
+        {
+            case BCValueType.Parameter,
+            BCValueType.Temporary,
+            BCValueType.StackValue :
+               return stackAddr;
+            case BCValueType.HeapValue :
+                return heapAddr;
+            case BCValueType.Immediate :
+                return imm32;
+            default : 
+                {
+                    import std.conv : to;
+                    assert(0, "toUint not implement for " ~ vType.to!string);
+                }
+        }
+
+    }
+
+
     string toString() const pure
     {
         import std.format;
@@ -303,7 +318,7 @@ struct BCValue
     }
 
 @safe pure:
-    bool opCast(T : bool)()
+    bool opCast(T : bool)() const pure
     {
         return this.vType != vType.Unknown;
     }
@@ -314,7 +329,7 @@ struct BCValue
         {
             final switch (this.vType)
             {
-            case BCValueType.StackValue,
+            case BCValueType.StackValue, BCValueType.VoidValue,
                     BCValueType.Parameter:
                     return this.stackAddr == rhs.stackAddr;
             case BCValueType.Temporary:
@@ -341,7 +356,8 @@ struct BCValue
                 return false;
             case BCValueType.Error:
                 return false;
-
+            case BCValueType.LastCond:
+                return true;
             }
 
         }
@@ -403,6 +419,11 @@ struct BCValue
 }
 
 pragma(msg, "Sizeof BCValue: ", BCValue.sizeof);
+__gshared static immutable bcLastCond = () {
+    BCValue result;
+    result.vType = BCValueType.LastCond;
+    return result;
+}();
 __gshared static immutable bcFour = BCValue(Imm32(4));
 __gshared static immutable bcOne = BCValue(Imm32(1));
 __gshared static immutable bcZero = BCValue(Imm32(0));
@@ -454,7 +475,6 @@ template ensureIsBCGen(BCGenT)
     static assert(is(typeof(BCGenT.endCndJmp(CndJmpBegin.init,
         BCLabel.init)) == void),
         BCGenT.stringof ~ " is missing void endCndJmp(CndJmpBegin jmp, BCLabel target)");
-    //static assert(is(typeof(BCGenT.unresolvedLabel()) == BCLabel* ), BCGenT.stringof ~ " is missing BCLabel* unresolvedLabel()");
     static assert(is(typeof(BCGenT.genJump(BCLabel.init)) == void),
         BCGenT.stringof ~ " is missing void genJump(BCLabel target)");
     static assert(is(typeof(BCGenT.emitFlg(BCValue.init)) == void),

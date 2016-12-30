@@ -5,8 +5,11 @@ import std.conv;
 
 /**
  * Written By Stefan Koch in 2016
- * All Rights Reserved.
  */
+
+//IMPORTANT FIXME 
+// it becomes clear that supporting indirect instructions aka i32ptr
+// is a pretty bad idea in terms of performance.
 
 enum InstKind
 {
@@ -295,19 +298,23 @@ struct BCFunction
         BCValue function(const BCValue[] arguments, uint[] heapPtr, uint[] stackPtr) fPtr;
     }
 
-    this(void* fd, BCFunctionTypeEnum type, int nr, const int[] byteCode) pure
+    uint nArgs;
+    this(void* fd, BCFunctionTypeEnum type, int nr, const int[] byteCode, uint nArgs) pure
     {
         this.funcDecl = fd;
         this.nr = nr;
         this.type = BCFunctionTypeEnum.Builtin;
         this.byteCode = cast(immutable(int)[]) byteCode;
+        this.nArgs = nArgs;
     }
 
-    this(int nr, BCValue function(const BCValue[] arguments, uint[] heapPtr) _fBuiltin) pure
+    this(int nr, BCValue function(const BCValue[] arguments, uint[] heapPtr) _fBuiltin,
+        uint nArgs) pure
     {
         this.nr = nr;
         this.type = BCFunctionTypeEnum.Builtin;
         this._fBuiltin = _fBuiltin;
+        this.nArgs = nArgs;
     }
 
     debug
@@ -318,18 +325,13 @@ struct BCFunction
 
 struct BCGen
 {
-    int[ushort.max] byteCodeArray;
+    int[ushort.max / 4] byteCodeArray = void;
     /// ip starts at 4 because 0 should be an invalid address;
     BCAddr ip = BCAddr(4);
     StackAddr sp = StackAddr(4);
     ubyte parameterCount;
-
-    BCLabel[short.max / 4] unresolvedLabels;
-
-    uint conditionsUsedFlags = 0b11111;
-
-    short unreslovedLabelCount;
-    ubyte temporaryCount;
+    ushort temporaryCount;
+    uint functionId;
 @safe pure:
     auto interpret(BCValue[] args, BCHeap* heapPtr) const
     {
@@ -363,16 +365,37 @@ struct BCGen
         return BCValue(StackAddr(tmpAddr), bct, ++temporaryCount);
     }
 
+    BCValue genTemporary(uint size, BCType bct)
+    {
+        auto tmpAddr = sp.addr;
+        sp += align4(size);
+
+        return BCValue(StackAddr(tmpAddr), bct, ++temporaryCount);
+    }
+
     void Initialize()
     {
+        parameterCount = 0;
+        temporaryCount = 0;
+        byteCodeArray[0] = 0;
+        byteCodeArray[1] = 0;
+        byteCodeArray[2] = 0;
+        byteCodeArray[3] = 0;
+
+        ip = BCAddr(4);
+        sp = StackAddr(4);
     }
 
     void Finalize()
     {
+        // the [ip-1] may be wrong in some cases ?
+        byteCodeArray[ip - 1] = 0;
+        byteCodeArray[ip] = 0;
     }
 
-    void beginFunction()
+    void beginFunction(uint fnId = 0)
     {
+        functionId = fnId;
     }
 
     void endFunction()
@@ -452,11 +475,6 @@ struct BCGen
         byteCodeArray[atIp + 1] = lj.hi;
     }
 
-    BCLabel* unresolvedLabel()
-    {
-        return &unresolvedLabels[unreslovedLabelCount++];
-    }
-
     void genJump(BCLabel target)
     {
         assert(target.addr);
@@ -471,14 +489,19 @@ struct BCGen
     {
         assert(lhs.vType == BCValueType.StackValue, "Can only store flags in Stack Values");
         byteCodeArray[ip] = ShortInst16(LongInst.Flg, lhs.stackAddr.addr);
+        byteCodeArray[ip + 1] = 0;
         ip += 2;
     }
 
     void Alloc(BCValue heapPtr, BCValue size)
     {
-        assert(size.vType == BCValueType.StackValue
-            && size.type.type == BCTypeEnum.i32, "Size for alloc needs to be an i32");
-        assert(heapPtr.vType == BCValueType.StackValue);
+        assert(size.type.type == BCTypeEnum.i32, "Size for alloc needs to be an i32");
+        if (size.vType == BCValueType.Immediate)
+        {
+            size = pushOntoStack(size);
+        }
+        assert(size.vType == BCValueType.StackValue || size.vType == BCValueType.Parameter);
+        assert(heapPtr.vType == BCValueType.StackValue || heapPtr.vType == BCValueType.Parameter);
         emitLongInst(LongInst64(LongInst.Alloc, heapPtr.stackAddr, size.stackAddr));
     }
 
@@ -508,6 +531,7 @@ struct BCGen
             val = pushOntoStack(val);
 
         byteCodeArray[ip] = ShortInst16(LongInst.Not, val.stackAddr);
+        byteCodeArray[ip + 1] = 0;
         ip += 2;
     }
 
@@ -518,8 +542,7 @@ struct BCGen
         assert(lhs.vType.StackValue, "only StackValues are supported as lhs");
         // FIXME remove the lhs.type == BCTypeEnum.Char as soon as we convert correctly.
         assert(lhs.type == BCTypeEnum.i32 || lhs.type == BCTypeEnum.i32Ptr
-            || lhs.type == BCTypeEnum.i64 || lhs.type == BCTypeEnum.Char
-            || lhs.type == BCTypeEnum.i1,
+            || lhs.type == BCTypeEnum.i64 || lhs.type == BCTypeEnum.Char,
             "only i32 or i32Ptr is supported for now not: " ~ to!string(lhs.type.type));
 
         immutable bool isIndirect = lhs.type == BCTypeEnum.i32Ptr;
@@ -748,6 +771,7 @@ struct BCGen
 
     void Call(BCValue result, BCValue fn, BCValue[] args, short spOffset = 0)
     {
+        // returnInformations[callDepth++] = ReturnInformation(FunctionId, ip);
         StackAddr oldSp = currSp();
         auto returnAddr = StackAddr(currSp());
         StackAddr nextSp = StackAddr(cast(short)(returnAddr.addr + args.length * 4));
@@ -808,23 +832,34 @@ struct BCGen
 
     void Load32(BCValue _to, BCValue from)
     {
-        assert(_to.vType == BCValueType.StackValue
-            || _to.vType == BCValueType.Parameter, "to has the vType " ~ to!string(_to.vType));
         if (from.vType != BCValueType.StackValue)
         {
             from = pushOntoStack(from);
         }
+        if (_to.vType != BCValueType.StackValue)
+        {
+            _to = pushOntoStack(_to);
+        }
+        assert(_to.vType == BCValueType.StackValue
+            || _to.vType == BCValueType.Parameter, "to has the vType " ~ to!string(_to.vType));
+
         emitLongInst(LongInst64(LongInst.HeapLoad32, _to.stackAddr, from.stackAddr));
     }
 
     void Store32(BCValue _to, BCValue value)
     {
-        assert(_to.vType == BCValueType.StackValue
-            || _to.vType == BCValueType.Parameter, "to has the vType " ~ to!string(_to.vType));
         if (value.vType != BCValueType.StackValue)
         {
             value = pushOntoStack(value);
         }
+        if (_to.vType != BCValueType.StackValue)
+        {
+            _to = pushOntoStack(_to);
+        }
+
+        assert(_to.vType == BCValueType.StackValue
+            || _to.vType == BCValueType.Parameter, "to has the vType " ~ to!string(_to.vType));
+
         emitLongInst(LongInst64(LongInst.HeapStore32, _to.stackAddr, value.stackAddr));
     }
 
@@ -860,6 +895,7 @@ struct BCGen
 
             byteCodeArray[ip] = ShortInst16(LongInst.Ret, val.stackAddr,
                 val.type == BCTypeEnum.i32Ptr);
+            byteCodeArray[ip + 1] = 0;
             ip += 2;
         }
         else if (val.vType == BCValueType.Immediate)
@@ -867,6 +903,7 @@ struct BCGen
             auto sv = pushOntoStack(val);
             assert(sv.vType == BCValueType.StackValue);
             byteCodeArray[ip] = ShortInst16(LongInst.Ret, sv.stackAddr);
+            byteCodeArray[ip + 1] = 0;
             ip += 2;
         }
         else
@@ -889,7 +926,7 @@ struct BCGen
 
         version (boundscheck)
         {
-            auto condResult = genTemporary(BCType.i1).value;
+            auto condResult = genTemporary(BCType.i32).value;
             Lt3(condResult, idx, arrayLength);
             Assert(condResult, "Index ", idx, " is bigger then ArrayLength ", arrayLength);
         }
@@ -1326,14 +1363,27 @@ string printInstructions(const int* startInstructions, uint length) pure
     return result ~ "\n EndInstructionDump";
 }
 
-BCValue interpret(const BCGen* gen, const BCValue[] args,
-    BCFunction* functions = null, BCHeap* heapPtr = null) pure @safe
+static if (is(typeof(() { import ddmd.ctfe.ctfe_bc : RetainedError;  })))
 {
-    return interpret_(gen.byteCodeArray[0 .. gen.ip], args, heapPtr, functions);
+    import ddmd.ctfe.ctfe_bc : RetainedError;
+
+    alias RE = RetainedError;
+}
+else
+{
+    alias RE = void;
+}
+BCValue interpret(const BCGen* gen, const BCValue[] args,
+    BCFunction* functions = null, BCHeap* heapPtr = null, BCValue* ev1 = null,
+    BCValue* ev2 = null, const RE* errors = null) pure @safe
+{
+    return interpret_(gen.byteCodeArray[0 .. gen.ip], args, heapPtr, functions, ev2,
+        ev2, errors);
 }
 
 BCValue interpret_(const int[] byteCode, const BCValue[] args,
     BCHeap* heapPtr = null, const BCFunction* functions = null,
+    BCValue* ev1 = null, BCValue* ev2 = null, const RE* errors = null,
     long[] stackPtr = null, uint stackOffset = 4) pure @trusted
 {
     import std.conv;
@@ -1395,7 +1445,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
     BCValue returnValue;
 
     // debug(bc) { import std.stdio; writeln("BC.len = ", byteCode.length); }
-    if (byteCode.length < 6)
+    if (byteCode.length < 6 || byteCode.length <= ip)
         return typeof(return).init;
 
     while (true)
@@ -1412,16 +1462,13 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                 }
             }
 
-        if (byteCode.length <= ip)
-
-            return typeof(return).init;
         const lw = byteCode[ip++];
 
         if (!lw)
         { // Skip NOPS
             continue;
         }
-
+        // consider splitting the stackPointer in stackHigh and stackLow
         const hi = byteCode[ip++];
 
         bool indirect = !!(lw & IndirectionFlagMask);
@@ -1649,15 +1696,59 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                 {
                     BCValue retval = BCValue(Imm32((*rhs) & uint.max));
                     retval.vType = BCValueType.Error;
+                    static if (is(RetainedError))
+                    {
+                        auto err = errors[cast(uint)(*rhs - 1)];
+                        if (err.v1.vType != BCValueType.Immediate)
+                        {
+                            *ev1 = BCValue(Imm32(stack[err.v1.toUint / 4] & uint.max));
+                        }
+                        else
+                        {
+                            *ev1 = err.v1;
+                        }
+
+                        if (err.v2.vType != BCValueType.Immediate)
+                        {
+                            *ev2 = BCValue(Imm32(stack[err.v2.toUint / 4] & uint.max));
+                        }
+                        else
+                        {
+                            *ev2 = err.v2;
+                        }
+                    }
                     return retval;
                 }
-            } break;
+            }
+            break;
         case LongInst.AssertCnd:
             {
                 if (!cond)
                 {
                     BCValue retval = BCValue(Imm32((*rhs) & uint.max));
                     retval.vType = BCValueType.Error;
+                    static if (is(RetainedError))
+                    {
+
+                        auto err = errors[cast(uint)(*rhs - 1)];
+                        if (err.v1.vType != BCValueType.Immediate)
+                        {
+                            *ev1 = BCValue(Imm32(stack[err.v1.toUint / 4] & uint.max));
+                        }
+                        else
+                        {
+                            *ev1 = err.v1;
+                        }
+
+                        if (err.v2.vType != BCValueType.Immediate)
+                        {
+                            *ev2 = BCValue(Imm32(stack[err.v2.toUint / 4] & uint.max));
+                        }
+                        else
+                        {
+                            *ev2 = err.v2;
+                        }
+                    }
                     return retval;
                 }
             }
@@ -1938,7 +2029,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                     continue;
                 }
                 returnValue = interpret_((functions + opRefOffset).byteCode,
-                    args, heapPtr, functions, stack, stackOffsetCall);
+                    args, heapPtr, functions, ev1, ev2, errors, stack, stackOffsetCall);
 
             }
             break;
@@ -1965,6 +2056,7 @@ int[] testRelJmp()
     BCGen gen;
     with (gen)
     {
+        Initialize();
         auto result = genTemporary(i32Type);
         Set(result, BCValue(Imm32(2)));
         auto evalCond = genLabel();
@@ -1974,12 +2066,11 @@ int[] testRelJmp()
         endCndJmp(cndJmp, genLabel());
         Add3(result, result, BCValue(Imm32(1)));
         genJump(evalCond);
-
+        Finalize();
         return byteCodeArray[0 .. ip].dup;
     }
 }
 
-pragma(msg, printInstructions(testRelJmp));
 static assert(interpret_(testRelJmp(), []) == BCValue(Imm32(12)));
 //import bc_test;
 
