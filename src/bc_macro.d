@@ -69,7 +69,7 @@ void StringEq3Macro(BCGen)(BCGen* gen, BCValue _result, BCValue lhs, BCValue rhs
         auto p1 = lhs.i32; //SP[4]
         auto p2 = rhs.i32; //SP[8]
         auto p3 = genTemporary(BCType(BCTypeEnum.i32)); //SP[12]
-        auto p4 = _result.i32; //SP[16]
+        auto p4 = (_result ? _result.i32 : genTemporary(BCType(BCTypeEnum.i32))); //SP[16]
         Set(p4, BCValue(Imm32(0)));
         auto tmp1 = genTemporary(BCType(BCTypeEnum.i32)); //SP[20]
         auto tmp2 = genTemporary(BCType(BCTypeEnum.i32)); //SP[24]
@@ -125,8 +125,8 @@ void StringEq3Macro(BCGen)(BCGen* gen, BCValue _result, BCValue lhs, BCValue rhs
         auto label8 = genLabel();
         endCndJmp(cndJmp2, label8);
         auto label9 = genLabel();
-
         endCndJmp(cndJmp1, label9);
+        if (!_result) Eq3(BCValue.init, p4, BCValue(Imm32(1)));
     }
 }
 
@@ -141,36 +141,36 @@ void StringEq3Macro(BCGen)(BCGen* gen, BCValue _result, BCValue lhs, BCValue rhs
       return (size - 1) / 4 + 2 + ((size & 3) == 0);
  }
 ----
- */ 
+ */
 void ArraySizeForStringLengthMacro(BCGen)(BCGen* gen, BCValue result, BCValue stringLength)
 {
-	auto tmp2 = genTemporary(BCType(BCTypeEnum.i32));//SP[12]
-	auto tmp3 = genTemporary(BCType(BCTypeEnum.i32));//SP[16]
-	auto tmp4 = genTemporary(BCType(BCTypeEnum.i32));//SP[20]
-	Sub3(tmp4, stringLength, BCValue(Imm32(1)));
-	Div3(tmp3, tmp4, BCValue(Imm32(4)));
-	Add3(tmp2, tmp3, BCValue(Imm32(2)));
-	auto tmp5 = genTemporary(BCType(BCTypeEnum.i32));//SP[24]
-	auto tmp6 = genTemporary(BCType(BCTypeEnum.i32));//SP[28]
-	And3(tmp6, stringLength, BCValue(Imm32(3)));
-	Eq3(tmp5, tmp6, BCValue(Imm32(0)));
-	Add3(result, tmp2, tmp5);
+    auto tmp2 = genTemporary(BCType(BCTypeEnum.i32));//SP[12]
+    auto tmp3 = genTemporary(BCType(BCTypeEnum.i32));//SP[16]
+    auto tmp4 = genTemporary(BCType(BCTypeEnum.i32));//SP[20]
+    Sub3(tmp4, stringLength, BCValue(Imm32(1)));
+    Div3(tmp3, tmp4, BCValue(Imm32(4)));
+    Add3(tmp2, tmp3, BCValue(Imm32(2)));
+    auto tmp5 = genTemporary(BCType(BCTypeEnum.i32));//SP[24]
+    auto tmp6 = genTemporary(BCType(BCTypeEnum.i32));//SP[28]
+    And3(tmp6, stringLength, BCValue(Imm32(3)));
+    Eq3(tmp5, tmp6, BCValue(Imm32(0)));
+    Add3(result, tmp2, tmp5);
 }
-/** This Macro is hand translated from 
+/** This Macro is hand translated from
 auto strcat(const uint[] a, const uint[] b)
 {
-	uint aLength = a[0];
-	uint bLength = b[0];
-	uint resultLength = a[0] + b[0];
-	uint[] result;
-	result.length = neededArraySize(resultLength);
-	result[0] = resultLength;
-	auto resultPosition = 1;
-	auto aMinusOne = !(aLength & 3);
-	foreach (p, ca; a[1..$ - aMinusOne])
-	{
-		result[resultPosition++] = ca;
-	}
+    uint aLength = a[0];
+    uint bLength = b[0];
+    uint resultLength = a[0] + b[0];
+    uint[] result;
+    result.length = neededArraySize(resultLength);
+    result[0] = resultLength;
+    auto resultPosition = 1;
+    auto aMinusOne = !(aLength & 3);
+    foreach (p, ca; a[1..$ - aMinusOne])
+    {
+        result[resultPosition++] = ca;
+    }
 
         immutable uint offset = aLength & 3;
         if (offset)
@@ -189,60 +189,60 @@ auto strcat(const uint[] a, const uint[] b)
                         result[resultPosition] |= (cb & SecondAnd) >> FourMinusOffsetTimesEight;
                 }
         }
-	else
-	{
-	auto bMinusOne = !(bLength & 3);
-		foreach (p, cb; b[1..$ - bMinusOne])
-		{
-			result[resultPosition++] = cb;
-		}
-	}
-	return result;
+    else
+    {
+    auto bMinusOne = !(bLength & 3);
+        foreach (p, cb; b[1..$ - bMinusOne])
+        {
+            result[resultPosition++] = cb;
+        }
+    }
+    return result;
 }
  */
 void StringCat3Macro(BCGen)(BCGen* gen, BCValue _result, BCValue lhs, BCValue rhs)
 {
-	auto aLength = genTemporary(i32Type);
-	auto bLength = genTemporary(i32Type);
-	Load32(aLength, lhs.i32);
-	Load32(bLength, rhs.i32);
+    auto aLength = genTemporary(i32Type);
+    auto bLength = genTemporary(i32Type);
+    Load32(aLength, lhs.i32);
+    Load32(bLength, rhs.i32);
 
-	auto resultLength = genTemporary(i32Type);
-	Add3(resultLength, aLength, bLength);
+    auto resultLength = genTemporary(i32Type);
+    Add3(resultLength, aLength, bLength);
 
-	auto allocSize = genTemporary(i32Type);
-	ArraySizeForStringLengthMacro(gen, allocSize, resultLength);
-	Alloc(_result, allocSize);
-	Store32(_result, resultLength);
-	auto resultPosition = genTemporary(i32Type);
-	Add3(resultPosition, resultPosition, bcFour);
+    auto allocSize = genTemporary(i32Type);
+    ArraySizeForStringLengthMacro(gen, allocSize, resultLength);
+    Alloc(_result, allocSize);
+    Store32(_result, resultLength);
+    auto resultPosition = genTemporary(i32Type);
+    Add3(resultPosition, resultPosition, bcFour);
 
-	auto offset = genTemporary(i32Type);
-	And3(offset, aLength, BCValue(Imm32(3)));
+    auto offset = genTemporary(i32Type);
+    And3(offset, aLength, BCValue(Imm32(3)));
 
-	auto offsetZero = genTemporary(i32Type);
-	Eq3(offsetZero, offset, bcZero);
+    auto offsetZero = genTemporary(i32Type);
+    Eq3(offsetZero, offset, bcZero);
 
-	auto aPosition = genTemporary(i32Type);
-	Add3(aPosition, lhs.i32, bcFour);
-	auto aEnd = genTemporary(i32Type);
-	ArraySizeForStringLengthMacro(gen, aEnd, resultLength);
-	Sub3(aEnd, aEnd, offsetZero);
+    auto aPosition = genTemporary(i32Type);
+    Add3(aPosition, lhs.i32, bcFour);
+    auto aEnd = genTemporary(i32Type);
+    ArraySizeForStringLengthMacro(gen, aEnd, resultLength);
+    Sub3(aEnd, aEnd, offsetZero);
 
-	Ge3(BCValue.init, aPosition, aEnd);
-	// Or do we have to switch the loop condition ?
-	auto aCopyLoop = beginCndJmp();
-	{
-		auto aCopyElement = genTemporary(i32Type);
-		Load32(aCopyElement, aPosition);
-		Add3(aPosition, aPosition, bcFour);
-		Store32(resultPosition, aCopyElement);
-		Add3(resultPosition, resultPosition, bcFour);
-	}
-	endCndJmp(aCopyLoop, genLabel());
+    Ge3(BCValue.init, aPosition, aEnd);
+    // Or do we have to switch the loop condition ?
+    auto aCopyLoop = beginCndJmp();
+    {
+        auto aCopyElement = genTemporary(i32Type);
+        Load32(aCopyElement, aPosition);
+        Add3(aPosition, aPosition, bcFour);
+        Store32(resultPosition, aCopyElement);
+        Add3(resultPosition, resultPosition, bcFour);
+    }
+    endCndJmp(aCopyLoop, genLabel());
 
-	auto withOffset = beginCndJmp(offsetZero);
-	{
+    auto withOffset = beginCndJmp(offsetZero);
+    {
 
-	}
+    }
 }

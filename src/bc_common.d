@@ -123,7 +123,7 @@ enum BCValueType : ubyte
     HeapValue = 0x10,
 
     LastCond = 0xFE,
-    Error = 0xFF, 
+    Error = 0xFF,
     //Pinned = 0x80,
     /// Pinned values can be returned
     /// And should be kept in the compacted heap
@@ -242,6 +242,12 @@ struct Imm32
     alias imm32 this;
 }
 
+
+BCValue imm32(uint value) pure @safe
+{
+    return BCValue(Imm32(value));
+}
+
 struct Imm64
 {
     ulong imm64;
@@ -299,7 +305,8 @@ struct BCValue
                 return heapAddr;
             case BCValueType.Immediate :
                 return imm32;
-            default : 
+            case BCValueType.Unknown : return this.imm32;
+            default :
                 {
                     import std.conv : to;
                     assert(0, "toUint not implement for " ~ vType.to!string);
@@ -447,10 +454,10 @@ template BCGenFunction(T, alias fn)
 
 template ensureIsBCGen(BCGenT)
 {
-    static assert(is(typeof(BCGenT.beginFunction()) == void),
-        BCGenT.stringof ~ " is missing void beginFunction()");
-    static assert(is(typeof(BCGenT.endFunction()) == void),
-        BCGenT.stringof ~ " is missing void endFunction()");
+    static assert(is(typeof(BCGenT.beginFunction(uint.init)) == void),
+        BCGenT.stringof ~ " is missing void beginFunction(uint)");
+    static assert(is(typeof(BCGenT.endFunction())),
+        BCGenT.stringof ~ " is missing endFunction()");
     static assert(is(typeof(BCGenT.Initialize()) == void),
         BCGenT.stringof ~ " is missing void Initialize()");
     static assert(is(typeof(BCGenT.Finalize()) == void),

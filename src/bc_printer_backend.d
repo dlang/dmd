@@ -172,7 +172,6 @@ struct Print_BCGen
     void beginFunction(uint f = 0)
     {
         sameLabel = false;
-      //  result ~= "    beginFunction(" ~ to!string(currentFunctionStateNumber) ~ ");\n";
         result ~= "    beginFunction(" ~ to!string(f) ~ ");\n";
     }
 
@@ -249,8 +248,8 @@ struct Print_BCGen
 
     void Set(BCValue lhs, BCValue rhs)
     {
-		if (lhs == rhs)
-			return;
+        if (lhs == rhs)
+            return;
         sameLabel = false;
         result ~= "    Set(" ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
     }
@@ -407,6 +406,7 @@ struct Print_BCGen
 
     void AssertError(BCValue value, BCValue err)
     {
+        sameLabel = false;
         result ~= "    AssertError(" ~ print(value) ~ ", " ~ print(err) ~ ");\n";
     }
 }
