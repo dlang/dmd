@@ -1,4 +1,4 @@
-/* REQUIRED_ARGS: -dip25 -transition=safe
+/* REQUIRED_ARGS: -dip1000
    PERMUTE_ARGS:
    TEST_OUTPUT:
 ---
