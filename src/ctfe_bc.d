@@ -11,7 +11,6 @@ import ddmd.statement;
 import ddmd.visitor;
 import ddmd.arraytypes : Expressions;
 
-debug = ctfe;
 /**
  * Written By Stefan Koch in 2016
  */
@@ -876,6 +875,15 @@ Expression toExpression(const BCValue value, Type expressionType,
     import ddmd.parse : Loc;
 
     Expression result;
+    if (value.vType == BCValueType.Unknown)
+    {
+        debug (ctfe)
+        {
+            assert(0, "return value was not set");
+        }
+
+        return null;
+    }
 
     if (value.vType == BCValueType.Error)
     {
@@ -1967,14 +1975,9 @@ public:
         //Everything has to be of made up of immediates
         if (insideArgumentProcessing)
         {
-            import std.stdio;
-
-            writeln("ie.e1.op ", ie.e1.op.to!string);
-            writeln("ie.e2.op ", ie.e2.op.to!string);
-            assert(ie.e2.op == TOKint64);
-            auto idx = cast(uint)(cast(IntegerExp) ie.e2).toInteger;
-            if (ie.e1.op == TOKvar)
+            if (ie.e1.op == TOKvar && ie.e2.op == TOKint64)
             {
+                auto idx = cast(uint)(cast(IntegerExp) ie.e2).toInteger;
                 if (auto vd = (cast(VarExp) ie.e1).var.isVarDeclaration)
                 {
                     import ddmd.declaration : STCmanifest;
@@ -1986,25 +1989,13 @@ public:
                         {
                             auto al = cast(ArrayLiteralExp) ci;
                             //auto galp = _sharedCtfeState.getGlobalArrayLiteralPointer(al);
-                            foreach (i, elm; *al.elements)
-                            {
-                                if (i == idx)
-                                {
-                                    retval = genExpr(elm);
-                                    return;
-                                }
-                                assert(0);
-                            }
+                            retval = genExpr(al.elements.opIndex(idx));
+                            return ;
                         }
-                        writeln(ci.op.to!string);
                     }
-
-                    import ddmd.asttypename;
-
-                    writeln("VD:", vd.getConstInitializer().astTypeName);
                 }
             }
-
+            assert(0, "Arguments are not allowed to go here ... they shall not pass");
         }
 
         auto indexed = genExpr(ie.e1);
