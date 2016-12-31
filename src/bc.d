@@ -10,8 +10,6 @@ import std.conv;
 //IMPORTANT FIXME
 // it becomes clear that supporting indirect instructions aka i32ptr
 // is a pretty bad idea in terms of performance.
-debug = bc;
-debug = bc_stack;
 enum InstKind
 {
     ShortInst,
@@ -923,7 +921,7 @@ struct BCGen
 
     void Ret(BCValue val)
     {
-        if (val.vType == BCValueType.StackValue)
+        if (val.vType == BCValueType.StackValue || val.vType == BCValueType.Parameter)
         {
 
             byteCodeArray[ip] = ShortInst16(LongInst.Ret, val.stackAddr,
@@ -941,7 +939,6 @@ struct BCGen
         }
         else
         {
-            debug (bc)
                 assert(0, "I cannot deal with this type of return");
         }
     }
