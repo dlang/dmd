@@ -142,17 +142,17 @@ DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$
 
 # D front end
 FRONT_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d	\
-	arraytypes.d attrib.d builtin.d canthrow.d clone.d complex.d		\
-	cond.d constfold.d cppmangle.d ctfeexpr.d dcast.d dclass.d		\
-	declaration.d delegatize.d denum.d dimport.d dinifile.d dinterpret.d	\
-	dmacro.d dmangle.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d		\
-	dtemplate.d dversion.d entity.d errors.d escape.d			\
+	arraytypes.d attrib.d builtin.d asttypename.d bc.d bc_common.d		\
+	bc_macro.d bc_printer_backend.d bc_c_backend.d ctfe_bc.d bc_test.d	\
+	canthrow.d clone.d complex.d cond.d constfold.d cppmangle.d ctfeexpr.d	\
+	dcast.d dclass.d declaration.d delegatize.d denum.d dimport.d		\
+	dinifile.d dinterpret.d dmacro.d dmangle.d dmodule.d doc.d dscope.d	\
+	dstruct.d dsymbol.d dtemplate.d dversion.d entity.d errors.d escape.d	\
 	expression.d func.d globals.d hdrgen.d id.d identifier.d imphint.d	\
 	impcnvtab.d init.d inline.d intrange.d json.d lexer.d lib.d link.d	\
 	mars.d mtype.d nogc.d nspace.d objc_stubs.d opover.d optimize.d parse.d	\
 	sapply.d sideeffect.d statement.d staticassert.d target.d tokens.d	\
-	safe.d \
-	traits.d utf.d utils.d visitor.d libomf.d scanomf.d typinf.d \
+	safe.d traits.d utf.d utils.d visitor.d libomf.d scanomf.d typinf.d	\
 	libmscoff.d scanmscoff.d statementsem.d
 
 GLUE_SRCS=irstate.d toctype.d glue.d gluelayer.d todt.d tocsym.d toir.d dmsc.d \
