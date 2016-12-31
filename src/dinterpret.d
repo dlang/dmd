@@ -711,7 +711,7 @@ extern (C++) Expression ctfeInterpret(Expression e)
 {
     if (e.op == TOKerror)
         return e;
-    assert(e.type); // Bugzilla 14642
+    assert(e.type); // https://issues.dlang.org/show_bug.cgi?id=14642
     //assert(e.type.ty != Terror);    // FIXME
     if (e.type.ty == Terror)
         return new ErrorExp();
@@ -949,7 +949,8 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
             ctfeStack.push(vx);
             assert(!hasValue(vx)); // vx is made uninitialized
 
-            // Bugzilla 14299: v.ctfeAdrOnStack should be saved already
+            // https://issues.dlang.org/show_bug.cgi?id=14299
+            // v.ctfeAdrOnStack should be saved already
             // in the stack before the overwrite.
             v.ctfeAdrOnStack = oldadr;
             assert(hasValue(v)); // ref parameter v should refer existing value.
@@ -2325,7 +2326,8 @@ public:
                 }
                 else if (v.isDataseg() || (v.storage_class & STCmanifest))
                 {
-                    /* Bugzilla 14304: e is a value that is not yet owned by CTFE.
+                    /* https://issues.dlang.org/show_bug.cgi?id=14304
+                     * e is a value that is not yet owned by CTFE.
                      * Mark as "cached", and use it directly during interpretation.
                      */
                     e = scrubCacheValue(v.loc, e);
@@ -3084,7 +3086,8 @@ public:
                 if (exceptionOrCant(ctorfail))
                     return;
 
-                /* Bugzilla 14465: Repaint the loc, because a super() call
+                /* https://issues.dlang.org/show_bug.cgi?id=14465
+                 * Repaint the loc, because a super() call
                  * in the constructor modifies the loc of ClassReferenceExp
                  * in CallExp::interpret().
                  */
@@ -3818,7 +3821,7 @@ public:
                 return;
 
             // Determine the return value
-            if (goal == ctfeNeedLvalue) // Bugzilla 14371
+            if (goal == ctfeNeedLvalue) // https://issues.dlang.org/show_bug.cgi?id=14371
                 result = e1;
             else
                 result = ctfeCast(e.loc, e.type, e.type, fp && post ? oldval : newval);
@@ -4024,13 +4027,13 @@ public:
             {
                 Expression oldelem = (*oldelems)[i];
                 Expression newelem = paintTypeOntoLiteral(elemtype, (*newelems)[i]);
-                // Bugzilla 9245
+                // https://issues.dlang.org/show_bug.cgi?id=9245
                 if (e.e2.isLvalue())
                 {
                     if (Expression ex = evaluatePostblit(istate, newelem))
                         return ex;
                 }
-                // Bugzilla 13661
+                // https://issues.dlang.org/show_bug.cgi?id=13661
                 if (Expression ex = evaluateDtor(istate, oldelem))
                     return ex;
                 (*oldelems)[i] = newelem;
@@ -4044,7 +4047,7 @@ public:
 
             if (t1b.ty == Tsarray && e.op == TOKconstruct && e.e2.isLvalue())
             {
-                // Bugzilla 9245
+                // https://issues.dlang.org/show_bug.cgi?id=9245
                 if (Expression ex = evaluatePostblit(istate, newval))
                     return ex;
             }
@@ -4274,7 +4277,7 @@ public:
                 {
                     // Currently overlapping for struct array is allowed.
                     // The order of elements processing depends on the overlapping.
-                    // See bugzilla 14024.
+                    // https://issues.dlang.org/show_bug.cgi?id=14024
                     assert(aggr2.op == TOKarrayliteral);
                     Expressions* oldelems = existingAE.elements;
                     Expressions* newelems = (cast(ArrayLiteralExp)aggr2).elements;
@@ -4425,7 +4428,7 @@ public:
                             }
                             if (needsDtor)
                             {
-                                // Bugzilla 14860
+                                // https://issues.dlang.org/show_bug.cgi?id=14860
                                 if (Expression ex = evaluateDtor(istate, tmpelem))
                                     return ex;
                             }
@@ -5657,7 +5660,7 @@ public:
             ArrayLiteralExp ale = cast(ArrayLiteralExp)result;
             ale.ownedByCtfe = OWNEDctfe;
 
-            // Bugzilla 14686
+            // https://issues.dlang.org/show_bug.cgi?id=14686
             for (size_t i = 0; i < ale.elements.dim; i++)
             {
                 Expression ex = evaluatePostblit(istate, (*ale.elements)[i]);

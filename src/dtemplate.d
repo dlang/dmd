@@ -2490,7 +2490,8 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
                 if (!fd.fbody && m.lastf.fbody) goto LlastIsBetter;
             }
 
-            // Bugzilla 14450: Prefer exact qualified constructor for the creating object type
+            // https://issues.dlang.org/show_bug.cgi?id=14450
+            // Prefer exact qualified constructor for the creating object type
             if (isCtorCall && tf.mod != m.lastf.type.mod)
             {
                 if (tthis.mod == tf.mod) goto LfIsBetter;
@@ -2733,7 +2734,8 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
                 if (c1 < c2) goto Ltd_best;
             }
 
-            // Bugzilla 14450: Prefer exact qualified constructor for the creating object type
+            // https://issues.dlang.org/show_bug.cgi?id=14450
+            // Prefer exact qualified constructor for the creating object type
             if (isCtorCall && fd.type.mod != m.lastf.type.mod)
             {
                 if (tthis.mod == fd.type.mod) goto Ltd;

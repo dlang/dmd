@@ -137,6 +137,7 @@ struct Param
      * used to hide a feature that will have to go through deprecate-then-error
      * before becoming default.
      */
+
     bool showGaggedErrors;  // print gagged errors anyway
 
     CPU cpu;                // CPU instruction set to target
