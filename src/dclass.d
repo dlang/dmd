@@ -1876,9 +1876,15 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
             //printf("\tX base %s\n", b.sym.toChars());
             if (this == b.sym)
             {
-                //printf("\tfound at offset %d\n", b.offset);
                 if (poffset)
-                    *poffset = b.offset;
+                {
+                    // Need to determine correct offset if needed.
+                    // https://issues.dlang.org/show_bug.cgi?id=16980
+                    cd.size(loc);
+                    // HACK: using OFFSET_RUNTIME as error placeholder
+                    *poffset = cd.sizeok == SIZEOKdone ? b.offset : OFFSET_RUNTIME;
+                }
+                // printf("\tfound at offset %d\n", b.offset);
                 return true;
             }
             if (isBaseOf(b, poffset))
