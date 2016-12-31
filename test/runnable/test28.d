@@ -764,7 +764,7 @@ void test37()
 
 class C38 { }
 
-const(Object)[] foo38(C38[3] c)
+const(Object)[] foo38(C38[3] c) @system
 {   const(Object)[] x = c;
     return x;
 }

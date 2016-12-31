@@ -41,6 +41,7 @@ import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.errors;
+import ddmd.escape;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.hdrgen;
@@ -1690,11 +1691,18 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
             //printf("arg: %s\n", arg.toChars());
             //printf("type: %s\n", arg.type.toChars());
 
-            /* Look for arguments that cannot 'escape' from the called
-             * function.
-             */
-            if (!tf.parameterEscapes(p))
+            if (tf.parameterEscapes(p))
             {
+                /* Argument value can escape from the called function.
+                 * Check arg to see if it matters.
+                 */
+                if (global.params.vsafe)
+                    err |= checkParamArgumentEscape(sc, fd, p.ident, arg, false);
+            }
+            else
+            {
+                /* Argument value cannot escape from the called function.
+                 */
                 Expression a = arg;
                 if (a.op == TOKcast)
                     a = (cast(CastExp)a).e1;
@@ -9965,6 +9973,11 @@ extern (C++) final class CallExp : UnaExp
                     return ue.e1;
                 ethis = ue.e1;
                 tthis = ue.e1.type;
+                if (!f.type.isscope())
+                {
+                    if (global.params.vsafe && checkParamArgumentEscape(sc, f, Id.This, ethis, false))
+                        return new ErrorExp();
+                }
             }
 
             /* Cannot call public functions from inside invariant
@@ -10593,9 +10606,20 @@ extern (C++) final class AddrExp : UnaExp
                 }
                 if (sc.func && !sc.intypeof && !v.isDataseg())
                 {
-                    if (sc.func.setUnsafe())
+                    const(char)* p = v.isParameter() ? "parameter" : "local";
+                    if (global.params.vsafe)
                     {
-                        const(char)* p = v.isParameter() ? "parameter" : "local";
+                        // Taking the address of v means it cannot be set to 'scope' later
+                        v.storage_class &= ~STCmaybescope;
+                        v.doNotInferScope = true;
+                        if (v.storage_class & STCscope && sc.func.setUnsafe())
+                        {
+                            error("cannot take address of scope %s %s in @safe function %s", p, v.toChars(), sc.func.toChars());
+                            return false;
+                        }
+                    }
+                    else if (sc.func.setUnsafe())
+                    {
                         error("cannot take address of %s %s in @safe function %s", p, v.toChars(), sc.func.toChars());
                         return false;
                     }
@@ -10728,6 +10752,28 @@ extern (C++) final class AddrExp : UnaExp
                 {
                     error("cannot take address of ref return of %s() in @safe function %s",
                         ce.e1.toChars(), sc.func.toChars());
+                }
+            }
+        }
+        else if (e1.op == TOKindex)
+        {
+            /* For:
+             *   int[3] a;
+             *   &a[i]
+             * check 'a' the same as for a regular variable
+             */
+            IndexExp ei = cast(IndexExp)e1;
+            Type tyi = ei.e1.type.toBasetype();
+            if (tyi.ty == Tsarray && ei.e1.op == TOKvar)
+            {
+                VarExp ve = cast(VarExp)ei.e1;
+                VarDeclaration v = ve.var.isVarDeclaration();
+                if (v)
+                {
+                    if (!checkAddressVar(v))
+                        return new ErrorExp();
+
+                    ve.checkPurity(sc, v);
                 }
             }
         }
@@ -13521,7 +13567,9 @@ extern (C++) class AssignExp : BinExp
 
         type = e1.type;
         assert(type);
-        return op == TOKassign ? reorderSettingAAElem(sc) : this;
+        auto result = op == TOKassign ? reorderSettingAAElem(sc) : this;
+        checkAssignEscape(sc, result, false);
+        return result;
     }
 
     override final bool isLvalue()

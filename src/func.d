@@ -396,6 +396,7 @@ enum FUNCFLAGnothrowInprocess = 4;      /// working on determining nothrow
 enum FUNCFLAGnogcInprocess    = 8;      /// working on determining @nogc
 enum FUNCFLAGreturnInprocess  = 0x10;   /// working on inferring 'return' for parameters
 enum FUNCFLAGinlineScanned    = 0x20;   /// function has been scanned for inline possibilities
+enum FUNCFLAGinferScope       = 0x40;   /// infer 'scope' for parameters
 
 
 /***********************************************************
@@ -744,16 +745,18 @@ extern (C++) class FuncDeclaration : Declaration
         if ((storage_class & STCauto) && !f.isref && !inferRetType)
             error("storage class 'auto' has no effect if return type is not inferred");
 
-        /* Functions can only be 'scope' if they have a 'this' that is a pointer, not a ref
+        /* Functions can only be 'scope' if they have a 'this'
          */
-        if (f.isscope && !isNested() &&
-            !(ad && ad.isClassDeclaration()))
+        if (f.isscope && !isNested() && !ad)
         {
             error("functions cannot be scope");
         }
 
-        if (f.isreturn && !needThis())
+        if (f.isreturn && !needThis() && !isNested())
         {
+            /* Non-static nested functions have a hidden 'this' pointer to which
+             * the 'return' applies
+             */
             error("static member has no 'this' to which 'return' can apply");
         }
 
@@ -1562,6 +1565,8 @@ extern (C++) class FuncDeclaration : Declaration
                     stc |= STCparameter;
                     if (f.varargs == 2 && i + 1 == nparams)
                         stc |= STCvariadic;
+                    if (flags & FUNCFLAGinferScope)
+                        stc |= STCmaybescope;
                     stc |= fparam.storageClass & (STCin | STCout | STCref | STCreturn | STCscope | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
                     v.storage_class = stc;
                     v.semantic(sc2);
@@ -2222,7 +2227,37 @@ extern (C++) class FuncDeclaration : Declaration
             f.isnogc = true;
         }
 
-        flags &= ~FUNCFLAGreturnInprocess;
+        if (flags & FUNCFLAGreturnInprocess)
+        {
+            flags &= ~FUNCFLAGreturnInprocess;
+            if (storage_class & STCreturn)
+            {
+                if (type == f)
+                    f = cast(TypeFunction)f.copy();
+                f.isreturn = true;
+            }
+        }
+
+        flags &= ~FUNCFLAGinferScope;
+
+        // Infer STCscope
+        if (parameters)
+        {
+            size_t nfparams = Parameter.dim(f.parameters);
+            assert(nfparams == parameters.dim);
+            foreach (u, v; *parameters)
+            {
+                if (v.storage_class & STCmaybescope)
+                {
+                    //printf("Inferring scope for %s\n", v.toChars());
+                    Parameter p = Parameter.getNth(f.parameters, u);
+                    v.storage_class &= ~STCmaybescope;
+                    v.storage_class |= STCscope;
+                    p.storageClass |= STCscope;
+                    assert(!(p.storageClass & STCmaybescope));
+                }
+            }
+        }
 
         // reset deco to apply inference result to mangled name
         if (f != type)
@@ -2379,8 +2414,14 @@ extern (C++) class FuncDeclaration : Declaration
                 if (type.ty == Tfunction && (cast(TypeFunction)type).iswild & 2)
                     v.storage_class |= STCreturn;
             }
-            if (type.ty == Tfunction && (cast(TypeFunction)type).isreturn)
-                v.storage_class |= STCreturn;
+            if (type.ty == Tfunction)
+            {
+                TypeFunction tf = cast(TypeFunction)type;
+                if (tf.isreturn)
+                    v.storage_class |= STCreturn;
+                if (tf.isscope)
+                    v.storage_class |= STCscope;
+            }
 
             v.semantic(sc);
             if (!sc.insert(v))
@@ -3104,6 +3145,10 @@ extern (C++) class FuncDeclaration : Declaration
 
         if (!isVirtual() || introducing)
             flags |= FUNCFLAGreturnInprocess;
+
+        // Initialize for inferring STCscope
+        if (global.params.vsafe)
+            flags |= FUNCFLAGinferScope;
     }
 
     final PURE isPure()
@@ -3558,7 +3603,7 @@ extern (C++) class FuncDeclaration : Declaration
                 FuncDeclaration f = v.nestedrefs[j];
                 assert(f != this);
 
-                //printf("\t\tf = %s, isVirtual=%d, isThis=%p, tookAddressOf=%d\n", f.toChars(), f.isVirtual(), f.isThis(), f.tookAddressOf);
+                //printf("\t\tf = %p, %s, isVirtual=%d, isThis=%p, tookAddressOf=%d\n", f, f.toChars(), f.isVirtual(), f.isThis(), f.tookAddressOf);
 
                 /* Look to see if f escapes. We consider all parents of f within
                  * this, and also all siblings which call f; if any of them escape,

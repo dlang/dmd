@@ -897,13 +897,6 @@ int staticdynamic()
 }
 static assert(staticdynamic() == 0);
 
-int[] crashing()
-{
-    int[12] cra;
-    return (cra[2 .. $] = 3);
-}
-static assert(crashing()[9] == 3);
-
 int chainassign()
 {
     int[4] x = 6;
@@ -4250,7 +4243,7 @@ static assert({ bug6851(); return true; }());
     7876
 **************************************************/
 
-int* bug7876(int n)
+int* bug7876(int n) @system
 {
     int x;
     auto ptr = &x;
@@ -4264,7 +4257,7 @@ struct S7876
     int* p;
 }
 
-S7876 bug7876b(int n)
+S7876 bug7876b(int n) @system
 {
     int x;
     S7876 s;

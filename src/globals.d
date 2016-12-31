@@ -130,9 +130,14 @@ struct Param
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
     bool check10378;        // check for issues transitioning to 10738
-    bool bug10378;          // use pre- https://issues.dlang.org/show_bug.cgi?id=10378 search strategy
-    bool vsafe;             // shows places with hidden change in semantics needed
-                            // for better @safe guarantees
+    bool bug10378;          // use pre-bugzilla 10378 search strategy
+    bool vsafe;             // use enhanced @safe checking
+    /** The --transition=safe switch should only be used to show code with
+     * silent semantics changes related to @safe improvements.  It should not be
+     * used to hide a feature that will have to go through deprecate-then-error
+     * before becoming default.
+     */
+
     bool showGaggedErrors;  // print gagged errors anyway
 
     CPU cpu;                // CPU instruction set to target

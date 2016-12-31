@@ -95,7 +95,7 @@ enum STCout                 = (1L << 12);   // out parameter
 enum STClazy                = (1L << 13);   // lazy parameter
 enum STCforeach             = (1L << 14);   // variable for foreach loop
 //                            (1L << 15)
-enum STCvariadic            = (1L << 16);   // variadic function argument
+enum STCvariadic            = (1L << 16);   // the 'variadic' parameter in: T foo(T a, U b, V variadic...)
 enum STCctorinit            = (1L << 17);   // can only be set inside constructor
 enum STCtemplateparameter   = (1L << 18);   // template parameter
 enum STCscope               = (1L << 19);
@@ -123,10 +123,11 @@ enum STCtemp                = (1L << 40);   // temporary variable
 enum STCrvalue              = (1L << 41);   // force rvalue for variables
 enum STCnogc                = (1L << 42);   // @nogc
 enum STCvolatile            = (1L << 43);   // destined for volatile in the back end
-enum STCreturn              = (1L << 44);   // 'return ref' for function parameters
+enum STCreturn              = (1L << 44);   // 'return ref' or 'return scope' for function parameters
 enum STCautoref             = (1L << 45);   // Mark for the already deduced 'auto ref' parameter
 enum STCinference           = (1L << 46);   // do attribute inference
 enum STCexptemp             = (1L << 47);   // temporary variable that has lifetime restricted to an expression
+enum STCmaybescope          = (1L << 48);   // parameter might be 'scope'
 
 enum STC_TYPECTOR = (STCconst | STCimmutable | STCshared | STCwild);
 enum STC_FUNCATTR = (STCref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem);
@@ -1015,6 +1016,8 @@ extern (C++) class VarDeclaration : Declaration
 {
     Initializer _init;
     uint offset;
+    uint sequenceNumber;            // order the variables are declared
+    __gshared uint nextSequenceNumber;   // the counter for sequenceNumber
     FuncDeclarations nestedrefs;    // referenced by these lexically nested functions
     bool isargptr;                  // if parameter that _argptr points to
     structalign_t alignment;
@@ -1028,6 +1031,7 @@ extern (C++) class VarDeclaration : Declaration
     int canassign;                  // it can be assigned to
     bool overlapped;                // if it is a field and has overlapping
     bool overlapUnsafe;             // if it is an overlapping field and the overlaps are unsafe
+    bool doNotInferScope;           // do not infer 'scope' for this variable
     ubyte isdataseg;                // private data for isDataseg 0 unset, 1 true, 2 false
     Dsymbol aliassym;               // if redone as alias to another symbol
     VarDeclaration lastVar;         // Linked list of variables for goto-skips-init detection
@@ -1057,12 +1061,14 @@ extern (C++) class VarDeclaration : Declaration
                 //*(char*)0=0;
             }
         }
+
         assert(type || _init);
         this.type = type;
         this._init = _init;
         this.loc = loc;
         ctfeAdrOnStack = -1;
         this.storage_class = storage_class;
+        sequenceNumber = ++nextSequenceNumber;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
@@ -2404,6 +2410,19 @@ extern (C++) class VarDeclaration : Declaration
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+
+    /**********************************
+     * Determine if `this` has a lifetime that lasts past
+     * the destruction of `v`
+     * Params:
+     *  v = variable to test against
+     * Returns:
+     *  true if it does
+     */
+    final bool enclosesLifetimeOf(VarDeclaration v) const pure
+    {
+        return sequenceNumber < v.sequenceNumber;
     }
 }
 

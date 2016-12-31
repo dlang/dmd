@@ -700,15 +700,7 @@ extern (C++) abstract class Type : RootObject
                 {
                     goto Ldistinct;
                 }
-                const(StorageClass) sc = STCref | STCin | STCout | STClazy;
-                if ((fparam1.storageClass & sc) != (fparam2.storageClass & sc))
-                    inoutmismatch = 1;
-                // We can add scope, but not subtract it
-                if (!(fparam1.storageClass & STCscope) && (fparam2.storageClass & STCscope))
-                    inoutmismatch = 1;
-                // We can subtract return, but not add it
-                if ((fparam1.storageClass & STCreturn) && !(fparam2.storageClass & STCreturn))
-                    inoutmismatch = 1;
+                inoutmismatch = !fparam1.isCovariant(fparam2);
             }
         }
         else if (t1.parameters != t2.parameters)
@@ -5436,6 +5428,7 @@ extern (C++) final class TypeAArray : TypeArray
                 sd.semantic(null);
 
             // duplicate a part of StructDeclaration::semanticTypeInfoMembers
+            //printf("AA = %s, key: xeq = %p, xerreq = %p xhash = %p\n", toChars(), sd.xeq, sd.xerreq, sd.xhash);
             if (sd.xeq && sd.xeq._scope && sd.xeq.semanticRun < PASSsemantic3done)
             {
                 uint errors = global.startGagging();
@@ -6257,9 +6250,6 @@ extern (C++) final class TypeFunction : TypeNext
                         fparam.storageClass |= STCscope;        // 'return' implies 'scope'
                         if (tf.isref)
                         {
-                            error(loc, "parameter %s is 'return' but function returns 'ref'",
-                                fparam.ident ? fparam.ident.toChars() : "");
-                            errors = true;
                         }
                         else if (tf.next && !tf.next.hasPointers())
                         {
@@ -6294,7 +6284,11 @@ extern (C++) final class TypeFunction : TypeNext
                 }
 
                 if (fparam.storageClass & STCscope && !fparam.type.hasPointers())
-                    fparam.storageClass &= ~(STCreturn | STCscope);
+                {
+                    fparam.storageClass &= ~STCscope;
+                    if (!(fparam.storageClass & STCref))
+                        fparam.storageClass &= ~STCreturn;
+                }
 
                 if (t.hasWild())
                 {
@@ -6582,46 +6576,92 @@ extern (C++) final class TypeFunction : TypeNext
 
     /***************************
      * Examine function signature for parameter p and see if
-     * p can 'escape' the scope of the function.
+     * the value of p can 'escape' the scope of the function.
+     * This is useful to minimize the needed annotations for the parameters.
+     * Params:
+     *  p = parameter to this function
+     * Returns:
+     *  true if escapes via assignment to global or through a parameter
      */
     bool parameterEscapes(Parameter p)
     {
-        purityLevel();
-
         /* Scope parameters do not escape.
          * Allow 'lazy' to imply 'scope' -
          * lazy parameters can be passed along
          * as lazy parameters to the next function, but that isn't
          * escaping.
          */
-        if (p.storageClass & (STCscope | STClazy))
+        if (parameterStorageClass(p) & (STCscope | STClazy))
             return false;
-        if (p.storageClass & STCreturn)
-            return true;
+        return true;
+    }
 
-        /* If haven't inferred the return type yet, assume it escapes
+
+    /************************************
+     * Take the specified storage class for p,
+     * and use the function signature to infer whether
+     * STCscope and STCreturn should be OR'd in.
+     * (This will not affect the name mangling.)
+     * Params:
+     *  p = one of the parameters to 'this'
+     * Returns:
+     *  storage class with STCscope or STCreturn OR'd in
+     */
+    final StorageClass parameterStorageClass(Parameter p)
+    {
+        auto stc = p.storageClass;
+        if (!global.params.vsafe)
+            return stc;
+
+        if (stc & (STCscope | STCreturn | STClazy) || purity == PUREimpure)
+            return stc;
+
+        /* If haven't inferred the return type yet, can't infer storage classes
          */
         if (!nextOf())
-            return true;
+            return stc;
 
-        if (purity > PUREweak)
+        purityLevel();
+
+        // See if p can escape via any of the other parameters
+        if (purity == PUREweak)
         {
-            /* With pure functions, we need only be concerned if p escapes
-             * via any return statement.
-             */
-            Type tret = nextOf().toBasetype();
-            if (!isref && !tret.hasPointers())
+            const dim = Parameter.dim(parameters);
+            foreach (const i; 0 .. dim)
             {
-                /* The result has no references, so p could not be escaping
-                 * that way.
-                 */
-                return false;
+                Parameter fparam = Parameter.getNth(parameters, i);
+                Type t = fparam.type;
+                if (!t)
+                    continue;
+                t = t.baseElemOf();
+                if (t.isMutable() && t.hasPointers())
+                {
+                    if (fparam.storageClass & (STCref | STCout))
+                    {
+                    }
+                    else if (t.ty == Tarray || t.ty == Tpointer)
+                    {
+                        Type tn = t.nextOf().toBasetype();
+                        if (!(tn.isMutable() && tn.hasPointers()))
+                            continue;
+                    }
+                    return stc;
+                }
             }
         }
 
-        /* Assume it escapes in the absence of better information.
-         */
-        return true;
+        stc |= STCscope;
+
+        Type tret = nextOf().toBasetype();
+        if (isref || tret.hasPointers())
+        {
+            /* The result has references, so p could be escaping
+             * that way.
+             */
+            stc |= STCreturn;
+        }
+
+        return stc;
     }
 
     override Type addStorageClass(StorageClass stc)
@@ -7132,7 +7172,7 @@ extern (C++) final class TypeDelegate : TypeNext
 
     override MATCH implicitConvTo(Type to)
     {
-        //printf("TypeDelegate::implicitConvTo(this=%p, to=%p)\n", this, to);
+        //printf("TypeDelegate.implicitConvTo(this=%p, to=%p)\n", this, to);
         //printf("from: %s\n", toChars());
         //printf("to  : %s\n", to.toChars());
         if (this == to)
@@ -10184,5 +10224,26 @@ extern (C++) final class Parameter : RootObject
     override const(char)* toChars() const
     {
         return ident ? ident.toChars() : "__anonymous_param";
+    }
+
+    /*********************************
+     * Compute covariance of parameters `this` and `p`
+     * as determined by the storage classes of both.
+     * Params:
+     *  p = Parameter to compare with
+     * Returns:
+     *  true = `this` can be used in place of `p`
+     *  false = nope
+     */
+    final bool isCovariant(const Parameter p) const pure nothrow @nogc @safe
+    {
+        enum stc = STCref | STCin | STCout | STClazy;
+        return !((this.storageClass & stc) != (p.storageClass & stc) ||
+
+                // We can add scope, but not subtract it
+                (!(this.storageClass & STCscope) && (p.storageClass & STCscope)) ||
+
+                // We can subtract return, but not add it
+                ((this.storageClass & STCreturn) && !(p.storageClass & STCreturn)));
     }
 }
