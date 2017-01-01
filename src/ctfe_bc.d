@@ -1943,8 +1943,6 @@ public:
 
     override void visit(SymOffExp se)
     {
-        debug (ctfe)
-            assert(toBCType(se.type).type == BCTypeEnum.i32Ptr, "only int* is supported for now");
         //bailout();
         auto vd = se.var.isVarDeclaration();
         assert(vd, se.var.toString() ~ " is not a variable declarartion");
@@ -2802,8 +2800,8 @@ public:
 
     static bool canHandleBinExpTypes(const BCTypeEnum lhs, const BCTypeEnum rhs) pure
     {
-        return (lhs == BCTypeEnum.i32 || lhs == BCTypeEnum.i32Ptr)
-            && rhs == BCTypeEnum.i32 || lhs == BCTypeEnum.i64
+        return (lhs == BCTypeEnum.i32
+            && rhs == BCTypeEnum.i32) || lhs == BCTypeEnum.i64
             && (rhs == BCTypeEnum.i64 || rhs == BCTypeEnum.i32);
     }
 
@@ -3096,8 +3094,7 @@ public:
 
     static bool canWorkWithType(const BCType bct) pure
     {
-        return (bct.type == BCTypeEnum.i32 || bct.type == BCTypeEnum.i64
-            || bct.type == BCTypeEnum.i32Ptr);
+        return (bct.type == BCTypeEnum.i32 || bct.type == BCTypeEnum.i64);
     }
 
     override void visit(ConstructExp ce)
@@ -3136,10 +3133,6 @@ public:
 
         }
         else if (lhs.type.type == BCTypeEnum.Char || lhs.type.type == BCTypeEnum.i8)
-        {
-
-        }
-        else if (lhs.type.type == BCTypeEnum.i32Ptr)
         {
 
         }
@@ -3406,10 +3399,6 @@ public:
                 else if (lhs.type.type == BCTypeEnum.Slice && rhs.type.type == BCTypeEnum.Null)
                 {
                     Set(lhs.i32, imm32(0));
-                }
-                else if (lhs.type.type == BCTypeEnum.i32Ptr && rhs.type.type == BCTypeEnum.i32Ptr)
-                {
-                    Set(lhs.i32, rhs.i32);
                 }
 
                 else

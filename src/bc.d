@@ -580,8 +580,7 @@ struct BCGen
             "Instruction is not in Range for Arith Instructions");
         assert(lhs.vType.StackValue, "only StackValues are supported as lhs");
         // FIXME remove the lhs.type == BCTypeEnum.Char as soon as we convert correctly.
-        assert(lhs.type == BCTypeEnum.i32 || lhs.type == BCTypeEnum.i32Ptr
-            || lhs.type == BCTypeEnum.i64 || lhs.type == BCTypeEnum.Char,
+        assert(lhs.type == BCTypeEnum.i32 || lhs.type == BCTypeEnum.i64 || lhs.type == BCTypeEnum.Char,
             "only i32 or i32Ptr is supported for now not: " ~ to!string(lhs.type.type));
 
         if (lhs.vType == BCValueType.Immediate)
@@ -589,16 +588,15 @@ struct BCGen
             lhs = pushOntoStack(lhs);
         }
 
-        immutable bool isIndirect = lhs.type == BCTypeEnum.i32Ptr;
         if (rhs.vType == BCValueType.Immediate)
         {
             //Change the instruction into the corrosponding Imm Instruction;
             inst += (LongInst.ImmAdd - LongInst.Add);
-            emitLongInst(LongInst64(inst, lhs.stackAddr, rhs.imm32, isIndirect));
+            emitLongInst(LongInst64(inst, lhs.stackAddr, rhs.imm32));
         }
         else if (isStackValueOrParameter(rhs))
         {
-            emitLongInst(LongInst64(inst, lhs.stackAddr, rhs.stackAddr, isIndirect));
+            emitLongInst(LongInst64(inst, lhs.stackAddr, rhs.stackAddr));
         }
         else
         {
@@ -882,8 +880,7 @@ struct BCGen
         if (val.vType == BCValueType.StackValue || val.vType == BCValueType.Parameter)
         {
 
-            byteCodeArray[ip] = ShortInst16(LongInst.Ret, val.stackAddr,
-                val.type == BCTypeEnum.i32Ptr);
+            byteCodeArray[ip] = ShortInst16(LongInst.Ret, val.stackAddr);
             byteCodeArray[ip + 1] = 0;
             ip += 2;
         }
@@ -1475,7 +1472,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
 
             }
             break;
-        case BCTypeEnum.Struct, BCTypeEnum.String, BCTypeEnum.Array:
+        case BCTypeEnum.Struct, BCTypeEnum.String, BCTypeEnum.Array, BCTypeEnum.Ptr:
             {
                 // This might need to be removed agaein ?
                 *(stack.ptr + argOffset / 4) = arg.heapAddr.addr;
