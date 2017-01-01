@@ -35,6 +35,7 @@ import ddmd.backend.type;
 
 import ddmd.aggregate;
 import ddmd.arraytypes;
+import ddmd.blockexit;
 import ddmd.dclass;
 import ddmd.declaration;
 import ddmd.dmangle;
