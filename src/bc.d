@@ -2055,11 +2055,24 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
         case LongInst.Call:
             {
                 assert(functions, "When calling functions you need functions to call");
-                //auto call = calls[(*rhs & uint.max) - 1];
-                auto stackOffsetCall = 0;
-                auto fn = 1;
+                auto call = calls[(*rhs & uint.max) - 1];
+
+                auto fn = (call.fn.vType == BCValueType.Immediate ?
+                    call.fn.imm32 :
+                    (stackP[call.fn.stackAddr.addr] & uint.max)
+                    );
+
+                if (!__ctfe)
+                {
+                    debug writeln("call.fn = ", call.fn);
+                    debug writeln((functions + fn).byteCode.printInstructions);
+                }
+
+
+                auto stackOffsetCall = stackOffset + call.callerSp.addr;
+
                 *lhsRef = interpret_((functions + fn).byteCode,
-                    args, heapPtr, functions, calls, ev1, ev2, errors, stack, stackOffsetCall).imm32;
+                    call.args, heapPtr, functions, calls, ev1, ev2, errors, stack, stackOffsetCall).imm32;
 
             }
             break;

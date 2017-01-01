@@ -153,7 +153,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 import ddmd.ctfe.bc_common;
 
 enum perf = 1;
-enum cacheBC = 0;
+enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
@@ -3770,8 +3770,6 @@ public:
 
     override void visit(CallExp ce)
     {
-        bailout("CallExp unsupported for now");
-        return;
         FuncDeclaration fd;
 
         if (ce.e1.op == TOKvar)
@@ -3831,7 +3829,7 @@ public:
             {
                 retval = genTemporary(toBCType(ce.type));
             }
-            Call(retval, imm32(fnIdx - 1), bc_args);
+            Call(retval, imm32(fnIdx), bc_args);
         }
         else
         {
