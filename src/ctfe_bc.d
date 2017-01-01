@@ -362,7 +362,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             }
 
             auto retval = interpret_(bcv.byteCodeArray[0 .. bcv.ip], bc_args,
-                &_sharedCtfeState.heap, &_sharedCtfeState.functions[0],
+                &_sharedCtfeState.heap, &_sharedCtfeState.functions[0], &bcv.calls[0],
                 &errorValues[0], &errorValues[1],
                 &_sharedCtfeState.errors[0], _sharedCtfeState.stack[]);
             /*            if (fd.ident == Identifier.idPool("extractAttribFlags"))

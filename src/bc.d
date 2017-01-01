@@ -814,7 +814,7 @@ struct BCGen
     void Call(BCValue result, BCValue fn, BCValue[] args)
     {
         calls[callCount++] = RetainedCall(fn, args, functionId, ip, sp);
-        emitLongInst(LongInst64(LongInst.Call, result.stackAddr, imm32(callCount).stackAddr));
+        emitLongInst(LongInst64(LongInst.Call, result.stackAddr, pushOntoStack(imm32(callCount)).stackAddr));
     }
 
     void Load32(BCValue _to, BCValue from)
@@ -1384,7 +1384,7 @@ string printInstructions(const int* startInstructions, uint length) pure
             break;
         case LongInst.Call:
             {
-                result ~= "Call Fn{" ~ to!string(lw >> 16) ~ "} (" ~ to!string(hi) ~ ")\n";
+                result ~= "Call SP[" ~ to!string(hi & 0xFFFF) ~ "], {" ~ to!string(hi >> 16) ~ "}\n";
             }
             break;
         case LongInst.BuiltinCall:
@@ -1415,7 +1415,7 @@ else
 
 __gshared int[ushort.max * 2] byteCodeCache;
 __gshared int byteCodeCacheTop = 4;
-
+/*
 BCValue interpret(const BCGen* gen, const BCValue[] args,
     BCFunction* functions = null, BCHeap* heapPtr = null, BCValue* ev1 = null,
     BCValue* ev2 = null, const RE* errors = null) pure @safe
@@ -1423,9 +1423,10 @@ BCValue interpret(const BCGen* gen, const BCValue[] args,
     return interpret_(gen.byteCodeArray[0 .. gen.ip], args, heapPtr, functions, ev2,
         ev2, errors);
 }
-
-BCValue interpret_(const int[] byteCode, const BCValue[] args,
+*/
+const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
     BCHeap* heapPtr = null, const BCFunction* functions = null,
+    const RetainedCall* calls = null,
     BCValue* ev1 = null, BCValue* ev2 = null, const RE* errors = null,
     long[] stackPtr = null, uint stackOffset = 0) pure @trusted
 {
@@ -2054,34 +2055,11 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
         case LongInst.Call:
             {
                 assert(functions, "When calling functions you need functions to call");
-                // building the BCValues from Stack ... What a Pain.
-                auto argPtr = stackPtr.ptr + rhsOffset;
-                uint stackOffsetCall = stackOffset;
-                BCValue[] callArgs;
-                long arg4 = *argPtr++;
-        ArgLoop: for (; arg4; argPtr++)
-                {
-                    switch (arg4 & 0xF)
-                    {
-                    case 0:
-                        //Arguments are over and the next number is the begin for the called func.
-                        stackOffsetCall += (arg4 >> 8);
-                        break ArgLoop;
-                    case 1: // If the first 4 bits are one we pass a parameter through
-                        // We can pass up to (2^24)-1 Parameters
-                        callArgs ~= args[(arg4 >> 8) & 0xFF_FF_FF_FF];
-                        break;
-                    case 2:
-                        // 2 means we pass an i32 in the next stackPosition
-                        callArgs ~= BCValue(Imm32(*(++argPtr) & 0xFF_FF_FF_FF));
-                        break;
-                    default:
-                        assert(0, "currently not implemented");
-                    }
-                    continue;
-                }
-                returnValue = interpret_((functions + opRefOffset).byteCode,
-                    args, heapPtr, functions, ev1, ev2, errors, stack, stackOffsetCall);
+                //auto call = calls[(*rhs & uint.max) - 1];
+                auto stackOffsetCall = 0;
+                auto fn = 1;
+                *lhsRef = interpret_((functions + fn).byteCode,
+                    args, heapPtr, functions, calls, ev1, ev2, errors, stack, stackOffsetCall).imm32;
 
             }
             break;
