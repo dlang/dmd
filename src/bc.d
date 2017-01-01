@@ -424,6 +424,8 @@ struct BCGen
 
     void beginFunction(uint fnId = 0, void* fd = null)
     {
+        ip = BCAddr(4);
+
         functionId = fnId;
     }
 
@@ -438,6 +440,8 @@ struct BCGen
             // result.byteCode = byteCodeArray[4 .. ip];
             // MUTEX END
         }
+        sp = StackAddr(4);
+
         return result;
     }
 
@@ -2073,7 +2077,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
 
                 *lhsRef = interpret_((functions + fn).byteCode,
                     call.args, heapPtr, functions, calls, ev1, ev2, errors, stack, stackOffsetCall).imm32;
-
+                    debug writeln("returned: ", *lhsRef);
             }
             break;
         case LongInst.Alloc:

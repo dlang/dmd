@@ -1608,6 +1608,7 @@ public:
 
                     foreach (uf; uncompiledFunctions[0 .. uncompiledFunctionCount])
                     {
+                        writeln("Doing uncompiledFunction ");
                         clear();
                         beginParameters();
                         if (uf.fd.parameters)
@@ -1630,7 +1631,7 @@ public:
                         static if (is(BCGen))
                         {
                             _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
-                                fnIdx, BCFunctionTypeEnum.Bytecode,
+                                fnIdx - 1, BCFunctionTypeEnum.Bytecode,
                                 cast(ushort) parameterTypes.length, sp.addr, //FIXME IMPORTANT PERFORMANCE!!!
                                 // get rid of dup!
 
