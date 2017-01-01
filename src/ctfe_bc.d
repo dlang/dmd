@@ -1559,6 +1559,7 @@ public:
             }
             beginFunction(fnIdx - 1);
             visit(fbody);
+            auto osp2 = sp.addr;
             endFunction();
             if (IGaveUp)
             {
@@ -1585,6 +1586,7 @@ public:
 
                 auto myPTypes = parameterTypes.dup;
                 auto myArgs = arguments.dup;
+                auto myCode = byteCodeArray[0 .. ip].idup;
                 debug (ctfe)
                 {
                     writeln("FnCnt: ", _sharedCtfeState.functionCount);
@@ -1595,10 +1597,10 @@ public:
                     {
                         _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
                             fnIdx, BCFunctionTypeEnum.Bytecode,
-                            cast(ushort) parameterTypes.length, sp.addr,
+                            cast(ushort) parameterTypes.length, osp2,
                             //FIXME IMPORTANT PERFORMANCE!!!
                             // get rid of dup!
-                            cast(immutable) byteCodeArray[0 .. ip]);
+                            myCode);
                         clear();
                     }
                     else
@@ -1626,16 +1628,17 @@ public:
                         fnIdx = uf.fn;
                         beginFunction(fnIdx - 1);
                         uf.fd.fbody.accept(this);
+                        auto osp = sp;
                         endFunction();
 
                         static if (is(BCGen))
                         {
                             _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
                                 fnIdx - 1, BCFunctionTypeEnum.Bytecode,
-                                cast(ushort) parameterTypes.length, sp.addr, //FIXME IMPORTANT PERFORMANCE!!!
+                                cast(ushort) parameterTypes.length, osp.addr, //FIXME IMPORTANT PERFORMANCE!!!
                                 // get rid of dup!
 
-                                byteCodeArray[0 .. ip].dup);
+                                byteCodeArray[0 .. ip].idup);
                             clear();
                         }
                         else
@@ -1646,6 +1649,7 @@ public:
                     }
                     parameterTypes = myPTypes;
                     arguments = myArgs;
+                    byteCodeArray = myCode[0 .. myCode.length];
                 }
                 else
                 {
