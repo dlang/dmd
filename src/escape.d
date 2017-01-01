@@ -874,7 +874,7 @@ private void escapeByValue(Expression e, EscapeByResults* er)
                 AggregateDeclaration ad;
                 if (global.params.vsafe && tf.isreturn && fd && (ad = fd.isThis()) !is null)
                 {
-                    if (ad.isClassDeclaration())       // this is 'return scope'
+                    if (ad.isClassDeclaration() || tf.isscope)       // this is 'return scope'
                         dve.e1.accept(this);
                     else if (ad.isStructDeclaration()) // this is 'return ref'
                         escapeByRef(dve.e1, er);
