@@ -56,6 +56,16 @@ auto instKind(LongInst i)
     }
 } +/
 
+struct RetainedCall
+{
+    BCValue fn;
+    BCValue[] args;
+
+    uint callerId;
+    BCAddr callerIp;
+    StackAddr callerSp;
+}
+
 enum LongInst : ushort
 {
     //Former ShortInst
@@ -347,6 +357,9 @@ struct BCGen
     ushort temporaryCount;
     uint functionId;
     void* fd;
+
+    RetainedCall[ubyte.max] calls;
+    uint callCount;
 @safe pure:
     auto interpret(BCValue[] args, BCHeap* heapPtr) const
     {
@@ -800,65 +813,10 @@ struct BCGen
         emitArithInstruction(LongInst.Mod, result, rhs);
     }
 
-    void Call(BCValue result, BCValue fn, BCValue[] args, short spOffset = 0)
+    void Call(BCValue result, BCValue fn, BCValue[] args)
     {
-        // returnInformations[callDepth++] = ReturnInformation(FunctionId, ip);
-        StackAddr oldSp = currSp();
-        auto returnAddr = StackAddr(currSp());
-        StackAddr nextSp = StackAddr(cast(short)(returnAddr.addr + args.length * 4));
-        // set the argments length
-        Set(BCValue(returnAddr, i32Type), BCValue(Imm32(cast(uint) args.length)));
-
-        if (args.length)
-            foreach (i; 0 .. (args.length / 8) + 1)
-            {
-                uint parameterFlag;
-                import std.algorithm : max;
-
-                immutable paramOffset = max(cast(int) i * 8 - 1, 0);
-
-                final switch ((args.length - 1 - (i * 8)) % 8)
-                {
-                case 7:
-                    parameterFlag |= toParamCode(args[paramOffset + 7]) << (4 * 7);
-                    goto case 6;
-                case 6:
-                    parameterFlag |= toParamCode(args[paramOffset + 6]) << (4 * 6);
-                    goto case 5;
-                case 5:
-                    parameterFlag |= toParamCode(args[paramOffset + 5]) << (4 * 5);
-                    goto case 4;
-                case 4:
-                    parameterFlag |= toParamCode(args[paramOffset + 4]) << (4 * 4);
-                    goto case 3;
-                case 3:
-                    parameterFlag |= toParamCode(args[paramOffset + 3]) << (4 * 3);
-                    goto case 2;
-                case 2:
-                    parameterFlag |= toParamCode(args[paramOffset + 2]) << (4 * 2);
-                    goto case 1;
-                case 1:
-                    parameterFlag |= toParamCode(args[paramOffset + 1]) << (4 * 1);
-                    goto case 0;
-                case 0:
-                    parameterFlag |= toParamCode(args[paramOffset]);
-                    break;
-                }
-                incSp();
-                Set(BCValue(currSp(), i32Type), BCValue(Imm32(parameterFlag)));
-
-            }
-
-        if (args.length)
-            foreach (arg; args)
-            {
-                incSp();
-                Set(BCValue(currSp, i32Type), arg.i32);
-            }
-
-        incSp();
-
-        emitLongInst(LongInst64(LongInst.Call, fn.stackAddr, Imm32(oldSp.addr)));
+        calls[callCount++] = RetainedCall(fn, args, functionId, ip, sp);
+        emitLongInst(LongInst64(LongInst.Call, result.stackAddr, imm32(callCount).stackAddr));
     }
 
     void Load32(BCValue _to, BCValue from)
