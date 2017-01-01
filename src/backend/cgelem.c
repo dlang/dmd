@@ -871,11 +871,11 @@ L1:
         return e;
   }
   /* Replace (e + e) with (e * 2)       */
-  else if (el_match(e1,e2) && !el_sideeffect(e1) && !tyfloating(e->Ety))
+  else if (el_match(e1,e2) && !el_sideeffect(e1) && !tyfloating(e1->Ety))
   {
         e->Eoper = OPmul;
         el_free(e2);
-        e->E2 = el_long(e->Ety,2);
+        e->E2 = el_long(e1->Ety,2);
         again = 1;
         return e;
   }
