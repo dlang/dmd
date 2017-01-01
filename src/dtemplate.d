@@ -210,11 +210,6 @@ private Expression getValue(Expression e)
  */
 private bool match(RootObject o1, RootObject o2)
 {
-    static Expression getExpression(RootObject o)
-    {
-        auto s = isDsymbol(o);
-        return s ? .getValue(s) : .getValue(isExpression(o));
-    }
 
     enum debugPrint = 0;
 
@@ -231,6 +226,8 @@ private bool match(RootObject o1, RootObject o2)
     /* Manifest constants should be compared by their values,
      * at least in template arguments.
      */
+    Dsymbol s1;
+    Dsymbol s2;
 
     if (auto t1 = isType(o1))
     {
@@ -248,9 +245,13 @@ private bool match(RootObject o1, RootObject o2)
 
         goto Lmatch;
     }
-    if (auto e1 = getExpression(o1))
+
+    s1 = isDsymbol(o1);
+    s2 = (s1 ? isDsymbol(o2) : null);
+
+    if (auto e1 = (s1 ? .getValue(s1) : .getValue(isExpression(o1))))
     {
-        auto e2 = getExpression(o2);
+        auto e2 = (s2 ? .getValue(s2) : .getValue(isExpression(o2)));
         if (!e2)
             goto Lnomatch;
 
@@ -264,9 +265,8 @@ private bool match(RootObject o1, RootObject o2)
 
         goto Lmatch;
     }
-    if (auto s1 = isDsymbol(o1))
+    if (s1)
     {
-        auto s2 = isDsymbol(o2);
         if (!s2)
             goto Lnomatch;
 
