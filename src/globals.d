@@ -431,6 +431,10 @@ enum CPPMANGLE : int
     asClass,
 }
 
+alias CPPMANGLEdefault = CPPMANGLE.def;
+alias CPPMANGLEstruct = CPPMANGLE.asStruct;
+alias CPPMANGLEclass = CPPMANGLE.asClass;
+
 enum DYNCAST : int
 {
     object,

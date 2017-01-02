@@ -303,9 +303,9 @@ enum LINK
 
 enum CPPMANGLE
 {
-    def,
-    asStruct,
-    asClass,
+    CPPMANGLEdefault,
+    CPPMANGLEstruct,
+    CPPMANGLEclass,
 };
 
 enum DYNCAST

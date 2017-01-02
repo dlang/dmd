@@ -134,7 +134,7 @@ struct BaseClass
     extern (C++) void copyBaseInterfaces(BaseClasses* vtblInterfaces)
     {
         //printf("+copyBaseInterfaces(), %s\n", sym.toChars());
-        //    if (baseInterfaces_dim)
+        //    if (baseInterfaces.length)
         //      return;
         auto bc = cast(BaseClass*)mem.xcalloc(sym.interfaces.length, BaseClass.sizeof);
         baseInterfaces = bc[0 .. sym.interfaces.length];

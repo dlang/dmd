@@ -188,7 +188,7 @@ class AliasDeclaration : public Declaration
 public:
     Dsymbol *aliassym;
     Dsymbol *overnext;          // next in overload list
-    Dsymbol *import;            // !=NULL if unresolved internal alias for selective import
+    Dsymbol *_import;           // !=NULL if unresolved internal alias for selective import
 
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
@@ -667,6 +667,7 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *);
     bool isNested();
+    AggregateDeclaration *isThis();
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();

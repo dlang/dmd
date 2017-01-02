@@ -162,7 +162,7 @@ public:
     const utf8_t *prettystring;
     bool errors;                // this symbol failed to pass semantic()
     PASS semanticRun;
-    char *depmsg;               // customized deprecation message
+    DeprecatedDeclaration *depdecl; // customized deprecation message
     UserAttributeDeclaration *userAttribDecl;   // user defined attributes
     UnitTestDeclaration *ddocUnittest; // !=NULL means there's a ddoc unittest associated with this symbol (only use this with ddoc)
 
