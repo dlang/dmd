@@ -197,7 +197,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     _blacklist.defaultBlackList();
     import std.stdio;
 
-    static if (cacheBC && is(typeof(_sharedCtfeState.functionCount)) && is(BCGen))
+    static if (cacheBC && is(typeof(_sharedCtfeState.functionCount)) && is(BCGen) && false)
     {
 
         import std.datetime : StopWatch;
