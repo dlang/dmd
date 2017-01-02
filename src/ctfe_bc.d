@@ -10,7 +10,7 @@ import ddmd.mtype;
 import ddmd.statement;
 import ddmd.visitor;
 import ddmd.arraytypes : Expressions;
-
+debug = ctfe;
 /**
  * Written By Stefan Koch in 2016
  */
@@ -357,7 +357,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                 import std.stdio;
 
                 writeln("I have ", _sharedCtfeState.functionCount, " functions!");
-                bcv.gen.byteCodeArray[0 .. bcv.ip].printInstructions.writeln();
+                //bcv.gen.byteCodeArray[0 .. bcv.ip].printInstructions.writeln();
 
             }
 
@@ -1015,7 +1015,6 @@ Expression toExpression(const BCValue value, Type expressionType,
                 evaluateUlong(tsa.dim)));
             goto default;
         }
-        break;
     case Tbool:
         {
             //assert(value.imm32 == 0 || value.imm32 == 1, "Not a valid bool");
@@ -1587,6 +1586,7 @@ public:
                 auto myPTypes = parameterTypes.dup;
                 auto myArgs = arguments.dup;
                 auto myCode = byteCodeArray[0 .. ip].idup;
+                auto myIp = ip;
                 debug (ctfe)
                 {
                     writeln("FnCnt: ", _sharedCtfeState.functionCount);
@@ -1649,7 +1649,11 @@ public:
                     }
                     parameterTypes = myPTypes;
                     arguments = myArgs;
-                    byteCodeArray = myCode[0 .. myCode.length];
+                    foreach(i,c;myCode)
+                    {
+                        byteCodeArray[i] = c;
+                    }
+                    ip = myIp;
                 }
                 else
                 {
