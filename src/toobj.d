@@ -291,6 +291,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 member.accept(this);
             }
 
+            finishVtbl(cd);
+
             // Generate C symbols
             toSymbol(cd);
             toVtblSymbol(cd);
@@ -623,53 +625,14 @@ void toObjFile(Dsymbol ds, bool multiobj)
             scope dtbv = new DtBuilder();
             if (cd.vtblOffset())
                 dtbv.xoff(cd.csym, 0, TYnptr);           // first entry is ClassInfo reference
-            for (size_t i = cd.vtblOffset(); i < cd.vtbl.dim; i++)
+            foreach (i; cd.vtblOffset() .. cd.vtbl.dim)
             {
                 FuncDeclaration fd = cd.vtbl[i].isFuncDeclaration();
 
                 //printf("\tvtbl[%d] = %p\n", i, fd);
                 if (fd && (fd.fbody || !cd.isAbstract()))
                 {
-                    // Ensure function has a return value (Bugzilla 4869)
-                    fd.functionSemantic();
-
-                    Symbol *s = toSymbol(fd);
-
-                    if (cd.isFuncHidden(fd))
-                    {
-                        /* fd is hidden from the view of this class.
-                         * If fd overlaps with any function in the vtbl[], then
-                         * issue 'hidden' error.
-                         */
-                        for (size_t j = 1; j < cd.vtbl.dim; j++)
-                        {
-                            if (j == i)
-                                continue;
-                            FuncDeclaration fd2 = cd.vtbl[j].isFuncDeclaration();
-                            if (!fd2.ident.equals(fd.ident))
-                                continue;
-                            if (fd.leastAsSpecialized(fd2) || fd2.leastAsSpecialized(fd))
-                            {
-                                TypeFunction tf = cast(TypeFunction)fd.type;
-                                if (tf.ty == Tfunction)
-                                {
-                                    cd.error("use of %s%s is hidden by %s; use 'alias %s = %s.%s;' to introduce base class overload set",
-                                        fd.toPrettyChars(),
-                                        parametersTypeToChars(tf.parameters, tf.varargs),
-                                        cd.toChars(),
-
-                                        fd.toChars(),
-                                        fd.parent.toChars(),
-                                        fd.toChars());
-                                }
-                                else
-                                    cd.error("use of %s is hidden by %s", fd.toPrettyChars(), cd.toChars());
-                                break;
-                            }
-                        }
-                    }
-
-                    dtbv.xoff(s, 0, TYnptr);
+                    dtbv.xoff(toSymbol(fd), 0, TYnptr);
                 }
                 else
                     dtbv.size(0);
@@ -1373,6 +1336,65 @@ void toObjFile(Dsymbol ds, bool multiobj)
     scope v = new ToObjFile(multiobj);
     ds.accept(v);
 }
+
+
+/*********************************
+ * Finish semantic analysis of functions in vtbl[],
+ * check vtbl[] for errors.
+ */
+private void finishVtbl(ClassDeclaration cd)
+{
+    foreach (i; cd.vtblOffset() .. cd.vtbl.dim)
+    {
+        FuncDeclaration fd = cd.vtbl[i].isFuncDeclaration();
+
+        //printf("\tvtbl[%d] = %p\n", i, fd);
+        if (!fd || !fd.fbody && cd.isAbstract())
+        {
+            // Nothing to do
+            continue;
+        }
+        // Ensure function has a return value (Bugzilla 4869)
+        fd.functionSemantic();
+
+        if (!cd.isFuncHidden(fd))
+        {
+            // All good, no name hiding to check for
+            continue;
+        }
+
+        /* fd is hidden from the view of this class.
+         * If fd overlaps with any function in the vtbl[], then
+         * issue 'hidden' error.
+         */
+        foreach (j; 1 .. cd.vtbl.dim)
+        {
+            if (j == i)
+                continue;
+            FuncDeclaration fd2 = cd.vtbl[j].isFuncDeclaration();
+            if (!fd2.ident.equals(fd.ident))
+                continue;
+            if (!fd.leastAsSpecialized(fd2) && !fd2.leastAsSpecialized(fd))
+                continue;
+            // Hiding detected: same name, overlapping specializations
+            TypeFunction tf = cast(TypeFunction)fd.type;
+            if (tf.ty == Tfunction)
+            {
+                cd.error("use of %s%s is hidden by %s; use 'alias %s = %s.%s;' to introduce base class overload set",
+                    fd.toPrettyChars(),
+                    parametersTypeToChars(tf.parameters, tf.varargs),
+                    cd.toChars(),
+                    fd.toChars(),
+                    fd.parent.toChars(),
+                    fd.toChars());
+            }
+            else
+                cd.error("use of %s is hidden by %s", fd.toPrettyChars(), cd.toChars());
+            break;
+        }
+    }
+}
+
 
 /******************************************
  * Get offset of base class's vtbl[] initializer from start of csym.
