@@ -10,7 +10,6 @@ import std.conv;
 //IMPORTANT FIXME
 // it becomes clear that supporting indirect instructions aka i32ptr
 // is a pretty bad idea in terms of performance.
-debug = bc_stack;
 enum InstKind
 {
     ShortInst,

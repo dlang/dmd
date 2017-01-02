@@ -10,7 +10,7 @@ import ddmd.mtype;
 import ddmd.statement;
 import ddmd.visitor;
 import ddmd.arraytypes : Expressions;
-debug = ctfe;
+
 /**
  * Written By Stefan Koch in 2016
  */
