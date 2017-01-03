@@ -1351,11 +1351,11 @@ extern (C++) final class BCV(BCGenT) : Visitor
     extern (D) void bailout(const(char)[] message)
     {
         IGaveUp = true;
-        const fi = _sharedCtfeState.getFunctionIndex(me);
-        if (fi)
+        const fnIdx = _sharedCtfeState.getFunctionIndex(me);
+        if (fnIdx)
             static if (is(BCFunction))
             {
-                _sharedCtfeState.functions[fi - 1] = BCFunction(null);
+                _sharedCtfeState.functions[fnIdx - 1] = BCFunction(null);
             }
         debug (ctfe)
         {
@@ -3783,7 +3783,7 @@ static if (is(BCGen))
     override void visit(CallExp ce)
     {
         FuncDeclaration fd;
-        bailout("Bialing by default");
+        bailout("Bailing on FunctionCall");
         return ;
 
         if (ce.e1.op == TOKvar)
