@@ -1359,13 +1359,13 @@ extern (C++) final class BCV(BCGenT) : Visitor
             }
         debug (ctfe)
         {
-        //    assert(0, "bailout: " ~ message);
+            assert(0, "bailout: " ~ message);
         }
         else
         {
             import std.stdio;
 
-        //    writeln("bailout: ", message);
+            writeln("bailout: ", message);
         }
     }
 
@@ -1585,8 +1585,11 @@ public:
 
                 auto myPTypes = parameterTypes.dup;
                 auto myArgs = arguments.dup;
+static if (is(BCGen))
+{
                 auto myCode = byteCodeArray[0 .. ip].idup;
                 auto myIp = ip;
+}
                 debug (ctfe)
                 {
                     writeln("FnCnt: ", _sharedCtfeState.functionCount);
@@ -1649,11 +1652,14 @@ public:
                     }
                     parameterTypes = myPTypes;
                     arguments = myArgs;
+static if (is(BCGen))
+{
                     foreach(i,c;myCode)
                     {
                         byteCodeArray[i] = c;
                     }
                     ip = myIp;
+}
                 }
                 else
                 {
@@ -1817,9 +1823,6 @@ public:
                 {
                 case TOK.TOKequal:
                     {
-                        import std.stdio;
-
-                        writeln("Issueing Eq3 for ", e.toString);
                         Eq3(retval, lhs, rhs);
                     }
                     break;
@@ -3780,6 +3783,8 @@ public:
     override void visit(CallExp ce)
     {
         FuncDeclaration fd;
+        bailout("Bialing by default");
+        return ;
 
         if (ce.e1.op == TOKvar)
         {
@@ -3802,7 +3807,6 @@ public:
         {
             bc_args[i] = genExpr(arg);
         }
-
         static if (is(BCFunction))
         {
 
@@ -3984,11 +3988,21 @@ public:
         debug (ctfe)
         {
             import std.stdio;
+            import ddmd.asttypename;
 
             writefln("WithStatement %s", ws.toString);
-
+            writefln("WithStatement.exp %s", ws.exp.toString);
+            writefln("astTypeName(WithStatement.exp) %s", ws.exp.astTypeName);
+            writefln("WithStatement.exp.op %s", ws.exp.op);
+            writefln("WithStatement.wthis %s", ws.wthis.toString);
         }
-        bailout("We don't handle WithStatements");
+        if (!ws.wthis && ws.exp.op == TOKtype)
+        {
+            genBlock(ws._body);
+            return ;
+        }
+        else
+            bailout("We don't handle WithStatements (execpt with(Type))");
     }
 
     override void visit(Statement s)
