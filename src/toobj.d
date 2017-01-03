@@ -501,103 +501,29 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 // offset
                 dtb.size(b.offset);
-
-                offset += id.vtbl.dim * Target.ptrsize;
             }
 
             // Put out the (*vtblInterfaces)[].vtbl[]
             // This must be mirrored with ClassDeclaration.baseVtblOffset()
             //printf("putting out %d interface vtbl[]s for '%s'\n", vtblInterfaces.dim, toChars());
-            for (size_t i = 0; i < cd.vtblInterfaces.dim; i++)
+            foreach (i; 0 .. cd.vtblInterfaces.dim)
             {
                 BaseClass *b = (*cd.vtblInterfaces)[i];
-                ClassDeclaration id = b.sym;
-
-                //printf("    interface[%d] is '%s'\n", i, id.toChars());
-                size_t j = 0;
-                if (id.vtblOffset())
-                {
-                    // First entry is ClassInfo reference
-                    //dtb.xoff(toSymbol(id), 0, TYnptr);
-
-                    // First entry is struct Interface reference
-                    dtb.xoff(cd.csym, cast(uint)(Target.classinfosize + i * (4 * Target.ptrsize)), TYnptr);
-                    j = 1;
-                }
-                assert(id.vtbl.dim == b.vtbl.dim);
-                for (; j < id.vtbl.dim; j++)
-                {
-                    assert(j < b.vtbl.dim);
-                    version (none)
-                    {
-                        RootObject *o = b.vtbl[j];
-                        if (o)
-                        {
-                            printf("o = %p\n", o);
-                            assert(o.dyncast() == DYNCAST_DSYMBOL);
-                            Dsymbol s = cast(Dsymbol)o;
-                            printf("s.kind() = '%s'\n", s.kind());
-                        }
-                    }
-                    FuncDeclaration fd = b.vtbl[j];
-                    if (fd)
-                    {
-                        auto offset2 = b.offset;
-                        if (fd.interfaceVirtual)
-                        {
-                            offset2 -= fd.interfaceVirtual.offset;
-                        }
-                        dtb.xoff(toThunkSymbol(fd, offset2), 0, TYnptr);
-                    }
-                    else
-                        dtb.size(0);
-                }
+                offset += emitVtbl(dtb, b, b.vtbl, cd, i);
             }
 
             // Put out the overriding interface vtbl[]s.
             // This must be mirrored with ClassDeclaration.baseVtblOffset()
             //printf("putting out overriding interface vtbl[]s for '%s' at offset x%x\n", toChars(), offset);
-            ClassDeclaration pc;
-            for (pc = cd.baseClass; pc; pc = pc.baseClass)
+            for (ClassDeclaration pc = cd.baseClass; pc; pc = pc.baseClass)
             {
-                for (size_t k = 0; k < pc.vtblInterfaces.dim; k++)
+                foreach (i; 0 .. pc.vtblInterfaces.dim)
                 {
-                    BaseClass *bs = (*pc.vtblInterfaces)[k];
+                    BaseClass *b = (*pc.vtblInterfaces)[i];
                     FuncDeclarations bvtbl;
-                    if (bs.fillVtbl(cd, &bvtbl, 0))
+                    if (b.fillVtbl(cd, &bvtbl, 0))
                     {
-                        //printf("\toverriding vtbl[] for %s\n", bs.sym.toChars());
-                        ClassDeclaration id = bs.sym;
-
-                        size_t j = 0;
-                        if (id.vtblOffset())
-                        {
-                            // First entry is ClassInfo reference
-                            //dtb.xoff(toSymbol(id), 0, TYnptr);
-
-                            // First entry is struct Interface reference
-                            dtb.xoff(toSymbol(pc), cast(uint)(Target.classinfosize + k * (4 * Target.ptrsize)), TYnptr);
-                            offset += Target.ptrsize;
-                            j = 1;
-                        }
-
-                        for (; j < id.vtbl.dim; j++)
-                        {
-                            assert(j < bvtbl.dim);
-                            FuncDeclaration fd = bvtbl[j];
-                            if (fd)
-                            {
-                                auto offset2 = bs.offset;
-                                if (fd.interfaceVirtual)
-                                {
-                                    offset2 -= fd.interfaceVirtual.offset;
-                                }
-                                dtb.xoff(toThunkSymbol(fd, offset2), 0, TYnptr);
-                            }
-                            else
-                                dtb.size(0);
-                            offset += Target.ptrsize;
-                        }
+                        offset += emitVtbl(dtb, b, bvtbl, pc, i);
                     }
                 }
             }
@@ -1418,3 +1344,50 @@ uint baseVtblOffset(ClassDeclaration cd, BaseClass *bc)
 
     return ~0;
 }
+
+/*******************
+ * Emit the vtbl[] to static data
+ * Params:
+ *    dtb = static data builder
+ *    b = base class
+ *    bvtbl = array of functions to put in this vtbl[]
+ *    pc = classid for this vtbl[]
+ *    k = offset from pc to classinfo
+ * Returns:
+ *    number of bytes emitted
+ */
+private size_t emitVtbl(ref DtBuilder dtb, BaseClass *b, ref FuncDeclarations bvtbl, ClassDeclaration pc, size_t k)
+{
+    //printf("\toverriding vtbl[] for %s\n", b.sym.toChars());
+    ClassDeclaration id = b.sym;
+
+    const id_vtbl_dim = id.vtbl.dim;
+    assert(id_vtbl_dim <= bvtbl.dim);
+
+    size_t jstart = 0;
+    if (id.vtblOffset())
+    {
+        // First entry is struct Interface reference
+        dtb.xoff(toSymbol(pc), cast(uint)(Target.classinfosize + k * (4 * Target.ptrsize)), TYnptr);
+        jstart = 1;
+    }
+
+    foreach (j; jstart .. id_vtbl_dim)
+    {
+        FuncDeclaration fd = bvtbl[j];
+        if (fd)
+        {
+            auto offset2 = b.offset;
+            if (fd.interfaceVirtual)
+            {
+                offset2 -= fd.interfaceVirtual.offset;
+            }
+            dtb.xoff(toThunkSymbol(fd, offset2), 0, TYnptr);
+        }
+        else
+            dtb.size(0);
+    }
+    return id_vtbl_dim * Target.ptrsize;
+}
+
+
