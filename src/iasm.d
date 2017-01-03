@@ -2012,17 +2012,16 @@ opflag_t asm_float_type_size(Type ptype, opflag_t *pusFloat)
 /*******************************
  */
 
-bool asm_isint(OPND *o)
+bool asm_isint(const ref OPND o)
 {
-    if (!o || o.base || o.s)
+    if (o.base || o.s)
         return false;
-    //return o.disp != 0;
     return true;
 }
 
-bool asm_isNonZeroInt(OPND *o)
+bool asm_isNonZeroInt(const ref OPND o)
 {
-    if (!o || o.base || o.s)
+    if (o.base || o.s)
         return false;
     return o.disp != 0;
 }
@@ -2046,24 +2045,20 @@ bool asm_is_fpreg(const(char)* szReg)
 }
 
 /*******************************
- * Merge operands o1 and o2 into a single operand.
+ * Merge operands o1 and o2 into a single operand, o1.
  */
 
-OPND *asm_merge_opnds(OPND *o1, OPND *o2)
+void asm_merge_opnds(ref OPND o1, ref OPND o2)
 {
     debug const(char)* psz;
     debug (EXTRA_DEBUG) debug (debuga)
     {
         printf("asm_merge_opnds(o1 = ");
-        if (o1) asm_output_popnd(o1);
+        asm_output_popnd(o1);
         printf(", o2 = ");
-        if (o2) asm_output_popnd(o2);
+        asm_output_popnd(o2);
         printf(")\n");
     }
-    if (!o1)
-            return o2;
-    if (!o2)
-            return o1;
     debug (EXTRA_DEBUG)
         printf("Combining Operands: mult1 = %d, mult2 = %d",
                 o1.uchMultiplier, o2.uchMultiplier);
@@ -2106,7 +2101,7 @@ ILLEGAL_ADDRESS_ERROR:
             if (o.dyncast() == DYNCAST_DSYMBOL)
             {
                 o1.s = cast(Dsymbol)o;
-                return o1;
+                return;
             }
             else if (o.dyncast() == DYNCAST_EXPRESSION)
             {
@@ -2114,12 +2109,12 @@ ILLEGAL_ADDRESS_ERROR:
                 if (e.op == TOKvar)
                 {
                     o1.s = (cast(VarExp)e).var;
-                    return o1;
+                    return;
                 }
                 else if (e.op == TOKfunction)
                 {
                     o1.s = (cast(FuncExp)e).fd;
-                    return o1;
+                    return;
                 }
             }
             error(asmstate.loc, "invalid asm operand %s", o1.s.toChars());
@@ -2194,7 +2189,6 @@ ILLEGAL_ADDRESS_ERROR:
     if (o2.ajt && !o1.ajt)
         o1.ajt = o2.ajt;
 
-    delete o2;
     debug (EXTRA_DEBUG)
         printf("Result = %d\n", o1.uchMultiplier);
     debug (debuga)
@@ -2203,13 +2197,12 @@ ILLEGAL_ADDRESS_ERROR:
         asm_output_popnd(o1);
         printf("/\n");
     }
-    return o1;
 }
 
 /***************************************
  */
 
-void asm_merge_symbol(OPND *o1, Dsymbol s)
+void asm_merge_symbol(ref OPND o1, Dsymbol s)
 {
     VarDeclaration v;
     EnumMember em;
@@ -3552,7 +3545,6 @@ code *asm_db_parse(OP *pop)
  */
 
 int asm_getnum()
-
 {
     int v;
     dinteger_t i;
@@ -3592,169 +3584,165 @@ int asm_getnum()
 /*******************************
  */
 
-OPND *asm_cond_exp()
+void asm_cond_exp(out OPND o1)
 {
-    OPND* o1, o2, o3;
-
     //printf("asm_cond_exp()\n");
-    o1 = asm_log_or_exp();
+    asm_log_or_exp(o1);
     if (asmstate.tokValue == TOKquestion)
     {
         asm_token();
-        o2 = asm_cond_exp();
+        OPND o2;
+        asm_cond_exp(o2);
         asm_chktok(TOKcolon,"colon");
-        o3 = asm_cond_exp();
-        o1 = (o1.disp) ? o2 : o3;
+        OPND o3;
+        asm_cond_exp(o3);
+        if (o1.disp)
+            o1 = o2;
+        else
+            o1 = o3;
     }
-    return o1;
 }
 
 /*******************************
  */
 
-OPND *asm_log_or_exp()
+void asm_log_or_exp(out OPND o1)
 {
-    OPND* o1, o2;
-
-    o1 = asm_log_and_exp();
+    asm_log_and_exp(o1);
     while (asmstate.tokValue == TOKoror)
     {
         asm_token();
-        o2 = asm_log_and_exp();
+        OPND o2;
+        asm_log_and_exp(o2);
         if (asm_isint(o1) && asm_isint(o2))
             o1.disp = o1.disp || o2.disp;
         else
             asmerr("bad integral operand");
-        o2.disp = 0;
-        o1 = asm_merge_opnds(o1, o2);
+        o1.disp = 0;
+        asm_merge_opnds(o1, o2);
     }
-    return o1;
 }
 
 /*******************************
  */
 
-OPND *asm_log_and_exp()
+void asm_log_and_exp(out OPND o1)
 {
-    OPND* o1, o2;
-
-    o1 = asm_inc_or_exp();
+    asm_inc_or_exp(o1);
     while (asmstate.tokValue == TOKandand)
     {
         asm_token();
-        o2 = asm_inc_or_exp();
+        OPND o2;
+        asm_inc_or_exp(o2);
         if (asm_isint(o1) && asm_isint(o2))
             o1.disp = o1.disp && o2.disp;
         else
             asmerr("bad integral operand");
         o2.disp = 0;
-        o1 = asm_merge_opnds(o1, o2);
+        asm_merge_opnds(o1, o2);
     }
-    return o1;
 }
 
 /*******************************
  */
 
-OPND *asm_inc_or_exp()
+void asm_inc_or_exp(out OPND o1)
 {
-    OPND* o1, o2;
-
-    o1 = asm_xor_exp();
+    asm_xor_exp(o1);
     while (asmstate.tokValue == TOKor)
     {
         asm_token();
-        o2 = asm_xor_exp();
+        OPND o2;
+        asm_xor_exp(o2);
         if (asm_isint(o1) && asm_isint(o2))
             o1.disp |= o2.disp;
         else
             asmerr("bad integral operand");
         o2.disp = 0;
-        o1 = asm_merge_opnds(o1, o2);
+        asm_merge_opnds(o1, o2);
     }
-    return o1;
 }
 
 /*******************************
  */
 
-OPND *asm_xor_exp()
+void asm_xor_exp(out OPND o1)
 {
-    OPND* o1, o2;
-
-    o1 = asm_and_exp();
+    asm_and_exp(o1);
     while (asmstate.tokValue == TOKxor)
     {
         asm_token();
-        o2 = asm_and_exp();
+        OPND o2;
+        asm_and_exp(o2);
         if (asm_isint(o1) && asm_isint(o2))
             o1.disp ^= o2.disp;
         else
             asmerr("bad integral operand");
         o2.disp = 0;
-        o1 = asm_merge_opnds(o1, o2);
+        asm_merge_opnds(o1, o2);
     }
-    return o1;
 }
 
 /*******************************
  */
 
-OPND *asm_and_exp()
+void asm_and_exp(out OPND o1)
 {
-    OPND* o1, o2;
-
-    o1 = asm_equal_exp();
+    asm_equal_exp(o1);
     while (asmstate.tokValue == TOKand)
     {
         asm_token();
-        o2 = asm_equal_exp();
+        OPND o2;
+        asm_equal_exp(o2);
         if (asm_isint(o1) && asm_isint(o2))
             o1.disp &= o2.disp;
         else
             asmerr("bad integral operand");
         o2.disp = 0;
-        o1 = asm_merge_opnds(o1, o2);
+        asm_merge_opnds(o1, o2);
     }
-    return o1;
 }
 
 /*******************************
  */
 
-OPND *asm_equal_exp()
+void asm_equal_exp(out OPND o1)
 {
-    OPND* o1, o2;
-
-    o1 = asm_rel_exp();
+    asm_rel_exp(o1);
     while (1)
     {
         switch (asmstate.tokValue)
         {
             case TOKequal:
+            {
                 asm_token();
-                o2 = asm_rel_exp();
+                OPND o2;
+                asm_rel_exp(o2);
                 if (asm_isint(o1) && asm_isint(o2))
                     o1.disp = o1.disp == o2.disp;
                 else
                     asmerr("bad integral operand");
                 o2.disp = 0;
-                o1 = asm_merge_opnds(o1, o2);
+                asm_merge_opnds(o1, o2);
                 break;
+            }
 
             case TOKnotequal:
+            {
                 asm_token();
-                o2 = asm_rel_exp();
+                OPND o2;
+                asm_rel_exp(o2);
                 if (asm_isint(o1) && asm_isint(o2))
                     o1.disp = o1.disp != o2.disp;
                 else
                     asmerr("bad integral operand");
                 o2.disp = 0;
-                o1 = asm_merge_opnds(o1, o2);
+                asm_merge_opnds(o1, o2);
                 break;
+            }
 
             default:
-                return o1;
+                return;
         }
     }
 }
@@ -3762,12 +3750,9 @@ OPND *asm_equal_exp()
 /*******************************
  */
 
-OPND *asm_rel_exp()
+void asm_rel_exp(out OPND o1)
 {
-    OPND* o1, o2;
-    TOK tok_save;
-
-    o1 = asm_shift_exp();
+    asm_shift_exp(o1);
     while (1)
     {
         switch (asmstate.tokValue)
@@ -3776,9 +3761,10 @@ OPND *asm_rel_exp()
             case TOKge:
             case TOKlt:
             case TOKle:
-                tok_save = asmstate.tokValue;
+                auto tok_save = asmstate.tokValue;
                 asm_token();
-                o2 = asm_shift_exp();
+                OPND o2;
+                asm_shift_exp(o2);
                 if (asm_isint(o1) && asm_isint(o2))
                 {
                     switch (tok_save)
@@ -3802,11 +3788,11 @@ OPND *asm_rel_exp()
                 else
                     asmerr("bad integral operand");
                 o2.disp = 0;
-                o1 = asm_merge_opnds(o1, o2);
+                asm_merge_opnds(o1, o2);
                 break;
 
             default:
-                return o1;
+                return;
         }
     }
 }
@@ -3814,17 +3800,15 @@ OPND *asm_rel_exp()
 /*******************************
  */
 
-OPND *asm_shift_exp()
+void asm_shift_exp(out OPND o1)
 {
-    OPND* o1, o2;
-    TOK tk;
-
-    o1 = asm_add_exp();
+    asm_add_exp(o1);
     while (asmstate.tokValue == TOKshl || asmstate.tokValue == TOKshr || asmstate.tokValue == TOKushr)
     {
-        tk = asmstate.tokValue;
+        auto tk = asmstate.tokValue;
         asm_token();
-        o2 = asm_add_exp();
+        OPND o2;
+        asm_add_exp(o2);
         if (asm_isint(o1) && asm_isint(o2))
         {
             if (tk == TOKshl)
@@ -3837,32 +3821,34 @@ OPND *asm_shift_exp()
         else
             asmerr("bad integral operand");
         o2.disp = 0;
-        o1 = asm_merge_opnds(o1, o2);
+        asm_merge_opnds(o1, o2);
     }
-    return o1;
 }
 
 /*******************************
  */
 
-OPND *asm_add_exp()
+void asm_add_exp(out OPND o1)
 {
-    OPND* o1, o2;
-
-    o1 = asm_mul_exp();
+    asm_mul_exp(o1);
     while (1)
     {
         switch (asmstate.tokValue)
         {
             case TOKadd:
+            {
                 asm_token();
-                o2 = asm_mul_exp();
-                o1 = asm_merge_opnds(o1, o2);
+                OPND o2;
+                asm_mul_exp(o2);
+                asm_merge_opnds(o1, o2);
                 break;
+            }
 
             case TOKmin:
+            {
                 asm_token();
-                o2 = asm_mul_exp();
+                OPND o2;
+                asm_mul_exp(o2);
                 if (asm_isint(o1) && asm_isint(o2))
                 {
                     o1.disp -= o2.disp;
@@ -3870,11 +3856,12 @@ OPND *asm_add_exp()
                 }
                 else
                     o2.disp = - o2.disp;
-                o1 = asm_merge_opnds(o1, o2);
+                asm_merge_opnds(o1, o2);
                 break;
+            }
 
             default:
-                return o1;
+                return;
         }
     }
 }
@@ -3882,20 +3869,19 @@ OPND *asm_add_exp()
 /*******************************
  */
 
-OPND *asm_mul_exp()
+void asm_mul_exp(out OPND o1)
 {
-    OPND* o1, o2;
-    OPND *popndTmp;
-
     //printf("+asm_mul_exp()\n");
-    o1 = asm_br_exp();
+    asm_br_exp(o1);
     while (1)
     {
         switch (asmstate.tokValue)
         {
             case TOKmul:
+            {
                 asm_token();
-                o2 = asm_br_exp();
+                OPND o2;
+                asm_br_exp(o2);
                 debug (EXTRA_DEBUG) printf("Star  o1.isint=%d, o2.isint=%d, lbra_seen=%d\n",
                     asm_isint(o1), asm_isint(o2), asmstate.lbracketNestCount );
                 if (asm_isNonZeroInt(o1) && asm_isNonZeroInt(o2))
@@ -3907,7 +3893,7 @@ OPND *asm_mul_exp()
                 }
                 else if (asmstate.lbracketNestCount && o2.pregDisp1 && asm_isNonZeroInt(o1))
                 {
-                    popndTmp = o2;
+                    OPND popndTmp = o2;
                     o2 = o1;
                     o1 = popndTmp;
                     o1.uchMultiplier = cast(uint)o2.disp;
@@ -3919,33 +3905,40 @@ OPND *asm_mul_exp()
                 else
                     asmerr("bad operand");
                 o2.disp = 0;
-                o1 = asm_merge_opnds(o1, o2);
+                asm_merge_opnds(o1, o2);
                 break;
+            }
 
             case TOKdiv:
+            {
                 asm_token();
-                o2 = asm_br_exp();
+                OPND o2;
+                asm_br_exp(o2);
                 if (asm_isint(o1) && asm_isint(o2))
                     o1.disp /= o2.disp;
                 else
                     asmerr("bad integral operand");
                 o2.disp = 0;
-                o1 = asm_merge_opnds(o1, o2);
+                asm_merge_opnds(o1, o2);
                 break;
+            }
 
             case TOKmod:
+            {
                 asm_token();
-                o2 = asm_br_exp();
+                OPND o2;
+                asm_br_exp(o2);
                 if (asm_isint(o1) && asm_isint(o2))
                     o1.disp %= o2.disp;
                 else
                     asmerr("bad integral operand");
                 o2.disp = 0;
-                o1 = asm_merge_opnds(o1, o2);
+                asm_merge_opnds(o1, o2);
                 break;
+            }
 
             default:
-                return o1;
+                return;
         }
     }
 }
@@ -3953,12 +3946,11 @@ OPND *asm_mul_exp()
 /*******************************
  */
 
-OPND *asm_br_exp()
+void asm_br_exp(out OPND o1)
 {
-    OPND* o1, o2;
-
     //printf("asm_br_exp()\n");
-    o1 = asm_una_exp();
+    if (asmstate.tokValue != TOKlbracket)
+        asm_una_exp(o1);
     while (1)
     {
         switch (asmstate.tokValue)
@@ -3968,20 +3960,21 @@ OPND *asm_br_exp()
                 debug (EXTRA_DEBUG) printf("Saw a left bracket\n");
                 asm_token();
                 asmstate.lbracketNestCount++;
-                o2 = asm_cond_exp();
+                OPND o2;
+                asm_cond_exp(o2);
                 asmstate.lbracketNestCount--;
                 asm_chktok(TOKrbracket,"] expected instead of '%s'");
                 debug (EXTRA_DEBUG) printf("Saw a right bracket\n");
-                o1 = asm_merge_opnds(o1, o2);
+                asm_merge_opnds(o1, o2);
                 if (asmstate.tokValue == TOKidentifier)
                 {
-                    o2 = asm_una_exp();
-                    o1 = asm_merge_opnds(o1, o2);
+                    asm_una_exp(o2);
+                    asm_merge_opnds(o1, o2);
                 }
                 break;
             }
             default:
-                return o1;
+                return;
         }
     }
 }
@@ -3989,9 +3982,8 @@ OPND *asm_br_exp()
 /*******************************
  */
 
-OPND *asm_una_exp()
+void asm_una_exp(ref OPND o1)
 {
-    OPND *o1;
     Type ptype;
     ASM_JUMPTYPE ajt = ASM_JUMPTYPE_UNSPECIFIED;
     bool bPtr = false;
@@ -4000,26 +3992,26 @@ OPND *asm_una_exp()
     {
         case TOKadd:
             asm_token();
-            o1 = asm_una_exp();
+            asm_una_exp(o1);
             break;
 
         case TOKmin:
             asm_token();
-            o1 = asm_una_exp();
+            asm_una_exp(o1);
             if (asm_isint(o1))
                 o1.disp = -o1.disp;
             break;
 
         case TOKnot:
             asm_token();
-            o1 = asm_una_exp();
+            asm_una_exp(o1);
             if (asm_isint(o1))
                 o1.disp = !o1.disp;
             break;
 
         case TOKtilde:
             asm_token();
-            o1 = asm_una_exp();
+            asm_una_exp(o1);
             if (asm_isint(o1))
                 o1.disp = ~o1.disp;
             break;
@@ -4045,7 +4037,7 @@ version (none)
             else
             {
                 type_free(ptypeSpec);
-                o1 = asm_cond_exp();
+                asm_cond_exp(o1);
                 chktok(TOKrparen, ") expected instead of '%s'");
             }
             break;
@@ -4062,20 +4054,16 @@ version (none)
             {
             Loffset:
                 asm_token();
-                o1 = asm_cond_exp();
-                if (!o1)
-                    o1 = new OPND();
+                asm_cond_exp(o1);
                 o1.bOffset = true;
             }
             else
-                o1 = asm_primary_exp();
+                asm_primary_exp(o1);
             break;
 
         case ASMTKseg:
             asm_token();
-            o1 = asm_cond_exp();
-            if (!o1)
-                o1 = new OPND();
+            asm_cond_exp(o1);
             o1.bSeg = true;
             break;
 
@@ -4099,10 +4087,8 @@ JUMP_REF:
             asm_token();
             asm_chktok(cast(TOK) ASMTKptr, "ptr expected".ptr);
 JUMP_REF2:
-            o1 = asm_cond_exp();
-            if (!o1)
-                o1 = new OPND();
-            o1.ajt= ajt;
+            asm_cond_exp(o1);
+            o1.ajt = ajt;
             break;
 
         case TOKint8:
@@ -4128,27 +4114,22 @@ TYPE_REF:
             bPtr = true;
             asm_token();
             asm_chktok(cast(TOK) ASMTKptr, "ptr expected");
-            o1 = asm_cond_exp();
-            if (!o1)
-                o1 = new OPND();
+            asm_cond_exp(o1);
             o1.ptype = ptype;
             o1.bPtr = bPtr;
             break;
 
         default:
-            o1 = asm_primary_exp();
+            asm_primary_exp(o1);
             break;
     }
-    return o1;
 }
 
 /*******************************
  */
 
-OPND *asm_primary_exp()
+void asm_primary_exp(out OPND o1)
 {
-    OPND *o1 = null;
-    OPND *o2 = null;
     Dsymbol s;
     Dsymbol scopesym;
 
@@ -4157,14 +4138,12 @@ OPND *asm_primary_exp()
     switch (asmstate.tokValue)
     {
         case TOKdollar:
-            o1 = new OPND();
             o1.s = asmstate.psDollar;
             asm_token();
             break;
 
         case TOKthis:
         case TOKidentifier:
-            o1 = new OPND();
             regp = asm_reg_lookup(asmstate.tok.ident.toChars());
             if (regp != null)
             {
@@ -4176,10 +4155,11 @@ OPND *asm_primary_exp()
                 {
                     o1.segreg = regp;
                     asm_token();
-                    o2 = asm_cond_exp();
+                    OPND o2;
+                    asm_cond_exp(o2);
                     if (o2.s && o2.s.isLabel())
                         o2.segreg = null; // The segment register was specified explicitly.
-                    o1 = asm_merge_opnds(o1, o2);
+                    asm_merge_opnds(o1, o2);
                 }
                 else if (asmstate.lbracketNestCount)
                 {
@@ -4312,62 +4292,54 @@ OPND *asm_primary_exp()
                 // for []
                 //if (asmstate.tokValue == TOKlbracket)
                         //o1 = asm_prim_post(o1);
-                goto Lret;
+                return;
             }
             break;
 
         case TOKint32v:
-            o1 = new OPND();
             o1.disp = cast(d_int32)asmstate.tok.int64value;
             asm_token();
             break;
 
         case TOKuns32v:
-            o1 = new OPND();
             o1.disp = cast(d_uns32)asmstate.tok.uns64value;
             asm_token();
             break;
 
         case TOKint64v:
         case TOKuns64v:
-            o1 = new OPND();
             o1.disp = asmstate.tok.int64value;
             asm_token();
             break;
 
         case TOKfloat32v:
-            o1 = new OPND();
             o1.vreal = asmstate.tok.floatvalue;
             o1.ptype = Type.tfloat32;
             asm_token();
             break;
 
         case TOKfloat64v:
-            o1 = new OPND();
             o1.vreal = asmstate.tok.floatvalue;
             o1.ptype = Type.tfloat64;
             asm_token();
             break;
 
         case TOKfloat80v:
-            o1 = new OPND();
             o1.vreal = asmstate.tok.floatvalue;
             o1.ptype = Type.tfloat80;
             asm_token();
             break;
 
         case cast(TOK)ASMTKlocalsize:
-            o1 = new OPND();
             o1.s = asmstate.psLocalsize;
             o1.ptype = Type.tint32;
             asm_token();
             break;
 
          default:
+            asmerr("expression expected not %s", asmstate.tok ? asmstate.tok.toChars() : ";");
             break;
     }
-Lret:
-    return o1;
 }
 
 /*******************************
@@ -4405,6 +4377,7 @@ extern (C++) public Statement asmSemantic(AsmStatement s, Scope *sc)
     //printf("AsmStatement.semantic()\n");
 
     OP *o;
+    OPND opnd1, opnd2, opnd3, opnd4;
     OPND* o1, o2, o3, o4;
     PTRNTAB ptb;
     int usNumops;
@@ -4511,22 +4484,30 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
                 }
             }
             // get the first part of an expr
-            o1 = asm_cond_exp();
-            if (asmstate.tokValue == TOKcomma)
+            if (asmstate.tokValue != TOKeof)
             {
-                asm_token();
-                o2 = asm_cond_exp();
+                asm_cond_exp(opnd1);
+                o1 = &opnd1;
+                if (asmstate.tokValue == TOKcomma)
+                {
+                    asm_token();
+                    asm_cond_exp(opnd2);
+                    o2 = &opnd2;
+                    if (asmstate.tokValue == TOKcomma)
+                    {
+                        asm_token();
+                        asm_cond_exp(opnd3);
+                        o3 = &opnd3;
+                        if (asmstate.tokValue == TOKcomma)
+                        {
+                            asm_token();
+                            asm_cond_exp(opnd4);
+                            o4 = &opnd4;
+                        }
+                    }
+                }
             }
-            if (asmstate.tokValue == TOKcomma)
-            {
-                asm_token();
-                o3 = asm_cond_exp();
-            }
-            if (asmstate.tokValue == TOKcomma)
-            {
-                asm_token();
-                o4 = asm_cond_exp();
-            }
+
             // match opcode and operands in ptrntab to verify legal inst and
             // generate
 
@@ -4542,10 +4523,11 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
             if (asmstate.ucItype == ITopt &&
                     (usNumops == 2) &&
                     (ASM_GET_aopty(o2.usFlags) == _imm) &&
-                    ((o.usNumops & ITSIZE) == 3))
+                    ((o.usNumops & ITSIZE) == 3) &&
+                    o2 && !o3)
             {
                 o3 = o2;
-                o2 = new OPND();
+                o2 = &opnd3;
                 *o2 = *o1;
 
                 // Re-classify the opcode because the first classification
@@ -4560,7 +4542,6 @@ version (none)
                 if (asmstate.ucItype == ITshift && (ptb.pptb2.usOp2 == 0 ||
                         (ptb.pptb2.usOp2 & _cl)))
                 {
-                    delete o2;
                     o2 = null;
                     usNumops = 1;
                 }
@@ -4576,10 +4557,6 @@ version (none)
     }
 
 AFTER_EMIT:
-    delete o1;
-    delete o2;
-    delete o3;
-    o1 = o2 = o3 = null;
 
     if (asmstate.tokValue != TOKeof)
     {
