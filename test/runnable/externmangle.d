@@ -1,5 +1,7 @@
 // EXTRA_CPP_SOURCES: externmangle.cpp
 
+import core.stdc.config; // cpp_long
+
 extern(C++):
 
 struct Foo(X)
@@ -122,7 +124,8 @@ interface Module
     public static int dim(Array!Module*);
 };
 
-ulong testlongmangle(int a, uint b, long c, ulong d);
+cpp_ulong testlongmangle(int a, uint b, cpp_long c, cpp_ulong d);
+ulong testint64mangle(int a, uint b, long c, ulong d);
 
 __gshared extern int[2][2][2] test31;
 __gshared extern int* test32;
@@ -280,6 +283,7 @@ void main()
     assert(Module.dim(&arr2) == 20);
 
     assert(testlongmangle(1, 2, 3, 4) == 10);
+    assert(testint64mangle(1, 2, 3, 4) == 10);
     assert(test31 == [[[1, 1], [1, 1]], [[1, 1], [1, 1]]]);
     assert(test32 == null);
 

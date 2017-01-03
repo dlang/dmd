@@ -194,17 +194,17 @@ int Module::dim(Array<Module*>* arr)
     return arr->dim;
 }
 
-#if _LP64
+
 unsigned long testlongmangle(int32_t a, uint32_t b, long c, unsigned long d)
 {
     return a + b + c + d;
 }
-#else
-unsigned long long testlongmangle(int a, unsigned int b, long long c, unsigned long long d)
+
+unsigned long long testint64mangle(int a, unsigned int b, long long c, unsigned long long d)
 {
     return a + b + c + d;
 }
-#endif
+
 
 int test31[2][2][2] = {1, 1, 1, 1, 1, 1, 1, 1};
 int *test32 = 0;

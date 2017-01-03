@@ -624,10 +624,10 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 c = 'f';
                 break;
             case Tint64:
-                c = (Target.c_longsize == 8 ? 'l' : 'x');
+                c = 'x';
                 break;
             case Tuns64:
-                c = (Target.c_longsize == 8 ? 'm' : 'y');
+                c = 'y';
                 break;
             case Tint128:
                 c = 'n';
