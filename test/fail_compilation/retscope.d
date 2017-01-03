@@ -422,3 +422,31 @@ struct Foo14
     int* v;
     int* foo () @safe { return this.v; }
 }
+
+/******************************************/
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(1311): Error: scope variable u2 assigned to ek with longer lifetime
+---
+*/
+
+#line 1300
+@safe struct U13 {
+  int* k;
+  int* get() return scope { return k; }
+  static int* sget(return scope ref U13 u) { return u.k; }
+}
+
+@safe void foo13() {
+  int* ek;
+
+  int i;
+  auto u2 = U13(&i);
+  ek = U13.sget(u2); // Error: scope variable u2 assigned to ek with longer lifetime
+
+  auto u1 = U13(new int);
+  ek = u1.get();   // ok
+  ek = U13.sget(u1); // ok
+}
+
