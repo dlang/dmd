@@ -1590,6 +1590,9 @@ static if (is(BCGen))
                 auto myCode = byteCodeArray[0 .. ip].idup;
                 auto myIp = ip;
 }
+                //FIXME IMPORTANT PERFORMANCE!!!
+                // get rid of dup!
+
                 debug (ctfe)
                 {
                     writeln("FnCnt: ", _sharedCtfeState.functionCount);
@@ -1601,8 +1604,6 @@ static if (is(BCGen))
                         _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
                             fnIdx, BCFunctionTypeEnum.Bytecode,
                             cast(ushort) parameterTypes.length, osp2,
-                            //FIXME IMPORTANT PERFORMANCE!!!
-                            // get rid of dup!
                             myCode);
                         clear();
                     }
@@ -1613,7 +1614,6 @@ static if (is(BCGen))
 
                     foreach (uf; uncompiledFunctions[0 .. uncompiledFunctionCount])
                     {
-                        writeln("Doing uncompiledFunction ");
                         clear();
                         beginParameters();
                         if (uf.fd.parameters)
@@ -1654,6 +1654,7 @@ static if (is(BCGen))
                     arguments = myArgs;
 static if (is(BCGen))
 {
+                    //FIXME PERFORMACE get RID of this loop!
                     foreach(i,c;myCode)
                     {
                         byteCodeArray[i] = c;
@@ -3783,8 +3784,8 @@ static if (is(BCGen))
     override void visit(CallExp ce)
     {
         FuncDeclaration fd;
-        bailout("Bailing on FunctionCall");
-        return ;
+        //bailout("Bailing on FunctionCall");
+        //return ;
 
         if (ce.e1.op == TOKvar)
         {
