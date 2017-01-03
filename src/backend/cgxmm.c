@@ -658,6 +658,8 @@ code *xmmneg(elem *e,regm_t *pretregs)
 
 unsigned xmmload(tym_t tym, bool aligned)
 {   unsigned op;
+    if (tysize(tym) == 32)
+        aligned = false;
     switch (tybasic(tym))
     {
         case TYuint:
@@ -1255,10 +1257,13 @@ code *cdvecfill(elem *e, regm_t *pretregs)
         case TYfloat8:
             if (config.avx &&
                 ((e1->Eoper == OPind && !e1->Ecount) || e1->Eoper == OPvar && !isregvar(e1,&varregm,&varreg)) ||
-                tysize(ty) == 32
+                tysize(ty) == 32 && !isregvar(e1,&varregm,&varreg)
                )
             {
               Lint:
+                if (e1->Eoper == OPvar)
+                    e1->EV.sp.Vsym->Sflags &= ~GTregcand;
+
                 // VBROADCASTSS XMM,MEM
                 cdb.append(getlvalue(&cs, e1, 0));         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);           // AVX1 doesn't have register source operands
@@ -1295,9 +1300,12 @@ code *cdvecfill(elem *e, regm_t *pretregs)
         case TYdouble4:
             if (config.avx &&
                 ((e1->Eoper == OPind && !e1->Ecount) || e1->Eoper == OPvar && !isregvar(e1,&varregm,&varreg)) ||
-                tysize(ty) == 32
+                tysize(ty) == 32 && !isregvar(e1,&varregm,&varreg)
                )
             {
+                if (e1->Eoper == OPvar)
+                    e1->EV.sp.Vsym->Sflags &= ~GTregcand;
+
                 // VBROADCASTSD XMM,MEM
                 cdb.append(getlvalue(&cs, e1, 0));         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);           // AVX1 doesn't have register source operands
@@ -1457,7 +1465,7 @@ code *cdvecfill(elem *e, regm_t *pretregs)
         {
             if (config.avx &&
                 ((e1->Eoper == OPind && !e1->Ecount) || e1->Eoper == OPvar && !isregvar(e1,&varregm,&varreg)) ||
-                tysize(ty) == 32)
+                tysize(ty) == 32 && !isregvar(e1,&varregm,&varreg))
             {
                 goto Lint;
             }
@@ -1495,6 +1503,9 @@ code *cdvecfill(elem *e, regm_t *pretregs)
         case TYullong4:
             if (config.avx || tysize(ty) >= 32)
             {
+                if (e1->Eoper == OPvar)
+                    e1->EV.sp.Vsym->Sflags &= ~GTregcand;
+
                 // VMOVDDUP XMM,MEM
                 cdb.append(getlvalue(&cs, e1, 0));         // get addressing mode
                 if ((cs.Irm & 0xC0) == 0xC0)
