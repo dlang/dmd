@@ -127,6 +127,7 @@ Where:
   -deps=<filename> write module dependencies to filename (only imports)" ~
   "%s" /* placeholder for fpic */ ~ "
   -dip25           implement http://wiki.dlang.org/DIP25 (experimental)
+  -dip1000         implement http://wiki.dlang.org/DIP1000 (experimental)
   -g               add symbolic debug info
   -gc              add symbolic debug info, optimize for non D debuggers
   -gs              always emit stack frame
@@ -605,7 +606,6 @@ Language changes listed by -transition=id:
   =complex,14488 list all usages of complex or imaginary types
   =field,3449    list all non-mutable fields which occupy an object instance
   =import,10378  revert to single phase name lookup
-  =safe          shows places with hidden change in semantics needed for better @safe guarantees
   =tls           list all variables going into thread local storage
 ");
                         exit(EXIT_SUCCESS);
@@ -654,10 +654,6 @@ Language changes listed by -transition=id:
                             break;
                         case "import":
                             global.params.bug10378 = true;
-                            break;
-                        case "safe":
-                            global.params.vsafe = true;
-                            global.params.useDIP25 = true;
                             break;
                         case "tls":
                             global.params.vtls = true;
@@ -787,6 +783,11 @@ Language changes listed by -transition=id:
             }
             else if (strcmp(p + 1, "dip25") == 0)
                 global.params.useDIP25 = true;
+            else if (strcmp(p + 1, "dip1000") == 0)
+            {
+                global.params.useDIP25 = true;
+                global.params.vsafe = true;
+            }
             else if (strcmp(p + 1, "lib") == 0)
                 global.params.lib = true;
             else if (strcmp(p + 1, "nofloat") == 0)
@@ -2078,4 +2079,3 @@ private CPU setTargetCPU(CPU cpu)
     }
     return cpu;
 }
-

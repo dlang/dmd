@@ -1,5 +1,5 @@
 /* PERMUTE_ARGS:
-REQUIRED_ARGS: -transition=safe
+REQUIRED_ARGS: -dip1000
 TEST_OUTPUT:
 ---
 fail_compilation/test16589.d(26): Error: escaping reference to local variable this
