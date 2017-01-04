@@ -125,7 +125,8 @@ struct BlackList
 
     void defaultBlackList()
     {
-        initialize([ /*"_ArrayEq", */ "__lambda2" /* needed because of std.traits.ParameterDefaults*/ ,
+        initialize(["__lambda2" /* needed because of std.traits.ParameterDefaults*/ ,
+            "mangleFunc",
             "back", "front", "empty"]);
     }
 
@@ -603,21 +604,22 @@ struct SharedCtfeState(BCGenT)
     uint _threadLock;
     BCHeap heap;
     long[ushort.max / 4] stack; // a Stack of 64K/4 is the Hard Limit;
-    StructDeclaration[ubyte.max * 4] structDeclPointers;
-    TypeSArray[ubyte.max * 4] sArrayTypePointers;
-    TypeDArray[ubyte.max * 4] dArrayTypePointers;
-    TypePointer[ubyte.max * 4] pointerTypePointers;
+    StructDeclaration[ubyte.max * 8] structDeclPointers;
+    TypeSArray[ubyte.max * 16] sArrayTypePointers;
+    TypeDArray[ubyte.max * 8] dArrayTypePointers;
+    TypePointer[ubyte.max * 8] pointerTypePointers;
     BCTypeVisitor btv = new BCTypeVisitor();
 
-    BCStruct[ubyte.max * 4] structs;
+    BCStruct[ubyte.max * 8] structs;
     uint structCount;
-    BCArray[ubyte.max * 4] arrays;
+    BCArray[ubyte.max * 16] arrays;
     uint arrayCount;
-    BCSlice[ubyte.max * 4] slices;
+    BCSlice[ubyte.max * 8] slices;
     uint sliceCount;
-    BCPointer[ubyte.max * 4] pointers;
+    BCPointer[ubyte.max * 8] pointers;
     uint pointerCount;
-    RetainedError[ubyte.max * 4] errors;
+    // find a way to live without 102_000
+    RetainedError[ubyte.max * 16] errors;
     uint errorCount;
 
     void initHeap(uint maxHeapSize = 2 ^^ 24)
@@ -643,7 +645,7 @@ struct SharedCtfeState(BCGenT)
     static if (is(BCFunction))
     {
         static assert(is(typeof(BCFunction.funcDecl) == void*));
-        BCFunction[ubyte.max * 4] functions;
+        BCFunction[ubyte.max * 32] functions;
         uint functionCount = 0;
     }
     else
@@ -676,6 +678,8 @@ struct SharedCtfeState(BCGenT)
         auto elemType = btv.toBCType(tsa.nextOf);
         auto arraySize = evaluateUlong(tsa.dim);
         assert(arraySize < uint.max);
+        if (arrayCount == arrays.length)
+            return 0;
         arrays[arrayCount++] = BCArray(elemType, cast(uint) arraySize);
         return arrayCount;
     }
@@ -1275,7 +1279,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     BCAddr[ubyte.max] continueFixups = void;
     BCScope[16] scopes = void;
     BoolExprFixupEntry[ubyte.max] fixupTable = void;
-    UncompiledFunction[ubyte.max] uncompiledFunctions = void;
+    UncompiledFunction[ubyte.max * 8] uncompiledFunctions = void;
     SwitchState[16] switchStates = void;
 
     alias visit = super.visit;
@@ -1476,6 +1480,7 @@ public:
             {
 
                 processingArguments = false;
+                assert(processedArgs < arguments.length);
                 assignTo = arguments[processedArgs++];
                 assert(expr);
                 expr.accept(this);
@@ -1863,6 +1868,12 @@ static if (is(BCGen))
                 case TOK.TOKand:
                     {
                         And3(retval, lhs, rhs);
+                    }
+                    break;
+
+                case TOK.TOKor:
+                    {
+                        Or3(retval, lhs, rhs);
                     }
                     break;
 
@@ -3784,8 +3795,8 @@ static if (is(BCGen))
     override void visit(CallExp ce)
     {
         FuncDeclaration fd;
-        //bailout("Bailing on FunctionCall");
-        //return ;
+        bailout("Bailing on FunctionCall");
+        return ;
 
         if (ce.e1.op == TOKvar)
         {
@@ -3812,7 +3823,9 @@ static if (is(BCGen))
         {
 
             uint fnIdx = _sharedCtfeState.getFunctionIndex(fd);
-            if (!fnIdx && fd && cacheBC)
+            // FIXME the check for fd.fbody should probably be done somewhere else
+            // and we shoud handle the builtins!
+            if (!fnIdx && fd && fd.fbody && cacheBC)
             {
                 // FIXME deferring can only be done if we are NOT in a closure
                 // if we get here the function was not already there.

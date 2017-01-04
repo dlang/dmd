@@ -40,7 +40,7 @@ struct Print_BCGen
         StackAddr sp = StackAddr(4);
     }
 
-    FunctionState[255] functionStates;
+    FunctionState[ubyte.max * 8] functionStates;
     uint functionStateCount;
     uint currentFunctionStateNumber;
 

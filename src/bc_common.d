@@ -78,10 +78,13 @@ enum BCTypeEnum : ubyte
     Void,
 
     Char,
-    // signed by default
+    /// signed by default
     i8,
+    /// DITTO
     i16,
+    /// DITTO
     i32,
+    /// DITTO
     i64,
 
     u8,

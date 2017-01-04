@@ -358,7 +358,7 @@ struct BCGen
     uint functionId;
     void* fd;
 
-    RetainedCall[ubyte.max] calls;
+    RetainedCall[ubyte.max * 32] calls;
     uint callCount;
 @safe pure:
     auto interpret(BCValue[] args, BCHeap* heapPtr) const
@@ -2060,7 +2060,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
         case LongInst.Call:
             {
                 assert(functions, "When calling functions you need functions to call");
-                auto call = calls[(*rhs & uint.max) - 1];
+                auto call = calls[uint((*rhs & uint.max)) - 1];
 
                 auto fn = (call.fn.vType == BCValueType.Immediate ?
                     call.fn.imm32 :
