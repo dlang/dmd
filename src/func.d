@@ -988,8 +988,8 @@ extern (C++) class FuncDeclaration : Declaration
                     {
                         //printf("vi = %d,\tthis = %p %s %s @ [%s]\n\tfdc  = %p %s %s @ [%s]\n\tfdv  = %p %s %s @ [%s]\n",
                         //        vi, this, this.toChars(), this.type.toChars(), this.loc.toChars(),
-                        //            fdc,  fdc ->toChars(), fdc ->type.toChars(), fdc ->loc.toChars(),
-                        //            fdv,  fdv ->toChars(), fdv ->type.toChars(), fdv ->loc.toChars());
+                        //            fdc,  fdc .toChars(), fdc .type.toChars(), fdc .loc.toChars(),
+                        //            fdv,  fdv .toChars(), fdv .type.toChars(), fdv .loc.toChars());
 
                         // fdc overrides fdv exactly, then this introduces new function.
                         if (fdc.type.mod == fdv.type.mod && this.type.mod != fdv.type.mod)
@@ -1187,34 +1187,7 @@ extern (C++) class FuncDeclaration : Declaration
         }
 
         if (isMain())
-        {
-            // Check parameters to see if they are either () or (char[][] args)
-            switch (nparams)
-            {
-            case 0:
-                break;
-
-            case 1:
-                {
-                    Parameter fparam0 = Parameter.getNth(f.parameters, 0);
-                    if (fparam0.type.ty != Tarray || fparam0.type.nextOf().ty != Tarray || fparam0.type.nextOf().nextOf().ty != Tchar || fparam0.storageClass & (STCout | STCref | STClazy))
-                        goto Lmainerr;
-                    break;
-                }
-            default:
-                goto Lmainerr;
-            }
-
-            if (!f.nextOf())
-                error("must return int or void");
-            else if (f.nextOf().ty != Tint32 && f.nextOf().ty != Tvoid)
-                error("must return int or void, not %s", f.nextOf().toChars());
-            if (f.varargs)
-            {
-            Lmainerr:
-                error("parameters must be main() or main(string[] args)");
-            }
-        }
+            checkDmain();       // Check main() parameters and return type
 
         if (isVirtual() && semanticRun != PASSsemanticdone)
         {
@@ -1515,7 +1488,7 @@ extern (C++) class FuncDeclaration : Declaration
                     sc2.insert(v_arguments);
                     v_arguments.parent = this;
 
-                    //Type *t = Type::typeinfo.type.constOf()->arrayOf();
+                    //Type *t = Type::typeinfo.type.constOf().arrayOf();
                     Type t = Type.dtypeinfo.type.arrayOf();
                     _arguments = new VarDeclaration(Loc(), t, Id._arguments, null);
                     _arguments.storage_class |= STCtemp;
@@ -4018,6 +3991,36 @@ extern (C++) class FuncDeclaration : Declaration
         return fd;
     }
 
+    /******************
+     * Check parameters and return type of D main() function.
+     * Issue error messages.
+     */
+    final void checkDmain()
+    {
+        TypeFunction tf = cast(TypeFunction)type;
+        const nparams = Parameter.dim(tf.parameters);
+        bool argerr;
+        if (nparams == 1)
+        {
+            auto fparam0 = Parameter.getNth(tf.parameters, 0);
+            auto t = fparam0.type.toBasetype();
+            if (t.ty != Tarray ||
+                t.nextOf().ty != Tarray ||
+                t.nextOf().nextOf().ty != Tchar ||
+                fparam0.storageClass & (STCout | STCref | STClazy))
+            {
+                argerr = true;
+            }
+        }
+
+        if (!tf.nextOf())
+            error("must return int or void");
+        else if (tf.nextOf().ty != Tint32 && tf.nextOf().ty != Tvoid)
+            error("must return int or void, not %s", tf.nextOf().toChars());
+        else if (tf.varargs || nparams >= 2 || argerr)
+            error("parameters must be main() or main(string[] args)");
+    }
+
     override final inout(FuncDeclaration) isFuncDeclaration() inout
     {
         return this;
@@ -4357,7 +4360,7 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
             }
             else
             {
-                //printf("tf = %s, args = %s\n", tf.deco, (*fargs)[0]->type.deco);
+                //printf("tf = %s, args = %s\n", tf.deco, (*fargs)[0].type.deco);
                 if (hasOverloads)
                 {
                     .error(loc, "none of the overloads of '%s' are callable using argument types %s, candidates are:",
