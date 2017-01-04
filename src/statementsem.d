@@ -102,7 +102,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 if (f.checkForwardRef(s.exp.loc))
                     s.exp = new ErrorExp();
             }
-            discardValue(s.exp);
+            if (discardValue(s.exp))
+                s.exp = new ErrorExp();
 
             s.exp = s.exp.optimize(WANTvalue);
             s.exp = checkGC(sc, s.exp);
