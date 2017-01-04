@@ -782,7 +782,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         stc |= sd.postblits[i].storage_class & STCdisable;
     }
 
-    Statements* a = null;
+    auto a = new Statements();
     for (size_t i = 0; i < sd.fields.dim && !(stc & STCdisable); i++)
     {
         auto v = sd.fields[i];
@@ -803,11 +803,9 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         stc = mergeFuncAttrs(stc, sdv.dtor);
         if (stc & STCdisable)
         {
-            a = null;
+            a.setDim(0);
             break;
         }
-        if (!a)
-            a = new Statements();
 
         Expression ex;
         tv = v.type.toBasetype();
@@ -918,15 +916,14 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         a.push(new OnScopeStatement(loc, TOKon_scope_failure, new ExpStatement(loc, ex)));
     }
 
-    /* Build our own "postblit" which executes a
-     */
-    if (a || (stc & STCdisable))
+    // Build our own "postblit" which executes a, but only if needed.
+    if (a.dim || (stc & STCdisable))
     {
         //printf("Building __fieldPostBlit()\n");
         auto dd = new PostBlitDeclaration(declLoc, Loc(), stc, Id.__fieldPostblit);
         dd.generated = true;
         dd.storage_class |= STCinference;
-        dd.fbody = a ? new CompoundStatement(loc, a) : null;
+        dd.fbody = (stc & STCdisable) ? null : new CompoundStatement(loc, a);
         sd.postblits.shift(dd);
         sd.members.push(dd);
         dd.semantic(sc);
