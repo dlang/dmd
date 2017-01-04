@@ -25,7 +25,7 @@ template test(A...)
     const char[] test = testHelper(A);
 }
 
-int main(char[][] args)
+int main(string[] args)
 {
     mixin(test!("hello", "world"));
     return 0;

@@ -15,7 +15,7 @@ class Foo
 {
 }
 
-int main(char[][] argv)
+int main(string[] argv)
 {
     Class1 myclass = new Class1;
 

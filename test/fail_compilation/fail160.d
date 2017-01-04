@@ -14,10 +14,10 @@ template Wrapper(B, alias Func, int func)
     alias typeof(&Func) FuncPtr;
 
     private static FuncPtr get_funcptr() { return func; }
-} 
+}
 
 
-int main(char[][] args)
+int main(string[] args)
 {
     auto x = new Wrapper!(Foo, Foo.work, cast(int)(Foo.classinfo.vtbl[0]))();
 

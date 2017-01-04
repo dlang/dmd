@@ -16,7 +16,7 @@ public:
 
 void foo(const A a) { a.setX(1); }
 
-int main(char[][] args)
+int main(string[] args)
 {
     A a = new A;
     foo(a);
