@@ -328,6 +328,9 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             TY toty = t.toBasetype().ty;
             TY oldty = ty;
 
+            if (m == MATCHnomatch && t.ty == Tbool)
+                e.deprecation("Implicit conversion of integer literal to bool is deprecated");
+
             if (m == MATCHnomatch && t.ty == Tenum)
                 return;
 

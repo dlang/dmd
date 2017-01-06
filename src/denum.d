@@ -664,7 +664,16 @@ extern (C++) final class EnumMember : VarDeclaration
                 if (!ed.isAnonymous())
                     ed.memtype = t;
             }
-            Expression e = new IntegerExp(loc, 0, Type.tint32);
+
+            Expression e;
+            if (t.ty == Tbool)
+            {
+                e = new IntegerExp(loc, 0, Type.tbool);
+            }
+            else
+            {
+                e = new IntegerExp(loc, 0, Type.tint32);
+            }
             e = e.implicitCastTo(sc, t);
             e = e.ctfeInterpret();
 
