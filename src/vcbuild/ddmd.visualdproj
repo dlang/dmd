@@ -482,6 +482,7 @@
    <File path="..\arrayop.d" />
    <File path="..\arraytypes.d" />
    <File path="..\attrib.d" />
+   <File path="..\blockexit.d" />
    <File path="..\boostlicense.txt" />
    <File path="..\builtin.d" />
    <File path="..\canthrow.d" />
