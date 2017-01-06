@@ -469,7 +469,7 @@ private:
             uint trailerPosn;
             ushort ndicpages;
             ubyte flags;
-            char* filler;
+            uint filler;
         }
 
         Libheader libHeader;
