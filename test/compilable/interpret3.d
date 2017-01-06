@@ -2394,7 +2394,7 @@ bool bug8216()
     assert(!ptr4cmp(&b[2], &b[9], &a[1], &a[2]));
     assert(!ptr4cmp(&b[1], &b[9], &b[2], &b[8]));
     assert( ptr4cmp(&b[2], &b[8], &b[1], &b[9]));
-    return 1;
+    return true;
 }
 static assert(bug8216());
 
@@ -2757,7 +2757,7 @@ bool bug9364()
 {
     S9364 s;
     auto k = (&s).i;
-    return 1;
+    return true;
 }
 
 static assert(bug9364());
@@ -4374,7 +4374,7 @@ bool bug10217()
     }
     auto yyy = S.init.tupleof[$ - 1];
     assert(!yyy);
-    return 1;
+    return true;
 }
 
 static assert(bug10217());

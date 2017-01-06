@@ -1260,7 +1260,7 @@ const bool[string] stopWords79;
 
 static this()
 {
-    stopWords79 = [ "a"[]:1 ];
+    stopWords79 = [ "a"[]:true ];
 }
 
 void test79()

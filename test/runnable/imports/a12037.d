@@ -43,7 +43,7 @@ private:
     }
 
 public:
-    @property bool sign() { return 1; }
+    @property bool sign() { return true; }
     @property void sign(bool) {}
 
     this(F)(F input)

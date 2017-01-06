@@ -28,6 +28,6 @@ struct DirIterator
 
 auto dirEntries(string path)
 {
-    bool f(int de) { return 1; }
+    bool f(int de) { return true; }
     return filter!f(DirIterator());
 }

@@ -278,14 +278,14 @@ void write14(bool[] c)
 
 void test14()
 {
-     static bool[] a = [ 1, 1, 0, 1, 0 ];
-     static bool[] b = [ 1, 0, 0, 1 ];
+     static bool[] a = [ true, true, false, true, false ];
+     static bool[] b = [ true, false, false, true ];
      bool[] c = a ~ b;
 
-     static bool[] r1 = [1,1,0,1,0,1,0,0,1];
-     static bool[] r2 = [1,1,0,1,0,1,0,0,1,1,1,0,1,0];
-     static bool[] r3 = [1,1,0,1,0,1,0,0,1,1,1,0,1,0,0];
-     static bool[] r4 = [1,1,0,1,0,1,0,0,1,1,1,0,1,0,0,1];
+     static bool[] r1 = [true,true,false,true,false,true,false,false,true];
+     static bool[] r2 = [true,true,false,true,false,true,false,false,true,true,true,false,true,false];
+     static bool[] r3 = [true,true,false,true,false,true,false,false,true,true,true,false,true,false,false];
+     static bool[] r4 = [true,true,false,true,false,true,false,false,true,true,true,false,true,false,false,true];
 
 
      write14(c);
@@ -295,11 +295,11 @@ void test14()
      write14(c);
      assert(c == r2);
 
-     c ~= 0;
+     c ~= false;
      write14(c);
      assert(c == r3);
 
-     c ~= 1;
+     c ~= true;
      write14(c);
      assert(c == r4);
 }
@@ -401,12 +401,12 @@ struct S29(T)
 {
    const bool opEquals(const ref S29!(T) len2)
    {
-     return 0;
+     return false;
    }
 
    const int opCmp(const ref S29!(T) len2)
    {
-     return 0;
+     return false;
    }
 }
 
@@ -643,8 +643,8 @@ void test34()
                 return a~b;
         }
 
-        a[]=0;
-        b[]=1;
+        a[]=false;
+        b[]=true;
 
         bool[] arr=concat();
 

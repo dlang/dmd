@@ -125,26 +125,26 @@ void test13336()
         {
             alias fooxy = foo!(num, sx, sy);
             static assert(is(typeof(&fooxy) : double function(bool)));
-            assert(fooxy(1) == 1.0);
-            assert(fooxy(0) == 2.5);
+            assert(fooxy(true) == 1.0);
+            assert(fooxy(false) == 2.5);
 
             alias fooyx = foo!(num, sy, sx);
             static assert(is(typeof(&fooyx) : double function(bool)));
-            assert(fooyx(1) == 2.5);
-            assert(fooyx(0) == 1.0);
+            assert(fooyx(true) == 2.5);
+            assert(fooyx(false) == 1.0);
         }
 
         foreach (foo; TypeTuple!(f13336c, f13336d))
         {
             alias fooxy = foo!(num, sx, sy);
             static assert(is(typeof(&fooxy) : double function(bool)));
-            assert(fooxy(1) == 1.0 && result13336 == 1.0);
-            assert(fooxy(0) == 2.5 && result13336 == 2.5);
+            assert(fooxy(true) == 1.0 && result13336 == 1.0);
+            assert(fooxy(false) == 2.5 && result13336 == 2.5);
 
             alias fooyx = foo!(num, sy, sx);
             static assert(is(typeof(&fooyx) : double function(bool)));
-            assert(fooyx(1) == 2.5 && result13336 == 2.5);
-            assert(fooyx(0) == 1.0 && result13336 == 1.0);
+            assert(fooyx(true) == 2.5 && result13336 == 2.5);
+            assert(fooyx(false) == 1.0 && result13336 == 1.0);
         }
     }
 }
