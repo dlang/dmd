@@ -206,6 +206,7 @@ $(H3 $(LNAME2 name_mangling, Name Mangling))
     $(GNAME MangledName):
         $(B _D) $(GLINK QualifiedName) $(GLINK Type)
         $(B _D) $(GLINK QualifiedName) $(B M) $(GLINK Type)
+        $(B _D) $(GLINK QualifiedName) $(B Z)        $(GREEN // Internal)
 
     $(GNAME QualifiedName):
         $(GLINK SymbolName)
@@ -214,6 +215,7 @@ $(H3 $(LNAME2 name_mangling, Name Mangling))
     $(GNAME SymbolName):
         $(GLINK LName)
         $(GLINK TemplateInstanceName)
+        $(B 0)             $(GREEN // anonymous symbols)
     )
 
 	$(P The $(B M) means that the symbol is a function that requires
@@ -225,7 +227,11 @@ $(H3 $(LNAME2 name_mangling, Name Mangling))
 
     $(GRAMMAR
         $(GNAME TemplateInstanceName):
-            $(GLINK Number) $(B __T) $(GLINK LName) $(GLINK TemplateArgs) $(B Z)
+            $(GLINK Number) $(GLINK TemplateID) $(GLINK LName) $(GLINK TemplateArgs) $(B Z)
+
+        $(GNAME TemplateID):
+            $(B __T)
+            $(B __U)        $(GREEN // for symbols declared inside template constraint)
 
         $(GNAME TemplateArgs):
             $(GLINK TemplateArg)
@@ -238,11 +244,11 @@ $(H3 $(LNAME2 name_mangling, Name Mangling))
         $(GNAME TemplateArgX):
             $(B T) $(GLINK Type)
             $(B V) $(GLINK Type) $(GLINK Value)
-            $(B S) $(GLINK LName)
+            $(B S) $(GLINK SymbolName)
+            $(B S) $(GLINK MangledName)
 
         $(GNAME Value):
             $(B n)
-            $(GLINK Number)
             $(B i) $(GLINK Number)
             $(B N) $(GLINK Number)
             $(B e) $(GLINK HexFloat)
@@ -391,6 +397,8 @@ $(H3 $(LNAME2 type_mangling, Type Mangling))
         $(GLINK TypeUint)
         $(GLINK TypeLong)
         $(GLINK TypeUlong)
+        $(GLINK TypeCent)
+        $(GLINK TypeUcent)
         $(GLINK TypeFloat)
         $(GLINK TypeDouble)
         $(GLINK TypeReal)
@@ -407,9 +415,8 @@ $(H3 $(LNAME2 type_mangling, Type Mangling))
         $(GLINK TypeNull)
         $(GLINK TypeTuple)
         $(GLINK TypeVector)
-        $(GLINK Internal)
 
-    $(GNAME TypeModifiers)
+    $(GNAME TypeModifiers):
         $(GLINK Const)
         $(GLINK Wild)
         $(GLINK Wild) $(GLINK Const)
@@ -447,7 +454,7 @@ $(H3 $(LNAME2 type_mangling, Type Mangling))
         $(B Nh) $(GLINK Type)
 
     $(GNAME TypeFunction):
-        $(GLINK CallConvention) $(GLINK FuncAttrs) $(GLINK Parameters) $(GLINK ParamClose) $(GLINK Type)
+        $(GLINK CallConvention) $(GLINK FuncAttrs)$(OPT) $(GLINK Parameters) $(GLINK ParamClose) $(GLINK Type)
 
     $(GNAME CallConvention):
         $(B F)       $(GREEN // D)
@@ -455,6 +462,7 @@ $(H3 $(LNAME2 type_mangling, Type Mangling))
         $(B W)       $(GREEN // Windows)
         $(B V)       $(GREEN // Pascal)
         $(B R)       $(GREEN // C++)
+        $(B Y)       $(GREEN // Objective-C)
 
     $(GNAME FuncAttrs):
         $(GLINK FuncAttr)
@@ -563,6 +571,12 @@ $(H3 $(LNAME2 type_mangling, Type Mangling))
     $(GNAME TypeUlong):
         $(B m)
 
+    $(GNAME TypeCent):
+        $(B zi)
+
+    $(GNAME TypeUcent):
+        $(B zk)
+
     $(GNAME TypeFloat):
         $(B f)
 
@@ -607,9 +621,6 @@ $(H3 $(LNAME2 type_mangling, Type Mangling))
 
     $(GNAME TypeTuple):
         $(B B) $(GLINK Number) $(GLINK Parameters)
-
-    $(GNAME Internal):
-        $(B Z)
     )
 
 $(H3 $(LNAME2 function_calling_conventions, Function Calling Conventions))

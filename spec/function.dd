@@ -28,6 +28,7 @@ $(DIVC page-contents quickindex,
         ))
         $(LI $(RELATIVE_LINK2 parameters, Function Parameters)$(OL
             $(LI $(RELATIVE_LINK2 function-default-args, Function Default Arguments))
+            $(LI $(RELATIVE_LINK2 return-ref-parameters, Return Ref Parameters))
             $(LI $(RELATIVE_LINK2 variadic, Variadic Functions))
         ))
         $(LI $(RELATIVE_LINK2 nested, Nested Functions)$(OL
@@ -96,6 +97,7 @@ $(GNAME InOutX):
     $(D lazy)
     $(D out)
     $(D ref)
+    $(RELATIVE_LINK2 return-ref-parameters, $(D return ref))
     $(D scope)
 
 $(GNAME FunctionAttributes):
@@ -173,30 +175,34 @@ int foo();
 
 $(H4 $(LNAME2 pure-functions, Pure Functions))
 
-        $(P Pure functions are functions which cannot access global or static, mutable
-        state save through their arguments.
-    This enables optimizations based on the fact that a pure function may at most mutate state
-    reachable through its parameters.
-        To that end, a pure function:
-        )
+        $(P Pure functions are functions that cannot access global/static
+        mutable state, except if their arguments contain pointers to such. This
+        enables optimizations based on the fact that a pure function may at most
+        mutate state reachable through its parameters. To that end, a pure
+        function:)
 
         $(UL
         $(LI does not read or write any global or static mutable state)
         $(LI cannot call functions that are not pure)
-        $(LI can override an impure function, but an impure function
-        cannot override a pure one)
+        $(LI can override an impure function, but cannot be overridden by an impure function)
         $(LI is covariant with an impure function)
         $(LI cannot perform I/O)
         )
 
-        $(P As a concession to practicality, a pure function can:)
+        $(P This definition of mutable functions is more general than the one
+        traditionally employed by pure functional languages because it allows a
+        D pure function to use state mutation, as long as all state is created
+        internally or reachable through its arguments. In particular, a pure
+        function may allocate memory by means of e.g. `new` or `malloc` without
+        these being special cases. A pure function is allowed to loop
+        indefinitely or terminate the program.)
+
+        $(P As a concession to practicality, a pure function can also:)
 
         $(UL
-        $(LI allocate memory via a $(GLINK2 expression, NewExpression))
-        $(LI terminate the program)
         $(LI read and write the floating point exception flags)
-        $(LI read and write the floating point mode flags, as long as those flags
-        are restored to their initial state upon function entry)
+        $(LI read and write the floating point mode flags, as long as those
+        flags are restored to their initial state upon function entry)
         $(LI perform impure operations in statements that are in a
         $(GLINK2 version, ConditionalStatement)
         controlled by a $(GLINK2 version, DebugCondition).)
@@ -224,6 +230,52 @@ pure int foo(int i,
 }
 ---
 
+    $(P An implementation may assume that a `pure` function that (a) accepts
+    only parameters without mutable indirections, and (b) returns a result
+    without mutable indirections, will have the same effect for all invocation
+    with equivalent arguments, and is allowed to memoize the result of the
+    function under the assumption that equivalent parameters always produce
+    equivalent results. Such functions are termed $(I strongly `pure`) functions
+    in this document. Note that a strongly pure function may still have behavior
+    inconsistent with memoization by e.g. using `cast`s or by changing behavior
+    depending on the address of its parameters. An implementation is currently
+    not required to enforce validity of memoization in all cases.)
+
+    $(P A pure function that accepts only parameters without mutable
+    indirections and returns a result that has mutable indirections is called a
+    $(I pure factory function). An implementation may assume that all mutable
+    memory returned by the call is not referenced by any other part of the
+    program, i.e. it is newly allocated by the function. Conversely, the mutable
+    references of the result may be assumed to not refer to any object that
+    existed before the function call. For example:)
+
+---
+struct List { int payload; List* next; }
+pure List* make(int a, int b)
+{
+    auto result = new List(a, null);
+    result.next = new List(b, result);
+    return result;
+}
+---
+
+    $(P Here, an implementation may assume (without having knowledge of the body
+    of `make`) that all references in `make`'s result refer to other `List`
+    objects created by `make`, and that no other part of the program refers to
+    any of these objects.)
+
+    $(P Any `pure` function that is not strongly pure cannot be assumed to be
+    memoizable, and calls to it may not be elided even if it returns `void`
+    (save for compiler optimizations that prove the function has no effect).
+    Function calls may still be elided, or results be memoized, by means of
+    traditional inlining and optimization techniques available for all
+    functions.)
+
+    $(P If a strongly pure function throws an exception or an error, the
+    assumptions related to memoization and references do not carry to the thrown
+    exception.)
+
+    $(P Pure destructors do not benefit of special elision.)
 
 $(H4 $(LNAME2 nothrow-functions, Nothrow Functions))
 
@@ -872,10 +924,10 @@ void main()
 
 $(H4 $(LNAME2 inline-functions, Inline Functions))
 
-        $(P The compiler makes the decision whether to inline a function or not. 
+        $(P The compiler makes the decision whether to inline a function or not.
         This decision may be controlled by $(LINK2 pragma.html#inline, `pragma(inline)`),
         assuming that the compiler implements it, which is not mandatory.)
-        
+
         $(P Note that any $(GLINK2 expression, FunctionLiteral) should be inlined
         when used in its declaration scope.
         )
@@ -1144,6 +1196,52 @@ foo(4);   // same as foo(4, 3);
         If the default value for a parameter is given, all following
         parameters must also have default values.
         )
+
+$(H4 $(LNAME2 return-ref-parameters, Return Ref Parameters))
+
+        $(P Note: The `return` attribute is currently only enforced by `dmd`
+        when the `-dip25` switch is passed.
+        )
+
+        $(P Return ref parameters are used with
+        $(RELATIVE_LINK2 ref-functions, ref functions) to ensure that the
+        returned reference will not outlive the matching argument's lifetime.
+        )
+
+---
+ref int identity(return ref int x) {
+  return x; // pass-through function that does nothing
+}
+
+ref int fun() {
+  int x;
+  return identity(x); // Error: escaping reference to local variable x
+}
+
+ref int gun(return ref int x) {
+  return identity(x); // OK
+}
+---
+
+        $(P Ref methods marked with the `return` attribute ensure the returned
+        reference will not outlive the respective aggregate instance.
+        )
+
+---
+struct S
+{
+    private int x;
+    ref int get() return { return x; }
+}
+
+ref int escape()
+{
+    S s;
+    return s.get(); // Error: escaping reference to local variable s
+}
+---
+
+Template functions and lambdas can deduce the `return` attribute.
 
 $(H3 $(LNAME2 variadic, Variadic Functions))
 

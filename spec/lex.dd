@@ -436,8 +436,7 @@ x"00 FBCD 32FD 0A" // same as
 	The number of hex characters must be a multiple of 2.
 	$(P )
 
-	Adjacent strings are concatenated with the ~ operator, or by simple
-	juxtaposition:
+	Adjacent strings are concatenated with the ~ operator:
 
 --------------
 "hello " ~ "world" ~ "\n" // forms the string
@@ -448,9 +447,9 @@ x"00 FBCD 32FD 0A" // same as
 	The following are all equivalent:
 
 -----------------
-"ab" "c"
-r"ab" r"c"
-r"a" "bc"
+"ab" ~ "c"
+r"ab" ~ r"c"
+r"a" ~ "bc"
 "a" ~ "b" ~ "c"
 -----------------
 
@@ -1083,7 +1082,7 @@ $(H3 $(LNAME2 global_symbols, Globally Defined Symbols))
 $(GRAMMAR
 $(GNAME Symbols):
 $(MULTICOLS 4,
-    $(D $(LINK2 arrays.html#strings, string)) (alias to immutable(char)[]) <!-- This is important; people want to know these things up front. -->
+    $(D $(LINK2 arrays.html#strings, string)) (alias to immutable(char)[]) $(COMMENT This is important; people want to know these things up front.)
     $(D $(LINK2 arrays.html#strings, wstring)) (alias to immutable(wchar)[])
     $(D $(LINK2 arrays.html#strings, dstring)) (alias to immutable(dchar)[])
 
@@ -1152,4 +1151,3 @@ x;  // this is now line 6 of file foo\bar
 
 Macros:
 	TITLE=Lexical
-
