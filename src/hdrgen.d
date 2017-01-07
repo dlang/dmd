@@ -720,13 +720,13 @@ public:
 
     override void visit(TypeBasic t)
     {
-        //printf("TypeBasic::toCBuffer2(t->mod = %d)\n", t->mod);
+        //printf("TypeBasic::toCBuffer2(t.mod = %d)\n", t.mod);
         buf.writestring(t.dstring);
     }
 
     override void visit(TypeVector t)
     {
-        //printf("TypeVector::toCBuffer2(t->mod = %d)\n", t->mod);
+        //printf("TypeVector::toCBuffer2(t.mod = %d)\n", t.mod);
         buf.writestring("__vector(");
         visitWithMask(t.basetype, t.mod);
         buf.writestring(")");
@@ -769,7 +769,7 @@ public:
 
     override void visit(TypePointer t)
     {
-        //printf("TypePointer::toCBuffer2() next = %d\n", t->next->ty);
+        //printf("TypePointer::toCBuffer2() next = %d\n", t.next.ty);
         if (t.next.ty == Tfunction)
             visitFuncIdentWithPostfix(cast(TypeFunction)t.next, "function");
         else
@@ -787,7 +787,7 @@ public:
 
     override void visit(TypeFunction t)
     {
-        //printf("TypeFunction::toCBuffer2() t = %p, ref = %d\n", t, t->isref);
+        //printf("TypeFunction::toCBuffer2() t = %p, ref = %d\n", t, t.isref);
         visitFuncIdentWithPostfix(t, null);
     }
 
@@ -974,7 +974,7 @@ public:
 
     override void visit(TypeStruct t)
     {
-        // Bugzilla 13776: Don't use ti->toAlias() to avoid forward reference error
+        // Bugzilla 13776: Don't use ti.toAlias() to avoid forward reference error
         // while printing messages.
         TemplateInstance ti = t.sym.parent ? t.sym.parent.isTemplateInstance() : null;
         if (ti && ti.aliasdecl == t.sym)
@@ -985,7 +985,7 @@ public:
 
     override void visit(TypeClass t)
     {
-        // Bugzilla 13776: Don't use ti->toAlias() to avoid forward reference error
+        // Bugzilla 13776: Don't use ti.toAlias() to avoid forward reference error
         // while printing messages.
         TemplateInstance ti = t.sym.parent.isTemplateInstance();
         if (ti && ti.aliasdecl == t.sym)
@@ -1522,7 +1522,7 @@ public:
          */
         if (auto t = isType(oarg))
         {
-            //printf("\tt: %s ty = %d\n", t->toChars(), t->ty);
+            //printf("\tt: %s ty = %d\n", t.toChars(), t.ty);
             typeToBuffer(t, null);
         }
         else if (auto e = isExpression(oarg))
@@ -1739,7 +1739,7 @@ public:
 
     override void visit(FuncDeclaration f)
     {
-        //printf("FuncDeclaration::toCBuffer() '%s'\n", f->toChars());
+        //printf("FuncDeclaration::toCBuffer() '%s'\n", f.toChars());
         if (stcToBuffer(buf, f.storage_class))
             buf.writeByte(' ');
         typeToBuffer(f.type, f.ident);
@@ -1825,7 +1825,7 @@ public:
             buf.writeByte(' ');
         }
         TypeFunction tf = cast(TypeFunction)f.type;
-        // Don't print tf->mod, tf->trust, and tf->linkage
+        // Don't print tf.mod, tf.trust, and tf.linkage
         if (!f.inferRetType && tf.next)
             typeToBuffer(tf.next, null);
         parametersToBuffer(tf.parameters, tf.varargs);
@@ -2064,7 +2064,7 @@ public:
         }
         assert(precedence[e.op] != PREC.zero);
         assert(pr != PREC.zero);
-        //if (precedence[e->op] == 0) e->print();
+        //if (precedence[e.op] == 0) e.print();
         /* Despite precedence, we don't allow a<b<c expressions.
          * They must be parenthesized.
          */
@@ -2472,7 +2472,7 @@ public:
     override void visit(FuncExp e)
     {
         e.fd.accept(this);
-        //buf->writestring(e->fd->toChars());
+        //buf.writestring(e.fd.toChars());
     }
 
     override void visit(DeclarationExp e)

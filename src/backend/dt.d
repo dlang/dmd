@@ -21,7 +21,14 @@ import ddmd.backend.type;
 nothrow:
 @nogc:
 
-extern (C++) void dt_free(dt_t*);
+extern (C++)
+{
+    void dt_free(dt_t*);
+    void dtpatchoffset(dt_t *dt, uint offset);
+    bool dtallzeros(const(dt_t)* dt);
+    bool dtpointers(const(dt_t)* dt);
+    void dt2common(dt_t **pdt);
+}
 
 extern (C++) class DtBuilder
 {

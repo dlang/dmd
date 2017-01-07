@@ -50,6 +50,25 @@ alias BOUNDSCHECKoff = BOUNDSCHECK.BOUNDSCHECKoff;
 alias BOUNDSCHECKon = BOUNDSCHECK.BOUNDSCHECKon;
 alias BOUNDSCHECKsafeonly = BOUNDSCHECK.BOUNDSCHECKsafeonly;
 
+enum CPU
+{
+    x87,
+    mmx,
+    sse,
+    sse2,
+    sse3,
+    ssse3,
+    sse4_1,
+    sse4_2,
+    avx,                // AVX1 instruction set
+    avx2,               // AVX2 instruction set
+    avx512,             // AVX-512 instruction set
+
+    // Special values that don't survive past the command line processing
+    baseline,           // (default) the minimum capability CPU
+    native              // the machine the compiler is being run on
+}
+
 // Put command line switches in here
 struct Param
 {
@@ -112,13 +131,20 @@ struct Param
     bool allInst;           // generate code for all template instantiations
     bool check10378;        // check for issues transitioning to 10738
     bool bug10378;          // use pre-bugzilla 10378 search strategy
-    bool vsafe;             // shows places with hidden change in semantics needed
-                            // for better @safe guarantees
+    bool vsafe;             // use enhanced @safe checking
+    /** The --transition=safe switch should only be used to show code with
+     * silent semantics changes related to @safe improvements.  It should not be
+     * used to hide a feature that will have to go through deprecate-then-error
+     * before becoming default.
+     */
+
     bool showGaggedErrors;  // print gagged errors anyway
 
+    CPU cpu;                // CPU instruction set to target
     BOUNDSCHECK useArrayBounds;
 
     const(char)* argv0;                 // program name
+    Array!(const(char)*)* modFileAliasStrings; // array of char*'s of -I module filename alias strings
     Array!(const(char)*)* imppath;      // array of char*'s of where to look for import modules
     Array!(const(char)*)* fileImppath;  // array of char*'s of where to look for file import modules
     const(char)* objdir;                // .obj/.lib file output directory
@@ -146,6 +172,7 @@ struct Param
 
     const(char)* defaultlibname;        // default library for non-debug builds
     const(char)* debuglibname;          // default library for debug builds
+    const(char)* mscrtlib;              // MS C runtime library
 
     const(char)* moduleDepsFile;        // filename for deps output
     OutBuffer* moduleDeps;              // contents to be written to deps file
@@ -403,6 +430,10 @@ enum CPPMANGLE : int
     asStruct,
     asClass,
 }
+
+alias CPPMANGLEdefault = CPPMANGLE.def;
+alias CPPMANGLEstruct = CPPMANGLE.asStruct;
+alias CPPMANGLEclass = CPPMANGLE.asClass;
 
 enum DYNCAST : int
 {

@@ -37,11 +37,11 @@ int* testEscape1()
     if (0) return &da2[0][0];       // no error
     if (0) return &sa1[0];          // IndexExp
     if (0) return &sa2[0][0];       // IndexExp
-    if (0) return ptr = &x;
-    if (0) return ptr = &x + 1;     // optimized to SymOffExp == (& x+4)
-    if (0) return ptr = &x + x;
+    if (0) return &x;
+    if (0) return &x + 1;           // optimized to SymOffExp == (& x+4)
+    if (0) return &x + x;
   //if (0) return ptr += &x + 1;    // semantic error
-    if (0) return ptr -= &x - &y;   // no error
+    if (0)        ptr -= &x - &y;   // no error
     if (0) return (&x, &y);         // CommaExp
 
     return null;    // ok
@@ -80,11 +80,11 @@ int* testEscape2(
     if (0) return &da2[0][0];       // no error
     if (0) return &sa1[0];          // IndexExp
     if (0) return &sa2[0][0];       // IndexExp
-    if (0) return ptr = &x;
-    if (0) return ptr = &x + 1;     // optimized to SymOffExp == (& x+4)
-    if (0) return ptr = &x + x;
+    if (0) return &x;
+    if (0) return &x + 1;           // optimized to SymOffExp == (& x+4)
+    if (0) return  &x + x;
   //if (0) return ptr += &x + 1;    // semantic error
-    if (0) return ptr -= &x - &y;   // no error
+    if (0)        ptr -= &x - &y;   // no error
     if (0) return (&x, &y);         // CommaExp
 
     return null;    // ok

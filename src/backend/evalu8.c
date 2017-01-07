@@ -270,6 +270,41 @@ int boolres(elem *e)
                     break;
                 }
 
+                case TYschar32:
+                case TYuchar32:
+                case TYshort16:
+                case TYushort16:
+                case TYlong8:
+                case TYulong8:
+                case TYllong4:
+                case TYullong4:
+                    b = 0;
+                    for (size_t i = 0; i < 8; i++)
+                        b |= e->EV.Vulong8[i] != 0;
+                    break;
+
+                case TYfloat8:
+                    b = 0;
+                    for (size_t i = 0; i < 8; i++)
+                    {
+                        if (isnan(e->EV.Vfloat8[i]) || e->EV.Vfloat8[i] != 0)
+                        {   b = 1;
+                            break;
+                        }
+                    }
+                    break;
+
+                case TYdouble4:
+                    b = 0;
+                    for (size_t i = 0; i < 4; i++)
+                    {
+                        if (isnan(e->EV.Vdouble4[i]) || e->EV.Vdouble4[i] != 0)
+                        {   b = 1;
+                            break;
+                        }
+                    }
+                    break;
+
                 default:
 #ifdef DEBUG
                     WRTYxx(typemask(e));
@@ -1579,14 +1614,79 @@ elem * evalu8(elem *e, goal_t goal)
                 e->EV.Vlong = (i2 << 16) | (i1 & 0xFFFF);
                 break;
             case 4:
-                e->EV.Vllong = (l2 << 32) | (l1 & 0xFFFFFFFF);
+                if (tyfloating(tym))
+                {
+                    e->EV.Vcfloat.re = d1;
+                    e->EV.Vcfloat.im = d2;
+                }
+                else
+                    e->EV.Vllong = (l2 << 32) | (l1 & 0xFFFFFFFF);
                 break;
             case 8:
-                e->EV.Vcent.lsw = l1;
-                e->EV.Vcent.msw = l2;
+                if (tyfloating(tym))
+                {
+                    e->EV.Vcdouble.re = d1;
+                    e->EV.Vcdouble.im = d2;
+                }
+                else
+                {
+                    e->EV.Vcent.lsw = l1;
+                    e->EV.Vcent.msw = l2;
+                }
                 break;
             default:
-                assert(0);
+                if (tyfloating(tym))
+                {
+                    e->EV.Vcldouble.re = d1;
+                    e->EV.Vcldouble.im = d2;
+                }
+                else
+                {
+                    assert(0);
+                }
+                break;
+        }
+        break;
+
+    case OPrpair:
+        switch (_tysize[tym])
+        {
+            case 2:
+                e->EV.Vlong = (i1 << 16) | (i2 & 0xFFFF);
+                break;
+            case 4:
+                e->EV.Vllong = (l1 << 32) | (l2 & 0xFFFFFFFF);
+                if (tyfloating(tym))
+                {
+                    e->EV.Vcfloat.re = d2;
+                    e->EV.Vcfloat.im = d1;
+                }
+                else
+                    e->EV.Vllong = (l1 << 32) | (l2 & 0xFFFFFFFF);
+                break;
+            case 8:
+                if (tyfloating(tym))
+                {
+                    e->EV.Vcdouble.re = d2;
+                    e->EV.Vcdouble.im = d1;
+                }
+                else
+                {
+                    e->EV.Vcent.lsw = l2;
+                    e->EV.Vcent.msw = l1;
+                }
+                break;
+            default:
+                if (tyfloating(tym))
+                {
+                    e->EV.Vcldouble.re = d2;
+                    e->EV.Vcldouble.im = d1;
+                }
+                else
+                {
+                    assert(0);
+                }
+                break;
         }
         break;
 
@@ -1654,7 +1754,7 @@ elem * evalu8(elem *e, goal_t goal)
                 e->EV.Vldouble = Complex_ld::abs(e1->EV.Vcldouble);
                 break;
             default:
-                e->EV.Vllong = labs(l1);
+                e->EV.Vllong = l1 < 0 ? -l1 : l1;
                 break;
         }
         break;
@@ -2047,6 +2147,75 @@ elem * evalu8(elem *e, goal_t goal)
         }
 #endif
         return e;
+
+    case OPvecfill:
+        switch (tybasic(e->Ety))
+        {
+            // 16 byte vectors
+            case TYfloat4:
+                for (int i = 0; i < 4; ++i)
+                    e->EV.Vfloat4[i] = e1->EV.Vfloat;
+                break;
+            case TYdouble2:
+                for (int i = 0; i < 2; ++i)
+                    e->EV.Vdouble2[i] = e1->EV.Vdouble;
+                break;
+            case TYschar16:
+            case TYuchar16:
+                for (int i = 0; i < 16; ++i)
+                    e->EV.Vuchar16[i] = (targ_uchar)i1;
+                break;
+            case TYshort8:
+            case TYushort8:
+                for (int i = 0; i < 8; ++i)
+                    e->EV.Vushort8[i] = (targ_ushort)i1;
+                break;
+            case TYlong4:
+            case TYulong4:
+                for (int i = 0; i < 4; ++i)
+                    e->EV.Vulong4[i] = (targ_ulong)i1;
+                break;
+            case TYllong2:
+            case TYullong2:
+                for (int i = 0; i < 2; ++i)
+                    e->EV.Vullong2[i] = (targ_ullong)l1;
+                break;
+
+            // 32 byte vectors
+            case TYfloat8:
+                for (int i = 0; i < 8; ++i)
+                    e->EV.Vfloat8[i] = e1->EV.Vfloat;
+                break;
+            case TYdouble4:
+                for (int i = 0; i < 4; ++i)
+                    e->EV.Vdouble4[i] = e1->EV.Vdouble;
+                break;
+            case TYschar32:
+            case TYuchar32:
+                for (int i = 0; i < 32; ++i)
+                    e->EV.Vuchar32[i] = (targ_uchar)i1;
+                break;
+            case TYshort16:
+            case TYushort16:
+                for (int i = 0; i < 16; ++i)
+                    e->EV.Vushort16[i] = (targ_ushort)i1;
+                break;
+            case TYlong8:
+            case TYulong8:
+                for (int i = 0; i < 8; ++i)
+                    e->EV.Vulong8[i] = (targ_ulong)i1;
+                break;
+            case TYllong4:
+            case TYullong4:
+                for (int i = 0; i < 4; ++i)
+                    e->EV.Vullong2[i] = (targ_ullong)l1;
+                break;
+
+            default:
+                assert(0);
+        }
+        break;
+
     default:
         return e;
   }

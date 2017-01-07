@@ -72,7 +72,7 @@ Expression *doCopyOrMove(Scope *sc, Expression *e);
 Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, Expression **pe0);
 Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, IntervalExp *ie, Expression **pe0);
 Expression *integralPromotions(Expression *e, Scope *sc);
-void discardValue(Expression *e);
+bool discardValue(Expression *e);
 bool isTrivialExp(Expression *e);
 
 int isConst(Expression *e);
@@ -302,7 +302,7 @@ public:
     bool hasOverloads;
 
     Expression *semantic(Scope *sc);
-    static Expression resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
+    static Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
@@ -343,9 +343,9 @@ public:
 
 class StringExp : public Expression
 {
+public:
     void *string;       // char, wchar, or dchar data
     size_t len;         // number of chars, wchars, or dchars
-public:
     unsigned char sz;   // 1: char, 2: wchar, 4: dchar
     unsigned char committed;    // !=0 if type is committed
     utf8_t postfix;      // 'c', 'w', 'd'
@@ -401,7 +401,6 @@ public:
     bool equals(RootObject *o);
     Expression *getElement(d_size_t i);
     static Expressions* copyElements(Expression *e1, Expression *e2 = NULL);
-    Expressions *copyElements();
     Expression *semantic(Scope *sc);
     bool isBool(bool result);
     StringExp *toStringExp();
@@ -495,6 +494,8 @@ public:
 
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
+    bool checkType();
+    bool checkValue();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1024,7 +1025,7 @@ public:
 class CommaExp : public BinExp
 {
 public:
-    const bool isGenerated;
+    bool isGenerated;
     bool allowCommaExp;
     Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);

@@ -209,7 +209,7 @@ FRONT_SRCS=$(addsuffix .d,access aggregate aliasthis apply argtypes arrayop	\
 	globals hdrgen id identifier impcnvtab imphint init inline intrange	\
 	json lexer lib link mars mtype nogc nspace opover optimize parse sapply	\
 	sideeffect statement staticassert target tokens traits utf visitor	\
-	typinf utils statementsem safe)
+	typinf utils statementsem safe blockexit)
 
 ifeq ($(D_OBJC),1)
 	FRONT_SRCS += objc.d
@@ -221,15 +221,7 @@ ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
 	filename man outbuffer port response rmem rootobject speller \
 	stringtable))
 
-GLUE_OBJS = s2ir.o e2ir.o toobj.o \
-	iasm.o
-
-
-ifeq ($(D_OBJC),1)
-	GLUE_OBJS += objc_glue.o
-else
-	GLUE_OBJS += objc_glue_stubs.o
-endif
+GLUE_OBJS =
 
 ifeq (osx,$(OS))
     FRONT_SRCS += libmach.d scanmach.d
@@ -237,11 +229,18 @@ else
     FRONT_SRCS += libelf.d scanelf.d
 endif
 
-GLUE_SRCS=$(addsuffix .d, irstate toelfdebug toctype glue gluelayer todt tocsym toir dmsc)
+GLUE_SRCS=$(addsuffix .d, irstate toctype glue gluelayer todt tocsym toir dmsc \
+	tocvdebug s2ir toobj e2ir eh iasm)
+
+ifeq ($(D_OBJC),1)
+	GLUE_SRCS += objc_glue.d
+else
+	GLUE_SRCS += objc_glue_stubs.d
+endif
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
-BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o var.o el.o \
+BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o gsroa.o var.o el.o \
 	glocal.o os.o nteh.o evalu8.o cgcs.o \
 	rtlsym.o cgelem.o cgen.o cgreg.o out.o \
 	blockopt.o cg.o type.o dt.o \
@@ -250,7 +249,7 @@ BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o var.o el.o \
 	bcomplex.o aa.o ti_achar.o \
 	ti_pvoid.o pdata.o cv8.o backconfig.o \
 	divcoeff.o dwarf.o dwarfeh.o varstats.o \
-	ph2.o util2.o eh.o tk.o strtold.o \
+	ph2.o util2.o tk.o strtold.o \
 	$(TARGET_OBJS)
 
 ifeq (osx,$(OS))
@@ -272,15 +271,14 @@ ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h file.h filename.h \
 	longdouble.h newdelete.c object.h outbuffer.h port.h \
 	rmem.h root.h stringtable.h)
 
-GLUE_SRC = s2ir.c e2ir.c \
-	toobj.c tocvdebug.c toir.h \
-	irstate.h iasm.c \
+GLUE_SRC = \
+	toir.h irstate.h \
 	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
-	tk.c eh.c gluestub.d objc_glue.c objc_glue_stubs.c
+	tk.c gluestub.d objc_glue.d
 
-BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/dt.d $C/el.d $C/global.d \
-	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d \
-	$C/ty.d $C/type.d
+BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
+	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d $C/iasm.d \
+	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d
 
 TK_HDRS= $(TK)/dlist.d
 
@@ -294,7 +292,7 @@ BACK_SRC = \
 	$C/cgsched.c $C/cod1.c $C/cod2.c $C/cod3.c $C/cod4.c $C/cod5.c \
 	$C/code.c $C/symbol.c $C/debug.c $C/dt.c $C/ee.c $C/el.c \
 	$C/evalu8.c $C/go.c $C/gflow.c $C/gdag.c \
-	$C/gother.c $C/glocal.c $C/gloop.c $C/newman.c \
+	$C/gother.c $C/glocal.c $C/gloop.c $C/gsroa.c $C/newman.c \
 	$C/nteh.c $C/os.c $C/out.c $C/outbuf.c $C/ptrntab.c $C/rtlsym.c \
 	$C/type.c $C/melf.h $C/mach.h $C/mscoff.h $C/bcomplex.h \
 	$C/outbuf.h $C/token.h $C/tassert.h \
@@ -312,7 +310,7 @@ TK_SRC = \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c
 
-STRING_IMPORT_FILES = verstr.h SYSCONFDIR.imp
+STRING_IMPORT_FILES = verstr.h SYSCONFDIR.imp ../res/default_ddoc_theme.ddoc
 
 DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
@@ -328,14 +326,14 @@ backend.a: $(BACK_OBJS)
 	$(AR) rcs backend.a $(BACK_OBJS)
 
 dmd_frontend: $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.o $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
 ifdef ENABLE_LTO
 dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o $(GLUE_OBJS) $(BACK_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 else
-dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o glue.a backend.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
+dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o backend.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 endif
 
 clean:
@@ -493,7 +491,7 @@ zip:
 ifneq ($(DOCDIR),)
 html: $(DOCDIR)/.generated
 $(DOCDIR)/.generated: $(DMD_SRCS) $(ROOT_SRCS) $(HOST_DMD_PATH) project.ddoc
-	$(HOST_DMD_RUN) -of- $(MODEL_FLAG) -J. -c -Dd$(DOCDIR)\
+	$(HOST_DMD_RUN) -of- $(MODEL_FLAG) -J. -J../res -c -Dd$(DOCDIR)\
 	  $(DFLAGS) project.ddoc $(DOCFMT) $(DMD_SRCS) $(ROOT_SRCS)
 	touch $@
 endif

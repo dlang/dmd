@@ -325,6 +325,22 @@ void CodeBuilder::gen2(unsigned op, unsigned rm)
     pTail = &ce->next;
 }
 
+/***************************************
+ * Generate floating point instruction.
+ */
+
+code *genf2(code *c,unsigned op,unsigned rm)
+{
+    return gen2(genfwait(c),op,rm);
+}
+
+
+void CodeBuilder::genf2(unsigned op, unsigned rm)
+{
+    append(genfwait(CNIL));
+    gen2(op, rm);
+}
+
 code *gen2sib(code *c,unsigned op,unsigned rm,unsigned sib)
 { code *ce,*cstart;
 
@@ -365,7 +381,7 @@ void CodeBuilder::gen2sib(unsigned op, unsigned rm, unsigned sib)
  * Generate an ASM sequence.
  */
 
-code *genasm(code *c,char *s,unsigned slen)
+code *genasm(code *c,unsigned char *s,unsigned slen)
 {   code *ce;
 
     ce = code_calloc();
@@ -390,7 +406,7 @@ void CodeBuilder::genasm(char *s, unsigned slen)
     pTail = &ce->next;
 }
 
-void CodeBuilder::genasm(LabelDsymbol *label)
+void CodeBuilder::genasm(_LabelDsymbol *label)
 {
     code *ce = code_calloc();
     ce->Iop = ASM;
@@ -650,6 +666,47 @@ void CodeBuilder::gennop()
     gen1(NOP);
 }
 
+
+/**************************
+ * Generate code to deal with floatreg.
+ */
+
+code *genfltreg(code *c,unsigned opcode,unsigned reg,targ_size_t offset)
+{
+    floatreg = TRUE;
+    reflocal = TRUE;
+    if ((opcode & ~7) == 0xD8)
+        c = genfwait(c);
+    return genc1(c,opcode,modregxrm(2,reg,BPRM),FLfltreg,offset);
+}
+
+void CodeBuilder::genfltreg(unsigned opcode,unsigned reg,targ_size_t offset)
+{
+    floatreg = TRUE;
+    reflocal = TRUE;
+    if ((opcode & ~7) == 0xD8)
+        append(genfwait(CNIL));
+    genc1(opcode,modregxrm(2,reg,BPRM),FLfltreg,offset);
+}
+
+code *genxmmreg(code *c,unsigned opcode,unsigned xreg,targ_size_t offset, tym_t tym)
+{
+    assert(xreg >= XMM0);
+    floatreg = TRUE;
+    reflocal = TRUE;
+    code *c1 = genc1(CNIL,opcode,modregxrm(2,xreg - XMM0,BPRM),FLfltreg,offset);
+    checkSetVex(c1, tym);
+    return cat(c, c1);
+}
+
+void CodeBuilder::genxmmreg(unsigned opcode,unsigned xreg,targ_size_t offset, tym_t tym)
+{
+    assert(xreg >= XMM0);
+    floatreg = TRUE;
+    reflocal = TRUE;
+    genc1(opcode,modregxrm(2,xreg - XMM0,BPRM),FLfltreg,offset);
+    checkSetVex(last(), tym);
+}
 
 /****************************************
  * Clean stack after call to codelem().

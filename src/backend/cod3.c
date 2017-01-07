@@ -151,7 +151,7 @@ static const unsigned char inssize32[256] =
 /* For 2 byte opcodes starting with 0x0F        */
 static unsigned char inssize2[256] =
 {       M|3,M|3,M|3,M|3,        2,2,2,2,                // 00
-        2,2,M|3,2,              2,2,2,M|T|E|4,          // 08
+        2,2,M|3,2,              2,M|3,2,M|T|E|4,        // 08
         M|3,M|3,M|3,M|3,        M|3,M|3,M|3,M|3,        // 10
         M|3,2,2,2,              2,2,2,2,                // 18
         M|3,M|3,M|3,M|3,        M|3,2,M|3,2,            // 20
@@ -253,7 +253,7 @@ code *REGSAVE::restore(code *c, int reg, unsigned idx)
 
 unsigned char vex_inssize(code *c)
 {
-    assert(c->Iflags & CFvex);
+    assert(c->Iflags & CFvex && c->Ivex.pfx == 0xC4);
     unsigned char ins;
     if (c->Iflags & CFvex3)
     {
@@ -426,12 +426,12 @@ void cod3_align_bytes(size_t nbytes)
         }
         else
         {
-            static const char nops[] = {
+            static const unsigned char nops[] = {
                 0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90
             }; // XCHG AX,AX
             if (n > sizeof(nops))
                 n = sizeof(nops);
-            p = nops;
+            p = (char*)nops;
         }
         objmod->write_bytes(SegData[cseg],n,const_cast<char*>(p));
         nbytes -= n;
@@ -642,6 +642,17 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYulong4:
         case TYllong2:
         case TYullong2:
+
+        case TYfloat8:
+        case TYdouble4:
+        case TYschar32:
+        case TYuchar32:
+        case TYshort16:
+        case TYushort16:
+        case TYlong8:
+        case TYulong8:
+        case TYllong4:
+        case TYullong4:
             if (!config.fpxmmregs)
             {   printf("SIMD operations not supported on this platform\n");
                 exit(1);
@@ -666,27 +677,27 @@ void cgreg_dst_regs(unsigned *dst_integer_reg, unsigned *dst_float_reg)
     *dst_float_reg   = XMM0;
 }
 
-void cgreg_set_priorities(tym_t ty, char **pseq, char **pseqmsw)
+void cgreg_set_priorities(tym_t ty, unsigned char **pseq, unsigned char **pseqmsw)
 {
     unsigned sz = tysize(ty);
 
     if (tyxmmreg(ty))
     {
-        static char sequence[] = {XMM0,XMM1,XMM2,XMM3,XMM4,XMM5,XMM6,XMM7,NOREG};
+        static unsigned char sequence[] = {XMM0,XMM1,XMM2,XMM3,XMM4,XMM5,XMM6,XMM7,NOREG};
         *pseq = sequence;
     }
     else if (I64)
     {
         if (sz == REGSIZE * 2)
         {
-            static char seqmsw[] = {CX,DX,NOREG};
-            static char seqlsw[] = {AX,BX,SI,DI,NOREG};
+            static unsigned char seqmsw[] = {CX,DX,NOREG};
+            static unsigned char seqlsw[] = {AX,BX,SI,DI,NOREG};
             *pseq = seqlsw;
             *pseqmsw = seqmsw;
         }
         else
         {   // R10 is reserved for the static link
-            static char sequence[] = {AX,CX,DX,SI,DI,R8,R9,R11,BX,R12,R13,R14,R15,BP,NOREG};
+            static unsigned char sequence[] = {AX,CX,DX,SI,DI,R8,R9,R11,BX,R12,R13,R14,R15,BP,NOREG};
             *pseq = sequence;
         }
     }
@@ -694,14 +705,14 @@ void cgreg_set_priorities(tym_t ty, char **pseq, char **pseqmsw)
     {
         if (sz == REGSIZE * 2)
         {
-            static char seqlsw[] = {AX,BX,SI,DI,NOREG};
-            static char seqmsw[] = {CX,DX,NOREG};
+            static unsigned char seqlsw[] = {AX,BX,SI,DI,NOREG};
+            static unsigned char seqmsw[] = {CX,DX,NOREG};
             *pseq = seqlsw;
             *pseqmsw = seqmsw;
         }
         else
         {
-            static char sequence[] = {AX,CX,DX,BX,SI,DI,BP,NOREG};
+            static unsigned char sequence[] = {AX,CX,DX,BX,SI,DI,BP,NOREG};
             *pseq = sequence;
         }
     }
@@ -710,13 +721,13 @@ void cgreg_set_priorities(tym_t ty, char **pseq, char **pseqmsw)
         if (typtr(ty))
         {
             // For pointer types, try to pick index register first
-            static char seqidx[] = {BX,SI,DI,AX,CX,DX,BP,NOREG};
+            static unsigned char seqidx[] = {BX,SI,DI,AX,CX,DX,BP,NOREG};
             *pseq = seqidx;
         }
         else
         {
             // Otherwise, try to pick index registers last
-            static char sequence[] = {AX,CX,DX,BX,SI,DI,BP,NOREG};
+            static unsigned char sequence[] = {AX,CX,DX,BX,SI,DI,BP,NOREG};
             *pseq = sequence;
         }
     }
@@ -1726,7 +1737,7 @@ void outjmptab(block *b)
 
     /* Align start of jump table
      */
-    targ_size_t alignbytes = align(0,*poffset) - *poffset;
+    targ_size_t alignbytes = _align(0,*poffset) - *poffset;
     objmod->lidata(jmpseg,*poffset,alignbytes);
     assert(*poffset == b->Btableoffset);        // should match precomputed value
 
@@ -1826,7 +1837,7 @@ void outswitab(block *b)
         seg = JMPSEG;
   }
   offset = *poffset;
-  alignbytes = align(0,*poffset) - *poffset;
+  alignbytes = _align(0,*poffset) - *poffset;
   objmod->lidata(seg,*poffset,alignbytes);  /* any alignment bytes necessary */
   assert(*poffset == offset + alignbytes);
 
@@ -2282,21 +2293,23 @@ code* gen_loadcse(code *c, unsigned reg, targ_uns i)
 
 code *cdframeptr(elem *e, regm_t *pretregs)
 {
-    unsigned reg;
-    code cs;
+    CodeBuilder cdb;
 
     regm_t retregs = *pretregs & allregs;
     if  (!retregs)
         retregs = allregs;
-    code *cg = allocreg(&retregs, &reg, TYint);
+    unsigned reg;
+    cdb.append(allocreg(&retregs, &reg, TYint));
 
+    code cs;
     cs.Iop = ESCAPE | ESCframeptr;
     cs.Iflags = 0;
     cs.Irex = 0;
     cs.Irm = reg;
-    cg = gen(cg,&cs);
+    cdb.gen(&cs);
+    cdb.append(fixresult(e,retregs,pretregs));
 
-    return cat(cg,fixresult(e,retregs,pretregs));
+    return cdb.finish();
 }
 
 /***************************************
@@ -2307,46 +2320,44 @@ code *cdframeptr(elem *e, regm_t *pretregs)
 code *cdgot(elem *e, regm_t *pretregs)
 {
 #if TARGET_OSX
-    regm_t retregs;
-    unsigned reg;
-    code *c;
-
-    retregs = *pretregs & allregs;
+    CodeBuilder cdb;
+    regm_t retregs = *pretregs & allregs;
     if  (!retregs)
         retregs = allregs;
-    c = allocreg(&retregs, &reg, TYnptr);
+    unsigned reg;
+    cdb.append(allocreg(&retregs, &reg, TYnptr));
 
-    c = genc(c,CALL,0,0,0,FLgot,0);     //     CALL L1
-    gen1(c, 0x58 + reg);                // L1: POP reg
+    cdb.genc(CALL,0,0,0,FLgot,0);     //     CALL L1
+    cdb.gen1(0x58 + reg);             // L1: POP reg
 
-    return cat(c,fixresult(e,retregs,pretregs));
+    cdb.append(fixresult(e,retregs,pretregs));
+    return cdb.finish();
 #elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    regm_t retregs;
-    unsigned reg;
-    code *c;
-    code *cgot;
-
-    retregs = *pretregs & allregs;
+    CodeBuilder cdb;
+    regm_t retregs = *pretregs & allregs;
     if  (!retregs)
         retregs = allregs;
-    c = allocreg(&retregs, &reg, TYnptr);
+    unsigned reg;
+    cdb.append(allocreg(&retregs, &reg, TYnptr));
 
-    c = genc2(c,CALL,0,0);      //     CALL L1
-    gen1(c, 0x58 + reg);        // L1: POP reg
+    cdb.genc2(CALL,0,0);        //     CALL L1
+    cdb.gen1(0x58 + reg);       // L1: POP reg
 
                                 //     ADD reg,_GLOBAL_OFFSET_TABLE_+3
     symbol *gotsym = Obj::getGOTsym();
-    cgot = gencs(CNIL,0x81,modregrm(3,0,reg),FLextern,gotsym);
+    cdb.gencs(0x81,modregrm(3,0,reg),FLextern,gotsym);
     /* Because the 2:3 offset from L1: is hardcoded,
      * this sequence of instructions must not
      * have any instructions in between,
      * so set CFvolatile to prevent the scheduler from rearranging it.
      */
+    code *cgot = cdb.last();
     cgot->Iflags = CFoff | CFvolatile;
     cgot->IEVoffset2 = (reg == AX) ? 2 : 3;
 
     makeitextern(gotsym);
-    return cat3(c,cgot,fixresult(e,retregs,pretregs));
+    cdb.append(fixresult(e,retregs,pretregs));
+    return cdb.finish();
 #else
     assert(0);
     return NULL;
@@ -2900,6 +2911,7 @@ code* prolog_ifunc2(tym_t tyf, tym_t tym, bool pushds)
             c = gen1(c,0x1E);                   // PUSH DS
         spoff += intsize;
         c1 = genc(CNIL,0xC7,modregrm(3,0,AX),0,0,FLdatseg,(targ_uns) 0); /* MOV  AX,DGROUP      */
+        c1->IEVseg2 = DATA;
         c1->Iflags ^= CFseg | CFoff;            /* turn off CFoff, on CFseg */
         c = cat(c,c1);
         gen2(c,0x8E,modregrm(3,3,AX));            /* MOV  DS,AX         */
@@ -2929,6 +2941,7 @@ code* prolog_16bit_windows_farfunc(tym_t* tyf, bool* pushds)
             if (wflags & WFreduced)
                 *tyf &= ~mTYloadds;          // remove redundancy
             c = genc(c,0xC7,modregrm(3,0,AX),0,0,FLdatseg,(targ_uns) 0);
+            c->IEVseg2 = DATA;
             c->Iflags ^= CFseg | CFoff;     // turn off CFoff, on CFseg
             break;
         case WFss:
@@ -3373,7 +3386,7 @@ code* prolog_trace(bool farfunc, unsigned* regsaved)
     char name[IDMAX+IDOHD+1];
     size_t len = objmod->mangle(funcsym_p,name);
     assert(len < sizeof(name));
-    genasm(c,name,len);                             // append func name
+    genasm(c,(unsigned char *)name,len);                             // append func name
 #endif
     *regsaved = s->Sregsaved;
     return c;
@@ -4629,7 +4642,7 @@ void assignaddrc(code *c)
         if (code_next(c) && code_next(code_next(c)) == c)
             assert(0);
 #endif
-        if (c->Iflags & CFvex)
+        if (c->Iflags & CFvex && c->Ivex.pfx == 0xC4)
             ins = vex_inssize(c);
         else if ((c->Iop & 0xFFFD00) == 0x0F3800)
             ins = inssize2[(c->Iop >> 8) & 0xFF];
@@ -4742,7 +4755,7 @@ void assignaddrc(code *c)
                     c->IFL1 = FLextern;
                 goto do2;
             case FLdatseg:
-                c->IEVseg1 = DATA;
+                //c->IEVseg1 = DATA;
                 goto do2;
 
 #if TARGET_SEGMENTED
@@ -4909,7 +4922,7 @@ void assignaddrc(code *c)
                 goto done;
 
             case FLdatseg:
-                c->IEVseg2 = DATA;
+                //c->IEVseg2 = DATA;
                 goto done;
 #if TARGET_SEGMENTED
             case FLcsdata:
@@ -5046,7 +5059,7 @@ void pinholeopt(code *c,block *b)
   {
     L1:
         op = c->Iop;
-        if (c->Iflags & CFvex)
+        if (c->Iflags & CFvex && c->Ivex.pfx == 0xC4)
             ins = vex_inssize(c);
         else if ((op & 0xFFFD00) == 0x0F3800)
             ins = inssize2[(op >> 8) & 0xFF];
@@ -5746,7 +5759,7 @@ unsigned calccodsize(code *c)
 #endif
     iflags = c->Iflags;
     op = c->Iop;
-    if (iflags & CFvex)
+    if (iflags & CFvex && c->Ivex.pfx == 0xC4)
     {
         ins = vex_inssize(c);
         size = ins & 7;
@@ -6857,7 +6870,7 @@ void code_hydrate(code **pc)
     while (*pc)
     {
         c = (code *) ph_hydrate(pc);
-        if (c->Iflags & CFvex)
+        if (c->Iflags & CFvex && c->Ivex.pfx == 0xC4)
             ins = vex_inssize(c);
         else if ((c->Iop & 0xFFFD00) == 0x0F3800)
             ins = inssize2[(c->Iop >> 8) & 0xFF];
@@ -7027,7 +7040,7 @@ void code_dehydrate(code **pc)
     {
         ph_dehydrate(pc);
 
-        if (c->Iflags & CFvex)
+        if (c->Iflags & CFvex && c->Ivex.pfx == 0xC4)
             ins = vex_inssize(c);
         else if ((c->Iop & 0xFFFD00) == 0x0F3800)
             ins = inssize2[(c->Iop >> 8) & 0xFF];
@@ -7202,7 +7215,7 @@ void code::print()
     }
 
     unsigned op = c->Iop;
-    if (c->Iflags & CFvex)
+    if (c->Iflags & CFvex && c->Ivex.pfx == 0xC4)
         ins = vex_inssize(c);
     else if ((c->Iop & 0xFFFD00) == 0x0F3800)
         ins = inssize2[(op >> 8) & 0xFF];

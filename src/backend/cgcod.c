@@ -391,7 +391,7 @@ tryagain:
         swoffset = CDoffset;
     else
         swoffset = Doffset;
-    swoffset = align(0,swoffset);
+    swoffset = _align(0,swoffset);
 
     // Emit the generated code
     if (eecontext.EEcompile == 1)
@@ -408,7 +408,7 @@ tryagain:
         {
             if (b->BC == BCjmptab || b->BC == BCswitch)
             {
-                swoffset = align(0,swoffset);
+                swoffset = _align(0,swoffset);
                 b->Btableoffset = swoffset;     /* offset of sw tab */
                 swoffset += b->Btablesize;
             }
@@ -1150,7 +1150,7 @@ void stackoffsets(int flags)
                 if (sz < REGSIZE)
                     sz = REGSIZE;
 
-                Fast.offset = align(sz,Fast.offset);
+                Fast.offset = _align(sz,Fast.offset);
                 s->Soffset = Fast.offset;
                 Fast.offset += sz;
                 //printf("fastpar '%s' sz = %d, fast offset =  x%x, %p\n",s->Sident,(int)sz,(int)s->Soffset, s);
@@ -1169,7 +1169,7 @@ void stackoffsets(int flags)
                     break;
                 }
 
-                Auto.offset = align(sz,Auto.offset);
+                Auto.offset = _align(sz,Auto.offset);
                 s->Soffset = Auto.offset;
                 Auto.offset += sz;
                 //printf("auto    '%s' sz = %d, auto offset =  x%lx\n",s->Sident,sz,(long)s->Soffset);
@@ -1179,7 +1179,7 @@ void stackoffsets(int flags)
                 break;
 
             case SCstack:
-                EEStack.offset = align(sz,EEStack.offset);
+                EEStack.offset = _align(sz,EEStack.offset);
                 s->Soffset = EEStack.offset;
                 //printf("EEStack.offset =  x%lx\n",(long)s->Soffset);
                 EEStack.offset += sz;
@@ -1197,7 +1197,7 @@ void stackoffsets(int flags)
                 /* Alignment on OSX 32 is odd. reals are 16 byte aligned in general,
                  * but are 4 byte aligned on the OSX 32 stack.
                  */
-                Para.offset = align(REGSIZE,Para.offset); /* align on word stack boundary */
+                Para.offset = _align(REGSIZE,Para.offset); /* align on word stack boundary */
                 if (alignsize == 16 && (I64 || tyvector(s->ty())))
                 {
                     if (Para.offset & 4)
@@ -1264,7 +1264,7 @@ void stackoffsets(int flags)
                     }
                 }
             }
-            Auto.offset = align(sz,Auto.offset);
+            Auto.offset = _align(sz,Auto.offset);
             s->Soffset = Auto.offset;
             //printf("auto    '%s' sz = %d, auto offset =  x%lx\n",s->Sident,sz,(long)s->Soffset);
             Auto.offset += sz;
@@ -1831,6 +1831,9 @@ code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
         unsigned size = _tysize[tym];
         *pretregs &= mES | allregs | XMMREGS;
         regm_t retregs = *pretregs;
+#ifdef DEBUG
+if (retregs == 0) printf("allocreg: file %s(%d)\n", file, line);
+#endif
         if ((retregs & regcon.mvar) == retregs) // if exactly in reg vars
         {
             if (size <= REGSIZE || (retregs & XMMREGS))
@@ -2305,6 +2308,8 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
     emask &= regcon.cse.mval;                     // make sure all bits are valid
 
     if (emask & XMMREGS && *pretregs == mPSW)
+        ;
+    else if (tyxmmreg(e->Ety) && config.fpxmmregs)
         ;
     else if (tyfloating(e->Ety) && config.inline8087)
         return comsub87(e,pretregs);

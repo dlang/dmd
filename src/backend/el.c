@@ -2030,7 +2030,7 @@ printf("\n");
 
 elem *el_convxmm(elem *e)
 {
-    unsigned char buffer[16];
+    unsigned char buffer[sizeof(eve)];
 
 #if TX86
     // Do not convert if the constants can be loaded with the special XMM instructions
@@ -2043,7 +2043,7 @@ elem *el_convxmm(elem *e)
     tym_t ty = e->Ety;
     int sz = tysize(ty);
     assert(sz <= sizeof(buffer));
-    void *p = &e->EV.Vcent;
+    void *p = &e->EV;
 
 #if 0
 printf("el_convxmm(): sz = %d\n", sz);
@@ -3241,7 +3241,7 @@ void elem_print(elem *e)
   }
   else if (OTbinary(e->Eoper))
   {
-        if (!PARSER && e->Eoper == OPstreq)
+        if (!PARSER && e->Eoper == OPstreq && e->ET)
                 dbg_printf("bytes=%d ", (int)type_size(e->ET));
         dbg_printf("%p %p\n",e->E1,e->E2);
         elem_print(e->E1);
@@ -3331,16 +3331,16 @@ case_tym:
 
         case TYllong:
         L2:
-            dbg_printf("%lldLL ",e->EV.Vllong);
+            dbg_printf("%lldLL ",(unsigned long long)e->EV.Vllong);
             break;
 
         case TYullong:
-            dbg_printf("%lluLL ",e->EV.Vullong);
+            dbg_printf("%lluLL ",(unsigned long long)e->EV.Vullong);
             break;
 
         case TYcent:
         case TYucent:
-            dbg_printf("%lluLL+%lluLL ", e->EV.Vcent.msw, e->EV.Vcent.lsw);
+            dbg_printf("%lluLL+%lluLL ", (unsigned long long)e->EV.Vcent.msw, (unsigned long long)e->EV.Vcent.lsw);
             break;
 
         case TYfloat:
@@ -3395,7 +3395,7 @@ case_tym:
         case TYulong4:
         case TYllong2:
         case TYullong2:
-            dbg_printf("%llxLL+%llxLL ", e->EV.Vcent.msw, e->EV.Vcent.lsw);
+            dbg_printf("%llxLL+%llxLL ", (long long)e->EV.Vcent.msw, (long long)e->EV.Vcent.lsw);
             break;
 
 #if !MARS

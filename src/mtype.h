@@ -107,6 +107,8 @@ typedef unsigned char TY;       // ENUMTY
 extern int Tsize_t;
 extern int Tptrdiff_t;
 
+#define SIZE_INVALID (~(d_uns64)0)   // error return from size() functions
+
 
 /**
  * type modifiers
@@ -240,7 +242,6 @@ public:
     char *toPrettyChars(bool QualifyTypes = false);
     static void init();
 
-    #define SIZE_INVALID (~(d_uns64)0)
     d_uns64 size();
     virtual d_uns64 size(Loc loc);
     virtual unsigned alignsize();
@@ -743,6 +744,7 @@ class TypeStruct : public Type
 public:
     StructDeclaration *sym;
     AliasThisRec att;
+    CPPMANGLE cppmangle;
 
     const char *kind();
     d_uns64 size(Loc loc);
@@ -760,6 +762,7 @@ public:
     bool needsDestruction() /*const*/;
     bool needsNested();
     bool hasPointers();
+    bool hasVoidInitPointers();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     unsigned char deduceWild(Type *t, bool isRef);
@@ -799,6 +802,7 @@ public:
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
     bool hasPointers();
+    bool hasVoidInitPointers();
     Type *nextOf();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -809,6 +813,7 @@ class TypeClass : public Type
 public:
     ClassDeclaration *sym;
     AliasThisRec att;
+    CPPMANGLE cppmangle;
 
     const char *kind();
     d_uns64 size(Loc loc) /*const*/;

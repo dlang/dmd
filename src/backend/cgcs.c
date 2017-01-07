@@ -269,6 +269,7 @@ STATIC void ecom(elem **pe)
 #if TX86
     case OPinp:                 /* never CSE the I/O instruction itself */
 #endif
+    case OPprefetch:            // don't CSE E2 or the instruction
         ecom(&e->E1);
         /* FALL-THROUGH */
     case OPasm:
@@ -374,6 +375,7 @@ STATIC void ecom(elem **pe)
     case OPsqrt: case OPsin: case OPcos:
 #endif
     case OPoffset: case OPnp_fp: case OPnp_f16p: case OPf16p_np:
+    case OPvecfill:
         ecom(&e->E1);
         break;
     case OPhalt:

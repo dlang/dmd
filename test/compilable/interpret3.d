@@ -897,13 +897,6 @@ int staticdynamic()
 }
 static assert(staticdynamic() == 0);
 
-int[] crashing()
-{
-    int[12] cra;
-    return (cra[2 .. $] = 3);
-}
-static assert(crashing()[9] == 3);
-
 int chainassign()
 {
     int[4] x = 6;
@@ -2692,11 +2685,6 @@ enum arr12528V2 = dup12528([0, 1]);
 static assert(arr12528V1 == [0]);
 static assert(arr12528V2 == [0, 1]);
 
-enum arr12528C1 = dup12528([new immutable Object]);
-enum arr12528C2 = dup12528([new immutable Object, new immutable Object]);
-static assert(arr12528C1.length == 1);
-static assert(arr12528C2.length == 2 && arr12528C2[0] !is arr12528C2[1]);
-
 /**************************************************
     9745 Allow pointers to static variables
 **************************************************/
@@ -4255,7 +4243,7 @@ static assert({ bug6851(); return true; }());
     7876
 **************************************************/
 
-int* bug7876(int n)
+int* bug7876(int n) @system
 {
     int x;
     auto ptr = &x;
@@ -4269,7 +4257,7 @@ struct S7876
     int* p;
 }
 
-S7876 bug7876b(int n)
+S7876 bug7876b(int n) @system
 {
     int x;
     S7876 s;

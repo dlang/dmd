@@ -246,7 +246,7 @@ extern (C++) final class StructInitializer : Initializer
 
     override Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
     {
-        //printf("StructInitializer::semantic(t = %s) %s\n", t->toChars(), toChars());
+        //printf("StructInitializer::semantic(t = %s) %s\n", t.toChars(), toChars());
         t = t.toBasetype();
         if (t.ty == Tsarray && t.nextOf().toBasetype().ty == Tstruct)
             t = t.nextOf().toBasetype();
@@ -329,7 +329,7 @@ extern (C++) final class StructInitializer : Initializer
                     continue;
                 }
                 value[i] = iz;
-                (*elements)[fieldi] = ex;
+                (*elements)[fieldi] = doCopyOrMove(sc, ex);
                 ++fieldi;
             }
             if (errors)
@@ -865,7 +865,7 @@ extern (C++) final class ExpInitializer : Initializer
 
     override Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
     {
-        //printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
+        //printf("ExpInitializer::semantic(%s), type = %s\n", exp.toChars(), t.toChars());
         if (needInterpret)
             sc = sc.startCTFE();
         exp = exp.semantic(sc);
@@ -998,7 +998,7 @@ extern (C++) final class ExpInitializer : Initializer
             exp = exp.ctfeInterpret();
         else
             exp = exp.optimize(WANTvalue);
-        //printf("-ExpInitializer::semantic(): "); exp->print();
+        //printf("-ExpInitializer::semantic(): "); exp.print();
         return this;
     }
 
@@ -1006,7 +1006,7 @@ extern (C++) final class ExpInitializer : Initializer
     {
         if (t)
         {
-            //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", t->toChars(), exp->toChars());
+            //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", t.toChars(), exp.toChars());
             Type tb = t.toBasetype();
             Expression e = (exp.op == TOKconstruct || exp.op == TOKblit) ? (cast(AssignExp)exp).e2 : exp;
             if (tb.ty == Tsarray && e.implicitConvTo(tb.nextOf()))
@@ -1040,6 +1040,16 @@ version (all)
 {
     extern (C++) bool hasNonConstPointers(Expression e)
     {
+        static bool checkArray(Expressions* elems)
+        {
+            foreach (e; *elems)
+            {
+                if (e && hasNonConstPointers(e))
+                    return true;
+            }
+            return false;
+        }
+
         if (e.type.ty == Terror)
             return false;
         if (e.op == TOKnull)
@@ -1047,22 +1057,22 @@ version (all)
         if (e.op == TOKstructliteral)
         {
             StructLiteralExp se = cast(StructLiteralExp)e;
-            return arrayHasNonConstPointers(se.elements);
+            return checkArray(se.elements);
         }
         if (e.op == TOKarrayliteral)
         {
             if (!e.type.nextOf().hasPointers())
                 return false;
             ArrayLiteralExp ae = cast(ArrayLiteralExp)e;
-            return arrayHasNonConstPointers(ae.elements);
+            return checkArray(ae.elements);
         }
         if (e.op == TOKassocarrayliteral)
         {
             AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e;
-            if (ae.type.nextOf().hasPointers() && arrayHasNonConstPointers(ae.values))
+            if (ae.type.nextOf().hasPointers() && checkArray(ae.values))
                 return true;
             if ((cast(TypeAArray)ae.type).index.hasPointers())
-                return arrayHasNonConstPointers(ae.keys);
+                return checkArray(ae.keys);
             return false;
         }
         if (e.op == TOKaddress)
@@ -1075,7 +1085,7 @@ version (all)
                 {
                     int old = se.stageflags;
                     se.stageflags |= stageSearchPointers;
-                    bool ret = arrayHasNonConstPointers(se.elements);
+                    bool ret = checkArray(se.elements);
                     se.stageflags = old;
                     return ret;
                 }
@@ -1095,17 +1105,6 @@ version (all)
             if (e.op == TOKstring) // "abc".ptr is OK
                 return false;
             return true;
-        }
-        return false;
-    }
-
-    extern (C++) bool arrayHasNonConstPointers(Expressions* elems)
-    {
-        for (size_t i = 0; i < elems.dim; i++)
-        {
-            Expression e = (*elems)[i];
-            if (e && hasNonConstPointers(e))
-                return true;
         }
         return false;
     }

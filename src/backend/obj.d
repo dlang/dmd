@@ -16,12 +16,11 @@ module ddmd.backend.obj;
 
 import ddmd.backend.cdef;
 import ddmd.backend.cc;
+import ddmd.backend.code;
 import ddmd.backend.el;
 import ddmd.backend.outbuf;
 
 extern (C++):
-
-struct seg_data;
 
 version (Windows)
 {

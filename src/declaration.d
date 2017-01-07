@@ -95,7 +95,7 @@ enum STCout                 = (1L << 12);   // out parameter
 enum STClazy                = (1L << 13);   // lazy parameter
 enum STCforeach             = (1L << 14);   // variable for foreach loop
 //                            (1L << 15)
-enum STCvariadic            = (1L << 16);   // variadic function argument
+enum STCvariadic            = (1L << 16);   // the 'variadic' parameter in: T foo(T a, U b, V variadic...)
 enum STCctorinit            = (1L << 17);   // can only be set inside constructor
 enum STCtemplateparameter   = (1L << 18);   // template parameter
 enum STCscope               = (1L << 19);
@@ -123,10 +123,11 @@ enum STCtemp                = (1L << 40);   // temporary variable
 enum STCrvalue              = (1L << 41);   // force rvalue for variables
 enum STCnogc                = (1L << 42);   // @nogc
 enum STCvolatile            = (1L << 43);   // destined for volatile in the back end
-enum STCreturn              = (1L << 44);   // 'return ref' for function parameters
+enum STCreturn              = (1L << 44);   // 'return ref' or 'return scope' for function parameters
 enum STCautoref             = (1L << 45);   // Mark for the already deduced 'auto ref' parameter
 enum STCinference           = (1L << 46);   // do attribute inference
 enum STCexptemp             = (1L << 47);   // temporary variable that has lifetime restricted to an expression
+enum STCmaybescope          = (1L << 48);   // parameter might be 'scope'
 
 enum STC_TYPECTOR = (STCconst | STCimmutable | STCshared | STCwild);
 enum STC_FUNCATTR = (STCref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem);
@@ -394,7 +395,7 @@ extern (C++) final class TupleDeclaration : Declaration
                 RootObject o = (*objects)[i];
                 if (o.dyncast() != DYNCAST_TYPE)
                 {
-                    //printf("\tnot[%d], %p, %d\n", i, o, o->dyncast());
+                    //printf("\tnot[%d], %p, %d\n", i, o, o.dyncast());
                     return null;
                 }
             }
@@ -409,7 +410,7 @@ extern (C++) final class TupleDeclaration : Declaration
             for (size_t i = 0; i < types.dim; i++)
             {
                 Type t = (*types)[i];
-                //printf("type = %s\n", t->toChars());
+                //printf("type = %s\n", t.toChars());
                 version (none)
                 {
                     buf.printf("_%s_%d", ident.toChars(), i);
@@ -436,7 +437,7 @@ extern (C++) final class TupleDeclaration : Declaration
 
     override Dsymbol toAlias2()
     {
-        //printf("TupleDeclaration::toAlias2() '%s' objects = %s\n", toChars(), objects->toChars());
+        //printf("TupleDeclaration::toAlias2() '%s' objects = %s\n", toChars(), objects.toChars());
         for (size_t i = 0; i < objects.dim; i++)
         {
             RootObject o = (*objects)[i];
@@ -494,8 +495,8 @@ extern (C++) final class AliasDeclaration : Declaration
     extern (D) this(Loc loc, Identifier id, Type type)
     {
         super(id);
-        //printf("AliasDeclaration(id = '%s', type = %p)\n", id->toChars(), type);
-        //printf("type = '%s'\n", type->toChars());
+        //printf("AliasDeclaration(id = '%s', type = %p)\n", id.toChars(), type);
+        //printf("type = '%s'\n", type.toChars());
         this.loc = loc;
         this.type = type;
         assert(type);
@@ -504,7 +505,7 @@ extern (C++) final class AliasDeclaration : Declaration
     extern (D) this(Loc loc, Identifier id, Dsymbol s)
     {
         super(id);
-        //printf("AliasDeclaration(id = '%s', s = %p)\n", id->toChars(), s);
+        //printf("AliasDeclaration(id = '%s', s = %p)\n", id.toChars(), s);
         assert(s != this);
         this.loc = loc;
         this.aliassym = s;
@@ -586,7 +587,7 @@ extern (C++) final class AliasDeclaration : Declaration
         //printf("%s parent = %s, gag = %d, instantiated = %d\n", toChars(), parent, global.gag, isInstantiated());
         if (parent && global.gag && !isInstantiated() && !toParent2().isFuncDeclaration())
         {
-            //printf("%s type = %s\n", toPrettyChars(), type->toChars());
+            //printf("%s type = %s\n", toPrettyChars(), type.toChars());
             global.gag = 0;
         }
 
@@ -794,7 +795,7 @@ extern (C++) final class AliasDeclaration : Declaration
             inuse = 2;
             uint olderrors = global.errors;
             Dsymbol s = type.toDsymbol(_scope);
-            //printf("[%s] type = %s, s = %p, this = %p\n", loc.toChars(), type->toChars(), s, this);
+            //printf("[%s] type = %s, s = %p, this = %p\n", loc.toChars(), type.toChars(), s, this);
             if (global.errors != olderrors)
                 goto Lerr;
             if (s)
@@ -812,7 +813,7 @@ extern (C++) final class AliasDeclaration : Declaration
                     goto Lerr;
                 if (global.errors != olderrors)
                     goto Lerr;
-                //printf("t = %s\n", t->toChars());
+                //printf("t = %s\n", t.toChars());
                 inuse = 0;
             }
         }
@@ -956,7 +957,7 @@ extern (C++) final class OverDeclaration : Declaration
 
     override bool overloadInsert(Dsymbol s)
     {
-        //printf("OverDeclaration::overloadInsert('%s') aliassym = %p, overnext = %p\n", s->toChars(), aliassym, overnext);
+        //printf("OverDeclaration::overloadInsert('%s') aliassym = %p, overnext = %p\n", s.toChars(), aliassym, overnext);
         if (overnext)
             return overnext.overloadInsert(s);
         if (s == this)
@@ -1015,6 +1016,8 @@ extern (C++) class VarDeclaration : Declaration
 {
     Initializer _init;
     uint offset;
+    uint sequenceNumber;            // order the variables are declared
+    __gshared uint nextSequenceNumber;   // the counter for sequenceNumber
     FuncDeclarations nestedrefs;    // referenced by these lexically nested functions
     bool isargptr;                  // if parameter that _argptr points to
     structalign_t alignment;
@@ -1028,6 +1031,7 @@ extern (C++) class VarDeclaration : Declaration
     int canassign;                  // it can be assigned to
     bool overlapped;                // if it is a field and has overlapping
     bool overlapUnsafe;             // if it is an overlapping field and the overlaps are unsafe
+    bool doNotInferScope;           // do not infer 'scope' for this variable
     ubyte isdataseg;                // private data for isDataseg 0 unset, 1 true, 2 false
     Dsymbol aliassym;               // if redone as alias to another symbol
     VarDeclaration lastVar;         // Linked list of variables for goto-skips-init detection
@@ -1047,7 +1051,7 @@ extern (C++) class VarDeclaration : Declaration
     final extern (D) this(Loc loc, Type type, Identifier id, Initializer _init, StorageClass storage_class = STCundefined)
     {
         super(id);
-        //printf("VarDeclaration('%s')\n", id->toChars());
+        //printf("VarDeclaration('%s')\n", id.toChars());
         assert(id);
         debug
         {
@@ -1057,12 +1061,14 @@ extern (C++) class VarDeclaration : Declaration
                 //*(char*)0=0;
             }
         }
+
         assert(type || _init);
         this.type = type;
         this._init = _init;
         this.loc = loc;
         ctfeAdrOnStack = -1;
         this.storage_class = storage_class;
+        sequenceNumber = ++nextSequenceNumber;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
@@ -1125,7 +1131,7 @@ extern (C++) class VarDeclaration : Declaration
             if (needctfe)
                 sc = sc.startCTFE();
 
-            //printf("inferring type for %s with init %s\n", toChars(), init->toChars());
+            //printf("inferring type for %s with init %s\n", toChars(), init.toChars());
             _init = _init.inferType(sc);
             type = _init.toExpression().type;
             if (needctfe)
@@ -1157,14 +1163,14 @@ extern (C++) class VarDeclaration : Declaration
             inuse--;
             sc2.pop();
         }
-        //printf(" semantic type = %s\n", type ? type->toChars() : "null");
+        //printf(" semantic type = %s\n", type ? type.toChars() : "null");
         if (type.ty == Terror)
             errors = true;
 
         type.checkDeprecated(loc, sc);
         linkage = sc.linkage;
         this.parent = sc.parent;
-        //printf("this = %p, parent = %p, '%s'\n", this, parent, parent->toChars());
+        //printf("this = %p, parent = %p, '%s'\n", this, parent, parent.toChars());
         protection = sc.protection;
 
         /* If scope's alignment is the default, use the type's alignment,
@@ -1174,7 +1180,7 @@ extern (C++) class VarDeclaration : Declaration
         if (alignment == STRUCTALIGN_DEFAULT)
             alignment = type.alignment(); // use type's alignment
 
-        //printf("sc->stc = %x\n", sc->stc);
+        //printf("sc.stc = %x\n", sc.stc);
         //printf("storage_class = x%x\n", storage_class);
 
         if (global.params.vcomplex)
@@ -1243,9 +1249,9 @@ extern (C++) class VarDeclaration : Declaration
                     Expression e = (*iexps)[pos];
                     Parameter arg = Parameter.getNth(tt.arguments, pos);
                     arg.type = arg.type.semantic(loc, sc);
-                    //printf("[%d] iexps->dim = %d, ", pos, iexps->dim);
-                    //printf("e = (%s %s, %s), ", Token::tochars[e->op], e->toChars(), e->type->toChars());
-                    //printf("arg = (%s, %s)\n", arg->toChars(), arg->type->toChars());
+                    //printf("[%d] iexps.dim = %d, ", pos, iexps.dim);
+                    //printf("e = (%s %s, %s), ", Token::tochars[e.op], e.toChars(), e.type.toChars());
+                    //printf("arg = (%s, %s)\n", arg.toChars(), arg.type.toChars());
 
                     if (e != ie)
                     {
@@ -1282,9 +1288,9 @@ extern (C++) class VarDeclaration : Declaration
                             Expression ee = (*exps)[u];
                             arg = Parameter.getNth(tt.arguments, pos + u);
                             arg.type = arg.type.semantic(loc, sc);
-                            //printf("[%d+%d] exps->dim = %d, ", pos, u, exps->dim);
-                            //printf("ee = (%s %s, %s), ", Token::tochars[ee->op], ee->toChars(), ee->type->toChars());
-                            //printf("arg = (%s, %s)\n", arg->toChars(), arg->type->toChars());
+                            //printf("[%d+%d] exps.dim = %d, ", pos, u, exps.dim);
+                            //printf("ee = (%s %s, %s), ", Token::tochars[ee.op], ee.toChars(), ee.type.toChars());
+                            //printf("arg = (%s, %s)\n", arg.toChars(), arg.type.toChars());
 
                             size_t iexps_dim = iexps.dim - 1 + exps.dim;
                             if (iexps_dim > nelems)
@@ -1357,12 +1363,12 @@ extern (C++) class VarDeclaration : Declaration
                 if (arg.storageClass & STCparameter)
                     storage_class |= arg.storageClass;
                 auto v = new VarDeclaration(loc, arg.type, id, ti, storage_class);
-                //printf("declaring field %s of type %s\n", v->toChars(), v->type->toChars());
+                //printf("declaring field %s of type %s\n", v.toChars(), v.type.toChars());
                 v.semantic(sc);
 
                 if (sc.scopesym)
                 {
-                    //printf("adding %s to %s\n", v->toChars(), sc->scopesym->toChars());
+                    //printf("adding %s to %s\n", v.toChars(), sc.scopesym.toChars());
                     if (sc.scopesym.members)
                         // Note this prevents using foreach() over members, because the limits can change
                         sc.scopesym.members.push(v);
@@ -1651,7 +1657,7 @@ extern (C++) class VarDeclaration : Declaration
                 // possibilities.
                 if (fd && !(storage_class & (STCmanifest | STCstatic | STCtls | STCgshared | STCextern)) && !_init.isVoidInitializer())
                 {
-                    //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
+                    //printf("fd = '%s', var = '%s'\n", fd.toChars(), toChars());
                     if (!ei)
                     {
                         ArrayInitializer ai = _init.isArrayInitializer();
@@ -1949,39 +1955,44 @@ extern (C++) class VarDeclaration : Declaration
             _init = _init.semantic(sc, type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
             inuse--;
         }
-        if (storage_class & STCmanifest)
+        if (_init && storage_class & STCmanifest)
         {
-            version (none)
+            /* Cannot initializer enums with CTFE classreferences and addresses of struct literals.
+             * Scan initializer looking for them. Issue error if found.
+             */
+            if (ExpInitializer ei = _init.isExpInitializer())
             {
-                if ((type.ty == Tclass) && type.isMutable())
+                static bool hasInvalidEnumInitializer(Expression e)
                 {
-                    error("is mutable. Only const and immutable class enum are allowed, not %s", type.toChars());
-                }
-                else if (type.ty == Tpointer && type.nextOf().ty == Tstruct && type.nextOf().isMutable())
-                {
-                    ExpInitializer ei = _init.isExpInitializer();
-                    if (ei.exp.op == TOKaddress && (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
+                    static bool arrayHasInvalidEnumInitializer(Expressions* elems)
                     {
-                        error("is a pointer to mutable struct. Only pointers to const or immutable struct enum are allowed, not %s", type.toChars());
+                        foreach (e; *elems)
+                        {
+                            if (e && hasInvalidEnumInitializer(e))
+                                return true;
+                        }
+                        return false;
                     }
-                }
-            }
-            else
-            {
-                if (type.ty == Tclass && _init)
-                {
-                    ExpInitializer ei = _init.isExpInitializer();
-                    if (ei.exp.op == TOKclassreference)
-                        error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
-                }
-                else if (type.ty == Tpointer && type.nextOf().ty == Tstruct)
-                {
-                    ExpInitializer ei = _init.isExpInitializer();
-                    if (ei && ei.exp.op == TOKaddress && (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
+
+                    if (e.op == TOKclassreference)
+                        return true;
+                    if (e.op == TOKaddress && (cast(AddrExp)e).e1.op == TOKstructliteral)
+                        return true;
+                    if (e.op == TOKarrayliteral)
+                        return arrayHasInvalidEnumInitializer((cast(ArrayLiteralExp)e).elements);
+                    if (e.op == TOKstructliteral)
+                        return arrayHasInvalidEnumInitializer((cast(StructLiteralExp)e).elements);
+                    if (e.op == TOKassocarrayliteral)
                     {
-                        error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
+                        AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e;
+                        return arrayHasInvalidEnumInitializer(ae.values) ||
+                               arrayHasInvalidEnumInitializer(ae.keys);
                     }
+                    return false;
                 }
+
+                if (hasInvalidEnumInitializer(ei.exp))
+                    error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
             }
         }
         else if (_init && isThreadlocal())
@@ -2114,7 +2125,7 @@ extern (C++) class VarDeclaration : Declaration
 
     override final bool hasPointers()
     {
-        //printf("VarDeclaration::hasPointers() %s, ty = %d\n", toChars(), type->ty);
+        //printf("VarDeclaration::hasPointers() %s, ty = %d\n", toChars(), type.ty);
         return (!isDataseg() && type.hasPointers());
     }
 
@@ -2207,8 +2218,8 @@ extern (C++) class VarDeclaration : Declaration
                  * classes to determine if there's no way the monitor
                  * could be set.
                  */
-                //if (cd->isInterfaceDeclaration())
-                //    error("interface %s cannot be scope", cd->toChars());
+                //if (cd.isInterfaceDeclaration())
+                //    error("interface %s cannot be scope", cd.toChars());
 
                 if (cd.cpp)
                 {
@@ -2400,6 +2411,19 @@ extern (C++) class VarDeclaration : Declaration
     {
         v.visit(this);
     }
+
+    /**********************************
+     * Determine if `this` has a lifetime that lasts past
+     * the destruction of `v`
+     * Params:
+     *  v = variable to test against
+     * Returns:
+     *  true if it does
+     */
+    final bool enclosesLifetimeOf(VarDeclaration v) const pure
+    {
+        return sequenceNumber < v.sequenceNumber;
+    }
 }
 
 /***********************************************************
@@ -2461,7 +2485,7 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
 
     override final const(char)* toChars()
     {
-        //printf("TypeInfoDeclaration::toChars() tinfo = %s\n", tinfo->toChars());
+        //printf("TypeInfoDeclaration::toChars() tinfo = %s\n", tinfo.toChars());
         OutBuffer buf;
         buf.writestring("typeid(");
         buf.writestring(tinfo.toChars());

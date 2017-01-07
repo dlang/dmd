@@ -25,7 +25,7 @@ import ddmd.visitor;
 
 extern (C++) Expression toDelegate(Expression e, Type t, Scope* sc)
 {
-    //printf("Expression::toDelegate(t = %s) %s\n", t->toChars(), e->toChars());
+    //printf("Expression::toDelegate(t = %s) %s\n", t.toChars(), e.toChars());
     Loc loc = e.loc;
     auto tf = new TypeFunction(null, t, 0, LINKd);
     if (t.hasWild())

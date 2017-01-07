@@ -259,9 +259,7 @@ void chkunass(elem *);
 void chknoabstract(type *);
 targ_llong msc_getnum();
 targ_size_t alignmember(type *,targ_size_t,targ_size_t);
-//targ_size_t align(targ_size_t,targ_size_t);
 targ_size_t _align(targ_size_t,targ_size_t);
-#define align(a, b) _align(a, b)
 
 /* nteh.c */
 unsigned char *nteh_context_string();
@@ -391,8 +389,8 @@ block *block_calloc();
 void block_init();
 void block_term();
 void block_next(BC,block *);
-void block_next(Blockx *bctx,BC bc,block *bn);
-block *block_goto(Blockx *bctx,BC bc,block *bn);
+void block_next(Blockx *bctx,int bc,block *bn);
+block *block_goto(Blockx *bctx,int bc,block *bn);
 void block_setlabel(unsigned lbl);
 void block_goto();
 void block_goto(block *);

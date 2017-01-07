@@ -1,4 +1,5 @@
 // REQUIRED_ARGS:
+//
 
 module test42;
 
@@ -51,7 +52,7 @@ void test3()
 {
     auto i = mixin("__LINE__");
     writefln("%d", i);
-    assert(i == 52);
+    assert(i == 53);
 }
 
 /***************************************************/

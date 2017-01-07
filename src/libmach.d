@@ -180,7 +180,7 @@ final class LibMach : Library
                     if (m == objmodules.dim)
                         return corrupt(__LINE__);       // didn't find it
                     MachObjModule* om = objmodules[m];
-                    //printf("\tom offset = x%x\n", (char *)om->base - (char *)buf);
+                    //printf("\tom offset = x%x\n", (char *)om.base - (char *)buf);
                     if (moff == cast(char*)om.base - cast(char*)buf)
                     {
                         addSymbol(om, name[0 .. namelen], 1);
@@ -398,11 +398,11 @@ private:
         }
         while (libbuf.offset & 3)
             libbuf.writeByte(0);
-        //if (libbuf->offset & 4)
-        //    libbuf->write(pad, 4);
+        //if (libbuf.offset & 4)
+        //    libbuf.write(pad, 4);
         static if (LOG)
         {
-            printf("\tlibbuf->moffset = x%x\n", libbuf.offset);
+            printf("\tlibbuf.moffset = x%x\n", libbuf.offset);
         }
         assert(libbuf.offset == hoffset);
         /* Write out each of the object modules
@@ -437,7 +437,7 @@ private:
         }
         static if (LOG)
         {
-            printf("moffset = x%x, libbuf->offset = x%x\n", moffset, libbuf.offset);
+            printf("moffset = x%x, libbuf.offset = x%x\n", moffset, libbuf.offset);
         }
         assert(libbuf.offset == moffset);
     }

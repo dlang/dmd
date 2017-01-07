@@ -283,7 +283,7 @@ extern (C++) TypeTuple toArgTypes(Type t)
             if (!t.sym.isPOD() || t.sym.fields.dim == 0)
             {
             Lmemory:
-                //printf("\ttoArgTypes() %s => [ ]\n", t->toChars());
+                //printf("\ttoArgTypes() %s => [ ]\n", t.toChars());
                 result = new TypeTuple(); // pass on the stack
                 return;
             }
@@ -421,7 +421,7 @@ extern (C++) TypeTuple toArgTypes(Type t)
                     if (t.sym.fields.dim == 1)
                     {
                         VarDeclaration f = t.sym.fields[0];
-                        //printf("f->type = %s\n", f->type->toChars());
+                        //printf("f.type = %s\n", f.type.toChars());
                         TypeTuple tup = toArgTypes(f.type);
                         if (tup)
                         {
@@ -432,10 +432,10 @@ extern (C++) TypeTuple toArgTypes(Type t)
                     }
                 }
             }
-            //printf("\ttoArgTypes() %s => [%s,%s]\n", t->toChars(), t1 ? t1->toChars() : "", t2 ? t2->toChars() : "");
+            //printf("\ttoArgTypes() %s => [%s,%s]\n", t.toChars(), t1 ? t1.toChars() : "", t2 ? t2.toChars() : "");
             if (t1)
             {
-                //if (t1) printf("test1: %s => %s\n", toChars(), t1->toChars());
+                //if (t1) printf("test1: %s => %s\n", toChars(), t1.toChars());
                 if (t2)
                     result = new TypeTuple(t1, t2);
                 else
