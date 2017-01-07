@@ -513,39 +513,52 @@ private void formatThrowable(Throwable t, void delegate(in char[] s) nothrow sin
 extern (C) void _d_print_throwable(Throwable t)
 {
     // On Windows, a console may not be present to print the output to.
-    // Show a message box instead.
+    // Show a message box instead. If the console is present, convert to
+    // the correct encoding.
     version (Windows)
     {
+        static struct WSink
+        {
+            wchar_t* ptr; size_t len;
+
+            void sink(in char[] s) nothrow
+            {
+                if (!s.length) return;
+                int swlen = MultiByteToWideChar(
+                        CP_UTF8, 0, s.ptr, cast(int)s.length, null, 0);
+                if (!swlen) return;
+
+                auto newPtr = cast(wchar_t*)realloc(ptr,
+                        (this.len + swlen + 1) * wchar_t.sizeof);
+                if (!newPtr) return;
+                ptr = newPtr;
+                auto written = MultiByteToWideChar(
+                        CP_UTF8, 0, s.ptr, cast(int)s.length, ptr+len, swlen);
+                len += written;
+            }
+
+            wchar_t* get() { if (ptr) ptr[len] = 0; return ptr; }
+
+            void free() { .free(ptr); }
+        }
+
+        HANDLE windowsHandle(int fd)
+        {
+            version (CRuntime_Microsoft)
+                return cast(HANDLE)_get_osfhandle(fd);
+            else
+                return _fdToHandle(fd);
+        }
+
+        auto hStdErr = windowsHandle(fileno(stderr));
+        CONSOLE_SCREEN_BUFFER_INFO sbi;
+        bool isConsole = GetConsoleScreenBufferInfo(hStdErr, &sbi) != 0;
+
         // ensure the exception is shown at the beginning of the line, while also
         // checking whether stderr is a valid file
         int written = fprintf(stderr, "\n");
         if (written <= 0)
         {
-            static struct WSink
-            {
-                wchar_t* ptr; size_t len;
-
-                void sink(in char[] s) nothrow
-                {
-                    if (!s.length) return;
-                    int swlen = MultiByteToWideChar(
-                        CP_UTF8, 0, s.ptr, cast(int)s.length, null, 0);
-                    if (!swlen) return;
-
-                    auto newPtr = cast(wchar_t*)realloc(ptr,
-                            (this.len + swlen + 1) * wchar_t.sizeof);
-                    if (!newPtr) return;
-                    ptr = newPtr;
-                    auto written = MultiByteToWideChar(
-                            CP_UTF8, 0, s.ptr, cast(int)s.length, ptr+len, swlen);
-                    len += written;
-                }
-
-                wchar_t* get() { if (ptr) ptr[len] = 0; return ptr; }
-
-                void free() { .free(ptr); }
-            }
-
             WSink buf;
             formatThrowable(t, &buf.sink);
 
@@ -568,6 +581,28 @@ extern (C) void _d_print_throwable(Throwable t)
                 }
                 FreeLibrary(user32);
                 caption.free();
+                buf.free();
+            }
+            return;
+        }
+        else if (isConsole)
+        {
+            WSink buf;
+            formatThrowable(t, &buf.sink);
+
+            if (buf.ptr)
+            {
+                uint codepage = GetConsoleOutputCP();
+                int slen = WideCharToMultiByte(codepage, 0,
+                        buf.ptr, cast(int)buf.len, null, 0, null, null);
+                auto sptr = cast(char*)malloc(slen * char.sizeof);
+                if (sptr)
+                {
+                    WideCharToMultiByte(codepage, 0,
+                        buf.ptr, cast(int)buf.len, sptr, slen, null, null);
+                    WriteFile(hStdErr, sptr, slen, null, null);
+                    free(sptr);
+                }
                 buf.free();
             }
             return;

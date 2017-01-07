@@ -9,6 +9,7 @@ test:
     - make -f posix.mak style
     - ./circleci.sh coverage:
         parallel: true
+        timeout: 1200
 
   post:
     # CodeCov gets confused by stored .lst files

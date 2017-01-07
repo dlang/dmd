@@ -129,7 +129,7 @@ ulong mach_absolute_time();
 }
 
 //To verify that an lvalue isn't required.
-version(unittest) T copy(T)(T t)
+version(unittest) private T copy(T)(T t)
 {
     return t;
 }
@@ -2443,12 +2443,14 @@ extern(C) void _d_initMonoTime()
                         assert(0);
 
                     // For some reason, on some systems, clock_getres returns
-                    // a resolution which is clearly wrong (it's a millisecond
-                    // or worse, but the time is updated much more frequently
-                    // than that). In such cases, we'll just use nanosecond
-                    // resolution.
-                    tps[i] = ts.tv_nsec >= 1000 ? 1_000_000_000L
-                                                            : 1_000_000_000L / ts.tv_nsec;
+                    // a resolution which is clearly wrong:
+                    //  - it's a millisecond or worse, but the time is updated
+                    //    much more frequently than that.
+                    //  - it's negative
+                    //  - it's zero
+                    // In such cases, we'll just use nanosecond resolution.
+                    tps[i] = ts.tv_sec != 0 || ts.tv_nsec <= 0 || ts.tv_nsec >= 1000
+                        ? 1_000_000_000L : 1_000_000_000L / ts.tv_nsec;
                 }
             }
         }

@@ -446,7 +446,13 @@ $(IMPDIR)\core\sys\linux\execinfo.d : src\core\sys\linux\execinfo.d
 $(IMPDIR)\core\sys\linux\fcntl.d : src\core\sys\linux\fcntl.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\linux\ifaddrs.d : src\core\sys\linux\ifaddrs.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\linux\link.d : src\core\sys\linux\link.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\linux\sched.d : src\core\sys\linux\sched.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\termios.d : src\core\sys\linux\termios.d
@@ -470,7 +476,13 @@ $(IMPDIR)\core\sys\linux\sys\auxv.d : src\core\sys\linux\sys\auxv.d
 $(IMPDIR)\core\sys\linux\sys\inotify.d : src\core\sys\linux\sys\inotify.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\linux\sys\prctl.d : src\core\sys\linux\sys\prctl.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\linux\sys\mman.d : src\core\sys\linux\sys\mman.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\linux\sys\netinet\tcp.d : src\core\sys\linux\sys\netinet\tcp.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\sys\signalfd.d : src\core\sys\linux\sys\signalfd.d
@@ -483,6 +495,9 @@ $(IMPDIR)\core\sys\linux\sys\sysinfo.d : src\core\sys\linux\sys\sysinfo.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\sys\xattr.d : src\core\sys\linux\sys\xattr.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\linux\sys\time.d : src\core\sys\linux\sys\time.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\openbsd\dlfcn.d : src\core\sys\openbsd\dlfcn.d
@@ -539,7 +554,13 @@ $(IMPDIR)\core\sys\posix\fcntl.d : src\core\sys\posix\fcntl.d
 $(IMPDIR)\core\sys\posix\grp.d : src\core\sys\posix\grp.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\posix\iconv.d : src\core\sys\posix\iconv.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\posix\inttypes.d : src\core\sys\posix\inttypes.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\libgen.d : src\core\sys\posix\libgen.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\netdb.d : src\core\sys\posix\netdb.d

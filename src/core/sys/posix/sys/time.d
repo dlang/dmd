@@ -27,6 +27,8 @@ else version (TVOS)
 else version (WatchOS)
     version = Darwin;
 
+version (linux) public import core.sys.linux.sys.time;
+
 version (Posix):
 extern (C) nothrow @nogc:
 

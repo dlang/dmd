@@ -408,6 +408,9 @@ fiber_switchContext:
 .text
 .align  2
 .global fiber_switchContext
+#if defined(__ARM_PCS_VFP) || (defined(__ARM_PCS) && !defined(__SOFTFP__)) // ARM_HardFloat  || ARM_SoftFP
+  .fpu vfp
+#endif
 .type   fiber_switchContext, %function
 fiber_switchContext:
     .fnstart

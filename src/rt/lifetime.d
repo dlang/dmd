@@ -2026,7 +2026,10 @@ extern (C) void[] _d_arrayappendcd(ref byte[] x, dchar c)
         appendthis = (cast(byte *)buf.ptr)[0..4];
     }
     else
-        assert(0);      // invalid utf character - should we throw an exception instead?
+    {
+        import core.exception : onUnicodeError;
+        onUnicodeError("Invalid UTF-8 sequence", 0);      // invalid utf character
+    }
 
     //
     // TODO: This always assumes the array type is shared, because we do not
@@ -2034,6 +2037,34 @@ extern (C) void[] _d_arrayappendcd(ref byte[] x, dchar c)
     // Once the compiler is fixed, the proper typeinfo should be forwarded.
     //
     return _d_arrayappendT(typeid(shared char[]), x, appendthis);
+}
+
+unittest
+{
+    import core.exception : UnicodeException;
+
+    /* Using inline try {} catch {} blocks fails to catch the UnicodeException
+     * thrown.
+     * https://issues.dlang.org/show_bug.cgi?id=16799
+     */
+    static void assertThrown(T : Throwable = Exception, E)(lazy E expr, string msg)
+    {
+        try
+            expr;
+        catch (T e) {
+            assert(e.msg == msg);
+            return;
+        }
+    }
+
+    static void f()
+    {
+        string ret;
+        int i = -1;
+        ret ~= i;
+    }
+
+    assertThrown!UnicodeException(f(), "Invalid UTF-8 sequence");
 }
 
 

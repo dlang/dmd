@@ -746,7 +746,12 @@ class TypeInfo_Function : TypeInfo
 {
     override string toString() const
     {
-        return cast(string)(next.toString() ~ "()");
+        import core.demangle : demangleType;
+
+        alias SafeDemangleFunctionType = char[] function (const(char)[] buf, char[] dst = null) @safe nothrow pure;
+        SafeDemangleFunctionType demangle = ( () @trusted => cast(SafeDemangleFunctionType)(&demangleType) ) ();
+
+        return (() @trusted => cast(string)(demangle(deco))) ();
     }
 
     override bool opEquals(Object o)
@@ -770,7 +775,26 @@ class TypeInfo_Function : TypeInfo
     }
 
     TypeInfo next;
+
+    /**
+    * Mangled function type string
+    */
     string deco;
+}
+
+unittest
+{
+    abstract class C
+    {
+       void func();
+       void func(int a);
+       int func(int a, int b);
+    }
+
+    alias functionTypes = typeof(__traits(getVirtualFunctions, C, "func"));
+    assert(typeid(functionTypes[0]).toString() == "void function()");
+    assert(typeid(functionTypes[1]).toString() == "void function(int)");
+    assert(typeid(functionTypes[2]).toString() == "int function(int, int)");
 }
 
 class TypeInfo_Delegate : TypeInfo
@@ -981,14 +1005,17 @@ class TypeInfo_Class : TypeInfo
     {
         foreach (m; ModuleInfo)
         {
-          if (m)
-            //writefln("module %s, %d", m.name, m.localClasses.length);
-            foreach (c; m.localClasses)
+            if (m)
             {
-                if (c is null) continue;
-                //writefln("\tclass %s", c.name);
-                if (c.name == classname)
-                    return c;
+                //writefln("module %s, %d", m.name, m.localClasses.length);
+                foreach (c; m.localClasses)
+                {
+                    if (c is null)
+                        continue;
+                    //writefln("\tclass %s", c.name);
+                    if (c.name == classname)
+                        return c;
+                }
             }
         }
         return null;
@@ -2927,7 +2954,7 @@ version(unittest) unittest
 
 version (unittest)
 {
-    bool isnan(float x)
+    private bool isnan(float x)
     {
         return x != x;
     }
@@ -3143,9 +3170,15 @@ bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
 {
     if (a1.length != a2.length)
         return false;
-    foreach(i, a; a1)
+
+    // This is function is used as a compiler intrinsic and explicitly written
+    // in a lowered flavor to use as few CTFE instructions as possible.
+    auto idx = 0;
+    auto length = a1.length;
+
+    for(;idx < length;++idx)
     {
-        if (a != a2[i])
+        if (a1[idx] != a2[idx])
             return false;
     }
     return true;
@@ -3196,12 +3229,8 @@ bool _xopCmp(in void*, in void*)
 {
     throw new Error("TypeInfo.compare is not implemented");
 }
-void __ctfeWrite(const string s) {}
-void __ctfeWriteln(const string s)
-{
-  __ctfeWrite(s);
-  __ctfeWrite("\n");
-}
+
+void __ctfeWrite(const string s) @nogc @safe pure nothrow {}
 
 /******************************************
  * Create RTInfo for type T

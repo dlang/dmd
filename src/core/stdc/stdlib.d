@@ -157,11 +157,11 @@ else
 // functions using these already have to be @trusted, allowing them to
 // call @system stuff anyway.
 ///
-void*   malloc(size_t size);
+void*   malloc(size_t size) pure;
 ///
-void*   calloc(size_t nmemb, size_t size);
+void*   calloc(size_t nmemb, size_t size) pure;
 ///
-void*   realloc(void* ptr, size_t size);
+void*   realloc(void* ptr, size_t size) pure;
 ///
 void    free(void* ptr);
 
@@ -212,11 +212,11 @@ size_t  wcstombs(char* s, in wchar_t* pwcs, size_t n);
 version( DigitalMars )
 {
     // See malloc comment about @trusted.
-    void* alloca(size_t size); // non-standard
+    void* alloca(size_t size) pure; // non-standard
 }
 else version( GNU )
 {
-    void* alloca(size_t size); // compiler intrinsic
+    void* alloca(size_t size) pure; // compiler intrinsic
 }
 
 version( CRuntime_Microsoft )
@@ -231,4 +231,3 @@ version( CRuntime_Microsoft )
     ///
     long  _wcstoi64(in wchar *,wchar **,int);
 }
-
