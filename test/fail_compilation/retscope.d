@@ -450,3 +450,44 @@ fail_compilation/retscope.d(1311): Error: scope variable u2 assigned to ek with 
   ek = U13.sget(u1); // ok
 }
 
+/************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(1405): Error: reference to local variable buf assigned to non-scope parameter unnamed calling retscope.myprintf
+---
+*/
+
+#line 1400
+@trusted extern(C) int myprintf(const(char)*, ...);
+
+@safe void foo14()
+{
+    char[4] buf = [ 'h', 'i', '\n', 0 ];
+    myprintf(&buf[0]);
+}
+
+/************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(1509): Error: reference to stack allocated value returned by (*fp15)() assigned to non-scope parameter unnamed
+---
+*/
+
+#line 1500
+
+@safe void bar15(int*);
+
+struct S15 { int a,b,c,d; }
+
+@safe S15 function() fp15;
+
+void test15() @safe
+{
+    bar15(&fp15().d);
+}
+
+

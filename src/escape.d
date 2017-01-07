@@ -66,7 +66,9 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier par, Ex
         {
             if (!gag)
                 error(arg.loc, "%s %s assigned to non-scope parameter %s calling %s",
-                    desc, v.toChars(), par.toChars(), fdc ? fdc.toPrettyChars() : "indirectly");
+                    desc, v.toChars(),
+                    par ? par.toChars() : "unnamed",
+                    fdc ? fdc.toPrettyChars() : "indirectly");
             result = true;
         }
     }
@@ -147,7 +149,8 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier par, Ex
         {
             if (!gag)
                 error(ee.loc, "reference to stack allocated value returned by %s assigned to non-scope parameter %s",
-                    ee.toChars(), par.toChars());
+                    ee.toChars(),
+                    par ? par.toChars() : "unnamed");
             result = true;
         }
     }
