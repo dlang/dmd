@@ -6609,6 +6609,7 @@ extern (C++) final class TypeFunction : TypeNext
      */
     final StorageClass parameterStorageClass(Parameter p)
     {
+        //printf("parameterStorageClass(p: %s)\n", p.toChars());
         auto stc = p.storageClass;
         if (!global.params.vsafe)
             return stc;
@@ -6652,13 +6653,21 @@ extern (C++) final class TypeFunction : TypeNext
 
         stc |= STCscope;
 
-        Type tret = nextOf().toBasetype();
-        if (isref || tret.hasPointers())
+        /* Inferring STCreturn here has false positives
+         * for pure functions, producing spurious error messages
+         * about escaping references.
+         * Give up on it for now.
+         */
+        version (none)
         {
-            /* The result has references, so p could be escaping
-             * that way.
-             */
-            stc |= STCreturn;
+            Type tret = nextOf().toBasetype();
+            if (isref || tret.hasPointers())
+            {
+                /* The result has references, so p could be escaping
+                 * that way.
+                 */
+                stc |= STCreturn;
+            }
         }
 
         return stc;
@@ -7956,7 +7965,7 @@ extern (C++) final class TypeTypeof : TypeQualified
         *pt = null;
         *ps = null;
 
-        //printf("TypeTypeof::resolve(sc = %p, idents = '%s')\n", sc, toChars());
+        //printf("TypeTypeof::resolve(this = %p, sc = %p, idents = '%s')\n", this, sc, toChars());
         //static int nest; if (++nest == 50) *(char*)0=0;
         if (inuse)
         {
@@ -10012,7 +10021,7 @@ extern (C++) final class TypeNull : Type
             return m;
 
         // NULL implicitly converts to any pointer type or dynamic array
-        //if (type.ty == Tpointer && type.nextOf()->ty == Tvoid)
+        //if (type.ty == Tpointer && type.nextOf().ty == Tvoid)
         {
             Type tb = to.toBasetype();
             if (tb.ty == Tnull || tb.ty == Tpointer || tb.ty == Tarray || tb.ty == Taarray || tb.ty == Tclass || tb.ty == Tdelegate)

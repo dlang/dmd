@@ -1,4 +1,5 @@
 // PERMUTE_ARGS:
+// REQUIRED_ARGS: -d -dip1000
 
 extern(C) int printf(const char*, ...);
 
@@ -237,6 +238,22 @@ void test7435() {
     debug printf("error\n");
 
   printf("do something\n");
+}
+
+/********************************************/
+
+char[] dup12()(char[] a) // although inferred pure, don't infer a is 'return'
+{
+    char[] res;
+    foreach (ref e; a)
+    {}
+    return res;
+}
+
+char[] foo12()
+{
+    char[10] buf;
+    return dup12(buf);
 }
 
 /********************************************/
