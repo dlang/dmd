@@ -2975,13 +2975,14 @@ else
         else
         {
             /* Generate our own critical section, then rewrite as:
-             *  __gshared byte[CriticalSection.sizeof] critsec;
-             *  _d_criticalenter(critsec.ptr);
-             *  try { body } finally { _d_criticalexit(critsec.ptr); }
+             *  __gshared align(D_CRITICAL_SECTION.alignof) byte[D_CRITICAL_SECTION.sizeof] __critsec;
+             *  _d_criticalenter(__critsec.ptr);
+             *  try { body } finally { _d_criticalexit(__critsec.ptr); }
              */
             auto id = Identifier.generateId("__critsec");
             auto t = Type.tint8.sarrayOf(Target.ptrsize + Target.critsecsize());
             auto tmp = new VarDeclaration(ss.loc, t, id, null);
+            tmp.alignment = Target.ptrsize;
             tmp.storage_class |= STCtemp | STCgshared | STCstatic;
 
             auto cs = new Statements();
