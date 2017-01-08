@@ -316,7 +316,7 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
             switch (e.op)
             {
             case TOKaddass: s = "Addass";   break;
-            case TOKminass: s = "Subass";   break;
+            case TOKminass: s = "Minass";   break;
             case TOKmulass: s = "Mulass";   break;
             case TOKdivass: s = "Divass";   break;
             case TOKmodass: s = "Modass";   break;
@@ -350,7 +350,7 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
             switch (e.op)
             {
             case TOKadd:    s = "Add";  break;
-            case TOKmin:    s = "Sub";  break;
+            case TOKmin:    s = "Min";  break;
             case TOKmul:    s = "Mul";  break;
             case TOKdiv:    s = "Div";  break;
             case TOKmod:    s = "Mod";  break;
