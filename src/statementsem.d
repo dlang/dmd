@@ -1060,16 +1060,74 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 e = new VarExp(loc, r);
                 Expression increment = new CallExp(loc, new DotIdExp(loc, e, idpopFront));
 
+                // Resolve the type returned by the .front member
+                Type tfront;
+
+                if (auto _ad = sfront.isAliasDeclaration())
+                {
+                    sfront = _ad.toAlias();
+                }
+
+                if (auto fd = sfront.isFuncDeclaration())
+                {
+                    if (!fd.functionSemantic())
+                        goto case Terror;
+                    tfront = fd.type;
+                }
+                else if (auto td = sfront.isTemplateDeclaration())
+                {
+                    Expressions a;
+                    if (auto f = resolveFuncCall(loc, sc, td, null, tab, &a, 1))
+                        tfront = f.type;
+                }
+                else if (auto d = sfront.isVarDeclaration())
+                {
+                    tfront = d.type;
+                }
+                else
+                    assert(0);
+
+                if (!tfront || tfront.ty == Terror)
+                    goto case Terror;
+
+                tfront = tfront.toBasetype();
+
+                bool frontReturnsRef;
+                // Check whether the function returns a reference
+                if (tfront.ty == Tfunction)
+                {
+                    frontReturnsRef = (cast(TypeFunction)tfront).isref;
+                    tfront = tfront.nextOf(); // Return type
+                }
+
+                if (tfront.ty == Tvoid)
+                {
+                    fs.error("%s.front is void and has no value", oaggr.toChars());
+                    goto case Terror;
+                }
+
+                // Resolve inout qualifier of front type
+                tfront = tfront.substWildTo(tab.mod);
+
                 /* Declaration statement for e:
                  *    auto e = __r.idfront;
                  */
                 e = new VarExp(loc, r);
                 Expression einit = new DotIdExp(loc, e, idfront);
+
                 Statement makeargs, forbody;
                 if (dim == 1)
                 {
                     auto p = (*fs.parameters)[0];
                     auto ve = new VarDeclaration(loc, p.type, p.ident, new ExpInitializer(loc, einit));
+
+                    // Reject the case where the user requires the variable to
+                    // be ref but the front iterator doesn't return references.
+                    if ((p.storageClass & STCref) && !frontReturnsRef)
+                    {
+                        fs.deprecation("%s.front doesn't return references", oaggr.toChars());
+                    }
+
                     ve.storage_class |= STCforeach;
                     ve.storage_class |= p.storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
 
@@ -1079,36 +1137,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     auto vd = copyToTemp(STCref, "__front", einit);
                     makeargs = new ExpStatement(loc, vd);
-
-                    Type tfront;
-                    if (auto fd = sfront.isFuncDeclaration())
-                    {
-                        if (!fd.functionSemantic())
-                            goto Lrangeerr;
-                        tfront = fd.type;
-                    }
-                    else if (auto td = sfront.isTemplateDeclaration())
-                    {
-                        Expressions a;
-                        if (auto f = resolveFuncCall(loc, sc, td, null, tab, &a, 1))
-                            tfront = f.type;
-                    }
-                    else if (auto d = sfront.isDeclaration())
-                    {
-                        tfront = d.type;
-                    }
-                    if (!tfront || tfront.ty == Terror)
-                        goto Lrangeerr;
-                    if (tfront.toBasetype().ty == Tfunction)
-                        tfront = tfront.toBasetype().nextOf();
-                    if (tfront.ty == Tvoid)
-                    {
-                        fs.error("%s.front is void and has no value", oaggr.toChars());
-                        goto case Terror;
-                    }
-
-                    // Resolve inout qualifier of front type
-                    tfront = tfront.substWildTo(tab.mod);
 
                     Expression ve = new VarExp(loc, vd);
                     ve.type = tfront;
