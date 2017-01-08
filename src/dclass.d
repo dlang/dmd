@@ -1027,6 +1027,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     }
 
     enum OFFSET_RUNTIME = 0x76543210;
+    enum OFFSET_FWDREF = 0x76543211;
 
     /*******************************************
      * Determine if 'this' is a base class of cd.
@@ -1878,11 +1879,8 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
             {
                 if (poffset)
                 {
-                    // Need to determine correct offset if needed.
-                    // https://issues.dlang.org/show_bug.cgi?id=16980
-                    cd.size(loc);
-                    // HACK: using OFFSET_RUNTIME as error placeholder
-                    *poffset = cd.sizeok == SIZEOKdone ? b.offset : OFFSET_RUNTIME;
+                    // don't return incorrect offsets https://issues.dlang.org/show_bug.cgi?id=16980
+                    *poffset = cd.sizeok == SIZEOKdone ? b.offset : OFFSET_FWDREF;
                 }
                 // printf("\tfound at offset %d\n", b.offset);
                 return true;
