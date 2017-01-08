@@ -2982,7 +2982,6 @@ else
             auto id = Identifier.generateId("__critsec");
             auto t = Type.tint8.sarrayOf(Target.ptrsize + Target.critsecsize());
             auto tmp = new VarDeclaration(ss.loc, t, id, null);
-            tmp.alignment = Target.ptrsize;
             tmp.storage_class |= STCtemp | STCgshared | STCstatic;
 
             auto cs = new Statements();
@@ -3016,6 +3015,9 @@ else
 
             s = new CompoundStatement(ss.loc, cs);
             result = s.semantic(sc);
+
+            // set the explicit __critsec alignment after semantic()
+            tmp.alignment = Target.ptrsize;
         }
     }
 
