@@ -358,9 +358,8 @@ struct BCGen
     uint functionId;
     void* fd;
 
-    RetainedCall[ubyte.max * 4] calls;
+    RetainedCall[ubyte.max * 5] calls;
     uint callCount;
-@safe pure:
     auto interpret(BCValue[] args, BCHeap* heapPtr) const
     {
         return interpret_(cast(const) byteCodeArray[0 .. ip], args, heapPtr, null);
@@ -370,6 +369,7 @@ struct BCGen
     {
         return interpret_(cast(const) byteCodeArray[0 .. ip], args, null, null);
     }
+@safe pure:
 
     void emitLongInst(LongInst64 i)
     {
@@ -417,6 +417,8 @@ struct BCGen
 
     void Finalize()
     {
+        callCount = 0;
+
         //the [ip-1] may be wrong in some cases ?
         byteCodeArray[ip - 1] = 0;
         byteCodeArray[ip] = 0;
@@ -1423,7 +1425,7 @@ __gshared int byteCodeCacheTop = 4;
 /*
 BCValue interpret(const BCGen* gen, const BCValue[] args,
     BCFunction* functions = null, BCHeap* heapPtr = null, BCValue* ev1 = null,
-    BCValue* ev2 = null, const RE* errors = null) pure @safe
+    BCValue* ev2 = null, const RE* errors = null) @safe
 {
     return interpret_(gen.byteCodeArray[0 .. gen.ip], args, heapPtr, functions, ev2,
         ev2, errors);
@@ -1433,7 +1435,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
     BCHeap* heapPtr = null, const BCFunction* functions = null,
     const RetainedCall* calls = null,
     BCValue* ev1 = null, BCValue* ev2 = null, const RE* errors = null,
-    long[] stackPtr = null, uint stackOffset = 0) pure @trusted
+    long[] stackPtr = null, uint stackOffset = 0)  @trusted
 {
     import std.conv;
     import std.stdio;
@@ -2090,7 +2092,12 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                         callArgs[i] = arg;
                     }
                     else 
-                      assert(0, "Argument ValueType unhandeled: " ~ to!string(arg.vType));
+                    {
+                        import ddmd.declaration : FuncDeclaration;
+                        const string fnString = cast(string)(cast(FuncDeclaration)(functions + fn - 1).funcDecl).ident.toString;
+
+                        assert(0, "Argument ValueType unhandeled: " ~ to!string(arg.vType) ~"\n In Function: " ~ fnString);
+                    }
                 }
                 auto cRetval = interpret_((functions + fn - 1).byteCode,
                     callArgs[0 .. call.args.length], heapPtr, functions, calls, ev1, ev2, errors, stack, stackOffsetCall);

@@ -126,7 +126,7 @@ struct BlackList
     void defaultBlackList()
     {
         initialize(["__lambda2" /* needed because of std.traits.ParameterDefaults*/ ,
-            "mangleFunc",
+                "mangleFunc", "_ctfeMatchBinary", "_ctfeMatchUnary",
             "back", "front", "empty"]);
     }
 
@@ -619,7 +619,7 @@ struct SharedCtfeState(BCGenT)
     BCPointer[ubyte.max * 8] pointers;
     uint pointerCount;
     // find a way to live without 102_000
-    RetainedError[ubyte.max * 16] errors;
+    RetainedError[ubyte.max * 32] errors;
     uint errorCount;
 
     void initHeap(uint maxHeapSize = 2 ^^ 24)
@@ -3123,6 +3123,9 @@ static if (is(BCGen))
 
     override void visit(ConstructExp ce)
     {
+        //TODO ConstructExp is basically the same as AssignExp
+        // find a way to merge those
+
         debug (ctfe)
         {
             import std.stdio;
@@ -3795,8 +3798,8 @@ static if (is(BCGen))
     override void visit(CallExp ce)
     {
         FuncDeclaration fd;
-        bailout("Bailing on FunctionCall");
-        return ;
+        //bailout("Bailing on FunctionCall");
+        //return ;
 
         if (ce.e1.op == TOKvar)
         {
@@ -3818,6 +3821,8 @@ static if (is(BCGen))
         foreach (i, arg; *ce.arguments)
         {
             bc_args[i] = genExpr(arg);
+            if (bc_args[i].vType == BCValueType.Unknown)
+                bailout(arg.toString ~ "did not evaluate to a valid argument");
         }
         static if (is(BCFunction))
         {
