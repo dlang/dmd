@@ -204,18 +204,18 @@ private Expression getValue(Expression e)
     return e;
 }
 
+private Expression getExpression(RootObject o)
+{
+    auto s = isDsymbol(o);
+    return s ? .getValue(s) : .getValue(isExpression(o));
+}
+
 /******************************
  * If o1 matches o2, return true.
  * Else, return false.
  */
 private bool match(RootObject o1, RootObject o2)
 {
-    static Expression getExpression(RootObject o)
-    {
-        auto s = isDsymbol(o);
-        return s ? .getValue(s) : .getValue(isExpression(o));
-    }
-
     enum debugPrint = 0;
 
     static if (debugPrint)
@@ -339,35 +339,29 @@ private int arrayObjectMatch(Objects* oa1, Objects* oa2)
 private hash_t arrayObjectHash(Objects* oa1)
 {
     hash_t hash = 0;
-    for (size_t j = 0; j < oa1.dim; j++)
+    foreach (o1; *oa1)
     {
         /* Must follow the logic of match()
          */
-        RootObject o1 = (*oa1)[j];
-        if (Type t1 = isType(o1))
+        if (auto t1 = isType(o1))
             hash += cast(size_t)t1.deco;
-        else
+        else if (auto e1 = getExpression(o1))
         {
-            Dsymbol s1 = isDsymbol(o1);
-            Expression e1 = s1 ? getValue(s1) : getValue(isExpression(o1));
-            if (e1)
+            if (e1.op == TOKint64)
             {
-                if (e1.op == TOKint64)
-                {
-                    IntegerExp ne = cast(IntegerExp)e1;
-                    hash += cast(size_t)ne.getInteger();
-                }
+                IntegerExp ne = cast(IntegerExp)e1;
+                hash += cast(size_t)ne.getInteger();
             }
-            else if (s1)
-            {
-                FuncAliasDeclaration fa1 = s1.isFuncAliasDeclaration();
-                if (fa1)
-                    s1 = fa1.toAliasFunc();
-                hash += cast(size_t)cast(void*)s1.getIdent() + cast(size_t)cast(void*)s1.parent;
-            }
-            else if (Tuple u1 = isTuple(o1))
-                hash += arrayObjectHash(&u1.objects);
         }
+        else if (auto s1 = isDsymbol(o1))
+        {
+            auto fa1 = s1.isFuncAliasDeclaration();
+            if (fa1)
+                s1 = fa1.toAliasFunc();
+            hash += cast(size_t)cast(void*)s1.getIdent() + cast(size_t)cast(void*)s1.parent;
+        }
+        else if (auto u1 = isTuple(o1))
+            hash += arrayObjectHash(&u1.objects);
     }
     return hash;
 }
