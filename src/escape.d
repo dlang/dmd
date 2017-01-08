@@ -128,8 +128,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier par, Ex
         foreach (v; vars)
         {
             //printf("v = %s\n", v.toChars());
-            if (v.isDataseg())
-                continue;
+            assert(!v.isDataseg());     // these are not put in the closureVars[]
 
             Dsymbol p = v.toParent2();
 
@@ -332,8 +331,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         foreach (v; vars)
         {
             //printf("v = %s\n", v.toChars());
-            if (v.isDataseg())
-                continue;
+            assert(!v.isDataseg());     // these are not put in the closureVars[]
 
             Dsymbol p = v.toParent2();
 
@@ -713,10 +711,7 @@ private void escapeByValue(Expression e, EscapeByResults* er)
 
         override void visit(TupleExp e)
         {
-            if (e.exps.dim)
-            {
-                (*e.exps)[e.exps.dim - 1].accept(this); // last one only
-            }
+            assert(0); // should have been lowered by now
         }
 
         override void visit(ArrayLiteralExp e)
@@ -1125,6 +1120,7 @@ private struct EscapeByResults
  */
 void findAllOuterAccessedVariables(FuncDeclaration fd, VarDeclarations* vars)
 {
+    //printf("findAllOuterAccessedVariables(fd: %s)\n", fd.toChars());
     for (auto p = fd.parent; p; p = p.parent)
     {
         auto fdp = p.isFuncDeclaration();
