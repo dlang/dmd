@@ -112,7 +112,7 @@ fail_compilation/retscope.d(124): Error: escaping reference to local variable tm
 ---
 */
 
-char[] foo9(char[] a) @safe pure nothrow @nogc
+char[] foo9(return char[] a) @safe pure nothrow @nogc
 {
     return a;
 }
