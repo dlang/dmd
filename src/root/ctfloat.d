@@ -74,7 +74,7 @@ extern (C++) struct CTFloat
 
     static size_t hash(real_t a)
     {
-        import ddmd.root.stringtable : calcHash;
+        import ddmd.root.hash : calcHash;
 
         if (isNaN(a))
             a = real_t.nan;

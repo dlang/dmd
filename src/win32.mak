@@ -187,7 +187,7 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d \
 	$(ROOT)/filename.d $(ROOT)/man.d $(ROOT)/outbuffer.d $(ROOT)/port.d \
 	$(ROOT)/response.d $(ROOT)/rmem.d $(ROOT)/rootobject.d \
-	$(ROOT)/speller.d $(ROOT)/stringtable.d
+	$(ROOT)/speller.d $(ROOT)/stringtable.d $(ROOT)/hash.d
 
 # D front end
 SRCS = aggregate.h aliasthis.h arraytypes.h	\
@@ -235,7 +235,7 @@ TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h \
 
 # Root package
 ROOTSRCC=$(ROOT)\newdelete.c
-ROOTSRCD=$(ROOT)\rmem.d $(ROOT)\stringtable.d $(ROOT)\man.d $(ROOT)\port.d \
+ROOTSRCD=$(ROOT)\rmem.d $(ROOT)\stringtable.d $(ROOT)\hash.d $(ROOT)\man.d $(ROOT)\port.d \
 	$(ROOT)\response.d $(ROOT)\rootobject.d $(ROOT)\speller.d $(ROOT)\aav.d \
 	$(ROOT)\ctfloat.d $(ROOT)\outbuffer.d $(ROOT)\filename.d \
 	$(ROOT)\file.d $(ROOT)\array.d

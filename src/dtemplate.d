@@ -339,7 +339,7 @@ private int arrayObjectMatch(Objects* oa1, Objects* oa2)
  */
 private hash_t arrayObjectHash(Objects* oa1)
 {
-    import ddmd.root.stringtable : mixHash;
+    import ddmd.root.hash : mixHash;
 
     hash_t hash = 0;
     foreach (o1; *oa1)
@@ -372,7 +372,7 @@ private hash_t arrayObjectHash(Objects* oa1)
 private hash_t expressionHash(Expression e)
 {
     import ddmd.root.ctfloat : CTFloat;
-    import ddmd.root.stringtable : calcHash, mixHash;
+    import ddmd.root.hash : calcHash, mixHash;
 
     switch (e.op)
     {
