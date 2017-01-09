@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(DMDSRC _globals.d)
@@ -337,7 +337,7 @@ struct Global
         {
             static assert(0, "fix this");
         }
-        copyright = "Copyright (c) 1999-2016 by Digital Mars";
+        copyright = "Copyright (c) 1999-2017 by Digital Mars";
         written = "written by Walter Bright";
         _version = ('v' ~ stripRight(import("verstr.h"))[1 .. $ - 1] ~ '\0').ptr;
         compiler.vendor = "Digital Mars D";

@@ -4,7 +4,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1992-1999 by Symantec
- *              Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ *              Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     Mike Cote, John Micco, $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     backendlicense.txt
  * Source:      $(DMDSRC backend/_iasm.d)
