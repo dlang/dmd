@@ -20,7 +20,12 @@ enum POOL_SIZE = (1U << POOL_BITS);
 // MurmurHash2 was written by Austin Appleby, and is placed in the public
 // domain. The author hereby disclaims copyright to this source code.
 // https://sites.google.com/site/murmurhash/
-private uint calcHash(const(char)* key, size_t len) pure nothrow @nogc
+uint calcHash(const(char)* data, size_t len) pure nothrow @nogc
+{
+    return calcHash(cast(const(ubyte)*)data, len);
+}
+
+uint calcHash(const(ubyte)* data, size_t len) pure nothrow @nogc
 {
     // 'm' and 'r' are mixing constants generated offline.
     // They're not really 'magic', they just happen to work well.
@@ -29,7 +34,6 @@ private uint calcHash(const(char)* key, size_t len) pure nothrow @nogc
     // Initialize the hash to a 'random' value
     uint h = cast(uint)len;
     // Mix 4 bytes at a time into the hash
-    const(ubyte)* data = cast(const(ubyte)*)key;
     while (len >= 4)
     {
         uint k = data[3] << 24 | data[2] << 16 | data[1] << 8 | data[0];

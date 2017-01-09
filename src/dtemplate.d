@@ -347,13 +347,7 @@ private hash_t arrayObjectHash(Objects* oa1)
         if (auto t1 = isType(o1))
             hash += cast(size_t)t1.deco;
         else if (auto e1 = getExpression(o1))
-        {
-            if (e1.op == TOKint64)
-            {
-                IntegerExp ne = cast(IntegerExp)e1;
-                hash += cast(size_t)ne.getInteger();
-            }
-        }
+            hash += expressionHash(e1);
         else if (auto s1 = isDsymbol(o1))
         {
             auto fa1 = s1.isFuncAliasDeclaration();
@@ -365,6 +359,90 @@ private hash_t arrayObjectHash(Objects* oa1)
             hash += arrayObjectHash(&u1.objects);
     }
     return hash;
+}
+
+
+/************************************
+ * Computes hash of expression.
+ * Handles all Expression classes and MUST match their equals method,
+ * i.e. e1.equals(e2) implies expressionHash(e1) == expressionHash(e2).
+ */
+private hash_t expressionHash(Expression e)
+{
+    import ddmd.root.ctfloat : CTFloat;
+    import ddmd.root.stringtable : calcHash;
+
+    switch (e.op)
+    {
+    case TOKint64:
+        return cast(size_t) (cast(IntegerExp)e).getInteger();
+
+    case TOKfloat64:
+        return CTFloat.hash((cast(RealExp)e).value);
+
+    case TOKcomplex80:
+        auto ce = cast(ComplexExp)e;
+        return CTFloat.hash(ce.toReal) + CTFloat.hash(ce.toImaginary);
+
+    case TOKidentifier:
+        return cast(size_t)cast(void*) (cast(IdentifierExp)e).ident;
+
+    case TOKnull:
+        return cast(size_t)cast(void*) (cast(NullExp)e).type;
+
+    case TOKstring:
+        auto se = cast(StringExp)e;
+        return calcHash(se.string, se.len * se.sz);
+
+    case TOKtuple:
+    {
+        auto te = cast(TupleExp)e;
+        size_t hash = 0;
+        hash += te.e0 ? expressionHash(te.e0) : 0;
+        foreach (elem; *te.exps)
+            hash += expressionHash(elem);
+        return hash;
+    }
+
+    case TOKarrayliteral:
+    {
+        auto ae = cast(ArrayLiteralExp)e;
+        size_t hash;
+        foreach (i; 0 .. ae.elements.dim)
+            hash += expressionHash(ae.getElement(i));
+        return hash;
+    }
+
+    case TOKassocarrayliteral:
+    {
+        auto ae = cast(AssocArrayLiteralExp)e;
+        size_t hash;
+        foreach (i; 0 .. ae.keys.dim)
+            hash += expressionHash((*ae.keys)[i]) + expressionHash((*ae.values)[i]);
+        return hash;
+    }
+
+    case TOKstructliteral:
+    {
+        auto se = cast(StructLiteralExp)e;
+        size_t hash;
+        foreach (elem; *se.elements)
+            hash += elem ? expressionHash(elem) : 0;
+        return hash;
+    }
+
+    case TOKvar:
+        return cast(size_t)cast(void*) (cast(VarExp)e).var;
+
+    case TOKfunction:
+        return cast(size_t)cast(void*) (cast(FuncExp)e).fd;
+
+    default:
+        // no custom equals for this expression
+        assert((&e.equals).funcptr is &RootObject.equals);
+        // equals based on identity
+        return cast(size_t)cast(void*) e;
+    }
 }
 
 RootObject objectSyntaxCopy(RootObject o)

@@ -72,6 +72,16 @@ extern (C++) struct CTFloat
         return memcmp(&a, &b, sz) == 0;
     }
 
+    static size_t hash(real_t a)
+    {
+        import ddmd.root.stringtable : calcHash;
+
+        if (isNaN(a))
+            a = real_t.nan;
+        enum sz = (real_t.mant_dig == 64) ? 10 : real_t.sizeof;
+        return calcHash(cast(ubyte*) &a, sz);
+    }
+
     static bool isNaN(real_t r)
     {
         return !(r == r);
