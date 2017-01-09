@@ -3926,7 +3926,10 @@ static if (is(BCGen))
         auto fromType = toBCType(ce.e1.type);
 
         retval = genExpr(ce.e1);
-        if (toType.type == BCTypeEnum.i32 || fromType == BCTypeEnum.i32)
+        if (toType.type == BCTypeEnum.Char && fromType == BCTypeEnum.Char)
+        {}
+
+        else if (toType.type == BCTypeEnum.i32 || fromType == BCTypeEnum.i32)
         {
             // FIXME: we cast if we either cast from or to int
             // this is not correct just a stopgap
