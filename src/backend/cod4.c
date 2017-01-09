@@ -1783,58 +1783,56 @@ code *cdshass(elem *e,regm_t *pretregs)
 
 code *cdcmp(elem *e,regm_t *pretregs)
 { regm_t retregs,rretregs;
-  unsigned reg,rreg,op,byte;
-  tym_t tym;
-  code *cl,*cr,*c,cs,*ce,*cg;
-  elem *e1,*e2;
-  bool eqorne;
-  unsigned sz;
+  unsigned reg,rreg;
   int fl;
-  int flag;
 
   //printf("cdcmp(e = %p, pretregs = %s)\n",e,regm_str(*pretregs));
   // Collect extra parameter. This is pretty ugly...
-  flag = cdcmp_flag;
+  int flag = cdcmp_flag;
   cdcmp_flag = 0;
 
-  e1 = e->E1;
-  e2 = e->E2;
-  if (*pretregs == 0)                   /* if don't want result         */
-  {     cl = codelem(e1,pretregs,FALSE);
-        *pretregs = 0;                  /* in case e1 changed it        */
-        cr = codelem(e2,pretregs,FALSE);
-        return cat(cl,cr);
-  }
+    elem *e1 = e->E1;
+    elem *e2 = e->E2;
+    if (*pretregs == 0)                 // if don't want result
+    {
+        CodeBuilder cdb;
+        cdb.append(codelem(e1,pretregs,FALSE));
+        *pretregs = 0;                  // in case e1 changed it
+        cdb.append(codelem(e2,pretregs,FALSE));
+        return cdb.finish();
+    }
 
-  unsigned jop = jmpopcode(e);          // must be computed before
+    unsigned jop = jmpopcode(e);        // must be computed before
                                         // leaves are free'd
-  unsigned reverse = 0;
+    unsigned reverse = 0;
 
-  cl = cr = CNIL;
-  op = e->Eoper;
-  assert(OTrel(op));
-  eqorne = (op == OPeqeq) || (op == OPne);
+    unsigned op = e->Eoper;
+    assert(OTrel(op));
+    bool eqorne = (op == OPeqeq) || (op == OPne);
 
-  tym = tybasic(e1->Ety);
-  sz = _tysize[tym];
-  byte = sz == 1;
+    tym_t tym = tybasic(e1->Ety);
+    unsigned sz = _tysize[tym];
+    unsigned byte = sz == 1;
 
     unsigned rex = (I64 && sz == 8) ? REX_W : 0;
     unsigned grex = rex << 16;          // 64 bit operands
 
-  if (tyfloating(tym))                  /* if floating operation        */
-  {
+    CodeBuilder cdb;
+    code cs;
+    code *ce;
+    if (tyfloating(tym))                  // if floating operation
+    {
         if (config.fpxmmregs)
         {
             retregs = mPSW;
             if (tyxmmreg(tym))
-                c = orthxmm(e,&retregs);
+                cdb.append(orthxmm(e,&retregs));
             else
-                c = orth87(e,&retregs);
+                cdb.append(orth87(e,&retregs));
         }
         else if (config.inline8087)
         {   retregs = mPSW;
-            c = orth87(e,&retregs);
+            cdb.append(orth87(e,&retregs));
         }
         else
         {
@@ -1854,16 +1852,16 @@ code *cdcmp(elem *e,regm_t *pretregs)
                 }
                 if (rel_exception(op))
                     clib += CLIBdtst0exc - CLIBdtst0;
-                cl = codelem(e1,&retregs,FALSE);
+                cdb.append(codelem(e1,&retregs,FALSE));
                 retregs = 0;
-                c = callclib(e,clib,&retregs,0);
+                cdb.append(callclib(e,clib,&retregs,0));
                 freenode(e2);
             }
             else
             {   clib = CLIBdcmp;
                 if (rel_exception(op))
                     clib += CLIBdcmpexc - CLIBdcmp;
-                c = opdouble(e,&retregs,clib);
+                cdb.append(opdouble(e,&retregs,clib));
             }
 #else
             assert(0);
@@ -1882,14 +1880,14 @@ code *cdcmp(elem *e,regm_t *pretregs)
   {
         assert(jop != JC && jop != JNC);
         retregs = mDX | mAX;
-        cl = codelem(e1,&retregs,FALSE);
+        cdb.append(codelem(e1,&retregs,FALSE));
         retregs = mCX | mBX;
-        cr = scodelem(e2,&retregs,mDX | mAX,FALSE);
+        cdb.append(scodelem(e2,&retregs,mDX | mAX,FALSE));
 
         if (I16)
         {
             retregs = 0;
-            c = callclib(e,CLIBlcmp,&retregs,0);    /* gross, but it works  */
+            cdb.append(callclib(e,CLIBlcmp,&retregs,0));    // gross, but it works
         }
         else
         {
@@ -1905,18 +1903,20 @@ code *cdcmp(elem *e,regm_t *pretregs)
              * C3:  INC  EDX
              * C1:
              */
-             c = getregs(mDX);
-             c = genregs(c,0x39,CX,DX);         // CMP EDX,ECX
+             cdb.append(getregs(mDX));
+             cdb.append(genregs(CNIL,0x39,CX,DX));             // CMP EDX,ECX
              code *c1 = gennop(CNIL);
-             genjmp(c,JNE,FLcode,(block *)c1);  // JNE C1
-             movregconst(c,DX,0,0);             // XOR EDX,EDX
-             genregs(c,0x39,BX,AX);             // CMP EAX,EBX
-             genjmp(c,JE,FLcode,(block *)c1);   // JZ C1
-             code *c3 = gen1(CNIL,0x40 + DX);   // INC EDX
-             genjmp(c,JA,FLcode,(block *)c3);   // JA C3
-             gen1(c,0x48 + DX);                 // DEC EDX
-             genjmp(c,JMPS,FLcode,(block *)c1); // JMP C1
-             c = cat4(c,c3,c1,getregs(mDX));
+             cdb.append(genjmp(CNIL,JNE,FLcode,(block *)c1));  // JNE C1
+             cdb.append(movregconst(CNIL,DX,0,0));             // XOR EDX,EDX
+             cdb.append(genregs(CNIL,0x39,BX,AX));             // CMP EAX,EBX
+             cdb.append(genjmp(CNIL,JE,FLcode,(block *)c1));   // JZ C1
+             code *c3 = gen1(CNIL,0x40 + DX);                  // INC EDX
+             cdb.append(genjmp(CNIL,JA,FLcode,(block *)c3));   // JA C3
+             cdb.gen1(0x48 + DX);                              // DEC EDX
+             cdb.append(genjmp(CNIL,JMPS,FLcode,(block *)c1)); // JMP C1
+             cdb.append(c3);
+             cdb.append(c1);
+             cdb.append(getregs(mDX));
              retregs = mPSW;
         }
         goto L3;
@@ -1945,7 +1945,6 @@ code *cdcmp(elem *e,regm_t *pretregs)
   if (byte)
         retregs = BYTEREGS;
 
-  c = CNIL;
   ce = CNIL;
   cs.Iflags = (!I16 && sz == SHORTSIZE) ? CFopsize : 0;
   cs.Irex = rex;
@@ -1956,40 +1955,40 @@ code *cdcmp(elem *e,regm_t *pretregs)
   {
       default:
       L2:
-        cl = scodelem(e1,&retregs,0,TRUE);      /* compute left leaf    */
+        cdb.append(scodelem(e1,&retregs,0,TRUE));      // compute left leaf
       L1:
         rretregs = allregs & ~retregs;
         if (byte)
                 rretregs &= BYTEREGS;
-        cr = scodelem(e2,&rretregs,retregs,TRUE);       /* get right leaf */
-        if (sz <= REGSIZE)                              /* CMP reg,rreg  */
-        {   reg = findreg(retregs);             /* get reg that e1 is in */
+        cdb.append(scodelem(e2,&rretregs,retregs,TRUE));     // get right leaf
+        if (sz <= REGSIZE)                              // CMP reg,rreg
+        {   reg = findreg(retregs);             // get reg that e1 is in
             rreg = findreg(rretregs);
-            c = genregs(CNIL,0x3B ^ byte ^ reverse,reg,rreg);
-            code_orrex(c, rex);
+            cdb.append(genregs(CNIL,0x3B ^ byte ^ reverse,reg,rreg));
+            code_orrex(cdb.last(), rex);
             if (!I16 && sz == SHORTSIZE)
-                c->Iflags |= CFopsize;          /* compare only 16 bits */
+                cdb.last()->Iflags |= CFopsize;          // compare only 16 bits
             if (I64 && byte && (reg >= 4 || rreg >= 4))
-                c->Irex |= REX;                 // address byte registers
+                cdb.last()->Irex |= REX;                 // address byte registers
         }
         else
         {   assert(sz <= 2 * REGSIZE);
 
-            /* Compare MSW, if they're equal then compare the LSW       */
+            // Compare MSW, if they're equal then compare the LSW
             reg = findregmsw(retregs);
             rreg = findregmsw(rretregs);
-            c = genregs(CNIL,0x3B ^ reverse,reg,rreg);  /* CMP reg,rreg */
+            cdb.append(genregs(CNIL,0x3B ^ reverse,reg,rreg));  // CMP reg,rreg
             if (I32 && sz == 6)
-                c->Iflags |= CFopsize;          /* seg is only 16 bits  */
+                cdb.last()->Iflags |= CFopsize;         // seg is only 16 bits
             else if (I64)
-                code_orrex(c, REX_W);
-            genjmp(c,JNE,FLcode,(block *) ce);          /* JNE nop      */
+                code_orrex(cdb.last(), REX_W);
+            cdb.append(genjmp(CNIL,JNE,FLcode,(block *) ce));   // JNE nop
 
             reg = findreglsw(retregs);
             rreg = findreglsw(rretregs);
-            genregs(c,0x3B ^ reverse,reg,rreg);         /* CMP reg,rreg */
+            cdb.append(genregs(CNIL,0x3B ^ reverse,reg,rreg));  // CMP reg,rreg
             if (I64)
-                code_orrex(c, REX_W);
+                code_orrex(cdb.last(), REX_W);
         }
         break;
       case OPrelconst:
@@ -2029,11 +2028,11 @@ code *cdcmp(elem *e,regm_t *pretregs)
             isregvar(e1,&retregs,&reg)
            )
         {   // Just do a TEST instruction
-            c = genregs(NULL,0x85 ^ byte,reg,reg);      // TEST reg,reg
-            c->Iflags |= (cs.Iflags & CFopsize) | CFpsw;
-            code_orrex(c, rex);
+            cdb.append(genregs(NULL,0x85 ^ byte,reg,reg));      // TEST reg,reg
+            cdb.last()->Iflags |= (cs.Iflags & CFopsize) | CFpsw;
+            code_orrex(cdb.last(), rex);
             if (I64 && byte && reg >= 4)
-                c->Irex |= REX;                 // address byte registers
+                cdb.last()->Irex |= REX;                 // address byte registers
             retregs = mPSW;
             break;
         }
@@ -2044,54 +2043,54 @@ code *cdcmp(elem *e,regm_t *pretregs)
             (!I16 || op == OPlt || op == OPge))
         {
             assert(*pretregs & (allregs));
-            cl = codelem(e1,pretregs,FALSE);
+            cdb.append(codelem(e1,pretregs,FALSE));
             reg = findreg(*pretregs);
-            c = getregs(mask[reg]);
+            cdb.append(getregs(mask[reg]));
             switch (op)
             {   case OPle:
-                    c = genc2(c,0x81,grex | modregrmx(3,0,reg),(unsigned)-1);   // ADD reg,-1
-                    code_orflag(c, CFpsw);
-                    genc2(c,0x81,grex | modregrmx(3,2,reg),0);          // ADC reg,0
+                    cdb.genc2(0x81,grex | modregrmx(3,0,reg),(unsigned)-1);   // ADD reg,-1
+                    code_orflag(cdb.last(), CFpsw);
+                    cdb.genc2(0x81,grex | modregrmx(3,2,reg),0);          // ADC reg,0
                     goto oplt;
                 case OPgt:
-                    c = gen2(c,0xF7,grex | modregrmx(3,3,reg));         // NEG reg
+                    cdb.gen2(0xF7,grex | modregrmx(3,3,reg));         // NEG reg
 #if TARGET_WINDOS
                     // What does the Windows platform do?
                     //  lower INT_MIN by 1?   See test exe9.c
                     // BUG: fix later
-                    code_orflag(c, CFpsw);
-                    genc2(c,0x81,grex | modregrmx(3,3,reg),0);  // SBB reg,0
+                    code_orflag(cdb.last(), CFpsw);
+                    cdb.genc2(0x81,grex | modregrmx(3,3,reg),0);  // SBB reg,0
 #endif
                     goto oplt;
                 case OPlt:
                 oplt:
                     if (!I16)
-                        c = genc2(c,0xC1,grex | modregrmx(3,5,reg),sz * 8 - 1); // SHR reg,31
+                        cdb.genc2(0xC1,grex | modregrmx(3,5,reg),sz * 8 - 1); // SHR reg,31
                     else
                     {   /* 8088-286 do not have a barrel shifter, so use this
                            faster sequence
                          */
-                        c = genregs(c,0xD1,0,reg);              /* ROL reg,1    */
+                        cdb.append(genregs(CNIL,0xD1,0,reg));   // ROL reg,1
                         unsigned regi;
                         if (reghasvalue(allregs,1,&regi))
-                            c = genregs(c,0x23,reg,regi);       /* AND reg,regi */
+                            cdb.append(genregs(CNIL,0x23,reg,regi));  // AND reg,regi
                         else
-                            c = genc2(c,0x81,modregrm(3,4,reg),1); /* AND reg,1 */
+                            cdb.genc2(0x81,modregrm(3,4,reg),1); // AND reg,1
                     }
                     break;
                 case OPge:
-                    c = genregs(c,0xD1,4,reg);          /* SHL reg,1    */
-                    code_orrex(c,rex);
-                    code_orflag(c, CFpsw);
-                    genregs(c,0x19,reg,reg);            /* SBB reg,reg  */
-                    code_orrex(c,rex);
+                    cdb.append(genregs(CNIL,0xD1,4,reg));        // SHL reg,1
+                    code_orrex(cdb.last(),rex);
+                    code_orflag(cdb.last(), CFpsw);
+                    cdb.append(genregs(CNIL,0x19,reg,reg));      // SBB reg,reg
+                    code_orrex(cdb.last(),rex);
                     if (I64)
                     {
-                        c = gen2(c,0xFF,modregrmx(3,0,reg));    // INC reg
-                        code_orrex(c, rex);
+                        cdb.gen2(0xFF,modregrmx(3,0,reg));       // INC reg
+                        code_orrex(cdb.last(), rex);
                     }
                     else
-                        c = gen1(c,0x40 + reg);                 // INC reg
+                        cdb.gen1(0x40 + reg);                    // INC reg
                     break;
 
                 default:
@@ -2122,29 +2121,30 @@ code *cdcmp(elem *e,regm_t *pretregs)
         if ((e1->Eoper == OPvar && datafl[el_fl(e1)] ||
              e1->Eoper == OPind) &&
             !evalinregister(e1))
-        {       cl = getlvalue(&cs,e1,RMload);
+        {
+                cdb.append(getlvalue(&cs,e1,RMload));
                 freenode(e1);
                 if (evalinregister(e2))
                 {
                     retregs = idxregm(&cs);
                     if ((cs.Iflags & CFSEG) == CFes)
-                            retregs |= mES;             /* take no chances */
+                            retregs |= mES;             // take no chances
                     rretregs = allregs & ~retregs;
                     if (byte)
                             rretregs &= BYTEREGS;
-                    cr = scodelem(e2,&rretregs,retregs,TRUE);
+                    cdb.append(scodelem(e2,&rretregs,retregs,TRUE));
                     cs.Iop = 0x39 ^ byte ^ reverse;
                     if (sz > REGSIZE)
                     {
                         rreg = findregmsw(rretregs);
                         cs.Irm |= modregrm(0,rreg,0);
                         getlvalue_msw(&cs);
-                        c = gen(CNIL,&cs);              /* CMP EA+2,rreg */
+                        cdb.gen(&cs);              // CMP EA+2,rreg
                         if (I32 && sz == 6)
-                            c->Iflags |= CFopsize;      /* seg is only 16 bits  */
+                            cdb.last()->Iflags |= CFopsize;      // seg is only 16 bits
                         if (I64 && byte && rreg >= 4)
-                            c->Irex |= REX;
-                        genjmp(c,JNE,FLcode,(block *) ce); /* JNE nop   */
+                            cdb.last()->Irex |= REX;
+                        cdb.append(genjmp(CNIL,JNE,FLcode,(block *) ce)); // JNE nop
                         rreg = findreglsw(rretregs);
                         NEWREG(cs.Irm,rreg);
                         getlvalue_lsw(&cs);
@@ -2169,14 +2169,14 @@ code *cdcmp(elem *e,regm_t *pretregs)
                             cs.IEVoffset2 = 0;
                         }
                         getlvalue_msw(&cs);
-                        c = gen(CNIL,&cs);              /* CMP EA+2,const */
+                        cdb.gen(&cs);              // CMP EA+2,const
                         if (!I16 && sz == 6)
-                            c->Iflags |= CFopsize;      /* seg is only 16 bits  */
-                        genjmp(c,JNE,FLcode,(block *) ce); /* JNE nop   */
+                            cdb.last()->Iflags |= CFopsize;      // seg is only 16 bits
+                        cdb.append(genjmp(CNIL,JNE,FLcode,(block *) ce)); // JNE nop
                         if (e2->Eoper == OPconst)
                             cs.IEV2.Vint = e2->EV.Vllong;
                         else if (e2->Eoper == OPrelconst)
-                        {   /* Turn off CFseg, on CFoff */
+                        {   // Turn off CFseg, on CFoff
                             cs.Iflags ^= CFseg | CFoff;
                             cs.IEVoffset2 = e2->EV.sp.Voffset;
                         }
@@ -2186,7 +2186,7 @@ code *cdcmp(elem *e,regm_t *pretregs)
                     }
                     freenode(e2);
                 }
-                c = gen(c,&cs);
+                cdb.gen(&cs);
                 break;
         }
 
@@ -2204,18 +2204,18 @@ code *cdcmp(elem *e,regm_t *pretregs)
             !boolres(e2) && !evalinregister(e1))
         {
             retregs = mPSW;
-            cl = scodelem(e1,&retregs,0,FALSE);
+            cdb.append(scodelem(e1,&retregs,0,FALSE));
             freenode(e2);
             break;
         }
         if (sz <= REGSIZE && !boolres(e2) && e1->Eoper == OPadd && *pretregs == mPSW)
         {
             retregs |= mPSW;
-            cl = scodelem(e1,&retregs,0,FALSE);
+            cdb.append(scodelem(e1,&retregs,0,FALSE));
             freenode(e2);
             break;
         }
-        cl = scodelem(e1,&retregs,0,TRUE);      /* compute left leaf    */
+        cdb.append(scodelem(e1,&retregs,0,TRUE));  // compute left leaf
         if (sz == 1)
         {
             reg = findreg(retregs & allregs);   // get reg that e1 is in
@@ -2230,16 +2230,15 @@ code *cdcmp(elem *e,regm_t *pretregs)
                 cs.Irex |= REX;                 // address byte registers
         }
         else if (sz <= REGSIZE)
-        {                                       /* CMP reg,const        */
+        {                                       // CMP reg,const
             reg = findreg(retregs & allregs);   // get reg that e1 is in
             rretregs = allregs & ~retregs;
             if (cs.IFL2 == FLconst && reghasvalue(rretregs,cs.IEV2.Vint,&rreg))
             {
-                code *cc = genregs(CNIL,0x3B,reg,rreg);
-                code_orrex(cc, rex);
+                cdb.append(genregs(CNIL,0x3B,reg,rreg));
+                code_orrex(cdb.last(), rex);
                 if (!I16)
-                    cc->Iflags |= cs.Iflags & CFopsize;
-                c = cat(c,cc);
+                    cdb.last()->Iflags |= cs.Iflags & CFopsize;
                 freenode(e2);
                 break;
             }
@@ -2251,17 +2250,17 @@ code *cdcmp(elem *e,regm_t *pretregs)
         {
             reg = findregmsw(retregs);          // get reg that e1 is in
             cs.Irm = modregrm(3,7,reg);
-            c = gen(CNIL,&cs);                  /* CMP reg,MSW          */
+            cdb.gen(&cs);                       // CMP reg,MSW
             if (I32 && sz == 6)
-                c->Iflags |= CFopsize;          /* seg is only 16 bits  */
-            genjmp(c,JNE,FLcode,(block *) ce);  /* JNE ce               */
+                cdb.last()->Iflags |= CFopsize;  // seg is only 16 bits
+            cdb.append(genjmp(CNIL,JNE,FLcode,(block *) ce));  // JNE ce
 
             reg = findreglsw(retregs);
             cs.Irm = modregrm(3,7,reg);
             if (e2->Eoper == OPconst)
                 cs.IEV2.Vint = e2->EV.Vlong;
             else if (e2->Eoper == OPrelconst)
-            {   /* Turn off CFseg, on CFoff     */
+            {   // Turn off CFseg, on CFoff
                 cs.Iflags ^= CFseg | CFoff;
                 cs.IEVoffset2 = e2->EV.sp.Voffset;
             }
@@ -2270,7 +2269,7 @@ code *cdcmp(elem *e,regm_t *pretregs)
         }
         else
                 assert(0);
-        c = gen(c,&cs);                         /* CMP sucreg,LSW       */
+        cdb.gen(&cs);                         // CMP sucreg,LSW
         freenode(e2);
         break;
 
@@ -2296,49 +2295,49 @@ code *cdcmp(elem *e,regm_t *pretregs)
            )
         {
             // CMP EA,e2
-            cl = getlvalue(&cs,e1,RMload);
+            cdb.append(getlvalue(&cs,e1,RMload));
             freenode(e1);
             cs.Iop = 0x39 ^ byte ^ reverse;
             code_newreg(&cs,reg);
             if (I64 && byte && reg >= 4)
                 cs.Irex |= REX;                 // address byte registers
-            c = gen(c,&cs);
+            cdb.gen(&cs);
             freenode(e2);
             break;
         }
       L5:
-        cl = scodelem(e1,&retregs,0,TRUE);      /* compute left leaf    */
-        if (sz <= REGSIZE)                      /* CMP reg,EA           */
+        cdb.append(scodelem(e1,&retregs,0,TRUE));      // compute left leaf
+        if (sz <= REGSIZE)                      // CMP reg,EA
         {
             reg = findreg(retregs & allregs);   // get reg that e1 is in
             unsigned opsize = cs.Iflags & CFopsize;
-            c = cat(c,loadea(e2,&cs,0x3B ^ byte ^ reverse,reg,0,RMload | retregs,0));
-            code_orflag(c,opsize);
+            cdb.append(loadea(e2,&cs,0x3B ^ byte ^ reverse,reg,0,RMload | retregs,0));
+            code_orflag(cdb.last(),opsize);
         }
         else if (sz <= 2 * REGSIZE)
         {
-            reg = findregmsw(retregs);   /* get reg that e1 is in */
+            reg = findregmsw(retregs);   // get reg that e1 is in
             // CMP reg,EA
-            c = loadea(e2,&cs,0x3B ^ reverse,reg,REGSIZE,RMload | retregs,0);
+            cdb.append(loadea(e2,&cs,0x3B ^ reverse,reg,REGSIZE,RMload | retregs,0));
             if (I32 && sz == 6)
-                c->Iflags |= CFopsize;          /* seg is only 16 bits  */
-            genjmp(c,JNE,FLcode,(block *) ce);          /* JNE ce       */
+                cdb.last()->Iflags |= CFopsize;        // seg is only 16 bits
+            cdb.append(genjmp(CNIL,JNE,FLcode,(block *) ce));  // JNE ce
             reg = findreglsw(retregs);
             if (e2->Eoper == OPind)
             {
                 NEWREG(cs.Irm,reg);
                 getlvalue_lsw(&cs);
-                c = gen(c,&cs);
+                cdb.gen(&cs);
             }
             else
-                c = cat(c,loadea(e2,&cs,0x3B ^ reverse,reg,0,RMload | retregs,0));
+                cdb.append(loadea(e2,&cs,0x3B ^ reverse,reg,0,RMload | retregs,0));
         }
         else
             assert(0);
         freenode(e2);
         break;
-  }
-  c = cat(c,ce);
+    }
+    cdb.append(ce);
 
 L3:
   if ((retregs = (*pretregs & (ALLREGS | mBP))) != 0) // if return result in register
@@ -2351,77 +2350,77 @@ L3:
                 if (!resregs)
                     resregs = BYTEREGS;
             }
-            cg = allocreg(&resregs,&reg,TYint);
-            cg = gen2(cg,0x0F90 + (jop & 0x0F),modregrmx(3,0,reg)); // SETcc reg
+            cdb.append(allocreg(&resregs,&reg,TYint));
+            cdb.gen2(0x0F90 + (jop & 0x0F),modregrmx(3,0,reg)); // SETcc reg
             if (I64 && reg >= 4)
-                code_orrex(cg,REX);
+                code_orrex(cdb.last(),REX);
             if (tysize(e->Ety) > 1)
             {
-                genregs(cg,0x0FB6,reg,reg);                 // MOVZX reg,reg
+                cdb.append(genregs(CNIL,0x0FB6,reg,reg));       // MOVZX reg,reg
                 if (I64 && sz == 8)
-                    code_orrex(cg,REX_W);
+                    code_orrex(cdb.last(),REX_W);
                 if (I64 && reg >= 4)
-                    code_orrex(cg,REX);
+                    code_orrex(cdb.last(),REX);
             }
             *pretregs &= ~mPSW;
-            c = cat3(c,cg,fixresult(e,resregs,pretregs));
+            cdb.append(fixresult(e,resregs,pretregs));
         }
         else
         {
             code *nop = CNIL;
             regm_t save = regcon.immed.mval;
-            cg = allocreg(&retregs,&reg,TYint);
+            cdb.append(allocreg(&retregs,&reg,TYint));
             regcon.immed.mval = save;
             if ((*pretregs & mPSW) == 0 &&
                 (jop == JC || jop == JNC))
             {
-                cg = cat(cg,getregs(retregs));
-                cg = genregs(cg,0x19,reg,reg);              /* SBB reg,reg  */
+                cdb.append(getregs(retregs));
+                cdb.append(genregs(CNIL,0x19,reg,reg));     // SBB reg,reg
                 if (rex)
-                    code_orrex(cg, rex);
+                    code_orrex(cdb.last(), rex);
                 if (flag)
                     ;                                       // cdcond() will handle it
                 else if (jop == JNC)
                 {
                     if (I64)
                     {
-                        cg = gen2(cg,0xFF,modregrmx(3,0,reg));      // INC reg
-                        code_orrex(cg, rex);
+                        cdb.gen2(0xFF,modregrmx(3,0,reg));  // INC reg
+                        code_orrex(cdb.last(), rex);
                     }
                     else
-                        gen1(cg,0x40 + reg);                 // INC reg
+                        cdb.gen1(0x40 + reg);               // INC reg
                 }
                 else
-                {   gen2(cg,0xF7,modregrmx(3,3,reg));        /* NEG reg      */
-                    code_orrex(cg, rex);
+                {   cdb.gen2(0xF7,modregrmx(3,3,reg));      // NEG reg
+                    code_orrex(cdb.last(), rex);
                 }
             }
             else if (I64 && sz == 8)
             {
                 assert(!flag);
-                cg = movregconst(cg,reg,1,64|8);               // MOV reg,1
+                cdb.append(movregconst(CNIL,reg,1,64|8));   // MOV reg,1
                 nop = gennop(nop);
-                cg = genjmp(cg,jop,FLcode,(block *) nop);   // Jtrue nop
+                cdb.append(genjmp(CNIL,jop,FLcode,(block *) nop));  // Jtrue nop
                                                             // MOV reg,0
-                movregconst(cg,reg,0,(*pretregs & mPSW) ? 64|8 : 64);
+                cdb.append(movregconst(CNIL,reg,0,(*pretregs & mPSW) ? 64|8 : 64));
                 regcon.immed.mval &= ~mask[reg];
             }
             else
             {
                 assert(!flag);
-                cg = movregconst(cg,reg,1,8);               // MOV reg,1
+                cdb.append(movregconst(CNIL,reg,1,8));      // MOV reg,1
                 nop = gennop(nop);
-                cg = genjmp(cg,jop,FLcode,(block *) nop);   // Jtrue nop
+                cdb.append(genjmp(CNIL,jop,FLcode,(block *) nop));  // Jtrue nop
                                                             // MOV reg,0
-                movregconst(cg,reg,0,(*pretregs & mPSW) ? 8 : 0);
+                cdb.append(movregconst(CNIL,reg,0,(*pretregs & mPSW) ? 8 : 0));
                 regcon.immed.mval &= ~mask[reg];
             }
             *pretregs = retregs;
-            c = cat3(c,cg,nop);
+            cdb.append(nop);
         }
-  }
+    }
 ret:
-  return cat3(cl,cr,c);
+    return cdb.finish();
 }
 
 
