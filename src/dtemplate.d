@@ -339,24 +339,26 @@ private int arrayObjectMatch(Objects* oa1, Objects* oa2)
  */
 private hash_t arrayObjectHash(Objects* oa1)
 {
+    import ddmd.root.stringtable : mixHash;
+
     hash_t hash = 0;
     foreach (o1; *oa1)
     {
         /* Must follow the logic of match()
          */
         if (auto t1 = isType(o1))
-            hash += cast(size_t)t1.deco;
+            hash = mixHash(hash, cast(size_t)t1.deco);
         else if (auto e1 = getExpression(o1))
-            hash += expressionHash(e1);
+            hash = mixHash(hash, expressionHash(e1));
         else if (auto s1 = isDsymbol(o1))
         {
             auto fa1 = s1.isFuncAliasDeclaration();
             if (fa1)
                 s1 = fa1.toAliasFunc();
-            hash += cast(size_t)cast(void*)s1.getIdent() + cast(size_t)cast(void*)s1.parent;
+            hash = mixHash(hash, mixHash(cast(size_t)cast(void*)s1.getIdent(), cast(size_t)cast(void*)s1.parent));
         }
         else if (auto u1 = isTuple(o1))
-            hash += arrayObjectHash(&u1.objects);
+            hash = mixHash(hash, arrayObjectHash(&u1.objects));
     }
     return hash;
 }
@@ -370,7 +372,7 @@ private hash_t arrayObjectHash(Objects* oa1)
 private hash_t expressionHash(Expression e)
 {
     import ddmd.root.ctfloat : CTFloat;
-    import ddmd.root.stringtable : calcHash;
+    import ddmd.root.stringtable : calcHash, mixHash;
 
     switch (e.op)
     {
@@ -382,7 +384,7 @@ private hash_t expressionHash(Expression e)
 
     case TOKcomplex80:
         auto ce = cast(ComplexExp)e;
-        return CTFloat.hash(ce.toReal) + CTFloat.hash(ce.toImaginary);
+        return mixHash(CTFloat.hash(ce.toReal), CTFloat.hash(ce.toImaginary));
 
     case TOKidentifier:
         return cast(size_t)cast(void*) (cast(IdentifierExp)e).ident;
@@ -400,7 +402,7 @@ private hash_t expressionHash(Expression e)
         size_t hash = 0;
         hash += te.e0 ? expressionHash(te.e0) : 0;
         foreach (elem; *te.exps)
-            hash += expressionHash(elem);
+            hash = mixHash(hash, expressionHash(elem));
         return hash;
     }
 
@@ -409,7 +411,7 @@ private hash_t expressionHash(Expression e)
         auto ae = cast(ArrayLiteralExp)e;
         size_t hash;
         foreach (i; 0 .. ae.elements.dim)
-            hash += expressionHash(ae.getElement(i));
+            hash = mixHash(hash, expressionHash(ae.getElement(i)));
         return hash;
     }
 
@@ -418,7 +420,8 @@ private hash_t expressionHash(Expression e)
         auto ae = cast(AssocArrayLiteralExp)e;
         size_t hash;
         foreach (i; 0 .. ae.keys.dim)
-            hash += expressionHash((*ae.keys)[i]) + expressionHash((*ae.values)[i]);
+            // reduction needs associative op as keys are unsorted (use XOR)
+            hash ^= mixHash(expressionHash((*ae.keys)[i]), expressionHash((*ae.values)[i]));
         return hash;
     }
 
@@ -427,7 +430,7 @@ private hash_t expressionHash(Expression e)
         auto se = cast(StructLiteralExp)e;
         size_t hash;
         foreach (elem; *se.elements)
-            hash += elem ? expressionHash(elem) : 0;
+            hash = mixHash(hash, elem ? expressionHash(elem) : 0);
         return hash;
     }
 

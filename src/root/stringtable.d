@@ -67,6 +67,17 @@ uint calcHash(const(ubyte)* data, size_t len) pure nothrow @nogc
     return h;
 }
 
+// combine and mix two words (MurmurHash2)
+size_t mixHash(size_t h, size_t k)
+{
+    enum uint m = 0x5bd1e995;
+    enum int r = 24;
+
+    k *= m;
+    k ^= k >> r;
+    return (h * m) ^ (k * m);
+}
+
 private size_t nextpow2(size_t val) pure nothrow @nogc @safe
 {
     size_t res = 1;
