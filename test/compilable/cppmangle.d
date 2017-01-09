@@ -298,3 +298,12 @@ extern(C++, N13337a.N13337b.N13337c)
 
 static assert(foo13337.mangleof == "_ZN7N13337a7N13337b7N13337c8foo13337ENS1_6S13337E");
 
+/**************************************/
+// 15789
+
+extern (C++) void test15789a(T...)(T args);
+
+void test15789()
+{
+    test15789a(0);
+}
