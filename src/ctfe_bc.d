@@ -655,7 +655,7 @@ struct SharedCtfeState(BCGenT)
 
     bool addStructInProgress;
 
-    import ddmd.tokens : Loc;
+    import ddmd.globals : Loc;
 
     BCValue addError(Loc loc, string msg, BCValue v1 = BCValue.init, BCValue v2 = BCValue.init)
     {
@@ -3822,7 +3822,10 @@ static if (is(BCGen))
         {
             bc_args[i] = genExpr(arg);
             if (bc_args[i].vType == BCValueType.Unknown)
+            {
                 bailout(arg.toString ~ "did not evaluate to a valid argument");
+                return ;
+            }
         }
         static if (is(BCFunction))
         {
@@ -3861,7 +3864,13 @@ static if (is(BCGen))
             {
                 retval = genTemporary(toBCType(ce.type));
             }
-            Call(retval, imm32(fnIdx), bc_args);
+            Call(retval, imm32(fnIdx), bc_args, ce.loc);
+            import ddmd.identifier;
+            if (fd.ident == Identifier.idPool("isGraphical"))
+            {
+                import std.stdio;
+                writeln("igArgs :", bc_args);
+            }
         }
         else
         {

@@ -58,12 +58,14 @@ auto instKind(LongInst i)
 
 struct RetainedCall
 {
+    import ddmd.globals : Loc;
     BCValue fn;
     BCValue[] args;
 
     uint callerId;
     BCAddr callerIp;
     StackAddr callerSp;
+    Loc loc;
 }
 
 enum LongInst : ushort
@@ -817,10 +819,10 @@ struct BCGen
         }
         emitArithInstruction(LongInst.Mod, result, rhs);
     }
-
-    void Call(BCValue result, BCValue fn, BCValue[] args)
+    import ddmd.globals : Loc;
+    void Call(BCValue result, BCValue fn, BCValue[] args, Loc l = Loc.init)
     {
-        calls[callCount++] = RetainedCall(fn, args, functionId, ip, sp);
+        calls[callCount++] = RetainedCall(fn, args, functionId, ip, sp, l);
         emitLongInst(LongInst64(LongInst.Call, result.stackAddr, pushOntoStack(imm32(callCount)).stackAddr));
     }
 
@@ -2091,12 +2093,13 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                     {
                         callArgs[i] = arg;
                     }
-                    else 
+                    else
                     {
                         import ddmd.declaration : FuncDeclaration;
+                        import core.stdc.string : strlen;
                         const string fnString = cast(string)(cast(FuncDeclaration)(functions + fn - 1).funcDecl).ident.toString;
 
-                        assert(0, "Argument ValueType unhandeled: " ~ to!string(arg.vType) ~"\n In Function: " ~ fnString);
+                        assert(0, "Argument " ~ to!string(i) ~" ValueType unhandeled: " ~ to!string(arg.vType) ~"\n Calling Function: " ~ fnString ~ " from: " ~ call.loc.toChars[0 .. strlen(call.loc.toChars)]);
                     }
                 }
                 auto cRetval = interpret_((functions + fn - 1).byteCode,
