@@ -1900,7 +1900,8 @@ extern (C++) class FuncDeclaration : Declaration
                             if (!nrvo_can)
                                 exp = doCopyOrMove(sc2, exp);
 
-                            checkEscape(sc2, exp, false);
+                            if (tret.hasPointers())
+                                checkEscape(sc2, exp, false);
                         }
 
                         exp = checkGC(sc2, exp);
