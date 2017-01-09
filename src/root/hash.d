@@ -60,13 +60,8 @@ uint calcHash(const(ubyte)* data, size_t len) pure nothrow @nogc
     return h;
 }
 
-// combine and mix two words (MurmurHash2)
+// combine and mix two words (boost::hash_combine)
 size_t mixHash(size_t h, size_t k)
 {
-    enum uint m = 0x5bd1e995;
-    enum int r = 24;
-
-    k *= m;
-    k ^= k >> r;
-    return (h * m) ^ (k * m);
+    return h ^ (k + 0x9e3779b9 + (h << 6) + (h >> 2));
 }
