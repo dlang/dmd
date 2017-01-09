@@ -1742,10 +1742,13 @@ public:
         //printf("FuncDeclaration::toCBuffer() '%s'\n", f.toChars());
         if (stcToBuffer(buf, f.storage_class))
             buf.writeByte(' ');
-        typeToBuffer(f.type, f.ident);
+        auto tf = cast(TypeFunction)f.type;
+        typeToBuffer(tf, f.ident);
+
         if (hgs.hdrgen == 1)
         {
-            if (f.storage_class & STCauto)
+            // if the return type is missing (e.g. ref functions or auto)
+            if (!tf.next || f.storage_class & STCauto)
             {
                 hgs.autoMember++;
                 bodyToBuffer(f);
@@ -1859,6 +1862,15 @@ public:
 
     override void visit(DtorDeclaration d)
     {
+        if (d.storage_class & STCtrusted)
+            buf.writestring("@trusted ");
+        if (d.storage_class & STCsafe)
+            buf.writestring("@safe ");
+        if (d.storage_class & STCnogc)
+            buf.writestring("@nogc ");
+        if (d.storage_class & STCdisable)
+            buf.writestring("@disable ");
+
         buf.writestring("~this()");
         bodyToBuffer(d);
     }
