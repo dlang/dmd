@@ -41,6 +41,7 @@ import ddmd.root.rootobject;
 import ddmd.tokens;
 import ddmd.visitor;
 
+//debug = FindExistingInstance; // print debug stats of findExistingInstance
 private enum LOG = false;
 
 enum IDX_NOTFOUND = 0x12345678;
@@ -2222,6 +2223,17 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         return fd;
     }
 
+    debug (FindExistingInstance)
+    {
+        __gshared uint nFound, nNotFound, nAdded, nRemoved;
+
+        shared static ~this()
+        {
+            printf("debug (FindExistingInstance) nFound %u, nNotFound: %u, nAdded: %u, nRemoved: %u\n",
+                   nFound, nNotFound, nAdded, nRemoved);
+        }
+    }
+
     /****************************************************
      * Given a new instance tithis of this TemplateDeclaration,
      * see if there already exists an instance.
@@ -2233,6 +2245,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         tithis.fargs = fargs;
         auto tibox = TemplateInstanceBox(tithis);
         auto p = tibox in instances;
+        debug (FindExistingInstance) ++(p ? nFound : nNotFound);
         //if (p) printf("\tfound %p\n", *p); else printf("\tnot found\n");
         return p ? *p : null;
     }
@@ -2246,6 +2259,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         //printf("addInstance() %p %p\n", instances, ti);
         auto tibox = TemplateInstanceBox(ti);
         instances[tibox] = ti;
+        debug (FindExistingInstance) ++nAdded;
         return ti;
     }
 
@@ -2258,6 +2272,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     {
         //printf("removeInstance()\n");
         auto tibox = TemplateInstanceBox(ti);
+        debug (FindExistingInstance) ++nRemoved;
         instances.remove(tibox);
     }
 
@@ -8927,15 +8942,30 @@ struct TemplateInstanceBox
 
     bool opEquals(ref const TemplateInstanceBox s) @trusted const
     {
+        bool res = void;
         if (ti.inst && s.ti.inst)
             /* This clause is only used when an instance with errors
              * is replaced with a correct instance.
              */
-            return ti is s.ti;
+            res = ti is s.ti;
         else
             /* Used when a proposed instance is used to see if there's
              * an existing instance.
              */
-            return (cast()s.ti).compare(cast()ti) == 0;
+            res = (cast()s.ti).compare(cast()ti) == 0;
+
+        debug (FindExistingInstance) ++(res ? nHits : nCollisions);
+        return res;
+    }
+
+    debug (FindExistingInstance)
+    {
+        __gshared uint nHits, nCollisions;
+
+        shared static ~this()
+        {
+            printf("debug (FindExistingInstance) TemplateInstanceBox.equals hits: %u collisions: %u\n",
+                   nHits, nCollisions);
+        }
     }
 }
