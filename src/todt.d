@@ -740,8 +740,12 @@ private void membersToDt(AggregateDeclaration ad, DtBuilder dtb,
     {
         if (elements && !(*elements)[firstFieldIndex + i])
             continue;
-        else if (ad.fields[i]._init && ad.fields[i]._init.isVoidInitializer())
-            continue;
+
+        if (!elements || !(*elements)[firstFieldIndex + i])
+        {
+            if (ad.fields[i]._init && ad.fields[i]._init.isVoidInitializer())
+                continue;
+        }
 
         VarDeclaration vd;
         size_t k;
@@ -753,8 +757,12 @@ private void membersToDt(AggregateDeclaration ad, DtBuilder dtb,
 
             if (elements && !(*elements)[firstFieldIndex + j])
                 continue;
-            if (v2._init && v2._init.isVoidInitializer())
-                continue;
+
+            if (!elements || !(*elements)[firstFieldIndex + j])
+            {
+                if (v2._init && v2._init.isVoidInitializer())
+                    continue;
+            }
 
             // find the nearest field
             if (!vd || v2.offset < vd.offset)
