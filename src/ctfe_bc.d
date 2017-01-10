@@ -1877,6 +1877,12 @@ static if (is(BCGen))
                     }
                     break;
 
+                case TOK.TOKxor:
+                    {
+                        Xor3(retval, lhs, rhs);
+                    }
+                    break;
+
                 case TOK.TOKshr:
                     {
                         auto maxShift = imm32(basicTypeSize(lhs.type) * 8 - 1);
@@ -1969,7 +1975,11 @@ static if (is(BCGen))
     {
         //bailout();
         auto vd = se.var.isVarDeclaration();
-        assert(vd, se.var.toString() ~ " is not a variable declarartion");
+        auto fd = se.var.isFuncDeclaration();
+        import ddmd.asttypename;
+
+        if (vd)
+        {
         auto v = getVariable(vd);
         //retval = BCValue(v.stackAddr
         import std.stdio;
@@ -1979,6 +1989,15 @@ static if (is(BCGen))
             retval = v;
         }
         writeln("Se.var.genExpr == ", v);
+
+        }
+        else if (fd)
+        {
+        bailout(toString (se) ~ " function-variables are currently not handeled");
+        }
+        else
+            bailout(se.var.toString() ~ " is not a variable declarartion but a " ~ astTypeName(se.var));
+
     }
 
     override void visit(IndexExp ie)
@@ -2746,7 +2765,8 @@ static if (is(BCGen))
         }
         if (!vd)
         {
-            bailout("DeclarationExps are expected to be VariableDeclarations");
+            import ddmd.asttypename;
+            bailout("DeclarationExps are expected to be VariableDeclarations not: " ~ astTypeName(de.declaration) ~ " :: " ~ toString(de));
             return;
         }
         visit(vd);
@@ -3800,14 +3820,34 @@ static if (is(BCGen))
         FuncDeclaration fd;
         //bailout("Bailing on FunctionCall");
         //return ;
-
+        import ddmd.asttypename;
         if (ce.e1.op == TOKvar)
         {
             fd = (cast(VarExp) ce.e1).var.isFuncDeclaration();
         }
+        else if (ce.e1.op == TOKdotvar)
+        {
+            Expression _this;
+            DotVarExp dve = cast(DotVarExp)ce.e1;
+
+            // Calling a member function
+            _this = dve.e1;
+            fd = dve.var.isFuncDeclaration();
+            /*
+            if (_this.op == TOKdottype)
+                _this = (cast(DotTypeExp)dve.e1).e1;
+            }
+            */
+            auto thisValue = genExpr(_this);
+            bailout("cannot do methodcall" ~ toString(ce) ~ ":fd: " ~ toString(fd.type));
+            return ;
+
+            // most likely a method-call
+        }
+
         if (!fd)
         {
-            bailout("could not get funcDecl");
+            bailout("could not get funcDecl" ~ astTypeName(ce.e1));
             return;
         }
         if (!fd.functionSemantic3())
@@ -3926,8 +3966,10 @@ static if (is(BCGen))
         auto fromType = toBCType(ce.e1.type);
 
         retval = genExpr(ce.e1);
-        if (toType.type == BCTypeEnum.Char && fromType == BCTypeEnum.Char)
-        {}
+        if (toType.type == fromType)
+        {
+			//newCTFE does not need to cast
+		}
 
         else if (toType.type == BCTypeEnum.i32 || fromType == BCTypeEnum.i32)
         {
