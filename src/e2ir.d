@@ -4034,7 +4034,11 @@ elem *toElem(Expression e, IRState *irs)
                      */
 
                     //printf("offset = %d\n", offset);
-                    if (offset)
+                    if (offset == ClassDeclaration.OFFSET_FWDREF)
+                    {
+                        assert(0, "unexpected forward reference");
+                    }
+                    else if (offset)
                     {
                         /* Rewrite cast as (e ? e + offset : null)
                          */
