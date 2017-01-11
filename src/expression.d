@@ -9866,6 +9866,14 @@ extern (C++) final class CallExp : UnaExp
             else if (e1.op == TOKtype && t1.isscalar())
             {
                 Expression e;
+
+                // Make sure to use the the enum type itself rather than its
+                // base type (see bugzilla 16346)
+                if (e1.type.ty == Tenum)
+                {
+                    t1 = e1.type;
+                }
+
                 if (!arguments || arguments.dim == 0)
                 {
                     e = t1.defaultInitLiteral(loc);
