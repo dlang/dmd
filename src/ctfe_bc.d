@@ -153,7 +153,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 
 import ddmd.ctfe.bc_common;
 
-enum perf = 1;
+enum perf = 0;
+enum bailoutMessages = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
@@ -255,7 +256,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     import ddmd.identifier;
     import std.datetime : StopWatch;
 
-    writeln("trying ", fd.toString);
+    //writeln("trying ", fd.toString);
 
     static if (perf)
     {
@@ -1369,7 +1370,8 @@ extern (C++) final class BCV(BCGenT) : Visitor
         {
             import std.stdio;
 
-            writeln("bailout: ", message);
+            static if (bailoutMessages)
+                writeln("bailout: ", message);
         }
     }
 
@@ -1528,7 +1530,7 @@ public:
         }
         import std.stdio;
 
-        writeln("going to eval: ", fd.toString);
+        //writeln("going to eval: ", fd.toString);
         if (auto fbody = fd.fbody.isCompoundStatement)
         {
             beginParameters();
@@ -2874,7 +2876,7 @@ static if (is(BCGen))
         }
         else if (!canHandleBinExpTypes(lhs.type, rhs.type))
         {
-            bailout("Cannot use binExpTypes");
+            bailout("Cannot use binExpTypes: " ~ to!string(lhs.type.type) ~ " " ~ to!string(rhs.type.type));
             return;
         }
 
@@ -3618,6 +3620,7 @@ static if (is(BCGen))
                 }
                 endCndJmp(jump, genLabel());
             }
+            
             if (ss.sdefault) // maybe we should ss.sdefault.statement as well ... jsut to be sure ?
             {
                 auto defaultBlock = genBlock(ss.sdefault.statement);
@@ -3676,7 +3679,7 @@ static if (is(BCGen))
             switchFixupTableCount++;
         }
     }
-    /// if jmp.toBegin is true jump to the begging of the block, otherwise jump to the end
+
     void addUnresolvedGoto(void* ident, BCBlockJump jmp)
     {
         foreach (i, ref unresolvedGoto; unresolvedGotos[0 .. unresolvedGotoCount])
@@ -3906,11 +3909,11 @@ static if (is(BCGen))
             }
             Call(retval, imm32(fnIdx), bc_args, ce.loc);
             import ddmd.identifier;
-            if (fd.ident == Identifier.idPool("isGraphical"))
+            /*if (fd.ident == Identifier.idPool("isGraphical"))
             {
                 import std.stdio;
                 writeln("igArgs :", bc_args);
-            }
+            }*/
         }
         else
         {
@@ -3952,7 +3955,7 @@ static if (is(BCGen))
     override void visit(CastExp ce)
     {
         //FIXME make this handle casts properly
-        //e.g. calling opCast do truncation and so on
+        //e.g. do truncation and so on
         debug (ctfe)
         {
             import std.stdio;
@@ -3966,7 +3969,7 @@ static if (is(BCGen))
         auto fromType = toBCType(ce.e1.type);
 
         retval = genExpr(ce.e1);
-        if (toType.type == fromType)
+        if (toType == fromType)
         {
 			//newCTFE does not need to cast
 		}
