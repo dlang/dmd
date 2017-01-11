@@ -75,6 +75,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier par, Ex
 
     foreach (VarDeclaration v; er.byvalue)
     {
+        //printf("byvalue %s\n", v.toChars());
         if (v.isDataseg())
             continue;
 
@@ -595,7 +596,7 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v)
 {
     // v is a local in the current function
 
-    //printf("inferring 'return' for variable '%s'\n", v.toChars());
+    //printf("for function '%s' inferring 'return' for variable '%s'\n", fd.toChars(), v.toChars());
     v.storage_class |= STCreturn;
 
     TypeFunction tf = cast(TypeFunction)fd.type;
