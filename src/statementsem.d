@@ -1989,6 +1989,7 @@ else
 
         Type att = null;
         TypeEnum te = null;
+        Type tb = ss.condition.type;
         while (ss.condition.op != TOKerror)
         {
             // preserve enum type for final switches
@@ -2148,8 +2149,64 @@ else
             return setError();
         }
 
-        sc.pop();
         result = ss;
+
+        if (!te && tb && tb.ty == Tbool && ss.isFinal && ss.cases.dim == 2)
+        {
+            Expression cond = ss.condition;
+            if (ss.condition.op == TOKcast)
+                cond = (cast(CastExp) cond).e1;
+
+            //printf("TOK: %d\n", cond.op);
+            //ss.condition.printAST(2);
+
+            if (auto e = cond.toBoolean(sc))
+            {
+                Statement true_;
+                Statement false_;
+
+                foreach (cs; *ss.cases)
+                {
+                    dinteger_t v = cs.exp.toInteger;
+                    if (v != 0)
+                        true_ = cs.statement;
+                    else
+                        false_ = cs.statement;
+                }
+                if (true_ && false_)
+                {
+                    void removeThisSwitchBreaks(CompoundStatement cs)
+                    {
+                        if (!cs || !cs.statements)
+                            return;
+
+                        size_t i = cs.statements.dim;
+
+                        while (true)
+                        {
+                            if (i == 0)
+                                break;
+                            auto b = cast(BreakStatement) (*cs.statements)[i-1];
+                            if (b && !b.ident)
+                                (*cs.statements).remove(i-1);
+                            --i;
+                        }
+                    }
+
+                    if (auto scs = true_.isScopeStatement)
+                        removeThisSwitchBreaks(scs.statement.isCompoundStatement);
+                    if (auto scs = false_.isScopeStatement)
+                        removeThisSwitchBreaks(scs.statement.isCompoundStatement);
+
+                    result = new IfStatement(ss.loc, null, ss.condition,
+                        true_, false_, false_.loc);
+
+                    // printf("final switch(bool) converted to IfStatement");
+                }
+                else ss.error("final switch(bool) cannot be converted to a IfStatement");
+            }
+        }
+        sc.pop();
     }
 
     override void visit(CaseStatement cs)
