@@ -2097,12 +2097,12 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                     {
                         import ddmd.declaration : FuncDeclaration;
                         import core.stdc.string : strlen;
-                        const string fnString = cast(string)(cast(FuncDeclaration)functions[fn - 1].funcDecl).ident.toString;
+                        const string fnString = cast(string)(cast(FuncDeclaration)functions[cast(size_t)(fn - 1)].funcDecl).ident.toString;
 
                         assert(0, "Argument " ~ to!string(i) ~" ValueType unhandeled: " ~ to!string(arg.vType) ~"\n Calling Function: " ~ fnString ~ " from: " ~ call.loc.toChars[0 .. strlen(call.loc.toChars)]);
                     }
                 }
-                auto cRetval = interpret_(functions[fn - 1].byteCode,
+                auto cRetval = interpret_(functions[cast(size_t)(fn - 1)].byteCode,
                     callArgs[0 .. call.args.length], heapPtr, functions, calls, ev1, ev2, errors, stack, stackOffsetCall);
                     debug writeln("returned: ", cRetval);
                     // Figure out what has to happen when we trow an error;
