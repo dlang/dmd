@@ -3905,6 +3905,30 @@ extern (C++) class IdentifierExp : Expression
             return e;
         }
 
+        // If we've reached this point and are inside a with() scope then we may
+        // try one last attempt by checking whether the 'wthis' object supports
+        // dynamic dispatching via opDispatch.
+        // This is done by rewriting this expression as wthis.ident.
+        for (Scope* sc2 = sc; sc2; sc2 = sc2.enclosing)
+        {
+            if (!sc2.scopesym)
+                continue;
+
+            if (auto ss = sc2.scopesym.isWithScopeSymbol())
+            {
+                if (ss.withstate.wthis)
+                {
+                    Expression e;
+                    e = new VarExp(loc, ss.withstate.wthis);
+                    e = new DotIdExp(loc, e, ident);
+                    e = e.trySemantic(sc);
+                    if (e)
+                        return e;
+                }
+                break;
+            }
+        }
+
         const(char)* n = importHint(ident.toChars());
         if (n)
             error("'%s' is not defined, perhaps you need to import %s; ?", ident.toChars(), n);
