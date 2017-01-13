@@ -14241,6 +14241,18 @@ extern (C++) final class MinExp : BinExp
         {
             if (t2.ty == Tpointer)
             {
+                Type p1 = t1.nextOf();
+                Type p2 = t2.nextOf();
+
+                if (!p1.equivalent(p2))
+                {
+                    // Allow the types not to match if they have the same size
+                    if (p1.size() != p2.size())
+                    {
+                        deprecation("Operands point to types of different size (got %s and %s)", p1.toChars(), p2.toChars());
+                    }
+                }
+
                 // Need to divide the result by the stride
                 // Replace (ptr - ptr) with (ptr - ptr) / stride
                 d_int64 stride;
