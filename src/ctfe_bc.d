@@ -3821,8 +3821,9 @@ static if (is(BCGen))
     override void visit(CallExp ce)
     {
         FuncDeclaration fd;
-        //bailout("Bailing on FunctionCall");
-        //return ;
+        bailout("Bailing on FunctionCall");
+        return ;
+
         import ddmd.asttypename;
         if (ce.e1.op == TOKvar)
         {
