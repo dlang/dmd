@@ -68,23 +68,79 @@ bool test_final_switch_bool6(bool a)
     }
 }
 
+bool test_final_switch_bool7(bool a)
+{
+    final switch(a)
+    {
+        case false: goto case true;
+        case true: return false;
+    }
+}
+
+bool test_final_switch_bool8(bool a)
+{
+    final switch(a)
+    {
+        case false: a = false;{a = false;{goto case true;}}
+        case true: return false;
+    }
+}
+
+int test_final_switch_bool9(bool a)
+{
+    int result;
+    final switch(a)
+    {
+        case true: {{result = 1; break;}}
+        case false: {{result = 2; break;}}
+    }
+    return result;
+}
+
 void main()
 {
     assert(test_final_switch_bool1(true));
     assert(!test_final_switch_bool1(false));
 
+    static assert(test_final_switch_bool1(true));
+    static assert(!test_final_switch_bool1(false));
+
     assert(test_final_switch_bool2(true));
     assert(!test_final_switch_bool2(false));
+
+    static assert(test_final_switch_bool2(true));
+    static assert(!test_final_switch_bool2(false));
 
     assert(!test_final_switch_bool3(true));
     assert(test_final_switch_bool3(false));
 
+    static assert(!test_final_switch_bool3(true));
+    static assert(test_final_switch_bool3(false));
+
     assert(test_final_switch_bool4(false) == 2);
     assert(test_final_switch_bool4(true) == 1);
+
+    static assert(test_final_switch_bool4(false) == 2);
+    static assert(test_final_switch_bool4(true) == 1);
 
     assert(test_final_switch_bool5(false) == 1);
     assert(test_final_switch_bool5(true) < 0);
 
+    static assert(test_final_switch_bool5(false) == 1);
+    static assert(test_final_switch_bool5(true) < 0);
+
     assert(test_final_switch_bool6(false));
     assert(!test_final_switch_bool6(true));
+
+    static assert(test_final_switch_bool6(false));
+    static assert(!test_final_switch_bool6(true));
+
+    assert(!test_final_switch_bool7(false));
+    assert(!test_final_switch_bool7(true));
+
+    assert(!test_final_switch_bool8(false));
+    assert(!test_final_switch_bool8(true));
+
+    assert(test_final_switch_bool9(false) == 2);
+    assert(test_final_switch_bool9(true) == 1);
 }

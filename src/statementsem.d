@@ -2167,7 +2167,7 @@ else
 
                 foreach (cs; *ss.cases)
                 {
-                    dinteger_t v = cs.exp.toInteger;
+                    const dinteger_t v = cs.exp.toInteger;
                     if (v != 0)
                         true_ = cs.statement;
                     else
@@ -2175,35 +2175,80 @@ else
                 }
                 if (true_ && false_)
                 {
-                    void removeThisSwitchBreaks(CompoundStatement cs)
+                    bool statementBreaksThisSwitch(Statement st)
                     {
-                        if (!cs || !cs.statements)
+                        bool result;
+                        if (auto bs = st.isBreakStatement)
+                            result = bs.ident is null;
+                        return result;
+                    }
+
+                    void removeThisSwitchBreaks(Statement st)
+                    {
+                        if (!st)
                             return;
-
-                        size_t i = cs.statements.dim;
-
-                        while (true)
+                        if (auto scs = st.isScopeStatement)
                         {
-                            if (i == 0)
-                                break;
-                            auto b = cast(BreakStatement) (*cs.statements)[i-1];
-                            if (b && !b.ident)
-                                (*cs.statements).remove(i-1);
-                            --i;
+                            if (scs.statement)
+                            {
+                                removeThisSwitchBreaks(scs.statement);
+                                if (statementBreaksThisSwitch(scs.statement))
+                                    scs.statement = null;
+                            }
+                        }
+                        else if (auto ii = st.isIfStatement)
+                        {
+                            removeThisSwitchBreaks(ii.ifbody);
+                            removeThisSwitchBreaks(ii.elsebody);
+                        }
+                        else if (auto scs = st.isCompoundStatement)
+                        {
+                            size_t i = scs.statements.dim;
+                            while (true)
+                            {
+                                if (i == 0)
+                                    break;
+                                removeThisSwitchBreaks((*scs.statements)[i-1]);
+                                if (statementBreaksThisSwitch((*scs.statements)[i-1]))
+                                    (*scs.statements).remove(i-1);
+                                --i;
+                            }
                         }
                     }
 
-                    if (auto scs = true_.isScopeStatement)
-                        removeThisSwitchBreaks(scs.statement.isCompoundStatement);
-                    if (auto scs = false_.isScopeStatement)
-                        removeThisSwitchBreaks(scs.statement.isCompoundStatement);
+                    bool findGotoCases(Statement st, bool c)
+                    {
+                        bool result;
+                        if (st)
+                        {
+                            if (st.isGotoCaseStatement)
+                                result = true;
+                            if (auto scs = st.isScopeStatement)
+                                result = findGotoCases(scs.statement, c);
+                            else if (auto ii = st.isIfStatement)
+                            {
+                                result |= findGotoCases(ii.ifbody, c);
+                                result |= findGotoCases(ii.elsebody, c);
+                            }
+                            else if (auto cs = st.isCompoundStatement)
+                                foreach(s; *cs.statements)
+                                    result |= findGotoCases(s, c);
+                        }
+                        return c | result;
+                    }
 
-                    result = new IfStatement(ss.loc, null, ss.condition,
-                        true_, false_, false_.loc);
+                    if (!findGotoCases(true_, false) && !findGotoCases(false_, false))
+                    {
+                        removeThisSwitchBreaks(true_);
+                        removeThisSwitchBreaks(false_);
+                        result = new IfStatement(ss.loc, null, ss.condition,
+                            true_, false_, false_.loc);
 
-                    // printf("final switch(bool) converted to IfStatement");
+                        //printf("final switch(bool) converted to IfStatement\n");
+                    }
+                    //else printf("cases contain GotoCases\n");
                 }
-                else ss.error("final switch(bool) cannot be converted to a IfStatement");
+                else ss.error("final switch(bool) cannot be converted to a IfStatement\n");
             }
         }
         sc.pop();
