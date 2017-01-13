@@ -153,8 +153,9 @@ class Mutex :
      * If this lock is not already held by the caller, the lock is acquired,
      * then the internal counter is incremented by one.
      *
-     * Throws:
-     *  SyncError on error.
+     * Note:
+     *    `Mutex.lock` does not throw, but a class derived from Mutex can throw.
+     *    Use `lock_nothrow` in `nothrow @nogc` code.
      */
     @trusted void lock()
     {
@@ -190,8 +191,9 @@ class Mutex :
      * Decrements the internal lock count by one.  If this brings the count to
      * zero, the lock is released.
      *
-     * Throws:
-     *  SyncError on error.
+     * Note:
+     *    `Mutex.unlock` does not throw, but a class derived from Mutex can throw.
+     *    Use `unlock_nothrow` in `nothrow @nogc` code.
      */
     @trusted void unlock()
     {
@@ -228,11 +230,12 @@ class Mutex :
      * the lock is acquired if it is not already held, and then the internal
      * counter is incremented by one.
      *
-     * Throws:
-     *  SyncError on error.
-     *
      * Returns:
      *  true if the lock was acquired and false if not.
+     *
+     * Note:
+     *    `Mutex.tryLock` does not throw, but a class derived from Mutex can throw.
+     *    Use `tryLock_nothrow` in `nothrow @nogc` code.
      */
     bool tryLock() @trusted
     {
