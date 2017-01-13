@@ -35,7 +35,7 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
                 assert(0, "We should never encounter undef");
             return 0;
         }
-    case Slice, String, i32Ptr, Ptr, Function:
+    case Slice, String, Ptr, Function:
         {
             //TODO add 64bit mode
             return  /* m64 ? 8 :*/ 4;
@@ -77,13 +77,14 @@ enum BCTypeEnum : ubyte
     Null,
     Void,
 
-    i32Ptr,
-
     Char,
-    // signed by default
+    /// signed by default
     i8,
+    /// DITTO
     i16,
+    /// DITTO
     i32,
+    /// DITTO
     i64,
 
     u8,
@@ -132,7 +133,7 @@ enum BCValueType : ubyte
 
 const(ubyte) toParamCode(const BCValue val) pure @safe @nogc
 {
-    if (val.type.type == BCTypeEnum.i32 || val.type.type == BCTypeEnum.i32Ptr)
+    if (val.type.type == BCTypeEnum.i32)
         return 0b0000;
     /*else if (val.type.type)
         return 0b0001;*/

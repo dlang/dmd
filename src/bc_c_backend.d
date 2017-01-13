@@ -122,15 +122,10 @@ pure:
         else if (v.type.type == BCTypeEnum.Slice)
             v = v.i32;
 
-        assert(v.type.type == BCTypeEnum.i32 || v.type.type == BCTypeEnum.i32Ptr,
-            "i32 or i32Ptr expected not: " ~ to!string(v.type.type));
+        assert(v.type.type == BCTypeEnum.i32,
+            "i32 expected not: " ~ to!string(v.type.type));
 
-        if (v.type.type == BCTypeEnum.i32Ptr)
-        {
-            assert(v.vType == BCValueType.StackValue);
-            return "stack[stack[stackOffset+" ~ to!string(v.stackAddr) ~ "]]";
-        }
-        else if (v.vType == BCValueType.StackValue)
+        if (v.vType == BCValueType.StackValue)
         {
             return "stack[stackOffset+" ~ to!string(v.stackAddr) ~ "]";
         }
@@ -224,9 +219,8 @@ pure:
         sameLabel = false;
         assert(lhs.vType.StackValue, "only StackValues are supported as lhs");
         // FIXME remove the lhs.type == BCTypeEnum.Char as soon as we convert correctly.
-        assert(lhs.type == BCTypeEnum.i32 || lhs.type == BCTypeEnum.i32Ptr
-            || lhs.type == BCTypeEnum.Char,
-            "only i32 or i32Ptr is supported for now not: " ~ to!string(lhs.type.type));
+        assert(lhs.type == BCTypeEnum.i32 || lhs.type == BCTypeEnum.Char,
+            "only i32 is supported for now not: " ~ to!string(lhs.type.type));
         assert(rhs.type == BCTypeEnum.i32,
             "only i32 is supported for now, not: " ~ to!string(rhs.type.type));
         code ~= "\t";

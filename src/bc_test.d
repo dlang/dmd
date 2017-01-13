@@ -204,7 +204,7 @@ bool test(BCGenT)()
 
         return gen;
     });
-/* String Layout has changed therefore this test will no longer produce the same result
+    /* String Layout has changed therefore this test will no longer produce the same result
     static immutable testString = BCGenFunction!(BCGenT, () {
         BCGenT gen;
 
@@ -307,6 +307,25 @@ bool test(BCGenT)()
         return gen;
     });
     static assert(testCndJmp([], null) == BCValue(Imm32(3)));
+
+    static immutable testEcho = BCGenFunction!(BCGenT, () {
+        BCGenT gen;
+        with (gen)
+        {
+
+            Initialize();
+
+            auto p1 = genParameter(BCType(BCTypeEnum.i32)); //SP[4]
+            beginFunction(0);
+            Ret(p1);
+            endFunction();
+
+            Finalize();
+        }
+        return gen;
+    });
+
+    static assert(testEcho([imm32(20)], null) == BCValue(Imm32(20)));
 
     return true;
 }

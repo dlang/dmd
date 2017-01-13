@@ -10,7 +10,6 @@ import std.conv;
 //IMPORTANT FIXME
 // it becomes clear that supporting indirect instructions aka i32ptr
 // is a pretty bad idea in terms of performance.
-
 enum InstKind
 {
     ShortInst,
@@ -56,6 +55,18 @@ auto instKind(LongInst i)
 
     }
 } +/
+
+struct RetainedCall
+{
+    import ddmd.globals : Loc;
+    BCValue fn;
+    BCValue[] args;
+
+    uint callerId;
+    BCAddr callerIp;
+    StackAddr callerSp;
+    Loc loc;
+}
 
 enum LongInst : ushort
 {
@@ -348,7 +359,9 @@ struct BCGen
     ushort temporaryCount;
     uint functionId;
     void* fd;
-@safe pure:
+
+    RetainedCall[ubyte.max * 5] calls;
+    uint callCount;
     auto interpret(BCValue[] args, BCHeap* heapPtr) const
     {
         return interpret_(cast(const) byteCodeArray[0 .. ip], args, heapPtr, null);
@@ -358,6 +371,7 @@ struct BCGen
     {
         return interpret_(cast(const) byteCodeArray[0 .. ip], args, null, null);
     }
+@safe pure:
 
     void emitLongInst(LongInst64 i)
     {
@@ -391,6 +405,7 @@ struct BCGen
 
     void Initialize()
     {
+        callCount = 0;
         parameterCount = 0;
         temporaryCount = 0;
         byteCodeArray[0] = 0;
@@ -404,6 +419,8 @@ struct BCGen
 
     void Finalize()
     {
+        callCount = 0;
+
         //the [ip-1] may be wrong in some cases ?
         byteCodeArray[ip - 1] = 0;
         byteCodeArray[ip] = 0;
@@ -412,6 +429,8 @@ struct BCGen
 
     void beginFunction(uint fnId = 0, void* fd = null)
     {
+        ip = BCAddr(4);
+
         functionId = fnId;
     }
 
@@ -426,6 +445,8 @@ struct BCGen
             // result.byteCode = byteCodeArray[4 .. ip];
             // MUTEX END
         }
+        sp = StackAddr(4);
+
         return result;
     }
 
@@ -568,8 +589,7 @@ struct BCGen
             "Instruction is not in Range for Arith Instructions");
         assert(lhs.vType.StackValue, "only StackValues are supported as lhs");
         // FIXME remove the lhs.type == BCTypeEnum.Char as soon as we convert correctly.
-        assert(lhs.type == BCTypeEnum.i32 || lhs.type == BCTypeEnum.i32Ptr
-            || lhs.type == BCTypeEnum.i64 || lhs.type == BCTypeEnum.Char,
+        assert(lhs.type == BCTypeEnum.i32 || lhs.type == BCTypeEnum.i64 || lhs.type == BCTypeEnum.Char,
             "only i32 or i32Ptr is supported for now not: " ~ to!string(lhs.type.type));
 
         if (lhs.vType == BCValueType.Immediate)
@@ -577,16 +597,15 @@ struct BCGen
             lhs = pushOntoStack(lhs);
         }
 
-        immutable bool isIndirect = lhs.type == BCTypeEnum.i32Ptr;
         if (rhs.vType == BCValueType.Immediate)
         {
             //Change the instruction into the corrosponding Imm Instruction;
             inst += (LongInst.ImmAdd - LongInst.Add);
-            emitLongInst(LongInst64(inst, lhs.stackAddr, rhs.imm32, isIndirect));
+            emitLongInst(LongInst64(inst, lhs.stackAddr, rhs.imm32));
         }
         else if (isStackValueOrParameter(rhs))
         {
-            emitLongInst(LongInst64(inst, lhs.stackAddr, rhs.stackAddr, isIndirect));
+            emitLongInst(LongInst64(inst, lhs.stackAddr, rhs.stackAddr));
         }
         else
         {
@@ -800,66 +819,11 @@ struct BCGen
         }
         emitArithInstruction(LongInst.Mod, result, rhs);
     }
-
-    void Call(BCValue result, BCValue fn, BCValue[] args, short spOffset = 0)
+    import ddmd.globals : Loc;
+    void Call(BCValue result, BCValue fn, BCValue[] args, Loc l = Loc.init)
     {
-        // returnInformations[callDepth++] = ReturnInformation(FunctionId, ip);
-        StackAddr oldSp = currSp();
-        auto returnAddr = StackAddr(currSp());
-        StackAddr nextSp = StackAddr(cast(short)(returnAddr.addr + args.length * 4));
-        // set the argments length
-        Set(BCValue(returnAddr, i32Type), BCValue(Imm32(cast(uint) args.length)));
-
-        if (args.length)
-            foreach (i; 0 .. (args.length / 8) + 1)
-            {
-                uint parameterFlag;
-                import std.algorithm : max;
-
-                immutable paramOffset = max(cast(int) i * 8 - 1, 0);
-
-                final switch ((args.length - 1 - (i * 8)) % 8)
-                {
-                case 7:
-                    parameterFlag |= toParamCode(args[paramOffset + 7]) << (4 * 7);
-                    goto case 6;
-                case 6:
-                    parameterFlag |= toParamCode(args[paramOffset + 6]) << (4 * 6);
-                    goto case 5;
-                case 5:
-                    parameterFlag |= toParamCode(args[paramOffset + 5]) << (4 * 5);
-                    goto case 4;
-                case 4:
-                    parameterFlag |= toParamCode(args[paramOffset + 4]) << (4 * 4);
-                    goto case 3;
-                case 3:
-                    parameterFlag |= toParamCode(args[paramOffset + 3]) << (4 * 3);
-                    goto case 2;
-                case 2:
-                    parameterFlag |= toParamCode(args[paramOffset + 2]) << (4 * 2);
-                    goto case 1;
-                case 1:
-                    parameterFlag |= toParamCode(args[paramOffset + 1]) << (4 * 1);
-                    goto case 0;
-                case 0:
-                    parameterFlag |= toParamCode(args[paramOffset]);
-                    break;
-                }
-                incSp();
-                Set(BCValue(currSp(), i32Type), BCValue(Imm32(parameterFlag)));
-
-            }
-
-        if (args.length)
-            foreach (arg; args)
-            {
-                incSp();
-                Set(BCValue(currSp, i32Type), arg.i32);
-            }
-
-        incSp();
-
-        emitLongInst(LongInst64(LongInst.Call, fn.stackAddr, Imm32(oldSp.addr)));
+        calls[callCount++] = RetainedCall(fn, args, functionId, ip, sp, l);
+        emitLongInst(LongInst64(LongInst.Call, result.stackAddr, pushOntoStack(imm32(callCount)).stackAddr));
     }
 
     void Load32(BCValue _to, BCValue from)
@@ -922,11 +886,10 @@ struct BCGen
 
     void Ret(BCValue val)
     {
-        if (val.vType == BCValueType.StackValue)
+        if (val.vType == BCValueType.StackValue || val.vType == BCValueType.Parameter)
         {
 
-            byteCodeArray[ip] = ShortInst16(LongInst.Ret, val.stackAddr,
-                val.type == BCTypeEnum.i32Ptr);
+            byteCodeArray[ip] = ShortInst16(LongInst.Ret, val.stackAddr);
             byteCodeArray[ip + 1] = 0;
             ip += 2;
         }
@@ -940,7 +903,6 @@ struct BCGen
         }
         else
         {
-            debug (bc)
                 assert(0, "I cannot deal with this type of return");
         }
     }
@@ -1431,7 +1393,7 @@ string printInstructions(const int* startInstructions, uint length) pure
             break;
         case LongInst.Call:
             {
-                result ~= "Call Fn{" ~ to!string(lw >> 16) ~ "} (" ~ to!string(hi) ~ ")\n";
+                result ~= "Call SP[" ~ to!string(hi & 0xFFFF) ~ "], {" ~ to!string(hi >> 16) ~ "}\n";
             }
             break;
         case LongInst.BuiltinCall:
@@ -1462,19 +1424,20 @@ else
 
 __gshared int[ushort.max * 2] byteCodeCache;
 __gshared int byteCodeCacheTop = 4;
-
+/*
 BCValue interpret(const BCGen* gen, const BCValue[] args,
     BCFunction* functions = null, BCHeap* heapPtr = null, BCValue* ev1 = null,
-    BCValue* ev2 = null, const RE* errors = null) pure @safe
+    BCValue* ev2 = null, const RE* errors = null) @safe
 {
     return interpret_(gen.byteCodeArray[0 .. gen.ip], args, heapPtr, functions, ev2,
         ev2, errors);
 }
-
-BCValue interpret_(const int[] byteCode, const BCValue[] args,
+*/
+const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
     BCHeap* heapPtr = null, const BCFunction* functions = null,
+    const RetainedCall* calls = null,
     BCValue* ev1 = null, BCValue* ev2 = null, const RE* errors = null,
-    long[] stackPtr = null, uint stackOffset = 0) pure @trusted
+    long[] stackPtr = null, uint stackOffset = 0)  @trusted
 {
     import std.conv;
     import std.stdio;
@@ -1499,6 +1462,8 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
 
             writeln("before pushing args");
         }
+    long* stackP = &stack[0] + (stackOffset / 4);
+
     size_t argOffset = 4;
     foreach (arg; args)
     {
@@ -1506,23 +1471,23 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
         {
         case BCTypeEnum.i32:
             {
-                *(stack.ptr + argOffset / 4) = arg.imm32;
+                *(stackP + argOffset / 4) = arg.imm32;
                 argOffset += uint.sizeof;
             }
             break;
         case BCTypeEnum.i64:
             {
-                *(stack.ptr + argOffset / 4) = arg.imm64;
+                *(stackP + argOffset / 4) = arg.imm64;
                 argOffset += uint.sizeof;
                 //TODO find out why adding ulong.sizeof does not work here
                 //make variable-sized stack possible ... if it should be needed
 
             }
             break;
-        case BCTypeEnum.Struct, BCTypeEnum.String, BCTypeEnum.Array:
+        case BCTypeEnum.Struct, BCTypeEnum.String, BCTypeEnum.Array, BCTypeEnum.Ptr:
             {
                 // This might need to be removed agaein ?
-                *(stack.ptr + argOffset / 4) = arg.heapAddr.addr;
+                *(stackP + argOffset / 4) = arg.heapAddr.addr;
                 argOffset += uint.sizeof;
             }
             break;
@@ -1542,14 +1507,13 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
     if (byteCode.length < 6 || byteCode.length <= ip)
         return typeof(return).init;
 
-    long* stackP = &stack[0] + (stackOffset / 4);
-
+    if (!__ctfe) debug writeln("Interpreter started"); 
     while (true && ip <= byteCode.length - 1)
     {
         import std.range;
 
         debug (bc_stack)
-            foreach (si; 0 .. stackOffset + 8)
+            foreach (si; 0 .. stackOffset + 32)
             {
                 if (!__ctfe)
                 {
@@ -1977,6 +1941,11 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
             {
                 assert(*rhs, "trying to deref null pointer");
                 (*lhsRef) = *(heapPtr._heap.ptr + *rhs);
+                debug(bc)
+                {
+                    import std.stdio;
+                    writeln("Loaded[",*rhs,"] = ",*lhsRef);
+                }
             }
             break;
         case LongInst.HeapStore32:
@@ -2096,35 +2065,48 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
         case LongInst.Call:
             {
                 assert(functions, "When calling functions you need functions to call");
-                // building the BCValues from Stack ... What a Pain.
-                auto argPtr = stackPtr.ptr + rhsOffset;
-                uint stackOffsetCall = stackOffset;
-                BCValue[] callArgs;
-                long arg4 = *argPtr++;
-        ArgLoop: for (; arg4; argPtr++)
-                {
-                    switch (arg4 & 0xF)
-                    {
-                    case 0:
-                        //Arguments are over and the next number is the begin for the called func.
-                        stackOffsetCall += (arg4 >> 8);
-                        break ArgLoop;
-                    case 1: // If the first 4 bits are one we pass a parameter through
-                        // We can pass up to (2^24)-1 Parameters
-                        callArgs ~= args[(arg4 >> 8) & 0xFF_FF_FF_FF];
-                        break;
-                    case 2:
-                        // 2 means we pass an i32 in the next stackPosition
-                        callArgs ~= BCValue(Imm32(*(++argPtr) & 0xFF_FF_FF_FF));
-                        break;
-                    default:
-                        assert(0, "currently not implemented");
-                    }
-                    continue;
-                }
-                returnValue = interpret_((functions + opRefOffset).byteCode,
-                    args, heapPtr, functions, ev1, ev2, errors, stack, stackOffsetCall);
+                auto call = calls[uint((*rhs & uint.max)) - 1];
 
+                auto fn = (call.fn.vType == BCValueType.Immediate ?
+                    call.fn.imm32 :
+                    (stackP[call.fn.stackAddr.addr / 4] & uint.max)
+                    );
+                auto stackOffsetCall = stackOffset + call.callerSp;
+
+                if (!__ctfe)
+                {
+                    debug writeln("call.fn = ", call.fn);
+                    debug writeln((functions + fn - 1).byteCode.printInstructions);
+                    debug writeln("stackOffsetCall: ", stackOffsetCall);
+                }
+
+                BCValue[16] callArgs;
+
+                foreach(i,ref arg;call.args)
+                {
+                    if(isStackValueOrParameter(arg))
+                    {
+                        assert(stackP[arg.stackAddr.addr / 4] <= uint.max, "64bit argument would be truncated");
+                        callArgs[i] = imm32(stackP[arg.stackAddr.addr / 4] & uint.max);
+                    }
+                    else if (arg.vType == BCValueType.Immediate)
+                    {
+                        callArgs[i] = arg;
+                    }
+                    else
+                    {
+                        import ddmd.declaration : FuncDeclaration;
+                        import core.stdc.string : strlen;
+                        const string fnString = cast(string)(cast(FuncDeclaration)functions[fn - 1].funcDecl).ident.toString;
+
+                        assert(0, "Argument " ~ to!string(i) ~" ValueType unhandeled: " ~ to!string(arg.vType) ~"\n Calling Function: " ~ fnString ~ " from: " ~ call.loc.toChars[0 .. strlen(call.loc.toChars)]);
+                    }
+                }
+                auto cRetval = interpret_(functions[fn - 1].byteCode,
+                    callArgs[0 .. call.args.length], heapPtr, functions, calls, ev1, ev2, errors, stack, stackOffsetCall);
+                    debug writeln("returned: ", cRetval);
+                    // Figure out what has to happen when we trow an error;
+                    *lhsRef = cRetval.imm32;
             }
             break;
         case LongInst.Alloc:
