@@ -1908,7 +1908,7 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
     size_t newcap = void; // for scratch space
 
     // calculate the extent of the array given the base.
-    size_t offset = px.ptr - __arrayStart(info);
+    size_t offset = cast(void*)px.ptr - __arrayStart(info);
     if(info.base && (info.attr & BlkAttr.APPENDABLE))
     {
         if(info.size >= PAGESIZE)

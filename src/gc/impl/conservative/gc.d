@@ -1974,7 +1974,7 @@ struct Gcx
         //printf("marking range: [%p..%p] (%#zx)\n", p1, p2, cast(size_t)p2 - cast(size_t)p1);
     Lnext: for (; p1 < p2; p1++)
         {
-            auto p = cast(byte *)(*p1);
+            auto p = *p1;
 
             //if (log) debug(PRINTF) printf("\tmark %p\n", p);
             if (p >= minAddr && p < maxAddr)
@@ -2124,7 +2124,7 @@ struct Gcx
             {
                 pool = list.pool;
                 assert(pool);
-                pool.freebits.set(cast(size_t)(cast(byte*)list - pool.baseAddr) / 16);
+                pool.freebits.set(cast(size_t)(cast(void*)list - pool.baseAddr) / 16);
             }
         }
 
@@ -2190,7 +2190,7 @@ struct Gcx
 
                     if (!pool.mark.test(biti))
                     {
-                        byte *p = pool.baseAddr + pn * PAGESIZE;
+                        void *p = pool.baseAddr + pn * PAGESIZE;
                         void* q = sentinel_add(p);
                         sentinel_Invariant(q);
 
@@ -2242,8 +2242,8 @@ struct Gcx
                     if (bin < B_PAGE)
                     {
                         immutable size = binsize[bin];
-                        byte *p = pool.baseAddr + pn * PAGESIZE;
-                        byte *ptop = p + PAGESIZE;
+                        void *p = pool.baseAddr + pn * PAGESIZE;
+                        void *ptop = p + PAGESIZE;
                         immutable base = pn * (PAGESIZE/16);
                         immutable bitstride = size / 16;
 
@@ -2318,7 +2318,7 @@ struct Gcx
                     size_t bitstride = size / 16;
                     size_t bitbase = pn * (PAGESIZE / 16);
                     size_t bittop = bitbase + (PAGESIZE / 16);
-                    byte*  p;
+                    void*  p;
 
                     biti = bitbase;
                     for (biti = bitbase; biti < bittop; biti += bitstride)
@@ -2599,8 +2599,8 @@ struct Gcx
 
 struct Pool
 {
-    byte* baseAddr;
-    byte* topAddr;
+    void* baseAddr;
+    void* topAddr;
     GCBits mark;        // entries already scanned, or should not be scanned
     GCBits freebits;    // entries that are on the free list
     GCBits finals;      // entries that need finalizer run on them
