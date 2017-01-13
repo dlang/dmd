@@ -209,7 +209,7 @@ FRONT_SRCS=$(addsuffix .d,access aggregate aliasthis apply argtypes arrayop	\
 	globals hdrgen id identifier impcnvtab imphint init inline intrange	\
 	json lexer lib link mars mtype nogc nspace opover optimize parse sapply	\
 	sideeffect statement staticassert target tokens traits utf visitor	\
-	typinf utils statementsem safe blockexit asttypename)
+	typinf utils  statement_rewrite_walker statementsem safe blockexit asttypename)
 
 ifeq ($(D_OBJC),1)
 	FRONT_SRCS += objc.d
