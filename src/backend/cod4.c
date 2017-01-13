@@ -2431,49 +2431,57 @@ ret:
  */
 
 code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
-{ regm_t retregs,rretregs;
-  unsigned reg,rreg,op,jop;
-  code *cl,*cr,*c,cs,*ce;
-  code *cmsw,*clsw;
-  elem *e1,*e2;
-                                       /* <=  >   <   >= */
-  static const unsigned char jopmsw[4] = {JL, JG, JL, JG };
-  static const unsigned char joplsw[4] = {JBE, JA, JB, JAE };
+{
+                                         // <=  >   <   >=
+    static const unsigned char jopmsw[4] = {JL, JG, JL, JG };
+    static const unsigned char joplsw[4] = {JBE, JA, JB, JAE };
 
-  //printf("longcmp(e = %p)\n", e);
-  cr = CNIL;
-  e1 = e->E1;
-  e2 = e->E2;
-  op = e->Eoper;
+    //printf("longcmp(e = %p)\n", e);
+    elem *e1 = e->E1;
+    elem *e2 = e->E2;
+    unsigned op = e->Eoper;
 
-  /* See if we should swap operands     */
-  if (e1->Eoper == OPvar && e2->Eoper == OPvar && evalinregister(e2))
-  {     e1 = e->E2;
+    // See if we should swap operands
+    if (e1->Eoper == OPvar && e2->Eoper == OPvar && evalinregister(e2))
+    {
+        e1 = e->E2;
         e2 = e->E1;
         op = swaprel(op);
-  }
+    }
 
-  cs.Iflags = 0;
-  cs.Irex = 0;
+    code cs;
+    cs.Iflags = 0;
+    cs.Irex = 0;
 
-  ce = gennop(CNIL);
-  retregs = ALLREGS;
+    CodeBuilder cdb;
+    code *ce = gennop(CNIL);
+    regm_t retregs = ALLREGS;
+    regm_t rretregs;
+    unsigned reg,rreg;
+
+    unsigned jop = jopmsw[op - OPle];
+    if (!(jcond & 1)) jop ^= (JL ^ JG);                   // toggle jump condition
+    CodeBuilder cdbjmp;
+    cdbjmp.append(genjmp(CNIL,jop,fltarg,(block *) targ));   // Jx targ
+    cdbjmp.append(genjmp(CNIL,jop ^ (JL ^ JG),FLcode,(block *) ce));   // Jy nop
 
   switch (e2->Eoper)
   {
       default:
       L2:
-        cl = scodelem(e1,&retregs,0,TRUE);      /* compute left leaf    */
+        cdb.append(scodelem(e1,&retregs,0,TRUE));      // compute left leaf
         rretregs = ALLREGS & ~retregs;
-        cr = scodelem(e2,&rretregs,retregs,TRUE);       /* get right leaf */
-        /* Compare MSW, if they're equal then compare the LSW   */
+        cdb.append(scodelem(e2,&rretregs,retregs,TRUE));     // get right leaf
+        cdb.append(cse_flush(1));
+        // Compare MSW, if they're equal then compare the LSW
         reg = findregmsw(retregs);
         rreg = findregmsw(rretregs);
-        cmsw = genregs(CNIL,0x3B,reg,rreg);             /* CMP reg,rreg */
+        cdb.append(genregs(CNIL,0x3B,reg,rreg));        // CMP reg,rreg
+        cdb.append(cdbjmp);
 
         reg = findreglsw(retregs);
         rreg = findreglsw(rretregs);
-        clsw = genregs(CNIL,0x3B,reg,rreg);             /* CMP reg,rreg */
+        cdb.append(genregs(CNIL,0x3B,reg,rreg));        // CMP reg,rreg
         break;
       case OPconst:
         cs.IEV2.Vint = MSREG(e2->EV.Vllong);            // MSW first
@@ -2487,46 +2495,54 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
         if ((e1->Eoper == OPvar && datafl[el_fl(e1)] ||
              e1->Eoper == OPind) &&
             !evalinregister(e1))
-        {       cl = getlvalue(&cs,e1,0);
+        {
+                cdb.append(getlvalue(&cs,e1,0));
                 freenode(e1);
                 if (evalinregister(e2))
                 {
                         retregs = idxregm(&cs);
                         if ((cs.Iflags & CFSEG) == CFes)
-                                retregs |= mES;         /* take no chances */
+                                retregs |= mES;         // take no chances
                         rretregs = ALLREGS & ~retregs;
-                        cr = scodelem(e2,&rretregs,retregs,TRUE);
+                        cdb.append(scodelem(e2,&rretregs,retregs,TRUE));
+                        cdb.append(cse_flush(1));
                         rreg = findregmsw(rretregs);
                         cs.Iop = 0x39;
                         cs.Irm |= modregrm(0,rreg,0);
                         getlvalue_msw(&cs);
-                        cmsw = gen(CNIL,&cs);   /* CMP EA+2,rreg        */
+                        cdb.gen(&cs);           // CMP EA+2,rreg
+                        cdb.append(cdbjmp);
                         rreg = findreglsw(rretregs);
                         NEWREG(cs.Irm,rreg);
                 }
                 else
-                {       cs.Irm |= modregrm(0,7,0);
+                {
+                        cdb.append(cse_flush(1));
+                        cs.Irm |= modregrm(0,7,0);
                         getlvalue_msw(&cs);
-                        cmsw = gen(CNIL,&cs);   /* CMP EA+2,const       */
+                        cdb.gen(&cs);           // CMP EA+2,const
+                        cdb.append(cdbjmp);
                         cs.IEV2.Vint = e2->EV.Vlong;
                         freenode(e2);
                 }
                 getlvalue_lsw(&cs);
-                clsw = gen(CNIL,&cs);           /* CMP EA,rreg/const    */
+                cdb.gen(&cs);                   // CMP EA,rreg/const
                 break;
         }
         if (evalinregister(e2))
             goto L2;
 
-        cl = scodelem(e1,&retregs,0,TRUE);      /* compute left leaf    */
-        reg = findregmsw(retregs);              /* get reg that e1 is in */
+        cdb.append(scodelem(e1,&retregs,0,TRUE));    // compute left leaf
+        cdb.append(cse_flush(1));
+        reg = findregmsw(retregs);              // get reg that e1 is in
         cs.Irm = modregrm(3,7,reg);
 
-        cmsw = gen(CNIL,&cs);                   /* CMP reg,MSW          */
+        cdb.gen(&cs);                           // CMP reg,MSW
+        cdb.append(cdbjmp);
         reg = findreglsw(retregs);
         cs.Irm = modregrm(3,7,reg);
         cs.IEV2.Vint = e2->EV.Vlong;
-        clsw = gen(CNIL,&cs);                   /* CMP sucreg,LSW       */
+        cdb.gen(&cs);                           // CMP sucreg,LSW
         freenode(e2);
         break;
       case OPvar:
@@ -2534,41 +2550,40 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
         {   unsigned msreg;
 
             retregs = allregs;
-            cl = scodelem(e1->E1,&retregs,0,TRUE);
+            cdb.append(scodelem(e1->E1,&retregs,0,TRUE));
             freenode(e1);
             reg = findreg(retregs);
             retregs = allregs & ~retregs;
-            cr = allocreg(&retregs,&msreg,TYint);
-            cr = genmovreg(cr,msreg,reg);                               // MOV msreg,reg
-            cr = genc2(cr,0xC1,modregrm(3,7,msreg),REGSIZE * 8 - 1);    // SAR msreg,31
-            cmsw = loadea(e2,&cs,0x3B,msreg,REGSIZE,mask[reg],0);
-            clsw = loadea(e2,&cs,0x3B,reg,0,mask[reg],0);
+            cdb.append(allocreg(&retregs,&msreg,TYint));
+            cdb.append(genmovreg(CNIL,msreg,reg));                  // MOV msreg,reg
+            cdb.genc2(0xC1,modregrm(3,7,msreg),REGSIZE * 8 - 1);    // SAR msreg,31
+            cdb.append(cse_flush(1));
+            cdb.append(loadea(e2,&cs,0x3B,msreg,REGSIZE,mask[reg],0));
+            cdb.append(cdbjmp);
+            cdb.append(loadea(e2,&cs,0x3B,reg,0,mask[reg],0));
             freenode(e2);
         }
         else
         {
-            cl = scodelem(e1,&retregs,0,TRUE);  // compute left leaf
+            cdb.append(scodelem(e1,&retregs,0,TRUE));  // compute left leaf
+            cdb.append(cse_flush(1));
             reg = findregmsw(retregs);   // get reg that e1 is in
-            cmsw = loadea(e2,&cs,0x3B,reg,REGSIZE,retregs,0);
+            cdb.append(loadea(e2,&cs,0x3B,reg,REGSIZE,retregs,0));
+            cdb.append(cdbjmp);
             reg = findreglsw(retregs);
-            clsw = loadea(e2,&cs,0x3B,reg,0,retregs,0);
+            cdb.append(loadea(e2,&cs,0x3B,reg,0,retregs,0));
             freenode(e2);
         }
         break;
-  }
+    }
 
-  jop = jopmsw[op - OPle];
-  if (!(jcond & 1)) jop ^= (JL ^ JG);                   // toggle jump condition
-  genjmp(cmsw,jop,fltarg,(block *) targ);               /* Jx targ      */
-  genjmp(cmsw,jop ^ (JL ^ JG),FLcode,(block *) ce);     /* Jy nop       */
+    jop = joplsw[op - OPle];
+    if (!(jcond & 1)) jop ^= 1;                           // toggle jump condition
+    cdb.append(genjmp(CNIL,jop,fltarg,(block *) targ));   // Jcond targ
 
-  jop = joplsw[op - OPle];
-  if (!(jcond & 1)) jop ^= 1;                           // toggle jump condition
-  genjmp(clsw,jop,fltarg,(block *) targ);               /* Jcond targ   */
-
-  c = cse_flush(1);             // flush CSE's to memory
-  freenode(e);
-  return cat6(cl,cr,c,cmsw,clsw,ce);
+    cdb.append(ce);
+    freenode(e);
+    return cdb.finish();
 }
 
 /*****************************
