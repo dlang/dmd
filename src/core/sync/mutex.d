@@ -79,18 +79,19 @@ class Mutex :
         }
         else version (Posix)
         {
+            import core.internal.abort : abort;
             pthread_mutexattr_t attr = void;
 
             !pthread_mutexattr_init(&attr) ||
-                assert (0, "Unable to initialize mutex");
+                abort("Unable to initialize mutex");
 
             scope (exit) pthread_mutexattr_destroy(&attr);
 
             !pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE) ||
-                assert (0, "Unable to initialize mutex");
+                abort("Unable to initialize mutex");
 
             !pthread_mutex_init(cast(pthread_mutex_t*)&m_hndl, &attr) ||
-                assert (0, "Unable to initialize mutex");
+                abort("Unable to initialize mutex");
         }
 
         m_proxy.link = this;
@@ -120,7 +121,8 @@ class Mutex :
         if (is(Q == Mutex) || is(Q == shared Mutex))
     in
     {
-        assert(o.__monitor is null);
+        assert(o.__monitor is null,
+            "The provided object has a monitor already set!");
     }
     body
     {
@@ -137,8 +139,9 @@ class Mutex :
         }
         else version (Posix)
         {
+            import core.internal.abort : abort;
             !pthread_mutex_destroy(&m_hndl) ||
-                assert (0, "Unable to destroy mutex");
+                abort("Unable to destroy mutex");
         }
         this.__monitor = null;
     }
