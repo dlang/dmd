@@ -219,7 +219,7 @@ endif
 
 ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
 	filename man outbuffer port response rmem rootobject speller \
-	stringtable))
+	stringtable hash))
 
 GLUE_OBJS =
 

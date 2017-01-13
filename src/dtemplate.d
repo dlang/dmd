@@ -41,6 +41,7 @@ import ddmd.root.rootobject;
 import ddmd.tokens;
 import ddmd.visitor;
 
+//debug = FindExistingInstance; // print debug stats of findExistingInstance
 private enum LOG = false;
 
 enum IDX_NOTFOUND = 0x12345678;
@@ -204,18 +205,18 @@ private Expression getValue(Expression e)
     return e;
 }
 
+private Expression getExpression(RootObject o)
+{
+    auto s = isDsymbol(o);
+    return s ? .getValue(s) : .getValue(isExpression(o));
+}
+
 /******************************
  * If o1 matches o2, return true.
  * Else, return false.
  */
 private bool match(RootObject o1, RootObject o2)
 {
-    static Expression getExpression(RootObject o)
-    {
-        auto s = isDsymbol(o);
-        return s ? .getValue(s) : .getValue(isExpression(o));
-    }
-
     enum debugPrint = 0;
 
     static if (debugPrint)
@@ -338,38 +339,113 @@ private int arrayObjectMatch(Objects* oa1, Objects* oa2)
  */
 private hash_t arrayObjectHash(Objects* oa1)
 {
+    import ddmd.root.hash : mixHash;
+
     hash_t hash = 0;
-    for (size_t j = 0; j < oa1.dim; j++)
+    foreach (o1; *oa1)
     {
         /* Must follow the logic of match()
          */
-        RootObject o1 = (*oa1)[j];
-        if (Type t1 = isType(o1))
-            hash += cast(size_t)t1.deco;
-        else
+        if (auto t1 = isType(o1))
+            hash = mixHash(hash, cast(size_t)t1.deco);
+        else if (auto e1 = getExpression(o1))
+            hash = mixHash(hash, expressionHash(e1));
+        else if (auto s1 = isDsymbol(o1))
         {
-            Dsymbol s1 = isDsymbol(o1);
-            Expression e1 = s1 ? getValue(s1) : getValue(isExpression(o1));
-            if (e1)
-            {
-                if (e1.op == TOKint64)
-                {
-                    IntegerExp ne = cast(IntegerExp)e1;
-                    hash += cast(size_t)ne.getInteger();
-                }
-            }
-            else if (s1)
-            {
-                FuncAliasDeclaration fa1 = s1.isFuncAliasDeclaration();
-                if (fa1)
-                    s1 = fa1.toAliasFunc();
-                hash += cast(size_t)cast(void*)s1.getIdent() + cast(size_t)cast(void*)s1.parent;
-            }
-            else if (Tuple u1 = isTuple(o1))
-                hash += arrayObjectHash(&u1.objects);
+            auto fa1 = s1.isFuncAliasDeclaration();
+            if (fa1)
+                s1 = fa1.toAliasFunc();
+            hash = mixHash(hash, mixHash(cast(size_t)cast(void*)s1.getIdent(), cast(size_t)cast(void*)s1.parent));
         }
+        else if (auto u1 = isTuple(o1))
+            hash = mixHash(hash, arrayObjectHash(&u1.objects));
     }
     return hash;
+}
+
+
+/************************************
+ * Computes hash of expression.
+ * Handles all Expression classes and MUST match their equals method,
+ * i.e. e1.equals(e2) implies expressionHash(e1) == expressionHash(e2).
+ */
+private hash_t expressionHash(Expression e)
+{
+    import ddmd.root.ctfloat : CTFloat;
+    import ddmd.root.hash : calcHash, mixHash;
+
+    switch (e.op)
+    {
+    case TOKint64:
+        return cast(size_t) (cast(IntegerExp)e).getInteger();
+
+    case TOKfloat64:
+        return CTFloat.hash((cast(RealExp)e).value);
+
+    case TOKcomplex80:
+        auto ce = cast(ComplexExp)e;
+        return mixHash(CTFloat.hash(ce.toReal), CTFloat.hash(ce.toImaginary));
+
+    case TOKidentifier:
+        return cast(size_t)cast(void*) (cast(IdentifierExp)e).ident;
+
+    case TOKnull:
+        return cast(size_t)cast(void*) (cast(NullExp)e).type;
+
+    case TOKstring:
+        auto se = cast(StringExp)e;
+        return calcHash(se.string, se.len * se.sz);
+
+    case TOKtuple:
+    {
+        auto te = cast(TupleExp)e;
+        size_t hash = 0;
+        hash += te.e0 ? expressionHash(te.e0) : 0;
+        foreach (elem; *te.exps)
+            hash = mixHash(hash, expressionHash(elem));
+        return hash;
+    }
+
+    case TOKarrayliteral:
+    {
+        auto ae = cast(ArrayLiteralExp)e;
+        size_t hash;
+        foreach (i; 0 .. ae.elements.dim)
+            hash = mixHash(hash, expressionHash(ae.getElement(i)));
+        return hash;
+    }
+
+    case TOKassocarrayliteral:
+    {
+        auto ae = cast(AssocArrayLiteralExp)e;
+        size_t hash;
+        foreach (i; 0 .. ae.keys.dim)
+            // reduction needs associative op as keys are unsorted (use XOR)
+            hash ^= mixHash(expressionHash((*ae.keys)[i]), expressionHash((*ae.values)[i]));
+        return hash;
+    }
+
+    case TOKstructliteral:
+    {
+        auto se = cast(StructLiteralExp)e;
+        size_t hash;
+        foreach (elem; *se.elements)
+            hash = mixHash(hash, elem ? expressionHash(elem) : 0);
+        return hash;
+    }
+
+    case TOKvar:
+        return cast(size_t)cast(void*) (cast(VarExp)e).var;
+
+    case TOKfunction:
+        return cast(size_t)cast(void*) (cast(FuncExp)e).fd;
+
+    default:
+        // no custom equals for this expression
+        assert((&e.equals).funcptr is &RootObject.equals);
+        // equals based on identity
+        return cast(size_t)cast(void*) e;
+    }
 }
 
 RootObject objectSyntaxCopy(RootObject o)
@@ -2228,6 +2304,17 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         return fd;
     }
 
+    debug (FindExistingInstance)
+    {
+        __gshared uint nFound, nNotFound, nAdded, nRemoved;
+
+        shared static ~this()
+        {
+            printf("debug (FindExistingInstance) nFound %u, nNotFound: %u, nAdded: %u, nRemoved: %u\n",
+                   nFound, nNotFound, nAdded, nRemoved);
+        }
+    }
+
     /****************************************************
      * Given a new instance tithis of this TemplateDeclaration,
      * see if there already exists an instance.
@@ -2239,6 +2326,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         tithis.fargs = fargs;
         auto tibox = TemplateInstanceBox(tithis);
         auto p = tibox in instances;
+        debug (FindExistingInstance) ++(p ? nFound : nNotFound);
         //if (p) printf("\tfound %p\n", *p); else printf("\tnot found\n");
         return p ? *p : null;
     }
@@ -2252,6 +2340,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         //printf("addInstance() %p %p\n", instances, ti);
         auto tibox = TemplateInstanceBox(ti);
         instances[tibox] = ti;
+        debug (FindExistingInstance) ++nAdded;
         return ti;
     }
 
@@ -2264,6 +2353,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     {
         //printf("removeInstance()\n");
         auto tibox = TemplateInstanceBox(ti);
+        debug (FindExistingInstance) ++nRemoved;
         instances.remove(tibox);
     }
 
@@ -8933,15 +9023,30 @@ struct TemplateInstanceBox
 
     bool opEquals(ref const TemplateInstanceBox s) @trusted const
     {
+        bool res = void;
         if (ti.inst && s.ti.inst)
             /* This clause is only used when an instance with errors
              * is replaced with a correct instance.
              */
-            return ti is s.ti;
+            res = ti is s.ti;
         else
             /* Used when a proposed instance is used to see if there's
              * an existing instance.
              */
-            return (cast()s.ti).compare(cast()ti) == 0;
+            res = (cast()s.ti).compare(cast()ti) == 0;
+
+        debug (FindExistingInstance) ++(res ? nHits : nCollisions);
+        return res;
+    }
+
+    debug (FindExistingInstance)
+    {
+        __gshared uint nHits, nCollisions;
+
+        shared static ~this()
+        {
+            printf("debug (FindExistingInstance) TemplateInstanceBox.equals hits: %u collisions: %u\n",
+                   nHits, nCollisions);
+        }
     }
 }
