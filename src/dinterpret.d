@@ -2022,7 +2022,8 @@ public:
         }
         if (goal == ctfeNeedLvalue)
         {
-            if (istate.fd.vthis)
+            // We might end up here with istate being zero (see bugzilla 16382)
+            if (istate && istate.fd.vthis)
             {
                 result = new VarExp(e.loc, istate.fd.vthis);
                 result.type = e.type;
