@@ -1808,7 +1808,7 @@ static if (is(BCGen))
             break;
 
         case TOK.TOKadd, TOK.TOKmin, TOK.TOKmul, TOK.TOKdiv, TOK.TOKmod,
-                TOK.TOKand, TOK.TOKor, TOK.TOKshr, TOK.TOKshl:
+                TOK.TOKand, TOK.TOKor, TOK.TOKxor, TOK.TOKshr, TOK.TOKshl:
                 auto lhs = genExpr(e.e1);
             auto rhs = genExpr(e.e2);
             //FIXME IMPORRANT
