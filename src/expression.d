@@ -902,6 +902,9 @@ extern (C++) Expression resolveUFCSProperties(Scope* sc, Expression e1, Expressi
     else
         return null;
 
+    if (e is null)
+        return null;
+
     // Rewrite
     if (e2)
     {
@@ -8878,7 +8881,7 @@ extern (C++) final class DotIdExp : UnaExp
             if (e1.op == TOKtype || e1.op == TOKtemplate)
                 flag = 0;
             e = e1.type.dotExp(sc, e1, ident, flag | (noderef ? Type.DotExpFlag.noDeref : 0));
-            if (!flag || e)
+            if (e)
                 e = e.semantic(sc);
             return e;
         }
