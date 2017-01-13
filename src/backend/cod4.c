@@ -2592,11 +2592,13 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
  */
 
 code *cdcnvt(elem *e, regm_t *pretregs)
-{ regm_t retregs;
-  code *c1,*c2;
-  int i;
-  static unsigned char clib[][2] =
-  {     OPd_s32,        CLIBdbllng,
+{
+    //printf("cdcnvt: *pretregs = %s\n", regm_str(*pretregs));
+    //elem_print(e);
+
+    static unsigned char clib[][2] =
+    {
+        OPd_s32,        CLIBdbllng,
         OPs32_d,        CLIBlngdbl,
         OPd_s16,        CLIBdblint,
         OPs16_d,        CLIBintdbl,
@@ -2614,31 +2616,34 @@ code *cdcnvt(elem *e, regm_t *pretregs)
         OPf_d,          CLIBfltdbl,
         OPvp_fp,        CLIBvptrfptr,
         OPcvp_fp,       CLIBcvptrfptr,
-  };
+    };
 
-//printf("cdcnvt: *pretregs = %s\n", regm_str(*pretregs));
-//elem_print(e);
-
-  if (!*pretregs)
+    if (!*pretregs)
         return codelem(e->E1,pretregs,FALSE);
-  if (config.inline8087)
-  {     switch (e->Eoper)
+
+    regm_t retregs;
+    if (config.inline8087)
+    {
+        switch (e->Eoper)
         {
             case OPld_d:
             case OPd_ld:
+            {
                 if (tycomplex(e->E1->Ety))
                 {
             Lcomplex:
-                    retregs = mST01 | (*pretregs & mPSW);
-                    c1 = codelem(e->E1, &retregs, FALSE);
-                    c2 = fixresult_complex87(e, retregs, pretregs);
-                    return cat(c1, c2);
+                    CodeBuilder cdb;
+                    regm_t retregs = mST01 | (*pretregs & mPSW);
+                    cdb.append(codelem(e->E1, &retregs, FALSE));
+                    cdb.append(fixresult_complex87(e, retregs, pretregs));
+                    return cdb.finish();
                 }
-                retregs = mST0 | (*pretregs & mPSW);
-                c1 = codelem(e->E1, &retregs, FALSE);
-                c2 = fixresult87(e, retregs, pretregs);
-                return cat(c1, c2);
-
+                CodeBuilder cdb;
+                regm_t retregs = mST0 | (*pretregs & mPSW);
+                cdb.append(codelem(e->E1, &retregs, FALSE));
+                cdb.append(fixresult87(e, retregs, pretregs));
+                return cdb.finish();
+            }
             case OPf_d:
             case OPd_f:
                 if (tycomplex(e->E1->Ety))
@@ -2653,10 +2658,11 @@ code *cdcnvt(elem *e, regm_t *pretregs)
                     retregs = regmask(e->E1->Ety, e->E1->E1->Ety);
                     if (retregs & (mXMM1 | mXMM0 |mST01 | mST0))       // if return in ST0
                     {
-                        c1 = codelem(e->E1,pretregs,FALSE);
+                        CodeBuilder cdb;
+                        cdb.append(codelem(e->E1,pretregs,FALSE));
                         if (*pretregs & mST0)
                             note87(e, 0, 0);
-                        return c1;
+                        return cdb.finish();
                     }
                     else
                         break;
@@ -2680,19 +2686,20 @@ code *cdcnvt(elem *e, regm_t *pretregs)
                     return xmmcnvt(e,pretregs);
                 else if (!I16)
                 {
-                    unsigned retregs = ALLREGS;
-                    c1 = codelem(e->E1, &retregs, FALSE);
+                    CodeBuilder cdb;
+                    regm_t retregs = ALLREGS;
+                    cdb.append(codelem(e->E1, &retregs, FALSE));
                     unsigned reg = findreg(retregs);
-                    c1 = genfltreg(c1, 0x89, reg, 0);
-                    regwithvalue(c1,ALLREGS,0,&reg,0);
-                    genfltreg(c1, 0x89, reg, 4);
+                    cdb.genfltreg(0x89, reg, 0);
+                    cdb.append(regwithvalue(CNIL,ALLREGS,0,&reg,0));
+                    cdb.genfltreg(0x89, reg, 4);
 
-                    cat(c1, push87());
-                    genfltreg(c1,0xDF,5,0);     // FILD m64int
+                    cdb.append(push87());
+                    cdb.genfltreg(0xDF,5,0);     // FILD m64int
 
                     retregs = mST0 /*| (*pretregs & mPSW)*/;
-                    c2 = fixresult87(e, retregs, pretregs);
-                    return cat(c1, c2);
+                    cdb.append(fixresult87(e, retregs, pretregs));
+                    return cdb.finish();
                 }
                 break;
             case OPd_s64:
@@ -2727,32 +2734,38 @@ code *cdcnvt(elem *e, regm_t *pretregs)
             case OPu64_d:
                 if (*pretregs & mST0)
                 {
-                    retregs = I64 ? mAX : mAX|mDX;
-                    c1 = codelem(e->E1,&retregs,FALSE);
-                    c2 = callclib(e,CLIBu64_ldbl,pretregs,0);
-                    return cat(c1,c2);
+                    CodeBuilder cdb;
+                    regm_t retregs = I64 ? mAX : mAX|mDX;
+                    cdb.append(codelem(e->E1,&retregs,FALSE));
+                    cdb.append(callclib(e,CLIBu64_ldbl,pretregs,0));
+                    return cdb.finish();
                 }
                 break;
             case OPld_u64:
+            {
                 if (I32 || I64)
                     return cdd_u64(e,pretregs);
-                retregs = mST0;
-                c1 = codelem(e->E1,&retregs,FALSE);
-                c2 = callclib(e,CLIBld_u64,pretregs,0);
-                return cat(c1,c2);
+                CodeBuilder cdb;
+                regm_t retregs = mST0;
+                cdb.append(codelem(e->E1,&retregs,FALSE));
+                cdb.append(callclib(e,CLIBld_u64,pretregs,0));
+                return cdb.finish();
+            }
         }
-  }
-  retregs = regmask(e->E1->Ety, TYnfunc);
+    }
+    retregs = regmask(e->E1->Ety, TYnfunc);
 L1:
-  c1 = codelem(e->E1,&retregs,FALSE);
-  for (i = 0; 1; i++)
-  {     assert(i < arraysize(clib));
+    CodeBuilder cdb;
+    cdb.append(codelem(e->E1,&retregs,FALSE));
+    for (int i = 0; 1; i++)
+    {
+        assert(i < arraysize(clib));
         if (clib[i][0] == e->Eoper)
-        {   c2 = callclib(e,clib[i][1],pretregs,0);
+        {   cdb.append(callclib(e,clib[i][1],pretregs,0));
             break;
         }
-  }
-  return cat(c1,c2);
+    }
+    return cdb.finish();
 }
 
 
