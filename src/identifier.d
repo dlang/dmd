@@ -114,7 +114,7 @@ public:
         return p;
     }
 
-    override int dyncast() const
+    override DYNCAST dyncast() const
     {
         return DYNCAST_IDENTIFIER;
     }

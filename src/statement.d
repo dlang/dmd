@@ -132,6 +132,11 @@ extern (C++) abstract class Statement : RootObject
 {
     Loc loc;
 
+    override final DYNCAST dyncast() const
+    {
+        return DYNCAST_STATEMENT;
+    }
+
     final extern (D) this(Loc loc)
     {
         this.loc = loc;

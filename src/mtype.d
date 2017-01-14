@@ -639,7 +639,7 @@ extern (C++) abstract class Type : RootObject
     }
 
     // kludge for template.isType()
-    override final int dyncast()
+    override final DYNCAST dyncast() const
     {
         return DYNCAST_TYPE;
     }
@@ -10049,7 +10049,7 @@ extern (C++) final class Parameter : RootObject
     }
 
     // kludge for template.isType()
-    override int dyncast()
+    override DYNCAST dyncast() const
     {
         return DYNCAST_PARAMETER;
     }
