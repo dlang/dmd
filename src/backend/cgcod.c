@@ -2635,6 +2635,7 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
                     *pretregs |= BYTEREGS;
                     break;
 
+                case TYnref:
                 case TYnptr:
                 case TYsptr:
                 case TYcptr:

@@ -909,7 +909,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
             elem *ev = el_var(toSymbol(v));
             if (win64ref)
             {
-                ev.Ety = TYnptr;
+                ev.Ety = TYnref;
                 ev = el_una(OPind, tym, ev);
                 if (tybasic(ev.Ety) == TYstruct || tybasic(ev.Ety) == TYarray)
                     ev.ET = Type_toCtype(v.type);
