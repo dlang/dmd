@@ -112,8 +112,15 @@ else version (CRuntime_Glibc)
         {
             void dtor1();                           // consume destructor slot in vtbl[]
             void dtor2();                           // consume destructor slot in vtbl[]
-            final const(char)* name();
-            final bool before(const type_info) const;
+            final const(char)* name()() const nothrow {
+                return _name[0] == '*' ? _name + 1 : _name;
+            }
+            final bool before()(const type_info _arg) const {
+                import core.stdc.string : strcmp;
+                return (_name[0] == '*' && _arg._name[0] == '*')
+                    ? _name < _arg._name
+                    : strcmp(_name, _arg._name) < 0;
+            }
             //bool operator==(const type_info) const;
             bool __is_pointer_p() const;
             bool __is_function_p() const;
