@@ -71,8 +71,6 @@ else version (CRuntime_Microsoft)
     {
         class type_info
         {
-
-          public:
             //virtual ~this();
             void dtor() { }     // reserve slot in vtbl[]
             //bool operator==(const type_info rhs) const;
@@ -83,21 +81,18 @@ else version (CRuntime_Microsoft)
           private:
             void* pdata;
             char[1] _name;
-            //this(const type_info rhs);
             //type_info operator=(const type_info rhs);
         }
 
         class bad_cast : core.stdcpp.exception.std.exception
         {
-            this(const(char)* msg = "bad cast") { }
-            this(const bad_cast) { }
+            this(const(char)* msg = "bad cast");
             //virtual ~this();
         }
 
         class bad_typeid : core.stdcpp.exception.std.exception
         {
-            this(const(char)* msg = "bad typeid") { }
-            this(const bad_typeid) { }
+            this(const(char)* msg = "bad typeid");
             //virtual ~this();
         }
     }
