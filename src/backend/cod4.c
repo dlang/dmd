@@ -2776,41 +2776,42 @@ L1:
  */
 
 code *cdshtlng(elem *e,regm_t *pretregs)
-{ code *c,*ce,*c1,*c2,*c3,*c4;
-  unsigned reg;
-  regm_t retregs;
+{
+    unsigned reg;
+    regm_t retregs;
 
-  //printf("cdshtlng(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
-  int e1comsub = e->E1->Ecount;
-  unsigned char op = e->Eoper;
-  if ((*pretregs & (ALLREGS | mBP)) == 0)       // if don't need result in regs
-    c = codelem(e->E1,pretregs,FALSE);  /* then conversion isn't necessary */
+    //printf("cdshtlng(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
+    int e1comsub = e->E1->Ecount;
+    unsigned char op = e->Eoper;
+    if ((*pretregs & (ALLREGS | mBP)) == 0)    // if don't need result in regs
+        return codelem(e->E1,pretregs,FALSE);  // then conversion isn't necessary
 
-  else if (
-           op == OPnp_fp ||
-           (I16 && op == OPu16_32) ||
-           (I32 && op == OPu32_64)
-          )
-  {
+    else if (
+             op == OPnp_fp ||
+             (I16 && op == OPu16_32) ||
+             (I32 && op == OPu32_64)
+            )
+    {
         /* Result goes into a register pair.
          * Zero extend by putting a zero into most significant reg.
          */
 
-        retregs = *pretregs & mLSW;
+        CodeBuilder cdb;
+        regm_t retregs = *pretregs & mLSW;
         assert(retregs);
         tym_t tym1 = tybasic(e->E1->Ety);
-        c = codelem(e->E1,&retregs,FALSE);
+        cdb.append(codelem(e->E1,&retregs,FALSE));
 
         regm_t regm = *pretregs & (mMSW & ALLREGS);
-        if (regm == 0)                  /* *pretregs could be mES       */
+        if (regm == 0)                  // *pretregs could be mES
             regm = mMSW & ALLREGS;
-        ce = allocreg(&regm,&reg,TYint);
+        cdb.append(allocreg(&regm,&reg,TYint));
         if (e1comsub)
-            ce = cat(ce,getregs(retregs));
+            cdb.append(getregs(retregs));
         if (op == OPnp_fp)
         {   int segreg;
 
-            /* BUG: what about pointers to functions?   */
+            // BUG: what about pointers to functions?
             switch (tym1)
             {
                 case TYnptr:    segreg = SEG_DS;        break;
@@ -2818,60 +2819,61 @@ code *cdshtlng(elem *e,regm_t *pretregs)
                 case TYsptr:    segreg = SEG_SS;        break;
                 default:        assert(0);
             }
-            ce = gen2(ce,0x8C,modregrm(3,segreg,reg));  /* MOV reg,segreg */
+            cdb.gen2(0x8C,modregrm(3,segreg,reg));  // MOV reg,segreg
         }
         else
-            ce = movregconst(ce,reg,0,0);               /* 0 extend     */
+            cdb.append(movregconst(CNIL,reg,0,0));  // 0 extend
 
-        c = cat3(c,ce,fixresult(e,retregs | regm,pretregs));
-  }
-  else if (I64 && op == OPu32_64)
-  {
+        cdb.append(fixresult(e,retregs | regm,pretregs));
+        return cdb.finish();
+    }
+    else if (I64 && op == OPu32_64)
+    {
+        CodeBuilder cdb;
         elem *e1 = e->E1;
         retregs = *pretregs;
         if (e1->Eoper == OPvar || (e1->Eoper == OPind && !e1->Ecount))
         {   code cs;
 
-            c1 = allocreg(&retregs,&reg,TYint);
-            c2 = NULL;
-            c3 = loadea(e1,&cs,0x8B,reg,0,retregs,retregs);        //  MOV Ereg,EA
+            cdb.append(allocreg(&retregs,&reg,TYint));
+            cdb.append(loadea(e1,&cs,0x8B,reg,0,retregs,retregs));  //  MOV Ereg,EA
             freenode(e1);
         }
         else
         {
             *pretregs &= ~mPSW;                 // flags are set by eval of e1
-            c1 = codelem(e1,&retregs,FALSE);
+            cdb.append(codelem(e1,&retregs,FALSE));
             /* Determine if high 32 bits are already 0
              */
             if (e1->Eoper == OPu16_32 && !e1->Ecount)
             {
-                c2 = NULL;
-                c3 = NULL;
             }
             else
             {
                 // Zero high 32 bits
-                c2 = getregs(retregs);
+                cdb.append(getregs(retregs));
                 reg = findreg(retregs);
-                c3 = genregs(NULL,0x89,reg,reg);    // MOV Ereg,Ereg
+                cdb.append(genregs(NULL,0x89,reg,reg));  // MOV Ereg,Ereg
             }
         }
-        c4 = fixresult(e,retregs,pretregs);
-        c = cat4(c1,c2,c3,c4);
-  }
-  else if (I64 && op == OPs32_64 && OTrel(e->E1->Eoper) && !e->E1->Ecount)
-  {
+        cdb.append(fixresult(e,retregs,pretregs));
+        return cdb.finish();
+    }
+    else if (I64 && op == OPs32_64 && OTrel(e->E1->Eoper) && !e->E1->Ecount)
+    {
         /* Due to how e1 is calculated, the high 32 bits of the register
          * are already 0.
          */
+        CodeBuilder cdb;
         retregs = *pretregs;
-        c1 = codelem(e->E1,&retregs,FALSE);
-        c2 = fixresult(e,retregs,pretregs);
-        c = cat(c1,c2);
+        cdb.append(codelem(e->E1,&retregs,FALSE));
+        cdb.append(fixresult(e,retregs,pretregs));
+        return cdb.finish();
   }
   else if (!I16 && (op == OPs16_32 || op == OPu16_32) ||
             I64 && op == OPs32_64)
   {
+    CodeBuilder cdb;
     elem *e11;
 
     elem *e1 = e->E1;
@@ -2884,9 +2886,9 @@ code *cdshtlng(elem *e,regm_t *pretregs)
         retregs = *pretregs & BYTEREGS;
         if (!retregs)
             retregs = BYTEREGS;
-        c1 = allocreg(&retregs,&reg,TYint);
-        c2 = movregconst(NULL,reg,0,0);                         //  XOR reg,reg
-        c3 = loadea(e11,&cs,0x8A,reg,0,retregs,retregs);        //  MOV regL,EA
+        cdb.append(allocreg(&retregs,&reg,TYint));
+        cdb.append(movregconst(NULL,reg,0,0));                   //  XOR reg,reg
+        cdb.append(loadea(e11,&cs,0x8A,reg,0,retregs,retregs));  //  MOV regL,EA
         freenode(e11);
         freenode(e1);
     }
@@ -2898,18 +2900,17 @@ code *cdshtlng(elem *e,regm_t *pretregs)
         if (I32 && op == OPu16_32 && config.flags4 & CFG4speed)
             goto L2;
         retregs = *pretregs;
-        c1 = allocreg(&retregs,&reg,TYint);
-        opcode = (op == OPu16_32) ? 0x0FB7 : 0x0FBF; /* MOVZX/MOVSX reg,EA */
+        cdb.append(allocreg(&retregs,&reg,TYint));
+        opcode = (op == OPu16_32) ? 0x0FB7 : 0x0FBF; // MOVZX/MOVSX reg,EA
         if (op == OPs32_64)
         {
             assert(I64);
             // MOVSXD reg,e1
-            c2 = loadea(e1,&cs,0x63,reg,0,0,retregs);
-            code_orrex(c2, REX_W);
+            cdb.append(loadea(e1,&cs,0x63,reg,0,0,retregs));
+            code_orrex(cdb.last(), REX_W);
         }
         else
-            c2 = loadea(e1,&cs,opcode,reg,0,0,retregs);
-        c3 = CNIL;
+            cdb.append(loadea(e1,&cs,opcode,reg,0,0,retregs));
         freenode(e1);
     }
     else
@@ -2918,12 +2919,13 @@ code *cdshtlng(elem *e,regm_t *pretregs)
         retregs = *pretregs;
         if (op == OPs32_64)
             retregs = mAX | (*pretregs & mPSW);
-        *pretregs &= ~mPSW;             /* flags are already set        */
-        c1 = codelem(e1,&retregs,FALSE);
-        c2 = getregs(retregs);
-        if (op == OPu16_32 && c1)
+        *pretregs &= ~mPSW;             // flags are already set
+        code *cx = codelem(e1,&retregs,FALSE);
+        cdb.append(cx);
+        cdb.append(getregs(retregs));
+        if (op == OPu16_32 && cx)
         {
-            code *cx = code_last(c1);
+            cx = code_last(cx);
             if (cx->Iop == 0x81 && (cx->Irm & modregrm(3,7,0)) == modregrm(3,4,0) &&
                 mask[cx->Irm & 7] == retregs)
             {
@@ -2936,64 +2938,64 @@ code *cdshtlng(elem *e,regm_t *pretregs)
             }
         }
         if (op == OPs16_32 && retregs == mAX)
-            c2 = gen1(c2,0x98);         /* CWDE                         */
+            cdb.gen1(0x98);         // CWDE
         else if (op == OPs32_64 && retregs == mAX)
-        {   c2 = gen1(c2,0x98);         /* CDQE                         */
-            code_orrex(c2, REX_W);
+        {   cdb.gen1(0x98);         // CDQE
+            code_orrex(cdb.last(), REX_W);
         }
         else
         {
             reg = findreg(retregs);
             if (config.flags4 & CFG4speed && op == OPu16_32)
             {   // AND reg,0xFFFF
-                c3 = genc2(NULL,0x81,modregrmx(3,4,reg),0xFFFFu);
+                cdb.genc2(0x81,modregrmx(3,4,reg),0xFFFFu);
             }
             else
             {
-                unsigned iop = (op == OPu16_32) ? 0x0FB7 : 0x0FBF; /* MOVZX/MOVSX reg,reg */
-                c3 = genregs(CNIL,iop,reg,reg);
+                unsigned iop = (op == OPu16_32) ? 0x0FB7 : 0x0FBF; // MOVZX/MOVSX reg,reg
+                cdb.append(genregs(CNIL,iop,reg,reg));
             }
-            c2 = cat(c2,c3);
         }
      L1:
-        c3 = e1comsub ? getregs(retregs) : CNIL;
+        cdb.append(e1comsub ? getregs(retregs) : CNIL);
     }
-    c4 = fixresult(e,retregs,pretregs);
-    c = cat4(c1,c2,c3,c4);
+    cdb.append(fixresult(e,retregs,pretregs));
+    return cdb.finish();
   }
   else if (*pretregs & mPSW || config.target_cpu < TARGET_80286)
   {
     // OPs16_32, OPs32_64
     // CWD doesn't affect flags, so we can depend on the integer
     // math to provide the flags.
+    CodeBuilder cdb;
     retregs = mAX | mPSW;               // want integer result in AX
     *pretregs &= ~mPSW;                 // flags are already set
-    c1 = codelem(e->E1,&retregs,FALSE);
-    c2 = getregs(mDX);                  // sign extend into DX
-    c2 = gen1(c2,0x99);                 // CWD/CDQ
-    c3 = e1comsub ? getregs(retregs) : CNIL;
-    c4 = fixresult(e,mDX | retregs,pretregs);
-    c = cat4(c1,c2,c3,c4);
+    cdb.append(codelem(e->E1,&retregs,FALSE));
+    cdb.append(getregs(mDX));           // sign extend into DX
+    cdb.gen1(0x99);                     // CWD/CDQ
+    cdb.append(e1comsub ? getregs(retregs) : CNIL);
+    cdb.append(fixresult(e,mDX | retregs,pretregs));
+    return cdb.finish();
   }
   else
   {
     // OPs16_32, OPs32_64
     unsigned msreg,lsreg;
 
+    CodeBuilder cdb;
     retregs = *pretregs & mLSW;
     assert(retregs);
-    c1 = codelem(e->E1,&retregs,FALSE);
+    cdb.append(codelem(e->E1,&retregs,FALSE));
     retregs |= *pretregs & mMSW;
-    c2 = allocreg(&retregs,&reg,e->Ety);
+    cdb.append(allocreg(&retregs,&reg,e->Ety));
     msreg = findregmsw(retregs);
     lsreg = findreglsw(retregs);
-    c3 = genmovreg(NULL,msreg,lsreg);                           // MOV msreg,lsreg
-    assert(config.target_cpu >= TARGET_80286);                  // 8088 can't handle SAR reg,imm8
-    c3 = genc2(c3,0xC1,modregrm(3,7,msreg),REGSIZE * 8 - 1);    // SAR msreg,31
-    c4 = fixresult(e,retregs,pretregs);
-    c = cat4(c1,c2,c3,c4);
+    cdb.append(genmovreg(NULL,msreg,lsreg));                // MOV msreg,lsreg
+    assert(config.target_cpu >= TARGET_80286);              // 8088 can't handle SAR reg,imm8
+    cdb.genc2(0xC1,modregrm(3,7,msreg),REGSIZE * 8 - 1);    // SAR msreg,31
+    cdb.append(fixresult(e,retregs,pretregs));
+    return cdb.finish();
   }
-  return c;
 }
 
 
