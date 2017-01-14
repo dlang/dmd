@@ -464,7 +464,7 @@ extern (C++) final class Tuple : RootObject
     Objects objects;
 
     // kludge for template.isType()
-    override int dyncast()
+    override DYNCAST dyncast() const
     {
         return DYNCAST_TUPLE;
     }

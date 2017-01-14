@@ -12,6 +12,8 @@ module ddmd.root.rootobject;
 
 import core.stdc.stdio;
 
+import ddmd.globals;
+
 import ddmd.root.outbuffer;
 
 /***********************************************************
@@ -47,8 +49,8 @@ extern (C++) class RootObject
         assert(0);
     }
 
-    int dyncast()
+    DYNCAST dyncast()
     {
-        assert(0);
+        return DYNCAST_OBJECT;
     }
 }

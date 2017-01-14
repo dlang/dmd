@@ -482,7 +482,7 @@ extern (C++) class Dsymbol : RootObject
     }
 
     // kludge for template.isSymbol()
-    override final int dyncast() const
+    override final DYNCAST dyncast() const
     {
         return DYNCAST_DSYMBOL;
     }

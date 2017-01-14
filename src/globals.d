@@ -444,6 +444,7 @@ enum DYNCAST : int
     identifier,
     tuple,
     parameter,
+    statement,
 }
 
 alias DYNCAST_OBJECT = DYNCAST.object;
@@ -453,6 +454,7 @@ alias DYNCAST_TYPE = DYNCAST.type;
 alias DYNCAST_IDENTIFIER = DYNCAST.identifier;
 alias DYNCAST_TUPLE = DYNCAST.tuple;
 alias DYNCAST_PARAMETER = DYNCAST.parameter;
+alias DYNCAST_STATEMENT = DYNCAST.statement;
 
 enum MATCH : int
 {
