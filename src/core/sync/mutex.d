@@ -376,6 +376,19 @@ unittest
     free(cast(void*)mtx);
 }
 
+// Test single-thread (non-shared) use.
+unittest
+{
+    Mutex m = new Mutex();
+
+    m.lock();
+
+    m.tryLock();
+    m.unlock();
+
+    m.unlock();
+}
+
 unittest
 {
     import core.thread;
