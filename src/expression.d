@@ -2781,6 +2781,21 @@ extern (C++) abstract class Expression : RootObject
             assert(type);
             if (!type.isMutable())
             {
+                if (op == TOKdotvar)
+                {
+                    if (isNeedThisScope(sc, (cast(DotVarExp) this).var))
+                        for (Dsymbol s = sc.func; s; s = s.toParent2())
+                    {
+                        FuncDeclaration ff = s.isFuncDeclaration();
+                        if (!ff)
+                            break;
+                        if (!ff.type.isMutable)
+                        {
+                            error("cannot modify %s in %s function", toChars(), MODtoChars(type.mod));
+                            return new ErrorExp();
+                        }
+                    }
+                }
                 error("cannot modify %s expression %s", MODtoChars(type.mod), toChars());
                 return new ErrorExp();
             }
