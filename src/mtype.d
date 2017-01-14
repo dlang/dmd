@@ -2638,7 +2638,7 @@ extern (C++) abstract class Type : RootObject
             e = getProperty(e.loc, ident, flag & DotExpFlag.gag);
 
     Lreturn:
-        if (!(flag & DotExpFlag.gag) || e)
+        if (e)
             e = e.semantic(sc);
         return e;
     }

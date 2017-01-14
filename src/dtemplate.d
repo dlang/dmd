@@ -5478,8 +5478,10 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         if (e)
         {
             e = e.syntaxCopy();
-            e = e.semantic(sc);
-            e = resolveProperties(sc, e);
+            if ((e = e.semantic(sc)) is null)
+                return null;
+            if ((e = resolveProperties(sc, e)) is null)
+                return null;
             e = e.resolveLoc(instLoc, sc); // use the instantiated loc
             e = e.optimize(WANTvalue);
         }
