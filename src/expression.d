@@ -10102,6 +10102,14 @@ extern (C++) final class CallExp : UnaExp
                     }
                 }
             }
+            // If we've got a pointer to a function then deference it
+            // https://issues.dlang.org/show_bug.cgi?id=16483
+            if (e1.type.ty == Tpointer && e1.type.nextOf().ty == Tfunction)
+            {
+                Expression e = new PtrExp(loc, e1);
+                e.type = e1.type.nextOf();
+                e1 = e;
+            }
             t1 = e1.type;
         }
         else if (e1.op == TOKsuper)
