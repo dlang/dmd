@@ -2185,7 +2185,10 @@ final class Parser : Lexer
                                     }
                                 }
                                 else
+                                {
                                     error("identifier expected for C++ namespace");
+                                    idents = null;  // error occurred, invalidate list of elements.
+                                }
                                 break;
                             }
                         }
