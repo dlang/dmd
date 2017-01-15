@@ -3005,46 +3005,42 @@ code *cdshtlng(elem *e,regm_t *pretregs)
  */
 
 code *cdbyteint(elem *e,regm_t *pretregs)
-{   code *c,*c0,*c1,*c2,*c3,*c4;
+{
     regm_t retregs;
-    unsigned reg;
-    char op;
     char size;
-    elem *e1;
-
 
     if ((*pretregs & (ALLREGS | mBP)) == 0)     // if don't need result in regs
-        return codelem(e->E1,pretregs,FALSE); /* then conversion isn't necessary */
+        return codelem(e->E1,pretregs,FALSE);   // then conversion isn't necessary
 
     //printf("cdbyteint(e = %p, *pretregs = %s\n", e, regm_str(*pretregs));
-    op = e->Eoper;
-    e1 = e->E1;
-    c0 = NULL;
+    char op = e->Eoper;
+    elem *e1 = e->E1;
+    CodeBuilder cdb;
     if (e1->Eoper == OPcomma)
-        c0 = docommas(&e1);
+        cdb.append(docommas(&e1));
     if (!I16)
     {
         if (e1->Eoper == OPvar || (e1->Eoper == OPind && !e1->Ecount))
         {   code cs;
-            unsigned opcode;
 
-            retregs = *pretregs;
-            c1 = allocreg(&retregs,&reg,TYint);
+            regm_t retregs = *pretregs;
+            unsigned reg;
+            cdb.append(allocreg(&retregs,&reg,TYint));
             if (config.flags4 & CFG4speed &&
                 op == OPu8_16 && mask[reg] & BYTEREGS &&
                 config.target_cpu < TARGET_PentiumPro)
             {
-                c2 = movregconst(NULL,reg,0,0);                 //  XOR reg,reg
-                c3 = loadea(e1,&cs,0x8A,reg,0,retregs,retregs); //  MOV regL,EA
+                cdb.append(movregconst(NULL,reg,0,0));                 //  XOR reg,reg
+                cdb.append(loadea(e1,&cs,0x8A,reg,0,retregs,retregs)); //  MOV regL,EA
             }
             else
             {
-                opcode = (op == OPu8_16) ? 0x0FB6 : 0x0FBE; // MOVZX/MOVSX reg,EA
-                c2 = loadea(e1,&cs,opcode,reg,0,0,retregs);
-                c3 = CNIL;
+                unsigned opcode = (op == OPu8_16) ? 0x0FB6 : 0x0FBE; // MOVZX/MOVSX reg,EA
+                cdb.append(loadea(e1,&cs,opcode,reg,0,0,retregs));
             }
             freenode(e1);
-            goto L2;
+            cdb.append(fixresult(e,retregs,pretregs));
+            return cdb.finish();
         }
         size = tysize(e->Ety);
         retregs = *pretregs & BYTEREGS;
@@ -3055,7 +3051,7 @@ code *cdbyteint(elem *e,regm_t *pretregs)
     }
     else
     {
-        if (op == OPu8_16)              /* if unsigned conversion       */
+        if (op == OPu8_16)              // if unsigned conversion
         {
             retregs = *pretregs & BYTEREGS;
             if (retregs == 0)
@@ -3063,30 +3059,29 @@ code *cdbyteint(elem *e,regm_t *pretregs)
         }
         else
         {
-            /* CBW doesn't affect flags, so we can depend on the integer */
-            /* math to provide the flags.                               */
-            retregs = mAX | (*pretregs & mPSW); /* want integer result in AX */
+            // CBW doesn't affect flags, so we can depend on the integer
+            // math to provide the flags.
+            retregs = mAX | (*pretregs & mPSW); // want integer result in AX
         }
     }
 
-    c3 = CNIL;
-    c1 = codelem(e1,&retregs,FALSE);
-    reg = findreg(retregs);
+    code *c1 = codelem(e1,&retregs,FALSE);
+    cdb.append(c1);
+    unsigned reg = findreg(retregs);
+    code *c;
     if (!c1)
         goto L1;
 
-    for (c = c1; c->next; c = c->next)
-        ;                               /* find previous instruction    */
-
-    /* If previous instruction is an AND bytereg,value  */
+    // If previous instruction is an AND bytereg,value
+    c = cdb.last();
     if (c->Iop == 0x80 && c->Irm == modregrm(3,4,reg & 7) &&
         (op == OPu8_16 || (c->IEV2.Vuns & 0x80) == 0))
     {
         if (*pretregs & mPSW)
             c->Iflags |= CFpsw;
-        c->Iop |= 1;                    /* convert to word operation    */
-        c->IEV2.Vuns &= 0xFF;           /* dump any high order bits     */
-        *pretregs &= ~mPSW;             /* flags already set            */
+        c->Iop |= 1;                    // convert to word operation
+        c->IEV2.Vuns &= 0xFF;           // dump any high order bits
+        *pretregs &= ~mPSW;             // flags already set
     }
     else
     {
@@ -3094,42 +3089,42 @@ code *cdbyteint(elem *e,regm_t *pretregs)
         if (!I16)
         {
             if (op == OPs8_16 && reg == AX && size == 2)
-            {   c3 = gen1(c3,0x98);             /* CBW                  */
-                c3->Iflags |= CFopsize;         /* don't do a CWDE      */
+            {
+                cdb.gen1(0x98);                  // CBW
+                cdb.last()->Iflags |= CFopsize;  // don't do a CWDE
             }
             else
             {
-                /* We could do better by not forcing the src and dst    */
-                /* registers to be the same.                            */
+                // We could do better by not forcing the src and dst
+                // registers to be the same.
 
                 if (config.flags4 & CFG4speed && op == OPu8_16)
                 {   // AND reg,0xFF
-                    c3 = genc2(c3,0x81,modregrmx(3,4,reg),0xFF);
+                    cdb.genc2(0x81,modregrmx(3,4,reg),0xFF);
                 }
                 else
                 {
                     unsigned iop = (op == OPu8_16) ? 0x0FB6 : 0x0FBE; // MOVZX/MOVSX reg,reg
-                    c3 = genregs(c3,iop,reg,reg);
+                    cdb.append(genregs(CNIL,iop,reg,reg));
                     if (I64 && reg >= 4)
-                        code_orrex(c3, REX);
+                        code_orrex(cdb.last(), REX);
                 }
             }
         }
         else
         {
             if (op == OPu8_16)
-                c3 = genregs(c3,0x30,reg+4,reg+4);      // XOR regH,regH
+                cdb.append(genregs(CNIL,0x30,reg+4,reg+4));  // XOR regH,regH
             else
             {
-                c3 = gen1(c3,0x98);             /* CBW                  */
-                *pretregs &= ~mPSW;             /* flags already set    */
+                cdb.gen1(0x98);                 // CBW
+                *pretregs &= ~mPSW;             // flags already set
             }
         }
     }
-    c2 = getregs(retregs);
-L2:
-    c4 = fixresult(e,retregs,pretregs);
-    return cat6(c0,c1,c2,c3,c4,NULL);
+    cdb.append(getregs(retregs));
+    cdb.append(fixresult(e,retregs,pretregs));
+    return cdb.finish();
 }
 
 
