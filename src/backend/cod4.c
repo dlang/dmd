@@ -3306,17 +3306,15 @@ code *cdasm(elem *e,regm_t *pretregs)
  */
 
 code *cdfar16( elem *e, regm_t *pretregs)
-{   code *c;
-    code *c1;
-    code *c3;
+{
     code *cnop;
     code cs;
-    unsigned reg;
 
     assert(I32);
-    c = codelem(e->E1,pretregs,FALSE);
-    reg = findreg(*pretregs);
-    c = cat(c,getregs(*pretregs));      /* we will destroy the regs     */
+    CodeBuilder cdb;
+    cdb.append(codelem(e->E1,pretregs,FALSE));
+    unsigned reg = findreg(*pretregs);
+    cdb.append(getregs(*pretregs));      // we will destroy the regs
 
     cs.Iop = 0xC1;
     cs.Irm = modregrm(3,0,reg);
@@ -3325,9 +3323,9 @@ code *cdfar16( elem *e, regm_t *pretregs)
     cs.IFL2 = FLconst;
     cs.IEV2.Vuns = 16;
 
-    c3 = gen(CNIL,&cs);                 /* ROL ereg,16                  */
+    cdb.gen(&cs);                       // ROL ereg,16
     cs.Irm |= modregrm(0,1,0);
-    c1 = gen(CNIL,&cs);                 /* ROR ereg,16                  */
+    cdb.gen(&cs);                       // ROR ereg,16
     cs.IEV2.Vuns = 3;
     cs.Iflags |= CFopsize;
 
@@ -3344,30 +3342,27 @@ code *cdfar16( elem *e, regm_t *pretregs)
                 ROL ereg,16
             L1: NOP
          */
-        int jop;
-        int byte;
         unsigned rx;
-        regm_t retregs;
 
-        retregs = BYTEREGS & ~*pretregs;
-        c = cat(c,allocreg(&retregs,&rx,TYint));
+        regm_t retregs = BYTEREGS & ~*pretregs;
+        cdb.append(allocreg(&retregs,&rx,TYint));
         cnop = gennop(CNIL);
-        jop = JCXZ;
+        int jop = JCXZ;
         if (reg != CX)
         {
-            c = gentstreg(c,reg);
+            cdb.append(gentstreg(CNIL,reg));
             jop = JE;
         }
-        c = genjmp(c,jop,FLcode,(block *)cnop);         /* Jop L1       */
+        cdb.append(genjmp(CNIL,jop,FLcode,(block *)cnop));  // Jop L1
         NEWREG(cs.Irm,4);
-        gen(c1,&cs);                                    /* SHL reg,3    */
-        genregs(c1,0x8C,2,rx);                          /* MOV rx,SS    */
-        byte = (mask[reg] & BYTEREGS) == 0;
-        genc2(c1,0x80 | byte,modregrm(3,4,rx),3);       /* AND rl,3     */
-        genc2(c1,0x80,modregrm(3,1,rx),4);              /* OR  rl,4     */
-        genregs(c1,0x0A | byte,reg,rx);                 /* OR  regl,rl  */
+        cdb.gen(&cs);                                   // SHL reg,3
+        cdb.append(genregs(CNIL,0x8C,2,rx));            // MOV rx,SS
+        int byte = (mask[reg] & BYTEREGS) == 0;
+        cdb.genc2(0x80 | byte,modregrm(3,4,rx),3);      // AND rl,3
+        cdb.genc2(0x80,modregrm(3,1,rx),4);             // OR  rl,4
+        cdb.append(genregs(CNIL,0x0A | byte,reg,rx));   // OR  regl,rl
     }
-    else /* OPf16p_np */
+    else // OPf16p_np
     {
         /*      ROR ereg,16
                 SHR reg,3
@@ -3375,10 +3370,10 @@ code *cdfar16( elem *e, regm_t *pretregs)
          */
 
         cs.Irm |= modregrm(0,5,0);
-        gen(c1,&cs);                                    /* SHR reg,3    */
+        cdb.gen(&cs);                                   // SHR reg,3
         cnop = NULL;
     }
-    return cat4(c,c1,c3,cnop);
+    return cdb.finish();
 }
 
 /*************************
@@ -3387,43 +3382,38 @@ code *cdfar16( elem *e, regm_t *pretregs)
 
 code *cdbtst(elem *e, regm_t *pretregs)
 {
-    elem *e1;
-    elem *e2;
-    code *c;
-    code *c2;
-    code cs;
-    regm_t idxregs;
     regm_t retregs;
     unsigned reg;
-    unsigned char word;
-    tym_t ty1;
-    int op;
-    int mode;
 
     //printf("cdbtst(e = %p, *pretregs = %s\n", e, regm_str(*pretregs));
 
-    op = 0xA3;                          // BT EA,value
-    mode = 4;
+    int op = 0xA3;                        // BT EA,value
+    int mode = 4;
 
-    e1 = e->E1;
-    e2 = e->E2;
+    elem *e1 = e->E1;
+    elem *e2 = e->E2;
+    code cs;
     cs.Iflags = 0;
+    CodeBuilder cdb;
 
     if (*pretregs == 0)                   // if don't want result
-    {   c = codelem(e1,pretregs,FALSE);   // eval left leaf
+    {
+        cdb.append(codelem(e1,pretregs,FALSE));  // eval left leaf
         *pretregs = 0;                    // in case they got set
-        return cat(c,codelem(e2,pretregs,FALSE));
+        cdb.append(codelem(e2,pretregs,FALSE));
+        return cdb.finish();
     }
 
+    regm_t idxregs;
     if ((e1->Eoper == OPind && !e1->Ecount) || e1->Eoper == OPvar)
     {
-        c = getlvalue(&cs, e1, RMload);     // get addressing mode
+        cdb.append(getlvalue(&cs, e1, RMload));  // get addressing mode
         idxregs = idxregm(&cs);             // mask if index regs used
     }
     else
     {
         retregs = tysize(e1->Ety) == 1 ? BYTEREGS : allregs;
-        c = codelem(e1, &retregs, FALSE);
+        cdb.append(codelem(e1, &retregs, FALSE));
         reg = findreg(retregs);
         cs.Irm = modregrm(3,0,reg & 7);
         cs.Iflags = 0;
@@ -3433,8 +3423,8 @@ code *cdbtst(elem *e, regm_t *pretregs)
         idxregs = retregs;
     }
 
-    ty1 = tybasic(e1->Ety);
-    word = (!I16 && _tysize[ty1] == SHORTSIZE) ? CFopsize : 0;
+    tym_t ty1 = tybasic(e1->Ety);
+    unsigned char word = (!I16 && _tysize[ty1] == SHORTSIZE) ? CFopsize : 0;
 
 //    if (e2->Eoper == OPconst && e2->EV.Vuns < 0x100)  // should do this instead?
     if (e2->Eoper == OPconst)
@@ -3457,12 +3447,12 @@ code *cdbtst(elem *e, regm_t *pretregs)
             if (I64)
                 cs.Irex |= REX_W;
         }
-        c2 = gen(CNIL,&cs);
+        cdb.gen(&cs);
     }
     else
     {
         retregs = ALLREGS & ~idxregs;
-        c2 = scodelem(e2,&retregs,idxregs,TRUE);
+        cdb.append(scodelem(e2,&retregs,idxregs,TRUE));
         reg = findreg(retregs);
 
         cs.Iop = 0x0F00 | op;                     // BT rm,reg
@@ -3470,7 +3460,7 @@ code *cdbtst(elem *e, regm_t *pretregs)
         cs.Iflags |= CFpsw | word;
         if (I64 && _tysize[ty1] == 8)
             cs.Irex |= REX_W;
-        c2 = gen(c2,&cs);
+        cdb.gen(&cs);
     }
 
     if ((retregs = (*pretregs & (ALLREGS | mBP))) != 0) // if return result in register
@@ -3478,40 +3468,39 @@ code *cdbtst(elem *e, regm_t *pretregs)
         if (tysize(e->Ety) == 1)
         {
             assert(I64 || retregs & BYTEREGS);
-            code *cg = allocreg(&retregs,&reg,TYint);
-            cg = gen2(cg,0x0F92,modregrmx(3,0,reg));        // SETC reg
+            cdb.append(allocreg(&retregs,&reg,TYint));
+            cdb.gen2(0x0F92,modregrmx(3,0,reg));        // SETC reg
             if (I64 && reg >= 4)
-                code_orrex(cg, REX);
+                code_orrex(cdb.last(), REX);
             *pretregs = retregs;
-            c2 = cat(c2,cg);
         }
         else
         {
-            code *nop = CNIL;
+            code *cnop = CNIL;
             regm_t save = regcon.immed.mval;
-            code *cg = allocreg(&retregs,&reg,TYint);
+            cdb.append(allocreg(&retregs,&reg,TYint));
             regcon.immed.mval = save;
             if ((*pretregs & mPSW) == 0)
             {
-                cg = cat(cg,getregs(retregs));
-                cg = genregs(cg,0x19,reg,reg);              // SBB reg,reg
-                cg = gen2(cg,0xF7,modregrmx(3,3,reg));      // NEG reg
+                cdb.append(getregs(retregs));
+                cdb.append(genregs(CNIL,0x19,reg,reg));     // SBB reg,reg
+                cdb.gen2(0xF7,modregrmx(3,3,reg));          // NEG reg
             }
             else
             {
-                cg = movregconst(cg,reg,1,8);               // MOV reg,1
-                nop = gennop(nop);
-                cg = genjmp(cg,JC,FLcode,(block *) nop);    // Jtrue nop
+                cdb.append(movregconst(CNIL,reg,1,8));      // MOV reg,1
+                cnop = gennop(CNIL);
+                cdb.append(genjmp(CNIL,JC,FLcode,(block *) cnop));  // Jtrue nop
                                                             // MOV reg,0
-                movregconst(cg,reg,0,8);
+                cdb.append(movregconst(CNIL,reg,0,8));
                 regcon.immed.mval &= ~mask[reg];
             }
             *pretregs = retregs;
-            c2 = cat3(c2,cg,nop);
+            cdb.append(cnop);
         }
     }
 
-    return cat(c,c2);
+    return cdb.finish();
 }
 
 /*************************
