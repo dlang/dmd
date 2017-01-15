@@ -4354,7 +4354,7 @@ extern (C++) final class SuperExp : ThisExp
             s = s.toParent();
         assert(s);
         cd = s.isClassDeclaration();
-        //printf("parent is %s %s\n", fd.toParent()->kind(), fd.toParent()->toChars());
+        //printf("parent is %s %s\n", fd.toParent().kind(), fd.toParent().toChars());
         if (!cd)
             goto Lerr;
         if (!cd.baseClass)
@@ -7914,7 +7914,7 @@ extern (C++) abstract class BinExp : Expression
 
         // T opAssign floating yields a floating. Prevent truncating conversions (float to int).
         // See issue 3841.
-        // Should we also prevent double to float (type.isfloating() && type.size() < t2 ->size()) ?
+        // Should we also prevent double to float (type.isfloating() && type.size() < t2.size()) ?
         if (op == TOKaddass || op == TOKminass ||
             op == TOKmulass || op == TOKdivass || op == TOKmodass ||
             op == TOKpowass)
@@ -10005,7 +10005,7 @@ extern (C++) final class CallExp : UnaExp
                     return ue.e1;
                 ethis = ue.e1;
                 tthis = ue.e1.type;
-                if (!f.type.isscope())
+                if (!(f.type.ty == Tfunction && (cast(TypeFunction)f.type).isscope))
                 {
                     if (global.params.vsafe && checkParamArgumentEscape(sc, f, Id.This, ethis, false))
                         return new ErrorExp();
@@ -10279,7 +10279,7 @@ extern (C++) final class CallExp : UnaExp
                 if (tthis)
                     tthis.modToBuffer(&buf);
 
-                //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0]->type.deco);
+                //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
                 .error(loc, "%s %s %s is not callable using argument types %s", p, e1.toChars(), parametersTypeToChars(tf.parameters, tf.varargs), buf.peekString());
 
                 return new ErrorExp();
@@ -10348,7 +10348,7 @@ extern (C++) final class CallExp : UnaExp
                     argExpTypesToCBuffer(&buf, arguments);
                     buf.writeByte(')');
 
-                    //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0]->type.deco);
+                    //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
                     .error(loc, "%s %s is not callable using argument types %s", e1.toChars(), parametersTypeToChars(tf.parameters, tf.varargs), buf.peekString());
 
                     f = null;
@@ -10844,7 +10844,7 @@ extern (C++) final class PtrExp : UnaExp
     {
         super(loc, TOKstar, __traits(classInstanceSize, PtrExp), e);
         //if (e.type)
-        //  type = ((TypePointer *)e.type)->next;
+        //  type = ((TypePointer *)e.type).next;
     }
 
     extern (D) this(Loc loc, Expression e, Type t)

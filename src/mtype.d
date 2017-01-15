@@ -700,7 +700,7 @@ extern (C++) abstract class Type : RootObject
                 {
                     goto Ldistinct;
                 }
-                inoutmismatch = !fparam1.isCovariant(fparam2);
+                inoutmismatch = !fparam1.isCovariant(t1.isref, fparam2);
             }
         }
         else if (t1.parameters != t2.parameters)
@@ -761,8 +761,28 @@ extern (C++) abstract class Type : RootObject
         if (t1.isref != t2.isref)
             goto Lnotcovariant;
 
+        if (!t1.isref && (t1.isscope || t2.isscope))
+        {
+            StorageClass stc1 = t1.isscope ? STCscope : 0;
+            StorageClass stc2 = t2.isscope ? STCscope : 0;
+            if (t1.isreturn)
+            {
+                stc1 |= STCreturn;
+                if (!t1.isscope)
+                    stc1 |= STCref;
+            }
+            if (t2.isreturn)
+            {
+                stc2 |= STCreturn;
+                if (!t2.isscope)
+                    stc2 |= STCref;
+            }
+            if (!Parameter.isCovariantScope(t1.isref, stc1, stc2))
+                goto Lnotcovariant;
+        }
+
         // We can subtract 'return' from 'this', but cannot add it
-        if (t1.isreturn && !t2.isreturn)
+        else if (t1.isreturn && !t2.isreturn)
             goto Lnotcovariant;
 
         /* Can convert mutable to const
@@ -6109,8 +6129,8 @@ extern (C++) final class TypeFunction : TypeNext
         if (sc.stc & STCscope)
             tf.isscope = true;
 
-        if ((sc.stc & (STCreturn | STCref)) == STCreturn)
-            tf.isscope = true;                                  // return by itself means 'return scope'
+//        if (tf.isreturn && !tf.isref)
+//            tf.isscope = true;                                  // return by itself means 'return scope'
 
         if (tf.trust == TRUSTdefault)
         {
@@ -6164,7 +6184,7 @@ extern (C++) final class TypeFunction : TypeNext
 
             if (tf.isreturn && !tf.isref && !tf.next.hasPointers())
             {
-                error(loc, "function has 'return' but does not return any indirections");
+                error(loc, "function type '%s' has 'return' but does not return any indirections", tf.toChars());
             }
         }
 
@@ -10244,15 +10264,99 @@ extern (C++) final class Parameter : RootObject
      *  true = `this` can be used in place of `p`
      *  false = nope
      */
-    final bool isCovariant(const Parameter p) const pure nothrow @nogc @safe
+    final bool isCovariant(bool returnByRef, const Parameter p) const pure nothrow @nogc @safe
     {
         enum stc = STCref | STCin | STCout | STClazy;
-        return !((this.storageClass & stc) != (p.storageClass & stc) ||
-
-                // We can add scope, but not subtract it
-                (!(this.storageClass & STCscope) && (p.storageClass & STCscope)) ||
-
-                // We can subtract return, but not add it
-                ((this.storageClass & STCreturn) && !(p.storageClass & STCreturn)));
+        if ((this.storageClass & stc) != (p.storageClass & stc))
+            return false;
+        return isCovariantScope(returnByRef, this.storageClass, p.storageClass);
     }
+
+    static bool isCovariantScope(bool returnByRef, StorageClass from, StorageClass to) pure nothrow @nogc @safe
+    {
+        if (from == to)
+            return true;
+
+        /* Shrinking the representation is necessary because StorageClass is so wide
+         * Params:
+         *   returnByRef = true if the function returns by ref
+         *   stc = storage class of parameter
+         */
+        static uint buildSR(bool returnByRef, StorageClass stc) pure nothrow @nogc @safe
+        {
+            uint result;
+            final switch (stc & (STCref | STCscope | STCreturn))
+            {
+                case 0:                    result = SR.None;        break;
+                case STCref:               result = SR.Ref;         break;
+                case STCscope:             result = SR.Scope;       break;
+                case STCreturn | STCref:   result = SR.ReturnRef;   break;
+                case STCreturn | STCscope: result = SR.ReturnScope; break;
+                case STCref    | STCscope: result = SR.RefScope;    break;
+                case STCreturn | STCref | STCscope:
+                    result = returnByRef ? SR.ReturnRef_Scope : SR.Ref_ReturnScope;
+                    break;
+            }
+            return result;
+        }
+
+        /* result is true if the 'from' can be used as a 'to'
+         */
+
+        if ((from ^ to) & STCref)               // differing in 'ref' means no covariance
+            return false;
+
+        return covariant[buildSR(returnByRef, from)][buildSR(returnByRef, to)];
+    }
+
+    /* Classification of 'scope-return-ref' possibilities
+     */
+    enum SR
+    {
+        None,
+        Scope,
+        ReturnScope,
+        Ref,
+        ReturnRef,
+        RefScope,
+        ReturnRef_Scope,
+        Ref_ReturnScope,
+    }
+
+    static bool[SR.max + 1][SR.max + 1] covariantInit() pure nothrow @nogc @safe
+    {
+        /* Initialize covariant[][] with this:
+
+             From\To           n   rs  s
+             None              X
+             ReturnScope       X   X
+             Scope             X   X   X
+
+             From\To           r   rr  rs  rr-s r-rs
+             Ref               X   X
+             ReturnRef             X
+             RefScope          X   X   X   X    X
+             ReturnRef-Scope       X       X
+             Ref-ReturnScope   X   X            X
+        */
+        bool[SR.max + 1][SR.max + 1] covariant;
+
+        foreach (i; 0 .. SR.max + 1)
+        {
+            covariant[i][i] = true;
+            covariant[SR.RefScope][i] = true;
+        }
+        covariant[SR.ReturnScope][SR.None]        = true;
+        covariant[SR.Scope      ][SR.None]        = true;
+        covariant[SR.Scope      ][SR.ReturnScope] = true;
+
+        covariant[SR.Ref            ][SR.ReturnRef] = true;
+        covariant[SR.ReturnRef_Scope][SR.ReturnRef] = true;
+        covariant[SR.Ref_ReturnScope][SR.Ref      ] = true;
+        covariant[SR.Ref_ReturnScope][SR.ReturnRef] = true;
+
+        return covariant;
+    }
+
+    extern (D) static immutable bool[SR.max + 1][SR.max + 1] covariant = covariantInit();
 }

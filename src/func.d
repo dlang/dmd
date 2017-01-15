@@ -685,6 +685,10 @@ extern (C++) class FuncDeclaration : Declaration
                     sc.stc |= STCref;
             }
 
+            // 'return' on a non-static class member function implies 'scope' as well
+            if (ad && ad.isClassDeclaration() && (tf.isreturn || sc.stc & STCreturn) && !(sc.stc & STCstatic))
+                sc.stc |= STCscope;
+
             sc.linkage = linkage;
 
             if (!tf.isNaked() && !(isThis() || isNested()))
@@ -2376,6 +2380,7 @@ extern (C++) class FuncDeclaration : Declaration
     {
         if (ad)
         {
+            //printf("declareThis() %s\n", toChars());
             Type thandle = ad.handleType();
             assert(thandle);
             thandle = thandle.addMod(type.mod);
