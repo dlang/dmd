@@ -3142,9 +3142,7 @@ L2:
  */
 
 code *cdlngsht(elem *e,regm_t *pretregs)
-{ regm_t retregs;
-  code *c;
-
+{
 #ifdef DEBUG
     switch (e->Eoper)
     {
@@ -3160,41 +3158,48 @@ code *cdlngsht(elem *e,regm_t *pretregs)
     }
 #endif
 
-  if (e->Eoper == OP16_8)
-  {     retregs = *pretregs ? BYTEREGS : 0;
-        c = codelem(e->E1,&retregs,FALSE);
-  }
-  else
-  {     if (e->E1->Eoper == OPrelconst)
-            c = offsetinreg(e->E1,&retregs);
+    CodeBuilder cdb;
+    regm_t retregs;
+    if (e->Eoper == OP16_8)
+    {
+        retregs = *pretregs ? BYTEREGS : 0;
+        cdb.append(codelem(e->E1,&retregs,FALSE));
+    }
+    else
+    {
+        if (e->E1->Eoper == OPrelconst)
+            cdb.append(offsetinreg(e->E1,&retregs));
         else
-        {   retregs = *pretregs ? ALLREGS : 0;
-            c = codelem(e->E1,&retregs,FALSE);
+        {
+            retregs = *pretregs ? ALLREGS : 0;
+            cdb.append(codelem(e->E1,&retregs,FALSE));
             bool isOff = e->Eoper == OPoffset;
             if (I16 ||
                 I32 && (isOff || e->Eoper == OP64_32) ||
                 I64 && (isOff || e->Eoper == OP128_64))
-                retregs &= mLSW;                /* want LSW only        */
+                retregs &= mLSW;                // want LSW only
         }
-  }
+    }
 
-  /* We "destroy" a reg by assigning it the result of a new e, even     */
-  /* though the values are the same. Weakness of our CSE strategy that  */
-  /* a register can only hold the contents of one elem at a time.       */
-  if (e->Ecount)
-        c = cat(c,getregs(retregs));
-  else
+    /* We "destroy" a reg by assigning it the result of a new e, even
+     * though the values are the same. Weakness of our CSE strategy that
+     * a register can only hold the contents of one elem at a time.
+     */
+    if (e->Ecount)
+        cdb.append(getregs(retregs));
+    else
         useregs(retregs);
 
 #ifdef DEBUG
-  if (!(!*pretregs || retregs))
-  {
+    if (!(!*pretregs || retregs))
+    {
         WROP(e->Eoper),
         printf(" *pretregs = %s, retregs = %s, e = %p\n",regm_str(*pretregs),regm_str(retregs),e);
-  }
+    }
 #endif
-  assert(!*pretregs || retregs);
-  return cat(c,fixresult(e,retregs,pretregs));  /* lsw only             */
+    assert(!*pretregs || retregs);
+    cdb.append(fixresult(e,retregs,pretregs));  // lsw only
+    return cdb.finish();
 }
 
 /**********************************************
@@ -3205,21 +3210,20 @@ code *cdlngsht(elem *e,regm_t *pretregs)
  */
 
 code *cdmsw(elem *e,regm_t *pretregs)
-{   regm_t retregs;
-    code *c;
-
-    //printf("cdmsw(e->Ecount = %d)\n", e->Ecount);
+{
     assert(e->Eoper == OPmsw);
 
-    retregs = *pretregs ? ALLREGS : 0;
-    c = codelem(e->E1,&retregs,FALSE);
+    CodeBuilder cdb;
+    regm_t retregs = *pretregs ? ALLREGS : 0;
+    cdb.append(codelem(e->E1,&retregs,FALSE));
     retregs &= mMSW;                    // want MSW only
 
-    // We "destroy" a reg by assigning it the result of a new e, even
-    // though the values are the same. Weakness of our CSE strategy that
-    // a register can only hold the contents of one elem at a time.
+    /* We "destroy" a reg by assigning it the result of a new e, even
+     * though the values are the same. Weakness of our CSE strategy that
+     * a register can only hold the contents of one elem at a time.
+     */
     if (e->Ecount)
-        c = cat(c,getregs(retregs));
+        cdb.append(getregs(retregs));
     else
         useregs(retregs);
 
@@ -3231,7 +3235,8 @@ code *cdmsw(elem *e,regm_t *pretregs)
     }
 #endif
     assert(!*pretregs || retregs);
-    return cat(c,fixresult(e,retregs,pretregs));        // msw only
+    cdb.append(fixresult(e,retregs,pretregs));  // msw only
+    return cdb.finish();
 }
 
 
@@ -3241,50 +3246,51 @@ code *cdmsw(elem *e,regm_t *pretregs)
  */
 
 code *cdport(elem *e,regm_t *pretregs)
-{   regm_t retregs;
-    code *c1,*c2,*c3;
-    unsigned char op,port;
-    unsigned sz;
-    elem *e1;
-
+{
     //printf("cdport\n");
-    op = 0xE4;                          /* root of all IN/OUT opcodes   */
-    e1 = e->E1;
+    unsigned char op = 0xE4;            // root of all IN/OUT opcodes
+    elem *e1 = e->E1;
+    CodeBuilder cdb;
 
     // See if we can use immediate mode of IN/OUT opcodes
+    unsigned char port;
     if (e1->Eoper == OPconst && e1->EV.Vuns <= 255 &&
         (!evalinregister(e1) || regcon.mvar & mDX))
-    {   port = e1->EV.Vuns;
+    {
+        port = e1->EV.Vuns;
         freenode(e1);
-        c1 = CNIL;
     }
     else
-    {   retregs = mDX;                  /* port number is always DX     */
-        c1 = codelem(e1,&retregs,FALSE);
-        op |= 0x08;                     /* DX version of opcode         */
+    {
+        regm_t retregs = mDX;           // port number is always DX
+        cdb.append(codelem(e1,&retregs,FALSE));
+        op |= 0x08;                     // DX version of opcode
         port = 0;                       // not logically needed, but
                                         // quiets "uninitialized var" complaints
     }
 
+    unsigned sz;
     if (e->Eoper == OPoutp)
     {
         sz = tysize(e->E2->Ety);
-        retregs = mAX;                  /* byte/word to output is in AL/AX */
-        c2 = scodelem(e->E2,&retregs,((op & 0x08) ? mDX : (regm_t) 0),TRUE);
-        op |= 0x02;                     /* OUT opcode                   */
+        regm_t retregs = mAX;           // byte/word to output is in AL/AX
+        cdb.append(scodelem(e->E2,&retregs,((op & 0x08) ? mDX : (regm_t) 0),TRUE));
+        op |= 0x02;                     // OUT opcode
     }
     else // OPinp
-    {   c2 = getregs(mAX);
+    {
+        cdb.append(getregs(mAX));
         sz = tysize(e->Ety);
     }
 
     if (sz != 1)
-        op |= 1;                        /* word operation               */
-    c3 = genc2(CNIL,op,0,port);         /* IN/OUT AL/AX,DX/port         */
+        op |= 1;                        // word operation
+    cdb.genc2(op,0,port);               // IN/OUT AL/AX,DX/port
     if (op & 1 && sz != REGSIZE)        // if need size override
-        c3->Iflags |= CFopsize;
-    retregs = mAX;
-    return cat4(c1,c2,c3,fixresult(e,retregs,pretregs));
+        cdb.last()->Iflags |= CFopsize;
+    regm_t retregs = mAX;
+    cdb.append(fixresult(e,retregs,pretregs));
+    return cdb.finish();
 }
 
 /************************
