@@ -3606,7 +3606,7 @@ static if (is(BCGen))
                 auto jump = beginCndJmp();
                 if (caseStmt.statement)
                 {
-                    import ddmd.statement : BE;
+                    import ddmd.blockexit;
 
                     bool blockReturns = !!(caseStmt.statement.blockExit(me, false) & BEany);
                     auto caseBlock = genBlock(caseStmt.statement);
