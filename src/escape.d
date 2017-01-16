@@ -532,15 +532,15 @@ private bool checkEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         /* Check for returning a ref variable by 'ref', but should be 'return ref'
          * Infer the addition of 'return', or set result to be the offending expression.
          */
-        if (global.params.useDIP25 &&
-            (v.storage_class & (STCref | STCout)) &&
+        if ( (v.storage_class & (STCref | STCout)) &&
             !(v.storage_class & (STCreturn | STCforeach)))
         {
             if (sc.func.flags & FUNCFLAGreturnInprocess && p == sc.func)
             {
                 inferReturn(sc.func, v);        // infer addition of 'return'
             }
-            else if (sc._module && sc._module.isRoot())
+            else if (global.params.useDIP25 &&
+                     sc._module && sc._module.isRoot())
             {
                 // Only look for errors if in module listed on command line
 
