@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(DMDSRC _libelf.d)
@@ -225,7 +225,7 @@ final class LibElf : Library
                     if (m == objmodules.dim)
                         return corrupt(__LINE__);  // didn't find it
                     ElfObjModule* om = objmodules[m];
-                    //printf("\t%x\n", (char *)om->base - (char *)buf);
+                    //printf("\t%x\n", (char *)om.base - (char *)buf);
                     if (moff + ElfLibHeader.sizeof == cast(char*)om.base - cast(char*)buf)
                     {
                         addSymbol(om, name, 1);
@@ -430,7 +430,7 @@ private:
         }
         static if (LOG)
         {
-            printf("\tlibbuf->moffset = x%x\n", libbuf.offset);
+            printf("\tlibbuf.moffset = x%x\n", libbuf.offset);
         }
         /* Write out the string section
          */
@@ -473,7 +473,7 @@ private:
         }
         static if (LOG)
         {
-            printf("moffset = x%x, libbuf->offset = x%x\n", moffset, libbuf.offset);
+            printf("moffset = x%x, libbuf.offset = x%x\n", moffset, libbuf.offset);
         }
         assert(libbuf.offset == moffset);
     }

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(DMDSRC _dscope.d)
@@ -233,7 +233,7 @@ struct Scope
                 assert(!(enclosing.flags & SCOPEfree));
             if (s == enclosing)
             {
-                printf("this = %p, enclosing = %p, enclosing->enclosing = %p\n", s, &this, enclosing);
+                printf("this = %p, enclosing = %p, enclosing.enclosing = %p\n", s, &this, enclosing);
             }
             assert(s != enclosing);
         }
@@ -249,7 +249,7 @@ struct Scope
 
     extern (C++) Scope* push(ScopeDsymbol ss)
     {
-        //printf("Scope::push(%s)\n", ss->toChars());
+        //printf("Scope::push(%s)\n", ss.toChars());
         Scope* s = push();
         s.scopesym = ss;
         return s;
@@ -667,7 +667,7 @@ struct Scope
             //printf("\tsc = %p\n", sc);
             if (sc.scopesym)
             {
-                //printf("\t\tsc->scopesym = %p\n", sc->scopesym);
+                //printf("\t\tsc.scopesym = %p\n", sc.scopesym);
                 if (!sc.scopesym.symtab)
                     sc.scopesym.symtab = new DsymbolTable();
                 return sc.scopesym.symtabInsert(s);
@@ -725,8 +725,8 @@ struct Scope
             //printf("\tsc = %p\n", sc);
             sc.nofree = 1;
             assert(!(flags & SCOPEfree));
-            //assert(sc != sc->enclosing);
-            //assert(!sc->enclosing || sc != sc->enclosing->enclosing);
+            //assert(sc != sc.enclosing);
+            //assert(!sc.enclosing || sc != sc.enclosing.enclosing);
             //if (++i == 10)
             //    assert(0);
         }

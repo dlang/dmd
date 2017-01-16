@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(DMDSRC _clone.d)
@@ -227,7 +227,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
 
     if (sd.dtor || sd.postblit)
     {
-        if (!sd.type.isAssignable()) // Bugzilla 13044
+        if (!sd.type.isAssignable()) // https://issues.dlang.org/show_bug.cgi?id=13044
             return null;
         stc = mergeFuncAttrs(stc, sd.dtor);
         if (stc & STCsafe)
@@ -313,7 +313,8 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     sc2.linkage = LINKd;
     fop.semantic(sc2);
     fop.semantic2(sc2);
-    // Bugzilla 15044: fop.semantic3 isn't run here for lazy forward reference resolution.
+    // https://issues.dlang.org/show_bug.cgi?id=15044
+    // fop.semantic3 isn't run here for lazy forward reference resolution.
 
     sc2.pop();
     if (global.endGagging(errors)) // if errors happened
@@ -358,7 +359,7 @@ extern (C++) bool needOpEquals(StructDeclaration sd)
                 continue;
             if (needOpEquals(ts.sym))
                 goto Lneed;
-            if (ts.sym.aliasthis) // Bugzilla 14806
+            if (ts.sym.aliasthis) // https://issues.dlang.org/show_bug.cgi?id=14806
                 goto Lneed;
         }
         if (tv.isfloating())
@@ -438,7 +439,8 @@ extern (C++) FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope*
  * Build opEquals for struct.
  *      const bool opEquals(const S s) { ... }
  *
- * By fixing bugzilla 3789, opEquals is changed to be never implicitly generated.
+ * By fixing https://issues.dlang.org/show_bug.cgi?id=3789
+ * opEquals is changed to be never implicitly generated.
  * Now, struct objects comparison s1 == s2 is translated to:
  *      s1.tupleof == s2.tupleof
  * to calculate structural equality. See EqualExp.op_overload.
@@ -677,7 +679,7 @@ private bool needToHash(StructDeclaration sd)
                 continue;
             if (needToHash(ts.sym))
                 goto Lneed;
-            if (ts.sym.aliasthis) // Bugzilla 14948
+            if (ts.sym.aliasthis) // https://issues.dlang.org/show_bug.cgi?id=14948
                 goto Lneed;
         }
         if (tv.isfloating())
@@ -780,7 +782,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         stc |= sd.postblits[i].storage_class & STCdisable;
     }
 
-    Statements* a = null;
+    auto a = new Statements();
     for (size_t i = 0; i < sd.fields.dim && !(stc & STCdisable); i++)
     {
         auto v = sd.fields[i];
@@ -801,11 +803,9 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         stc = mergeFuncAttrs(stc, sdv.dtor);
         if (stc & STCdisable)
         {
-            a = null;
+            a.setDim(0);
             break;
         }
-        if (!a)
-            a = new Statements();
 
         Expression ex;
         tv = v.type.toBasetype();
@@ -857,7 +857,8 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         }
         a.push(new ExpStatement(loc, ex)); // combine in forward order
 
-        /* Bugzilla 10972: When the following field postblit calls fail,
+        /* https://issues.dlang.org/show_bug.cgi?id=10972
+         * When the following field postblit calls fail,
          * this field should be destructed for Exception Safety.
          */
         if (!sdv.dtor)
@@ -915,14 +916,14 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         a.push(new OnScopeStatement(loc, TOKon_scope_failure, new ExpStatement(loc, ex)));
     }
 
-    /* Build our own "postblit" which executes a
-     */
-    if (a || (stc & STCdisable))
+    // Build our own "postblit" which executes a, but only if needed.
+    if (a.dim || (stc & STCdisable))
     {
         //printf("Building __fieldPostBlit()\n");
         auto dd = new PostBlitDeclaration(declLoc, Loc(), stc, Id.__fieldPostblit);
+        dd.generated = true;
         dd.storage_class |= STCinference;
-        dd.fbody = a ? new CompoundStatement(loc, a) : null;
+        dd.fbody = (stc & STCdisable) ? null : new CompoundStatement(loc, a);
         sd.postblits.shift(dd);
         sd.members.push(dd);
         dd.semantic(sc);
@@ -1074,6 +1075,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     {
         //printf("Building __fieldDtor()\n");
         auto dd = new DtorDeclaration(declLoc, Loc(), stc, Id.__fieldDtor);
+        dd.generated = true;
         dd.storage_class |= STCinference;
         dd.fbody = new ExpStatement(loc, e);
         ad.dtors.shift(dd);
@@ -1109,6 +1111,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
             e = Expression.combine(ex, e);
         }
         auto dd = new DtorDeclaration(declLoc, Loc(), stc, Id.__aggrDtor);
+        dd.generated = true;
         dd.storage_class |= STCinference;
         dd.fbody = new ExpStatement(loc, e);
         ad.members.push(dd);

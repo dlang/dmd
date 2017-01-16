@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(DMDSRC _attrib.d)
@@ -121,7 +121,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
             for (size_t i = 0; i < d.dim; i++)
             {
                 Dsymbol s = (*d)[i];
-                //printf("\taddMember %s to %s\n", s->toChars(), sds->toChars());
+                //printf("\taddMember %s to %s\n", s.toChars(), sds.toChars());
                 s.addMember(sc2, sds);
             }
             if (sc2 != sc)
@@ -223,7 +223,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
                 for (size_t i = 0; i < d.dim; i++)
                 {
                     Dsymbol s = (*d)[i];
-                    //printf("AttribDeclaration::addComment %s\n", s->toChars());
+                    //printf("AttribDeclaration::addComment %s\n", s.toChars());
                     s.addComment(comment);
                 }
             }
@@ -802,8 +802,8 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
                     offset = 0;
             }
 
-            /* Bugzilla 13613: If the fields in this->members had been already
-             * added in ad->fields, just update *poffset for the subsequent
+            /* Bugzilla 13613: If the fields in this.members had been already
+             * added in ad.fields, just update *poffset for the subsequent
              * field offset calculation.
              */
             if (fieldstart == ad.fields.dim)
@@ -1176,7 +1176,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
 
     override final bool oneMember(Dsymbol* ps, Identifier ident)
     {
-        //printf("ConditionalDeclaration::oneMember(), inc = %d\n", condition->inc);
+        //printf("ConditionalDeclaration::oneMember(), inc = %d\n", condition.inc);
         if (condition.inc)
         {
             Dsymbols* d = condition.include(null, null) ? decl : elsedecl;
@@ -1215,7 +1215,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
                     for (size_t i = 0; i < d.dim; i++)
                     {
                         Dsymbol s = (*d)[i];
-                        //printf("ConditionalDeclaration::addComment %s\n", s->toChars());
+                        //printf("ConditionalDeclaration::addComment %s\n", s.toChars());
                         s.addComment(comment);
                     }
                 }
@@ -1381,7 +1381,7 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
 
     void compileIt(Scope* sc)
     {
-        //printf("CompileDeclaration::compileIt(loc = %d) %s\n", loc.linnum, exp->toChars());
+        //printf("CompileDeclaration::compileIt(loc = %d) %s\n", loc.linnum, exp.toChars());
         auto se = semanticString(sc, exp, "argument to mixin");
         if (!se)
             return;

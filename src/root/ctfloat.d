@@ -1,5 +1,5 @@
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2016 by Digital Mars
+// Copyright (c) 1999-2017 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -70,6 +70,16 @@ extern (C++) struct CTFloat
         // don't compare pad bytes in extended precision
         enum sz = (real_t.mant_dig == 64) ? 10 : real_t.sizeof;
         return memcmp(&a, &b, sz) == 0;
+    }
+
+    static size_t hash(real_t a)
+    {
+        import ddmd.root.hash : calcHash;
+
+        if (isNaN(a))
+            a = real_t.nan;
+        enum sz = (real_t.mant_dig == 64) ? 10 : real_t.sizeof;
+        return calcHash(cast(ubyte*) &a, sz);
     }
 
     static bool isNaN(real_t r)

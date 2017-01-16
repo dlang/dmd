@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(DMDSRC _sideeffect.d)
@@ -206,12 +206,14 @@ extern (C++) bool lambdaHasSideEffect(Expression e)
 
 /***********************************
  * The result of this expression will be discarded.
- * Complain if the operation has no side effects (and hence is meaningless).
+ * Print error messages if the operation has no side effects (and hence is meaningless).
+ * Returns:
+ *      true if expression has no side effects
  */
-extern (C++) void discardValue(Expression e)
+extern (C++) bool discardValue(Expression e)
 {
     if (lambdaHasSideEffect(e)) // check side-effect shallowly
-        return;
+        return false;
     switch (e.op)
     {
     case TOKcast:
@@ -222,19 +224,19 @@ extern (C++) void discardValue(Expression e)
                 /*
                  * Don't complain about an expression with no effect if it was cast to void
                  */
-                return;
+                return false;
             }
             break; // complain
         }
     case TOKerror:
-        return;
+        return false;
     case TOKvar:
         {
             VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
             if (v && (v.storage_class & STCtemp))
             {
                 // Bugzilla 5810: Don't complain about an internal generated variable.
-                return;
+                return false;
             }
             break;
         }
@@ -265,7 +267,7 @@ extern (C++) void discardValue(Expression e)
                         s = ce.f.toPrettyChars();
                     else if (ce.e1.op == TOKstar)
                     {
-                        // print 'fp' if ce->e1 is (*fp)
+                        // print 'fp' if ce.e1 is (*fp)
                         s = (cast(PtrExp)ce.e1).e1.toChars();
                     }
                     else
@@ -274,21 +276,19 @@ extern (C++) void discardValue(Expression e)
                 }
             }
         }
-        return;
+        return false;
     case TOKscope:
         e.error("%s has no effect", e.toChars());
-        return;
+        return true;
     case TOKandand:
         {
             AndAndExp aae = cast(AndAndExp)e;
-            discardValue(aae.e2);
-            return;
+            return discardValue(aae.e2);
         }
     case TOKoror:
         {
             OrOrExp ooe = cast(OrOrExp)e;
-            discardValue(ooe.e2);
-            return;
+            return discardValue(ooe.e2);
         }
     case TOKquestion:
         {
@@ -313,10 +313,10 @@ extern (C++) void discardValue(Expression e)
              */
             if (!lambdaHasSideEffect(ce.e1) && !lambdaHasSideEffect(ce.e2))
             {
-                discardValue(ce.e1);
-                discardValue(ce.e2);
+                return discardValue(ce.e1) |
+                       discardValue(ce.e2);
             }
-            return;
+            return false;
         }
     case TOKcomma:
         {
@@ -331,12 +331,11 @@ extern (C++) void discardValue(Expression e)
                 firstComma = cast(CommaExp)firstComma.e1;
             if (firstComma.e1.op == TOKdeclaration && ce.e2.op == TOKvar && (cast(DeclarationExp)firstComma.e1).declaration == (cast(VarExp)ce.e2).var)
             {
-                return;
+                return false;
             }
             // Don't check e1 until we cast(void) the a,b code generation
-            //discardValue(ce->e1);
-            discardValue(ce.e2);
-            return;
+            //discardValue(ce.e1);
+            return discardValue(ce.e2);
         }
     case TOKtuple:
         /* Pass without complaint if any of the tuple elements have side effects.
@@ -345,11 +344,12 @@ extern (C++) void discardValue(Expression e)
          */
         if (!hasSideEffect(e))
             break;
-        return;
+        return false;
     default:
         break;
     }
     e.error("%s has no effect in expression (%s)", Token.toChars(e.op), e.toChars());
+    return true;
 }
 
 /**************************************************

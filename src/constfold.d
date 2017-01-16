@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(DMDSRC _constfold.d)
@@ -44,7 +44,7 @@ extern (C++) Expression expType(Type type, Expression e)
 /* ================================== isConst() ============================== */
 extern (C++) int isConst(Expression e)
 {
-    //printf("Expression::isConst(): %s\n", e->toChars());
+    //printf("Expression::isConst(): %s\n", e.toChars());
     switch (e.op)
     {
     case TOKint64:
@@ -374,8 +374,8 @@ extern (C++) UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
     if (type.isfloating())
     {
         auto c = complex_t(CTFloat.zero);
-        //e1->type->print();
-        //e2->type->print();
+        //e1.type.print();
+        //e2.type.print();
         if (e2.type.isreal())
         {
             if (e1.type.isreal())
@@ -706,7 +706,7 @@ extern (C++) UnionExp Equal(TOK op, Loc loc, Type type, Expression e1, Expressio
     int cmp = 0;
     real_t r1 = 0;
     real_t r2 = 0;
-    //printf("Equal(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
+    //printf("Equal(e1 = %s, e2 = %s)\n", e1.toChars(), e2.toChars());
     assert(op == TOKequal || op == TOKnotequal);
     if (e1.op == TOKnull)
     {
@@ -952,7 +952,7 @@ extern (C++) UnionExp Cmp(TOK op, Loc loc, Type type, Expression e1, Expression 
     dinteger_t n;
     real_t r1 = 0;
     real_t r2 = 0;
-    //printf("Cmp(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
+    //printf("Cmp(e1 = %s, e2 = %s)\n", e1.toChars(), e2.toChars());
     if (e1.op == TOKstring && e2.op == TOKstring)
     {
         StringExp es1 = cast(StringExp)e1;
@@ -1013,8 +1013,8 @@ extern (C++) UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
     UnionExp ue;
     Type tb = to.toBasetype();
     Type typeb = type.toBasetype();
-    //printf("Cast(type = %s, to = %s, e1 = %s)\n", type->toChars(), to->toChars(), e1->toChars());
-    //printf("\te1->type = %s\n", e1->type->toChars());
+    //printf("Cast(type = %s, to = %s, e1 = %s)\n", type.toChars(), to.toChars(), e1.toChars());
+    //printf("\te1.type = %s\n", e1.type.toChars());
     if (e1.type.equals(type) && type.equals(to))
     {
         emplaceExp!(UnionExp)(&ue, e1);
@@ -1198,7 +1198,7 @@ extern (C++) UnionExp Index(Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
     Loc loc = e1.loc;
-    //printf("Index(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
+    //printf("Index(e1 = %s, e2 = %s)\n", e1.toChars(), e2.toChars());
     assert(e1.type);
     if (e1.op == TOKstring && e2.op == TOKint64)
     {
@@ -1431,8 +1431,8 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
     Type t;
     Type t1 = e1.type.toBasetype();
     Type t2 = e2.type.toBasetype();
-    //printf("Cat(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
-    //printf("\tt1 = %s, t2 = %s, type = %s\n", t1->toChars(), t2->toChars(), type->toChars());
+    //printf("Cat(e1 = %s, e2 = %s)\n", e1.toChars(), e2.toChars());
+    //printf("\tt1 = %s, t2 = %s, type = %s\n", t1.toChars(), t2.toChars(), type.toChars());
     if (e1.op == TOKnull && (e2.op == TOKint64 || e2.op == TOKstructliteral))
     {
         e = e2;
@@ -1729,7 +1729,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
 
 extern (C++) UnionExp Ptr(Type type, Expression e1)
 {
-    //printf("Ptr(e1 = %s)\n", e1->toChars());
+    //printf("Ptr(e1 = %s)\n", e1.toChars());
     UnionExp ue;
     if (e1.op == TOKadd)
     {

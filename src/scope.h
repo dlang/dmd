@@ -109,6 +109,7 @@ struct Scope
     AlignDeclaration *aligndecl;    // alignment for struct members
 
     LINK linkage;               // linkage for external functions
+    CPPMANGLE cppmangle;        // C++ mangle type
     PINLINE inlining;            // inlining strategy for functions
 
     Prot protection;            // protection for class members

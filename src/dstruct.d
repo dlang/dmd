@@ -1,5 +1,5 @@
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2016 by Digital Mars
+// Copyright (c) 1999-2017 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -148,7 +148,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
             {
                 if (sd.inNonRoot())
                 {
-                    //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd->toChars(), sd->inNonRoot());
+                    //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd.toChars(), sd.inNonRoot());
                     Module.addDeferredSemantic3(sd);
                 }
             }

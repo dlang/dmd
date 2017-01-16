@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/_tocsym.d, _toir.d)
@@ -37,24 +37,23 @@ import ddmd.dmodule;
 import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
+import ddmd.toctype;
+import ddmd.e2ir;
 import ddmd.func;
 import ddmd.globals;
+import ddmd.glue;
 import ddmd.identifier;
 import ddmd.id;
 import ddmd.irstate;
 import ddmd.mtype;
 import ddmd.target;
+import ddmd.tocsym;
+
+alias toSymbol = ddmd.tocsym.toSymbol;
+alias toSymbol = ddmd.glue.toSymbol;
 
 
 extern (C++):
-
-bool ISREF(Declaration var, Type tb);
-bool ISWIN64REF(Declaration var);
-
-type *Type_toCtype(Type t);
-uint totym(Type tx);
-Symbol *toSymbol(Dsymbol s);
-void toTraceGC(IRState *irs, elem *e, Loc *loc);
 
 /*********************************************
  * Produce elem which increments the usage count for a particular line.
@@ -401,7 +400,7 @@ int intrinsic_op(FuncDeclaration fd)
         OPyl2xp1,
     ];
 
-    __gshared immutable char*[44] core_namearray =
+    __gshared immutable char*[46] core_namearray =
     [
         "4math3cosFNaNbNiNfeZe",
         "4math3sinFNaNbNiNfeZe",
@@ -437,7 +436,9 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop13volatileStoreFNbNiNfPttZv",
 
         "5bitop3bsfFNaNbNiNfkZi",
+        "5bitop3bsfFNaNbNiNfmZi",
         "5bitop3bsrFNaNbNiNfkZi",
+        "5bitop3bsrFNaNbNiNfmZi",
         "5bitop3btcFNaNbNiPkkZi",
         "5bitop3btrFNaNbNiPkkZi",
         "5bitop3btsFNaNbNiPkkZi",
@@ -453,7 +454,7 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop7_popcntFNaNbNiNfmxx", // don't find 64 bit version in 32 bit code
         "5bitop7_popcntFNaNbNiNftZt",
     ];
-    __gshared immutable char*[44] core_namearray64 =
+    __gshared immutable char*[46] core_namearray64 =
     [
         "4math3cosFNaNbNiNfeZe",
         "4math3sinFNaNbNiNfeZe",
@@ -488,7 +489,9 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop13volatileStoreFNbNiNfPmmZv",
         "5bitop13volatileStoreFNbNiNfPttZv",
 
+        "5bitop3bsfFNaNbNiNfkZi",
         "5bitop3bsfFNaNbNiNfmZi",
+        "5bitop3bsrFNaNbNiNfkZi",
         "5bitop3bsrFNaNbNiNfmZi",
         "5bitop3btcFNaNbNiPmmZi",
         "5bitop3btrFNaNbNiPmmZi",
@@ -505,7 +508,7 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop7_popcntFNaNbNiNfmZi",
         "5bitop7_popcntFNaNbNiNftZt",
     ];
-    __gshared immutable ubyte[44] core_ioptab =
+    __gshared immutable ubyte[46] core_ioptab =
     [
         OPcos,
         OPsin,
@@ -541,6 +544,8 @@ int intrinsic_op(FuncDeclaration fd)
         OPeq,
 
         OPbsf,
+        OPbsf,
+        OPbsr,
         OPbsr,
         OPbtc,
         OPbtr,
@@ -619,7 +624,17 @@ int intrinsic_op(FuncDeclaration fd)
             cast(const(char)**)(global.params.is64bit ? core_namearray64.ptr : core_namearray.ptr),
             cast(int)core_namearray.length);
         if (i != -1)
-            return core_ioptab[i];
+        {
+            int op = core_ioptab[i];
+            if (!global.params.is64bit &&
+                (op == OPbsf || op == OPbsr) &&
+                op == core_ioptab[i - 1])
+            {
+                // Don't recognize 64 bit bsf() / bsr() in 32 bit mode
+                op = -1;
+            }
+            return op;
+        }
 
         if (global.params.is64bit &&
             fd.toParent().isTemplateInstance() &&
@@ -894,7 +909,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
             elem *ev = el_var(toSymbol(v));
             if (win64ref)
             {
-                ev.Ety = TYnptr;
+                ev.Ety = TYnref;
                 ev = el_una(OPind, tym, ev);
                 if (tybasic(ev.Ety) == TYstruct || tybasic(ev.Ety) == TYarray)
                     ev.ET = Type_toCtype(v.type);

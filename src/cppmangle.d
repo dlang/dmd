@@ -1,7 +1,7 @@
 /**
  * Compiler implementation of the $(LINK2 http://www.dlang.org, D programming language)
  *
- * Copyright: Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright: Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(DMDSRC _cppmangle.d)
@@ -1467,7 +1467,12 @@ else static if (TARGET_WINDOS)
             buf.writeByte('?');
             mangleIdent(d);
             assert((d.storage_class & STCfield) || !d.needThis());
-            if (d.parent && d.parent.isModule()) // static member
+            Dsymbol parent = d.toParent();
+            while (parent && parent.isNspace())
+            {
+                parent = parent.toParent();
+            }
+            if (parent && parent.isModule()) // static member
             {
                 buf.writeByte('3');
             }

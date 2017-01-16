@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(DMDSRC _todt.d)
@@ -35,11 +35,16 @@ import ddmd.init;
 import ddmd.mtype;
 import ddmd.target;
 import ddmd.tokens;
+import ddmd.tocsym;
+import ddmd.toobj;
 import ddmd.typinf;
 import ddmd.visitor;
 
 import ddmd.backend.cc;
 import ddmd.backend.dt;
+
+alias toSymbol = ddmd.tocsym.toSymbol;
+alias toSymbol = ddmd.glue.toSymbol;
 
 /* A dt_t is a simple structure representing data to be added
  * to the data segment of the output object file. As such,
@@ -50,17 +55,6 @@ import ddmd.backend.dt;
  */
 
 alias Dts = Array!(dt_t*);
-
-extern (C++) Symbol* toSymbol(Dsymbol s);
-extern (C++) uint baseVtblOffset(ClassDeclaration cd, BaseClass* bc);
-extern (C++) void toObjFile(Dsymbol ds, bool multiobj);
-extern (C++) Symbol* toVtblSymbol(ClassDeclaration cd);
-extern (C++) Symbol* toSymbol(StructLiteralExp sle);
-extern (C++) Symbol* toSymbol(ClassReferenceExp cre);
-extern (C++) Symbol* toInitializer(AggregateDeclaration ad);
-extern (C++) Symbol* toInitializer(EnumDeclaration ed);
-extern (C++) FuncDeclaration search_toString(StructDeclaration sd);
-extern (C++) Symbol* toSymbolCppTypeInfo(ClassDeclaration cd);
 
 /* ================================================================ */
 
@@ -746,8 +740,12 @@ private void membersToDt(AggregateDeclaration ad, DtBuilder dtb,
     {
         if (elements && !(*elements)[firstFieldIndex + i])
             continue;
-        else if (ad.fields[i]._init && ad.fields[i]._init.isVoidInitializer())
-            continue;
+
+        if (!elements || !(*elements)[firstFieldIndex + i])
+        {
+            if (ad.fields[i]._init && ad.fields[i]._init.isVoidInitializer())
+                continue;
+        }
 
         VarDeclaration vd;
         size_t k;
@@ -759,8 +757,12 @@ private void membersToDt(AggregateDeclaration ad, DtBuilder dtb,
 
             if (elements && !(*elements)[firstFieldIndex + j])
                 continue;
-            if (v2._init && v2._init.isVoidInitializer())
-                continue;
+
+            if (!elements || !(*elements)[firstFieldIndex + j])
+            {
+                if (v2._init && v2._init.isVoidInitializer())
+                    continue;
+            }
 
             // find the nearest field
             if (!vd || v2.offset < vd.offset)

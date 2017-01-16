@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(DMDSRC _dcast.d)
@@ -106,7 +106,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
 
         override void visit(StringExp e)
         {
-            //printf("StringExp::implicitCastTo(%s of type %s) => %s\n", e->toChars(), e->type->toChars(), t->toChars());
+            //printf("StringExp::implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
             visit(cast(Expression)e);
             if (result.op == TOKstring)
             {
@@ -122,7 +122,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
 
         override void visit(FuncExp e)
         {
-            //printf("FuncExp::implicitCastTo type = %p %s, t = %s\n", e->type, e->type ? e->type->toChars() : NULL, t->toChars());
+            //printf("FuncExp::implicitCastTo type = %p %s, t = %s\n", e.type, e.type ? e.type.toChars() : NULL, t.toChars());
             FuncExp fe;
             if (e.matchType(t, sc, &fe) > MATCHnomatch)
             {
@@ -209,7 +209,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             }
             if (ex != e)
             {
-                //printf("\toptimized to %s of type %s\n", e->toChars(), e->type->toChars());
+                //printf("\toptimized to %s of type %s\n", e.toChars(), e.type.toChars());
                 result = ex.implicitConvTo(t);
                 return;
             }
@@ -479,8 +479,8 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 }
 
             case Tpointer:
-                //printf("type = %s\n", type->toBasetype()->toChars());
-                //printf("t = %s\n", t->toBasetype()->toChars());
+                //printf("type = %s\n", type.toBasetype()->toChars());
+                //printf("t = %s\n", t.toBasetype()->toChars());
                 if (ty == Tpointer && e.type.toBasetype().nextOf().ty == t.toBasetype().nextOf().ty)
                 {
                     /* Allow things like:
@@ -550,7 +550,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     Type te = el.type;
                     te = e.sd.fields[i].type.addMod(t.mod);
                     MATCH m2 = el.implicitConvTo(te);
-                    //printf("\t%s => %s, match = %d\n", el->toChars(), te->toChars(), m2);
+                    //printf("\t%s => %s, match = %d\n", el.toChars(), te.toChars(), m2);
                     if (m2 < result)
                         result = m2;
                 }
@@ -1047,7 +1047,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
 
         override void visit(FuncExp e)
         {
-            //printf("FuncExp::implicitConvTo type = %p %s, t = %s\n", e->type, e->type ? e->type->toChars() : NULL, t->toChars());
+            //printf("FuncExp::implicitConvTo type = %p %s, t = %s\n", e.type, e.type ? e.type.toChars() : NULL, t.toChars());
             MATCH m = e.matchType(t, null, null, 1);
             if (m > MATCHnomatch)
             {
@@ -1328,7 +1328,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
 
         override void visit(SliceExp e)
         {
-            //printf("SliceExp::implicitConvTo e = %s, type = %s\n", e->toChars(), e->type->toChars());
+            //printf("SliceExp::implicitConvTo e = %s, type = %s\n", e.toChars(), e.type.toChars());
             visit(cast(Expression)e);
             if (result != MATCHnomatch)
                 return;
@@ -1354,7 +1354,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 Type tbn = tb.nextOf();
                 Type tx = null;
 
-                /* If e->e1 is dynamic array or pointer, the uniqueness of e->e1
+                /* If e.e1 is dynamic array or pointer, the uniqueness of e.e1
                  * is equivalent with the uniqueness of the referred data. And in here
                  * we can have arbitrary typed reference for that.
                  */
@@ -1363,8 +1363,8 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 if (t1b.ty == Tpointer)
                     tx = tbn.pointerTo();
 
-                /* If e->e1 is static array, at least it should be an rvalue.
-                 * If not, e->e1 is a reference, and its uniqueness does not link
+                /* If e.e1 is static array, at least it should be an rvalue.
+                 * If not, e.e1 is a reference, and its uniqueness does not link
                  * to the uniqueness of the referred data.
                  */
                 if (t1b.ty == Tsarray && !e.e1.isLvalue())
@@ -1434,7 +1434,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
 
         override void visit(Expression e)
         {
-            //printf("Expression::castTo(this=%s, t=%s)\n", e->toChars(), t->toChars());
+            //printf("Expression::castTo(this=%s, t=%s)\n", e.toChars(), t.toChars());
             version (none)
             {
                 printf("Expression::castTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
@@ -1459,7 +1459,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             Type t1b = e.type.toBasetype();
             if (tob.equals(t1b))
             {
-                result = e.copy(); // because of COW for assignment to e->type
+                result = e.copy(); // because of COW for assignment to e.type
                 result.type = t;
                 return;
             }
@@ -1509,7 +1509,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             }
             else if (tob.ty == Tvector && t1b.ty != Tvector)
             {
-                //printf("test1 e = %s, e->type = %s, tob = %s\n", e->toChars(), e->type->toChars(), tob->toChars());
+                //printf("test1 e = %s, e.type = %s, tob = %s\n", e.toChars(), e.type.toChars(), tob.toChars());
                 TypeVector tv = cast(TypeVector)tob;
                 result = new CastExp(e.loc, e, tv.elementType());
                 result = new VectorExp(e.loc, result, tob);
@@ -1635,7 +1635,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
         Lok:
             result = new CastExp(e.loc, e, t);
             result.type = t; // Don't call semantic()
-            //printf("Returning: %s\n", result->toChars());
+            //printf("Returning: %s\n", result.toChars());
         }
 
         override void visit(ErrorExp e)
@@ -1677,7 +1677,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
 
         override void visit(NullExp e)
         {
-            //printf("NullExp::castTo(t = %s) %s\n", t->toChars(), toChars());
+            //printf("NullExp::castTo(t = %s) %s\n", t.toChars(), toChars());
             visit(cast(Expression)e);
             if (result.op == TOKnull)
             {
@@ -1698,11 +1698,11 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
         {
             /* This follows copy-on-write; any changes to 'this'
              * will result in a copy.
-             * The this->string member is considered immutable.
+             * The this.string member is considered immutable.
              */
             int copied = 0;
 
-            //printf("StringExp::castTo(t = %s), '%s' committed = %d\n", t->toChars(), e->toChars(), e->committed);
+            //printf("StringExp::castTo(t = %s), '%s' committed = %d\n", t.toChars(), e.toChars(), e.committed);
 
             if (!e.committed && t.ty == Tpointer && t.nextOf().ty == Tvoid)
             {
@@ -1728,7 +1728,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             Type tb = t.toBasetype();
             Type typeb = e.type.toBasetype();
 
-            //printf("\ttype = %s\n", e->type->toChars());
+            //printf("\ttype = %s\n", e.type.toChars());
             if (tb.ty == Tdelegate && typeb.ty != Tdelegate)
             {
                 visit(cast(Expression)e);
@@ -1938,7 +1938,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             if (tb.ty == Tsarray)
             {
                 size_t dim2 = cast(size_t)(cast(TypeSArray)tb).dim.toInteger();
-                //printf("dim from = %d, to = %d\n", (int)se->len, (int)dim2);
+                //printf("dim from = %d, to = %d\n", (int)se.len, (int)dim2);
 
                 // Changing dimensions
                 if (dim2 != se.len)
@@ -2068,7 +2068,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             }
             result = te;
 
-            /* Questionable behavior: In here, result->type is not set to t.
+            /* Questionable behavior: In here, result.type is not set to t.
              * Therefoe:
              *  TypeTuple!(int, int) values;
              *  auto values2 = cast(long)values;
@@ -2352,7 +2352,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
 
         override void visit(FuncExp e)
         {
-            //printf("FuncExp::castTo type = %s, t = %s\n", e->type->toChars(), t->toChars());
+            //printf("FuncExp::castTo type = %s, t = %s\n", e.type.toChars(), t.toChars());
             FuncExp fe;
             if (e.matchType(t, sc, &fe, 1) > MATCHnomatch)
             {
@@ -2391,7 +2391,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
 
         override void visit(SliceExp e)
         {
-            //printf("SliceExp::castTo e = %s, type = %s, t = %s\n", e->toChars(), e->type->toChars(), t->toChars());
+            //printf("SliceExp::castTo e = %s, type = %s, t = %s\n", e.toChars(), e.type.toChars(), t.toChars());
 
             Type tb = t.toBasetype();
             Type typeb = e.type.toBasetype();
@@ -2437,7 +2437,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             if (tsa && tsa.dim.equals((cast(TypeSArray)tb).dim))
             {
                 /* Match if the dimensions are equal
-                 * with the implicit conversion of e->e1:
+                 * with the implicit conversion of e.e1:
                  *  cast(float[2]) [2.0, 1.0, 0.0][0..2];
                  */
                 Type t1b = e.e1.type.toBasetype();
@@ -2549,7 +2549,7 @@ extern (C++) Expression inferType(Expression e, Type t, int flag = 0)
 
         override void visit(FuncExp fe)
         {
-            //printf("FuncExp::inferType('%s'), to=%s\n", fe->type ? fe->type->toChars() : "null", t->toChars());
+            //printf("FuncExp::inferType('%s'), to=%s\n", fe.type ? fe.type.toChars() : "null", t.toChars());
             if (t.ty == Tdelegate || t.ty == Tpointer && t.nextOf().ty == Tfunction)
             {
                 fe.fd.treq = t;
@@ -2720,8 +2720,8 @@ extern (C++) bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expres
     Type att1 = null;
     Type att2 = null;
 
-    //if (t1) printf("\tt1 = %s\n", t1->toChars());
-    //if (t2) printf("\tt2 = %s\n", t2->toChars());
+    //if (t1) printf("\tt1 = %s\n", t1.toChars());
+    //if (t2) printf("\tt2 = %s\n", t2.toChars());
     debug
     {
         if (!t2)
@@ -3041,7 +3041,7 @@ Lagain:
                     goto Lincompatible;
                 if (!att1 && e1.type.checkAliasThisRec())
                     att1 = e1.type;
-                //printf("att tmerge(c || c) e1 = %s\n", e1->type->toChars());
+                //printf("att tmerge(c || c) e1 = %s\n", e1.type.toChars());
                 e1 = resolveAliasThis(sc, e1);
                 t1 = e1.type;
                 continue;
@@ -3052,7 +3052,7 @@ Lagain:
                     goto Lincompatible;
                 if (!att2 && e2.type.checkAliasThisRec())
                     att2 = e2.type;
-                //printf("att tmerge(c || c) e2 = %s\n", e2->type->toChars());
+                //printf("att tmerge(c || c) e2 = %s\n", e2.type.toChars());
                 e2 = resolveAliasThis(sc, e2);
                 t2 = e2.type;
                 continue;
@@ -3092,7 +3092,7 @@ Lagain:
                     goto Lincompatible;
                 if (!att2 && e2.type.checkAliasThisRec())
                     att2 = e2.type;
-                //printf("att tmerge(s && s) e2 = %s\n", e2->type->toChars());
+                //printf("att tmerge(s && s) e2 = %s\n", e2.type.toChars());
                 e2b = resolveAliasThis(sc, e2);
                 i1 = e2b.implicitConvTo(t1);
             }
@@ -3102,7 +3102,7 @@ Lagain:
                     goto Lincompatible;
                 if (!att1 && e1.type.checkAliasThisRec())
                     att1 = e1.type;
-                //printf("att tmerge(s && s) e1 = %s\n", e1->type->toChars());
+                //printf("att tmerge(s && s) e1 = %s\n", e1.type.toChars());
                 e1b = resolveAliasThis(sc, e1);
                 i2 = e1b.implicitConvTo(t2);
             }
@@ -3136,7 +3136,7 @@ Lagain:
                 goto Lincompatible;
             if (!att1 && e1.type.checkAliasThisRec())
                 att1 = e1.type;
-            //printf("att tmerge(s || s) e1 = %s\n", e1->type->toChars());
+            //printf("att tmerge(s || s) e1 = %s\n", e1.type.toChars());
             e1 = resolveAliasThis(sc, e1);
             t1 = e1.type;
             t = t1;
@@ -3148,7 +3148,7 @@ Lagain:
                 goto Lincompatible;
             if (!att2 && e2.type.checkAliasThisRec())
                 att2 = e2.type;
-            //printf("att tmerge(s || s) e2 = %s\n", e2->type->toChars());
+            //printf("att tmerge(s || s) e2 = %s\n", e2.type.toChars());
             e2 = resolveAliasThis(sc, e2);
             t2 = e2.type;
             t = t2;
@@ -3182,7 +3182,12 @@ Lagain:
     {
         // Bugzilla 13841, all vector types should have no common types between
         // different vectors, even though their sizes are same.
-        goto Lincompatible;
+        auto tv1 = cast(TypeVector)t1;
+        auto tv2 = cast(TypeVector)t2;
+        if (!tv1.basetype.equals(tv2.basetype))
+            goto Lincompatible;
+
+        goto LmodCompare;
     }
     else if (t1.ty == Tvector && t2.ty != Tvector && e2.implicitConvTo(t1))
     {
@@ -3202,6 +3207,8 @@ Lagain:
     {
         if (t1.ty != t2.ty)
         {
+            if (t1.ty == Tvector || t2.ty == Tvector)
+                goto Lincompatible;
             e1 = integralPromotions(e1, sc);
             e2 = integralPromotions(e2, sc);
             t1 = e1.type;
@@ -3209,6 +3216,7 @@ Lagain:
             goto Lagain;
         }
         assert(t1.ty == t2.ty);
+LmodCompare:
         if (!t1.isImmutable() && !t2.isImmutable() && t1.isShared() != t2.isShared())
             goto Lincompatible;
         ubyte mod = MODmerge(t1.mod, t2.mod);
@@ -3379,7 +3387,7 @@ Lerror:
  */
 extern (C++) Expression integralPromotions(Expression e, Scope* sc)
 {
-    //printf("integralPromotions %s %s\n", e->toChars(), e->type->toChars());
+    //printf("integralPromotions %s %s\n", e.toChars(), e.type.toChars());
     switch (e.type.toBasetype().ty)
     {
     case Tvoid:
@@ -3771,7 +3779,7 @@ extern (C++) IntRange getIntRange(Expression e)
 
         override void visit(CondExp e)
         {
-            // No need to check e->econd; assume caller has called optimize()
+            // No need to check e.econd; assume caller has called optimize()
             IntRange ir1 = getIntRange(e.e1);
             IntRange ir2 = getIntRange(e.e2);
             range = ir1.unionWith(ir2)._cast(e.type);

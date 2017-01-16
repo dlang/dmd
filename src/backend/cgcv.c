@@ -1859,17 +1859,13 @@ L1:
                         d = debtyp_alloc(10);
                         TOWORD(d->data,0x1002);
                         TOLONG(d->data + 2,next);
-                        // The visual studio debugger gets confused with pointers to arrays, emit a reference instead.
-                        // This especially happens when passing arrays as function arguments because 64bit ABI demands
-                        // passing structs > 8 byte as pointers.
-                        if((config.flags2 & CFG2gms) && t->Tnext && tybasic(t->Tnext->Tty) == TYdarray)
-                            TOLONG(d->data + 6,attribute | 0x20);
-                        else
-                        {
-                            /* BUG: attribute bits are unknown, 0x1000C is maaaagic
-                             */
-                            TOLONG(d->data + 6,attribute | 0x1000C);
-                        }
+                        // see https://github.com/Microsoft/microsoft-pdb/blob/master/include/cvinfo.h#L1514
+                        // add size and pointer type (PTR_64 or PTR_NEAR32)
+                        attribute |= (I64 ? (8 << 13) | 0xC : (4 << 13) | 0xA);
+                        // convert reference to r-value reference to remove & from type display in debugger
+                        if (attribute & 0x20)
+                            attribute |= 0x80;
+                        TOLONG(d->data + 6,attribute);
                         break;
 
                     default:
@@ -2173,6 +2169,28 @@ L1:
         case TYulong4:  size = 16; next = dttab4[TYulong];  goto Larray;
         case TYllong2:  size = 16; next = dttab4[TYllong];  goto Larray;
         case TYullong2: size = 16; next = dttab4[TYullong]; goto Larray;
+
+        case TYfloat8:   size = 32; next = dttab4[TYfloat];  goto Larray;
+        case TYdouble4:  size = 32; next = dttab4[TYdouble]; goto Larray;
+        case TYschar32:  size = 32; next = dttab4[TYschar];  goto Larray;
+        case TYuchar32:  size = 32; next = dttab4[TYuchar];  goto Larray;
+        case TYshort16:  size = 32; next = dttab4[TYshort];  goto Larray;
+        case TYushort16: size = 32; next = dttab4[TYushort]; goto Larray;
+        case TYlong8:    size = 32; next = dttab4[TYlong];   goto Larray;
+        case TYulong8:   size = 32; next = dttab4[TYulong];  goto Larray;
+        case TYllong4:   size = 32; next = dttab4[TYllong];  goto Larray;
+        case TYullong4:  size = 32; next = dttab4[TYullong]; goto Larray;
+
+        case TYfloat16:  size = 64; next = dttab4[TYfloat];  goto Larray;
+        case TYdouble8:  size = 64; next = dttab4[TYdouble]; goto Larray;
+        case TYschar64:  size = 64; next = dttab4[TYschar];  goto Larray;
+        case TYuchar64:  size = 64; next = dttab4[TYuchar];  goto Larray;
+        case TYshort32:  size = 64; next = dttab4[TYshort];  goto Larray;
+        case TYushort32: size = 64; next = dttab4[TYushort]; goto Larray;
+        case TYlong16:   size = 64; next = dttab4[TYlong];   goto Larray;
+        case TYulong16:  size = 64; next = dttab4[TYulong];  goto Larray;
+        case TYllong8:   size = 64; next = dttab4[TYllong];  goto Larray;
+        case TYullong8:  size = 64; next = dttab4[TYullong]; goto Larray;
 
         default:
 #ifdef DEBUG

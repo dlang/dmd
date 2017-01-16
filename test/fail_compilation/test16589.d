@@ -1,13 +1,13 @@
 /* PERMUTE_ARGS:
-REQUIRED_ARGS: -transition=safe
+REQUIRED_ARGS: -dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/test16589.d(26): Error: cannot take address of parameter this in @safe function access1
-fail_compilation/test16589.d(31): Error: cannot take address of parameter this in @safe function access2
-fail_compilation/test16589.d(37): Error: cannot take address of parameter s in @safe function access3
-fail_compilation/test16589.d(42): Error: cannot take address of parameter s in @safe function access4
-fail_compilation/test16589.d(47): Error: cannot take address of parameter s in @safe function access5
-fail_compilation/test16589.d(52): Error: cannot take address of parameter s in @safe function access6
+fail_compilation/test16589.d(26): Error: escaping reference to local variable this
+fail_compilation/test16589.d(31): Error: escaping reference to local variable this
+fail_compilation/test16589.d(37): Error: escaping reference to local variable s
+fail_compilation/test16589.d(42): Error: escaping reference to local variable s
+fail_compilation/test16589.d(47): Error: escaping reference to local variable s
+fail_compilation/test16589.d(52): Error: escaping reference to local variable s
 ---
 */
 

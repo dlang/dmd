@@ -871,11 +871,11 @@ L1:
         return e;
   }
   /* Replace (e + e) with (e * 2)       */
-  else if (el_match(e1,e2) && !el_sideeffect(e1) && !tyfloating(e->Ety))
+  else if (el_match(e1,e2) && !el_sideeffect(e1) && !tyfloating(e1->Ety))
   {
         e->Eoper = OPmul;
         el_free(e2);
-        e->E2 = el_long(e->Ety,2);
+        e->E2 = el_long(e1->Ety,2);
         again = 1;
         return e;
   }
@@ -1126,7 +1126,8 @@ L1:
   /* Disallow the optimization on doubles. The - operator is not        */
   /* rearrangable by K+R, and can cause floating point problems if      */
   /* converted to an add ((a + 1.0) - 1.0 shouldn't be folded).         */
-  if (cnst(e2) && !tyfloating(e2->Ety))
+  if (cnst(e2) && !tyfloating(e2->Ety) &&
+      !tyvector(e2->Ety)) // don't do vectors until we get constant folding for them
   {     e->E2 = el_una(OPneg,e2->Ety,e2);
         e->Eoper = OPadd;
         return optelem(e,GOALvalue);
@@ -5386,7 +5387,7 @@ elem *doptelem(elem *e, goal_t goal)
 
     /* If entire expression is a struct, and we can replace it with     */
     /* something simpler, do so.                                        */
-    if (goal & GOALstruct && e && tybasic(e->Ety) == TYstruct)
+    if (goal & GOALstruct && e && (tybasic(e->Ety) == TYstruct || tybasic(e->Ety) == TYarray))
         e = elstruct(e, goal);
 
     if (topair)

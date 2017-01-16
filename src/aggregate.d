@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(DMDSRC _aggregate.d)
@@ -124,6 +124,16 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         sc2.aligndecl = null;
         sc2.userAttribDecl = null;
         return sc2;
+    }
+
+    override final void setScope(Scope* sc)
+    {
+        // Might need a scope to resolve forward references. The check for
+        // semanticRun prevents unnecessary setting of _scope during deferred
+        // setScope phases for aggregates which already finished semantic().
+        // Also see https://issues.dlang.org/show_bug.cgi?id=16607
+        if (semanticRun < PASSsemanticdone)
+            ScopeDsymbol.setScope(sc);
     }
 
     override final void semantic2(Scope* sc)
@@ -323,8 +333,13 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         // There's unresolvable forward reference.
         if (type != Type.terror)
             error(loc, "no size because of forward reference");
-        type = Type.terror;
-        errors = true;
+        // Don't cache errors from speculative semantic, might be resolvable later.
+        // https://issues.dlang.org/show_bug.cgi?id=16574
+        if (!global.gag)
+        {
+            type = Type.terror;
+            errors = true;
+        }
         return false;
     }
 
@@ -368,7 +383,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             if (vd._init && vd._init.isVoidInitializer())
                 vx = null;
 
-            // Find overlapped fields with the hole [vd->offset .. vd->offset->size()].
+            // Find overlapped fields with the hole [vd.offset .. vd.offset.size()].
             foreach (j; 0 .. nfields)
             {
                 if (i == j)
@@ -435,7 +450,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             if (vd._init && vd._init.isVoidInitializer())
                 vx = null;
 
-            // Find overlapped fields with the hole [vd->offset .. vd->offset->size()].
+            // Find overlapped fields with the hole [vd.offset .. vd.offset.size()].
             size_t fieldi = i;
             foreach (j; 0 .. nfields)
             {
@@ -705,7 +720,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
             assert(!vthis);
             vthis = new ThisDeclaration(loc, t);
-            //vthis->storage_class |= STCref;
+            //vthis.storage_class |= STCref;
 
             // Emulate vthis.addMember()
             members.push(vthis);
@@ -748,7 +763,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             s = null; // search() looks through ancestor classes
         if (s)
         {
-            // Finish all constructors semantics to determine this->noDefaultCtor.
+            // Finish all constructors semantics to determine this.noDefaultCtor.
             struct SearchCtor
             {
                 extern (C++) static int fp(Dsymbol s, void* ctxt)

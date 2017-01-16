@@ -2,7 +2,7 @@
  * Compiler implementation of the D programming language
  * http://dlang.org
  *
- * Copyright: Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright: Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(DMDSRC root/_rootobject.d)
@@ -16,6 +16,31 @@ import ddmd.root.outbuffer;
 
 /***********************************************************
  */
+
+enum DYNCAST : int
+{
+    object,
+    expression,
+    dsymbol,
+    type,
+    identifier,
+    tuple,
+    parameter,
+    statement,
+}
+
+alias DYNCAST_OBJECT = DYNCAST.object;
+alias DYNCAST_EXPRESSION = DYNCAST.expression;
+alias DYNCAST_DSYMBOL = DYNCAST.dsymbol;
+alias DYNCAST_TYPE = DYNCAST.type;
+alias DYNCAST_IDENTIFIER = DYNCAST.identifier;
+alias DYNCAST_TUPLE = DYNCAST.tuple;
+alias DYNCAST_PARAMETER = DYNCAST.parameter;
+alias DYNCAST_STATEMENT = DYNCAST.statement;
+
+/***********************************************************
+ */
+
 extern (C++) class RootObject
 {
     this()
@@ -47,8 +72,8 @@ extern (C++) class RootObject
         assert(0);
     }
 
-    int dyncast()
+    DYNCAST dyncast() const
     {
-        assert(0);
+        return DYNCAST_OBJECT;
     }
 }

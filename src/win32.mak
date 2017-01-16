@@ -152,15 +152,16 @@ FRONT_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d	\
 	impcnvtab.d init.d inline.d intrange.d json.d lexer.d lib.d link.d	\
 	mars.d mtype.d nogc.d nspace.d objc_stubs.d opover.d optimize.d parse.d	\
 	sapply.d sideeffect.d statement.d staticassert.d target.d tokens.d	\
-	safe.d traits.d utf.d utils.d visitor.d libomf.d scanomf.d typinf.d	\
+	safe.d blockexit.d \
+	traits.d utf.d utils.d visitor.d libomf.d scanomf.d typinf.d \
 	libmscoff.d scanmscoff.d statementsem.d
 
 GLUE_SRCS=irstate.d toctype.d glue.d gluelayer.d todt.d tocsym.d toir.d dmsc.d \
-	tocvdebug.d s2ir.d toobj.d e2ir.d objc_glue_stubs.d eh.d
+	tocvdebug.d s2ir.d toobj.d e2ir.d objc_glue_stubs.d eh.d iasm.d
 
 BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
-	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d \
-	$C/ty.d $C/type.d $C/exh.d
+	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d $C/iasm.d \
+	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d
 
 TK_HDRS= $(TK)/dlist.d
 
@@ -169,7 +170,7 @@ STRING_IMPORT_FILES= verstr.h ../res/default_ddoc_theme.ddoc
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
 # Glue layer
-GLUEOBJ= iasm.obj
+GLUEOBJ=
 
 # D back end
 BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
@@ -187,7 +188,7 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d \
 	$(ROOT)/filename.d $(ROOT)/man.d $(ROOT)/outbuffer.d $(ROOT)/port.d \
 	$(ROOT)/response.d $(ROOT)/rmem.d $(ROOT)/rootobject.d \
-	$(ROOT)/speller.d $(ROOT)/stringtable.d
+	$(ROOT)/speller.d $(ROOT)/stringtable.d $(ROOT)/hash.d
 
 # D front end
 SRCS = aggregate.h aliasthis.h arraytypes.h	\
@@ -200,9 +201,9 @@ SRCS = aggregate.h aliasthis.h arraytypes.h	\
 
 # Glue layer
 GLUESRC= \
-	toir.h irstate.h iasm.c \
-	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
-	tk.c eh.c objc_glue.c \
+	toir.h irstate.h \
+	libelf.d scanelf.d libmach.d scanmach.d \
+	tk.c objc_glue.d \
 	$(GLUE_SRCS)
 
 # D back end
@@ -235,7 +236,7 @@ TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h \
 
 # Root package
 ROOTSRCC=$(ROOT)\newdelete.c
-ROOTSRCD=$(ROOT)\rmem.d $(ROOT)\stringtable.d $(ROOT)\man.d $(ROOT)\port.d \
+ROOTSRCD=$(ROOT)\rmem.d $(ROOT)\stringtable.d $(ROOT)\hash.d $(ROOT)\man.d $(ROOT)\port.d \
 	$(ROOT)\response.d $(ROOT)\rootobject.d $(ROOT)\speller.d $(ROOT)\aav.d \
 	$(ROOT)\ctfloat.d $(ROOT)\outbuffer.d $(ROOT)\filename.d \
 	$(ROOT)\file.d $(ROOT)\array.d
@@ -292,7 +293,7 @@ glue.lib : $(GLUEOBJ)
 backend.lib : $(BACKOBJ) $(OBJ_MSVC)
 	$(LIB) -p512 -n -c backend.lib $(BACKOBJ) $(OBJ_MSVC)
 
-LIBS= glue.lib backend.lib
+LIBS= backend.lib
 
 dmd_frontend.exe: $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.obj $(STRING_IMPORT_FILES)
 	$(HOST_DC) $(DSRC) -of$@ -vtls -J. -J../res -L/STACK:8388608 $(DFLAGS) $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.obj -version=NoBackend
@@ -395,9 +396,6 @@ verstr.h : ..\VERSION
 
 .asm.obj:
 	$(CC) -c $(CFLAGS) $*
-
-iasm.obj : $(CH) $C\iasm.h iasm.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) -Ae iasm
 
 # D front/back end
 bcomplex.obj : $C\bcomplex.c

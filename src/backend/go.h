@@ -48,6 +48,7 @@ struct DefNode
 {
     elem    *DNelem;        // pointer to definition elem
     block   *DNblock;       // pointer to block that the elem is in
+    vec_t    DNunambig;     // vector of unambiguous definitions
 };
 
 /* Global Variables */
@@ -62,6 +63,11 @@ struct GlobalOptimizer
 
     DefNode *defnod;    // array of definition elems
     unsigned deftop;    // # of entries in defnod[]
+    unsigned defmax;    // capacity of defnod[]
+    unsigned unambigtop;        // number of unambiguous defininitions ( <= deftop )
+
+    vec_base_t *dnunambig;      // pool to allocate DNunambig vectors from
+    unsigned    dnunambigmax;   // capacity of dnunambig[]
 
     elem **expnod;      // array of expression elems
     unsigned exptop;    // top of expnod[]
@@ -92,6 +98,7 @@ void localize();
 int blockinit();
 void compdom();
 void loopopt();
+void fillInDNunambig(vec_t v, elem *e);
 void updaterd(elem *n,vec_t GEN,vec_t KILL);
 
 /* gother.c */

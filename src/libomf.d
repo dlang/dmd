@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(DMDSRC _libomf.d)
@@ -104,7 +104,7 @@ final class LibOMF : Library
         if (lh.recTyp == 0xF0)
         {
             /* OMF library
-             * The modules are all at buf[g_page_size .. lh->lSymSeek]
+             * The modules are all at buf[g_page_size .. lh.lSymSeek]
              */
             islibrary = 1;
             g_page_size = lh.pagesize + 3;
@@ -469,7 +469,7 @@ private:
             uint trailerPosn;
             ushort ndicpages;
             ubyte flags;
-            char* filler;
+            uint filler;
         }
 
         Libheader libHeader;

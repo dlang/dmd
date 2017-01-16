@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail274.d(10): Error: ] expected instead of ';'
+fail_compilation/fail274.d(10): Error: expression expected not ;
 ---
 */
 

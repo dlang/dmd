@@ -2,9 +2,10 @@
 
 set -uexo pipefail
 
-HOST_DMD_VER=2.068.2 # same as in dmd/src/posix.mak
+HOST_DMD_VER=2.072.2 # same as in dmd/src/posix.mak
 CURL_USER_AGENT="CirleCI $(curl --version | head -n 1)"
 N=2
+CIRCLE_NODE_INDEX=${CIRCLE_NODE_INDEX:-0}
 
 case $CIRCLE_NODE_INDEX in
     0) MODEL=64 ;;
@@ -17,7 +18,7 @@ clone() {
     local path="$2"
     local branch="$3"
     for i in {0..4}; do
-        if git clone --depth=1 --branch "$branch" "$url" "$path"; then
+        if git clone --branch "$branch" "$url" "$path" "${@:4}"; then
             break
         elif [ $i -lt 4 ]; then
             sleep $((1 << $i))
@@ -56,13 +57,24 @@ coverage() {
         local base_branch=$CIRCLE_BRANCH
     fi
 
+    # merge testee PR with base branch (master) before testing
+    if [ -n "${CIRCLE_PR_NUMBER:-}" ]; then
+        local head=$(git rev-parse HEAD)
+        git fetch https://github.com/dlang/dmd.git $base_branch
+        git checkout -f FETCH_HEAD
+        local base=$(git rev-parse HEAD)
+        git config user.name 'CI'
+        git config user.email '<>'
+        git merge -m "Merge $head into $base" $head
+    fi
+
     for proj in druntime phobos; do
         if [ $base_branch != master ] && [ $base_branch != stable ] &&
-               ! curl -fsSLI https://api.github.com/repos/dlang/$proj/branches/$base_branch; then
+            ! git ls-remote --exit-code --heads https://github.com/dlang/$proj.git $base_branch > /dev/null; then
             # use master as fallback for other repos to test feature branches
-            clone https://github.com/dlang/$proj.git ../$proj master
+            clone https://github.com/dlang/$proj.git ../$proj master --depth 1
         else
-            clone https://github.com/dlang/$proj.git ../$proj $base_branch
+            clone https://github.com/dlang/$proj.git ../$proj $base_branch --depth 1
         fi
     done
 

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/_tocsym.d, _s2ir.d)
@@ -28,16 +28,21 @@ import ddmd.dmodule;
 import ddmd.dsymbol;
 import ddmd.dstruct;
 import ddmd.dtemplate;
+import ddmd.e2ir;
 import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
+import ddmd.glue;
 import ddmd.id;
 import ddmd.init;
 import ddmd.irstate;
 import ddmd.mtype;
 import ddmd.statement;
 import ddmd.target;
+import ddmd.toctype;
+import ddmd.tocsym;
+import ddmd.toir;
 import ddmd.tokens;
 import ddmd.visitor;
 
@@ -58,17 +63,9 @@ import ddmd.backend.type;
 
 extern (C++):
 
-Symbol *toStringSymbol(StringExp se);
-elem *exp2_copytotemp(elem *e);
-elem *incUsageElem(IRState *irs, Loc loc);
-elem *addressElem(elem *e, Type t, bool alwaysCopy = false);
-type *Type_toCtype(Type t);
-elem *toElemDtor(Expression e, IRState *irs);
-Symbol *toSymbol(Type t);
-Symbol *toSymbolCpp(ClassDeclaration cd);
-uint totym(Type tx);
-Symbol *toSymbol(Dsymbol s);
-RET retStyle(TypeFunction tf);
+alias toSymbol = ddmd.tocsym.toSymbol;
+alias toSymbol = ddmd.glue.toSymbol;
+
 
 void elem_setLoc(elem *e, Loc loc)
 {

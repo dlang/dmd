@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(DMDSRC _scanmach.d)
@@ -97,7 +97,7 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
     for (uint32_t i = 0; i < ncmds; i++)
     {
         load_command* command = cast(load_command*)commands;
-        //printf("cmd = 0x%02x, cmdsize = %u\n", command->cmd, command->cmdsize);
+        //printf("cmd = 0x%02x, cmdsize = %u\n", command.cmd, command.cmdsize);
         switch (command.cmd)
         {
         case LC_SEGMENT:
@@ -162,7 +162,7 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
                     case N_ABS:
                         break;
                     case N_SECT:
-                        if (s.n_type & N_EXT) /*&& !(s->n_desc & N_REF_TO_WEAK)*/
+                        if (s.n_type & N_EXT) /*&& !(s.n_desc & N_REF_TO_WEAK)*/
                             pAddSymbol(name[0 .. namelen], 1);
                         break;
                     case N_PBUD:
@@ -213,7 +213,7 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
                     case N_ABS:
                         break;
                     case N_SECT:
-                        if (s.n_type & N_EXT) /*&& !(s->n_desc & N_REF_TO_WEAK)*/
+                        if (s.n_type & N_EXT) /*&& !(s.n_desc & N_REF_TO_WEAK)*/
                             pAddSymbol(name[0 .. namelen], 1);
                         break;
                     case N_PBUD:

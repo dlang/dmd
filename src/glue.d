@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/_glue.d, _glue.d)
@@ -35,6 +35,7 @@ import ddmd.backend.type;
 
 import ddmd.aggregate;
 import ddmd.arraytypes;
+import ddmd.blockexit;
 import ddmd.dclass;
 import ddmd.declaration;
 import ddmd.dmangle;
@@ -42,6 +43,7 @@ import ddmd.dmodule;
 import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
+import ddmd.e2ir;
 import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
@@ -50,38 +52,24 @@ import ddmd.identifier;
 import ddmd.id;
 import ddmd.irstate;
 import ddmd.lib;
+import ddmd.mars;
 import ddmd.mtype;
+import ddmd.objc;
+import ddmd.s2ir;
 import ddmd.statement;
 import ddmd.target;
+import ddmd.tocsym;
+import ddmd.toctype;
+import ddmd.toir;
+import ddmd.toobj;
+import ddmd.utils;
 
 extern (C++):
 
-void clearStringTab();
-RET retStyle(TypeFunction tf);
-
-elem *addressElem(elem *e, Type t, bool alwaysCopy = false);
-void Statement_toIR(Statement s, IRState *irs);
-void insertFinallyBlockCalls(block *startblock);
-elem *toEfilename(Module m);
-Symbol *toSymbol(Dsymbol s);
-void buildClosure(FuncDeclaration fd, IRState *irs);
-Symbol *toStringSymbol(const(char)* str, size_t len, size_t pad);
-
 alias symbols = Array!(Symbol*);
-Dsymbols *Dsymbols_create();
-Expressions *Expressions_create();
-type *Type_toCtype(Type t);
-void toObjFile(Dsymbol ds, bool multiobj);
-void genModuleInfo(Module m);
-void genObjFile(Module m, bool multiobj);
-void objc_Module_genmoduleinfo_classes();
-Symbol *toModuleAssert(Module m);
-Symbol *toModuleUnittest(Module m);
-Symbol *toModuleArray(Module m);
-Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, int sclass, type *t, const(char)* suffix);
+alias toSymbol = ddmd.tocsym.toSymbol;
 
-void writeFile(Loc loc, File *f);
-void ensurePathToNameExists(Loc loc, const(char)* name);
+void objc_Module_genmoduleinfo_classes();
 
 //extern
 __gshared
@@ -955,12 +943,10 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
                 global.params.isOpenBSD || global.params.isSolaris)
             {
                 objmod.external_def("_main");
-                objmod.ehsections();   // initialize exception handling sections
             }
             else if (global.params.mscoff)
             {
                 objmod.external_def("main");
-                objmod.ehsections();   // initialize exception handling sections
             }
             else if (config.exe == EX_WIN32)
             {
@@ -970,11 +956,21 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             objmod.includelib(libname);
             s.Sclass = SCglobal;
         }
-        else if (strcmp(s.Sident.ptr, "main") == 0 && fd.linkage == LINKc)
+        else if (fd.isRtInit())
+        {
+            if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
+                global.params.isOpenBSD || global.params.isSolaris ||
+                global.params.mscoff)
+            {
+                objmod.ehsections();   // initialize exception handling sections
+            }
+        }
+        else if (fd.isCMain())
         {
             if (global.params.mscoff)
             {
-                objmod.includelib("LIBCMT");
+                if (global.params.mscrtlib && global.params.mscrtlib[0])
+                    objmod.includelib(global.params.mscrtlib);
                 objmod.includelib("OLDNAMES");
             }
             else if (config.exe == EX_WIN32)
@@ -989,9 +985,9 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             if (global.params.mscoff)
             {
                 objmod.includelib("uuid");
-                objmod.includelib("LIBCMT");
+                if (global.params.mscrtlib && global.params.mscrtlib[0])
+                    objmod.includelib(global.params.mscrtlib);
                 objmod.includelib("OLDNAMES");
-                objmod.ehsections();   // initialize exception handling sections
             }
             else
             {
@@ -1007,9 +1003,9 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             if (global.params.mscoff)
             {
                 objmod.includelib("uuid");
-                objmod.includelib("LIBCMT");
+                if (global.params.mscrtlib && global.params.mscrtlib[0])
+                    objmod.includelib(global.params.mscrtlib);
                 objmod.includelib("OLDNAMES");
-                objmod.ehsections();   // initialize exception handling sections
             }
             else
             {
@@ -1486,19 +1482,20 @@ uint totym(Type tx)
         {
             TypeVector tv = cast(TypeVector)tx;
             TypeBasic tb = tv.elementType();
+            const s32 = tv.alignsize() == 32;   // if 32 byte, 256 bit vector
             switch (tb.ty)
             {
                 case Tvoid:
-                case Tint8:     t = TYschar16;  break;
-                case Tuns8:     t = TYuchar16;  break;
-                case Tint16:    t = TYshort8;   break;
-                case Tuns16:    t = TYushort8;  break;
-                case Tint32:    t = TYlong4;    break;
-                case Tuns32:    t = TYulong4;   break;
-                case Tint64:    t = TYllong2;   break;
-                case Tuns64:    t = TYullong2;  break;
-                case Tfloat32:  t = TYfloat4;   break;
-                case Tfloat64:  t = TYdouble2;  break;
+                case Tint8:     t = s32 ? TYschar32  : TYschar16;  break;
+                case Tuns8:     t = s32 ? TYuchar32  : TYuchar16;  break;
+                case Tint16:    t = s32 ? TYshort16  : TYshort8;   break;
+                case Tuns16:    t = s32 ? TYushort16 : TYushort8;  break;
+                case Tint32:    t = s32 ? TYlong8    : TYlong4;    break;
+                case Tuns32:    t = s32 ? TYulong8   : TYulong4;   break;
+                case Tint64:    t = s32 ? TYllong4   : TYllong2;   break;
+                case Tuns64:    t = s32 ? TYullong4  : TYullong2;  break;
+                case Tfloat32:  t = s32 ? TYfloat8   : TYfloat4;   break;
+                case Tfloat64:  t = s32 ? TYdouble4  : TYdouble2;  break;
                 default:
                     assert(0);
             }

@@ -58,6 +58,7 @@ STATIC void local_ambigref(void);
 STATIC void local_ambigdef(void);
 STATIC void local_symref(symbol *s);
 STATIC void local_symdef(symbol *s);
+STATIC bool local_preserveAssignmentTo(tym_t ty);
 
 ///////////////////////////////
 // This optimization attempts to replace sequences like:
@@ -340,7 +341,8 @@ Loop:
                         {
                             if (tysize(em->Ety) == tysize(e->Ety) &&
                                 em->E1->EV.sp.Voffset == e->EV.sp.Voffset &&
-                                (tyfloating(em->Ety) != 0) == (tyfloating(e->Ety) != 0))
+                                (tyfloating(em->Ety) != 0) == (tyfloating(e->Ety) != 0) &&
+                                !local_preserveAssignmentTo(em->E1->Ety))
                             {
 #ifdef DEBUG
                                 if (debugc)
@@ -714,6 +716,39 @@ STATIC void local_symdef(symbol *s)
         else
             u++;
     }
+}
+
+/***************************************************
+ * See if we should preserve assignment to Symbol of type ty.
+ * Returns:
+ *      true if preserve assignment
+ * References:
+ *      https://issues.dlang.org/show_bug.cgi?id=13474
+ */
+STATIC bool local_preserveAssignmentTo(tym_t ty)
+{
+    /* Need to preserve assignment if generating code using
+     * the x87, as that is the only way to get the x87 to
+     * convert to float/double precision.
+     */
+    if (config.inline8087 && !config.fpxmmregs)
+    {
+        switch (tybasic(ty))
+        {
+            case TYfloat:
+            case TYifloat:
+            case TYcfloat:
+            case TYdouble:
+            case TYidouble:
+            case TYdouble_alias:
+            case TYcdouble:
+                return true;
+
+            default:
+                break;
+        }
+    }
+    return false;
 }
 
 #endif

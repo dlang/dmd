@@ -2783,7 +2783,7 @@ struct S9985
 
     static void* ptr;
 }
-auto ref makeS9985()
+auto ref makeS9985() @system
 {
     S9985 s;
     s.b = s.buf.ptr;

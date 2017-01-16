@@ -2,7 +2,7 @@
  * Compiler implementation of the D programming language
  * http://dlang.org
  *
- * Copyright: Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright: Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(DMDSRC root/_filename.d)
@@ -545,7 +545,7 @@ nothrow:
                     const(char)* cname = null;
                     const(char)* cpath = canonicalName((*path)[i]);
                     //printf("FileName::safeSearchPath(): name=%s; path=%s; cpath=%s\n",
-                    //      name, (char *)path->data[i], cpath);
+                    //      name, (char *)path.data[i], cpath);
                     if (cpath is null)
                         goto cont;
                     cname = canonicalName(combine(cpath, name));

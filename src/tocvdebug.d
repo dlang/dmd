@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/_tocsym.d, _tocvdebug.d)
@@ -10,7 +10,8 @@
 
 module ddmd.tocvdebug;
 
-version (Windows):
+version (Windows)
+{
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -1053,4 +1054,29 @@ int cvMember(Dsymbol s, ubyte *p)
     scope v = new CVMember(p);
     s.accept(v);
     return v.result;
+}
+
+}
+else
+{
+    import ddmd.denum;
+    import ddmd.dstruct;
+    import ddmd.dclass;
+
+    /****************************
+     * Stub them out.
+     */
+
+    extern (C++) void toDebug(EnumDeclaration ed)
+    {
+        //printf("EnumDeclaration::toDebug('%s')\n", ed.toChars());
+    }
+
+    extern (C++) void toDebug(StructDeclaration sd)
+    {
+    }
+
+    extern (C++) void toDebug(ClassDeclaration cd)
+    {
+    }
 }

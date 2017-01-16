@@ -3,7 +3,7 @@
  * http://dlang.org
  * This file is not shared with other compilers which use the DMD front-end.
  *
- * Copyright: Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright: Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  *            Some portions copyright (c) 1994-1995 by Symantec
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   This source file is made available for personal use

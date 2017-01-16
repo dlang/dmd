@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(DMDSRC _dmsc.d)
@@ -54,7 +54,8 @@ void out_config_init(
                         // 1: D
                         // 2: fake it with C symbolic debug info
         bool alwaysframe,       // always create standard function frame
-        bool stackstomp         // add stack stomping code
+        bool stackstomp,        // add stack stomping code
+        bool avx                // use AVX instruction set
         );
 
 void out_config_debug(
@@ -111,7 +112,8 @@ void backend_init()
         params.optimize,
         params.symdebug,
         params.alwaysframe,
-        params.stackstomp
+        params.stackstomp,
+        params.cpu >= CPU.avx
     );
 
     debug

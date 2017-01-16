@@ -21,12 +21,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\eh.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\iasm.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\tk.c">
       <Filter>src</Filter>
     </ClCompile>
@@ -216,9 +210,6 @@
     <ClCompile Include="..\backend\varstats.c">
       <Filter>src\backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\objc_glue_stubs.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\backend\compress.c">
       <Filter>src\backend</Filter>
     </ClCompile>
@@ -279,9 +270,6 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\json.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\mars.h">

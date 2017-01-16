@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(DMDSRC _statementsem.d)
@@ -16,6 +16,7 @@ import ddmd.aggregate;
 import ddmd.aliasthis;
 import ddmd.arrayop;
 import ddmd.arraytypes;
+import ddmd.blockexit;
 import ddmd.clone;
 import ddmd.cond;
 import ddmd.dcast;
@@ -101,7 +102,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 if (f.checkForwardRef(s.exp.loc))
                     s.exp = new ErrorExp();
             }
-            discardValue(s.exp);
+            if (discardValue(s.exp))
+                s.exp = new ErrorExp();
 
             s.exp = s.exp.optimize(WANTvalue);
             s.exp = checkGC(sc, s.exp);
@@ -113,7 +115,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
     override void visit(CompileStatement cs)
     {
-        //printf("CompileStatement::semantic() %s\n", exp->toChars());
+        //printf("CompileStatement::semantic() %s\n", exp.toChars());
         Statements* a = cs.flatten(sc);
         if (!a)
             return;
@@ -294,7 +296,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         {
             if (s)
             {
-                //printf("[%d]: %s\n", i, s->toChars());
+                //printf("[%d]: %s\n", i, s.toChars());
                 s = s.semantic(scd);
                 if (s && !serror)
                     serror = s.isErrorStatement();
@@ -561,7 +563,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
             }
 
-            //printf("dim = %d, parameters->dim = %d\n", dim, parameters->dim);
+            //printf("dim = %d, parameters.dim = %d\n", dim, parameters.dim);
             if (foundMismatch && dim != foreachParamCount)
             {
                 const(char)* plural = foreachParamCount > 1 ? "s" : "";
@@ -594,7 +596,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
             TypeTuple tuple = cast(TypeTuple)tab;
             auto statements = new Statements();
-            //printf("aggr: op = %d, %s\n", fs.aggr->op, fs.aggr->toChars());
+            //printf("aggr: op = %d, %s\n", fs.aggr.op, fs.aggr.toChars());
             size_t n;
             TupleExp te = null;
             if (fs.aggr.op == TOKtuple) // expression tuple
@@ -774,7 +776,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 if (dim < 1 || dim > 2)
                 {
                     fs.error("only one or two arguments for array foreach");
-                    goto Lerror2;
+                    goto case Terror;
                 }
 
                 /* Look for special case of parsing char types out of char type
@@ -794,7 +796,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         if (p.storageClass & STCref)
                         {
                             fs.error("foreach: value of UTF conversion cannot be ref");
-                            goto Lerror2;
+                            goto case Terror;
                         }
                         if (dim == 2)
                         {
@@ -802,7 +804,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             if (p.storageClass & STCref)
                             {
                                 fs.error("foreach: key cannot be ref");
-                                goto Lerror2;
+                                goto case Terror;
                             }
                         }
                         goto Lapply;
@@ -831,7 +833,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             {
                                 fs.error("key type mismatch, %s to ref %s",
                                     var.type.toChars(), p.type.toChars());
-                                goto Lerror2;
+                                goto case Terror;
                             }
                         }
                         if (tab.ty == Tsarray)
@@ -842,7 +844,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             {
                                 fs.error("index type '%s' cannot cover index range 0..%llu",
                                     p.type.toChars(), ta.dim.toInteger());
-                                goto Lerror2;
+                                goto case Terror;
                             }
                             fs.key.range = new IntRange(SignExtendedNumber(0), dimrange.imax);
                         }
@@ -866,7 +868,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             {
                                 fs.error("argument type mismatch, %s to ref %s",
                                     t.toChars(), p.type.toChars());
-                                goto Lerror2;
+                                goto case Terror;
                             }
                         }
                     }
@@ -895,7 +897,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     // converting array literal elements to telem might make it @nogc.
                     fs.aggr = fs.aggr.implicitCastTo(sc, telem.sarrayOf(edim));
                     if (fs.aggr.op == TOKerror)
-                        goto Lerror2;
+                        goto case Terror;
 
                     // for (T[edim] tmp = a, ...)
                     tmp = new VarDeclaration(loc, fs.aggr.type, id, ie);
@@ -993,7 +995,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             if (dim < 1 || dim > 2)
             {
                 fs.error("only one or two arguments for associative array foreach");
-                goto Lerror2;
+                goto case Terror;
             }
             goto Lapply;
 
@@ -1102,7 +1104,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     if (tfront.ty == Tvoid)
                     {
                         fs.error("%s.front is void and has no value", oaggr.toChars());
-                        goto Lerror2;
+                        goto case Terror;
                     }
 
                     // Resolve inout qualifier of front type
@@ -1125,7 +1127,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         const(char)* plural = exps.dim > 1 ? "s" : "";
                         fs.error("cannot infer argument types, expected %d argument%s, not %d",
                             exps.dim, plural, dim);
-                        goto Lerror2;
+                        goto case Terror;
                     }
 
                     foreach (i; 0 .. dim)
@@ -1168,7 +1170,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
             Lrangeerr:
                 fs.error("cannot infer argument types");
-                goto Lerror2;
+                goto case Terror;
             }
         case Tdelegate:
             if (fs.op == TOKforeach_reverse)
@@ -1196,7 +1198,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     {
                         tfld = cast(TypeFunction)tab.nextOf();
                     Lget:
-                        //printf("tfld = %s\n", tfld->toChars());
+                        //printf("tfld = %s\n", tfld.toChars());
                         if (tfld.parameters.dim == 1)
                         {
                             Parameter p = Parameter.getNth(tfld.parameters, 0);
@@ -1206,6 +1208,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                                 assert(t.ty == Tdelegate);
                                 tfld = cast(TypeFunction)t.nextOf();
                             }
+                            //printf("tfld = %s\n", tfld.toChars());
                         }
                     }
                 }
@@ -1225,7 +1228,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     if (tfld)
                     {
                         Parameter prm = Parameter.getNth(tfld.parameters, i);
-                        //printf("\tprm = %s%s\n", (prm->storageClass&STCref?"ref ":""), prm->ident->toChars());
+                        //printf("\tprm = %s%s\n", (prm.storageClass&STCref?"ref ":"").ptr, prm.ident.toChars());
                         stc = prm.storageClass & STCref;
                         id = p.ident; // argument copy is not need.
                         if ((p.storageClass & STCref) != stc)
@@ -1233,7 +1236,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             if (!stc)
                             {
                                 fs.error("foreach: cannot make %s ref", p.ident.toChars());
-                                goto Lerror2;
+                                goto case Terror;
                             }
                             goto LcopyArg;
                         }
@@ -1290,7 +1293,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     e = new DeclarationExp(loc, vinit);
                     e = e.semantic(sc2);
                     if (e.op == TOKerror)
-                        goto Lerror2;
+                        goto case Terror;
                 }
 
                 if (taa)
@@ -1306,7 +1309,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         {
                             fs.error("foreach: index must be type %s, not %s",
                                 ti.toChars(), ta.toChars());
-                            goto Lerror2;
+                            goto case Terror;
                         }
                         p = (*fs.parameters)[1];
                         isRef = (p.storageClass & STCref) != 0;
@@ -1317,7 +1320,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     {
                         fs.error("foreach: value must be type %s, not %s",
                             taav.toChars(), ta.toChars());
-                        goto Lerror2;
+                        goto case Terror;
                     }
 
                     /* Call:
@@ -1350,7 +1353,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     exps.push(fs.aggr);
                     auto keysize = taa.index.size();
                     if (keysize == SIZE_INVALID)
-                        goto Lerror2;
+                        goto case Terror;
                     assert(keysize < keysize.max - Target.ptrsize);
                     keysize = (keysize + (Target.ptrsize - 1)) & ~(Target.ptrsize - 1);
                     // paint delegate argument to the type runtime expects
@@ -1438,16 +1441,18 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     ec = new CallExp(loc, fs.aggr, flde);
                     ec = ec.semantic(sc2);
                     if (ec.op == TOKerror)
-                        goto Lerror2;
+                        goto case Terror;
                     if (ec.type != Type.tint32)
                     {
                         fs.error("opApply() function for %s must return an int", tab.toChars());
-                        goto Lerror2;
+                        goto case Terror;
                     }
                 }
                 else
                 {
-                    if (global.params.safe)
+version (none)
+{
+                    if (global.params.vsafe)
                     {
                         fprintf(
                             global.stdmsg,
@@ -1457,7 +1462,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         fflush(global.stdmsg);
                     }
                     fld.tookAddressOf = 1;
-
+}
+else
+{
+                    if (global.params.vsafe)
+                        fld.tookAddressOf = 1;  // allocate a closure unless the opApply() uses 'scope'
+}
                     assert(tab.ty == Tstruct || tab.ty == Tclass);
                     assert(sapply);
                     /* Call:
@@ -1467,11 +1477,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     ec = new CallExp(loc, ec, flde);
                     ec = ec.semantic(sc2);
                     if (ec.op == TOKerror)
-                        goto Lerror2;
+                        goto case Terror;
                     if (ec.type != Type.tint32)
                     {
                         fs.error("opApply() function for %s must return an int", tab.toChars());
-                        goto Lerror2;
+                        goto case Terror;
                     }
                 }
                 e = Expression.combine(e, ec);
@@ -1507,13 +1517,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 break;
             }
         case Terror:
-        Lerror2:
             s = new ErrorStatement();
             break;
 
         default:
             fs.error("foreach: %s is not an aggregate type", fs.aggr.type.toChars());
-            goto Lerror2;
+            goto case Terror;
         }
         sc2.noctor--;
         sc2.pop();
@@ -1530,7 +1539,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         if (!fs.lwr.type)
         {
             fs.error("invalid range lower bound %s", fs.lwr.toChars());
-        Lerror:
             return setError();
         }
 
@@ -1540,7 +1548,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         if (!fs.upr.type)
         {
             fs.error("invalid range upper bound %s", fs.upr.toChars());
-            goto Lerror;
+            return setError();
         }
 
         if (fs.prm.type)
@@ -1555,7 +1563,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
             else
             {
-                // See if upr-1 fits in prm->type
+                // See if upr-1 fits in prm.type
                 Expression limit = new MinExp(loc, fs.upr, new IntegerExp(1));
                 limit = limit.semantic(sc);
                 limit = limit.optimize(WANTvalue);
@@ -1694,7 +1702,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             if (fs.key.type.constConv(fs.prm.type) <= MATCHnomatch)
             {
                 fs.error("prmument type mismatch, %s to ref %s", fs.key.type.toChars(), fs.prm.type.toChars());
-                goto Lerror;
+                return setError();
             }
         }
 
@@ -1838,7 +1846,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     if (e.op == TOKerror)
                     {
                         errorSupplemental(ps.loc, "while evaluating pragma(msg, %s)", arg.toChars());
-                        goto Lerror;
+                        return setError();
                     }
                     StringExp se = e.toStringExp();
                     if (se)
@@ -1859,20 +1867,20 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 /* Should this be allowed?
                  */
                 ps.error("pragma(lib) not allowed as statement");
-                goto Lerror;
+                return setError();
             }
             else
             {
                 if (!ps.args || ps.args.dim != 1)
                 {
                     ps.error("string expected for library name");
-                    goto Lerror;
+                    return setError();
                 }
                 else
                 {
                     auto se = semanticString(sc, (*ps.args)[0], "library name");
                     if (!se)
-                        goto Lerror;
+                        return setError();
 
                     if (global.params.verbose)
                     {
@@ -1899,7 +1907,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 if (!sa || !sa.isFuncDeclaration())
                 {
                     ps.error("function name expected for start address, not '%s'", e.toChars());
-                    goto Lerror;
+                    return setError();
                 }
                 if (ps._body)
                 {
@@ -1922,7 +1930,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             else if (!ps.args || ps.args.dim != 1)
             {
                 ps.error("boolean expression expected for pragma(inline)");
-                goto Lerror;
+                return setError();
             }
             else
             {
@@ -1930,7 +1938,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 if (e.op != TOKint64 || !e.type.equals(Type.tbool))
                 {
                     ps.error("pragma(inline, true or false) expected, not %s", e.toChars());
-                    goto Lerror;
+                    return setError();
                 }
 
                 if (e.isBool(true))
@@ -1942,7 +1950,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 if (!fd)
                 {
                     ps.error("pragma(inline) is not inside a function");
-                    goto Lerror;
+                    return setError();
                 }
                 fd.inlining = inlining;
             }
@@ -1950,7 +1958,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         else
         {
             ps.error("unrecognized pragma(%s)", ps.ident.toChars());
-            goto Lerror;
+            return setError();
         }
 
         if (ps._body)
@@ -1958,10 +1966,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             ps._body = ps._body.semantic(sc);
         }
         result = ps._body;
-        return;
-
-    Lerror:
-        return setError();
     }
 
     override void visit(StaticAssertStatement s)
@@ -2045,15 +2049,20 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         sc.noctor--;
 
         if (conditionError || ss._body.isErrorStatement())
-            goto Lerror;
+        {
+            sc.pop();
+            return setError();
+        }
 
         // Resolve any goto case's with exp
+      Lgotocase:
         foreach (gcs; ss.gotoCases)
         {
             if (!gcs.exp)
             {
                 gcs.error("no case statement following goto case;");
-                goto Lerror;
+                sc.pop();
+                return setError();
             }
 
             for (Scope* scx = sc; scx; scx = scx.enclosing)
@@ -2065,14 +2074,13 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     if (cs.exp.equals(gcs.exp))
                     {
                         gcs.cs = cs;
-                        goto Lfoundcase;
+                        continue Lgotocase;
                     }
                 }
             }
             gcs.error("case %s not found", gcs.exp.toChars());
-            goto Lerror;
-
-        Lfoundcase:
+            sc.pop();
+            return setError();
         }
 
         if (ss.isFinal)
@@ -2086,6 +2094,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 ed = ds.isEnumDeclaration();
             if (ed)
             {
+              Lmembers:
                 foreach (es; *ed.members)
                 {
                     EnumMember em = es.isEnumMember();
@@ -2094,12 +2103,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         foreach (cs; *ss.cases)
                         {
                             if (cs.exp.equals(em.value) || (!cs.exp.type.isString() && !em.value.type.isString() && cs.exp.toInteger() == em.value.toInteger()))
-                                goto L1;
+                                continue Lmembers;
                         }
                         ss.error("enum member %s not represented in final switch", em.toChars());
-                        goto Lerror;
+                        sc.pop();
+                        return setError();
                     }
-                L1:
                 }
             }
             else
@@ -2134,15 +2143,13 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         }
 
         if (ss.checkLabel())
-            goto Lerror;
+        {
+            sc.pop();
+            return setError();
+        }
 
         sc.pop();
         result = ss;
-        return;
-
-    Lerror:
-        sc.pop();
-        result = new ErrorStatement();
     }
 
     override void visit(CaseStatement cs)
@@ -2205,7 +2212,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         L1:
             foreach (cs2; *sw.cases)
             {
-                //printf("comparing '%s' with '%s'\n", exp->toChars(), cs->exp->toChars());
+                //printf("comparing '%s' with '%s'\n", exp.toChars(), cs.exp.toChars());
                 if (cs2.exp.equals(cs.exp))
                 {
                     cs.error("duplicate case %s in switch statement", cs.exp.toChars());
@@ -2413,7 +2420,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
     override void visit(ReturnStatement rs)
     {
-        //printf("ReturnStatement.semantic() %s\n", rs.toChars());
+        //printf("ReturnStatement.semantic() %p, %s\n", rs, rs.toChars());
 
         FuncDeclaration fd = sc.parent.isFuncDeclaration();
         if (fd.fes)
@@ -2550,7 +2557,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     int m1 = rs.exp.type.implicitConvTo(tret);
                     int m2 = tret.implicitConvTo(rs.exp.type);
-                    //printf("exp->type = %s m2<-->m1 tret %s\n", exp->type->toChars(), tret->toChars());
+                    //printf("exp.type = %s m2<-->m1 tret %s\n", exp.type.toChars(), tret.toChars());
                     //printf("m1 = %d, m2 = %d\n", m1, m2);
 
                     if (m1 && m2)
@@ -2612,7 +2619,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     if (!v.isDataseg() && !v.isParameter() && v.toParent2() == fd)
                     {
-                        //printf("Setting nrvo to %s\n", v->toChars());
+                        //printf("Setting nrvo to %s\n", v.toChars());
                         fd.nrvo_var = v;
                     }
                     else
@@ -2621,7 +2628,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 else if (fd.nrvo_var != v)
                     fd.nrvo_can = 0;
             }
-            else //if (!exp->isLvalue())    // keep NRVO-ability
+            else //if (!exp.isLvalue())    // keep NRVO-ability
                 fd.nrvo_can = 0;
         }
         else
@@ -2702,7 +2709,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 sc.fes.cases.push(s);
 
                 // Immediately rewrite "this" return statement as:
-                //  return cases->dim+1;
+                //  return cases.dim+1;
                 rs.exp = new IntegerExp(sc.fes.cases.dim + 1);
                 if (e0)
                 {
@@ -2904,7 +2911,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             ss.exp = ss.exp.optimize(WANTvalue);
             ss.exp = checkGC(sc, ss.exp);
             if (ss.exp.op == TOKerror)
-                goto Lbody;
+            {
+                if (ss._body)
+                    ss._body = ss._body.semantic(sc);
+                return setError();
+            }
 
             ClassDeclaration cd = ss.exp.type.isClassHandle();
             if (!cd)
@@ -2959,15 +2970,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
                 s = new CompoundStatement(ss.loc, cs);
                 result = s.semantic(sc);
-                return;
             }
         }
         else
         {
             /* Generate our own critical section, then rewrite as:
-             *  __gshared byte[CriticalSection.sizeof] critsec;
-             *  _d_criticalenter(critsec.ptr);
-             *  try { body } finally { _d_criticalexit(critsec.ptr); }
+             *  __gshared align(D_CRITICAL_SECTION.alignof) byte[D_CRITICAL_SECTION.sizeof] __critsec;
+             *  _d_criticalenter(__critsec.ptr);
+             *  try { body } finally { _d_criticalexit(__critsec.ptr); }
              */
             auto id = Identifier.generateId("__critsec");
             auto t = Type.tint8.sarrayOf(Target.ptrsize + Target.critsecsize());
@@ -3005,17 +3015,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
             s = new CompoundStatement(ss.loc, cs);
             result = s.semantic(sc);
-            return;
+
+            // set the explicit __critsec alignment after semantic()
+            tmp.alignment = Target.ptrsize;
         }
-    Lbody:
-        if (ss._body)
-            ss._body = ss._body.semantic(sc);
-        if (ss._body && ss._body.isErrorStatement())
-        {
-            result = ss._body;
-            return;
-        }
-        result = ss;
     }
 
     override void visit(WithStatement ws)
@@ -3456,7 +3459,7 @@ Statement semantic(Statement s, Scope* sc)
 
 void semantic(Catch c, Scope* sc)
 {
-    //printf("Catch::semantic(%s)\n", ident->toChars());
+    //printf("Catch::semantic(%s)\n", ident.toChars());
 
     static if (!IN_GCC)
     {

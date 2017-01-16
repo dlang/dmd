@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(DMDSRC _nspace.d)
@@ -30,7 +30,7 @@ extern (C++) final class Nspace : ScopeDsymbol
     extern (D) this(Loc loc, Identifier ident, Dsymbols* members)
     {
         super(ident);
-        //printf("Nspace::Nspace(ident = %s)\n", ident->toChars());
+        //printf("Nspace::Nspace(ident = %s)\n", ident.toChars());
         this.loc = loc;
         this.members = members;
     }
@@ -64,7 +64,7 @@ extern (C++) final class Nspace : ScopeDsymbol
             sc.parent = this;
             foreach (s; *members)
             {
-                //printf("add %s to scope %s\n", s->toChars(), toChars());
+                //printf("add %s to scope %s\n", s.toChars(), toChars());
                 s.addMember(sc, this);
             }
             sc.pop();
@@ -223,7 +223,7 @@ extern (C++) final class Nspace : ScopeDsymbol
         {
             foreach (s; *members)
             {
-                //printf(" s = %s %s\n", s->kind(), s->toChars());
+                //printf(" s = %s %s\n", s.kind(), s.toChars());
                 if (s.hasPointers())
                 {
                     return true;
@@ -242,7 +242,7 @@ extern (C++) final class Nspace : ScopeDsymbol
         {
             foreach (s; *members)
             {
-                //printf("\t%s\n", s->toChars());
+                //printf("\t%s\n", s.toChars());
                 s.setFieldOffset(ad, poffset, isunion);
             }
         }

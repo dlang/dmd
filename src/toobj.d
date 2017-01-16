@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/_tocsym.d, _toobj.d)
@@ -45,7 +45,11 @@ import ddmd.nspace;
 import ddmd.statement;
 import ddmd.staticassert;
 import ddmd.target;
+import ddmd.tocsym;
+import ddmd.tocvdebug;
+import ddmd.todt;
 import ddmd.tokens;
+import ddmd.typinf;
 import ddmd.visitor;
 
 import ddmd.backend.cc;
@@ -64,30 +68,9 @@ import ddmd.backend.type;
 
 extern (C++):
 
-bool obj_includelib(const(char)* name);
-void obj_startaddress(Symbol *s);
-void obj_lzext(Symbol *s1,Symbol *s2);
+alias toSymbol = ddmd.tocsym.toSymbol;
+alias toSymbol = ddmd.glue.toSymbol;
 
-void TypeInfo_toDt(DtBuilder dtb, TypeInfoDeclaration d);
-void Initializer_toDt(Initializer init, DtBuilder dtb);
-void Type_toDt(Type t, DtBuilder dtb);
-void ClassDeclaration_toDt(ClassDeclaration cd, DtBuilder dtb);
-void StructDeclaration_toDt(StructDeclaration sd, DtBuilder dtb);
-Symbol *toSymbol(Dsymbol s);
-void Expression_toDt(Expression e, DtBuilder dtb);
-void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj);
-Symbol *toThunkSymbol(FuncDeclaration fd, int offset);
-Symbol *toVtblSymbol(ClassDeclaration cd);
-Symbol *toInitializer(AggregateDeclaration ad);
-Symbol *toInitializer(EnumDeclaration ed);
-void genTypeInfo(Type t, Scope *sc);
-bool isSpeculativeType(Type t);
-
-void toDebug(EnumDeclaration ed);
-void toDebug(StructDeclaration sd);
-void toDebug(ClassDeclaration cd);
-
-void objc_Module_genmoduleinfo_classes();
 
 /* ================================================================== */
 
@@ -308,6 +291,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 member.accept(this);
             }
 
+            finishVtbl(cd);
+
             // Generate C symbols
             toSymbol(cd);
             toVtblSymbol(cd);
@@ -518,103 +503,29 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 // offset
                 dtb.size(b.offset);
-
-                offset += id.vtbl.dim * Target.ptrsize;
             }
 
             // Put out the (*vtblInterfaces)[].vtbl[]
             // This must be mirrored with ClassDeclaration.baseVtblOffset()
             //printf("putting out %d interface vtbl[]s for '%s'\n", vtblInterfaces.dim, toChars());
-            for (size_t i = 0; i < cd.vtblInterfaces.dim; i++)
+            foreach (i; 0 .. cd.vtblInterfaces.dim)
             {
                 BaseClass *b = (*cd.vtblInterfaces)[i];
-                ClassDeclaration id = b.sym;
-
-                //printf("    interface[%d] is '%s'\n", i, id.toChars());
-                size_t j = 0;
-                if (id.vtblOffset())
-                {
-                    // First entry is ClassInfo reference
-                    //dtb.xoff(toSymbol(id), 0, TYnptr);
-
-                    // First entry is struct Interface reference
-                    dtb.xoff(cd.csym, cast(uint)(Target.classinfosize + i * (4 * Target.ptrsize)), TYnptr);
-                    j = 1;
-                }
-                assert(id.vtbl.dim == b.vtbl.dim);
-                for (; j < id.vtbl.dim; j++)
-                {
-                    assert(j < b.vtbl.dim);
-                    version (none)
-                    {
-                        RootObject *o = b.vtbl[j];
-                        if (o)
-                        {
-                            printf("o = %p\n", o);
-                            assert(o.dyncast() == DYNCAST_DSYMBOL);
-                            Dsymbol s = cast(Dsymbol)o;
-                            printf("s.kind() = '%s'\n", s.kind());
-                        }
-                    }
-                    FuncDeclaration fd = b.vtbl[j];
-                    if (fd)
-                    {
-                        auto offset2 = b.offset;
-                        if (fd.interfaceVirtual)
-                        {
-                            offset2 -= fd.interfaceVirtual.offset;
-                        }
-                        dtb.xoff(toThunkSymbol(fd, offset2), 0, TYnptr);
-                    }
-                    else
-                        dtb.size(0);
-                }
+                offset += emitVtbl(dtb, b, b.vtbl, cd, i);
             }
 
             // Put out the overriding interface vtbl[]s.
             // This must be mirrored with ClassDeclaration.baseVtblOffset()
             //printf("putting out overriding interface vtbl[]s for '%s' at offset x%x\n", toChars(), offset);
-            ClassDeclaration pc;
-            for (pc = cd.baseClass; pc; pc = pc.baseClass)
+            for (ClassDeclaration pc = cd.baseClass; pc; pc = pc.baseClass)
             {
-                for (size_t k = 0; k < pc.vtblInterfaces.dim; k++)
+                foreach (i; 0 .. pc.vtblInterfaces.dim)
                 {
-                    BaseClass *bs = (*pc.vtblInterfaces)[k];
+                    BaseClass *b = (*pc.vtblInterfaces)[i];
                     FuncDeclarations bvtbl;
-                    if (bs.fillVtbl(cd, &bvtbl, 0))
+                    if (b.fillVtbl(cd, &bvtbl, 0))
                     {
-                        //printf("\toverriding vtbl[] for %s\n", bs.sym.toChars());
-                        ClassDeclaration id = bs.sym;
-
-                        size_t j = 0;
-                        if (id.vtblOffset())
-                        {
-                            // First entry is ClassInfo reference
-                            //dtb.xoff(toSymbol(id), 0, TYnptr);
-
-                            // First entry is struct Interface reference
-                            dtb.xoff(toSymbol(pc), cast(uint)(Target.classinfosize + k * (4 * Target.ptrsize)), TYnptr);
-                            offset += Target.ptrsize;
-                            j = 1;
-                        }
-
-                        for (; j < id.vtbl.dim; j++)
-                        {
-                            assert(j < bvtbl.dim);
-                            FuncDeclaration fd = bvtbl[j];
-                            if (fd)
-                            {
-                                auto offset2 = bs.offset;
-                                if (fd.interfaceVirtual)
-                                {
-                                    offset2 -= fd.interfaceVirtual.offset;
-                                }
-                                dtb.xoff(toThunkSymbol(fd, offset2), 0, TYnptr);
-                            }
-                            else
-                                dtb.size(0);
-                            offset += Target.ptrsize;
-                        }
+                        offset += emitVtbl(dtb, b, bvtbl, pc, i);
                     }
                 }
             }
@@ -640,53 +551,14 @@ void toObjFile(Dsymbol ds, bool multiobj)
             scope dtbv = new DtBuilder();
             if (cd.vtblOffset())
                 dtbv.xoff(cd.csym, 0, TYnptr);           // first entry is ClassInfo reference
-            for (size_t i = cd.vtblOffset(); i < cd.vtbl.dim; i++)
+            foreach (i; cd.vtblOffset() .. cd.vtbl.dim)
             {
                 FuncDeclaration fd = cd.vtbl[i].isFuncDeclaration();
 
                 //printf("\tvtbl[%d] = %p\n", i, fd);
                 if (fd && (fd.fbody || !cd.isAbstract()))
                 {
-                    // Ensure function has a return value (Bugzilla 4869)
-                    fd.functionSemantic();
-
-                    Symbol *s = toSymbol(fd);
-
-                    if (cd.isFuncHidden(fd))
-                    {
-                        /* fd is hidden from the view of this class.
-                         * If fd overlaps with any function in the vtbl[], then
-                         * issue 'hidden' error.
-                         */
-                        for (size_t j = 1; j < cd.vtbl.dim; j++)
-                        {
-                            if (j == i)
-                                continue;
-                            FuncDeclaration fd2 = cd.vtbl[j].isFuncDeclaration();
-                            if (!fd2.ident.equals(fd.ident))
-                                continue;
-                            if (fd.leastAsSpecialized(fd2) || fd2.leastAsSpecialized(fd))
-                            {
-                                TypeFunction tf = cast(TypeFunction)fd.type;
-                                if (tf.ty == Tfunction)
-                                {
-                                    cd.error("use of %s%s is hidden by %s; use 'alias %s = %s.%s;' to introduce base class overload set",
-                                        fd.toPrettyChars(),
-                                        parametersTypeToChars(tf.parameters, tf.varargs),
-                                        cd.toChars(),
-
-                                        fd.toChars(),
-                                        fd.parent.toChars(),
-                                        fd.toChars());
-                                }
-                                else
-                                    cd.error("use of %s is hidden by %s", fd.toPrettyChars(), cd.toChars());
-                                break;
-                            }
-                        }
-                    }
-
-                    dtbv.xoff(s, 0, TYnptr);
+                    dtbv.xoff(toSymbol(fd), 0, TYnptr);
                 }
                 else
                     dtbv.size(0);
@@ -1391,6 +1263,65 @@ void toObjFile(Dsymbol ds, bool multiobj)
     ds.accept(v);
 }
 
+
+/*********************************
+ * Finish semantic analysis of functions in vtbl[],
+ * check vtbl[] for errors.
+ */
+private void finishVtbl(ClassDeclaration cd)
+{
+    foreach (i; cd.vtblOffset() .. cd.vtbl.dim)
+    {
+        FuncDeclaration fd = cd.vtbl[i].isFuncDeclaration();
+
+        //printf("\tvtbl[%d] = %p\n", i, fd);
+        if (!fd || !fd.fbody && cd.isAbstract())
+        {
+            // Nothing to do
+            continue;
+        }
+        // Ensure function has a return value (Bugzilla 4869)
+        fd.functionSemantic();
+
+        if (!cd.isFuncHidden(fd))
+        {
+            // All good, no name hiding to check for
+            continue;
+        }
+
+        /* fd is hidden from the view of this class.
+         * If fd overlaps with any function in the vtbl[], then
+         * issue 'hidden' error.
+         */
+        foreach (j; 1 .. cd.vtbl.dim)
+        {
+            if (j == i)
+                continue;
+            FuncDeclaration fd2 = cd.vtbl[j].isFuncDeclaration();
+            if (!fd2.ident.equals(fd.ident))
+                continue;
+            if (!fd.leastAsSpecialized(fd2) && !fd2.leastAsSpecialized(fd))
+                continue;
+            // Hiding detected: same name, overlapping specializations
+            TypeFunction tf = cast(TypeFunction)fd.type;
+            if (tf.ty == Tfunction)
+            {
+                cd.error("use of %s%s is hidden by %s; use 'alias %s = %s.%s;' to introduce base class overload set",
+                    fd.toPrettyChars(),
+                    parametersTypeToChars(tf.parameters, tf.varargs),
+                    cd.toChars(),
+                    fd.toChars(),
+                    fd.parent.toChars(),
+                    fd.toChars());
+            }
+            else
+                cd.error("use of %s is hidden by %s", fd.toPrettyChars(), cd.toChars());
+            break;
+        }
+    }
+}
+
+
 /******************************************
  * Get offset of base class's vtbl[] initializer from start of csym.
  * Returns ~0 if not this csym.
@@ -1435,3 +1366,50 @@ uint baseVtblOffset(ClassDeclaration cd, BaseClass *bc)
 
     return ~0;
 }
+
+/*******************
+ * Emit the vtbl[] to static data
+ * Params:
+ *    dtb = static data builder
+ *    b = base class
+ *    bvtbl = array of functions to put in this vtbl[]
+ *    pc = classid for this vtbl[]
+ *    k = offset from pc to classinfo
+ * Returns:
+ *    number of bytes emitted
+ */
+private size_t emitVtbl(ref DtBuilder dtb, BaseClass *b, ref FuncDeclarations bvtbl, ClassDeclaration pc, size_t k)
+{
+    //printf("\toverriding vtbl[] for %s\n", b.sym.toChars());
+    ClassDeclaration id = b.sym;
+
+    const id_vtbl_dim = id.vtbl.dim;
+    assert(id_vtbl_dim <= bvtbl.dim);
+
+    size_t jstart = 0;
+    if (id.vtblOffset())
+    {
+        // First entry is struct Interface reference
+        dtb.xoff(toSymbol(pc), cast(uint)(Target.classinfosize + k * (4 * Target.ptrsize)), TYnptr);
+        jstart = 1;
+    }
+
+    foreach (j; jstart .. id_vtbl_dim)
+    {
+        FuncDeclaration fd = bvtbl[j];
+        if (fd)
+        {
+            auto offset2 = b.offset;
+            if (fd.interfaceVirtual)
+            {
+                offset2 -= fd.interfaceVirtual.offset;
+            }
+            dtb.xoff(toThunkSymbol(fd, offset2), 0, TYnptr);
+        }
+        else
+            dtb.size(0);
+    }
+    return id_vtbl_dim * Target.ptrsize;
+}
+
+

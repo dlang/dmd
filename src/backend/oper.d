@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (c) 2000-2016 by Digital Mars, All Rights Reserved
+ *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     backendlicense.txt
  * Source:      $(DMDSRC backend/_oper.d)
@@ -222,6 +222,7 @@ enum
         OPgot,                  // load pointer to global offset table
         OPvector,               // SIMD vector operations
         OPvecsto,               // SIMD vector store operations
+        OPvecfill,              // fill SIMD vector with E1
 
         OPinp,                  // input from I/O port
         OPoutp,                 // output to I/O port

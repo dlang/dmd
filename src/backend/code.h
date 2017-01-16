@@ -11,7 +11,7 @@
 
 #include <stddef.h>
 
-class LabelDsymbol;             // D only
+struct _LabelDsymbol;             // D only
 class Declaration;              // D only
 
 typedef int segidx_t;           // index into SegData[]
@@ -53,7 +53,7 @@ union evc
     struct
     {
         targ_size_t Voffset;    // offset from symbol
-        LabelDsymbol *Vsym;     // pointer to D Label
+        _LabelDsymbol *Vsym;    // pointer to D Label
     } lab;
 
     struct
@@ -465,11 +465,16 @@ code *orthxmm(elem *e, regm_t *pretregs);
 code *xmmeq(elem *e, unsigned op, elem *e1, elem *e2,regm_t *pretregs);
 code *xmmcnvt(elem *e,regm_t *pretregs);
 code *xmmopass(elem *e, regm_t *pretregs);
+code *xmmpost(elem *e, regm_t *pretregs);
 code *xmmneg(elem *e, regm_t *pretregs);
-unsigned xmmload(tym_t tym);
-unsigned xmmstore(tym_t tym);
+unsigned xmmload(tym_t tym, bool aligned = true);
+unsigned xmmstore(tym_t tym, bool aligned = true);
 code *cdvector(elem *e, regm_t *pretregs);
 code *cdvecsto(elem *e, regm_t *pretregs);
+code *cdvecfill(elem *e, regm_t *pretregs);
+bool xmmIsAligned(elem *e);
+void checkSetVex3(code *c);
+void checkSetVex(code *c, tym_t ty);
 
 /* cg87.c */
 void note87(elem *e, unsigned offset, int i);
@@ -483,6 +488,7 @@ code *save87 (void );
 code *save87regs(unsigned n);
 void gensaverestore87(regm_t, code **, code **);
 code *genfltreg(code *c,unsigned opcode,unsigned reg,targ_size_t offset);
+code *genxmmreg(code *c,unsigned opcode,unsigned xreg,targ_size_t offset, tym_t tym);
 code *genfwait(code *c);
 code *comsub87(elem *e, regm_t *pretregs);
 code *fixresult87 (elem *e , regm_t retregs , regm_t *pretregs );
@@ -719,9 +725,10 @@ struct CodeBuilder
     void gen(code *cs);
     void gen1(unsigned op);
     void gen2(unsigned op, unsigned rm);
+    void genf2(unsigned op, unsigned rm);
     void gen2sib(unsigned op, unsigned rm, unsigned sib);
     void genasm(char *s, unsigned slen);
-    void genasm(LabelDsymbol *label);
+    void genasm(_LabelDsymbol *label);
     void genasm(block *label);
     void gencsi(unsigned op, unsigned rm, unsigned FL2, SYMIDX si);
     void gencs(unsigned op, unsigned rm, unsigned FL2, symbol *s);
@@ -732,6 +739,8 @@ struct CodeBuilder
     void genadjesp(int offset);
     void genadjfpu(int offset);
     void gennop();
+    void genfltreg(unsigned opcode,unsigned reg,targ_size_t offset);
+    void genxmmreg(unsigned opcode,unsigned xreg,targ_size_t offset, tym_t tym);
 
     /*****************
      * Returns:

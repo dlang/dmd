@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(DMDSRC _globals.d)
@@ -49,6 +49,25 @@ alias BOUNDSCHECKdefault = BOUNDSCHECK.BOUNDSCHECKdefault;
 alias BOUNDSCHECKoff = BOUNDSCHECK.BOUNDSCHECKoff;
 alias BOUNDSCHECKon = BOUNDSCHECK.BOUNDSCHECKon;
 alias BOUNDSCHECKsafeonly = BOUNDSCHECK.BOUNDSCHECKsafeonly;
+
+enum CPU
+{
+    x87,
+    mmx,
+    sse,
+    sse2,
+    sse3,
+    ssse3,
+    sse4_1,
+    sse4_2,
+    avx,                // AVX1 instruction set
+    avx2,               // AVX2 instruction set
+    avx512,             // AVX-512 instruction set
+
+    // Special values that don't survive past the command line processing
+    baseline,           // (default) the minimum capability CPU
+    native              // the machine the compiler is being run on
+}
 
 // Put command line switches in here
 struct Param
@@ -113,12 +132,20 @@ struct Param
     bool allInst;           // generate code for all template instantiations
     bool check10378;        // check for issues transitioning to 10738
     bool bug10378;          // use pre-bugzilla 10378 search strategy
-    bool safe;              // use enhanced @safe checking
+    bool vsafe;             // use enhanced @safe checking
+    /** The --transition=safe switch should only be used to show code with
+     * silent semantics changes related to @safe improvements.  It should not be
+     * used to hide a feature that will have to go through deprecate-then-error
+     * before becoming default.
+     */
+
     bool showGaggedErrors;  // print gagged errors anyway
 
+    CPU cpu;                // CPU instruction set to target
     BOUNDSCHECK useArrayBounds;
 
     const(char)* argv0;                 // program name
+    Array!(const(char)*)* modFileAliasStrings; // array of char*'s of -I module filename alias strings
     Array!(const(char)*)* imppath;      // array of char*'s of where to look for import modules
     Array!(const(char)*)* fileImppath;  // array of char*'s of where to look for file import modules
     const(char)* objdir;                // .obj/.lib file output directory
@@ -146,6 +173,7 @@ struct Param
 
     const(char)* defaultlibname;        // default library for non-debug builds
     const(char)* debuglibname;          // default library for debug builds
+    const(char)* mscrtlib;              // MS C runtime library
 
     const(char)* moduleDepsFile;        // filename for deps output
     OutBuffer* moduleDeps;              // contents to be written to deps file
@@ -310,7 +338,7 @@ struct Global
         {
             static assert(0, "fix this");
         }
-        copyright = "Copyright (c) 1999-2016 by Digital Mars";
+        copyright = "Copyright (c) 1999-2017 by Digital Mars";
         written = "written by Walter Bright";
         _version = ('v' ~ stripRight(import("verstr.h"))[1 .. $ - 1] ~ '\0').ptr;
         compiler.vendor = "Digital Mars D";
@@ -404,24 +432,9 @@ enum CPPMANGLE : int
     asClass,
 }
 
-enum DYNCAST : int
-{
-    object,
-    expression,
-    dsymbol,
-    type,
-    identifier,
-    tuple,
-    parameter,
-}
-
-alias DYNCAST_OBJECT = DYNCAST.object;
-alias DYNCAST_EXPRESSION = DYNCAST.expression;
-alias DYNCAST_DSYMBOL = DYNCAST.dsymbol;
-alias DYNCAST_TYPE = DYNCAST.type;
-alias DYNCAST_IDENTIFIER = DYNCAST.identifier;
-alias DYNCAST_TUPLE = DYNCAST.tuple;
-alias DYNCAST_PARAMETER = DYNCAST.parameter;
+alias CPPMANGLEdefault = CPPMANGLE.def;
+alias CPPMANGLEstruct = CPPMANGLE.asStruct;
+alias CPPMANGLEclass = CPPMANGLE.asClass;
 
 enum MATCH : int
 {

@@ -197,7 +197,7 @@ void WReqn(elem *e)
                 if (e->Eoffset != 0)
                 {
                     if (sizeof(e->Eoffset) == 8)
-                        printf(".x%llx", e->Eoffset);
+                        printf(".x%llx", (unsigned long long)e->Eoffset);
                     else
                         printf(".%ld",(long)e->Eoffset);
                 }
@@ -350,7 +350,7 @@ void WRblock(block *b)
                 printf("\tdefault: %p\n",list_block(bl));
                 while (ncases--)
                 {   bl = list_next(bl);
-                    printf("\tcase %lld: %p\n",*++pu,list_block(bl));
+                    printf("\tcase %lld: %p\n",(long long)*++pu,list_block(bl));
                 }
                 break;
             case BCiftrue:
