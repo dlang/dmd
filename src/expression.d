@@ -2580,7 +2580,7 @@ extern (C++) abstract class Expression : RootObject
     }
 
     // kludge for template.isExpression()
-    override final DYNCAST dyncast()
+    override final DYNCAST dyncast() const
     {
         return DYNCAST_EXPRESSION;
     }

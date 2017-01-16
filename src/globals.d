@@ -435,27 +435,6 @@ alias CPPMANGLEdefault = CPPMANGLE.def;
 alias CPPMANGLEstruct = CPPMANGLE.asStruct;
 alias CPPMANGLEclass = CPPMANGLE.asClass;
 
-enum DYNCAST : int
-{
-    object,
-    expression,
-    dsymbol,
-    type,
-    identifier,
-    tuple,
-    parameter,
-    statement,
-}
-
-alias DYNCAST_OBJECT = DYNCAST.object;
-alias DYNCAST_EXPRESSION = DYNCAST.expression;
-alias DYNCAST_DSYMBOL = DYNCAST.dsymbol;
-alias DYNCAST_TYPE = DYNCAST.type;
-alias DYNCAST_IDENTIFIER = DYNCAST.identifier;
-alias DYNCAST_TUPLE = DYNCAST.tuple;
-alias DYNCAST_PARAMETER = DYNCAST.parameter;
-alias DYNCAST_STATEMENT = DYNCAST.statement;
-
 enum MATCH : int
 {
     nomatch,   // no match

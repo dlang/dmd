@@ -11,6 +11,7 @@
 module ddmd.denum;
 
 import core.stdc.stdio;
+import ddmd.root.rootobject;
 import ddmd.gluelayer;
 import ddmd.declaration;
 import ddmd.dmodule;
