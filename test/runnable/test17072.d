@@ -9,5 +9,5 @@ import core.thread;
 
 void main()
 {
-        Thread.sleep(dur!"msecs"(50));
+        Thread.sleep(dur!"msecs"(0));
 }
