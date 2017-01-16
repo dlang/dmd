@@ -1369,7 +1369,7 @@ string printInstructions(const int* startInstructions, uint length) pure
             break;
         case LongInst.Call:
             {
-                result ~= "Call SP[" ~ to!string(hi & 0xFFFF) ~ "], {" ~ to!string(hi >> 16) ~ "}\n";
+                result ~= "Call SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
             break;
         case LongInst.BuiltinCall:
