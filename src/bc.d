@@ -26,7 +26,7 @@ auto instKind(LongInst i)
     final switch (i)
     {
     case  /*LongInst.Prt,*/ LongInst.RelJmp, LongInst.Ret, LongInstc,
-            LongInst.Flg, LongInst.Drb, LongInst.Mod4:
+            LongInst.Flg, LongInst.Mod4:
         {
             return InstKind.ShortInst;
         }
@@ -39,7 +39,7 @@ auto instKind(LongInst i)
     case LongInst.Add, LongInst.Sub, LongInst.Div, LongInst.Mul, LongInst.Eq, LongInst.Neq,
             LongInst.Lt, LongInst.Le, LongInst.Gt, LongInst.Ge, LongInst.Set, LongInst.And, LongInst.Or,
             LongInst.Xor, LongInst.Lsh, LongInst.Rsh, LongInst.Mod, // loadOps begin
-            LongInst.HeapLoad32, LongInst.HeapStore32, LongInst.Lss, LongInst.Lsb, LongInst.ExB, LongInst.Alloc:
+            LongInst.HeapLoad32, LongInst.HeapStore32, LongInst.ExB, LongInst.Alloc:
         {
             return InstKind.LongInst2Stack;
         }
@@ -77,7 +77,6 @@ enum LongInst : ushort
     Not,
 
     Flg, // writes the conditionFlag into [lw >> 16]
-    Drb, /// sets db = DS[align4(SP[lw >> 16])[SP[lw >> 16] % 4]]
     //End Former ShortInst
 
     Jmp,
@@ -134,8 +133,6 @@ enum LongInst : ushort
     Call,
     HeapLoad32, ///SP[hi & 0xFFFF] = Heap[align4(SP[hi >> 16])]
     HeapStore32, ///Heap[align4(SP[hi & 0xFFFF)] = SP[hi >> 16]]
-    Lss, /// defref pointer on the stack :)
-    Lsb, /// load stack byte
     ExB, /// extract Byte SP[hi & 0xFFFF] = extractByte(SP[hi & 0xFFFF], SP[hi >> 16])
     Alloc, /// SP[hi & 0xFFFF] = heapSize; heapSize += SP[hi >> 16]
 
@@ -1339,25 +1336,11 @@ string printInstructions(const int* startInstructions, uint length) pure
                     hi >> 16) ~ "]\n";
             }
             break;
-
-        case LongInst.Lss:
-            {
-                result ~= "Lss SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
-            }
-            break;
         case LongInst.ExB:
             {
                 result ~= "ExB SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
             break;
-        case LongInst.Lsb:
-            {
-                result ~= "Lsb SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
-            }
-            break;
-
-            // We have a short instruction
-
         case LongInst.Ret:
             {
                 result ~= "Ret SP[" ~ to!string(lw >> 16) ~ "] \n";
@@ -1382,13 +1365,6 @@ string printInstructions(const int* startInstructions, uint length) pure
         case LongInst.Flg:
             {
                 result ~= "Flg SP[" ~ to!string(lw >> 16) ~ "] \n";
-            }
-            break;
-
-        case LongInst.Drb:
-            {
-                result ~= "Drb" ~ to!string((lw & 0x0F00) >> 8) ~ " SP[" ~ to!string(
-                    cast(short)(lw >> 16)) ~ "]" ~ "\n";
             }
             break;
         case LongInst.Call:
@@ -1737,7 +1713,6 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 (*lhsRef) >>>= *rhs;
             }
             break;
-
         case LongInst.Mod:
             {
                 (*lhsRef) %= *rhs;
@@ -1954,36 +1929,6 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 (*(heapPtr._heap.ptr + *lhsRef)) = (*rhs) & 0xFF_FF_FF_FF;
             }
             break;
-        case LongInst.Lss:
-            {
-                (*lhsRef) = *(stack.ptr + (*rhs / 4));
-                //{ SP[hi & 0xFFFF] = DS[align4(SP[hi >> 16])] }
-            }
-            break;
-        case LongInst.Lsb:
-            {
-
-                uint _dr = stackP[cast(uint)(*rhs / 4)] & 0xFF_FF_FF_FF;
-                final switch (*rhs & 3)
-                {
-
-                case 0:
-                    (*lhsRef) = _dr & 0xFF;
-                    break;
-                case 1:
-                    (*lhsRef) = (_dr & 0xFF00) >> 8;
-                    break;
-                case 2:
-                    (*lhsRef) = (_dr & 0xFF0000) >> 16;
-                    break;
-                case 3:
-                    (*lhsRef) = (_dr & 0xFF000000) >> 24;
-                    break;
-                }
-
-            }
-            break;
-
         case LongInst.ExB:
             {
                 final switch ((*rhs) & 3)
@@ -2003,8 +1948,6 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 }
             }
             break;
-            // We have a short instruction
-
         case LongInst.Ret:
             {
                 debug (bc)
@@ -2025,31 +1968,6 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
         case LongInst.Not:
             {
                 (*opRef) = ~(*opRef);
-            }
-            break;
-
-        case LongInst.Drb:
-            const DsIdx = *(stack.ptr + ((lw >> 16) / 4));
-            const alignedIdx = (DsIdx & ~3);
-            if (drOffset != alignedIdx)
-            {
-                dr = *(heapPtr._heap.ptr + alignedIdx);
-                drOffset = alignedIdx & 0xFF_FF_FF_FF;
-            }
-            final switch (DsIdx & 3)
-            {
-            case 0:
-                db = dr & 0x00FF;
-                break;
-            case 1:
-                db = (dr & 0xFF00) >> 8;
-                break;
-            case 2:
-                db = (dr & 0xFF0000) >> 16;
-                break;
-            case 3:
-                db = dr >> 24;
-                break;
             }
             break;
         case LongInst.Flg:
@@ -2104,9 +2022,12 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 }
                 auto cRetval = interpret_(functions[cast(size_t)(fn - 1)].byteCode,
                     callArgs[0 .. call.args.length], heapPtr, functions, calls, ev1, ev2, errors, stack, stackOffsetCall);
-                    debug writeln("returned: ", cRetval);
-                    // Figure out what has to happen when we trow an error;
-                    *lhsRef = cRetval.imm32;
+
+                if (cRetval.vType == BCValueType.Error)
+                {
+                    return cRetval;
+                }
+                *lhsRef = cRetval.imm32;
             }
             break;
         case LongInst.Alloc:
@@ -2122,7 +2043,6 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 }
             }
             break;
-
         case LongInst.StrEq:
             {
                 auto _lhs = cast(uint)*lhsRef;
@@ -2152,7 +2072,6 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 }
             }
             break;
-
         case LongInst.StrCat:
             {
                 auto _lhs = cast(uint)*lhsRef;
