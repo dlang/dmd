@@ -264,7 +264,7 @@ class TypeInfo
     /// Swaps two instances of the type.
     void swap(void* p1, void* p2) const
     {
-        size_t n = tsize;
+        immutable size_t n = tsize;
         for (size_t i = 0; i < n; i++)
         {
             byte t = (cast(byte *)p1)[i];
@@ -466,7 +466,7 @@ class TypeInfo_Array : TypeInfo
             len = a2.length;
         for (size_t u = 0; u < len; u++)
         {
-            int result = value.compare(a1.ptr + u * sz, a2.ptr + u * sz);
+            immutable int result = value.compare(a1.ptr + u * sz, a2.ptr + u * sz);
             if (result)
                 return result;
         }
@@ -556,7 +556,7 @@ class TypeInfo_StaticArray : TypeInfo
 
         for (size_t u = 0; u < len; u++)
         {
-            int result = value.compare(p1 + u * sz, p2 + u * sz);
+            immutable int result = value.compare(p1 + u * sz, p2 + u * sz);
             if (result)
                 return result;
         }
@@ -604,7 +604,7 @@ class TypeInfo_StaticArray : TypeInfo
 
     override void destroy(void* p) const
     {
-        auto sz = value.tsize;
+        immutable sz = value.tsize;
         p += sz * len;
         foreach (i; 0 .. len)
         {
@@ -615,7 +615,7 @@ class TypeInfo_StaticArray : TypeInfo
 
     override void postblit(void* p) const
     {
-        auto sz = value.tsize;
+        immutable sz = value.tsize;
         foreach (i; 0 .. len)
         {
             value.postblit(p);
@@ -3162,7 +3162,7 @@ bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
     // This is function is used as a compiler intrinsic and explicitly written
     // in a lowered flavor to use as few CTFE instructions as possible.
     size_t idx = 0;
-    auto length = a1.length;
+    immutable length = a1.length;
 
     for(;idx < length;++idx)
     {
