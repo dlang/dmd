@@ -4988,7 +4988,8 @@ private bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t i
         {
             //printf("CallExp.reliesOnTident('%s')\n", e.toChars());
             visit(cast(UnaExp)e);
-            if (!result)
+            // e.to can be null for cast() with no type
+            if (!result && e.to)
                 e.to.accept(this);
         }
 
