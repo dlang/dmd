@@ -1859,17 +1859,13 @@ L1:
                         d = debtyp_alloc(10);
                         TOWORD(d->data,0x1002);
                         TOLONG(d->data + 2,next);
-                        // The visual studio debugger gets confused with pointers to arrays, emit a reference instead.
-                        // This especially happens when passing arrays as function arguments because 64bit ABI demands
-                        // passing structs > 8 byte as pointers.
-                        if((config.flags2 & CFG2gms) && t->Tnext && tybasic(t->Tnext->Tty) == TYdarray)
-                            TOLONG(d->data + 6,attribute | 0x20);
-                        else
-                        {
-                            /* BUG: attribute bits are unknown, 0x1000C is maaaagic
-                             */
-                            TOLONG(d->data + 6,attribute | 0x1000C);
-                        }
+                        // see https://github.com/Microsoft/microsoft-pdb/blob/master/include/cvinfo.h#L1514
+                        // add size and pointer type (PTR_64 or PTR_NEAR32)
+                        attribute |= (I64 ? (8 << 13) | 0xC : (4 << 13) | 0xA);
+                        // convert reference to r-value reference to remove & from type display in debugger
+                        if (attribute & 0x20)
+                            attribute |= 0x80;
+                        TOLONG(d->data + 6,attribute);
                         break;
 
                     default:
