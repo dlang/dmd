@@ -866,39 +866,33 @@ code *cdorth(elem *e,regm_t *pretregs)
  */
 
 code *cdmul(elem *e,regm_t *pretregs)
-{   unsigned rreg,op,oper,lib,byte;
+{   unsigned rreg,op,lib;
     regm_t resreg,retregs,rretregs;
-    regm_t keepregs;
-    tym_t uns;                          // 1 if unsigned operation, 0 if not
     tym_t tyml;
-    code *c,*cg,*cl,*cr,cs;
-    elem *e1,*e2;
-    int sz;
     targ_size_t e2factor;
     targ_size_t d;
     bool neg;
-    int opunslng;
     int pow2;
 
     if (*pretregs == 0)                         // if don't want result
-    {   c = codelem(e->E1,pretregs,FALSE);      // eval left leaf
+    {
+        CodeBuilder cdb;
+        cdb.append(codelem(e->E1,pretregs,FALSE));      // eval left leaf
         *pretregs = 0;                          // in case they got set
-        return cat(c,codelem(e->E2,pretregs,FALSE));
+        cdb.append(codelem(e->E2,pretregs,FALSE));
+        return cdb.finish();
     }
 
     //printf("cdmul(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
-    keepregs = 0;
-    cs.Iflags = 0;
-    cs.Irex = 0;
-    c = cg = cr = CNIL;                         // initialize
-    e2 = e->E2;
-    e1 = e->E1;
+    regm_t keepregs = 0;
+    elem *e1 = e->E1;
+    elem *e2 = e->E2;
     tyml = tybasic(e1->Ety);
     tym_t ty = tybasic(e->Ety);
-    sz = _tysize[tyml];
-    byte = tybyte(e->Ety) != 0;
-    uns = tyuns(tyml) || tyuns(e2->Ety);
-    oper = e->Eoper;
+    int sz = _tysize[tyml];
+    unsigned byte = tybyte(e->Ety) != 0;
+    tym_t uns = tyuns(tyml) || tyuns(e2->Ety);  // 1 if unsigned operation, 0 if not
+    unsigned oper = e->Eoper;
     unsigned rex = (I64 && sz == 8) ? REX_W : 0;
     unsigned grex = rex << 16;
 
@@ -921,7 +915,7 @@ code *cdmul(elem *e,regm_t *pretregs)
     if (tyxmmreg(tyml))
         return orthxmm(e,pretregs);
 
-    opunslng = I16 ? OPu16_32 : OPu32_64;
+    int opunslng = I16 ? OPu16_32 : OPu32_64;
     switch (oper)
     {
         case OPmul:
@@ -960,7 +954,7 @@ code *cdmul(elem *e,regm_t *pretregs)
 
     if (sz <= REGSIZE)                  // dedicated regs for mul & div
     {   retregs = mAX;
-        /* pick some other regs */
+        // pick some other regs
         rretregs = byte ? BYTEREGS & ~mAX
                         : ALLREGS & ~(mAX|mDX);
     }
@@ -971,36 +965,43 @@ code *cdmul(elem *e,regm_t *pretregs)
         rretregs = mCX | mBX;           // second arg
     }
 
+    CodeBuilder cdb;
+    code cs;
+    cs.Iflags = 0;
+    cs.Irex = 0;
+
   switch (e2->Eoper)
   {
     case OPu16_32:
     case OPs16_32:
     case OPu32_64:
     case OPs32_64:
+    {
         if (sz != 2 * REGSIZE || oper != OPmul || e1->Eoper != e2->Eoper ||
             e1->Ecount || e2->Ecount)
             goto L2;
         op = (e2->Eoper == opunslng) ? 4 : 5;
         retregs = mAX;
-        cl = codelem(e1->E1,&retregs,FALSE);    /* eval left leaf       */
+        cdb.append(codelem(e1->E1,&retregs,FALSE));    // eval left leaf
         if (e2->E1->Eoper == OPvar ||
             (e2->E1->Eoper == OPind && !e2->E1->Ecount)
            )
         {
-            cr = loadea(e2->E1,&cs,0xF7,op,0,mAX,mAX | mDX);
+            cdb.append(loadea(e2->E1,&cs,0xF7,op,0,mAX,mAX | mDX));
         }
         else
         {
             rretregs = ALLREGS & ~mAX;
-            cr = scodelem(e2->E1,&rretregs,retregs,TRUE); // get rvalue
-            cg = getregs(mAX | mDX);
+            cdb.append(scodelem(e2->E1,&rretregs,retregs,TRUE)); // get rvalue
+            cdb.append(getregs(mAX | mDX));
             rreg = findreg(rretregs);
-            cg = gen2(cg,0xF7,grex | modregrmx(3,op,rreg)); // OP AX,rreg
+            cdb.gen2(0xF7,grex | modregrmx(3,op,rreg)); // OP AX,rreg
         }
         freenode(e->E1);
         freenode(e2);
-        c = fixresult(e,mAX | mDX,pretregs);
-        break;
+        cdb.append(fixresult(e,mAX | mDX,pretregs));
+        return cdb.finish();
+    }
 
     case OPconst:
         e2factor = el_tolong(e2);
@@ -1027,31 +1028,33 @@ code *cdmul(elem *e,regm_t *pretregs)
                 MUL     EDX
                 ADD     EDX,reg
              */
-            cl = codelem(e1,&retregs,FALSE);    // eval left leaf
+            cdb.append(codelem(e1,&retregs,FALSE));    // eval left leaf
             regm_t scratch = allregs & ~(mAX | mDX);
             unsigned reg;
-            cr = allocreg(&scratch,&reg,TYint);
-            cg = getregs(mDX | mAX);
+            cdb.append(allocreg(&scratch,&reg,TYint));
+            cdb.append(getregs(mDX | mAX));
 
             targ_int lsw = e2factor & ((1LL << (REGSIZE * 8)) - 1);
             targ_int msw = e2factor >> (REGSIZE * 8);
 
             if (msw)
-            {   cg = genmulimm(cg,DX,DX,lsw);
-                cg = genmulimm(cg,reg,AX,msw);
-                cg = gen2(cg,0x03,modregrm(3,reg,DX));
+            {
+                cdb.append(genmulimm(CNIL,DX,DX,lsw));
+                cdb.append(genmulimm(CNIL,reg,AX,msw));
+                cdb.gen2(0x03,modregrm(3,reg,DX));
             }
             else
-                cg = genmulimm(cg,reg,DX,lsw);
+                cdb.append(genmulimm(CNIL,reg,DX,lsw));
 
-            cg = movregconst(cg,DX,lsw,0);              // MOV EDX,lsw
-            cg = cat(cg,getregs(mDX));
-            cg = gen2(cg,0xF7,modregrm(3,4,DX));        // MUL EDX
-            gen2(cg,0x03,modregrm(3,DX,reg));           // ADD EDX,reg
+            cdb.append(movregconst(CNIL,DX,lsw,0));     // MOV EDX,lsw
+            cdb.append(getregs(mDX));
+            cdb.gen2(0xF7,modregrm(3,4,DX));            // MUL EDX
+            cdb.gen2(0x03,modregrm(3,DX,reg));          // ADD EDX,reg
 
             resreg = mDX | mAX;
             freenode(e2);
-            goto L3;
+            cdb.append(fixresult(e,resreg,pretregs));
+            return cdb.finish();
         }
 
         // Signed divide by a constant
@@ -1086,9 +1089,9 @@ code *cdmul(elem *e,regm_t *pretregs)
             bool mhighbit = choose_multiplier(N, d, N - 1, &m, &shpost);
 
             regm_t regm = allregs & ~(mAX | mDX);
-            cl = codelem(e1,&regm,FALSE);       // eval left leaf
+            cdb.append(codelem(e1,&regm,FALSE));       // eval left leaf
             unsigned reg = findreg(regm);
-            cg = getregs(regm | mDX | mAX);
+            cdb.append(getregs(regm | mDX | mAX));
 
             /* Algorithm 5.2
              * if m>=2**(N-1)
@@ -1099,22 +1102,24 @@ code *cdmul(elem *e,regm_t *pretregs)
              *    q = -q
              */
             bool mgt = mhighbit || m >= (1ULL << (N - 1));
-            cg = movregconst(cg, AX, m, (sz == 8) ? 0x40 : 0);      // MOV EAX,m
-            cg = gen2(cg,0xF7,grex | modregrmx(3,5,reg));           // IMUL R1
+            cdb.append(movregconst(CNIL, AX, m, (sz == 8) ? 0x40 : 0));  // MOV EAX,m
+            cdb.gen2(0xF7,grex | modregrmx(3,5,reg));               // IMUL R1
             if (mgt)
-                gen2(cg,0x03,grex | modregrmx(3,DX,reg));           // ADD EDX,R1
+                cdb.gen2(0x03,grex | modregrmx(3,DX,reg));          // ADD EDX,R1
             code *ct = getregs(mAX);                                // EAX no longer contains 'm'
             assert(ct == NULL);
-            genmovreg(cg, AX, reg);                                 // MOV EAX,R1
-            genc2(cg,0xC1,grex | modregrm(3,7,AX),sz * 8 - 1);      // SAR EAX,31
+            cdb.append(genmovreg(CNIL, AX, reg));                   // MOV EAX,R1
+            cdb.genc2(0xC1,grex | modregrm(3,7,AX),sz * 8 - 1);     // SAR EAX,31
             if (shpost)
-                genc2(cg,0xC1,grex | modregrm(3,7,DX),shpost);      // SAR EDX,shpost
+                cdb.genc2(0xC1,grex | modregrm(3,7,DX),shpost);     // SAR EDX,shpost
             if (neg && oper == OPdiv)
-            {   gen2(cg,0x2B,grex | modregrm(3,AX,DX));             // SUB EAX,EDX
+            {
+                cdb.gen2(0x2B,grex | modregrm(3,AX,DX));            // SUB EAX,EDX
                 r3 = AX;
             }
             else
-            {   gen2(cg,0x2B,grex | modregrm(3,DX,AX));             // SUB EDX,EAX
+            {
+                cdb.gen2(0x2B,grex | modregrm(3,DX,AX));            // SUB EDX,EAX
                 r3 = DX;
             }
 
@@ -1128,16 +1133,16 @@ code *cdmul(elem *e,regm_t *pretregs)
                     assert(reg != AX && r3 == DX);
                     if (sz == 4 || (sz == 8 && (targ_long)d == d))
                     {
-                        genc2(cg,0x69,grex | modregrm(3,AX,DX),d);      // IMUL EAX,EDX,d
+                        cdb.genc2(0x69,grex | modregrm(3,AX,DX),d);      // IMUL EAX,EDX,d
                     }
                     else
                     {
-                        cg = movregconst(cg,AX,d,(sz == 8) ? 0x40 : 0); // MOV EAX,d
-                        cg = gen2(cg,0x0FAF,grex | modregrmx(3,AX,DX)); // IMUL EAX,EDX
+                        cdb.append(movregconst(CNIL,AX,d,(sz == 8) ? 0x40 : 0)); // MOV EAX,d
+                        cdb.gen2(0x0FAF,grex | modregrmx(3,AX,DX));     // IMUL EAX,EDX
                         code *ct = getregs(mAX);                        // EAX no longer contains 'd'
                         assert(ct == NULL);
                     }
-                    gen2(cg,0x2B,grex | modregxrm(3,reg,AX));           // SUB R1,EAX
+                    cdb.gen2(0x2B,grex | modregxrm(3,reg,AX));          // SUB R1,EAX
                     resreg = regm;
                     break;
 
@@ -1145,18 +1150,18 @@ code *cdmul(elem *e,regm_t *pretregs)
                     assert(reg != AX && r3 == DX);
                     if (sz == 4 || (sz == 8 && (targ_long)d == d))
                     {
-                        genc2(cg,0x69,grex | modregrm(3,AX,DX),d);      // IMUL EAX,EDX,d
+                        cdb.genc2(0x69,grex | modregrm(3,AX,DX),d);     // IMUL EAX,EDX,d
                     }
                     else
                     {
-                        cg = movregconst(cg,AX,d,(sz == 8) ? 0x40 : 0); // MOV EAX,d
-                        cg = gen2(cg,0x0FAF,grex | modregrmx(3,AX,DX)); // IMUL EAX,EDX
+                        cdb.append(movregconst(CNIL,AX,d,(sz == 8) ? 0x40 : 0)); // MOV EAX,d
+                        cdb.gen2(0x0FAF,grex | modregrmx(3,AX,DX));     // IMUL EAX,EDX
                     }
-                    gen2(cg,0x2B,grex | modregxrm(3,reg,AX));           // SUB R1,EAX
-                    genmovreg(cg, AX, r3);                              // MOV EAX,r3
+                    cdb.gen2(0x2B,grex | modregxrm(3,reg,AX));          // SUB R1,EAX
+                    cdb.append(genmovreg(CNIL, AX, r3));                // MOV EAX,r3
                     if (neg)
-                        gen2(cg,0xF7,grex | modregrm(3,3,AX));          // NEG EAX
-                    genmovreg(cg, DX, reg);                             // MOV EDX,R1
+                        cdb.gen2(0xF7,grex | modregrm(3,3,AX));         // NEG EAX
+                    cdb.append(genmovreg(CNIL, DX, reg));               // MOV EDX,R1
                     resreg = mDX | mAX;
                     break;
 
@@ -1164,7 +1169,8 @@ code *cdmul(elem *e,regm_t *pretregs)
                     assert(0);
             }
             freenode(e2);
-            goto L3;
+            cdb.append(fixresult(e,resreg,pretregs));
+            return cdb.finish();
         }
 
         // Unsigned divide by a constant
@@ -1199,17 +1205,16 @@ code *cdmul(elem *e,regm_t *pretregs)
                 assert(shpre == 0);
 
                 regm = allregs & ~(mAX | mDX);
-                cl = codelem(e1,&regm,FALSE);       // eval left leaf
+                cdb.append(codelem(e1,&regm,FALSE));       // eval left leaf
                 reg = findreg(regm);
-                cg = NULL;
-                cg = cat(cg,getregs(mAX | mDX));
-                cg = genmovreg(cg,AX,reg);                            // MOV EAX,reg
-                cg = movregconst(cg, DX, m, (sz == 8) ? 0x40 : 0);    // MOV EDX,m
-                cg = cat(cg, getregs(regm | mDX | mAX));
-                cg = gen2(cg,0xF7,grex | modregrmx(3,4,DX));          // MUL EDX
-                cg = genmovreg(cg,AX,reg);                            // MOV EAX,reg
-                gen2(cg,0x2B,grex | modregrm(3,AX,DX));               // SUB EAX,EDX
-                genc2(cg,0xC1,grex | modregrm(3,5,AX),1);             // SHR EAX,1
+                cdb.append(getregs(mAX | mDX));
+                cdb.append(genmovreg(CNIL,AX,reg));                   // MOV EAX,reg
+                cdb.append(movregconst(CNIL, DX, m, (sz == 8) ? 0x40 : 0));  // MOV EDX,m
+                cdb.append(getregs(regm | mDX | mAX));
+                cdb.gen2(0xF7,grex | modregrmx(3,4,DX));              // MUL EDX
+                cdb.append(genmovreg(CNIL,AX,reg));                   // MOV EAX,reg
+                cdb.gen2(0x2B,grex | modregrm(3,AX,DX));              // SUB EAX,EDX
+                cdb.genc2(0xC1,grex | modregrm(3,5,AX),1);            // SHR EAX,1
                 unsigned regm3 = allregs;
                 if (oper == OPmod || oper == OPremquo)
                 {
@@ -1217,10 +1222,10 @@ code *cdmul(elem *e,regm_t *pretregs)
                     if (oper == OPremquo || !el_signx32(e2))
                         regm3 &= ~mAX;
                 }
-                cg = cat(cg,allocreg(&regm3,&r3,TYint));
-                gen2sib(cg,LEA,grex | modregxrm(0,r3,4),modregrm(0,AX,DX)); // LEA R3,[EAX][EDX]
+                cdb.append(allocreg(&regm3,&r3,TYint));
+                cdb.gen2sib(LEA,grex | modregxrm(0,r3,4),modregrm(0,AX,DX)); // LEA R3,[EAX][EDX]
                 if (shpost != 1)
-                    genc2(cg,0xC1,grex | modregrmx(3,5,r3),shpost-1);   // SHR R3,shpost-1
+                    cdb.genc2(0xC1,grex | modregrmx(3,5,r3),shpost-1);   // SHR R3,shpost-1
             }
             else
             {
@@ -1233,24 +1238,25 @@ code *cdmul(elem *e,regm_t *pretregs)
                 regm = mAX;
                 if (oper == OPmod || oper == OPremquo)
                     regm = allregs & ~(mAX|mDX);
-                cl = codelem(e1,&regm,FALSE);       // eval left leaf
+                cdb.append(codelem(e1,&regm,FALSE));       // eval left leaf
                 reg = findreg(regm);
-                cg = NULL;
 
                 if (reg != AX)
-                {   cg = cat(cg, getregs(mAX));
-                    cg = genmovreg(cg,AX,reg);                          // MOV EAX,reg
+                {
+                    cdb.append(getregs(mAX));
+                    cdb.append(genmovreg(CNIL,AX,reg));                 // MOV EAX,reg
                 }
                 if (shpre)
-                {   cg = cat(cg, getregs(mAX));
-                    cg = genc2(cg,0xC1,grex | modregrm(3,5,AX),shpre);  // SHR EAX,shpre
+                {
+                    cdb.append(getregs(mAX));
+                    cdb.genc2(0xC1,grex | modregrm(3,5,AX),shpre);      // SHR EAX,shpre
                 }
-                cg = cat(cg, getregs(mDX));
-                cg = movregconst(cg, DX, m, (sz == 8) ? 0x40 : 0);      // MOV EDX,m
-                cg = cat(cg, getregs(mDX | mAX));
-                cg = gen2(cg,0xF7,grex | modregrmx(3,4,DX));            // MUL EDX
+                cdb.append(getregs(mDX));
+                cdb.append(movregconst(CNIL, DX, m, (sz == 8) ? 0x40 : 0));  // MOV EDX,m
+                cdb.append(getregs(mDX | mAX));
+                cdb.gen2(0xF7,grex | modregrmx(3,4,DX));                // MUL EDX
                 if (shpost)
-                    cg = genc2(cg,0xC1,grex | modregrm(3,5,DX),shpost); // SHR EDX,shpost
+                    cdb.genc2(0xC1,grex | modregrm(3,5,DX),shpost);     // SHR EDX,shpost
                 r3 = DX;
             }
 
@@ -1267,17 +1273,17 @@ code *cdmul(elem *e,regm_t *pretregs)
                     assert(!(regm & mAX));
                     if (el_signx32(e2))
                     {
-                        genc2(cg,0x69,grex | modregrmx(3,AX,r3),e2factor); // IMUL EAX,r3,e2factor
+                        cdb.genc2(0x69,grex | modregrmx(3,AX,r3),e2factor); // IMUL EAX,r3,e2factor
                     }
                     else
                     {
                         assert(!(mask[r3] & mAX));
-                        cg = movregconst(cg,AX,e2factor,(sz == 8) ? 0x40 : 0);  // MOV EAX,e2factor
-                        cg = cat(cg,getregs(mAX));
-                        cg = gen2(cg,0x0FAF,grex | modregrmx(3,AX,r3));      // IMUL EAX,r3
+                        cdb.append(movregconst(CNIL,AX,e2factor,(sz == 8) ? 0x40 : 0));  // MOV EAX,e2factor
+                        cdb.append(getregs(mAX));
+                        cdb.gen2(0x0FAF,grex | modregrmx(3,AX,r3));   // IMUL EAX,r3
                     }
-                    cg = cat(cg,getregs(regm));
-                    gen2(cg,0x2B,grex | modregxrm(3,reg,AX));         // SUB reg,EAX
+                    cdb.append(getregs(regm));
+                    cdb.gen2(0x2B,grex | modregxrm(3,reg,AX));        // SUB reg,EAX
                     resreg = regm;
                     break;
 
@@ -1289,18 +1295,18 @@ code *cdmul(elem *e,regm_t *pretregs)
                     assert(!(regm & mAX));
                     if (el_signx32(e2))
                     {
-                        genc2(cg,0x69,grex | modregrmx(3,AX,r3),e2factor); // IMUL EAX,r3,e2factor
+                        cdb.genc2(0x69,grex | modregrmx(3,AX,r3),e2factor); // IMUL EAX,r3,e2factor
                     }
                     else
                     {
-                        cg = movregconst(cg,AX,e2factor,(sz == 8) ? 0x40 : 0); // MOV EAX,e2factor
-                        cg = cat(cg,getregs(mAX));
-                        cg = gen2(cg,0x0FAF,grex | modregrmx(3,AX,r3));      // IMUL EAX,r3
+                        cdb.append(movregconst(CNIL,AX,e2factor,(sz == 8) ? 0x40 : 0)); // MOV EAX,e2factor
+                        cdb.append(getregs(mAX));
+                        cdb.gen2(0x0FAF,grex | modregrmx(3,AX,r3));   // IMUL EAX,r3
                     }
-                    cg = cat(cg,getregs(regm));
-                    gen2(cg,0x2B,grex | modregxrm(3,reg,AX));         // SUB reg,EAX
-                    genmovreg(cg, AX, r3);                            // MOV EAX,r3
-                    genmovreg(cg, DX, reg);                           // MOV EDX,reg
+                    cdb.append(getregs(regm));
+                    cdb.gen2(0x2B,grex | modregxrm(3,reg,AX));        // SUB reg,EAX
+                    cdb.append(genmovreg(CNIL, AX, r3));              // MOV EAX,r3
+                    cdb.append(genmovreg(CNIL, DX, reg));             // MOV EDX,reg
                     resreg = mDX | mAX;
                     break;
 
@@ -1308,7 +1314,8 @@ code *cdmul(elem *e,regm_t *pretregs)
                     assert(0);
             }
             freenode(e2);
-            goto L3;
+            cdb.append(fixresult(e,resreg,pretregs));
+            return cdb.finish();
         }
 
         if (sz > REGSIZE || !el_signx32(e2))
@@ -1354,7 +1361,7 @@ code *cdmul(elem *e,regm_t *pretregs)
 #if 1
                         regm_t regm = byte ? BYTEREGS : ALLREGS;
                         regm &= ~(mBP | mR13);                  // don't use EBP
-                        cl = codelem(e->E1,&regm,TRUE);
+                        cdb.append(codelem(e->E1,&regm,TRUE));
                         unsigned r = findreg(regm);
 
                         if (ss2)
@@ -1363,47 +1370,48 @@ code *cdmul(elem *e,regm_t *pretregs)
                             if (!resreg)
                                 resreg = retregs;
                         }
-                        cg = allocreg(&resreg,&reg,tyml);
+                        cdb.append(allocreg(&resreg,&reg,tyml));
 
-                        c = gen2sib(CNIL,LEA,grex | modregxrm(0,reg,4),
-                                              modregxrmx(ss,r,r));
+                        cdb.gen2sib(LEA,grex | modregxrm(0,reg,4),
+                                    modregxrmx(ss,r,r));
                         assert((r & 7) != BP);
                         if (ss2)
                         {
-                            gen2sib(c,LEA,grex | modregxrm(0,reg,4),
+                            cdb.gen2sib(LEA,grex | modregxrm(0,reg,4),
                                            modregxrm(ss2,reg,5));
-                            code_last(c)->IFL1 = FLconst;
-                            code_last(c)->IEV1.Vint = 0;
+                            cdb.last()->IFL1 = FLconst;
+                            cdb.last()->IEV1.Vint = 0;
                         }
                         else if (!(e2factor & 1))    // if even factor
-                        {   genregs(c,0x03,reg,reg); // ADD reg,reg
-                            code_orrex(c,rex);
+                        {
+                            cdb.append(genregs(CNIL,0x03,reg,reg)); // ADD reg,reg
+                            code_orrex(cdb.last(),rex);
                         }
-                        cg = cat(cg,c);
-                        goto L3;
+                        cdb.append(fixresult(e,resreg,pretregs));
+                        return cdb.finish();
 #else
 
-                                // Don't use EBP
-                                resreg &= ~mBP;
-                                if (!resreg)
-                                    resreg = retregs;
+                        // Don't use EBP
+                        resreg &= ~mBP;
+                        if (!resreg)
+                            resreg = retregs;
 
-                                cl = codelem(e->E1,&resreg,FALSE);
-                                reg = findreg(resreg);
-                                cg = getregs(resreg);
-                                c = gen2sib(CNIL,LEA,modregrm(0,reg,4),
-                                                      modregrm(ss,reg,reg));
-                                if (ss2)
-                                {
-                                    gen2sib(c,LEA,modregrm(0,reg,4),
-                                                   modregrm(ss2,reg,5));
-                                    code_last(c)->IFL1 = FLconst;
-                                    code_last(c)->IEV1.Vint = 0;
-                                }
-                                else if (!(e2factor & 1))    // if even factor
-                                    genregs(c,0x03,reg,reg); // ADD reg,reg
-                                cg = cat(cg,c);
-                                goto L3;
+                        cdb.append(codelem(e->E1,&resreg,FALSE));
+                        reg = findreg(resreg);
+                        cdb.append(getregs(resreg));
+                        cdb.gen2sib(LEA,modregrm(0,reg,4),
+                                    modregrm(ss,reg,reg));
+                        if (ss2)
+                        {
+                            cdb.gen2sib(LEA,modregrm(0,reg,4),
+                                        modregrm(ss2,reg,5));
+                            cdb.last()->IFL1 = FLconst;
+                            cdb.last()->IEV1.Vint = 0;
+                        }
+                        else if (!(e2factor & 1))    // if even factor
+                            cdb.append(genregs(CNIL,0x03,reg,reg)); // ADD reg,reg
+                        cdb.append(fixresult(e,resreg,pretregs));
+                        return cdb.finish();
 #endif
                     }
                     case 37:
@@ -1414,44 +1422,46 @@ code *cdmul(elem *e,regm_t *pretregs)
                                 goto L5;
                     L5:
                     {
-                                // Don't use EBP
-                                resreg &= ~(mBP | mR13);
-                                if (!resreg)
-                                    resreg = retregs;
-                                cl = allocreg(&resreg,&reg,TYint);
+                        // Don't use EBP
+                        resreg &= ~(mBP | mR13);
+                        if (!resreg)
+                            resreg = retregs;
+                        cdb.append(allocreg(&resreg,&reg,TYint));
 
-                                regm_t sregm = (ALLREGS & ~mR13) & ~resreg;
-                                cl = cat(cl,codelem(e->E1,&sregm,FALSE));
-                                unsigned sreg = findreg(sregm);
-                                cg = getregs(resreg | sregm);
-                                // LEA reg,[sreg * 4][sreg]
-                                // SHL sreg,shift
-                                // LEA reg,[sreg * 8][reg]
-                                assert((sreg & 7) != BP);
-                                assert((reg & 7) != BP);
-                                c = gen2sib(CNIL,LEA,grex | modregxrm(0,reg,4),
-                                                      modregxrmx(2,sreg,sreg));
-                                if (shift)
-                                    genc2(c,0xC1,grex | modregrmx(3,4,sreg),shift);
-                                gen2sib(c,LEA,grex | modregxrm(0,reg,4),
-                                                      modregxrmx(3,sreg,reg));
-                                if (!(e2factor & 1))         // if even factor
-                                {   genregs(c,0x03,reg,reg); // ADD reg,reg
-                                    code_orrex(c,rex);
-                                }
-                                cg = cat(cg,c);
-                                goto L3;
+                        regm_t sregm = (ALLREGS & ~mR13) & ~resreg;
+                        cdb.append(codelem(e->E1,&sregm,FALSE));
+                        unsigned sreg = findreg(sregm);
+                        cdb.append(getregs(resreg | sregm));
+                        // LEA reg,[sreg * 4][sreg]
+                        // SHL sreg,shift
+                        // LEA reg,[sreg * 8][reg]
+                        assert((sreg & 7) != BP);
+                        assert((reg & 7) != BP);
+                        cdb.gen2sib(LEA,grex | modregxrm(0,reg,4),
+                                              modregxrmx(2,sreg,sreg));
+                        if (shift)
+                            cdb.genc2(0xC1,grex | modregrmx(3,4,sreg),shift);
+                        cdb.gen2sib(LEA,grex | modregxrm(0,reg,4),
+                                              modregxrmx(3,sreg,reg));
+                        if (!(e2factor & 1))         // if even factor
+                        {
+                            cdb.append(genregs(CNIL,0x03,reg,reg)); // ADD reg,reg
+                            code_orrex(cdb.last(),rex);
+                        }
+                        cdb.append(fixresult(e,resreg,pretregs));
+                        return cdb.finish();
                     }
                 }
             }
 
-            cl = scodelem(e->E1,&retregs,0,TRUE);       // eval left leaf
+            cdb.append(scodelem(e->E1,&retregs,0,TRUE));     // eval left leaf
             reg = findreg(retregs);
-            cg = allocreg(&resreg,&rreg,e->Ety);
+            cdb.append(allocreg(&resreg,&rreg,e->Ety));
 
-            /* IMUL reg,imm16   */
-            cg = genc2(cg,0x69,grex | modregxrmx(3,rreg,reg),e2factor);
-            goto L3;
+            // IMUL reg,imm16
+            cdb.genc2(0x69,grex | modregxrmx(3,rreg,reg),e2factor);
+            cdb.append(fixresult(e,resreg,pretregs));
+            return cdb.finish();
         }
 
         // Special code for signed divide or modulo by power of 2
@@ -1468,44 +1478,45 @@ code *cdmul(elem *e,regm_t *pretregs)
                 //     add     eax,1
                 // L1: sar     eax,1
 
-                code *cnop;
-
                 retregs = allregs;
-                cl = codelem(e->E1,&retregs,FALSE);     // eval left leaf
+                cdb.append(codelem(e->E1,&retregs,FALSE));  // eval left leaf
                 unsigned reg = findreg(retregs);
                 freenode(e2);
-                cg = getregs(retregs);
-                cg = gentstreg(cg,reg);                 // TEST reg,reg
-                code_orrex(cg, rex);
-                cnop = gennop(CNIL);
-                genjmp(cg,JNS,FLcode,(block *)cnop);    // JNS cnop
+                cdb.append(getregs(retregs));
+                cdb.append(gentstreg(CNIL,reg));            // TEST reg,reg
+                code_orrex(cdb.last(), rex);
+                code *cnop = gennop(CNIL);
+                cdb.append(genjmp(CNIL,JNS,FLcode,(block *)cnop));  // JNS cnop
                 if (I64)
                 {
-                    gen2(cg,0xFF,modregrmx(3,0,reg));       // INC reg
-                    code_orrex(cg,rex);
+                    cdb.gen2(0xFF,modregrmx(3,0,reg));      // INC reg
+                    code_orrex(cdb.last(),rex);
                 }
                 else
-                    gen1(cg,0x40 + reg);                    // INC reg
-                cg = cat(cg,cnop);
-                gen2(cg,0xD1,grex | modregrmx(3,7,reg));        // SAR reg,1
+                    cdb.gen1(0x40 + reg);                   // INC reg
+                cdb.append(cnop);
+                cdb.gen2(0xD1,grex | modregrmx(3,7,reg));   // SAR reg,1
                 resreg = retregs;
-                goto L3;
+                cdb.append(fixresult(e,resreg,pretregs));
+                return cdb.finish();
             }
-            cl = codelem(e->E1,&retregs,FALSE); // eval left leaf
+            cdb.append(codelem(e->E1,&retregs,FALSE));  // eval left leaf
             freenode(e2);
-            cg = getregs(mAX | mDX);            // trash these regs
-            cg = gen1(cg,0x99);                         // CWD
-            code_orrex(cg, rex);
+            cdb.append(getregs(mAX | mDX));             // modify these regs
+            cdb.gen1(0x99);                             // CWD
+            code_orrex(cdb.last(), rex);
             if (pow2 == 1)
             {
                 if (oper == OPdiv)
-                {   gen2(cg,0x2B,grex | modregrm(3,AX,DX));    // SUB AX,DX
-                    gen2(cg,0xD1,grex | modregrm(3,7,AX));     // SAR AX,1
+                {
+                    cdb.gen2(0x2B,grex | modregrm(3,AX,DX));  // SUB AX,DX
+                    cdb.gen2(0xD1,grex | modregrm(3,7,AX));   // SAR AX,1
                 }
                 else // OPmod
-                {   gen2(cg,0x33,grex | modregrm(3,AX,DX));    // XOR AX,DX
-                    genc2(cg,0x81,grex | modregrm(3,4,AX),1);  // AND AX,1
-                    gen2(cg,0x03,grex | modregrm(3,DX,AX));    // ADD DX,AX
+                {
+                    cdb.gen2(0x33,grex | modregrm(3,AX,DX));   // XOR AX,DX
+                    cdb.genc2(0x81,grex | modregrm(3,4,AX),1); // AND AX,1
+                    cdb.gen2(0x03,grex | modregrm(3,DX,AX));   // ADD DX,AX
                 }
             }
             else
@@ -1513,50 +1524,54 @@ code *cdmul(elem *e,regm_t *pretregs)
 
                 m = (1 << pow2) - 1;
                 if (oper == OPdiv)
-                {   genc2(cg,0x81,grex | modregrm(3,4,DX),m);  // AND DX,m
-                    gen2(cg,0x03,grex | modregrm(3,AX,DX));    // ADD AX,DX
+                {
+                    cdb.genc2(0x81,grex | modregrm(3,4,DX),m);  // AND DX,m
+                    cdb.gen2(0x03,grex | modregrm(3,AX,DX));    // ADD AX,DX
                     // Be careful not to generate this for 8088
                     assert(config.target_cpu >= TARGET_80286);
-                    genc2(cg,0xC1,grex | modregrm(3,7,AX),pow2); // SAR AX,pow2
+                    cdb.genc2(0xC1,grex | modregrm(3,7,AX),pow2); // SAR AX,pow2
                 }
                 else // OPmod
-                {   gen2(cg,0x33,grex | modregrm(3,AX,DX));    // XOR AX,DX
-                    gen2(cg,0x2B,grex | modregrm(3,AX,DX));    // SUB AX,DX
-                    genc2(cg,0x81,grex | modregrm(3,4,AX),m);  // AND AX,mask
-                    gen2(cg,0x33,grex | modregrm(3,AX,DX));    // XOR AX,DX
-                    gen2(cg,0x2B,grex | modregrm(3,AX,DX));    // SUB AX,DX
+                {
+                    cdb.gen2(0x33,grex | modregrm(3,AX,DX));    // XOR AX,DX
+                    cdb.gen2(0x2B,grex | modregrm(3,AX,DX));    // SUB AX,DX
+                    cdb.genc2(0x81,grex | modregrm(3,4,AX),m);  // AND AX,mask
+                    cdb.gen2(0x33,grex | modregrm(3,AX,DX));    // XOR AX,DX
+                    cdb.gen2(0x2B,grex | modregrm(3,AX,DX));    // SUB AX,DX
                     resreg = mAX;
                 }
             }
-            goto L3;
+            cdb.append(fixresult(e,resreg,pretregs));
+            return cdb.finish();
         }
         goto L2;
     case OPind:
-        if (!e2->Ecount)                        /* if not CSE           */
-                goto L1;                        /* try OP reg,EA        */
+        if (!e2->Ecount)                        // if not CSE
+                goto L1;                        // try OP reg,EA
         goto L2;
-    default:                                    /* OPconst and operators */
+    default:                                    // OPconst and operators
     L2:
         //printf("test2 %p, retregs = %s rretregs = %s resreg = %s\n", e, regm_str(retregs), regm_str(rretregs), regm_str(resreg));
-        cl = codelem(e1,&retregs,FALSE);        /* eval left leaf       */
-        cr = scodelem(e2,&rretregs,retregs,TRUE);       /* get rvalue   */
+        cdb.append(codelem(e1,&retregs,FALSE));           // eval left leaf
+        cdb.append(scodelem(e2,&rretregs,retregs,TRUE));  // get rvalue
         if (sz <= REGSIZE)
-        {   cg = getregs(mAX | mDX);            /* trash these regs     */
-            if (op == 7)                        /* signed divide        */
-            {   cg = gen1(cg,0x99);             // CWD
-                code_orrex(cg,rex);
-            }
-            else if (op == 6)                   /* unsigned divide      */
+        {
+            cdb.append(getregs(mAX | mDX));     // trash these regs
+            if (op == 7)                        // signed divide
             {
-                cg = movregconst(cg,DX,0,(sz == 8) ? 64 : 0);    // MOV DX,0
-                cg = cat(cg,getregs(mDX));
+                cdb.gen1(0x99);                 // CWD
+                code_orrex(cdb.last(),rex);
+            }
+            else if (op == 6)                   // unsigned divide
+            {
+                cdb.append( movregconst(CNIL,DX,0,(sz == 8) ? 64 : 0));  // MOV DX,0
+                cdb.append(getregs(mDX));
             }
             rreg = findreg(rretregs);
-            cg = gen2(cg,0xF7 ^ byte,grex | modregrmx(3,op,rreg)); // OP AX,rreg
+            cdb.gen2(0xF7 ^ byte,grex | modregrmx(3,op,rreg)); // OP AX,rreg
             if (I64 && byte && rreg >= 4)
-                code_orrex(cg, REX);
-        L3:
-            c = fixresult(e,resreg,pretregs);
+                code_orrex(cdb.last(), REX);
+            cdb.append(fixresult(e,resreg,pretregs));
         }
         else if (sz == 2 * REGSIZE)
         {
@@ -1568,35 +1583,37 @@ code *cdmul(elem *e,regm_t *pretregs)
                     MUL     EBX
                     ADD     EDX,ECX
                  */
-                 cg = getregs(mAX|mDX|mCX);
-                 cg = gen2(cg,0x0FAF,modregrm(3,CX,AX));
-                 gen2(cg,0x0FAF,modregrm(3,DX,BX));
-                 gen2(cg,0x03,modregrm(3,CX,DX));
-                 gen2(cg,0xF7,modregrm(3,4,BX));
-                 gen2(cg,0x03,modregrm(3,DX,CX));
-                 c = fixresult(e,mDX|mAX,pretregs);
+                 cdb.append(getregs(mAX|mDX|mCX));
+                 cdb.gen2(0x0FAF,modregrm(3,CX,AX));
+                 cdb.gen2(0x0FAF,modregrm(3,DX,BX));
+                 cdb.gen2(0x03,modregrm(3,CX,DX));
+                 cdb.gen2(0xF7,modregrm(3,4,BX));
+                 cdb.gen2(0x03,modregrm(3,DX,CX));
+                 cdb.append(fixresult(e,mDX|mAX,pretregs));
             }
             else
-                c = callclib(e,lib,pretregs,keepregs);
+                cdb.append(callclib(e,lib,pretregs,keepregs));
         }
         else
                 assert(0);
-        break;
+        return cdb.finish();
+
     case OPvar:
     L1:
         if (!I16 && sz <= REGSIZE)
         {
-            if (oper == OPmul && sz > 1)        /* no byte version      */
+            if (oper == OPmul && sz > 1)        // no byte version
             {
-                /* Generate IMUL r32,r/m32      */
+                // Generate IMUL r32,r/m32
                 retregs = *pretregs & (ALLREGS | mBP);
                 if (!retregs)
                     retregs = ALLREGS;
-                cl = codelem(e1,&retregs,FALSE);        /* eval left leaf */
+                cdb.append(codelem(e1,&retregs,FALSE));        // eval left leaf
                 resreg = retregs;
-                cr = loadea(e2,&cs,0x0FAF,findreg(resreg),0,retregs,retregs);
+                cdb.append(loadea(e2,&cs,0x0FAF,findreg(resreg),0,retregs,retregs));
                 freenode(e2);
-                goto L3;
+                cdb.append(fixresult(e,resreg,pretregs));
+                return cdb.finish();
             }
         }
         else
@@ -1609,38 +1626,39 @@ code *cdmul(elem *e,regm_t *pretregs)
                     goto L2;            // have to handle it with codelem()
 
                 retregs = ALLREGS & ~(mAX | mDX);
-                cl = codelem(e1->E1,&retregs,FALSE);    // eval left leaf
+                cdb.append(codelem(e1->E1,&retregs,FALSE));    // eval left leaf
                 reg = findreg(retregs);
-                cl = cat(cl,getregs(mAX));
-                cl = genmovreg(cl,AX,reg);              // MOV AX,reg
-                cr = loadea(e2,&cs,0xF7,4,REGSIZE,mAX | mDX | mskl(reg),mAX | mDX);     // MUL EA+2
-                cg = getregs(retregs);
-                cg = gen1(cg,0x90 + reg);               // XCHG AX,reg
-                cg = cat(cg,getregs(mAX | mDX));
+                cdb.append(getregs(mAX));
+                cdb.append(genmovreg(CNIL,AX,reg));            // MOV AX,reg
+                cdb.append(loadea(e2,&cs,0xF7,4,REGSIZE,mAX | mDX | mskl(reg),mAX | mDX));  // MUL EA+2
+                cdb.append(getregs(retregs));
+                cdb.gen1(0x90 + reg);                          // XCHG AX,reg
+                cdb.append(getregs(mAX | mDX));
                 if ((cs.Irm & 0xC0) == 0xC0)            // if EA is a register
-                    cg = cat(cg,loadea(e2,&cs,0xF7,4,0,mAX | mskl(reg),mAX | mDX)); // MUL EA
+                    cdb.append(loadea(e2,&cs,0xF7,4,0,mAX | mskl(reg),mAX | mDX)); // MUL EA
                 else
                 {   getlvalue_lsw(&cs);
-                    gen(cg,&cs);                        // MUL EA
+                    cdb.gen(&cs);                       // MUL EA
                 }
-                gen2(cg,0x03,modregrm(3,DX,reg));       // ADD DX,reg
+                cdb.gen2(0x03,modregrm(3,DX,reg));      // ADD DX,reg
 
                 freenode(e1);
-                c = fixresult(e,mAX | mDX,pretregs);
-                break;
+                cdb.append(fixresult(e,mAX | mDX,pretregs));
+                return cdb.finish();
             }
             assert(sz <= REGSIZE);
         }
 
-        /* loadea() handles CWD or CLR DX for divides   */
-        cl = codelem(e->E1,&retregs,FALSE);     /* eval left leaf       */
-        cr = loadea(e2,&cs,0xF7 ^ byte,op,0,
+        // loadea() handles CWD or CLR DX for divides
+        cdb.append(codelem(e->E1,&retregs,FALSE));     // eval left leaf
+        cdb.append(loadea(e2,&cs,0xF7 ^ byte,op,0,
                 (oper == OPmul) ? mAX : mAX | mDX,
-                mAX | mDX);
+                mAX | mDX));
         freenode(e2);
-        goto L3;
-  }
-  return cat4(cl,cr,cg,c);
+        cdb.append(fixresult(e,resreg,pretregs));
+        return cdb.finish();
+    }
+    assert(0);
 }
 
 
