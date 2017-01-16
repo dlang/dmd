@@ -127,6 +127,9 @@ struct BlackList
     {
         initialize(["__lambda2" /* needed because of std.traits.ParameterDefaults*/ ,
                 "mangleFunc", "_ctfeMatchBinary", "_ctfeMatchUnary",
+                 "isOctalLiteral", "capitalize", "parseRFC822DateTime", "to", "outdent",
+                 "linkageString", "isUnionAliasedImpl","generateFunctionBody","gencode",
+                 "lengthOfIR", "__lambda1",
             "back", "front", "empty"]);
     }
 
@@ -266,6 +269,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         hiw.start();
     }
     _sharedCtfeState.initHeap();
+    _sharedCtfeState.clearState();
     static if (perf)
     {
         hiw.stop();
@@ -359,7 +363,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                 import std.stdio;
 
                 writeln("I have ", _sharedCtfeState.functionCount, " functions!");
-                //bcv.gen.byteCodeArray[0 .. bcv.ip].printInstructions.writeln();
+                bcv.gen.byteCodeArray[0 .. bcv.ip].printInstructions.writeln();
 
             }
 
@@ -389,7 +393,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         assert(ft.nextOf);
 
         static if (perf)
-            writeln("Executing bc took " ~ sw.peek.usecs.to!string ~ " us");
+            writeln("Executing bc for " ~ fd.ident.toString ~ " took " ~ sw.peek.usecs.to!string ~ " us");
         {
             static if (perf)
             {
@@ -571,7 +575,7 @@ struct BCStruct
     uint memberTypeCount;
     uint size;
 
-    BCType[64] memberTypes;
+    BCType[96] memberTypes;
 
     void addField(SharedCtfeState!BCGenT* state, const BCType bct)
     {
@@ -623,6 +627,41 @@ struct SharedCtfeState(BCGenT)
     RetainedError[ubyte.max * 32] errors;
     uint errorCount;
 
+    static void clearArray(T)(T array, uint count)
+    {
+        foreach(ref e;array[0 .. count])
+        {
+            e = typeof(array[0]).init;
+        }
+    }
+
+    void clearState()
+    {
+        clearArray(sArrayTypePointers, arrayCount);
+        clearArray(arrays, arrayCount);
+        clearArray(structDeclPointers, structCount);
+        clearArray(structs, structCount);
+        clearArray(dArrayTypePointers, sliceCount);
+        clearArray(slices, sliceCount);
+        clearArray(pointerTypePointers, pointerCount);
+        clearArray(pointers, pointerCount);
+        clearArray(errors, errorCount);
+
+        static if (is(BCFunction))
+            clearArray(functions, functionCount);
+
+        _sharedCtfeState.errorCount = 0;
+        _sharedCtfeState.arrayCount = 0;
+        _sharedCtfeState.sliceCount = 0;
+        _sharedCtfeState.pointerCount = 0;
+        _sharedCtfeState.errorCount = 0;
+
+        static if (is(BCFunction))
+            _sharedCtfeState.functionCount = 0;
+
+    }
+   
+
     void initHeap(uint maxHeapSize = 2 ^^ 24)
     {
         import ddmd.root.rmem;
@@ -646,7 +685,7 @@ struct SharedCtfeState(BCGenT)
     static if (is(BCFunction))
     {
         static assert(is(typeof(BCFunction.funcDecl) == void*));
-        BCFunction[ubyte.max * 32] functions;
+        BCFunction[ubyte.max * 64] functions;
         uint functionCount = 0;
     }
     else
@@ -815,7 +854,12 @@ struct SharedCtfeState(BCGenT)
         case BCTypeEnum.Struct:
             {
                 uint _size;
-                assert(type.typeIndex <= structCount);
+                if(type.typeIndex <= structCount)
+                {
+                    // the if above shoud really be an assert
+                    // I have no idea why this even happens
+                    return 0;
+                }
                 BCStruct _struct = structs[type.typeIndex - 1];
 
                 foreach (i, memberType; _struct.memberTypes[0 .. _struct.memberTypeCount])
@@ -834,7 +878,12 @@ struct SharedCtfeState(BCGenT)
 
         case BCType.Array:
             {
-                assert(type.typeIndex <= arrayCount);
+                if(type.typeIndex >= arrayCount)
+                {
+                    // the if above shoud really be an assert
+                    // I have no idea why this even happens
+                    return 0;
+                }
                 BCArray _array = arrays[type.typeIndex - 1];
                 debug (ctfe)
                 {
@@ -1353,7 +1402,15 @@ extern (C++) final class BCV(BCGenT) : Visitor
         }
     }
 
-    extern (D) void bailout(const(char)[] message)
+    extern (D) void bailout(bool value, const(char)[] message, size_t line = __LINE__)
+    {
+        if (value)
+        {
+            bailout(message, line);
+        }
+    }
+
+    extern (D) void bailout(const(char)[] message, size_t line = __LINE__)
     {
         IGaveUp = true;
         const fnIdx = _sharedCtfeState.getFunctionIndex(me);
@@ -1621,6 +1678,12 @@ static if (is(BCGen))
 
                     foreach (uf; uncompiledFunctions[0 .. uncompiledFunctionCount])
                     {
+                        if (_blacklist.isInBlacklist(uf.fd.ident))
+                        {
+                            bailout("Bailout on blacklisted");
+                            return;
+                        }
+
                         clear();
                         beginParameters();
                         if (uf.fd.parameters)
@@ -1657,6 +1720,7 @@ static if (is(BCGen))
                         }
 
                     }
+                    uncompiledFunctionCount = 0;
                     parameterTypes = myPTypes;
                     arguments = myArgs;
 static if (is(BCGen))
@@ -2544,7 +2608,7 @@ static if (is(BCGen))
             }
             else
             {
-                assert(elexpr.vType == BCValueType.Immediate, "Arguments have to be immediates");
+                bailout(elexpr.vType == BCValueType.Immediate, "When struct-literals are used as arguments all initializers, have to be immediates");
                 heap._heap[retval.heapAddr + offset] = elexpr.imm32;
             }
             offset += align4(_sharedCtfeState.size(elexpr.type));
@@ -3821,8 +3885,8 @@ static if (is(BCGen))
     override void visit(CallExp ce)
     {
         FuncDeclaration fd;
-        bailout("Bailing on FunctionCall");
-        return ;
+       // bailout("Bailing on FunctionCall");
+       // return ;
 
         import ddmd.asttypename;
         if (ce.e1.op == TOKvar)
@@ -3870,8 +3934,13 @@ static if (is(BCGen))
                 bailout(arg.toString ~ "did not evaluate to a valid argument");
                 return ;
             }
+            if (bc_args[i].type == BCType.i64)
+            {
+                bailout(arg.toString ~ "cannot safely pass 64bit arguments yet");
+                return ;
+            }
         }
-        static if (is(BCFunction))
+        static if (is(BCFunction) && is(typeof(_sharedCtfeState.functionCount)))
         {
 
             uint fnIdx = _sharedCtfeState.getFunctionIndex(fd);
@@ -3884,21 +3953,19 @@ static if (is(BCGen))
                 // allocate the next free function index, take note of the function
                 // and move on as if we had compiled it :)
                 // by defering this we avoid a host of nasty issues!
-                static if (is(typeof(_sharedCtfeState.functionCount)))
-                {
 
-                    const oldFunctionCount = _sharedCtfeState.functionCount++;
-                    fnIdx = oldFunctionCount + 1;
-                    _sharedCtfeState.functions[oldFunctionCount] = BCFunction(cast(void*) fd);
-                    uncompiledFunctions[uncompiledFunctionCount++] = UncompiledFunction(fd,
-                        fnIdx);
-                }
-                else
-                {
-                    bailout("We could not compile " ~ ce.toString);
-                    return;
-                }
+                const oldFunctionCount = _sharedCtfeState.functionCount++;
+                fnIdx = oldFunctionCount + 1;
+                _sharedCtfeState.functions[oldFunctionCount] = BCFunction(cast(void*) fd);
+                uncompiledFunctions[uncompiledFunctionCount++] = UncompiledFunction(fd,
+                    fnIdx);
             }
+            else
+            {
+                bailout("We could not compile " ~ ce.toString);
+                return;
+            }
+
             if (assignTo)
             {
                 retval = assignTo;

@@ -89,6 +89,10 @@ struct Print_BCGen
                 {
                     result ~= "Imm32(0/*null*/)";
                 }
+                else if (val.type == BCTypeEnum.Array)
+                {
+                    result ~= "Imm32(" ~ to!string(val.imm32.imm32) ~ "/*Array*/)";
+                }
                 else
                 {
                     assert(0, "Unexpeced Immediate of Type" ~ to!string(val.type.type));
@@ -355,8 +359,8 @@ struct Print_BCGen
         sameLabel = false;
         result ~= "    Byte3(" ~ print(_result) ~ ", " ~ print(word) ~ ", " ~ print(idx) ~ ");\n";
     }
-
-    void Call(BCValue _result, BCValue fn, BCValue[] args)
+    import ddmd.globals : Loc;
+    void Call(BCValue _result, BCValue fn, BCValue[] args, Loc l = Loc.init)
     {
         import std.algorithm : map;
         import std.range : join;
