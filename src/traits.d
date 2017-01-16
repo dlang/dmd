@@ -462,6 +462,9 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     if (e.ident == Id.isTemplate)
     {
+        if (dim != 1)
+            return dimError(1);
+
         return isDsymX((s)
         {
             if (!s.toAlias().isOverloadable())
@@ -515,38 +518,65 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     if (e.ident == Id.isAbstractFunction)
     {
+        if (dim != 1)
+            return dimError(1);
+
         return isFuncX(f => f.isAbstract());
     }
     if (e.ident == Id.isVirtualFunction)
     {
+        if (dim != 1)
+            return dimError(1);
+
         return isFuncX(f => f.isVirtual());
     }
     if (e.ident == Id.isVirtualMethod)
     {
+        if (dim != 1)
+            return dimError(1);
+
         return isFuncX(f => f.isVirtualMethod());
     }
     if (e.ident == Id.isFinalFunction)
     {
+        if (dim != 1)
+            return dimError(1);
+
         return isFuncX(f => f.isFinalFunc());
     }
     if (e.ident == Id.isOverrideFunction)
     {
+        if (dim != 1)
+            return dimError(1);
+
         return isFuncX(f => f.isOverride());
     }
     if (e.ident == Id.isStaticFunction)
     {
+        if (dim != 1)
+            return dimError(1);
+
         return isFuncX(f => !f.needThis() && !f.isNested());
     }
     if (e.ident == Id.isRef)
     {
+        if (dim != 1)
+            return dimError(1);
+
         return isDeclX(d => d.isRef());
     }
     if (e.ident == Id.isOut)
     {
+        if (dim != 1)
+            return dimError(1);
+
         return isDeclX(d => d.isOut());
     }
     if (e.ident == Id.isLazy)
     {
+        if (dim != 1)
+            return dimError(1);
+
         return isDeclX(d => (d.storage_class & STClazy) != 0);
     }
     if (e.ident == Id.identifier)
