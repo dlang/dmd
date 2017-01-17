@@ -70,6 +70,7 @@ type* type_assoc_array(type* tkey, type* tvalue);
 type* type_delegate(type* tnext);
 extern extern (C) type* type_function(tym_t tyf, type** ptypes, size_t nparams, bool variadic, type* tret);
 type* type_enum(const(char)* name, type* tbase);
+void type_enum_addMember(Symbol *e, const char *name, targ_llong value);
 type* type_struct_class(const(char)* name, uint alignsize, uint structsize,
     type* arg1type, type* arg2type, bool isUnion, bool isClass, bool isPOD);
 

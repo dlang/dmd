@@ -473,6 +473,21 @@ type *type_enum(const char *name, type *tbase)
     return t;
 }
 
+/***************************************
+ * Append a member to the enum type.
+ * Input:
+ *      e       enum type
+ *      name    name of the member
+ *      value   value of the member
+ */
+void type_enum_addMember(Symbol *e, const char *name, targ_llong value)
+{
+    Symbol *s2 = symbol_name(name, SCconst, e->Stype);
+    s2->Svalue  = el_long(TYullong, value);
+    s2->Sflags |= SFLvalue;
+    list_append(&e->Senumlist, s2);
+}
+
 /**************************************
  * Create a struct/union/class type.
  * Params:

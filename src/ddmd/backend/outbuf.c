@@ -305,3 +305,31 @@ void Outbuffer::writeuLEB128(unsigned value)
     } while (value);
 }
 
+void Outbuffer::writesLEB128_(targ_llong value)
+{
+    while (1)
+    {
+        unsigned char b = value & 0x7F;
+
+        value >>= 7;            // arithmetic right shift
+        if (value == 0 && !(b & 0x40) ||
+            value == -1 && (b & 0x40))
+        {
+             writeByte(b);
+             break;
+        }
+        writeByte(b | 0x80);
+    }
+}
+
+void Outbuffer::writeuLEB128_(targ_ullong value)
+{
+    do
+    {   unsigned char b = value & 0x7F;
+
+        value >>= 7;
+        if (value)
+            b |= 0x80;
+        writeByte(b);
+    } while (value);
+}

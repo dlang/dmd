@@ -168,9 +168,18 @@ public:
                 // https://issues.dlang.org/show_bug.cgi?id=13792
                 t.ctype = Type_toCtype(Type.tvoid);
             }
-            else if (t.sym.memtype.toBasetype().ty == Tint32)
+            else if (t.sym.memtype.toBasetype().isintegral())
             {
-                t.ctype = type_enum(t.sym.toPrettyChars(true), Type_toCtype(t.sym.memtype));
+                // We only need the bare, un-qualified name
+                t.ctype = type_enum(t.sym.toChars(), Type_toCtype(t.sym.memtype));
+
+                foreach (s; *t.sym.members)
+                {
+                    if (auto em = s.isEnumMember())
+                    {
+                        type_enum_addMember(cast(Symbol*)t.ctype.Ttag, em.toChars(), em.value.toInteger());
+                    }
+                }
             }
             else
             {

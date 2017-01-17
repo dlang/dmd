@@ -205,4 +205,6 @@ struct Outbuffer
     void writesLEB128(int value);
     void writeuLEB128(unsigned value);
 
+    void writesLEB128_(targ_llong value);
+    void writeuLEB128_(targ_ullong value);
 };
