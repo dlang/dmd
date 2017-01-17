@@ -1856,6 +1856,8 @@ public:
 
     override void visit(PostBlitDeclaration d)
     {
+        if (stcToBuffer(buf, d.storage_class))
+            buf.writeByte(' ');
         buf.writestring("this(this)");
         bodyToBuffer(d);
     }
