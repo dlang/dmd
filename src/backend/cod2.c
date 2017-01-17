@@ -1828,46 +1828,43 @@ code *cdnot(elem *e,regm_t *pretregs)
  */
 
 code *cdcom(elem *e,regm_t *pretregs)
-{ unsigned reg,op;
-  regm_t retregs,possregs;
-  code *c,*c1,*cg;
-  tym_t tym;
-  int sz;
-
-  if (*pretregs == 0)
+{
+    if (*pretregs == 0)
         return codelem(e->E1,pretregs,FALSE);
-  tym = tybasic(e->Ety);
-  sz = _tysize[tym];
-  unsigned rex = (I64 && sz == 8) ? REX_W : 0;
-  possregs = (sz == 1) ? BYTEREGS : allregs;
-  retregs = *pretregs & possregs;
-  if (retregs == 0)
+    tym_t tym = tybasic(e->Ety);
+    int sz = _tysize[tym];
+    unsigned rex = (I64 && sz == 8) ? REX_W : 0;
+    regm_t possregs = (sz == 1) ? BYTEREGS : allregs;
+    regm_t retregs = *pretregs & possregs;
+    if (retregs == 0)
         retregs = possregs;
-  c1 = codelem(e->E1,&retregs,FALSE);
-  cg = getregs(retregs);                /* retregs will be destroyed    */
+    CodeBuilder cdb;
+    cdb.append(codelem(e->E1,&retregs,FALSE));
+    cdb.append(getregs(retregs));                // retregs will be destroyed
 #if 0
-  if (sz == 4 * REGSIZE)
-  {
-        c = gen2(CNIL,0xF7,modregrm(3,2,AX));   // NOT AX
-        gen2(c,0xF7,modregrm(3,2,BX));          // NOT BX
-        gen2(c,0xF7,modregrm(3,2,CX));          // NOT CX
-        gen2(c,0xF7,modregrm(3,2,DX));          // NOT DX
-  }
-  else
+    if (sz == 4 * REGSIZE)
+    {
+        cdb.gen2(0xF7,modregrm(3,2,AX));   // NOT AX
+        cdb.gen2(0xF7,modregrm(3,2,BX));   // NOT BX
+        cdb.gen2(0xF7,modregrm(3,2,CX));   // NOT CX
+        cdb.gen2(0xF7,modregrm(3,2,DX));   // NOT DX
+    }
+    else
 #endif
-  {
-        reg = (sz <= REGSIZE) ? findreg(retregs) : findregmsw(retregs);
-        op = (sz == 1) ? 0xF6 : 0xF7;
-        c = genregs(CNIL,op,2,reg);             // NOT reg
-        code_orrex(c, rex);
+    {
+        unsigned reg = (sz <= REGSIZE) ? findreg(retregs) : findregmsw(retregs);
+        unsigned op = (sz == 1) ? 0xF6 : 0xF7;
+        cdb.append(genregs(CNIL,op,2,reg));     // NOT reg
+        code_orrex(cdb.last(), rex);
         if (I64 && sz == 1 && reg >= 4)
-            code_orrex(c, REX);
+            code_orrex(cdb.last(), REX);
         if (sz == 2 * REGSIZE)
         {   reg = findreglsw(retregs);
-            genregs(c,op,2,reg);                // NOT reg+1
+            cdb.append(genregs(CNIL,op,2,reg));  // NOT reg+1
         }
-  }
-  return cat4(c1,cg,c,fixresult(e,retregs,pretregs));
+    }
+    cdb.append(fixresult(e,retregs,pretregs));
+    return cdb.finish();
 }
 
 /************************
@@ -1875,27 +1872,24 @@ code *cdcom(elem *e,regm_t *pretregs)
  */
 
 code *cdbswap(elem *e,regm_t *pretregs)
-{   unsigned reg,op;
-    regm_t retregs;
-    code *c,*c1,*cg;
-    tym_t tym;
-    int sz;
-
+{
     if (*pretregs == 0)
         return codelem(e->E1,pretregs,FALSE);
 
-    tym = tybasic(e->Ety);
+    tym_t tym = tybasic(e->Ety);
     assert(_tysize[tym] == 4);
-    retregs = *pretregs & allregs;
+    regm_t retregs = *pretregs & allregs;
     if (retregs == 0)
         retregs = allregs;
-    c1 = codelem(e->E1,&retregs,FALSE);
-    cg = getregs(retregs);              // retregs will be destroyed
-    reg = findreg(retregs);
-    c = gen2(CNIL,0x0FC8 + (reg & 7),0);      // BSWAP reg
+    CodeBuilder cdb;
+    cdb.append(codelem(e->E1,&retregs,FALSE));
+    cdb.append(getregs(retregs));        // retregs will be destroyed
+    unsigned reg = findreg(retregs);
+    cdb.gen2(0x0FC8 + (reg & 7),0);      // BSWAP reg
     if (reg & 8)
-        code_orrex(c, REX_B);
-    return cat4(c1,cg,c,fixresult(e,retregs,pretregs));
+        code_orrex(cdb.last(), REX_B);
+    cdb.append(fixresult(e,retregs,pretregs));
+    return cdb.finish();
 }
 
 /*************************
