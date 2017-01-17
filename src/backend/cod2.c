@@ -1660,31 +1660,29 @@ code *cdmul(elem *e,regm_t *pretregs)
 code *cdnot(elem *e,regm_t *pretregs)
 {   unsigned reg;
     tym_t forflags;
-    code *c1,*c,*cfalse,*ctrue,*cnop;
-    unsigned sz;
     regm_t retregs;
-    elem *e1;
-    int op;
 
-    e1 = e->E1;
+    elem *e1 = e->E1;
     if (*pretregs == 0)
         goto L1;
     if (*pretregs == mPSW)
-    {   /*assert(e->Eoper != OPnot && e->Eoper != OPbool);*/ /* should've been optimized */
+    {   //assert(e->Eoper != OPnot && e->Eoper != OPbool);*/ /* should've been optimized
     L1:
-        return codelem(e1,pretregs,FALSE);      /* evaluate e1 for cc   */
+        return codelem(e1,pretregs,FALSE);      // evaluate e1 for cc
     }
 
-    op = e->Eoper;
-    sz = tysize(e1->Ety);
+    int op = e->Eoper;
+    unsigned sz = tysize(e1->Ety);
     unsigned rex = (I64 && sz == 8) ? REX_W : 0;
     unsigned grex = rex << 16;
+    CodeBuilder cdb;
+
     if (!tyfloating(e1->Ety))
     {
     if (sz <= REGSIZE && e1->Eoper == OPvar)
     {   code cs;
 
-        c = getlvalue(&cs,e1,0);
+        cdb.append(getlvalue(&cs,e1,0));
         freenode(e1);
         if (!I16 && sz == 2)
             cs.Iflags |= CFopsize;
@@ -1705,12 +1703,12 @@ code *cdnot(elem *e,regm_t *pretregs)
                 cs.Irex |= REX;
             cs.Iop ^= (sz == 1);
             code_newreg(&cs,reg);
-            c = gen(c,&cs);                             // CMP e1,0
+            cdb.gen(&cs);                             // CMP e1,0
 
             retregs &= BYTEREGS;
             if (!retregs)
                 retregs = BYTEREGS;
-            c1 = allocreg(&retregs,&reg,TYint);
+            cdb.append(allocreg(&retregs,&reg,TYint));
 
             int iop;
             if (op == OPbool)
@@ -1721,9 +1719,9 @@ code *cdnot(elem *e,regm_t *pretregs)
             {
                 iop = 0x0F94;   // SETZ rm8
             }
-            c1 = gen2(c1,iop,grex | modregrmx(3,0,reg));
+            cdb.gen2(iop,grex | modregrmx(3,0,reg));
             if (reg >= 4)
-                code_orrex(c1, REX);
+                code_orrex(cdb.last(), REX);
             if (op == OPbool)
                 *pretregs &= ~mPSW;
             goto L4;
@@ -1741,9 +1739,9 @@ code *cdnot(elem *e,regm_t *pretregs)
             cs.Irex |= REX;
         cs.Iop ^= (sz == 1);
         code_newreg(&cs,reg);
-        c = gen(c,&cs);                         // CMP e1,1
+        cdb.gen(&cs);                         // CMP e1,1
 
-        c1 = allocreg(&retregs,&reg,TYint);
+        cdb.append(allocreg(&retregs,&reg,TYint));
         op ^= (OPbool ^ OPnot);                 // switch operators
         goto L2;
     }
@@ -1752,18 +1750,18 @@ code *cdnot(elem *e,regm_t *pretregs)
     {
         int jop = jmpopcode(e->E1);
         retregs = mPSW;
-        c = codelem(e->E1,&retregs,FALSE);
+        cdb.append(codelem(e->E1,&retregs,FALSE));
         retregs = *pretregs & BYTEREGS;
         if (!retregs)
             retregs = BYTEREGS;
-        c1 = allocreg(&retregs,&reg,TYint);
+        cdb.append(allocreg(&retregs,&reg,TYint));
 
         int iop = 0x0F90 | (jop & 0x0F);        // SETcc rm8
         if (op == OPnot)
             iop ^= 1;
-        c1 = gen2(c1,iop,grex | modregrmx(3,0,reg));
+        cdb.gen2(iop,grex | modregrmx(3,0,reg));
         if (reg >= 4)
-            code_orrex(c1, REX);
+            code_orrex(cdb.last(), REX);
         if (op == OPbool)
             *pretregs &= ~mPSW;
         goto L4;
@@ -1775,51 +1773,58 @@ code *cdnot(elem *e,regm_t *pretregs)
         retregs = *pretregs & (ALLREGS | mBP);
         if (sz == 1 && !(retregs &= BYTEREGS))
             retregs = BYTEREGS;
-        c = codelem(e->E1,&retregs,FALSE);
+        cdb.append(codelem(e->E1,&retregs,FALSE));
         reg = findreg(retregs);
-        c1 = getregs(retregs);
-        c1 = gen2(c1,0xF7 ^ (sz == 1),grex | modregrmx(3,3,reg));   // NEG reg
-        code_orflag(c1,CFpsw);
+        cdb.append(getregs(retregs));
+        cdb.gen2(0xF7 ^ (sz == 1),grex | modregrmx(3,3,reg));   // NEG reg
+        code_orflag(cdb.last(),CFpsw);
         if (!I16 && sz == SHORTSIZE)
-            code_orflag(c1,CFopsize);
+            code_orflag(cdb.last(),CFopsize);
     L2:
-        c1 = genregs(c1,0x19,reg,reg);                  // SBB reg,reg
-        code_orrex(c1, rex);
+        cdb.append(genregs(CNIL,0x19,reg,reg));                  // SBB reg,reg
+        code_orrex(cdb.last(), rex);
         // At this point, reg==0 if e1==0, reg==-1 if e1!=0
         if (op == OPnot)
         {
             if (I64)
-                gen2(c1,0xFF,grex | modregrmx(3,0,reg));    // INC reg
+                cdb.gen2(0xFF,grex | modregrmx(3,0,reg));    // INC reg
             else
-                gen1(c1,0x40 + reg);                        // INC reg
+                cdb.gen1(0x40 + reg);                        // INC reg
         }
         else
-            gen2(c1,0xF7,grex | modregrmx(3,3,reg));    // NEG reg
+            cdb.gen2(0xF7,grex | modregrmx(3,3,reg));    // NEG reg
         if (*pretregs & mPSW)
-        {   code_orflag(c1,CFpsw);
+        {   code_orflag(cdb.last(),CFpsw);
             *pretregs &= ~mPSW;         // flags are always set anyway
         }
     L4:
-        return cat3(c,c1,fixresult(e,retregs,pretregs));
+        cdb.append(fixresult(e,retregs,pretregs));
+        return cdb.finish();
     }
-  }
-  cnop = gennop(CNIL);
-  ctrue = gennop(CNIL);
-  c = logexp(e->E1,(op == OPnot) ? FALSE : TRUE,FLcode,ctrue);
-  forflags = *pretregs & mPSW;
-  if (I64 && sz == 8)
+    }
+    code *cnop = gennop(CNIL);
+    code *ctrue = gennop(CNIL);
+    cdb.append(logexp(e->E1,(op == OPnot) ? FALSE : TRUE,FLcode,ctrue));
+    forflags = *pretregs & mPSW;
+    if (I64 && sz == 8)
         forflags |= 64;
-  assert(tysize(e->Ety) <= REGSIZE);            // result better be int
-  cfalse = allocreg(pretregs,&reg,e->Ety);      // allocate reg for result
-  for (c1 = cfalse; c1; c1 = code_next(c1))
-        gen(ctrue,c1);                          // duplicate reg save code
-  cfalse = movregconst(cfalse,reg,0,forflags);  // mov 0 into reg
-  regcon.immed.mval &= ~mask[reg];              // mark reg as unavail
-  ctrue = movregconst(ctrue,reg,1,forflags);    // mov 1 into reg
-  regcon.immed.mval &= ~mask[reg];              // mark reg as unavail
-  genjmp(cfalse,JMP,FLcode,(block *) cnop);     // skip over ctrue
-  c = cat4(c,cfalse,ctrue,cnop);
-  return c;
+    assert(tysize(e->Ety) <= REGSIZE);              // result better be int
+    code *cfalse = allocreg(pretregs,&reg,e->Ety);  // allocate reg for result
+    CodeBuilder cdbfalse;
+    cdbfalse.append(cfalse);
+    CodeBuilder cdbtrue;
+    cdbtrue.append(ctrue);
+    for (code *c1 = cfalse; c1; c1 = code_next(c1))
+        cdbtrue.gen(c1);                                      // duplicate reg save code
+    cdbfalse.append(movregconst(CNIL,reg,0,forflags));        // mov 0 into reg
+    regcon.immed.mval &= ~mask[reg];                          // mark reg as unavail
+    cdbtrue.append(movregconst(CNIL,reg,1,forflags));         // mov 1 into reg
+    regcon.immed.mval &= ~mask[reg];                          // mark reg as unavail
+    cdbfalse.append(genjmp(CNIL,JMP,FLcode,(block *) cnop));  // skip over ctrue
+    cdb.append(cdbfalse);
+    cdb.append(cdbtrue);
+    cdb.append(cnop);
+    return cdb.finish();
 }
 
 
