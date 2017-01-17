@@ -21,34 +21,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\e2ir.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\eh.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\glue.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\iasm.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\msc.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\s2ir.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\tk.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\tocvdebug.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\toir.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\toobj.c">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\backend\aa.c">
@@ -237,10 +210,10 @@
     <ClCompile Include="..\backend\varstats.c">
       <Filter>src\backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\objc_glue_stubs.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\backend\compress.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="..\backend\gsroa.c">
       <Filter>src\backend</Filter>
     </ClCompile>
   </ItemGroup>
@@ -297,9 +270,6 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\json.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lib.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\mars.h">

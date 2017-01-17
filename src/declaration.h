@@ -188,7 +188,7 @@ class AliasDeclaration : public Declaration
 public:
     Dsymbol *aliassym;
     Dsymbol *overnext;          // next in overload list
-    Dsymbol *import;            // !=NULL if unresolved internal alias for selective import
+    Dsymbol *_import;           // !=NULL if unresolved internal alias for selective import
 
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
@@ -231,6 +231,7 @@ class VarDeclaration : public Declaration
 public:
     Initializer *_init;
     unsigned offset;
+    unsigned sequenceNumber;     // order the variables are declared
     FuncDeclarations nestedrefs; // referenced by these lexically nested functions
     bool isargptr;              // if parameter that _argptr points to
     structalign_t alignment;
@@ -239,6 +240,8 @@ public:
     bool mynew;                 // it is a class new'd with custom operator new
     int canassign;              // it can be assigned to
     bool overlapped;            // if it is a field and has overlapping
+    bool overlapUnsafe;         // if it is an overlapping field and the overlaps are unsafe
+    bool doNotInferScope;       // do not infer 'scope' for this variable
     unsigned char isdataseg;    // private data for isDataseg
     Dsymbol *aliassym;          // if redone as alias to another symbol
     VarDeclaration *lastVar;    // Linked list of variables for goto-skips-init detection
@@ -664,6 +667,7 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *);
     bool isNested();
+    AggregateDeclaration *isThis();
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();

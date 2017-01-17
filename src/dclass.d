@@ -134,7 +134,7 @@ struct BaseClass
     extern (C++) void copyBaseInterfaces(BaseClasses* vtblInterfaces)
     {
         //printf("+copyBaseInterfaces(), %s\n", sym.toChars());
-        //    if (baseInterfaces_dim)
+        //    if (baseInterfaces.length)
         //      return;
         auto bc = cast(BaseClass*)mem.xcalloc(sym.interfaces.length, BaseClass.sizeof);
         baseInterfaces = bc[0 .. sym.interfaces.length];
@@ -1027,6 +1027,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     }
 
     enum OFFSET_RUNTIME = 0x76543210;
+    enum OFFSET_FWDREF = 0x76543211;
 
     /*******************************************
      * Determine if 'this' is a base class of cd.
@@ -1876,9 +1877,12 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
             //printf("\tX base %s\n", b.sym.toChars());
             if (this == b.sym)
             {
-                //printf("\tfound at offset %d\n", b.offset);
                 if (poffset)
-                    *poffset = b.offset;
+                {
+                    // don't return incorrect offsets https://issues.dlang.org/show_bug.cgi?id=16980
+                    *poffset = cd.sizeok == SIZEOKdone ? b.offset : OFFSET_FWDREF;
+                }
+                // printf("\tfound at offset %d\n", b.offset);
                 return true;
             }
             if (isBaseOf(b, poffset))

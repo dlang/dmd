@@ -866,8 +866,8 @@ int cgreg_assign(Symbol *retsym)
         #endif
 
         // Select sequence of registers to try to map s onto
-        char *pseq;                     // sequence to try for LSW
-        char *pseqmsw = NULL;           // sequence to try for MSW, NULL if none
+        unsigned char *pseq;                     // sequence to try for LSW
+        unsigned char *pseqmsw = NULL;           // sequence to try for MSW, NULL if none
         cgreg_set_priorities(ty, &pseq, &pseqmsw);
 
         u.benefit = 0;

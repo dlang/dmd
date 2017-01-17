@@ -109,6 +109,7 @@ OPTABLE0(CPUID,   0x0fa2, _I386 | _modall);
 OPTABLE0(RDMSR,   0x0f32, _I386 | _modaxdx);
 OPTABLE0(RDPMC,   0x0f33, _I386 | _modaxdx);
 OPTABLE0(RDTSC,   0x0f31, _I386 | _modaxdx);
+OPTABLE0(RDTSCP,  0x0f01f9, _I386 | _modaxdx | _modcx);
 OPTABLE0(WRMSR,   0x0f30, _I386);
 OPTABLE0(RSM,     0x0faa,_i64_bit | _I386);
 
@@ -670,6 +671,18 @@ PTRNTAB2  aptb2MUL[] = /* MUL */ {
         { 0xf7, _4|_16_bit|_modaxdx,    _rm16,  0 },
         { 0xf7, _4|_32_bit|_modaxdx,    _rm32,  0 },
         { 0xf7, _4|_64_bit|_modaxdx,    _rm64,  0 },
+        { ASM_END }
+};
+PTRNTAB2  aptb2TZCNT[] = /* TZCNT */ {
+        { 0xf30fbc,       _cw|_16_bit,            _r16,   _rm16 },
+        { 0xf30fbc,       _cd|_32_bit,            _r32,   _rm32 },
+        { 0xf30fbc,       _cq|_64_bit,            _r64,   _rm64 },
+        { ASM_END }
+};
+PTRNTAB2  aptb2LZCNT[] = /* LZCNT */ {
+        { 0xf30fbd,       _cw|_16_bit,            _r16,   _rm16 },
+        { 0xf30fbd,       _cd|_32_bit,            _r32,   _rm32 },
+        { 0xf30fbd,       _cq|_64_bit,            _r64,   _rm64 },
         { ASM_END }
 };
 PTRNTAB2  aptb2OUT[] = /* OUT */ {
@@ -2777,6 +2790,16 @@ PTRNTAB1 aptb1PREFETCHT2[] = /* PREFETCHT2 */ {
         { ASM_END }
 };
 
+PTRNTAB1 aptb1PREFETCHW[] = /* PREFETCHW */ {
+        { 0x0F0D, _1,_m8 },
+        { ASM_END }
+};
+
+PTRNTAB1 aptb1PREFETCHWT1[] = /* PREFETCHWT1 */ {
+        { 0x0F0D, _2,_m8 },
+        { ASM_END }
+};
+
 PTRNTAB2 aptb2PSADBW[] = /* PSADBW */ {
         { 0x0FF6, _r,_mm,_mmm64 },
         { PSADBW, _r,_xmm,_xmm_m128 },
@@ -4120,11 +4143,11 @@ popcnt
  */
 
 PTRNTAB2 aptb2CRC32[] = /* CRC32 */ {
-        { 0xF20F38F0, _r        , _r32, _rm8  },
-        { 0xF20F38F0, _r|_64_bit, _r64, _rm8  },
-        { 0xF20F38F1, _r|_16_bit, _r32, _rm16 },
-        { 0xF20F38F1, _r|_32_bit, _r32, _rm32 },
-        { 0xF20F38F1, _r|_64_bit, _r64, _rm64 },
+        { (int)0xF20F38F0, _r        , _r32, _rm8  },
+        { (int)0xF20F38F0, _r|_64_bit, _r64, _rm8  },
+        { (int)0xF20F38F1, _r|_16_bit, _r32, _rm16 },
+        { (int)0xF20F38F1, _r|_32_bit, _r32, _rm32 },
+        { (int)0xF20F38F1, _r|_64_bit, _r64, _rm64 },
         { ASM_END }
 };
 
@@ -4296,6 +4319,16 @@ PTRNTAB1  aptb1XSAVE[] = /* XSAVE */ {
 
 PTRNTAB1  aptb1XSAVE64[] = /* XSAVE64 */ {
         { 0x0FAE, _4|_64_bit, _m512 }, // TODO: REX_W override is implicit
+        { ASM_END }
+};
+
+PTRNTAB1  aptb1XSAVEC[] = /* XSAVEC */ {
+        { 0x0FC7, _4, _m512 },
+        { ASM_END }
+};
+
+PTRNTAB1  aptb1XSAVEC64[] = /* XSAVEC64 */ {
+        { 0x0FC7, _4|_64_bit, _m512 }, // TODO: REX_W override is implicit
         { ASM_END }
 };
 
@@ -5055,6 +5088,7 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("lsl",            2,              (P) aptb2LSL )                  \
         X("lss",            2,              (P) aptb2LSS )                  \
         X("ltr",            1,              (P) aptb1LTR )                  \
+        X("lzcnt",          2,              (P) aptb2LZCNT )                \
         X("maskmovdqu",     2,              (P) aptb2MASKMOVDQU )           \
         X("maskmovq",       2,              (P) aptb2MASKMOVQ )             \
         X("maxpd",          2,              (P) aptb2MAXPD )                \
@@ -5239,6 +5273,8 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("prefetcht0",     1,              (P) aptb1PREFETCHT0 )           \
         X("prefetcht1",     1,              (P) aptb1PREFETCHT1 )           \
         X("prefetcht2",     1,              (P) aptb1PREFETCHT2 )           \
+        X("prefetchw",      1,              (P) aptb1PREFETCHW )            \
+        X("prefetchwt1",    1,              (P) aptb1PREFETCHWT1 )          \
         X("psadbw",         2,              (P) aptb2PSADBW )               \
         X("pshufb",         2,              (P) aptb2PSHUFB )               \
         X("pshufd",         3,              (P) aptb3PSHUFD )               \
@@ -5293,6 +5329,7 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("rdpmc",          0,              aptb0RDPMC )                    \
         X("rdrand",         1,              (P) aptb1RDRAND )               \
         X("rdtsc",          0,              aptb0RDTSC )                    \
+        X("rdtscp",         0,              aptb0RDTSCP )                   \
         X("rep",            ITprefix | 0,   aptb0REP )                      \
         X("repe",           ITprefix | 0,   aptb0REP )                      \
         X("repne",          ITprefix | 0,   aptb0REPNE )                    \
@@ -5390,6 +5427,7 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("sysexit",        0,              aptb0SYSEXIT )                  \
         X("sysret",         0,              aptb0SYSRET )                   \
         X("test",           2,              (P) aptb2TEST )                 \
+        X("tzcnt",          2,              (P) aptb2TZCNT )                \
         X("ucomisd",        2,              (P) aptb2UCOMISD )              \
         X("ucomiss",        2,              (P) aptb2UCOMISS )              \
         X("ud2",            0,              aptb0UD2 )                      \
@@ -5516,10 +5554,10 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("vmovddup",       2,              (P) aptb2VMOVDDUP )             \
         X("vmovdqa",        2,              (P) aptb2VMOVDQA )              \
         X("vmovdqu",        2,              (P) aptb2VMOVDQU )              \
-        X("vmovhlps",       3,              (P) aptb3VMOVLHPS )             \
+        X("vmovhlps",       3,              (P) aptb3VMOVHLPS )             \
         X("vmovhpd",        ITopt | 3,      (P) aptb3VMOVHPD )              \
         X("vmovhps",        ITopt | 3,      (P) aptb3VMOVHPS )              \
-        X("vmovlhps",       3,              (P) aptb3VMOVHLPS )             \
+        X("vmovlhps",       3,              (P) aptb3VMOVLHPS )             \
         X("vmovlpd",        ITopt | 3,      (P) aptb3VMOVLPD )              \
         X("vmovlps",        ITopt | 3,      (P) aptb3VMOVLPS )              \
         X("vmovmskpd",      2,              (P) aptb2VMOVMSKPD )            \
@@ -5710,6 +5748,8 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("xrstor64",       ITfloat | 1,    (P) aptb1XRSTOR64 )             \
         X("xsave",          ITfloat | 1,    (P) aptb1XSAVE )                \
         X("xsave64",        ITfloat | 1,    (P) aptb1XSAVE64 )              \
+        X("xsavec",         ITfloat | 1,    (P) aptb1XSAVEC )               \
+        X("xsavec64",       ITfloat | 1,    (P) aptb1XSAVEC64 )             \
         X("xsaveopt",       ITfloat | 1,    (P) aptb1XSAVEOPT )             \
         X("xsaveopt64",     ITfloat | 1,    (P) aptb1XSAVEOPT64 )           \
         X("xsetbv",         0,              aptb0XSETBV)                    \

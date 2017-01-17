@@ -300,12 +300,12 @@ private bool match(RootObject o1, RootObject o2)
     }
 Lmatch:
     static if (debugPrint)
-        printf("\t-> match\n");
+        printf("\t. match\n");
     return true;
 
 Lnomatch:
     static if (debugPrint)
-        printf("\t-> nomatch\n");
+        printf("\t. nomatch\n");
     return false;
 }
 
@@ -1625,7 +1625,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     // https://issues.dlang.org/show_bug.cgi?id=12876
                     // Optimize argument to allow CT-known length matching
                     farg = farg.optimize(WANTvalue, (fparam.storageClass & (STCref | STCout)) != 0);
-                    //printf("farg = %s %s\n", farg.type.toChars(), fargtoChars());
+                    //printf("farg = %s %s\n", farg.type.toChars(), farg.toChars());
 
                     RootObject oarg = farg;
                     if ((fparam.storageClass & STCref) && (!(fparam.storageClass & STCauto) || farg.isLvalue()))
@@ -1774,11 +1774,30 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                 Expression e;
                                 Type t;
                                 Dsymbol s;
-                                taa.index.resolve(instLoc, sc, &e, &t, &s);
+                                Scope *sco;
+
+                                uint errors = global.startGagging();
+                                /* ref: https://issues.dlang.org/show_bug.cgi?id=11118
+                                 * The parameter isn't part of the template
+                                 * ones, let's try to find it in the
+                                 * instantiation scope 'sc' and the one
+                                 * belonging to the template itself. */
+                                sco = sc;
+                                taa.index.resolve(instLoc, sco, &e, &t, &s);
                                 if (!e)
+                                {
+                                    sco = paramscope;
+                                    taa.index.resolve(instLoc, sco, &e, &t, &s);
+                                }
+                                global.endGagging(errors);
+
+                                if (!e)
+                                {
                                     goto Lnomatch;
+                                }
+
                                 e = e.ctfeInterpret();
-                                e = e.implicitCastTo(sc, Type.tsize_t);
+                                e = e.implicitCastTo(sco, Type.tsize_t);
                                 e = e.optimize(WANTvalue);
                                 if (!dim.equals(e))
                                     goto Lnomatch;
@@ -1912,6 +1931,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     }
                     else
                     {
+                        // Discussion: https://issues.dlang.org/show_bug.cgi?id=16484
                         if (MATCHconvert < matchTiargs)
                             matchTiargs = MATCHconvert;
                     }
@@ -2470,7 +2490,8 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
                 if (!fd.fbody && m.lastf.fbody) goto LlastIsBetter;
             }
 
-            // Bugzilla 14450: Prefer exact qualified constructor for the creating object type
+            // https://issues.dlang.org/show_bug.cgi?id=14450
+            // Prefer exact qualified constructor for the creating object type
             if (isCtorCall && tf.mod != m.lastf.type.mod)
             {
                 if (tthis.mod == tf.mod) goto LfIsBetter;
@@ -2500,6 +2521,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
 
     int applyTemplate(TemplateDeclaration td)
     {
+        //printf("applyTemplate()\n");
         // skip duplicates
         if (td == td_best)
             return 0;
@@ -2712,7 +2734,8 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
                 if (c1 < c2) goto Ltd_best;
             }
 
-            // Bugzilla 14450: Prefer exact qualified constructor for the creating object type
+            // https://issues.dlang.org/show_bug.cgi?id=14450
+            // Prefer exact qualified constructor for the creating object type
             if (isCtorCall && fd.type.mod != m.lastf.type.mod)
             {
                 if (tthis.mod == fd.type.mod) goto Ltd;
@@ -3674,7 +3697,9 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 {
                     Parameter a = Parameter.getNth(t.parameters, i);
                     Parameter ap = Parameter.getNth(tp.parameters, i);
-                    if (a.storageClass != ap.storageClass || !deduceType(a.type, sc, ap.type, parameters, dedtypes))
+
+                    if (!a.isCovariant(ap) ||
+                        !deduceType(a.type, sc, ap.type, parameters, dedtypes))
                     {
                         result = MATCHnomatch;
                         return;

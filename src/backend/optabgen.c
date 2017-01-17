@@ -42,7 +42,7 @@ int _binary[] =
          OPbt,OPbtc,OPbtr,OPbts,OPror,OProl,OPbtst,
          OPremquo,OPcmpxchg,
          OPoutp,OPscale,OPyl2x,OPyl2xp1,
-         OPvecsto,
+         OPvecsto,OPprefetch
         };
 int _unary[] =
         {OPnot,OPcom,OPind,OPaddr,OPneg,OPuadd,
@@ -61,7 +61,7 @@ int _unary[] =
          OPctor,OPdtor,OPsetjmp,OPvoid,
          OPbsf,OPbsr,OPbswap,OPpopcnt,
          OPddtor,
-         OPvector,
+         OPvector,OPvecfill,
          OPva_start,
          OPsqrt,OPsin,OPcos,OPinp,
          OPvp_fp,OPcvp_fp,OPnp_fp,OPnp_f16p,OPf16p_np,OPoffset,
@@ -115,7 +115,7 @@ int _sideff[] = {OPasm,OPucall,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPhalt,OPdctor,OPddtor,
                 OPcmpxchg,
                 OPva_start,
-                OPinp,OPoutp,OPvecsto,
+                OPinp,OPoutp,OPvecsto,OPprefetch,
                 };
 int _rtol[] = {OPeq,OPstreq,OPstrcpy,OPmemcpy,OPpostinc,OPpostdec,OPaddass,
                 OPminass,OPmulass,OPdivass,OPmodass,OPandass,
@@ -144,7 +144,7 @@ int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OPnullptr,
                 OProl,OPror,
                 OPsqrt,OPsin,OPcos,OPscale,
-                OPvp_fp,OPcvp_fp,OPnp_fp,OPnp_f16p,OPf16p_np,OPoffset,
+                OPvp_fp,OPcvp_fp,OPnp_fp,OPnp_f16p,OPf16p_np,OPoffset,OPvecfill,
                 };
 int _boolnop[] = {OPuadd,OPbool,OPs16_32,OPu16_32,
                 OPs16_d,
@@ -155,6 +155,7 @@ int _boolnop[] = {OPuadd,OPbool,OPs16_32,OPu16_32,
                 OPu16_d,OPb_8,
                 OPnullptr,
                 OPnp_fp,OPvp_fp,OPcvp_fp,
+                OPvecfill,
                 };
 int _lvalue[] = {OPvar,OPind,OPcomma,OPbit};
 
@@ -580,7 +581,9 @@ void dotab()
         case OPpopcnt:  X("popcnt",     evalu8, cdpopcnt);
         case OPvector:  X("vector",     elzot,  cdvector);
         case OPvecsto:  X("vecsto",     elzot,  cdvecsto);
+        case OPvecfill: X("vecfill",    elzot,  cdvecfill);
         case OPva_start: X("va_start",  elvalist, cderr);
+        case OPprefetch: X("prefetch",  elzot,  cdprefetch);
 
         default:
                 printf("opcode hole x%x\n",i);
@@ -755,6 +758,8 @@ void dotytab()
     static tym_t _ptr_nflat[]= { TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,TYvptr };
     static tym_t _real[]     = { TYfloat,TYdouble,TYdouble_alias,TYldouble,
                                  TYfloat4,TYdouble2,
+                                 TYfloat8,TYdouble4,
+                                 TYfloat16,TYdouble8,
                                };
     static tym_t _imaginary[] = {
                                  TYifloat,TYidouble,TYildouble,
@@ -767,7 +772,12 @@ void dotytab()
                                  TYlong,TYulong,TYllong,TYullong,TYdchar,
                                  TYschar16,TYuchar16,TYshort8,TYushort8,
                                  TYlong4,TYulong4,TYllong2,TYullong2,
-                                 TYchar16, TYcent, TYucent };
+                                 TYschar32,TYuchar32,TYshort16,TYushort16,
+                                 TYlong8,TYulong8,TYllong4,TYullong4,
+                                 TYschar64,TYuchar64,TYshort32,TYushort32,
+                                 TYlong16,TYulong16,TYllong8,TYullong8,
+                                 TYchar16,TYcent,TYucent,
+                               };
     static tym_t _ref[]      = { TYnref,TYref };
     static tym_t _func[]     = { TYnfunc,TYnpfunc,TYnsfunc,TYifunc,TYmfunc,TYjfunc,TYhfunc };
     static tym_t _ref_nflat[] = { TYfref };
@@ -792,11 +802,23 @@ void dotytab()
                                  TYfloat4,TYdouble2,
                                  TYschar16,TYuchar16,TYshort8,TYushort8,
                                  TYlong4,TYulong4,TYllong2,TYullong2,
+                                 TYfloat8,TYdouble4,
+                                 TYschar32,TYuchar32,TYshort16,TYushort16,
+                                 TYlong8,TYulong8,TYllong4,TYullong4,
+                                 TYschar64,TYuchar64,TYshort32,TYushort32,
+                                 TYlong16,TYulong16,TYllong8,TYullong8,
+                                 TYfloat16,TYdouble8,
                              };
     static tym_t _simd[] = {
                                  TYfloat4,TYdouble2,
                                  TYschar16,TYuchar16,TYshort8,TYushort8,
                                  TYlong4,TYulong4,TYllong2,TYullong2,
+                                 TYfloat8,TYdouble4,
+                                 TYschar32,TYuchar32,TYshort16,TYushort16,
+                                 TYlong8,TYulong8,TYllong4,TYullong4,
+                                 TYschar64,TYuchar64,TYshort32,TYushort32,
+                                 TYlong16,TYulong16,TYllong8,TYullong8,
+                                 TYfloat16,TYdouble8,
                              };
 
     static struct
@@ -855,6 +877,28 @@ void dotytab()
 "unsigned long[4]",      TYulong4,    TYulong4,  TYulong4,    16,     0,      0,
 "long long[2]",          TYllong2,    TYullong2, TYllong2,    16,     0,      0,
 "unsigned long long[2]", TYullong2,   TYullong2, TYullong2,   16,     0,      0,
+
+"float[8]",              TYfloat8,    TYfloat8,  TYfloat8,    32,     0,      0,
+"double[4]",             TYdouble4,   TYdouble4, TYdouble4,   32,     0,      0,
+"signed char[32]",       TYschar32,   TYuchar32, TYschar32,   32,     0,      0,
+"unsigned char[32]",     TYuchar32,   TYuchar32, TYuchar32,   32,     0,      0,
+"short[16]",             TYshort16,   TYushort16, TYshort16,  32,     0,      0,
+"unsigned short[16]",    TYushort16,  TYushort16, TYushort16, 32,     0,      0,
+"long[8]",               TYlong8,     TYulong8,  TYlong8,     32,     0,      0,
+"unsigned long[8]",      TYulong8,    TYulong8,  TYulong8,    32,     0,      0,
+"long long[4]",          TYllong4,    TYullong4, TYllong4,    32,     0,      0,
+"unsigned long long[4]", TYullong4,   TYullong4, TYullong4,   32,     0,      0,
+
+"float[16]",             TYfloat16,   TYfloat16, TYfloat16,   64,     0,      0,
+"double[8]",             TYdouble8,   TYdouble8, TYdouble8,   64,     0,      0,
+"signed char[64]",       TYschar64,   TYuchar64, TYschar64,   64,     0,      0,
+"unsigned char[64]",     TYuchar64,   TYuchar64, TYuchar64,   64,     0,      0,
+"short[32]",             TYshort32,   TYushort32, TYshort32,  64,     0,      0,
+"unsigned short[32]",    TYushort32,  TYushort32, TYushort32, 64,     0,      0,
+"long[16]",              TYlong16,    TYulong16, TYlong16,    64,     0,      0,
+"unsigned long[16]",     TYulong16,   TYulong16, TYulong16,   64,     0,      0,
+"long long[8]",          TYllong8,    TYullong8, TYllong8,    64,     0,      0,
+"unsigned long long[8]", TYullong8,   TYullong8, TYullong8,   64,     0,      0,
 
 "nullptr_t",    TYnullptr,      TYnullptr, TYptr,       2,  0x20,       0x100,
 "*",            TYnptr,         TYnptr,    TYnptr,      2,  0x20,       0x100,

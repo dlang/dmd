@@ -135,7 +135,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
         }
     }
 L1:
-    //if (e) printf("\te = %p, %s, e->type = %d, %s\n", e, e->toChars(), e->type->ty, e->type->toChars());
+    //if (e) printf("\te = %p, %s, e.type = %d, %s\n", e, e.toChars(), e.type.ty, e.type.toChars());
     return e;
 Lerror:
     return new ErrorExp();
@@ -226,7 +226,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
         override void visit(Expression e)
         {
-            //printf("Expression::optimize(result = x%x) %s\n", result, e->toChars());
+            //printf("Expression::optimize(result = x%x) %s\n", result, e.toChars());
         }
 
         override void visit(VarExp e)
@@ -289,7 +289,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
         override void visit(UnaExp e)
         {
-            //printf("UnaExp::optimize() %s\n", e->toChars());
+            //printf("UnaExp::optimize() %s\n", e.toChars());
             if (unaOptimize(e, result))
                 return;
         }
@@ -331,7 +331,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
         override void visit(AddrExp e)
         {
-            //printf("AddrExp::optimize(result = %d) %s\n", result, e->toChars());
+            //printf("AddrExp::optimize(result = %d) %s\n", result, e.toChars());
             /* Rewrite &(a,b) as (a,&b)
              */
             if (e.e1.op == TOKcomma)
@@ -407,7 +407,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
         override void visit(PtrExp e)
         {
-            //printf("PtrExp::optimize(result = x%x) %s\n", result, e->toChars());
+            //printf("PtrExp::optimize(result = x%x) %s\n", result, e.toChars());
             if (expOptimize(e.e1, result))
                 return;
             // Convert *&ex to ex
@@ -455,7 +455,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
         override void visit(DotVarExp e)
         {
-            //printf("DotVarExp::optimize(result = x%x) %s\n", result, e->toChars());
+            //printf("DotVarExp::optimize(result = x%x) %s\n", result, e.toChars());
             if (expOptimize(e.e1, result))
                 return;
             if (keepLvalue)
@@ -507,7 +507,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
         override void visit(CallExp e)
         {
-            //printf("CallExp::optimize(result = %d) %s\n", result, e->toChars());
+            //printf("CallExp::optimize(result = %d) %s\n", result, e.toChars());
             // Optimize parameters with keeping lvalue-ness
             if (expOptimize(e.e1, result))
                 return;
@@ -529,11 +529,11 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
         override void visit(CastExp e)
         {
-            //printf("CastExp::optimize(result = %d) %s\n", result, e->toChars());
-            //printf("from %s to %s\n", e->type->toChars(), e->to->toChars());
-            //printf("from %s\n", e->type->toChars());
-            //printf("e1->type %s\n", e->e1->type->toChars());
-            //printf("type = %p\n", e->type);
+            //printf("CastExp::optimize(result = %d) %s\n", result, e.toChars());
+            //printf("from %s to %s\n", e.type.toChars(), e.to.toChars());
+            //printf("from %s\n", e.type.toChars());
+            //printf("e1.type %s\n", e.e1.type.toChars());
+            //printf("type = %p\n", e.type);
             assert(e.type);
             TOK op1 = e.e1.op;
             Expression e1old = e.e1;
@@ -557,18 +557,18 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 if (e1sz == esz)
                 {
                     // Bugzilla 12937: If target type is void array, trying to paint
-                    // e->e1 with that type will cause infinite recursive optimization.
+                    // e.e1 with that type will cause infinite recursive optimization.
                     if (e.type.nextOf().ty == Tvoid)
                         return;
                     ret = e.e1.castTo(null, e.type);
-                    //printf(" returning1 %s\n", ret->toChars());
+                    //printf(" returning1 %s\n", ret.toChars());
                     return;
                 }
             }
 
             if (e.e1.op == TOKstructliteral && e.e1.type.implicitConvTo(e.type) >= MATCHconst)
             {
-                //printf(" returning2 %s\n", e->e1->toChars());
+                //printf(" returning2 %s\n", e.e1.toChars());
             L1:
                 // Returning e1 with changing its type
                 ret = (e1old == e.e1 ? e.e1.copy() : e.e1);
@@ -584,25 +584,32 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
             if (e.e1.op == TOKnull && (e.type.ty == Tpointer || e.type.ty == Tclass || e.type.ty == Tarray))
             {
-                //printf(" returning3 %s\n", e->e1->toChars());
+                //printf(" returning3 %s\n", e.e1.toChars());
                 goto L1;
             }
             if (e.type.ty == Tclass && e.e1.type.ty == Tclass)
             {
+                import ddmd.aggregate : SIZEOKdone;
+
                 // See if we can remove an unnecessary cast
                 ClassDeclaration cdfrom = e.e1.type.isClassHandle();
                 ClassDeclaration cdto = e.type.isClassHandle();
+                // Need to determine correct offset before optimizing away the cast.
+                // https://issues.dlang.org/show_bug.cgi?id=16980
+                cdfrom.size(e.loc);
+                assert(cdfrom.sizeok == SIZEOKdone);
+                assert(cdto.sizeok == SIZEOKdone || !cdto.isBaseOf(cdto, null));
                 int offset;
                 if (cdto.isBaseOf(cdfrom, &offset) && offset == 0)
                 {
-                    //printf(" returning4 %s\n", e->e1->toChars());
+                    //printf(" returning4 %s\n", e.e1.toChars());
                     goto L1;
                 }
             }
             // We can convert 'head const' to mutable
             if (e.to.mutableOf().constOf().equals(e.e1.type.mutableOf().constOf()))
             {
-                //printf(" returning5 %s\n", e->e1->toChars());
+                //printf(" returning5 %s\n", e.e1.toChars());
                 goto L1;
             }
             if (e.e1.isConst())
@@ -630,12 +637,12 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                         ret = Cast(e.loc, e.type, e.to, e.e1).copy();
                 }
             }
-            //printf(" returning6 %s\n", ret->toChars());
+            //printf(" returning6 %s\n", ret.toChars());
         }
 
         override void visit(BinExp e)
         {
-            //printf("BinExp::optimize(result = %d) %s\n", result, e->toChars());
+            //printf("BinExp::optimize(result = %d) %s\n", result, e.toChars());
             // don't replace const variable with its initializer in e1
             bool e2only = (e.op == TOKconstruct || e.op == TOKblit);
             if (e2only ? expOptimize(e.e2, result) : binOptimize(e, result))
@@ -659,7 +666,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
         override void visit(AddExp e)
         {
-            //printf("AddExp::optimize(%s)\n", e->toChars());
+            //printf("AddExp::optimize(%s)\n", e.toChars());
             if (binOptimize(e, result))
                 return;
             if (e.e1.isConst() && e.e2.isConst())
@@ -684,7 +691,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
         override void visit(MulExp e)
         {
-            //printf("MulExp::optimize(result = %d) %s\n", result, e->toChars());
+            //printf("MulExp::optimize(result = %d) %s\n", result, e.toChars());
             if (binOptimize(e, result))
                 return;
             if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
@@ -695,7 +702,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
         override void visit(DivExp e)
         {
-            //printf("DivExp::optimize(%s)\n", e->toChars());
+            //printf("DivExp::optimize(%s)\n", e.toChars());
             if (binOptimize(e, result))
                 return;
             if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
@@ -736,13 +743,13 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
         override void visit(ShlExp e)
         {
-            //printf("ShlExp::optimize(result = %d) %s\n", result, e->toChars());
+            //printf("ShlExp::optimize(result = %d) %s\n", result, e.toChars());
             shift_optimize(e, &Shl);
         }
 
         override void visit(ShrExp e)
         {
-            //printf("ShrExp::optimize(result = %d) %s\n", result, e->toChars());
+            //printf("ShrExp::optimize(result = %d) %s\n", result, e.toChars());
             shift_optimize(e, &Shr);
         }
 
@@ -869,7 +876,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
         override void visit(CommaExp e)
         {
-            //printf("CommaExp::optimize(result = %d) %s\n", result, e->toChars());
+            //printf("CommaExp::optimize(result = %d) %s\n", result, e.toChars());
             // Comma needs special treatment, because it may
             // contain compiler-generated declarations. We can interpret them, but
             // otherwise we must NOT attempt to constant-fold them.
@@ -885,12 +892,12 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 if (ret)
                     ret.type = e.type;
             }
-            //printf("-CommaExp::optimize(result = %d) %s\n", result, e->e->toChars());
+            //printf("-CommaExp::optimize(result = %d) %s\n", result, e.e.toChars());
         }
 
         override void visit(ArrayLengthExp e)
         {
-            //printf("ArrayLengthExp::optimize(result = %d) %s\n", result, e->toChars());
+            //printf("ArrayLengthExp::optimize(result = %d) %s\n", result, e.toChars());
             if (unaOptimize(e, WANTexpand))
                 return;
             // CTFE interpret static immutable arrays (to get better diagnostics)
@@ -911,7 +918,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
         override void visit(EqualExp e)
         {
-            //printf("EqualExp::optimize(result = %x) %s\n", result, e->toChars());
+            //printf("EqualExp::optimize(result = %x) %s\n", result, e.toChars());
             if (binOptimize(e, WANTvalue))
                 return;
             Expression e1 = fromConstInitializer(result, e.e1);
@@ -933,7 +940,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
         override void visit(IdentityExp e)
         {
-            //printf("IdentityExp::optimize(result = %d) %s\n", result, e->toChars());
+            //printf("IdentityExp::optimize(result = %d) %s\n", result, e.toChars());
             if (binOptimize(e, WANTvalue))
                 return;
             if ((e.e1.isConst() && e.e2.isConst()) || (e.e1.op == TOKnull && e.e2.op == TOKnull))
@@ -974,7 +981,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
         override void visit(IndexExp e)
         {
-            //printf("IndexExp::optimize(result = %d) %s\n", result, e->toChars());
+            //printf("IndexExp::optimize(result = %d) %s\n", result, e.toChars());
             if (expOptimize(e.e1, result & WANTexpand))
                 return;
             Expression ex = fromConstInitializer(result, e.e1);
@@ -991,7 +998,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
         override void visit(SliceExp e)
         {
-            //printf("SliceExp::optimize(result = %d) %s\n", result, e->toChars());
+            //printf("SliceExp::optimize(result = %d) %s\n", result, e.toChars());
             if (expOptimize(e.e1, result & WANTexpand))
                 return;
             if (!e.lwr)
@@ -1028,12 +1035,12 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 e.upr = null;
                 ret = e;
             }
-            //printf("-SliceExp::optimize() %s\n", ret->toChars());
+            //printf("-SliceExp::optimize() %s\n", ret.toChars());
         }
 
         override void visit(AndAndExp e)
         {
-            //printf("AndAndExp::optimize(%d) %s\n", result, e->toChars());
+            //printf("AndAndExp::optimize(%d) %s\n", result, e.toChars());
             if (expOptimize(e.e1, WANTvalue))
                 return;
             if (e.e1.isBool(false))
@@ -1074,7 +1081,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
         override void visit(OrOrExp e)
         {
-            //printf("OrOrExp::optimize(%d) %s\n", result, e->toChars());
+            //printf("OrOrExp::optimize(%d) %s\n", result, e.toChars());
             if (expOptimize(e.e1, WANTvalue))
                 return;
             if (e.e1.isBool(true))
@@ -1115,7 +1122,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
         override void visit(CmpExp e)
         {
-            //printf("CmpExp::optimize() %s\n", e->toChars());
+            //printf("CmpExp::optimize() %s\n", e.toChars());
             if (binOptimize(e, WANTvalue))
                 return;
             Expression e1 = fromConstInitializer(result, e.e1);
@@ -1127,7 +1134,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
         override void visit(CatExp e)
         {
-            //printf("CatExp::optimize(%d) %s\n", result, e->toChars());
+            //printf("CatExp::optimize(%d) %s\n", result, e.toChars());
             if (binOptimize(e, result))
                 return;
             if (e.e1.op == TOKcat)

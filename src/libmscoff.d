@@ -149,7 +149,7 @@ final class LibMSCoff : Library
                     return corrupt(__LINE__);
                 if (offset + size > buflen)
                     return corrupt(__LINE__);
-                //printf("header->object_name = '%.*s'\n", MSCOFF_OBJECT_NAME_SIZE, header->object_name);
+                //printf("header.object_name = '%.*s'\n", MSCOFF_OBJECT_NAME_SIZE, header.object_name);
                 if (memcmp(cast(char*)header.object_name, cast(char*)"/               ", MSCOFF_OBJECT_NAME_SIZE) == 0)
                 {
                     if (!flm)
@@ -234,7 +234,7 @@ final class LibMSCoff : Library
                         memcpy(oname, longnames + foff, i);
                         oname[i] = 0;
                         om.name = oname[0 .. i];
-                        //printf("\tname = '%s'\n", om->name);
+                        //printf("\tname = '%s'\n", om.name);
                     }
                     else
                     {
@@ -290,7 +290,7 @@ final class LibMSCoff : Library
                     if (m == objmodules.dim)
                         return corrupt(__LINE__);       // didn't find it
                     MSCoffObjModule* om = objmodules[m];
-                    //printf("\tom offset = x%x\n", (char *)om->base - (char *)buf);
+                    //printf("\tom offset = x%x\n", (char *)om.base - (char *)buf);
                     if (moff == cast(char*)om.base - cast(char*)buf)
                     {
                         addSymbol(om, name, 1);
@@ -482,7 +482,7 @@ private:
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
             MSCoffObjSymbol* os = objsymbols[i];
-            //printf("objsymbols[%d] = '%s', offset = %u\n", i, os->name, os->om->offset);
+            //printf("objsymbols[%d] = '%s', offset = %u\n", i, os.name, os.om.offset);
             if (i)
             {
                 // Should be sorted in module order
@@ -533,7 +533,7 @@ private:
         /*** Write out longnames Member ***/
         if (libbuf.offset & 1)
             libbuf.writeByte('\n');
-        //printf("libbuf %x longnames %x\n", (int)libbuf->offset, (int)LongnamesMemberOffset);
+        //printf("libbuf %x longnames %x\n", (int)libbuf.offset, (int)LongnamesMemberOffset);
         assert(libbuf.offset == LongnamesMemberOffset);
         // header
         memset(&h, ' ', MSCoffLibHeader.sizeof);
@@ -561,7 +561,7 @@ private:
             MSCoffObjModule* om2 = objmodules[i];
             if (libbuf.offset & 1)
                 libbuf.writeByte('\n'); // module alignment
-            //printf("libbuf %x om %x\n", (int)libbuf->offset, (int)om2->offset);
+            //printf("libbuf %x om %x\n", (int)libbuf.offset, (int)om2.offset);
             assert(libbuf.offset == om2.offset);
             if (om2.scan)
             {
@@ -571,13 +571,13 @@ private:
             }
             else
             {
-                // Header is included in om->base[0..length]
+                // Header is included in om.base[0..length]
                 libbuf.write(om2.base, om2.length); // module contents
             }
         }
         static if (LOG)
         {
-            printf("moffset = x%x, libbuf->offset = x%x\n", cast(uint)moffset, cast(uint)libbuf.offset);
+            printf("moffset = x%x, libbuf.offset = x%x\n", cast(uint)moffset, cast(uint)libbuf.offset);
         }
         assert(libbuf.offset == moffset);
     }

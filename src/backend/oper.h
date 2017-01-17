@@ -232,6 +232,7 @@ enum OPER
         OPgot,                  // load pointer to global offset table
         OPvector,               // SIMD vector operations
         OPvecsto,               // SIMD vector store operations
+        OPvecfill,              // fill SIMD vector with E1
 
         OPinp,                  /* input from I/O port          */
         OPoutp,                 /* output to I/O port           */
@@ -248,6 +249,7 @@ enum OPER
         OPpredec,               /* --x overloading              */
 
         OPva_start,             // va_start intrinsic (dmd)
+        OPprefetch,             // prefetch intrinsic (dmd)
 
         OPMAX                   /* 1 past last operator         */
 };

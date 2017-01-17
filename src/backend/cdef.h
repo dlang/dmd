@@ -905,6 +905,7 @@ struct Config
     windows_flags_t wflags;     // flags for Windows code generation
 
     bool fpxmmregs;             // use XMM registers for floating point
+    bool avx;                   // use AVX instruction set
     char inline8087;            /* 0:   emulator
                                    1:   IEEE 754 inline 8087 code
                                    2:   fast inline 8087 code
@@ -1013,8 +1014,6 @@ union eve
         targ_llong      Vllong;
         targ_ullong     Vullong;
         Cent            Vcent;
-        targ_float      Vfloat4[4];
-        targ_double     Vdouble2[2];
         targ_float      Vfloat;
         targ_double     Vdouble;
         targ_ldouble    Vldouble;
@@ -1024,6 +1023,31 @@ union eve
         targ_size_t     Vpointer;
         targ_ptrdiff_t  Vptrdiff;
         targ_uchar      Vreg;   // register number for OPreg elems
+
+        // 16 byte vector types
+        targ_float      Vfloat4[4];   // float[4]
+        targ_double     Vdouble2[2];  // double[2]
+        targ_schar      Vschar16[16]; // byte[16]
+        targ_uchar      Vuchar16[16]; // ubyte[16]
+        targ_short      Vshort8[8];   // short[8]
+        targ_ushort     Vushort8[8];  // ushort[8]
+        targ_long       Vlong4[4];    // int[4]
+        targ_ulong      Vulong4[4];   // uint[4]
+        targ_llong      Vllong2[2];   // long[2]
+        targ_ullong     Vullong2[2];  // ulong[2]
+
+        // 32 byte vector types
+        targ_float      Vfloat8[8];    // float[8]
+        targ_double     Vdouble4[4];   // double[4]
+        targ_schar      Vschar32[32];  // byte[32]
+        targ_uchar      Vuchar32[32];  // ubyte[32]
+        targ_short      Vshort16[16];  // short[16]
+        targ_ushort     Vushort16[16]; // ushort[16]
+        targ_long       Vlong8[8];     // int[8]
+        targ_ulong      Vulong8[8];    // uint[8]
+        targ_llong      Vllong4[4];    // long[4]
+        targ_ullong     Vullong4[4];   // ulong[4]
+
         struct                  // 48 bit 386 far pointer
         {   targ_long   Voff;
             targ_ushort Vseg;

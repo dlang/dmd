@@ -1757,7 +1757,7 @@ segidx_t MsCoffObj::data_start(Symbol *sdata, targ_size_t datasize, segidx_t seg
         alignbytes = ((offset + sdata->Salignment - 1) & ~(sdata->Salignment - 1)) - offset;
     }
     else
-        alignbytes = align(datasize, offset) - offset;
+        alignbytes = _align(datasize, offset) - offset;
     if (alignbytes)
         MsCoffObj::lidata(seg, offset, alignbytes);
     sdata->Soffset = offset + alignbytes;

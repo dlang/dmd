@@ -173,7 +173,7 @@ void outdata(symbol *s)
 
                         case mTYcs:
                             s->Sseg = cseg;
-                            Coffset = align(datasize,Coffset);
+                            Coffset = _align(datasize,Coffset);
                             s->Soffset = Coffset;
                             Coffset += datasize;
                             s->Sfl = FLcsdata;
@@ -279,7 +279,7 @@ void outdata(symbol *s)
 
         case mTYcs:
             seg = cseg;
-            Coffset = align(datasize,Coffset);
+            Coffset = _align(datasize,Coffset);
             s->Soffset = Coffset;
             s->Sfl = FLcsdata;
             break;
@@ -626,8 +626,14 @@ again:
         {
             case SCregpar:
             case SCparameter:
+            case SCshadowreg:
                 if (e->Eoper == OPrelconst)
-                    addrparam = TRUE;   // taking addr of param list
+                {
+                    if (I16)
+                        addrparam = TRUE;   // taking addr of param list
+                    else
+                        s->Sflags &= ~(SFLunambig | GTregcand);
+                }
                 break;
 
             case SCstatic:
@@ -835,7 +841,10 @@ STATIC void out_regcand_walk(elem *e)
                     case SCregpar:
                     case SCparameter:
                     case SCshadowreg:
-                        addrparam = TRUE;       // taking addr of param list
+                        if (I16)
+                            addrparam = TRUE;       // taking addr of param list
+                        else
+                            s->Sflags &= ~(SFLunambig | GTregcand);
                         break;
                     case SCauto:
                     case SCregister:
@@ -848,8 +857,11 @@ STATIC void out_regcand_walk(elem *e)
             else if (e->Eoper == OPvar)
             {
                 if (e->EV.sp.Voffset)
-                {   if (!(e->EV.sp.Voffset == 1 && tybyte(e->Ety)))
+                {   if (!(e->EV.sp.Voffset == 1 && tybyte(e->Ety)) &&
+                        !(e->EV.sp.Voffset == REGSIZE && tysize(e->Ety) == REGSIZE))
+                    {
                         e->EV.sp.Vsym->Sflags &= ~GTregcand;
+                    }
                 }
             }
             break;
@@ -1346,7 +1358,7 @@ void alignOffset(int seg,targ_size_t datasize)
 {
     targ_size_t alignbytes;
 
-    alignbytes = align(datasize,Offset(seg)) - Offset(seg);
+    alignbytes = _align(datasize,Offset(seg)) - Offset(seg);
     //dbg_printf("seg %d datasize = x%x, Offset(seg) = x%x, alignbytes = x%x\n",
       //seg,datasize,Offset(seg),alignbytes);
     if (alignbytes)

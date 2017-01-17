@@ -100,7 +100,7 @@ enum TYM
     TYtemplate          = 0x31, // unexpanded class template
     TYvtshape           = 0x32, // virtual function table
 
-    // SIMD vector types        // D type
+    // SIMD 16 byte vector types        // D type
     TYfloat4            = 0x3E, // float[4]
     TYdouble2           = 0x3F, // double[2]
     TYschar16           = 0x40, // byte[16]
@@ -112,7 +112,31 @@ enum TYM
     TYllong2            = 0x46, // long[2]
     TYullong2           = 0x47, // ulong[2]
 
-    TYMAX               = 0x48,
+    // SIMD 32 byte vector types        // D type
+    TYfloat8            = 0x48, // float[8]
+    TYdouble4           = 0x49, // double[4]
+    TYschar32           = 0x4A, // byte[32]
+    TYuchar32           = 0x4B, // ubyte[32]
+    TYshort16           = 0x4C, // short[16]
+    TYushort16          = 0x4D, // ushort[16]
+    TYlong8             = 0x4E, // int[8]
+    TYulong8            = 0x4F, // uint[8]
+    TYllong4            = 0x50, // long[4]
+    TYullong4           = 0x51, // ulong[4]
+
+    // SIMD 64 byte vector types        // D type
+    TYfloat16           = 0x52, // float[16]
+    TYdouble8           = 0x53, // double[8]
+    TYschar64           = 0x54, // byte[64]
+    TYuchar64           = 0x55, // ubyte[64]
+    TYshort32           = 0x56, // short[32]
+    TYushort32          = 0x57, // ushort[32]
+    TYlong16            = 0x58, // int[16]
+    TYulong16           = 0x59, // uint[16]
+    TYllong8            = 0x5A, // long[8]
+    TYullong8           = 0x5B, // ulong[8]
+
+    TYMAX               = 0x5C,
 };
 
 extern int TYaarray;                            // D type
@@ -238,7 +262,7 @@ inline bool ty64reg(tym_t ty) { return tytab[ty & 0xFF] & (TYFLintegral | TYFLpt
 inline unsigned tyxmmreg(tym_t ty) { return tytab[ty & 0xFF] & TYFLxmmreg; }
 
 // Is a vector type
-inline bool tyvector(tym_t ty) { return tybasic(ty) >= TYfloat4 && tybasic(ty) <= TYullong2; }
+inline bool tyvector(tym_t ty) { return tybasic(ty) >= TYfloat4 && tybasic(ty) <= TYullong4; }
 
 /* Types that are chars or shorts       */
 inline unsigned tyshort(tym_t ty) { return tytab[ty & 0xFF] & TYFLshort; }

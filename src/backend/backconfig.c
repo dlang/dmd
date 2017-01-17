@@ -49,7 +49,8 @@ void out_config_init(
                         // 1: D
                         // 2: fake it with C symbolic debug info
         bool alwaysframe,       // always create standard function frame
-        bool stackstomp         // add stack stomping code
+        bool stackstomp,        // add stack stomping code
+        bool avx                // use AVX instruction set
         )
 {
 #if MARS
@@ -71,6 +72,7 @@ void out_config_init(
     if (model == 64)
     {   config.exe = EX_WIN64;
         config.fpxmmregs = TRUE;
+        config.avx = avx;
         config.ehmethod = EH_DM;
 
         // Not sure we really need these two lines, try removing them later
@@ -95,6 +97,7 @@ void out_config_init(
     {   config.exe = EX_LINUX64;
         config.ehmethod = EH_DWARF;
         config.fpxmmregs = TRUE;
+        config.avx = avx;
     }
     else
     {
@@ -113,6 +116,7 @@ void out_config_init(
 #endif
 #if TARGET_OSX
     config.fpxmmregs = TRUE;
+    config.avx = avx;
     if (model == 64)
     {   config.exe = EX_OSX64;
         config.fpxmmregs = TRUE;
@@ -137,6 +141,7 @@ void out_config_init(
     {   config.exe = EX_FREEBSD64;
         config.ehmethod = EH_DWARF;
         config.fpxmmregs = TRUE;
+        config.avx = avx;
     }
     else
     {
@@ -157,6 +162,7 @@ void out_config_init(
     if (model == 64)
     {   config.exe = EX_OPENBSD64;
         config.fpxmmregs = TRUE;
+        config.avx = avx;
     }
     else
     {
@@ -175,6 +181,7 @@ void out_config_init(
     if (model == 64)
     {   config.exe = EX_SOLARIS64;
         config.fpxmmregs = TRUE;
+        config.avx = avx;
     }
     else
     {
