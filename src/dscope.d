@@ -27,7 +27,7 @@ import ddmd.id;
 import ddmd.identifier;
 import ddmd.root.outbuffer;
 import ddmd.root.rmem;
-import ddmd.root.speller;
+import root.speller;
 import ddmd.statement;
 
 //version=LOGSEARCH;

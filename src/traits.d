@@ -30,7 +30,7 @@ import ddmd.identifier;
 import ddmd.mtype;
 import ddmd.nogc;
 import ddmd.root.array;
-import ddmd.root.speller;
+import root.speller;
 import ddmd.root.stringtable;
 import ddmd.tokens;
 import ddmd.visitor;
