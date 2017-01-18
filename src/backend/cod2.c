@@ -1903,19 +1903,11 @@ code *cdbswap(elem *e,regm_t *pretregs)
  */
 
 code *cdcond(elem *e,regm_t *pretregs)
-{ regm_t psw;
-  code *cc,*c,*c1,*cnop1,*c2,*cnop2;
+{
   con_t regconold,regconsave;
   unsigned stackpushold,stackpushsave;
   int ehindexold,ehindexsave;
-  unsigned jop;
-  unsigned op1;
-  unsigned sz1;
   unsigned sz2;
-  elem *e1;
-  elem *e2;
-  elem *e21;
-  elem *e22;
 
   /* vars to save state of 8087 */
   int stackusedold,stackusedsave;
@@ -1923,33 +1915,34 @@ code *cdcond(elem *e,regm_t *pretregs)
   NDP _8087save[arraysize(_8087elems)];
 
   //printf("cdcond(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
-  e1 = e->E1;
-  e2 = e->E2;
-  e21 = e2->E1;
-  e22 = e2->E2;
-  cc = docommas(&e1);
-  cgstate.stackclean++;
-  psw = *pretregs & mPSW;               /* save PSW bit                 */
-  op1 = e1->Eoper;
-  sz1 = tysize(e1->Ety);
+  elem *e1 = e->E1;
+  elem *e2 = e->E2;
+  elem *e21 = e2->E1;
+  elem *e22 = e2->E2;
+  regm_t psw = *pretregs & mPSW;               /* save PSW bit                 */
+  unsigned op1 = e1->Eoper;
+  unsigned sz1 = tysize(e1->Ety);
   unsigned rex = (I64 && sz1 == 8) ? REX_W : 0;
   unsigned grex = rex << 16;
-  jop = jmpopcode(e1);
+  unsigned jop = jmpopcode(e1);
 
   unsigned jop1 = jmpopcode(e21);
   unsigned jop2 = jmpopcode(e22);
 
+    CodeBuilder cdb;
+    cdb.append(docommas(&e1));
+    cgstate.stackclean++;
+
   if (!OTrel(op1) && e1 == e21 &&
       sz1 <= REGSIZE && !tyfloating(e1->Ety))
   {     // Recognize (e ? e : f)
-        regm_t retregs;
 
-        cnop1 = gennop(CNIL);
-        retregs = *pretregs | mPSW;
-        c = codelem(e1,&retregs,FALSE);
+        code *cnop1 = gennop(CNIL);
+        regm_t retregs = *pretregs | mPSW;
+        cdb.append(codelem(e1,&retregs,FALSE));
 
-        c = cat(c,cse_flush(1));                // flush CSEs to memory
-        c = genjmp(c,jop,FLcode,(block *)cnop1);
+        cdb.append(cse_flush(1));                // flush CSEs to memory
+        cdb.append(genjmp(CNIL,jop,FLcode,(block *)cnop1));
         freenode(e21);
 
         regconsave = regcon;
@@ -1958,15 +1951,16 @@ code *cdcond(elem *e,regm_t *pretregs)
         retregs |= psw;
         if (retregs & (mBP | ALLREGS))
             regimmed_set(findreg(retregs),0);
-        c2 = codelem(e22,&retregs,FALSE);
+        cdb.append(codelem(e22,&retregs,FALSE));
 
         andregcon(&regconsave);
         assert(stackpushsave == stackpush);
 
         *pretregs = retregs;
         freenode(e2);
-        c = cat4(cc,c,c2,cnop1);
-        goto Lret;
+        cdb.append(cnop1);
+        cgstate.stackclean--;
+        return cdb.finish();
   }
 
   if (OTrel(op1) && sz1 <= REGSIZE && tysize(e2->Ety) <= REGSIZE &&
@@ -2015,29 +2009,29 @@ code *cdcond(elem *e,regm_t *pretregs)
         }
         else
         {
-            c = codelem(e1,&retregs,FALSE);
+            cdb.append(codelem(e1,&retregs,FALSE));
             unsigned reg = findreg(retregs);
 
             if (v1 == 0 && v2 == ~(targ_size_t)0)
             {
-                c = gen2(c,0xF6 + (opcode & 1),grex | modregrmx(3,2,reg));  // NOT reg
+                cdb.gen2(0xF6 + (opcode & 1),grex | modregrmx(3,2,reg));  // NOT reg
                 if (I64 && sz2 == REGSIZE)
-                    code_orrex(c, REX_W);
+                    code_orrex(cdb.last(), REX_W);
             }
             else
             {
                 v1 -= v2;
-                c = genc2(c,opcode,grex | modregrmx(3,4,reg),v1);   // AND reg,v1-v2
+                cdb.genc2(opcode,grex | modregrmx(3,4,reg),v1);   // AND reg,v1-v2
                 if (I64 && sz1 == 1 && reg >= 4)
-                    code_orrex(c, REX);
+                    code_orrex(cdb.last(), REX);
                 if (v2 == 1 && !I64)
-                    gen1(c,0x40 + reg);                     // INC reg
+                    cdb.gen1(0x40 + reg);                     // INC reg
                 else if (v2 == -1L && !I64)
-                    gen1(c,0x48 + reg);                     // DEC reg
+                    cdb.gen1(0x48 + reg);                     // DEC reg
                 else
-                {   genc2(c,opcode,grex | modregrmx(3,0,reg),v2);   // ADD reg,v2
+                {   cdb.genc2(opcode,grex | modregrmx(3,0,reg),v2);   // ADD reg,v2
                     if (I64 && sz1 == 1 && reg >= 4)
-                        code_orrex(c, REX);
+                        code_orrex(cdb.last(), REX);
                 }
             }
 
@@ -2045,8 +2039,9 @@ code *cdcond(elem *e,regm_t *pretregs)
             freenode(e22);
             freenode(e2);
 
-            c = cat(c,fixresult(e,retregs,pretregs));
-            goto Lret;
+            cdb.append(fixresult(e,retregs,pretregs));
+            cgstate.stackclean--;
+            return cdb.finish();
         }
   }
 
@@ -2057,58 +2052,59 @@ code *cdcond(elem *e,regm_t *pretregs)
       *pretregs & (mBP | ALLREGS) &&
       tysize(e21->Ety) <= REGSIZE && !tyfloating(e21->Ety))
   {     // Recognize (e ? c : f)
-        unsigned reg;
-        regm_t retregs;
 
-        cnop1 = gennop(CNIL);
-        retregs = mPSW;
+        code *cnop1 = gennop(CNIL);
+        regm_t retregs = mPSW;
         jop = jmpopcode(e1);            // get jmp condition
-        c = codelem(e1,&retregs,FALSE);
+        cdb.append(codelem(e1,&retregs,FALSE));
 
         // Set the register with e21 without affecting the flags
         retregs = *pretregs & (ALLREGS | mBP);
         if (retregs & ~regcon.mvar)
             retregs &= ~regcon.mvar;    // don't disturb register variables
         // NOTE: see my email (sign extension bug? possible fix, some questions
-        c = regwithvalue(c,retregs,e21->EV.Vllong,&reg,tysize(e21->Ety) == 8 ? 64|8 : 8);
+        unsigned reg;
+        cdb.append(regwithvalue(CNIL,retregs,e21->EV.Vllong,&reg,tysize(e21->Ety) == 8 ? 64|8 : 8));
         retregs = mask[reg];
 
-        c = cat(c,cse_flush(1));                // flush CSE's to memory
-        c = genjmp(c,jop,FLcode,(block *)cnop1);
+        cdb.append(cse_flush(1));                // flush CSE's to memory
+        cdb.append(genjmp(CNIL,jop,FLcode,(block *)cnop1));
         freenode(e21);
 
         regconsave = regcon;
         stackpushsave = stackpush;
 
-        c2 = codelem(e22,&retregs,FALSE);
+        cdb.append(codelem(e22,&retregs,FALSE));
 
         andregcon(&regconsave);
         assert(stackpushsave == stackpush);
 
         freenode(e2);
-        c = cat6(cc,c,c2,cnop1,fixresult(e,retregs,pretregs),NULL);
-        goto Lret;
+        cdb.append(cnop1);
+        cdb.append(fixresult(e,retregs,pretregs));
+        cgstate.stackclean--;
+        return cdb.finish();
   }
 
-  {
-  cnop1 = gennop(CNIL);
-  cnop2 = gennop(CNIL);         /* dummy target addresses       */
-  c = logexp(e1,FALSE,FLcode,cnop1);    /* evaluate condition           */
+  code *cnop1 = gennop(CNIL);
+  code *cnop2 = gennop(CNIL);         // dummy target addresses
+  cdb.append(logexp(e1,FALSE,FLcode,cnop1));    // evaluate condition
   regconold = regcon;
   stackusedold = stackused;
   stackpushold = stackpush;
   memcpy(_8087old,_8087elems,sizeof(_8087elems));
   regm_t retregs = *pretregs;
+  CodeBuilder cdb1;
   if (psw && jop1 != JNE)
   {
         retregs &= ~mPSW;
         if (!retregs)
             retregs = ALLREGS;
-        c1 = codelem(e21,&retregs,FALSE);
-        c1 = cat(c1, fixresult(e21,retregs,pretregs));
+        cdb1.append(codelem(e21,&retregs,FALSE));
+        cdb1.append(fixresult(e21,retregs,pretregs));
   }
   else
-        c1 = codelem(e21,&retregs,FALSE);
+        cdb1.append(codelem(e21,&retregs,FALSE));
 
 #if SCPP
   if (CPP && e2->Eoper == OPcolon2)
@@ -2119,11 +2115,14 @@ code *cdcond(elem *e,regm_t *pretregs)
         cs.Iop = ESCAPE | ESCmark2;
         cs.Iflags = 0;
         cs.Irex = 0;
-        c1 = cat(gen(CNIL,&cs),c1);
+        cdb.gen(&cs);
+        cdb.append(cdb1);
         cs.Iop = ESCAPE | ESCrelease2;
-        c1 = gen(c1,&cs);
+        cdb.gen(&cs);
   }
+  else
 #endif
+        cdb.append(cdb1);
 
   regconsave = regcon;
   regcon = regconold;
@@ -2137,17 +2136,18 @@ code *cdcond(elem *e,regm_t *pretregs)
   memcpy(_8087save,_8087elems,sizeof(_8087elems));
   memcpy(_8087elems,_8087old,sizeof(_8087elems));
 
-  retregs |= psw;                     /* PSW bit may have been trashed */
+  retregs |= psw;                     // PSW bit may have been trashed
+  CodeBuilder cdb2;
   if (psw && jop2 != JNE)
   {
         retregs &= ~mPSW;
         if (!retregs)
             retregs = ALLREGS;
-        c2 = codelem(e22,&retregs,FALSE);
-        c2 = cat(c2, fixresult(e22,retregs,pretregs));
+        cdb2.append(codelem(e22,&retregs,FALSE));
+        cdb2.append(fixresult(e22,retregs,pretregs));
   }
   else
-        c2 = codelem(e22,&retregs,FALSE); /* use same regs as E1 */
+        cdb2.append(codelem(e22,&retregs,FALSE)); // use same regs as E1
   *pretregs = retregs | psw;
   andregcon(&regconold);
   andregcon(&regconsave);
@@ -2155,15 +2155,15 @@ code *cdcond(elem *e,regm_t *pretregs)
   assert(stackpush == stackpushsave);
   memcpy(_8087elems,_8087save,sizeof(_8087elems));
   freenode(e2);
-  c = cat(cc,c);
-  c = cat6(c,c1,genjmp(CNIL,JMP,FLcode,(block *) cnop2),cnop1,c2,cnop2);
+  cdb.append(genjmp(CNIL,JMP,FLcode,(block *) cnop2));
+  cdb.append(cnop1);
+  cdb.append(cdb2);
+  cdb.append(cnop2);
   if (*pretregs & mST0)
         note87(e,0,0);
-  }
 
-Lret:
   cgstate.stackclean--;
-  return c;
+  return cdb.finish();
 }
 
 /*********************
