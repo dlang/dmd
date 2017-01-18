@@ -157,11 +157,11 @@ else
 // functions using these already have to be @trusted, allowing them to
 // call @system stuff anyway.
 ///
-void*   malloc(size_t size) pure;
+void*   malloc(size_t size);
 ///
-void*   calloc(size_t nmemb, size_t size) pure;
+void*   calloc(size_t nmemb, size_t size);
 ///
-void*   realloc(void* ptr, size_t size) pure;
+void*   realloc(void* ptr, size_t size);
 ///
 void    free(void* ptr);
 

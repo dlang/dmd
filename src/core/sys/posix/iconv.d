@@ -35,7 +35,7 @@ iconv_t iconv_open (in char* tocode, in char* fromcode);
 /// Convert at most *INBYTESLEFT bytes from *INBUF according to the
 /// code conversion algorithm specified by CD and place up to
 /// *OUTBYTESLEFT bytes in buffer at *OUTBUF.
-size_t iconv (iconv_t cd, char** inbuf,
+size_t iconv (iconv_t cd, in char** inbuf,
          size_t* inbytesleft,
          char** outbuf,
          size_t* outbytesleft);
