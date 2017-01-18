@@ -186,7 +186,6 @@ extern (C++) __gshared Module entrypoint = null;
 /// Module in which the D main is
 extern (C++) __gshared Module rootHasMain = null;
 
-
 /**
  * Generate C main() in response to seeing D main().
  *
@@ -241,6 +240,27 @@ extern (C++) void genCmain(Scope* sc)
     rootHasMain = sc._module;
 }
 
+/**
+ * Recursevely call semantic3() on import tree nodes.
+ */
+private void semantic3OnDependencies(Module m)
+{
+    if (!m)
+        return;
+    else
+    {
+        if(global.params.verbose)
+            fprintf(global.stdmsg, "semantic3 %s\n", m.toChars());
+        m.semantic3(null);
+
+        // start from 1 to avoid calling semantic3 on object
+        for (int i=1; i<m.aimports.dim; i++)
+        {
+            Module mi = m.aimports[i];
+            semantic3OnDependencies(mi);
+        }
+    }
+}
 
 /**
  * DMD's real entry point
@@ -1435,7 +1455,6 @@ Language changes listed by -transition=id:
         fatal();
 
     backend_init();
-
     // Do semantic analysis
     for (size_t i = 0; i < modules.dim; i++)
     {
@@ -1501,6 +1520,9 @@ Language changes listed by -transition=id:
     // So deps file generation should be moved after the inlinig stage.
     if (global.params.moduleDeps)
     {
+        // Bugzilla 7016
+        semantic3OnDependencies(modules[0]);
+
         OutBuffer* ob = global.params.moduleDeps;
         if (global.params.moduleDepsFile)
         {
