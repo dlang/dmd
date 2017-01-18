@@ -221,6 +221,9 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         if (v.isDataseg())
             continue;
 
+        if (v == va)
+            continue;
+
         Dsymbol p = v.toParent2();
 
         if (!(va && va.isScope()))
