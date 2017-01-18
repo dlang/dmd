@@ -28,6 +28,9 @@ DRUNTIME_BASE=druntime$(MODEL)
 DRUNTIME=lib\$(DRUNTIME_BASE).lib
 GCSTUB=lib\gcstub$(MODEL).obj
 
+# do not preselect a C runtime (extracted from the line above to make the auto tester happy)
+CFLAGS=$(CFLAGS) /Zl
+
 DOCFMT=
 
 target : import copydir copy $(DRUNTIME) $(GCSTUB)
