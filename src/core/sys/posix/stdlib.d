@@ -122,42 +122,42 @@ version( CRuntime_Glibc )
     int setenv(in char*, in char*, int);
     int unsetenv(in char*);
 
-    void* valloc(size_t) pure; // LEGACY non-standard
+    void* valloc(size_t); // LEGACY non-standard
 }
 else version( Darwin )
 {
     int setenv(in char*, in char*, int);
     int unsetenv(in char*);
 
-    void* valloc(size_t) pure; // LEGACY non-standard
+    void* valloc(size_t); // LEGACY non-standard
 }
 else version( FreeBSD )
 {
     int setenv(in char*, in char*, int);
     int unsetenv(in char*);
 
-    void* valloc(size_t) pure; // LEGACY non-standard
+    void* valloc(size_t); // LEGACY non-standard
 }
 else version( OpenBSD )
 {
     int setenv(in char*, in char*, int);
     int unsetenv(in char*);
 
-    void* valloc(size_t) pure; // LEGACY non-standard
+    void* valloc(size_t); // LEGACY non-standard
 }
 else version( CRuntime_Bionic )
 {
     int setenv(in char*, in char*, int);
     int unsetenv(in char*);
 
-    void* valloc(size_t) pure;
+    void* valloc(size_t);
 }
 else version( Solaris )
 {
     int setenv(in char*, in char*, int);
     int unsetenv(in char*);
 
-    void* valloc(size_t) pure; // LEGACY non-standard
+    void* valloc(size_t); // LEGACY non-standard
 }
 
 //
