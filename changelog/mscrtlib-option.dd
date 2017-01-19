@@ -1,4 +1,4 @@
-New command line option $(B -mscrt=$(I libname)) for Windows MS-COFF object files.
+New command line option $(B -mscrtlib=$(I libname)) for Windows MS-COFF object files.
 
 If building MS-COFF object files with -m64 or -m32mscoff, this option
 specifies the reference to the C runtime library $(I libname) that is 
