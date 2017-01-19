@@ -3241,6 +3241,226 @@ template RTInfo(T)
     enum RTInfo = null;
 }
 
+int _adCmpT(T1, T2)(T1[] s1, T2[] s2)
+{
+    // U1 gets the unqualified version of T1
+    static if (is(T1 W == immutable W)) alias U1 = W;
+    else static if (is(T1 W == const W)) alias U1 = W;
+    else alias U1 = T1;
+
+    // U2 gets the unqualified version of T2
+    static if (is(T2 U == immutable U)) alias U2 = U;
+    else static if (is(T2 U == const U)) alias U2 = U;
+    else alias U2 = T2;
+
+    // objects
+    static if (is(U1 : Object) && is(U2 : Object))
+    {
+        auto c  = cast(sizediff_t)(s1.length - s2.length);
+        if (c == 0)
+        {
+            for (size_t u = 0; u < s1.length; u++)
+            {
+                Object o1 = s1[u];
+                Object o2 = s2[u];
+
+                if (o1 is o2)
+                    continue;
+
+                // Regard null references as always being "less than"
+                if (o1)
+                {
+                    if (!o2)
+                        return 1;
+                    c = o1.opCmp(o2);
+                    if (c == 0)
+                        continue;
+                    break;
+                }
+                else
+                {
+                    return -1;
+                }
+            }
+        }
+        return c < 0 ? -1 : c > 0 ? 1 : 0;
+    }
+
+    // floating point types
+    static if ((is(U1 == float) && is(U2 == float))
+        || (is(U1 == double)   && is(U2 == double))
+        || (is(U1 == real)     && is(U2 == real))
+        || (is(U1 == ifloat)   && is(U2 == ifloat))
+        || (is(U1 == idouble)  && is(U2 == idouble))
+        || (is(U1 == ireal)    && is(U2 == ireal))
+        || (is(U1 == cfloat)   && is(U2 == cfloat))
+        || (is(U1 == cdouble)  && is(U2 == cdouble))
+        || (is(U1 == creal)    && is(U2 == creal)))
+    {
+        template Floating(T)
+        if (is(T == cfloat) || is(T == cdouble) || is(T == creal))
+        {
+          pure nothrow @safe:
+            int compare(T f1, T f2)
+            {
+                int result;
+
+                if (f1.re < f2.re)
+                    result = -1;
+                else if (f1.re > f2.re)
+                    result = 1;
+                else if (f1.im < f2.im)
+                    result = -1;
+                else if (f1.im > f2.im)
+                    result = 1;
+                else
+                    result = 0;
+                return result;
+            }
+        }
+
+        template Floating(T)
+        if (is(T == float) || is(T == double) || is(T == real))
+        {
+          pure nothrow @safe:
+            int compare(T d1, T d2)
+            {
+                if (d1 != d1 || d2 != d2) // if either are NaN
+                {
+                    if (d1 != d1)
+                    {
+                        if (d2 != d2)
+                            return 0;
+                        return -1;
+                    }
+                    return 1;
+                }
+                return (d1 == d2) ? 0 : ((d1 < d2) ? -1 : 1);
+            }
+        }
+
+        template Array(T)
+        if (is(T ==  float) || is(T ==  double) || is(T ==  real) ||
+            is(T == cfloat) || is(T == cdouble) || is(T == creal))
+        {
+          pure nothrow @safe:
+            int compare(T[] s1, T[] s2)
+            {
+                size_t len = s1.length;
+                if (s2.length < len)
+                    len = s2.length;
+                for (size_t u = 0; u < len; u++)
+                {
+                    if (int c = Floating!T.compare(s1[u], s2[u]))
+                        return c;
+                }
+                if (s1.length < s2.length)
+                    return -1;
+                else if (s1.length > s2.length)
+                    return 1;
+                return 0;
+            }
+        }
+
+        static if (is(U1 == ifloat)) alias F = float;
+        else static if (is(U1 == idouble)) alias F = double;
+        else static if (is(U1 == ireal)) alias F = real;
+        else alias F = U1;
+
+        return () @trusted { return Array!F.compare(cast(F[])s1, cast(F[])s2); }();
+    }
+
+    // integral, char types
+    else
+    {
+        size_t len = s1.length;
+
+        if (s2.length < len)
+            len = s2.length;
+
+        for (size_t u = 0; u < len; u++)
+        {
+            if (s1[u] < s2[u])
+                return -1;
+            else if (s1[u] > s2[u])
+                return 1;
+        }
+
+        if (s1.length < s2.length)
+            return -1;
+        else if (s1.length > s2.length)
+            return 1;
+
+        return 0;
+    }
+}
+
+// integral types
+unittest
+{
+    void compareMinMax(T)()
+    {
+        T[] a = [T.max, T.max];
+        T[] b = [T.min, T.min];
+
+        assert(a > b);
+        assert(b < a);
+    }
+
+    compareMinMax!int;
+    compareMinMax!uint;
+    compareMinMax!long;
+    compareMinMax!ulong;
+    compareMinMax!short;
+    compareMinMax!ushort;
+    compareMinMax!byte;
+    compareMinMax!ubyte;
+    compareMinMax!bool;
+}
+
+// char types
+unittest
+{
+    void compareMinMax(T)()
+    {
+        T[] a = [T.max, T.max];
+        T[] b = [T.min, T.min];
+
+        assert(a > b);
+        assert(b < a);
+    }
+
+    compareMinMax!char;
+    compareMinMax!dchar;
+    compareMinMax!wchar;
+}
+
+// fp types
+unittest
+{
+    void compareMinMax(T)()
+    {
+        T[] a = [T.max, T.max];
+        T[] b = [T.min_normal, T.min_normal];
+
+        assert(a > b);
+        assert(b < a);
+    }
+
+    compareMinMax!real;
+    compareMinMax!float;
+    compareMinMax!double;
+    compareMinMax!ireal;
+    compareMinMax!ifloat;
+    compareMinMax!idouble;
+    compareMinMax!creal;
+    //compareMinMax!cfloat;
+    compareMinMax!cdouble;
+
+    // qualifiers
+    compareMinMax!(const real);
+    compareMinMax!(immutable real);
+}
 
 // Helper functions
 
