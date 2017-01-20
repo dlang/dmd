@@ -18,6 +18,13 @@ import ddmd.arraytypes : Expressions;
 import std.conv : to;
 
 version = ctfe_noboundscheck;
+enum BCBlockjumpTarget
+{
+  Begin,
+  End,
+  Continue,
+}
+
 struct BCBlockJump
 {
     BCAddr at;
@@ -3710,8 +3717,6 @@ static if (is(BCGen))
 
             }
 
-            switchFixupTableCount = 0;
-            switchFixup = null;
             //after we are done let's set thoose indexes back to zero
             //who knowns what will happen if we don't ?
             foreach (cs; *(ss.cases))
