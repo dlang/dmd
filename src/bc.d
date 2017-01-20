@@ -1590,7 +1590,6 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
             break;
         case LongInst.ImmEq:
             {
-
                 if ((*lhsStackRef) == hi)
                 {
                     cond = true;
@@ -1599,7 +1598,6 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 {
                     cond = false;
                 }
-
             }
             break;
         case LongInst.ImmNeq:
@@ -1624,7 +1622,6 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 {
                     cond = false;
                 }
-
             }
             break;
         case LongInst.ImmGt:
@@ -1637,7 +1634,6 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 {
                     cond = false;
                 }
-
             }
             break;
         case LongInst.ImmLe:
@@ -2120,7 +2116,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
         }
     }
     // return bcEvalOutOfBoundsError();
-    assert(0, "I would be surprised if we got here");
+    assert(0, "I would be surprised if we got here -- withBC: " ~ byteCode.printInstructions);
 }
 
 int[] testRelJmp()

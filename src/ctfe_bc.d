@@ -198,7 +198,7 @@ ulong evaluateUlong(Expression e)
 
 Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _this = null)
 {
-    __gshared static arg_bcv = new BCV!(BCGenT)(null, null);
+    __gshared static arg_bcv = new BCV!(BCGenT);
     _blacklist.defaultBlackList();
     import std.stdio;
 
@@ -276,7 +276,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         writeln("Initalizing heap took " ~ hiw.peek.usecs.to!string ~ " usecs");
         isw.start();
     }
-    __gshared static bcv = new BCV!BCGenT(null, null);
+    __gshared static bcv = new BCV!BCGenT;
 
     bcv.clear();
     bcv.me = fd;
@@ -627,11 +627,11 @@ struct SharedCtfeState(BCGenT)
     RetainedError[ubyte.max * 32] errors;
     uint errorCount;
 
-    static void clearArray(T)(T array, uint count)
+    static void clearArray(T)(auto ref T array, uint count)
     {
-        foreach(ref e;array[0 .. count])
+        foreach(i;0 .. count)
         {
-            e = typeof(array[0]).init;
+            array[i] = typeof(array[0]).init;
         }
     }
 
@@ -1460,13 +1460,13 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
 public:
 
-    this(FuncDeclaration fd, Expression _this)
+/*    this(FuncDeclaration fd, Expression _this)
     {
         me = fd;
         if (_this)
             this._this = _this;
     }
-
+*/
     void beginParameters()
     {
         processingParameters = true;
@@ -1475,6 +1475,7 @@ public:
     void endParameters()
     {
         processingParameters = false;
+        // add this Pointer as last parameter
     }
 
     void beginArguments()
@@ -1610,7 +1611,7 @@ public:
                 writeln("ParameterType : ", parameterTypes);
             }
             import std.stdio;
-
+            assert(me, "We did not set ourselfs");
             auto fnIdx = _sharedCtfeState.getFunctionIndex(me);
             static if (is(typeof(_sharedCtfeState.functionCount)) && cacheBC)
             {
@@ -2655,6 +2656,7 @@ static if (is(BCGen))
             writeln("te.var:", te.var ? te.var.toString : "null");
 
         }
+
         retval = genExpr(_this);
     }
 
@@ -3535,28 +3537,21 @@ static if (is(BCGen))
 
     override void visit(NegExp ne)
     {
-        bailout("NegExp (unary minus) expression not supported right now");
+        Sub3(retval, imm32(0), genExpr(ne.e1));
     }
 
     override void visit(NotExp ne)
     {
-        import ddmd.id;
-
-        if (ne.e1.op == TOKidentifier && (cast(IdentifierExp) ne.e1).ident == Id.ctfe)
-        {
-            retval = imm32(0);
-        }
-        else
         {
             retval = assignTo ? assignTo : genTemporary(i32Type);
-            Eq3(retval, genExpr(ne.e1), bcZero);
+            Eq3(retval, genExpr(ne.e1), imm32(0));
         }
 
     }
 
     override void visit(UnrolledLoopStatement uls)
     {
-        //FIXME This will break if UnrolledLoopStatements if are nested,
+        //FIXME This will break if UnrolledLoopStatements are nested,
         // I am not sure if this can ever happen
         auto _uls = UnrolledLoopState();
         unrolledLoopState = &_uls;
@@ -4039,8 +4034,8 @@ static if (is(BCGen))
         retval = genExpr(ce.e1);
         if (toType == fromType)
         {
-			//newCTFE does not need to cast
-		}
+            //newCTFE does not need to cast
+        }
 
         else if (toType.type == BCTypeEnum.i32 || fromType == BCTypeEnum.i32)
         {
