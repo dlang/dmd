@@ -419,9 +419,10 @@ struct BCGen
         callCount = 0;
 
         //the [ip-1] may be wrong in some cases ?
-        byteCodeArray[ip - 1] = 0;
+/*        byteCodeArray[ip - 1] = 0;
         byteCodeArray[ip] = 0;
         byteCodeArray[ip + 1] = 0;
+*/
     }
 
     void beginFunction(uint fnId = 0, void* fd = null)
