@@ -2115,8 +2115,14 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
 
         }
     }
-    // return bcEvalOutOfBoundsError();
-    assert(0, "I would be surprised if we got here -- withBC: " ~ byteCode.printInstructions);
+    BCValue bailoutValue;
+    bailoutValue.vType = BCValueType.Bailout;
+    return bailoutValue;
+
+    debug (cttfe)
+    {
+        assert(0, "I would be surprised if we got here -- withBC: " ~ byteCode.printInstructions);
+    }
 }
 
 int[] testRelJmp()

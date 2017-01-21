@@ -32,7 +32,7 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
     case Undef:
         {
             debug (ctfe)
-                assert(0, "We should never encounter undef");
+                assert(0, "We should never encounter undef or bailout");
             return 0;
         }
     case Slice, String, Ptr, Function:
@@ -123,7 +123,10 @@ enum BCValueType : ubyte
 
     HeapValue = 0x10,
 
-    LastCond = 0xFE,
+
+
+    LastCond = 0xFD,
+    Bailout = 0xFE,
     Error = 0xFF,
     //Pinned = 0x80,
     /// Pinned values can be returned
@@ -360,7 +363,7 @@ struct BCValue
             case BCValueType.HeapValue:
                 return this.heapAddr == rhs.heapAddr;
 
-            case BCValueType.Unknown:
+            case BCValueType.Unknown, BCValueType.Bailout:
                 return false;
             case BCValueType.Error:
                 return false;

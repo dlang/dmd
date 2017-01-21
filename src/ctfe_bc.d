@@ -946,6 +946,16 @@ Expression toExpression(const BCValue value, Type expressionType,
         return null;
     }
 
+    if (value.vType == BCValueType.Bailout)
+    {
+        debug (ctfe)
+        {
+            assert(0, "Interpreter had to bailout");
+        }
+
+        return null;
+    }
+
     if (value.vType == BCValueType.Error)
     {
         assert(value.type == i32Type);
