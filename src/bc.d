@@ -7,9 +7,6 @@ import std.conv;
  * Written By Stefan Koch in 2016
  */
 
-//IMPORTANT FIXME
-// it becomes clear that supporting indirect instructions aka i32ptr
-// is a pretty bad idea in terms of performance.
 enum InstKind
 {
     ShortInst,
@@ -234,63 +231,6 @@ auto ShortInst16Ex(const LongInst i, ubyte ex, const short imm) pure @safe
     return i | ex << 8 | imm << 16;
 }
 
-extern (C) BCGen* new_BCgen(void* function(size_t) allocfn = null)
-{
-    if (!allocfn)
-    {
-        import core.stdc.stdlib;
-
-        allocfn = &malloc;
-    }
-    return emplace!BCGen(cast(BCGen*)(*allocfn)(BCGen.sizeof));
-}
-
-/**
- * The BCGen will resolve fixups and other things if necessary
- * after this call alteration of the bytecode leads to undefined results
- */
-extern (C) bool finialize_BCGen(BCGen* gen, void** outPtr = null, uint* outLength = null) pure
-{
-    // call finialize if available;
-    static if (is(gen.finialize == function) && is(typeof(gen.finalize())))
-    {
-        gen.finalize();
-    }
-
-    //TODO have an error checking step;
-
-    if (outPtr && outLength)
-    {
-        *outPtr = cast(void*) gen.byteCodeArray.ptr;
-        *outLength = cast(uint) gen.byteCodeArray.length;
-    }
-
-    return true;
-}
-
-/**
- * if BCBuffer and BCBufferSize are supplied the bytecode will be copied into the buffer
- * then the resources allocated by BCGen are released.
- * If BCBuffer or BCBufferSize are not supplied the BCGen will release it's resources
- * without copying the bytecode
- * Results are undefined if finialize_BCGen was not called before
- */
-extern (C) bool release_BCGen(BCGen* gen, void* BCBuffer = null, uint BCBufferSize = 0)
-{
-    import core.stdc.string : memmove;
-
-    if (BCBuffer)
-    {
-        assert(BCBufferSize >= gen.byteCodeArray.length * typeof(gen.byteCodeArray[0])
-            .sizeof, "Buffer is too small for bytecode");
-        memmove(BCBuffer, cast(void*) gen.byteCodeArray.ptr,
-            gen.byteCodeArray.length * typeof(gen.byteCodeArray[0]).sizeof);
-    }
-
-    destroy(*gen);
-
-    return true;
-}
 
 enum BCFunctionTypeEnum : byte
 {
