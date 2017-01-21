@@ -2238,6 +2238,13 @@ extern (C++) class FuncDeclaration : Declaration
             }
         }
 
+        if (vthis && vthis.storage_class & STCmaybescope)
+        {
+            vthis.storage_class &= ~STCmaybescope;
+            vthis.storage_class |= STCscope;
+            f.isscope = true;
+        }
+
         // reset deco to apply inference result to mangled name
         if (f != type)
             f.deco = null;
@@ -2402,6 +2409,8 @@ extern (C++) class FuncDeclaration : Declaration
                 if (tf.isscope)
                     v.storage_class |= STCscope;
             }
+            if (flags & FUNCFLAGinferScope)
+                v.storage_class |= STCmaybescope;
 
             v.semantic(sc);
             if (!sc.insert(v))
