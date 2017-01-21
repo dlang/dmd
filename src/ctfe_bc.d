@@ -137,6 +137,7 @@ struct BlackList
                  "isOctalLiteral", "capitalize", "parseRFC822DateTime", "to", "outdent",
                  "linkageString", "isUnionAliasedImpl","generateFunctionBody","gencode",
                  "lengthOfIR", "__lambda1",
+                 "bitswap",
             "back", "front", "empty"]);
     }
 
@@ -952,6 +953,9 @@ Expression toExpression(const BCValue value, Type expressionType,
         {
             assert(0, "Interpreter had to bailout");
         }
+        import std.stdio;
+        writeln("We just bailed out of the interpreter ... this is bad, VERY VERY VERY bad");
+        writeln("It means we have missed to fixyp jumps or did not emit a return or something along those lines");
 
         return null;
     }
@@ -1445,7 +1449,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
             import std.stdio;
 
             static if (bailoutMessages)
-                writeln("bailout: ", message);
+                writefln("bailout(%d): %s", line, message);
         }
     }
 
