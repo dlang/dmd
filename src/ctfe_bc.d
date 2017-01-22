@@ -16,7 +16,7 @@ import ddmd.arraytypes : Expressions;
  */
 
 import std.conv : to;
-debug = ctfe;
+
 version = ctfe_noboundscheck;
 enum BCBlockjumpTarget
 {
@@ -1454,7 +1454,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
             }
         debug (ctfe)
         {
-            assert(0, "bailout: " ~ message);
+            assert(0, "bailout(" ~ to!string(line) ~ "): " ~ message);
         }
         else
         {
@@ -2665,7 +2665,7 @@ static if (is(BCGen))
             }
             else
             {
-                bailout(elexpr.vType == BCValueType.Immediate, "When struct-literals are used as arguments all initializers, have to be immediates");
+                bailout(elexpr.vType != BCValueType.Immediate, "When struct-literals are used as arguments all initializers, have to be immediates");
                 heap._heap[retval.heapAddr + offset] = elexpr.imm32;
             }
             offset += align4(_sharedCtfeState.size(elexpr.type));
@@ -3947,7 +3947,7 @@ static if (is(BCGen))
             }
             */
             auto thisValue = genExpr(_this);
-            bailout("cannot do methodcall" ~ toString(ce) ~ ":fd: " ~ toString(fd.type));
+            bailout("cannot do methodcall " ~ toString(ce) ~ ":fd: " ~ toString(fd.type));
             return ;
 
             // most likely a method-call
@@ -3963,6 +3963,12 @@ static if (is(BCGen))
             bailout("could not interpret (did not pass functionSemantic3())" ~ ce.toString);
             return;
         }
+        if (fd.hasNestedFrameRefs || fd.isThis || fd.needThis || fd.isNested)
+        {
+            bailout("cannot deal with closures of any kind" ~ ce.toString);
+            return;
+        }
+
         BCValue[] bc_args;
         bc_args.length = ce.arguments.dim;
 
@@ -4000,7 +4006,8 @@ static if (is(BCGen))
                 uncompiledFunctions[uncompiledFunctionCount++] = UncompiledFunction(fd,
                     fnIdx);
             }
-            else
+            
+            if (!fnIdx)
             {
                 bailout("We could not compile " ~ ce.toString);
                 return;
@@ -4014,6 +4021,15 @@ static if (is(BCGen))
             else
             {
                 retval = genTemporary(toBCType(ce.type));
+            }
+
+            static if (is(BCGen))
+            {
+                if(callCount >= calls.length)
+                {
+                    bailout("can only handle " ~ to!string(calls.length) ~ " per topLevel evaluation");
+                    return ;
+                }
             }
             Call(retval, imm32(fnIdx), bc_args, ce.loc);
             import ddmd.identifier;
