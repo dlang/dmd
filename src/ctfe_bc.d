@@ -1895,6 +1895,7 @@ static if (is(BCGen))
                 if (lhsBaseType.type != BCTypeEnum.i32)
                 {
                     bailout("for now only append to uint[] is supported not: " ~ to!string(lhsBaseType.type));
+                    return ;
                 }
                 if (rhs.type.type != BCTypeEnum.Slice && rhs.type.type != BCTypeEnum.Array)
                 {
@@ -1925,6 +1926,7 @@ static if (is(BCGen))
                 else
                 {
                     bailout("We cannot cat " ~ to!string(lhsBaseType) ~ " and " ~ to!string(rhsBaseType));
+                    return ;
                 }
             }
             break;
@@ -3051,7 +3053,7 @@ static if (is(BCGen))
 
         case TOK.TOKcatass:
             {
-                //bailout("~= unsupported");
+                bailout("~= unsupported");
                 if (lhs.type.type == BCTypeEnum.String && rhs.type.type == BCTypeEnum.String)
                 {
                     assert(lhs.vType == BCValueType.StackValue,
