@@ -589,3 +589,26 @@ void foo18()
     typeof(&c.funcrs) fs4 = &c.funcrs;
 }
 
+/********************************************/
+
+
+bool foo20(const string a) @safe pure nothrow @nogc
+{
+    return !a.length;
+}
+
+struct Result(R)
+{
+    R source;
+
+    bool empty() // infer 'scope' for 'this'
+    { return foo20(source); }
+}
+
+@safe void test20()
+{
+    scope n = Result!string("abc");
+    n.empty();
+}
+
+
