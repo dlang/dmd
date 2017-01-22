@@ -132,6 +132,7 @@ public:
     void semantic3(Scope *);   // pass 3 semantic analysis
     int needModuleInfo();
     Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
+    bool isPackageAccessible(Package *p, Prot protection, int flags = 0);
     Dsymbol *symtabInsert(Dsymbol *s);
     void deleteObjFile();
     static void addDeferredSemantic(Dsymbol *s);
