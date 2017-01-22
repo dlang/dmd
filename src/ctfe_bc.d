@@ -137,6 +137,7 @@ struct BlackList
                  "isOctalLiteral", "capitalize", "parseRFC822DateTime", "to", "outdent",
                  "linkageString", "isUnionAliasedImpl","generateFunctionBody","gencode",
                  "lengthOfIR", "__lambda1",
+                 "genSplitCall",
                  "bitswap",
             "back", "front", "empty"]);
     }
@@ -4213,7 +4214,8 @@ static if (is(BCGen))
 
             writefln("Statement %s", s.toString);
         }
-        bailout("Statement unsupported " ~ s.toString);
+        import ddmd.asttypename;
+        bailout("Statement unsupported " ~ s.astTypeName ~ " :: " ~ s.toString);
     }
 
     override void visit(IfStatement fs)

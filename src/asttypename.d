@@ -50,6 +50,8 @@ string astTypeName(RootObject node)
             return astTypeName(cast(Tuple)node);
         case DYNCAST_PARAMETER:
             return astTypeName(cast(Parameter)node);
+        case DYNCAST_STATEMENT:
+            return astTypeName(cast(Statement)node);
         default : assert(0, "don't know this DYNCAST");
     }
 }
@@ -62,6 +64,13 @@ string astTypeName(Dsymbol node)
 }
 
 string astTypeName(Expression node)
+{
+    scope tsv = new AstTypeNameVisitor;
+    node.accept(tsv);
+    return tsv.typeName;
+}
+
+string astTypeName(Statement node)
 {
     scope tsv = new AstTypeNameVisitor;
     node.accept(tsv);
