@@ -2184,17 +2184,16 @@ code *cdcond(elem *e,regm_t *pretregs)
 }
 
 /*********************
- * Comma operator
+ * Comma operator OPcomma
  */
 
 code *cdcomma(elem *e,regm_t *pretregs)
-{ regm_t retregs;
-  code *cl,*cr;
-
-  retregs = 0;
-  cl = codelem(e->E1,&retregs,FALSE);   /* ignore value from left leaf  */
-  cr = codelem(e->E2,pretregs,FALSE);   /* do right leaf                */
-  return cat(cl,cr);
+{
+    CodeBuilder cdb;
+    regm_t retregs = 0;
+    cdb.append(codelem(e->E1,&retregs,FALSE));   // ignore value from left leaf
+    cdb.append(codelem(e->E2,pretregs,FALSE));   // do right leaf
+    return cdb.finish();
 }
 
 
@@ -2219,35 +2218,31 @@ code *cdcomma(elem *e,regm_t *pretregs)
  */
 
 code *cdloglog(elem *e,regm_t *pretregs)
-{ regm_t retregs;
-  unsigned reg;
-  code *c;
-  code *cl,*cr,*cg,*cnop1,*cnop2,*cnop3;
-  code *c1;
-  con_t regconsave;
-  unsigned stackpushsave;
-  elem *e2;
-  unsigned sz = tysize(e->Ety);
+{
+    CodeBuilder cdb;
 
-  /* We can trip the assert with the following:                         */
-  /*    if ( (b<=a) ? (c<b || a<=c) : c>=a )                            */
-  /* We'll generate ugly code for it, but it's too obscure a case       */
-  /* to expend much effort on it.                                       */
-  /*assert(*pretregs != mPSW);*/
+    /* We can trip the assert with the following:
+     *    if ( (b<=a) ? (c<b || a<=c) : c>=a )
+     * We'll generate ugly code for it, but it's too obscure a case
+     * to expend much effort on it.
+     * assert(*pretregs != mPSW);
+     */
 
-  cgstate.stackclean++;
-  cnop1 = gennop(CNIL);
-  cnop3 = gennop(CNIL);
-  e2 = e->E2;
-  cl = (e->Eoper == OPoror)
+    cgstate.stackclean++;
+    code *cnop1 = gennop(CNIL);
+    CodeBuilder cdb1;
+    cdb1.append(cnop1);
+    code *cnop3 = gennop(CNIL);
+    elem *e2 = e->E2;
+    cdb.append((e->Eoper == OPoror)
         ? logexp(e->E1,1,FLcode,cnop1)
-        : logexp(e->E1,0,FLcode,cnop3);
-  regconsave = regcon;
-  stackpushsave = stackpush;
-  if (*pretregs == 0)                   /* if don't want result         */
-  {     int noreturn = el_noreturn(e2);
-
-        cr = codelem(e2,pretregs,FALSE);
+        : logexp(e->E1,0,FLcode,cnop3));
+    con_t regconsave = regcon;
+    unsigned stackpushsave = stackpush;
+    if (*pretregs == 0)                 // if don't want result
+    {
+        int noreturn = el_noreturn(e2);
+        cdb.append(codelem(e2,pretregs,FALSE));
         if (noreturn)
         {
             regconsave.used |= regcon.used;
@@ -2256,16 +2251,19 @@ code *cdloglog(elem *e,regm_t *pretregs)
         else
             andregcon(&regconsave);
         assert(stackpush == stackpushsave);
-        c = cat4(cl,cr,cnop3,cnop1);    // eval code, throw away result
-        goto Lret;
-  }
-  cnop2 = gennop(CNIL);
-  if (tybasic(e2->Ety) == TYbool &&
+        cdb.append(cnop3);
+        cdb.append(cdb1);        // eval code, throw away result
+        cgstate.stackclean--;
+        return cdb.finish();
+    }
+    code *cnop2 = gennop(CNIL);
+    unsigned sz = tysize(e->Ety);
+    if (tybasic(e2->Ety) == TYbool &&
       sz == tysize(e2->Ety) &&
       !(*pretregs & mPSW) &&
       e2->Eoper == OPcall)
-  {
-        cr = codelem(e2,pretregs,FALSE);
+    {
+        cdb.append(codelem(e2,pretregs,FALSE));
 
         andregcon(&regconsave);
 
@@ -2273,41 +2271,57 @@ code *cdloglog(elem *e,regm_t *pretregs)
         assert(stackpush == stackpushsave);
 
         assert(sz <= 4);                                        // result better be int
-        retregs = *pretregs & allregs;
-        cnop1 = cat(cnop1,allocreg(&retregs,&reg,TYint));       // allocate reg for result
-        cg = genjmp(NULL,JMP,FLcode,(block *) cnop2);           // JMP cnop2
-        cnop1 = movregconst(cnop1,reg,e->Eoper == OPoror,0);    // reg = 1
+        regm_t retregs = *pretregs & allregs;
+        unsigned reg;
+        cdb1.append(allocreg(&retregs,&reg,TYint));             // allocate reg for result
+        cdb1.append(movregconst(CNIL,reg,e->Eoper == OPoror,0));  // reg = 1
         regcon.immed.mval &= ~mask[reg];                        // mark reg as unavail
         *pretregs = retregs;
         if (e->Eoper == OPoror)
-            c = cat6(cl,cr,cnop3,cg,cnop1,cnop2);
+        {
+            cdb.append(cnop3);
+            cdb.append(genjmp(NULL,JMP,FLcode,(block *) cnop2));    // JMP cnop2
+            cdb.append(cdb1);
+            cdb.append(cnop2);
+        }
         else
-            c = cat6(cl,cr,cg,cnop3,cnop1,cnop2);
+        {
+            cdb.append(genjmp(NULL,JMP,FLcode,(block *) cnop2));    // JMP cnop2
+            cdb.append(cnop3);
+            cdb.append(cdb1);
+            cdb.append(cnop2);
+        }
+        cgstate.stackclean--;
+        return cdb.finish();
+    }
+    cdb.append(logexp(e2,1,FLcode,cnop1));
+    andregcon(&regconsave);
 
-        goto Lret;
-  }
-  cr = logexp(e2,1,FLcode,cnop1);
-  andregcon(&regconsave);
+    // stack depth should not change when evaluating E2
+    assert(stackpush == stackpushsave);
 
-  /* stack depth should not change when evaluating E2   */
-  assert(stackpush == stackpushsave);
-
-  assert(sz <= 4);                      // result better be int
-  retregs = *pretregs & (ALLREGS | mBP);
-  if (!retregs) retregs = ALLREGS;      // if mPSW only
-  cg = allocreg(&retregs,&reg,TYint);   // allocate reg for result
-  for (c1 = cg; c1; c1 = code_next(c1)) // for each instruction
-        gen(cnop1,c1);                  // duplicate it
-  cg = movregconst(cg,reg,0,*pretregs & mPSW);  // MOV reg,0
-  regcon.immed.mval &= ~mask[reg];                      // mark reg as unavail
-  genjmp(cg,JMP,FLcode,(block *) cnop2);                // JMP cnop2
-  cnop1 = movregconst(cnop1,reg,1,*pretregs & mPSW);    // reg = 1
-  regcon.immed.mval &= ~mask[reg];                      // mark reg as unavail
-  *pretregs = retregs;
-  c = cat6(cl,cr,cnop3,cg,cnop1,cnop2);
-Lret:
-  cgstate.stackclean--;
-  return c;
+    assert(sz <= 4);                                         // result better be int
+    regm_t retregs = *pretregs & (ALLREGS | mBP);
+    if (!retregs)
+        retregs = ALLREGS;                                   // if mPSW only
+    CodeBuilder cdbcg;
+    unsigned reg;
+    code *cg = allocreg(&retregs,&reg,TYint);                // allocate reg for result
+    cdbcg.append(cg);
+    for (code *c1 = cg; c1; c1 = code_next(c1))              // for each instruction
+        cdb1.gen(c1);                                        // duplicate it
+    cdbcg.append(movregconst(CNIL,reg,0,*pretregs & mPSW));  // MOV reg,0
+    regcon.immed.mval &= ~mask[reg];                         // mark reg as unavail
+    cdbcg.append(genjmp(CNIL, JMP,FLcode,(block *) cnop2));  // JMP cnop2
+    cdb1.append(movregconst(CNIL,reg,1,*pretregs & mPSW));   // reg = 1
+    regcon.immed.mval &= ~mask[reg];                         // mark reg as unavail
+    *pretregs = retregs;
+    cdb.append(cnop3);
+    cdb.append(cdbcg);
+    cdb.append(cdb1);
+    cdb.append(cnop2);
+    cgstate.stackclean--;
+    return cdb.finish();
 }
 
 
