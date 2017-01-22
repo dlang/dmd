@@ -635,6 +635,18 @@ struct SharedCtfeState(BCGenT)
     RetainedError[ubyte.max * 32] errors;
     uint errorCount;
 
+    const(BCType) elementType(const BCType type) pure const
+    {
+        if (type.type == BCTypeEnum.Slice)
+            return type.typeIndex <= arrayCount ? slices[type.typeIndex - 1].elementType : BCType.init;
+        else if (type.type == BCTypeEnum.Ptr)
+            return type.typeIndex <= pointerCount ? pointers[type.typeIndex - 1].elementType : BCType.init;
+        else if (type.type == BCTypeEnum.Array)
+            return type.typeIndex <= arrayCount ? arrays[type.typeIndex - 1].elementType : BCType.init;
+        else
+            return BCType.init;
+    }
+
     static void clearArray(T)(auto ref T array, uint count)
     {
         foreach(i;0 .. count)
@@ -1873,15 +1885,38 @@ static if (is(BCGen))
             {
                 auto lhs = genExpr(e.e1);
                 auto rhs = genExpr(e.e2);
-                if (lhs.type.type != BCTypeEnum.Slice || rhs.type.type != BCTypeEnum.Slice)
+                if (lhs.type.type != BCTypeEnum.Slice && (lhs.type.typeIndex <= _sharedCtfeState.sliceCount))
                 {
-                    bailout("Concat on non-slices");
+                    bailout("lhs for concat has to be a slice not: " ~ to!string(lhs.type.type));
                     return;
                 }
                 auto lhsBaseType = _sharedCtfeState.slices[lhs.type.typeIndex - 1].elementType;
+                if (lhsBaseType.type != BCTypeEnum.i32)
+                {
+                    bailout("for now only append to uint[] is supported not: " ~ to!string(lhsBaseType.type));
+                }
+                if (rhs.type.type != BCTypeEnum.Slice)
+                {
+                    bailout("for now only concat between T[] and T[] is supported");
+                    return ;
+/*
+                        // a single compatble element
+                        // TODO use better memory management for slices don't just copy everything!!!
+                        auto oneElementSlicePtr = genTemporary(i32Type);
+                        auto oneElementSliceElement = genTemporary(i32Type);
+                        //FIXME this code does currently only work with uint or int;
+                        Alloc(oneElementSlicePtr, imm32(8));
+                        Add3(oneElementSliceElement, oneElementSlicePtr, imm32(4));
+                        Store32(oneElementSlicePtr, imm32(1));
+                        Store32(oneElementSliceElement, rhs);
+                        rhs = oneElementSlicePtr;
+                        rhs.type = lhs.type;
+                        rhs.vType = lhs.vType;
+*/                    
+                }
+
                 auto rhsBaseType = _sharedCtfeState.slices[rhs.type.typeIndex - 1].elementType;
-                if (canWorkWithType(lhsBaseType)
-                        && canWorkWithType(rhsBaseType)
+                if (canWorkWithType(lhsBaseType) && canWorkWithType(rhsBaseType)
                         && basicTypeSize(lhsBaseType) == basicTypeSize(rhsBaseType))
                 {
                     Cat(retval, lhs, rhs, basicTypeSize(lhs.type));
@@ -2923,7 +2958,6 @@ static if (is(BCGen))
 
         setVariable(vd, var);
         retval = var;
-
     }
 
     void setVariable(VarDeclaration vd, BCValue var)
@@ -2955,13 +2989,13 @@ static if (is(BCGen))
         discardValue = false;
         auto rhs = genExpr(e.e2);
 
-        //FIXE we should not get into that situation!
         if (!lhs || !rhs)
         {
+            //FIXME we should not get into that situation!
             bailout("We could not gen lhs or rhs");
             return;
         }
-        else if (!canHandleBinExpTypes(lhs.type, rhs.type))
+        else if (!canHandleBinExpTypes(lhs.type, rhs.type) && _sharedCtfeState.elementType(lhs.type) != rhs.type)
         {
             bailout("Cannot use binExpTypes: " ~ to!string(lhs.type.type) ~ " " ~ to!string(rhs.type.type));
             return;
@@ -3016,7 +3050,7 @@ static if (is(BCGen))
 
         case TOK.TOKcatass:
             {
-                bailout("~= unsupported");
+                //bailout("~= unsupported");
                 if (lhs.type.type == BCTypeEnum.String && rhs.type.type == BCTypeEnum.String)
                 {
                     assert(lhs.vType == BCValueType.StackValue,
@@ -3043,8 +3077,11 @@ static if (is(BCGen))
                     }
                     if (lhs.type.type == BCTypeEnum.Slice)
                     {
-                        auto sliceType = _sharedCtfeState.slices[lhs.type.typeIndex];
-                        retval = assignTo ? assignTo : genTemporary(sliceType.elementType);
+                        bailout(!lhs.type.typeIndex, "lhs for ~= is no valid slice" ~ e.toString);
+                        bailout(_sharedCtfeState.elementType(lhs.type) != _sharedCtfeState.elementType(rhs.type), "rhs and lhs for ~= are not compatible");
+
+                        auto sliceType = _sharedCtfeState.slices[lhs.type.typeIndex - 1];
+                        retval = assignTo ? assignTo : genTemporary(i32Type);
                         Cat(retval, lhs, rhs, _sharedCtfeState.size(sliceType.elementType));
                     }
                     else
@@ -3052,12 +3089,6 @@ static if (is(BCGen))
                         bailout("Can only concat on slices");
                         return;
                     }
-                }
-                debug (ctfe)
-                {
-                    import std.stdio;
-
-                    //writeln("encountered ~=  lhs: ", lhs, "\nrhs: ",rhs, this.byteCodeArray[0 .. ip].printInstructions);
                 }
             }
             break;
@@ -3701,7 +3732,7 @@ static if (is(BCGen))
                 endCndJmp(jump, genLabel());
             }
             
-            if (ss.sdefault) // maybe we should ss.sdefault.statement as well ... jsut to be sure ?
+            if (ss.sdefault) // maybe we should check ss.sdefault.statement as well ... just to be sure ?
             {
                 auto defaultBlock = genBlock(ss.sdefault.statement);
                 // if you are wondering ac_jmp stands for after case jump
@@ -4073,7 +4104,7 @@ static if (is(BCGen))
         }
         else
         {
-            bailout("CastExp unsupported" ~ ce.toString);
+            bailout("CastExp unsupported: " ~ ce.toString);
         }
     }
 
