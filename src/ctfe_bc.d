@@ -2412,7 +2412,8 @@ static if (is(BCGen))
             writefln("Expression %s", e.toString);
 
         }
-        bailout("Cannot handleExpression: " ~ e.toString);
+        import ddmd.asttypename;
+        bailout("Cannot handle Expression: " ~ e.astTypeName ~  " :: " ~ e.toString);
     }
 
     override void visit(NullExp ne)
