@@ -16,7 +16,7 @@ import ddmd.arraytypes : Expressions;
  */
 
 import std.conv : to;
-
+debug = ctfe;
 version = ctfe_noboundscheck;
 enum BCBlockjumpTarget
 {
@@ -638,7 +638,7 @@ struct SharedCtfeState(BCGenT)
     const(BCType) elementType(const BCType type) pure const
     {
         if (type.type == BCTypeEnum.Slice)
-            return type.typeIndex <= arrayCount ? slices[type.typeIndex - 1].elementType : BCType.init;
+            return type.typeIndex <= sliceCount ? slices[type.typeIndex - 1].elementType : BCType.init;
         else if (type.type == BCTypeEnum.Ptr)
             return type.typeIndex <= pointerCount ? pointers[type.typeIndex - 1].elementType : BCType.init;
         else if (type.type == BCTypeEnum.Array)
@@ -1895,9 +1895,9 @@ static if (is(BCGen))
                 {
                     bailout("for now only append to uint[] is supported not: " ~ to!string(lhsBaseType.type));
                 }
-                if (rhs.type.type != BCTypeEnum.Slice)
+                if (rhs.type.type != BCTypeEnum.Slice && rhs.type.type != BCTypeEnum.Array)
                 {
-                    bailout("for now only concat between T[] and T[] is supported");
+                    bailout("for now only concat between T[] and T[] is supported not: " ~ to!string(lhs.type.type) ~" and " ~ to!string(rhs.type.type) ~ e.toString);
                     return ;
 /*
                         // a single compatble element
@@ -1915,15 +1915,15 @@ static if (is(BCGen))
 */                    
                 }
 
-                auto rhsBaseType = _sharedCtfeState.slices[rhs.type.typeIndex - 1].elementType;
+                auto rhsBaseType = _sharedCtfeState.elementType(rhs.type);
                 if (canWorkWithType(lhsBaseType) && canWorkWithType(rhsBaseType)
                         && basicTypeSize(lhsBaseType) == basicTypeSize(rhsBaseType))
                 {
-                    Cat(retval, lhs, rhs, basicTypeSize(lhs.type));
+                    Cat(retval, lhs, rhs, basicTypeSize(lhsBaseType));
                 }
                 else
                 {
-                    bailout("We cannot cat " ~ e.e1.toString ~ " and " ~ e.e2.toString);
+                    bailout("We cannot cat " ~ to!string(lhsBaseType) ~ " and " ~ to!string(rhsBaseType));
                 }
             }
             break;
@@ -2995,7 +2995,7 @@ static if (is(BCGen))
             bailout("We could not gen lhs or rhs");
             return;
         }
-        else if (!canHandleBinExpTypes(lhs.type, rhs.type) && _sharedCtfeState.elementType(lhs.type) != rhs.type)
+        else if (!canHandleBinExpTypes(lhs.type, rhs.type) && _sharedCtfeState.elementType(lhs.type) != _sharedCtfeState.elementType(rhs.type))
         {
             bailout("Cannot use binExpTypes: " ~ to!string(lhs.type.type) ~ " " ~ to!string(rhs.type.type));
             return;
@@ -3070,11 +3070,6 @@ static if (is(BCGen))
                 }
                 else
                 {
-                    if (rhs.type.type != BCTypeEnum.i32)
-                    {
-                        bailout("~ rhs must not be i32 for now");
-                        return;
-                    }
                     if (lhs.type.type == BCTypeEnum.Slice)
                     {
                         bailout(!lhs.type.typeIndex, "lhs for ~= is no valid slice" ~ e.toString);

@@ -144,6 +144,8 @@ void StringEq3Macro(BCGen)(BCGen* gen, BCValue _result, BCValue lhs, BCValue rhs
  */
 void ArraySizeForStringLengthMacro(BCGen)(BCGen* gen, BCValue result, BCValue stringLength)
 {
+	with(gen)
+	{
     auto tmp2 = genTemporary(BCType(BCTypeEnum.i32));//SP[12]
     auto tmp3 = genTemporary(BCType(BCTypeEnum.i32));//SP[16]
     auto tmp4 = genTemporary(BCType(BCTypeEnum.i32));//SP[20]
@@ -155,6 +157,7 @@ void ArraySizeForStringLengthMacro(BCGen)(BCGen* gen, BCValue result, BCValue st
     And3(tmp6, stringLength, BCValue(Imm32(3)));
     Eq3(tmp5, tmp6, BCValue(Imm32(0)));
     Add3(result, tmp2, tmp5);
+	}
 }
 /** This Macro is hand translated from
 auto strcat(const uint[] a, const uint[] b)
@@ -244,5 +247,68 @@ void StringCat3Macro(BCGen)(BCGen* gen, BCValue _result, BCValue lhs, BCValue rh
     auto withOffset = beginCndJmp(offsetZero);
     {
 
+    }
+}
+
+
+void CatMacro(BCGen)(BCGen* gen, BCValue result, const BCValue lhs, const BCValue rhs, const uint size)
+{
+    with (gen) {
+        auto lhsLength = genTemporary(i32Type);
+        auto rhsLength = genTemporary(i32Type);
+        auto resultLength = genTemporary(i32Type);
+        Load32(lhsLength, lhs);
+        Load32(rhsLength, rhs);
+        Add3(resultLength, lhsLength, rhsLength);
+        auto sliceSize = genTemporary(i32Type);
+        Mul3(sliceSize, resultLength, BCValue(Imm32(size)));
+
+        auto resultPtr = genTemporary(i32Type);
+        Alloc(resultPtr, sliceSize);
+        Set(result.i32, resultPtr);
+        auto tmp = genTemporary(i32Type);
+
+        auto dstPtr = genTemporary(i32Type);
+        auto lhsPtr = genTemporary(i32Type);
+
+        Store32(resultPtr, resultLength);
+        Add3(resultPtr, resultPtr, bcOne);
+
+        Add3(lhsPtr, lhs.i32, bcFour);
+        {
+            auto copyLoopBegin = genLabel();
+            Eq3(BCValue.init, lhsLength, bcZero);
+            Sub3(lhsLength, lhsLength, BCValue(Imm32(1)));
+            auto cndJmp = beginCndJmp();
+            {
+                foreach (_; 0 .. size / 4)
+                {
+                    Load32(tmp, lhsPtr);
+                    Store32(dstPtr, tmp);
+                    Add3(lhsPtr, lhsPtr, imm32(size));
+                    Add3(dstPtr, dstPtr, imm32(size));
+                }
+            }
+            endCndJmp(cndJmp, copyLoopBegin);
+        }
+
+        auto rhsPtr = genTemporary(i32Type);
+        Add3(rhsPtr, rhs.i32, bcFour);
+        {
+            auto copyLoopBegin = genLabel();
+            Eq3(BCValue.init, rhsLength, bcZero);
+            Sub3(rhsLength, rhsLength, BCValue(Imm32(1)));
+            auto cndJmp = beginCndJmp();
+            {
+                foreach (_; 0 .. size / 4)
+                {
+                    Load32(tmp, rhsPtr);
+                    Store32(dstPtr, tmp);
+                    Add3(rhsPtr, rhsPtr, imm32(size));
+                    Add3(dstPtr, dstPtr, imm32(size));
+                }
+            }
+            endCndJmp(cndJmp, copyLoopBegin);
+        }
     }
 }

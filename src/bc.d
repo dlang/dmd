@@ -922,65 +922,11 @@ struct BCGen
         //removeTemporary(tmpPtr);
 
     }
-
-    void Cat(BCValue result, const BCValue lhs, const BCValue rhs, const uint size)
+    
+    void Cat(BCValue result, BCValue lhs, BCValue rhs, const uint size)
     {
-        auto lhsLength = genTemporary(i32Type);
-        auto rhsLength = genTemporary(i32Type);
-        auto resultLength = genTemporary(i32Type);
-        Load32(lhsLength, lhs);
-        Load32(rhsLength, rhs);
-        Add3(resultLength, lhsLength, rhsLength);
-        auto sliceSize = genTemporary(i32Type);
-        Mul3(sliceSize, resultLength, BCValue(Imm32(size)));
-
-        auto resultPtr = genTemporary(i32Type);
-        Alloc(resultPtr, sliceSize);
-        Set(result.i32, resultPtr);
-        auto tmp = genTemporary(i32Type);
-
-        auto dstPtr = genTemporary(i32Type);
-        auto lhsPtr = genTemporary(i32Type);
-
-        Store32(resultPtr, resultLength);
-        Add3(resultPtr, resultPtr, bcOne);
-
-        Add3(lhsPtr, lhs.i32, bcOne);
-        //Load32(lhsPtr, lhsPtr); //deref
-        {
-            Eq3(BCValue.init, lhsLength, bcZero);
-            auto cndJmp = beginCndJmp();
-            {
-                foreach (_; 0 .. size / 4)
-                {
-                    Load32(tmp, lhsPtr);
-                    Store32(dstPtr, tmp);
-                    Add3(lhsPtr, lhsPtr, bcOne);
-                    Add3(dstPtr, dstPtr, bcOne);
-                }
-                Sub3(lhsLength, lhsLength, BCValue(Imm32(size)));
-            }
-            endCndJmp(cndJmp, genLabel());
-        }
-
-        auto rhsPtr = genTemporary(i32Type);
-        Add3(rhsPtr, rhs.i32, bcOne);
-        //Load32(rhsPtr, rhsPtr); //deref
-        {
-            Eq3(BCValue.init, rhsLength, bcZero);
-            auto cndJmp = beginCndJmp();
-            {
-                foreach (_; 0 .. size / 4)
-                {
-                    Load32(tmp, rhsPtr);
-                    Store32(dstPtr, tmp);
-                    Add3(rhsPtr, rhsPtr, bcOne);
-                    Add3(dstPtr, dstPtr, bcOne);
-                }
-                Sub3(rhsLength, rhsLength, BCValue(Imm32(size)));
-            }
-            endCndJmp(cndJmp, genLabel());
-        }
+        import ddmd.ctfe.bc_macro;
+        CatMacro(&this, result, lhs, rhs, size);
     }
 
 }
@@ -1862,7 +1808,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
             break;
         case LongInst.HeapStore32:
             {
-                assert(*lhsRef, "trying to deref null pointer");
+                assert(*lhsRef, "trying to deref null pointer SP[" ~ to!string((lhsRef - stackP)*4) ~ "] at : &" ~ to!string (ip - 2));
                 (*(heapPtr._heap.ptr + *lhsRef)) = (*rhs) & 0xFF_FF_FF_FF;
             }
             break;
