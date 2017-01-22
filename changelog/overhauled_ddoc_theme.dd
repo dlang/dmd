@@ -1,0 +1,4 @@
+The builtin Ddoc theme has been overhauled.
+
+Dmd will now use more modern looking theme for generated documentation,
+also see $(LINK2 https://github.com/dlang/dmd/pull/6173, dmd#6173).
