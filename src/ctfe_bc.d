@@ -264,11 +264,9 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         }
     }
 
-    //writeln("Evaluating function: ", fd.toString);
+    writeln("Evaluating function: ", fd.toString);
     import ddmd.identifier;
     import std.datetime : StopWatch;
-
-    //writeln("trying ", fd.toString);
 
     static if (perf)
     {
@@ -2751,19 +2749,26 @@ static if (is(BCGen))
     {
 
         auto addr = genExpr(pe.e1);
-        import std.stdio;
-        writeln(pe.e1.type.toString, addr.vType);
-        auto baseType = _sharedCtfeState.elementType(addr.type);
-        auto tmp = genTemporary(baseType);
-        bailout(tmp.type.type != BCTypeEnum.i32, "can only deal with i32 ptrs at the moement");
-        Load32(tmp, addr);
-        tmp.heapRef = BCHeapRef(addr);
+        debug(ctfe)
         {
 
             import std.stdio;
 
-            writeln("PtrExp: ", retval, pe.toString);
+            writeln("PtrExp: ", pe.toString, " = ", addr);
         }
+
+        import std.stdio;
+        writeln(pe.e1.type.toString, addr.vType);
+        auto baseType = _sharedCtfeState.elementType(addr.type);
+        auto tmp = genTemporary(baseType);
+        if(tmp.type.type != BCTypeEnum.i32)
+        {
+           bailout("can only deal with i32 ptrs at the moement");
+           return ;
+        }
+
+        Load32(tmp, addr);
+        tmp.heapRef = BCHeapRef(addr);
 
     }
 
