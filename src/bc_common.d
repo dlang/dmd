@@ -331,7 +331,10 @@ struct BCValue
 @safe pure:
     bool opCast(T : bool)() const pure
     {
-        return this.vType != vType.Unknown;
+        // the check for Undef is a workaround
+        // consider removing it when everything works correctly.
+
+        return this.vType != vType.Unknown && this.type != BCTypeEnum.Undef;
     }
 
     bool opEquals(const BCValue rhs) pure const

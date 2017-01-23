@@ -1884,6 +1884,9 @@ static if (is(BCGen))
             break;
         case TOK.TOKcat:
             {
+                bailout("Bailout on cat");
+                return ;
+
                 auto lhs = genExpr(e.e1);
                 auto rhs = genExpr(e.e2);
                 if (lhs.type.type != BCTypeEnum.Slice && (lhs.type.typeIndex <= _sharedCtfeState.sliceCount))
@@ -3969,7 +3972,7 @@ static if (is(BCGen))
         }
         if (fd.hasNestedFrameRefs || fd.isThis || fd.needThis || fd.isNested)
         {
-            bailout("cannot deal with closures of any kind" ~ ce.toString);
+            bailout("cannot deal with closures of any kind: " ~ ce.toString);
             return;
         }
 
