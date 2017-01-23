@@ -1391,6 +1391,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     BCValue[void* ] vars;
     //BCValue _this;
     Expression _this;
+    VarDeclaration lastConstVd;
 
     typeof(gen.genLabel()) lastContinue;
     BCValue currentIndexed;
@@ -1541,6 +1542,10 @@ public:
         }
         else if ((vd.isDataseg() || vd.storage_class & STCmanifest) && !vd.isCTFE() && vd._init)
         {
+            if (vd == lastConstVd)
+                bailout("circular initialisation apperantly");
+
+            lastConstVd = vd;
             if (auto ci = vd.getConstInitializer())
             {
                 return genExpr(ci);
