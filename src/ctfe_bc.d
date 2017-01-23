@@ -4034,7 +4034,7 @@ static if (is(BCGen))
             {
                 if(callCount >= calls.length)
                 {
-                    bailout("can only handle " ~ to!string(calls.length) ~ " per topLevel evaluation");
+                    bailout("can only handle " ~ to!string(calls.length) ~ "function-calls per topLevel evaluation");
                     return ;
                 }
             }
