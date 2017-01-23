@@ -336,7 +336,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             bc_args[i] = bcv.genExpr(arg);
             if (bcv.IGaveUp)
             {
-                writeln("Ctfe died on argument processing for ", arg ? arg.toString
+                static if (bailoutMessages)
+                    writeln("Ctfe died on argument processing for ", arg ? arg.toString
                     : "Null-Argument");
                 return null;
             }
@@ -431,7 +432,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             writeln(bcv.result);
             return null;
         }
-        writeln("Gavup!");
+        static if (bailoutMessages)
+            writeln("Gaveup!");
         return null;
 
     }
@@ -1676,7 +1678,8 @@ public:
                     }
                     else
                         writeln(printInstructions(byteCodeArray[0 .. ip]));
-                    writeln("Gave up!");
+                    static if (bailoutMessages)
+                        writeln("Gave up!");
                 }
                 return;
             }
@@ -2778,8 +2781,6 @@ static if (is(BCGen))
             writeln("PtrExp: ", pe.toString, " = ", addr);
         }
 
-        import std.stdio;
-        writeln(pe.e1.type.toString, addr.vType);
         auto baseType = _sharedCtfeState.elementType(addr.type);
         auto tmp = genTemporary(baseType);
         if(tmp.type.type != BCTypeEnum.i32)
@@ -2811,11 +2812,6 @@ static if (is(BCGen))
         auto value = ne.arguments && ne.arguments.dim == 1 ? genExpr((*ne.arguments)[0]) : imm32(0);
         Store32(ptr, value);
         retval = ptr;
-        {
-            import std.stdio;
-
-            writeln(retval);
-        }
 
     }
 
