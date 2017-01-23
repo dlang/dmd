@@ -277,6 +277,41 @@ struct BCBranch
     BCLabel ifFalse;
 }
 
+struct BCHeapRef
+{
+    BCType type;
+    BCValueType vType;
+    union
+    {
+        HeapAddr heapAddr;
+        StackAddr stackAddr;
+        Imm32 imm32;
+    }
+
+    this(const(BCValue) that) pure
+    {
+        switch(that.vType)
+        {
+            case BCValueType.StackValue, BCValueType.Parameter :
+                stackAddr = that.stackAddr;
+            break;
+
+            case BCValueType.HeapValue :
+                heapAddr = that.heapAddr;
+            break;
+
+            case BCValueType.Immediate :
+                imm32 = that.imm32;
+            break;
+
+            default : 
+                import std.conv : to;
+                assert(0, "vType unsupported: " ~ to!string(that.vType));
+        }
+        vType = that.vType;
+    }
+}
+
 struct BCValue
 {
     BCType type;
@@ -296,6 +331,9 @@ struct BCValue
         // instead of void*
         void* voidStar;
     }
+
+    //TORO PERF minor: use a 32bit value for heapRef;
+   BCHeapRef heapRef;
 
     uint toUint() const pure
     {
@@ -429,6 +467,30 @@ struct BCValue
         this.vType = BCValueType.HeapValue;
         this.type = type;
         this.heapAddr = addr;
+    }
+
+    this(const BCHeapRef heapRef)
+    {
+        this.type = heapRef.type;
+        this.vType = heapRef.vType;
+        switch (vType)
+        {
+            case BCValueType.StackValue, BCValueType.Parameter :
+                stackAddr = heapRef.stackAddr;
+                break;
+                
+            case BCValueType.HeapValue :
+                heapAddr = heapRef.heapAddr;
+                break;
+                
+            case BCValueType.Immediate :
+                imm32 = heapRef.imm32;
+                break;
+                
+            default : 
+                import std.conv : to;
+                assert(0, "vType unsupported: " ~ to!string(vType));
+        }
     }
 }
 

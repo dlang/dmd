@@ -2109,20 +2109,39 @@ static if (is(BCGen))
 
         if (vd)
         {
-        auto v = getVariable(vd);
-        //retval = BCValue(v.stackAddr
-        import std.stdio;
+            auto v = getVariable(vd);
+            //retval = BCValue(v.stackAddr
+            import std.stdio;
 
-        if (v)
-        {
-            retval = v;
-        }
-        writeln("Se.var.genExpr == ", v);
+            if (v)
+            {
+                _sharedCtfeState.pointers[_sharedCtfeState.pointerCount++] = BCPointer(v.type, 1);
+                retval.type = BCType(BCTypeEnum.Ptr, _sharedCtfeState.pointerCount);
+
+                bailout(_sharedCtfeState.size(v.type) < 4, "only addresses of 32bit values or less are supported for now: " ~ se.toString);
+                auto addr = genTemporary(i32Type);
+                Alloc(addr, _sharedCtfeState.size(v.type).imm32);
+                Store32(addr, v);
+                v.heapRef = BCHeapRef(addr);
+                v.heapRef.type = retval.type;
+
+                setVariable(vd, v);
+                // register as pointer and set the variable to pointer as well;
+                // since it has to be promoted to heap value now.
+                retval = addr;
+
+
+            }
+            else
+            {
+                bailout("no valid variable for " ~ se.toString);
+            }
+           // writeln("Se.var.genExpr == ", v);
 
         }
         else if (fd)
         {
-        bailout(toString (se) ~ " function-variables are currently not handeled");
+            bailout(toString (se) ~ " function-variables are currently not handeled");
         }
         else
             bailout(se.var.toString() ~ " is not a variable declarartion but a " ~ astTypeName(se.var));
@@ -2731,11 +2750,19 @@ static if (is(BCGen))
     override void visit(PtrExp pe)
     {
 
-        retval = genExpr(pe.e1);
+        auto addr = genExpr(pe.e1);
+        import std.stdio;
+        writeln(pe.e1.type.toString, addr.vType);
+        auto baseType = _sharedCtfeState.elementType(addr.type);
+        auto tmp = genTemporary(baseType);
+        bailout(tmp.type.type != BCTypeEnum.i32, "can only deal with i32 ptrs at the moement");
+        Load32(tmp, addr);
+        tmp.heapRef = BCHeapRef(addr);
         {
+
             import std.stdio;
 
-            writeln("PtrExp: ", retval);
+            writeln("PtrExp: ", retval, pe.toString);
         }
 
     }
@@ -2813,6 +2840,18 @@ static if (is(BCGen))
         }
     }
 
+    void LoadFromHeapRef(BCValue hrv)
+    {
+        bailout(hrv.type.type != BCTypeEnum.i32, "only support i32 pointers right now");
+        Load32(hrv, BCValue(hrv.heapRef));
+    }
+
+    void StoreToHeapRef(BCValue hrv)
+    {
+        bailout(hrv.type.type != BCTypeEnum.i32, "only support i32 pointers right now");
+        Store32(BCValue(hrv.heapRef), hrv);
+    }
+
     override void visit(VarExp ve)
     {
         auto vd = ve.var.isVarDeclaration;
@@ -2853,6 +2892,12 @@ static if (is(BCGen))
                 bailout("invalid variable value");
                 return;
             }
+
+            if(sv.heapRef != BCHeapRef.init)
+            {
+                LoadFromHeapRef(sv);
+            }
+
             retval = sv;
         }
         else if (symd)
@@ -3099,7 +3144,11 @@ static if (is(BCGen))
                 bailout("BinAssignExp Unsupported for now" ~ e.toString);
             }
         }
-        //assert(discardValue);
+
+        if (lhs.heapRef != BCHeapRef.init)
+            StoreToHeapRef(lhs);
+
+       //assert(discardValue);
 
         retval = oldDiscardValue ? oldRetval : retval;
         discardValue = oldDiscardValue;
@@ -3553,7 +3602,22 @@ static if (is(BCGen))
             }
             else
             {
-                if (lhs.type.type == BCTypeEnum.Char && rhs.type.type == BCTypeEnum.Char)
+                if (lhs.type.type == BCTypeEnum.Ptr)
+                {
+                    bailout(!lhs.type.typeIndex || lhs.type.typeIndex > _sharedCtfeState.pointerCount, "pointer type invalid or not registerd");
+                    auto ptrType = _sharedCtfeState.pointers[lhs.type.typeIndex - 1];
+                    if (rhs.type.type == BCTypeEnum.Ptr)
+                    {
+                        Set(lhs.i32, rhs.i32);
+                    }
+                    else
+                    {
+                        bailout(ptrType.elementType != rhs.type, "unequal types for *lhs and rhs");
+                        Store32(lhs, rhs);
+                     }
+                }
+
+                else if (lhs.type.type == BCTypeEnum.Char && rhs.type.type == BCTypeEnum.Char)
                 {
                     Set(lhs.i32, rhs.i32);
                 }
