@@ -2188,6 +2188,12 @@ static if (is(BCGen))
         }
 
         auto indexed = genExpr(ie.e1);
+        
+        if(!indexed || indexed.vType == BCValueType.VoidValue)
+        {
+            bailout("could not create indexed variable from: " ~ ie.e1.toString);
+            return ;
+        }
         auto length = getLength(indexed);
 
         currentIndexed = indexed;
@@ -3394,7 +3400,7 @@ static if (is(BCGen))
         auto oldAssignTo = assignTo;
         const oldDiscardValue = discardValue;
         discardValue = false;
-        debug (ctfe)
+     //   debug (ctfe)
         {
             import std.stdio;
 
@@ -3446,6 +3452,11 @@ static if (is(BCGen))
             }
 
             auto lhs = genExpr(_struct);
+            if(!lhs)
+            {
+                bailout("could not gen: " ~ _struct.toString);
+                return ;
+            }
 
             auto ptr = genTemporary(BCType(BCTypeEnum.i32));
 
@@ -3576,6 +3587,12 @@ static if (is(BCGen))
         {
             ignoreVoid = true;
             auto lhs = genExpr(ae.e1);
+            if(!lhs)
+            {
+                bailout("could not gen AssignExp.lhs: " ~ ae.e1.toString);
+                return ;
+            }
+
             if (lhs.vType == BCValueType.VoidValue)
             {
                 if (ae.e2.op == TOKvar)
@@ -3598,11 +3615,12 @@ static if (is(BCGen))
                 writeln("lhs :", lhs);
                 writeln("rhs :", rhs);
             }
-            if (lhs.vType == BCValueType.Unknown || rhs.vType == BCValueType.Unknown)
+            if (!rhs)
             {
-                bailout("rhs or lhs do not exist " ~ ae.toString);
+                bailout("could not get AssignExp.rhs: " ~ ae.e2.toString);
                 return;
             }
+
             if (lhs.type.type == BCTypeEnum.i32 && rhs.type.type == BCTypeEnum.i32)
             {
                 Set(lhs, rhs);
@@ -4018,6 +4036,11 @@ static if (is(BCGen))
 
             // Calling a member function
             _this = dve.e1;
+            if (!dve.var || !dve.var.isFuncDeclaration())
+            {
+                bailout("no dve.var is not a funcDecl callExp" ~ dve.toString);
+                return ;
+            }
             fd = dve.var.isFuncDeclaration();
             /*
             if (_this.op == TOKdottype)
