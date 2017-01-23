@@ -1145,7 +1145,6 @@ extern (C++) final class BCTypeVisitor : Visitor
 
     const(BCType) toBCType(Type t, Type tla = null) /*pure*/
     {
-
         assert(t !is null);
         switch (t.ty)
         {
@@ -1525,8 +1524,12 @@ public:
 
     BCValue getVariable(VarDeclaration vd)
     {
-        import ddmd.declaration : STCmanifest;
-
+        import ddmd.declaration : STCmanifest, STCref;
+        if (vd.storage_class & STCref)
+        {
+            bailout("cannot handle ref variables");
+            return BCValue.init;
+        }
         if (auto value = (cast(void*) vd) in vars)
         {
             return *value;
@@ -1736,6 +1739,11 @@ static if (is(BCGen))
                         uf.fd.fbody.accept(this);
                         auto osp = sp;
                         endFunction();
+                        if (IGaveUp)
+                        {
+                            bailout("A called function bailedout: " ~ uf.fd.ident.toString);
+                            return ;
+                        }
 
                         static if (is(BCGen))
                         {
