@@ -841,7 +841,7 @@ struct BCGen
         }
         else
         {
-                assert(0, "I cannot deal with this type of return");
+                assert(0, "I cannot deal with this type of return" ~ to!string(val.vType));
         }
     }
 

@@ -1530,11 +1530,12 @@ public:
             bailout("cannot handle ref variables");
             return BCValue.init;
         }
+
         if (auto value = (cast(void*) vd) in vars)
         {
             return *value;
         }
-        else if ((vd.isDataseg() || vd.storage_class & STCmanifest) && !vd.isCTFE())
+        else if ((vd.isDataseg() || vd.storage_class & STCmanifest) && !vd.isCTFE() && vd._init)
         {
             if (auto ci = vd.getConstInitializer())
             {
@@ -3408,7 +3409,7 @@ static if (is(BCGen))
         auto oldAssignTo = assignTo;
         const oldDiscardValue = discardValue;
         discardValue = false;
-     //   debug (ctfe)
+        debug (ctfe)
         {
             import std.stdio;
 
@@ -3589,6 +3590,11 @@ static if (is(BCGen))
                 bailout("only 32 bit array loads are supported right now");
             }
             auto rhs = genExpr(ae.e2);
+            if(!rhs)
+            {
+                bailout("we could not gen AssignExp[].rhs: " ~ ae.e2.toString);
+                return ;
+            }
             Store32(effectiveAddr, rhs.i32);
         }
         else
@@ -3695,7 +3701,7 @@ static if (is(BCGen))
     {
         {
             retval = assignTo ? assignTo : genTemporary(i32Type);
-            Eq3(retval, genExpr(ne.e1), imm32(0));
+            Eq3(retval, genExpr(ne.e1).i32, imm32(0));
         }
 
     }
@@ -4169,6 +4175,11 @@ static if (is(BCGen))
         if (rs.exp !is null)
         {
             auto retval = genExpr(rs.exp);
+            if(!retval)
+            {
+                bailout("could not gen returnValue: " ~ rs.exp.toString);
+                return ;
+            }
             if (retval.type == BCTypeEnum.i32 || retval.type == BCTypeEnum.Slice
                     || retval.type == BCTypeEnum.Array || retval.type == BCTypeEnum.String)
                 Ret(retval.i32);
