@@ -102,12 +102,18 @@ enum BCTypeEnum : ubyte
 
 }
 
+enum BCTypeFlags
+{
+  Const = 0x1,
+}
 struct BCType
 {
     BCTypeEnum type;
     alias type this;
     /// 0 means basic type
     uint typeIndex;
+    // additional information
+    uint flags;
 }
 
 enum BCValueType : ubyte
