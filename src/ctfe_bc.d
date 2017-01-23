@@ -1405,14 +1405,14 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
         void Load32(BCValue _to, BCValue from)
         {
-            AssertError(from.i32, _sharedCtfeState.addError(Loc.init,
+            Assert(from.i32, _sharedCtfeState.addError(Loc.init,
                 "Load Source may not be null"));
             gen.Load32(_to, from);
         }
 
         void Store32(BCValue _to, BCValue value)
         {
-            AssertError(_to.i32, _sharedCtfeState.addError(Loc.init,
+            Assert(_to.i32, _sharedCtfeState.addError(Loc.init,
                 "Store Destination may not be null"));
             gen.Store32(_to, value);
         }
@@ -2013,7 +2013,7 @@ static if (is(BCGen))
                     {
                         auto maxShift = imm32(basicTypeSize(lhs.type) * 8 - 1);
                         Le3(BCValue.init, rhs, maxShift);
-                        AssertError(BCValue.init,
+                        Assert(BCValue.init,
                             _sharedCtfeState.addError(e.loc,
                             "%d out of range(0..%d)", rhs, maxShift));
                         Rsh3(retval, lhs, rhs);
@@ -2024,7 +2024,7 @@ static if (is(BCGen))
                     {
                         auto maxShift = imm32(basicTypeSize(lhs.type) * 8 - 1);
                         Le3(BCValue.init, rhs, maxShift);
-                        AssertError(BCValue.init,
+                        Assert(BCValue.init,
                             _sharedCtfeState.addError(e.loc,
                             "%d out of range(0..%d)", rhs, maxShift));
                         Lsh3(retval, lhs, rhs);
@@ -2193,7 +2193,7 @@ static if (is(BCGen))
         else
         {
             Lt3(BCValue.init, idx, length);
-            AssertError(BCValue.init, _sharedCtfeState.addError(ie.loc,
+            Assert(BCValue.init, _sharedCtfeState.addError(ie.loc,
                 "ArrayIndex %d out of bounds %d", idx, length));
         }
         BCArray* arrayType;
@@ -3497,7 +3497,7 @@ static if (is(BCGen))
             else
             {
                 Lt3(BCValue.init, index, length);
-                AssertError(BCValue.init, _sharedCtfeState.addError(ae.loc,
+                Assert(BCValue.init, _sharedCtfeState.addError(ae.loc,
                     "ArrayIndex %d out of bounds %d", index, length));
             }
             auto effectiveAddr = genTemporary(i32Type);
@@ -3653,7 +3653,7 @@ static if (is(BCGen))
         auto lhs = genExpr(ae.e1);
         if (lhs.type.type == BCTypeEnum.i32)
         {
-            AssertError(lhs, _sharedCtfeState.addError(ae.loc,
+            Assert(lhs, _sharedCtfeState.addError(ae.loc,
                 ae.msg ? ae.msg.toString : "Assert Failed"));
         }
         else

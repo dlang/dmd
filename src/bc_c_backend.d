@@ -299,7 +299,8 @@ pure:
         },
             toCode(size), toCode(heapPtr), toCode(size));
     }
-    void AssertError(BCValue val, BCValue error) {}
+    void Assert(BCValue val, BCValue error) {}
+
     void Load32(BCValue to, BCValue from)
     {
         sameLabel = false;

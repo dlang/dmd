@@ -491,7 +491,7 @@ struct BCGen
         emitLongInst(LongInst64(LongInst.Alloc, heapPtr.stackAddr, size.stackAddr));
     }
 
-    void AssertError(BCValue value, BCValue err)
+    void Assert(BCValue value, BCValue err)
     {
         auto _msg = genTemporary(i32Type);
         Set(_msg, BCValue(Imm32(err.imm32)));
