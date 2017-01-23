@@ -616,19 +616,19 @@ struct SharedCtfeState(BCGenT)
     uint _threadLock;
     BCHeap heap;
     long[ushort.max / 4] stack; // a Stack of 64K/4 is the Hard Limit;
-    StructDeclaration[ubyte.max * 8] structDeclPointers;
+    StructDeclaration[ubyte.max * 8] structDeclpointerTypes;
     TypeSArray[ubyte.max * 16] sArrayTypePointers;
     TypeDArray[ubyte.max * 8] dArrayTypePointers;
     TypePointer[ubyte.max * 8] pointerTypePointers;
     BCTypeVisitor btv = new BCTypeVisitor();
 
-    BCStruct[ubyte.max * 8] structs;
+    BCStruct[ubyte.max * 8] structTypes;
     uint structCount;
-    BCArray[ubyte.max * 16] arrays;
+    BCArray[ubyte.max * 16] arrayTypes;
     uint arrayCount;
-    BCSlice[ubyte.max * 8] slices;
+    BCSlice[ubyte.max * 8] sliceTypes;
     uint sliceCount;
-    BCPointer[ubyte.max * 8] pointers;
+    BCPointer[ubyte.max * 8] pointerTypes;
     uint pointerCount;
     // find a way to live without 102_000
     RetainedError[ubyte.max * 32] errors;
@@ -637,11 +637,11 @@ struct SharedCtfeState(BCGenT)
     const(BCType) elementType(const BCType type) pure const
     {
         if (type.type == BCTypeEnum.Slice)
-            return type.typeIndex <= sliceCount ? slices[type.typeIndex - 1].elementType : BCType.init;
+            return type.typeIndex <= sliceCount ? sliceTypes[type.typeIndex - 1].elementType : BCType.init;
         else if (type.type == BCTypeEnum.Ptr)
-            return type.typeIndex <= pointerCount ? pointers[type.typeIndex - 1].elementType : BCType.init;
+            return type.typeIndex <= pointerCount ? pointerTypes[type.typeIndex - 1].elementType : BCType.init;
         else if (type.type == BCTypeEnum.Array)
-            return type.typeIndex <= arrayCount ? arrays[type.typeIndex - 1].elementType : BCType.init;
+            return type.typeIndex <= arrayCount ? arrayTypes[type.typeIndex - 1].elementType : BCType.init;
         else
             return BCType.init;
     }
@@ -657,13 +657,13 @@ struct SharedCtfeState(BCGenT)
     void clearState()
     {
         clearArray(sArrayTypePointers, arrayCount);
-        clearArray(arrays, arrayCount);
-        clearArray(structDeclPointers, structCount);
-        clearArray(structs, structCount);
+        clearArray(arrayTypes, arrayCount);
+        clearArray(structDeclpointerTypes, structCount);
+        clearArray(structTypes, structCount);
         clearArray(dArrayTypePointers, sliceCount);
-        clearArray(slices, sliceCount);
+        clearArray(sliceTypes, sliceCount);
         clearArray(pointerTypePointers, pointerCount);
-        clearArray(pointers, pointerCount);
+        clearArray(pointerTypes, pointerCount);
         clearArray(errors, errorCount);
 
         static if (is(BCFunction))
@@ -737,9 +737,9 @@ struct SharedCtfeState(BCGenT)
         auto elemType = btv.toBCType(tsa.nextOf);
         auto arraySize = evaluateUlong(tsa.dim);
         assert(arraySize < uint.max);
-        if (arrayCount == arrays.length)
+        if (arrayCount == arrayTypes.length)
             return 0;
-        arrays[arrayCount++] = BCArray(elemType, cast(uint) arraySize);
+        arrayTypes[arrayCount++] = BCArray(elemType, cast(uint) arraySize);
         return arrayCount;
     }
 
@@ -765,7 +765,7 @@ struct SharedCtfeState(BCGenT)
         if (sd is null)
             return 0;
 
-        foreach (i, structDeclPtr; structDeclPointers[0 .. structCount])
+        foreach (i, structDeclPtr; structDeclpointerTypes[0 .. structCount])
         {
             if (structDeclPtr == sd)
             {
@@ -814,10 +814,10 @@ struct SharedCtfeState(BCGenT)
         }
         //register structType
         auto elemType = btv.toBCType(tda.nextOf);
-        if (slices.length - 1 > sliceCount)
+        if (sliceTypes.length - 1 > sliceCount)
         {
             dArrayTypePointers[sliceCount] = tda;
-            slices[sliceCount++] = BCSlice(elemType);
+            sliceTypes[sliceCount++] = BCSlice(elemType);
             return sliceCount;
         }
         else
@@ -831,8 +831,8 @@ struct SharedCtfeState(BCGenT)
 
     BeginStructResult beginStruct(StructDeclaration sd)
     {
-        structDeclPointers[structCount] = sd;
-        return BeginStructResult(structCount, &structs[structCount++]);
+        structDeclpointerTypes[structCount] = sd;
+        return BeginStructResult(structCount, &structTypes[structCount++]);
     }
 
     const(BCType) endStruct(BeginStructResult* s)
@@ -879,7 +879,7 @@ struct SharedCtfeState(BCGenT)
                     // I have no idea why this even happens
                     return 0;
                 }
-                BCStruct _struct = structs[type.typeIndex - 1];
+                BCStruct _struct = structTypes[type.typeIndex - 1];
 
                 foreach (i, memberType; _struct.memberTypes[0 .. _struct.memberTypeCount])
                 {
@@ -903,7 +903,7 @@ struct SharedCtfeState(BCGenT)
                     // I have no idea why this even happens
                     return 0;
                 }
-                BCArray _array = arrays[type.typeIndex - 1];
+                BCArray _array = arrayTypes[type.typeIndex - 1];
                 debug (ctfe)
                 {
                     import std.stdio;
@@ -1033,7 +1033,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             auto sd = (cast(TypeStruct) expressionType).sym;
             auto si = _sharedCtfeState.getStructIndex(sd);
             assert(si);
-            BCStruct _struct = _sharedCtfeState.structs[si - 1];
+            BCStruct _struct = _sharedCtfeState .structTypes[si - 1];
             Expressions* elmExprs = new Expressions();
             uint offset = 0;
             foreach (idx, member; _struct.memberTypes[0 .. _struct.memberTypeCount])
@@ -1241,7 +1241,7 @@ extern (C++) final class BCTypeVisitor : Visitor
                 }
                 _sharedCtfeState.pointerTypePointers[_sharedCtfeState.pointerCount] = cast(
                     TypePointer) t;
-                _sharedCtfeState.pointers[_sharedCtfeState.pointerCount++] = BCPointer(
+                _sharedCtfeState.pointerTypes[_sharedCtfeState.pointerCount++] = BCPointer(
                     baseType != topLevelAggregate ? toBCType(baseType) : BCType(BCTypeEnum.Struct,
                     _sharedCtfeState.structCount + 1), indirectionCount);
                 return BCType(BCTypeEnum.Ptr, _sharedCtfeState.pointerCount);
@@ -1894,7 +1894,7 @@ static if (is(BCGen))
                     bailout("lhs for concat has to be a slice not: " ~ to!string(lhs.type.type));
                     return;
                 }
-                auto lhsBaseType = _sharedCtfeState.slices[lhs.type.typeIndex - 1].elementType;
+                auto lhsBaseType = _sharedCtfeState.sliceTypes[lhs.type.typeIndex - 1].elementType;
                 if (lhsBaseType.type != BCTypeEnum.i32)
                 {
                     bailout("for now only append to uint[] is supported not: " ~ to!string(lhsBaseType.type));
@@ -2115,7 +2115,7 @@ static if (is(BCGen))
 
             if (v)
             {
-                _sharedCtfeState.pointers[_sharedCtfeState.pointerCount++] = BCPointer(v.type, 1);
+                _sharedCtfeState.pointerTypes[_sharedCtfeState.pointerCount++] = BCPointer(v.type, 1);
                 retval.type = BCType(BCTypeEnum.Ptr, _sharedCtfeState.pointerCount);
 
                 bailout(_sharedCtfeState.size(v.type) < 4, "only addresses of 32bit values or less are supported for now: " ~ se.toString);
@@ -2223,7 +2223,7 @@ static if (is(BCGen))
 
         if (indexed.type.type == BCTypeEnum.Array)
         {
-            arrayType = &_sharedCtfeState.arrays[indexed.type.typeIndex - 1];
+            arrayType = &_sharedCtfeState.arrayTypes[indexed.type.typeIndex - 1];
 
             debug (ctfe)
             {
@@ -2235,12 +2235,12 @@ static if (is(BCGen))
         }
         else if (indexed.type.type == BCTypeEnum.Slice)
         {
-            sliceType = &_sharedCtfeState.slices[indexed.type.typeIndex - 1];
+            sliceType = &_sharedCtfeState.sliceTypes[indexed.type.typeIndex - 1];
             debug (ctfe)
             {
                 import std.stdio;
 
-                writeln(_sharedCtfeState.slices[0 .. 4]);
+                writeln(_sharedCtfeState.sliceTypes[0 .. 4]);
                 if (sliceType)
                     writeln("sliceType ", *sliceType);
 
@@ -2485,7 +2485,7 @@ static if (is(BCGen))
             auto structTypeIndex = _sharedCtfeState.getStructIndex(structDeclPtr);
             if (structTypeIndex)
             {
-                BCStruct _struct = _sharedCtfeState.structs[structTypeIndex - 1];
+                BCStruct _struct = _sharedCtfeState .structTypes[structTypeIndex - 1];
                 import ddmd.ctfeexpr : findFieldIndexByName;
 
                 auto vd = dve.var.isVarDeclaration;
@@ -2566,7 +2566,7 @@ static if (is(BCGen))
         if (elmType.type != BCTypeEnum.i32 && elmType.type != BCTypeEnum.Struct)
         {
             bailout(
-                "can only deal with int[] and uint[]  or Structs atm. given:" ~ to!string(
+                "can only deal with int[] and uint[]  or structs atm. given:" ~ to!string(
                 elmType.type));
             return;
         }
@@ -2578,7 +2578,7 @@ static if (is(BCGen))
             writeln("Adding array of Type:  ", arrayType);
         }
 
-        _sharedCtfeState.arrays[_sharedCtfeState.arrayCount++] = arrayType;
+        _sharedCtfeState.arrayTypes[_sharedCtfeState.arrayCount++] = arrayType;
         retval = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.i32));
 
         HeapAddr arrayAddr = HeapAddr(_sharedCtfeState.heap.heapSize);
@@ -2642,7 +2642,7 @@ static if (is(BCGen))
             bailout("structType could not be found: " ~ sd.toString);
             return;
         }
-        BCStruct _struct = _sharedCtfeState.structs[idx - 1];
+        BCStruct _struct = _sharedCtfeState .structTypes[idx - 1];
 
         foreach (ty; _struct.memberTypes[0 .. _struct.memberTypeCount])
         {
@@ -2824,7 +2824,7 @@ static if (is(BCGen))
             {
                 auto idx = arr.type.typeIndex;
                 assert(idx);
-                length = imm32(_sharedCtfeState.arrays[idx - 1].length);
+                length = imm32(_sharedCtfeState.arrayTypes[idx - 1].length);
             }
             else
             {
@@ -2849,13 +2849,13 @@ static if (is(BCGen))
 
     void LoadFromHeapRef(BCValue hrv)
     {
-        bailout(hrv.type.type != BCTypeEnum.i32, "only support i32 pointers right now");
+        bailout(hrv.type.type != BCTypeEnum.i32, "only support i32 pointerTypes right now");
         Load32(hrv, BCValue(hrv.heapRef));
     }
 
     void StoreToHeapRef(BCValue hrv)
     {
-        bailout(hrv.type.type != BCTypeEnum.i32, "only support i32 pointers right now");
+        bailout(hrv.type.type != BCTypeEnum.i32, "only support i32 pointerTypes right now");
         Store32(BCValue(hrv.heapRef), hrv);
     }
 
@@ -3008,7 +3008,7 @@ static if (is(BCGen))
             {
                 auto idx = type.typeIndex;
                 assert(idx);
-                auto array = _sharedCtfeState.arrays[idx - 1];
+                auto array = _sharedCtfeState.arrayTypes[idx - 1];
 
                 Alloc(var.i32, imm32(_sharedCtfeState.size(type) + 4));
                 Store32(var.i32, array.length.imm32);
@@ -3134,7 +3134,7 @@ static if (is(BCGen))
                         bailout(!lhs.type.typeIndex, "lhs for ~= is no valid slice" ~ e.toString);
                         bailout(_sharedCtfeState.elementType(lhs.type) != _sharedCtfeState.elementType(rhs.type), "rhs and lhs for ~= are not compatible");
 
-                        auto sliceType = _sharedCtfeState.slices[lhs.type.typeIndex - 1];
+                        auto sliceType = _sharedCtfeState.sliceTypes[lhs.type.typeIndex - 1];
                         retval = assignTo ? assignTo : genTemporary(i32Type);
                         Cat(retval, lhs, rhs, _sharedCtfeState.size(sliceType.elementType));
                     }
@@ -3426,7 +3426,7 @@ static if (is(BCGen))
 
             auto fIndex = findFieldIndexByName(structDeclPtr, vd);
             assert(fIndex != -1, "field " ~ vd.toString ~ "could not be found in" ~ dve.e1.toString);
-            BCStruct bcStructType = _sharedCtfeState.structs[structTypeIndex - 1];
+            BCStruct bcStructType = _sharedCtfeState .structTypes[structTypeIndex - 1];
 
             if (bcStructType.memberTypes[fIndex].type != BCTypeEnum.i32)
             {
@@ -3612,7 +3612,7 @@ static if (is(BCGen))
                 if (lhs.type.type == BCTypeEnum.Ptr)
                 {
                     bailout(!lhs.type.typeIndex || lhs.type.typeIndex > _sharedCtfeState.pointerCount, "pointer type invalid or not registerd");
-                    auto ptrType = _sharedCtfeState.pointers[lhs.type.typeIndex - 1];
+                    auto ptrType = _sharedCtfeState.pointerTypes[lhs.type.typeIndex - 1];
                     if (rhs.type.type == BCTypeEnum.Ptr)
                     {
                         Set(lhs.i32, rhs.i32);
@@ -4185,8 +4185,8 @@ static if (is(BCGen))
 
         else if (fromType.type == BCTypeEnum.Array && fromType.typeIndex
                 && toType.type == BCTypeEnum.Slice && toType.typeIndex
-                && _sharedCtfeState.arrays[fromType.typeIndex - 1].elementType
-                == _sharedCtfeState.slices[toType.typeIndex - 1].elementType)
+                && _sharedCtfeState.arrayTypes[fromType.typeIndex - 1].elementType
+                == _sharedCtfeState.sliceTypes[toType.typeIndex - 1].elementType)
         {
             // e.g. cast(uint[])uint[10]
             retval.type = toType;
