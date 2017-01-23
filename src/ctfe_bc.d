@@ -3127,7 +3127,7 @@ static if (is(BCGen))
                 bailout("~= unsupported");
                 if (lhs.type.type == BCTypeEnum.String && rhs.type.type == BCTypeEnum.String)
                 {
-                    assert(lhs.vType == BCValueType.StackValue,
+                    bailout(lhs.vType != BCValueType.StackValue,
                         "Only StringConcats on StackValues are supported for now");
 
                     /*
