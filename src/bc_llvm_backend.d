@@ -602,8 +602,8 @@ else
 
         Byte3Macro(&this, _result, word, idx);
     }
-
-    void Call(BCValue _result, BCValue fn, BCValue[] args);
+    import ddmd.globals : Loc;
+    void Call(BCValue _result, BCValue fn, BCValue[] args, Loc l = Loc.init);
     void Load32(BCValue _to, BCValue from)
     {
         sameLabel = false;

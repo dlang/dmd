@@ -7,9 +7,6 @@ import std.conv;
  * Written By Stefan Koch in 2016
  */
 
-//IMPORTANT FIXME
-// it becomes clear that supporting indirect instructions aka i32ptr
-// is a pretty bad idea in terms of performance.
 enum InstKind
 {
     ShortInst,
@@ -234,63 +231,6 @@ auto ShortInst16Ex(const LongInst i, ubyte ex, const short imm) pure @safe
     return i | ex << 8 | imm << 16;
 }
 
-extern (C) BCGen* new_BCgen(void* function(size_t) allocfn = null)
-{
-    if (!allocfn)
-    {
-        import core.stdc.stdlib;
-
-        allocfn = &malloc;
-    }
-    return emplace!BCGen(cast(BCGen*)(*allocfn)(BCGen.sizeof));
-}
-
-/**
- * The BCGen will resolve fixups and other things if necessary
- * after this call alteration of the bytecode leads to undefined results
- */
-extern (C) bool finialize_BCGen(BCGen* gen, void** outPtr = null, uint* outLength = null) pure
-{
-    // call finialize if available;
-    static if (is(gen.finialize == function) && is(typeof(gen.finalize())))
-    {
-        gen.finalize();
-    }
-
-    //TODO have an error checking step;
-
-    if (outPtr && outLength)
-    {
-        *outPtr = cast(void*) gen.byteCodeArray.ptr;
-        *outLength = cast(uint) gen.byteCodeArray.length;
-    }
-
-    return true;
-}
-
-/**
- * if BCBuffer and BCBufferSize are supplied the bytecode will be copied into the buffer
- * then the resources allocated by BCGen are released.
- * If BCBuffer or BCBufferSize are not supplied the BCGen will release it's resources
- * without copying the bytecode
- * Results are undefined if finialize_BCGen was not called before
- */
-extern (C) bool release_BCGen(BCGen* gen, void* BCBuffer = null, uint BCBufferSize = 0)
-{
-    import core.stdc.string : memmove;
-
-    if (BCBuffer)
-    {
-        assert(BCBufferSize >= gen.byteCodeArray.length * typeof(gen.byteCodeArray[0])
-            .sizeof, "Buffer is too small for bytecode");
-        memmove(BCBuffer, cast(void*) gen.byteCodeArray.ptr,
-            gen.byteCodeArray.length * typeof(gen.byteCodeArray[0]).sizeof);
-    }
-
-    destroy(*gen);
-
-    return true;
-}
 
 enum BCFunctionTypeEnum : byte
 {
@@ -419,9 +359,10 @@ struct BCGen
         callCount = 0;
 
         //the [ip-1] may be wrong in some cases ?
-        byteCodeArray[ip - 1] = 0;
+/*        byteCodeArray[ip - 1] = 0;
         byteCodeArray[ip] = 0;
         byteCodeArray[ip + 1] = 0;
+*/
     }
 
     void beginFunction(uint fnId = 0, void* fd = null)
@@ -550,7 +491,7 @@ struct BCGen
         emitLongInst(LongInst64(LongInst.Alloc, heapPtr.stackAddr, size.stackAddr));
     }
 
-    void AssertError(BCValue value, BCValue err)
+    void Assert(BCValue value, BCValue err)
     {
         auto _msg = genTemporary(i32Type);
         Set(_msg, BCValue(Imm32(err.imm32)));
@@ -981,65 +922,11 @@ struct BCGen
         //removeTemporary(tmpPtr);
 
     }
-
-    void Cat(BCValue result, const BCValue lhs, const BCValue rhs, const uint size)
+    
+    void Cat(BCValue result, BCValue lhs, BCValue rhs, const uint size)
     {
-        auto lhsLength = genTemporary(i32Type);
-        auto rhsLength = genTemporary(i32Type);
-        auto resultLength = genTemporary(i32Type);
-        Load32(lhsLength, lhs);
-        Load32(rhsLength, rhs);
-        Add3(resultLength, lhsLength, rhsLength);
-        auto sliceSize = genTemporary(i32Type);
-        Mul3(sliceSize, resultLength, BCValue(Imm32(size)));
-
-        auto resultPtr = genTemporary(i32Type);
-        Alloc(resultPtr, sliceSize);
-        Set(result.i32, resultPtr);
-        auto tmp = genTemporary(i32Type);
-
-        auto dstPtr = genTemporary(i32Type);
-        auto lhsPtr = genTemporary(i32Type);
-
-        Store32(resultPtr, resultLength);
-        Add3(resultPtr, resultPtr, bcOne);
-
-        Add3(lhsPtr, lhs.i32, bcOne);
-        //Load32(lhsPtr, lhsPtr); //deref
-        {
-            Eq3(BCValue.init, lhsLength, bcZero);
-            auto cndJmp = beginCndJmp();
-            {
-                foreach (_; 0 .. size / 4)
-                {
-                    Load32(tmp, lhsPtr);
-                    Store32(dstPtr, tmp);
-                    Add3(lhsPtr, lhsPtr, bcOne);
-                    Add3(dstPtr, dstPtr, bcOne);
-                }
-                Sub3(lhsLength, lhsLength, BCValue(Imm32(size)));
-            }
-            endCndJmp(cndJmp, genLabel());
-        }
-
-        auto rhsPtr = genTemporary(i32Type);
-        Add3(rhsPtr, rhs.i32, bcOne);
-        //Load32(rhsPtr, rhsPtr); //deref
-        {
-            Eq3(BCValue.init, rhsLength, bcZero);
-            auto cndJmp = beginCndJmp();
-            {
-                foreach (_; 0 .. size / 4)
-                {
-                    Load32(tmp, rhsPtr);
-                    Store32(dstPtr, tmp);
-                    Add3(rhsPtr, rhsPtr, bcOne);
-                    Add3(dstPtr, dstPtr, bcOne);
-                }
-                Sub3(rhsLength, rhsLength, BCValue(Imm32(size)));
-            }
-            endCndJmp(cndJmp, genLabel());
-        }
+        import ddmd.ctfe.bc_macro;
+        CatMacro(&this, result, lhs, rhs, size);
     }
 
 }
@@ -1590,7 +1477,6 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
             break;
         case LongInst.ImmEq:
             {
-
                 if ((*lhsStackRef) == hi)
                 {
                     cond = true;
@@ -1599,7 +1485,6 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 {
                     cond = false;
                 }
-
             }
             break;
         case LongInst.ImmNeq:
@@ -1624,7 +1509,6 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 {
                     cond = false;
                 }
-
             }
             break;
         case LongInst.ImmGt:
@@ -1637,7 +1521,6 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 {
                     cond = false;
                 }
-
             }
             break;
         case LongInst.ImmLe:
@@ -1925,7 +1808,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
             break;
         case LongInst.HeapStore32:
             {
-                assert(*lhsRef, "trying to deref null pointer");
+                assert(*lhsRef, "trying to deref null pointer SP[" ~ to!string((lhsRef - stackP)*4) ~ "] at : &" ~ to!string (ip - 2));
                 (*(heapPtr._heap.ptr + *lhsRef)) = (*rhs) & 0xFF_FF_FF_FF;
             }
             break;
@@ -2119,8 +2002,14 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
 
         }
     }
-    // return bcEvalOutOfBoundsError();
-    assert(0, "I would be surprised if we got here");
+    BCValue bailoutValue;
+    bailoutValue.vType = BCValueType.Bailout;
+    return bailoutValue;
+
+    debug (cttfe)
+    {
+        assert(0, "I would be surprised if we got here -- withBC: " ~ byteCode.printInstructions);
+    }
 }
 
 int[] testRelJmp()

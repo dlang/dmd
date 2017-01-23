@@ -32,7 +32,7 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
     case Undef:
         {
             debug (ctfe)
-                assert(0, "We should never encounter undef");
+                assert(0, "We should never encounter undef or bailout");
             return 0;
         }
     case Slice, String, Ptr, Function:
@@ -123,7 +123,10 @@ enum BCValueType : ubyte
 
     HeapValue = 0x10,
 
-    LastCond = 0xFE,
+
+
+    LastCond = 0xFD,
+    Bailout = 0xFE,
     Error = 0xFF,
     //Pinned = 0x80,
     /// Pinned values can be returned
@@ -274,6 +277,41 @@ struct BCBranch
     BCLabel ifFalse;
 }
 
+struct BCHeapRef
+{
+    BCType type;
+    BCValueType vType;
+    union
+    {
+        HeapAddr heapAddr;
+        StackAddr stackAddr;
+        Imm32 imm32;
+    }
+
+    this(const(BCValue) that) pure
+    {
+        switch(that.vType)
+        {
+            case BCValueType.StackValue, BCValueType.Parameter :
+                stackAddr = that.stackAddr;
+            break;
+
+            case BCValueType.HeapValue :
+                heapAddr = that.heapAddr;
+            break;
+
+            case BCValueType.Immediate :
+                imm32 = that.imm32;
+            break;
+
+            default : 
+                import std.conv : to;
+                assert(0, "vType unsupported: " ~ to!string(that.vType));
+        }
+        vType = that.vType;
+    }
+}
+
 struct BCValue
 {
     BCType type;
@@ -293,6 +331,9 @@ struct BCValue
         // instead of void*
         void* voidStar;
     }
+
+    //TORO PERF minor: use a 32bit value for heapRef;
+   BCHeapRef heapRef;
 
     uint toUint() const pure
     {
@@ -328,7 +369,10 @@ struct BCValue
 @safe pure:
     bool opCast(T : bool)() const pure
     {
-        return this.vType != vType.Unknown;
+        // the check for Undef is a workaround
+        // consider removing it when everything works correctly.
+
+        return this.vType != vType.Unknown && this.type != BCTypeEnum.Undef;
     }
 
     bool opEquals(const BCValue rhs) pure const
@@ -360,7 +404,7 @@ struct BCValue
             case BCValueType.HeapValue:
                 return this.heapAddr == rhs.heapAddr;
 
-            case BCValueType.Unknown:
+            case BCValueType.Unknown, BCValueType.Bailout:
                 return false;
             case BCValueType.Error:
                 return false;
@@ -423,6 +467,30 @@ struct BCValue
         this.vType = BCValueType.HeapValue;
         this.type = type;
         this.heapAddr = addr;
+    }
+
+    this(const BCHeapRef heapRef)
+    {
+        this.type = heapRef.type;
+        this.vType = heapRef.vType;
+        switch (vType)
+        {
+            case BCValueType.StackValue, BCValueType.Parameter :
+                stackAddr = heapRef.stackAddr;
+                break;
+                
+            case BCValueType.HeapValue :
+                heapAddr = heapRef.heapAddr;
+                break;
+                
+            case BCValueType.Immediate :
+                imm32 = heapRef.imm32;
+                break;
+                
+            default : 
+                import std.conv : to;
+                assert(0, "vType unsupported: " ~ to!string(vType));
+        }
     }
 }
 

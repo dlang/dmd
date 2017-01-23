@@ -408,10 +408,10 @@ struct Print_BCGen
             elmSize) ~ ");\n";
     }
 
-    void AssertError(BCValue value, BCValue err)
+    void Assert(BCValue value, BCValue err)
     {
         sameLabel = false;
-        result ~= "    AssertError(" ~ print(value) ~ ", " ~ print(err) ~ ");\n";
+        result ~= "    Assert(" ~ print(value) ~ ", " ~ print(err) ~ ");\n";
     }
 }
 
