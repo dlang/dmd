@@ -3776,6 +3776,9 @@ static if (is(BCGen))
 
     override void visit(SwitchStatement ss)
     {
+        if (switchStateCount)
+            bailout("We cannot deal with nested switches right now");
+
         switchState = &switchStates[switchStateCount++];
         switchState.beginCaseStatementsCount = 0;
         switchState.switchFixupTableCount = 0;
@@ -3820,6 +3823,7 @@ static if (is(BCGen))
                 switchFixup = &switchFixupTable[switchFixupTableCount];
                 caseStmt.index = cast(int) i;
                 // apperantly I have to set the index myself;
+                bailout(caseStmt.exp.type.ty == Tint32, "cannot deal with signed swtiches");
 
                 auto rhs = genExpr(caseStmt.exp);
                 stringSwitch ? StringEq(BCValue.init, lhs, rhs) : Eq3(BCValue.init,
@@ -3838,6 +3842,10 @@ static if (is(BCGen))
                         switchFixupTable[switchFixupTableCount++] = beginJmp();
                         switchFixup = &switchFixupTable[switchFixupTableCount];
                     }
+                }
+                else
+                {
+                    bailout("no statement in: " ~ caseStmt.toString);
                 }
                 endCndJmp(jump, genLabel());
             }
