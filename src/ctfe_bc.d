@@ -2297,6 +2297,8 @@ static if (is(BCGen))
             }
             else
             {
+
+                bailout("String-Indexing does not work without UTF support afterall");
                 //TODO assert that idx is not out of bounds;
                 //auto inBounds = genTemporary(BCType(BCTypeEnum.i1));
                 //auto arrayLength = genTemporary(BCType(BCTypeEnum.i32));
