@@ -1882,11 +1882,13 @@ static if (is(BCGen))
             break;
         case TOK.TOKcat:
             {
-                bailout("Bailout on cat");
-                return ;
-
                 auto lhs = genExpr(e.e1);
                 auto rhs = genExpr(e.e2);
+                if (!lhs || !rhs)
+                {
+                    bailout("bailout because either lhs or rhs for ~ could not be generated");
+                    return ;
+                }
                 if (lhs.type.type != BCTypeEnum.Slice && (lhs.type.typeIndex <= _sharedCtfeState.sliceCount))
                 {
                     bailout("lhs for concat has to be a slice not: " ~ to!string(lhs.type.type));
