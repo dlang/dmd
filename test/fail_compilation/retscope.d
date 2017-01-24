@@ -589,8 +589,23 @@ void foo18()
     typeof(&c.funcrs) fs4 = &c.funcrs;
 }
 
-/********************************************/
 
+/*********************************************/
+
+@safe void foo19(C)(ref C[] str)  // infer 'scope' for 'str'
+{
+    str = str;
+    str = str[1 .. str.length];
+}
+
+@safe void test19()
+{
+    char[10] s;
+    char[] t = s[];
+    foo19(t);
+}
+
+/********************************************/
 
 bool foo20(const string a) @safe pure nothrow @nogc
 {
@@ -610,5 +625,4 @@ struct Result(R)
     scope n = Result!string("abc");
     n.empty();
 }
-
 
