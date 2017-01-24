@@ -229,7 +229,9 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         if (v.isScope())
         {
             // If va's lifetime encloses v's, then error
-            if (va && va.enclosesLifetimeOf(v) && !(v.storage_class & STCparameter) && sc.func.setUnsafe())
+            if (va &&
+                (va.enclosesLifetimeOf(v) && !(v.storage_class & STCparameter) || va.storage_class & STCref) &&
+                sc.func.setUnsafe())
             {
                 if (!gag)
                     error(ae.loc, "scope variable %s assigned to %s with longer lifetime", v.toChars(), va.toChars());
@@ -291,7 +293,9 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         Dsymbol p = v.toParent2();
 
         // If va's lifetime encloses v's, then error
-        if (va && va.enclosesLifetimeOf(v) && !(v.storage_class & STCparameter) && sc.func.setUnsafe())
+        if (va &&
+            (va.enclosesLifetimeOf(v) && !(v.storage_class & STCparameter) || va.storage_class & STCref) &&
+            sc.func.setUnsafe())
         {
             if (!gag)
                 error(ae.loc, "address of variable %s assigned to %s with longer lifetime", v.toChars(), va.toChars());
