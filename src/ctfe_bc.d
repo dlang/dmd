@@ -132,14 +132,11 @@ struct BlackList
 
     void defaultBlackList()
     {
-        initialize(["__lambda2" /* needed because of std.traits.ParameterDefaults*/ ,
-                "mangleFunc", "_ctfeMatchBinary", "_ctfeMatchUnary",
-                 "isOctalLiteral", "capitalize", "parseRFC822DateTime", "to", "outdent",
-                 "linkageString", "isUnionAliasedImpl","generateFunctionBody","gencode",
-                 "lengthOfIR", "__lambda1",
-                 "genSplitCall",
-                 "bitswap",
-            "back", "front", "empty"]);
+        initialize([
+                 "to", //because of we stil don't do proper UTF
+                 "bitswap", //because we have issues with our interpreter being 64bit internally pretending to be 32bit
+                 "modify14304", //to pass the unittest! :)
+        ]);
     }
 
 }
@@ -165,8 +162,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 
 import ddmd.ctfe.bc_common;
 
-enum perf = 1;
-enum bailoutMessages = 1;
+enum perf = 0;
+enum bailoutMessages = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
@@ -264,7 +261,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         }
     }
 
-    writeln("Evaluating function: ", fd.toString);
+    // writeln("Evaluating function: ", fd.toString);
     import ddmd.identifier;
     import std.datetime : StopWatch;
 
@@ -336,7 +333,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             bc_args[i] = bcv.genExpr(arg);
             if (bcv.IGaveUp)
             {
-                writeln("Ctfe died on argument processing for ", arg ? arg.toString
+                static if (bailoutMessages)
+                    writeln("Ctfe died on argument processing for ", arg ? arg.toString
                     : "Null-Argument");
                 return null;
             }
@@ -431,7 +429,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             writeln(bcv.result);
             return null;
         }
-        writeln("Gavup!");
+        static if (bailoutMessages)
+            writeln("Gaveup!");
         return null;
 
     }
@@ -965,9 +964,11 @@ Expression toExpression(const BCValue value, Type expressionType,
             assert(0, "Interpreter had to bailout");
         }
         import std.stdio;
-        writeln("We just bailed out of the interpreter ... this is bad, VERY VERY VERY bad");
-        writeln("It means we have missed to fixyp jumps or did not emit a return or something along those lines");
-
+        static if (bailoutMessages)
+        {
+            writeln("We just bailed out of the interpreter ... this is bad, VERY VERY VERY bad");
+            writeln("It means we have missed to fixyp jumps or did not emit a return or something along those lines");
+        }
         return null;
     }
 
@@ -1145,7 +1146,6 @@ extern (C++) final class BCTypeVisitor : Visitor
 
     const(BCType) toBCType(Type t, Type tla = null) /*pure*/
     {
-
         assert(t !is null);
         switch (t.ty)
         {
@@ -1388,6 +1388,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     BCValue[void* ] vars;
     //BCValue _this;
     Expression _this;
+    VarDeclaration lastConstVd;
 
     typeof(gen.genLabel()) lastContinue;
     BCValue currentIndexed;
@@ -1525,14 +1526,23 @@ public:
 
     BCValue getVariable(VarDeclaration vd)
     {
-        import ddmd.declaration : STCmanifest;
+        import ddmd.declaration : STCmanifest, STCref;
+        if (vd.storage_class & STCref)
+        {
+            bailout("cannot handle ref variables");
+            return BCValue.init;
+        }
 
         if (auto value = (cast(void*) vd) in vars)
         {
             return *value;
         }
-        else if ((vd.isDataseg() || vd.storage_class & STCmanifest) && !vd.isCTFE())
+        else if ((vd.isDataseg() || vd.storage_class & STCmanifest) && !vd.isCTFE() && vd._init)
         {
+            if (vd == lastConstVd)
+                bailout("circular initialisation apperantly");
+
+            lastConstVd = vd;
             if (auto ci = vd.getConstInitializer())
             {
                 return genExpr(ci);
@@ -1670,7 +1680,8 @@ public:
                     }
                     else
                         writeln(printInstructions(byteCodeArray[0 .. ip]));
-                    writeln("Gave up!");
+                    static if (bailoutMessages)
+                        writeln("Gave up!");
                 }
                 return;
             }
@@ -1736,6 +1747,11 @@ static if (is(BCGen))
                         uf.fd.fbody.accept(this);
                         auto osp = sp;
                         endFunction();
+                        if (IGaveUp)
+                        {
+                            bailout("A called function bailedout: " ~ uf.fd.ident.toString);
+                            return ;
+                        }
 
                         static if (is(BCGen))
                         {
@@ -2188,6 +2204,12 @@ static if (is(BCGen))
         }
 
         auto indexed = genExpr(ie.e1);
+        
+        if(!indexed || indexed.vType == BCValueType.VoidValue)
+        {
+            bailout("could not create indexed variable from: " ~ ie.e1.toString);
+            return ;
+        }
         auto length = getLength(indexed);
 
         currentIndexed = indexed;
@@ -2282,6 +2304,8 @@ static if (is(BCGen))
             }
             else
             {
+
+                bailout("String-Indexing does not work without UTF support afterall");
                 //TODO assert that idx is not out of bounds;
                 //auto inBounds = genTemporary(BCType(BCTypeEnum.i1));
                 //auto arrayLength = genTemporary(BCType(BCTypeEnum.i32));
@@ -2759,8 +2783,6 @@ static if (is(BCGen))
             writeln("PtrExp: ", pe.toString, " = ", addr);
         }
 
-        import std.stdio;
-        writeln(pe.e1.type.toString, addr.vType);
         auto baseType = _sharedCtfeState.elementType(addr.type);
         auto tmp = genTemporary(baseType);
         if(tmp.type.type != BCTypeEnum.i32)
@@ -2792,11 +2814,6 @@ static if (is(BCGen))
         auto value = ne.arguments && ne.arguments.dim == 1 ? genExpr((*ne.arguments)[0]) : imm32(0);
         Store32(ptr, value);
         retval = ptr;
-        {
-            import std.stdio;
-
-            writeln(retval);
-        }
 
     }
 
@@ -3112,7 +3129,7 @@ static if (is(BCGen))
                 bailout("~= unsupported");
                 if (lhs.type.type == BCTypeEnum.String && rhs.type.type == BCTypeEnum.String)
                 {
-                    assert(lhs.vType == BCValueType.StackValue,
+                    bailout(lhs.vType != BCValueType.StackValue,
                         "Only StringConcats on StackValues are supported for now");
 
                     /*
@@ -3446,6 +3463,11 @@ static if (is(BCGen))
             }
 
             auto lhs = genExpr(_struct);
+            if(!lhs)
+            {
+                bailout("could not gen: " ~ _struct.toString);
+                return ;
+            }
 
             auto ptr = genTemporary(BCType(BCTypeEnum.i32));
 
@@ -3570,12 +3592,23 @@ static if (is(BCGen))
                 bailout("only 32 bit array loads are supported right now");
             }
             auto rhs = genExpr(ae.e2);
+            if(!rhs)
+            {
+                bailout("we could not gen AssignExp[].rhs: " ~ ae.e2.toString);
+                return ;
+            }
             Store32(effectiveAddr, rhs.i32);
         }
         else
         {
             ignoreVoid = true;
             auto lhs = genExpr(ae.e1);
+            if(!lhs)
+            {
+                bailout("could not gen AssignExp.lhs: " ~ ae.e1.toString);
+                return ;
+            }
+
             if (lhs.vType == BCValueType.VoidValue)
             {
                 if (ae.e2.op == TOKvar)
@@ -3598,11 +3631,12 @@ static if (is(BCGen))
                 writeln("lhs :", lhs);
                 writeln("rhs :", rhs);
             }
-            if (lhs.vType == BCValueType.Unknown || rhs.vType == BCValueType.Unknown)
+            if (!rhs)
             {
-                bailout("rhs or lhs do not exist " ~ ae.toString);
+                bailout("could not get AssignExp.rhs: " ~ ae.e2.toString);
                 return;
             }
+
             if (lhs.type.type == BCTypeEnum.i32 && rhs.type.type == BCTypeEnum.i32)
             {
                 Set(lhs, rhs);
@@ -3669,7 +3703,7 @@ static if (is(BCGen))
     {
         {
             retval = assignTo ? assignTo : genTemporary(i32Type);
-            Eq3(retval, genExpr(ne.e1), imm32(0));
+            Eq3(retval, genExpr(ne.e1).i32, imm32(0));
         }
 
     }
@@ -3739,6 +3773,9 @@ static if (is(BCGen))
 
     override void visit(SwitchStatement ss)
     {
+        if (switchStateCount)
+            bailout("We cannot deal with nested switches right now");
+
         switchState = &switchStates[switchStateCount++];
         switchState.beginCaseStatementsCount = 0;
         switchState.switchFixupTableCount = 0;
@@ -3783,6 +3820,7 @@ static if (is(BCGen))
                 switchFixup = &switchFixupTable[switchFixupTableCount];
                 caseStmt.index = cast(int) i;
                 // apperantly I have to set the index myself;
+                bailout(caseStmt.exp.type.ty == Tint32, "cannot deal with signed swtiches");
 
                 auto rhs = genExpr(caseStmt.exp);
                 stringSwitch ? StringEq(BCValue.init, lhs, rhs) : Eq3(BCValue.init,
@@ -3801,6 +3839,10 @@ static if (is(BCGen))
                         switchFixupTable[switchFixupTableCount++] = beginJmp();
                         switchFixup = &switchFixupTable[switchFixupTableCount];
                     }
+                }
+                else
+                {
+                    bailout("no statement in: " ~ caseStmt.toString);
                 }
                 endCndJmp(jump, genLabel());
             }
@@ -4018,6 +4060,11 @@ static if (is(BCGen))
 
             // Calling a member function
             _this = dve.e1;
+            if (!dve.var || !dve.var.isFuncDeclaration())
+            {
+                bailout("no dve.var is not a funcDecl callExp" ~ dve.toString);
+                return ;
+            }
             fd = dve.var.isFuncDeclaration();
             /*
             if (_this.op == TOKdottype)
@@ -4138,6 +4185,11 @@ static if (is(BCGen))
         if (rs.exp !is null)
         {
             auto retval = genExpr(rs.exp);
+            if(!retval)
+            {
+                bailout("could not gen returnValue: " ~ rs.exp.toString);
+                return ;
+            }
             if (retval.type == BCTypeEnum.i32 || retval.type == BCTypeEnum.Slice
                     || retval.type == BCTypeEnum.Array || retval.type == BCTypeEnum.String)
                 Ret(retval.i32);

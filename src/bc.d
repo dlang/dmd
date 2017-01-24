@@ -841,7 +841,7 @@ struct BCGen
         }
         else
         {
-                assert(0, "I cannot deal with this type of return");
+                assert(0, "I cannot deal with this type of return" ~ to!string(val.vType));
         }
     }
 
@@ -1302,6 +1302,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
     BCValue* ev1 = null, BCValue* ev2 = null, const RE* errors = null,
     long[] stackPtr = null, uint stackOffset = 0)  @trusted
 {
+    static uint callDepth;
     import std.conv;
     import std.stdio;
 
@@ -1903,14 +1904,17 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                         assert(0, "Argument " ~ to!string(i) ~" ValueType unhandeled: " ~ to!string(arg.vType) ~"\n Calling Function: " ~ fnString ~ " from: " ~ call.loc.toChars[0 .. strlen(call.loc.toChars)]);
                     }
                 }
+                if (callDepth++ == 2000)
+                    goto Lbailout;
                 auto cRetval = interpret_(functions[cast(size_t)(fn - 1)].byteCode,
                     callArgs[0 .. call.args.length], heapPtr, functions, calls, ev1, ev2, errors, stack, stackOffsetCall);
 
-                if (cRetval.vType == BCValueType.Error)
+                if (cRetval.vType == BCValueType.Error || cRetval.vType == BCValueType.Bailout)
                 {
                     return cRetval;
                 }
                 *lhsRef = cRetval.imm32;
+                callDepth--;
             }
             break;
         case LongInst.Alloc:
@@ -2002,6 +2006,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
 
         }
     }
+    Lbailout :
     BCValue bailoutValue;
     bailoutValue.vType = BCValueType.Bailout;
     return bailoutValue;
