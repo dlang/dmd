@@ -678,7 +678,7 @@ struct SharedCtfeState(BCGenT)
             _sharedCtfeState.functionCount = 0;
 
     }
-   
+
 
     void initHeap(uint maxHeapSize = 2 ^^ 24)
     {
@@ -2012,18 +2012,29 @@ static if (is(BCGen))
 
                 case TOK.TOKand:
                     {
+                        static if (is(BCGen))
+                            if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
+                                bailout("BCGen does not suppport 32bit bit-operations");
                         And3(retval, lhs, rhs);
                     }
                     break;
 
                 case TOK.TOKor:
                     {
+                        static if (is(BCGen))
+                            if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
+                                bailout("BCGen does not suppport 32bit bit-operations");
+
                         Or3(retval, lhs, rhs);
                     }
                     break;
 
                 case TOK.TOKxor:
                     {
+                        static if (is(BCGen))
+                            if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
+                                bailout("BCGen does not suppport 32bit bit-operations");
+
                         Xor3(retval, lhs, rhs);
                     }
                     break;
@@ -2035,6 +2046,11 @@ static if (is(BCGen))
                         Assert(BCValue.init,
                             _sharedCtfeState.addError(e.loc,
                             "%d out of range(0..%d)", rhs, maxShift));
+                        static if (is(BCGen))
+                            if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
+                                bailout("BCGen does not suppport 32bit bit-operations");
+
+
                         Rsh3(retval, lhs, rhs);
                     }
                     break;
@@ -2046,6 +2062,11 @@ static if (is(BCGen))
                         Assert(BCValue.init,
                             _sharedCtfeState.addError(e.loc,
                             "%d out of range(0..%d)", rhs, maxShift));
+                        static if (is(BCGen))
+                            if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
+                                bailout("BCGen does not suppport 32bit bit-operations");
+
+
                         Lsh3(retval, lhs, rhs);
                     }
                     break;
@@ -3079,7 +3100,6 @@ static if (is(BCGen))
 
         switch (e.op)
         {
-
         case TOK.TOKaddass:
             {
                 Add3(lhs, lhs, rhs);
@@ -3095,19 +3115,51 @@ static if (is(BCGen))
 
         case TOK.TOKorass:
             {
+                 static if (is(BCGen))
+                     if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
+                        bailout("BCGen does not suppport 32bit bit-operations");
+
                 Or3(lhs, lhs, rhs);
                 retval = lhs;
             }
             break;
         case TOK.TOKandass:
             {
+                 static if (is(BCGen))
+                     if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
+                        bailout("BCGen does not suppport 32bit bit-operations");
+
                 And3(lhs, lhs, rhs);
                 retval = lhs;
             }
             break;
         case TOK.TOKxorass:
             {
+                static if (is(BCGen))
+                    if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
+                        bailout("BCGen does not suppport 32bit bit-operations");
+
                 Xor3(lhs, lhs, rhs);
+                retval = lhs;
+            }
+            break;
+        case TOK.TOKshrass:
+            {
+                static if (is(BCGen))
+                    if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
+                        bailout("BCGen does not suppport 32bit bit-operations");
+
+                Rsh3(lhs, lhs, rhs);
+                retval = lhs;
+            }
+            break;
+        case TOK.TOKshlass:
+            {
+                static if (is(BCGen))
+                    if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
+                        bailout("BCGen does not suppport 32bit bit-operations");
+
+                Lsh3(lhs, lhs, rhs);
                 retval = lhs;
             }
             break;

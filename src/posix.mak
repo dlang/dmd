@@ -146,7 +146,7 @@ CXXFLAGS += \
     -std=gnu++98
 endif
 # Default D compiler flags for all source files
-DFLAGS= -version=MARS -g -gc #-debug=ctfe
+DFLAGS= -version=MARS
 # Enable D warnings
 DFLAGS += -wi
 
@@ -202,7 +202,7 @@ endif
 
 
 FRONT_SRCS=$(addsuffix .d,access aggregate aliasthis apply argtypes arrayop	\
-	arraytypes attrib builtin asttypename					\
+	arraytypes attrib builtin						\
 	bc bc_common bc_macro bc_printer_backend bc_c_backend ctfe_bc bc_test	\
 	canthrow clone complex cond constfold					\
 	cppmangle ctfeexpr dcast dclass declaration delegatize denum dimport	\
