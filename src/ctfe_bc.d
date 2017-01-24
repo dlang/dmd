@@ -2911,10 +2911,15 @@ static if (is(BCGen))
                 writeln("ve.var sp : ", ((cast(void*) vd) in vars).stackAddr);
         }
 
+        import ddmd.id : Id;
+        if (ve.var.ident == Id.ctfe)
+        {
+            retval = imm32(1);
+            return ;
+        }
+
         if (vd)
         {
-            import ddmd.id;
-
             if (vd.ident == Id.dollar)
             {
                 retval = getLength(currentIndexed);
