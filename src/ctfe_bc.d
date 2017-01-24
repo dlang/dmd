@@ -615,13 +615,13 @@ struct SharedCtfeState(BCGenT)
     uint _threadLock;
     BCHeap heap;
     long[ushort.max / 4] stack; // a Stack of 64K/4 is the Hard Limit;
-    StructDeclaration[ubyte.max * 8] structDeclpointerTypes;
+    StructDeclaration[ubyte.max * 12] structDeclpointerTypes;
     TypeSArray[ubyte.max * 16] sArrayTypePointers;
     TypeDArray[ubyte.max * 8] dArrayTypePointers;
     TypePointer[ubyte.max * 8] pointerTypePointers;
     BCTypeVisitor btv = new BCTypeVisitor();
 
-    BCStruct[ubyte.max * 8] structTypes;
+    BCStruct[ubyte.max * 12] structTypes;
     uint structCount;
     BCArray[ubyte.max * 16] arrayTypes;
     uint arrayCount;
@@ -2911,10 +2911,15 @@ static if (is(BCGen))
                 writeln("ve.var sp : ", ((cast(void*) vd) in vars).stackAddr);
         }
 
+        import ddmd.id : Id;
+        if (ve.var.ident == Id.ctfe)
+        {
+            retval = imm32(1);
+            return ;
+        }
+
         if (vd)
         {
-            import ddmd.id;
-
             if (vd.ident == Id.dollar)
             {
                 retval = getLength(currentIndexed);
