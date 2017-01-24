@@ -4411,7 +4411,7 @@ elem *toElem(Expression e, IRState *irs)
                 case X(Tfloat64,Tcomplex32):
                 case X(Tfloat64,Tcomplex64):
                 case X(Tfloat64,Tcomplex80):
-                    e = el_bin(OPadd,TYcfloat,el_long(TYidouble,0),e);
+                    e = el_bin(OPadd,TYcdouble,el_long(TYidouble,0),e);
                     fty = Tcomplex64;
                     goto Lagain;
 

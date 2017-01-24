@@ -7646,6 +7646,12 @@ extern (C++) final class IsExp : Expression
                 // not valid for a parameter
                 break;
 
+            case TOKvector:
+                if (targ.ty != Tvector)
+                    goto Lno;
+                tded = (cast(TypeVector)targ).basetype;
+                break;
+
             default:
                 assert(0);
             }

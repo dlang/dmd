@@ -13,6 +13,7 @@ module ddmd.typinf;
 import ddmd.declaration;
 import ddmd.dmodule;
 import ddmd.dscope;
+import ddmd.dclass;
 import ddmd.dstruct;
 import ddmd.errors;
 import ddmd.globals;
@@ -192,7 +193,16 @@ extern (C++) bool isSpeculativeType(Type t)
 
         override void visit(TypeClass t)
         {
+            ClassDeclaration sd = t.sym;
+            if (auto ti = sd.isInstantiated())
+            {
+                if (!ti.needsCodegen() && !ti.minst)
+                {
+                    result |= true;
+                }
+            }
         }
+
 
         override void visit(TypeTuple t)
         {
