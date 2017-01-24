@@ -310,7 +310,7 @@ struct BCHeapRef
                 imm32 = that.imm32;
             break;
 
-            default : 
+            default :
                 import std.conv : to;
                 assert(0, "vType unsupported: " ~ to!string(that.vType));
         }
