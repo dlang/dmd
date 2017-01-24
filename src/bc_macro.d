@@ -144,8 +144,8 @@ void StringEq3Macro(BCGen)(BCGen* gen, BCValue _result, BCValue lhs, BCValue rhs
  */
 void ArraySizeForStringLengthMacro(BCGen)(BCGen* gen, BCValue result, BCValue stringLength)
 {
-	with(gen)
-	{
+    with(gen)
+    {
     auto tmp2 = genTemporary(BCType(BCTypeEnum.i32));//SP[12]
     auto tmp3 = genTemporary(BCType(BCTypeEnum.i32));//SP[16]
     auto tmp4 = genTemporary(BCType(BCTypeEnum.i32));//SP[20]
@@ -157,7 +157,7 @@ void ArraySizeForStringLengthMacro(BCGen)(BCGen* gen, BCValue result, BCValue st
     And3(tmp6, stringLength, BCValue(Imm32(3)));
     Eq3(tmp5, tmp6, BCValue(Imm32(0)));
     Add3(result, tmp2, tmp5);
-	}
+    }
 }
 /** This Macro is hand translated from
 auto strcat(const uint[] a, const uint[] b)
