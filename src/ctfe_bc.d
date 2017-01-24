@@ -678,7 +678,7 @@ struct SharedCtfeState(BCGenT)
             _sharedCtfeState.functionCount = 0;
 
     }
-   
+
 
     void initHeap(uint maxHeapSize = 2 ^^ 24)
     {

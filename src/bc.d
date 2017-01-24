@@ -1371,7 +1371,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
     if (byteCode.length < 6 || byteCode.length <= ip)
         return typeof(return).init;
 
-    if (!__ctfe) debug writeln("Interpreter started"); 
+    if (!__ctfe) debug writeln("Interpreter started");
     while (true && ip <= byteCode.length - 1)
     {
         import std.range;
