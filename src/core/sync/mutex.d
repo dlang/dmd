@@ -83,15 +83,16 @@ class Mutex :
             pthread_mutexattr_t attr = void;
 
             !pthread_mutexattr_init(&attr) ||
-                abort("Unable to initialize mutex");
+                abort("Error: pthread_mutexattr_init failed!");
 
-            scope (exit) pthread_mutexattr_destroy(&attr);
+            scope (exit) !pthread_mutexattr_destroy(&attr) ||
+                abort("Error: pthread_mutexattr_destroy failed!");
 
             !pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE) ||
-                abort("Unable to initialize mutex");
+                abort("Error: pthread_mutexattr_settype failed!");
 
             !pthread_mutex_init(cast(pthread_mutex_t*)&m_hndl, &attr) ||
-                abort("Unable to initialize mutex");
+                abort("Error: pthread_mutex_init failed!");
         }
 
         m_proxy.link = this;
