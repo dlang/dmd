@@ -132,14 +132,10 @@ struct BlackList
 
     void defaultBlackList()
     {
-        initialize(["__lambda2" /* needed because of std.traits.ParameterDefaults*/ ,
-                "mangleFunc", "_ctfeMatchBinary", "_ctfeMatchUnary",
-                 "isOctalLiteral", "capitalize", "parseRFC822DateTime", "to", "outdent",
-                 "linkageString", "isUnionAliasedImpl","generateFunctionBody","gencode",
-                 "lengthOfIR", "__lambda1",
-                 "genSplitCall",
-                 "bitswap",
-            "back", "front", "empty"]);
+        initialize([
+                 "to", //because of we stil don't do proper UTF
+                 "bitswap", //because we have issues with our interpreter being 64bit internally pretending to be 32bit
+        ]);
     }
 
 }
