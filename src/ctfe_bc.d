@@ -133,7 +133,7 @@ struct BlackList
     void defaultBlackList()
     {
         initialize([
-                 "to", //because of we stil don't do proper UTF
+                "to", //because of we stil don't do proper UTF
                 "modify14304", //because of fail_compilation/fail14304.d; We should not be required to check for this.
         ]);
     }
@@ -3245,6 +3245,11 @@ static if (is(BCGen))
         }
 
         auto bct = toBCType(ie.type);
+        if (bct.type != BCTypeEnum.i32 && bct.type != BCTypeEnum.i64)
+        {
+            //NOTE this can happen with cast(char*)size_t.max for example
+            bailout("We don't support IntegerExpressions with non-integer types");
+        }
 
         // HACK regardless of the literal type we register it as 32bit if it's smaller then int.max;
         if (ie.value > uint.max)
@@ -4283,7 +4288,11 @@ static if (is(BCGen))
         {
             //newCTFE does not need to cast
         }
-
+        else if (toType.type == BCTypeEnum.Ptr)
+        {
+            bailout("We cannot cast pointers");
+            return ;
+        }
         else if (toType.type == BCTypeEnum.i32 || fromType == BCTypeEnum.i32)
         {
             // FIXME: we cast if we either cast from or to int
