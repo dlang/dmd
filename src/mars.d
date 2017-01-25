@@ -243,21 +243,25 @@ extern (C++) void genCmain(Scope* sc)
 /**
  * Recursevely call semantic3() on import tree nodes.
  */
-private void semantic3OnDependencies(Module m)
+private void semantic3OnDependencies(Module m, bool[string] importArray)
 {
-    if (!m)
+    import std.conv : to;
+    string mName = to!string(m.toChars());
+    if (!m || (mName in importArray))
         return;
     else
     {
         if(global.params.verbose)
             fprintf(global.stdmsg, "semantic3 %s\n", m.toChars());
+
+        importArray[mName] = true;
         m.semantic3(null);
 
         // start from 1 to avoid calling semantic3 on object
         for (int i=1; i<m.aimports.dim; i++)
         {
             Module mi = m.aimports[i];
-            semantic3OnDependencies(mi);
+            semantic3OnDependencies(mi, importArray);
         }
     }
 }
@@ -1521,7 +1525,8 @@ Language changes listed by -transition=id:
     if (global.params.moduleDeps)
     {
         // Bugzilla 7016
-        semantic3OnDependencies(modules[0]);
+        bool[string] importArray;
+        semantic3OnDependencies(modules[0], importArray);
 
         OutBuffer* ob = global.params.moduleDeps;
         if (global.params.moduleDepsFile)
