@@ -55,6 +55,7 @@ import ddmd.target;
 import ddmd.tokens;
 import ddmd.utils;
 
+import ddmd.root.stringtable;
 
 /**
  * Print DMD's logo on stdout
@@ -243,18 +244,23 @@ extern (C++) void genCmain(Scope* sc)
 /**
  * Recursevely call semantic3() on import tree nodes.
  */
-private void semantic3OnDependencies(Module m, bool[string] importArray)
+private void semantic3OnDependencies(Module m, StringTable *importArray)
 {
-    import std.conv : to;
-    string mName = to!string(m.toChars());
-    if (!m || (mName in importArray))
+    if (!m)
+        return;
+
+    const(char) *mName = m.toChars();
+    size_t mNameLen    = strlen(mName);
+
+    if (importArray.lookup(mName, mNameLen))
         return;
     else
     {
         if(global.params.verbose)
-            fprintf(global.stdmsg, "semantic3 %s\n", m.toChars());
+            fprintf(global.stdmsg, "semantic3 %s\n", mName);
 
-        importArray[mName] = true;
+        // The value of the hashtable doesn't matter, just the key is important
+        importArray.insert(mName, mNameLen, cast(void*) mName);
         m.semantic3(null);
 
         // start from 1 to avoid calling semantic3 on object
@@ -1521,12 +1527,14 @@ Language changes listed by -transition=id:
         fatal();
 
     // inlineScan incrementally run semantic3 of each expanded functions.
-    // So deps file generation should be moved after the inlinig stage.
+    // So deps file generation should be moved after the inlining stage.
     if (global.params.moduleDeps)
     {
         // Bugzilla 7016
-        bool[string] importArray;
-        semantic3OnDependencies(modules[0], importArray);
+        StringTable importArray;
+        importArray._init();
+
+        semantic3OnDependencies(modules[0], &importArray);
 
         OutBuffer* ob = global.params.moduleDeps;
         if (global.params.moduleDepsFile)
