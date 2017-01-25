@@ -134,8 +134,7 @@ struct BlackList
     {
         initialize([
                  "to", //because of we stil don't do proper UTF
-                 "bitswap", //because we have issues with our interpreter being 64bit internally pretending to be 32bit
-                 "modify14304", //to pass the unittest! :)
+                "modify14304", //because of fail_compilation/fail14304.d; We should not be required to check for this.
         ]);
     }
 
