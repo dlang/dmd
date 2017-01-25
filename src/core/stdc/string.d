@@ -29,80 +29,80 @@ nothrow:
 @nogc:
 
 ///
-pure void* memchr(in void* s, int c, size_t n);
+pure void* memchr(return const void* s, int c, size_t n);
 ///
-pure int   memcmp(in void* s1, in void* s2, size_t n);
+pure int   memcmp(scope const void* s1, scope const void* s2, size_t n);
 ///
-pure void* memcpy(void* s1, in void* s2, size_t n);
+pure void* memcpy(return void* s1, scope const void* s2, size_t n);
 version (Windows)
 {
     ///
-    int memicmp(in char* s1, in char* s2, size_t n);
+    int memicmp(scope const char* s1, scope const char* s2, size_t n);
 }
 ///
-pure void* memmove(void* s1, in void* s2, size_t n);
+pure void* memmove(return void* s1, scope const void* s2, size_t n);
 ///
-pure void* memset(void* s, int c, size_t n);
+pure void* memset(return void* s, int c, size_t n);
 
 ///
-pure char*  strcpy(char* s1, in char* s2);
+pure char*  strcpy(return char* s1, scope const char* s2);
 ///
-pure char*  strncpy(char* s1, in char* s2, size_t n);
+pure char*  strncpy(return char* s1, scope const char* s2, size_t n);
 ///
-pure char*  strcat(char* s1, in char* s2);
+pure char*  strcat(return char* s1, scope const char* s2);
 ///
-pure char*  strncat(char* s1, in char* s2, size_t n);
+pure char*  strncat(return char* s1, scope const char* s2, size_t n);
 ///
-pure int    strcmp(in char* s1, in char* s2);
+pure int    strcmp(scope const char* s1, scope const char* s2);
 ///
-int    strcoll(in char* s1, in char* s2);
+int    strcoll(scope const char* s1, scope const char* s2);
 ///
-pure int    strncmp(in char* s1, in char* s2, size_t n);
+pure int    strncmp(scope const char* s1, scope const char* s2, size_t n);
 ///
-size_t strxfrm(char* s1, in char* s2, size_t n);
+size_t strxfrm(scope char* s1, scope const char* s2, size_t n);
 ///
-pure char*  strchr(in char* s, int c);
+pure inout(char)*  strchr(return inout(char)* s, int c);
 ///
-pure size_t strcspn(in char* s1, in char* s2);
+pure size_t strcspn(scope const char* s1, scope const char* s2);
 ///
-pure char*  strpbrk(in char* s1, in char* s2);
+pure inout(char)*  strpbrk(return inout(char)* s1, scope const char* s2);
 ///
-pure char*  strrchr(in char* s, int c);
+pure inout(char)*  strrchr(return inout(char)* s, int c);
 ///
-pure size_t strspn(in char* s1, in char* s2);
+pure size_t strspn(scope const char* s1, scope const char* s2);
 ///
-pure char*  strstr(in char* s1, in char* s2);
+pure inout(char)*  strstr(return inout(char)* s1, scope const char* s2);
 ///
-char*  strtok(char* s1, in char* s2);
+char*  strtok(return char* s1, scope const char* s2);
 ///
 char*  strerror(int errnum);
 version (CRuntime_Glibc)
 {
     ///
-    const(char)* strerror_r(int errnum, char* buf, size_t buflen);
+    const(char)* strerror_r(int errnum, return char* buf, size_t buflen);
 }
 else version (Darwin)
 {
-    int strerror_r(int errnum, char* buf, size_t buflen);
+    int strerror_r(int errnum, scope char* buf, size_t buflen);
 }
 else version (FreeBSD)
 {
-    int strerror_r(int errnum, char* buf, size_t buflen);
+    int strerror_r(int errnum, scope char* buf, size_t buflen);
 }
 else version (OpenBSD)
 {
-    int strerror_r(int errnum, char* buf, size_t buflen);
+    int strerror_r(int errnum, scope char* buf, size_t buflen);
 }
 else version (Solaris)
 {
-    int strerror_r(int errnum, char* buf, size_t buflen);
+    int strerror_r(int errnum, scope char* buf, size_t buflen);
 }
 else version (CRuntime_Bionic)
 {
     ///
-    int strerror_r(int errnum, char* buf, size_t buflen);
+    int strerror_r(int errnum, scope char* buf, size_t buflen);
 }
 ///
-pure size_t strlen(in char* s);
+pure size_t strlen(scope const char* s);
 ///
-char*  strdup(in char *s);
+char*  strdup(scope const char *s);
