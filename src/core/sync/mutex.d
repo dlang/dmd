@@ -43,7 +43,7 @@ else
 /**
  * This class represents a general purpose, recursive mutex.
  *
- * Implemented using pthread_mutex on Posix and CRITICAL_SECTION
+ * Implemented using `pthread_mutex` on Posix and `CRITICAL_SECTION`
  * on Windows.
  */
 class Mutex :
@@ -75,7 +75,7 @@ class Mutex :
     {
         version (Windows)
         {
-            InitializeCriticalSection(cast(CRITICAL_SECTION*)&m_hndl);
+            InitializeCriticalSection(cast(CRITICAL_SECTION*) &m_hndl);
         }
         else version (Posix)
         {
@@ -83,52 +83,52 @@ class Mutex :
             pthread_mutexattr_t attr = void;
 
             !pthread_mutexattr_init(&attr) ||
-                abort("Error: pthread_mutexattr_init failed!");
+                abort("Error: pthread_mutexattr_init failed.");
 
             scope (exit) !pthread_mutexattr_destroy(&attr) ||
-                abort("Error: pthread_mutexattr_destroy failed!");
+                abort("Error: pthread_mutexattr_destroy failed.");
 
             !pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE) ||
-                abort("Error: pthread_mutexattr_settype failed!");
+                abort("Error: pthread_mutexattr_settype failed.");
 
-            !pthread_mutex_init(cast(pthread_mutex_t*)&m_hndl, &attr) ||
-                abort("Error: pthread_mutex_init failed!");
+            !pthread_mutex_init(cast(pthread_mutex_t*) &m_hndl, &attr) ||
+                abort("Error: pthread_mutex_init failed.");
         }
 
         m_proxy.link = this;
-        this.__monitor = cast(void*)&m_proxy;
+        this.__monitor = cast(void*) &m_proxy;
     }
 
 
     /**
-     * Initializes a mutex object and sets it as the monitor for o.
+     * Initializes a mutex object and sets it as the monitor for `obj`.
      *
      * In:
-     *  o must not already have a monitor.
+     *  `obj` must not already have a monitor.
      */
-    this(Object o) @trusted nothrow @nogc
+    this(Object obj) @trusted nothrow @nogc
     {
-        this(o, true);
+        this(obj, true);
     }
 
     /// ditto
-    this(Object o) shared @trusted nothrow @nogc
+    this(Object obj) shared @trusted nothrow @nogc
     {
-        this(o, true);
+        this(obj, true);
     }
 
     // Undocumented, useful only in Mutex.this(Object).
-    private this(this Q)(Object o, bool _unused_) @trusted nothrow @nogc
+    private this(this Q)(Object obj, bool _unused_) @trusted nothrow @nogc
         if (is(Q == Mutex) || is(Q == shared Mutex))
     in
     {
-        assert(o.__monitor is null,
+        assert(obj.__monitor is null,
             "The provided object has a monitor already set!");
     }
     body
     {
         this();
-        o.__monitor = cast(void*)&m_proxy;
+        obj.__monitor = cast(void*) &m_proxy;
     }
 
 
@@ -142,7 +142,7 @@ class Mutex :
         {
             import core.internal.abort : abort;
             !pthread_mutex_destroy(&m_hndl) ||
-                abort("Unable to destroy mutex");
+                abort("Error: pthread_mutex_init failed.");
         }
         this.__monitor = null;
     }
@@ -347,7 +347,7 @@ unittest
     auto ti = typeid(Mutex);
     p[0 .. ti.initializer.length] = ti.initializer[];
 
-    shared Mutex mtx = cast(shared(Mutex))p;
+    shared Mutex mtx = cast(shared(Mutex)) p;
     mtx.__ctor();
 
     mtx.lock_nothrow();
@@ -366,7 +366,7 @@ unittest
 
     // Ok to cast away shared because destruction
     // should happen only from a single thread.
-    (cast(Mutex)mtx).__dtor();
+    (cast(Mutex) mtx).__dtor();
 
     // Verify that the underlying implementation has been destroyed
     // by checking that locking is not possible. This assumes
@@ -374,7 +374,7 @@ unittest
     // and makes the object non-lockable upon destruction.
     assert(!mtx.tryLock_nothrow());
 
-    free(cast(void*)mtx);
+    free(cast(void*) mtx);
 }
 
 // Test single-thread (non-shared) use.
