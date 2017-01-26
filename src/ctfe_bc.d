@@ -1530,10 +1530,10 @@ public:
 
     BCValue getVariable(VarDeclaration vd)
     {
-        import ddmd.declaration : STCmanifest, STCref;
-        if (vd.storage_class & STCref)
+        import ddmd.declaration : STCmanifest, STCref, STCstatic;
+        if (vd.storage_class & STCref || vd.storage_class & STCstatic)
         {
-            bailout("cannot handle ref variables");
+            bailout("cannot handle ref or static variables");
             return BCValue.init;
         }
 
