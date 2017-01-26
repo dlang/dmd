@@ -133,9 +133,8 @@ struct BlackList
     void defaultBlackList()
     {
         initialize([
-                 "to", //because of we stil don't do proper UTF
-                 "bitswap", //because we have issues with our interpreter being 64bit internally pretending to be 32bit
-                 "modify14304", //to pass the unittest! :)
+                "to", //because of we stil don't do proper UTF
+                "modify14304", //because of fail_compilation/fail14304.d; We should not be required to check for this.
         ]);
     }
 
@@ -615,13 +614,13 @@ struct SharedCtfeState(BCGenT)
     uint _threadLock;
     BCHeap heap;
     long[ushort.max / 4] stack; // a Stack of 64K/4 is the Hard Limit;
-    StructDeclaration[ubyte.max * 8] structDeclpointerTypes;
+    StructDeclaration[ubyte.max * 12] structDeclpointerTypes;
     TypeSArray[ubyte.max * 16] sArrayTypePointers;
     TypeDArray[ubyte.max * 8] dArrayTypePointers;
     TypePointer[ubyte.max * 8] pointerTypePointers;
     BCTypeVisitor btv = new BCTypeVisitor();
 
-    BCStruct[ubyte.max * 8] structTypes;
+    BCStruct[ubyte.max * 12] structTypes;
     uint structCount;
     BCArray[ubyte.max * 16] arrayTypes;
     uint arrayCount;
@@ -2911,10 +2910,15 @@ static if (is(BCGen))
                 writeln("ve.var sp : ", ((cast(void*) vd) in vars).stackAddr);
         }
 
+        import ddmd.id : Id;
+        if (ve.var.ident == Id.ctfe)
+        {
+            retval = imm32(1);
+            return ;
+        }
+
         if (vd)
         {
-            import ddmd.id;
-
             if (vd.ident == Id.dollar)
             {
                 retval = getLength(currentIndexed);
@@ -3100,7 +3104,6 @@ static if (is(BCGen))
 
         switch (e.op)
         {
-        //TODO add rhs and lhs
         case TOK.TOKaddass:
             {
                 Add3(lhs, lhs, rhs);
@@ -3116,9 +3119,9 @@ static if (is(BCGen))
 
         case TOK.TOKorass:
             {
-                        static if (is(BCGen))
-                            if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
-                                bailout("BCGen does not suppport 32bit bit-operations");
+                 static if (is(BCGen))
+                     if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
+                        bailout("BCGen does not suppport 32bit bit-operations");
 
                 Or3(lhs, lhs, rhs);
                 retval = lhs;
@@ -3126,19 +3129,29 @@ static if (is(BCGen))
             break;
         case TOK.TOKandass:
             {
-                        static if (is(BCGen))
-                            if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
-                                bailout("BCGen does not suppport 32bit bit-operations");
+                 static if (is(BCGen))
+                     if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
+                        bailout("BCGen does not suppport 32bit bit-operations");
 
                 And3(lhs, lhs, rhs);
                 retval = lhs;
             }
             break;
+        case TOK.TOKxorass:
+            {
+                static if (is(BCGen))
+                    if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
+                        bailout("BCGen does not suppport 32bit bit-operations");
+
+                Xor3(lhs, lhs, rhs);
+                retval = lhs;
+            }
+            break;
         case TOK.TOKshrass:
             {
-                        static if (is(BCGen))
-                            if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
-                                bailout("BCGen does not suppport 32bit bit-operations");
+                static if (is(BCGen))
+                    if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
+                        bailout("BCGen does not suppport 32bit bit-operations");
 
                 Rsh3(lhs, lhs, rhs);
                 retval = lhs;
@@ -3146,9 +3159,9 @@ static if (is(BCGen))
             break;
         case TOK.TOKshlass:
             {
-                        static if (is(BCGen))
-                            if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
-                                bailout("BCGen does not suppport 32bit bit-operations");
+                static if (is(BCGen))
+                    if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
+                        bailout("BCGen does not suppport 32bit bit-operations");
 
                 Lsh3(lhs, lhs, rhs);
                 retval = lhs;
@@ -3232,6 +3245,11 @@ static if (is(BCGen))
         }
 
         auto bct = toBCType(ie.type);
+        if (bct.type != BCTypeEnum.i32 && bct.type != BCTypeEnum.i64)
+        {
+            //NOTE this can happen with cast(char*)size_t.max for example
+            bailout("We don't support IntegerExpressions with non-integer types");
+        }
 
         // HACK regardless of the literal type we register it as 32bit if it's smaller then int.max;
         if (ie.value > uint.max)
@@ -4270,7 +4288,11 @@ static if (is(BCGen))
         {
             //newCTFE does not need to cast
         }
-
+        else if (toType.type == BCTypeEnum.Ptr)
+        {
+            bailout("We cannot cast pointers");
+            return ;
+        }
         else if (toType.type == BCTypeEnum.i32 || fromType == BCTypeEnum.i32)
         {
             // FIXME: we cast if we either cast from or to int
