@@ -1897,6 +1897,7 @@ static if (is(BCGen))
             break;
         case TOK.TOKcat:
             {
+                bailout("We don't handle ~ right now");
                 auto lhs = genExpr(e.e1);
                 auto rhs = genExpr(e.e2);
                 if (!lhs || !rhs)
