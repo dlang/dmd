@@ -287,6 +287,8 @@ struct BCHeapRef
 {
     BCType type;
     BCValueType vType;
+    ushort tmpIndex;
+
     union
     {
         HeapAddr heapAddr;
@@ -300,6 +302,11 @@ struct BCHeapRef
         {
             case BCValueType.StackValue, BCValueType.Parameter :
                 stackAddr = that.stackAddr;
+                tmpIndex = that.tmpIndex;
+            break;
+            case BCValueType.Temporary:
+                stackAddr = that.stackAddr;
+                tmpIndex = that.tmpIndex;
             break;
 
             case BCValueType.HeapValue :
@@ -314,6 +321,7 @@ struct BCHeapRef
                 import std.conv : to;
                 assert(0, "vType unsupported: " ~ to!string(that.vType));
         }
+        type = that.type;
         vType = that.vType;
     }
 }
@@ -483,8 +491,14 @@ struct BCValue
         {
             case BCValueType.StackValue, BCValueType.Parameter :
                 stackAddr = heapRef.stackAddr;
+                tmpIndex = heapRef.tmpIndex;
                 break;
-                
+
+            case BCValueType.Temporary :
+                stackAddr = heapRef.stackAddr;
+                tmpIndex = heapRef.tmpIndex;
+                break;
+
             case BCValueType.HeapValue :
                 heapAddr = heapRef.heapAddr;
                 break;
