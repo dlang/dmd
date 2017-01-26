@@ -56,17 +56,17 @@ template isSectionGroup(T)
         is(typeof({ foreach_reverse (ref T; T) {}}));
 }
 static assert(isSectionGroup!(SectionGroup));
-static assert(is(typeof(&initSections) == void function()));
-static assert(is(typeof(&finiSections) == void function()));
+static assert(is(typeof(&initSections) == void function() nothrow @nogc));
+static assert(is(typeof(&finiSections) == void function() nothrow @nogc));
 static assert(is(typeof(&initTLSRanges) RT == return) &&
-              is(typeof(&initTLSRanges) == RT function()) &&
-              is(typeof(&finiTLSRanges) == void function(RT)) &&
+              is(typeof(&initTLSRanges) == RT function() nothrow @nogc) &&
+              is(typeof(&finiTLSRanges) == void function(RT) nothrow @nogc) &&
               is(typeof(&scanTLSRanges) == void function(RT, scope void delegate(void*, void*) nothrow) nothrow));
 
 version (Shared)
 {
-    static assert(is(typeof(&pinLoadedLibraries) == void* function() nothrow));
-    static assert(is(typeof(&unpinLoadedLibraries) == void function(void*) nothrow));
-    static assert(is(typeof(&inheritLoadedLibraries) == void function(void*)));
-    static assert(is(typeof(&cleanupLoadedLibraries) == void function()));
+    static assert(is(typeof(&pinLoadedLibraries) == void* function() nothrow @nogc));
+    static assert(is(typeof(&unpinLoadedLibraries) == void function(void*) nothrow @nogc));
+    static assert(is(typeof(&inheritLoadedLibraries) == void function(void*) nothrow @nogc));
+    static assert(is(typeof(&cleanupLoadedLibraries) == void function() nothrow @nogc));
 }

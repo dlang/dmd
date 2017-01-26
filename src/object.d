@@ -1473,7 +1473,7 @@ struct ModuleInfo
     }
 
 const:
-    private void* addrOf(int flag) nothrow pure
+    private void* addrOf(int flag) nothrow pure @nogc
     in
     {
         assert(flag >= MItlsctor && flag <= MIname);
@@ -1538,46 +1538,46 @@ const:
         assert(0);
     }
 
-    @property uint index() nothrow pure { return _index; }
+    @property uint index() nothrow pure @nogc { return _index; }
 
-    @property uint flags() nothrow pure { return _flags; }
+    @property uint flags() nothrow pure @nogc { return _flags; }
 
-    @property void function() tlsctor() nothrow pure
+    @property void function() tlsctor() nothrow pure @nogc
     {
         return flags & MItlsctor ? *cast(typeof(return)*)addrOf(MItlsctor) : null;
     }
 
-    @property void function() tlsdtor() nothrow pure
+    @property void function() tlsdtor() nothrow pure @nogc
     {
         return flags & MItlsdtor ? *cast(typeof(return)*)addrOf(MItlsdtor) : null;
     }
 
-    @property void* xgetMembers() nothrow pure
+    @property void* xgetMembers() nothrow pure @nogc
     {
         return flags & MIxgetMembers ? *cast(typeof(return)*)addrOf(MIxgetMembers) : null;
     }
 
-    @property void function() ctor() nothrow pure
+    @property void function() ctor() nothrow pure @nogc
     {
         return flags & MIctor ? *cast(typeof(return)*)addrOf(MIctor) : null;
     }
 
-    @property void function() dtor() nothrow pure
+    @property void function() dtor() nothrow pure @nogc
     {
         return flags & MIdtor ? *cast(typeof(return)*)addrOf(MIdtor) : null;
     }
 
-    @property void function() ictor() nothrow pure
+    @property void function() ictor() nothrow pure @nogc
     {
         return flags & MIictor ? *cast(typeof(return)*)addrOf(MIictor) : null;
     }
 
-    @property void function() unitTest() nothrow pure
+    @property void function() unitTest() nothrow pure @nogc
     {
         return flags & MIunitTest ? *cast(typeof(return)*)addrOf(MIunitTest) : null;
     }
 
-    @property immutable(ModuleInfo*)[] importedModules() nothrow pure
+    @property immutable(ModuleInfo*)[] importedModules() nothrow pure @nogc
     {
         if (flags & MIimportedModules)
         {
@@ -1587,7 +1587,7 @@ const:
         return null;
     }
 
-    @property TypeInfo_Class[] localClasses() nothrow pure
+    @property TypeInfo_Class[] localClasses() nothrow pure @nogc
     {
         if (flags & MIlocalClasses)
         {
@@ -1597,7 +1597,7 @@ const:
         return null;
     }
 
-    @property string name() nothrow pure
+    @property string name() nothrow pure @nogc
     {
         if (true || flags & MIname) // always available for now
         {

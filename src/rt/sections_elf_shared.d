@@ -66,22 +66,22 @@ struct DSO
         return 0;
     }
 
-    @property immutable(ModuleInfo*)[] modules() const
+    @property immutable(ModuleInfo*)[] modules() const nothrow @nogc
     {
         return _moduleGroup.modules;
     }
 
-    @property ref inout(ModuleGroup) moduleGroup() inout
+    @property ref inout(ModuleGroup) moduleGroup() inout nothrow @nogc
     {
         return _moduleGroup;
     }
 
-    @property immutable(FuncTable)[] ehTables() const
+    @property immutable(FuncTable)[] ehTables() const nothrow @nogc
     {
         return null;
     }
 
-    @property inout(void[])[] gcRanges() inout
+    @property inout(void[])[] gcRanges() inout nothrow @nogc
     {
         return _gcRanges[];
     }
@@ -118,7 +118,7 @@ version (FreeBSD) private __gshared void* dummy_ref;
 /****
  * Gets called on program startup just before GC is initialized.
  */
-void initSections()
+void initSections() nothrow @nogc
 {
     _isRuntimeInitialized = true;
     // reference symbol to support weak linkage
@@ -129,7 +129,7 @@ void initSections()
 /***
  * Gets called on program shutdown just after GC is terminated.
  */
-void finiSections()
+void finiSections() nothrow @nogc
 {
     _isRuntimeInitialized = false;
 }
@@ -141,12 +141,12 @@ version (Shared)
     /***
      * Called once per thread; returns array of thread local storage ranges
      */
-    Array!(ThreadDSO)* initTLSRanges()
+    Array!(ThreadDSO)* initTLSRanges() @nogc nothrow
     {
         return &_loadedDSOs;
     }
 
-    void finiTLSRanges(Array!(ThreadDSO)* tdsos)
+    void finiTLSRanges(Array!(ThreadDSO)* tdsos) @nogc nothrow
     {
         // Nothing to do here. tdsos used to point to the _loadedDSOs instance
         // in the dying thread's TLS segment and as such is not valid anymore.
@@ -161,7 +161,7 @@ version (Shared)
     }
 
     // interface for core.thread to inherit loaded libraries
-    void* pinLoadedLibraries() nothrow
+    void* pinLoadedLibraries() nothrow @nogc
     {
         auto res = cast(Array!(ThreadDSO)*)calloc(1, Array!(ThreadDSO).sizeof);
         res.length = _loadedDSOs.length;
@@ -178,7 +178,7 @@ version (Shared)
         return res;
     }
 
-    void unpinLoadedLibraries(void* p) nothrow
+    void unpinLoadedLibraries(void* p) nothrow @nogc
     {
         auto pary = cast(Array!(ThreadDSO)*)p;
         // In case something failed we need to undo the pinning.
@@ -197,7 +197,7 @@ version (Shared)
 
     // Called before TLS ctors are ran, copy over the loaded libraries
     // of the parent thread.
-    void inheritLoadedLibraries(void* p)
+    void inheritLoadedLibraries(void* p) nothrow @nogc
     {
         assert(_loadedDSOs.empty);
         _loadedDSOs.swap(*cast(Array!(ThreadDSO)*)p);
@@ -210,7 +210,7 @@ version (Shared)
     }
 
     // Called after all TLS dtors ran, decrements all remaining dlopen refs.
-    void cleanupLoadedLibraries()
+    void cleanupLoadedLibraries() nothrow @nogc
     {
         foreach (ref tdso; _loadedDSOs)
         {
@@ -231,12 +231,12 @@ else
     /***
      * Called once per thread; returns array of thread local storage ranges
      */
-    Array!(void[])* initTLSRanges()
+    Array!(void[])* initTLSRanges() nothrow @nogc
     {
         return &_tlsRanges;
     }
 
-    void finiTLSRanges(Array!(void[])* rngs)
+    void finiTLSRanges(Array!(void[])* rngs) nothrow @nogc
     {
         rngs.reset();
     }
@@ -277,7 +277,7 @@ version (Shared)
         void[] _tlsRange;
         alias _pdso this;
         // update the _tlsRange for the executing thread
-        void updateTLSRange()
+        void updateTLSRange() nothrow @nogc
         {
             _tlsRange = getTLSRange(_pdso._tlsMod, _pdso._tlsSize);
         }
@@ -471,7 +471,7 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
 
 version (Shared)
 {
-    ThreadDSO* findThreadDSO(DSO* pdso)
+    ThreadDSO* findThreadDSO(DSO* pdso) nothrow @nogc
     {
         foreach (ref tdata; _loadedDSOs)
             if (tdata._pdso == pdso) return &tdata;
@@ -546,13 +546,13 @@ version (Shared)
 // helper functions
 ///////////////////////////////////////////////////////////////////////////////
 
-void initLocks()
+void initLocks() nothrow @nogc
 {
     version (Shared)
         !pthread_mutex_init(&_handleToDSOMutex, null) || assert(0);
 }
 
-void finiLocks()
+void finiLocks() nothrow @nogc
 {
     version (Shared)
         !pthread_mutex_destroy(&_handleToDSOMutex) || assert(0);
@@ -571,13 +571,13 @@ void runModuleDestructors(DSO* pdso, bool runTlsDtors)
     pdso._moduleGroup.runDtors();
 }
 
-void registerGCRanges(DSO* pdso)
+void registerGCRanges(DSO* pdso) nothrow @nogc
 {
     foreach (rng; pdso._gcRanges)
         GC.addRange(rng.ptr, rng.length);
 }
 
-void unregisterGCRanges(DSO* pdso)
+void unregisterGCRanges(DSO* pdso) nothrow @nogc
 {
     foreach (rng; pdso._gcRanges)
         GC.removeRange(rng.ptr);
@@ -589,7 +589,7 @@ version (Shared) void runFinalizers(DSO* pdso)
         GC.runFinalizers(seg);
 }
 
-void freeDSO(DSO* pdso)
+void freeDSO(DSO* pdso) nothrow @nogc
 {
     pdso._gcRanges.reset();
     version (Shared) pdso._codeSegments.reset();
@@ -598,15 +598,15 @@ void freeDSO(DSO* pdso)
 
 version (Shared)
 {
-nothrow:
-    link_map* linkMapForHandle(void* handle)
+@nogc nothrow:
+    link_map* linkMapForHandle(void* handle) nothrow @nogc
     {
         link_map* map;
         dlinfo(handle, RTLD_DI_LINKMAP, &map) == 0 || assert(0);
         return map;
     }
 
-     link_map* exeLinkMap(link_map* map)
+     link_map* exeLinkMap(link_map* map) nothrow @nogc
      {
          assert(map);
          while (map.l_prev !is null)
@@ -614,7 +614,7 @@ nothrow:
          return map;
      }
 
-    DSO* dsoForHandle(void* handle)
+    DSO* dsoForHandle(void* handle) nothrow @nogc
     {
         DSO* pdso;
         !pthread_mutex_lock(&_handleToDSOMutex) || assert(0);
@@ -624,7 +624,7 @@ nothrow:
         return pdso;
     }
 
-    void setDSOForHandle(DSO* pdso, void* handle)
+    void setDSOForHandle(DSO* pdso, void* handle) nothrow @nogc
     {
         !pthread_mutex_lock(&_handleToDSOMutex) || assert(0);
         assert(handle !in _handleToDSO);
@@ -632,7 +632,7 @@ nothrow:
         !pthread_mutex_unlock(&_handleToDSOMutex) || assert(0);
     }
 
-    void unsetDSOForHandle(DSO* pdso, void* handle)
+    void unsetDSOForHandle(DSO* pdso, void* handle) nothrow @nogc
     {
         !pthread_mutex_lock(&_handleToDSOMutex) || assert(0);
         assert(_handleToDSO[handle] == pdso);
@@ -640,7 +640,7 @@ nothrow:
         !pthread_mutex_unlock(&_handleToDSOMutex) || assert(0);
     }
 
-    void getDependencies(in ref dl_phdr_info info, ref Array!(DSO*) deps)
+    void getDependencies(in ref dl_phdr_info info, ref Array!(DSO*) deps) nothrow @nogc
     {
         // get the entries of the .dynamic section
         ElfW!"Dyn"[] dyns;
@@ -686,7 +686,7 @@ nothrow:
         }
     }
 
-    void* handleForName(const char* name)
+    void* handleForName(const char* name) nothrow @nogc
     {
         auto handle = .dlopen(name, RTLD_NOLOAD | RTLD_LAZY);
         if (handle !is null) .dlclose(handle); // drop reference count
@@ -702,7 +702,7 @@ nothrow:
  * Scan segments in Linux dl_phdr_info struct and store
  * the TLS and writeable data segments in *pdso.
  */
-void scanSegments(in ref dl_phdr_info info, DSO* pdso)
+void scanSegments(in ref dl_phdr_info info, DSO* pdso) nothrow @nogc
 {
     foreach (ref phdr; info.dlpi_phdr[0 .. info.dlpi_phnum])
     {
@@ -800,8 +800,7 @@ version (FreeBSD) extern(C) const(char)* getprogname() nothrow @nogc;
     version (FreeBSD) return getprogname();
 }
 
-nothrow
-const(char)[] dsoName(const char* dlpi_name)
+const(char)[] dsoName(const char* dlpi_name) nothrow @nogc
 {
     // the main executable doesn't have a name in its dlpi_name field
     const char* p = dlpi_name[0] != 0 ? dlpi_name : progname;
@@ -815,7 +814,7 @@ extern(C)
 }
 
 /// get the BSS section of the executable to check for copy relocations
-const(void)[] getCopyRelocSection() nothrow
+const(void)[] getCopyRelocSection() nothrow @nogc
 {
     auto bss_start = rt_get_bss_start();
     auto bss_end = rt_get_end();
@@ -857,7 +856,7 @@ const(void)[] getCopyRelocSection() nothrow
  * chains.
  */
 void checkModuleCollisions(in ref dl_phdr_info info, in immutable(ModuleInfo)*[] modules,
-                           in void[] copyRelocSection) nothrow
+                           in void[] copyRelocSection) nothrow @nogc
 in { assert(modules.length); }
 body
 {
@@ -901,7 +900,7 @@ body
  * Returns:
  *      the dlopen handle for that DSO or null if addr is not within a loaded DSO
  */
-version (Shared) void* handleForAddr(void* addr)
+version (Shared) void* handleForAddr(void* addr) nothrow @nogc
 {
     Dl_info info = void;
     if (dladdr(addr, &info) != 0)
@@ -926,7 +925,7 @@ struct tls_index
     size_t ti_offset;
 }
 
-extern(C) void* __tls_get_addr(tls_index* ti);
+extern(C) void* __tls_get_addr(tls_index* ti) nothrow @nogc;
 
 /* The dynamic thread vector (DTV) pointers may point 0x8000 past the start of
  * each TLS block. This is at least true for PowerPC and Mips platforms.
@@ -956,7 +955,7 @@ else version(MIPS64)
 else
     static assert( false, "Platform not supported." );
 
-void[] getTLSRange(size_t mod, size_t sz)
+void[] getTLSRange(size_t mod, size_t sz) nothrow @nogc
 {
     if (mod == 0)
         return null;

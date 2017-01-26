@@ -50,7 +50,7 @@ private:
     void[][2] _gcRanges;
 }
 
-void initSections()
+void initSections() nothrow @nogc
 {
     _sections._moduleGroup = ModuleGroup(getModuleInfos());
 
@@ -64,18 +64,18 @@ void initSections()
     _sections._gcRanges[1] = bssbeg[0 .. bssend - bssbeg];
 }
 
-void finiSections()
+void finiSections() nothrow @nogc
 {
 }
 
-void[] initTLSRanges()
+void[] initTLSRanges() nothrow @nogc
 {
     auto pbeg = cast(void*)&_tlsstart;
     auto pend = cast(void*)&_tlsend;
     return pbeg[0 .. pend - pbeg];
 }
 
-void finiTLSRanges(void[] rng)
+void finiTLSRanges(void[] rng) nothrow @nogc
 {
 }
 
@@ -90,9 +90,9 @@ __gshared SectionGroup _sections;
 
 // Windows: this gets initialized by minit.asm
 extern(C) __gshared immutable(ModuleInfo*)[] _moduleinfo_array;
-extern(C) void _minit();
+extern(C) void _minit() nothrow @nogc;
 
-immutable(ModuleInfo*)[] getModuleInfos()
+immutable(ModuleInfo*)[] getModuleInfos() nothrow @nogc
 out (result)
 {
     foreach(m; result)

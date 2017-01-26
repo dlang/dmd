@@ -31,12 +31,12 @@ struct SectionGroup
         return dg(_sections);
     }
 
-    @property immutable(ModuleInfo*)[] modules() const
+    @property immutable(ModuleInfo*)[] modules() const nothrow @nogc
     {
         return _moduleGroup.modules;
     }
 
-    @property ref inout(ModuleGroup) moduleGroup() inout
+    @property ref inout(ModuleGroup) moduleGroup() inout nothrow @nogc
     {
         return _moduleGroup;
     }
@@ -49,7 +49,7 @@ struct SectionGroup
         return pbeg[0 .. pend - pbeg];
     }
 
-    @property inout(void[])[] gcRanges() inout
+    @property inout(void[])[] gcRanges() inout nothrow @nogc
     {
         return _gcRanges[];
     }
@@ -59,7 +59,7 @@ private:
     void[][1] _gcRanges;
 }
 
-void initSections()
+void initSections() nothrow @nogc
 {
     _sections._moduleGroup = ModuleGroup(getModuleInfos());
 
@@ -69,19 +69,19 @@ void initSections()
                          cast(ulong)_sections._gcRanges[0].length);
 }
 
-void finiSections()
+void finiSections() nothrow @nogc
 {
     .free(cast(void*)_sections.modules.ptr);
 }
 
-void[] initTLSRanges()
+void[] initTLSRanges() nothrow @nogc
 {
     auto pbeg = cast(void*)&_tls_start;
     auto pend = cast(void*)&_tls_end;
     return pbeg[0 .. pend - pbeg];
 }
 
-void finiTLSRanges(void[] rng)
+void finiTLSRanges(void[] rng) nothrow @nogc
 {
 }
 
@@ -99,7 +99,7 @@ extern(C)
     extern __gshared void* _minfo_end;
 }
 
-immutable(ModuleInfo*)[] getModuleInfos()
+immutable(ModuleInfo*)[] getModuleInfos() nothrow @nogc
 out (result)
 {
     foreach(m; result)
@@ -197,14 +197,14 @@ struct IMAGE_SECTION_HEADER
     uint   Characteristics;
 }
 
-bool compareSectionName(ref IMAGE_SECTION_HEADER section, string name) nothrow
+bool compareSectionName(ref IMAGE_SECTION_HEADER section, string name) nothrow @nogc
 {
     if (name[] != section.Name[0 .. name.length])
         return false;
     return name.length == 8 || section.Name[name.length] == 0;
 }
 
-void[] findImageSection(string name) nothrow
+void[] findImageSection(string name) nothrow @nogc
 {
     if (name.length > 8) // section name from string table not supported
         return null;

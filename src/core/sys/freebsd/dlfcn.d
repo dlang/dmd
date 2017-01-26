@@ -12,6 +12,7 @@ public import core.sys.posix.dlfcn;
 version (FreeBSD):
 extern (C):
 nothrow:
+@nogc:
 
 enum __BSD_VISIBLE = true;
 
@@ -68,7 +69,7 @@ static if (__BSD_VISIBLE)
         int     __dlfunc_dummy;
     };
 
-    alias void function(__dlfunc_arg) dlfunc_t;
+    alias dlfunc_t = void function(__dlfunc_arg);
 
     /*
      * Structures, returned by the RTLD_DI_SERINFO dlinfo() request.
@@ -87,7 +88,7 @@ static if (__BSD_VISIBLE)
 
 private template __externC(RT, P...)
 {
-    alias extern(C) RT function(P) nothrow @nogc __externC;
+    alias __externC = extern(C) RT function(P) nothrow @nogc;
 }
 
 /* XSI functions first. */
