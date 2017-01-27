@@ -1670,6 +1670,11 @@ public:
             }
             beginFunction(fnIdx - 1);
             visit(fbody);
+            if(fd.type.nextOf.ty == Tvoid)
+            {
+                // insert a dummy return after void functions because they can omit a returnStatement
+                Ret(imm32(0));
+            }
             auto osp2 = sp.addr;
             endFunction();
             if (IGaveUp)
