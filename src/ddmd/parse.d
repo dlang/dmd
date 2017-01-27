@@ -1333,6 +1333,8 @@ final class Parser(AST) : Lexer
                 stc = AST.STCsystem;
             else if (token.ident == Id.disable)
                 stc = AST.STCdisable;
+            else if (token.ident == Id.future)
+                stc = AST.STCfuture;
             else
             {
                 // Allow identifier, template instantiation, or function call

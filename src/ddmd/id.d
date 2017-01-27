@@ -179,6 +179,7 @@ immutable Msgtable[] msgtable =
     { "values" },
     { "rehash" },
 
+    { "future", "__future" },
     { "property" },
     { "nogc" },
     { "safe" },

@@ -129,12 +129,16 @@ enum STCinference           = (1L << 46);   // do attribute inference
 enum STCexptemp             = (1L << 47);   // temporary variable that has lifetime restricted to an expression
 enum STCmaybescope          = (1L << 48);   // parameter might be 'scope'
 enum STCscopeinferred       = (1L << 49);   // 'scope' has been inferred and should not be part of mangling
+enum STCfuture              = (1L << 50);   // introducing new base class function
 
 enum STC_TYPECTOR = (STCconst | STCimmutable | STCshared | STCwild);
 enum STC_FUNCATTR = (STCref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem);
 
 extern (C++) __gshared const(StorageClass) STCStorageClass =
-    (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal | STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias | STCout | STCin | STCmanifest | STCimmutable | STCshared | STCwild | STCnothrow | STCnogc | STCpure | STCref | STCtls | STCgshared | STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable);
+    (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal | STCabstract | STCsynchronized |
+     STCdeprecated | STCfuture | STCoverride | STClazy | STCalias | STCout | STCin | STCmanifest |
+     STCimmutable | STCshared | STCwild | STCnothrow | STCnogc | STCpure | STCref | STCtls | STCgshared |
+     STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable);
 
 struct Match
 {
@@ -336,6 +340,11 @@ extern (C++) abstract class Declaration : Dsymbol
     final bool isRef()
     {
         return (storage_class & STCref) != 0;
+    }
+
+    final bool isFuture()
+    {
+        return (storage_class & STCfuture) != 0;
     }
 
     override final Prot prot()
