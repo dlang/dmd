@@ -3259,7 +3259,7 @@ static if (is(BCGen))
         }
 
         auto bct = toBCType(ie.type);
-        if (bct.type != BCTypeEnum.i32 && bct.type != BCTypeEnum.i64)
+        if (bct.type != BCTypeEnum.i32 && bct.type != BCTypeEnum.i64 && bct.type != BCTypeEnum.Char)
         {
             //NOTE this can happen with cast(char*)size_t.max for example
             bailout("We don't support IntegerExpressions with non-integer types");
