@@ -1302,7 +1302,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
     BCValue* ev1 = null, BCValue* ev2 = null, const RE* errors = null,
     long[] stackPtr = null, uint stackOffset = 0)  @trusted
 {
-    static uint callDepth;
+    __gshared static uint callDepth;
     import std.conv;
     import std.stdio;
 
@@ -1882,7 +1882,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                     debug writeln("stackOffsetCall: ", stackOffsetCall);
                 }
 
-                BCValue[16] callArgs;
+                __gshared static BCValue[16] callArgs;
 
                 foreach(i,ref arg;call.args)
                 {
