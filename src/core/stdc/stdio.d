@@ -452,10 +452,10 @@ else version( OpenBSD )
         int             _lbfsize;
 
         void*           _cookie;
-        int     function(void*)                 _close;
-        int     function(void*, char*, int)     _read;
-        fpos_t  function(void*, fpos_t, int)    _seek;
-        int     function(void*, in char*, int)  _write;
+        int     function(void*)                         _close;
+        int     function(void*, scope char*, int)       _read;
+        fpos_t  function(void*, fpos_t, int)            _seek;
+        int     function(void*, scope const char*, int) _write;
 
         __sbuf          _ext;
         ubyte*          _up;
@@ -538,10 +538,10 @@ else version( CRuntime_Bionic )
         int       _lbfsize;
 
         void*     _cookie;
-        int      function(void*)                    _close;
-        int      function(void*, char*, int)        _read;
-        fpos_t   function(void*, fpos_t, int)       _seek;
-        int      function(void*, in char*, int)     _write;
+        int      function(void*)                          _close;
+        int      function(void*, scope char*, int)        _read;
+        fpos_t   function(void*, fpos_t, int)             _seek;
+        int      function(void*, scope const char*, int)  _write;
 
         __sbuf    _ext;
         ubyte*    _up;
@@ -822,9 +822,9 @@ else
 }
 
 ///
-int remove(in char* filename);
+int remove(scope const char* filename);
 ///
-int rename(in char* from, in char* to);
+int rename(scope const char* from, scope const char* to);
 
 ///
 @trusted FILE* tmpfile(); // No unsafe pointer manipulation.
@@ -842,9 +842,9 @@ int   fclose(FILE* stream);
 }
 
 ///
-FILE* fopen(in char* filename, in char* mode);
+FILE* fopen(scope const char* filename, scope const char* mode);
 ///
-FILE* freopen(in char* filename, in char* mode, FILE* stream);
+FILE* freopen(scope const char* filename, scope const char* mode, FILE* stream);
 
 ///
 void setbuf(FILE* stream, char* buf);
@@ -856,91 +856,91 @@ version (MinGW)
     // Prefer the MinGW versions over the MSVC ones, as the latter don't handle
     // reals at all.
     ///
-    int __mingw_fprintf(FILE* stream, in char* format, ...);
+    int __mingw_fprintf(FILE* stream, scope const char* format, ...);
     ///
     alias __mingw_fprintf fprintf;
 
     ///
-    int __mingw_fscanf(FILE* stream, in char* format, ...);
+    int __mingw_fscanf(FILE* stream, scope const char* format, ...);
     ///
     alias __mingw_fscanf fscanf;
 
     ///
-    int __mingw_sprintf(char* s, in char* format, ...);
+    int __mingw_sprintf(scope char* s, scope const char* format, ...);
     ///
     alias __mingw_sprintf sprintf;
 
     ///
-    int __mingw_sscanf(in char* s, in char* format, ...);
+    int __mingw_sscanf(scope const char* s, scope const char* format, ...);
     ///
     alias __mingw_sscanf sscanf;
 
     ///
-    int __mingw_vfprintf(FILE* stream, in char* format, va_list arg);
+    int __mingw_vfprintf(FILE* stream, scope const char* format, va_list arg);
     ///
     alias __mingw_vfprintf vfprintf;
 
     ///
-    int __mingw_vfscanf(FILE* stream, in char* format, va_list arg);
+    int __mingw_vfscanf(FILE* stream, scope const char* format, va_list arg);
     ///
     alias __mingw_vfscanf vfscanf;
 
     ///
-    int __mingw_vsprintf(char* s, in char* format, va_list arg);
+    int __mingw_vsprintf(scope char* s, scope const char* format, va_list arg);
     ///
     alias __mingw_vsprintf vsprintf;
 
     ///
-    int __mingw_vsscanf(in char* s, in char* format, va_list arg);
+    int __mingw_vsscanf(scope const char* s, scope const char* format, va_list arg);
     ///
     alias __mingw_vsscanf vsscanf;
 
     ///
-    int __mingw_vprintf(in char* format, va_list arg);
+    int __mingw_vprintf(scope const char* format, va_list arg);
     ///
     alias __mingw_vprintf vprintf;
 
     ///
-    int __mingw_vscanf(in char* format, va_list arg);
+    int __mingw_vscanf(scope const char* format, va_list arg);
     ///
     alias __mingw_vscanf vscanf;
 
     ///
-    int __mingw_printf(in char* format, ...);
+    int __mingw_printf(scope const char* format, ...);
     ///
     alias __mingw_printf printf;
 
     ///
-    int __mingw_scanf(in char* format, ...);
+    int __mingw_scanf(scope const char* format, ...);
     ///
     alias __mingw_scanf scanf;
 }
 else
 {
     ///
-    int fprintf(FILE* stream, in char* format, ...);
+    int fprintf(FILE* stream, scope const char* format, ...);
     ///
-    int fscanf(FILE* stream, in char* format, ...);
+    int fscanf(FILE* stream, scope const char* format, ...);
     ///
-    int sprintf(char* s, in char* format, ...);
+    int sprintf(scope char* s, scope const char* format, ...);
     ///
-    int sscanf(in char* s, in char* format, ...);
+    int sscanf(scope const char* s, scope const char* format, ...);
     ///
-    int vfprintf(FILE* stream, in char* format, va_list arg);
+    int vfprintf(FILE* stream, scope const char* format, va_list arg);
     ///
-    int vfscanf(FILE* stream, in char* format, va_list arg);
+    int vfscanf(FILE* stream, scope const char* format, va_list arg);
     ///
-    int vsprintf(char* s, in char* format, va_list arg);
+    int vsprintf(scope char* s, scope const char* format, va_list arg);
     ///
-    int vsscanf(in char* s, in char* format, va_list arg);
+    int vsscanf(scope const char* s, scope const char* format, va_list arg);
     ///
-    int vprintf(in char* format, va_list arg);
+    int vprintf(scope const char* format, va_list arg);
     ///
-    int vscanf(in char* format, va_list arg);
+    int vscanf(scope const char* format, va_list arg);
     ///
-    int printf(in char* format, ...);
+    int printf(scope const char* format, ...);
     ///
-    int scanf(in char* format, ...);
+    int scanf(scope const char* format, ...);
 }
 
 // No unsafe pointer manipulation.
@@ -955,11 +955,11 @@ else
 ///
 char* fgets(char* s, int n, FILE* stream);
 ///
-int   fputs(in char* s, FILE* stream);
+int   fputs(scope const char* s, FILE* stream);
 ///
 char* gets(char* s);
 ///
-int   puts(in char* s);
+int   puts(scope const char* s);
 
 // No unsafe pointer manipulation.
 extern (D) @trusted
@@ -978,17 +978,17 @@ extern (D) @trusted
 @trusted int ungetc(int c, FILE* stream); // No unsafe pointer manipulation.
 
 ///
-size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream);
+size_t fread(scope void* ptr, size_t size, size_t nmemb, FILE* stream);
 ///
-size_t fwrite(in void* ptr, size_t size, size_t nmemb, FILE* stream);
+size_t fwrite(scope const void* ptr, size_t size, size_t nmemb, FILE* stream);
 
 // No unsafe pointer manipulation.
 @trusted
 {
     ///
-    int fgetpos(FILE* stream, fpos_t * pos);
+    int fgetpos(FILE* stream, scope fpos_t * pos);
     ///
-    int fsetpos(FILE* stream, in fpos_t* pos);
+    int fsetpos(FILE* stream, scope const fpos_t* pos);
 
     ///
     int    fseek(FILE* stream, c_long offset, int whence);
@@ -1011,14 +1011,14 @@ version( MinGW )
     pure int  ferror(FILE* stream)   { return stream._flag&_IOERR;                       }
   }
   ///
-    int   __mingw_snprintf(char* s, size_t n, in char* fmt, ...);
+    int   __mingw_snprintf(scope char* s, size_t n, scope const char* fmt, ...);
     ///
     alias __mingw_snprintf _snprintf;
     ///
     alias __mingw_snprintf snprintf;
 
     ///
-    int   __mingw_vsnprintf(char* s, size_t n, in char* format, va_list arg);
+    int   __mingw_vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
     ///
     alias __mingw_vsnprintf _vsnprintf;
     ///
@@ -1041,12 +1041,12 @@ else version( CRuntime_DigitalMars )
     pure int  fileno(FILE* stream)   { return stream._file;                              }
   }
   ///
-    int   _snprintf(char* s, size_t n, in char* fmt, ...);
+    int   _snprintf(scope char* s, size_t n, scope const char* fmt, ...);
     ///
     alias _snprintf snprintf;
 
     ///
-    int   _vsnprintf(char* s, size_t n, in char* format, va_list arg);
+    int   _vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
     ///
     alias _vsnprintf vsnprintf;
 }
@@ -1068,14 +1068,14 @@ else version( CRuntime_Microsoft )
   }
 
   ///
-    int _snprintf(char* s, size_t n, in char* format, ...);
+    int _snprintf(scope char* s, size_t n, scope const char* format, ...);
     ///
-    int  snprintf(char* s, size_t n, in char* format, ...);
+    int  snprintf(scope char* s, size_t n, scope const char* format, ...);
 
     ///
-    int _vsnprintf(char* s, size_t n, in char* format, va_list arg);
+    int _vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
     ///
-    int  vsnprintf(char* s, size_t n, in char* format, va_list arg);
+    int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
 
     ///
     int _fputc_nolock(int c, FILE *fp);
@@ -1110,9 +1110,9 @@ else version( CRuntime_Glibc )
   }
 
   ///
-    int  snprintf(char* s, size_t n, in char* format, ...);
+    int  snprintf(scope char* s, size_t n, scope const char* format, ...);
     ///
-    int  vsnprintf(char* s, size_t n, in char* format, va_list arg);
+    int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
 }
 else version( Darwin )
 {
@@ -1132,9 +1132,9 @@ else version( Darwin )
   }
 
   ///
-    int  snprintf(char* s, size_t n, in char* format, ...);
+    int  snprintf(scope char* s, size_t n, scope const char* format, ...);
     ///
-    int  vsnprintf(char* s, size_t n, in char* format, va_list arg);
+    int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
 }
 else version( FreeBSD )
 {
@@ -1154,9 +1154,9 @@ else version( FreeBSD )
   }
 
   ///
-    int  snprintf(char* s, size_t n, in char* format, ...);
+    int  snprintf(scope char* s, size_t n, scope const char* format, ...);
     ///
-    int  vsnprintf(char* s, size_t n, in char* format, va_list arg);
+    int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
 }
 else version( OpenBSD )
 {
@@ -1245,9 +1245,9 @@ else version( OpenBSD )
     }
 
     ///
-    int  snprintf(char* s, size_t n, in char* format, ...);
+    int  snprintf(scope char* s, size_t n, scope const char* format, ...);
     ///
-    int  vsnprintf(char* s, size_t n, in char* format, va_list arg);
+    int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
 }
 else version (Solaris)
 {
@@ -1267,9 +1267,9 @@ else version (Solaris)
   }
 
   ///
-    int  snprintf(char* s, size_t n, in char* format, ...);
+    int  snprintf(scope char* s, size_t n, scope const char* format, ...);
     ///
-    int  vsnprintf(char* s, size_t n, in char* format, va_list arg);
+    int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
 }
 else version( CRuntime_Bionic )
 {
@@ -1289,9 +1289,9 @@ else version( CRuntime_Bionic )
   }
 
   ///
-    int  snprintf(char* s, size_t n, in char* format, ...);
+    int  snprintf(scope char* s, size_t n, scope const char* format, ...);
     ///
-    int  vsnprintf(char* s, size_t n, in char* format, va_list arg);
+    int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
 }
 else
 {
@@ -1299,7 +1299,7 @@ else
 }
 
 ///
-void perror(in char* s);
+void perror(scope const char* s);
 
 version(CRuntime_DigitalMars)
 {
@@ -1406,28 +1406,28 @@ version(CRuntime_DigitalMars)
         STDERR_FILENO = 2,
     }
 
-    int open(const(char)* filename, int flags, ...); ///
+    int open(scope const(char)* filename, int flags, ...); ///
     alias _open = open; ///
-    int _wopen(const wchar* filename, int oflag, ...); ///
-    int sopen(const char* filename, int oflag, int shflag, ...); ///
+    int _wopen(scope const wchar* filename, int oflag, ...); ///
+    int sopen(scope const char* filename, int oflag, int shflag, ...); ///
     alias _sopen = sopen; ///
-    int _wsopen(const wchar* filename, int oflag, int shflag, ...); ///
+    int _wsopen(scope const wchar* filename, int oflag, int shflag, ...); ///
     int close(int fd); ///
     alias _close = close; ///
-    FILE *fdopen(int fd, const(char)* flags); ///
+    FILE *fdopen(int fd, scope const(char)* flags); ///
     alias _fdopen = fdopen; ///
-    FILE *_wfdopen(int fd, const(wchar)* flags); ///
+    FILE *_wfdopen(int fd, scope const(wchar)* flags); ///
 
 }
 else version (CRuntime_Microsoft)
 {
-    int _open(const char* filename, int oflag, ...); ///
-    int _wopen(const wchar* filename, int oflag, ...); ///
-    int _sopen(const char* filename, int oflag, int shflag, ...); ///
-    int _wsopen(const wchar* filename, int oflag, int shflag, ...); ///
+    int _open(scope const char* filename, int oflag, ...); ///
+    int _wopen(scope const wchar* filename, int oflag, ...); ///
+    int _sopen(scope const char* filename, int oflag, int shflag, ...); ///
+    int _wsopen(scope const wchar* filename, int oflag, int shflag, ...); ///
     int _close(int fd); ///
-    FILE *_fdopen(int fd, const(char)* flags); ///
-    FILE *_wfdopen(int fd, const(wchar)* flags); ///
+    FILE *_fdopen(int fd, scope const(char)* flags); ///
+    FILE *_wfdopen(int fd, scope const(wchar)* flags); ///
 }
 
 version (Windows)
