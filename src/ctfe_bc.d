@@ -513,7 +513,7 @@ Expression getBoolExprRhs(Expression be)
 }
 
 string toString(T)(T value) if (is(T : Statement) || is(T : Declaration)
-        || is(T : Expression) || is(T : Dsymbol) || is(T : Type))
+        || is(T : Expression) || is(T : Dsymbol) || is(T : Type) || is(T : Initializer))
 {
     string result;
     import std.string : fromStringz;
@@ -581,13 +581,13 @@ struct BCStruct
     uint size;
 
     BCType[96] memberTypes;
-    bool[96] isVoidInit;
+    bool[96] voidInit;
 
-    void addField(SharedCtfeState!BCGenT* state, const BCType bct, bool isVoidInit)
+    void addField(const BCType bct, bool isVoidInit)
     {
         memberTypes[memberTypeCount] = bct;
-        isVoidInit[memberTypeCount++] = isVoidInit;
-        size += state.size(bct);
+        voidInit[memberTypeCount++] = isVoidInit;
+        size += _sharedCtfeState.size(bct);
     }
 
     const int offset(const int idx)
@@ -1265,11 +1265,10 @@ extern (C++) final class BCTypeVisitor : Visitor
                 assert(0, "recursive struct definition this should never happen");
 
             auto bcType = toBCType(sMember.type);
-            st.addField(&_sharedCtfeState, bcType);
-
+            st.addField(bcType, sMember._init ? !!sMember._init.isVoidInitializer() : false);
         }
 
-        sharedCtfeState.endStruct(&st);
+        _sharedCtfeState.endStruct(&st);
 
     }
 
@@ -2163,7 +2162,6 @@ static if (is(BCGen))
         auto vd = se.var.isVarDeclaration();
         auto fd = se.var.isFuncDeclaration();
         import ddmd.asttypename;
-
         if (vd)
         {
             auto v = getVariable(vd);
@@ -2561,13 +2559,20 @@ static if (is(BCGen))
                     bailout("Field cannot be found " ~ dve.toString);
                     return;
                 }
+
+                if  (_struct.voidInit[fIndex])
+                {
+                    bailout("We don't handle struct fields that may be void");
+                    return ;
+                }
+
                 int offset = _struct.offset(fIndex);
                 if (offset == -1)
                 {
                     bailout("Could not get field-offset of" ~ vd.toString);
                 }
 
-                debug (ctfe)
+                //debug (ctfe)
                 {
                     import std.stdio;
 
@@ -2702,6 +2707,7 @@ static if (is(BCGen))
         }
 
         auto sd = sle.sd;
+
         auto idx = _sharedCtfeState.getStructIndex(sd);
         if (!idx)
         {
@@ -2710,8 +2716,12 @@ static if (is(BCGen))
         }
         BCStruct _struct = _sharedCtfeState.structTypes[idx - 1];
 
-        foreach (ty; _struct.memberTypes[0 .. _struct.memberTypeCount])
+        foreach (i; 0 .. _struct.memberTypeCount)
         {
+            if (_struct.voidInit[i])
+            {
+                bailout("We don't handle structs with void initalizers ... right now");
+            }
             /*    if (ty.type != BCTypeEnum.i32)
             {
                 bailout( "can only deal with ints and uints atm. not: (" ~ to!string(ty.type) ~ ", " ~ to!string(
@@ -3532,6 +3542,11 @@ static if (is(BCGen))
             {
                 bailout("only i32 structMembers are supported for now");
                 return;
+            }
+            if (bcStructType.voidInit[fIndex])
+            {
+                bailout("We don't handle void initialized struct fields");
+                return ;
             }
             auto rhs = genExpr(ae.e2);
             if (!rhs)
