@@ -253,9 +253,13 @@ struct Imm32
 }
 
 
-BCValue imm32(uint value) pure @safe
+BCValue imm32(uint value) pure @trusted
 {
-    return BCValue(Imm32(value));
+    BCValue ret = void;
+    ret.vType = BCValueType.Immediate;
+    ret.type = BCTypeEnum.i32;
+    ret.imm32 = value;
+    return ret;
 }
 
 struct Imm64
