@@ -2572,7 +2572,7 @@ static if (is(BCGen))
                     bailout("Could not get field-offset of" ~ vd.toString);
                 }
 
-                //debug (ctfe)
+                debug (ctfe)
                 {
                     import std.stdio;
 
@@ -2974,7 +2974,7 @@ static if (is(BCGen))
                 return;
             }
 
-            if(sv.heapRef != BCHeapRef.init)
+            if(sv.heapRef != BCHeapRef.init && sv.vType == BCValueType.StackValue)
             {
                 LoadFromHeapRef(sv);
             }
@@ -3536,7 +3536,7 @@ static if (is(BCGen))
 
             auto fIndex = findFieldIndexByName(structDeclPtr, vd);
             assert(fIndex != -1, "field " ~ vd.toString ~ "could not be found in" ~ dve.e1.toString);
-            BCStruct bcStructType = _sharedCtfeState .structTypes[structTypeIndex - 1];
+            BCStruct bcStructType = _sharedCtfeState.structTypes[structTypeIndex - 1];
 
             if (bcStructType.memberTypes[fIndex].type != BCTypeEnum.i32)
             {
