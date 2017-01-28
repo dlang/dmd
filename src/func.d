@@ -2426,6 +2426,17 @@ extern (C++) class FuncDeclaration : Declaration
              */
             VarDeclaration v = new ThisDeclaration(loc, Type.tvoid.pointerTo());
             v.storage_class |= STCparameter;
+            if (type.ty == Tfunction)
+            {
+                TypeFunction tf = cast(TypeFunction)type;
+                if (tf.isreturn)
+                    v.storage_class |= STCreturn;
+                if (tf.isscope)
+                    v.storage_class |= STCscope;
+            }
+            if (flags & FUNCFLAGinferScope)
+                v.storage_class |= STCmaybescope;
+
             v.semantic(sc);
             if (!sc.insert(v))
                 assert(0);
