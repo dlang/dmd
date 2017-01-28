@@ -589,7 +589,6 @@ void foo18()
     typeof(&c.funcrs) fs4 = &c.funcrs;
 }
 
-
 /*********************************************/
 
 @safe void foo19(C)(ref C[] str)  // infer 'scope' for 'str'
@@ -606,6 +605,7 @@ void foo18()
 }
 
 /********************************************/
+
 
 bool foo20(const string a) @safe pure nothrow @nogc
 {
@@ -636,5 +636,27 @@ struct Result(R)
 @safe void test22(scope char[] s)
 {
     foo22(s);
+}
+
+/************************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=17117
+
+ref int foo21(return ref int s)
+{
+        return s;
+}
+
+int fail21()
+{
+        int s;
+        return foo21(s); // Error: escaping reference to local variable s
+}
+
+int test21()
+{
+        int s;
+        s = foo21(s);
+        return s;
 }
 
