@@ -2178,7 +2178,6 @@ static if (is(BCGen))
                 Alloc(addr, _sharedCtfeState.size(v.type).imm32);
                 Store32(addr, v);
                 v.heapRef = BCHeapRef(addr);
-                v.heapRef.type = retval.type;
 
                 setVariable(vd, v);
                 // register as pointer and set the variable to pointer as well;

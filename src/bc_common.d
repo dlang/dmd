@@ -113,7 +113,7 @@ struct BCType
     /// 0 means basic type
     uint typeIndex;
     // additional information
-    uint flags;
+    ubyte flags;
 }
 
 enum BCValueType : ubyte
@@ -289,7 +289,6 @@ struct BCBranch
 
 struct BCHeapRef
 {
-    BCType type;
     BCValueType vType;
     ushort tmpIndex;
 
@@ -305,9 +304,6 @@ struct BCHeapRef
         switch(that.vType)
         {
             case BCValueType.StackValue, BCValueType.Parameter :
-                stackAddr = that.stackAddr;
-                tmpIndex = that.tmpIndex;
-            break;
             case BCValueType.Temporary:
                 stackAddr = that.stackAddr;
                 tmpIndex = that.tmpIndex;
@@ -325,7 +321,6 @@ struct BCHeapRef
                 import std.conv : to;
                 assert(0, "vType unsupported: " ~ to!string(that.vType));
         }
-        type = that.type;
         vType = that.vType;
     }
 }
@@ -489,7 +484,6 @@ struct BCValue
 
     this(const BCHeapRef heapRef)
     {
-        this.type = heapRef.type;
         this.vType = heapRef.vType;
         switch (vType)
         {
