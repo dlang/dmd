@@ -581,10 +581,12 @@ struct BCStruct
     uint size;
 
     BCType[96] memberTypes;
+    bool[96] isVoidInit;
 
-    void addField(SharedCtfeState!BCGenT* state, const BCType bct)
+    void addField(SharedCtfeState!BCGenT* state, const BCType bct, bool isVoidInit)
     {
-        memberTypes[memberTypeCount++] = bct;
+        memberTypes[memberTypeCount] = bct;
+        isVoidInit[memberTypeCount++] = isVoidInit;
         size += state.size(bct);
     }
 
@@ -1260,10 +1262,11 @@ extern (C++) final class BCTypeVisitor : Visitor
         foreach (sMember; sd.fields)
         {
             if (sMember.type.ty == Tstruct && (cast(TypeStruct) sMember.type).sym == sd)
-                assert(0);
+                assert(0, "recursive struct definition this should never happen");
 
             auto bcType = toBCType(sMember.type);
             st.addField(&_sharedCtfeState, bcType);
+
         }
 
         sharedCtfeState.endStruct(&st);
