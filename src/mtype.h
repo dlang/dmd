@@ -493,6 +493,8 @@ public:
     bool hasPointers() /*const*/;
 
     void accept(Visitor *v) { v->visit(this); }
+
+    TypeDArray* isTypeDArray() { return this; }
 };
 
 class TypeAArray : public TypeArray
@@ -768,6 +770,8 @@ public:
     unsigned char deduceWild(Type *t, bool isRef);
     Type *toHeadMutable();
 
+    TypeStruct* isTypeStruct() { return this; }
+
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -832,6 +836,8 @@ public:
     bool isscope() /*const*/;
     bool isBoolean() /*const*/;
     bool hasPointers() /*const*/;
+
+    virtual TypeClass* isTypeClass() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
 };

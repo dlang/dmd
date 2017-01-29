@@ -97,8 +97,17 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
                     //printf("type %p ty %d deco %p\n", type, type.ty, type.deco);
                     //type = type.semantic(loc, sc);
                     //printf("type %s t %s\n", type.deco, t.deco);
-                    e.error("cannot implicitly convert expression (%s) of type %s to %s",
-                        e.toChars(), e.type.toChars(), t.toChars());
+                    immutable(char)* arrayHint = "";
+                    if (t.ty == Tarray)
+                    {
+                        auto ad = isAggregate(e.type);
+                        if (ad && ad.isInputRange())
+                        {
+                            arrayHint = ", use .array (in std.array) to force allocation of range elements";
+                        }
+                    }
+                    e.error("cannot implicitly convert expression (%s) of type %s to %s%s",
+                             e.toChars(), e.type.toChars(), t.toChars(), arrayHint);
                 }
             }
             result = new ErrorExp();

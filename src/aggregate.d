@@ -654,6 +654,16 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         return type;
     }
 
+    /****************************************
+     * Returns `true` if `this` aggregate has an `InputRange` interface
+     */
+    final bool isInputRange()
+    {
+        return (search(Loc(), Id.Ffront) &&
+                search(Loc(), Id.FpopFront) &&
+                search(Loc(), Id.Fempty));
+    }
+
     // is aggregate deprecated?
     override final bool isDeprecated()
     {
