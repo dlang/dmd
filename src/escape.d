@@ -524,7 +524,8 @@ private bool checkEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                  *   auto dg = () return { return &x; }
                  * Because dg.ptr points to x, this is returning dt.ptr+offset
                  */
-                sc.func.storage_class |= STCreturn;
+                if (global.params.vsafe)
+                    sc.func.storage_class |= STCreturn;
             }
 
         }
