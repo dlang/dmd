@@ -17,6 +17,14 @@ import ddmd.arraytypes : Expressions;
 
 import std.conv : to;
 
+private static void clearArray(T)(auto ref T array, uint count)
+{
+    foreach(i;0 .. count)
+    {
+        array[i] = typeof(array[0]).init;
+    }
+}
+
 version = ctfe_noboundscheck;
 enum BCBlockjumpTarget
 {
@@ -644,14 +652,6 @@ struct SharedCtfeState(BCGenT)
             return type.typeIndex <= arrayCount ? arrayTypes[type.typeIndex - 1].elementType : BCType.init;
         else
             return BCType.init;
-    }
-
-    static void clearArray(T)(auto ref T array, uint count)
-    {
-        foreach(i;0 .. count)
-        {
-            array[i] = typeof(array[0]).init;
-        }
     }
 
     void clearState()
@@ -1787,6 +1787,8 @@ static if (is(BCGen))
                     if (uncompiledFunctionCount > lastUncompiledFunction)
                         goto LuncompiledFunctions;
 
+                    clearArray(uncompiledFunctions, uncompiledFunctionCount);
+                    // not sure if the above clearArray does anything
                     uncompiledFunctionCount = 0;
                     parameterTypes = myPTypes;
                     arguments = myArgs;
