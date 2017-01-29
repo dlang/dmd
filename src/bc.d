@@ -1302,7 +1302,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
     BCValue* ev1 = null, BCValue* ev2 = null, const RE* errors = null,
     long[] stackPtr = null, uint stackOffset = 0)  @trusted
 {
-    static uint callDepth;
+    __gshared static uint callDepth;
     import std.conv;
     import std.stdio;
 
@@ -1311,12 +1311,6 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
         debug writeln("Args: ", args, "BC:", byteCode.printInstructions);
     }
     auto stack = stackPtr ? stackPtr : new long[](ushort.max / 4);
-
-    ulong dataSegHigh = 0; /// 56bit wide of the dataSegOffset
-    uint drOffset = 0; /// data registerOffset
-
-    uint dr; ///dataRegister holds the value of dataDeg[dataSegHigh | drOffset]
-    ubyte db; /// current dataByte a slice of the dataRegister with range [0 .. 4]
 
     // first push the args on
     debug (bc)
@@ -1360,8 +1354,6 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
             //       assert(0, "unsupported Type " ~ to!string(arg.type));
         }
     }
-    uint cacheIp;
-    uint[16] iCache; // not used right now... but we should!
     uint ip = 4;
     bool cond;
 
@@ -1392,9 +1384,9 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
 
         // consider splitting the stackPointer in stackHigh and stackLow
 
-        auto opRefOffset = (lw >> 16) & 0xFFFF;
-        auto lhsOffset = hi & 0xFFFF;
-        auto rhsOffset = (hi >> 16) & 0xFFFF;
+        const uint opRefOffset = (lw >> 16) & 0xFFFF;
+        const uint lhsOffset = hi & 0xFFFF;
+        const uint rhsOffset = (hi >> 16) & 0xFFFF;
 
         auto lhsRef = (stackP + (lhsOffset / 4));
         auto rhs = (stackP + (rhsOffset / 4));
@@ -1882,7 +1874,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                     debug writeln("stackOffsetCall: ", stackOffsetCall);
                 }
 
-                BCValue[16] callArgs;
+                BCValue[16] callArgs = void;
 
                 foreach(i,ref arg;call.args)
                 {

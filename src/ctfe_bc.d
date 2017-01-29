@@ -513,7 +513,7 @@ Expression getBoolExprRhs(Expression be)
 }
 
 string toString(T)(T value) if (is(T : Statement) || is(T : Declaration)
-        || is(T : Expression) || is(T : Dsymbol) || is(T : Type))
+        || is(T : Expression) || is(T : Dsymbol) || is(T : Type) || is(T : Initializer))
 {
     string result;
     import std.string : fromStringz;
@@ -581,11 +581,13 @@ struct BCStruct
     uint size;
 
     BCType[96] memberTypes;
+    bool[96] voidInit;
 
-    void addField(SharedCtfeState!BCGenT* state, const BCType bct)
+    void addField(const BCType bct, bool isVoidInit)
     {
-        memberTypes[memberTypeCount++] = bct;
-        size += state.size(bct);
+        memberTypes[memberTypeCount] = bct;
+        voidInit[memberTypeCount++] = isVoidInit;
+        size += _sharedCtfeState.size(bct);
     }
 
     const int offset(const int idx)
@@ -1260,13 +1262,13 @@ extern (C++) final class BCTypeVisitor : Visitor
         foreach (sMember; sd.fields)
         {
             if (sMember.type.ty == Tstruct && (cast(TypeStruct) sMember.type).sym == sd)
-                assert(0);
+                assert(0, "recursive struct definition this should never happen");
 
             auto bcType = toBCType(sMember.type);
-            st.addField(&_sharedCtfeState, bcType);
+            st.addField(bcType, sMember._init ? !!sMember._init.isVoidInitializer() : false);
         }
 
-        sharedCtfeState.endStruct(&st);
+        _sharedCtfeState.endStruct(&st);
 
     }
 
@@ -1385,8 +1387,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     bool ignoreVoid;
     bool noRetval;
     BCValue[void* ] vars;
-    //BCValue _this;
-    Expression _this;
+    BCValue _this;
     VarDeclaration lastConstVd;
 
     typeof(gen.genLabel()) lastContinue;
@@ -1508,6 +1509,12 @@ public:
     {
         processingParameters = false;
         // add this Pointer as last parameter
+        assert(me);
+        if (me.vthis)
+        {
+            _this = genParameter(toBCType(me.vthis.type));
+            setVariable(me.vthis, _this);
+        }
     }
 
     void beginArguments()
@@ -1525,10 +1532,10 @@ public:
 
     BCValue getVariable(VarDeclaration vd)
     {
-        import ddmd.declaration : STCmanifest, STCref;
-        if (vd.storage_class & STCref)
+        import ddmd.declaration : STCmanifest, STCref, STCstatic;
+        if (vd.storage_class & STCref || vd.storage_class & STCstatic)
         {
-            bailout("cannot handle ref variables");
+            bailout("cannot handle ref or static variables");
             return BCValue.init;
         }
 
@@ -1632,6 +1639,7 @@ public:
         //writeln("going to eval: ", fd.toString);
         if (auto fbody = fd.fbody.isCompoundStatement)
         {
+            me = fd;
             beginParameters();
             if (fd.parameters)
                 foreach (i, p; *(fd.parameters))
@@ -1664,6 +1672,11 @@ public:
             }
             beginFunction(fnIdx - 1);
             visit(fbody);
+            if(fd.type.nextOf.ty == Tvoid)
+            {
+                // insert a dummy return after void functions because they can omit a returnStatement
+                Ret(imm32(0));
+            }
             auto osp2 = sp.addr;
             endFunction();
             if (IGaveUp)
@@ -1718,8 +1731,9 @@ static if (is(BCGen))
                     {
                         _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
                     }
-
-                    foreach (uf; uncompiledFunctions[0 .. uncompiledFunctionCount])
+                    uint lastUncompiledFunction;
+                    LuncompiledFunctions :
+                    foreach (uf; uncompiledFunctions[lastUncompiledFunction .. uncompiledFunctionCount])
                     {
                         if (_blacklist.isInBlacklist(uf.fd.ident))
                         {
@@ -1728,6 +1742,7 @@ static if (is(BCGen))
                         }
 
                         clear();
+                        me = uf.fd;
                         beginParameters();
                         if (uf.fd.parameters)
                             foreach (i, p; (*(uf.fd.parameters)))
@@ -1746,6 +1761,7 @@ static if (is(BCGen))
                         uf.fd.fbody.accept(this);
                         auto osp = sp;
                         endFunction();
+                        lastUncompiledFunction++;
                         if (IGaveUp)
                         {
                             bailout("A called function bailedout: " ~ uf.fd.ident.toString);
@@ -1768,6 +1784,9 @@ static if (is(BCGen))
                         }
 
                     }
+                    if (uncompiledFunctionCount > lastUncompiledFunction)
+                        goto LuncompiledFunctions;
+
                     uncompiledFunctionCount = 0;
                     parameterTypes = myPTypes;
                     arguments = myArgs;
@@ -2131,7 +2150,7 @@ static if (is(BCGen))
             }
         default:
             {
-                bailout("BinExp.Op " ~ to!string(e.op) ~ " not handeled");
+                bailout("BinExp.Op " ~ to!string(e.op) ~ " not handeled -- " ~ e.toString);
             }
         }
 
@@ -2143,7 +2162,6 @@ static if (is(BCGen))
         auto vd = se.var.isVarDeclaration();
         auto fd = se.var.isFuncDeclaration();
         import ddmd.asttypename;
-
         if (vd)
         {
             auto v = getVariable(vd);
@@ -2160,7 +2178,6 @@ static if (is(BCGen))
                 Alloc(addr, _sharedCtfeState.size(v.type).imm32);
                 Store32(addr, v);
                 v.heapRef = BCHeapRef(addr);
-                v.heapRef.type = retval.type;
 
                 setVariable(vd, v);
                 // register as pointer and set the variable to pointer as well;
@@ -2541,6 +2558,13 @@ static if (is(BCGen))
                     bailout("Field cannot be found " ~ dve.toString);
                     return;
                 }
+
+                if  (_struct.voidInit[fIndex])
+                {
+                    bailout("We don't handle struct fields that may be void");
+                    return ;
+                }
+
                 int offset = _struct.offset(fIndex);
                 if (offset == -1)
                 {
@@ -2575,6 +2599,7 @@ static if (is(BCGen))
                 auto ptr = genTemporary(BCType(BCTypeEnum.i32));
                 Add3(ptr, lhs.i32, imm32(offset));
                 Load32(retval.i32, ptr);
+                retval.heapRef = BCHeapRef(ptr);
 
                 debug (ctfe)
                 {
@@ -2681,16 +2706,21 @@ static if (is(BCGen))
         }
 
         auto sd = sle.sd;
+
         auto idx = _sharedCtfeState.getStructIndex(sd);
         if (!idx)
         {
             bailout("structType could not be found: " ~ sd.toString);
             return;
         }
-        BCStruct _struct = _sharedCtfeState .structTypes[idx - 1];
+        BCStruct _struct = _sharedCtfeState.structTypes[idx - 1];
 
-        foreach (ty; _struct.memberTypes[0 .. _struct.memberTypeCount])
+        foreach (i; 0 .. _struct.memberTypeCount)
         {
+            if (_struct.voidInit[i])
+            {
+                bailout("We don't handle structs with void initalizers ... right now");
+            }
             /*    if (ty.type != BCTypeEnum.i32)
             {
                 bailout( "can only deal with ints and uints atm. not: (" ~ to!string(ty.type) ~ ", " ~ to!string(
@@ -2700,7 +2730,7 @@ static if (is(BCGen))
           */
         }
         auto heap = _sharedCtfeState.heap;
-        auto size = align4(_sharedCtfeState.size(BCType(BCTypeEnum.Struct, idx)));
+        auto size = align4(_struct.size);
 
         retval = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.i32));
         if (!insideArgumentProcessing)
@@ -2784,7 +2814,7 @@ static if (is(BCGen))
 
         }
 
-        retval = genExpr(_this);
+        retval = _this;
     }
 
     override void visit(ComExp ce)
@@ -2943,7 +2973,7 @@ static if (is(BCGen))
                 return;
             }
 
-            if(sv.heapRef != BCHeapRef.init)
+            if(sv.heapRef != BCHeapRef.init && sv.vType == BCValueType.StackValue)
             {
                 LoadFromHeapRef(sv);
             }
@@ -3246,7 +3276,7 @@ static if (is(BCGen))
         }
 
         auto bct = toBCType(ie.type);
-        if (bct.type != BCTypeEnum.i32 && bct.type != BCTypeEnum.i64)
+        if (bct.type != BCTypeEnum.i32 && bct.type != BCTypeEnum.i64 && bct.type != BCTypeEnum.Char)
         {
             //NOTE this can happen with cast(char*)size_t.max for example
             bailout("We don't support IntegerExpressions with non-integer types");
@@ -3505,12 +3535,17 @@ static if (is(BCGen))
 
             auto fIndex = findFieldIndexByName(structDeclPtr, vd);
             assert(fIndex != -1, "field " ~ vd.toString ~ "could not be found in" ~ dve.e1.toString);
-            BCStruct bcStructType = _sharedCtfeState .structTypes[structTypeIndex - 1];
+            BCStruct bcStructType = _sharedCtfeState.structTypes[structTypeIndex - 1];
 
             if (bcStructType.memberTypes[fIndex].type != BCTypeEnum.i32)
             {
                 bailout("only i32 structMembers are supported for now");
                 return;
+            }
+            if (bcStructType.voidInit[fIndex])
+            {
+                bailout("We don't handle void initialized struct fields");
+                return ;
             }
             auto rhs = genExpr(ae.e2);
             if (!rhs)
@@ -3821,14 +3856,14 @@ static if (is(BCGen))
     override void visit(AssertExp ae)
     {
         auto lhs = genExpr(ae.e1);
-        if (lhs.type.type == BCTypeEnum.i32)
+        if (lhs.type.type == BCTypeEnum.i32 || lhs.type.type == BCTypeEnum.Ptr || lhs.type.type == BCTypeEnum.Struct)
         {
-            Assert(lhs, _sharedCtfeState.addError(ae.loc,
+            Assert(lhs.i32, _sharedCtfeState.addError(ae.loc,
                 ae.msg ? ae.msg.toString : "Assert Failed"));
         }
         else
         {
-            bailout("Non Integral expression in assert (should probably never happen)");
+            bailout("Non Integral expression in assert (should probably never happen) -- " ~ ae.toString());
             return;
         }
     }
@@ -4106,6 +4141,7 @@ static if (is(BCGen))
 
     override void visit(CallExp ce)
     {
+        BCValue thisPtr;
         FuncDeclaration fd;
        // bailout("Bailing on FunctionCall");
        // return ;
@@ -4133,11 +4169,10 @@ static if (is(BCGen))
                 _this = (cast(DotTypeExp)dve.e1).e1;
             }
             */
-            auto thisValue = genExpr(_this);
-            bailout("cannot do methodcall " ~ toString(ce) ~ ":fd: " ~ toString(fd.type));
-            return ;
+            import ddmd.asttypename;
+            import std.stdio;
+            thisPtr = genExpr(dve.e1);
 
-            // most likely a method-call
         }
 
         if (!fd)
@@ -4150,14 +4185,14 @@ static if (is(BCGen))
             bailout("could not interpret (did not pass functionSemantic3())" ~ ce.toString);
             return;
         }
-        if (fd.hasNestedFrameRefs || fd.isThis || fd.needThis || fd.isNested)
+        if (fd.hasNestedFrameRefs || fd.isNested)
         {
             bailout("cannot deal with closures of any kind: " ~ ce.toString);
             return;
         }
 
         BCValue[] bc_args;
-        bc_args.length = ce.arguments.dim;
+        bc_args.length = ce.arguments.dim + !!(thisPtr);
 
         foreach (i, arg; *ce.arguments)
         {
@@ -4173,6 +4208,12 @@ static if (is(BCGen))
                 return ;
             }
         }
+
+        if (thisPtr)
+        {
+            bc_args[ce.arguments.dim] = thisPtr;
+        }
+
         static if (is(BCFunction) && is(typeof(_sharedCtfeState.functionCount)))
         {
 
@@ -4253,7 +4294,7 @@ static if (is(BCGen))
                 return ;
             }
             if (retval.type == BCTypeEnum.i32 || retval.type == BCTypeEnum.Slice
-                    || retval.type == BCTypeEnum.Array || retval.type == BCTypeEnum.String)
+                    || retval.type == BCTypeEnum.Array || retval.type == BCTypeEnum.String || retval.type == BCTypeEnum.Struct)
                 Ret(retval.i32);
             else
             {

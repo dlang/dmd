@@ -113,7 +113,7 @@ struct BCType
     /// 0 means basic type
     uint typeIndex;
     // additional information
-    uint flags;
+    ubyte flags;
 }
 
 enum BCValueType : ubyte
@@ -253,9 +253,13 @@ struct Imm32
 }
 
 
-BCValue imm32(uint value) pure @safe
+BCValue imm32(uint value) pure @trusted
 {
-    return BCValue(Imm32(value));
+    BCValue ret = void;
+    ret.vType = BCValueType.Immediate;
+    ret.type = BCTypeEnum.i32;
+    ret.imm32 = value;
+    return ret;
 }
 
 struct Imm64
@@ -285,8 +289,9 @@ struct BCBranch
 
 struct BCHeapRef
 {
-    BCType type;
     BCValueType vType;
+    ushort tmpIndex;
+
     union
     {
         HeapAddr heapAddr;
@@ -299,7 +304,9 @@ struct BCHeapRef
         switch(that.vType)
         {
             case BCValueType.StackValue, BCValueType.Parameter :
+            case BCValueType.Temporary:
                 stackAddr = that.stackAddr;
+                tmpIndex = that.tmpIndex;
             break;
 
             case BCValueType.HeapValue :
@@ -477,14 +484,19 @@ struct BCValue
 
     this(const BCHeapRef heapRef)
     {
-        this.type = heapRef.type;
         this.vType = heapRef.vType;
         switch (vType)
         {
             case BCValueType.StackValue, BCValueType.Parameter :
                 stackAddr = heapRef.stackAddr;
+                tmpIndex = heapRef.tmpIndex;
                 break;
-                
+
+            case BCValueType.Temporary :
+                stackAddr = heapRef.stackAddr;
+                tmpIndex = heapRef.tmpIndex;
+                break;
+
             case BCValueType.HeapValue :
                 heapAddr = heapRef.heapAddr;
                 break;
