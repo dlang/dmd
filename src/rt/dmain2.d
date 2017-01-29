@@ -492,7 +492,7 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
     return result;
 }
 
-private void formatThrowable(Throwable t, void delegate(in char[] s) nothrow sink)
+private void formatThrowable(Throwable t, scope void delegate(in char[] s) nothrow sink)
 {
     for (; t; t = t.next)
     {
@@ -521,7 +521,7 @@ extern (C) void _d_print_throwable(Throwable t)
         {
             wchar_t* ptr; size_t len;
 
-            void sink(in char[] s) nothrow
+            void sink(in char[] s) scope nothrow
             {
                 if (!s.length) return;
                 int swlen = MultiByteToWideChar(
@@ -609,7 +609,7 @@ extern (C) void _d_print_throwable(Throwable t)
         }
     }
 
-    void sink(in char[] buf) nothrow
+    void sink(in char[] buf) scope nothrow
     {
         fprintf(stderr, "%.*s", cast(int)buf.length, buf.ptr);
     }
