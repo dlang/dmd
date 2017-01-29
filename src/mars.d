@@ -2017,6 +2017,8 @@ private void addDefaultVersionIdentifiers()
         VersionCondition.addPredefinedGlobalIdent("assert");
     if (global.params.useArrayBounds == BOUNDSCHECKoff)
         VersionCondition.addPredefinedGlobalIdent("D_NoBoundsChecks");
+    if (global.params.warnings)
+        VersionCondition.addPredefinedGlobalIdent("D_Warnings");
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
 
     printPredefinedVersions();
