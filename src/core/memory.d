@@ -892,7 +892,9 @@ pure @nogc nothrow unittest
 
     fakePureFree(y);
 
-    void* z = pureMalloc(size_t.max); // won't affect `errno`
+    // subtract 2 because snn.lib adds 2 unconditionally before passing
+    //  the size to the Windows API
+    void* z = pureMalloc(size_t.max - 2); // won't affect `errno`
     assert(errno == fakePureGetErrno()); // errno shouldn't change
     assert(z is null);
 }
