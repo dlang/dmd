@@ -1,7 +1,6 @@
 /*
 REQUIRED_ARGS: -m64
 PERMUTE_ARGS:
-TEST_OUTPUT:
 ---
 fail_compilation/staticarrayoverflow.d(21): Error: static array S[1879048192] size overflowed to 7516192768000
 fail_compilation/staticarrayoverflow.d(21): Error: variable staticarrayoverflow.y size overflow

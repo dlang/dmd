@@ -851,9 +851,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 vd.error("size overflow");
                 return;
             }
-            if (sz64 >= 0x1000000)  // there has to be some 'reasonable' limit on the size
+            if (sz64 >= Target.maxStaticDataSize)
             {
-                vd.error("size of x%llx exceeds max allowed size 0x100_0000", sz64);
+                vd.error("size of 0x%llx exceeds max allowed size 0x%llx", sz64, Target.maxStaticDataSize);
             }
             uint sz = cast(uint)sz64;
 
