@@ -951,6 +951,8 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 }
                 if (sm.isTypeInfoDeclaration()) // Bugzilla 15177
                     return 0;
+                if (!sds.isModule() && sm.isImport()) // Bugzilla 17057
+                    return 0;
 
                 //printf("\t%s\n", sm.ident.toChars());
 
