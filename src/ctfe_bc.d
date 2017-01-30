@@ -705,7 +705,7 @@ struct SharedCtfeState(BCGenT)
     {
         static assert(is(typeof(BCFunction.funcDecl) == void*));
         BCFunction[ubyte.max * 64] functions;
-        uint functionCount = 0;
+        int functionCount = 0;
     }
     else
     {
@@ -1622,6 +1622,37 @@ public:
         return ret;
     }
 
+    static if (is(BCFunction) && is(typeof(_sharedCtfeState.functionCount)))
+    {
+        void addUncompiledFunction(FuncDeclaration fd, int* fnIdxP)
+        {
+            assert(*fnIdxP == 0, "addUncompiledFunction has to called with *fnIdxP == 0");
+
+            if (!fd)
+                return;
+
+            if (fd.fbody)
+            {
+                const fnIdx = ++_sharedCtfeState.functionCount;
+                _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
+                uncompiledFunctions[uncompiledFunctionCount++] = UncompiledFunction(fd, fnIdx);
+                *fnIdxP = fnIdx;
+            }
+            else
+            {
+                bailout("Null-Body: probably builtin: " ~ fd.toString);
+            }
+        }
+    }
+    else
+    {
+        void addUncompiledFunction(FuncDeclaration fd, int *fnIdxP)
+        {
+            assert(0, "We don't support Functions!\nHow do you expect me to add a function ?");
+        }
+    }
+
+
     override void visit(FuncDeclaration fd)
     {
         import ddmd.identifier;
@@ -2198,6 +2229,29 @@ static if (is(BCGen))
         else if (fd)
         {
             bailout(toString (se) ~ " function-variables are currently not handeled");
+
+            auto fnIdx = _sharedCtfeState.getFunctionIndex(fd);
+            if(!fnIdx)
+            {
+                addUncompiledFunction(fd, &fnIdx);
+            }
+            bailout(!fnIdx, "Function could not be generated: -- " ~ fd.toString);
+            BCValue fnPtr;
+            if (!insideArgumentProcessing)
+            {
+                fnPtr = genTemporary(i32Type);
+                Alloc(fnPtr, imm32(4));
+                Store32(fnPtr, imm32(fnIdx));
+            }
+            else
+            {
+                fnPtr = imm32(_sharedCtfeState.heap.heapSize);
+                _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = fnIdx;
+                _sharedCtfeState.heap.heapSize += 4;
+                //compileUncompiledFunctions();
+            }
+            retval = fnPtr;
+            //retval.type.type = BCTypeEnum.Function; // ?
         }
         else
             bailout(se.var.toString() ~ " is not a variable declarartion but a " ~ astTypeName(se.var));
@@ -4219,22 +4273,17 @@ static if (is(BCGen))
         static if (is(BCFunction) && is(typeof(_sharedCtfeState.functionCount)))
         {
 
-            uint fnIdx = _sharedCtfeState.getFunctionIndex(fd);
+            int fnIdx = _sharedCtfeState.getFunctionIndex(fd);
             // FIXME the check for fd.fbody should probably be done somewhere else
             // and we shoud handle the builtins!
-            if (!fnIdx && fd && fd.fbody && cacheBC)
+            if (!fnIdx && fd && cacheBC)
             {
                 // FIXME deferring can only be done if we are NOT in a closure
                 // if we get here the function was not already there.
                 // allocate the next free function index, take note of the function
                 // and move on as if we had compiled it :)
                 // by defering this we avoid a host of nasty issues!
-
-                const oldFunctionCount = _sharedCtfeState.functionCount++;
-                fnIdx = oldFunctionCount + 1;
-                _sharedCtfeState.functions[oldFunctionCount] = BCFunction(cast(void*) fd);
-                uncompiledFunctions[uncompiledFunctionCount++] = UncompiledFunction(fd,
-                    fnIdx);
+                addUncompiledFunction(fd, &fnIdx);
             }
             
             if (!fnIdx)
