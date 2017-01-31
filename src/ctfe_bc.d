@@ -2882,7 +2882,11 @@ static if (is(BCGen))
     override void visit(PtrExp pe)
     {
         bool isFunctionPtr = pe.type.ty == Tfunction;
-        bailout(isFunctionPtr, "No function ptr suppoerted");
+        if(isFunctionPtr)
+        {
+            bailout("No function ptr suppoerted");
+            return ;
+        }
         auto addr = genExpr(pe.e1);
 
         auto baseType = isFunctionPtr ? i32Type : _sharedCtfeState.elementType(addr.type);
@@ -4306,6 +4310,10 @@ static if (is(BCGen))
             }
             fnValue = imm32(fnIdx);
 
+        }
+        else
+        {
+            bailout("calls through functions pointer do not work currently");
         }
 
         
