@@ -2509,10 +2509,10 @@ static if (is(BCGen))
                 bailout("For: No cond generated");
                 return;
             }
-
             auto condJmp = beginCndJmp(cond);
             const oldContinueFixupCount = continueFixupCount;
-            auto _body = genBlock(fs._body, true, false, true);
+            const oldBreakFixupCount = breakFixupCount;
+            auto _body = genBlock(fs._body, true, true, true);
             if (fs.increment)
             {
                 typeof(genLabel()) beforeIncrement;
@@ -2521,8 +2521,9 @@ static if (is(BCGen))
                 fixupContinue(oldContinueFixupCount, beforeIncrement);
             }
             genJump(condEval);
-            auto afterJmp = genLabel();
-            endCndJmp(condJmp, afterJmp);
+            auto afterLoop = genLabel();
+            fixupBreak(oldBreakFixupCount, afterLoop);
+            endCndJmp(condJmp, afterLoop);
         }
         else if (fs.condition !is null  /* && fs._body is null*/ )
         {
