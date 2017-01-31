@@ -3870,6 +3870,10 @@ static if (is(BCGen))
                 }
             }
         }
+
+        if (assignTo.heapRef != BCHeapRef.init)
+            StoreToHeapRef(assignTo);
+
         retval = oldDiscardValue ? oldRetval : retval;
         assignTo = oldAssignTo;
         discardValue = oldDiscardValue;
