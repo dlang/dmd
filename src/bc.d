@@ -297,7 +297,7 @@ struct BCGen
     uint functionId;
     void* fd;
 
-    RetainedCall[ubyte.max * 5] calls;
+    RetainedCall[ubyte.max * 6] calls;
     uint callCount;
     auto interpret(BCValue[] args, BCHeap* heapPtr) const
     {

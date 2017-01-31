@@ -1627,6 +1627,11 @@ public:
         void addUncompiledFunction(FuncDeclaration fd, int* fnIdxP)
         {
             assert(*fnIdxP == 0, "addUncompiledFunction has to called with *fnIdxP == 0");
+            if (uncompiledFunctionCount >= uncompiledFunctions.length - 64)
+            {
+                bailout("UncompiledFunctions overflowed");
+                return ;
+            }
 
             if (!fd)
                 return;
