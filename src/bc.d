@@ -2,6 +2,7 @@ module ddmd.ctfe.bc;
 import ddmd.ctfe.bc_common;
 import core.stdc.stdio;
 import std.conv;
+                debug = 1;
 
 /**
  * Written By Stefan Koch in 2016
@@ -1866,10 +1867,10 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                     (stackP[call.fn.stackAddr.addr / 4] & uint.max)
                     );
                 auto stackOffsetCall = stackOffset + call.callerSp;
-
                 if (!__ctfe)
                 {
                     debug writeln("call.fn = ", call.fn);
+                    debug writeln("fn = ", fn);
                     debug writeln((functions + fn - 1).byteCode.printInstructions);
                     debug writeln("stackOffsetCall: ", stackOffsetCall);
                 }

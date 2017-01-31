@@ -2228,7 +2228,7 @@ static if (is(BCGen))
         }
         else if (fd)
         {
-            bailout(toString (se) ~ " function-variables are currently not handeled");
+            //bailout(toString (se) ~ " function-variables are currently not handeled");
 
             auto fnIdx = _sharedCtfeState.getFunctionIndex(fd);
             if(!fnIdx)
@@ -2880,8 +2880,12 @@ static if (is(BCGen))
 
     override void visit(PtrExp pe)
     {
+        bool isFunctionPtr = pe.type.ty == Tfunction;
 
         auto addr = genExpr(pe.e1);
+
+        auto baseType = isFunctionPtr ? i32Type : _sharedCtfeState.elementType(addr.type);
+
         debug(ctfe)
         {
 
@@ -2890,16 +2894,36 @@ static if (is(BCGen))
             writeln("PtrExp: ", pe.toString, " = ", addr);
         }
 
-        auto baseType = _sharedCtfeState.elementType(addr.type);
+        if (assignTo)
+        {
+            retval = assignTo;
+            assignTo = BCValue.init;
+        }
+        else
+        {
+            retval = genTemporary(baseType);
+        }
+
         auto tmp = genTemporary(baseType);
-        if(tmp.type.type != BCTypeEnum.i32)
+        if(baseType.type != BCTypeEnum.i32)
         {
            bailout("can only deal with i32 ptrs at the moement");
            return ;
         }
+        // FIXME when we are ready to support more then i32Ptr the direct calling of load
+        // has to be replace by a genLoadForType() function that'll convert from
+        // heap+representation to stack+representation.
 
-        Load32(tmp, addr);
-        tmp.heapRef = BCHeapRef(addr);
+        Load32(retval, addr);
+        if (!isFunctionPtr)
+        {
+            retval.heapRef = BCHeapRef(addr);
+        }
+        else
+        {
+            retval.type.type = BCTypeEnum.Function;
+        }
+
 
     }
 
@@ -4198,14 +4222,21 @@ static if (is(BCGen))
     override void visit(CallExp ce)
     {
         BCValue thisPtr;
+        BCValue fnValue;
         FuncDeclaration fd;
+
+        bool isFunctionPtr;
        // bailout("Bailing on FunctionCall");
        // return ;
 
         import ddmd.asttypename;
         if (ce.e1.op == TOKvar)
         {
-            fd = (cast(VarExp) ce.e1).var.isFuncDeclaration();
+            auto ve = (cast(VarExp) ce.e1);
+            fd = ve.var.isFuncDeclaration();
+            // TODO FIXME be aware we can set isFunctionPtr here as well,
+            // should we detect it
+            bailout(!fd, "call on varexp: var was not a FuncDeclaration, but: " ~ ve.var.astTypeName);
         }
         else if (ce.e1.op == TOKdotvar)
         {
@@ -4230,23 +4261,53 @@ static if (is(BCGen))
             thisPtr = genExpr(dve.e1);
 
         }
+        else if (ce.e1.op == TOKstar)
+        {
+            isFunctionPtr = true;
+            fnValue = genExpr(ce.e1);
+            //fnValue = genTemporary(i32Type);
+            //Load32(fnValue, fnAddr);
 
-        if (!fd)
-        {
-            bailout("could not get funcDecl" ~ astTypeName(ce.e1));
-            return;
-        }
-        if (!fd.functionSemantic3())
-        {
-            bailout("could not interpret (did not pass functionSemantic3())" ~ ce.toString);
-            return;
-        }
-        if (fd.hasNestedFrameRefs || fd.isNested)
-        {
-            bailout("cannot deal with closures of any kind: " ~ ce.toString);
-            return;
         }
 
+        if(!isFunctionPtr)
+        {
+            if (!fd)
+            {
+                bailout("could not get funcDecl" ~ astTypeName(ce.e1));
+                return;
+            }
+            if (!fd.functionSemantic3())
+            {
+                bailout("could not interpret (did not pass functionSemantic3())" ~ ce.toString);
+                return;
+            }
+            if (fd.hasNestedFrameRefs || fd.isNested)
+            {
+                bailout("cannot deal with closures of any kind: " ~ ce.toString);
+                return;
+            }
+
+            int fnIdx = _sharedCtfeState.getFunctionIndex(fd);
+            if (!fnIdx && cacheBC)
+            {
+                // FIXME deferring can only be done if we are NOT in a closure
+                // if we get here the function was not already there.
+                // allocate the next free function index, take note of the function
+                // and move on as if we had compiled it :)
+                // by defering this we avoid a host of nasty issues!
+                addUncompiledFunction(fd, &fnIdx);
+            }
+            if (!fnIdx)
+            {
+                bailout("We could not compile " ~ ce.toString);
+                return;
+            }
+            fnValue = imm32(fnIdx);
+
+        }
+
+        
         BCValue[] bc_args;
         bc_args.length = ce.arguments.dim + !!(thisPtr);
 
@@ -4273,25 +4334,6 @@ static if (is(BCGen))
         static if (is(BCFunction) && is(typeof(_sharedCtfeState.functionCount)))
         {
 
-            int fnIdx = _sharedCtfeState.getFunctionIndex(fd);
-            // FIXME the check for fd.fbody should probably be done somewhere else
-            // and we shoud handle the builtins!
-            if (!fnIdx && fd && cacheBC)
-            {
-                // FIXME deferring can only be done if we are NOT in a closure
-                // if we get here the function was not already there.
-                // allocate the next free function index, take note of the function
-                // and move on as if we had compiled it :)
-                // by defering this we avoid a host of nasty issues!
-                addUncompiledFunction(fd, &fnIdx);
-            }
-            
-            if (!fnIdx)
-            {
-                bailout("We could not compile " ~ ce.toString);
-                return;
-            }
-
             if (assignTo)
             {
                 retval = assignTo;
@@ -4304,13 +4346,20 @@ static if (is(BCGen))
 
             static if (is(BCGen))
             {
-                if(callCount >= calls.length)
+                if(callCount >= calls.length - 64)
                 {
-                    bailout("can only handle " ~ to!string(calls.length) ~ "function-calls per topLevel evaluation");
+                    bailout("can only handle " ~ to!string(calls.length) ~ " function-calls per topLevel evaluation");
                     return ;
                 }
             }
-            Call(retval, imm32(fnIdx), bc_args, ce.loc);
+
+            if (!fnValue)
+            {
+                bailout("Function could not be generated in: " ~ ce.toString);
+                return ;
+            }
+
+            Call(retval, fnValue, bc_args, ce.loc);
             import ddmd.identifier;
             /*if (fd.ident == Identifier.idPool("isGraphical"))
             {
