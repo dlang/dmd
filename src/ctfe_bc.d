@@ -1659,7 +1659,67 @@ public:
 
     void compileUncompiledFunctions()
     {
-        
+                    uint lastUncompiledFunction;
+                    LuncompiledFunctions :
+                    foreach (uf; uncompiledFunctions[lastUncompiledFunction .. uncompiledFunctionCount])
+                    {
+                        if (_blacklist.isInBlacklist(uf.fd.ident))
+                        {
+                            bailout("Bailout on blacklisted");
+                            return;
+                        }
+
+                        assert(!me, "We are not clean!");
+                        me = uf.fd;
+                        beginParameters();
+                        auto parameters = uf.fd.parameters;
+                        if (parameters)
+                            foreach (i, p; *parameters)
+                            {
+                                debug (ctfe)
+                                {
+                                    import std.stdio;
+
+                                    writeln("uc parameter [", i, "] : ", p.toString);
+                                }
+                                p.accept(this);
+                            }
+                        endParameters();
+                        auto fnIdx = uf.fn;
+                        beginFunction(fnIdx - 1);
+                        uf.fd.fbody.accept(this);
+                        auto osp = sp;
+                        endFunction();
+                        lastUncompiledFunction++;
+                        if (IGaveUp)
+                        {
+                            bailout("A called function bailedout: " ~ uf.fd.ident.toString);
+                            return ;
+                        }
+
+                        static if (is(BCGen))
+                        {
+                            _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) uf.fd,
+                                fnIdx, BCFunctionTypeEnum.Bytecode,
+                                cast(ushort) (parameters ? parameters.dim : 0), osp.addr, //FIXME IMPORTANT PERFORMANCE!!!
+                                // get rid of dup!
+
+                                byteCodeArray[0 .. ip].idup);
+                            clear();
+                        }
+                        else
+                        {
+                            _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
+                        }
+
+                    }
+                    if (uncompiledFunctionCount > lastUncompiledFunction)
+                        goto LuncompiledFunctions;
+
+                    clearArray(uncompiledFunctions, uncompiledFunctionCount);
+                    // not sure if the above clearArray does anything
+                    uncompiledFunctionCount = 0;
+
     }
 
     override void visit(FuncDeclaration fd)
@@ -1771,66 +1831,9 @@ static if (is(BCGen))
                     {
                         _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
                     }
-                    uint lastUncompiledFunction;
-                    LuncompiledFunctions :
-                    foreach (uf; uncompiledFunctions[lastUncompiledFunction .. uncompiledFunctionCount])
-                    {
-                        if (_blacklist.isInBlacklist(uf.fd.ident))
-                        {
-                            bailout("Bailout on blacklisted");
-                            return;
-                        }
 
-                        assert(!me, "We are not clean!");
-                        me = uf.fd;
-                        beginParameters();
-                        auto parameters = uf.fd.parameters;
-                        if (parameters)
-                            foreach (i, p; *parameters)
-                            {
-                                debug (ctfe)
-                                {
-                                    import std.stdio;
+                    compileUncompiledFunctions();
 
-                                    writeln("uc parameter [", i, "] : ", p.toString);
-                                }
-                                p.accept(this);
-                            }
-                        endParameters();
-                        fnIdx = uf.fn;
-                        beginFunction(fnIdx - 1);
-                        uf.fd.fbody.accept(this);
-                        auto osp = sp;
-                        endFunction();
-                        lastUncompiledFunction++;
-                        if (IGaveUp)
-                        {
-                            bailout("A called function bailedout: " ~ uf.fd.ident.toString);
-                            return ;
-                        }
-
-                        static if (is(BCGen))
-                        {
-                            _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) uf.fd,
-                                fnIdx, BCFunctionTypeEnum.Bytecode,
-                                cast(ushort) (parameters ? parameters.dim : 0), osp.addr, //FIXME IMPORTANT PERFORMANCE!!!
-                                // get rid of dup!
-
-                                byteCodeArray[0 .. ip].idup);
-                            clear();
-                        }
-                        else
-                        {
-                            _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
-                        }
-
-                    }
-                    if (uncompiledFunctionCount > lastUncompiledFunction)
-                        goto LuncompiledFunctions;
-
-                    clearArray(uncompiledFunctions, uncompiledFunctionCount);
-                    // not sure if the above clearArray does anything
-                    uncompiledFunctionCount = 0;
                     parameterTypes = myPTypes;
                     arguments = myArgs;
 static if (is(BCGen))
