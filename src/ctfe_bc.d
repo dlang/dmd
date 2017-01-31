@@ -1362,7 +1362,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     BCAddr[ubyte.max] continueFixups = void;
     BCScope[16] scopes = void;
     BoolExprFixupEntry[ubyte.max] fixupTable = void;
-    UncompiledFunction[ubyte.max * 8] uncompiledFunctions = void;
+    UncompiledFunction[ubyte.max * 12] uncompiledFunctions = void;
     SwitchState[16] switchStates = void;
 
     alias visit = super.visit;
@@ -1627,11 +1627,11 @@ public:
         void addUncompiledFunction(FuncDeclaration fd, int* fnIdxP)
         {
             assert(*fnIdxP == 0, "addUncompiledFunction has to called with *fnIdxP == 0");
-           /* if (uncompiledFunctionCount >= uncompiledFunctions.length - 64)
+            if (uncompiledFunctionCount >= uncompiledFunctions.length - 64)
             {
                 bailout("UncompiledFunctions overflowed");
                 return ;
-            }*/
+            }
 
             if (!fd)
                 return;
