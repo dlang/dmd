@@ -1657,6 +1657,10 @@ public:
         }
     }
 
+    void compileUncompiledFunctions()
+    {
+        
+    }
 
     override void visit(FuncDeclaration fd)
     {
@@ -1777,11 +1781,12 @@ static if (is(BCGen))
                             return;
                         }
 
-                        clear();
+                        assert(!me, "We are not clean!");
                         me = uf.fd;
                         beginParameters();
-                        if (uf.fd.parameters)
-                            foreach (i, p; (*(uf.fd.parameters)))
+                        auto parameters = uf.fd.parameters;
+                        if (parameters)
+                            foreach (i, p; *parameters)
                             {
                                 debug (ctfe)
                                 {
@@ -1806,9 +1811,9 @@ static if (is(BCGen))
 
                         static if (is(BCGen))
                         {
-                            _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
-                                fnIdx - 1, BCFunctionTypeEnum.Bytecode,
-                                cast(ushort) parameterTypes.length, osp.addr, //FIXME IMPORTANT PERFORMANCE!!!
+                            _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) uf.fd,
+                                fnIdx, BCFunctionTypeEnum.Bytecode,
+                                cast(ushort) (parameters ? parameters.dim : 0), osp.addr, //FIXME IMPORTANT PERFORMANCE!!!
                                 // get rid of dup!
 
                                 byteCodeArray[0 .. ip].idup);
