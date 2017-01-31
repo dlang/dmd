@@ -2882,7 +2882,7 @@ static if (is(BCGen))
     override void visit(PtrExp pe)
     {
         bool isFunctionPtr = pe.type.ty == Tfunction;
-
+        bailout(isFunctionPtr, "No function ptr suppoerted");
         auto addr = genExpr(pe.e1);
 
         auto baseType = isFunctionPtr ? i32Type : _sharedCtfeState.elementType(addr.type);

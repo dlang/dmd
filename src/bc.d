@@ -2,7 +2,6 @@ module ddmd.ctfe.bc;
 import ddmd.ctfe.bc_common;
 import core.stdc.stdio;
 import std.conv;
-                debug = 1;
 
 /**
  * Written By Stefan Koch in 2016
