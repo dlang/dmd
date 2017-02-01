@@ -3266,18 +3266,18 @@ code *cdfunc(elem *e,regm_t *pretregs)
 
 code *cdstrthis(elem *e,regm_t *pretregs)
 {
-    code *c1;
-    code *c2;
+    CodeBuilder cdb;
 
     assert(tysize(e->Ety) == REGSIZE);
     unsigned reg = findreg(*pretregs & allregs);
-    c1 = getregs(mask[reg]);
+    cdb.append(getregs(mask[reg]));
     // LEA reg,np[ESP]
     unsigned np = stackpush - e->EV.Vuns;        // stack delta to parameter
-    c2 = genc1(CNIL,0x8D,(modregrm(0,4,SP) << 8) | modregxrm(2,reg,4),FLconst,np);
+    cdb.genc1(0x8D,(modregrm(0,4,SP) << 8) | modregxrm(2,reg,4),FLconst,np);
     if (I64)
-        code_orrex(c2, REX_W);
-    return cat3(c1,c2,fixresult(e,mask[reg],pretregs));
+        code_orrex(cdb.last(), REX_W);
+    cdb.append(fixresult(e,mask[reg],pretregs));
+    return cdb.finish();
 }
 
 /******************************
@@ -3675,8 +3675,9 @@ static code *movParams(elem *e,unsigned stackalign, unsigned funcargtos)
                 cs.IFL2 = fl;
                 cs.IEVsym2 = e->EV.sp.Vsym;
                 cs.Iflags |= CFoff;
-                c = gen(c,&cs);
-                return c;
+                CodeBuilder cdb;
+                cdb.gen(&cs);
+                return cdb.finish();
             }
             break;
         }
@@ -3711,6 +3712,7 @@ static code *movParams(elem *e,unsigned stackalign, unsigned funcargtos)
                     p = (targ_size_t *) &(e->EV);
                 }
 
+                CodeBuilder cdb;
                 int i = sz;
                 do
                 {   int regsize = REGSIZE;
@@ -3727,7 +3729,7 @@ static code *movParams(elem *e,unsigned stackalign, unsigned funcargtos)
                     }
                     if (I64 && sz >= 8)
                         cs.Irex |= REX_W;
-                    c = gen(c,&cs);           // MOV EA,const
+                    cdb.gen(&cs);           // MOV EA,const
 
                     p = (targ_size_t *)((char *) p + regsize);
                     cs.Iop = 0xC7;
@@ -3737,7 +3739,7 @@ static code *movParams(elem *e,unsigned stackalign, unsigned funcargtos)
                     cs.IEV2.Vint = *p;
                     i -= regsize;
                 } while (i > 0);
-                return c;
+                return cdb.finish();
             }
         Lbreak:
             break;
@@ -3747,21 +3749,22 @@ static code *movParams(elem *e,unsigned stackalign, unsigned funcargtos)
     regm_t retregs = tybyte(tym) ? BYTEREGS : allregs;
     if (tyvector(tym))
     {
+        CodeBuilder cdb;
         retregs = XMMREGS;
-        c = cat(c,codelem(e,&retregs,FALSE));
+        cdb.append(codelem(e,&retregs,FALSE));
         unsigned op = xmmstore(tym);
         unsigned r = findreg(retregs);
-        code *cd = genc1(CNIL,op,modregxrm(2,r - XMM0,BPRM),FLfuncarg,funcargtos - 16);   // MOV funcarg[EBP],r
-        checkSetVex(cd,tym);
-        c = cat(c,cd);
-        goto ret;
+        cdb.genc1(op,modregxrm(2,r - XMM0,BPRM),FLfuncarg,funcargtos - 16);   // MOV funcarg[EBP],r
+        checkSetVex(cdb.last(),tym);
+        return cdb.finish();
     }
     else if (tyfloating(tym))
     {
         if (config.inline8087)
         {
+            CodeBuilder cdb;
             retregs = tycomplex(tym) ? mST01 : mST0;
-            c = cat(c,codelem(e,&retregs,FALSE));
+            cdb.append(codelem(e,&retregs,FALSE));
 
             unsigned op;
             unsigned r;
@@ -3792,38 +3795,36 @@ static code *movParams(elem *e,unsigned stackalign, unsigned funcargtos)
                 default:
                     assert(0);
             }
-            code *c2 = NULL;
             if (tycomplex(tym))
             {
                 // FSTP sz/2[ESP]
-                c2 = genc1(CNIL,op,modregxrm(2,r,BPRM),FLfuncarg,funcargtos - sz/2);
+                cdb.genc1(op,modregxrm(2,r,BPRM),FLfuncarg,funcargtos - sz/2);
                 pop87();
             }
             pop87();
-            c2 = genc1(c2,op,modregxrm(2,r,BPRM),FLfuncarg,funcargtos - sz);    // FSTP -sz[EBP]
-            c = cat(c,c2);
-            goto ret;
+            cdb.genc1(op,modregxrm(2,r,BPRM),FLfuncarg,funcargtos - sz);    // FSTP -sz[EBP]
+            return cdb.finish();
         }
     }
-    c = cat(c,scodelem(e,&retregs,0,TRUE));
+    CodeBuilder cdb;
+    cdb.append(scodelem(e,&retregs,0,TRUE));
     if (sz <= REGSIZE)
     {
         unsigned r = findreg(retregs);
-        c = genc1(c,0x89,modregxrm(2,r,BPRM),FLfuncarg,funcargtos - REGSIZE);   // MOV -REGSIZE[EBP],r
+        cdb.genc1(0x89,modregxrm(2,r,BPRM),FLfuncarg,funcargtos - REGSIZE);   // MOV -REGSIZE[EBP],r
         if (sz == 8)
-            code_orrex(c, REX_W);
+            code_orrex(cdb.last(), REX_W);
     }
     else if (sz == REGSIZE * 2)
     {
         unsigned r = findregmsw(retregs);
-        c = genc1(c,0x89,grex | modregxrm(2,r,BPRM),FLfuncarg,funcargtos - REGSIZE);    // MOV -REGSIZE[EBP],r
+        cdb.genc1(0x89,grex | modregxrm(2,r,BPRM),FLfuncarg,funcargtos - REGSIZE);    // MOV -REGSIZE[EBP],r
         r = findreglsw(retregs);
-        c = genc1(c,0x89,grex | modregxrm(2,r,BPRM),FLfuncarg,funcargtos - REGSIZE * 2); // MOV -2*REGSIZE[EBP],r
+        cdb.genc1(0x89,grex | modregxrm(2,r,BPRM),FLfuncarg,funcargtos - REGSIZE * 2); // MOV -2*REGSIZE[EBP],r
     }
     else
         assert(0);
-ret:
-    return cat(cp,c);
+    return cdb.finish();
 }
 
 
