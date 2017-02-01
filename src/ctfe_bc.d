@@ -17,6 +17,21 @@ import ddmd.arraytypes : Expressions;
 
 import std.conv : to;
 
+enum perf = 0;
+enum bailoutMessages = 0;
+enum cacheBC = 1;
+enum UseLLVMBackend = 0;
+enum UsePrinterBackend = 0;
+enum UseCBackend = 0;
+
+private static void clearArray(T)(auto ref T array, uint count)
+{
+    foreach(i;0 .. count)
+    {
+        array[i] = typeof(array[0]).init;
+    }
+}
+
 version = ctfe_noboundscheck;
 enum BCBlockjumpTarget
 {
@@ -161,12 +176,6 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 
 import ddmd.ctfe.bc_common;
 
-enum perf = 0;
-enum bailoutMessages = 0;
-enum cacheBC = 1;
-enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 0;
-enum UseCBackend = 0;
 
 static if (UseLLVMBackend)
 {
@@ -646,14 +655,6 @@ struct SharedCtfeState(BCGenT)
             return BCType.init;
     }
 
-    static void clearArray(T)(auto ref T array, uint count)
-    {
-        foreach(i;0 .. count)
-        {
-            array[i] = typeof(array[0]).init;
-        }
-    }
-
     void clearState()
     {
         clearArray(sArrayTypePointers, arrayCount);
@@ -705,7 +706,7 @@ struct SharedCtfeState(BCGenT)
     {
         static assert(is(typeof(BCFunction.funcDecl) == void*));
         BCFunction[ubyte.max * 64] functions;
-        uint functionCount = 0;
+        int functionCount = 0;
     }
     else
     {
@@ -1435,18 +1436,27 @@ extern (C++) final class BCV(BCGenT) : Visitor
         }
     }
 
-    extern (D) void bailout(bool value, const(char)[] message, size_t line = __LINE__)
+    extern (D) void bailout(bool value, const(char)[] message, size_t line = __LINE__, string pfn = __PRETTY_FUNCTION__)
     {
         if (value)
         {
-            bailout(message, line);
+            bailout(message, line, pfn);
         }
     }
 
-    extern (D) void bailout(const(char)[] message, size_t line = __LINE__)
+    extern (D) void bailout(const(char)[] message, size_t line = __LINE__, string pfn = __PRETTY_FUNCTION__)
     {
         IGaveUp = true;
         const fnIdx = _sharedCtfeState.getFunctionIndex(me);
+
+        enum headLn = 58;
+        if (pfn.length > headLn)
+        {
+            pfn = pfn[headLn .. $-1];
+            import std.string : indexOf;
+            pfn = pfn[0 .. pfn.indexOf(' ')];
+        }
+
         if (fnIdx)
             static if (is(BCFunction))
             {
@@ -1454,14 +1464,13 @@ extern (C++) final class BCV(BCGenT) : Visitor
             }
         debug (ctfe)
         {
-            assert(0, "bailout(" ~ to!string(line) ~ "): " ~ message);
+            assert(0, "bailout on " ~ pfn ~ " (" ~ to!string(line) ~ "): " ~ message);
         }
         else
         {
             import std.stdio;
-
             static if (bailoutMessages)
-                writefln("bailout(%d): %s", line, message);
+                writefln("bailout on %s (%d): %s", pfn, line, message);
         }
     }
 
@@ -1622,6 +1631,118 @@ public:
         return ret;
     }
 
+    static if (is(BCFunction) && is(typeof(_sharedCtfeState.functionCount)))
+    {
+        void addUncompiledFunction(FuncDeclaration fd, int* fnIdxP)
+        {
+            assert(*fnIdxP == 0, "addUncompiledFunction has to called with *fnIdxP == 0");
+            if (uncompiledFunctionCount >= uncompiledFunctions.length - 64)
+            {
+                bailout("UncompiledFunctions overflowed");
+                return ;
+            }
+
+            if (!fd)
+                return ;
+
+            if (!fd.functionSemantic3())
+            {
+                bailout("could not interpret (did not pass functionSemantic3())" ~ fd.getIdent.toString);
+                return ;
+            }
+
+            if (fd.hasNestedFrameRefs || fd.isNested)
+            {
+                bailout("cannot deal with closures of any kind: " ~ fd.toString);
+                return ;
+            }
+
+            if (fd.fbody)
+            {
+                const fnIdx = ++_sharedCtfeState.functionCount;
+                _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
+                uncompiledFunctions[uncompiledFunctionCount++] = UncompiledFunction(fd, fnIdx);
+                *fnIdxP = fnIdx;
+            }
+            else
+            {
+                bailout("Null-Body: probably builtin: " ~ fd.toString);
+            }
+        }
+    }
+    else
+    {
+        void addUncompiledFunction(FuncDeclaration fd, int *fnIdxP)
+        {
+            assert(0, "We don't support Functions!\nHow do you expect me to add a function ?");
+        }
+    }
+
+    void compileUncompiledFunctions()
+    {
+        uint lastUncompiledFunction;
+    LuncompiledFunctions :
+        foreach (uf; uncompiledFunctions[lastUncompiledFunction .. uncompiledFunctionCount])
+        {
+            if (_blacklist.isInBlacklist(uf.fd.ident))
+            {
+                bailout("Bailout on blacklisted");
+                return;
+            }
+
+            assert(!me, "We are not clean!");
+            me = uf.fd;
+            beginParameters();
+            auto parameters = uf.fd.parameters;
+            if (parameters)
+                foreach (i, p; *parameters)
+            {
+                debug (ctfe)
+                {
+                    import std.stdio;
+
+                    writeln("uc parameter [", i, "] : ", p.toString);
+                }
+                p.accept(this);
+            }
+            endParameters();
+            auto fnIdx = uf.fn;
+            beginFunction(fnIdx - 1);
+            uf.fd.fbody.accept(this);
+            auto osp = sp;
+            endFunction();
+            lastUncompiledFunction++;
+            if (IGaveUp)
+            {
+                bailout("A called function bailedout: " ~ uf.fd.ident.toString);
+                return ;
+            }
+
+            static if (is(BCGen))
+            {
+                _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) uf.fd,
+                    fnIdx, BCFunctionTypeEnum.Bytecode,
+                    cast(ushort) (parameters ? parameters.dim : 0), osp.addr, //FIXME IMPORTANT PERFORMANCE!!!
+                    // get rid of dup!
+
+                    byteCodeArray[0 .. ip].idup);
+                clear();
+            }
+            else
+            {
+                _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
+            }
+
+        }
+
+        if (uncompiledFunctionCount > lastUncompiledFunction)
+            goto LuncompiledFunctions;
+
+        clearArray(uncompiledFunctions, uncompiledFunctionCount);
+        // not sure if the above clearArray does anything
+        uncompiledFunctionCount = 0;
+    }
+
     override void visit(FuncDeclaration fd)
     {
         import ddmd.identifier;
@@ -1731,63 +1852,9 @@ static if (is(BCGen))
                     {
                         _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
                     }
-                    uint lastUncompiledFunction;
-                    LuncompiledFunctions :
-                    foreach (uf; uncompiledFunctions[lastUncompiledFunction .. uncompiledFunctionCount])
-                    {
-                        if (_blacklist.isInBlacklist(uf.fd.ident))
-                        {
-                            bailout("Bailout on blacklisted");
-                            return;
-                        }
 
-                        clear();
-                        me = uf.fd;
-                        beginParameters();
-                        if (uf.fd.parameters)
-                            foreach (i, p; (*(uf.fd.parameters)))
-                            {
-                                debug (ctfe)
-                                {
-                                    import std.stdio;
+                    compileUncompiledFunctions();
 
-                                    writeln("uc parameter [", i, "] : ", p.toString);
-                                }
-                                p.accept(this);
-                            }
-                        endParameters();
-                        fnIdx = uf.fn;
-                        beginFunction(fnIdx - 1);
-                        uf.fd.fbody.accept(this);
-                        auto osp = sp;
-                        endFunction();
-                        lastUncompiledFunction++;
-                        if (IGaveUp)
-                        {
-                            bailout("A called function bailedout: " ~ uf.fd.ident.toString);
-                            return ;
-                        }
-
-                        static if (is(BCGen))
-                        {
-                            _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
-                                fnIdx - 1, BCFunctionTypeEnum.Bytecode,
-                                cast(ushort) parameterTypes.length, osp.addr, //FIXME IMPORTANT PERFORMANCE!!!
-                                // get rid of dup!
-
-                                byteCodeArray[0 .. ip].idup);
-                            clear();
-                        }
-                        else
-                        {
-                            _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
-                        }
-
-                    }
-                    if (uncompiledFunctionCount > lastUncompiledFunction)
-                        goto LuncompiledFunctions;
-
-                    uncompiledFunctionCount = 0;
                     parameterTypes = myPTypes;
                     arguments = myArgs;
 static if (is(BCGen))
@@ -2195,7 +2262,30 @@ static if (is(BCGen))
         }
         else if (fd)
         {
-            bailout(toString (se) ~ " function-variables are currently not handeled");
+            //bailout(toString (se) ~ " function-variables are currently not handeled");
+
+            auto fnIdx = _sharedCtfeState.getFunctionIndex(fd);
+            if(!fnIdx)
+            {
+                addUncompiledFunction(fd, &fnIdx);
+            }
+            bailout(!fnIdx, "Function could not be generated: -- " ~ fd.toString);
+            BCValue fnPtr;
+            if (!insideArgumentProcessing)
+            {
+                fnPtr = genTemporary(i32Type);
+                Alloc(fnPtr, imm32(4));
+                Store32(fnPtr, imm32(fnIdx));
+            }
+            else
+            {
+                fnPtr = imm32(_sharedCtfeState.heap.heapSize);
+                _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = fnIdx;
+                _sharedCtfeState.heap.heapSize += 4;
+                //compileUncompiledFunctions();
+            }
+            retval = fnPtr;
+            //retval.type.type = BCTypeEnum.Function; // ?
         }
         else
             bailout(se.var.toString() ~ " is not a variable declarartion but a " ~ astTypeName(se.var));
@@ -2453,10 +2543,10 @@ static if (is(BCGen))
                 bailout("For: No cond generated");
                 return;
             }
-
             auto condJmp = beginCndJmp(cond);
             const oldContinueFixupCount = continueFixupCount;
-            auto _body = genBlock(fs._body, true, false, true);
+            const oldBreakFixupCount = breakFixupCount;
+            auto _body = genBlock(fs._body, true, true, true);
             if (fs.increment)
             {
                 typeof(genLabel()) beforeIncrement;
@@ -2465,8 +2555,9 @@ static if (is(BCGen))
                 fixupContinue(oldContinueFixupCount, beforeIncrement);
             }
             genJump(condEval);
-            auto afterJmp = genLabel();
-            endCndJmp(condJmp, afterJmp);
+            auto afterLoop = genLabel();
+            fixupBreak(oldBreakFixupCount, afterLoop);
+            endCndJmp(condJmp, afterLoop);
         }
         else if (fs.condition !is null  /* && fs._body is null*/ )
         {
@@ -2824,8 +2915,16 @@ static if (is(BCGen))
 
     override void visit(PtrExp pe)
     {
-
+        bool isFunctionPtr = pe.type.ty == Tfunction;
+        if(isFunctionPtr)
+        {
+            bailout("No function ptr suppoerted");
+            return ;
+        }
         auto addr = genExpr(pe.e1);
+
+        auto baseType = isFunctionPtr ? i32Type : _sharedCtfeState.elementType(addr.type);
+
         debug(ctfe)
         {
 
@@ -2834,16 +2933,36 @@ static if (is(BCGen))
             writeln("PtrExp: ", pe.toString, " = ", addr);
         }
 
-        auto baseType = _sharedCtfeState.elementType(addr.type);
+        if (assignTo)
+        {
+            retval = assignTo;
+            assignTo = BCValue.init;
+        }
+        else
+        {
+            retval = genTemporary(baseType);
+        }
+
         auto tmp = genTemporary(baseType);
-        if(tmp.type.type != BCTypeEnum.i32)
+        if(baseType.type != BCTypeEnum.i32)
         {
            bailout("can only deal with i32 ptrs at the moement");
            return ;
         }
+        // FIXME when we are ready to support more then i32Ptr the direct calling of load
+        // has to be replace by a genLoadForType() function that'll convert from
+        // heap+representation to stack+representation.
 
-        Load32(tmp, addr);
-        tmp.heapRef = BCHeapRef(addr);
+        Load32(retval, addr);
+        if (!isFunctionPtr)
+        {
+            retval.heapRef = BCHeapRef(addr);
+        }
+        else
+        {
+            retval.type.type = BCTypeEnum.Function;
+        }
+
 
     }
 
@@ -3780,6 +3899,10 @@ static if (is(BCGen))
                 }
             }
         }
+
+        if (assignTo.heapRef != BCHeapRef.init)
+            StoreToHeapRef(assignTo);
+
         retval = oldDiscardValue ? oldRetval : retval;
         assignTo = oldAssignTo;
         discardValue = oldDiscardValue;
@@ -4142,14 +4265,21 @@ static if (is(BCGen))
     override void visit(CallExp ce)
     {
         BCValue thisPtr;
+        BCValue fnValue;
         FuncDeclaration fd;
+
+        bool isFunctionPtr;
        // bailout("Bailing on FunctionCall");
        // return ;
 
         import ddmd.asttypename;
         if (ce.e1.op == TOKvar)
         {
-            fd = (cast(VarExp) ce.e1).var.isFuncDeclaration();
+            auto ve = (cast(VarExp) ce.e1);
+            fd = ve.var.isFuncDeclaration();
+            // TODO FIXME be aware we can set isFunctionPtr here as well,
+            // should we detect it
+            bailout(!fd, "call on varexp: var was not a FuncDeclaration, but: " ~ ve.var.astTypeName);
         }
         else if (ce.e1.op == TOKdotvar)
         {
@@ -4174,23 +4304,47 @@ static if (is(BCGen))
             thisPtr = genExpr(dve.e1);
 
         }
+        else if (ce.e1.op == TOKstar)
+        {
+            isFunctionPtr = true;
+            fnValue = genExpr(ce.e1);
+            //fnValue = genTemporary(i32Type);
+            //Load32(fnValue, fnAddr);
 
-        if (!fd)
-        {
-            bailout("could not get funcDecl" ~ astTypeName(ce.e1));
-            return;
-        }
-        if (!fd.functionSemantic3())
-        {
-            bailout("could not interpret (did not pass functionSemantic3())" ~ ce.toString);
-            return;
-        }
-        if (fd.hasNestedFrameRefs || fd.isNested)
-        {
-            bailout("cannot deal with closures of any kind: " ~ ce.toString);
-            return;
         }
 
+        if(!isFunctionPtr)
+        {
+            if (!fd)
+            {
+                bailout("could not get funcDecl" ~ astTypeName(ce.e1));
+                return;
+            }
+
+            int fnIdx = _sharedCtfeState.getFunctionIndex(fd);
+            if (!fnIdx && cacheBC)
+            {
+                // FIXME deferring can only be done if we are NOT in a closure
+                // if we get here the function was not already there.
+                // allocate the next free function index, take note of the function
+                // and move on as if we had compiled it :)
+                // by defering this we avoid a host of nasty issues!
+                addUncompiledFunction(fd, &fnIdx);
+            }
+            if (!fnIdx)
+            {
+                bailout("We could not compile " ~ ce.toString);
+                return;
+            }
+            fnValue = imm32(fnIdx);
+
+        }
+        else
+        {
+            bailout("calls through functions pointer do not work currently");
+        }
+
+        
         BCValue[] bc_args;
         bc_args.length = ce.arguments.dim + !!(thisPtr);
 
@@ -4217,30 +4371,6 @@ static if (is(BCGen))
         static if (is(BCFunction) && is(typeof(_sharedCtfeState.functionCount)))
         {
 
-            uint fnIdx = _sharedCtfeState.getFunctionIndex(fd);
-            // FIXME the check for fd.fbody should probably be done somewhere else
-            // and we shoud handle the builtins!
-            if (!fnIdx && fd && fd.fbody && cacheBC)
-            {
-                // FIXME deferring can only be done if we are NOT in a closure
-                // if we get here the function was not already there.
-                // allocate the next free function index, take note of the function
-                // and move on as if we had compiled it :)
-                // by defering this we avoid a host of nasty issues!
-
-                const oldFunctionCount = _sharedCtfeState.functionCount++;
-                fnIdx = oldFunctionCount + 1;
-                _sharedCtfeState.functions[oldFunctionCount] = BCFunction(cast(void*) fd);
-                uncompiledFunctions[uncompiledFunctionCount++] = UncompiledFunction(fd,
-                    fnIdx);
-            }
-            
-            if (!fnIdx)
-            {
-                bailout("We could not compile " ~ ce.toString);
-                return;
-            }
-
             if (assignTo)
             {
                 retval = assignTo;
@@ -4253,13 +4383,20 @@ static if (is(BCGen))
 
             static if (is(BCGen))
             {
-                if(callCount >= calls.length)
+                if(callCount >= calls.length - 64)
                 {
-                    bailout("can only handle " ~ to!string(calls.length) ~ "function-calls per topLevel evaluation");
+                    bailout("can only handle " ~ to!string(calls.length) ~ " function-calls per topLevel evaluation");
                     return ;
                 }
             }
-            Call(retval, imm32(fnIdx), bc_args, ce.loc);
+
+            if (!fnValue)
+            {
+                bailout("Function could not be generated in: " ~ ce.toString);
+                return ;
+            }
+
+            Call(retval, fnValue, bc_args, ce.loc);
             import ddmd.identifier;
             /*if (fd.ident == Identifier.idPool("isGraphical"))
             {

@@ -297,7 +297,7 @@ struct BCGen
     uint functionId;
     void* fd;
 
-    RetainedCall[ubyte.max * 5] calls;
+    RetainedCall[ubyte.max * 6] calls;
     uint callCount;
     auto interpret(BCValue[] args, BCHeap* heapPtr) const
     {
@@ -1866,10 +1866,10 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                     (stackP[call.fn.stackAddr.addr / 4] & uint.max)
                     );
                 auto stackOffsetCall = stackOffset + call.callerSp;
-
                 if (!__ctfe)
                 {
                     debug writeln("call.fn = ", call.fn);
+                    debug writeln("fn = ", fn);
                     debug writeln((functions + fn - 1).byteCode.printInstructions);
                     debug writeln("stackOffsetCall: ", stackOffsetCall);
                 }
