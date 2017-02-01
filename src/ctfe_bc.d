@@ -1634,7 +1634,19 @@ public:
             }
 
             if (!fd)
-                return;
+                return ;
+
+            if (!fd.functionSemantic3())
+            {
+                bailout("could not interpret (did not pass functionSemantic3())" ~ fd.getIdent.toString);
+                return ;
+            }
+
+            if (fd.hasNestedFrameRefs || fd.isNested)
+            {
+                bailout("cannot deal with closures of any kind: " ~ fd.toString);
+                return ;
+            }
 
             if (fd.fbody)
             {
@@ -1659,67 +1671,67 @@ public:
 
     void compileUncompiledFunctions()
     {
-                    uint lastUncompiledFunction;
-                    LuncompiledFunctions :
-                    foreach (uf; uncompiledFunctions[lastUncompiledFunction .. uncompiledFunctionCount])
-                    {
-                        if (_blacklist.isInBlacklist(uf.fd.ident))
-                        {
-                            bailout("Bailout on blacklisted");
-                            return;
-                        }
+        uint lastUncompiledFunction;
+    LuncompiledFunctions :
+        foreach (uf; uncompiledFunctions[lastUncompiledFunction .. uncompiledFunctionCount])
+        {
+            if (_blacklist.isInBlacklist(uf.fd.ident))
+            {
+                bailout("Bailout on blacklisted");
+                return;
+            }
 
-                        assert(!me, "We are not clean!");
-                        me = uf.fd;
-                        beginParameters();
-                        auto parameters = uf.fd.parameters;
-                        if (parameters)
-                            foreach (i, p; *parameters)
-                            {
-                                debug (ctfe)
-                                {
-                                    import std.stdio;
+            assert(!me, "We are not clean!");
+            me = uf.fd;
+            beginParameters();
+            auto parameters = uf.fd.parameters;
+            if (parameters)
+                foreach (i, p; *parameters)
+            {
+                debug (ctfe)
+                {
+                    import std.stdio;
 
-                                    writeln("uc parameter [", i, "] : ", p.toString);
-                                }
-                                p.accept(this);
-                            }
-                        endParameters();
-                        auto fnIdx = uf.fn;
-                        beginFunction(fnIdx - 1);
-                        uf.fd.fbody.accept(this);
-                        auto osp = sp;
-                        endFunction();
-                        lastUncompiledFunction++;
-                        if (IGaveUp)
-                        {
-                            bailout("A called function bailedout: " ~ uf.fd.ident.toString);
-                            return ;
-                        }
+                    writeln("uc parameter [", i, "] : ", p.toString);
+                }
+                p.accept(this);
+            }
+            endParameters();
+            auto fnIdx = uf.fn;
+            beginFunction(fnIdx - 1);
+            uf.fd.fbody.accept(this);
+            auto osp = sp;
+            endFunction();
+            lastUncompiledFunction++;
+            if (IGaveUp)
+            {
+                bailout("A called function bailedout: " ~ uf.fd.ident.toString);
+                return ;
+            }
 
-                        static if (is(BCGen))
-                        {
-                            _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) uf.fd,
-                                fnIdx, BCFunctionTypeEnum.Bytecode,
-                                cast(ushort) (parameters ? parameters.dim : 0), osp.addr, //FIXME IMPORTANT PERFORMANCE!!!
-                                // get rid of dup!
+            static if (is(BCGen))
+            {
+                _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) uf.fd,
+                    fnIdx, BCFunctionTypeEnum.Bytecode,
+                    cast(ushort) (parameters ? parameters.dim : 0), osp.addr, //FIXME IMPORTANT PERFORMANCE!!!
+                    // get rid of dup!
 
-                                byteCodeArray[0 .. ip].idup);
-                            clear();
-                        }
-                        else
-                        {
-                            _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
-                        }
+                    byteCodeArray[0 .. ip].idup);
+                clear();
+            }
+            else
+            {
+                _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
+            }
 
-                    }
-                    if (uncompiledFunctionCount > lastUncompiledFunction)
-                        goto LuncompiledFunctions;
+        }
 
-                    clearArray(uncompiledFunctions, uncompiledFunctionCount);
-                    // not sure if the above clearArray does anything
-                    uncompiledFunctionCount = 0;
+        if (uncompiledFunctionCount > lastUncompiledFunction)
+            goto LuncompiledFunctions;
 
+        clearArray(uncompiledFunctions, uncompiledFunctionCount);
+        // not sure if the above clearArray does anything
+        uncompiledFunctionCount = 0;
     }
 
     override void visit(FuncDeclaration fd)
@@ -4297,16 +4309,6 @@ static if (is(BCGen))
             if (!fd)
             {
                 bailout("could not get funcDecl" ~ astTypeName(ce.e1));
-                return;
-            }
-            if (!fd.functionSemantic3())
-            {
-                bailout("could not interpret (did not pass functionSemantic3())" ~ ce.toString);
-                return;
-            }
-            if (fd.hasNestedFrameRefs || fd.isNested)
-            {
-                bailout("cannot deal with closures of any kind: " ~ ce.toString);
                 return;
             }
 
