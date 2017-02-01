@@ -17,6 +17,13 @@ import ddmd.arraytypes : Expressions;
 
 import std.conv : to;
 
+enum perf = 0;
+enum bailoutMessages = 0;
+enum cacheBC = 1;
+enum UseLLVMBackend = 0;
+enum UsePrinterBackend = 0;
+enum UseCBackend = 0;
+
 private static void clearArray(T)(auto ref T array, uint count)
 {
     foreach(i;0 .. count)
@@ -169,12 +176,6 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 
 import ddmd.ctfe.bc_common;
 
-enum perf = 0;
-enum bailoutMessages = 0;
-enum cacheBC = 1;
-enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 0;
-enum UseCBackend = 0;
 
 static if (UseLLVMBackend)
 {
@@ -1435,18 +1436,27 @@ extern (C++) final class BCV(BCGenT) : Visitor
         }
     }
 
-    extern (D) void bailout(bool value, const(char)[] message, size_t line = __LINE__)
+    extern (D) void bailout(bool value, const(char)[] message, size_t line = __LINE__, string pfn = __PRETTY_FUNCTION__)
     {
         if (value)
         {
-            bailout(message, line);
+            bailout(message, line, pfn);
         }
     }
 
-    extern (D) void bailout(const(char)[] message, size_t line = __LINE__)
+    extern (D) void bailout(const(char)[] message, size_t line = __LINE__, string pfn = __PRETTY_FUNCTION__)
     {
         IGaveUp = true;
         const fnIdx = _sharedCtfeState.getFunctionIndex(me);
+
+        enum headLn = 58;
+        if (pfn.length > headLn)
+        {
+            pfn = pfn[headLn .. $-1];
+            import std.string : indexOf;
+            pfn = pfn[0 .. pfn.indexOf(' ')];
+        }
+
         if (fnIdx)
             static if (is(BCFunction))
             {
@@ -1454,14 +1464,13 @@ extern (C++) final class BCV(BCGenT) : Visitor
             }
         debug (ctfe)
         {
-            assert(0, "bailout(" ~ to!string(line) ~ "): " ~ message);
+            assert(0, "bailout on " ~ pfn ~ " (" ~ to!string(line) ~ "): " ~ message);
         }
         else
         {
             import std.stdio;
-
             static if (bailoutMessages)
-                writefln("bailout(%d): %s", line, message);
+                writefln("bailout on %s (%d): %s", pfn, line, message);
         }
     }
 
