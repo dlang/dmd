@@ -2970,6 +2970,12 @@ static if (is(BCGen))
             writeln("PtrExp: ", pe.toString, " = ", addr);
         }
 
+        if (!addr)
+        {
+            bailout("could not gen pointee for PtrExp: "~ pe.e1.toString);
+            return ;
+        }
+
         if (assignTo)
         {
             retval = assignTo;
@@ -2981,6 +2987,7 @@ static if (is(BCGen))
         }
 
         auto tmp = genTemporary(baseType);
+
         if(baseType.type != BCTypeEnum.i32)
         {
            bailout("can only deal with i32 ptrs at the moement");
