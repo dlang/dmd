@@ -278,6 +278,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         StopWatch csw;
         StopWatch isw;
         StopWatch hiw;
+        StopWatch psw;
         hiw.start();
     }
     _sharedCtfeState.initHeap();
@@ -291,11 +292,50 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     __gshared static bcv = new BCV!BCGenT;
 
     bcv.clear();
-    bcv.me = fd;
     bcv.Initialize();
     static if (perf)
     {
         isw.stop();
+        psw.start();
+    }
+
+    // HACK since we don't support dealing with _uncompiled_ functions passed as arguments
+    // search through the arguments and if we detect a function compile it
+    // The above did not work -- investigate
+
+    foreach(arg;args)
+    {
+        if (arg.type.ty == Tfunction)
+        { //TODO we need to fix this!
+            static if (bailoutMessages)
+                writeln("top-level function arguments are not supported");
+            return null;
+        }
+        if (arg.type.ty == Tpointer && (cast(TypePointer)arg.type).nextOf.ty == Tfunction)
+        {
+            static if (bailoutMessages)
+                writeln("top-level function arguments are not supported");
+            return null;
+/* TODO we really need to fix this!
+            import ddmd.tokens;
+            if (arg.op == TOKsymoff)
+            {
+                auto se = cast(SymOffExp)arg;
+                auto _fd = se.var.isFuncDeclaration;
+                if (!_fd) continue;
+                bcv.visit(fd);
+                bcv.compileUncompiledFunctions();
+                bcv.clear();
+            }
+*/
+        }
+    }
+    bcv.clear();
+    //bcv.me = fd;
+
+    static if (perf)
+    {
+        psw.stop();
         csw.start();
     }
 
@@ -1249,7 +1289,10 @@ extern (C++) final class BCTypeVisitor : Visitor
                 return BCType(BCTypeEnum.Ptr, _sharedCtfeState.pointerCount);
             }
         }
-
+        else if (t.ty == Tfunction)
+        {
+            return BCType(BCTypeEnum.Function);
+        }
         debug (ctfe)
             assert(0, "NBT Type unsupported " ~ (cast(Type)(t)).toString);
 
@@ -1730,7 +1773,7 @@ public:
             }
             else
             {
-                _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
+                _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) uf.fd);
             }
 
         }
@@ -1749,7 +1792,8 @@ public:
 
         //HACK this filters out functions which I know produce incorrect results
         //this is only so I can see where else are problems.
-
+        assert(!me || me == fd);
+        me = fd;
         if (_blacklist.isInBlacklist(fd.ident))
         {
             bailout("Bailout on blacklisted");
@@ -1760,7 +1804,6 @@ public:
         //writeln("going to eval: ", fd.toString);
         if (auto fbody = fd.fbody.isCompoundStatement)
         {
-            me = fd;
             beginParameters();
             if (fd.parameters)
                 foreach (i, p; *(fd.parameters))
@@ -2262,11 +2305,10 @@ static if (is(BCGen))
         }
         else if (fd)
         {
-            //bailout(toString (se) ~ " function-variables are currently not handeled");
-
             auto fnIdx = _sharedCtfeState.getFunctionIndex(fd);
             if(!fnIdx)
             {
+                assert(!insideArgumentProcessing, "For now we must _never_ have to gen a function while inside argument processing");
                 addUncompiledFunction(fd, &fnIdx);
             }
             bailout(!fnIdx, "Function could not be generated: -- " ~ fd.toString);
@@ -2916,11 +2958,6 @@ static if (is(BCGen))
     override void visit(PtrExp pe)
     {
         bool isFunctionPtr = pe.type.ty == Tfunction;
-        if(isFunctionPtr)
-        {
-            bailout("No function ptr suppoerted");
-            return ;
-        }
         auto addr = genExpr(pe.e1);
 
         auto baseType = isFunctionPtr ? i32Type : _sharedCtfeState.elementType(addr.type);
@@ -4339,12 +4376,7 @@ static if (is(BCGen))
             fnValue = imm32(fnIdx);
 
         }
-        else
-        {
-            bailout("calls through functions pointer do not work currently");
-        }
 
-        
         BCValue[] bc_args;
         bc_args.length = ce.arguments.dim + !!(thisPtr);
 
