@@ -1763,7 +1763,7 @@ extern (C++) class FuncDeclaration : Declaration
                         sc2.callSuper = 0;
 
                         // Insert implicit super() at start of fbody
-                        FuncDeclaration fd = resolveFuncCall(Loc(), sc2, cd.baseClass.ctor, null, null, null, 1);
+                        FuncDeclaration fd = resolveFuncCall(Loc(), sc2, cd.baseClass.ctor, null, vthis.type, null, 1);
                         if (!fd)
                         {
                             error("no match for implicit super() call in constructor");
