@@ -2505,15 +2505,18 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
 
     if (I16)
         assert(!(cinfo->flags & (INF32 | INF64)));
-    code *cpop = CNIL;
-    code *c = getregs((~s->Sregsaved & (mES | mBP | ALLREGS)) & ~keepmask); // mask of regs destroyed
+    CodeBuilder cdb;
+    cdb.append(getregs((~s->Sregsaved & (mES | mBP | ALLREGS)) & ~keepmask)); // mask of regs destroyed
     keepmask &= ~s->Sregsaved;
     int npushed = numbitsset(keepmask);
+    code *c = CNIL;
+    code *cpop = CNIL;
     gensaverestore2(keepmask, &c, &cpop);
+    cdb.append(c);
 
-    c = cat(c, save87regs(cinfo->push87));
+    cdb.append(save87regs(cinfo->push87));
     for (int i = 0; i < cinfo->push87; i++)
-        c = cat(c, push87());
+        cdb.append(push87());
 
     for (int i = 0; i < cinfo->pop87; i++)
         pop87();
@@ -2528,7 +2531,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
             0x66,0x0f,0xa4,0xc2,0x10,   // shld EDX,EAX,16      ;DX,AX = EAX
         };
 
-        c = genasm(c,lmul,sizeof(lmul));
+        cdb.append(genasm(CNIL,lmul,sizeof(lmul)));
   }
   else
   {
@@ -2553,29 +2556,29 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
             int npush = (npushed + pushebx) * REGSIZE + stackpush;
             if (npush & (STACKALIGN - 1))
             {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
-                c = cod3_stackadj(c, nalign);
+                cdb.append(cod3_stackadj(CNIL, nalign));
             }
         }
         if (pushebx)
         {
             if (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64))
             {
-                c = gen1(c, 0x50 + CX);                             // PUSH ECX
-                c = gen1(c, 0x50 + BX);                             // PUSH EBX
-                c = gen1(c, 0x50 + DX);                             // PUSH EDX
-                c = gen1(c, 0x50 + AX);                             // PUSH EAX
+                cdb.gen1(0x50 + CX);                             // PUSH ECX
+                cdb.gen1(0x50 + BX);                             // PUSH EBX
+                cdb.gen1(0x50 + DX);                             // PUSH EDX
+                cdb.gen1(0x50 + AX);                             // PUSH EAX
                 nalign += 4 * REGSIZE;
             }
             else
             {
-                c = gen1(c, 0x50 + BX);                             // PUSH EBX
+                cdb.gen1(0x50 + BX);                             // PUSH EBX
                 nalign += REGSIZE;
             }
         }
-        c = cat(c, cgot);                                       // EBX = localgot
-        c = gencs(c,(LARGECODE) ? 0x9A : 0xE8,0,FLfunc,s);      // CALL s
+        cdb.append(cgot);                                        // EBX = localgot
+        cdb.append(gencs(CNIL,LARGECODE ? 0x9A : 0xE8,0,FLfunc,s));  // CALL s
         if (nalign)
-            c = cod3_stackadj(c, -nalign);
+            cdb.append(cod3_stackadj(CNIL, -nalign));
         calledafunc = 1;
 
 #if SCPP & TX86
@@ -2591,7 +2594,9 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
     if (I16)
         stackpush -= cinfo->pop;
     regm_t retregs = I16 ? cinfo->retregs16 : cinfo->retregs32;
-    return cat(cat(c,cpop),fixresult(e,retregs,pretregs));
+    cdb.append(cpop);
+    cdb.append(fixresult(e,retregs,pretregs));
+    return cdb.finish();
 }
 
 /*************************************************
