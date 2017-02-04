@@ -1331,7 +1331,7 @@ struct BCScope
 }
 
 debug = nullPtrCheck;
-//debug = andand;
+debug = andand;
 extern (C++) final class BCV(BCGenT) : Visitor
 {
     uint unresolvedGotoCount;
@@ -1990,11 +1990,16 @@ static if (is(BCGen))
             break;
         case TOK.TOKequal, TOK.TOKnotequal:
             {
+
                 if (e.e1.type.isString && e.e2.type.isString)
                 {
                     auto lhs = genExpr(e.e1);
                     auto rhs = genExpr(e.e2);
-
+                    if (!lhs || !rhs)
+                    {
+                        bailout("could not gen lhs or rhs for " ~ e.toString);
+                        return ;
+                    }
                     StringEq(retval, lhs, rhs);
                 }
                 else if (canHandleBinExpTypes(toBCType(e.e1.type), toBCType(e.e2.type)))
@@ -2091,6 +2096,11 @@ static if (is(BCGen))
             //FIXME IMPORRANT
             // The whole rhs == retval situation should be fixed in the bc evaluator
             // since targets with native 3 address code can do this!
+            if (!lhs || !rhs)
+            {
+                bailout("could not gen lhs or rhs for " ~ e.toString);
+                return ;
+            }
 
             if (wasAssignTo && rhs == retval)
             {
@@ -2239,6 +2249,11 @@ static if (is(BCGen))
                     if (!lastExpr || getBoolExprLhs(e.e2) != getBoolExprRhs(e.e1))
                     {
                         auto lhs = genExpr(e.e1);
+                        if (!lhs)
+                        {
+                            bailout("could not gen lhs or rhs for " ~ e.toString);
+                            return ;
+                        }
                         lastExpr = e.e1;
 
                         //auto afterLhs = genLabel();
@@ -2250,6 +2265,11 @@ static if (is(BCGen))
                     if (getBoolExprLhs(e.e1) == e.e1)
                     {
                         auto rhs = genExpr(e.e2);
+                        if (!rhs)
+                        {
+                            bailout("could not gen rhs for " ~ e.toString);
+                            return ;
+                        }
                         //lastExpr = e.e2;
 
                         //auto afterRhs = genLabel();
