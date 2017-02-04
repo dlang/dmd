@@ -148,7 +148,6 @@ struct BlackList
     void defaultBlackList()
     {
         initialize([
-                "to", //because of we stil don't do proper UTF
                 "modify14304", //because of fail_compilation/fail14304.d; We should not be required to check for this.
         ]);
     }
