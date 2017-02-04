@@ -777,7 +777,6 @@ void getlvalue_lsw(code *c)
 code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
 { regm_t idxregs;
   unsigned fl,f,opsave;
-  code *c;
   elem *e1;
   elem *e11;
   elem *e12;
@@ -813,7 +812,8 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         pcs->Iflags |= CFopsize;
   if (ty & mTYvolatile)
         pcs->Iflags |= CFvolatile;
-  c = CNIL;
+
+  CodeBuilder cdb;
   switch (fl)
   {
     case FLoper:
@@ -881,7 +881,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 if (ss)
                 {
                     /* Load index register with result of e11->E1       */
-                    c = cdisscaledindex(e11,&idxregs,keepmsk);
+                    cdb.append(cdisscaledindex(e11,&idxregs,keepmsk));
                     reg = findreg(idxregs);
                     {
                         t = stackfl[f] ? 2 : 0;
@@ -904,7 +904,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                         goto L6;
 
                     // Load index register with result of e11->E1
-                    c = scodelem(e11->E1,&idxregs,keepmsk,TRUE);
+                    cdb.append(scodelem(e11->E1,&idxregs,keepmsk,TRUE));
                     reg = findreg(idxregs);
 
                     int ss1 = ssindex_array[ssi].ss1;
@@ -921,7 +921,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                         unsigned r;
 
                         scratchm = ALLREGS & ~keepmsk;
-                        c = cat(c,allocreg(&scratchm,&r,TYint));
+                        cdb.append(allocreg(&scratchm,&r,TYint));
 
                         if (ssflags & SSFLnobase1)
                         {   t = 0;
@@ -934,22 +934,22 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                             {   static unsigned imm32[4] = {1+1,2+1,4+1,8+1};
 
                                 // IMUL r,BP,imm32
-                                c = genc2(c,0x69,modregxrmx(3,r,rbase),imm32[ss1]);
+                                cdb.genc2(0x69,modregxrmx(3,r,rbase),imm32[ss1]);
                                 goto L7;
                             }
                         }
 
-                        c = gen2sib(c,0x8D,modregxrm(t,r,4),modregrm(ss1,reg & 7,rbase & 7));
+                        cdb.gen2sib(0x8D,modregxrm(t,r,4),modregrm(ss1,reg & 7,rbase & 7));
                         if (reg & 8)
-                            code_orrex(c, REX_X);
+                            code_orrex(cdb.last(), REX_X);
                         if (rbase & 8)
-                            code_orrex(c, REX_B);
+                            code_orrex(cdb.last(), REX_B);
                         if (I64)
-                            code_orrex(c, REX_W);
+                            code_orrex(cdb.last(), REX_W);
 
                         if (ssflags & SSFLnobase1)
-                        {   code_last(c)->IFL1 = FLconst;
-                            code_last(c)->IEV1.Vuns = 0;
+                        {   cdb.last()->IFL1 = FLconst;
+                            cdb.last()->IEV1.Vuns = 0;
                         }
                     L7:
                         if (ssflags & SSFLnobase)
@@ -975,7 +975,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 {
                  L6:
                     /* Load index register with result of e11   */
-                    c = scodelem(e11,&idxregs,keepmsk,TRUE);
+                    cdb.append(scodelem(e11,&idxregs,keepmsk,TRUE));
                     setaddrmode(pcs, idxregs);
                     if (stackfl[f])             /* if we need [EBP] too */
                     {   unsigned idx = pcs->Irm & 7;
@@ -997,7 +997,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 }
                 else
                     t = 0;                      /* [SI + disp]          */
-                c = scodelem(e11,&idxregs,keepmsk,TRUE); /* load idx reg */
+                cdb.append(scodelem(e11,&idxregs,keepmsk,TRUE)); /* load idx reg */
                 pcs->Irm = getaddrmode(idxregs) ^ t;
             }
             if (f == FLpara)
@@ -1019,7 +1019,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             {   unsigned flagsave;
 
                 idxregs = IDXREGS & ~keepmsk;
-                c = cat(c,allocreg(&idxregs,&reg,TYoffset));
+                cdb.append(allocreg(&idxregs,&reg,TYoffset));
 
                 /* If desired result is a far pointer, we'll have       */
                 /* to load another register with the segment of v       */
@@ -1028,10 +1028,10 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                     unsigned msreg;
 
                     idxregs |= mMSW & ALLREGS & ~keepmsk;
-                    c = cat(c,allocreg(&idxregs,&msreg,TYfptr));
+                    cdb.append(allocreg(&idxregs,&msreg,TYfptr));
                     msreg = findregmsw(idxregs);
                                                 /* MOV msreg,segreg     */
-                    c = genregs(c,0x8C,segfl[f],msreg);
+                    cdb.append(genregs(CNIL,0x8C,segfl[f],msreg));
                 }
                 opsave = pcs->Iop;
                 flagsave = pcs->Iflags;
@@ -1042,7 +1042,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                     pcs->Iflags &= ~CFopsize;
                 if (I64)
                     pcs->Irex |= REX_W;
-                c = gen(c,pcs);                 /* LEA idxreg,EA        */
+                cdb.gen(pcs);                 // LEA idxreg,EA
                 cssave(e1,idxregs,TRUE);
                 if (!I16)
                 {   pcs->Iflags = flagsave;
@@ -1116,7 +1116,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             }
             if (!I16 && (ss = isscaledindex(e11)) != 0)
             {   // (v * scale) + const
-                c = cdisscaledindex(e11,&idxregs,keepmsk);
+                cdb.append(cdisscaledindex(e11,&idxregs,keepmsk));
                 reg = findreg(idxregs);
                 pcs->Irm = modregrm(0,0,4);
                 pcs->Isib = modregrm(ss,reg & 7,5);
@@ -1125,7 +1125,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             }
             else
             {
-                c = scodelem(e11,&idxregs,keepmsk,TRUE); // load index reg
+                cdb.append(scodelem(e11,&idxregs,keepmsk,TRUE)); // load index reg
                 setaddrmode(pcs, idxregs);
             }
             goto Lptr;
@@ -1137,28 +1137,27 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
 
         if (!I16 && e1isadd && (!e1->Ecount || !e1free) &&
             (_tysize[e1ty] == REGSIZE || (I64 && _tysize[e1ty] == 4)))
-        {   code *c2;
+        {
+        L4:
             regm_t idxregs2;
             unsigned base,index;
-            int ss;
 
-        L4:
             // Look for *(v1 + v2 << scale)
-            ss = isscaledindex(e12);
+            int ss = isscaledindex(e12);
             if (ss)
             {
-                c = scodelem(e11,&idxregs,keepmsk,TRUE);
+                cdb.append(scodelem(e11,&idxregs,keepmsk,TRUE));
                 idxregs2 = allregs & ~(idxregs | keepmsk);
-                c2 = cdisscaledindex(e12,&idxregs2,keepmsk | idxregs);
+                cdb.append(cdisscaledindex(e12,&idxregs2,keepmsk | idxregs));
             }
 
             // Look for *(v1 << scale + v2)
             else if ((ss = isscaledindex(e11)) != 0)
             {
                 idxregs2 = idxregs;
-                c = cdisscaledindex(e11,&idxregs2,keepmsk);
+                cdb.append(cdisscaledindex(e11,&idxregs2,keepmsk));
                 idxregs = allregs & ~(idxregs2 | keepmsk);
-                c2 = scodelem(e12,&idxregs,keepmsk | idxregs2,TRUE);
+                cdb.append(scodelem(e12,&idxregs,keepmsk | idxregs2,TRUE));
             }
             // Look for *(((v1 << scale) + c1) + v2)
             else if (e11->Eoper == OPadd && !e11->Ecount &&
@@ -1168,19 +1167,18 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             {
                 pcs->IEV1.Vuns = e11->E2->EV.Vuns;
                 idxregs2 = idxregs;
-                c = cdisscaledindex(e11->E1,&idxregs2,keepmsk);
+                cdb.append(cdisscaledindex(e11->E1,&idxregs2,keepmsk));
                 idxregs = allregs & ~(idxregs2 | keepmsk);
-                c2 = scodelem(e12,&idxregs,keepmsk | idxregs2,TRUE);
+                cdb.append(scodelem(e12,&idxregs,keepmsk | idxregs2,TRUE));
                 freenode(e11->E2);
                 freenode(e11);
             }
             else
             {
-                c = scodelem(e11,&idxregs,keepmsk,TRUE);
+                cdb.append(scodelem(e11,&idxregs,keepmsk,TRUE));
                 idxregs2 = allregs & ~(idxregs | keepmsk);
-                c2 = scodelem(e12,&idxregs2,keepmsk | idxregs,TRUE);
+                cdb.append(scodelem(e12,&idxregs2,keepmsk | idxregs,TRUE));
             }
-            c = cat(c,c2);
             base = findreg(idxregs);
             index = findreg(idxregs2);
             pcs->Irm  = modregrm(2,0,4);
@@ -1202,11 +1200,11 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
          */
 
         assert(e1free);
-        c = scodelem(e1,&idxregs,keepmsk,TRUE); /* load index register  */
+        cdb.append(scodelem(e1,&idxregs,keepmsk,TRUE)); // load index register
         setaddrmode(pcs, idxregs);
     Lptr:
         if (config.flags3 & CFG3ptrchk)
-            cod3_ptrchk(&c,pcs,keepmsk);        // validate pointer code
+            cod3_ptrchk(cdb,pcs,keepmsk);        // validate pointer code
         break;
     case FLdatseg:
         assert(0);
@@ -1399,7 +1397,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
     case FLpseudo:
 #if MARS
     {
-        c = getregs(mask[s->Sreglsw]);
+        cdb.append(getregs(mask[s->Sreglsw]));
         pcs->Irm = modregrm(3,0,s->Sreglsw & 7);
         if (s->Sreglsw & 8)
             pcs->Irex |= REX_B;
@@ -1418,7 +1416,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
 #else
     {
         unsigned u = s->Sreglsw;
-        c = getregs(pseudomask[u]);
+        cdb.append(getregs(pseudomask[u]));
         pcs->Irm = modregrm(3,0,pseudoreg[u] & 7);
         break;
     }
@@ -1430,12 +1428,12 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
     Lfardata:
     {
         regm_t regm = ALLREGS & ~keepmsk;       // need scratch register
-        code *c1 = allocreg(&regm,&reg,TYint);
-        /* MOV mreg,seg of symbol       */
-        c = gencs(CNIL,0xB8 + reg,0,FLextern,s);
-        c->Iflags = CFseg;
-        c = gen2(c,0x8E,modregrmx(3,0,reg));     /* MOV ES,reg           */
-        c = cat3(c1,getregs(mES),c);
+        cdb.append(allocreg(&regm,&reg,TYint));
+        cdb.append(getregs(mES));
+        // MOV mreg,seg of symbol
+        cdb.gencs(0xB8 + reg,0,FLextern,s);
+        cdb.last()->Iflags = CFseg;
+        cdb.gen2(0x8E,modregrmx(3,0,reg));     // MOV ES,reg
         pcs->Iflags |= CFes | CFoff;            /* ES segment override  */
         goto L3;
     }
@@ -1453,7 +1451,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         symbol_print(s);
         assert(0);
   }
-  return c;
+  return cdb.finish();
 }
 
 /*****************************

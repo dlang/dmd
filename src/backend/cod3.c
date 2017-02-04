@@ -270,6 +270,7 @@ unsigned char vex_inssize(code *c)
             ins = inssize2[0x3A] + 1;
             break;
         default:
+            printf("Iop = %x mmmm = %x\n", c->Iop, c->Ivex.mmmm);
             assert(0);
         }
     }
@@ -2017,33 +2018,28 @@ L1:
 }
 
 /**********************************
- * Append code to *pc which validates pointer described by
+ * Append code to cdb which validates pointer described by
  * addressing mode in *pcs. Modify addressing mode in *pcs.
- * Input:
- *      keepmsk mask of registers we must not destroy or use
+ * Params:
+ *    cdb = append generated code to this
+ *    pcs = original addressing mode to be updated
+ *    keepmsk = mask of registers we must not destroy or use
  *              if (keepmsk & RMstore), this will be only a store operation
  *              into the lvalue
  */
 
-void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk)
-{   code *c;
-    code *cs2;
-    unsigned char rm,sib;
+void cod3_ptrchk(CodeBuilder& cdb,code *pcs,regm_t keepmsk)
+{
+    unsigned char sib;
     unsigned reg;
     unsigned flagsave;
     unsigned opsave;
-    regm_t idxregs;
-    regm_t tosave;
-    regm_t used;
-    int i;
 
     assert(!I64);
     if (!I16 && pcs->Iflags & (CFes | CFss | CFcs | CFds | CFfs | CFgs))
         return;         // not designed to deal with 48 bit far pointers
 
-    c = *pc;
-
-    rm = pcs->Irm;
+    unsigned char rm = pcs->Irm;
     assert(!(rm & 0x40));       // no disp8 or reg addressing modes
 
     // If the addressing mode is already a register
@@ -2053,7 +2049,7 @@ void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk)
 
         reg = imode[reg];               // convert [SI] to SI, etc.
     }
-    idxregs = mask[reg];
+    regm_t idxregs = mask[reg];
     if ((rm & 0x80 && (pcs->IFL1 != FLoffset || pcs->IEV1.Vuns)) ||
         !(idxregs & ALLREGS)
        )
@@ -2061,14 +2057,14 @@ void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk)
         // Load the offset into a register, so we can push the address
         idxregs = (I16 ? IDXREGS : ALLREGS) & ~keepmsk; // only these can be index regs
         assert(idxregs);
-        c = cat(c,allocreg(&idxregs,&reg,TYoffset));
+        cdb.append(allocreg(&idxregs,&reg,TYoffset));
 
         opsave = pcs->Iop;
         flagsave = pcs->Iflags;
         pcs->Iop = LEA;
         pcs->Irm |= modregrm(0,reg,0);
         pcs->Iflags &= ~(CFopsize | CFss | CFes | CFcs);        // no prefix bytes needed
-        c = gen(c,pcs);                 // LEA reg,EA
+        cdb.gen(pcs);                 // LEA reg,EA
 
         pcs->Iflags = flagsave;
         pcs->Iop = opsave;
@@ -2076,11 +2072,11 @@ void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk)
 
     // registers destroyed by the function call
     //used = (mBP | ALLREGS | mES) & ~fregsaved;
-    used = 0;                           // much less code generated this way
+    regm_t used = 0;                           // much less code generated this way
 
-    cs2 = CNIL;
-    tosave = used & (keepmsk | idxregs);
-    for (i = 0; tosave; i++)
+    code *cs2 = CNIL;
+    regm_t tosave = used & (keepmsk | idxregs);
+    for (int i = 0; tosave; i++)
     {   regm_t mi = mask[i];
 
         assert(i < REGMAX);
@@ -2097,7 +2093,7 @@ void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk)
             {   push = 0x50 + i;
                 pop = push | 8;
             }
-            c = gen1(c,push);                   // PUSH i
+            cdb.gen1(push);                     // PUSH i
             cs2 = cat(gen1(CNIL,pop),cs2);      // POP i
             tosave &= ~mi;
         }
@@ -2124,10 +2120,10 @@ void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk)
             if (config.wflags & WFssneds)
                 pcs->Iflags |= CFss;    // because BP won't be there anymore
         }
-        c = gen1(c,segreg);             // PUSH segreg
+        cdb.gen1(segreg);               // PUSH segreg
     }
 
-    c = gen1(c,0x50 + reg);             // PUSH reg
+    cdb.gen1(0x50 + reg);               // PUSH reg
 
     // Rewrite the addressing mode in *pcs so it is just 0[reg]
     setaddrmode(pcs, idxregs);
@@ -2139,12 +2135,12 @@ void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk)
         makeitextern(getRtlsym(RTLSYM_PTRCHK));
 
         used &= ~(keepmsk | idxregs);           // regs destroyed by this exercise
-        c = cat(c,getregs(used));
+        cdb.append(getregs(used));
                                                 // CALL __ptrchk
-        gencs(c,(LARGECODE) ? 0x9A : CALL,0,FLfunc,getRtlsym(RTLSYM_PTRCHK));
+        cdb.gencs((LARGECODE) ? 0x9A : CALL,0,FLfunc,getRtlsym(RTLSYM_PTRCHK));
     }
 
-    *pc = cat(c,cs2);
+    cdb.append(cs2);
 }
 
 /***********************************
