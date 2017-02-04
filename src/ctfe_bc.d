@@ -2249,9 +2249,9 @@ static if (is(BCGen))
                     if (!lastExpr || getBoolExprLhs(e.e2) != getBoolExprRhs(e.e1))
                     {
                         auto lhs = genExpr(e.e1);
-                        if (!lhs)
+                        if (!lhs || !canWorkWithType(lhs.type))
                         {
-                            bailout("could not gen lhs or rhs for " ~ e.toString);
+                            bailout("could not gen lhs or could not handle it's type " ~ e.toString);
                             return ;
                         }
                         lastExpr = e.e1;
@@ -2265,9 +2265,9 @@ static if (is(BCGen))
                     if (getBoolExprLhs(e.e1) == e.e1)
                     {
                         auto rhs = genExpr(e.e2);
-                        if (!rhs)
+                        if (!rhs || !canWorkWithType(rhs.type))
                         {
-                            bailout("could not gen rhs for " ~ e.toString);
+                            bailout("could not gen rhs or could not handle it's type " ~ e.toString);
                             return ;
                         }
                         //lastExpr = e.e2;
