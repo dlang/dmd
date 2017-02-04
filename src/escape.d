@@ -231,6 +231,15 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
         if (v.isScope())
         {
+            if (va && va.isScope() && va.storage_class & STCreturn && !(v.storage_class & STCreturn) &&
+                sc.func.setUnsafe())
+            {
+                if (!gag)
+                    error(ae.loc, "scope variable %s assigned to return scope %s", v.toChars(), va.toChars());
+                result = true;
+                continue;
+            }
+
             // If va's lifetime encloses v's, then error
             if (va &&
                 (va.enclosesLifetimeOf(v) && !(v.storage_class & STCparameter) || va.storage_class & STCref) &&
@@ -247,6 +256,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                 if (!va.isScope() && inferScope)
                 {   //printf("inferring scope for %s\n", va.toChars());
                     va.storage_class |= STCscope;
+                    va.storage_class |= v.storage_class & STCreturn;
                 }
                 continue;
             }
