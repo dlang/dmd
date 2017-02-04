@@ -47,7 +47,7 @@ else
     BCType[64] parameterTypes;
     byte parameterCount;
 
-    LLVMValueRef[128] functions;
+    LLVMValueRef[1024] functions;
     uint functionCount;
 
     //bllockCount and blocks are function-LocalState,
@@ -95,8 +95,8 @@ else
         //LLVMAddTargetData(LLVMGetExecutionEngineTargetData(engine), pass);
         LLVMAddConstantPropagationPass(pass);
         LLVMAddInstructionCombiningPass(pass);
-        LLVMAddPromoteMemoryToRegisterPass(pass);
         // LLVMAddDemoteMemoryToRegisterPass(pass); // Demotes every possible value to memory
+        LLVMAddPromoteMemoryToRegisterPass(pass);
         LLVMAddGVNPass(pass);
         LLVMAddCFGSimplificationPass(pass);
         LLVMRunPassManager(pass, mod);

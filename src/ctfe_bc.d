@@ -665,18 +665,23 @@ struct SharedCtfeState(BCGenT)
     BCHeap heap;
     long[ushort.max / 4] stack; // a Stack of 64K/4 is the Hard Limit;
     StructDeclaration[ubyte.max * 12] structDeclpointerTypes;
+    BCStruct[ubyte.max * 12] structTypes;
+
     TypeSArray[ubyte.max * 16] sArrayTypePointers;
+    BCArray[ubyte.max * 16] arrayTypes;
+
     TypeDArray[ubyte.max * 8] dArrayTypePointers;
+    BCSlice[ubyte.max * 8] sliceTypes;
+
     TypePointer[ubyte.max * 8] pointerTypePointers;
+    BCPointer[ubyte.max * 8] pointerTypes;
+
     BCTypeVisitor btv = new BCTypeVisitor();
 
-    BCStruct[ubyte.max * 12] structTypes;
+
     uint structCount;
-    BCArray[ubyte.max * 16] arrayTypes;
     uint arrayCount;
-    BCSlice[ubyte.max * 8] sliceTypes;
     uint sliceCount;
-    BCPointer[ubyte.max * 8] pointerTypes;
     uint pointerCount;
     // find a way to live without 102_000
     RetainedError[ubyte.max * 32] errors;
@@ -1292,6 +1297,7 @@ extern (C++) final class BCTypeVisitor : Visitor
         {
             return BCType(BCTypeEnum.Function);
         }
+
         debug (ctfe)
             assert(0, "NBT Type unsupported " ~ (cast(Type)(t)).toString);
 
