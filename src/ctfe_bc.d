@@ -1589,8 +1589,9 @@ public:
 
     BCValue getVariable(VarDeclaration vd)
     {
-        import ddmd.declaration : STCmanifest, STCref, STCstatic;
-        if (vd.storage_class & STCref || vd.storage_class & STCstatic)
+        import ddmd.declaration : STCmanifest, STCref, STCstatic, STCimmutable;
+        if (vd.storage_class & STCref || ((vd.storage_class & STCstatic) && !(vd.storage_class & STCimmutable)))
+       // if (vd.storage_class & STCref || vd.storage_class & STCstatic)
         {
             bailout("cannot handle ref or static variables");
             return BCValue.init;
@@ -1772,14 +1773,13 @@ public:
                     fnIdx, BCFunctionTypeEnum.Bytecode,
                     cast(ushort) (parameters ? parameters.dim : 0), osp.addr, //FIXME IMPORTANT PERFORMANCE!!!
                     // get rid of dup!
-
                     byteCodeArray[0 .. ip].idup);
-                clear();
             }
             else
             {
                 _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) uf.fd);
             }
+            clear();
 
         }
 
@@ -3782,9 +3782,10 @@ static if (is(BCGen))
             Add3(effectiveSize, effectiveSize, bcFour);
 
             typeof(beginJmp()) jmp;
-            auto arrayExsitsJmp = beginCndJmp(arrayPtr.i32);
             typeof(beginCndJmp()) jmp1;
             typeof(beginCndJmp()) jmp2;
+
+            auto arrayExsitsJmp = beginCndJmp(arrayPtr.i32);
             {
                 Load32(oldLength, arrayPtr);
                 Le3(BCValue.init, oldLength, newLength);
