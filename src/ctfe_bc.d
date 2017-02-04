@@ -313,7 +313,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         if (arg.type.ty == Tpointer && (cast(TypePointer)arg.type).nextOf.ty == Tfunction)
         {
             static if (bailoutMessages)
-                writeln("top-level function arguments are not supported");
+                writeln("top-level function ptr arguments are not supported");
             return null;
 /* TODO we really need to fix this!
             import ddmd.tokens;
