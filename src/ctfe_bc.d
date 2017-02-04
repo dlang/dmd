@@ -1500,9 +1500,10 @@ extern (C++) final class BCV(BCGenT) : Visitor
         enum headLn = 58;
         if (pfn.length > headLn)
         {
-            pfn = pfn[headLn .. $-1];
             import std.string : indexOf;
-            pfn = pfn[0 .. pfn.indexOf(' ')];
+            auto begin = pfn.indexOf('(');
+            auto end = pfn[begin .. $].indexOf(' ') + begin;
+            pfn = pfn[begin .. end];
         }
 
         if (fnIdx)
