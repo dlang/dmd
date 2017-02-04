@@ -1518,7 +1518,7 @@ code *fltregs(code *pcs,tym_t tym)
 
 code *tstresult(regm_t regm,tym_t tym,unsigned saveflag)
 {
-  unsigned scrreg;                      /* scratch register             */
+  unsigned scrreg;                      // scratch register
   regm_t scrregm;
 
 #ifdef DEBUG
@@ -1528,133 +1528,137 @@ code *tstresult(regm_t regm,tym_t tym,unsigned saveflag)
 #endif
   assert(regm & (XMMREGS | mBP | ALLREGS));
   tym = tybasic(tym);
-  code *ce = CNIL;
   unsigned reg = findreg(regm);
   unsigned sz = _tysize[tym];
   if (sz == 1)
-  {     assert(regm & BYTEREGS);
-        ce = genregs(ce,0x84,reg,reg);        // TEST regL,regL
+  {
+        CodeBuilder cdb;
+        assert(regm & BYTEREGS);
+        cdb.append(genregs(CNIL,0x84,reg,reg));        // TEST regL,regL
         if (I64 && reg >= 4)
-            code_orrex(ce, REX);
-        return ce;
+            code_orrex(cdb.last(), REX);
+        return cdb.finish();
   }
   if (regm & XMMREGS)
   {
+        CodeBuilder cdb;
         unsigned xreg;
         regm_t xregs = XMMREGS & ~regm;
-        ce = allocreg(&xregs, &xreg, TYdouble);
+        cdb.append(allocreg(&xregs, &xreg, TYdouble));
         unsigned op = 0;
         if (tym == TYdouble || tym == TYidouble || tym == TYcdouble)
             op = 0x660000;
-        ce = gen2(ce,op | 0x0F57,modregrm(3,xreg-XMM0,xreg-XMM0));      // XORPS xreg,xreg
-        gen2(ce,op | 0x0F2E,modregrm(3,xreg-XMM0,reg-XMM0));    // UCOMISS xreg,reg
+        cdb.gen2(op | 0x0F57,modregrm(3,xreg-XMM0,xreg-XMM0));      // XORPS xreg,xreg
+        cdb.gen2(op | 0x0F2E,modregrm(3,xreg-XMM0,reg-XMM0));    // UCOMISS xreg,reg
         if (tym == TYcfloat || tym == TYcdouble)
         {   code *cnop = gennop(CNIL);
-            genjmp(ce,JNE,FLcode,(block *) cnop); // JNE     L1
-            genjmp(ce,JP, FLcode,(block *) cnop); // JP      L1
+            cdb.append(genjmp(CNIL,JNE,FLcode,(block *) cnop)); // JNE     L1
+            cdb.append(genjmp(CNIL,JP, FLcode,(block *) cnop)); // JP      L1
             reg = findreg(regm & ~mask[reg]);
-            gen2(ce,op | 0x0F2E,modregrm(3,xreg-XMM0,reg-XMM0));        // UCOMISS xreg,reg
-            ce = cat(ce, cnop);
+            cdb.gen2(op | 0x0F2E,modregrm(3,xreg-XMM0,reg-XMM0));        // UCOMISS xreg,reg
+            cdb.append(cnop);
         }
-        return ce;
+        return cdb.finish();
   }
   if (sz <= REGSIZE)
   {
+    CodeBuilder cdb;
     if (!I16)
     {
         if (tym == TYfloat)
         {   if (saveflag)
             {
-                scrregm = allregs & ~regm;              /* possible scratch regs */
-                ce = allocreg(&scrregm,&scrreg,TYoffset); /* allocate scratch reg */
-                ce = genmovreg(ce,scrreg,reg);  /* MOV scrreg,msreg     */
+                scrregm = allregs & ~regm;              // possible scratch regs
+                cdb.append(allocreg(&scrregm,&scrreg,TYoffset)); // allocate scratch reg
+                cdb.append(genmovreg(CNIL,scrreg,reg));  // MOV scrreg,msreg
                 reg = scrreg;
             }
-            ce = cat(ce,getregs(mask[reg]));
-            return gen2(ce,0xD1,modregrmx(3,4,reg)); // SHL reg,1
+            cdb.append(getregs(mask[reg]));
+            cdb.gen2(0xD1,modregrmx(3,4,reg)); // SHL reg,1
+            return cdb.finish();
         }
-        ce = gentstreg(ce,reg);                 // TEST reg,reg
+        cdb.append(gentstreg(CNIL,reg));                 // TEST reg,reg
         if (sz == SHORTSIZE)
-            ce->Iflags |= CFopsize;             /* 16 bit operands      */
+            cdb.last()->Iflags |= CFopsize;             // 16 bit operands
         else if (sz == 8)
-            code_orrex(ce, REX_W);
+            code_orrex(cdb.last(), REX_W);
     }
     else
-        ce = gentstreg(ce,reg);                 // TEST reg,reg
-    return ce;
+        cdb.append(gentstreg(CNIL,reg));                 // TEST reg,reg
+    return cdb.finish();
   }
-  if (saveflag || tyfv(tym))
-  {
-        scrregm = ALLREGS & ~regm;              /* possible scratch regs */
-        ce = allocreg(&scrregm,&scrreg,TYoffset); /* allocate scratch reg */
-        if (I32 || sz == REGSIZE * 2)
-        {   code *c;
 
+    CodeBuilder cdb;
+    if (saveflag || tyfv(tym))
+    {
+        scrregm = ALLREGS & ~regm;              // possible scratch regs
+        cdb.append(allocreg(&scrregm,&scrreg,TYoffset)); // allocate scratch reg
+        if (I32 || sz == REGSIZE * 2)
+        {
             assert(regm & mMSW && regm & mLSW);
 
             reg = findregmsw(regm);
             if (I32)
             {
                 if (tyfv(tym))
-                {   c = genregs(CNIL,0x0FB7,scrreg,reg); // MOVZX scrreg,msreg
-                    ce = cat(ce,c);
-                }
+                    cdb.append(genregs(CNIL,0x0FB7,scrreg,reg)); // MOVZX scrreg,msreg
                 else
-                {   ce = genmovreg(ce,scrreg,reg);      /* MOV scrreg,msreg     */
+                {   cdb.append(genmovreg(CNIL,scrreg,reg));      // MOV scrreg,msreg
                     if (tym == TYdouble || tym == TYdouble_alias)
-                        gen2(ce,0xD1,modregrm(3,4,scrreg)); /* SHL scrreg,1     */
+                        cdb.gen2(0xD1,modregrm(3,4,scrreg)); // SHL scrreg,1
                 }
             }
             else
             {
-                ce = genmovreg(ce,scrreg,reg);  /* MOV scrreg,msreg     */
+                cdb.append(genmovreg(CNIL,scrreg,reg));  // MOV scrreg,msreg
                 if (tym == TYfloat)
-                    gen2(ce,0xD1,modregrm(3,4,scrreg)); /* SHL scrreg,1 */
+                    cdb.gen2(0xD1,modregrm(3,4,scrreg)); // SHL scrreg,1
             }
             reg = findreglsw(regm);
-            genorreg(ce,scrreg,reg);                    /* OR scrreg,lsreg */
+            cdb.append(genorreg(CNIL,scrreg,reg));           // OR scrreg,lsreg
         }
         else if (sz == 8)
-        {       /* !I32 */
-                ce = genmovreg(ce,scrreg,AX);           /* MOV scrreg,AX */
-                if (tym == TYdouble || tym == TYdouble_alias)
-                    gen2(ce,0xD1,modregrm(3,4,scrreg)); // SHL scrreg,1
-                genorreg(ce,scrreg,BX);                 /* OR scrreg,BX */
-                genorreg(ce,scrreg,CX);                 /* OR scrreg,CX */
-                genorreg(ce,scrreg,DX);                 /* OR scrreg,DX */
+        {
+            // !I32
+            cdb.append(genmovreg(CNIL,scrreg,AX));           // MOV scrreg,AX
+            if (tym == TYdouble || tym == TYdouble_alias)
+                cdb.gen2(0xD1,modregrm(3,4,scrreg));         // SHL scrreg,1
+            cdb.append(genorreg(CNIL,scrreg,BX));            // OR scrreg,BX
+            cdb.append(genorreg(CNIL,scrreg,CX));            // OR scrreg,CX
+            cdb.append(genorreg(CNIL,scrreg,DX));            // OR scrreg,DX
         }
         else
             assert(0);
-  }
-  else
-  {
+    }
+    else
+    {
         if (I32 || sz == REGSIZE * 2)
         {
-            /* can't test ES:LSW for 0  */
+            // can't test ES:LSW for 0
             assert(regm & mMSW & ALLREGS && regm & (mLSW | mBP));
 
             reg = findregmsw(regm);
-            ce = getregs(mask[reg]);            /* we're going to trash reg */
+            cdb.append(getregs(mask[reg]));            // we're going to trash reg
             if (tyfloating(tym) && sz == 2 * intsize)
-                ce = gen2(ce,0xD1,modregrm(3,4,reg));   // SHL reg,1
-            ce = genorreg(ce,reg,findreglsw(regm));     // OR reg,reg+1
+                cdb.gen2(0xD1,modregrm(3,4,reg));   // SHL reg,1
+            cdb.append(genorreg(CNIL,reg,findreglsw(regm)));     // OR reg,reg+1
             if (I64)
-                code_orrex(ce, REX_W);
+                code_orrex(cdb.last(), REX_W);
        }
         else if (sz == 8)
         {   assert(regm == DOUBLEREGS_16);
-            ce = getregs(mAX);                          // allocate AX
+            cdb.append(getregs(mAX));                  // allocate AX
             if (tym == TYdouble || tym == TYdouble_alias)
-                ce = gen2(ce,0xD1,modregrm(3,4,AX));    // SHL AX,1
-            genorreg(ce,AX,BX);                         // OR AX,BX
-            genorreg(ce,AX,CX);                         // OR AX,CX
-            genorreg(ce,AX,DX);                         // OR AX,DX
+                cdb.gen2(0xD1,modregrm(3,4,AX));       // SHL AX,1
+            cdb.append(genorreg(CNIL,AX,BX));          // OR AX,BX
+            cdb.append(genorreg(CNIL,AX,CX));          // OR AX,CX
+            cdb.append(genorreg(CNIL,AX,DX));          // OR AX,DX
         }
         else
             assert(0);
-  }
-  code_orflag(ce,CFpsw);
-  return ce;
+    }
+    code_orflag(cdb.last(),CFpsw);
+    return cdb.finish();
 }
 
 
