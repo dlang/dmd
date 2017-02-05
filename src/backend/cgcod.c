@@ -2292,8 +2292,11 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
 #endif
     assert(e->Ecomsub <= e->Ecount);
 
-    code* c = CNIL;
-    if (*pretregs == 0) goto done;        /* no possible side effects anyway */
+    if (*pretregs == 0)        // no possible side effects anyway
+    {
+        freenode(e);
+        return NULL;
+    }
 
     /* First construct a mask, emask, of all the registers that
      * have the right contents.
@@ -2350,54 +2353,58 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
             if (EOP(e) || !(regm & regcon.mvar) || (*pretregs & regcon.mvar) == *pretregs)
             {
                 regm = mask[findreg(regm)];
-                goto fix;
+                code *c = fixresult(e,regm,pretregs);
+                freenode(e);
+                return c;
             }
         }
 
         if (!EOP(e))                    /* if not op or func            */
                 goto reload;            /* reload data                  */
         for (size_t i = cstop; i--;)           /* look through saved comsubs   */
-                if (csextab[i].e == e)  /* found it             */
+        {
+                CodeBuilder cdb;
+                if (csextab[i].e == e)  // found it
                 {   regm_t retregs;
 
                     if (csextab[i].flags & CSEsimple)
-                    {   code *cr;
-
+                    {
                         retregs = *pretregs;
                         if (byte && !(retregs & BYTEREGS))
                             retregs = BYTEREGS;
                         else if (!(retregs & allregs))
                             retregs = allregs;
-                        c = allocreg(&retregs,&reg,tym);
-                        cr = &csextab[i].csimple;
+                        cdb.append(allocreg(&retregs,&reg,tym));
+                        code *cr = &csextab[i].csimple;
                         cr->setReg(reg);
-                        c = gen(c,cr);
+                        cdb.gen(cr);
                         goto L10;
                     }
                     else
                     {
                         reflocal = TRUE;
                         csextab[i].flags |= CSEload;
-                        if (*pretregs == mPSW)  /* if result in CCs only */
+                        if (*pretregs == mPSW)  // if result in CCs only
                         {                       // CMP cs[BP],0
-                            c = gen_testcse(NULL, sz, i);
+                            cdb.append(gen_testcse(NULL, sz, i));
                         }
                         else
                         {
                             retregs = *pretregs;
                             if (byte && !(retregs & BYTEREGS))
                                     retregs = BYTEREGS;
-                            c = allocreg(&retregs,&reg,tym);
-                            c = gen_loadcse(c, reg, i);
+                            cdb.append(allocreg(&retregs,&reg,tym));
+                            cdb.append(gen_loadcse(CNIL, reg, i));
                         L10:
                             regcon.cse.mval |= mask[reg]; // cs is in a reg
                             regcon.cse.value[reg] = e;
-                            c = cat(c,fixresult(e,retregs,pretregs));
+                            cdb.append(fixresult(e,retregs,pretregs));
                         }
                     }
                     freenode(e);
-                    return c;
+                    return cdb.finish();
                 }
+        }
 #ifdef DEBUG
         printf("couldn't find cse e = %p, pass = %d\n",e,pass);
         elem_print(e);
@@ -2425,7 +2432,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
         }
 
         /* Look for right vals in any regs      */
-
+        CodeBuilder cdb;
         regm = *pretregs & mMSW;
         if (emask & regm)
             msreg = findreg(emask & regm);
@@ -2435,8 +2442,8 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
         {
             if (!regm)
                 regm = mMSW & ALLREGS;
-            c = allocreg(&regm,&msreg,TYint);
-            c = cat(c,loadcse(e,msreg,mMSW));
+            cdb.append(allocreg(&regm,&msreg,TYint));
+            cdb.append(loadcse(e,msreg,mMSW));
         }
 
         regm = *pretregs & (mLSW | mBP);
@@ -2448,25 +2455,30 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
         {
             if (!regm)
                 regm = mLSW;
-            c = cat(c,allocreg(&regm,&lsreg,TYint));
-            c = cat(c,loadcse(e,lsreg,mLSW | mBP));
+            cdb.append(allocreg(&regm,&lsreg,TYint));
+            cdb.append(loadcse(e,lsreg,mLSW | mBP));
         }
 
         regm = mask[msreg] | mask[lsreg];       /* mask of result       */
-        goto fix;
+        cdb.append(fixresult(e,regm,pretregs));
+        freenode(e);
+        return cdb.finish();
   }
   else if (tym == TYdouble || tym == TYdouble_alias)    // double
   {
         assert(I16);
         if (((csemask | emask) & DOUBLEREGS_16) == DOUBLEREGS_16)
         {
+            CodeBuilder cdb;
             for (reg = 0; reg != -1; reg = dblreg[reg])
             {   assert((int) reg >= 0 && reg <= 7);
                 if (mask[reg] & csemask)
-                    c = cat(c,loadcse(e,reg,mask[reg]));
+                    cdb.append(loadcse(e,reg,mask[reg]));
             }
             regm = DOUBLEREGS_16;
-            goto fix;
+            cdb.append(fixresult(e,regm,pretregs));
+            freenode(e);
+            return cdb.finish();
         }
         if (!EOP(e)) goto reload;
 #if DEBUG
@@ -2483,6 +2495,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
   }
 
 reload:                                 /* reload result from memory    */
+    code* c = CNIL;
     switch (e->Eoper)
     {
         case OPrelconst:
@@ -2500,12 +2513,6 @@ reload:                                 /* reload result from memory    */
     cssave(e,*pretregs,FALSE);
     freenode(e);
     return c;
-
-fix:                                    /* we got result in regm, fix   */
-  c = cat(c,fixresult(e,regm,pretregs));
-done:
-  freenode(e);
-  return c;
 }
 
 
@@ -2687,8 +2694,8 @@ L1:
  */
 
 code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
-{ code *c,*cs1,*cs2,*cs3;
-  regm_t touse;
+{
+    regm_t touse;
 
 #ifdef DEBUG
     if (debugw)
@@ -2709,7 +2716,7 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
                 unsigned sz2 = tysize(e->EV.sp.Vsym->Stype->Tty);
                 if (sz1 <= REGSIZE && sz2 > REGSIZE)
                     regm &= mLSW | XMMREGS;
-                c = fixresult(e,regm,pretregs);
+                code *c = fixresult(e,regm,pretregs);
                 cssave(e,regm,0);
                 freenode(e);
 #ifdef DEBUG
@@ -2729,12 +2736,13 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
   unsigned stackpushsave = stackpush;
   char calledafuncsave = calledafunc;
   calledafunc = 0;
-  c = codelem(e,pretregs,constflag);    /* generate code for the elem   */
+  CodeBuilder cdb;
+  cdb.append(codelem(e,pretregs,constflag));    // generate code for the elem
 
   regm_t tosave = keepmsk & ~msavereg; /* registers to save                    */
   if (tosave)
   {     cgstate.stackclean++;
-        c = genstackclean(c,stackpush - stackpushsave,*pretregs | msavereg);
+        cdb.append(genstackclean(CNIL,stackpush - stackpushsave,*pretregs | msavereg));
         cgstate.stackclean--;
   }
 
@@ -2775,7 +2783,8 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
         touse &= ~oldregimmed;
   }
 
-  cs1 = cs2 = cs3 = NULL;
+  code *cs1 = NULL;
+  code *cs2 = NULL;
   int adjesp = 0;
 
   for (unsigned i = 0; tosave; i++)
@@ -2810,7 +2819,7 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
                     adjesp += size;
                 }
             }
-            cs3 = cat(getregs(mi),cs3);
+            cdb.append(getregs(mi));
             tosave &= ~mi;
         }
   }
@@ -2851,7 +2860,7 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
         printf("-scodelem(e=%p *pretregs=%s keepmsk=%s constflag=%d\n",
                 e,regm_str(*pretregs),regm_str(keepmsk),constflag);
 #endif
-  return cat4(cs1,c,cs3,cs2);
+  return cat3(cs1,cdb.finish(),cs2);
 }
 
 /*********************************************
@@ -2914,18 +2923,19 @@ code *docommas(elem **pe)
     unsigned stackpushsave = stackpush;
     int stackcleansave = cgstate.stackclean;
     cgstate.stackclean = 0;
-    code* cc = CNIL;
+    CodeBuilder cdb;
     elem* e = *pe;
     while (1)
     {
         if (configv.addlinenumbers && e->Esrcpos.Slinnum)
-        {       cc = genlinnum(cc,e->Esrcpos);
+        {
+                cdb.append(genlinnum(CNIL,e->Esrcpos));
                 //e->Esrcpos.Slinnum = 0;               // don't do it twice
         }
         if (e->Eoper != OPcomma)
                 break;
         regm_t retregs = 0;
-        cc = cat(cc,codelem(e->E1,&retregs,TRUE));
+        cdb.append(codelem(e->E1,&retregs,TRUE));
         elem* eold = e;
         e = e->E2;
         freenode(eold);
@@ -2933,8 +2943,8 @@ code *docommas(elem **pe)
     *pe = e;
     assert(cgstate.stackclean == 0);
     cgstate.stackclean = stackcleansave;
-    cc = genstackclean(cc,stackpush - stackpushsave,0);
-    return cc;
+    cdb.append(genstackclean(CNIL,stackpush - stackpushsave,0));
+    return cdb.finish();
 }
 
 /**************************
