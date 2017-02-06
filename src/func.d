@@ -3104,11 +3104,7 @@ extern (C++) class FuncDeclaration : Declaration
             return true;
 
         if (isInstantiated())
-        {
-            TemplateInstance ti = parent.isTemplateInstance();
-            if (ti is null || ti.isTemplateMixin() || ti.tempdecl.ident == ident)
-                return true;
-        }
+            return true;
 
         return false;
     }
