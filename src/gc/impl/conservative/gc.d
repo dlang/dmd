@@ -1952,7 +1952,7 @@ struct Gcx
     /**
      * Search a range of memory values and mark any pointers into the GC pool.
      */
-    void mark(void *pbot, void *ptop) nothrow
+    void mark(void *pbot, void *ptop) scope nothrow
     {
         void **p1 = cast(void **)pbot;
         void **p2 = cast(void **)ptop;
@@ -2443,7 +2443,7 @@ struct Gcx
      * Warning! This should only be called while the world is stopped inside
      * the fullcollect function.
      */
-    int isMarked(void *addr) nothrow
+    int isMarked(void *addr) scope nothrow
     {
         // first, we find the Pool this block is in, then check to see if the
         // mark bit is clear.
