@@ -1013,7 +1013,7 @@ Expression toExpression(const BCValue value, Type expressionType,
         static if (bailoutMessages)
         {
             writeln("We just bailed out of the interpreter ... this is bad, VERY VERY VERY bad");
-            writeln("It means we have missed to fixyp jumps or did not emit a return or something along those lines");
+            writeln("It means we have missed to fixup jumps or did not emit a return or something along those lines");
         }
         return null;
     }
