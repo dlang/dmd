@@ -4168,17 +4168,27 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
             overloadApply(hasOverloads ? fd : null, (Dsymbol s)
             {
                 auto fd = s.isFuncDeclaration();
-                if (!fd || fd.errors || fd.type.ty == Terror)
-                    return 0;
-                auto tf = cast(TypeFunction)fd.type;
-                .errorSupplemental(fd.loc, "%s%s", fd.toPrettyChars(),
-                    parametersTypeToChars(tf.parameters, tf.varargs));
-                if (global.params.verbose || --numToDisplay != 0 || !fd.overnext)
+                auto td = s.isTemplateDeclaration();
+                if (fd)
+                {
+                    if (fd.errors || fd.type.ty == Terror)
+                        return 0;
+
+                    auto tf = cast(TypeFunction)fd.type;
+                    .errorSupplemental(fd.loc, "%s%s", fd.toPrettyChars(),
+                        parametersTypeToChars(tf.parameters, tf.varargs));
+                }
+                else
+                {
+                    .errorSupplemental(td.loc, "%s", td.toPrettyChars());
+                }
+
+                if (global.params.verbose || --numToDisplay != 0 || !fd)
                     return 0;
 
                 // Too many overloads to sensibly display.
                 int num = 0;
-                overloadApply(fd.overnext, (s){ num += !!s.isFuncDeclaration(); return 0; });
+                overloadApply(fd.overnext, (s){ ++num; return 0; });
                 if (num > 0)
                     .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
                 return 1;   // stop iterating
