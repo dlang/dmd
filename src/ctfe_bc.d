@@ -1701,7 +1701,7 @@ public:
                 return ;
             }
 
-            if (fd.hasNestedFrameRefs || fd.isNested)
+            if (fd.hasNestedFrameRefs /*|| fd.isNested*/)
             {
                 bailout("cannot deal with closures of any kind: " ~ fd.toString);
                 return ;
