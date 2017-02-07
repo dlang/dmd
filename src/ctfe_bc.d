@@ -1501,7 +1501,8 @@ extern (C++) final class BCV(BCGenT) : Visitor
         if (pfn.length > headLn)
         {
             import std.string : indexOf;
-            auto begin = pfn.indexOf('(');
+            auto offset = 50;
+            auto begin = pfn[offset .. $].indexOf('(') + offset + 1;
             auto end = pfn[begin .. $].indexOf(' ') + begin;
             pfn = pfn[begin .. end];
         }
