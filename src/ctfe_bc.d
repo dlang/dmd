@@ -211,62 +211,8 @@ ulong evaluateUlong(Expression e)
 
 Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _this = null)
 {
-    __gshared static arg_bcv = new BCV!(BCGenT);
     _blacklist.defaultBlackList();
     import std.stdio;
-
-    static if (cacheBC && is(typeof(_sharedCtfeState.functionCount)) && is(BCGen) && false)
-    {
-
-        import std.datetime : StopWatch;
-
-        static if (perf)
-        {
-            StopWatch ffw;
-            ffw.start();
-        }
-        if (auto fnIdx = _sharedCtfeState.getFunctionIndex(fd))
-        {
-            //FIXME TODO add a branchHint to say that it is likely to find the function!
-            static if (perf)
-            {
-                ffw.stop();
-                writeln("function ", fd.ident.toString, " found! search took ",
-                    ffw.peek.nsecs, "ns");
-            }
-            auto fn = _sharedCtfeState.functions[fnIdx - 1];
-            arg_bcv.arguments.length = fn.nArgs;
-            BCValue[] bc_args;
-            bc_args.length = fn.nArgs;
-            arg_bcv.beginArguments();
-            static if (perf)
-            {
-                StopWatch isw;
-                isw.start();
-            }
-
-            foreach (i, arg; args)
-            {
-                bc_args[i] = arg_bcv.genExpr(arg);
-            }
-            arg_bcv.endArguments();
-
-            auto retval = interpret_(fn.byteCode, bc_args,
-                &_sharedCtfeState.heap, _sharedCtfeState.functions.ptr);
-            static if (perf)
-            {
-                isw.stop();
-                writeln("Interpretation took ", isw.peek.usecs, "us");
-            }
-            return toExpression(retval, (cast(TypeFunction) fd.type).nextOf,
-                &_sharedCtfeState.heap);
-        }
-        static if (perf)
-        {
-            ffw.stop();
-            writeln("function not found, search took ", ffw.peek.nsecs, "ns");
-        }
-    }
 
     // writeln("Evaluating function: ", fd.toString);
     import ddmd.identifier;
