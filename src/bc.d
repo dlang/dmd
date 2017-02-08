@@ -1900,7 +1900,12 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                     }
                 }
                 if (callDepth++ == 2000)
-                    goto Lbailout;
+                {
+                        BCValue bailoutValue;
+                        bailoutValue.vType = BCValueType.Bailout;
+                        bailoutValue.imm32 = 2000;
+                        return bailoutValue;
+                }
                 auto cRetval = interpret_(functions[cast(size_t)(fn - 1)].byteCode,
                     callArgs[0 .. call.args.length], heapPtr, functions, calls, ev1, ev2, errors, stack, stackOffsetCall);
 

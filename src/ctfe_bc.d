@@ -23,6 +23,7 @@ enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
+enum abortOnCritical = 1;
 
 private static void clearArray(T)(auto ref T array, uint count)
 {
@@ -951,6 +952,12 @@ Expression toExpression(const BCValue value, Type expressionType,
 
     if (value.vType == BCValueType.Bailout)
     {
+        if (value.imm32 == 2000)
+        {
+            // 2000 means we hit the recursion-limit;
+            return null;
+        }
+
         debug (ctfe)
         {
             assert(0, "Interpreter had to bailout");
@@ -961,7 +968,10 @@ Expression toExpression(const BCValue value, Type expressionType,
             writeln("We just bailed out of the interpreter ... this is bad, VERY VERY VERY bad");
             writeln("It means we have missed to fixup jumps or did not emit a return or something along those lines");
         }
-        return null;
+        static if (abortOnCritical)
+            assert(0);
+        else
+            return null;
     }
 
     if (value.vType == BCValueType.Error)
