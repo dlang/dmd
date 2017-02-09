@@ -35,10 +35,9 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
                 assert(0, "We should never encounter undef or bailout");
             return 0;
         }
-    case Slice, String, Ptr, Function:
+    case Slice, string8, string16, string32:
         {
-            //TODO add 64bit mode
-            return  /* m64 ? 8 :*/ 4;
+            return 4;
         }
     case c8, i8, u8:
         {
@@ -57,7 +56,12 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
             return 8;
         }
 
-    case Void, Array, Struct, Null:
+    case Function, Ptr, Null:
+       {
+           return 4;
+       }
+
+    case Void, Array, Struct:
         {
             return 0;
         }
@@ -95,7 +99,11 @@ enum BCTypeEnum : ubyte
     u32,
     u64,
 
-    String,
+    string8,
+    String = string8,
+    string16,
+    string32,
+
     Function, // synonymous to i32
     //  everything below here is not used by the bc layer.
     Array,
