@@ -6665,6 +6665,7 @@ final class Parser : Lexer
             case TOKscope:
             case TOKfinal:
             case TOKauto:
+            case TOKreturn:
                 continue;
 
             case TOKconst:
