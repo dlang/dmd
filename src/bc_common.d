@@ -40,15 +40,15 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
             //TODO add 64bit mode
             return  /* m64 ? 8 :*/ 4;
         }
-    case i8, u8:
+    case c8, i8, u8:
         {
             return 1;
         }
-    case i16, u16:
+    case c16, i16, u16:
         {
             return 2;
         }
-    case i32, Char, u32:
+    case c32, i32, u32:
         {
             return 4;
         }
@@ -77,7 +77,10 @@ enum BCTypeEnum : ubyte
     Null,
     Void,
 
-    Char,
+    c8,
+    c16,
+    c32,
+    Char = c32,
     /// signed by default
     i8,
     /// DITTO
