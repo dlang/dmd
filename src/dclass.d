@@ -1247,6 +1247,8 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         {
             s.setFieldOffset(this, &offset, false);
         }
+        if (type.ty == Terror)
+            return;
 
         sizeok = SIZEOKdone;
 
