@@ -2574,10 +2574,8 @@ static if (is(BCGen))
             auto _body = genBlock(fs._body, true, true, true);
             if (fs.increment)
             {
-                typeof(genLabel()) beforeIncrement;
-                beforeIncrement = genLabel();
                 fs.increment.accept(this);
-                fixupContinue(oldContinueFixupCount, beforeIncrement);
+                fixupContinue(oldContinueFixupCount, _body.end);
             }
             genJump(condEval);
             auto afterLoop = genLabel();
@@ -4561,11 +4559,13 @@ static if (is(BCGen))
         }
         else if (ds.condition.isBool(false))
         {
-            genBlock(ds._body, true, false);
+            genBlock(ds._body, false, false, false);
         }
         else
         {
-            auto doBlock = genBlock(ds._body, true, false);
+            const oldContinueFixupCount = continueFixupCount;
+            const oldBreakFixupCount = breakFixupCount;
+            auto doBlock = genBlock(ds._body, true, true, true);
 
             auto cond = genExpr(ds.condition);
             if (!cond)
@@ -4574,8 +4574,11 @@ static if (is(BCGen))
                 return;
             }
 
+            fixupContinue(oldContinueFixupCount, doBlock.begin);
             auto cj = beginCndJmp(cond, true);
             endCndJmp(cj, doBlock.begin);
+            auto afterDo = genLabel();
+            fixupBreak(oldBreakFixupCount, afterDo);
         }
     }
 
