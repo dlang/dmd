@@ -34,7 +34,7 @@ private static void clearArray(T)(auto ref T array, uint count)
 }
 
 version = ctfe_noboundscheck;
-enum BCBlockjumpTarget
+enum BCBlockJumpTarget
 {
   Begin,
   End,
@@ -44,8 +44,7 @@ enum BCBlockjumpTarget
 struct BCBlockJump
 {
     BCAddr at;
-    bool toBegin;
-    bool toContinue;
+    BCBlockJumpTarget jumpTarget;
 }
 
 struct UnresolvedGoto
@@ -2030,7 +2029,7 @@ static if (is(BCGen))
                         rhs = oneElementSlicePtr;
                         rhs.type = lhs.type;
                         rhs.vType = lhs.vType;
-*/                    
+*/
                 }
 
                 auto rhsBaseType = _sharedCtfeState.elementType(rhs.type);
@@ -2357,7 +2356,7 @@ static if (is(BCGen))
         }
 
         auto indexed = genExpr(ie.e1);
-        
+
         if(!indexed || indexed.vType == BCValueType.VoidValue)
         {
             bailout("could not create indexed variable from: " ~ ie.e1.toString);
@@ -4092,7 +4091,7 @@ static if (is(BCGen))
                 }
                 endCndJmp(jump, genLabel());
             }
-            
+
             if (ss.sdefault) // maybe we should check ss.sdefault.statement as well ... just to be sure ?
             {
                 auto defaultBlock = genBlock(ss.sdefault.statement);
@@ -4177,7 +4176,7 @@ static if (is(BCGen))
         }
         else
         {
-            addUnresolvedGoto(ident, BCBlockJump(beginJmp(), true));
+            addUnresolvedGoto(ident, BCBlockJump(beginJmp(), BCBlockJumpTarget.Begin));
         }
     }
 
@@ -4204,9 +4203,18 @@ static if (is(BCGen))
             if (unresolvedGoto.ident == cast(void*) ls.ident)
             {
                 foreach (jmp; unresolvedGoto.jumps[0 .. unresolvedGoto.jumpCount])
-                    jmp.toBegin ? endJmp(jmp.at,
-                        block.begin) : jmp.toContinue ? endJmp(jmp.at,
-                        lastContinue) : endJmp(jmp.at, block.end);
+                    final switch(jmp.jumpTarget)
+                    {
+                    case BCBlockJumpTarget.Begin :
+                        endJmp(jmp.at, block.begin);
+                    break;
+                    case BCBlockJumpTarget.Continue :
+                        endJmp(jmp.at, lastContinue);
+                    break;
+                    case BCBlockJumpTarget.End :
+                        endJmp(jmp.at, block.end);
+                    break;
+                    }
 
                 // write the last one into here and decrease the count
                 auto lastGoto = &unresolvedGotos[--unresolvedGotoCount];
@@ -4234,8 +4242,7 @@ static if (is(BCGen))
             }
             else
             {
-                addUnresolvedGoto(cast(void*) cs.ident, BCBlockJump(beginJmp(), false,
-                    true));
+                addUnresolvedGoto(cast(void*) cs.ident, BCBlockJump(beginJmp(), BCBlockJumpTarget.Continue));
             }
         }
         else if (unrolledLoopState)
@@ -4258,7 +4265,7 @@ static if (is(BCGen))
             }
             else
             {
-                addUnresolvedGoto(cast(void*) bs.ident, BCBlockJump(beginJmp(), false));
+                addUnresolvedGoto(cast(void*) bs.ident, BCBlockJump(beginJmp(), BCBlockJumpTarget.End));
             }
 
         }
@@ -4559,7 +4566,7 @@ static if (is(BCGen))
         }
         else if (ds.condition.isBool(false))
         {
-            genBlock(ds._body, false, false, false);
+            genBlock(ds._body, true, false, false);
         }
         else
         {
