@@ -560,8 +560,6 @@ private void genhelpers(Module m)
     }
 
     genhelper(m, toModuleArray(m),    RTLSYM_DARRAY,    BCexit);
-    genhelper(m, toModuleAssert(m),   RTLSYM_DASSERT,   BCexit);
-    genhelper(m, toModuleUnittest(m), RTLSYM_DUNITTEST, BCret);
 }
 
 /**************************************
@@ -1607,3 +1605,13 @@ elem *toEfilename(Module m)
     // Turn static array into dynamic array
     return el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(m.sfilename));
 }
+
+elem *toEfilenamePtr(Module m)
+{
+    //printf("toEfilenamePtr(%s)\n", m.toChars());
+    const(char)* id = m.srcfile.toChars();
+    size_t len = strlen(id);
+    Symbol* s = toStringSymbol(id, len, 1);
+    return el_ptr(s);
+}
+
