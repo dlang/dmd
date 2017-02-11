@@ -6652,6 +6652,8 @@ extern (C++) final class TypeFunction : TypeNext
             foreach (const i; 0 .. dim)
             {
                 Parameter fparam = Parameter.getNth(parameters, i);
+                if (fparam == p)
+                    continue;
                 Type t = fparam.type;
                 if (!t)
                     continue;

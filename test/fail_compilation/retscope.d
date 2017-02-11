@@ -626,6 +626,18 @@ struct Result(R)
     n.empty();
 }
 
+/**********************************************/
+
+@safe void foo22()(ref char[] s)
+{
+    char[] a = s;
+}
+
+@safe void test22(scope char[] s)
+{
+    foo22(s);
+}
+
 /************************************************/
 
 // https://issues.dlang.org/show_bug.cgi?id=17117
