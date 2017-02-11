@@ -9009,7 +9009,7 @@ extern (C++) final class DotVarExp : UnaExp
              *  tuple(e1.a, e1.b, e1.c)
              */
             Expression e0;
-            Expression ev = extractSideEffect(sc, "__tup", e0, e1);
+            Expression ev = sc.func ? extractSideEffect(sc, "__tup", e0, e1) : e1;
 
             auto exps = new Expressions();
             exps.reserve(tup.objects.dim);
