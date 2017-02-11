@@ -13,6 +13,7 @@
 
 struct _LabelDsymbol;             // D only
 class Declaration;              // D only
+struct CodeBuilder;
 
 typedef int segidx_t;           // index into SegData[]
 
@@ -362,7 +363,7 @@ void doswitch (block *b );
 void outjmptab (block *b );
 void outswitab (block *b );
 int jmpopcode (elem *e );
-void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk);
+void cod3_ptrchk(CodeBuilder& cdb,code *pcs,regm_t keepmsk);
 code *genregs (code *c , unsigned op , unsigned dstreg , unsigned srcreg );
 code *gentstreg (code *c , unsigned reg );
 code *genpush (code *c , unsigned reg );
