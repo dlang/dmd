@@ -232,6 +232,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             return true;
 
         //printf("determineFields() %s, fields.dim = %d\n", toChars(), fields.dim);
+        fields.setDim(0);
 
         extern (C++) static int func(Dsymbol s, void* param)
         {
@@ -241,8 +242,14 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             if (v.storage_class & STCmanifest)
                 return 0;
 
+            auto ad = cast(AggregateDeclaration)param;
+
             if (v._scope)
                 v.semantic(null);
+            // Note: Aggregate fields or size could have determined during v->semantic.
+            if (ad.sizeok != SIZEOKnone)
+                return 1;
+
             if (v.aliassym)
                 return 0;   // If this variable was really a tuple, skip it.
 
@@ -251,7 +258,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             if (!v.isField() || v.semanticRun < PASSsemanticdone)
                 return 1;   // unresolvable forward reference
 
-            auto ad = cast(AggregateDeclaration)param;
             ad.fields.push(v);
 
             if (v.storage_class & STCref)
@@ -270,13 +276,15 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             return 0;
         }
 
-        fields.setDim(0);
-
         for (size_t i = 0; i < members.dim; i++)
         {
             auto s = (*members)[i];
             if (s.apply(&func, cast(void*)this))
+            {
+                if (sizeok != SIZEOKnone)
+                    return true;
                 return false;
+            }
         }
 
         if (sizeok != SIZEOKdone)
