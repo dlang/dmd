@@ -1062,6 +1062,11 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                     err = true;
             }
 
+            // Carefully detach the scope from the parent and throw it away as
+            // we only need it to evaluate the expression
+            // https://issues.dlang.org/show_bug.cgi?id=15428
+            sc2.freeFieldinit();
+            sc2.enclosing = null;
             sc2.pop();
 
             if (global.endGagging(errors) || err)

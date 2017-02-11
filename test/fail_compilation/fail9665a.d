@@ -150,7 +150,7 @@ struct S3
 /+
 TEST_OUTPUT:
 ---
-fail_compilation/fail9665a.d(162): Error: immutable field 'v' initialized multiple times
+fail_compilation/fail9665a.d(163): Error: static assert  (__traits(compiles, this.v = 1)) is false
 ---
 +/
 struct S4
@@ -159,7 +159,8 @@ struct S4
     this(int)
     {
         static assert(__traits(compiles, v = 1));
-        v = 1;  // multiple initialization
+        v = 1;
+        static assert(__traits(compiles, v = 1)); // multiple initialization
     }
 }
 
