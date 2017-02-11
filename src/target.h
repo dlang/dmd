@@ -33,6 +33,7 @@ struct Target
     static int c_longsize;           // size of a C 'long' or 'unsigned long' type
     static int c_long_doublesize;    // size of a C 'long double'
     static int classinfosize;        // size of 'ClassInfo'
+    static unsigned long long maxStaticDataSize;  // maximum size of static data
 
     static void init();
     // Type sizes and support.

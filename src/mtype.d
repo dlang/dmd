@@ -4780,13 +4780,14 @@ extern (C++) final class TypeSArray : TypeArray
             if (d1 != d2)
             {
             Loverflow:
-                error(loc, "%s size %llu * %llu exceeds 16MiB size limit for static array", toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1);
+                error(loc, "%s size %llu * %llu exceeds 0x%llx size limit for static array",
+                        toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1, Target.maxStaticDataSize);
                 goto Lerror;
             }
             Type tbx = tbn.baseElemOf();
             if (tbx.ty == Tstruct && !(cast(TypeStruct)tbx).sym.members || tbx.ty == Tenum && !(cast(TypeEnum)tbx).sym.members)
             {
-                /* To avoid meaningess error message, skip the total size limit check
+                /* To avoid meaningless error message, skip the total size limit check
                  * when the bottom of element type is opaque.
                  */
             }
@@ -4796,7 +4797,7 @@ extern (C++) final class TypeSArray : TypeArray
                  * run on them for the size, since they may be forward referenced.
                  */
                 bool overflow = false;
-                if (mulu(tbn.size(loc), d2, overflow) >= 0x100_0000 || overflow) // put a 'reasonable' limit on it
+                if (mulu(tbn.size(loc), d2, overflow) >= Target.maxStaticDataSize || overflow)
                     goto Loverflow;
             }
         }

@@ -32,6 +32,7 @@ struct Target
     extern (C++) static __gshared int c_longsize;           // size of a C 'long' or 'unsigned long' type
     extern (C++) static __gshared int c_long_doublesize;    // size of a C 'long double'
     extern (C++) static __gshared int classinfosize;        // size of 'ClassInfo'
+    extern (C++) static __gshared ulong maxStaticDataSize;  // maximum size of static data
 
     template FPTypeProperties(T)
     {
@@ -66,6 +67,15 @@ struct Target
         // adjusted for 64 bit code.
         ptrsize = 4;
         classinfosize = 0x4C; // 76
+
+        /* gcc uses int.max for 32 bit compilations, and long.max for 64 bit ones.
+         * Set to int.max for both, because the rest of the compiler cannot handle
+         * 2^64-1 without some pervasive rework. The trouble is that much of the
+         * front and back end uses 32 bit ints for sizes and offsets. Since C++
+         * silently truncates 64 bit ints to 32, finding all these dependencies will be a problem.
+         */
+        maxStaticDataSize = int.max;
+
         if (global.params.isLP64)
         {
             ptrsize = 8;
@@ -92,6 +102,13 @@ struct Target
             realalignsize = 2;
             reverseCppOverloads = true;
             c_longsize = 4;
+            if (ptrsize == 4)
+            {
+                /* Optlink cannot deal with individual data chunks
+                 * larger than 16Mb
+                 */
+                maxStaticDataSize = 0x100_0000;  // 16Mb
+            }
         }
         else
             assert(0);
