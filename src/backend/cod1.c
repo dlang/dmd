@@ -2845,7 +2845,6 @@ code *cdfunc(elem *e,regm_t *pretregs)
     unsigned numalign = 0;              // bytes to align stack before pushing parameters
     unsigned stackpushsave = stackpush;            // so we can compute # of parameters
     cgstate.stackclean++;
-    code *c = CNIL;
     regm_t keepmsk = 0;
     int xmmcnt = 0;
     tym_t tyf = tybasic(e->E1->Ety);        // the function type
@@ -2864,6 +2863,8 @@ code *cdfunc(elem *e,regm_t *pretregs)
     if (e->E1->Eoper == OPvar)
         sf = e->E1->EV.sp.Vsym;
 
+    CodeBuilder cdb;
+
     /* Special handling for call to __tls_get_addr, we must save registers
      * before evaluating the parameter, so that the parameter load and call
      * are adjacent.
@@ -2871,7 +2872,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
     if (np == 1 && sf)
     {
         if (sf == tls_get_addr_sym)
-            c = getregs(~sf->Sregsaved & (mBP | ALLREGS | mES | XMMREGS));
+            cdb.append(getregs(~sf->Sregsaved & (mBP | ALLREGS | mES | XMMREGS)));
     }
 
     unsigned stackalign = REGSIZE;
@@ -2988,8 +2989,8 @@ code *cdfunc(elem *e,regm_t *pretregs)
     if (!usefuncarg && STACKALIGN == 16 && (numpara + stackpush) & (STACKALIGN - 1))
     {
         numalign = STACKALIGN - ((numpara + stackpush) & (STACKALIGN - 1));
-        c = cod3_stackadj(c, numalign);
-        c = genadjesp(c, numalign);
+        cdb.append(cod3_stackadj(CNIL, numalign));
+        cdb.append(genadjesp(CNIL, numalign));
         stackpush += numalign;
         stackpushsave += numalign;
     }
@@ -3005,7 +3006,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
 
     int regsaved[XMM7 + 1];
     memset(regsaved, -1, sizeof(regsaved));
-    code *crest = NULL;
+    CodeBuilder cdbrestore;
     regm_t saved = 0;
     targ_size_t funcargtossave = cgstate.funcargtos;
     targ_size_t funcargtos = numpara;
@@ -3026,14 +3027,14 @@ code *cdfunc(elem *e,regm_t *pretregs)
              * in the process. If they interfere with keepmsk, we'll have
              * to save/restore them.
              */
-            code *csave = NULL;
+            CodeBuilder cdbsave;
             regm_t overlap = msavereg & keepmsk;
             msavereg |= keepmsk;
-            code *cp;
+            CodeBuilder cdbparams;
             if (usefuncarg)
-                cp = movParams(ep, stackalign, funcargtos);
+                cdbparams.append(movParams(ep, stackalign, funcargtos));
             else
-                cp = pushParams(ep,stackalign);
+                cdbparams.append(pushParams(ep,stackalign));
             regm_t tosave = keepmsk & ~msavereg;
             msavereg &= ~keepmsk | overlap;
 
@@ -3044,15 +3045,16 @@ code *cdfunc(elem *e,regm_t *pretregs)
                 if (mi & tosave)
                 {
                     unsigned idx;
-                    csave = regsave.save(csave, j, &idx);
-                    crest = regsave.restore(crest, j, idx);
+                    cdbsave.append(regsave.save(CNIL, j, &idx));
+                    cdbrestore.append(regsave.restore(CNIL, j, idx));
                     saved |= mi;
                     keepmsk &= ~mi;             // don't need to keep these for rest of params
                     tosave &= ~mi;
                 }
             }
 
-            c = cat4(c, csave, cp, NULL);
+            cdb.append(cdbsave);
+            cdb.append(cdbparams);
 
             // Alignment for parameter comes after it got pushed
             unsigned numalign = parameters[i].numalign;
@@ -3063,8 +3065,8 @@ code *cdfunc(elem *e,regm_t *pretregs)
             }
             else if (numalign)
             {
-                c = cod3_stackadj(c, numalign);
-                c = genadjesp(c, numalign);
+                cdb.append(cod3_stackadj(CNIL, numalign));
+                cdb.append(genadjesp(CNIL, numalign));
                 stackpush += numalign;
             }
         }
@@ -3092,7 +3094,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
                 }
                 retregs = mask[mreg] | mask[lreg];
 
-                code *csave = NULL;
+                CodeBuilder cdbsave;
                 if (keepmsk & retregs)
                 {
                     regm_t tosave = keepmsk & retregs;
@@ -3104,16 +3106,17 @@ code *cdfunc(elem *e,regm_t *pretregs)
                         if (mi & tosave)
                         {
                             unsigned idx;
-                            csave = regsave.save(csave, j, &idx);
-                            crest = regsave.restore(crest, j, idx);
+                            cdbsave.append(regsave.save(CNIL, j, &idx));
+                            cdbrestore.append(regsave.restore(CNIL, j, idx));
                             saved |= mi;
                             keepmsk &= ~mi;             // don't need to keep these for rest of params
                             tosave &= ~mi;
                         }
                     }
                 }
+                cdb.append(cdbsave);
 
-                code *cp = scodelem(ep,&retregs,keepmsk,FALSE);
+                cdb.append(scodelem(ep,&retregs,keepmsk,FALSE));
 
                 // Move result [mreg,lreg] into parameter registers from [preg2,preg]
                 retregs = 0;
@@ -3121,7 +3124,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
                     retregs |= mask[preg];
                 if (preg2 != mreg)
                     retregs |= mask[preg2];
-                code *c1 = getregs(retregs);
+                cdb.append(getregs(retregs));
 
                 tym_t ty1 = tybasic(ep->Ety);
                 tym_t ty2 = ty1;
@@ -3142,12 +3145,11 @@ code *cdfunc(elem *e,regm_t *pretregs)
                         {
                             if (mask[preg] & XMMREGS)
                             {   unsigned op = xmmload(ty1);            // MOVSS/D preg,lreg
-                                code *cd = gen2(CNIL,op,modregxrmx(3,preg-XMM0,lreg-XMM0));
-                                checkSetVex(cd,ty1);
-                                c1 = cat(c1,cd);
+                                cdb.gen2(op,modregxrmx(3,preg-XMM0,lreg-XMM0));
+                                checkSetVex(cdb.last(),ty1);
                             }
                             else
-                                c1 = genmovreg(c1, preg, lreg);
+                                cdb.append(genmovreg(CNIL, preg, lreg));
                         }
                     }
                     else
@@ -3156,37 +3158,33 @@ code *cdfunc(elem *e,regm_t *pretregs)
                         {
                             if (mask[preg2] & XMMREGS)
                             {   unsigned op = xmmload(ty2);            // MOVSS/D preg2,mreg
-                                code *cd = gen2(CNIL,op,modregxrmx(3,preg2-XMM0,mreg-XMM0));
-                                checkSetVex(cd,ty2);
-                                c1 = cat(c1,cd);
+                                cdb.gen2(op,modregxrmx(3,preg2-XMM0,mreg-XMM0));
+                                checkSetVex(cdb.last(),ty2);
                             }
                             else
-                                c1 = genmovreg(c1, preg2, mreg);
+                                cdb.append(genmovreg(CNIL, preg2, mreg));
                         }
                     }
                 }
 
-                c = cat4(c,csave,cp,c1);
                 retregs = mask[preg] | mask[preg2];
             }
             else if (ep->Eoper == OPstrthis)
             {
-                code *c1 = getregs(retregs);
+                cdb.append(getregs(retregs));
                 // LEA preg,np[RSP]
                 unsigned np = stackpush - ep->EV.Vuns;   // stack delta to parameter
-                code *c2 = genc1(CNIL,LEA,
+                cdb.genc1(LEA,
                         (modregrm(0,4,SP) << 8) | modregxrm(2,preg,4), FLconst,np);
                 if (I64)
-                    code_orrex(c2, REX_W);
-                c = cat3(c,c1,c2);
+                    code_orrex(cdb.last(), REX_W);
             }
             else if (ep->Eoper == OPstrpar && config.exe == EX_WIN64 && type_size(ep->ET) == 0)
             {
             }
             else
             {
-                code *cp = scodelem(ep,&retregs,keepmsk,FALSE);
-                c = cat(c,cp);
+                cdb.append(scodelem(ep,&retregs,keepmsk,FALSE));
             }
             keepmsk |= retregs;      // don't change preg when evaluating func address
         }
@@ -3203,8 +3201,8 @@ code *cdfunc(elem *e,regm_t *pretregs)
             }
             else
             {
-                c = cod3_stackadj(c, sz);
-                c = genadjesp(c, sz);
+                cdb.append(cod3_stackadj(CNIL, sz));
+                cdb.append(genadjesp(CNIL, sz));
                 stackpush += sz;
             }
         }
@@ -3225,22 +3223,22 @@ code *cdfunc(elem *e,regm_t *pretregs)
                     case XMM3: reg = R9; break;
                     default:   assert(0);
                 }
-                code *c1 = getregs(mask[reg]);
-                c1 = gen2(c1,STOD,(REX_W << 16) | modregxrmx(3,preg-XMM0,reg)); // MOVD reg,preg
-                c = cat(c,c1);
+                cdb.append(getregs(mask[reg]));
+                cdb.gen2(STOD,(REX_W << 16) | modregxrmx(3,preg-XMM0,reg)); // MOVD reg,preg
             }
         }
     }
 
     // Restore any register parameters we saved
-    c = cat4(c, getregs(saved), crest, NULL);
+    cdb.append(getregs(saved));
+    cdb.append(cdbrestore);
     keepmsk |= saved;
 
     // Variadic functions store the number of XMM registers used in AL
     if (I64 && config.exe != EX_WIN64 && e->Eflags & EFLAGS_variadic)
-    {   code *c1 = getregs(mAX);
-        c1 = movregconst(c1,AX,xmmcnt,1);
-        c = cat(c, c1);
+    {
+        cdb.append(getregs(mAX));
+        cdb.append(movregconst(CNIL,AX,xmmcnt,1));
         keepmsk |= mAX;
     }
 
@@ -3258,9 +3256,9 @@ code *cdfunc(elem *e,regm_t *pretregs)
 #endif
     assert(usefuncarg || numpara == stackpush - stackpushsave);
 
-    c = cat(c,funccall(e,numpara,numalign,pretregs,keepmsk,usefuncarg));
+    cdb.append(funccall(e,numpara,numalign,pretregs,keepmsk,usefuncarg));
     cgstate.funcargtos = funcargtossave;
-    return c;
+    return cdb.finish();
 }
 
 /***********************************
