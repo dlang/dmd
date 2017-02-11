@@ -70,4 +70,32 @@ fail_compilation/retscope2.d(504): Error: scope variable c may not be returned
 }
 
 
+/**********************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope2.d(604): Error: scope variable _param_0 assigned to non-scope parameter unnamed calling retscope2.foo600
+fail_compilation/retscope2.d(604): Error: scope variable _param_1 assigned to non-scope parameter unnamed calling retscope2.foo600
+fail_compilation/retscope2.d(614): Error: template instance retscope2.test600!(int*, int*) error instantiating
+---
+*/
+
+#line 600
+@safe test600(A...)(scope A args)
+{
+    foreach (i, Arg; A)
+    {
+        foo600(args[i]);
+    }
+}
+
+@safe void foo600(int*);
+
+@safe bar600()
+{
+    scope int* p;
+    scope int* q;
+    test600(p, q);
+}
 

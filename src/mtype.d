@@ -6304,7 +6304,7 @@ extern (C++) final class TypeFunction : TypeNext
                     }
                 }
 
-                if (fparam.storageClass & STCscope && !fparam.type.hasPointers())
+                if (fparam.storageClass & STCscope && !fparam.type.hasPointers() && fparam.type.ty != Ttuple)
                 {
                     fparam.storageClass &= ~STCscope;
                     if (!(fparam.storageClass & STCref))
