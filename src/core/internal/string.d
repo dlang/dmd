@@ -15,7 +15,7 @@ nothrow:
 
 alias UnsignedStringBuf = char[20];
 
-char[] unsignedToTempString(ulong value, char[] buf, uint radix = 10) @safe
+char[] unsignedToTempString(ulong value, return char[] buf, uint radix = 10) @safe
 {
     size_t i = buf.length;
     do
@@ -69,7 +69,7 @@ unittest
 
 alias SignedStringBuf = char[20];
 
-auto signedToTempString(long value, char[] buf, uint radix) @safe
+char[] signedToTempString(long value, return char[] buf, uint radix) @safe
 {
     bool neg = value < 0;
     if(neg)
@@ -78,8 +78,8 @@ auto signedToTempString(long value, char[] buf, uint radix) @safe
     if(neg)
     {
         // about to do a slice without a bounds check
-        auto trustedSlice() @trusted { assert(r.ptr > buf.ptr); return (r.ptr-1)[0..r.length+1]; }
-        r = trustedSlice();
+        auto trustedSlice(return char[] r) @trusted { assert(r.ptr > buf.ptr); return (r.ptr-1)[0..r.length+1]; }
+        r = trustedSlice(r);
         r[0] = '-';
     }
     return r;
@@ -190,7 +190,7 @@ unittest
     assert(3.numDigits!2 == 2);
 }
 
-int dstrcmp( in char[] s1, in char[] s2 ) @trusted
+int dstrcmp( scope const char[] s1, scope const char[] s2 ) @trusted
 {
     import core.stdc.string : memcmp;
 

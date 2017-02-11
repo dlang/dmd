@@ -230,7 +230,7 @@ class TypeInfo
     {
         import core.internal.traits : externDFunc;
         alias dstrcmp = externDFunc!("core.internal.string.dstrcmp",
-                                     int function(in char[] s1, in char[] s2) @trusted pure nothrow @nogc);
+                                     int function(scope const char[] s1, scope const char[] s2) @trusted pure nothrow @nogc);
 
         if (this is o)
             return 0;
@@ -530,7 +530,7 @@ class TypeInfo_StaticArray : TypeInfo
     {
         import core.internal.traits : externDFunc;
         alias sizeToTempString = externDFunc!("core.internal.string.unsignedToTempString",
-                                              char[] function(ulong, char[], uint) @safe pure nothrow @nogc);
+                                              char[] function(ulong, return char[], uint) @safe pure nothrow @nogc);
 
         char[20] tmpBuff = void;
         return value.toString() ~ "[" ~ sizeToTempString(len, tmpBuff, 10) ~ "]";
@@ -1715,7 +1715,7 @@ class Throwable : Object
     {
         import core.internal.traits : externDFunc;
         alias sizeToTempString = externDFunc!("core.internal.string.unsignedToTempString",
-                                              char[] function(ulong, char[], uint) @safe pure nothrow @nogc);
+                                              char[] function(ulong, return char[], uint) @safe pure nothrow @nogc);
 
         char[20] tmpBuff = void;
 
