@@ -2505,7 +2505,7 @@ static if (is(BCGen))
     }
 
     BCBlock genBlock(Statement stmt, bool setCurrent = false,
-        bool costumBreak = false, bool costumContinue = false)
+        bool costumBreakContinue = false)
     {
         BCBlock result;
         const oldBreakFixupCount = breakFixupCount;
@@ -2523,13 +2523,9 @@ static if (is(BCGen))
         if (setCurrent)
         {
             switchFixup = oldSwitchFixup;
-            if (!costumContinue)
+            if (!costumBreakContinue)
             {
                 fixupContinue(oldContinueFixupCount, result.begin);
-            }
-
-            if (!costumBreak)
-            {
                 fixupBreak(oldBreakFixupCount, result.end);
             }
         }
@@ -2570,7 +2566,7 @@ static if (is(BCGen))
             auto condJmp = beginCndJmp(cond);
             const oldContinueFixupCount = continueFixupCount;
             const oldBreakFixupCount = breakFixupCount;
-            auto _body = genBlock(fs._body, true, true, true);
+            auto _body = genBlock(fs._body, true, true);
             if (fs.increment)
             {
                 fs.increment.accept(this);
@@ -4566,13 +4562,13 @@ static if (is(BCGen))
         }
         else if (ds.condition.isBool(false))
         {
-            genBlock(ds._body, true, false, false);
+            genBlock(ds._body, true, false);
         }
         else
         {
             const oldContinueFixupCount = continueFixupCount;
             const oldBreakFixupCount = breakFixupCount;
-            auto doBlock = genBlock(ds._body, true, true, true);
+            auto doBlock = genBlock(ds._body, true, true);
 
             auto cond = genExpr(ds.condition);
             if (!cond)
