@@ -55,7 +55,7 @@ final:
     void xoff(Symbol* s, uint offset, tym_t ty);
     dt_t* xoffpatch(Symbol* s, uint offset, tym_t ty);
     void xoff(Symbol* s, uint offset);
-    void dtoff(dt_t* dt, uint offset);
+    Symbol* dtoff(dt_t* dt, uint offset);
     void coff(uint offset);
     void cat(dt_t* dt);
     void cat(DtBuilder dtb);

@@ -2384,5 +2384,10 @@ symbol *MsCoffObj::tlv_bootstrap()
     return NULL;
 }
 
+void MsCoffObj::write_pointerRef(Symbol* s, unsigned off)
+{
+
+}
+
 #endif
 #endif

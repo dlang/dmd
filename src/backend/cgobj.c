@@ -296,6 +296,10 @@ struct Objstate
 
 #if MARS
     int fmsegi;                 // SegData[] of FM segment
+    int datrefsegi;             // SegData[] of DATA pointer ref segment
+    int tlsrefsegi;             // SegData[] of TLS pointer ref segment
+
+    Outbuffer *ptrref_buf;      // buffer for pointer references
 #endif
 
     int tlssegi;                // SegData[] of tls segment
@@ -333,6 +337,7 @@ STATIC void linnum_flush(void);
 STATIC void linnum_term(void);
 STATIC void objsegdef (int attr,targ_size_t size,int segnamidx,int classnamidx);
 STATIC void obj_modend();
+STATIC void objflush_pointerRefs();
 STATIC void objfixupp (struct FIXUP *);
 STATIC void outextdata();
 STATIC void outpubdata();
@@ -739,6 +744,7 @@ void Obj::term(const char *objfilename)
         {   obj_defaultlib();
             outfixlist();               // backpatches
         }
+        objflush_pointerRefs();
 
         if (config.fulltypes)
             cv_term();                  // write out final debug info
@@ -3700,6 +3706,77 @@ symbol *Obj::tlv_bootstrap()
 
 void Obj::gotref(Symbol *s)
 {
+}
+
+void Obj::write_pointerRef(Symbol* s, unsigned soff)
+{
+    if (!obj.ptrref_buf)
+        obj.ptrref_buf = new Outbuffer;
+
+    // defer writing pointer references until the symbols are written out
+    obj.ptrref_buf->write(&s, sizeof(s));
+    obj.ptrref_buf->write(&soff, sizeof(soff));
+}
+
+STATIC void objflush_pointerRef(Symbol* s, unsigned soff)
+{
+    bool isTls = (s->Sfl == FLtlsdata);
+    int &segi = isTls ? obj.tlsrefsegi : obj.datrefsegi;
+    symbol_debug(s);
+
+    if (segi == 0)
+    {
+        // We need to always put out the segments in triples, so that the
+        // linker will put them in the correct order.
+        static char lnames_dat[] = { "\03DPB\02DP\03DPE" };
+        static char lnames_tls[] = { "\03TPB\02TP\03TPE" };
+        char* lnames = isTls ? lnames_tls : lnames_dat;
+        // Put out LNAMES record
+        objrecord(LNAMES,lnames,sizeof(lnames_dat) - 1);
+
+        int dsegattr = I32
+            ? SEG_ATTR(SEG_ALIGN4,SEG_C_PUBLIC,0,USE32)
+            : SEG_ATTR(SEG_ALIGN2,SEG_C_PUBLIC,0,USE16);
+
+        // Put out beginning segment
+        objsegdef(dsegattr,0,obj.lnameidx,DATACLASS);
+        obj.lnameidx++;
+        obj.segidx++;
+
+        // Put out segment definition record
+        segi = obj_newfarseg(0,DATACLASS);
+        objsegdef(dsegattr,0,obj.lnameidx,DATACLASS);
+        SegData[segi]->attr = dsegattr;
+        assert(SegData[segi]->segidx == obj.segidx);
+
+        // Put out ending segment
+        objsegdef(dsegattr,0,obj.lnameidx + 1,DATACLASS);
+
+        obj.lnameidx += 2;              // for next time
+        obj.segidx += 2;
+    }
+
+    targ_size_t offset = SegData[segi]->SDoffset;
+    offset += objmod->reftoident(segi, offset, s, soff, CFoff);
+    SegData[segi]->SDoffset = offset;
+}
+
+STATIC void objflush_pointerRefs()
+{
+    if (!obj.ptrref_buf)
+        return;
+
+    unsigned char *p = obj.ptrref_buf->buf;
+    unsigned char *end = obj.ptrref_buf->p;
+    while (p < end)
+    {
+        Symbol* s = *(Symbol**)p;
+        p += sizeof(s);
+        unsigned soff = *(unsigned*)p;
+        p += sizeof(soff);
+        objflush_pointerRef(s, soff);
+    }
+    obj.ptrref_buf->reset();
 }
 
 #endif

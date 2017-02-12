@@ -188,7 +188,10 @@ extern (C++) void Initializer_toDt(Initializer init, DtBuilder dtb)
                 {
                     if (tb.ty == Tarray)
                         dtb.size(ai.dim);
-                    dtb.dtoff(dtbarray.finish(), 0);
+                    Symbol* s = dtb.dtoff(dtbarray.finish(), 0);
+                    if (tn.isMutable())
+                        for (int i = 0; i < ai.dim; i++)
+                            write_pointers(tn, s, size * i);
                     break;
                 }
 
@@ -272,7 +275,10 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
             if (e.e1.op == TOKstructliteral)
             {
                 StructLiteralExp sl = cast(StructLiteralExp)e.e1;
-                dtb.xoff(toSymbol(sl), 0);
+                Symbol* s = toSymbol(sl);
+                dtb.xoff(s, 0);
+                if (sl.type.isMutable())
+                    write_pointers(sl.type, s, 0);
                 return;
             }
             visit(cast(UnaExp)e);
@@ -913,7 +919,10 @@ private void toDtElem(TypeSArray tsa, DtBuilder dtb, Expression e)
 private void ClassReferenceExp_toDt(ClassReferenceExp e, DtBuilder dtb, int off)
 {
     //printf("ClassReferenceExp.toDt() %d\n", e.op);
-    dtb.xoff(toSymbol(e), off);
+    Symbol* s = toSymbol(e);
+    dtb.xoff(s, off);
+    if (e.type.isMutable())
+        write_instance_pointers(e.type, s, 0);
 }
 
 extern (C++) void ClassReferenceExp_toInstanceDt(ClassReferenceExp ce, DtBuilder dtb)

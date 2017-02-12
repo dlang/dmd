@@ -2862,6 +2862,10 @@ symbol *Obj::tlv_bootstrap()
 }
 
 
+void Obj::write_pointerRef(Symbol* s, unsigned off)
+{
+}
+
 /*********************************
  * Define segments for Thread Local Storage variables.
  * Output:

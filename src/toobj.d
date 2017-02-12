@@ -49,6 +49,7 @@ import ddmd.tocsym;
 import ddmd.tocvdebug;
 import ddmd.todt;
 import ddmd.tokens;
+import ddmd.traits;
 import ddmd.typinf;
 import ddmd.visitor;
 
@@ -218,6 +219,41 @@ void genModuleInfo(Module m)
     //////////////////////////////////////////////
 
     objmod.moduleinfo(msym);
+}
+
+void write_pointers(Type type, Symbol *s, uint offset)
+{
+    uint ty = type.toBasetype().ty;
+    if (ty == Tclass)
+        return objmod.write_pointerRef(s, offset);
+
+    write_instance_pointers(type, s, offset);
+}
+
+void write_instance_pointers(Type type, Symbol *s, uint offset)
+{
+    if (!type.hasPointers())
+        return;
+
+    Array!(d_uns64) data;
+    d_uns64 sz = getTypePointerBitmap(Loc(), type, &data);
+    if (sz == d_uns64.max)
+        return;
+
+    const bytes_size_t = cast(size_t)Type.tsize_t.size(Loc());
+    const bits_size_t = bytes_size_t * 8;
+    auto words = cast(size_t)(sz / bytes_size_t);
+    for (size_t i = 0; i < data.dim; i++)
+    {
+        size_t bits = words < bits_size_t ? words : bits_size_t;
+        for (size_t b = 0; b < bits; b++)
+            if (data[i] & (1L << b))
+            {
+                auto off = cast(uint) ((i * bits_size_t + b) * bytes_size_t);
+                objmod.write_pointerRef(s, off + offset);
+            }
+        words -= bits;
+    }
 }
 
 /* ================================================================== */
@@ -912,6 +948,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (sz || objmod.allowZeroSize())
             {
                 outdata(s);
+                if (vd.type.isMutable() || !vd._init)
+                    write_pointers(vd.type, s, 0);
                 if (vd.isExport())
                     objmod.export_symbol(s, 0);
             }
