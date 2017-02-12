@@ -49,13 +49,13 @@ SYMBOL_MARS(MONITOR_EPILOG,  FLfunc,FREGSAVED,"_d_monitor_epilog",0,t) \
 SYMBOL_MARS(DCOVER,          FLfunc,FREGSAVED,"_d_cover_register", 0, t) \
 SYMBOL_MARS(DCOVER2,         FLfunc,FREGSAVED,"_d_cover_register2", 0, t) \
 SYMBOL_MARS(DASSERT,         FLfunc,FREGSAVED,"_d_assert", SFLexit, t) \
-SYMBOL_MARS(DASSERTM,        FLfunc,FREGSAVED,"_d_assertm", SFLexit, t) \
+SYMBOL_MARS(DASSERTP,        FLfunc,FREGSAVED,"_d_assertp", SFLexit, t) \
 SYMBOL_MARS(DASSERT_MSG,     FLfunc,FREGSAVED,"_d_assert_msg", SFLexit, t) \
 SYMBOL_MARS(DUNITTEST,       FLfunc,FREGSAVED,"_d_unittest", 0, t) \
-SYMBOL_MARS(DUNITTESTM,      FLfunc,FREGSAVED,"_d_unittestm", 0, t) \
+SYMBOL_MARS(DUNITTESTP,      FLfunc,FREGSAVED,"_d_unittestp", 0, t) \
 SYMBOL_MARS(DUNITTEST_MSG,   FLfunc,FREGSAVED,"_d_unittest_msg", 0, t) \
 SYMBOL_MARS(DARRAY,          FLfunc,FREGSAVED,"_d_arraybounds", SFLexit, t) \
-SYMBOL_MARS(DARRAYM,         FLfunc,FREGSAVED,"_d_array_bounds", SFLexit, t) \
+SYMBOL_MARS(DARRAYP,         FLfunc,FREGSAVED,"_d_arrayboundsp", SFLexit, t) \
 SYMBOL_MARS(DINVARIANT,      FLfunc,FREGSAVED,"D9invariant12_d_invariantFC6ObjectZv", 0, tsdlib) \
 SYMBOL_MARS(_DINVARIANT,     FLfunc,FREGSAVED,"_D9invariant12_d_invariantFC6ObjectZv", 0, tsdlib) \
 SYMBOL_MARS(MEMCPY,          FLfunc,FREGSAVED,"memcpy",    0, t) \

@@ -1936,9 +1936,10 @@ elem *toElem(Expression e, IRState *irs)
                 }
                 else
                 {
-                    Symbol *sassert = ud ? toModuleUnittest(m) : toModuleAssert(m);
-                    ea = el_bin(OPcall,TYvoid,el_var(sassert),
-                        el_long(TYint, ae.loc.linnum));
+                    auto eassert = el_var(getRtlsym(ud ? RTLSYM_DUNITTESTP : RTLSYM_DASSERTP));
+                    auto efile = toEfilenamePtr(m);
+                    auto eline = el_long(TYint, ae.loc.linnum);
+                    ea = el_bin(OPcall, TYvoid, eassert, el_param(eline, efile));
                 }
                 if (einv)
                 {
