@@ -7302,11 +7302,11 @@ extern (C++) final class TypeidExp : Expression
         {
             printf("TypeidExp::semantic() %s\n", toChars());
         }
+
         Type ta = isType(obj);
         Expression ea = isExpression(obj);
         Dsymbol sa = isDsymbol(obj);
-        //printf("ta %p ea %p sa %p\n", ta, ea, sa);
-
+        
         if (ta)
         {
             ta.resolve(loc, sc, &ea, &ta, &sa, true);
@@ -7334,33 +7334,20 @@ extern (C++) final class TypeidExp : Expression
         if (global.params.vcomplex)
             ta.checkComplexTransition(loc);
 
+
         Expression e;
-        if (ea && ta.toBasetype().ty == Tclass)
-        {
-            /* Get the dynamic type, which is .classinfo
-             */
-            ea = ea.semantic(sc);
-            e = new TypeidExp(ea.loc, ea);
-            e.type = Type.typeinfoclass.type;
-        }
-        else if (ta.ty == Terror)
-        {
-            e = new ErrorExp();
-        }
-        else
-        {
-            // Handle this in the glue layer
-            e = new TypeidExp(loc, ta);
-            e.type = getTypeInfoType(ta, sc);
+        auto id = Identifier.idPool("__typeidImplT");
 
-            semanticTypeInfo(sc, ta);
+        auto tiargs = new Objects();
+        tiargs.push(ta);
+        auto tempinst = new TemplateInstance(loc, id, tiargs);
+        e = new ScopeExp(loc, tempinst);
 
-            if (ea)
-            {
-                e = new CommaExp(loc, ea, e); // execute ea
-                e = e.semantic(sc);
-            }
-        }
+        auto arguments = new Expressions();
+        //arguments.push(...);
+        e = new CallExp(loc, e, arguments);
+        e.semantic(sc);
+
         return e;
     }
 

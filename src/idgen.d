@@ -70,6 +70,7 @@ Msgtable[] msgtable =
     { "outer" },
     { "Exception" },
     { "RTInfo" },
+    { "__typeidImplT" },
     { "Throwable" },
     { "Error" },
     { "withSym", "__withSym" },
