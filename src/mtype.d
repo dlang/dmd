@@ -781,7 +781,7 @@ extern (C++) abstract class Type : RootObject
                 goto Lnotcovariant;
         }
 
-        // We can subtract 'return' from 'this', but cannot add it
+        // We can subtract 'return ref' from 'this', but cannot add it
         else if (t1.isreturn && !t2.isreturn)
             goto Lnotcovariant;
 
@@ -6698,8 +6698,13 @@ extern (C++) final class TypeFunction : TypeNext
 
     override Type addStorageClass(StorageClass stc)
     {
+        //printf("addStorageClass(%llx) %d\n", stc, (stc & STCscope) != 0);
         TypeFunction t = cast(TypeFunction)Type.addStorageClass(stc);
-        if ((stc & STCpure && !t.purity) || (stc & STCnothrow && !t.isnothrow) || (stc & STCnogc && !t.isnogc) || (stc & STCsafe && t.trust < TRUSTtrusted))
+        if ((stc & STCpure && !t.purity) ||
+            (stc & STCnothrow && !t.isnothrow) ||
+            (stc & STCnogc && !t.isnogc) ||
+            (stc & STCscope && !t.isscope) ||
+            (stc & STCsafe && t.trust < TRUSTtrusted))
         {
             // Klunky to change these
             auto tf = new TypeFunction(t.parameters, t.next, t.varargs, t.linkage, 0);
@@ -6723,6 +6728,8 @@ extern (C++) final class TypeFunction : TypeNext
                 tf.isnogc = true;
             if (stc & STCsafe)
                 tf.trust = TRUSTsafe;
+            if (stc & STCscope)
+                tf.isscope = true;
 
             tf.deco = tf.merge().deco;
             t = tf;
@@ -7190,6 +7197,25 @@ extern (C++) final class TypeDelegate : TypeNext
             deco = merge().deco;
             return this;
         }
+    }
+
+    override Type addStorageClass(StorageClass stc)
+    {
+        TypeDelegate t = cast(TypeDelegate)Type.addStorageClass(stc);
+        if (!global.params.vsafe)
+            return t;
+
+        /* The rest is meant to add 'scope' to a delegate declaration if it is of the form:
+         *  alias dg_t = void* delegate();
+         *  scope dg_t dg = ...;
+         */
+        auto n = t.next.addStorageClass(stc & STCscope);
+        if (n != t.next)
+        {
+            t.next = n;
+            t.deco = t.merge().deco;
+        }
+        return t;
     }
 
     override d_uns64 size(Loc loc) const

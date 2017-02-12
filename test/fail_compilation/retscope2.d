@@ -21,6 +21,19 @@ fail_compilation/retscope2.d(107): Error: address of variable s assigned to p wi
 
 /**********************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=17123
+
+void test200()
+{
+    char[256] buffer;
+
+    char[] delegate() read = () {
+        return buffer[];
+    };
+}
+
+/**********************************************/
+
 /*
 TEST_OUTPUT:
 ---
@@ -69,7 +82,6 @@ fail_compilation/retscope2.d(504): Error: scope variable c may not be returned
     return c;
 }
 
-
 /**********************************************/
 
 /*
@@ -98,4 +110,5 @@ fail_compilation/retscope2.d(614): Error: template instance retscope2.test600!(i
     scope int* q;
     test600(p, q);
 }
+
 

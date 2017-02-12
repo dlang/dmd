@@ -235,10 +235,10 @@ void* funretscope(scope dg_t ptr) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(249): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
-fail_compilation/retscope.d(249): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
-fail_compilation/retscope.d(250): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
-fail_compilation/retscope.d(250): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
+fail_compilation/retscope.d(249): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return scope @safe to void* delegate() scope @safe
+fail_compilation/retscope.d(249): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return scope @safe to void* delegate() scope @safe
+fail_compilation/retscope.d(250): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return scope @safe to void* delegate() scope @safe
+fail_compilation/retscope.d(250): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return scope @safe to void* delegate() scope @safe
 ---
 */
 
@@ -626,18 +626,6 @@ struct Result(R)
     n.empty();
 }
 
-/**********************************************/
-
-@safe void foo22()(ref char[] s)
-{
-    char[] a = s;
-}
-
-@safe void test22(scope char[] s)
-{
-    foo22(s);
-}
-
 /************************************************/
 
 // https://issues.dlang.org/show_bug.cgi?id=17117
@@ -658,5 +646,17 @@ int test21()
         int s;
         s = foo21(s);
         return s;
+}
+
+/**********************************************/
+
+@safe void foo22()(ref char[] s)
+{
+    char[] a = s;
+}
+
+@safe void test22(scope char[] s)
+{
+    foo22(s);
 }
 
