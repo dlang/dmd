@@ -29,12 +29,12 @@ else version (WatchOS)
 
 version (CRuntime_Glibc)
 {
-    alias extern (C) int function(const void *, const void *, void *) Cmp;
-    extern (C) void qsort_r(void *base, size_t nmemb, size_t size, Cmp cmp, void *arg);
+    alias extern (C) int function(scope const void *, scope const void *, scope void *) Cmp;
+    extern (C) void qsort_r(scope void *base, size_t nmemb, size_t size, Cmp cmp, scope void *arg);
 
-    extern (C) void[] _adSort(void[] a, TypeInfo ti)
+    extern (C) void[] _adSort(return scope void[] a, TypeInfo ti)
     {
-        extern (C) int cmp(in void* p1, in void* p2, void* ti)
+        extern (C) int cmp(scope const void* p1, scope const void* p2, scope void* ti)
         {
             return (cast(TypeInfo)ti).compare(p1, p2);
         }
@@ -44,12 +44,12 @@ version (CRuntime_Glibc)
 }
 else version (FreeBSD)
 {
-    alias extern (C) int function(void *, const void *, const void *) Cmp;
-    extern (C) void qsort_r(void *base, size_t nmemb, size_t size, void *thunk, Cmp cmp);
+    alias extern (C) int function(scope void *, scope const void *, scope const void *) Cmp;
+    extern (C) void qsort_r(scope void *base, size_t nmemb, size_t size, scope void *thunk, Cmp cmp);
 
-    extern (C) void[] _adSort(void[] a, TypeInfo ti)
+    extern (C) void[] _adSort(return scope void[] a, TypeInfo ti)
     {
-        extern (C) int cmp(void* ti, in void* p1, in void* p2)
+        extern (C) int cmp(scope void* ti, scope const void* p1, scope const void* p2)
         {
             return (cast(TypeInfo)ti).compare(p1, p2);
         }
@@ -59,12 +59,12 @@ else version (FreeBSD)
 }
 else version (Darwin)
 {
-    alias extern (C) int function(void *, const void *, const void *) Cmp;
-    extern (C) void qsort_r(void *base, size_t nmemb, size_t size, void *thunk, Cmp cmp);
+    alias extern (C) int function(scope void *, scope const void *, scope const void *) Cmp;
+    extern (C) void qsort_r(scope void *base, size_t nmemb, size_t size, scope void *thunk, Cmp cmp);
 
-    extern (C) void[] _adSort(void[] a, TypeInfo ti)
+    extern (C) void[] _adSort(return scope void[] a, TypeInfo ti)
     {
-        extern (C) int cmp(void* ti, in void* p1, in void* p2)
+        extern (C) int cmp(scope void* ti, scope const void* p1, scope const void* p2)
         {
             return (cast(TypeInfo)ti).compare(p1, p2);
         }
@@ -76,9 +76,9 @@ else
 {
     private TypeInfo tiglobal;
 
-    extern (C) void[] _adSort(void[] a, TypeInfo ti)
+    extern (C) void[] _adSort(return scope void[] a, TypeInfo ti)
     {
-        extern (C) int cmp(in void* p1, in void* p2)
+        extern (C) int cmp(scope const void* p1, scope const void* p2)
         {
             return tiglobal.compare(p1, p2);
         }

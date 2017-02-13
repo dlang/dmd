@@ -32,11 +32,11 @@ extern (C):
 /* Placed outside @nogc in order to not constrain what the callback does.
  */
 ///
-alias int function(in void*, in void*) _compare_fp_t;
+alias int function(scope const void*, scope const void*) _compare_fp_t;
 ///
-void*   bsearch(in void* key, in void* base, size_t nmemb, size_t size, _compare_fp_t compar);
+inout(void)* bsearch(scope const void* key, scope inout(void)* base, size_t nmemb, size_t size, _compare_fp_t compar);
 ///
-void    qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
+void    qsort(scope void* base, size_t nmemb, size_t size, _compare_fp_t compar);
 
 
 nothrow:
@@ -81,32 +81,32 @@ else version(CRuntime_Bionic) enum RAND_MAX = 0x7fffffff;
 else static assert( false, "Unsupported platform" );
 
 ///
-double  atof(in char* nptr);
+double  atof(scope const char* nptr);
 ///
-int     atoi(in char* nptr);
+int     atoi(scope const char* nptr);
 ///
-c_long  atol(in char* nptr);
+c_long  atol(scope const char* nptr);
 ///
-long    atoll(in char* nptr);
+long    atoll(scope const char* nptr);
 
 ///
-double  strtod(in char* nptr, char** endptr);
+double  strtod(scope inout(char)* nptr, scope inout(char)** endptr);
 ///
-float   strtof(in char* nptr, char** endptr);
+float   strtof(scope inout(char)* nptr, scope inout(char)** endptr);
 ///
-c_long  strtol(in char* nptr, char** endptr, int base);
+c_long  strtol(scope inout(char)* nptr, scope inout(char)** endptr, int base);
 ///
-long    strtoll(in char* nptr, char** endptr, int base);
+long    strtoll(scope inout(char)* nptr, scope inout(char)** endptr, int base);
 ///
-c_ulong strtoul(in char* nptr, char** endptr, int base);
+c_ulong strtoul(scope inout(char)* nptr, scope inout(char)** endptr, int base);
 ///
-ulong   strtoull(in char* nptr, char** endptr, int base);
+ulong   strtoull(scope inout(char)* nptr, scope inout(char)** endptr, int base);
 
 version (CRuntime_Microsoft)
 {
-    // strtold exists starting from VS2013, so we make this a template to avoid link errors
+    // strtold exists starting from VS2013, so we give it D linkage to avoid link errors
     ///
-    real strtold()(in char* nptr, char** endptr)
+    extern (D) real strtold(scope inout(char)* nptr, inout(char)** endptr)
     {   // Fake it 'till we make it
         return strtod(nptr, endptr);
     }
@@ -114,14 +114,14 @@ version (CRuntime_Microsoft)
 else version (MinGW)
 {
     ///
-    real __mingw_strtold(in char* nptr, char** endptr);
+    real __mingw_strtold(scope inout(char)* nptr, scope inout(char)** endptr);
     ///
     alias __mingw_strtold strtold;
 }
 else version (CRuntime_Bionic)
 {
     ///
-    real strtold(in char* nptr, char** endptr)
+    real strtold(scope inout(char)* nptr, scope inout(char)** endptr)
     {   // Fake it again till we make it
         return strtod(nptr, endptr);
     }
@@ -129,7 +129,7 @@ else version (CRuntime_Bionic)
 else
 {
     ///
-    real strtold(in char* nptr, char** endptr);
+    real strtold(scope inout(char)* nptr, scope inout(char)** endptr);
 }
 
 // No unsafe pointer manipulation.
@@ -175,9 +175,9 @@ int     atexit(void function() func);
 void    _Exit(int status);
 
 ///
-char*   getenv(in char* name);
+char*   getenv(scope const char* name);
 ///
-int     system(in char* string);
+int     system(scope const char* string);
 
 // These only operate on integer values.
 @trusted
@@ -198,15 +198,15 @@ int     system(in char* string);
 }
 
 ///
-int     mblen(in char* s, size_t n);
+int     mblen(scope const char* s, size_t n);
 ///
-int     mbtowc(wchar_t* pwc, in char* s, size_t n);
+int     mbtowc(scope wchar_t* pwc, scope const char* s, size_t n);
 ///
-int     wctomb(char*s, wchar_t wc);
+int     wctomb(scope char* s, wchar_t wc);
 ///
-size_t  mbstowcs(wchar_t* pwcs, in char* s, size_t n);
+size_t  mbstowcs(scope wchar_t* pwcs, scope const char* s, size_t n);
 ///
-size_t  wcstombs(char* s, in wchar_t* pwcs, size_t n);
+size_t  wcstombs(scope char* s, scope const wchar_t* pwcs, size_t n);
 
 ///
 version( DigitalMars )
@@ -222,12 +222,12 @@ else version( GNU )
 version( CRuntime_Microsoft )
 {
     ///
-    ulong  _strtoui64(in char *,char **,int);
+    ulong  _strtoui64(scope inout(char)*, scope inout(char)**,int);
     ///
-    ulong  _wcstoui64(in wchar *,wchar **,int);
+    ulong  _wcstoui64(scope inout(wchar)*, scope inout(wchar)**,int);
 
     ///
-    long  _strtoi64(in char *,char **,int);
+    long  _strtoi64(scope inout(char)*, scope inout(char)**,int);
     ///
-    long  _wcstoi64(in wchar *,wchar **,int);
+    long  _wcstoi64(scope inout(wchar)*, scope inout(wchar)**,int);
 }

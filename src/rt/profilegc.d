@@ -117,7 +117,7 @@ shared static ~this()
         Entry entry;
 
         // qsort() comparator to sort by count field
-        extern (C) static int qsort_cmp(const void *r1, const void *r2)
+        extern (C) static int qsort_cmp(scope const void *r1, scope const void *r2)
         {
             auto result1 = cast(Result*)r1;
             auto result2 = cast(Result*)r2;
