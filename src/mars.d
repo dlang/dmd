@@ -55,6 +55,7 @@ import ddmd.target;
 import ddmd.tokens;
 import ddmd.utils;
 
+import ddmd.root.stringtable;
 
 /**
  * Print DMD's logo on stdout
@@ -186,7 +187,6 @@ extern (C++) __gshared Module entrypoint = null;
 /// Module in which the D main is
 extern (C++) __gshared Module rootHasMain = null;
 
-
 /**
  * Generate C main() in response to seeing D main().
  *
@@ -241,6 +241,36 @@ extern (C++) void genCmain(Scope* sc)
     rootHasMain = sc._module;
 }
 
+/**
+ * Recursevely call semantic3() on import tree nodes.
+ */
+private void semantic3OnDependencies(Module m, StringTable *importArray)
+{
+    if (!m)
+        return;
+
+    const(char) *mName = m.toChars();
+    size_t mNameLen    = strlen(mName);
+
+    if (importArray.lookup(mName, mNameLen))
+        return;
+    else
+    {
+        if(global.params.verbose)
+            fprintf(global.stdmsg, "semantic3 %s\n", mName);
+
+        // The value of the hashtable doesn't matter, just the key is important
+        importArray.insert(mName, mNameLen, cast(void*) mName);
+        m.semantic3(null);
+
+        // start from 1 to avoid calling semantic3 on object
+        for (int i=1; i<m.aimports.dim; i++)
+        {
+            Module mi = m.aimports[i];
+            semantic3OnDependencies(mi, importArray);
+        }
+    }
+}
 
 /**
  * DMD's real entry point
@@ -1435,7 +1465,6 @@ Language changes listed by -transition=id:
         fatal();
 
     backend_init();
-
     // Do semantic analysis
     for (size_t i = 0; i < modules.dim; i++)
     {
@@ -1498,9 +1527,15 @@ Language changes listed by -transition=id:
         fatal();
 
     // inlineScan incrementally run semantic3 of each expanded functions.
-    // So deps file generation should be moved after the inlinig stage.
+    // So deps file generation should be moved after the inlining stage.
     if (global.params.moduleDeps)
     {
+        // Bugzilla 7016
+        StringTable importArray;
+        importArray._init();
+
+        semantic3OnDependencies(modules[0], &importArray);
+
         OutBuffer* ob = global.params.moduleDeps;
         if (global.params.moduleDepsFile)
         {
