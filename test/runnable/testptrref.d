@@ -1,6 +1,34 @@
 
-version(CRuntime_Microsoft) {} else
-version(Win32)
+version(CRuntime_Microsoft)
+{
+    extern(C)
+    {
+        extern __gshared uint _DP_beg;
+        extern __gshared uint _DP_end;
+        extern __gshared uint _TP_beg;
+        extern __gshared uint _TP_end;
+        extern int _tls_start;
+        extern int _tls_end;
+    }
+    alias _DPbegin = _DP_beg;
+    alias _DPend = _DP_end;
+    alias _TPbegin = _TP_beg;
+    alias _TPend = _TP_end;
+    alias _tlsstart = _tls_start;
+    alias _tlsend = _tls_end;
+
+    __gshared void[] dataSection;
+    shared static this()
+    {
+        import core.internal.traits : externDFunc;
+        alias findImageSection = externDFunc!("rt.sections_win64.findImageSection",
+                                              void[] function(string name) nothrow @nogc);
+        dataSection = findImageSection(".data");
+    }
+    
+    version = ptrref_supported;
+}
+else version(Win32)
 {
     extern(C)
     {
@@ -73,10 +101,13 @@ bool findTlsPtr(const(void)* ptr)
 bool findDataPtr(const(void)* ptr)
 {
     debug(PRINT) printf("findDataPtr %p\n", ptr);
-    for (void** p = &_DPbegin; p < &_DPend; p++)
+    for (auto p = &_DPbegin; p < &_DPend; p++)
     {
-        void* addr = *p;
-        debug(PRINT) printf("  try %p\n", addr);
+        debug(PRINT) printf("  try %p\n", cast(void*) cast(size_t) *p);
+        version(CRuntime_Microsoft)
+            void* addr = dataSection.ptr + *p;
+        else
+            void* addr = *p;
         
         if (addr == ptr)
             return true;
