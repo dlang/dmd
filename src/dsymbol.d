@@ -1006,7 +1006,7 @@ extern (C++) class Dsymbol : RootObject
         else if (comment && strcmp(cast(char*)comment, cast(char*)this.comment) != 0)
         {
             // Concatenate the two
-            this.comment = Lexer.combineComments(this.comment, comment);
+            this.comment = Lexer.combineComments(this.comment, comment, true);
         }
     }
 

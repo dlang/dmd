@@ -8422,7 +8422,7 @@ final class Parser : Lexer
      */
     void addComment(Dsymbol s, const(char)* blockComment)
     {
-        s.addComment(combineComments(blockComment, token.lineComment));
+        s.addComment(combineComments(blockComment, token.lineComment, true));
         token.lineComment = null;
     }
 }
