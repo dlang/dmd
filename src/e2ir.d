@@ -2605,9 +2605,8 @@ elem *toElem(Expression e, IRState *irs)
                         elem *c2 = el_bin(OPle, TYint, el_copytree(elwr), el_copytree(eupr));
                         c1 = el_bin(OPandand, TYint, c1, c2);
 
-                        // Construct: (c1 || ModuleArray(line))
-                        Symbol *sassert = toModuleArray(cast(Module)irs.blx._module);
-                        elem *ea = el_bin(OPcall,TYvoid,el_var(sassert), el_long(TYint, ae.loc.linnum));
+                        // Construct: (c1 || arrayBoundsError)
+                        auto ea = buildArrayBoundsError(irs, ae.loc);
                         elem *eb = el_bin(OPoror,TYvoid,c1,ea);
                         einit = el_combine(einit, eb);
                     }
@@ -4737,9 +4736,8 @@ elem *toElem(Expression e, IRState *irs)
 
                     if (c1)
                     {
-                        // Construct: (c1 || ModuleArray(line))
-                        Symbol *sassert = toModuleArray(cast(Module)irs.blx._module);
-                        elem *ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, se.loc.linnum));
+                        // Construct: (c1 || arrayBoundsError)
+                        auto ea = buildArrayBoundsError(irs, se.loc);
                         elem *eb = el_bin(OPoror, TYvoid, c1, ea);
 
                         elwr = el_combine(elwr, eb);
@@ -4840,10 +4838,8 @@ elem *toElem(Expression e, IRState *irs)
                 {
                     elem *n = el_same(&e);
 
-                    // Construct: ((e || ModuleArray(line)), n)
-                    Symbol *sassert = toModuleArray(cast(Module)irs.blx._module);
-                    elem *ea = el_bin(OPcall,TYvoid,el_var(sassert),
-                        el_long(TYint, ie.loc.linnum));
+                    // Construct: ((e || arrayBoundsError), n)
+                    auto ea = buildArrayBoundsError(irs, ie.loc);
                     e = el_bin(OPoror,TYvoid,e,ea);
                     e = el_bin(OPcomma, TYnptr, e, n);
                 }
@@ -4878,10 +4874,8 @@ elem *toElem(Expression e, IRState *irs)
                         n2 = el_same(&n2x);
                         n2x = el_bin(OPlt, TYint, n2x, elength);
 
-                        // Construct: (n2x || ModuleArray(line))
-                        Symbol *sassert = toModuleArray(cast(Module)irs.blx._module);
-                        elem *ea = el_bin(OPcall,TYvoid,el_var(sassert),
-                            el_long(TYint, ie.loc.linnum));
+                        // Construct: (n2x || arrayBoundsError)
+                        auto ea = buildArrayBoundsError(irs, ie.loc);
                         eb = el_bin(OPoror,TYvoid,n2x,ea);
                     }
                 }
@@ -5756,6 +5750,19 @@ elem *filelinefunction(IRState *irs, Loc *loc)
         efunction = addressElem(efunction, Type.tstring, true);
 
     return el_params(efunction, elinnum, efilename, null);
+}
+
+/******************************************************
+ * Construct elem to run when an array bounds check fails.
+ * Returns:
+ *      elem generated
+ */
+elem *buildArrayBoundsError(IRState *irs, const ref Loc loc)
+{
+    auto eassert = el_var(getRtlsym(RTLSYM_DARRAYP));
+    auto efile = toEfilenamePtr(cast(Module)irs.blx._module);
+    auto eline = el_long(TYint, loc.linnum);
+    return el_bin(OPcall, TYvoid, eassert, el_param(eline, efile));
 }
 
 /******************************************************

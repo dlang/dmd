@@ -505,62 +505,10 @@ void genObjFile(Module m, bool multiobj)
     if (!global.params.betterC /*|| needModuleInfo()*/)
         genModuleInfo(m);
 
-    /* Always generate helper functions b/c of later templates instantiations
-     * with different -release/-debug/-boundscheck/-unittest flags.
-     */
-    if (!global.params.betterC)
-        genhelpers(m);
-
     objmod.termfile();
 }
 
 
-private void genhelpers(Module m)
-{
-    static void genhelper(Module m, Symbol* ma, uint rt, uint bc)
-    {
-        if (!ma)
-            return;
-
-        localgot = null;
-
-        // Call dassert(filename, line)
-        // Get sole parameter, linnum
-        Symbol *sp = symbol_calloc("linnum");
-        sp.Stype = type_fake(TYint);
-        sp.Stype.Tcount++;
-        sp.Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
-
-        FuncParamRegs fpr = FuncParamRegs.create(TYjfunc);
-        fpr.alloc(sp.Stype, sp.Stype.Tty, &sp.Spreg, &sp.Spreg2);
-
-        sp.Sflags &= ~SFLspill;
-        sp.Sfl = (sp.Sclass == SCshadowreg) ? FLpara : FLfast;
-        cstate.CSpsymtab = &ma.Sfunc.Flocsym;
-        symbol_add(sp);
-
-        elem *elinnum = el_var(sp);
-
-        elem *efilename = toEfilename(m);
-        if (config.exe == EX_WIN64)
-            efilename = addressElem(efilename, Type.tstring, true);
-
-        elem *e = el_var(getRtlsym(rt));
-        e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
-
-        block *b = block_calloc();
-        b.BC = cast(ubyte)bc;
-        b.Belem = e;
-        ma.Sfunc.Fstartline.Sfilename = m.arg;
-        ma.Sfunc.Fstartblock = b;
-        ma.Sclass = SCglobal;
-        ma.Sfl = 0;
-        ma.Sflags |= getRtlsym(rt).Sflags & SFLexit;
-        writefunc(ma);
-    }
-
-    genhelper(m, toModuleArray(m),    RTLSYM_DARRAY,    BCexit);
-}
 
 /**************************************
  * Search for a druntime array op
