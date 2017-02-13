@@ -3708,6 +3708,13 @@ void Obj::gotref(Symbol *s)
 {
 }
 
+/*****************************************
+ * write a reference to a mutable pointer into the object file
+ * Input:
+ *      s       symbol that contains the pointer
+ *      soff    offset of the pointer inside the symbols' memory
+ */
+
 void Obj::write_pointerRef(Symbol* s, unsigned soff)
 {
     if (!obj.ptrref_buf)
@@ -3718,6 +3725,13 @@ void Obj::write_pointerRef(Symbol* s, unsigned soff)
     obj.ptrref_buf->write(&soff, sizeof(soff));
 }
 
+/*****************************************
+ * flush a single pointer reference saved by write_pointerRef
+ * to the object file
+ * Input:
+ *      s       symbol that contains the pointer
+ *      soff    offset of the pointer inside the symbols' memory
+ */
 STATIC void objflush_pointerRef(Symbol* s, unsigned soff)
 {
     bool isTls = (s->Sfl == FLtlsdata);
@@ -3761,6 +3775,10 @@ STATIC void objflush_pointerRef(Symbol* s, unsigned soff)
     SegData[segi]->SDoffset = offset;
 }
 
+/*****************************************
+ * flush all pointer references saved by write_pointerRef
+ * to the object file
+ */
 STATIC void objflush_pointerRefs()
 {
     if (!obj.ptrref_buf)

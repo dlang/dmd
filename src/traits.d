@@ -112,7 +112,7 @@ static this()
 /**
  * get an array of size_t values that indicate possible pointer words in memory
  *  if interpreted as the type given as argument
- * returns the size of the type in bytes, d_uns64.max on error
+ * Returns: the size of the type in bytes, d_uns64.max on error
  */
 extern (C++) d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data)
 {
@@ -335,7 +335,7 @@ extern (C++) d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data
  * following elements bits represent one word (4/8 bytes depending on the target
  *  architecture). If set the corresponding memory might contain a pointer/reference.
  *
- *  [T.sizeof, pointerbit0-31/63, pointerbit32/64-63/128, ...]
+ *  Returns: [T.sizeof, pointerbit0-31/63, pointerbit32/64-63/128, ...]
  */
 extern (C++) Expression pointerBitmap(TraitsExp e)
 {
