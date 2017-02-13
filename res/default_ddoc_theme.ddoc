@@ -55,7 +55,7 @@ D_KEYWORD = <span class="keyword">$0</span>
 D_PSYMBOL = <span class="psymbol">$0</span>
 D_PARAM = <span class="param">$0</span>
 
-DDOC_BLANKLINE =
+DDOC_BLANKLINE = <br><br>
 DDOC_COMMENT = <!-- $0 -->
 
 DDOC =
