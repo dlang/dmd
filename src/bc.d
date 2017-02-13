@@ -494,7 +494,7 @@ struct BCGen
     void Assert(BCValue value, BCValue err)
     {
         auto _msg = genTemporary(i32Type);
-        Set(_msg, BCValue(Imm32(err.imm32)));
+        Set(_msg, imm32(err.imm32));
         if (value)
         {
             emitLongInst(LongInst64(LongInst.Assert, value.stackAddr, _msg.stackAddr));
@@ -610,7 +610,8 @@ struct BCGen
     void Eq3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(result.vType == BCValueType.Unknown
-            || result.vType == BCValueType.StackValue,
+            || result.vType == BCValueType.StackValue
+            || result.vType == BCValueType.Parameter,
             "The result for this must be Empty or a StackValue not " ~ to!string(result.vType) );
         emitArithInstruction(LongInst.Eq, lhs, rhs);
 
@@ -623,7 +624,9 @@ struct BCGen
     void Neq3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(result.vType == BCValueType.Unknown
-            || result.vType == BCValueType.StackValue,
+            || result.vType == BCValueType.StackValue
+            || result.vType == BCValueType.Parameter,
+
             "The result for this must be Empty or a StackValue");
         emitArithInstruction(LongInst.Neq, lhs, rhs);
 
@@ -897,7 +900,7 @@ struct BCGen
     void LoadIndexed(BCValue result, BCValue array, BCValue idx, BCValue arrayLength)
     {
 
-        auto elmSize = BCValue(Imm32(basicTypeSize(result.type)));
+        auto elmSize = imm32(basicTypeSize(result.type));
 
         assert(result.vType == BCValueType.StackValue);
         assert(idx.type.type == BCTypeEnum.i32);
@@ -1598,7 +1601,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
             {
                 if (*lhsRef == 0)
                 {
-                    BCValue retval = BCValue(Imm32((*rhs) & uint.max));
+                    BCValue retval = imm32((*rhs) & uint.max);
                     retval.vType = BCValueType.Error;
 
                     static if (is(RetainedError))
@@ -1608,7 +1611,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                             auto err = errors[cast(uint)(*rhs - 1)];
                             if (err.v1.vType != BCValueType.Immediate)
                             {
-                                *ev1 = BCValue(Imm32(stackP[err.v1.toUint / 4] & uint.max));
+                                *ev1 = imm32(stackP[err.v1.toUint / 4] & uint.max);
                             }
                             else
                             {
@@ -1617,7 +1620,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
 
                             if (err.v2.vType != BCValueType.Immediate)
                             {
-                                *ev2 = BCValue(Imm32(stackP[err.v2.toUint / 4] & uint.max));
+                                *ev2 = imm32(stackP[err.v2.toUint / 4] & uint.max);
                             }
                             else
                             {
@@ -1634,7 +1637,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
             {
                 if (!cond)
                 {
-                    BCValue retval = BCValue(Imm32((*rhs) & uint.max));
+                    BCValue retval = imm32((*rhs) & uint.max);
                     retval.vType = BCValueType.Error;
                     static if (is(RetainedError))
                     {
@@ -1643,7 +1646,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                             auto err = errors[cast(uint)(*rhs - 1)];
                             if (err.v1.vType != BCValueType.Immediate)
                             {
-                                *ev1 = BCValue(Imm32(stackP[err.v1.toUint / 4] & uint.max));
+                                *ev1 = imm32(stackP[err.v1.toUint / 4] & uint.max);
                             }
                             else
                             {
@@ -1652,7 +1655,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
 
                             if (err.v2.vType != BCValueType.Immediate)
                             {
-                                *ev2 = BCValue(Imm32(stackP[err.v2.toUint / 4] & uint.max));
+                                *ev2 = imm32(stackP[err.v2.toUint / 4] & uint.max);
                             }
                             else
                             {
@@ -1833,7 +1836,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
 
                         writeln("Ret SP[", lhsOffset, "] (", *opRef, ")\n");
                     }
-                return BCValue(Imm32(*opRef & 0xFF_FF_FF_FF));
+                return imm32(*opRef & 0xFF_FF_FF_FF);
             }
 
         case LongInst.RelJmp:
@@ -1897,7 +1900,12 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                     }
                 }
                 if (callDepth++ == 2000)
-                    goto Lbailout;
+                {
+                        BCValue bailoutValue;
+                        bailoutValue.vType = BCValueType.Bailout;
+                        bailoutValue.imm32 = 2000;
+                        return bailoutValue;
+                }
                 auto cRetval = interpret_(functions[cast(size_t)(fn - 1)].byteCode,
                     callArgs[0 .. call.args.length], heapPtr, functions, calls, ev1, ev2, errors, stack, stackOffsetCall);
 

@@ -23,6 +23,7 @@ enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
+enum abortOnCritical = 1;
 
 private static void clearArray(T)(auto ref T array, uint count)
 {
@@ -148,7 +149,6 @@ struct BlackList
     void defaultBlackList()
     {
         initialize([
-                "to", //because of we stil don't do proper UTF
                 "modify14304", //because of fail_compilation/fail14304.d; We should not be required to check for this.
         ]);
     }
@@ -212,62 +212,8 @@ ulong evaluateUlong(Expression e)
 
 Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _this = null)
 {
-    __gshared static arg_bcv = new BCV!(BCGenT);
     _blacklist.defaultBlackList();
     import std.stdio;
-
-    static if (cacheBC && is(typeof(_sharedCtfeState.functionCount)) && is(BCGen) && false)
-    {
-
-        import std.datetime : StopWatch;
-
-        static if (perf)
-        {
-            StopWatch ffw;
-            ffw.start();
-        }
-        if (auto fnIdx = _sharedCtfeState.getFunctionIndex(fd))
-        {
-            //FIXME TODO add a branchHint to say that it is likely to find the function!
-            static if (perf)
-            {
-                ffw.stop();
-                writeln("function ", fd.ident.toString, " found! search took ",
-                    ffw.peek.nsecs, "ns");
-            }
-            auto fn = _sharedCtfeState.functions[fnIdx - 1];
-            arg_bcv.arguments.length = fn.nArgs;
-            BCValue[] bc_args;
-            bc_args.length = fn.nArgs;
-            arg_bcv.beginArguments();
-            static if (perf)
-            {
-                StopWatch isw;
-                isw.start();
-            }
-
-            foreach (i, arg; args)
-            {
-                bc_args[i] = arg_bcv.genExpr(arg);
-            }
-            arg_bcv.endArguments();
-
-            auto retval = interpret_(fn.byteCode, bc_args,
-                &_sharedCtfeState.heap, _sharedCtfeState.functions.ptr);
-            static if (perf)
-            {
-                isw.stop();
-                writeln("Interpretation took ", isw.peek.usecs, "us");
-            }
-            return toExpression(retval, (cast(TypeFunction) fd.type).nextOf,
-                &_sharedCtfeState.heap);
-        }
-        static if (perf)
-        {
-            ffw.stop();
-            writeln("function not found, search took ", ffw.peek.nsecs, "ns");
-        }
-    }
 
     // writeln("Evaluating function: ", fd.toString);
     import ddmd.identifier;
@@ -278,6 +224,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         StopWatch csw;
         StopWatch isw;
         StopWatch hiw;
+        StopWatch psw;
         hiw.start();
     }
     _sharedCtfeState.initHeap();
@@ -291,11 +238,50 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     __gshared static bcv = new BCV!BCGenT;
 
     bcv.clear();
-    bcv.me = fd;
     bcv.Initialize();
     static if (perf)
     {
         isw.stop();
+        psw.start();
+    }
+
+    // HACK since we don't support dealing with _uncompiled_ functions passed as arguments
+    // search through the arguments and if we detect a function compile it
+    // The above did not work -- investigate
+
+    foreach(arg;args)
+    {
+        if (arg.type.ty == Tfunction)
+        { //TODO we need to fix this!
+            static if (bailoutMessages)
+                writeln("top-level function arguments are not supported");
+            return null;
+        }
+        if (arg.type.ty == Tpointer && (cast(TypePointer)arg.type).nextOf.ty == Tfunction)
+        {
+            static if (bailoutMessages)
+                writeln("top-level function ptr arguments are not supported");
+            return null;
+/* TODO we really need to fix this!
+            import ddmd.tokens;
+            if (arg.op == TOKsymoff)
+            {
+                auto se = cast(SymOffExp)arg;
+                auto _fd = se.var.isFuncDeclaration;
+                if (!_fd) continue;
+                bcv.visit(fd);
+                bcv.compileUncompiledFunctions();
+                bcv.clear();
+            }
+*/
+        }
+    }
+    bcv.clear();
+    //bcv.me = fd;
+
+    static if (perf)
+    {
+        psw.stop();
         csw.start();
     }
 
@@ -626,18 +612,23 @@ struct SharedCtfeState(BCGenT)
     BCHeap heap;
     long[ushort.max / 4] stack; // a Stack of 64K/4 is the Hard Limit;
     StructDeclaration[ubyte.max * 12] structDeclpointerTypes;
+    BCStruct[ubyte.max * 12] structTypes;
+
     TypeSArray[ubyte.max * 16] sArrayTypePointers;
+    BCArray[ubyte.max * 16] arrayTypes;
+
     TypeDArray[ubyte.max * 8] dArrayTypePointers;
+    BCSlice[ubyte.max * 8] sliceTypes;
+
     TypePointer[ubyte.max * 8] pointerTypePointers;
+    BCPointer[ubyte.max * 8] pointerTypes;
+
     BCTypeVisitor btv = new BCTypeVisitor();
 
-    BCStruct[ubyte.max * 12] structTypes;
+
     uint structCount;
-    BCArray[ubyte.max * 16] arrayTypes;
     uint arrayCount;
-    BCSlice[ubyte.max * 8] sliceTypes;
     uint sliceCount;
-    BCPointer[ubyte.max * 8] pointerTypes;
     uint pointerCount;
     // find a way to live without 102_000
     RetainedError[ubyte.max * 32] errors;
@@ -961,6 +952,12 @@ Expression toExpression(const BCValue value, Type expressionType,
 
     if (value.vType == BCValueType.Bailout)
     {
+        if (value.imm32 == 2000)
+        {
+            // 2000 means we hit the recursion-limit;
+            return null;
+        }
+
         debug (ctfe)
         {
             assert(0, "Interpreter had to bailout");
@@ -969,9 +966,12 @@ Expression toExpression(const BCValue value, Type expressionType,
         static if (bailoutMessages)
         {
             writeln("We just bailed out of the interpreter ... this is bad, VERY VERY VERY bad");
-            writeln("It means we have missed to fixyp jumps or did not emit a return or something along those lines");
+            writeln("It means we have missed to fixup jumps or did not emit a return or something along those lines");
         }
-        return null;
+        static if (abortOnCritical)
+            assert(0);
+        else
+            return null;
     }
 
     if (value.vType == BCValueType.Error)
@@ -1249,6 +1249,10 @@ extern (C++) final class BCTypeVisitor : Visitor
                 return BCType(BCTypeEnum.Ptr, _sharedCtfeState.pointerCount);
             }
         }
+        else if (t.ty == Tfunction)
+        {
+            return BCType(BCTypeEnum.Function);
+        }
 
         debug (ctfe)
             assert(0, "NBT Type unsupported " ~ (cast(Type)(t)).toString);
@@ -1452,9 +1456,11 @@ extern (C++) final class BCV(BCGenT) : Visitor
         enum headLn = 58;
         if (pfn.length > headLn)
         {
-            pfn = pfn[headLn .. $-1];
             import std.string : indexOf;
-            pfn = pfn[0 .. pfn.indexOf(' ')];
+            auto offset = 50;
+            auto begin = pfn[offset .. $].indexOf('(') + offset + 1;
+            auto end = pfn[begin .. $].indexOf(' ') + begin;
+            pfn = pfn[begin .. end];
         }
 
         if (fnIdx)
@@ -1541,8 +1547,9 @@ public:
 
     BCValue getVariable(VarDeclaration vd)
     {
-        import ddmd.declaration : STCmanifest, STCref, STCstatic;
-        if (vd.storage_class & STCref || vd.storage_class & STCstatic)
+        import ddmd.declaration : STCmanifest, STCref, STCstatic, STCimmutable;
+        if (vd.storage_class & STCref || ((vd.storage_class & STCstatic) && !(vd.storage_class & STCimmutable)))
+       // if (vd.storage_class & STCref || vd.storage_class & STCstatic)
         {
             bailout("cannot handle ref or static variables");
             return BCValue.init;
@@ -1651,7 +1658,7 @@ public:
                 return ;
             }
 
-            if (fd.hasNestedFrameRefs || fd.isNested)
+            if (fd.hasNestedFrameRefs /*|| fd.isNested*/)
             {
                 bailout("cannot deal with closures of any kind: " ~ fd.toString);
                 return ;
@@ -1724,14 +1731,13 @@ public:
                     fnIdx, BCFunctionTypeEnum.Bytecode,
                     cast(ushort) (parameters ? parameters.dim : 0), osp.addr, //FIXME IMPORTANT PERFORMANCE!!!
                     // get rid of dup!
-
                     byteCodeArray[0 .. ip].idup);
-                clear();
             }
             else
             {
-                _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
+                _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) uf.fd);
             }
+            clear();
 
         }
 
@@ -1749,7 +1755,8 @@ public:
 
         //HACK this filters out functions which I know produce incorrect results
         //this is only so I can see where else are problems.
-
+        assert(!me || me == fd);
+        me = fd;
         if (_blacklist.isInBlacklist(fd.ident))
         {
             bailout("Bailout on blacklisted");
@@ -1760,7 +1767,6 @@ public:
         //writeln("going to eval: ", fd.toString);
         if (auto fbody = fd.fbody.isCompoundStatement)
         {
-            me = fd;
             beginParameters();
             if (fd.parameters)
                 foreach (i, p; *(fd.parameters))
@@ -1942,11 +1948,16 @@ static if (is(BCGen))
             break;
         case TOK.TOKequal, TOK.TOKnotequal:
             {
+
                 if (e.e1.type.isString && e.e2.type.isString)
                 {
                     auto lhs = genExpr(e.e1);
                     auto rhs = genExpr(e.e2);
-
+                    if (!lhs || !rhs)
+                    {
+                        bailout("could not gen lhs or rhs for " ~ e.toString);
+                        return ;
+                    }
                     StringEq(retval, lhs, rhs);
                 }
                 else if (canHandleBinExpTypes(toBCType(e.e1.type), toBCType(e.e2.type)))
@@ -2043,6 +2054,11 @@ static if (is(BCGen))
             //FIXME IMPORRANT
             // The whole rhs == retval situation should be fixed in the bc evaluator
             // since targets with native 3 address code can do this!
+            if (!lhs || !rhs)
+            {
+                bailout("could not gen lhs or rhs for " ~ e.toString);
+                return ;
+            }
 
             if (wasAssignTo && rhs == retval)
             {
@@ -2191,6 +2207,11 @@ static if (is(BCGen))
                     if (!lastExpr || getBoolExprLhs(e.e2) != getBoolExprRhs(e.e1))
                     {
                         auto lhs = genExpr(e.e1);
+                        if (!lhs || !canWorkWithType(lhs.type))
+                        {
+                            bailout("could not gen lhs or could not handle it's type " ~ e.toString);
+                            return ;
+                        }
                         lastExpr = e.e1;
 
                         //auto afterLhs = genLabel();
@@ -2202,6 +2223,11 @@ static if (is(BCGen))
                     if (getBoolExprLhs(e.e1) == e.e1)
                     {
                         auto rhs = genExpr(e.e2);
+                        if (!rhs || !canWorkWithType(rhs.type))
+                        {
+                            bailout("could not gen rhs or could not handle it's type " ~ e.toString);
+                            return ;
+                        }
                         //lastExpr = e.e2;
 
                         //auto afterRhs = genLabel();
@@ -2262,11 +2288,10 @@ static if (is(BCGen))
         }
         else if (fd)
         {
-            //bailout(toString (se) ~ " function-variables are currently not handeled");
-
             auto fnIdx = _sharedCtfeState.getFunctionIndex(fd);
             if(!fnIdx)
             {
+                assert(!insideArgumentProcessing, "For now we must _never_ have to gen a function while inside argument processing");
                 addUncompiledFunction(fd, &fnIdx);
             }
             bailout(!fnIdx, "Function could not be generated: -- " ~ fd.toString);
@@ -2916,11 +2941,6 @@ static if (is(BCGen))
     override void visit(PtrExp pe)
     {
         bool isFunctionPtr = pe.type.ty == Tfunction;
-        if(isFunctionPtr)
-        {
-            bailout("No function ptr suppoerted");
-            return ;
-        }
         auto addr = genExpr(pe.e1);
 
         auto baseType = isFunctionPtr ? i32Type : _sharedCtfeState.elementType(addr.type);
@@ -2931,6 +2951,12 @@ static if (is(BCGen))
             import std.stdio;
 
             writeln("PtrExp: ", pe.toString, " = ", addr);
+        }
+
+        if (!addr)
+        {
+            bailout("could not gen pointee for PtrExp: "~ pe.e1.toString);
+            return ;
         }
 
         if (assignTo)
@@ -2944,6 +2970,7 @@ static if (is(BCGen))
         }
 
         auto tmp = genTemporary(baseType);
+
         if(baseType.type != BCTypeEnum.i32)
         {
            bailout("can only deal with i32 ptrs at the moement");
@@ -3713,9 +3740,10 @@ static if (is(BCGen))
             Add3(effectiveSize, effectiveSize, bcFour);
 
             typeof(beginJmp()) jmp;
-            auto arrayExsitsJmp = beginCndJmp(arrayPtr.i32);
             typeof(beginCndJmp()) jmp1;
             typeof(beginCndJmp()) jmp2;
+
+            auto arrayExsitsJmp = beginCndJmp(arrayPtr.i32);
             {
                 Load32(oldLength, arrayPtr);
                 Le3(BCValue.init, oldLength, newLength);
@@ -4339,12 +4367,7 @@ static if (is(BCGen))
             fnValue = imm32(fnIdx);
 
         }
-        else
-        {
-            bailout("calls through functions pointer do not work currently");
-        }
 
-        
         BCValue[] bc_args;
         bc_args.length = ce.arguments.dim + !!(thisPtr);
 
