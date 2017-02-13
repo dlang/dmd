@@ -1154,20 +1154,27 @@ extern (C++) final class BCTypeVisitor : Visitor
             //return BCType(BCTypeEnum.i1);
             return BCType(BCTypeEnum.i32);
         case ENUMTY.Tchar:
+            //return BCType(BCTypeEnum.c8);
         case ENUMTY.Twchar:
+            //return BCType(BCTypeEnum.c16);
         case ENUMTY.Tdchar:
+            //return BCType(BCTypeEnum.c32);
             return BCType(BCTypeEnum.Char);
-        case ENUMTY.Tint8:
         case ENUMTY.Tuns8:
+            //return BCType(BCTypeEnum.u8);
+        case ENUMTY.Tint8:
             //return BCType(BCTypeEnum.i8);
-        case ENUMTY.Tint16:
         case ENUMTY.Tuns16:
+            //return BCType(BCTypeEnum.u16);
+        case ENUMTY.Tint16:
             //return BCType(BCTypeEnum.i16);
-        case ENUMTY.Tint32:
         case ENUMTY.Tuns32:
+            //return BCType(BCTypeEnum.u32);
+        case ENUMTY.Tint32:
             return BCType(BCTypeEnum.i32);
-        case ENUMTY.Tint64:
         case ENUMTY.Tuns64:
+            //return BCType(BCTypeEnum.u64);
+        case ENUMTY.Tint64:
             return BCType(BCTypeEnum.i64);
         case ENUMTY.Tfloat32:
             //return BCType(BCTypeEnum.f324);
@@ -1623,6 +1630,7 @@ public:
         }
         debug (ctfe)
         {
+            import std.stdio;
             writeln("expr: ", expr.toString, " == ", retval);
         }
         //        assert(!discardValue || retval.vType != BCValueType.Unknown);
@@ -3911,12 +3919,12 @@ static if (is(BCGen))
                 {
                     Set(lhs.i32, imm32(0));
                 }
-
                 else
                 {
                     bailout(
                         "I cannot work with thoose types" ~ to!string(lhs.type.type) ~ " " ~ to!string(
                         rhs.type.type));
+                    return ;
                 }
             }
         }
