@@ -3526,7 +3526,7 @@ static if (is(BCGen))
         assignTo = BCValue.init;
         auto lhs = genExpr(ce.e1);
         auto rhs = genExpr(ce.e2);
-        if (canWorkWithType(lhs.type) && canWorkWithType(rhs.type))
+        if (canWorkWithType(lhs.type) && canWorkWithType(rhs.type) && canWorkWithType(oldAssignTo.type))
         {
             switch (ce.op)
             {
