@@ -322,7 +322,7 @@ private:
                 return false;
         }
         // Sort the symbols
-        qsort(objsymbols.tdata(), objsymbols.dim, (objsymbols[0]).sizeof, &NameCompare);
+        qsort(objsymbols.tdata(), objsymbols.dim, (objsymbols[0]).sizeof, cast(_compare_fp_t)&NameCompare);
         // Add each of the symbols
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
