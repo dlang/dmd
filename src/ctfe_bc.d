@@ -2072,7 +2072,7 @@ static if (is(BCGen))
                 retval = genTemporary(rhs.type);
             }
 
-            if (canHandleBinExpTypes(lhs.type.type, rhs.type.type))
+            if (canHandleBinExpTypes(lhs.type.type, rhs.type.type) && canWorkWithType(retval.type))
             {
                 const oldDiscardValue = discardValue;
                 discardValue = false;
@@ -3109,7 +3109,7 @@ static if (is(BCGen))
 
             if (!ignoreVoid && sv.vType == BCValueType.VoidValue)
             {
-                bailout("wTrying to read form an uninitialized Variable");
+                bailout("Trying to read form an uninitialized Variable");
                 //TODO ve.error here ?
                 return;
             }
