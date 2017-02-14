@@ -572,7 +572,7 @@ extern (C++) class S2irVisitor : Visitor
             }
 
             if (numcases)
-                qsort(s.cases.data, numcases, RootObject.sizeof, &sort_compare);
+                qsort(s.cases.data, numcases, RootObject.sizeof, cast(_compare_fp_t)&sort_compare);
 
             /* Create a sorted array of the case strings, and si
              * will be the symbol for it.
