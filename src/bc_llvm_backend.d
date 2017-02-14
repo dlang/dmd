@@ -24,7 +24,7 @@ else
     import ddmd.ctfe.bc_common;
     import std.conv;
 
-    //	string source;
+    //    string source;
 
     mixin(llvm_imports);
 
@@ -47,7 +47,7 @@ else
     BCType[64] parameterTypes;
     byte parameterCount;
 
-    LLVMValueRef[128] functions;
+    LLVMValueRef[1024] functions;
     uint functionCount;
 
     //bllockCount and blocks are function-LocalState,
@@ -95,8 +95,8 @@ else
         //LLVMAddTargetData(LLVMGetExecutionEngineTargetData(engine), pass);
         LLVMAddConstantPropagationPass(pass);
         LLVMAddInstructionCombiningPass(pass);
-        LLVMAddPromoteMemoryToRegisterPass(pass);
         // LLVMAddDemoteMemoryToRegisterPass(pass); // Demotes every possible value to memory
+        LLVMAddPromoteMemoryToRegisterPass(pass);
         LLVMAddGVNPass(pass);
         LLVMAddCFGSimplificationPass(pass);
         LLVMRunPassManager(pass, mod);
@@ -614,7 +614,7 @@ else
     void Store32(BCValue _to, BCValue value)
     {
         sameLabel = false;
-        LLVMBuildStore(builder, toLLVMValueRef(value), heapGEP(_to)); 
+        LLVMBuildStore(builder, toLLVMValueRef(value), heapGEP(_to));
     }
 
     void Ret(BCValue val)
