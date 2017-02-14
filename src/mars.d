@@ -55,6 +55,9 @@ import ddmd.target;
 import ddmd.tokens;
 import ddmd.utils;
 
+// strtol redeclared here because its signature changed from 2.073 to 2.074
+import core.stdc.config;
+extern(C) c_long strtol(inout(char)* nptr, inout(char)** endptr, int base);
 
 /**
  * Print DMD's logo on stdout
@@ -417,7 +420,7 @@ private int tryMain(size_t argc, const(char)** argv)
                     {
                         long percent;
                         errno = 0;
-                        percent = strtol(p + 5, cast(char**)&p, 10);
+                        percent = strtol(p + 5, &p, 10);
                         if (*p || errno || percent > 100)
                             goto Lerror;
                         global.params.covPercent = cast(ubyte)percent;
@@ -538,7 +541,7 @@ private int tryMain(size_t argc, const(char)** argv)
                 {
                     long num;
                     errno = 0;
-                    num = strtol(p + 9, cast(char**)&p, 10);
+                    num = strtol(p + 9, &p, 10);
                     if (*p || errno || num > INT_MAX)
                         goto Lerror;
                     global.errorLimit = cast(uint)num;
@@ -614,7 +617,7 @@ Language changes listed by -transition=id:
                     {
                         long num;
                         errno = 0;
-                        num = strtol(p + 12, cast(char**)&p, 10);
+                        num = strtol(p + 12, &p, 10);
                         if (*p || errno || num > INT_MAX)
                             goto Lerror;
                         // Bugzilla issue number
@@ -865,7 +868,7 @@ Language changes listed by -transition=id:
                     {
                         long level;
                         errno = 0;
-                        level = strtol(p + 7, cast(char**)&p, 10);
+                        level = strtol(p + 7, &p, 10);
                         if (*p || errno || level > INT_MAX)
                             goto Lerror;
                         DebugCondition.setGlobalLevel(cast(int)level);
@@ -891,7 +894,7 @@ Language changes listed by -transition=id:
                     {
                         long level;
                         errno = 0;
-                        level = strtol(p + 9, cast(char**)&p, 10);
+                        level = strtol(p + 9, &p, 10);
                         if (*p || errno || level > INT_MAX)
                             goto Lerror;
                         VersionCondition.setGlobalLevel(cast(int)level);
