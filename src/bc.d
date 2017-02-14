@@ -560,7 +560,7 @@ struct BCGen
     void Lt3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(result.vType == BCValueType.Unknown
-            || result.vType == BCValueType.StackValue,
+            || isStackValueOrParameter(result),
             "The result for this must be Empty or a StackValue");
         emitArithInstruction(LongInst.Lt, lhs, rhs);
 
@@ -573,7 +573,7 @@ struct BCGen
     void Le3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(result.vType == BCValueType.Unknown
-            || result.vType == BCValueType.StackValue,
+            || isStackValueOrParameter(result),
             "The result for this must be Empty or a StackValue");
         emitArithInstruction(LongInst.Le, lhs, rhs);
 
@@ -586,7 +586,7 @@ struct BCGen
     void Gt3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(result.vType == BCValueType.Unknown
-            || result.vType == BCValueType.StackValue,
+            || isStackValueOrParameter(result),
             "The result for this must be Empty or a StackValue");
         emitArithInstruction(LongInst.Gt, lhs, rhs);
         if (result.vType == BCValueType.StackValue)
@@ -598,7 +598,7 @@ struct BCGen
     void Ge3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(result.vType == BCValueType.Unknown
-            || result.vType == BCValueType.StackValue,
+            || isStackValueOrParameter(result),
             "The result for this must be Empty or a StackValue");
         emitArithInstruction(LongInst.Ge, lhs, rhs);
         if (result.vType == BCValueType.StackValue)
@@ -610,8 +610,7 @@ struct BCGen
     void Eq3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(result.vType == BCValueType.Unknown
-            || result.vType == BCValueType.StackValue
-            || result.vType == BCValueType.Parameter,
+            || isStackValueOrParameter(result),
             "The result for this must be Empty or a StackValue not " ~ to!string(result.vType) );
         emitArithInstruction(LongInst.Eq, lhs, rhs);
 
@@ -624,9 +623,7 @@ struct BCGen
     void Neq3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(result.vType == BCValueType.Unknown
-            || result.vType == BCValueType.StackValue
-            || result.vType == BCValueType.Parameter,
-
+            || isStackValueOrParameter(result),
             "The result for this must be Empty or a StackValue");
         emitArithInstruction(LongInst.Neq, lhs, rhs);
 
