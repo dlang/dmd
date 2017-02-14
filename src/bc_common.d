@@ -586,6 +586,8 @@ template ensureIsBCGen(BCGenT)
         BCGenT.stringof ~ " is missing void emitFlg(BCValue lhs)");
     static assert(is(typeof(BCGenT.Alloc(BCValue.init, BCValue.init)) == void),
         BCGenT.stringof ~ " is missing void Alloc(BCValue heapPtr, BCValue size)");
+    static assert(is(typeof(BCGenT.Assert(BCValue.init, BCValue.init)) == void),
+        BCGenT.stringof ~ " is missing void Assert(BCValue value, BCValue message)");
     static assert(is(typeof(BCGenT.Not(BCValue.init, BCValue.init)) == void),
         BCGenT.stringof ~ " is missing void Not(BCValue result, BCValue val)");
     static assert(is(typeof(BCGenT.Set(BCValue.init, BCValue.init)) == void),

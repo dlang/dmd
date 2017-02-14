@@ -314,7 +314,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         import std.stdio;
 
         BCValue[2] errorValues;
-
+        writeln("did code for: ", fd.ident.toString);
         StopWatch sw;
         sw.start();
         bcv.beginArguments();
