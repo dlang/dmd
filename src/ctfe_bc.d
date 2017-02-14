@@ -1919,7 +1919,7 @@ static if (is(BCGen))
                 const oldDiscardValue = discardValue;
                 discardValue = false;
                 auto expr = genExpr(e.e1);
-                if (!canWorkWithType(expr.type))
+                if (!canWorkWithType(expr.type) || !canWorkWithType(retval.type))
                 {
                     bailout("++ only i32 is supported not " ~ to!string(expr.type.type));
                     return;
@@ -1939,7 +1939,7 @@ static if (is(BCGen))
                 const oldDiscardValue = discardValue;
                 discardValue = false;
                 auto expr = genExpr(e.e1);
-                if (!canWorkWithType(expr.type))
+                if (!canWorkWithType(expr.type) || !canWorkWithType(retval.type))
                 {
                     bailout("-- only i32 is supported not " ~ to!string(expr.type.type));
                     return;
