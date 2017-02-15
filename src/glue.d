@@ -1611,7 +1611,7 @@ elem *toEfilenamePtr(Module m)
     //printf("toEfilenamePtr(%s)\n", m.toChars());
     const(char)* id = m.srcfile.toChars();
     size_t len = strlen(id);
-    Symbol* s = toStringSymbol(id, len, 1);
+    Symbol* s = toStringSymbol(id, len, 1, global.params.isWindows);
     return el_ptr(s);
 }
 
