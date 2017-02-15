@@ -34,7 +34,7 @@ private static void clearArray(T)(auto ref T array, uint count)
 }
 
 version = ctfe_noboundscheck;
-enum BCBlockjumpTarget
+enum BCBlockJumpTarget
 {
   Begin,
   End,
@@ -44,8 +44,7 @@ enum BCBlockjumpTarget
 struct BCBlockJump
 {
     BCAddr at;
-    bool toBegin;
-    bool toContinue;
+    BCBlockJumpTarget jumpTarget;
 }
 
 struct UnresolvedGoto
@@ -315,7 +314,6 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         import std.stdio;
 
         BCValue[2] errorValues;
-
         StopWatch sw;
         sw.start();
         bcv.beginArguments();
@@ -1155,20 +1153,27 @@ extern (C++) final class BCTypeVisitor : Visitor
             //return BCType(BCTypeEnum.i1);
             return BCType(BCTypeEnum.i32);
         case ENUMTY.Tchar:
+            //return BCType(BCTypeEnum.c8);
         case ENUMTY.Twchar:
+            //return BCType(BCTypeEnum.c16);
         case ENUMTY.Tdchar:
+            //return BCType(BCTypeEnum.c32);
             return BCType(BCTypeEnum.Char);
-        case ENUMTY.Tint8:
         case ENUMTY.Tuns8:
+            //return BCType(BCTypeEnum.u8);
+        case ENUMTY.Tint8:
             //return BCType(BCTypeEnum.i8);
-        case ENUMTY.Tint16:
         case ENUMTY.Tuns16:
+            //return BCType(BCTypeEnum.u16);
+        case ENUMTY.Tint16:
             //return BCType(BCTypeEnum.i16);
-        case ENUMTY.Tint32:
         case ENUMTY.Tuns32:
+            //return BCType(BCTypeEnum.u32);
+        case ENUMTY.Tint32:
             return BCType(BCTypeEnum.i32);
-        case ENUMTY.Tint64:
         case ENUMTY.Tuns64:
+            //return BCType(BCTypeEnum.u64);
+        case ENUMTY.Tint64:
             return BCType(BCTypeEnum.i64);
         case ENUMTY.Tfloat32:
             //return BCType(BCTypeEnum.f324);
@@ -1624,6 +1629,7 @@ public:
         }
         debug (ctfe)
         {
+            import std.stdio;
             writeln("expr: ", expr.toString, " == ", retval);
         }
         //        assert(!discardValue || retval.vType != BCValueType.Unknown);
@@ -1912,7 +1918,7 @@ static if (is(BCGen))
                 const oldDiscardValue = discardValue;
                 discardValue = false;
                 auto expr = genExpr(e.e1);
-                if (!canWorkWithType(expr.type))
+                if (!canWorkWithType(expr.type) || !canWorkWithType(retval.type))
                 {
                     bailout("++ only i32 is supported not " ~ to!string(expr.type.type));
                     return;
@@ -1932,7 +1938,7 @@ static if (is(BCGen))
                 const oldDiscardValue = discardValue;
                 discardValue = false;
                 auto expr = genExpr(e.e1);
-                if (!canWorkWithType(expr.type))
+                if (!canWorkWithType(expr.type) || !canWorkWithType(retval.type))
                 {
                     bailout("-- only i32 is supported not " ~ to!string(expr.type.type));
                     return;
@@ -2030,7 +2036,7 @@ static if (is(BCGen))
                         rhs = oneElementSlicePtr;
                         rhs.type = lhs.type;
                         rhs.vType = lhs.vType;
-*/                    
+*/
                 }
 
                 auto rhsBaseType = _sharedCtfeState.elementType(rhs.type);
@@ -2065,7 +2071,7 @@ static if (is(BCGen))
                 retval = genTemporary(rhs.type);
             }
 
-            if (canHandleBinExpTypes(lhs.type.type, rhs.type.type))
+            if (canHandleBinExpTypes(lhs.type.type, rhs.type.type) && canWorkWithType(retval.type))
             {
                 const oldDiscardValue = discardValue;
                 discardValue = false;
@@ -2357,7 +2363,7 @@ static if (is(BCGen))
         }
 
         auto indexed = genExpr(ie.e1);
-        
+
         if(!indexed || indexed.vType == BCValueType.VoidValue)
         {
             bailout("could not create indexed variable from: " ~ ie.e1.toString);
@@ -2506,7 +2512,7 @@ static if (is(BCGen))
     }
 
     BCBlock genBlock(Statement stmt, bool setCurrent = false,
-        bool costumBreak = false, bool costumContinue = false)
+        bool costumBreakContinue = false)
     {
         BCBlock result;
         const oldBreakFixupCount = breakFixupCount;
@@ -2524,13 +2530,9 @@ static if (is(BCGen))
         if (setCurrent)
         {
             switchFixup = oldSwitchFixup;
-            if (!costumContinue)
+            if (!costumBreakContinue)
             {
                 fixupContinue(oldContinueFixupCount, result.begin);
-            }
-
-            if (!costumBreak)
-            {
                 fixupBreak(oldBreakFixupCount, result.end);
             }
         }
@@ -2571,13 +2573,11 @@ static if (is(BCGen))
             auto condJmp = beginCndJmp(cond);
             const oldContinueFixupCount = continueFixupCount;
             const oldBreakFixupCount = breakFixupCount;
-            auto _body = genBlock(fs._body, true, true, true);
+            auto _body = genBlock(fs._body, true, true);
             if (fs.increment)
             {
-                typeof(genLabel()) beforeIncrement;
-                beforeIncrement = genLabel();
                 fs.increment.accept(this);
-                fixupContinue(oldContinueFixupCount, beforeIncrement);
+                fixupContinue(oldContinueFixupCount, _body.end);
             }
             genJump(condEval);
             auto afterLoop = genLabel();
@@ -3108,7 +3108,7 @@ static if (is(BCGen))
 
             if (!ignoreVoid && sv.vType == BCValueType.VoidValue)
             {
-                bailout("wTrying to read form an uninitialized Variable");
+                bailout("Trying to read form an uninitialized Variable");
                 //TODO ve.error here ?
                 return;
             }
@@ -3525,7 +3525,7 @@ static if (is(BCGen))
         assignTo = BCValue.init;
         auto lhs = genExpr(ce.e1);
         auto rhs = genExpr(ce.e2);
-        if (canWorkWithType(lhs.type) && canWorkWithType(rhs.type))
+        if (canWorkWithType(lhs.type) && canWorkWithType(rhs.type) && canWorkWithType(oldAssignTo.type))
         {
             switch (ce.op)
             {
@@ -3918,12 +3918,12 @@ static if (is(BCGen))
                 {
                     Set(lhs.i32, imm32(0));
                 }
-
                 else
                 {
                     bailout(
                         "I cannot work with thoose types" ~ to!string(lhs.type.type) ~ " " ~ to!string(
                         rhs.type.type));
+                    return ;
                 }
             }
         }
@@ -4094,7 +4094,7 @@ static if (is(BCGen))
                 }
                 endCndJmp(jump, genLabel());
             }
-            
+
             if (ss.sdefault) // maybe we should check ss.sdefault.statement as well ... just to be sure ?
             {
                 auto defaultBlock = genBlock(ss.sdefault.statement);
@@ -4179,7 +4179,7 @@ static if (is(BCGen))
         }
         else
         {
-            addUnresolvedGoto(ident, BCBlockJump(beginJmp(), true));
+            addUnresolvedGoto(ident, BCBlockJump(beginJmp(), BCBlockJumpTarget.Begin));
         }
     }
 
@@ -4206,9 +4206,18 @@ static if (is(BCGen))
             if (unresolvedGoto.ident == cast(void*) ls.ident)
             {
                 foreach (jmp; unresolvedGoto.jumps[0 .. unresolvedGoto.jumpCount])
-                    jmp.toBegin ? endJmp(jmp.at,
-                        block.begin) : jmp.toContinue ? endJmp(jmp.at,
-                        lastContinue) : endJmp(jmp.at, block.end);
+                    final switch(jmp.jumpTarget)
+                    {
+                    case BCBlockJumpTarget.Begin :
+                        endJmp(jmp.at, block.begin);
+                    break;
+                    case BCBlockJumpTarget.Continue :
+                        endJmp(jmp.at, lastContinue);
+                    break;
+                    case BCBlockJumpTarget.End :
+                        endJmp(jmp.at, block.end);
+                    break;
+                    }
 
                 // write the last one into here and decrease the count
                 auto lastGoto = &unresolvedGotos[--unresolvedGotoCount];
@@ -4236,8 +4245,7 @@ static if (is(BCGen))
             }
             else
             {
-                addUnresolvedGoto(cast(void*) cs.ident, BCBlockJump(beginJmp(), false,
-                    true));
+                addUnresolvedGoto(cast(void*) cs.ident, BCBlockJump(beginJmp(), BCBlockJumpTarget.Continue));
             }
         }
         else if (unrolledLoopState)
@@ -4260,7 +4268,7 @@ static if (is(BCGen))
             }
             else
             {
-                addUnresolvedGoto(cast(void*) bs.ident, BCBlockJump(beginJmp(), false));
+                addUnresolvedGoto(cast(void*) bs.ident, BCBlockJump(beginJmp(), BCBlockJumpTarget.End));
             }
 
         }
@@ -4565,7 +4573,9 @@ static if (is(BCGen))
         }
         else
         {
-            auto doBlock = genBlock(ds._body, true, false);
+            const oldContinueFixupCount = continueFixupCount;
+            const oldBreakFixupCount = breakFixupCount;
+            auto doBlock = genBlock(ds._body, true, true);
 
             auto cond = genExpr(ds.condition);
             if (!cond)
@@ -4574,8 +4584,11 @@ static if (is(BCGen))
                 return;
             }
 
+            fixupContinue(oldContinueFixupCount, doBlock.begin);
             auto cj = beginCndJmp(cond, true);
             endCndJmp(cj, doBlock.begin);
+            auto afterDo = genLabel();
+            fixupBreak(oldBreakFixupCount, afterDo);
         }
     }
 
