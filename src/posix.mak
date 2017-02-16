@@ -186,7 +186,7 @@ DFLAGS += -g -debug -unittest
 endif
 ifdef ENABLE_RELEASE
 CXXFLAGS += -O2
-DFLAGS += -O -release -inline
+DFLAGS += -O -debug -inline
 endif
 ifdef ENABLE_PROFILING
 CXXFLAGS  += -pg -fprofile-arcs -ftest-coverage
