@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 0;
+enum bailoutMessages = 1;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
@@ -314,7 +314,6 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         import std.stdio;
 
         BCValue[2] errorValues;
-
         StopWatch sw;
         sw.start();
         bcv.beginArguments();
