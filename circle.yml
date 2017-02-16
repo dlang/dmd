@@ -13,6 +13,4 @@ test:
         timeout: 1200
 
   post:
-    # CodeCov gets confused by stored .lst files
-    - rm -rf test/coverage/generated
-    - bash <(curl -s https://codecov.io/bash)
+    - ./circleci.sh codecov
