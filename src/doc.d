@@ -1777,7 +1777,7 @@ struct DocComment
             /* Didn't write out any sections, so back out last write
              */
             buf.offset = offset1;
-            buf.writestring("$(DDOC_BLANKLINE)\n");
+            buf.writestring("\n");
         }
         else
             buf.writestring(")\n");
