@@ -5677,26 +5677,55 @@ elem *toElemDtor(Expression e, IRState *irs)
  *      str = string
  *      len = number of code units in string
  *      sz = number of bytes per code unit
+ *      comdat = emit string in its own comdat (default is read-only segment).
+ *          Comdats are useful when linker does not coalesce redundant strings.
  * Returns:
  *      Symbol
  */
 
-Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
+Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz, bool comdat = false)
 {
     //printf("toStringSymbol() %p\n", stringTab);
     StringValue *sv = stringTab.update(str, len * sz);
     if (!sv.ptrvalue)
     {
-        Symbol *si = symbol_generate(SCstatic,type_static_array(len * sz, tstypes[TYchar]));
-        si.Salignment = 1;
+        Symbol* si;
+
+        if (comdat)
+        {
+            import ddmd.root.outbuffer : OutBuffer;
+            import ddmd.dmangle;
+
+            scope StringExp se = new StringExp(Loc(), cast(void*)str, len, 'c');
+            se.sz = cast(ubyte)sz;
+            /* VC++ uses a name mangling scheme, for example, "hello" is mangled to:
+             * ??_C@_05CJBACGMB@hello?$AA@
+             *        ^ length
+             *         ^^^^^^^^ 8 byte checksum
+             * But the checksum algorithm is unknown. Just invent our own.
+             */
+            OutBuffer buf;
+            buf.writestring("__");
+            mangleToBuffer(se, &buf);   // recycle how strings are mangled for templates
+            si = symbol_calloc(buf.peekString(), cast(uint)buf.offset);
+            si.Sclass = SCcomdat;       // should mark this as a read-only comdat
+            si.Stype = type_static_array(len * sz, tstypes[TYchar]);
+            si.Stype.Tcount++;
+            type_setmangle(&si.Stype, mTYman_c);
+            si.Sflags |= SFLnodebug | SFLartifical;
+        }
+        else
+        {
+            si = symbol_generate(SCstatic,type_static_array(len * sz, tstypes[TYchar]));
+            out_readonly(si);    // set up for read-only symbol
+        }
 
         scope dtb = new DtBuilder();
         dtb.nbytes(cast(uint)(len * sz), str);
-        dtb.nzeros(cast(uint)sz);
+        dtb.nzeros(cast(uint)sz);       // include terminating 0
         si.Sdt = dtb.finish();
-
         si.Sfl = FLdata;
-        out_readonly(si);
+        si.Salignment = 1;
         outdata(si);
         sv.ptrvalue = cast(void *)si;
     }
