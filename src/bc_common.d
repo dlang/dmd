@@ -511,12 +511,12 @@ struct BCValue
             case BCValueType.HeapValue :
                 heapAddr = heapRef.heapAddr;
                 break;
-                
+
             case BCValueType.Immediate :
                 imm32 = heapRef.imm32;
                 break;
-                
-            default : 
+
+            default :
                 import std.conv : to;
                 assert(0, "vType unsupported: " ~ to!string(vType));
         }

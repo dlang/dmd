@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 1;
+enum bailoutMessages = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
@@ -855,8 +855,6 @@ struct SharedCtfeState(BCGenT)
         }
         if (isBasicBCType(type))
         {
-            import std.stdio;
-            writeln("getting basicTypeSize for ", to!string(type.type), " = ", basicTypeSize(type));
             return basicTypeSize(type);
         }
 
@@ -1084,21 +1082,21 @@ Expression toExpression(const BCValue value, Type expressionType,
 
                 writeln("building Array of Length ", arrayLength);
             }
-            import std.stdio;
+            /* import std.stdio;
             writeln("HeapAddr: ", value.heapAddr.addr);
             writeln((cast(char*)(heapPtr._heap.ptr + value.heapAddr.addr + 1))[0 .. 64]);
+            */
             foreach (idx; 0 .. arrayLength)
             {
-                if (elmLength == 1)
+            /*    if (elmLength == 1)
                 {
-                writeln("offset: ", offset, "  ", (idx % 4) * 8);
-                elmExprs.insert(idx,
-                    toExpression(imm32((heapPtr._heap[value.heapAddr.addr + offset] >> ((idx-1 % 4) * 8)) & 0xFF),
+                    elmExprs.insert(idx,
+                        toExpression(imm32((heapPtr._heap[value.heapAddr.addr + offset] >> ((idx-1 % 4) * 8)) & 0xFF),
                         tda.nextOf)
-                );
-                offset += !(idx % 4);
+                    );
+                    offset += !(idx % 4);
                 }
-                else
+                else */
                 {
                 elmExprs.insert(idx,
                     toExpression(imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset)),
@@ -1178,9 +1176,9 @@ extern (C++) final class BCTypeVisitor : Visitor
             //return BCType(BCTypeEnum.c32);
             return BCType(BCTypeEnum.Char);
         case ENUMTY.Tuns8:
-            return BCType(BCTypeEnum.u8);
+            //return BCType(BCTypeEnum.u8);
         case ENUMTY.Tint8:
-            return BCType(BCTypeEnum.i8);
+            //return BCType(BCTypeEnum.i8);
         case ENUMTY.Tuns16:
             //return BCType(BCTypeEnum.u16);
         case ENUMTY.Tint16:
@@ -2435,7 +2433,7 @@ static if (is(BCGen))
         else if (indexed.type.type == BCTypeEnum.Slice)
         {
             sliceType = &_sharedCtfeState.sliceTypes[indexed.type.typeIndex - 1];
-          //  debug (ctfe)
+            debug (ctfe)
             {
                 import std.stdio;
 
@@ -2472,8 +2470,6 @@ static if (is(BCGen))
                 {
                 }
                 int elmSize = sharedCtfeState.size(elmType);
-                import std.stdio;
-                writeln("elmSize = ", elmSize);
                 assert(cast(int) elmSize > -1);
                 //elmSize = (elmSize / 4 > 0 ? elmSize / 4 : 1);
                 Mul3(offset, idx, imm32(elmSize));
@@ -3489,7 +3485,7 @@ static if (is(BCGen))
 
     override void visit(StringExp se)
     {
-        //debug (ctfe)
+        debug (ctfe)
         {
             import std.stdio;
 
@@ -3525,7 +3521,7 @@ static if (is(BCGen))
             Set(retval.i32, stringAddrValue);
         }
 
-     //   debug (ctfe)
+        debug (ctfe)
         {
             import std.stdio;
             writefln("String %s, is in %d, first uint is %d",
@@ -4546,7 +4542,7 @@ static if (is(BCGen))
             // e.g. cast(uint[])uint[10]
             retval.type = toType;
         }
-        else if (fromType.type == BCTypeEnum.String 
+        /*else if (fromType.type == BCTypeEnum.String 
                 && toType.type == BCTypeEnum.Slice && toType.typeIndex
                 && _sharedCtfeState.sliceTypes[toType.typeIndex - 1].elementType.type
                 == BCTypeEnum.i32)
@@ -4558,7 +4554,7 @@ static if (is(BCGen))
             import std.stdio; 
             writeln("created sliceType: ", _sharedCtfeState.sliceCount);
             //retval.type = toType;
-        }
+        }*/
         else
         {
             bailout("CastExp unsupported: " ~ ce.toString);
