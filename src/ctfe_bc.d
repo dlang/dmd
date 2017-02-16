@@ -3596,17 +3596,6 @@ static if (is(BCGen))
     {
         //TODO ConstructExp is basically the same as AssignExp
         // find a way to merge those
-        if (!lhs)
-        {
-            bailout("could not gen " ~ ce.e1.toString);
-            return;
-        }
-
-        if (!rhs)
-        {
-            bailout("could not gen " ~ ce.e2.toString);
-            return;
-        }
 
         debug (ctfe)
         {
@@ -3624,8 +3613,19 @@ static if (is(BCGen))
 
         auto lhs = genExpr(ce.e1);
         auto rhs = genExpr(ce.e2);
-        // exit if we could not gen lhs
-        //FIXME that should never happen
+
+        if (!lhs)
+        {
+            bailout("could not gen " ~ ce.e1.toString);
+            return;
+        }
+
+        if (!rhs)
+        {
+            bailout("could not gen " ~ ce.e2.toString);
+            return;
+        }
+
         // do we deal with an int ?
         if (lhs.type.type == BCTypeEnum.i32)
         {
