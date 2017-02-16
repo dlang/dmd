@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 0;
+enum bailoutMessages = 1;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
@@ -855,7 +855,9 @@ struct SharedCtfeState(BCGenT)
         }
         if (isBasicBCType(type))
         {
-            return align4(basicTypeSize(type));
+            import std.stdio;
+            writeln("getting basicTypeSize for ", to!string(type.type), " = ", basicTypeSize(type));
+            return basicTypeSize(type);
         }
 
         switch (type.type)
@@ -1055,7 +1057,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             auto tda = cast(TypeDArray) expressionType;
 
             auto baseType = _sharedCtfeState.btv.toBCType(tda.nextOf);
-            auto elmLength = align4(_sharedCtfeState.size(baseType));
+            auto elmLength = _sharedCtfeState.size(baseType);
             auto arrayLength = heapPtr._heap[value.heapAddr.addr];
             debug (ctfe)
             {
@@ -1082,12 +1084,28 @@ Expression toExpression(const BCValue value, Type expressionType,
 
                 writeln("building Array of Length ", arrayLength);
             }
+            import std.stdio;
+            writeln("HeapAddr: ", value.heapAddr.addr);
+            writeln((cast(char*)(heapPtr._heap.ptr + value.heapAddr.addr + 1))[0 .. 64]);
             foreach (idx; 0 .. arrayLength)
             {
+                if (elmLength == 1)
+                {
+                writeln("offset: ", offset, "  ", (idx % 4) * 8);
+                elmExprs.insert(idx,
+                    toExpression(imm32((heapPtr._heap[value.heapAddr.addr + offset] >> ((idx-1 % 4) * 8)) & 0xFF),
+                        tda.nextOf)
+                );
+                offset += !(idx % 4);
+                }
+                else
+                {
                 elmExprs.insert(idx,
                     toExpression(imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset)),
                     tda.nextOf));
                 offset += elmLength;
+                }
+
             }
 
             result = new ArrayLiteralExp(Loc(), elmExprs);
@@ -1160,9 +1178,9 @@ extern (C++) final class BCTypeVisitor : Visitor
             //return BCType(BCTypeEnum.c32);
             return BCType(BCTypeEnum.Char);
         case ENUMTY.Tuns8:
-            //return BCType(BCTypeEnum.u8);
+            return BCType(BCTypeEnum.u8);
         case ENUMTY.Tint8:
-            //return BCType(BCTypeEnum.i8);
+            return BCType(BCTypeEnum.i8);
         case ENUMTY.Tuns16:
             //return BCType(BCTypeEnum.u16);
         case ENUMTY.Tint16:
@@ -2260,13 +2278,11 @@ static if (is(BCGen))
         //bailout();
         auto vd = se.var.isVarDeclaration();
         auto fd = se.var.isFuncDeclaration();
-        import ddmd.asttypename;
         if (vd)
         {
             auto v = getVariable(vd);
             //retval = BCValue(v.stackAddr
-            import std.stdio;
-
+  
             if (v)
             {
                 _sharedCtfeState.pointerTypes[_sharedCtfeState.pointerCount++] = BCPointer(v.type, 1);
@@ -2289,8 +2305,7 @@ static if (is(BCGen))
             {
                 bailout("no valid variable for " ~ se.toString);
             }
-           // writeln("Se.var.genExpr == ", v);
-
+  
         }
         else if (fd)
         {
@@ -2319,7 +2334,10 @@ static if (is(BCGen))
             //retval.type.type = BCTypeEnum.Function; // ?
         }
         else
+        {
+            import ddmd.asttypename;
             bailout(se.var.toString() ~ " is not a variable declarartion but a " ~ astTypeName(se.var));
+        }
 
     }
 
@@ -2417,13 +2435,13 @@ static if (is(BCGen))
         else if (indexed.type.type == BCTypeEnum.Slice)
         {
             sliceType = &_sharedCtfeState.sliceTypes[indexed.type.typeIndex - 1];
-            debug (ctfe)
+          //  debug (ctfe)
             {
                 import std.stdio;
 
-                writeln(_sharedCtfeState.sliceTypes[0 .. 4]);
+            //    writeln(_sharedCtfeState.sliceTypes[0 .. 4]);
                 if (sliceType)
-                    writeln("sliceType ", *sliceType);
+                    writeln("sliceType ", (*sliceType).elementType.type, " -- ", sliceType - &_sharedCtfeState.sliceTypes[0], " | ", indexed.type.typeIndex);
 
             }
 
@@ -2454,6 +2472,8 @@ static if (is(BCGen))
                 {
                 }
                 int elmSize = sharedCtfeState.size(elmType);
+                import std.stdio;
+                writeln("elmSize = ", elmSize);
                 assert(cast(int) elmSize > -1);
                 //elmSize = (elmSize / 4 > 0 ? elmSize / 4 : 1);
                 Mul3(offset, idx, imm32(elmSize));
@@ -2648,6 +2668,7 @@ static if (is(BCGen))
         {
             // "If there is no lwr and upr bound forward"
             retval = genExpr(se.e1);
+
         }
         else
         {
@@ -3108,7 +3129,7 @@ static if (is(BCGen))
 
             if (!ignoreVoid && sv.vType == BCValueType.VoidValue)
             {
-                bailout("Trying to read form an uninitialized Variable");
+                bailout("Trying to read form an uninitialized Variable: " ~ ve.toString);
                 //TODO ve.error here ?
                 return;
             }
@@ -3468,7 +3489,7 @@ static if (is(BCGen))
 
     override void visit(StringExp se)
     {
-        debug (ctfe)
+        //debug (ctfe)
         {
             import std.stdio;
 
@@ -3504,8 +3525,9 @@ static if (is(BCGen))
             Set(retval.i32, stringAddrValue);
         }
 
-        debug (ctfe)
+     //   debug (ctfe)
         {
+            import std.stdio;
             writefln("String %s, is in %d, first uint is %d",
                 cast(char[]) se.string[0 .. se.len], stringAddr.addr,
                 _sharedCtfeState.heap._heap[stringAddr.addr]);
@@ -3922,7 +3944,7 @@ static if (is(BCGen))
                 {
                     bailout(
                         "I cannot work with thoose types" ~ to!string(lhs.type.type) ~ " " ~ to!string(
-                        rhs.type.type));
+                        rhs.type.type) ~ " -- " ~ ae.toString);
                     return ;
                 }
             }
@@ -4517,6 +4539,19 @@ static if (is(BCGen))
         {
             // e.g. cast(uint[])uint[10]
             retval.type = toType;
+        }
+        else if (fromType.type == BCTypeEnum.String 
+                && toType.type == BCTypeEnum.Slice && toType.typeIndex
+                && _sharedCtfeState.sliceTypes[toType.typeIndex - 1].elementType.type
+                == BCTypeEnum.i32)
+        {
+            // for the cast(ubyte[])string; case ... needs to be revised as soon as we handle utf8/32 conversions
+            // for now make an i8 slice
+            _sharedCtfeState.sliceTypes[_sharedCtfeState.sliceCount++] = BCSlice(BCType(BCTypeEnum.i8));
+            retval.type = BCType(BCTypeEnum.Slice, _sharedCtfeState.sliceCount);
+            import std.stdio; 
+            writeln("created sliceType: ", _sharedCtfeState.sliceCount);
+            //retval.type = toType;
         }
         else
         {

@@ -1843,7 +1843,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
 
                         writeln("Ret SP[", lhsOffset, "] (", *opRef, ")\n");
                     }
-                return imm32(*opRef & 0xFF_FF_FF_FF);
+                return imm32(*opRef & uint.max);
             }
 
         case LongInst.RelJmp:
