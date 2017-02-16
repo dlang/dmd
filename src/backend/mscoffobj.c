@@ -1355,6 +1355,30 @@ int MsCoffObj::comdat(Symbol *s)
     return s->Sseg;
 }
 
+int MsCoffObj::readonly_comdat(Symbol *s)
+{
+    //printf("MsCoffObj::readonly_comdat(Symbol* %s)\n",s->Sident);
+    //symbol_print(s);
+    symbol_debug(s);
+
+    s->Sfl = FLdata;
+    s->Sseg = MsCoffObj::getsegment(".rdata",  IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                        IMAGE_SCN_LNK_COMDAT |
+                                        IMAGE_SCN_ALIGN_16BYTES |
+                                        IMAGE_SCN_MEM_READ);
+
+    SegData[s->Sseg]->SDalignment = s->Salignment;
+    assert(s->Salignment >= -1);
+    s->Soffset = SegData[s->Sseg]->SDoffset;
+    if (s->Sfl == FLdata || s->Sfl == FLtlsdata)
+    {   // Code symbols are 'published' by MsCoffObj::func_start()
+
+        MsCoffObj::pubdef(s->Sseg,s,s->Soffset);
+        searchfixlist(s);               // backpatch any refs to this symbol
+    }
+    return s->Sseg;
+}
+
 /**********************************
  * Get segment, which may already exist.
  * Input:
@@ -1817,7 +1841,7 @@ void MsCoffObj::func_term(Symbol *sfunc)
 void MsCoffObj::pubdef(segidx_t seg, Symbol *s, targ_size_t offset)
 {
 #if 0
-    printf("MsCoffObj::pubdef(%d:x%x s=%p, %s)\n", seg, offset, s, s->Sident);
+    printf("MsCoffObj::pubdef(%d:x%x s=%p, %s)\n", seg, (int)offset, s, s->Sident);
     //symbol_print(s);
 #endif
     symbol_debug(s);

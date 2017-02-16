@@ -1450,6 +1450,21 @@ symbol *out_readonly_sym(tym_t ty, void *p, int len)
     return s;
 }
 
+/*************************************
+ * Output Symbol as a readonly comdat.
+ * Params:
+ *      s = comdat symbol
+ *      p = pointer to the data to write
+ *      len = length of that data
+ *      nzeros = number of trailing zeros to append
+ */
+void out_readonly_comdat(Symbol *s, const void *p, unsigned len, unsigned nzeros)
+{
+    objmod->readonly_comdat(s);         // create comdat segment
+    objmod->write_bytes(SegData[s->Sseg], len, (void *)p);
+    objmod->lidata(s->Sseg, len, nzeros);
+}
+
 void Srcpos::print(const char *func)
 {
     printf("%s(", func);
