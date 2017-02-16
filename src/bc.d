@@ -493,8 +493,18 @@ struct BCGen
 
     void Assert(BCValue value, BCValue err)
     {
-        auto _msg = genTemporary(i32Type);
-        Set(_msg, imm32(err.imm32));
+        BCValue _msg;
+        if(err.vType == BCValueType.Error)
+        {
+            _msg = genTemporary(i32Type);
+            Set(_msg, imm32(err.imm32));
+        }
+        else if (isStackValueOrParameter(err))
+        {
+            //assert(0, "err.vType is not Error but: " ~ err.vType.to!string);
+            _msg = err;
+        }
+
         if (value)
         {
             emitLongInst(LongInst64(LongInst.Assert, value.stackAddr, _msg.stackAddr));
