@@ -182,7 +182,7 @@ struct ModuleGroup
             ignore
         }
 
-        // Change default to .abort in 2.073
+        // Change default to .abort in 2.074
         auto onCycle = OnCycle.deprecate;
 
         switch(cycleHandling) with(OnCycle)
@@ -517,7 +517,7 @@ struct ModuleGroup
             import core.stdc.stdio : fprintf, stderr;
             fprintf(stderr, "Deprecation 16211 warning:\n"
                 ~ "A cycle has been detected in your program that was undetected prior to DMD\n"
-                ~ "2.072. This program will continue, but will not operate when using DMD 2.073\n"
+                ~ "2.072. This program will continue, but will not operate when using DMD 2.074\n"
                 ~ "to compile. Use runtime option --DRT-oncycle=print to see the cycle details.\n");
 
         }
