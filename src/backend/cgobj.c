@@ -1932,7 +1932,12 @@ static int generate_comdat(Obj* objmod, Symbol *s, bool is_readonly_comdat)
     {   lr->pubbase = SegData[cseg]->segidx;
         if (s->Sclass == SCcomdat || s->Sclass == SCinline)
             lr->alloctyp = 0x10 | 0x00; // pick any instance | explicit allocation
-        if (!is_readonly_comdat)
+        if (is_readonly_comdat)
+        {
+            assert(lr->lseg > 0 && lr->lseg <= seg_count);
+            lr->flags |= 0x08;      // data in code seg
+        }
+        else
         {
             cseg = lr->lseg;
             assert(cseg > 0 && cseg <= seg_count);
