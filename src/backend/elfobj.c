@@ -1724,6 +1724,12 @@ int Obj::comdatsize(Symbol *s, targ_size_t symsize)
     return s->Sseg;
 }
 
+int Obj::readonly_comdat(Symbol *s)
+{
+    assert(0);
+    return 0;
+}
+
 /********************************
  * Get a segment for a segment name.
  * Input:

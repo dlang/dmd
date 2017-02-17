@@ -337,6 +337,7 @@ STATIC void objfixupp (struct FIXUP *);
 STATIC void outextdata();
 STATIC void outpubdata();
 STATIC Ledatarec *ledata_new(int seg,targ_size_t offset);
+static int generate_comdat(Obj* objmod, Symbol *s, bool is_readonly_comdat);
 
 
 /*******************************
@@ -1878,10 +1879,21 @@ void Obj::moduleinfo(Symbol *scc)
 
 int Obj::comdatsize(Symbol *s, targ_size_t symsize)
 {
-    return Obj::comdat(s);
+    return generate_comdat(this, s, false);
 }
 
 int Obj::comdat(Symbol *s)
+{
+    return generate_comdat(this, s, false);
+}
+
+int Obj::readonly_comdat(Symbol *s)
+{
+    s->Sseg = generate_comdat(this, s, true);
+    return s->Sseg;
+}
+
+static int generate_comdat(Obj* objmod, Symbol *s, bool is_readonly_comdat)
 {   char lnames[IDMAX+IDOHD+1]; // +1 to allow room for strcpy() terminating 0
     char cextdef[2+2];
     char *p;
@@ -1893,10 +1905,10 @@ int Obj::comdat(Symbol *s)
     symbol_debug(s);
     obj.reset_symbuf->write(&s, sizeof(s));
     ty = s->ty();
-    isfunc = tyfunc(ty) != 0;
+    isfunc = tyfunc(ty) != 0 || is_readonly_comdat;
 
     // Put out LNAME for name of Symbol
-    lnamesize = Obj::mangle(s,lnames);
+    lnamesize = objmod->mangle(s,lnames);
     objrecord((s->Sclass == SCstatic ? LLNAMES : LNAMES),lnames,lnamesize);
 
     // Put out CEXTDEF for name of Symbol
@@ -1920,12 +1932,15 @@ int Obj::comdat(Symbol *s)
     {   lr->pubbase = SegData[cseg]->segidx;
         if (s->Sclass == SCcomdat || s->Sclass == SCinline)
             lr->alloctyp = 0x10 | 0x00; // pick any instance | explicit allocation
-        cseg = lr->lseg;
-        assert(cseg > 0 && cseg <= seg_count);
-        obj.pubnamidx = obj.lnameidx - 1;
-        Coffset = 0;
-        if (tyfarfunc(ty) && strcmp(s->Sident,"main") == 0)
-            lr->alloctyp |= 1;  // because MS does for unknown reasons
+        if (!is_readonly_comdat)
+        {
+            cseg = lr->lseg;
+            assert(cseg > 0 && cseg <= seg_count);
+            obj.pubnamidx = obj.lnameidx - 1;
+            Coffset = 0;
+            if (tyfarfunc(ty) && strcmp(s->Sident,"main") == 0)
+                lr->alloctyp |= 1;  // because MS does for unknown reasons
+        }
     }
     else
     {   unsigned char atyp;
@@ -1946,7 +1961,7 @@ int Obj::comdat(Symbol *s)
 
             case mTYfar:        atyp = 0x12;    break;
 
-            case mTYthread:     lr->pubbase = Obj::tlsseg()->segidx;
+            case mTYthread:     lr->pubbase = objmod->tlsseg()->segidx;
                                 atyp = 0x10;    // pick any (also means it is
                                                 // not searched for in a library)
                                 break;

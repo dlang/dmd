@@ -5702,25 +5702,29 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz, bool comdat = fa
             buf.writestring("__");
             mangleToBuffer(se, &buf);   // recycle how strings are mangled for templates
             si = symbol_calloc(buf.peekString(), cast(uint)buf.offset);
-            si.Sclass = SCcomdat;       // should mark this as a read-only comdat
-            si.Stype = type_static_array(len * sz, tstypes[TYchar]);
+            si.Sclass = SCcomdat;
+            si.Stype = type_static_array(cast(uint)(len * sz), tstypes[TYchar]);
             si.Stype.Tcount++;
             type_setmangle(&si.Stype, mTYman_c);
             si.Sflags |= SFLnodebug | SFLartifical;
+            si.Sfl = FLdata;
+            si.Salignment = cast(ubyte)sz;
+            out_readonly_comdat(si, str, cast(uint)(len * sz), cast(uint)sz);
         }
         else
         {
             si = symbol_generate(SCstatic,type_static_array(len * sz, tstypes[TYchar]));
             out_readonly(si);    // set up for read-only symbol
+
+            scope dtb = new DtBuilder();
+            dtb.nbytes(cast(uint)(len * sz), str);
+            dtb.nzeros(cast(uint)sz);       // include terminating 0
+            si.Sdt = dtb.finish();
+            si.Sfl = FLdata;
+            si.Salignment = cast(uint)sz;
+            outdata(si);
         }
 
-        scope dtb = new DtBuilder();
-        dtb.nbytes(cast(uint)(len * sz), str);
-        dtb.nzeros(cast(uint)sz);       // include terminating 0
-        si.Sdt = dtb.finish();
-        si.Sfl = FLdata;
-        si.Salignment = 1;
-        outdata(si);
         sv.ptrvalue = cast(void *)si;
     }
     return cast(Symbol *)sv.ptrvalue;

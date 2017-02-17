@@ -1807,6 +1807,12 @@ int Obj::comdat(Symbol *s)
     return s->Sseg;
 }
 
+int Obj::readonly_comdat(Symbol *s)
+{
+    assert(0);
+    return 0;
+}
+
 /**********************************
  * Get segment.
  * Input:

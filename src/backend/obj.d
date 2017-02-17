@@ -56,6 +56,7 @@ class Obj
     void moduleinfo(Symbol *scc);
     int comdat(Symbol *);
     int comdatsize(Symbol *, targ_size_t symsize);
+    int readonly_comdat(Symbol *s);
     void setcodeseg(int seg);
     seg_data *tlsseg();
     seg_data *tlsseg_bss();
@@ -129,6 +130,7 @@ class MsCoffObj : Obj
     override void moduleinfo(Symbol *scc);
     override int comdat(Symbol *);
     override int comdatsize(Symbol *, targ_size_t symsize);
+    override int readonly_comdat(Symbol *s);
     override void setcodeseg(int seg);
     override seg_data *tlsseg();
     override seg_data *tlsseg_bss();
@@ -218,6 +220,7 @@ class Obj
     static void moduleinfo(Symbol *scc);
     int comdat(Symbol *);
     static int comdatsize(Symbol *, targ_size_t symsize);
+    int readonly_comdat(Symbol *s);
     static void setcodeseg(int seg);
     seg_data *tlsseg();
     seg_data *tlsseg_bss();
