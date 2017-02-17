@@ -3595,9 +3595,9 @@ void test220()
   mixin T220!(int);
 
   // all print 8
-  writeln(T220!(int).C.classinfo.init.length);
-  writeln(C.classinfo.init.length);
-  writeln(D220.classinfo.init.length);
+  writeln(T220!(int).C.classinfo.initializer.length);
+  writeln(C.classinfo.initializer.length);
+  writeln(D220.classinfo.initializer.length);
 
   auto c = new C; // segfault in _d_newclass
 }
