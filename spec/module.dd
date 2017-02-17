@@ -549,18 +549,19 @@ $(H3 $(LNAME2 override_cycle_abort, Overriding Cycle Detection Abort))
         )
 
         $(OL
-            $(LI `deprecate` The default behavior. This functions just like `abort`,
-            but will use the pre-2.072 algorithm to determine if the cycle was
-            undetected. If so, the old algorithm is used, but a deprecation
-            message is printed. After 2.073, the `abort` option will be the default.)
-            $(LI `abort` The normal behavior as described in the previous section.
-            After 2.073, this will be the default behavior.)
+            $(LI `abort` The default behavior. The normal behavior as described
+            in the previous section)
+            $(LI `deprecate` This functions just like `abort`, but upon cycle
+            detection the runtime will use a flawed pre-2.072 algorithm to
+            determine if the cycle was previously detected. If no cycles are
+            detected in the old algorithm, execution continues, but a
+            deprecation message is printed.)
             $(LI `print` Print all cycles detected, but do not abort execution.
-            Order of static construction is implementation defined, and not
-            guaranteed to be valid.)
-            $(LI `ignore` Do not abort execution or print any cycles. Order of
-            static construction is implementation defined, and not guaranteed
-            to be valid.)
+            When cycles are present, order of static construction is
+            implementation defined, and not guaranteed to be valid.)
+            $(LI `ignore` Do not abort execution or print any cycles. When
+            cycles are present, order of static construction is implementation
+            defined, and not guaranteed to be valid.)
         )
 
 $(H3 $(LNAME2 order_of_static_ctors, Order of Static Construction within a Module))
