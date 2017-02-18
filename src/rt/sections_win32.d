@@ -18,7 +18,7 @@ version(CRuntime_DigitalMars):
 debug(PRINTF) import core.stdc.stdio;
 import rt.minfo;
 
-//version = conservative;
+version = conservative;
 
 struct SectionGroup
 {

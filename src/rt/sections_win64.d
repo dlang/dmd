@@ -19,7 +19,7 @@ debug(PRINTF) import core.stdc.stdio;
 import core.stdc.stdlib : malloc, free;
 import rt.deh, rt.minfo;
 
-//version = conservative;
+version = conservative;
 
 struct SectionGroup
 {
