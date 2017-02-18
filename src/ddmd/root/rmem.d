@@ -189,8 +189,8 @@ else
 
         extern (C) Object _d_newclass(const ClassInfo ci) nothrow
         {
-            auto p = allocmemory(ci.init.length);
-            p[0 .. ci.init.length] = cast(void[])ci.init[];
+            auto p = allocmemory(ci.initializer.length);
+            p[0 .. ci.initializer.length] = cast(void[])ci.initializer[];
             return cast(Object)p;
         }
 
@@ -198,21 +198,21 @@ else
         {
             extern (C) Object _d_allocclass(const ClassInfo ci) nothrow
             {
-                return cast(Object)allocmemory(ci.init.length);
+                return cast(Object)allocmemory(ci.initializer.length);
             }
         }
 
         extern (C) void* _d_newitemT(TypeInfo ti) nothrow
         {
             auto p = allocmemory(ti.tsize);
-            (cast(ubyte*)p)[0 .. ti.init.length] = 0;
+            (cast(ubyte*)p)[0 .. ti.initializer.length] = 0;
             return p;
         }
 
         extern (C) void* _d_newitemiT(TypeInfo ti) nothrow
         {
             auto p = allocmemory(ti.tsize);
-            p[0 .. ti.init.length] = ti.init[];
+            p[0 .. ti.initializer.length] = ti.initializer[];
             return p;
         }
     }
