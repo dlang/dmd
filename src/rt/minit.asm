@@ -10,7 +10,8 @@
 ;     (See accompanying file LICENSE or copy at
 ;           http://www.boost.org/LICENSE_1_0.txt)
 ;
-;include macros.asm
+; With VC installed, build with:
+;     ml /omf minit.asm
 
     .model FLAT
 
@@ -65,29 +66,29 @@ DGROUP         group   FMB,FM,FME
 
 ; These segments bracket DP, which contains the _DATA pointer references
     public  __DPbegin, __DPend
-DPB     segment dword use32 public 'DATA'
+DPB     segment dword use32 public 'CODE'
 __DPbegin:
 DPB     ends
-DP      segment dword use32 public 'DATA'
+DP      segment dword use32 public 'CODE'
 DP      ends
-DPE     segment dword use32 public 'DATA'
+DPE     segment dword use32 public 'CODE'
 __DPend:
 DPE     ends
 
-DGROUP         group   DPB,DP,DPE
+CGROUP         group   DPB,DP,DPE
 
 ; These segments bracket TP, which contains the TLS pointer references
     public  __TPbegin, __TPend
-TPB     segment dword use32 public 'DATA'
+TPB     segment dword use32 public 'CODE'
 __TPbegin:
 TPB     ends
-TP      segment dword use32 public 'DATA'
+TP      segment dword use32 public 'CODE'
 TP      ends
-TPE     segment dword use32 public 'DATA'
+TPE     segment dword use32 public 'CODE'
 __TPend:
 TPE     ends
 
-DGROUP         group   TPB,TP,TPE
+CGROUP         group   TPB,TP,TPE
 
 _TEXT   segment para use32 public 'CODE'
         assume CS:_TEXT
