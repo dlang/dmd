@@ -274,9 +274,17 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
 
     if(info.size <= 256)
     {
-        if(newlength + SMALLPAD + typeInfoSize > info.size)
+        import core.checkedint;
+
+        bool overflow;
+        auto newlength_padded = addu(newlength,
+                                     addu(SMALLPAD, typeInfoSize, overflow),
+                                     overflow);
+
+        if(newlength_padded > info.size || overflow)
             // new size does not fit inside block
             return false;
+
         auto length = cast(ubyte *)(info.base + info.size - typeInfoSize - SMALLPAD);
         if(oldlength != ~0)
         {
@@ -406,24 +414,38 @@ size_t __arrayPad(size_t size, const TypeInfo tinext) nothrow pure @trusted
   */
 BlkInfo __arrayAlloc(size_t arrsize, const TypeInfo ti, const TypeInfo tinext) nothrow pure
 {
+    import core.checkedint;
+
     size_t typeInfoSize = structTypeInfoSize(tinext);
     size_t padsize = arrsize > MAXMEDSIZE ? LARGEPAD : ((arrsize > MAXSMALLSIZE ? MEDPAD : SMALLPAD) + typeInfoSize);
 
-    if (arrsize + padsize < arrsize)
+    bool overflow;
+    auto padded_size = addu(arrsize, padsize, overflow);
+
+    if (overflow)
         return BlkInfo();
 
     uint attr = (!(tinext.flags & 1) ? BlkAttr.NO_SCAN : 0) | BlkAttr.APPENDABLE;
     if (typeInfoSize)
         attr |= BlkAttr.STRUCTFINAL | BlkAttr.FINALIZE;
-    return GC.qalloc(arrsize + padsize, attr, ti);
+    return GC.qalloc(padded_size, attr, ti);
 }
 
 BlkInfo __arrayAlloc(size_t arrsize, ref BlkInfo info, const TypeInfo ti, const TypeInfo tinext)
 {
+    import core.checkedint;
+
     if (!info.base)
         return __arrayAlloc(arrsize, ti, tinext);
 
-    return GC.qalloc(arrsize + __arrayPad(arrsize, tinext), info.attr, ti);
+    bool overflow;
+    auto padded_size = addu(arrsize, __arrayPad(arrsize, tinext), overflow);
+    if (overflow)
+    {
+        return BlkInfo();
+    }
+
+    return GC.qalloc(padded_size, info.attr, ti);
 }
 
 /**
@@ -1548,6 +1570,10 @@ body
                     {
                         info = __arrayAlloc(newsize, ti, tinext);
                     }
+
+                    if (info.base is null)
+                        goto Loverflow;
+
                     __setArrayAllocLength(info, newsize, isshared, tinext);
                     if(!isshared)
                         __insertBlkInfoCache(info, bic);
@@ -1565,6 +1591,8 @@ body
         {
             // pointer was null, need to allocate
             auto info = __arrayAlloc(newsize, ti, tinext);
+            if (info.base is null)
+                goto Loverflow;
             __setArrayAllocLength(info, newsize, isshared, tinext);
             if(!isshared)
                 __insertBlkInfoCache(info, null);
