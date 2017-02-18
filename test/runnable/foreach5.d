@@ -1068,7 +1068,7 @@ auto scoped14653(T, A...)(A args)
     Scoped!T result = void;
 
     //emplace!T(result.store[], args);
-    result.store[] = typeid(T).init[];
+    result.store[] = typeid(T).initializer[];
     result.payload.__ctor(args);
 
     return result;
