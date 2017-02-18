@@ -3710,9 +3710,9 @@ void Obj::gotref(Symbol *s)
 
 /*****************************************
  * write a reference to a mutable pointer into the object file
- * Input:
- *      s       symbol that contains the pointer
- *      soff    offset of the pointer inside the symbols' memory
+ * Params:
+ *      s    = symbol that contains the pointer
+ *      soff = offset of the pointer inside the Symbol's memory
  */
 
 void Obj::write_pointerRef(Symbol* s, unsigned soff)
@@ -3728,9 +3728,9 @@ void Obj::write_pointerRef(Symbol* s, unsigned soff)
 /*****************************************
  * flush a single pointer reference saved by write_pointerRef
  * to the object file
- * Input:
- *      s       symbol that contains the pointer
- *      soff    offset of the pointer inside the symbols' memory
+ * Params:
+ *      s    = symbol that contains the pointer
+ *      soff = offset of the pointer inside the Symbol's memory
  */
 STATIC void objflush_pointerRef(Symbol* s, unsigned soff)
 {

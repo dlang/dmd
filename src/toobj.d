@@ -224,10 +224,10 @@ void genModuleInfo(Module m)
 /*****************************************
  * write pointer references for typed data to the object file
  * a class type is considered to mean a reference to a class instance
- * Input:
- *      type    type of the data to check for pointers
- *      s       symbol that contains the data
- *      offset  offset of the data inside the symbols' memory
+ * Params:
+ *      type   = type of the data to check for pointers
+ *      s      = symbol that contains the data
+ *      offset = offset of the data inside the Symbol's memory
  */
 void write_pointers(Type type, Symbol *s, uint offset)
 {
@@ -241,10 +241,10 @@ void write_pointers(Type type, Symbol *s, uint offset)
 /*****************************************
 * write pointer references for typed data to the object file
 * a class type is considered to mean the instance, not a reference
-* Input:
-*      type    type of the data to check for pointers
-*      s       symbol that contains the data
-*      offset  offset of the data inside the symbols' memory
+* Params:
+*      type   = type of the data to check for pointers
+*      s      = symbol that contains the data
+*      offset = offset of the data inside the Symbol's memory
 */
 void write_instance_pointers(Type type, Symbol *s, uint offset)
 {
