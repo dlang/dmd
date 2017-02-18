@@ -411,8 +411,9 @@ dt_t *DtBuilder::xoffpatch(Symbol *s, unsigned offset, tym_t ty)
 
 /*************************************
  * Create a reference to another dt.
+ * Returns: the internal symbol used for the other dt
  */
-void DtBuilder::dtoff(dt_t *dt, unsigned offset)
+Symbol *DtBuilder::dtoff(dt_t *dt, unsigned offset)
 {
     type *t = type_alloc(TYint);
     t->Tcount++;
@@ -425,6 +426,7 @@ void DtBuilder::dtoff(dt_t *dt, unsigned offset)
     outdata(s);
 
     xoff(s, offset);
+    return s;
 }
 
 /********************************

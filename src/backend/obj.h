@@ -88,6 +88,7 @@ class Obj
     VIRTUAL symbol *sym_cdata(tym_t, char *, int);
     VIRTUAL void func_start(Symbol *sfunc);
     VIRTUAL void func_term(Symbol *sfunc);
+    VIRTUAL void write_pointerRef(Symbol* s, unsigned off);
 
     VIRTUAL symbol *tlv_bootstrap();
 
@@ -197,6 +198,7 @@ class MsCoffObj : public Obj
     static unsigned addstr(Outbuffer *strtab, const char *);
     VIRTUAL void func_start(Symbol *sfunc);
     VIRTUAL void func_term(Symbol *sfunc);
+    VIRTUAL void write_pointerRef(Symbol* s, unsigned off);
 
     static int getsegment(const char *sectname, unsigned long flags);
     static int getsegment2(unsigned shtidx);

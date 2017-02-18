@@ -48,6 +48,7 @@ char *obj_mangle2(Symbol *s,char *dest);
  */
 
 static long elf_align(int size, long offset);
+static void objflush_pointerRefs();
 
 // The object file is built ib several separate pieces
 
@@ -81,6 +82,8 @@ static int jumpTableSeg;                // segment index for __jump_table
 
 static Outbuffer *indirectsymbuf2;      // indirect symbol table of Symbol*'s
 static int pointersSeg;                 // segment index for __pointers
+
+static Outbuffer *ptrref_buf;           // buffer for pointer references
 
 static int floatused;
 
@@ -667,6 +670,7 @@ void MsCoffObj::term(const char *objfilename)
 #endif
     {
         outfixlist();           // backpatches
+        objflush_pointerRefs();
     }
 
     if (configv.addlinenumbers)
@@ -1244,6 +1248,10 @@ void MsCoffObj::ehsections()
     int attr = IMAGE_SCN_CNT_INITIALIZED_DATA | align | IMAGE_SCN_MEM_READ;
     emitSectionBrace("._deh", "_deh", attr, this);
     emitSectionBrace(".minfo", "_minfo", attr, this);
+
+    attr = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_ALIGN_4BYTES | IMAGE_SCN_MEM_READ;
+    emitSectionBrace(".dp", "_DP", attr, NULL); // references to pointers in .data and .bss
+    emitSectionBrace(".tp", "_TP", attr, NULL); // references to pointers in .tls
 
     attr = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_ALIGN_16BYTES | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE;
     emitSectionBrace(".data", "_data", attr, NULL);
@@ -2410,6 +2418,66 @@ symbol *MsCoffObj::tlv_bootstrap()
     // specific for Mach-O
     assert(0);
     return NULL;
+}
+
+/*****************************************
+ * write a reference to a mutable pointer into the object file
+ * Params:
+ *      s    = symbol that contains the pointer
+ *      soff = offset of the pointer inside the Symbol's memory
+ */
+void MsCoffObj::write_pointerRef(Symbol* s, unsigned soff)
+{
+    if (!ptrref_buf)
+        ptrref_buf = new Outbuffer;
+
+    // defer writing pointer references until the symbols are written out
+    ptrref_buf->write(&s, sizeof(s));
+    ptrref_buf->write32(soff);
+}
+
+/*****************************************
+ * flush a single pointer reference saved by write_pointerRef
+ * to the object file
+ * Params:
+ *      s    = symbol that contains the pointer
+ *      soff = offset of the pointer inside the Symbol's memory
+ */
+static void objflush_pointerRef(Symbol* s, unsigned soff)
+{
+    bool isTls = (s->Sfl == FLtlsdata);
+    const char* segname = isTls ? ".tp$B" : ".dp$B";
+    int attr = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_ALIGN_4BYTES | IMAGE_SCN_MEM_READ;
+    int seg = MsCoffObj::getsegment(segname, attr);
+
+    targ_size_t offset = SegData[seg]->SDoffset;
+    MsCoffObj::addrel(seg, offset, s, offset, RELaddr32, 0);
+    Outbuffer* buf = SegData[seg]->SDbuf;
+    buf->setsize(offset);
+    buf->write32(soff);
+    SegData[seg]->SDoffset = buf->size();
+}
+
+/*****************************************
+ * flush all pointer references saved by write_pointerRef
+ * to the object file
+ */
+STATIC void objflush_pointerRefs()
+{
+    if (!ptrref_buf)
+        return;
+
+    unsigned char *p = ptrref_buf->buf;
+    unsigned char *end = ptrref_buf->p;
+    while (p < end)
+    {
+        Symbol* s = *(Symbol**)p;
+        p += sizeof(s);
+        unsigned soff = *(unsigned*)p;
+        p += sizeof(soff);
+        objflush_pointerRef(s, soff);
+    }
+    ptrref_buf->reset();
 }
 
 #endif

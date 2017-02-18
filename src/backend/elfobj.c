@@ -3497,6 +3497,10 @@ symbol *Obj::tlv_bootstrap()
     return NULL;
 }
 
+void Obj::write_pointerRef(Symbol* s, unsigned off)
+{
+}
+
 /******************************************
  * Generate fixup specific to .eh_frame and .gcc_except_table sections.
  * Params:
