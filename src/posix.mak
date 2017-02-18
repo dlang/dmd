@@ -249,7 +249,7 @@ BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o gsroa.o var.o el.o \
 	bcomplex.o aa.o ti_achar.o \
 	ti_pvoid.o pdata.o cv8.o backconfig.o \
 	divcoeff.o dwarf.o dwarfeh.o varstats.o \
-	ph2.o util2.o tk.o strtold.o \
+	ph2.o util2.o tk.o strtold.o md5.o \
 	$(TARGET_OBJS)
 
 ifeq (osx,$(OS))

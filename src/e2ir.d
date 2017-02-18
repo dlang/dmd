@@ -5677,7 +5677,7 @@ elem *toElemDtor(Expression e, IRState *irs)
  *      Symbol
  */
 
-Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz, bool comdat = false)
+Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
 {
     //printf("toStringSymbol() %p\n", stringTab);
     StringValue *sv = stringTab.update(str, len * sz);
@@ -5685,8 +5685,11 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz, bool comdat = fa
     {
         Symbol* si;
 
-        if (comdat)
+        if (global.params.isWindows)
         {
+            /* The stringTab pools common strings within an object file.
+             * Win32 and Win64 use COMDATs to pool common strings across object files.
+             */
             import ddmd.root.outbuffer : OutBuffer;
             import ddmd.dmangle;
 
@@ -5701,6 +5704,24 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz, bool comdat = fa
             OutBuffer buf;
             buf.writestring("__");
             mangleToBuffer(se, &buf);   // recycle how strings are mangled for templates
+
+            if (buf.offset >= 32 + 2)
+            {   // Replace long string with hash of that string
+                import ddmd.backend.md5;
+                MD5_CTX mdContext;
+                MD5Init(&mdContext);
+                MD5Update(&mdContext, cast(ubyte*)buf.peekString(), cast(uint)buf.offset);
+                MD5Final(&mdContext);
+                buf.setsize(2);
+                foreach (u; mdContext.digest)
+                {
+                    ubyte u1 = u >> 4;
+                    buf.writeByte((u1 < 10) ? u1 + '0' : u1 + 'A' - 10);
+                    u1 = u & 0xF;
+                    buf.writeByte((u1 < 10) ? u1 + '0' : u1 + 'A' - 10);
+                }
+            }
+
             si = symbol_calloc(buf.peekString(), cast(uint)buf.offset);
             si.Sclass = SCcomdat;
             si.Stype = type_static_array(cast(uint)(len * sz), tstypes[TYchar]);
