@@ -183,7 +183,7 @@ struct ModuleGroup
         }
 
         // Change default to .abort in 2.073
-        auto onCycle = OnCycle.deprecate;
+        auto onCycle = OnCycle.abort;
 
         switch(cycleHandling) with(OnCycle)
         {
