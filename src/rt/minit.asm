@@ -10,7 +10,10 @@
 ;     (See accompanying file LICENSE or copy at
 ;           http://www.boost.org/LICENSE_1_0.txt)
 ;
-include macros.asm
+; With VC installed, build with:
+;     ml /omf minit.asm
+
+    .model FLAT
 
 ifdef _WIN32
   DATAGRP      EQU     FLAT
@@ -61,7 +64,34 @@ XOE     ends
 
 DGROUP         group   FMB,FM,FME
 
-    begcode minit
+; These segments bracket DP, which contains the _DATA pointer references
+    public  __DPbegin, __DPend
+DPB     segment dword use32 public 'CODE'
+__DPbegin:
+DPB     ends
+DP      segment dword use32 public 'CODE'
+DP      ends
+DPE     segment dword use32 public 'CODE'
+__DPend:
+DPE     ends
+
+CGROUP         group   DPB,DP,DPE
+
+; These segments bracket TP, which contains the TLS pointer references
+    public  __TPbegin, __TPend
+TPB     segment dword use32 public 'CODE'
+__TPbegin:
+TPB     ends
+TP      segment dword use32 public 'CODE'
+TP      ends
+TPE     segment dword use32 public 'CODE'
+__TPend:
+TPE     ends
+
+CGROUP         group   TPB,TP,TPE
+
+_TEXT   segment para use32 public 'CODE'
+        assume CS:_TEXT
 
 ; extern (C) void _minit();
 ; Converts array of ModuleInfo pointers to a D dynamic array of them,
@@ -70,7 +100,7 @@ DGROUP         group   FMB,FM,FME
 ; extern (C) ModuleInfo[] _moduleinfo_array;
 
     public  __minit
-__minit proc    near
+__minit:
     mov EDX,offset DATAGRP:FMB
     mov EAX,offset DATAGRP:FME
     mov dword ptr __moduleinfo_array+4,EDX
@@ -78,8 +108,7 @@ __minit proc    near
     shr EAX,2           ; convert to array length
     mov dword ptr __moduleinfo_array,EAX
     ret
-__minit endp
 
-    endcode minit
+_TEXT   ends
 
     end

@@ -19,6 +19,8 @@ debug(PRINTF) import core.stdc.stdio;
 import core.stdc.stdlib : malloc, free;
 import rt.deh, rt.minfo;
 
+version = conservative;
+
 struct SectionGroup
 {
     static int opApply(scope int delegate(ref SectionGroup) dg)
@@ -56,7 +58,10 @@ struct SectionGroup
 
 private:
     ModuleGroup _moduleGroup;
-    void[][1] _gcRanges;
+    version(conservative)
+        void[][1] _gcRanges;
+    else
+        void[][] _gcRanges;
 }
 
 void initSections() nothrow @nogc
@@ -64,14 +69,31 @@ void initSections() nothrow @nogc
     _sections._moduleGroup = ModuleGroup(getModuleInfos());
 
     // the ".data" image section includes both object file sections ".data" and ".bss"
-    _sections._gcRanges[0] = findImageSection(".data");
-    debug(PRINTF) printf("found .data section: [%p,+%llx]\n", _sections._gcRanges[0].ptr,
-                         cast(ulong)_sections._gcRanges[0].length);
+    void[] dataSection = findImageSection(".data");
+    debug(PRINTF) printf("found .data section: [%p,+%llx]\n", dataSection.ptr,
+                         cast(ulong)dataSection.length);
+    version(conservative)
+    {
+        _sections._gcRanges[0] = dataSection;
+    }
+    else
+    {
+        size_t count = &_DP_end - &_DP_beg;
+        auto ranges = cast(void[]*) malloc(count * (void[]).sizeof);
+        for (size_t i = 0; i < count; i++)
+        {
+            void* addr = dataSection.ptr + (&_DP_beg)[i];
+            ranges[i] = (cast(void**)addr)[0..1]; // TODO: optimize consecutive pointers into single range
+        }
+        _sections._gcRanges = ranges[0..count];
+    }
 }
 
 void finiSections() nothrow @nogc
 {
     .free(cast(void*)_sections.modules.ptr);
+    version(conservative) {} else
+        .free(_sections._gcRanges.ptr);
 }
 
 void[] initTLSRanges() nothrow @nogc
@@ -87,7 +109,16 @@ void finiTLSRanges(void[] rng) nothrow @nogc
 
 void scanTLSRanges(void[] rng, scope void delegate(void* pbeg, void* pend) nothrow dg) nothrow
 {
-    dg(rng.ptr, rng.ptr + rng.length);
+    version(conservative)
+    {
+        dg(rng.ptr, rng.ptr + rng.length);
+    }
+    else
+    {
+        size_t count = &_TP_end - &_TP_beg;
+        for (auto p = &_TP_beg; p < &_TP_end; p++)
+            dg(rng.ptr + *p, rng.ptr + *p + (void*).sizeof);
+    }
 }
 
 private:
@@ -142,6 +173,11 @@ extern(C)
 
         void* _deh_beg;
         void* _deh_end;
+
+        uint _DP_beg;
+        uint _DP_end;
+        uint _TP_beg;
+        uint _TP_end;
     }
 
     extern
