@@ -2405,7 +2405,7 @@ void MsCoffObj::write_pointerRef(Symbol* s, unsigned soff)
 
     // defer writing pointer references until the symbols are written out
     ptrref_buf->write(&s, sizeof(s));
-    ptrref_buf->write(&soff, sizeof(soff));
+    ptrref_buf->write32(soff);
 }
 
 /*****************************************

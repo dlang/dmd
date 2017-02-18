@@ -3722,7 +3722,7 @@ void Obj::write_pointerRef(Symbol* s, unsigned soff)
 
     // defer writing pointer references until the symbols are written out
     obj.ptrref_buf->write(&s, sizeof(s));
-    obj.ptrref_buf->write(&soff, sizeof(soff));
+    obj.ptrref_buf->write32(soff);
 }
 
 /*****************************************
@@ -3748,23 +3748,21 @@ STATIC void objflush_pointerRef(Symbol* s, unsigned soff)
         // Put out LNAMES record
         objrecord(LNAMES,lnames,sizeof(lnames_dat) - 1);
 
-        int dsegattr = I32
-            ? SEG_ATTR(SEG_ALIGN4,SEG_C_PUBLIC,0,USE32)
-            : SEG_ATTR(SEG_ALIGN2,SEG_C_PUBLIC,0,USE16);
+        int dsegattr = obj.csegattr;
 
         // Put out beginning segment
-        objsegdef(dsegattr,0,obj.lnameidx,DATACLASS);
+        objsegdef(dsegattr,0,obj.lnameidx,CODECLASS);
         obj.lnameidx++;
         obj.segidx++;
 
         // Put out segment definition record
-        segi = obj_newfarseg(0,DATACLASS);
-        objsegdef(dsegattr,0,obj.lnameidx,DATACLASS);
+        segi = obj_newfarseg(0,CODECLASS);
+        objsegdef(dsegattr,0,obj.lnameidx,CODECLASS);
         SegData[segi]->attr = dsegattr;
         assert(SegData[segi]->segidx == obj.segidx);
 
         // Put out ending segment
-        objsegdef(dsegattr,0,obj.lnameidx + 1,DATACLASS);
+        objsegdef(dsegattr,0,obj.lnameidx + 1,CODECLASS);
 
         obj.lnameidx += 2;              // for next time
         obj.segidx += 2;
