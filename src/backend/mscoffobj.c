@@ -297,6 +297,20 @@ int MsCoffObj::data_readonly(char *p, int len)
     return MsCoffObj::data_readonly(p, len, &pseg);
 }
 
+/*****************************
+ * Get segment for readonly string literals.
+ * The linker will pool strings in this section.
+ * Params:
+ *    sz = number of bytes per character (1, 2, or 4)
+ * Returns:
+ *    segment index
+ */
+int MsCoffObj::string_literal_segment(unsigned sz)
+{
+    assert(0);
+    return 0;
+}
+
 /******************************
  * Start a .obj file.
  * Called before any other obj_xxx routines.

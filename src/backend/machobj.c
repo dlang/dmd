@@ -440,6 +440,19 @@ int Obj::data_readonly(char *p, int len)
     return Obj::data_readonly(p, len, &pseg);
 }
 
+/*****************************
+ * Get segment for readonly string literals.
+ * The linker will pool strings in this section.
+ * Params:
+ *    sz = number of bytes per character (1, 2, or 4)
+ * Returns:
+ *    segment index
+ */
+int Obj::string_literal_segment(unsigned sz)
+{
+    return CDATA;
+}
+
 /******************************
  * Perform initialization that applies to all .o output files.
  *      Called before any other obj_xxx routines

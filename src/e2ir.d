@@ -5713,16 +5713,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz, bool comdat = fa
         }
         else
         {
-            si = symbol_generate(SCstatic,type_static_array(len * sz, tstypes[TYchar]));
-            out_readonly(si);    // set up for read-only symbol
-
-            scope dtb = new DtBuilder();
-            dtb.nbytes(cast(uint)(len * sz), str);
-            dtb.nzeros(cast(uint)sz);       // include terminating 0
-            si.Sdt = dtb.finish();
-            si.Sfl = FLdata;
-            si.Salignment = cast(uint)sz;
-            outdata(si);
+            si = out_string_literal(str, cast(uint)len, cast(uint)sz);
         }
 
         sv.ptrvalue = cast(void *)si;

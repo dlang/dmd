@@ -669,6 +669,29 @@ int Obj::data_readonly(char *p, int len)
 }
 
 /******************************
+ * Get segment for readonly string literals.
+ * The linker will pool strings in this section.
+ * Params:
+ *    sz = number of bytes per character (1, 2, or 4)
+ * Returns:
+ *    segment index
+ */
+int Obj::string_literal_segment(unsigned sz)
+{
+    /* Elf special sections:
+     * .rodata.strM.N - M is size of character
+     *                  N is alignment
+     * .rodata.cstN   - N fixed size readonly constants N bytes in size,
+     *              aligned to the same size
+     */
+    static const char name[3][4] = { "1.1", "2.2", "4.4" };
+    const int i = (sz == 4) ? 2 : sz - 1;
+    const IDXSEC seg =
+        ElfObj::getsegment(".rodata.str", name[i], SHT_PROGBITS, SHF_ALLOC, sz);
+    return seg;
+}
+
+/******************************
  * Perform initialization that applies to all .o output files.
  *      Called before any other obj_xxx routines
  */
