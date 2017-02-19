@@ -450,7 +450,11 @@ int Obj::data_readonly(char *p, int len)
  */
 int Obj::string_literal_segment(unsigned sz)
 {
-    return CDATA;
+    if (sz == 1)
+    {
+        return MachObj::getsegment("__cstring", "__TEXT", 0, S_CSTRING_LITERALS);
+    }
+    return CDATA;  // no special handling for other wstring, dstring; use __const
 }
 
 /******************************
