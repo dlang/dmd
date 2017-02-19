@@ -381,6 +381,7 @@ void writefunc(Symbol *sfunc);
 void alignOffset(int seg,targ_size_t datasize);
 void out_reset();
 Symbol *out_readonly_sym(tym_t ty, void *p, int len);
+Symbol *out_string_literal(const char *str, unsigned len, unsigned sz);
 
 /* blockopt.c */
 extern unsigned bc_goal[BCMAX];

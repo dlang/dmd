@@ -389,6 +389,7 @@ void writefunc(Symbol *sfunc);
 void alignOffset(int seg,targ_size_t datasize);
 void out_reset();
 Symbol *out_readonly_sym(tym_t ty, void *p, int len);
+Symbol *out_string_literal(const(char)* str, uint len, uint sz);
 
 /* blockopt.c */
 // Workaround 2.066.x bug by resolving the TYMAX value before using it as dimension.

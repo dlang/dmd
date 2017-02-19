@@ -85,6 +85,7 @@ class Obj
     VIRTUAL void fltused();
     VIRTUAL int data_readonly(char *p, int len, int *pseg);
     VIRTUAL int data_readonly(char *p, int len);
+    VIRTUAL int string_literal_segment(unsigned sz);
     VIRTUAL symbol *sym_cdata(tym_t, char *, int);
     VIRTUAL void func_start(Symbol *sfunc);
     VIRTUAL void func_term(Symbol *sfunc);
@@ -194,6 +195,7 @@ class MsCoffObj : public Obj
     VIRTUAL void fltused();
     VIRTUAL int data_readonly(char *p, int len, int *pseg);
     VIRTUAL int data_readonly(char *p, int len);
+    VIRTUAL int string_literal_segment(unsigned sz);
     VIRTUAL symbol *sym_cdata(tym_t, char *, int);
     static unsigned addstr(Outbuffer *strtab, const char *);
     VIRTUAL void func_start(Symbol *sfunc);

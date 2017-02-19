@@ -86,6 +86,7 @@ class Obj
     void fltused();
     int data_readonly(char *p, int len, int *pseg);
     int data_readonly(char *p, int len);
+    int string_literal_segment(uint sz);
     Symbol *sym_cdata(tym_t, char *, int);
     void func_start(Symbol *sfunc);
     void func_term(Symbol *sfunc);
@@ -161,6 +162,7 @@ class MsCoffObj : Obj
     override void fltused();
     override int data_readonly(char *p, int len, int *pseg);
     override int data_readonly(char *p, int len);
+    override int string_literal_segment(uint sz);
     override Symbol *sym_cdata(tym_t, char *, int);
     static  uint addstr(Outbuffer *strtab, const(char)* );
     override void func_start(Symbol *sfunc);
@@ -252,6 +254,7 @@ class Obj
     static void fltused();
     static int data_readonly(char *p, int len, int *pseg);
     static int data_readonly(char *p, int len);
+    static int string_literal_segment(uint sz);
     static Symbol *sym_cdata(tym_t, char *, int);
     static void func_start(Symbol *sfunc);
     static void func_term(Symbol *sfunc);
