@@ -187,7 +187,7 @@ void dwarf_addrel(int seg, targ_size_t offset, int targseg, targ_size_t val)
 void dwarf_addrel64(int seg, targ_size_t offset, int targseg, targ_size_t val)
 {
 #if ELFOBJ
-    ElfObj::addrel(seg, offset, R_X86_64_64, MAP_SEG2SYMIDX(targseg), val);
+    ElfObj::addrel(seg, offset, I64 ? R_X86_64_64 : R_386_32, MAP_SEG2SYMIDX(targseg), val);
 #elif MACHOBJ
     MachObj::addrel(seg, offset, NULL, targseg, RELaddr, val);
 #else
