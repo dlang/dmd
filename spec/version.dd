@@ -279,6 +279,8 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
 	$(TROW $(ARGS $(D MIPS_HardFloat)) , $(ARGS The MIPS $(D hard-float) ABI))
 	$(TROW $(ARGS $(D NVPTX)) , $(ARGS The Nvidia Parallel Thread Execution (PTX) architecture, 32-bit))
 	$(TROW $(ARGS $(D NVPTX64)) , $(ARGS The Nvidia Parallel Thread Execution (PTX) architecture, 64-bit))
+	$(TROW $(ARGS $(D RISCV32)) , $(ARGS The RISC-V architecture, 32-bit))
+	$(TROW $(ARGS $(D RISCV64)) , $(ARGS The RISC-V architecture, 64-bit))
 	$(TROW $(ARGS $(D SPARC)) , $(ARGS The SPARC architecture, 32-bit))
 	$(TROW $(ARGS $(D SPARC_V8Plus)) , $(ARGS The SPARC v8+ ABI))
 	$(TROW $(ARGS $(D SPARC_SoftFloat)) , $(ARGS The SPARC soft float ABI))
