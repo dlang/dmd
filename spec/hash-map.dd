@@ -304,7 +304,6 @@ $(H2 $(LNAME2 construction_and_ref_semantic, Construction and Reference Semantic
         assert(aa[2] == 2);      // now both refer to the same instance
         ------
 
-
 $(H2 $(LNAME2 properties, Properties))
 
 $(P Properties for associative arrays are:)
@@ -351,7 +350,7 @@ $(P Properties for associative arrays are:)
     )
 
 $(HR)
-$(H2 $(LNAME2 aa_example, Associative Array Example: word count))
+$(H3 $(LNAME2 aa_example, Associative Array Example: word count))
 
         $(P Let's consider the file is ASCII encoded with LF EOL.
         In general case we should use $(I dchar c) for iteration
@@ -432,8 +431,47 @@ $(H2 $(LNAME2 aa_example, Associative Array Example: word count))
         }
         ---------
 
-$(SPEC_SUBNAV_PREV_NEXT arrays, Arrays, struct, Structs and Unions)
+$(H3 $(LNAME2 aa_example_iteration, Associative Array Example: counting Tuples))
+
+    $(P An Associative Array can be iterated in key/value fashion using a
+        $(DDSUBLINK spec/statement, ForeachStatement, foreach statement). As
+        an example, the number of occurrences of all possible substrings of
+        length 2 (aka 2-mers) in a string will be counted:)
+
+        ------
+        import std.range : dropOne, only, save, zip;
+        import std.stdio : writefln;
+        import std.typecons : Tuple;
+        import std.utf : byCodeUnit; // avoids UTF-8 auto-decoding
+
+        int[Tuple!(immutable char, immutable char)] aa;
+
+        // The string `arr` has a limited alphabet: {A, C, G, T}
+        // Thus, for better performance, iteration can be done _without_ decoding
+        auto arr = "AGATAGA".byCodeUnit;
+
+        // iterate over all pairs in the string and observe each pair
+        // ('A', 'G'), ('G', 'A'), ('A', 'T'), ...
+        foreach (window; arr.zip(arr.save.dropOne))
+            aa[window]++;
+
+        // iterate over all key/value pairs of the Associative Array
+        foreach (key, value; aa)
+        {
+            // the second parameter uses tuple-expansion
+            writefln("key: %s [%s], value: %d", key, key.expand.only, value);
+        }
+        ------
+$(CONSOLE
+% rdmd count.d
+key: Tuple!(immutable(char), immutable(char))('A', 'G') [AG], value: 2
+key: Tuple!(immutable(char), immutable(char))('G', 'A') [GA], value: 2
+key: Tuple!(immutable(char), immutable(char))('A', 'T') [AT], value: 1
+key: Tuple!(immutable(char), immutable(char))('T', 'A') [TA], value: 1
 )
+)
+
+$(SPEC_SUBNAV_PREV_NEXT arrays, Arrays, struct, Structs and Unions)
 
 Macros:
         CHAPTER=13
