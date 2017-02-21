@@ -34,4 +34,7 @@ install: all
 	mkdir -p $(INSTALL_DIR)/man
 	cp -r docs/man/* $(INSTALL_DIR)/man/
 
+style:
+	@echo "To be done"
+
 .DELETE_ON_ERROR: # GNU Make directive (delete output files on error)
