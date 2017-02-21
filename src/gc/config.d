@@ -180,7 +180,7 @@ body
     assert(n > 4 && n < fmt.length);
 
     int nscanned;
-    version (Win32)
+    version (CRuntime_DigitalMars)
     {
         /* Older sscanf's in snn.lib can write to its first argument, causing a crash
          * if the string is in readonly memory. Recent updates to DMD
