@@ -85,6 +85,17 @@ extern (C++) Expression eval_sqrt(Loc loc, FuncDeclaration fd, Expressions* argu
     return new RealExp(loc, CTFloat.sqrt(arg0.toReal()), arg0.type);
 }
 
+extern (C++) Expression eval_pow(Loc loc, FuncDeclaration fd, Expressions* arguments)
+{
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    Expression arg1 = (*arguments)[1];
+    assert(arg1.op == TOKfloat64);
+    const x = arg0.toReal();
+    const y = arg1.toReal();
+    return new RealExp(loc, CTFloat.pow(x, y), arg0.type);
+}
+
 extern (C++) Expression eval_fabs(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
@@ -264,6 +275,12 @@ public extern (C++) void builtin_init()
     {
         add_builtin("_D3std4math6yl2xp1FNaNbNiNfeeZe", &eval_unimp);
     }
+    // @trusted @nogc pure nothrow float function(float, float)
+    add_builtin("_D3std4math12__T3powTfTfZ3powFNaNbNiNeffZf", &eval_pow);
+    // @trusted @nogc pure nothrow double function(double, double)
+    add_builtin("_D3std4math12__T3powTdTdZ3powFNaNbNiNeddZd", &eval_pow);
+    // @trusted @nogc pure nothrow real function(real, real)
+    add_builtin("_D3std4math12__T3powTeTeZ3powFNaNbNiNeeeZe", &eval_pow);
     // @safe @nogc pure nothrow long function(real)
     add_builtin("_D3std4math6rndtolFNaNbNiNfeZl", &eval_unimp);
     // @safe @nogc pure nothrow int function(uint)
