@@ -545,6 +545,44 @@ Symbol *out_string_literal(const char *str, unsigned len, unsigned sz)
             assert(0);
     }
 
+    /* If there are any embedded zeros, this can't go in the special string segments
+     * which assume that 0 is the end of the string.
+     */
+    switch (sz)
+    {
+        case 1:
+            if (memchr(str, 0, len))
+                s->Sseg = CDATA;
+            break;
+
+        case 2:
+            for (int i = 0; i < len; ++i)
+            {
+                const unsigned short *p = (const unsigned short *)str;
+                if (p[i] == 0)
+                {
+                    s->Sseg = CDATA;
+                    break;
+                }
+            }
+            break;
+
+        case 4:
+            for (int i = 0; i < len; ++i)
+            {
+                const unsigned *p = (const unsigned *)str;
+                if (p[i] == 0)
+                {
+                    s->Sseg = CDATA;
+                    break;
+                }
+            }
+            break;
+
+        default:
+            assert(0);
+    }
+
     DtBuilder dtb;
     dtb.nbytes((unsigned)(len * sz), str);
     dtb.nzeros((unsigned)sz);       // include terminating 0
