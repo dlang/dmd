@@ -51,9 +51,11 @@ import ddmd.visitor;
 
 struct HdrGenState
 {
-    bool hdrgen;        // true if generating header file
-    bool ddoc;          // true if generating Ddoc file
-    bool fullQual;      // fully qualify types when printing
+    bool hdrgen;        /// true if generating header file
+    bool ddoc;          /// true if generating Ddoc file
+    bool fullDump;     /// true if generarting a full ast_dump
+
+    bool fullQual;      /// fully qualify types when printing
     int tpltMember;
     int autoMember;
     int forStmtInit;
@@ -1325,7 +1327,7 @@ public:
             if (onemember && onemember.isFuncDeclaration())
                 buf.writestring("foo ");
         }
-        if (hgs.hdrgen && visitEponymousMember(d))
+        if ((hgs.hdrgen || hgs.fullDump) && visitEponymousMember(d))
             return;
         if (hgs.ddoc)
             buf.writestring(d.kind());
@@ -1337,7 +1339,7 @@ public:
         visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters);
         buf.writeByte(')');
         visitTemplateConstraint(d.constraint);
-        if (hgs.hdrgen)
+        if (hgs.hdrgen || hgs.fullDump)
         {
             hgs.tpltMember++;
             buf.writenl();
@@ -1752,7 +1754,7 @@ public:
         auto tf = cast(TypeFunction)f.type;
         typeToBuffer(tf, f.ident);
 
-        if (hgs.hdrgen == 1)
+        if (hgs.hdrgen)
         {
             // if the return type is missing (e.g. ref functions or auto)
             if (!tf.next || f.storage_class & STCauto)
