@@ -86,6 +86,7 @@ public:
     OutBuffer* buf;
     HdrGenState* hgs;
     bool declstring; // set while declaring alias for string,wstring or dstring
+    EnumDeclaration inEnumDecl;
 
     extern (D) this(OutBuffer* buf, HdrGenState* hgs)
     {
@@ -1571,6 +1572,9 @@ public:
 
     override void visit(EnumDeclaration d)
     {
+        auto oldInEnumDecl = inEnumDecl;
+        scope(exit) inEnumDecl = oldInEnumDecl;
+        inEnumDecl = d;
         buf.writestring("enum ");
         if (d.ident)
         {
@@ -2118,6 +2122,21 @@ public:
             case Tenum:
                 {
                     TypeEnum te = cast(TypeEnum)t;
+                    if (hgs.fullDump)
+                    {
+                        auto sym = te.sym;
+                        if (inEnumDecl != sym)  foreach(i;0 .. sym.members.dim)
+                        {
+                            EnumMember em = cast(EnumMember) (*sym.members)[i];
+                            if (em.value.toInteger == v)
+                            {
+                                buf.printf("%s.%s", sym.toChars(), em.ident.toChars());
+                                return ;
+                            }
+                        }
+                        //assert(0, "We could not find the EmumMember");// for some reason it won't append char* ~ e.toChars() ~ " in " ~ sym.toChars() );
+                    }
+
                     buf.printf("cast(%s)", te.sym.toChars());
                     t = te.sym.memtype;
                     goto L1;
