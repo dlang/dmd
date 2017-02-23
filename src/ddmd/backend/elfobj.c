@@ -1714,8 +1714,8 @@ STATIC void setup_comdat(Symbol *s)
         if (I64)
             align = 16;
         s->Sfl = FLdata;
-        //prefix = ".gnu.linkonce.d.";
-        prefix = ".data.";
+        prefix = ".gnu.linkonce.d.";
+        //prefix = ".data.";
         type = SHT_PROGBITS;
         flags = SHF_ALLOC|SHF_WRITE;
     }
