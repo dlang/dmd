@@ -641,7 +641,7 @@ extern (C++) abstract class Type : RootObject
     // kludge for template.isType()
     override final DYNCAST dyncast() const
     {
-        return DYNCAST_TYPE;
+        return DYNCAST.type;
     }
 
     /*******************************
@@ -4735,7 +4735,7 @@ extern (C++) final class TypeSArray : TypeArray
             }
 
             RootObject o = (*tup.objects)[cast(size_t)d];
-            if (o.dyncast() != DYNCAST_TYPE)
+            if (o.dyncast() != DYNCAST.type)
             {
                 error(loc, "%s is not a type", toChars());
                 return Type.terror;
@@ -4877,12 +4877,12 @@ extern (C++) final class TypeSArray : TypeArray
                 }
 
                 RootObject o = (*tup.objects)[cast(size_t)d];
-                if (o.dyncast() == DYNCAST_DSYMBOL)
+                if (o.dyncast() == DYNCAST.dsymbol)
                 {
                     *ps = cast(Dsymbol)o;
                     return;
                 }
-                if (o.dyncast() == DYNCAST_EXPRESSION)
+                if (o.dyncast() == DYNCAST.expression)
                 {
                     Expression e = cast(Expression)o;
                     if (e.op == TOKdsymbol)
@@ -4897,7 +4897,7 @@ extern (C++) final class TypeSArray : TypeArray
                     }
                     return;
                 }
-                if (o.dyncast() == DYNCAST_TYPE)
+                if (o.dyncast() == DYNCAST.type)
                 {
                     *ps = null;
                     *pt = (cast(Type)o).addMod(this.mod);
@@ -7313,19 +7313,19 @@ extern (C++) abstract class TypeQualified : Type
         for (size_t i = 0; i < idents.dim; i++)
         {
             RootObject id = t.idents[i];
-            if (id.dyncast() == DYNCAST_DSYMBOL)
+            if (id.dyncast() == DYNCAST.dsymbol)
             {
                 TemplateInstance ti = cast(TemplateInstance)id;
                 ti = cast(TemplateInstance)ti.syntaxCopy(null);
                 id = ti;
             }
-            else if (id.dyncast() == DYNCAST_EXPRESSION)
+            else if (id.dyncast() == DYNCAST.expression)
             {
                 Expression e = cast(Expression)id;
                 e = e.syntaxCopy();
                 id = e;
             }
-            else if (id.dyncast() == DYNCAST_TYPE)
+            else if (id.dyncast() == DYNCAST.type)
             {
                 Type tx = cast(Type)id;
                 tx = tx.syntaxCopy();
@@ -7432,24 +7432,24 @@ extern (C++) abstract class TypeQualified : Type
             switch (id.dyncast())
             {
                 // ... '. ident'
-                case DYNCAST_IDENTIFIER:
+                case DYNCAST.identifier:
                     e = new DotIdExp(e.loc, e, cast(Identifier)id);
                     break;
 
                 // ... '. name!(tiargs)'
-                case DYNCAST_DSYMBOL:
+                case DYNCAST.dsymbol:
                     auto ti = (cast(Dsymbol)id).isTemplateInstance();
                     assert(ti);
                     e = new DotTemplateInstanceExp(e.loc, e, ti.name, ti.tiargs);
                     break;
 
                 // ... '[type]'
-                case DYNCAST_TYPE:          // Bugzilla 1215
+                case DYNCAST.type:          // Bugzilla 1215
                     e = new ArrayExp(loc, e, new TypeExp(loc, cast(Type)id));
                     break;
 
                 // ... '[expr]'
-                case DYNCAST_EXPRESSION:    // Bugzilla 1215
+                case DYNCAST.expression:    // Bugzilla 1215
                     e = new ArrayExp(loc, e, cast(Expression)id);
                     break;
 
@@ -7492,8 +7492,8 @@ extern (C++) abstract class TypeQualified : Type
             for (size_t i = 0; i < idents.dim; i++)
             {
                 RootObject id = idents[i];
-                if (id.dyncast() == DYNCAST_EXPRESSION ||
-                    id.dyncast() == DYNCAST_TYPE)
+                if (id.dyncast() == DYNCAST.expression ||
+                    id.dyncast() == DYNCAST.type)
                 {
                     Type tx;
                     Expression ex;
@@ -7559,7 +7559,7 @@ extern (C++) abstract class TypeQualified : Type
                     if (t)
                     {
                         sm = t.toDsymbol(sc);
-                        if (sm && id.dyncast() == DYNCAST_IDENTIFIER)
+                        if (sm && id.dyncast() == DYNCAST.identifier)
                         {
                             sm = sm.search(loc, cast(Identifier)id);
                             if (sm)
@@ -7581,14 +7581,14 @@ extern (C++) abstract class TypeQualified : Type
                     }
                     else
                     {
-                        if (id.dyncast() == DYNCAST_DSYMBOL)
+                        if (id.dyncast() == DYNCAST.dsymbol)
                         {
                             // searchX already handles errors for template instances
                             assert(global.errors);
                         }
                         else
                         {
-                            assert(id.dyncast() == DYNCAST_IDENTIFIER);
+                            assert(id.dyncast() == DYNCAST.identifier);
                             sm = s.search_correct(cast(Identifier)id);
                             if (sm)
                                 error(loc, "identifier '%s' of '%s' is not defined, did you mean %s '%s'?", id.toChars(), toChars(), sm.kind(), sm.toChars());
@@ -10130,7 +10130,7 @@ extern (C++) final class Parameter : RootObject
     // kludge for template.isType()
     override DYNCAST dyncast() const
     {
-        return DYNCAST_PARAMETER;
+        return DYNCAST.parameter;
     }
 
     void accept(Visitor v)

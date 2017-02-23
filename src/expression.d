@@ -2582,7 +2582,7 @@ extern (C++) abstract class Expression : RootObject
     // kludge for template.isExpression()
     override final DYNCAST dyncast() const
     {
-        return DYNCAST_EXPRESSION;
+        return DYNCAST.expression;
     }
 
     override final void print()
@@ -4424,7 +4424,7 @@ extern (C++) final class NullExp : Expression
 
     override bool equals(RootObject o)
     {
-        if (o && o.dyncast() == DYNCAST_EXPRESSION)
+        if (o && o.dyncast() == DYNCAST.expression)
         {
             Expression e = cast(Expression)o;
             if (e.op == TOKnull && type.equals(e.type))
@@ -4519,7 +4519,7 @@ extern (C++) final class StringExp : Expression
     override bool equals(RootObject o)
     {
         //printf("StringExp::equals('%s') %s\n", o.toChars(), toChars());
-        if (o && o.dyncast() == DYNCAST_EXPRESSION)
+        if (o && o.dyncast() == DYNCAST.expression)
         {
             Expression e = cast(Expression)o;
             if (e.op == TOKstring)
@@ -4957,13 +4957,13 @@ extern (C++) final class TupleExp : Expression
                 Expression e = new DsymbolExp(loc, s);
                 this.exps.push(e);
             }
-            else if (o.dyncast() == DYNCAST_EXPRESSION)
+            else if (o.dyncast() == DYNCAST.expression)
             {
                 auto e = (cast(Expression)o).copy();
                 e.loc = loc;    // Bugzilla 15669
                 this.exps.push(e);
             }
-            else if (o.dyncast() == DYNCAST_TYPE)
+            else if (o.dyncast() == DYNCAST.type)
             {
                 Type t = cast(Type)o;
                 Expression e = new TypeExp(loc, t);
@@ -5094,7 +5094,7 @@ extern (C++) final class ArrayLiteralExp : Expression
     {
         if (this == o)
             return true;
-        if (o && o.dyncast() == DYNCAST_EXPRESSION && (cast(Expression)o).op == TOKarrayliteral)
+        if (o && o.dyncast() == DYNCAST.expression && (cast(Expression)o).op == TOKarrayliteral)
         {
             ArrayLiteralExp ae = cast(ArrayLiteralExp)o;
             if (elements.dim != ae.elements.dim)
@@ -5300,7 +5300,7 @@ extern (C++) final class AssocArrayLiteralExp : Expression
     {
         if (this == o)
             return true;
-        if (o && o.dyncast() == DYNCAST_EXPRESSION && (cast(Expression)o).op == TOKassocarrayliteral)
+        if (o && o.dyncast() == DYNCAST.expression && (cast(Expression)o).op == TOKassocarrayliteral)
         {
             AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)o;
             if (keys.dim != ae.keys.dim)
@@ -5440,7 +5440,7 @@ extern (C++) final class StructLiteralExp : Expression
     {
         if (this == o)
             return true;
-        if (o && o.dyncast() == DYNCAST_EXPRESSION && (cast(Expression)o).op == TOKstructliteral)
+        if (o && o.dyncast() == DYNCAST.expression && (cast(Expression)o).op == TOKstructliteral)
         {
             StructLiteralExp se = cast(StructLiteralExp)o;
             if (!type.equals(se.type))
@@ -6728,7 +6728,7 @@ extern (C++) final class FuncExp : Expression
     {
         if (this == o)
             return true;
-        if (o.dyncast() != DYNCAST_EXPRESSION)
+        if (o.dyncast() != DYNCAST.expression)
             return false;
         if ((cast(Expression)o).op == TOKfunction)
         {
@@ -9017,7 +9017,7 @@ extern (C++) final class DotVarExp : UnaExp
             {
                 RootObject o = (*tup.objects)[i];
                 Expression e;
-                if (o.dyncast() == DYNCAST_EXPRESSION)
+                if (o.dyncast() == DYNCAST.expression)
                 {
                     e = cast(Expression)o;
                     if (e.op == TOKdsymbol)
@@ -9026,11 +9026,11 @@ extern (C++) final class DotVarExp : UnaExp
                         e = new DotVarExp(loc, ev, s.isDeclaration());
                     }
                 }
-                else if (o.dyncast() == DYNCAST_DSYMBOL)
+                else if (o.dyncast() == DYNCAST.dsymbol)
                 {
                     e = new DsymbolExp(loc, cast(Dsymbol)o);
                 }
-                else if (o.dyncast() == DYNCAST_TYPE)
+                else if (o.dyncast() == DYNCAST.type)
                 {
                     e = new TypeExp(loc, cast(Type)o);
                 }

@@ -116,7 +116,7 @@ public:
 
     override DYNCAST dyncast() const
     {
-        return DYNCAST_IDENTIFIER;
+        return DYNCAST.identifier;
     }
 
     extern (C++) static __gshared StringTable stringtable;

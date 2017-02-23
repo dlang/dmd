@@ -2098,12 +2098,12 @@ ILLEGAL_ADDRESS_ERROR:
         else
         {
             RootObject o = (*tup.objects)[index];
-            if (o.dyncast() == DYNCAST_DSYMBOL)
+            if (o.dyncast() == DYNCAST.dsymbol)
             {
                 o1.s = cast(Dsymbol)o;
                 return;
             }
-            else if (o.dyncast() == DYNCAST_EXPRESSION)
+            else if (o.dyncast() == DYNCAST.expression)
             {
                 Expression e = cast(Expression)o;
                 if (e.op == TOKvar)

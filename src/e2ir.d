@@ -5087,7 +5087,7 @@ elem *toElem(Expression e, IRState *irs)
             {
                 for (size_t i = 0; i < td.objects.dim; i++)
                 {   RootObject o = (*td.objects)[i];
-                    if (o.dyncast() == DYNCAST_EXPRESSION)
+                    if (o.dyncast() == DYNCAST.expression)
                     {   Expression eo = cast(Expression)o;
                         if (eo.op == TOKdsymbol)
                         {   DsymbolExp se = cast(DsymbolExp)eo;
