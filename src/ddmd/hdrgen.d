@@ -1458,10 +1458,10 @@ public:
         buf.writestring(ti.name.toChars());
         tiargsToBuffer(ti);
 
-        if (ti.aliasdecl)
+        if (hgs.fullDump)
         {
             buf.writenl();
-            if (hgs.fullDump)
+            if (ti.aliasdecl)
             {
                 ti.aliasdecl.accept(this);
             }
