@@ -491,8 +491,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 else if (global.params.symdebug)
                     toDebug(sd);
 
-                if (global.params.useTypeInfo && Type.dtypeinfo)
-                    genTypeInfo(sd.loc, sd.type, null);
+                //if (global.params.useTypeInfo && Type.dtypeinfo)
+                    //genTypeInfo(sd.loc, sd.type, null);
 
                 // Generate static initializer
                 auto sinit = toInitializer(sd);

@@ -160,6 +160,42 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     }
 
     /***************************************
+     * Compute the getRTInfo field,
+     * which means instantiating RTinfo!type for this struct.
+     */
+    final void setGetRTInfo(Scope* sc)
+    {
+        /* don't do it for unused deprecated types
+         * or error types
+         */
+        if (!getRTInfo && Type.rtinfo &&
+            (!isDeprecated() || global.params.useDeprecated != DiagnosticReporting.error) &&
+            (type && type.ty != Terror))
+        {
+            // Evaluate: RTinfo!type
+            auto tiargs = new Objects();
+            tiargs.push(type);
+            auto ti = new TemplateInstance(loc, Type.rtinfo, tiargs);
+
+            Scope* sc3 = ti.tempdecl._scope.startCTFE();
+            sc3.tinst = sc.tinst;
+            sc3.minst = sc.minst;
+            if (isDeprecated())
+                sc3.stc |= STC.deprecated_;
+
+            ti.dsymbolSemantic(sc3);
+            ti.semantic2(sc3);
+            ti.semantic3(sc3);
+            auto e = symbolToExp(ti.toAlias(), Loc.initial, sc3, false);
+
+            sc3.endCTFE();
+
+            e = e.ctfeInterpret();
+            getRTInfo = e;
+        }
+    }
+
+    /***************************************
      * Find all instance fields, then push them into `fields`.
      *
      * Runs semantic() for all instance field variables, but also

@@ -1469,31 +1469,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         sc2.pop();
 
-        // don't do it for unused deprecated types
-        // or error ypes
-        if (!ad.getRTInfo && Type.rtinfo && (!ad.isDeprecated() || global.params.useDeprecated != DiagnosticReporting.error) && (ad.type && ad.type.ty != Terror))
-        {
-            // Evaluate: RTinfo!type
-            auto tiargs = new Objects();
-            tiargs.push(ad.type);
-            auto ti = new TemplateInstance(ad.loc, Type.rtinfo, tiargs);
-
-            Scope* sc3 = ti.tempdecl._scope.startCTFE();
-            sc3.tinst = sc.tinst;
-            sc3.minst = sc.minst;
-            if (ad.isDeprecated())
-                sc3.stc |= STC.deprecated_;
-
-            ti.dsymbolSemantic(sc3);
-            ti.semantic2(sc3);
-            ti.semantic3(sc3);
-            auto e = symbolToExp(ti.toAlias(), Loc.initial, sc3, false);
-
-            sc3.endCTFE();
-
-            e = e.ctfeInterpret();
-            ad.getRTInfo = e;
-        }
+//      ad.setGetRTInfo(sc);
         if (sd)
             sd.semanticTypeInfoMembers();
         ad.semanticRun = PASS.semantic3done;
