@@ -37,6 +37,8 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 static  int addrparam;  /* see if any parameters get their address taken */
 
+void dt_writeToObj(Obj& objmod, dt_t *dt, int seg, targ_size_t& offset);
+
 #if SCPP
 
 /**********************************
@@ -338,79 +340,7 @@ void outdata(symbol *s)
 
     offset = s->Soffset;
 
-    for (dt_t *dt = dtstart; dt; dt = dt->DTnext)
-    {
-        switch (dt->dt)
-        {   case DT_abytes:
-                if (tyreg(dt->Dty))
-                    flags = CFoff;
-                else
-                    flags = CFoff | CFseg;
-                if (I64)
-                    flags |= CFoffset64;
-                if (tybasic(dt->Dty) == TYcptr)
-                    objmod->reftocodeseg(seg,offset,dt->DTabytes);
-                else
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-                    objmod->reftodatseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
-#else
-                /*else*/ if (dt->DTseg == DATA)
-                    objmod->reftodatseg(seg,offset,dt->DTabytes,DATA,flags);
-#if MARS
-                else if (dt->DTseg == CDATA)
-                    objmod->reftodatseg(seg,offset,dt->DTabytes,CDATA,flags);
-#endif
-                else
-                    objmod->reftofarseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
-#endif
-                offset += size(dt->Dty);
-                break;
-            case DT_ibytes:
-                objmod->bytes(seg,offset,dt->DTn,dt->DTdata);
-                offset += dt->DTn;
-                break;
-            case DT_nbytes:
-                objmod->bytes(seg,offset,dt->DTnbytes,dt->DTpbytes);
-                offset += dt->DTnbytes;
-                break;
-            case DT_azeros:
-                //printf("objmod->lidata(seg = %d, offset = %d, azeros = %d)\n", seg, offset, dt->DTazeros);
-                if (0 && seg == cseg)
-                {
-                    objmod->lidata(seg,offset,dt->DTazeros);
-                    offset += dt->DTazeros;
-                }
-                else
-                {
-                    SegData[seg]->SDoffset = offset;
-                    objmod->lidata(seg,offset,dt->DTazeros);
-                    offset = SegData[seg]->SDoffset;
-                }
-                break;
-            case DT_xoff:
-            {
-                symbol *sb = dt->DTsym;          // get external symbol pointer
-                a = dt->DToffset; // offset from it
-                if (tyreg(dt->Dty))
-                    flags = CFoff;
-                else
-                    flags = CFoff | CFseg;
-                if (I64 && tysize(dt->Dty) == 8)
-                    flags |= CFoffset64;
-                offset += objmod->reftoident(seg,offset,sb,a,flags);
-                break;
-            }
-            case DT_coff:
-                objmod->reftocodeseg(seg,offset,dt->DToffset);
-                offset += intsize;
-                break;
-            default:
-#ifdef DEBUG
-                dbg_printf("dt = %p, dt = %d\n",dt,dt->dt);
-#endif
-                assert(0);
-        }
-    }
+    dt_writeToObj(*objmod, dtstart, seg, offset);
     Offset(seg) = offset;
 #if SCPP
     out_extdef(s);
@@ -419,6 +349,85 @@ Lret:
     dt_free(dtstart);
 }
 
+/********************************************
+ * Write dt to Object file.
+ * Params:
+ *      objmod = reference to object file
+ *      dt = data to write
+ *      seg = segment to write it to
+ *      offset = starting offset in segment - will get updated to reflect ending offset
+ */
+
+void dt_writeToObj(Obj& objmod, dt_t *dt, int seg, targ_size_t& offset)
+{
+    for (; dt; dt = dt->DTnext)
+    {
+        switch (dt->dt)
+        {   case DT_abytes:
+            {
+                int flags;
+                if (tyreg(dt->Dty))
+                    flags = CFoff;
+                else
+                    flags = CFoff | CFseg;
+                if (I64)
+                    flags |= CFoffset64;
+                if (tybasic(dt->Dty) == TYcptr)
+                    objmod.reftocodeseg(seg,offset,dt->DTabytes);
+                else
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+                    objmod.reftodatseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
+#else
+                /*else*/ if (dt->DTseg == DATA)
+                    objmod.reftodatseg(seg,offset,dt->DTabytes,DATA,flags);
+#if MARS
+                else if (dt->DTseg == CDATA)
+                    objmod.reftodatseg(seg,offset,dt->DTabytes,CDATA,flags);
+#endif
+                else
+                    objmod.reftofarseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
+#endif
+                offset += size(dt->Dty);
+                break;
+            }
+            case DT_ibytes:
+                objmod.bytes(seg,offset,dt->DTn,dt->DTdata);
+                offset += dt->DTn;
+                break;
+            case DT_nbytes:
+                objmod.bytes(seg,offset,dt->DTnbytes,dt->DTpbytes);
+                offset += dt->DTnbytes;
+                break;
+            case DT_azeros:
+                //printf("objmod.lidata(seg = %d, offset = %d, azeros = %d)\n", seg, offset, dt->DTazeros);
+                SegData[seg]->SDoffset = offset;
+                objmod.lidata(seg,offset,dt->DTazeros);
+                offset = SegData[seg]->SDoffset;
+                break;
+            case DT_xoff:
+            {
+                Symbol *sb = dt->DTsym;          // get external symbol pointer
+                targ_size_t a = dt->DToffset;    // offset from it
+                int flags;
+                if (tyreg(dt->Dty))
+                    flags = CFoff;
+                else
+                    flags = CFoff | CFseg;
+                if (I64 && tysize(dt->Dty) == 8)
+                    flags |= CFoffset64;
+                offset += objmod.reftoident(seg,offset,sb,a,flags);
+                break;
+            }
+            case DT_coff:
+                objmod.reftocodeseg(seg,offset,dt->DToffset);
+                offset += intsize;
+                break;
+            default:
+                //printf("dt = %p, dt = %d\n",dt,dt->dt);
+                assert(0);
+        }
+    }
+}
 
 
 /******************************
