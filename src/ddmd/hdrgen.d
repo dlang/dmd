@@ -1457,6 +1457,15 @@ public:
     {
         buf.writestring(ti.name.toChars());
         tiargsToBuffer(ti);
+
+        if (ti.aliasdecl)
+        {
+            buf.writenl();
+            if (hgs.fullDump)
+            {
+                ti.aliasdecl.accept(this);
+            }
+        }
     }
 
     override void visit(TemplateMixin tm)
