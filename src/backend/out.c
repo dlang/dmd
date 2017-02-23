@@ -501,17 +501,17 @@ void outcommon(symbol *s,targ_size_t n)
 }
 
 /*************************************
- * Mark a symbol as going into a read-only segment.
+ * Mark a Symbol as going into a read-only segment.
  */
 
-void out_readonly(symbol *s)
+void out_readonly(Symbol *s)
 {
-    // The default is DATA
     if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
     {
         /* Cannot have pointers in CDATA when compiling PIC code, because
          * they require dynamic relocations of the read-only segment.
-         * Instead use the .data.rel.ro section. See Bugzilla 11171.
+         * Instead use the .data.rel.ro section.
+         * https://issues.dlang.org/show_bug.cgi?id=11171
          */
         if (config.flags3 & CFG3pic && dtpointers(s->Sdt))
             s->Sseg = CDATAREL;
@@ -520,7 +520,7 @@ void out_readonly(symbol *s)
     }
     else
     {
-        // Haven't really worked out where immutable read-only data can go.
+        s->Sseg = CDATA;
     }
 }
 
