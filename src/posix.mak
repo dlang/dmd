@@ -22,9 +22,13 @@ INSTALL_DIR=../../install
 SYSCONFDIR=/etc
 PGO_DIR=$(abspath pgo)
 
+DMD=dmd
+
 C=backend
 TK=tk
 ROOT=root
+
+GENERATED=../generated
 
 ifeq (osx,$(OS))
     export MACOSX_DEPLOYMENT_TARGET=10.7
@@ -133,7 +137,7 @@ endif
 
 OS_UPCASE := $(shell echo $(OS) | tr '[a-z]' '[A-Z]')
 
-MMD=-MMD -MF $(basename $@).deps
+MMD=-MMD -MF $(GENERATED)/$(notdir $(basename $@)).deps
 
 # Default compiler flags for all source files
 CXXFLAGS := $(WARNINGS) \
@@ -201,7 +205,7 @@ endif
 endif
 
 
-FRONT_SRCS=$(addsuffix .d,access aggregate aliasthis apply argtypes arrayop	\
+FRONT_SRCS=$(addsuffix .d,$(addprefix $(DMD)/,access aggregate aliasthis apply argtypes arrayop	\
 	arraytypes attrib builtin canthrow clone complex cond constfold		\
 	cppmangle ctfeexpr dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol	\
@@ -209,37 +213,36 @@ FRONT_SRCS=$(addsuffix .d,access aggregate aliasthis apply argtypes arrayop	\
 	globals hdrgen id identifier impcnvtab imphint init inline intrange	\
 	json lexer lib link mars mtype nogc nspace opover optimize parse sapply	\
 	sideeffect statement staticassert target tokens traits utf visitor	\
-	typinf utils  statement_rewrite_walker statementsem safe blockexit asttypename)
+	typinf utils  statement_rewrite_walker statementsem safe blockexit asttypename))
 
 ifeq ($(D_OBJC),1)
-	FRONT_SRCS += objc.d
+	FRONT_SRCS += $(DMD)/objc.d
 else
-	FRONT_SRCS += objc_stubs.d
+	FRONT_SRCS += $(DMD)/objc_stubs.d
 endif
 
-ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
+ROOT_SRCS = $(addsuffix .d,$(addprefix $(DMD)/$(ROOT)/,aav array ctfloat file \
 	filename man outbuffer port response rmem rootobject speller \
 	stringtable hash))
 
 GLUE_OBJS =
 
 ifeq (osx,$(OS))
-    FRONT_SRCS += libmach.d scanmach.d
+    FRONT_SRCS += $(DMD)/libmach.d $(DMD)/scanmach.d
 else
-    FRONT_SRCS += libelf.d scanelf.d
+    FRONT_SRCS += $(DMD)/libelf.d $(DMD)/scanelf.d
 endif
 
-GLUE_SRCS=$(addsuffix .d, irstate toctype glue gluelayer todt tocsym toir dmsc \
-	tocvdebug s2ir toobj e2ir eh iasm)
+GLUE_SRCS=$(addsuffix .d,$(addprefix $(DMD)/,irstate toctype glue gluelayer todt tocsym toir dmsc \
+	tocvdebug s2ir toobj e2ir eh iasm))
 
 ifeq ($(D_OBJC),1)
-	GLUE_SRCS += objc_glue.d
+	GLUE_SRCS += $(DMD)/objc_glue.d
 else
-	GLUE_SRCS += objc_glue_stubs.d
+	GLUE_SRCS += $(DMD)/objc_glue_stubs.d
 endif
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
-
 BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o gsroa.o var.o el.o \
 	glocal.o os.o nteh.o evalu8.o cgcs.o \
 	rtlsym.o cgelem.o cgen.o cgreg.o out.o \
@@ -260,7 +263,7 @@ endif
 
 SRC = win32.mak posix.mak osmodel.mak aggregate.h aliasthis.h arraytypes.h	\
 	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
-	enum.h errors.h expression.h globals.h hdrgen.h identifier.h idgen.d	\
+	enum.h errors.h expression.h globals.h hdrgen.h identifier.h	\
 	import.h init.h intrange.h json.h lexer.h \
 	mars.h module.h mtype.h nspace.h objc.h                         \
 	scope.h statement.h staticassert.h target.h template.h tokens.h	\
@@ -276,11 +279,11 @@ GLUE_SRC = \
 	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
 	tk.c gluestub.d objc_glue.d
 
-BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
+BACK_HDRS=$(addprefix $(DMD)/,$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
 	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d $C/iasm.d \
-	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/md5.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d
+	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/md5.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d)
 
-TK_HDRS= $(TK)/dlist.d
+TK_HDRS= $(DMD)/$(TK)/dlist.d
 
 BACK_SRC = \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
@@ -314,32 +317,33 @@ STRING_IMPORT_FILES = verstr.h SYSCONFDIR.imp ../res/default_ddoc_theme.ddoc
 
 DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
-all: dmd
+all: $(GENERATED)/dmd
 
 auto-tester-build: dmd checkwhitespace dmd_frontend
 .PHONY: auto-tester-build
 
 glue.a: $(GLUE_OBJS)
-	$(AR) rcs glue.a $(GLUE_OBJS)
+	$(AR) rcs $@ $(GLUE_OBJS)
 
-backend.a: $(BACK_OBJS)
-	$(AR) rcs backend.a $(BACK_OBJS)
+$(GENERATED)/backend.a: $(BACK_OBJS)
+	$(AR) rcs $@ $(addprefix $(GENERATED)/,$(BACK_OBJS))
 
 dmd_frontend: $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.o $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
 ifdef ENABLE_LTO
-dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o $(GLUE_OBJS) $(BACK_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+$(GENERATED)/dmd: $(DMD_SRCS) $(ROOT_SRCS) $(GENERATED)/newdelete.o $(GLUE_OBJS) $(BACK_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 else
-dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o backend.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+$(GENERATED)/dmd: $(DMD_SRCS) $(ROOT_SRCS) $(GENERATED)/newdelete.o $(GENERATED)/backend.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 endif
 
 clean:
-	rm -f newdelete.o $(GLUE_OBJS) $(BACK_OBJS) dmd optab.o id.o	\
+	rm -f newdelete.o $(GLUE_OBJS) $(BACK_OBJS) optab.o id.o	\
 		idgen $(idgen_output) optabgen $(optabgen_output)	\
 		verstr.h SYSCONFDIR.imp core *.cov *.deps *.gcda *.gcno *.a *.lst
+	rm -f $(GENERATED)/*
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
 ######## Download and install the last dmd buildable without dmd
@@ -381,10 +385,10 @@ $(optabgen_output) : optabgen
 
 ######## idgen generates some source
 
-idgen_output = id.h id.d
+idgen_output = id.h $(DMD)/id.d
 $(idgen_output) : idgen
 
-idgen: idgen.d $(HOST_DMD_PATH)
+idgen: $(DMD)/idgen.d $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) $<
 	./idgen
 
@@ -440,17 +444,17 @@ var.o: optab.c tytab.c
 # matching below.
 vpath %.c $(C)
 
-$(BACK_OBJS): %.o: %.c posix.mak
+$(BACK_OBJS): %.o:  %.c posix.mak
 	@echo "  (CC)  BACK_OBJS  $<"
-	$(CXX) -c $(CXXFLAGS) $(BACK_FLAGS) $(MMD) $<
+	$(CXX) -c -o$(GENERATED)/$@ $(CXXFLAGS) $(BACK_FLAGS) $(MMD) $<
 
 $(GLUE_OBJS): %.o: %.c posix.mak
 	@echo "  (CC)  GLUE_OBJS  $<"
 	$(CXX) -c $(CXXFLAGS) $(GLUE_FLAGS) $(MMD) $<
 
-newdelete.o: %.o: $(ROOT)/%.c posix.mak
-	@echo "  (CC)  ROOT_OBJS  $<"
-	$(CXX) -c $(CXXFLAGS) $(ROOT_FLAGS) $(MMD) $<
+$(GENERATED)/newdelete.o: %.o: $(ROOT)/newdelete.c posix.mak
+	@echo "  (CC)  ROOT_OBJS  $< $@"
+	$(CXX) -c -o$@ $(CXXFLAGS) $(ROOT_FLAGS) $(MMD) $<
 
 
 -include $(DEPS)

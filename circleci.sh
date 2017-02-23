@@ -89,7 +89,7 @@ coverage() {
 
     # rebuild dmd with coverage enabled
     # use the just build dmd as host compiler this time
-    mv src/dmd src/host_dmd
+    mv generated/dmd src/host_dmd
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=./host_dmd clean
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=./host_dmd dmd.conf
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=./host_dmd ENABLE_COVERAGE=1
