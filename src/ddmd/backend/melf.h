@@ -406,6 +406,9 @@ typedef struct {
     Elf64_Sxword r_addend;
 } Elf64_Rela;
 
-#define GRP_COMDAT 1
+// Section Group Flags
+#define GRP_COMDAT   1
+#define GRP_MASKOS   0x0ff00000
+#define GRP_MASKPROC 0xf0000000
 
 #endif

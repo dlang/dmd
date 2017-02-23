@@ -1072,15 +1072,32 @@ void test15579()
     assert(d.y == 8);
 
     printf("d2 = %p\n", d);
-    assert((cast(Interface)d).MethodD() == 3);
+
+    /* Casting to an interface involves thunks in the vtbl[].
+     * g++ puts the thunks for MethodD in the same COMDAT as MethodD.
+     * But D doesn't, so when the linker "picks one" of the D generated MethodD
+     * or the g++ generated MethodD, it may wind up with a messed up thunk,
+     * resulting in a seg fault. The solution is to not expect objects of the same
+     * type to be constructed on both sides of the D/C++ divide if the same member
+     * function (in this case, MethodD) is also defined on both sides.
+     */
+    version (Windows)
+    {
+        assert((cast(Interface)d).MethodD() == 3);
+    }
     assert((cast(Interface)d).MethodCPP() == 30);
+
     assert(d.Method() == 6);
 
     printf("d = %p, i = %p\n", d, cast(Interface)d);
-    Interface i = cppfooi(d);
-    printf("i2: %p\n", i);
-    assert(i.MethodD() == 3);
-    assert(i.MethodCPP() == 30);
+    version (Windows)
+    {
+        Interface i = cppfooi(d);
+        printf("i2: %p\n", i);
+        assert(i.MethodD() == 3);
+        assert(i.MethodCPP() == 30);
+    }
+    printf("test15579() done\n");
 }
 
 /****************************************/
