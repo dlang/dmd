@@ -38,6 +38,11 @@ extern (C++) abstract class Condition : RootObject
     // 2: do not include
     int inc;
 
+    override final DYNCAST dyncast() const
+    {
+        return DYNCAST.condition;
+    }
+
     final extern (D) this(Loc loc)
     {
         this.loc = loc;

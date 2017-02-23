@@ -27,6 +27,7 @@ enum DYNCAST : int
     tuple,
     parameter,
     statement,
+    condition,
 }
 
 alias DYNCAST_OBJECT = DYNCAST.object;
