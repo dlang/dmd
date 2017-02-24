@@ -530,7 +530,7 @@ extern (C++) class Dsymbol : RootObject
 
         // Allocate temporary array comp[]
         alias T = const(char)[];
-        auto compptr = cast(T*)malloc(complength * T.sizeof);
+        auto compptr = cast(T*)Mem.xmalloc(complength * T.sizeof);
         if (!compptr)
             Mem.error();
         auto comp = compptr[0 .. complength];

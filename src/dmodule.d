@@ -31,6 +31,7 @@ import ddmd.root.file;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
 import ddmd.root.port;
+import ddmd.root.rmem;
 import ddmd.target;
 import ddmd.visitor;
 
@@ -1250,7 +1251,7 @@ extern (C++) final class Module : Package
             }
             else
             {
-                todo = cast(Dsymbol*)malloc(len * Dsymbol.sizeof);
+                todo = cast(Dsymbol*)Mem.xmalloc(len * Dsymbol.sizeof);
                 assert(todo);
                 todoalloc = todo;
             }

@@ -2791,10 +2791,10 @@ extern (C++) abstract class Type : RootObject
 
         const slice = buf.peekSlice();
 
-        // Allocate buffer on stack, fail over to using malloc()
+        // Allocate buffer on stack, fail over to using xmalloc()
         char[128] namebuf;
         const namelen = 19 + size_t.sizeof * 3 + slice.length + 1;
-        auto name = namelen <= namebuf.length ? namebuf.ptr : cast(char*)malloc(namelen);
+        auto name = namelen <= namebuf.length ? namebuf.ptr : cast(char*)Mem.xmalloc(namelen);
         assert(name);
 
         const length = sprintf(name, "_D%lluTypeInfo_%.*s6__initZ",
