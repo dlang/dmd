@@ -571,10 +571,10 @@ struct BCGen
     {
         assert(result.vType == BCValueType.Unknown
             || isStackValueOrParameter(result),
-            "The result for this must be Empty or a StackValue");
+            "The result for this must be Empty or a StackValue not: " ~ to!string(result.vType));
         emitArithInstruction(LongInst.Lt, lhs, rhs);
 
-        if (result.vType == BCValueType.StackValue)
+        if (isStackValueOrParameter(result))
         {
             emitFlg(result);
         }
@@ -584,10 +584,10 @@ struct BCGen
     {
         assert(result.vType == BCValueType.Unknown
             || isStackValueOrParameter(result),
-            "The result for this must be Empty or a StackValue");
+            "The result for this must be Empty or a StackValue not: " ~ to!string(result.vType));
         emitArithInstruction(LongInst.Le, lhs, rhs);
 
-        if (result.vType == BCValueType.StackValue)
+        if (isStackValueOrParameter(result))
         {
             emitFlg(result);
         }
@@ -597,9 +597,10 @@ struct BCGen
     {
         assert(result.vType == BCValueType.Unknown
             || isStackValueOrParameter(result),
-            "The result for this must be Empty or a StackValue");
+            "The result for this must be Empty or a StackValue not: " ~ to!string(result.vType));
         emitArithInstruction(LongInst.Gt, lhs, rhs);
-        if (result.vType == BCValueType.StackValue)
+
+        if (isStackValueOrParameter(result))
         {
             emitFlg(result);
         }
@@ -609,9 +610,10 @@ struct BCGen
     {
         assert(result.vType == BCValueType.Unknown
             || isStackValueOrParameter(result),
-            "The result for this must be Empty or a StackValue");
+            "The result for this must be Empty or a StackValue not " ~ to!string(result.vType) );
         emitArithInstruction(LongInst.Ge, lhs, rhs);
-        if (result.vType == BCValueType.StackValue)
+
+        if (isStackValueOrParameter(result))
         {
             emitFlg(result);
         }
@@ -624,7 +626,7 @@ struct BCGen
             "The result for this must be Empty or a StackValue not " ~ to!string(result.vType) );
         emitArithInstruction(LongInst.Eq, lhs, rhs);
 
-        if (result.vType == BCValueType.StackValue)
+        if (isStackValueOrParameter(result))
         {
             emitFlg(result);
         }
@@ -634,10 +636,10 @@ struct BCGen
     {
         assert(result.vType == BCValueType.Unknown
             || isStackValueOrParameter(result),
-            "The result for this must be Empty or a StackValue");
+            "The result for this must be Empty or a StackValue not: " ~ to!string(result.vType));
         emitArithInstruction(LongInst.Neq, lhs, rhs);
 
-        if (result.vType == BCValueType.StackValue)
+        if (isStackValueOrParameter(result))
         {
             emitFlg(result);
         }
@@ -859,7 +861,7 @@ struct BCGen
     {
         assert(result.vType == BCValueType.Unknown
             || result.vType == BCValueType.StackValue,
-            "The result for this must be Empty or a StackValue");
+            "The result for this must be Empty or a StackValue not: " ~ to!string(result.vType));
         if (lhs.vType == BCValueType.Immediate)
         {
             lhs = pushOntoStack(lhs);
@@ -875,7 +877,7 @@ struct BCGen
 
         emitLongInst(LongInst64(LongInst.StrEq, lhs.stackAddr, rhs.stackAddr, false));
 
-        if (result.vType == BCValueType.StackValue)
+        if (isStackValueOrParameter(result))
         {
             emitFlg(result);
         }
