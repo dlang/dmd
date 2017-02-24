@@ -586,7 +586,7 @@ extern (C++) final class EnumMember : VarDeclaration
         if (value)
         {
             Expression e = value;
-            assert(e.dyncast() == DYNCAST_EXPRESSION);
+            assert(e.dyncast() == DYNCAST.expression);
             e = e.semantic(sc);
             e = resolveProperties(sc, e);
             e = e.ctfeInterpret();

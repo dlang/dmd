@@ -393,7 +393,7 @@ extern (C++) final class TupleDeclaration : Declaration
             for (size_t i = 0; i < objects.dim; i++)
             {
                 RootObject o = (*objects)[i];
-                if (o.dyncast() != DYNCAST_TYPE)
+                if (o.dyncast() != DYNCAST.type)
                 {
                     //printf("\tnot[%d], %p, %d\n", i, o, o.dyncast());
                     return null;
@@ -456,7 +456,7 @@ extern (C++) final class TupleDeclaration : Declaration
         for (size_t i = 0; i < objects.dim; i++)
         {
             RootObject o = (*objects)[i];
-            if (o.dyncast() == DYNCAST_EXPRESSION)
+            if (o.dyncast() == DYNCAST.expression)
             {
                 Expression e = cast(Expression)o;
                 if (e.op == TOKdsymbol)
@@ -1857,7 +1857,7 @@ extern (C++) class VarDeclaration : Declaration
             for (size_t i = 0; i < v2.objects.dim; i++)
             {
                 RootObject o = (*v2.objects)[i];
-                assert(o.dyncast() == DYNCAST_EXPRESSION);
+                assert(o.dyncast() == DYNCAST.expression);
                 Expression e = cast(Expression)o;
                 assert(e.op == TOKdsymbol);
                 DsymbolExp se = cast(DsymbolExp)e;

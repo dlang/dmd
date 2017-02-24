@@ -45,22 +45,22 @@ string astTypeName(RootObject node)
 {
     final switch (node.dyncast())
     {
-        case DYNCAST_OBJECT:
+        case DYNCAST.object:
             return "RootObject";
-        case DYNCAST_IDENTIFIER:
+        case DYNCAST.identifier:
             return "Identifier";
 
-        case DYNCAST_EXPRESSION:
+        case DYNCAST.expression:
             return astTypeName(cast(Expression) node);
-        case DYNCAST_DSYMBOL:
+        case DYNCAST.dsymbol:
             return astTypeName(cast(Dsymbol) node);
-        case DYNCAST_TYPE:
+        case DYNCAST.type:
             return astTypeName(cast(Type) node);
-        case DYNCAST_TUPLE:
+        case DYNCAST.tuple:
             return astTypeName(cast(Tuple) node);
-        case DYNCAST_PARAMETER:
+        case DYNCAST.parameter:
             return astTypeName(cast(Parameter) node);
-        case DYNCAST_STATEMENT:
+        case DYNCAST.statement:
             return astTypeName(cast(Statement) node);
     }
 }

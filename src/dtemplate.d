@@ -53,7 +53,7 @@ enum IDX_NOTFOUND = 0x12345678;
 extern (C++) Expression isExpression(RootObject o)
 {
     //return dynamic_cast<Expression *>(o);
-    if (!o || o.dyncast() != DYNCAST_EXPRESSION)
+    if (!o || o.dyncast() != DYNCAST.expression)
         return null;
     return cast(Expression)o;
 }
@@ -61,7 +61,7 @@ extern (C++) Expression isExpression(RootObject o)
 extern (C++) Dsymbol isDsymbol(RootObject o)
 {
     //return dynamic_cast<Dsymbol *>(o);
-    if (!o || o.dyncast() != DYNCAST_DSYMBOL)
+    if (!o || o.dyncast() != DYNCAST.dsymbol)
         return null;
     return cast(Dsymbol)o;
 }
@@ -69,7 +69,7 @@ extern (C++) Dsymbol isDsymbol(RootObject o)
 extern (C++) Type isType(RootObject o)
 {
     //return dynamic_cast<Type *>(o);
-    if (!o || o.dyncast() != DYNCAST_TYPE)
+    if (!o || o.dyncast() != DYNCAST.type)
         return null;
     return cast(Type)o;
 }
@@ -77,7 +77,7 @@ extern (C++) Type isType(RootObject o)
 extern (C++) Tuple isTuple(RootObject o)
 {
     //return dynamic_cast<Tuple *>(o);
-    if (!o || o.dyncast() != DYNCAST_TUPLE)
+    if (!o || o.dyncast() != DYNCAST.tuple)
         return null;
     return cast(Tuple)o;
 }
@@ -85,7 +85,7 @@ extern (C++) Tuple isTuple(RootObject o)
 extern (C++) Parameter isParameter(RootObject o)
 {
     //return dynamic_cast<Parameter *>(o);
-    if (!o || o.dyncast() != DYNCAST_PARAMETER)
+    if (!o || o.dyncast() != DYNCAST.parameter)
         return null;
     return cast(Parameter)o;
 }
@@ -466,7 +466,7 @@ extern (C++) final class Tuple : RootObject
     // kludge for template.isType()
     override DYNCAST dyncast() const
     {
-        return DYNCAST_TUPLE;
+        return DYNCAST.tuple;
     }
 
     override const(char)* toChars()
@@ -3334,7 +3334,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     for (size_t j = tident.idents.dim; j-- > 0;)
                     {
                         RootObject id = tident.idents[j];
-                        if (id.dyncast() == DYNCAST_IDENTIFIER)
+                        if (id.dyncast() == DYNCAST.identifier)
                         {
                             if (!s || !s.parent)
                                 goto Lnomatch;
@@ -4113,7 +4113,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 if (tpi.idents.dim)
                 {
                     RootObject id = tpi.idents[tpi.idents.dim - 1];
-                    if (id.dyncast() == DYNCAST_IDENTIFIER && t.sym.ident.equals(cast(Identifier)id))
+                    if (id.dyncast() == DYNCAST.identifier && t.sym.ident.equals(cast(Identifier)id))
                     {
                         Type tparent = t.sym.parent.getType();
                         if (tparent)
@@ -4253,7 +4253,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 if (tpi.idents.dim)
                 {
                     RootObject id = tpi.idents[tpi.idents.dim - 1];
-                    if (id.dyncast() == DYNCAST_IDENTIFIER && t.sym.ident.equals(cast(Identifier)id))
+                    if (id.dyncast() == DYNCAST.identifier && t.sym.ident.equals(cast(Identifier)id))
                     {
                         Type tparent = t.sym.parent.getType();
                         if (tparent)
