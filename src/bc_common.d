@@ -81,10 +81,6 @@ enum BCTypeEnum : ubyte
     Null,
     Void,
 
-    c8,
-    c16,
-    c32,
-    Char = c32,
     /// signed by default
     i8,
     /// DITTO
@@ -93,6 +89,11 @@ enum BCTypeEnum : ubyte
     i32,
     /// DITTO
     i64,
+
+    c8,
+    c16,
+    c32,
+    Char = c32,
 
     u8,
     u16,
@@ -273,12 +274,10 @@ BCValue imm32(uint value) pure @trusted
     return ret;
 }
 
-BCValue i32(inout BCValue val) pure @trusted
+BCValue i32(BCValue val) pure @safe
 {
-    BCValue result = void;
-    result = val;
-    result.type.type = BCTypeEnum.i32;
-    return result;
+    val.type.type = BCTypeEnum.i32;
+    return val;
 }
 
 
