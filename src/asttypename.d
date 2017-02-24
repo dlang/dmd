@@ -62,6 +62,8 @@ string astTypeName(RootObject node)
             return astTypeName(cast(Parameter) node);
         case DYNCAST.statement:
             return astTypeName(cast(Statement) node);
+        case DYNCAST.condition:
+            return astTypeName(cast(Condition) node);
     }
 }
 
