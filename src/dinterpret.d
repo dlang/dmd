@@ -7,6 +7,7 @@
 // http://www.boost.org/LICENSE_1_0.txt
 
 module ddmd.dinterpret;
+version = WithStack;
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -795,6 +796,14 @@ extern (C++) Expression ctfeInterpretForPragmaMsg(Expression e)
  */
 extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expressions* arguments, Expression thisarg)
 {
+    version(WithStack) {
+        import ddmd.root.rmem : beginStack, endStack;
+        auto stack = beginStack();
+        scope(exit) {
+            endStack(stack);
+        }
+    }
+
     debug (LOG)
     {
         printf("\n********\n%s FuncDeclaration::interpret(istate = %p) %s\n", fd.loc.toChars(), istate, fd.toChars());
@@ -981,6 +990,7 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
         CtfeStatus.maxCallDepth = CtfeStatus.callDepth;
 
     Expression e = null;
+
     while (1)
     {
         if (CtfeStatus.callDepth > CTFE_RECURSION_LIMIT)
@@ -1041,8 +1051,12 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
         (cast(ThrownExceptionExp)e).generateUncaughtError();
         e = CTFEExp.cantexp;
     }
+    version(WithStack) {
+        return e.syntaxCopy;
+    } else {
+        return e;
+    }
 
-    return e;
 }
 
 extern (C++) final class Interpreter : Visitor
