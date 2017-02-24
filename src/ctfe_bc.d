@@ -3643,19 +3643,13 @@ static if (is(BCGen))
         else if (lhs.type.type == BCTypeEnum.i64)
         {
             Set(lhs, rhs);
+            retval = lhs;
+            return ;
         }
         else // we are dealing with a struct (hopefully)
         {
             assert(lhs.type.type == BCTypeEnum.Struct, to!string(lhs.type.type));
 
-        }
-
-        // exit if we could not gen rhs
-        //FIXME that should never happen
-        if (!rhs)
-        {
-            bailout("ConstructExp: could not gen rhs");
-            return;
         }
         Set(lhs.i32, rhs.i32);
         retval = lhs;

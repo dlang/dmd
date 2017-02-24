@@ -273,6 +273,13 @@ BCValue imm32(uint value) pure @trusted
     return ret;
 }
 
+BCValue i32(BCValue val) pure @safe
+{
+    val.type.type = BCTypeEnum.i32;
+    return val;
+}
+
+
 struct Imm64
 {
     ulong imm64;
@@ -439,14 +446,6 @@ struct BCValue
         }
 
         return false;
-    }
-
-    BCValue i32() const pure
-    {
-        BCValue result;
-        result = this;
-        result.type.type = BCTypeEnum.i32;
-        return result;
     }
 
     this(const Imm32 imm32) pure
