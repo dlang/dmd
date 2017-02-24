@@ -709,6 +709,12 @@ extern (C++) void ctfeCompile(FuncDeclaration fd)
  */
 extern (C++) Expression ctfeInterpret(Expression e)
 {
+    ++global.ctfeInProgress;
+    scope (exit)
+    {
+        --global.ctfeInProgress;
+    }
+
     if (e.op == TOKerror)
         return e;
     assert(e.type); // https://issues.dlang.org/show_bug.cgi?id=14642

@@ -197,6 +197,7 @@ struct Global
     const char *json_ext;       // for JSON files
     const char *map_ext;        // for .map files
     bool run_noext;             // allow -run sources without extensions.
+    short ctfeInProgress;       /// non-zero means we are doing ctfe
 
     const char *copyright;
     const char *written;
