@@ -169,7 +169,6 @@ Where:
   -transition=?    list all language changes
   -unittest        compile in unit tests
   -v               verbose
-  -vcg-ast         generates .d.cg file with the ast right before obj-file generation
   -vcolumns        print character (column) numbers in diagnostics
   -verrors=<num>   limit the number of error messages (0 means unlimited)
   -verrors=spec    show errors from speculative compiles such as __traits(compiles,...)
@@ -1578,10 +1577,10 @@ Language changes listed by -transition=id:
             gendocfile(m);
         }
     }
-    if(global.params.vcg_ast)
+    if (global.params.vcg_ast)
     {
         import ddmd.hdrgen;
-        foreach(mod;modules)
+        foreach (mod; modules)
         {
             auto buf = new OutBuffer;
             buf.doindent = 1;
