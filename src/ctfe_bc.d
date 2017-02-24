@@ -2280,7 +2280,7 @@ static if (is(BCGen))
         {
             auto v = getVariable(vd);
             //retval = BCValue(v.stackAddr
-  
+
             if (v)
             {
                 _sharedCtfeState.pointerTypes[_sharedCtfeState.pointerCount++] = BCPointer(v.type, 1);
@@ -2303,7 +2303,7 @@ static if (is(BCGen))
             {
                 bailout("no valid variable for " ~ se.toString);
             }
-  
+
         }
         else if (fd)
         {
@@ -4536,7 +4536,7 @@ static if (is(BCGen))
             // e.g. cast(uint[])uint[10]
             retval.type = toType;
         }
-        /*else if (fromType.type == BCTypeEnum.String 
+        /*else if (fromType.type == BCTypeEnum.String
                 && toType.type == BCTypeEnum.Slice && toType.typeIndex
                 && _sharedCtfeState.sliceTypes[toType.typeIndex - 1].elementType.type
                 == BCTypeEnum.i32)
@@ -4545,7 +4545,7 @@ static if (is(BCGen))
             // for now make an i8 slice
             _sharedCtfeState.sliceTypes[_sharedCtfeState.sliceCount++] = BCSlice(BCType(BCTypeEnum.i8));
             retval.type = BCType(BCTypeEnum.Slice, _sharedCtfeState.sliceCount);
-            import std.stdio; 
+            import std.stdio;
             writeln("created sliceType: ", _sharedCtfeState.sliceCount);
             //retval.type = toType;
         }*/

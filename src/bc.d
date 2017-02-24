@@ -932,7 +932,7 @@ struct BCGen
         //removeTemporary(tmpPtr);
 
     }
-    
+
     void Cat(BCValue result, BCValue lhs, BCValue rhs, const uint size)
     {
         import ddmd.ctfe.bc_macro;
