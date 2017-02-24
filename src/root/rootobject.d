@@ -34,8 +34,11 @@ enum DYNCAST : int
 
 extern (C++) class RootObject
 {
+    void* annotationPtr;
+
     this()
     {
+        annotationPtr = null;
     }
 
     bool equals(RootObject o)

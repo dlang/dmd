@@ -40,7 +40,9 @@ enum DYNCAST
 class RootObject
 {
 public:
-    RootObject() { }
+    RootObject() { annotationPtr = NULL; }
+
+    void* annotationPtr;
 
     virtual bool equals(RootObject *o);
 
