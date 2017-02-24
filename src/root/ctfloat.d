@@ -59,6 +59,16 @@ extern (C++) struct CTFloat
             assert(0);
     }
 
+    //only define pow if we can import phobos
+    static if (__traits(compiles, () {import std.math : pow; return pow(1.0,1.0);}))
+    {
+        __gshared static immutable bool pow_supported = true;
+        static real_t pow(real_t base, real exp) {import std.math : pow; return pow(base, exp); }
+    }
+    else
+    {
+        __gshared static immutable bool pow_supported = false;
+    }
     static real_t sin(real_t x) { return core.math.sin(x); }
     static real_t cos(real_t x) { return core.math.cos(x); }
     static real_t tan(real_t x) { return core.stdc.math.tanl(x); }
