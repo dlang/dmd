@@ -108,6 +108,7 @@ Where:
   -allinst         generate code for all template instantiations
   -betterC         omit generating some runtime information and helper functions
   -boundscheck=[on|safeonly|off]   bounds checks on, in @safe only, or off
+  -bc-ctfe         use bytecode ctfe engine (no op)
   -c               do not link
   -color           turn colored console output on
   -color=[on|off]  force colored console output on or off
@@ -380,6 +381,8 @@ private int tryMain(size_t argc, const(char)** argv)
         {
             if (strcmp(p + 1, "allinst") == 0)
                 global.params.allInst = true;
+            if (strcmp(p + 1, "bc-ctfe") == 0)
+                global.params.bc_ctfe = true;
             else if (strcmp(p + 1, "de") == 0)
                 global.params.useDeprecated = 0;
             else if (strcmp(p + 1, "d") == 0)
