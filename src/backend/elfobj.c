@@ -9,7 +9,10 @@
  */
 
 
-// Output to ELF object files
+/****
+ * Output to ELF object files
+ * http://www.sco.com/developers/gabi/2003-12-17/ch4.sheader.html
+ */
 
 #if SCPP || MARS
 #include        <stdio.h>
@@ -687,7 +690,7 @@ int Obj::string_literal_segment(unsigned sz)
     static const char name[3][4] = { "1.1", "2.2", "4.4" };
     const int i = (sz == 4) ? 2 : sz - 1;
     const IDXSEC seg =
-        ElfObj::getsegment(".rodata.str", name[i], SHT_PROGBITS, SHF_ALLOC, sz);
+        ElfObj::getsegment(".rodata.str", name[i], SHT_PROGBITS, SHF_ALLOC | SHF_MERGE | SHF_STRINGS, sz);
     return seg;
 }
 
