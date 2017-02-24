@@ -505,3 +505,10 @@ class Foo2A {
     }
 
 }
+
+// bugzilla 15676
+struct Foo3A(T)
+{
+    @disable this(this);
+    @disable this();
+}

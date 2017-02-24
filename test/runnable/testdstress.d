@@ -649,7 +649,8 @@ void test30()
         // It will insert one more `delete m` for the scope destruction, and it will be
         // called during stack unwinding.
         // Instead use bare memory chunk on stack to construct dummy class instance.
-        void[__traits(classInstanceSize, C30)] payload = typeid(C30).init[];
+        void[__traits(classInstanceSize, C30)] payload =
+            typeid(C30).initializer[];
         C30 m = cast(C30)payload.ptr;
         m.__ctor();
 

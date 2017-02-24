@@ -66,6 +66,7 @@ module ddoc9155;
 import std.stdio;
 ----
 */
+
 /**
 	---
 	writefln(q"EOS

@@ -221,6 +221,9 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         if (v.isDataseg())
             continue;
 
+        if (v == va)
+            continue;
+
         Dsymbol p = v.toParent2();
 
         if (!(va && va.isScope()))
@@ -228,8 +231,19 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
         if (v.isScope())
         {
+            if (va && va.isScope() && va.storage_class & STCreturn && !(v.storage_class & STCreturn) &&
+                sc.func.setUnsafe())
+            {
+                if (!gag)
+                    error(ae.loc, "scope variable %s assigned to return scope %s", v.toChars(), va.toChars());
+                result = true;
+                continue;
+            }
+
             // If va's lifetime encloses v's, then error
-            if (va && va.enclosesLifetimeOf(v) && !(v.storage_class & STCparameter) && sc.func.setUnsafe())
+            if (va &&
+                (va.enclosesLifetimeOf(v) && !(v.storage_class & STCparameter) || va.storage_class & STCref) &&
+                sc.func.setUnsafe())
             {
                 if (!gag)
                     error(ae.loc, "scope variable %s assigned to %s with longer lifetime", v.toChars(), va.toChars());
@@ -242,6 +256,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                 if (!va.isScope() && inferScope)
                 {   //printf("inferring scope for %s\n", va.toChars());
                     va.storage_class |= STCscope;
+                    va.storage_class |= v.storage_class & STCreturn;
                 }
                 continue;
             }
@@ -291,7 +306,9 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         Dsymbol p = v.toParent2();
 
         // If va's lifetime encloses v's, then error
-        if (va && va.enclosesLifetimeOf(v) && !(v.storage_class & STCparameter) && sc.func.setUnsafe())
+        if (va &&
+            (va.enclosesLifetimeOf(v) && !(v.storage_class & STCparameter) || va.storage_class & STCref) &&
+            sc.func.setUnsafe())
         {
             if (!gag)
                 error(ae.loc, "address of variable %s assigned to %s with longer lifetime", v.toChars(), va.toChars());
@@ -526,7 +543,8 @@ private bool checkEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                  *   auto dg = () return { return &x; }
                  * Because dg.ptr points to x, this is returning dt.ptr+offset
                  */
-                sc.func.storage_class |= STCreturn;
+                if (global.params.vsafe)
+                    sc.func.storage_class |= STCreturn;
             }
 
         }

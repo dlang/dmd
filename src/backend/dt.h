@@ -56,7 +56,7 @@ public:
     void xoff(Symbol *s, unsigned offset, tym_t ty);
     dt_t *xoffpatch(Symbol *s, unsigned offset, tym_t ty);
     void xoff(Symbol *s, unsigned offset);
-    void dtoff(dt_t *dt, unsigned offset);
+    Symbol* dtoff(dt_t *dt, unsigned offset);
     void coff(unsigned offset);
     void cat(dt_t *dt);
     void cat(DtBuilder *dtb);

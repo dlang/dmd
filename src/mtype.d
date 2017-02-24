@@ -641,7 +641,7 @@ extern (C++) abstract class Type : RootObject
     // kludge for template.isType()
     override final DYNCAST dyncast() const
     {
-        return DYNCAST_TYPE;
+        return DYNCAST.type;
     }
 
     /*******************************
@@ -781,7 +781,7 @@ extern (C++) abstract class Type : RootObject
                 goto Lnotcovariant;
         }
 
-        // We can subtract 'return' from 'this', but cannot add it
+        // We can subtract 'return ref' from 'this', but cannot add it
         else if (t1.isreturn && !t2.isreturn)
             goto Lnotcovariant;
 
@@ -4735,7 +4735,7 @@ extern (C++) final class TypeSArray : TypeArray
             }
 
             RootObject o = (*tup.objects)[cast(size_t)d];
-            if (o.dyncast() != DYNCAST_TYPE)
+            if (o.dyncast() != DYNCAST.type)
             {
                 error(loc, "%s is not a type", toChars());
                 return Type.terror;
@@ -4780,13 +4780,14 @@ extern (C++) final class TypeSArray : TypeArray
             if (d1 != d2)
             {
             Loverflow:
-                error(loc, "%s size %llu * %llu exceeds 16MiB size limit for static array", toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1);
+                error(loc, "%s size %llu * %llu exceeds 0x%llx size limit for static array",
+                        toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1, Target.maxStaticDataSize);
                 goto Lerror;
             }
             Type tbx = tbn.baseElemOf();
             if (tbx.ty == Tstruct && !(cast(TypeStruct)tbx).sym.members || tbx.ty == Tenum && !(cast(TypeEnum)tbx).sym.members)
             {
-                /* To avoid meaningess error message, skip the total size limit check
+                /* To avoid meaningless error message, skip the total size limit check
                  * when the bottom of element type is opaque.
                  */
             }
@@ -4796,7 +4797,7 @@ extern (C++) final class TypeSArray : TypeArray
                  * run on them for the size, since they may be forward referenced.
                  */
                 bool overflow = false;
-                if (mulu(tbn.size(loc), d2, overflow) >= 0x100_0000 || overflow) // put a 'reasonable' limit on it
+                if (mulu(tbn.size(loc), d2, overflow) >= Target.maxStaticDataSize || overflow)
                     goto Loverflow;
             }
         }
@@ -4877,12 +4878,12 @@ extern (C++) final class TypeSArray : TypeArray
                 }
 
                 RootObject o = (*tup.objects)[cast(size_t)d];
-                if (o.dyncast() == DYNCAST_DSYMBOL)
+                if (o.dyncast() == DYNCAST.dsymbol)
                 {
                     *ps = cast(Dsymbol)o;
                     return;
                 }
-                if (o.dyncast() == DYNCAST_EXPRESSION)
+                if (o.dyncast() == DYNCAST.expression)
                 {
                     Expression e = cast(Expression)o;
                     if (e.op == TOKdsymbol)
@@ -4897,7 +4898,7 @@ extern (C++) final class TypeSArray : TypeArray
                     }
                     return;
                 }
-                if (o.dyncast() == DYNCAST_TYPE)
+                if (o.dyncast() == DYNCAST.type)
                 {
                     *ps = null;
                     *pt = (cast(Type)o).addMod(this.mod);
@@ -6303,7 +6304,7 @@ extern (C++) final class TypeFunction : TypeNext
                     }
                 }
 
-                if (fparam.storageClass & STCscope && !fparam.type.hasPointers())
+                if (fparam.storageClass & STCscope && !fparam.type.hasPointers() && fparam.type.ty != Ttuple)
                 {
                     fparam.storageClass &= ~STCscope;
                     if (!(fparam.storageClass & STCref))
@@ -6651,6 +6652,8 @@ extern (C++) final class TypeFunction : TypeNext
             foreach (const i; 0 .. dim)
             {
                 Parameter fparam = Parameter.getNth(parameters, i);
+                if (fparam == p)
+                    continue;
                 Type t = fparam.type;
                 if (!t)
                     continue;
@@ -6695,8 +6698,13 @@ extern (C++) final class TypeFunction : TypeNext
 
     override Type addStorageClass(StorageClass stc)
     {
+        //printf("addStorageClass(%llx) %d\n", stc, (stc & STCscope) != 0);
         TypeFunction t = cast(TypeFunction)Type.addStorageClass(stc);
-        if ((stc & STCpure && !t.purity) || (stc & STCnothrow && !t.isnothrow) || (stc & STCnogc && !t.isnogc) || (stc & STCsafe && t.trust < TRUSTtrusted))
+        if ((stc & STCpure && !t.purity) ||
+            (stc & STCnothrow && !t.isnothrow) ||
+            (stc & STCnogc && !t.isnogc) ||
+            (stc & STCscope && !t.isscope) ||
+            (stc & STCsafe && t.trust < TRUSTtrusted))
         {
             // Klunky to change these
             auto tf = new TypeFunction(t.parameters, t.next, t.varargs, t.linkage, 0);
@@ -6720,6 +6728,8 @@ extern (C++) final class TypeFunction : TypeNext
                 tf.isnogc = true;
             if (stc & STCsafe)
                 tf.trust = TRUSTsafe;
+            if (stc & STCscope)
+                tf.isscope = true;
 
             tf.deco = tf.merge().deco;
             t = tf;
@@ -7189,6 +7199,25 @@ extern (C++) final class TypeDelegate : TypeNext
         }
     }
 
+    override Type addStorageClass(StorageClass stc)
+    {
+        TypeDelegate t = cast(TypeDelegate)Type.addStorageClass(stc);
+        if (!global.params.vsafe)
+            return t;
+
+        /* The rest is meant to add 'scope' to a delegate declaration if it is of the form:
+         *  alias dg_t = void* delegate();
+         *  scope dg_t dg = ...;
+         */
+        auto n = t.next.addStorageClass(stc & STCscope);
+        if (n != t.next)
+        {
+            t.next = n;
+            t.deco = t.merge().deco;
+        }
+        return t;
+    }
+
     override d_uns64 size(Loc loc) const
     {
         return Target.ptrsize * 2;
@@ -7313,19 +7342,19 @@ extern (C++) abstract class TypeQualified : Type
         for (size_t i = 0; i < idents.dim; i++)
         {
             RootObject id = t.idents[i];
-            if (id.dyncast() == DYNCAST_DSYMBOL)
+            if (id.dyncast() == DYNCAST.dsymbol)
             {
                 TemplateInstance ti = cast(TemplateInstance)id;
                 ti = cast(TemplateInstance)ti.syntaxCopy(null);
                 id = ti;
             }
-            else if (id.dyncast() == DYNCAST_EXPRESSION)
+            else if (id.dyncast() == DYNCAST.expression)
             {
                 Expression e = cast(Expression)id;
                 e = e.syntaxCopy();
                 id = e;
             }
-            else if (id.dyncast() == DYNCAST_TYPE)
+            else if (id.dyncast() == DYNCAST.type)
             {
                 Type tx = cast(Type)id;
                 tx = tx.syntaxCopy();
@@ -7432,24 +7461,24 @@ extern (C++) abstract class TypeQualified : Type
             switch (id.dyncast())
             {
                 // ... '. ident'
-                case DYNCAST_IDENTIFIER:
+                case DYNCAST.identifier:
                     e = new DotIdExp(e.loc, e, cast(Identifier)id);
                     break;
 
                 // ... '. name!(tiargs)'
-                case DYNCAST_DSYMBOL:
+                case DYNCAST.dsymbol:
                     auto ti = (cast(Dsymbol)id).isTemplateInstance();
                     assert(ti);
                     e = new DotTemplateInstanceExp(e.loc, e, ti.name, ti.tiargs);
                     break;
 
                 // ... '[type]'
-                case DYNCAST_TYPE:          // Bugzilla 1215
+                case DYNCAST.type:          // Bugzilla 1215
                     e = new ArrayExp(loc, e, new TypeExp(loc, cast(Type)id));
                     break;
 
                 // ... '[expr]'
-                case DYNCAST_EXPRESSION:    // Bugzilla 1215
+                case DYNCAST.expression:    // Bugzilla 1215
                     e = new ArrayExp(loc, e, cast(Expression)id);
                     break;
 
@@ -7492,8 +7521,8 @@ extern (C++) abstract class TypeQualified : Type
             for (size_t i = 0; i < idents.dim; i++)
             {
                 RootObject id = idents[i];
-                if (id.dyncast() == DYNCAST_EXPRESSION ||
-                    id.dyncast() == DYNCAST_TYPE)
+                if (id.dyncast() == DYNCAST.expression ||
+                    id.dyncast() == DYNCAST.type)
                 {
                     Type tx;
                     Expression ex;
@@ -7559,7 +7588,7 @@ extern (C++) abstract class TypeQualified : Type
                     if (t)
                     {
                         sm = t.toDsymbol(sc);
-                        if (sm && id.dyncast() == DYNCAST_IDENTIFIER)
+                        if (sm && id.dyncast() == DYNCAST.identifier)
                         {
                             sm = sm.search(loc, cast(Identifier)id);
                             if (sm)
@@ -7581,14 +7610,14 @@ extern (C++) abstract class TypeQualified : Type
                     }
                     else
                     {
-                        if (id.dyncast() == DYNCAST_DSYMBOL)
+                        if (id.dyncast() == DYNCAST.dsymbol)
                         {
                             // searchX already handles errors for template instances
                             assert(global.errors);
                         }
                         else
                         {
-                            assert(id.dyncast() == DYNCAST_IDENTIFIER);
+                            assert(id.dyncast() == DYNCAST.identifier);
                             sm = s.search_correct(cast(Identifier)id);
                             if (sm)
                                 error(loc, "identifier '%s' of '%s' is not defined, did you mean %s '%s'?", id.toChars(), toChars(), sm.kind(), sm.toChars());
@@ -10130,7 +10159,7 @@ extern (C++) final class Parameter : RootObject
     // kludge for template.isType()
     override DYNCAST dyncast() const
     {
-        return DYNCAST_PARAMETER;
+        return DYNCAST.parameter;
     }
 
     void accept(Visitor v)

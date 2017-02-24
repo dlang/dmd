@@ -112,48 +112,29 @@ static this()
 /**
  * get an array of size_t values that indicate possible pointer words in memory
  *  if interpreted as the type given as argument
- * the first array element is the size of the type for independent interpretation
- *  of the array
- * following elements bits represent one word (4/8 bytes depending on the target
- *  architecture). If set the corresponding memory might contain a pointer/reference.
- *
- *  [T.sizeof, pointerbit0-31/63, pointerbit32/64-63/128, ...]
+ * Returns: the size of the type in bytes, d_uns64.max on error
  */
-extern (C++) Expression pointerBitmap(TraitsExp e)
+extern (C++) d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data)
 {
-    if (!e.args || e.args.dim != 1)
-    {
-        error(e.loc, "a single type expected for trait pointerBitmap");
-        return new ErrorExp();
-    }
-
-    Type t = getType((*e.args)[0]);
-    if (!t)
-    {
-        error(e.loc, "%s is not a type", (*e.args)[0].toChars());
-        return new ErrorExp();
-    }
-
     d_uns64 sz;
     if (t.ty == Tclass && !(cast(TypeClass)t).sym.isInterfaceDeclaration())
-        sz = (cast(TypeClass)t).sym.AggregateDeclaration.size(e.loc);
+        sz = (cast(TypeClass)t).sym.AggregateDeclaration.size(loc);
     else
-        sz = t.size(e.loc);
+        sz = t.size(loc);
     if (sz == SIZE_INVALID)
-        return new ErrorExp();
+        return d_uns64.max;
 
-    const sz_size_t = Type.tsize_t.size(e.loc);
+    const sz_size_t = Type.tsize_t.size(loc);
     if (sz > sz.max - sz_size_t)
     {
-        error(e.loc, "size overflow for type %s", t.toChars());
-        return new ErrorExp();
+        error(loc, "size overflow for type %s", t.toChars());
+        return d_uns64.max;
     }
 
     d_uns64 bitsPerWord = sz_size_t * 8;
     d_uns64 cntptr = (sz + sz_size_t - 1) / sz_size_t;
     d_uns64 cntdata = (cntptr + bitsPerWord - 1) / bitsPerWord;
 
-    Array!(d_uns64) data;
     data.setDim(cast(size_t)cntdata);
     data.zero();
 
@@ -338,21 +319,51 @@ extern (C++) Expression pointerBitmap(TraitsExp e)
         bool error;
     }
 
-    scope PointerBitmapVisitor pbv = new PointerBitmapVisitor(&data, sz_size_t);
+    scope PointerBitmapVisitor pbv = new PointerBitmapVisitor(data, sz_size_t);
     if (t.ty == Tclass)
         pbv.visitClass(cast(TypeClass)t);
     else
         t.accept(pbv);
-    if (pbv.error)
+    return pbv.error ? d_uns64.max : sz;
+}
+
+/**
+ * get an array of size_t values that indicate possible pointer words in memory
+ *  if interpreted as the type given as argument
+ * the first array element is the size of the type for independent interpretation
+ *  of the array
+ * following elements bits represent one word (4/8 bytes depending on the target
+ *  architecture). If set the corresponding memory might contain a pointer/reference.
+ *
+ *  Returns: [T.sizeof, pointerbit0-31/63, pointerbit32/64-63/128, ...]
+ */
+extern (C++) Expression pointerBitmap(TraitsExp e)
+{
+    if (!e.args || e.args.dim != 1)
+    {
+        error(e.loc, "a single type expected for trait pointerBitmap");
+        return new ErrorExp();
+    }
+
+    Type t = getType((*e.args)[0]);
+    if (!t)
+    {
+        error(e.loc, "%s is not a type", (*e.args)[0].toChars());
+        return new ErrorExp();
+    }
+
+    Array!(d_uns64) data;
+    d_uns64 sz = getTypePointerBitmap(e.loc, t, &data);
+    if (sz == d_uns64.max)
         return new ErrorExp();
 
     auto exps = new Expressions();
     exps.push(new IntegerExp(e.loc, sz, Type.tsize_t));
-    foreach (d_uns64 i; 0 .. cntdata)
+    foreach (d_uns64 i; 0 .. data.dim)
         exps.push(new IntegerExp(e.loc, data[cast(size_t)i], Type.tsize_t));
 
     auto ale = new ArrayLiteralExp(e.loc, exps);
-    ale.type = Type.tsize_t.sarrayOf(cntdata + 1);
+    ale.type = Type.tsize_t.sarrayOf(data.dim + 1);
     return ale;
 }
 
@@ -951,6 +962,8 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 }
                 if (sm.isTypeInfoDeclaration()) // Bugzilla 15177
                     return 0;
+                if (!sds.isModule() && sm.isImport()) // Bugzilla 17057
+                    return 0;
 
                 //printf("\t%s\n", sm.ident.toChars());
 
@@ -1060,6 +1073,11 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                     err = true;
             }
 
+            // Carefully detach the scope from the parent and throw it away as
+            // we only need it to evaluate the expression
+            // https://issues.dlang.org/show_bug.cgi?id=15428
+            sc2.freeFieldinit();
+            sc2.enclosing = null;
             sc2.pop();
 
             if (global.endGagging(errors) || err)

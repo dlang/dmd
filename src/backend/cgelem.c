@@ -4571,15 +4571,19 @@ STATIC elem *elu64_d(elem *e, goal_t goal)
 
 STATIC elem *elshl(elem *e, goal_t goal)
 {
-    if (e->E1->Eoper == OPconst && !boolres(e->E1))             // if e1 is 0
-    {   e->E1->Ety = e->Ety;
+    tym_t ty = e->Ety;
+    elem *e1 = e->E1;
+    elem *e2 = e->E2;
+
+    if (e1->Eoper == OPconst && !boolres(e1))             // if e1 is 0
+    {   e1->Ety = ty;
         e = el_selecte1(e);             // (0 << e2) => 0
     }
-    if (OPTIMIZER &&
-        e->E2->Eoper == OPconst &&
-        (e->E1->Eoper == OPshr || e->E1->Eoper == OPashr) &&
-        e->E1->E2->Eoper == OPconst &&
-        el_tolong(e->E2) == el_tolong(e->E1->E2))
+    else if (OPTIMIZER &&
+        e2->Eoper == OPconst &&
+        (e1->Eoper == OPshr || e1->Eoper == OPashr) &&
+        e1->E2->Eoper == OPconst &&
+        el_tolong(e2) == el_tolong(e1->E2))
     {   /* Rewrite:
          *  (x >> c) << c)
          * with:

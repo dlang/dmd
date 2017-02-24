@@ -390,7 +390,7 @@ void test13()
 
     auto k = __traits(classInstanceSize, C);
     writeln(k);
-    assert(k == C.classinfo.init.length);
+    assert(k == C.classinfo.initializer.length);
 }
 
 /********************************************************/

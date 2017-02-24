@@ -935,7 +935,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                 if (isDitto(td.comment))
                     com = td.comment;
                 else
-                    com = Lexer.combineComments(td.comment, com);
+                    com = Lexer.combineComments(td.comment, com, true);
             }
             else
             {
@@ -967,7 +967,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                 if (isDitto(td.comment))
                     com = td.comment;
                 else
-                    com = Lexer.combineComments(td.comment, com);
+                    com = Lexer.combineComments(td.comment, com, true);
             }
             else
             {
@@ -1777,7 +1777,7 @@ struct DocComment
             /* Didn't write out any sections, so back out last write
              */
             buf.offset = offset1;
-            buf.writestring("$(DDOC_BLANKLINE)\n");
+            buf.writestring("\n");
         }
         else
             buf.writestring(")\n");

@@ -287,7 +287,7 @@ public:
             if (ta.isreturn)
                 buf.writestring("Nj");
             if (ta.isscope && !ta.isreturn)
-                buf.writestring("M");
+                buf.writestring("Nl");
             switch (ta.trust)
             {
             case TRUSTtrusted:

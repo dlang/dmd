@@ -477,7 +477,7 @@ private:
         Port.writelongBE(cast(uint)objsymbols.dim, buf.ptr);
         libbuf.write(buf.ptr, 4);
         // Sort objsymbols[] in module offset order
-        qsort(objsymbols.data, objsymbols.dim, (objsymbols.data[0]).sizeof, &MSCoffObjSymbol_offset_cmp);
+        qsort(objsymbols.data, objsymbols.dim, (objsymbols.data[0]).sizeof, cast(_compare_fp_t)&MSCoffObjSymbol_offset_cmp);
         uint lastoffset;
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
@@ -517,7 +517,7 @@ private:
         Port.writelongLE(cast(uint)objsymbols.dim, buf.ptr);
         libbuf.write(buf.ptr, 4);
         // Sort objsymbols[] in lexical order
-        qsort(objsymbols.data, objsymbols.dim, (objsymbols.data[0]).sizeof, &MSCoffObjSymbol_cmp);
+        qsort(objsymbols.data, objsymbols.dim, (objsymbols.data[0]).sizeof, cast(_compare_fp_t)&MSCoffObjSymbol_cmp);
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
             MSCoffObjSymbol* os = objsymbols[i];

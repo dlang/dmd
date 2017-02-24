@@ -55,6 +55,7 @@ class Obj
     VIRTUAL void moduleinfo(Symbol *scc);
     virtual int  comdat(Symbol *);
     virtual int  comdatsize(Symbol *, targ_size_t symsize);
+    virtual int readonly_comdat(Symbol *s);
     VIRTUAL void setcodeseg(int seg);
     virtual seg_data *tlsseg();
     virtual seg_data *tlsseg_bss();
@@ -84,9 +85,11 @@ class Obj
     VIRTUAL void fltused();
     VIRTUAL int data_readonly(char *p, int len, int *pseg);
     VIRTUAL int data_readonly(char *p, int len);
+    VIRTUAL int string_literal_segment(unsigned sz);
     VIRTUAL symbol *sym_cdata(tym_t, char *, int);
     VIRTUAL void func_start(Symbol *sfunc);
     VIRTUAL void func_term(Symbol *sfunc);
+    VIRTUAL void write_pointerRef(Symbol* s, unsigned off);
 
     VIRTUAL symbol *tlv_bootstrap();
 
@@ -162,6 +165,7 @@ class MsCoffObj : public Obj
     VIRTUAL void moduleinfo(Symbol *scc);
     virtual int  comdat(Symbol *);
     virtual int  comdatsize(Symbol *, targ_size_t symsize);
+    virtual int readonly_comdat(Symbol *s);
     VIRTUAL void setcodeseg(int seg);
     virtual seg_data *tlsseg();
     virtual seg_data *tlsseg_bss();
@@ -191,10 +195,12 @@ class MsCoffObj : public Obj
     VIRTUAL void fltused();
     VIRTUAL int data_readonly(char *p, int len, int *pseg);
     VIRTUAL int data_readonly(char *p, int len);
+    VIRTUAL int string_literal_segment(unsigned sz);
     VIRTUAL symbol *sym_cdata(tym_t, char *, int);
     static unsigned addstr(Outbuffer *strtab, const char *);
     VIRTUAL void func_start(Symbol *sfunc);
     VIRTUAL void func_term(Symbol *sfunc);
+    VIRTUAL void write_pointerRef(Symbol* s, unsigned off);
 
     static int getsegment(const char *sectname, unsigned long flags);
     static int getsegment2(unsigned shtidx);
