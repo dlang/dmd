@@ -114,8 +114,13 @@ typedef struct
         #define SHF_WRITE       (1 << 0)    /* Writable during execution */
         #define SHF_ALLOC       (1 << 1)    /* In memory during execution */
         #define SHF_EXECINSTR   (1 << 2)    /* Executable machine instructions*/
-        #define SHF_GROUP       (1 << 9)    /* Member of a section group */
-        #define SHF_TLS         (1 << 10)   /* Thread local */
+        #define SHF_MERGE       0x10
+        #define SHF_STRINGS     0x20
+        #define SHF_INFO_LINK   0x40
+        #define SHF_LINK_ORDER  0x80
+        #define SHF_OS_NONCONFORMING  0x100
+        #define SHF_GROUP       0x200       // Member of a section group
+        #define SHF_TLS         0x400       /* Thread local */
         #define SHF_MASKPROC    0xf0000000  /* Mask for processor-specific */
   Elf32_Addr   sh_addr;                /* Starting virtual memory address */
   Elf32_Off   sh_offset;              /* Offset to section in file */
@@ -400,5 +405,7 @@ typedef struct {
     Elf64_Xword  r_info;
     Elf64_Sxword r_addend;
 } Elf64_Rela;
+
+#define GRP_COMDAT 1
 
 #endif
