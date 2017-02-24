@@ -273,10 +273,12 @@ BCValue imm32(uint value) pure @trusted
     return ret;
 }
 
-BCValue i32(BCValue val) pure @safe
+BCValue i32(inout BCValue val) pure @trusted
 {
-    val.type.type = BCTypeEnum.i32;
-    return val;
+    BCValue result = void;
+    result = val;
+    result.type.type = BCTypeEnum.i32;
+    return result;
 }
 
 
