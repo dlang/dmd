@@ -6665,6 +6665,7 @@ final class Parser : Lexer
             case TOKscope:
             case TOKfinal:
             case TOKauto:
+            case TOKreturn:
                 continue;
 
             case TOKconst:
@@ -8421,7 +8422,7 @@ final class Parser : Lexer
      */
     void addComment(Dsymbol s, const(char)* blockComment)
     {
-        s.addComment(combineComments(blockComment, token.lineComment));
+        s.addComment(combineComments(blockComment, token.lineComment, true));
         token.lineComment = null;
     }
 }

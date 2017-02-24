@@ -383,11 +383,13 @@ void outthunk(Symbol *sthunk, Symbol *sfunc, uint p, tym_t thisty, targ_size_t d
 void outdata(Symbol *s);
 void outcommon(Symbol *s, targ_size_t n);
 void out_readonly(Symbol *s);
+void out_readonly_comdat(Symbol *s, const(void)* p, uint len, uint nzeros);
 void out_regcand(symtab_t *);
 void writefunc(Symbol *sfunc);
 void alignOffset(int seg,targ_size_t datasize);
 void out_reset();
 Symbol *out_readonly_sym(tym_t ty, void *p, int len);
+Symbol *out_string_literal(const(char)* str, uint len, uint sz);
 
 /* blockopt.c */
 // Workaround 2.066.x bug by resolving the TYMAX value before using it as dimension.

@@ -2168,11 +2168,17 @@ else
             cs.exp = cs.exp.implicitCastTo(sc, sw.condition.type);
             cs.exp = cs.exp.optimize(WANTvalue | WANTexpand);
 
+            Expression e = cs.exp;
+            // Remove all the casts the user and/or implicitCastTo may introduce
+            // otherwise we'd sometimes fail the check below.
+            while (e.op == TOKcast)
+                e = (cast(CastExp)e).e1;
+
             /* This is where variables are allowed as case expressions.
              */
-            if (cs.exp.op == TOKvar)
+            if (e.op == TOKvar)
             {
-                VarExp ve = cast(VarExp)cs.exp;
+                VarExp ve = cast(VarExp)e;
                 VarDeclaration v = ve.var.isVarDeclaration();
                 Type t = cs.exp.type.toBasetype();
                 if (v && (t.isintegral() || t.ty == Tclass))

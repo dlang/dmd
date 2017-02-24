@@ -56,6 +56,7 @@ class Obj
     void moduleinfo(Symbol *scc);
     int comdat(Symbol *);
     int comdatsize(Symbol *, targ_size_t symsize);
+    int readonly_comdat(Symbol *s);
     void setcodeseg(int seg);
     seg_data *tlsseg();
     seg_data *tlsseg_bss();
@@ -85,9 +86,11 @@ class Obj
     void fltused();
     int data_readonly(char *p, int len, int *pseg);
     int data_readonly(char *p, int len);
+    int string_literal_segment(uint sz);
     Symbol *sym_cdata(tym_t, char *, int);
     void func_start(Symbol *sfunc);
     void func_term(Symbol *sfunc);
+    void write_pointerRef(Symbol* s, uint off);
 
     Symbol *tlv_bootstrap();
 
@@ -129,6 +132,7 @@ class MsCoffObj : Obj
     override void moduleinfo(Symbol *scc);
     override int comdat(Symbol *);
     override int comdatsize(Symbol *, targ_size_t symsize);
+    override int readonly_comdat(Symbol *s);
     override void setcodeseg(int seg);
     override seg_data *tlsseg();
     override seg_data *tlsseg_bss();
@@ -158,10 +162,12 @@ class MsCoffObj : Obj
     override void fltused();
     override int data_readonly(char *p, int len, int *pseg);
     override int data_readonly(char *p, int len);
+    override int string_literal_segment(uint sz);
     override Symbol *sym_cdata(tym_t, char *, int);
     static  uint addstr(Outbuffer *strtab, const(char)* );
     override void func_start(Symbol *sfunc);
     override void func_term(Symbol *sfunc);
+    override void write_pointerRef(Symbol* s, uint off);
 
     static int getsegment(const(char)* sectname, uint flags);
     static int getsegment2( uint shtidx);
@@ -218,6 +224,7 @@ class Obj
     static void moduleinfo(Symbol *scc);
     int comdat(Symbol *);
     static int comdatsize(Symbol *, targ_size_t symsize);
+    int readonly_comdat(Symbol *s);
     static void setcodeseg(int seg);
     seg_data *tlsseg();
     seg_data *tlsseg_bss();
@@ -247,9 +254,11 @@ class Obj
     static void fltused();
     static int data_readonly(char *p, int len, int *pseg);
     static int data_readonly(char *p, int len);
+    static int string_literal_segment(uint sz);
     static Symbol *sym_cdata(tym_t, char *, int);
     static void func_start(Symbol *sfunc);
     static void func_term(Symbol *sfunc);
+    static void write_pointerRef(Symbol* s, uint off);
 
     static Symbol *tlv_bootstrap();
 

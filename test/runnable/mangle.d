@@ -556,7 +556,21 @@ class CC
     }
 }
 
-static assert(CC.member.mangleof == "_D6mangle2CC6memberMFMZPi");
+static assert(CC.member.mangleof == "_D6mangle2CC6memberMFNlZPi");
+
+/***************************************************/
+
+void fooA(void delegate (scope void delegate()) dg)
+{
+}
+void fooB(void delegate (void delegate()) scope dg)
+{
+}
+
+//pragma(msg, fooA.mangleof);
+//pragma(msg, fooB.mangleof);
+static assert(typeof(fooA).mangleof != typeof(fooB).mangleof);
+
 
 /***************************************************/
 

@@ -235,10 +235,10 @@ void* funretscope(scope dg_t ptr) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(249): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
-fail_compilation/retscope.d(249): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
-fail_compilation/retscope.d(250): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
-fail_compilation/retscope.d(250): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
+fail_compilation/retscope.d(249): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return scope @safe to void* delegate() scope @safe
+fail_compilation/retscope.d(249): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return scope @safe to void* delegate() scope @safe
+fail_compilation/retscope.d(250): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return scope @safe to void* delegate() scope @safe
+fail_compilation/retscope.d(250): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return scope @safe to void* delegate() scope @safe
 ---
 */
 
@@ -589,6 +589,21 @@ void foo18()
     typeof(&c.funcrs) fs4 = &c.funcrs;
 }
 
+/*********************************************/
+
+@safe void foo19(C)(ref C[] str)  // infer 'scope' for 'str'
+{
+    str = str;
+    str = str[1 .. str.length];
+}
+
+@safe void test19()
+{
+    char[10] s;
+    char[] t = s[];
+    foo19(t);
+}
+
 /********************************************/
 
 
@@ -611,4 +626,37 @@ struct Result(R)
     n.empty();
 }
 
+/************************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=17117
+
+ref int foo21(return ref int s)
+{
+        return s;
+}
+
+int fail21()
+{
+        int s;
+        return foo21(s); // Error: escaping reference to local variable s
+}
+
+int test21()
+{
+        int s;
+        s = foo21(s);
+        return s;
+}
+
+/**********************************************/
+
+@safe void foo22()(ref char[] s)
+{
+    char[] a = s;
+}
+
+@safe void test22(scope char[] s)
+{
+    foo22(s);
+}
 

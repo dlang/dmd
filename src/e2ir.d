@@ -1936,9 +1936,10 @@ elem *toElem(Expression e, IRState *irs)
                 }
                 else
                 {
-                    Symbol *sassert = ud ? toModuleUnittest(m) : toModuleAssert(m);
-                    ea = el_bin(OPcall,TYvoid,el_var(sassert),
-                        el_long(TYint, ae.loc.linnum));
+                    auto eassert = el_var(getRtlsym(ud ? RTLSYM_DUNITTESTP : RTLSYM_DASSERTP));
+                    auto efile = toEfilenamePtr(m);
+                    auto eline = el_long(TYint, ae.loc.linnum);
+                    ea = el_bin(OPcall, TYvoid, eassert, el_param(eline, efile));
                 }
                 if (einv)
                 {
@@ -2604,9 +2605,8 @@ elem *toElem(Expression e, IRState *irs)
                         elem *c2 = el_bin(OPle, TYint, el_copytree(elwr), el_copytree(eupr));
                         c1 = el_bin(OPandand, TYint, c1, c2);
 
-                        // Construct: (c1 || ModuleArray(line))
-                        Symbol *sassert = toModuleArray(cast(Module)irs.blx._module);
-                        elem *ea = el_bin(OPcall,TYvoid,el_var(sassert), el_long(TYint, ae.loc.linnum));
+                        // Construct: (c1 || arrayBoundsError)
+                        auto ea = buildArrayBoundsError(irs, ae.loc);
                         elem *eb = el_bin(OPoror,TYvoid,c1,ea);
                         einit = el_combine(einit, eb);
                     }
@@ -4736,9 +4736,8 @@ elem *toElem(Expression e, IRState *irs)
 
                     if (c1)
                     {
-                        // Construct: (c1 || ModuleArray(line))
-                        Symbol *sassert = toModuleArray(cast(Module)irs.blx._module);
-                        elem *ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, se.loc.linnum));
+                        // Construct: (c1 || arrayBoundsError)
+                        auto ea = buildArrayBoundsError(irs, se.loc);
                         elem *eb = el_bin(OPoror, TYvoid, c1, ea);
 
                         elwr = el_combine(elwr, eb);
@@ -4839,10 +4838,8 @@ elem *toElem(Expression e, IRState *irs)
                 {
                     elem *n = el_same(&e);
 
-                    // Construct: ((e || ModuleArray(line)), n)
-                    Symbol *sassert = toModuleArray(cast(Module)irs.blx._module);
-                    elem *ea = el_bin(OPcall,TYvoid,el_var(sassert),
-                        el_long(TYint, ie.loc.linnum));
+                    // Construct: ((e || arrayBoundsError), n)
+                    auto ea = buildArrayBoundsError(irs, ie.loc);
                     e = el_bin(OPoror,TYvoid,e,ea);
                     e = el_bin(OPcomma, TYnptr, e, n);
                 }
@@ -4877,10 +4874,8 @@ elem *toElem(Expression e, IRState *irs)
                         n2 = el_same(&n2x);
                         n2x = el_bin(OPlt, TYint, n2x, elength);
 
-                        // Construct: (n2x || ModuleArray(line))
-                        Symbol *sassert = toModuleArray(cast(Module)irs.blx._module);
-                        elem *ea = el_bin(OPcall,TYvoid,el_var(sassert),
-                            el_long(TYint, ie.loc.linnum));
+                        // Construct: (n2x || arrayBoundsError)
+                        auto ea = buildArrayBoundsError(irs, ie.loc);
                         eb = el_bin(OPoror,TYvoid,n2x,ea);
                     }
                 }
@@ -5087,7 +5082,7 @@ elem *toElem(Expression e, IRState *irs)
             {
                 for (size_t i = 0; i < td.objects.dim; i++)
                 {   RootObject o = (*td.objects)[i];
-                    if (o.dyncast() == DYNCAST_EXPRESSION)
+                    if (o.dyncast() == DYNCAST.expression)
                     {   Expression eo = cast(Expression)o;
                         if (eo.op == TOKdsymbol)
                         {   DsymbolExp se = cast(DsymbolExp)eo;
@@ -5676,6 +5671,8 @@ elem *toElemDtor(Expression e, IRState *irs)
  *      str = string
  *      len = number of code units in string
  *      sz = number of bytes per code unit
+ *      comdat = emit string in its own comdat (default is read-only segment).
+ *          Comdats are useful when linker does not coalesce redundant strings.
  * Returns:
  *      Symbol
  */
@@ -5686,17 +5683,60 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
     StringValue *sv = stringTab.update(str, len * sz);
     if (!sv.ptrvalue)
     {
-        Symbol *si = symbol_generate(SCstatic,type_static_array(len * sz, tstypes[TYchar]));
-        si.Salignment = 1;
+        Symbol* si;
 
-        scope dtb = new DtBuilder();
-        dtb.nbytes(cast(uint)(len * sz), str);
-        dtb.nzeros(cast(uint)sz);
-        si.Sdt = dtb.finish();
+        if (global.params.isWindows)
+        {
+            /* The stringTab pools common strings within an object file.
+             * Win32 and Win64 use COMDATs to pool common strings across object files.
+             */
+            import ddmd.root.outbuffer : OutBuffer;
+            import ddmd.dmangle;
 
-        si.Sfl = FLdata;
-        out_readonly(si);
-        outdata(si);
+            scope StringExp se = new StringExp(Loc(), cast(void*)str, len, 'c');
+            se.sz = cast(ubyte)sz;
+            /* VC++ uses a name mangling scheme, for example, "hello" is mangled to:
+             * ??_C@_05CJBACGMB@hello?$AA@
+             *        ^ length
+             *         ^^^^^^^^ 8 byte checksum
+             * But the checksum algorithm is unknown. Just invent our own.
+             */
+            OutBuffer buf;
+            buf.writestring("__");
+            mangleToBuffer(se, &buf);   // recycle how strings are mangled for templates
+
+            if (buf.offset >= 32 + 2)
+            {   // Replace long string with hash of that string
+                import ddmd.backend.md5;
+                MD5_CTX mdContext;
+                MD5Init(&mdContext);
+                MD5Update(&mdContext, cast(ubyte*)buf.peekString(), cast(uint)buf.offset);
+                MD5Final(&mdContext);
+                buf.setsize(2);
+                foreach (u; mdContext.digest)
+                {
+                    ubyte u1 = u >> 4;
+                    buf.writeByte((u1 < 10) ? u1 + '0' : u1 + 'A' - 10);
+                    u1 = u & 0xF;
+                    buf.writeByte((u1 < 10) ? u1 + '0' : u1 + 'A' - 10);
+                }
+            }
+
+            si = symbol_calloc(buf.peekString(), cast(uint)buf.offset);
+            si.Sclass = SCcomdat;
+            si.Stype = type_static_array(cast(uint)(len * sz), tstypes[TYchar]);
+            si.Stype.Tcount++;
+            type_setmangle(&si.Stype, mTYman_c);
+            si.Sflags |= SFLnodebug | SFLartifical;
+            si.Sfl = FLdata;
+            si.Salignment = cast(ubyte)sz;
+            out_readonly_comdat(si, str, cast(uint)(len * sz), cast(uint)sz);
+        }
+        else
+        {
+            si = out_string_literal(str, cast(uint)len, cast(uint)sz);
+        }
+
         sv.ptrvalue = cast(void *)si;
     }
     return cast(Symbol *)sv.ptrvalue;
@@ -5755,6 +5795,19 @@ elem *filelinefunction(IRState *irs, Loc *loc)
         efunction = addressElem(efunction, Type.tstring, true);
 
     return el_params(efunction, elinnum, efilename, null);
+}
+
+/******************************************************
+ * Construct elem to run when an array bounds check fails.
+ * Returns:
+ *      elem generated
+ */
+elem *buildArrayBoundsError(IRState *irs, const ref Loc loc)
+{
+    auto eassert = el_var(getRtlsym(RTLSYM_DARRAYP));
+    auto efile = toEfilenamePtr(cast(Module)irs.blx._module);
+    auto eline = el_long(TYint, loc.linnum);
+    return el_bin(OPcall, TYvoid, eassert, el_param(eline, efile));
 }
 
 /******************************************************

@@ -294,7 +294,7 @@ extern (C++) bool Dsymbol_canThrow(Dsymbol s, FuncDeclaration func, bool mustNot
         for (size_t i = 0; i < td.objects.dim; i++)
         {
             RootObject o = (*td.objects)[i];
-            if (o.dyncast() == DYNCAST_EXPRESSION)
+            if (o.dyncast() == DYNCAST.expression)
             {
                 Expression eo = cast(Expression)o;
                 if (eo.op == TOKdsymbol)

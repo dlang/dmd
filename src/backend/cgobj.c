@@ -296,6 +296,10 @@ struct Objstate
 
 #if MARS
     int fmsegi;                 // SegData[] of FM segment
+    int datrefsegi;             // SegData[] of DATA pointer ref segment
+    int tlsrefsegi;             // SegData[] of TLS pointer ref segment
+
+    Outbuffer *ptrref_buf;      // buffer for pointer references
 #endif
 
     int tlssegi;                // SegData[] of tls segment
@@ -333,10 +337,12 @@ STATIC void linnum_flush(void);
 STATIC void linnum_term(void);
 STATIC void objsegdef (int attr,targ_size_t size,int segnamidx,int classnamidx);
 STATIC void obj_modend();
+STATIC void objflush_pointerRefs();
 STATIC void objfixupp (struct FIXUP *);
 STATIC void outextdata();
 STATIC void outpubdata();
 STATIC Ledatarec *ledata_new(int seg,targ_size_t offset);
+static int generate_comdat(Obj* objmod, Symbol *s, bool is_readonly_comdat);
 
 
 /*******************************
@@ -575,6 +581,20 @@ int Obj::data_readonly(char *p, int len)
     return Obj::data_readonly(p, len, &pseg);
 }
 
+/*****************************
+ * Get segment for readonly string literals.
+ * The linker will pool strings in this section.
+ * Params:
+ *    sz = number of bytes per character (1, 2, or 4)
+ * Returns:
+ *    segment index
+ */
+int Obj::string_literal_segment(unsigned sz)
+{
+    assert(0);
+    return 0;
+}
+
 segidx_t Obj::seg_debugT()
 {
     return DEBTYP;
@@ -739,6 +759,7 @@ void Obj::term(const char *objfilename)
         {   obj_defaultlib();
             outfixlist();               // backpatches
         }
+        objflush_pointerRefs();
 
         if (config.fulltypes)
             cv_term();                  // write out final debug info
@@ -1878,10 +1899,21 @@ void Obj::moduleinfo(Symbol *scc)
 
 int Obj::comdatsize(Symbol *s, targ_size_t symsize)
 {
-    return Obj::comdat(s);
+    return generate_comdat(this, s, false);
 }
 
 int Obj::comdat(Symbol *s)
+{
+    return generate_comdat(this, s, false);
+}
+
+int Obj::readonly_comdat(Symbol *s)
+{
+    s->Sseg = generate_comdat(this, s, true);
+    return s->Sseg;
+}
+
+static int generate_comdat(Obj* objmod, Symbol *s, bool is_readonly_comdat)
 {   char lnames[IDMAX+IDOHD+1]; // +1 to allow room for strcpy() terminating 0
     char cextdef[2+2];
     char *p;
@@ -1893,10 +1925,10 @@ int Obj::comdat(Symbol *s)
     symbol_debug(s);
     obj.reset_symbuf->write(&s, sizeof(s));
     ty = s->ty();
-    isfunc = tyfunc(ty) != 0;
+    isfunc = tyfunc(ty) != 0 || is_readonly_comdat;
 
     // Put out LNAME for name of Symbol
-    lnamesize = Obj::mangle(s,lnames);
+    lnamesize = objmod->mangle(s,lnames);
     objrecord((s->Sclass == SCstatic ? LLNAMES : LNAMES),lnames,lnamesize);
 
     // Put out CEXTDEF for name of Symbol
@@ -1920,12 +1952,20 @@ int Obj::comdat(Symbol *s)
     {   lr->pubbase = SegData[cseg]->segidx;
         if (s->Sclass == SCcomdat || s->Sclass == SCinline)
             lr->alloctyp = 0x10 | 0x00; // pick any instance | explicit allocation
-        cseg = lr->lseg;
-        assert(cseg > 0 && cseg <= seg_count);
-        obj.pubnamidx = obj.lnameidx - 1;
-        Coffset = 0;
-        if (tyfarfunc(ty) && strcmp(s->Sident,"main") == 0)
-            lr->alloctyp |= 1;  // because MS does for unknown reasons
+        if (is_readonly_comdat)
+        {
+            assert(lr->lseg > 0 && lr->lseg <= seg_count);
+            lr->flags |= 0x08;      // data in code seg
+        }
+        else
+        {
+            cseg = lr->lseg;
+            assert(cseg > 0 && cseg <= seg_count);
+            obj.pubnamidx = obj.lnameidx - 1;
+            Coffset = 0;
+            if (tyfarfunc(ty) && strcmp(s->Sident,"main") == 0)
+                lr->alloctyp |= 1;  // because MS does for unknown reasons
+        }
     }
     else
     {   unsigned char atyp;
@@ -1946,7 +1986,7 @@ int Obj::comdat(Symbol *s)
 
             case mTYfar:        atyp = 0x12;    break;
 
-            case mTYthread:     lr->pubbase = Obj::tlsseg()->segidx;
+            case mTYthread:     lr->pubbase = objmod->tlsseg()->segidx;
                                 atyp = 0x10;    // pick any (also means it is
                                                 // not searched for in a library)
                                 break;
@@ -3700,6 +3740,93 @@ symbol *Obj::tlv_bootstrap()
 
 void Obj::gotref(Symbol *s)
 {
+}
+
+/*****************************************
+ * write a reference to a mutable pointer into the object file
+ * Params:
+ *      s    = symbol that contains the pointer
+ *      soff = offset of the pointer inside the Symbol's memory
+ */
+
+void Obj::write_pointerRef(Symbol* s, unsigned soff)
+{
+    if (!obj.ptrref_buf)
+        obj.ptrref_buf = new Outbuffer;
+
+    // defer writing pointer references until the symbols are written out
+    obj.ptrref_buf->write(&s, sizeof(s));
+    obj.ptrref_buf->write32(soff);
+}
+
+/*****************************************
+ * flush a single pointer reference saved by write_pointerRef
+ * to the object file
+ * Params:
+ *      s    = symbol that contains the pointer
+ *      soff = offset of the pointer inside the Symbol's memory
+ */
+STATIC void objflush_pointerRef(Symbol* s, unsigned soff)
+{
+    bool isTls = (s->Sfl == FLtlsdata);
+    int &segi = isTls ? obj.tlsrefsegi : obj.datrefsegi;
+    symbol_debug(s);
+
+    if (segi == 0)
+    {
+        // We need to always put out the segments in triples, so that the
+        // linker will put them in the correct order.
+        static char lnames_dat[] = { "\03DPB\02DP\03DPE" };
+        static char lnames_tls[] = { "\03TPB\02TP\03TPE" };
+        char* lnames = isTls ? lnames_tls : lnames_dat;
+        // Put out LNAMES record
+        objrecord(LNAMES,lnames,sizeof(lnames_dat) - 1);
+
+        int dsegattr = obj.csegattr;
+
+        // Put out beginning segment
+        objsegdef(dsegattr,0,obj.lnameidx,CODECLASS);
+        obj.lnameidx++;
+        obj.segidx++;
+
+        // Put out segment definition record
+        segi = obj_newfarseg(0,CODECLASS);
+        objsegdef(dsegattr,0,obj.lnameidx,CODECLASS);
+        SegData[segi]->attr = dsegattr;
+        assert(SegData[segi]->segidx == obj.segidx);
+
+        // Put out ending segment
+        objsegdef(dsegattr,0,obj.lnameidx + 1,CODECLASS);
+
+        obj.lnameidx += 2;              // for next time
+        obj.segidx += 2;
+    }
+
+    targ_size_t offset = SegData[segi]->SDoffset;
+    offset += objmod->reftoident(segi, offset, s, soff, CFoff);
+    SegData[segi]->SDoffset = offset;
+}
+
+/*****************************************
+ * flush all pointer references saved by write_pointerRef
+ * to the object file
+ */
+STATIC void objflush_pointerRefs()
+{
+    if (!obj.ptrref_buf)
+        return;
+
+    unsigned char *p = obj.ptrref_buf->buf;
+    unsigned char *end = obj.ptrref_buf->p;
+    while (p < end)
+    {
+        Symbol* s = *(Symbol**)p;
+        p += sizeof(s);
+        unsigned soff = *(unsigned*)p;
+        p += sizeof(soff);
+        objflush_pointerRef(s, soff);
+    }
+    obj.ptrref_buf->reset();
 }
 
 #endif

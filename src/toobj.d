@@ -49,6 +49,7 @@ import ddmd.tocsym;
 import ddmd.tocvdebug;
 import ddmd.todt;
 import ddmd.tokens;
+import ddmd.traits;
 import ddmd.typinf;
 import ddmd.visitor;
 
@@ -218,6 +219,57 @@ void genModuleInfo(Module m)
     //////////////////////////////////////////////
 
     objmod.moduleinfo(msym);
+}
+
+/*****************************************
+ * write pointer references for typed data to the object file
+ * a class type is considered to mean a reference to a class instance
+ * Params:
+ *      type   = type of the data to check for pointers
+ *      s      = symbol that contains the data
+ *      offset = offset of the data inside the Symbol's memory
+ */
+void write_pointers(Type type, Symbol *s, uint offset)
+{
+    uint ty = type.toBasetype().ty;
+    if (ty == Tclass)
+        return objmod.write_pointerRef(s, offset);
+
+    write_instance_pointers(type, s, offset);
+}
+
+/*****************************************
+* write pointer references for typed data to the object file
+* a class type is considered to mean the instance, not a reference
+* Params:
+*      type   = type of the data to check for pointers
+*      s      = symbol that contains the data
+*      offset = offset of the data inside the Symbol's memory
+*/
+void write_instance_pointers(Type type, Symbol *s, uint offset)
+{
+    if (!type.hasPointers())
+        return;
+
+    Array!(d_uns64) data;
+    d_uns64 sz = getTypePointerBitmap(Loc(), type, &data);
+    if (sz == d_uns64.max)
+        return;
+
+    const bytes_size_t = cast(size_t)Type.tsize_t.size(Loc());
+    const bits_size_t = bytes_size_t * 8;
+    auto words = cast(size_t)(sz / bytes_size_t);
+    for (size_t i = 0; i < data.dim; i++)
+    {
+        size_t bits = words < bits_size_t ? words : bits_size_t;
+        for (size_t b = 0; b < bits; b++)
+            if (data[i] & (1L << b))
+            {
+                auto off = cast(uint) ((i * bits_size_t + b) * bytes_size_t);
+                objmod.write_pointerRef(s, off + offset);
+            }
+        words -= bits;
+    }
 }
 
 /* ================================================================== */
@@ -851,9 +903,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 vd.error("size overflow");
                 return;
             }
-            if (sz64 >= 0x1000000)  // there has to be some 'reasonable' limit on the size
+            if (sz64 >= Target.maxStaticDataSize)
             {
-                vd.error("size of x%llx exceeds max allowed size 0x100_0000", sz64);
+                vd.error("size of 0x%llx exceeds max allowed size 0x%llx", sz64, Target.maxStaticDataSize);
             }
             uint sz = cast(uint)sz64;
 
@@ -912,6 +964,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (sz || objmod.allowZeroSize())
             {
                 outdata(s);
+                if (vd.type.isMutable() || !vd._init)
+                    write_pointers(vd.type, s, 0);
                 if (vd.isExport())
                     objmod.export_symbol(s, 0);
             }

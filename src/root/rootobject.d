@@ -29,15 +29,6 @@ enum DYNCAST : int
     statement,
 }
 
-alias DYNCAST_OBJECT = DYNCAST.object;
-alias DYNCAST_EXPRESSION = DYNCAST.expression;
-alias DYNCAST_DSYMBOL = DYNCAST.dsymbol;
-alias DYNCAST_TYPE = DYNCAST.type;
-alias DYNCAST_IDENTIFIER = DYNCAST.identifier;
-alias DYNCAST_TUPLE = DYNCAST.tuple;
-alias DYNCAST_PARAMETER = DYNCAST.parameter;
-alias DYNCAST_STATEMENT = DYNCAST.statement;
-
 /***********************************************************
  */
 
@@ -74,6 +65,6 @@ extern (C++) class RootObject
 
     DYNCAST dyncast() const
     {
-        return DYNCAST_OBJECT;
+        return DYNCAST.object;
     }
 }

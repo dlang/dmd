@@ -32,27 +32,29 @@ import ddmd.staticassert;
 import ddmd.nspace;
 import ddmd.visitor;
 
+/// Returns: the typename of the dynamic ast-node-type
+/// (this is a development tool, do not use in actual code)
 string astTypeName(RootObject node)
 {
-    switch(node.dyncast())
+    final switch (node.dyncast())
     {
-        case DYNCAST_OBJECT:
+        case DYNCAST.object:
             return "RootObject";
-        case DYNCAST_EXPRESSION:
-            return astTypeName(cast(Expression)node);
-        case DYNCAST_DSYMBOL:
-            return astTypeName(cast(Dsymbol)node);
-        case DYNCAST_TYPE:
-            return astTypeName(cast(Type)node);
-        case DYNCAST_IDENTIFIER:
-            return astTypeName(cast(Identifier)node);
-        case DYNCAST_TUPLE:
-            return astTypeName(cast(Tuple)node);
-        case DYNCAST_PARAMETER:
-            return astTypeName(cast(Parameter)node);
-        case DYNCAST_STATEMENT:
-            return astTypeName(cast(Statement)node);
-        default : assert(0, "don't know this DYNCAST");
+        case DYNCAST.identifier:
+            return "Identifier";
+
+        case DYNCAST.expression:
+            return astTypeName(cast(Expression) node);
+        case DYNCAST.dsymbol:
+            return astTypeName(cast(Dsymbol) node);
+        case DYNCAST.type:
+            return astTypeName(cast(Type) node);
+        case DYNCAST.tuple:
+            return astTypeName(cast(Tuple) node);
+        case DYNCAST.parameter:
+            return astTypeName(cast(Parameter) node);
+        case DYNCAST.statement:
+            return astTypeName(cast(Statement) node);
     }
 }
 

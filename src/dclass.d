@@ -922,12 +922,15 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         //    this() { }
         if (!ctor && baseClass && baseClass.ctor)
         {
-            auto fd = resolveFuncCall(loc, sc2, baseClass.ctor, null, null, null, 1);
+            auto fd = resolveFuncCall(loc, sc2, baseClass.ctor, null, type, null, 1);
+            if (!fd) // try shared base ctor instead
+                fd = resolveFuncCall(loc, sc2, baseClass.ctor, null, type.sharedOf, null, 1);
             if (fd && !fd.errors)
             {
                 //printf("Creating default this(){} for class %s\n", toChars());
                 auto btf = cast(TypeFunction)fd.type;
                 auto tf = new TypeFunction(null, null, 0, LINKd, fd.storage_class);
+                tf.mod       = btf.mod;
                 tf.purity    = btf.purity;
                 tf.isnothrow = btf.isnothrow;
                 tf.isnogc    = btf.isnogc;

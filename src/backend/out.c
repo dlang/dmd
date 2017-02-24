@@ -37,6 +37,8 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 static  int addrparam;  /* see if any parameters get their address taken */
 
+void dt_writeToObj(Obj& objmod, dt_t *dt, int seg, targ_size_t& offset);
+
 #if SCPP
 
 /**********************************
@@ -338,79 +340,7 @@ void outdata(symbol *s)
 
     offset = s->Soffset;
 
-    for (dt_t *dt = dtstart; dt; dt = dt->DTnext)
-    {
-        switch (dt->dt)
-        {   case DT_abytes:
-                if (tyreg(dt->Dty))
-                    flags = CFoff;
-                else
-                    flags = CFoff | CFseg;
-                if (I64)
-                    flags |= CFoffset64;
-                if (tybasic(dt->Dty) == TYcptr)
-                    objmod->reftocodeseg(seg,offset,dt->DTabytes);
-                else
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-                    objmod->reftodatseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
-#else
-                /*else*/ if (dt->DTseg == DATA)
-                    objmod->reftodatseg(seg,offset,dt->DTabytes,DATA,flags);
-#if MARS
-                else if (dt->DTseg == CDATA)
-                    objmod->reftodatseg(seg,offset,dt->DTabytes,CDATA,flags);
-#endif
-                else
-                    objmod->reftofarseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
-#endif
-                offset += size(dt->Dty);
-                break;
-            case DT_ibytes:
-                objmod->bytes(seg,offset,dt->DTn,dt->DTdata);
-                offset += dt->DTn;
-                break;
-            case DT_nbytes:
-                objmod->bytes(seg,offset,dt->DTnbytes,dt->DTpbytes);
-                offset += dt->DTnbytes;
-                break;
-            case DT_azeros:
-                //printf("objmod->lidata(seg = %d, offset = %d, azeros = %d)\n", seg, offset, dt->DTazeros);
-                if (0 && seg == cseg)
-                {
-                    objmod->lidata(seg,offset,dt->DTazeros);
-                    offset += dt->DTazeros;
-                }
-                else
-                {
-                    SegData[seg]->SDoffset = offset;
-                    objmod->lidata(seg,offset,dt->DTazeros);
-                    offset = SegData[seg]->SDoffset;
-                }
-                break;
-            case DT_xoff:
-            {
-                symbol *sb = dt->DTsym;          // get external symbol pointer
-                a = dt->DToffset; // offset from it
-                if (tyreg(dt->Dty))
-                    flags = CFoff;
-                else
-                    flags = CFoff | CFseg;
-                if (I64 && tysize(dt->Dty) == 8)
-                    flags |= CFoffset64;
-                offset += objmod->reftoident(seg,offset,sb,a,flags);
-                break;
-            }
-            case DT_coff:
-                objmod->reftocodeseg(seg,offset,dt->DToffset);
-                offset += intsize;
-                break;
-            default:
-#ifdef DEBUG
-                dbg_printf("dt = %p, dt = %d\n",dt,dt->dt);
-#endif
-                assert(0);
-        }
-    }
+    dt_writeToObj(*objmod, dtstart, seg, offset);
     Offset(seg) = offset;
 #if SCPP
     out_extdef(s);
@@ -419,6 +349,85 @@ Lret:
     dt_free(dtstart);
 }
 
+/********************************************
+ * Write dt to Object file.
+ * Params:
+ *      objmod = reference to object file
+ *      dt = data to write
+ *      seg = segment to write it to
+ *      offset = starting offset in segment - will get updated to reflect ending offset
+ */
+
+void dt_writeToObj(Obj& objmod, dt_t *dt, int seg, targ_size_t& offset)
+{
+    for (; dt; dt = dt->DTnext)
+    {
+        switch (dt->dt)
+        {   case DT_abytes:
+            {
+                int flags;
+                if (tyreg(dt->Dty))
+                    flags = CFoff;
+                else
+                    flags = CFoff | CFseg;
+                if (I64)
+                    flags |= CFoffset64;
+                if (tybasic(dt->Dty) == TYcptr)
+                    objmod.reftocodeseg(seg,offset,dt->DTabytes);
+                else
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+                    objmod.reftodatseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
+#else
+                /*else*/ if (dt->DTseg == DATA)
+                    objmod.reftodatseg(seg,offset,dt->DTabytes,DATA,flags);
+#if MARS
+                else if (dt->DTseg == CDATA)
+                    objmod.reftodatseg(seg,offset,dt->DTabytes,CDATA,flags);
+#endif
+                else
+                    objmod.reftofarseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
+#endif
+                offset += size(dt->Dty);
+                break;
+            }
+            case DT_ibytes:
+                objmod.bytes(seg,offset,dt->DTn,dt->DTdata);
+                offset += dt->DTn;
+                break;
+            case DT_nbytes:
+                objmod.bytes(seg,offset,dt->DTnbytes,dt->DTpbytes);
+                offset += dt->DTnbytes;
+                break;
+            case DT_azeros:
+                //printf("objmod.lidata(seg = %d, offset = %d, azeros = %d)\n", seg, offset, dt->DTazeros);
+                SegData[seg]->SDoffset = offset;
+                objmod.lidata(seg,offset,dt->DTazeros);
+                offset = SegData[seg]->SDoffset;
+                break;
+            case DT_xoff:
+            {
+                Symbol *sb = dt->DTsym;          // get external symbol pointer
+                targ_size_t a = dt->DToffset;    // offset from it
+                int flags;
+                if (tyreg(dt->Dty))
+                    flags = CFoff;
+                else
+                    flags = CFoff | CFseg;
+                if (I64 && tysize(dt->Dty) == 8)
+                    flags |= CFoffset64;
+                offset += objmod.reftoident(seg,offset,sb,a,flags);
+                break;
+            }
+            case DT_coff:
+                objmod.reftocodeseg(seg,offset,dt->DToffset);
+                offset += intsize;
+                break;
+            default:
+                //printf("dt = %p, dt = %d\n",dt,dt->dt);
+                assert(0);
+        }
+    }
+}
 
 
 /******************************
@@ -492,17 +501,17 @@ void outcommon(symbol *s,targ_size_t n)
 }
 
 /*************************************
- * Mark a symbol as going into a read-only segment.
+ * Mark a Symbol as going into a read-only segment.
  */
 
-void out_readonly(symbol *s)
+void out_readonly(Symbol *s)
 {
-    // The default is DATA
     if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
     {
         /* Cannot have pointers in CDATA when compiling PIC code, because
          * they require dynamic relocations of the read-only segment.
-         * Instead use the .data.rel.ro section. See Bugzilla 11171.
+         * Instead use the .data.rel.ro section.
+         * https://issues.dlang.org/show_bug.cgi?id=11171
          */
         if (config.flags3 & CFG3pic && dtpointers(s->Sdt))
             s->Sseg = CDATAREL;
@@ -511,9 +520,88 @@ void out_readonly(symbol *s)
     }
     else
     {
-        // Haven't really worked out where immutable read-only data can go.
+        s->Sseg = CDATA;
     }
 }
+
+/*************************************
+ * Write out a readonly string literal in an implementation-defined
+ * manner.
+ * Params:
+ *      str = pointer to string data (need not have terminating 0)
+ *      len = number of characters in string
+ *      sz = size of each character (1, 2 or 4)
+ * Returns: a Symbol pointing to it.
+ */
+Symbol *out_string_literal(const char *str, unsigned len, unsigned sz)
+{
+    tym_t ty = TYchar;
+    if (sz == 2)
+        ty = TYchar16;
+    else if (sz == 4)
+        ty = TYdchar;
+    Symbol *s = symbol_generate(SCstatic,type_static_array(len, tstypes[ty]));
+    switch (config.objfmt)
+    {
+        case OBJ_ELF:
+        case OBJ_MACH:
+            s->Sseg = objmod->string_literal_segment(sz);
+            break;
+
+        case OBJ_MSCOFF:
+        case OBJ_OMF:   // goes into COMDATs, handled elsewhere
+        default:
+            assert(0);
+    }
+
+    /* If there are any embedded zeros, this can't go in the special string segments
+     * which assume that 0 is the end of the string.
+     */
+    switch (sz)
+    {
+        case 1:
+            if (memchr(str, 0, len))
+                s->Sseg = CDATA;
+            break;
+
+        case 2:
+            for (int i = 0; i < len; ++i)
+            {
+                const unsigned short *p = (const unsigned short *)str;
+                if (p[i] == 0)
+                {
+                    s->Sseg = CDATA;
+                    break;
+                }
+            }
+            break;
+
+        case 4:
+            for (int i = 0; i < len; ++i)
+            {
+                const unsigned *p = (const unsigned *)str;
+                if (p[i] == 0)
+                {
+                    s->Sseg = CDATA;
+                    break;
+                }
+            }
+            break;
+
+        default:
+            assert(0);
+    }
+
+    DtBuilder dtb;
+    dtb.nbytes((unsigned)(len * sz), str);
+    dtb.nzeros((unsigned)sz);       // include terminating 0
+    s->Sdt = dtb.finish();
+    s->Sfl = FLdata;
+    s->Salignment = sz;
+    outdata(s);
+    return s;
+}
+
 
 /******************************
  * Walk expression tree, converting it from a PARSER tree to
@@ -1448,6 +1536,21 @@ symbol *out_readonly_sym(tym_t ty, void *p, int len)
         memcpy(r->p, p, len);
     }
     return s;
+}
+
+/*************************************
+ * Output Symbol as a readonly comdat.
+ * Params:
+ *      s = comdat symbol
+ *      p = pointer to the data to write
+ *      len = length of that data
+ *      nzeros = number of trailing zeros to append
+ */
+void out_readonly_comdat(Symbol *s, const void *p, unsigned len, unsigned nzeros)
+{
+    objmod->readonly_comdat(s);         // create comdat segment
+    objmod->write_bytes(SegData[s->Sseg], len, (void *)p);
+    objmod->lidata(s->Sseg, len, nzeros);
 }
 
 void Srcpos::print(const char *func)

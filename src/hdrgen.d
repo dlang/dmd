@@ -915,19 +915,19 @@ public:
     {
         foreach (id; t.idents)
         {
-            if (id.dyncast() == DYNCAST_DSYMBOL)
+            if (id.dyncast() == DYNCAST.dsymbol)
             {
                 buf.writeByte('.');
                 TemplateInstance ti = cast(TemplateInstance)id;
                 ti.accept(this);
             }
-            else if (id.dyncast() == DYNCAST_EXPRESSION)
+            else if (id.dyncast() == DYNCAST.expression)
             {
                 buf.writeByte('[');
                 (cast(Expression)id).accept(this);
                 buf.writeByte(']');
             }
-            else if (id.dyncast() == DYNCAST_TYPE)
+            else if (id.dyncast() == DYNCAST.type)
             {
                 buf.writeByte('[');
                 (cast(Type)id).accept(this);
@@ -1856,6 +1856,8 @@ public:
 
     override void visit(PostBlitDeclaration d)
     {
+        if (stcToBuffer(buf, d.storage_class))
+            buf.writeByte(' ');
         buf.writestring("this(this)");
         bodyToBuffer(d);
     }

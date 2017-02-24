@@ -484,7 +484,7 @@ extern (C++) class Dsymbol : RootObject
     // kludge for template.isSymbol()
     override final DYNCAST dyncast() const
     {
-        return DYNCAST_DSYMBOL;
+        return DYNCAST.dsymbol;
     }
 
     /*************************************
@@ -740,10 +740,10 @@ extern (C++) class Dsymbol : RootObject
         }
         switch (id.dyncast())
         {
-        case DYNCAST_IDENTIFIER:
+        case DYNCAST.identifier:
             sm = s.search(loc, cast(Identifier)id);
             break;
-        case DYNCAST_DSYMBOL:
+        case DYNCAST.dsymbol:
             {
                 // It's a template instance
                 //printf("\ttemplate instance id\n");
@@ -772,8 +772,8 @@ extern (C++) class Dsymbol : RootObject
                 sm = ti.toAlias();
                 break;
             }
-        case DYNCAST_TYPE:
-        case DYNCAST_EXPRESSION:
+        case DYNCAST.type:
+        case DYNCAST.expression:
         default:
             assert(0);
         }
@@ -1006,7 +1006,7 @@ extern (C++) class Dsymbol : RootObject
         else if (comment && strcmp(cast(char*)comment, cast(char*)this.comment) != 0)
         {
             // Concatenate the two
-            this.comment = Lexer.combineComments(this.comment, comment);
+            this.comment = Lexer.combineComments(this.comment, comment, true);
         }
     }
 

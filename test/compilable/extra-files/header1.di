@@ -456,3 +456,8 @@ class Foo2A
 	{
 	}
 }
+struct Foo3A(T)
+{
+	@disable this(this);
+	@disable this();
+}

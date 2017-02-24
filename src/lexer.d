@@ -157,6 +157,7 @@ class Lexer
     bool doDocComment;      // collect doc comment information
     bool anyToken;          // seen at least one token
     bool commentToken;      // comments are TOKcomment's
+    int lastDocLine;        // last line of previous doc comment
     bool errors;            // errors occurred during lexing or parsing
 
     /*********************
@@ -181,6 +182,7 @@ class Lexer
         line = p;
         this.doDocComment = doDocComment;
         this.commentToken = commentToken;
+        this.lastDocLine = 0;
         //initKeywords();
         /* If first line starts with '#!', ignore the line
          */
@@ -561,7 +563,8 @@ class Lexer
                     else if (doDocComment && t.ptr[2] == '*' && p - 4 != t.ptr)
                     {
                         // if /** but not /**/
-                        getDocComment(t, lastLine == startLoc.linnum);
+                        getDocComment(t, lastLine == startLoc.linnum, startLoc.linnum - lastDocLine > 1);
+                        lastDocLine = scanloc.linnum;
                     }
                     continue;
                 case '/': // do // style comments
@@ -587,7 +590,10 @@ class Lexer
                                 return;
                             }
                             if (doDocComment && t.ptr[2] == '/')
-                                getDocComment(t, lastLine == startLoc.linnum);
+                            {
+                                getDocComment(t, lastLine == startLoc.linnum, startLoc.linnum - lastDocLine > 1);
+                                lastDocLine = scanloc.linnum;
+                            }
                             p = end;
                             t.loc = loc();
                             t.value = TOKeof;
@@ -612,7 +618,10 @@ class Lexer
                         return;
                     }
                     if (doDocComment && t.ptr[2] == '/')
-                        getDocComment(t, lastLine == startLoc.linnum);
+                    {
+                        getDocComment(t, lastLine == startLoc.linnum, startLoc.linnum - lastDocLine > 1);
+                        lastDocLine = scanloc.linnum;
+                    }
                     p++;
                     endOfLine();
                     continue;
@@ -681,7 +690,8 @@ class Lexer
                         if (doDocComment && t.ptr[2] == '+' && p - 4 != t.ptr)
                         {
                             // if /++ but not /++/
-                            getDocComment(t, lastLine == startLoc.linnum);
+                            getDocComment(t, lastLine == startLoc.linnum, startLoc.linnum - lastDocLine > 1);
+                            lastDocLine = scanloc.linnum;
                         }
                         continue;
                     }
@@ -2325,8 +2335,11 @@ class Lexer
      * Remove leading comment character from each line.
      * Decide if it's a lineComment or a blockComment.
      * Append to previous one for this token.
+     *
+     * If newParagraph is true, an extra newline will be
+     * added between adjoining doc comments.
      */
-    final void getDocComment(Token* t, uint lineComment)
+    final void getDocComment(Token* t, uint lineComment, bool newParagraph)
     {
         /* ct tells us which kind of comment it is: '/', '*', or '+'
          */
@@ -2452,19 +2465,20 @@ class Lexer
         auto dc = (lineComment && anyToken) ? &t.lineComment : &t.blockComment;
         // Combine with previous doc comment, if any
         if (*dc)
-            *dc = combineComments(*dc, buf.peekString());
+            *dc = combineComments(*dc, buf.peekString(), newParagraph);
         else
             *dc = buf.extractString();
     }
 
     /********************************************
      * Combine two document comments into one,
-     * separated by a newline.
+     * separated by an extra newline if newParagraph is true.
      */
-    static const(char)* combineComments(const(char)* c1, const(char)* c2)
+    static const(char)* combineComments(const(char)* c1, const(char)* c2, bool newParagraph)
     {
-        //printf("Lexer::combineComments('%s', '%s')\n", c1, c2);
+        //printf("Lexer::combineComments('%s', '%s', '%i')\n", c1, c2, newParagraph);
         auto c = c2;
+        const(int) newParagraphSize = newParagraph ? 1 : 0; // Size of the combining '\n'
         if (c1)
         {
             c = c1;
@@ -2478,13 +2492,14 @@ class Lexer
                     ++len1;
                     insertNewLine = 1;
                 }
-                auto p = cast(char*)mem.xmalloc(len1 + 1 + len2 + 1);
+                auto p = cast(char*)mem.xmalloc(len1 + newParagraphSize + len2 + 1);
                 memcpy(p, c1, len1 - insertNewLine);
                 if (insertNewLine)
                     p[len1 - 1] = '\n';
-                p[len1] = '\n';
-                memcpy(p + len1 + 1, c2, len2);
-                p[len1 + 1 + len2] = 0;
+                if (newParagraph)
+                    p[len1] = '\n';
+                memcpy(p + len1 + newParagraphSize, c2, len2);
+                p[len1 + newParagraphSize + len2] = 0;
                 c = p;
             }
         }
