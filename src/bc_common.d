@@ -369,7 +369,7 @@ struct BCValue
 
     //TORO PERF minor: use a 32bit value for heapRef;
    BCHeapRef heapRef;
-   
+
     uint toUint() const pure
     {
         switch(this.vType)
