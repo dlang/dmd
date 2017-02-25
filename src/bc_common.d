@@ -346,6 +346,9 @@ struct BCHeapRef
 
 struct BCValue
 {
+    // only to workaround codegen issue
+    uint _;///FIXME remove when 2.074 is out!!
+
     BCType type;
     BCValueType vType;
     union
@@ -366,7 +369,7 @@ struct BCValue
 
     //TORO PERF minor: use a 32bit value for heapRef;
    BCHeapRef heapRef;
-
+   
     uint toUint() const pure
     {
         switch(this.vType)
