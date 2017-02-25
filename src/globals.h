@@ -148,6 +148,7 @@ struct Param
 
     const char *defaultlibname; // default library for non-debug builds
     const char *debuglibname;   // default library for debug builds
+    const char *mscrtlib;       // MS C runtime library
 
     const char *moduleDepsFile; // filename for deps output
     OutBuffer *moduleDeps;      // contents to be written to deps file
