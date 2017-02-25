@@ -359,6 +359,11 @@ extern (C++) class Visitor
         visit(cast(Type)t);
     }
 
+    void visit(TypeDeduced t)
+    {
+        visit(cast(Type)t);
+    }
+
     void visit(Dsymbol)
     {
         assert(0);
@@ -1310,6 +1315,11 @@ extern (C++) class Visitor
     }
 
     void visit(ThrownExceptionExp e)
+    {
+        visit(cast(Expression)e);
+    }
+
+    void visit(CTFEExp e)
     {
         visit(cast(Expression)e);
     }
