@@ -215,6 +215,14 @@ else
             p[0 .. ti.initializer.length] = ti.initializer[];
             return p;
         }
+
+        // TypeInfo.initializer for compilers older than 2.070
+        static if(!__traits(hasMember, TypeInfo, "initializer"))
+        private const(void[]) initializer(T : TypeInfo)(const T t)
+        nothrow pure @safe @nogc
+        {
+            return t.init;
+        }
     }
 }
 
