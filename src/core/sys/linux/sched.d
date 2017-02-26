@@ -18,7 +18,7 @@ import core.sys.posix.sched;
 import core.sys.posix.config;
 import core.sys.posix.sys.types;
 
-version (Linux):
+version (linux):
 extern (C):
 @nogc:
 nothrow:
