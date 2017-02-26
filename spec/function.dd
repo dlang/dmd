@@ -921,6 +921,31 @@ void main()
 }
 ------
 
+    $(P It's not allowed to mark an overridden method with the attributes
+    $(LINK2 attribute.html#disable, $(D @disable)) or
+    $(LINK2 attribute.html#deprecated, $(D deprecated)).
+    To stop the compilation or to output the deprecation message, the compiler
+    must be able to determine the target of the call, which can't be guaranteed
+    when it is virtual.
+    )
+
+------
+class B
+{
+    void foo() {}
+}
+
+class D : B
+{
+    @disable override void foo() {}
+}
+
+void main()
+{
+    B b = new D;
+    b.foo(); // would compiles and then the most derived would be called even if disabled.
+}
+------
 
 $(H4 $(LNAME2 inline-functions, Inline Functions))
 
