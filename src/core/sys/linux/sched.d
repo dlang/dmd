@@ -67,7 +67,7 @@ struct cpu_set_t
     cpu_mask[__CPU_SETSIZE / __NCPUBITS] __bits;
 }
 
-/// Access macros for `cpu_set' (missing a lot of them)
+/// Access macros for 'cpu_set' (missing a lot of them)
 
 cpu_mask CPU_SET(size_t cpu, cpu_set_t* cpusetp) pure
 {
