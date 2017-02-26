@@ -104,6 +104,46 @@ struct BCRecorderGen
       return &records[recordCount++];
     }
 
+    playBack(Gen)(ref Gen gen)
+    {
+        foreach(r;records[0 .. recordCount])
+        {
+            with (BCInst) final switch(r)
+            {
+              case beginFunction :
+              {
+                  gen.beginFunction(r.fnNr);
+              }
+              break;
+              case endFunction :
+              {
+                  gen.endFunction();
+              }
+              break;
+              case Initialize :
+              {
+                  gen.Initialze();
+              }
+              break;
+              case Finalzize :
+              {
+                  gen.Finalize();
+              }
+              break;
+              case genTemporary :
+              {
+                   gen.genTemporary(r.type)
+              }
+              break;
+              case genParameter :
+              {
+                   gen.genParameter(r.type);
+              }
+              break;
+            }
+        }
+    }
+
     BCLabel genLabel()
     {
         if (!sameLabel)
