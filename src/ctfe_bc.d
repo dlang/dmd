@@ -302,8 +302,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         bcv.vars.keys.each!(k => (cast(VarDeclaration) k).print);
         bcv.vars.writeln;
 
-        writeln(" stackUsage = ", (bcv.sp - 4).to!string ~ " byte");
-        writeln(" TemporaryCount = ", (bcv.temporaryCount).to!string);
+        writeln("stackUsage = ", (bcv.sp - 4).to!string ~ " byte");
+        writeln("TemporaryCount = ", (bcv.temporaryCount).to!string);
     }
 
     if (!bcv.IGaveUp)
@@ -4321,19 +4321,23 @@ static if (is(BCGen))
         BCValue thisPtr;
         BCValue fnValue;
         FuncDeclaration fd;
-
         bool isFunctionPtr;
-       // bailout("Bailing on FunctionCall");
-       // return ;
+        assert(ce.e1.type.ty == Tfunction);
 
+        TypeFunction tf = cast (TypeFunction) ce.e1.type;
         import ddmd.asttypename;
+
         if (ce.e1.op == TOKvar)
         {
             auto ve = (cast(VarExp) ce.e1);
             fd = ve.var.isFuncDeclaration();
             // TODO FIXME be aware we can set isFunctionPtr here as well,
             // should we detect it
-            bailout(!fd, "call on varexp: var was not a FuncDeclaration, but: " ~ ve.var.astTypeName);
+            if (!fd)
+            {
+                bailout("call on varexp: var was not a FuncDeclaration, but: " ~ ve.var.astTypeName);
+                return ;
+            }
         }
         else if (ce.e1.op == TOKdotvar)
         {
@@ -4344,7 +4348,7 @@ static if (is(BCGen))
             _this = dve.e1;
             if (!dve.var || !dve.var.isFuncDeclaration())
             {
-                bailout("no dve.var is not a funcDecl callExp" ~ dve.toString);
+                bailout("no dve.var or it's not a funcDecl callExp -- " ~ dve.toString);
                 return ;
             }
             fd = dve.var.isFuncDeclaration();
@@ -4353,8 +4357,6 @@ static if (is(BCGen))
                 _this = (cast(DotTypeExp)dve.e1).e1;
             }
             */
-            import ddmd.asttypename;
-            import std.stdio;
             thisPtr = genExpr(dve.e1);
 
         }
@@ -4362,9 +4364,8 @@ static if (is(BCGen))
         {
             isFunctionPtr = true;
             fnValue = genExpr(ce.e1);
-            //fnValue = genTemporary(i32Type);
-            //Load32(fnValue, fnAddr);
-
+            import std.stdio;
+            tf = cast(TypeFunction) ce.e1.type;
         }
 
         if(!isFunctionPtr)
@@ -4374,6 +4375,7 @@ static if (is(BCGen))
                 bailout("could not get funcDecl" ~ astTypeName(ce.e1));
                 return;
             }
+            tf = cast(TypeFunction) fd.type;
 
             int fnIdx = _sharedCtfeState.getFunctionIndex(fd);
             if (!fnIdx && cacheBC)
