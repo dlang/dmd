@@ -71,7 +71,7 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
 bool isBasicBCType(BCTypeEnum bct) @safe pure
 {
     return !(bct == BCTypeEnum.Struct || bct == BCTypeEnum.Array
-        || bct == BCType.Slice || bct == BCTypeEnum.Undef);
+        || bct == BCType.Slice || bct == BCTypeEnum.Undef || bct == BCTypeEnum.Ptr);
 }
 
 enum BCTypeEnum : ubyte
@@ -318,7 +318,16 @@ struct BCHeapRef
         Imm32 imm32;
     }
 
-    this(const(BCValue) that) pure
+@safe pure:
+    bool opCast(T : bool)() const pure
+    {
+        // the check for Undef is a workaround
+        // consider removing it when everything works correctly.
+
+        return this.vType != vType.Unknown;
+    }
+
+    this(const(BCValue) that)
     {
         switch(that.vType)
         {
@@ -496,7 +505,7 @@ struct BCValue
         this.heapAddr = addr;
     }
 
-    this(const BCHeapRef heapRef)
+    this(const BCHeapRef heapRef) pure
     {
         this.vType = heapRef.vType;
         switch (vType)
