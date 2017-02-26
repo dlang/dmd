@@ -435,39 +435,57 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 
     if (e.ident == Id.isArithmetic)
     {
+        if (dim != 1)
+            return dimError(1);
         return isTypeX(t => t.isintegral() || t.isfloating());
     }
     if (e.ident == Id.isFloating)
     {
+        if (dim != 1)
+            return dimError(1);
         return isTypeX(t => t.isfloating());
     }
     if (e.ident == Id.isIntegral)
     {
+        if (dim != 1)
+            return dimError(1);
         return isTypeX(t => t.isintegral());
     }
     if (e.ident == Id.isScalar)
     {
+        if (dim != 1)
+            return dimError(1);
         return isTypeX(t => t.isscalar());
     }
     if (e.ident == Id.isUnsigned)
     {
+        if (dim != 1)
+            return dimError(1);
         return isTypeX(t => t.isunsigned());
     }
     if (e.ident == Id.isAssociativeArray)
     {
+        if (dim != 1)
+            return dimError(1);
         return isTypeX(t => t.toBasetype().ty == Taarray);
     }
     if (e.ident == Id.isStaticArray)
     {
+        if (dim != 1)
+            return dimError(1);
         return isTypeX(t => t.toBasetype().ty == Tsarray);
     }
     if (e.ident == Id.isAbstractClass)
     {
+        if (dim != 1)
+            return dimError(1);
         return isTypeX(t => t.toBasetype().ty == Tclass &&
                             (cast(TypeClass)t.toBasetype()).sym.isAbstract());
     }
     if (e.ident == Id.isFinalClass)
     {
+        if (dim != 1)
+            return dimError(1);
         return isTypeX(t => t.toBasetype().ty == Tclass &&
                             ((cast(TypeClass)t.toBasetype()).sym.storage_class & STCfinal) != 0);
     }
@@ -526,38 +544,56 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     if (e.ident == Id.isAbstractFunction)
     {
+        if (dim != 1)
+            return dimError(1);
         return isFuncX(f => f.isAbstract());
     }
     if (e.ident == Id.isVirtualFunction)
     {
+        if (dim != 1)
+            return dimError(1);
         return isFuncX(f => f.isVirtual());
     }
     if (e.ident == Id.isVirtualMethod)
     {
+        if (dim != 1)
+            return dimError(1);
         return isFuncX(f => f.isVirtualMethod());
     }
     if (e.ident == Id.isFinalFunction)
     {
+        if (dim != 1)
+            return dimError(1);
         return isFuncX(f => f.isFinalFunc());
     }
     if (e.ident == Id.isOverrideFunction)
     {
+        if (dim != 1)
+            return dimError(1);
         return isFuncX(f => f.isOverride());
     }
     if (e.ident == Id.isStaticFunction)
     {
+        if (dim != 1)
+            return dimError(1);
         return isFuncX(f => !f.needThis() && !f.isNested());
     }
     if (e.ident == Id.isRef)
     {
+        if (dim != 1)
+            return dimError(1);
         return isDeclX(d => d.isRef());
     }
     if (e.ident == Id.isOut)
     {
+        if (dim != 1)
+            return dimError(1);
         return isDeclX(d => d.isOut());
     }
     if (e.ident == Id.isLazy)
     {
+        if (dim != 1)
+            return dimError(1);
         return isDeclX(d => (d.storage_class & STClazy) != 0);
     }
     if (e.ident == Id.identifier)
