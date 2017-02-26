@@ -3978,6 +3978,10 @@ static if (is(BCGen))
     {
         //FIXME This will break if UnrolledLoopStatements are nested,
         // I am not sure if this can ever happen
+        if (unrolledLoopState)
+        {
+            assert(0, "unrolled loops may not be nested");
+        }
         auto _uls = UnrolledLoopState();
         unrolledLoopState = &_uls;
         uint end = cast(uint) uls.statements.dim - 1;
