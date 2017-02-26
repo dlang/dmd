@@ -910,6 +910,15 @@ extern (C++) class FuncDeclaration : Declaration
                     }
                 }
             }
+
+            if (isOverride)
+            {
+                if (storage_class & STCdisable)
+                    deprecation("overridden functions cannot be annotated @disable");
+                if (isDeprecated)
+                    deprecation("deprecated functions cannot be annotated @disable");
+            }
+
         }
         else if (isOverride() && !parent.isTemplateInstance())
             error("override only applies to class member functions");
