@@ -1856,6 +1856,7 @@ int ElfObj::getsegment(const char *name, const char *suffix, int type, int flags
 
 void Obj::setcodeseg(int seg)
 {
+    cseg = seg;
 }
 
 /********************************

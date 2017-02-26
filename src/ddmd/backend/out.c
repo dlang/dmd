@@ -985,7 +985,8 @@ STATIC void writefunc2(symbol *sfunc)
     unsigned nsymbols;
     SYMIDX si;
     int anyasm;
-    int csegsave;                       // for OMF
+    const int CSEGSAVE_DEFAULT = -10000;        // some unlikely number
+    int csegsave = CSEGSAVE_DEFAULT;
     func_t *f = sfunc->Sfunc;
     tym_t tyf;
 
@@ -1267,6 +1268,7 @@ STATIC void writefunc2(symbol *sfunc)
         {
             csegsave = cseg;
             objmod->comdat(sfunc);
+            cseg = sfunc->Sseg;
         }
         else
             if (config.flags & CFGsegs) // if user set switch for this
@@ -1404,9 +1406,13 @@ STATIC void writefunc2(symbol *sfunc)
      cod3_adjSymOffsets();
 #endif
 
-    if ((config.objfmt == OBJ_OMF || config.objfmt == OBJ_MSCOFF) &&
-        symbol_iscomdat(sfunc))         // if generated a COMDAT
+    if (symbol_iscomdat(sfunc))         // if generated a COMDAT
+    {
+        assert(csegsave != CSEGSAVE_DEFAULT);
         objmod->setcodeseg(csegsave);       // reset to real code seg
+        if (config.objfmt == OBJ_MACH)
+            assert(cseg == CODE);
+    }
 
     /* Check if function is a constructor or destructor, by     */
     /* seeing if the function name starts with _STI or _STD     */

@@ -2000,6 +2000,7 @@ static int generate_comdat(Obj* objmod, Symbol *s, bool is_readonly_comdat)
     if (s->Sclass == SCstatic)
         lr->flags |= 0x04;      // local bit (make it an "LCOMDAT")
     s->Soffset = 0;
+    s->Sseg = pseg->SDseg;
     return pseg->SDseg;
 }
 
