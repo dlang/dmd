@@ -1017,6 +1017,20 @@ class Lexer
                         poundLine();
                         continue;
                     }
+                    else if (n.isKeyword)
+                    {
+                        *t = n;
+                        t.value = TOKidentifier;
+                        t.loc = n.loc;
+
+                        debug
+                        {
+                            const string s = n.toString(n.value);
+                            printf("escaped KW '%s' \n", s.ptr);
+                        }
+
+                        return;
+                    }
                     else
                     {
                         t.value = TOKpound;
