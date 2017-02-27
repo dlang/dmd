@@ -504,10 +504,12 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
     }
     Loc declLoc = Loc(); // loc is unnecessary so __xopEquals is never called directly
     Loc loc = Loc(); // loc is unnecessary so errors are gagged
+    // Use C linkage: we need to make sure the arguments order (p, q) isn't reversed, in
+    // order to obtain a signature identical to that of method `S.opEquals(ref const S)`.
     auto parameters = new Parameters();
     parameters.push(new Parameter(STCref | STCconst, sd.type, Id.p, null));
     parameters.push(new Parameter(STCref | STCconst, sd.type, Id.q, null));
-    auto tf = new TypeFunction(parameters, Type.tbool, 0, LINKd);
+    auto tf = new TypeFunction(parameters, Type.tbool, 0, LINKc);
     Identifier id = Id.xopEquals;
     auto fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
     fop.generated = true;
@@ -518,7 +520,7 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
     uint errors = global.startGagging(); // Do not report errors
     Scope* sc2 = sc.push();
     sc2.stc = 0;
-    sc2.linkage = LINKd;
+    sc2.linkage = LINKc;
     fop.semantic(sc2);
     fop.semantic2(sc2);
     sc2.pop();
@@ -529,7 +531,7 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
 
 /******************************************
  * Build __xopCmp for TypeInfo_Struct
- *      static bool __xopCmp(ref const S p, ref const S q)
+ *      static int __xopCmp(ref const S p, ref const S q)
  *      {
  *          return p.opCmp(q);
  *      }
@@ -624,21 +626,23 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
     }
     Loc declLoc = Loc(); // loc is unnecessary so __xopCmp is never called directly
     Loc loc = Loc(); // loc is unnecessary so errors are gagged
+    // Use C linkage: we need to make sure the arguments order (p, q) isn't reversed, in
+    // order to obtain a signature identical to that of method `S.opCmp(ref const S)`.
     auto parameters = new Parameters();
     parameters.push(new Parameter(STCref | STCconst, sd.type, Id.p, null));
     parameters.push(new Parameter(STCref | STCconst, sd.type, Id.q, null));
-    auto tf = new TypeFunction(parameters, Type.tint32, 0, LINKd);
+    auto tf = new TypeFunction(parameters, Type.tint32, 0, LINKc);
     Identifier id = Id.xopCmp;
     auto fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
     fop.generated = true;
     Expression e1 = new IdentifierExp(loc, Id.p);
     Expression e2 = new IdentifierExp(loc, Id.q);
-    Expression e = new CallExp(loc, new DotIdExp(loc, e2, Id.cmp), e1);
+    Expression e = new CallExp(loc, new DotIdExp(loc, e1, Id.cmp), e2);
     fop.fbody = new ReturnStatement(loc, e);
     uint errors = global.startGagging(); // Do not report errors
     Scope* sc2 = sc.push();
     sc2.stc = 0;
-    sc2.linkage = LINKd;
+    sc2.linkage = LINKc;
     fop.semantic(sc2);
     fop.semantic2(sc2);
     sc2.pop();
