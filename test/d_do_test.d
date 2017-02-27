@@ -56,6 +56,7 @@ struct TestArgs
     string[] objcSources;
     string   permuteArgs;
     string   compileOutput;
+    string   inlinedOutput;
     string   gdbScript;
     string   gdbMatch;
     string   postScript;
@@ -235,6 +236,8 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
 
     findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
 
+    findOutputParameter(file, "TEST_INLINED", testArgs.inlinedOutput, envData.sep);
+
     findOutputParameter(file, "GDB_SCRIPT", testArgs.gdbScript, envData.sep);
     findTestParameter(file, "GDB_MATCH", testArgs.gdbMatch);
 
@@ -362,7 +365,7 @@ unittest
         == `fail_compilation\diag.d(2): Error: fail_compilation\imports\fail.d must be imported`);
 }
 
-bool collectExtraSources (in string input_dir, in string output_dir, in string[] extraSources, ref string[] sources, bool msc, in EnvData envData, in string compiler)
+bool collectExtraSources(in string input_dir, in string output_dir, in string[] extraSources, ref string[] sources, bool msc, in EnvData envData, in string compiler)
 {
     foreach (cur; extraSources)
     {
@@ -486,6 +489,12 @@ int main(string[] args)
     if (!gatherTestParameters(testArgs, input_dir, input_file, envData))
         return 0;
 
+    if (testArgs.compileOutput !is null && testArgs.inlinedOutput !is null)
+    {
+        writeln("cannot test TEST_OUTPUT and TEST_INLINED at the same time");
+        return 1;
+    }
+
     //prepare cpp extra sources
     if (testArgs.cppSources.length)
     {
@@ -530,7 +539,7 @@ int main(string[] args)
 
     auto f = File(output_file, "a");
 
-    foreach (i, c; combinations(testArgs.permuteArgs))
+    foreach (i, permArgs; combinations(testArgs.permuteArgs))
     {
         string test_app_dmd = test_app_dmd_base ~ to!string(i) ~ envData.exe;
 
@@ -548,42 +557,51 @@ int main(string[] args)
                 removeIfExists(thisRunName);
             }
 
-            // can override -verrors by using REQUIRED_ARGS
-            auto reqArgs =
-                (testArgs.mode == TestMode.FAIL_COMPILE ? "-verrors=0 " : null) ~
-                testArgs.requiredArgs;
+            auto reqArgs = testArgs.requiredArgs;
 
-            string compile_output;
+            bool doInline = match(reqArgs, "-inline") || match(permArgs, "-inline");
+
+            // autoArgs is places before reqArgs, so can override -verrors by using REQUIRED_ARGS
+            auto autoArgs =
+                (testArgs.mode == TestMode.FAIL_COMPILE ? "-verrors=0 " : null) ~
+                (doInline && testArgs.inlinedOutput !is null ? "-v " : null);
+
+            // concatenated compiler output, will be tested at last.
+            string output;
+
             if (!testArgs.compileSeparately)
             {
                 string objfile = output_dir ~ envData.sep ~ test_name ~ "_" ~ to!string(i) ~ envData.obj;
                 toCleanup ~= objfile;
 
-                string command = format("%s -conf= -m%s -I%s %s %s -od%s -of%s %s%s", envData.dmd, envData.model, input_dir,
-                        reqArgs, c, output_dir,
+                string command = format("%s -conf= -m%s -I%s %s %s %s -od%s -of%s %s%s",
+                        envData.dmd, envData.model, input_dir,
+                        autoArgs, reqArgs, permArgs, output_dir,
                         (testArgs.mode == TestMode.RUN ? test_app_dmd : objfile),
                         (testArgs.mode == TestMode.RUN ? "" : "-c "),
                         join(testArgs.sources, " "));
                 version(Windows) command ~= " -map nul.map";
 
-                compile_output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
+                output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
             }
             else
             {
                 foreach (filename; testArgs.sources)
                 {
-                    string newo= result_path ~ replace(replace(filename, ".d", envData.obj), envData.sep~"imports"~envData.sep, envData.sep);
+                    string newo = result_path ~ replace(replace(filename, ".d", envData.obj), envData.sep~"imports"~envData.sep, envData.sep);
                     toCleanup ~= newo;
 
-                    string command = format("%s -conf= -m%s -I%s %s %s -od%s -c %s", envData.dmd, envData.model, input_dir,
-                        reqArgs, c, output_dir, filename);
-                    compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
+                    string command = format("%s -conf= -m%s -I%s %s %s %s -od%s -c %s",
+                            envData.dmd, envData.model, input_dir,
+                            autoArgs, reqArgs, permArgs, output_dir, filename);
+                    output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
                 }
 
                 if (testArgs.mode == TestMode.RUN)
                 {
                     // link .o's into an executable
-                    string command = format("%s -conf= -m%s %s %s -od%s -of%s %s", envData.dmd, envData.model, envData.required_args,
+                    string command = format("%s -conf= -m%s %s %s -od%s -of%s %s",
+                            envData.dmd, envData.model, envData.required_args,
                             testArgs.requiredArgsForLink, output_dir, test_app_dmd, join(toCleanup, " "));
                     version(Windows) command ~= " -map nul.map";
 
@@ -591,17 +609,36 @@ int main(string[] args)
                 }
             }
 
-            compile_output = std.regex.replace(compile_output, regex(`^DMD v2\.[0-9]+.* DEBUG$`, "m"), "");
-            compile_output = std.string.strip(compile_output);
-            compile_output = compile_output.unifyNewLine();
-
-            auto m = std.regex.match(compile_output, `Internal error: .*$`);
-            enforce(!m, m.hit);
+            output = std.regex.replace(output, regex(`^DMD v2\.[0-9]+.* DEBUG$`, "m"), "");
+            output = std.string.strip(output);
+            output = output.unifyNewLine();
+            {
+                auto m = std.regex.match(output, `Internal error: .*$`);
+                enforce(!m, m.hit);
+            }
 
             if (testArgs.compileOutput !is null)
             {
-                enforce(compareOutput(compile_output, testArgs.compileOutput),
-                        "\nexpected:\n----\n"~testArgs.compileOutput~"\n----\nactual:\n----\n"~compile_output~"\n----\n");
+                enforce(compareOutput(output, testArgs.compileOutput),
+                        "\nexpected:\n----\n"~testArgs.compileOutput~
+                        "\n----\nactual:\n----\n"~output~"\n----\n");
+            }
+            if (testArgs.inlinedOutput !is null && doInline)
+            {
+                // Collect inlined function names from -v output
+                auto r = regex(r"inlined   .* =>\n          .*\n");
+
+                string verboseOutput;
+                foreach (m; matchAll(output, r))
+                    verboseOutput ~= m.hit;
+                verboseOutput = verboseOutput;
+                verboseOutput = std.string.strip(verboseOutput);
+                verboseOutput = verboseOutput.unifyNewLine();
+
+                //writefln("args = \"%s %s %s\", output = \n---\n%s---", reqArgs, autoArgs, permArgs, verboseOutput);
+                enforce(compareOutput(verboseOutput, testArgs.inlinedOutput),
+                        "\nexpected:\n----\n"~testArgs.inlinedOutput~
+                        "\n----\nactual:\n----\n"~verboseOutput~"\n----\n");
             }
 
             if (testArgs.mode == TestMode.RUN)
