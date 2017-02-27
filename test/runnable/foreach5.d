@@ -1085,6 +1085,61 @@ void test14653()
 }
 
 /***************************************/
+// 15859
+
+struct X15859
+{
+    int opApply(int delegate(string) dg)
+    {
+        return dg("impure");
+    }
+
+    int opApply(int delegate(string) pure dg) pure
+    {
+        return dg("pure");
+    }
+}
+
+void test15859()
+{
+    static int global;
+
+    X15859 x;
+    string result;
+
+    x.opApply((string s)
+    {
+        result = s;
+        return 0;
+    });
+    assert(result == "pure");
+
+    result = null;
+    x.opApply((string s)
+    {
+        result = s;
+        global = 1; // impure operation
+        return 0;
+    });
+    assert(result == "impure");
+
+    result = null;
+    foreach (string s; x)
+    {
+        result = s;
+    }
+    assert(result == "pure");
+
+    result = null;
+    foreach (string s; x)
+    {
+        result = s;
+        global = 2; // impure operation
+    }
+    assert(result == "impure");
+}
+
+/***************************************/
 
 int main()
 {
@@ -1116,6 +1171,7 @@ int main()
     test12932();
     test13756();
     test14653();
+    test15859();
 
     printf("Success\n");
     return 0;

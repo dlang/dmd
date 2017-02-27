@@ -1949,6 +1949,7 @@ extern (C++) static Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaratio
     MATCH match = MATCHnomatch;
     FuncDeclaration fd_best;
     FuncDeclaration fd_ambig;
+
     overloadApply(fstart, (Dsymbol s)
     {
         auto f = s.isFuncDeclaration();
@@ -1956,6 +1957,7 @@ extern (C++) static Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaratio
             return 0;
         auto tf = cast(TypeFunction)f.type;
         MATCH m = MATCHexact;
+
         if (f.isThis())
         {
             if (!MODimplicitConv(mod, tf.mod))
@@ -1965,14 +1967,31 @@ extern (C++) static Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaratio
         }
         if (!inferApplyArgTypesY(tf, parameters, 1))
             m = MATCHnomatch;
+
         if (m > match)
         {
             fd_best = f;
             fd_ambig = null;
             match = m;
         }
-        else if (m == match)
+        else if (m == match && fd_best)
+        {
+            auto tfx = cast(TypeFunction)fd_best.type;
+            auto tfy = cast(TypeFunction)f      .type;
+            auto tf1 = cast(TypeFunction)Parameter.getNth(tfx.parameters, 0).type.nextOf();
+            auto tf2 = cast(TypeFunction)Parameter.getNth(tfy.parameters, 0).type.nextOf();
+
+            if (tf1.covariant(tf2) == 1 || tf2.covariant(tf1) == 1)
+            {
+                /* Bugzilla 15859: When the found opApply delegate parameter types
+                 * are covariant, deduced foreach parameter types become same.
+                 * So the overloads may be resolved later with inferred
+                 * attributes from the foreach body.
+                 */
+                return 0;
+            }
             fd_ambig = f;
+        }
         return 0;
     });
 
@@ -1999,31 +2018,31 @@ extern (C++) static Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaratio
  */
 extern (C++) static int inferApplyArgTypesY(TypeFunction tf, Parameters* parameters, int flags = 0)
 {
-    size_t nparams;
-    Parameter p;
     if (Parameter.dim(tf.parameters) != 1)
-        goto Lnomatch;
-    p = Parameter.getNth(tf.parameters, 0);
+        return 0;
+    auto p = Parameter.getNth(tf.parameters, 0);
     if (p.type.ty != Tdelegate)
-        goto Lnomatch;
+        return 0;
     tf = cast(TypeFunction)p.type.nextOf();
     assert(tf.ty == Tfunction);
+
     /* We now have tf, the type of the delegate. Match it against
      * the parameters, filling in missing parameter types.
      */
-    nparams = Parameter.dim(tf.parameters);
+    auto nparams = Parameter.dim(tf.parameters);
     if (nparams == 0 || tf.varargs)
-        goto Lnomatch; // not enough parameters
+        return 0; // not enough parameters
     if (parameters.dim != nparams)
-        goto Lnomatch; // not enough parameters
+        return 0; // not enough parameters
+
     for (size_t u = 0; u < nparams; u++)
     {
         p = (*parameters)[u];
-        Parameter param = Parameter.getNth(tf.parameters, u);
+        auto param = Parameter.getNth(tf.parameters, u);
         if (p.type)
         {
             if (!p.type.equals(param.type))
-                goto Lnomatch;
+                return 0;
         }
         else if (!flags)
         {
@@ -2031,7 +2050,6 @@ extern (C++) static int inferApplyArgTypesY(TypeFunction tf, Parameters* paramet
             p.type = p.type.addStorageClass(p.storageClass);
         }
     }
-    return 1;
-Lnomatch:
-    return 0;
+
+    return 1;   // match
 }
