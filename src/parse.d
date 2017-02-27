@@ -577,8 +577,13 @@ final class Parser : Lexer
                     break;
                 }
             case TOKunittest:
-                if (global.params.useUnitTests || global.params.doDocComments || global.params.doHdrGeneration)
+                if ((!global.params.selectedUnitTestModules ||
+                     (md &&
+                      md.id &&
+                      (*global.params.selectedUnitTestModules).canFind(md.id.toChars()))) &&
+                    (global.params.useUnitTests || global.params.doDocComments || global.params.doHdrGeneration))
                 {
+                    // printf("Compiling unittests for selected module: %s\n", md.id.toChars());
                     s = parseUnitTest(pAttrs);
                     if (*pLastDecl)
                         (*pLastDecl).ddocUnittest = cast(UnitTestDeclaration)s;
