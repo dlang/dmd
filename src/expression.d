@@ -6343,6 +6343,18 @@ extern (C++) final class NewExp : Expression
                 tb = (cast(TypeDArray)tb).next.toBasetype();
             }
         }
+        else if (tb.ty == Tsarray)
+        {
+            if (!nargs)
+            {
+                type = type.pointerTo();
+            }
+            else
+            {
+                error("no arguments expected for construction of %s", type.toChars());
+                return new ErrorExp();
+            }
+        }
         else if (tb.isscalar())
         {
             if (!nargs)
