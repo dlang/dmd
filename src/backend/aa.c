@@ -11,10 +11,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
 #include "tinfo.h"
 #include "aa.h"
+
+static char __file__[] = __FILE__;      /* for tassert.h */
+#include "tassert.h"
 
 // Implementation of associative array
 // Auto-rehash and pre-allocate - Dave Fladebo
