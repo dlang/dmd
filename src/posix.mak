@@ -516,7 +516,7 @@ zip:
 ifneq ($(DOCDIR),)
 html: $(DOCDIR)/.generated
 $(DOCDIR)/.generated: $(DMD_SRCS) $(ROOT_SRCS) $(HOST_DMD_PATH) project.ddoc
-	$(HOST_DMD_RUN) -of- $(MODEL_FLAG) -J. -J../res -c -Dd$(DOCDIR)\
+	$(HOST_DMD_RUN) -of- $(MODEL_FLAG) -J$G -J../res -c -Dd$(DOCDIR)\
 	  $(DFLAGS) project.ddoc $(DOCFMT) $(DMD_SRCS) $(ROOT_SRCS)
 	touch $@
 endif
