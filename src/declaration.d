@@ -1183,8 +1183,7 @@ extern (C++) class VarDeclaration : Declaration
         //printf("sc.stc = %x\n", sc.stc);
         //printf("storage_class = x%x\n", storage_class);
 
-        if (global.params.vcomplex)
-            type.checkComplexTransition(loc);
+        type.checkComplexTransition(loc);
 
         // Calculate type size + safety checks
         if (sc.func && !sc.intypeof)

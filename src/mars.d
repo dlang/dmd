@@ -606,7 +606,6 @@ CPU architectures supported by -mcpu=id:
 Language changes listed by -transition=id:
   =all           list information on all language changes
   =checkimports  give deprecation messages about 10378 anomalies
-  =complex,14488 list all usages of complex or imaginary types
   =field,3449    list all non-mutable fields which occupy an object instance
   =import,10378  revert to single phase name lookup
   =tls           list all variables going into thread local storage
@@ -629,9 +628,6 @@ Language changes listed by -transition=id:
                         case 10378:
                             global.params.bug10378 = true;
                             break;
-                        case 14488:
-                            global.params.vcomplex = true;
-                            break;
                         default:
                             goto Lerror;
                         }
@@ -644,13 +640,9 @@ Language changes listed by -transition=id:
                         case "all":
                             global.params.vtls = true;
                             global.params.vfield = true;
-                            global.params.vcomplex = true;
                             break;
                         case "checkimports":
                             global.params.check10378 = true;
-                            break;
-                        case "complex":
-                            global.params.vcomplex = true;
                             break;
                         case "field":
                             global.params.vfield = true;

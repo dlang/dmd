@@ -1437,7 +1437,7 @@ extern (C++) class FuncDeclaration : Declaration
                     if (f.checkRetType(loc))
                         fbody = new ErrorStatement();
                 }
-                if (global.params.vcomplex && f.next !is null)
+                if (f.next !is null)
                     f.next.checkComplexTransition(loc);
 
                 if (returns && !fbody.isErrorStatement())
