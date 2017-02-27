@@ -9,8 +9,7 @@ import ddmd.init;
 import ddmd.mtype;
 import ddmd.statement;
 import ddmd.visitor;
-import ddmd.arraytypes : Expressions;
-
+import ddmd.arraytypes : Expressions, VarDeclarations;
 /**
  * Written By Stefan Koch in 2016
  */
@@ -1606,8 +1605,7 @@ public:
         {
             if (vd.storage_class & STCref && !value.heapRef)
             {
-                //assert(0, "We got a ref and the heapRef is not set this is BAD!");
-                //actually cannot check this hear :(
+             //   assert(0, "We got a ref and the heapRef is not set this is BAD!");
             }
             return *value;
         }
@@ -1766,10 +1764,14 @@ public:
                 p.accept(this);
             }
             endParameters();
+            if (parameters)
+                linkRefsCallee(parameters);
+
             auto fnIdx = uf.fn;
             beginFunction(fnIdx - 1);
             uf.fd.fbody.accept(this);
             auto osp = sp;
+
             endFunction();
             lastUncompiledFunction++;
             if (IGaveUp)
@@ -2115,7 +2117,9 @@ static if (is(BCGen))
 
             if (wasAssignTo && rhs == retval)
             {
+                auto retvalHeapRef = retval.heapRef;
                 retval = genTemporary(rhs.type);
+                retval.heapRef = retvalHeapRef;
             }
 
             if (canHandleBinExpTypes(lhs.type.type, rhs.type.type) && canWorkWithType(retval.type))
@@ -3121,6 +3125,32 @@ static if (is(BCGen))
         Store32(BCValue(hrv.heapRef), hrv);
     }
 
+    void linkRefsCallee(VarDeclarations* parameters)
+    {
+        foreach (p; *parameters)
+        {
+            if (p.storage_class & STCref)
+            {
+                auto heapRef = getVariable(p);
+                auto var = genTemporary(toBCType(p.type));
+                var.heapRef = BCHeapRef(heapRef);
+                setVariable(p, var);
+            }
+        }
+    }
+/+
+    void linkRefsCaller(VarDeclarations* parameters)
+    {
+        foreach (p; *parameters)
+        {
+            if (p.storage_class & STCref)
+            {
+                auto var = getVariable(cast(VarDeclaration)p);
+                StoreToHeapRef(var);
+            }            
+        }
+    }
++/
     override void visit(VarExp ve)
     {
         auto vd = ve.var.isVarDeclaration;
@@ -3265,13 +3295,10 @@ static if (is(BCGen))
         {
             if (vd.storage_class & STCref)
             {
-                refParam = true;
-                auto RefType = _sharedCtfeState.pointerOf(type);
+                type = i32Type;
             }
-            else
-            {
-                var = genParameter(type);
-            }
+
+            var = genParameter(type);
             arguments ~= var;
             parameterTypes ~= type;
         }
