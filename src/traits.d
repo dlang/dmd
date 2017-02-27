@@ -98,6 +98,7 @@ static this()
         "getUnitTests",
         "getVirtualIndex",
         "getPointerBitmap",
+        "isAlias",
     ];
 
     traitsStringTable._init(40);
@@ -376,6 +377,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 
     if (e.ident != Id.compiles &&
         e.ident != Id.isSame &&
+        e.ident != Id.isAlias &&
         e.ident != Id.identifier &&
         e.ident != Id.getProtection)
     {
@@ -559,6 +561,25 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.isLazy)
     {
         return isDeclX(d => (d.storage_class & STClazy) != 0);
+    }
+    if (e.ident == Id.isAlias)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto ta = isType((*e.args)[0]);
+        if (!ta || ta.ty != Tident)
+        {
+            e.error("argument is not an identifier");
+            return new ErrorExp();
+        }
+
+        if (auto s = sc.search(e.loc, (cast(TypeIdentifier)ta).ident, null))
+        {
+            if (s.isAliasDeclaration())
+               return True();
+        }
+        return False();
     }
     if (e.ident == Id.identifier)
     {
