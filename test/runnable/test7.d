@@ -434,55 +434,55 @@ void test7()
     int j;
 
     bool[1] a1;
-    a1[] = 1;
+    a1[] = true;
     assert(a1[0] == 1);
 
     bool[2] a2;
-    a2[] = 1;
+    a2[] = true;
     for (i = 0; i < a2.length; i++)
-        assert(a2[i] == 1);
+        assert(a2[i] == true);
 
     bool[3] a3;
-    a3[] = 1;
+    a3[] = true;
     for (i = 0; i < a3.length; i++)
-        assert(a3[i] == 1);
+        assert(a3[i] == true);
 
     bool[4] a4;
-    a4[] = 1;
+    a4[] = true;
     for (i = 0; i < a4.length; i++)
-        assert(a4[i] == 1);
+        assert(a4[i] == true);
 
     bool[8] a8;
-    a8[] = 1;
+    a8[] = true;
     for (i = 0; i < a8.length; i++)
-        assert(a8[i] == 1);
+        assert(a8[i] == true);
 
     bool[27] a27;
-    a27[] = 1;
+    a27[] = true;
     for (i = 0; i < a27.length; i++)
-        assert(a27[i] == 1);
+        assert(a27[i] == true);
 
-    func7(33)[] = 1;
+    func7(33)[] = true;
     assert(b7.length == 33);
     for (i = 0; i < b7.length; i++)
-        assert(b7[i] == 1);
+        assert(b7[i] == true);
 
-    func7(33)[3..6] = 1;
+    func7(33)[3..6] = true;
     //printf("b7.ptr = %p, b7.length = %d\n", b7.ptr, b7.length);
     assert(b7.length == 33);
     for (i = 0; i < b7.length; i++)
     {
         //printf("b7[%d] = %d\n", i, b7[i]);
         if (i >= 3 && i < 6)
-            assert(b7[i] == 1);
+            assert(b7[i] == true);
         else
-            assert(b7[i] == 0);
+            assert(b7[i] == false);
     }
 
-    bool[23] a23 = 1;
+    bool[23] a23 = true;
     i = 16;
     j = 18;
-    a23[i++..++j] = 0;
+    a23[i++..++j] = false;
     printf("i = %d, j = %d\n", i, j);
     assert(i == 17);
     assert(j == 19);
@@ -635,7 +635,7 @@ void test14()
 
 void test15()
 {
-   bool b = 1;
+   bool b = true;
    bool *pb = &b;
    *pb = false;
    assert(!b);
@@ -651,8 +651,8 @@ void foo16(bool[] b1, bool[] b2)
 
 void test16()
 {
-    static bool[16] b1 = [1,1,0,1,0,0,0,0];
-    static bool[16] b2 = [0,0,0,0,0,0,0,0, 0,0,1,0,1,1,1,1];
+    static bool[16] b1 = [true,true,false,true,false,false,false,false];
+    static bool[16] b2 = [false,false,false,false,false,false,false,false,false,false,true,false,true,true,true,true];
 
     foo16(b1, b2);
     assert(b1[0] == false);
@@ -682,8 +682,8 @@ void test17()
 
 void test18()
 {
-    bool b = 1;
-    bool c = 1;
+    bool b = true;
+    bool c = true;
     b |= cast(bool)(3 + c);
     assert(b == true);
 }

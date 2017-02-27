@@ -7,10 +7,10 @@ void main() {
         a.length = 5;
         foreach (ref bool b; a) {
                 assert (b == 0);
-                b = 1;
+                b = true;
         }
         foreach (bool b; a)
-                assert (b == 1); // FAILS, they're all 0
+                assert (b == true); // FAILS, they're all 0
 }
 
 

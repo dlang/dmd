@@ -1177,11 +1177,11 @@ void test51()
 {
     bool b;
     assert(b == false);
-    b &= 1;
+    b &= true;
     assert(b == false);
-    b |= 1;
+    b |= true;
     assert(b == true);
-    b ^= 1;
+    b ^= true;
     assert(b == false);
     b = b | true;
     assert(b == true);

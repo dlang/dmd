@@ -449,7 +449,7 @@ void test17()
 void test18()
 {
   bool[] x = new bool[100];
-  x[] = 1;
+  x[] = true;
   bool[] y = x.dup;
   assert(y[99]);
 }
@@ -457,7 +457,7 @@ void test18()
 
 /**************************************/
 
-bool[32] x19 = 1;
+bool[32] x19 = true;
 
 void test19()
 {

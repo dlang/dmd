@@ -140,13 +140,13 @@ class A5
     override bool opEquals(Object o)
     {
         printf("A.opEquals!(%p)\n", o);
-        return 1;
+        return true;
     }
 
     int opUnary(string s)()
     {
         printf("A.opUnary!(%.*s)\n", s.length, s.ptr);
-        return 0;
+        return false;
     }
 
     T opCast(T)()
@@ -162,7 +162,7 @@ class B5 : A5
     override bool opEquals(Object o)
     {
         printf("B.opEquals!(%p)\n", o);
-        return 1;
+        return true;
     }
 }
 
