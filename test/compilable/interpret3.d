@@ -7545,6 +7545,54 @@ static assert(test7151());
 
 
 /**************************************************
+    12294 - inherited contracts
+**************************************************/
+
+class C12294a
+{
+    int add(int a)
+    in { assert(a > 0); }
+    out { assert(a * a == 25); }
+    body { return a + 10; }
+}
+class D12294a : C12294a
+{
+    override int add(int a)
+    in { assert(a <= 0 || 0 < a); }
+    out { assert(a * a == 25); }
+    body { return a + 10; }
+}
+
+class C12294b
+{
+    int add(int a)
+    in {
+        import core.exception;
+        try
+            assert(0 < a);
+        catch (AssertError e)
+        {}  // drop thrown AssertError
+    }
+    out(r) { assert(r == a + 10); }
+    body { return a + 10; }
+}
+class D12294b : C12294b
+{
+    override int add(int a)
+    in { assert(0); }       // never reach here
+    out(r) { assert(r == a + 10); }
+    body { return a + 10; }
+}
+
+void test12294()
+{
+    enum a1 = new D12294a().add(-5);
+    enum a2 = new D12294a().add(+5);
+
+    enum a3 = new D12294b().add(-5);
+}
+
+/**************************************************
     12603 - [CTFE] goto does not correctly call dtors
 **************************************************/
 
