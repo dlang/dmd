@@ -23,13 +23,23 @@ import ddmd.statement;
 import ddmd.tokens;
 import ddmd.visitor;
 
-extern (C++) Expression toDelegate(Expression e, Type t, Scope* sc)
+extern (C++) Expression toDelegate(Expression e, Type t, Scope* sc, FuncDeclaration fd)
 {
     //printf("Expression::toDelegate(t = %s) %s\n", t.toChars(), e.toChars());
     Loc loc = e.loc;
     auto tf = new TypeFunction(null, t, 0, LINKd);
     if (t.hasWild())
         tf.mod = MODwild;
+    /* fd is the function being called, copy the attributes from it */
+    if (fd)
+    {
+        with (cast(TypeFunction)(fd.type))
+        {
+            // XXX: Should we copy the purity field too?
+            tf.isnothrow = isnothrow;
+            tf.isnogc = isnogc;
+        }
+    }
     auto fld = new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, null);
     sc = sc.push();
     sc.parent = fld; // set current function to be the delegate
