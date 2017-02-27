@@ -13,8 +13,9 @@ DMODEL=-m64
 .d.exe:
 	$(HOST_DC) -of$@ $<
 
-OBJ_MSVC=strtold.obj longdouble.obj ldfpu.obj
-DEPENDENCIES=vcbuild\msvc-dmc.exe vcbuild\msvc-lib.exe
+D=ddmd
+OBJ_MSVC=$D\strtold.obj $D\longdouble.obj $D\ldfpu.obj
+DEPENDENCIES=$D\vcbuild\msvc-dmc.exe $D\vcbuild\msvc-lib.exe
 
 MAKE_WIN32=$(MAKE) -f win32.mak MAKE="$(MAKE)" DMODEL=$(DMODEL) HOST_DC=$(HOST_DC) OBJ_MSVC="$(OBJ_MSVC)" CC=vcbuild\msvc-dmc LIB=vcbuild\msvc-lib
 

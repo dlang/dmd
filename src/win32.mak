@@ -63,15 +63,21 @@
 # DMC directory
 DMCROOT=$(DM_HOME)\dm
 # DMD source directories
-C=backend
-TK=tk
-ROOT=root
+D=ddmd
+C=$D\backend
+TK=$D\tk
+ROOT=$D\root
+
 # Include directories
 INCLUDE=$(ROOT);$(DMCROOT)\include
 # Install directory
 INSTALL=..\install
 # Where scp command copies to
 SCPDIR=..\backup
+
+# Generated files directory
+GEN = ..\generated
+G = $(GEN)\$(OS)$(MODEL)
 
 ##### Tools
 
@@ -107,7 +113,7 @@ ML=ml64
 ##### User configuration switches
 
 # Target name
-TARGET=dmd
+TARGET=$G\dmd
 TARGETEXE=$(TARGET).exe
 # Custom compile flags
 CFLAGS=
@@ -141,22 +147,22 @@ DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$
 ############################### Rule Variables ###############################
 
 # D front end
-FRONT_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d	\
-	arraytypes.d attrib.d builtin.d canthrow.d clone.d complex.d		\
-	cond.d constfold.d cppmangle.d ctfeexpr.d dcast.d dclass.d		\
-	declaration.d delegatize.d denum.d dimport.d dinifile.d dinterpret.d	\
-	dmacro.d dmangle.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d		\
-	dtemplate.d dversion.d entity.d errors.d escape.d			\
-	expression.d func.d globals.d hdrgen.d id.d identifier.d imphint.d	\
-	impcnvtab.d init.d inline.d intrange.d json.d lexer.d lib.d link.d	\
-	mars.d mtype.d nogc.d nspace.d objc_stubs.d opover.d optimize.d parse.d	\
-	sapply.d sideeffect.d statement.d staticassert.d target.d tokens.d	\
-	safe.d blockexit.d asttypename.d \
-	traits.d utf.d utils.d visitor.d libomf.d scanomf.d typinf.d \
-	libmscoff.d scanmscoff.d statement_rewrite_walker.d statementsem.d
+FRONT_SRCS=$D/access.d $D/aggregate.d $D/aliasthis.d $D/apply.d $D/argtypes.d $D/arrayop.d	\
+	$D/arraytypes.d $D/attrib.d $D/builtin.d $D/canthrow.d $D/clone.d $D/complex.d		\
+	$D/cond.d $D/constfold.d $D/cppmangle.d $D/ctfeexpr.d $D/dcast.d $D/dclass.d		\
+	$D/declaration.d $D/delegatize.d $D/denum.d $D/dimport.d $D/dinifile.d $D/dinterpret.d	\
+	$D/dmacro.d $D/dmangle.d $D/dmodule.d $D/doc.d $D/dscope.d $D/dstruct.d $D/dsymbol.d		\
+	$D/dtemplate.d $D/dversion.d $D/entity.d $D/errors.d $D/escape.d			\
+	$D/expression.d $D/func.d $D/globals.d $D/hdrgen.d $D/id.d $D/identifier.d $D/imphint.d	\
+	$D/impcnvtab.d $D/init.d $D/inline.d $D/intrange.d $D/json.d $D/lexer.d $D/lib.d $D/link.d	\
+	$D/mars.d $D/mtype.d $D/nogc.d $D/nspace.d $D/objc_stubs.d $D/opover.d $D/optimize.d $D/parse.d	\
+	$D/sapply.d $D/sideeffect.d $D/statement.d $D/staticassert.d $D/target.d $D/tokens.d	\
+	$D/safe.d $D/blockexit.d $D/asttypename.d \
+	$D/traits.d $D/utf.d $D/utils.d $D/visitor.d $D/libomf.d $D/scanomf.d $D/typinf.d \
+	$D/libmscoff.d $D/scanmscoff.d $D/statement_rewrite_walker.d $D/statementsem.d
 
-GLUE_SRCS=irstate.d toctype.d glue.d gluelayer.d todt.d tocsym.d toir.d dmsc.d \
-	tocvdebug.d s2ir.d toobj.d e2ir.d objc_glue_stubs.d eh.d iasm.d
+GLUE_SRCS=$D/irstate.d $D/toctype.d $D/glue.d $D/gluelayer.d $D/todt.d $D/tocsym.d $D/toir.d $D/dmsc.d \
+	$D/tocvdebug.d $D/s2ir.d $D/toobj.d $D/e2ir.d $D/objc_glue_stubs.d $D/eh.d $D/iasm.d
 
 BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
 	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d $C/iasm.d \
@@ -164,7 +170,7 @@ BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $
 
 TK_HDRS= $(TK)/dlist.d
 
-STRING_IMPORT_FILES= verstr.h ../res/default_ddoc_theme.ddoc
+STRING_IMPORT_FILES= $G\verstr.h ../res/default_ddoc_theme.ddoc
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
@@ -172,16 +178,16 @@ DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 GLUEOBJ=
 
 # D back end
-BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
-	newman.obj glocal.obj os.obj nteh.obj evalu8.obj cgcs.obj \
-	rtlsym.obj cgelem.obj cgen.obj cgreg.obj out.obj \
-	blockopt.obj cgobj.obj cg.obj cgcv.obj type.obj dt.obj \
-	debug.obj code.obj cg87.obj cgxmm.obj cgsched.obj ee.obj csymbol.obj \
-	cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj outbuf.obj \
-	bcomplex.obj ptrntab.obj aa.obj ti_achar.obj md5.obj \
-	ti_pvoid.obj mscoffobj.obj pdata.obj cv8.obj backconfig.obj \
-	divcoeff.obj dwarf.obj compress.obj varstats.obj \
-	ph2.obj util2.obj tk.obj gsroa.obj \
+GBACKOBJ= $G/go.obj $G/gdag.obj $G/gother.obj $G/gflow.obj $G/gloop.obj $G/var.obj $G/el.obj \
+	$G/newman.obj $G/glocal.obj $G/os.obj $G/nteh.obj $G/evalu8.obj $G/cgcs.obj \
+	$G/rtlsym.obj $G/cgelem.obj $G/cgen.obj $G/cgreg.obj $G/out.obj \
+	$G/blockopt.obj $G/cgobj.obj $G/cg.obj $G/cgcv.obj $G/type.obj $G/dt.obj \
+	$G/debug.obj $G/code.obj $G/cg87.obj $G/cgxmm.obj $G/cgsched.obj $G/ee.obj $G/csymbol.obj \
+	$G/cgcod.obj $G/cod1.obj $G/cod2.obj $G/cod3.obj $G/cod4.obj $G/cod5.obj $G/outbuf.obj \
+	$G/bcomplex.obj $G/ptrntab.obj $G/aa.obj $G/ti_achar.obj $G/md5.obj \
+	$G/ti_pvoid.obj $G/mscoffobj.obj $G/pdata.obj $G/cv8.obj $G/backconfig.obj \
+	$G/divcoeff.obj $G/dwarf.obj $G/compress.obj $G/varstats.obj \
+	$G/ph2.obj $G/util2.obj $G/tk.obj $G/gsroa.obj \
 
 # Root package
 ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d \
@@ -190,19 +196,19 @@ ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d \
 	$(ROOT)/speller.d $(ROOT)/stringtable.d $(ROOT)/hash.d
 
 # D front end
-SRCS = aggregate.h aliasthis.h arraytypes.h	\
-	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
-	enum.h errors.h expression.h globals.h hdrgen.h identifier.h idgen.d	\
-	import.h init.h intrange.h json.h lexer.h	\
-	mars.h module.h mtype.h nspace.h objc.h                         \
-	scope.h statement.h staticassert.h target.h template.h tokens.h	\
-	version.h visitor.h objc.d $(DMD_SRCS)
-
+SRCS = $D/aggregate.h $D/aliasthis.h $D/arraytypes.h	\
+	$D/attrib.h $D/complex_t.h $D/cond.h $D/ctfe.h $D/ctfe.h $D/declaration.h $D/dsymbol.h	\
+	$D/enum.h $D/errors.h $D/expression.h $D/globals.h $D/hdrgen.h $D/identifier.h $D/idgen.d	\
+	$D/import.h $D/init.h $D/intrange.h $D/json.h $D/lexer.h	\
+	$D/mars.h $D/module.h $D/mtype.h $D/nspace.h $D/objc.h                         \
+	$D/scope.h $D/statement.h $D/staticassert.h $D/target.h $D/template.h $D/tokens.h	\
+	$D/version.h $D/visitor.h $D/objc.d) $(DMD_SRCS)	
+	
 # Glue layer
 GLUESRC= \
-	toir.h irstate.h \
-	libelf.d scanelf.d libmach.d scanmach.d \
-	tk.c objc_glue.d \
+	$D/toir.h $D/irstate.h \
+	$D/libelf.d $D/scanelf.d $D/libmach.d $D/scanmach.d \
+	$D/tk.c $D/objc_glue.d \
 	$(GLUE_SRCS)
 
 # D back end
@@ -257,17 +263,20 @@ MAKEFILES=win32.mak posix.mak osmodel.mak
 
 ############################## Release Targets ###############################
 
-defaulttarget: debdmd
+defaulttarget: $G debdmd
 
-auto-tester-build: dmd checkwhitespace dmd_frontend.exe
+auto-tester-build: $G dmd checkwhitespace $(DMDFRONTENDEXE)
 
-dmd: reldmd
+dmd: $G reldmd
 
 release:
 	$(DMDMAKE) clean
 	$(DEL) $(TARGETEXE)
 	$(DMDMAKE) reldmd
 	$(DMDMAKE) clean
+
+$G :
+	if not exist "$G" mkdir $G
 
 debdmd:
 	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "DDEBUG=-debug -g -unittest" "DOPT=" "LFLAGS=-L/ma/co/la" $(TARGETEXE)
@@ -287,28 +296,32 @@ unittest:
 ################################ Libraries ##################################
 
 glue.lib : $(GLUEOBJ)
-	$(LIB) -p512 -n -c glue.lib $(GLUEOBJ)
+	$(LIB) -p512 -n -o$@ $G\glue.lib $(GLUEOBJ)
 
-backend.lib : $(BACKOBJ) $(OBJ_MSVC)
-	$(LIB) -p512 -n -c backend.lib $(BACKOBJ) $(OBJ_MSVC)
+LIBS= $G\backend.lib
 
-LIBS= backend.lib
+$(LIBS) : $(GBACKOBJ) $(OBJ_MSVC)
+	$(LIB) -p512 -n -c $@ $(GBACKOBJ) $(OBJ_MSVC)
 
-dmd_frontend.exe: $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.obj $(STRING_IMPORT_FILES)
-	$(HOST_DC) $(DSRC) -of$@ -vtls -J. -J../res -L/STACK:8388608 $(DFLAGS) $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.obj -version=NoBackend
+DMDFRONTENDEXE = $G\dmd_frontend.exe
 
-$(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) newdelete.obj $(LIBS) $(STRING_IMPORT_FILES)
-	$(HOST_DC) $(DSRC) -of$@ -vtls -J. -J../res -L/STACK:8388608 $(DFLAGS) $(DMD_SRCS) $(ROOT_SRCS) newdelete.obj $(LIBS)
+$(DMDFRONTENDEXE): $(FRONT_SRCS) $D\gluelayer.d $(ROOT_SRCS) $G\newdelete.obj $(STRING_IMPORT_FILES)
+	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.obj -version=NoBackend
+	copy $(DMDFRONTENDEXE) .
+
+$(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) $G\newdelete.obj $(LIBS) $(STRING_IMPORT_FILES)
+	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(DMD_SRCS) $(ROOT_SRCS) $G\newdelete.obj $(LIBS)
+	copy $(TARGETEXE) .
 
 ############################ Maintenance Targets #############################
 
 clean:
-	$(DEL) *.obj *.lib *.map *.lst
-	$(DEL) msgs.h msgs.c
-	$(DEL) elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
-	$(DEL) id.h id.d
-	$(DEL) verstr.h
+	$(RD) /s /q $(GEN)
+	$(DEL) $D\msgs.h $D\msgs.c
+	$(DEL) $C\elxxx.c $C\cdxxx.c $C\optab.c $C\debtab.c $C\fltables.c $C\tytab.c
+	$(DEL) $D\id.h $D\id.d
 	$(DEL) optabgen.exe
+	$(DEL) $(TARGETEXE) $(DMDFRONTENDEXE) *.map *.obj
 
 install: detab install-copy
 
@@ -325,9 +338,9 @@ install-copy:
 	$(CP) $(TKSRC)              $(INSTALL)\src\dmd\tk
 	$(CP) $(BACKSRC)            $(INSTALL)\src\dmd\backend
 	$(CP) $(MAKEFILES)          $(INSTALL)\src\dmd
-	$(CP) readme.txt            $(INSTALL)\src\dmd\readme.txt
-	$(CP) boostlicense.txt      $(INSTALL)\src\dmd\boostlicense.txt
-	$(CP) backendlicense.txt    $(INSTALL)\src\dmd\backendlicense.txt
+	$(CP) $D\readme.txt            $(INSTALL)\src\dmd\readme.txt
+	$(CP) $D\boostlicense.txt      $(INSTALL)\src\dmd\boostlicense.txt
+	$(CP) $D\backendlicense.txt    $(INSTALL)\src\dmd\backendlicense.txt
 
 install-clean:
 	$(DEL) /s/q $(INSTALL)\*
@@ -375,17 +388,23 @@ checkwhitespace:
 	$(HOST_DC) -Df$@ $<
 
 ############################## Generated Source ##############################
+OPTABGENOUTPUT = $C\elxxx.c $C\cdxxx.c $C\optab.c $C\debtab.c $C\fltables.c $C\tytab.c
+IDGENOUTPUT    = $D\id.d $D\id.h
 
-elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \
+print:
+	@echo '$(IDGENOUTPUT)'
+
+$(OPTABGENOUTPUT) : \
 	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c
-	$(CC) -cpp -ooptabgen.exe $C\optabgen -DMARS -DDM_TARGET_CPU_X86=1 -I$(TK)
-	.\optabgen.exe
+	$(CC) -cpp -o$G\optabgen.exe $C\optabgen -DMARS -DDM_TARGET_CPU_X86=1 -I$(TK)
+	$G\optabgen.exe
 
-id.h id.d : idgen.d
-	$(HOST_DC) -run idgen
+ddmd/id.h ddmd/id.d : $D\idgen.d
+	$(HOST_DC) -of$G\idgen $D\idgen.d
+	$G/idgen
 
-verstr.h : ..\VERSION
-	echo "$(..\VERSION)" >verstr.h
+$G\verstr.h : ..\VERSION
+	echo "$(..\VERSION)" >$G\verstr.h
 
 ############################# Intermediate Rules ############################
 
@@ -397,191 +416,191 @@ verstr.h : ..\VERSION
 	$(CC) -c $(CFLAGS) $*
 
 # D front/back end
-bcomplex.obj : $C\bcomplex.c
-	$(CC) -c $(MFLAGS) $C\bcomplex
+$G/bcomplex.obj : $C\bcomplex.c
+	$(CC) -c -o$@ $(MFLAGS) $C\bcomplex
 
-aa.obj : $C\tinfo.h $C\aa.h $C\aa.c
-	$(CC) -c $(MFLAGS) -I. $C\aa
+$G/aa.obj : $C\tinfo.h $C\aa.h $C\aa.c
+	$(CC) -c -o$@ $(MFLAGS) -I$D $C\aa
 
-backconfig.obj : $C\backconfig.c
-	$(CC) -c $(MFLAGS) $C\backconfig
+$G/backconfig.obj : $C\backconfig.c
+	$(CC) -c -o$@ $(MFLAGS) $C\backconfig
 
-blockopt.obj : $C\blockopt.c
-	$(CC) -c $(MFLAGS) $C\blockopt
+$G/blockopt.obj : $C\blockopt.c
+	$(CC) -c -o$@ $(MFLAGS) $C\blockopt
 
-cg.obj : $C\cg.c
-	$(CC) -c $(MFLAGS) -I. $C\cg
+$G/cg.obj : $C\cg.c
+	$(CC) -c -o$@ $(MFLAGS) -I$D $C\cg
 
-cg87.obj : $C\cg87.c
-	$(CC) -c $(MFLAGS) $C\cg87
+$G/cg87.obj : $C\cg87.c
+	$(CC) -c -o$@ $(MFLAGS) $C\cg87
 
-cgcod.obj : $C\cgcod.c
-	$(CC) -c $(MFLAGS) -I. $C\cgcod
+$G/cgcod.obj : $C\cgcod.c
+	$(CC) -c -o$@ $(MFLAGS) -I$D $C\cgcod
 
-cgcs.obj : $C\cgcs.c
-	$(CC) -c $(MFLAGS) $C\cgcs
+$G/cgcs.obj : $C\cgcs.c
+	$(CC) -c -o$@ $(MFLAGS) $C\cgcs
 
-cgcv.obj : $C\cgcv.c
-	$(CC) -c $(MFLAGS) $C\cgcv
+$G/cgcv.obj : $C\cgcv.c
+	$(CC) -c -o$@ $(MFLAGS) $C\cgcv
 
-cgelem.obj : $C\rtlsym.h $C\cgelem.c
-	$(CC) -c $(MFLAGS) -I. $C\cgelem
+$G/cgelem.obj : $C\rtlsym.h $C\cgelem.c
+	$(CC) -c -o$@ $(MFLAGS) -I$D $C\cgelem
 
-cgen.obj : $C\rtlsym.h $C\cgen.c
-	$(CC) -c $(MFLAGS) $C\cgen
+$G/cgen.obj : $C\rtlsym.h $C\cgen.c
+	$(CC) -c -o$@ $(MFLAGS) $C\cgen
 
-cgobj.obj : $C\md5.h $C\cgobj.c
-	$(CC) -c $(MFLAGS) $C\cgobj
+$G/cgobj.obj : $C\md5.h $C\cgobj.c
+	$(CC) -c -o$@ $(MFLAGS) $C\cgobj
 
-cgreg.obj : $C\cgreg.c
-	$(CC) -c $(MFLAGS) $C\cgreg
+$G/cgreg.obj : $C\cgreg.c
+	$(CC) -c -o$@ $(MFLAGS) $C\cgreg
 
-cgsched.obj : $C\rtlsym.h $C\cgsched.c
-	$(CC) -c $(MFLAGS) $C\cgsched
+$G/cgsched.obj : $C\rtlsym.h $C\cgsched.c
+	$(CC) -c -o$@ $(MFLAGS) $C\cgsched
 
-cgxmm.obj : $C\xmm.h $C\cgxmm.c
-	$(CC) -c $(MFLAGS) $C\cgxmm
+$G/cgxmm.obj : $C\xmm.h $C\cgxmm.c
+	$(CC) -c -o$@ $(MFLAGS) $C\cgxmm
 
-cod1.obj : $C\rtlsym.h $C\cod1.c
-	$(CC) -c $(MFLAGS) $C\cod1
+$G/cod1.obj : $C\rtlsym.h $C\cod1.c
+	$(CC) -c -o$@ $(MFLAGS) $C\cod1
 
-cod2.obj : $C\rtlsym.h $C\cod2.c
-	$(CC) -c $(MFLAGS) $C\cod2
+$G/cod2.obj : $C\rtlsym.h $C\cod2.c
+	$(CC) -c -o$@ $(MFLAGS) $C\cod2
 
-cod3.obj : $C\rtlsym.h $C\cod3.c
-	$(CC) -c $(MFLAGS) $C\cod3
+$G/cod3.obj : $C\rtlsym.h $C\cod3.c
+	$(CC) -c -o$@ $(MFLAGS) $C\cod3
 
-cod4.obj : $C\cod4.c
-	$(CC) -c $(MFLAGS) $C\cod4
+$G/cod4.obj : $C\cod4.c
+	$(CC) -c -o$@ $(MFLAGS) $C\cod4
 
-cod5.obj : $C\cod5.c
-	$(CC) -c $(MFLAGS) $C\cod5
+$G/cod5.obj : $C\cod5.c
+	$(CC) -c -o$@ $(MFLAGS) $C\cod5
 
-code.obj : $C\code.c
-	$(CC) -c $(MFLAGS) $C\code
+$G/code.obj : $C\code.c
+	$(CC) -c -o$@ $(MFLAGS) $C\code
 
-compress.obj : $C\compress.c
-	$(CC) -c $(MFLAGS) $C\compress
+$G/compress.obj : $C\compress.c
+	$(CC) -c -o$@ $(MFLAGS) $C\compress
 
-csymbol.obj : $C\symbol.c
-	$(CC) -c $(MFLAGS) $C\symbol -ocsymbol.obj
+$G/csymbol.obj : $C\symbol.c
+	$(CC) -c -o$G\csymbol.obj $(MFLAGS) $C\symbol
 
-cv8.obj : $C\cv8.c
-	$(CC) -c $(MFLAGS) $C\cv8
+$G/cv8.obj : $C\cv8.c
+	$(CC) -c -o$@ $(MFLAGS) $C\cv8
 
-debug.obj : $C\debug.c
-	$(CC) -c $(MFLAGS) -I. $C\debug
+$G/debug.obj : $C\debug.c
+	$(CC) -c -o$@ $(MFLAGS) -I$D $C\debug
 
-divcoeff.obj : $C\divcoeff.c
-	$(CC) -c -cpp -e $(DEBUG) $C\divcoeff
+$G/divcoeff.obj : $C\divcoeff.c
+	$(CC) -c -o$@ -cpp -e $(DEBUG) $C\divcoeff
 
-dt.obj : $C\dt.h $C\dt.c
-	$(CC) -c $(MFLAGS) $C\dt
+$G/dt.obj : $C\dt.h $C\dt.c
+	$(CC) -c -o$@ $(MFLAGS) $C\dt
 
-dwarf.obj : $C\dwarf.h $C\dwarf.c
-	$(CC) -c $(MFLAGS) $C\dwarf
+$G/dwarf.obj : $C\dwarf.h $C\dwarf.c
+	$(CC) -c -o$@ $(MFLAGS) $C\dwarf
 
-ee.obj : $C\ee.c
-	$(CC) -c $(MFLAGS) $C\ee
+$G/ee.obj : $C\ee.c
+	$(CC) -c -o$@ $(MFLAGS) $C\ee
 
-el.obj : $C\rtlsym.h $C\el.h $C\el.c
-	$(CC) -c $(MFLAGS) $C\el
+$G/el.obj : $C\rtlsym.h $C\el.h $C\el.c
+	$(CC) -c -o$@ $(MFLAGS) $C\el
 
-evalu8.obj : $C\evalu8.c
-	$(CC) -c $(MFLAGS) $C\evalu8
+$G/evalu8.obj : $C\evalu8.c
+	$(CC) -c -o$@ $(MFLAGS) $C\evalu8
 
-go.obj : $C\go.c
-	$(CC) -c $(MFLAGS) $C\go
+$G/go.obj : $C\go.c
+	$(CC) -c -o$@ $(MFLAGS) $C\go
 
-gflow.obj : $C\gflow.c
-	$(CC) -c $(MFLAGS) $C\gflow
+$G/gflow.obj : $C\gflow.c
+	$(CC) -c -o$@ $(MFLAGS) $C\gflow
 
-gdag.obj : $C\gdag.c
-	$(CC) -c $(MFLAGS) $C\gdag
+$G/gdag.obj : $C\gdag.c
+	$(CC) -c -o$@ $(MFLAGS) $C\gdag
 
-gother.obj : $C\gother.c
-	$(CC) -c $(MFLAGS) $C\gother
+$G/gother.obj : $C\gother.c
+	$(CC) -c -o$@ $(MFLAGS) $C\gother
 
-glocal.obj : $C\rtlsym.h $C\glocal.c
-	$(CC) -c $(MFLAGS) $C\glocal
+$G/glocal.obj : $C\rtlsym.h $C\glocal.c
+	$(CC) -c -o$@ $(MFLAGS) $C\glocal
 
-gloop.obj : $C\gloop.c
-	$(CC) -c $(MFLAGS) $C\gloop
+$G/gloop.obj : $C\gloop.c
+	$(CC) -c -o$@ $(MFLAGS) $C\gloop
 
-glue.obj : $(CH) $C\rtlsym.h mars.h module.h glue.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) glue
+$G/glue.obj : $(CH) $C\rtlsym.h $D\mars.h $D\module.h $D\glue.c
+	$(CC) -c -o$@ $(MFLAGS) -I$(ROOT) $D\glue
 
-gsroa.obj : $C\gsroa.c
-	$(CC) -c $(MFLAGS) $C\gsroa
+$G/gsroa.obj : $C\gsroa.c
+	$(CC) -c -o$@ $(MFLAGS) $C\gsroa
 
-md5.obj : $C\md5.h $C\md5.c
-	$(CC) -c $(MFLAGS) $C\md5
+$G/md5.obj : $C\md5.h $C\md5.c
+	$(CC) -c -o$@ $(MFLAGS) $C\md5
 
-mscoffobj.obj : $C\mscoff.h $C\mscoffobj.c
-	$(CC) -c $(MFLAGS) -I.;$(ROOT) $C\mscoffobj
+$G/mscoffobj.obj : $C\mscoff.h $C\mscoffobj.c
+	$(CC) -c -o$@ $(MFLAGS) -I$D;$(ROOT) $C\mscoffobj
 
-newman.obj : $(CH) $C\newman.c
-	$(CC) -c $(MFLAGS) $C\newman
+$G/newman.obj : $(CH) $C\newman.c
+	$(CC) -c -o$@ $(MFLAGS) $C\newman
 
-nteh.obj : $C\rtlsym.h $C\nteh.c
-	$(CC) -c $(MFLAGS) $C\nteh
+$G/nteh.obj : $C\rtlsym.h $C\nteh.c
+	$(CC) -c -o$@ $(MFLAGS) $C\nteh
 
-os.obj : $C\os.c
-	$(CC) -c $(MFLAGS) $C\os
+$G/os.obj : $C\os.c
+	$(CC) -c -o$@ $(MFLAGS) $C\os
 
-out.obj : $C\out.c
-	$(CC) -c $(MFLAGS) $C\out
+$G/out.obj : $C\out.c
+	$(CC) -c -o$@ $(MFLAGS) $C\out
 
-outbuf.obj : $C\outbuf.h $C\outbuf.c
-	$(CC) -c $(MFLAGS) $C\outbuf
+$G/outbuf.obj : $C\outbuf.h $C\outbuf.c
+	$(CC) -c -o$@ $(MFLAGS) $C\outbuf
 
-pdata.obj : $C\pdata.c
-	$(CC) -c $(MFLAGS) $C\pdata
+$G/pdata.obj : $C\pdata.c
+	$(CC) -c -o$@ $(MFLAGS) $C\pdata
 
-ph2.obj : $C\ph2.c
-	$(CC) -c $(MFLAGS) $C\ph2
+$G/ph2.obj : $C\ph2.c
+	$(CC) -c -o$@ $(MFLAGS) $C\ph2
 
-ptrntab.obj : $C\iasm.h $C\ptrntab.c
-	$(CC) -c $(MFLAGS) $C\ptrntab
+$G/ptrntab.obj : $C\iasm.h $C\ptrntab.c
+	$(CC) -c -o$@ $(MFLAGS) $C\ptrntab
 
-rtlsym.obj : $C\rtlsym.h $C\rtlsym.c
-	$(CC) -c $(MFLAGS) $C\rtlsym
+$G/rtlsym.obj : $C\rtlsym.h $C\rtlsym.c
+	$(CC) -c -o$@ $(MFLAGS) $C\rtlsym
 
-strtold.obj : $C\strtold.c
-	$(CC) -c -cpp $C\strtold
+$G/strtold.obj : $C\strtold.c
+	$(CC) -c -o$@ -cpp $C\strtold
 
-ti_achar.obj : $C\tinfo.h $C\ti_achar.c
-	$(CC) -c $(MFLAGS) -I. $C\ti_achar
+$G/ti_achar.obj : $C\tinfo.h $C\ti_achar.c
+	$(CC) -c -o$@ $(MFLAGS) -I$D $C\ti_achar
 
-ti_pvoid.obj : $C\tinfo.h $C\ti_pvoid.c
-	$(CC) -c $(MFLAGS) -I. $C\ti_pvoid
+$G/ti_pvoid.obj : $C\tinfo.h $C\ti_pvoid.c
+	$(CC) -c -o$@ $(MFLAGS) -I$D $C\ti_pvoid
 
-type.obj : $C\type.c
-	$(CC) -c $(MFLAGS) $C\type
+$G/type.obj : $C\type.c
+	$(CC) -c -o$@ $(MFLAGS) $C\type
 
-util2.obj : $C\util2.c
-	$(CC) -c $(MFLAGS) $C\util2
+$G/util2.obj : $C\util2.c
+	$(CC) -c -o$@ $(MFLAGS) $C\util2
 
-var.obj : $C\var.c optab.c
-	$(CC) -c $(MFLAGS) -I. $C\var
+$G/var.obj : $C\var.c $C\optab.c
+	$(CC) -c -o$@ $(MFLAGS) -I$D -I$C $C\var
 
-varstats.obj : $C\varstats.c
-	$(CC) -c $(MFLAGS) -I. $C\varstats
+$G/varstats.obj : $C\varstats.c
+	$(CC) -c -o$@ $(MFLAGS) -I$D $C\varstats
 
 
-tk.obj : tk.c
-	$(CC) -c $(MFLAGS) tk.c
+$G/tk.obj : $C\tk.c
+	$(CC) -c -o$@ $(MFLAGS) $C\tk.c
 
 # Root
-newdelete.obj : $(ROOT)\newdelete.c
-	$(CC) -c $(CFLAGS) $(ROOT)\newdelete.c
+$G\newdelete.obj : $(ROOT)\newdelete.c
+	$(CC) -c -o$@ $(CFLAGS) $(ROOT)\newdelete.c
 
 # Win64
-longdouble.obj : $(ROOT)\longdouble.c
-	$(CC) -c $(CFLAGS) $(ROOT)\longdouble.c
+$G\longdouble.obj : $(ROOT)\longdouble.c
+	$(CC) -c -o$@ $(CFLAGS) $(ROOT)\longdouble.c
 
-ldfpu.obj : vcbuild\ldfpu.asm
-	$(ML) -c -Zi -Foldfpu.obj vcbuild\ldfpu.asm
+$G\ldfpu.obj : vcbuild\ldfpu.asm
+	$(ML) -c -o$@ -Zi -Foldfpu.obj vcbuild\ldfpu.asm
 
 ############################## Generated Rules ###############################
 
