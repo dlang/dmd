@@ -503,9 +503,6 @@ public:
 class TemplateExp : public Expression
 {
 public:
-    TemplateDeclaration *td;
-    FuncDeclaration *fd;
-
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     bool checkType();
@@ -594,8 +591,6 @@ public:
 class OverExp : public Expression
 {
 public:
-    OverloadSet *vars;
-
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
@@ -651,9 +646,6 @@ public:
 class TraitsExp : public Expression
 {
 public:
-    Identifier *ident;
-    Objects *args;
-
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
@@ -670,16 +662,6 @@ public:
 class IsExp : public Expression
 {
 public:
-    /* is(targ id tok tspec)
-     * is(targ id == tok2)
-     */
-    Type *targ;
-    Identifier *id;     // can be NULL
-    TOK tok;       // ':' or '=='
-    Type *tspec;        // can be NULL
-    TOK tok2;      // 'struct', 'union', etc.
-    TemplateParameters *parameters;
-
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
@@ -770,8 +752,6 @@ public:
 class DotIdExp : public UnaExp
 {
 public:
-    Identifier *ident;
-
     static DotIdExp *create(Loc loc, Expression *e, Identifier *ident);
     Expression *semantic(Scope *sc);
     Expression *semanticX(Scope *sc);
@@ -782,8 +762,6 @@ public:
 class DotTemplateExp : public UnaExp
 {
 public:
-    TemplateDeclaration *td;
-
     Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
