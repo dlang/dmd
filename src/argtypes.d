@@ -124,6 +124,9 @@ extern (C++) TypeTuple toArgTypes(Type t)
 
         override void visit(TypeSArray t)
         {
+            Type ty1 = null;
+            Type ty2 = null;
+
             if (t.dim)
             {
                 /* Should really be done as if it were a struct with dim members
@@ -137,8 +140,95 @@ extern (C++) TypeTuple toArgTypes(Type t)
                     t.next.accept(this);
                     return;
                 }
+                // Zero-length arrays are always passed on the stack
+                else if (sz == 0)
+                {
+                    goto Lmemory;
+                }
+
+                const arraySize = t.size(Loc());
+
+                if (t.next.ty == Tfloat80)
+                {
+                    goto Lmemory;
+                }
+
+                if (arraySize < 1 || arraySize > 16)
+                {
+                    goto Lmemory;
+                }
+
+                const isFloat = t.next.isfloating();
+
+                switch (arraySize) {
+                    case 1:
+                        assert(0);
+                    case 2:
+                    case 3: // XXX not for m32 ?
+                    case 4:
+                        if (isFloat)
+                            ty1 = Type.tfloat32;
+                        else
+                            ty1 = Type.tint32;
+                        break;
+                    case 5: // XXX not for m32 ?
+                    case 6: // XXX not for m32 ?
+                    case 7: // XXX not for m32 ?
+                    case 8:
+                        if (isFloat)
+                        {
+                            ty1 = Type.tfloat64;
+                        }
+                        else
+                        {
+                            if (!global.params.is64bit)
+                            {
+                                ty1 = Type.tint32;
+                                ty2 = Type.tint32;
+                            }
+                            else
+                            {
+                                ty1 = Type.tint64;
+                            }
+                        }
+                        break;
+                    default:
+                        // More than 16 bytes
+                        if (!global.params.is64bit)
+                            break;
+                        if (isFloat) {
+                            ty1 = Type.tfloat64;
+                            ty2 = Type.tfloat64;
+                        }
+                        else
+                        {
+                            ty1 = Type.tint64;
+                            ty2 = Type.tint64;
+                        }
+                        break;
+                }
+
+                assert(ty1);
+
+                debug {
+                    printf("Synthesize %s (%d bytes) with [%s, %s]\n",
+                           t.toPrettyChars(), arraySize, ty1.toPrettyChars(),
+                           ty2? ty2.toPrettyChars(): "-");
+                }
             }
-            result = new TypeTuple(); // pass on the stack for efficiency
+
+            if (ty1)
+            {
+                if (ty2)
+                    result = new TypeTuple(ty1, ty2);
+                else
+                    result = new TypeTuple(ty1);
+            }
+            else
+            {
+Lmemory:
+                result = new TypeTuple(); // pass on the stack for efficiency
+            }
         }
 
         override void visit(TypeAArray)
