@@ -3932,7 +3932,8 @@ extern (C++) class IdentifierExp : Expression
         // If we've reached this point and are inside a with() scope then we may
         // try one last attempt by checking whether the 'wthis' object supports
         // dynamic dispatching via opDispatch.
-        // This is done by rewriting this expression as wthis.ident.
+        // The innermost with() scope of the hierarchy to satisfy the condition
+        // above wins.
         for (Scope* sc2 = sc; sc2; sc2 = sc2.enclosing)
         {
             if (!sc2.scopesym)
@@ -3949,7 +3950,6 @@ extern (C++) class IdentifierExp : Expression
                     if (e)
                         return e;
                 }
-                break;
             }
         }
 

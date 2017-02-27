@@ -2,6 +2,9 @@
 ---
 Foo
 Bar
+~Baz
+Foo
+Foo
 ---
 */
 class Foo
@@ -31,7 +34,9 @@ void main()
         }
         with (baz)
         {
-            static assert(!__traits(compiles, f2()));
+            pragma(msg, "~Baz");
+            static assert(__traits(compiles, f2()));
+            static assert(__traits(compiles, f3()));
         }
     }
 }
