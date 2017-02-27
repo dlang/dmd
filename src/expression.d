@@ -10798,6 +10798,10 @@ extern (C++) final class AddrExp : UnaExp
                         {
                             error("'this' reference necessary to take address of member %s in @safe function %s", f.toChars(), sc.func.toChars());
                         }
+                        else
+                        {
+                            error("no 'this' to create delegate for %s", f.toChars());
+                        }
                     }
                 }
             }
