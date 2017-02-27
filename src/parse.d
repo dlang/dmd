@@ -2980,6 +2980,17 @@ final class Parser : Lexer
 
                 Type type = null;
                 Identifier ident = null;
+                Expressions* udas = null;
+
+                while(token.value == TOKat)
+                {
+                    if(StorageClass stc = parseAttribute(&udas))
+                    {
+                        error("only user defined attributes can appear in enums, not %s", stcToChars(stc));
+                        nextToken();
+                    }
+                }
+
                 Token* tp = peek(&token);
                 if (token.value == TOKidentifier && (tp.value == TOKassign || tp.value == TOKcomma || tp.value == TOKrcurly))
                 {
@@ -3010,6 +3021,8 @@ final class Parser : Lexer
                 }
 
                 auto em = new EnumMember(loc, ident, value, type);
+                if(udas)
+                    em.userAttribDecl = new UserAttributeDeclaration(udas, new Dsymbols());
                 e.members.push(em);
 
                 if (token.value == TOKrcurly)
