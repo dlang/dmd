@@ -443,6 +443,13 @@ extern (C++) class FuncDeclaration : Declaration
             if (ad && ad.isClassDeclaration() && (tf.isreturn || sc.stc & STCreturn) && !(sc.stc & STCstatic))
                 sc.stc |= STCscope;
 
+            // If 'this' has no pointers, remove 'scope' as it has no meaning
+            if (sc.stc & STCscope && ad && ad.isStructDeclaration() && !ad.type.hasPointers())
+            {
+                sc.stc &= ~STCscope;
+                tf.isscope = false;
+            }
+
             sc.linkage = linkage;
 
             if (!tf.isNaked() && !(isThis() || isNested()))

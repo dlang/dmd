@@ -111,4 +111,38 @@ fail_compilation/retscope2.d(614): Error: template instance retscope2.test600!(i
     test600(p, q);
 }
 
+/*************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope2.d(719): Error: escaping reference to local variable s
+fail_compilation/retscope2.d(721): Error: escaping reference to local variable s
+---
+*/
+
+#line 700
+// https://issues.dlang.org/show_bug.cgi?id=17049
+
+@safe S700* get2(return ref scope S700 _this)
+{
+    return &_this;
+}
+
+struct S700
+{
+    @safe S700* get1() return scope
+    {
+        return &this;
+    }
+}
+
+S700* escape700(int i) @safe
+{
+    S700 s;
+    if (i)
+        return s.get2(); // 719
+    else
+        return s.get1(); // 721
+}
 
