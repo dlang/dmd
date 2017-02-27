@@ -218,13 +218,13 @@ extern (C++) void verrorPrint(const ref Loc loc, COLOR headerColor, const(char)*
     fflush(stderr);
 }
 
-// header is "Error: " by default (see errors.h)
-extern (C++) void verror(const ref Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null, const(char)* header = "Error: ")
+private void _verror(const ref Loc loc, const(char)* format, va_list ap, const(char)* p1, const(char)* p2, const(char)* header, bool print)
 {
     global.errors++;
+    if (print)
+        verrorPrint(loc, COLOR_RED, header, format, ap, p1, p2);
     if (!global.gag)
     {
-        verrorPrint(loc, COLOR_RED, header, format, ap, p1, p2);
         if (global.errorLimit && global.errors >= global.errorLimit)
             fatal(); // moderate blizzard of cascading messages
     }
@@ -237,6 +237,12 @@ extern (C++) void verror(const ref Loc loc, const(char)* format, va_list ap, con
         }
         global.gaggedErrors++;
     }
+}
+
+// header is "Error: " by default (see errors.h)
+extern (C++) void verror(const ref Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null, const(char)* header = "Error: ")
+{
+    _verror(loc, format, ap, p1, p2, header, !global.gag);
 }
 
 // Doesn't increase error count, doesn't print "Error:".
@@ -274,8 +280,16 @@ extern (C++) void vwarningSupplemental(const ref Loc loc, const(char)* format, v
 extern (C++) void vdeprecation(const ref Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
     static __gshared const(char)* header = "Deprecation: ";
+    // 0: don't allow use of deprecated features
+    // 1: silently allow use of deprecated features
+    // 2: warn about the use of deprecated features
     if (global.params.useDeprecated == 0)
-        verror(loc, format, ap, p1, p2, header);
+    {
+        // The error will cause a template instantiation to fail,
+        // but it wouldn't get printed by verror() when gagged (bug 9960.)
+        // Enabling verbose mode will show these hidden deprecation errors.
+        _verror(loc, format, ap, p1, p2, header, !global.gag || global.params.verbose);
+    }
     else if (global.params.useDeprecated == 2 && !global.gag)
         verrorPrint(loc, COLOR_BLUE, header, format, ap, p1, p2);
 }

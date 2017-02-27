@@ -35,6 +35,9 @@
 #                        An empty set means only one permutation with no arguments.
 #                        default: the make variable ARGS (see below)
 #
+#   CAPTURE_OUTPUT:      either "stdout" or "stderr", determining the output to be captured
+#                        default: (none, both stdout and stderr are captured)
+#
 #   TEST_OUTPUT:         the output is expected from the compilation (if the
 #                        output of the compilation doesn't match, the test
 #                        fails). You can use the this format for multi-line
