@@ -2,7 +2,7 @@ module ddmd.ctfe.ctfe_bc;
 
 import ddmd.expression;
 import ddmd.declaration : FuncDeclaration, VarDeclaration, Declaration,
-    SymbolDeclaration;
+    SymbolDeclaration, STCref;
 import ddmd.dsymbol;
 import ddmd.dstruct;
 import ddmd.init;
@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 0;
+enum bailoutMessages = 1;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
@@ -644,6 +644,20 @@ struct SharedCtfeState(BCGenT)
             return BCType.init;
     }
 
+    const(BCType) pointerOf(const BCType type) pure
+    {
+        foreach (uint i, pt; pointerTypes[0 .. pointerCount])
+        {
+            if (pt.elementType == type)
+            {
+                return BCType(BCTypeEnum.Ptr, i + 1);
+            }
+        }
+
+        pointerTypes[pointerCount++] = BCPointer(type);
+        return BCType(BCTypeEnum.Ptr, pointerCount);
+    }
+
     void clearState()
     {
         clearArray(sArrayTypePointers, arrayCount);
@@ -863,7 +877,7 @@ struct SharedCtfeState(BCGenT)
         case BCTypeEnum.Struct:
             {
                 uint _size;
-                if(type.typeIndex <= structCount)
+                if (type.typeIndex <= structCount)
                 {
                     // the if above shoud really be an assert
                     // I have no idea why this even happens
@@ -887,7 +901,7 @@ struct SharedCtfeState(BCGenT)
 
         case BCType.Array:
             {
-                if(type.typeIndex >= arrayCount)
+                if (type.typeIndex >= arrayCount)
                 {
                     // the if above shoud really be an assert
                     // I have no idea why this even happens
@@ -1568,16 +1582,33 @@ public:
 
     BCValue getVariable(VarDeclaration vd)
     {
-        import ddmd.declaration : STCmanifest, STCref, STCstatic, STCimmutable;
-        if (vd.storage_class & STCref || ((vd.storage_class & STCstatic) && !(vd.storage_class & STCimmutable)))
-       // if (vd.storage_class & STCref || vd.storage_class & STCstatic)
+        import ddmd.declaration : STCmanifest, STCstatic, STCimmutable;
+        if (vd.storage_class & STCref)
         {
-            bailout("cannot handle ref or static variables");
+            if (toBCType(vd.type) != i32Type)
+            {
+                bailout("We can only handle 32bit refs for now");
+                return BCValue.init;
+            }
+            else
+            {
+                
+            }
+        }
+
+        if (vd.storage_class & STCstatic && !(vd.storage_class & STCimmutable))
+        {
+            bailout("cannot handle static variables");
             return BCValue.init;
         }
 
         if (auto value = (cast(void*) vd) in vars)
         {
+            if (vd.storage_class & STCref && !value.heapRef)
+            {
+                //assert(0, "We got a ref and the heapRef is not set this is BAD!");
+                //actually cannot check this hear :(
+            }
             return *value;
         }
         else if ((vd.isDataseg() || vd.storage_class & STCmanifest) && !vd.isCTFE() && vd._init)
@@ -1719,7 +1750,7 @@ public:
                 return;
             }
 
-            assert(!me, "We are not clean!");
+            //assert(!me, "We are not clean!");
             me = uf.fd;
             beginParameters();
             auto parameters = uf.fd.parameters;
@@ -1821,7 +1852,7 @@ public:
             }
             beginFunction(fnIdx - 1);
             visit(fbody);
-            if(fd.type.nextOf.ty == Tvoid)
+            if (fd.type.nextOf.ty == Tvoid)
             {
                 // insert a dummy return after void functions because they can omit a returnStatement
                 Ret(imm32(0));
@@ -2205,7 +2236,7 @@ static if (is(BCGen))
 
             else
             {
-                bailout("Only binary operations on i32s are supported");
+                bailout("Only binary operations on i32s are supported -- " ~ lhs.type.type.to!string ~ " :: " ~ rhs.type.type.to!string );
                 return;
             }
 
@@ -2308,7 +2339,7 @@ static if (is(BCGen))
         else if (fd)
         {
             auto fnIdx = _sharedCtfeState.getFunctionIndex(fd);
-            if(!fnIdx)
+            if (!fnIdx)
             {
                 assert(!insideArgumentProcessing, "For now we must _never_ have to gen a function while inside argument processing");
                 addUncompiledFunction(fd, &fnIdx);
@@ -2380,7 +2411,7 @@ static if (is(BCGen))
 
         auto indexed = genExpr(ie.e1);
 
-        if(!indexed || indexed.vType == BCValueType.VoidValue)
+        if (!indexed || indexed.vType == BCValueType.VoidValue)
         {
             bailout("could not create indexed variable from: " ~ ie.e1.toString);
             return ;
@@ -2988,7 +3019,7 @@ static if (is(BCGen))
 
         auto tmp = genTemporary(baseType);
 
-        if(baseType.type != BCTypeEnum.i32)
+        if (baseType.type != BCTypeEnum.i32)
         {
            bailout("can only deal with i32 ptrs at the moement");
            return ;
@@ -3136,7 +3167,7 @@ static if (is(BCGen))
                 return;
             }
 
-            if(sv.heapRef != BCHeapRef.init && sv.vType == BCValueType.StackValue)
+            if (sv.heapRef != BCHeapRef.init && sv.vType == BCValueType.StackValue)
             {
                 LoadFromHeapRef(sv);
             }
@@ -3229,9 +3260,18 @@ static if (is(BCGen))
 
         BCValue var;
         BCType type = toBCType(vd.type);
+        bool refParam;
         if (processingParameters)
         {
-            var = genParameter(type);
+            if (vd.storage_class & STCref)
+            {
+                refParam = true;
+                auto RefType = _sharedCtfeState.pointerOf(type);
+            }
+            else
+            {
+                var = genParameter(type);
+            }
             arguments ~= var;
             parameterTypes ~= type;
         }
@@ -3724,7 +3764,7 @@ static if (is(BCGen))
             }
 
             auto lhs = genExpr(_struct);
-            if(!lhs)
+            if (!lhs)
             {
                 bailout("could not gen: " ~ _struct.toString);
                 return ;
@@ -3854,7 +3894,7 @@ static if (is(BCGen))
                 bailout("only 32 bit array loads are supported right now");
             }
             auto rhs = genExpr(ae.e2);
-            if(!rhs)
+            if (!rhs)
             {
                 bailout("we could not gen AssignExp[].rhs: " ~ ae.e2.toString);
                 return ;
@@ -3865,7 +3905,7 @@ static if (is(BCGen))
         {
             ignoreVoid = true;
             auto lhs = genExpr(ae.e1);
-            if(!lhs)
+            if (!lhs)
             {
                 bailout("could not gen AssignExp.lhs: " ~ ae.e1.toString);
                 return ;
@@ -4326,8 +4366,8 @@ static if (is(BCGen))
         BCValue fnValue;
         FuncDeclaration fd;
         bool isFunctionPtr;
-        assert(ce.e1.type.ty == Tfunction);
 
+        assert(ce.e1.type.ty == Tfunction);
         TypeFunction tf = cast (TypeFunction) ce.e1.type;
         import ddmd.asttypename;
 
@@ -4372,7 +4412,7 @@ static if (is(BCGen))
             tf = cast(TypeFunction) ce.e1.type;
         }
 
-        if(!isFunctionPtr)
+        if (!isFunctionPtr)
         {
             if (!fd)
             {
@@ -4405,16 +4445,30 @@ static if (is(BCGen))
 
         foreach (i, arg; *ce.arguments)
         {
+            auto getAsRef = (*tf.parameters)[i].storageClass & STCref;
             bc_args[i] = genExpr(arg);
             if (bc_args[i].vType == BCValueType.Unknown)
             {
                 bailout(arg.toString ~ "did not evaluate to a valid argument");
                 return ;
             }
-            if (bc_args[i].type == BCType.i64)
+            if (bc_args[i].type == BCTypeEnum.i64)
             {
                 bailout(arg.toString ~ "cannot safely pass 64bit arguments yet");
                 return ;
+            }
+            if (getAsRef)
+            {
+                if (bc_args[i].type == BCTypeEnum.i32)
+                {
+                    auto argHeapRef = genTemporary(i32Type);
+                    Alloc(argHeapRef, basicTypeSize(bc_args[i].type).imm32);
+                    auto origArg = bc_args[i];
+                    bc_args[i].heapRef = BCHeapRef(argHeapRef);
+                    StoreToHeapRef(bc_args[i]);
+                    bc_args[i] = argHeapRef;
+                    bc_args[i].heapRef = BCHeapRef(origArg);
+                }
             }
         }
 
@@ -4438,7 +4492,7 @@ static if (is(BCGen))
 
             static if (is(BCGen))
             {
-                if(callCount >= calls.length - 64)
+                if (callCount >= calls.length - 64)
                 {
                     bailout("can only handle " ~ to!string(calls.length) ~ " function-calls per topLevel evaluation");
                     return ;
@@ -4452,6 +4506,18 @@ static if (is(BCGen))
             }
 
             Call(retval, fnValue, bc_args, ce.loc);
+
+            foreach(i, ref arg;bc_args)
+            {
+              if (arg.heapRef)
+              {
+                  BCValue origArg = arg.heapRef;
+                  origArg.type = toBCType((*ce.arguments)[i].type);
+                  origArg.heapRef = BCHeapRef(arg);
+                  LoadFromHeapRef(origArg);
+              }
+            }
+ 
             import ddmd.identifier;
             /*if (fd.ident == Identifier.idPool("isGraphical"))
             {
@@ -4480,7 +4546,7 @@ static if (is(BCGen))
         if (rs.exp !is null)
         {
             auto retval = genExpr(rs.exp);
-            if(!retval)
+            if (!retval)
             {
                 bailout("could not gen returnValue: " ~ rs.exp.toString);
                 return ;
@@ -4547,7 +4613,8 @@ static if (is(BCGen))
                 && _sharedCtfeState.sliceTypes[toType.typeIndex - 1].elementType.type
                 == BCTypeEnum.i32)
         {
-            // for the cast(ubyte[])string; case ... needs to be revised as soon as we handle utf8/32 conversions
+            // for the cast(ubyte[])string case
+            // this needs to be revised as soon as we handle utf8/32 conversions
             // for now make an i8 slice
             _sharedCtfeState.sliceTypes[_sharedCtfeState.sliceCount++] = BCSlice(BCType(BCTypeEnum.i8));
             retval.type = BCType(BCTypeEnum.Slice, _sharedCtfeState.sliceCount);
