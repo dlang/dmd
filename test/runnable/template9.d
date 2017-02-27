@@ -2818,6 +2818,42 @@ void test10083()
 }
 
 /******************************************/
+// 10084
+
+auto callFunc10084(T, alias func)()
+{
+    auto call(Member)()
+    {
+        return func!Member();
+    }
+    return call!T;
+}
+
+template Mix10084()
+{
+    void save()
+    {
+        int saveImpl(Member)()
+        {
+            return 1024;
+        }
+        auto n = callFunc10084!(typeof(this), saveImpl);
+        assert(n == 1024);
+    }
+}
+
+struct S10084
+{
+    mixin Mix10084;
+}
+
+void test10084()
+{
+    S10084 s;
+    s.save();
+}
+
+/******************************************/
 // 10134
 
 template ReturnType10134(alias func)
@@ -4937,6 +4973,7 @@ int main()
     test9971();
     test9977();
     test10083();
+    test10084();
     test10592();
     test11242();
     test10811();
