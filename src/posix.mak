@@ -209,7 +209,7 @@ endif
 # Uniqe extra flags if necessary
 DMD_FLAGS  := -I$(ROOT) -Wuninitialized
 GLUE_FLAGS := -I$(ROOT) -I$(TK) -I$(C)
-BACK_FLAGS := -I$(ROOT) -I$(TK) -I$(C) -I$D -DDMDV2=1
+BACK_FLAGS := -I$(ROOT) -I$(TK) -I$(C) -I$G -I$D -DDMDV2=1
 ROOT_FLAGS := -I$(ROOT)
 
 ifeq ($(OS), osx)
@@ -224,10 +224,10 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	cppmangle ctfeexpr dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol	\
 	dtemplate dversion entity errors escape expression func			\
-	globals hdrgen id identifier impcnvtab imphint init inline intrange	\
+	globals hdrgen identifier impcnvtab imphint init inline intrange	\
 	json lexer lib link mars mtype nogc nspace opover optimize parse sapply	\
 	sideeffect statement staticassert target tokens traits utf visitor	\
-	typinf utils  statement_rewrite_walker statementsem safe blockexit asttypename))
+	typinf utils  statement_rewrite_walker statementsem safe blockexit asttypename)) $G/id.d
 
 ifeq ($(D_OBJC),1)
 	FRONT_SRCS += $D/objc.d
@@ -365,7 +365,7 @@ endif
 
 clean:
 	rm -R $(GENERATED)
-	rm -f $(idgen_output) $(optabgen_output) dmd
+	rm -f dmd
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
 ######## Download and install the last dmd buildable without dmd
@@ -401,18 +401,20 @@ dmd.conf:
 $G/optabgen: $C/optabgen.c $C/cc.h $C/oper.h
 	$(HOST_CXX) $(CXXFLAGS) -I$(TK) $< -o $G/optabgen
 	$G/optabgen
+	mv $(optabgen_output) $G
 
-optabgen_output = $(addprefix $C/, debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c)
+optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
 $(optabgen_output) : $G/optabgen
 
 ######## idgen generates some source
 
-idgen_output = $D/id.h $D/id.d
+idgen_output = $G/id.h $G/id.d
 $(idgen_output) : $G/idgen
 
 $G/idgen: $D/idgen.d $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $<
 	$G/idgen
+	mv id.h id.d $G
 
 #########
 # STRING_IMPORT_FILES
@@ -447,17 +449,17 @@ $(G_OBJS) : $(optabgen_output)
 # If additional flags are needed for a specific file add a _CXXFLAGS as a
 # dependency to the object file and assign the appropriate content.
 
-cg.o: $C/fltables.c
+cg.o: $G/fltables.c
 
-cgcod.o: $C/cdxxx.c
+cgcod.o: $G/cdxxx.c
 
-cgelem.o: $C/elxxx.c
+cgelem.o: $G/elxxx.c
 
-debug.o: $C/debtab.c
+debug.o: $G/debtab.c
 
 iasm.o: CXXFLAGS += -fexceptions
 
-var.o: $C/optab.c $C/tytab.c
+var.o: $G/optab.c $G/tytab.c
 
 
 # Generic rules for all source files
@@ -529,7 +531,7 @@ DOC_OUTPUT_DIR=$(DOCDIR)
 ifneq ($(DOCSRC),)
 
 # list all files for which documentation should be generated
-SRC_DOCUMENTABLES = $(ROOT_SRCS) $(DMD_SRCS)
+SRC_DOCUMENTABLES = $(ROOT_SRCS) $(filter-out $G/id.d$, $(DMD_SRCS))
 
 D2HTML=$(foreach p,$1,$(if $(subst package.d,,$(notdir $p)),$(subst /,_,$(subst .d,.html,$p)),$(subst /,_,$(subst /package.d,.html,$p))))
 HTMLS=$(addprefix $(DOC_OUTPUT_DIR)/, \
@@ -540,7 +542,7 @@ HTMLS=$(addprefix $(DOC_OUTPUT_DIR)/, \
 $(foreach p,$(SRC_DOCUMENTABLES),$(eval \
 $(DOC_OUTPUT_DIR)/$(call D2HTML,$p) : $p $(STDDOC) ;\
   $(HOST_DMD_RUN) -of- $(MODEL_FLAG) -J$G -J../res -c -Dd$(DOCSRC) -Iddmd\
-  $(DFLAGS) project.ddoc $(STDDOC) -Df$$@ $$<))
+  $(DFLAGS) project.ddoc $(STDDOC) -Df$$@ $$< $G/id.d))
 
 $(DOC_OUTPUT_DIR) :
 	mkdir -p $@
