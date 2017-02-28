@@ -4468,11 +4468,11 @@ static if (is(BCGen))
         }
 
         BCValue[] bc_args;
+        assert(ce.arguments);
         bc_args.length = ce.arguments.dim + !!(thisPtr);
 
         foreach (i, arg; *ce.arguments)
         {
-            auto getAsRef = (*tf.parameters)[i].storageClass & STCref;
             bc_args[i] = genExpr(arg);
             if (bc_args[i].vType == BCValueType.Unknown)
             {
@@ -4484,18 +4484,14 @@ static if (is(BCGen))
                 bailout(arg.toString ~ "cannot safely pass 64bit arguments yet");
                 return ;
             }
-            if (getAsRef)
+            if ((*tf.parameters)[i].storageClass & STCref)
             {
-                if (bc_args[i].type == BCTypeEnum.i32)
-                {
-                    auto argHeapRef = genTemporary(i32Type);
-                    Alloc(argHeapRef, basicTypeSize(bc_args[i].type).imm32);
-                    auto origArg = bc_args[i];
-                    bc_args[i].heapRef = BCHeapRef(argHeapRef);
-                    StoreToHeapRef(bc_args[i]);
-                    bc_args[i] = argHeapRef;
-                    bc_args[i].heapRef = BCHeapRef(origArg);
-                }
+                auto argHeapRef = genTemporary(i32Type);
+                Alloc(argHeapRef, basicTypeSize(bc_args[i].type).imm32);
+                auto origArg = bc_args[i];
+                bc_args[i].heapRef = BCHeapRef(argHeapRef);
+                StoreToHeapRef(bc_args[i]);
+                bc_args[i] = argHeapRef;
             }
         }
 
@@ -4534,14 +4530,23 @@ static if (is(BCGen))
 
             Call(retval, fnValue, bc_args, ce.loc);
 
+            //FIXME figure out what we do in the case where we have more arguments then parameters
+            auto paramDim = tf.parameters.dim;
             foreach(i, ref arg;bc_args)
             {
-              if (arg.heapRef)
+                assert(tf.parameters);
+              
+              if (paramDim > i && (*tf.parameters)[i].storageClass & STCref)
               {
-                  BCValue origArg = arg.heapRef;
-                  origArg.type = toBCType((*ce.arguments)[i].type);
-                  origArg.heapRef = BCHeapRef(arg);
-                  LoadFromHeapRef(origArg);
+                    auto ce_arg = (*ce.arguments)[i];
+                    if (!arg)
+                    {
+                        bailout("No valid ref arg for " ~ ce_arg.toString());
+                        return ;
+                    }
+                    auto origArg = genExpr(ce_arg);
+                    origArg.heapRef = BCHeapRef(arg);
+                    LoadFromHeapRef(origArg);
               }
             }
  
