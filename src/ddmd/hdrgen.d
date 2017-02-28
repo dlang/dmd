@@ -322,11 +322,18 @@ public:
         if (s.elsebody)
         {
             buf.writestring("else");
-            buf.writenl();
-            if (!s.elsebody.isScopeStatement())
+            if (!s.elsebody.isIfStatement)
+            {
+                buf.writenl();
+            }
+            else
+            {
+                buf.writeByte(' ');
+            }
+            if (!s.elsebody.isScopeStatement() && !s.elsebody.isIfStatement)
                 buf.level++;
             s.elsebody.accept(this);
-            if (!s.elsebody.isScopeStatement())
+            if (!s.elsebody.isScopeStatement() && !s.elsebody.isIfStatement)
                 buf.level--;
         }
     }
