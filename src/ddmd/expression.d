@@ -10519,7 +10519,7 @@ extern (C++) final class CallExp : UnaExp
                 auto tmp = copyToTemp(0, "__tmpfordtor", this);
                 auto de = new DeclarationExp(loc, tmp);
                 auto ve = new VarExp(loc, tmp);
-                Expression e = new CommaExp(loc, de, new VarExp(loc, tmp));
+                Expression e = new CommaExp(loc, de, ve);
                 e = e.semantic(sc);
                 return e;
             }
