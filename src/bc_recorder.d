@@ -1,3 +1,4 @@
+/+
 module ddmd.ctfe.bc_recorder;
 
 import ddmd.ctfe.bc_common;
@@ -424,3 +425,4 @@ enum genString = q{
 };
 
 static assert(ensureIsBCGen!Print_BCGen);
++/
