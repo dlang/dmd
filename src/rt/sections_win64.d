@@ -19,8 +19,6 @@ debug(PRINTF) import core.stdc.stdio;
 import core.stdc.stdlib : malloc, free;
 import rt.deh, rt.minfo;
 
-version = conservative;
-
 struct SectionGroup
 {
     static int opApply(scope int delegate(ref SectionGroup) dg)
@@ -58,11 +56,10 @@ struct SectionGroup
 
 private:
     ModuleGroup _moduleGroup;
-    version(conservative)
-        void[][1] _gcRanges;
-    else
-        void[][] _gcRanges;
+    void[][] _gcRanges;
 }
+
+shared(bool) conservative;
 
 void initSections() nothrow @nogc
 {
@@ -72,8 +69,13 @@ void initSections() nothrow @nogc
     void[] dataSection = findImageSection(".data");
     debug(PRINTF) printf("found .data section: [%p,+%llx]\n", dataSection.ptr,
                          cast(ulong)dataSection.length);
-    version(conservative)
+
+    import rt.sections;
+    conservative = !scanDSegPrecisely();
+
+    if (conservative)
     {
+        _sections._gcRanges = (cast(void[]*) malloc((void[]).sizeof))[0..1];
         _sections._gcRanges[0] = dataSection;
     }
     else
@@ -92,8 +94,7 @@ void initSections() nothrow @nogc
 void finiSections() nothrow @nogc
 {
     .free(cast(void*)_sections.modules.ptr);
-    version(conservative) {} else
-        .free(_sections._gcRanges.ptr);
+    .free(_sections._gcRanges.ptr);
 }
 
 void[] initTLSRanges() nothrow @nogc
@@ -109,7 +110,7 @@ void finiTLSRanges(void[] rng) nothrow @nogc
 
 void scanTLSRanges(void[] rng, scope void delegate(void* pbeg, void* pend) nothrow dg) nothrow
 {
-    version(conservative)
+    if (conservative)
     {
         dg(rng.ptr, rng.ptr + rng.length);
     }

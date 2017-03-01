@@ -72,3 +72,20 @@ version (Shared)
     static assert(is(typeof(&inheritLoadedLibraries) == void function(void*) nothrow @nogc));
     static assert(is(typeof(&cleanupLoadedLibraries) == void function() nothrow @nogc));
 }
+
+bool scanDSegPrecisely() nothrow @nogc
+{
+    import rt.config;
+    string opt = rt_configOption("scandseg");
+    switch(opt)
+    {
+        case "conservative":
+            return false;
+        case "":
+        case "precise":
+            return true;
+        default:
+            __gshared err = new Error("DRT invalid scandseg option, must be 'precise' or 'conservative'");
+            throw err;
+    }
+}
