@@ -4400,6 +4400,7 @@ static if (is(BCGen))
 
         if (ce.e1.op == TOKvar)
         {
+
             auto ve = (cast(VarExp) ce.e1);
             fd = ve.var.isFuncDeclaration();
             // TODO FIXME be aware we can set isFunctionPtr here as well,
@@ -4417,6 +4418,7 @@ static if (is(BCGen))
 
             // Calling a member function
             _this = dve.e1;
+
             if (!dve.var || !dve.var.isFuncDeclaration())
             {
                 bailout("no dve.var or it's not a funcDecl callExp -- " ~ dve.toString);
@@ -4429,14 +4431,11 @@ static if (is(BCGen))
             }
             */
             thisPtr = genExpr(dve.e1);
-
         }
         else if (ce.e1.op == TOKstar)
         {
             isFunctionPtr = true;
             fnValue = genExpr(ce.e1);
-            import std.stdio;
-            tf = cast(TypeFunction) ce.e1.type;
         }
 
         if (!isFunctionPtr)
@@ -4446,7 +4445,6 @@ static if (is(BCGen))
                 bailout("could not get funcDecl" ~ astTypeName(ce.e1));
                 return;
             }
-            tf = cast(TypeFunction) fd.type;
 
             int fnIdx = _sharedCtfeState.getFunctionIndex(fd);
             if (!fnIdx && cacheBC)
@@ -4468,7 +4466,24 @@ static if (is(BCGen))
         }
 
         BCValue[] bc_args;
+
+        if (!tf)
+        {
+            bailout("could not get function type of " ~ ce.e1.toString);
+            return ;
+        }
+
         assert(ce.arguments);
+        // NOTE: FIXME: in case of destructors parameters are null
+        // investigate if there are circumstances in which this can happen.
+        uint nParameters = tf.parameters ? cast(uint)tf.parameters.dim : 0;
+
+        if (ce.arguments.dim > nParameters)
+        {
+            bailout("More arguments then parameters in -- " ~ ce.toString);
+            return ;
+        }
+
         bc_args.length = ce.arguments.dim + !!(thisPtr);
 
         foreach (i, arg; *ce.arguments)
@@ -4531,12 +4546,9 @@ static if (is(BCGen))
             Call(retval, fnValue, bc_args, ce.loc);
 
             //FIXME figure out what we do in the case where we have more arguments then parameters
-            auto paramDim = tf.parameters.dim;
             foreach(i, ref arg;bc_args)
             {
-                assert(tf.parameters);
-              
-              if (paramDim > i && (*tf.parameters)[i].storageClass & STCref)
+              if (nParameters > i && (*tf.parameters)[i].storageClass & STCref)
               {
                     auto ce_arg = (*ce.arguments)[i];
                     if (!arg)
