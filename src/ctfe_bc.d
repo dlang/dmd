@@ -3118,6 +3118,11 @@ static if (is(BCGen))
             if (p.storage_class & STCref)
             {
                 auto heapRef = getVariable(p);
+                if (!heapRef)
+                {
+                    bailout("could not get heapRef for callee");
+                    return ;
+                }
                 auto var = genTemporary(toBCType(p.type));
                 var.heapRef = BCHeapRef(heapRef);
                 setVariable(p, var);
