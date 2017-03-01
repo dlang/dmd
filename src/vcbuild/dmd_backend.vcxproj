@@ -55,7 +55,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(IntDir)generated;..\root;..\tk;..\backend;.;.;..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(IntDir)generated\ddmd;$(IntDir)generated;..\ddmd\root;..\ddmd\tk;..\ddmd\backend;.;.;..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">DEBUG;_DEBUG;TARGET_WINDOS%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)'=='Release'">TARGET_WINDOS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebug</RuntimeLibrary>
@@ -85,82 +85,82 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\backend\backconfig.c" />
-    <ClCompile Include="..\backend\compress.c" />
-    <ClCompile Include="..\backend\cv8.c" />
-    <ClCompile Include="..\backend\gsroa.c" />
-    <ClCompile Include="..\backend\pdata.c" />
-    <ClCompile Include="..\backend\ph2.c" />
-    <ClCompile Include="..\backend\util2.c" />
-    <ClCompile Include="..\backend\varstats.c" />
-    <ClCompile Include="..\tk.c" />
-    <ClCompile Include="..\backend\aa.c" />
-    <ClCompile Include="..\backend\bcomplex.c" />
-    <ClCompile Include="..\backend\blockopt.c" />
-    <ClCompile Include="..\backend\cg.c" />
-    <ClCompile Include="..\backend\cg87.c" />
-    <ClCompile Include="..\backend\cgcod.c" />
-    <ClCompile Include="..\backend\cgcs.c" />
-    <ClCompile Include="..\backend\cgcv.c" />
-    <ClCompile Include="..\backend\cgelem.c" />
-    <ClCompile Include="..\backend\cgen.c" />
-    <ClCompile Include="..\backend\cgobj.c" />
-    <ClCompile Include="..\backend\cgreg.c" />
-    <ClCompile Include="..\backend\cgsched.c" />
-    <ClCompile Include="..\backend\cgxmm.c" />
-    <ClCompile Include="..\backend\cod1.c" />
-    <ClCompile Include="..\backend\cod2.c" />
-    <ClCompile Include="..\backend\cod3.c" />
-    <ClCompile Include="..\backend\cod4.c" />
-    <ClCompile Include="..\backend\cod5.c" />
-    <ClCompile Include="..\backend\code.c" />
-    <ClCompile Include="..\backend\debug.c" />
-    <ClCompile Include="..\backend\divcoeff.c" />
-    <ClCompile Include="..\backend\dt.c" />
-    <ClCompile Include="..\backend\dwarf.c" />
-    <ClCompile Include="..\backend\ee.c" />
-    <ClCompile Include="..\backend\el.c" />
-    <ClCompile Include="..\backend\elfobj.c" />
-    <ClCompile Include="..\backend\evalu8.c" />
-    <ClCompile Include="..\backend\gdag.c" />
-    <ClCompile Include="..\backend\gflow.c" />
-    <ClCompile Include="..\backend\glocal.c" />
-    <ClCompile Include="..\backend\gloop.c" />
-    <ClCompile Include="..\backend\go.c" />
-    <ClCompile Include="..\backend\gother.c" />
-    <ClCompile Include="..\backend\machobj.c" />
-    <ClCompile Include="..\backend\md5.c" />
-    <ClCompile Include="..\backend\mscoffobj.c" />
-    <ClCompile Include="..\backend\newman.c" />
-    <ClCompile Include="..\backend\nteh.c" />
-    <ClCompile Include="..\backend\os.c" />
-    <ClCompile Include="..\backend\out.c" />
-    <ClCompile Include="..\backend\outbuf.c" />
-    <ClCompile Include="..\backend\ptrntab.c" />
-    <ClCompile Include="..\backend\rtlsym.c" />
-    <ClCompile Include="..\backend\strtold.c" />
-    <ClCompile Include="..\backend\symbol.c" />
-    <ClCompile Include="..\backend\ti_achar.c" />
-    <ClCompile Include="..\backend\ti_pvoid.c" />
-    <ClCompile Include="..\backend\type.c" />
-    <ClCompile Include="..\backend\var.c" />
-    <ClCompile Include="..\tk\filespec.c">
+    <ClCompile Include="..\ddmd\backend\backconfig.c" />
+    <ClCompile Include="..\ddmd\backend\compress.c" />
+    <ClCompile Include="..\ddmd\backend\cv8.c" />
+    <ClCompile Include="..\ddmd\backend\gsroa.c" />
+    <ClCompile Include="..\ddmd\backend\pdata.c" />
+    <ClCompile Include="..\ddmd\backend\ph2.c" />
+    <ClCompile Include="..\ddmd\backend\util2.c" />
+    <ClCompile Include="..\ddmd\backend\varstats.c" />
+    <ClCompile Include="..\ddmd\backend\tk.c" />
+    <ClCompile Include="..\ddmd\backend\aa.c" />
+    <ClCompile Include="..\ddmd\backend\bcomplex.c" />
+    <ClCompile Include="..\ddmd\backend\blockopt.c" />
+    <ClCompile Include="..\ddmd\backend\cg.c" />
+    <ClCompile Include="..\ddmd\backend\cg87.c" />
+    <ClCompile Include="..\ddmd\backend\cgcod.c" />
+    <ClCompile Include="..\ddmd\backend\cgcs.c" />
+    <ClCompile Include="..\ddmd\backend\cgcv.c" />
+    <ClCompile Include="..\ddmd\backend\cgelem.c" />
+    <ClCompile Include="..\ddmd\backend\cgen.c" />
+    <ClCompile Include="..\ddmd\backend\cgobj.c" />
+    <ClCompile Include="..\ddmd\backend\cgreg.c" />
+    <ClCompile Include="..\ddmd\backend\cgsched.c" />
+    <ClCompile Include="..\ddmd\backend\cgxmm.c" />
+    <ClCompile Include="..\ddmd\backend\cod1.c" />
+    <ClCompile Include="..\ddmd\backend\cod2.c" />
+    <ClCompile Include="..\ddmd\backend\cod3.c" />
+    <ClCompile Include="..\ddmd\backend\cod4.c" />
+    <ClCompile Include="..\ddmd\backend\cod5.c" />
+    <ClCompile Include="..\ddmd\backend\code.c" />
+    <ClCompile Include="..\ddmd\backend\debug.c" />
+    <ClCompile Include="..\ddmd\backend\divcoeff.c" />
+    <ClCompile Include="..\ddmd\backend\dt.c" />
+    <ClCompile Include="..\ddmd\backend\dwarf.c" />
+    <ClCompile Include="..\ddmd\backend\ee.c" />
+    <ClCompile Include="..\ddmd\backend\el.c" />
+    <ClCompile Include="..\ddmd\backend\elfobj.c" />
+    <ClCompile Include="..\ddmd\backend\evalu8.c" />
+    <ClCompile Include="..\ddmd\backend\gdag.c" />
+    <ClCompile Include="..\ddmd\backend\gflow.c" />
+    <ClCompile Include="..\ddmd\backend\glocal.c" />
+    <ClCompile Include="..\ddmd\backend\gloop.c" />
+    <ClCompile Include="..\ddmd\backend\go.c" />
+    <ClCompile Include="..\ddmd\backend\gother.c" />
+    <ClCompile Include="..\ddmd\backend\machobj.c" />
+    <ClCompile Include="..\ddmd\backend\md5.c" />
+    <ClCompile Include="..\ddmd\backend\mscoffobj.c" />
+    <ClCompile Include="..\ddmd\backend\newman.c" />
+    <ClCompile Include="..\ddmd\backend\nteh.c" />
+    <ClCompile Include="..\ddmd\backend\os.c" />
+    <ClCompile Include="..\ddmd\backend\out.c" />
+    <ClCompile Include="..\ddmd\backend\outbuf.c" />
+    <ClCompile Include="..\ddmd\backend\ptrntab.c" />
+    <ClCompile Include="..\ddmd\backend\rtlsym.c" />
+    <ClCompile Include="..\ddmd\backend\strtold.c" />
+    <ClCompile Include="..\ddmd\backend\symbol.c" />
+    <ClCompile Include="..\ddmd\backend\ti_achar.c" />
+    <ClCompile Include="..\ddmd\backend\ti_pvoid.c" />
+    <ClCompile Include="..\ddmd\backend\type.c" />
+    <ClCompile Include="..\ddmd\backend\var.c" />
+    <ClCompile Include="..\ddmd\tk\filespec.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\tk\list.c">
+    <ClCompile Include="..\ddmd\tk\list.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\tk\mem.c">
+    <ClCompile Include="..\ddmd\tk\mem.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\tk\vec.c">
+    <ClCompile Include="..\ddmd\tk\vec.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\root\longdouble.c" />
-    <ClCompile Include="..\root\newdelete.c" />
-    <CustomBuild Include="..\idgen.d">
+    <ClCompile Include="..\ddmd\root\longdouble.c" />
+    <ClCompile Include="..\ddmd\root\newdelete.c" />
+    <CustomBuild Include="..\ddmd\idgen.d">
       <Message>Building and running $(IntDir)%(Filename).exe</Message>
-      <Outputs>$(IntDir)generated\id.d;$(IntDir)generated\id.c;$(IntDir)generated\id.h;$(IntDir)%(Filename).exe;%(Outputs)</Outputs>
+      <Outputs>$(IntDir)generated\ddmd\id.d;$(IntDir)generated\ddmd\id.c;$(IntDir)generated\ddmd\id.h;$(IntDir)generated\%(Filename).exe;%(Outputs)</Outputs>
       <Command>set DMDDir=$(DMDBinDir)
 set PATH=%DMDDir%;%PATH%
 dmd -od$(IntDir)generated -of$(IntDir)generated\%(Filename).exe %(Identity) 
@@ -170,89 +170,89 @@ pushd $(IntDir)generated
 if errorlevel 1 exit /B %ERRORLEVEL%
 popd</Command>
     </CustomBuild>
-    <CustomBuild Include="..\backend\optabgen.c">
+    <CustomBuild Include="..\ddmd\backend\optabgen.c">
       <Message>Building and running $(IntDir)%(Filename).exe</Message>
-      <Command>cl /TP /I..\tk /I..\root /I. /I.. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)generated\%(Filename).exe" "%(FullPath)" 
+      <Command>cl /TP /I..\ddmd\tk /I..\ddmd\root /I. /I.. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)generated\%(Filename).exe" "%(FullPath)" 
 if errorlevel 1 exit /B %ERRORLEVEL%
 pushd $(IntDir)generated
 "%(Filename).exe"
 if errorlevel 1 exit /B %ERRORLEVEL%
 popd</Command>
-      <Outputs>$(IntDir)generated\optab.c;$(IntDir)generated\debtab.c;$(IntDir)generated\cdxxx.c;$(IntDir)generated\elxxx.c;$(IntDir)generated\tytab.c;$(IntDir)generated\fltables.c;%(Outputs)</Outputs>
-      <AdditionalInputs>..\backend\cc.h;..\backend\oper.h;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs>$(IntDir)generated\optab.c;$(IntDir)generated\debtab.c;$(IntDir)generated\cdxxx.c;$(IntDir)generated\elxxx.c;$(IntDir)generated\tytab.c;$(IntDir)generated\\fltables.c;%(Outputs)</Outputs>
+      <AdditionalInputs>..\ddmd\backend\cc.h;..\ddmd\backend\oper.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\aggregate.h" />
-    <ClInclude Include="..\aliasthis.h" />
-    <ClInclude Include="..\arraytypes.h" />
-    <ClInclude Include="..\attrib.h" />
-    <ClInclude Include="..\backend\varstats.h" />
-    <ClInclude Include="..\complex_t.h" />
-    <ClInclude Include="..\cond.h" />
-    <ClInclude Include="..\declaration.h" />
-    <ClInclude Include="..\dsymbol.h" />
-    <ClInclude Include="..\enum.h" />
-    <ClInclude Include="..\errors.h" />
-    <ClInclude Include="..\expression.h" />
-    <ClInclude Include="..\globals.h" />
-    <ClInclude Include="..\hdrgen.h" />
-    <ClInclude Include="..\identifier.h" />
-    <ClInclude Include="..\import.h" />
-    <ClInclude Include="..\init.h" />
-    <ClInclude Include="..\intrange.h" />
-    <ClInclude Include="..\irstate.h" />
-    <ClInclude Include="..\json.h" />
-    <ClInclude Include="..\mars.h" />
-    <ClInclude Include="..\module.h" />
-    <ClInclude Include="..\mtype.h" />
-    <ClInclude Include="..\nspace.h" />
-    <ClInclude Include="..\objc.h" />
-    <ClInclude Include="..\scope.h" />
-    <ClInclude Include="..\statement.h" />
-    <ClInclude Include="..\staticassert.h" />
-    <ClInclude Include="..\target.h" />
-    <ClInclude Include="..\template.h" />
-    <ClInclude Include="..\toir.h" />
-    <ClInclude Include="..\tokens.h" />
-    <ClInclude Include="..\version.h" />
-    <ClInclude Include="..\backend\aa.h" />
-    <ClInclude Include="..\backend\bcomplex.h" />
-    <ClInclude Include="..\backend\cc.h" />
-    <ClInclude Include="..\backend\cdef.h" />
-    <ClInclude Include="..\backend\cgcv.h" />
-    <ClInclude Include="..\backend\code.h" />
-    <ClInclude Include="..\backend\cv4.h" />
-    <ClInclude Include="..\backend\dt.h" />
-    <ClInclude Include="..\backend\dwarf.h" />
-    <ClInclude Include="..\backend\dwarf2.h" />
-    <ClInclude Include="..\backend\el.h" />
-    <ClInclude Include="..\backend\exh.h" />
-    <ClInclude Include="..\backend\global.h" />
-    <ClInclude Include="..\backend\go.h" />
-    <ClInclude Include="..\backend\iasm.h" />
-    <ClInclude Include="..\backend\mach.h" />
-    <ClInclude Include="..\backend\md5.h" />
-    <ClInclude Include="..\backend\melf.h" />
-    <ClInclude Include="..\backend\mscoff.h" />
-    <ClInclude Include="..\backend\oper.h" />
-    <ClInclude Include="..\backend\outbuf.h" />
-    <ClInclude Include="..\backend\rtlsym.h" />
-    <ClInclude Include="..\backend\tassert.h" />
-    <ClInclude Include="..\backend\tinfo.h" />
-    <ClInclude Include="..\backend\token.h" />
-    <ClInclude Include="..\backend\ty.h" />
-    <ClInclude Include="..\backend\type.h" />
-    <ClInclude Include="..\tk\filespec.h" />
-    <ClInclude Include="..\tk\list.h" />
-    <ClInclude Include="..\tk\mem.h" />
-    <ClInclude Include="..\tk\vec.h" />
-    <ClInclude Include="..\root\ctfloat.h" />
-    <ClInclude Include="..\root\longdouble.h" />
-    <ClInclude Include="..\root\port.h" />
-    <ClInclude Include="..\root\rmem.h" />
-    <ClInclude Include="..\root\root.h" />
-    <ClInclude Include="..\root\stringtable.h" />
+    <ClInclude Include="..\ddmd\aggregate.h" />
+    <ClInclude Include="..\ddmd\aliasthis.h" />
+    <ClInclude Include="..\ddmd\arraytypes.h" />
+    <ClInclude Include="..\ddmd\attrib.h" />
+    <ClInclude Include="..\ddmd\backend\varstats.h" />
+    <ClInclude Include="..\ddmd\complex_t.h" />
+    <ClInclude Include="..\ddmd\cond.h" />
+    <ClInclude Include="..\ddmd\declaration.h" />
+    <ClInclude Include="..\ddmd\dsymbol.h" />
+    <ClInclude Include="..\ddmd\enum.h" />
+    <ClInclude Include="..\ddmd\errors.h" />
+    <ClInclude Include="..\ddmd\expression.h" />
+    <ClInclude Include="..\ddmd\globals.h" />
+    <ClInclude Include="..\ddmd\hdrgen.h" />
+    <ClInclude Include="..\ddmd\identifier.h" />
+    <ClInclude Include="..\ddmd\import.h" />
+    <ClInclude Include="..\ddmd\init.h" />
+    <ClInclude Include="..\ddmd\intrange.h" />
+    <ClInclude Include="..\ddmd\irstate.h" />
+    <ClInclude Include="..\ddmd\json.h" />
+    <ClInclude Include="..\ddmd\mars.h" />
+    <ClInclude Include="..\ddmd\module.h" />
+    <ClInclude Include="..\ddmd\mtype.h" />
+    <ClInclude Include="..\ddmd\nspace.h" />
+    <ClInclude Include="..\ddmd\objc.h" />
+    <ClInclude Include="..\ddmd\scope.h" />
+    <ClInclude Include="..\ddmd\statement.h" />
+    <ClInclude Include="..\ddmd\staticassert.h" />
+    <ClInclude Include="..\ddmd\target.h" />
+    <ClInclude Include="..\ddmd\template.h" />
+    <ClInclude Include="..\ddmd\toir.h" />
+    <ClInclude Include="..\ddmd\tokens.h" />
+    <ClInclude Include="..\ddmd\version.h" />
+    <ClInclude Include="..\ddmd\backend\aa.h" />
+    <ClInclude Include="..\ddmd\backend\bcomplex.h" />
+    <ClInclude Include="..\ddmd\backend\cc.h" />
+    <ClInclude Include="..\ddmd\backend\cdef.h" />
+    <ClInclude Include="..\ddmd\backend\cgcv.h" />
+    <ClInclude Include="..\ddmd\backend\code.h" />
+    <ClInclude Include="..\ddmd\backend\cv4.h" />
+    <ClInclude Include="..\ddmd\backend\dt.h" />
+    <ClInclude Include="..\ddmd\backend\dwarf.h" />
+    <ClInclude Include="..\ddmd\backend\dwarf2.h" />
+    <ClInclude Include="..\ddmd\backend\el.h" />
+    <ClInclude Include="..\ddmd\backend\exh.h" />
+    <ClInclude Include="..\ddmd\backend\global.h" />
+    <ClInclude Include="..\ddmd\backend\go.h" />
+    <ClInclude Include="..\ddmd\backend\iasm.h" />
+    <ClInclude Include="..\ddmd\backend\mach.h" />
+    <ClInclude Include="..\ddmd\backend\md5.h" />
+    <ClInclude Include="..\ddmd\backend\melf.h" />
+    <ClInclude Include="..\ddmd\backend\mscoff.h" />
+    <ClInclude Include="..\ddmd\backend\oper.h" />
+    <ClInclude Include="..\ddmd\backend\outbuf.h" />
+    <ClInclude Include="..\ddmd\backend\rtlsym.h" />
+    <ClInclude Include="..\ddmd\backend\tassert.h" />
+    <ClInclude Include="..\ddmd\backend\tinfo.h" />
+    <ClInclude Include="..\ddmd\backend\token.h" />
+    <ClInclude Include="..\ddmd\backend\ty.h" />
+    <ClInclude Include="..\ddmd\backend\type.h" />
+    <ClInclude Include="..\ddmd\tk\filespec.h" />
+    <ClInclude Include="..\ddmd\tk\list.h" />
+    <ClInclude Include="..\ddmd\tk\mem.h" />
+    <ClInclude Include="..\ddmd\tk\vec.h" />
+    <ClInclude Include="..\ddmd\root\ctfloat.h" />
+    <ClInclude Include="..\ddmd\root\longdouble.h" />
+    <ClInclude Include="..\ddmd\root\port.h" />
+    <ClInclude Include="..\ddmd\root\rmem.h" />
+    <ClInclude Include="..\ddmd\root\root.h" />
+    <ClInclude Include="..\ddmd\root\stringtable.h" />
     <ClInclude Include="..\vcbuild\alloca.h" />
     <ClInclude Include="..\vcbuild\fenv.h" />
     <ClInclude Include="..\vcbuild\stdint.h" />
