@@ -512,14 +512,40 @@ zip:
 ../changelog.html: ../changelog.dd $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -Df$@ $<
 
-#############################
+################################################################################
+# DDoc documentation generation
+################################################################################
 
-ifneq ($(DOCDIR),)
-html: $(DOCDIR)/.generated
-$(DOCDIR)/.generated: $(DMD_SRCS) $(ROOT_SRCS) $(HOST_DMD_PATH) project.ddoc
-	$(HOST_DMD_RUN) -of- $(MODEL_FLAG) -J$G -J../res -c -Dd$(DOCDIR)\
-	  $(DFLAGS) project.ddoc $(DOCFMT) $(DMD_SRCS) $(ROOT_SRCS)
-	touch $@
+# BEGIN fallbacks for old variable names
+# should be removed after https://github.com/dlang/dlang.org/pull/1581
+# has been pulled
+DOCSRC=../dlang.org
+STDDOC=$(DOCFMT)
+DOC_OUTPUT_DIR=$(DOCDIR)
+# END fallbacks
+
+# DDoc html generation - this is very similar to the way the documentation for
+# Phobos is built
+ifneq ($(DOCSRC),)
+
+# list all files for which documentation should be generated
+SRC_DOCUMENTABLES = $(ROOT_SRCS) $(DMD_SRCS)
+
+D2HTML=$(foreach p,$1,$(if $(subst package.d,,$(notdir $p)),$(subst /,_,$(subst .d,.html,$p)),$(subst /,_,$(subst /package.d,.html,$p))))
+HTMLS=$(addprefix $(DOC_OUTPUT_DIR)/, \
+	$(call D2HTML, $(SRC_DOCUMENTABLES)))
+
+# For each module, define a rule e.g.:
+# ../web/phobos/ddmd_mars.html : ddmd/mars.d $(STDDOC) ; ...
+$(foreach p,$(SRC_DOCUMENTABLES),$(eval \
+$(DOC_OUTPUT_DIR)/$(call D2HTML,$p) : $p $(STDDOC) ;\
+  $(HOST_DMD_RUN) -of- $(MODEL_FLAG) -J$G -J../res -c -Dd$(DOCSRC) -Iddmd\
+  $(DFLAGS) project.ddoc $(STDDOC) -Df$$@ $$<))
+
+$(DOC_OUTPUT_DIR) :
+	mkdir -p $@
+
+html: $(HTMLS) $(HOST_DMD_PATH) project.ddoc | $(DOC_OUTPUT_DIR)
 endif
 
 ######################################################
