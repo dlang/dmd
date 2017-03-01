@@ -4476,6 +4476,8 @@ static if (is(BCGen))
         assert(ce.arguments);
         // NOTE: FIXME: in case of destructors parameters are null
         // investigate if there are circumstances in which this can happen.
+        // Also destructor calls are most likely broken
+        // TODO confirm if they work
         uint nParameters = tf.parameters ? cast(uint)tf.parameters.dim : 0;
 
         if (ce.arguments.dim > nParameters)
