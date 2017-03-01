@@ -21,7 +21,7 @@ ifneq ($(BUILD),release)
     endif
 endif
 
-DMD=../dmd/src/dmd
+DMD=../dmd/generated/$(OS)/release/$(MODEL)/dmd
 INSTALL_DIR=../install
 
 DOCDIR=doc
