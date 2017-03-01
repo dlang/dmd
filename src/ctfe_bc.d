@@ -90,7 +90,7 @@ struct BoolExprFixupEntry
         this.conditional = conditional;
     }
 }
-
+import std.utf : decode;
 struct UnrolledLoopState
 {
     BCAddr[255] continueFixups;
@@ -2171,29 +2171,23 @@ static if (is(BCGen))
 
                 case TOK.TOKand:
                     {
-                        static if (is(BCGen))
-                            if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
-                                bailout("BCGen does not suppport 32bit bit-operations");
                         And3(retval, lhs, rhs);
                     }
                     break;
 
                 case TOK.TOKor:
                     {
+/*
                         static if (is(BCGen))
                             if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
                                 bailout("BCGen does not suppport 32bit bit-operations");
-
+*/
                         Or3(retval, lhs, rhs);
                     }
                     break;
 
                 case TOK.TOKxor:
                     {
-                        static if (is(BCGen))
-                            if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
-                                bailout("BCGen does not suppport 32bit bit-operations");
-
                         Xor3(retval, lhs, rhs);
                     }
                     break;
@@ -2205,10 +2199,6 @@ static if (is(BCGen))
                         Assert(BCValue.init,
                             _sharedCtfeState.addError(e.loc,
                             "%d out of range(0..%d)", rhs, maxShift));
-                        static if (is(BCGen))
-                            if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
-                                bailout("BCGen does not suppport 32bit bit-operations");
-
 
                         Rsh3(retval, lhs, rhs);
                     }
@@ -2221,10 +2211,6 @@ static if (is(BCGen))
                         Assert(BCValue.init,
                             _sharedCtfeState.addError(e.loc,
                             "%d out of range(0..%d)", rhs, maxShift));
-                        static if (is(BCGen))
-                            if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
-                                bailout("BCGen does not suppport 32bit bit-operations");
-
 
                         Lsh3(retval, lhs, rhs);
                     }
