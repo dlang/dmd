@@ -306,7 +306,7 @@ $(LIBS) : $(GBACKOBJ) $(OBJ_MSVC)
 DMDFRONTENDEXE = $G\dmd_frontend.exe
 
 $(DMDFRONTENDEXE): $(FRONT_SRCS) $D\gluelayer.d $(ROOT_SRCS) $G\newdelete.obj $(STRING_IMPORT_FILES)
-	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.obj -version=NoBackend
+	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) newdelete.obj -version=NoBackend
 	copy $(DMDFRONTENDEXE) .
 
 $(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) $G\newdelete.obj $(LIBS) $(STRING_IMPORT_FILES)
@@ -318,10 +318,8 @@ $(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) $G\newdelete.obj $(LIBS) $(STRING_IMPORT_
 clean:
 	$(RD) /s /q $(GEN)
 	$(DEL) $D\msgs.h $D\msgs.c
-	$(DEL) $C\elxxx.c $C\cdxxx.c $C\optab.c $C\debtab.c $C\fltables.c $C\tytab.c
-	$(DEL) $D\id.h $D\id.d
 	$(DEL) optabgen.exe
-	$(DEL) $(TARGETEXE) $(DMDFRONTENDEXE) *.map *.obj
+	$(DEL) $(TARGETEXE) $(DMDFRONTENDEXE) $(IDGENOUTPUT) *.map *.obj
 
 install: detab install-copy
 
@@ -388,18 +386,17 @@ checkwhitespace:
 	$(HOST_DC) -Df$@ $<
 
 ############################## Generated Source ##############################
-OPTABGENOUTPUT = $C\elxxx.c $C\cdxxx.c $C\optab.c $C\debtab.c $C\fltables.c $C\tytab.c
-IDGENOUTPUT    = $D\id.d $D\id.h
-
-print:
-	@echo '$(IDGENOUTPUT)'
+OPTABGENOUTPUT = $G\elxxx.c $G\cdxxx.c $G\optab.c $G\debtab.c $G\fltables.c $G\tytab.c
+IDGENOUTPUT    = $D/id.d $D/id.h
 
 $(OPTABGENOUTPUT) : \
 	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c
 	$(CC) -cpp -o$G\optabgen.exe $C\optabgen -DMARS -DDM_TARGET_CPU_X86=1 -I$(TK)
 	$G\optabgen.exe
+	copy *.c "$G\"
+	$(DEL) *.c
 
-ddmd/id.h ddmd/id.d : $D\idgen.d
+$(IDGENOUTPUT) : $D\idgen.d
 	$(HOST_DC) -of$G\idgen $D\idgen.d
 	$G/idgen
 
@@ -420,7 +417,7 @@ $G/bcomplex.obj : $C\bcomplex.c
 	$(CC) -c -o$@ $(MFLAGS) $C\bcomplex
 
 $G/aa.obj : $C\tinfo.h $C\aa.h $C\aa.c
-	$(CC) -c -o$@ $(MFLAGS) -I$D $C\aa
+	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\aa
 
 $G/backconfig.obj : $C\backconfig.c
 	$(CC) -c -o$@ $(MFLAGS) $C\backconfig
@@ -429,13 +426,13 @@ $G/blockopt.obj : $C\blockopt.c
 	$(CC) -c -o$@ $(MFLAGS) $C\blockopt
 
 $G/cg.obj : $C\cg.c
-	$(CC) -c -o$@ $(MFLAGS) -I$D $C\cg
+	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\cg
 
 $G/cg87.obj : $C\cg87.c
 	$(CC) -c -o$@ $(MFLAGS) $C\cg87
 
 $G/cgcod.obj : $C\cgcod.c
-	$(CC) -c -o$@ $(MFLAGS) -I$D $C\cgcod
+	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\cgcod
 
 $G/cgcs.obj : $C\cgcs.c
 	$(CC) -c -o$@ $(MFLAGS) $C\cgcs
@@ -444,7 +441,7 @@ $G/cgcv.obj : $C\cgcv.c
 	$(CC) -c -o$@ $(MFLAGS) $C\cgcv
 
 $G/cgelem.obj : $C\rtlsym.h $C\cgelem.c
-	$(CC) -c -o$@ $(MFLAGS) -I$D $C\cgelem
+	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\cgelem
 
 $G/cgen.obj : $C\rtlsym.h $C\cgen.c
 	$(CC) -c -o$@ $(MFLAGS) $C\cgen
@@ -489,7 +486,7 @@ $G/cv8.obj : $C\cv8.c
 	$(CC) -c -o$@ $(MFLAGS) $C\cv8
 
 $G/debug.obj : $C\debug.c
-	$(CC) -c -o$@ $(MFLAGS) -I$D $C\debug
+	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\debug
 
 $G/divcoeff.obj : $C\divcoeff.c
 	$(CC) -c -o$@ -cpp -e $(DEBUG) $C\divcoeff
@@ -537,7 +534,7 @@ $G/md5.obj : $C\md5.h $C\md5.c
 	$(CC) -c -o$@ $(MFLAGS) $C\md5
 
 $G/mscoffobj.obj : $C\mscoff.h $C\mscoffobj.c
-	$(CC) -c -o$@ $(MFLAGS) -I$D;$(ROOT) $C\mscoffobj
+	$(CC) -c -o$@ $(MFLAGS) -I$D;$(ROOT) -I$G $C\mscoffobj
 
 $G/newman.obj : $(CH) $C\newman.c
 	$(CC) -c -o$@ $(MFLAGS) $C\newman
@@ -573,7 +570,7 @@ $G/ti_achar.obj : $C\tinfo.h $C\ti_achar.c
 	$(CC) -c -o$@ $(MFLAGS) -I$D $C\ti_achar
 
 $G/ti_pvoid.obj : $C\tinfo.h $C\ti_pvoid.c
-	$(CC) -c -o$@ $(MFLAGS) -I$D $C\ti_pvoid
+	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\ti_pvoid
 
 $G/type.obj : $C\type.c
 	$(CC) -c -o$@ $(MFLAGS) $C\type
@@ -581,11 +578,11 @@ $G/type.obj : $C\type.c
 $G/util2.obj : $C\util2.c
 	$(CC) -c -o$@ $(MFLAGS) $C\util2
 
-$G/var.obj : $C\var.c $C\optab.c
-	$(CC) -c -o$@ $(MFLAGS) -I$D -I$C $C\var
+$G/var.obj : $C\var.c $G\optab.c
+	$(CC) -c -o$@ $(MFLAGS) -I$D -I$C -I$G $C\var
 
 $G/varstats.obj : $C\varstats.c
-	$(CC) -c -o$@ $(MFLAGS) -I$D $C\varstats
+	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\varstats
 
 
 $G/tk.obj : $C\tk.c

@@ -209,7 +209,7 @@ endif
 # Uniqe extra flags if necessary
 DMD_FLAGS  := -I$(ROOT) -Wuninitialized
 GLUE_FLAGS := -I$(ROOT) -I$(TK) -I$(C)
-BACK_FLAGS := -I$(ROOT) -I$(TK) -I$(C) -I$D -DDMDV2=1
+BACK_FLAGS := -I$(ROOT) -I$(TK) -I$(C) -I$G -I$D -DDMDV2=1
 ROOT_FLAGS := -I$(ROOT)
 
 ifeq ($(OS), osx)
@@ -365,7 +365,7 @@ endif
 
 clean:
 	rm -R $(GENERATED)
-	rm -f $(idgen_output) $(optabgen_output) dmd
+	rm -f dmd $(idgen_output)
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
 ######## Download and install the last dmd buildable without dmd
@@ -401,8 +401,9 @@ dmd.conf:
 $G/optabgen: $C/optabgen.c $C/cc.h $C/oper.h
 	$(HOST_CXX) $(CXXFLAGS) -I$(TK) $< -o $G/optabgen
 	$G/optabgen
+	mv $(optabgen_output) $G
 
-optabgen_output = $(addprefix $C/, debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c)
+optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
 $(optabgen_output) : $G/optabgen
 
 ######## idgen generates some source
@@ -447,17 +448,17 @@ $(G_OBJS) : $(optabgen_output)
 # If additional flags are needed for a specific file add a _CXXFLAGS as a
 # dependency to the object file and assign the appropriate content.
 
-cg.o: $C/fltables.c
+cg.o: $G/fltables.c
 
-cgcod.o: $C/cdxxx.c
+cgcod.o: $G/cdxxx.c
 
-cgelem.o: $C/elxxx.c
+cgelem.o: $G/elxxx.c
 
-debug.o: $C/debtab.c
+debug.o: $G/debtab.c
 
 iasm.o: CXXFLAGS += -fexceptions
 
-var.o: $C/optab.c $C/tytab.c
+var.o: $G/optab.c $G/tytab.c
 
 
 # Generic rules for all source files
