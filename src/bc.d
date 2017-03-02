@@ -788,11 +788,11 @@ struct BCGen
 
     void Load32(BCValue _to, BCValue from)
     {
-        if (from.vType != BCValueType.StackValue)
+        if (!isStackValueOrParameter(from))
         {
             from = pushOntoStack(from);
         }
-        if (_to.vType != BCValueType.StackValue)
+        if (!isStackValueOrParameter(_to))
         {
             _to = pushOntoStack(_to);
         }
@@ -804,11 +804,12 @@ struct BCGen
 
     void Store32(BCValue _to, BCValue value)
     {
-        if (value.vType != BCValueType.StackValue)
+        if (!isStackValueOrParameter(value))
         {
             value = pushOntoStack(value);
         }
-        if (_to.vType != BCValueType.StackValue)
+        if (!isStackValueOrParameter(_to))
+
         {
             _to = pushOntoStack(_to);
         }
