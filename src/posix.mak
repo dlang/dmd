@@ -224,10 +224,10 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	cppmangle ctfeexpr dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol	\
 	dtemplate dversion entity errors escape expression func			\
-	globals hdrgen identifier impcnvtab imphint init inline intrange	\
+	globals hdrgen id identifier impcnvtab imphint init inline intrange	\
 	json lexer lib link mars mtype nogc nspace opover optimize parse sapply	\
 	sideeffect statement staticassert target tokens traits utf visitor	\
-	typinf utils  statement_rewrite_walker statementsem safe blockexit asttypename)) $G/id.d
+	typinf utils  statement_rewrite_walker statementsem safe blockexit asttypename))
 
 ifeq ($(D_OBJC),1)
 	FRONT_SRCS += $D/objc.d
@@ -408,13 +408,12 @@ $(optabgen_output) : $G/optabgen
 
 ######## idgen generates some source
 
-idgen_output = $G/id.h $G/id.d
+idgen_output = $D/id.h $D/id.d
 $(idgen_output) : $G/idgen
 
 $G/idgen: $D/idgen.d $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $<
 	$G/idgen
-	mv id.h id.d $G
 
 #########
 # STRING_IMPORT_FILES
@@ -531,7 +530,7 @@ DOC_OUTPUT_DIR=$(DOCDIR)
 ifneq ($(DOCSRC),)
 
 # list all files for which documentation should be generated
-SRC_DOCUMENTABLES = $(ROOT_SRCS) $(filter-out $G/id.d$, $(DMD_SRCS))
+SRC_DOCUMENTABLES = $(ROOT_SRCS) $(DMD_SRCS)
 
 D2HTML=$(foreach p,$1,$(if $(subst package.d,,$(notdir $p)),$(subst /,_,$(subst .d,.html,$p)),$(subst /,_,$(subst /package.d,.html,$p))))
 HTMLS=$(addprefix $(DOC_OUTPUT_DIR)/, \
@@ -542,7 +541,7 @@ HTMLS=$(addprefix $(DOC_OUTPUT_DIR)/, \
 $(foreach p,$(SRC_DOCUMENTABLES),$(eval \
 $(DOC_OUTPUT_DIR)/$(call D2HTML,$p) : $p $(STDDOC) ;\
   $(HOST_DMD_RUN) -of- $(MODEL_FLAG) -J$G -J../res -c -Dd$(DOCSRC) -Iddmd\
-  $(DFLAGS) project.ddoc $(STDDOC) -Df$$@ $$< $G/id.d))
+  $(DFLAGS) project.ddoc $(STDDOC) -Df$$@ $$<))
 
 $(DOC_OUTPUT_DIR) :
 	mkdir -p $@
