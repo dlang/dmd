@@ -305,7 +305,6 @@ SRCS=\
 	src\rt\util\container\hashtab.d \
 	src\rt\util\container\treap.d \
 	\
-	src\rt\typeinfo\ti_AC.d \
 	src\rt\typeinfo\ti_Acdouble.d \
 	src\rt\typeinfo\ti_Acfloat.d \
 	src\rt\typeinfo\ti_Acreal.d \
