@@ -319,7 +319,7 @@ clean:
 	$(RD) /s /q $(GEN)
 	$(DEL) $D\msgs.h $D\msgs.c
 	$(DEL) optabgen.exe
-	$(DEL) $(TARGETEXE) $(DMDFRONTENDEXE) *.map *.obj
+	$(DEL) $(TARGETEXE) $(DMDFRONTENDEXE) $(IDGENOUTPUT) *.map *.obj
 
 install: detab install-copy
 

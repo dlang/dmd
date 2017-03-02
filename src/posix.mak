@@ -365,7 +365,7 @@ endif
 
 clean:
 	rm -R $(GENERATED)
-	rm -f dmd
+	rm -f dmd $(idgen_output)
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
 ######## Download and install the last dmd buildable without dmd
