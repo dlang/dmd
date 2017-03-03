@@ -351,7 +351,7 @@ $G/backend.a: $(G_OBJS)
 $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
-dmd: $G/dmd
+dmd: $G/dmd $G/dmd.conf
 	cp $< .
 
 ifdef ENABLE_LTO
@@ -393,18 +393,21 @@ endef
 
 export DEFAULT_DMD_CONF
 
-dmd.conf:
+$G/dmd.conf:
 	[ -f $@ ] || echo "$$DEFAULT_DMD_CONF" > $@
 
 ######## optabgen generates some source
+optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
 
 $G/optabgen: $C/optabgen.c $C/cc.h $C/oper.h
 	$(HOST_CXX) $(CXXFLAGS) -I$(TK) $< -o $G/optabgen
 	$G/optabgen
 	mv $(optabgen_output) $G
 
-optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
-$(optabgen_output) : $G/optabgen
+optabgen_files = $(addprefix $G/, $(optabgen_output))
+$(optabgen_files): optabgen.out
+.INTERMEDIATE: optabgen.out
+optabgen.out : $G/optabgen
 
 ######## idgen generates some source
 
@@ -438,11 +441,6 @@ $(shell test $(SYSCONFDIR) != "`cat $G/SYSCONFDIR.imp 2> /dev/null`" \
 		&& printf '$(SYSCONFDIR)' > $G/SYSCONFDIR.imp )
 
 #########
-
-$(G_GLUE_OBJS) : $(idgen_output)
-$(G_OBJS) : $(optabgen_output)
-
-
 # Specific dependencies other than the source file for all objects
 ########################################################################
 # If additional flags are needed for a specific file add a _CXXFLAGS as a
@@ -467,20 +465,19 @@ var.o: $G/optab.c $G/tytab.c
 # matching below.
 #vpath %.c $(C)
 
-$(G_OBJS): $G/%.o: $C/%.c posix.mak
+-include $(DEPS)
+
+$(G_OBJS): $G/%.o: $C/%.c posix.mak $(optabgen_files)
 	@echo "  (CC)  BACK_OBJS  $<"
 	$(CXX) -c -o$@ $(CXXFLAGS) $(BACK_FLAGS) $(MMD) $<
 
-$(G_GLUE_OBJS): $G/%.o: $D/%.c posix.mak
+$(G_GLUE_OBJS): $G/%.o: $D/%.c posix.mak $(optabgen_files)
 	@echo "  (CC)  GLUE_OBJS  $<"
 	$(CXX) -c -o$@ $(CXXFLAGS) $(GLUE_FLAGS) $(MMD) $<
 
 $G/newdelete.o: $G/%.o: $(ROOT)/%.c posix.mak
 	@echo "  (CC)  ROOT_OBJS  $<"
 	$(CXX) -c -o$@ $(CXXFLAGS) $(ROOT_FLAGS) $(MMD) $<
-
-
--include $(DEPS)
 
 ######################################################
 
