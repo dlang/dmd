@@ -58,6 +58,9 @@
 
 ############################### Configuration ################################
 
+# fixed model for win32.mak, overriden by win64.mak
+MODEL=32
+
 ##### Directories
 
 # DMC directory
@@ -128,7 +131,7 @@ BFLAGS=
 # D Optimizer flags
 DOPT=
 # D Model flags
-DMODEL=
+DMODEL=-m$(MODEL)
 # D Debug flags
 DDEBUG=-debug -g -unittest
 
@@ -142,7 +145,7 @@ MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DTARGET_WINDOS=1 -DDM_TARG
 DFLAGS=$(DOPT) $(DMODEL) $(DDEBUG) -wi -version=MARS
 
 # Recursive make
-DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" DMODEL=$(DMODEL) CC="$(CC)" LIB="$(LIB)" OBJ_MSVC="$(OBJ_MSVC)"
+DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" MODEL=$(MODEL) CC="$(CC)" LIB="$(LIB)" OBJ_MSVC="$(OBJ_MSVC)"
 
 ############################### Rule Variables ###############################
 
