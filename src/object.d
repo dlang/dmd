@@ -3241,19 +3241,76 @@ template RTInfo(T)
     enum RTInfo = null;
 }
 
+private template Floating1(T)
+if (is(T == cfloat) || is(T == cdouble) || is(T == creal))
+{
+    // Use rt.cmath2._Ccmp instead ?
+    int compare(T f1, T f2)
+    {
+        int result;
+
+        if (f1.re < f2.re)
+            result = -1;
+        else if (f1.re > f2.re)
+            result = 1;
+        else if (f1.im < f2.im)
+            result = -1;
+        else if (f1.im > f2.im)
+            result = 1;
+        else
+            result = 0;
+        return result;
+    }
+}
+
+private template Floating1(T)
+if (is(T == float) || is(T == double) || is(T == real))
+{
+    int compare(T d1, T d2)
+    {
+        if (d1 != d1 || d2 != d2) // if either is NaN
+        {
+            if (d1 != d1)
+            {
+                if (d2 != d2)
+                    return 0;
+                return -1;
+            }
+            return 1;
+        }
+        return d1 < d2 ? -1 : (d1 > d2);
+    }
+}
+
+private template Array1(T)
+if (is(T ==  float) || is(T ==  double) || is(T ==  real) ||
+    is(T == cfloat) || is(T == cdouble) || is(T == creal))
+{
+    int compare(T[] s1, T[] s2)
+    {
+        auto len = s1.length;
+        if (s2.length < len)
+            len = s2.length;
+
+        foreach (const u; 0 .. len)
+        {
+            if (int c = Floating1!T.compare(s1[u], s2[u]))
+                return c;
+        }
+        return s1.length < s2.length ? -1 : (s1.length > s2.length);
+    }
+}
+
 int _adCmpT(T1, T2)(T1[] s1, T2[] s2)
 {
-    // U1 gets the unqualified version of T1
-    static if (is(T1 W == immutable W)) alias U1 = W;
-    else static if (is(T1 W == const W)) alias U1 = W;
-    else alias U1 = T1;
-
-    // U2 gets the unqualified version of T2
-    static if (is(T2 U == immutable U)) alias U2 = U;
-    else static if (is(T2 U == const U)) alias U2 = U;
-    else alias U2 = T2;
+    import core.internal.traits : Unqual;
+    alias U1 = Unqual!T1;
+    alias U2 = Unqual!T2;
 
     // objects
+    // Old code went to object.d/TypeInfo_array.compare and then to
+    // object.d/TypeInfo_Class.compare
+    // which combined result in the same code as below.
     static if (is(U1 : Object) && is(U2 : Object))
     {
         auto c  = cast(sizediff_t)(s1.length - s2.length);
@@ -3261,8 +3318,8 @@ int _adCmpT(T1, T2)(T1[] s1, T2[] s2)
         {
             for (size_t u = 0; u < s1.length; u++)
             {
-                Object o1 = s1[u];
-                Object o2 = s2[u];
+                auto o1 = () @trusted { return s1.ptr[u]; }();
+                auto o2 = () @trusted { return s2.ptr[u]; }();
 
                 if (o1 is o2)
                     continue;
@@ -3273,9 +3330,8 @@ int _adCmpT(T1, T2)(T1[] s1, T2[] s2)
                     if (!o2)
                         return 1;
                     c = o1.opCmp(o2);
-                    if (c == 0)
-                        continue;
-                    break;
+                    if (c != 0)
+                        break;
                 }
                 else
                 {
@@ -3283,115 +3339,74 @@ int _adCmpT(T1, T2)(T1[] s1, T2[] s2)
                 }
             }
         }
-        return c < 0 ? -1 : c > 0 ? 1 : 0;
+        return c < 0 ? -1 : (c > 0);
     }
 
     // floating point types
-    static if ((is(U1 == float) && is(U2 == float))
-        || (is(U1 == double)   && is(U2 == double))
-        || (is(U1 == real)     && is(U2 == real))
-        || (is(U1 == ifloat)   && is(U2 == ifloat))
-        || (is(U1 == idouble)  && is(U2 == idouble))
-        || (is(U1 == ireal)    && is(U2 == ireal))
-        || (is(U1 == cfloat)   && is(U2 == cfloat))
-        || (is(U1 == cdouble)  && is(U2 == cdouble))
-        || (is(U1 == creal)    && is(U2 == creal)))
+    else static if (__traits(isFloating, U1))
     {
-        template Floating(T)
-        if (is(T == cfloat) || is(T == cdouble) || is(T == creal))
-        {
-          pure nothrow @safe:
-            int compare(T f1, T f2)
-            {
-                int result;
-
-                if (f1.re < f2.re)
-                    result = -1;
-                else if (f1.re > f2.re)
-                    result = 1;
-                else if (f1.im < f2.im)
-                    result = -1;
-                else if (f1.im > f2.im)
-                    result = 1;
-                else
-                    result = 0;
-                return result;
-            }
-        }
-
-        template Floating(T)
-        if (is(T == float) || is(T == double) || is(T == real))
-        {
-          pure nothrow @safe:
-            int compare(T d1, T d2)
-            {
-                if (d1 != d1 || d2 != d2) // if either are NaN
-                {
-                    if (d1 != d1)
-                    {
-                        if (d2 != d2)
-                            return 0;
-                        return -1;
-                    }
-                    return 1;
-                }
-                return (d1 == d2) ? 0 : ((d1 < d2) ? -1 : 1);
-            }
-        }
-
-        template Array(T)
-        if (is(T ==  float) || is(T ==  double) || is(T ==  real) ||
-            is(T == cfloat) || is(T == cdouble) || is(T == creal))
-        {
-          pure nothrow @safe:
-            int compare(T[] s1, T[] s2)
-            {
-                size_t len = s1.length;
-                if (s2.length < len)
-                    len = s2.length;
-                for (size_t u = 0; u < len; u++)
-                {
-                    if (int c = Floating!T.compare(s1[u], s2[u]))
-                        return c;
-                }
-                if (s1.length < s2.length)
-                    return -1;
-                else if (s1.length > s2.length)
-                    return 1;
-                return 0;
-            }
-        }
-
         static if (is(U1 == ifloat)) alias F = float;
         else static if (is(U1 == idouble)) alias F = double;
         else static if (is(U1 == ireal)) alias F = real;
         else alias F = U1;
 
-        return () @trusted { return Array!F.compare(cast(F[])s1, cast(F[])s2); }();
+        return () @trusted { return Array1!F.compare(cast(F[])s1, cast(F[])s2); }();
     }
 
-    // integral, char types
+    // char types = > dstrcmp
+    else static if ((is(U1 == ubyte) && is(U2 == ubyte))
+        || (is(U1 == void) && is(U2 == void))
+        || (is(U1 == bool) && is(U2 == bool))
+        || (is(U1 == char) && is(U2 == char)))
+    {
+        if (!__ctfe)
+        {
+            import core.internal.string : dstrcmp;
+            return () @trusted { return dstrcmp(cast(char[])s1, cast(char[])s2); }();
+        }
+        else
+        {
+            // pretty ugly...
+            auto len = s1.length;
+
+            if (s2.length < len)
+                len = s2.length;
+
+            foreach (const u; 0 .. len)
+            {
+                auto e1 = () @trusted { return s1.ptr[u]; }();
+                auto e2 = () @trusted { return s2.ptr[u]; }();
+
+                if (e1 < e2)
+                    return -1;
+                else if (e1 > e2)
+                    return 1;
+            }
+
+            return s1.length < s2.length ? -1 : (s1.length > s2.length);
+        }
+    }
+
+    // integral
     else
     {
-        size_t len = s1.length;
+        auto len = s1.length;
 
         if (s2.length < len)
             len = s2.length;
 
-        for (size_t u = 0; u < len; u++)
+        foreach (const u; 0 .. len)
         {
-            if (s1[u] < s2[u])
+            auto e1 = () @trusted { return s1.ptr[u]; }();
+            auto e2 = () @trusted { return s2.ptr[u]; }();
+
+            if (e1 < e2)
                 return -1;
-            else if (s1[u] > s2[u])
+            else if (e1 > e2)
                 return 1;
         }
 
-        if (s1.length < s2.length)
-            return -1;
-        else if (s1.length > s2.length)
-            return 1;
-
-        return 0;
+        return s1.length < s2.length ? -1 : (s1.length > s2.length);
     }
 }
 
@@ -3400,11 +3415,11 @@ unittest
 {
     void compareMinMax(T)()
     {
-        T[] a = [T.max, T.max];
-        T[] b = [T.min, T.min];
+        T[2] a = [T.max, T.max];
+        T[2] b = [T.min, T.min];
 
-        assert(a > b);
-        assert(b < a);
+        assert(_adCmpT(a, b) > 0);
+        assert(_adCmpT(b, a) < 0);
     }
 
     compareMinMax!int;
@@ -3414,25 +3429,31 @@ unittest
     compareMinMax!short;
     compareMinMax!ushort;
     compareMinMax!byte;
-    compareMinMax!ubyte;
-    compareMinMax!bool;
+    compareMinMax!dchar;
+    compareMinMax!wchar;
 }
 
-// char types
+// char types (dstrcmp)
 unittest
 {
     void compareMinMax(T)()
     {
-        T[] a = [T.max, T.max];
-        T[] b = [T.min, T.min];
+        T[2] a = [T.max, T.max];
+        T[2] b = [T.min, T.min];
 
-        assert(a > b);
-        assert(b < a);
+        assert(_adCmpT(a, b) > 0);
+        assert(_adCmpT(b, a) < 0);
     }
 
+    compareMinMax!ubyte;
+    compareMinMax!bool;
     compareMinMax!char;
-    compareMinMax!dchar;
-    compareMinMax!wchar;
+    compareMinMax!(const char);
+
+    string s1 = "aaaa";
+    string s2 = "bbbb";
+    assert(_adCmpT(s2, s1) > 0);
+    assert(_adCmpT(s1, s2) < 0);
 }
 
 // fp types
@@ -3440,11 +3461,11 @@ unittest
 {
     void compareMinMax(T)()
     {
-        T[] a = [T.max, T.max];
-        T[] b = [T.min_normal, T.min_normal];
+        T[2] a = [T.max, T.max];
+        T[2] b = [T.min_normal, T.min_normal];
 
-        assert(a > b);
-        assert(b < a);
+        assert(_adCmpT(a, b) > 0);
+        assert(_adCmpT(b, a) < 0);
     }
 
     compareMinMax!real;
@@ -3461,6 +3482,28 @@ unittest
     compareMinMax!(const real);
     compareMinMax!(immutable real);
 }
+
+//objects
+unittest
+{
+    class C
+    {
+        int i;
+        this(int i) { this.i = i; }
+
+        override int opCmp(Object c) const
+        {
+            return i - (cast(C)c).i;
+        }
+    }
+
+    auto c1 = new C(1);
+    auto c2 = new C(2);
+
+    assert(_adCmpT([c1, c1], [c2, c2]) < 0);
+    assert(_adCmpT([c2, c2], [c1, c1]) > 0);
+}
+
 
 // Helper functions
 
