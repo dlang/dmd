@@ -6,7 +6,7 @@
 
 MAKE=make
 HOST_DC=dmd
-DMODEL=-m64
+MODEL=64
 
 ################################### Rules ####################################
 
@@ -17,7 +17,7 @@ D=ddmd
 OBJ_MSVC=$D\strtold.obj $D\longdouble.obj $D\ldfpu.obj
 DEPENDENCIES=$D\vcbuild\msvc-dmc.exe $D\vcbuild\msvc-lib.exe
 
-MAKE_WIN32=$(MAKE) -f win32.mak MAKE="$(MAKE)" DMODEL=$(DMODEL) HOST_DC=$(HOST_DC) OBJ_MSVC="$(OBJ_MSVC)" CC=vcbuild\msvc-dmc LIB=vcbuild\msvc-lib
+MAKE_WIN32=$(MAKE) -f win32.mak MAKE="$(MAKE)" MODEL=$(MODEL) HOST_DC=$(HOST_DC) OBJ_MSVC="$(OBJ_MSVC)" CC=vcbuild\msvc-dmc LIB=vcbuild\msvc-lib
 
 ################################## Targets ###################################
 
