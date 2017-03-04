@@ -385,16 +385,32 @@ endif
 
 define DEFAULT_DMD_CONF
 [Environment32]
-DFLAGS=-I%@P%/../../druntime/import -I%@P%/../../phobos -L-L%@P%/../../phobos/generated/$(OS)/release/32$(if $(filter $(OS),osx),, -L--export-dynamic)
+DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/$(OS)/release/32$(if $(filter $(OS),osx),, -L--export-dynamic)
 
 [Environment64]
-DFLAGS=-I%@P%/../../druntime/import -I%@P%/../../phobos -L-L%@P%/../../phobos/generated/$(OS)/release/64$(if $(filter $(OS),osx),, -L--export-dynamic)
+DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/$(OS)/release/64$(if $(filter $(OS),osx),, -L--export-dynamic)
 endef
 
 export DEFAULT_DMD_CONF
 
 $G/dmd.conf:
 	[ -f $@ ] || echo "$$DEFAULT_DMD_CONF" > $@
+
+######## generate a default dmd.conf (for compatibility)
+######## REMOVE ME after the ddmd -> dmd transition
+
+define DEFAULT_DMD_CONF_LEGACY
+[Environment32]
+DFLAGS=-I%@P%/../../druntime/import -I%@P%/../../phobos -L-L%@P%/../../phobos/generated/$(OS)/release/32$(if $(filter $(OS),osx),, -L--export-dynamic)
+
+[Environment64]
+DFLAGS=-I%@P%/../../druntime/import -I%@P%/../../phobos -L-L%@P%/../../phobos/generated/$(OS)/release/64$(if $(filter $(OS),osx),, -L--export-dynamic)
+endef
+
+export DEFAULT_DMD_CONF_LEGACY
+
+dmd.conf:
+	[ -f $@ ] || echo "$$DEFAULT_DMD_CONF_LEGACY" > $@
 
 ######## optabgen generates some source
 optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c

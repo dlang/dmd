@@ -83,16 +83,20 @@ coverage() {
 
     # build dmd, druntime, and phobos
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD all
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD dmd.conf
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL
 
     # rebuild dmd with coverage enabled
     # use the just build dmd as host compiler this time
-    mv src/dmd src/host_dmd
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=./host_dmd clean
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=./host_dmd dmd.conf
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=./host_dmd ENABLE_COVERAGE=1
+    local build_path=generated/linux/release/$MODEL
+    # `generated` gets cleaned in the next step, so we create another _generated
+    # The nested folder hierarchy is needed to conform to those specified in
+    # the generate dmd.conf
+    mkdir -p _${build_path}
+    cp $build_path/dmd _${build_path}/host_dmd
+    cp $build_path/dmd.conf _${build_path}
+    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd clean
+    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd ENABLE_COVERAGE=1
 
     make -j$N -C test MODEL=$MODEL ARGS="-O -inline -release" DMD_TEST_COVERAGE=1
 }
