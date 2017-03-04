@@ -1,0 +1,19 @@
+Allow multiple selective imports from different modules in a single import statement
+
+It is now possible to add imports from a different module after a selective
+import list, when those import are also selective or when the imported module
+has a qualified name.
+
+-------
+import pkg.mod1 : sym1, mod2 : sym2;
+import pkg.mod1 : sym1, sym2, pkg.mod2;
+-------
+
+Unqualified modules or renamed imports following a selective import will be
+parsed as part of the selective import list, not as separate modules.
+
+-------
+import pkg.mod1 : sym1, mod2;           // selectively imports mod2 from pkg.mod1
+import pkg.mod1 : sym1, name=mod2;      // selectively imports mod2 as name from pkg.mod1
+import pkg.mod1 : sym1, name=pkg1.mod1; // parsing renamed selective imports fails due to qualfier
+-------
