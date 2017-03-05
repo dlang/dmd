@@ -629,15 +629,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         if (!isunion)
             *nextoffset = ofs;
 
-        if (alignment == STRUCTALIGN_DEFAULT)
-        {
-            if ((global.params.is64bit || global.params.isOSX) && memalignsize == 16)
-            {
-            }
-            else if (8 < memalignsize)
-                memalignsize = 8;
-        }
-        else
+        if (alignment != STRUCTALIGN_DEFAULT)
         {
             if (memalignsize < alignment)
                 memalignsize = alignment;

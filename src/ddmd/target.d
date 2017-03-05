@@ -170,7 +170,12 @@ struct Target
      */
     extern (C++) static uint fieldalign(Type type)
     {
-        return type.alignsize();
+        const size = type.alignsize();
+
+        if ((global.params.is64bit || global.params.isOSX) && (size == 16 || size == 32))
+            return size;
+
+        return (8 < size) ? 8 : size;
     }
 
     /***********************************
