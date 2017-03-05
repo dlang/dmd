@@ -3241,71 +3241,13 @@ template RTInfo(T)
     enum RTInfo = null;
 }
 
-private template Floating1(T)
-if (is(T == cfloat) || is(T == cdouble) || is(T == creal))
-{
-    // Use rt.cmath2._Ccmp instead ?
-    int compare(T f1, T f2)
-    {
-        int result;
-
-        if (f1.re < f2.re)
-            result = -1;
-        else if (f1.re > f2.re)
-            result = 1;
-        else if (f1.im < f2.im)
-            result = -1;
-        else if (f1.im > f2.im)
-            result = 1;
-        else
-            result = 0;
-        return result;
-    }
-}
-
-private template Floating1(T)
-if (is(T == float) || is(T == double) || is(T == real))
-{
-    int compare(T d1, T d2)
-    {
-        if (d1 != d1 || d2 != d2) // if either is NaN
-        {
-            if (d1 != d1)
-            {
-                if (d2 != d2)
-                    return 0;
-                return -1;
-            }
-            return 1;
-        }
-        return d1 < d2 ? -1 : (d1 > d2);
-    }
-}
-
-private template Array1(T)
-if (is(T ==  float) || is(T ==  double) || is(T ==  real) ||
-    is(T == cfloat) || is(T == cdouble) || is(T == creal))
-{
-    int compare(T[] s1, T[] s2)
-    {
-        auto len = s1.length;
-        if (s2.length < len)
-            len = s2.length;
-
-        foreach (const u; 0 .. len)
-        {
-            if (int c = Floating1!T.compare(s1[u], s2[u]))
-                return c;
-        }
-        return s1.length < s2.length ? -1 : (s1.length > s2.length);
-    }
-}
-
-int _adCmpT(T1, T2)(T1[] s1, T2[] s2)
+int __cmp(T1, T2)(T1[] s1, T2[] s2)
 {
     import core.internal.traits : Unqual;
     alias U1 = Unqual!T1;
     alias U2 = Unqual!T2;
+
+    static @trusted ref R at(R)(R[] r, size_t i) { return r.ptr[i]; }
 
     // objects
     // Old code went to object.d/TypeInfo_array.compare and then to
@@ -3313,35 +3255,35 @@ int _adCmpT(T1, T2)(T1[] s1, T2[] s2)
     // which combined result in the same code as below.
     static if (is(U1 : Object) && is(U2 : Object))
     {
-        auto c  = cast(sizediff_t)(s1.length - s2.length);
-        if (c == 0)
+        auto len = s1.length;
+
+        if (s2.length < len)
+            len = s2.length;
+
+        foreach (const u; 0 .. len)
         {
-            for (size_t u = 0; u < s1.length; u++)
+            auto o1 = at(s1, u);
+            auto o2 = at(s2, u);
+
+            if (o1 is o2)
+                continue;
+
+            // Regard null references as always being "less than"
+            if (o1)
             {
-                auto o1 = () @trusted { return s1.ptr[u]; }();
-                auto o2 = () @trusted { return s2.ptr[u]; }();
-
-                if (o1 is o2)
-                    continue;
-
-                // Regard null references as always being "less than"
-                if (o1)
-                {
-                    if (!o2)
-                        return 1;
-                    c = o1.opCmp(o2);
-                    if (c != 0)
-                        break;
-                }
-                else
-                {
-                    return -1;
-                }
+                if (!o2)
+                    return 1;
+                auto c = o1.opCmp(o2);
+                if (c != 0)
+                    return c < 0 ? -1 : 1;
+            }
+            else
+            {
+                return -1;
             }
         }
-        return c < 0 ? -1 : (c > 0);
+        return s1.length < s2.length ? -1 : (s1.length > s2.length);
     }
-
     // floating point types
     else static if (__traits(isFloating, U1))
     {
@@ -3350,9 +3292,52 @@ int _adCmpT(T1, T2)(T1[] s1, T2[] s2)
         else static if (is(U1 == ireal)) alias F = real;
         else alias F = U1;
 
-        return () @trusted { return Array1!F.compare(cast(F[])s1, cast(F[])s2); }();
-    }
+        static int compare(F f1, F f2)
+        {
+            static if (is(F == cfloat) || is(F == cdouble) || is(F == creal))
+            {
+                // Use rt.cmath2._Ccmp instead ?
+                int result;
 
+                if (f1.re < f2.re)
+                    result = -1;
+                else if (f1.re > f2.re)
+                    result = 1;
+                else if (f1.im < f2.im)
+                    result = -1;
+                else if (f1.im > f2.im)
+                    result = 1;
+                else
+                    result = 0;
+                return result;
+            }
+            else static if (is(F == float) || is(F == double) || is(F == real))
+            {
+                // d1 is NaN 2^0 + d2 is NaN 2^1
+                auto NaNs = (f1 != f1) | ((f2 != f2) << 1);
+
+                return (NaNs == 3) ? 0 :
+                    (NaNs == 2) ? 1 :
+                    (NaNs == 1) ? -1 :
+                    (f1 < f2) ? -1 : (f1 > f2);
+            }
+            else static assert(false, "Internal error");
+        }
+
+        auto len = s1.length;
+        if (s2.length < len)
+            len = s2.length;
+
+        auto fpArray1 = () { return cast(F[])s1; }();
+        auto fpArray2 = () { return cast(F[])s2; }();
+
+        foreach (const u; 0 .. len)
+        {
+            if (int c = compare(fpArray1[u], fpArray2[u]))
+                return c;
+        }
+        return s1.length < s2.length ? -1 : (s1.length > s2.length);
+    }
     // char types = > dstrcmp
     else static if ((is(U1 == ubyte) && is(U2 == ubyte))
         || (is(U1 == void) && is(U2 == void))
@@ -3374,8 +3359,8 @@ int _adCmpT(T1, T2)(T1[] s1, T2[] s2)
 
             foreach (const u; 0 .. len)
             {
-                auto e1 = () @trusted { return s1.ptr[u]; }();
-                auto e2 = () @trusted { return s2.ptr[u]; }();
+                auto e1 = at(s1, u);
+                auto e2 = at(s2, u);
 
                 if (e1 < e2)
                     return -1;
@@ -3386,8 +3371,7 @@ int _adCmpT(T1, T2)(T1[] s1, T2[] s2)
             return s1.length < s2.length ? -1 : (s1.length > s2.length);
         }
     }
-
-    // integral
+    // integral, struct, nested arrays
     else
     {
         auto len = s1.length;
@@ -3397,15 +3381,30 @@ int _adCmpT(T1, T2)(T1[] s1, T2[] s2)
 
         foreach (const u; 0 .. len)
         {
-            auto e1 = () @trusted { return s1.ptr[u]; }();
-            auto e2 = () @trusted { return s2.ptr[u]; }();
+            auto e1 = at(s1, u);
+            auto e2 = at(s2, u);
 
-            if (e1 < e2)
-                return -1;
-            else if (e1 > e2)
-                return 1;
+            // structs
+            static if (__traits(compiles, e1.opCmp(e2)))
+            {
+                auto c = e1.opCmp(e2);
+                if (c != 0)
+                    return c < 0 ? -1 : 1;
+            }
+            else static if (__traits(compiles, _adCmp(e1, e2)))
+            {
+                auto c = _adCmp(e1, e2);
+                if (c != 0)
+                    return c < 0 ? -1 : 1;
+            }
+            else
+            {
+                if (e1 < e2)
+                    return -1;
+                else if (e1 > e2)
+                    return 1;
+            }
         }
-
         return s1.length < s2.length ? -1 : (s1.length > s2.length);
     }
 }
@@ -3418,8 +3417,8 @@ unittest
         T[2] a = [T.max, T.max];
         T[2] b = [T.min, T.min];
 
-        assert(_adCmpT(a, b) > 0);
-        assert(_adCmpT(b, a) < 0);
+        assert(__cmp(a, b) > 0);
+        assert(__cmp(b, a) < 0);
     }
 
     compareMinMax!int;
@@ -3441,8 +3440,8 @@ unittest
         T[2] a = [T.max, T.max];
         T[2] b = [T.min, T.min];
 
-        assert(_adCmpT(a, b) > 0);
-        assert(_adCmpT(b, a) < 0);
+        assert(__cmp(a, b) > 0);
+        assert(__cmp(b, a) < 0);
     }
 
     compareMinMax!ubyte;
@@ -3452,8 +3451,8 @@ unittest
 
     string s1 = "aaaa";
     string s2 = "bbbb";
-    assert(_adCmpT(s2, s1) > 0);
-    assert(_adCmpT(s1, s2) < 0);
+    assert(__cmp(s2, s1) > 0);
+    assert(__cmp(s1, s2) < 0);
 }
 
 // fp types
@@ -3464,8 +3463,8 @@ unittest
         T[2] a = [T.max, T.max];
         T[2] b = [T.min_normal, T.min_normal];
 
-        assert(_adCmpT(a, b) > 0);
-        assert(_adCmpT(b, a) < 0);
+        assert(__cmp(a, b) > 0);
+        assert(__cmp(b, a) < 0);
     }
 
     compareMinMax!real;
@@ -3500,8 +3499,8 @@ unittest
     auto c1 = new C(1);
     auto c2 = new C(2);
 
-    assert(_adCmpT([c1, c1], [c2, c2]) < 0);
-    assert(_adCmpT([c2, c2], [c1, c1]) > 0);
+    assert(__cmp([c1, c1], [c2, c2]) < 0);
+    assert(__cmp([c2, c2], [c1, c1]) > 0);
 }
 
 
