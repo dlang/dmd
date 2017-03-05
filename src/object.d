@@ -3241,6 +3241,9 @@ template RTInfo(T)
     enum RTInfo = null;
 }
 
+// This function is called by the compiler when dealing with array
+// comparisons in the semantic analysis phase of CmpExp. The ordering
+// comparison is lowered to a call to this template.
 int __cmp(T1, T2)(T1[] s1, T2[] s2)
 {
     import core.internal.traits : Unqual;
@@ -3364,7 +3367,8 @@ int __cmp(T1, T2)(T1[] s1, T2[] s2)
 
                 if (e1 < e2)
                     return -1;
-                else if (e1 > e2)
+
+                if (e1 > e2)
                     return 1;
             }
 
@@ -3391,9 +3395,9 @@ int __cmp(T1, T2)(T1[] s1, T2[] s2)
                 if (c != 0)
                     return c < 0 ? -1 : 1;
             }
-            else static if (__traits(compiles, _adCmp(e1, e2)))
+            else static if (__traits(compiles, __cmp(e1, e2)))
             {
-                auto c = _adCmp(e1, e2);
+                auto c = __cmp(e1, e2);
                 if (c != 0)
                     return c < 0 ? -1 : 1;
             }
@@ -3401,7 +3405,8 @@ int __cmp(T1, T2)(T1[] s1, T2[] s2)
             {
                 if (e1 < e2)
                     return -1;
-                else if (e1 > e2)
+
+                if (e1 > e2)
                     return 1;
             }
         }
