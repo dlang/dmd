@@ -989,6 +989,7 @@ public:
     Expression *semantic(Scope *sc);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
+    Expression *modifiableLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -998,6 +999,7 @@ public:
     Expression *semantic(Scope *sc);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
+    Expression *modifiableLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
 };
 
