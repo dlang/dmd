@@ -35,7 +35,6 @@ clone() {
 # build dmd, druntime, phobos
 build() {
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD ENABLE_RELEASE=1 all
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD dmd.conf
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL
 }
@@ -44,7 +43,6 @@ build() {
 rebuild() {
     mv src/dmd src/host_dmd
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=./host_dmd clean
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=./host_dmd dmd.conf
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=./host_dmd ENABLE_RELEASE=1 all
 }
 
