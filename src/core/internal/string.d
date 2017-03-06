@@ -192,16 +192,22 @@ unittest
 
 int dstrcmp( scope const char[] s1, scope const char[] s2 ) @trusted
 {
-    import core.stdc.string : memcmp;
+    immutable len = s1.length <= s2.length ? s1.length : s2.length;
+    if (__ctfe)
+    {
+        foreach (const u; 0 .. len)
+        {
+            if (s1[u] != s2[u])
+                return s1[u] > s2[u] ? 1 : -1;
+        }
+    }
+    else
+    {
+        import core.stdc.string : memcmp;
 
-    int  ret = 0;
-    auto len = s1.length;
-    if( s2.length < len )
-        len = s2.length;
-    if( 0 != (ret = memcmp( s1.ptr, s2.ptr, len )) )
-        return ret;
-    return s1.length >  s2.length ? 1 :
-           s1.length == s2.length ? 0 : -1;
+        const ret = memcmp( s1.ptr, s2.ptr, len );
+        if( ret )
+            return ret;
+    }
+    return s1.length < s2.length ? -1 : (s1.length > s2.length);
 }
-
-
