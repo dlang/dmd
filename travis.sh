@@ -41,9 +41,15 @@ build() {
 
 # self-compile dmd
 rebuild() {
-    mv src/dmd src/host_dmd
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=./host_dmd clean
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=./host_dmd ENABLE_RELEASE=1 all
+    local build_path=generated/$TRAVIS_OS_NAME/release/$MODEL
+    # `generated` gets cleaned in the next step, so we create another _generated
+    # The nested folder hierarchy is needed to conform to those specified in
+    # the generated dmd.conf
+    mkdir -p _${build_path}
+    cp $build_path/dmd _${build_path}/host_dmd
+    cp $build_path/dmd.conf _${build_path}
+    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd clean
+    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd ENABLE_RELEASE=1 all
 }
 
 # test druntime, phobos, dmd
