@@ -84,6 +84,9 @@ G = $(GEN)\$(OS)$(MODEL)
 
 ##### Tools
 
+GIT_HOME=https://github.com/dlang
+TOOLS_DIR=..\..\tools
+
 # C++ compiler
 CC=dmc
 # D compiler (set with env variable)
@@ -380,8 +383,11 @@ pvs:
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$C;$(TK) /Tp $(BACKSRC) --source-file $(BACKSRC)
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(TK) /Tp $(TKSRCC) --source-file $(TKSRCC)
 
-checkwhitespace:
-	$(HOST_DC) -run checkwhitespace $(SRCS) $(GLUESRC) $(ROOTSRC)
+checkwhitespace: $(TOOLS_DIR)\checkwhitespace.d
+	$(HOST_DC) -run $(TOOLS_DIR)\checkwhitespace $(SRCS) $(GLUESRC) $(ROOTSRC)
+
+$(TOOLS_DIR)\checkwhitespace.d:
+	git clone --depth=1 $(GIT_HOME)/tools $(TOOLS_DIR)
 
 ######################################################
 
