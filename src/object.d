@@ -3241,6 +3241,7 @@ template RTInfo(T)
     enum RTInfo = null;
 }
 
+// Compare floating point numbers for ordering (one instantiation per width).
 private int __cmp(F)(const F f1, const F f2)
 if (__traits(isFloating, F))
 {
@@ -3251,11 +3252,31 @@ if (__traits(isFloating, F))
         if (!r) r = __cmp(f1.im, f2.im);
         return r;
     }
-    else static if (is(F == float) || is(F == double) || is(F == real))
+    else
     {
         return (f1 > f2) - (f2 > f1);
     }
-    else static assert(false, "Internal error");
+}
+
+// Compare class and interface objects for ordering.
+private int __cmp(Obj)(Obj lhs, Obj rhs)
+if (is(Obj : Object))
+{
+    if (o1 is o2)
+        return 0;
+    // Regard null references as always being "less than"
+    if (o1)
+    {
+        if (!o2)
+            return 1;
+        auto c = o1.opCmp(o2);
+        if (c != 0)
+            return c;
+    }
+    else
+    {
+        return -1;
+    }
 }
 
 // This function is called by the compiler when dealing with array
@@ -3270,40 +3291,8 @@ int __cmp(T1, T2)(T1[] s1, T2[] s2)
 
     static @trusted ref R at(R)(R[] r, size_t i) { return r.ptr[i]; }
 
-    // objects
-    // Old code went to object.d/TypeInfo_array.compare and then to
-    // object.d/TypeInfo_Class.compare
-    // which combined result in the same code as below.
-    static if (is(U1 : Object) && is(U2 : Object))
-    {
-        immutable len = s1.length <= s2.length ? s1.length : s2.length;
-
-        foreach (const u; 0 .. len)
-        {
-            auto o1 = at(s1, u);
-            auto o2 = at(s2, u);
-
-            if (o1 is o2)
-                continue;
-
-            // Regard null references as always being "less than"
-            if (o1)
-            {
-                if (!o2)
-                    return 1;
-                auto c = o1.opCmp(o2);
-                if (c != 0)
-                    return c;
-            }
-            else
-            {
-                return -1;
-            }
-        }
-        return s1.length < s2.length ? -1 : (s1.length > s2.length);
-    }
-    // Imaginary types
-    else static if (is(U1 == ifloat) || is(U1 == idouble) || is(U1 == ireal))
+    // Use the same implementation for real and imaginary floats
+    static if (is(U1 == ifloat) || is(U1 == idouble) || is(U1 == ireal))
     {
         // Special-case imaginary types to use comparison for "concrete" types
         static if (is(U1 == ifloat)) alias F = float;
@@ -3321,23 +3310,22 @@ int __cmp(T1, T2)(T1[] s1, T2[] s2)
         import core.internal.string : dstrcmp;
         return (() @trusted => dstrcmp(cast(char[])s1, cast(char[])s2))();
     }
-    // Everything else
+    // Everything else: class, interface, struct, other built-ins
     else
     {
         immutable len = s1.length <= s2.length ? s1.length : s2.length;
 
         foreach (const u; 0 .. len)
         {
-            // structs
-            static if (__traits(compiles, at(s1, u).opCmp(at(s2, u))))
+            static if (__traits(compiles, __cmp(at(s1, u), at(s2, u))))
             {
-                auto c = at(s1, u).opCmp(at(s2, u));
+                auto c = __cmp(at(s1, u), at(s2, u));
                 if (c != 0)
                     return c;
             }
-            else static if (__traits(compiles, __cmp(at(s1, u), at(s2, u))))
+            else static if (__traits(compiles, at(s1, u).opCmp(at(s2, u))))
             {
-                auto c = __cmp(at(s1, u), at(s2, u));
+                auto c = at(s1, u).opCmp(at(s2, u));
                 if (c != 0)
                     return c;
             }
