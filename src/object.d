@@ -3241,6 +3241,273 @@ template RTInfo(T)
     enum RTInfo = null;
 }
 
+// This function is called by the compiler when dealing with array
+// comparisons in the semantic analysis phase of CmpExp. The ordering
+// comparison is lowered to a call to this template.
+int __cmp(T1, T2)(T1[] s1, T2[] s2)
+{
+    import core.internal.traits : Unqual;
+    alias U1 = Unqual!T1;
+    alias U2 = Unqual!T2;
+
+    static @trusted ref R at(R)(R[] r, size_t i) { return r.ptr[i]; }
+
+    // objects
+    // Old code went to object.d/TypeInfo_array.compare and then to
+    // object.d/TypeInfo_Class.compare
+    // which combined result in the same code as below.
+    static if (is(U1 : Object) && is(U2 : Object))
+    {
+        auto len = s1.length;
+
+        if (s2.length < len)
+            len = s2.length;
+
+        foreach (const u; 0 .. len)
+        {
+            auto o1 = at(s1, u);
+            auto o2 = at(s2, u);
+
+            if (o1 is o2)
+                continue;
+
+            // Regard null references as always being "less than"
+            if (o1)
+            {
+                if (!o2)
+                    return 1;
+                auto c = o1.opCmp(o2);
+                if (c != 0)
+                    return c < 0 ? -1 : 1;
+            }
+            else
+            {
+                return -1;
+            }
+        }
+        return s1.length < s2.length ? -1 : (s1.length > s2.length);
+    }
+    // floating point types
+    else static if (__traits(isFloating, U1))
+    {
+        static if (is(U1 == ifloat)) alias F = float;
+        else static if (is(U1 == idouble)) alias F = double;
+        else static if (is(U1 == ireal)) alias F = real;
+        else alias F = U1;
+
+        static int compare(F f1, F f2)
+        {
+            static if (is(F == cfloat) || is(F == cdouble) || is(F == creal))
+            {
+                // Use rt.cmath2._Ccmp instead ?
+                int result;
+
+                if (f1.re < f2.re)
+                    result = -1;
+                else if (f1.re > f2.re)
+                    result = 1;
+                else if (f1.im < f2.im)
+                    result = -1;
+                else if (f1.im > f2.im)
+                    result = 1;
+                else
+                    result = 0;
+                return result;
+            }
+            else static if (is(F == float) || is(F == double) || is(F == real))
+            {
+                // d1 is NaN 2^0 + d2 is NaN 2^1
+                auto NaNs = (f1 != f1) | ((f2 != f2) << 1);
+
+                return (NaNs == 3) ? 0 :
+                    (NaNs == 2) ? 1 :
+                    (NaNs == 1) ? -1 :
+                    (f1 < f2) ? -1 : (f1 > f2);
+            }
+            else static assert(false, "Internal error");
+        }
+
+        auto len = s1.length;
+        if (s2.length < len)
+            len = s2.length;
+
+        auto fpArray1 = () { return cast(F[])s1; }();
+        auto fpArray2 = () { return cast(F[])s2; }();
+
+        foreach (const u; 0 .. len)
+        {
+            if (int c = compare(fpArray1[u], fpArray2[u]))
+                return c;
+        }
+        return s1.length < s2.length ? -1 : (s1.length > s2.length);
+    }
+    // char types = > dstrcmp
+    else static if ((is(U1 == ubyte) && is(U2 == ubyte))
+        || (is(U1 == void) && is(U2 == void))
+        || (is(U1 == bool) && is(U2 == bool))
+        || (is(U1 == char) && is(U2 == char)))
+    {
+        if (!__ctfe)
+        {
+            import core.internal.string : dstrcmp;
+            return () @trusted { return dstrcmp(cast(char[])s1, cast(char[])s2); }();
+        }
+        else
+        {
+            // pretty ugly...
+            auto len = s1.length;
+
+            if (s2.length < len)
+                len = s2.length;
+
+            foreach (const u; 0 .. len)
+            {
+                auto e1 = at(s1, u);
+                auto e2 = at(s2, u);
+
+                if (e1 < e2)
+                    return -1;
+
+                if (e1 > e2)
+                    return 1;
+            }
+
+            return s1.length < s2.length ? -1 : (s1.length > s2.length);
+        }
+    }
+    // integral, struct, nested arrays
+    else
+    {
+        auto len = s1.length;
+
+        if (s2.length < len)
+            len = s2.length;
+
+        foreach (const u; 0 .. len)
+        {
+            auto e1 = at(s1, u);
+            auto e2 = at(s2, u);
+
+            // structs
+            static if (__traits(compiles, e1.opCmp(e2)))
+            {
+                auto c = e1.opCmp(e2);
+                if (c != 0)
+                    return c < 0 ? -1 : 1;
+            }
+            else static if (__traits(compiles, __cmp(e1, e2)))
+            {
+                auto c = __cmp(e1, e2);
+                if (c != 0)
+                    return c < 0 ? -1 : 1;
+            }
+            else
+            {
+                if (e1 < e2)
+                    return -1;
+
+                if (e1 > e2)
+                    return 1;
+            }
+        }
+        return s1.length < s2.length ? -1 : (s1.length > s2.length);
+    }
+}
+
+// integral types
+unittest
+{
+    void compareMinMax(T)()
+    {
+        T[2] a = [T.max, T.max];
+        T[2] b = [T.min, T.min];
+
+        assert(__cmp(a, b) > 0);
+        assert(__cmp(b, a) < 0);
+    }
+
+    compareMinMax!int;
+    compareMinMax!uint;
+    compareMinMax!long;
+    compareMinMax!ulong;
+    compareMinMax!short;
+    compareMinMax!ushort;
+    compareMinMax!byte;
+    compareMinMax!dchar;
+    compareMinMax!wchar;
+}
+
+// char types (dstrcmp)
+unittest
+{
+    void compareMinMax(T)()
+    {
+        T[2] a = [T.max, T.max];
+        T[2] b = [T.min, T.min];
+
+        assert(__cmp(a, b) > 0);
+        assert(__cmp(b, a) < 0);
+    }
+
+    compareMinMax!ubyte;
+    compareMinMax!bool;
+    compareMinMax!char;
+    compareMinMax!(const char);
+
+    string s1 = "aaaa";
+    string s2 = "bbbb";
+    assert(__cmp(s2, s1) > 0);
+    assert(__cmp(s1, s2) < 0);
+}
+
+// fp types
+unittest
+{
+    void compareMinMax(T)()
+    {
+        T[2] a = [T.max, T.max];
+        T[2] b = [T.min_normal, T.min_normal];
+
+        assert(__cmp(a, b) > 0);
+        assert(__cmp(b, a) < 0);
+    }
+
+    compareMinMax!real;
+    compareMinMax!float;
+    compareMinMax!double;
+    compareMinMax!ireal;
+    compareMinMax!ifloat;
+    compareMinMax!idouble;
+    compareMinMax!creal;
+    //compareMinMax!cfloat;
+    compareMinMax!cdouble;
+
+    // qualifiers
+    compareMinMax!(const real);
+    compareMinMax!(immutable real);
+}
+
+//objects
+unittest
+{
+    class C
+    {
+        int i;
+        this(int i) { this.i = i; }
+
+        override int opCmp(Object c) const
+        {
+            return i - (cast(C)c).i;
+        }
+    }
+
+    auto c1 = new C(1);
+    auto c2 = new C(2);
+
+    assert(__cmp([c1, c1], [c2, c2]) < 0);
+    assert(__cmp([c2, c2], [c1, c1]) > 0);
+}
+
 
 // Helper functions
 
