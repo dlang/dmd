@@ -310,11 +310,9 @@ DMDFRONTENDEXE = $G\dmd_frontend.exe
 
 $(DMDFRONTENDEXE): $(FRONT_SRCS) $D\gluelayer.d $(ROOT_SRCS) $G\newdelete.obj $(STRING_IMPORT_FILES)
 	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) newdelete.obj -version=NoBackend
-	copy $(DMDFRONTENDEXE) .
 
 $(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) $G\newdelete.obj $(LIBS) $(STRING_IMPORT_FILES)
 	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(DMD_SRCS) $(ROOT_SRCS) $G\newdelete.obj $(LIBS)
-	copy $(TARGETEXE) .
 
 ############################ Maintenance Targets #############################
 
