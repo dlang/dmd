@@ -34,7 +34,7 @@ struct Target
     static int c_long_doublesize;    // size of a C 'long double'
     static int classinfosize;        // size of 'ClassInfo'
 
-    static void init();
+    static void _init();
     // Type sizes and support.
     static unsigned alignsize(Type* type);
     static unsigned fieldalign(Type* type);
