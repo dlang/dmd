@@ -3258,11 +3258,31 @@ if (is(Obj : Object))
 int __cmp(T)(const T[] lhs, const T[] rhs) @trusted
 if (__traits(isScalar, T))
 {
-    static if (is(T == ubyte) || is(T == void) || is(T == bool)
-        || is(T == char))
+    // Compute U as the implementation type for T
+    static if (is(T == ubyte) || is(T == void) || is(T == bool))
+        alias U = char;
+    else static if (is(T == wchar))
+        alias U = ushort;
+    else static if (is(T == dchar))
+        alias U = uint;
+    else static if (is(T == ifloat))
+        alias U = float;
+    else static if (is(T == idouble))
+        alias U = double;
+    else static if (is(T == ireal))
+        alias U = real;
+    else
+        alias U = T;
+
+    static if (is(U == char))
     {
         import core.internal.string : dstrcmp;
         return dstrcmp(cast(char[]) lhs, cast(char[]) rhs);
+    }
+    else static if (!is(U == T))
+    {
+        // Reuse another implementation
+        return __cmp(cast(U[]) lhs, cast(U[]) rhs);
     }
     else
     {
