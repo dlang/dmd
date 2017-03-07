@@ -3242,19 +3242,19 @@ template RTInfo(T)
 }
 
 // Compare floating point numbers for ordering (one instantiation per width).
-private int __cmp(F)(const F f1, const F f2)
+private int __cmp(F)(const F lhs, const F rhs)
 if (__traits(isFloating, F))
 {
     static if (is(F == cfloat) || is(F == cdouble) || is(F == creal))
     {
         // Use rt.cmath2._Ccmp instead ?
-        auto r = __cmp(f1.re, f2.re);
-        if (!r) r = __cmp(f1.im, f2.im);
+        auto r = __cmp(lhs.re, lhs.re);
+        if (!r) r = __cmp(lhs.im, lhs.im);
         return r;
     }
     else
     {
-        return (f1 > f2) - (f2 > f1);
+        return (lhs > rhs) - (lhs > rhs);
     }
 }
 
@@ -3262,21 +3262,14 @@ if (__traits(isFloating, F))
 private int __cmp(Obj)(Obj lhs, Obj rhs)
 if (is(Obj : Object))
 {
-    if (o1 is o2)
+    if (lhs is rhs)
         return 0;
     // Regard null references as always being "less than"
-    if (o1)
-    {
-        if (!o2)
-            return 1;
-        auto c = o1.opCmp(o2);
-        if (c != 0)
-            return c;
-    }
-    else
-    {
+    if (!lhs)
         return -1;
-    }
+    if (!rhs)
+        return 1;
+    return lhs.opCmp(rhs);
 }
 
 // This function is called by the compiler when dealing with array
@@ -3413,14 +3406,14 @@ int __cmp(T1, T2)(T1[] s1, T2[] s2)
 }
 
 //objects
-unittest
+@safe unittest
 {
     class C
     {
         int i;
         this(int i) { this.i = i; }
 
-        override int opCmp(Object c) const
+        override int opCmp(Object c) const @safe
         {
             return i - (cast(C)c).i;
         }
@@ -3428,11 +3421,15 @@ unittest
 
     auto c1 = new C(1);
     auto c2 = new C(2);
+    assert(__cmp(c1, null) > 0);
+    assert(__cmp(null, c1) < 0);
+    assert(__cmp(c1, c1) == 0);
+    assert(__cmp(c1, c2) < 0);
+    assert(__cmp(c2, c1) > 0);
 
-    assert(__cmp([c1, c1], [c2, c2]) < 0);
+    assert(__cmp([c1, c1][], [c2, c2][]) < 0);
     assert(__cmp([c2, c2], [c1, c1]) > 0);
 }
-
 
 // Helper functions
 
