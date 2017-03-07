@@ -3297,7 +3297,7 @@ if (__traits(isScalar, T))
                 {
                     // Use rt.cmath2._Ccmp instead ?
                     auto r = (a.re > b.re) - (a.re < b.re);
-                    if (!r) r = (a.im > b.im) - (a.im < a.im);
+                    if (!r) r = (a.im > b.im) - (a.im < b.im);
                 }
                 else
                 {
