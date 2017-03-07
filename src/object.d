@@ -3248,13 +3248,13 @@ if (__traits(isFloating, F))
     static if (is(F == cfloat) || is(F == cdouble) || is(F == creal))
     {
         // Use rt.cmath2._Ccmp instead ?
-        auto r = __cmp(lhs.re, lhs.re);
-        if (!r) r = __cmp(lhs.im, lhs.im);
+        auto r = __cmp(lhs.re, rhs.re);
+        if (!r) r = __cmp(lhs.im, rhs.im);
         return r;
     }
     else
     {
-        return (lhs > rhs) - (lhs > rhs);
+        return (lhs > rhs) - (lhs < rhs);
     }
 }
 
