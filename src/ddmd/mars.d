@@ -1589,10 +1589,11 @@ Language changes listed by -transition=id:
             scope PrettyPrintVisitor ppv = new PrettyPrintVisitor(buf, &hgs);
             mod.accept(ppv);
 
+            // write the output to $(filename).cg
             auto modFilename = mod.srcfile.toChars();
             auto modFilenameLength = strlen(modFilename);
             auto cgFilename = cast(char*)allocmemory(modFilenameLength + 4);
-            strcpy(cgFilename, modFilename);
+            memcpy(cgFilename, modFilename, modFilenameLength);
             cgFilename[modFilenameLength .. modFilenameLength + 4] = ".cg\0";
             auto cgFile = File(cgFilename);
             cgFile.setbuffer(buf.data, buf.offset);

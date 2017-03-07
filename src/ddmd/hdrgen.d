@@ -1463,6 +1463,8 @@ public:
             buf.writenl();
             if (ti.aliasdecl)
             {
+                // the ti.aliasDecl is the instantiated body
+                // if we have it, print it.
                 ti.aliasdecl.accept(this);
             }
         }
