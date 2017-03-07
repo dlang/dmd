@@ -3241,23 +3241,6 @@ template RTInfo(T)
     enum RTInfo = null;
 }
 
-// Compare floating point numbers for ordering (one instantiation per width).
-private int __cmp(F)(const F lhs, const F rhs)
-if (__traits(isFloating, F))
-{
-    static if (is(F == cfloat) || is(F == cdouble) || is(F == creal))
-    {
-        // Use rt.cmath2._Ccmp instead ?
-        auto r = __cmp(lhs.re, rhs.re);
-        if (!r) r = __cmp(lhs.im, rhs.im);
-        return r;
-    }
-    else
-    {
-        return (lhs > rhs) - (lhs < rhs);
-    }
-}
-
 // Compare class and interface objects for ordering.
 private int __cmp(Obj)(Obj lhs, Obj rhs)
 if (is(Obj : Object))
@@ -3275,24 +3258,38 @@ if (is(Obj : Object))
 int __cmp(T)(const T[] lhs, const T[] rhs) @trusted
 if (__traits(isScalar, T))
 {
-    immutable len = lhs.length <= rhs.length ? lhs.length : rhs.length;
-    foreach (const u; 0 .. len)
+    static if (is(T == ubyte) || is(T == void) || is(T == bool)
+        || is(T == char))
     {
-        static if (__traits(isFloating, T))
-        {
-            auto r = __cmp(lhs.ptr[u], rhs.ptr[u]);
-            if (r) return r;
-        }
-        else static if (is(T == ubyte) || is(T == void) || is(T == bool)
-            || is(T == char))
-        {
-            import core.internal.string : dstrcmp;
-            return dstrcmp(cast(char[]) lhs, cast(char[]) rhs);
-        }
-        else if (lhs.ptr[u] != rhs.ptr[u])
-            return lhs.ptr[u] < rhs.ptr[u] ? -1 : 1;
+        import core.internal.string : dstrcmp;
+        return dstrcmp(cast(char[]) lhs, cast(char[]) rhs);
     }
-    return lhs.length < rhs.length ? -1 : (lhs.length > rhs.length);
+    else
+    {
+        immutable len = lhs.length <= rhs.length ? lhs.length : rhs.length;
+        foreach (const u; 0 .. len)
+        {
+            static if (__traits(isFloating, T))
+            {
+                immutable a = lhs.ptr[u], b = rhs.ptr[u];
+                static if (is(T == cfloat) || is(T == cdouble)
+                    || is(T == creal))
+                {
+                    // Use rt.cmath2._Ccmp instead ?
+                    auto r = (a.re > b.re) - (a.re < b.re);
+                    if (!r) r = (a.im > b.im) - (a.im < a.im);
+                }
+                else
+                {
+                    const r = (a > b) - (a < b);
+                }
+                if (r) return r;
+            }
+            else if (lhs.ptr[u] != rhs.ptr[u])
+                return lhs.ptr[u] < rhs.ptr[u] ? -1 : 1;
+        }
+        return lhs.length < rhs.length ? -1 : (lhs.length > rhs.length);
+    }
 }
 
 // This function is called by the compiler when dealing with array
