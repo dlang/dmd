@@ -15413,10 +15413,9 @@ extern (C++) final class CmpExp : BinExp
                 semanticTypeInfo(sc, t1.nextOf());
 
                 // Lowering to template call
-                Identifier id = Identifier.idPool("__cmp");
                 Expression al = new IdentifierExp(loc, Id.empty);
                 al = new DotIdExp(loc, al, Id.object);
-                al = new DotIdExp(loc, al, id);
+                al = new DotIdExp(loc, al, Id.__cmp);
                 al = al.semantic(sc);
 
                 auto arguments = new Expressions();
