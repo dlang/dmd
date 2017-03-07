@@ -2869,22 +2869,29 @@ final class Parser : Lexer
                         //if ((storageClass & STCscope) && (storageClass & (STCref | STCout)))
                             //error("scope cannot be ref or out");
 
-                        Token* t;
-                        if (tpl && token.value == TOKidentifier && (t = peek(&token), (t.value == TOKcomma || t.value == TOKrparen || t.value == TOKdotdotdot)))
+                        if (tpl && token.value == TOKidentifier)
                         {
-                            Identifier id = Identifier.generateId("__T");
-                            const loc = token.loc;
-                            at = new TypeIdentifier(loc, id);
-                            if (!*tpl)
-                                *tpl = new TemplateParameters();
-                            TemplateParameter tp = new TemplateTypeParameter(loc, id, null, null);
-                            (*tpl).push(tp);
+                            Token* t = peek(&token);
+                            if (t.value == TOKcomma || t.value == TOKrparen || t.value == TOKdotdotdot)
+                            {
+                                Identifier id = Identifier.generateId("__T");
+                                const loc = token.loc;
+                                at = new TypeIdentifier(loc, id);
+                                if (!*tpl)
+                                    *tpl = new TemplateParameters();
+                                TemplateParameter tp = new TemplateTypeParameter(loc, id, null, null);
+                                (*tpl).push(tp);
 
-                            ai = token.ident;
-                            nextToken();
+                                ai = token.ident;
+                                nextToken();
+                            }
+                            else goto _else;
                         }
                         else
+                        {
+                        _else:
                             at = parseType(&ai);
+                        }
                         ae = null;
                         if (token.value == TOKassign) // = defaultArg
                         {
