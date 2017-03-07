@@ -21,7 +21,7 @@
 
 module core.sys.posix.iconv;
 
-enum 
+enum
 {
     ICONV_TRIVIALP            = 0,  /* int *argument */
     ICONV_GET_TRANSLITERATE   = 1,  /* int *argument */
@@ -50,7 +50,7 @@ size_t iconv (iconv_t cd, in char** inbuf,
          char** outbuf,
          size_t* outbytesleft);
 
-/// iconvctl queries or adjusts the behavior of the iconv function, 
+/// iconvctl queries or adjusts the behavior of the iconv function,
 /// when invoked with the specified conversion descriptor, 
 /// depending on the request value.
 int iconvctl (iconv_t cd, int request, void* argument);
