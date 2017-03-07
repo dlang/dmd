@@ -529,6 +529,11 @@ zip:
 
 ######################################################
 
+gitzip:
+	git archive --format=zip HEAD > $(ZIPFILE)
+
+######################################################
+
 ../changelog.html: ../changelog.dd $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -Df$@ $<
 
