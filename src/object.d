@@ -3272,10 +3272,34 @@ if (is(Obj : Object))
     return lhs.opCmp(rhs);
 }
 
+int __cmp(T)(const T[] lhs, const T[] rhs) @trusted
+if (__traits(isScalar, T))
+{
+    immutable len = lhs.length <= rhs.length ? lhs.length : rhs.length;
+    foreach (const u; 0 .. len)
+    {
+        static if (__traits(isFloating, T))
+        {
+            auto r = __cmp(lhs.ptr[u], rhs.ptr[u]);
+            if (r) return r;
+        }
+        else static if (is(T == ubyte) || is(T == void) || is(T == bool)
+            || is(T == char))
+        {
+            import core.internal.string : dstrcmp;
+            return dstrcmp(cast(char[]) lhs, cast(char[]) rhs);
+        }
+        else if (lhs.ptr[u] != rhs.ptr[u])
+            return lhs.ptr[u] < rhs.ptr[u] ? -1 : 1;
+    }
+    return lhs.length < rhs.length ? -1 : (lhs.length > rhs.length);
+}
+
 // This function is called by the compiler when dealing with array
 // comparisons in the semantic analysis phase of CmpExp. The ordering
 // comparison is lowered to a call to this template.
 int __cmp(T1, T2)(T1[] s1, T2[] s2)
+if (!__traits(isScalar, T1))
 {
     import core.internal.traits : Unqual;
     alias U1 = Unqual!T1;
@@ -3284,52 +3308,37 @@ int __cmp(T1, T2)(T1[] s1, T2[] s2)
 
     static @trusted ref R at(R)(R[] r, size_t i) { return r.ptr[i]; }
 
-    // Use the same implementation for real and imaginary floats
-    static if (is(U1 == ifloat) || is(U1 == idouble) || is(U1 == ireal))
-    {
-        // Special-case imaginary types to use comparison for "concrete" types
-        static if (is(U1 == ifloat)) alias F = float;
-        else static if (is(U1 == idouble)) alias F = double;
-        else static if (is(U1 == ireal)) alias F = real;
-
-        auto fpArray1 = () @trusted { return cast(F[])s1; }();
-        auto fpArray2 = () @trusted { return cast(F[])s2; }();
-        return __cmp(fpArray1, fpArray2);
-    }
     // All unsigned byte-wide types = > dstrcmp
-    else static if (is(U1 == ubyte) || is(U1 == void) || is(U1 == bool)
-        || is(U1 == char))
-    {
-        import core.internal.string : dstrcmp;
-        return (() @trusted => dstrcmp(cast(char[])s1, cast(char[])s2))();
-    }
-    // Everything else: class, interface, struct, other built-ins
-    else
-    {
-        immutable len = s1.length <= s2.length ? s1.length : s2.length;
+    immutable len = s1.length <= s2.length ? s1.length : s2.length;
 
-        foreach (const u; 0 .. len)
+    foreach (const u; 0 .. len)
+    {
+        static if (__traits(compiles, __cmp(at(s1, u), at(s2, u))))
         {
-            static if (__traits(compiles, __cmp(at(s1, u), at(s2, u))))
-            {
-                auto c = __cmp(at(s1, u), at(s2, u));
-                if (c != 0)
-                    return c;
-            }
-            else static if (__traits(compiles, at(s1, u).opCmp(at(s2, u))))
-            {
-                auto c = at(s1, u).opCmp(at(s2, u));
-                if (c != 0)
-                    return c;
-            }
-            else
-            {
-                if (at(s1, u) != at(s2, u))
-                    return at(s1, u) < at(s2, u) ? -1 : 1;
-            }
+            auto c = __cmp(at(s1, u), at(s2, u));
+            if (c != 0)
+                return c;
         }
-        return s1.length < s2.length ? -1 : (s1.length > s2.length);
+        else static if (__traits(compiles, at(s1, u).opCmp(at(s2, u))))
+        {
+            auto c = at(s1, u).opCmp(at(s2, u));
+            if (c != 0)
+                return c;
+        }
+        else static if (__traits(compiles, at(s1, u) < at(s2, u)))
+        {
+            if (at(s1, u) != at(s2, u))
+                return at(s1, u) < at(s2, u) ? -1 : 1;
+        }
+        else
+        {
+            // TODO: fix this legacy bad behavior, see
+            // https://issues.dlang.org/show_bug.cgi?id=17244
+            import core.stdc.string : memcmp;
+            return (() @trusted => memcmp(&at(s1, u), &at(s2, u), U1.sizeof))();
+        }
     }
+    return s1.length < s2.length ? -1 : (s1.length > s2.length);
 }
 
 // integral types
@@ -3405,7 +3414,7 @@ int __cmp(T1, T2)(T1[] s1, T2[] s2)
     compareMinMax!(immutable real);
 }
 
-//objects
+// objects
 @safe unittest
 {
     class C
@@ -3426,6 +3435,22 @@ int __cmp(T1, T2)(T1[] s1, T2[] s2)
     assert(__cmp(c1, c1) == 0);
     assert(__cmp(c1, c2) < 0);
     assert(__cmp(c2, c1) > 0);
+
+    assert(__cmp([c1, c1][], [c2, c2][]) < 0);
+    assert(__cmp([c2, c2], [c1, c1]) > 0);
+}
+
+// structs
+@safe unittest
+{
+    struct C
+    {
+        ubyte i;
+        this(ubyte i) { this.i = i; }
+    }
+
+    auto c1 = C(1);
+    auto c2 = C(2);
 
     assert(__cmp([c1, c1][], [c2, c2][]) < 0);
     assert(__cmp([c2, c2], [c1, c1]) > 0);
