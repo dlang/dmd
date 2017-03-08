@@ -513,7 +513,12 @@ Symbol *toThunkSymbol(FuncDeclaration fd, int offset)
     if (!offset)
         return s;
 
-    auto sthunk = symbol_generate(SCstatic, fd.csym.Stype);
+    __gshared int tmpnum;
+    char[6 + tmpnum.sizeof * 3 + 1] name;
+
+    sprintf(name.ptr,"_THUNK%d",tmpnum++);
+    auto sthunk = symbol_name(name.ptr,SCstatic,fd.csym.Stype);
+    sthunk.Sflags |= SFLnodebug | SFLartifical;
     sthunk.Sflags |= SFLimplem;
     cod3_thunk(sthunk, fd.csym, 0, TYnptr, -offset, -1, 0);
     return sthunk;
