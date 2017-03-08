@@ -1321,7 +1321,7 @@ struct BCScope
 }
 
 debug = nullPtrCheck;
-//debug = andand;
+debug = andand;
 extern (C++) final class BCV(BCGenT) : Visitor
 {
     uint unresolvedGotoCount;
@@ -1586,12 +1586,8 @@ public:
         {
             if (toBCType(vd.type) != i32Type)
             {
-                bailout("We can only handle 32bit refs for now");
-                return BCValue.init;
-            }
-            else
-            {
-                
+                //bailout("We can only handle 32bit refs for now");
+                //return BCValue.init;
             }
         }
 
@@ -1772,11 +1768,16 @@ public:
             uf.fd.fbody.accept(this);
             auto osp = sp;
 
+            if (uf.fd.type.nextOf.ty == Tvoid)
+            {
+                // insert a dummy return after void functions because they can omit a returnStatement
+                Ret(bcNull);
+            }
             endFunction();
             lastUncompiledFunction++;
             if (IGaveUp)
             {
-                bailout("A called function bailedout: " ~ uf.fd.ident.toString);
+                bailout("A called function bailedout: " ~ uf.fd.toString);
                 return ;
             }
 
@@ -1854,10 +1855,12 @@ public:
             }
             beginFunction(fnIdx - 1);
             visit(fbody);
+            import std.stdio;
+            writeln("fd.type: ", fd.type.toString, " --  fd.type.nextOf: ", fd.type.nextOf.toString);
             if (fd.type.nextOf.ty == Tvoid)
             {
                 // insert a dummy return after void functions because they can omit a returnStatement
-                Ret(imm32(0));
+                Ret(bcNull);
             }
             auto osp2 = sp.addr;
             endFunction();
@@ -2309,7 +2312,7 @@ static if (is(BCGen))
 
                 bailout(_sharedCtfeState.size(v.type) < 4, "only addresses of 32bit values or less are supported for now: " ~ se.toString);
                 auto addr = genTemporary(i32Type);
-                Alloc(addr, _sharedCtfeState.size(v.type).imm32);
+                Alloc(addr, imm32(_sharedCtfeState.size(v.type)));
                 Store32(addr, v);
                 v.heapRef = BCHeapRef(addr);
 
@@ -2926,12 +2929,6 @@ static if (is(BCGen))
             offset += align4(_sharedCtfeState.size(elexpr.type));
 
         }
-        //if (!processingArguments) Set(retval.i32, result.i32);
-        debug (ctfe)
-        {
-            writeln("Done with struct ... revtval: ", retval);
-        }
-        //retval = result.i32;
     }
 
     override void visit(DollarExp de)
@@ -3042,9 +3039,7 @@ static if (is(BCGen))
             bailout("Can only new basic Types under <=4 bytes for now");
             return;
         }
-        Set(size, imm32(typeSize));
-
-        Alloc(ptr, size);
+        Alloc(ptr, imm32(typeSize));
         // TODO do proper handling of the arguments to the newExp.
         auto value = ne.arguments && ne.arguments.dim == 1 ? genExpr((*ne.arguments)[0]) : imm32(0);
         Store32(ptr, value);
@@ -3061,7 +3056,7 @@ static if (is(BCGen))
         }
         else
         {
-            bailout("We only handle StringLengths for now att: " ~ to!string(array.type.type));
+            bailout("We only handle StringLengths for now atm. given : " ~ to!string(array.type.type) ~ " :: " ~ ale.e1.toString);
         }
     }
 
@@ -3101,13 +3096,13 @@ static if (is(BCGen))
 
     void LoadFromHeapRef(BCValue hrv)
     {
-        bailout(hrv.type.type != BCTypeEnum.i32, "only support i32 pointerTypes right now");
+        bailout(hrv.type.type == BCTypeEnum.i64, "only support 32bit-sized pointerTypes right now");
         Load32(hrv, BCValue(hrv.heapRef));
     }
 
     void StoreToHeapRef(BCValue hrv)
     {
-        bailout(hrv.type.type != BCTypeEnum.i32, "only support i32 pointerTypes right now");
+        bailout(hrv.type.type == BCTypeEnum.i64, "only support 32bit-sized pointerTypes right now");
         Store32(BCValue(hrv.heapRef), hrv);
     }
 
@@ -3229,17 +3224,13 @@ static if (is(BCGen))
     {
         auto oldRetval = retval;
         auto vd = de.declaration.isVarDeclaration();
-        auto as = de.declaration.isAliasDeclaration();
-        if (as)
-        {
-            bailout("Alias Declaration " ~ toString(as) ~ " is unsupported");
-        }
+
         if (!vd)
         {
-            import ddmd.asttypename;
-            bailout("DeclarationExps are expected to be VariableDeclarations not: " ~ astTypeName(de.declaration) ~ " :: " ~ toString(de));
+            // It seems like we can ignore Declarartions which are not variables
             return;
         }
+       
         visit(vd);
         auto var = retval;
         debug (ctfe)
@@ -3304,7 +3295,7 @@ static if (is(BCGen))
                 assert(idx);
                 auto array = _sharedCtfeState.arrayTypes[idx - 1];
 
-                Alloc(var.i32, imm32(_sharedCtfeState.size(type) + 4));
+                Alloc(var.i32, (_sharedCtfeState.size(type) + 4).imm32);
                 Store32(var.i32, array.length.imm32);
             }
         }
@@ -3566,7 +3557,7 @@ static if (is(BCGen))
         {
             stringAddr = _sharedCtfeState.heap.pushString(se.string, cast(uint) se.len);
         }
-        auto stringAddrValue = imm32(stringAddr.addr);
+        auto stringAddrValue = stringAddr.addr.imm32;
 
         if (insideArgumentProcessing)
         {
@@ -3759,11 +3750,12 @@ static if (is(BCGen))
             assert(fIndex != -1, "field " ~ vd.toString ~ "could not be found in" ~ dve.e1.toString);
             BCStruct bcStructType = _sharedCtfeState.structTypes[structTypeIndex - 1];
 
-            if (bcStructType.memberTypes[fIndex].type != BCTypeEnum.i32)
+            /*if (bcStructType.memberTypes[fIndex].type != BCTypeEnum.i32)
             {
-                bailout("only i32 structMembers are supported for now");
+                bailout("only i32 structMembers are supported for now ... not : " ~ to!string(bcStructType.memberTypes[fIndex].type));
                 return;
-            }
+            }*/
+
             if (bcStructType.voidInit[fIndex])
             {
                 bailout("We don't handle void initialized struct fields");
@@ -3773,14 +3765,15 @@ static if (is(BCGen))
             if (!rhs)
             {
                 //Not sure if this is really correct :)
-                rhs = imm32(0);
+                rhs = bcNull;
             }
+/*
             if (rhs.type.type != BCTypeEnum.i32)
             {
                 bailout("only i32 are supported for now. not:" ~ rhs.type.type.to!string);
                 return;
             }
-
+*/
             auto lhs = genExpr(_struct);
             if (!lhs)
             {
@@ -3993,6 +3986,14 @@ static if (is(BCGen))
                 else if (lhs.type.type == BCTypeEnum.Slice && rhs.type.type == BCTypeEnum.Null)
                 {
                     Set(lhs.i32, imm32(0));
+                }
+                else if (lhs.type.type == BCTypeEnum.Struct && rhs.type.type == BCTypeEnum.i32)
+                {
+                    // for some reason a a struct on the stack which is zero-default-initalized 
+                    // get's the integerExp 0 of integer type as rhs
+                    Alloc(lhs, imm32(sharedCtfeState.size(lhs.type)));
+                    // Allocate space for the value on the heap and store it in lhs :)
+                    
                 }
                 else
                 {
@@ -4497,7 +4498,7 @@ static if (is(BCGen))
             if ((*tf.parameters)[i].storageClass & STCref)
             {
                 auto argHeapRef = genTemporary(i32Type);
-                Alloc(argHeapRef, basicTypeSize(bc_args[i].type).imm32);
+                Alloc(argHeapRef, imm32(basicTypeSize(bc_args[i].type)));
                 auto origArg = bc_args[i];
                 bc_args[i].heapRef = BCHeapRef(argHeapRef);
                 StoreToHeapRef(bc_args[i]);

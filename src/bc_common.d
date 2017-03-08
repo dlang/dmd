@@ -541,6 +541,14 @@ __gshared static immutable bcLastCond = () {
     result.vType = BCValueType.LastCond;
     return result;
 }();
+
+__gshared static immutable bcNull = () {
+    BCValue result;
+    result.vType = BCValueType.Immediate;
+    result.type = BCType.Null;
+    return result;
+}();
+
 __gshared static immutable bcFour = BCValue(Imm32(4));
 __gshared static immutable bcOne = BCValue(Imm32(1));
 __gshared static immutable bcZero = BCValue(Imm32(0));
@@ -553,11 +561,11 @@ template BCGenFunction(T, alias fn)
 
     static if (is(typeof(T.init.functionalize()) == string))
     {
-        enum BCGenFunction = mixin(fn().functionalize);
+        static immutable BCGenFunction = mixin(fn().functionalize);
     }
     else /*static if (is(typeof(T.init.interpret(typeof(T.init.byteCode), typeof(params).init)()) : int))*/
     {
-        enum BCGenFunction = ((BCValue[] args, BCHeap* heapPtr) => fn().interpret(args,
+        static immutable BCGenFunction = ((BCValue[] args, BCHeap* heapPtr) => fn().interpret(args,
                 heapPtr));
     }
 }
