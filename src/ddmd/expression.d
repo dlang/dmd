@@ -15422,7 +15422,6 @@ extern (C++) final class CmpExp : BinExp
 
                 al = new CallExp(loc, al, arguments);
                 al = new CmpExp(op, loc, al, new IntegerExp(0));
-                al = al.semantic(sc);
 
                 arrayLowering = al;
             }
@@ -15524,7 +15523,11 @@ extern (C++) final class CmpExp : BinExp
         }
 
         //printf("CmpExp: %s, type = %s\n", e.toChars(), e.type.toChars());
-        if (arrayLowering) return arrayLowering;
+        if (arrayLowering)
+        {
+            arrayLowering = arrayLowering.semantic(sc);
+            return arrayLowering;
+        }
         return this;
     }
 
