@@ -1855,8 +1855,6 @@ public:
             }
             beginFunction(fnIdx - 1);
             visit(fbody);
-            import std.stdio;
-            writeln("fd.type: ", fd.type.toString, " --  fd.type.nextOf: ", fd.type.nextOf.toString);
             if (fd.type.nextOf.ty == Tvoid)
             {
                 // insert a dummy return after void functions because they can omit a returnStatement
