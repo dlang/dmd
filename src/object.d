@@ -3241,181 +3241,125 @@ template RTInfo(T)
     enum RTInfo = null;
 }
 
+// Compare class and interface objects for ordering.
+private int __cmp(Obj)(Obj lhs, Obj rhs)
+if (is(Obj : Object))
+{
+    if (lhs is rhs)
+        return 0;
+    // Regard null references as always being "less than"
+    if (!lhs)
+        return -1;
+    if (!rhs)
+        return 1;
+    return lhs.opCmp(rhs);
+}
+
+int __cmp(T)(const T[] lhs, const T[] rhs) @trusted
+if (__traits(isScalar, T))
+{
+    // Compute U as the implementation type for T
+    static if (is(T == ubyte) || is(T == void) || is(T == bool))
+        alias U = char;
+    else static if (is(T == wchar))
+        alias U = ushort;
+    else static if (is(T == dchar))
+        alias U = uint;
+    else static if (is(T == ifloat))
+        alias U = float;
+    else static if (is(T == idouble))
+        alias U = double;
+    else static if (is(T == ireal))
+        alias U = real;
+    else
+        alias U = T;
+
+    static if (is(U == char))
+    {
+        import core.internal.string : dstrcmp;
+        return dstrcmp(cast(char[]) lhs, cast(char[]) rhs);
+    }
+    else static if (!is(U == T))
+    {
+        // Reuse another implementation
+        return __cmp(cast(U[]) lhs, cast(U[]) rhs);
+    }
+    else
+    {
+        immutable len = lhs.length <= rhs.length ? lhs.length : rhs.length;
+        foreach (const u; 0 .. len)
+        {
+            static if (__traits(isFloating, T))
+            {
+                immutable a = lhs.ptr[u], b = rhs.ptr[u];
+                static if (is(T == cfloat) || is(T == cdouble)
+                    || is(T == creal))
+                {
+                    // Use rt.cmath2._Ccmp instead ?
+                    auto r = (a.re > b.re) - (a.re < b.re);
+                    if (!r) r = (a.im > b.im) - (a.im < b.im);
+                }
+                else
+                {
+                    const r = (a > b) - (a < b);
+                }
+                if (r) return r;
+            }
+            else if (lhs.ptr[u] != rhs.ptr[u])
+                return lhs.ptr[u] < rhs.ptr[u] ? -1 : 1;
+        }
+        return lhs.length < rhs.length ? -1 : (lhs.length > rhs.length);
+    }
+}
+
 // This function is called by the compiler when dealing with array
 // comparisons in the semantic analysis phase of CmpExp. The ordering
 // comparison is lowered to a call to this template.
 int __cmp(T1, T2)(T1[] s1, T2[] s2)
+if (!__traits(isScalar, T1))
 {
     import core.internal.traits : Unqual;
     alias U1 = Unqual!T1;
     alias U2 = Unqual!T2;
+    static assert(is(U1 == U2), "Internal error.");
 
     static @trusted ref R at(R)(R[] r, size_t i) { return r.ptr[i]; }
 
-    // objects
-    // Old code went to object.d/TypeInfo_array.compare and then to
-    // object.d/TypeInfo_Class.compare
-    // which combined result in the same code as below.
-    static if (is(U1 : Object) && is(U2 : Object))
+    // All unsigned byte-wide types = > dstrcmp
+    immutable len = s1.length <= s2.length ? s1.length : s2.length;
+
+    foreach (const u; 0 .. len)
     {
-        auto len = s1.length;
-
-        if (s2.length < len)
-            len = s2.length;
-
-        foreach (const u; 0 .. len)
+        static if (__traits(compiles, __cmp(at(s1, u), at(s2, u))))
         {
-            auto o1 = at(s1, u);
-            auto o2 = at(s2, u);
-
-            if (o1 is o2)
-                continue;
-
-            // Regard null references as always being "less than"
-            if (o1)
-            {
-                if (!o2)
-                    return 1;
-                auto c = o1.opCmp(o2);
-                if (c != 0)
-                    return c < 0 ? -1 : 1;
-            }
-            else
-            {
-                return -1;
-            }
-        }
-        return s1.length < s2.length ? -1 : (s1.length > s2.length);
-    }
-    // floating point types
-    else static if (__traits(isFloating, U1))
-    {
-        static if (is(U1 == ifloat)) alias F = float;
-        else static if (is(U1 == idouble)) alias F = double;
-        else static if (is(U1 == ireal)) alias F = real;
-        else alias F = U1;
-
-        static int compare(F f1, F f2)
-        {
-            static if (is(F == cfloat) || is(F == cdouble) || is(F == creal))
-            {
-                // Use rt.cmath2._Ccmp instead ?
-                int result;
-
-                if (f1.re < f2.re)
-                    result = -1;
-                else if (f1.re > f2.re)
-                    result = 1;
-                else if (f1.im < f2.im)
-                    result = -1;
-                else if (f1.im > f2.im)
-                    result = 1;
-                else
-                    result = 0;
-                return result;
-            }
-            else static if (is(F == float) || is(F == double) || is(F == real))
-            {
-                // d1 is NaN 2^0 + d2 is NaN 2^1
-                auto NaNs = (f1 != f1) | ((f2 != f2) << 1);
-
-                return (NaNs == 3) ? 0 :
-                    (NaNs == 2) ? 1 :
-                    (NaNs == 1) ? -1 :
-                    (f1 < f2) ? -1 : (f1 > f2);
-            }
-            else static assert(false, "Internal error");
-        }
-
-        auto len = s1.length;
-        if (s2.length < len)
-            len = s2.length;
-
-        auto fpArray1 = () { return cast(F[])s1; }();
-        auto fpArray2 = () { return cast(F[])s2; }();
-
-        foreach (const u; 0 .. len)
-        {
-            if (int c = compare(fpArray1[u], fpArray2[u]))
+            auto c = __cmp(at(s1, u), at(s2, u));
+            if (c != 0)
                 return c;
         }
-        return s1.length < s2.length ? -1 : (s1.length > s2.length);
-    }
-    // char types = > dstrcmp
-    else static if ((is(U1 == ubyte) && is(U2 == ubyte))
-        || (is(U1 == void) && is(U2 == void))
-        || (is(U1 == bool) && is(U2 == bool))
-        || (is(U1 == char) && is(U2 == char)))
-    {
-        if (!__ctfe)
+        else static if (__traits(compiles, at(s1, u).opCmp(at(s2, u))))
         {
-            import core.internal.string : dstrcmp;
-            return () @trusted { return dstrcmp(cast(char[])s1, cast(char[])s2); }();
+            auto c = at(s1, u).opCmp(at(s2, u));
+            if (c != 0)
+                return c;
+        }
+        else static if (__traits(compiles, at(s1, u) < at(s2, u)))
+        {
+            if (at(s1, u) != at(s2, u))
+                return at(s1, u) < at(s2, u) ? -1 : 1;
         }
         else
         {
-            // pretty ugly...
-            auto len = s1.length;
-
-            if (s2.length < len)
-                len = s2.length;
-
-            foreach (const u; 0 .. len)
-            {
-                auto e1 = at(s1, u);
-                auto e2 = at(s2, u);
-
-                if (e1 < e2)
-                    return -1;
-
-                if (e1 > e2)
-                    return 1;
-            }
-
-            return s1.length < s2.length ? -1 : (s1.length > s2.length);
+            // TODO: fix this legacy bad behavior, see
+            // https://issues.dlang.org/show_bug.cgi?id=17244
+            import core.stdc.string : memcmp;
+            return (() @trusted => memcmp(&at(s1, u), &at(s2, u), U1.sizeof))();
         }
     }
-    // integral, struct, nested arrays
-    else
-    {
-        auto len = s1.length;
-
-        if (s2.length < len)
-            len = s2.length;
-
-        foreach (const u; 0 .. len)
-        {
-            auto e1 = at(s1, u);
-            auto e2 = at(s2, u);
-
-            // structs
-            static if (__traits(compiles, e1.opCmp(e2)))
-            {
-                auto c = e1.opCmp(e2);
-                if (c != 0)
-                    return c < 0 ? -1 : 1;
-            }
-            else static if (__traits(compiles, __cmp(e1, e2)))
-            {
-                auto c = __cmp(e1, e2);
-                if (c != 0)
-                    return c < 0 ? -1 : 1;
-            }
-            else
-            {
-                if (e1 < e2)
-                    return -1;
-
-                if (e1 > e2)
-                    return 1;
-            }
-        }
-        return s1.length < s2.length ? -1 : (s1.length > s2.length);
-    }
+    return s1.length < s2.length ? -1 : (s1.length > s2.length);
 }
 
 // integral types
-unittest
+@safe unittest
 {
     void compareMinMax(T)()
     {
@@ -3438,7 +3382,7 @@ unittest
 }
 
 // char types (dstrcmp)
-unittest
+@safe unittest
 {
     void compareMinMax(T)()
     {
@@ -3461,7 +3405,7 @@ unittest
 }
 
 // fp types
-unittest
+@safe unittest
 {
     void compareMinMax(T)()
     {
@@ -3487,15 +3431,15 @@ unittest
     compareMinMax!(immutable real);
 }
 
-//objects
-unittest
+// objects
+@safe unittest
 {
     class C
     {
         int i;
         this(int i) { this.i = i; }
 
-        override int opCmp(Object c) const
+        override int opCmp(Object c) const @safe
         {
             return i - (cast(C)c).i;
         }
@@ -3503,11 +3447,31 @@ unittest
 
     auto c1 = new C(1);
     auto c2 = new C(2);
+    assert(__cmp(c1, null) > 0);
+    assert(__cmp(null, c1) < 0);
+    assert(__cmp(c1, c1) == 0);
+    assert(__cmp(c1, c2) < 0);
+    assert(__cmp(c2, c1) > 0);
 
-    assert(__cmp([c1, c1], [c2, c2]) < 0);
+    assert(__cmp([c1, c1][], [c2, c2][]) < 0);
     assert(__cmp([c2, c2], [c1, c1]) > 0);
 }
 
+// structs
+@safe unittest
+{
+    struct C
+    {
+        ubyte i;
+        this(ubyte i) { this.i = i; }
+    }
+
+    auto c1 = C(1);
+    auto c2 = C(2);
+
+    assert(__cmp([c1, c1][], [c2, c2][]) < 0);
+    assert(__cmp([c2, c2], [c1, c1]) > 0);
+}
 
 // Helper functions
 
