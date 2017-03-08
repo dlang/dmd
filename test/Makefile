@@ -94,7 +94,7 @@ export REQUIRED_ARGS=
 
 ifeq ($(findstring win,$(OS)),win)
 export ARGS=-inline -release -g -O
-export DMD=../src/dmd.exe
+export DMD=../generated/$(OS)/release/$(MODEL)/dmd.exe
 export EXE=.exe
 export OBJ=.obj
 export DSEP=\\
@@ -106,7 +106,7 @@ export DFLAGS=-I$(DRUNTIME_PATH)\import -I$(PHOBOS_PATH)
 export LIB=$(PHOBOS_PATH)
 else
 export ARGS=-inline -release -g -O -fPIC
-export DMD=../src/dmd
+export DMD=../generated/$(OS)/release/$(MODEL)/dmd
 export EXE=
 export OBJ=.o
 export DSEP=/
