@@ -408,7 +408,7 @@
   <postBuildCommand />
   <filesToClean>*.obj;*.cmd;*.build;*.json;*.dep</filesToClean>
  </Config>
- <Folder name="ddmd">
+ <Folder name="dmd">
   <Folder name="gen">
    <File tool="Custom" path="..\..\VERSION" customcmd="cmd /E:ON /Q /C &quot;for /f %%f in ( ..\..\VERSION ) do ( echo &quot;%%f&quot; )&quot; &gt;$(OutDir)\generated\verstr.h" uptodateWithSameTime="true" outfile="$(OutDir)\generated\verstr.h" />
   </Folder>
