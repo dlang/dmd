@@ -526,16 +526,32 @@ extern (C++) class FuncDeclaration : Declaration
             error("static member has no 'this' to which 'return' can apply");
         }
 
-        if (isAbstract() && !isVirtual())
+        if (isAbstract())
         {
-            const(char)* sfunc;
-            if (isStatic())
-                sfunc = "static";
-            else if (protection.kind == PROTprivate || protection.kind == PROTpackage)
-                sfunc = protectionToChars(protection.kind);
-            else
-                sfunc = "non-virtual";
-            error("%s functions cannot be abstract", sfunc);
+            if (!isVirtual())
+            {
+                const(char)* sfunc;
+                if (isStatic())
+                    sfunc = "static";
+                else if (protection.kind == PROTprivate || protection.kind == PROTpackage)
+                    sfunc = protectionToChars(protection.kind);
+                else
+                    sfunc = "non-virtual";
+                error("%s functions cannot be abstract", sfunc);
+            }
+
+            if (isFinalFunc())
+                error("cannot be both final and abstract");
+            version (none)
+            {
+                if (isAbstract() && fbody)
+                    error("abstract functions cannot have bodies");
+            }
+
+            if (parent.isInterfaceDeclaration)
+            {
+                deprecation("functions declared in an interface cannot be abstract");
+            }
         }
 
         if (isOverride() && !isVirtual())
@@ -545,14 +561,6 @@ extern (C++) class FuncDeclaration : Declaration
                 error("%s method is not virtual and cannot override", protectionToChars(kind));
             else
                 error("cannot override a non-virtual function");
-        }
-
-        if (isAbstract() && isFinalFunc())
-            error("cannot be both final and abstract");
-        version (none)
-        {
-            if (isAbstract() && fbody)
-                error("abstract functions cannot have bodies");
         }
 
         version (none)
