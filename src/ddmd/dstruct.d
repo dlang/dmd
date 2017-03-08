@@ -339,22 +339,19 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         /* Set scope so if there are forward references, we still might be able to
          * resolve individual members like enums.
          */
-        for (size_t i = 0; i < members.dim; i++)
+        foreach(s; (*members)[])
         {
-            auto s = (*members)[i];
             //printf("struct: setScope %s %s\n", s.kind(), s.toChars());
             s.setScope(sc2);
         }
 
-        for (size_t i = 0; i < members.dim; i++)
+        foreach(s; (*members)[])
         {
-            auto s = (*members)[i];
             s.importAll(sc2);
         }
 
-        for (size_t i = 0; i < members.dim; i++)
+        foreach(s; (*members)[])
         {
-            auto s = (*members)[i];
             s.semantic(sc2);
         }
 
@@ -619,9 +616,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         size_t nfields = fields.dim - isNested();
         size_t offset = 0;
-        for (size_t i = 0; i < elements.dim; i++)
+        foreach(i, e; (*elements)[])
         {
-            Expression e = (*elements)[i];
             if (!e)
                 continue;
 
@@ -712,9 +708,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             ispod = ISPODno;
 
         // Recursively check all fields are POD.
-        for (size_t i = 0; i < fields.dim; i++)
+        foreach(v; fields[])
         {
-            VarDeclaration v = fields[i];
             if (v.storage_class & STCref)
             {
                 ispod = ISPODno;
