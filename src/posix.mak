@@ -234,6 +234,7 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	typinf utils  statement_rewrite_walker statementsem safe blockexit asttypename))
 
 LEXER_SRCS=$(addsuffix .d, $(addprefix $(LEX)/, entity errors globals id identifier lexer tokens utf))
+
 LEXER_ROOT=$(addsyffix .d, $(addprefix $(ROOT)/, array ctfloat file filename outbuffer port rmem \
 	rootobject stringtable hash))
 
