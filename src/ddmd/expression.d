@@ -15410,9 +15410,7 @@ extern (C++) final class CmpExp : BinExp
             }
             if ((t1.ty == Tarray || t1.ty == Tsarray) && (t2.ty == Tarray || t2.ty == Tsarray))
             {
-                semanticTypeInfo(sc, t1.nextOf());
-
-                // Lowering to template call
+                // Lower to object.__cmp(e1, e2)
                 Expression al = new IdentifierExp(loc, Id.empty);
                 al = new DotIdExp(loc, al, Id.object);
                 al = new DotIdExp(loc, al, Id.__cmp);
@@ -15423,9 +15421,7 @@ extern (C++) final class CmpExp : BinExp
                 arguments.push(e2);
 
                 al = new CallExp(loc, al, arguments);
-                al = al.semantic(sc);
-                
-                al = new CmpExp(op, loc, al, new IntegerExp(loc, 0, Type.tint32));
+                al = new CmpExp(op, loc, al, new IntegerExp(0));
                 al = al.semantic(sc);
 
                 arrayLowering = al;
