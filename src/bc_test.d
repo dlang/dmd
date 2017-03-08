@@ -16,12 +16,13 @@ bool test(BCGenT)()
         auto sixteen = BCValue(Imm32(16));
         auto four = BCValue(Imm32(4));
 
+        gen.beginFunction();
         auto result = gen.genTemporary(BCType(BCTypeEnum.i32));
-
         gen.Mul3(result, two, sixteen); // 2*16 == 32
         gen.Div3(result, result, four); //32 / 4 == 8
         gen.Sub3(result, result, one); // 8 - 1 == 7
         gen.Ret(result);
+        gen.endFunction();
 
         return gen;
     });
