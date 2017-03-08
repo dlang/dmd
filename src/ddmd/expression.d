@@ -15396,6 +15396,7 @@ extern (C++) final class CmpExp : BinExp
         type = Type.tbool;
 
         // Special handling for array comparisons
+        Expression arrayLowering = null;
         t1 = e1.type.toBasetype();
         t2 = e2.type.toBasetype();
         if ((t1.ty == Tarray || t1.ty == Tsarray || t1.ty == Tpointer) && (t2.ty == Tarray || t2.ty == Tsarray || t2.ty == Tpointer))
@@ -15409,7 +15410,20 @@ extern (C++) final class CmpExp : BinExp
             }
             if ((t1.ty == Tarray || t1.ty == Tsarray) && (t2.ty == Tarray || t2.ty == Tsarray))
             {
-                semanticTypeInfo(sc, t1.nextOf());
+                // Lower to object.__cmp(e1, e2)
+                Expression al = new IdentifierExp(loc, Id.empty);
+                al = new DotIdExp(loc, al, Id.object);
+                al = new DotIdExp(loc, al, Id.__cmp);
+                al = al.semantic(sc);
+
+                auto arguments = new Expressions();
+                arguments.push(e1);
+                arguments.push(e2);
+
+                al = new CallExp(loc, al, arguments);
+                al = new CmpExp(op, loc, al, new IntegerExp(0));
+
+                arrayLowering = al;
             }
         }
         else if (t1.ty == Tstruct || t2.ty == Tstruct || (t1.ty == Tclass && t2.ty == Tclass))
@@ -15509,6 +15523,11 @@ extern (C++) final class CmpExp : BinExp
         }
 
         //printf("CmpExp: %s, type = %s\n", e.toChars(), e.type.toChars());
+        if (arrayLowering)
+        {
+            arrayLowering = arrayLowering.semantic(sc);
+            return arrayLowering;
+        }
         return this;
     }
 
