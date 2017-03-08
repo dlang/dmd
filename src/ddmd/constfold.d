@@ -17,17 +17,17 @@ import ddmd.complex;
 import ddmd.ctfeexpr;
 import ddmd.declaration;
 import ddmd.dstruct;
-import ddmd.errors;
+import ddmd.lexer.errors;
 import ddmd.expression;
-import ddmd.globals;
+import ddmd.lexer.globals;
 import ddmd.mtype;
 import ddmd.root.ctfloat;
 import ddmd.root.port;
 import ddmd.root.rmem;
 import ddmd.sideeffect;
 import ddmd.target;
-import ddmd.tokens;
-import ddmd.utf;
+import ddmd.lexer.tokens;
+import ddmd.lexer.utf;
 
 private enum LOG = false;
 

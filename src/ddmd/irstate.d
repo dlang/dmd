@@ -15,9 +15,9 @@ import ddmd.backend.type;
 import ddmd.dmodule;
 import ddmd.dsymbol;
 import ddmd.func;
-import ddmd.identifier;
+import ddmd.lexer.identifier;
 import ddmd.statement;
-import ddmd.globals;
+import ddmd.lexer.globals;
 import ddmd.mtype;
 
 import ddmd.backend.cc;

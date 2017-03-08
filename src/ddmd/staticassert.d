@@ -12,11 +12,11 @@ module ddmd.staticassert;
 
 import ddmd.dscope;
 import ddmd.dsymbol;
-import ddmd.errors;
+import ddmd.lexer.errors;
 import ddmd.expression;
-import ddmd.globals;
-import ddmd.id;
-import ddmd.identifier;
+import ddmd.lexer.globals;
+import ddmd.lexer.id;
+import ddmd.lexer.identifier;
 import ddmd.mtype;
 import ddmd.visitor;
 

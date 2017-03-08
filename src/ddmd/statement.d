@@ -26,13 +26,13 @@ import ddmd.dimport;
 import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
-import ddmd.errors;
+import ddmd.lexer.errors;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.globals;
+import ddmd.lexer.globals;
 import ddmd.hdrgen;
-import ddmd.id;
-import ddmd.identifier;
+import ddmd.lexer.id;
+import ddmd.lexer.identifier;
 import ddmd.mtype;
 import ddmd.parse;
 import ddmd.root.outbuffer;
@@ -40,7 +40,7 @@ import ddmd.root.rootobject;
 import ddmd.sapply;
 import ddmd.sideeffect;
 import ddmd.staticassert;
-import ddmd.tokens;
+import ddmd.lexer.tokens;
 import ddmd.visitor;
 
 extern (C++) Identifier fixupLabelName(Scope* sc, Identifier ident)

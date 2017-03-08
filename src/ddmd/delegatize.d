@@ -17,10 +17,10 @@ import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.globals;
+import ddmd.lexer.globals;
 import ddmd.mtype;
 import ddmd.statement;
-import ddmd.tokens;
+import ddmd.lexer.tokens;
 import ddmd.visitor;
 
 extern (C++) Expression toDelegate(Expression e, Type t, Scope* sc)

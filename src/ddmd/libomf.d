@@ -14,7 +14,7 @@ import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stdlib;
 
-import ddmd.globals;
+import ddmd.lexer.globals;
 import ddmd.utils;
 import ddmd.lib;
 

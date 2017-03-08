@@ -26,15 +26,15 @@ import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.dversion;
-import ddmd.errors;
+import ddmd.lexer.errors;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.globals;
+import ddmd.lexer.globals;
 import ddmd.hdrgen;
-import ddmd.id;
-import ddmd.identifier;
+import ddmd.lexer.id;
+import ddmd.lexer.identifier;
 import ddmd.init;
-import ddmd.lexer;
+import ddmd.lexer.lexer;
 import ddmd.mtype;
 import ddmd.nspace;
 import ddmd.root.filename;
@@ -43,7 +43,7 @@ import ddmd.root.rmem;
 import ddmd.root.rootobject;
 import ddmd.statement;
 import ddmd.staticassert;
-import ddmd.tokens;
+import ddmd.lexer.tokens;
 
 // How multiple declarations are parsed.
 // If 1, treat as C.

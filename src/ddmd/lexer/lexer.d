@@ -8,7 +8,7 @@
  * Source:      $(DMDSRC _lexer.d)
  */
 
-module ddmd.lexer;
+module ddmd.lexer.lexer;
 
 import core.stdc.ctype;
 import core.stdc.errno;
@@ -17,17 +17,17 @@ import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.time;
 
-import ddmd.entity;
-import ddmd.errors;
-import ddmd.globals;
-import ddmd.id;
-import ddmd.identifier;
+import ddmd.lexer.entity;
+import ddmd.lexer.errors;
+import ddmd.lexer.globals;
+import ddmd.lexer.id;
+import ddmd.lexer.identifier;
 import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;
 import ddmd.root.port;
 import ddmd.root.rmem;
-import ddmd.tokens;
-import ddmd.utf;
+import ddmd.lexer.tokens;
+import ddmd.lexer.utf;
 
 enum LS = 0x2028;       // UTF line separator
 enum PS = 0x2029;       // UTF paragraph separator

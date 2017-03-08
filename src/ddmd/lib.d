@@ -13,8 +13,8 @@ module ddmd.lib;
 import core.stdc.stdio;
 import core.stdc.stdarg;
 
-import ddmd.globals;
-import ddmd.errors;
+import ddmd.lexer.globals;
+import ddmd.lexer.errors;
 import ddmd.utils;
 
 import ddmd.root.outbuffer;

@@ -8,7 +8,7 @@
  * Source:      $(DMDSRC _entity.d)
  */
 
-module ddmd.entity;
+module ddmd.lexer.entity;
 
 import core.stdc.ctype;
 

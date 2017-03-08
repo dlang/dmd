@@ -15,17 +15,17 @@ import ddmd.arraytypes;
 import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dsymbol;
-import ddmd.errors;
+import ddmd.lexer.errors;
 import ddmd.expression;
-import ddmd.globals;
-import ddmd.identifier;
+import ddmd.lexer.globals;
+import ddmd.lexer.identifier;
 import ddmd.mtype;
 import ddmd.root.outbuffer;
 import ddmd.root.rootobject;
-import ddmd.tokens;
+import ddmd.lexer.tokens;
 import ddmd.utils;
 import ddmd.visitor;
-import ddmd.id;
+import ddmd.lexer.id;
 
 
 /***********************************************************

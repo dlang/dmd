@@ -20,11 +20,11 @@ import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.globals;
+import ddmd.lexer.globals;
 import ddmd.init;
 import ddmd.mtype;
 import ddmd.root.rootobject;
-import ddmd.tokens;
+import ddmd.lexer.tokens;
 import ddmd.visitor;
 
 /********************************************

@@ -15,7 +15,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
-import ddmd.globals;
+import ddmd.lexer.globals;
 
 import ddmd.backend.cc;
 import ddmd.backend.cdef;

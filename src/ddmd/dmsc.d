@@ -16,7 +16,7 @@ import core.stdc.stddef;
 
 extern (C++):
 
-import ddmd.globals;
+import ddmd.lexer.globals;
 
 import ddmd.root.filename;
 

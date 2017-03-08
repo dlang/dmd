@@ -31,12 +31,12 @@ import ddmd.dmodule;
 import ddmd.doc;
 import ddmd.dscope;
 import ddmd.dsymbol;
-import ddmd.errors;
+import ddmd.lexer.errors;
 import ddmd.expression;
-import ddmd.globals;
+import ddmd.lexer.globals;
 import ddmd.hdrgen;
-import ddmd.id;
-import ddmd.identifier;
+import ddmd.lexer.id;
+import ddmd.lexer.identifier;
 import ddmd.inline;
 import ddmd.json;
 import ddmd.lib;
@@ -52,7 +52,7 @@ import ddmd.root.response;
 import ddmd.root.rmem;
 import ddmd.root.stringtable;
 import ddmd.target;
-import ddmd.tokens;
+import ddmd.lexer.tokens;
 import ddmd.utils;
 
 // strtol redeclared here because its signature changed from 2.073 to 2.074

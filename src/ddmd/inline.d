@@ -25,14 +25,14 @@ import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.globals;
-import ddmd.id;
-import ddmd.identifier;
+import ddmd.lexer.globals;
+import ddmd.lexer.id;
+import ddmd.lexer.identifier;
 import ddmd.init;
 import ddmd.mtype;
 import ddmd.opover;
 import ddmd.statement;
-import ddmd.tokens;
+import ddmd.lexer.tokens;
 import ddmd.visitor;
 
 private:

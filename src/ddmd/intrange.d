@@ -14,7 +14,7 @@ import core.stdc.stdio;
 
 import ddmd.mtype;
 import ddmd.expression;
-import ddmd.globals;
+import ddmd.lexer.globals;
 
 enum UINT64_MAX = 0xFFFFFFFFFFFFFFFFUL;
 

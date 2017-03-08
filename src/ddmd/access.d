@@ -17,12 +17,12 @@ import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dstruct;
 import ddmd.dsymbol;
-import ddmd.errors;
+import ddmd.lexer.errors;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.globals;
+import ddmd.lexer.globals;
 import ddmd.mtype;
-import ddmd.tokens;
+import ddmd.lexer.tokens;
 
 private enum LOG = false;
 

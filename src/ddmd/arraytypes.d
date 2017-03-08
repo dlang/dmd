@@ -17,7 +17,7 @@ import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.identifier;
+import ddmd.lexer.identifier;
 import ddmd.init;
 import ddmd.mtype;
 import ddmd.root.array;

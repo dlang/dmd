@@ -19,7 +19,7 @@ import core.stdc.string;
 import core.sys.windows.windows;
 import core.sys.windows.stat;
 
-import ddmd.globals;
+import ddmd.lexer.globals;
 import ddmd.lib;
 import ddmd.utils;
 

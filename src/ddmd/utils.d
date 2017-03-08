@@ -14,8 +14,8 @@
 module ddmd.utils;
 
 import core.stdc.string;
-import ddmd.errors;
-import ddmd.globals;
+import ddmd.lexer.errors;
+import ddmd.lexer.globals;
 import ddmd.root.file;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;

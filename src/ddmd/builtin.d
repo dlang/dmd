@@ -14,14 +14,14 @@ import core.stdc.math;
 import core.stdc.string;
 import ddmd.arraytypes;
 import ddmd.dmangle;
-import ddmd.errors;
+import ddmd.lexer.errors;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.globals;
+import ddmd.lexer.globals;
 import ddmd.mtype;
 import ddmd.root.ctfloat;
 import ddmd.root.stringtable;
-import ddmd.tokens;
+import ddmd.lexer.tokens;
 
 private:
 

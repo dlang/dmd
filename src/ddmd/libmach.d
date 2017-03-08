@@ -19,7 +19,7 @@ import core.stdc.config;
 import core.sys.posix.sys.stat;
 import core.sys.posix.unistd;
 
-import ddmd.globals;
+import ddmd.lexer.globals;
 import ddmd.lib;
 import ddmd.utils;
 

@@ -13,8 +13,8 @@ module ddmd.dmacro;
 import core.stdc.ctype;
 import core.stdc.string;
 import ddmd.doc;
-import ddmd.errors;
-import ddmd.globals;
+import ddmd.lexer.errors;
+import ddmd.lexer.globals;
 import ddmd.root.outbuffer;
 import ddmd.root.rmem;
 

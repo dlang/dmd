@@ -17,13 +17,13 @@ import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.globals;
-import ddmd.id;
-import ddmd.identifier;
+import ddmd.lexer.globals;
+import ddmd.lexer.id;
+import ddmd.lexer.identifier;
 import ddmd.mtype;
 import ddmd.root.outbuffer;
 import ddmd.statement;
-import ddmd.tokens;
+import ddmd.lexer.tokens;
 import ddmd.visitor;
 
 /**************************************

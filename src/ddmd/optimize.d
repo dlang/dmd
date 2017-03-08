@@ -17,12 +17,12 @@ import ddmd.ctfeexpr;
 import ddmd.dclass;
 import ddmd.declaration;
 import ddmd.expression;
-import ddmd.globals;
+import ddmd.lexer.globals;
 import ddmd.init;
 import ddmd.mtype;
 import ddmd.root.ctfloat;
 import ddmd.sideeffect;
-import ddmd.tokens;
+import ddmd.lexer.tokens;
 import ddmd.visitor;
 
 /*************************************

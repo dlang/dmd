@@ -29,14 +29,14 @@ import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
-import ddmd.errors;
+import ddmd.lexer.errors;
 import ddmd.escape;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.globals;
+import ddmd.lexer.globals;
 import ddmd.gluelayer;
-import ddmd.id;
-import ddmd.identifier;
+import ddmd.lexer.id;
+import ddmd.lexer.identifier;
 import ddmd.init;
 import ddmd.intrange;
 import ddmd.mtype;
@@ -45,7 +45,7 @@ import ddmd.opover;
 import ddmd.sideeffect;
 import ddmd.statement;
 import ddmd.target;
-import ddmd.tokens;
+import ddmd.lexer.tokens;
 import ddmd.visitor;
 
 private extern (C++) final class StatementSemanticVisitor : Visitor

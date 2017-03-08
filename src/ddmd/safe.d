@@ -19,7 +19,7 @@ import ddmd.dscope;
 import ddmd.expression;
 import ddmd.mtype;
 import ddmd.target;
-import ddmd.tokens;
+import ddmd.lexer.tokens;
 
 
 /*************************************************************

@@ -28,14 +28,14 @@ import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dstruct;
 import ddmd.dtemplate;
-import ddmd.errors;
+import ddmd.lexer.errors;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.globals;
-import ddmd.id;
-import ddmd.identifier;
+import ddmd.lexer.globals;
+import ddmd.lexer.id;
+import ddmd.lexer.identifier;
 import ddmd.init;
-import ddmd.lexer;
+import ddmd.lexer.lexer;
 import ddmd.mtype;
 import ddmd.nspace;
 import ddmd.opover;
@@ -44,7 +44,7 @@ import ddmd.root.rmem;
 import ddmd.root.rootobject;
 import ddmd.root.speller;
 import ddmd.statement;
-import ddmd.tokens;
+import ddmd.lexer.tokens;
 import ddmd.visitor;
 
 struct Ungag
