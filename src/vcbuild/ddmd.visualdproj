@@ -54,8 +54,8 @@
   <ccTransOpt>1</ccTransOpt>
   <program>c:\l\d\dmd2\windows\bin\dmd.exe</program>
   <imppath />
-  <fileImppath>generated ..\..\res</fileImppath>
-  <outdir>generated\$(ConfigurationName)_$(PlatformName)</outdir>
+  <fileImppath>$(OutDir) ..\..\res</fileImppath>
+  <outdir>..\..\generated\Windows\$(ConfigurationName)\$(PlatformName)</outdir>
   <objdir>$(OutDir)</objdir>
   <objname />
   <libname />
@@ -152,12 +152,12 @@
   <stackStomp>0</stackStomp>
   <compiler>0</compiler>
   <otherDMD>0</otherDMD>
-  <cccmd>$(CC) -c -cpp -Isrc;src\backend;src\tk;src\root;generated -DMARS -e -wx -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1</cccmd>
+  <cccmd>$(CC) -c -cpp -Isrc;src\backend;src\tk;src\root -DMARS -e -wx -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1</cccmd>
   <ccTransOpt>1</ccTransOpt>
   <program>$(DMDInstallDir)windows\bin\dmd.exe</program>
   <imppath />
-  <fileImppath>generated ..\..\res</fileImppath>
-  <outdir>generated\$(ConfigurationName)_$(PlatformName)</outdir>
+  <fileImppath>$(OutDir)\generated ..\..\res</fileImppath>
+  <outdir>..\..\generated\Windows\$(ConfigurationName)\$(PlatformName)</outdir>
   <objdir>$(OutDir)</objdir>
   <objname />
   <libname />
@@ -254,12 +254,12 @@
   <stackStomp>0</stackStomp>
   <compiler>0</compiler>
   <otherDMD>0</otherDMD>
-  <cccmd>$(CC) -nologo -c -TP -Isrc -Isrc\backend -Isrc\tk -Isrc\root -Isrc\vcbuild -Igenerated -DTARGET_WINDOS=1 -FIvcbuild\warnings.h</cccmd>
+  <cccmd>$(CC) -nologo -c -TP -Isrc -Isrc\backend -Isrc\tk -Isrc\root -Isrc\vcbuild -DTARGET_WINDOS=1 -FIvcbuild\warnings.h</cccmd>
   <ccTransOpt>1</ccTransOpt>
   <program>c:\l\d\dmd2\windows\bin\dmd.exe</program>
   <imppath />
-  <fileImppath>generated ..\..\res</fileImppath>
-  <outdir>generated\$(ConfigurationName)_$(PlatformName)</outdir>
+  <fileImppath>$(OutDir)\generated ..\..\res</fileImppath>
+  <outdir>..\..\generated\Windows\$(ConfigurationName)\$(PlatformName)</outdir>
   <objdir>$(OutDir)</objdir>
   <objname />
   <libname />
@@ -356,12 +356,12 @@
   <stackStomp>0</stackStomp>
   <compiler>0</compiler>
   <otherDMD>0</otherDMD>
-  <cccmd>$(CC) -nologo -c -TP -Isrc -Isrc\backend -Isrc\tk -Isrc\root -Isrc\vcbuild -Igenerated -DTARGET_WINDOS=1 -FIvcbuild\warnings.h</cccmd>
+  <cccmd>$(CC) -nologo -c -TP -Isrc -Isrc\backend -Isrc\tk -Isrc\root -Isrc\vcbuild -DTARGET_WINDOS=1 -FIvcbuild\warnings.h</cccmd>
   <ccTransOpt>1</ccTransOpt>
   <program>$(DMDInstallDir)windows\bin\dmd.exe</program>
   <imppath />
-  <fileImppath>generated ..\..\res</fileImppath>
-  <outdir>generated\$(ConfigurationName)_$(PlatformName)</outdir>
+  <fileImppath>$(OutDir)\generated ..\..\res</fileImppath>
+  <outdir>..\..\generated\Windows\$(ConfigurationName)\$(PlatformName)</outdir>
   <objdir>$(OutDir)</objdir>
   <objname />
   <libname />
@@ -410,26 +410,26 @@
  </Config>
  <Folder name="ddmd">
   <Folder name="gen">
-   <File tool="Custom" path="..\..\VERSION" customcmd="cmd /E:ON /Q /C &quot;for /f %%f in ( ..\..\VERSION ) do ( echo &quot;%%f&quot; )&quot; &gt;generated\verstr.h" uptodateWithSameTime="true" outfile="generated\verstr.h" />
+   <File tool="Custom" path="..\..\VERSION" customcmd="cmd /E:ON /Q /C &quot;for /f %%f in ( ..\..\VERSION ) do ( echo &quot;%%f&quot; )&quot; &gt;$(OutDir)\generated\verstr.h" uptodateWithSameTime="true" outfile="$(OutDir)\generated\verstr.h" />
   </Folder>
   <Folder name="generated">
    <Folder name="Debug_Win32">
-    <File tool="None" path="generated\Debug_Win32\generated\ddmd\id.d" perConfig="true">
+    <File tool="None" path="..\..\generated\Windows\Debug\Win32\generated\ddmd\id.d" perConfig="true">
      <Config name="Debug|Win32" />
     </File>
    </Folder>
    <Folder name="Debug_x64">
-    <File tool="None" path="generated\Debug_x64\generated\ddmd\id.d" perConfig="true">
+    <File tool="None" path="..\..\generated\Windows\Debug\x64\generated\ddmd\id.d" perConfig="true">
      <Config name="Debug|x64" />
     </File>
    </Folder>
    <Folder name="Release_Win32">
-    <File tool="None" path="generated\Release_Win32\generated\ddmd\id.d" perConfig="true">
+    <File tool="None" path="..\..\generated\Windows\Release\Win32\generated\ddmd\id.d" perConfig="true">
      <Config name="Release|Win32" />
     </File>
    </Folder>
    <Folder name="Release_x64">
-    <File tool="None" path="generated\Release_x64\generated\ddmd\id.d" perConfig="true">
+    <File tool="None" path="..\..\generated\Windows\Release\x64\generated\ddmd\id.d" perConfig="true">
      <Config name="Release|x64" />
     </File>
    </Folder>

@@ -49,7 +49,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
-    <OutDir>generated\$(Configuration)_$(PlatformName)\</OutDir>
+    <OutDir>..\..\generated\Windows\$(Configuration)\$(PlatformName)\</OutDir>
     <IntDir>$(OutDir)</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
