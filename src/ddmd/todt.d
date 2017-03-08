@@ -390,15 +390,23 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                 p = cast(char*)mem.xmalloc(n * e.sz);
                 e.writeTo(p, false);
             }
+
             switch (t.ty)
             {
                 case Tarray:
                     dtb.size(n);
-                    dtb.abytes(0, n * e.sz, p, cast(uint)e.sz);
-                    break;
+                    goto case Tpointer;
 
                 case Tpointer:
-                    dtb.abytes(0, n * e.sz, p, cast(uint)e.sz);
+                    if (e.sz == 1)
+                    {
+                        import ddmd.e2ir : toStringSymbol;
+                        import ddmd.glue : totym;
+                        Symbol* s = toStringSymbol(p, n, e.sz);
+                        dtb.xoff(s, 0);
+                    }
+                    else
+                        dtb.abytes(0, n * e.sz, p, cast(uint)e.sz);
                     break;
 
                 case Tsarray:
