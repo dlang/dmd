@@ -653,9 +653,9 @@ struct linnum_data
 
 extern seg_data **SegData;
 #define Offset(seg) SegData[seg]->SDoffset
-#define Doffset SegData[DATA]->SDoffset
-#define CDoffset SegData[CDATA]->SDoffset
-#define Coffset SegData[cseg]->SDoffset
+#define Doffset Offset(DATA)
+#define CDoffset Offset(CDATA)
+#define Coffset Offset(cseg)
 
 /**************************************************/
 

@@ -1674,7 +1674,7 @@ STATIC void obj_tlssections()
  * Setup for Symbol s to go into a COMDAT segment.
  * Output (if s is a function):
  *      cseg            segment index of new current code segment
- *      Coffset         starting offset in cseg
+ *      Offset(cseg)         starting offset in cseg
  * Returns:
  *      "segment index" of COMDAT
  */
@@ -1866,7 +1866,7 @@ void Obj::setcodeseg(int seg)
  *              1       append "_TEXT" to name
  * Output:
  *      cseg            segment index of new current code segment
- *      Coffset         starting offset in cseg
+ *      Offset(cseg)         starting offset in cseg
  * Returns:
  *      segment index of newly created code segment
  */
@@ -1884,8 +1884,8 @@ int Obj::codeseg(char *name,int suffix)
     {
         if (cseg != CODE)               // not the current default
         {
-            SegData[cseg]->SDoffset = Coffset;
-            Coffset = SegData[CODE]->SDoffset;
+            SegData[cseg]->SDoffset = Offset(cseg);
+            Offset(cseg) = SegData[CODE]->SDoffset;
             cseg = CODE;
         }
         return cseg;
@@ -1895,7 +1895,7 @@ int Obj::codeseg(char *name,int suffix)
                                     // find or create code segment
 
     cseg = seg;                         // new code segment index
-    Coffset = 0;
+    Offset(cseg) = 0;
 
     return seg;
 }
@@ -2152,11 +2152,11 @@ void Obj::func_start(Symbol *sfunc)
     }
     else if (sfunc->Sseg == UNKNOWN)
         sfunc->Sseg = CODE;
-    //dbg_printf("sfunc->Sseg %d CODE %d cseg %d Coffset %d\n",sfunc->Sseg,CODE,cseg,Coffset);
+    //dbg_printf("sfunc->Sseg %d CODE %d cseg %d Coffset %d\n",sfunc->Sseg,CODE,cseg,Offset(cseg));
     cseg = sfunc->Sseg;
     assert(cseg == CODE || cseg > COMD);
-    Obj::pubdef(cseg, sfunc, Coffset);
-    sfunc->Soffset = Coffset;
+    Obj::pubdef(cseg, sfunc, Offset(cseg));
+    sfunc->Soffset = Offset(cseg);
 
     dwarf_func_start(sfunc);
 }
@@ -2168,13 +2168,13 @@ void Obj::func_start(Symbol *sfunc)
 void Obj::func_term(Symbol *sfunc)
 {
     //dbg_printf("Obj::func_term(%s) offset %x, Coffset %x symidx %d\n",
-//          sfunc->Sident, sfunc->Soffset,Coffset,sfunc->Sxtrnnum);
+//          sfunc->Sident, sfunc->Soffset,Offset(cseg),sfunc->Sxtrnnum);
 
     // fill in the function size
     if (I64)
-        SymbolTable64[sfunc->Sxtrnnum].st_size = Coffset - sfunc->Soffset;
+        SymbolTable64[sfunc->Sxtrnnum].st_size = Offset(cseg) - sfunc->Soffset;
     else
-        SymbolTable[sfunc->Sxtrnnum].st_size = Coffset - sfunc->Soffset;
+        SymbolTable[sfunc->Sxtrnnum].st_size = Offset(cseg) - sfunc->Soffset;
     dwarf_func_term(sfunc);
 }
 

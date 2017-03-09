@@ -2090,12 +2090,12 @@ elem *el_convstring(elem *e)
         assert(config.objfmt == OBJ_OMF);         // option not done yet for others
         s = symbol_generate(SCstatic, type_fake(mTYcs | e->Ety));
         s->Sfl = FLcsdata;
-        s->Soffset = Coffset;
+        s->Soffset = Offset(cseg);
         s->Sseg = cseg;
         symbol_keep(s);
         if (!eecontext.EEcompile || eecontext.EEin)
-        {   Obj::bytes(cseg,Coffset,len,p);
-            Coffset += len;
+        {   Obj::bytes(cseg,Offset(cseg),len,p);
+            Offset(cseg) += len;
         }
         mem_free(p);
         goto L1;

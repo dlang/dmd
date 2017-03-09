@@ -1964,7 +1964,7 @@ static int generate_comdat(Obj* objmod, Symbol *s, bool is_readonly_comdat)
             cseg = lr->lseg;
             assert(cseg > 0 && cseg <= seg_count);
             obj.pubnamidx = obj.lnameidx - 1;
-            Coffset = 0;
+            Offset(cseg) = 0;
             if (tyfarfunc(ty) && strcmp(s->Sident,"main") == 0)
                 lr->alloctyp |= 1;  // because MS does for unknown reasons
         }
@@ -2053,7 +2053,7 @@ int Obj::codeseg(char *name,int suffix)
     SegData[cseg]->segidx = obj.segidx;
     assert(cseg > 0);
     obj.segidx++;
-    Coffset = 0;
+    Offset(cseg) = 0;
 
     objsegdef(obj.csegattr,0,obj.lnameidx++,4);
 
@@ -2474,7 +2474,7 @@ void Obj::func_start(Symbol *sfunc)
     //printf("Obj::func_start(%s)\n",sfunc->Sident);
     symbol_debug(sfunc);
     sfunc->Sseg = cseg;             // current code seg
-    sfunc->Soffset = Coffset;       // offset of start of function
+    sfunc->Soffset = Offset(cseg);       // offset of start of function
 
 #if MARS
     varStats.startFunction();
@@ -3639,7 +3639,7 @@ void Obj::far16thunk(Symbol *s)
 
     s->Sclass = SCstatic;
     s->Sseg = cseg;             // identifier is defined in code segment
-    s->Soffset = Coffset;
+    s->Soffset = Offset(cseg);
 
     // Store numparam into right places
     assert((numparam & 0xFFFF) == numparam);    // 2 byte value
@@ -3671,28 +3671,28 @@ void Obj::far16thunk(Symbol *s)
     //------------------------------------------
     // Output the 32 bit thunk
 
-    Obj::bytes(cseg,Coffset,sizeof(cod32_1),cod32_1);
-    Coffset += sizeof(cod32_1);
+    Obj::bytes(cseg,Offset(cseg),sizeof(cod32_1),cod32_1);
+    Offset(cseg) += sizeof(cod32_1);
 
     // Put out fixup for SEG FLAT:_DATA
-    Obj::ledata(cseg,Coffset,0,LOCATsegrel|LOCbase|FD_F1|FD_T4,
+    Obj::ledata(cseg,Offset(cseg),0,LOCATsegrel|LOCbase|FD_F1|FD_T4,
         DGROUPIDX,DATA);
-    Coffset += 2;
+    Offset(cseg) += 2;
 
-    Obj::bytes(cseg,Coffset,sizeof(cod32_2),cod32_2);
-    Coffset += sizeof(cod32_2);
+    Obj::bytes(cseg,Offset(cseg),sizeof(cod32_2),cod32_2);
+    Offset(cseg) += sizeof(cod32_2);
 
     // Put out fixup to CODE16 part of thunk
-    Obj::ledata(cseg,Coffset,obj.CODE16offset,LOCATsegrel|LOC16pointer|FD_F0|FD_T4,
+    Obj::ledata(cseg,Offset(cseg),obj.CODE16offset,LOCATsegrel|LOC16pointer|FD_F0|FD_T4,
         SegData[obj.code16segi]->segidx,
         SegData[obj.code16segi]->segidx);
-    Coffset += 4;
+    Offset(cseg) += 4;
 
-    L2offset = Coffset;
-    Obj::bytes(cseg,Coffset,sizeof(cod32_3),cod32_3);
-    Coffset += sizeof(cod32_3);
+    L2offset = Offset(cseg);
+    Obj::bytes(cseg,Offset(cseg),sizeof(cod32_3),cod32_3);
+    Offset(cseg) += sizeof(cod32_3);
 
-    s->Ssize = Coffset - s->Soffset;            // size of thunk
+    s->Ssize = Offset(cseg) - s->Soffset;            // size of thunk
 
     //------------------------------------------
     // Output the 16 bit thunk
