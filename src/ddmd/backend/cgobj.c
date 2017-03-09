@@ -864,13 +864,15 @@ void Obj::term(const char *objfilename)
 
 /***************************
  * Record line number linnum at offset.
- * Input:
- *      cseg    current code segment (negative for COMDAT segments)
- *      pubnamidx
- *      obj.mlinnum             LINNUM or LINSYM
+ * Params:
+ *      srcpos = source file position
+ *      seg = segment it corresponds to (negative for COMDAT segments)
+ *      offset = offset within seg
+ *      pubnamidx = public name index
+ *      obj.mlinnum = LINNUM or LINSYM
  */
 
-void Obj::linnum(Srcpos srcpos,targ_size_t offset)
+void Obj::linnum(Srcpos srcpos,int seg,targ_size_t offset)
 {
 #if MARS
     varStats.recordLineOffset(srcpos, offset);
@@ -880,21 +882,21 @@ void Obj::linnum(Srcpos srcpos,targ_size_t offset)
 
 #if 0
 #if MARS || SCPP
-    printf("Obj::linnum(cseg=%d, offset=0x%lx) ", cseg, offset);
+    printf("Obj::linnum(seg=%d, offset=0x%lx) ", seg, offset);
 #endif
     srcpos.print("");
 #endif
 
-    char linos2 = config.exe == EX_OS2 && !seg_is_comdat(SegData[cseg]->segidx);
+    char linos2 = config.exe == EX_OS2 && !seg_is_comdat(SegData[seg]->segidx);
 
 #if MARS
     if (!obj.term &&
-        (seg_is_comdat(SegData[cseg]->segidx) || (srcpos.Sfilename && srcpos.Sfilename != obj.modname)))
+        (seg_is_comdat(SegData[seg]->segidx) || (srcpos.Sfilename && srcpos.Sfilename != obj.modname)))
 #else
     if (!srcpos.Sfilptr)
         return;
     sfile_debug(&srcpos_sfile(srcpos));
-    if (!obj.term && (!(srcpos_sfile(srcpos).SFflags & SFtop) || (seg_is_comdat(SegData[cseg]->segidx) && !obj.term)))
+    if (!obj.term && (!(srcpos_sfile(srcpos).SFflags & SFtop) || (seg_is_comdat(SegData[seg]->segidx) && !obj.term)))
 #endif
     {   // Not original source file, or a COMDAT.
         // Save data away and deal with it at close of compile.
@@ -916,7 +918,7 @@ void Obj::linnum(Srcpos srcpos,targ_size_t offset)
 #else
                 ln->filptr = *srcpos.Sfilptr;
 #endif
-                ln->cseg = cseg;
+                ln->cseg = seg;
                 ln->seg = obj.pubnamidx;
                 list_prepend(&obj.linnum_list,ln);
                 break;
@@ -929,7 +931,7 @@ void Obj::linnum(Srcpos srcpos,targ_size_t offset)
 #if SCPP
                 (ln->filptr == *srcpos.Sfilptr) &&
 #endif
-                ln->cseg == cseg &&
+                ln->cseg == seg &&
                 ln->i < LINNUMMAX - 6)
                 break;
         }
@@ -941,15 +943,15 @@ void Obj::linnum(Srcpos srcpos,targ_size_t offset)
     {
         if (linos2 && obj.linreci > LINRECMAX - 8)
             obj.linrec = NULL;                  // allocate a new one
-        else if (cseg != obj.recseg)
+        else if (seg != obj.recseg)
             linnum_flush();
 
         if (!obj.linrec)                        // if not allocated
         {       obj.linrec = (char *) mem_calloc(LINRECMAX);
                 obj.linrec[0] = 0;              // base group / flags
-                obj.linrecheader = 1 + insidx(obj.linrec + 1,seg_is_comdat(SegData[cseg]->segidx) ? obj.pubnamidx : SegData[cseg]->segidx);
+                obj.linrecheader = 1 + insidx(obj.linrec + 1,seg_is_comdat(SegData[seg]->segidx) ? obj.pubnamidx : SegData[seg]->segidx);
                 obj.linreci = obj.linrecheader;
-                obj.recseg = cseg;
+                obj.recseg = seg;
 #if MULTISCOPE
                 if (!obj.linvec)
                 {   obj.linvec = vec_calloc(1000);
@@ -964,14 +966,14 @@ void Obj::linnum(Srcpos srcpos,targ_size_t offset)
                 }
 
                 // Select record type to use
-                obj.mlinnum = seg_is_comdat(SegData[cseg]->segidx) ? LINSYM : LINNUM;
+                obj.mlinnum = seg_is_comdat(SegData[seg]->segidx) ? LINSYM : LINNUM;
                 if (I32 && !(config.flags & CFGeasyomf))
                     obj.mlinnum++;
         }
         else if (obj.linreci > LINRECMAX - (2 + intsize))
         {       objrecord(obj.mlinnum,obj.linrec,obj.linreci);  // output data
                 obj.linreci = obj.linrecheader;
-                if (seg_is_comdat(SegData[cseg]->segidx))        // if LINSYM record
+                if (seg_is_comdat(SegData[seg]->segidx))        // if LINSYM record
                     obj.linrec[0] |= 1;         // continuation bit
         }
 #if MULTISCOPE
@@ -1119,7 +1121,7 @@ STATIC void linnum_term()
                     offset = *(unsigned long *)&ln->data[u];
                 else
                     offset = *(unsigned short *)&ln->data[u];
-                objmod->linnum(srcpos,offset);
+                objmod->linnum(srcpos,cseg,offset);
                 u += intsize;
             }
             linnum_flush();

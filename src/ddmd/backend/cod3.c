@@ -6101,7 +6101,7 @@ unsigned codout(code *c)
                 switch (op & 0xFFFF00)
                 {   case ESClinnum:
                         /* put out line number stuff    */
-                        objmod->linnum(c->IEV1.Vsrcpos,ggen.getOffset());
+                        objmod->linnum(c->IEV1.Vsrcpos,cseg,ggen.getOffset());
                         break;
 #if SCPP
 #if 1

@@ -291,7 +291,7 @@ tryagain:
         cstop--;
 
     if (configv.addlinenumbers)
-        objmod->linnum(funcsym_p->Sfunc->Fstartline,Coffset);
+        objmod->linnum(funcsym_p->Sfunc->Fstartline,cseg,Offset(cseg));
 
     // Otherwise, jmp's to startblock will execute the prolog again
     assert(!startblock->Bpred);
@@ -511,7 +511,7 @@ tryagain:
            start of the last instruction
          */
         /* Instead, try offset to cleanup code  */
-        objmod->linnum(funcsym_p->Sfunc->Fendline,funcoffset + retoffset);
+        objmod->linnum(funcsym_p->Sfunc->Fendline,cseg,funcoffset + retoffset);
 
 #if TARGET_WINDOS && MARS
     if (config.exe == EX_WIN64)

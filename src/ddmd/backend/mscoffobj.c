@@ -1018,11 +1018,13 @@ void MsCoffObj::term(const char *objfilename)
 
 /***************************
  * Record file and line number at segment and offset.
- * Input:
- *      cseg    current code segment
+ * Params:
+ *      srcpos = source file position
+ *      seg = segment it corresponds to
+ *      offset = offset within seg
  */
 
-void MsCoffObj::linnum(Srcpos srcpos, targ_size_t offset)
+void MsCoffObj::linnum(Srcpos srcpos, int seg, targ_size_t offset)
 {
     if (srcpos.Slinnum == 0 || !srcpos.Sfilename)
         return;
