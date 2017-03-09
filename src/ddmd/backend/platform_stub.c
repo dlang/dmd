@@ -91,8 +91,8 @@ regm_t regmask(tym_t tym, tym_t tyf) { assert(0); return 0; }
 targ_size_t cod3_bpoffset(symbol* s) { assert(0); return 0; }
 unsigned char loadconst(elem* e, int im) { assert(0); return 0; }
 void cod3_adjSymOffsets() { assert(0); }
-void cod3_align() { assert(0); }
-void cod3_align_bytes(size_t nbytes) { assert(0); }
+void cod3_align(int seg) { assert(0); }
+void cod3_align_bytes(int seg, size_t nbytes) { assert(0); }
 void cod3_initregs() { assert(0); }
 void cod3_setdefault() { assert(0); }
 void cod3_set32() { assert(0); }
