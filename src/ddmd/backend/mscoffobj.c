@@ -1316,7 +1316,7 @@ void MsCoffObj::ehsections()
  * Setup for Symbol s to go into a COMDAT segment.
  * Output (if s is a function):
  *      cseg            segment index of new current code segment
- *      Coffset         starting offset in cseg
+ *      Offset(cseg)         starting offset in cseg
  * Returns:
  *      "segment index" of COMDAT
  */
@@ -1522,7 +1522,7 @@ IDXSEC MsCoffObj::addScnhdr(const char *scnhdr_name, unsigned long flags)
  *              1       append "_TEXT" to name
  * Output:
  *      cseg            segment index of new current code segment
- *      Coffset         starting offset in cseg
+ *      Offset(cseg)         starting offset in cseg
  * Returns:
  *      segment index of newly created code segment
  */
@@ -1831,11 +1831,11 @@ void MsCoffObj::func_start(Symbol *sfunc)
     assert(sfunc->Sseg);
     if (sfunc->Sseg == UNKNOWN)
         sfunc->Sseg = CODE;
-    //printf("sfunc->Sseg %d CODE %d cseg %d Coffset x%x\n",sfunc->Sseg,CODE,cseg,Coffset);
+    //printf("sfunc->Sseg %d CODE %d cseg %d Coffset x%x\n",sfunc->Sseg,CODE,cseg,Offset(cseg));
     cseg = sfunc->Sseg;
     assert(cseg == CODE || cseg > UDATA);
-    MsCoffObj::pubdef(cseg, sfunc, Coffset);
-    sfunc->Soffset = Coffset;
+    MsCoffObj::pubdef(cseg, sfunc, Offset(cseg));
+    sfunc->Soffset = Offset(cseg);
 
     if (config.fulltypes)
         cv8_func_start(sfunc);
@@ -1848,7 +1848,7 @@ void MsCoffObj::func_start(Symbol *sfunc)
 void MsCoffObj::func_term(Symbol *sfunc)
 {
     //dbg_printf("MsCoffObj::func_term(%s) offset %x, Coffset %x symidx %d\n",
-//          sfunc->Sident, sfunc->Soffset,Coffset,sfunc->Sxtrnnum);
+//          sfunc->Sident, sfunc->Soffset,Offset(cseg),sfunc->Sxtrnnum);
 
     if (config.fulltypes)
         cv8_func_term(sfunc);

@@ -1742,7 +1742,7 @@ void outjmptab(block *b)
     /* Segment and offset into which the jump table will be emitted
      */
     int jmpseg = (config.flags & CFGromable) ? cseg : JMPSEG;
-    targ_size_t *poffset = (config.flags & CFGromable) ? &Coffset : &JMPOFF;
+    targ_size_t *poffset = (config.flags & CFGromable) ? &Offset(cseg) : &JMPOFF;
 
     /* Align start of jump table
      */
@@ -1836,7 +1836,7 @@ void outswitab(block *b)
   ncases = *p++;                        /* number of cases              */
 
   if (config.flags & CFGromable)
-  {     poffset = &Coffset;
+  {     poffset = &Offset(cseg);
         assert(cseg == CODE);
         seg = cseg;
   }
@@ -4320,13 +4320,13 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
         c = cat(c,c1);
     }
 
-    thunkoffset = Coffset;
+    thunkoffset = Offset(cseg);
     pinholeopt(c,NULL);
     codout(c);
     code_free(c);
 
     sthunk->Soffset = thunkoffset;
-    sthunk->Ssize = Coffset - thunkoffset; /* size of thunk */
+    sthunk->Ssize = Offset(cseg) - thunkoffset; /* size of thunk */
     sthunk->Sseg = cseg;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     objmod->pubdef(cseg,sthunk,sthunk->Soffset);
@@ -6088,10 +6088,10 @@ unsigned codout(code *c)
   symbol *s;
 
 #ifdef DEBUG
-  if (debugc) printf("codout(%p), Coffset = x%llx\n",c,(unsigned long long)Coffset);
+  if (debugc) printf("codout(%p), Coffset = x%llx\n",c,(unsigned long long)Offset(cseg));
 #endif
 
-  MiniCodeBuf ggen(Coffset);
+  MiniCodeBuf ggen(Offset(cseg));
 
   for (; c; c = code_next(c))
   {
@@ -6520,8 +6520,8 @@ unsigned codout(code *c)
 #endif
     }
     ggen.flush();
-    Coffset = ggen.offset;
-    //printf("-codout(), Coffset = x%x\n", Coffset);
+    Offset(cseg) = ggen.offset;
+    //printf("-codout(), Coffset = x%x\n", Offset(cseg));
     return ggen.offset;                      /* ending address               */
 }
 

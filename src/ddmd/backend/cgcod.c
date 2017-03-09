@@ -300,8 +300,8 @@ tryagain:
     if (cprolog)
         pinholeopt(cprolog,NULL);       // optimize
 
-    funcoffset = Coffset;
-    targ_size_t coffset = Coffset;
+    funcoffset = Offset(cseg);
+    targ_size_t coffset = Offset(cseg);
 
     if (eecontext.EEelem)
         genEEcode();
@@ -416,18 +416,18 @@ tryagain:
 #ifdef DEBUG
             if (debugc)
             {   printf("Boffset = x%lx, Bsize = x%lx, Coffset = x%lx\n",
-                    (long)b->Boffset,(long)b->Bsize,(long)Coffset);
+                    (long)b->Boffset,(long)b->Bsize,(long)Offset(cseg));
                 if (b->Bcode)
                     printf( "First opcode of block is: %0x\n", b->Bcode->Iop );
             }
 #endif
             if (b->Balign)
             {   unsigned u = b->Balign;
-                unsigned nalign = (u - (unsigned)Coffset) & (u - 1);
+                unsigned nalign = (u - (unsigned)Offset(cseg)) & (u - 1);
 
                 cod3_align_bytes(cseg, nalign);
             }
-            assert(b->Boffset == Coffset);
+            assert(b->Boffset == Offset(cseg));
 
 #if SCPP
             if (CPP &&
@@ -439,25 +439,25 @@ tryagain:
                 if (btry != b->Btry)
                 {
                     btry = b->Btry;
-                    except_pair_setoffset(b,Coffset - funcoffset);
+                    except_pair_setoffset(b,Offset(cseg) - funcoffset);
                 }
                 if (b->BC == BCtry)
                 {
                     btry = b;
-                    except_pair_setoffset(b,Coffset - funcoffset);
+                    except_pair_setoffset(b,Offset(cseg) - funcoffset);
                 }
             }
 #endif
             codout(b->Bcode);   // output code
     }
-    if (coffset != Coffset)
+    if (coffset != Offset(cseg))
     {
 #ifdef DEBUG
-        printf("coffset = %ld, Coffset = %ld\n",(long)coffset,(long)Coffset);
+        printf("coffset = %ld, Offset(cseg) = %ld\n",(long)coffset,(long)Offset(cseg));
 #endif
         assert(0);
     }
-    funcsym_p->Ssize = Coffset - funcoffset;    // size of function
+    funcsym_p->Ssize = Offset(cseg) - funcoffset;    // size of function
 
 #if NTEXCEPTIONS || MARS
 #if (SCPP && NTEXCEPTIONS)
@@ -614,10 +614,10 @@ targ_size_t alignsection(targ_size_t base, unsigned alignment, int bias)
 /*******************************
  * Generate code for a function start.
  * Input:
- *      Coffset         address of start of code
+ *      Offset(cseg)         address of start of code
  *      Auto.alignment
  * Output:
- *      Coffset         adjusted for size of code generated
+ *      Offset(cseg)         adjusted for size of code generated
  *      EBPtoESP
  *      hasframe
  *      BPoff
