@@ -12,9 +12,11 @@ def clone (repo_url, git_ref = "master") {
     )
 }
 
+def pipeline
 node {
     dir('dlang/ci') {
-        clone 'https://github.com/Dicebot/dlangci.git'
+        cleanCheckout 'https://github.com/Dicebot/dlangci.git', 'master'
     }
-    load 'dlang/ci/pipeline.groovy'
+    pipeline = load 'dlang/ci/pipeline.groovy'
 }
+pipeline.runPipeline()
