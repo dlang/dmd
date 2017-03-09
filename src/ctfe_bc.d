@@ -1321,7 +1321,7 @@ struct BCScope
 }
 
 debug = nullPtrCheck;
-debug = andand;
+//debug = andand;
 extern (C++) final class BCV(BCGenT) : Visitor
 {
     uint unresolvedGotoCount;
