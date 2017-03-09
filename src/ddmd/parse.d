@@ -3542,6 +3542,13 @@ final class Parser : Lexer
             check(TOKrparen);
             break;
 
+       case TOKref:
+            nextToken();
+            check(TOKlparen);
+            t = parseType().addSTC(STCref);
+            check(TOKrparen);
+            break;
+
         default:
             error("basic type expected, not %s", token.toChars());
             t = Type.terror;
