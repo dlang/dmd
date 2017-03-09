@@ -425,7 +425,7 @@ tryagain:
             {   unsigned u = b->Balign;
                 unsigned nalign = (u - (unsigned)Coffset) & (u - 1);
 
-                cod3_align_bytes(nalign);
+                cod3_align_bytes(cseg, nalign);
             }
             assert(b->Boffset == Coffset);
 

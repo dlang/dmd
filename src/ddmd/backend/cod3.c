@@ -389,8 +389,11 @@ void cod3_set64()
 
 /*********************************
  * Word or dword align start of function.
+ * Params:
+ *      seg = segment to write alignment bytes to
+ *      nbytes = number of alignment bytes to write
  */
-void cod3_align_bytes(size_t nbytes)
+void cod3_align_bytes(int seg, size_t nbytes)
 {
     /* Table 4-2 from Intel Instruction Set Reference M-Z
      * 1 bytes NOP                                        90
@@ -405,7 +408,7 @@ void cod3_align_bytes(size_t nbytes)
      * only for CPUs: CPUID.01H.EAX[Bytes 11:8] = 0110B or 1111B
      */
 
-    assert(SegData[cseg]->SDseg == cseg);
+    assert(SegData[seg]->SDseg == seg);
 
     while (nbytes)
     {   size_t n = nbytes;
@@ -434,12 +437,17 @@ void cod3_align_bytes(size_t nbytes)
                 n = sizeof(nops);
             p = (char*)nops;
         }
-        objmod->write_bytes(SegData[cseg],n,const_cast<char*>(p));
+        objmod->write_bytes(SegData[seg],n,const_cast<char*>(p));
         nbytes -= n;
     }
 }
 
-void cod3_align()
+/****************************
+ * Align start of function.
+ * Params:
+ *      seg = segment of function
+ */
+void cod3_align(int seg)
 {
     unsigned nbytes;
 #if TARGET_WINDOS
@@ -451,14 +459,14 @@ void cod3_align()
         {   // 486 does reads on 16 byte boundaries, so if we are near
             // such a boundary, align us to it
 
-            nbytes = -Coffset & 15;
+            nbytes = -Offset(seg) & 15;
             if (nbytes < 8)
-                cod3_align_bytes(nbytes);
+                cod3_align_bytes(seg, nbytes);
         }
     }
 #else
-    nbytes = -Coffset & 7;
-    cod3_align_bytes(nbytes);
+    nbytes = -Offset(seg) & 7;
+    cod3_align_bytes(seg, nbytes);
 #endif
 }
 
@@ -4153,7 +4161,7 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
     targ_size_t thunkoffset;
     tym_t thunkty;
 
-    cod3_align();
+    cod3_align(cseg);
 
     /* Skip over return address */
     thunkty = tybasic(sthunk->ty());
