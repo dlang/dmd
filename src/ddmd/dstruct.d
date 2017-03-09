@@ -339,18 +339,18 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         /* Set scope so if there are forward references, we still might be able to
          * resolve individual members like enums.
          */
-        foreach(s; (*members)[])
+        foreach(s; (*members))
         {
             //printf("struct: setScope %s %s\n", s.kind(), s.toChars());
             s.setScope(sc2);
         }
 
-        foreach(s; (*members)[])
+        foreach(s; (*members))
         {
             s.importAll(sc2);
         }
 
-        foreach(s; (*members)[])
+        foreach(s; (*members))
         {
             s.semantic(sc2);
         }
@@ -616,8 +616,9 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         size_t nfields = fields.dim - isNested();
         size_t offset = 0;
-        foreach(i, e; (*elements)[])
+        for (size_t i = 0; i < elements.dim; i++)
         {
+            Expression e = (*elements)[i];
             if (!e)
                 continue;
 
