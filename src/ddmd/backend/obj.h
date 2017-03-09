@@ -33,7 +33,7 @@ class Obj
 
     VIRTUAL size_t mangle(Symbol *s,char *dest);
     VIRTUAL void _import(elem *e);
-    VIRTUAL void linnum(Srcpos srcpos, targ_size_t offset);
+    VIRTUAL void linnum(Srcpos srcpos, int seg, targ_size_t offset);
     VIRTUAL int codeseg(char *name,int suffix);
     VIRTUAL void dosseg(void);
     VIRTUAL void startaddress(Symbol *);
@@ -143,7 +143,7 @@ class MsCoffObj : public Obj
 
 //    VIRTUAL size_t mangle(Symbol *s,char *dest);
 //    VIRTUAL void _import(elem *e);
-    VIRTUAL void linnum(Srcpos srcpos, targ_size_t offset);
+    VIRTUAL void linnum(Srcpos srcpos, int seg, targ_size_t offset);
     VIRTUAL int codeseg(char *name,int suffix);
 //    VIRTUAL void dosseg(void);
     VIRTUAL void startaddress(Symbol *);

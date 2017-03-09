@@ -1490,18 +1490,20 @@ void Obj::term(const char *objfilename)
 /***************************
  * Record file and line number at segment and offset.
  * The actual .debug_line segment is put out by dwarf_termfile().
- * Input:
- *      cseg    current code segment
+ * Params:
+ *      srcpos = source file position
+ *      seg = segment it corresponds to
+ *      offset = offset within seg
  */
 
-void Obj::linnum(Srcpos srcpos, targ_size_t offset)
+void Obj::linnum(Srcpos srcpos, int seg, targ_size_t offset)
 {
     if (srcpos.Slinnum == 0)
         return;
 
 #if 0
 #if MARS || SCPP
-    printf("Obj::linnum(cseg=%d, offset=x%lx) ", cseg, offset);
+    printf("Obj::linnum(seg=%d, offset=x%lx) ", seg, offset);
 #endif
     srcpos.print("");
 #endif
@@ -1518,42 +1520,42 @@ void Obj::linnum(Srcpos srcpos, targ_size_t offset)
 #endif
 
     size_t i;
-    seg_data *seg = SegData[cseg];
+    seg_data *pseg = SegData[seg];
 
     // Find entry i in SDlinnum_data[] that corresponds to srcpos filename
     for (i = 0; 1; i++)
     {
-        if (i == seg->SDlinnum_count)
+        if (i == pseg->SDlinnum_count)
         {   // Create new entry
-            if (seg->SDlinnum_count == seg->SDlinnum_max)
+            if (pseg->SDlinnum_count == pseg->SDlinnum_max)
             {   // Enlarge array
-                unsigned newmax = seg->SDlinnum_max * 2 + 1;
+                unsigned newmax = pseg->SDlinnum_max * 2 + 1;
                 //printf("realloc %d\n", newmax * sizeof(linnum_data));
-                seg->SDlinnum_data = (linnum_data *)mem_realloc(
-                    seg->SDlinnum_data, newmax * sizeof(linnum_data));
-                memset(seg->SDlinnum_data + seg->SDlinnum_max, 0,
-                    (newmax - seg->SDlinnum_max) * sizeof(linnum_data));
-                seg->SDlinnum_max = newmax;
+                pseg->SDlinnum_data = (linnum_data *)mem_realloc(
+                    pseg->SDlinnum_data, newmax * sizeof(linnum_data));
+                memset(pseg->SDlinnum_data + pseg->SDlinnum_max, 0,
+                    (newmax - pseg->SDlinnum_max) * sizeof(linnum_data));
+                pseg->SDlinnum_max = newmax;
             }
-            seg->SDlinnum_count++;
+            pseg->SDlinnum_count++;
 #if MARS
-            seg->SDlinnum_data[i].filename = srcpos.Sfilename;
+            pseg->SDlinnum_data[i].filename = srcpos.Sfilename;
 #endif
 #if SCPP
-            seg->SDlinnum_data[i].filptr = sf;
+            pseg->SDlinnum_data[i].filptr = sf;
 #endif
             break;
         }
 #if MARS
-        if (seg->SDlinnum_data[i].filename == srcpos.Sfilename)
+        if (pseg->SDlinnum_data[i].filename == srcpos.Sfilename)
 #endif
 #if SCPP
-        if (seg->SDlinnum_data[i].filptr == sf)
+        if (pseg->SDlinnum_data[i].filptr == sf)
 #endif
             break;
     }
 
-    linnum_data *ld = &seg->SDlinnum_data[i];
+    linnum_data *ld = &pseg->SDlinnum_data[i];
 //    printf("i = %d, ld = x%x\n", i, ld);
     if (ld->linoff_count == ld->linoff_max)
     {

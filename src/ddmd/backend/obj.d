@@ -34,7 +34,7 @@ class Obj
 
     size_t mangle(Symbol *s,char *dest);
     void _import(elem *e);
-    void linnum(Srcpos srcpos, targ_size_t offset);
+    void linnum(Srcpos srcpos, int seg, targ_size_t offset);
     int codeseg(char *name,int suffix);
     void dosseg();
     void startaddress(Symbol *);
@@ -110,7 +110,7 @@ class MsCoffObj : Obj
 
 //    size_t mangle(Symbol *s,char *dest);
 //    void _import(elem *e);
-    override void linnum(Srcpos srcpos, targ_size_t offset);
+    override void linnum(Srcpos srcpos, int seg, targ_size_t offset);
     override int codeseg(char *name,int suffix);
 //    void dosseg();
     override void startaddress(Symbol *);
@@ -202,7 +202,7 @@ class Obj
 
     static size_t mangle(Symbol *s,char *dest);
     static void _import(elem *e);
-    static void linnum(Srcpos srcpos, targ_size_t offset);
+    static void linnum(Srcpos srcpos, int seg, targ_size_t offset);
     static int codeseg(char *name,int suffix);
     static void dosseg();
     static void startaddress(Symbol *);
