@@ -127,7 +127,7 @@ void outdata(symbol *s)
 #if TARGET_SEGMENTED
                 if (tybasic(dt->Dty) == TYcptr)
                 {   dt->DTseg = cseg;
-                    dt->DTabytes += Coffset;
+                    dt->DTabytes += Offset(cseg);
                     goto L1;
                 }
                 else if (tybasic(dt->Dty) == TYfptr &&
@@ -175,9 +175,9 @@ void outdata(symbol *s)
 
                         case mTYcs:
                             s->Sseg = cseg;
-                            Coffset = _align(datasize,Coffset);
-                            s->Soffset = Coffset;
-                            Coffset += datasize;
+                            Offset(cseg) = _align(datasize,Offset(cseg));
+                            s->Soffset = Offset(cseg);
+                            Offset(cseg) += datasize;
                             s->Sfl = FLcsdata;
                             break;
 #endif
@@ -281,8 +281,8 @@ void outdata(symbol *s)
 
         case mTYcs:
             seg = cseg;
-            Coffset = _align(datasize,Coffset);
-            s->Soffset = Coffset;
+            Offset(cseg) = _align(datasize,Offset(cseg));
+            s->Soffset = Offset(cseg);
             s->Sfl = FLcsdata;
             break;
 #endif
@@ -1287,7 +1287,7 @@ STATIC void writefunc2(symbol *sfunc)
     if (!errcnt)
 #endif
         codgen();                               // generate code
-    //dbg_printf("after codgen for %s Coffset %x\n",sfunc->Sident,Coffset);
+    //dbg_printf("after codgen for %s Coffset %x\n",sfunc->Sident,Offset(cseg));
     blocklist_free(&startblock);
 #if SCPP
     PARSER = 1;
