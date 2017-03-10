@@ -534,7 +534,7 @@ void nteh_framehandler(symbol *scopetable)
 
         code *c = cdb.finish();
         pinholeopt(c,NULL);
-        codout(c);
+        codout(cseg,c);
         code_free(c);
     }
 }
