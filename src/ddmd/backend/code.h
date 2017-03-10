@@ -655,7 +655,6 @@ extern seg_data **SegData;
 #define Offset(seg) SegData[seg]->SDoffset
 #define Doffset Offset(DATA)
 #define CDoffset Offset(CDATA)
-#define Coffset Offset(cseg)
 
 /**************************************************/
 
