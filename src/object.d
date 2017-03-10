@@ -3241,6 +3241,71 @@ template RTInfo(T)
     enum RTInfo = null;
 }
 
+// lhs == rhs lowers to __equals(lhs, rhs) for arrays of all struct types.
+// old path: Typeinfo_array => TypeInfo_struct
+bool __equals(T1, T2)(T1[] lhs, T2[] rhs)
+{
+    if (lhs.length != rhs.length)
+        return false;
+
+    import core.internal.traits : Unqual;
+    static assert(is(Unqual!T1 == Unqual!T2), "Internal error.");
+
+    static @trusted ref R at(R)(R[] r, size_t i) { return r.ptr[i]; }
+
+    foreach (const u; 0 .. lhs.length)
+    {
+        static if (__traits(compiles, at(lhs, u).opEquals(at(rhs, u))))
+        {
+            if (!at(lhs, u).opEquals(at(rhs, u)))
+                return false;
+        }
+        else
+        {
+            if (at(lhs, u).tupleof != at(rhs, u).tupleof)
+                return false;
+        }
+    }
+
+    return true;
+}
+
+unittest
+{
+    struct A
+    {
+        int a;
+    }
+
+    auto arr1 = [A(0), A(2)];
+    auto arr2 = [A(0), A(1)];
+    auto arr3 = [A(0), A(1)];
+
+    assert(arr1 != arr2);
+    assert(arr2 == arr3);
+}
+
+unittest
+{
+    struct A
+    {
+        int a;
+        int b;
+
+        bool opEquals(const A other)
+        {
+            return this.a == other.b && this.b == other.a;
+        }
+    }
+
+    auto arr1 = [A(1, 0), A(0, 1)];
+    auto arr2 = [A(1, 0), A(0, 1)];
+    auto arr3 = [A(0, 1), A(1, 0)];
+
+    assert(arr1 != arr2);
+    assert(arr2 == arr3);
+}
+
 // Compare class and interface objects for ordering.
 private int __cmp(Obj)(Obj lhs, Obj rhs)
 if (is(Obj : Object))
