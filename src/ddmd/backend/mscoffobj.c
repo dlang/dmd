@@ -278,10 +278,10 @@ int MsCoffObj::data_readonly(char *p, int len, segidx_t *pseg)
 {
     int oldoff;
 #if SCPP
-    oldoff = Doffset;
+    oldoff = Offset(DATA);
     SegData[DATA]->SDbuf->reserve(len);
     SegData[DATA]->SDbuf->writen(p,len);
-    Doffset += len;
+    Offset(DATA) += len;
     *pseg = DATA;
 #else
     oldoff = CDoffset;
