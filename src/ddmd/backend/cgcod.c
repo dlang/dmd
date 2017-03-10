@@ -396,7 +396,7 @@ tryagain:
     // Emit the generated code
     if (eecontext.EEcompile == 1)
     {
-        codout(eecontext.EEcode);
+        codout(cseg,eecontext.EEcode);
         code_free(eecontext.EEcode);
 #if SCPP
         el_free(eecontext.EEelem);
@@ -448,7 +448,7 @@ tryagain:
                 }
             }
 #endif
-            codout(b->Bcode);   // output code
+            codout(cseg,b->Bcode);   // output code
     }
     if (coffset != Offset(cseg))
     {

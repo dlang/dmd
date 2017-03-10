@@ -59,7 +59,7 @@ targ_size_t cod3_spoff() { assert(0); }
 void  epilog(block* b) { assert(0); }
 unsigned calcblksize(code* c) { assert(0); return 0; }
 unsigned calccodsize(code* c) { assert(0); return 0; }
-unsigned codout(code* c) { assert(0); return 0; }
+unsigned codout(int seg, code* c) { assert(0); return 0; }
 
 void assignaddr(block* bl) { assert(0); }
 int  branch(block* bl, int flag) { assert(0); return 0; }
