@@ -253,6 +253,8 @@ else
     FRONT_SRCS += $D/libelf.d $D/scanelf.d
 endif
 
+GLUE_OBJS = 
+
 G_GLUE_OBJS = $(addprefix $G/, $(GLUE_OBJS))
 
 GLUE_SRCS=$(addsuffix .d, $(addprefix $D/,irstate toctype glue gluelayer todt tocsym toir dmsc \
