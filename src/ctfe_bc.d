@@ -952,7 +952,11 @@ Expression toExpression(const BCValue value, Type expressionType,
     const BCValue[2]* errorValues = null, const RetainedError* errors = null)
 {
     import ddmd.parse : Loc;
-
+    static if (bailoutMessages)
+    {
+        import std.stdio;
+        writeln("Calling toExpression with Type: ", expressionType.toString);
+    }
     Expression result;
     if (value.vType == BCValueType.Unknown)
     {
@@ -1162,6 +1166,14 @@ Expression toExpression(const BCValue value, Type expressionType,
     case Tpointer:
         {
             //FIXME this will _probably_ only work for basic types with one level of indirection (eg, int*, uint*)
+            if (expressionType.nextOf.ty == Tvoid)
+            {
+                static if (bailoutMessages)
+                {
+                    writeln("trying to build void ptr ... we cannot really do this");
+                }
+                return null;
+            }
             result = new AddrExp(Loc.init,
                 toExpression(imm32(*(heapPtr._heap.ptr + value.imm32)), expressionType.nextOf));
         }
