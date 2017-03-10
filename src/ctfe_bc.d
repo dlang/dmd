@@ -1627,6 +1627,12 @@ public:
             }
         }
 
+        if (vd.storage_class & STCref)
+        {
+            bailout("bailing on ref variable");
+            return BCValue.init;
+        }
+
         if (vd.storage_class & STCstatic && !(vd.storage_class & STCimmutable))
         {
             bailout("cannot handle static variables");
