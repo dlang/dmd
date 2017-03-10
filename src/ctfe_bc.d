@@ -1622,15 +1622,9 @@ public:
         {
             if (toBCType(vd.type) != i32Type)
             {
-                //bailout("We can only handle 32bit refs for now");
-                //return BCValue.init;
+                bailout("We can only handle 32bit refs for now");
+                return BCValue.init;
             }
-        }
-
-        if (vd.storage_class & STCref)
-        {
-            bailout("bailing on ref variable");
-            return BCValue.init;
         }
 
         if (vd.storage_class & STCstatic && !(vd.storage_class & STCimmutable))
@@ -3789,11 +3783,11 @@ static if (is(BCGen))
             assert(fIndex != -1, "field " ~ vd.toString ~ "could not be found in" ~ dve.e1.toString);
             BCStruct bcStructType = _sharedCtfeState.structTypes[structTypeIndex - 1];
 
-            /*if (bcStructType.memberTypes[fIndex].type != BCTypeEnum.i32)
+            if (bcStructType.memberTypes[fIndex].type != BCTypeEnum.i32)
             {
                 bailout("only i32 structMembers are supported for now ... not : " ~ to!string(bcStructType.memberTypes[fIndex].type));
                 return;
-            }*/
+            }
 
             if (bcStructType.voidInit[fIndex])
             {
