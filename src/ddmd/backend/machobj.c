@@ -406,12 +406,12 @@ symbol * Obj::sym_cdata(tym_t ty,char *p,int len)
     else
 #endif
     {
-        //printf("Obj::sym_cdata(ty = %x, p = %x, len = %d, CDoffset = %x)\n", ty, p, len, CDoffset);
+        //printf("Obj::sym_cdata(ty = %x, p = %x, len = %d, Offset(CDATA) = %x)\n", ty, p, len, Offset(CDATA));
         alignOffset(CDATA, tysize(ty));
-        s = symboldata(CDoffset, ty);
+        s = symboldata(Offset(CDATA), ty);
         s->Sseg = CDATA;
-        //Obj::pubdef(CDATA, s, CDoffset);
-        Obj::bytes(CDATA, CDoffset, len, p);
+        //Obj::pubdef(CDATA, s, Offset(CDATA));
+        Obj::bytes(CDATA, Offset(CDATA), len, p);
     }
 
     s->Sfl = /*(config.flags3 & CFG3pic) ? FLgotoff :*/ FLextern;
@@ -425,10 +425,10 @@ symbol * Obj::sym_cdata(tym_t ty,char *p,int len)
 
 int Obj::data_readonly(char *p, int len, int *pseg)
 {
-    int oldoff = CDoffset;
+    int oldoff = Offset(CDATA);
     SegData[CDATA]->SDbuf->reserve(len);
     SegData[CDATA]->SDbuf->writen(p,len);
-    CDoffset += len;
+    Offset(CDATA) += len;
     *pseg = CDATA;
     return oldoff;
 }

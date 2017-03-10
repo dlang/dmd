@@ -41,7 +41,7 @@ STATIC void pinholeopt_unittest();
 
 #if ELFOBJ || MACHOBJ
 #define JMPSEG  CDATA
-#define JMPOFF  CDoffset
+#define JMPOFF  Offset(CDATA)
 #else
 #define JMPSEG  DATA
 #define JMPOFF  Doffset
