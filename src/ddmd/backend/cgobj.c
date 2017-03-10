@@ -566,9 +566,9 @@ int Obj::data_readonly(char *p, int len, int *pseg)
     CDoffset += len;
     *pseg = CDATA;
 #else
-    targ_size_t oldoff = Doffset;
-    Obj::bytes(DATA,Doffset,len,p);
-    Doffset += len;
+    targ_size_t oldoff = Offset(DATA);
+    Obj::bytes(DATA,Offset(DATA),len,p);
+    Offset(DATA) += len;
     *pseg = DATA;
 #endif
     return oldoff;

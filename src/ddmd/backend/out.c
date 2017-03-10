@@ -1511,7 +1511,7 @@ symbol *out_readonly_sym(tym_t ty, void *p, int len)
         unsigned sz = tysize(ty);
 
         alignOffset(DATA, sz);
-        s = symboldata(Doffset,ty | mTYconst);
+        s = symboldata(Offset(DATA),ty | mTYconst);
         s->Sseg = DATA;
         objmod->write_bytes(SegData[DATA], len, p);
         //printf("s->Sseg = %d:x%x\n", s->Sseg, s->Soffset);

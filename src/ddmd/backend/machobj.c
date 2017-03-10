@@ -397,11 +397,11 @@ symbol * Obj::sym_cdata(tym_t ty,char *p,int len)
     if (I64)
     {
         alignOffset(DATA, tysize(ty));
-        s = symboldata(Doffset, ty);
+        s = symboldata(Offset(DATA), ty);
         SegData[DATA]->SDbuf->write(p,len);
         s->Sseg = DATA;
-        s->Soffset = Doffset;   // Remember its offset into DATA section
-        Doffset += len;
+        s->Soffset = Offset(DATA);   // Remember its offset into DATA section
+        Offset(DATA) += len;
     }
     else
 #endif

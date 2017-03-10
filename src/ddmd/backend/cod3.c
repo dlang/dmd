@@ -44,7 +44,7 @@ STATIC void pinholeopt_unittest();
 #define JMPOFF  CDoffset
 #else
 #define JMPSEG  DATA
-#define JMPOFF  Doffset
+#define JMPOFF  Offset(DATA)
 #endif
 
 //#define JMPJMPTABLE   TARGET_WINDOS
