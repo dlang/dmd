@@ -1140,9 +1140,9 @@ public:
             foreach(i, unit; units)
             {
                 static if(unit == "nsecs")
-                    args[i] = cast(typeof(args[i]))convert!("hnsecs", "nsecs")(hnsecs);
+                    args[i] = cast(Args[i])convert!("hnsecs", "nsecs")(hnsecs);
                 else
-                    args[i] = cast(typeof(args[i]))splitUnitsFromHNSecs!unit(hnsecs);
+                    args[i] = cast(Args[i])splitUnitsFromHNSecs!unit(hnsecs);
             }
         }
 
