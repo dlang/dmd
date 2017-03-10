@@ -3086,7 +3086,7 @@ static if (is(BCGen))
         auto array = genExpr(ale.e1);
         if (array.type.type == BCTypeEnum.String || array.type.type == BCTypeEnum.Slice)
         {
-            retval = getLength(array, assignTo);
+            retval = getLength(array);
         }
         else
         {
@@ -3094,13 +3094,11 @@ static if (is(BCGen))
         }
     }
 
-    BCValue getLength(BCValue arr, BCValue target = BCValue.init)
+    BCValue getLength(BCValue arr)
     {
         if (arr)
         {
-            // HACK we cast the target to i32 in order to make it work
-            // this will propbably never fail in practice but still
-            auto length = target ? target.i32 : genTemporary(BCType(BCTypeEnum.i32));
+            BCValue length;
             if (arr.type.type == BCTypeEnum.Array)
             {
                 auto idx = arr.type.typeIndex;
@@ -3116,6 +3114,7 @@ static if (is(BCGen))
                 }
                 else
                 {
+                    length = genTemporary(i32Type);
                     Load32(length, arr.i32);
                 }
             }
