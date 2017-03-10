@@ -4147,12 +4147,14 @@ code* gen_spill_reg(Symbol* s, bool toreg)
 
 /****************************
  * Generate code for, and output a thunk.
- * Input:
- *      thisty  Type of this pointer
- *      p       ESP parameter offset to this pointer
- *      d       offset to add to 'this' pointer
- *      d2      offset from 'this' to vptr
- *      i       offset into vtbl[]
+ * Params:
+ *      sthunk =  Symbol of thunk
+ *      sfunc =   Symbol of thunk's target function
+ *      thisty =  Type of this pointer
+ *      p =       ESP parameter offset to this pointer
+ *      d =       offset to add to 'this' pointer
+ *      d2 =      offset from 'this' to vptr
+ *      i =       offset into vtbl[]
  */
 
 void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
@@ -4161,7 +4163,8 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
     targ_size_t thunkoffset;
     tym_t thunkty;
 
-    cod3_align(cseg);
+    int seg = sthunk->Sseg;
+    cod3_align(seg);
 
     /* Skip over return address */
     thunkty = tybasic(sthunk->ty());
@@ -4320,20 +4323,19 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
         c = cat(c,c1);
     }
 
-    thunkoffset = Offset(cseg);
+    thunkoffset = Offset(seg);
     pinholeopt(c,NULL);
-    codout(c);
+    codout(seg,c);
     code_free(c);
 
     sthunk->Soffset = thunkoffset;
-    sthunk->Ssize = Offset(cseg) - thunkoffset; /* size of thunk */
-    sthunk->Sseg = cseg;
+    sthunk->Ssize = Offset(seg) - thunkoffset; /* size of thunk */
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    objmod->pubdef(cseg,sthunk,sthunk->Soffset);
+    objmod->pubdef(seg,sthunk,sthunk->Soffset);
 #endif
 #if TARGET_WINDOS
     if (config.objfmt == OBJ_MSCOFF)
-        objmod->pubdef(cseg,sthunk,sthunk->Soffset);
+        objmod->pubdef(seg,sthunk,sthunk->Soffset);
 #endif
     searchfixlist(sthunk);              /* resolve forward refs */
 }

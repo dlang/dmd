@@ -63,18 +63,20 @@ void outcsegname(char *csegname)
     Obj::codeseg(csegname,0);
 }
 
+#endif
+
 /***********************************
  * Output function thunk.
  */
 void outthunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
         targ_size_t d,int i,targ_size_t d2)
 {
+    sthunk->Sseg = cseg;
     cod3_thunk(sthunk,sfunc,p,thisty,d,i,d2);
     sthunk->Sfunc->Fflags &= ~Fpending;
     sthunk->Sfunc->Fflags |= Foutput;   /* mark it as having been output */
 }
 
-#endif
 
 /***************************
  * Write out statically allocated data.
