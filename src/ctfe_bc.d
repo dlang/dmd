@@ -403,7 +403,9 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                 static if (perf)
                 {
                     esw.stop();
-                    writeln("Converting to AST Expression took " ~ esw.peek.usecs.to!string ~ "us");
+                    import ddmd.asttypename;
+                    writeln(astTypeName(exp));
+                    writeln("Converting to AST Expression took " ~ esw.peek.usecs.to!string ~ "us\n\t" ~ exp.toString);
                 }
                 return exp;
             }
@@ -1057,6 +1059,15 @@ Expression toExpression(const BCValue value, Type expressionType,
 
                 Expression elm = toExpression(
                     imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset)), type);
+                if (!elm)
+                {
+                    static if (bailoutMessages)
+                    {
+                        import std.stdio;
+                        writeln("We could not covert the sub-expression of a struct of type ", type.toString);
+                    }
+                    return null;
+                }
                 elmExprs.insert(idx, elm);
                 offset += align4(_sharedCtfeState.size(member));
             }
