@@ -4047,8 +4047,9 @@ static if (is(BCGen))
                 {
                     // for some reason a a struct on the stack which is zero-default-initalized
                     // get's the integerExp 0 of integer type as rhs
-                    Alloc(lhs, imm32(sharedCtfeState.size(lhs.type)));
+                    // Alloc(lhs, imm32(sharedCtfeState.size(lhs.type)));
                     // Allocate space for the value on the heap and store it in lhs :)
+                    bailout("We cannot deal with zero-initalized structs ... since for some reason that they don't have to be zero or something");
 
                 }
                 else
