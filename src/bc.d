@@ -108,7 +108,7 @@ enum LongInst : ushort
     Assert,
     AssertCnd,
 
-    // Immidate operand
+    // Immedate operand
     ImmAdd,
     ImmSub,
     ImmDiv,
@@ -567,8 +567,23 @@ struct BCGen
 
     void Set(BCValue lhs, BCValue rhs)
     {
+        assert(isStackValueOrParameter(lhs), "Set lhs is has to be a StackValue");
+        assert(rhs.vType == BCValueType.Immediate || isStackValueOrParameter(rhs), "Set rhs is has to be a StackValue or Imm");
+
         if (lhs != rhs) // do not emit self asignments;
             emitArithInstruction(LongInst.Set, lhs, rhs);
+    }
+
+    void SetHigh(BCValue lhs, BCValue rhs)
+    {
+        assert(isStackValueOrParameter(lhs), "SeHigt lhs is has to be a StackValue");
+        assert(rhs.vType == BCValueType.Immediate || isStackValueOrParameter(rhs), "SetHigh rhs is has to be a StackValue or Imm");
+
+        //two cases :
+        //    lhs.type.size == 4 && rhs.type.size == 8
+        // OR
+        //    lhs.type.size == 8 && rhs.type.size == 4
+
     }
 
     void Lt3(BCValue result, BCValue lhs, BCValue rhs)

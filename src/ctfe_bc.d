@@ -8,6 +8,7 @@ import ddmd.dstruct;
 import ddmd.init;
 import ddmd.mtype;
 import ddmd.statement;
+import ddmd.sideeffect;
 import ddmd.visitor;
 import ddmd.arraytypes : Expressions, VarDeclarations;
 /**
@@ -1455,6 +1456,41 @@ extern (C++) final class BCV(BCGenT) : Visitor
             gen.Store32(_to, value);
         }
 
+    }
+
+    static if (is(gen.Supports64BitCells) && gen.Supports64BitCalls)
+    {
+        void Load64(BCValue _to, BCValue from)
+        {
+            Load32(_to.i32, from); // load lower 32bit
+            auto upperAddr = genTemporary(i32Type);
+            auto upperVal = genTemporary(i32Type);
+            Add3(upperAddr, from, imm32(4));
+            Load32(upperVal, upperAddr);
+            SetHigh(_to, upperVal);
+        }
+
+        void Store64(BCValue _to, BCValue from)
+        {
+            Store32(_to, from.i32); // load lower 32bit
+            auto upperAddr = genTemporary(i32Type);
+            auto upperVal = genTemporary(i32Type);
+            Add3(upperAddr, _to, imm32(4));
+            SetHigh(from, upperVal);
+            Store32(upperAddr, upperVal);
+        }
+    }
+    else
+    {
+        void Load64(BCValue _to, BCValue from)
+        {
+            bailout("Load64 unsupported by " ~ BCGenT.stringof);
+        }
+
+        void Store64(BCValue _to, BCValue from)
+        {
+            bailout("Store64 unsupported by " ~ BCGenT.stringof);
+        }
     }
 
     void doFixup(uint oldFixupTableCount, BCLabel* ifTrue, BCLabel* ifFalse)
@@ -3131,7 +3167,7 @@ static if (is(BCGen))
             {
                 auto var = getVariable(cast(VarDeclaration)p);
                 StoreToHeapRef(var);
-            }            
+            }
         }
     }
 +/
@@ -3228,7 +3264,7 @@ static if (is(BCGen))
             // It seems like we can ignore Declarartions which are not variables
             return;
         }
-       
+
         visit(vd);
         auto var = retval;
         debug (ctfe)
@@ -3987,11 +4023,11 @@ static if (is(BCGen))
                 }
                 else if (lhs.type.type == BCTypeEnum.Struct && rhs.type.type == BCTypeEnum.i32)
                 {
-                    // for some reason a a struct on the stack which is zero-default-initalized 
+                    // for some reason a a struct on the stack which is zero-default-initalized
                     // get's the integerExp 0 of integer type as rhs
                     Alloc(lhs, imm32(sharedCtfeState.size(lhs.type)));
                     // Allocate space for the value on the heap and store it in lhs :)
-                    
+
                 }
                 else
                 {
@@ -4555,7 +4591,7 @@ static if (is(BCGen))
                     LoadFromHeapRef(origArg);
               }
             }
- 
+
             import ddmd.identifier;
             /*if (fd.ident == Identifier.idPool("isGraphical"))
             {
