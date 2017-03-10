@@ -51,7 +51,7 @@ size_t iconv (iconv_t cd, in char** inbuf,
          size_t* outbytesleft);
 
 /// iconvctl queries or adjusts the behavior of the iconv function,
-/// when invoked with the specified conversion descriptor, 
+/// when invoked with the specified conversion descriptor,
 /// depending on the request value.
 int iconvctl (iconv_t cd, int request, void* argument);
 
