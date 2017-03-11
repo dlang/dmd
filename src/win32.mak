@@ -606,7 +606,7 @@ $G\longdouble.obj : $(ROOT)\longdouble.c
 	$(CC) -c -o$@ $(CFLAGS) $(ROOT)\longdouble.c
 
 $G\ldfpu.obj : vcbuild\ldfpu.asm
-	$(ML) -c -o$@ -Zi -Foldfpu.obj vcbuild\ldfpu.asm
+	$(ML) -c -o$@ -Zi -Fo$G\ldfpu.obj vcbuild\ldfpu.asm
 
 ############################## Generated Rules ###############################
 
