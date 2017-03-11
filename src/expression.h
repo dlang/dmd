@@ -129,7 +129,7 @@ public:
     unsigned char size;         // # of bytes in Expression so we can copy() it
     unsigned char parens;       // if this is a parenthesized expression
 
-    static void init();
+    static void _init();
     Expression *copy();
     virtual Expression *syntaxCopy();
     virtual Expression *semantic(Scope *sc);
