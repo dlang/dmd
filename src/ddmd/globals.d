@@ -81,6 +81,7 @@ struct Param
     bool trace;             // insert profiling hooks
     bool tracegc;           // instrument calls to 'new'
     bool verbose;           // verbose compile
+    bool vcg_ast;           // write-out codegen-ast
     bool showColumns;       // print character (column) numbers in diagnostics
     bool vtls;              // identify thread local variables
     bool vgc;               // identify gc usage

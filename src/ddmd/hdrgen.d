@@ -51,9 +51,11 @@ import ddmd.visitor;
 
 struct HdrGenState
 {
-    bool hdrgen;        // true if generating header file
-    bool ddoc;          // true if generating Ddoc file
-    bool fullQual;      // fully qualify types when printing
+    bool hdrgen;        /// true if generating header file
+    bool ddoc;          /// true if generating Ddoc file
+    bool fullDump;      /// true if generating a full AST dump file
+
+    bool fullQual;      /// fully qualify types when printing
     int tpltMember;
     int autoMember;
     int forStmtInit;
@@ -84,6 +86,7 @@ public:
     OutBuffer* buf;
     HdrGenState* hgs;
     bool declstring; // set while declaring alias for string,wstring or dstring
+    EnumDeclaration inEnumDecl;
 
     extern (D) this(OutBuffer* buf, HdrGenState* hgs)
     {
@@ -1325,7 +1328,7 @@ public:
             if (onemember && onemember.isFuncDeclaration())
                 buf.writestring("foo ");
         }
-        if (hgs.hdrgen && visitEponymousMember(d))
+        if ((hgs.hdrgen || hgs.fullDump) && visitEponymousMember(d))
             return;
         if (hgs.ddoc)
             buf.writestring(d.kind());
@@ -1337,7 +1340,7 @@ public:
         visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters);
         buf.writeByte(')');
         visitTemplateConstraint(d.constraint);
-        if (hgs.hdrgen)
+        if (hgs.hdrgen || hgs.fullDump)
         {
             hgs.tpltMember++;
             buf.writenl();
@@ -1454,6 +1457,17 @@ public:
     {
         buf.writestring(ti.name.toChars());
         tiargsToBuffer(ti);
+
+        if (hgs.fullDump)
+        {
+            buf.writenl();
+            if (ti.aliasdecl)
+            {
+                // the ti.aliasDecl is the instantiated body
+                // if we have it, print it.
+                ti.aliasdecl.accept(this);
+            }
+        }
     }
 
     override void visit(TemplateMixin tm)
@@ -1569,6 +1583,9 @@ public:
 
     override void visit(EnumDeclaration d)
     {
+        auto oldInEnumDecl = inEnumDecl;
+        scope(exit) inEnumDecl = oldInEnumDecl;
+        inEnumDecl = d;
         buf.writestring("enum ");
         if (d.ident)
         {
@@ -1752,7 +1769,7 @@ public:
         auto tf = cast(TypeFunction)f.type;
         typeToBuffer(tf, f.ident);
 
-        if (hgs.hdrgen == 1)
+        if (hgs.hdrgen)
         {
             // if the return type is missing (e.g. ref functions or auto)
             if (!tf.next || f.storage_class & STCauto)
@@ -2116,6 +2133,21 @@ public:
             case Tenum:
                 {
                     TypeEnum te = cast(TypeEnum)t;
+                    if (hgs.fullDump)
+                    {
+                        auto sym = te.sym;
+                        if (inEnumDecl != sym)  foreach(i;0 .. sym.members.dim)
+                        {
+                            EnumMember em = cast(EnumMember) (*sym.members)[i];
+                            if (em.value.toInteger == v)
+                            {
+                                buf.printf("%s.%s", sym.toChars(), em.ident.toChars());
+                                return ;
+                            }
+                        }
+                        //assert(0, "We could not find the EmumMember");// for some reason it won't append char* ~ e.toChars() ~ " in " ~ sym.toChars() );
+                    }
+
                     buf.printf("cast(%s)", te.sym.toChars());
                     t = te.sym.memtype;
                     goto L1;

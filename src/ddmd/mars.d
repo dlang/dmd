@@ -529,6 +529,8 @@ private int tryMain(size_t argc, const(char)** argv)
             }
             else if (strcmp(p + 1, "v") == 0)
                 global.params.verbose = true;
+            else if (strcmp(p + 1, "vcg-ast") == 0)
+                global.params.vcg_ast = true;
             else if (strcmp(p + 1, "vtls") == 0)
                 global.params.vtls = true;
             else if (strcmp(p + 1, "vcolumns") == 0)
@@ -1573,6 +1575,29 @@ Language changes listed by -transition=id:
         {
             Module m = modules[i];
             gendocfile(m);
+        }
+    }
+    if (global.params.vcg_ast)
+    {
+        import ddmd.hdrgen;
+        foreach (mod; modules)
+        {
+            auto buf = new OutBuffer;
+            buf.doindent = 1;
+            scope HdrGenState hgs;
+            hgs.fullDump = 1;
+            scope PrettyPrintVisitor ppv = new PrettyPrintVisitor(buf, &hgs);
+            mod.accept(ppv);
+
+            // write the output to $(filename).cg
+            auto modFilename = mod.srcfile.toChars();
+            auto modFilenameLength = strlen(modFilename);
+            auto cgFilename = cast(char*)allocmemory(modFilenameLength + 4);
+            memcpy(cgFilename, modFilename, modFilenameLength);
+            cgFilename[modFilenameLength .. modFilenameLength + 4] = ".cg\0";
+            auto cgFile = File(cgFilename);
+            cgFile.setbuffer(buf.data, buf.offset);
+            cgFile.write();
         }
     }
     if (!global.params.obj)
