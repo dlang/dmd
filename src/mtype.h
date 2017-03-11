@@ -330,6 +330,7 @@ public:
     virtual bool isZeroInit(Loc loc = Loc());                // if initializer is 0
     Identifier *getTypeInfoIdent();
     virtual void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+    void resolveExp(Expression *e, Type **pt, Expression **pe, Dsymbol **ps);
     virtual int hasWild() const;
     virtual Expression *toExpression();
     virtual bool hasPointers();
@@ -612,6 +613,7 @@ public:
     void purityLevel();
     bool hasLazyParameters();
     bool parameterEscapes(Parameter *p);
+    StorageClass parameterStorageClass(Parameter *p);
     Type *addStorageClass(StorageClass stc);
 
     /** For each active attribute (ref/const/nogc/etc) call fp with a void* for the
@@ -662,8 +664,7 @@ public:
 
     void resolveTupleIndex(Loc loc, Scope *sc, Dsymbol *s,
         Expression **pe, Type **pt, Dsymbol **ps, RootObject *oindex);
-    void resolveExprType(Loc loc, Scope *sc, Expression *e, size_t i,
-        Expression **pe, Type **pt);
+    Expression *toExpressionHelper(Expression *e, size_t i = 0);
     void resolveHelper(Loc loc, Scope *sc, Dsymbol *s, Dsymbol *scopesym,
         Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
 
@@ -901,6 +902,8 @@ public:
     static Parameters *arraySyntaxCopy(Parameters *parameters);
     static size_t dim(Parameters *parameters);
     static Parameter *getNth(Parameters *parameters, d_size_t nth, d_size_t *pn = NULL);
+    const char *toChars();
+    bool isCovariant(const Parameter *p) const;
 };
 
 bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);

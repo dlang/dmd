@@ -51,7 +51,9 @@ public:
     ~StringTable();
 
     StringValue *lookup(const char *s, d_size_t len);
+    StringValue *insert(const char *s, size_t len, void *ptrvalue);
     StringValue *update(const char *s, d_size_t len);
+    int apply(int (*fp)(StringValue *));
 };
 
 #endif
