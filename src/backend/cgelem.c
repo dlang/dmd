@@ -3511,7 +3511,7 @@ STATIC elem * eleq(elem *e, goal_t goal)
             e1->Eoper == OPvar &&
             e2->Eoper == OPvar &&
             goal == GOALnone &&
-            !tyfloating(e1->Ety) && !tyvector(e1->Ety)
+            !tyfloating(e1->Ety)
            )
         {
             tym_t ty = (REGSIZE == 8) ? TYllong : TYint;
