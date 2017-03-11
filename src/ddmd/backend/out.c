@@ -87,11 +87,10 @@ void outdata(symbol *s)
 #if HTOD
     return;
 #endif
-    targ_size_t datasize,a;
     int seg;
     targ_size_t offset;
     int flags;
-    tym_t ty;
+    const int codeseg = cseg;
 
     symbol_debug(s);
 #ifdef DEBUG
@@ -112,8 +111,8 @@ void outdata(symbol *s)
         goto Lret;                      // don't output any data
     }
 #endif
-    datasize = 0;
-    ty = s->ty();
+    targ_size_t datasize = 0;
+    tym_t ty = s->ty();
     if (ty & mTYexport && config.wflags & WFexpdef && s->Sclass != SCstatic)
         objmod->export_symbol(s,0);        // export data definition
     for (dt_t *dt = dtstart; dt; dt = dt->DTnext)
@@ -126,8 +125,8 @@ void outdata(symbol *s)
                 datasize += size(dt->Dty);      // reserve spot for pointer to string
 #if TARGET_SEGMENTED
                 if (tybasic(dt->Dty) == TYcptr)
-                {   dt->DTseg = cseg;
-                    dt->DTabytes += Offset(cseg);
+                {   dt->DTseg = codeseg;
+                    dt->DTabytes += Offset(codeseg);
                     goto L1;
                 }
                 else if (tybasic(dt->Dty) == TYfptr &&
@@ -174,10 +173,10 @@ void outdata(symbol *s)
                             break;
 
                         case mTYcs:
-                            s->Sseg = cseg;
-                            Offset(cseg) = _align(datasize,Offset(cseg));
-                            s->Soffset = Offset(cseg);
-                            Offset(cseg) += datasize;
+                            s->Sseg = codeseg;
+                            Offset(codeseg) = _align(datasize,Offset(codeseg));
+                            s->Soffset = Offset(codeseg);
+                            Offset(codeseg) += datasize;
                             s->Sfl = FLcsdata;
                             break;
 #endif
@@ -280,9 +279,9 @@ void outdata(symbol *s)
             break;
 
         case mTYcs:
-            seg = cseg;
-            Offset(cseg) = _align(datasize,Offset(cseg));
-            s->Soffset = Offset(cseg);
+            seg = codeseg;
+            Offset(codeseg) = _align(datasize,Offset(codeseg));
+            s->Soffset = Offset(codeseg);
             s->Sfl = FLcsdata;
             break;
 #endif
