@@ -120,10 +120,12 @@ static regm_t lastretregs,last2retregs,last3retregs,last4retregs,last5retregs;
  * Generate code for a function.
  * Note at the end of this routine mfuncreg will contain the mask
  * of registers not affected by the function. Some minor optimization
- * possibilities are here...
+ * possibilities are here.
+ * Params:
+ *      sfunc = function to generate code for
  */
 
-void codgen()
+void codgen(Symbol *sfunc)
 {
     bool flag;
 #if SCPP
@@ -133,11 +135,13 @@ void codgen()
     // in that basic block.
 
     //printf("codgen('%s')\n",funcsym_p->Sident);
+    assert(sfunc == funcsym_p);
+    assert(cseg == funcsym_p->Sseg);
 
     cgreg_init();
     csmax = 64;
     csextab = (struct CSE *) util_calloc(sizeof(struct CSE),csmax);
-    tym_t functy = tybasic(funcsym_p->ty());
+    tym_t functy = tybasic(sfunc->ty());
     cod3_initregs();
     allregs = ALLREGS;
     pass = PASSinitial;
@@ -172,20 +176,20 @@ tryagain:
 
     usednteh = 0;
 #if (MARS) && TARGET_WINDOS
-    if (funcsym_p->Sfunc->Fflags3 & Fjmonitor)
+    if (sfunc->Sfunc->Fflags3 & Fjmonitor)
         usednteh |= NTEHjmonitor;
 #else
     if (CPP)
     {
         if (config.exe == EX_WIN32 &&
-            (funcsym_p->Stype->Tflags & TFemptyexc || funcsym_p->Stype->Texcspec))
+            (sfunc->Stype->Tflags & TFemptyexc || sfunc->Stype->Texcspec))
             usednteh |= NTEHexcspec;
         except_reset();
     }
 #endif
 
     // Set on a trial basis, turning it off if anything might throw
-    funcsym_p->Sfunc->Fflags3 |= Fnothrow;
+    sfunc->Sfunc->Fflags3 |= Fnothrow;
 
     floatreg = FALSE;
 #if TX86
@@ -232,8 +236,8 @@ tryagain:
     if (config.flags4 & CFG4optimized)
     {
         if (nretblocks == 0 &&                  // if no return blocks in function
-            !(funcsym_p->ty() & mTYnaked))      // naked functions may have hidden veys of returning
-            funcsym_p->Sflags |= SFLexit;       // mark function as never returning
+            !(sfunc->ty() & mTYnaked))      // naked functions may have hidden veys of returning
+            sfunc->Sflags |= SFLexit;       // mark function as never returning
 
         assert(dfo);
 
@@ -291,7 +295,7 @@ tryagain:
         cstop--;
 
     if (configv.addlinenumbers)
-        objmod->linnum(funcsym_p->Sfunc->Fstartline,cseg,Offset(cseg));
+        objmod->linnum(sfunc->Sfunc->Fstartline,sfunc->Sseg,Offset(sfunc->Sseg));
 
     // Otherwise, jmp's to startblock will execute the prolog again
     assert(!startblock->Bpred);
@@ -300,8 +304,8 @@ tryagain:
     if (cprolog)
         pinholeopt(cprolog,NULL);       // optimize
 
-    funcoffset = Offset(cseg);
-    targ_size_t coffset = Offset(cseg);
+    funcoffset = Offset(sfunc->Sseg);
+    targ_size_t coffset = Offset(sfunc->Sseg);
 
     if (eecontext.EEelem)
         genEEcode();
@@ -311,7 +315,7 @@ tryagain:
         // We couldn't do this before because localsize was unknown
         switch (b->BC)
         {   case BCret:
-                if (configv.addlinenumbers && b->Bsrcpos.Slinnum && !(funcsym_p->ty() & mTYnaked))
+                if (configv.addlinenumbers && b->Bsrcpos.Slinnum && !(sfunc->ty() & mTYnaked))
                     cgen_linnum(&b->Bcode,b->Bsrcpos);
             case BCretexp:
                 epilog(b);
@@ -396,7 +400,7 @@ tryagain:
     // Emit the generated code
     if (eecontext.EEcompile == 1)
     {
-        codout(cseg,eecontext.EEcode);
+        codout(sfunc->Sseg,eecontext.EEcode);
         code_free(eecontext.EEcode);
 #if SCPP
         el_free(eecontext.EEelem);
@@ -416,18 +420,18 @@ tryagain:
 #ifdef DEBUG
             if (debugc)
             {   printf("Boffset = x%lx, Bsize = x%lx, Coffset = x%lx\n",
-                    (long)b->Boffset,(long)b->Bsize,(long)Offset(cseg));
+                    (long)b->Boffset,(long)b->Bsize,(long)Offset(sfunc->Sseg));
                 if (b->Bcode)
                     printf( "First opcode of block is: %0x\n", b->Bcode->Iop );
             }
 #endif
             if (b->Balign)
             {   unsigned u = b->Balign;
-                unsigned nalign = (u - (unsigned)Offset(cseg)) & (u - 1);
+                unsigned nalign = (u - (unsigned)Offset(sfunc->Sseg)) & (u - 1);
 
-                cod3_align_bytes(cseg, nalign);
+                cod3_align_bytes(sfunc->Sseg, nalign);
             }
-            assert(b->Boffset == Offset(cseg));
+            assert(b->Boffset == Offset(sfunc->Sseg));
 
 #if SCPP
             if (CPP &&
@@ -439,25 +443,25 @@ tryagain:
                 if (btry != b->Btry)
                 {
                     btry = b->Btry;
-                    except_pair_setoffset(b,Offset(cseg) - funcoffset);
+                    except_pair_setoffset(b,Offset(sfunc->Sseg) - funcoffset);
                 }
                 if (b->BC == BCtry)
                 {
                     btry = b;
-                    except_pair_setoffset(b,Offset(cseg) - funcoffset);
+                    except_pair_setoffset(b,Offset(sfunc->Sseg) - funcoffset);
                 }
             }
 #endif
-            codout(cseg,b->Bcode);   // output code
+            codout(sfunc->Sseg,b->Bcode);   // output code
     }
-    if (coffset != Offset(cseg))
+    if (coffset != Offset(sfunc->Sseg))
     {
 #ifdef DEBUG
-        printf("coffset = %ld, Offset(cseg) = %ld\n",(long)coffset,(long)Offset(cseg));
+        printf("coffset = %ld, Offset(sfunc->Sseg) = %ld\n",(long)coffset,(long)Offset(sfunc->Sseg));
 #endif
         assert(0);
     }
-    funcsym_p->Ssize = Offset(cseg) - funcoffset;    // size of function
+    sfunc->Ssize = Offset(sfunc->Sseg) - funcoffset;    // size of function
 
 #if NTEXCEPTIONS || MARS
 #if (SCPP && NTEXCEPTIONS)
@@ -467,7 +471,7 @@ tryagain:
 #endif
     {   assert(!(config.flags & CFGromable));
         //printf("framehandleroffset = x%x, coffset = x%x\n",framehandleroffset,coffset);
-        objmod->reftocodeseg(cseg,framehandleroffset,coffset);
+        objmod->reftocodeseg(sfunc->Sseg,framehandleroffset,coffset);
     }
 #endif
 
@@ -506,23 +510,23 @@ tryagain:
                 break;
         }
     }
-    if (configv.addlinenumbers && !(funcsym_p->ty() & mTYnaked))
+    if (configv.addlinenumbers && !(sfunc->ty() & mTYnaked))
         /* put line number at end of function on the
            start of the last instruction
          */
         /* Instead, try offset to cleanup code  */
-        objmod->linnum(funcsym_p->Sfunc->Fendline,cseg,funcoffset + retoffset);
+        objmod->linnum(sfunc->Sfunc->Fendline,sfunc->Sseg,funcoffset + retoffset);
 
 #if TARGET_WINDOS && MARS
     if (config.exe == EX_WIN64)
-        win64_pdata(funcsym_p);
+        win64_pdata(sfunc);
 #endif
 
 #if MARS
     if (usednteh & NTEH_try)
     {
         // Do this before code is emitted because we patch some instructions
-        nteh_gentables();
+        nteh_gentables(sfunc);
     }
     if (usednteh & EHtry &&             // saw BCtry or BC_try (test EHcleanup too?)
         config.ehmethod == EH_DM)
@@ -531,9 +535,9 @@ tryagain:
     }
     if (config.ehmethod == EH_DWARF)
     {
-        funcsym_p->Sfunc->Fstartblock = startblock;
-        dwarf_except_gentables(funcsym_p, startoffset, retoffset);
-        funcsym_p->Sfunc->Fstartblock = NULL;
+        sfunc->Sfunc->Fstartblock = startblock;
+        dwarf_except_gentables(sfunc, startoffset, retoffset);
+        sfunc->Sfunc->Fstartblock = NULL;
     }
 #endif
 
@@ -541,13 +545,13 @@ tryagain:
 #if NTEXCEPTIONS
     // Write out frame handler
     if (usednteh & NTEHcpp)
-        nteh_framehandler(except_gentables());
+        nteh_framehandler(sfunc, except_gentables());
     else
 #endif
     {
 #if NTEXCEPTIONS
         if (usednteh & NTEH_try)
-            nteh_gentables();
+            nteh_gentables(sfunc);
         else
 #endif
         {
@@ -567,7 +571,7 @@ tryagain:
 
     // Mask of regs saved
     // BUG: do interrupt functions save BP?
-    funcsym_p->Sregsaved = (functy == TYifunc) ? mBP : (mfuncreg | fregsaved);
+    sfunc->Sregsaved = (functy == TYifunc) ? mBP : (mfuncreg | fregsaved);
 
     util_free(csextab);
     csextab = NULL;

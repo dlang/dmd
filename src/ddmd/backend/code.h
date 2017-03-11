@@ -240,7 +240,7 @@ extern  char calledafunc;
 extern  code *(*cdxxx[])(elem *,regm_t *);
 
 void stackoffsets(int);
-void codgen (void );
+void codgen(Symbol *);
 #ifdef DEBUG
 unsigned findreg (regm_t regm , int line , const char *file );
 #define findreg(regm) findreg((regm),__LINE__,__FILE__)
@@ -531,10 +531,10 @@ code *nteh_prolog(void);
 code *nteh_epilog(void);
 void nteh_usevars(void);
 void nteh_filltables(void);
-void nteh_gentables(void);
+void nteh_gentables(Symbol *sfunc);
 code *nteh_setsp(int op);
 code *nteh_filter(block *b);
-void nteh_framehandler(symbol *);
+void nteh_framehandler(Symbol *, Symbol *);
 code *nteh_gensindex(int);
 #define GENSINDEXSIZE 7
 code *nteh_monitor_prolog(Symbol *shandle);
