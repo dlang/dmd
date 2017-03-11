@@ -1003,6 +1003,69 @@ Expression toExpression(const BCValue value, Type expressionType,
         return CTFEExp.cantexp;
     }
 
+    Expression createArray(BCValue arr, Type elmType)
+    {
+        ArrayLiteralExp arrayResult;
+        auto baseType = _sharedCtfeState.btv.toBCType(elmType);
+        auto elmLength = _sharedCtfeState.size(baseType);
+        auto arrayLength = heapPtr._heap[arr.heapAddr.addr];
+        auto arrayBase = heapPtr._heap[arr.heapAddr.addr + 4];
+        debug (ctfe)
+        {
+            import std.stdio;
+
+            writeln("value ", value.toString);
+        }
+        debug (ctfe)
+        {
+            import std.stdio;
+
+            foreach (idx; 0 .. heapPtr.heapSize)
+            {
+                // writefln("%d %x", idx, heapPtr._heap[idx]);
+            }
+        }
+
+        Expressions* elmExprs = new Expressions();
+
+        uint offset = 0;
+        debug (ctfe)
+        {
+            import std.stdio;
+
+            writeln("building Array of Length ", arrayLength);
+        }
+        /* import std.stdio;
+            writeln("HeapAddr: ", value.heapAddr.addr);
+            writeln((cast(char*)(heapPtr._heap.ptr + value.heapAddr.addr + 1))[0 .. 64]);
+            */
+
+        foreach (idx; 0 .. arrayLength)
+        {
+            /*    if (elmLength == 1)
+                {
+                    elmExprs.insert(idx,
+                        toExpression(imm32((heapPtr._heap[value.heapAddr.addr + offset] >> ((idx-1 % 4) * 8)) & 0xFF),
+                        tda.nextOf)
+                    );
+                    offset += !(idx % 4);
+                }
+                else */
+            {
+                elmExprs.insert(idx,
+                    toExpression(imm32(*(heapPtr._heap.ptr + arrayBase + offset)),
+                        elmType));
+                offset += elmLength;
+            }
+
+        }
+
+        arrayResult = new ArrayLiteralExp(Loc(), elmExprs);
+        arrayResult.ownedByCtfe = OWNEDctfe;
+
+        return arrayResult;
+    }
+
     if (expressionType.isString)
     {
         import ddmd.lexer : Loc;
@@ -1050,74 +1113,20 @@ Expression toExpression(const BCValue value, Type expressionType,
             (cast(StructLiteralExp) result).ownedByCtfe = OWNEDctfe;
         }
         break;
-    case Tarray:
-        {
-            auto tda = cast(TypeDArray) expressionType;
-
-            auto baseType = _sharedCtfeState.btv.toBCType(tda.nextOf);
-            auto elmLength = _sharedCtfeState.size(baseType);
-            auto arrayLength = heapPtr._heap[value.heapAddr.addr];
-            debug (ctfe)
-            {
-                import std.stdio;
-
-                writeln("value ", value.toString);
-            }
-            debug (ctfe)
-            {
-                import std.stdio;
-
-                foreach (idx; 0 .. heapPtr.heapSize)
-                {
-                    // writefln("%d %x", idx, heapPtr._heap[idx]);
-                }
-            }
-
-            Expressions* elmExprs = new Expressions();
-
-            uint offset = 4;
-            debug (ctfe)
-            {
-                import std.stdio;
-
-                writeln("building Array of Length ", arrayLength);
-            }
-            /* import std.stdio;
-            writeln("HeapAddr: ", value.heapAddr.addr);
-            writeln((cast(char*)(heapPtr._heap.ptr + value.heapAddr.addr + 1))[0 .. 64]);
-            */
-            foreach (idx; 0 .. arrayLength)
-            {
-            /*    if (elmLength == 1)
-                {
-                    elmExprs.insert(idx,
-                        toExpression(imm32((heapPtr._heap[value.heapAddr.addr + offset] >> ((idx-1 % 4) * 8)) & 0xFF),
-                        tda.nextOf)
-                    );
-                    offset += !(idx % 4);
-                }
-                else */
-                {
-                elmExprs.insert(idx,
-                    toExpression(imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset)),
-                    tda.nextOf));
-                offset += elmLength;
-                }
-
-            }
-
-            result = new ArrayLiteralExp(Loc(), elmExprs);
-            (cast(ArrayLiteralExp) result).ownedByCtfe = OWNEDctfe;
-        }
-        break;
     case Tsarray:
         {
             auto tsa = cast(TypeSArray) expressionType;
             assert(heapPtr._heap[value.heapAddr.addr] == evaluateUlong(tsa.dim),
                 "static arrayLength mismatch: " ~ to!string(heapPtr._heap[value.heapAddr.addr]) ~ " != " ~ to!string(
-                evaluateUlong(tsa.dim)));
-            goto default;
+                    evaluateUlong(tsa.dim)));
+            result = createArray(value, tsa.nextOf);
+        } break;
+    case Tarray:
+        {
+            auto tda = cast(TypeDArray) expressionType;
+            result = createArray(value, tda.nextOf);
         }
+        break;
     case Tbool:
         {
             //assert(value.imm32 == 0 || value.imm32 == 1, "Not a valid bool");
@@ -1361,6 +1370,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         ignoreVoid = false;
         noRetval = false;
 
+        lastConstVd = lastConstVd.init;
         unrolledLoopState = null;
         switchFixup = null;
         switchState = null;
@@ -1431,14 +1441,14 @@ extern (C++) final class BCV(BCGenT) : Visitor
         void Load32(BCValue _to, BCValue from)
         {
             Assert(from.i32, _sharedCtfeState.addError(Loc.init,
-                "Load Source may not be null"));
+                "Load Source may not be null - target: " ~ to!string(_to.stackAddr)));
             gen.Load32(_to, from);
         }
 
         void Store32(BCValue _to, BCValue value)
         {
             Assert(_to.i32, _sharedCtfeState.addError(Loc.init,
-                "Store Destination may not be null"));
+                "Store Destination may not be null - from: " ~ to!string(value.stackAddr)));
             gen.Store32(_to, value);
         }
 
@@ -1590,6 +1600,7 @@ public:
             {
                 return genExpr(ci);
             }
+
             return BCValue.init;
         }
         else
@@ -2462,19 +2473,21 @@ static if (is(BCGen))
             }
 
             // We add one to go over the length;
-            auto offset = genTemporary(BCType(BCTypeEnum.i32));
+            auto offset = genTemporary(i32Type);
 
             if (!isString)
             {
-                if (!arrayType)
+                if (!arrayType && !sliceType)
                 {
+                    bailout("no array type or sliceType for " ~ ie.toString);
                 }
                 int elmSize = sharedCtfeState.size(elmType);
                 assert(cast(int) elmSize > -1);
+                elmSize = align4(elmSize);
+
                 //elmSize = (elmSize / 4 > 0 ? elmSize / 4 : 1);
                 Mul3(offset, idx, imm32(elmSize));
-                Add3(offset, offset, bcFour);
-                Add3(ptr, offset, indexed.i32);
+                Add3(ptr, offset, getBase(indexed));
                 Load32(retval, ptr);
             }
             else
@@ -2664,11 +2677,86 @@ static if (is(BCGen))
         {
             // "If there is no lwr and upr bound forward"
             retval = genExpr(se.e1);
-
         }
         else
         {
-            bailout("We don't handle [xx .. yy] for now");
+            if (insideArgumentProcessing)
+            {
+               bailout("currently we cannot slice during argument processing");
+               return ;
+            }
+
+            auto origSlice = genExpr(se.e1);
+            bailout(!origSlice, "could not get slice expr in " ~ se.toString);
+            auto elmType = _sharedCtfeState.elementType(origSlice.type);
+            auto alignedElmSize = align4(_sharedCtfeState.size(elmType));
+
+            auto newSlice = genTemporary(i32Type);
+            Alloc(newSlice, imm32(uint.sizeof*2));
+
+            // TODO assert lwr <= upr
+
+            auto origLength = getLength(origSlice);
+            if (!origLength)
+            {
+                bailout("could not gen origLength in " ~ se.toString);
+                return ;
+            }
+            BCValue newLength;
+            BCValue lwr;
+            if (se.upr.op == TOKdollar && se.lwr.isConst && se.lwr.toInteger == 0/* || (se.upr.op == TOKarraylength && ... */)
+            {
+                //upr bound is dollar or slice.length and lwr is 0;
+                // so we don't have to do anthing
+                return ;
+            }
+            else
+            {
+                import std.stdio;
+
+                lwr = genExpr(se.lwr);
+                if (!lwr)
+                {
+                    bailout("could not gen lowerBound in " ~ se.toString);
+                    return ;
+                }
+
+                auto upr = genExpr(se.upr);
+                if (!upr)
+                {
+                    bailout("could not gen upperBound in " ~ se.toString);
+                    return ;
+                }
+                newLength = genTemporary(i32Type);
+                Sub3(newLength, upr.i32, lwr.i32);
+            }
+            Store32(newSlice, newLength.i32);
+
+            auto origBase = getBase(origSlice);
+            if (!origBase)
+            {
+                bailout("could not gen origBase in " ~ se.toString);
+                return ;
+            }
+
+            BCValue newBase;
+            if (!lwr)
+            {
+                // lower bound is zero so no need to recompute the base
+                newBase = origBase;
+            }
+            else
+            {
+                newBase = genTemporary(i32Type);
+                Mul3(newBase, lwr, imm32(alignedElmSize));
+                Add3(newBase, newBase, origBase);
+            }
+
+            BCValue newBasePtr = genTemporary(i32Type);
+            Add3(newBasePtr, newSlice, imm32(uint.sizeof));
+            Store32(newBasePtr, newBase.i32);
+
+            retval = newSlice;
         }
     }
 
@@ -2784,11 +2872,17 @@ static if (is(BCGen))
         _sharedCtfeState.arrayTypes[_sharedCtfeState.arrayCount++] = arrayType;
         retval = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.i32));
 
+        auto heapAdd = align4(_sharedCtfeState.size(elmType));
+
+        uint allocSize = uint(uint.sizeof*2) + //ptr and length
+            arrayLength * heapAdd;
+
         HeapAddr arrayAddr = HeapAddr(_sharedCtfeState.heap.heapSize);
+        bailout(_sharedCtfeState.heap.heapSize + allocSize > _sharedCtfeState.heap.heapMax, "heap overflow");
         _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = arrayLength;
         _sharedCtfeState.heap.heapSize += uint.sizeof;
-
-        auto heapAdd = align4(_sharedCtfeState.size(elmType));
+        _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = arrayAddr + uint(uint.sizeof*2); // point to the begining of the array;
+        _sharedCtfeState.heap.heapSize += uint.sizeof;
 
         foreach (elem; *ale.elements)
         {
@@ -2916,7 +3010,7 @@ static if (is(BCGen))
     override void visit(DollarExp de)
     {
         if (currentIndexed.type == BCTypeEnum.Array
-                || currentIndexed.type == BCTypeEnum.Array
+                || currentIndexed.type == BCTypeEnum.Slice
                 || currentIndexed.type == BCTypeEnum.String)
         {
             retval = getLength(currentIndexed);
@@ -3074,6 +3168,32 @@ static if (is(BCGen))
         else
         {
             bailout("cannot get length without a valid arr");
+            return BCValue.init;
+        }
+    }
+
+    BCValue getBase(BCValue arr)
+    {
+        if (arr)
+        {
+            BCValue baseAddr;
+            if (insideArgumentProcessing)
+            {
+                assert(arr.vType == BCValueType.Immediate);
+                baseAddr = imm32(_sharedCtfeState.heap._heap[arr.imm32 + uint.sizeof]);
+            }
+            else
+            {
+                baseAddr = genTemporary(i32Type);
+                BCValue baseAddrPtr = genTemporary(i32Type);
+                Add3(baseAddrPtr,  arr.i32, imm32(uint.sizeof));
+                Load32(baseAddr, baseAddrPtr);
+            }
+            return baseAddr;
+        }
+        else
+        {
+            bailout("cannot get baseAddr without a valid arr");
             return BCValue.init;
         }
     }
@@ -3834,6 +3954,7 @@ static if (is(BCGen))
             }
 
             auto length = getLength(indexed);
+            auto baseAddr = getBase(indexed);
             version (ctfe_noboundscheck)
             {
             }
@@ -3847,8 +3968,7 @@ static if (is(BCGen))
             auto elemType = toBCType(ie.e1.type.nextOf);
             auto elemSize = align4(_sharedCtfeState.size(elemType));
             Mul3(effectiveAddr, index, imm32(elemSize));
-            Add3(effectiveAddr, effectiveAddr, indexed.i32);
-            Add3(effectiveAddr, effectiveAddr, bcFour);
+            Add3(effectiveAddr, effectiveAddr, baseAddr);
             if (elemSize != 4)
             {
                 bailout("only 32 bit array loads are supported right now");
