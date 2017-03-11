@@ -541,10 +541,10 @@ symbol * Obj::sym_cdata(tym_t ty,char *p,int len)
     symbol *s;
 
     alignOffset(CDATA, tysize(ty));
-    s = symboldata(CDoffset, ty);
+    s = symboldata(Offset(CDATA), ty);
     s->Sseg = CDATA;
-    Obj::bytes(CDATA, CDoffset, len, p);
-    CDoffset += len;
+    Obj::bytes(CDATA, Offset(CDATA), len, p);
+    Offset(CDATA) += len;
 
     s->Sfl = FLdata; //FLextern;
     return s;
@@ -561,9 +561,9 @@ symbol * Obj::sym_cdata(tym_t ty,char *p,int len)
 int Obj::data_readonly(char *p, int len, int *pseg)
 {
 #if MARS
-    targ_size_t oldoff = CDoffset;
-    Obj::bytes(CDATA,CDoffset,len,p);
-    CDoffset += len;
+    targ_size_t oldoff = Offset(CDATA);
+    Obj::bytes(CDATA,Offset(CDATA),len,p);
+    Offset(CDATA) += len;
     *pseg = CDATA;
 #else
     targ_size_t oldoff = Offset(DATA);

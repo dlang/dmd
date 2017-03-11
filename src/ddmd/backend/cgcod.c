@@ -388,7 +388,7 @@ tryagain:
     if (config.flags & CFGromable)
         swoffset = coffset;
     else if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
-        swoffset = CDoffset;
+        swoffset = Offset(CDATA);
     else
         swoffset = Offset(DATA);
     swoffset = _align(0,swoffset);
