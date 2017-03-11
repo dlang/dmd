@@ -936,6 +936,12 @@ class Thread
      */
     __gshared const int PRIORITY_DEFAULT;
 
+     version(NetBSD)
+     {
+        //NetBSD does not support priority for default policy
+        // and it is not possible change policy without root access
+        int fakePriority = int.max;
+     }
 
     /**
      * Gets the scheduling priority for the associated thread.
@@ -951,6 +957,10 @@ class Thread
         version( Windows )
         {
             return GetThreadPriority( m_hndl );
+        }
+        else version(NetBSD)
+        {
+           return fakePriority==int.max? PRIORITY_DEFAULT : fakePriority;
         }
         else version( Posix )
         {
@@ -1015,6 +1025,10 @@ class Thread
 
             if (priocntl(idtype_t.P_LWPID, P_MYID, PC_SETPARMS, &pcparm) == -1)
                 throw new ThreadException( "Unable to set scheduling class" );
+        }
+        else version(NetBSD)
+        {
+           fakePriority = val;
         }
         else version( Posix )
         {
@@ -3127,6 +3141,7 @@ extern (C) @nogc nothrow
 {
     version (CRuntime_Glibc) int pthread_getattr_np(pthread_t thread, pthread_attr_t* attr);
     version (FreeBSD) int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
+    version (NetBSD) int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
     version (Solaris) int thr_stksegment(stack_t* stk);
     version (CRuntime_Bionic) int pthread_getattr_np(pthread_t thid, pthread_attr_t* attr);
 }
@@ -3177,6 +3192,17 @@ private void* getStackBottom() nothrow @nogc
         return addr + size;
     }
     else version (FreeBSD)
+    {
+        pthread_attr_t attr;
+        void* addr; size_t size;
+
+        pthread_attr_init(&attr);
+        pthread_attr_get_np(pthread_self(), &attr);
+        pthread_attr_getstack(&attr, &addr, &size);
+        pthread_attr_destroy(&attr);
+        return addr + size;
+    }
+    else version (NetBSD)
     {
         pthread_attr_t attr;
         void* addr; size_t size;
@@ -4397,6 +4423,7 @@ private:
         {
             version (Posix) import core.sys.posix.sys.mman; // mmap
             version (FreeBSD) import core.sys.freebsd.sys.mman : MAP_ANON;
+            version (NetBSD) import core.sys.netbsd.sys.mman : MAP_ANON;
             version (CRuntime_Glibc) import core.sys.linux.sys.mman : MAP_ANON;
             version (Darwin) import core.sys.darwin.sys.mman : MAP_ANON;
 
