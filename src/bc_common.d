@@ -407,7 +407,7 @@ struct BCValue
         // the check for Undef is a workaround
         // consider removing it when everything works correctly.
 
-        return this.vType != vType.Unknown && this.type != BCTypeEnum.Undef;
+        return this.vType != vType.Unknown && this.type != BCTypeEnum.Undef && this.vType != vType.VoidValue;
     }
 
     bool opEquals(const BCValue rhs) pure const
