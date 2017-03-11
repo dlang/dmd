@@ -34,32 +34,29 @@ struct Target
     extern (C++) static __gshared int classinfosize;        // size of 'ClassInfo'
     extern (C++) static __gshared ulong maxStaticDataSize;  // maximum size of static data
 
-    template FPTypeProperties(T)
+    extern (C++) struct FPTypeProperties(T)
     {
-        enum : real_t
+        static __gshared
         {
-            max = T.max,
-            min_normal = T.min_normal,
-            nan = T.nan,
-            snan = T.init,
-            infinity = T.infinity,
-            epsilon = T.epsilon
-        }
+            real_t max = T.max;
+            real_t min_normal = T.min_normal;
+            real_t nan = T.nan;
+            real_t snan = T.init;
+            real_t infinity = T.infinity;
+            real_t epsilon = T.epsilon;
 
-        enum : long
-        {
-            dig = T.dig,
-            mant_dig = T.mant_dig,
-            max_exp = T.max_exp,
-            min_exp = T.min_exp,
-            max_10_exp = T.max_10_exp,
-            min_10_exp = T.min_10_exp
+            d_int64 dig = T.dig;
+            d_int64 mant_dig = T.mant_dig;
+            d_int64 max_exp = T.max_exp;
+            d_int64 min_exp = T.min_exp;
+            d_int64 max_10_exp = T.max_10_exp;
+            d_int64 min_10_exp = T.min_10_exp;
         }
     }
 
     alias FloatProperties = FPTypeProperties!float;
     alias DoubleProperties = FPTypeProperties!double;
-    alias RealProperties = FPTypeProperties!real;
+    alias RealProperties = FPTypeProperties!real_t;
 
     extern (C++) static void _init()
     {
