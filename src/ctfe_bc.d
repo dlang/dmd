@@ -2707,7 +2707,7 @@ static if (is(BCGen))
             if (se.upr.op == TOKdollar && se.lwr.isConst && se.lwr.toInteger == 0/* || (se.upr.op == TOKarraylength && ... */)
             {
                 //upr bound is dollar or slice.length and lwr is 0;
-                // so we don't have to do anthing
+                //so we don't have to do anthing
                 return ;
             }
             else
@@ -4438,13 +4438,15 @@ static if (is(BCGen))
 
     override void visit(CallExp ce)
     {
+        if (!insideFunction)
+        {
+            bailout("We cannot have calls outside of functions");
+        }
         BCValue thisPtr;
         BCValue fnValue;
         FuncDeclaration fd;
 
         bool isFunctionPtr;
-       // bailout("Bailing on FunctionCall");
-       // return ;
 
         import ddmd.asttypename;
         if (ce.e1.op == TOKvar)

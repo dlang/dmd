@@ -296,6 +296,7 @@ struct BCGen
     ushort temporaryCount;
     uint functionId;
     void* fd;
+    bool insideFunction;
 
     RetainedCall[ubyte.max * 6] calls;
     uint callCount;
@@ -368,12 +369,15 @@ struct BCGen
     void beginFunction(uint fnId = 0, void* fd = null)
     {
         ip = BCAddr(4);
-
+        assert(!insideFunction);
+        insideFunction = true;
         functionId = fnId;
     }
 
     BCFunction endFunction()
     {
+        assert(insideFunction);
+        insideFunction = false;
         BCFunction result;
         result.type = BCFunctionTypeEnum.Bytecode;
         result.maxStackUsed = sp;
