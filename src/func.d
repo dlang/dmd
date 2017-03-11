@@ -1324,7 +1324,7 @@ extern (C++) class FuncDeclaration : Declaration
         }
         //printf("FuncDeclaration::semantic3('%s.%s', %p, sc = %p, loc = %s)\n", parent.toChars(), toChars(), this, sc, loc.toChars());
         //fflush(stdout);
-        //printf("storage class = x%x %x\n", sc.stc, storage_class);
+        //printf("storage class = x%llx %llx\n", sc.stc, storage_class);
         //{ static int x; if (++x == 2) *(char*)0=0; }
         //printf("\tlinkage = %d\n", sc.linkage);
 

@@ -49,6 +49,8 @@ extern (C++) final class AliasThis : Dsymbol
 
     override void semantic(Scope* sc)
     {
+        //printf("AliasThis::semantic(%s)\n", ident.toChars());
+
         Dsymbol p = sc.parent.pastMixin();
         AggregateDeclaration ad = p.isAggregateDeclaration();
         if (!ad)
@@ -94,6 +96,8 @@ extern (C++) final class AliasThis : Dsymbol
         }
 
         ad.aliasthis = s;
+
+        //printf("-AliasThis::semantic(%s) s = %s %s\n", ident.toChars(), s.kind(), s.toChars());
     }
 
     override const(char)* kind() const

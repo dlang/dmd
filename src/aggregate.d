@@ -32,8 +32,8 @@ import ddmd.visitor;
 
 enum Sizeok : int
 {
-    SIZEOKnone,             // size of aggregate is not yet able to compute
-    SIZEOKfwd,              // size of aggregate is ready to compute
+    SIZEOKnone,             // size of aggregate is not yet computed
+    SIZEOKfwd,              // size of aggregate is finalizing
     SIZEOKdone,             // size of aggregate is set correctly
 }
 
@@ -221,7 +221,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      * Runs semantic() for all instance field variables, but also
      * the field types can reamin yet not resolved forward references,
      * except direct recursive definitions.
-     * After the process sizeok is set to SIZEOKfwd.
      *
      * Returns:
      *      false if any errors occur.
@@ -232,6 +231,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             return true;
 
         //printf("determineFields() %s, fields.dim = %d\n", toChars(), fields.dim);
+        fields.setDim(0);
 
         extern (C++) static int func(Dsymbol s, void* param)
         {
@@ -241,17 +241,23 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             if (v.storage_class & STCmanifest)
                 return 0;
 
+            auto ad = cast(AggregateDeclaration)param;
+
             if (v._scope)
                 v.semantic(null);
+            // Note: Aggregate fields or size could have determined during v.semantic.
+            if (ad.sizeok != SIZEOKnone)
+                return 1;
+
             if (v.aliassym)
                 return 0;   // If this variable was really a tuple, skip it.
+            if (!v.isField())
+                return 0;   // not an instance field
 
-            if (v.storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCctfe | STCtemplateparameter))
-                return 0;
-            if (!v.isField() || v.semanticRun < PASSsemanticdone)
+            if (v.semanticRun < PASSsemanticdone && (!v.type || !v.type.deco))
                 return 1;   // unresolvable forward reference
 
-            auto ad = cast(AggregateDeclaration)param;
+            //printf("\t[%d] %s, type = %s %s\n", ad.fields.dim, v.toPrettyChars(), v.type.deco, v.type.toChars());
             ad.fields.push(v);
 
             if (v.storage_class & STCref)
@@ -270,23 +276,24 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             return 0;
         }
 
-        fields.setDim(0);
-
         for (size_t i = 0; i < members.dim; i++)
         {
             auto s = (*members)[i];
             if (s.apply(&func, cast(void*)this))
+            {
+                if (sizeok != SIZEOKnone)
+                    return true;
                 return false;
+            }
         }
-
-        if (sizeok != SIZEOKdone)
-            sizeok = SIZEOKfwd;
 
         return true;
     }
 
     /***************************************
      * Collect all instance fields, then determine instance size.
+     * After the process sizeok is set to SIZEOKdone.
+     *
      * Returns:
      *      false if failed to determine the size.
      */
@@ -294,11 +301,33 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     {
         //printf("AggregateDeclaration::determineSize() %s, sizeok = %d\n", toChars(), sizeok);
 
-        // The previous instance size finalizing had:
+        // Previous instance size finalizing had failed.
         if (type.ty == Terror)
-            return false;   // failed already
+            return false;
+
+        // Instance size is already calculated.
         if (sizeok == SIZEOKdone)
-            return true;    // succeeded
+            return true;
+
+        auto errorNoSize()
+        {
+            // There's unresolvable forward reference.
+            if (type != Type.terror)
+                error(loc, "no size because of forward reference");
+
+            // Don't cache errors from speculative semantic, might be resolvable later.
+            // https://issues.dlang.org/show_bug.cgi?id=16574
+            if (!global.gag)
+            {
+                type = Type.terror;
+                errors = true;
+            }
+            return false;
+        }
+
+        // Detect circular dependency while instance size finalizing.
+        if (sizeok == SIZEOKfwd)
+            return errorNoSize();
 
         if (!members)
         {
@@ -310,37 +339,29 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             semantic(null);
 
         // Determine the instance size of base class first.
-        if (auto cd = isClassDeclaration())
+        auto cd = isClassDeclaration();
+        if (cd && cd.baseClass)
         {
-            cd = cd.baseClass;
-            if (cd && !cd.determineSize(loc))
-                goto Lfail;
+            if (!cd.baseClass.determineSize(loc))
+                return false;
+            if (sizeok == SIZEOKdone)
+                return true;
         }
 
-        // Determine instance fields when sizeok == SIZEOKnone
+        //printf("+AggregateDeclaration::determineSize() %s, sizeok = %d\n", toChars(), sizeok);
+
+        // Determine instance fields
         if (!determineFields())
-            goto Lfail;
-        if (sizeok != SIZEOKdone)
-            finalizeSize();
-
-        // this aggregate type has:
-        if (type.ty == Terror)
-            return false;   // marked as invalid during the finalizing.
+            return errorNoSize();
+        // Note: Aggregate size could have determined during determineFields.
         if (sizeok == SIZEOKdone)
-            return true;    // succeeded to calculate instance size.
+            return true;
 
-    Lfail:
-        // There's unresolvable forward reference.
-        if (type != Type.terror)
-            error(loc, "no size because of forward reference");
-        // Don't cache errors from speculative semantic, might be resolvable later.
-        // https://issues.dlang.org/show_bug.cgi?id=16574
-        if (!global.gag)
-        {
-            type = Type.terror;
-            errors = true;
-        }
-        return false;
+        sizeok = SIZEOKfwd;
+
+        finalizeSize();
+
+        return sizeok == SIZEOKdone ? true : errorNoSize();
     }
 
     abstract void finalizeSize();
@@ -573,7 +594,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      */
     static void alignmember(structalign_t alignment, uint size, uint* poffset)
     {
-        //printf("alignment = %d, size = %d, offset = %d\n",alignment,size,offset);
+        //printf("alignment = %d, size = %d, offset = %d\n", alignment, size, *poffset);
         switch (alignment)
         {
         case cast(structalign_t)1:
@@ -721,10 +742,16 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             vthis.storage_class |= STCfield;
             vthis.parent = this;
             vthis.protection = Prot(PROTpublic);
+
+            if (sizeok != SIZEOKnone)
+            {
+                vthis.error("cannot be further field because it will change the determined %s size", toChars());
+            }
+
             vthis.alignment = t.alignment();
             vthis.semanticRun = PASSsemanticdone;
 
-            if (sizeok == SIZEOKfwd)
+            if (sizeok == SIZEOKnone)
                 fields.push(vthis);
         }
     }

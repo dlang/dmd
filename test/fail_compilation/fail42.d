@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail42.d(22): Error: struct fail42.Qwert no size because of forward reference
+fail_compilation/fail42.d(17): Error: variable fail42.Qwert.asdfg cannot be further field because it will change the determined Qwert size
 ---
 */
 
