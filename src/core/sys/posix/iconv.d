@@ -7,6 +7,7 @@
 
     iconv_open(3)   Allocates the descriptor for code conversion
     iconv(3)        Performs the conversion
+    iconvctl(3)     Control iconv behavior
     iconv_close(3)  Deallocates allocated resources
 
     Copyright:  Copyright (c) 2016 Sociomantic Labs. All rights reserved.
@@ -19,6 +20,15 @@
 *******************************************************************************/
 
 module core.sys.posix.iconv;
+
+enum
+{
+    ICONV_TRIVIALP            = 0,  /* int *argument */
+    ICONV_GET_TRANSLITERATE   = 1,  /* int *argument */
+    ICONV_SET_TRANSLITERATE   = 2,  /* const int *argument */
+    ICONV_GET_DISCARD_ILSEQ   = 3,  /* int *argument */
+    ICONV_SET_DISCARD_ILSEQ   = 4,  /* const int *argument */
+}
 
 version (Posix):
 extern (C):
@@ -39,6 +49,11 @@ size_t iconv (iconv_t cd, in char** inbuf,
          size_t* inbytesleft,
          char** outbuf,
          size_t* outbytesleft);
+
+/// iconvctl queries or adjusts the behavior of the iconv function,
+/// when invoked with the specified conversion descriptor,
+/// depending on the request value.
+int iconvctl (iconv_t cd, int request, void* argument);
 
 /// Free resources allocated for descriptor CD for code conversion.
 int iconv_close (iconv_t cd);
