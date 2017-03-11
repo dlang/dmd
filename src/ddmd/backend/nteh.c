@@ -103,7 +103,7 @@ void nteh_filltables()
  * Not called for NTEH C++ exceptions
  */
 
-void nteh_gentables()
+void nteh_gentables(Symbol *sfunc)
 {
     symbol *s = s_table;
     symbol_debug(s);
@@ -155,7 +155,7 @@ void nteh_gentables()
 
     outdata(s);                 // output the scope table
 #if MARS
-    nteh_framehandler(s);
+    nteh_framehandler(sfunc, s);
 #endif
     s_table = NULL;
 }
@@ -515,7 +515,7 @@ code *nteh_filter(block *b)
  * Generate C++ or D frame handler.
  */
 
-void nteh_framehandler(symbol *scopetable)
+void nteh_framehandler(Symbol *sfunc, Symbol *scopetable)
 {
     // Generate:
     //  MOV     EAX,&scope_table
@@ -534,7 +534,7 @@ void nteh_framehandler(symbol *scopetable)
 
         code *c = cdb.finish();
         pinholeopt(c,NULL);
-        codout(cseg,c);
+        codout(sfunc->Sseg,c);
         code_free(c);
     }
 }

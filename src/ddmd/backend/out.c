@@ -1286,7 +1286,7 @@ STATIC void writefunc2(symbol *sfunc)
 #if SCPP
     if (!errcnt)
 #endif
-        codgen();                               // generate code
+        codgen(sfunc);                  // generate code
     //dbg_printf("after codgen for %s Coffset %x\n",sfunc->Sident,Offset(cseg));
     blocklist_free(&startblock);
 #if SCPP
