@@ -41,10 +41,8 @@ STATIC void pinholeopt_unittest();
 
 #if ELFOBJ || MACHOBJ
 #define JMPSEG  CDATA
-#define JMPOFF  Offset(CDATA)
 #else
 #define JMPSEG  DATA
-#define JMPOFF  Offset(DATA)
 #endif
 
 //#define JMPJMPTABLE   TARGET_WINDOS
@@ -1742,7 +1740,7 @@ void outjmptab(block *b)
     /* Segment and offset into which the jump table will be emitted
      */
     int jmpseg = (config.flags & CFGromable) ? cseg : JMPSEG;
-    targ_size_t *poffset = (config.flags & CFGromable) ? &Offset(cseg) : &JMPOFF;
+    targ_size_t *poffset = &Offset(jmpseg);
 
     /* Align start of jump table
      */
@@ -1836,15 +1834,15 @@ void outswitab(block *b)
   ncases = *p++;                        /* number of cases              */
 
   if (config.flags & CFGromable)
-  {     poffset = &Offset(cseg);
+  {
         assert(cseg == CODE);
         seg = cseg;
   }
   else
   {
-        poffset = &JMPOFF;
         seg = JMPSEG;
   }
+  poffset = &Offset(seg);
   offset = *poffset;
   alignbytes = _align(0,*poffset) - *poffset;
   objmod->lidata(seg,*poffset,alignbytes);  /* any alignment bytes necessary */
