@@ -1201,7 +1201,7 @@ extern (C++) final class BCTypeVisitor : Visitor
         case ENUMTY.Tint64:
             return BCType(BCTypeEnum.i64);
         case ENUMTY.Tfloat32:
-            //return BCType(BCTypeEnum.f324);
+            //return BCType(BCTypeEnum.f32);
         case ENUMTY.Tfloat64:
             //return BCType(BCTypeEnum.f64);
         case ENUMTY.Tfloat80:
@@ -1222,7 +1222,8 @@ extern (C++) final class BCTypeVisitor : Visitor
         assert(!t.isTypeBasic(), "Is a basicType: " ~ (cast(ENUMTY) t.ty).to!string());
         if (t.isString)
         {
-            return BCType(BCTypeEnum.String);
+            return BCType.init; // for now we want to bail on every string!
+            //return BCType(BCTypeEnum.String);
         }
         else if (t.ty == Tstruct)
         {
