@@ -1119,7 +1119,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             assert(heapPtr._heap[value.heapAddr.addr] == evaluateUlong(tsa.dim),
                 "static arrayLength mismatch: " ~ to!string(heapPtr._heap[value.heapAddr.addr]) ~ " != " ~ to!string(
                     evaluateUlong(tsa.dim)));
-            result = createArray(value, tsa.nextOf);
+           // result = createArray(value, tsa.nextOf);
         } break;
     case Tarray:
         {
