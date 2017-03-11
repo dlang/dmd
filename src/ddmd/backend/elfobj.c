@@ -626,19 +626,19 @@ symbol *Obj::sym_cdata(tym_t ty,char *p,int len)
     if (OPT_IS_SET(OPTfwritable_strings))
     {
         alignOffset(DATA, tysize(ty));
-        s = symboldata(Doffset, ty);
+        s = symboldata(Offset(DATA), ty);
         SegData[DATA]->SDbuf->write(p,len);
         s->Sseg = DATA;
-        s->Soffset = Doffset;   // Remember its offset into DATA section
-        Doffset += len;
+        s->Soffset = Offset(DATA);   // Remember its offset into DATA section
+        Offset(DATA) += len;
     }
     else
 #endif
     {
-        //printf("Obj::sym_cdata(ty = %x, p = %x, len = %d, CDoffset = %x)\n", ty, p, len, CDoffset);
+        //printf("Obj::sym_cdata(ty = %x, p = %x, len = %d, Offset(CDATA) = %x)\n", ty, p, len, Offset(CDATA));
         alignOffset(CDATA, tysize(ty));
-        s = symboldata(CDoffset, ty);
-        Obj::bytes(CDATA, CDoffset, len, p);
+        s = symboldata(Offset(CDATA), ty);
+        Obj::bytes(CDATA, Offset(CDATA), len, p);
         s->Sseg = CDATA;
     }
 
@@ -656,10 +656,10 @@ symbol *Obj::sym_cdata(tym_t ty,char *p,int len)
 
 int Obj::data_readonly(char *p, int len, int *pseg)
 {
-    int oldoff = CDoffset;
+    int oldoff = Offset(CDATA);
     SegData[CDATA]->SDbuf->reserve(len);
     SegData[CDATA]->SDbuf->writen(p,len);
-    CDoffset += len;
+    Offset(CDATA) += len;
     *pseg = CDATA;
     return oldoff;
 }

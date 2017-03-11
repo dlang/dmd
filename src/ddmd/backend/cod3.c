@@ -41,10 +41,10 @@ STATIC void pinholeopt_unittest();
 
 #if ELFOBJ || MACHOBJ
 #define JMPSEG  CDATA
-#define JMPOFF  CDoffset
+#define JMPOFF  Offset(CDATA)
 #else
 #define JMPSEG  DATA
-#define JMPOFF  Doffset
+#define JMPOFF  Offset(DATA)
 #endif
 
 //#define JMPJMPTABLE   TARGET_WINDOS
@@ -6047,12 +6047,14 @@ struct MiniCodeBuf
 {
     size_t index;
     size_t offset;
+    int seg;
     char bytes[100];
 
-    MiniCodeBuf(size_t offset)
+    MiniCodeBuf(int seg)
     {
         index = 0;
-        this->offset = offset;
+        this->offset = Offset(seg);
+        this->seg = seg;
     }
 
     void flushx()
@@ -6061,7 +6063,7 @@ struct MiniCodeBuf
     #ifdef DEBUG
         assert(index < sizeof(bytes));
     #endif
-        offset += objmod->bytes(cseg, offset, index, bytes);
+        offset += objmod->bytes(seg, offset, index, bytes);
         index = 0;
     }
 
@@ -6081,7 +6083,7 @@ static void do16bit(MiniCodeBuf *pbuf, enum FL,union evc *,int);
 static void do32bit(MiniCodeBuf *pbuf, enum FL,union evc *,int,int = 0);
 static void do64bit(MiniCodeBuf *pbuf, enum FL,union evc *,int);
 
-unsigned codout(code *c)
+unsigned codout(int seg, code *c)
 { unsigned op;
   unsigned char rm,mod;
   unsigned char ins;
@@ -6090,10 +6092,10 @@ unsigned codout(code *c)
   symbol *s;
 
 #ifdef DEBUG
-  if (debugc) printf("codout(%p), Coffset = x%llx\n",c,(unsigned long long)Offset(cseg));
+  if (debugc) printf("codout(%p), Coffset = x%llx\n",c,(unsigned long long)Offset(seg));
 #endif
 
-  MiniCodeBuf ggen(Offset(cseg));
+  MiniCodeBuf ggen(seg);
 
   for (; c; c = code_next(c))
   {
@@ -6111,7 +6113,7 @@ unsigned codout(code *c)
                 switch (op & 0xFFFF00)
                 {   case ESClinnum:
                         /* put out line number stuff    */
-                        objmod->linnum(c->IEV1.Vsrcpos,cseg,ggen.getOffset());
+                        objmod->linnum(c->IEV1.Vsrcpos,seg,ggen.getOffset());
                         break;
 #if SCPP
 #if 1
@@ -6166,7 +6168,7 @@ unsigned codout(code *c)
                 }
                 else
                 {
-                    ggen.offset += objmod->bytes(cseg,ggen.offset,c->IEV1.as.len,c->IEV1.as.bytes);
+                    ggen.offset += objmod->bytes(seg,ggen.offset,c->IEV1.as.len,c->IEV1.as.bytes);
                 }
 #ifdef DEBUG
                 assert(calccodsize(c) == c->IEV1.as.len);
@@ -6467,14 +6469,14 @@ unsigned codout(code *c)
                             ggen.flush();
                             if (c->IFL2 == FLdatseg)
                             {
-                                objmod->reftodatseg(cseg,ggen.offset,c->IEVpointer2,
+                                objmod->reftodatseg(seg,ggen.offset,c->IEVpointer2,
                                         c->IEVseg2,flags);
                                 ggen.offset += 4;
                             }
                             else
                             {
                                 s = c->IEVsym2;
-                                ggen.offset += objmod->reftoident(cseg,ggen.offset,s,0,flags);
+                                ggen.offset += objmod->reftoident(seg,ggen.offset,s,0,flags);
                             }
                             break;
 
@@ -6522,8 +6524,8 @@ unsigned codout(code *c)
 #endif
     }
     ggen.flush();
-    Offset(cseg) = ggen.offset;
-    //printf("-codout(), Coffset = x%x\n", Offset(cseg));
+    Offset(seg) = ggen.offset;
+    //printf("-codout(), Coffset = x%x\n", Offset(seg));
     return ggen.offset;                      /* ending address               */
 }
 
@@ -6543,7 +6545,7 @@ static void do64bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags)
             return;
         case FLdatseg:
             pbuf->flush();
-            objmod->reftodatseg(cseg,pbuf->offset,uev->_EP.Vpointer,uev->_EP.Vseg,CFoffset64 | flags);
+            objmod->reftodatseg(pbuf->seg,pbuf->offset,uev->_EP.Vpointer,uev->_EP.Vseg,CFoffset64 | flags);
             break;
         case FLframehandler:
             framehandleroffset = pbuf->getOffset();
@@ -6553,9 +6555,9 @@ static void do64bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags)
             pbuf->flush();
             ad = uev->Vswitch->Btableoffset;
             if (config.flags & CFGromable)
-                    objmod->reftocodeseg(cseg,pbuf->offset,ad);
+                    objmod->reftocodeseg(pbuf->seg,pbuf->offset,ad);
             else
-                    objmod->reftodatseg(cseg,pbuf->offset,ad,JMPSEG,CFoff);
+                    objmod->reftodatseg(pbuf->seg,pbuf->offset,ad,JMPSEG,CFoff);
             break;
 #if TARGET_SEGMENTED
         case FLcsdata:
@@ -6573,7 +6575,7 @@ static void do64bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags)
 #endif
             pbuf->flush();
             s = uev->sp.Vsym;               /* symbol pointer               */
-            objmod->reftoident(cseg,pbuf->offset,s,uev->sp.Voffset,CFoffset64 | flags);
+            objmod->reftoident(pbuf->seg,pbuf->offset,s,uev->sp.Voffset,CFoffset64 | flags);
             break;
 
 #if TARGET_OSX
@@ -6587,7 +6589,7 @@ static void do64bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags)
             s = uev->sp.Vsym;               /* symbol pointer               */
             assert(TARGET_SEGMENTED || !tyfarfunc(s->ty()));
             pbuf->flush();
-            objmod->reftoident(cseg,pbuf->offset,s,0,CFoffset64 | flags);
+            objmod->reftoident(pbuf->seg,pbuf->offset,s,0,CFoffset64 | flags);
             break;
 
         case FLblock:                       /* displacement to another block */
@@ -6599,7 +6601,7 @@ static void do64bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags)
             pbuf->flush();
             assert(uev->Vblock);
             //printf("FLblockoff: offset = %x, Boffset = %x, funcoffset = %x\n", pbuf->offset, uev->Vblock->Boffset, funcoffset);
-            objmod->reftocodeseg(cseg,pbuf->offset,uev->Vblock->Boffset);
+            objmod->reftocodeseg(pbuf->seg,pbuf->offset,uev->Vblock->Boffset);
             break;
 
         default:
@@ -6626,7 +6628,7 @@ static void do32bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags, int 
         return;
     case FLdatseg:
         pbuf->flush();
-        objmod->reftodatseg(cseg,pbuf->offset,uev->_EP.Vpointer,uev->_EP.Vseg,flags);
+        objmod->reftodatseg(pbuf->seg,pbuf->offset,uev->_EP.Vpointer,uev->_EP.Vseg,flags);
         break;
     case FLframehandler:
         framehandleroffset = pbuf->getOffset();
@@ -6653,19 +6655,19 @@ static void do32bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags, int 
                 goto L1;
             }
             else
-                objmod->reftocodeseg(cseg,pbuf->offset,ad);
+                objmod->reftocodeseg(pbuf->seg,pbuf->offset,ad);
 #else
-            objmod->reftocodeseg(cseg,pbuf->offset,ad);
+            objmod->reftocodeseg(pbuf->seg,pbuf->offset,ad);
 #endif
         }
         else
-                objmod->reftodatseg(cseg,pbuf->offset,ad,JMPSEG,CFoff);
+                objmod->reftodatseg(pbuf->seg,pbuf->offset,ad,JMPSEG,CFoff);
         break;
     case FLcode:
         assert(JMPJMPTABLE);            // the only use case
         pbuf->flush();
         ad = * (targ_size_t *) uev + pbuf->getOffset();
-        objmod->reftocodeseg(cseg,pbuf->offset,ad);
+        objmod->reftocodeseg(pbuf->seg,pbuf->offset,ad);
         break;
 
     case FLcsdata:
@@ -6692,11 +6694,11 @@ static void do32bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags, int 
             assert(val >= -5 && val <= 0);
             flags |= (-val & 7) << 24;          // set CFREL value
             assert(CFREL == (7 << 24));
-            objmod->reftoident(cseg,pbuf->offset,s,uev->sp.Voffset,flags);
+            objmod->reftoident(pbuf->seg,pbuf->offset,s,uev->sp.Voffset,flags);
         }
         else
 #endif
-            objmod->reftoident(cseg,pbuf->offset,s,uev->sp.Voffset + val,flags);
+            objmod->reftoident(pbuf->seg,pbuf->offset,s,uev->sp.Voffset + val,flags);
         break;
 
 #if TARGET_OSX
@@ -6712,9 +6714,9 @@ static void do32bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags, int 
         if (tyfarfunc(s->ty()))
         {       /* Large code references are always absolute    */
                 pbuf->flush();
-                pbuf->offset += objmod->reftoident(cseg,pbuf->offset,s,0,flags) - 4;
+                pbuf->offset += objmod->reftoident(pbuf->seg,pbuf->offset,s,0,flags) - 4;
         }
-        else if (s->Sseg == cseg &&
+        else if (s->Sseg == pbuf->seg &&
                  (s->Sclass == SCstatic || s->Sclass == SCglobal) &&
                  s->Sxtrnnum == 0 && flags & CFselfrel)
         {       /* if we know it's relative address     */
@@ -6726,7 +6728,7 @@ static void do32bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags, int 
         {
                 assert(TARGET_SEGMENTED || !tyfarfunc(s->ty()));
                 pbuf->flush();
-                objmod->reftoident(cseg,pbuf->offset,s,val,flags);
+                objmod->reftoident(pbuf->seg,pbuf->offset,s,val,flags);
         }
         break;
 
@@ -6739,7 +6741,7 @@ static void do32bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags, int 
         pbuf->flush();
         assert(uev->Vblock);
         //printf("FLblockoff: offset = %x, Boffset = %x, funcoffset = %x\n", pbuf->offset, uev->Vblock->Boffset, funcoffset);
-        objmod->reftocodeseg(cseg,pbuf->offset,uev->Vblock->Boffset);
+        objmod->reftocodeseg(pbuf->seg,pbuf->offset,uev->Vblock->Boffset);
         break;
 
     default:
@@ -6762,15 +6764,15 @@ static void do16bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags)
         return;
     case FLdatseg:
         pbuf->flush();
-        objmod->reftodatseg(cseg,pbuf->offset,uev->_EP.Vpointer,uev->_EP.Vseg,flags);
+        objmod->reftodatseg(pbuf->seg,pbuf->offset,uev->_EP.Vpointer,uev->_EP.Vseg,flags);
         break;
     case FLswitch:
         pbuf->flush();
         ad = uev->Vswitch->Btableoffset;
         if (config.flags & CFGromable)
-                objmod->reftocodeseg(cseg,pbuf->offset,ad);
+                objmod->reftocodeseg(pbuf->seg,pbuf->offset,ad);
         else
-                objmod->reftodatseg(cseg,pbuf->offset,ad,JMPSEG,CFoff);
+                objmod->reftodatseg(pbuf->seg,pbuf->offset,ad,JMPSEG,CFoff);
         break;
 #if TARGET_SEGMENTED
     case FLcsdata:
@@ -6781,7 +6783,7 @@ static void do16bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags)
         assert(SIXTEENBIT || TARGET_SEGMENTED);
         pbuf->flush();
         s = uev->sp.Vsym;               /* symbol pointer               */
-        objmod->reftoident(cseg,pbuf->offset,s,uev->sp.Voffset,flags);
+        objmod->reftoident(pbuf->seg,pbuf->offset,s,uev->sp.Voffset,flags);
         break;
     case FLfunc:                        /* function call                */
         assert(SIXTEENBIT || TARGET_SEGMENTED);
@@ -6789,9 +6791,9 @@ static void do16bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags)
         if (tyfarfunc(s->ty()))
         {       /* Large code references are always absolute    */
                 pbuf->flush();
-                pbuf->offset += objmod->reftoident(cseg,pbuf->offset,s,0,flags) - 2;
+                pbuf->offset += objmod->reftoident(pbuf->seg,pbuf->offset,s,0,flags) - 2;
         }
-        else if (s->Sseg == cseg &&
+        else if (s->Sseg == pbuf->seg &&
                  (s->Sclass == SCstatic || s->Sclass == SCglobal) &&
                  s->Sxtrnnum == 0 && flags & CFselfrel)
         {       /* if we know it's relative address     */
@@ -6800,7 +6802,7 @@ static void do16bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags)
         }
         else
         {       pbuf->flush();
-                objmod->reftoident(cseg,pbuf->offset,s,0,flags);
+                objmod->reftoident(pbuf->seg,pbuf->offset,s,0,flags);
         }
         break;
     case FLblock:                       /* displacement to another block */
@@ -6817,7 +6819,7 @@ static void do16bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags)
 
     case FLblockoff:
         pbuf->flush();
-        objmod->reftocodeseg(cseg,pbuf->offset,uev->Vblock->Boffset);
+        objmod->reftocodeseg(pbuf->seg,pbuf->offset,uev->Vblock->Boffset);
         break;
 
     default:

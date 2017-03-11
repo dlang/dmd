@@ -258,12 +258,12 @@ static IDXSTR elf_addmangled(Symbol *s)
 
 symbol * MsCoffObj::sym_cdata(tym_t ty,char *p,int len)
 {
-    //printf("MsCoffObj::sym_cdata(ty = %x, p = %x, len = %d, CDoffset = %x)\n", ty, p, len, CDoffset);
+    //printf("MsCoffObj::sym_cdata(ty = %x, p = %x, len = %d, Offset(CDATA) = %x)\n", ty, p, len, Offset(CDATA));
     alignOffset(CDATA, tysize(ty));
-    symbol *s = symboldata(CDoffset, ty);
+    symbol *s = symboldata(Offset(CDATA), ty);
     s->Sseg = CDATA;
-    MsCoffObj::pubdef(CDATA, s, CDoffset);
-    MsCoffObj::bytes(CDATA, CDoffset, len, p);
+    MsCoffObj::pubdef(CDATA, s, Offset(CDATA));
+    MsCoffObj::bytes(CDATA, Offset(CDATA), len, p);
 
     s->Sfl = FLdata; //FLextern;
     return s;
@@ -278,16 +278,16 @@ int MsCoffObj::data_readonly(char *p, int len, segidx_t *pseg)
 {
     int oldoff;
 #if SCPP
-    oldoff = Doffset;
+    oldoff = Offset(DATA);
     SegData[DATA]->SDbuf->reserve(len);
     SegData[DATA]->SDbuf->writen(p,len);
-    Doffset += len;
+    Offset(DATA) += len;
     *pseg = DATA;
 #else
-    oldoff = CDoffset;
+    oldoff = Offset(CDATA);
     SegData[CDATA]->SDbuf->reserve(len);
     SegData[CDATA]->SDbuf->writen(p,len);
-    CDoffset += len;
+    Offset(CDATA) += len;
     *pseg = CDATA;
 #endif
     return oldoff;

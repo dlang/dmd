@@ -395,7 +395,7 @@ void jmpaddr (code *c );
 int code_match(code *c1,code *c2);
 unsigned calcblksize (code *c);
 unsigned calccodsize(code *c);
-unsigned codout (code *c );
+unsigned codout(int seg, code *c);
 size_t addtofixlist (symbol *s , targ_size_t soffset , int seg , targ_size_t val , int flags );
 void searchfixlist (symbol *s );
 void outfixlist (void );
@@ -655,7 +655,6 @@ extern seg_data **SegData;
 #define Offset(seg) SegData[seg]->SDoffset
 #define Doffset Offset(DATA)
 #define CDoffset Offset(CDATA)
-#define Coffset Offset(cseg)
 
 /**************************************************/
 

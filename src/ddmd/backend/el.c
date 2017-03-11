@@ -1767,9 +1767,9 @@ elem * el_ptr(symbol *s)
          * code in that data variable, and return the elem for
          * that data variable.
          */
-        symbol *sd = symboldata(Doffset, TYnptr);
+        symbol *sd = symboldata(Offset(DATA), TYnptr);
         sd->Sseg = DATA;
-        Doffset += Obj::reftoident(DATA, Doffset, s, 0, CFoff);
+        Offset(DATA) += Obj::reftoident(DATA, Offset(DATA), s, 0, CFoff);
         e = el_picvar(sd);
         return e;
     }
@@ -2125,7 +2125,7 @@ elem *el_convstring(elem *e)
     // in the DATA segment
 
     if (eecontext.EEcompile)
-    {   s = symboldata(Doffset,e->Ety);
+    {   s = symboldata(Offset(DATA),e->Ety);
         s->Sseg = DATA;
     }
     else

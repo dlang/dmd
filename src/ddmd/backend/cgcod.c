@@ -388,15 +388,15 @@ tryagain:
     if (config.flags & CFGromable)
         swoffset = coffset;
     else if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
-        swoffset = CDoffset;
+        swoffset = Offset(CDATA);
     else
-        swoffset = Doffset;
+        swoffset = Offset(DATA);
     swoffset = _align(0,swoffset);
 
     // Emit the generated code
     if (eecontext.EEcompile == 1)
     {
-        codout(eecontext.EEcode);
+        codout(cseg,eecontext.EEcode);
         code_free(eecontext.EEcode);
 #if SCPP
         el_free(eecontext.EEelem);
@@ -448,7 +448,7 @@ tryagain:
                 }
             }
 #endif
-            codout(b->Bcode);   // output code
+            codout(cseg,b->Bcode);   // output code
     }
     if (coffset != Offset(cseg))
     {
