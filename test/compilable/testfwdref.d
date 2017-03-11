@@ -714,3 +714,52 @@ struct Stmt15726b(T)
 }
 
 Con15726b!int x15726b;
+
+/***************************************************/
+// 16013
+
+struct Impl16013a
+{
+    S16013a _payload;
+}
+
+struct S16013a
+{
+    RC16013a s;
+}
+
+struct RC16013a
+{
+    void opAssign(RC16013a rhs)
+    {}
+    void opAssign(S16013a rhs)
+    {}
+
+    S16013a rcPayload()
+    {
+        return S16013a.init;
+    }
+    alias rcPayload this;
+}
+
+static assert(Impl16013a.sizeof == S16013a.sizeof);
+static assert(S16013a.sizeof == RC16013a.sizeof);
+static assert(RC16013a.sizeof == 1);
+
+// ----
+
+S16013b s16013b;
+
+struct RC16013b
+{
+    void opAssign(RC16013b rhs) {}
+    void opAssign(S16013b rhs) {}
+
+    S16013b refCountedPayload() { return S16013b.init; }
+    alias refCountedPayload this;
+}
+
+struct S16013b
+{
+    RC16013b s;
+}
