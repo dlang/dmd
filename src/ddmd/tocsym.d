@@ -520,7 +520,7 @@ Symbol *toThunkSymbol(FuncDeclaration fd, int offset)
     auto sthunk = symbol_name(name.ptr,SCstatic,fd.csym.Stype);
     sthunk.Sflags |= SFLnodebug | SFLartifical;
     sthunk.Sflags |= SFLimplem;
-    cod3_thunk(sthunk, fd.csym, 0, TYnptr, -offset, -1, 0);
+    outthunk(sthunk, fd.csym, 0, TYnptr, -offset, -1, 0);
     return sthunk;
 }
 
