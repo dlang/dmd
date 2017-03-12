@@ -17,7 +17,7 @@ int main(string[] args)
     string[] newArgs = [cl];
     newArgs ~= "/nologo";
     newArgs ~= `/Ivcbuild`;
-    newArgs ~= `/Iroot`;
+    newArgs ~= `/Iddmd\root`;
     newArgs ~= `/FIwarnings.h`;
     bool compilingOnly;
 
@@ -40,6 +40,9 @@ int main(string[] args)
             case "-g": // "generate debug info"
             case "-gl": // "debug line numbers only"
                 newArgs ~= "/Zi";
+                break;
+            case "-o": // "optimize for program speed"
+                newArgs ~= "/O2";
                 break;
             case "-wx": // "treat warnings as errors"
                 newArgs ~= "/WX";

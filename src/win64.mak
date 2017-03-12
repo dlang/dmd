@@ -14,10 +14,12 @@ MODEL=64
 	$(HOST_DC) -of$@ $<
 
 D=ddmd
-OBJ_MSVC=$D\strtold.obj $D\longdouble.obj $D\ldfpu.obj
-DEPENDENCIES=$D\vcbuild\msvc-dmc.exe $D\vcbuild\msvc-lib.exe
+GEN = ..\generated
+G = $(GEN)\$(OS)$(MODEL)
+OBJ_MSVC=$G/strtold.obj $G\longdouble.obj $G\ldfpu.obj
+DEPENDENCIES=vcbuild\msvc-dmc.exe vcbuild\msvc-lib.exe
 
-MAKE_WIN32=$(MAKE) -f win32.mak MAKE="$(MAKE)" MODEL=$(MODEL) HOST_DC=$(HOST_DC) OBJ_MSVC="$(OBJ_MSVC)" CC=vcbuild\msvc-dmc LIB=vcbuild\msvc-lib
+MAKE_WIN32=$(MAKE) -f win32.mak MAKE="$(MAKE)" MODEL=$(MODEL) HOST_DC=$(HOST_DC) GEN="$(GEN)" G="$G" OBJ_MSVC="$(OBJ_MSVC)" CC=vcbuild\msvc-dmc LIB=vcbuild\msvc-lib
 
 ################################## Targets ###################################
 
