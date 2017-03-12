@@ -161,7 +161,7 @@ FRONT_SRCS=$D/access.d $D/aggregate.d $D/aliasthis.d $D/apply.d $D/argtypes.d $D
 	$D/dtemplate.d $D/dversion.d $D/escape.d			\
 	$D/expression.d $D/func.d $D/hdrgen.d $D/imphint.d	\
 	$D/impcnvtab.d $D/init.d $D/inline.d $D/inlinecost.d $D/intrange.d $D/json.d $D/lib.d $D/link.d	\
-	$D/mars.d $D/mtype.d $D/nogc.d $D/nspace.d $D/objc_stubs.d $D/opover.d $D/optimize.d $D/parse.d	\
+	$D/mars.d $D/mtype.d $D/nogc.d $D/nspace.d $D/objc.d $D/opover.d $D/optimize.d $D/parse.d	\
 	$D/sapply.d $D/sideeffect.d $D/statement.d $D/staticassert.d $D/target.d	\
 	$D/safe.d $D/blockexit.d $D/asttypename.d \
 	$D/traits.d $D/utils.d $D/visitor.d $D/libomf.d $D/scanomf.d $D/typinf.d \
@@ -215,8 +215,8 @@ SRCS = $D/aggregate.h $D/aliasthis.h $D/arraytypes.h	\
 	$D/import.h $D/init.h $D/intrange.h $D/json.h $D/lexer.h	\
 	$D/mars.h $D/module.h $D/mtype.h $D/nspace.h $D/objc.h                         \
 	$D/scope.h $D/statement.h $D/staticassert.h $D/target.h $D/template.h $D/tokens.h	\
-	$D/version.h $D/visitor.h $D/objc.d) $(DMD_SRCS)	
-	
+	$D/version.h $D/visitor.h $D/objc.d) $(DMD_SRCS)
+
 # Glue layer
 GLUESRC= \
 	$D/toir.h $D/irstate.h \

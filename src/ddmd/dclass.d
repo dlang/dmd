@@ -217,12 +217,11 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
     bool com;           // true if this is a COM class (meaning it derives from IUnknown)
     bool cpp;           // true if this is a C++ interface
+    bool isobjc;        // true if this is an Objective-C class/interface
     bool isscope;       // true if this is a scope class
     Abstract isabstract;
     int inuse;          // to prevent recursive attempts
     Baseok baseok;      // set the progress of base classes resolving
-
-    Objc_ClassDeclaration objc;
 
     Symbol* cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
 
@@ -497,7 +496,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             if (sc.linkage == LINKcpp)
                 cpp = true;
             if (sc.linkage == LINKobjc)
-                objc_ClassDeclaration_semantic_PASSinit_LINKobjc(this);
+                objc.setObjc(this);
         }
         else if (symtab && !scx)
         {
@@ -1539,7 +1538,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
             sc2.linkage = LINKwindows;
         else if (cpp)
             sc2.linkage = LINKcpp;
-        else if (objc.isInterface())
+        else if (isobjc)
             sc2.linkage = LINKobjc;
         return sc2;
     }
@@ -1661,7 +1660,8 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
             if (!baseclasses.dim && sc.linkage == LINKcpp)
                 cpp = true;
 
-            objc_InterfaceDeclaration_semantic_objcExtern(this, sc);
+            if (sc.linkage == LINKobjc)
+                objc.setObjc(this);
 
             // Check for errors, handle forward references
             for (size_t i = 0; i < baseclasses.dim;)
