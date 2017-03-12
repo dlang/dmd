@@ -890,7 +890,7 @@ struct SharedCtfeState(BCGenT)
 
         case BCType.Array:
             {
-                if(type.typeIndex >= arrayCount)
+                if(type.typeIndex > arrayCount)
                 {
                     // the if above shoud really be an assert
                     // I have no idea why this even happens
@@ -3376,8 +3376,13 @@ static if (is(BCGen))
                 assert(idx);
                 auto array = _sharedCtfeState.arrayTypes[idx - 1];
 
-                Alloc(var.i32, imm32(_sharedCtfeState.size(type) + 4));
+                Alloc(var.i32, imm32(_sharedCtfeState.size(type) + uint(2*uint.sizeof)));
                 Store32(var.i32, array.length.imm32);
+                auto baseAddr = genTemporary(i32Type);
+                auto baseAddrPtr = genTemporary(i32Type);
+                Add3(baseAddrPtr, var.i32, imm32(uint(uint.sizeof)));
+                Add3(baseAddr, var.i32, imm32(uint(2*uint.sizeof)));
+                Store32(baseAddrPtr, baseAddr);
             }
         }
 
