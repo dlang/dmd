@@ -3797,6 +3797,12 @@ static if (is(BCGen))
         auto oldAssignTo = assignTo;
         const oldDiscardValue = discardValue;
         discardValue = false;
+
+        if (ae.e1.op == TOKslice && ae.e2.op == TOKslice)
+        {
+            bailout("We don't handle slice assignment");
+        }
+
         debug (ctfe)
         {
             import std.stdio;
