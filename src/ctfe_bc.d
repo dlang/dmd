@@ -415,6 +415,9 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     }
     else
     {
+        bcv.insideFunction = false;
+        bcv.Finalize();
+
         static if (UsePrinterBackend)
         {
             auto retval = BCValue.init;
@@ -1439,17 +1442,17 @@ extern (C++) final class BCV(BCGenT) : Visitor
     {
         import ddmd.lexer : Loc;
 
-        void Load32(BCValue _to, BCValue from)
+        void Load32(BCValue _to, BCValue from, size_t line = __LINE__)
         {
             Assert(from.i32, _sharedCtfeState.addError(Loc.init,
-                "Load Source may not be null - target: " ~ to!string(_to.stackAddr)));
+                    "Load Source may not be null - target: " ~ to!string(_to.stackAddr) ~ " inLine: " ~ to!string(line)));
             gen.Load32(_to, from);
         }
 
-        void Store32(BCValue _to, BCValue value)
+        void Store32(BCValue _to, BCValue value, size_t line = __LINE__)
         {
             Assert(_to.i32, _sharedCtfeState.addError(Loc.init,
-                "Store Destination may not be null - from: " ~ to!string(value.stackAddr)));
+                    "Store Destination may not be null - from: " ~ to!string(value.stackAddr) ~ " inLine: " ~ to!string(line)));
             gen.Store32(_to, value);
         }
 
@@ -1731,7 +1734,7 @@ public:
                 return;
             }
 
-            assert(!me, "We are not clean!");
+            //assert(!me, "We are not clean!");
             me = uf.fd;
             beginParameters();
             auto parameters = uf.fd.parameters;
@@ -1748,7 +1751,7 @@ public:
             }
             endParameters();
             auto fnIdx = uf.fn;
-            beginFunction(fnIdx - 1);
+            beginFunction(fnIdx - 1, cast(void*)uf.fd);
             uf.fd.fbody.accept(this);
             auto osp = sp;
             endFunction();
@@ -1797,6 +1800,12 @@ public:
             return;
         }
         import std.stdio;
+        if (insideFunction)
+        {
+            auto fnIdx = _sharedCtfeState.getFunctionIndex(fd);
+            addUncompiledFunction(fd, &fnIdx);
+            return ;
+        }
 
         //writeln("going to eval: ", fd.toString);
         if (auto fbody = fd.fbody.isCompoundStatement)
@@ -1831,7 +1840,7 @@ public:
             {
                 fnIdx = 1;
             }
-            beginFunction(fnIdx - 1);
+            beginFunction(fnIdx - 1, cast(void*)fd);
             visit(fbody);
             if(fd.type.nextOf.ty == Tvoid)
             {

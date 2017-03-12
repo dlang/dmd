@@ -309,7 +309,19 @@ struct BCGen
     {
         return interpret_(cast(const) byteCodeArray[0 .. ip], args, null, null);
     }
-@safe pure:
+@safe:
+
+    void beginFunction(uint fnId = 0, void* fd = null)
+    {
+        import ddmd.declaration : FuncDeclaration;
+        import std.string;
+        ip = BCAddr(4);
+        () @trusted { assert(!insideFunction, fd ? (cast(FuncDeclaration)fd).toChars.fromStringz : "fd:null"); } ();
+        insideFunction = true;
+        functionId = fnId;
+    }
+
+pure:
 
     void emitLongInst(LongInst64 i)
     {
@@ -364,14 +376,6 @@ struct BCGen
         byteCodeArray[ip] = 0;
         byteCodeArray[ip + 1] = 0;
 */
-    }
-
-    void beginFunction(uint fnId = 0, void* fd = null)
-    {
-        ip = BCAddr(4);
-        assert(!insideFunction);
-        insideFunction = true;
-        functionId = fnId;
     }
 
     BCFunction endFunction()
