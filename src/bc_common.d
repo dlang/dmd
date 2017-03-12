@@ -81,10 +81,6 @@ enum BCTypeEnum : ubyte
     Null,
     Void,
 
-    c8,
-    c16,
-    c32,
-    Char = c32,
     /// signed by default
     i8,
     /// DITTO
@@ -93,6 +89,11 @@ enum BCTypeEnum : ubyte
     i32,
     /// DITTO
     i64,
+
+    c8,
+    c16,
+    c32,
+    Char = c32,
 
     u8,
     u16,
@@ -273,6 +274,13 @@ BCValue imm32(uint value) pure @trusted
     return ret;
 }
 
+BCValue i32(BCValue val) pure @safe
+{
+    val.type.type = BCTypeEnum.i32;
+    return val;
+}
+
+
 struct Imm64
 {
     ulong imm64;
@@ -338,6 +346,9 @@ struct BCHeapRef
 
 struct BCValue
 {
+    // only to workaround codegen issue
+    uint _;///FIXME remove when 2.074 is out!!
+
     BCType type;
     BCValueType vType;
     union
@@ -358,7 +369,7 @@ struct BCValue
 
     //TORO PERF minor: use a 32bit value for heapRef;
    BCHeapRef heapRef;
-
+   
     uint toUint() const pure
     {
         switch(this.vType)
@@ -396,7 +407,7 @@ struct BCValue
         // the check for Undef is a workaround
         // consider removing it when everything works correctly.
 
-        return this.vType != vType.Unknown && this.type != BCTypeEnum.Undef;
+        return this.vType != vType.Unknown && this.type != BCTypeEnum.Undef && this.vType != vType.VoidValue;
     }
 
     bool opEquals(const BCValue rhs) pure const
@@ -439,14 +450,6 @@ struct BCValue
         }
 
         return false;
-    }
-
-    BCValue i32() const pure
-    {
-        BCValue result;
-        result = this;
-        result.type.type = BCTypeEnum.i32;
-        return result;
     }
 
     this(const Imm32 imm32) pure
@@ -511,12 +514,12 @@ struct BCValue
             case BCValueType.HeapValue :
                 heapAddr = heapRef.heapAddr;
                 break;
-                
+
             case BCValueType.Immediate :
                 imm32 = heapRef.imm32;
                 break;
-                
-            default : 
+
+            default :
                 import std.conv : to;
                 assert(0, "vType unsupported: " ~ to!string(vType));
         }

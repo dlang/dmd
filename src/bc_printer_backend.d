@@ -39,6 +39,7 @@ struct Print_BCGen
         bool sameLabel;
         StackAddr sp = StackAddr(4);
     }
+    bool insideFunction = false;
 
     FunctionState[ubyte.max * 8] functionStates;
     uint functionStateCount;
@@ -173,10 +174,13 @@ struct Print_BCGen
         result ~= "    Finalize(" ~ ");\n";
     }
 
-    void beginFunction(uint f = 0)
+    void beginFunction(uint f = 0, void* fnDecl = null)
     {
         sameLabel = false;
-        result ~= "    beginFunction(" ~ to!string(f) ~ ");\n";
+        import ddmd.declaration : FuncDeclaration;
+        import std.string;
+        auto fd = cast(FuncDeclaration) fnDecl;
+        result ~= "    beginFunction(" ~ to!string(f) ~ ");//" ~ fd.toChars.fromStringz ~ "\n";
     }
 
     void endFunction()
