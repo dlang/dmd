@@ -180,7 +180,7 @@ void main()
     unmaskFPUExceptions;
 
     writefln("type, op, %(latency%s, %), %-(throughput%s, %)", iota(6)
-        .map!(i => 1 << i), ["8KB", "32KB", "512KB", "32MB"]);
+        .map!(i => 1 << i), ["8KB", "32KB", "512KB", "32768KB"]);
     foreach (op; mixin("AliasSeq!(%(%s, %))".format(genOps)))
         runOp!op;
     maskFPUExceptions;

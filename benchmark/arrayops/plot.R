@@ -16,18 +16,17 @@ for (file in files)
      dat = bind_rows(dat, datFile)
 }
 
-latencies <- gather(dat %>% select(-starts_with('throughput')), num_elems, latency, starts_with('latency'))
-throughputs <- gather(dat %>% select(-starts_with('latency')), array_size, throughput, starts_with('throughput'))
-
-levels(latencies$num_elems) <- sub("latency(\\d+)", "\\1", levels(latencies$num_elems))
-levels(throughputs$array_size) <- sub("throughput(.+)", "\\1", levels(throughputs$array_size))
+latencies <- gather(dat %>% select(-starts_with('throughput')), num_elems, latency, starts_with('latency')) %>%
+    mutate(num_elems = factor(as.integer(sub("latency(\\d+)", "\\1", num_elems))))
+throughputs <- gather(dat %>% select(-starts_with('latency')), array_size, throughput, starts_with('throughput')) %>%
+    mutate(array_size = factor(as.integer(sub("throughput(\\d+)KB", "\\1", array_size))))
 
 img <- qplot(num_elems, latency, group=type, data=latencies, geom="line", color=type) +
   facet_grid(op ~ file, scales="free_y") +
   labs(x="num elements", y="latency / ns")
-ggsave('array_ops_latency.svg', plot = img, width = 2 + 3 * length(files), height = 40)
+ggsave('array_ops_latency.png', plot = img, width = 2 + 3 * length(files), height = 40)
 
 img <- qplot(array_size, throughput, group=type, data=throughputs, geom="line", color=type) +
   facet_grid(op ~ file, scales="free_y") +
-  labs(x="array size", y="throughput / (ops / ns)")
-ggsave('array_ops_throughput.svg', plot = img, width = 2 + 3 * length(files), height = 40)
+  labs(x="array size / KB", y="throughput / (ops / ns)")
+ggsave('array_ops_throughput.png', plot = img, width = 2 + 3 * length(files), height = 40)
