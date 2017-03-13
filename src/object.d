@@ -296,11 +296,9 @@ class TypeInfo
      */
     abstract const(void)[] initializer() nothrow pure const @safe @nogc;
 
-    /// $(RED Scheduled for deprecation.) Please use `initializer` instead.
-    deprecated("Please use initializer instead.") alias init = initializer;
-        // since 2.072
-    version(none) @disable static const(void)[] init(); // planned for 2.073
-    /* Planned for 2.074: Remove init, making way for the init type property,
+    /// $(RED Removed.) Please use `initializer` instead.
+    @disable static const(void)[] init(); // since 2.074
+    /* Planned for 2.075: Remove init, making way for the init type property,
     fixing issue 12233. */
 
     /** Get flags for type: 1 means GC should scan for pointers,
