@@ -91,7 +91,7 @@ struct BoolExprFixupEntry
         this.conditional = conditional;
     }
 }
-import std.utf : decode;
+
 struct UnrolledLoopState
 {
     BCAddr[255] continueFixups;
@@ -333,6 +333,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
         }
         bcv.endArguments();
+        bcv.compileUncompiledFunctions();
         bcv.Finalize();
 
         static if (UseLLVMBackend)
@@ -1763,6 +1764,8 @@ public:
     {
         void addUncompiledFunction(FuncDeclaration fd, int* fnIdxP)
         {
+            import std.stdio;
+            writeln("Calling addUncompiledFunction for: ", fd.toString);
             assert(*fnIdxP == 0, "addUncompiledFunction has to called with *fnIdxP == 0");
             if (uncompiledFunctionCount >= uncompiledFunctions.length - 64)
             {
@@ -1809,6 +1812,9 @@ public:
     void compileUncompiledFunctions()
     {
         uint lastUncompiledFunction;
+        import std.stdio;
+        writeln("called compile-uncompiled functions");
+
     LuncompiledFunctions :
         foreach (uf; uncompiledFunctions[lastUncompiledFunction .. uncompiledFunctionCount])
         {
@@ -1895,9 +1901,11 @@ public:
         import std.stdio;
         if (insideFunction)
         {
+/*
             auto fnIdx = _sharedCtfeState.getFunctionIndex(fd);
             addUncompiledFunction(fd, &fnIdx);
             return ;
+*/
         }
 
         //writeln("going to eval: ", fd.toString);
@@ -2593,8 +2601,8 @@ static if (is(BCGen))
                 Add3(ptr, indexed.i32, bcOne);
 
                 auto modv = genTemporary(BCType(BCTypeEnum.i32));
-                Mod3(modv, idx, bcFour);
-                Div3(offset, idx, bcFour);
+                Mod3(modv, idx, imm32(4));
+                Div3(offset, idx, imm32(4));
                 Add3(ptr, ptr, offset);
 
                 Load32(retval, ptr);
@@ -3211,14 +3219,20 @@ static if (is(BCGen))
     override void visit(ArrayLengthExp ale)
     {
         auto array = genExpr(ale.e1);
-        if (array.type.type == BCTypeEnum.String || array.type.type == BCTypeEnum.Slice)
+        auto arrayType = array.type.type;
+        if (arrayType == BCTypeEnum.String || arrayType == BCTypeEnum.Slice || arrayType == BCTypeEnum.Array)
         {
             retval = getLength(array);
         }
         else
         {
-            bailout("We only handle StringLengths for now atm. given : " ~ to!string(array.type.type) ~ " :: " ~ ale.e1.toString);
+            bailout("We only handle Slice, Array, and String-Length for now atm. given : " ~ to!string(array.type.type) ~ " :: " ~ ale.e1.toString);
         }
+    }
+
+    void setLength(BCValue arr, BCValue newLength)
+    {
+        Store32(arr.i32, newLength.i32);
     }
 
     BCValue getLength(BCValue arr)
@@ -3252,6 +3266,13 @@ static if (is(BCGen))
             bailout("cannot get length without a valid arr");
             return BCValue.init;
         }
+    }
+
+    void setBase(BCValue arr, BCValue newBase)
+    {
+        BCValue baseAddrPtr = genTemporary(i32Type);
+        Add3(baseAddrPtr, arr.i32, imm32(uint.sizeof));
+        Store32(baseAddrPtr, newBase.i32);
     }
 
     BCValue getBase(BCValue arr)
@@ -3482,12 +3503,10 @@ static if (is(BCGen))
                 auto array = _sharedCtfeState.arrayTypes[idx - 1];
 
                 Alloc(var.i32, imm32(_sharedCtfeState.size(type) + uint(2*uint.sizeof)));
-                Store32(var.i32, array.length.imm32);
+                setLength(var.i32, array.length.imm32);
                 auto baseAddr = genTemporary(i32Type);
-                auto baseAddrPtr = genTemporary(i32Type);
-                Add3(baseAddrPtr, var.i32, imm32(uint(uint.sizeof)));
                 Add3(baseAddr, var.i32, imm32(uint(2*uint.sizeof)));
-                Store32(baseAddrPtr, baseAddr);
+                setBase(var.i32, baseAddr);
             }
         }
 
@@ -3911,6 +3930,7 @@ static if (is(BCGen))
         if (ae.e1.op == TOKslice && ae.e2.op == TOKslice)
         {
             bailout("We don't handle slice assignment");
+            return ;
         }
 
         debug (ctfe)
@@ -3964,13 +3984,13 @@ static if (is(BCGen))
                 //Not sure if this is really correct :)
                 rhs = bcNull;
             }
-/*
+
             if (rhs.type.type != BCTypeEnum.i32)
             {
                 bailout("only i32 are supported for now. not:" ~ rhs.type.type.to!string);
                 return;
             }
-*/
+
             auto lhs = genExpr(_struct);
             if (!lhs)
             {
@@ -3984,7 +4004,7 @@ static if (is(BCGen))
             Store32(ptr, rhs);
             retval = rhs;
         }
-        //        else if (ae.e1.op == TOKarray && (cast(ArrayExp)ae.e1).)
+/*
         else if (ae.e1.op == TOKarraylength)
         {
             auto ale = cast(ArrayLengthExp) ae.e1;
@@ -3997,13 +4017,13 @@ static if (is(BCGen))
                 bailout("I don't have an array to load the length from :(");
                 return;
             }
-            BCValue oldLength = genTemporary(i32Type);
+            BCValue oldLength = pushOnToStack(getLength(arrayPtr));
             BCValue newLength = genExpr(ae.e2);
             auto effectiveSize = genTemporary(i32Type);
             auto elemType = toBCType(ale.e1.type);
             auto elemSize = align4(basicTypeSize(elemType));
             Mul3(effectiveSize, newLength, imm32(elemSize));
-            Add3(effectiveSize, effectiveSize, bcFour);
+            Add3(effectiveSize, effectiveSize, imm32(uint(uint.sizeof*2)));
 
             typeof(beginJmp()) jmp;
             typeof(beginCndJmp()) jmp1;
@@ -4011,18 +4031,22 @@ static if (is(BCGen))
 
             auto arrayExsitsJmp = beginCndJmp(arrayPtr.i32);
             {
-                Load32(oldLength, arrayPtr);
                 Le3(BCValue.init, oldLength, newLength);
                 jmp1 = beginCndJmp(BCValue.init, true);
                 {
                     auto newArrayPtr = genTemporary(i32Type);
+                    auto newBase = genTemporary(i32Type);
+
                     Alloc(newArrayPtr, effectiveSize);
-                    Store32(newArrayPtr, newLength);
+                    //NOTE: ABI the magic number 8 is derived from array layout {uint length, uint basePtr, T[length] space}
+                    Add3(newBase, newArrayPtr, imm32(8));
+                    setLength(newArrayPtr, newLength);
 
-                    auto copyPtr = genTemporary(i32Type);
+                    Add3(newBasePtr, newArrayPtr, imm32(4));
+                    Store32(newBasePtr, newBase);
+                    auto copyPtr = getBase(arrayPtr);
 
-                    Add3(copyPtr, newArrayPtr, bcFour);
-                    Add3(arrayPtr.i32, arrayPtr.i32, bcFour);
+                    Add3(arrayPtr.i32, arrayPtr.i32, imm32(4));
                     // copy old Array
                     auto tmpElem = genTemporary(i32Type);
                     auto LcopyLoop = genLabel();
@@ -4033,8 +4057,8 @@ static if (is(BCGen))
                         {
                             Load32(tmpElem, arrayPtr.i32);
                             Store32(copyPtr, tmpElem);
-                            Add3(arrayPtr.i32, arrayPtr.i32, bcFour);
-                            Add3(copyPtr, copyPtr, bcFour);
+                            Add3(arrayPtr.i32, arrayPtr.i32, imm32(4));
+                            Add3(copyPtr, copyPtr, imm32(4));
                         }
                         genJump(LcopyLoop);
                     }
@@ -4048,14 +4072,20 @@ static if (is(BCGen))
             endCndJmp(arrayExsitsJmp, LarrayDoesNotExsist);
             {
                 auto newArrayPtr = genTemporary(i32Type);
+                auto newBasePtr = genTemporary(i32Type);
+                auto newBase = genTemporary(i32Type);
                 Alloc(newArrayPtr, effectiveSize);
                 Store32(newArrayPtr, newLength);
+                Add3(newBasePtr, newArrayPtr, imm32(uint(uint.sizeof)));
+                Add3(newBase, newArrayPtr, imm32(uint(uint.sizeof*2)));
+                Store32(newBasePtr, newBase);
                 Set(arrayPtr.i32, newArrayPtr);
             }
             auto Lend = genLabel();
             endCndJmp(jmp1, Lend);
             endJmp(jmp, Lend);
         }
+*/
         else if (ae.e1.op == TOKindex)
         {
             auto ie = cast(IndexExp) ae.e1;
@@ -4083,6 +4113,7 @@ static if (is(BCGen))
 
             auto length = getLength(indexed);
             auto baseAddr = getBase(indexed);
+
             version (ctfe_noboundscheck)
             {
             }
@@ -4132,7 +4163,7 @@ static if (is(BCGen))
                 }
             }
 
-            assignTo = lhs;
+
             ignoreVoid = false;
             auto rhs = genExpr(ae.e2);
 
@@ -4147,7 +4178,7 @@ static if (is(BCGen))
                 return;
             }
 
-            if (lhs.type.type == BCTypeEnum.i32 && rhs.type.type == BCTypeEnum.i32)
+            if ((lhs.type.type == BCTypeEnum.i32 || lhs.type.type == BCTypeEnum.i64) && rhs.type.type == BCTypeEnum.i32)
             {
                 Set(lhs, rhs);
             }
@@ -4167,7 +4198,6 @@ static if (is(BCGen))
                         Store32(lhs, rhs);
                      }
                 }
-
                 else if (lhs.type.type == BCTypeEnum.Char && rhs.type.type == BCTypeEnum.Char)
                 {
                     Set(lhs.i32, rhs.i32);
@@ -4201,6 +4231,9 @@ static if (is(BCGen))
                     return ;
                 }
             }
+
+            // I don't know how this got changed in between but apperantly it did ...
+            assignTo = lhs;
         }
 
         if (assignTo.heapRef != BCHeapRef.init)
@@ -4702,6 +4735,7 @@ static if (is(BCGen))
                 bailout(arg.toString ~ "cannot safely pass 64bit arguments yet");
                 return ;
             }
+
             if ((*tf.parameters)[i].storageClass & STCref)
             {
                 auto argHeapRef = genTemporary(i32Type);
@@ -4810,7 +4844,7 @@ static if (is(BCGen))
         }
         else
         {
-            Ret(imm32(0));
+            Ret(bcNull);
         }
     }
 

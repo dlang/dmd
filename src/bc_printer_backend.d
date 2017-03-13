@@ -179,6 +179,8 @@ struct Print_BCGen
         sameLabel = false;
         import ddmd.declaration : FuncDeclaration;
         import std.string;
+        assert(!insideFunction);
+        insideFunction = true;
         auto fd = cast(FuncDeclaration) fnDecl;
         result ~= "    beginFunction(" ~ to!string(f) ~ ");//" ~ fd.toChars.fromStringz ~ "\n";
     }
@@ -186,6 +188,8 @@ struct Print_BCGen
     void endFunction()
     {
         currentFunctionStateNumber++;
+        assert(insideFunction);
+        insideFunction = false;
         result ~= "    endFunction(" ~ ");\n\n";
     }
 
