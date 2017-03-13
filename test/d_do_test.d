@@ -312,6 +312,30 @@ void removeIfExists(in char[] filename)
         std.file.remove(filename);
 }
 
+string readSafe(string filename)
+{
+    // the output from OPTLink is not UTF8, but can contain compressed data which interferes with UTF8
+    auto text = cast(char[]) std.file.read(filename);
+    for(size_t p = 0; p < text.length; p++)
+    {
+        ubyte ch = text[p];
+        if((ch & 0xc0) == 0xc0)
+        {
+            auto q = p;
+            for(int s = 0; s < 5 && ((ch << s) & 0xc0) == 0xc0; s++, q++)
+                if(q >= text.length || (text[q] & 0xc0) != 0x80)
+                    goto L_invalid;
+            p = q;
+        }
+        else if(ch & 0x80)
+        {
+        L_invalid:
+            text[p] = '?';
+        }
+    }
+    return cast(string) text;
+}
+
 string execute(ref File f, string command, bool expectpass, string result_path)
 {
     auto filename = genTempFilename(result_path);
@@ -319,7 +343,7 @@ string execute(ref File f, string command, bool expectpass, string result_path)
 
     auto rc = system(command ~ " > " ~ filename ~ " 2>&1");
 
-    string output = readText(filename);
+    string output = readSafe(filename);
     f.writeln(command);
     f.write(output);
 
