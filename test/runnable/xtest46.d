@@ -4383,8 +4383,10 @@ void f6293(in C6293[] a) pure {
     auto x0 = a[0].token;
     assert(x0 is a[0].token.token.token);
     assert(x0 is (&x0).token);
-    auto p1 = &x0 + 1;
-    assert(x0 is (p1 - 1).token);
+    version(none) {
+        auto p1 = &x0 + 1;
+        assert(x0 is (p1 - 1).token);
+    }
     int c = 0;
     assert(x0 is a[c].token);
 }
