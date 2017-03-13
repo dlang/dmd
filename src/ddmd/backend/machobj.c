@@ -1931,6 +1931,7 @@ int MachObj::getsegment(const char *sectname, const char *segname,
 
 void Obj::setcodeseg(int seg)
 {
+    cseg = seg;
 }
 
 /********************************
