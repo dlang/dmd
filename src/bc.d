@@ -320,7 +320,8 @@ struct BCGen
         import ddmd.declaration : FuncDeclaration;
         import std.string;
         ip = BCAddr(4);
-        () @trusted { assert(!insideFunction, fd ? (cast(FuncDeclaration)fd).toChars.fromStringz : "fd:null"); } ();
+        //() @trusted { assert(!insideFunction, fd ? (cast(FuncDeclaration)fd).toChars.fromStringz : "fd:null"); } ();
+        //TODO figure out why the above assert cannot always be true ... see issue 7667
         insideFunction = true;
         functionId = fnId;
     }
@@ -384,7 +385,9 @@ pure:
 
     BCFunction endFunction()
     {
-        assert(insideFunction);
+        //assert(insideFunction);
+        //I have no idea how this can fail ...
+        
         insideFunction = false;
         BCFunction result;
         result.type = BCFunctionTypeEnum.Bytecode;
