@@ -1764,8 +1764,6 @@ public:
     {
         void addUncompiledFunction(FuncDeclaration fd, int* fnIdxP)
         {
-            import std.stdio;
-            writeln("Calling addUncompiledFunction for: ", fd.toString);
             assert(*fnIdxP == 0, "addUncompiledFunction has to called with *fnIdxP == 0");
             if (uncompiledFunctionCount >= uncompiledFunctions.length - 64)
             {
@@ -1812,8 +1810,6 @@ public:
     void compileUncompiledFunctions()
     {
         uint lastUncompiledFunction;
-        import std.stdio;
-        writeln("called compile-uncompiled functions");
 
     LuncompiledFunctions :
         foreach (uf; uncompiledFunctions[lastUncompiledFunction .. uncompiledFunctionCount])
