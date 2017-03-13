@@ -4590,7 +4590,12 @@ static if (is(BCGen))
         FuncDeclaration fd;
         bool isFunctionPtr;
 
-        assert(ce.e1.type.ty == Tfunction);
+        //NOTE is could also be Tdelegate
+        if(ce.e1.type.ty != Tfunction)
+        {
+            bailout("CallExp.e1.type.ty expected to be Tfunction, but got: " ~ to!string(cast(ENUMTY) ce.e1.type.ty));
+            return ;
+        }
         TypeFunction tf = cast (TypeFunction) ce.e1.type;
         import ddmd.asttypename;
 
