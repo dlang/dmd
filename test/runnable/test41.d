@@ -8,7 +8,7 @@ int main()
 {
     try
     {
-        foo();
+        int x = foo();
         return 1;
     }
     catch (AssertError e)
@@ -17,7 +17,7 @@ int main()
 
     try
     {
-        func!(void)();
+        int x = func!(void)();
         return 1;
     }
     catch (AssertError e)
