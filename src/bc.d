@@ -95,8 +95,10 @@ enum LongInst : ushort
     Ge,
     Set,
     And,
+    And32,
     Or,
     Xor,
+    Xor32,
     Lsh,
     Rsh,
     Mod,
@@ -106,7 +108,7 @@ enum LongInst : ushort
     Assert,
     AssertCnd,
 
-    // Immidate operand
+    // Immedate operand
     ImmAdd,
     ImmSub,
     ImmDiv,
@@ -119,8 +121,10 @@ enum LongInst : ushort
     ImmGe,
     ImmSet,
     ImmAnd,
+    ImmAnd32,
     ImmOr,
     ImmXor,
+    ImmXor32,
     ImmLsh,
     ImmRsh,
     ImmMod,
@@ -571,8 +575,23 @@ pure:
 
     void Set(BCValue lhs, BCValue rhs)
     {
+        assert(isStackValueOrParameter(lhs), "Set lhs is has to be a StackValue");
+        assert(rhs.vType == BCValueType.Immediate || isStackValueOrParameter(rhs), "Set rhs is has to be a StackValue or Imm");
+
         if (lhs != rhs) // do not emit self asignments;
             emitArithInstruction(LongInst.Set, lhs, rhs);
+    }
+
+    void SetHigh(BCValue lhs, BCValue rhs)
+    {
+        assert(isStackValueOrParameter(lhs), "SeHigt lhs is has to be a StackValue");
+        assert(rhs.vType == BCValueType.Immediate || isStackValueOrParameter(rhs), "SetHigh rhs is has to be a StackValue or Imm");
+
+        //two cases :
+        //    lhs.type.size == 4 && rhs.type.size == 8
+        // OR
+        //    lhs.type.size == 8 && rhs.type.size == 4
+
     }
 
     void Lt3(BCValue result, BCValue lhs, BCValue rhs)
@@ -713,7 +732,10 @@ pure:
         {
             Set(result, lhs);
         }
-        emitArithInstruction(LongInst.And, result, rhs);
+        if (lhs.type.type == BCTypeEnum.i32 && rhs.type.type == BCTypeEnum.i32)
+            emitArithInstruction(LongInst.And32, result, rhs);
+        else
+            emitArithInstruction(LongInst.And, result, rhs);
 
     }
 
@@ -739,7 +761,10 @@ pure:
         {
             Set(result, lhs);
         }
-        emitArithInstruction(LongInst.Xor, result, rhs);
+        if (lhs.type.type == BCTypeEnum.i32 && rhs.type.type == BCTypeEnum.i32)
+            emitArithInstruction(LongInst.Xor32, result, rhs);
+        else
+            emitArithInstruction(LongInst.Xor, result, rhs);
     }
 
     void Lsh3(BCValue result, BCValue lhs, BCValue rhs)
@@ -786,11 +811,11 @@ pure:
 
     void Load32(BCValue _to, BCValue from)
     {
-        if (from.vType != BCValueType.StackValue)
+        if (!isStackValueOrParameter(from))
         {
             from = pushOntoStack(from);
         }
-        if (_to.vType != BCValueType.StackValue)
+        if (!isStackValueOrParameter(_to))
         {
             _to = pushOntoStack(_to);
         }
@@ -802,11 +827,12 @@ pure:
 
     void Store32(BCValue _to, BCValue value)
     {
-        if (value.vType != BCValueType.StackValue)
+        if (!isStackValueOrParameter(value))
         {
             value = pushOntoStack(value);
         }
-        if (_to.vType != BCValueType.StackValue)
+        if (!isStackValueOrParameter(_to))
+
         {
             _to = pushOntoStack(_to);
         }
@@ -1031,6 +1057,11 @@ string printInstructions(const int* startInstructions, uint length) pure
                 result ~= "And SP[" ~ to!string(lw >> 16) ~ "], #" ~ to!string(hi) ~ "\n";
             }
             break;
+        case LongInst.ImmAnd32:
+            {
+                result ~= "And32 SP[" ~ to!string(lw >> 16) ~ "], #" ~ to!string(hi) ~ "\n";
+            }
+            break;
         case LongInst.ImmOr:
             {
                 result ~= "Or SP[" ~ to!string(lw >> 16) ~ "], #" ~ to!string(hi) ~ "\n";
@@ -1039,6 +1070,11 @@ string printInstructions(const int* startInstructions, uint length) pure
         case LongInst.ImmXor:
             {
                 result ~= "Xor SP[" ~ to!string(lw >> 16) ~ "], #" ~ to!string(hi) ~ "\n";
+            }
+            break;
+        case LongInst.ImmXor32:
+            {
+                result ~= "Xor32 SP[" ~ to!string(lw >> 16) ~ "], #" ~ to!string(hi) ~ "\n";
             }
             break;
         case LongInst.ImmLsh:
@@ -1115,6 +1151,11 @@ string printInstructions(const int* startInstructions, uint length) pure
                 result ~= "And SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
             break;
+        case LongInst.And32:
+            {
+                result ~= "And32 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
         case LongInst.Or:
             {
                 result ~= "Or SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
@@ -1123,6 +1164,11 @@ string printInstructions(const int* startInstructions, uint length) pure
         case LongInst.Xor:
             {
                 result ~= "Xor SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+        case LongInst.Xor32:
+            {
+                result ~= "Xor32 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
             break;
         case LongInst.Lsh:
@@ -1449,15 +1495,24 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 (*lhsStackRef) &= hi;
             }
             break;
+        case LongInst.ImmAnd32:
+            {
+                *lhsStackRef = (cast(uint)*lhsStackRef) & hi;
+            }
+            break;
         case LongInst.ImmOr:
             {
                 (*lhsStackRef) |= hi;
             }
             break;
-
         case LongInst.ImmXor:
             {
                 (*lhsStackRef) ^= hi;
+            }
+            break;
+        case LongInst.ImmXor32:
+            {
+                *lhsStackRef = (cast(uint)*lhsStackRef) ^ hi;
             }
             break;
 
@@ -1588,14 +1643,24 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 (*lhsRef) &= *rhs;
             }
             break;
+        case LongInst.And32:
+            {
+               (*lhsRef) = (cast(uint) *lhsRef) & (cast(uint)*rhs);
+            }
+            break;
         case LongInst.Or:
             {
                 (*lhsRef) |= *rhs;
             }
             break;
+        case LongInst.Xor32:
+            {
+                (*lhsRef) = (cast(uint) *lhsRef) ^ (cast(uint)*rhs);
+            }
+            break;
         case LongInst.Xor:
             {
-                (*lhsRef) ^= hi;
+                (*lhsRef) ^= *rhs;
             }
             break;
 
