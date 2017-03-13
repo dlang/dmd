@@ -1,0 +1,6 @@
+TypeInfo.init has been `@disable`d.
+
+This is a step towards removal of `TypeInfo.init`, which is necessary to resolve
+a name clash with the type property $(GLINK2 property, init).
+
+Use $(REF_OBJECT_SHORT TypeInfo.initializer) instead.
