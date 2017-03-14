@@ -26,9 +26,45 @@ enum CInst : ushort
 
 }
 
+struct BCFunction
+{
+  void* funcDecl;
+  uint fnIdx;
+}
+
 struct C_BCGen
-{ ///for nameless functions generate functionLiteral
-    string functionalize(const string fname = null) pure const
+{
+    struct FunctionState
+    {
+        uint cndJumpCount;
+        uint jmpCount;
+        ubyte parameterCount;
+        ushort temporaryCount;
+        uint labelCount;
+        bool sameLabel;
+        StackAddr sp = StackAddr(4);
+        bool requireIntrinsics;
+    }
+    bool insideFunction;
+    FunctionState[ubyte.max * 8] functionStates;
+    uint functionStateCount;
+    uint currentFunctionStateNumber;
+pure: 
+    @property FunctionState* currentFunctionState()
+    {
+        return &functionStates[currentFunctionStateNumber];
+    }
+
+    @property string functionSuffix()
+    {
+        return currentFunctionStateNumber > 0 ? "_fn_" ~ to!string(currentFunctionStateNumber) : "";
+    }
+
+    alias currentFunctionState this;
+
+
+    ///for nameless functions generate functionLiteral
+    string functionalize(const string fname = null) pure
     {
         import std.algorithm;
         import std.range;
@@ -46,8 +82,9 @@ struct C_BCGen
             stack[stackOffset+(4*(i+1))] = arg.imm32;
         }
                 } ~ cast(
-            string) code ~ ((fname is null) ? "\n})" : "\n}"));
+            string) code ~ q{return fn0(args);} ~ ((fname is null) ? "\n})" : "\n}"));
     }
+
 
     enum intrinsicFunctions = q{static if (!is(C_BCGen_Intrinsics)) {
     alias C_BCGen_Intrinsics = void;
@@ -70,19 +107,13 @@ struct C_BCGen
 
     char[] code;
 pure:
-    bool requireIntrinsics;
-    uint labelCount;
-    bool sameLabel;
-    StackAddr sp = StackAddr(4);
-    ushort temporaryCount;
-    ubyte parameterCount;
 
     void incSp()
     {
-        sp += 4;
+        sp.addr += 4;
     }
 
-    StackAddr currSp() const
+    StackAddr currSp()
     {
         return sp;
     }
@@ -95,20 +126,25 @@ pure:
     {
     }
 
-    void beginFunction(uint fn = 0)
+    void beginFunction(uint fn = 0, void* fnDecl = null)
     {
         sameLabel = false;
+        insideFunction = true;
+        code ~= "\nBCValue fn" ~  to!string(currentFunctionStateNumber++) ~ "(BCValue[] args, BCHeap* heapPtr = null) {\n";
+
     }
 
     void endFunction()
     {
+        insideFunction = true;
+        code ~= "\n}\n";
     }
 
-    BCValue genTemporary( /*BCValue size*/ BCType bct)
+    BCValue genTemporary(BCType bct)
     {
-        auto tmp = BCValue(StackAddr(sp), bct, temporaryCount++);
+        auto tmp = BCValue(sp, bct, temporaryCount++);
         //assert(size.vType == BCValueType.Immidiate);
-        sp += align4(basicTypeSize(bct)); //sharedState.size(bct.type, typeIndex));
+        currentFunctionState.sp.addr += align4(basicTypeSize(bct)); //sharedState.size(bct.type, typeIndex));
 
         return tmp;
     }
@@ -121,6 +157,16 @@ pure:
             v = v.i32;
         else if (v.type.type == BCTypeEnum.Slice)
             v = v.i32;
+        else if (v.type.type == BCTypeEnum.Struct)
+            v = v.i32;
+        // the next one is highly doubious
+        else if (v.type.type == BCTypeEnum.i64)
+            v = v.i32;
+        // this one is highly doubious too
+        if (v.type.type == BCTypeEnum.Void || v.type.type == BCTypeEnum.Null)
+        {
+            v = imm32(0);
+        }
 
         assert(v.type.type == BCTypeEnum.i32,
             "i32 expected not: " ~ to!string(v.type.type));
@@ -219,10 +265,11 @@ pure:
         sameLabel = false;
         assert(lhs.vType.StackValue, "only StackValues are supported as lhs");
         // FIXME remove the lhs.type == BCTypeEnum.Char as soon as we convert correctly.
-        assert(lhs.type == BCTypeEnum.i32 || lhs.type == BCTypeEnum.Char,
+/*        assert(lhs.type == BCTypeEnum.i32 || lhs.type == BCTypeEnum.Char,
             "only i32 is supported for now not: " ~ to!string(lhs.type.type));
         assert(rhs.type == BCTypeEnum.i32,
             "only i32 is supported for now, not: " ~ to!string(rhs.type.type));
+*/
         code ~= "\t";
 
         switch (inst)
@@ -552,17 +599,17 @@ pure:
         requireIntrinsics = true;
         code ~= "\t" ~ toCode(result) ~ " = intrin_Byte3(" ~ toCode(word) ~ ", " ~ toCode(idx) ~ ");\n";
     }
-
-    void Call(BCValue result, BCValue fn, BCValue[] args)
+    import ddmd.globals : Loc;
+    void Call(BCValue result, BCValue fn, BCValue[] args, Loc l = Loc.init)
     {
         sameLabel = false;
         assert(result.vType == BCValueType.StackValue);
-        string resultString = (result ? toCode(result) ~ " = " : "");
+        string resultString = (result && result.stackAddr != 0 ? toCode(result) ~ " = " : "");
         import std.algorithm : map;
         import std.range : join;
 
-        code ~= "\t" ~ resultString ~ "fn" ~ toCode(fn) ~ "(" ~ args.map!(
-            a => toCode(a)).join(", ") ~ ");\n";
+        code ~= "\t" ~ resultString ~ "fn" ~ toCode(fn) ~ "([" ~ args.map!(
+            a => "imm32(" ~ toCode(a) ~ ")").join(", ") ~ "], heapPtr).imm32;\n";
     }
 
    /* void CallBuiltin(BCValue result, BCBuiltin fn, BCValue[] args)

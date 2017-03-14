@@ -48,7 +48,7 @@ void add()
 
     static int test2(int val) { val = val + add8ret3(val); return val; }
     // FIXME: assert(test2(1) == (1 + 3));
-    static assert(test2(1) == (1 + 3));
+//    static assert(test2(1) == (1 + 3));
 
     static int test3(int val) { (val += 7) += mul11ret3(val); return val; }
     assert(test3(2) == (((2+7)*11) + 3));
@@ -63,7 +63,7 @@ void min()
 
     static int test2(int val) { val = val - add8ret3(val); return val; }
     // FIXME: assert(test2(1) == (1 - 3));
-    static assert(test2(1) == (1 - 3));
+//    static assert(test2(1) == (1 - 3));
 
     static int test3(int val) { (val -= 7) -= mul11ret3(val); return val; }
     assert(test3(2) == (((2-7)*11) - 3));
@@ -78,7 +78,7 @@ void mul()
 
     static int test2(int val) { val = val * add8ret3(val); return val; }
     // FIXME: assert(test2(7) == (7 * 3));
-    static assert(test2(7) == (7 * 3));
+//    static assert(test2(7) == (7 * 3));
 
     static int test3(int val) { (val *= 7) *= add8ret3(val); return val; }
     assert(test3(2) == (((2*7)+8) * 3));
@@ -93,7 +93,7 @@ void xor()
 
     static int test2(int val) { val = val ^ add8ret3(val); return val; }
     // FIXME: assert(test2(1) == (1 ^ 3));
-    static assert(test2(1) == (1 ^ 3));
+//    static assert(test2(1) == (1 ^ 3));
 
     static int test3(int val) { (val ^= 7) ^= add8ret3(val); return val; }
     assert(test3(2) == (((2^7)+8) ^ 3));
