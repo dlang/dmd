@@ -22,6 +22,7 @@ import ddmd.argtypes;
 import ddmd.arrayop;
 import ddmd.arraytypes;
 import ddmd.attrib;
+import ddmd.astcodegen;
 import ddmd.gluelayer;
 import ddmd.canthrow;
 import ddmd.complex;
@@ -8316,7 +8317,7 @@ extern (C++) final class CompileExp : UnaExp
         se = se.toUTF8(sc);
 
         uint errors = global.errors;
-        scope Parser p = new Parser(loc, sc._module, se.toStringz(), false);
+        scope p = new Parser!ASTCodegen(loc, sc._module, se.toStringz(), false);
         p.nextToken();
         //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
