@@ -4752,8 +4752,6 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
 //      The encoding is 0f C0+reg and it is always a 32
 //      bit operation
 
-#define P PPTRNTAB0
-
 #if 0
 #define OPCODETABLE                             \
         X("aaa",        0,              aptb0AAA )
@@ -4765,118 +4763,118 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("aad",        0,              aptb0AAD )                  \
         X("aam",        0,              aptb0AAM )                  \
         X("aas",        0,              aptb0AAS )                  \
-        X("adc",        2,              (P) aptb2ADC )              \
-        X("add",        2,              (P) aptb2ADD )              \
-        X("addpd",      2,              (P) aptb2ADDPD )            \
-        X("addps",      2,              (P) aptb2ADDPS )            \
-        X("addsd",      2,              (P) aptb2ADDSD )            \
-        X("addss",      2,              (P) aptb2ADDSS )            \
-        X("addsubpd",   2,              (P) aptb2ADDSUBPD )         \
-        X("addsubps",   2,              (P) aptb2ADDSUBPS )         \
-        X("aesdec",     2,              (P) aptb2AESDEC )           \
-        X("aesdeclast", 2,              (P) aptb2AESDECLAST )       \
-        X("aesenc",     2,              (P) aptb2AESENC )           \
-        X("aesenclast", 2,              (P) aptb2AESENCLAST )       \
-        X("aesimc",     2,              (P) aptb2AESIMC )           \
-        X("aeskeygenassist", 3,         (P) aptb3AESKEYGENASSIST )  \
-        X("and",        2,              (P) aptb2AND )              \
-        X("andnpd",     2,              (P) aptb2ANDNPD )           \
-        X("andnps",     2,              (P) aptb2ANDNPS )           \
-        X("andpd",      2,              (P) aptb2ANDPD )            \
-        X("andps",      2,              (P) aptb2ANDPS )            \
-        X("arpl",       2,              (P) aptb2ARPL )             \
-        X("blendpd",    3,              (P) aptb3BLENDPD )          \
-        X("blendps",    3,              (P) aptb3BLENDPS )          \
-        X("blendvpd",   3,              (P) aptb3BLENDVPD )         \
-        X("blendvps",   3,              (P) aptb3BLENDVPS )         \
-        X("bound",      2,              (P) aptb2BOUND )            \
-        X("bsf",        2,              (P) aptb2BSF )              \
-        X("bsr",        2,              (P) aptb2BSR )              \
-        X("bswap",      1,              (P) aptb1BSWAP )            \
-        X("bt",         2,              (P) aptb2BT )               \
-        X("btc",        2,              (P) aptb2BTC )              \
-        X("btr",        2,              (P) aptb2BTR )              \
-        X("bts",        2,              (P) aptb2BTS )              \
-        X("call",       ITjump | 1,     (P) aptb1CALL )             \
+        X("adc",        2,              aptb2ADC )                  \
+        X("add",        2,              aptb2ADD )                  \
+        X("addpd",      2,              aptb2ADDPD )                \
+        X("addps",      2,              aptb2ADDPS )                \
+        X("addsd",      2,              aptb2ADDSD )                \
+        X("addss",      2,              aptb2ADDSS )                \
+        X("addsubpd",   2,              aptb2ADDSUBPD )             \
+        X("addsubps",   2,              aptb2ADDSUBPS )             \
+        X("aesdec",     2,              aptb2AESDEC )               \
+        X("aesdeclast", 2,              aptb2AESDECLAST )           \
+        X("aesenc",     2,              aptb2AESENC )               \
+        X("aesenclast", 2,              aptb2AESENCLAST )           \
+        X("aesimc",     2,              aptb2AESIMC )               \
+        X("aeskeygenassist", 3,         aptb3AESKEYGENASSIST )      \
+        X("and",        2,              aptb2AND )                  \
+        X("andnpd",     2,              aptb2ANDNPD )               \
+        X("andnps",     2,              aptb2ANDNPS )               \
+        X("andpd",      2,              aptb2ANDPD )                \
+        X("andps",      2,              aptb2ANDPS )                \
+        X("arpl",       2,              aptb2ARPL )                 \
+        X("blendpd",    3,              aptb3BLENDPD )              \
+        X("blendps",    3,              aptb3BLENDPS )              \
+        X("blendvpd",   3,              aptb3BLENDVPD )             \
+        X("blendvps",   3,              aptb3BLENDVPS )             \
+        X("bound",      2,              aptb2BOUND )                \
+        X("bsf",        2,              aptb2BSF )                  \
+        X("bsr",        2,              aptb2BSR )                  \
+        X("bswap",      1,              aptb1BSWAP )                \
+        X("bt",         2,              aptb2BT )                   \
+        X("btc",        2,              aptb2BTC )                  \
+        X("btr",        2,              aptb2BTR )                  \
+        X("bts",        2,              aptb2BTS )                  \
+        X("call",       ITjump | 1,     aptb1CALL )                 \
         X("cbw",        0,              aptb0CBW )                  \
         X("cdq",        0,              aptb0CDQ )                  \
         X("cdqe",       0,              aptb0CDQE )                 \
         X("clc",        0,              aptb0CLC )                  \
         X("cld",        0,              aptb0CLD )                  \
-        X("clflush",    1,              (P) aptb1CLFLUSH )          \
+        X("clflush",    1,              aptb1CLFLUSH )              \
         X("cli",        0,              aptb0CLI )                  \
         X("clts",       0,              aptb0CLTS )                 \
         X("cmc",        0,              aptb0CMC )                  \
-        X("cmova",      2,              (P) aptb2CMOVNBE )          \
-        X("cmovae",     2,              (P) aptb2CMOVNB )           \
-        X("cmovb",      2,              (P) aptb2CMOVB )            \
-        X("cmovbe",     2,              (P) aptb2CMOVBE )           \
-        X("cmovc",      2,              (P) aptb2CMOVB )            \
-        X("cmove",      2,              (P) aptb2CMOVZ )            \
-        X("cmovg",      2,              (P) aptb2CMOVNLE )          \
-        X("cmovge",     2,              (P) aptb2CMOVNL )           \
-        X("cmovl",      2,              (P) aptb2CMOVL )            \
-        X("cmovle",     2,              (P) aptb2CMOVLE )           \
-        X("cmovna",     2,              (P) aptb2CMOVBE )           \
-        X("cmovnae",    2,              (P) aptb2CMOVB )            \
-        X("cmovnb",     2,              (P) aptb2CMOVNB )           \
-        X("cmovnbe",    2,              (P) aptb2CMOVNBE )          \
-        X("cmovnc",     2,              (P) aptb2CMOVNB )           \
-        X("cmovne",     2,              (P) aptb2CMOVNZ )           \
-        X("cmovng",     2,              (P) aptb2CMOVLE )           \
-        X("cmovnge",    2,              (P) aptb2CMOVL )            \
-        X("cmovnl",     2,              (P) aptb2CMOVNL )           \
-        X("cmovnle",    2,              (P) aptb2CMOVNLE )          \
-        X("cmovno",     2,              (P) aptb2CMOVNO )           \
-        X("cmovnp",     2,              (P) aptb2CMOVNP )           \
-        X("cmovns",     2,              (P) aptb2CMOVNS )           \
-        X("cmovnz",     2,              (P) aptb2CMOVNZ )           \
-        X("cmovo",      2,              (P) aptb2CMOVO )            \
-        X("cmovp",      2,              (P) aptb2CMOVP )            \
-        X("cmovpe",     2,              (P) aptb2CMOVP )            \
-        X("cmovpo",     2,              (P) aptb2CMOVNP )           \
-        X("cmovs",      2,              (P) aptb2CMOVS )            \
-        X("cmovz",      2,              (P) aptb2CMOVZ )            \
-        X("cmp",        2,              (P) aptb2CMP )              \
-        X("cmppd",      3,              (P) aptb3CMPPD )            \
-        X("cmpps",      3,              (P) aptb3CMPPS )            \
-        X("cmps",       2,              (P) aptb2CMPS )             \
+        X("cmova",      2,              aptb2CMOVNBE )              \
+        X("cmovae",     2,              aptb2CMOVNB )               \
+        X("cmovb",      2,              aptb2CMOVB )                \
+        X("cmovbe",     2,              aptb2CMOVBE )               \
+        X("cmovc",      2,              aptb2CMOVB )                \
+        X("cmove",      2,              aptb2CMOVZ )                \
+        X("cmovg",      2,              aptb2CMOVNLE )              \
+        X("cmovge",     2,              aptb2CMOVNL )               \
+        X("cmovl",      2,              aptb2CMOVL )                \
+        X("cmovle",     2,              aptb2CMOVLE )               \
+        X("cmovna",     2,              aptb2CMOVBE )               \
+        X("cmovnae",    2,              aptb2CMOVB )                \
+        X("cmovnb",     2,              aptb2CMOVNB )               \
+        X("cmovnbe",    2,              aptb2CMOVNBE )              \
+        X("cmovnc",     2,              aptb2CMOVNB )               \
+        X("cmovne",     2,              aptb2CMOVNZ )               \
+        X("cmovng",     2,              aptb2CMOVLE )               \
+        X("cmovnge",    2,              aptb2CMOVL )                \
+        X("cmovnl",     2,              aptb2CMOVNL )               \
+        X("cmovnle",    2,              aptb2CMOVNLE )              \
+        X("cmovno",     2,              aptb2CMOVNO )               \
+        X("cmovnp",     2,              aptb2CMOVNP )               \
+        X("cmovns",     2,              aptb2CMOVNS )               \
+        X("cmovnz",     2,              aptb2CMOVNZ )               \
+        X("cmovo",      2,              aptb2CMOVO )                \
+        X("cmovp",      2,              aptb2CMOVP )                \
+        X("cmovpe",     2,              aptb2CMOVP )                \
+        X("cmovpo",     2,              aptb2CMOVNP )               \
+        X("cmovs",      2,              aptb2CMOVS )                \
+        X("cmovz",      2,              aptb2CMOVZ )                \
+        X("cmp",        2,              aptb2CMP )                  \
+        X("cmppd",      3,              aptb3CMPPD )                \
+        X("cmpps",      3,              aptb3CMPPS )                \
+        X("cmps",       2,              aptb2CMPS )                 \
         X("cmpsb",      0,              aptb0CMPSB )                \
         /*X("cmpsd",    0,              aptb0CMPSD )*/              \
-        X("cmpsd",      ITopt|3,        (P) aptb3CMPSD )            \
+        X("cmpsd",      ITopt|3,        aptb3CMPSD )                \
         X("cmpsq",      0,              aptb0CMPSQ )                \
-        X("cmpss",      3,              (P) aptb3CMPSS )            \
+        X("cmpss",      3,              aptb3CMPSS )                \
         X("cmpsw",      0,              aptb0CMPSW )                \
-        X("cmpxchg",    2,              (P) aptb2CMPXCHG )          \
-        X("cmpxchg16b", 1,              (P) aptb1CMPXCH16B )        \
-        X("cmpxchg8b",  1,              (P) aptb1CMPXCH8B )         \
-        X("comisd",     2,              (P) aptb2COMISD )           \
-        X("comiss",     2,              (P) aptb2COMISS )           \
+        X("cmpxchg",    2,              aptb2CMPXCHG )              \
+        X("cmpxchg16b", 1,              aptb1CMPXCH16B )            \
+        X("cmpxchg8b",  1,              aptb1CMPXCH8B )             \
+        X("comisd",     2,              aptb2COMISD )               \
+        X("comiss",     2,              aptb2COMISS )               \
         X("cpuid",      0,              aptb0CPUID )                \
         X("cqo",        0,              aptb0CQO )                  \
-        X("crc32",      2,              (P) aptb2CRC32 )            \
-        X("cvtdq2pd",   2,              (P) aptb2CVTDQ2PD )         \
-        X("cvtdq2ps",   2,              (P) aptb2CVTDQ2PS )         \
-        X("cvtpd2dq",   2,              (P) aptb2CVTPD2DQ )         \
-        X("cvtpd2pi",   2,              (P) aptb2CVTPD2PI )         \
-        X("cvtpd2ps",   2,              (P) aptb2CVTPD2PS )         \
-        X("cvtpi2pd",   2,              (P) aptb2CVTPI2PD )         \
-        X("cvtpi2ps",   2,              (P) aptb2CVTPI2PS )         \
-        X("cvtps2dq",   2,              (P) aptb2CVTPS2DQ )         \
-        X("cvtps2pd",   2,              (P) aptb2CVTPS2PD )         \
-        X("cvtps2pi",   2,              (P) aptb2CVTPS2PI )         \
-        X("cvtsd2si",   2,              (P) aptb2CVTSD2SI )         \
-        X("cvtsd2ss",   2,              (P) aptb2CVTSD2SS )         \
-        X("cvtsi2sd",   2,              (P) aptb2CVTSI2SD )         \
-        X("cvtsi2ss",   2,              (P) aptb2CVTSI2SS )         \
-        X("cvtss2sd",   2,              (P) aptb2CVTSS2SD )         \
-        X("cvtss2si",   2,              (P) aptb2CVTSS2SI )         \
-        X("cvttpd2dq",  2,              (P) aptb2CVTTPD2DQ )        \
-        X("cvttpd2pi",  2,              (P) aptb2CVTTPD2PI )        \
-        X("cvttps2dq",  2,              (P) aptb2CVTTPS2DQ )        \
-        X("cvttps2pi",  2,              (P) aptb2CVTTPS2PI )        \
-        X("cvttsd2si",  2,              (P) aptb2CVTTSD2SI )        \
-        X("cvttss2si",  2,              (P) aptb2CVTTSS2SI )        \
+        X("crc32",      2,              aptb2CRC32 )                \
+        X("cvtdq2pd",   2,              aptb2CVTDQ2PD )             \
+        X("cvtdq2ps",   2,              aptb2CVTDQ2PS )             \
+        X("cvtpd2dq",   2,              aptb2CVTPD2DQ )             \
+        X("cvtpd2pi",   2,              aptb2CVTPD2PI )             \
+        X("cvtpd2ps",   2,              aptb2CVTPD2PS )             \
+        X("cvtpi2pd",   2,              aptb2CVTPI2PD )             \
+        X("cvtpi2ps",   2,              aptb2CVTPI2PS )             \
+        X("cvtps2dq",   2,              aptb2CVTPS2DQ )             \
+        X("cvtps2pd",   2,              aptb2CVTPS2PD )             \
+        X("cvtps2pi",   2,              aptb2CVTPS2PI )             \
+        X("cvtsd2si",   2,              aptb2CVTSD2SI )             \
+        X("cvtsd2ss",   2,              aptb2CVTSD2SS )             \
+        X("cvtsi2sd",   2,              aptb2CVTSI2SD )             \
+        X("cvtsi2ss",   2,              aptb2CVTSI2SS )             \
+        X("cvtss2sd",   2,              aptb2CVTSS2SD )             \
+        X("cvtss2si",   2,              aptb2CVTSS2SI )             \
+        X("cvttpd2dq",  2,              aptb2CVTTPD2DQ )            \
+        X("cvttpd2pi",  2,              aptb2CVTTPD2PI )            \
+        X("cvttps2dq",  2,              aptb2CVTTPS2DQ )            \
+        X("cvttps2pi",  2,              aptb2CVTTPS2PI )            \
+        X("cvttsd2si",  2,              aptb2CVTTSD2SI )            \
+        X("cvttss2si",  2,              aptb2CVTTSS2SI )            \
         X("cwd",        0,              aptb0CWD )                  \
         X("cwde",       0,              aptb0CWDE )                 \
         X("da",         ITaddr | 4,     NULL )                      \
@@ -4885,449 +4883,449 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("db",         ITdata | OPdb,  NULL )                      \
         X("dd",         ITdata | OPdd,  NULL )                      \
         X("de",         ITdata | OPde,  NULL )                      \
-        X("dec",        1,              (P) aptb1DEC )              \
+        X("dec",        1,              aptb1DEC )                  \
         X("df",         ITdata | OPdf,  NULL )                      \
         X("di",         ITdata | OPdi,  NULL )                      \
-        X("div",        ITopt  | 2,     (P) aptb2DIV )              \
-        X("divpd",      2,              (P) aptb2DIVPD )            \
-        X("divps",      2,              (P) aptb2DIVPS )            \
-        X("divsd",      2,              (P) aptb2DIVSD )            \
-        X("divss",      2,              (P) aptb2DIVSS )            \
+        X("div",        ITopt  | 2,     aptb2DIV )                  \
+        X("divpd",      2,              aptb2DIVPD )                \
+        X("divps",      2,              aptb2DIVPS )                \
+        X("divsd",      2,              aptb2DIVSD )                \
+        X("divss",      2,              aptb2DIVSS )                \
         X("dl",         ITdata | OPdl,  NULL )                      \
-        X("dppd",       3,              (P) aptb3DPPD )             \
-        X("dpps",       3,              (P) aptb3DPPS )             \
+        X("dppd",       3,              aptb3DPPD )                 \
+        X("dpps",       3,              aptb3DPPS )                 \
         X("dq",         ITdata | OPdq,  NULL )                      \
         X("ds",         ITdata | OPds,  NULL )                      \
         X("dt",         ITdata | OPdt,  NULL )                      \
         X("dw",         ITdata | OPdw,  NULL )                      \
         X("emms",       0,              aptb0EMMS )                 \
-        X("enter",      2,              (P) aptb2ENTER )            \
-        X("extractps",  3,              (P) aptb3EXTRACTPS )        \
+        X("enter",      2,              aptb2ENTER )                \
+        X("extractps",  3,              aptb3EXTRACTPS )            \
         X("f2xm1",      ITfloat | 0,    aptb0F2XM1 )                \
         X("fabs",       ITfloat | 0,    aptb0FABS )                 \
-        X("fadd",       ITfloat | 2,    (P) aptb2FADD )             \
-        X("faddp",      ITfloat | 2,    (P) aptb2FADDP )            \
-        X("fbld",       ITfloat | 1,    (P) aptb1FBLD )             \
-        X("fbstp",      ITfloat | 1,    (P) aptb1FBSTP )            \
+        X("fadd",       ITfloat | 2,    aptb2FADD )                 \
+        X("faddp",      ITfloat | 2,    aptb2FADDP )                \
+        X("fbld",       ITfloat | 1,    aptb1FBLD )                 \
+        X("fbstp",      ITfloat | 1,    aptb1FBSTP )                \
         X("fchs",       ITfloat | 0,    aptb0FCHS )                 \
         X("fclex",      ITfloat | 0,    aptb0FCLEX )                \
-        X("fcmovb",     ITfloat | 2,    (P) aptb2FCMOVB )           \
-        X("fcmovbe",    ITfloat | 2,    (P) aptb2FCMOVBE )          \
-        X("fcmove",     ITfloat | 2,    (P) aptb2FCMOVE )           \
-        X("fcmovnb",    ITfloat | 2,    (P) aptb2FCMOVNB )          \
-        X("fcmovnbe",   ITfloat | 2,    (P) aptb2FCMOVNBE )         \
-        X("fcmovne",    ITfloat | 2,    (P) aptb2FCMOVNE )          \
-        X("fcmovnu",    ITfloat | 2,    (P) aptb2FCMOVNU )          \
-        X("fcmovu",     ITfloat | 2,    (P) aptb2FCMOVU )           \
-        X("fcom",       ITfloat | 1,    (P) aptb1FCOM )             \
-        X("fcomi",      ITfloat | 2,    (P) aptb2FCOMI )            \
-        X("fcomip",     ITfloat | 2,    (P) aptb2FCOMIP )           \
-        X("fcomp",      ITfloat | 1,    (P) aptb1FCOMP )            \
+        X("fcmovb",     ITfloat | 2,    aptb2FCMOVB )               \
+        X("fcmovbe",    ITfloat | 2,    aptb2FCMOVBE )              \
+        X("fcmove",     ITfloat | 2,    aptb2FCMOVE )               \
+        X("fcmovnb",    ITfloat | 2,    aptb2FCMOVNB )              \
+        X("fcmovnbe",   ITfloat | 2,    aptb2FCMOVNBE )             \
+        X("fcmovne",    ITfloat | 2,    aptb2FCMOVNE )              \
+        X("fcmovnu",    ITfloat | 2,    aptb2FCMOVNU )              \
+        X("fcmovu",     ITfloat | 2,    aptb2FCMOVU )               \
+        X("fcom",       ITfloat | 1,    aptb1FCOM )                 \
+        X("fcomi",      ITfloat | 2,    aptb2FCOMI )                \
+        X("fcomip",     ITfloat | 2,    aptb2FCOMIP )               \
+        X("fcomp",      ITfloat | 1,    aptb1FCOMP )                \
         X("fcompp",     ITfloat | 0,    aptb0FCOMPP )               \
         X("fcos",       ITfloat | 0,    aptb0FCOS )                 \
         X("fdecstp",    ITfloat | 0,    aptb0FDECSTP )              \
         X("fdisi",      ITfloat | 0,    aptb0FDISI )                \
-        X("fdiv",       ITfloat | 2,    (P) aptb2FDIV )             \
-        X("fdivp",      ITfloat | 2,    (P) aptb2FDIVP )            \
-        X("fdivr",      ITfloat | 2,    (P) aptb2FDIVR )            \
-        X("fdivrp",     ITfloat | 2,    (P) aptb2FDIVRP )           \
+        X("fdiv",       ITfloat | 2,    aptb2FDIV )                 \
+        X("fdivp",      ITfloat | 2,    aptb2FDIVP )                \
+        X("fdivr",      ITfloat | 2,    aptb2FDIVR )                \
+        X("fdivrp",     ITfloat | 2,    aptb2FDIVRP )               \
         X("feni",       ITfloat | 0,    aptb0FENI )                 \
-        X("ffree",      ITfloat | 1,    (P) aptb1FFREE )            \
-        X("fiadd",      ITfloat | 2,    (P) aptb2FIADD )            \
-        X("ficom",      ITfloat | 1,    (P) aptb1FICOM )            \
-        X("ficomp",     ITfloat | 1,    (P) aptb1FICOMP )           \
-        X("fidiv",      ITfloat | 2,    (P) aptb2FIDIV )            \
-        X("fidivr",     ITfloat | 2,    (P) aptb2FIDIVR )           \
-        X("fild",       ITfloat | 1,    (P) aptb1FILD )             \
-        X("fimul",      ITfloat | 2,    (P) aptb2FIMUL )            \
+        X("ffree",      ITfloat | 1,    aptb1FFREE )                \
+        X("fiadd",      ITfloat | 2,    aptb2FIADD )                \
+        X("ficom",      ITfloat | 1,    aptb1FICOM )                \
+        X("ficomp",     ITfloat | 1,    aptb1FICOMP )               \
+        X("fidiv",      ITfloat | 2,    aptb2FIDIV )                \
+        X("fidivr",     ITfloat | 2,    aptb2FIDIVR )               \
+        X("fild",       ITfloat | 1,    aptb1FILD )                 \
+        X("fimul",      ITfloat | 2,    aptb2FIMUL )                \
         X("fincstp",    ITfloat | 0,    aptb0FINCSTP )              \
         X("finit",      ITfloat | 0,    aptb0FINIT )                \
-        X("fist",       ITfloat | 1,    (P) aptb1FIST )             \
-        X("fistp",      ITfloat | 1,    (P) aptb1FISTP )            \
-        X("fisttp",     ITfloat | 1,    (P) aptb1FISTTP )           \
-        X("fisub",      ITfloat | 2,    (P) aptb2FISUB )            \
-        X("fisubr",     ITfloat | 2,    (P) aptb2FISUBR )           \
-        X("fld",        ITfloat | 1,    (P) aptb1FLD )              \
+        X("fist",       ITfloat | 1,    aptb1FIST )                 \
+        X("fistp",      ITfloat | 1,    aptb1FISTP )                \
+        X("fisttp",     ITfloat | 1,    aptb1FISTTP )               \
+        X("fisub",      ITfloat | 2,    aptb2FISUB )                \
+        X("fisubr",     ITfloat | 2,    aptb2FISUBR )               \
+        X("fld",        ITfloat | 1,    aptb1FLD )                  \
         X("fld1",       ITfloat | 0,    aptb0FLD1 )                 \
-        X("fldcw",      ITfloat | 1,    (P) aptb1FLDCW )            \
-        X("fldenv",     ITfloat | 1,    (P) aptb1FLDENV )           \
+        X("fldcw",      ITfloat | 1,    aptb1FLDCW )                \
+        X("fldenv",     ITfloat | 1,    aptb1FLDENV )               \
         X("fldl2e",     ITfloat | 0,    aptb0FLDL2E )               \
         X("fldl2t",     ITfloat | 0,    aptb0FLDL2T )               \
         X("fldlg2",     ITfloat | 0,    aptb0FLDLG2 )               \
         X("fldln2",     ITfloat | 0,    aptb0FLDLN2 )               \
         X("fldpi",      ITfloat | 0,    aptb0FLDPI )                \
         X("fldz",       ITfloat | 0,    aptb0FLDZ )                 \
-        X("fmul",       ITfloat | 2,    (P) aptb2FMUL )             \
-        X("fmulp",      ITfloat | 2,    (P) aptb2FMULP )            \
+        X("fmul",       ITfloat | 2,    aptb2FMUL )                 \
+        X("fmulp",      ITfloat | 2,    aptb2FMULP )                \
         X("fnclex",     ITfloat | 0,    aptb0FNCLEX )               \
         X("fndisi",     ITfloat | 0,    aptb0FNDISI )               \
         X("fneni",      ITfloat | 0,    aptb0FNENI )                \
         X("fninit",     ITfloat | 0,    aptb0FNINIT )               \
         X("fnop",       ITfloat | 0,    aptb0FNOP )                 \
-        X("fnsave",     ITfloat | 1,    (P) aptb1FNSAVE )           \
-        X("fnstcw",     ITfloat | 1,    (P) aptb1FNSTCW )           \
-        X("fnstenv",    ITfloat | 1,    (P) aptb1FNSTENV )          \
-        X("fnstsw",     1,              (P) aptb1FNSTSW )           \
+        X("fnsave",     ITfloat | 1,    aptb1FNSAVE )               \
+        X("fnstcw",     ITfloat | 1,    aptb1FNSTCW )               \
+        X("fnstenv",    ITfloat | 1,    aptb1FNSTENV )              \
+        X("fnstsw",     1,              aptb1FNSTSW )               \
         X("fpatan",     ITfloat | 0,    aptb0FPATAN )               \
         X("fprem",      ITfloat | 0,    aptb0FPREM )                \
         X("fprem1",     ITfloat | 0,    aptb0FPREM1 )               \
         X("fptan",      ITfloat | 0,    aptb0FPTAN )                \
         X("frndint",    ITfloat | 0,    aptb0FRNDINT )              \
-        X("frstor",     ITfloat | 1,    (P) aptb1FRSTOR )           \
-        X("fsave",      ITfloat | 1,    (P) aptb1FSAVE )            \
+        X("frstor",     ITfloat | 1,    aptb1FRSTOR )               \
+        X("fsave",      ITfloat | 1,    aptb1FSAVE )                \
         X("fscale",     ITfloat | 0,    aptb0FSCALE )               \
         X("fsetpm",     ITfloat | 0,    aptb0FSETPM )               \
         X("fsin",       ITfloat | 0,    aptb0FSIN )                 \
         X("fsincos",    ITfloat | 0,    aptb0FSINCOS )              \
         X("fsqrt",      ITfloat | 0,    aptb0FSQRT )                \
-        X("fst",        ITfloat | 1,    (P) aptb1FST )              \
-        X("fstcw",      ITfloat | 1,    (P) aptb1FSTCW )            \
-        X("fstenv",     ITfloat | 1,    (P) aptb1FSTENV )           \
-        X("fstp",       ITfloat | 1,    (P) aptb1FSTP )             \
-        X("fstsw",      1,              (P) aptb1FSTSW )            \
-        X("fsub",       ITfloat | 2,    (P) aptb2FSUB )             \
-        X("fsubp",      ITfloat | 2,    (P) aptb2FSUBP )            \
-        X("fsubr",      ITfloat | 2,    (P) aptb2FSUBR )            \
-        X("fsubrp",     ITfloat | 2,    (P) aptb2FSUBRP )           \
+        X("fst",        ITfloat | 1,    aptb1FST )                  \
+        X("fstcw",      ITfloat | 1,    aptb1FSTCW )                \
+        X("fstenv",     ITfloat | 1,    aptb1FSTENV )               \
+        X("fstp",       ITfloat | 1,    aptb1FSTP )                 \
+        X("fstsw",      1,              aptb1FSTSW )                \
+        X("fsub",       ITfloat | 2,    aptb2FSUB )                 \
+        X("fsubp",      ITfloat | 2,    aptb2FSUBP )                \
+        X("fsubr",      ITfloat | 2,    aptb2FSUBR )                \
+        X("fsubrp",     ITfloat | 2,    aptb2FSUBRP )               \
         X("ftst",       ITfloat | 0,    aptb0FTST )                 \
-        X("fucom",      ITfloat | 1,    (P) aptb1FUCOM )            \
-        X("fucomi",     ITfloat | 2,    (P) aptb2FUCOMI )           \
-        X("fucomip",    ITfloat | 2,    (P) aptb2FUCOMIP )          \
-        X("fucomp",     ITfloat | 1,    (P) aptb1FUCOMP )           \
+        X("fucom",      ITfloat | 1,    aptb1FUCOM )                \
+        X("fucomi",     ITfloat | 2,    aptb2FUCOMI )               \
+        X("fucomip",    ITfloat | 2,    aptb2FUCOMIP )              \
+        X("fucomp",     ITfloat | 1,    aptb1FUCOMP )               \
         X("fucompp",    ITfloat | 0,    aptb0FUCOMPP )              \
         X("fwait",      ITfloat | 0,    aptb0FWAIT )                \
         X("fxam",       ITfloat | 0,    aptb0FXAM )                 \
-        X("fxch",       ITfloat | 1,    (P) aptb1FXCH )             \
-        X("fxrstor",    ITfloat | 1,    (P) aptb1FXRSTOR )          \
-        X("fxsave",     ITfloat | 1,    (P) aptb1FXSAVE )           \
+        X("fxch",       ITfloat | 1,    aptb1FXCH )                 \
+        X("fxrstor",    ITfloat | 1,    aptb1FXRSTOR )              \
+        X("fxsave",     ITfloat | 1,    aptb1FXSAVE )               \
         X("fxtract",    ITfloat | 0,    aptb0FXTRACT )              \
         X("fyl2x",      ITfloat | 0,    aptb0FYL2X )                \
         X("fyl2xp1",    ITfloat | 0,    aptb0FYL2XP1 )              \
-        X("haddpd",     2,              (P) aptb2HADDPD )           \
-        X("haddps",     2,              (P) aptb2HADDPS )           \
+        X("haddpd",     2,              aptb2HADDPD )               \
+        X("haddps",     2,              aptb2HADDPS )               \
         X("hlt",        0,              aptb0HLT )                  \
-        X("hsubpd",     2,              (P) aptb2HSUBPD )           \
-        X("hsubps",     2,              (P) aptb2HSUBPS )           \
-        X("idiv",       ITopt | 2,      (P) aptb2IDIV )             \
-        X("imul",       ITopt | 3,      (P) aptb3IMUL )             \
-        X("in",         2,              (P) aptb2IN )               \
-        X("inc",        1,              (P) aptb1INC )              \
-        X("ins",        2,              (P) aptb2INS )              \
+        X("hsubpd",     2,              aptb2HSUBPD )               \
+        X("hsubps",     2,              aptb2HSUBPS )               \
+        X("idiv",       ITopt | 2,      aptb2IDIV )                 \
+        X("imul",       ITopt | 3,      aptb3IMUL )                 \
+        X("in",         2,              aptb2IN )                   \
+        X("inc",        1,              aptb1INC )                  \
+        X("ins",        2,              aptb2INS )                  \
         X("insb",       0,              aptb0INSB )                 \
         X("insd",       0,              aptb0INSD )                 \
-        X("insertps",   3,              (P) aptb3INSERTPS )         \
+        X("insertps",   3,              aptb3INSERTPS )             \
         X("insw",       0,              aptb0INSW )                 \
-        X("int",        ITimmed | 1,    (P) aptb1INT )              \
+        X("int",        ITimmed | 1,    aptb1INT )                  \
         X("into",       0,              aptb0INTO )                 \
         X("invd",       0,              aptb0INVD )                 \
-        X("invlpg",     1,              (P) aptb1INVLPG )           \
+        X("invlpg",     1,              aptb1INVLPG )               \
         X("iret",       0,              aptb0IRET )                 \
         X("iretd",      0,              aptb0IRETD )                \
-        X("ja",         ITjump | 1,     (P) aptb1JNBE )             \
-        X("jae",        ITjump | 1,     (P) aptb1JNB )              \
-        X("jb",         ITjump | 1,     (P) aptb1JB )               \
-        X("jbe",        ITjump | 1,     (P) aptb1JBE )              \
-        X("jc",         ITjump | 1,     (P) aptb1JB )               \
-        X("jcxz",       ITjump | 1,     (P) aptb1JCXZ )             \
-        X("je",         ITjump | 1,     (P) aptb1JZ )               \
-        X("jecxz",      ITjump | 1,     (P) aptb1JECXZ )            \
-        X("jg",         ITjump | 1,     (P) aptb1JNLE )             \
-        X("jge",        ITjump | 1,     (P) aptb1JNL )              \
-        X("jl",         ITjump | 1,     (P) aptb1JL )               \
-        X("jle",        ITjump | 1,     (P) aptb1JLE )              \
-        X("jmp",        ITjump | 1,     (P) aptb1JMP )              \
-        X("jna",        ITjump | 1,     (P) aptb1JBE )              \
-        X("jnae",       ITjump | 1,     (P) aptb1JB )               \
-        X("jnb",        ITjump | 1,     (P) aptb1JNB )              \
-        X("jnbe",       ITjump | 1,     (P) aptb1JNBE )             \
-        X("jnc",        ITjump | 1,     (P) aptb1JNB )              \
-        X("jne",        ITjump | 1,     (P) aptb1JNZ )              \
-        X("jng",        ITjump | 1,     (P) aptb1JLE )              \
-        X("jnge",       ITjump | 1,     (P) aptb1JL )               \
-        X("jnl",        ITjump | 1,     (P) aptb1JNL )              \
-        X("jnle",       ITjump | 1,     (P) aptb1JNLE )             \
-        X("jno",        ITjump | 1,     (P) aptb1JNO )              \
-        X("jnp",        ITjump | 1,     (P) aptb1JNP )              \
-        X("jns",        ITjump | 1,     (P) aptb1JNS )              \
-        X("jnz",        ITjump | 1,     (P) aptb1JNZ )              \
-        X("jo",         ITjump | 1,     (P) aptb1JO )               \
-        X("jp",         ITjump | 1,     (P) aptb1JP )               \
-        X("jpe",        ITjump | 1,     (P) aptb1JP )               \
-        X("jpo",        ITjump | 1,     (P) aptb1JNP )              \
-        X("js",         ITjump | 1,     (P) aptb1JS )               \
-        X("jz",         ITjump | 1,     (P) aptb1JZ )               \
+        X("ja",         ITjump | 1,     aptb1JNBE )                 \
+        X("jae",        ITjump | 1,     aptb1JNB )                  \
+        X("jb",         ITjump | 1,     aptb1JB )                   \
+        X("jbe",        ITjump | 1,     aptb1JBE )                  \
+        X("jc",         ITjump | 1,     aptb1JB )                   \
+        X("jcxz",       ITjump | 1,     aptb1JCXZ )                 \
+        X("je",         ITjump | 1,     aptb1JZ )                   \
+        X("jecxz",      ITjump | 1,     aptb1JECXZ )                \
+        X("jg",         ITjump | 1,     aptb1JNLE )                 \
+        X("jge",        ITjump | 1,     aptb1JNL )                  \
+        X("jl",         ITjump | 1,     aptb1JL )                   \
+        X("jle",        ITjump | 1,     aptb1JLE )                  \
+        X("jmp",        ITjump | 1,     aptb1JMP )                  \
+        X("jna",        ITjump | 1,     aptb1JBE )                  \
+        X("jnae",       ITjump | 1,     aptb1JB )                   \
+        X("jnb",        ITjump | 1,     aptb1JNB )                  \
+        X("jnbe",       ITjump | 1,     aptb1JNBE )                 \
+        X("jnc",        ITjump | 1,     aptb1JNB )                  \
+        X("jne",        ITjump | 1,     aptb1JNZ )                  \
+        X("jng",        ITjump | 1,     aptb1JLE )                  \
+        X("jnge",       ITjump | 1,     aptb1JL )                   \
+        X("jnl",        ITjump | 1,     aptb1JNL )                  \
+        X("jnle",       ITjump | 1,     aptb1JNLE )                 \
+        X("jno",        ITjump | 1,     aptb1JNO )                  \
+        X("jnp",        ITjump | 1,     aptb1JNP )                  \
+        X("jns",        ITjump | 1,     aptb1JNS )                  \
+        X("jnz",        ITjump | 1,     aptb1JNZ )                  \
+        X("jo",         ITjump | 1,     aptb1JO )                   \
+        X("jp",         ITjump | 1,     aptb1JP )                   \
+        X("jpe",        ITjump | 1,     aptb1JP )                   \
+        X("jpo",        ITjump | 1,     aptb1JNP )                  \
+        X("js",         ITjump | 1,     aptb1JS )                   \
+        X("jz",         ITjump | 1,     aptb1JZ )                   \
 
 
 #define OPCODETABLE2                                                    \
         X("lahf",           0,              aptb0LAHF )                     \
-        X("lar",            2,              (P) aptb2LAR )                  \
-        X("lddqu",          2,              (P) aptb2LDDQU )                \
-        X("ldmxcsr",        1,              (P) aptb1LDMXCSR )              \
-        X("lds",            2,              (P) aptb2LDS )                  \
-        X("lea",            2,              (P) aptb2LEA )                  \
+        X("lar",            2,              aptb2LAR )                      \
+        X("lddqu",          2,              aptb2LDDQU )                    \
+        X("ldmxcsr",        1,              aptb1LDMXCSR )                  \
+        X("lds",            2,              aptb2LDS )                      \
+        X("lea",            2,              aptb2LEA )                      \
         X("leave",          0,              aptb0LEAVE )                    \
-        X("les",            2,              (P) aptb2LES )                  \
+        X("les",            2,              aptb2LES )                      \
         X("lfence",         0,              aptb0LFENCE)                    \
-        X("lfs",            2,              (P) aptb2LFS )                  \
-        X("lgdt",           1,              (P) aptb1LGDT )                 \
-        X("lgs",            2,              (P) aptb2LGS )                  \
-        X("lidt",           1,              (P) aptb1LIDT )                 \
-        X("lldt",           1,              (P) aptb1LLDT )                 \
-        X("lmsw",           1,              (P) aptb1LMSW )                 \
+        X("lfs",            2,              aptb2LFS )                      \
+        X("lgdt",           1,              aptb1LGDT )                     \
+        X("lgs",            2,              aptb2LGS )                      \
+        X("lidt",           1,              aptb1LIDT )                     \
+        X("lldt",           1,              aptb1LLDT )                     \
+        X("lmsw",           1,              aptb1LMSW )                     \
         X("lock",           ITprefix | 0,   aptb0LOCK )                     \
-        X("lods",           1,              (P) aptb1LODS )                 \
+        X("lods",           1,              aptb1LODS )                     \
         X("lodsb",          0,              aptb0LODSB )                    \
         X("lodsd",          0,              aptb0LODSD )                    \
         X("lodsq",          0,              aptb0LODSQ )                    \
         X("lodsw",          0,              aptb0LODSW )                    \
-        X("loop",           ITjump | 1,     (P) aptb1LOOP )                 \
-        X("loope",          ITjump | 1,     (P) aptb1LOOPE )                \
-        X("loopne",         ITjump | 1,     (P) aptb1LOOPNE )               \
-        X("loopnz",         ITjump | 1,     (P) aptb1LOOPNE )               \
-        X("loopz",          ITjump | 1,     (P) aptb1LOOPE )                \
-        X("lsl",            2,              (P) aptb2LSL )                  \
-        X("lss",            2,              (P) aptb2LSS )                  \
-        X("ltr",            1,              (P) aptb1LTR )                  \
-        X("lzcnt",          2,              (P) aptb2LZCNT )                \
-        X("maskmovdqu",     2,              (P) aptb2MASKMOVDQU )           \
-        X("maskmovq",       2,              (P) aptb2MASKMOVQ )             \
-        X("maxpd",          2,              (P) aptb2MAXPD )                \
-        X("maxps",          2,              (P) aptb2MAXPS )                \
-        X("maxsd",          2,              (P) aptb2MAXSD )                \
-        X("maxss",          2,              (P) aptb2MAXSS )                \
+        X("loop",           ITjump | 1,     aptb1LOOP )                     \
+        X("loope",          ITjump | 1,     aptb1LOOPE )                    \
+        X("loopne",         ITjump | 1,     aptb1LOOPNE )                   \
+        X("loopnz",         ITjump | 1,     aptb1LOOPNE )                   \
+        X("loopz",          ITjump | 1,     aptb1LOOPE )                    \
+        X("lsl",            2,              aptb2LSL )                      \
+        X("lss",            2,              aptb2LSS )                      \
+        X("ltr",            1,              aptb1LTR )                      \
+        X("lzcnt",          2,              aptb2LZCNT )                    \
+        X("maskmovdqu",     2,              aptb2MASKMOVDQU )               \
+        X("maskmovq",       2,              aptb2MASKMOVQ )                 \
+        X("maxpd",          2,              aptb2MAXPD )                    \
+        X("maxps",          2,              aptb2MAXPS )                    \
+        X("maxsd",          2,              aptb2MAXSD )                    \
+        X("maxss",          2,              aptb2MAXSS )                    \
         X("mfence",         0,              aptb0MFENCE)                    \
-        X("minpd",          2,              (P) aptb2MINPD )                \
-        X("minps",          2,              (P) aptb2MINPS )                \
-        X("minsd",          2,              (P) aptb2MINSD )                \
-        X("minss",          2,              (P) aptb2MINSS )                \
-        X("monitor",        0,              (P) aptb0MONITOR )              \
-        X("mov",            2,              (P) aptb2MOV )                  \
-        X("movapd",         2,              (P) aptb2MOVAPD )               \
-        X("movaps",         2,              (P) aptb2MOVAPS )               \
-        X("movd",           2,              (P) aptb2MOVD )                 \
-        X("movddup",        2,              (P) aptb2MOVDDUP )              \
-        X("movdq2q",        2,              (P) aptb2MOVDQ2Q )              \
-        X("movdqa",         2,              (P) aptb2MOVDQA )               \
-        X("movdqu",         2,              (P) aptb2MOVDQU )               \
-        X("movhlps",        2,              (P) aptb2MOVHLPS )              \
-        X("movhpd",         2,              (P) aptb2MOVHPD )               \
-        X("movhps",         2,              (P) aptb2MOVHPS )               \
-        X("movlhps",        2,              (P) aptb2MOVLHPS )              \
-        X("movlpd",         2,              (P) aptb2MOVLPD )               \
-        X("movlps",         2,              (P) aptb2MOVLPS )               \
-        X("movmskpd",       2,              (P) aptb2MOVMSKPD )             \
-        X("movmskps",       2,              (P) aptb2MOVMSKPS )             \
-        X("movntdq",        2,              (P) aptb2MOVNTDQ )              \
-        X("movntdqa",       2,              (P) aptb2MOVNTDQA )             \
-        X("movnti",         2,              (P) aptb2MOVNTI )               \
-        X("movntpd",        2,              (P) aptb2MOVNTPD )              \
-        X("movntps",        2,              (P) aptb2MOVNTPS )              \
-        X("movntq",         2,              (P) aptb2MOVNTQ )               \
-        X("movq",           2,              (P) aptb2MOVQ )                 \
-        X("movq2dq",        2,              (P) aptb2MOVQ2DQ )              \
-        X("movs",           2,              (P) aptb2MOVS )                 \
+        X("minpd",          2,              aptb2MINPD )                    \
+        X("minps",          2,              aptb2MINPS )                    \
+        X("minsd",          2,              aptb2MINSD )                    \
+        X("minss",          2,              aptb2MINSS )                    \
+        X("monitor",        0,              aptb0MONITOR )                  \
+        X("mov",            2,              aptb2MOV )                      \
+        X("movapd",         2,              aptb2MOVAPD )                   \
+        X("movaps",         2,              aptb2MOVAPS )                   \
+        X("movd",           2,              aptb2MOVD )                     \
+        X("movddup",        2,              aptb2MOVDDUP )                  \
+        X("movdq2q",        2,              aptb2MOVDQ2Q )                  \
+        X("movdqa",         2,              aptb2MOVDQA )                   \
+        X("movdqu",         2,              aptb2MOVDQU )                   \
+        X("movhlps",        2,              aptb2MOVHLPS )                  \
+        X("movhpd",         2,              aptb2MOVHPD )                   \
+        X("movhps",         2,              aptb2MOVHPS )                   \
+        X("movlhps",        2,              aptb2MOVLHPS )                  \
+        X("movlpd",         2,              aptb2MOVLPD )                   \
+        X("movlps",         2,              aptb2MOVLPS )                   \
+        X("movmskpd",       2,              aptb2MOVMSKPD )                 \
+        X("movmskps",       2,              aptb2MOVMSKPS )                 \
+        X("movntdq",        2,              aptb2MOVNTDQ )                  \
+        X("movntdqa",       2,              aptb2MOVNTDQA )                 \
+        X("movnti",         2,              aptb2MOVNTI )                   \
+        X("movntpd",        2,              aptb2MOVNTPD )                  \
+        X("movntps",        2,              aptb2MOVNTPS )                  \
+        X("movntq",         2,              aptb2MOVNTQ )                   \
+        X("movq",           2,              aptb2MOVQ )                     \
+        X("movq2dq",        2,              aptb2MOVQ2DQ )                  \
+        X("movs",           2,              aptb2MOVS )                     \
         X("movsb",          0,              aptb0MOVSB )                    \
-        X("movsd",          ITopt | 2,      (P) aptb2MOVSD )                \
-        X("movshdup",       2,              (P) aptb2MOVSHDUP )             \
-        X("movsldup",       2,              (P) aptb2MOVSLDUP )             \
+        X("movsd",          ITopt | 2,      aptb2MOVSD )                    \
+        X("movshdup",       2,              aptb2MOVSHDUP )                 \
+        X("movsldup",       2,              aptb2MOVSLDUP )                 \
         X("movsq",          0,              aptb0MOVSQ )                    \
-        X("movss",          2,              (P) aptb2MOVSS )                \
+        X("movss",          2,              aptb2MOVSS )                    \
         X("movsw",          0,              aptb0MOVSW )                    \
-        X("movsx",          2,              (P) aptb2MOVSX )                \
-        X("movsxd",         2,              (P) aptb2MOVSXD )               \
-        X("movupd",         2,              (P) aptb2MOVUPD )               \
-        X("movups",         2,              (P) aptb2MOVUPS )               \
-        X("movzx",          2,              (P) aptb2MOVZX )                \
-        X("mpsadbw",        3,              (P) aptb3MPSADBW )              \
-        X("mul",            ITopt | 2,      (P) aptb2MUL )                  \
-        X("mulpd",          2,              (P) aptb2MULPD )                \
-        X("mulps",          2,              (P) aptb2MULPS )                \
-        X("mulsd",          2,              (P) aptb2MULSD )                \
-        X("mulss",          2,              (P) aptb2MULSS )                \
-        X("mwait",          0,              (P) aptb0MWAIT )                \
-        X("neg",            1,              (P) aptb1NEG )                  \
+        X("movsx",          2,              aptb2MOVSX )                    \
+        X("movsxd",         2,              aptb2MOVSXD )                   \
+        X("movupd",         2,              aptb2MOVUPD )                   \
+        X("movups",         2,              aptb2MOVUPS )                   \
+        X("movzx",          2,              aptb2MOVZX )                    \
+        X("mpsadbw",        3,              aptb3MPSADBW )                  \
+        X("mul",            ITopt | 2,      aptb2MUL )                      \
+        X("mulpd",          2,              aptb2MULPD )                    \
+        X("mulps",          2,              aptb2MULPS )                    \
+        X("mulsd",          2,              aptb2MULSD )                    \
+        X("mulss",          2,              aptb2MULSS )                    \
+        X("mwait",          0,              aptb0MWAIT )                    \
+        X("neg",            1,              aptb1NEG )                      \
         X("nop",            0,              aptb0NOP )                      \
-        X("not",            1,              (P) aptb1NOT )                  \
-        X("or",             2,              (P) aptb2OR )                   \
-        X("orpd",           2,              (P) aptb2ORPD )                 \
-        X("orps",           2,              (P) aptb2ORPS )                 \
-        X("out",            2,              (P) aptb2OUT )                  \
-        X("outs",           2,              (P) aptb2OUTS )                 \
+        X("not",            1,              aptb1NOT )                      \
+        X("or",             2,              aptb2OR )                       \
+        X("orpd",           2,              aptb2ORPD )                     \
+        X("orps",           2,              aptb2ORPS )                     \
+        X("out",            2,              aptb2OUT )                      \
+        X("outs",           2,              aptb2OUTS )                     \
         X("outsb",          0,              aptb0OUTSB )                    \
         X("outsd",          0,              aptb0OUTSD )                    \
         X("outsw",          0,              aptb0OUTSW )                    \
-        X("pabsb",          2,              (P) aptb2PABSB )                \
-        X("pabsd",          2,              (P) aptb2PABSD )                \
-        X("pabsw",          2,              (P) aptb2PABSW )                \
-        X("packssdw",       2,              (P) aptb2PACKSSDW )             \
-        X("packsswb",       2,              (P) aptb2PACKSSWB )             \
-        X("packusdw",       2,              (P) aptb2PACKUSDW )             \
-        X("packuswb",       2,              (P) aptb2PACKUSWB )             \
-        X("paddb",          2,              (P) aptb2PADDB )                \
-        X("paddd",          2,              (P) aptb2PADDD )                \
-        X("paddq",          2,              (P) aptb2PADDQ )                \
-        X("paddsb",         2,              (P) aptb2PADDSB )               \
-        X("paddsw",         2,              (P) aptb2PADDSW )               \
-        X("paddusb",        2,              (P) aptb2PADDUSB )              \
-        X("paddusw",        2,              (P) aptb2PADDUSW )              \
-        X("paddw",          2,              (P) aptb2PADDW )                \
-        X("palignr",        3,              (P) aptb3PALIGNR )              \
-        X("pand",           2,              (P) aptb2PAND )                 \
-        X("pandn",          2,              (P) aptb2PANDN )                \
+        X("pabsb",          2,              aptb2PABSB )                    \
+        X("pabsd",          2,              aptb2PABSD )                    \
+        X("pabsw",          2,              aptb2PABSW )                    \
+        X("packssdw",       2,              aptb2PACKSSDW )                 \
+        X("packsswb",       2,              aptb2PACKSSWB )                 \
+        X("packusdw",       2,              aptb2PACKUSDW )                 \
+        X("packuswb",       2,              aptb2PACKUSWB )                 \
+        X("paddb",          2,              aptb2PADDB )                    \
+        X("paddd",          2,              aptb2PADDD )                    \
+        X("paddq",          2,              aptb2PADDQ )                    \
+        X("paddsb",         2,              aptb2PADDSB )                   \
+        X("paddsw",         2,              aptb2PADDSW )                   \
+        X("paddusb",        2,              aptb2PADDUSB )                  \
+        X("paddusw",        2,              aptb2PADDUSW )                  \
+        X("paddw",          2,              aptb2PADDW )                    \
+        X("palignr",        3,              aptb3PALIGNR )                  \
+        X("pand",           2,              aptb2PAND )                     \
+        X("pandn",          2,              aptb2PANDN )                    \
         /* X("pause",       0,              aptb0PAUSE) */                  \
-        X("pavgb",          2,              (P) aptb2PAVGB )                \
-        X("pavgusb",        2,              (P) aptb2PAVGUSB )              \
-        X("pavgw",          2,              (P) aptb2PAVGW )                \
-        X("pblendvb",       3,              (P) aptb3PBLENDVB )             \
-        X("pblendw",        3,              (P) aptb3PBLENDW )              \
-        X("pcmpeqb",        2,              (P) aptb2PCMPEQB )              \
-        X("pcmpeqd",        2,              (P) aptb2PCMPEQD )              \
-        X("pcmpeqq",        2,              (P) aptb2PCMPEQQ )              \
-        X("pcmpeqw",        2,              (P) aptb2PCMPEQW )              \
-        X("pcmpestri",      3,              (P) aptb3PCMPESTRI )            \
-        X("pcmpestrm",      3,              (P) aptb3PCMPESTRM )            \
-        X("pcmpgtb",        2,              (P) aptb2PCMPGTB )              \
-        X("pcmpgtd",        2,              (P) aptb2PCMPGTD )              \
-        X("pcmpgtq",        2,              (P) aptb2PCMPGTQ )              \
-        X("pcmpgtw",        2,              (P) aptb2PCMPGTW )              \
-        X("pcmpistri",      3,              (P) aptb3PCMPISTRI )            \
-        X("pcmpistrm",      3,              (P) aptb3PCMPISTRM )            \
-        X("pextrb",         3,              (P) aptb3PEXTRB )               \
-        X("pextrd",         3,              (P) aptb3PEXTRD )               \
-        X("pextrq",         3,              (P) aptb3PEXTRQ )               \
-        X("pextrw",         3,              (P) aptb3PEXTRW )               \
-        X("pf2id",          2,              (P) aptb2PF2ID )                \
-        X("pfacc",          2,              (P) aptb2PFACC )                \
-        X("pfadd",          2,              (P) aptb2PFADD )                \
-        X("pfcmpeq",        2,              (P) aptb2PFCMPEQ )              \
-        X("pfcmpge",        2,              (P) aptb2PFCMPGE )              \
-        X("pfcmpgt",        2,              (P) aptb2PFCMPGT )              \
-        X("pfmax",          2,              (P) aptb2PFMAX )                \
-        X("pfmin",          2,              (P) aptb2PFMIN )                \
-        X("pfmul",          2,              (P) aptb2PFMUL )                \
-        X("pfnacc",         2,              (P) aptb2PFNACC )               \
-        X("pfpnacc",        2,              (P) aptb2PFPNACC )              \
-        X("pfrcp",          2,              (P) aptb2PFRCP )                \
-        X("pfrcpit1",       2,              (P) aptb2PFRCPIT1 )             \
-        X("pfrcpit2",       2,              (P) aptb2PFRCPIT2 )             \
-        X("pfrsqit1",       2,              (P) aptb2PFRSQIT1 )             \
-        X("pfrsqrt",        2,              (P) aptb2PFRSQRT )              \
-        X("pfsub",          2,              (P) aptb2PFSUB )                \
-        X("pfsubr",         2,              (P) aptb2PFSUBR )               \
-        X("phaddd",         2,              (P) aptb2PHADDD )               \
-        X("phaddsw",        2,              (P) aptb2PHADDSW )              \
-        X("phaddw",         2,              (P) aptb2PHADDW )               \
-        X("phminposuw",     2,              (P) aptb2PHMINPOSUW )           \
-        X("phsubd",         2,              (P) aptb2PHSUBD )               \
-        X("phsubsw",        2,              (P) aptb2PHSUBSW )              \
-        X("phsubw",         2,              (P) aptb2PHSUBW )               \
-        X("pi2fd",          2,              (P) aptb2PI2FD )                \
-        X("pinsrb",         3,              (P) aptb3PINSRB )               \
-        X("pinsrd",         3,              (P) aptb3PINSRD )               \
-        X("pinsrq",         3,              (P) aptb3PINSRQ )               \
-        X("pinsrw",         3,              (P) aptb3PINSRW )               \
-        X("pmaddubsw",      2,              (P) aptb2PMADDUBSW )            \
-        X("pmaddwd",        2,              (P) aptb2PMADDWD )              \
-        X("pmaxsb",         2,              (P) aptb2PMAXSB )               \
-        X("pmaxsd",         2,              (P) aptb2PMAXSD )               \
-        X("pmaxsw",         2,              (P) aptb2PMAXSW )               \
-        X("pmaxub",         2,              (P) aptb2PMAXUB )               \
-        X("pmaxud",         2,              (P) aptb2PMAXUD )               \
-        X("pmaxuw",         2,              (P) aptb2PMAXUW )               \
-        X("pminsb",         2,              (P) aptb2PMINSB )               \
-        X("pminsd",         2,              (P) aptb2PMINSD )               \
-        X("pminsw",         2,              (P) aptb2PMINSW )               \
-        X("pminub",         2,              (P) aptb2PMINUB )               \
-        X("pminud",         2,              (P) aptb2PMINUD )               \
-        X("pminuw",         2,              (P) aptb2PMINUW )               \
-        X("pmovmskb",       2,              (P) aptb2PMOVMSKB )             \
-        X("pmovsxbd",       2,              (P) aptb2PMOVSXBD )             \
-        X("pmovsxbq",       2,              (P) aptb2PMOVSXBQ )             \
-        X("pmovsxbw",       2,              (P) aptb2PMOVSXBW )             \
-        X("pmovsxdq",       2,              (P) aptb2PMOVSXDQ )             \
-        X("pmovsxwd",       2,              (P) aptb2PMOVSXWD )             \
-        X("pmovsxwq",       2,              (P) aptb2PMOVSXWQ )             \
-        X("pmovzxbd",       2,              (P) aptb2PMOVZXBD )             \
-        X("pmovzxbq",       2,              (P) aptb2PMOVZXBQ )             \
-        X("pmovzxbw",       2,              (P) aptb2PMOVZXBW )             \
-        X("pmovzxdq",       2,              (P) aptb2PMOVZXDQ )             \
-        X("pmovzxwd",       2,              (P) aptb2PMOVZXWD )             \
-        X("pmovzxwq",       2,              (P) aptb2PMOVZXWQ )             \
-        X("pmuldq",         2,              (P) aptb2PMULDQ )               \
-        X("pmulhrsw",       2,              (P) aptb2PMULHRSW )             \
-        X("pmulhrw",        2,              (P) aptb2PMULHRW )              \
-        X("pmulhuw",        2,              (P) aptb2PMULHUW )              \
-        X("pmulhw",         2,              (P) aptb2PMULHW )               \
-        X("pmulld",         2,              (P) aptb2PMULLD )               \
-        X("pmullw",         2,              (P) aptb2PMULLW )               \
-        X("pmuludq",        2,              (P) aptb2PMULUDQ )              \
-        X("pop",            1,              (P) aptb1POP )                  \
+        X("pavgb",          2,              aptb2PAVGB )                    \
+        X("pavgusb",        2,              aptb2PAVGUSB )                  \
+        X("pavgw",          2,              aptb2PAVGW )                    \
+        X("pblendvb",       3,              aptb3PBLENDVB )                 \
+        X("pblendw",        3,              aptb3PBLENDW )                  \
+        X("pcmpeqb",        2,              aptb2PCMPEQB )                  \
+        X("pcmpeqd",        2,              aptb2PCMPEQD )                  \
+        X("pcmpeqq",        2,              aptb2PCMPEQQ )                  \
+        X("pcmpeqw",        2,              aptb2PCMPEQW )                  \
+        X("pcmpestri",      3,              aptb3PCMPESTRI )                \
+        X("pcmpestrm",      3,              aptb3PCMPESTRM )                \
+        X("pcmpgtb",        2,              aptb2PCMPGTB )                  \
+        X("pcmpgtd",        2,              aptb2PCMPGTD )                  \
+        X("pcmpgtq",        2,              aptb2PCMPGTQ )                  \
+        X("pcmpgtw",        2,              aptb2PCMPGTW )                  \
+        X("pcmpistri",      3,              aptb3PCMPISTRI )                \
+        X("pcmpistrm",      3,              aptb3PCMPISTRM )                \
+        X("pextrb",         3,              aptb3PEXTRB )                   \
+        X("pextrd",         3,              aptb3PEXTRD )                   \
+        X("pextrq",         3,              aptb3PEXTRQ )                   \
+        X("pextrw",         3,              aptb3PEXTRW )                   \
+        X("pf2id",          2,              aptb2PF2ID )                    \
+        X("pfacc",          2,              aptb2PFACC )                    \
+        X("pfadd",          2,              aptb2PFADD )                    \
+        X("pfcmpeq",        2,              aptb2PFCMPEQ )                  \
+        X("pfcmpge",        2,              aptb2PFCMPGE )                  \
+        X("pfcmpgt",        2,              aptb2PFCMPGT )                  \
+        X("pfmax",          2,              aptb2PFMAX )                    \
+        X("pfmin",          2,              aptb2PFMIN )                    \
+        X("pfmul",          2,              aptb2PFMUL )                    \
+        X("pfnacc",         2,              aptb2PFNACC )                   \
+        X("pfpnacc",        2,              aptb2PFPNACC )                  \
+        X("pfrcp",          2,              aptb2PFRCP )                    \
+        X("pfrcpit1",       2,              aptb2PFRCPIT1 )                 \
+        X("pfrcpit2",       2,              aptb2PFRCPIT2 )                 \
+        X("pfrsqit1",       2,              aptb2PFRSQIT1 )                 \
+        X("pfrsqrt",        2,              aptb2PFRSQRT )                  \
+        X("pfsub",          2,              aptb2PFSUB )                    \
+        X("pfsubr",         2,              aptb2PFSUBR )                   \
+        X("phaddd",         2,              aptb2PHADDD )                   \
+        X("phaddsw",        2,              aptb2PHADDSW )                  \
+        X("phaddw",         2,              aptb2PHADDW )                   \
+        X("phminposuw",     2,              aptb2PHMINPOSUW )               \
+        X("phsubd",         2,              aptb2PHSUBD )                   \
+        X("phsubsw",        2,              aptb2PHSUBSW )                  \
+        X("phsubw",         2,              aptb2PHSUBW )                   \
+        X("pi2fd",          2,              aptb2PI2FD )                    \
+        X("pinsrb",         3,              aptb3PINSRB )                   \
+        X("pinsrd",         3,              aptb3PINSRD )                   \
+        X("pinsrq",         3,              aptb3PINSRQ )                   \
+        X("pinsrw",         3,              aptb3PINSRW )                   \
+        X("pmaddubsw",      2,              aptb2PMADDUBSW )                \
+        X("pmaddwd",        2,              aptb2PMADDWD )                  \
+        X("pmaxsb",         2,              aptb2PMAXSB )                   \
+        X("pmaxsd",         2,              aptb2PMAXSD )                   \
+        X("pmaxsw",         2,              aptb2PMAXSW )                   \
+        X("pmaxub",         2,              aptb2PMAXUB )                   \
+        X("pmaxud",         2,              aptb2PMAXUD )                   \
+        X("pmaxuw",         2,              aptb2PMAXUW )                   \
+        X("pminsb",         2,              aptb2PMINSB )                   \
+        X("pminsd",         2,              aptb2PMINSD )                   \
+        X("pminsw",         2,              aptb2PMINSW )                   \
+        X("pminub",         2,              aptb2PMINUB )                   \
+        X("pminud",         2,              aptb2PMINUD )                   \
+        X("pminuw",         2,              aptb2PMINUW )                   \
+        X("pmovmskb",       2,              aptb2PMOVMSKB )                 \
+        X("pmovsxbd",       2,              aptb2PMOVSXBD )                 \
+        X("pmovsxbq",       2,              aptb2PMOVSXBQ )                 \
+        X("pmovsxbw",       2,              aptb2PMOVSXBW )                 \
+        X("pmovsxdq",       2,              aptb2PMOVSXDQ )                 \
+        X("pmovsxwd",       2,              aptb2PMOVSXWD )                 \
+        X("pmovsxwq",       2,              aptb2PMOVSXWQ )                 \
+        X("pmovzxbd",       2,              aptb2PMOVZXBD )                 \
+        X("pmovzxbq",       2,              aptb2PMOVZXBQ )                 \
+        X("pmovzxbw",       2,              aptb2PMOVZXBW )                 \
+        X("pmovzxdq",       2,              aptb2PMOVZXDQ )                 \
+        X("pmovzxwd",       2,              aptb2PMOVZXWD )                 \
+        X("pmovzxwq",       2,              aptb2PMOVZXWQ )                 \
+        X("pmuldq",         2,              aptb2PMULDQ )                   \
+        X("pmulhrsw",       2,              aptb2PMULHRSW )                 \
+        X("pmulhrw",        2,              aptb2PMULHRW )                  \
+        X("pmulhuw",        2,              aptb2PMULHUW )                  \
+        X("pmulhw",         2,              aptb2PMULHW )                   \
+        X("pmulld",         2,              aptb2PMULLD )                   \
+        X("pmullw",         2,              aptb2PMULLW )                   \
+        X("pmuludq",        2,              aptb2PMULUDQ )                  \
+        X("pop",            1,              aptb1POP )                      \
         X("popa",           0,              aptb0POPA )                     \
         X("popad",          0,              aptb0POPAD )                    \
-        X("popcnt",         2,              (P) aptb2POPCNT )               \
+        X("popcnt",         2,              aptb2POPCNT )                   \
         X("popf",           0,              aptb0POPF )                     \
         X("popfd",          0,              aptb0POPFD )                    \
         X("popfq",          0,              aptb0POPFQ )                    \
-        X("por",            2,              (P) aptb2POR )                  \
-        X("prefetchnta",    1,              (P) aptb1PREFETCHNTA )          \
-        X("prefetcht0",     1,              (P) aptb1PREFETCHT0 )           \
-        X("prefetcht1",     1,              (P) aptb1PREFETCHT1 )           \
-        X("prefetcht2",     1,              (P) aptb1PREFETCHT2 )           \
-        X("prefetchw",      1,              (P) aptb1PREFETCHW )            \
-        X("prefetchwt1",    1,              (P) aptb1PREFETCHWT1 )          \
-        X("psadbw",         2,              (P) aptb2PSADBW )               \
-        X("pshufb",         2,              (P) aptb2PSHUFB )               \
-        X("pshufd",         3,              (P) aptb3PSHUFD )               \
-        X("pshufhw",        3,              (P) aptb3PSHUFHW )              \
-        X("pshuflw",        3,              (P) aptb3PSHUFLW )              \
-        X("pshufw",         3,              (P) aptb3PSHUFW )               \
-        X("psignb",         2,              (P) aptb2PSIGNB )               \
-        X("psignd",         2,              (P) aptb2PSIGND )               \
-        X("psignw",         2,              (P) aptb2PSIGNW )               \
-        X("pslld",          2,              (P) aptb2PSLLD )                \
-        X("pslldq",         2,              (P) aptb2PSLLDQ )               \
-        X("psllq",          2,              (P) aptb2PSLLQ )                \
-        X("psllw",          2,              (P) aptb2PSLLW )                \
-        X("psrad",          2,              (P) aptb2PSRAD )                \
-        X("psraw",          2,              (P) aptb2PSRAW )                \
-        X("psrld",          2,              (P) aptb2PSRLD )                \
-        X("psrldq",         2,              (P) aptb2PSRLDQ )               \
-        X("psrlq",          2,              (P) aptb2PSRLQ )                \
-        X("psrlw",          2,              (P) aptb2PSRLW )                \
-        X("psubb",          2,              (P) aptb2PSUBB )                \
-        X("psubd",          2,              (P) aptb2PSUBD )                \
-        X("psubq",          2,              (P) aptb2PSUBQ )                \
-        X("psubsb",         2,              (P) aptb2PSUBSB )               \
-        X("psubsw",         2,              (P) aptb2PSUBSW )               \
-        X("psubusb",        2,              (P) aptb2PSUBUSB )              \
-        X("psubusw",        2,              (P) aptb2PSUBUSW )              \
-        X("psubw",          2,              (P) aptb2PSUBW )                \
-        X("pswapd",         2,              (P) aptb2PSWAPD )               \
-        X("ptest",          2,              (P) aptb2PTEST )                \
-        X("punpckhbw",      2,              (P) aptb2PUNPCKHBW )            \
-        X("punpckhdq",      2,              (P) aptb2PUNPCKHDQ )            \
-        X("punpckhqdq",     2,              (P) aptb2PUNPCKHQDQ )           \
-        X("punpckhwd",      2,              (P) aptb2PUNPCKHWD )            \
-        X("punpcklbw",      2,              (P) aptb2PUNPCKLBW )            \
-        X("punpckldq",      2,              (P) aptb2PUNPCKLDQ )            \
-        X("punpcklqdq",     2,              (P) aptb2PUNPCKLQDQ )           \
-        X("punpcklwd",      2,              (P) aptb2PUNPCKLWD )            \
-        X("push",           1,              (P) aptb1PUSH )                 \
+        X("por",            2,              aptb2POR )                      \
+        X("prefetchnta",    1,              aptb1PREFETCHNTA )              \
+        X("prefetcht0",     1,              aptb1PREFETCHT0 )               \
+        X("prefetcht1",     1,              aptb1PREFETCHT1 )               \
+        X("prefetcht2",     1,              aptb1PREFETCHT2 )               \
+        X("prefetchw",      1,              aptb1PREFETCHW )                \
+        X("prefetchwt1",    1,              aptb1PREFETCHWT1 )              \
+        X("psadbw",         2,              aptb2PSADBW )                   \
+        X("pshufb",         2,              aptb2PSHUFB )                   \
+        X("pshufd",         3,              aptb3PSHUFD )                   \
+        X("pshufhw",        3,              aptb3PSHUFHW )                  \
+        X("pshuflw",        3,              aptb3PSHUFLW )                  \
+        X("pshufw",         3,              aptb3PSHUFW )                   \
+        X("psignb",         2,              aptb2PSIGNB )                   \
+        X("psignd",         2,              aptb2PSIGND )                   \
+        X("psignw",         2,              aptb2PSIGNW )                   \
+        X("pslld",          2,              aptb2PSLLD )                    \
+        X("pslldq",         2,              aptb2PSLLDQ )                   \
+        X("psllq",          2,              aptb2PSLLQ )                    \
+        X("psllw",          2,              aptb2PSLLW )                    \
+        X("psrad",          2,              aptb2PSRAD )                    \
+        X("psraw",          2,              aptb2PSRAW )                    \
+        X("psrld",          2,              aptb2PSRLD )                    \
+        X("psrldq",         2,              aptb2PSRLDQ )                   \
+        X("psrlq",          2,              aptb2PSRLQ )                    \
+        X("psrlw",          2,              aptb2PSRLW )                    \
+        X("psubb",          2,              aptb2PSUBB )                    \
+        X("psubd",          2,              aptb2PSUBD )                    \
+        X("psubq",          2,              aptb2PSUBQ )                    \
+        X("psubsb",         2,              aptb2PSUBSB )                   \
+        X("psubsw",         2,              aptb2PSUBSW )                   \
+        X("psubusb",        2,              aptb2PSUBUSB )                  \
+        X("psubusw",        2,              aptb2PSUBUSW )                  \
+        X("psubw",          2,              aptb2PSUBW )                    \
+        X("pswapd",         2,              aptb2PSWAPD )                   \
+        X("ptest",          2,              aptb2PTEST )                    \
+        X("punpckhbw",      2,              aptb2PUNPCKHBW )                \
+        X("punpckhdq",      2,              aptb2PUNPCKHDQ )                \
+        X("punpckhqdq",     2,              aptb2PUNPCKHQDQ )               \
+        X("punpckhwd",      2,              aptb2PUNPCKHWD )                \
+        X("punpcklbw",      2,              aptb2PUNPCKLBW )                \
+        X("punpckldq",      2,              aptb2PUNPCKLDQ )                \
+        X("punpcklqdq",     2,              aptb2PUNPCKLQDQ )               \
+        X("punpcklwd",      2,              aptb2PUNPCKLWD )                \
+        X("push",           1,              aptb1PUSH )                     \
         X("pusha",          0,              aptb0PUSHA )                    \
         X("pushad",         0,              aptb0PUSHAD )                   \
         X("pushf",          0,              aptb0PUSHF )                    \
         X("pushfd",         0,              aptb0PUSHFD )                   \
         X("pushfq",         0,              aptb0PUSHFQ )                   \
-        X("pxor",           2,              (P) aptb2PXOR )                 \
-        X("rcl",            ITshift | 2,    (P) aptb2RCL )                  \
-        X("rcpps",          2,              (P) aptb2RCPPS )                \
-        X("rcpss",          2,              (P) aptb2RCPSS )                \
-        X("rcr",            ITshift | 2,    (P) aptb2RCR )                  \
-        X("rdfsbase",       1,              (P) aptb1RDFSBASE )             \
-        X("rdgsbase",       1,              (P) aptb1RDGSBASE )             \
+        X("pxor",           2,              aptb2PXOR )                     \
+        X("rcl",            ITshift | 2,    aptb2RCL )                      \
+        X("rcpps",          2,              aptb2RCPPS )                    \
+        X("rcpss",          2,              aptb2RCPSS )                    \
+        X("rcr",            ITshift | 2,    aptb2RCR )                      \
+        X("rdfsbase",       1,              aptb1RDFSBASE )                 \
+        X("rdgsbase",       1,              aptb1RDGSBASE )                 \
         X("rdmsr",          0,              aptb0RDMSR )                    \
         X("rdpmc",          0,              aptb0RDPMC )                    \
-        X("rdrand",         1,              (P) aptb1RDRAND )               \
+        X("rdrand",         1,              aptb1RDRAND )                   \
         X("rdtsc",          0,              aptb0RDTSC )                    \
         X("rdtscp",         0,              aptb0RDTSCP )                   \
         X("rep",            ITprefix | 0,   aptb0REP )                      \
@@ -5335,423 +5333,423 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("repne",          ITprefix | 0,   aptb0REPNE )                    \
         X("repnz",          ITprefix | 0,   aptb0REPNE )                    \
         X("repz",           ITprefix | 0,   aptb0REP )                      \
-        X("ret",            ITopt | 1,      (P) aptb1RET )                  \
-        X("retf",           ITopt | 1,      (P) aptb1RETF )                 \
-        X("rol",            ITshift | 2,    (P) aptb2ROL )                  \
-        X("ror",            ITshift | 2,    (P) aptb2ROR )                  \
-        X("roundpd",        3,              (P) aptb3ROUNDPD )              \
-        X("roundps",        3,              (P) aptb3ROUNDPS )              \
-        X("roundsd",        3,              (P) aptb3ROUNDSD )              \
-        X("roundss",        3,              (P) aptb3ROUNDSS )              \
+        X("ret",            ITopt | 1,      aptb1RET )                      \
+        X("retf",           ITopt | 1,      aptb1RETF )                     \
+        X("rol",            ITshift | 2,    aptb2ROL )                      \
+        X("ror",            ITshift | 2,    aptb2ROR )                      \
+        X("roundpd",        3,              aptb3ROUNDPD )                  \
+        X("roundps",        3,              aptb3ROUNDPS )                  \
+        X("roundsd",        3,              aptb3ROUNDSD )                  \
+        X("roundss",        3,              aptb3ROUNDSS )                  \
         X("rsm",            0,              aptb0RSM )                      \
-        X("rsqrtps",        2,              (P) aptb2RSQRTPS )              \
-        X("rsqrtss",        2,              (P) aptb2RSQRTSS )              \
+        X("rsqrtps",        2,              aptb2RSQRTPS )                  \
+        X("rsqrtss",        2,              aptb2RSQRTSS )                  \
         X("sahf",           0,              aptb0SAHF )                     \
-        X("sal",            ITshift | 2,    (P) aptb2SHL )                  \
-        X("sar",            ITshift | 2,    (P) aptb2SAR )                  \
-        X("sbb",            2,              (P) aptb2SBB )                  \
-        X("scas",           1,              (P) aptb1SCAS )                 \
+        X("sal",            ITshift | 2,    aptb2SHL )                      \
+        X("sar",            ITshift | 2,    aptb2SAR )                      \
+        X("sbb",            2,              aptb2SBB )                      \
+        X("scas",           1,              aptb1SCAS )                     \
         X("scasb",          0,              aptb0SCASB )                    \
         X("scasd",          0,              aptb0SCASD )                    \
         X("scasq",          0,              aptb0SCASQ )                    \
         X("scasw",          0,              aptb0SCASW )                    \
-        X("seta",           1,              (P) aptb1SETNBE )               \
-        X("setae",          1,              (P) aptb1SETNB )                \
-        X("setb",           1,              (P) aptb1SETB )                 \
-        X("setbe",          1,              (P) aptb1SETBE )                \
-        X("setc",           1,              (P) aptb1SETB )                 \
-        X("sete",           1,              (P) aptb1SETZ )                 \
-        X("setg",           1,              (P) aptb1SETNLE )               \
-        X("setge",          1,              (P) aptb1SETNL )                \
-        X("setl",           1,              (P) aptb1SETL )                 \
-        X("setle",          1,              (P) aptb1SETLE )                \
-        X("setna",          1,              (P) aptb1SETBE )                \
-        X("setnae",         1,              (P) aptb1SETB )                 \
-        X("setnb",          1,              (P) aptb1SETNB )                \
-        X("setnbe",         1,              (P) aptb1SETNBE )               \
-        X("setnc",          1,              (P) aptb1SETNB )                \
-        X("setne",          1,              (P) aptb1SETNZ )                \
-        X("setng",          1,              (P) aptb1SETLE )                \
-        X("setnge",         1,              (P) aptb1SETL )                 \
-        X("setnl",          1,              (P) aptb1SETNL )                \
-        X("setnle",         1,              (P) aptb1SETNLE )               \
-        X("setno",          1,              (P) aptb1SETNO )                \
-        X("setnp",          1,              (P) aptb1SETNP )                \
-        X("setns",          1,              (P) aptb1SETNS )                \
-        X("setnz",          1,              (P) aptb1SETNZ )                \
-        X("seto",           1,              (P) aptb1SETO )                 \
-        X("setp",           1,              (P) aptb1SETP )                 \
-        X("setpe",          1,              (P) aptb1SETP )                 \
-        X("setpo",          1,              (P) aptb1SETNP )                \
-        X("sets",           1,              (P) aptb1SETS )                 \
-        X("setz",           1,              (P) aptb1SETZ )                 \
+        X("seta",           1,              aptb1SETNBE )                   \
+        X("setae",          1,              aptb1SETNB )                    \
+        X("setb",           1,              aptb1SETB )                     \
+        X("setbe",          1,              aptb1SETBE )                    \
+        X("setc",           1,              aptb1SETB )                     \
+        X("sete",           1,              aptb1SETZ )                     \
+        X("setg",           1,              aptb1SETNLE )                   \
+        X("setge",          1,              aptb1SETNL )                    \
+        X("setl",           1,              aptb1SETL )                     \
+        X("setle",          1,              aptb1SETLE )                    \
+        X("setna",          1,              aptb1SETBE )                    \
+        X("setnae",         1,              aptb1SETB )                     \
+        X("setnb",          1,              aptb1SETNB )                    \
+        X("setnbe",         1,              aptb1SETNBE )                   \
+        X("setnc",          1,              aptb1SETNB )                    \
+        X("setne",          1,              aptb1SETNZ )                    \
+        X("setng",          1,              aptb1SETLE )                    \
+        X("setnge",         1,              aptb1SETL )                     \
+        X("setnl",          1,              aptb1SETNL )                    \
+        X("setnle",         1,              aptb1SETNLE )                   \
+        X("setno",          1,              aptb1SETNO )                    \
+        X("setnp",          1,              aptb1SETNP )                    \
+        X("setns",          1,              aptb1SETNS )                    \
+        X("setnz",          1,              aptb1SETNZ )                    \
+        X("seto",           1,              aptb1SETO )                     \
+        X("setp",           1,              aptb1SETP )                     \
+        X("setpe",          1,              aptb1SETP )                     \
+        X("setpo",          1,              aptb1SETNP )                    \
+        X("sets",           1,              aptb1SETS )                     \
+        X("setz",           1,              aptb1SETZ )                     \
         X("sfence",         0,              aptb0SFENCE)                    \
-        X("sgdt",           1,              (P) aptb1SGDT )                 \
-        X("sha1msg1",       2,              (P) aptb2SHA1MSG1 )             \
-        X("sha1msg2",       2,              (P) aptb2SHA1MSG2 )             \
-        X("sha1nexte",      2,              (P) aptb2SHA1NEXTE )            \
-        X("sha1rnds4",      3,              (P) aptb3SHA1RNDS4 )            \
-        X("sha256msg1",     2,              (P) aptb2SHA256MSG1 )           \
-        X("sha256msg2",     2,              (P) aptb2SHA256MSG2 )           \
-        X("sha256rnds2",    2,              (P) aptb2SHA256RNDS2 )          \
-        X("shl",            ITshift | 2,    (P) aptb2SHL )                  \
-        X("shld",           3,              (P) aptb3SHLD )                 \
-        X("shr",            ITshift | 2,    (P) aptb2SHR )                  \
-        X("shrd",           3,              (P) aptb3SHRD )                 \
-        X("shufpd",         3,              (P) aptb3SHUFPD )               \
-        X("shufps",         3,              (P) aptb3SHUFPS )               \
-        X("sidt",           1,              (P) aptb1SIDT )                 \
-        X("sldt",           1,              (P) aptb1SLDT )                 \
-        X("smsw",           1,              (P) aptb1SMSW )                 \
-        X("sqrtpd",         2,              (P) aptb2SQRTPD )               \
-        X("sqrtps",         2,              (P) aptb2SQRTPS )               \
-        X("sqrtsd",         2,              (P) aptb2SQRTSD )               \
-        X("sqrtss",         2,              (P) aptb2SQRTSS )               \
+        X("sgdt",           1,              aptb1SGDT )                     \
+        X("sha1msg1",       2,              aptb2SHA1MSG1 )                 \
+        X("sha1msg2",       2,              aptb2SHA1MSG2 )                 \
+        X("sha1nexte",      2,              aptb2SHA1NEXTE )                \
+        X("sha1rnds4",      3,              aptb3SHA1RNDS4 )                \
+        X("sha256msg1",     2,              aptb2SHA256MSG1 )               \
+        X("sha256msg2",     2,              aptb2SHA256MSG2 )               \
+        X("sha256rnds2",    2,              aptb2SHA256RNDS2 )              \
+        X("shl",            ITshift | 2,    aptb2SHL )                      \
+        X("shld",           3,              aptb3SHLD )                     \
+        X("shr",            ITshift | 2,    aptb2SHR )                      \
+        X("shrd",           3,              aptb3SHRD )                     \
+        X("shufpd",         3,              aptb3SHUFPD )                   \
+        X("shufps",         3,              aptb3SHUFPS )                   \
+        X("sidt",           1,              aptb1SIDT )                     \
+        X("sldt",           1,              aptb1SLDT )                     \
+        X("smsw",           1,              aptb1SMSW )                     \
+        X("sqrtpd",         2,              aptb2SQRTPD )                   \
+        X("sqrtps",         2,              aptb2SQRTPS )                   \
+        X("sqrtsd",         2,              aptb2SQRTSD )                   \
+        X("sqrtss",         2,              aptb2SQRTSS )                   \
         X("stc",            0,              aptb0STC )                      \
         X("std",            0,              aptb0STD )                      \
         X("sti",            0,              aptb0STI )                      \
-        X("stmxcsr",        1,              (P) aptb1STMXCSR )              \
-        X("stos",           1,              (P) aptb1STOS )                 \
+        X("stmxcsr",        1,              aptb1STMXCSR )                  \
+        X("stos",           1,              aptb1STOS )                     \
         X("stosb",          0,              aptb0STOSB )                    \
         X("stosd",          0,              aptb0STOSD )                    \
         X("stosq",          0,              aptb0STOSQ )                    \
         X("stosw",          0,              aptb0STOSW )                    \
-        X("str",            1,              (P) aptb1STR )                  \
-        X("sub",            2,              (P) aptb2SUB )                  \
-        X("subpd",          2,              (P) aptb2SUBPD )                \
-        X("subps",          2,              (P) aptb2SUBPS )                \
-        X("subsd",          2,              (P) aptb2SUBSD )                \
-        X("subss",          2,              (P) aptb2SUBSS )                \
+        X("str",            1,              aptb1STR )                      \
+        X("sub",            2,              aptb2SUB )                      \
+        X("subpd",          2,              aptb2SUBPD )                    \
+        X("subps",          2,              aptb2SUBPS )                    \
+        X("subsd",          2,              aptb2SUBSD )                    \
+        X("subss",          2,              aptb2SUBSS )                    \
         X("syscall",        0,              aptb0SYSCALL )                  \
         X("sysenter",       0,              aptb0SYSENTER )                 \
         X("sysexit",        0,              aptb0SYSEXIT )                  \
         X("sysret",         0,              aptb0SYSRET )                   \
-        X("test",           2,              (P) aptb2TEST )                 \
-        X("tzcnt",          2,              (P) aptb2TZCNT )                \
-        X("ucomisd",        2,              (P) aptb2UCOMISD )              \
-        X("ucomiss",        2,              (P) aptb2UCOMISS )              \
+        X("test",           2,              aptb2TEST )                     \
+        X("tzcnt",          2,              aptb2TZCNT )                    \
+        X("ucomisd",        2,              aptb2UCOMISD )                  \
+        X("ucomiss",        2,              aptb2UCOMISS )                  \
         X("ud2",            0,              aptb0UD2 )                      \
-        X("unpckhpd",       2,              (P) aptb2UNPCKHPD )             \
-        X("unpckhps",       2,              (P) aptb2UNPCKHPS )             \
-        X("unpcklpd",       2,              (P) aptb2UNPCKLPD )             \
-        X("unpcklps",       2,              (P) aptb2UNPCKLPS )             \
+        X("unpckhpd",       2,              aptb2UNPCKHPD )                 \
+        X("unpckhps",       2,              aptb2UNPCKHPS )                 \
+        X("unpcklpd",       2,              aptb2UNPCKLPD )                 \
+        X("unpcklps",       2,              aptb2UNPCKLPS )                 \
 
 
 #define OPCODETABLE3 \
-        X("vaddpd",         3,              (P) aptb3VADDPD )               \
-        X("vaddps",         3,              (P) aptb3VADDPS )               \
-        X("vaddsd",         3,              (P) aptb3VADDSD )               \
-        X("vaddss",         3,              (P) aptb3VADDSS )               \
-        X("vaddsubpd",      3,              (P) aptb3VADDSUBPD )            \
-        X("vaddsubps",      3,              (P) aptb3VADDSUBPS )            \
-        X("vaesdec",        3,              (P) aptb3VAESDEC )              \
-        X("vaesdeclast",    3,              (P) aptb3VAESDECLAST )          \
-        X("vaesenc",        3,              (P) aptb3VAESENC )              \
-        X("vaesenclast",    3,              (P) aptb3VAESENCLAST )          \
-        X("vaesimc",        2,              (P) aptb2VAESIMC )              \
-        X("vaeskeygenassist", 3,            (P) aptb3VAESKEYGENASSIST )     \
-        X("vandnpd",        3,              (P) aptb3VANDNPD )              \
-        X("vandnps",        3,              (P) aptb3VANDNPS )              \
-        X("vandpd",         3,              (P) aptb3VANDPD )               \
-        X("vandps",         3,              (P) aptb3VANDPS )               \
-        X("vblendpd",       4,              (P) aptb4VBLENDPD )             \
-        X("vblendps",       4,              (P) aptb4VBLENDPS )             \
-        X("vblendvpd",      4,              (P) aptb4VBLENDVPD )            \
-        X("vblendvps",      4,              (P) aptb4VBLENDVPS )            \
-        X("vbroadcastf128", 2,              (P) aptb2VBROADCASTF128 )       \
-        X("vbroadcastsd",   2,              (P) aptb2VBROADCASTSD )         \
-        X("vbroadcastss",   2,              (P) aptb2VBROADCASTSS )         \
-        X("vcmppd",         4,              (P) aptb4VCMPPD )               \
-        X("vcmpps",         4,              (P) aptb4VCMPPS )               \
-        X("vcmpsd",         4,              (P) aptb4VCMPSD )               \
-        X("vcmpss",         4,              (P) aptb4VCMPSS )               \
-        X("vcomisd",        2,              (P) aptb2VCOMISD )              \
-        X("vcomiss",        2,              (P) aptb2VCOMISS )              \
-        X("vcvtdq2pd",      2,              (P) aptb2VCVTDQ2PD )            \
-        X("vcvtdq2ps",      2,              (P) aptb2VCVTDQ2PS )            \
-        X("vcvtpd2dq",      2,              (P) aptb2VCVTPD2DQ )            \
-        X("vcvtpd2ps",      2,              (P) aptb2VCVTPD2PS )            \
-        X("vcvtph2ps",      2,              (P) aptb2VCVTPH2PS )            \
-        X("vcvtps2dq",      2,              (P) aptb2VCVTPS2DQ )            \
-        X("vcvtps2pd",      2,              (P) aptb2VCVTPS2PD )            \
-        X("vcvtps2ph",      3,              (P) aptb3VCVTPS2PH )            \
-        X("vcvtsd2si",      2,              (P) aptb2VCVTSD2SI )            \
-        X("vcvtsd2ss",      3,              (P) aptb3VCVTSD2SS )            \
-        X("vcvtsi2sd",      3,              (P) aptb3VCVTSI2SD )            \
-        X("vcvtsi2ss",      3,              (P) aptb3VCVTSI2SS )            \
-        X("vcvtss2sd",      3,              (P) aptb3VCVTSS2SD )            \
-        X("vcvtss2si",      2,              (P) aptb2VCVTSS2SI )            \
-        X("vcvttpd2dq",     2,              (P) aptb2VCVTTPD2DQ )           \
-        X("vcvttps2dq",     2,              (P) aptb2VCVTTPS2DQ )           \
-        X("vcvttsd2si",     2,              (P) aptb2VCVTTSD2SI )           \
-        X("vcvttss2si",     2,              (P) aptb2VCVTTSS2SI )           \
-        X("vdivpd",         3,              (P) aptb3VDIVPD )               \
-        X("vdivps",         3,              (P) aptb3VDIVPS )               \
-        X("vdivsd",         3,              (P) aptb3VDIVSD )               \
-        X("vdivss",         3,              (P) aptb3VDIVSS )               \
-        X("vdppd",          4,              (P) aptb4VDPPD )                \
-        X("vdpps",          4,              (P) aptb4VDPPS )                \
-        X("verr",           1,              (P) aptb1VERR )                 \
-        X("verw",           1,              (P) aptb1VERW )                 \
-        X("vextractf128",   3,              (P) aptb3VEXTRACTF128 )         \
-        X("vextractps",     3,              (P) aptb3VEXTRACTPS )           \
-        X("vfmadd132pd",    3,              (P) aptb3VFMADD132PD )          \
-        X("vfmadd132ps",    3,              (P) aptb3VFMADD132PS )          \
-        X("vfmadd132sd",    3,              (P) aptb3VFMADD132SD )          \
-        X("vfmadd132ss",    3,              (P) aptb3VFMADD132SS )          \
-        X("vfmadd213pd",    3,              (P) aptb3VFMADD213PD )          \
-        X("vfmadd213ps",    3,              (P) aptb3VFMADD213PS )          \
-        X("vfmadd213sd",    3,              (P) aptb3VFMADD213SD )          \
-        X("vfmadd213ss",    3,              (P) aptb3VFMADD213SS )          \
-        X("vfmadd231pd",    3,              (P) aptb3VFMADD231PD )          \
-        X("vfmadd231ps",    3,              (P) aptb3VFMADD231PS )          \
-        X("vfmadd231sd",    3,              (P) aptb3VFMADD231SD )          \
-        X("vfmadd231ss",    3,              (P) aptb3VFMADD231SS )          \
-        X("vfmaddsub132pd", 3,              (P) aptb3VFMADDSUB132PD )       \
-        X("vfmaddsub132ps", 3,              (P) aptb3VFMADDSUB132PS )       \
-        X("vfmaddsub213pd", 3,              (P) aptb3VFMADDSUB213PD )       \
-        X("vfmaddsub213ps", 3,              (P) aptb3VFMADDSUB213PS )       \
-        X("vfmaddsub231pd", 3,              (P) aptb3VFMADDSUB231PD )       \
-        X("vfmaddsub231ps", 3,              (P) aptb3VFMADDSUB231PS )       \
-        X("vfmsub132pd",    3,              (P) aptb3VFMSUB132PD )          \
-        X("vfmsub132ps",    3,              (P) aptb3VFMSUB132PS )          \
-        X("vfmsub132sd",    3,              (P) aptb3VFMSUB132SD )          \
-        X("vfmsub132ss",    3,              (P) aptb3VFMSUB132SS )          \
-        X("vfmsub213pd",    3,              (P) aptb3VFMSUB213PD )          \
-        X("vfmsub213ps",    3,              (P) aptb3VFMSUB213PS )          \
-        X("vfmsub213sd",    3,              (P) aptb3VFMSUB213SD )          \
-        X("vfmsub213ss",    3,              (P) aptb3VFMSUB213SS )          \
-        X("vfmsub231pd",    3,              (P) aptb3VFMSUB231PD )          \
-        X("vfmsub231ps",    3,              (P) aptb3VFMSUB231PS )          \
-        X("vfmsub231sd",    3,              (P) aptb3VFMSUB231SD )          \
-        X("vfmsub231ss",    3,              (P) aptb3VFMSUB231SS )          \
-        X("vfmsubadd132pd", 3,              (P) aptb3VFMSUBADD132PD )       \
-        X("vfmsubadd132ps", 3,              (P) aptb3VFMSUBADD132PS )       \
-        X("vfmsubadd213pd", 3,              (P) aptb3VFMSUBADD213PD )       \
-        X("vfmsubadd213ps", 3,              (P) aptb3VFMSUBADD213PS )       \
-        X("vfmsubadd231pd", 3,              (P) aptb3VFMSUBADD231PD )       \
-        X("vfmsubadd231ps", 3,              (P) aptb3VFMSUBADD231PS )       \
-        X("vhaddpd",        3,              (P) aptb3VHADDPD )              \
-        X("vhaddps",        3,              (P) aptb3VHADDPS )              \
-        X("vinsertf128",    4,              (P) aptb4VINSERTF128 )          \
-        X("vinsertps",      4,              (P) aptb4VINSERTPS )            \
-        X("vlddqu",         2,              (P) aptb2VLDDQU )               \
-        X("vldmxcsr",       1,              (P) aptb1VLDMXCSR )             \
-        X("vmaskmovdqu",    2,              (P) aptb2VMASKMOVDQU )          \
-        X("vmaskmovpd",     3,              (P) aptb3VMASKMOVPD )           \
-        X("vmaskmovps",     3,              (P) aptb3VMASKMOVPS )           \
-        X("vmaxpd",         3,              (P) aptb3VMAXPD )               \
-        X("vmaxps",         3,              (P) aptb3VMAXPS )               \
-        X("vmaxsd",         3,              (P) aptb3VMAXSD )               \
-        X("vmaxss",         3,              (P) aptb3VMAXSS )               \
-        X("vminpd",         3,              (P) aptb3VMINPD )               \
-        X("vminps",         3,              (P) aptb3VMINPS )               \
-        X("vminsd",         3,              (P) aptb3VMINSD )               \
-        X("vminss",         3,              (P) aptb3VMINSS )               \
-        X("vmovapd",        2,              (P) aptb2VMOVAPD )              \
-        X("vmovaps",        2,              (P) aptb2VMOVAPS )              \
-        X("vmovd",          2,              (P) aptb2VMOVD )                \
-        X("vmovddup",       2,              (P) aptb2VMOVDDUP )             \
-        X("vmovdqa",        2,              (P) aptb2VMOVDQA )              \
-        X("vmovdqu",        2,              (P) aptb2VMOVDQU )              \
-        X("vmovhlps",       3,              (P) aptb3VMOVHLPS )             \
-        X("vmovhpd",        ITopt | 3,      (P) aptb3VMOVHPD )              \
-        X("vmovhps",        ITopt | 3,      (P) aptb3VMOVHPS )              \
-        X("vmovlhps",       3,              (P) aptb3VMOVLHPS )             \
-        X("vmovlpd",        ITopt | 3,      (P) aptb3VMOVLPD )              \
-        X("vmovlps",        ITopt | 3,      (P) aptb3VMOVLPS )              \
-        X("vmovmskpd",      2,              (P) aptb2VMOVMSKPD )            \
-        X("vmovmskps",      2,              (P) aptb2VMOVMSKPS )            \
-        X("vmovntdq",       2,              (P) aptb2VMOVNTDQ )             \
-        X("vmovntdqa",      2,              (P) aptb2VMOVNTDQA )            \
-        X("vmovntpd",       2,              (P) aptb2VMOVNTPD )             \
-        X("vmovntps",       2,              (P) aptb2VMOVNTPS )             \
-        X("vmovq",          2,              (P) aptb2VMOVQ )                \
-        X("vmovsd",         ITopt | 3,      (P) aptb3VMOVSD )               \
-        X("vmovshdup",      2,              (P) aptb2VMOVSHDUP )            \
-        X("vmovsldup",      2,              (P) aptb2VMOVSLDUP )            \
-        X("vmovss",         ITopt | 3,      (P) aptb3VMOVSS )               \
-        X("vmovupd",        2,              (P) aptb2VMOVUPD )              \
-        X("vmovups",        2,              (P) aptb2VMOVUPS )              \
-        X("vmpsadbw",       4,              (P) aptb4VMPSADBW )             \
-        X("vmulpd",         3,              (P) aptb3VMULPD )               \
-        X("vmulps",         3,              (P) aptb3VMULPS )               \
-        X("vmulsd",         3,              (P) aptb3VMULSD )               \
-        X("vmulss",         3,              (P) aptb3VMULSS )               \
-        X("vorpd",          3,              (P) aptb3VORPD )                \
-        X("vorps",          3,              (P) aptb3VORPS )                \
-        X("vpabsb",         2,              (P) aptb2VPABSB )               \
-        X("vpabsd",         2,              (P) aptb2VPABSD )               \
-        X("vpabsw",         2,              (P) aptb2VPABSW )               \
-        X("vpackssdw",      3,              (P) aptb3VPACKSSDW )            \
-        X("vpacksswb",      3,              (P) aptb3VPACKSSWB )            \
-        X("vpackusdw",      3,              (P) aptb3VPACKUSDW )            \
-        X("vpackuswb",      3,              (P) aptb3VPACKUSWB )            \
-        X("vpaddb",         3,              (P) aptb3VPADDB )               \
-        X("vpaddd",         3,              (P) aptb3VPADDD )               \
-        X("vpaddq",         3,              (P) aptb3VPADDQ )               \
-        X("vpaddsb",        3,              (P) aptb3VPADDSB )              \
-        X("vpaddsw",        3,              (P) aptb3VPADDSW )              \
-        X("vpaddusb",       3,              (P) aptb3VPADDUSB )             \
-        X("vpaddusw",       3,              (P) aptb3VPADDUSW )             \
-        X("vpaddw",         3,              (P) aptb3VPADDW )               \
-        X("vpalignr",       4,              (P) aptb4VPALIGNR )             \
-        X("vpand",          3,              (P) aptb3VPAND )               \
-        X("vpandn",         3,              (P) aptb3VPANDN )               \
-        X("vpavgb",         3,              (P) aptb3VPAVGB )               \
-        X("vpavgw",         3,              (P) aptb3VPAVGW )               \
-        X("vpblendvb",      4,              (P) aptb4VPBLENDVB )            \
-        X("vpblendw",       4,              (P) aptb4VPBLENDW )             \
-        X("vpclmulqdq",     4,              (P) aptb4VPCLMULQDQ )           \
-        X("vpcmpeqb",       3,              (P) aptb3VPCMPEQB )             \
-        X("vpcmpeqd",       3,              (P) aptb3VPCMPEQD )             \
-        X("vpcmpeqq",       3,              (P) aptb3VPCMPEQQ )             \
-        X("vpcmpeqw",       3,              (P) aptb3VPCMPEQW )             \
-        X("vpcmpestri",     3,              (P) aptb3VPCMPESTRI )           \
-        X("vpcmpestrm",     3,              (P) aptb3VPCMPESTRM )           \
-        X("vpcmpgtb",       3,              (P) aptb3VPCMPGTB )             \
-        X("vpcmpgtd",       3,              (P) aptb3VPCMPGTD )             \
-        X("vpcmpgtq",       3,              (P) aptb3VPCMPGTQ )             \
-        X("vpcmpgtw",       3,              (P) aptb3VPCMPGTW )             \
-        X("vpcmpistri",     3,              (P) aptb3VPCMPISTRI )           \
-        X("vpcmpistrm",     3,              (P) aptb3VPCMPISTRM )           \
-        X("vperm2f128",     4,              (P) aptb3VPERM2F128 )           \
-        X("vpermilpd",      3,              (P) aptb3VPERMILPD )            \
-        X("vpermilps",      3,              (P) aptb3VPERMILPS )            \
-        X("vpextrb",        3,              (P) aptb3VPEXTRB )              \
-        X("vpextrd",        3,              (P) aptb3VPEXTRD )              \
-        X("vpextrq",        3,              (P) aptb3VPEXTRQ )              \
-        X("vpextrw",        3,              (P) aptb3VPEXTRW )              \
-        X("vphaddd",        3,              (P) aptb3VPHADDD )              \
-        X("vphaddsw",       3,              (P) aptb3VPHADDSW )             \
-        X("vphaddw",        3,              (P) aptb3VPHADDW )              \
-        X("vphminposuw",    2,              (P) aptb2VPHMINPOSUW )          \
-        X("vphsubd",        3,              (P) aptb3VPHSUBD )              \
-        X("vphsubsw",       3,              (P) aptb3VPHSUBSW )             \
-        X("vphsubw",        3,              (P) aptb3VPHSUBW )              \
-        X("vpinsrb",        4,              (P) aptb4VPINSRB )              \
-        X("vpinsrd",        4,              (P) aptb4VPINSRD )              \
-        X("vpinsrq",        4,              (P) aptb4VPINSRQ )              \
-        X("vpinsrw",        4,              (P) aptb4VPINSRW )              \
-        X("vpmaddubsw",     3,              (P) aptb3VPMADDUBSW )           \
-        X("vpmaddwd",       3,              (P) aptb3VPMADDWD )             \
-        X("vpmaxsb",        3,              (P) aptb3VPMAXSB )              \
-        X("vpmaxsd",        3,              (P) aptb3VPMAXSD )              \
-        X("vpmaxsw",        3,              (P) aptb3VPMAXSW )              \
-        X("vpmaxub",        3,              (P) aptb3VPMAXUB )              \
-        X("vpmaxud",        3,              (P) aptb3VPMAXUD )              \
-        X("vpmaxuw",        3,              (P) aptb3VPMAXUW )              \
-        X("vpminsb",        3,              (P) aptb3VPMINSB )              \
-        X("vpminsd",        3,              (P) aptb3VPMINSD )              \
-        X("vpminsw",        3,              (P) aptb3VPMINSW )              \
-        X("vpminub",        3,              (P) aptb3VPMINUB )              \
-        X("vpminud",        3,              (P) aptb3VPMINUD )              \
-        X("vpminuw",        3,              (P) aptb3VPMINUW )              \
-        X("vpmovmskb",      2,              (P) aptb2VPMOVMSKB )            \
-        X("vpmovsxbd",      2,              (P) aptb2VPMOVSXBD )            \
-        X("vpmovsxbq",      2,              (P) aptb2VPMOVSXBQ )            \
-        X("vpmovsxbw",      2,              (P) aptb2VPMOVSXBW )            \
-        X("vpmovsxdq",      2,              (P) aptb2VPMOVSXDQ )            \
-        X("vpmovsxwd",      2,              (P) aptb2VPMOVSXWD )            \
-        X("vpmovsxwq",      2,              (P) aptb2VPMOVSXWQ )            \
-        X("vpmovzxbd",      2,              (P) aptb2VPMOVZXBD )            \
-        X("vpmovzxbq",      2,              (P) aptb2VPMOVZXBQ )            \
-        X("vpmovzxbw",      2,              (P) aptb2VPMOVZXBW )            \
-        X("vpmovzxdq",      2,              (P) aptb2VPMOVZXDQ )            \
-        X("vpmovzxwd",      2,              (P) aptb2VPMOVZXWD )            \
-        X("vpmovzxwq",      2,              (P) aptb2VPMOVZXWQ )            \
-        X("vpmuldq",        3,              (P) aptb3VPMULDQ )              \
-        X("vpmulhrsw",      3,              (P) aptb3VPMULHRSW )            \
-        X("vpmulhuw",       3,              (P) aptb3VPMULHUW )             \
-        X("vpmulhw",        3,              (P) aptb3VPMULHW )              \
-        X("vpmulld",        3,              (P) aptb3VPMULLD )              \
-        X("vpmullw",        3,              (P) aptb3VPMULLW )              \
-        X("vpmuludq",       3,              (P) aptb3VPMULUDQ )             \
-        X("vpor",           3,              (P) aptb3VPOR )                 \
-        X("vpsadbw",        3,              (P) aptb3VPSADBW )              \
-        X("vpshufb",        3,              (P) aptb3VPSHUFB )              \
-        X("vpshufd",        3,              (P) aptb3VPSHUFD )              \
-        X("vpshufhw",       3,              (P) aptb3VPSHUFHW )             \
-        X("vpshuflw",       3,              (P) aptb3VPSHUFLW )              \
-        X("vpsignb",        3,              (P) aptb3VPSIGNB )              \
-        X("vpsignd",        3,              (P) aptb3VPSIGND )              \
-        X("vpsignw",        3,              (P) aptb3VPSIGNW )              \
-        X("vpslld",         3,              (P) aptb3VPSLLD )               \
-        X("vpslldq",        3,              (P) aptb3VPSLLDQ )              \
-        X("vpsllq",         3,              (P) aptb3VPSLLQ )               \
-        X("vpsllw",         3,              (P) aptb3VPSLLW )               \
-        X("vpsrad",         3,              (P) aptb3VPSRAD )               \
-        X("vpsraw",         3,              (P) aptb3VPSRAW )               \
-        X("vpsrld",         3,              (P) aptb3VPSRLD )               \
-        X("vpsrldq",        3,              (P) aptb3VPSRLDQ )              \
-        X("vpsrlq",         3,              (P) aptb3VPSRLQ )               \
-        X("vpsrlw",         3,              (P) aptb3VPSRLW )               \
-        X("vpsubb",         3,              (P) aptb3VPSUBB )               \
-        X("vpsubd",         3,              (P) aptb3VPSUBD )               \
-        X("vpsubq",         3,              (P) aptb3VPSUBQ )               \
-        X("vpsubsb",        3,              (P) aptb3VPSUBSB )              \
-        X("vpsubsw",        3,              (P) aptb3VPSUBSW )              \
-        X("vpsubusb",       3,              (P) aptb3VPSUBUSB )             \
-        X("vpsubusw",       3,              (P) aptb3VPSUBUSW )             \
-        X("vpsubw",         3,              (P) aptb3VPSUBW )               \
-        X("vptest",         2,              (P) aptb2VPTEST )               \
-        X("vpunpckhbw",     3,              (P) aptb3VPUNPCKHBW )           \
-        X("vpunpckhdq",     3,              (P) aptb3VPUNPCKHDQ )           \
-        X("vpunpckhqdq",    3,              (P) aptb3VPUNPCKHQDQ )          \
-        X("vpunpckhwd",     3,              (P) aptb3VPUNPCKHWD )           \
-        X("vpunpcklbw",     3,              (P) aptb3VPUNPCKLBW )           \
-        X("vpunpckldq",     3,              (P) aptb3VPUNPCKLDQ )           \
-        X("vpunpcklqdq",    3,              (P) aptb3VPUNPCKLQDQ )          \
-        X("vpunpcklwd",     3,              (P) aptb3VPUNPCKLWD )           \
-        X("vpxor",          3,              (P) aptb3VPXOR )                \
-        X("vrcpps",         2,              (P) aptb2VRCPPS )               \
-        X("vrcpss",         3,              (P) aptb3VRCPSS )               \
-        X("vroundpd",       3,              (P) aptb3VROUNDPD )             \
-        X("vroundps",       3,              (P) aptb3VROUNDPS )             \
-        X("vroundsd",       4,              (P) aptb4VROUNDSD )             \
-        X("vroundss",       4,              (P) aptb4VROUNDSS )             \
-        X("vshufpd",        4,              (P) aptb4VSHUFPD )              \
-        X("vshufps",        4,              (P) aptb4VSHUFPS )              \
-        X("vsqrtpd",        2,              (P) aptb2VSQRTPD )              \
-        X("vsqrtps",        2,              (P) aptb2VSQRTPS )              \
-        X("vsqrtsd",        3,              (P) aptb3VSQRTSD )              \
-        X("vsqrtss",        3,              (P) aptb3VSQRTSS )              \
-        X("vstmxcsr",       1,              (P) aptb1VSTMXCSR )             \
-        X("vsubpd",         3,              (P) aptb3VSUBPD )               \
-        X("vsubps",         3,              (P) aptb3VSUBPS )               \
-        X("vsubsd",         3,              (P) aptb3VSUBSD )               \
-        X("vsubss",         3,              (P) aptb3VSUBSS )               \
-        X("vucomisd",       2,              (P) aptb2VUCOMISD )             \
-        X("vucomiss",       2,              (P) aptb2VUCOMISS )             \
-        X("vunpckhpd",      3,              (P) aptb3VUNPCKHPD )            \
-        X("vunpckhps",      3,              (P) aptb3VUNPCKHPS )            \
-        X("vunpcklpd",      3,              (P) aptb3VUNPCKLPD )            \
-        X("vunpcklps",      3,              (P) aptb3VUNPCKLPS )            \
-        X("vxorpd",         3,              (P) aptb3VXORPD )               \
-        X("vxorps",         3,              (P) aptb3VXORPS )               \
+        X("vaddpd",         3,              aptb3VADDPD )                   \
+        X("vaddps",         3,              aptb3VADDPS )                   \
+        X("vaddsd",         3,              aptb3VADDSD )                   \
+        X("vaddss",         3,              aptb3VADDSS )                   \
+        X("vaddsubpd",      3,              aptb3VADDSUBPD )                \
+        X("vaddsubps",      3,              aptb3VADDSUBPS )                \
+        X("vaesdec",        3,              aptb3VAESDEC )                  \
+        X("vaesdeclast",    3,              aptb3VAESDECLAST )              \
+        X("vaesenc",        3,              aptb3VAESENC )                  \
+        X("vaesenclast",    3,              aptb3VAESENCLAST )              \
+        X("vaesimc",        2,              aptb2VAESIMC )                  \
+        X("vaeskeygenassist", 3,            aptb3VAESKEYGENASSIST )         \
+        X("vandnpd",        3,              aptb3VANDNPD )                  \
+        X("vandnps",        3,              aptb3VANDNPS )                  \
+        X("vandpd",         3,              aptb3VANDPD )                   \
+        X("vandps",         3,              aptb3VANDPS )                   \
+        X("vblendpd",       4,              aptb4VBLENDPD )                 \
+        X("vblendps",       4,              aptb4VBLENDPS )                 \
+        X("vblendvpd",      4,              aptb4VBLENDVPD )                \
+        X("vblendvps",      4,              aptb4VBLENDVPS )                \
+        X("vbroadcastf128", 2,              aptb2VBROADCASTF128 )           \
+        X("vbroadcastsd",   2,              aptb2VBROADCASTSD )             \
+        X("vbroadcastss",   2,              aptb2VBROADCASTSS )             \
+        X("vcmppd",         4,              aptb4VCMPPD )                   \
+        X("vcmpps",         4,              aptb4VCMPPS )                   \
+        X("vcmpsd",         4,              aptb4VCMPSD )                   \
+        X("vcmpss",         4,              aptb4VCMPSS )                   \
+        X("vcomisd",        2,              aptb2VCOMISD )                  \
+        X("vcomiss",        2,              aptb2VCOMISS )                  \
+        X("vcvtdq2pd",      2,              aptb2VCVTDQ2PD )                \
+        X("vcvtdq2ps",      2,              aptb2VCVTDQ2PS )                \
+        X("vcvtpd2dq",      2,              aptb2VCVTPD2DQ )                \
+        X("vcvtpd2ps",      2,              aptb2VCVTPD2PS )                \
+        X("vcvtph2ps",      2,              aptb2VCVTPH2PS )                \
+        X("vcvtps2dq",      2,              aptb2VCVTPS2DQ )                \
+        X("vcvtps2pd",      2,              aptb2VCVTPS2PD )                \
+        X("vcvtps2ph",      3,              aptb3VCVTPS2PH )                \
+        X("vcvtsd2si",      2,              aptb2VCVTSD2SI )                \
+        X("vcvtsd2ss",      3,              aptb3VCVTSD2SS )                \
+        X("vcvtsi2sd",      3,              aptb3VCVTSI2SD )                \
+        X("vcvtsi2ss",      3,              aptb3VCVTSI2SS )                \
+        X("vcvtss2sd",      3,              aptb3VCVTSS2SD )                \
+        X("vcvtss2si",      2,              aptb2VCVTSS2SI )                \
+        X("vcvttpd2dq",     2,              aptb2VCVTTPD2DQ )               \
+        X("vcvttps2dq",     2,              aptb2VCVTTPS2DQ )               \
+        X("vcvttsd2si",     2,              aptb2VCVTTSD2SI )               \
+        X("vcvttss2si",     2,              aptb2VCVTTSS2SI )               \
+        X("vdivpd",         3,              aptb3VDIVPD )                   \
+        X("vdivps",         3,              aptb3VDIVPS )                   \
+        X("vdivsd",         3,              aptb3VDIVSD )                   \
+        X("vdivss",         3,              aptb3VDIVSS )                   \
+        X("vdppd",          4,              aptb4VDPPD )                    \
+        X("vdpps",          4,              aptb4VDPPS )                    \
+        X("verr",           1,              aptb1VERR )                     \
+        X("verw",           1,              aptb1VERW )                     \
+        X("vextractf128",   3,              aptb3VEXTRACTF128 )             \
+        X("vextractps",     3,              aptb3VEXTRACTPS )               \
+        X("vfmadd132pd",    3,              aptb3VFMADD132PD )              \
+        X("vfmadd132ps",    3,              aptb3VFMADD132PS )              \
+        X("vfmadd132sd",    3,              aptb3VFMADD132SD )              \
+        X("vfmadd132ss",    3,              aptb3VFMADD132SS )              \
+        X("vfmadd213pd",    3,              aptb3VFMADD213PD )              \
+        X("vfmadd213ps",    3,              aptb3VFMADD213PS )              \
+        X("vfmadd213sd",    3,              aptb3VFMADD213SD )              \
+        X("vfmadd213ss",    3,              aptb3VFMADD213SS )              \
+        X("vfmadd231pd",    3,              aptb3VFMADD231PD )              \
+        X("vfmadd231ps",    3,              aptb3VFMADD231PS )              \
+        X("vfmadd231sd",    3,              aptb3VFMADD231SD )              \
+        X("vfmadd231ss",    3,              aptb3VFMADD231SS )              \
+        X("vfmaddsub132pd", 3,              aptb3VFMADDSUB132PD )           \
+        X("vfmaddsub132ps", 3,              aptb3VFMADDSUB132PS )           \
+        X("vfmaddsub213pd", 3,              aptb3VFMADDSUB213PD )           \
+        X("vfmaddsub213ps", 3,              aptb3VFMADDSUB213PS )           \
+        X("vfmaddsub231pd", 3,              aptb3VFMADDSUB231PD )           \
+        X("vfmaddsub231ps", 3,              aptb3VFMADDSUB231PS )           \
+        X("vfmsub132pd",    3,              aptb3VFMSUB132PD )              \
+        X("vfmsub132ps",    3,              aptb3VFMSUB132PS )              \
+        X("vfmsub132sd",    3,              aptb3VFMSUB132SD )              \
+        X("vfmsub132ss",    3,              aptb3VFMSUB132SS )              \
+        X("vfmsub213pd",    3,              aptb3VFMSUB213PD )              \
+        X("vfmsub213ps",    3,              aptb3VFMSUB213PS )              \
+        X("vfmsub213sd",    3,              aptb3VFMSUB213SD )              \
+        X("vfmsub213ss",    3,              aptb3VFMSUB213SS )              \
+        X("vfmsub231pd",    3,              aptb3VFMSUB231PD )              \
+        X("vfmsub231ps",    3,              aptb3VFMSUB231PS )              \
+        X("vfmsub231sd",    3,              aptb3VFMSUB231SD )              \
+        X("vfmsub231ss",    3,              aptb3VFMSUB231SS )              \
+        X("vfmsubadd132pd", 3,              aptb3VFMSUBADD132PD )           \
+        X("vfmsubadd132ps", 3,              aptb3VFMSUBADD132PS )           \
+        X("vfmsubadd213pd", 3,              aptb3VFMSUBADD213PD )           \
+        X("vfmsubadd213ps", 3,              aptb3VFMSUBADD213PS )           \
+        X("vfmsubadd231pd", 3,              aptb3VFMSUBADD231PD )           \
+        X("vfmsubadd231ps", 3,              aptb3VFMSUBADD231PS )           \
+        X("vhaddpd",        3,              aptb3VHADDPD )                  \
+        X("vhaddps",        3,              aptb3VHADDPS )                  \
+        X("vinsertf128",    4,              aptb4VINSERTF128 )              \
+        X("vinsertps",      4,              aptb4VINSERTPS )                \
+        X("vlddqu",         2,              aptb2VLDDQU )                   \
+        X("vldmxcsr",       1,              aptb1VLDMXCSR )                 \
+        X("vmaskmovdqu",    2,              aptb2VMASKMOVDQU )              \
+        X("vmaskmovpd",     3,              aptb3VMASKMOVPD )               \
+        X("vmaskmovps",     3,              aptb3VMASKMOVPS )               \
+        X("vmaxpd",         3,              aptb3VMAXPD )                   \
+        X("vmaxps",         3,              aptb3VMAXPS )                   \
+        X("vmaxsd",         3,              aptb3VMAXSD )                   \
+        X("vmaxss",         3,              aptb3VMAXSS )                   \
+        X("vminpd",         3,              aptb3VMINPD )                   \
+        X("vminps",         3,              aptb3VMINPS )                   \
+        X("vminsd",         3,              aptb3VMINSD )                   \
+        X("vminss",         3,              aptb3VMINSS )                   \
+        X("vmovapd",        2,              aptb2VMOVAPD )                  \
+        X("vmovaps",        2,              aptb2VMOVAPS )                  \
+        X("vmovd",          2,              aptb2VMOVD )                    \
+        X("vmovddup",       2,              aptb2VMOVDDUP )                 \
+        X("vmovdqa",        2,              aptb2VMOVDQA )                  \
+        X("vmovdqu",        2,              aptb2VMOVDQU )                  \
+        X("vmovhlps",       3,              aptb3VMOVHLPS )                 \
+        X("vmovhpd",        ITopt | 3,      aptb3VMOVHPD )                  \
+        X("vmovhps",        ITopt | 3,      aptb3VMOVHPS )                  \
+        X("vmovlhps",       3,              aptb3VMOVLHPS )                 \
+        X("vmovlpd",        ITopt | 3,      aptb3VMOVLPD )                  \
+        X("vmovlps",        ITopt | 3,      aptb3VMOVLPS )                  \
+        X("vmovmskpd",      2,              aptb2VMOVMSKPD )                \
+        X("vmovmskps",      2,              aptb2VMOVMSKPS )                \
+        X("vmovntdq",       2,              aptb2VMOVNTDQ )                 \
+        X("vmovntdqa",      2,              aptb2VMOVNTDQA )                \
+        X("vmovntpd",       2,              aptb2VMOVNTPD )                 \
+        X("vmovntps",       2,              aptb2VMOVNTPS )                 \
+        X("vmovq",          2,              aptb2VMOVQ )                    \
+        X("vmovsd",         ITopt | 3,      aptb3VMOVSD )                   \
+        X("vmovshdup",      2,              aptb2VMOVSHDUP )                \
+        X("vmovsldup",      2,              aptb2VMOVSLDUP )                \
+        X("vmovss",         ITopt | 3,      aptb3VMOVSS )                   \
+        X("vmovupd",        2,              aptb2VMOVUPD )                  \
+        X("vmovups",        2,              aptb2VMOVUPS )                  \
+        X("vmpsadbw",       4,              aptb4VMPSADBW )                 \
+        X("vmulpd",         3,              aptb3VMULPD )                   \
+        X("vmulps",         3,              aptb3VMULPS )                   \
+        X("vmulsd",         3,              aptb3VMULSD )                   \
+        X("vmulss",         3,              aptb3VMULSS )                   \
+        X("vorpd",          3,              aptb3VORPD )                    \
+        X("vorps",          3,              aptb3VORPS )                    \
+        X("vpabsb",         2,              aptb2VPABSB )                   \
+        X("vpabsd",         2,              aptb2VPABSD )                   \
+        X("vpabsw",         2,              aptb2VPABSW )                   \
+        X("vpackssdw",      3,              aptb3VPACKSSDW )                \
+        X("vpacksswb",      3,              aptb3VPACKSSWB )                \
+        X("vpackusdw",      3,              aptb3VPACKUSDW )                \
+        X("vpackuswb",      3,              aptb3VPACKUSWB )                \
+        X("vpaddb",         3,              aptb3VPADDB )                   \
+        X("vpaddd",         3,              aptb3VPADDD )                   \
+        X("vpaddq",         3,              aptb3VPADDQ )                   \
+        X("vpaddsb",        3,              aptb3VPADDSB )                  \
+        X("vpaddsw",        3,              aptb3VPADDSW )                  \
+        X("vpaddusb",       3,              aptb3VPADDUSB )                 \
+        X("vpaddusw",       3,              aptb3VPADDUSW )                 \
+        X("vpaddw",         3,              aptb3VPADDW )                   \
+        X("vpalignr",       4,              aptb4VPALIGNR )                 \
+        X("vpand",          3,              aptb3VPAND )                   \
+        X("vpandn",         3,              aptb3VPANDN )                   \
+        X("vpavgb",         3,              aptb3VPAVGB )                   \
+        X("vpavgw",         3,              aptb3VPAVGW )                   \
+        X("vpblendvb",      4,              aptb4VPBLENDVB )                \
+        X("vpblendw",       4,              aptb4VPBLENDW )                 \
+        X("vpclmulqdq",     4,              aptb4VPCLMULQDQ )               \
+        X("vpcmpeqb",       3,              aptb3VPCMPEQB )                 \
+        X("vpcmpeqd",       3,              aptb3VPCMPEQD )                 \
+        X("vpcmpeqq",       3,              aptb3VPCMPEQQ )                 \
+        X("vpcmpeqw",       3,              aptb3VPCMPEQW )                 \
+        X("vpcmpestri",     3,              aptb3VPCMPESTRI )               \
+        X("vpcmpestrm",     3,              aptb3VPCMPESTRM )               \
+        X("vpcmpgtb",       3,              aptb3VPCMPGTB )                 \
+        X("vpcmpgtd",       3,              aptb3VPCMPGTD )                 \
+        X("vpcmpgtq",       3,              aptb3VPCMPGTQ )                 \
+        X("vpcmpgtw",       3,              aptb3VPCMPGTW )                 \
+        X("vpcmpistri",     3,              aptb3VPCMPISTRI )               \
+        X("vpcmpistrm",     3,              aptb3VPCMPISTRM )               \
+        X("vperm2f128",     4,              aptb3VPERM2F128 )               \
+        X("vpermilpd",      3,              aptb3VPERMILPD )                \
+        X("vpermilps",      3,              aptb3VPERMILPS )                \
+        X("vpextrb",        3,              aptb3VPEXTRB )                  \
+        X("vpextrd",        3,              aptb3VPEXTRD )                  \
+        X("vpextrq",        3,              aptb3VPEXTRQ )                  \
+        X("vpextrw",        3,              aptb3VPEXTRW )                  \
+        X("vphaddd",        3,              aptb3VPHADDD )                  \
+        X("vphaddsw",       3,              aptb3VPHADDSW )                 \
+        X("vphaddw",        3,              aptb3VPHADDW )                  \
+        X("vphminposuw",    2,              aptb2VPHMINPOSUW )              \
+        X("vphsubd",        3,              aptb3VPHSUBD )                  \
+        X("vphsubsw",       3,              aptb3VPHSUBSW )                 \
+        X("vphsubw",        3,              aptb3VPHSUBW )                  \
+        X("vpinsrb",        4,              aptb4VPINSRB )                  \
+        X("vpinsrd",        4,              aptb4VPINSRD )                  \
+        X("vpinsrq",        4,              aptb4VPINSRQ )                  \
+        X("vpinsrw",        4,              aptb4VPINSRW )                  \
+        X("vpmaddubsw",     3,              aptb3VPMADDUBSW )               \
+        X("vpmaddwd",       3,              aptb3VPMADDWD )                 \
+        X("vpmaxsb",        3,              aptb3VPMAXSB )                  \
+        X("vpmaxsd",        3,              aptb3VPMAXSD )                  \
+        X("vpmaxsw",        3,              aptb3VPMAXSW )                  \
+        X("vpmaxub",        3,              aptb3VPMAXUB )                  \
+        X("vpmaxud",        3,              aptb3VPMAXUD )                  \
+        X("vpmaxuw",        3,              aptb3VPMAXUW )                  \
+        X("vpminsb",        3,              aptb3VPMINSB )                  \
+        X("vpminsd",        3,              aptb3VPMINSD )                  \
+        X("vpminsw",        3,              aptb3VPMINSW )                  \
+        X("vpminub",        3,              aptb3VPMINUB )                  \
+        X("vpminud",        3,              aptb3VPMINUD )                  \
+        X("vpminuw",        3,              aptb3VPMINUW )                  \
+        X("vpmovmskb",      2,              aptb2VPMOVMSKB )                \
+        X("vpmovsxbd",      2,              aptb2VPMOVSXBD )                \
+        X("vpmovsxbq",      2,              aptb2VPMOVSXBQ )                \
+        X("vpmovsxbw",      2,              aptb2VPMOVSXBW )                \
+        X("vpmovsxdq",      2,              aptb2VPMOVSXDQ )                \
+        X("vpmovsxwd",      2,              aptb2VPMOVSXWD )                \
+        X("vpmovsxwq",      2,              aptb2VPMOVSXWQ )                \
+        X("vpmovzxbd",      2,              aptb2VPMOVZXBD )                \
+        X("vpmovzxbq",      2,              aptb2VPMOVZXBQ )                \
+        X("vpmovzxbw",      2,              aptb2VPMOVZXBW )                \
+        X("vpmovzxdq",      2,              aptb2VPMOVZXDQ )                \
+        X("vpmovzxwd",      2,              aptb2VPMOVZXWD )                \
+        X("vpmovzxwq",      2,              aptb2VPMOVZXWQ )                \
+        X("vpmuldq",        3,              aptb3VPMULDQ )                  \
+        X("vpmulhrsw",      3,              aptb3VPMULHRSW )                \
+        X("vpmulhuw",       3,              aptb3VPMULHUW )                 \
+        X("vpmulhw",        3,              aptb3VPMULHW )                  \
+        X("vpmulld",        3,              aptb3VPMULLD )                  \
+        X("vpmullw",        3,              aptb3VPMULLW )                  \
+        X("vpmuludq",       3,              aptb3VPMULUDQ )                 \
+        X("vpor",           3,              aptb3VPOR )                     \
+        X("vpsadbw",        3,              aptb3VPSADBW )                  \
+        X("vpshufb",        3,              aptb3VPSHUFB )                  \
+        X("vpshufd",        3,              aptb3VPSHUFD )                  \
+        X("vpshufhw",       3,              aptb3VPSHUFHW )                 \
+        X("vpshuflw",       3,              aptb3VPSHUFLW )                 \
+        X("vpsignb",        3,              aptb3VPSIGNB )                  \
+        X("vpsignd",        3,              aptb3VPSIGND )                  \
+        X("vpsignw",        3,              aptb3VPSIGNW )                  \
+        X("vpslld",         3,              aptb3VPSLLD )                   \
+        X("vpslldq",        3,              aptb3VPSLLDQ )                  \
+        X("vpsllq",         3,              aptb3VPSLLQ )                   \
+        X("vpsllw",         3,              aptb3VPSLLW )                   \
+        X("vpsrad",         3,              aptb3VPSRAD )                   \
+        X("vpsraw",         3,              aptb3VPSRAW )                   \
+        X("vpsrld",         3,              aptb3VPSRLD )                   \
+        X("vpsrldq",        3,              aptb3VPSRLDQ )                  \
+        X("vpsrlq",         3,              aptb3VPSRLQ )                   \
+        X("vpsrlw",         3,              aptb3VPSRLW )                   \
+        X("vpsubb",         3,              aptb3VPSUBB )                   \
+        X("vpsubd",         3,              aptb3VPSUBD )                   \
+        X("vpsubq",         3,              aptb3VPSUBQ )                   \
+        X("vpsubsb",        3,              aptb3VPSUBSB )                  \
+        X("vpsubsw",        3,              aptb3VPSUBSW )                  \
+        X("vpsubusb",       3,              aptb3VPSUBUSB )                 \
+        X("vpsubusw",       3,              aptb3VPSUBUSW )                 \
+        X("vpsubw",         3,              aptb3VPSUBW )                   \
+        X("vptest",         2,              aptb2VPTEST )                   \
+        X("vpunpckhbw",     3,              aptb3VPUNPCKHBW )               \
+        X("vpunpckhdq",     3,              aptb3VPUNPCKHDQ )               \
+        X("vpunpckhqdq",    3,              aptb3VPUNPCKHQDQ )              \
+        X("vpunpckhwd",     3,              aptb3VPUNPCKHWD )               \
+        X("vpunpcklbw",     3,              aptb3VPUNPCKLBW )               \
+        X("vpunpckldq",     3,              aptb3VPUNPCKLDQ )               \
+        X("vpunpcklqdq",    3,              aptb3VPUNPCKLQDQ )              \
+        X("vpunpcklwd",     3,              aptb3VPUNPCKLWD )               \
+        X("vpxor",          3,              aptb3VPXOR )                    \
+        X("vrcpps",         2,              aptb2VRCPPS )                   \
+        X("vrcpss",         3,              aptb3VRCPSS )                   \
+        X("vroundpd",       3,              aptb3VROUNDPD )                 \
+        X("vroundps",       3,              aptb3VROUNDPS )                 \
+        X("vroundsd",       4,              aptb4VROUNDSD )                 \
+        X("vroundss",       4,              aptb4VROUNDSS )                 \
+        X("vshufpd",        4,              aptb4VSHUFPD )                  \
+        X("vshufps",        4,              aptb4VSHUFPS )                  \
+        X("vsqrtpd",        2,              aptb2VSQRTPD )                  \
+        X("vsqrtps",        2,              aptb2VSQRTPS )                  \
+        X("vsqrtsd",        3,              aptb3VSQRTSD )                  \
+        X("vsqrtss",        3,              aptb3VSQRTSS )                  \
+        X("vstmxcsr",       1,              aptb1VSTMXCSR )                 \
+        X("vsubpd",         3,              aptb3VSUBPD )                   \
+        X("vsubps",         3,              aptb3VSUBPS )                   \
+        X("vsubsd",         3,              aptb3VSUBSD )                   \
+        X("vsubss",         3,              aptb3VSUBSS )                   \
+        X("vucomisd",       2,              aptb2VUCOMISD )                 \
+        X("vucomiss",       2,              aptb2VUCOMISS )                 \
+        X("vunpckhpd",      3,              aptb3VUNPCKHPD )                \
+        X("vunpckhps",      3,              aptb3VUNPCKHPS )                \
+        X("vunpcklpd",      3,              aptb3VUNPCKLPD )                \
+        X("vunpcklps",      3,              aptb3VUNPCKLPS )                \
+        X("vxorpd",         3,              aptb3VXORPD )                   \
+        X("vxorps",         3,              aptb3VXORPS )                   \
         X("vzeroall",       0,              aptb0VZEROALL )                 \
         X("vzeroupper",     0,              aptb0VZEROUPPER )               \
         X("wait",           0,              aptb0WAIT )                     \
         X("wbinvd",         0,              aptb0WBINVD )                   \
-        X("wrfsbase",       1,              (P) aptb1WRFSBASE )             \
-        X("wrgsbase",       1,              (P) aptb1WRGSBASE )             \
+        X("wrfsbase",       1,              aptb1WRFSBASE )                 \
+        X("wrgsbase",       1,              aptb1WRGSBASE )                 \
         X("wrmsr",          0,              aptb0WRMSR )                    \
-        X("xadd",           2,              (P) aptb2XADD )                 \
-        X("xchg",           2,              (P) aptb2XCHG )                 \
+        X("xadd",           2,              aptb2XADD )                     \
+        X("xchg",           2,              aptb2XCHG )                     \
         X("xgetbv",         0,              aptb0XGETBV)                    \
-        X("xlat",           ITopt | 1,      (P) aptb1XLAT )                 \
+        X("xlat",           ITopt | 1,      aptb1XLAT )                     \
         X("xlatb",          0,              aptb0XLATB )                    \
-        X("xor",            2,              (P) aptb2XOR )                  \
-        X("xorpd",          2,              (P) aptb2XORPD )                \
-        X("xorps",          2,              (P) aptb2XORPS )                \
-        X("xrstor",         ITfloat | 1,    (P) aptb1XRSTOR )               \
-        X("xrstor64",       ITfloat | 1,    (P) aptb1XRSTOR64 )             \
-        X("xsave",          ITfloat | 1,    (P) aptb1XSAVE )                \
-        X("xsave64",        ITfloat | 1,    (P) aptb1XSAVE64 )              \
-        X("xsavec",         ITfloat | 1,    (P) aptb1XSAVEC )               \
-        X("xsavec64",       ITfloat | 1,    (P) aptb1XSAVEC64 )             \
-        X("xsaveopt",       ITfloat | 1,    (P) aptb1XSAVEOPT )             \
-        X("xsaveopt64",     ITfloat | 1,    (P) aptb1XSAVEOPT64 )           \
+        X("xor",            2,              aptb2XOR )                      \
+        X("xorpd",          2,              aptb2XORPD )                    \
+        X("xorps",          2,              aptb2XORPS )                    \
+        X("xrstor",         ITfloat | 1,    aptb1XRSTOR )                   \
+        X("xrstor64",       ITfloat | 1,    aptb1XRSTOR64 )                 \
+        X("xsave",          ITfloat | 1,    aptb1XSAVE )                    \
+        X("xsave64",        ITfloat | 1,    aptb1XSAVE64 )                  \
+        X("xsavec",         ITfloat | 1,    aptb1XSAVEC )                   \
+        X("xsavec64",       ITfloat | 1,    aptb1XSAVEC64 )                 \
+        X("xsaveopt",       ITfloat | 1,    aptb1XSAVEOPT )                 \
+        X("xsaveopt64",     ITfloat | 1,    aptb1XSAVEOPT64 )               \
         X("xsetbv",         0,              aptb0XSETBV)                    \
 
 #endif

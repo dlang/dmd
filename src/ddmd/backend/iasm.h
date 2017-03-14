@@ -414,6 +414,7 @@ typedef struct _PTRNTAB0 {
 } PTRNTAB0, * PPTRNTAB0, ** PPPTRNTAB0;
 
 typedef union _PTRNTAB {
+        void            *ppt;    // avoid type-punning warnings
         PTRNTAB0        *pptb0;
         PTRNTAB1        *pptb1;
         PTRNTAB2        *pptb2;
