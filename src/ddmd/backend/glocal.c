@@ -341,7 +341,12 @@ Loop:
                         {
                             if (tysize(em->Ety) == tysize(e->Ety) &&
                                 em->E1->EV.sp.Voffset == e->EV.sp.Voffset &&
-                                (tyfloating(em->Ety) != 0) == (tyfloating(e->Ety) != 0) &&
+                                ((tyfloating(em->Ety) != 0) == (tyfloating(e->Ety) != 0) ||
+                                 /** Hack to fix https://issues.dlang.org/show_bug.cgi?id=10226
+                                  * Recognize assignments of float vectors to void16, as used by
+                                  * core.simd intrinsics. The backend type for void16 is Tschar16!
+                                  */
+                                 (tyvector(em->Ety) != 0) == (tyvector(e->Ety) != 0) && tybasic(e->Ety) == TYschar16) &&
                                 !local_preserveAssignmentTo(em->E1->Ety))
                             {
 #ifdef DEBUG
