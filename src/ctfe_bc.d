@@ -1094,7 +1094,7 @@ Expression toExpression(const BCValue value, Type expressionType,
     {
         import ddmd.lexer : Loc;
 
-        auto offset = value.heapAddr.addr;
+
 
         debug (ctfe)
         {
@@ -1106,11 +1106,31 @@ Expression toExpression(const BCValue value, Type expressionType,
 
         }
 
-        auto length = heapPtr._heap.ptr[offset];
-        //TODO consider to use allocmemory directly instead of going through druntime.
+        auto length = heapPtr._heap.ptr[value.heapAddr];
+        auto base = heapPtr._heap.ptr[value.heapAddr + uint.sizeof];
+        uint sz = cast (uint) expressionType.nextOf().size;
+        if (sz != 1)
+        {
+            static if (bailoutMessages)
+            {
+                import std.stdio;
+                writefln("We canot deal with stringElementSize: %d", sz);
+            }
+            return null;
+        }
+        auto offset = cast(uint)base;
+        import ddmd.root.rmem : allocmemory;
 
-        auto resultString = (cast(void*)(heapPtr._heap.ptr + offset + 1))[0 .. length].dup;
-        result = new StringExp(Loc(), resultString.ptr, length);
+        auto resultString = cast(char*)allocmemory(length * sz);
+
+        foreach(i;0 .. length)
+        {
+            resultString[i] = cast(char) heapPtr._heap[offset];
+            offset += sz;
+        }
+        resultString[length] = '\0';
+
+        result = new StringExp(Loc(), cast(void*)resultString, length);
         (cast(StringExp) result).ownedByCtfe = OWNEDctfe;
     }
     else
@@ -3741,21 +3761,37 @@ static if (is(BCGen))
 
         if (!se || se.sz > 1 /* || se.string[se.len] != 0*/ )
         {
-            bailout("only zero terminated char strings are supported for now");
+            bailout("only char strings are supported for now");
             return;
-            //assert(se.string[se.len] == '\0', "string should be 0-terminated");
         }
-        HeapAddr stringAddr;
-        if (!se.len)
+        uint sz = se.sz;
+        assert(se.len < 2 ^^ 30, "String too big!!");
+        uint length = cast(uint)se.len;
+
+
+        auto heap = _sharedCtfeState.heap;
+        HeapAddr stringAddr = HeapAddr(heap.heapSize);
+        uint heapAdd = uint.sizeof*2;
+        // always reserve space for the slice;
+        heapAdd += length * sz;
+
+        bailout(heap.heapSize + heapAdd > heap.heapMax, "heapMax exceeded while pushing: " ~ se.toString);
+        _sharedCtfeState.heap.heapSize += heapAdd;
+
+        auto baseAddr = stringAddr.addr + uint(uint.sizeof*2);
+        // first set length
+        heap._heap[stringAddr.addr] = length;
+        // then set base
+        heap._heap[stringAddr.addr + uint.sizeof] = baseAddr;
+
+        uint offset = baseAddr;
+        foreach(c;se.string[0 .. length])
         {
-            //We encountered ""
-            stringAddr = _sharedCtfeState.heap.pushString("", 0);
+            heap._heap[offset] = c;
+            offset += sz;
         }
-        else
-        {
-            stringAddr = _sharedCtfeState.heap.pushString(se.string, cast(uint) se.len);
-        }
-        auto stringAddrValue = stringAddr.addr.imm32;
+
+        auto stringAddrValue = imm32(stringAddr.addr);
 
         if (insideArgumentProcessing)
         {
@@ -3767,15 +3803,6 @@ static if (is(BCGen))
             retval = assignTo ? assignTo : genTemporary(BCType(BCTypeEnum.String));
             Set(retval.i32, stringAddrValue);
         }
-
-        debug (ctfe)
-        {
-            import std.stdio;
-            writefln("String %s, is in %d, first uint is %d",
-                cast(char[]) se.string[0 .. se.len], stringAddr.addr,
-                _sharedCtfeState.heap._heap[stringAddr.addr]);
-        }
-
     }
 
     override void visit(CmpExp ce)
