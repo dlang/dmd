@@ -3578,20 +3578,12 @@ static if (is(BCGen))
             break;
         case TOK.TOKandass:
             {
-                 static if (is(BCGen))
-                     if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
-                        bailout("BCGen does not suppport 32bit bit-operations");
-
                 And3(lhs, lhs, rhs);
                 retval = lhs;
             }
             break;
         case TOK.TOKxorass:
             {
-                static if (is(BCGen))
-                    if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
-                        bailout("BCGen does not suppport 32bit bit-operations");
-
                 Xor3(lhs, lhs, rhs);
                 retval = lhs;
             }
@@ -4000,8 +3992,12 @@ static if (is(BCGen))
             Store32(ptr, rhs);
             retval = rhs;
         }
-/*
         else if (ae.e1.op == TOKarraylength)
+        {
+            bailout("assignment to array length does currently not work");
+            return ;
+        }
+/*
         {
             auto ale = cast(ArrayLengthExp) ae.e1;
 
@@ -4013,7 +4009,7 @@ static if (is(BCGen))
                 bailout("I don't have an array to load the length from :(");
                 return;
             }
-            BCValue oldLength = pushOnToStack(getLength(arrayPtr));
+            BCValue oldLength = getLength(arrayPtr);
             BCValue newLength = genExpr(ae.e2);
             auto effectiveSize = genTemporary(i32Type);
             auto elemType = toBCType(ale.e1.type);
@@ -4037,12 +4033,10 @@ static if (is(BCGen))
                     //NOTE: ABI the magic number 8 is derived from array layout {uint length, uint basePtr, T[length] space}
                     Add3(newBase, newArrayPtr, imm32(8));
                     setLength(newArrayPtr, newLength);
-
-                    Add3(newBasePtr, newArrayPtr, imm32(4));
-                    Store32(newBasePtr, newBase);
+                    setBase(newArrayPtr, newBase);
                     auto copyPtr = getBase(arrayPtr);
 
-                    Add3(arrayPtr.i32, arrayPtr.i32, imm32(4));
+                    Add3(arrayPtr.i32, arrayPtr.i32, imm32(8));
                     // copy old Array
                     auto tmpElem = genTemporary(i32Type);
                     auto LcopyLoop = genLabel();
@@ -4068,13 +4062,11 @@ static if (is(BCGen))
             endCndJmp(arrayExsitsJmp, LarrayDoesNotExsist);
             {
                 auto newArrayPtr = genTemporary(i32Type);
-                auto newBasePtr = genTemporary(i32Type);
                 auto newBase = genTemporary(i32Type);
                 Alloc(newArrayPtr, effectiveSize);
-                Store32(newArrayPtr, newLength);
-                Add3(newBasePtr, newArrayPtr, imm32(uint(uint.sizeof)));
+                setLength(newArrayPtr, newLength);
                 Add3(newBase, newArrayPtr, imm32(uint(uint.sizeof*2)));
-                Store32(newBasePtr, newBase);
+                setBase(newArrayPtr, newBase);
                 Set(arrayPtr.i32, newArrayPtr);
             }
             auto Lend = genLabel();
