@@ -45,7 +45,7 @@ struct C_BCGen
         StackAddr sp = StackAddr(4);
         bool requireIntrinsics;
     }
-
+    bool insideFunction;
     FunctionState[ubyte.max * 8] functionStates;
     uint functionStateCount;
     uint currentFunctionStateNumber;
@@ -126,17 +126,19 @@ pure:
     {
     }
 
-    void beginFunction(uint fn = 0)
+    void beginFunction(uint fn = 0, void* fnDecl = null)
     {
         sameLabel = false;
+        insideFunction = true;
         code ~= "\nBCValue fn" ~  to!string(currentFunctionStateNumber++) ~ "(BCValue[] args, BCHeap* heapPtr = null) {\n";
 
     }
 
     void endFunction()
     {
+        insideFunction = true;
         code ~= "\n}\n";
-   }
+    }
 
     BCValue genTemporary(BCType bct)
     {
