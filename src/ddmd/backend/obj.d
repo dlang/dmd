@@ -91,6 +91,7 @@ class Obj
     void func_start(Symbol *sfunc);
     void func_term(Symbol *sfunc);
     void write_pointerRef(Symbol* s, uint off);
+    int jmpTableSegment(Symbol* s);
 
     Symbol *tlv_bootstrap();
 
@@ -168,6 +169,7 @@ class MsCoffObj : Obj
     override void func_start(Symbol *sfunc);
     override void func_term(Symbol *sfunc);
     override void write_pointerRef(Symbol* s, uint off);
+    override int jmpTableSegment(Symbol* s);
 
     static int getsegment(const(char)* sectname, uint flags);
     static int getsegment2( uint shtidx);
@@ -259,6 +261,7 @@ class Obj
     static void func_start(Symbol *sfunc);
     static void func_term(Symbol *sfunc);
     static void write_pointerRef(Symbol* s, uint off);
+    static int jmpTableSegment(Symbol* s);
 
     static Symbol *tlv_bootstrap();
 

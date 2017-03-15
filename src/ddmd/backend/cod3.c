@@ -39,14 +39,8 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 extern targ_size_t retsize;
 STATIC void pinholeopt_unittest();
 
-#if ELFOBJ || MACHOBJ
-#define JMPSEG  CDATA
-#else
-#define JMPSEG  DATA
-#endif
-
 //#define JMPJMPTABLE   TARGET_WINDOS
-#define JMPJMPTABLE     0               // benchmarking shows its slower
+#define JMPJMPTABLE     0               // benchmarking shows it's slower
 
 #define MINLL           0x8000000000000000LL
 #define MAXLL           0x7FFFFFFFFFFFFFFFLL
@@ -1739,7 +1733,7 @@ void outjmptab(block *b)
 
     /* Segment and offset into which the jump table will be emitted
      */
-    int jmpseg = (config.flags & CFGromable) ? cseg : JMPSEG;
+    int jmpseg = objmod->jmpTableSegment(funcsym_p);
     targ_size_t *poffset = &Offset(jmpseg);
 
     /* Align start of jump table
@@ -1833,15 +1827,7 @@ void outswitab(block *b)
   p = b->BS.Bswitch;                    /* pointer to case data         */
   ncases = *p++;                        /* number of cases              */
 
-  if (config.flags & CFGromable)
-  {
-        assert(cseg == CODE);
-        seg = cseg;
-  }
-  else
-  {
-        seg = JMPSEG;
-  }
+  seg = objmod->jmpTableSegment(funcsym_p);
   poffset = &Offset(seg);
   offset = *poffset;
   alignbytes = _align(0,*poffset) - *poffset;
@@ -4328,6 +4314,7 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
 
     sthunk->Soffset = thunkoffset;
     sthunk->Ssize = Offset(seg) - thunkoffset; /* size of thunk */
+    sthunk->Sseg = seg;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     objmod->pubdef(seg,sthunk,sthunk->Soffset);
 #endif
@@ -6555,7 +6542,7 @@ static void do64bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags)
             if (config.flags & CFGromable)
                     objmod->reftocodeseg(pbuf->seg,pbuf->offset,ad);
             else
-                    objmod->reftodatseg(pbuf->seg,pbuf->offset,ad,JMPSEG,CFoff);
+                    objmod->reftodatseg(pbuf->seg,pbuf->offset,ad,objmod->jmpTableSegment(funcsym_p),CFoff);
             break;
 #if TARGET_SEGMENTED
         case FLcsdata:
@@ -6659,7 +6646,7 @@ static void do32bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags, int 
 #endif
         }
         else
-                objmod->reftodatseg(pbuf->seg,pbuf->offset,ad,JMPSEG,CFoff);
+                objmod->reftodatseg(pbuf->seg,pbuf->offset,ad,objmod->jmpTableSegment(funcsym_p),CFoff);
         break;
     case FLcode:
         assert(JMPJMPTABLE);            // the only use case
@@ -6770,7 +6757,7 @@ static void do16bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags)
         if (config.flags & CFGromable)
                 objmod->reftocodeseg(pbuf->seg,pbuf->offset,ad);
         else
-                objmod->reftodatseg(pbuf->seg,pbuf->offset,ad,JMPSEG,CFoff);
+                objmod->reftodatseg(pbuf->seg,pbuf->offset,ad,objmod->jmpTableSegment(funcsym_p),CFoff);
         break;
 #if TARGET_SEGMENTED
     case FLcsdata:
