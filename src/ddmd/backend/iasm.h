@@ -377,54 +377,54 @@ int asm_state(int iFlags);
 
 void asm_process_fixup( block **ppblockLabels );
 
-typedef struct _PTRNTAB4 {
+struct PTRNTAB4 {
         int opcode;
         unsigned usFlags;
         opflag_t usOp1;
         opflag_t usOp2;
         opflag_t usOp3;
         opflag_t usOp4;
-} PTRNTAB4, * PPTRNTAB4, ** PPPTRNTAB4;
+};
 
-typedef struct _PTRNTAB3 {
+struct PTRNTAB3 {
         int opcode;
         unsigned usFlags;
         opflag_t usOp1;
         opflag_t usOp2;
         opflag_t usOp3;
-} PTRNTAB3, * PPTRNTAB3, ** PPPTRNTAB3;
+};
 
-typedef struct _PTRNTAB2 {
+struct PTRNTAB2 {
         int opcode;
         unsigned usFlags;
         opflag_t usOp1;
         opflag_t usOp2;
-} PTRNTAB2, * PPTRNTAB2, ** PPPTRNTAB2;
+};
 
-typedef struct _PTRNTAB1 {
+struct PTRNTAB1 {
         int opcode;
         unsigned usFlags;
         opflag_t usOp1;
-} PTRNTAB1, * PPTRNTAB1, ** PPPTRNTAB1;
+};
 
-typedef struct _PTRNTAB0 {
+struct PTRNTAB0 {
         int opcode;
         #define ASM_END 0xffff          // special opcode meaning end of table
         unsigned usFlags;
-} PTRNTAB0, * PPTRNTAB0, ** PPPTRNTAB0;
+};
 
-typedef union _PTRNTAB {
+union PTRNTAB {
         void            *ppt;    // avoid type-punning warnings
         PTRNTAB0        *pptb0;
         PTRNTAB1        *pptb1;
         PTRNTAB2        *pptb2;
         PTRNTAB3        *pptb3;
         PTRNTAB4        *pptb4;
-} PTRNTAB, * PPTRNTAB, ** PPPTRNTAB;
+};
 
-typedef struct
+struct OP
 {
         unsigned char usNumops;
         PTRNTAB ptb;
-} OP;
+};
 
