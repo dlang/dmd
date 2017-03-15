@@ -423,7 +423,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             {
                 static if (bailoutMessages)
                 {
-                    writeln("Convertong to Expression failed");
+                    writeln("Converting to Expression failed");
                 }
                 return null;
             }
@@ -1232,6 +1232,15 @@ Expression toExpression(const BCValue value, Type expressionType,
     }
     if (result)
         result.type = expressionType;
+
+    static if (bailoutMessages)
+    {
+        if (!result)
+        {
+            import std.stdio;
+            writeln("could not create expression");
+        }
+    }
 
     return result;
 }
