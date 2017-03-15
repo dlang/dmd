@@ -387,7 +387,7 @@ pure:
     {
         //assert(insideFunction);
         //I have no idea how this can fail ...
-        
+
         insideFunction = false;
         BCFunction result;
         result.type = BCFunctionTypeEnum.Bytecode;
@@ -857,7 +857,7 @@ pure:
 
     BCValue pushOntoStack(BCValue val)
     {
-        if (val.vType != BCValueType.StackValue)
+        if (!isStackValueOrParameter(val))
         {
             auto stackref = BCValue(currSp(), val.type);
             Set(stackref.i32, val);
@@ -2027,14 +2027,17 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 }
                 else
                 {
-                    auto lhsLength = heapPtr._heap[_lhs++];
-                    auto rhsLength = heapPtr._heap[_rhs++];
+                    import ddmd.ctfe.ctfe_bc : SliceDescriptor;
+                    auto lhsLength = heapPtr._heap[_lhs + SliceDescriptor.LengthOffset];
+                    auto rhsLength = heapPtr._heap[_rhs + SliceDescriptor.LengthOffset];
                     if (lhsLength == rhsLength)
                     {
+                        auto lhsBase = heapPtr._heap[_lhs + SliceDescriptor.BaseOffset];
+                        auto rhsBase = heapPtr._heap[_rhs + SliceDescriptor.BaseOffset];
                         cond = true;
                         foreach (i; 0 .. align4(lhsLength) / 4)
                         {
-                            if (heapPtr._heap[_lhs + i] != heapPtr._heap[_rhs + i])
+                            if (heapPtr._heap[rhsBase + i] != heapPtr._heap[lhsBase + i])
                             {
                                 cond = false;
                                 break;
