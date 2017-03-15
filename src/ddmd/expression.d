@@ -15715,7 +15715,6 @@ extern (C++) final class EqualExp : BinExp
                 {
                     __equals = new NotExp(loc, __equals);
                 }
-
                 __equals = __equals.semantic(sc);
                 return __equals;
             }
