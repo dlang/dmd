@@ -433,8 +433,6 @@ struct PTRNTAB4
         opflag_t usOp3;
         opflag_t usOp4;
 }
-alias PPTRNTAB4 = PTRNTAB4*;
-alias PPPTRNTAB4 = PTRNTAB4**;
 
 struct PTRNTAB3 {
         int opcode;
@@ -443,8 +441,6 @@ struct PTRNTAB3 {
         opflag_t usOp2;
         opflag_t usOp3;
 }
-alias PPTRNTAB3 = PTRNTAB3*;
-alias PPPTRNTAB3 = PTRNTAB3**;
 
 struct PTRNTAB2 {
         int opcode;
@@ -452,16 +448,12 @@ struct PTRNTAB2 {
         opflag_t usOp1;
         opflag_t usOp2;
 }
-alias PPTRNTAB2 = PTRNTAB2*;
-alias PPPTRNTAB2 = PTRNTAB2**;
 
 struct PTRNTAB1 {
         int opcode;
         uint usFlags;
         opflag_t usOp1;
 }
-alias PPTRNTAB1 = PTRNTAB1*;
-alias PPPTRNTAB1 = PTRNTAB1**;
 
 enum ASM_END = 0xffff;      // special opcode meaning end of PTRNTABx table
 
@@ -469,19 +461,14 @@ struct PTRNTAB0 {
         int opcode;
         uint usFlags;
 }
-alias PPTRNTAB0 = PTRNTAB0*;
-alias PPPTRNTAB0 = PTRNTAB0**;
 
-union _PTRNTAB {
+union PTRNTAB {
         PTRNTAB0        *pptb0;
         PTRNTAB1        *pptb1;
         PTRNTAB2        *pptb2;
         PTRNTAB3        *pptb3;
         PTRNTAB4        *pptb4;
 }
-alias PTRNTAB = _PTRNTAB;
-alias PPTRNTAB = PTRNTAB*;
-alias PPPTRNTAB = PTRNTAB**;
 
 struct OP
 {
