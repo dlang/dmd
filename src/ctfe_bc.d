@@ -1126,13 +1126,14 @@ Expression toExpression(const BCValue value, Type expressionType,
         auto offset = cast(uint)base;
         import ddmd.root.rmem : allocmemory;
 
-        auto resultString = cast(char*)allocmemory(length * sz);
+        auto resultString = cast(char*)allocmemory(length * sz + sz);
 
         foreach(i;0 .. length)
         {
             resultString[i] = cast(char) heapPtr._heap[offset];
             offset += sz;
         }
+        //TODO write correct multibyte terminator
         resultString[length] = '\0';
 
         result = new StringExp(Loc(), cast(void*)resultString, length);
@@ -1309,11 +1310,10 @@ extern (C++) final class BCTypeVisitor : Visitor
                     {
                         import std.stdio;
                         writefln("String of invalid elmementSize: %d", sz);
-                        return BCType.init;
                     }
+                    return BCType.init;
                 }
             }
-
         }
         else if (t.ty == Tstruct)
         {
