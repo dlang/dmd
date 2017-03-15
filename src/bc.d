@@ -857,7 +857,7 @@ pure:
 
     BCValue pushOntoStack(BCValue val)
     {
-        if (val.vType != BCValueType.StackValue)
+        if (!isStackValueOrParameter(val))
         {
             auto stackref = BCValue(currSp(), val.type);
             Set(stackref.i32, val);

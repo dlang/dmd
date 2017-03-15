@@ -178,8 +178,8 @@ import ddmd.ctfe.bc_common;
 
 struct SliceDescriptor
 {
-    enum BaseOffset = 0;
-    enum LengthOffset = 4;
+    enum LengthOffset = 0;
+    enum BaseOffset = 4;
     enum CapcityOffset = 8;
     enum ExtraFlagsOffset = 12;
     enum Size = 16;
@@ -1108,16 +1108,6 @@ Expression toExpression(const BCValue value, Type expressionType,
         import ddmd.lexer : Loc;
 
 
-
-        debug (ctfe)
-        {
-            import std.stdio;
-
-            writeln("offset : ", offset, "len : ", heapPtr._heap[offset]);
-            writeln(heapPtr.heapSize,
-                (cast(char*)(heapPtr._heap.ptr + offset + 1))[0 .. heapPtr._heap[offset]]);
-
-        }
 
         auto length = heapPtr._heap.ptr[value.heapAddr + SliceDescriptor.LengthOffset];
         auto base = heapPtr._heap.ptr[value.heapAddr + SliceDescriptor.BaseOffset];
@@ -2635,7 +2625,7 @@ static if (is(BCGen))
                 }
                 int elmSize = sharedCtfeState.size(elmType);
                 assert(cast(int) elmSize > -1);
-                elmSize = align4(elmSize);
+                //elmSize = align4(elmSize);
 
                 //elmSize = (elmSize / 4 > 0 ? elmSize / 4 : 1);
                 Mul3(offset, idx, imm32(elmSize));
@@ -2841,7 +2831,7 @@ static if (is(BCGen))
             auto origSlice = genExpr(se.e1);
             bailout(!origSlice, "could not get slice expr in " ~ se.toString);
             auto elmType = _sharedCtfeState.elementType(origSlice.type);
-            auto alignedElmSize = align4(_sharedCtfeState.size(elmType));
+            auto elemSize = _sharedCtfeState.size(elmType);
 
             auto newSlice = genTemporary(i32Type);
             Alloc(newSlice, imm32(SliceDescriptor.Size));
@@ -2891,18 +2881,9 @@ static if (is(BCGen))
                 return ;
             }
 
-            BCValue newBase;
-            if (!lwr)
-            {
-                // lower bound is zero so no need to recompute the base
-                newBase = origBase;
-            }
-            else
-            {
-                newBase = genTemporary(i32Type);
-                Mul3(newBase, lwr, imm32(alignedElmSize));
-                Add3(newBase, newBase, origBase);
-            }
+            BCValue newBase = genTemporary(i32Type);
+            Mul3(newBase, lwr.i32, imm32(elemSize));
+            Add3(newBase, newBase, origBase);
 
             setBase(newSlice.i32, newBase.i32);
 
