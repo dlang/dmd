@@ -90,6 +90,7 @@ class Obj
     VIRTUAL void func_start(Symbol *sfunc);
     VIRTUAL void func_term(Symbol *sfunc);
     VIRTUAL void write_pointerRef(Symbol* s, unsigned off);
+    VIRTUAL int jmpTableSegment(Symbol* s);
 
     VIRTUAL symbol *tlv_bootstrap();
 
@@ -201,6 +202,7 @@ class MsCoffObj : public Obj
     VIRTUAL void func_start(Symbol *sfunc);
     VIRTUAL void func_term(Symbol *sfunc);
     VIRTUAL void write_pointerRef(Symbol* s, unsigned off);
+    VIRTUAL int jmpTableSegment(Symbol* s);
 
     static int getsegment(const char *sectname, unsigned long flags);
     static int getsegment2(unsigned shtidx);

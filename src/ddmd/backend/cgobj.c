@@ -2004,6 +2004,15 @@ static int generate_comdat(Obj* objmod, Symbol *s, bool is_readonly_comdat)
     return pseg->SDseg;
 }
 
+/***********************************
+ * Returns:
+ *      jump table segment for function s
+ */
+int Obj::jmpTableSegment(Symbol *s)
+{
+    return (config.flags & CFGromable) ? cseg : DATA;
+}
+
 /**********************************
  * Reset code seg to existing seg.
  * Used after a COMDAT for a function is done.

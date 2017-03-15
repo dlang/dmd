@@ -1832,6 +1832,15 @@ int Obj::readonly_comdat(Symbol *s)
     return 0;
 }
 
+/***********************************
+ * Returns:
+ *      jump table segment for function s
+ */
+int Obj::jmpTableSegment(Symbol *s)
+{
+    return (config.flags & CFGromable) ? cseg : CDATA;
+}
+
 /**********************************
  * Get segment.
  * Input:

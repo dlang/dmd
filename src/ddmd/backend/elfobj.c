@@ -1758,6 +1758,11 @@ int Obj::readonly_comdat(Symbol *s)
     return 0;
 }
 
+int Obj::jmpTableSegment(Symbol *s)
+{
+    return (config.flags & CFGromable) ? cseg : CDATA;
+}
+
 /********************************
  * Get a segment for a segment name.
  * Input:

@@ -1403,6 +1403,17 @@ int MsCoffObj::readonly_comdat(Symbol *s)
     return s->Sseg;
 }
 
+
+/***********************************
+ * Returns:
+ *      jump table segment for function s
+ */
+int MsCoffObj::jmpTableSegment(Symbol *s)
+{
+    return (config.flags & CFGromable) ? cseg : DATA;
+}
+
+
 /**********************************
  * Get segment, which may already exist.
  * Input:
