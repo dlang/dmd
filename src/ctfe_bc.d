@@ -1305,8 +1305,23 @@ extern (C++) final class BCTypeVisitor : Visitor
         assert(!t.isTypeBasic(), "Is a basicType: " ~ (cast(ENUMTY) t.ty).to!string());
         if (t.isString)
         {
-            return BCType.init; // for now we want to bail on every string!
-            //return BCType(BCTypeEnum.String);
+            auto sz = t.nextOf().size;
+            switch(sz)
+            {
+                case 1 : return BCType(BCTypeEnum.string8);
+                case 2 : return BCType(BCTypeEnum.string16);
+                case 4 : return BCType(BCTypeEnum.string32);
+                default :
+                {
+                    static if (bailoutMessages)
+                    {
+                        import std.stdio;
+                        writefln("String of invalid elmementSize: %d", sz);
+                        return BCType.init;
+                    }
+                }
+            }
+
         }
         else if (t.ty == Tstruct)
         {
