@@ -659,6 +659,8 @@ struct SharedCtfeState(BCGenT)
             return type.typeIndex <= pointerCount ? pointerTypes[type.typeIndex - 1].elementType : BCType.init;
         else if (type.type == BCTypeEnum.Array)
             return type.typeIndex <= arrayCount ? arrayTypes[type.typeIndex - 1].elementType : BCType.init;
+        else if (type.type == BCTypeEnum.string8)
+            return BCType(BCTypeEnum.c8);
         else
             return BCType.init;
     }
@@ -918,7 +920,7 @@ struct SharedCtfeState(BCGenT)
 
             }
 
-        case BCType.Array:
+        case BCTypeEnum.Array:
             {
                 if(type.typeIndex > arrayCount)
                 {
@@ -935,11 +937,11 @@ struct SharedCtfeState(BCGenT)
                 }
                 return size(_array.elementType) * _array.length;
             }
-        case BCType.Slice:
+        case BCTypeEnum.Slice:
             {
-                return 4 + 4; // 4 for pointer 4 for length;
+                return SliceDescriptor.Size;
             }
-        case BCType.Ptr:
+        case BCTypeEnum.Ptr:
             {
                 return 4; // 4 for pointer;
             }
@@ -2623,7 +2625,7 @@ static if (is(BCGen))
                 {
                     bailout("no array type or sliceType for " ~ ie.toString);
                 }
-                int elmSize = sharedCtfeState.size(elmType);
+                int elmSize = _sharedCtfeState.size(elmType);
                 assert(cast(int) elmSize > -1);
                 //elmSize = align4(elmSize);
 
@@ -2831,6 +2833,10 @@ static if (is(BCGen))
             auto origSlice = genExpr(se.e1);
             bailout(!origSlice, "could not get slice expr in " ~ se.toString);
             auto elmType = _sharedCtfeState.elementType(origSlice.type);
+            if (!elmType)
+            {
+                bailout("could not get elementType for: " ~ se.e1.toString);
+            }
             auto elemSize = _sharedCtfeState.size(elmType);
 
             auto newSlice = genTemporary(i32Type);
@@ -2844,35 +2850,23 @@ static if (is(BCGen))
                 bailout("could not gen origLength in " ~ se.toString);
                 return ;
             }
-            BCValue newLength;
-            BCValue lwr;
-            if (se.upr.op == TOKdollar && se.lwr.isConst && se.lwr.toInteger == 0/* || (se.upr.op == TOKarraylength && ... */)
+            BCValue newLength = genTemporary(i32Type);
+            BCValue lwr = genExpr(se.lwr);
+            if (!lwr)
             {
-                //upr bound is dollar or slice.length and lwr is 0;
-                //so we don't have to do anthing
+                bailout("could not gen lowerBound in " ~ se.toString);
                 return ;
             }
-            else
+
+            auto upr = genExpr(se.upr);
+            if (!upr)
             {
-                import std.stdio;
-
-                lwr = genExpr(se.lwr);
-                if (!lwr)
-                {
-                    bailout("could not gen lowerBound in " ~ se.toString);
-                    return ;
-                }
-
-                auto upr = genExpr(se.upr);
-                if (!upr)
-                {
-                    bailout("could not gen upperBound in " ~ se.toString);
-                    return ;
-                }
-                newLength = genTemporary(i32Type);
-                Sub3(newLength, upr.i32, lwr.i32);
+                bailout("could not gen upperBound in " ~ se.toString);
+                return ;
             }
-            setLength(newSlice, newLength.i32);
+            Sub3(newLength, upr.i32, lwr.i32);
+
+            setLength(newSlice, newLength);
 
             auto origBase = getBase(origSlice);
             if (!origBase)
