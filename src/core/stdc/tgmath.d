@@ -1119,7 +1119,6 @@ version( NetBSD )
 //  alias core.stdc.complex.crealf     creal;
 //  alias core.stdc.complex.creall     creal;
 }
-
 else version( OpenBSD )
 {
     ///

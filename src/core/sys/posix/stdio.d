@@ -291,6 +291,10 @@ version( FreeBSD )
 {
     enum P_tmpdir  = "/var/tmp/";
 }
+version(NetBSD)
+{
+    enum P_tmpdir  = "/var/tmp/";
+}
 version( OpenBSD )
 {
     enum P_tmpdir  = "/tmp/";

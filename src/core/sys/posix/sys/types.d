@@ -143,6 +143,22 @@ else version( FreeBSD )
     alias uint      uid_t;
     alias uint      fflags_t;
 }
+else version(NetBSD)
+{
+    alias long      blkcnt_t;
+    alias int       blksize_t;
+    alias ulong     dev_t;
+    alias uint      gid_t;
+    alias ulong     ino_t;
+    alias uint      mode_t;
+    alias uint      nlink_t;
+    alias ulong     off_t;
+    alias int       pid_t;
+    //size_t (defined in core.stdc.stddef)
+    alias c_long      ssize_t;
+    alias c_long      time_t;
+    alias uint        uid_t;
+}
 else version (Solaris)
 {
     alias char* caddr_t;
@@ -265,6 +281,16 @@ else version( Darwin )
     alias uint   useconds_t;
 }
 else version( FreeBSD )
+{
+    alias ulong     fsblkcnt_t;
+    alias ulong     fsfilcnt_t;
+    alias c_long    clock_t;
+    alias long      id_t;
+    alias c_long    key_t;
+    alias c_long    suseconds_t;
+    alias uint      useconds_t;
+}
+else version(NetBSD)
 {
     alias ulong     fsblkcnt_t;
     alias ulong     fsfilcnt_t;
@@ -650,6 +676,74 @@ else version( FreeBSD )
     alias void* pthread_rwlockattr_t;
     alias void* pthread_t;
 }
+else version(NetBSD)
+{
+   struct pthread_queue_t {
+         void*  ptqh_first;
+         void** ptqh_last;
+   }
+
+    alias lwpid_t = int;
+    alias pthread_spin_t = ubyte;
+    struct pthread_attr_t {
+        uint    pta_magic;
+        int     pta_flags;
+        void*   pta_private;
+    }
+    struct  pthread_spinlock_t {
+        uint    pts_magic;
+        pthread_spin_t  pts_spin;
+        int             pts_flags;
+    }
+    struct pthread_cond_t {
+        uint    ptc_magic;
+        pthread_spin_t  ptc_lock;
+        pthread_queue_t ptc_waiters;
+        pthread_mutex_t *ptc_mutex;
+        void*   ptc_private;
+    }
+    struct pthread_condattr_t {
+        uint    ptca_magic;
+        void    *ptca_private;
+    }
+    struct pthread_mutex_t {
+        uint ptm_magic;
+        pthread_spin_t  ptm_errorcheck;
+        ubyte[3]         ptm_pad1;
+        pthread_spin_t  ptm_interlock;
+        ubyte[3] ptm_pad2;
+        pthread_t ptm_owner;
+        void* ptm_waiters;
+        uint  ptm_recursed;
+        void* ptm_spare2;
+    }
+    struct pthread_mutexattr_t{
+        uint    ptma_magic;
+        void*   ptma_private;
+    }
+    struct pthread_once_t{
+        pthread_mutex_t pto_mutex;
+        int     pto_done;
+    }
+    struct pthread_rwlock_t{
+        uint    ptr_magic;
+
+        pthread_spin_t  ptr_interlock;
+
+        pthread_queue_t ptr_rblocked;
+        pthread_queue_t ptr_wblocked;
+        uint    ptr_nreaders;
+        pthread_t ptr_owner;
+        void    *ptr_private;
+    }
+    struct pthread_rwlockattr_t{
+        uint    ptra_magic;
+        void*   ptra_private;
+    }
+
+    alias uint pthread_key_t;
+    alias void* pthread_t;
+}
 else version (Solaris)
 {
     alias uint pthread_t;
@@ -814,6 +908,11 @@ else version( FreeBSD )
     alias void* pthread_barrier_t;
     alias void* pthread_barrierattr_t;
 }
+else version(NetBSD)
+{
+    alias void* pthread_barrier_t;
+    alias void* pthread_barrierattr_t;
+}
 else version( Darwin )
 {
 }
@@ -856,6 +955,10 @@ version( CRuntime_Glibc )
 else version( FreeBSD )
 {
     alias void* pthread_spinlock_t;
+}
+else version(NetBSD)
+{
+    //already defined
 }
 else version (Solaris)
 {
