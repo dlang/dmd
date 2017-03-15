@@ -178,8 +178,8 @@ import ddmd.ctfe.bc_common;
 
 struct SliceDescriptor
 {
-    enum LengthOffset = 0;
-    enum BaseOffset = 4;
+    enum BaseOffset = 0;
+    enum LengthOffset = 4;
     enum CapcityOffset = 8;
     enum ExtraFlagsOffset = 12;
     enum Size = 16;
@@ -1182,8 +1182,8 @@ Expression toExpression(const BCValue value, Type expressionType,
     case Tsarray:
         {
             auto tsa = cast(TypeSArray) expressionType;
-            assert(heapPtr._heap[value.heapAddr.addr] == evaluateUlong(tsa.dim),
-                "static arrayLength mismatch: " ~ to!string(heapPtr._heap[value.heapAddr.addr]) ~ " != " ~ to!string(
+            assert(heapPtr._heap[value.heapAddr.addr + SliceDescriptor.LengthOffset] == evaluateUlong(tsa.dim),
+                "static arrayLength mismatch: " ~ to!string(heapPtr._heap[value.heapAddr.addr + SliceDescriptor.LengthOffset]) ~ " != " ~ to!string(
                     evaluateUlong(tsa.dim)));
            // result = createArray(value, tsa.nextOf);
         } break;
@@ -3277,7 +3277,7 @@ static if (is(BCGen))
         {
             lengthPtr = arr.i32;
         }
-        Store32(arr.i32, newLength.i32);
+        Store32(lengthPtr, newLength.i32);
     }
 
     BCValue getLength(BCValue arr)
@@ -3304,7 +3304,7 @@ static if (is(BCGen))
                     BCValue lengthPtr;
                     if (SliceDescriptor.LengthOffset)
                     {
-                        genTemporary(i32Type);
+                        lengthPtr = genTemporary(i32Type);
                         Add3(lengthPtr, arr.i32, imm32(SliceDescriptor.LengthOffset));
                     }
                     else
@@ -3359,7 +3359,7 @@ static if (is(BCGen))
                 }
                 else
                 {
-                    baseAddr = arr.i32;
+                    baseAddrPtr = arr.i32;
                 }
                 Load32(baseAddr, baseAddrPtr);
             }
