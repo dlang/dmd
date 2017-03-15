@@ -1128,12 +1128,9 @@ Expression toExpression(const BCValue value, Type expressionType,
 
         auto resultString = cast(char*)allocmemory(length * sz + sz);
 
-        foreach(i;0 .. length)
-        {
-            resultString[i] = cast(char) heapPtr._heap[offset];
-            offset += sz;
-        }
-        //TODO write correct multibyte terminator
+        assert(sz == 1, "missing UTF-16/32 support");
+        foreach (i; 0 .. length)
+            resultString[i] = cast(char) heapPtr._heap[offset + i];
         resultString[length] = '\0';
 
         result = new StringExp(Loc(), cast(void*)resultString, length);
