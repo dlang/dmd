@@ -994,7 +994,9 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     Loc declLoc = ad.dtors.dim ? ad.dtors[0].loc : ad.loc;
     Loc loc = Loc(); // internal code should have no loc to prevent coverage
 
+    FuncDeclaration xdtor_fwd = null;
     Expression e = null;
+
     for (size_t i = 0; i < ad.fields.dim; i++)
     {
         auto v = ad.fields[i];
@@ -1008,6 +1010,13 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         auto sdv = (cast(TypeStruct)tv).sym;
         if (!sdv.dtor)
             continue;
+        // fix: https://issues.dlang.org/show_bug.cgi?id=17257
+        {
+            xdtor_fwd = sdv.dtor; // this dtor is temporary it could be anything
+            auto _alias = new AliasDeclaration(Loc(), Id.__xdtor, xdtor_fwd);
+            _alias.addMember(sc, ad); // temporarily add to symbol table
+        }
+
         sdv.dtor.functionSemantic();
 
         stc = mergeFuncAttrs(stc, sdv.dtor);
@@ -1088,7 +1097,6 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     {
     case 0:
         break;
-
     case 1:
         xdtor = ad.dtors[0];
         break;
@@ -1126,7 +1134,10 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         auto _alias = new AliasDeclaration(Loc(), Id.__xdtor, xdtor);
         _alias.semantic(sc);
         ad.members.push(_alias);
-        _alias.addMember(sc, ad); // add to symbol table
+        if (xdtor_fwd)
+            ad.symtab.update(_alias); // update forward dtor to correct one
+        else
+            _alias.addMember(sc, ad); // add to symbol table
     }
     return xdtor;
 }
