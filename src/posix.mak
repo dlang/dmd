@@ -42,7 +42,6 @@ D = ddmd
 C=$D/backend
 TK=$D/tk
 ROOT=$D/root
-LEX=$D/lexer
 
 GENERATED = ../generated
 G = $(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
@@ -233,7 +232,7 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	sideeffect statement staticassert target traits visitor	\
 	typinf utils  statement_rewrite_walker statementsem safe blockexit asttypename))
 
-LEXER_SRCS=$(addsuffix .d, $(addprefix $(LEX)/, entity errors globals id identifier lexer tokens utf))
+LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, entity errors globals id identifier lexer tokens utf))
 
 LEXER_ROOT=$(addsyffix .d, $(addprefix $(ROOT)/, array ctfloat file filename outbuffer port rmem \
 	rootobject stringtable hash))
@@ -439,7 +438,7 @@ optabgen.out : $G/optabgen
 
 ######## idgen generates some source
 
-idgen_output = $(LEX)/id.h $(LEX)/id.d
+idgen_output = $D/id.h $D/id.d
 $(idgen_output) : $G/idgen
 
 $G/idgen: $D/idgen.d $(HOST_DMD_PATH)

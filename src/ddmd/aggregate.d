@@ -20,14 +20,14 @@ import ddmd.dscope;
 import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
-import ddmd.lexer.errors;
+import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.lexer.globals;
-import ddmd.lexer.id;
-import ddmd.lexer.identifier;
+import ddmd.globals;
+import ddmd.id;
+import ddmd.identifier;
 import ddmd.mtype;
-import ddmd.lexer.tokens;
+import ddmd.tokens;
 import ddmd.visitor;
 
 enum Sizeok : int

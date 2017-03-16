@@ -8,17 +8,17 @@
  * Source:      $(DMDSRC _tokens.d)
  */
 
-module ddmd.lexer.tokens;
+module ddmd.tokens;
 
 import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.string;
-import ddmd.lexer.globals;
-import ddmd.lexer.identifier;
+import ddmd.globals;
+import ddmd.identifier;
 import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;
 import ddmd.root.rmem;
-import ddmd.lexer.utf;
+import ddmd.utf;
 
 enum TOK : int
 {

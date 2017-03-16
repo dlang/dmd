@@ -30,7 +30,7 @@ import ddmd.dimport;
 import ddmd.dmodule;
 import ddmd.mtype;
 import ddmd.typinf;
-import ddmd.lexer.identifier;
+import ddmd.identifier;
 import ddmd.init;
 import ddmd.doc;
 import ddmd.root.rootobject;
@@ -109,7 +109,7 @@ public :
 ///
 unittest
 {
-    import ddmd.lexer.globals : Loc;
+    import ddmd.globals : Loc;
     Expression e = new TypeidExp(Loc.init, null);
     assert(e.astTypeName == "TypeidExp");
 }

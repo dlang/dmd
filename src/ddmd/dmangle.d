@@ -23,12 +23,12 @@ import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.lexer.globals;
-import ddmd.lexer.id;
+import ddmd.globals;
+import ddmd.id;
 import ddmd.mtype;
 import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;
-import ddmd.lexer.utf;
+import ddmd.utf;
 import ddmd.visitor;
 
 private immutable char[TMAX] mangleChar =

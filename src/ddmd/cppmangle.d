@@ -16,16 +16,16 @@ import ddmd.arraytypes;
 import ddmd.declaration;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
-import ddmd.lexer.errors;
+import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.lexer.globals;
-import ddmd.lexer.id;
+import ddmd.globals;
+import ddmd.id;
 import ddmd.mtype;
 import ddmd.root.outbuffer;
 import ddmd.root.rootobject;
 import ddmd.target;
-import ddmd.lexer.tokens;
+import ddmd.tokens;
 import ddmd.visitor;
 
 /* Do mangling for C++ linkage.

@@ -20,13 +20,13 @@ import ddmd.dscope;
 import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
-import ddmd.lexer.errors;
+import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.lexer.globals;
+import ddmd.globals;
 import ddmd.hdrgen;
-import ddmd.lexer.id;
-import ddmd.lexer.identifier;
+import ddmd.id;
+import ddmd.identifier;
 import ddmd.init;
 import ddmd.intrange;
 import ddmd.mtype;
@@ -34,7 +34,7 @@ import ddmd.root.outbuffer;
 import ddmd.root.rootobject;
 import ddmd.sideeffect;
 import ddmd.target;
-import ddmd.lexer.tokens;
+import ddmd.tokens;
 import ddmd.visitor;
 
 /************************************

@@ -11,7 +11,7 @@
 module ddmd.scanmscoff;
 
 import core.stdc.string, core.stdc.stdlib, core.sys.windows.windows;
-import ddmd.lexer.globals, ddmd.lexer.errors;
+import ddmd.globals, ddmd.errors;
 
 enum LOG = false;
 

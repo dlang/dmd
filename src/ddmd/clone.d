@@ -20,14 +20,14 @@ import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.lexer.globals;
-import ddmd.lexer.id;
-import ddmd.lexer.identifier;
+import ddmd.globals;
+import ddmd.id;
+import ddmd.identifier;
 import ddmd.init;
 import ddmd.mtype;
 import ddmd.opover;
 import ddmd.statement;
-import ddmd.lexer.tokens;
+import ddmd.tokens;
 
 /*******************************************
  * Merge function attributes pure, nothrow, @safe, @nogc, and @disable

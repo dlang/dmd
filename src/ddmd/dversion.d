@@ -15,8 +15,8 @@ import ddmd.cond;
 import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dsymbol;
-import ddmd.lexer.globals;
-import ddmd.lexer.identifier;
+import ddmd.globals;
+import ddmd.identifier;
 import ddmd.root.outbuffer;
 import ddmd.visitor;
 

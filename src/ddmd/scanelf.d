@@ -20,8 +20,8 @@ else version (Solaris)
 import core.stdc.string;
 import core.checkedint;
 
-import ddmd.lexer.globals;
-import ddmd.lexer.errors;
+import ddmd.globals;
+import ddmd.errors;
 
 enum LOG = false;
 

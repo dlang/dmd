@@ -15,11 +15,11 @@ import ddmd.declaration;
 import ddmd.dscope;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.lexer.globals;
-import ddmd.lexer.identifier;
+import ddmd.globals;
+import ddmd.identifier;
 import ddmd.init;
 import ddmd.mtype;
-import ddmd.lexer.tokens;
+import ddmd.tokens;
 import ddmd.visitor;
 
 /**************************************************

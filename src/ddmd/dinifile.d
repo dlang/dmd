@@ -17,8 +17,8 @@ import core.stdc.string;
 import core.sys.posix.stdlib;
 import core.sys.windows.windows;
 
-import ddmd.lexer.errors;
-import ddmd.lexer.globals;
+import ddmd.errors;
+import ddmd.globals;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
 import ddmd.root.port;

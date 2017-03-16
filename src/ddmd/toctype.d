@@ -18,9 +18,9 @@ import ddmd.backend.type;
 
 import ddmd.declaration;
 import ddmd.dstruct;
-import ddmd.lexer.globals;
+import ddmd.globals;
 import ddmd.glue;
-import ddmd.lexer.id;
+import ddmd.id;
 import ddmd.mtype;
 import ddmd.visitor;
 

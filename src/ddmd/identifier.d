@@ -8,18 +8,18 @@
  * Source:      $(DMDSRC _identifier.d)
  */
 
-module ddmd.lexer.identifier;
+module ddmd.identifier;
 
 import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.string;
-import ddmd.lexer.globals;
-import ddmd.lexer.id;
+import ddmd.globals;
+import ddmd.id;
 import ddmd.root.outbuffer;
 import ddmd.root.rootobject;
 import ddmd.root.stringtable;
-import ddmd.lexer.tokens;
-import ddmd.lexer.utf;
+import ddmd.tokens;
+import ddmd.utf;
 
 /***********************************************************
  */

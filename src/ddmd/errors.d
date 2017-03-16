@@ -8,7 +8,7 @@
  * Source:      $(DMDSRC _errors.d)
  */
 
-module ddmd.lexer.errors;
+module ddmd.errors;
 
 import core.stdc.stdarg;
 import core.stdc.stdio;
@@ -16,7 +16,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 import core.sys.posix.unistd;
 import core.sys.windows.windows;
-import ddmd.lexer.globals;
+import ddmd.globals;
 import ddmd.root.outbuffer;
 import ddmd.root.rmem;
 

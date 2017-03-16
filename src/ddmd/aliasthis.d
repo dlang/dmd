@@ -15,13 +15,13 @@ import ddmd.aggregate;
 import ddmd.declaration;
 import ddmd.dscope;
 import ddmd.dsymbol;
-import ddmd.lexer.errors;
+import ddmd.errors;
 import ddmd.expression;
-import ddmd.lexer.globals;
-import ddmd.lexer.identifier;
+import ddmd.globals;
+import ddmd.identifier;
 import ddmd.mtype;
 import ddmd.opover;
-import ddmd.lexer.tokens;
+import ddmd.tokens;
 import ddmd.visitor;
 
 /***********************************************************

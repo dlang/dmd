@@ -20,16 +20,16 @@ import ddmd.declaration;
 import ddmd.dinterpret;
 import ddmd.dstruct;
 import ddmd.dtemplate;
-import ddmd.lexer.errors;
+import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.lexer.globals;
+import ddmd.globals;
 import ddmd.mtype;
 import ddmd.root.ctfloat;
 import ddmd.root.port;
 import ddmd.root.rmem;
 import ddmd.target;
-import ddmd.lexer.tokens;
+import ddmd.tokens;
 import ddmd.visitor;
 
 /***********************************************************

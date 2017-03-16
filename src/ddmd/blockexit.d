@@ -18,12 +18,12 @@ import ddmd.dclass;
 import ddmd.declaration;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.lexer.globals;
-import ddmd.lexer.id;
-import ddmd.lexer.identifier;
+import ddmd.globals;
+import ddmd.id;
+import ddmd.identifier;
 import ddmd.mtype;
 import ddmd.statement;
-import ddmd.lexer.tokens;
+import ddmd.tokens;
 import ddmd.visitor;
 
 /**

@@ -16,10 +16,10 @@ import ddmd.declaration;
 import ddmd.dscope;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.lexer.globals;
+import ddmd.globals;
 import ddmd.init;
 import ddmd.mtype;
-import ddmd.lexer.tokens;
+import ddmd.tokens;
 import ddmd.visitor;
 
 /**************************************

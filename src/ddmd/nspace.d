@@ -14,8 +14,8 @@ import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.dscope;
 import ddmd.dsymbol;
-import ddmd.lexer.globals;
-import ddmd.lexer.identifier;
+import ddmd.globals;
+import ddmd.identifier;
 import ddmd.visitor;
 import core.stdc.stdio;
 

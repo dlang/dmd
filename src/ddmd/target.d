@@ -12,8 +12,8 @@ module ddmd.target;
 
 import ddmd.dmodule;
 import ddmd.expression;
-import ddmd.lexer.globals;
-import ddmd.lexer.identifier;
+import ddmd.globals;
+import ddmd.identifier;
 import ddmd.mtype;
 import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;

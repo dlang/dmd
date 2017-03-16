@@ -8,7 +8,7 @@
  * Source:      $(DMDSRC _utf.d)
  */
 
-module ddmd.lexer.utf;
+module ddmd.utf;
 
 nothrow pure @nogc:
 

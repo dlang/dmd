@@ -12,10 +12,10 @@ module ddmd.scanomf;
 
 import core.stdc.string;
 import core.stdc.stdlib;
-import ddmd.lexer.globals;
+import ddmd.globals;
 import ddmd.root.outbuffer;
 import ddmd.arraytypes;
-import ddmd.lexer.errors;
+import ddmd.errors;
 
 enum LOG = false;
 

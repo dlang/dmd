@@ -8,7 +8,7 @@
  * Source:      $(DMDSRC _globals.d)
  */
 
-module ddmd.lexer.globals;
+module ddmd.globals;
 
 import core.stdc.stdint;
 import core.stdc.stdio;

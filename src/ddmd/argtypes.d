@@ -12,7 +12,7 @@ module ddmd.argtypes;
 
 import core.stdc.stdio;
 import ddmd.declaration;
-import ddmd.lexer.globals;
+import ddmd.globals;
 import ddmd.mtype;
 import ddmd.visitor;
 

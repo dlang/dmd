@@ -33,13 +33,13 @@ import ddmd.dscope;
 import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
-import ddmd.lexer.errors;
+import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.lexer.globals;
+import ddmd.globals;
 import ddmd.hdrgen;
-import ddmd.lexer.id;
-import ddmd.lexer.identifier;
+import ddmd.id;
+import ddmd.identifier;
 import ddmd.imphint;
 import ddmd.init;
 import ddmd.opover;
@@ -50,7 +50,7 @@ import ddmd.root.rootobject;
 import ddmd.root.stringtable;
 import ddmd.sideeffect;
 import ddmd.target;
-import ddmd.lexer.tokens;
+import ddmd.tokens;
 import ddmd.visitor;
 
 enum LOGDOTEXP = 0;         // log ::dotExp()

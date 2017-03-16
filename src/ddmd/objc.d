@@ -19,10 +19,10 @@ import ddmd.dscope;
 import ddmd.dstruct;
 import ddmd.expression;
 import ddmd.func;
-import ddmd.lexer.globals;
+import ddmd.globals;
 import ddmd.gluelayer;
-import ddmd.lexer.id;
-import ddmd.lexer.identifier;
+import ddmd.id;
+import ddmd.identifier;
 import ddmd.mtype;
 import ddmd.root.outbuffer;
 import ddmd.root.stringtable;
@@ -164,7 +164,7 @@ extern (C++) void objc_InterfaceDeclaration_semantic_objcExtern(InterfaceDeclara
 // MARK: semantic
 extern (C++) void objc_FuncDeclaration_semantic_setSelector(FuncDeclaration fd, Scope* sc)
 {
-    import ddmd.lexer.tokens;
+    import ddmd.tokens;
 
     if (!fd.userAttribDecl)
         return;
