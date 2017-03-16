@@ -1180,7 +1180,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             assert(heapPtr._heap[value.heapAddr.addr + SliceDescriptor.LengthOffset] == evaluateUlong(tsa.dim),
                 "static arrayLength mismatch: " ~ to!string(heapPtr._heap[value.heapAddr.addr + SliceDescriptor.LengthOffset]) ~ " != " ~ to!string(
                     evaluateUlong(tsa.dim)));
-           // result = createArray(value, tsa.nextOf);
+            result = createArray(value, tsa.nextOf);
         } break;
     case Tarray:
         {
@@ -1256,7 +1256,7 @@ extern (C++) final class BCTypeVisitor : Visitor
             //return BCType(BCTypeEnum.i1);
             return BCType(BCTypeEnum.i32);
         case ENUMTY.Tchar:
-            //return BCType(BCTypeEnum.c8);
+            return BCType(BCTypeEnum.c8);
         case ENUMTY.Twchar:
             //return BCType(BCTypeEnum.c16);
         case ENUMTY.Tdchar:
@@ -2560,9 +2560,8 @@ static if (is(BCGen))
         }
 
         bool isString = (indexed.type.type == BCTypeEnum.String);
-        //FIXME check if Slice.ElementType == Char;
-        //and set isString to true;
         auto idx = genExpr(ie.e2).i32; // HACK
+        BCValue ptr = genTemporary(i32Type);
         version (ctfe_noboundscheck)
         {
         }
@@ -2572,46 +2571,18 @@ static if (is(BCGen))
             Assert(BCValue.init, _sharedCtfeState.addError(ie.loc,
                 "ArrayIndex %d out of bounds %d", idx, length));
         }
-        BCArray* arrayType;
-        BCSlice* sliceType;
 
-        if (indexed.type.type == BCTypeEnum.Array)
+        auto elmType = _sharedCtfeState.elementType(indexed.type);
+        int elmSize = _sharedCtfeState.size(elmType);
+        if (cast(int) elmSize <= 0)
         {
-            arrayType = &_sharedCtfeState.arrayTypes[indexed.type.typeIndex - 1];
-
-            debug (ctfe)
-            {
-                import std.stdio;
-
-                if (arrayType)
-                    writeln("arrayType: ", *arrayType);
-            }
+            bailout("could not get Element-Type-size for: " ~ ie.toString);
+            return ;
         }
-        else if (indexed.type.type == BCTypeEnum.Slice)
-        {
-            sliceType = &_sharedCtfeState.sliceTypes[indexed.type.typeIndex - 1];
-            debug (ctfe)
-            {
-                import std.stdio;
+        auto offset = genTemporary(i32Type);
 
-            //    writeln(_sharedCtfeState.sliceTypes[0 .. 4]);
-                if (sliceType)
-                    writeln("sliceType ", (*sliceType).elementType.type, " -- ", sliceType - &_sharedCtfeState.sliceTypes[0], " | ", indexed.type.typeIndex);
-
-            }
-
-        }
-        auto ptr = genTemporary(BCType(BCTypeEnum.i32));
-        //We set the ptr already to the beginning of the array;
-        scope (exit)
-        {
-            //removeTemporary(ptr);
-        }
-        auto elmType = arrayType ? arrayType.elementType : (
-            sliceType ? sliceType.elementType : BCType(BCTypeEnum.Char));
         auto oldRetval = retval;
         retval = assignTo ? assignTo : genTemporary(elmType);
-        //        if (elmType.type == BCTypeEnum.i32)
         {
             debug (ctfe)
             {
@@ -2619,51 +2590,30 @@ static if (is(BCGen))
             }
 
             // We add one to go over the length;
-            auto offset = genTemporary(i32Type);
-
-            if (!isString)
-            {
-                if (!arrayType && !sliceType)
+                if (!elmType)
                 {
-                    bailout("no array type or sliceType for " ~ ie.toString);
+                    bailout("could nit get elementType for: " ~ ie.toString);
+                    return ;
                 }
-                int elmSize = _sharedCtfeState.size(elmType);
-                assert(cast(int) elmSize > -1);
-                //elmSize = align4(elmSize);
 
-                //elmSize = (elmSize / 4 > 0 ? elmSize / 4 : 1);
-                Mul3(offset, idx, imm32(elmSize));
-                Add3(ptr, offset, getBase(indexed));
-                Load32(retval, ptr);
-            }
-            else
+            if (isString)
             {
-
-                bailout("String-Indexing does not work without UTF support afterall");
-                //TODO assert that idx is not out of bounds;
-                //auto inBounds = genTemporary(BCType(BCTypeEnum.i1));
-                //auto arrayLength = genTemporary(BCType(BCTypeEnum.i32));
-                //Load32(arrayLength, indexed.i32);
-                //Lt3(inBounds,  idx, arrayLength);
-                Add3(ptr, indexed.i32, bcOne);
-
-                auto modv = genTemporary(BCType(BCTypeEnum.i32));
-                Mod3(modv, idx, imm32(4));
-                Div3(offset, idx, imm32(4));
-                Add3(ptr, ptr, offset);
-
-                Load32(retval, ptr);
+                if (!assignTo || assignTo.type != elmType)
+                    bailout("Either we don't know the target-Type or the target type requires conversion: " ~ assignTo.type.type.to!string);
                 //TODO use UTF8 intrinsic!
-                Byte3(retval, retval, modv);
-                //removeTemporary(modv);
-                //removeTemporary(tmpElm);
-
+                bailout("apperantly we really cannot support string indexing ...");
+                return ;
             }
-            /*
-        else
-        {
-            bailout("Type of IndexExp unsupported " ~ ie.e1.type.toString);
-        }*/
+
+            //TODO assert that idx is not out of bounds;
+            //auto inBounds = genTemporary(BCType(BCTypeEnum.i1));
+            //auto arrayLength = genTemporary(BCType(BCTypeEnum.i32));
+            //Load32(arrayLength, indexed.i32);
+            //Lt3(inBounds,  idx, arrayLength);
+
+            Mul3(offset, idx, imm32(elmSize));
+            Add3(ptr, offset, getBase(indexed));
+            Load32(retval, ptr);
         }
     }
 
@@ -3979,6 +3929,7 @@ static if (is(BCGen))
         retval = lhs;
     }
 
+
     override void visit(AssignExp ae)
     {
         debug (ctfe)
@@ -4190,10 +4141,10 @@ static if (is(BCGen))
             }
             auto effectiveAddr = genTemporary(i32Type);
             auto elemType = toBCType(ie.e1.type.nextOf);
-            auto elemSize = align4(_sharedCtfeState.size(elemType));
+            auto elemSize = _sharedCtfeState.size(elemType);
             Mul3(effectiveAddr, index, imm32(elemSize));
             Add3(effectiveAddr, effectiveAddr, baseAddr);
-            if (elemSize != 4)
+            if (elemSize > 4)
             {
                 bailout("only 32 bit array loads are supported right now");
             }
@@ -4227,7 +4178,7 @@ static if (is(BCGen))
                     }
                 }
             }
-
+            assignTo = lhs;
 
             ignoreVoid = false;
             auto rhs = genExpr(ae.e2);
@@ -4247,6 +4198,10 @@ static if (is(BCGen))
             {
                 Set(lhs, rhs);
             }
+            else if (lhs.type.type == BCTypeEnum.i64 && (rhs.type.type == BCTypeEnum.i64 || rhs.type.type == BCTypeEnum.i32))
+            {
+                Set(lhs, rhs);
+            }
             else
             {
                 if (lhs.type.type == BCTypeEnum.Ptr)
@@ -4263,7 +4218,7 @@ static if (is(BCGen))
                         Store32(lhs, rhs);
                      }
                 }
-                else if (lhs.type.type == BCTypeEnum.Char && rhs.type.type == BCTypeEnum.Char)
+                else if (lhs.type.type == BCTypeEnum.c8 && rhs.type.type == BCTypeEnum.c8)
                 {
                     Set(lhs.i32, rhs.i32);
                 }
@@ -4296,11 +4251,8 @@ static if (is(BCGen))
                     return ;
                 }
             }
-
-            // I don't know how this got changed in between but apperantly it did ...
             assignTo = lhs;
         }
-
         if (assignTo.heapRef != BCHeapRef.init)
             StoreToHeapRef(assignTo);
 
