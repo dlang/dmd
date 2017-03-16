@@ -3484,6 +3484,12 @@ static if (is(BCGen))
                     // TODO we should probaby do a copy here ?
                     Set(var.i32, _init.i32);
                 }
+                else if (_init.type.type == BCTypeEnum.Slice || _init.type.type == BCTypeEnum.Array || _init.type.type == BCTypeEnum.string8)
+                {
+                    // todo introduce a bool function passedByPtr(BCType t)
+                    //maybe dangerous whi knows ...
+                    Set(var.i32, _init.i32);
+                }
                 else
                 {
                     bailout("We don't know howto deal with this initializer: " ~ _init.toString);
@@ -4227,6 +4233,11 @@ static if (is(BCGen))
                         bailout(ptrType.elementType != rhs.type, "unequal types for *lhs and rhs");
                         Store32(lhs, rhs);
                      }
+                }
+                else if (lhs.type.type == BCTypeEnum.Struct && lhs.type == rhs.type)
+                {
+                    //TODO FIXME: implement copyStruct and use it here!
+                    Set(lhs.i32, rhs.i32);
                 }
                 else if (lhs.type.type == BCTypeEnum.c8 && rhs.type.type == BCTypeEnum.c8)
                 {
