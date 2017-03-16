@@ -2861,6 +2861,9 @@ static if (is(BCGen))
                 bailout("could not gen upperBound in " ~ se.toString);
                 return ;
             }
+
+            Le3(BCValue.init, lwr.i32, upr.i32);
+            Assert(BCValue.init, _sharedCtfeState.addError(se.loc, "slice [%llu .. %llu] is out of bounds", lwr, upr));
             Sub3(newLength, upr.i32, lwr.i32);
 
             setLength(newSlice, newLength);
