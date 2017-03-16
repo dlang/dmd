@@ -3474,9 +3474,15 @@ static if (is(BCGen))
             {
 
                 auto _init = genExpr(ci);
-                if (_init.vType == BCValueType.Immediate && _init.type == BCType(BCTypeEnum.i32))
+                if (_init.type == BCType(BCTypeEnum.i32))
                 {
-                    Set(var.i32, retval);
+                    Set(var.i32, _init);
+                }
+                else if (_init.type.type == BCTypeEnum.Struct)
+                {
+                    // only works becuase the struct is a 32bit ptr;
+                    // TODO we should probaby do a copy here ?
+                    Set(var.i32, _init.i32);
                 }
                 else
                 {
