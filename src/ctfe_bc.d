@@ -19,7 +19,7 @@ import std.conv : to;
 
 enum perf = 0;
 enum bailoutMessages = 0;
-enum printResult = 1;
+enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
@@ -1180,7 +1180,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             assert(heapPtr._heap[value.heapAddr.addr + SliceDescriptor.LengthOffset] == evaluateUlong(tsa.dim),
                 "static arrayLength mismatch: " ~ to!string(heapPtr._heap[value.heapAddr.addr + SliceDescriptor.LengthOffset]) ~ " != " ~ to!string(
                     evaluateUlong(tsa.dim)));
-            result = createArray(value, tsa.nextOf);
+            //result = createArray(value, tsa.nextOf);
         } break;
     case Tarray:
         {
