@@ -2105,7 +2105,7 @@ static if (is(BCGen))
                 auto expr = genExpr(e.e1);
                 if (!canWorkWithType(expr.type) || !canWorkWithType(retval.type))
                 {
-                    bailout("++ only i32 is supported not " ~ to!string(expr.type.type));
+                    bailout("++ only i32 is supported not " ~ to!string(expr.type.type) ~ " -- " ~ e.toString);
                     return;
                 }
                 assert(expr.vType != BCValueType.Immediate,
@@ -2362,7 +2362,7 @@ static if (is(BCGen))
 
             else
             {
-                bailout("Only binary operations on i32s are supported -- " ~ lhs.type.type.to!string ~ " :: " ~ rhs.type.type.to!string );
+                bailout("Only binary operations on i32s are supported lhs: " ~ lhs.type.type.to!string ~ " rhs: " ~ rhs.type.type.to!string ~ " retval.type: " ~ to!string(retval.type.type) ~  " -- " ~ e.toString);
                 return;
             }
 
@@ -2601,8 +2601,6 @@ static if (is(BCGen))
                 if (!assignTo || assignTo.type != elmType)
                     bailout("Either we don't know the target-Type or the target type requires conversion: " ~ assignTo.type.type.to!string);
                 //TODO use UTF8 intrinsic!
-                bailout("apperantly we really cannot support string indexing ...");
-                return ;
             }
 
             //TODO assert that idx is not out of bounds;
@@ -3490,6 +3488,10 @@ static if (is(BCGen))
                     //maybe dangerous whi knows ...
                     Set(var.i32, _init.i32);
                 }
+                else if (_init.type.type == BCTypeEnum.c8 || _init.type.type == BCTypeEnum.i64)
+                {
+                    Set(var, _init);
+                }
                 else
                 {
                     bailout("We don't know howto deal with this initializer: " ~ _init.toString);
@@ -4251,6 +4253,11 @@ static if (is(BCGen))
                 {
                     Set(lhs.i32, rhs.i32);
                 }
+                else if (lhs.type.type == BCTypeEnum.Array && rhs.type.type == BCTypeEnum.Array)
+                {
+                    //TODO we should really copy here!
+                    Set(lhs.i32, rhs.i32);
+                }
                 else if (lhs.type.type == BCTypeEnum.Slice && rhs.type.type == BCTypeEnum.Null)
                 {
                     Set(lhs.i32, imm32(0));
@@ -4277,7 +4284,6 @@ static if (is(BCGen))
         if (assignTo.heapRef != BCHeapRef.init)
             StoreToHeapRef(assignTo);
 
-        retval = oldDiscardValue ? oldRetval : retval;
         assignTo = oldAssignTo;
         discardValue = oldDiscardValue;
 
