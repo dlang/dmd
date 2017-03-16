@@ -1180,7 +1180,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             assert(heapPtr._heap[value.heapAddr.addr + SliceDescriptor.LengthOffset] == evaluateUlong(tsa.dim),
                 "static arrayLength mismatch: " ~ to!string(heapPtr._heap[value.heapAddr.addr + SliceDescriptor.LengthOffset]) ~ " != " ~ to!string(
                     evaluateUlong(tsa.dim)));
-            //result = createArray(value, tsa.nextOf);
+            result = createArray(value, tsa.nextOf);
         } break;
     case Tarray:
         {
@@ -3478,6 +3478,10 @@ static if (is(BCGen))
                 {
                     Set(var.i32, retval);
                 }
+                else
+                {
+                    bailout("We don't know howto deal with this initializer: " ~ _init.toString);
+                }
 
             }
             retval = var;
@@ -3865,7 +3869,7 @@ static if (is(BCGen))
     {
         return (bct.type == BCTypeEnum.i32 || bct.type == BCTypeEnum.i64);
     }
-
+/*
     override void visit(ConstructExp ce)
     {
         //TODO ConstructExp is basically the same as AssignExp
@@ -3928,7 +3932,7 @@ static if (is(BCGen))
         Set(lhs.i32, rhs.i32);
         retval = lhs;
     }
-
+*/
 
     override void visit(AssignExp ae)
     {
