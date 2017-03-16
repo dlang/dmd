@@ -49,7 +49,7 @@ struct C_BCGen
     FunctionState[ubyte.max * 8] functionStates;
     uint functionStateCount;
     uint currentFunctionStateNumber;
-pure: 
+pure:
     @property FunctionState* currentFunctionState()
     {
         return &functionStates[currentFunctionStateNumber];

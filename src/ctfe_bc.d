@@ -19,6 +19,7 @@ import std.conv : to;
 
 enum perf = 0;
 enum bailoutMessages = 0;
+enum printResult = 1;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
@@ -415,7 +416,11 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                     esw.stop();
                     import ddmd.asttypename;
                     writeln(astTypeName(exp));
-                    writeln("Converting to AST Expression took " ~ esw.peek.usecs.to!string ~ "us\n\t" ~ exp.toString);
+                    writeln("Converting to AST Expression took " ~ esw.peek.usecs.to!string ~ "us");
+                }
+                static if (printResult)
+                {
+                    writeln("Evaluated function:" ~ fd.toString ~ " => " ~ exp.toString);
                 }
                 return exp;
             }
