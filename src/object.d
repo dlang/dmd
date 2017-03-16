@@ -3251,31 +3251,84 @@ bool __equals(T1, T2, size_t n1, size_t n2)(auto ref T1[n1] lhs, auto ref T2[n2]
 // lhs == rhs lowers to __equals(lhs, rhs) for arrays of all struct types.
 // old path: Typeinfo_array => TypeInfo_struct
 bool __equals(T1, T2)(T1[] lhs, T2[] rhs)
-{
+{ 
     if (lhs.length != rhs.length)
         return false;
 
+    if (lhs.length == 0 && rhs.length == 0)
+        return true;
+
     import core.internal.traits : Unqual;
-    static assert(is(Unqual!T1 == Unqual!T2), "Internal error.");
+    alias U1 = Unqual!T1;
+    alias U2 = Unqual!T2;
 
     static @trusted ref R at(R)(R[] r, size_t i) { return r.ptr[i]; }
+    static @trusted R trustedCast(R, S)(S[] r) { return cast(R) r; }
 
-    foreach (const u; 0 .. lhs.length)
+    static if (is(U1 == void) && is(U2 == void))
     {
-        static if (__traits(compiles, at(lhs, u).opEquals(at(rhs, u))))
+        return __equals(trustedCast!(ubyte[])(lhs), trustedCast!(ubyte[])(rhs));
+    }
+    else static if (is(U1 == void))
+    {
+        return __equals(trustedCast!(ubyte[])(lhs), rhs);
+    }
+    else static if (is(U2 == void))
+    {
+        return __equals(lhs, trustedCast!(ubyte[])(rhs));
+    }
+    else static if (__traits(isIntegral, U1))
+    {
+        if (!__ctfe)
         {
-            if (!at(lhs, u).opEquals(at(rhs, u)))
-                return false;
+            import core.stdc.string : memcmp;
+            return () @trusted { return memcmp(lhs.ptr, rhs.ptr, lhs.length * U1.sizeof) == 0; }();
         }
         else
         {
-            if (at(lhs, u).tupleof != at(rhs, u).tupleof)
-                return false;
+            foreach (const u; 0 .. lhs.length)
+            {
+                if (at(lhs, u) != at(rhs, u))
+                    return false;
+            }
+            return true;
         }
     }
+    else
+    {
+        foreach (const u; 0 .. lhs.length)
+        {
+            static if (__traits(compiles, __equals(at(lhs, u), at(rhs, u))))
+            {
+                return __equals(at(lhs, u), at(rhs, u));
+            }
+            else static if (__traits(isFloating, U1))
+            {
+                if (at(lhs, u) != at(rhs, u))
+                    return false;
+            }
+            else static if (is(U1 == Object) && is(U2 == Object))
+            {
+                if (!(lhs is rhs) || lhs && lhs.opEquals(rhs))
+                    return false;
+            }
+            else static if (__traits(compiles, at(lhs, u).opEquals(at(rhs, u))))
+            {
+                if (!at(lhs, u).opEquals(at(rhs, u)))
+                    return false;
+            }
+            else
+            {
+                if (at(lhs, u).tupleof != at(rhs, u).tupleof)
+                    return false;
+            }
+        }
 
-    return true;
+        return true;
+    }
 }
+
+
 
 unittest
 {
