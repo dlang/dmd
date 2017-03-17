@@ -1105,7 +1105,8 @@ public:
     }
 
     /++
-        Returns `true` if this duration is non-zero.
+        Allow Duration to be used as a boolean.
+        Returns: `true` if this duration is non-zero.
       +/
     bool opCast(T : bool)() const nothrow @nogc
     {
