@@ -110,7 +110,7 @@ pure:
 
     void incSp()
     {
-        sp.addr += 4;
+        sp += 4;
     }
 
     StackAddr currSp()
@@ -130,21 +130,22 @@ pure:
     {
         sameLabel = false;
         insideFunction = true;
-        code ~= "\nBCValue fn" ~  to!string(currentFunctionStateNumber++) ~ "(BCValue[] args, BCHeap* heapPtr = null) {\n";
+        code ~= "\nBCValue fn" ~  to!string(currentFunctionStateNumber) ~ "(BCValue[] args, BCHeap* heapPtr = null) {\n";
 
     }
 
     void endFunction()
     {
-        insideFunction = true;
+        insideFunction = false;
         code ~= "\n}\n";
+        currentFunctionStateNumber++;
     }
 
     BCValue genTemporary(BCType bct)
     {
         auto tmp = BCValue(sp, bct, temporaryCount++);
         //assert(size.vType == BCValueType.Immidiate);
-        currentFunctionState.sp.addr += align4(basicTypeSize(bct)); //sharedState.size(bct.type, typeIndex));
+        currentFunctionState.sp += align4(basicTypeSize(bct)); //sharedState.size(bct.type, typeIndex));
 
         return tmp;
     }
