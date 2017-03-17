@@ -42,6 +42,7 @@ enum PARAMFLAG_FLCID = 4;
 enum PARAMFLAG_FRETVAL = 8;
 enum PARAMFLAG_FOPT = 16;
 enum PARAMFLAG_FHASDEFAULT = 32;
+enum PARAMFLAG_FHASCUSTDATA = 64;
 
 enum IDLFLAG_NONE = PARAMFLAG_NONE;
 enum IDLFLAG_FIN = PARAMFLAG_FIN;
@@ -201,6 +202,7 @@ struct VARIANT {
                 ubyte* pbVal;
                 short* piVal;
                 int* plVal;
+                LONGLONG* pllVal;
                 float* pfltVal;
                 double* pdblVal;
                 VARIANT_BOOL* pboolVal;
@@ -224,6 +226,7 @@ struct VARIANT {
                 CHAR*  pcVal;
                 USHORT*  puiVal;
                 ULONG*  pulVal;
+                ULONGLONG* pullVal;
                 INT*  pintVal;
                 UINT*  puintVal;
                 struct {
@@ -266,6 +269,7 @@ struct _wireVARIANT {
         BYTE* pbVal;
         SHORT* piVal;
         LONG* plVal;
+        LONGLONG* pllVal;
         FLOAT* pfltVal;
         DOUBLE* pdblVal;
         VARIANT_BOOL* pboolVal;
@@ -288,6 +292,7 @@ struct _wireVARIANT {
         CHAR* pcVal;
         USHORT* puiVal;
         ULONG* pulVal;
+        ULONGLONG* pullVal;
         INT* pintVal;
         UINT* puintVal;
     }
