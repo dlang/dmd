@@ -389,13 +389,12 @@ tryagain:
 
     // Compute starting offset for switch tables
     targ_size_t swoffset;
+    int jmpseg = -1;
     if (config.flags & CFGromable)
+    {
+        jmpseg = 0;
         swoffset = coffset;
-    else if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
-        swoffset = Offset(CDATA);
-    else
-        swoffset = Offset(DATA);
-    swoffset = _align(0,swoffset);
+    }
 
     // Emit the generated code
     if (eecontext.EEcompile == 1)
@@ -412,6 +411,11 @@ tryagain:
         {
             if (b->BC == BCjmptab || b->BC == BCswitch)
             {
+                if (jmpseg == -1)
+                {
+                    jmpseg = objmod->jmpTableSegment(sfunc);
+                    swoffset = Offset(jmpseg);
+                }
                 swoffset = _align(0,swoffset);
                 b->Btableoffset = swoffset;     /* offset of sw tab */
                 swoffset += b->Btablesize;
