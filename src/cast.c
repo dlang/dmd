@@ -590,18 +590,6 @@ MATCH SymOffExp::implicitConvTo(Type *t)
 #endif
     MATCH result;
 
-    t = t->toBasetype();
-
-    // Disallow implicit conversion from delegate -> function
-    // by discarding the this pointer
-    if (t->ty == Tpointer && t->next->ty == Tfunction)
-    {
-        FuncDeclaration *f = var->isFuncDeclaration();
-
-        if (f->needThis())
-            return MATCHnomatch;
-    }
-
     result = type->implicitConvTo(t);
     //printf("\tresult = %d\n", result);
 
