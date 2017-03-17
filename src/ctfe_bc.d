@@ -2498,6 +2498,8 @@ static if (is(BCGen))
 
     override void visit(IndexExp ie)
     {
+        auto oldIndexed = currentIndexed;
+        scope(exit) currentIndexed = oldIndexed;
 
         debug (ctfe)
         {
@@ -2757,6 +2759,8 @@ static if (is(BCGen))
 
     override void visit(SliceExp se)
     {
+        auto oldIndexed = currentIndexed;
+        scope(exit) currentIndexed = oldIndexed;
         debug (ctfe)
         {
             import std.stdio;
@@ -2781,6 +2785,7 @@ static if (is(BCGen))
             }
 
             auto origSlice = genExpr(se.e1);
+            currentIndexed = origSlice;
             bailout(!origSlice, "could not get slice expr in " ~ se.toString);
             auto elmType = _sharedCtfeState.elementType(origSlice.type);
             if (!elmType)
@@ -3378,14 +3383,15 @@ static if (is(BCGen))
             retval = imm32(1);
             return ;
         }
+        else if (ve.var.ident == Id.dollar)
+        {
+            retval = getLength(currentIndexed);
+            return;
+        }
+
 
         if (vd)
         {
-            if (vd.ident == Id.dollar)
-            {
-                retval = getLength(currentIndexed);
-                return;
-            }
 
             auto sv = getVariable(vd);
             debug (ctfe)
@@ -4059,9 +4065,9 @@ static if (is(BCGen))
             BCValue newLength = genExpr(ae.e2);
             auto effectiveSize = genTemporary(i32Type);
             auto elemType = toBCType(ale.e1.type);
-            auto elemSize = align4(basicTypeSize(elemType));
+            auto elemSize = basicTypeSize(elemType);
             Mul3(effectiveSize, newLength, imm32(elemSize));
-            Add3(effectiveSize, effectiveSize, imm32(uint(uint.sizeof*2)));
+            Add3(effectiveSize, effectiveSize, imm32(SliceDescriptor.Size));
 
             typeof(beginJmp()) jmp;
             typeof(beginCndJmp()) jmp1;
@@ -4077,24 +4083,24 @@ static if (is(BCGen))
 
                     Alloc(newArrayPtr, effectiveSize);
                     //NOTE: ABI the magic number 8 is derived from array layout {uint length, uint basePtr, T[length] space}
-                    Add3(newBase, newArrayPtr, imm32(8));
+                    Add3(newBase, newArrayPtr, imm32(SliceDescriptor.Size));
                     setLength(newArrayPtr, newLength);
                     setBase(newArrayPtr, newBase);
                     auto copyPtr = getBase(arrayPtr);
 
-                    Add3(arrayPtr.i32, arrayPtr.i32, imm32(8));
+                    Add3(arrayPtr.i32, arrayPtr.i32, imm32(SliceDescriptor.Size));
                     // copy old Array
                     auto tmpElem = genTemporary(i32Type);
                     auto LcopyLoop = genLabel();
                     jmp2 = beginCndJmp(oldLength);
                     {
                         Sub3(oldLength, oldLength, bcOne);
-                        foreach (_; 0 .. elemSize / 4)
+                        foreach (_; 0 .. elemSize)
                         {
                             Load32(tmpElem, arrayPtr.i32);
                             Store32(copyPtr, tmpElem);
-                            Add3(arrayPtr.i32, arrayPtr.i32, imm32(4));
-                            Add3(copyPtr, copyPtr, imm32(4));
+                            Add3(arrayPtr.i32, arrayPtr.i32, imm32(1));
+                            Add3(copyPtr, copyPtr, imm32(1));
                         }
                         genJump(LcopyLoop);
                     }
@@ -4111,7 +4117,7 @@ static if (is(BCGen))
                 auto newBase = genTemporary(i32Type);
                 Alloc(newArrayPtr, effectiveSize);
                 setLength(newArrayPtr, newLength);
-                Add3(newBase, newArrayPtr, imm32(uint(uint.sizeof*2)));
+                Add3(newBase, newArrayPtr, imm32(SliceDescriptor.Size));
                 setBase(newArrayPtr, newBase);
                 Set(arrayPtr.i32, newArrayPtr);
             }
@@ -4933,7 +4939,7 @@ static if (is(BCGen))
             // e.g. cast(uint[])uint[10]
             retval.type = toType;
         }
-        /*else if (fromType.type == BCTypeEnum.String
+        /*else if (fromType.type == BCTypeEnum.string8
                 && toType.type == BCTypeEnum.Slice && toType.typeIndex
                 && _sharedCtfeState.sliceTypes[toType.typeIndex - 1].elementType.type
                 == BCTypeEnum.i32)
