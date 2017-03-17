@@ -207,23 +207,12 @@ class TypeInfo
         return typeid(this).name;
     }
 
-    override size_t toHash() @trusted const
+    override size_t toHash() @trusted const nothrow
     {
         import core.internal.traits : externDFunc;
         alias hashOf = externDFunc!("rt.util.hash.hashOf",
                                     size_t function(const(void)[], size_t) @trusted pure nothrow @nogc);
-        try
-        {
-            auto data = this.toString();
-            return hashOf(data, 0);
-        }
-        catch (Throwable)
-        {
-            // This should never happen; remove when toString() is made nothrow
-
-            // BUG: this prevents a compacting GC from working, needs to be fixed
-            return cast(size_t)cast(void*)this;
-        }
+        return hashOf(this.toString(), 0);
     }
 
     override int opCmp(Object o)
