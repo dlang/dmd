@@ -2288,7 +2288,7 @@ static if (is(BCGen))
                 }
 
                 auto rhsBaseType = _sharedCtfeState.elementType(rhs.type);
-                if (canWorkWithType(lhsBaseType) && canWorkWithType(rhsBaseType)
+                if (lhsBaseType == rhsBaseType && (canWorkWithType(lhsBaseType) || lhsBaseType == BCTypeEnum.c8)
                         && basicTypeSize(lhsBaseType) == basicTypeSize(rhsBaseType))
                 {
 
@@ -3979,7 +3979,7 @@ static if (is(BCGen))
 
     static bool canWorkWithType(const BCType bct) pure
     {
-        return (bct.type == BCTypeEnum.i32 || bct.type == BCTypeEnum.i64 || bct.type == BCTypeEnum.c8);
+        return (bct.type == BCTypeEnum.i32 || bct.type == BCTypeEnum.i64);
     }
 /*
     override void visit(ConstructExp ce)
