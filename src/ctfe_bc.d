@@ -1583,7 +1583,11 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     void expandSliceTo(BCValue slice, BCValue newLength)
     {
-        assert(slice.type == BCTypeEnum.Slice);
+        if(slice.type != BCTypeEnum.Slice)
+        {
+            bailout("We only support expansion of slices not: " ~ to!(string)(slice.type.type));
+            return ;
+        }
 
         auto oldBase = getBase(slice);
         auto oldLength = getLength(slice);
