@@ -2291,7 +2291,11 @@ static if (is(BCGen))
                 if (lhsBaseType == rhsBaseType && (canWorkWithType(lhsBaseType) || lhsBaseType == BCTypeEnum.c8)
                         && basicTypeSize(lhsBaseType) == basicTypeSize(rhsBaseType))
                 {
-
+                    if (!lhs.heapAddr || !rhs.heapAddr)
+                    {
+                        bailout("null slices are not supported");
+                        return ;
+                    }
                     auto lhsLength = getLength(lhs);
                     auto rhsLength = getLength(rhs);
                     auto lhsBase = getBase(lhs);
