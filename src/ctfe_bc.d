@@ -2256,7 +2256,7 @@ static if (is(BCGen))
                     bailout("bailout because either lhs or rhs for ~ could not be generated");
                     return ;
                 }
-                if (lhs.type.type != BCTypeEnum.Slice && lhs.type.type != BCTypeEnum.string8)
+                if (lhs.type.type != BCTypeEnum.Slice/* && lhs.type.type != BCTypeEnum.string8*/)
                 {
                     bailout("lhs for concat has to be a slice not: " ~ to!string(lhs.type.type));
                     return;
