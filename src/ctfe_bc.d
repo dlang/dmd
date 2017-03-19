@@ -2252,18 +2252,18 @@ static if (is(BCGen))
                     bailout("bailout because either lhs or rhs for ~ could not be generated");
                     return ;
                 }
-                if (lhs.type.type != BCTypeEnum.Slice && (lhs.type.typeIndex <= _sharedCtfeState.sliceCount))
+                if (lhs.type.type != BCTypeEnum.Slice && lhs.type.type != BCTypeEnum.string8)
                 {
                     bailout("lhs for concat has to be a slice not: " ~ to!string(lhs.type.type));
                     return;
                 }
                 auto lhsBaseType = _sharedCtfeState.elementType(lhs.type);
-                if (lhsBaseType.type != BCTypeEnum.i32)
+                if (_sharedCtfeState.size(lhsBaseType) > 4)
                 {
-                    bailout("for now only append to uint[] is supported not: " ~ to!string(lhsBaseType.type));
+                    bailout("for now only append to T[0].sizeof <= 4 is supported not : " ~ to!string(lhsBaseType.type));
                     return ;
                 }
-                if (rhs.type.type != BCTypeEnum.Slice && rhs.type.type != BCTypeEnum.Array)
+                if (rhs.type.type != BCTypeEnum.Slice && rhs.type.type != BCTypeEnum.Array && rhs.type.type != BCTypeEnum.string8)
                 {
                     bailout("for now only concat between T[] and T[] is supported not: " ~ to!string(lhs.type.type) ~" and " ~ to!string(rhs.type.type) ~ e.toString);
                     return ;
@@ -3975,7 +3975,7 @@ static if (is(BCGen))
 
     static bool canWorkWithType(const BCType bct) pure
     {
-        return (bct.type == BCTypeEnum.i32 || bct.type == BCTypeEnum.i64);
+        return (bct.type == BCTypeEnum.i32 || bct.type == BCTypeEnum.i64 || bct.type == BCTypeEnum.c8);
     }
 /*
     override void visit(ConstructExp ce)
