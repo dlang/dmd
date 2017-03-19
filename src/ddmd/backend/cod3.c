@@ -1814,29 +1814,21 @@ void outjmptab(block *b)
  */
 
 void outswitab(block *b)
-{ unsigned ncases,n;
-  targ_llong *p;
-  targ_size_t val;
-  targ_size_t alignbytes,*poffset;
-  int seg;                              /* target segment for table     */
-  list_t bl;
-  unsigned sz;
-  targ_size_t offset;
+{
+    //printf("outswitab()\n");
+    targ_llong *p = b->BS.Bswitch;        // pointer to case data
+    unsigned ncases = *p++;               // number of cases
 
-  //printf("outswitab()\n");
-  p = b->BS.Bswitch;                    /* pointer to case data         */
-  ncases = *p++;                        /* number of cases              */
+    const int seg = objmod->jmpTableSegment(funcsym_p);
+    targ_size_t *poffset = &Offset(seg);
+    targ_size_t offset = *poffset;
+    targ_size_t alignbytes = _align(0,*poffset) - *poffset;
+    objmod->lidata(seg,*poffset,alignbytes);  // any alignment bytes necessary
+    assert(*poffset == offset + alignbytes);
 
-  seg = objmod->jmpTableSegment(funcsym_p);
-  poffset = &Offset(seg);
-  offset = *poffset;
-  alignbytes = _align(0,*poffset) - *poffset;
-  objmod->lidata(seg,*poffset,alignbytes);  /* any alignment bytes necessary */
-  assert(*poffset == offset + alignbytes);
-
-  sz = intsize;
+  unsigned sz = intsize;
   assert(SegData[seg]->SDseg == seg);
-  for (n = 0; n < ncases; n++)          /* send out value table         */
+  for (unsigned n = 0; n < ncases; n++)          // send out value table
   {
         //printf("\tcase %d, offset = x%x\n", n, *poffset);
         objmod->write_bytes(SegData[seg],sz,p);
@@ -1847,10 +1839,11 @@ void outswitab(block *b)
 
   if (b->Btablesize == ncases * (REGSIZE * 2 + tysize(TYnptr)))
   {
-        /* Send out MSW table   */
+        // Send out MSW table
         p -= ncases;
-        for (n = 0; n < ncases; n++)
-        {   val = MSREG(*p);
+        for (unsigned n = 0; n < ncases; n++)
+        {
+            targ_size_t val = MSREG(*p);
             p++;
             objmod->write_bytes(SegData[seg],REGSIZE,&val);
         }
@@ -1858,8 +1851,8 @@ void outswitab(block *b)
         assert(*poffset == offset);
   }
 
-  bl = b->Bsucc;
-  for (n = 0; n < ncases; n++)          /* send out address table       */
+  list_t bl = b->Bsucc;
+  for (unsigned n = 0; n < ncases; n++)          // send out address table
   {     bl = list_next(bl);
         objmod->reftocodeseg(seg,*poffset,list_block(bl)->Boffset);
         *poffset += tysize(TYnptr);
@@ -2251,28 +2244,32 @@ bool cse_simple(code *c, elem *e)
 
 code* gen_testcse(code *c, unsigned sz, targ_uns i)
 {
+    CodeBuilder cdb;
+    cdb.append(c);
     bool byte = sz == 1;
-    c = genc(c,0x81 ^ byte,modregrm(2,7,BPRM),
+    cdb.genc(0x81 ^ byte,modregrm(2,7,BPRM),
                 FLcs,i, FLconst,(targ_uns) 0);
     if ((I64 || I32) && sz == 2)
-        c->Iflags |= CFopsize;
+        cdb.last()->Iflags |= CFopsize;
     if (I64 && sz == 8)
-        code_orrex(c, REX_W);
-    return c;
+        code_orrex(cdb.last(), REX_W);
+    return cdb.finish();
 }
 
 code* gen_loadcse(code *c, unsigned reg, targ_uns i)
 {
+    CodeBuilder cdb;
+    cdb.append(c);
     unsigned op = 0x8B;
     if (reg == ES)
     {
         op = 0x8E;
         reg = 0;
     }
-    c = genc1(c,op,modregxrm(2,reg,BPRM),FLcs,i);
+    cdb.genc1(op,modregxrm(2,reg,BPRM),FLcs,i);
     if (I64)
-        code_orrex(c, REX_W);
-    return c;
+        code_orrex(cdb.last(), REX_W);
+    return cdb.finish();
 }
 
 /***************************************
