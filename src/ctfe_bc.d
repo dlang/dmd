@@ -1554,14 +1554,14 @@ extern (C++) final class BCV(BCGenT) : Visitor
     }
 
     /// copyArray will advance both newBase and oldBase by length
-    /// length will be reduced to zero
 
-    void copyArray(BCValue* newBase, BCValue* oldBase, BCValue* length, uint elementSize)
+    void copyArray(BCValue* newBase, BCValue* oldBase, BCValue length, uint elementSize)
     {
         auto _newBase = *newBase;
         auto _oldBase = *oldBase;
 
-        auto copyCounter = *length;
+        auto copyCounter = genTemporary(i32Type);
+        Set(copyCounter, length);
         {
             auto Lbegin  = genLabel();
             auto copyJmp = beginCndJmp(copyCounter);
@@ -1603,7 +1603,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         Alloc(newBase, effectiveSize);
         setBase(slice, newBase);
 
-        copyArray(&newBase, &oldBase, &oldLength, elementSize);
+        copyArray(&newBase, &oldBase, oldLength, elementSize);
 
         setLength(slice, newLength);
     }
@@ -2315,8 +2315,8 @@ static if (is(BCGen))
                     setBase(retval, newBase);
                     setLength(retval, newLength);
 
-                    copyArray(&newBase, &lhsBase, &lhsLength, elemSize);
-                    copyArray(&newBase, &rhsBase, &rhsLength, elemSize);
+                    copyArray(&newBase, &lhsBase, lhsLength, elemSize);
+                    copyArray(&newBase, &rhsBase, rhsLength, elemSize);
 
                 }
                 else
@@ -2664,6 +2664,12 @@ static if (is(BCGen))
         }
 
         auto elmType = _sharedCtfeState.elementType(indexed.type);
+        if (!elmType)
+        {
+            bailout("could nit get elementType for: " ~ ie.toString);
+            return ;
+        }
+
         int elmSize = _sharedCtfeState.size(elmType);
         if (cast(int) elmSize <= 0)
         {
@@ -2680,17 +2686,10 @@ static if (is(BCGen))
                 writeln("elmType: ", elmType.type);
             }
 
-            // We add one to go over the length;
-                if (!elmType)
-                {
-                    bailout("could nit get elementType for: " ~ ie.toString);
-                    return ;
-                }
-
             if (isString)
             {
-                if (!assignTo || assignTo.type != elmType)
-                    bailout("Either we don't know the target-Type or the target type requires conversion: " ~ assignTo.type.type.to!string);
+                if (retval.type != elmType)
+                    bailout("the target type requires UTF-conversion: " ~ assignTo.type.type.to!string);
                 //TODO use UTF8 intrinsic!
             }
 
@@ -2702,7 +2701,7 @@ static if (is(BCGen))
 
             Mul3(offset, idx, imm32(elmSize));
             Add3(ptr, offset, getBase(indexed));
-            Load32(retval, ptr);
+            Load32(retval.i32, ptr);
         }
     }
 
@@ -3066,13 +3065,14 @@ static if (is(BCGen))
                 }
                 else
                 {
+                    assert(_sharedCtfeState.heap.heapSize);
                     Store32(imm32(_sharedCtfeState.heap.heapSize), elexpr);
                 }
                 _sharedCtfeState.heap.heapSize += heapAdd;
             }
             else
             {
-                bailout("ArrayElement is not an i32 but an " ~ to!string(elexpr.type.type));
+                bailout("ArrayElement is not an i32 but a " ~ to!string(elexpr.type.type) ~ " -- " ~ elem.toString);
                 return;
             }
         }
@@ -3819,10 +3819,10 @@ static if (is(BCGen))
         }
 
         auto bct = toBCType(ie.type);
-        if (bct.type != BCTypeEnum.i32 && bct.type != BCTypeEnum.i64 && bct.type != BCTypeEnum.Char)
+        if (bct.type != BCTypeEnum.i32 && bct.type != BCTypeEnum.i64 && bct.type != BCTypeEnum.c8)
         {
             //NOTE this can happen with cast(char*)size_t.max for example
-            bailout("We don't support IntegerExpressions with non-integer types");
+            bailout("We don't support IntegerExpressions with non-integer types: " ~ to!string(bct.type));
         }
 
         // HACK regardless of the literal type we register it as 32bit if it's smaller then int.max;
@@ -4517,6 +4517,8 @@ static if (is(BCGen))
             }
 
             auto lhs = genExpr(ss.condition);
+            bailout(ss.condition.type.ty == Tint32, "cannot deal with signed swtiches");
+
             if (!lhs)
             {
                 bailout("swtiching on undefined value " ~ ss.toString);
@@ -4533,7 +4535,6 @@ static if (is(BCGen))
                 switchFixup = &switchFixupTable[switchFixupTableCount];
                 caseStmt.index = cast(int) i;
                 // apperantly I have to set the index myself;
-                bailout(caseStmt.exp.type.ty == Tint32, "cannot deal with signed swtiches");
 
                 auto rhs = genExpr(caseStmt.exp);
                 stringSwitch ? StringEq(BCValue.init, lhs, rhs) : Eq3(BCValue.init,

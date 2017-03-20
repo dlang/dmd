@@ -920,29 +920,6 @@ pure:
         }
     }
 
-    void StrCat3(BCValue result, BCValue lhs, BCValue rhs)
-    {
-        assert(result.vType == BCValueType.StackValue, "The result of StrCat3 a StackValue");
-        assert(result.vType == BCValueType.StackValue, "The lhs of StrCat3 a StackValue");
-        assert(result.vType == BCValueType.StackValue, "The rhs of StrCat3 a StackValue");
-        auto aLength = genTemporary(i32Type);
-        auto bLength = genTemporary(i32Type);
-        auto cLength = genTemporary(i32Type);
-        auto newString = genTemporary(i32Type);
-        Set(cLength, imm32(8));
-        Load32(aLength, lhs);
-        Load32(bLength, rhs);
-        Add3(cLength, cLength, bLength);
-        Add3(cLength, cLength, bLength);
-        Div3(cLength, cLength, imm32(4));
-        Alloc(newString, cLength);
-        emitLongInst(LongInst64(LongInst.StrCat, newString.stackAddr, lhs.stackAddr,
-            false));
-        emitLongInst(LongInst64(LongInst.StrCat, newString.stackAddr, rhs.stackAddr,
-            false));
-        Set(result, newString);
-    }
-
     void LoadIndexed(BCValue result, BCValue array, BCValue idx, BCValue arrayLength)
     {
 
