@@ -158,6 +158,7 @@ struct Param
     char multiobj;      // break one object file into multiple ones
     char oneobj;        // write one object file instead of multiple ones
     bool trace;         // insert profiling hooks
+    bool tracegc;       // instrument calls to 'new'
     char quiet;         // suppress non-error messages
     char verbose;       // verbose compile
     char vtls;          // identify thread local variables

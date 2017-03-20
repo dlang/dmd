@@ -681,8 +681,23 @@ int main(int iargc, const char *argv[])
                 global.params.is64bit = 0;
             else if (strcmp(p + 1, "m64") == 0)
                 global.params.is64bit = 1;
-            else if (strcmp(p + 1, "profile") == 0)
-                global.params.trace = 1;
+            else if (memcmp(p + 1, "profile", 7) == 0)
+            {
+                // Parse:
+                //      -profile
+                //      -profile=gc
+                if (p[8] == '=')
+                {
+                    if (strcmp(p + 9, "gc") == 0)
+                        global.params.tracegc = true;
+                    else
+                        goto Lerror;
+                }
+                else if (p[8])
+                    goto Lerror;
+                else
+                    global.params.trace = true;
+            }
             else if (strcmp(p + 1, "v") == 0)
                 global.params.verbose = 1;
 #if DMDV2
