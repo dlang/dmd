@@ -60,6 +60,9 @@ elem *ExpressionsToStaticArray(IRState *irs, Loc loc, Expressions *exps,
     Type *telem, symbol **psym);
 elem *ElemsToStaticArray(Loc loc, Type *telem, Elems *elems, symbol **psym);
 
+Symbol *toStringSymbol(const char *str, size_t len, size_t sz);
+Symbol *toStringDarraySymbol(const char *str, size_t len, size_t sz);
+
 #define el_setLoc(e,loc)        ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
                                  (e)->Esrcpos.Slinnum = (loc).linnum)
 
@@ -1121,18 +1124,9 @@ elem *NullExp::toElem(IRState *irs)
 /***************************************
  */
 
-struct StringTab
-{
-    Module *m;          // module we're generating code for
-    Symbol *si;
-    void *string;
-    size_t sz;
-    size_t len;
-};
+#include "stringtable.h"
 
-#define STSIZE 16
-StringTab stringTab[STSIZE];
-size_t stidx;
+StringTable *stringTab;
 
 static Symbol *assertexp_sfilename = NULL;
 static char *assertexp_name = NULL;
@@ -1141,12 +1135,13 @@ static Module *assertexp_mn = NULL;
 void clearStringTab()
 {
     //printf("clearStringTab()\n");
-    memset(stringTab, 0, sizeof(stringTab));
-    stidx = 0;
-
-    assertexp_sfilename = NULL;
-    assertexp_name = NULL;
-    assertexp_mn = NULL;
+    if (stringTab)
+        stringTab->reset(1000);             // 1000 is arbitrary guess
+    else
+    {
+        stringTab = new StringTable();
+        stringTab->_init(1000);
+    }
 }
 
 elem *StringExp::toElem(IRState *irs)
@@ -1163,7 +1158,6 @@ elem *StringExp::toElem(IRState *irs)
     {
         Symbol *si;
         dt_t *dt;
-        StringTab *st;
 
 #if 0
         printf("irs->m = %p\n", irs->m);
@@ -1171,42 +1165,14 @@ elem *StringExp::toElem(IRState *irs)
         printf(" len = %d\n", len);
         printf(" sz  = %d\n", sz);
 #endif
-        for (size_t i = 0; i < STSIZE; i++)
-        {
-            st = &stringTab[(stidx + i) % STSIZE];
-            //if (!st->m) continue;
-            //printf(" st.m   = %s\n", st->m->toChars());
-            //printf(" st.len = %d\n", st->len);
-            //printf(" st.sz  = %d\n", st->sz);
-            if (st->m == irs->m &&
-                st->si &&
-                st->len == len &&
-                st->sz == sz &&
-                memcmp(st->string, string, sz * len) == 0)
-            {
-                //printf("use cached value\n");
-                si = st->si;    // use cached value
-                goto L1;
-            }
-        }
-
-        stidx = (stidx + 1) % STSIZE;
-        st = &stringTab[stidx];
+        si = toStringDarraySymbol((char*) this->string, this->len, this->sz);
 
         dt = NULL;
         toDt(&dt);
-
-        si = symbol_generate(SCstatic,type_fake(TYdarray));
         si->Sdt = dt;
         si->Sfl = FLdata;
         out_readonly(si);
         outdata(si);
-
-        st->m = irs->m;
-        st->si = si;
-        st->string = string;
-        st->len = len;
-        st->sz = sz;
     L1:
         e = el_var(si);
     }
@@ -4855,7 +4821,6 @@ elem *StructLiteralExp::toElem(IRState *irs)
     return e;
 }
 
-
 /*************************************************
  * Allocate a static array, and initialize its members with elems[].
  * Return the initialization expression, and the symbol for the static array in *psym.
@@ -4900,4 +4865,51 @@ elem *ElemsToStaticArray(Loc loc, Type *telem, Elems *elems, symbol **psym)
     }
 
     return el_combines((void **)eset.tdata(), dim);
+}
+
+/*******************************************************
+ * Write read-only string to object file, create a local symbol for it.
+ * str[len] must be 0.
+ */
+
+Symbol *toStringSymbol(const char *str, size_t len, size_t sz)
+{
+    //printf("toStringSymbol() %p\n", stringTab);
+    assert(str[len * sz] == 0);
+    StringValue *sv = stringTab->update(str, len * sz);
+    if (!sv->ptrvalue)
+    {
+        Symbol *si = symbol_generate(SCstatic,type_static_array(len * sz, tschar));
+        si->Salignment = 1;
+        si->Sdt = NULL;
+        dtnbytes(&si->Sdt, (len + 1) * sz, str);
+        si->Sfl = FLdata;
+        out_readonly(si);
+        outdata(si);
+        sv->ptrvalue = (void *)si;
+    }
+    return (Symbol *)sv->ptrvalue;
+}
+
+/*******************************************************
+ * Write read-only string to object file as a darray, create a local symbol for it.
+ */
+
+Symbol *toStringDarraySymbol(const char *str, size_t len, size_t sz)
+{
+    Symbol *si = toStringSymbol(str, len, sz);
+
+    /* sida shold be cached along with si, but currently StringTable only gives us one
+     * slot, 'ptrvalue'.
+     */
+    dt_t *dt = NULL;
+    dtsize_t(&dt, len);
+    dtxoff(&dt, si, 0);
+
+    Symbol *sida = symbol_generate(SCstatic,type_fake(TYdarray));
+    sida->Sdt = dt;
+    sida->Sfl = FLdata;
+    out_readonly(sida);
+    outdata(sida);
+    return sida;
 }
