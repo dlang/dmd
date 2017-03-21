@@ -3486,7 +3486,7 @@ static if (is(BCGen))
             debug (ctfe)
                 assert(sv, "Variable " ~ ve.toString ~ " not in StackFrame");
 
-            if (!ignoreVoid && sv.vType == BCValueType.VoidValue)
+            if (sv.vType == BCValueType.VoidValue && !ignoreVoid)
             {
                 bailout("Trying to read form an uninitialized Variable: " ~ ve.toString);
                 //TODO ve.error here ?
@@ -4072,7 +4072,7 @@ static if (is(BCGen))
         debug (ctfe)
         {
             import std.stdio;
-
+            writeln("OP: ", ae.op.to!string);
             writeln("ae.e1.op ", to!string(ae.e1.op));
         }
 
@@ -4152,74 +4152,10 @@ static if (is(BCGen))
                 bailout("I don't have an array to load the length from :(");
                 return;
             }
+
             BCValue oldLength = getLength(arrayPtr);
             BCValue newLength = genExpr(ae.e2);
             expandSliceTo(arrayPtr, newLength);
-/*
-            auto effectiveSize = genTemporary(i32Type);
-            auto elemType = toBCType(ale.e1.type);
-            auto elemSize = basicTypeSize(elemType);
-            Mul3(effectiveSize, newLength, imm32(elemSize));
-            Add3(effectiveSize, effectiveSize, imm32(SliceDescriptor.Size));
-
-            typeof(beginJmp()) jmp;
-            typeof(beginCndJmp()) jmp1;
-            typeof(beginCndJmp()) jmp2;
-
-            auto arrayExsitsJmp = beginCndJmp(arrayPtr.i32);
-            {
-                Le3(BCValue.init, oldLength, newLength);
-                jmp1 = beginCndJmp(BCValue.init, true);
-                {
-                    auto newArrayPtr = genTemporary(i32Type);
-                    auto newBase = genTemporary(i32Type);
-
-                    Alloc(newArrayPtr, effectiveSize);
-                    //NOTE: ABI the magic number 8 is derived from array layout {uint length, uint basePtr, T[length] space}
-                    Add3(newBase, newArrayPtr, imm32(SliceDescriptor.Size));
-                    setLength(newArrayPtr, newLength);
-                    setBase(newArrayPtr, newBase);
-                    auto copyPtr = getBase(arrayPtr);
-
-                    Add3(arrayPtr.i32, arrayPtr.i32, imm32(SliceDescriptor.Size));
-                    // copy old Array
-                    auto tmpElem = genTemporary(i32Type);
-                    auto LcopyLoop = genLabel();
-                    jmp2 = beginCndJmp(oldLength);
-                    {
-                        Sub3(oldLength, oldLength, bcOne);
-                        foreach (_; 0 .. elemSize)
-                        {
-                            Load32(tmpElem, arrayPtr.i32);
-                            Store32(copyPtr, tmpElem);
-                            Add3(arrayPtr.i32, arrayPtr.i32, imm32(1));
-                            Add3(copyPtr, copyPtr, imm32(1));
-                        }
-                        genJump(LcopyLoop);
-                    }
-                    endCndJmp(jmp2, genLabel());
-
-                    Set(arrayPtr.i32, newArrayPtr);
-                    jmp = beginJmp();
-                }
-            }
-            auto LarrayDoesNotExsist = genLabel();
-            endCndJmp(arrayExsitsJmp, LarrayDoesNotExsist);
-            {
-                auto newArrayPtr = genTemporary(i32Type);
-                auto newBase = genTemporary(i32Type);
-                Alloc(newArrayPtr, effectiveSize);
-                setLength(newArrayPtr, newLength);
-                Add3(newBase, newArrayPtr, imm32(SliceDescriptor.Size));
-                setBase(newArrayPtr, newBase);
-                Set(arrayPtr.i32, newArrayPtr);
-            }
-            auto Lend = genLabel();
-            endCndJmp(jmp1, Lend);
-            endJmp(jmp, Lend);
-*/
-
-            //Set(retval.i32, newSlice);
         }
         else if (ae.e1.op == TOKindex)
         {
@@ -4297,6 +4233,7 @@ static if (is(BCGen))
                     }
                 }
             }
+
             assignTo = lhs;
 
             ignoreVoid = false;
@@ -4312,6 +4249,7 @@ static if (is(BCGen))
                 bailout("could not get AssignExp.rhs: " ~ ae.e2.toString);
                 return;
             }
+
 
             if ((lhs.type.type == BCTypeEnum.i32 || lhs.type.type == BCTypeEnum.i64) && rhs.type.type == BCTypeEnum.i32)
             {
@@ -4366,7 +4304,7 @@ static if (is(BCGen))
                 }
                 else if (lhs.type.type == BCTypeEnum.Slice && rhs.type.type == BCTypeEnum.Null)
                 {
-                    Set(lhs.i32, imm32(0));
+                    Alloc(lhs.i32, imm32(SliceDescriptor.Size));
                 }
                 else if (lhs.type.type == BCTypeEnum.Struct && rhs.type.type == BCTypeEnum.i32)
                 {
