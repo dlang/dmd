@@ -3043,7 +3043,7 @@ static if (is(BCGen))
         _sharedCtfeState.arrayTypes[_sharedCtfeState.arrayCount++] = arrayType;
         retval = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.i32));
 
-        auto heapAdd = align4(_sharedCtfeState.size(elmType));
+        auto heapAdd = _sharedCtfeState.size(elmType);
 
         uint allocSize = uint(SliceDescriptor.Size) + //ptr and length
             arrayLength * heapAdd;
@@ -4312,7 +4312,7 @@ static if (is(BCGen))
                     // get's the integerExp 0 of integer type as rhs
                     // Alloc(lhs, imm32(sharedCtfeState.size(lhs.type)));
                     // Allocate space for the value on the heap and store it in lhs :)
-                    bailout("We cannot deal with default-initalized structs ...");
+                    bailout("We cannot deal with default-initalized structs -- " ~ ae.toString);
 
                 }
                 else
