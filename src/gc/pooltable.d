@@ -155,13 +155,13 @@ nothrow:
         assert(_maxAddr == pools[npools - 1].topAddr);
     }
 
-    @property const(byte)* minAddr() pure const { return _minAddr; }
-    @property const(byte)* maxAddr() pure const { return _maxAddr; }
+    @property const(void)* minAddr() pure const { return _minAddr; }
+    @property const(void)* maxAddr() pure const { return _maxAddr; }
 
 package:
     Pool** pools;
     size_t npools;
-    byte* _minAddr, _maxAddr;
+    void* _minAddr, _maxAddr;
 }
 
 unittest

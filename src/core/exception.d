@@ -621,9 +621,10 @@ extern (C)
 
     /* One of these three is called upon an assert() fail.
      */
-    void _d_assertm(immutable(ModuleInfo)* m, uint line)
+    void _d_assertp(immutable(char)* file, uint line)
     {
-        onAssertError(m.name, line);
+        import core.stdc.string : strlen;
+        onAssertError(file[0 .. strlen(file)], line);
     }
 
     void _d_assert_msg(string msg, string file, uint line)
@@ -638,9 +639,10 @@ extern (C)
 
     /* One of these three is called upon an assert() fail inside of a unittest block
      */
-    void _d_unittestm(immutable(ModuleInfo)* m, uint line)
+    void _d_unittestp(immutable(char)* file, uint line)
     {
-        _d_unittest(m.name, line);
+        import core.stdc.string : strlen;
+        _d_unittest(file[0 .. strlen(file)], line);
     }
 
     void _d_unittest_msg(string msg, string file, uint line)
@@ -655,9 +657,10 @@ extern (C)
 
     /* Called when an array index is out of bounds
      */
-    void _d_array_bounds(immutable(ModuleInfo)* m, uint line)
+    void _d_arrayboundsp(immutable(char*) file, uint line)
     {
-        onRangeError(m.name, line);
+        import core.stdc.string : strlen;
+        onRangeError(file[0 .. strlen(file)], line);
     }
 
     void _d_arraybounds(string file, uint line)

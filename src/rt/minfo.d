@@ -43,12 +43,12 @@ enum
 
 struct ModuleGroup
 {
-    this(immutable(ModuleInfo*)[] modules)
+    this(immutable(ModuleInfo*)[] modules) nothrow @nogc
     {
         _modules = modules;
     }
 
-    @property immutable(ModuleInfo*)[] modules() const
+    @property immutable(ModuleInfo*)[] modules() const nothrow @nogc
     {
         return _modules;
     }
@@ -182,8 +182,7 @@ struct ModuleGroup
             ignore
         }
 
-        // Change default to .abort in 2.074
-        auto onCycle = OnCycle.deprecate;
+        auto onCycle = OnCycle.abort;
 
         switch(cycleHandling) with(OnCycle)
         {

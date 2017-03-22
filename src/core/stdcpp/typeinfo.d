@@ -71,8 +71,6 @@ else version (CRuntime_Microsoft)
     {
         class type_info
         {
-
-          public:
             //virtual ~this();
             void dtor() { }     // reserve slot in vtbl[]
             //bool operator==(const type_info rhs) const;
@@ -83,21 +81,18 @@ else version (CRuntime_Microsoft)
           private:
             void* pdata;
             char[1] _name;
-            //this(const type_info rhs);
             //type_info operator=(const type_info rhs);
         }
 
         class bad_cast : core.stdcpp.exception.std.exception
         {
-            this(const(char)* msg = "bad cast") { }
-            this(const bad_cast) { }
+            this(const(char)* msg = "bad cast");
             //virtual ~this();
         }
 
         class bad_typeid : core.stdcpp.exception.std.exception
         {
-            this(const(char)* msg = "bad typeid") { }
-            this(const bad_typeid) { }
+            this(const(char)* msg = "bad typeid");
             //virtual ~this();
         }
     }
@@ -117,8 +112,15 @@ else version (CRuntime_Glibc)
         {
             void dtor1();                           // consume destructor slot in vtbl[]
             void dtor2();                           // consume destructor slot in vtbl[]
-            final const(char)* name();
-            final bool before(const type_info) const;
+            final const(char)* name()() const nothrow {
+                return _name[0] == '*' ? _name + 1 : _name;
+            }
+            final bool before()(const type_info _arg) const {
+                import core.stdc.string : strcmp;
+                return (_name[0] == '*' && _arg._name[0] == '*')
+                    ? _name < _arg._name
+                    : strcmp(_name, _arg._name) < 0;
+            }
             //bool operator==(const type_info) const;
             bool __is_pointer_p() const;
             bool __is_function_p() const;

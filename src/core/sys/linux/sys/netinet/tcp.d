@@ -43,7 +43,7 @@ module core.sys.linux.sys.netinet.tcp;
 * @(#)tcp.h 8.1 (Berkeley) 6/10/93
 */
 
-version (Linux):
+version (linux):
 
 /// User-settable options (used with setsockopt).
 enum

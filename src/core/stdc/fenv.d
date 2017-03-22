@@ -196,6 +196,46 @@ else version ( FreeBSD )
 
     alias ushort fexcept_t;
 }
+else version ( NetBSD )
+{
+    version(X86_64)
+    {
+        struct fenv_t
+        {
+            struct _x87
+            {
+                    uint control;       /* Control word register */
+                    uint status;        /* Status word register */
+                    uint tag;           /* Tag word register */
+                    uint[4] others;     /* EIP, Pointer Selector, etc */
+            };
+            _x87 x87;
+
+            uint mxcsr;                 /* Control and status register */
+        }
+   }
+   version(X86)
+   {
+        struct fenv_t
+        {
+            struct _x87
+            {
+                    ushort control;       /* Control word register */
+                    ushort unused1;
+                    ushort status;        /* Status word register */
+                    ushort unused2;
+                    ushort tag;           /* Tag word register */
+                    ushort unused3;
+                    uint[4] others;     /* EIP, Pointer Selector, etc */
+            };
+            _x87 x87;
+            uint32_t mxcsr;                 /* Control and status register */
+        };
+
+    }
+
+    alias uint fexcept_t;
+}
 else version ( OpenBSD )
 {
     struct fenv_t
@@ -321,6 +361,12 @@ else version( Darwin )
     enum FE_DFL_ENV = &_FE_DFL_ENV;
 }
 else version( FreeBSD )
+{
+    private extern const fenv_t __fe_dfl_env;
+    ///
+    enum FE_DFL_ENV = &__fe_dfl_env;
+}
+else version( NetBSD )
 {
     private extern const fenv_t __fe_dfl_env;
     ///

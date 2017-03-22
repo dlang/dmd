@@ -809,3 +809,105 @@ struct GC
         gc_runFinalizers( segment );
     }
 }
+
+/**
+ * Pure variants of C's memory allocation functions `malloc`, `calloc` and
+ * `realloc`. Purity is achieved via resetting the `errno` to it's value prior
+ * to being called, removing the function's global state mutation.
+ *
+ * See_Also:
+ *     $(LINK2 https://dlang.org/spec/function.html#pure-functions, D's rules for purity),
+ *     which allow for memory allocation under specific circumstances.
+ */
+void* pureMalloc(size_t size) @trusted pure @nogc nothrow
+{
+    const errno = fakePureGetErrno();
+    void* ret = fakePureMalloc(size);
+    if (!ret || errno != 0)
+    {
+        cast(void)fakePureSetErrno(errno);
+    }
+    return ret;
+}
+/// ditto
+void* pureCalloc(size_t nmemb, size_t size) @trusted pure @nogc nothrow
+{
+    const errno = fakePureGetErrno();
+    void* ret = fakePureCalloc(nmemb, size);
+    if (!ret || errno != 0)
+    {
+        cast(void)fakePureSetErrno(errno);
+    }
+    return ret;
+}
+/// ditto
+void* pureRealloc(void* ptr, size_t size) pure @nogc nothrow
+{
+    const errno = fakePureGetErrno();
+    void* ret = fakePureRealloc(ptr, size);
+    if (!ret || errno != 0)
+    {
+        cast(void)fakePureSetErrno(errno);
+    }
+    return ret;
+}
+
+///
+nothrow @nogc unittest
+{
+    import core.stdc.stdlib : free;
+
+    ubyte[] fun(size_t n) pure
+    {
+        void* p = pureMalloc(n);
+        p !is null || n == 0 || assert(0);
+        scope(failure) p = pureRealloc(p, 0);
+        p = pureRealloc(p, n *= 2);
+        p !is null || n == 0 || assert(0);
+        return cast(ubyte[]) p[0 .. n];
+    }
+
+    auto buf = fun(100);
+    assert(buf.length == 200);
+    free(buf.ptr);
+}
+
+pure @nogc nothrow unittest
+{
+    const int errno = fakePureGetErrno();
+
+    void* x = pureMalloc(10);            // normal allocation
+    assert(errno == fakePureGetErrno()); // errno shouldn't change
+    assert(x !is null);                   // allocation should succeed
+
+    x = pureRealloc(x, 10);              // normal reallocation
+    assert(errno == fakePureGetErrno()); // errno shouldn't change
+    assert(x !is null);                   // allocation should succeed
+
+    fakePureFree(x);
+
+    void* y = pureCalloc(10, 1);         // normal zeroed allocation
+    assert(errno == fakePureGetErrno()); // errno shouldn't change
+    assert(y !is null);                   // allocation should succeed
+
+    fakePureFree(y);
+
+    // subtract 2 because snn.lib adds 2 unconditionally before passing
+    //  the size to the Windows API
+    void* z = pureMalloc(size_t.max - 2); // won't affect `errno`
+    assert(errno == fakePureGetErrno()); // errno shouldn't change
+    assert(z is null);
+}
+
+// locally purified for internal use here only
+extern (C) private pure @system @nogc nothrow
+{
+    pragma(mangle, "getErrno") int fakePureGetErrno();
+    pragma(mangle, "setErrno") int fakePureSetErrno(int);
+
+    pragma(mangle, "malloc") void* fakePureMalloc(size_t);
+    pragma(mangle, "calloc") void* fakePureCalloc(size_t nmemb, size_t size);
+    pragma(mangle, "realloc") void* fakePureRealloc(void* ptr, size_t size);
+
+    pragma(mangle, "free") void fakePureFree(void* ptr); // needed by unittests
+}

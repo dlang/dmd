@@ -8,6 +8,7 @@ module core.sys.linux.dlfcn;
 version (linux):
 extern (C):
 nothrow:
+@nogc:
 
 public import core.sys.posix.dlfcn;
 import core.sys.linux.config;

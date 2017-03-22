@@ -876,6 +876,8 @@ private struct Demangle
         FuncAttrNothrow
         FuncAttrProperty
         FuncAttrRef
+        FuncAttrReturn
+        FuncAttrScope
         FuncAttrTrusted
         FuncAttrSafe
 
@@ -902,6 +904,9 @@ private struct Demangle
 
     FuncAttrReturn:
         Nj
+
+    FuncAttrScope:
+        Nl
 
     Arguments:
         Argument
@@ -955,7 +960,7 @@ private struct Demangle
     {
         // FuncAttrs
         breakFuncAttrs:
-        while( 'N' == front )
+        while ('N' == front)
         {
             popFront();
             switch( front )
@@ -1002,6 +1007,10 @@ private struct Demangle
             case 'j': // FuncAttrReturn
                 popFront();
                 put( "return " );
+                continue;
+            case 'l': // FuncAttrScope
+                popFront();
+                put( "scope " );
                 continue;
             default:
                 error();
@@ -1963,6 +1972,10 @@ version(unittest)
         ["_D8link657429__T3fooHVE8link65746Methodi0Z3fooFZi", "int link6574.foo!(0).foo()"],
         ["_D4test22__T4funcVAyaa3_610a62Z4funcFNaNbNiNfZAya", `pure nothrow @nogc @safe immutable(char)[] test.func!("a\x0ab").func()`],
         ["_D3foo3barFzkZzi", "cent foo.bar(ucent)"],
+        ["_D5bug145Class3fooMFNlZPv", "scope void* bug14.Class.foo()"],
+        ["_D5bug145Class3barMFNjZPv", "return void* bug14.Class.bar()"],
+        ["_D5bug143fooFMPvZPv", "void* bug14.foo(scope void*)"],
+        ["_D5bug143barFMNkPvZPv", "void* bug14.bar(scope return void*)"],
     ];
 
     template staticIota(int x)

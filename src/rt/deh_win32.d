@@ -381,7 +381,7 @@ EXCEPTION_RECORD * inflightExceptionList = null;
 /***********************************
  * Switch out inflightExceptionList on fiber context switches.
  */
-extern(C) void* _d_eh_swapContext(void* newContext) nothrow
+extern(C) void* _d_eh_swapContext(void* newContext) nothrow @nogc
 {
     auto old = inflightExceptionList;
     inflightExceptionList = cast(EXCEPTION_RECORD*)newContext;
