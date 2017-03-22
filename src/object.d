@@ -207,30 +207,19 @@ class TypeInfo
         return typeid(this).name;
     }
 
-    override size_t toHash() @trusted const
+    override size_t toHash() @trusted const nothrow
     {
         import core.internal.traits : externDFunc;
         alias hashOf = externDFunc!("rt.util.hash.hashOf",
                                     size_t function(const(void)[], size_t) @trusted pure nothrow @nogc);
-        try
-        {
-            auto data = this.toString();
-            return hashOf(data, 0);
-        }
-        catch (Throwable)
-        {
-            // This should never happen; remove when toString() is made nothrow
-
-            // BUG: this prevents a compacting GC from working, needs to be fixed
-            return cast(size_t)cast(void*)this;
-        }
+        return hashOf(this.toString(), 0);
     }
 
     override int opCmp(Object o)
     {
         import core.internal.traits : externDFunc;
         alias dstrcmp = externDFunc!("core.internal.string.dstrcmp",
-                                     int function(in char[] s1, in char[] s2) @trusted pure nothrow @nogc);
+                                     int function(scope const char[] s1, scope const char[] s2) @trusted pure nothrow @nogc);
 
         if (this is o)
             return 0;
@@ -296,11 +285,9 @@ class TypeInfo
      */
     abstract const(void)[] initializer() nothrow pure const @safe @nogc;
 
-    /// $(RED Scheduled for deprecation.) Please use `initializer` instead.
-    deprecated("Please use initializer instead.") alias init = initializer;
-        // since 2.072
-    version(none) @disable static const(void)[] init(); // planned for 2.073
-    /* Planned for 2.074: Remove init, making way for the init type property,
+    /// $(RED Removed.) Please use `initializer` instead.
+    @disable static const(void)[] init(); // since 2.074
+    /* Planned for 2.075: Remove init, making way for the init type property,
     fixing issue 12233. */
 
     /** Get flags for type: 1 means GC should scan for pointers,
@@ -530,7 +517,7 @@ class TypeInfo_StaticArray : TypeInfo
     {
         import core.internal.traits : externDFunc;
         alias sizeToTempString = externDFunc!("core.internal.string.unsignedToTempString",
-                                              char[] function(ulong, char[], uint) @safe pure nothrow @nogc);
+                                              char[] function(ulong, return char[], uint) @safe pure nothrow @nogc);
 
         char[20] tmpBuff = void;
         return value.toString() ~ "[" ~ sizeToTempString(len, tmpBuff, 10) ~ "]";
@@ -1473,7 +1460,7 @@ struct ModuleInfo
     }
 
 const:
-    private void* addrOf(int flag) nothrow pure
+    private void* addrOf(int flag) nothrow pure @nogc
     in
     {
         assert(flag >= MItlsctor && flag <= MIname);
@@ -1538,46 +1525,46 @@ const:
         assert(0);
     }
 
-    @property uint index() nothrow pure { return _index; }
+    @property uint index() nothrow pure @nogc { return _index; }
 
-    @property uint flags() nothrow pure { return _flags; }
+    @property uint flags() nothrow pure @nogc { return _flags; }
 
-    @property void function() tlsctor() nothrow pure
+    @property void function() tlsctor() nothrow pure @nogc
     {
         return flags & MItlsctor ? *cast(typeof(return)*)addrOf(MItlsctor) : null;
     }
 
-    @property void function() tlsdtor() nothrow pure
+    @property void function() tlsdtor() nothrow pure @nogc
     {
         return flags & MItlsdtor ? *cast(typeof(return)*)addrOf(MItlsdtor) : null;
     }
 
-    @property void* xgetMembers() nothrow pure
+    @property void* xgetMembers() nothrow pure @nogc
     {
         return flags & MIxgetMembers ? *cast(typeof(return)*)addrOf(MIxgetMembers) : null;
     }
 
-    @property void function() ctor() nothrow pure
+    @property void function() ctor() nothrow pure @nogc
     {
         return flags & MIctor ? *cast(typeof(return)*)addrOf(MIctor) : null;
     }
 
-    @property void function() dtor() nothrow pure
+    @property void function() dtor() nothrow pure @nogc
     {
         return flags & MIdtor ? *cast(typeof(return)*)addrOf(MIdtor) : null;
     }
 
-    @property void function() ictor() nothrow pure
+    @property void function() ictor() nothrow pure @nogc
     {
         return flags & MIictor ? *cast(typeof(return)*)addrOf(MIictor) : null;
     }
 
-    @property void function() unitTest() nothrow pure
+    @property void function() unitTest() nothrow pure @nogc
     {
         return flags & MIunitTest ? *cast(typeof(return)*)addrOf(MIunitTest) : null;
     }
 
-    @property immutable(ModuleInfo*)[] importedModules() nothrow pure
+    @property immutable(ModuleInfo*)[] importedModules() nothrow pure @nogc
     {
         if (flags & MIimportedModules)
         {
@@ -1587,7 +1574,7 @@ const:
         return null;
     }
 
-    @property TypeInfo_Class[] localClasses() nothrow pure
+    @property TypeInfo_Class[] localClasses() nothrow pure @nogc
     {
         if (flags & MIlocalClasses)
         {
@@ -1597,7 +1584,7 @@ const:
         return null;
     }
 
-    @property string name() nothrow pure
+    @property string name() nothrow pure @nogc
     {
         if (true || flags & MIname) // always available for now
         {
@@ -1715,7 +1702,7 @@ class Throwable : Object
     {
         import core.internal.traits : externDFunc;
         alias sizeToTempString = externDFunc!("core.internal.string.unsignedToTempString",
-                                              char[] function(ulong, char[], uint) @safe pure nothrow @nogc);
+                                              char[] function(ulong, return char[], uint) @safe pure nothrow @nogc);
 
         char[20] tmpBuff = void;
 
@@ -3241,6 +3228,302 @@ template RTInfo(T)
     enum RTInfo = null;
 }
 
+// lhs == rhs lowers to __equals(lhs, rhs) for arrays of all struct types.
+// old path: Typeinfo_array => TypeInfo_struct
+bool __equals(T1, T2)(T1[] lhs, T2[] rhs)
+{
+    if (lhs.length != rhs.length)
+        return false;
+
+    import core.internal.traits : Unqual;
+    static assert(is(Unqual!T1 == Unqual!T2), "Internal error.");
+
+    static @trusted ref R at(R)(R[] r, size_t i) { return r.ptr[i]; }
+
+    foreach (const u; 0 .. lhs.length)
+    {
+        static if (__traits(compiles, at(lhs, u).opEquals(at(rhs, u))))
+        {
+            if (!at(lhs, u).opEquals(at(rhs, u)))
+                return false;
+        }
+        else
+        {
+            if (at(lhs, u).tupleof != at(rhs, u).tupleof)
+                return false;
+        }
+    }
+
+    return true;
+}
+
+unittest
+{
+    struct A
+    {
+        int a;
+    }
+
+    auto arr1 = [A(0), A(2)];
+    auto arr2 = [A(0), A(1)];
+    auto arr3 = [A(0), A(1)];
+
+    assert(arr1 != arr2);
+    assert(arr2 == arr3);
+}
+
+unittest
+{
+    struct A
+    {
+        int a;
+        int b;
+
+        bool opEquals(const A other)
+        {
+            return this.a == other.b && this.b == other.a;
+        }
+    }
+
+    auto arr1 = [A(1, 0), A(0, 1)];
+    auto arr2 = [A(1, 0), A(0, 1)];
+    auto arr3 = [A(0, 1), A(1, 0)];
+
+    assert(arr1 != arr2);
+    assert(arr2 == arr3);
+}
+
+// Compare class and interface objects for ordering.
+private int __cmp(Obj)(Obj lhs, Obj rhs)
+if (is(Obj : Object))
+{
+    if (lhs is rhs)
+        return 0;
+    // Regard null references as always being "less than"
+    if (!lhs)
+        return -1;
+    if (!rhs)
+        return 1;
+    return lhs.opCmp(rhs);
+}
+
+int __cmp(T)(const T[] lhs, const T[] rhs) @trusted
+if (__traits(isScalar, T))
+{
+    // Compute U as the implementation type for T
+    static if (is(T == ubyte) || is(T == void) || is(T == bool))
+        alias U = char;
+    else static if (is(T == wchar))
+        alias U = ushort;
+    else static if (is(T == dchar))
+        alias U = uint;
+    else static if (is(T == ifloat))
+        alias U = float;
+    else static if (is(T == idouble))
+        alias U = double;
+    else static if (is(T == ireal))
+        alias U = real;
+    else
+        alias U = T;
+
+    static if (is(U == char))
+    {
+        import core.internal.string : dstrcmp;
+        return dstrcmp(cast(char[]) lhs, cast(char[]) rhs);
+    }
+    else static if (!is(U == T))
+    {
+        // Reuse another implementation
+        return __cmp(cast(U[]) lhs, cast(U[]) rhs);
+    }
+    else
+    {
+        immutable len = lhs.length <= rhs.length ? lhs.length : rhs.length;
+        foreach (const u; 0 .. len)
+        {
+            static if (__traits(isFloating, T))
+            {
+                immutable a = lhs.ptr[u], b = rhs.ptr[u];
+                static if (is(T == cfloat) || is(T == cdouble)
+                    || is(T == creal))
+                {
+                    // Use rt.cmath2._Ccmp instead ?
+                    auto r = (a.re > b.re) - (a.re < b.re);
+                    if (!r) r = (a.im > b.im) - (a.im < b.im);
+                }
+                else
+                {
+                    const r = (a > b) - (a < b);
+                }
+                if (r) return r;
+            }
+            else if (lhs.ptr[u] != rhs.ptr[u])
+                return lhs.ptr[u] < rhs.ptr[u] ? -1 : 1;
+        }
+        return lhs.length < rhs.length ? -1 : (lhs.length > rhs.length);
+    }
+}
+
+// This function is called by the compiler when dealing with array
+// comparisons in the semantic analysis phase of CmpExp. The ordering
+// comparison is lowered to a call to this template.
+int __cmp(T1, T2)(T1[] s1, T2[] s2)
+if (!__traits(isScalar, T1))
+{
+    import core.internal.traits : Unqual;
+    alias U1 = Unqual!T1;
+    alias U2 = Unqual!T2;
+    static assert(is(U1 == U2), "Internal error.");
+
+    static @trusted ref R at(R)(R[] r, size_t i) { return r.ptr[i]; }
+
+    // All unsigned byte-wide types = > dstrcmp
+    immutable len = s1.length <= s2.length ? s1.length : s2.length;
+
+    foreach (const u; 0 .. len)
+    {
+        static if (__traits(compiles, __cmp(at(s1, u), at(s2, u))))
+        {
+            auto c = __cmp(at(s1, u), at(s2, u));
+            if (c != 0)
+                return c;
+        }
+        else static if (__traits(compiles, at(s1, u).opCmp(at(s2, u))))
+        {
+            auto c = at(s1, u).opCmp(at(s2, u));
+            if (c != 0)
+                return c;
+        }
+        else static if (__traits(compiles, at(s1, u) < at(s2, u)))
+        {
+            if (at(s1, u) != at(s2, u))
+                return at(s1, u) < at(s2, u) ? -1 : 1;
+        }
+        else
+        {
+            // TODO: fix this legacy bad behavior, see
+            // https://issues.dlang.org/show_bug.cgi?id=17244
+            import core.stdc.string : memcmp;
+            return (() @trusted => memcmp(&at(s1, u), &at(s2, u), U1.sizeof))();
+        }
+    }
+    return s1.length < s2.length ? -1 : (s1.length > s2.length);
+}
+
+// integral types
+@safe unittest
+{
+    void compareMinMax(T)()
+    {
+        T[2] a = [T.max, T.max];
+        T[2] b = [T.min, T.min];
+
+        assert(__cmp(a, b) > 0);
+        assert(__cmp(b, a) < 0);
+    }
+
+    compareMinMax!int;
+    compareMinMax!uint;
+    compareMinMax!long;
+    compareMinMax!ulong;
+    compareMinMax!short;
+    compareMinMax!ushort;
+    compareMinMax!byte;
+    compareMinMax!dchar;
+    compareMinMax!wchar;
+}
+
+// char types (dstrcmp)
+@safe unittest
+{
+    void compareMinMax(T)()
+    {
+        T[2] a = [T.max, T.max];
+        T[2] b = [T.min, T.min];
+
+        assert(__cmp(a, b) > 0);
+        assert(__cmp(b, a) < 0);
+    }
+
+    compareMinMax!ubyte;
+    compareMinMax!bool;
+    compareMinMax!char;
+    compareMinMax!(const char);
+
+    string s1 = "aaaa";
+    string s2 = "bbbb";
+    assert(__cmp(s2, s1) > 0);
+    assert(__cmp(s1, s2) < 0);
+}
+
+// fp types
+@safe unittest
+{
+    void compareMinMax(T)()
+    {
+        T[2] a = [T.max, T.max];
+        T[2] b = [T.min_normal, T.min_normal];
+
+        assert(__cmp(a, b) > 0);
+        assert(__cmp(b, a) < 0);
+    }
+
+    compareMinMax!real;
+    compareMinMax!float;
+    compareMinMax!double;
+    compareMinMax!ireal;
+    compareMinMax!ifloat;
+    compareMinMax!idouble;
+    compareMinMax!creal;
+    //compareMinMax!cfloat;
+    compareMinMax!cdouble;
+
+    // qualifiers
+    compareMinMax!(const real);
+    compareMinMax!(immutable real);
+}
+
+// objects
+@safe unittest
+{
+    class C
+    {
+        int i;
+        this(int i) { this.i = i; }
+
+        override int opCmp(Object c) const @safe
+        {
+            return i - (cast(C)c).i;
+        }
+    }
+
+    auto c1 = new C(1);
+    auto c2 = new C(2);
+    assert(__cmp(c1, null) > 0);
+    assert(__cmp(null, c1) < 0);
+    assert(__cmp(c1, c1) == 0);
+    assert(__cmp(c1, c2) < 0);
+    assert(__cmp(c2, c1) > 0);
+
+    assert(__cmp([c1, c1][], [c2, c2][]) < 0);
+    assert(__cmp([c2, c2], [c1, c1]) > 0);
+}
+
+// structs
+@safe unittest
+{
+    struct C
+    {
+        ubyte i;
+        this(ubyte i) { this.i = i; }
+    }
+
+    auto c1 = C(1);
+    auto c2 = C(2);
+
+    assert(__cmp([c1, c1][], [c2, c2][]) < 0);
+    assert(__cmp([c2, c2], [c1, c1]) > 0);
+}
 
 // Helper functions
 

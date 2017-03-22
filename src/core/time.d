@@ -313,6 +313,13 @@ else version(FreeBSD) enum ClockType
     uptimeCoarse = 9,
     uptimePrecise = 10,
 }
+else version(NetBSD) enum ClockType
+{
+    normal = 0,
+    coarse = 2,
+    precise = 3,
+    second = 6,
+}
 else version(Solaris) enum ClockType
 {
     normal = 0,
@@ -365,6 +372,17 @@ version(Posix)
             case uptime: return CLOCK_UPTIME;
             case uptimeCoarse: return CLOCK_UPTIME_FAST;
             case uptimePrecise: return CLOCK_UPTIME_PRECISE;
+            case second: assert(0);
+            }
+        }
+        else version(NetBSD)
+        {
+            import core.sys.netbsd.time;
+            with(ClockType) final switch(clockType)
+            {
+            case coarse: return CLOCK_MONOTONIC;
+            case normal: return CLOCK_MONOTONIC;
+            case precise: return CLOCK_MONOTONIC;
             case second: assert(0);
             }
         }
@@ -1086,6 +1104,22 @@ public:
         }
     }
 
+    /++
+        Allow Duration to be used as a boolean.
+        Returns: `true` if this duration is non-zero.
+      +/
+    bool opCast(T : bool)() const nothrow @nogc
+    {
+        return _hnsecs != 0;
+    }
+
+    unittest
+    {
+        auto d = 10.minutes;
+        assert(d);
+        assert(!(d - d));
+        assert(d + d);
+    }
 
     //Temporary hack until bug http://d.puremagic.com/issues/show_bug.cgi?id=5747 is fixed.
     Duration opCast(T)() const nothrow @nogc
@@ -1140,9 +1174,9 @@ public:
             foreach(i, unit; units)
             {
                 static if(unit == "nsecs")
-                    args[i] = cast(typeof(args[i]))convert!("hnsecs", "nsecs")(hnsecs);
+                    args[i] = cast(Args[i])convert!("hnsecs", "nsecs")(hnsecs);
                 else
-                    args[i] = cast(typeof(args[i]))splitUnitsFromHNSecs!unit(hnsecs);
+                    args[i] = cast(Args[i])splitUnitsFromHNSecs!unit(hnsecs);
             }
         }
 

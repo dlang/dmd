@@ -15,7 +15,7 @@ nothrow:
 
 alias UnsignedStringBuf = char[20];
 
-char[] unsignedToTempString(ulong value, char[] buf, uint radix = 10) @safe
+char[] unsignedToTempString(ulong value, return char[] buf, uint radix = 10) @safe
 {
     size_t i = buf.length;
     do
@@ -69,7 +69,7 @@ unittest
 
 alias SignedStringBuf = char[20];
 
-auto signedToTempString(long value, char[] buf, uint radix) @safe
+char[] signedToTempString(long value, return char[] buf, uint radix) @safe
 {
     bool neg = value < 0;
     if(neg)
@@ -78,8 +78,8 @@ auto signedToTempString(long value, char[] buf, uint radix) @safe
     if(neg)
     {
         // about to do a slice without a bounds check
-        auto trustedSlice() @trusted { assert(r.ptr > buf.ptr); return (r.ptr-1)[0..r.length+1]; }
-        r = trustedSlice();
+        auto trustedSlice(return char[] r) @trusted { assert(r.ptr > buf.ptr); return (r.ptr-1)[0..r.length+1]; }
+        r = trustedSlice(r);
         r[0] = '-';
     }
     return r;
@@ -190,18 +190,24 @@ unittest
     assert(3.numDigits!2 == 2);
 }
 
-int dstrcmp( in char[] s1, in char[] s2 ) @trusted
+int dstrcmp( scope const char[] s1, scope const char[] s2 ) @trusted
 {
-    import core.stdc.string : memcmp;
+    immutable len = s1.length <= s2.length ? s1.length : s2.length;
+    if (__ctfe)
+    {
+        foreach (const u; 0 .. len)
+        {
+            if (s1[u] != s2[u])
+                return s1[u] > s2[u] ? 1 : -1;
+        }
+    }
+    else
+    {
+        import core.stdc.string : memcmp;
 
-    int  ret = 0;
-    auto len = s1.length;
-    if( s2.length < len )
-        len = s2.length;
-    if( 0 != (ret = memcmp( s1.ptr, s2.ptr, len )) )
-        return ret;
-    return s1.length >  s2.length ? 1 :
-           s1.length == s2.length ? 0 : -1;
+        const ret = memcmp( s1.ptr, s2.ptr, len );
+        if( ret )
+            return ret;
+    }
+    return s1.length < s2.length ? -1 : (s1.length > s2.length);
 }
-
-

@@ -18,7 +18,7 @@ module core.sys.linux.ifaddrs;
 
 import core.sys.posix.sys.socket;
 
-version (Linux):
+version (linux):
 extern (C):
 nothrow:
 @nogc:

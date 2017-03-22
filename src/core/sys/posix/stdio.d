@@ -291,6 +291,10 @@ version( FreeBSD )
 {
     enum P_tmpdir  = "/var/tmp/";
 }
+version(NetBSD)
+{
+    enum P_tmpdir  = "/var/tmp/";
+}
 version( OpenBSD )
 {
     enum P_tmpdir  = "/tmp/";
@@ -344,3 +348,7 @@ unittest
     assert(memcmp(ptr, testdata.ptr, testdata.length*wchar_t.sizeof) == 0);
     assert(fclose(f) == 0);
 }
+
+
+ssize_t getdelim (char** lineptr, size_t* n, int delimiter, FILE* stream);
+ssize_t getline (char** lineptr, size_t* n, FILE* stream);

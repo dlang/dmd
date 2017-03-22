@@ -157,7 +157,7 @@ extern(C) Throwable __dmd_begin_catch(_Unwind_Exception* exceptionObject)
  * Returns:
  *      previous value of stack
  */
-extern(C) void* _d_eh_swapContextDwarf(void* newContext) nothrow
+extern(C) void* _d_eh_swapContextDwarf(void* newContext) nothrow @nogc
 {
     auto old = ExceptionHeader.stack;
     ExceptionHeader.stack = cast(ExceptionHeader*)newContext;
