@@ -49,10 +49,19 @@ struct C_BCGen
     FunctionState[ubyte.max * 8] functionStates;
     uint functionStateCount;
     uint currentFunctionStateNumber;
-pure: 
-    @property FunctionState* currentFunctionState()
+
+    void genFunctionSwitch()
     {
-        return &functionStates[currentFunctionStateNumber];
+       code ~= "\nBCValue fn(uint fnIdx, BCValue[] args, BCHeap* heapPtr) {\n";
+       code ~= "\tswitch(fnIdx) {\n";
+       foreach(i;0 .. currentFunctionStateNumber)
+       {
+           code ~= "\t\tcase " ~ to!string(i) ~ " :\n";
+           code ~= "\t\t\treturn fn" ~ to!string(i) ~ "(args, heapPtr);\n\n";
+       }
+       code ~= "\t\tdefault : assert(0, \"invalid fnIdx\");\n";
+       code ~= "\t}\n";
+       code ~= "}\n\n";
     }
 
     @property string functionSuffix()
@@ -106,11 +115,10 @@ pure:
 }};
 
     char[] code;
-pure:
 
     void incSp()
     {
-        sp.addr += 4;
+        sp += 4;
     }
 
     StackAddr currSp()
@@ -120,31 +128,41 @@ pure:
 
     void Initialize()
     {
+        code = code.init;
+        currentFunctionStateNumber = 0;
     }
 
     void Finalize()
     {
+        genFunctionSwitch();
     }
+pure:
+
+    @property FunctionState* currentFunctionState()
+    {
+        return &functionStates[currentFunctionStateNumber];
+    }
+
 
     void beginFunction(uint fn = 0, void* fnDecl = null)
     {
         sameLabel = false;
         insideFunction = true;
-        code ~= "\nBCValue fn" ~  to!string(currentFunctionStateNumber++) ~ "(BCValue[] args, BCHeap* heapPtr = null) {\n";
+        code ~= "\nBCValue fn" ~  to!string(currentFunctionStateNumber) ~ "(BCValue[] args, BCHeap* heapPtr = null) {\n";
 
     }
 
     void endFunction()
     {
-        insideFunction = true;
+        insideFunction = false;
         code ~= "\n}\n";
+        currentFunctionStateNumber++;
     }
 
     BCValue genTemporary(BCType bct)
     {
         auto tmp = BCValue(sp, bct, temporaryCount++);
-        //assert(size.vType == BCValueType.Immidiate);
-        currentFunctionState.sp.addr += align4(basicTypeSize(bct)); //sharedState.size(bct.type, typeIndex));
+        currentFunctionState.sp += align4(basicTypeSize(bct)); //sharedState.size(bct.type, typeIndex));
 
         return tmp;
     }
@@ -155,9 +173,13 @@ pure:
             v = v.i32;
         else if (v.type.type == BCTypeEnum.String)
             v = v.i32;
+        else if (v.type.type == BCTypeEnum.Ptr)
+            v = v.i32;
         else if (v.type.type == BCTypeEnum.Slice)
             v = v.i32;
         else if (v.type.type == BCTypeEnum.Struct)
+            v = v.i32;
+        else if (v.type.type == BCTypeEnum.Function)
             v = v.i32;
         // the next one is highly doubious
         else if (v.type.type == BCTypeEnum.i64)
@@ -184,9 +206,14 @@ pure:
         {
             return to!string(v.imm32.imm32);
         }
+        else if (v.vType == BCValueType.Error)
+        {
+            return to!string(v.imm32.imm32);
+
+        }
         else
         {
-            assert(0, "unsupported");
+            assert(0, "unsupported " ~ to!string(v.vType));
         }
     }
 
@@ -334,6 +361,7 @@ pure:
 
     void Alloc(BCValue heapPtr, BCValue size)
     {
+        sameLabel = false;
         import std.format;
 
         code ~= format(q{
@@ -346,7 +374,11 @@ pure:
         },
             toCode(size), toCode(heapPtr), toCode(size));
     }
-    void Assert(BCValue val, BCValue error) {}
+    void Assert(BCValue val, BCValue error)
+    {
+        sameLabel = false;
+        code ~= "assert(" ~ toCode(val) ~ "/*, errorMessage(" ~ toCode(error) ~ ")*/);\n";
+    }
 
     void Load32(BCValue to, BCValue from)
     {
@@ -401,6 +433,7 @@ pure:
         }
 
     }
+
     void Le3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(result.vType == BCValueType.Unknown
@@ -599,16 +632,19 @@ pure:
         requireIntrinsics = true;
         code ~= "\t" ~ toCode(result) ~ " = intrin_Byte3(" ~ toCode(word) ~ ", " ~ toCode(idx) ~ ");\n";
     }
+
     import ddmd.globals : Loc;
     void Call(BCValue result, BCValue fn, BCValue[] args, Loc l = Loc.init)
     {
         sameLabel = false;
         assert(result.vType == BCValueType.StackValue);
         string resultString = (result && result.stackAddr != 0 ? toCode(result) ~ " = " : "");
+        string functionString =  (fn.vType == BCValueType.Immediate ? "fn" ~ toCode(fn)~ "(" : "fn(" ~ toCode(fn) ~ ", ");
+
         import std.algorithm : map;
         import std.range : join;
 
-        code ~= "\t" ~ resultString ~ "fn" ~ toCode(fn) ~ "([" ~ args.map!(
+        code ~= "\t" ~ resultString ~ functionString ~ "[" ~ args.map!(
             a => "imm32(" ~ toCode(a) ~ ")").join(", ") ~ "], heapPtr).imm32;\n";
     }
 
