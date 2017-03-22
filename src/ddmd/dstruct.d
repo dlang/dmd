@@ -44,7 +44,7 @@ extern (C++) FuncDeclaration search_toString(StructDeclaration sd)
         if (!tftostring)
         {
             tftostring = new TypeFunction(null, Type.tstring, 0, LINKd);
-            tftostring = cast(TypeFunction)tftostring.merge();
+            tftostring = tftostring.merge().toTypeFunction();
         }
         fd = fd.overloadExactMatch(tftostring);
     }
@@ -98,6 +98,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
 
         override void visit(TypeStruct t)
         {
+            //printf("semanticTypeInfo.visit(TypeStruct = %s)\n", t.toChars());
             StructDeclaration sd = t.sym;
 
             /* Step 1: create TypeInfoDeclaration

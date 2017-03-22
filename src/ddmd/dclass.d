@@ -97,8 +97,7 @@ struct BaseClass
             assert(ifd);
 
             // Find corresponding function in this class
-            tf = (ifd.type.ty == Tfunction) ? cast(TypeFunction)ifd.type : null;
-            assert(tf); // should always be non-null
+            tf = ifd.type.toTypeFunction();
             fd = cd.findFunc(ifd.ident, tf);
             if (fd && !fd.isAbstract())
             {
@@ -928,7 +927,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             if (fd && !fd.errors)
             {
                 //printf("Creating default this(){} for class %s\n", toChars());
-                auto btf = cast(TypeFunction)fd.type;
+                auto btf = fd.type.toTypeFunction();
                 auto tf = new TypeFunction(null, null, 0, LINKd, fd.storage_class);
                 tf.mod       = btf.mod;
                 tf.purity    = btf.purity;
@@ -1259,7 +1258,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
     final bool isFuncHidden(FuncDeclaration fd)
     {
-        //printf("ClassDeclaration.isFuncHidden(class = %s, fd = %s)\n", toChars(), fd.toChars());
+        //printf("ClassDeclaration.isFuncHidden(class = %s, fd = %s)\n", toChars(), fd.toPrettyChars());
         Dsymbol s = search(Loc(), fd.ident, IgnoreAmbiguous | IgnoreErrors);
         if (!s)
         {
@@ -1880,6 +1879,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
             //printf("\tX base %s\n", b.sym.toChars());
             if (this == b.sym)
             {
+                //printf("\tfound at offset %d\n", b.offset);
                 if (poffset)
                 {
                     // don't return incorrect offsets https://issues.dlang.org/show_bug.cgi?id=16980

@@ -3075,6 +3075,13 @@ extern (C++) abstract class Type : RootObject
     {
         v.visit(this);
     }
+
+    final TypeFunction toTypeFunction()
+    {
+        if (ty != Tfunction)
+            assert(0);
+        return cast(TypeFunction)this;
+    }
 }
 
 /***********************************************************
@@ -5605,14 +5612,14 @@ extern (C++) final class TypeAArray : TypeArray
                 auto fparams = new Parameters();
                 fparams.push(new Parameter(STCin, this, null, null));
                 fd_aaLen = FuncDeclaration.genCfunc(fparams, Type.tsize_t, Id.aaLen);
-                TypeFunction tf = cast(TypeFunction)fd_aaLen.type;
+                TypeFunction tf = fd_aaLen.type.toTypeFunction();
                 tf.purity = PUREconst;
                 tf.isnothrow = true;
                 tf.isnogc = false;
             }
             Expression ev = new VarExp(e.loc, fd_aaLen, false);
             e = new CallExp(e.loc, ev, e);
-            e.type = (cast(TypeFunction)fd_aaLen.type).next;
+            e.type = fd_aaLen.type.toTypeFunction().next;
         }
         else
             e = Type.dotExp(sc, e, ident, flag);
@@ -6105,7 +6112,7 @@ extern (C++) final class TypeFunction : TypeNext
          * This can produce redundant copies if inferring return type,
          * as semantic() will get called again on this.
          */
-        TypeFunction tf = cast(TypeFunction)copy();
+        TypeFunction tf = copy().toTypeFunction();
         if (parameters)
         {
             tf.parameters = parameters.copy();
@@ -6699,7 +6706,7 @@ extern (C++) final class TypeFunction : TypeNext
     override Type addStorageClass(StorageClass stc)
     {
         //printf("addStorageClass(%llx) %d\n", stc, (stc & STCscope) != 0);
-        TypeFunction t = cast(TypeFunction)Type.addStorageClass(stc);
+        TypeFunction t = Type.addStorageClass(stc).toTypeFunction();
         if ((stc & STCpure && !t.purity) ||
             (stc & STCnothrow && !t.isnothrow) ||
             (stc & STCnogc && !t.isnogc) ||
@@ -10046,6 +10053,7 @@ extern (C++) final class TypeNull : Type
 {
     extern (D) this()
     {
+        //printf("TypeNull %p\n", this);
         super(Tnull);
     }
 
@@ -10146,7 +10154,7 @@ extern (C++) final class Parameter : RootObject
             if (tel.ty == Tdelegate)
             {
                 TypeDelegate td = cast(TypeDelegate)tel;
-                TypeFunction tf = cast(TypeFunction)td.next;
+                TypeFunction tf = td.next.toTypeFunction();
                 if (!tf.varargs && Parameter.dim(tf.parameters) == 0)
                 {
                     return tf.next; // return type of delegate
