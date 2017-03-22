@@ -51,6 +51,8 @@
 // REQUIRED_ARGS: -version=MIPS_HardFloat
 // REQUIRED_ARGS: -version=NVPTX
 // REQUIRED_ARGS: -version=NVPTX64
+// REQUIRED_ARGS: -version=RISCV32
+// REQUIRED_ARGS: -version=RISCV64
 // REQUIRED_ARGS: -version=SPARC
 // REQUIRED_ARGS: -version=SPARC_V8Plus
 // REQUIRED_ARGS: -version=SPARC_SoftFloat
@@ -234,6 +236,8 @@ Error: version identifier 'MIPS_SoftFloat' is reserved and cannot be set
 Error: version identifier 'MIPS_HardFloat' is reserved and cannot be set
 Error: version identifier 'NVPTX' is reserved and cannot be set
 Error: version identifier 'NVPTX64' is reserved and cannot be set
+Error: version identifier 'RISCV32' is reserved and cannot be set
+Error: version identifier 'RISCV64' is reserved and cannot be set
 Error: version identifier 'SPARC' is reserved and cannot be set
 Error: version identifier 'SPARC_V8Plus' is reserved and cannot be set
 Error: version identifier 'SPARC_SoftFloat' is reserved and cannot be set

@@ -151,8 +151,12 @@ class xFoo2 : iFoo, iFoo2
 }
 class Foo3
 {
-	this(int a, ...);
-	this(int* a);
+	this(int a, ...)
+	{
+	}
+	this(int* a)
+	{
+	}
 }
 alias myint = int;
 static notquit = 1;
@@ -302,8 +306,12 @@ struct S6360
 }
 struct S12
 {
-	nothrow this(int n);
-	nothrow this(string s);
+	nothrow this(int n)
+	{
+	}
+	nothrow this(string s)
+	{
+	}
 }
 struct T12
 {
@@ -407,3 +415,49 @@ pure clamp12266b(T1, T2, T3)(T1 x, T2 min_val, T3 max_val)
 	return 0;
 }
 alias Dg13832 = ref int delegate();
+class TestClass
+{
+	int aa;
+	int b1;
+	int b2;
+	this(int b1, int b2)
+	{
+		this.b1 = b1;
+		this.b2 = b2;
+	}
+	ref foo()
+	{
+		return aa;
+	}
+	ref return retFunc()
+	{
+		return aa;
+	}
+	@trusted @nogc @disable ~this();
+}
+class FooA
+{
+	protected void method42();
+	@safe ~this();
+}
+class Bar : FooA
+{
+	override void method42();
+}
+@trusted double foo();
+struct Foo1(size_t Size = 42 / magic())
+{
+}
+size_t magic();
+class Foo2A
+{
+	immutable(FooA) Dummy = new immutable(FooA);
+	private immutable pure nothrow @nogc @safe this()
+	{
+	}
+}
+struct Foo3A(T)
+{
+	@disable this(this);
+	@disable this();
+}

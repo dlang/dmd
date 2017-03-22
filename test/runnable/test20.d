@@ -335,7 +335,7 @@ int y16;
 class C16
 {
         new(size_t size, byte blah){
-                void* v = (new byte[C16.classinfo.init.length]).ptr;
+                void* v = (new byte[C16.classinfo.initializer.length]).ptr;
                 y16 = 1;
                 assert(blah == 3);
                 return v;

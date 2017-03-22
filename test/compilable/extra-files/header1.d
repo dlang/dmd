@@ -443,3 +443,72 @@ pure clamp12266b(T1, T2, T3)(T1 x, T2 min_val, T3 max_val)
 
 // 13832
 alias Dg13832 = ref int delegate();
+
+// 16590
+class TestClass {
+    int aa;
+    int b1, b2;
+    this(int b1, int b2)
+    {
+        this.b1 = b1;
+        this.b2 = b2;
+    }
+
+    ref foo() {
+        return aa;
+    }
+
+    ref retFunc() return {
+        return aa;
+    }
+
+    ~this() @trusted @disable @nogc {
+    }
+}
+
+class FooA {
+    protected void method42() {
+
+    }
+
+    ~this() @safe {
+    }
+
+}
+
+
+class Bar : FooA {
+    override void method42() {
+
+   }
+}
+
+double foo() @trusted {
+    int a = 5;
+    return a;
+}
+
+struct Foo1(size_t Size = 42 / magic()) {
+
+}
+
+
+size_t magic() {
+    return 42;
+}
+
+class Foo2A {
+
+    immutable(FooA) Dummy = new immutable(FooA);
+    private immutable pure nothrow @nogc @safe this() {
+
+    }
+
+}
+
+// bugzilla 15676
+struct Foo3A(T)
+{
+    @disable this(this);
+    @disable this();
+}
