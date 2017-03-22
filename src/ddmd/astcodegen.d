@@ -81,7 +81,7 @@ struct ASTCodegen
     alias PROTundefined             = ddmd.dsymbol.PROTundefined;
     alias Prot                      = ddmd.dsymbol.Prot;
 
-    alias typeDotIdExp              = ddmd.expression.typeDotIdExp;
+//    alias typeDotIdExp              = ddmd.expression.typeDotIdExp;
 
     alias deprecation               = ddmd.errors.deprecation;
     alias warning                   = ddmd.errors.warning;

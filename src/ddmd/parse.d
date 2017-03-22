@@ -7320,7 +7320,7 @@ final class Parser(AST) : Lexer
                 error("found '%s' when expecting identifier following '%s.'", token.toChars(), t.toChars());
                 goto Lerr;
             }
-            e = AST.typeDotIdExp(loc, t, token.ident);
+            e = new AST.DotIdExp(loc, new AST.TypeExp(loc, t), token.ident);
             nextToken();
             break;
 
@@ -7697,7 +7697,7 @@ final class Parser(AST) : Lexer
                         error("identifier expected following (type).");
                         return null;
                     }
-                    e = AST.typeDotIdExp(loc, t, token.ident);
+                    e = new AST.DotIdExp(loc, new AST.TypeExp(loc, t), token.ident);
                     nextToken();
                     e = parsePostExp(e);
                 }
