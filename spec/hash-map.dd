@@ -341,7 +341,11 @@ Properties for associative arrays are:
         ForeachStatement) which will iterate over key-value pairs of the
         associative array. The returned pairs are represented by an opaque type
         with $(D .key) and $(D .value) properties for accessing the key and
-	value of the pair, respectively.))
+        value of the pair, respectively.  Note that this is a low-level
+        interface to iterating over the associative array and is not compatible
+        with the $(LINK2 $(ROOT_DIR)phobos/std_typecons.html#.Tuple,`Tuple`)
+        type in Phobos.  For compatibility with `Tuple`, use
+        $(LINK2 $(ROOT_DIR)phobos/std_array.html#.byPair,std.array.byPair) instead.))
         $(TROW $(D .get(Key key, lazy Value defVal)),
         $(ARGS Looks up $(D key); if it exists returns corresponding value
         else evaluates and returns $(D defVal).))
