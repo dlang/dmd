@@ -4455,7 +4455,6 @@ static if (is(BCGen))
             }
 
             auto lhs = genExpr(ss.condition);
-            bailout(ss.condition.type.ty == Tint32, "cannot deal with signed swtiches");
 
             if (!lhs)
             {
@@ -4468,7 +4467,7 @@ static if (is(BCGen))
             if (ss.cases.dim > beginCaseStatements.length)
                 assert(0, "We will not have enough array space to store all cases for gotos");
 
-            foreach (i, caseStmt; *(ss.cases))
+            foreach (uint i, caseStmt; *(ss.cases))
             {
                 switchFixup = &switchFixupTable[switchFixupTableCount];
                 caseStmt.index = cast(int) i;
@@ -4481,14 +4480,18 @@ static if (is(BCGen))
                 if (caseStmt.statement)
                 {
                     import ddmd.blockexit;
+                    auto blockExitResult = caseStmt.statement.blockExit(me, false);
+                    bool blockReturns = !!(blockExitResult & (BEany & ~BEfallthru));
+                    bool falltrough = !!(blockExitResult & BEfallthru);
 
-                    bool blockReturns = !!(caseStmt.statement.blockExit(me, false) & BEany);
                     auto caseBlock = genBlock(caseStmt.statement);
                     beginCaseStatements[beginCaseStatementsCount++] = caseBlock.begin;
                     //If the block returns regardless there is no need for a fixup
                     if (!blockReturns)
                     {
-                        switchFixupTable[switchFixupTableCount++] = beginJmp();
+                        assert(!falltrough || i < ss.cases.dim); // hope this works :)
+
+                        switchFixupTable[switchFixupTableCount++] = SwitchFixupEntry(beginJmp(), falltrough ? i + 2 : 0);
                         switchFixup = &switchFixupTable[switchFixupTableCount];
                     }
                 }
