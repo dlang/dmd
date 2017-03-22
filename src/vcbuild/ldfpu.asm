@@ -182,7 +182,7 @@ FM1:    ; We don't use fprem1 because for some inexplicable
         sahf                            ; transfer to flags
         jp      FM1                     ; continue till ST < ST1
         fstp    ST(1)                   ; leave remainder on stack
-        fstp    tbyte ptr [ecx]
+        fstp    tbyte ptr [rcx]
 	pop rax
 	mov rax,rcx
 	ret

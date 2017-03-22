@@ -18,7 +18,7 @@ void foo2(const C2 c);
 struct Foo3
 {
    int k;
-   ~this() { k = 1; }
+   ~this() @trusted @disable @nogc { k = 1; }
    this(this) { k = 2; }
 }
 
@@ -30,6 +30,7 @@ T foo3(T)() {}
 struct S4A(T)
 {
    T x;
+   ~this() @safe {}
 }
 
 struct S4B(T) if (1)

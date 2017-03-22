@@ -112,7 +112,7 @@ fail_compilation/retscope.d(124): Error: escaping reference to local variable tm
 ---
 */
 
-char[] foo9(char[] a) @safe pure nothrow @nogc
+char[] foo9(return char[] a) @safe pure nothrow @nogc
 {
     return a;
 }
@@ -235,10 +235,10 @@ void* funretscope(scope dg_t ptr) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(249): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
-fail_compilation/retscope.d(249): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
-fail_compilation/retscope.d(250): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
-fail_compilation/retscope.d(250): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
+fail_compilation/retscope.d(249): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return scope @safe to void* delegate() scope @safe
+fail_compilation/retscope.d(249): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return scope @safe to void* delegate() scope @safe
+fail_compilation/retscope.d(250): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return scope @safe to void* delegate() scope @safe
+fail_compilation/retscope.d(250): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return scope @safe to void* delegate() scope @safe
 ---
 */
 
@@ -384,7 +384,7 @@ struct Foo12
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(1103): Error: scope variable f assigned to non-scope parameter this calling retscope.Foo13.foo
+fail_compilation/retscope.d(1103): Error: scope variable f may not be returned
 ---
 */
 
@@ -448,5 +448,215 @@ fail_compilation/retscope.d(1311): Error: scope variable u2 assigned to ek with 
   auto u1 = U13(new int);
   ek = u1.get();   // ok
   ek = U13.sget(u1); // ok
+}
+
+/************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(1405): Error: reference to local variable buf assigned to non-scope parameter unnamed calling retscope.myprintf
+---
+*/
+
+#line 1400
+@trusted extern(C) int myprintf(const(char)*, ...);
+
+@safe void foo14()
+{
+    char[4] buf = [ 'h', 'i', '\n', 0 ];
+    myprintf(&buf[0]);
+}
+
+/************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(1509): Error: reference to stack allocated value returned by (*fp15)() assigned to non-scope parameter unnamed
+---
+*/
+
+#line 1500
+
+@safe void bar15(int*);
+
+struct S15 { int a,b,c,d; }
+
+@safe S15 function() fp15;
+
+void test15() @safe
+{
+    bar15(&fp15().d);
+}
+
+
+/*************************************************/
+
+void foo16() @nogc nothrow
+{
+    alias dg_t = string delegate(string) @nogc nothrow;
+
+    dg_t dg = (string s) => s;
+}
+
+/*************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(1701): Error: cannot implicitly convert expression (& func) of type int* function(int* p) to int* function(scope int* p)
+fail_compilation/retscope.d(1702): Error: cannot implicitly convert expression (& func) of type int* function(int* p) to int* function(return scope int* p)
+fail_compilation/retscope.d(1703): Error: cannot implicitly convert expression (& func) of type int* function(int* p) to int* function(return scope int* p)
+fail_compilation/retscope.d(1711): Error: cannot implicitly convert expression (& funcr) of type int* function(return scope int* p) to int* function(scope int* p)
+fail_compilation/retscope.d(1716): Error: cannot implicitly convert expression (& funcrs) of type int* function(return scope int* p) to int* function(scope int* p)
+---
+*/
+
+int* func(int* p);
+int* funcs(scope int* p);
+int* funcr(return int* p);
+int* funcrs(return scope int* p);
+
+void foo17()
+{
+#line 1700
+    typeof(func)   *fp1 = &func;
+    typeof(funcs)  *fp2 = &func; // error
+    typeof(funcr)  *fp3 = &func; // error
+    typeof(funcrs) *fp4 = &func; // error
+
+    typeof(func)   *fq1 = &funcs;
+    typeof(funcs)  *fq2 = &funcs;
+    typeof(funcr)  *fq3 = &funcs;
+    typeof(funcrs) *fq4 = &funcs;
+
+    typeof(func)   *fr1 = &funcr;
+    typeof(funcs)  *fr2 = &funcr; // error
+    typeof(funcr)  *fr3 = &funcr;
+    typeof(funcrs) *fr4 = &funcr;
+
+    typeof(func)   *fs1 = &funcrs;
+    typeof(funcs)  *fs2 = &funcrs; // error
+    typeof(funcr)  *fs3 = &funcrs;
+    typeof(funcrs) *fs4 = &funcrs;
+}
+
+/*************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(1801): Error: cannot implicitly convert expression (&c.func) of type int* delegate() to int* delegate() scope
+fail_compilation/retscope.d(1802): Error: cannot implicitly convert expression (&c.func) of type int* delegate() to int* delegate() return scope
+fail_compilation/retscope.d(1803): Error: cannot implicitly convert expression (&c.func) of type int* delegate() to int* delegate() return scope
+fail_compilation/retscope.d(1811): Error: cannot implicitly convert expression (&c.funcr) of type int* delegate() return scope to int* delegate() scope
+fail_compilation/retscope.d(1816): Error: cannot implicitly convert expression (&c.funcrs) of type int* delegate() return scope to int* delegate() scope
+---
+*/
+
+class C18
+{
+    int* func();
+    int* funcs() scope;
+    int* funcr() return;
+    int* funcrs() return scope;
+}
+
+void foo18()
+{
+    C18 c;
+
+#line 1800
+    typeof(&c.func)   fp1 = &c.func;
+    typeof(&c.funcs)  fp2 = &c.func; // error
+    typeof(&c.funcr)  fp3 = &c.func; // error
+    typeof(&c.funcrs) fp4 = &c.func; // error
+
+    typeof(&c.func)   fq1 = &c.funcs;
+    typeof(&c.funcs)  fq2 = &c.funcs;
+    typeof(&c.funcr)  fq3 = &c.funcs;
+    typeof(&c.funcrs) fq4 = &c.funcs;
+
+    typeof(&c.func)   fr1 = &c.funcr;
+    typeof(&c.funcs)  fr2 = &c.funcr; // error
+    typeof(&c.funcr)  fr3 = &c.funcr;
+    typeof(&c.funcrs) fr4 = &c.funcr;
+
+    typeof(&c.func)   fs1 = &c.funcrs;
+    typeof(&c.funcs)  fs2 = &c.funcrs; // error
+    typeof(&c.funcr)  fs3 = &c.funcrs;
+    typeof(&c.funcrs) fs4 = &c.funcrs;
+}
+
+/*********************************************/
+
+@safe void foo19(C)(ref C[] str)  // infer 'scope' for 'str'
+{
+    str = str;
+    str = str[1 .. str.length];
+}
+
+@safe void test19()
+{
+    char[10] s;
+    char[] t = s[];
+    foo19(t);
+}
+
+/********************************************/
+
+
+bool foo20(const string a) @safe pure nothrow @nogc
+{
+    return !a.length;
+}
+
+struct Result(R)
+{
+    R source;
+
+    bool empty() // infer 'scope' for 'this'
+    { return foo20(source); }
+}
+
+@safe void test20()
+{
+    scope n = Result!string("abc");
+    n.empty();
+}
+
+/************************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=17117
+
+ref int foo21(return ref int s)
+{
+        return s;
+}
+
+int fail21()
+{
+        int s;
+        return foo21(s); // Error: escaping reference to local variable s
+}
+
+int test21()
+{
+        int s;
+        s = foo21(s);
+        return s;
+}
+
+/**********************************************/
+
+@safe void foo22()(ref char[] s)
+{
+    char[] a = s;
+}
+
+@safe void test22(scope char[] s)
+{
+    foo22(s);
 }
 
