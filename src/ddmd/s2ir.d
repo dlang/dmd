@@ -301,7 +301,7 @@ extern (C++) class S2irVisitor : Visitor
         if (s._init)
             Statement_toIR(s._init, &mystate);
         block *bpre = blx.curblock;
-        block_next(blx,BCgoto,null);
+        block_next(blx, BCgoto, null);
         block *bcond = blx.curblock;
         bpre.appendSucc(bcond);
         mystate.contBlock.appendSucc(bcond);
@@ -309,14 +309,14 @@ extern (C++) class S2irVisitor : Visitor
         {
             incUsage(irs, s.condition.loc);
             block_appendexp(bcond, toElemDtor(s.condition, &mystate));
-            block_next(blx,BCiftrue,null);
+            block_next(blx, BCiftrue, null);
             bcond.appendSucc(blx.curblock);
             bcond.appendSucc(mystate.breakBlock);
         }
         else
         {   /* No conditional, it's a straight goto
              */
-            block_next(blx,BCgoto,null);
+            block_next(blx, BCgoto, null);
             bcond.appendSucc(blx.curblock);
         }
 
@@ -336,7 +336,7 @@ extern (C++) class S2irVisitor : Visitor
 
         /* The 'break' block follows the for statement.
          */
-        block_next(blx,BCgoto, mystate.breakBlock);
+        block_next(blx, BCgoto, mystate.breakBlock);
     }
 
 
@@ -444,7 +444,7 @@ extern (C++) class S2irVisitor : Visitor
             }
         }
 
-        block_next(blx,BCgoto,null);
+        block_next(blx, BCgoto, null);
     }
 
     override void visit(LabelStatement s)
@@ -452,7 +452,7 @@ extern (C++) class S2irVisitor : Visitor
         //printf("LabelStatement.toIR() %p, statement = %p\n", this, statement);
         Blockx *blx = irs.blx;
         block *bc = blx.curblock;
-        IRState mystate = IRState(irs,s);
+        IRState mystate = IRState(irs, s);
         mystate.ident = s.ident;
 
         Label *label = getLabel(irs, blx, s);
@@ -491,7 +491,7 @@ extern (C++) class S2irVisitor : Visitor
     override void visit(SwitchStatement s)
 //    { .visit(irs, s); }
     {
-        int string;
+        bool is_string;
         Blockx *blx = irs.blx;
 
         //printf("SwitchStatement.toIR()\n");
@@ -518,7 +518,8 @@ extern (C++) class S2irVisitor : Visitor
         incUsage(irs, s.loc);
         elem *econd = toElemDtor(s.condition, &mystate);
         if (s.hasVars)
-        {   /* Generate a sequence of if-then-else blocks for the cases.
+        {
+            /* Generate a sequence of if-then-else blocks for the cases.
              */
             if (econd.Eoper != OPvar)
             {
@@ -528,7 +529,8 @@ extern (C++) class S2irVisitor : Visitor
             }
 
             for (size_t i = 0; i < numcases; i++)
-            {   CaseStatement cs = (*s.cases)[i];
+            {
+                CaseStatement cs = (*s.cases)[i];
 
                 elem *ecase = toElemDtor(cs.exp, &mystate);
                 elem *e = el_bin(OPeqeq, TYbool, el_copytree(econd), ecase);
@@ -577,16 +579,18 @@ extern (C++) class S2irVisitor : Visitor
             /* Create a sorted array of the case strings, and si
              * will be the symbol for it.
              */
-            Symbol *si = symbol_generate(SCstatic,type_fake(TYdarray));
+            Symbol *si = symbol_generate(SCstatic, type_fake(TYdarray));
             scope dtb = new DtBuilder();
             dtb.size(numcases);
             dtb.xoff(si, Target.ptrsize * 2, TYnptr);
 
             for (size_t i = 0; i < numcases; i++)
-            {   CaseStatement cs = (*s.cases)[i];
+            {
+                CaseStatement cs = (*s.cases)[i];
 
                 if (cs.exp.op != TOKstring)
-                {   s.error("case '%s' is not a string", cs.exp.toChars()); // BUG: this should be an assert
+                {
+                    s.error("case '%s' is not a string", cs.exp.toChars()); // BUG: this should be an assert
                 }
                 else
                 {
@@ -622,12 +626,12 @@ extern (C++) class S2irVisitor : Visitor
                     assert(0);
             }
             elem_setLoc(econd, s.loc);
-            string = 1;
+            is_string = 1;
         }
         else
-            string = 0;
+            is_string = 0;
         block_appendexp(mystate.switchBlock, econd);
-        block_next(blx,BCswitch,null);
+        block_next(blx, BCswitch,null);
 
         // Corresponding free is in block_free
         targ_llong *pu = cast(targ_llong *)(.malloc(targ_llong.sizeof * (numcases + 1)));
@@ -644,7 +648,7 @@ extern (C++) class S2irVisitor : Visitor
         for (size_t i = 0; i < numcases; i++)
         {
             CaseStatement cs = (*s.cases)[i];
-            if (string)
+            if (is_string)
             {
                 pu[cs.index] = i;
             }
@@ -684,7 +688,7 @@ extern (C++) class S2irVisitor : Visitor
         Blockx *blx = irs.blx;
         block *bcase = blx.curblock;
         block *bdefault = irs.getDefaultBlock();
-        block_next(blx,BCgoto,bdefault);
+        block_next(blx, BCgoto,bdefault);
         bcase.appendSucc(blx.curblock);
         if (blx.tryblock != irs.getSwitchBlock().Btry)
             s.error("default cannot be in different try block level from switch");
@@ -722,7 +726,7 @@ extern (C++) class S2irVisitor : Visitor
 
         b.appendSucc(bdest);
         incUsage(irs, s.loc);
-        block_next(blx,BCgoto,null);
+        block_next(blx, BCgoto, null);
     }
 
     override void visit(GotoCaseStatement s)
@@ -753,7 +757,7 @@ extern (C++) class S2irVisitor : Visitor
 
         b.appendSucc(bdest);
         incUsage(irs, s.loc);
-        block_next(blx,BCgoto,null);
+        block_next(blx, BCgoto, null);
     }
 
     override void visit(SwitchErrorStatement s)
@@ -865,7 +869,7 @@ extern (C++) class S2irVisitor : Visitor
         //printf("ExpStatement.toIR(), exp = %s\n", s.exp ? s.exp.toChars() : "");
         incUsage(irs, s.loc);
         if (s.exp)
-            block_appendexp(blx.curblock,toElemDtor(s.exp, irs));
+            block_appendexp(blx.curblock, toElemDtor(s.exp, irs));
     }
 
     /**************************************
@@ -944,7 +948,7 @@ extern (C++) class S2irVisitor : Visitor
             Statement_toIR(s.statement, &mystate);
 
             if (mystate.breakBlock)
-                block_goto(blx,BCgoto,mystate.breakBlock);
+                block_goto(blx, BCgoto, mystate.breakBlock);
         }
     }
 
@@ -977,7 +981,7 @@ extern (C++) class S2irVisitor : Visitor
             e = el_bin(OPeq,e.Ety, e, ei);
             elem_setLoc(e, s.loc);
             incUsage(irs, s.loc);
-            block_appendexp(blx.curblock,e);
+            block_appendexp(blx.curblock, e);
         }
         // Execute with block
         if (s._body)
@@ -1019,14 +1023,14 @@ extern (C++) class S2irVisitor : Visitor
 
         IRState mystate = IRState(irs,s);
 
-        block *tryblock = block_goto(blx,BCgoto,null);
+        block *tryblock = block_goto(blx,BCgoto, null);
 
         int previndex = blx.scope_index;
         tryblock.Blast_index = previndex;
         blx.scope_index = tryblock.Bscope_index = blx.next_index++;
 
         // Set the current scope index
-        setScopeIndex(blx,tryblock,tryblock.Bscope_index);
+        setScopeIndex(blx, tryblock, tryblock.Bscope_index);
 
         // This is the catch variable
         tryblock.jcatchvar = symbol_genauto(type_fake(mTYvolatile | TYnptr));
@@ -1043,14 +1047,14 @@ extern (C++) class S2irVisitor : Visitor
         // break block goes here
         block_goto(blx, BCgoto, breakblock);
 
-        setScopeIndex(blx,blx.curblock, previndex);
+        setScopeIndex(blx, blx.curblock, previndex);
         blx.scope_index = previndex;
 
         // create new break block that follows all the catches
         block *breakblock2 = block_calloc(blx);
 
         blx.curblock.appendSucc(breakblock2);
-        block_next(blx,BCgoto,null);
+        block_next(blx, BCgoto, null);
 
         assert(s.catches);
         if (config.ehmethod == EHmethod.EH_DWARF)
@@ -1341,7 +1345,7 @@ extern (C++) class S2irVisitor : Visitor
              *  breakblock
              */
             blx.curblock.appendSucc(breakblock);
-            block_next(blx,BCgoto,finallyblock);
+            block_next(blx, BCgoto,finallyblock);
 
             block *landingPad = block_goto(blx,BC_finally,null);
             block_goto(blx,BC_lpad,null);               // lpad is [0]
@@ -1385,12 +1389,12 @@ extern (C++) class S2irVisitor : Visitor
                 Statement_toIR(s.finalbody, &finallyState);
             block_goto(blx, BCgoto, retblock);
 
-            block_next(blx,BC_ret,breakblock);
+            block_next(blx, BC_ret, breakblock);
         }
         else
         {
-            block_goto(blx,BCgoto, breakblock);
-            block_goto(blx,BCgoto,finallyblock);
+            block_goto(blx, BCgoto, breakblock);
+            block_goto(blx, BCgoto, finallyblock);
 
             /* Successors to BC_finally block:
              *  [0] landing pad, same as start of finally code
@@ -1405,7 +1409,7 @@ extern (C++) class S2irVisitor : Visitor
                 Statement_toIR(s.finalbody, &finallyState);
             block_goto(blx, BCgoto, retblock);
 
-            block_next(blx,BC_ret,null);
+            block_next(blx, BC_ret,null);
 
             /* Append the last successor to finallyblock, which is the first block past the BC_ret block.
              */
@@ -1479,7 +1483,7 @@ extern (C++) class S2irVisitor : Visitor
 
         //printf("AsmStatement.toIR(asmcode = %x)\n", asmcode);
         bpre = blx.curblock;
-        block_next(blx,BCgoto,null);
+        block_next(blx, BCgoto, null);
         basm = blx.curblock;
         bpre.appendSucc(basm);
         basm.Bcode = s.asmcode;
@@ -1550,7 +1554,7 @@ extern (C++) class S2irVisitor : Visitor
         basm.bIasmrefparam = s.refparam;             // are parameters reference?
         basm.usIasmregs = s.regs;                    // registers modified
 
-        block_next(blx,BCasm, null);
+        block_next(blx, BCasm, null);
         basm.prependSucc(blx.curblock);
 
         if (s.naked)
