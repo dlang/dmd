@@ -487,7 +487,7 @@ pure:
 
     void emitFlg(BCValue lhs)
     {
-        assert(lhs.vType == BCValueType.StackValue, "Can only store flags in Stack Values");
+        assert(isStackValueOrParameter(lhs), "Can only store flags in Stack Values");
         byteCodeArray[ip] = ShortInst16(LongInst.Flg, lhs.stackAddr.addr);
         byteCodeArray[ip + 1] = 0;
         ip += 2;

@@ -2468,45 +2468,49 @@ static if (is(BCGen))
         case TOK.TOKandand:
                 {
                     noRetval = true;
+                   //     import std.stdio;
+                   //     writefln("andandExp: %s -- e1.op: %s -- e2.op: %s", e.toString, e.e1.op.to!string, e.e2.op.to!string);
                     // If lhs is false jump to false
                     // If lhs is true keep going
                     const oldFixupTableCount = fixupTableCount;
-
-                    if (!lastExpr || getBoolExprLhs(e.e2) != getBoolExprRhs(e.e1))
-                    {
-                        auto lhs = genExpr(e.e1);
-                        if (!lhs || !canWorkWithType(lhs.type))
                         {
-                            bailout("could not gen lhs or could not handle it's type " ~ e.toString);
-                            return ;
-                        }
-                        lastExpr = e.e1;
 
-                        //auto afterLhs = genLabel();
-                        //doFixup(oldFixupTableCount, &afterLhs, null);
-                        fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(lhs,
-                            false));
-                    }
-                    //HACK HACK HACK
-                    if (getBoolExprLhs(e.e1) == e.e1)
+                            auto lhs = genExpr(e.e1);
+                            if (!lhs || !canWorkWithType(lhs.type))
+                            {
+                                bailout("could not gen lhs or could not handle it's type " ~ e.toString);
+                                return ;
+                            }
+
+                            //auto afterLhs = genLabel();
+                            //doFixup(oldFixupTableCount, &afterLhs, null);
+                            fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(lhs,
+                                    false));
+                        }
+
+
+
+                    if(e.e1.op != TOK.TOKandand)
                     {
+                        while (e.e2.op == TOK.TOKandand)
+                            {
+                                e = cast(AndAndExp)e.e2;
+                            }
                         auto rhs = genExpr(e.e2);
+
                         if (!rhs || !canWorkWithType(rhs.type))
                         {
                             bailout("could not gen rhs or could not handle it's type " ~ e.toString);
                             return ;
                         }
-                        //lastExpr = e.e2;
 
-                        //auto afterRhs = genLabel();
-
-                        //doFixup(oldFixupTableCount, &afterRhs, null);
                         fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(rhs,
-                            false));
+                                false));
                     }
-                    noRetval = false;
-                }
 
+                    noRetval = false;
+
+                    }
                 break;
             }
         default:
@@ -4467,10 +4471,10 @@ static if (is(BCGen))
             if (ss.cases.dim > beginCaseStatements.length)
                 assert(0, "We will not have enough array space to store all cases for gotos");
 
-            foreach (uint i, caseStmt; *(ss.cases))
+            foreach (int i, caseStmt; *(ss.cases))
             {
                 switchFixup = &switchFixupTable[switchFixupTableCount];
-                caseStmt.index = cast(int) i;
+                caseStmt.index = i;
                 // apperantly I have to set the index myself;
 
                 auto rhs = genExpr(caseStmt.exp);
