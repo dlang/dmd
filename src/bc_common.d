@@ -406,8 +406,25 @@ struct BCValue
     {
         import std.format;
 
-        return format("\nvType: %s\tType: %s\tstackAddr: %s\timm32 %s\t",
-            vType, type.type, stackAddr, imm32);
+        return format("\nvType: %s\tType: %s\tvalue:%s\n",
+            vType, type.type, valueToString);
+    }
+
+    string valueToString() const pure
+    {
+        import std.conv;
+        switch(vType)
+        {
+            case BCValueType.Parameter,
+                BCValueType.Temporary,
+                BCValueType.StackValue :
+                    return "stackAddr: " ~ to!string(stackAddr);
+            case BCValueType.HeapValue :
+                return "heapAddr: " ~ to!string(heapAddr);
+            case BCValueType.Immediate :
+                return "imm: " ~ (type == BCTypeEnum.i64 ? to!string(imm64) : to!string(imm32));
+            default : return "unkown value format";
+        }
     }
 
 @safe pure:
