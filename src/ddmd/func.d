@@ -349,7 +349,7 @@ extern (C++) class FuncDeclaration : Declaration
                 fld.tok = TOKfunction;
             else
                 assert(0);
-            linkage = (cast(TypeFunction)treq.nextOf()).linkage;
+            linkage = treq.nextOf().toTypeFunction().linkage;
         }
         else
             linkage = sc.linkage;
@@ -359,12 +359,22 @@ extern (C++) class FuncDeclaration : Declaration
 
         if (!originalType)
             originalType = type.syntaxCopy();
+        if (type.ty != Tfunction)
+        {
+            if (type.ty != Terror)
+            {
+                error("%s must be a function instead of %s", toChars(), type.toChars());
+                type = Type.terror;
+            }
+            errors = true;
+            return;
+        }
         if (!type.deco)
         {
             sc = sc.push();
             sc.stc |= storage_class & (STCdisable | STCdeprecated); // forward to function type
 
-            TypeFunction tf = cast(TypeFunction)type;
+            TypeFunction tf = type.toTypeFunction();
             if (sc.func)
             {
                 /* If the nesting parent is pure without inference,
@@ -491,8 +501,8 @@ extern (C++) class FuncDeclaration : Declaration
         {
             // Merge back function attributes into 'originalType'.
             // It's used for mangling, ddoc, and json output.
-            TypeFunction tfo = cast(TypeFunction)originalType;
-            TypeFunction tfx = cast(TypeFunction)type;
+            TypeFunction tfo = originalType.toTypeFunction();
+            TypeFunction tfx = type.toTypeFunction();
             tfo.mod = tfx.mod;
             tfo.isscope = tfx.isscope;
             tfo.isref = tfx.isref;
@@ -931,8 +941,7 @@ extern (C++) class FuncDeclaration : Declaration
             error("override only applies to class member functions");
 
         // Reflect this.type to f because it could be changed by findVtblIndex
-        assert(type.ty == Tfunction);
-        f = cast(TypeFunction)type;
+        f = type.toTypeFunction();
 
         /* Do not allow template instances to add virtual functions
          * to a class.
@@ -1751,7 +1760,7 @@ extern (C++) class FuncDeclaration : Declaration
 
                 // BUG: need to treat parameters as const
                 // BUG: need to disallow returns and throws
-                if (inferRetType && fdensure && (cast(TypeFunction)fdensure.type).parameters)
+                if (inferRetType && fdensure && fdensure.type.toTypeFunction().parameters)
                 {
                     // Return type was unknown in the first semantic pass
                     Parameter p = (*(cast(TypeFunction)fdensure.type).parameters)[0];
@@ -2504,7 +2513,7 @@ extern (C++) class FuncDeclaration : Declaration
                 return 0;
             m.anyf = f;
 
-            auto tf = cast(TypeFunction)f.type;
+            auto tf = f.type.toTypeFunction();
             //printf("tf = %s\n", tf.toChars());
 
             MATCH match;
@@ -2568,7 +2577,7 @@ extern (C++) class FuncDeclaration : Declaration
         else                    // no match
         {
             hasOverloads = true;
-            auto tf = cast(TypeFunction)this.type;
+            auto tf = this.type.toTypeFunction();
             assert(tthis);
             assert(!MODimplicitConv(tthis.mod, tf.mod)); // modifier mismatch
             {
@@ -2637,8 +2646,8 @@ extern (C++) class FuncDeclaration : Declaration
          * as g() is.
          */
 
-        TypeFunction tf = cast(TypeFunction)type;
-        TypeFunction tg = cast(TypeFunction)g.type;
+        TypeFunction tf = type.toTypeFunction();
+        TypeFunction tg = g.type.toTypeFunction();
         size_t nfparams = Parameter.dim(tf.parameters);
 
         /* If both functions have a 'this' pointer, and the mods are not
@@ -2799,7 +2808,7 @@ extern (C++) class FuncDeclaration : Declaration
     final const(char)* toFullSignature()
     {
         OutBuffer buf;
-        functionToBufferWithIdent(cast(TypeFunction)type, &buf, toChars());
+        functionToBufferWithIdent(type.toTypeFunction(), &buf, toChars());
         return buf.extractString();
     }
 
@@ -2899,8 +2908,8 @@ extern (C++) class FuncDeclaration : Declaration
      */
     private final void initInferAttributes()
     {
-        assert(type.ty == Tfunction);
-        TypeFunction tf = cast(TypeFunction)type;
+        //printf("initInferAttributes() for %s\n", toPrettyChars());
+        TypeFunction tf = type.toTypeFunction();
         if (tf.purity == PUREimpure) // purity not specified
             flags |= FUNCFLAGpurityInprocess;
 
@@ -2924,8 +2933,7 @@ extern (C++) class FuncDeclaration : Declaration
     final PURE isPure()
     {
         //printf("FuncDeclaration::isPure() '%s'\n", toChars());
-        assert(type.ty == Tfunction);
-        TypeFunction tf = cast(TypeFunction)type;
+        TypeFunction tf = type.toTypeFunction();
         if (flags & FUNCFLAGpurityInprocess)
             setImpure();
         if (tf.purity == PUREfwdref)
@@ -2978,10 +2986,9 @@ extern (C++) class FuncDeclaration : Declaration
 
     final bool isSafe()
     {
-        assert(type.ty == Tfunction);
         if (flags & FUNCFLAGsafetyInprocess)
             setUnsafe();
-        return (cast(TypeFunction)type).trust == TRUSTsafe;
+        return type.toTypeFunction().trust == TRUSTsafe;
     }
 
     final bool isSafeBypassingInference()
@@ -2991,10 +2998,9 @@ extern (C++) class FuncDeclaration : Declaration
 
     final bool isTrusted()
     {
-        assert(type.ty == Tfunction);
         if (flags & FUNCFLAGsafetyInprocess)
             setUnsafe();
-        return (cast(TypeFunction)type).trust == TRUSTtrusted;
+        return type.toTypeFunction().trust == TRUSTtrusted;
     }
 
     /**************************************
@@ -3007,7 +3013,7 @@ extern (C++) class FuncDeclaration : Declaration
         if (flags & FUNCFLAGsafetyInprocess)
         {
             flags &= ~FUNCFLAGsafetyInprocess;
-            (cast(TypeFunction)type).trust = TRUSTsystem;
+            type.toTypeFunction().trust = TRUSTsystem;
             if (fes)
                 fes.func.setUnsafe();
         }
@@ -3018,10 +3024,9 @@ extern (C++) class FuncDeclaration : Declaration
 
     final bool isNogc()
     {
-        assert(type.ty == Tfunction);
         if (flags & FUNCFLAGnogcInprocess)
             setGC();
-        return (cast(TypeFunction)type).isnogc;
+        return type.toTypeFunction().isnogc;
     }
 
     final bool isNogcBypassingInference()
@@ -3040,7 +3045,7 @@ extern (C++) class FuncDeclaration : Declaration
         if (flags & FUNCFLAGnogcInprocess)
         {
             flags &= ~FUNCFLAGnogcInprocess;
-            (cast(TypeFunction)type).isnogc = false;
+            type.toTypeFunction().isnogc = false;
             if (fes)
                 fes.func.setGC();
         }
@@ -3067,8 +3072,7 @@ extern (C++) class FuncDeclaration : Declaration
      */
     final bool isolateReturn()
     {
-        assert(type.ty == Tfunction);
-        TypeFunction tf = cast(TypeFunction)type;
+        TypeFunction tf = type.toTypeFunction();
         assert(tf.next);
 
         Type treti = tf.next;
@@ -3088,8 +3092,7 @@ extern (C++) class FuncDeclaration : Declaration
         if (!isPureBypassingInference() || isNested())
             return false;
 
-        assert(type.ty == Tfunction);
-        TypeFunction tf = cast(TypeFunction)type;
+        TypeFunction tf = type.toTypeFunction();
 
         //printf("parametersIntersect(%s) t = %s\n", tf.toChars(), t.toChars());
 
@@ -3416,8 +3419,7 @@ extern (C++) class FuncDeclaration : Declaration
          */
         if (closureVars.dim)
         {
-            assert(type.ty == Tfunction);
-            Type tret = (cast(TypeFunction)type).next;
+            Type tret = type.toTypeFunction().next;
             assert(tret);
             tret = tret.toBasetype();
             //printf("\t\treturning %s\n", tret.toChars());
@@ -3562,8 +3564,7 @@ extern (C++) class FuncDeclaration : Declaration
 
         if (sc && vresult.semanticRun == PASSinit)
         {
-            assert(type.ty == Tfunction);
-            TypeFunction tf = cast(TypeFunction)type;
+            TypeFunction tf = type.toTypeFunction();
             if (tf.isref)
                 vresult.storage_class |= STCref;
             vresult.type = tret;
@@ -3736,8 +3737,7 @@ extern (C++) class FuncDeclaration : Declaration
 
         if (type)
         {
-            assert(type.ty == Tfunction);
-            TypeFunction fdtype = cast(TypeFunction)type;
+            TypeFunction fdtype = type.toTypeFunction();
             fparameters = fdtype.parameters;
             fvarargs = fdtype.varargs;
         }
@@ -3793,7 +3793,7 @@ extern (C++) class FuncDeclaration : Declaration
      */
     final void checkDmain()
     {
-        TypeFunction tf = cast(TypeFunction)type;
+        TypeFunction tf = type.toTypeFunction();
         const nparams = Parameter.dim(tf.parameters);
         bool argerr;
         if (nparams == 1)
@@ -4136,7 +4136,7 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
             assert(fd);
 
             bool hasOverloads = fd.overnext !is null;
-            auto tf = cast(TypeFunction)fd.type;
+            auto tf = fd.type.toTypeFunction();
             if (tthis && !MODimplicitConv(tthis.mod, tf.mod)) // modifier mismatch
             {
                 OutBuffer thisBuf, funcBuf;
@@ -4204,8 +4204,8 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
     }
     else if (m.nextf)
     {
-        TypeFunction tf1 = cast(TypeFunction)m.lastf.type;
-        TypeFunction tf2 = cast(TypeFunction)m.nextf.type;
+        TypeFunction tf1 = m.lastf.type.toTypeFunction();
+        TypeFunction tf2 = m.nextf.type.toTypeFunction();
         const(char)* lastprms = parametersTypeToChars(tf1.parameters, tf1.varargs);
         const(char)* nextprms = parametersTypeToChars(tf2.parameters, tf2.varargs);
         .error(loc, "%s.%s called with argument types %s matches both:\n%s:     %s%s\nand:\n%s:     %s%s",
@@ -4529,7 +4529,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
         // This is required so the code generator does not try to cast the
         // modified returns back to the original type.
         if (inferRetType && type.nextOf() != tret)
-            (cast(TypeFunction)type).next = tret;
+            type.toTypeFunction().next = tret;
     }
 
     override inout(FuncLiteralDeclaration) isFuncLiteralDeclaration() inout
@@ -4610,8 +4610,7 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
         if (errors)
             return;
 
-        TypeFunction tf = cast(TypeFunction)type;
-        assert(tf && tf.ty == Tfunction);
+        TypeFunction tf = type.toTypeFunction();
 
         /* See if it's the default constructor
          * But, template constructor should not become a default constructor.
@@ -5426,10 +5425,9 @@ extern (C++) final class NewDeclaration : FuncDeclaration
             type = new TypeFunction(parameters, tret, varargs, LINKd, storage_class);
 
         type = type.semantic(loc, sc);
-        assert(type.ty == Tfunction);
 
         // Check that there is at least one argument of type size_t
-        TypeFunction tf = cast(TypeFunction)type;
+        TypeFunction tf = type.toTypeFunction();
         if (Parameter.dim(tf.parameters) < 1)
         {
             error("at least one argument of type size_t expected");
@@ -5518,10 +5516,9 @@ extern (C++) final class DeleteDeclaration : FuncDeclaration
             type = new TypeFunction(parameters, Type.tvoid, 0, LINKd, storage_class);
 
         type = type.semantic(loc, sc);
-        assert(type.ty == Tfunction);
 
         // Check that there is only one argument of type void*
-        TypeFunction tf = cast(TypeFunction)type;
+        TypeFunction tf = type.toTypeFunction();
         if (Parameter.dim(tf.parameters) != 1)
         {
             error("one argument of type void* expected");
