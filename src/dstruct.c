@@ -324,6 +324,7 @@ void AggregateDeclaration::semantic3(Scope *sc)
 
     if (sd)
         sd->semanticTypeInfoMembers();
+    semanticRun = PASSsemantic3done;
 }
 
 /***************************************

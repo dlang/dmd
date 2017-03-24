@@ -4672,7 +4672,7 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
         /* AA's need typeid(index).equals() and getHash(). Issue error if not correctly set up.
          */
         StructDeclaration *sd = ((TypeStruct *)tbase)->sym;
-        if (sd->_scope)
+        if (sd->semanticRun < PASSsemanticdone)
             sd->semantic(NULL);
 
         // duplicate a part of StructDeclaration::semanticTypeInfoMembers
@@ -4739,7 +4739,7 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
     else if (tbase->ty == Tclass && !((TypeClass *)tbase)->sym->isInterfaceDeclaration())
     {
         ClassDeclaration *cd = ((TypeClass *)tbase)->sym;
-        if (cd->_scope)
+        if (cd->semanticRun < PASSsemanticdone)
             cd->semantic(NULL);
 
         if (!ClassDeclaration::object)
@@ -5336,7 +5336,7 @@ int Type::covariant(Type *t, StorageClass *pstc, bool fix17349)
 
         // If t1n is forward referenced:
         ClassDeclaration *cd = ((TypeClass *)t1n)->sym;
-        if (cd->_scope)
+        if (cd->semanticRun < PASSsemanticdone)
             cd->semantic(NULL);
         if (!cd->isBaseInfoComplete())
         {
@@ -8727,9 +8727,9 @@ MATCH TypeClass::implicitConvTo(Type *to)
     if (cdto)
     {
         //printf("TypeClass::implicitConvTo(to = '%s') %s, isbase = %d %d\n", to->toChars(), toChars(), cdto->isBaseInfoComplete(), sym->isBaseInfoComplete());
-        if (cdto->_scope && !cdto->isBaseInfoComplete())
+        if (cdto->semanticRun < PASSsemanticdone && !cdto->isBaseInfoComplete())
             cdto->semantic(NULL);
-        if (sym->_scope && !sym->isBaseInfoComplete())
+        if (sym->semanticRun < PASSsemanticdone && !sym->isBaseInfoComplete())
             sym->semantic(NULL);
         if (cdto->isBaseOf(sym, NULL) && MODimplicitConv(mod, to->mod))
         {

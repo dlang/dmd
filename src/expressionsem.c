@@ -1962,8 +1962,8 @@ public:
                         ClassDeclaration *cd = ((TypeClass *)e->targ)->sym;
                         Parameters *args = new Parameters;
                         args->reserve(cd->baseclasses->dim);
-                        if (cd->_scope && !cd->symtab)
-                            cd->semantic(cd->_scope);
+                        if (cd->semanticRun < PASSsemanticdone)
+                            cd->semantic(NULL);
                         for (size_t i = 0; i < cd->baseclasses->dim; i++)
                         {
                             BaseClass *b = (*cd->baseclasses)[i];

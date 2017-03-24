@@ -1240,7 +1240,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         ClassDeclaration *cd = sds->isClassDeclaration();
         if (cd && e->ident == Id::allMembers)
         {
-            if (cd->_scope)
+            if (cd->semanticRun < PASSsemanticdone)
                 cd->semantic(NULL);    // Bugzilla 13668: Try to resolve forward reference
 
             struct PushBaseMembers
