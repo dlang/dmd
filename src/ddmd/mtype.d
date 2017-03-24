@@ -738,7 +738,7 @@ extern (C++) abstract class Type : RootObject
 
                 // If t1n is forward referenced:
                 ClassDeclaration cd = (cast(TypeClass)t1n).sym;
-                if (cd._scope)
+                if (cd.semanticRun < PASSsemanticdone)
                     cd.semantic(null);
                 if (!cd.isBaseInfoComplete())
                 {
@@ -5452,7 +5452,7 @@ extern (C++) final class TypeAArray : TypeArray
             /* AA's need typeid(index).equals() and getHash(). Issue error if not correctly set up.
              */
             StructDeclaration sd = (cast(TypeStruct)tbase).sym;
-            if (sd._scope)
+            if (sd.semanticRun < PASSsemanticdone)
                 sd.semantic(null);
 
             // duplicate a part of StructDeclaration::semanticTypeInfoMembers
@@ -5514,7 +5514,7 @@ extern (C++) final class TypeAArray : TypeArray
         else if (tbase.ty == Tclass && !(cast(TypeClass)tbase).sym.isInterfaceDeclaration())
         {
             ClassDeclaration cd = (cast(TypeClass)tbase).sym;
-            if (cd._scope)
+            if (cd.semanticRun < PASSsemanticdone)
                 cd.semantic(null);
 
             if (!ClassDeclaration.object)
@@ -9621,9 +9621,9 @@ extern (C++) final class TypeClass : Type
         if (cdto)
         {
             //printf("TypeClass::implicitConvTo(to = '%s') %s, isbase = %d %d\n", to.toChars(), toChars(), cdto.isBaseInfoComplete(), sym.isBaseInfoComplete());
-            if (cdto._scope && !cdto.isBaseInfoComplete())
+            if (cdto.semanticRun < PASSsemanticdone && !cdto.isBaseInfoComplete())
                 cdto.semantic(null);
-            if (sym._scope && !sym.isBaseInfoComplete())
+            if (sym.semanticRun < PASSsemanticdone && !sym.isBaseInfoComplete())
                 sym.semantic(null);
             if (cdto.isBaseOf(sym, null) && MODimplicitConv(mod, to.mod))
             {

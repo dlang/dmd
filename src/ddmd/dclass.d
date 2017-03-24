@@ -613,7 +613,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 baseClass = tc.sym;
                 b.sym = baseClass;
 
-                if (tc.sym._scope && tc.sym.baseok < BASEOKdone)
+                if (tc.sym.baseok < BASEOKdone)
                     resolveBase(tc.sym.semantic(null)); // Try to resolve forward reference
                 if (tc.sym.baseok < BASEOKdone)
                 {
@@ -663,7 +663,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
                 b.sym = tc.sym;
 
-                if (tc.sym._scope && tc.sym.baseok < BASEOKdone)
+                if (tc.sym.baseok < BASEOKdone)
                     resolveBase(tc.sym.semantic(null)); // Try to resolve forward reference
                 if (tc.sym.baseok < BASEOKdone)
                 {
@@ -1043,10 +1043,10 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         {
             /* cd.baseClass might not be set if cd is forward referenced.
              */
-            if (!cd.baseClass && cd._scope && !cd.isInterfaceDeclaration())
+            if (!cd.baseClass && cd.semanticRun < PASSsemanticdone && !cd.isInterfaceDeclaration())
             {
                 cd.semantic(null);
-                if (!cd.baseClass && cd._scope)
+                if (!cd.baseClass && cd.semanticRun < PASSsemanticdone)
                     cd.error("base class is forward referenced by %s", toChars());
             }
 
@@ -1706,7 +1706,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
 
                 b.sym = tc.sym;
 
-                if (tc.sym._scope && tc.sym.baseok < BASEOKdone)
+                if (tc.sym.baseok < BASEOKdone)
                     resolveBase(tc.sym.semantic(null)); // Try to resolve forward reference
                 if (tc.sym.baseok < BASEOKdone)
                 {

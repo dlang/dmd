@@ -990,8 +990,8 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto cd = sds.isClassDeclaration();
         if (cd && e.ident == Id.allMembers)
         {
-            if (cd._scope)
-                cd.semantic(null); // Bugzilla 13668: Try to resolve forward reference
+            if (cd.semanticRun < PASSsemanticdone)
+                cd.semantic(null); // https://issues.dlang.org/show_bug.cgi?id=13668: Try to resolve forward reference
 
             void pushBaseMembersDg(ClassDeclaration cd)
             {

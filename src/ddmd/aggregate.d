@@ -213,6 +213,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         }
         if (sd)
             sd.semanticTypeInfoMembers();
+        semanticRun = PASSsemantic3done;
     }
 
     /***************************************
