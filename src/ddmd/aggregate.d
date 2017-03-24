@@ -232,6 +232,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             return true;
 
         //printf("determineFields() %s, fields.dim = %d\n", toChars(), fields.dim);
+        // determineFields can be called recursively from one of the fields's v.semantic
         fields.setDim(0);
 
         extern (C++) static int func(Dsymbol s, void* param)
@@ -246,7 +247,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
             if (v._scope)
                 v.semantic(null);
-            // Note: Aggregate fields or size could have determined during v->semantic.
+            // Return in case a recursive determineFields triggered by v.semantic already finished
             if (ad.sizeok != SIZEOKnone)
                 return 1;
 
@@ -282,7 +283,10 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             if (s.apply(&func, cast(void*)this))
             {
                 if (sizeok != SIZEOKnone)
+                {
+                    // recursive determineFields already finished
                     return true;
+                }
                 return false;
             }
         }
