@@ -87,7 +87,7 @@ enum PINLINE;
 #define STCrvalue        0x20000000000LL // force rvalue for variables
 #define STCnogc          0x40000000000LL // @nogc
 #define STCvolatile      0x80000000000LL // destined for volatile in the back end
-#define STCreturn        0x100000000000LL // 'return ref' for function parameters
+#define STCreturn        0x100000000000LL // 'return ref' or 'return scope' for function parameters
 #define STCautoref       0x200000000000LL // Mark for the already deduced 'auto ref' parameter
 #define STCinference     0x400000000000LL // do attribute inference
 #define STCexptemp       0x800000000000LL // temporary variable that has lifetime restricted to an expression
@@ -277,6 +277,7 @@ public:
     bool hasPointers();
     bool canTakeAddressOf();
     bool needsScopeDtor();
+    bool enclosesLifetimeOf(VarDeclaration *v) const;
     Expression *callScopeDtor(Scope *sc);
     Expression *getConstInitializer(bool needFullType = true);
     Expression *expandInitializer(Loc loc);
@@ -639,6 +640,7 @@ public:
 
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc=0);
+    void checkDmain();
 
     FuncDeclaration *isFuncDeclaration() { return this; }
 

@@ -35,7 +35,7 @@ struct Target
     static int classinfosize;        // size of 'ClassInfo'
     static unsigned long long maxStaticDataSize;  // maximum size of static data
 
-    static void init();
+    static void _init();
     // Type sizes and support.
     static unsigned alignsize(Type* type);
     static unsigned fieldalign(Type* type);

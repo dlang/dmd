@@ -240,7 +240,7 @@ public:
     int covariant(Type *t, StorageClass *pstc = NULL);
     const char *toChars();
     char *toPrettyChars(bool QualifyTypes = false);
-    static void init();
+    static void _init();
 
     d_uns64 size();
     virtual d_uns64 size(Loc loc);
@@ -902,6 +902,8 @@ public:
     static Parameters *arraySyntaxCopy(Parameters *parameters);
     static size_t dim(Parameters *parameters);
     static Parameter *getNth(Parameters *parameters, d_size_t nth, d_size_t *pn = NULL);
+    const char *toChars();
+    bool isCovariant(const Parameter *p) const;
 };
 
 bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
