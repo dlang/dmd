@@ -7444,8 +7444,8 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int fl
     if (ident == Id::_mangleof)
         return getProperty(e->loc, ident, flag & 1);
 
-    if (sym->_scope)
-        sym->semantic(sym->_scope);
+    if (sym->semanticRun < PASSsemanticdone)
+        sym->semantic(NULL);
     if (!sym->members)
     {
         if (sym->isSpecial())
