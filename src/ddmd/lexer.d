@@ -2018,6 +2018,7 @@ class Lexer
         {
             assert(*p == '.' || isdigit(*p));
         }
+        bool isWellformedString = true;
         stringbuffer.reset();
         auto pstart = p;
         bool hex = false;
@@ -2079,12 +2080,18 @@ class Lexer
                     continue;
                 }
                 if (!anyexp)
+                {
                     error("missing exponent");
+                    isWellformedString = false;
+                }
                 break;
             }
         }
         else if (hex)
+        {
             error("exponent required for hex float");
+            isWellformedString = false;
+        }
         --p;
         while (pstart < p)
         {
@@ -2096,17 +2103,19 @@ class Lexer
         auto sbufptr = cast(const(char)*)stringbuffer.data;
         TOK result;
         bool isOutOfRange = false;
-        t.floatvalue = CTFloat.parse(sbufptr, &isOutOfRange);
+        t.floatvalue = (isWellformedString ? CTFloat.parse(sbufptr, &isOutOfRange) : CTFloat.zero);
         switch (*p)
         {
         case 'F':
         case 'f':
-            isOutOfRange = (isOutOfRange || Port.isFloat32LiteralOutOfRange(sbufptr));
+            if (isWellformedString && !isOutOfRange)
+                isOutOfRange = Port.isFloat32LiteralOutOfRange(sbufptr);
             result = TOKfloat32v;
             p++;
             break;
         default:
-            isOutOfRange = (isOutOfRange || Port.isFloat64LiteralOutOfRange(sbufptr));
+            if (isWellformedString && !isOutOfRange)
+                isOutOfRange = Port.isFloat64LiteralOutOfRange(sbufptr);
             result = TOKfloat64v;
             break;
         case 'l':
