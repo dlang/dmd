@@ -685,6 +685,7 @@ void TemplateDeclaration::semantic(Scope *sc)
     /* BUG: should check:
      *  o no virtual functions or non-static data members of classes
      */
+    semanticRun = PASSsemanticdone;
 }
 
 const char *TemplateDeclaration::kind() const
@@ -2169,10 +2170,10 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             if (tiargs && tiargs->dim > 0)
                 return 0;
 
-            if (fd->semanticRun == PASSinit && fd->_scope)
+            if (fd->semanticRun < PASSsemanticdone)
             {
                 Ungag ungag = fd->ungagSpeculative();
-                fd->semantic(fd->_scope);
+                fd->semantic(NULL);
             }
             if (fd->semanticRun == PASSinit)
             {
