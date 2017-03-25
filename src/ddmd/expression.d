@@ -529,9 +529,9 @@ extern (C++) bool checkPropertyCall(Expression e, Expression emsg)
             tf = cast(TypeFunction)ce.f.type;
             /* If a forward reference to ce.f, try to resolve it
              */
-            if (!tf.deco && ce.f._scope)
+            if (!tf.deco && ce.f.semanticRun < PASSsemanticdone)
             {
-                ce.f.semantic(ce.f._scope);
+                ce.f.semantic(null);
                 tf = cast(TypeFunction)ce.f.type;
             }
         }
