@@ -8900,8 +8900,8 @@ extern (C++) final class TypeEnum : Type
         if (ident == Id._mangleof)
             return getProperty(e.loc, ident, flag & 1);
 
-        if (sym._scope)
-            sym.semantic(sym._scope);
+        if (sym.semanticRun < PASSsemanticdone)
+            sym.semantic(null);
         if (!sym.members)
         {
             if (!(flag & 1))

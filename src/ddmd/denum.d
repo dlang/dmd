@@ -133,6 +133,9 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             _scope = null;
         }
 
+        if (!sc)
+            return;
+
         parent = sc.parent;
         type = type.semantic(loc, sc);
 
