@@ -3924,6 +3924,7 @@ extern (C++) class IdentifierExp : Expression
             // Create the magic __ctfe bool variable
             auto vd = new VarDeclaration(loc, Type.tbool, Id.ctfe, null);
             vd.storage_class |= STCtemp;
+            vd.semanticRun = PASSsemanticdone;
             Expression e = new VarExp(loc, vd);
             e = e.semantic(sc);
             return e;
