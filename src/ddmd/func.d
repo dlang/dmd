@@ -316,6 +316,9 @@ extern (C++) class FuncDeclaration : Declaration
             _scope = null;
         }
 
+        if (!sc || errors)
+            return;
+
         parent = sc.parent;
         Dsymbol parent = toParent();
 
@@ -745,6 +748,7 @@ extern (C++) class FuncDeclaration : Declaration
 
             case -2:
                 // can't determine because of forward references
+                errors = true;
                 return;
 
             default:
@@ -841,6 +845,7 @@ extern (C++) class FuncDeclaration : Declaration
 
                 case -2:
                     // can't determine because of forward references
+                    errors = true;
                     return;
 
                 default:
