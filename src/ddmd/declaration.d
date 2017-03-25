@@ -1108,6 +1108,8 @@ extern (C++) class VarDeclaration : Declaration
         /* Pick up storage classes from context, but except synchronized,
          * override, abstract, and final.
          */
+        if (!sc)
+            return;
         storage_class |= (sc.stc & ~(STCsynchronized | STCoverride | STCabstract | STCfinal));
         if (storage_class & STCextern && _init)
             error("extern symbols cannot have initializers");
@@ -1674,7 +1676,7 @@ extern (C++) class VarDeclaration : Declaration
                             if (!e)
                             {
                                 error("is not a static and cannot have static initializer");
-                                return;
+                                e = new ErrorExp();
                             }
                         }
                         ei = new ExpInitializer(_init.loc, e);

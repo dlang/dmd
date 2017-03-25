@@ -241,7 +241,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             if (v.storage_class & STCmanifest)
                 return 0;
 
-            if (v._scope)
+            if (v.semanticRun < PASSsemanticdone)
                 v.semantic(null);
             if (v.aliassym)
                 return 0;   // If this variable was really a tuple, skip it.
