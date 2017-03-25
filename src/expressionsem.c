@@ -397,6 +397,7 @@ public:
             // Create the magic __ctfe bool variable
             VarDeclaration *vd = new VarDeclaration(exp->loc, Type::tbool, Id::ctfe, NULL);
             vd->storage_class |= STCtemp;
+            vd->semanticRun = PASSsemanticdone;
             Expression *e = new VarExp(exp->loc, vd);
             e = semantic(e, sc);
             result = e;

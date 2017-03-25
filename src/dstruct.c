@@ -360,7 +360,7 @@ bool AggregateDeclaration::determineFields()
 
             AggregateDeclaration *ad = ((SV *)param)->agg;
 
-            if (v->_scope)
+            if (v->semanticRun < PASSsemanticdone)
                 v->semantic(NULL);
             // Note: Aggregate fields or size could have determined during v->semantic.
             if (ad->sizeok != SIZEOKnone)
