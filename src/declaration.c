@@ -1040,6 +1040,7 @@ void VarDeclaration::semantic(Scope *sc)
                 else if (isAliasThisTuple(e))
                 {
                     VarDeclaration *v = copyToTemp(0, "__tup", e);
+                    v->semantic(sc);
                     VarExp *ve = new VarExp(loc, v);
                     ve->type = e->type;
 
