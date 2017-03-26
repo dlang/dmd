@@ -1046,6 +1046,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 else
                 {
                     r = copyToTemp(0, "__r", fs.aggr);
+                    r.semantic(sc);
                     _init = new ExpStatement(loc, r);
                     if (vinit)
                         _init = new CompoundStatement(loc, new ExpStatement(loc, vinit), _init);
@@ -1078,6 +1079,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 else
                 {
                     auto vd = copyToTemp(STCref, "__front", einit);
+                    vd.semantic(sc);
                     makeargs = new ExpStatement(loc, vd);
 
                     Type tfront;
@@ -2955,6 +2957,7 @@ else
                  *  try { body } finally { _d_monitorexit(tmp); }
                  */
                 auto tmp = copyToTemp(0, "__sync", ss.exp);
+                tmp.semantic(sc);
 
                 auto cs = new Statements();
                 cs.push(new ExpStatement(ss.loc, tmp));
@@ -3095,6 +3098,7 @@ else
                      * }
                      */
                     auto tmp = copyToTemp(0, "__withtmp", ws.exp);
+                    tmp.semantic(sc);
                     auto es = new ExpStatement(ws.loc, tmp);
                     ws.exp = new VarExp(ws.loc, tmp);
                     Statement ss = new ScopeStatement(ws.loc, new CompoundStatement(ws.loc, es, ws), ws.endloc);
