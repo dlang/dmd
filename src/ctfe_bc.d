@@ -1816,6 +1816,39 @@ public:
 
     }
 */
+
+    void doCat(ref BCValue result, BCValue lhs, BCValue rhs)
+    {
+                auto lhsLength = getLength(lhs);
+                auto rhsLength = getLength(rhs);
+                auto lhsBase = getBase(lhs);
+                auto rhsBase = getBase(rhs);
+                auto lhsBaseType = _sharedCtfeState.elementType(lhs.type);
+
+                    auto effectiveSize = genTemporary(i32Type);
+                    auto newLength = genTemporary(i32Type);
+                    auto newBase = genTemporary(i32Type);
+                    auto elemSize = _sharedCtfeState.size(lhsBaseType);
+                    if (!elemSize)
+                    {
+                        bailout("Type has no Size" ~ lhsBaseType.to!string);
+                        result = BCValue.init;
+                        return ;
+                    }
+                    Add3(newLength, lhsLength, rhsLength);
+                    Mul3(effectiveSize, newLength, imm32(elemSize));
+                    Add3(effectiveSize, effectiveSize, imm32(SliceDescriptor.Size));
+
+                    Alloc(result, effectiveSize);
+                    Add3(newBase, retval, imm32(SliceDescriptor.Size));
+
+                    setBase(result, newBase);
+                    setLength(result, newLength);
+
+                    copyArray(&newBase, &lhsBase, lhsLength, elemSize);
+                    copyArray(&newBase, &rhsBase, rhsLength, elemSize);
+
+    }
     BCValue genExpr(Expression expr)
     {
 
@@ -2267,10 +2300,13 @@ static if (is(BCGen))
                     bailout("for now only append to T[0].sizeof <= 4 is supported not : " ~ to!string(lhsBaseType.type));
                     return ;
                 }
-                if (rhs.type.type != BCTypeEnum.Slice && rhs.type.type != BCTypeEnum.Array && rhs.type.type != BCTypeEnum.string8)
+
+                auto rhsBaseType = _sharedCtfeState.elementType(rhs.type);
+                if(rhsBaseType != lhsBaseType)
                 {
-                    bailout("for now only concat between T[] and T[] is supported not: " ~ to!string(lhs.type.type) ~" and " ~ to!string(rhs.type.type) ~ e.toString);
-                    return ;
+                     bailout("for now only concat between T[] and T[] is supported not: " ~ to!string(lhs.type.type) ~" and " ~ to!string(rhs.type.type) ~ e.toString);
+                     return ;
+                }
 /*
                         // a single compatble element
                         // TODO use better memory management for slices don't just copy everything!!!
@@ -2285,10 +2321,7 @@ static if (is(BCGen))
                         rhs.type = lhs.type;
                         rhs.vType = lhs.vType;
 */
-                }
-
-                auto rhsBaseType = _sharedCtfeState.elementType(rhs.type);
-                if (lhsBaseType == rhsBaseType && (canWorkWithType(lhsBaseType) || lhsBaseType == BCTypeEnum.c8)
+                if ((canWorkWithType(lhsBaseType) || lhsBaseType == BCTypeEnum.c8)
                         && basicTypeSize(lhsBaseType) == basicTypeSize(rhsBaseType))
                 {
                     if (!lhs.heapAddr || !rhs.heapAddr)
@@ -2296,28 +2329,8 @@ static if (is(BCGen))
                         bailout("null slices are not supported");
                         return ;
                     }
-                    auto lhsLength = getLength(lhs);
-                    auto rhsLength = getLength(rhs);
-                    auto lhsBase = getBase(lhs);
-                    auto rhsBase = getBase(rhs);
-
-                    auto effectiveSize = genTemporary(i32Type);
-                    auto newLength = genTemporary(i32Type);
-                    auto newBase = genTemporary(i32Type);
-                    auto elemSize = _sharedCtfeState.size(lhsBaseType);
-                    Add3(newLength, lhsLength, rhsLength);
-                    Mul3(effectiveSize, newLength, imm32(elemSize));
-                    Add3(effectiveSize, effectiveSize, imm32(SliceDescriptor.Size));
-
-                    Alloc(retval, effectiveSize);
-                    Add3(newBase, retval, imm32(SliceDescriptor.Size));
-
-                    setBase(retval, newBase);
-                    setLength(retval, newLength);
-
-                    copyArray(&newBase, &lhsBase, lhsLength, elemSize);
-                    copyArray(&newBase, &rhsBase, rhsLength, elemSize);
-
+                    doCat(retval, lhs, rhs);
+                    bailout(!retval, "could not do cat" ~ e.toString);
                 }
                 else
                 {
@@ -3761,26 +3774,8 @@ static if (is(BCGen))
         case TOK.TOKcatass:
             {
                 bailout("~= unsupported");
-                if (lhs.type.type == BCTypeEnum.String && rhs.type.type == BCTypeEnum.String)
                 {
-                    bailout(lhs.vType != BCValueType.StackValue,
-                        "Only StringConcats on StackValues are supported for now");
-
-                    /*
-                 * TODO scope(exit) { removeTempoary .... }
-                 */
-
-                    static if (UsePrinterBackend)
-                    {
-                    }
-                    else
-                    {
-                        //StringCat(lhs, lhs, rhs);
-                    }
-                }
-                else
-                {
-                    if (lhs.type.type == BCTypeEnum.Slice)
+                    if (lhs.type.type == BCTypeEnum.Slice || lhs.type.type == BCTypeEnum.string8)
                     {
                         bailout(!lhs.type.typeIndex, "lhs for ~= is no valid slice" ~ e.toString);
                         bailout(_sharedCtfeState.elementType(lhs.type) != _sharedCtfeState.elementType(rhs.type), "rhs and lhs for ~= are not compatible");
@@ -3791,7 +3786,7 @@ static if (is(BCGen))
                     }
                     else
                     {
-                        bailout("Can only concat on slices");
+                        bailout("Can only concat on slices or strings");
                         return;
                     }
                 }
@@ -4986,20 +4981,17 @@ static if (is(BCGen))
             // e.g. cast(uint[])uint[10]
             retval.type = toType;
         }
-        /*else if (fromType.type == BCTypeEnum.string8
+        else if (fromType.type == BCTypeEnum.string8
                 && toType.type == BCTypeEnum.Slice && toType.typeIndex
                 && _sharedCtfeState.sliceTypes[toType.typeIndex - 1].elementType.type
                 == BCTypeEnum.i32)
         {
             // for the cast(ubyte[])string case
-            // this needs to be revised as soon as we handle utf8/32 conversions
             // for now make an i8 slice
             _sharedCtfeState.sliceTypes[_sharedCtfeState.sliceCount++] = BCSlice(BCType(BCTypeEnum.i8));
             retval.type = BCType(BCTypeEnum.Slice, _sharedCtfeState.sliceCount);
-            import std.stdio;
-            writeln("created sliceType: ", _sharedCtfeState.sliceCount);
             //retval.type = toType;
-        }*/
+        }
         else
         {
             bailout("CastExp unsupported: " ~ ce.toString);
