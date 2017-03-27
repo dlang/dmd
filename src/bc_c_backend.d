@@ -200,7 +200,6 @@ pure:
         else if (v.vType == BCValueType.Parameter)
         {
             return "stack[stackOffset+" ~ to!string(v.stackAddr) ~ "]";
-
         }
         else if (v.vType == BCValueType.Immediate)
         {
@@ -245,7 +244,7 @@ pure:
     {
         sameLabel = false;
         string prefix = ifTrue ? "" : "!";
-        if (cond.vType == BCValueType.StackValue && cond.type == BCType.i32)
+        if ((cond.vType == BCValueType.StackValue || cond.vType == BCValueType.Parameter) && cond.type == BCType.i32)
         {
             code ~= "\tif (" ~ prefix ~ "(" ~ toCode(cond) ~ "))\n\t";
         }
