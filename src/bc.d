@@ -187,15 +187,15 @@ struct LongInst64
     }
 
     this(const LongInst i, const StackAddr stackAddrLhs,
-        const StackAddr stackAddrRhs, const bool indirect = false)
+        const StackAddr stackAddrRhs)
     {
-        lw = i | indirect << 6;
+        lw = i;
         hi = stackAddrLhs.addr | stackAddrRhs.addr << 16;
     }
 
-    this(const LongInst i, const StackAddr stackAddrLhs, const Imm32 rhs, const bool indirect = false)
+    this(const LongInst i, const StackAddr stackAddrLhs, const Imm32 rhs)
     {
-        lw = i | indirect << 6 | stackAddrLhs.addr << 16;
+        lw = i | stackAddrLhs.addr << 16;
         hi = rhs.imm32;
     }
 }
@@ -224,10 +224,10 @@ static short isShortJump(const int offset) pure @safe
     }
 }
 
-auto ShortInst16(const LongInst i, const int _imm, const bool indirect = false) pure @safe
+auto ShortInst16(const LongInst i, const int _imm) pure @safe
 {
     short imm = cast(short) _imm;
-    return i | indirect << 6 | imm << 16;
+    return i | imm << 16;
 }
 
 auto ShortInst16Ex(const LongInst i, ubyte ex, const short imm) pure @safe
@@ -262,12 +262,7 @@ struct BCFunction
     ushort nArgs;
     ushort maxStackUsed;
 
-    union
-    {
-        immutable(int)[] byteCode;
-        BCValue function(const BCValue[] arguments, uint[] heapPtr) _fBuiltin;
-        BCValue function(const BCValue[] arguments, uint[] heapPtr, uint[] stackPtr) fPtr;
-    }
+    immutable(int)[] byteCode;
 
     //    this(void* fd, BCFunctionTypeEnum type, int nr, const int[] byteCode, uint nArgs) pure
     //    {
@@ -304,15 +299,11 @@ struct BCGen
 
     RetainedCall[ubyte.max * 6] calls;
     uint callCount;
-    auto interpret(BCValue[] args, BCHeap* heapPtr) const
+    auto interpret(BCValue[] args, BCHeap* heapPtr = null) const
     {
         return interpret_(cast(const) byteCodeArray[0 .. ip], args, heapPtr, null);
     }
 
-    auto interpret(BCValue[] args) const
-    {
-        return interpret_(cast(const) byteCodeArray[0 .. ip], args, null, null);
-    }
 @safe:
 
     void beginFunction(uint fnId = 0, void* fd = null)
@@ -912,7 +903,7 @@ pure:
         assert(isStackValueOrParameter(rhs),
             "The rhs of StrEq3 not a StackValue" ~ to!string(rhs.vType));
 
-        emitLongInst(LongInst64(LongInst.StrEq, lhs.stackAddr, rhs.stackAddr, false));
+        emitLongInst(LongInst64(LongInst.StrEq, lhs.stackAddr, rhs.stackAddr));
 
         if (isStackValueOrParameter(result))
         {
@@ -1332,16 +1323,9 @@ else
 }
 
 __gshared int[ushort.max * 2] byteCodeCache;
+
 __gshared int byteCodeCacheTop = 4;
-/*
-BCValue interpret(const BCGen* gen, const BCValue[] args,
-    BCFunction* functions = null, BCHeap* heapPtr = null, BCValue* ev1 = null,
-    BCValue* ev2 = null, const RE* errors = null) @safe
-{
-    return interpret_(gen.byteCodeArray[0 .. gen.ip], args, heapPtr, functions, ev2,
-        ev2, errors);
-}
-*/
+
 const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
     BCHeap* heapPtr = null, const BCFunction* functions = null,
     const RetainedCall* calls = null,
