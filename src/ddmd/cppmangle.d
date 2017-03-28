@@ -72,7 +72,8 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 for (size_t i = 0; i < components.dim; i++)
                 {
                     //printf("    component[%d] = %s\n", i, components[i] ? components[i].toChars() : null);
-                    if (p == components[i])
+                    import core.stdc.string : strcmp;
+                    if (p && components[i] && strcmp(p.toChars(), components[i].toChars()) == 0)
                     {
                         //printf("\tmatch\n");
                         /* Sequence is S_, S0_, .., S9_, SA_, ..., SZ_, S10_, ...
@@ -93,7 +94,8 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             if (components_on)
                 for (size_t i = 0; i < components.dim; i++)
                 {
-                    if (p == components[i])
+                    import core.stdc.string : strcmp;
+                    if (p && components[i] && strcmp(p.toChars(), components[i].toChars()) == 0)
                     {
                         return true;
                     }
@@ -116,7 +118,6 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             {
                 if (!skipname && !substitute(ti.tempdecl))
                 {
-                    store(ti.tempdecl);
                     const(char)* name = ti.tempdecl.toAlias().ident.toChars();
                     buf.printf("%d%s", strlen(name), name);
                 }
@@ -182,6 +183,11 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                         Type t = isType(o);
                         assert(t);
                         t.accept(this);
+                        if (s && s.isTemplateInstance()) {
+                            if (!(s.ident == Id.std && is_initial_qualifier(s)) && !exist(s)) {
+                                store(s);
+                            }
+                        }
                     }
                     else if (tp.isTemplateAliasParameter())
                     {
@@ -238,6 +244,11 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             }
             else
             {
+                Dsymbol p = s.toParent();
+                FuncDeclaration f = s.isFuncDeclaration();
+                // Mangling for static functions in namespaces and plain
+                if (f && f.isStatic() && p && (p.isNspace() || p.isModule()))
+                    buf.printf("L");
                 const(char)* name = s.ident.toChars();
                 buf.printf("%d%s", strlen(name), name);
             }
@@ -251,6 +262,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 Dsymbol p = s.toParent();
                 if (p && p.isTemplateInstance())
                 {
+                    store(s);
                     s = p;
                     if (exist(p.isTemplateInstance().tempdecl))
                     {
