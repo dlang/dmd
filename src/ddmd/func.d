@@ -739,6 +739,10 @@ extern (C++) class FuncDeclaration : Declaration
 
             default:
                 {
+                    // https://issues.dlang.org/show_bug.cgi?id=16273
+                    if (!cd.vtbl.dim)
+                        return;
+
                     FuncDeclaration fdv = cd.baseClass.vtbl[vi].isFuncDeclaration();
                     FuncDeclaration fdc = cd.vtbl[vi].isFuncDeclaration();
                     // This function is covariant with fdv
