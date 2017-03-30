@@ -56,6 +56,9 @@ elem *eval_Darray(IRState *irs, Expression *e, bool alwaysCopy = false);
 elem *array_toPtr(Type *t, elem *e);
 elem *exp2_copytotemp(elem *e);
 
+elem *ExpressionsToStaticArray(IRState *irs, Loc loc, Expressions *exps,
+    Type *telem, symbol **psym);
+
 #define el_setLoc(e,loc)        ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
                                  (e)->Esrcpos.Slinnum = (loc).linnum)
 
@@ -1553,21 +1556,26 @@ elem *NewExp::toElem(IRState *irs)
         }
         else
         {   // Multidimensional array allocations
-            e = el_long(TYsize_t, arguments->dim);
+
+            // Figure out most nested array element type
             for (size_t i = 0; i < arguments->dim; i++)
             {
-                Expression *arg = (Expression *)arguments->data[i];     // gives array length
-                e = el_param(arg->toElem(irs), e);
                 assert(t->ty == Tarray);
                 t = t->nextOf();
                 assert(t);
             }
 
-            e = el_param(e, type->getTypeInfo(NULL)->toElem(irs));
+            // Allocate array of dimensions (size_t) on the stack
+            Symbol *sdata;
+            elem *earray = ExpressionsToStaticArray(irs, this->loc,
+                this->arguments, Type::tsize_t, &sdata);
 
-            int rtl = t->isZeroInit() ? RTLSYM_NEWARRAYMT : RTLSYM_NEWARRAYMIT;
+            // call _d_newTX(ti, dimensions)
+            e = el_pair(TYdarray, el_long(TYsize_t, this->arguments->dim), el_ptr(sdata));
+            e = el_param(e, type->getTypeInfo(NULL)->toElem(irs));
+            int rtl = t->isZeroInit() ? RTLSYM_NEWARRAYMTX : RTLSYM_NEWARRAYMITX;
             e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
-            e->Eflags |= EFLAGS_variadic;
+            e = el_combine(earray, e);
         }
     }
     else if (t->ty == Tpointer)
