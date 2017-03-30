@@ -2645,8 +2645,10 @@ static size_t relsize64(unsigned type)
     case R_X86_64_GOTOFF64: return 8;
     case R_X86_64_GOTPC32: return 4;
     default:
-        assert(0);
+        break;
     }
+    assert(0);
+    return 0;
 }
 
 static size_t relsize32(unsigned type)
@@ -2686,8 +2688,10 @@ static size_t relsize32(unsigned type)
     case R_386_TLS_DTPOFF32: return 4;
     case R_386_TLS_TPOFF32: return 4;
     default:
-        assert(0);
+        break;
     }
+    assert(0);
+    return 0;
 }
 
 /*******************************
