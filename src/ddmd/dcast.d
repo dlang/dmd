@@ -3346,10 +3346,19 @@ Lt2:
 
 /************************************
  * Bring leaves to common type.
- * Returns ErrorExp if error occurs. otherwise returns NULL.
+ * Returns:
+ *    null on success, ErrorExp if error occurs
  */
 extern (C++) Expression typeCombine(BinExp be, Scope* sc)
 {
+    Expression errorReturn()
+    {
+        Expression ex = be.incompatibleTypes();
+        if (ex.op == TOKerror)
+            return ex;
+        return new ErrorExp();
+    }
+
     Type t1 = be.e1.type.toBasetype();
     Type t2 = be.e2.type.toBasetype();
 
@@ -3357,15 +3366,15 @@ extern (C++) Expression typeCombine(BinExp be, Scope* sc)
     {
         // struct+struct, and class+class are errors
         if (t1.ty == Tstruct && t2.ty == Tstruct)
-            goto Lerror;
+            return errorReturn();
         else if (t1.ty == Tclass && t2.ty == Tclass)
-            goto Lerror;
+            return errorReturn();
         else if (t1.ty == Taarray && t2.ty == Taarray)
-            goto Lerror;
+            return errorReturn();
     }
 
     if (!typeMerge(sc, be.op, &be.type, &be.e1, &be.e2))
-        goto Lerror;
+        return errorReturn();
 
     // If the types have no value, return an error
     if (be.e1.op == TOKerror)
@@ -3373,12 +3382,6 @@ extern (C++) Expression typeCombine(BinExp be, Scope* sc)
     if (be.e2.op == TOKerror)
         return be.e2;
     return null;
-
-Lerror:
-    Expression ex = be.incompatibleTypes();
-    if (ex.op == TOKerror)
-        return ex;
-    return new ErrorExp();
 }
 
 /***********************************

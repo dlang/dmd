@@ -29,10 +29,20 @@ import ddmd.visitor;
 /*************************************
  * If variable has a const initializer,
  * return that initializer.
+ * Returns:
+ *      initializer if there is one,
+ *      null if not,
+ *      ErrorExp if error
  */
 extern (C++) Expression expandVar(int result, VarDeclaration v)
 {
     //printf("expandVar(result = %d, v = %p, %s)\n", result, v, v ? v.toChars() : "null");
+
+    static Expression errorReturn()
+    {
+        return new ErrorExp();
+    }
+
     Expression e = null;
     if (!v)
         return e;
@@ -54,7 +64,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                     if (v.storage_class & STCmanifest)
                     {
                         v.error("recursive initialization of constant");
-                        goto Lerror;
+                        return errorReturn();
                     }
                     goto L1;
                 }
@@ -64,7 +74,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                     if (v.storage_class & STCmanifest)
                     {
                         v.error("enum cannot be initialized with %s", v._init.toChars());
-                        goto Lerror;
+                        return errorReturn();
                     }
                     goto L1;
                 }
@@ -138,8 +148,6 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
 L1:
     //if (e) printf("\te = %p, %s, e.type = %d, %s\n", e, e.toChars(), e.type.ty, e.type.toChars());
     return e;
-Lerror:
-    return new ErrorExp();
 }
 
 extern (C++) Expression fromConstInitializer(int result, Expression e1)

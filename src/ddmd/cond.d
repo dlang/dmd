@@ -508,12 +508,20 @@ extern (C++) final class StaticIfCondition : Condition
                 printf("\ts = '%s', kind = %s\n", sds.toChars(), sds.kind());
             }
         }
+
+        int errorReturn()
+        {
+            if (!global.gag)
+                inc = 2; // so we don't see the error message again
+            return 0;
+        }
+
         if (inc == 0)
         {
             if (exp.op == TOKerror || nest > 100)
             {
                 error(loc, (nest > 1000) ? "unresolvable circular static if expression" : "error evaluating static if expression");
-                goto Lerror;
+                return errorReturn();
             }
             if (!sc)
             {
@@ -540,12 +548,12 @@ extern (C++) final class StaticIfCondition : Condition
             {
                 if (e.type.toBasetype() != Type.terror)
                     exp.error("expression %s of type %s does not have a boolean value", exp.toChars(), e.type.toChars());
-                goto Lerror;
+                return errorReturn();
             }
             e = e.ctfeInterpret();
             if (e.op == TOKerror)
             {
-                goto Lerror;
+                return errorReturn();
             }
             else if (e.isBool(true))
                 inc = 1;
@@ -554,14 +562,10 @@ extern (C++) final class StaticIfCondition : Condition
             else
             {
                 e.error("expression %s is not constant or does not evaluate to a bool", e.toChars());
-                goto Lerror;
+                return errorReturn();
             }
         }
         return (inc == 1);
-    Lerror:
-        if (!global.gag)
-            inc = 2; // so we don't see the error message again
-        return 0;
     }
 
     override void accept(Visitor v)

@@ -4526,6 +4526,11 @@ extern (C++) class TypeArray : TypeNext
 
     override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
+        static Expression errorReturn()
+        {
+            return new ErrorExp();
+        }
+
         Type n = this.next.toBasetype(); // uncover any typedef's
         static if (LOGDOTEXP)
         {
@@ -4536,7 +4541,7 @@ extern (C++) class TypeArray : TypeNext
             if (ident == Id.sort || ident == Id.reverse)
             {
                 e.error("%s is not an expression", e.toChars());
-                return new ErrorExp();
+                return errorReturn();
             }
         }
         if (!n.isMutable())
@@ -4544,7 +4549,7 @@ extern (C++) class TypeArray : TypeNext
             if (ident == Id.sort || ident == Id.reverse)
             {
                 error(e.loc, "can only %s a mutable array", ident.toChars());
-                goto Lerror;
+                return errorReturn();
             }
         }
         if (ident == Id.reverse && (n.ty == Tchar || n.ty == Twchar))
@@ -4654,9 +4659,6 @@ extern (C++) class TypeArray : TypeNext
         if (!(flag & 1) || e)
             e = e.semantic(sc);
         return e;
-
-    Lerror:
-        return new ErrorExp();
     }
 
     override void accept(Visitor v)
@@ -4723,6 +4725,12 @@ extern (C++) final class TypeSArray : TypeArray
     override Type semantic(Loc loc, Scope* sc)
     {
         //printf("TypeSArray::semantic() %s\n", toChars());
+
+        static Type errorReturn()
+        {
+            return Type.terror;
+        }
+
         Type t;
         Expression e;
         Dsymbol s;
@@ -4733,19 +4741,19 @@ extern (C++) final class TypeSArray : TypeArray
             dim = semanticLength(sc, tup, dim);
             dim = dim.ctfeInterpret();
             if (dim.op == TOKerror)
-                return Type.terror;
+                return errorReturn();
             uinteger_t d = dim.toUInteger();
             if (d >= tup.objects.dim)
             {
                 error(loc, "tuple index %llu exceeds %u", d, tup.objects.dim);
-                return Type.terror;
+                return errorReturn();
             }
 
             RootObject o = (*tup.objects)[cast(size_t)d];
             if (o.dyncast() != DYNCAST.type)
             {
                 error(loc, "%s is not a type", toChars());
-                return Type.terror;
+                return errorReturn();
             }
             t = (cast(Type)o).addMod(this.mod);
             return t;
@@ -4753,7 +4761,7 @@ extern (C++) final class TypeSArray : TypeArray
 
         Type tn = next.semantic(loc, sc);
         if (tn.ty == Terror)
-            return terror;
+            return errorReturn();
 
         Type tbn = tn.toBasetype();
         if (dim)
@@ -4761,35 +4769,35 @@ extern (C++) final class TypeSArray : TypeArray
             uint errors = global.errors;
             dim = semanticLength(sc, tbn, dim);
             if (errors != global.errors)
-                goto Lerror;
+                return errorReturn();
 
             dim = dim.optimize(WANTvalue);
             dim = dim.ctfeInterpret();
             if (dim.op == TOKerror)
-                goto Lerror;
+                return errorReturn();
             errors = global.errors;
             dinteger_t d1 = dim.toInteger();
             if (errors != global.errors)
-                goto Lerror;
+                return errorReturn();
 
             dim = dim.implicitCastTo(sc, tsize_t);
             dim = dim.optimize(WANTvalue);
             if (dim.op == TOKerror)
-                goto Lerror;
+                return errorReturn();
             errors = global.errors;
             dinteger_t d2 = dim.toInteger();
             if (errors != global.errors)
-                goto Lerror;
+                return errorReturn();
 
             if (dim.op == TOKerror)
-                goto Lerror;
+                return errorReturn();
 
             if (d1 != d2)
             {
             Loverflow:
                 error(loc, "%s size %llu * %llu exceeds 0x%llx size limit for static array",
                         toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1, Target.maxStaticDataSize);
-                goto Lerror;
+                return errorReturn();
             }
             Type tbx = tbn.baseElemOf();
             if (tbx.ty == Tstruct && !(cast(TypeStruct)tbx).sym.members || tbx.ty == Tenum && !(cast(TypeEnum)tbx).sym.members)
@@ -4819,7 +4827,7 @@ extern (C++) final class TypeSArray : TypeArray
                 if (d >= tt.arguments.dim)
                 {
                     error(loc, "tuple index %llu exceeds %u", d, tt.arguments.dim);
-                    goto Lerror;
+                    return errorReturn();
                 }
                 Type telem = (*tt.arguments)[cast(size_t)d].type;
                 return telem.addMod(this.mod);
@@ -4827,14 +4835,14 @@ extern (C++) final class TypeSArray : TypeArray
         case Tfunction:
         case Tnone:
             error(loc, "can't have array of %s", tbn.toChars());
-            goto Lerror;
+            return errorReturn();
         default:
             break;
         }
         if (tbn.isscope())
         {
             error(loc, "cannot have array of scope %s", tbn.toChars());
-            goto Lerror;
+            return errorReturn();
         }
 
         /* Ensure things like const(immutable(T)[3]) become immutable(T[3])
@@ -4845,9 +4853,6 @@ extern (C++) final class TypeSArray : TypeArray
         t = addMod(tn.mod);
 
         return t.merge();
-
-    Lerror:
-        return Type.terror;
     }
 
     override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
