@@ -252,7 +252,7 @@ assert(&s);               // check that struct S invariant holds
 $(H2 $(LNAME2 references, References))
 
 	$(LIST
-	$(LINK2 http://people.cs.uchicago.edu/~robby/contract-reading-list/, Contracts Reading List),
+	$(LINK2 https://web.archive.org/web/20080919174640/http://people.cs.uchicago.edu/~robby/contract-reading-list/, Contracts Reading List),
 	$(LINK2 http://jan.newmarch.name/java/contracts/paper-long.html, Adding Contracts to Java)
 	)
 
