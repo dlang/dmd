@@ -1277,6 +1277,7 @@ extern (C++) class VarDeclaration : Declaration
                     else if (isAliasThisTuple(e))
                     {
                         auto v = copyToTemp(0, "__tup", e);
+                        v.semantic(sc);
                         auto ve = new VarExp(loc, v);
                         ve.type = e.type;
 

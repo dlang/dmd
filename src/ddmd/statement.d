@@ -1933,6 +1933,7 @@ extern (C++) final class OnScopeStatement : Statement
                  *  sfinally: if (!x) statement;
                  */
                 auto v = copyToTemp(0, "__os", new IntegerExp(Loc(), 0, Type.tbool));
+                v.semantic(sc);
                 *sentry = new ExpStatement(loc, v);
 
                 Expression e = new IntegerExp(Loc(), 1, Type.tbool);
