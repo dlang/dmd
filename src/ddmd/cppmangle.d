@@ -314,6 +314,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 if (exist(p.isTemplateInstance().tempdecl))
                     dont_write_prefix = true;
                 p = p.toParent();
+                store(s);
             }
             if (p && !p.isModule())
             {
