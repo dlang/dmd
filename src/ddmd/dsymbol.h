@@ -188,7 +188,7 @@ public:
     Ungag ungagSpeculative();
 
     // kludge for template.isSymbol()
-    int dyncast() { return DYNCAST_DSYMBOL; }
+    int dyncast() const { return DYNCAST_DSYMBOL; }
 
     static Dsymbols *arraySyntaxCopy(Dsymbols *a);
 
