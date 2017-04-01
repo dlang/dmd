@@ -671,8 +671,8 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                 e->error("argument %s has no protection", o->toChars());
             return new ErrorExp();
         }
-        if (s->_scope)
-            s->semantic(s->_scope);
+        if (s->semanticRun == PASSinit)
+            s->semantic(NULL);
 
         const char *protName = protectionToChars(s->prot().kind);   // TODO: How about package(names)
         assert(protName);

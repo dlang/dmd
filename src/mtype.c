@@ -7914,8 +7914,8 @@ L1:
                 return e;
             }
         }
-        if (d->semanticRun == PASSinit && d->_scope)
-            d->semantic(d->_scope);
+        if (d->semanticRun == PASSinit)
+            d->semantic(NULL);
         checkAccess(e->loc, sc, e, d);
         VarExp *ve = new VarExp(e->loc, d);
         if (d->isVarDeclaration() && d->needThis())
@@ -8443,7 +8443,7 @@ L1:
 
         if (ident == Id::outer && sym->vthis)
         {
-            if (sym->vthis->_scope)
+            if (sym->vthis->semanticRun == PASSinit)
                 sym->vthis->semantic(NULL);
 
             if (ClassDeclaration *cdp = sym->toParent2()->isClassDeclaration())
@@ -8670,8 +8670,8 @@ L1:
             }
         }
         //printf("e = %s, d = %s\n", e->toChars(), d->toChars());
-        if (d->semanticRun == PASSinit && d->_scope)
-            d->semantic(d->_scope);
+        if (d->semanticRun == PASSinit)
+            d->semantic(NULL);
         checkAccess(e->loc, sc, e, d);
         VarExp *ve = new VarExp(e->loc, d);
         if (d->isVarDeclaration() && d->needThis())

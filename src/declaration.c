@@ -865,11 +865,14 @@ void VarDeclaration::semantic(Scope *sc)
         _scope = NULL;
     }
 
+    if (!sc)
+        return;
+
+    semanticRun = PASSsemantic;
+
     /* Pick up storage classes from context, but except synchronized,
      * override, abstract, and final.
      */
-    if (!sc)
-        return;
     storage_class |= (sc->stc & ~(STCsynchronized | STCoverride | STCabstract | STCfinal));
     if (storage_class & STCextern && _init)
         error("extern symbols cannot have initializers");
