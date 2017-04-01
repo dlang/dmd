@@ -75,11 +75,23 @@ char *obj_mangle2(Symbol *s,char *dest, size_t *destlen);
 #define cpp_mangle(s) ((s)->Sident)
 #endif
 
+void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
+
 /**
  * If set the compiler requires full druntime support of the new
  * section registration.
  */
 #define REQUIRE_DSO_REGISTRY (DMDV2 && (TARGET_LINUX || TARGET_FREEBSD))
+
+/******
+ * FreeBSD uses ELF, but the linker crashes with Elf comdats with the following message:
+ *  /usr/bin/ld: BFD 2.15 [FreeBSD] 2004-05-23 internal error, aborting at
+ *  /usr/src/gnu/usr.bin/binutils/libbfd/../../../../contrib/binutils/bfd/elfcode.h
+ *  line 213 in bfd_elf32_swap_symbol_out
+ * For the time being, just stick with Linux.
+ */
+
+#define ELF_COMDAT      TARGET_LINUX
 
 /***************************************************
  * Correspondence of relocation types
@@ -127,6 +139,7 @@ STATIC void obj_tlssections();
 #if MARS
 static void obj_rtinit();
 #endif
+static void addSectionToComdat(IDXSEC secidx, segidx_t comdatseg);
 
 static IDXSYM elf_addsym(IDXSTR sym, targ_size_t val, unsigned sz,
                          unsigned typ,unsigned bind,IDXSEC sec,
@@ -151,6 +164,8 @@ static Outbuffer *section_names;
 
 // Hash table for section_names
 AArray *section_names_hashtable;
+
+int jmpseg;
 
 /* ====================== Cached Strings in section_names ================= */
 
@@ -1677,6 +1692,8 @@ STATIC void obj_tlssections()
  *      Offset(cseg)         starting offset in cseg
  * Returns:
  *      "segment index" of COMDAT
+ * References:
+ *      COMDAT sections https://www.airs.com/blog/archives/52
  */
 
 STATIC void setup_comdat(Symbol *s)
@@ -1691,11 +1708,73 @@ STATIC void setup_comdat(Symbol *s)
     symbol_debug(s);
     if (tyfunc(s->ty()))
     {
-        //s->Sfl = FLcode;      // was FLoncecode
-        //prefix = ".gnu.linkonce.t";   // doesn't work, despite documentation
+#if !ELF_COMDAT
         prefix = ".text.";              // undocumented, but works
         type = SHT_PROGBITS;
         flags = SHF_ALLOC|SHF_EXECINSTR;
+#else
+        reset_symbuf->write(&s, sizeof(s));
+
+        //s->Sfl = FLcode;      // was FLoncecode
+        /* ".gnu.linkonce.t" sections result in "Too many sections" errors from ld.
+         * prefix = ".gnu.linkonce.t";
+         */
+
+        /* Get section index of the comdat
+         */
+        IDXSEC comdatidx = section_cnt + 1;
+
+        /* create a weak symbol with the group signature in it.
+         *    4  .22 .weak _Z3barIiEiT_,@FUNCTION,VALUE=.text._Z3barIiEiT_+0x00,SIZE=14
+         */
+        const char *p = cpp_mangle(s);
+        IDXSTR namidx = Obj::addstr(symtab_strings, p);
+        IDXSYM info = elf_addsym(namidx, 0, 0, STT_FUNC, STB_WEAK, comdatidx);
+
+        s->Sxtrnnum = info;
+
+        /* Create a section with a type of SHT_GROUP and group flag GRP_COMDAT
+         *    Section 4  .group  GROUP,ENTRIES=2,OFFSET=0x00F0,ALIGN=4,LINK=10,INFO=4
+         *    dd GRP_COMDAT, 5
+         */
+        IDXSTR groupnamidx = section_names->size();
+        section_names->writeString(".group");
+        IDXSTR *pidx = (IDXSTR *)section_names_hashtable->get(&groupnamidx);
+        if (*pidx)
+        {
+            section_names->setsize(groupnamidx);
+            groupnamidx = *pidx;
+        }
+        else
+            *pidx = groupnamidx;
+        IDXSEC groupidx = elf_newsection2(groupnamidx, SHT_GROUP, 0, 0, 0, 0, SHN_SYMTAB, info, 4, 4);
+        int groupseg = elf_getsegment2(groupidx, info, 0);
+        seg_data *pseg = SegData[groupseg];
+        pseg->SDbuf->write32(GRP_COMDAT);
+        pseg->SDbuf->write32(comdatidx);
+
+        /* Create a section with the SHF_GROUP bit set
+         *    Section 5  .text._Z3barIiEiT_  PROGBITS,ALLOC,EXEC,GROUP,SIZE=0x000E(14),OFFSET=0x0060,ALIGN=16
+         */
+        s->Sseg = ElfObj::getsegment(".text.", p, SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR|SHF_GROUP, align);
+        IDXSEC comdatidx2 = MAP_SEG2SECIDX(s->Sseg);
+        if (comdatidx2 != comdatidx)
+        {
+            /* This can happen if there are two function definitions with the same signature.
+             * It really should be an error, but it's in the test suite as compile1.d, bug6720()
+             */
+            if (I64)
+                SymbolTable64[STI_FILE].st_shndx = comdatidx2;
+            else
+                SymbolTable[STI_FILE].st_shndx = comdatidx2;
+        }
+
+        if (s->Salignment > align)
+            SegData[s->Sseg]->SDalignment = s->Salignment;
+        SegData[s->Sseg]->SDsym = s;
+        SegData[s->Sseg]->SDassocseg = groupseg;
+        return;
+#endif
     }
     else if ((s->ty() & mTYLINK) == mTYthread)
     {
@@ -1760,7 +1839,69 @@ int Obj::readonly_comdat(Symbol *s)
 
 int Obj::jmpTableSegment(Symbol *s)
 {
-    return (config.flags & CFGromable) ? cseg : CDATA;
+    segidx_t seg = jmpseg;
+    if (seg)                            // memoize the jmpseg on a per-function basis
+        return seg;
+
+    if (config.flags & CFGromable)
+        seg = cseg;
+    else
+    {
+        seg_data *pseg = SegData[s->Sseg];
+        if (pseg->SDassocseg)
+        {
+            /* `s` is in a COMDAT, so the jmp table segment must also
+             * go into its own segment in the same group.
+             */
+            seg = ElfObj::getsegment(".rodata.", s->Sident, SHT_PROGBITS, SHF_ALLOC|SHF_GROUP, NPTRSIZE);
+            addSegmentToComdat(seg, s->Sseg);
+        }
+        else
+            seg = CDATA;
+    }
+    jmpseg = seg;
+    return seg;
+}
+
+/****************************************
+ * If `comdatseg` has a group, add `secidx` to the group.
+ * Params:
+ *      secidx = section to add to the group
+ *      comdatseg = comdat that started the group
+ */
+
+static void addSectionToComdat(IDXSEC secidx, segidx_t comdatseg)
+{
+    seg_data *pseg = SegData[comdatseg];
+    segidx_t groupseg = pseg->SDassocseg;
+    if (groupseg)
+    {
+        seg_data *pgroupseg = SegData[groupseg];
+
+        /* Don't write it if it is already there
+         */
+        Outbuffer *buf = pgroupseg->SDbuf;
+        assert(sizeof(int) == 4);               // loop depends on this
+        for (size_t i = buf->size(); i > 4;)
+        {
+            /* A linear search, but shouldn't be more than 4 items
+             * in it.
+             */
+            i -= 4;
+            if (*(int*)(buf->buf + i) == secidx)
+                return;
+        }
+        buf->write32(secidx);
+    }
+}
+
+/***********************************
+ * Returns:
+ *      jump table segment for function s
+ */
+void addSegmentToComdat(segidx_t seg, segidx_t comdatseg)
+{
+    addSectionToComdat(SegData[seg]->SDshtidx, comdatseg);
 }
 
 /********************************
@@ -2160,8 +2301,12 @@ void Obj::func_start(Symbol *sfunc)
         sfunc->Sseg = CODE;
     //dbg_printf("sfunc->Sseg %d CODE %d cseg %d Coffset %d\n",sfunc->Sseg,CODE,cseg,Offset(cseg));
     cseg = sfunc->Sseg;
+    jmpseg = 0;                         // only 1 jmp seg per function
     assert(cseg == CODE || cseg > COMD);
-    Obj::pubdef(cseg, sfunc, Offset(cseg));
+#if ELF_COMDAT
+    if (!symbol_iscomdat(sfunc))
+#endif
+        Obj::pubdef(cseg, sfunc, Offset(cseg));
     sfunc->Soffset = Offset(cseg);
 
     dwarf_func_start(sfunc);
@@ -2531,6 +2676,7 @@ void ElfObj::addrel(int seg, targ_size_t offset, unsigned type,
 
             relidx = elf_newsection(I64 ? ".rela" : ".rel", p, I64 ? SHT_RELA : SHT_REL, 0);
             segdata->SDrelidx = relidx;
+            addSectionToComdat(relidx,seg);
         }
 
         if (I64)
@@ -2791,11 +2937,15 @@ void Obj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
         {
             relinfo = R_X86_64_PC32;
             val -= 4;
+            targetsymidx = MAP_SEG2SYMIDX(targetdatum);
         }
         else if (MAP_SEG2SEC(targetdatum)->sh_flags & SHF_TLS)
             relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
         else
-            relinfo = (flags & CFswitch) ? R_X86_64_32S : R_X86_64_32;
+        {
+            relinfo = targetdatum == CDATA ? R_X86_64_32 : R_X86_64_32S;
+            targetsymidx = MAP_SEG2SYMIDX(targetdatum);
+        }
     }
     else
     {
@@ -2805,6 +2955,7 @@ void Obj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
             relinfo = config.flags3 & CFG3pic ? R_386_TLS_GD : R_386_TLS_LE;
         else
             relinfo = R_386_32;
+        targetsymidx = MAP_SEG2SYMIDX(targetdatum);
     }
     ElfObj::writerel(seg, offset, relinfo, targetsymidx, val);
 }
