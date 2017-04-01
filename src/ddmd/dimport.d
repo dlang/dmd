@@ -229,11 +229,19 @@ extern (C++) final class Import : Dsymbol
     override void semantic(Scope* sc)
     {
         //printf("Import::semantic('%s') %s\n", toPrettyChars(), id.toChars());
+        if (semanticRun > PASSinit)
+            return;
+
         if (_scope)
         {
             sc = _scope;
             _scope = null;
         }
+        if (!sc)
+            return;
+
+        semanticRun = PASSsemantic;
+
         // Load if not already done so
         if (!mod)
         {
@@ -315,6 +323,8 @@ extern (C++) final class Import : Dsymbol
             }
             sc = sc.pop();
         }
+
+        semanticRun = PASSsemanticdone;
 
         // object self-imports itself, so skip that (Bugzilla 7547)
         // don't list pseudo modules __entrypoint.d, __main.d (Bugzilla 11117, 11164)

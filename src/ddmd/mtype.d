@@ -8547,8 +8547,8 @@ extern (C++) final class TypeStruct : Type
                     return e;
                 }
             }
-            if (d.semanticRun == PASSinit && d._scope)
-                d.semantic(d._scope);
+            if (d.semanticRun == PASSinit)
+                d.semantic(null);
             checkAccess(e.loc, sc, e, d);
             auto ve = new VarExp(e.loc, d);
             if (d.isVarDeclaration() && d.needThis())
@@ -9349,7 +9349,7 @@ extern (C++) final class TypeClass : Type
 
             if (ident == Id.outer && sym.vthis)
             {
-                if (sym.vthis._scope)
+                if (sym.vthis.semanticRun == PASSinit)
                     sym.vthis.semantic(null);
 
                 if (auto cdp = sym.toParent2().isClassDeclaration())
@@ -9574,8 +9574,8 @@ extern (C++) final class TypeClass : Type
                 }
             }
             //printf("e = %s, d = %s\n", e.toChars(), d.toChars());
-            if (d.semanticRun == PASSinit && d._scope)
-                d.semantic(d._scope);
+            if (d.semanticRun == PASSinit)
+                d.semantic(null);
             checkAccess(e.loc, sc, e, d);
             auto ve = new VarExp(e.loc, d);
             if (d.isVarDeclaration() && d.needThis())
