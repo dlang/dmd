@@ -58,6 +58,7 @@ elem *exp2_copytotemp(elem *e);
 
 elem *ExpressionsToStaticArray(IRState *irs, Loc loc, Expressions *exps,
     Type *telem, symbol **psym);
+elem *ElemsToStaticArray(Loc loc, Type *telem, Elems *elems, symbol **psym);
 
 #define el_setLoc(e,loc)        ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
                                  (e)->Esrcpos.Slinnum = (loc).linnum)
@@ -1951,25 +1952,30 @@ elem *CatExp::toElem(IRState *irs)
 
     if (e1->op == TOKcat)
     {
-        elem *ep;
         CatExp *ce = this;
-        int n = 2;
 
-        ep = eval_Darray(irs, ce->e2);
+        // Flatten ((a ~ b) ~ c) to [a, b, c]
+        Elems elems;
+        elems.shift(array_toDarray(ce->e2->type, ce->e2->toElem(irs)));
+
         do
         {
-            n++;
             ce = (CatExp *)ce->e1;
-            ep = el_param(ep, eval_Darray(irs, ce->e2));
+            elems.shift(array_toDarray(ce->e2->type, ce->e2->toElem(irs)));
         } while (ce->e1->op == TOKcat);
-        ep = el_param(ep, eval_Darray(irs, ce->e1));
-        ep = el_params(
-                       ep,
-                       el_long(TYsize_t, n),
-                       ta->getTypeInfo(NULL)->toElem(irs),
-                       NULL);
-        e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYCATNT)), ep);
-        e->Eflags |= EFLAGS_variadic;
+
+        elems.shift(array_toDarray(ce->e1->type, ce->e1->toElem(irs)));
+
+        // We can't use ExpressionsToStaticArray because each exp needs
+        // to have array_toDarray called on it first, as some might be
+        // single elements instead of arrays.
+        Symbol *sdata;
+        elem *earr = ElemsToStaticArray(this->loc, this->type, &elems, &sdata);
+
+        elem *ep = el_pair(TYdarray, el_long(TYsize_t, elems.dim), el_ptr(sdata));
+        ep = el_param(ep, ta->getTypeInfo(NULL)->toElem(irs));
+        e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCATNTX]), ep);
+        e = el_combine(earr, e);
     }
     else
     {
@@ -4847,4 +4853,51 @@ elem *StructLiteralExp::toElem(IRState *irs)
     e = el_combine(e, ev);
     el_setLoc(e,loc);
     return e;
+}
+
+
+/*************************************************
+ * Allocate a static array, and initialize its members with elems[].
+ * Return the initialization expression, and the symbol for the static array in *psym.
+ */
+elem *ElemsToStaticArray(Loc loc, Type *telem, Elems *elems, symbol **psym)
+{
+    // Create a static array of type telem[dim]
+    size_t dim = elems->dim;
+    assert(dim);
+
+    Type *tsarray = new TypeSArray(telem, new IntegerExp(dim));
+    symbol *stmp = symbol_genauto(tsarray->toCtype());
+    targ_size_t szelem = telem->size();
+    ::type *te = telem->toCtype(); // stmp[] element type
+    *psym = stmp;
+
+    Elems eset;
+    eset.setDim(dim);
+
+    for (size_t i = 0; i < dim; i++)
+    {
+        /* Generate: *(&stmp + i * szelem) = element[i]
+         */
+        elem *ep = (*elems)[i];
+        elem *ev = el_ptr(stmp);
+        ev = el_bin(OPadd, TYnptr, ev, el_long(TYsize_t, i * szelem));
+        ev = el_una(OPind, te->Tty, ev);
+        elem *eeq = el_bin(OPeq,te->Tty,ev,ep);
+
+        if (tybasic(te->Tty) == TYstruct)
+        {
+            eeq->Eoper = OPstreq;
+            eeq->ET = te;
+        }
+        else if (tybasic(te->Tty) == TYarray)
+        {
+            eeq->Eoper = OPstreq;
+            eeq->Ejty = eeq->Ety = TYstruct;
+            eeq->ET = te;
+        }
+        eset[i] = eeq;
+    }
+
+    return el_combines((void **)eset.tdata(), dim);
 }
