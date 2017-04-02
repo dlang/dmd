@@ -165,6 +165,9 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override void semantic(Scope* sc)
     {
+        if (semanticRun != PASSinit)
+            return;
+        semanticRun = PASSsemantic;
         Dsymbols* d = include(sc, null);
         //printf("\tAttribDeclaration::semantic '%s', d = %p\n",toChars(), d);
         if (d)
@@ -178,6 +181,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
             if (sc2 != sc)
                 sc2.pop();
         }
+        semanticRun = PASSsemanticdone;
     }
 
     override void semantic2(Scope* sc)

@@ -232,6 +232,8 @@ extern (C++) class Package : ScopeDsymbol
 
     override void semantic(Scope* sc)
     {
+        if (semanticRun < PASSsemanticdone)
+            semanticRun = PASSsemanticdone;
     }
 
     override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)

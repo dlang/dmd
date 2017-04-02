@@ -447,13 +447,14 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             goto Lerrors;
         }
 
-        for (size_t i = 0; i < members.dim; i++)
+        foreach (const i; 0 .. members.dim)
         {
             EnumMember em = (*members)[i].isEnumMember();
-            if (!em)
-                continue;
-            defaultval = em.value;
-            return defaultval;
+            if (em)
+            {
+                defaultval = em.value;
+                return defaultval;
+            }
         }
 
     Lerrors:
@@ -568,13 +569,15 @@ extern (C++) final class EnumMember : VarDeclaration
 
         if (_scope)
             sc = _scope;
+        if (!sc)
+            return;
+
+        semanticRun = PASSsemantic;
 
         protection = ed.isAnonymous() ? ed.protection : Prot(PROTpublic);
         linkage = LINKd;
         storage_class = STCmanifest;
         userAttribDecl = ed.isAnonymous() ? ed.userAttribDecl : null;
-
-        semanticRun = PASSsemantic;
 
         // The first enum member is special
         bool first = (this == (*ed.members)[0]);

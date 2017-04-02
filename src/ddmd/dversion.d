@@ -101,6 +101,8 @@ extern (C++) final class DebugSymbol : Dsymbol
     override void semantic(Scope* sc)
     {
         //printf("DebugSymbol::semantic() %s\n", toChars());
+        if (semanticRun < PASSsemanticdone)
+            semanticRun = PASSsemanticdone;
     }
 
     override const(char)* kind() const
@@ -138,8 +140,8 @@ extern (C++) final class VersionSymbol : Dsymbol
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        auto ds = new VersionSymbol(loc, ident);
-        ds.level = level;
+        auto ds = ident ? new VersionSymbol(loc, ident)
+                        : new VersionSymbol(loc, level);
         return ds;
     }
 
@@ -195,6 +197,8 @@ extern (C++) final class VersionSymbol : Dsymbol
 
     override void semantic(Scope* sc)
     {
+        if (semanticRun < PASSsemanticdone)
+            semanticRun = PASSsemanticdone;
     }
 
     override const(char)* kind() const
