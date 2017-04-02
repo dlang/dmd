@@ -90,9 +90,8 @@ extern (C++) final class Nspace : ScopeDsymbol
 
     override void semantic(Scope* sc)
     {
-        if (semanticRun >= PASSsemantic)
+        if (semanticRun != PASSinit)
             return;
-        semanticRun = PASSsemantic;
         static if (LOG)
         {
             printf("+Nspace::semantic('%s')\n", toChars());
@@ -102,6 +101,10 @@ extern (C++) final class Nspace : ScopeDsymbol
             sc = _scope;
             _scope = null;
         }
+        if (!sc)
+            return;
+
+        semanticRun = PASSsemantic;
         parent = sc.parent;
         if (members)
         {
@@ -123,6 +126,7 @@ extern (C++) final class Nspace : ScopeDsymbol
             }
             sc.pop();
         }
+        semanticRun = PASSsemanticdone;
         static if (LOG)
         {
             printf("-Nspace::semantic('%s')\n", toChars());

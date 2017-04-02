@@ -581,7 +581,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         }
         if (semanticRun != PASSinit)
             return; // semantic() already run
-        semanticRun = PASSsemantic;
 
         // Remember templates defined in module object that we need to know about
         if (sc._module && sc._module.ident == Id.object)
@@ -598,6 +597,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             this._scope = sc.copy();
             this._scope.setNoFree();
         }
+
+        semanticRun = PASSsemantic;
 
         parent = sc.parent;
         protection = sc.protection;

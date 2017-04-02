@@ -41,14 +41,25 @@ extern (C++) final class AliasThis : Dsymbol
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        /* Since there is no semantic information stored here,
-         * we don't need to copy it.
-         */
-        return this;
+        return new AliasThis(loc, ident);
     }
 
     override void semantic(Scope* sc)
     {
+        if (semanticRun != PASSinit)
+            return;
+
+        if (_scope)
+        {
+            sc = _scope;
+            _scope = null;
+        }
+
+        if (!sc)
+            return;
+
+        semanticRun = PASSsemantic;
+
         Dsymbol p = sc.parent.pastMixin();
         AggregateDeclaration ad = p.isAggregateDeclaration();
         if (!ad)
@@ -94,6 +105,7 @@ extern (C++) final class AliasThis : Dsymbol
         }
 
         ad.aliasthis = s;
+        semanticRun = PASSsemanticdone;
     }
 
     override const(char)* kind() const
