@@ -92,7 +92,7 @@ void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
  * For the time being, just stick with Linux.
  */
 
-#define ELF_COMDAT      TARGET_LINUX
+#define ELF_COMDAT      1
 
 /***************************************************
  * Correspondence of relocation types
