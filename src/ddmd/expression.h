@@ -136,7 +136,7 @@ public:
     Expression *trySemantic(Scope *sc);
 
     // kludge for template.isExpression()
-    int dyncast() { return DYNCAST_EXPRESSION; }
+    int dyncast() const { return DYNCAST_EXPRESSION; }
 
     void print();
     const char *toChars();
