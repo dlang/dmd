@@ -573,7 +573,7 @@ class TestClass
 	{
 		return aa;
 	}
-	@trusted @nogc @disable ~this()
+	@nogc @trusted @disable ~this()
 	{
 	}
 }

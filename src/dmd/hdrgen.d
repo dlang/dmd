@@ -1953,10 +1953,24 @@ public:
             buf.writeByte(' ');
         }
         TypeFunction tf = cast(TypeFunction)f.type;
-        // Don't print tf.mod, tf.trust, and tf.linkage
+        // only print tf.next if we have a tf.next and are not infering it
         if (!f.inferRetType && tf.next)
             typeToBuffer(tf.next, null);
+
         parametersToBuffer(tf.parameters, tf.varargs);
+
+        if (hgs.hdrgen || hgs.fullDump)
+        {
+            // we need to print the trust attribute if we are outputing a header
+            // since the header-output will be done w/o runnung semantic3 this
+            // will not include infered attributes
+            if (tf.trust)
+            {
+                buf.writeByte(' ');
+                trustToBuffer(buf, tf.trust);
+            }
+        }
+
         CompoundStatement cs = f.fbody.isCompoundStatement();
         Statement s1;
         if (f.semanticRun >= PASS.semantic3done && cs)
@@ -1989,15 +2003,8 @@ public:
 
     override void visit(DtorDeclaration d)
     {
-        if (d.storage_class & STC.trusted)
-            buf.writestring("@trusted ");
-        if (d.storage_class & STC.safe)
-            buf.writestring("@safe ");
-        if (d.storage_class & STC.nogc)
-            buf.writestring("@nogc ");
-        if (d.storage_class & STC.disable)
-            buf.writestring("@disable ");
-
+        if(stcToBuffer(buf, d.storage_class))
+            buf.writeByte(' ');
         buf.writestring("~this()");
         bodyToBuffer(d);
     }
