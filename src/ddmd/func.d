@@ -4013,6 +4013,13 @@ extern (C++) static void MODMatchToBuffer(OutBuffer* buf, ubyte lhsMod, ubyte rh
         buf.writestring("mutable ");
 }
 
+private const(char)* prependSpace(const(char)* str)
+{
+    if (!str || !*str) return "";
+
+    return (" " ~ str[0 .. strlen(str)] ~ "\0").ptr;
+}
+
 /*******************************************
  * Given a symbol that could be either a FuncDeclaration or
  * a function template, resolve it to a function symbol.
@@ -4214,10 +4221,10 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
         const(char)* lastprms = parametersTypeToChars(tf1.parameters, tf1.varargs);
         const(char)* nextprms = parametersTypeToChars(tf2.parameters, tf2.varargs);
 
-        const(char)* mod1 = MODtoChars(tf1.mod);
-        const(char)* mod2 = MODtoChars(tf2.mod);
+        const(char)* mod1 = prependSpace(MODtoChars(tf1.mod));
+        const(char)* mod2 = prependSpace(MODtoChars(tf2.mod));
 
-        .error(loc, "%s.%s called with argument types %s matches both:\n%s:     %s%s %s\nand:\n%s:     %s%s %s",
+        .error(loc, "%s.%s called with argument types %s matches both:\n%s:     %s%s%s\nand:\n%s:     %s%s%s",
             s.parent.toPrettyChars(), s.ident.toChars(),
             fargsBuf.peekString(),
             m.lastf.loc.toChars(), m.lastf.toPrettyChars(), lastprms, mod1,
