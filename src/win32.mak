@@ -158,14 +158,21 @@ FRONT_SRCS=$D/access.d $D/aggregate.d $D/aliasthis.d $D/apply.d $D/argtypes.d $D
 	$D/cond.d $D/constfold.d $D/cppmangle.d $D/ctfeexpr.d $D/dcast.d $D/dclass.d		\
 	$D/declaration.d $D/delegatize.d $D/denum.d $D/dimport.d $D/dinifile.d $D/dinterpret.d	\
 	$D/dmacro.d $D/dmangle.d $D/dmodule.d $D/doc.d $D/dscope.d $D/dstruct.d $D/dsymbol.d		\
-	$D/dtemplate.d $D/dversion.d $D/entity.d $D/errors.d $D/escape.d			\
-	$D/expression.d $D/func.d $D/globals.d $D/hdrgen.d $D/id.d $D/identifier.d $D/imphint.d	\
-	$D/impcnvtab.d $D/init.d $D/inline.d $D/intrange.d $D/json.d $D/lexer.d $D/lib.d $D/link.d	\
+	$D/dtemplate.d $D/dversion.d $D/escape.d			\
+	$D/expression.d $D/func.d $D/hdrgen.d $D/imphint.d	\
+	$D/impcnvtab.d $D/init.d $D/inline.d $D/intrange.d $D/json.d $D/lib.d $D/link.d	\
 	$D/mars.d $D/mtype.d $D/nogc.d $D/nspace.d $D/objc_stubs.d $D/opover.d $D/optimize.d $D/parse.d	\
-	$D/sapply.d $D/sideeffect.d $D/statement.d $D/staticassert.d $D/target.d $D/tokens.d	\
+	$D/sapply.d $D/sideeffect.d $D/statement.d $D/staticassert.d $D/target.d	\
 	$D/safe.d $D/blockexit.d $D/asttypename.d \
-	$D/traits.d $D/utf.d $D/utils.d $D/visitor.d $D/libomf.d $D/scanomf.d $D/typinf.d \
+	$D/traits.d $D/utils.d $D/visitor.d $D/libomf.d $D/scanomf.d $D/typinf.d \
 	$D/libmscoff.d $D/scanmscoff.d $D/statement_rewrite_walker.d $D/statementsem.d
+
+LEXER_SRCS=$D/entity.d $D/errors.d $D/globals.d $D/id.d $D/identifier.d \
+	$D/lexer.d $D/tokens.d $D/utf.d
+
+LEXER_ROOT=$(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d $(ROOT)/filename.d \
+	$(ROOT)/outbuffer.d $(ROOT)/port.d $(ROOT)/rmem.d $(ROOT)/rootobject.d \
+	$(ROOT)/stringtable.d $(ROOT)/hash.d
 
 GLUE_SRCS=$D/irstate.d $D/toctype.d $D/glue.d $D/gluelayer.d $D/todt.d $D/tocsym.d $D/toir.d $D/dmsc.d \
 	$D/tocvdebug.d $D/s2ir.d $D/toobj.d $D/e2ir.d $D/objc_glue_stubs.d $D/eh.d $D/iasm.d
@@ -304,14 +311,17 @@ unittest:
 glue.lib : $(GLUEOBJ)
 	$(LIB) -p512 -n -o$@ $G\glue.lib $(GLUEOBJ)
 
-LIBS= $G\backend.lib
+LIBS=$G\backend.lib $G\lexer.lib
 
-$(LIBS) : $(GBACKOBJ) $(OBJ_MSVC)
+$G\backend.lib: $(GBACKOBJ) $(OBJ_MSVC)
 	$(LIB) -p512 -n -c $@ $(GBACKOBJ) $(OBJ_MSVC)
+
+$G\lexer.lib: $(LEXER_SRCS) $(LEXER_ROOT) $(STRING_IMPORT_FILES)
+	$(HOST_DC) -of$@ -vtls -lib -J$G $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
 
 DMDFRONTENDEXE = $G\dmd_frontend.exe
 
-$(DMDFRONTENDEXE): $(FRONT_SRCS) $D\gluelayer.d $(ROOT_SRCS) $G\newdelete.obj $(STRING_IMPORT_FILES)
+$(DMDFRONTENDEXE): $(FRONT_SRCS) $D\gluelayer.d $(ROOT_SRCS) $G\newdelete.obj $G\liblexer.lib $(STRING_IMPORT_FILES)
 	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) newdelete.obj -version=NoBackend
 	copy $(DMDFRONTENDEXE) .
 

@@ -226,11 +226,16 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	arraytypes attrib builtin canthrow clone complex cond constfold		\
 	cppmangle ctfeexpr dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol	\
-	dtemplate dversion entity errors escape expression func			\
-	globals hdrgen id identifier impcnvtab imphint init inline intrange	\
-	json lexer lib link mars mtype nogc nspace opover optimize parse sapply	\
-	sideeffect statement staticassert target tokens traits utf visitor	\
+	dtemplate dversion escape expression func			\
+	hdrgen impcnvtab imphint init inline intrange	\
+	json lib link mars mtype nogc nspace opover optimize parse sapply	\
+	sideeffect statement staticassert target traits visitor	\
 	typinf utils  statement_rewrite_walker statementsem safe blockexit asttypename))
+
+LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, entity errors globals id identifier lexer tokens utf))
+
+LEXER_ROOT=$(addsyffix .d, $(addprefix $(ROOT)/, array ctfloat file filename outbuffer port rmem \
+	rootobject stringtable hash))
 
 ifeq ($(D_OBJC),1)
 	FRONT_SRCS += $D/objc.d
@@ -351,17 +356,20 @@ $G/glue.a: $(G_GLUE_OBJS)
 $G/backend.a: $(G_OBJS)
 	$(AR) rcs $@ $(G_OBJS)
 
-$G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+$G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT)
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -J$G -L-lstdc++ $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
+
+$G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
 dmd: $G/dmd $G/dmd.conf
 	cp $< .
 
 ifdef ENABLE_LTO
-$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $(G_GLUE_OBJS) $(G_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_GLUE_OBJS) $(G_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 else
-$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/backend.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/backend.a $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 endif
 
