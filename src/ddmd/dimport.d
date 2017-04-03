@@ -13,7 +13,6 @@ module ddmd.dimport;
 import core.stdc.string;
 import core.stdc.stdio;
 
-import ddmd.access;
 import ddmd.arraytypes;
 import ddmd.declaration;
 import ddmd.dmodule;
@@ -253,7 +252,7 @@ extern (C++) final class Import : Dsymbol
         if (mod)
         {
             // Modules need a list of each imported module
-            //printf("%s imports %s\n", sc._module.toChars(), mod.toChars());
+            //printf("%s imports %s\n", sc.module.toChars(), mod.toChars());
             sc._module.aimports.push(mod);
 
             if (sc.explicitProtection)
@@ -304,15 +303,10 @@ extern (C++) final class Import : Dsymbol
             for (size_t i = 0; i < aliasdecls.dim; i++)
             {
                 AliasDeclaration ad = aliasdecls[i];
-                //printf("\tImport %s alias %s = %s, scope = %p\n", toPrettyChars(), aliasdecls[i].toChars(), names[i].toChars(), ad._scope);
-                Dsymbol importedSymbol = mod.search(loc, names[i]);
-                if (importedSymbol)
+                //printf("\tImport %s alias %s = %s, scope = %p\n", toPrettyChars(), aliases[i].toChars(), names[i].toChars(), ad._scope);
+                if (mod.search(loc, names[i]))
                 {
-                    // BUGZILLA 15896 : if symbol is private then it shouldn't be accessed
-                    if(importedSymbol.prot().kind == PROTprivate)
-                        mod.error(loc, "member '%s' is private", names[i].toChars());
-                    else
-                        ad.semantic(sc);
+                    ad.semantic(sc);
                     // If the import declaration is in non-root module,
                     // analysis of the aliased symbol is deferred.
                     // Therefore, don't see the ad.aliassym or ad.type here.
@@ -321,9 +315,7 @@ extern (C++) final class Import : Dsymbol
                 {
                     Dsymbol s = mod.search_correct(names[i]);
                     if (s)
-                    {
                         mod.error(loc, "import '%s' not found, did you mean %s '%s'?", names[i].toChars(), s.kind(), s.toChars());
-                    }
                     else
                         mod.error(loc, "import '%s' not found", names[i].toChars());
                     ad.type = Type.terror;

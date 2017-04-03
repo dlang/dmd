@@ -6584,7 +6584,7 @@ extern (C++) final class VarExp : SymbolExp
          * problems when instantiating imported templates passing private
          * variables as alias template parameters.
          */
-        //checkAccess(loc, sc, null, var);
+        //checkAccess(loc, sc, NULL, var);
 
         if (auto vd = var.isVarDeclaration())
         {
