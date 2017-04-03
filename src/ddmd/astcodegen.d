@@ -16,7 +16,6 @@ struct ASTCodegen
     import ddmd.dsymbol;
     import ddmd.dtemplate;
     import ddmd.dversion;
-    import ddmd.errors;
     import ddmd.expression;
     import ddmd.func;
     import ddmd.hdrgen;
@@ -80,11 +79,6 @@ struct ASTCodegen
     alias PROTexport                = ddmd.dsymbol.PROTexport;
     alias PROTundefined             = ddmd.dsymbol.PROTundefined;
     alias Prot                      = ddmd.dsymbol.Prot;
-
-//    alias typeDotIdExp              = ddmd.expression.typeDotIdExp;
-
-    alias deprecation               = ddmd.errors.deprecation;
-    alias warning                   = ddmd.errors.warning;
 
     alias stcToBuffer               = ddmd.hdrgen.stcToBuffer;
     alias linkageToChars            = ddmd.hdrgen.linkageToChars;

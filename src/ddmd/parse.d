@@ -16,6 +16,7 @@ import ddmd.globals;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.lexer;
+import ddmd.errors;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
 import ddmd.root.rmem;
@@ -4762,7 +4763,7 @@ final class Parser(AST) : Lexer
     {
         if (token.value != TOKelse && token.value != TOKcatch && token.value != TOKfinally && lookingForElse.linnum != 0)
         {
-            AST.warning(elseloc, "else is dangling, add { } after condition at %s", lookingForElse.toChars());
+            warning(elseloc, "else is dangling, add { } after condition at %s", lookingForElse.toChars());
         }
     }
 
@@ -4776,7 +4777,7 @@ final class Parser(AST) : Lexer
         if (alt & 1) // contains C-style function pointer syntax
             error(loc, "instead of C-style syntax, use D-style '%s%s%s'", t.toChars(), sp, s);
         else
-            AST.deprecation(loc, "instead of C-style syntax, use D-style syntax '%s%s%s'", t.toChars(), sp, s);
+           ddmd.errors.deprecation(loc, "instead of C-style syntax, use D-style syntax '%s%s%s'", t.toChars(), sp, s);
     }
 
     /*****************************************
@@ -5098,7 +5099,7 @@ final class Parser(AST) : Lexer
             if (!(flags & PSsemi_ok))
             {
                 if (flags & PSsemi)
-                    AST.warning(loc, "use '{ }' for an empty statement, not a ';'");
+                    warning(loc, "use '{ }' for an empty statement, not a ';'");
                 else
                     error("use '{ }' for an empty statement, not a ';'");
             }
@@ -8420,6 +8421,12 @@ final class Parser(AST) : Lexer
         s.addComment(combineComments(blockComment, token.lineComment, true));
         token.lineComment = null;
     }
+}
+
+unittest
+{
+    import ddmd.astnull;
+    scope p = new Parser!ASTNull(null, null, false);
 }
 
 enum PREC : int

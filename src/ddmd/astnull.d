@@ -5,6 +5,7 @@ struct ASTNull
     import ddmd.root.file;
     import ddmd.root.array;
     import ddmd.root.rootobject;
+
     import ddmd.tokens;
     import ddmd.identifier;
     import ddmd.globals;
@@ -22,7 +23,7 @@ struct ASTNull
     enum PROTKIND : int
     {
         PROTundefined,
-        PROTnone,           // no access
+        PROTnone,
         PROTprivate,
         PROTpackage,
         PROTprotected,
@@ -1708,7 +1709,10 @@ struct ASTNull
     {
         final extern (D) this(A)(A a) {}
 
-        Expression toExpression(Type t = null);
+        Expression toExpression(Type t = null)
+        {
+            return null;
+        }
     }
 
     extern (C++) final class ExpInitializer : Initializer
@@ -1785,6 +1789,4 @@ struct ASTNull
         return false;
     }
 
-    extern (C++) static void deprecation(const ref Loc loc, const(char)* format, ...) {}
-    extern (C++) static void warning(const ref Loc loc, const(char)* format, ...) {}
 }
