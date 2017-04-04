@@ -14,6 +14,7 @@ import core.stdc.stdio;
 import core.stdc.string;
 import ddmd.aggregate;
 import ddmd.arraytypes;
+import ddmd.astcodegen;
 import ddmd.cond;
 import ddmd.declaration;
 import ddmd.dinterpret;
@@ -1392,7 +1393,7 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
         se = se.toUTF8(sc);
 
         uint errors = global.errors;
-        scope Parser p = new Parser(loc, sc._module, se.toStringz(), false);
+        scope p = new Parser!ASTCodegen(loc, sc._module, se.toStringz(), false);
         p.nextToken();
 
         decl = p.parseDeclDefs(0);

@@ -15,6 +15,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 import ddmd.aggregate;
 import ddmd.arraytypes;
+import ddmd.astcodegen;
 import ddmd.gluelayer;
 import ddmd.dimport;
 import ddmd.dmacro;
@@ -800,7 +801,7 @@ extern (C++) final class Module : Package
             return this;
         }
         {
-            scope Parser p = new Parser(this, buf[0 .. buflen], docfile !is null);
+            scope p = new Parser!ASTCodegen(this, buf[0 .. buflen], docfile !is null);
             p.nextToken();
             members = p.parseModule();
             md = p.md;
@@ -867,29 +868,29 @@ extern (C++) final class Module : Package
             }
             if (arreq)
             {
-                scope Parser p = new Parser(loc, this, code_ArrayEq, false);
+                scope p = new Parser!ASTCodegen(loc, this, code_ArrayEq, false);
                 p.nextToken();
                 members.append(p.parseDeclDefs(0));
             }
             {
-                scope Parser p = new Parser(loc, this, code_ArrayPostblit, false);
+                scope p = new Parser!ASTCodegen(loc, this, code_ArrayPostblit, false);
                 p.nextToken();
                 members.append(p.parseDeclDefs(0));
             }
             {
-                scope Parser p = new Parser(loc, this, code_ArrayDtor, false);
+                scope p = new Parser!ASTCodegen(loc, this, code_ArrayDtor, false);
                 p.nextToken();
                 members.append(p.parseDeclDefs(0));
             }
             if (xopeq)
             {
-                scope Parser p = new Parser(loc, this, code_xopEquals, false);
+                scope p = new Parser!ASTCodegen(loc, this, code_xopEquals, false);
                 p.nextToken();
                 members.append(p.parseDeclDefs(0));
             }
             if (xopcmp)
             {
-                scope Parser p = new Parser(loc, this, code_xopCmp, false);
+                scope p = new Parser!ASTCodegen(loc, this, code_xopCmp, false);
                 p.nextToken();
                 members.append(p.parseDeclDefs(0));
             }
