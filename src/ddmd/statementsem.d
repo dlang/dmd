@@ -2597,7 +2597,7 @@ else
                 {
                     /* May return by ref
                      */
-                    if (checkEscapeRef(sc, rs.exp, true))
+                    if (checkReturnEscapeRef(sc, rs.exp, true))
                         tf.isref = false; // return by value
                 }
                 else
