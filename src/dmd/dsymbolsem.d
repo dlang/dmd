@@ -1148,9 +1148,17 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 bool flag;
                 AliasDeclaration ad = imp.aliasdecls[i];
                 //printf("\tImport %s alias %s = %s, scope = %p\n", toPrettyChars(), aliases[i].toChars(), names[i].toChars(), ad._scope);
-                if (imp.mod.search(imp.loc, imp.names[i]) /*, IgnorePrivateImports*/)
+                Dsymbol importedSymbol = imp.mod.search(imp.loc, imp.names[i] /*, IgnorePrivateImports */);
+                if (importedSymbol)
                 {
                     flag = true;
+
+                    // Deprecated in 2018-01.
+                    // Change to error in 2019-01.
+                    // @@@DEPRECATED_2019-01@@@.
+                    import dmd.access : symbolIsVisible;
+                    if (!symbolIsVisible(sc, importedSymbol))
+                         imp.mod.deprecation(imp.loc, "member `%s` is not accessible", imp.names[i].toChars());
                     ad.dsymbolSemantic(sc);
                     // If the import declaration is in non-root module,
                     // analysis of the aliased symbol is deferred.
