@@ -402,6 +402,59 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
 /************************************
  * Detect cases where pointers to the stack can 'escape' the
+ * lifetime of the stack frame when throwing `e`.
+ * Print error messages when these are detected.
+ * Params:
+ *      sc = used to determine current function and module
+ *      e = expression to check for any pointers to the stack
+ *      gag = do not print error messages
+ * Returns:
+ *      true if pointers to the stack can escape
+ */
+bool checkThrowEscape(Scope* sc, Expression e, bool gag)
+{
+    //printf("[%s] checkThrowEscape, e = %s\n", e.loc.toChars(), e.toChars());
+    EscapeByResults er;
+
+    escapeByValue(e, &er);
+
+    if (!er.byref.dim && !er.byvalue.dim && !er.byexp.dim)
+        return false;
+
+    bool result = false;
+    foreach (VarDeclaration v; er.byvalue)
+    {
+        //printf("byvalue %s\n", v.toChars());
+        if (v.isDataseg())
+            continue;
+
+        Dsymbol p = v.toParent2();
+
+        if (v.isScope())
+        {
+            if (sc._module && sc._module.isRoot())
+            {
+                // Only look for errors if in module listed on command line
+                if (global.params.vsafe) // https://issues.dlang.org/show_bug.cgi?id=17029
+                {
+                    if (!gag)
+                        error(e.loc, "scope variable %s may not be thrown", v.toChars());
+                    result = true;
+                }
+                continue;
+            }
+        }
+        else
+        {
+            //printf("no infer for %s\n", v.toChars());
+            v.doNotInferScope = true;
+        }
+    }
+    return result;
+}
+
+/************************************
+ * Detect cases where pointers to the stack can 'escape' the
  * lifetime of the stack frame by returning 'e' by value.
  * Print error messages when these are detected.
  * Params:

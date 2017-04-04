@@ -3308,6 +3308,8 @@ else
         if (ts.exp.op == TOKerror)
             return setError();
 
+        checkThrowEscape(sc, ts.exp, false);
+
         ClassDeclaration cd = ts.exp.type.toBasetype().isClassHandle();
         if (!cd || ((cd != ClassDeclaration.throwable) && !ClassDeclaration.throwable.isBaseOf(cd, null)))
         {
