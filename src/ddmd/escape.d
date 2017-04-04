@@ -402,7 +402,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
 /************************************
  * Detect cases where pointers to the stack can 'escape' the
- * lifetime of the stack frame.
+ * lifetime of the stack frame by returning 'e' by value.
  * Print error messages when these are detected.
  * Params:
  *      sc = used to determine current function and module
@@ -411,10 +411,10 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
  * Returns:
  *      true if pointers to the stack can escape
  */
-bool checkEscape(Scope* sc, Expression e, bool gag)
+bool checkReturnEscape(Scope* sc, Expression e, bool gag)
 {
-    //printf("[%s] checkEscape, e = %s\n", e.loc.toChars(), e.toChars());
-    return checkEscapeImpl(sc, e, false, gag);
+    //printf("[%s] checkReturnEscape, e = %s\n", e.loc.toChars(), e.toChars());
+    return checkReturnEscapeImpl(sc, e, false, gag);
 }
 
 /************************************
@@ -428,21 +428,21 @@ bool checkEscape(Scope* sc, Expression e, bool gag)
  * Returns:
  *      true if references to the stack can escape
  */
-bool checkEscapeRef(Scope* sc, Expression e, bool gag)
+bool checkReturnEscapeRef(Scope* sc, Expression e, bool gag)
 {
     version (none)
     {
-        printf("[%s] checkEscapeRef, e = %s\n", e.loc.toChars(), e.toChars());
+        printf("[%s] checkReturnEscapeRef, e = %s\n", e.loc.toChars(), e.toChars());
         printf("current function %s\n", sc.func.toChars());
         printf("parent2 function %s\n", sc.func.toParent2().toChars());
     }
 
-    return checkEscapeImpl(sc, e, true, gag);
+    return checkReturnEscapeImpl(sc, e, true, gag);
 }
 
-private bool checkEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
+private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 {
-    //printf("[%s] checkEscapeImpl, e = %s\n", e.loc.toChars(), e.toChars());
+    //printf("[%s] checkReturnEscapeImpl, e = %s\n", e.loc.toChars(), e.toChars());
     EscapeByResults er;
 
     if (refs)

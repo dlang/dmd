@@ -1676,7 +1676,7 @@ extern (C++) class FuncDeclaration : Declaration
                         {
                             // Function returns a reference
                             exp = exp.toLvalue(sc2, exp);
-                            checkEscapeRef(sc2, exp, false);
+                            checkReturnEscapeRef(sc2, exp, false);
                         }
                         else
                         {
@@ -1689,7 +1689,7 @@ extern (C++) class FuncDeclaration : Declaration
                                 exp = doCopyOrMove(sc2, exp);
 
                             if (tret.hasPointers())
-                                checkEscape(sc2, exp, false);
+                                checkReturnEscape(sc2, exp, false);
                         }
 
                         exp = checkGC(sc2, exp);
