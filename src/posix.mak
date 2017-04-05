@@ -345,9 +345,9 @@ STRING_IMPORT_FILES = $G/verstr.h $G/SYSCONFDIR.imp ../res/default_ddoc_theme.dd
 
 DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
-all: dmd
+all: $G/dmd
 
-auto-tester-build: dmd checkwhitespace $G/dmd_frontend
+auto-tester-build: $G/dmd checkwhitespace $G/dmd_frontend
 .PHONY: auto-tester-build
 
 $G/glue.a: $(G_GLUE_OBJS)
@@ -362,9 +362,6 @@ $G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT)
 $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
-dmd: $G/dmd $G/dmd.conf
-	cp $< .
-
 ifdef ENABLE_LTO
 $G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_GLUE_OBJS) $(G_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
@@ -376,7 +373,7 @@ endif
 
 clean:
 	rm -R $(GENERATED)
-	rm -f dmd $(idgen_output)
+	rm -f $(idgen_output)
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
 ######## Download and install the last dmd buildable without dmd
