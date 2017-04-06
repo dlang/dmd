@@ -1,5 +1,5 @@
 module ddmd.ctfe.ctfe_bc;
-
+import ddmd.ctfe.bc_limits;
 import ddmd.expression;
 import ddmd.declaration : FuncDeclaration, VarDeclaration, Declaration,
     SymbolDeclaration, STCref;
@@ -653,7 +653,7 @@ struct SharedCtfeState(BCGenT)
     uint sliceCount;
     uint pointerCount;
     // find a way to live without 102_000
-    RetainedError[ubyte.max * 32] errors;
+    RetainedError[bc_max_errors] errors;
     uint errorCount;
 
     const(BCType) elementType(const BCType type) pure const
@@ -746,7 +746,7 @@ struct SharedCtfeState(BCGenT)
 
     import ddmd.globals : Loc;
 
-    BCValue addError(Loc loc, string msg, BCValue v1 = BCValue.init, BCValue v2 = BCValue.init)
+    extern (D) BCValue addError(Loc loc, string msg, BCValue v1 = BCValue.init, BCValue v2 = BCValue.init)
     {
         errors[errorCount++] = RetainedError(loc, msg, v1, v2);
         auto retval = imm32(errorCount);
@@ -1525,20 +1525,30 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     bool discardValue = false;
 
+    extern(D) BCValue addError(Loc loc, string msg, BCValue v1 = BCValue.init, BCValue v2 = BCValue.init)
+    {
+        alias add_error_message_prototype = uint delegate (string);
+        static if (is(typeof(&gen.addErrorMessage) == add_error_message_prototype))
+        {
+            addErrorMessage(msg);
+        }
+        return _sharedCtfeState.addError(loc, msg, v1, v2);
+    }
+
     debug (nullPtrCheck)
     {
         import ddmd.lexer : Loc;
 
         void Load32(BCValue _to, BCValue from, size_t line = __LINE__)
         {
-            Assert(from.i32, _sharedCtfeState.addError(Loc.init,
+            Assert(from.i32, addError(Loc.init,
                     "Load Source may not be null - target: " ~ to!string(_to.stackAddr) ~ " inLine: " ~ to!string(line)));
             gen.Load32(_to, from);
         }
 
         void Store32(BCValue _to, BCValue value, size_t line = __LINE__)
         {
-            Assert(_to.i32, _sharedCtfeState.addError(Loc.init,
+            Assert(_to.i32, addError(Loc.init,
                     "Store Destination may not be null - from: " ~ to!string(value.stackAddr) ~ " inLine: " ~ to!string(line)));
             gen.Store32(_to, value);
         }
@@ -1583,9 +1593,9 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     void expandSliceTo(BCValue slice, BCValue newLength)
     {
-        if(slice.type != BCTypeEnum.Slice)
+        if(slice.type != BCTypeEnum.Slice && (newLength.type != BCTypeEnum.i32 /*|| newLength.type == BCTypeEnum.i64*/))
         {
-            bailout("We only support expansion of slices not: " ~ to!(string)(slice.type.type));
+            bailout("We only support expansion of slices by i32 not: " ~ to!string(slice.type.type) ~ " by " ~ to!string(newLength.type.type));
             return ;
         }
 
@@ -2435,7 +2445,7 @@ static if (is(BCGen))
                         auto maxShift = imm32(basicTypeSize(lhs.type) * 8 - 1);
                         Le3(BCValue.init, rhs, maxShift);
                         Assert(BCValue.init,
-                            _sharedCtfeState.addError(e.loc,
+                            addError(e.loc,
                             "%d out of range(0..%d)", rhs, maxShift));
 
                         Rsh3(retval, lhs, rhs);
@@ -2447,7 +2457,7 @@ static if (is(BCGen))
                         auto maxShift = imm32(basicTypeSize(lhs.type) * 8 - 1);
                         Le3(BCValue.init, rhs, maxShift);
                         Assert(BCValue.init,
-                            _sharedCtfeState.addError(e.loc,
+                            addError(e.loc,
                             "%d out of range(0..%d)", rhs, maxShift));
 
                         Lsh3(retval, lhs, rhs);
@@ -2676,7 +2686,7 @@ static if (is(BCGen))
         else
         {
             Lt3(BCValue.init, idx, length);
-            Assert(BCValue.init, _sharedCtfeState.addError(ie.loc,
+            Assert(BCValue.init, addError(ie.loc,
                 "ArrayIndex %d out of bounds %d", idx, length));
         }
 
@@ -2926,7 +2936,7 @@ static if (is(BCGen))
             }
 
             Le3(BCValue.init, lwr.i32, upr.i32);
-            Assert(BCValue.init, _sharedCtfeState.addError(se.loc, "slice [%llu .. %llu] is out of bounds", lwr, upr));
+            Assert(BCValue.init, addError(se.loc, "slice [%llu .. %llu] is out of bounds", lwr, upr));
             Sub3(newLength, upr.i32, lwr.i32);
 
             setLength(newSlice, newLength);
@@ -4190,7 +4200,7 @@ static if (is(BCGen))
             else
             {
                 Lt3(BCValue.init, index, length);
-                Assert(BCValue.init, _sharedCtfeState.addError(ae.loc,
+                Assert(BCValue.init, addError(ae.loc,
                     "ArrayIndex %d out of bounds %d", index, length));
             }
             auto effectiveAddr = genTemporary(i32Type);
@@ -4411,7 +4421,7 @@ static if (is(BCGen))
         auto lhs = genExpr(ae.e1);
         if (lhs.type.type == BCTypeEnum.i32 || lhs.type.type == BCTypeEnum.Ptr || lhs.type.type == BCTypeEnum.Struct)
         {
-            Assert(lhs.i32, _sharedCtfeState.addError(ae.loc,
+            Assert(lhs.i32, addError(ae.loc,
                 ae.msg ? ae.msg.toString : "Assert Failed"));
         }
         else
