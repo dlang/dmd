@@ -3785,7 +3785,7 @@ static if (is(BCGen))
             {
                 bailout("~= unsupported");
                 {
-                    if (lhs.type.type == BCTypeEnum.Slice || lhs.type.type == BCTypeEnum.string8)
+                    if ((lhs.type.type == BCTypeEnum.Slice && lhs.type.typeIndex) || lhs.type.type == BCTypeEnum.string8)
                     {
                         bailout(!lhs.type.typeIndex, "lhs for ~= is no valid slice" ~ e.toString);
                         bailout(_sharedCtfeState.elementType(lhs.type) != _sharedCtfeState.elementType(rhs.type), "rhs and lhs for ~= are not compatible");
