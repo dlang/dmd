@@ -3728,6 +3728,71 @@ else
         result = asmSemantic(s, sc);
     }
 
+    static if (IN_GCC)
+    {
+        override void visit(ExtAsmStatement s)
+        {
+            // Fold the instruction template string.
+            s.insn = s.insn.semantic(sc);
+            s.insn.ctfeInterpret();
+
+            if (s.insn.op != TOKstring || (cast(StringExp) s.insn).sz != 1)
+                s.insn.error("instruction template must be a constant char string");
+
+            if (s.labels && s.outputargs)
+                s.error("extended asm statements with labels cannot have output constraints");
+
+            // Analyse all input and output operands.
+            if (s.args)
+            {
+                for (size_t i = 0; i < s.args.dim; i++)
+                {
+                    Expression e = (*s.args)[i];
+                    e = e.semantic(sc);
+                    // Check argument is a valid lvalue/rvalue.
+                    if (i < s.outputargs)
+                        e = e.modifiableLvalue(sc, null);
+                    else if (e.checkValue())
+                        e = new ErrorExp();
+                    (*s.args)[i] = e;
+
+                    e = (*s.constraints)[i];
+                    e = e.semantic(sc);
+                    assert(e.op == TOKstring && (cast(StringExp) e).sz == 1);
+                    (*s.constraints)[i] = e;
+                }
+            }
+
+            // Analyse all clobbers.
+            if (s.clobbers)
+            {
+                for (size_t i = 0; i < s.clobbers.dim; i++)
+                {
+                    Expression e = (*s.clobbers)[i];
+                    e = e.semantic(sc);
+                    assert(e.op == TOKstring && (cast(StringExp) e).sz == 1);
+                    (*s.clobbers)[i] = e;
+                }
+            }
+
+            // Analyse all goto labels.
+            if (s.labels)
+            {
+                for (size_t i = 0; i < s.labels.dim; i++)
+                {
+                    Identifier ident = (*s.labels)[i];
+                    GotoStatement gs = new GotoStatement(s.loc, ident);
+                    if (!s.gotos)
+                        s.gotos = new GotoStatements();
+                    s.gotos.push(gs);
+                    semantic(gs, sc);
+                }
+            }
+
+            result = s;
+        }
+    }
+
     override void visit(CompoundAsmStatement cas)
     {
         foreach (ref s; *cas.statements)

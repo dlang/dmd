@@ -14,6 +14,7 @@ module ddmd.statement_rewrite_walker;
 
 import core.stdc.stdio;
 
+import ddmd.globals;
 import ddmd.statement;
 import ddmd.visitor;
 
@@ -259,6 +260,13 @@ public:
 
     override void visit(AsmStatement s)
     {
+    }
+
+    static if (IN_GCC)
+    {
+        override void visit(ExtAsmStatement s)
+        {
+        }
     }
 
     override void visit(ImportStatement s)
