@@ -156,6 +156,7 @@ enum FUNCFLAGinferScope       = 0x40;   /// infer 'scope' for parameters
 
 /***********************************************************
  */
+
 extern (C++) class FuncDeclaration : Declaration
 {
     Types* fthrows;                     /// Array of Type's of exceptions (not used)

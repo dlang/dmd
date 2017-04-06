@@ -636,14 +636,14 @@ struct SharedCtfeState(BCGenT)
     StructDeclaration[ubyte.max * 12] structDeclpointerTypes;
     BCStruct[ubyte.max * 12] structTypes;
 
-    TypeSArray[ubyte.max * 16] sArrayTypePointers;
-    BCArray[ubyte.max * 16] arrayTypes;
+    TypeSArray[bc_max_arrays] sArrayTypePointers;
+    BCArray[bc_max_arrays] arrayTypes;
 
-    TypeDArray[ubyte.max * 8] dArrayTypePointers;
-    BCSlice[ubyte.max * 8] sliceTypes;
+    TypeDArray[bc_max_slices] dArrayTypePointers;
+    BCSlice[bc_max_slices] sliceTypes;
 
-    TypePointer[ubyte.max * 8] pointerTypePointers;
-    BCPointer[ubyte.max * 8] pointerTypes;
+    TypePointer[bc_max_types] pointerTypePointers;
+    BCPointer[bc_max_pointers] pointerTypes;
 
     BCTypeVisitor btv = new BCTypeVisitor();
 
