@@ -1829,36 +1829,36 @@ public:
 
     void doCat(ref BCValue result, BCValue lhs, BCValue rhs)
     {
-                auto lhsLength = getLength(lhs);
-                auto rhsLength = getLength(rhs);
-                auto lhsBase = getBase(lhs);
-                auto rhsBase = getBase(rhs);
-                auto lhsBaseType = _sharedCtfeState.elementType(lhs.type);
+        auto lhsLength = getLength(lhs);
+        auto rhsLength = getLength(rhs);
+        auto lhsBase = getBase(lhs);
+        auto rhsBase = getBase(rhs);
+        auto lhsBaseType = _sharedCtfeState.elementType(lhs.type);
 
-                    auto effectiveSize = genTemporary(i32Type);
-                    auto newLength = genTemporary(i32Type);
-                    auto newBase = genTemporary(i32Type);
-                    auto elemSize = _sharedCtfeState.size(lhsBaseType);
-                    if (!elemSize)
-                    {
-                        bailout("Type has no Size" ~ lhsBaseType.to!string);
-                        result = BCValue.init;
-                        return ;
-                    }
-                    Add3(newLength, lhsLength, rhsLength);
-                    Mul3(effectiveSize, newLength, imm32(elemSize));
-                    Add3(effectiveSize, effectiveSize, imm32(SliceDescriptor.Size));
+        auto effectiveSize = genTemporary(i32Type);
+        auto newLength = genTemporary(i32Type);
+        auto newBase = genTemporary(i32Type);
+        auto elemSize = _sharedCtfeState.size(lhsBaseType);
+        if (!elemSize)
+        {
+            bailout("Type has no Size" ~ lhsBaseType.to!string);
+            result = BCValue.init;
+            return ;
+        }
+        Add3(newLength, lhsLength, rhsLength);
+        Mul3(effectiveSize, newLength, imm32(elemSize));
+        Add3(effectiveSize, effectiveSize, imm32(SliceDescriptor.Size));
 
-                    Alloc(result, effectiveSize);
-                    Add3(newBase, retval, imm32(SliceDescriptor.Size));
+        Alloc(result, effectiveSize);
+        Add3(newBase, retval, imm32(SliceDescriptor.Size));
 
-                    setBase(result, newBase);
-                    setLength(result, newLength);
+        setBase(result, newBase);
+        setLength(result, newLength);
 
-                    copyArray(&newBase, &lhsBase, lhsLength, elemSize);
-                    copyArray(&newBase, &rhsBase, rhsLength, elemSize);
-
+        copyArray(&newBase, &lhsBase, lhsLength, elemSize);
+        copyArray(&newBase, &rhsBase, rhsLength, elemSize);
     }
+
     BCValue genExpr(Expression expr)
     {
 
