@@ -633,8 +633,8 @@ struct SharedCtfeState(BCGenT)
     uint _threadLock;
     BCHeap heap;
     long[ushort.max / 4] stack; // a Stack of 64K/4 is the Hard Limit;
-    StructDeclaration[ubyte.max * 12] structDeclpointerTypes;
-    BCStruct[ubyte.max * 12] structTypes;
+    StructDeclaration[bc_max_structs] structDeclpointerTypes;
+    BCStruct[bc_max_structs] structTypes;
 
     TypeSArray[bc_max_arrays] sArrayTypePointers;
     BCArray[bc_max_arrays] arrayTypes;
