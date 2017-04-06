@@ -359,6 +359,10 @@ extern (C++) __gshared const(char)* ddoc_decl_dd_e = ")\n";
  */
 extern (C++) void gendocfile(Module m)
 {
+  version (IN_LLVM)
+  {
+    m.checkAndAddOutputFile(m.docfile);
+  }
     static __gshared OutBuffer mbuf;
     static __gshared int mbuf_done;
     OutBuffer buf;

@@ -53,6 +53,10 @@ import ddmd.target;
 import ddmd.tokens;
 import ddmd.visitor;
 
+version(IN_LLVM) {
+    import gen.llvmhelpers;
+}
+
 enum LOGDOTEXP = 0;         // log ::dotExp()
 enum LOGDEFAULTINIT = 0;    // log ::defaultInit()
 
@@ -2773,17 +2777,37 @@ extern (C++) abstract class Type : RootObject
 
         // Allocate buffer on stack, fail over to using malloc()
         char[128] namebuf;
+
+        // Hash long symbol names
+        char* name;
+        int length;
+        if (IN_LLVM && global.params.hashThreshold && (slice.length > global.params.hashThreshold))
+        {
+            import std.digest.md;
+            auto md5hash = md5Of(slice);
+            auto hashedname = toHexString(md5hash);
+            static assert(hashedname.length < namebuf.length-30);
+            name = namebuf.ptr;
+            length = sprintf(name, "_D%lluTypeInfo_%.*s6__initZ",
+                cast(ulong)9 + hashedname.length, hashedname.length, hashedname.ptr);
+        }
+        else
+        {
+        // else path is DDMD original:
+
         const namelen = 19 + size_t.sizeof * 3 + slice.length + 1;
-        auto name = namelen <= namebuf.length ? namebuf.ptr : cast(char*)malloc(namelen);
+        name = namelen <= namebuf.length ? namebuf.ptr : cast(char*)malloc(namelen);
         assert(name);
 
-        const length = sprintf(name, "_D%lluTypeInfo_%.*s6__initZ",
+        length = sprintf(name, "_D%lluTypeInfo_%.*s6__initZ",
                 cast(ulong)(9 + slice.length), cast(int)slice.length, slice.ptr);
         //printf("%p %s, deco = %s, name = %s\n", this, toChars(), deco, name);
         assert(0 < length && length < namelen); // don't overflow the buffer
 
+        }
+
         int off = 0;
-        static if (!IN_GCC)
+        static if (!IN_GCC && !IN_LLVM)
         {
             if (global.params.isOSX || global.params.isWindows && !global.params.is64bit)
                 ++off; // C mangling will add '_' back in
@@ -3636,6 +3660,19 @@ extern (C++) final class TypeBasic : Type
         return Target.alignsize(this);
     }
 
+version(IN_LLVM)
+{
+    override structalign_t alignment()
+    {
+        if ( (ty == Tfloat80 || ty == Timaginary80) && (size(Loc()) > 8)
+             && isArchx86_64() )
+        {
+            return 16;
+        }
+        return Type.alignment();
+    }
+}
+
     override Expression getProperty(Loc loc, Identifier ident, int flag)
     {
         Expression e;
@@ -4394,10 +4431,17 @@ extern (C++) final class TypeVector : Type
         }
         if (ident == Id.array)
         {
+version(IN_LLVM)
+{
+            e = e.castTo(sc, basetype);
+}
+else
+{
             //e = e.castTo(sc, basetype);
             // Keep lvalue-ness
             e = e.copy();
             e.type = basetype;
+}
             return e;
         }
         if (ident == Id._init || ident == Id.offsetof || ident == Id.stringof || ident == Id.__xalignof)
@@ -4760,7 +4804,7 @@ extern (C++) final class TypeSArray : TypeArray
             if (d1 != d2)
             {
             Loverflow:
-                error(loc, "%s size %llu * %llu exceeds 16MiB size limit for static array", toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1);
+                error(loc, "%s size %llu * %llu exceeds the size limit for static arrays (overflow)", toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1);
                 goto Lerror;
             }
             Type tbx = tbn.baseElemOf();
@@ -4776,8 +4820,20 @@ extern (C++) final class TypeSArray : TypeArray
                  * run on them for the size, since they may be forward referenced.
                  */
                 bool overflow = false;
+version(IN_LLVM)
+{
+                /+ The size limit that DMD imposes here is only there to work around an optlink bug, which doesn't apply to LDC.
+                 + https://issues.dlang.org/show_bug.cgi?id=14859
+                 +/
+                auto _ = mulu(tbn.size(loc), d2, overflow);
+                if (overflow)
+                    goto Loverflow;
+}
+else
+{
                 if (mulu(tbn.size(loc), d2, overflow) >= 0x100_0000 || overflow) // put a 'reasonable' limit on it
                     goto Loverflow;
+}
             }
         }
         switch (tbn.ty)
@@ -8205,6 +8261,13 @@ extern (C++) final class TypeStruct : Type
     StructDeclaration sym;
     AliasThisRec att = RECfwdref;
     CPPMANGLE cppmangle = CPPMANGLE.def;
+
+    version(IN_LLVM)
+    {
+        // cache the hasUnalignedFields check
+        // 0 = not checked, 1 = aligned, 2 = unaligned
+        int unaligned;
+    }
 
     extern (D) this(StructDeclaration sym)
     {

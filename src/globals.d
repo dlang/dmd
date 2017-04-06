@@ -29,6 +29,8 @@ private string stripRight(string s)
 }
 
 enum IN_GCC     = xversion!`IN_GCC`;
+enum IN_LLVM    = xversion!`IN_LLVM`;
+enum IN_LLVM_MSVC = xversion!`IN_LLVM_MSVC`;
 
 enum TARGET_LINUX   = xversion!`linux`;
 enum TARGET_OSX     = xversion!`OSX`;
@@ -36,6 +38,19 @@ enum TARGET_FREEBSD = xversion!`FreeBSD`;
 enum TARGET_OPENBSD = xversion!`OpenBSD`;
 enum TARGET_SOLARIS = xversion!`Solaris`;
 enum TARGET_WINDOS  = xversion!`Windows`;
+
+version(IN_LLVM)
+{
+    enum OUTPUTFLAG : int
+    {
+        OUTPUTFLAGno,
+        OUTPUTFLAGdefault, // for the .o default
+        OUTPUTFLAGset      // for -output
+    }
+    alias OUTPUTFLAGno      = OUTPUTFLAG.OUTPUTFLAGno;
+    alias OUTPUTFLAGdefault = OUTPUTFLAG.OUTPUTFLAGdefault;
+    alias OUTPUTFLAGset     = OUTPUTFLAG.OUTPUTFLAGset;
+}
 
 enum BOUNDSCHECK : int
 {
@@ -197,6 +212,36 @@ struct Param
     const(char)* resfile;
     const(char)* exefile;
     const(char)* mapfile;
+
+    version(IN_LLVM)
+    {
+        Array!(const(char)*)* bitcodeFiles; // LLVM bitcode files passed on cmdline
+
+        uint nestedTmpl; // maximum nested template instantiations
+
+        // LDC stuff
+        OUTPUTFLAG output_ll;
+        OUTPUTFLAG output_bc;
+        OUTPUTFLAG output_s;
+        OUTPUTFLAG output_o;
+        bool useInlineAsm;
+        bool verbose_cg;
+        bool fullyQualifiedObjectFiles;
+        bool cleanupObjectFiles;
+
+        // Profile-guided optimization:
+        bool genInstrProf;             // Whether to generate PGO instrumented code
+        const(char)* datafileInstrProf; // Either the input or output file for PGO data
+
+        // target stuff
+        const(void)* targetTriple; // const llvm::Triple*
+
+        // Codegen cl options
+        bool disableRedZone;
+        uint dwarfVersion;
+
+        uint hashThreshold; // MD5 hash symbols larger than this threshold (0 = no hashing)
+    }
 }
 
 struct Compiler
@@ -215,6 +260,16 @@ struct Global
     const(char)* inifilename;
     const(char)* mars_ext;
     const(char)* obj_ext;
+    version(IN_LLVM)
+    {
+        const(char)* ll_ext;
+        const(char)* bc_ext;
+        const(char)* s_ext;
+        const(char)* ldc_version;
+        const(char)* llvm_version;
+
+        bool gaggedForInlining; // Set for functionSemantic3 for external inlining candidates
+    }
     const(char)* lib_ext;
     const(char)* dll_ext;
     const(char)* doc_ext;           // for Ddoc generated files
@@ -284,6 +339,15 @@ struct Global
         ddoc_ext = "ddoc";
         json_ext = "json";
         map_ext = "map";
+version(IN_LLVM)
+{
+        obj_ext = "o";
+        ll_ext  = "ll";
+        bc_ext  = "bc";
+        s_ext   = "s";
+}
+else
+{
         static if (TARGET_WINDOS)
         {
             obj_ext = "obj";
@@ -337,10 +401,18 @@ struct Global
         {
             static assert(0, "fix this");
         }
+}
         copyright = "Copyright (c) 1999-2016 by Digital Mars";
         written = "written by Walter Bright";
+version(IN_LLVM)
+{
+        compiler.vendor = "LDC";
+}
+else
+{
         _version = ('v' ~ stripRight(import("verstr.h"))[1 .. $ - 1] ~ '\0').ptr;
         compiler.vendor = "Digital Mars D";
+}
         stdmsg = stdout;
         main_d = "__main.d";
         errorLimit = 20;

@@ -29,6 +29,11 @@ import ddmd.target;
 import ddmd.tokens;
 import ddmd.utf;
 
+version(IN_LLVM)
+{
+    import gen.dpragma;
+}
+
 private enum LOG = false;
 
 extern (C++) Expression expType(Type type, Expression e)
@@ -54,6 +59,17 @@ extern (C++) int isConst(Expression e)
     case TOKnull:
         return 0;
     case TOKsymoff:
+version(IN_LLVM)
+{
+        // We don't statically know anything about the address of a weak symbol
+        // if there is no offset. With an offset, we can at least say that it is
+        // non-zero.
+        SymOffExp soe = cast(SymOffExp) e;
+        if (soe.var.llvmInternal == LDCPragma.LLVMextern_weak && !soe.offset)
+        {
+            return 0;
+        }
+}
         return 2;
     default:
         return 0;

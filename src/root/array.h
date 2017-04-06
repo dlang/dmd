@@ -18,6 +18,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if IN_LLVM
+#include "llvm/Support/Compiler.h"
+#include <iterator>
+#endif
+
 #include "object.h"
 #include "rmem.h"
 
@@ -28,7 +33,9 @@ struct Array
     TYPE *data;
 
   private:
+#if !IN_LLVM
     Array(const Array&);
+#endif
 
     d_size_t allocdim;
     #define SMALLARRAYCAP       1
@@ -213,6 +220,127 @@ struct Array
         memcpy(a->data, data, dim * sizeof(*data));
         return a;
     }
+
+#if IN_LLVM
+    // Define members and types like std::vector
+    typedef size_t size_type;
+
+    Array(const Array<TYPE> &a) : dim(0), data(0), allocdim(0)
+    {
+        setDim(a.dim);
+        memcpy(data, a.data, dim * sizeof(*data));
+    }
+
+    Array &operator=(Array<TYPE> &a)
+    {
+        setDim(a.dim);
+        memcpy(data, a.data, dim * sizeof(*data));
+        return *this;
+    }
+
+#if LLVM_HAS_RVALUE_REFERENCES
+    Array(Array<TYPE> &&a)
+    {
+        if (data != &smallarray[0])
+            mem.xfree(data);
+        dim = a.dim;
+        allocdim = a.allocdim;
+        if (a.data == &a.smallarray[0])
+        {
+            data = &smallarray[0];
+            memcpy(data, a.data, dim * sizeof(*data));
+        }
+        else
+        {
+            data = a.data;
+            a.data = 0;
+        }
+        a.dim = 0;
+        a.allocdim = 0;
+    }
+
+    Array &operator=(Array<TYPE> &&a)
+    {
+        if (data != &smallarray[0])
+            mem.xfree(data);
+        dim = a.dim;
+        allocdim = a.allocdim;
+        if (a.data == &a.smallarray[0])
+        {
+            data = &smallarray[0];
+            memcpy(data, a.data, dim * sizeof(*data));
+        }
+        else
+        {
+            data = a.data;
+            a.data = 0;
+        }
+        a.dim = 0;
+        a.allocdim = 0;
+        return *this;
+    }
+#endif // LLVM_HAS_RVALUE_REFERENCES
+
+    size_type size()
+    {
+        return static_cast<size_type>(dim);
+    }
+
+    bool empty()
+    {
+        return dim == 0;
+    }
+
+    TYPE front()
+    {
+        return data[0];
+    }
+
+    TYPE back()
+    {
+        return data[dim-1];
+    }
+
+    void push_back(TYPE a)
+    {
+        push(a);
+    }
+
+    void pop_back()
+    {
+        pop();
+    }
+
+    typedef TYPE *iterator;
+    typedef std::reverse_iterator<iterator> reverse_iterator;
+
+    iterator begin()
+    {
+        return static_cast<iterator>(&data[0]);
+    }
+
+    iterator end()
+    {
+        return static_cast<iterator>(&data[dim]);
+    }
+
+    reverse_iterator rbegin()
+    {
+        return reverse_iterator(end());
+    }
+
+    reverse_iterator rend()
+    {
+        return reverse_iterator(begin());
+    }
+
+    iterator erase(iterator pos)
+    {
+        size_t index = pos - &data[0];
+        remove(index);
+        return static_cast<iterator>(&data[index]);
+    }
+#endif // IN_LLVM
 };
 
 struct BitArray

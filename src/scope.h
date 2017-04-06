@@ -123,6 +123,10 @@ struct Scope
 
     UserAttributeDeclaration *userAttribDecl;   // user defined attributes
 
+#if IN_LLVM
+    bool emitInstrumentation;   // whether to emit instrumentation with -fprofile-instr-generate
+#endif
+
     DocComment *lastdc;         // documentation comment for last symbol at this scope
     AA *anchorCounts;           // lookup duplicate anchor name count
     Identifier *prevAnchor;     // qualified symbol name of last doc anchor

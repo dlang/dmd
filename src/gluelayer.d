@@ -13,12 +13,29 @@ module ddmd.gluelayer;
 import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dsymbol;
-import ddmd.lib;
+// IN_LLVM import ddmd.lib;
 import ddmd.mtype;
 import ddmd.statement;
 import ddmd.root.file;
 
-version (NoBackend)
+version (IN_LLVM)
+{
+    struct Symbol;
+    struct code;
+    struct block;
+    struct Blockx;
+    struct elem;
+    struct TYPE;
+    alias type = TYPE;
+
+    extern (C++)
+    {
+        Statement asmSemantic(AsmStatement s, Scope* sc);
+        RET retStyle(TypeFunction tf);
+        void objc_initSymbols(); // in gen/objcgen.cpp
+    }
+}
+else version (NoBackend)
 {
     struct Symbol;
     struct code;

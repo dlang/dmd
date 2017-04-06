@@ -252,6 +252,17 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 return 1;   // unresolvable forward reference
 
             auto ad = cast(AggregateDeclaration)param;
+            version(IN_LLVM)
+            {
+                for (size_t i = 0; i < ad.fields.dim; i++)
+                {
+                    if (ad.fields[i] == v)
+                    {
+                        // already a field
+                        return 0;
+                    }
+                }
+            }
             ad.fields.push(v);
 
             if (v.storage_class & STCref)

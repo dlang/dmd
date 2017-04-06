@@ -39,8 +39,8 @@ import ddmd.id;
 import ddmd.identifier;
 import ddmd.inline;
 import ddmd.json;
-import ddmd.lib;
-import ddmd.link;
+// IN_LLVM import ddmd.lib;
+// IN_LLVM import ddmd.link;
 import ddmd.mtype;
 import ddmd.objc;
 import ddmd.parse;
@@ -48,13 +48,30 @@ import ddmd.root.file;
 import ddmd.root.filename;
 import ddmd.root.man;
 import ddmd.root.outbuffer;
-import ddmd.root.response;
+// IN_LLVM import ddmd.root.response;
 import ddmd.root.rmem;
 import ddmd.root.stringtable;
 import ddmd.target;
 import ddmd.tokens;
 import ddmd.utils;
 
+
+version(IN_LLVM)
+{
+    extern (C++):
+
+    void genCmain(Scope* sc);
+    // in driver/main.cpp
+    void addDefaultVersionIdentifiers();
+    void codegenModules(ref Modules modules);
+    // in driver/linker.cpp
+    int linkObjToBinary();
+    int createStaticLibrary();
+    void deleteExeFile();
+    int runProgram();
+}
+else
+{
 
 /**
  * Print DMD's logo on stdout
@@ -1103,6 +1120,14 @@ Language changes listed by -transition=id:
         global.params.useAssert = true;
     if (!global.params.obj || global.params.lib)
         global.params.link = false;
+
+    return mars_mainBody(files, libmodules);
+}
+
+} // !IN_LLVM
+
+extern (C++) int mars_mainBody(ref Strings files, ref Strings libmodules)
+{
     if (global.params.link)
     {
         global.params.exefile = global.params.objname;
@@ -1132,9 +1157,12 @@ Language changes listed by -transition=id:
     {
         global.params.libname = global.params.objname;
         global.params.objname = null;
+      version (IN_LLVM) {} else
+      {
         // Haven't investigated handling these options with multiobj
         if (!global.params.cov && !global.params.trace)
             global.params.multiobj = true;
+      }
     }
     else
     {
@@ -1148,9 +1176,12 @@ Language changes listed by -transition=id:
 
     // Predefined version identifiers
     addDefaultVersionIdentifiers();
+  version (IN_LLVM) {} else
+  {
     objc_tryMain_dObjc();
 
     setDefaultLibrary();
+  }
 
     // Initialization
     Type._init();
@@ -1161,12 +1192,15 @@ Language changes listed by -transition=id:
     objc_tryMain_init();
     builtin_init();
 
+  version (IN_LLVM) {} else
+  {
     if (global.params.verbose)
     {
         fprintf(global.stdmsg, "binary    %s\n", global.params.argv0);
         fprintf(global.stdmsg, "version   %s\n", global._version);
         fprintf(global.stdmsg, "config    %s\n", global.inifilename ? global.inifilename : "(none)");
     }
+  }
     //printf("%d source files\n",files.dim);
 
     // Build import search path
@@ -1200,14 +1234,24 @@ Language changes listed by -transition=id:
     // Create Modules
     Modules modules;
     modules.reserve(files.dim);
+  version (IN_LLVM)
+  {
+    size_t firstModuleObjectFileIndex = size_t.max;
+  }
+  else
+  {
     bool firstmodule = true;
+  }
     for (size_t i = 0; i < files.dim; i++)
     {
         const(char)* name;
+      version (IN_LLVM) {} else
+      {
         version (Windows)
         {
             files[i] = toWinPath(files[i]);
         }
+      }
         const(char)* p = files[i];
         p = FileName.name(p); // strip path
         const(char)* ext = FileName.ext(p);
@@ -1222,12 +1266,22 @@ Language changes listed by -transition=id:
                 libmodules.push(files[i]);
                 continue;
             }
+          version (IN_LLVM)
+          {
+            // Detect LLVM bitcode files on commandline
+            if (FileName.equals(ext, global.bc_ext)) {
+              global.params.bitcodeFiles.push(files[i]);
+              continue;
+            }
+          }
             if (FileName.equals(ext, global.lib_ext))
             {
                 global.params.libfiles.push(files[i]);
                 libmodules.push(files[i]);
                 continue;
             }
+          version (IN_LLVM) {} else
+          {
             static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
             {
                 if (FileName.equals(ext, global.dll_ext))
@@ -1237,6 +1291,7 @@ Language changes listed by -transition=id:
                     continue;
                 }
             }
+          }
             if (strcmp(ext, global.ddoc_ext) == 0)
             {
                 global.params.ddocfiles.push(files[i]);
@@ -1253,7 +1308,8 @@ Language changes listed by -transition=id:
                 global.params.mapfile = files[i];
                 continue;
             }
-            static if (TARGET_WINDOS)
+            // IN_LLVM replaced: static if (TARGET_WINDOS)
+            if (global.params.isWindows)
             {
                 if (FileName.equals(ext, "res"))
                 {
@@ -1306,12 +1362,37 @@ Language changes listed by -transition=id:
         auto id = Identifier.idPool(name, strlen(name));
         auto m = new Module(files[i], id, global.params.doDocComments, global.params.doHdrGeneration);
         modules.push(m);
+      version (IN_LLVM)
+      {
+        if (!global.params.oneobj || firstModuleObjectFileIndex == size_t.max)
+        {
+            global.params.objfiles.push(cast(const(char)*)m); // defer to a later stage after parsing
+            if (firstModuleObjectFileIndex == size_t.max)
+                firstModuleObjectFileIndex = global.params.objfiles.dim - 1;
+        }
+      }
+      else
+      {
         if (firstmodule)
         {
             global.params.objfiles.push(m.objfile.name.str);
             firstmodule = false;
         }
+      }
     }
+  version (IN_LLVM)
+  {
+    if (global.params.oneobj && modules.dim < 2)
+        global.params.oneobj = false;
+    // global.params.oneobj => move object file for first source file to
+    // beginning of object files list
+    if (global.params.oneobj && firstModuleObjectFileIndex != 0)
+    {
+        auto fn = (*global.params.objfiles)[firstModuleObjectFileIndex];
+        global.params.objfiles.remove(firstModuleObjectFileIndex);
+        global.params.objfiles.insert(0, fn);
+    }
+  }
     // Read files
     /* Start by "reading" the dummy main.d file
      */
@@ -1362,8 +1443,11 @@ Language changes listed by -transition=id:
         if (!Module.rootModule)
             Module.rootModule = m;
         m.importedFrom = m; // m.isRoot() == true
+      version (IN_LLVM) {} else
+      {
         if (!global.params.oneobj || modi == 0 || m.isDocFile)
             m.deleteObjFile();
+      }
         static if (ASYNCREAD)
         {
             if (aw.read(filei))
@@ -1373,6 +1457,39 @@ Language changes listed by -transition=id:
             }
         }
         m.parse();
+      version (IN_LLVM)
+      {
+        // Finalize output filenames. Update if `-oq` was specified (only feasible after parsing).
+        if (global.params.fullyQualifiedObjectFiles && m.md)
+        {
+            m.objfile = m.setOutfile(global.params.objname, global.params.objdir, m.arg, FileName.ext(m.objfile.name.str));
+            if (m.docfile)
+                m.setDocfile();
+            if (m.hdrfile)
+                m.hdrfile = m.setOutfile(global.params.hdrname, global.params.hdrdir, m.arg, global.hdr_ext);
+        }
+
+        // If `-run` is passed, the obj file is temporary and is removed after execution.
+        // Make sure the name does not collide with other files from other processes by
+        // creating a unique filename.
+        if (global.params.run)
+            m.makeObjectFilenameUnique();
+
+        // Set object filename in global.params.objfiles.
+        for (size_t j = 0; j < global.params.objfiles.dim; j++)
+        {
+            if ((*global.params.objfiles)[j] == cast(const(char)*)m)
+            {
+                (*global.params.objfiles)[j] = m.objfile.name.str;
+                if (!m.isDocFile && global.params.obj)
+                    m.checkAndAddOutputFile(m.objfile);
+                break;
+            }
+        }
+
+        if (!global.params.oneobj || modi == 0 || m.isDocFile)
+            m.deleteObjFile();
+      }
         if (m.isDocFile)
         {
             anydocfiles = true;
@@ -1434,7 +1551,10 @@ Language changes listed by -transition=id:
     if (global.errors)
         fatal();
 
+  version (IN_LLVM) {} else
+  {
     backend_init();
+  }
 
     // Do semantic analysis
     for (size_t i = 0; i < modules.dim; i++)
@@ -1482,6 +1602,8 @@ Language changes listed by -transition=id:
     if (global.errors)
         fatal();
 
+  version (IN_LLVM) {} else
+  {
     // Scan for functions to inline
     if (global.params.useInline)
     {
@@ -1493,6 +1615,7 @@ Language changes listed by -transition=id:
             inlineScanModule(m);
         }
     }
+  }
     // Do not attempt to generate output files if errors or warnings occurred
     if (global.errors || global.warnings)
         fatal();
@@ -1507,6 +1630,12 @@ Language changes listed by -transition=id:
             auto deps = File(global.params.moduleDepsFile);
             deps.setbuffer(cast(void*)ob.data, ob.offset);
             writeFile(Loc(), &deps);
+          version (IN_LLVM)
+          {
+            // fix LDC issue #1625
+            global.params.moduleDeps = null;
+            global.params.moduleDepsFile = null;
+          }
         }
         else
             printf("%.*s", cast(int)ob.offset, ob.data);
@@ -1514,6 +1643,8 @@ Language changes listed by -transition=id:
 
     printCtfePerformanceStats();
 
+  version (IN_LLVM) {} else
+  {
     Library library = null;
     if (global.params.lib)
     {
@@ -1526,6 +1657,7 @@ Language changes listed by -transition=id:
             library.addObject(p, null);
         }
     }
+  }
     // Generate output files
     if (global.params.doJsonGeneration)
     {
@@ -1572,6 +1704,12 @@ Language changes listed by -transition=id:
             gendocfile(m);
         }
     }
+  version (IN_LLVM)
+  {
+    codegenModules(modules);
+  }
+  else
+  {
     if (!global.params.obj)
     {
     }
@@ -1613,18 +1751,50 @@ Language changes listed by -transition=id:
     if (global.params.lib && !global.errors)
         library.write();
     backend_term();
+  }
     if (global.errors)
         fatal();
     int status = EXIT_SUCCESS;
     if (!global.params.objfiles.dim)
     {
+      version (IN_LLVM)
+      {
         if (global.params.link)
             error(Loc(), "no object files to link");
+        else if (global.params.lib)
+            error(Loc(), "no object files");
+      }
+      else
+      {
+        if (global.params.link)
+            error(Loc(), "no object files to link");
+      }
     }
     else
     {
+      version (IN_LLVM)
+      {
+        if (global.params.link)
+            status = linkObjToBinary();
+        else if (global.params.lib)
+            status = createStaticLibrary();
+
+        if (status == EXIT_SUCCESS &&
+            (global.params.cleanupObjectFiles || global.params.run))
+        {
+            for (size_t i = 0; i < modules.dim; i++)
+            {
+                modules[i].deleteObjFile();
+                if (global.params.oneobj)
+                    break;
+            }
+        }
+      }
+      else
+      {
         if (global.params.link)
             status = runLINK();
+      }
         if (global.params.run)
         {
             if (!status)
@@ -1632,12 +1802,15 @@ Language changes listed by -transition=id:
                 status = runProgram();
                 /* Delete .obj files and .exe file
                  */
+              version (IN_LLVM) {} else
+              {
                 for (size_t i = 0; i < modules.dim; i++)
                 {
                     modules[i].deleteObjFile();
                     if (global.params.oneobj)
                         break;
                 }
+              }
                 remove(global.params.exefile);
             }
         }
@@ -1645,6 +1818,9 @@ Language changes listed by -transition=id:
     return status;
 }
 
+
+version (IN_LLVM) {} else
+{
 
 /**
  * Entry point which forwards to `tryMain`.
@@ -2022,7 +2198,10 @@ private void addDefaultVersionIdentifiers()
     printPredefinedVersions();
 }
 
-private void printPredefinedVersions()
+} // !IN_LLVM
+
+// IN_LLVM replaced: `private` by `extern (C++)`
+extern (C++) void printPredefinedVersions()
 {
     if (global.params.verbose && global.params.versionids)
     {
@@ -2033,6 +2212,9 @@ private void printPredefinedVersions()
     }
 }
 
+
+version (IN_LLVM) {} else
+{
 
 /****************************************
  * Determine the instruction set to be used.
@@ -2079,3 +2261,5 @@ private CPU setTargetCPU(CPU cpu)
     }
     return cpu;
 }
+
+} // !IN_LLVM

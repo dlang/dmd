@@ -37,6 +37,12 @@ import ddmd.utf;
 import ddmd.utils;
 import ddmd.visitor;
 
+version(IN_LLVM)
+{
+    import gen.dpragma;
+}
+
+
 /***********************************************************
  */
 extern (C++) abstract class AttribDeclaration : Dsymbol
@@ -917,6 +923,21 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
             }
             return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.protection, sc.explicitProtection, sc.aligndecl, inlining);
         }
+        else if (IN_LLVM && ident == Id.LDC_profile_instr) {
+            bool emitInstr = true;
+            if (!args || args.dim != 1 || !DtoCheckProfileInstrPragma((*args)[0], emitInstr)) {
+                error("pragma(LDC_profile_instr, true or false) expected");
+                (*args)[0] = new ErrorExp();
+            } else {
+                // Only create a new scope if the emitInstrumentation flag is changed
+                if (sc.emitInstrumentation != emitInstr) {
+                    auto newscope = sc.copy();
+                    newscope.emitInstrumentation = emitInstr;
+                    return newscope;
+                }
+            }
+        }
+
         return sc;
     }
 
@@ -924,6 +945,13 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
     {
         // Should be merged with PragmaStatement
         //printf("\tPragmaDeclaration::semantic '%s'\n",toChars());
+
+        version(IN_LLVM)
+        {
+            LDCPragma llvm_internal = LDCPragma.LLVMnone;
+            const(char)* arg1str = null;
+        }
+
         if (ident == Id.msg)
         {
             if (args)
@@ -1075,6 +1103,11 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
                 }
             }
         }
+        // IN_LLVM
+        else if ((llvm_internal = DtoGetPragma(sc, this, arg1str)) != LDCPragma.LLVMnone)
+        {
+            // nothing to do anymore
+        }
         else if (global.params.ignoreUnsupportedPragmas)
         {
             if (global.params.verbose)
@@ -1087,6 +1120,12 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
                     for (size_t i = 0; i < args.dim; i++)
                     {
                         Expression e = (*args)[i];
+                        version(IN_LLVM)
+                        {
+                            // ignore errors in ignored pragmas.
+                            global.gag++;
+                            uint errors_save = global.errors;
+                        }
                         sc = sc.startCTFE();
                         e = e.semantic(sc);
                         e = resolveProperties(sc, e);
@@ -1097,14 +1136,20 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
                         else
                             fprintf(global.stdmsg, ",");
                         fprintf(global.stdmsg, "%s", e.toChars());
+                        version(IN_LLVM)
+                        {
+                            // restore error state.
+                            global.gag--;
+                            global.errors = errors_save;
+                        }
                     }
                     if (args.dim)
                         fprintf(global.stdmsg, ")");
                 }
                 fprintf(global.stdmsg, "\n");
             }
-            goto Lnodecl;
-        }
+            static if (!IN_LLVM)
+                goto Lnodecl;        }
         else
             error("unrecognized pragma(%s)", ident.toChars());
     Ldecl:
@@ -1127,6 +1172,11 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
                         if (cnt > 1)
                             error("can only apply to a single declaration");
                     }
+                }
+                // IN_LLVM: add else clause
+                else
+                {
+                    DtoCheckPragma(this, s, llvm_internal, arg1str);
                 }
             }
             if (sc2 != sc)

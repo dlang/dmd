@@ -23,6 +23,16 @@
 #include "arraytypes.h"
 #include "visitor.h"
 
+#if IN_LLVM
+# if defined(_MSC_VER)
+# undef min
+# undef max
+# endif
+#include <cstdint>
+#include "../ir/irdsymbol.h"
+#endif
+
+
 class Identifier;
 struct Scope;
 class DsymbolTable;
@@ -165,6 +175,13 @@ public:
     DeprecatedDeclaration *depdecl; // customized deprecation message
     UserAttributeDeclaration *userAttribDecl;   // user defined attributes
     UnitTestDeclaration *ddocUnittest; // !=NULL means there's a ddoc unittest associated with this symbol (only use this with ddoc)
+
+#if IN_LLVM
+    // llvm stuff
+    uint32_t llvmInternal;
+
+    IrDsymbol *ir;
+#endif
 
     static Dsymbol *create(Identifier *);
     const char *toChars();

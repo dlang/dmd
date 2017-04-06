@@ -83,6 +83,10 @@ public:
 
     TemplatePrevious *previous;         // threaded list of previous instantiation attempts on stack
 
+#if IN_LLVM
+    const char *intrinsicName;
+#endif
+
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     bool overloadInsert(Dsymbol *s);

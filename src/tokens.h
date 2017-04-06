@@ -216,7 +216,6 @@ struct Token
         Identifier *ident;
     };
 
-    static const char *tochars[TOKMAX];
     static void initTokens();
 
     static Token *freelist;

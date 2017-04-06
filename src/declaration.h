@@ -31,6 +31,9 @@ class ExpInitializer;
 class StructDeclaration;
 struct InterState;
 struct CompiledCtfeFunction;
+#if IN_LLVM
+struct Symbol;
+#endif
 
 enum LINK;
 enum TOK;
@@ -179,6 +182,10 @@ public:
 
     TupleDeclaration *isTupleDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
+
+#if IN_LLVM
+    void semantic3(Scope *sc);
+#endif
 };
 
 /**************************************************************/
@@ -492,6 +499,26 @@ public:
 
     const char *mangleString;           // mangled symbol created from mangleExact()
 
+#if IN_LLVM
+    // Argument lists for the __require/__ensure calls. NULL if not a virtual
+    // function with contracts.
+    Expressions *fdrequireParams;
+    Expressions *fdensureParams;
+
+    const char *intrinsicName;
+    uint32_t priority;
+
+    // true if overridden with the pragma(LDC_allow_inline); statement
+    bool allowInlining;
+
+    // true if set with the pragma(LDC_never_inline); statement
+    bool neverInline;
+
+    // Whether to emit instrumentation code if -fprofile-instr-generate is specified,
+    // the value is set with pragma(LDC_profile_instr, true|false)
+    bool emitInstrumentation;
+#endif
+
     Identifier *outId;                  // identifier for out statement
     VarDeclaration *vresult;            // variable corresponding to outId
     LabelDsymbol *returnLabel;          // where the return goes
@@ -624,8 +651,13 @@ public:
     bool checkClosure();
     bool hasNestedFrameRefs();
     void buildResultVar(Scope *sc, Type *tret);
+#if IN_LLVM
+    Statement *mergeFrequire(Statement *, Expressions *params = nullptr);
+    Statement *mergeFensure(Statement *, Identifier *oid, Expressions *params = nullptr);
+#else
     Statement *mergeFrequire(Statement *);
     Statement *mergeFensure(Statement *, Identifier *oid);
+#endif
     Parameters *getParameters(int *pvarargs);
 
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);

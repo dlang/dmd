@@ -26,6 +26,18 @@ struct Escape;
 class VarDeclaration;
 class Library;
 
+#if IN_LLVM
+#include <cstdint>
+class DValue;
+namespace llvm {
+    class LLVMContext;
+    class Module;
+    class GlobalVariable;
+    class StructType;
+}
+#endif
+
+
 enum PKG
 {
     PKGunknown, // not yet determined whether it's a package.d or not
@@ -65,7 +77,7 @@ public:
     static Dsymbols deferred2;  // deferred Dsymbol's needing semantic2() run on them
     static Dsymbols deferred3;  // deferred Dsymbol's needing semantic3() run on them
     static unsigned dprogress;  // progress resolving the deferred list
-    static void init();
+    static void _init();
 
     static AggregateDeclaration *moduleinfo;
 
@@ -166,6 +178,24 @@ public:
     Symbol *massert;            // module assert function
     Symbol *munittest;          // module unittest failure function
     Symbol *marray;             // module array bounds function
+
+#if IN_LLVM
+    // LDC
+    llvm::Module* genLLVMModule(llvm::LLVMContext& context);
+    void checkAndAddOutputFile(File *file);
+    void makeObjectFilenameUnique();
+
+    bool llvmForceLogging;
+    bool noModuleInfo; /// Do not emit any module metadata.
+
+    // array ops emitted in this module already
+    AA *arrayfuncs;
+
+    // Coverage analysis
+    llvm::GlobalVariable* d_cover_valid;  // private immutable size_t[] _d_cover_valid;
+    llvm::GlobalVariable* d_cover_data;   // private uint[] _d_cover_data;
+    Array<size_t>         d_cover_valid_init; // initializer for _d_cover_valid
+#endif
 
     Module *isModule() { return this; }
     void accept(Visitor *v) { v->visit(this); }

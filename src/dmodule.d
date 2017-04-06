@@ -27,6 +27,11 @@ import ddmd.globals;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.parse;
+version(IN_LLVM) {
+    import ddmd.root.aav;
+    import ddmd.root.array;
+    import ddmd.root.rmem;
+}
 import ddmd.root.file;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
@@ -393,7 +398,25 @@ extern (C++) final class Module : Package
         if(!FileName.absolute(srcfilename)) {
             srcfilePath = getcwd(null, 0);
         }
+version(IN_LLVM)
+{
+        const(char)* objExt;
+        if (global.params.output_o)
+            objExt = global.obj_ext;
+        else if (global.params.output_bc)
+            objExt = global.bc_ext;
+        else if (global.params.output_ll)
+            objExt = global.ll_ext;
+        else if (global.params.output_s)
+            objExt = global.s_ext;
+
+        if (objExt)
+            objfile = setOutfile(global.params.objname, global.params.objdir, filename, objExt);
+}
+else
+{
         objfile = setOutfile(global.params.objname, global.params.objdir, filename, global.obj_ext);
+}
         if (doDocComment)
             setDocfile();
         if (doHdrGen)
@@ -532,6 +555,23 @@ extern (C++) final class Module : Package
                 argdoc = arg;
             else
                 argdoc = FileName.name(arg);
+          version (IN_LLVM)
+          {
+            if (global.params.fullyQualifiedObjectFiles)
+            {
+                const fqn = md ? md.toChars() : toChars();
+                argdoc = FileName.replaceName(argdoc, fqn);
+
+                // add ext, otherwise forceExt will make nested.module into nested.<ext>
+                const len = strlen(argdoc);
+                const extlen = strlen(ext);
+                char* s = cast(char*)mem.xmalloc(len + 1 + extlen + 1);
+                memcpy(s, argdoc, len);
+                s[len] = '.';
+                memcpy(s + len + 1, ext, extlen + 1); // incl. terminating null
+                argdoc = s;
+            }
+          }
             // If argdoc doesn't have an absolute path, make it relative to dir
             if (!FileName.absolute(argdoc))
             {
@@ -562,8 +602,17 @@ extern (C++) final class Module : Package
             if (!strcmp(srcfile.toChars(), "object.d"))
             {
                 .error(loc, "cannot find source code for runtime library file 'object.d'");
+version(IN_LLVM)
+{
+                errorSupplemental(loc, "ldc2 might not be correctly installed.");
+                errorSupplemental(loc, "Please check your ldc2.conf configuration file.");
+                errorSupplemental(loc, "Installation instructions can be found at http://wiki.dlang.org/LDC.");
+}
+else
+{
                 errorSupplemental(loc, "dmd might not be correctly installed. Run 'dmd -man' for installation instructions.");
                 errorSupplemental(loc, "config file: %s", FileName.canonicalName(global.inifilename));
+}
             }
             else
             {
@@ -1129,6 +1178,9 @@ extern (C++) final class Module : Package
     int needModuleInfo()
     {
         //printf("needModuleInfo() %s, %d, %d\n", toChars(), needmoduleinfo, global.params.cov);
+version(IN_LLVM)
+        return needmoduleinfo;
+else
         return needmoduleinfo || global.params.cov;
     }
 
@@ -1373,6 +1425,25 @@ extern (C++) final class Module : Package
     Symbol* massert; // module assert function
     Symbol* munittest; // module unittest failure function
     Symbol* marray; // module array bounds function
+
+    version(IN_LLVM)
+    {
+        //llvm::Module* genLLVMModule(llvm::LLVMContext& context);
+        void checkAndAddOutputFile(File* file);
+        void makeObjectFilenameUnique();
+
+        bool llvmForceLogging;
+        bool noModuleInfo; /// Do not emit any module metadata.
+
+        // array ops emitted in this module already
+        import ddmd.func;
+        FuncDeclaration[void*] arrayfuncs;
+
+        // Coverage analysis
+        void* d_cover_valid;  // llvm::GlobalVariable* --> private immutable size_t[] _d_cover_valid;
+        void* d_cover_data;   // llvm::GlobalVariable* --> private uint[] _d_cover_data;
+        Array!size_t d_cover_valid_init; // initializer for _d_cover_valid
+    }
 
     override inout(Module) isModule() inout
     {

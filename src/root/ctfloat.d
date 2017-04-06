@@ -15,13 +15,17 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 // Type used by the front-end for compile-time reals
-alias real_t = real;
+version(IN_LLVM_MSVC)
+    alias real_t = double;
+else
+    alias real_t = real;
 
 private
 {
     version(CRuntime_DigitalMars) __gshared extern (C) extern const(char)* __locale_decpoint;
 
-    version(CRuntime_Microsoft) extern (C++)
+    // IN_LLVM replaced: version(CRuntime_Microsoft) extern (C++)
+    version(none) extern (C++)
     {
         struct longdouble { real_t r; }
         size_t ld_sprint(char* str, int fmt, longdouble x);
@@ -32,7 +36,8 @@ private
 // Compile-time floating-point helper
 extern (C++) struct CTFloat
 {
-    version(DigitalMars)
+    // IN_LLVM replaced: version(DigitalMars)
+    version(none)
     {
         static __gshared bool yl2x_supported = true;
         static __gshared bool yl2xp1_supported = true;
@@ -65,6 +70,24 @@ extern (C++) struct CTFloat
     static real_t sqrt(real_t x) { return core.math.sqrt(x); }
     static real_t fabs(real_t x) { return core.math.fabs(x); }
 
+  version(IN_LLVM)
+  {
+    static import std.math;
+
+    static real_t log(real_t x) { return std.math.log(x); }
+    static real_t fmin(real_t l, real_t r) { return std.math.fmin(l, r); }
+    static real_t fmax(real_t l, real_t r) { return std.math.fmax(l, r); }
+    static real_t floor(real_t x) { return std.math.floor(x); }
+    static real_t ceil(real_t x) { return std.math.ceil(x); }
+    static real_t trunc(real_t x) { return std.math.trunc(x); }
+    static real_t round(real_t x) { return std.math.round(x); }
+
+    static void _init();
+
+    static bool isFloat32LiteralOutOfRange(const(char)* literal);
+    static bool isFloat64LiteralOutOfRange(const(char)* literal);
+  }
+
     static bool isIdentical(real_t a, real_t b)
     {
         // don't compare pad bytes in extended precision
@@ -79,13 +102,17 @@ extern (C++) struct CTFloat
 
     static bool isSNaN(real_t r)
     {
-        return isNaN(r) && !(((cast(ubyte*)&r)[7]) & 0x40);
+        static if (real_t.sizeof == 8)
+            return isNaN(r) && !(((cast(ubyte*)&r)[6]) & 8);
+        else
+            return isNaN(r) && !(((cast(ubyte*)&r)[7]) & 0x40);
     }
 
     // the implementation of longdouble for MSVC is a struct, so mangling
     //  doesn't match with the C++ header.
     // add a wrapper just for isSNaN as this is the only function called from C++
-    version(CRuntime_Microsoft)
+    // IN_LLVM replaced: version(CRuntime_Microsoft)
+    version(none)
         static bool isSNaN(longdouble ld)
         {
             return isSNaN(ld.r);
@@ -96,6 +123,13 @@ extern (C++) struct CTFloat
         return r is real_t.infinity || r is -real_t.infinity;
     }
 
+version (IN_LLVM)
+{
+    // implemented in gen/ctfloat.cpp
+    static real_t parse(const(char)* literal, bool* isOutOfRange = null);
+}
+else
+{
     static real_t parse(const(char)* literal, bool* isOutOfRange = null)
     {
         errno = 0;
@@ -104,7 +138,8 @@ extern (C++) struct CTFloat
             auto save = __locale_decpoint;
             __locale_decpoint = ".";
         }
-        version(CRuntime_Microsoft)
+        // IN_LLVM replaced: version(CRuntime_Microsoft)
+        version(none)
             auto r = strtold_dm(literal, null).r;
         else
             auto r = strtold(literal, null);
@@ -113,10 +148,12 @@ extern (C++) struct CTFloat
             *isOutOfRange = (errno == ERANGE);
         return r;
     }
+}
 
     static int sprint(char* str, char fmt, real_t x)
     {
-        version(CRuntime_Microsoft)
+        // IN_LLVM replaced: version(CRuntime_Microsoft)
+        version(none)
         {
             return cast(int)ld_sprint(str, fmt, longdouble(x));
         }
@@ -145,4 +182,12 @@ extern (C++) struct CTFloat
     static __gshared real_t one = real_t(1);
     static __gshared real_t minusone = real_t(-1);
     static __gshared real_t half = real_t(0.5);
+}
+
+version (IN_LLVM)
+{
+    shared static this()
+    {
+        CTFloat._init();
+    }
 }

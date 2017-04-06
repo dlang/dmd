@@ -29,6 +29,7 @@ import ddmd.visitor;
 /**************************************
  * Hash table of array op functions already generated or known about.
  */
+version(IN_LLVM) {} else
 private __gshared FuncDeclaration[void*] arrayfuncs;
 
 
@@ -200,6 +201,10 @@ extern (C++) Expression arrayOp(BinExp e, Scope* sc)
 
     auto ident = Identifier.idPool(buf.peekSlice());
 
+    version(IN_LLVM)
+    {
+        auto arrayfuncs = sc._module.arrayfuncs;
+    }
     FuncDeclaration* pFd = cast(void*)ident in arrayfuncs;
     FuncDeclaration fd;
     if (pFd)

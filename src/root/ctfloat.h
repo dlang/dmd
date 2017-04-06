@@ -13,7 +13,17 @@
 #include "longdouble.h"
 
 // Type used by the front-end for compile-time reals
+#if IN_LLVM && _MSC_VER
+// Make sure LDC built with MSVC uses double-precision compile-time reals,
+// independent of whether it was built with DMD (80-bit reals) or LDC.
+typedef double real_t;
+#else
 typedef longdouble real_t;
+#endif
+
+#if IN_LLVM
+namespace llvm { class APFloat; }
+#endif
 
 // Compile-time floating-point helper
 struct CTFloat
@@ -29,6 +39,23 @@ struct CTFloat
     static real_t tan(real_t x);
     static real_t sqrt(real_t x);
     static real_t fabs(real_t x);
+
+#if IN_LLVM
+    static real_t log(real_t x);
+    static real_t fmin(real_t l, real_t r);
+    static real_t fmax(real_t l, real_t r);
+    static real_t floor(real_t x);
+    static real_t ceil(real_t x);
+    static real_t trunc(real_t x);
+    static real_t round(real_t x);
+
+    // implemented in gen/ctfloat.cpp
+    static void _init();
+    static void toAPFloat(real_t src, llvm::APFloat &dst);
+
+    static bool isFloat32LiteralOutOfRange(const char *literal);
+    static bool isFloat64LiteralOutOfRange(const char *literal);
+#endif
 
     static bool isIdentical(real_t a, real_t b);
     static bool isNaN(real_t r);

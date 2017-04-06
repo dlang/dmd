@@ -27,6 +27,10 @@ import ddmd.root.rootobject;
 import ddmd.target;
 import ddmd.tokens;
 import ddmd.visitor;
+version(IN_LLVM) {
+    import ddmd.errors;
+    import gen.llvmhelpers;
+}
 
 /* Do mangling for C++ linkage.
  * No attempt is made to support mangling of templates, operator
@@ -37,7 +41,7 @@ import ddmd.visitor;
  * ABI has no concept of. These affect every D mangled name,
  * so nothing would be compatible anyway.
  */
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+static if (IN_LLVM || TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
 {
     /*
      * Follows Itanium C++ ABI 1.86
@@ -922,6 +926,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
         }
     }
 
+version(IN_LLVM) {} else {
     extern (C++) const(char)* toCppMangle(Dsymbol s)
     {
         //printf("toCppMangle(%s)\n", s.toChars());
@@ -936,7 +941,9 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
         return v.mangle_typeinfo(s);
     }
 }
-else static if (TARGET_WINDOS)
+
+}
+static if (IN_LLVM || TARGET_WINDOS)
 {
     // Windows DMC and Microsoft Visual C++ mangling
     enum VC_SAVED_TYPE_CNT = 10u;
@@ -1962,6 +1969,21 @@ else static if (TARGET_WINDOS)
         }
     }
 
+version(IN_LLVM) {
+    extern (C++) const(char)* toCppMangle(Dsymbol s)
+    {
+        if (isTargetWindowsMSVC())
+        {
+            scope VisualCPPMangler v = new VisualCPPMangler(false);
+            return v.mangleOf(s);
+        }
+        else
+        {
+            scope CppMangleVisitor v = new CppMangleVisitor();
+            return v.mangleOf(s);
+        }
+    }
+} else {
     extern (C++) const(char)* toCppMangle(Dsymbol s)
     {
         scope VisualCPPMangler v = new VisualCPPMangler(!global.params.mscoff);
@@ -1973,6 +1995,7 @@ else static if (TARGET_WINDOS)
         //printf("cppTypeInfoMangle(%s)\n", s.toChars());
         assert(0);
     }
+}
 }
 else
 {

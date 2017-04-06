@@ -18,6 +18,93 @@ import ddmd.mtype;
 import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;
 
+version(IN_LLVM)
+{
+
+extern(C++):
+
+struct Target
+{
+    static __gshared int ptrsize;
+    static __gshared int realsize;             // size a real consumes in memory
+    static __gshared int realpad;              // 'padding' added to the CPU real size to bring it up to realsize
+    static __gshared int realalignsize;        // alignment for reals
+    static __gshared bool realislongdouble;    // distinguish between C 'long double' and '__float128'
+    static __gshared bool reverseCppOverloads; // with dmc and cl, overloaded functions are grouped and in reverse order
+    static __gshared bool cppExceptions;       // set if catching C++ exceptions is supported
+    static __gshared int c_longsize;           // size of a C 'long' or 'unsigned long' type
+    static __gshared int c_long_doublesize;    // size of a C 'long double'
+    static __gshared int classinfosize;        // size of 'ClassInfo'
+
+    extern(D) static struct FPTypeProperties(T)
+    {
+        static real_t max() { return real_t(T.max); }
+        static real_t min_normal() { return real_t(T.min_normal); }
+        static real_t nan() { return real_t(T.nan); }
+        static real_t snan() { return real_t(T.init); }
+        static real_t infinity() { return real_t(T.infinity); }
+        static real_t epsilon() { return real_t(T.epsilon); }
+
+        enum : long
+        {
+            dig = T.dig,
+            mant_dig = T.mant_dig,
+            max_exp = T.max_exp,
+            min_exp = T.min_exp,
+            max_10_exp = T.max_10_exp,
+            min_10_exp = T.min_10_exp
+        }
+    }
+
+    alias FloatProperties = FPTypeProperties!float;
+    alias DoubleProperties = FPTypeProperties!double;
+
+    static struct RealProperties
+    {
+        // implemented in gen/target.cpp
+        static real_t max();
+        static real_t min_normal();
+        static real_t nan();
+        static real_t snan();
+        static real_t infinity();
+        static real_t epsilon();
+
+        static real_t host_max() { return real_t.max; }
+        static real_t host_min_normal() { return real_t.min_normal; }
+        static real_t host_nan() { return real_t.nan; }
+        static real_t host_snan() { return real_t.init; }
+        static real_t host_infinity() { return real_t.infinity; }
+        static real_t host_epsilon() { return real_t.epsilon; }
+
+        static __gshared
+        {
+            long dig = real_t.dig;
+            long mant_dig = real_t.mant_dig;
+            long max_exp = real_t.max_exp;
+            long min_exp = real_t.min_exp;
+            long max_10_exp = real_t.max_10_exp;
+            long min_10_exp = real_t.min_10_exp;
+        }
+    }
+
+    static void _init();
+    // Type sizes and support.
+    static uint alignsize(Type type);
+    static uint fieldalign(Type type);
+    static uint critsecsize();
+    static Type va_listType();  // get type of va_list
+    static int checkVectorType(int sz, Type type);
+    // CTFE support for cross-compilation.
+    static Expression paintAsType(Expression e, Type type);
+    // ABI and backend.
+    static void loadModule(Module m);
+    static void prefixName(OutBuffer *buf, LINK linkage);
+}
+
+}
+else // !IN_LLVM
+{
+
 /***********************************************************
  */
 struct Target
@@ -412,3 +499,5 @@ extern (C++) static Expression decodeReal(Loc loc, Type type, ubyte* buffer)
     }
     return new RealExp(loc, value, type);
 }
+
+} // !IN_LLVM

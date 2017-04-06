@@ -45,7 +45,7 @@ public:
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     void addComment(const utf8_t *comment);
-    const char *kind() const;
+    const char *kind();
     bool oneMember(Dsymbol **ps, Identifier *ident);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     bool hasPointers();
@@ -114,7 +114,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     void addMember(Scope *sc, ScopeDsymbol *sds);
-    const char *kind() const;
+    const char *kind();
     const char *toPrettyChars(bool unused);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -147,7 +147,7 @@ public:
     void setScope(Scope *sc);
     void semantic(Scope *sc);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
-    const char *kind() const;
+    const char *kind();
     AnonDeclaration *isAnonDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -160,7 +160,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     void semantic(Scope *sc);
-    const char *kind() const;
+    const char *kind();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -190,7 +190,7 @@ public:
     void setScope(Scope *sc);
     void importAll(Scope *sc);
     void semantic(Scope *sc);
-    const char *kind() const;
+    const char *kind();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -209,7 +209,7 @@ public:
     void setScope(Scope *sc);
     void compileIt(Scope *sc);
     void semantic(Scope *sc);
-    const char *kind() const;
+    const char *kind();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -229,7 +229,7 @@ public:
     void semantic2(Scope *sc);
     static Expressions *concat(Expressions *udas1, Expressions *udas2);
     Expressions *getAttributes();
-    const char *kind() const;
+    const char *kind();
     void accept(Visitor *v) { v->visit(this); }
 };
 

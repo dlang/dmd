@@ -47,6 +47,10 @@ import ddmd.statement;
 import ddmd.target;
 import ddmd.tokens;
 import ddmd.visitor;
+version(IN_LLVM)
+{
+    import gen.dpragma;
+}
 
 private extern (C++) final class StatementSemanticVisitor : Visitor
 {
@@ -276,7 +280,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 goto Lagain;
             }
         }
-        if (cs.statements.dim == 1)
+        // IN_LLVM replaced: if (cs.statements.dim == 1)
+        if (cs.statements.dim == 1 && !cs.isCompoundAsmBlockStatement())
         {
             result = (*cs.statements)[0];
             return;
@@ -1225,6 +1230,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
                     p.type = p.type.semantic(loc, sc2);
                     p.type = p.type.addStorageClass(p.storageClass);
+version(IN_LLVM)
+{
+                    // Type of parameter may be different; see below
+                    auto para_type = p.type;
+}
                     if (tfld)
                     {
                         Parameter prm = Parameter.getNth(tfld.parameters, i);
@@ -1254,12 +1264,39 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     LcopyArg:
                         id = Identifier.generateId("__applyArg", cast(int)i);
 
+version(IN_LLVM)
+{
+                        // In case of a foreach loop on an array the index passed
+                        // to the delegate is always of type size_t. The type of
+                        // the parameter must be changed to size_t and a cast to
+                        // the type used must be inserted. Otherwise the index is
+                        // always 0 on a big endian architecture. This fixes
+                        // issue #326.
+                        Initializer ie;
+                        if (dim == 2 && i == 0 && (tab.ty == Tarray || tab.ty == Tsarray))
+                        {
+                            para_type = Type.tsize_t;
+                            ie = new ExpInitializer(Loc(),
+                                     new CastExp(Loc(),
+                                         new IdentifierExp(Loc(), id), p.type));
+                        }
+                        else
+                        {
+                            ie = new ExpInitializer(Loc(), new IdentifierExp(Loc(), id));
+                        }
+}
+else
+{
                         Initializer ie = new ExpInitializer(Loc(), new IdentifierExp(Loc(), id));
+}
                         auto v = new VarDeclaration(Loc(), p.type, p.ident, ie);
                         v.storage_class |= STCtemp;
                         s = new ExpStatement(Loc(), v);
                         fs._body = new CompoundStatement(loc, s, fs._body);
                     }
+version(IN_LLVM)
+                    params.push(new Parameter(stc, para_type, id, null));
+else
                     params.push(new Parameter(stc, p.type, id, null));
                 }
                 // Bugzilla 13840: Throwable nested function inside nothrow function is acceptable.
@@ -1891,6 +1928,36 @@ else
                 }
             }
         }
+        // IN_LLVM. FIXME Move to pragma.cpp
+        else if (ps.ident == Id.LDC_allow_inline)
+        {
+            sc.func.allowInlining = true;
+        }
+        // IN_LLVM. FIXME Move to pragma.cpp
+        else if (ps.ident == Id.LDC_never_inline)
+        {
+            sc.func.neverInline = true;
+        }
+        // IN_LLVM. FIXME Move to pragma.cpp
+        else if (ps.ident == Id.LDC_profile_instr)
+        {
+            bool emitInstr = true;
+            if (!ps.args || ps.args.dim != 1 || !DtoCheckProfileInstrPragma((*ps.args)[0], emitInstr))
+            {
+                ps.error("pragma(LDC_profile_instr, true or false) expected");
+                goto Lerror;
+            }
+            else
+            {
+                FuncDeclaration fd = sc.func;
+                if (fd is null)
+                {
+                    ps.error("pragma(LDC_profile_instr, ...) is not inside a function");
+                    goto Lerror;
+                }
+                fd.emitInstrumentation = emitInstr;
+            }
+        }
         else if (ps.ident == Id.startaddress)
         {
             if (!ps.args || ps.args.dim != 1)
@@ -2075,6 +2142,10 @@ else
                     if (cs.exp.equals(gcs.exp))
                     {
                         gcs.cs = cs;
+version(IN_LLVM)
+{
+                        cs.gototarget = true;
+}
                         goto Lfoundcase;
                     }
                 }
@@ -2145,6 +2216,18 @@ else
 
         if (ss.checkLabel())
             goto Lerror;
+
+version(IN_LLVM)
+{
+        /+ hasGotoDefault is set by GotoDefaultStatement.semantic
+         + at which point sdefault may still be null, therefore
+         + set sdefault.gototarget here.
+         +/
+        if (ss.hasGotoDefault) {
+            assert(ss.sdefault);
+            ss.sdefault.gototarget = true;
+        }
+}
 
         sc.pop();
         result = ss;
@@ -2397,6 +2480,12 @@ else
             gds.error("goto default not allowed in final switch statement");
             return setError();
         }
+
+version(IN_LLVM)
+{
+        gds.sw.hasGotoDefault = true;
+}
+
         result = gds;
     }
 
@@ -2406,6 +2495,10 @@ else
         {
             gcs.error("goto case not in switch statement");
             return setError();
+        }
+        version(IN_LLVM)
+        {
+            gcs.sw = sc.sw;
         }
 
         if (gcs.exp)
@@ -2796,6 +2889,9 @@ else
                         bs.error("cannot break out of finally block");
                     else
                     {
+                        version(IN_LLVM)
+                            bs.target = ls;
+
                         ls.breaks = true;
                         result = bs;
                         return;
@@ -2877,6 +2973,9 @@ else
                         cs.error("cannot continue out of finally block");
                     else
                     {
+                        version(IN_LLVM)
+                            cs.target = ls;
+
                         result = cs;
                         return;
                     }
@@ -3015,6 +3114,10 @@ else
 
             s = new CompoundStatement(ss.loc, cs);
             result = s.semantic(sc);
+          version(IN_LLVM) // backport alignment fix for issue #1955
+          {
+            tmp.alignment = Target.ptrsize; // must be set after semantic()
+          }
             return;
         }
     Lbody:

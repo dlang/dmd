@@ -41,6 +41,11 @@ import ddmd.root.rootobject;
 import ddmd.tokens;
 import ddmd.visitor;
 
+version(IN_LLVM)
+{
+import gen.llvmhelpers;
+}
+
 private enum LOG = false;
 
 enum IDX_NOTFOUND = 0x12345678;
@@ -432,6 +437,10 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     // threaded list of previous instantiation attempts on stack
     TemplatePrevious* previous;
 
+version(IN_LLVM) {
+    const(char)* intrinsicName;
+}
+
     extern (D) this(Loc loc, Identifier id, TemplateParameters* parameters, Expression constraint, Dsymbols* decldefs, bool ismixin = false, bool literal = false)
     {
         super(id);
@@ -487,7 +496,18 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             for (size_t i = 0; i < p.dim; i++)
                 (*p)[i] = (*parameters)[i].syntaxCopy();
         }
+version(IN_LLVM)
+{
+        auto td = new TemplateDeclaration(loc, ident, p,
+                                          constraint ? constraint.syntaxCopy() : null,
+                                          Dsymbol.arraySyntaxCopy(members), ismixin, literal);
+        td.intrinsicName = intrinsicName ? strdup(intrinsicName) : null;
+        return td;
+}
+else
+{
         return new TemplateDeclaration(loc, ident, p, constraint ? constraint.syntaxCopy() : null, Dsymbol.arraySyntaxCopy(members), ismixin, literal);
+}
     }
 
     override void semantic(Scope* sc)
@@ -6324,6 +6344,16 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 //printf("tempdecl.ident = %s, s = '%s'\n", tempdecl.ident.toChars(), s.kind(), s.toPrettyChars());
                 //printf("setting aliasdecl\n");
                 aliasdecl = s;
+                version(IN_LLVM)
+                {
+                    // LDC propagate internal information
+                    if (tempdecl.llvmInternal != 0) {
+                        s.llvmInternal = tempdecl.llvmInternal;
+                        if (FuncDeclaration fd = s.isFuncDeclaration()) {
+                            DtoSetFuncDeclIntrinsicName(this, tempdecl, fd);
+                        }
+                    }
+                }
             }
         }
 
@@ -6492,7 +6522,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             while (ti && !ti.deferred && ti.tinst)
             {
                 ti = ti.tinst;
-                if (++nest > 500)
+                // IN_LLVM replaced: if (++nest > 500)
+                if (++nest > global.params.nestedTmpl) // LDC_FIXME: add testcase for this
                 {
                     global.gag = 0; // ensure error message gets printed
                     error("recursive expansion");
@@ -8277,7 +8308,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         static __gshared int nest;
         // extracted to a function to allow windows SEH to work without destructors in the same function
         //printf("%d\n", nest);
-        if (++nest > 500)
+        // IN_LLVM replaced: if (++nest > 500)
+        if (++nest > global.params.nestedTmpl) // LDC_FIXME: add testcase for this
         {
             global.gag = 0; // ensure error message gets printed
             error("recursive expansion");
@@ -8641,7 +8673,8 @@ extern (C++) final class TemplateMixin : TemplateInstance
 
         static __gshared int nest;
         //printf("%d\n", nest);
-        if (++nest > 500)
+        // IN_LLVM replaced: if (++nest > 500)
+        if (++nest > global.params.nestedTmpl) // LDC_FIXME: add testcase for this
         {
             global.gag = 0; // ensure error message gets printed
             error("recursive expansion");

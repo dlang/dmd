@@ -27,8 +27,12 @@ import ddmd.identifier;
 import ddmd.mtype;
 import ddmd.opover;
 import ddmd.tokens;
-import ddmd.typinf;
+// IN_LLVM import ddmd.typinf;
 import ddmd.visitor;
+
+version(IN_LLVM) {
+    import gen.typinf;
+}
 
 /***************************************
  * Search toString member function for TypeInfo_Struct.

@@ -297,6 +297,8 @@ extern (C++) final class VersionCondition : DVCondition
             "MIPS_HardFloat",
             "NVPTX",
             "NVPTX64",
+            "RISCV32",
+            "RISCV64",
             "SPARC",
             "SPARC_V8Plus",
             "SPARC_SoftFloat",

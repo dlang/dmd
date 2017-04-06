@@ -10,7 +10,9 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
+#if !IN_LLVM
 #define POSIX (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
+#endif
 
 #if __DMC__
 #pragma once

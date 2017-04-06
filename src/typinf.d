@@ -21,6 +21,12 @@ import ddmd.gluelayer;
 import ddmd.mtype;
 import ddmd.visitor;
 
+version (IN_LLVM)
+{
+    import ddmd.dsymbol;
+    extern (C++) void Declaration_codegen(Dsymbol decl);
+}
+
 /****************************************************
  * Get the exact TypeInfo.
  */
@@ -62,7 +68,10 @@ extern (C++) void genTypeInfo(Type torig, Scope* sc)
             }
             else // if in obj generation pass
             {
-                toObjFile(t.vtinfo, global.params.multiobj);
+                version (IN_LLVM)
+                    Declaration_codegen(t.vtinfo);
+                else
+                    toObjFile(t.vtinfo, global.params.multiobj);
             }
         }
     }
@@ -232,8 +241,18 @@ extern (C++) bool isSpeculativeType(Type t)
  */
 extern (C++) static bool builtinTypeInfo(Type t)
 {
+  version (IN_LLVM)
+  {
+    // FIXME: if I enable for Tclass, the way LDC does typeinfo will cause
+    // a bunch of linker errors to missing ClassInfo init symbols.
+    if (t.isTypeBasic() || t.ty == Tnull)
+        return !t.mod;
+  }
+  else
+  {
     if (t.isTypeBasic() || t.ty == Tclass || t.ty == Tnull)
         return !t.mod;
+  }
     if (t.ty == Tarray)
     {
         Type next = t.nextOf();
