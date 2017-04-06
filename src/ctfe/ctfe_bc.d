@@ -3785,14 +3785,17 @@ static if (is(BCGen))
             {
                 bailout("~= unsupported");
                 {
-                    if ((lhs.type.type == BCTypeEnum.Slice && lhs.type.typeIndex < _sharedCtfeState.sliceTypes.length && lhs.type.typeIndex > 0) || lhs.type.type == BCTypeEnum.string8)
+                    if ((lhs.type.type == BCTypeEnum.Slice && lhs.type.typeIndex < _sharedCtfeState.sliceTypes.length) || lhs.type.type == BCTypeEnum.string8)
                     {
-                        bailout(!lhs.type.typeIndex, "lhs for ~= is no valid slice" ~ e.toString);
+                        if(!lhs.type.typeIndex)
+                        {
+                            bailout("lhs for ~= is no valid slice" ~ e.toString);
+                            return ;
+                        }
                         bailout(_sharedCtfeState.elementType(lhs.type) != _sharedCtfeState.elementType(rhs.type), "rhs and lhs for ~= are not compatible");
-
-                        auto sliceType = _sharedCtfeState.sliceTypes[lhs.type.typeIndex - 1];
+                        auto elementType = _sharedCtfeState.elementType(lhs.type);
                         retval = assignTo ? assignTo : genTemporary(i32Type);
-                        Cat(retval, lhs, rhs, _sharedCtfeState.size(sliceType.elementType));
+                        Cat(retval, lhs, rhs, _sharedCtfeState.size(elementType));
                     }
                     else
                     {
