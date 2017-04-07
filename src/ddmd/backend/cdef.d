@@ -5,8 +5,9 @@
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     backendlicense.txt
- * Source:      $(DMDSRC backend/_cdef.d)
+ * License:     Distributed under the Boost Software License, Version 1.0.
+ *              http://www.boost.org/LICENSE_1_0.txt
+ * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/_cdef.d
  */
 
 module ddmd.backend.cdef;
