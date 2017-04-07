@@ -986,9 +986,10 @@ extern (C++) class VarDeclaration : Declaration
     uint sequenceNumber;            // order the variables are declared
     __gshared uint nextSequenceNumber;   // the counter for sequenceNumber
     FuncDeclarations nestedrefs;    // referenced by these lexically nested functions
-    bool isargptr;                  // if parameter that _argptr points to
     structalign_t alignment;
+    bool isargptr;                  // if parameter that _argptr points to
     bool ctorinit;                  // it has been initialized in a ctor
+    bool iscatchvar;                // this is the exception object variable in catch() clause
 
     // Both these mean the var is not rebindable once assigned,
     // and the destructor gets run when it goes out of scope
@@ -1274,6 +1275,9 @@ extern (C++) class VarDeclaration : Declaration
         {
             return null;
         }
+
+        if (iscatchvar)
+            return null;    // destructor is built by `void semantic(Catch c, Scope* sc)`, not here
 
         Expression e = null;
         // Destructors for structs and arrays of structs

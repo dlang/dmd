@@ -59,11 +59,11 @@ void rtlsym_init()
 
         //printf("rtlsym_init(%s)\n", regm_str(FREGSAVED));
 
-#if MARS
         type *t = type_fake(TYnfunc);
         t->Tmangle = mTYman_c;
         t->Tcount++;
 
+#if MARS
         // Variadic function
         type *tv = type_fake(TYnfunc);
         tv->Tmangle = mTYman_c;

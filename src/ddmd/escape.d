@@ -489,7 +489,8 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
 
         Dsymbol p = v.toParent2();
 
-        if (v.isScope())
+        if (v.isScope() && !v.iscatchvar)       // special case: allow catch var to be rethrown
+                                                // despite being `scope`
         {
             if (sc._module && sc._module.isRoot())
             {

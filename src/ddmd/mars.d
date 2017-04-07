@@ -133,6 +133,7 @@ Where:
   "%s" /* placeholder for fpic */ ~ "
   -dip25           implement http://wiki.dlang.org/DIP25 (experimental)
   -dip1000         implement http://wiki.dlang.org/DIP1000 (experimental)
+  -dip1008         implement DIP1008 (experimental)
   -g               add symbolic debug info
   -gf              emit debug info for all referenced types
   -gs              always emit stack frame
@@ -1953,6 +1954,10 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             {
                 params.useDIP25 = true;
                 params.vsafe = true;
+            }
+            else if (strcmp(p + 1, "dip1008") == 0)
+            {
+                params.ehnogc = true;
             }
             else if (strcmp(p + 1, "lib") == 0) // https://dlang.org/dmd-windows.html#switch-lib
                 params.lib = true;

@@ -3808,6 +3808,12 @@ else
         FuncDeclaration fd = sc.parent.isFuncDeclaration();
         fd.hasReturnExp |= 2;
 
+        if (ts.exp.op == TOKnew)
+        {
+            NewExp ne = cast(NewExp)ts.exp;
+            ne.thrownew = true;
+        }
+
         ts.exp = ts.exp.expressionSemantic(sc);
         ts.exp = resolveProperties(sc, ts.exp);
         ts.exp = checkGC(sc, ts.exp);
@@ -4010,6 +4016,7 @@ void catchSemantic(Catch c, Scope* sc)
         c.errors = true;
     else
     {
+        StorageClass stc;
         auto cd = c.type.toBasetype().isClassHandle();
         if (!cd)
         {
@@ -4041,12 +4048,35 @@ void catchSemantic(Catch c, Scope* sc)
             error(c.loc, "can only catch class objects derived from Exception in @safe code, not `%s`", c.type.toChars());
             c.errors = true;
         }
+        else if (global.params.ehnogc)
+        {
+            stc |= STCscope;
+        }
 
         if (c.ident)
         {
-            c.var = new VarDeclaration(c.loc, c.type, c.ident, null);
+            c.var = new VarDeclaration(c.loc, c.type, c.ident, null, stc);
+            c.var.iscatchvar = true;
             c.var.dsymbolSemantic(sc);
             sc.insert(c.var);
+
+            if (global.params.ehnogc && stc & STCscope)
+            {
+                /* Add a destructor for c.var
+                 * try { handler } finally { if (!__ctfe) _d_delThrowable(var); }
+                 */
+                assert(!c.var.edtor);           // ensure we didn't create one in callScopeDtor()
+
+                Loc loc = c.loc;
+                Expression e = new VarExp(loc, c.var);
+                e = new CallExp(loc, new IdentifierExp(loc, Id._d_delThrowable), e);
+
+                Expression ec = new IdentifierExp(loc, Id.ctfe);
+                ec = new NotExp(loc, ec);
+                Statement s = new IfStatement(loc, null, ec, new ExpStatement(loc, e), null, loc);
+                c.handler = new TryFinallyStatement(loc, c.handler, s);
+            }
+
         }
         c.handler = c.handler.statementSemantic(sc);
         if (c.handler && c.handler.isErrorStatement())
