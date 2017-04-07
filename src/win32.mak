@@ -354,7 +354,6 @@ install-copy:
 	$(CP) $(MAKEFILES)          $(INSTALL)\src\dmd
 	$(CP) $D\readme.txt            $(INSTALL)\src\dmd\readme.txt
 	$(CP) $D\boostlicense.txt      $(INSTALL)\src\dmd\boostlicense.txt
-	$(CP) $D\backendlicense.txt    $(INSTALL)\src\dmd\backendlicense.txt
 
 install-clean:
 	$(DEL) /s/q $(INSTALL)\*

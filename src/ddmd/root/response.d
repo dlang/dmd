@@ -3,13 +3,12 @@
  * http://dlang.org
  * This file is not shared with other compilers which use the DMD front-end.
  *
- * Copyright: Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
- *            Some portions copyright (c) 1994-1995 by Symantec
- * Authors:   Walter Bright, http://www.digitalmars.com
- * License:   This source file is made available for personal use
- *            only. The license is in backendlicense.txt
- *            For any other uses, please contact Digital Mars.
- * Source:    $(DMDSRC root/_response.d)
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
+ *              Some portions copyright (c) 1994-1995 by Symantec
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     Distributed under the Boost Software License, Version 1.0.
+ *              http://www.boost.org/LICENSE_1_0.txt
+ * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/root/_response.d
  */
 
 module ddmd.root.response;
