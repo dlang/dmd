@@ -513,7 +513,6 @@ install: all
 	mkdir -p $(INSTALL_DIR)/$(OS)/$(bin_dir)
 	cp dmd $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd
 	cp ../ini/$(OS)/$(bin_dir)/dmd.conf $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd.conf
-	cp $D/backendlicense.txt $(INSTALL_DIR)/dmd-backendlicense.txt
 	cp $D/boostlicense.txt $(INSTALL_DIR)/dmd-boostlicense.txt
 
 ######################################################
