@@ -1,6 +1,6 @@
 /*
 ---
-fail_compilation/fail4611.d(15): Error: Vec[1000000000] size 4 * 1000000000 exceeds 0x7fffffff size limit for static array
+fail_compilation/fail4611.d(15): Error: Vec[2147483647] size 4 * 2147483647 exceeds 0x7fffffff size limit for static array
 ---
 */
 
@@ -11,5 +11,5 @@ struct Vec
 
 void main()
 {
-    Vec[1000_000_000] a;
+    Vec[ptrdiff_t.max] a;
 }

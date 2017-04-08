@@ -19,6 +19,11 @@ import ddmd.backend.el;
 
 extern (C++):
 
+void objc_initSymbols()
+{
+    // noop
+}
+
 void objc_callfunc_setupEp(elem *esel, elem **ep, int reverse)
 {
     // noop
