@@ -3267,6 +3267,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         if (exp.e1.op == TOKslice || exp.e1.type.ty == Tarray || exp.e1.type.ty == Tsarray)
         {
+            if (checkNonAssignmentArrayOp(exp.e1))
+            {
+                result = new ErrorExp();
+                return;
+            }
             if (exp.e1.op == TOKslice)
                 (cast(SliceExp)exp.e1).arrayop = true;
 
@@ -6633,6 +6638,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         assert(exp.e1.type && exp.e2.type);
         if (exp.e1.op == TOKslice || exp.e1.type.ty == Tarray || exp.e1.type.ty == Tsarray)
         {
+            if (checkNonAssignmentArrayOp(exp.e1))
+            {
+                result = new ErrorExp();
+                return;
+            }
             // T[] ^^= ...
             if (exp.e2.implicitConvTo(exp.e1.type.nextOf()))
             {
