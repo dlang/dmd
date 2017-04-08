@@ -469,7 +469,6 @@ $(H3 $(LNAME2 type_mangling, Type Mangling))
         $(GLINK FuncAttr) $(I FuncAttrs)
 
     $(GNAME FuncAttr):
-        $(I empty)
         $(GLINK FuncAttrPure)
         $(GLINK FuncAttrNogc)
         $(GLINK FuncAttrNothrow)
