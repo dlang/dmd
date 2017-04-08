@@ -454,7 +454,7 @@ $(H3 $(LNAME2 type_mangling, Type Mangling))
         $(B Nh) $(GLINK Type)
 
     $(GNAME TypeFunction):
-        $(GLINK CallConvention) $(GLINK FuncAttrs)$(OPT) $(GLINK Parameters) $(GLINK ParamClose) $(GLINK Type)
+        $(GLINK CallConvention) $(GLINK FuncAttrs)$(OPT) $(GLINK Parameters)$(OPT) $(GLINK ParamClose) $(GLINK Type)
 
     $(GNAME CallConvention):
         $(B F)       $(GREEN // D)
