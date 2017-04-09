@@ -685,8 +685,8 @@ void MsCoffObj::term(const char *objfilename)
     if (!errcnt)
 #endif
     {
-        outfixlist();           // backpatches
         objflush_pointerRefs();
+        outfixlist();           // backpatches
     }
 
     if (configv.addlinenumbers)

@@ -757,10 +757,11 @@ void Obj::term(const char *objfilename)
 #if SCPP
         if (!errcnt)
 #endif
-        {   obj_defaultlib();
+        {
+            obj_defaultlib();
+            objflush_pointerRefs();
             outfixlist();               // backpatches
         }
-        objflush_pointerRefs();
 
         if (config.fulltypes)
             cv_term();                  // write out final debug info
