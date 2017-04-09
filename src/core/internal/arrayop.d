@@ -155,15 +155,18 @@ __vector(T[N]) unaop(string op, T, size_t N)(in __vector(T[N]) a) if (op[0] == '
 // mixin gen
 
 // filter out ops without matching SSE/SIMD instructions (could be composed of several instructions though)
-bool vectorizeableOps(E)(string[] ops)
+template vectorizeableOps(E, ops...) if (ops.length > 1)
 {
-    // dfmt off
-    return !(
-        ops.contains("/", "/=") && __traits(isIntegral, E) ||
-        ops.contains("*", "*=") && __traits(isIntegral, E) && E.sizeof != 2 ||
-        ops.contains("%", "%=")
-    );
-    // dfmt on
+    enum vectorizeableOps = vectorizeableOps!(E, ops[0 .. $ / 2])
+            && vectorizeableOps!(E, ops[$ / 2 .. $]);
+}
+
+template vectorizeableOps(E, string op)
+{
+    static if (isUnaryOp(op))
+        enum vectorizeableOps = is(typeof((vec!E a) => mixin(op[1 .. $] ~ " a")));
+    else
+        enum vectorizeableOps = is(typeof((vec!E a, vec!E b) => mixin("a " ~ op ~ " b")));
 }
 
 // filter out things like float[] = float[] / size_t[]
