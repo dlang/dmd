@@ -18,6 +18,8 @@ version (LDC) version = GNU_OR_LDC;
  */
 T[] arrayOp(T : T[], Args...)(T[] res, Filter!(isType, Args) args) @trusted @nogc pure nothrow
 {
+    enum check = opsSupported!(true, T, Filter!(not!isType, Args)); // must support all scalar ops
+
     size_t pos;
     static if (vectorizeable!(T[], Args))
     {
@@ -155,18 +157,26 @@ __vector(T[N]) unaop(string op, T, size_t N)(in __vector(T[N]) a) if (op[0] == '
 // mixin gen
 
 // filter out ops without matching SSE/SIMD instructions (could be composed of several instructions though)
-template vectorizeableOps(E, ops...) if (ops.length > 1)
+template opsSupported(bool fail, T, ops...) if (ops.length > 1)
 {
-    enum vectorizeableOps = vectorizeableOps!(E, ops[0 .. $ / 2])
-            && vectorizeableOps!(E, ops[$ / 2 .. $]);
+    enum opsSupported = opsSupported!(fail, T, ops[0 .. $ / 2])
+            && opsSupported!(fail, T, ops[$ / 2 .. $]);
 }
 
-template vectorizeableOps(E, string op)
+template opsSupported(bool fail, T, string op)
 {
     static if (isUnaryOp(op))
-        enum vectorizeableOps = is(typeof((vec!E a) => mixin(op[1 .. $] ~ " a")));
+    {
+        enum opsSupported = is(typeof((T a) => mixin(op[1 .. $] ~ " a")));
+        static assert(!fail || opsSupported,
+                "Unary op `" ~ op[1 .. $] ~ "` not supported for element type " ~ T.stringof ~ ".");
+    }
     else
-        enum vectorizeableOps = is(typeof((vec!E a, vec!E b) => mixin("a " ~ op ~ " b")));
+    {
+        enum opsSupported = is(typeof((T a, T b) => mixin("a " ~ op ~ " b")));
+        static assert(!fail || opsSupported,
+                "Binary op `" ~ op ~ "` not supported for element type " ~ T.stringof ~ ".");
+    }
 }
 
 // filter out things like float[] = float[] / size_t[]
@@ -178,7 +188,7 @@ enum compatibleVecTypes(E, Types...) = compatibleVecTypes!(E, Types[0 .. $ / 2])
 template vectorizeable(E : E[], Args...)
 {
     static if (is(vec!E))
-        enum vectorizeable = vectorizeableOps!E([Filter!(not!isType, Args)])
+        enum vectorizeable = opsSupported!(false, vec!E, Filter!(not!isType, Args))
                 && compatibleVecTypes!(E, Filter!(isType, Args));
     else
         enum vectorizeable = false;
@@ -428,4 +438,33 @@ unittest
     arrayOp!(byte[], byte, "+=")(c[], cast(byte) 6);
     foreach (v; c)
         assert(v == 6);
+}
+
+// proper error message for UDT lacking certain ops
+unittest
+{
+    static assert(!is(typeof(&arrayOp!(int[4][], int[4], "+="))));
+    static assert(!is(typeof(&arrayOp!(int[4][], int[4], "u-", "="))));
+
+    static struct S
+    {
+    }
+
+    static assert(!is(typeof(&arrayOp!(S[], S, "+="))));
+    static assert(!is(typeof(&arrayOp!(S[], S[], "*", S, "+="))));
+    static struct S2
+    {
+        S2 opBinary(string op)(in S2) @nogc pure nothrow
+        {
+            return this;
+        }
+
+        ref S2 opOpAssign(string op)(in S2) @nogc pure nothrow
+        {
+            return this;
+        }
+    }
+
+    static assert(is(typeof(&arrayOp!(S2[], S2[], S2[], S2, "*", "+", "="))));
+    static assert(is(typeof(&arrayOp!(S2[], S2[], S2, "*", "+="))));
 }
