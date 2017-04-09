@@ -302,6 +302,7 @@ SRCS=\
 	src\rt\deh_win64_posix.d \
 	src\rt\dmain2.d \
 	src\rt\dwarfeh.d \
+	src\rt\ehalloc.d \
 	src\rt\invariant.d \
 	src\rt\lifetime.d \
 	src\rt\llmath.d \

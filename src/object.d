@@ -16,6 +16,8 @@ private
     extern (C) void rt_finalize(void *data, bool det=true);
 }
 
+public @trusted @nogc nothrow pure extern (C) void _d_delThrowable(scope Throwable);
+
 // NOTE: For some reason, this declaration method doesn't work
 //       in this particular file (and this file only).  It must
 //       be a DMD thing.
@@ -1704,6 +1706,18 @@ class Throwable : Object
      */
     Throwable   next;
 
+    private uint _refcount;     // 0 : allocated by GC
+                                // 1 : allocated by _d_newThrowable()
+                                // 2.. : reference count + 1
+
+    /**
+     * Returns:
+     *  mutable reference to the reference count, which is
+     *  0 - allocated by the GC, 1 - allocated by _d_newThrowable(),
+     *  and >=2 which is the reference count + 1
+     */
+    @system @nogc final pure nothrow ref uint refcount() return scope { return _refcount; }
+
     @nogc @safe pure nothrow this(string msg, Throwable next = null)
     {
         this.msg = msg;
@@ -1717,6 +1731,12 @@ class Throwable : Object
         this.file = file;
         this.line = line;
         //this.info = _d_traceContext();
+    }
+
+    @trusted nothrow ~this()
+    {
+        if (next && next._refcount)
+            _d_delThrowable(next);
     }
 
     /**
