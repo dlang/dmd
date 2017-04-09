@@ -146,3 +146,19 @@ S700* escape700(int i) @safe
         return s.get1(); // 721
 }
 
+/*************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope2.d(804): Error: scope variable e may not be thrown
+---
+*/
+
+#line 800
+
+void foo800()
+{
+    scope Exception e;
+    throw e;
+}
