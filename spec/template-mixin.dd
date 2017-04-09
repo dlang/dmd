@@ -26,7 +26,8 @@ $(GNAME QualifiedIdentifierList):
 
         $(P A $(I TemplateMixin) can occur in declaration lists of modules,
         classes, structs, unions, and as a statement.
-        The $(I MixinTemplateName) refers to a $(I TemplateDeclaration).
+        The $(I MixinTemplateName) refers to a $(I TemplateDeclaration) or
+        $(I TemplateMixinDeclaration).
         If the $(I TemplateDeclaration) has no parameters, the mixin
         form that has no !($(I TemplateArgumentList))
         can be used.
