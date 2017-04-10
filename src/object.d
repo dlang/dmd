@@ -285,11 +285,6 @@ class TypeInfo
      */
     abstract const(void)[] initializer() nothrow pure const @safe @nogc;
 
-    /// $(RED Removed.) Please use `initializer` instead.
-    @disable static const(void)[] init(); // since 2.074
-    /* Planned for 2.075: Remove init, making way for the init type property,
-    fixing issue 12233. */
-
     /** Get flags for type: 1 means GC should scan for pointers,
     2 means arg of this type is passed in XMM register */
     @property uint flags() nothrow pure const @safe @nogc { return 0; }
@@ -358,6 +353,12 @@ class TypeInfo_Typedef : TypeInfo
     TypeInfo base;
     string   name;
     void[]   m_init;
+}
+
+unittest // issue 12233
+{
+    static assert(is(typeof(TypeInfo.init) == TypeInfo));
+    assert(TypeInfo.init is null);
 }
 
 class TypeInfo_Enum : TypeInfo_Typedef
