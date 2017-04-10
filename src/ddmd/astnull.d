@@ -243,7 +243,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) final class StaticCtorDeclaration : FuncDeclaration
+    extern (C++) class StaticCtorDeclaration : FuncDeclaration
     {
         final extern (D) this(A, B, C)(A a, B b, C c)
         {
@@ -251,7 +251,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) final class StaticDtorDeclaration : FuncDeclaration
+    extern (C++) class StaticDtorDeclaration : FuncDeclaration
     {
         final extern (D) this(A, B, C)(A a, B b, C c)
         {
@@ -263,19 +263,19 @@ struct ASTNull
         }
     }
 
-    extern (C++) final class SharedStaticCtorDeclaration : FuncDeclaration
+    extern (C++) final class SharedStaticCtorDeclaration : StaticCtorDeclaration
     {
         final extern (D) this(A, B, C)(A a, B b, C c)
         {
-            super(0, 0, 0, 0, 0);
+            super(0, 0, 0);
         }
     }
 
-    extern (C++) final class SharedStaticDtorDeclaration : FuncDeclaration
+    extern (C++) final class SharedStaticDtorDeclaration : StaticDtorDeclaration
     {
         final extern (D) this(A, B, C)(A a, B b, C c)
         {
-            super(0, 0, 0, 0, 0);
+            super(0, 0, 0);
         }
     }
 
@@ -309,7 +309,7 @@ struct ASTNull
         final extern (D) this(A, B, C)(A a, B b, C c) {}
     }
 
-    extern (C++) class CompileDeclaration : AttribDeclaration
+    extern (C++) final class CompileDeclaration : AttribDeclaration
     {
         final extern (D) this(A, B)(A a, B b)
         {
@@ -403,10 +403,6 @@ struct ASTNull
 
     extern (C++) class StaticIfDeclaration : ConditionalDeclaration
     {
-        final extern (D) this(A, B, C, D)(A a, B b, C c, D d)
-        {
-            super(0, 0, 0);
-        }
         final extern (D) this(A, B, C)(A a, B b, C c)
         {
             super(0, 0, 0);
@@ -455,18 +451,13 @@ struct ASTNull
         {
             super(0, 0);
         }
-
-        final extern (D) this(A, B, C)(A a, B b, C c)
-        {
-            super(0, 0);
-        }
     }
 
     extern (C++) class InterfaceDeclaration : ClassDeclaration
     {
         final extern (D) this(A, B, C)(A a, B b, C c)
         {
-            super(0, 0, 0);
+            super(0, 0, 0, 0, 0);
         }
     }
 
@@ -877,7 +868,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) class TypeDArray : TypeArray
+    extern (C++) final class TypeDArray : TypeArray
     {
         final extern (D) this(A)(A a)
         {
@@ -885,7 +876,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) class TypeAArray : TypeArray
+    extern (C++) final class TypeAArray : TypeArray
     {
         Type index;
 
@@ -895,7 +886,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) class TypeSArray : TypeArray
+    extern (C++) final class TypeSArray : TypeArray
     {
         Expression dim;
 
@@ -917,7 +908,7 @@ struct ASTNull
         final void addIndex(RootObject e) {}
     }
 
-    extern (C++) class TypeIdentifier : TypeQualified
+    extern (C++) final class TypeIdentifier : TypeQualified
     {
         Identifier ident;
 
@@ -927,7 +918,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) class TypeReturn : TypeQualified
+    extern (C++) final class TypeReturn : TypeQualified
     {
         final extern (D) this(A)(A a)
         {
@@ -943,7 +934,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) class TypeInstance : TypeQualified
+    extern (C++) final class TypeInstance : TypeQualified
     {
         final extern (D) this(A, B)(A a, B b)
         {
@@ -967,7 +958,7 @@ struct ASTNull
 
     extern (C++) final class IntegerExp : Expression
     {
-        final extern (D) this(A, B, C)(A a, B b, C c)
+        extern (D) this(A, B, C)(A a, B b, C c)
         {
             super(0, 0, 0);
         }
@@ -1083,7 +1074,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) class TypeExp : Expression
+    extern (C++) final class TypeExp : Expression
     {
         final extern (D) this(A, B)(A a, B b)
         {
@@ -1091,7 +1082,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) class ScopeExp : Expression
+    extern (C++) final class ScopeExp : Expression
     {
         final extern (D) this(A, B)(A a, B b)
         {
@@ -1142,19 +1133,19 @@ struct ASTNull
         }
     }
 
-    extern (C++) final class ThisExp : IdentifierExp
+    extern (C++) class ThisExp : Expression
     {
         final extern (D) this(A)(A a)
         {
-            super(0, 0);
+            super(0, 0, 0);
         }
     }
 
-    extern (C++) final class SuperExp : IdentifierExp
+    extern (C++) final class SuperExp : ThisExp
     {
         final extern (D) this(A)(A a)
         {
-            super(0, 0);
+            super(0);
         }
     }
 
@@ -1414,6 +1405,14 @@ struct ASTNull
         }
     }
 
+    extern (C++) class BinAssignExp : BinExp
+    {
+        final extern (D) this(A, B, C, D, E)(A a, B b, C c, D d, E e)
+        {
+            super(0, 0, 0, 0, 0);
+        }
+    }
+
     extern (C++) final class ShrExp : BinExp
     {
         final extern (D) this(A, B, C)(A a, B b, C c)
@@ -1518,7 +1517,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) final class AddAssignExp : BinExp
+    extern (C++) final class AddAssignExp : BinAssignExp
     {
         final extern (D) this(A, B, C)(A a, B b, C c)
         {
@@ -1526,7 +1525,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) final class MinAssignExp : BinExp
+    extern (C++) final class MinAssignExp : BinAssignExp
     {
         final extern (D) this(A, B, C)(A a, B b, C c)
         {
@@ -1534,7 +1533,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) final class MulAssignExp : BinExp
+    extern (C++) final class MulAssignExp : BinAssignExp
     {
         final extern (D) this(A, B, C)(A a, B b, C c)
         {
@@ -1542,7 +1541,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) final class DivAssignExp : BinExp
+    extern (C++) final class DivAssignExp : BinAssignExp
     {
         final extern (D) this(A, B, C)(A a, B b, C c)
         {
@@ -1550,7 +1549,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) final class ModAssignExp : BinExp
+    extern (C++) final class ModAssignExp : BinAssignExp
     {
         final extern (D) this(A, B, C)(A a, B b, C c)
         {
@@ -1558,7 +1557,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) final class PowAssignExp : BinExp
+    extern (C++) final class PowAssignExp : BinAssignExp
     {
         final extern (D) this(A, B, C)(A a, B b, C c)
         {
@@ -1566,7 +1565,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) final class AndAssignExp : BinExp
+    extern (C++) final class AndAssignExp : BinAssignExp
     {
         final extern (D) this(A, B, C)(A a, B b, C c)
         {
@@ -1574,7 +1573,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) final class OrAssignExp : BinExp
+    extern (C++) final class OrAssignExp : BinAssignExp
     {
         final extern (D) this(A, B, C)(A a, B b, C c)
         {
@@ -1582,7 +1581,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) final class XorAssignExp : BinExp
+    extern (C++) final class XorAssignExp : BinAssignExp
     {
         final extern (D) this(A, B, C)(A a, B b, C c)
         {
@@ -1590,7 +1589,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) final class ShlAssignExp : BinExp
+    extern (C++) final class ShlAssignExp : BinAssignExp
     {
         final extern (D) this(A, B, C)(A a, B b, C c)
         {
@@ -1598,7 +1597,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) final class ShrAssignExp : BinExp
+    extern (C++) final class ShrAssignExp : BinAssignExp
     {
         final extern (D) this(A, B, C)(A a, B b, C c)
         {
@@ -1606,7 +1605,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) final class UshrAssignExp : BinExp
+    extern (C++) final class UshrAssignExp : BinAssignExp
     {
         final extern (D) this(A, B, C)(A a, B b, C c)
         {
@@ -1614,7 +1613,7 @@ struct ASTNull
         }
     }
 
-    extern (C++) final class CatAssignExp : BinExp
+    extern (C++) final class CatAssignExp : BinAssignExp
     {
         final extern (D) this(A, B, C)(A a, B b, C c)
         {
