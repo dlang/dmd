@@ -47,13 +47,17 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
         {
             return 2;
         }
-    case c32, i32, u32:
+    case c32, i32, u32, f23:
         {
             return 4;
         }
-    case i64, u64:
+    case i64, u64, f52:
         {
             return 8;
+        }
+    case f106:
+        {
+            return 16;
         }
 
     case Function, Ptr, Null:
@@ -100,6 +104,10 @@ enum BCTypeEnum : ubyte
     u32,
     u64,
 
+    f23,  /// 32  bit float mantissa has 23 bit
+    f52,  /// 64  bit float mantissa has 52 bit
+    f106, /// 128 bit float mantissa has 106 but (52+52)
+
     string8,
     String = string8,
     string16,
@@ -114,18 +122,29 @@ enum BCTypeEnum : ubyte
 
 }
 
-enum BCTypeFlags
+enum BCTypeFlags : ubyte
 {
+  None = 0x0,
   Const = 0x1,
 }
 struct BCType
 {
     BCTypeEnum type;
     alias type this;
-    /// 0 means basic type
     uint typeIndex;
     // additional information
-    ubyte flags;
+    BCTypeFlags flags;
+    string toString() const pure
+    {
+        import std.conv;
+        string result;
+
+        result ~= "BCType(type: " ~ to!string(type) ~ ", "
+                ~ "typeIndex: " ~ to!string(typeIndex) ~ ", "
+                ~ "flags: " ~ to!string(flags) ~ ")";
+
+        return result;
+    }
 }
 
 enum BCValueType : ubyte
@@ -269,7 +288,7 @@ BCValue imm32(uint value) pure @trusted
 {
     BCValue ret = void;
     ret.vType = BCValueType.Immediate;
-    ret.type = BCTypeEnum.i32;
+    ret.type.type = BCTypeEnum.i32;
     ret.imm32 = value;
     return ret;
 }
@@ -355,8 +374,7 @@ struct BCHeapRef
 
 struct BCValue
 {
-    // only to workaround codegen issue
-    uint _;///FIXME remove when 2.074 is out!!
+    uint _; // avoid compile-time issues
 
     BCType type;
     BCValueType vType;
@@ -378,7 +396,7 @@ struct BCValue
 
     //TORO PERF minor: use a 32bit value for heapRef;
    BCHeapRef heapRef;
-   
+
     uint toUint() const pure
     {
         switch(this.vType)
@@ -407,7 +425,7 @@ struct BCValue
         import std.format;
 
         return format("\nvType: %s\tType: %s\tvalue:%s\n",
-            vType, type.type, valueToString);
+            vType, type.toString(), valueToString);
     }
 
     string valueToString() const pure
