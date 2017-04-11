@@ -260,7 +260,7 @@ void deleteInstance(Derived *&d)
 ---
 extern(C++)
 {
-    interface Base
+    abstract class Base
     {
         void print3i(int a, int b, int c);
     }
