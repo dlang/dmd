@@ -52,7 +52,7 @@ extern (C++) FuncDeclaration search_toString(StructDeclaration sd)
 }
 
 /***************************************
- * Request additonal semantic analysis for TypeInfo generation.
+ * Request additional semantic analysis for TypeInfo generation.
  */
 extern (C++) void semanticTypeInfo(Scope* sc, Type t)
 {

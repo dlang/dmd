@@ -1325,7 +1325,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                         goto Lfdmatch;
 
                     {
-                    // Function type matcing: exact > covariant
+                    // Function type matching: exact > covariant
                     MATCH m1 = tf.equals(fd.type) ? MATCHexact : MATCHnomatch;
                     MATCH m2 = tf.equals(fdmatch.type) ? MATCHexact : MATCHnomatch;
                     if (m1 > m2)

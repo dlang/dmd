@@ -58,7 +58,7 @@
 
 ############################### Configuration ################################
 
-# fixed model for win32.mak, overriden by win64.mak
+# fixed model for win32.mak, overridden by win64.mak
 MODEL=32
 
 ##### Directories

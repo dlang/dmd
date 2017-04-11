@@ -62,8 +62,8 @@ oper.h          operators for expression tree
 optabgen.c      generate tables for back end
 os.c            some operating system specific support
 out.c           write data definitions to object file
-outbuf.c        resizeable buffer
-outbuf.h        API for resizeable buffer
+outbuf.c        resizable buffer
+outbuf.h        API for resizable buffer
 ptrntab.c       instruction tables for inline assembler
 rtlsym.c        initialize for compiler 'helper' runtime functions
 rtlsym.h        compiler 'helper' runtime functions

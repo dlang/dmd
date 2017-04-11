@@ -209,7 +209,7 @@ ifdef ENABLE_COVERAGE
 DFLAGS  += -cov
 endif
 
-# Uniqe extra flags if necessary
+# Unique extra flags if necessary
 DMD_FLAGS  := -I$(ROOT) -Wuninitialized
 GLUE_FLAGS := -I$(ROOT) -I$(TK) -I$(C)
 BACK_FLAGS := -I$(ROOT) -I$(TK) -I$(C) -I$G -I$D -DDMDV2=1

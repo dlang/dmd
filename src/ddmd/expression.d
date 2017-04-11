@@ -1361,7 +1361,7 @@ extern (C++) Expression callCpCtor(Scope* sc, Expression e)
             /* Create a variable tmp, and replace the argument e with:
              *      (tmp = e),tmp
              * and let AssignExp() handle the construction.
-             * This is not the most efficent, ideally tmp would be constructed
+             * This is not the most efficient, ideally tmp would be constructed
              * directly onto the stack.
              */
             auto tmp = copyToTemp(STCrvalue, "__copytmp", e);
@@ -2982,7 +2982,7 @@ extern (C++) abstract class Expression : RootObject
             /* Today, static local functions are impure by default, but they cannot
              * violate purity of enclosing functions.
              *
-             *  auto foo() pure {      // non instantiated funciton
+             *  auto foo() pure {      // non instantiated function
              *    static auto bar() {  // static, without pure attribute
              *      impureFunc();      // impure call
              *      // Although impureFunc is called inside bar, f(= impureFunc)
@@ -3064,7 +3064,7 @@ extern (C++) abstract class Expression : RootObject
             /* Today, static local functions are impure by default, but they cannot
              * violate purity of enclosing functions.
              *
-             *  auto foo() pure {      // non instantiated funciton
+             *  auto foo() pure {      // non instantiated function
              *    static auto bar() {  // static, without pure attribute
              *      globalData++;      // impure access
              *      // Although globalData is accessed inside bar,
@@ -5136,7 +5136,7 @@ extern (C++) final class ArrayLiteralExp : Expression
      *      e2  = If it's not `null`, it will be pushed/appended to the new
      *            `Expressions` by the same way with `e1`.
      * Returns:
-     *      Newly allocated `Expresions. Note that it points the original
+     *      Newly allocated `Expressions. Note that it points the original
      *      `Expression` values in e1 and e2.
      */
     static Expressions* copyElements(Expression e1, Expression e2 = null)
@@ -9789,7 +9789,7 @@ extern (C++) final class CallExp : UnaExp
                 VarExp ve = cast(VarExp)e1;
                 if (ve.var.storage_class & STClazy)
                 {
-                    // lazy paramaters can be called without violating purity and safety
+                    // lazy parameters can be called without violating purity and safety
                     Type tw = ve.var.type;
                     Type tc = ve.var.type.substWildTo(MODconst);
                     auto tf = new TypeFunction(null, tc, 0, LINKd, STCsafe | STCpure);

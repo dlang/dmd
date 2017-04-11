@@ -131,7 +131,7 @@ private bool writeToEnv(StringTable* environment, char* nameEqValue)
 }
 
 /************************************
- * Update real enviroment with our copy.
+ * Update real environment with our copy.
  * Params:
  *      environment = our copy of the environment
  */
@@ -287,7 +287,7 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
                 envsection = false;
                 break;
             }
-            /* Seach sectionnamev[] for p..pn and set envsection to true if it's there
+            /* Search sectionnamev[] for p..pn and set envsection to true if it's there
              */
             for (size_t j = 0; 1; ++j)
             {

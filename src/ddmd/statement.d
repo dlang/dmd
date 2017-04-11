@@ -787,7 +787,7 @@ extern (C++) class CompoundStatement : Statement
      * array of `Statement`s
      *
      * Params:
-     *   loc = Instantiation informations
+     *   loc = Instantiation information
      *   s   = An array of `Statement`s, that will referenced by this class
      */
     final extern (D) this(Loc loc, Statements* s)
@@ -800,7 +800,7 @@ extern (C++) class CompoundStatement : Statement
      * Construct a `CompoundStatement` from an array of `Statement`s
      *
      * Params:
-     *   loc = Instantiation informations
+     *   loc = Instantiation information
      *   s   = A variadic array of `Statement`s, that will copied in this class
      *         The entries themselves will not be copied.
      */

@@ -2487,7 +2487,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
     }
 
     // results
-    int property = 0;   // 0: unintialized
+    int property = 0;   // 0: uninitialized
                         // 1: seen @property
                         // 2: not @property
     size_t ov_index = 0;
@@ -4400,7 +4400,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             // From previous matched expressions to current deduced type
             MATCH match1 = xt ? xt.matchAll(tt) : MATCHnomatch;
 
-            // From current expresssion to previous deduced type
+            // From current expressions to previous deduced type
             Type pt = at.addMod(tparam.mod);
             if (*wm)
                 pt = pt.substWildTo(*wm);
@@ -8592,7 +8592,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
          */
         if (!findTempDecl(sc) || !semanticTiargs(sc) || !findBestMatch(sc, null))
         {
-            if (semanticRun == PASSinit) // forward reference had occured
+            if (semanticRun == PASSinit) // forward reference had occurred
             {
                 //printf("forward reference - deferring\n");
                 _scope = scx ? scx : sc.copy();

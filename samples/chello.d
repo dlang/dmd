@@ -62,7 +62,7 @@ protected:
 
     extern (Windows) :
     /*
-     *  Performs any intialization of a CHello that's prone to failure
+     *  Performs any initialization of a CHello that's prone to failure
      *  that we also use internally before exposing the object outside.
      * Return Value:
      *  BOOL            true if the function is successful,

@@ -726,7 +726,7 @@ code *gencodelem(code *c,elem *e,regm_t *pretregs,bool constflag)
         c = cat(c,codelem(e,pretregs,constflag));
         assert(cgstate.stackclean == 0);
         cgstate.stackclean = stackcleansave;
-        c = genstackclean(c,stackpush - stackpushsave,*pretregs);       // do defered cleaning
+        c = genstackclean(c,stackpush - stackpushsave,*pretregs);       // do deferred cleaning
     }
     return c;
 }

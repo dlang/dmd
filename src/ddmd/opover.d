@@ -1408,7 +1408,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
             result = e.binSemanticProp(sc);
             if (result)
                 return;
-            // Don't attempt 'alias this' if an error occured
+            // Don't attempt 'alias this' if an error occurred
             if (e.e1.type.ty == Terror || e.e2.type.ty == Terror)
             {
                 result = new ErrorExp();

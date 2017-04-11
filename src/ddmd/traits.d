@@ -1215,7 +1215,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             return new ErrorExp();
         }
 
-        fd = fd.toAliasFunc(); // Neccessary to support multiple overloads.
+        fd = fd.toAliasFunc(); // Necessary to support multiple overloads.
         return new IntegerExp(e.loc, fd.vtblIndex, Type.tptrdiff_t);
     }
     if (e.ident == Id.getPointerBitmap)
