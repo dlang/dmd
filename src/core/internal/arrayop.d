@@ -26,7 +26,6 @@ T[] arrayOp(T : T[], Args...)(T[] res, Filter!(isType, Args) args) @trusted @nog
         alias vec = .vec!T;
         alias load = .load!(T, vec.length);
         alias store = .store!(T, vec.length);
-        alias scalarToVec = .scalarToVec!(T, vec.length);
 
         auto n = res.length / vec.length;
         enum nScalarInits = scalarIndices!Args.length;
@@ -127,19 +126,6 @@ const(__vector(T[N])) load(T, size_t N)(in T* p)
         else
             return __simd(XMM.LODDQU, *cast(const vec*) p);
     }
-}
-
-const(__vector(T[N])) scalarToVec(T, size_t N)(in T a)
-{
-    pragma(inline, true);
-    alias vec = __vector(T[N]);
-
-    vec res = void;
-    version (DigitalMars) // Bugzilla 7509
-        res.array = [a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a][0 .. N];
-    else
-        res = a;
-    return res;
 }
 
 __vector(T[N]) binop(string op, T, size_t N)(in __vector(T[N]) a, in __vector(T[N]) b)
@@ -277,8 +263,7 @@ string initScalarVecs(Args...)()
     auto scalars = scalarIndices!Args;
     string res;
     foreach (i, aidx; scalars)
-        res ~= "immutable vec scalar" ~ i.toString ~ " = scalarToVec(args[" ~ aidx
-            .toString ~ "]);\n";
+        res ~= "immutable vec scalar" ~ i.toString ~ " = args[" ~ aidx.toString ~ "];\n";
     return res;
 }
 
