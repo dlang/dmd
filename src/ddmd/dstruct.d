@@ -573,7 +573,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         //printf("-StructDeclaration::finalizeSize() %s, fields.dim = %d, structsize = %d\n", toChars(), fields.dim, structsize);
 
         // Calculate fields[i].overlapped
-        checkOverlappedFields();
+        if (checkOverlappedFields())
+            errors = true;
 
         // Determine if struct is all zeros or not
         zeroInit = 1;
