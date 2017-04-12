@@ -4387,10 +4387,14 @@ static if (is(BCGen))
                 }
                 else if (lhs.type.type == BCTypeEnum.Struct && rhs.type.type == BCTypeEnum.i32)
                 {
-                    if(!lhs.type.typeIndex)
+                    if(!lhs.type.typeIndex || lhs.type.typeIndex > _sharedCtfeState.structCount)
                     {
-                        bailout("Struct Type is invalid");
+                        bailout("Struct Type is invalid: " ~ ae.e1.toString);
                         return ;
+                    }
+                    if (!_sharedCtfeState.size(lhs.type))
+                    {
+                        bailout("StructType has invalidSize (this is really bad): " ~ ae.e1.toString);
                     }
                     // for some reason a a struct on the stack which is default-initalized
                     // get's the integerExp 0 of integer type as rhs
