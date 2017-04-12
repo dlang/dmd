@@ -129,6 +129,10 @@ struct C_BCGen
     void Initialize()
     {
         code = code.init;
+        foreach(i;0 .. currentFunctionStateNumber)
+        {
+            functionStates[i] = functionStates[0].init;
+        }
         currentFunctionStateNumber = 0;
     }
 
