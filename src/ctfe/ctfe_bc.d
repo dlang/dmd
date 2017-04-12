@@ -1082,11 +1082,12 @@ Expression toExpression(const BCValue value, Type expressionType,
         return CTFEExp.cantexp;
     }
 
-    Expression createArray(BCValue arr, Type elmType)
+    Expression createArray(BCValue arr, Type arrayType)
     {
+        auto elmType = arrayType.nextOf;
         if (!arr.heapAddr)
         {
-            return new NullExp(Loc());
+           return new NullExp(Loc(), arrayType);
         }
 
         ArrayLiteralExp arrayResult;
@@ -1155,7 +1156,7 @@ Expression toExpression(const BCValue value, Type expressionType,
         import ddmd.lexer : Loc;
         if (!value.heapAddr)
         {
-            return new NullExp(Loc());
+           return new NullExp(Loc(), expressionType);
         }
 
         auto length = heapPtr._heap.ptr[value.heapAddr + SliceDescriptor.LengthOffset];
@@ -1222,12 +1223,12 @@ Expression toExpression(const BCValue value, Type expressionType,
             assert(heapPtr._heap[value.heapAddr.addr + SliceDescriptor.LengthOffset] == evaluateUlong(tsa.dim),
                 "static arrayLength mismatch: " ~ to!string(heapPtr._heap[value.heapAddr.addr + SliceDescriptor.LengthOffset]) ~ " != " ~ to!string(
                     evaluateUlong(tsa.dim)));
-            result = createArray(value, tsa.nextOf);
+            result = createArray(value, tsa);
         } break;
     case Tarray:
         {
             auto tda = cast(TypeDArray) expressionType;
-            result = createArray(value, tda.nextOf);
+            result = createArray(value, tda);
         }
         break;
     case Tbool:
