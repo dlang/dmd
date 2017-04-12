@@ -256,7 +256,9 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
     // HACK since we don't support dealing with _uncompiled_ functions passed as arguments
     // search through the arguments and if we detect a function compile it
-    // The above did not work -- investigate
+    // this did not work because the first function we compile is the one we execute.
+    // hence if visit another function before we bugun this one we are executing the
+    // argument instead of the 'main' function
 
     foreach(arg;args)
     {
@@ -271,7 +273,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             static if (bailoutMessages)
                 writeln("top-level function ptr arguments are not supported");
             return null;
-/* TODO we really need to fix this!
+            /* TODO we really need to fix this!
             import ddmd.tokens;
             if (arg.op == TOKsymoff)
             {
@@ -574,11 +576,6 @@ struct BCArray
 
     uint length;
 
-    const(uint) arraySize() const
-    {
-        return length * basicTypeSize(elementType);
-    }
-
     const(uint) arraySize(const SharedCtfeState!BCGenT* sharedState) const
     {
         return sharedState.size(elementType) * length;
@@ -659,11 +656,11 @@ struct SharedCtfeState(BCGenT)
     const(BCType) elementType(const BCType type) pure const
     {
         if (type.type == BCTypeEnum.Slice)
-            return type.typeIndex <= sliceCount ? sliceTypes[type.typeIndex - 1].elementType : BCType.init;
+            return (type.typeIndex && type.typeIndex <= sliceCount) ? sliceTypes[type.typeIndex - 1] .elementType : BCType.init;
         else if (type.type == BCTypeEnum.Ptr)
-            return type.typeIndex <= pointerCount ? pointerTypes[type.typeIndex - 1].elementType : BCType.init;
+            return (type.typeIndex && type.typeIndex <= pointerCount) ? pointerTypes[type.typeIndex - 1].elementType : BCType.init;
         else if (type.type == BCTypeEnum.Array)
-            return type.typeIndex <= arrayCount ? arrayTypes[type.typeIndex - 1].elementType : BCType.init;
+            return (type.typeIndex && type.typeIndex <= arrayCount) ? arrayTypes[type.typeIndex - 1].elementType : BCType.init;
         else if (type.type == BCTypeEnum.string8)
             return BCType(BCTypeEnum.c8);
         else
@@ -682,6 +679,20 @@ struct SharedCtfeState(BCGenT)
 
         pointerTypes[pointerCount++] = BCPointer(type);
         return BCType(BCTypeEnum.Ptr, pointerCount);
+    }
+
+    const(BCType) sliceOf(const BCType type) pure
+    {
+        foreach (uint i, st; sliceTypes[0 .. sliceCount])
+        {
+            if (st.elementType == type)
+            {
+                return BCType(BCTypeEnum.Slice, i + 1);
+            }
+        }
+
+        sliceTypes[sliceCount++] = BCSlice(type);
+        return BCType(BCTypeEnum.Slice, sliceCount);
     }
 
     void clearState()
@@ -879,6 +890,10 @@ struct SharedCtfeState(BCGenT)
     {
         static __gshared sizeRecursionCount = 1;
         sizeRecursionCount++;
+        scope (exit)
+        {
+            sizeRecursionCount--;
+        }
         import std.stdio;
 
         if (sizeRecursionCount > 3000)
@@ -889,10 +904,6 @@ struct SharedCtfeState(BCGenT)
             return 0;
         }
 
-        scope (exit)
-        {
-            sizeRecursionCount--;
-        }
         if (isBasicBCType(type))
         {
             return basicTypeSize(type);
@@ -903,7 +914,7 @@ struct SharedCtfeState(BCGenT)
         case BCTypeEnum.Struct:
             {
                 uint _size;
-                if (type.typeIndex <= structCount)
+                if (type.typeIndex && type.typeIndex < structCount)
                 {
                     // the if above shoud really be an assert
                     // I have no idea why this even happens
@@ -958,6 +969,30 @@ struct SharedCtfeState(BCGenT)
             }
 
         }
+    }
+
+    string toString() const pure
+    {
+        import std.stdio;
+        string result;
+
+        result ~= "Dumping Type-State \n";
+        foreach(i, t;sliceTypes[0 .. sliceCount])
+        {
+            result ~= to!string(i) ~ " : " ~ t.to!string;
+        }
+/*
+        foreach(i, t;_sharedCtfeState.structTypes[0 .. structCount])
+        {
+        }
+        foreach(i, t;_sharedCtfeState.arrayTypes[0 .. arrayCount])
+        {
+        }
+        foreach(i, t;_sharedCtfeState.pointerTypes[0 .. pointerCount])
+        {
+        }
+*/
+        return result;
     }
 }
 
@@ -1147,7 +1182,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             auto sd = (cast(TypeStruct) expressionType).sym;
             auto si = _sharedCtfeState.getStructIndex(sd);
             assert(si);
-            BCStruct _struct = _sharedCtfeState .structTypes[si - 1];
+            BCStruct _struct = _sharedCtfeState.structTypes[si - 1];
             Expressions* elmExprs = new Expressions();
             uint offset = 0;
             foreach (idx, member; _struct.memberTypes[0 .. _struct.memberTypeCount])
@@ -1408,6 +1443,7 @@ struct BCScope
 }
 
 debug = nullPtrCheck;
+debug = nullAllocCheck;
 //debug = andand;
 extern (C++) final class BCV(BCGenT) : Visitor
 {
@@ -1555,8 +1591,20 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     }
 
+    debug (nullAllocCheck)
+    {
+        void Alloc(BCValue result, BCValue size, size_t line = __LINE__)
+        {
+            assert(size.vType != BCValueType.Immediate || size.imm32 != 0, "Null Alloc detected in line: " ~ to!string(line));
+            gen.Alloc(result, size);
+        }
+    }
+
     void expandSliceBy(BCValue slice, BCValue expandBy)
     {
+        assert(slice && slice.type.type == BCTypeEnum.Slice);
+        assert(expandBy);
+
         auto length = getLength(slice);
         auto newLength = genTemporary(i32Type);
         Add3(newLength, length, expandBy);
@@ -1606,6 +1654,10 @@ extern (C++) final class BCV(BCGenT) : Visitor
         auto effectiveSize = genTemporary(i32Type);
 
         auto elementType = _sharedCtfeState.elementType(slice.type);
+        if(!elementType)
+        {
+            bailout("we could not get the elementType of " ~ slice.type.to!string);
+        }
         auto elementSize = _sharedCtfeState.size(elementType);
 
         Mul3(effectiveSize, newLength, imm32(elementSize));
@@ -2536,6 +2588,12 @@ static if (is(BCGen))
                     }
                 break;
             }
+        case TOK.TOKcomma:
+            {
+                genExpr(e.e1);
+                retval = genExpr(e.e2);
+            }
+            break;
         default:
             {
                 bailout("BinExp.Op " ~ to!string(e.op) ~ " not handeled -- " ~ e.toString);
@@ -2654,7 +2712,6 @@ static if (is(BCGen))
         }
 
         auto indexed = genExpr(ie.e1);
-
         if (!indexed || indexed.vType == BCValueType.VoidValue)
         {
             bailout("could not create indexed variable from: " ~ ie.e1.toString);
@@ -2966,7 +3023,7 @@ static if (is(BCGen))
             auto structTypeIndex = _sharedCtfeState.getStructIndex(structDeclPtr);
             if (structTypeIndex)
             {
-                BCStruct _struct = _sharedCtfeState .structTypes[structTypeIndex - 1];
+                BCStruct _struct = _sharedCtfeState.structTypes[structTypeIndex - 1];
                 import ddmd.ctfeexpr : findFieldIndexByName;
 
                 auto vd = dve.var.isVarDeclaration;
@@ -2988,17 +3045,20 @@ static if (is(BCGen))
                 if (offset == -1)
                 {
                     bailout("Could not get field-offset of" ~ vd.toString);
+                    return ;
                 }
-
+                BCType varType = _struct.memberTypes[fIndex];
+                assert(varType, "struct Member " ~ to!string(fIndex) ~ " has an empty type .... this must not happen!"); 
                 debug (ctfe)
                 {
                     import std.stdio;
 
-                    writeln("getting field ", fIndex, "from ",
+                    writeln("getting field ", fIndex, " from ",
                         structDeclPtr.toString, " BCStruct ", _struct);
+                    writeln(varType);
                 }
                 retval = (assignTo && assignTo.vType == BCValueType.StackValue) ? assignTo : genTemporary(
-                    BCType(BCTypeEnum.i32));
+                    BCType(toBCType(dve.type)));
 
                 auto lhs = genExpr(dve.e1);
                 if (lhs.type != BCTypeEnum.Struct)
@@ -3015,8 +3075,8 @@ static if (is(BCGen))
                     return;
                 }
 
-                auto ptr = genTemporary(BCType(BCTypeEnum.i32));
-                Add3(ptr, lhs.i32, imm32(offset));
+                auto ptr = genTemporary(varType);
+                Add3(ptr.i32, lhs.i32, imm32(offset));
                 Load32(retval.i32, ptr);
                 retval.heapRef = BCHeapRef(ptr);
 
@@ -3052,7 +3112,7 @@ static if (is(BCGen))
         insideArrayLiteralExp = true;
 
         auto elmType = toBCType(ale.type.nextOf);
-        if (elmType.type != BCTypeEnum.i32 && elmType.type != BCTypeEnum.Struct)
+        if (elmType.type != BCTypeEnum.i32 && elmType.type != BCTypeEnum.c8 && elmType.type != BCTypeEnum.Struct)
         {
             bailout(
                 "can only deal with int[] and uint[]  or structs atm. given:" ~ to!string(
@@ -3280,7 +3340,7 @@ static if (is(BCGen))
            return ;
         }
         // FIXME when we are ready to support more then i32Ptr the direct calling of load
-        // has to be replace by a genLoadForType() function that'll convert from
+        // has to be replaced by a genLoadForType() function that'll convert from
         // heap+representation to stack+representation.
 
         Load32(retval, addr);
@@ -3301,8 +3361,8 @@ static if (is(BCGen))
         auto ptr = genTemporary(i32Type);
         auto size = genTemporary(i32Type);
         auto type = toBCType(ne.newtype);
-        auto typeSize = basicTypeSize(type);
-        if (!isBasicBCType(type) && typeSize > 4)
+        auto typeSize = _sharedCtfeState.size(type);
+        if (!isBasicBCType(type) || typeSize > 4)
         {
             bailout("Can only new basic Types under <=4 bytes for now");
             return;
@@ -4113,9 +4173,9 @@ static if (is(BCGen))
 
             auto fIndex = findFieldIndexByName(structDeclPtr, vd);
             assert(fIndex != -1, "field " ~ vd.toString ~ "could not be found in" ~ dve.e1.toString);
-            BCStruct bcStructType = _sharedCtfeState.structTypes[structTypeIndex - 1];
-
-            if (bcStructType.memberTypes[fIndex].type != BCTypeEnum.i32)
+            auto bcStructType = _sharedCtfeState.structTypes[structTypeIndex - 1];
+            auto fieldType = bcStructType.memberTypes[fIndex];
+            if (fieldType.type != BCTypeEnum.i32)
             {
                 bailout("only i32 structMembers are supported for now ... not : " ~ to!string(bcStructType.memberTypes[fIndex].type));
                 return;
@@ -4163,6 +4223,11 @@ static if (is(BCGen))
             {
                 bailout("I don't have an array to load the length from :(");
                 return;
+            }
+
+            if (arrayPtr.type != BCTypeEnum.Slice)
+            {
+                bailout("can only assign to slices and not to " ~to!string(arrayPtr.type.type));
             }
 
             BCValue oldLength = getLength(arrayPtr);
@@ -4320,9 +4385,14 @@ static if (is(BCGen))
                 }
                 else if (lhs.type.type == BCTypeEnum.Struct && rhs.type.type == BCTypeEnum.i32)
                 {
+                    if(!lhs.type.typeIndex)
+                    {
+                        bailout("Struct Type is invalid");
+                        return ;
+                    }
                     // for some reason a a struct on the stack which is default-initalized
                     // get's the integerExp 0 of integer type as rhs
-                    // Alloc(lhs, imm32(sharedCtfeState.size(lhs.type)));
+                    Alloc(lhs, imm32(_sharedCtfeState.size(lhs.type)));
                     // Allocate space for the value on the heap and store it in lhs :)
                     bailout("We cannot deal with default-initalized structs -- " ~ ae.toString);
 
@@ -4844,7 +4914,7 @@ static if (is(BCGen))
             if ((*tf.parameters)[i].storageClass & STCref)
             {
                 auto argHeapRef = genTemporary(i32Type);
-                Alloc(argHeapRef, imm32(basicTypeSize(bc_args[i].type)));
+                Alloc(argHeapRef, imm32(_sharedCtfeState.size(bc_args[i].type)));
                 auto origArg = bc_args[i];
                 bc_args[i].heapRef = BCHeapRef(argHeapRef);
                 StoreToHeapRef(bc_args[i]);
