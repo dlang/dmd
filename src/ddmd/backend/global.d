@@ -2,13 +2,13 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1984-1996 by Symantec
+ * Copyright:   Copyright (C) 1984-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     backendlicense.txt
- * Source:      $(DMDSRC backend/_global.d)
+ * License:     Distributed under the Boost Software License, Version 1.0.
+ *              http://www.boost.org/LICENSE_1_0.txt
+ * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/global.d
  */
-
 module ddmd.backend.global;
 
 extern (C++):

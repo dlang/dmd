@@ -1,10 +1,13 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 2015-2016 by Digital Mars
-// All Rights Reserved
-// http://www.digitalmars.com
-// Written by Rainer Schuetze
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 2015-2017 by Digital Mars, All Rights Reserved
+ * Authors:     Rainer Schuetze
+ * License:     Distributed under the Boost Software License, Version 1.0.
+ *              http://www.boost.org/LICENSE_1_0.txt
+ * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/varstats.c
+ */
 
 /******************************************
  * support for lexical scope of local variables

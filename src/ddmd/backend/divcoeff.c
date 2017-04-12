@@ -1,9 +1,13 @@
-/*
-Copyright: Digital Mars 2013 All Rights Reserved
-Authors: Walter Bright
-License: boost.org/LICENSE_1_0.txt, Boost License 1.0
-Source: https://github.com/dlang/dmd/blob/master/src/backend/divcoeff.c
-*/
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 2013-2017 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     Distributed under the Boost Software License, Version 1.0.
+ *              http://www.boost.org/LICENSE_1_0.txt
+ * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/divcoeff.c
+ */
 
 /***************************************************
  * Algorithms from "Division by Invariant Integers using Multiplication"
