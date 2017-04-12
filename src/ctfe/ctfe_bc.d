@@ -23,7 +23,7 @@ enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
-enum UseCBackend = 0;
+enum UseCBackend = 1;
 enum abortOnCritical = 1;
 
 private static void clearArray(T)(auto ref T array, uint count)
@@ -1084,6 +1084,11 @@ Expression toExpression(const BCValue value, Type expressionType,
 
     Expression createArray(BCValue arr, Type elmType)
     {
+        if (!arr.heapAddr)
+        {
+            return new NullExp(Loc());
+        }
+
         ArrayLiteralExp arrayResult;
         auto baseType = _sharedCtfeState.btv.toBCType(elmType);
         auto elmLength = _sharedCtfeState.size(baseType);
@@ -1148,6 +1153,10 @@ Expression toExpression(const BCValue value, Type expressionType,
     if (expressionType.isString)
     {
         import ddmd.lexer : Loc;
+        if (!value.heapAddr)
+        {
+            return new NullExp(Loc());
+        }
 
         auto length = heapPtr._heap.ptr[value.heapAddr + SliceDescriptor.LengthOffset];
         auto base = heapPtr._heap.ptr[value.heapAddr + SliceDescriptor.BaseOffset];
@@ -1883,6 +1892,11 @@ public:
 
     void doCat(ref BCValue result, BCValue lhs, BCValue rhs)
     {
+        auto lhsOrRhs = genTemporary(i32Type);
+        Or3(lhsOrRhs, lhs.i32, rhs.i32);
+        Set(result.i32, imm32(0));
+        auto CJisNull = beginCndJmp(lhsOrRhs);
+
         auto lhsLength = getLength(lhs);
         auto rhsLength = getLength(rhs);
         auto lhsBase = getBase(lhs);
@@ -1911,6 +1925,8 @@ public:
 
         copyArray(&newBase, &lhsBase, lhsLength, elemSize);
         copyArray(&newBase, &rhsBase, rhsLength, elemSize);
+        auto LafterCopy = genLabel();
+        endCndJmp(CJisNull, LafterCopy);
     }
 
     BCValue genExpr(Expression expr)
@@ -4936,8 +4952,14 @@ static if (is(BCGen))
             if ((*tf.parameters)[i].storageClass & STCref)
             {
                 auto argHeapRef = genTemporary(i32Type);
-                Alloc(argHeapRef, imm32(_sharedCtfeState.size(bc_args[i].type)));
                 auto origArg = bc_args[i];
+                auto size = _sharedCtfeState.size(origArg.type);
+                if (!size)
+                {
+                    bailout("arg with no size -- " ~ arg.toString);
+                    return ;
+                }
+                Alloc(argHeapRef, imm32(size));
                 bc_args[i].heapRef = BCHeapRef(argHeapRef);
                 StoreToHeapRef(bc_args[i]);
                 bc_args[i] = argHeapRef;
