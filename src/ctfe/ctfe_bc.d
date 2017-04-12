@@ -2353,7 +2353,7 @@ static if (is(BCGen))
                     bailout("bailout because either lhs or rhs for ~ could not be generated");
                     return ;
                 }
-                if (lhs.type.type != BCTypeEnum.Slice/* && lhs.type.type != BCTypeEnum.string8*/)
+                if (lhs.type.type != BCTypeEnum.Slice && lhs.type.type != BCTypeEnum.string8)
                 {
                     bailout("lhs for concat has to be a slice not: " ~ to!string(lhs.type.type));
                     return;
@@ -3434,6 +3434,8 @@ static if (is(BCGen))
                 {
                     length = genTemporary(i32Type);
                     BCValue lengthPtr;
+                    // if (arr is null) skip loading the length
+                    auto CJskipLoad = beginCndJmp(arr.i32);
                     if (SliceDescriptor.LengthOffset)
                     {
                         lengthPtr = genTemporary(i32Type);
@@ -3444,6 +3446,8 @@ static if (is(BCGen))
                         lengthPtr = arr.i32;
                     }
                     Load32(length, lengthPtr);
+                    auto LAfterLoad = genLabel();
+                    endCndJmp(CJskipLoad, LAfterLoad);
                 }
             }
             return length;
