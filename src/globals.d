@@ -233,6 +233,8 @@ struct Global
 
     const(char)* _version;
 
+    bool newCTFEGaveUp;   // set to true if newCTFE gave up (used for __traits(newCTFEGaveUp))
+
     Compiler compiler;
     Param params;
     uint errors;            // number of errors reported so far

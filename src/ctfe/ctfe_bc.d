@@ -1733,6 +1733,8 @@ extern (C++) final class BCV(BCGenT) : Visitor
     extern (D) void bailout(const(char)[] message, size_t line = __LINE__, string pfn = __PRETTY_FUNCTION__)
     {
         IGaveUp = true;
+        import ddmd.globals;
+        global.newCTFEGaveUp = true;
         const fnIdx = _sharedCtfeState.getFunctionIndex(me);
 
         enum headLn = 58;

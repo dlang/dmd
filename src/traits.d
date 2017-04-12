@@ -1222,6 +1222,10 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     {
         return pointerBitmap(e);
     }
+    if (e.ident == Id.newCTFEGaveUp)
+    {
+        return global.newCTFEGaveUp ? True() : False();
+    }
 
     extern (D) void* trait_search_fp(const(char)* seed, ref int cost)
     {
