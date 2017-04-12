@@ -390,7 +390,10 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         {
             auto vd = fields[i];
             if (vd.errors)
+            {
+                errors = true;
                 continue;
+            }
 
             auto vx = vd;
             if (vd._init && vd._init.isVoidInitializer())
@@ -402,6 +405,11 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 if (i == j)
                     continue;
                 auto v2 = fields[j];
+                if (v2.errors)
+                {
+                    errors = true;
+                    continue;
+                }
                 if (!vd.isOverlappedWith(v2))
                     continue;
 
