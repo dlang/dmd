@@ -938,7 +938,7 @@ struct SharedCtfeState(BCGenT)
 
         case BCTypeEnum.Array:
             {
-                if(type.typeIndex > arrayCount)
+                if(!type.typeIndex || type.typeIndex > arrayCount)
                 {
                     // the if above shoud really be an assert
                     // I have no idea why this even happens
@@ -3414,7 +3414,13 @@ static if (is(BCGen))
             if (arr.type.type == BCTypeEnum.Array)
             {
                 auto idx = arr.type.typeIndex;
-                assert(idx);
+                // This should really never happen but ...
+                // we seem to let a few slip trough
+                if(!idx || idx > _sharedCtfeState.arrayCount)
+                {
+                    bailout("arrayIndex: " ~ to!string(idx) ~ " is out of bounds");
+                    return BCValue.init;
+                }
                 length = imm32(_sharedCtfeState.arrayTypes[idx - 1].length);
             }
             else
