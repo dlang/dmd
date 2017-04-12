@@ -283,6 +283,8 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                     else
                         prefix_name(p);
                 }
+                if (!(s.ident == Id.std && is_initial_qualifier(s)) && !s.isTemplateInstance())
+                    store(s);
                 source_name(s);
             }
         }
