@@ -237,6 +237,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         hiw.start();
     }
     _sharedCtfeState.initHeap();
+    _sharedCtfeState.initStack();
     _sharedCtfeState.clearState();
     static if (perf)
     {
@@ -722,6 +723,13 @@ struct SharedCtfeState(BCGenT)
     }
 
 
+    void initStack()
+    {
+        import core.stdc.string : memset;
+
+        memset(&stack, 0, stack[0].sizeof * stack.length / 4);
+    }
+
     void initHeap(uint maxHeapSize = 2 ^^ 24)
     {
         import ddmd.root.rmem;
@@ -1154,6 +1162,7 @@ Expression toExpression(const BCValue value, Type expressionType,
     if (expressionType.isString)
     {
         import ddmd.lexer : Loc;
+
         if (!value.heapAddr)
         {
            return new NullExp(Loc(), expressionType);
