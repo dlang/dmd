@@ -513,7 +513,7 @@ pure:
 
         if (value)
         {
-            emitLongInst(LongInst64(LongInst.Assert, value.stackAddr, _msg.stackAddr));
+            emitLongInst(LongInst64(LongInst.Assert, pushOntoStack(value).stackAddr, _msg.stackAddr));
         }
         else
         {

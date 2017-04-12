@@ -1665,7 +1665,10 @@ extern (C++) final class BCV(BCGenT) : Visitor
             bailout("We only support expansion of slices by i32 not: " ~ to!string(slice.type.type) ~ " by " ~ to!string(newLength.type.type));
             return ;
         }
-
+        debug(nullPtrCheck)
+        {
+           Assert(slice.i32, addError(Loc(), "arrPtr must not be null"));
+        }
         auto oldBase = getBase(slice);
         auto oldLength = getLength(slice);
 
@@ -3396,7 +3399,6 @@ static if (is(BCGen))
     override void visit(NewExp ne)
     {
         auto ptr = genTemporary(i32Type);
-        auto size = genTemporary(i32Type);
         auto type = toBCType(ne.newtype);
         auto typeSize = _sharedCtfeState.size(type);
         if (!isBasicBCType(type) || typeSize > 4)
@@ -3429,6 +3431,10 @@ static if (is(BCGen))
     void setLength(BCValue arr, BCValue newLength)
     {
         BCValue lengthPtr;
+        debug(nullPtrCheck)
+        {
+            Assert(arr.i32, addError(Loc(), "arrPtr must not be null"));
+        }
         if (SliceDescriptor.LengthOffset)
         {
             lengthPtr = genTemporary(i32Type);
