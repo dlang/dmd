@@ -3771,7 +3771,7 @@ final class Parser(AST) : Lexer
             if (pident)
                 *pident = token.ident;
             else
-                error("unexpected identifer '%s' in declarator", token.ident.toChars());
+                error("unexpected identifier '%s' in declarator", token.ident.toChars());
             ts = t;
             nextToken();
             break;
@@ -4375,7 +4375,7 @@ final class Parser(AST) : Lexer
                 v.storage_class = storage_class;
                 if (pAttrs)
                 {
-                    /* AliasDeclaration distinguish @safe, @system, @trusted atttributes
+                    /* AliasDeclaration distinguish @safe, @system, @trusted attributes
                      * on prefix and postfix.
                      *   @safe alias void function() FP1;
                      *   alias @safe void function() FP2;    // FP2 is not @safe

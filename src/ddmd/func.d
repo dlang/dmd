@@ -384,9 +384,9 @@ extern (C++) class FuncDeclaration : Declaration
                  * then this function defaults to pure too.
                  *
                  *  auto foo() pure {
-                 *    auto bar() {}     // become a weak purity funciton
+                 *    auto bar() {}     // become a weak purity function
                  *    class C {         // nested class
-                 *      auto baz() {}   // become a weak purity funciton
+                 *      auto baz() {}   // become a weak purity function
                  *    }
                  *
                  *    static auto boo() {}   // typed as impure
@@ -1165,7 +1165,7 @@ extern (C++) class FuncDeclaration : Declaration
                 FuncDeclaration fdv = foverrides[i];
                 if (fdv.fbody && !fdv.frequire)
                 {
-                    error("cannot have an in contract when overriden function %s does not have an in contract", fdv.toPrettyChars());
+                    error("cannot have an in contract when overridden function %s does not have an in contract", fdv.toPrettyChars());
                     break;
                 }
             }
@@ -1797,7 +1797,7 @@ extern (C++) class FuncDeclaration : Declaration
                             ExpInitializer ie = v._init.isExpInitializer();
                             assert(ie);
                             if (ie.exp.op == TOKconstruct)
-                                ie.exp.op = TOKassign; // construction occured in parameter processing
+                                ie.exp.op = TOKassign; // construction occurred in parameter processing
                             a.push(new ExpStatement(Loc(), ie.exp));
                         }
                     }
@@ -2527,7 +2527,7 @@ extern (C++) class FuncDeclaration : Declaration
                 if (f.needThis())
                     match = f.isCtorDeclaration() ? MATCHexact : MODmethodConv(tthis.mod, tf.mod);
                 else
-                    match = MATCHconst; // keep static funciton in overload candidates
+                    match = MATCHconst; // keep static function in overload candidates
             }
             else // static functions are preferred than non-static ones
             {
@@ -3412,7 +3412,7 @@ extern (C++) class FuncDeclaration : Declaration
                         requiresClosure = true;
 
                     /* Bugzilla 12406: Iterate all closureVars to mark all descendant
-                     * nested functions that access to the closing context of this funciton.
+                     * nested functions that access to the closing context of this function.
                      */
                 }
             }

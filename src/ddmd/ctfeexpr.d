@@ -1982,7 +1982,7 @@ extern (C++) void showCtfeExpr(Expression e, int level = 0)
                 {
                     for (int j = level; --j;)
                         printf(" ");
-                    printf(" field: block initalized static array\n");
+                    printf(" field: block initialized static array\n");
                     continue;
                 }
             }
