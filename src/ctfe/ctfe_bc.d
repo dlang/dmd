@@ -3220,6 +3220,11 @@ static if (is(BCGen))
         auto size = align4(_struct.size);
 
         retval = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.i32));
+        if (!size)
+        {
+            bailout("invalid struct size! (someone really messed up here!!)");
+            return ;
+        }
         if (!insideArgumentProcessing)
             Alloc(retval, imm32(size));
         else
