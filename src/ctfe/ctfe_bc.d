@@ -3067,7 +3067,11 @@ static if (is(BCGen))
                     return ;
                 }
                 BCType varType = _struct.memberTypes[fIndex];
-                assert(varType, "struct Member " ~ to!string(fIndex) ~ " has an empty type .... this must not happen!"); 
+                if (!varType)
+                {
+                    bailout("struct Member " ~ to!string(fIndex) ~ " has an empty type .... this must not happen! -- " ~ dve.toString); 
+                    return ;
+                }
                 debug (ctfe)
                 {
                     import std.stdio;
