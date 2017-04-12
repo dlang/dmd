@@ -50,6 +50,20 @@ struct C_BCGen
     uint functionStateCount;
     uint currentFunctionStateNumber;
 
+    string[102_000] errorMessages;
+    uint errorMessageCount;
+
+    uint addErrorMessage(string msg)
+    {
+        if (errorMessageCount < errorMessages.length)
+        {
+            errorMessages[errorMessageCount++] = msg;
+            return errorMessageCount;
+        }
+
+        return 0;
+    }
+
     void genFunctionSwitch()
     {
        code ~= "\nBCValue fn(uint fnIdx, BCValue[] args, BCHeap* heapPtr) {\n";
@@ -129,6 +143,10 @@ struct C_BCGen
     void Initialize()
     {
         code = code.init;
+        foreach(i;0 .. currentFunctionStateNumber)
+        {
+            functionStates[i] = functionStates[0].init;
+        }
         currentFunctionStateNumber = 0;
     }
 
@@ -376,7 +394,7 @@ pure:
     void Assert(BCValue val, BCValue error)
     {
         sameLabel = false;
-        code ~= "assert(" ~ toCode(val) ~ "/*, errorMessage(" ~ toCode(error) ~ ")*/);\n";
+        code ~= "assert(" ~ toCode(val) ~ ", \"" ~ errorMessages[error.imm32 - 1] ~ "\"));\n";
     }
 
     void Load32(BCValue to, BCValue from)

@@ -143,7 +143,7 @@ DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$
 # D front end
 FRONT_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d	\
 	arraytypes.d attrib.d builtin.d bc.d bc_common.d			\
-	bc_macro.d bc_printer_backend.d bc_c_backend.d ctfe_bc.d bc_test.d	\
+	ctfe/bc_macro.d ctfe/bc_printer_backend.d ctfe/bc_c_backend.d ctfe/ctfe_bc.d ctfe/bc_test.d	\
 	canthrow.d clone.d complex.d cond.d constfold.d cppmangle.d ctfeexpr.d	\
 	dcast.d dclass.d declaration.d delegatize.d denum.d dimport.d		\
 	dinifile.d dinterpret.d dmacro.d dmangle.d dmodule.d doc.d dscope.d	\

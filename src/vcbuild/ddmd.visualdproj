@@ -410,26 +410,26 @@
  </Config>
  <Folder name="ddmd">
   <Folder name="gen">
-   <File tool="Custom" path="..\..\VERSION" customcmd="cmd /E:ON /Q /C &quot;for /f %%f in ( ..\..\VERSION ) do ( echo &quot;%%f&quot; )&quot; &gt;generated\verstr.h" uptodateWithSameTime="true" outfile="generated\verstr.h" />
+   <File uptodateWithSameTime="true" path="..\..\VERSION" customcmd="cmd /E:ON /Q /C &quot;for /f %%f in ( ..\..\VERSION ) do ( echo &quot;%%f&quot; )&quot; &gt;generated\verstr.h" tool="Custom" outfile="generated\verstr.h" />
   </Folder>
   <Folder name="generated">
    <Folder name="Debug_Win32">
-    <File tool="None" path="generated\Debug_Win32\generated\id.d" perConfig="true">
+    <File path="generated\Debug_Win32\generated\id.d" tool="None" perConfig="true">
      <Config name="Debug|Win32" />
     </File>
    </Folder>
    <Folder name="Debug_x64">
-    <File tool="None" path="generated\Debug_x64\generated\id.d" perConfig="true">
+    <File path="generated\Debug_x64\generated\id.d" tool="None" perConfig="true">
      <Config name="Debug|x64" />
     </File>
    </Folder>
    <Folder name="Release_Win32">
-    <File tool="None" path="generated\Release_Win32\generated\id.d" perConfig="true">
+    <File path="generated\Release_Win32\generated\id.d" tool="None" perConfig="true">
      <Config name="Release|Win32" />
     </File>
    </Folder>
    <Folder name="Release_x64">
-    <File tool="None" path="generated\Release_x64\generated\id.d" perConfig="true">
+    <File path="generated\Release_x64\generated\id.d" tool="None" perConfig="true">
      <Config name="Release|x64" />
     </File>
    </Folder>
@@ -448,6 +448,7 @@
     <File path="..\backend\exh.d" />
     <File path="..\backend\global.d" />
     <File path="..\backend\iasm.d" />
+    <File path="..\backend\md5.d" />
     <File path="..\backend\obj.d" />
     <File path="..\backend\oper.d" />
     <File path="..\backend\outbuf.d" />
@@ -456,6 +457,7 @@
     <File path="..\backend\type.d" />
     <File path="..\backend\xmm.d" />
    </Folder>
+   <Folder name="ctfe" />
    <Folder name="root">
     <File path="..\root\aav.d" />
     <File path="..\root\array.d" />
@@ -482,7 +484,17 @@
    <File path="..\argtypes.d" />
    <File path="..\arrayop.d" />
    <File path="..\arraytypes.d" />
+   <File path="..\asttypename.d" />
    <File path="..\attrib.d" />
+   <File path="..\ctfe\bc.d" />
+   <File path="..\ctfe\bc_common.d" />
+   <File path="..\ctfe\bc_c_backend.d" />
+   <File path="..\ctfe\bc_limits.d" />
+   <File path="..\ctfe\bc_llvm_backend.d" />
+   <File path="..\ctfe\bc_macro.d" />
+   <File path="..\ctfe\bc_printer_backend.d" />
+   <File path="..\ctfe\bc_recorder.d" />
+   <File path="..\ctfe\bc_test.d" />
    <File path="..\blockexit.d" />
    <File path="..\boostlicense.txt" />
    <File path="..\builtin.d" />
@@ -493,6 +505,7 @@
    <File path="..\constfold.d" />
    <File path="..\cppmangle.d" />
    <File path="..\ctfeexpr.d" />
+   <File path="..\ctfe\ctfe_bc.d" />
    <File path="..\dcast.d" />
    <File path="..\dclass.d" />
    <File path="..\declaration.d" />
@@ -540,7 +553,7 @@
    <File path="..\mtype.d" />
    <File path="..\nogc.d" />
    <File path="..\nspace.d" />
-   <File tool="None" path="..\objc.d" />
+   <File path="..\objc.d" tool="None" />
    <File path="..\objc_glue_stubs.d" />
    <File path="..\objc_stubs.d" />
    <File path="..\opover.d" />
@@ -556,6 +569,7 @@
    <File path="..\sideeffect.d" />
    <File path="..\statement.d" />
    <File path="..\statementsem.d" />
+   <File path="..\statement_rewrite_walker.d" />
    <File path="..\staticassert.d" />
    <File path="..\target.d" />
    <File path="..\tocsym.d" />

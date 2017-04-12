@@ -39,8 +39,10 @@ struct Print_BCGen
         bool sameLabel;
         StackAddr sp = StackAddr(4);
     }
-    bool insideFunction = false;
 
+    bool insideFunction = false;
+    string[102_000] errorMessages;
+    uint errorMessageCount;
     FunctionState[ubyte.max * 8] functionStates;
     uint functionStateCount;
     uint currentFunctionStateNumber;
@@ -58,6 +60,17 @@ struct Print_BCGen
     alias currentFunctionState this;
 
     string result = "\n";
+
+    uint addErrorMessage(string msg)
+    {
+        if (errorMessageCount < errorMessages.length)
+        {
+            errorMessages[errorMessageCount++] = msg;
+            return errorMessageCount;
+        }
+
+        return 0;
+    }
 
     string print(BCLabel label)
     {
@@ -120,7 +133,7 @@ struct Print_BCGen
             }
         case BCValueType.Error:
             {
-                return "Imm32(" ~ to!string(val.imm32) ~ ")/*Error*/";
+                return "Imm32(" ~ to!string(val.imm32) ~ ")/*"~ errorMessages[val.imm32 - 1]  ~"*/";
             }
         case BCValueType.Unknown:
             {
