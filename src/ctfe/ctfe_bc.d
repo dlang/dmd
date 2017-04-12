@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 0;
+enum bailoutMessages = 1;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -4395,6 +4395,7 @@ static if (is(BCGen))
                     if (!_sharedCtfeState.size(lhs.type))
                     {
                         bailout("StructType has invalidSize (this is really bad): " ~ ae.e1.toString);
+                        return ;
                     }
                     // for some reason a a struct on the stack which is default-initalized
                     // get's the integerExp 0 of integer type as rhs
