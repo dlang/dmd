@@ -499,7 +499,7 @@ $(H3 $(LNAME2 type_mangling, Type Mangling))
         $(B Nj)
 
     $(GNAME FuncAttrScope):
-        $(B M)
+        $(B Nl)
 
     $(GNAME FuncAttrTrusted):
         $(B Ne)
