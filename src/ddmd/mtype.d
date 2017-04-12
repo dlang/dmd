@@ -8039,7 +8039,7 @@ extern (C++) final class TypeTypeof : TypeQualified
         }
         inuse++;
 
-        /* Currently we cannot evalute 'exp' in speculative context, because
+        /* Currently we cannot evaluate 'exp' in speculative context, because
          * the type implementation may leak to the final execution. Consider:
          *
          * struct S(T) {

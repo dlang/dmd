@@ -7187,7 +7187,7 @@ void code_dehydrate(code **pc)
 #endif
 
 /***************************
- * Debug code to dump code stucture.
+ * Debug code to dump code structure.
  */
 
 void WRcodlst(code *c)

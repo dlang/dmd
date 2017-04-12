@@ -252,7 +252,7 @@ struct Global
     }
 
     /* End gagging, restoring the old gagged state.
-     * Return true if errors occured while gagged.
+     * Return true if errors occurred while gagged.
      */
     extern (C++) bool endGagging(uint oldGagged)
     {
@@ -266,7 +266,7 @@ struct Global
     }
 
     /*  Increment the error count to record that an error
-     *  has occured in the current context. An error message
+     *  has occurred in the current context. An error message
      *  may or may not have been printed.
      */
     extern (C++) void increaseErrorCount()

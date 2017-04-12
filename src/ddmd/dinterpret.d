@@ -751,7 +751,7 @@ extern (C++) Expression ctfeInterpretForPragmaMsg(Expression e)
     if (e.op != TOKtuple)
         return e.ctfeInterpret();
 
-    // Tuples need to be treated seperately, since they are
+    // Tuples need to be treated separately, since they are
     // allowed to contain a TypeExp in this case.
 
     TupleExp tup = cast(TupleExp)e;
@@ -1158,7 +1158,7 @@ public:
         {
             Statement sx = (*s.statements)[i];
             Expression e = interpret(sx, istate);
-            if (!e) // suceeds to interpret, or goto target was not found
+            if (!e) // succeeds to interpret, or goto target was not found
                 continue;
             if (exceptionOrCant(e))
                 return;
@@ -4692,7 +4692,7 @@ public:
             // The valid cases are:
             // p1 > p2 && p3 > p4  (same direction, also for < && <)
             // p1 > p2 && p3 < p4  (different direction, also < && >)
-            // Changing any > into >= doesnt affect the result
+            // Changing any > into >= doesn't affect the result
             if ((dir1 == dir2 && pointToSameMemoryBlock(agg1, agg4) && pointToSameMemoryBlock(agg2, agg3)) || (dir1 != dir2 && pointToSameMemoryBlock(agg1, agg3) && pointToSameMemoryBlock(agg2, agg4)))
             {
                 // it's a legal two-sided comparison

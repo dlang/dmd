@@ -76,7 +76,7 @@ struct longdouble
     unsigned short sign:1;
 
     // no constructor to be able to use this class in a union
-    // use ldouble() to explicitely create a longdouble value
+    // use ldouble() to explicitly create a longdouble value
 
     template<typename T> longdouble& operator=(T x) { set(x); return *this; }
 

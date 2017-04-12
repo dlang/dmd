@@ -740,11 +740,11 @@ Lagain:
     /* Despite what the comment above says, aligning Fast section to size greater
      * than REGSIZE does not break contract implementation. Fast.offset and
      * Fast.alignment must be the same for the overriding and
-     * the overriden function, since they have the same parameters. Fast.size
+     * the overridden function, since they have the same parameters. Fast.size
      * must be the same because otherwise, contract inheritance wouldn't work
      * even if we didn't align Fast section to size greater than REGSIZE. Therefore,
      * the only way aligning the section could cause problems with contract
-     * inheritance is if bias (declared below) differed for the overriden
+     * inheritance is if bias (declared below) differed for the overridden
      * and the overriding function.
      *
      * Bias depends on Para.size and needframe. The value of Para.size depends on
@@ -757,7 +757,7 @@ Lagain:
      * during backend's initialization and on function flag Ffakeeh. On Windows,
      * that flag is always set for virtual functions, for which contracts are
      * defined and on other platforms, it is never set. Because of that
-     * the value of neadframe should always be the same for the overriden
+     * the value of neadframe should always be the same for the overridden
      * and the overriding function, and so bias should be the same too.
     */
 

@@ -2355,7 +2355,7 @@ static assert(!is(typeof(Compileable!(bug10840(1)))));
 **************************************************/
 
 // Four-pointer relations. Return true if [p1 .. p2] points inside [q1 .. q2]
-// (where the end points dont coincide).
+// (where the end points don't coincide).
 bool ptr4cmp(void* p1, void* p2, void* q1, void* q2)
 {
 // Each compare can be written with <, <=, >, or >=.
@@ -7345,7 +7345,7 @@ string getStr12495()
     s ~= 'a';                               // this should allocate.
     assert(buf.ptr != s.ptr);
     return s.idup;                          // this should allocate again, and
-                                            // definitly point immutable memory.
+                                            // definitely point immutable memory.
 }
 auto indexOf12495(string s)
 {

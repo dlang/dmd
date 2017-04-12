@@ -3755,7 +3755,7 @@ STATIC elem * elopass(elem *e, goal_t goal)
                             e->E2 = el_una(OPc_i, e1->Ety, e->E2);
                         return optelem(e, GOALvalue);
                     }
-                    // Repace x/=y with x=x/y
+                    // Replace x/=y with x=x/y
                     if (OPTIMIZER &&
                         tyintegral(e->E1->Ety) &&
                         e->E1->Eoper == OPvar &&
@@ -3769,7 +3769,7 @@ STATIC elem * elopass(elem *e, goal_t goal)
                     break;
 
                 case OPmodass:
-                    // Repace x%=y with x=x%y
+                    // Replace x%=y with x=x%y
                     if (OPTIMIZER &&
                         tyintegral(e->E1->Ety) &&
                         e->E1->Eoper == OPvar &&

@@ -109,7 +109,7 @@ struct CSE
         regm_t  regm;           // mask of register stored there
         char    flags;          // flag bytes
 #define CSEload         1       // set if the CSE was ever loaded
-#define CSEsimple       2       // CSE can be regenerated easilly
+#define CSEsimple       2       // CSE can be regenerated easily
 
 // != 0 if CSE was ever loaded
 #define CSE_loaded(i)   (csextab[i].flags & CSEload)
