@@ -15,6 +15,8 @@ module core.sys.freebsd.sys.event;
 
 version (FreeBSD):
 extern (C):
+nothrow:
+@nogc:
 
 import core.stdc.stdint;    // intptr_t, uintptr_t
 import core.sys.posix.time; // timespec
