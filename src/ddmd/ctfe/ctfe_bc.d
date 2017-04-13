@@ -1908,7 +1908,7 @@ public:
         auto lhsOrRhs = genTemporary(i32Type);
         Or3(lhsOrRhs, lhs.i32, rhs.i32);
         Set(result.i32, imm32(0));
-        auto CJisNull = beginCndJmp(lhsOrRhs);
+        auto CJskipConcat = beginCndJmp(lhsOrRhs);
 
         auto lhsLength = getLength(lhs);
         auto rhsLength = getLength(rhs);
@@ -1938,8 +1938,9 @@ public:
 
         copyArray(&newBase, &lhsBase, lhsLength, elemSize);
         copyArray(&newBase, &rhsBase, rhsLength, elemSize);
-        auto LafterCopy = genLabel();
-        endCndJmp(CJisNull, LafterCopy);
+
+        auto LafterConcat = genLabel();
+        endCndJmp(CJskipConcat, LafterConcat);
     }
 
     BCValue genExpr(Expression expr)
