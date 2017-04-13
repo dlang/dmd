@@ -16,7 +16,7 @@ void test7444()
 
     {
         // X: Changed accepts-invalid to rejects-invalid by this issue
-        // a: slice assginment
+        // a: slice assignment
         // b: element-wise assignment
         sa   = e;      // X
         sa[] = e;      // b

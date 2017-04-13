@@ -6,13 +6,12 @@ dependencies:
 
 test:
   override:
+    - ./circleci.sh setup-repos
     - ./circleci.sh coverage:
         parallel: true
 
   post:
-    # CodeCov gets confused by lst files which it can't matched
-    - rm -rf test/runnable/extra-files
-    - bash <(curl -s https://codecov.io/bash)
+    - ./circleci.sh codecov
 
 general:
   branches:
