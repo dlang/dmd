@@ -1,5 +1,5 @@
 import std.stdio;
-import std.stream;
+import std.file;
 
 int main (string[] args)
 {
@@ -52,13 +52,13 @@ int main (string[] args)
         }
         else
         {
-            auto f = new BufferedFile(arg);
+            auto f = std.stdio.File(arg);
             string buf;
 
             while (!f.eof())
             {
                 char c;
-                f.read(c);
+                f.readf("%c", &c);
 
                 if (c == '\n')
                     ++l_cnt;
@@ -109,7 +109,8 @@ int main (string[] args)
 
     writefln("--------------------------------------");
 
-    foreach (word1; dictionary.keys.sort)
+    import std.algorithm;
+    foreach (word1; dictionary.keys.sort())
     {
         writefln("%3s %s", dictionary[word1], word1);
     }
