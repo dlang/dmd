@@ -211,6 +211,7 @@ $(H3 $(LNAME2 name_mangling, Name Mangling))
     $(GNAME QualifiedName):
         $(GLINK SymbolName)
         $(GLINK SymbolName) $(I QualifiedName)
+        $(GLINK SymbolName) $(GLINK TypeFunctionNoReturn) $(I QualifiedName)
 
     $(GNAME SymbolName):
         $(GLINK LName)
@@ -454,7 +455,10 @@ $(H3 $(LNAME2 type_mangling, Type Mangling))
         $(B Nh) $(GLINK Type)
 
     $(GNAME TypeFunction):
-        $(GLINK CallConvention) $(GLINK FuncAttrs)$(OPT) $(GLINK Parameters)$(OPT) $(GLINK ParamClose) $(GLINK Type)
+        $(GLINK TypeFunctionNoReturn) $(GLINK Type)
+
+    $(GNAME TypeFunctionNoReturn):
+        $(GLINK CallConvention) $(GLINK FuncAttrs)$(OPT) $(GLINK Parameters)$(OPT) $(GLINK ParamClose)
 
     $(GNAME CallConvention):
         $(B F)       $(GREEN // D)
