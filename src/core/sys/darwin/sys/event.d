@@ -43,7 +43,6 @@ enum : short
     EVFILT_FS       =  -9, /* filesystem events */
     EVFILT_USER     = -10, /* User events */
     EVFILT_VM       = -12, /* virtual memory events */
-    EVFILT_SYSCOUNT =  11
 }
 
 extern(D) void EV_SET(kevent_t* kevp, typeof(kevent_t.tupleof) args)
