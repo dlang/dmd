@@ -244,8 +244,8 @@ $(H3 $(LNAME2 name_mangling, Name Mangling))
         $(GNAME TemplateArgX):
             $(B T) $(GLINK Type)
             $(B V) $(GLINK Type) $(GLINK Value)
-            $(B S) $(GLINK SymbolName)
-            $(B S) $(GLINK MangledName)
+            $(B S) $(GLINK Number) $(GLINK QualifiedName)
+            $(B S) $(GLINK Number) $(GLINK MangledName)
 
         $(GNAME Value):
             $(B n)
