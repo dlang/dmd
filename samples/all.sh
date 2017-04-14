@@ -1,6 +1,6 @@
 
 # Little shell script to compile, link, and run all the samples.
-# Use dmd2\windows\bin\shell.exe to execute.
+# Use dmd\windows\bin\shell.exe to execute.
 
 DMD=..\..\windows\bin\dmd
 DFLAGS=
@@ -44,6 +44,7 @@ winsamp
 $(DMD) -c dserver -release $(DFLAGS)
 $(DMD) -c chello $(DFLAGS)
 $(DMD) dserver.obj chello.obj uuid.lib ole32.lib advapi32.lib kernel32.lib user32.lib dserver.def
+#dclient will faill unless run with administrator rights
 $(DMD) dclient $(DFLAGS) ole32.lib uuid.lib
 dclient
 
