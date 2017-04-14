@@ -39,31 +39,31 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int i
 
 int myWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int iCmdShow)
 {
-    string caption = "The Hello Program";
-    string className = "DWndClass";
+    wstring caption = "The Hello Program";
+    wstring className = "DWndClass";
     HWND hWnd, btnClick, btnDontClick;
     MSG  msg;
-    WNDCLASS wndclass;
+    WNDCLASSW wndclass;
 
     wndclass.style         = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
     wndclass.lpfnWndProc   = &WindowProc;
     wndclass.cbClsExtra    = 0;
     wndclass.cbWndExtra    = 0;
     wndclass.hInstance     = hInstance;
-    wndclass.hIcon         = LoadIconA(null, IDI_APPLICATION);
-    wndclass.hCursor       = LoadCursorA(null, IDC_CROSS);
+    wndclass.hIcon         = LoadIconW(null, IDI_APPLICATION);
+    wndclass.hCursor       = LoadCursorW(null, IDC_CROSS);
     wndclass.hbrBackground = cast(HBRUSH)GetStockObject(WHITE_BRUSH);
     wndclass.lpszMenuName  = null;
-    wndclass.lpszClassName = className.toStringz;
+    wndclass.lpszClassName = className.ptr;
 
-    if (!RegisterClassA(&wndclass))
+    if (!RegisterClassW(&wndclass))
     {
-        MessageBoxA(null, "Couldn't register Window Class!", caption.toStringz, MB_ICONERROR);
+        MessageBoxW(null, "Couldn't register Window Class!", caption.ptr, MB_ICONERROR);
         return 0;
     }
 
-    hWnd = CreateWindowA(className.toStringz,  // window class name
-                         caption.toStringz,    // window caption
+    hWnd = CreateWindowW(className.ptr,        // window class name
+                         caption.ptr,          // window caption
                          WS_THICKFRAME   |
                          WS_MAXIMIZEBOX  |
                          WS_MINIMIZEBOX  |
@@ -80,23 +80,23 @@ int myWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int
 
     if (hWnd is null)
     {
-        MessageBoxA(null, "Couldn't create window.", caption.toStringz, MB_ICONERROR);
+        MessageBoxW(null, "Couldn't create window.", caption.ptr, MB_ICONERROR);
         return 0;
     }
 
-    btnClick = CreateWindowA("BUTTON", "Click Me", WS_CHILD | WS_VISIBLE,
+    btnClick = CreateWindowW("BUTTON", "Click Me", WS_CHILD | WS_VISIBLE,
                              0, 0, 100, 25, hWnd, cast(HMENU)IDC_BTNCLICK, hInstance, null);
 
-    btnDontClick = CreateWindowA("BUTTON", "DON'T CLICK!", WS_CHILD | WS_VISIBLE,
+    btnDontClick = CreateWindowW("BUTTON", "DON'T CLICK!", WS_CHILD | WS_VISIBLE,
                                  110, 0, 100, 25, hWnd, cast(HMENU)IDC_BTNDONTCLICK, hInstance, null);
 
     ShowWindow(hWnd, iCmdShow);
     UpdateWindow(hWnd);
 
-    while (GetMessageA(&msg, null, 0, 0))
+    while (GetMessageW(&msg, null, 0, 0))
     {
         TranslateMessage(&msg);
-        DispatchMessageA(&msg);
+        DispatchMessageW(&msg);
     }
 
     return cast(int) msg.wParam;
@@ -114,7 +114,7 @@ LRESULT WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) nothro
             {
                 case IDC_BTNCLICK:
                     if (HIWORD(wParam) == BN_CLICKED)
-                        MessageBoxA(hWnd, "Hello, world!", "Greeting",
+                        MessageBoxW(hWnd, "Hello, world!", "Greeting",
                                     MB_OK | MB_ICONINFORMATION);
 
                     break;
@@ -122,7 +122,7 @@ LRESULT WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) nothro
                 case IDC_BTNDONTCLICK:
                     if (HIWORD(wParam) == BN_CLICKED)
                     {
-                        MessageBoxA(hWnd, "You've been warned...", "Prepare to GP fault",
+                        MessageBoxW(hWnd, "You've been warned...", "Prepare to GP fault",
                                     MB_OK | MB_ICONEXCLAMATION);
                         *p = 1;
                     }
@@ -144,12 +144,12 @@ LRESULT WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) nothro
             scope(exit) EndPaint(hWnd, &ps);
             RECT r;
             GetClientRect(hWnd, &r);
-            HFONT font = CreateFontA(80, 0, 0, 0, FW_EXTRABOLD, FALSE, FALSE,
+            HFONT font = CreateFontW(80, 0, 0, 0, FW_EXTRABOLD, FALSE, FALSE,
                                      FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
                                      DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, "Arial");
             HGDIOBJ old = SelectObject(dc, cast(HGDIOBJ) font);
             SetTextAlign(dc, TA_CENTER | TA_BASELINE);
-            TextOutA(dc, r.right / 2, r.bottom / 2, text.toStringz, text.length);
+            TextOutA(dc, r.right / 2, r.bottom / 2, text.ptr, text.length);
             DeleteObject(SelectObject(dc, old));
 
             break;
@@ -163,5 +163,5 @@ LRESULT WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) nothro
             break;
     }
 
-    return DefWindowProcA(hWnd, message, wParam, lParam);
+    return DefWindowProcW(hWnd, message, wParam, lParam);
 }
