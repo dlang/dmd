@@ -116,52 +116,40 @@ public:
 ULONG g_cObj =0;
 ULONG g_cLock=0;
 
+import core.sys.windows.dll;
 HINSTANCE g_hInst;
 
-extern (C)
-{
-void *_atopsp;
-void gc_init();
-void gc_term();
-void _minit();
-void _moduleCtor();
-void _moduleUnitTests();
-}
-
-extern (Windows) :
+extern (Windows):
 
 BOOL DllMain(HINSTANCE hInstance, ULONG ulReason, LPVOID pvReserved)
 {
-    // _atopsp = (void*)&hInstance;
-
     switch (ulReason)
     {
         case DLL_PROCESS_ATTACH:
-            gc_init();
-            _minit();
-            _moduleCtor();
-
-            //      _moduleUnitTests();
+            g_hInst = hInstance;
+            dll_process_attach( hInstance, true );
             MessageBoxA(null, "ATTACH", null, MB_OK);
+            version(CRuntime_DigitalMars) _fcloseallp = null; // https://issues.dlang.org/show_bug.cgi?id=1550
             break;
 
         case DLL_PROCESS_DETACH:
             MessageBoxA(null, "DETACH", null, MB_OK);
-            gc_term();
+            dll_process_detach( hInstance, true );
             break;
 
         case DLL_THREAD_ATTACH:
-        case DLL_THREAD_DETACH:
+            dll_thread_attach( true, true );
+            MessageBoxA(null, "THREAD_ATTACH", null, MB_OK);
+            break;
 
-            // Multiple threads not supported yet
-            MessageBoxA(null, "THREAD", null, MB_OK);
-            return false;
+        case DLL_THREAD_DETACH:
+            dll_thread_detach( true, true );
+            MessageBoxA(null, "THREAD_DETACH", null, MB_OK);
+            break;
 
         default:
             assert(0);
     }
-
-    g_hInst=hInstance;
     return true;
 }
 
@@ -411,9 +399,4 @@ void unicode2ansi(char *s)
         *s++ = cast(char)*w;
 
     *s = 0;
-}
-
-extern (C) int printf(char *format, ...)
-{
-    return 0;
 }
