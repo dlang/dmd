@@ -17,11 +17,11 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 
 import std.conv : to;
 
-enum perf = 0;
-enum bailoutMessages = 0;
+enum perf = 1;
+enum bailoutMessages = 1;
 enum printResult = 0;
 enum cacheBC = 1;
-enum UseLLVMBackend = 0;
+enum UseLLVMBackend = 1;
 enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
 enum abortOnCritical = 1;
@@ -1786,29 +1786,40 @@ extern (C++) final class BCV(BCGenT) : Visitor
         }
     }
 
-    void StringEq(BCValue retval, BCValue lhs, BCValue rhs)
+    void StringEq(BCValue result, BCValue lhs, BCValue rhs)
     {
+
         static if (is(typeof(StrEq3) == function)
                 && is(typeof(StrEq3(BCValue.init, BCValue.init, BCValue.init)) == void))
         {
-            StrEq3(retval, lhs, rhs);
+            StrEq3(result, lhs, rhs);
         }
 
         else
         {
-            import ddmd.ctfe.bc_macro : StringEq3Macro;
+            auto offset = genTemporary(BCType(BCTypeEnum.i32)); //SP[12]
 
-            bool wasInit;
-            if (!retval)
-            {
-                wasInit = true;
-                retval = genTemporary(i32Type);
-            }
-            StringEq3Macro(&gen, retval, lhs, rhs);
-            if (wasInit)
-            {
-                Eq3(BCValue.init, retval, imm32(1));
-            }
+            auto len1 = getLength(rhs);
+            auto len2 = getLength(lhs);
+            Eq3(result, len1, len2);
+
+            auto ptr1 = getBase(lhs);
+            auto ptr2 = getBase(rhs);
+            Set(offset, len1);
+
+            auto e1 = genTemporary(i32Type);
+            auto e2 = genTemporary(i32Type);
+
+            auto LbeginLoop = genLabel();
+            auto cndJmp1 = beginCndJmp(offset);
+            Sub3(offset, offset, imm32(1));
+
+            Load32(e1, ptr1);
+            Load32(e2, ptr2);
+            Eq3(result, e1, e2);
+            endCndJmp(beginCndJmp(BCValue.init, true), LbeginLoop);
+            auto LendLoop = genLabel();
+            endCndJmp(cndJmp1, LendLoop);
         }
     }
 
