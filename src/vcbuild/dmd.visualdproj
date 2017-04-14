@@ -483,6 +483,7 @@
    <File path="..\ddmd\argtypes.d" />
    <File path="..\ddmd\arrayop.d" />
    <File path="..\ddmd\arraytypes.d" />
+   <File path="..\ddmd\astcodegen.d" />
    <File path="..\ddmd\attrib.d" />
    <File path="..\ddmd\blockexit.d" />
    <File path="..\ddmd\boostlicense.txt" />
