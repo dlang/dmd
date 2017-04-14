@@ -942,8 +942,7 @@ pure:
 
     void Cat(BCValue result, BCValue lhs, BCValue rhs, const uint size)
     {
-        import ddmd.ctfe.bc_macro;
-        CatMacro(&this, result, lhs, rhs, size);
+        assert(0, "not implemented");
     }
 
 }
