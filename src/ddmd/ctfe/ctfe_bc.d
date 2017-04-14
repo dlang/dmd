@@ -2124,10 +2124,11 @@ public:
     {
         import ddmd.identifier;
 
+        assert(!me);
+        me = fd;
+
         //HACK this filters out functions which I know produce incorrect results
         //this is only so I can see where else are problems.
-        assert(!me || me == fd);
-        me = fd;
         if (_blacklist.isInBlacklist(fd.ident))
         {
             bailout("Bailout on blacklisted");
@@ -2170,7 +2171,11 @@ public:
             auto fnIdx = _sharedCtfeState.getFunctionIndex(me);
             static if (is(typeof(_sharedCtfeState.functionCount)) && cacheBC)
             {
-                fnIdx = fnIdx ? fnIdx : ++_sharedCtfeState.functionCount;
+                if (!fnIdx)
+                {
+                    fnIdx = ++_sharedCtfeState.functionCount;
+                    _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
+                }
             }
             else
             {
