@@ -250,6 +250,102 @@ private StorageClass getStorageClass(PrefixAttributes* pAttrs)
     return stc;
 }
 
+/*****************************
+ * Interpolate string by replaceing sections surrounded by {} with a call to 
+ * _interp_text(...) that is defined in object.d
+ * E.g.
+ * The str "Hello {num}. world" will put into result the string
+ * "_interp_text(`Hello `,num,`. world`)"
+ * 
+ * This is used for $"..." style interpolated strings. 
+ */
+private int interp(const(char)[] str, ref OutBuffer result)
+{
+    if (str.length == 0)
+        return 0;
+    
+    enum interpTextStr = "_interp_text";
+    enum extraBufferRoom = 10;
+    result.reserve(str.length + interpTextStr.length + extraBufferRoom);
+    
+    int nesting = 0;
+    int interpSectionsFound = 0;
+
+    result.writestring(interpTextStr);
+    result.writeUTF8('(');
+
+    if (str[0] == '{')
+    {
+        str = str[1..$];
+        nesting = 1;
+    }
+    else
+    {
+        result.writeUTF8('`');
+    }
+
+    foreach(char c; str)
+    {
+        if (nesting > 0)
+        {
+            if(c == '}')
+            {
+                nesting--;
+                if (nesting == 0)
+                   result.writestring(",`");
+                else
+                    result.writeUTF8(c);
+            }
+            else
+            {
+                result.writeUTF8(c);
+            }
+        }
+        else
+        {
+            if(c == '{')
+            {
+                nesting = 1;
+                interpSectionsFound++;
+                result.writestring("`,");
+            }
+            else if (c == '}')
+            {
+                result.reset();
+                result.writestring("Interplated string \"");
+                result.writestring(str);
+                result.writestring("\" contains a '}' not matching a preceeding '{'.");
+                return -1;
+            }
+            else if (c == '`')
+            {
+                result.writestring("\\`");
+            }
+            else
+            {
+                result.writeUTF8(c);
+            }
+        }
+    }
+
+    if (nesting == 0)
+    {
+        if (result.offset >= 2 && result.peekSlice()[$-2..$] == ",`")
+            result.offset -= 2;
+        result.writestring("`)");
+    }
+    else
+    {
+        result.reset();
+        result.writestring("Interpolated string \"");
+        result.writestring(str);
+        result.writestring("\" contains expressing with non-matching '}' for '{'");
+        return -1;
+    }
+
+    return interpSectionsFound;
+}
+
 /***********************************************************
  */
 final class Parser : Lexer
@@ -7051,12 +7147,43 @@ final class Parser : Lexer
                 break;
             }
         case TOKdollar:
-            if (!inBrackets)
-                error("'$' is valid only inside [] of index or slice");
-            e = new DollarExp(loc);
+            Token* t1 = peek(&token);
+            if (t1.value == TOKstring)
+            {
+                OutBuffer result;
+                int codeSectionCount = interp(t1.ustring[0..t1.len], result);
+                const(char)[] stringExpStr;
+                if (codeSectionCount == 0)
+                {
+                    stringExpStr = t1.ustring[0..t1.len];
+                }
+                else if (codeSectionCount < 0)
+                {
+                    nextToken();
+                    error(result.peekString());
+                    mem.xfree(result.extractData());
+                    goto Lerr;
+                }
+                else
+                {
+                    stringExpStr = result.peekSlice();
+                }
+
+                auto s = cast(char*)mem.xmalloc(stringExpStr.length);
+                memcpy(s, stringExpStr.ptr, stringExpStr.length);
+                nextToken();
+                
+                auto interpolatedStringExp = new StringExp(t1.loc, cast(char*)s, stringExpStr.length);
+                e = new CompileExp(t1.loc, interpolatedStringExp);
+            }
+            else
+            {
+                if (!inBrackets)
+                    error("'$' is valid only inside [] of index or slice");
+                e = new DollarExp(loc);
+            }
             nextToken();
             break;
-
         case TOKdot:
             // Signal global scope '.' operator with "" identifier
             e = new IdentifierExp(loc, Id.empty);
