@@ -38,8 +38,8 @@ int main()
 
     if (rmm != HIWORD(dwVer))
     {
-    printf("Incorrect OLE 2 version number\n");
-    return EXIT_FAILURE;
+        printf("Incorrect OLE 2 version number\n");
+        return EXIT_FAILURE;
     }
 
     hr=CoInitialize(null);              // Initialize OLE
@@ -55,7 +55,7 @@ int main()
     if (dll_regserver("dserver.dll", 1) == 0)
     {
         printf("server registered\n");
-        hr=CoCreateInstance(&CLSID_Hello, null, CLSCTX_ALL, &IID_IHello, &pIHello);
+        hr=CoCreateInstance(&CLSID_Hello, null, CLSCTX_ALL, &IID_IHello, cast(void**)&pIHello);
 
         if (FAILED(hr))
         {
@@ -110,14 +110,19 @@ int dll_regserver(const (char) *dllname, int flag)
 
         if (hMod > cast(HINSTANCE) HINSTANCE_ERROR)
         {
-            printf("LoadLibraryA() succeeded\n");
+            printf("LoadLibraryA() %s\n", (flag ? "registered".ptr : "unregistered".ptr));
             pfn = GetProcAddress(hMod, fn);
             printf("pfn = %p, fn = '%s'\n", pfn, fn);
 
             if (pfn && SUCCEEDED((*pfn)()))
+            {
+                printf("successfully called %s\n", fn);
                 result = 0;
+            }
 
+            printf("CoFreeLibrary()\n");
             CoFreeLibrary(hMod);
+            printf("CoUninitialize()\n");
             CoUninitialize();
         }
     }

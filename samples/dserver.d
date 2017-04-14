@@ -241,9 +241,9 @@ HRESULT DllCanUnloadNow()
  */
 HRESULT DllRegisterServer()
 {
-    char szID[128];
-    char szCLSID[128];
-    char szModule[512];
+    char[128] szID;
+    char[128] szCLSID;
+    char[512] szModule;
 
     MessageBoxA(null, "DllRegisterServer()", null, MB_OK);
 
@@ -284,9 +284,9 @@ HRESULT DllRegisterServer()
  */
 HRESULT DllUnregisterServer()
 {
-    char szID[128];
-    char szCLSID[128];
-    char szTemp[256];
+    char[128] szID;
+    char[128] szCLSID;
+    char[256] szTemp;
 
     MessageBoxA(null, "DllUnregisterServer()", null, MB_OK);
 
@@ -345,7 +345,7 @@ HRESULT DllUnregisterServer()
 BOOL SetKeyAndValue(LPCSTR pszKey, LPCSTR pszSubkey, LPCSTR pszValue)
 {
     HKEY hKey;
-    char szKey[256];
+    char[256] szKey;
     BOOL result;
 
     strcpy(szKey.ptr, pszKey);
@@ -358,10 +358,17 @@ BOOL SetKeyAndValue(LPCSTR pszKey, LPCSTR pszSubkey, LPCSTR pszValue)
 
     result = true;
 
-    if (ERROR_SUCCESS != RegCreateKeyExA(HKEY_CLASSES_ROOT,
+    int regresult = RegCreateKeyExA(HKEY_CLASSES_ROOT,
                                           szKey.ptr, 0, null, REG_OPTION_NON_VOLATILE,
-                                          KEY_ALL_ACCESS, null, &hKey, null))
+                                          KEY_ALL_ACCESS, null, &hKey, null);
+    if (ERROR_SUCCESS != regresult)
+    {
         result = false;
+        char[100] buffer;
+        // If the value is 5, you'll need to run the program with Administrator privileges
+        sprintf(buffer.ptr, "RegCreateKeyExA() failed with 0x%x\n", regresult);
+        MessageBoxA(null, buffer.ptr, null, MB_OK);
+    }
     else
     {
         if (null != pszValue)
