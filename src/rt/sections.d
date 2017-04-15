@@ -73,10 +73,10 @@ version (Shared)
     static assert(is(typeof(&cleanupLoadedLibraries) == void function() nothrow @nogc));
 }
 
-bool scanDSegPrecisely() nothrow @nogc
+bool scanDataSegPrecisely() nothrow @nogc
 {
     import rt.config;
-    string opt = rt_configOption("scandseg");
+    string opt = rt_configOption("scanDataSeg");
     switch(opt)
     {
         case "conservative":
@@ -85,7 +85,7 @@ bool scanDSegPrecisely() nothrow @nogc
         case "precise":
             return true;
         default:
-            __gshared err = new Error("DRT invalid scandseg option, must be 'precise' or 'conservative'");
+            __gshared err = new Error("DRT invalid scanDataSeg option, must be 'precise' or 'conservative'");
             throw err;
     }
 }

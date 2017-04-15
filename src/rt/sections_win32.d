@@ -58,7 +58,7 @@ void initSections() nothrow @nogc
     _sections._moduleGroup = ModuleGroup(getModuleInfos());
 
     import rt.sections;
-    conservative = !scanDSegPrecisely();
+    conservative = !scanDataSegPrecisely();
 
     if (conservative)
     {
@@ -77,12 +77,18 @@ void initSections() nothrow @nogc
     {
         size_t count = &_DPend - &_DPbegin;
         auto ranges = cast(void[]*) malloc(count * (void[]).sizeof);
+        size_t r = 0;
+        void* prev = null;
         for (size_t i = 0; i < count; i++)
         {
             void* addr = (&_DPbegin)[i];
-            ranges[i] = (cast(void**)addr)[0..1]; // TODO: optimize consecutive pointers into single range
+            if (prev + (void*).sizeof == addr)
+                ranges[r-1] = ranges[r-1].ptr[0 .. ranges[r-1].length + (void*).sizeof];
+            else
+                ranges[r++] = (cast(void**)addr)[0..1];
+            prev = addr;
         }
-        _sections._gcRanges = ranges[0..count];
+        _sections._gcRanges = ranges[0..r];
     }
 }
 

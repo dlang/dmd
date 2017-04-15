@@ -71,7 +71,7 @@ void initSections() nothrow @nogc
                          cast(ulong)dataSection.length);
 
     import rt.sections;
-    conservative = !scanDSegPrecisely();
+    conservative = !scanDataSegPrecisely();
 
     if (conservative)
     {
@@ -82,12 +82,23 @@ void initSections() nothrow @nogc
     {
         size_t count = &_DP_end - &_DP_beg;
         auto ranges = cast(void[]*) malloc(count * (void[]).sizeof);
+        size_t r = 0;
+        void* prev = null;
         for (size_t i = 0; i < count; i++)
         {
-            void* addr = dataSection.ptr + (&_DP_beg)[i];
-            ranges[i] = (cast(void**)addr)[0..1]; // TODO: optimize consecutive pointers into single range
+            auto off = (&_DP_beg)[i];
+            if (off == 0) // skip zero entries added by incremental linking
+                continue; // assumes there is no D-pointer at the very beginning of .data
+            void* addr = dataSection.ptr + off;
+            debug(PRINTF) printf("  scan %p\n", addr);
+            // combine consecutive pointers into single range
+            if (prev + (void*).sizeof == addr)
+                ranges[r-1] = ranges[r-1].ptr[0 .. ranges[r-1].length + (void*).sizeof];
+            else
+                ranges[r++] = (cast(void**)addr)[0..1];
+            prev = addr;
         }
-        _sections._gcRanges = ranges[0..count];
+        _sections._gcRanges = ranges[0..r];
     }
 }
 
