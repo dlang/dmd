@@ -75,7 +75,7 @@ private immutable char[TMAX] mangleChar =
     //              K   // ref
     //              L   // lazy
     //              M   // has this, or scope
-    //              N   // Nh:vector Ng:wild
+    //              N   // Nh:vector Ng:wild, No:Objective-C function, Np:Pascal function
     //              O   // shared
     Tpointer     : 'P',
     //              Q
@@ -83,7 +83,6 @@ private immutable char[TMAX] mangleChar =
     Tstruct      : 'S',
     //              T   // Ttypedef
     //              U   // C function
-    //              V   // Pascal function
     //              W   // Windows function
     //              X   // variadic T t...)
     //              Y   // variadic T t,...)
@@ -247,31 +246,29 @@ public:
         t.inuse++;
         if (modMask != t.mod)
             MODtoDecoBuffer(buf, t.mod);
-        ubyte mc;
         switch (t.linkage)
         {
         case LINKd:
-            mc = 'F';
+            buf.writeByte('F');
             break;
         case LINKc:
-            mc = 'U';
+            buf.writeByte('U');
             break;
         case LINKwindows:
-            mc = 'W';
+            buf.writeByte('W');
             break;
         case LINKpascal:
-            mc = 'V';
+            buf.writestring("Np");
             break;
         case LINKcpp:
-            mc = 'R';
+            buf.writeByte('R');
             break;
         case LINKobjc:
-            mc = 'Y';
+            buf.writestring("No");
             break;
         default:
             assert(0);
         }
-        buf.writeByte(mc);
         if (ta.purity || ta.isnothrow || ta.isnogc || ta.isproperty || ta.isref || ta.trust || ta.isreturn || ta.isscope)
         {
             if (ta.purity)
