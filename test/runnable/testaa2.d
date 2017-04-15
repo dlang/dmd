@@ -279,6 +279,20 @@ struct PropertyTable10106
 
 /************************************************/
 
+enum Key : short
+{
+    a
+}
+
+void test12221()
+{
+    short[short] hash;
+    auto a = hash.get(Key.a, Key.a);
+    short x = a;
+}
+
+/************************************************/
+
 int main()
 {
     testaa();
@@ -286,6 +300,7 @@ int main()
     test4523();
     test3825();
     test3825x();
+    test12221();
 
     printf("Success\n");
     return 0;
