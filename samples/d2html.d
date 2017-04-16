@@ -29,19 +29,8 @@ class Colors
 }
 
 enum tabsize = 4;  // number of spaces in tab
-string[] keywords;
+bool[string] keywords;
 
-// true if token is a D keyword, false otherwise
-byte iskeyword(string token)
-{
-    foreach (index, key; keywords)
-    {
-        if (!cmp(keywords[index], token))
-            return true;
-    }
-
-    return false;
-}
 
 int main(string[] args)
 {
@@ -61,7 +50,7 @@ int main(string[] args)
     auto kwd = File("d2html.kwd");
 
     foreach (word; kwd.byLine())
-        keywords ~= word.idup;
+        keywords[word.idup] = true;
 
     kwd.close();
 
@@ -135,7 +124,7 @@ int main(string[] args)
                     c = readc(src);
                 } while (isAlpha(c) || isDigit(c));
 
-                if (iskeyword(token))                   // keyword
+                if (token in keywords)                   // keyword
                     dst.write("<font color='#" ~ Colors.keyword ~
                                     "'>" ~ token ~ "</font>");
                 else                    // simple identifier
