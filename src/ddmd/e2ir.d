@@ -108,7 +108,7 @@ bool ISWIN64REF(Declaration var)
  * If argument to a function should use OPstrpar,
  * fix it so it does and return it.
  */
-elem *useOPstrpar(elem *e)
+private elem *useOPstrpar(elem *e)
 {
     tym_t ty = tybasic(e.Ety);
     if (ty == TYstruct || ty == TYarray)
@@ -182,10 +182,10 @@ elem *callfunc(Loc loc,
     ty = ec.Ety;
     if (fd)
         ty = toSymbol(fd).Stype.Tty;
-    reverse = tyrevfunc(ty);
+    reverse = tyrevfunc(ty);    // left-to-right parameter evaluation (TYnpfunc, TYjfunc, TYfpfunc, TYf16func)
     ep = null;
     op = fd ? intrinsic_op(fd) : -1;
-    if (arguments)
+    if (arguments && arguments.dim)
     {
         if (op == OPvector)
         {
@@ -194,27 +194,21 @@ elem *callfunc(Loc loc,
                 arg.error("simd operator must be an integer constant, not '%s'", arg.toChars());
         }
 
-        for (size_t i = 0; i < arguments.dim; i++)
-        {
-        Lagain:
-            Expression arg = (*arguments)[i];
-            assert(arg.op != TOKtuple);
-            if (arg.op == TOKcomma)
-            {
-                CommaExp ce = cast(CommaExp)arg;
-                eside = el_combine(eside, toElem(ce.e1, irs));
-                (*arguments)[i] = ce.e2;
-                goto Lagain;
-            }
-        }
+        /* Convert arguments[] to elems[] in left-to-right order
+         */
+        const n = arguments.dim;
+        elem*[5] elems_array = void;
+        import core.stdc.stdlib : malloc, free;
+        auto elems = (n <= 5) ? elems_array.ptr : cast(elem**)malloc(arguments.dim * (elem*).sizeof);
+        assert(elems);
 
         // j=1 if _arguments[] is first argument
         int j = (tf.linkage == LINKd && tf.varargs == 1);
 
-        for (size_t i = 0; i < arguments.dim ; i++)
+        foreach (const i; 0 .. n)
         {
             Expression arg = (*arguments)[i];
-            elem *ea;
+            elem *ea = toElem(arg, irs);
 
             //printf("\targ[%d]: %s\n", i, arg.toChars());
 
@@ -226,7 +220,6 @@ elem *callfunc(Loc loc,
                 if (p.storageClass & (STCout | STCref))
                 {
                     // Convert argument to a pointer
-                    ea = toElem(arg, irs);
                     ea = addressElem(ea, arg.type.pointerTo());
                     goto L1;
                 }
@@ -236,11 +229,9 @@ elem *callfunc(Loc loc,
                 /* Copy to a temporary, and make the argument a pointer
                  * to that temporary.
                  */
-                ea = toElem(arg, irs);
                 ea = addressElem(ea, arg.type, true);
                 goto L1;
             }
-            ea = toElem(arg, irs);
             if (config.exe == EX_WIN64 && tybasic(ea.Ety) == TYcfloat)
             {
                 /* Treat a cfloat like it was a struct { float re,im; }
@@ -248,12 +239,43 @@ elem *callfunc(Loc loc,
                 ea.Ety = TYllong;
             }
         L1:
-            ea = useOPstrpar(ea);
-            if (reverse)
-                ep = el_param(ep,ea);
-            else
-                ep = el_param(ea,ep);
+            elems[i] = ea;
         }
+        if (!reverse)
+        {
+            /* Avoid 'fixing' side effects of _array... functions as
+             * they were already working right from the olden days before this fix
+             */
+            if (ec.Eoper == OPvar &&
+                ec.EV.Vsym.Sident[0] == '_' &&
+                memcmp(ec.EV.Vsym.Sident.ptr, "_array".ptr, 6) == 0)
+            {
+            }
+            else
+                eside = fixArgumentEvaluationOrder(elems[0 .. n]);
+        }
+        foreach (const i; 0 .. n)
+        {
+            elems[i] = useOPstrpar(elems[i]);
+        }
+
+        if (!reverse)   // swap order if right-to-left
+        {
+            auto i = 0;
+            auto k = n - 1;
+            while (i < k)
+            {
+                elem *tmp = elems[i];
+                elems[i] = elems[k];
+                elems[k] = tmp;
+                ++i;
+                --k;
+            }
+        }
+        ep = el_params(cast(void**)elems, cast(int)n);
+
+        if (elems != elems_array.ptr)
+            free(elems);
     }
 
     objc_callfunc_setupMethodSelector(tret, fd, t, ehidden, &esel);
@@ -481,6 +503,92 @@ if (!global.params.is64bit) assert(tysize(TYnptr) == 4);
     }
     e = el_combine(eside, e);
     return e;
+}
+
+/**********************************
+ * D presumes left-to-right argument evaluation, but we're evaluating things
+ * right-to-left here.
+ * 1. determine if this matters
+ * 2. fix it if it does
+ * Params:
+ *      arguments = function arguments, these will get rewritten in place
+ * Returns:
+ *      elem that evaluates the side effects
+ */
+private extern (D) elem *fixArgumentEvaluationOrder(elem*[] elems)
+{
+    /* It matters if all are true:
+     * 1. at least one argument has side effects
+     * 2. at least one other argument may depend on side effects
+     */
+    if (elems.length <= 1)
+        return null;
+
+    size_t ifirstside = 0;      // index-1 of first side effect
+    size_t ifirstdep = 0;       // index-1 of first dependency on side effect
+    foreach (i, e; elems)
+    {
+        switch (e.Eoper)
+        {
+            case OPconst:
+            case OPrelconst:
+            case OPstring:
+                continue;
+
+            default:
+                break;
+        }
+
+        if (el_sideeffect(e))
+        {
+            if (!ifirstside)
+                ifirstside = i + 1;
+            else if (!ifirstdep)
+                ifirstdep = i + 1;
+        }
+        else
+        {
+            if (!ifirstdep)
+                ifirstdep = i + 1;
+        }
+        if (ifirstside && ifirstdep)
+            break;
+    }
+
+    if (!ifirstdep || !ifirstside)
+        return null;
+
+    /* Now fix by appending side effects and dependencies to eside and replacing
+     * argument with a temporary.
+     * Rely on the optimizer removing some unneeded ones using flow analysis.
+     */
+    elem* eside = null;
+    foreach (i, e; elems)
+    {
+        while (e.Eoper == OPcomma)
+        {
+            eside = el_combine(eside, e.EV.E1);
+            e = e.EV.E2;
+            elems[i] = e;
+        }
+
+        switch (e.Eoper)
+        {
+            case OPconst:
+            case OPrelconst:
+            case OPstring:
+                continue;
+
+            default:
+                break;
+        }
+
+        elem *es = e;
+        elems[i] = el_copytotmp(&es);
+        eside = el_combine(eside, es);
+    }
+
+    return eside;
 }
 
 /*******************************************
