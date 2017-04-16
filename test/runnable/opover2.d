@@ -688,8 +688,8 @@ bool test3789()
     {
         int[] x;
     }
-    Array a1 = Array([1,2,3].dup);
-    Array a2 = Array([1,2,3].dup);
+    Array a1 = Array([1,2,3].dup());
+    Array a2 = Array([1,2,3].dup());
     if (!__ctfe)
     {   // Currently doesn't work this in CTFE - may or may not a bug.
         assert(a1.x !is a2.x);
@@ -751,8 +751,8 @@ bool test3789()
         auto ub1 = UnionB(1.0);
         auto ub2 = UnionB(1.0);
         assert(ub1 == ub2);
-        ub1.u.a = [1,2,3].dup;
-        ub2.u.a = [1,2,3].dup;
+        ub1.u.a = [1,2,3].dup();
+        ub2.u.a = [1,2,3].dup();
         assert(ub1.u.a !is ub2.u.a);
         assert(ub1.u.a  == ub2.u.a);
         assert(ub1 != ub2);
