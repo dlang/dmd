@@ -585,6 +585,10 @@ int main(string[] args)
                     // link .o's into an executable
                     string command = format("%s -conf= -m%s %s %s -od%s -of%s %s", envData.dmd, envData.model, envData.required_args,
                             testArgs.requiredArgsForLink, output_dir, test_app_dmd, join(toCleanup, " "));
+                    version(OSX)
+                    {
+                        command ~= " && objdump -rds %s".format(toCleanup[0]);
+                    }
                     version(Windows) command ~= " -map nul.map";
 
                     execute(fThisRun, command, true, result_path);
