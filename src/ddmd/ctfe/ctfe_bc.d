@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 1;
+enum bailoutMessages = 0;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -597,11 +597,14 @@ struct BCStruct
 
     BCType[96] memberTypes;
     bool[96] voidInit;
+    uint[96] initializers;
 
-    void addField(const BCType bct, bool isVoidInit)
+    void addField(const BCType bct, bool isVoid, uint initValue)
     {
         memberTypes[memberTypeCount] = bct;
-        voidInit[memberTypeCount++] = isVoidInit;
+        initializers[memberTypeCount] = initValue;
+        voidInit[memberTypeCount++] = isVoid;
+
         size += _sharedCtfeState.size(bct);
     }
 
@@ -666,6 +669,20 @@ struct SharedCtfeState(BCGenT)
             return BCType(BCTypeEnum.c8);
         else
             return BCType.init;
+    }
+
+    uint[] initializer(const BCType type) pure const
+    {
+        assert(type.type == BCTypeEnum.Struct, "only structs can have initializers ... type passed: " ~ type.type.to!string);
+        assert(type.typeIndex && type.typeIndex <= structCount, "invalid structTypeIndex passed: " ~ type.typeIndex.to!string);
+        auto structType = structTypes[type.typeIndex - 1];
+        uint[] result;
+        result.length = structType.memberTypeCount;
+        foreach(i, init;structType.initializers[0 .. structType.memberTypeCount])
+        {
+            result[i] = init;
+        }
+        return result;
     }
 
     const(BCType) pointerOf(const BCType type) pure
@@ -1445,7 +1462,36 @@ extern (C++) final class BCTypeVisitor : Visitor
                 assert(0, "recursive struct definition this should never happen");
 
             auto bcType = toBCType(sMember.type);
-            st.addField(bcType, sMember._init ? !!sMember._init.isVoidInitializer() : false);
+            if (sMember._init)
+            {
+                if (sMember._init.isVoidInitializer)
+                    st.addField(bcType, true, 0);
+                else
+                {
+                    uint value;
+                    if(auto initExp = sMember._init.toExpression)
+                    {
+                        if (initExp.type.ty == Tint32 || initExp.type.ty == Tint64)
+                        {
+                            auto initExpr = cast(IntegerExp) initExp;
+                            value = cast (uint) initExpr.value;
+                        }
+                    }
+                    else
+                        assert(0, "We cannot deal with non-int initializers");
+                        //FIXME change the above assert to something we can bailout on
+/*
+                    bailout(initExpr.vType != BCValueType.Immediate || initExpr.type.type != BCTypeEnum.i32,
+                        "Cannot deal with non-int initalizer"
+                    );
+*/
+                    st.addField(bcType, false, value);
+                }
+
+            }
+            else
+                st.addField(bcType, false, 0);
+
         }
 
         _sharedCtfeState.endStruct(&st);
@@ -1588,6 +1634,20 @@ extern (C++) final class BCV(BCGenT) : Visitor
             addErrorMessage(msg);
         }
         return _sharedCtfeState.addError(loc, msg, v1, v2);
+    }
+
+    extern(D) void MemSet(/*const*/ BCValue destBasePtr, /*const*/ uint[] source, uint wordSize = 4)
+    {
+        assert(wordSize <= 4);
+        auto destPtr = genTemporary(i32Type);
+        foreach(uint i, word;source)
+        {
+            if (word != 0)
+            {
+                Add3(destPtr, destBasePtr, imm32(wordSize*i));
+                Store32(destPtr, imm32(word));
+            }
+        }
     }
 
     debug (nullPtrCheck)
@@ -4446,7 +4506,7 @@ static if (is(BCGen))
                 }
                 else if (lhs.type.type == BCTypeEnum.Slice && rhs.type.type == BCTypeEnum.Array)
                 {
-                    //TODO we should really copy here!
+                    //TODO maybe we should copy here ?
                     Set(lhs.i32, rhs.i32);
                 }
                 else if (lhs.type.type == BCTypeEnum.Slice && rhs.type.type == BCTypeEnum.Null)
@@ -4467,9 +4527,11 @@ static if (is(BCGen))
                     }
                     // for some reason a a struct on the stack which is default-initalized
                     // get's the integerExp 0 of integer type as rhs
-                    Alloc(lhs, imm32(_sharedCtfeState.size(lhs.type)));
+                    Alloc(lhs.i32, imm32(_sharedCtfeState.size(lhs.type)));
                     // Allocate space for the value on the heap and store it in lhs :)
-                    bailout("We cannot deal with default-initalized structs -- " ~ ae.toString);
+                    MemSet(lhs.i32, _sharedCtfeState.initializer(lhs.type));
+                    // Copy the initializer into the memory
+                    // TODO: (currently the initializer wiil only be set correctly on uints)
 
                 }
                 else
