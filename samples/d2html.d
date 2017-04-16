@@ -28,46 +28,8 @@ class Colors
     static string comment = "808080";
 }
 
-const int tabsize = 4;  // number of spaces in tab
-const char[24] symbols = "()[]{}.,;:=<>+-*/%&|^!~?";
+enum tabsize = 4;  // number of spaces in tab
 string[] keywords;
-
-// true if c is whitespace, false otherwise
-byte isspace(char c)
-{
-    return indexOf(whitespace, c) >= 0;
-}
-
-// true if c is a letter or an underscore, false otherwise
-byte isalpha(char c)
-{
-    // underscore doesn't differ from letters in D anyhow...
-    return c == '_' || indexOf(letters, c) >= 0;
-}
-
-// true if c is a decimal digit, false otherwise
-byte isdigit(char c)
-{
-    return indexOf(digits, c) >= 0;
-}
-
-// true if c is a hexadecimal digit, false otherwise
-byte ishexdigit(char c)
-{
-    return indexOf(hexDigits, c) >= 0;
-}
-
-// true if c is an octal digit, false otherwise
-byte isoctdigit(char c)
-{
-    return indexOf(octalDigits, c) >= 0;
-}
-
-// true if c is legal D symbol other than above, false otherwise
-byte issymbol(char c)
-{
-    return indexOf(symbols, c) >= 0;
-}
 
 // true if token is a D keyword, false otherwise
 byte iskeyword(string token)
@@ -136,7 +98,7 @@ int main(string[] args)
 
         while (true)
         {
-            if (isspace(c))                     // whitespace
+            if (isWhite(c))                     // whitespace
             {
                 do
                 {
@@ -161,9 +123,9 @@ int main(string[] args)
                     }
 
                     c = readc(src);
-                } while (isspace(c));
+                } while (isWhite(c));
             }
-            else if (isalpha(c))                // keyword or identifier
+            else if (isAlpha(c))                // keyword or identifier
             {
                 string token;
 
@@ -171,7 +133,7 @@ int main(string[] args)
                 {
                     token ~= c;
                     c = readc(src);
-                } while (isalpha(c) || isdigit(c));
+                } while (isAlpha(c) || isDigit(c));
 
                 if (iskeyword(token))                   // keyword
                     dst.write("<font color='#" ~ Colors.keyword ~
@@ -190,7 +152,7 @@ int main(string[] args)
                     dst.write(c);
                     c = readc(src);
 
-                    while (ishexdigit(c)) {
+                    while (isHexDigit(c)) {
                         dst.write(c);
                         c = readc(src);
                     }
@@ -213,7 +175,7 @@ int main(string[] args)
                     {
                         dst.write(c);
                         c = readc(src);
-                    } while (isoctdigit(c));
+                    } while (isOctalDigit(c));
                 }
 
                 dst.write("</font>");
@@ -228,7 +190,7 @@ int main(string[] args)
                 dst.write(c);
                 c = readc(src);
             }
-            else if (isdigit(c))                // decimal number
+            else if (isDigit(c))                // decimal number
             {
                 dst.write("<font color='#" ~ Colors.number ~ "'>");
 
@@ -237,7 +199,7 @@ int main(string[] args)
                 {
                     dst.write(c);
                     c = readc(src);
-                } while (isdigit(c));
+                } while (isDigit(c));
 
                 // fractional part
                 if (c == '.')
@@ -245,7 +207,7 @@ int main(string[] args)
                     dst.write(c);
                     c = readc(src);
 
-                    while (isdigit(c))
+                    while (isDigit(c))
                     {
                         dst.write(c);
                         c = readc(src);
@@ -264,7 +226,7 @@ int main(string[] args)
                         c = readc(src);
                     }
 
-                    while (isdigit(c))
+                    while (isDigit(c))
                     {
                         dst.write(c);
                         c = readc(src);
@@ -317,7 +279,7 @@ int main(string[] args)
                 c = readc(src);
                 dst.write("</font>");
             }
-            else if (issymbol(c))               // either operator or comment
+            else if (isPunctuation(c))          // either operator or comment
             {
                 if (c == '<')                   // special symbol in HTML
                 {
