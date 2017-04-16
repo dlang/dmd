@@ -20,26 +20,26 @@ import std.ascii;
 
 // colors for syntax highlighting, default values are
 // my preferences in Microsoft Visual Studio editor
-class Colors
+enum Colors
 {
-    static string keyword = "0000FF";
-    static string number  = "008000";
-    static string astring = "000080";
-    static string comment = "808080";
+    keyword = "0000FF",
+    number  = "008000",
+    astring = "000080",
+    comment = "808080"
 }
 
 enum tabsize = 4;  // number of spaces in tab
 bool[string] keywords;
 
 
-int main(string[] args)
+void main(string[] args)
 {
     // need help?
     if (args.length < 2 || args.length > 3)
     {
         printf("D to HTML converter\n" ~
                "Usage: D2HTML <program>.d [<file>.htm]\n");
-        return 0;
+        return;
     }
 
     // auto-name output file
@@ -67,7 +67,7 @@ int main(string[] args)
     // so we can omit any checks for EOF inside this block...
     try
     {
-        char readc(ref File src)
+        static char readc(ref File src)
         {
             while (true)
             {
@@ -369,5 +369,5 @@ int main(string[] args)
         dst.writeln("</code></pre></body></html>");
     }
 
-    return 0;
+    return;
 }
