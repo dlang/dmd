@@ -530,6 +530,7 @@
    <File path="..\ddmd\imphint.d" />
    <File path="..\ddmd\init.d" />
    <File path="..\ddmd\inline.d" />
+   <File path="..\ddmd\inlinecost.d" />
    <File path="..\ddmd\intrange.d" />
    <File path="..\ddmd\irstate.d" />
    <File path="..\ddmd\json.d" />
