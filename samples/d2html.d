@@ -20,75 +20,26 @@ import std.ascii;
 
 // colors for syntax highlighting, default values are
 // my preferences in Microsoft Visual Studio editor
-class Colors
+enum Colors
 {
-    static string keyword = "0000FF";
-    static string number  = "008000";
-    static string astring = "000080";
-    static string comment = "808080";
+    keyword = "0000FF",
+    number  = "008000",
+    astring = "000080",
+    comment = "808080"
 }
 
-const int tabsize = 4;  // number of spaces in tab
-const char[24] symbols = "()[]{}.,;:=<>+-*/%&|^!~?";
-string[] keywords;
+enum tabsize = 4;  // number of spaces in tab
+bool[string] keywords;
 
-// true if c is whitespace, false otherwise
-byte isspace(char c)
-{
-    return indexOf(whitespace, c) >= 0;
-}
 
-// true if c is a letter or an underscore, false otherwise
-byte isalpha(char c)
-{
-    // underscore doesn't differ from letters in D anyhow...
-    return c == '_' || indexOf(letters, c) >= 0;
-}
-
-// true if c is a decimal digit, false otherwise
-byte isdigit(char c)
-{
-    return indexOf(digits, c) >= 0;
-}
-
-// true if c is a hexadecimal digit, false otherwise
-byte ishexdigit(char c)
-{
-    return indexOf(hexDigits, c) >= 0;
-}
-
-// true if c is an octal digit, false otherwise
-byte isoctdigit(char c)
-{
-    return indexOf(octalDigits, c) >= 0;
-}
-
-// true if c is legal D symbol other than above, false otherwise
-byte issymbol(char c)
-{
-    return indexOf(symbols, c) >= 0;
-}
-
-// true if token is a D keyword, false otherwise
-byte iskeyword(string token)
-{
-    foreach (index, key; keywords)
-    {
-        if (!cmp(keywords[index], token))
-            return true;
-    }
-
-    return false;
-}
-
-int main(string[] args)
+void main(string[] args)
 {
     // need help?
     if (args.length < 2 || args.length > 3)
     {
         printf("D to HTML converter\n" ~
                "Usage: D2HTML <program>.d [<file>.htm]\n");
-        return 0;
+        return;
     }
 
     // auto-name output file
@@ -99,7 +50,7 @@ int main(string[] args)
     auto kwd = File("d2html.kwd");
 
     foreach (word; kwd.byLine())
-        keywords ~= word.idup;
+        keywords[word.idup] = true;
 
     kwd.close();
 
@@ -116,7 +67,7 @@ int main(string[] args)
     // so we can omit any checks for EOF inside this block...
     try
     {
-        char readc(ref File src)
+        static char readc(ref File src)
         {
             while (true)
             {
@@ -136,7 +87,7 @@ int main(string[] args)
 
         while (true)
         {
-            if (isspace(c))                     // whitespace
+            if (isWhite(c))                     // whitespace
             {
                 do
                 {
@@ -161,9 +112,9 @@ int main(string[] args)
                     }
 
                     c = readc(src);
-                } while (isspace(c));
+                } while (isWhite(c));
             }
-            else if (isalpha(c))                // keyword or identifier
+            else if (isAlpha(c))                // keyword or identifier
             {
                 string token;
 
@@ -171,9 +122,9 @@ int main(string[] args)
                 {
                     token ~= c;
                     c = readc(src);
-                } while (isalpha(c) || isdigit(c));
+                } while (isAlpha(c) || isDigit(c));
 
-                if (iskeyword(token))                   // keyword
+                if (token in keywords)                   // keyword
                     dst.write("<font color='#" ~ Colors.keyword ~
                                     "'>" ~ token ~ "</font>");
                 else                    // simple identifier
@@ -190,7 +141,7 @@ int main(string[] args)
                     dst.write(c);
                     c = readc(src);
 
-                    while (ishexdigit(c)) {
+                    while (isHexDigit(c)) {
                         dst.write(c);
                         c = readc(src);
                     }
@@ -213,7 +164,7 @@ int main(string[] args)
                     {
                         dst.write(c);
                         c = readc(src);
-                    } while (isoctdigit(c));
+                    } while (isOctalDigit(c));
                 }
 
                 dst.write("</font>");
@@ -228,7 +179,7 @@ int main(string[] args)
                 dst.write(c);
                 c = readc(src);
             }
-            else if (isdigit(c))                // decimal number
+            else if (isDigit(c))                // decimal number
             {
                 dst.write("<font color='#" ~ Colors.number ~ "'>");
 
@@ -237,7 +188,7 @@ int main(string[] args)
                 {
                     dst.write(c);
                     c = readc(src);
-                } while (isdigit(c));
+                } while (isDigit(c));
 
                 // fractional part
                 if (c == '.')
@@ -245,7 +196,7 @@ int main(string[] args)
                     dst.write(c);
                     c = readc(src);
 
-                    while (isdigit(c))
+                    while (isDigit(c))
                     {
                         dst.write(c);
                         c = readc(src);
@@ -264,7 +215,7 @@ int main(string[] args)
                         c = readc(src);
                     }
 
-                    while (isdigit(c))
+                    while (isDigit(c))
                     {
                         dst.write(c);
                         c = readc(src);
@@ -317,7 +268,7 @@ int main(string[] args)
                 c = readc(src);
                 dst.write("</font>");
             }
-            else if (issymbol(c))               // either operator or comment
+            else if (isPunctuation(c))          // either operator or comment
             {
                 if (c == '<')                   // special symbol in HTML
                 {
@@ -418,5 +369,5 @@ int main(string[] args)
         dst.writeln("</code></pre></body></html>");
     }
 
-    return 0;
+    return;
 }
