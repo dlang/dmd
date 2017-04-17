@@ -108,7 +108,7 @@ int dll_regserver(const (char) *dllname, int flag)
         hMod=LoadLibraryA(dllname);
         printf("hMod = %d\n", hMod);
 
-        if (hMod > cast(HINSTANCE) HINSTANCE_ERROR)
+        if (hMod)
         {
             printf("LoadLibraryA() %s\n", (flag ? "registered".ptr : "unregistered".ptr));
             pfn = GetProcAddress(hMod, fn);
