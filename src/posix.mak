@@ -1,3 +1,5 @@
+SHELL=bash
+
 # get OS and MODEL
 include osmodel.mak
 
