@@ -236,27 +236,27 @@ else version(NetBSD)
         __fd_mask[(FD_SETSIZE + (_NFDBITS - 1)) / _NFDBITS] __fds_bits;
     }
 
-    extern (D) __fd_mask __fdset_mask(uint n)
+    extern (D) __fd_mask __fdset_mask(uint n) pure
     {
         return cast(__fd_mask) 1 << (n % _NFDBITS);
     }
 
-    extern (D) void FD_CLR( int n, fd_set* p )
+    extern (D) void FD_CLR( int n, fd_set* p ) pure
     {
         p.__fds_bits[n / _NFDBITS] &= ~__fdset_mask(n);
     }
 
-    extern (D) bool FD_ISSET( int n, const(fd_set)* p )
+    extern (D) bool FD_ISSET( int n, const(fd_set)* p ) pure
     {
         return (p.__fds_bits[n / _NFDBITS] & __fdset_mask(n)) != 0;
     }
 
-    extern (D) void FD_SET( int n, fd_set* p )
+    extern (D) void FD_SET( int n, fd_set* p ) pure
     {
         p.__fds_bits[n / _NFDBITS] |= __fdset_mask(n);
     }
 
-    extern (D) void FD_ZERO( fd_set* p )
+    extern (D) void FD_ZERO( fd_set* p ) pure
     {
         fd_set *_p;
         size_t _n;
