@@ -671,6 +671,7 @@ struct SharedCtfeState(BCGenT)
             return BCType.init;
     }
 
+    //TODO this will currently _not_ represent all intializers correctly, especially 64bit initializers will be zero
     uint[] initializer(const BCType type) pure const
     {
         assert(type.type == BCTypeEnum.Struct, "only structs can have initializers ... type passed: " ~ type.type.to!string);
@@ -682,6 +683,7 @@ struct SharedCtfeState(BCGenT)
         {
             result[i] = init;
         }
+
         return result;
     }
 
@@ -1471,7 +1473,7 @@ extern (C++) final class BCTypeVisitor : Visitor
                     uint value;
                     if(auto initExp = sMember._init.toExpression)
                     {
-                        if (initExp.type.ty == Tint32 || initExp.type.ty == Tint64)
+                        if (initExp.type.ty == Tint32 || initExp.type.ty == Tuns32)
                         {
                             auto initExpr = cast(IntegerExp) initExp;
                             value = cast (uint) initExpr.value;
@@ -2722,8 +2724,7 @@ static if (is(BCGen))
 
             if (v)
             {
-                _sharedCtfeState.pointerTypes[_sharedCtfeState.pointerCount++] = BCPointer(v.type, 1);
-                retval.type = BCType(BCTypeEnum.Ptr, _sharedCtfeState.pointerCount);
+                retval.type = _sharedCtfeState.pointerOf(v.type);
 
                 bailout(_sharedCtfeState.size(v.type) < 4, "only addresses of 32bit values or less are supported for now: " ~ se.toString);
                 auto addr = genTemporary(i32Type);
