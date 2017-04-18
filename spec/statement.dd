@@ -1515,9 +1515,6 @@ $(GNAME FinallyStatement):
         T1 is the same type as or a base class of T2.
         )
 
-        $(P $(I LastCatch) catches all exceptions.
-        )
-
         $(P The $(I FinallyStatement) is always executed, whether
         the $(D try) $(I ScopeStatement) exits with a goto, break,
         continue, return, exception, or fall-through.
