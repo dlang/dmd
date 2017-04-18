@@ -4413,6 +4413,44 @@ void test64()
 }
 
 /**********************************/
+
+struct S65
+{
+    static string t;
+
+    void bar(int a, int b)
+    {
+        t ~= "d";
+    }
+}
+
+S65 foo65a()
+{
+    S65.t ~= "a";
+    return S65();
+}
+
+int foo65b()
+{
+    S65.t ~= "b";
+    return 1;
+}
+
+int foo65c()
+{
+    S65.t ~= "c";
+    return 2;
+}
+
+void test65()
+{
+    import core.stdc.stdio;
+    foo65a().bar(foo65b(), foo65c());
+    printf("'%.*s'\n", cast(int)S65.t.length, S65.t.ptr);
+    assert(S65.t == "abcd");
+}
+
+/**********************************/
 // 15661
 
 struct X15661
@@ -4581,6 +4619,7 @@ int main()
     test14838();
     test63();
     test64();
+    test65();
     test15661();
 
     printf("Success\n");
