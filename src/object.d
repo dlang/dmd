@@ -3251,7 +3251,7 @@ bool __equals(T1, T2, size_t n1, size_t n2)(auto ref T1[n1] lhs, auto ref T2[n2]
 // lhs == rhs lowers to __equals(lhs, rhs) for arrays of all struct types.
 // old path: Typeinfo_array => TypeInfo_struct
 bool __equals(T1, T2)(T1[] lhs, T2[] rhs)
-{ 
+{
     if (lhs.length != rhs.length)
         return false;
 
