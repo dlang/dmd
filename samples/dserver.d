@@ -358,7 +358,7 @@ BOOL SetKeyAndValue(LPCSTR pszKey, LPCSTR pszSubkey, LPCSTR pszValue)
         if (null != pszValue)
         {
             if (RegSetValueExA(hKey, null, 0, REG_SZ, cast(BYTE *) pszValue,
-                               (strlen(pszValue) + 1) * char.sizeof) != ERROR_SUCCESS)
+                               cast(int)((strlen(pszValue) + 1) * char.sizeof)) != ERROR_SUCCESS)
                 result = false;
         }
 

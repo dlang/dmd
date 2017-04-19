@@ -892,7 +892,7 @@ Boolean Func_3(Enumeration Enum_Par_Val)
         return (false);
 } /* Func_3 */
 
-version (Win32)
+version (Windows)
 {
     import core.sys.windows.windows;
 
