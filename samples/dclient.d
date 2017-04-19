@@ -111,7 +111,7 @@ int dll_regserver(const (char) *dllname, int flag)
         if (hMod)
         {
             printf("LoadLibraryA() %s\n", (flag ? "registered".ptr : "unregistered".ptr));
-            pfn = GetProcAddress(hMod, fn);
+            pfn = cast(pfn_t) GetProcAddress(hMod, fn);
             printf("pfn = %p, fn = '%s'\n", pfn, fn);
 
             if (pfn && SUCCEEDED((*pfn)()))
