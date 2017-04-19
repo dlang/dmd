@@ -37,9 +37,9 @@ private static void clearArray(T)(auto ref T array, uint count)
 version = ctfe_noboundscheck;
 enum BCBlockJumpTarget
 {
-  Begin,
-  End,
-  Continue,
+    Begin,
+    End,
+    Continue,
 }
 
 struct BCBlockJump
