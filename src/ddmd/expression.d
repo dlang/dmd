@@ -15638,6 +15638,7 @@ extern (C++) final class EqualExp : BinExp
 
         if (auto e = binSemanticProp(sc))
             return e;
+
         if (e1.op == TOKtype || e2.op == TOKtype)
             return incompatibleTypes();
 
@@ -15689,6 +15690,37 @@ extern (C++) final class EqualExp : BinExp
 
         if (e1.type.toBasetype().ty == Tvector)
             return incompatibleTypes();
+
+        Type t1 = e1.type.toBasetype();
+        Type t2 = e2.type.toBasetype();
+
+        // Lower array of struct comparisons to druntime __equals
+        if ((t1.ty == Tarray || t1.ty == Tsarray) &&
+            (t2.ty == Tarray || t2.ty == Tsarray))
+        {
+            Type telement  = t1.nextOf().toBasetype();
+            Type telement2 = t2.nextOf().toBasetype();
+
+            if (telement.ty == Tstruct && telement2.ty == Tstruct)
+            {
+                Expression __equals = new IdentifierExp(loc, Id.empty);
+                Identifier id = Identifier.idPool("__equals");
+                __equals = new DotIdExp(loc, __equals, Id.object);
+                __equals = new DotIdExp(loc, __equals, id);
+
+                auto arguments = new Expressions();
+                arguments.push(e1);
+                arguments.push(e2);
+
+                __equals = new CallExp(loc, __equals, arguments);
+                if (op == TOKnotequal)
+                {
+                    __equals = new NotExp(loc, __equals);
+                }
+                __equals = __equals.semantic(sc);
+                return __equals;
+            }
+        }
 
         return this;
     }
