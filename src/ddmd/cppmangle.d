@@ -72,9 +72,10 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             if (components_on)
                 for (size_t i = 0; i < components.dim; i++)
                 {
-                    //printf("    component[%d] = %s\n", i, components[i] ? components[i].toChars() : null);
+                    //printf("    component[%d] = %s %s\n", i, components[i] ? components[i].toChars() : null, components[i] ? components[i].toCharsFull() : null);
                     import core.stdc.string : strcmp;
-                    if (p && components[i] && strcmp(p.toChars(), components[i].toChars()) == 0)
+                    //if (p && components[i] && (p == components[i] || (strcmp(p.toChars(), components[i].toChars()) == 0 && strcmp(p.toCharsFull(), components[i].toCharsFull()) == 0)))
+                    if (p && components[i] && (strcmp(p.toChars(), components[i].toChars()) == 0 && strcmp(p.toCharsFull(), components[i].toCharsFull()) == 0))
                     {
                         //printf("\tmatch\n");
                         /* Sequence is S_, S0_, .., S9_, SA_, ..., SZ_, S10_, ...
@@ -91,12 +92,14 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
         bool exist(RootObject p)
         {
-            //printf("exist %s\n", p ? p.toChars() : null);
+            //printf("exist %s\n", p ? p.toCharsFull() : null);
             if (components_on)
                 for (size_t i = 0; i < components.dim; i++)
                 {
                     import core.stdc.string : strcmp;
-                    if (p && components[i] && strcmp(p.toChars(), components[i].toChars()) == 0)
+                    //if (p && components[i] && (p == components[i] || strcmp(p.toCharsFull(), components[i].toCharsFull()) == 0))
+                    //if (p && components[i] && (p == components[i] || (strcmp(p.toChars(), components[i].toChars()) == 0 && strcmp(p.toCharsFull(), components[i].toCharsFull()) == 0)))
+                    if (p && components[i] && (strcmp(p.toChars(), components[i].toChars()) == 0 && strcmp(p.toCharsFull(), components[i].toCharsFull()) == 0))
                     {
                         return true;
                     }
@@ -108,19 +111,26 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
         {
             //printf("store %s\n", p ? p.toChars() : "null");
             if (components_on)
+            {
                 components.push(p);
+                //for (size_t i = 0; i < components.dim; i++)
+                //    printf("    component[%d] = %s\n", i, components[i].toCharsFull());
+            }
         }
 
-        void source_name(Dsymbol s, bool skipname = false)
+        void source_name(Dsymbol s, bool skipname = false, bool skipname2 = false)
         {
             //printf("source_name(%s)\n", s.toChars());
             TemplateInstance ti = s.isTemplateInstance();
             if (ti)
             {
-                if (!skipname && !substitute(ti.tempdecl))
+                if (!skipname && !skipname2 && !substitute(ti.tempdecl))
                 {
-                    if (!exist(ti.tempdecl.toAlias().ident))
-                        store(ti.tempdecl.toAlias().ident);
+                    store(ti.tempdecl);
+                    const(char)* name = ti.tempdecl.toAlias().ident.toChars();
+                    buf.printf("%d%s", strlen(name), name);
+                } else if (!skipname && skipname2)
+                {
                     const(char)* name = ti.tempdecl.toAlias().ident.toChars();
                     buf.printf("%d%s", strlen(name), name);
                 }
@@ -267,7 +277,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 {
                     store(s);
                     s = p;
-                    if (exist(p.isTemplateInstance().tempdecl))
+                    if (exist(p.isTemplateInstance()))
                     {
                         p = null;
                     }
@@ -285,7 +295,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 }
                 if (!(s.ident == Id.std && is_initial_qualifier(s)) && !s.isTemplateInstance())
                     store(s);
-                source_name(s);
+                source_name(s, false, true);
             }
         }
 

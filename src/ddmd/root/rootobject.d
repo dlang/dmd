@@ -59,6 +59,11 @@ extern (C++) class RootObject
         assert(0);
     }
 
+    const(char)* toCharsFull()
+    {
+        assert(0);
+    }
+
     void toBuffer(OutBuffer* buf)
     {
         assert(0);

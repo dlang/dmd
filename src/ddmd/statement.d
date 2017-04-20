@@ -140,6 +140,11 @@ extern (C++) abstract class Statement : RootObject
         return buf.extractString();
     }
 
+    override const(char)* toCharsFull()
+    {
+        return toChars();
+    }
+
     final void error(const(char)* format, ...)
     {
         va_list ap;
@@ -1844,6 +1849,11 @@ extern (C++) final class Catch : RootObject
         auto c = new Catch(loc, type ? type.syntaxCopy() : getThrowable(), ident, (handler ? handler.syntaxCopy() : null));
         c.internalCatch = internalCatch;
         return c;
+    }
+
+    override const(char)* toCharsFull()
+    {
+        return toChars();
     }
 }
 

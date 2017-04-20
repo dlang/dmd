@@ -856,6 +856,18 @@ extern (C++) abstract class Type : RootObject
         return buf.extractString();
     }
 
+    override const(char)* toCharsFull()
+    {
+        import std.conv : to;
+        import std.string : toStringz;
+        if (nextOf())
+        {
+            string r = to!string(nextOf().toCharsFull()) ~ '.' ~ to!string(toPrettyChars(true));
+            return toStringz(r);
+        }
+        return toPrettyChars(true);
+    }
+
     final char* toPrettyChars(bool QualifyTypes = false)
     {
         OutBuffer buf;
@@ -8282,6 +8294,47 @@ extern (C++) final class TypeStruct : Type
         this.sym = sym;
     }
 
+    override const(char)* toCharsFull()
+    {
+        import std.conv : to;
+        import std.string : toStringz;
+
+        string s = to!string(super.toCharsFull());
+        s ~= '[';
+
+        for (size_t i = 0; i < sym.fields.dim; i++)
+        {
+            RootObject o = sym.fields[i];
+            //Type ta = isType(o);
+            //Expression ea = isExpression(o);
+            Dsymbol sa = isDsymbol(o);
+            //Tuple va = isTuple(o);
+            //printf("\tsym.fields[%d] = ta %p, ea %p, sa %s, va %p\n", i, ta, ea, sa ? sa.toCharsFull() : null, va);
+            if (o)
+            {
+                if(sa && sa.isVarDeclaration())
+                {
+                    auto t = sa.toParent();
+                    while(!t.isTemplateInstance())
+                        t = t.toParent();
+                    if(t.isTemplateInstance())
+                        s ~= to!string(t.isTemplateInstance().tdtypes[i].toCharsFull()) ~ ';';
+                }
+                else if (sa && sa.isTemplateInstance())
+                {
+                    printf("TypeStruct sym.fields[%d] isTemplateTypeParameter \n", i);
+                    s ~= to!string(sa.isTemplateInstance().tdtypes[i].toCharsFull()) ~ ';';
+                }
+                else
+                    s ~= to!string(o.toCharsFull()) ~ ';';
+            }
+        }
+
+        s ~= ']';
+
+        return toStringz(s);
+    }
+
     override const(char)* kind() const
     {
         return "struct";
@@ -10295,6 +10348,11 @@ extern (C++) final class Parameter : RootObject
     override const(char)* toChars() const
     {
         return ident ? ident.toChars() : "__anonymous_param";
+    }
+
+    override const(char)* toCharsFull()
+    {
+        return toChars();
     }
 
     /*********************************

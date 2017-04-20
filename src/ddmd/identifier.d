@@ -71,6 +71,11 @@ public:
         return string;
     }
 
+    override const(char)* toCharsFull()
+    {
+        return toChars();
+    }
+
     extern (D) final const(char)[] toString() const
     {
         return string[0 .. len];

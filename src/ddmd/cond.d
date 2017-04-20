@@ -48,6 +48,11 @@ extern (C++) abstract class Condition : RootObject
         this.loc = loc;
     }
 
+    override const(char)* toCharsFull()
+    {
+        return loc.toChars();
+    }
+
     abstract Condition syntaxCopy();
 
     abstract int include(Scope* sc, ScopeDsymbol sds);
@@ -77,6 +82,11 @@ extern (C++) class DVCondition : Condition
         this.mod = mod;
         this.level = level;
         this.ident = ident;
+    }
+
+    override const(char)* toCharsFull()
+    {
+        return ident.toChars();
     }
 
     override final Condition syntaxCopy()
@@ -200,6 +210,11 @@ extern (C++) final class DebugCondition : DVCondition
     override const(char)* toChars()
     {
         return ident ? ident.toChars() : "debug".ptr;
+    }
+
+    override const(char)* toCharsFull()
+    {
+        return toChars();
     }
 }
 
@@ -478,6 +493,11 @@ extern (C++) final class VersionCondition : DVCondition
     {
         return ident ? ident.toChars() : "version".ptr;
     }
+
+    override const(char)* toCharsFull()
+    {
+        return toChars();
+    }
 }
 
 /***********************************************************
@@ -576,6 +596,11 @@ extern (C++) final class StaticIfCondition : Condition
     override const(char)* toChars()
     {
         return exp ? exp.toChars() : "static if".ptr;
+    }
+
+    override const(char)* toCharsFull()
+    {
+        return toChars();
     }
 }
 

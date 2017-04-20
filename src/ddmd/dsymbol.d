@@ -231,6 +231,20 @@ extern (C++) class Dsymbol : RootObject
         return ident ? ident.toChars() : "__anonymous";
     }
 
+    override const(char)* toCharsFull()
+    {
+        import std.conv : to;
+        import std.string : toStringz;
+        if (parent)
+        {
+            //string r = format("%s.%s", to!string(parent.toCharsFull()), to!string(toChars));
+            string r = to!string(parent.toCharsFull()) ~ '.' ~ to!string(toChars);
+            return toStringz(r);
+        }
+        return toChars();
+    }
+
+
     // helper to print fully qualified (template) arguments
     const(char)* toPrettyCharsHelper()
     {

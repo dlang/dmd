@@ -478,6 +478,11 @@ extern (C++) final class Tuple : RootObject
     {
         return objects.toChars();
     }
+
+    override const(char)* toCharsFull()
+    {
+        return toChars();
+    }
 }
 
 struct TemplatePrevious
@@ -6871,6 +6876,32 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         toCBufferInstance(this, &buf, true);
         return buf.extractString();
     }
+
+    override const(char)* toCharsFull()
+    {
+        import std.conv : to;
+        import std.string : toStringz;
+
+        string s = to!string(super.toCharsFull());
+        s ~= '[';
+
+        for (size_t j = 0; j < tdtypes.dim; j++)
+        {
+            RootObject o = tdtypes[j];
+            //Type ta = isType(o);
+            //Expression ea = isExpression(o);
+            //Dsymbol sa = isDsymbol(o);
+            //Tuple va = isTuple(o);
+            //printf("\ttiargs[%d] = ta %s, ea %p, sa %s, va %p\n", j, ta, ea, sa, va);
+            if (o)
+                s ~= to!string(o.toCharsFull()) ~ ';';
+        }
+
+        s ~= ']';
+
+        return toStringz(s);
+    }
+
 
     /**************************************
      * Given an error instantiating the TemplateInstance,
