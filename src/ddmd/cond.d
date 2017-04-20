@@ -529,41 +529,26 @@ extern (C++) final class StaticIfCondition : Condition
                 inc = 2;
                 return 0;
             }
+
             ++nest;
             sc = sc.push(sc.scopesym);
             sc.sds = sds; // sds gets any addMember()
-            //sc.speculative = true;       // TODO: static if (is(T U)) { /* U is available */ }
-            sc.flags |= SCOPEcondition;
-            sc = sc.startCTFE();
-            Expression e = exp.semantic(sc);
-            e = resolveProperties(sc, e);
-            sc = sc.endCTFE();
+
+            import ddmd.staticcond;
+            bool errors;
+            bool result = evalStaticCondition(sc, exp, exp, errors);
             sc.pop();
             --nest;
             // Prevent repeated condition evaluation.
             // See: fail_compilation/fail7815.d
             if (inc != 0)
                 return (inc == 1);
-            if (!e.type.isBoolean())
-            {
-                if (e.type.toBasetype() != Type.terror)
-                    exp.error("expression %s of type %s does not have a boolean value", exp.toChars(), e.type.toChars());
+            if (errors)
                 return errorReturn();
-            }
-            e = e.ctfeInterpret();
-            if (e.op == TOKerror)
-            {
-                return errorReturn();
-            }
-            else if (e.isBool(true))
+            if (result)
                 inc = 1;
-            else if (e.isBool(false))
-                inc = 2;
             else
-            {
-                e.error("expression %s is not constant or does not evaluate to a bool", e.toChars());
-                return errorReturn();
-            }
+                inc = 2;
         }
         return (inc == 1);
     }

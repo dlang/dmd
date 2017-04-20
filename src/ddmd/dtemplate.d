@@ -883,38 +883,20 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         Expression e = constraint.syntaxCopy();
 
-        scx = scx.startCTFE();
-        scx.flags |= SCOPEcondition | SCOPEconstraint;
+        import ddmd.staticcond;
+
         assert(ti.inst is null);
         ti.inst = ti; // temporary instantiation to enable genIdent()
-
-        //printf("\tscx.parent = %s %s\n", scx.parent.kind(), scx.parent.toPrettyChars());
-        e = e.semantic(scx);
-        e = resolveProperties(scx, e);
-
+        scx.flags |= SCOPEconstraint;
+        bool errors;
+        bool result = evalStaticCondition(scx, constraint, e, errors);
         ti.inst = null;
         ti.symtab = null;
-        scx = scx.endCTFE();
-
         scx = scx.pop();
         previous = pr.prev; // unlink from threaded list
-
-        if (nerrors != global.errors) // if any errors from evaluating the constraint, no match
+        if (errors)
             return false;
-        if (e.op == TOKerror)
-            return false;
-
-        e = e.ctfeInterpret();
-        if (e.isBool(true))
-        {
-        }
-        else if (e.isBool(false))
-            return false;
-        else
-        {
-            e.error("constraint %s is not constant or does not evaluate to a bool", e.toChars());
-        }
-        return true;
+        return result;
     }
 
     /***************************************
