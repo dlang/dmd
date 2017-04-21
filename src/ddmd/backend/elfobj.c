@@ -1695,7 +1695,8 @@ STATIC void obj_tlssections()
  * Returns:
  *      "segment index" of COMDAT
  * References:
- *      COMDAT sections https://www.airs.com/blog/archives/52
+ *      Section Groups http://www.sco.com/developers/gabi/2003-12-17/ch4.sheader.html#section_groups
+ *      COMDAT section groups https://www.airs.com/blog/archives/52
  */
 
 STATIC void setup_comdat(Symbol *s)
@@ -1717,28 +1718,7 @@ STATIC void setup_comdat(Symbol *s)
 #else
         reset_symbuf->write(&s, sizeof(s));
 
-        //s->Sfl = FLcode;      // was FLoncecode
-        /* ".gnu.linkonce.t" sections result in "Too many sections" errors from ld.
-         * prefix = ".gnu.linkonce.t";
-         */
-
-        /* Get section index of the comdat
-         */
-        IDXSEC comdatidx = section_cnt + 1;
-
-        /* create a weak symbol with the group signature in it.
-         *    4  .22 .weak _Z3barIiEiT_,@FUNCTION,VALUE=.text._Z3barIiEiT_+0x00,SIZE=14
-         */
-        const char *p = cpp_mangle(s);
-        IDXSTR namidx = Obj::addstr(symtab_strings, p);
-        IDXSYM info = elf_addsym(namidx, 0, 0, STT_FUNC, STB_WEAK, comdatidx);
-
-        s->Sxtrnnum = info;
-
-        /* Create a section with a type of SHT_GROUP and group flag GRP_COMDAT
-         *    Section 4  .group  GROUP,ENTRIES=2,OFFSET=0x00F0,ALIGN=4,LINK=10,INFO=4
-         *    dd GRP_COMDAT, 5
-         */
+        // Create a COMDAT section group
         IDXSTR groupnamidx = section_names->size();
         section_names->writeString(".group");
         IDXSTR *pidx = (IDXSTR *)section_names_hashtable->get(&groupnamidx);
@@ -1749,27 +1729,26 @@ STATIC void setup_comdat(Symbol *s)
         }
         else
             *pidx = groupnamidx;
-        IDXSEC groupidx = elf_newsection2(groupnamidx, SHT_GROUP, 0, 0, 0, 0, SHN_SYMTAB, info, 4, 4);
-        int groupseg = elf_getsegment2(groupidx, info, 0);
-        seg_data *pseg = SegData[groupseg];
-        pseg->SDbuf->write32(GRP_COMDAT);
-        pseg->SDbuf->write32(comdatidx);
+        const IDXSEC groupsecidx = elf_newsection2(groupnamidx, SHT_GROUP, 0, 0, 0, 0, SHN_SYMTAB, 0, sizeof(IDXSYM), sizeof(IDXSYM));
+        const int groupseg = elf_getsegment2(groupsecidx, 0, 0);
+        SegData[groupseg]->SDbuf->write32(GRP_COMDAT);
 
-        /* Create a section with the SHF_GROUP bit set
-         *    Section 5  .text._Z3barIiEiT_  PROGBITS,ALLOC,EXEC,GROUP,SIZE=0x000E(14),OFFSET=0x0060,ALIGN=16
-         */
+        const char *p = cpp_mangle(s);
+        // Create a section for the comdat symbol with the SHF_GROUP bit set
         s->Sseg = ElfObj::getsegment(".text.", p, SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR|SHF_GROUP, align);
-        IDXSEC comdatidx2 = MAP_SEG2SECIDX(s->Sseg);
-        if (comdatidx2 != comdatidx)
-        {
-            /* This can happen if there are two function definitions with the same signature.
-             * It really should be an error, but it's in the test suite as compile1.d, bug6720()
-             */
-            if (I64)
-                SymbolTable64[STI_FILE].st_shndx = comdatidx2;
-            else
-                SymbolTable[STI_FILE].st_shndx = comdatidx2;
-        }
+        // add to section group
+        SegData[groupseg]->SDbuf->write32(MAP_SEG2SECIDX(s->Sseg));
+
+        // Create a weak symbol for the comdat
+        IDXSTR namidx = Obj::addstr(symtab_strings, p);
+        s->Sxtrnnum = elf_addsym(namidx, 0, 0, STT_FUNC, STB_WEAK, MAP_SEG2SECIDX(s->Sseg));
+
+        /* Set the weak symbol as comdat group symbol. This symbol determines
+         * whether all or none of the sections in the group get linked. It's
+         * also the only symbol in all group sections that might be referenced
+         * from outside of the group.
+        */
+        SecHdrTab[groupsecidx].sh_info = s->Sxtrnnum;
 
         if (s->Salignment > align)
             SegData[s->Sseg]->SDalignment = s->Salignment;
@@ -3345,10 +3324,9 @@ static void obj_rtinit()
     minfo_end = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
     }
 
-    // create section group
+    // Create a COMDAT section group
     const int groupseg = ElfObj::getsegment(".group.d_dso", NULL, SHT_GROUP, 0, 0);
-
-    SegData[groupseg]->SDbuf->write32(0x1); // GRP_COMDAT
+    SegData[groupseg]->SDbuf->write32(GRP_COMDAT);
 
     {
         /*
