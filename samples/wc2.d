@@ -1,12 +1,13 @@
 import std.stdio;
 import std.file;
+import std.algorithm.sorting;
 
-int main (string[] args)
+void main (string[] args)
 {
     int w_total;
     int l_total;
     ulong c_total;
-    int[string] dictionary;
+    size_t[string] dictionary;
 
     writefln("   lines   words   bytes file");
     foreach (arg; args[1 .. $])
@@ -18,7 +19,7 @@ int main (string[] args)
         if (c_cnt < 10_000_000)
         {
             size_t wstart;
-            auto input = cast(string)std.file.read(arg);
+            auto input = readText(arg);
 
             foreach (j, c; input)
             {
@@ -109,10 +110,8 @@ int main (string[] args)
 
     writefln("--------------------------------------");
 
-    import std.algorithm;
     foreach (word1; dictionary.keys.sort())
     {
         writefln("%3s %s", dictionary[word1], word1);
     }
-    return 0;
 }
