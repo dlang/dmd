@@ -692,6 +692,6 @@ int interpret(const C_BCGen gen)(BCValue[] args)
     return fn(args);
 }
 
-import bc_test;
+import ddmd.ctfe.bc_test;
 
-static assert(bc_test.test!C_BCGen);
+static assert(test!C_BCGen);

@@ -1,4 +1,4 @@
-module bc_test;
+module ddmd.ctfe.bc_test;
 
 /// All my bc-tests
 /// A Backend passing this can be considered a working CTFE-Backend for the code the new engine can execute

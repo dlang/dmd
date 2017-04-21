@@ -2086,6 +2086,6 @@ int[] testRelJmp()
 }
 
 static assert(interpret_(testRelJmp(), []) == BCValue(Imm32(12)));
-import bc_test;
+import ddmd.ctfe.bc_test;
 
 static assert(test!BCGen());
