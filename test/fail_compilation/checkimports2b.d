@@ -2,11 +2,16 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/checkimports2b.d(22): Deprecation: local import search method found variable imports.imp2.X instead of variable checkimports2b.X
-fail_compilation/checkimports2b.d(28): Deprecation: local import search method found variable imports.imp2.X instead of nothing
-fail_compilation/checkimports2b.d(29): Deprecation: local import search method found variable imports.imp2.Y instead of nothing
-fail_compilation/checkimports2b.d(31): Deprecation: local import search method found variable imports.imp2.X instead of variable checkimports2b.X
-fail_compilation/checkimports2b.d(32): Deprecation: local import search method found variable imports.imp2.Y instead of variable imports.imp1.Y
+fail_compilation/checkimports2b.d(27): Deprecation: local import search method found variable imports.imp2.X instead of variable checkimports2b.X
+fail_compilation/checkimports2b.d(27):        while evaluating: static assert(2 == 2)
+fail_compilation/checkimports2b.d(33): Deprecation: local import search method found variable imports.imp2.X instead of nothing
+fail_compilation/checkimports2b.d(33):        while evaluating: static assert(2 == 2)
+fail_compilation/checkimports2b.d(34): Deprecation: local import search method found variable imports.imp2.Y instead of nothing
+fail_compilation/checkimports2b.d(34):        while evaluating: static assert(2 == 2)
+fail_compilation/checkimports2b.d(36): Deprecation: local import search method found variable imports.imp2.X instead of variable checkimports2b.X
+fail_compilation/checkimports2b.d(36):        while evaluating: static assert(2 == 2)
+fail_compilation/checkimports2b.d(37): Deprecation: local import search method found variable imports.imp2.Y instead of variable imports.imp1.Y
+fail_compilation/checkimports2b.d(37):        while evaluating: static assert(2 == 2)
 ---
 */
 

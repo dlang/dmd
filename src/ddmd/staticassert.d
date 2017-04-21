@@ -57,27 +57,16 @@ extern (C++) final class StaticAssert : Dsymbol
         sc = sc.push(sds);
         sc.tinst = null;
         sc.minst = null;
-        sc.flags |= SCOPEcondition;
-        sc = sc.startCTFE();
-        Expression e = exp.semantic(sc);
-        e = resolveProperties(sc, e);
-        sc = sc.endCTFE();
+
+        import ddmd.staticcond;
+        bool errors;
+        bool result = evalStaticCondition(sc, exp, exp, errors);
         sc = sc.pop();
-        // Simplify expression, to make error messages nicer if CTFE fails
-        e = e.optimize(WANTvalue);
-        if (!e.type.isBoolean())
-        {
-            if (e.type.toBasetype() != Type.terror)
-                exp.error("expression %s of type %s does not have a boolean value", exp.toChars(), e.type.toChars());
-            return;
-        }
-        uint olderrs = global.errors;
-        e = e.ctfeInterpret();
-        if (global.errors != olderrs)
+        if (errors)
         {
             errorSupplemental(loc, "while evaluating: static assert(%s)", exp.toChars());
         }
-        else if (e.isBool(false))
+        else if (!result)
         {
             if (msg)
             {
@@ -101,10 +90,6 @@ extern (C++) final class StaticAssert : Dsymbol
                 sc.tinst.printInstantiationTrace();
             if (!global.gag)
                 fatal();
-        }
-        else if (!e.isBool(true))
-        {
-            error("(%s) is not evaluatable at compile time", exp.toChars());
         }
     }
 
