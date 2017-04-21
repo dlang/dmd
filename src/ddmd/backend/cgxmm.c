@@ -1644,7 +1644,12 @@ void checkSetVex(code *c, tym_t ty)
             case UCOMISS:
             case UCOMISD:
             case MOVDDUP:
+            case MOVSHDUP:
+            case MOVSLDUP:
             case VBROADCASTSS:
+            case PSHUFD:
+            case PSHUFHW:
+            case PSHUFLW:
                 vreg = 0;       // for 2 operand vex instructions
                 break;
 
