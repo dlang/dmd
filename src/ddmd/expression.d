@@ -5136,7 +5136,7 @@ extern (C++) final class ArrayLiteralExp : Expression
      *      e2  = If it's not `null`, it will be pushed/appended to the new
      *            `Expressions` by the same way with `e1`.
      * Returns:
-     *      Newly allocated `Expressions. Note that it points the original
+     *      Newly allocated `Expressions`. Note that it points to the original
      *      `Expression` values in e1 and e2.
      */
     static Expressions* copyElements(Expression e1, Expression e2 = null)
@@ -15209,17 +15209,6 @@ extern (C++) final class OrOrExp : BinExp
         e1 = e1.toBoolean(sc);
         uint cs1 = sc.callSuper;
 
-        if (sc.flags & SCOPEcondition)
-        {
-            /* If in static if, don't evaluate e2 if we don't have to.
-             */
-            e1 = e1.optimize(WANTvalue);
-            if (e1.isBool(true))
-            {
-                return new IntegerExp(loc, 1, Type.tbool);
-            }
-        }
-
         e2 = e2.semantic(sc);
         sc.mergeCallSuper(loc, cs1);
         e2 = resolveProperties(sc, e2);
@@ -15285,17 +15274,6 @@ extern (C++) final class AndAndExp : BinExp
         e1 = resolveProperties(sc, e1);
         e1 = e1.toBoolean(sc);
         uint cs1 = sc.callSuper;
-
-        if (sc.flags & SCOPEcondition)
-        {
-            /* If in static if, don't evaluate e2 if we don't have to.
-             */
-            e1 = e1.optimize(WANTvalue);
-            if (e1.isBool(false))
-            {
-                return new IntegerExp(loc, 0, Type.tbool);
-            }
-        }
 
         e2 = e2.semantic(sc);
         sc.mergeCallSuper(loc, cs1);
