@@ -68,16 +68,16 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
         bool substitute(RootObject p)
         {
-            //printf("substitute %s\n", p ? p.toChars() : null);
+            printf("substitute %s\n", p ? p.toChars() : null);
             if (components_on)
                 for (size_t i = 0; i < components.dim; i++)
                 {
-                    //printf("    component[%d] = %s %s\n", i, components[i] ? components[i].toChars() : null, components[i] ? components[i].toCharsFull() : null);
+                    printf("    component[%d] = %s %s\n", i, components[i] ? components[i].toChars() : null, components[i] ? components[i].toCharsFull() : null);
                     import core.stdc.string : strcmp;
                     //if (p && components[i] && (p == components[i] || (strcmp(p.toChars(), components[i].toChars()) == 0 && strcmp(p.toCharsFull(), components[i].toCharsFull()) == 0)))
                     if (p && components[i] && (strcmp(p.toChars(), components[i].toChars()) == 0 && strcmp(p.toCharsFull(), components[i].toCharsFull()) == 0))
                     {
-                        //printf("\tmatch\n");
+                        printf("\tmatch\n");
                         /* Sequence is S_, S0_, .., S9_, SA_, ..., SZ_, S10_, ...
                          */
                         buf.writeByte('S');
@@ -109,18 +109,18 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
         void store(RootObject p)
         {
-            //printf("store %s\n", p ? p.toChars() : "null");
+            printf("store %s\n", p ? p.toChars() : "null");
             if (components_on)
             {
                 components.push(p);
-                //for (size_t i = 0; i < components.dim; i++)
-                //    printf("    component[%d] = %s\n", i, components[i].toCharsFull());
+                for (size_t i = 0; i < components.dim; i++)
+                    printf("    component[%d] = %s\n", i, components[i].toCharsFull());
             }
         }
 
         void source_name(Dsymbol s, bool skipname = false, bool skipname2 = false)
         {
-            //printf("source_name(%s)\n", s.toChars());
+            printf("source_name(%s)\n", s.toChars());
             TemplateInstance ti = s.isTemplateInstance();
             if (ti)
             {
@@ -196,11 +196,11 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                         Type t = isType(o);
                         assert(t);
                         t.accept(this);
-                        if (s && s.isTemplateInstance()) {
-                            if (!(s.ident == Id.std && is_initial_qualifier(s)) && !exist(s)) {
-                                store(s);
-                            }
-                        }
+                        //if (s && s.isTemplateInstance()) {
+                        //    if (!(s.ident == Id.std && is_initial_qualifier(s)) && !exist(s)) {
+                        //        store(s);
+                        //    }
+                        //}
                     }
                     else if (tp.isTemplateAliasParameter())
                     {
@@ -253,6 +253,8 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                     buf.writeByte('E');
                 }
                 buf.writeByte('E');
+                if(!exist(ti))
+                    store(ti);
                 return;
             }
             else
@@ -269,7 +271,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
         void prefix_name(Dsymbol s)
         {
-            //printf("prefix_name(%s)\n", s.toChars());
+            printf("prefix_name(%s)\n", s.toChars());
             if (!substitute(s))
             {
                 Dsymbol p = s.toParent();
@@ -294,7 +296,9 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                         prefix_name(p);
                 }
                 if (!(s.ident == Id.std && is_initial_qualifier(s)) && !s.isTemplateInstance())
+                //if (!(s.ident == Id.std && is_initial_qualifier(s)))
                     store(s);
+                //source_name(s, false, true);
                 source_name(s, false, true);
             }
         }
@@ -307,6 +311,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             if (p && p.isTemplateInstance())
             {
                 if (exist(p.isTemplateInstance().tempdecl))
+                //if (exist(p.isTemplateInstance()))
                 {
                     return true;
                 }
@@ -317,7 +322,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
         void cpp_mangle_name(Dsymbol s, bool qualified)
         {
-            //printf("cpp_mangle_name(%s, %d)\n", s.toChars(), qualified);
+            printf("cpp_mangle_name(%s, %d)\n", s.toChars(), qualified);
             Dsymbol p = s.toParent();
             Dsymbol se = s;
             bool dont_write_prefix = false;
@@ -325,6 +330,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             {
                 se = p;
                 if (exist(p.isTemplateInstance().tempdecl))
+                //if (exist(p.isTemplateInstance()))
                     dont_write_prefix = true;
                 p = p.toParent();
             }
