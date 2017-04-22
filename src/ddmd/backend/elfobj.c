@@ -1736,8 +1736,13 @@ STATIC void setup_comdat(Symbol *s)
         const char *p = cpp_mangle(s);
         // Create a section for the comdat symbol with the SHF_GROUP bit set
         s->Sseg = ElfObj::getsegment(".text.", p, SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR|SHF_GROUP, align);
+        /* Workaround https://issues.dlang.org/show_bug.cgi?id=17339, there was
+         * a previous instance with the same mangling.  Leave the section group
+         * empty and reuse the existing one. */
+        const bool issue17339 = MAP_SEG2SECIDX(s->Sseg) < groupsecidx;
         // add to section group
-        SegData[groupseg]->SDbuf->write32(MAP_SEG2SECIDX(s->Sseg));
+        if (!issue17339)
+            SegData[groupseg]->SDbuf->write32(MAP_SEG2SECIDX(s->Sseg));
 
         // Create a weak symbol for the comdat
         IDXSTR namidx = Obj::addstr(symtab_strings, p);
@@ -1752,8 +1757,17 @@ STATIC void setup_comdat(Symbol *s)
 
         if (s->Salignment > align)
             SegData[s->Sseg]->SDalignment = s->Salignment;
-        SegData[s->Sseg]->SDsym = s;
-        SegData[s->Sseg]->SDassocseg = groupseg;
+        if (issue17339)
+        {
+            // existing section symbol and associated group
+            assert(SegData[s->Sseg]->SDsym);
+            assert(SegData[s->Sseg]->SDassocseg);
+        }
+        else
+        {
+            SegData[s->Sseg]->SDsym = s;
+            SegData[s->Sseg]->SDassocseg = groupseg;
+        }
         return;
 #endif
     }
