@@ -350,6 +350,19 @@ all: dmd
 auto-tester-build: dmd checkwhitespace $G/dmd_frontend
 .PHONY: auto-tester-build
 
+toolchain-info:
+	@echo '==== Toolchain Information ===='
+	@echo 'uname -a:' $$(uname -a)
+	@echo 'MAKE(${MAKE}):' $$(${MAKE} --version)
+	@echo 'SHELL(${SHELL}):' $$(${SHELL} --version || true)
+	@echo 'HOST_DMD(${HOST_DMD}):' $$(${HOST_DMD} --version)
+	@echo 'HOST_CXX(${HOST_CXX}):' $$(${HOST_CXX} --version)
+# Not currently possible to choose what linker HOST_CXX uses via `make LD=ld.gold`.
+	@echo ld: $$(ld -v)
+	@echo gdb: $$(! command -v gdb &>/dev/null || gdb --version)
+	@echo '==== Toolchain Information ===='
+	@echo
+
 $G/glue.a: $(G_GLUE_OBJS)
 	$(AR) rcs $@ $(G_GLUE_OBJS)
 
