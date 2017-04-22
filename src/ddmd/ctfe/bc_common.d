@@ -622,11 +622,11 @@ template ensureIsBCGen(BCGenT)
         BCGenT.stringof ~ " is missing BCValue genParameter(BCType bct)");
     static assert(is(typeof(BCGenT.beginJmp()) == BCAddr),
         BCGenT.stringof ~ " is missing BCAddr beginJmp()");
+    static assert(is(typeof(BCGenT.endJmp(BCAddr.init, BCLabel.init)) == void),
+        BCGenT.stringof ~ " is missing void endJmp(BCAddr atIp, BCLabel target)");
     static assert(is(typeof(BCGenT.incSp()) == void), BCGenT.stringof ~ " is missing void incSp()");
     static assert(is(typeof(BCGenT.currSp()) == StackAddr),
         BCGenT.stringof ~ " is missing StackAddr currSp()");
-    static assert(is(typeof(BCGenT.endJmp(BCAddr.init, BCLabel.init)) == void),
-        BCGenT.stringof ~ " is missing void endJmp(BCAddr atIp, BCLabel target)");
     static assert(is(typeof(BCGenT.genLabel()) == BCLabel),
         BCGenT.stringof ~ " is missing BCLabel genLabel()");
     static assert(is(typeof(BCGenT.beginCndJmp(BCValue.init,
@@ -698,15 +698,10 @@ template ensureIsBCGen(BCGenT)
     static assert(is(typeof(BCGenT.Store32(BCValue.init,
         BCValue.init)) == void),
         BCGenT.stringof ~ " is missing void Store32(BCValue _to, BCValue value)");
-    static assert(is(typeof(BCGenT.Byte3(BCValue.init, BCValue.init,
-        BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Byte3(BCValue result, BCValue word, BCValue idx)");
     static assert(is(typeof(BCGenT.Ret(BCValue.init)) == void),
         BCGenT.stringof ~ " is missing void Ret(BCValue val)");
-    static assert(is(typeof(BCGenT.Cat(BCValue.init, BCValue.init,
-        BCValue.init, uint.init)) == void),
-        BCGenT.stringof
-        ~ " is missing void Cat(BCValue result, const BCValue lhs, const BCValue rhs, const uint size)");
+    static assert(is(typeof(BCGenT.insideFunction)) == bool),
+        BCGenT.stringof ~ " is missing bool insideFunction");
 
     enum ensureIsBCGen = true;
 }
