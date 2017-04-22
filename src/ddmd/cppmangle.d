@@ -76,6 +76,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                     import core.stdc.string : strcmp;
                     //if (p && components[i] && (p == components[i] || (strcmp(p.toChars(), components[i].toChars()) == 0 && strcmp(p.toCharsFull(), components[i].toCharsFull()) == 0)))
                     if (p && components[i] && (strcmp(p.toChars(), components[i].toChars()) == 0 && strcmp(p.toCharsFull(), components[i].toCharsFull()) == 0))
+                    //if (p == components[i])
                     {
                         printf("\tmatch\n");
                         /* Sequence is S_, S0_, .., S9_, SA_, ..., SZ_, S10_, ...
@@ -100,6 +101,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                     //if (p && components[i] && (p == components[i] || strcmp(p.toCharsFull(), components[i].toCharsFull()) == 0))
                     //if (p && components[i] && (p == components[i] || (strcmp(p.toChars(), components[i].toChars()) == 0 && strcmp(p.toCharsFull(), components[i].toCharsFull()) == 0)))
                     if (p && components[i] && (strcmp(p.toChars(), components[i].toChars()) == 0 && strcmp(p.toCharsFull(), components[i].toCharsFull()) == 0))
+                    //if (p == components[i])
                     {
                         return true;
                     }
@@ -107,9 +109,9 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             return false;
         }
 
-        void store(RootObject p)
+        void store(RootObject p, int line)
         {
-            printf("store %s\n", p ? p.toChars() : "null");
+            printf("store %s, caller line = %d\n", p ? p.toChars() : "null", line);
             if (components_on)
             {
                 components.push(p);
@@ -118,22 +120,25 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             }
         }
 
-        void source_name(Dsymbol s, bool skipname = false, bool skipname2 = false)
+        //void source_name(Dsymbol s, bool skipname = false, bool skipname2 = false)
+        void source_name(Dsymbol s, bool skipname = false)
         {
             printf("source_name(%s)\n", s.toChars());
             TemplateInstance ti = s.isTemplateInstance();
             if (ti)
             {
-                if (!skipname && !skipname2 && !substitute(ti.tempdecl))
+                //if (!skipname && !skipname2 && !substitute(ti.tempdecl))
+                if (!skipname && !substitute(ti.tempdecl))
                 {
-                    store(ti.tempdecl);
-                    const(char)* name = ti.tempdecl.toAlias().ident.toChars();
-                    buf.printf("%d%s", strlen(name), name);
-                } else if (!skipname && skipname2)
-                {
+                    store(ti.tempdecl, __LINE__);
                     const(char)* name = ti.tempdecl.toAlias().ident.toChars();
                     buf.printf("%d%s", strlen(name), name);
                 }
+                //else if (!skipname && skipname2)
+                //{
+                //    const(char)* name = ti.tempdecl.toAlias().ident.toChars();
+                //    buf.printf("%d%s", strlen(name), name);
+                //}
                 buf.writeByte('I');
                 bool is_var_arg = false;
                 for (size_t i = 0; i < ti.tiargs.dim; i++)
@@ -254,7 +259,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 }
                 buf.writeByte('E');
                 if(!exist(ti))
-                    store(ti);
+                    store(ti, __LINE__);
                 return;
             }
             else
@@ -277,9 +282,9 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 Dsymbol p = s.toParent();
                 if (p && p.isTemplateInstance())
                 {
-                    store(s);
+                    //store(s);
                     s = p;
-                    if (exist(p.isTemplateInstance()))
+                    if (exist(p.isTemplateInstance().tempdecl))
                     {
                         p = null;
                     }
@@ -295,11 +300,13 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                     else
                         prefix_name(p);
                 }
-                if (!(s.ident == Id.std && is_initial_qualifier(s)) && !s.isTemplateInstance())
                 //if (!(s.ident == Id.std && is_initial_qualifier(s)))
-                    store(s);
+                //if (!(s.ident == Id.std && is_initial_qualifier(s)) && !s.isTemplateInstance())
+                if ((!(s.ident == Id.std && is_initial_qualifier(s)) && components.dim > 0) || (!(s.ident == Id.std && is_initial_qualifier(s)) && !s.isTemplateInstance()))
+                    store(s, __LINE__);
                 //source_name(s, false, true);
-                source_name(s, false, true);
+                //source_name(s, false, true);
+                source_name(s);
             }
         }
 
@@ -414,7 +421,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             }
             else
                 source_name(se);
-            store(s);
+            store(s, __LINE__);
         }
 
         void mangle_variable(VarDeclaration d, bool is_temp_arg_ref)
@@ -449,7 +456,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
         void mangle_function(FuncDeclaration d)
         {
-            //printf("mangle_function(%s)\n", d.toChars());
+            printf("mangle_function(%s)\n", d.toChars());
             /*
              * <mangled-name> ::= _Z <encoding>
              * <encoding> ::= <function name> <bare-function-type>
@@ -727,7 +734,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 }
                 else
                 {
-                    store(t);
+                    store(t, __LINE__);
                 }
             }
             if (t.isConst())
@@ -742,7 +749,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             is_top_level = false;
             if (substitute(t))
                 return;
-            store(t);
+            store(t, __LINE__);
             if (t.isImmutable() || t.isShared())
             {
                 visit(cast(Type)t);
@@ -760,7 +767,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
         {
             is_top_level = false;
             if (!substitute(t))
-                store(t);
+                store(t, __LINE__);
             if (t.isImmutable() || t.isShared())
             {
                 visit(cast(Type)t);
@@ -794,7 +801,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 buf.writeByte('K');
             buf.writeByte('P');
             t.next.accept(this);
-            store(t);
+            store(t, __LINE__);
         }
 
         override void visit(TypeReference t)
@@ -804,7 +811,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 return;
             buf.writeByte('R');
             t.next.accept(this);
-            store(t);
+            store(t, __LINE__);
         }
 
         override void visit(TypeFunction t)
@@ -842,7 +849,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             tn.accept(this);
             argsCppMangle(t.parameters, t.varargs);
             buf.writeByte('E');
-            store(t);
+            store(t, __LINE__);
         }
 
         override void visit(TypeDelegate t)
@@ -875,7 +882,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                     }
                     else
                     {
-                        store(t);
+                        store(t, __LINE__);
                     }
                 }
                 if (t.isConst())
@@ -901,7 +908,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 visit(cast(Type)t);
             }
             if (t.isConst())
-                store(t);
+                store(t, __LINE__);
         }
 
         override void visit(TypeEnum t)
@@ -920,7 +927,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 visit(cast(Type)t);
             }
             if (t.isConst())
-                store(t);
+                store(t, __LINE__);
         }
 
         override void visit(TypeClass t)
@@ -942,8 +949,8 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 cpp_mangle_name(t.sym, t.isConst());
             }
             if (t.isConst())
-                store(null);
-            store(t);
+                store(null, __LINE__);
+            store(t, __LINE__);
         }
 
         final const(char)* mangle_typeinfo(Dsymbol s)
