@@ -1136,7 +1136,7 @@ extern (C++) class VarDeclaration : Declaration
             if (needctfe)
                 sc = sc.startCTFE();
 
-            //printf("inferring type for %s with init %s\n", toChars(), init.toChars());
+            //printf("inferring type for %s with init %s\n", toChars(), _init.toChars());
             _init = _init.inferType(sc);
             type = _init.toExpression().type;
             if (needctfe)
@@ -2473,6 +2473,7 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
         storage_class = STCstatic | STCgshared;
         protection = Prot(PROTpublic);
         linkage = LINKc;
+        alignment = Target.ptrsize;
     }
 
     static TypeInfoDeclaration create(Type tinfo)
