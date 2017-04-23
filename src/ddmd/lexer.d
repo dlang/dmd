@@ -186,7 +186,7 @@ class Lexer
         //initKeywords();
         /* If first line starts with '#!', ignore the line
          */
-        if (p[0] == '#' && p[1] == '!')
+        if (p && p[0] == '#' && p[1] == '!')
         {
             p += 2;
             while (1)
