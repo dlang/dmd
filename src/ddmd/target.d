@@ -320,8 +320,10 @@ struct Target
             break;
 
         case TOKmul, TOKmulass:
-            // only floats and short[8]/ushort[8]
-            if (tvec.isfloating() || tvec.elementType().size(Loc()) == 2)
+            // only floats and short[8]/ushort[8] (PMULLW)
+            if (tvec.isfloating() || tvec.elementType().size(Loc()) == 2 ||
+                // int[4]/uint[4] with SSE4.1 (PMULLD)
+                global.params.cpu >= CPU.sse4_1 && tvec.elementType().size(Loc()) == 4)
                 supported = true;
             else
                 supported = false;

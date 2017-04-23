@@ -856,6 +856,10 @@ static unsigned xmmoperator(tym_t tym, unsigned oper)
                 case TYushort16:
                 case TYshort8:
                 case TYushort8: op = PMULLW; break;
+                case TYlong8:
+                case TYulong8:
+                case TYlong4:
+                case TYulong4:  op = PMULLD; break;
 
                 default:        assert(0);
             }

@@ -373,7 +373,10 @@ void test2e()
     v1 = v2;
     v1 = v2 + v3;
     v1 = v2 - v3;
-    static assert(!__traits(compiles, v1 * v2));
+    version (D_AVX) // SSE4.1
+        v1 = v2 * v3;
+    else
+        static assert(!__traits(compiles, v1 * v2));
     static assert(!__traits(compiles, v1 / v2));
     static assert(!__traits(compiles, v1 % v2));
     v1 = v2 & v3;
@@ -401,7 +404,10 @@ void test2e()
 
     v1 += v2;
     v1 -= v2;
-    static assert(!__traits(compiles, v1 *= v2));
+    version (D_AVX) // SSE4.1
+        v1 *= v2;
+    else
+        static assert(!__traits(compiles, v1 *= v2));
     static assert(!__traits(compiles, v1 /= v2));
     static assert(!__traits(compiles, v1 %= v2));
     v1 &= v2;
@@ -433,7 +439,10 @@ void test2f()
     v1 = v2;
     v1 = v2 + v3;
     v1 = v2 - v3;
-    static assert(!__traits(compiles, v1 * v2));
+    version (D_AVX) // SSE4.1
+        v1 = v2 * v3;
+    else
+        static assert(!__traits(compiles, v1 * v2));
     static assert(!__traits(compiles, v1 / v2));
     static assert(!__traits(compiles, v1 % v2));
     v1 = v2 & v3;
@@ -461,7 +470,10 @@ void test2f()
 
     v1 += v2;
     v1 -= v2;
-    static assert(!__traits(compiles, v1 *= v2));
+    version (D_AVX) // SSE4.1
+        v1 *= v2;
+    else
+        static assert(!__traits(compiles, v1 *= v2));
     static assert(!__traits(compiles, v1 /= v2));
     static assert(!__traits(compiles, v1 %= v2));
     v1 &= v2;
