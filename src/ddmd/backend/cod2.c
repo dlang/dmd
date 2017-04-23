@@ -4682,6 +4682,8 @@ code *cdpost(elem *e,regm_t *pretregs)
         return cdb.finish();
 #endif
   }
+  if (tyxmmreg(tyml))
+      return xmmpost(e,pretregs);
 
   CodeBuilder cdb;
   assert(e2->Eoper == OPconst);
