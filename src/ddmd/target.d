@@ -15,6 +15,7 @@ import ddmd.expression;
 import ddmd.globals;
 import ddmd.identifier;
 import ddmd.mtype;
+import ddmd.tokens : TOK;
 import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;
 
@@ -282,6 +283,80 @@ struct Target
             return 3; // wrong base type
         }
         return 0;
+    }
+
+    /**
+     * Checks whether the target supports operation `op` for vectors of type `type`.
+     * For binary ops `t2` is the type of the 2nd operand.
+     *
+     * Returns:
+     *      true if the operation is not supported.
+     */
+    extern (C++) static bool checkVectorOp(Type type, TOK op, Type t2 = null)
+    {
+        import ddmd.tokens;
+
+        if (type.ty != Tvector)
+            return false;
+        auto tvec = cast(TypeVector) type;
+
+        bool supported;
+        switch (op)
+        {
+        case TOKneg, TOKuadd:
+            supported = tvec.isscalar();
+            break;
+
+        case TOKlt, TOKgt, TOKle, TOKge, TOKequal, TOKnotequal, TOKidentity, TOKnotidentity:
+            supported = false;
+            break;
+
+        case TOKshl, TOKshlass, TOKshr, TOKshrass, TOKushr, TOKushrass:
+            supported = false;
+            break;
+
+        case TOKadd, TOKaddass, TOKmin, TOKminass:
+            supported = tvec.isscalar();
+            break;
+
+        case TOKmul, TOKmulass:
+            // only floats and short[8]/ushort[8]
+            if (tvec.isfloating() || tvec.elementType().size(Loc()) == 2)
+                supported = true;
+            else
+                supported = false;
+            break;
+
+        case TOKdiv, TOKdivass:
+            supported = tvec.isfloating();
+            break;
+
+        case TOKmod, TOKmodass:
+            supported = false;
+            break;
+
+        case TOKand, TOKandass, TOKor, TOKorass, TOKxor, TOKxorass:
+            supported = tvec.isintegral();
+            break;
+
+        case TOKnot:
+            supported = false;
+            break;
+
+        case TOKtilde:
+            supported = tvec.isintegral();
+            break;
+
+        case TOKpow, TOKpowass:
+            supported = false;
+            break;
+
+        default:
+            // import std.stdio : stderr, writeln;
+            // stderr.writeln(op);
+            assert(0, "unhandled op " ~ Token.toString(op));
+        }
+        return !supported;
     }
 
     /******************************

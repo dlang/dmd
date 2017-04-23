@@ -696,6 +696,7 @@ public:
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc) = 0;
     Expression *unaSemantic(Scope *sc);
+    Expression *incompatibleTypes();
     Expression *resolveLoc(Loc loc, Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }

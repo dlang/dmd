@@ -7823,6 +7823,28 @@ extern (C++) class UnaExp : Expression
         return null;
     }
 
+    /********************************
+     * The type for a unary expression is incompatible.
+     * Print error message.
+     * Returns:
+     *  ErrorExp
+     */
+    final Expression incompatibleTypes()
+    {
+        if (e1.type.toBasetype() == Type.terror)
+            return e1;
+
+        if (e1.op == TOKtype)
+        {
+            error("incompatible type for (%s(%s)): cannot use '%s' with types", Token.toChars(op), e1.toChars(), Token.toChars(op));
+        }
+        else
+        {
+            error("incompatible type for (%s(%s)): '%s'", Token.toChars(op), e1.toChars(), e1.type.toChars());
+        }
+        return new ErrorExp();
+    }
+
     /*********************
      * Mark the operand as will never be dereferenced,
      * which is useful info for @safe checks.
@@ -8253,19 +8275,7 @@ extern (C++) class BinAssignExp : BinExp
             e2 = e2.castTo(sc, Type.tshiftcnt);
         }
 
-        // vectors
-        if (shift && (e1.type.toBasetype().ty == Tvector || e2.type.toBasetype().ty == Tvector))
-            return incompatibleTypes();
-
-        int isvector = type.toBasetype().ty == Tvector;
-
-        if (op == TOKmulass && isvector && !e2.type.isfloating() && (cast(TypeVector)type.toBasetype()).elementType().size(loc) != 2)
-            return incompatibleTypes(); // Only short[8] and ushort[8] work with multiply
-
-        if (op == TOKdivass && isvector && !e1.type.isfloating())
-            return incompatibleTypes();
-
-        if (op == TOKmodass && isvector)
+        if (Target.checkVectorOp(type.toBasetype(), op, e2.type.toBasetype()))
             return incompatibleTypes();
 
         if (e1.op == TOKerror || e2.op == TOKerror)
@@ -11011,7 +11021,8 @@ extern (C++) final class NegExp : UnaExp
             }
             return this;
         }
-
+        if (Target.checkVectorOp(tb, op))
+            return incompatibleTypes();
         if (e1.checkNoBool())
             return new ErrorExp();
         if (e1.checkArithmetic())
@@ -11047,6 +11058,8 @@ extern (C++) final class UAddExp : UnaExp
         if (e)
             return e;
 
+        if (Target.checkVectorOp(e1.type.toBasetype(), op))
+            return incompatibleTypes();
         if (e1.checkNoBool())
             return new ErrorExp();
         if (e1.checkArithmetic())
@@ -11090,7 +11103,8 @@ extern (C++) final class ComExp : UnaExp
             }
             return this;
         }
-
+        if (Target.checkVectorOp(tb, op))
+            return incompatibleTypes();
         if (e1.checkNoBool())
             return new ErrorExp();
         if (e1.checkIntegral())
@@ -11129,6 +11143,8 @@ extern (C++) final class NotExp : UnaExp
         if (e1.type == Type.terror)
             return e1;
 
+        if (Target.checkVectorOp(e1.type.toBasetype(), op))
+            return incompatibleTypes();
         // Bugzilla 13910: Today NotExp can take an array as its operand.
         if (checkNonAssignmentArrayOp(e1))
             return new ErrorExp();
@@ -13946,8 +13962,6 @@ extern (C++) final class PowAssignExp : BinAssignExp
             }
             e = Expression.combine(e0, e);
             e = e.semantic(sc);
-            if (e.type.toBasetype().ty == Tvector)
-                return incompatibleTypes();
             return e;
         }
         return incompatibleTypes();
@@ -14159,10 +14173,8 @@ extern (C++) final class AddExp : BinExp
         }
 
         tb1 = e1.type.toBasetype();
-        if (tb1.ty == Tvector && !tb1.isscalar())
-        {
+        if (Target.checkVectorOp(tb1, op, tb2))
             return incompatibleTypes();
-        }
         if ((tb1.isreal() && e2.type.isimaginary()) || (tb1.isimaginary() && e2.type.isreal()))
         {
             switch (type.toBasetype().ty)
@@ -14290,10 +14302,8 @@ extern (C++) final class MinExp : BinExp
 
         t1 = e1.type.toBasetype();
         t2 = e2.type.toBasetype();
-        if (t1.ty == Tvector && !t1.isscalar())
-        {
+        if (Target.checkVectorOp(t1, op, t2))
             return incompatibleTypes();
-        }
         if ((t1.isreal() && t2.isimaginary()) || (t1.isimaginary() && t2.isreal()))
         {
             switch (type.ty)
@@ -14618,11 +14628,8 @@ extern (C++) final class MulExp : BinExp
                 type = t1; // t1 is complex
             }
         }
-        else if (tb.ty == Tvector && (cast(TypeVector)tb).elementType().size(loc) != 2)
-        {
-            // Only short[8] and ushort[8] work with multiply
+        else if (Target.checkVectorOp(tb, op, e2.type.toBasetype()))
             return incompatibleTypes();
-        }
         return this;
     }
 
@@ -14720,10 +14727,8 @@ extern (C++) final class DivExp : BinExp
                 type = t1; // t1 is complex
             }
         }
-        else if (tb.ty == Tvector)
-        {
+        else if (Target.checkVectorOp(tb, op, e2.type.toBasetype()))
             return incompatibleTypes();
-        }
         return this;
     }
 
@@ -14766,10 +14771,8 @@ extern (C++) final class ModExp : BinExp
             }
             return this;
         }
-        if (tb.ty == Tvector)
-        {
+        if (Target.checkVectorOp(tb, op, e2.type.toBasetype()))
             return incompatibleTypes();
-        }
 
         if (checkArithmeticBin())
             return new ErrorExp();
@@ -14829,6 +14832,9 @@ extern (C++) final class PowExp : BinExp
 
         if (checkArithmeticBin())
             return new ErrorExp();
+
+        if (Target.checkVectorOp(tb, op, e2.type.toBasetype()))
+            return incompatibleTypes();
 
         // For built-in numeric types, there are several cases.
         // TODO: backend support, especially for  e1 ^^ 2.
@@ -14942,10 +14948,8 @@ extern (C++) final class ShlExp : BinExp
 
         if (checkIntegralBin())
             return new ErrorExp();
-        if (e1.type.toBasetype().ty == Tvector || e2.type.toBasetype().ty == Tvector)
-        {
+        if (Target.checkVectorOp(e1.type.toBasetype(), op, e2.type.toBasetype()))
             return incompatibleTypes();
-        }
         e1 = integralPromotions(e1, sc);
         e2 = e2.castTo(sc, Type.tshiftcnt);
 
@@ -14981,10 +14985,8 @@ extern (C++) final class ShrExp : BinExp
 
         if (checkIntegralBin())
             return new ErrorExp();
-        if (e1.type.toBasetype().ty == Tvector || e2.type.toBasetype().ty == Tvector)
-        {
+        if (Target.checkVectorOp(e1.type.toBasetype(), op, e2.type.toBasetype()))
             return incompatibleTypes();
-        }
         e1 = integralPromotions(e1, sc);
         e2 = e2.castTo(sc, Type.tshiftcnt);
 
@@ -15020,11 +15022,8 @@ extern (C++) final class UshrExp : BinExp
 
         if (checkIntegralBin())
             return new ErrorExp();
-        if (e1.type.toBasetype().ty == Tvector || e2.type.toBasetype().ty == Tvector)
-        {
+        if (Target.checkVectorOp(e1.type.toBasetype(), op, e2.type.toBasetype()))
             return incompatibleTypes();
-        }
-
         e1 = integralPromotions(e1, sc);
         e2 = e2.castTo(sc, Type.tshiftcnt);
 
@@ -15077,7 +15076,8 @@ extern (C++) final class AndExp : BinExp
             }
             return this;
         }
-
+        if (Target.checkVectorOp(tb, op, e2.type.toBasetype()))
+            return incompatibleTypes();
         if (checkIntegralBin())
             return new ErrorExp();
 
@@ -15129,7 +15129,8 @@ extern (C++) final class OrExp : BinExp
             }
             return this;
         }
-
+        if (Target.checkVectorOp(tb, op, e2.type.toBasetype()))
+            return incompatibleTypes();
         if (checkIntegralBin())
             return new ErrorExp();
 
@@ -15181,7 +15182,8 @@ extern (C++) final class XorExp : BinExp
             }
             return this;
         }
-
+        if (Target.checkVectorOp(tb, op, e2.type.toBasetype()))
+            return incompatibleTypes();
         if (checkIntegralBin())
             return new ErrorExp();
 
@@ -15453,7 +15455,7 @@ extern (C++) final class CmpExp : BinExp
             error("%s is not defined for associative arrays", Token.toChars(op));
             return new ErrorExp();
         }
-        else if (t1.ty == Tvector)
+        else if (Target.checkVectorOp(t1, op, t2))
         {
             return incompatibleTypes();
         }
@@ -15695,11 +15697,11 @@ extern (C++) final class EqualExp : BinExp
         if (e1.type.toBasetype().ty == Taarray)
             semanticTypeInfo(sc, e1.type.toBasetype());
 
-        if (e1.type.toBasetype().ty == Tvector)
-            return incompatibleTypes();
-
         Type t1 = e1.type.toBasetype();
         Type t2 = e2.type.toBasetype();
+
+        if (Target.checkVectorOp(t1, op, t2))
+            return incompatibleTypes();
 
         if ((t1.ty == Tarray || t1.ty == Tsarray) &&
             (t2.ty == Tarray || t2.ty == Tsarray))
@@ -15776,7 +15778,9 @@ extern (C++) final class IdentityExp : BinExp
             e2 = e2.castTo(sc, Type.tcomplex80);
         }
 
-        if (e1.type.toBasetype().ty == Tvector)
+        auto tb1 = e1.type.toBasetype();
+        auto tb2 = e2.type.toBasetype();
+        if (Target.checkVectorOp(tb1, op, tb2))
             return incompatibleTypes();
 
         if (e1.type.toBasetype().ty == Tsarray ||

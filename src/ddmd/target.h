@@ -42,6 +42,7 @@ struct Target
     static unsigned critsecsize();
     static Type *va_listType();  // get type of va_list
     static int checkVectorType(int sz, Type *type);
+    static bool checkVectorOp(Type *type, TOK op, Type *t2)
     // CTFE support for cross-compilation.
     static Expression *paintAsType(Expression *e, Type *type);
     // ABI and backend.
