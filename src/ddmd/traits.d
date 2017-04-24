@@ -374,12 +374,16 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         printf("TraitsExp::semantic() %s\n", e.toChars());
     }
 
+    Scope* scx = sc.push();
+    scx.flags |= SCOPEignoresymbolvisibility;
+    scope (exit) scx.pop();
+
     if (e.ident != Id.compiles &&
         e.ident != Id.isSame &&
         e.ident != Id.identifier &&
         e.ident != Id.getProtection)
     {
-        if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 1))
+        if (!TemplateInstance.semanticTiargs(e.loc, scx, e.args, 1))
             return new ErrorExp();
     }
     size_t dim = e.args ? e.args.dim : 0;
@@ -567,7 +571,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
          * a symbol should not be folded to a constant.
          * Bit 1 means don't convert Parameter to Type if Parameter has an identifier
          */
-        if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 2))
+        if (!TemplateInstance.semanticTiargs(e.loc, scx, e.args, 2))
             return new ErrorExp();
         if (dim != 1)
             return dimError(1);
@@ -591,18 +595,14 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
 
         auto se = new StringExp(e.loc, cast(char*)id.toChars());
-        return se.semantic(sc);
+        return se.semantic(scx);
     }
     if (e.ident == Id.getProtection)
     {
         if (dim != 1)
             return dimError(1);
 
-        Scope* sc2 = sc.push();
-        sc2.flags = sc.flags | SCOPEnoaccesscheck;
-        bool ok = TemplateInstance.semanticTiargs(e.loc, sc2, e.args, 1);
-        sc2.pop();
-        if (!ok)
+        if (!TemplateInstance.semanticTiargs(e.loc, scx, e.args, 1))
             return new ErrorExp();
 
         auto o = (*e.args)[0];
@@ -648,17 +648,17 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 if (td.overroot) // if not start of overloaded list of TemplateDeclaration's
                     td = td.overroot; // then get the start
                 Expression ex = new TemplateExp(e.loc, td, f);
-                ex = ex.semantic(sc);
+                ex = ex.semantic(scx);
                 return ex;
             }
             if (auto fld = f.isFuncLiteralDeclaration())
             {
                 // Directly translate to VarExp instead of FuncExp
                 Expression ex = new VarExp(e.loc, fld, true);
-                return ex.semantic(sc);
+                return ex.semantic(scx);
             }
         }
-        return DsymbolExp.resolve(e.loc, sc, s, false);
+        return DsymbolExp.resolve(e.loc, scx, s, false);
     }
     if (e.ident == Id.hasMember ||
         e.ident == Id.getMember ||
@@ -684,7 +684,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             e.error("string expected as second argument of __traits %s instead of %s", e.ident.toChars(), ex.toChars());
             return new ErrorExp();
         }
-        se = se.toUTF8(sc);
+        se = se.toUTF8(scx);
 
         if (se.sz != 1)
         {
@@ -710,11 +710,6 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             e.error("invalid first argument");
             return new ErrorExp();
         }
-
-        // ignore symbol visibility for these traits, should disable access checks as well
-        Scope* scx = sc.push();
-        scx.flags |= SCOPEignoresymbolvisibility;
-        scope (exit) scx.pop();
 
         if (e.ident == Id.hasMember)
         {
@@ -834,7 +829,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (ad.aliasthis)
             exps.push(new StringExp(e.loc, cast(char*)ad.aliasthis.ident.toChars()));
         Expression ex = new TupleExp(e.loc, exps);
-        ex = ex.semantic(sc);
+        ex = ex.semantic(scx);
         return ex;
     }
     if (e.ident == Id.getAttributes)
@@ -867,7 +862,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto udad = s.userAttribDecl;
         auto exps = udad ? udad.getAttributes() : new Expressions();
         auto tup = new TupleExp(e.loc, exps);
-        return tup.semantic(sc);
+        return tup.semantic(scx);
     }
     if (e.ident == Id.getFunctionAttributes)
     {
@@ -908,7 +903,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         tf.attributesApply(&pa, &PushAttributes.fp, TRUSTformatSystem);
 
         auto tup = new TupleExp(e.loc, mods);
-        return tup.semantic(sc);
+        return tup.semantic(scx);
     }
     if (e.ident == Id.allMembers ||
         e.ident == Id.derivedMembers)
@@ -986,7 +981,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             return 0;
         }
 
-        ScopeDsymbol._foreach(sc, sds.members, &pushIdentsDg);
+        ScopeDsymbol._foreach(scx, sds.members, &pushIdentsDg);
         auto cd = sds.isClassDeclaration();
         if (cd && e.ident == Id.allMembers)
         {
@@ -1022,7 +1017,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
          *   [ __traits(allMembers, ...) ]
          */
         Expression ex = new TupleExp(e.loc, exps);
-        ex = ex.semantic(sc);
+        ex = ex.semantic(scx);
         return ex;
     }
     if (e.ident == Id.compiles)
@@ -1094,7 +1089,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (dim != 2)
             return dimError(2);
 
-        if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 0))
+        if (!TemplateInstance.semanticTiargs(e.loc, scx, e.args, 0))
             return new ErrorExp();
 
         auto o1 = (*e.args)[0];
@@ -1198,7 +1193,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             collectUnitTests(sds.members);
         }
         auto te = new TupleExp(e.loc, exps);
-        return te.semantic(sc);
+        return te.semantic(scx);
     }
     if (e.ident == Id.getVirtualIndex)
     {
