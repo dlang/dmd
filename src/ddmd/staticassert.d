@@ -48,6 +48,8 @@ extern (C++) final class StaticAssert : Dsymbol
 
     override void semantic(Scope* sc)
     {
+        if (semanticRun < PASSsemanticdone)
+            semanticRun = PASSsemanticdone;
     }
 
     override void semantic2(Scope* sc)
