@@ -1851,6 +1851,16 @@ static assert(S17237.b.offsetof == 32);
 static assert(S17237.c.offsetof == 64);
 
 /*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17344
+
+void test17344()
+{
+    __vector(int[4]) vec1 = 2, vec2 = vec1++;
+    assert(cast(int[4])vec1 == [3, 3, 3, 3]);
+    assert(cast(int[4])vec2 == [2, 2, 2, 2]);
+}
+
+/*****************************************/
 
 int main()
 {
@@ -1889,6 +1899,7 @@ int main()
     test16703();
     testOPvecunsto();
     test10447();
+    test17344();
 
     return 0;
 }
@@ -1900,4 +1911,3 @@ else
 int main() { return 0; }
 
 }
-
