@@ -81,7 +81,7 @@ public:
     int isDocFile;      // if it is a documentation input file, not D source
     bool isPackageFile; // if it is a package.d
     int needmoduleinfo;
-
+    unsigned unitTestCounter;       // how many unittests have been seen so far
     int selfimports;            // 0: don't know, 1: does not, 2: does
     bool selfImports();         // returns true if module imports itself
 

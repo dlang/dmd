@@ -3156,16 +3156,6 @@ extern (C++) final class InvariantDeclaration : FuncDeclaration
     }
 }
 
-/***********************************************************
- * Generate unique unittest function Id so we can have multiple
- * instances per module.
- */
-private Identifier unitTestId(Loc loc)
-{
-    OutBuffer buf;
-    buf.printf("__unittestL%u_", loc.linnum);
-    return Identifier.generateId(buf.peekString());
-}
 
 /***********************************************************
  */
@@ -3178,7 +3168,10 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
 
     extern (D) this(Loc loc, Loc endloc, StorageClass stc, char* codedoc)
     {
-        super(loc, endloc, unitTestId(loc), stc, null);
+        // Id.empty can cause certain things to fail, so we create a
+        // temporary one here that serves for most purposes with
+        // createIdentifier. There is no scope to pass so we pass null.
+        super(loc, endloc, createIdentifier(loc, null), stc, null);
         this.codedoc = codedoc;
     }
 
@@ -3187,6 +3180,30 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
         assert(!s);
         auto utd = new UnitTestDeclaration(loc, endloc, storage_class, codedoc);
         return FuncDeclaration.syntaxCopy(utd);
+    }
+
+    final void setIdentifier()
+    {
+        ident = createIdentifier(loc, _scope);
+    }
+
+    /***********************************************************
+     * Generate unique unittest function Id so we can have multiple
+     * instances per module.
+     */
+    private static Identifier createIdentifier(Loc loc, Scope* sc)
+    {
+
+        OutBuffer buf;
+        auto index = sc ? sc._module.unitTestCounter++ : 0;
+        buf.printf("__unittest_%s_%u_%d", loc.filename, loc.linnum, index);
+
+        // replace characters that demangle can't handle
+        auto str = buf.peekString;
+        for(int i = 0; str[i] != 0; ++i)
+            if(str[i] == '/' || str[i] == '\\' || str[i] == '.') str[i] = '_';
+
+        return Identifier.idPool(buf.peekSlice);
     }
 
     override AggregateDeclaration isThis()
