@@ -602,7 +602,11 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (dim != 1)
             return dimError(1);
 
-        if (!TemplateInstance.semanticTiargs(e.loc, scx, e.args, 1))
+        Scope* sc2 = sc.push();
+        sc2.flags = sc.flags | SCOPEnoaccesscheck;
+        bool ok = TemplateInstance.semanticTiargs(e.loc, sc2, e.args, 1);
+        sc2.pop();
+        if (!ok)
             return new ErrorExp();
 
         auto o = (*e.args)[0];
