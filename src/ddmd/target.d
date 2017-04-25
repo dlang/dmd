@@ -259,7 +259,7 @@ struct Target
      *     supported on the target at all, 2 if the given size isn't, or 3 if
      *     the element type isn't.
      */
-    extern (C++) static int checkVectorType(int sz, Type type)
+    extern (C++) static int isVectorTypeSupported(int sz, Type type)
     {
         if (!global.params.is64bit && !global.params.isOSX)
             return 1; // not supported
