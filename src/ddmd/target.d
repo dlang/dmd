@@ -290,14 +290,14 @@ struct Target
      * For binary ops `t2` is the type of the 2nd operand.
      *
      * Returns:
-     *      true if the operation is not supported.
+     *      true if the operation is supported or type is not a vector
      */
-    extern (C++) static bool checkVectorOp(Type type, TOK op, Type t2 = null)
+    extern (C++) static bool isVectorOpSupported(Type type, TOK op, Type t2 = null)
     {
         import ddmd.tokens;
 
         if (type.ty != Tvector)
-            return false;
+            return true; // not a vector op
         auto tvec = cast(TypeVector) type;
 
         bool supported;
@@ -358,7 +358,7 @@ struct Target
             // stderr.writeln(op);
             assert(0, "unhandled op " ~ Token.toString(op));
         }
-        return !supported;
+        return supported;
     }
 
     /******************************
