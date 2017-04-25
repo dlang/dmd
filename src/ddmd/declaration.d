@@ -50,7 +50,7 @@ extern (C++) bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, 
     {
         //printf("ad = %p %s [%s], parent:%p\n", ad, ad.toChars(), ad.loc.toChars(), ad.parent);
         //printf("sparent = %p %s [%s], parent: %s\n", sparent, sparent.toChars(), sparent.loc.toChars(), sparent.parent,toChars());
-        if (checkNestedRef(s, sparent))
+        if (!ensureStaticLinkTo(s, sparent))
         {
             error(loc, "cannot access frame pointer of %s", ad.toPrettyChars());
             return true;
@@ -2329,7 +2329,7 @@ extern (C++) class VarDeclaration : Declaration
         Dsymbol p = toParent2();
 
         // Function literals from fdthis to p must be delegates
-        checkNestedRef(fdthis, p);
+        ensureStaticLinkTo(fdthis, p);
 
         // The function that this variable is in
         FuncDeclaration fdv = p.isFuncDeclaration();

@@ -9539,7 +9539,7 @@ extern (C++) final class TypeClass : Type
                         e1 = new DotVarExp(e.loc, e1, tcd.vthis);
                         e1.type = tcd.vthis.type;
                         e1.type = e1.type.addMod(t.mod);
-                        // Do not call checkNestedRef()
+                        // Do not call ensureStaticLinkTo()
                         //e1 = e1.semantic(sc);
 
                         // Skip up over nested functions, and get the enclosing
