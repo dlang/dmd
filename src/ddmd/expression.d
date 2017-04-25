@@ -5136,7 +5136,7 @@ extern (C++) final class ArrayLiteralExp : Expression
      *      e2  = If it's not `null`, it will be pushed/appended to the new
      *            `Expressions` by the same way with `e1`.
      * Returns:
-     *      Newly allocated `Expressions. Note that it points the original
+     *      Newly allocated `Expressions`. Note that it points to the original
      *      `Expression` values in e1 and e2.
      */
     static Expressions* copyElements(Expression e1, Expression e2 = null)
@@ -7919,23 +7919,30 @@ extern (C++) abstract class BinExp : Expression
         return null;
     }
 
+    /********************************
+     * The types for a binary expression are incompatible.
+     * Print error message.
+     * Returns:
+     *  ErrorExp
+     */
     final Expression incompatibleTypes()
     {
-        if (e1.type.toBasetype() != Type.terror && e2.type.toBasetype() != Type.terror)
+        if (e1.type.toBasetype() == Type.terror)
+            return e1;
+        if (e2.type.toBasetype() == Type.terror)
+            return e2;
+
+        // CondExp uses 'a ? b : c' but we're comparing 'b : c'
+        TOK thisOp = (op == TOKquestion) ? TOKcolon : op;
+        if (e1.op == TOKtype || e2.op == TOKtype)
         {
-            // CondExp uses 'a ? b : c' but we're comparing 'b : c'
-            TOK thisOp = (op == TOKquestion) ? TOKcolon : op;
-            if (e1.op == TOKtype || e2.op == TOKtype)
-            {
-                error("incompatible types for ((%s) %s (%s)): cannot use '%s' with types", e1.toChars(), Token.toChars(thisOp), e2.toChars(), Token.toChars(op));
-            }
-            else
-            {
-                error("incompatible types for ((%s) %s (%s)): '%s' and '%s'", e1.toChars(), Token.toChars(thisOp), e2.toChars(), e1.type.toChars(), e2.type.toChars());
-            }
-            return new ErrorExp();
+            error("incompatible types for ((%s) %s (%s)): cannot use '%s' with types", e1.toChars(), Token.toChars(thisOp), e2.toChars(), Token.toChars(op));
         }
-        return this;
+        else
+        {
+            error("incompatible types for ((%s) %s (%s)): '%s' and '%s'", e1.toChars(), Token.toChars(thisOp), e2.toChars(), e1.type.toChars(), e2.type.toChars());
+        }
+        return new ErrorExp();
     }
 
     final Expression checkOpAssignTypes(Scope* sc)
