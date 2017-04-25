@@ -228,7 +228,7 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol	\
 	dtemplate dversion escape expression func			\
 	hdrgen impcnvtab imphint init inline inlinecost intrange	\
-	json lib link mars mtype nogc nspace opover optimize parse sapply	\
+	json lib link mars mtype nogc nspace objc opover optimize parse sapply	\
 	sideeffect statement staticassert target traits visitor	\
 	typinf utils statement_rewrite_walker statementsem staticcond safe blockexit asttypename))
 
@@ -236,12 +236,6 @@ LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, entity errors globals id identifier 
 
 LEXER_ROOT=$(addsyffix .d, $(addprefix $(ROOT)/, array ctfloat file filename outbuffer port rmem \
 	rootobject stringtable hash))
-
-ifeq ($(D_OBJC),1)
-	FRONT_SRCS += $D/objc.d
-else
-	FRONT_SRCS += $D/objc_stubs.d
-endif
 
 ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
 	filename man outbuffer port response rmem rootobject speller \

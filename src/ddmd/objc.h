@@ -42,35 +42,16 @@ struct ObjcSelector
     static ObjcSelector *create(FuncDeclaration *fdecl);
 };
 
-struct Objc_ClassDeclaration
+class Objc
 {
-    // true if this is an Objective-C class/interface
-    bool objc;
+public:
+    static void _init();
 
-    bool isInterface();
+    virtual void setObjc(ClassDeclaration* cd) = 0;
+    virtual void setObjc(InterfaceDeclaration*) = 0;
+    virtual void setSelector(FuncDeclaration*, Scope* sc) = 0;
+    virtual void validateSelector(FuncDeclaration* fd) = 0;
+    virtual void checkLinkage(FuncDeclaration* fd) = 0;
 };
-
-struct Objc_FuncDeclaration
-{
-    FuncDeclaration* fdecl;
-
-    // Objective-C method selector (member function only)
-    ObjcSelector *selector;
-
-    Objc_FuncDeclaration();
-    Objc_FuncDeclaration(FuncDeclaration* fdecl);
-};
-
-void objc_ClassDeclaration_semantic_PASSinit_LINKobjc(ClassDeclaration *cd);
-
-void objc_InterfaceDeclaration_semantic_objcExtern(InterfaceDeclaration *id, Scope *sc);
-
-void objc_FuncDeclaration_semantic_setSelector(FuncDeclaration *fd, Scope *sc);
-bool objc_isUdaSelector(StructDeclaration *sd);
-void objc_FuncDeclaration_semantic_validateSelector(FuncDeclaration *fd);
-void objc_FuncDeclaration_semantic_checkLinkage(FuncDeclaration *fd);
-
-void objc_tryMain_dObjc();
-void objc_tryMain_init();
 
 #endif /* DMD_OBJC_H */

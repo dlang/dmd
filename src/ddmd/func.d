@@ -178,7 +178,7 @@ extern (C++) class FuncDeclaration : Declaration
     DsymbolTable localsymtab;
     VarDeclaration vthis;               /// 'this' parameter (member and nested)
     VarDeclaration v_arguments;         /// '_arguments' parameter
-    Objc_FuncDeclaration objc;
+    ObjcSelector* selector;             /// Objective-C method selector (member function only)
 
     VarDeclaration v_argptr;            /// '_argptr' variable
     VarDeclarations* parameters;        /// Array of VarDeclaration's for parameters
@@ -248,7 +248,6 @@ extern (C++) class FuncDeclaration : Declaration
     final extern (D) this(Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type)
     {
         super(id);
-        objc = Objc_FuncDeclaration(this);
         //printf("FuncDeclaration(id = '%s', type = %p)\n", id.toChars(), type);
         //printf("storage_class = x%x\n", storage_class);
         this.storage_class = storage_class;
@@ -1085,11 +1084,11 @@ extern (C++) class FuncDeclaration : Declaration
 
         semanticRun = PASSsemantic2;
 
-        objc_FuncDeclaration_semantic_setSelector(this, sc);
-        objc_FuncDeclaration_semantic_validateSelector(this);
+        objc.setSelector(this, sc);
+        objc.validateSelector(this);
         if (ClassDeclaration cd = parent.isClassDeclaration())
         {
-            objc_FuncDeclaration_semantic_checkLinkage(this);
+            objc.checkLinkage(this);
         }
     }
 

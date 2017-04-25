@@ -1154,7 +1154,6 @@ Language changes listed by -transition=id:
 
     // Predefined version identifiers
     addDefaultVersionIdentifiers();
-    objc_tryMain_dObjc();
 
     setDefaultLibrary();
 
@@ -1164,7 +1163,7 @@ Language changes listed by -transition=id:
     Module._init();
     Target._init();
     Expression._init();
-    objc_tryMain_init();
+    Objc._init();
     builtin_init();
 
     if (global.params.verbose)

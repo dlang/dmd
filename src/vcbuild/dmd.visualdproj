@@ -543,9 +543,8 @@
    <File path="..\ddmd\mtype.d" />
    <File path="..\ddmd\nogc.d" />
    <File path="..\ddmd\nspace.d" />
-   <File tool="None" path="..\ddmd\objc.d" />
+   <File path="..\ddmd\objc.d" />
    <File path="..\ddmd\objc_glue_stubs.d" />
-   <File path="..\ddmd\objc_stubs.d" />
    <File path="..\ddmd\opover.d" />
    <File path="..\ddmd\optimize.d" />
    <File path="..\ddmd\osmodel.mak" />

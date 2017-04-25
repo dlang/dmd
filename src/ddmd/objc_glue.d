@@ -282,9 +282,9 @@ Symbol *objc_getMethVarRef(Identifier ident)
 
 void objc_callfunc_setupMethodSelector(Type tret, FuncDeclaration fd, Type t, elem *ehidden, elem **esel)
 {
-    if (fd && fd.objc.selector && !*esel)
+    if (fd && fd.selector && !*esel)
     {
-        *esel = el_var(objc_getMethVarRef(fd.objc.selector.stringvalue, fd.objc.selector.stringlen));
+        *esel = el_var(objc_getMethVarRef(fd.selector.stringvalue, fd.selector.stringlen));
     }
 }
 

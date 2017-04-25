@@ -31,6 +31,7 @@ class ExpInitializer;
 class StructDeclaration;
 struct InterState;
 struct CompiledCtfeFunction;
+struct ObjcSelector;
 
 enum LINK;
 enum TOK;
@@ -509,7 +510,7 @@ public:
     DsymbolTable *localsymtab;
     VarDeclaration *vthis;              // 'this' parameter (member and nested)
     VarDeclaration *v_arguments;        // '_arguments' parameter
-    Objc_FuncDeclaration objc;
+    ObjcSelector* selector;             // Objective-C method selector (member function only)
     VarDeclaration *v_argptr;           // '_argptr' variable
     VarDeclarations *parameters;        // Array of VarDeclaration's for parameters
     DsymbolTable *labtab;               // statement label symbol table
