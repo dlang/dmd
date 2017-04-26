@@ -1772,7 +1772,15 @@ $(GNAME DeclDef):
 
 $(GRAMMAR
 $(GNAME ModuleDeclaration):
-    $(D module) $(I ModuleFullyQualifiedName) $(D ;)
+    $(I ModuleAttributes)$(OPT) $(D module) $(I ModuleFullyQualifiedName) $(D ;)
+
+$(GNAME ModuleAttributes):
+    $(GLINK ModuleAttribute)
+    $(GLINK ModuleAttribute) $(I ModuleAttributes)
+
+$(GNAME ModuleAttribute):
+    $(GLINK2 attribute, DeprecatedAttribute)
+    $(GLINK2 attribute, UserDefinedAttribute)
 
 $(GNAME ModuleFullyQualifiedName):
     $(I ModuleName)
