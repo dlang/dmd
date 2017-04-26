@@ -5,10 +5,6 @@ TEST_OUTPUT:
 ---
 fail_compilation/fail_scope.d(45): Error: returning `cast(char[])string` escapes a reference to local variable `string`
 fail_compilation/fail_scope.d(63): Error: returning `s.bar()` escapes a reference to local variable `s`
-fail_compilation/fail_scope.d(74): Error: fail_scope.foo8 called with argument types (int) matches both:
-fail_compilation/fail_scope.d(68):     fail_scope.foo8(ref int x)
-and:
-fail_compilation/fail_scope.d(69):     fail_scope.foo8(return ref int x)
 fail_compilation/fail_scope.d(82): Error: returning `& string` escapes a reference to local variable `string`
 fail_compilation/fail_scope.d(92): Error: returning `cast(int[])a` escapes a reference to local variable `a`
 fail_compilation/fail_scope.d(100): Error: returning `cast(int[])a` escapes a reference to local variable `a`
@@ -24,6 +20,10 @@ fail_compilation/fail_scope.d(137): Error: returning `foo16226(i)` escapes a ref
 //fail_compilation/fail_scope.d(38): Error: scope variable dg may not be returned
 //fail_compilation/fail_scope.d(40): Error: scope variable p may not be returned
 */
+
+
+
+
 
 alias int delegate() dg_t;
 
