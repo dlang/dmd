@@ -880,7 +880,7 @@ struct SharedCtfeState(BCGenT)
                 return cast(uint) i + 1;
             }
         }
-        //register structType
+        //register sliceType
         auto elemType = btv.toBCType(tda.nextOf);
         if (sliceTypes.length - 1 > sliceCount)
         {
@@ -949,17 +949,7 @@ struct SharedCtfeState(BCGenT)
                 }
                 BCStruct _struct = structTypes[type.typeIndex - 1];
 
-                foreach (i, memberType; _struct.memberTypes[0 .. _struct.memberTypeCount])
-                {
-                    if (memberType == type) // bail out on recursion.
-                        return 0;
-
-                    _size += align4(
-                        isBasicBCType(memberType) ? basicTypeSize(memberType) : this.size(
-                        memberType));
-                }
-
-                return _size;
+                return _struct.size;
 
             }
 
@@ -978,7 +968,7 @@ struct SharedCtfeState(BCGenT)
 
                     writeln("ArrayElementSize :", size(_array.elementType));
                 }
-                return size(_array.elementType) * _array.length;
+                return size(_array.elementType) * _array.length + SliceDescriptor.Size;
             }
         case BCTypeEnum.Slice:
             {
@@ -1111,13 +1101,13 @@ Expression toExpression(const BCValue value, Type expressionType,
 
     Expression createArray(BCValue arr, Type arrayType)
     {
-        auto elmType = arrayType.nextOf;
         if (!arr.heapAddr)
         {
            return new NullExp(Loc(), arrayType);
         }
 
         ArrayLiteralExp arrayResult;
+        auto elmType = arrayType.nextOf;
         auto baseType = _sharedCtfeState.btv.toBCType(elmType);
         auto elmLength = _sharedCtfeState.size(baseType);
         auto arrayLength = heapPtr._heap[arr.heapAddr.addr + SliceDescriptor.LengthOffset];
@@ -1261,7 +1251,7 @@ Expression toExpression(const BCValue value, Type expressionType,
         break;
     case Tbool:
         {
-            //assert(value.imm32 == 0 || value.imm32 == 1, "Not a valid bool");
+            // assert(value.imm32 == 0 || value.imm32 == 1, "Not a valid bool");
             result = new IntegerExp(value.imm32);
         }
         break;
@@ -1287,7 +1277,7 @@ Expression toExpression(const BCValue value, Type expressionType,
                 return null;
             }
             result = new AddrExp(Loc.init,
-                toExpression(imm32(*(heapPtr._heap.ptr + value.imm32)), expressionType.nextOf));
+                toExpression(imm32(*(heapPtr._heap.ptr + value.heapAddr)), expressionType.nextOf));
         }
         break;
     default:
