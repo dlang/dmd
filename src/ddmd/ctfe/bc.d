@@ -200,11 +200,6 @@ struct LongInst64
     }
 }
 
-static bool isStackValueOrParameter(BCValue val) pure @safe nothrow
-{
-    return (val.vType == BCValueType.StackValue || val.vType == BCValueType.Parameter);
-}
-
 static assert(LongInst.max < 0x3F, "Instruction do not fit in 6 bit anymore");
 
 static short isShortJump(const int offset) pure @safe
