@@ -4365,7 +4365,7 @@ extern (C++) final class TypeVector : Type
         }
         TypeSArray t = cast(TypeSArray)basetype;
         int sz = cast(int)t.size(loc);
-        switch (Target.checkVectorType(sz, t.nextOf()))
+        switch (Target.isVectorTypeSupported(sz, t.nextOf()))
         {
         case 0:
             // valid

@@ -15,6 +15,7 @@ import ddmd.expression;
 import ddmd.globals;
 import ddmd.identifier;
 import ddmd.mtype;
+import ddmd.tokens : TOK;
 import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;
 
@@ -258,7 +259,7 @@ struct Target
      *     supported on the target at all, 2 if the given size isn't, or 3 if
      *     the element type isn't.
      */
-    extern (C++) static int checkVectorType(int sz, Type type)
+    extern (C++) static int isVectorTypeSupported(int sz, Type type)
     {
         if (!global.params.is64bit && !global.params.isOSX)
             return 1; // not supported
@@ -282,6 +283,82 @@ struct Target
             return 3; // wrong base type
         }
         return 0;
+    }
+
+    /**
+     * Checks whether the target supports operation `op` for vectors of type `type`.
+     * For binary ops `t2` is the type of the 2nd operand.
+     *
+     * Returns:
+     *      true if the operation is supported or type is not a vector
+     */
+    extern (C++) static bool isVectorOpSupported(Type type, TOK op, Type t2 = null)
+    {
+        import ddmd.tokens;
+
+        if (type.ty != Tvector)
+            return true; // not a vector op
+        auto tvec = cast(TypeVector) type;
+
+        bool supported;
+        switch (op)
+        {
+        case TOKneg, TOKuadd:
+            supported = tvec.isscalar();
+            break;
+
+        case TOKlt, TOKgt, TOKle, TOKge, TOKequal, TOKnotequal, TOKidentity, TOKnotidentity:
+            supported = false;
+            break;
+
+        case TOKshl, TOKshlass, TOKshr, TOKshrass, TOKushr, TOKushrass:
+            supported = false;
+            break;
+
+        case TOKadd, TOKaddass, TOKmin, TOKminass:
+            supported = tvec.isscalar();
+            break;
+
+        case TOKmul, TOKmulass:
+            // only floats and short[8]/ushort[8] (PMULLW)
+            if (tvec.isfloating() || tvec.elementType().size(Loc()) == 2 ||
+                // int[4]/uint[4] with SSE4.1 (PMULLD)
+                global.params.cpu >= CPU.sse4_1 && tvec.elementType().size(Loc()) == 4)
+                supported = true;
+            else
+                supported = false;
+            break;
+
+        case TOKdiv, TOKdivass:
+            supported = tvec.isfloating();
+            break;
+
+        case TOKmod, TOKmodass:
+            supported = false;
+            break;
+
+        case TOKand, TOKandass, TOKor, TOKorass, TOKxor, TOKxorass:
+            supported = tvec.isintegral();
+            break;
+
+        case TOKnot:
+            supported = false;
+            break;
+
+        case TOKtilde:
+            supported = tvec.isintegral();
+            break;
+
+        case TOKpow, TOKpowass:
+            supported = false;
+            break;
+
+        default:
+            // import std.stdio : stderr, writeln;
+            // stderr.writeln(op);
+            assert(0, "unhandled op " ~ Token.toString(op));
+        }
+        return supported;
     }
 
     /******************************
