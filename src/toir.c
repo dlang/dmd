@@ -47,6 +47,8 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
+void toTraceGC(IRState *irs, elem *e, Loc *loc);
+
 /*********************************************
  * Produce elem which increments the usage count for a particular line.
  * Used to implement -cov switch (coverage analysis).
@@ -648,6 +650,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
         elem *e;
         e = el_long(TYsize_t, offset);
         e = el_bin(OPcall, TYnptr, el_var(getRtlsym(RTLSYM_ALLOCMEMORY)), e);
+        toTraceGC(irs, e, &fd->loc);
 
         // Assign block of memory to sclosure
         //    sclosure = allocmemory(sz);

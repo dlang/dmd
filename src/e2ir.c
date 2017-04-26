@@ -60,6 +60,11 @@ elem *ExpressionsToStaticArray(IRState *irs, Loc loc, Expressions *exps,
     Type *telem, symbol **psym);
 elem *ElemsToStaticArray(Loc loc, Type *telem, Elems *elems, symbol **psym);
 
+Symbol *toStringSymbol(const char *str, size_t len, size_t sz);
+Symbol *toStringDarraySymbol(const char *str, size_t len, size_t sz);
+elem *filelinefunction(IRState *irs, Expression *e);
+void toTraceGC(IRState *irs, elem *e, Loc *loc);
+
 #define el_setLoc(e,loc)        ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
                                  (e)->Esrcpos.Slinnum = (loc).linnum)
 
@@ -1121,18 +1126,9 @@ elem *NullExp::toElem(IRState *irs)
 /***************************************
  */
 
-struct StringTab
-{
-    Module *m;          // module we're generating code for
-    Symbol *si;
-    void *string;
-    size_t sz;
-    size_t len;
-};
+#include "stringtable.h"
 
-#define STSIZE 16
-StringTab stringTab[STSIZE];
-size_t stidx;
+StringTable *stringTab;
 
 static Symbol *assertexp_sfilename = NULL;
 static char *assertexp_name = NULL;
@@ -1141,12 +1137,13 @@ static Module *assertexp_mn = NULL;
 void clearStringTab()
 {
     //printf("clearStringTab()\n");
-    memset(stringTab, 0, sizeof(stringTab));
-    stidx = 0;
-
-    assertexp_sfilename = NULL;
-    assertexp_name = NULL;
-    assertexp_mn = NULL;
+    if (stringTab)
+        stringTab->reset(1000);             // 1000 is arbitrary guess
+    else
+    {
+        stringTab = new StringTable();
+        stringTab->_init(1000);
+    }
 }
 
 elem *StringExp::toElem(IRState *irs)
@@ -1163,7 +1160,6 @@ elem *StringExp::toElem(IRState *irs)
     {
         Symbol *si;
         dt_t *dt;
-        StringTab *st;
 
 #if 0
         printf("irs->m = %p\n", irs->m);
@@ -1171,42 +1167,14 @@ elem *StringExp::toElem(IRState *irs)
         printf(" len = %d\n", len);
         printf(" sz  = %d\n", sz);
 #endif
-        for (size_t i = 0; i < STSIZE; i++)
-        {
-            st = &stringTab[(stidx + i) % STSIZE];
-            //if (!st->m) continue;
-            //printf(" st.m   = %s\n", st->m->toChars());
-            //printf(" st.len = %d\n", st->len);
-            //printf(" st.sz  = %d\n", st->sz);
-            if (st->m == irs->m &&
-                st->si &&
-                st->len == len &&
-                st->sz == sz &&
-                memcmp(st->string, string, sz * len) == 0)
-            {
-                //printf("use cached value\n");
-                si = st->si;    // use cached value
-                goto L1;
-            }
-        }
-
-        stidx = (stidx + 1) % STSIZE;
-        st = &stringTab[stidx];
+        si = toStringDarraySymbol((char*) this->string, this->len, this->sz);
 
         dt = NULL;
         toDt(&dt);
-
-        si = symbol_generate(SCstatic,type_fake(TYdarray));
         si->Sdt = dt;
         si->Sfl = FLdata;
         out_readonly(si);
         outdata(si);
-
-        st->m = irs->m;
-        st->si = si;
-        st->string = string;
-        st->len = len;
-        st->sz = sz;
     L1:
         e = el_var(si);
     }
@@ -1320,6 +1288,7 @@ elem *NewExp::toElem(IRState *irs)
         {
             csym = cd->toSymbol();
             ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM_NEWCLASS)),el_ptr(csym));
+            toTraceGC(irs, ex, &this->loc);
             ectype = NULL;
 
             if (cd->isNested())
@@ -1497,6 +1466,7 @@ elem *NewExp::toElem(IRState *irs)
 
             int rtl = t->isZeroInit() ? RTLSYM_NEWARRAYT : RTLSYM_NEWARRAYIT;
             e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
+            toTraceGC(irs, ex, &this->loc);
 
             // The new functions return an array, so convert to a pointer
             // ex -> (unsigned)(e >> 32)
@@ -1554,6 +1524,7 @@ elem *NewExp::toElem(IRState *irs)
             e = el_param(e, type->getTypeInfo(NULL)->toElem(irs));
             int rtl = tda->next->isZeroInit() ? RTLSYM_NEWARRAYT : RTLSYM_NEWARRAYIT;
             e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
+            toTraceGC(irs, e, &this->loc);
         }
         else
         {   // Multidimensional array allocations
@@ -1576,6 +1547,7 @@ elem *NewExp::toElem(IRState *irs)
             e = el_param(e, type->getTypeInfo(NULL)->toElem(irs));
             int rtl = t->isZeroInit() ? RTLSYM_NEWARRAYMTX : RTLSYM_NEWARRAYMITX;
             e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
+            toTraceGC(irs, e, &this->loc);
             e = el_combine(earray, e);
         }
     }
@@ -1592,6 +1564,7 @@ elem *NewExp::toElem(IRState *irs)
 
         int rtl = tp->next->isZeroInit() ? RTLSYM_NEWARRAYT : RTLSYM_NEWARRAYIT;
         e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
+        toTraceGC(irs, e, &this->loc);
 
         // The new functions return an array, so convert to a pointer
         // e -> (unsigned)(e >> 32)
@@ -1975,6 +1948,7 @@ elem *CatExp::toElem(IRState *irs)
         elem *ep = el_pair(TYdarray, el_long(TYsize_t, elems.dim), el_ptr(sdata));
         ep = el_param(ep, ta->getTypeInfo(NULL)->toElem(irs));
         e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCATNTX]), ep);
+        toTraceGC(irs, e, &this->loc);
         e = el_combine(earr, e);
     }
     else
@@ -1987,6 +1961,7 @@ elem *CatExp::toElem(IRState *irs)
         e2 = eval_Darray(irs, this->e2);
         ep = el_params(e2, e1, ta->getTypeInfo(NULL)->toElem(irs), NULL);
         e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYCATT)), ep);
+        toTraceGC(irs, e, &this->loc);
     }
     el_setLoc(e,loc);
     return e;
@@ -2438,6 +2413,7 @@ elem *AssignExp::toElem(IRState *irs)
 
         e = el_bin(OPcall, type->totym(), el_var(getRtlsym(r)), ep);
         el_setLoc(e, loc);
+        toTraceGC(irs, e, &this->loc);
         return e;
     }
 
@@ -2838,6 +2814,7 @@ elem *CatAssignExp::toElem(IRState *irs)
                 ? RTLSYM_ARRAYAPPENDCD
                 : RTLSYM_ARRAYAPPENDWD;
         e = el_bin(OPcall, TYdarray, el_var(getRtlsym(rtl)), ep);
+        toTraceGC(irs, e, &this->loc);
         el_setLoc(e,loc);
     }
     else if (tb1->ty == Tarray || tb2->ty == Tsarray)
@@ -2859,6 +2836,7 @@ elem *CatAssignExp::toElem(IRState *irs)
             }
             elem *ep = el_params(e2, e1, this->e1->type->getTypeInfo(NULL)->toElem(irs), NULL);
             e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYAPPENDT)), ep);
+            toTraceGC(irs, e, &this->loc);
         }
         else if (I64)
         {   // Append element
@@ -2892,6 +2870,7 @@ elem *CatAssignExp::toElem(IRState *irs)
             elem *ep = el_param(e1, this->e1->type->getTypeInfo(NULL)->toElem(irs));
             ep = el_param(el_long(TYsize_t, 1), ep);
             e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYAPPENDCTX)), ep);
+            toTraceGC(irs, e, &this->loc);
             symbol *stmp = symbol_genauto(tb1->toCtype());
             e = el_bin(OPeq, TYdarray, el_var(stmp), e);
 
@@ -4447,6 +4426,7 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
             e = el_param(e, type->getTypeInfo(NULL)->toElem(irs));
             // call _d_arrayliteralTX(ti, dim)
             e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM_ARRAYLITERALTX)),e);
+            toTraceGC(irs, e, &this->loc);
             Symbol *stmp = symbol_genauto(Type::tvoid->pointerTo()->toCtype());
             e = el_bin(OPeq,TYnptr,el_var(stmp),e);
 
@@ -4612,6 +4592,7 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
 
         // call _d_assocarrayliteralTX(ti, keys, values)
         e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM_ASSOCARRAYLITERALTX)),e);
+        toTraceGC(irs, e, &this->loc);
         el_setLoc(e,loc);
 
         e = el_combine(evalues, e);
@@ -4855,7 +4836,6 @@ elem *StructLiteralExp::toElem(IRState *irs)
     return e;
 }
 
-
 /*************************************************
  * Allocate a static array, and initialize its members with elems[].
  * Return the initialization expression, and the symbol for the static array in *psym.
@@ -4900,4 +4880,147 @@ elem *ElemsToStaticArray(Loc loc, Type *telem, Elems *elems, symbol **psym)
     }
 
     return el_combines((void **)eset.tdata(), dim);
+}
+
+/*******************************************************
+ * Write read-only string to object file, create a local symbol for it.
+ * str[len] must be 0.
+ */
+
+Symbol *toStringSymbol(const char *str, size_t len, size_t sz)
+{
+    //printf("toStringSymbol() %p\n", stringTab);
+    assert(str[len * sz] == 0);
+    StringValue *sv = stringTab->update(str, len * sz);
+    if (!sv->ptrvalue)
+    {
+        Symbol *si = symbol_generate(SCstatic,type_static_array(len * sz, tschar));
+        si->Salignment = 1;
+        si->Sdt = NULL;
+        dtnbytes(&si->Sdt, (len + 1) * sz, str);
+        si->Sfl = FLdata;
+        out_readonly(si);
+        outdata(si);
+        sv->ptrvalue = (void *)si;
+    }
+    return (Symbol *)sv->ptrvalue;
+}
+
+/*******************************************************
+ * Write read-only string to object file as a darray, create a local symbol for it.
+ */
+
+Symbol *toStringDarraySymbol(const char *str, size_t len, size_t sz)
+{
+    Symbol *si = toStringSymbol(str, len, sz);
+
+    /* sida shold be cached along with si, but currently StringTable only gives us one
+     * slot, 'ptrvalue'.
+     */
+    dt_t *dt = NULL;
+    dtsize_t(&dt, len);
+    dtxoff(&dt, si, 0);
+
+    Symbol *sida = symbol_generate(SCstatic,type_fake(TYdarray));
+    sida->Sdt = dt;
+    sida->Sfl = FLdata;
+    out_readonly(sida);
+    outdata(sida);
+    return sida;
+}
+
+/******************************************************
+ * Return an elem that is the file, line, and function suitable
+ * for insertion into the parameter list.
+ */
+
+elem *filelinefunction(IRState *irs, Loc *loc)
+{
+    const char *id = loc->filename;
+    size_t len = strlen(id);
+    Symbol *si = toStringSymbol(id, len, 1);
+    elem *efilename = el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(si));
+    if (config.exe == EX_WIN64)
+        efilename = addressElem(efilename, Type::tstring, true);
+
+    elem *elinnum = el_long(TYint, loc->linnum);
+
+    const char *s = "";
+    FuncDeclaration *fd = irs->getFunc();
+    if (fd)
+    {
+        s = fd->toPrettyChars();
+    }
+
+    len = strlen(s);
+    si = toStringSymbol(s, len, 1);
+    elem *efunction = el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(si));
+    if (config.exe == EX_WIN64)
+        efunction = addressElem(efunction, Type::tstring, true);
+
+    return el_params(efunction, elinnum, efilename, NULL);
+}
+
+
+/******************************************************
+ * Replace call to GC allocator with call to tracing GC allocator.
+ * Params:
+ *      irs = to get function from
+ *      e = elem to modify
+ *      eloc = to get file/line from
+ */
+
+void toTraceGC(IRState *irs, elem *e, Loc *loc)
+{
+    static const int map[][2] =
+    {
+        { RTLSYM_NEWCLASS, RTLSYM_TRACENEWCLASS },
+        { RTLSYM_NEWITEMT, RTLSYM_TRACENEWITEMT },
+        { RTLSYM_NEWITEMIT, RTLSYM_TRACENEWITEMIT },
+        { RTLSYM_NEWARRAYT, RTLSYM_TRACENEWARRAYT },
+        { RTLSYM_NEWARRAYIT, RTLSYM_TRACENEWARRAYIT },
+        { RTLSYM_NEWARRAYMTX, RTLSYM_TRACENEWARRAYMTX },
+        { RTLSYM_NEWARRAYMITX, RTLSYM_TRACENEWARRAYMITX },
+
+        { RTLSYM_DELCLASS, RTLSYM_TRACEDELCLASS },
+        { RTLSYM_CALLFINALIZER, RTLSYM_TRACECALLFINALIZER },
+        { RTLSYM_CALLINTERFACEFINALIZER, RTLSYM_TRACECALLINTERFACEFINALIZER },
+        { RTLSYM_DELINTERFACE, RTLSYM_TRACEDELINTERFACE },
+        { RTLSYM_DELARRAYT, RTLSYM_TRACEDELARRAYT },
+        { RTLSYM_DELMEMORY, RTLSYM_TRACEDELMEMORY },
+        { RTLSYM_DELSTRUCT, RTLSYM_TRACEDELSTRUCT },
+
+        { RTLSYM_ARRAYLITERALTX, RTLSYM_TRACEARRAYLITERALTX },
+        { RTLSYM_ASSOCARRAYLITERALTX, RTLSYM_TRACEASSOCARRAYLITERALTX },
+
+        { RTLSYM_ARRAYCATT, RTLSYM_TRACEARRAYCATT },
+        { RTLSYM_ARRAYCATNTX, RTLSYM_TRACEARRAYCATNTX },
+
+        { RTLSYM_ARRAYAPPENDCD, RTLSYM_TRACEARRAYAPPENDCD },
+        { RTLSYM_ARRAYAPPENDWD, RTLSYM_TRACEARRAYAPPENDWD },
+        { RTLSYM_ARRAYAPPENDT, RTLSYM_TRACEARRAYAPPENDT },
+        { RTLSYM_ARRAYAPPENDCTX, RTLSYM_TRACEARRAYAPPENDCTX },
+
+        { RTLSYM_ARRAYSETLENGTHT, RTLSYM_TRACEARRAYSETLENGTHT },
+        { RTLSYM_ARRAYSETLENGTHIT, RTLSYM_TRACEARRAYSETLENGTHIT },
+
+        { RTLSYM_ALLOCMEMORY, RTLSYM_TRACEALLOCMEMORY },
+    };
+
+    if (global.params.tracegc && loc->filename)
+    {
+        assert(e->Eoper == OPcall);
+        elem *e1 = e->E1;
+        assert(e1->Eoper == OPvar);
+        for (size_t i = 0; 1; ++i)
+        {
+            assert(i < sizeof(map)/sizeof(map[0]));
+            if (e1->EV.sp.Vsym == rtlsym[map[i][0]])
+            {
+                e1->EV.sp.Vsym = rtlsym[map[i][1]];
+                break;
+            }
+        }
+        e->E2 = el_param(e->E2, filelinefunction(irs, loc));
+    }
 }
