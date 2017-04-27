@@ -1,3 +1,8 @@
+/**
+ Written by Stefan Koch
+ In April 2017
+*/
+
 module ddmd.ctfe.bc_x86_backend;
 import ddmd.ctfe.bc_common;
 
