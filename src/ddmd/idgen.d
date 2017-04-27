@@ -373,14 +373,20 @@ Msgtable[] msgtable =
     { "udaSelector", "selector" },
 ];
 
+const(char)* relativeFile(T)(T name)
+{
+    immutable fileDirectory = __FILE_FULL_PATH__[0..$-8];
+    return (fileDirectory~"/"~name~"\0").ptr;
+}
 
 int main()
 {
     {
-        auto fp = fopen("ddmd/id.h","wb");
+        auto idHeaderFile = relativeFile("id.h");
+        auto fp = fopen(idHeaderFile,"wb");
         if (!fp)
         {
-            printf("can't open ddmd.id.h\n");
+            printf("can't open \"%s\"\n", idHeaderFile);
             exit(EXIT_FAILURE);
         }
 
@@ -405,10 +411,11 @@ int main()
     }
 
     {
-        auto fp = fopen("ddmd/id.d","wb");
+        auto idDFile = relativeFile("id.d");
+        auto fp = fopen(idDFile,"wb");
         if (!fp)
         {
-            printf("can't open ddmd.id.d\n");
+            printf("can't open \"%s\"\n", idDFile);
             exit(EXIT_FAILURE);
         }
 
