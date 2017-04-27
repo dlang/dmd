@@ -45,7 +45,7 @@ auto instKind(LongInst i)
             LongInst.ImmEq, LongInst.ImmNeq, LongInst.ImmLt, LongInst.ImmLe, LongInst.ImmGt, LongInst.ImmGe, LongInst.ImmSet,
             LongInst.ImmAnd, LongInst.ImmOr, LongInst.ImmXor, LongInst.ImmLsh,
             LongInst.ImmRsh, LongInst.ImmMod, LongInst.Call, LongInst.BuiltinCall,
-            LongInst.ImmSetHigh:
+            LongInst.SetHighImm:
         {
             return InstKind.LongInstImm32;
         }
@@ -129,7 +129,7 @@ enum LongInst : ushort
     ImmRsh,
     ImmMod,
 
-    ImmSetHigh,
+    SetHighImm,
 
     Call,
     HeapLoad32, ///SP[hi & 0xFFFF] = Heap[align4(SP[hi >> 16])]
@@ -141,6 +141,30 @@ enum LongInst : ushort
 
 }
 //Imm-Intructuins and corrospinding 2Operand instructions have to be in the same order
+static immutable bc_order_errors = () {
+    string result;
+    auto members = [__traits(allMembers, LongInst)];
+    auto d1 = LongInst.ImmAdd - LongInst.Add;
+    auto d2 = LongInst.ImmMod - LongInst.Mod;
+    if (d1 != d2)
+    {
+        result ~= "mismatch between ImmAdd - Add and ImmMod-Mod\nThis indicates Imm insts that do not corrospond to 2stack insts";
+    }
+
+    foreach (i, member; members)
+    {
+        if (member.length > 3 && member[0 .. 3] == "Imm" && members[i - d1] != member[3 .. $])
+        {
+            result ~= "\nError: " ~ member ~ " should match to: " ~ member[3 .. $]
+                ~ "; but it matches to: " ~ members[i - d1];
+        }
+    }
+    return result;
+} ();
+
+static assert(!bc_order_errors, bc_order_errors);
+
+
 pragma(msg, 2 ^^ 6 - LongInst.max, " opcodes remaining");
 static assert(LongInst.ImmAdd - LongInst.Add == LongInst.ImmRsh - LongInst.Rsh);
 static assert(LongInst.ImmAnd - LongInst.And == LongInst.ImmMod - LongInst.Mod);
@@ -984,7 +1008,7 @@ string printInstructions(const int* startInstructions, uint length) pure
 
         final switch (cast(LongInst)(lw & InstMask))
         {
-        case LongInst.ImmSetHigh:
+        case LongInst.SetHighImm:
             {
                 result ~= "SetHigh SP[" ~ to!string(lw >> 16) ~ "], #" ~ to!string(hi) ~ "\n";
             }
@@ -1496,7 +1520,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 (*lhsStackRef) = hi;
             }
             break;
-        case LongInst.ImmSetHigh:
+        case LongInst.SetHighImm:
             {
                 *lhsStackRef = (*lhsStackRef & 0x00_00_00_00_FF_FF_FF_FF) | (ulong(hi) << 32UL);
             }
