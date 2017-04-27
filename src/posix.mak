@@ -446,11 +446,8 @@ optabgen.out : $G/optabgen
 ######## idgen generates some source
 
 idgen_output = $D/id.h $D/id.d
-$(idgen_output) : $G/idgen
-
-$G/idgen: $D/idgen.d $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $<
-	$G/idgen
+$(idgen_output) : $D/idgen.d
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -run $<
 
 #########
 # STRING_IMPORT_FILES
