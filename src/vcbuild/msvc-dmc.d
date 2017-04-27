@@ -35,9 +35,6 @@ int main(string[] args)
             case "-cpp": // "source files are C++"
                 newArgs ~= "/TP";
                 break;
-            case "-D": // "define macro DEBUG"
-                newArgs ~= "/DDEBUG";
-                break;
             case "-e": // "show results of preprocessor"
                 break;
             case "-g": // "generate debug info"

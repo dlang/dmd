@@ -1,6 +1,8 @@
-module ddmd.astbaremetal;
+module ddmd.astbase;
 
-struct ASTBaremetal
+import ddmd.astbasevisitor;
+
+struct ASTBase
 {
     import ddmd.root.file;
     import ddmd.root.filename;
@@ -8,6 +10,8 @@ struct ASTBaremetal
     import ddmd.root.rootobject;
     import ddmd.root.outbuffer;
     import ddmd.root.ctfloat;
+    import ddmd.root.rmem;
+    import ddmd.root.stringtable;
 
     import ddmd.tokens;
     import ddmd.identifier;
@@ -15,8 +19,10 @@ struct ASTBaremetal
     import ddmd.id;
     import ddmd.errors;
     import ddmd.lexer;
+    import ddmd.target;
 
     import core.stdc.string;
+    import core.stdc.stdarg;
 
     alias Dsymbols              = Array!(Dsymbol);
     alias Objects               = Array!(RootObject);
@@ -27,6 +33,7 @@ struct ASTBaremetal
     alias Statements            = Array!(Statement);
     alias Catches               = Array!(Catch);
     alias Identifiers           = Array!(Identifier);
+    alias Initializers          = Array!(Initializer);
 
     enum PROTKIND : int
     {
@@ -45,6 +52,7 @@ struct ASTBaremetal
     alias PROTpublic        = PROTKIND.PROTpublic;
     alias PROTexport        = PROTKIND.PROTexport;
     alias PROTundefined     = PROTKIND.PROTundefined;
+    alias PROTnone          = PROTKIND.PROTnone;
 
     enum Sizeok : int
     {
@@ -70,44 +78,84 @@ struct ASTBaremetal
     alias BASEOKdone = Baseok.BASEOKdone;
     alias BASEOKsemanticdone = Baseok.BASEOKsemanticdone;
 
-    enum MODconst            = 0;
-    enum MODimmutable        = 0;
-    enum MODshared           = 0;
-    enum MODwild             = 0;
+    enum MODFlags : int
+    {
+        MODconst        = 1,    // type is const
+        MODimmutable    = 4,    // type is immutable
+        MODshared       = 2,    // type is shared
+        MODwild         = 8,    // type is wild
+        MODwildconst    = (MODwild | MODconst), // type is wild const
+        MODmutable      = 0x10, // type is mutable (only used in wildcard matching)
+    }
 
-    enum STCconst                  = 0;
-    enum STCimmutable              = 0;
-    enum STCshared                 = 0;
-    enum STCwild                   = 0;
-    enum STCin                     = 0;
-    enum STCout                    = 0;
-    enum STCref                    = 0;
-    enum STClazy                   = 0;
-    enum STCscope                  = 0;
-    enum STCfinal                  = 0;
-    enum STCauto                   = 0;
-    enum STCreturn                 = 0;
-    enum STCmanifest               = 0;
-    enum STCgshared                = 0;
-    enum STCtls                    = 0;
-    enum STCsafe                   = 0;
-    enum STCsystem                 = 0;
-    enum STCtrusted                = 0;
-    enum STCnothrow                = 0;
-    enum STCpure                   = 0;
-    enum STCproperty               = 0;
-    enum STCnogc                   = 0;
-    enum STCdisable                = 0;
-    enum STCundefined              = 0;
-    enum STC_TYPECTOR              = 0;
-    enum STCoverride               = 0;
-    enum STCabstract               = 0;
-    enum STCsynchronized           = 0;
-    enum STCdeprecated             = 0;
-    enum STCstatic                 = 0;
-    enum STCextern                 = 0;
+    alias MODconst = MODFlags.MODconst;
+    alias MODimmutable = MODFlags.MODimmutable;
+    alias MODshared = MODFlags.MODshared;
+    alias MODwild = MODFlags.MODwild;
+    alias MODwildconst = MODFlags.MODwildconst;
+    alias MODmutable = MODFlags.MODmutable;
+
+    alias MOD = ubyte;
+
+    enum STCundefined           = 0L;
+    enum STCstatic              = (1L << 0);
+    enum STCextern              = (1L << 1);
+    enum STCconst               = (1L << 2);
+    enum STCfinal               = (1L << 3);
+    enum STCabstract            = (1L << 4);
+    enum STCparameter           = (1L << 5);
+    enum STCfield               = (1L << 6);
+    enum STCoverride            = (1L << 7);
+    enum STCauto                = (1L << 8);
+    enum STCsynchronized        = (1L << 9);
+    enum STCdeprecated          = (1L << 10);
+    enum STCin                  = (1L << 11);   // in parameter
+    enum STCout                 = (1L << 12);   // out parameter
+    enum STClazy                = (1L << 13);   // lazy parameter
+    enum STCforeach             = (1L << 14);   // variable for foreach loop
+    //                            (1L << 15)
+    enum STCvariadic            = (1L << 16);   // the 'variadic' parameter in: T foo(T a, U b, V variadic...)
+    enum STCctorinit            = (1L << 17);   // can only be set inside constructor
+    enum STCtemplateparameter   = (1L << 18);   // template parameter
+    enum STCscope               = (1L << 19);
+    enum STCimmutable           = (1L << 20);
+    enum STCref                 = (1L << 21);
+    enum STCinit                = (1L << 22);   // has explicit initializer
+    enum STCmanifest            = (1L << 23);   // manifest constant
+    enum STCnodtor              = (1L << 24);   // don't run destructor
+    enum STCnothrow             = (1L << 25);   // never throws exceptions
+    enum STCpure                = (1L << 26);   // pure function
+    enum STCtls                 = (1L << 27);   // thread local
+    enum STCalias               = (1L << 28);   // alias parameter
+    enum STCshared              = (1L << 29);   // accessible from multiple threads
+    enum STCgshared             = (1L << 30);   // accessible from multiple threads, but not typed as "shared"
+    enum STCwild                = (1L << 31);   // for "wild" type constructor
+    enum STCproperty            = (1L << 32);
+    enum STCsafe                = (1L << 33);
+    enum STCtrusted             = (1L << 34);
+    enum STCsystem              = (1L << 35);
+    enum STCctfe                = (1L << 36);   // can be used in CTFE, even if it is static
+    enum STCdisable             = (1L << 37);   // for functions that are not callable
+    enum STCresult              = (1L << 38);   // for result variables passed to out contracts
+    enum STCnodefaultctor       = (1L << 39);   // must be set inside constructor
+    enum STCtemp                = (1L << 40);   // temporary variable
+    enum STCrvalue              = (1L << 41);   // force rvalue for variables
+    enum STCnogc                = (1L << 42);   // @nogc
+    enum STCvolatile            = (1L << 43);   // destined for volatile in the back end
+    enum STCreturn              = (1L << 44);   // 'return ref' or 'return scope' for function parameters
+    enum STCautoref             = (1L << 45);   // Mark for the already deduced 'auto ref' parameter
+    enum STCinference           = (1L << 46);   // do attribute inference
+    enum STCexptemp             = (1L << 47);   // temporary variable that has lifetime restricted to an expression
+    enum STCmaybescope          = (1L << 48);   // parameter might be 'scope'
+
+    enum STC_TYPECTOR = (STCconst | STCimmutable | STCshared | STCwild);
 
     private enum STC_FUNCATTR = (STCref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem);
+
+    extern (C++) __gshared const(StorageClass) STCStorageClass =
+        (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal | STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias | STCout | STCin | STCmanifest | STCimmutable | STCshared | STCwild | STCnothrow | STCnogc | STCpure | STCref | STCtls | STCgshared | STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable);
+
+
 
     enum ENUMTY : int
     {
@@ -260,7 +308,24 @@ struct ASTBaremetal
     alias PUREconst = PURE.PUREconst;
     alias PUREstrong = PURE.PUREstrong;
 
-    extern (C++) class Dsymbol
+    enum AliasThisRec : int
+    {
+        RECno           = 0,    // no alias this recursion
+        RECyes          = 1,    // alias this has recursive dependency
+        RECfwdref       = 2,    // not yet known
+        RECtypeMask     = 3,    // mask to read no/yes/fwdref
+        RECtracing      = 0x4,  // mark in progress of implicitConvTo/deduceWild
+        RECtracingDT    = 0x8,  // mark in progress of deduceType
+    }
+
+    alias RECno = AliasThisRec.RECno;
+    alias RECyes = AliasThisRec.RECyes;
+    alias RECfwdref = AliasThisRec.RECfwdref;
+    alias RECtypeMask = AliasThisRec.RECtypeMask;
+    alias RECtracing = AliasThisRec.RECtracing;
+    alias RECtracingDT = AliasThisRec.RECtracingDT;
+
+    extern (C++) class Dsymbol : RootObject
     {
         Loc loc;
         Identifier ident;
@@ -268,26 +333,107 @@ struct ASTBaremetal
         UserAttributeDeclaration userAttribDecl;
         Dsymbol parent;
 
+        const(char)* comment;
+
         final extern (D) this() {}
         final extern (D) this(Identifier ident)
         {
             this.ident = ident;
         }
 
-        void addComment(const(char)* comment) {}
-        AttribDeclaration isAttribDeclaration()
+        void addComment(const(char)* comment)
         {
-            return null;
+            if (!this.comment)
+                this.comment = comment;
+            else if (comment && strcmp(cast(char*)comment, cast(char*)this.comment) != 0)
+                this.comment = Lexer.combineComments(this.comment, comment, true);
+        }
+
+        override const(char)* toChars()
+        {
+            return ident ? ident.toChars() : "__anonymous";
+        }
+
+        bool oneMember(Dsymbol *ps, Identifier ident)
+        {
+            *ps = this;
+            return true;
         }
 
         static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
         {
+            Dsymbol s = null;
+            if (members)
+            {
+                for (size_t i = 0; i < members.dim; i++)
+                {
+                    Dsymbol sx = (*members)[i];
+                    bool x = sx.oneMember(ps, ident);
+                    if (!x)
+                    {
+                        assert(*ps is null);
+                        return false;
+                    }
+                    if (*ps)
+                    {
+                        assert(ident);
+                        if (!(*ps).ident || !(*ps).ident.equals(ident))
+                            continue;
+                        if (!s)
+                            s = *ps;
+                        else if (s.isOverloadable() && (*ps).isOverloadable())
+                        {
+                            // keep head of overload set
+                            FuncDeclaration f1 = s.isFuncDeclaration();
+                            FuncDeclaration f2 = (*ps).isFuncDeclaration();
+                            if (f1 && f2)
+                            {
+                                for (; f1 != f2; f1 = f1.overnext0)
+                                {
+                                    if (f1.overnext0 is null)
+                                    {
+                                        f1.overnext0 = f2;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        else // more than one symbol
+                        {
+                            *ps = null;
+                            //printf("\tfalse 2\n");
+                            return false;
+                        }
+                    }
+                }
+            }
+            *ps = s;
+            return true;
+        }
+
+        bool isOverloadable()
+        {
             return false;
         }
 
-        final void error(const(char)* format, const(char)* p1, const(char)* p2) {}
-        final void error(const(char)* format, const(char)* p1) {}
-        final void error(const(char)* format) {}
+        const(char)* kind() const
+        {
+            return "symbol";
+        }
+
+        final void error(A...)(const(char)* format, A args)
+        {
+            va_list ap;
+            va_start(ap, format);
+            // last parameter : toPrettyChars
+            verror(loc, format, ap, kind(), "");
+            va_end(ap);
+        }
+
+        inout(AttribDeclaration) isAttribDeclaration() inout
+        {
+            return null;
+        }
 
         inout(TemplateDeclaration) isTemplateDeclaration() inout
         {
@@ -298,17 +444,37 @@ struct ASTBaremetal
         {
             return null;
         }
+
+        inout(FuncDeclaration) isFuncDeclaration() inout
+        {
+            return null;
+        }
+
+        inout(VarDeclaration) isVarDeclaration() inout
+        {
+            return null;
+        }
+
+        void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) class AliasThis : Dsymbol
     {
         Identifier ident;
 
-        final extern (D) this(Loc loc, Identifier ident)
+        extern (D) this(Loc loc, Identifier ident)
         {
             super(null);
             this.loc = loc;
             this.ident = ident;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -326,6 +492,11 @@ struct ASTBaremetal
             protection = Prot(PROTundefined);
             linkage = LINKdefault;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) class ScopeDsymbol : Dsymbol
@@ -335,6 +506,11 @@ struct ASTBaremetal
         final extern (D) this(Identifier id)
         {
             super(id);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -346,7 +522,10 @@ struct ASTBaremetal
         int isstatic;
         Prot protection;
 
-        final extern (D) this(Loc loc, Identifiers* packages, Identifier id, Identifier aliasId, int isstatic)
+        Identifiers names;
+        Identifiers aliases;
+
+        extern (D) this(Loc loc, Identifiers* packages, Identifier id, Identifier aliasId, int isstatic)
         {
             super(null);
             this.loc = loc;
@@ -372,7 +551,21 @@ struct ASTBaremetal
                 this.ident = id;
             }
         }
-        void addAlias(A, B)(A a, B b) {}
+        void addAlias(Identifier name, Identifier _alias)
+        {
+            if (isstatic)
+                error("cannot have an import bind list");
+            if (!aliasId)
+                this.ident = null;
+
+            names.push(name);
+            aliases.push(_alias);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) abstract class AttribDeclaration : Dsymbol
@@ -383,6 +576,16 @@ struct ASTBaremetal
         {
             this.decl = decl;
         }
+
+        override final inout(AttribDeclaration) isAttribDeclaration() inout
+        {
+            return this;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class StaticAssert : Dsymbol
@@ -390,7 +593,7 @@ struct ASTBaremetal
         Expression exp;
         Expression msg;
 
-        final extern (D) this(Loc loc, Expression exp, Expression msg)
+        extern (D) this(Loc loc, Expression exp, Expression msg)
         {
             super(Id.empty);
             this.loc = loc;
@@ -413,6 +616,11 @@ struct ASTBaremetal
             this.level = level;
             this.loc = loc;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class VersionSymbol : Dsymbol
@@ -428,6 +636,11 @@ struct ASTBaremetal
         {
             this.level = level;
             this.loc = loc;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -450,6 +663,16 @@ struct ASTBaremetal
             sequenceNumber = ++nextSequenceNumber;
             ctfeAdrOnStack = -1;
         }
+
+        override final inout(VarDeclaration) isVarDeclaration() inout
+        {
+            return this;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) class FuncDeclaration : Declaration
@@ -463,6 +686,7 @@ struct ASTBaremetal
         Type type;
         bool inferRetType;
         ForeachStatement fes;
+        FuncDeclaration overnext0;
 
         final extern (D) this(Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type)
         {
@@ -484,23 +708,68 @@ struct ASTBaremetal
         {
             return null;
         }
+
+        override bool isOverloadable()
+        {
+            return true;
+        }
+
+        override final inout(FuncDeclaration) isFuncDeclaration() inout
+        {
+            return this;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class AliasDeclaration : Declaration
     {
         Dsymbol aliassym;
 
-        final extern (D) this(Loc loc, Identifier id, Dsymbol s)
+        extern (D) this(Loc loc, Identifier id, Dsymbol s)
         {
             super(id);
             this.loc = loc;
             this.aliassym = s;
         }
-        final extern (D) this(Loc loc, Identifier id, Type type)
+
+        extern (D) this(Loc loc, Identifier id, Type type)
         {
             super(id);
             this.loc = loc;
             this.type = type;
+        }
+
+        override bool isOverloadable()
+        {
+            //assume overloadable until alias is resolved;
+            // should be modified when semantic analysis is added
+            return true;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class TupleDeclaration : Declaration
+    {
+        Objects* objects;
+
+        extern (D) this(Loc loc, Identifier id, Objects* objects)
+        {
+            super(id);
+            this.loc = loc;
+            this.objects = objects;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -508,49 +777,79 @@ struct ASTBaremetal
     {
         TOK tok;
 
-        final extern (D) this(Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null)
+        extern (D) this(Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null)
         {
             super(loc, endloc, null, STCundefined, type);
             this.ident = id ? id : Id.empty;
             this.tok = tok;
             this.fes = fes;
         }
+
+        override inout(FuncLiteralDeclaration) isFuncLiteralDeclaration() inout
+        {
+            return this;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class PostBlitDeclaration : FuncDeclaration
     {
-        final extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id)
+        extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id)
         {
             super(loc, endloc, id, stc, null);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
     extern (C++) final class CtorDeclaration : FuncDeclaration
     {
-        final extern (D) this(Loc loc, Loc endloc, StorageClass stc, Type type)
+        extern (D) this(Loc loc, Loc endloc, StorageClass stc, Type type)
         {
             super(loc, endloc, Id.ctor, stc, type);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
     extern (C++) final class DtorDeclaration : FuncDeclaration
     {
-        final extern (D) this(Loc loc, Loc endloc)
+        extern (D) this(Loc loc, Loc endloc)
         {
             super(loc, endloc, Id.dtor, STCundefined, null);
         }
-        final extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id)
+        extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id)
         {
             super(loc, endloc, id, stc, null);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
     extern (C++) final class InvariantDeclaration : FuncDeclaration
     {
-        final extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id, Statement fbody)
+        extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id, Statement fbody)
         {
             super(loc, endloc, id ? id : Identifier.generateId("__invariant"), stc, null);
             this.fbody = fbody;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -558,12 +857,17 @@ struct ASTBaremetal
     {
         char* codedoc;
 
-        final extern (D) this(Loc loc, Loc endloc, StorageClass stc, char* codedoc)
+        extern (D) this(Loc loc, Loc endloc, StorageClass stc, char* codedoc)
         {
             OutBuffer buf;
             buf.printf("__unittestL%u_", loc.linnum);
             super(loc, endloc, Identifier.generateId(buf.peekString()), stc, null);
             this.codedoc = codedoc;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -572,11 +876,16 @@ struct ASTBaremetal
         Parameters* parameters;
         int varargs;
 
-        final extern (D) this(Loc loc, Loc endloc, StorageClass stc, Parameters* fparams, int varargs)
+        extern (D) this(Loc loc, Loc endloc, StorageClass stc, Parameters* fparams, int varargs)
         {
             super(loc, endloc, Id.classNew, STCstatic | stc, null);
             this.parameters = fparams;
             this.varargs = varargs;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -584,10 +893,15 @@ struct ASTBaremetal
     {
         Parameters* parameters;
 
-        final extern (D) this(Loc loc, Loc endloc, StorageClass stc, Parameters* fparams)
+        extern (D) this(Loc loc, Loc endloc, StorageClass stc, Parameters* fparams)
         {
             super(loc, endloc, Id.classDelete, STCstatic | stc, null);
             this.parameters = fparams;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -601,6 +915,11 @@ struct ASTBaremetal
         {
             super(loc, endloc, Identifier.generateId(name), STCstatic | stc, null);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) class StaticDtorDeclaration : FuncDeclaration
@@ -613,21 +932,36 @@ struct ASTBaremetal
         {
             super(loc, endloc, Identifier.generateId(name), STCstatic | stc, null);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class SharedStaticCtorDeclaration : StaticCtorDeclaration
     {
-        final extern (D) this(Loc loc, Loc endloc, StorageClass stc)
+        extern (D) this(Loc loc, Loc endloc, StorageClass stc)
         {
             super(loc, endloc, "_sharedStaticCtor", stc);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
     extern (C++) final class SharedStaticDtorDeclaration : StaticDtorDeclaration
     {
-        final extern (D) this(Loc loc, Loc endloc, StorageClass stc)
+        extern (D) this(Loc loc, Loc endloc, StorageClass stc)
         {
             super(loc, endloc, "_sharedStaticDtor", stc);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -643,6 +977,11 @@ struct ASTBaremetal
             __gshared uint packageTag;
             this.tag = packageTag++;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class EnumDeclaration : ScopeDsymbol
@@ -651,13 +990,18 @@ struct ASTBaremetal
         Type memtype;
         Prot protection;
 
-        final extern (D) this(Loc loc, Identifier id, Type memtype)
+        extern (D) this(Loc loc, Identifier id, Type memtype)
         {
             super(id);
             this.loc = loc;
             type = new TypeEnum(this);
             this.memtype = memtype;
             protection = Prot(PROTundefined);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -674,6 +1018,11 @@ struct ASTBaremetal
             protection = Prot(PROTpublic);
             sizeok = SIZEOKnone;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class TemplateDeclaration : ScopeDsymbol
@@ -687,7 +1036,7 @@ struct ASTBaremetal
         Prot protection;
         Dsymbol onemember;
 
-        final extern (D) this(Loc loc, Identifier id, TemplateParameters* parameters, Expression constraint, Dsymbols* decldefs, bool ismixin = false, bool literal = false)
+        extern (D) this(Loc loc, Identifier id, TemplateParameters* parameters, Expression constraint, Dsymbols* decldefs, bool ismixin = false, bool literal = false)
         {
             super(id);
             this.loc = loc;
@@ -708,6 +1057,21 @@ struct ASTBaremetal
                     s.parent = this;
                 }
             }
+        }
+
+        override bool isOverloadable()
+        {
+            return true;
+        }
+
+        override inout(TemplateDeclaration) isTemplateDeclaration () inout
+        {
+            return this;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -736,15 +1100,25 @@ struct ASTBaremetal
             this.semantictiargsdone = true;
             this.havetempdecl = true;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class Nspace : ScopeDsymbol
     {
-        final extern (D) this(Loc loc, Identifier ident, Dsymbols* members)
+        extern (D) this(Loc loc, Identifier ident, Dsymbols* members)
         {
             super(ident);
             this.loc = loc;
             this.members = members;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -752,11 +1126,16 @@ struct ASTBaremetal
     {
         Expression exp;
 
-        final extern (D) this(Loc loc, Expression exp)
+        extern (D) this(Loc loc, Expression exp)
         {
             super(null);
             this.loc = loc;
             this.exp = exp;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -764,14 +1143,31 @@ struct ASTBaremetal
     {
         Expressions* atts;
 
-        final extern (D) this(Expressions* atts, Dsymbols* decl)
+        extern (D) this(Expressions* atts, Dsymbols* decl)
         {
             super(decl);
             this.atts = atts;
         }
-        static Expressions* concat(Expressions* a, Expressions* b)
+
+        static Expressions* concat(Expressions* udas1, Expressions* udas2)
         {
-            return null;
+            Expressions* udas;
+            if (!udas1 || udas1.dim == 0)
+                udas = udas2;
+            else if (!udas2 || udas2.dim == 0)
+                udas = udas1;
+            else
+            {
+                udas = new Expressions();
+                udas.push(new TupleExp(Loc(), udas1));
+                udas.push(new TupleExp(Loc(), udas2));
+            }
+            return udas;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -779,10 +1175,15 @@ struct ASTBaremetal
     {
         LINK linkage;
 
-        final extern (D) this(LINK p, Dsymbols* decl)
+        extern (D) this(LINK p, Dsymbols* decl)
         {
             super(decl);
             linkage = p;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -790,11 +1191,16 @@ struct ASTBaremetal
     {
         bool isunion;
 
-        final extern (D) this(Loc loc, bool isunion, Dsymbols* decl)
+        extern (D) this(Loc loc, bool isunion, Dsymbols* decl)
         {
             super(decl);
             this.loc = loc;
             this.isunion = isunion;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -802,11 +1208,16 @@ struct ASTBaremetal
     {
         Expression ealign;
 
-        final extern (D) this(Loc loc, Expression ealign, Dsymbols* decl)
+        extern (D) this(Loc loc, Expression ealign, Dsymbols* decl)
         {
             super(decl);
             this.loc = loc;
             this.ealign = ealign;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -814,10 +1225,15 @@ struct ASTBaremetal
     {
         CPPMANGLE cppmangle;
 
-        final extern (D) this(CPPMANGLE p, Dsymbols* decl)
+        extern (D) this(CPPMANGLE p, Dsymbols* decl)
         {
             super(decl);
             cppmangle = p;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -826,13 +1242,13 @@ struct ASTBaremetal
         Prot protection;
         Identifiers* pkg_identifiers;
 
-        final extern (D) this(Loc loc, Prot p, Dsymbols* decl)
+        extern (D) this(Loc loc, Prot p, Dsymbols* decl)
         {
             super(decl);
             this.loc = loc;
             this.protection = p;
         }
-        final extern (D) this(Loc loc, Identifiers* pkg_identifiers, Dsymbols* decl)
+        extern (D) this(Loc loc, Identifiers* pkg_identifiers, Dsymbols* decl)
         {
             super(decl);
             this.loc = loc;
@@ -840,18 +1256,28 @@ struct ASTBaremetal
             this.protection.pkg = null;
             this.pkg_identifiers = pkg_identifiers;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class PragmaDeclaration : AttribDeclaration
     {
         Expressions* args;
 
-        final extern (D) this(Loc loc, Identifier ident, Expressions* args, Dsymbols* decl)
+        extern (D) this(Loc loc, Identifier ident, Expressions* args, Dsymbols* decl)
         {
             super(decl);
             this.loc = loc;
             this.ident = ident;
             this.args = args;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -863,6 +1289,11 @@ struct ASTBaremetal
         {
             super(decl);
             this.stc = stc;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -877,24 +1308,39 @@ struct ASTBaremetal
             this.condition = condition;
             this.elsedecl = elsedecl;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
     {
         Expression msg;
 
-        final extern (D) this(Expression msg, Dsymbols* decl)
+        extern (D) this(Expression msg, Dsymbols* decl)
         {
             super(STCdeprecated, decl);
             this.msg = msg;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
     extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
     {
-        final extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
+        extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
         {
             super(condition, decl, elsedecl);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -903,11 +1349,16 @@ struct ASTBaremetal
         Expression origValue;
         Type origType;
 
-        final extern (D) this(Loc loc, Identifier id, Expression value, Type origType)
+        extern (D) this(Loc loc, Identifier id, Expression value, Type origType)
         {
             super(loc, null, id ? id : Id.empty, new ExpInitializer(loc, value));
             this.origValue = value;
             this.origType = origType;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -990,9 +1441,9 @@ struct ASTBaremetal
             return new File(docfilename);
         }
 
-        const(char)* toChars() const
+        override void accept(Visitor v)
         {
-            return "";
+            v.visit(this);
         }
     }
 
@@ -1010,13 +1461,23 @@ struct ASTBaremetal
             if (id == Id.ModuleInfo && !Module.moduleinfo)
                 Module.moduleinfo = this;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class UnionDeclaration : StructDeclaration
     {
-        final extern (D) this(Loc loc, Identifier id)
+        extern (D) this(Loc loc, Identifier id)
         {
             super(loc, id);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1207,6 +1668,11 @@ struct ASTBaremetal
             }
             baseok = BASEOKnone;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) class InterfaceDeclaration : ClassDeclaration
@@ -1214,6 +1680,11 @@ struct ASTBaremetal
         final extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses)
         {
             super(loc, id, baseclasses, null, false);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1229,6 +1700,11 @@ struct ASTBaremetal
             this.ident = ident;
             this.tqual = tqual;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class Parameter : RootObject
@@ -1237,6 +1713,8 @@ struct ASTBaremetal
         Type type;
         Identifier ident;
         Expression defaultArg;
+
+        extern (D) alias ForeachDg = int delegate(size_t idx, Parameter param);
 
         final extern (D) this(StorageClass storageClass, Type type, Identifier ident, Expression defaultArg)
         {
@@ -1248,7 +1726,51 @@ struct ASTBaremetal
 
         static size_t dim(Parameters* parameters)
         {
-            return 0;
+           size_t nargs = 0;
+
+            int dimDg(size_t n, Parameter p)
+            {
+                ++nargs;
+                return 0;
+            }
+
+            _foreach(parameters, &dimDg);
+            return nargs;
+        }
+
+        extern (D) static int _foreach(Parameters* parameters, scope ForeachDg dg, size_t* pn = null)
+        {
+            assert(dg);
+            if (!parameters)
+                return 0;
+
+            size_t n = pn ? *pn : 0; // take over index
+            int result = 0;
+            foreach (i; 0 .. parameters.dim)
+            {
+                Parameter p = (*parameters)[i];
+                Type t = p.type.toBasetype();
+
+                if (t.ty == Ttuple)
+                {
+                    TypeTuple tu = cast(TypeTuple)t;
+                    result = _foreach(tu.arguments, dg, &n);
+                }
+                else
+                    result = dg(n++, p);
+
+                if (result)
+                    break;
+            }
+
+            if (pn)
+                *pn = n; // update index
+            return result;
+        }
+
+        void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1260,6 +1782,11 @@ struct ASTBaremetal
         {
             this.loc = loc;
         }
+
+        void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class ImportStatement : Statement
@@ -1270,6 +1797,11 @@ struct ASTBaremetal
         {
             super(loc);
             this.imports = imports;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1284,6 +1816,11 @@ struct ASTBaremetal
             this.statement = s;
             this.endloc = endloc;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class ReturnStatement : Statement
@@ -1294,6 +1831,11 @@ struct ASTBaremetal
         {
             super(loc);
             this.exp = exp;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1308,6 +1850,11 @@ struct ASTBaremetal
             this.ident = ident;
             this.statement = statement;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class StaticAssertStatement : Statement
@@ -1319,6 +1866,11 @@ struct ASTBaremetal
             super(sa.loc);
             this.sa = sa;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class CompileStatement : Statement
@@ -1329,6 +1881,11 @@ struct ASTBaremetal
         {
             super(loc);
             this.exp = exp;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1344,6 +1901,11 @@ struct ASTBaremetal
             condition = c;
             _body = b;
             this.endloc = endloc;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1364,6 +1926,11 @@ struct ASTBaremetal
             this._body = _body;
             this.endloc = endloc;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class DoStatement : Statement
@@ -1378,6 +1945,11 @@ struct ASTBaremetal
             _body = b;
             condition = c;
             this.endloc = endloc;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1401,6 +1973,11 @@ struct ASTBaremetal
             this._body = _body;
             this.endloc = endloc;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class ForeachStatement : Statement
@@ -1419,6 +1996,11 @@ struct ASTBaremetal
             this.aggr = aggr;
             this._body = _body;
             this.endloc = endloc;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1440,6 +2022,11 @@ struct ASTBaremetal
             this.elsebody = elsebody;
             this.endloc = endloc;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class OnScopeStatement : Statement
@@ -1452,6 +2039,11 @@ struct ASTBaremetal
             super(loc);
             this.tok = tok;
             this.statement = statement;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1468,6 +2060,11 @@ struct ASTBaremetal
             this.ifbody = ifbody;
             this.elsebody = elsebody;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class PragmaStatement : Statement
@@ -1482,6 +2079,11 @@ struct ASTBaremetal
             this.ident = ident;
             this.args = args;
             this._body = _body;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1498,6 +2100,11 @@ struct ASTBaremetal
             this._body = b;
             this.isFinal = isFinal;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class CaseRangeStatement : Statement
@@ -1513,6 +2120,11 @@ struct ASTBaremetal
             this.last = last;
             this.statement = s;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class CaseStatement : Statement
@@ -1526,6 +2138,11 @@ struct ASTBaremetal
             this.exp = exp;
             this.statement = s;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class DefaultStatement : Statement
@@ -1536,6 +2153,11 @@ struct ASTBaremetal
         {
             super(loc);
             this.statement = s;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1548,6 +2170,11 @@ struct ASTBaremetal
             super(loc);
             this.ident = ident;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class ContinueStatement : Statement
@@ -1559,6 +2186,11 @@ struct ASTBaremetal
             super(loc);
             this.ident = ident;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class GotoDefaultStatement : Statement
@@ -1566,6 +2198,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc)
         {
             super(loc);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1578,6 +2215,11 @@ struct ASTBaremetal
             super(loc);
             this.exp = exp;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class GotoStatement : Statement
@@ -1588,6 +2230,11 @@ struct ASTBaremetal
         {
             super(loc);
             this.ident = ident;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1601,6 +2248,11 @@ struct ASTBaremetal
             super(loc);
             this.exp = exp;
             this._body = _body;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1617,6 +2269,11 @@ struct ASTBaremetal
             this._body = _body;
             this.endloc = endloc;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class TryCatchStatement : Statement
@@ -1629,6 +2286,11 @@ struct ASTBaremetal
             super(loc);
             this._body = _body;
             this.catches = catches;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1643,6 +2305,11 @@ struct ASTBaremetal
             this._body = _body;
             this.finalbody = finalbody;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class ThrowStatement : Statement
@@ -1654,6 +2321,11 @@ struct ASTBaremetal
             super(loc);
             this.exp = exp;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class AsmStatement : Statement
@@ -1664,6 +2336,11 @@ struct ASTBaremetal
         {
             super(loc);
             this.tokens = tokens;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1680,6 +2357,11 @@ struct ASTBaremetal
         {
             super(loc);
             this.exp = new DeclarationExp(loc, declaration);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1700,6 +2382,11 @@ struct ASTBaremetal
             foreach (s; sts)
                 statements.push(s);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class CompoundDeclarationStatement : CompoundStatement
@@ -1707,6 +2394,11 @@ struct ASTBaremetal
         final extern (D) this(Loc loc, Statements* statements)
         {
             super(loc, statements);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1718,6 +2410,11 @@ struct ASTBaremetal
         {
             super(loc, s);
             this.stc = stc;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1736,9 +2433,12 @@ struct ASTBaremetal
             this.handler = handler;
         }
     }
+
     extern (C++) abstract class Type : RootObject
     {
         TY ty;
+        MOD mod;
+        char* deco;
 
         extern (C++) static __gshared Type tvoid;
         extern (C++) static __gshared Type tint8;
@@ -1784,39 +2484,678 @@ struct ASTBaremetal
         extern (C++) static __gshared ClassDeclaration typeinfoinvariant;
         extern (C++) static __gshared ClassDeclaration typeinfoshared;
         extern (C++) static __gshared ClassDeclaration typeinfowild;
+        extern (C++) static __gshared StringTable stringtable;
+        extern (C++) static __gshared ubyte[TMAX] sizeTy = ()
+            {
+                ubyte[TMAX] sizeTy = __traits(classInstanceSize, TypeBasic);
+                sizeTy[Tsarray] = __traits(classInstanceSize, TypeSArray);
+                sizeTy[Tarray] = __traits(classInstanceSize, TypeDArray);
+                sizeTy[Taarray] = __traits(classInstanceSize, TypeAArray);
+                sizeTy[Tpointer] = __traits(classInstanceSize, TypePointer);
+                sizeTy[Treference] = __traits(classInstanceSize, TypeReference);
+                sizeTy[Tfunction] = __traits(classInstanceSize, TypeFunction);
+                sizeTy[Tdelegate] = __traits(classInstanceSize, TypeDelegate);
+                sizeTy[Tident] = __traits(classInstanceSize, TypeIdentifier);
+                sizeTy[Tinstance] = __traits(classInstanceSize, TypeInstance);
+                sizeTy[Ttypeof] = __traits(classInstanceSize, TypeTypeof);
+                sizeTy[Tenum] = __traits(classInstanceSize, TypeEnum);
+                sizeTy[Tstruct] = __traits(classInstanceSize, TypeStruct);
+                sizeTy[Tclass] = __traits(classInstanceSize, TypeClass);
+                sizeTy[Ttuple] = __traits(classInstanceSize, TypeTuple);
+                sizeTy[Tslice] = __traits(classInstanceSize, TypeSlice);
+                sizeTy[Treturn] = __traits(classInstanceSize, TypeReturn);
+                sizeTy[Terror] = __traits(classInstanceSize, TypeError);
+                sizeTy[Tnull] = __traits(classInstanceSize, TypeNull);
+                sizeTy[Tvector] = __traits(classInstanceSize, TypeVector);
+                return sizeTy;
+            }();
+
+        Type cto;
+        Type ito;
+        Type sto;
+        Type scto;
+        Type wto;
+        Type wcto;
+        Type swto;
+        Type swcto;
+
+        Type pto;
+        Type rto;
+        Type arrayof;
+
+        // These members are probably used in semnatic analysis
+        //TypeInfoDeclaration vtinfo;
+        //type* ctype;
 
         final extern (D) this(TY ty)
         {
             this.ty = ty;
         }
 
-        final Type addSTC(B)(B b)
+        final bool isImmutable() const
         {
-            return null;
+            return (mod & MODimmutable) != 0;
         }
+
+        final Type nullAttributes()
+        {
+            uint sz = sizeTy[ty];
+            Type t = cast(Type)mem.xmalloc(sz);
+            memcpy(cast(void*)t, cast(void*)this, sz);
+            // t.mod = NULL;  // leave mod unchanged
+            t.deco = null;
+            t.arrayof = null;
+            t.pto = null;
+            t.rto = null;
+            t.cto = null;
+            t.ito = null;
+            t.sto = null;
+            t.scto = null;
+            t.wto = null;
+            t.wcto = null;
+            t.swto = null;
+            t.swcto = null;
+            //t.vtinfo = null; these aren't used in parsing
+            //t.ctype = null;
+            if (t.ty == Tstruct)
+                (cast(TypeStruct)t).att = RECfwdref;
+            if (t.ty == Tclass)
+                (cast(TypeClass)t).att = RECfwdref;
+            return t;
+        }
+
+        Type makeConst()
+        {
+            if (cto)
+                return cto;
+            Type t = this.nullAttributes();
+            t.mod = MODconst;
+            return t;
+        }
+
+        Type makeWildConst()
+        {
+            if (wcto)
+                return wcto;
+            Type t = this.nullAttributes();
+            t.mod = MODwildconst;
+            return t;
+        }
+
+        Type makeShared()
+        {
+            if (sto)
+                return sto;
+            Type t = this.nullAttributes();
+            t.mod = MODshared;
+            return t;
+        }
+
+        Type makeSharedConst()
+        {
+            if (scto)
+                return scto;
+            Type t = this.nullAttributes();
+            t.mod = MODshared | MODconst;
+            return t;
+        }
+
+        Type makeImmutable()
+        {
+            if (ito)
+                return ito;
+            Type t = this.nullAttributes();
+            t.mod = MODimmutable;
+            return t;
+        }
+
+        Type makeWild()
+        {
+            if (wto)
+                return wto;
+            Type t = this.nullAttributes();
+            t.mod = MODwild;
+            return t;
+        }
+
+        Type makeSharedWildConst()
+        {
+            if (swcto)
+                return swcto;
+            Type t = this.nullAttributes();
+            t.mod = MODshared | MODwildconst;
+            return t;
+        }
+
+        Type makeSharedWild()
+        {
+            if (swto)
+                return swto;
+            Type t = this.nullAttributes();
+            t.mod = MODshared | MODwild;
+            return t;
+        }
+
+        // Truncated
+        final Type merge()
+        {
+            if (ty == Terror)
+                return this;
+            if (ty == Ttypeof)
+                return this;
+            if (ty == Tident)
+                return this;
+            if (ty == Tinstance)
+                return this;
+            if (ty == Taarray && !(cast(TypeAArray)this).index.merge().deco)
+                return this;
+            if (ty != Tenum && nextOf() && !nextOf().deco)
+                return this;
+
+            // if (!deco) - code missing
+
+            Type t = this;
+            assert(t);
+            return t;
+        }
+
+        final Type addSTC(StorageClass stc)
+        {
+            Type t = this;
+            if (t.isImmutable())
+            {
+            }
+            else if (stc & STCimmutable)
+            {
+                t = t.makeImmutable();
+            }
+            else
+            {
+                if ((stc & STCshared) && !t.isShared())
+                {
+                    if (t.isWild())
+                    {
+                        if (t.isConst())
+                            t = t.makeSharedWildConst();
+                        else
+                            t = t.makeSharedWild();
+                    }
+                    else
+                    {
+                        if (t.isConst())
+                            t = t.makeSharedConst();
+                        else
+                            t = t.makeShared();
+                    }
+                }
+                if ((stc & STCconst) && !t.isConst())
+                {
+                    if (t.isShared())
+                    {
+                        if (t.isWild())
+                            t = t.makeSharedWildConst();
+                        else
+                            t = t.makeSharedConst();
+                    }
+                    else
+                    {
+                        if (t.isWild())
+                            t = t.makeWildConst();
+                        else
+                            t = t.makeConst();
+                    }
+                }
+                if ((stc & STCwild) && !t.isWild())
+                {
+                    if (t.isShared())
+                    {
+                        if (t.isConst())
+                            t = t.makeSharedWildConst();
+                        else
+                            t = t.makeSharedWild();
+                    }
+                    else
+                    {
+                        if (t.isConst())
+                            t = t.makeWildConst();
+                        else
+                            t = t.makeWild();
+                    }
+                }
+            }
+            return t;
+        }
+
         Expression toExpression()
         {
             return null;
         }
+
         Type syntaxCopy()
         {
             return null;
         }
-        final Type addMod(T)(T...)
+
+        final Type sharedWildConstOf()
         {
-            return null;
+            if (mod == (MODshared | MODwildconst))
+                return this;
+            if (swcto)
+            {
+                assert(swcto.mod == (MODshared | MODwildconst));
+                return swcto;
+            }
+            Type t = makeSharedWildConst();
+            t = t.merge();
+            t.fixTo(this);
+            return t;
         }
+
+        final Type sharedConstOf()
+        {
+            if (mod == (MODshared | MODconst))
+                return this;
+            if (scto)
+            {
+                assert(scto.mod == (MODshared | MODconst));
+                return scto;
+            }
+            Type t = makeSharedConst();
+            t = t.merge();
+            t.fixTo(this);
+            return t;
+        }
+
+        final Type wildConstOf()
+        {
+            if (mod == MODwildconst)
+                return this;
+            if (wcto)
+            {
+                assert(wcto.mod == MODwildconst);
+                return wcto;
+            }
+            Type t = makeWildConst();
+            t = t.merge();
+            t.fixTo(this);
+            return t;
+        }
+
+        final Type constOf()
+        {
+            if (mod == MODconst)
+                return this;
+            if (cto)
+            {
+                assert(cto.mod == MODconst);
+                return cto;
+            }
+            Type t = makeConst();
+            t = t.merge();
+            t.fixTo(this);
+            return t;
+        }
+
+        final Type sharedWildOf()
+        {
+            if (mod == (MODshared | MODwild))
+                return this;
+            if (swto)
+            {
+                assert(swto.mod == (MODshared | MODwild));
+                return swto;
+            }
+            Type t = makeSharedWild();
+            t = t.merge();
+            t.fixTo(this);
+            return t;
+        }
+
+        final Type wildOf()
+        {
+            if (mod == MODwild)
+                return this;
+            if (wto)
+            {
+                assert(wto.mod == MODwild);
+                return wto;
+            }
+            Type t = makeWild();
+            t = t.merge();
+            t.fixTo(this);
+            return t;
+        }
+
+        final Type sharedOf()
+        {
+            if (mod == MODshared)
+                return this;
+            if (sto)
+            {
+                assert(sto.mod == MODshared);
+                return sto;
+            }
+            Type t = makeShared();
+            t = t.merge();
+            t.fixTo(this);
+            return t;
+        }
+
+        final Type immutableOf()
+        {
+            if (isImmutable())
+                return this;
+            if (ito)
+            {
+                assert(ito.isImmutable());
+                return ito;
+            }
+            Type t = makeImmutable();
+            t = t.merge();
+            t.fixTo(this);
+            return t;
+        }
+
+        final void fixTo(Type t)
+        {
+            Type mto = null;
+            Type tn = nextOf();
+            if (!tn || ty != Tsarray && tn.mod == t.nextOf().mod)
+            {
+                switch (t.mod)
+                {
+                case 0:
+                    mto = t;
+                    break;
+
+                case MODconst:
+                    cto = t;
+                    break;
+
+                case MODwild:
+                    wto = t;
+                    break;
+
+                case MODwildconst:
+                    wcto = t;
+                    break;
+
+                case MODshared:
+                    sto = t;
+                    break;
+
+                case MODshared | MODconst:
+                    scto = t;
+                    break;
+
+                case MODshared | MODwild:
+                    swto = t;
+                    break;
+
+                case MODshared | MODwildconst:
+                    swcto = t;
+                    break;
+
+                case MODimmutable:
+                    ito = t;
+                    break;
+
+                default:
+                    break;
+                }
+            }
+            assert(mod != t.mod);
+
+            auto X(T, U)(T m, U n)
+            {
+                return ((m << 4) | n);
+            }
+
+            switch (mod)
+            {
+            case 0:
+                break;
+
+            case MODconst:
+                cto = mto;
+                t.cto = this;
+                break;
+
+            case MODwild:
+                wto = mto;
+                t.wto = this;
+                break;
+
+            case MODwildconst:
+                wcto = mto;
+                t.wcto = this;
+                break;
+
+            case MODshared:
+                sto = mto;
+                t.sto = this;
+                break;
+
+            case MODshared | MODconst:
+                scto = mto;
+                t.scto = this;
+                break;
+
+            case MODshared | MODwild:
+                swto = mto;
+                t.swto = this;
+                break;
+
+            case MODshared | MODwildconst:
+                swcto = mto;
+                t.swcto = this;
+                break;
+
+            case MODimmutable:
+                t.ito = this;
+                if (t.cto)
+                    t.cto.ito = this;
+                if (t.sto)
+                    t.sto.ito = this;
+                if (t.scto)
+                    t.scto.ito = this;
+                if (t.wto)
+                    t.wto.ito = this;
+                if (t.wcto)
+                    t.wcto.ito = this;
+                if (t.swto)
+                    t.swto.ito = this;
+                if (t.swcto)
+                    t.swcto.ito = this;
+                break;
+
+            default:
+                assert(0);
+            }
+        }
+
+        final Type addMod(MOD mod)
+        {
+            Type t = this;
+            if (!t.isImmutable())
+            {
+                switch (mod)
+                {
+                case 0:
+                    break;
+
+                case MODconst:
+                    if (isShared())
+                    {
+                        if (isWild())
+                            t = sharedWildConstOf();
+                        else
+                            t = sharedConstOf();
+                    }
+                    else
+                    {
+                        if (isWild())
+                            t = wildConstOf();
+                        else
+                            t = constOf();
+                    }
+                    break;
+
+                case MODwild:
+                    if (isShared())
+                    {
+                        if (isConst())
+                            t = sharedWildConstOf();
+                        else
+                            t = sharedWildOf();
+                    }
+                    else
+                    {
+                        if (isConst())
+                            t = wildConstOf();
+                        else
+                            t = wildOf();
+                    }
+                    break;
+
+                case MODwildconst:
+                    if (isShared())
+                        t = sharedWildConstOf();
+                    else
+                        t = wildConstOf();
+                    break;
+
+                case MODshared:
+                    if (isWild())
+                    {
+                        if (isConst())
+                            t = sharedWildConstOf();
+                        else
+                            t = sharedWildOf();
+                    }
+                    else
+                    {
+                        if (isConst())
+                            t = sharedConstOf();
+                        else
+                            t = sharedOf();
+                    }
+                    break;
+
+                case MODshared | MODconst:
+                    if (isWild())
+                        t = sharedWildConstOf();
+                    else
+                        t = sharedConstOf();
+                    break;
+
+                case MODshared | MODwild:
+                    if (isConst())
+                        t = sharedWildConstOf();
+                    else
+                        t = sharedWildOf();
+                    break;
+
+                case MODshared | MODwildconst:
+                    t = sharedWildConstOf();
+                    break;
+
+                case MODimmutable:
+                    t = immutableOf();
+                    break;
+
+                default:
+                    assert(0);
+                }
+            }
+            return t;
+        }
+
+        // TypeEnum overrides this method
         Type nextOf()
         {
             return null;
         }
+
+        // TypeBasic, TypeVector, TypePointer, TypeEnum override this method
         bool isscalar()
         {
             return false;
         }
+
+        final bool isConst() const
+        {
+            return (mod & MODconst) != 0;
+        }
+
+        final bool isWild() const
+        {
+            return (mod & MODwild) != 0;
+        }
+
+        final bool isShared() const
+        {
+            return (mod & MODshared) != 0;
+        }
+
         Type toBasetype()
         {
             return this;
+        }
+
+        // TypeIdentifier, TypeInstance, TypeTypeOf, TypeReturn, TypeStruct, TypeEnum, TypeClass override this method
+        Dsymbol toDsymbol(Scope* sc)
+        {
+            return null;
+        }
+
+        void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    // missing functionality in constructor, but that's ok
+    // since the class is needed only for its size; need to add all method definitions
+    extern (C++) final class TypeBasic : Type
+    {
+        const(char)* dstring;
+        uint flags;
+
+        extern (D) this(TY ty)
+        {
+            super(ty);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class TypeError : Type
+    {
+        extern (D) this()
+        {
+            super(Terror);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class TypeNull : Type
+    {
+        extern (D) this()
+        {
+            super(Tnull);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1829,6 +3168,11 @@ struct ASTBaremetal
             super(Tvector);
             this.basetype = basetype;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class TypeEnum : Type
@@ -1840,27 +3184,93 @@ struct ASTBaremetal
             super(Tenum);
             this.sym = sym;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class TypeTuple : Type
+    {
+        Parameters* arguments;
+
+        extern (D) this(Parameters* arguments)
+        {
+            super(Ttuple);
+            this.arguments = arguments;
+        }
+
+        extern (D) this(Expressions* exps)
+        {
+            super(Ttuple);
+            auto arguments = new Parameters();
+            if (exps)
+            {
+                arguments.setDim(exps.dim);
+                for (size_t i = 0; i < exps.dim; i++)
+                {
+                    Expression e = (*exps)[i];
+                    if (e.type.ty == Ttuple)
+                        e.error("cannot form tuple of tuples");
+                    auto arg = new Parameter(STCundefined, e.type, null, null);
+                    (*arguments)[i] = arg;
+                }
+            }
+            this.arguments = arguments;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class TypeClass : Type
     {
         ClassDeclaration sym;
+        AliasThisRec att = RECfwdref;
 
         extern (D) this (ClassDeclaration sym)
         {
             super(Tclass);
             this.sym = sym;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class TypeStruct : Type
     {
         StructDeclaration sym;
+        AliasThisRec att = RECfwdref;
 
         extern (D) this(StructDeclaration sym)
         {
             super(Tstruct);
             this.sym = sym;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class TypeReference : TypeNext
+    {
+        extern (D) this(Type t)
+        {
+            super(Treference, t);
+            // BUG: what about references to static arrays?
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1872,6 +3282,16 @@ struct ASTBaremetal
         {
             super(ty);
             this.next = next;
+        }
+
+        override final Type nextOf()
+        {
+            return next;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1886,6 +3306,11 @@ struct ASTBaremetal
             this.lwr = lwr;
             this.upr = upr;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) class TypeDelegate : TypeNext
@@ -1895,6 +3320,11 @@ struct ASTBaremetal
             super(Tfunction, t);
             ty = Tdelegate;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class TypePointer : TypeNext
@@ -1902,6 +3332,11 @@ struct ASTBaremetal
         extern (D) this(Type t)
         {
             super(Tpointer, t);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1952,6 +3387,11 @@ struct ASTBaremetal
             if (stc & STCtrusted)
                 this.trust = TRUSTtrusted;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) class TypeArray : TypeNext
@@ -1960,6 +3400,11 @@ struct ASTBaremetal
         {
             super(ty, next);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class TypeDArray : TypeArray
@@ -1967,6 +3412,11 @@ struct ASTBaremetal
         extern (D) this(Type t)
         {
             super(Tarray, t);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -1979,6 +3429,25 @@ struct ASTBaremetal
             super(Taarray, t);
             this.index = index;
         }
+
+        override Type syntaxCopy()
+        {
+            Type t = next.syntaxCopy();
+            Type ti = index.syntaxCopy();
+            if (t == next && ti == index)
+                t = this;
+            else
+            {
+                t = new TypeAArray(t, ti);
+                t.mod = mod;
+            }
+            return t;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class TypeSArray : TypeArray
@@ -1989,6 +3458,20 @@ struct ASTBaremetal
         {
             super(Tsarray, t);
             this.dim = dim;
+        }
+
+        override Type syntaxCopy()
+        {
+            Type t = next.syntaxCopy();
+            Expression e = dim.syntaxCopy();
+            t = new TypeSArray(t, e);
+            t.mod = mod;
+            return t;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2003,9 +3486,25 @@ struct ASTBaremetal
             this.loc = loc;
         }
 
-        final void addIdent(Identifier id) {}
-        final void addInst(TemplateInstance ti) {}
-        final void addIndex(RootObject e) {}
+        final void addIdent(Identifier id)
+        {
+            idents.push(id);
+        }
+
+        final void addInst(TemplateInstance ti)
+        {
+            idents.push(ti);
+        }
+
+        final void addIndex(RootObject e)
+        {
+            idents.push(e);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class TypeIdentifier : TypeQualified
@@ -2017,6 +3516,11 @@ struct ASTBaremetal
             super(Tident, loc);
             this.ident = ident;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class TypeReturn : TypeQualified
@@ -2024,6 +3528,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc)
         {
             super(Treturn, loc);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2036,6 +3545,11 @@ struct ASTBaremetal
             super(Ttypeof, loc);
             this.exp = exp;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class TypeInstance : TypeQualified
@@ -2046,6 +3560,11 @@ struct ASTBaremetal
         {
             super(Tinstance, loc);
             this.tempinst = tempinst;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2066,10 +3585,35 @@ struct ASTBaremetal
 
         Expression syntaxCopy()
         {
-            return null;
+            return copy();
         }
 
-        final void error(const(char)* format, const(char)* p1) const {}
+        final void error(T...)(const(char)* format, T args) const
+        {
+            if (type != Type.terror)
+            {
+                va_list ap;
+                va_start(ap, format);
+                verror(loc, format, ap);
+                va_end(ap);
+            }
+        }
+
+        final Expression copy()
+        {
+            Expression e;
+            if (!size)
+            {
+                assert(0);
+            }
+            e = cast(Expression)mem.xmalloc(size);
+            return cast(Expression)memcpy(cast(void*)e, cast(void*)this, size);
+        }
+
+        void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class DeclarationExp : Expression
@@ -2080,6 +3624,11 @@ struct ASTBaremetal
         {
             super(loc, TOKdeclaration, __traits(classInstanceSize, DeclarationExp));
             this.declaration = declaration;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2107,7 +3656,6 @@ struct ASTBaremetal
             normalize();
         }
 
-    private:
         void normalize()
         {
             /* 'Normalize' the value of the integer to be in range of the type
@@ -2167,6 +3715,10 @@ struct ASTBaremetal
             }
         }
 
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class NewAnonClassExp : Expression
@@ -2183,6 +3735,11 @@ struct ASTBaremetal
             this.newargs = newargs;
             this.cd = cd;
             this.arguments = arguments;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2205,6 +3762,11 @@ struct ASTBaremetal
             this.tok2 = tok2;
             this.parameters = parameters;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class RealExp : Expression
@@ -2214,9 +3776,13 @@ struct ASTBaremetal
         extern (D) this(Loc loc, real_t value, Type type)
         {
             super(loc, TOKfloat64, __traits(classInstanceSize, RealExp));
-            //printf("RealExp::RealExp(%Lg)\n", value);
             this.value = value;
             this.type = type;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2226,6 +3792,11 @@ struct ASTBaremetal
         {
             super(loc, TOKnull, __traits(classInstanceSize, NullExp));
             this.type = type;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2237,6 +3808,11 @@ struct ASTBaremetal
         {
             super(loc, TOKtypeid, __traits(classInstanceSize, TypeidExp));
             this.obj = o;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2250,6 +3826,11 @@ struct ASTBaremetal
             super(loc, TOKtraits, __traits(classInstanceSize, TraitsExp));
             this.ident = ident;
             this.args = args;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2289,6 +3870,11 @@ struct ASTBaremetal
             this.postfix = postfix;
             this.sz = 1;                    // work around LDC bug #1286
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class NewExp : Expression
@@ -2306,6 +3892,11 @@ struct ASTBaremetal
             this.newtype = newtype;
             this.arguments = arguments;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class AssocArrayLiteralExp : Expression
@@ -2319,6 +3910,11 @@ struct ASTBaremetal
             assert(keys.dim == values.dim);
             this.keys = keys;
             this.values = values;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2346,6 +3942,11 @@ struct ASTBaremetal
             this.basis = basis;
             this.elements = elements;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class FuncExp : Expression
@@ -2368,6 +3969,11 @@ struct ASTBaremetal
             tok = fd.tok; // save original kind of function/delegate/(infer)
             assert(fd.fbody);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class IntervalExp : Expression
@@ -2381,6 +3987,11 @@ struct ASTBaremetal
             this.lwr = lwr;
             this.upr = upr;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class TypeExp : Expression
@@ -2389,6 +4000,11 @@ struct ASTBaremetal
         {
             super(loc, TOKtype, __traits(classInstanceSize, TypeExp));
             this.type = type;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2402,6 +4018,11 @@ struct ASTBaremetal
             this.sds = sds;
             assert(!sds.isTemplateDeclaration());
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) class IdentifierExp : Expression
@@ -2412,6 +4033,11 @@ struct ASTBaremetal
         {
             super(loc, TOKidentifier, __traits(classInstanceSize, IdentifierExp));
             this.ident = ident;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2424,6 +4050,11 @@ struct ASTBaremetal
             super(loc, op, size);
             this.e1 = e1;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) class DefaultInitExp : Expression
@@ -2434,6 +4065,11 @@ struct ASTBaremetal
         {
             super(loc, TOKdefault, size);
             this.subop = subop;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2448,6 +4084,197 @@ struct ASTBaremetal
             this.e1 = e1;
             this.e2 = e2;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class DsymbolExp : Expression
+    {
+        Dsymbol s;
+        bool hasOverloads;
+
+        extern (D) this(Loc loc, Dsymbol s, bool hasOverloads = true)
+        {
+            super(loc, TOKdsymbol, __traits(classInstanceSize, DsymbolExp));
+            this.s = s;
+            this.hasOverloads = hasOverloads;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class TemplateExp : Expression
+    {
+        TemplateDeclaration td;
+        FuncDeclaration fd;
+
+        extern (D) this(Loc loc, TemplateDeclaration td, FuncDeclaration fd = null)
+        {
+            super(loc, TOKtemplate, __traits(classInstanceSize, TemplateExp));
+            //printf("TemplateExp(): %s\n", td.toChars());
+            this.td = td;
+            this.fd = fd;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) class SymbolExp : Expression
+    {
+        Declaration var;
+        bool hasOverloads;
+
+        final extern (D) this(Loc loc, TOK op, int size, Declaration var, bool hasOverloads)
+        {
+            super(loc, op, size);
+            assert(var);
+            this.var = var;
+            this.hasOverloads = hasOverloads;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class VarExp : SymbolExp
+    {
+        extern (D) this(Loc loc, Declaration var, bool hasOverloads = true)
+        {
+            if (var.isVarDeclaration())
+                hasOverloads = false;
+
+            super(loc, TOKvar, __traits(classInstanceSize, VarExp), var, hasOverloads);
+            this.type = var.type;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class TupleExp : Expression
+    {
+        Expression e0;
+        Expressions* exps;
+
+        extern (D) this(Loc loc, Expression e0, Expressions* exps)
+        {
+            super(loc, TOKtuple, __traits(classInstanceSize, TupleExp));
+            //printf("TupleExp(this = %p)\n", this);
+            this.e0 = e0;
+            this.exps = exps;
+        }
+
+        extern (D) this(Loc loc, Expressions* exps)
+        {
+            super(loc, TOKtuple, __traits(classInstanceSize, TupleExp));
+            //printf("TupleExp(this = %p)\n", this);
+            this.exps = exps;
+        }
+
+        extern (D) this(Loc loc, TupleDeclaration tup)
+        {
+            super(loc, TOKtuple, __traits(classInstanceSize, TupleExp));
+            this.exps = new Expressions();
+
+            this.exps.reserve(tup.objects.dim);
+            for (size_t i = 0; i < tup.objects.dim; i++)
+            {
+                RootObject o = (*tup.objects)[i];
+                if (Dsymbol s = getDsymbol(o))
+                {
+                    Expression e = new DsymbolExp(loc, s);
+                    this.exps.push(e);
+                }
+                else if (o.dyncast() == DYNCAST.expression)
+                {
+                    auto e = (cast(Expression)o).copy();
+                    e.loc = loc;    // Bugzilla 15669
+                    this.exps.push(e);
+                }
+                else if (o.dyncast() == DYNCAST.type)
+                {
+                    Type t = cast(Type)o;
+                    Expression e = new TypeExp(loc, t);
+                    this.exps.push(e);
+                }
+                else
+                {
+                    error("%s is not an expression", o.toChars());
+                }
+            }
+        }
+
+        extern (C++) Expression isExpression(RootObject o)
+        {
+            if (!o || o.dyncast() != DYNCAST.expression)
+                return null;
+            return cast(Expression)o;
+        }
+
+        extern (C++) Type isType(RootObject o)
+        {
+            if (!o || o.dyncast() != DYNCAST.type)
+                return null;
+            return cast(Type)o;
+        }
+
+        extern (C++) Dsymbol isDsymbol(RootObject o)
+        {
+            if (!o || o.dyncast || DYNCAST.dsymbol)
+                return null;
+            return cast(Dsymbol)o;
+        }
+
+        extern (C++) Dsymbol getDsymbol(RootObject oarg)
+        {
+            Dsymbol sa;
+            Expression ea = isExpression(oarg);
+            if (ea)
+            {
+                // Try to convert Expression to symbol
+                if (ea.op == TOKvar)
+                    sa = (cast(VarExp)ea).var;
+                else if (ea.op == TOKfunction)
+                {
+                    if ((cast(FuncExp)ea).td)
+                        sa = (cast(FuncExp)ea).td;
+                    else
+                        sa = (cast(FuncExp)ea).fd;
+                }
+                else if (ea.op == TOKtemplate)
+                    sa = (cast(TemplateExp)ea).td;
+                else
+                    sa = null;
+            }
+            else
+            {
+                // Try to convert Type to symbol
+                Type ta = isType(oarg);
+                if (ta)
+                    sa = ta.toDsymbol(null);
+                else
+                    sa = isDsymbol(oarg); // if already a symbol
+            }
+            return sa;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class DollarExp : IdentifierExp
@@ -2456,6 +4283,11 @@ struct ASTBaremetal
         {
             super(loc, Id.dollar);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) class ThisExp : Expression
@@ -2463,6 +4295,11 @@ struct ASTBaremetal
         final extern (D) this(Loc loc)
         {
             super(loc, TOKthis, __traits(classInstanceSize, ThisExp));
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2473,6 +4310,11 @@ struct ASTBaremetal
             super(loc);
             op = TOKsuper;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class AddrExp : UnaExp
@@ -2481,6 +4323,11 @@ struct ASTBaremetal
         {
             super(loc, TOKaddress, __traits(classInstanceSize, AddrExp), e);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class PreExp : UnaExp
@@ -2488,6 +4335,11 @@ struct ASTBaremetal
         extern (D) this(TOK op, Loc loc, Expression e)
         {
             super(loc, op, __traits(classInstanceSize, PreExp), e);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2502,6 +4354,11 @@ struct ASTBaremetal
             super(loc, TOKstar, __traits(classInstanceSize, PtrExp), e);
             type = t;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class NegExp : UnaExp
@@ -2509,6 +4366,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc, Expression e)
         {
             super(loc, TOKneg, __traits(classInstanceSize, NegExp), e);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2518,6 +4380,11 @@ struct ASTBaremetal
         {
             super(loc, TOKuadd, __traits(classInstanceSize, UAddExp), e);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class NotExp : UnaExp
@@ -2526,6 +4393,11 @@ struct ASTBaremetal
         {
             super(loc, TOKnot, __traits(classInstanceSize, NotExp), e);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class ComExp : UnaExp
@@ -2533,6 +4405,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc, Expression e)
         {
             super(loc, TOKtilde, __traits(classInstanceSize, ComExp), e);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2544,6 +4421,11 @@ struct ASTBaremetal
         {
             super(loc, TOKdelete, __traits(classInstanceSize, DeleteExp), e);
             this.isRAII = isRAII;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2561,6 +4443,11 @@ struct ASTBaremetal
         {
             super(loc, TOKcast, __traits(classInstanceSize, CastExp), e);
             this.mod = mod;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2600,6 +4487,11 @@ struct ASTBaremetal
             (*arguments)[1] = earg2;
             this.arguments = arguments;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class DotIdExp : UnaExp
@@ -2610,6 +4502,11 @@ struct ASTBaremetal
         {
             super(loc, TOKdotid, __traits(classInstanceSize, DotIdExp), e);
             this.ident = ident;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2622,6 +4519,11 @@ struct ASTBaremetal
             super(loc, TOKassert, __traits(classInstanceSize, AssertExp), e);
             this.msg = msg;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class CompileExp : UnaExp
@@ -2630,6 +4532,11 @@ struct ASTBaremetal
         {
             super(loc, TOKmixin, __traits(classInstanceSize, CompileExp), e);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class ImportExp : UnaExp
@@ -2637,6 +4544,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc, Expression e)
         {
             super(loc, TOKimport, __traits(classInstanceSize, ImportExp), e);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2653,6 +4565,11 @@ struct ASTBaremetal
         {
             super(loc, TOKdotti, __traits(classInstanceSize, DotTemplateInstanceExp), e);
             this.ti = ti;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2673,6 +4590,11 @@ struct ASTBaremetal
             super(loc, TOKarray, __traits(classInstanceSize, ArrayExp), e1);
             arguments = args;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class FuncInitExp : DefaultInitExp
@@ -2680,6 +4602,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc)
         {
             super(loc, TOKfuncstring, __traits(classInstanceSize, FuncInitExp));
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2689,6 +4616,11 @@ struct ASTBaremetal
         {
             super(loc, TOKprettyfunc, __traits(classInstanceSize, PrettyFuncInitExp));
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class FileInitExp : DefaultInitExp
@@ -2696,6 +4628,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc, TOK tok)
         {
             super(loc, tok, __traits(classInstanceSize, FileInitExp));
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2705,6 +4642,11 @@ struct ASTBaremetal
         {
             super(loc, TOKline, __traits(classInstanceSize, LineInitExp));
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class ModuleInitExp : DefaultInitExp
@@ -2712,6 +4654,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc)
         {
             super(loc, TOKmodulestring, __traits(classInstanceSize, ModuleInitExp));
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2725,6 +4672,11 @@ struct ASTBaremetal
             super(loc, TOKcomma, __traits(classInstanceSize, CommaExp), e1, e2);
             allowCommaExp = isGenerated = generated;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class PostExp : BinExp
@@ -2732,6 +4684,11 @@ struct ASTBaremetal
         extern (D) this(TOK op, Loc loc, Expression e)
         {
             super(loc, op, __traits(classInstanceSize, PostExp), e, new IntegerExp(loc, 1, Type.tint32));
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2741,6 +4698,11 @@ struct ASTBaremetal
         {
             super(loc, TOKpow, __traits(classInstanceSize, PowExp), e1, e2);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class MulExp : BinExp
@@ -2748,6 +4710,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, TOKmul, __traits(classInstanceSize, MulExp), e1, e2);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2757,6 +4724,11 @@ struct ASTBaremetal
         {
             super(loc, TOKdiv, __traits(classInstanceSize, DivExp), e1, e2);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class ModExp : BinExp
@@ -2764,6 +4736,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, TOKmod, __traits(classInstanceSize, ModExp), e1, e2);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2773,6 +4750,11 @@ struct ASTBaremetal
         {
             super(loc, TOKadd, __traits(classInstanceSize, AddExp), e1, e2);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class MinExp : BinExp
@@ -2780,6 +4762,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, TOKmin, __traits(classInstanceSize, MinExp), e1, e2);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2789,6 +4776,11 @@ struct ASTBaremetal
         {
             super(loc, TOKcat, __traits(classInstanceSize, CatExp), e1, e2);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class ShlExp : BinExp
@@ -2796,6 +4788,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, TOKshl, __traits(classInstanceSize, ShlExp), e1, e2);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2805,6 +4802,11 @@ struct ASTBaremetal
         {
             super(loc, TOKshr, __traits(classInstanceSize, ShrExp), e1, e2);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class UshrExp : BinExp
@@ -2812,6 +4814,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, TOKushr, __traits(classInstanceSize, UshrExp), e1, e2);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2822,6 +4829,11 @@ struct ASTBaremetal
             super(loc, op, __traits(classInstanceSize, EqualExp), e1, e2);
             assert(op == TOKequal || op == TOKnotequal);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class InExp : BinExp
@@ -2829,6 +4841,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, TOKin, __traits(classInstanceSize, InExp), e1, e2);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2838,6 +4855,11 @@ struct ASTBaremetal
         {
             super(loc, op, __traits(classInstanceSize, IdentityExp), e1, e2);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class CmpExp : BinExp
@@ -2845,6 +4867,11 @@ struct ASTBaremetal
         extern (D) this(TOK op, Loc loc, Expression e1, Expression e2)
         {
             super(loc, op, __traits(classInstanceSize, CmpExp), e1, e2);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2854,6 +4881,11 @@ struct ASTBaremetal
         {
             super(loc, TOKand, __traits(classInstanceSize, AndExp), e1, e2);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class XorExp : BinExp
@@ -2861,6 +4893,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, TOKxor, __traits(classInstanceSize, XorExp), e1, e2);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2870,6 +4907,11 @@ struct ASTBaremetal
         {
             super(loc, TOKor, __traits(classInstanceSize, OrExp), e1, e2);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class AndAndExp : BinExp
@@ -2878,6 +4920,11 @@ struct ASTBaremetal
         {
             super(loc, TOKandand, __traits(classInstanceSize, AndAndExp), e1, e2);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class OrOrExp : BinExp
@@ -2885,6 +4932,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, TOKoror, __traits(classInstanceSize, OrOrExp), e1, e2);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2897,13 +4949,23 @@ struct ASTBaremetal
             super(loc, TOKquestion, __traits(classInstanceSize, CondExp), e1, e2);
             this.econd = econd;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class AssignExp : BinExp
     {
-        final extern (D) this(Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, TOKassign, __traits(classInstanceSize, AssignExp), e1, e2);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2913,6 +4975,11 @@ struct ASTBaremetal
         {
             super(loc, op, size, e1, e2);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class AddAssignExp : BinAssignExp
@@ -2920,6 +4987,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, TOKaddass, __traits(classInstanceSize, AddAssignExp), e1, e2);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2929,6 +5001,11 @@ struct ASTBaremetal
         {
             super(loc, TOKminass, __traits(classInstanceSize, MinAssignExp), e1, e2);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class MulAssignExp : BinAssignExp
@@ -2936,6 +5013,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, TOKmulass, __traits(classInstanceSize, MulAssignExp), e1, e2);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2945,6 +5027,11 @@ struct ASTBaremetal
         {
             super(loc, TOKdivass, __traits(classInstanceSize, DivAssignExp), e1, e2);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class ModAssignExp : BinAssignExp
@@ -2952,6 +5039,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, TOKmodass, __traits(classInstanceSize, ModAssignExp), e1, e2);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2961,6 +5053,11 @@ struct ASTBaremetal
         {
             super(loc, TOKpowass, __traits(classInstanceSize, PowAssignExp), e1, e2);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class AndAssignExp : BinAssignExp
@@ -2968,6 +5065,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, TOKandass, __traits(classInstanceSize, AndAssignExp), e1, e2);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2977,6 +5079,11 @@ struct ASTBaremetal
         {
             super(loc, TOKorass, __traits(classInstanceSize, OrAssignExp), e1, e2);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class XorAssignExp : BinAssignExp
@@ -2984,6 +5091,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, TOKxorass, __traits(classInstanceSize, XorAssignExp), e1, e2);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -2993,6 +5105,11 @@ struct ASTBaremetal
         {
             super(loc, TOKshlass, __traits(classInstanceSize, ShlAssignExp), e1, e2);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class ShrAssignExp : BinAssignExp
@@ -3000,6 +5117,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, TOKshrass, __traits(classInstanceSize, ShrAssignExp), e1, e2);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -3009,6 +5131,11 @@ struct ASTBaremetal
         {
             super(loc, TOKushrass, __traits(classInstanceSize, UshrAssignExp), e1, e2);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class CatAssignExp : BinAssignExp
@@ -3016,6 +5143,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
             super(loc, TOKcatass, __traits(classInstanceSize, CatAssignExp), e1, e2);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -3029,7 +5161,13 @@ struct ASTBaremetal
             this.loc = loc;
             this.ident = ident;
         }
-        abstract TemplateParameter syntaxCopy();
+
+        abstract TemplateParameter syntaxCopy(){ return null;}
+
+        void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class TemplateAliasParameter : TemplateParameter
@@ -3046,6 +5184,11 @@ struct ASTBaremetal
             this.specAlias = specAlias;
             this.defaultAlias = defaultAlias;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) class TemplateTypeParameter : TemplateParameter
@@ -3060,6 +5203,11 @@ struct ASTBaremetal
             this.specType = specType;
             this.defaultType = defaultType;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class TemplateTupleParameter : TemplateParameter
@@ -3068,6 +5216,11 @@ struct ASTBaremetal
         {
             super(loc, ident);
             this.ident = ident;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -3086,6 +5239,11 @@ struct ASTBaremetal
             this.specValue = specValue;
             this.defaultValue = defaultValue;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class TemplateThisParameter : TemplateTypeParameter
@@ -3093,6 +5251,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc, Identifier ident, Type specType, Type defaultType)
         {
             super(loc, ident, specType, defaultType);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -3104,6 +5267,11 @@ struct ASTBaremetal
         {
             this.loc = loc;
         }
+
+        void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class StaticIfCondition : Condition
@@ -3114,6 +5282,11 @@ struct ASTBaremetal
         {
             super(loc);
             this.exp = exp;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -3129,6 +5302,11 @@ struct ASTBaremetal
             this.mod = mod;
             this.ident = ident;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class DebugCondition : DVCondition
@@ -3137,6 +5315,11 @@ struct ASTBaremetal
         {
             super(mod, level, ident);
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class VersionCondition : DVCondition
@@ -3144,6 +5327,11 @@ struct ASTBaremetal
         extern (D) this(Module mod, uint level, Identifier ident)
         {
             super(mod, level, ident);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -3156,9 +5344,15 @@ struct ASTBaremetal
             this.loc = loc;
         }
 
+        // this should be abstract and implemented in child classes
         Expression toExpression(Type t = null)
         {
             return null;
+        }
+
+        void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -3171,26 +5365,59 @@ struct ASTBaremetal
             super(loc);
             this.exp = exp;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class StructInitializer : Initializer
     {
+        Identifiers field;
+        Initializers value;
+
         extern (D) this(Loc loc)
         {
             super(loc);
         }
 
-        void addInit(Identifier id, Initializer init) {}
+        void addInit(Identifier field, Initializer value)
+        {
+            this.field.push(field);
+            this.value.push(value);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class ArrayInitializer : Initializer
     {
+        Expressions index;
+        Initializers value;
+        uint dim;
+        Type type;
+
         extern (D) this(Loc loc)
         {
             super(loc);
         }
 
-        void addInit(Expression e, Initializer i) {}
+        void addInit(Expression index, Initializer value)
+        {
+            this.index.push(index);
+            this.value.push(value);
+            dim = 0;
+            type = null;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class VoidInitializer : Initializer
@@ -3198,6 +5425,11 @@ struct ASTBaremetal
         extern (D) this(Loc loc)
         {
             super(loc);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
@@ -3208,14 +5440,35 @@ struct ASTBaremetal
 
     struct ModuleDeclaration
     {
+        Loc loc;
         Identifier id;
         Identifiers *packages;
+        bool isdeprecated;
+        Expression msg;
 
-        extern (D) this(A, B, C, D, E)(A a, B b, C c, D d, E e) {}
+        extern (D) this(Loc loc, Identifiers* packages, Identifier id, Expression msg, bool isdeprecated)
+        {
+            this.loc = loc;
+            this.packages = packages;
+            this.id = id;
+            this.msg = msg;
+            this.isdeprecated = isdeprecated;
+        }
 
         extern (C++) const(char)* toChars()
         {
-            return "";
+            OutBuffer buf;
+            if (packages && packages.dim)
+            {
+                for (size_t i = 0; i < packages.dim; i++)
+                {
+                    Identifier pid = (*packages)[i];
+                    buf.writestring(pid.toChars());
+                    buf.writeByte('.');
+                }
+            }
+            buf.writestring(id.toChars());
+            return buf.extractString();
         }
     }
 
@@ -3225,24 +5478,140 @@ struct ASTBaremetal
         Package pkg;
     }
 
+    struct Scope
+    {
+
+    }
+
     extern (C++) static const(char)* protectionToChars(PROTKIND kind)
     {
+        switch (kind)
+        {
+        case PROTundefined:
+            return null;
+        case PROTnone:
+            return "none";
+        case PROTprivate:
+            return "private";
+        case PROTpackage:
+            return "package";
+        case PROTprotected:
+            return "protected";
+        case PROTpublic:
+            return "public";
+        case PROTexport:
+            return "export";
+        default:
+            assert(0);
+        }
+    }
+
+    extern (C++) static bool stcToBuffer(OutBuffer* buf, StorageClass stc)
+    {
+        bool result = false;
+        if ((stc & (STCreturn | STCscope)) == (STCreturn | STCscope))
+            stc &= ~STCscope;
+        while (stc)
+        {
+            const(char)* p = stcToChars(stc);
+            if (!p) // there's no visible storage classes
+                break;
+            if (!result)
+                result = true;
+            else
+                buf.writeByte(' ');
+            buf.writestring(p);
+        }
+        return result;
+    }
+
+    extern (C++) static const(char)* stcToChars(ref StorageClass stc)
+    {
+        struct SCstring
+        {
+            StorageClass stc;
+            TOK tok;
+            const(char)* id;
+        }
+
+        static __gshared SCstring* table =
+        [
+            SCstring(STCauto, TOKauto),
+            SCstring(STCscope, TOKscope),
+            SCstring(STCstatic, TOKstatic),
+            SCstring(STCextern, TOKextern),
+            SCstring(STCconst, TOKconst),
+            SCstring(STCfinal, TOKfinal),
+            SCstring(STCabstract, TOKabstract),
+            SCstring(STCsynchronized, TOKsynchronized),
+            SCstring(STCdeprecated, TOKdeprecated),
+            SCstring(STCoverride, TOKoverride),
+            SCstring(STClazy, TOKlazy),
+            SCstring(STCalias, TOKalias),
+            SCstring(STCout, TOKout),
+            SCstring(STCin, TOKin),
+            SCstring(STCmanifest, TOKenum),
+            SCstring(STCimmutable, TOKimmutable),
+            SCstring(STCshared, TOKshared),
+            SCstring(STCnothrow, TOKnothrow),
+            SCstring(STCwild, TOKwild),
+            SCstring(STCpure, TOKpure),
+            SCstring(STCref, TOKref),
+            SCstring(STCtls),
+            SCstring(STCgshared, TOKgshared),
+            SCstring(STCnogc, TOKat, "@nogc"),
+            SCstring(STCproperty, TOKat, "@property"),
+            SCstring(STCsafe, TOKat, "@safe"),
+            SCstring(STCtrusted, TOKat, "@trusted"),
+            SCstring(STCsystem, TOKat, "@system"),
+            SCstring(STCdisable, TOKat, "@disable"),
+            SCstring(0, TOKreserved)
+        ];
+        for (int i = 0; table[i].stc; i++)
+        {
+            StorageClass tbl = table[i].stc;
+            assert(tbl & STCStorageClass);
+            if (stc & tbl)
+            {
+                stc &= ~tbl;
+                if (tbl == STCtls) // TOKtls was removed
+                    return "__thread";
+                TOK tok = table[i].tok;
+                if (tok == TOKat)
+                    return table[i].id;
+                else
+                    return Token.toChars(tok);
+            }
+        }
+        //printf("stc = %llx\n", stc);
         return null;
     }
 
-    extern (C++) static bool stcToBuffer(A, B)(A a, B b)
+    extern (C++) static const(char)* linkageToChars(LINK linkage)
     {
-        return false;
-    }
-
-    extern (C++) static bool linkageToChars(A)(A a)
-    {
-        return false;
+        switch (linkage)
+        {
+        case LINKdefault:
+            return null;
+        case LINKd:
+            return "D";
+        case LINKc:
+            return "C";
+        case LINKcpp:
+            return "C++";
+        case LINKwindows:
+            return "Windows";
+        case LINKpascal:
+            return "Pascal";
+        case LINKobjc:
+            return "Objective-C";
+        default:
+            assert(0);
+        }
     }
 
     struct Target
     {
         extern (C++) static __gshared int ptrsize;
     }
-
 }

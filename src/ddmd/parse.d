@@ -8428,8 +8428,71 @@ final class Parser(AST) : Lexer
 
 unittest
 {
-    import ddmd.astnull;
-    scope p = new Parser!ASTNull(null, null, false);
+    import ddmd.astbase;
+    import ddmd.astbasevisitor;
+
+    const(char)[] input =
+    "import A;
+     class Bar
+     {
+          import B;
+          void print()
+          {
+              import C;
+          }
+     }
+
+     struct str
+     {
+         import D;
+     }
+     void main()
+     {
+          void print()
+          {
+              import E;
+              struct str2
+              {
+                  import F;
+              }
+          };
+          import G;
+          class Foo
+          {
+              import H;
+          }
+          struct str3
+          {
+              import I;
+          }
+          if (a<b) import J;
+          if (a<b) {}
+          else {import K;}
+          if (a<b) import L;
+          else import M;
+          while (a<b) import N;
+          do {import O;} while (a<b);
+          for (;;) import P;
+          foreach(a; b) import Q;
+          switch (a) case a: import R; case b: case c: import S; default: import T;
+          synchronized {import U;}
+          with(a<b) {import V;}
+          try {import X;} catch {import Y;}
+          try {import Z;} finally {import A;}
+          gigi : import B;
+     }";
+
+    scope p = new Parser!ASTBase(null, input[0..input.length], false);
+    p.nextToken();
+
+    OutBuffer buf;
+    buf.reserve(32);
+    scope vis = new ImportVisitor(&buf);
+
+    vis.visitModuleMembers(p.parseModule());
+    assert(!p.errors);
+
+    assert(strcmp(buf.extractString(), "ABCDEFGHIJKLMNOPQRSTUVXYZAB") == 0);
 }
 
 enum PREC : int
