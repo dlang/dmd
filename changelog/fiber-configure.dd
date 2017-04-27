@@ -1,0 +1,6 @@
+Make fiber stack protection-page size configurable
+
+It is now possible to change the guard page size by using
+the new Fiber's constructor argument - guard_page_size. It defaults to
+`PAGE_SIZE` (the same it used to be on Windows), and specifying 0 will
+turn this feature off.

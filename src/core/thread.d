@@ -3976,18 +3976,21 @@ class Fiber
      * Params:
      *  fn = The fiber function.
      *  sz = The stack size for this fiber.
+     *  guard_page_size = size of the guard page to trap fiber's stack
+     *                    overflows
      *
      * In:
      *  fn must not be null.
      */
-    this( void function() fn, size_t sz = PAGESIZE*4 ) nothrow
+    this( void function() fn, size_t sz = PAGESIZE*4,
+          size_t guard_page_size = PAGESIZE ) nothrow
     in
     {
         assert( fn );
     }
     body
     {
-        allocStack( sz );
+        allocStack( sz, guard_page_size );
         reset( fn );
     }
 
@@ -3999,18 +4002,21 @@ class Fiber
      * Params:
      *  dg = The fiber function.
      *  sz = The stack size for this fiber.
+     *  guard_page_size = size of the guard page to trap fiber's stack
+     *                    overflows
      *
      * In:
      *  dg must not be null.
      */
-    this( void delegate() dg, size_t sz = PAGESIZE*4 ) nothrow
+    this( void delegate() dg, size_t sz = PAGESIZE*4,
+          size_t guard_page_size = PAGESIZE ) nothrow
     in
     {
         assert( dg );
     }
     body
     {
-        allocStack( sz );
+        allocStack( sz, guard_page_size);
         reset( dg );
     }
 
@@ -4355,7 +4361,7 @@ private:
     //
     // Allocate a new stack for this fiber.
     //
-    final void allocStack( size_t sz ) nothrow
+    final void allocStack( size_t sz, size_t guard_page_size ) nothrow
     in
     {
         assert( !m_pmem && !m_ctxt );
@@ -4380,7 +4386,7 @@ private:
         {
             // reserve memory for stack
             m_pmem = VirtualAlloc( null,
-                                   sz + PAGESIZE,
+                                   sz + guard_page_size,
                                    MEM_RESERVE,
                                    PAGE_NOACCESS );
             if( !m_pmem )
@@ -4388,7 +4394,7 @@ private:
 
             version( StackGrowsDown )
             {
-                void* stack = m_pmem + PAGESIZE;
+                void* stack = m_pmem + guard_page_size;
                 void* guard = m_pmem;
                 void* pbase = stack + sz;
             }
@@ -4407,13 +4413,16 @@ private:
             if( !stack )
                 onOutOfMemoryError();
 
-            // allocate reserved guard page
-            guard = VirtualAlloc( guard,
-                                  PAGESIZE,
-                                  MEM_COMMIT,
-                                  PAGE_READWRITE | PAGE_GUARD );
-            if( !guard )
-                onOutOfMemoryError();
+            if (guard_page_size)
+            {
+                // allocate reserved guard page
+                guard = VirtualAlloc( guard,
+                                      guard_page_size,
+                                      MEM_COMMIT,
+                                      PAGE_READWRITE | PAGE_GUARD );
+                if( !guard )
+                    onOutOfMemoryError();
+            }
 
             m_ctxt.bstack = pbase;
             m_ctxt.tstack = pbase;
@@ -4429,8 +4438,8 @@ private:
 
             static if( __traits( compiles, mmap ) )
             {
-                // Allocate PAGESIZE more for the memory guard
-                sz += PAGESIZE;
+                // Allocate more for the memory guard
+                sz += guard_page_size;
 
                 m_pmem = mmap( null,
                                sz,
@@ -4467,19 +4476,22 @@ private:
             {
                 m_ctxt.bstack = m_pmem;
                 m_ctxt.tstack = m_pmem;
-                void* guard = m_pmem + sz - PAGESIZE;
+                void* guard = m_pmem + sz - guard_page_size;
             }
             m_size = sz;
 
             static if( __traits( compiles, mmap ) )
             {
-                // Mark end of stack
-                for ( ubyte* g = cast(ubyte*)guard; g < guard + PAGESIZE; g+= 32)
-                    g[0 .. 32] = cast(ubyte[]) "END OF FIBER -- END OF FIBER -- ";
+                if (guard_page_size)
+                {
+                    // Mark end of stack
+                    for ( ubyte* g = cast(ubyte*)guard; g < guard + guard_page_size; g+= 32)
+                        g[0 .. 32] = cast(ubyte[]) "END OF FIBER -- END OF FIBER -- ";
 
-                // protect end of stack
-                if ( mprotect(guard, PAGESIZE, PROT_NONE) == -1 )
-                    abort();
+                    // protect end of stack
+                    if ( mprotect(guard, guard_page_size, PROT_NONE) == -1 )
+                        abort();
+                }
             }
             else
             {
