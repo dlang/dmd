@@ -646,6 +646,7 @@ pure:
 
     void Byte3(BCValue result, BCValue word, BCValue idx)
     {
+        sameLabel = false;
         requireIntrinsics = true;
         code ~= "\t" ~ toCode(result) ~ " = intrin_Byte3(" ~ toCode(word) ~ ", " ~ toCode(idx) ~ ");\n";
     }
@@ -655,7 +656,7 @@ pure:
     {
         sameLabel = false;
         assert(result.vType == BCValueType.StackValue);
-        string resultString = (result && result.stackAddr != 0 ? toCode(result) ~ " = " : "");
+        string resultString = ((result && result.stackAddr != 0) ? toCode(result) ~ " = " : "");
         string functionString =  (fn.vType == BCValueType.Immediate ? "fn" ~ toCode(fn)~ "(" : "fn(" ~ toCode(fn) ~ ", ");
 
         import std.algorithm : map;

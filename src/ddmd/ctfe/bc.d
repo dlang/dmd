@@ -136,6 +136,7 @@ enum LongInst : ushort
     HeapStore32, ///Heap[align4(SP[hi & 0xFFFF)] = SP[hi >> 16]]
     ExB, /// extract Byte SP[hi & 0xFFFF] = extractByte(SP[hi & 0xFFFF], SP[hi >> 16])
     Alloc, /// SP[hi & 0xFFFF] = heapSize; heapSize += SP[hi >> 16]
+    MemCpy,
 
     BuiltinCall, // call a builtin.
 
@@ -222,6 +223,14 @@ struct LongInst64
         lw = i | stackAddrLhs.addr << 16;
         hi = rhs.imm32;
     }
+
+    this(const LongInst i, const StackAddr stackAddrLhs,
+        const StackAddr stackAddrRhs, StackAddr stackAddrOp)
+    {
+        lw = i | stackAddrOp.addr << 16;
+        hi = stackAddrLhs.addr | stackAddrRhs.addr << 16;
+    }
+
 }
 
 static assert(LongInst.max < 0x3F, "Instruction do not fit in 6 bit anymore");
@@ -539,6 +548,15 @@ pure:
             emitLongInst(LongInst64(LongInst.AssertCnd, value.stackAddr, _msg.stackAddr));
         }
 
+    }
+
+    void MemCpy(BCValue dst, BCValue src, BCValue size)
+    {
+        size = pushOntoStack(size);
+        src = pushOntoStack(src);
+        dst = pushOntoStack(dst);
+
+        emitLongInst(LongInst64(LongInst.MemCpy, dst.stackAddr, src.stackAddr, size.stackAddr));
     }
 
     void Not(BCValue result, BCValue val)
@@ -1324,6 +1342,11 @@ string printInstructions(const int* startInstructions, uint length) pure
                 result ~= "Alloc SP[" ~ to!string(hi & 0xFFFF) ~ "] SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
             break;
+        case LongInst.MemCpy:
+            {
+                result ~= "MemCpy SP[" ~ to!string(hi & 0xFFFF) ~ "] SP[" ~ to!string(hi >> 16) ~ "] SP[" ~ to!string(lw >> 16) ~ "]\n";
+            }
+            break;
         }
     }
     return result ~ "\n EndInstructionDump";
@@ -1992,6 +2015,15 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 {
                     assert(0, "HEAP OVERFLOW!");
                 }
+            }
+            break;
+        case LongInst.MemCpy:
+            {
+                auto cpySize = cast(uint) *opRef;
+                auto cpySrc = cast(uint) *lhsRef;
+                auto cpyDst = cast(uint) *rhs;
+                assert(cpyDst >= cpySrc + cpySize, "Overlapping MemCpy is not supported");
+                heapPtr._heap[cpySrc .. cpySrc + cpySize] = heapPtr._heap[cpyDst .. cpyDst + cpySize];
             }
             break;
         case LongInst.StrEq:

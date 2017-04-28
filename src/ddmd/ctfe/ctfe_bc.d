@@ -17,8 +17,8 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 
 import std.conv : to;
 
-enum perf = 1;
-enum bailoutMessages = 1;
+enum perf = 0;
+enum bailoutMessages = 0;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -1109,9 +1109,10 @@ Expression toExpression(const BCValue value, Type expressionType,
         ArrayLiteralExp arrayResult;
         auto elmType = arrayType.nextOf;
         auto baseType = _sharedCtfeState.btv.toBCType(elmType);
-        auto elmLength = _sharedCtfeState.size(baseType);
+        auto elmSize = _sharedCtfeState.size(baseType);
         auto arrayLength = heapPtr._heap[arr.heapAddr.addr + SliceDescriptor.LengthOffset];
         auto arrayBase = heapPtr._heap[arr.heapAddr.addr + SliceDescriptor.BaseOffset];
+
         debug (ctfe)
         {
             import std.stdio;
@@ -1129,8 +1130,8 @@ Expression toExpression(const BCValue value, Type expressionType,
         }
 
         Expressions* elmExprs = new Expressions();
-
         uint offset = 0;
+
         debug (ctfe)
         {
             import std.stdio;
@@ -1144,22 +1145,12 @@ Expression toExpression(const BCValue value, Type expressionType,
 
         foreach (idx; 0 .. arrayLength)
         {
-            /*    if (elmLength == 1)
-                {
-                    elmExprs.insert(idx,
-                        toExpression(imm32((heapPtr._heap[value.heapAddr.addr + offset] >> ((idx-1 % 4) * 8)) & 0xFF),
-                        tda.nextOf)
-                    );
-                    offset += !(idx % 4);
-                }
-                else */
             {
                 elmExprs.insert(idx,
                     toExpression(imm32(*(heapPtr._heap.ptr + arrayBase + offset)),
                         elmType));
-                offset += elmLength;
+                offset += elmSize;
             }
-
         }
 
         arrayResult = new ArrayLiteralExp(Loc(), elmExprs);
@@ -1177,8 +1168,8 @@ Expression toExpression(const BCValue value, Type expressionType,
            return new NullExp(Loc(), expressionType);
         }
 
-        auto length = heapPtr._heap.ptr[value.heapAddr + SliceDescriptor.LengthOffset];
-        auto base = heapPtr._heap.ptr[value.heapAddr + SliceDescriptor.BaseOffset];
+        auto length = heapPtr._heap[value.heapAddr + SliceDescriptor.LengthOffset];
+        auto base = heapPtr._heap[value.heapAddr + SliceDescriptor.BaseOffset];
         uint sz = cast (uint) expressionType.nextOf().size;
         if (sz != 1)
         {
@@ -1189,6 +1180,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             }
             return null;
         }
+
         auto offset = cast(uint)base;
         import ddmd.root.rmem : allocmemory;
 
@@ -1228,6 +1220,7 @@ Expression toExpression(const BCValue value, Type expressionType,
                     }
                     return null;
                 }
+
                 elmExprs.insert(idx, elm);
                 offset += align4(_sharedCtfeState.size(member));
             }
@@ -1410,13 +1403,13 @@ extern (C++) final class BCTypeVisitor : Visitor
         }
         else if (t.ty == Tpointer)
         {
-            //if (t.nextOf.ty == Tint32 || t.nextOf.ty == Tuns32)
-            //    return BCType(BCTypeEnum.i32Ptr);
-            //else if (auto pi =_sharedCtfeState.getPointerIndex(cast(TypePointer)t))
-            //{
-            //return BCType(BCTypeEnum.Ptr, pi);
-            //}
-            //else
+/*
+            if (auto pi =_sharedCtfeState.getPointerIndex(cast(TypePointer)t))
+            {
+                return BCType(BCTypeEnum.Ptr, pi);
+            }
+            else
+*/
             {
                 uint indirectionCount = 1;
                 Type baseType = t.nextOf;
@@ -1689,24 +1682,33 @@ extern (C++) final class BCV(BCGenT) : Visitor
         auto _newBase = *newBase;
         auto _oldBase = *oldBase;
 
-        auto copyCounter = genTemporary(i32Type);
-        Set(copyCounter, length);
+        static if (is(gen.MemCpy))
         {
-            auto Lbegin  = genLabel();
-            auto copyJmp = beginCndJmp(copyCounter);
-
-            auto tmpElem = genTemporary(i32Type);
-            Sub3(copyCounter, copyCounter, imm32(1));
-            foreach (uint i; 0 .. elementSize)
+            auto effectiveSize = genTemporary(i32Type);
+            Mul3(effectiveSize, length, imm32(elementSize));
+            MemCpy(_newBase, _oldBase, effectiveSize);
+        }
+        else
+        {
+            auto copyCounter = genTemporary(i32Type);
+            Set(copyCounter, length);
             {
-                Load32(tmpElem, _oldBase);
-                Store32(_newBase, tmpElem);
-                Add3(_newBase, _newBase, imm32(1));
-                Add3(_oldBase, _oldBase, imm32(1));
+                auto Lbegin  = genLabel();
+                auto copyJmp = beginCndJmp(copyCounter);
+
+                auto tmpElem = genTemporary(i32Type);
+                Sub3(copyCounter, copyCounter, imm32(1));
+                foreach (uint i; 0 .. elementSize)
+                {
+                    Load32(tmpElem, _oldBase);
+                    Store32(_newBase, tmpElem);
+                    Add3(_newBase, _newBase, imm32(1));
+                    Add3(_oldBase, _oldBase, imm32(1));
+                }
+                genJump(Lbegin);
+                auto Lafter_loop = genLabel();
+                endCndJmp(copyJmp, Lafter_loop);
             }
-            genJump(Lbegin);
-            auto Lafter_loop = genLabel();
-            endCndJmp(copyJmp, Lafter_loop);
         }
     }
 
@@ -1719,7 +1721,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         }
         debug(nullPtrCheck)
         {
-           Assert(slice.i32, addError(Loc(), "arrPtr must not be null"));
+           Assert(slice.i32, addError(Loc(), "expandSliceTo: arrPtr must not be null"));
         }
         auto oldBase = getBase(slice);
         auto oldLength = getLength(slice);
@@ -2006,7 +2008,7 @@ public:
         endCndJmp(CJskipConcat, LafterConcat);
     }
 
-    BCValue genExpr(Expression expr)
+    extern (D) BCValue genExpr(Expression expr, string debugMessage = null, uint line = __LINE__)
     {
 
         debug (ctfe)
@@ -2014,6 +2016,7 @@ public:
             import std.stdio;
         }
         auto oldRetval = retval;
+        // import std.stdio; writeln("Calling genExpr from: ", line, debugMessage ? " \"" ~ debugMessage ~ "\"" : ""); //DEBUGLINE
 
         if (processingArguments)
         {
@@ -2504,7 +2507,7 @@ static if (is(BCGen))
 
         case TOK.TOKadd, TOK.TOKmin, TOK.TOKmul, TOK.TOKdiv, TOK.TOKmod,
                 TOK.TOKand, TOK.TOKor, TOK.TOKxor, TOK.TOKshr, TOK.TOKshl:
-                auto lhs = genExpr(e.e1);
+            auto lhs = genExpr(e.e1);
             auto rhs = genExpr(e.e2);
             //FIXME IMPORRANT
             // The whole rhs == retval situation should be fixed in the bc evaluator
@@ -3161,9 +3164,9 @@ static if (is(BCGen))
                     writeln(varType);
                 }
                 retval = (assignTo && assignTo.vType == BCValueType.StackValue) ? assignTo : genTemporary(
-                    BCType(toBCType(dve.type)));
+                    toBCType(dve.type));
 
-                auto lhs = genExpr(dve.e1);
+                auto lhs = genExpr(dve.e1, "DotVarExp: dve.e1");
                 if (lhs.type != BCTypeEnum.Struct)
                 {
                     bailout(
@@ -3171,8 +3174,7 @@ static if (is(BCGen))
                         .e1.toString);
                 }
 
-                if (!(lhs.vType == BCValueType.StackValue
-                        || lhs.vType == BCValueType.Parameter || lhs.vType == BCValueType.Temporary))
+                if (!(isStackValueOrParameter(lhs) || lhs.vType == BCValueType.Temporary))
                 {
                     bailout("Unexpected lhs-type: " ~ to!string(lhs.vType));
                     return;
@@ -3181,6 +3183,7 @@ static if (is(BCGen))
                 auto ptr = genTemporary(varType);
                 Add3(ptr.i32, lhs.i32, imm32(offset));
                 Load32(retval.i32, ptr);
+
                 retval.heapRef = BCHeapRef(ptr);
 
                 debug (ctfe)
@@ -3501,7 +3504,7 @@ static if (is(BCGen))
         BCValue lengthPtr;
         debug(nullPtrCheck)
         {
-            Assert(arr.i32, addError(Loc(), "arrPtr must not be null"));
+            Assert(arr.i32, addError(Loc(), "setLength: arrPtr must not be null"));
         }
         if (SliceDescriptor.LengthOffset)
         {
@@ -3571,6 +3574,7 @@ static if (is(BCGen))
     void setBase(BCValue arr, BCValue newBase)
     {
         BCValue baseAddrPtr;
+        Assert(arr.i32, addError(Loc(), "cannot set setBase of null array"));
         if (SliceDescriptor.BaseOffset)
         {
             baseAddrPtr = genTemporary(i32Type);
@@ -3617,8 +3621,9 @@ static if (is(BCGen))
         }
     }
 
-    void LoadFromHeapRef(BCValue hrv)
+    void LoadFromHeapRef(BCValue hrv, uint line = __LINE__)
     {
+        // import std.stdio; writeln("Calling LoadHeapRef from: ", line); //DEBUGLINE
         bailout(hrv.type.type == BCTypeEnum.i64, "only support 32bit-sized pointerTypes right now");
         Load32(hrv, BCValue(hrv.heapRef));
     }
@@ -4296,6 +4301,7 @@ static if (is(BCGen))
             assert(fIndex != -1, "field " ~ vd.toString ~ "could not be found in" ~ dve.e1.toString);
             auto bcStructType = _sharedCtfeState.structTypes[structTypeIndex - 1];
             auto fieldType = bcStructType.memberTypes[fIndex];
+            // import std.stdio; writeln("got fieldType: ", fieldType); //DEBUGLINE
             if (fieldType.type != BCTypeEnum.i32)
             {
                 bailout("only i32 structMembers are supported for now ... not : " ~ to!string(bcStructType.memberTypes[fIndex].type));
@@ -4339,7 +4345,7 @@ static if (is(BCGen))
 
             // We are assigning to an arrayLength
             // This means possibly allocation and copying
-            auto arrayPtr = genExpr(ale.e1);
+            auto arrayPtr = genExpr(ale.e1, "ArrayExpansion Slice");
             if (!arrayPtr)
             {
                 bailout("I don't have an array to load the length from :(");
@@ -4352,7 +4358,7 @@ static if (is(BCGen))
             }
 
             BCValue oldLength = getLength(arrayPtr);
-            BCValue newLength = genExpr(ae.e2);
+            BCValue newLength = genExpr(ae.e2, "ArrayExpansion newLength");
             expandSliceTo(arrayPtr, newLength);
         }
         else if (ae.e1.op == TOKindex)
