@@ -2603,7 +2603,7 @@ static if (is(BCGen))
                         Le3(BCValue.init, rhs, maxShift);
                         Assert(BCValue.init,
                             addError(e.loc,
-                            "%d out of range(0..%d)", rhs, maxShift));
+                            "shift by %d is outside the range 0..%d", rhs, maxShift));
 
                         Rsh3(retval, lhs, rhs);
                     }
@@ -2615,7 +2615,7 @@ static if (is(BCGen))
                         Le3(BCValue.init, rhs, maxShift);
                         Assert(BCValue.init,
                             addError(e.loc,
-                            "%d out of range(0..%d)", rhs, maxShift));
+                            "shift by %d is outside the range 0..%d", rhs, maxShift));
 
                         Lsh3(retval, lhs, rhs);
                     }
@@ -3154,7 +3154,7 @@ static if (is(BCGen))
                 BCType varType = _struct.memberTypes[fIndex];
                 if (!varType)
                 {
-                    bailout("struct Member " ~ to!string(fIndex) ~ " has an empty type .... this must not happen! -- " ~ dve.toString); 
+                    bailout("struct Member " ~ to!string(fIndex) ~ " has an empty type .... this must not happen! -- " ~ dve.toString);
                     return ;
                 }
                 debug (ctfe)
@@ -4265,6 +4265,19 @@ static if (is(BCGen))
 
         if (ae.e1.op == TOKslice && ae.e2.op == TOKslice)
         {
+            auto lhs = genExpr(ae.e1);
+            auto rhs = genExpr(ae.e2);
+
+            auto lhs_base = getBase(lhs);
+            auto rhs_base = getBase(rhs);
+
+            auto lhs_length = getLength(lhs);
+            auto rhs_length = getLength(rhs);
+            Eq3(BCValue.init, lhs_length, rhs_length);
+            Assert(BCValue.init, addError(ae.loc, "lhs.length %d != rhs.length %d", lhs_length, rhs_length));
+            auto elmSize = sharedCtfeState.size(sharedCtfeState.elementType(lhs.type));
+            copyArray(&lhs_base, &rhs_base, lhs_length, elmSize);
+
             bailout("We don't handle slice assignment");
             return ;
         }
