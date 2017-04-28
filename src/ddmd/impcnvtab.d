@@ -75,6 +75,18 @@ ImpCnvTab generateImpCnvTab()
 
     /* ======================= */
 
+    X(Tchar,Tchar,        Tchar,Tchar,           Tchar);
+    X(Tchar,Twchar,       Tchar,Twchar,          Twchar);
+    X(Tchar,Tdchar,       Tchar,Tdchar,          Tdchar);
+    X(Twchar,Tchar,       Twchar,Tchar,          Twchar);
+    X(Twchar,Twchar,      Twchar,Twchar,         Twchar);
+    X(Twchar,Tdchar,      Twchar,Tdchar,         Tdchar);
+    X(Tdchar,Tchar,       Tdchar,Tchar,          Tdchar);
+    X(Tdchar,Twchar,      Tdchar,Twchar,         Tdchar);
+    X(Tdchar,Tdchar,      Tdchar,Tdchar,         Tdchar);
+
+    /* ======================= */
+
     X(Tint8,Tint8,   Tint32,Tint32,  Tint32);
     X(Tint8,Tuns8,   Tint32,Tint32,  Tint32);
     X(Tint8,Tint16,  Tint32,Tint32,  Tint32);
