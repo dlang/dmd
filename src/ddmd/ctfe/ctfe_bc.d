@@ -1682,11 +1682,13 @@ extern (C++) final class BCV(BCGenT) : Visitor
         auto _newBase = *newBase;
         auto _oldBase = *oldBase;
 
-        static if (is(gen.MemCpy))
+        static if (is(typeof(gen.MemCpy) == function))
         {
             auto effectiveSize = genTemporary(i32Type);
             Mul3(effectiveSize, length, imm32(elementSize));
             MemCpy(_newBase, _oldBase, effectiveSize);
+            Add3(_newBase, _newBase, effectiveSize);
+            Add3(_oldBase, _oldBase, effectiveSize);
         }
         else
         {

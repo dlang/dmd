@@ -2020,10 +2020,11 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
         case LongInst.MemCpy:
             {
                 auto cpySize = cast(uint) *opRef;
-                auto cpySrc = cast(uint) *lhsRef;
-                auto cpyDst = cast(uint) *rhs;
+                auto cpySrc = cast(uint) *rhs;
+                auto cpyDst = cast(uint) *lhsRef;
+
                 assert(cpyDst >= cpySrc + cpySize, "Overlapping MemCpy is not supported");
-                heapPtr._heap[cpySrc .. cpySrc + cpySize] = heapPtr._heap[cpyDst .. cpyDst + cpySize];
+                heapPtr._heap[cpyDst .. cpyDst + cpySize] = heapPtr._heap[cpySrc .. cpySrc + cpySize];
             }
             break;
         case LongInst.StrEq:
