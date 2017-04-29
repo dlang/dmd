@@ -41,15 +41,15 @@ D_ATTRIBUTE_FORMAT(2, 0) void vdeprecation(const Loc& loc, const char *format, v
 D_ATTRIBUTE_FORMAT(2, 0) void vdeprecationSupplemental(const Loc& loc, const char *format, va_list ap);
 
 #if defined(__GNUC__) || defined(__clang__)
-__attribute__((noreturn))
-void fatal();
+#define D_ATTRIBUTE_NORETURN __attribute__((noreturn))
 #elif _MSC_VER
-__declspec(noreturn)
-void fatal();
+#define D_ATTRIBUTE_NORETURN __declspec(noreturn)
 #else
-void fatal();
+#define D_ATTRIBUTE_NORETURN
 #endif
 
-void halt();
+// Called after printing out fatal error messages.
+D_ATTRIBUTE_NORETURN void fatal();
+D_ATTRIBUTE_NORETURN void halt();
 
 #endif /* DMD_ERRORS_H */
