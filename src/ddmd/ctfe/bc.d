@@ -357,22 +357,14 @@ pure:
     BCValue genTemporary(BCType bct)
     {
         auto tmpAddr = sp.addr;
-        if (isBasicBCType(bct))
+        if (isBasicBCType(bct.type))
         {
-            sp += align4(basicTypeSize(bct));
+            sp += align4(basicTypeSize(bct.type));
         }
         else
         {
             sp += 4;
         }
-
-        return BCValue(StackAddr(tmpAddr), bct, ++temporaryCount);
-    }
-
-    BCValue genTemporary(uint size, BCType bct)
-    {
-        auto tmpAddr = sp.addr;
-        sp += align4(size);
 
         return BCValue(StackAddr(tmpAddr), bct, ++temporaryCount);
     }
@@ -479,7 +471,7 @@ pure:
         auto ifTrue = jmp.ifTrue;
 
         LongInst64 lj;
-        if (isStackValueOrParameter(cond) && cond.type == BCType.i32)
+        if (isStackValueOrParameter(cond) && cond.type.type == BCTypeEnum.i32)
         {
             lj = (ifTrue ? LongInst64(LongInst.JmpNZ, cond.stackAddr,
                 target.addr) : LongInst64(LongInst.JmpZ, cond.stackAddr, target.addr));
@@ -580,7 +572,7 @@ pure:
             "Instruction is not in Range for Arith Instructions");
         assert(lhs.vType.StackValue, "only StackValues are supported as lhs");
         // FIXME remove the lhs.type == BCTypeEnum.Char as soon as we convert correctly.
-        assert(lhs.type == BCTypeEnum.i32 || lhs.type == BCTypeEnum.i64 || lhs.type == BCTypeEnum.Char,
+        assert(lhs.type.type == BCTypeEnum.i32 || lhs.type.type == BCTypeEnum.i64 || lhs.type.type == BCTypeEnum.Char,
             "only i32 or i32Ptr is supported for now not: " ~ to!string(lhs.type.type));
 
         if (lhs.vType == BCValueType.Immediate)
@@ -2137,7 +2129,7 @@ int[] testRelJmp()
     }
 }
 
-static assert(interpret_(testRelJmp(), []) == BCValue(Imm32(12)));
+static assert(interpret_(testRelJmp(), []) == imm32(12));
 import ddmd.ctfe.bc_test;
 
 static assert(test!BCGen());

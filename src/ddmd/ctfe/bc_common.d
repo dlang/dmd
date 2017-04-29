@@ -75,7 +75,7 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
 bool isBasicBCType(BCTypeEnum bct) @safe pure
 {
     return !(bct == BCTypeEnum.Struct || bct == BCTypeEnum.Array
-            || bct == BCType.Slice || bct == BCTypeEnum.Undef || bct == BCTypeEnum.Ptr);
+            || bct == BCTypeEnum.Slice || bct == BCTypeEnum.Undef || bct == BCTypeEnum.Ptr);
 }
 
 const(bool) isStackValueOrParameter(const BCValue val) pure @safe nothrow
@@ -140,6 +140,7 @@ struct BCType
     uint typeIndex;
     // additional information
     BCTypeFlags flags;
+
     string toString() const pure
     {
         import std.conv;
@@ -456,13 +457,13 @@ struct BCValue
         // the check for Undef is a workaround
         // consider removing it when everything works correctly.
 
-        return this.vType != vType.Unknown && this.type != BCTypeEnum.Undef
+        return this.vType != vType.Unknown && this.type.type != BCTypeEnum.Undef
             && this.vType != vType.VoidValue;
     }
 
     bool opEquals(const BCValue rhs) pure const
     {
-        if (this.vType == rhs.vType && this.type.type == rhs.type)
+        if (this.vType == rhs.vType && this.type == rhs.type)
         {
             final switch (this.vType)
             {
@@ -587,7 +588,7 @@ __gshared static immutable bcLastCond = () {
 __gshared static immutable bcNull = () {
     BCValue result;
     result.vType = BCValueType.Immediate;
-    result.type = BCType.Null;
+    result.type.type = BCTypeEnum.Null;
     return result;
 }();
 
