@@ -43,13 +43,17 @@ class TemplateInstance;
 class TemplateDeclaration;
 class ClassDeclaration;
 class BinExp;
-struct Symbol;          // back end symbol
 class OverloadSet;
 class Initializer;
 class StringExp;
 class ArrayExp;
 class SliceExp;
 struct UnionExp;
+#ifdef IN_GCC
+typedef union tree_node Symbol;
+#else
+struct Symbol;          // back end symbol
+#endif
 
 void initPrecedence();
 
