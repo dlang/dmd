@@ -18,11 +18,11 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 0;
+enum bailoutMessages = 1;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 0;
+enum UsePrinterBackend = 1;
 enum UseCBackend = 0;
 enum abortOnCritical = 1;
 
@@ -1101,17 +1101,18 @@ Expression toExpression(const BCValue value, Type expressionType,
 
     Expression createArray(BCValue arr, Type arrayType)
     {
-        if (!arr.heapAddr)
-        {
-           return new NullExp(Loc(), arrayType);
-        }
-
         ArrayLiteralExp arrayResult;
         auto elmType = arrayType.nextOf;
         auto baseType = _sharedCtfeState.btv.toBCType(elmType);
         auto elmSize = _sharedCtfeState.size(baseType);
         auto arrayLength = heapPtr._heap[arr.heapAddr.addr + SliceDescriptor.LengthOffset];
         auto arrayBase = heapPtr._heap[arr.heapAddr.addr + SliceDescriptor.BaseOffset];
+
+        if (!arr.heapAddr || !arrayBase)
+        {
+           return new NullExp(Loc(), arrayType);
+        }
+
 
         debug (ctfe)
         {
@@ -1601,8 +1602,8 @@ extern (C++) final class BCV(BCGenT) : Visitor
     bool noRetval;
     BCValue[void* ] vars;
     BCValue _this;
-    VarDeclaration lastConstVd;
 
+    VarDeclaration lastConstVd;
     typeof(gen.genLabel()) lastContinue;
     BCValue currentIndexed;
 
@@ -1610,6 +1611,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     BCValue assignTo;
 
     bool discardValue = false;
+    uint current_line;
 
     extern(D) BCValue addError(Loc loc, string msg, BCValue v1 = BCValue.init, BCValue v2 = BCValue.init)
     {
@@ -1621,10 +1623,12 @@ extern (C++) final class BCV(BCGenT) : Visitor
         return _sharedCtfeState.addError(loc, msg, v1, v2);
     }
 
-    extern(D) void MemSet(/*const*/ BCValue destBasePtr, /*const*/ uint[] source, uint wordSize = 4)
+    extern(D) void MemCpyConst(/*const*/ BCValue destBasePtr, /*const*/ uint[] source, uint wordSize = 4)
     {
         assert(wordSize <= 4);
         auto destPtr = genTemporary(i32Type);
+        // TODO technically we should make sure that we zero the heap-portion
+        // MemSet(destBasePtr, imm32(0), imm32(cast(uint)source.length));
         foreach(uint i, word;source)
         {
             if (word != 0)
@@ -3184,7 +3188,13 @@ static if (is(BCGen))
 
                 auto ptr = genTemporary(varType);
                 Add3(ptr.i32, lhs.i32, imm32(offset));
-                Load32(retval.i32, ptr);
+                //FIXME horrible hack to make slice members work
+                // Systematize somehow!
+
+                if (ptr.type.type == BCTypeEnum.Slice)
+                    Set(retval.i32, ptr);
+                else
+                    Load32(retval.i32, ptr);
 
                 retval.heapRef = BCHeapRef(ptr);
 
@@ -3360,7 +3370,11 @@ static if (is(BCGen))
             if (!insideArgumentProcessing)
             {
                 Add3(fieldAddr, retval.i32, imm32(offset));
-                Store32(fieldAddr, elexpr);
+                // abi hack for slices slice;
+//                if (elexpr.type.type == BCTypeEnum.Slice)
+//                   MemCpy(fieldAddr, elexpr, imm32(SliceDescriptor.Size));
+//                else
+                    Store32(fieldAddr, elexpr);
             }
             else
             {
@@ -4278,7 +4292,7 @@ static if (is(BCGen))
             auto elmSize = sharedCtfeState.size(sharedCtfeState.elementType(lhs.type));
             copyArray(&lhs_base, &rhs_base, lhs_length, elmSize);
 
-            bailout("We don't handle slice assignment");
+            // bailout("We don't handle slice assignment");
             return ;
         }
 
@@ -4433,7 +4447,7 @@ static if (is(BCGen))
         else
         {
             ignoreVoid = true;
-            auto lhs = genExpr(ae.e1);
+            auto lhs = genExpr(ae.e1, "AssignExp.lhs");
             if (!lhs)
             {
                 bailout("could not gen AssignExp.lhs: " ~ ae.e1.toString);
@@ -4456,7 +4470,7 @@ static if (is(BCGen))
             assignTo = lhs;
 
             ignoreVoid = false;
-            auto rhs = genExpr(ae.e2);
+            auto rhs = genExpr(ae.e2, "AssignExp.rhs");
 
             debug (ctfe)
             {
@@ -4541,7 +4555,7 @@ static if (is(BCGen))
                     // get's the integerExp 0 of integer type as rhs
                     Alloc(lhs.i32, imm32(_sharedCtfeState.size(lhs.type)));
                     // Allocate space for the value on the heap and store it in lhs :)
-                    MemSet(lhs.i32, _sharedCtfeState.initializer(lhs.type));
+                    MemCpyConst(lhs.i32, _sharedCtfeState.initializer(lhs.type));
                     // Copy the initializer into the memory
                     // TODO: (currently the initializer wiil only be set correctly on uints)
 
@@ -5263,7 +5277,7 @@ static if (is(BCGen))
         immutable oldDiscardValue = discardValue;
         discardValue = true;
         if (es.exp)
-            genExpr(es.exp);
+            genExpr(es.exp, "ExpStatement");
         discardValue = oldDiscardValue;
     }
 

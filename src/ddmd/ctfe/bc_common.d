@@ -72,11 +72,13 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
     }
 }
 
-bool isBasicBCType(BCTypeEnum bct) @safe pure
+bool isBasicBCType(BCType bct) @safe pure
 {
-    return !(bct == BCTypeEnum.Struct || bct == BCTypeEnum.Array
-            || bct == BCTypeEnum.Slice || bct == BCTypeEnum.Undef || bct == BCTypeEnum.Ptr);
+    return !(bct.type == BCTypeEnum.Struct || bct.type == BCTypeEnum.Array
+            || bct.type == BCTypeEnum.Slice || bct.type == BCTypeEnum.Undef || bct.type == BCTypeEnum.Ptr);
 }
+
+static assert(!isBasicBCType(BCType(BCTypeEnum.Array, 1)));
 
 const(bool) isStackValueOrParameter(const BCValue val) pure @safe nothrow
 {

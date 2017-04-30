@@ -139,6 +139,7 @@ enum LongInst : ushort
     MemCpy,
 
     BuiltinCall, // call a builtin.
+    Comment,
 
 }
 //Imm-Intructuins and corrospinding 2Operand instructions have to be in the same order
@@ -357,7 +358,7 @@ pure:
     BCValue genTemporary(BCType bct)
     {
         auto tmpAddr = sp.addr;
-        if (isBasicBCType(bct.type))
+        if (isBasicBCType(bct))
         {
             sp += align4(basicTypeSize(bct.type));
         }
@@ -549,6 +550,36 @@ pure:
         dst = pushOntoStack(dst);
 
         emitLongInst(LongInst64(LongInst.MemCpy, dst.stackAddr, src.stackAddr, size.stackAddr));
+    }
+
+    void Comment(string comment)
+    {
+        uint alignedLength = align4(cast(uint) comment.length) / 4;
+        emitLongInst(LongInst64(LongInst.Comment, StackAddr.init, Imm32(alignedLength)));
+        uint commentLength = cast(uint) comment.length;
+        uint idx;
+        while(commentLength > 4)
+        {
+            byteCodeArray[ip++] = comment[idx] | comment[idx+1] << 8 | comment[idx+2] << 16 | comment[idx+3] << 24;
+            idx += 4;
+            commentLength -= 4;
+        }
+
+        switch(commentLength)
+        {
+            case 3 :
+                byteCodeArray[ip] |= comment[idx+2] << 16;
+            goto case;
+            case 2 :
+                byteCodeArray[ip] |= comment[idx+1] << 8;
+            goto case;
+            case 1 :
+                 byteCodeArray[ip++] |= comment[idx];
+            goto case;
+            case 0 :
+            break;
+            default : assert(0);
+        }
     }
 
     void Not(BCValue result, BCValue val)
@@ -1339,6 +1370,23 @@ string printInstructions(const int* startInstructions, uint length) pure
                 result ~= "MemCpy SP[" ~ to!string(hi & 0xFFFF) ~ "] SP[" ~ to!string(hi >> 16) ~ "] SP[" ~ to!string(lw >> 16) ~ "]\n";
             }
             break;
+        case LongInst.Comment:
+            {
+                auto commentLength = hi;
+                result ~= "CommentBegin (length: " ~  to!string(length) ~ ")\n";
+                // alignLengthBy2
+                auto alignedLength = ((commentLength + 1) & 1);
+                assert(pos + alignedLength < length, "comment longer then code");
+
+                foreach(c4i; pos .. pos + commentLength)
+                {
+                    result ~= *(cast(const(char[4])*) &arr[c4i]);
+                }
+        pos += alignedLength;
+                result ~= "\nCommentEnd\n";
+            }
+            break;
+
         }
     }
     return result ~ "\n EndInstructionDump";
@@ -2017,6 +2065,11 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
 
                 assert(cpyDst >= cpySrc + cpySize, "Overlapping MemCpy is not supported");
                 heapPtr._heap[cpyDst .. cpyDst + cpySize] = heapPtr._heap[cpySrc .. cpySrc + cpySize];
+            }
+            break;
+        case LongInst.Comment:
+            {
+                ip += cast(uint)((hi + 1) & 1);
             }
             break;
         case LongInst.StrEq:

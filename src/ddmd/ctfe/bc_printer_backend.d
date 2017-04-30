@@ -9,6 +9,7 @@ enum BCFunctionTypeEnum : byte
     Bytecode,
     Compiled,
 }
+enum withMemCpy = 1;
 
 //static if (is(typeof(() { import ddmd.declaration : FuncDeclaration; })))
 //{
@@ -225,7 +226,7 @@ struct Print_BCGen
     {
         sameLabel = false;
         auto tmpAddr = sp.addr;
-        sp += align4(basicTypeSize(bct));
+        sp += isBasicBCType(bct) ? align4(basicTypeSize(bct)) : 4;
 
         result ~= "    auto tmp" ~ to!string(++temporaryCount) ~ functionSuffix ~ " = genTemporary(" ~ print(
             bct) ~ ");//SP[" ~ to!string(tmpAddr) ~ "]\n";
@@ -434,6 +435,18 @@ struct Print_BCGen
         sameLabel = false;
         result ~= "    Assert(" ~ print(value) ~ ", " ~ print(err) ~ ");\n";
     }
+    static if (withMemCpy)
+        void MemCpy(BCValue dst, BCValue src, BCValue size)
+    {
+        sameLabel = false;
+        result ~= "    MemCpy(" ~ print(dst) ~ ", " ~ print(src) ~ ", " ~ print(size) ~ ");\n";
+    }
+
+    void emitComment(string comment)
+    {
+        result ~= "    //" ~ comment ~ "\n";
+    }
+
 }
 
 enum genString = q{
