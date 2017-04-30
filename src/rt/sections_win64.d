@@ -127,9 +127,17 @@ void scanTLSRanges(void[] rng, scope void delegate(void* pbeg, void* pend) nothr
     }
     else
     {
-        size_t count = &_TP_end - &_TP_beg;
-        for (auto p = &_TP_beg; p < &_TP_end; p++)
-            dg(rng.ptr + *p, rng.ptr + *p + (void*).sizeof);
+        for (auto p = &_TP_beg; p < &_TP_end; )
+        {
+            uint beg = *p++;
+            uint end = beg + cast(uint)((void*).sizeof);
+            while (p < &_TP_end && *p == end)
+            {
+                end += (void*).sizeof;
+                p++;
+            }
+            dg(rng.ptr + beg, rng.ptr + end);
+        }
     }
 }
 
