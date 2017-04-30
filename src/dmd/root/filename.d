@@ -524,12 +524,11 @@ nothrow:
             for (const(char)* p = name; *p; p++)
             {
                 char c = *p;
-                if (c == '\\' || c == ':' || c == '%' || (c == '.' && p[1] == '.') || (c == '/' && p[1] == '/'))
+                if (c == '\\' || c == ':' || c == '%' || (c == '/' && p[1] == '/'))
                 {
                     return null;
                 }
             }
-            return FileName.searchPath(path, name, false);
         }
         else version (Posix)
         {
@@ -543,47 +542,47 @@ nothrow:
                     return null;
                 }
             }
-            if (path)
-            {
-                /* Each path is converted to a cannonical name and then a check is done to see
-                 * that the searched name is really a child one of the the paths searched.
-                 */
-                for (size_t i = 0; i < path.dim; i++)
-                {
-                    const(char)* cname = null;
-                    const(char)* cpath = canonicalName((*path)[i]);
-                    //printf("FileName::safeSearchPath(): name=%s; path=%s; cpath=%s\n",
-                    //      name, (char *)path.data[i], cpath);
-                    if (cpath is null)
-                        goto cont;
-                    cname = canonicalName(combine(cpath, name));
-                    //printf("FileName::safeSearchPath(): cname=%s\n", cname);
-                    if (cname is null)
-                        goto cont;
-                    //printf("FileName::safeSearchPath(): exists=%i "
-                    //      "strncmp(cpath, cname, %i)=%i\n", exists(cname),
-                    //      strlen(cpath), strncmp(cpath, cname, strlen(cpath)));
-                    // exists and name is *really* a "child" of path
-                    if (exists(cname) && strncmp(cpath, cname, strlen(cpath)) == 0)
-                    {
-                        .free(cast(void*)cpath);
-                        const(char)* p = mem.xstrdup(cname);
-                        .free(cast(void*)cname);
-                        return p;
-                    }
-                cont:
-                    if (cpath)
-                        .free(cast(void*)cpath);
-                    if (cname)
-                        .free(cast(void*)cname);
-                }
-            }
-            return null;
         }
         else
         {
             assert(0);
         }
+        if (path)
+        {
+            /* Each path is converted to a cannonical name and then a check is done to see
+             * that the searched name is really a child one of the the paths searched.
+             */
+            for (size_t i = 0; i < path.dim; i++)
+            {
+                const(char)* cname = null;
+                const(char)* cpath = canonicalName((*path)[i]);
+                //printf("FileName::safeSearchPath(): name=%s; path=%s; cpath=%s\n",
+                //      name, (char *)path.data[i], cpath);
+                if (cpath is null)
+                    goto cont;
+                cname = canonicalName(combine(cpath, name));
+                //printf("FileName::safeSearchPath(): cname=%s\n", cname);
+                if (cname is null)
+                    goto cont;
+                //printf("FileName::safeSearchPath(): exists=%i "
+                //      "strncmp(cpath, cname, %i)=%i\n", exists(cname),
+                //      strlen(cpath), strncmp(cpath, cname, strlen(cpath)));
+                // exists and name is *really* a "child" of path
+                if (exists(cname) && strncmp(cpath, cname, strlen(cpath)) == 0)
+                {
+                    .free(cast(void*)cpath);
+                    const(char)* p = mem.xstrdup(cname);
+                    .free(cast(void*)cname);
+                    return p;
+                }
+            cont:
+                if (cpath)
+                    .free(cast(void*)cpath);
+                if (cname)
+                    .free(cast(void*)cname);
+            }
+        }
+        return null;
     }
 
     extern (C++) static int exists(const(char)* name)
