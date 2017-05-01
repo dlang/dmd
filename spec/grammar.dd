@@ -1626,7 +1626,6 @@ $(GNAME LinkageType):
     $(D Pascal)
     $(D System)
     $(D Objective-C)
-)
 
 $(GNAME CppAggregateType):
     $(D class)
