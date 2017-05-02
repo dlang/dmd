@@ -3295,7 +3295,7 @@ extern (C++) class FuncDeclaration : Declaration
         Dsymbol p = toParent2();
 
         // Function literals from fdthis to p must be delegates
-        checkNestedRef(fdthis, p);
+        ensureStaticLinkTo(fdthis, p);
 
         if (isNested())
         {

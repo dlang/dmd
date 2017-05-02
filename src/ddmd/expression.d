@@ -122,7 +122,7 @@ L1:
                 e1 = new DotVarExp(loc, e1, tcd.vthis);
                 e1.type = tcd.vthis.type;
                 e1.type = e1.type.addMod(t.mod);
-                // Do not call checkNestedRef()
+                // Do not call ensureStaticLinkTo()
                 //e1 = e1.semantic(sc);
 
                 // Skip up over nested functions, and get the enclosing
@@ -6146,7 +6146,7 @@ extern (C++) final class NewExp : Expression
                 else if (auto fdn = s.isFuncDeclaration())
                 {
                     // make sure the parent context fdn of cd is reachable from sc
-                    if (checkNestedRef(sc.parent, fdn))
+                    if (!ensureStaticLinkTo(sc.parent, fdn))
                     {
                         error("outer function context of %s is needed to 'new' nested class %s",
                             fdn.toPrettyChars(), cd.toPrettyChars());
