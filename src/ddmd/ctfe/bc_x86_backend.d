@@ -26,7 +26,7 @@ struct FunctionState
     // then in the Finalize() we have to replace the function id by an actual address
     uint callFixupCount;
 
-    uint stackSizeFixup; // usually 
+    uint stackSizeFixup; // usually
     uint[48] callFixups;
 }
 /*
@@ -166,8 +166,8 @@ struct X86_BCGen
         int value = void;
         if (fnId.imm32 > functionCount)
         {
-			callFixups[callFixupCount++] = ip;
-			value = cast(int)fnId.imm32;
+            callFixups[callFixupCount++] = ip;
+            value = cast(int)fnId.imm32;
         }
         else
         {
@@ -187,18 +187,18 @@ struct X86_BCGen
 
     void CallFixup(uint atIp)
     {
-		const oldIp = ip;
-		ip = atIp;
+        const oldIp = ip;
+        ip = atIp;
         auto fnId = readLE32();
         ip = atIp;
         assert(fnId && fnId <= functionCount, "invalid function id in call Fixup");
         int offset = cast(int)(functions[fnId - 1].begin - (ip + 4));
         writeLE32(offset);
-	}
+    }
 
     void MovValue(Reg r, StackAddr a)
     {
-        
+
     }
 
     void MovImm32(Reg r, Imm32 v)
@@ -296,7 +296,7 @@ struct X86_BCGen
     {
         auto size = basicTypeSize(bct);
         sp += 4;
-         
+
     }
     BCValue genParameter(BCType bct);
     BCAddr beginJmp()
