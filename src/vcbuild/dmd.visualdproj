@@ -560,6 +560,7 @@
    <File path="..\ddmd\statementsem.d" />
    <File path="..\ddmd\statement_rewrite_walker.d" />
    <File path="..\ddmd\staticassert.d" />
+   <File path="..\ddmd\staticcond.d" />
    <File path="..\ddmd\target.d" />
    <File path="..\ddmd\tocsym.d" />
    <File path="..\ddmd\toctype.d" />
