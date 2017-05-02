@@ -19,9 +19,15 @@ struct FunctionState
     uint begin;
 
     StackAddr sp = StackAddr(4);
-
     ubyte parameterCount;
     ushort temporaryCount;
+    // we need to fixup calls to addresses
+    // when writing the call we will write the functionId into the space for the address
+    // then in the Finalize() we have to replace the function id by an actual address
+    uint callFixupCount;
+
+    uint stackSizeFixup; // usually 
+    uint[48] callFixups;
 }
 /*
         uint cndJumpCount;
@@ -46,15 +52,24 @@ struct FunctionState
         EDI /// Extended Destination Index 7
     }
 
+enum Cmp
+{
+    Eq,
+    Neq,
+    Lt,
+    Le,
+    Gt,
+    Ge,
+}
+
 struct X86_BCGen
 {
 
     bool insideFunction;
     ubyte[ushort.max / 16] code;
-    uint ip = 4;
-    uint sp = 4;
-    BCAddr[32] StackSizeFixup;
-    uint StackSizeFixupCount;
+    uint ip;
+    uint sp;
+    Cmp lastCmp;
 
     FunctionState[ubyte.max * 8] functions;
     // uint currentFunction;
@@ -72,11 +87,11 @@ struct X86_BCGen
         }
         functionCount = 0;
 
-        ip = 0;
         // set the array to halts
         foreach (_; 0 .. code.length)
         {
-            Hlt();
+            // Hlt();
+            code[0 .. ip ? ip : code.length] = 0xF4;
         }
         ip = 4;
         sp = 4;
@@ -99,6 +114,7 @@ struct X86_BCGen
         // push ebp
         // mov ebp, esp
         // sub esp, numberOfLocals*4
+        begin = ip;
         Push(Reg.EBP);
         Push(Reg.ESP);
         Mov(Reg.EBP, Reg.ESP);
@@ -142,9 +158,51 @@ struct X86_BCGen
         code[ip++] = cast(ubyte)(0b11 << 6 | src << 3 | dst);
     }
 
-    void MovImm32(Reg r, BCValue v)
+    void Calln(Imm32 fnId)
     {
-        assert(v.vType == BCValueType.Immediate, "for now only immediates are supported");
+        code[ip++] = 0xE8;
+                // if (fn.vType == BCValueType.Immediate && fn.imm32 <= functionCount)
+        assert(fnId.imm32, "invalid fnId");
+        int value = void;
+        if (fnId.imm32 > functionCount)
+        {
+			callFixups[callFixupCount++] = ip;
+			value = cast(int)fnId.imm32;
+        }
+        else
+        {
+            value = cast(int)(functions[fnId - 1].begin - (ip + 4));
+        }
+        writeLE32(value);
+    }
+    /// call the function which is loaded into stack[v], using register r (defaults to EAX)
+    Calln(StackAddr v, Reg r = REG.EAX)
+    {
+        // Push(reg);
+        Mov(reg, v);
+        code[ip++] = 0xFF;
+        code[ip++] = 0xD0 | r;
+        // Pop(reg);
+    }
+
+    void CallFixup(uint atIp)
+    {
+		const oldIp = ip;
+		ip = atIp;
+        auto fnId = readLE32();
+        ip = atIp;
+        assert(fnId && fnId <= functionCount, "invalid function id in call Fixup");
+        int offset = cast(int)(functions[fnId - 1].begin - (ip + 4));
+        writeLE32(offset);
+	}
+
+    void MovValue(Reg r, StackAddr a)
+    {
+        
+    }
+
+    void MovImm32(Reg r, Imm32 v)
+    {
         if (v.vType == BCValueType.Immediate)
         {
             code[ip++] = 0xB8 | r;
@@ -229,9 +287,9 @@ struct X86_BCGen
     }
 
     /* Preamble
-   0:	55                   	push   ebp
-   1:	89 e5                	mov    ebp,esp
-   3:	83 ec 14             	sub    esp,0x14
+   0:    55                       push   ebp
+   1:    89 e5                    mov    ebp,esp
+   3:    83 ec 14                 sub    esp,0x14
 */
 
     BCValue genTemporary(BCType bct)
@@ -272,11 +330,34 @@ struct X86_BCGen
     void Assert(BCValue value, BCValue err);
     void Not(BCValue result, BCValue val);
     void Set(BCValue lhs, BCValue rhs);
-    void Lt3(BCValue result, BCValue lhs, BCValue rhs);
-    void Le3(BCValue result, BCValue lhs, BCValue rhs);
-    void Gt3(BCValue result, BCValue lhs, BCValue rhs);
     void Eq3(BCValue result, BCValue lhs, BCValue rhs);
-    void Neq3(BCValue result, BCValue lhs, BCValue rhs);
+    {
+        // 0x4
+        lastCmp = Cmp.Eq;
+    }
+    void Neq3(BCValue result, BCValue lhs, BCValue rhs)
+    {
+         // 0x5
+        lastCmp = Cmp.Neq;
+    }
+    void Lt3(BCValue result, BCValue lhs, BCValue rhs)
+    {
+        lastCmp = Cmp.Lt;
+    }
+    void Le3(BCValue result, BCValue lhs, BCValue rhs)
+    {
+        // 0xE signed
+        lastCmp = Cmp.Le;
+    }
+    void Gt3(BCValue result, BCValue lhs, BCValue rhs)
+    {
+        // 0xF signed
+        lastCmp = Cmp.Gt;
+    }
+    void Ge3(BCValue result, BCValue lhs, BCValue rhs)
+    {
+        lastCmp = Cmp.Ge;
+    }
     void Add3(BCValue result, BCValue lhs, BCValue rhs)
     {
         //        assert(isStackValueOrParameter(result), "Add result is no stack value");
@@ -286,6 +367,10 @@ struct X86_BCGen
         if (lhs.vType == BCValueType.Immediate)
         {
             MovImm32(Reg.EAX, lhs);
+        }
+        else
+        {
+            MovStackValue(Reg.EAX, lhs);
         }
         if (rhs.vType == BCValueType.Immediate)
         {
@@ -617,7 +702,7 @@ string asHex(ubyte[] arr)
     return cast(string) result[0 .. $ - 1];
 }
 
-pragma(msg, asHex({
+pragma(msg, asHex(() {
 X86_BCGen gen;
 with(gen)
 {
@@ -632,4 +717,4 @@ with(gen)
     return code[0 .. ip];
 }
 }()
-));
+)());
