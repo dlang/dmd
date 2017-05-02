@@ -68,7 +68,6 @@ struct X86_BCGen
     bool insideFunction;
     ubyte[ushort.max / 16] code;
     uint ip;
-    uint sp;
     Cmp lastCmp;
 
     FunctionState[ubyte.max * 8] functions;
@@ -76,6 +75,7 @@ struct X86_BCGen
     uint functionCount;
 
     FunctionState* currentFunctionState;
+    alias currentFunctionState this;
     void Initialize()
     {
         assert(!insideFunction);
@@ -116,17 +116,19 @@ struct X86_BCGen
         // sub esp, numberOfLocals*4
         begin = ip;
         Push(Reg.EBP);
-        Push(Reg.ESP);
         Mov(Reg.EBP, Reg.ESP);
-        SubImm32(Reg.ESP, imm32(4));
-        AddImm32(Reg.ESP, imm32(uint.max));
-        StackSizeFixup[StackSizeFixupCount++] = ip - 4;
+        SubImm32(Reg.ESP, imm32(uint.max));
+        stackSizeFixup = ip - 4;
     }
 
     BCFunction endFunction()
     {
         assert(insideFunction);
         insideFunction = false;
+        const oldIp = ip;
+        ip = stackSizeFixup;
+        WriteLE32(sp);
+        ip = oldIp;
         currentFunctionState = &functions[++functionCount];
         return BCFunction.init;
     }
@@ -164,22 +166,22 @@ struct X86_BCGen
                 // if (fn.vType == BCValueType.Immediate && fn.imm32 <= functionCount)
         assert(fnId.imm32, "invalid fnId");
         int value = void;
-        if (fnId.imm32 > functionCount)
+        if (fnId.imm32 <= functionCount + 1)
+        {
+            value = cast(int)(functions[fnId - 1].begin - (ip + 4));
+        }
+        else
         {
             callFixups[callFixupCount++] = ip;
             value = cast(int)fnId.imm32;
         }
-        else
-        {
-            value = cast(int)(functions[fnId - 1].begin - (ip + 4));
-        }
-        writeLE32(value);
+        WriteLE32(value);
     }
     /// call the function which is loaded into stack[v], using register r (defaults to EAX)
-    Calln(StackAddr v, Reg r = REG.EAX)
+    void Calln(StackAddr v, Reg r = Reg.EAX)
     {
-        // Push(reg);
-        Mov(reg, v);
+        Push(r);
+        Mov(r, v);
         code[ip++] = 0xFF;
         code[ip++] = 0xD0 | r;
         // Pop(reg);
@@ -189,25 +191,31 @@ struct X86_BCGen
     {
         const oldIp = ip;
         ip = atIp;
-        auto fnId = readLE32();
+        auto fnId = ReadLE32();
         ip = atIp;
         assert(fnId && fnId <= functionCount, "invalid function id in call Fixup");
         int offset = cast(int)(functions[fnId - 1].begin - (ip + 4));
-        writeLE32(offset);
+        WriteLE32(offset);
     }
 
-    void MovValue(Reg r, StackAddr a)
+    void Mov(Reg dst, StackAddr src)
     {
-
+        code[ip++] = 0x8B;
+        code[ip++] = cast(ubyte)(0b10 << 6 | dst << 3 | Reg.EBP);
+        WriteLE32(src.addr);
     }
 
-    void MovImm32(Reg r, Imm32 v)
+    void Mov(StackAddr dst, Reg src)
     {
-        if (v.vType == BCValueType.Immediate)
-        {
+        code[ip++] = 0x89;
+        code[ip++] = cast(ubyte)(0b10 << 6 | src << 3 | Reg.EBP);
+        WriteLE32(dst.addr);
+    }
+
+    void Mov(Reg r, Imm32 v)
+    {
             code[ip++] = 0xB8 | r;
             WriteLE32(v.imm32);
-        }
     }
 
     void AddImm32(Reg r, BCValue v)
@@ -286,6 +294,16 @@ struct X86_BCGen
         ip += 4;
     }
 
+    uint ReadLE32() pure
+    {
+        uint result = code[ip];
+        result |= code[ip + 1] << 8;
+        result |= code[ip + 2] << 16;
+        result |= code[ip + 3] << 24;
+        ip += 4;
+        return result;
+    }
+
     /* Preamble
    0:    55                       push   ebp
    1:    89 e5                    mov    ebp,esp
@@ -294,10 +312,19 @@ struct X86_BCGen
 
     BCValue genTemporary(BCType bct)
     {
-        auto size = basicTypeSize(bct);
-        sp += 4;
+        auto tmpAddr = sp;
+        if (isBasicBCType(bct))
+        {
+            sp += align4(basicTypeSize(bct.type));
+        }
+        else
+        {
+            sp += 4;
+        }
 
+        return BCValue(StackAddr(tmpAddr), bct, ++temporaryCount);
     }
+
     BCValue genParameter(BCType bct);
     BCAddr beginJmp()
     {
@@ -330,7 +357,8 @@ struct X86_BCGen
     void Assert(BCValue value, BCValue err);
     void Not(BCValue result, BCValue val);
     void Set(BCValue lhs, BCValue rhs);
-    void Eq3(BCValue result, BCValue lhs, BCValue rhs);
+
+    void Eq3(BCValue result, BCValue lhs, BCValue rhs)
     {
         // 0x4
         lastCmp = Cmp.Eq;
@@ -366,11 +394,11 @@ struct X86_BCGen
         assert(rhs.type.type == BCTypeEnum.i32);
         if (lhs.vType == BCValueType.Immediate)
         {
-            MovImm32(Reg.EAX, lhs);
+            Mov(Reg.EAX, lhs.imm32);
         }
         else
         {
-            MovStackValue(Reg.EAX, lhs);
+            Mov(Reg.EAX, lhs.stackAddr);
         }
         if (rhs.vType == BCValueType.Immediate)
         {
@@ -389,16 +417,19 @@ struct X86_BCGen
     void Mod3(BCValue result, BCValue lhs, BCValue rhs);
     import ddmd.globals : Loc;
 
-    void Call(BCValue result, BCValue fn, BCValue[] args, Loc l = Loc.init);
+    void Call(BCValue result, BCValue fn, BCValue[] args, Loc l = Loc.init)
+    {
+        if (fn.vType == BCValueType.Immediate)
+            Calln(fn.imm32);
+    }
     void Load32(BCValue _to, BCValue from);
     void Store32(BCValue _to, BCValue value);
     void Ret(BCValue val)
     {
         if (val.vType == BCValueType.Immediate)
         {
-            MovImm32(Reg.EAX, val);
-            Retn(ushort.max);
-            StackSizeFixup[StackSizeFixupCount++] = ip - 2;
+            Mov(Reg.EAX, val.imm32);
+            Retn(0);
         }
     }
 
@@ -702,19 +733,21 @@ string asHex(ubyte[] arr)
     return cast(string) result[0 .. $ - 1];
 }
 
-pragma(msg, asHex(() {
+pragma(msg, ({
 X86_BCGen gen;
 with(gen)
 {
     Initialize();
     beginFunction();
     auto jmp = beginJmp();
-    Add3(imm32(0), imm32(12), imm32(35));
+    auto tmp1 = genTemporary(i32Type);
+    auto rv = genTemporary(i32Type);
+    Add3(imm32(1), tmp1, imm32(35));
+    Call(rv, imm32(1), []);
     endJmp(jmp, genLabel());
     Add3(imm32(0), imm32(24), imm32(70));
     endFunction();
     Finalize();
     return code[0 .. ip];
 }
-}()
-)());
+})().asHex);
