@@ -69,6 +69,7 @@ struct X86_BCGen
     ubyte[ushort.max / 16] code;
     uint ip;
     Cmp lastCmp;
+    BCValue[Reg.max] lastVal;
 
     FunctionState[ubyte.max * 8] functions;
     // uint currentFunction;
@@ -198,11 +199,31 @@ struct X86_BCGen
         WriteLE32(offset);
     }
 
+    void Mov(Reg dst, BCValue src)
+    {
+        assert(src.type == i32Type);
+        switch(src.vType)
+        {
+            case BCValueType.Immediate :
+                return Mov(dst, src.imm32);
+            case BCValueType.StackValue :
+                return Mov(dst, src.stackAddr);
+            default : assert(0, "Mov: Not implemented");
+        }
+    }
+
     void Mov(Reg dst, StackAddr src)
     {
+        lastVal[dst] = BCValue(src, i32Type);
         code[ip++] = 0x8B;
         code[ip++] = cast(ubyte)(0b10 << 6 | dst << 3 | Reg.EBP);
         WriteLE32(src.addr);
+    }
+
+    void Mov(Reg dst, Imm32 val)
+    {
+            code[ip++] = 0xB8 | dst;
+            WriteLE32(val.imm32);
     }
 
     void Mov(StackAddr dst, Reg src)
@@ -210,12 +231,6 @@ struct X86_BCGen
         code[ip++] = 0x89;
         code[ip++] = cast(ubyte)(0b10 << 6 | src << 3 | Reg.EBP);
         WriteLE32(dst.addr);
-    }
-
-    void Mov(Reg r, Imm32 v)
-    {
-            code[ip++] = 0xB8 | r;
-            WriteLE32(v.imm32);
     }
 
     void AddImm32(Reg r, BCValue v)
@@ -349,7 +364,25 @@ struct X86_BCGen
     {
         return BCLabel(BCAddr(ip));
     }
-    CndJmpBegin beginCndJmp(BCValue cond = BCValue.init, bool ifTrue = false);
+    CndJmpBegin beginCndJmp(BCValue cond = BCValue.init, bool ifTrue = false)
+    {
+        if (cond)
+        {
+            assert(cond.vType == BCValueType.StackValue);
+            if (lastVal[Reg.ECX] != cond)
+                Mov(Reg.ECX, cond.stackAddr);
+            if (ifTrue)
+            {
+                assert(0, "To be implemented");
+            }
+            else
+            {
+             //   JECXZ();
+             assert(0, "To be implemented");
+            }
+        }
+        assert(0, "jumping on lastCondFlag to be implemented");
+    }
     void endCndJmp(CndJmpBegin jmp, BCLabel target);
     void genJump(BCLabel target);
     void emitFlg(BCValue lhs);
