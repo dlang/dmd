@@ -3001,7 +3001,8 @@ else version(CRuntime_Bionic)
     double  tan(double x);
     ///
     float   tanf(float x);
-    //real    tanl(real x);
+    // Added since Lollipop
+    real    tanl(real x);
 
     ///
     double  acosh(double x);
@@ -3096,7 +3097,8 @@ else version(CRuntime_Bionic)
     float   log1pf(float x);
     //real    log1pl(real x);
 
-    //double  log2(double x);
+    // Added since Lollipop
+    double  log2(double x);
     //float   log2f(float x);
     //real    log2l(real x);
 
