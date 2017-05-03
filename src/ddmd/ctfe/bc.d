@@ -200,16 +200,16 @@ struct LongInst64
     uint lw;
     uint hi;
 @safe pure const:
-    this(const LongInst i, const BCAddr addr)
+    this(const LongInst i, const BCAddr targetAddr)
     {
         lw = i;
-        hi = addr.addr;
+        hi = targetAddr.addr;
     }
 
     this(const LongInst i, const StackAddr stackAddrLhs, const BCAddr targetAddr)
     {
-        lw = i;
-        hi = stackAddrLhs.addr | targetAddr.addr << 16;
+        lw = i | stackAddrLhs.addr << 16;
+        hi = targetAddr.addr;
     }
 
     this(const LongInst i, const StackAddr stackAddrLhs,
@@ -1294,15 +1294,15 @@ string printInstructions(const int* startInstructions, uint length) pure
 
         case LongInst.JmpNZ:
             {
-                result ~= "JmpNZ SP[" ~ to!string(hi & 0xFFFF) ~ "], &" ~ to!string(
-                    (has4ByteOffset ? (hi >> 16) - 4 : hi >> 16)) ~ "\n";
+                result ~= "JmpNZ SP[" ~ to!string(lw >> 16) ~ "], &" ~ to!string(
+                    (has4ByteOffset ? hi - 4 : hi)) ~ "\n";
             }
             break;
 
         case LongInst.JmpZ:
             {
-                result ~= "JmpZ SP[" ~ to!string(hi & 0xFFFF) ~ "], &" ~ to!string(
-                    (has4ByteOffset ? (hi >> 16) - 4 : hi >> 16)) ~ "\n";
+                result ~= "JmpZ SP[" ~ to!string(lw >> 16) ~ "], &" ~ to!string(
+                    (has4ByteOffset ? hi - 4 : hi)) ~ "\n";
             }
             break;
 
@@ -1887,17 +1887,17 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
             break;
         case LongInst.JmpNZ:
             {
-                if ((*lhsRef) != 0)
+                if ((*lhsStackRef) != 0)
                 {
-                    ip = rhsOffset;
+                    ip = hi;
                 }
             }
             break;
         case LongInst.JmpZ:
             {
-                if ((*lhsRef) == 0)
+                if ((*lhsStackRef) == 0)
                 {
-                    ip = rhsOffset;
+                    ip = hi;
                 }
             }
             break;
