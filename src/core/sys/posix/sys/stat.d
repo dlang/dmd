@@ -1110,6 +1110,10 @@ else version( CRuntime_Bionic )
     extern (D) bool S_ISREG( uint mode )  { return S_ISTYPE( mode, S_IFREG );  }
     extern (D) bool S_ISLNK( uint mode )  { return S_ISTYPE( mode, S_IFLNK );  }
     extern (D) bool S_ISSOCK( uint mode ) { return S_ISTYPE( mode, S_IFSOCK ); }
+
+    // Added since Lollipop
+    int utimensat(int dirfd, const char *pathname,
+        ref const(timespec)[2] times, int flags);
 }
 else
 {
