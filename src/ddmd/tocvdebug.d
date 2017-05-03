@@ -186,6 +186,8 @@ uint cv4_Denum(EnumDeclaration e)
                         break;                      // and skip the rest
                     }
                 }
+                else
+                    fnamelen = cv_align(null, fnamelen - 2) + 2;
 
                 nfields++;
             }
@@ -253,6 +255,7 @@ uint cv4_Denum(EnumDeclaration e)
                 j += 4 + cv4_numericbytes(cast(uint)value);
                 // store only member's simple name
                 j += cv_namestring(dt.data.ptr + j, sf.toChars());
+                j = cv_align(dt.data.ptr + j, j - 2) + 2;
 
                 // If enum is not a member of a class, output enum members as constants
     //          if (!isclassmember(s))
