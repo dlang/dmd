@@ -35,6 +35,7 @@ import ddmd.globals;
 import ddmd.id;
 import ddmd.mtype;
 import ddmd.target;
+import ddmd.toctype;
 import ddmd.visitor;
 
 import ddmd.backend.cc;
@@ -50,10 +51,6 @@ import ddmd.backend.ty;
 import ddmd.backend.type;
 
 extern (C++):
-
-
-type *Type_toCtype(Type t);
-int cvMember(Dsymbol s, ubyte *p);
 
 /* The CV4 debug format is defined in:
  *      "CV4 Symbolic Debug Information Specification"
@@ -855,8 +852,10 @@ int cvMember(Dsymbol s, ubyte *p)
         {
             //printf("FuncDeclaration.cvMember() '%s'\n", fd.toChars());
 
-            if (!fd.type)                  // if not compiled in,
-                return;               // skip it
+            if (!fd.type)               // if not compiled in,
+                return;                 // skip it
+            if (!fd.type.nextOf())      // if not fully analyzed (e.g. auto return type)
+                return;                 // skip it
 
             const id = fd.toChars();
 

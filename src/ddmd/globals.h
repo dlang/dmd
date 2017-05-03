@@ -70,6 +70,7 @@ struct Param
     bool vfield;        // identify non-mutable field variables
     bool vcomplex;      // identify complex/imaginary type usage
     char symdebug;      // insert debug symbolic information
+    bool symdebugref;   // insert debug information for all referenced types, too
     bool alwaysframe;   // always emit standard stack frame
     bool optimize;      // run optimizer
     bool map;           // generate linker .map file
