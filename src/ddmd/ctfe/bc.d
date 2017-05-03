@@ -441,15 +441,15 @@ pure:
 
     void endJmp(BCAddr atIp, BCLabel target)
     {
-        if (auto offset = isShortJump(target.addr - atIp))
+        auto offset = isShortJump(target.addr - atIp);
+        if (offset)
         {
             byteCodeArray[atIp] = ShortInst16(LongInst.RelJmp, offset);
         }
         else
         {
-            LongInst64 lj = LongInst64(LongInst.Jmp, target.addr);
-            byteCodeArray[atIp] = lj.lw;
-            byteCodeArray[atIp + 1] = lj.hi;
+            byteCodeArray[atIp] = LongInst.Jmp;
+            byteCodeArray[atIp + 1] = target.addr;
         }
     }
 
