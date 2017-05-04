@@ -238,7 +238,7 @@ assert(&s);               // check that struct S invariant holds
 ------
 
 	$(P Invariants contain assert expressions, and so when they fail,
-	they throw a $(D AssertError)s.
+	they throw $(D AssertError)s.
 	Class invariants are inherited, that is,
 	any class invariant is implicitly anded with the invariants of its base
 	classes.)
