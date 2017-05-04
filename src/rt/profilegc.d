@@ -89,18 +89,14 @@ static ~this()
     {
         synchronized
         {
-            if (globalNewCounts.length)
+            foreach (name, entry; newCounts)
             {
-                // Merge
-                foreach (name, entry; newCounts)
-                {
-                    globalNewCounts[name].count += entry.count;
-                    globalNewCounts[name].size += entry.size;
-                }
+                if (!(name in globalNewCounts))
+                    globalNewCounts[name] = Entry.init;
+
+                globalNewCounts[name].count += entry.count;
+                globalNewCounts[name].size += entry.size;
             }
-            else
-                // Assign
-                globalNewCounts = newCounts;
         }
         newCounts = null;
     }
