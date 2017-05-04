@@ -1708,9 +1708,9 @@ int main()
             return path;
         }
         version (Windows)
-            enum sourcePath = dirName(__FILE_FULL_PATH__, `\`);
+            enum sourcePath = dirName(dirName(__FILE_FULL_PATH__, `\`), `\`);
         else
-            enum sourcePath = dirName(__FILE_FULL_PATH__, '/');
+            enum sourcePath = dirName(dirName(__FILE_FULL_PATH__, '/'), '/');
 
         dmd_coverSourcePath(sourcePath);
         dmd_coverDestPath(sourcePath);
