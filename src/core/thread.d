@@ -4484,10 +4484,6 @@ private:
             {
                 if (guardPageSize)
                 {
-                    // Mark end of stack
-                    for ( ubyte* g = cast(ubyte*)guard; g < guard + guardPageSize; g+= 32)
-                        g[0 .. 32] = cast(ubyte[]) "END OF FIBER -- END OF FIBER -- ";
-
                     // protect end of stack
                     if ( mprotect(guard, guardPageSize, PROT_NONE) == -1 )
                         abort();
