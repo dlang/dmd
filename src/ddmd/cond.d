@@ -315,7 +315,6 @@ extern (C++) final class VersionCondition : DVCondition
             "HPPA",
             "HPPA64",
             "SH",
-            "SH64",
             "Alpha",
             "Alpha_SoftFloat",
             "Alpha_HardFloat",
