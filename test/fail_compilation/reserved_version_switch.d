@@ -64,7 +64,6 @@
 // REQUIRED_ARGS: -version=HPPA
 // REQUIRED_ARGS: -version=HPPA64
 // REQUIRED_ARGS: -version=SH
-// REQUIRED_ARGS: -version=SH64
 // REQUIRED_ARGS: -version=Alpha
 // REQUIRED_ARGS: -version=Alpha_SoftFloat
 // REQUIRED_ARGS: -version=Alpha_HardFloat
@@ -154,7 +153,6 @@
 // REQUIRED_ARGS: -debug=HPPA
 // REQUIRED_ARGS: -debug=HPPA64
 // REQUIRED_ARGS: -debug=SH
-// REQUIRED_ARGS: -debug=SH64
 // REQUIRED_ARGS: -debug=Alpha
 // REQUIRED_ARGS: -debug=Alpha_SoftFloat
 // REQUIRED_ARGS: -debug=Alpha_HardFloat
@@ -249,7 +247,6 @@ Error: version identifier 'SystemZ' is reserved and cannot be set
 Error: version identifier 'HPPA' is reserved and cannot be set
 Error: version identifier 'HPPA64' is reserved and cannot be set
 Error: version identifier 'SH' is reserved and cannot be set
-Error: version identifier 'SH64' is reserved and cannot be set
 Error: version identifier 'Alpha' is reserved and cannot be set
 Error: version identifier 'Alpha_SoftFloat' is reserved and cannot be set
 Error: version identifier 'Alpha_HardFloat' is reserved and cannot be set
