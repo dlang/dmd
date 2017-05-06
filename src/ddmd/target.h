@@ -35,6 +35,28 @@ struct Target
     static int classinfosize;        // size of 'ClassInfo'
     static unsigned long long maxStaticDataSize;  // maximum size of static data
 
+    template <typename T>
+    struct FPTypeProperties
+    {
+        static real_t max;
+        static real_t min_normal;
+        static real_t nan;
+        static real_t snan;
+        static real_t infinity;
+        static real_t epsilon;
+
+        static d_int64 dig;
+        static d_int64 mant_dig;
+        static d_int64 max_exp;
+        static d_int64 min_exp;
+        static d_int64 max_10_exp;
+        static d_int64 min_10_exp;
+    };
+
+    typedef FPTypeProperties<float> FloatProperties;
+    typedef FPTypeProperties<double> DoubleProperties;
+    typedef FPTypeProperties<real_t> RealProperties;
+
     static void _init();
     // Type sizes and support.
     static unsigned alignsize(Type* type);
