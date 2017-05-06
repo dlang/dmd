@@ -28,6 +28,7 @@ import ddmd.id;
 import ddmd.mtype;
 import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;
+import ddmd.target;
 import ddmd.utf;
 import ddmd.visitor;
 
@@ -451,7 +452,7 @@ public:
                 buf.writestring(d.ident.toChars());
                 return;
             case LINKcpp:
-                buf.writestring(toCppMangle(d));
+                buf.writestring(Target.toCppMangle(d));
                 return;
             case LINKdefault:
                 d.error("forward declaration");
