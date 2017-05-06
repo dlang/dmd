@@ -8426,10 +8426,27 @@ final class Parser(AST) : Lexer
     }
 }
 
+version (none) unittest
+{
+    import ddmd.astcodegen;
+
+    const(char)[] input = "int a;";
+
+
+    global._init();
+    global.params.isLinux = true;
+    global.params.is64bit = (size_t.sizeof == 8);
+    ASTCodegen.Type._init();
+    scope p = new Parser!ASTCodegen(null, input[0..input.length], false);
+    p.nextToken();
+    p.parseModule();
+}
+
 unittest
 {
     import ddmd.astbase;
-    import ddmd.astbasevisitor;
+    import ddmd.impvisitor;
+    import ddmd.astcodegen;
 
     const(char)[] input =
     "import A;
@@ -8448,6 +8465,8 @@ unittest
      }
      void main()
      {
+          int a;
+          alias b = float;
           void print()
           {
               import E;
@@ -8482,12 +8501,28 @@ unittest
           gigi : import B;
      }";
 
+    const(char)[] input2 = "int a;";
+
+    global._init();
+    global.params.isLinux = true;
+    global.params.is64bit = (size_t.sizeof == 8);
+    ASTCodegen.Type._init();
+    ASTBase.Type._init();
+
+    printf("Parsing with ASTCodegen\n");
+    scope p1 = new Parser!ASTCodegen(null, input[0..input.length], false);
+    p1.nextToken();
+    p1.parseModule();
+
+    printf("====================================\n");
+
+    printf("Parsing with ASTBase\n");
     scope p = new Parser!ASTBase(null, input[0..input.length], false);
     p.nextToken();
 
     OutBuffer buf;
     buf.reserve(32);
-    scope vis = new ImportVisitor(&buf);
+    scope vis = new ImportVisitor!ASTBase(&buf);
 
     vis.visitModuleMembers(p.parseModule());
     assert(!p.errors);

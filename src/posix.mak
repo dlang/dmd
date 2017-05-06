@@ -227,14 +227,14 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	cppmangle ctfeexpr dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol	\
 	dtemplate dversion escape expression func			\
-	hdrgen impcnvtab imphint init inline inlinecost intrange	\
+	hdrgen impcnvtab imphint impvisitor init inline inlinecost intrange	\
 	json lib link mars mtype nogc nspace objc opover optimize parse sapply	\
 	sideeffect statement staticassert target traits visitor	\
 	typinf utils statement_rewrite_walker statementsem staticcond safe blockexit asttypename))
 
 LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, console entity errors globals id identifier lexer tokens utf))
 
-LEXER_ROOT=$(addsyffix .d, $(addprefix $(ROOT)/, array ctfloat file filename outbuffer port rmem \
+LEXER_ROOT=$(addsuffix .d, $(addprefix $(ROOT)/, array ctfloat file filename outbuffer port rmem \
 	rootobject stringtable hash))
 
 ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \

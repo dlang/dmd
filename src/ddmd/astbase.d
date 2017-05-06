@@ -455,7 +455,7 @@ struct ASTBase
             return null;
         }
 
-        void accept(Visitor v)
+        void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -472,7 +472,7 @@ struct ASTBase
             this.ident = ident;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -493,7 +493,7 @@ struct ASTBase
             linkage = LINKdefault;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -508,7 +508,7 @@ struct ASTBase
             super(id);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -562,7 +562,7 @@ struct ASTBase
             aliases.push(_alias);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -582,7 +582,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -617,7 +617,7 @@ struct ASTBase
             this.loc = loc;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -638,7 +638,7 @@ struct ASTBase
             this.loc = loc;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -669,7 +669,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -719,7 +719,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -750,7 +750,7 @@ struct ASTBase
             return true;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -767,7 +767,7 @@ struct ASTBase
             this.objects = objects;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -790,7 +790,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -803,7 +803,7 @@ struct ASTBase
             super(loc, endloc, id, stc, null);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -816,7 +816,7 @@ struct ASTBase
             super(loc, endloc, Id.ctor, stc, type);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -833,7 +833,7 @@ struct ASTBase
             super(loc, endloc, id, stc, null);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -847,7 +847,7 @@ struct ASTBase
             this.fbody = fbody;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -865,7 +865,7 @@ struct ASTBase
             this.codedoc = codedoc;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -883,7 +883,7 @@ struct ASTBase
             this.varargs = varargs;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -899,7 +899,7 @@ struct ASTBase
             this.parameters = fparams;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -916,7 +916,7 @@ struct ASTBase
             super(loc, endloc, Identifier.generateId(name), STCstatic | stc, null);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -933,7 +933,7 @@ struct ASTBase
             super(loc, endloc, Identifier.generateId(name), STCstatic | stc, null);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -946,7 +946,7 @@ struct ASTBase
             super(loc, endloc, "_sharedStaticCtor", stc);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -959,7 +959,7 @@ struct ASTBase
             super(loc, endloc, "_sharedStaticDtor", stc);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -978,7 +978,7 @@ struct ASTBase
             this.tag = packageTag++;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -999,7 +999,7 @@ struct ASTBase
             protection = Prot(PROTundefined);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1019,7 +1019,7 @@ struct ASTBase
             sizeok = SIZEOKnone;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1069,7 +1069,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1101,7 +1101,7 @@ struct ASTBase
             this.havetempdecl = true;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1116,7 +1116,7 @@ struct ASTBase
             this.members = members;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1133,7 +1133,7 @@ struct ASTBase
             this.exp = exp;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1165,7 +1165,7 @@ struct ASTBase
             return udas;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1181,7 +1181,7 @@ struct ASTBase
             linkage = p;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1198,7 +1198,7 @@ struct ASTBase
             this.isunion = isunion;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1215,7 +1215,7 @@ struct ASTBase
             this.ealign = ealign;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1231,7 +1231,7 @@ struct ASTBase
             cppmangle = p;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1257,7 +1257,7 @@ struct ASTBase
             this.pkg_identifiers = pkg_identifiers;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1275,7 +1275,7 @@ struct ASTBase
             this.args = args;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1291,7 +1291,7 @@ struct ASTBase
             this.stc = stc;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1309,7 +1309,7 @@ struct ASTBase
             this.elsedecl = elsedecl;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1325,7 +1325,7 @@ struct ASTBase
             this.msg = msg;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1338,7 +1338,7 @@ struct ASTBase
             super(condition, decl, elsedecl);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1356,7 +1356,7 @@ struct ASTBase
             this.origType = origType;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1441,7 +1441,7 @@ struct ASTBase
             return new File(docfilename);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1462,7 +1462,7 @@ struct ASTBase
                 Module.moduleinfo = this;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1475,7 +1475,7 @@ struct ASTBase
             super(loc, id);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1669,7 +1669,7 @@ struct ASTBase
             baseok = BASEOKnone;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1682,7 +1682,7 @@ struct ASTBase
             super(loc, id, baseclasses, null, false);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1701,7 +1701,7 @@ struct ASTBase
             this.tqual = tqual;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1768,7 +1768,7 @@ struct ASTBase
             return result;
         }
 
-        void accept(Visitor v)
+        void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1783,7 +1783,7 @@ struct ASTBase
             this.loc = loc;
         }
 
-        void accept(Visitor v)
+        void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1799,7 +1799,7 @@ struct ASTBase
             this.imports = imports;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1817,7 +1817,7 @@ struct ASTBase
             this.endloc = endloc;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1833,7 +1833,7 @@ struct ASTBase
             this.exp = exp;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1851,7 +1851,7 @@ struct ASTBase
             this.statement = statement;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1867,7 +1867,7 @@ struct ASTBase
             this.sa = sa;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1883,7 +1883,7 @@ struct ASTBase
             this.exp = exp;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1903,7 +1903,7 @@ struct ASTBase
             this.endloc = endloc;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1927,7 +1927,7 @@ struct ASTBase
             this.endloc = endloc;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1947,7 +1947,7 @@ struct ASTBase
             this.endloc = endloc;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1974,7 +1974,7 @@ struct ASTBase
             this.endloc = endloc;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -1998,7 +1998,7 @@ struct ASTBase
             this.endloc = endloc;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2023,7 +2023,7 @@ struct ASTBase
             this.endloc = endloc;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2041,7 +2041,7 @@ struct ASTBase
             this.statement = statement;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2061,7 +2061,7 @@ struct ASTBase
             this.elsebody = elsebody;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2081,7 +2081,7 @@ struct ASTBase
             this._body = _body;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2101,7 +2101,7 @@ struct ASTBase
             this.isFinal = isFinal;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2121,7 +2121,7 @@ struct ASTBase
             this.statement = s;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2139,7 +2139,7 @@ struct ASTBase
             this.statement = s;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2155,7 +2155,7 @@ struct ASTBase
             this.statement = s;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2171,7 +2171,7 @@ struct ASTBase
             this.ident = ident;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2187,7 +2187,7 @@ struct ASTBase
             this.ident = ident;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2200,7 +2200,7 @@ struct ASTBase
             super(loc);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2216,7 +2216,7 @@ struct ASTBase
             this.exp = exp;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2232,7 +2232,7 @@ struct ASTBase
             this.ident = ident;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2250,7 +2250,7 @@ struct ASTBase
             this._body = _body;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2270,7 +2270,7 @@ struct ASTBase
             this.endloc = endloc;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2288,7 +2288,7 @@ struct ASTBase
             this.catches = catches;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2306,7 +2306,7 @@ struct ASTBase
             this.finalbody = finalbody;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2322,7 +2322,7 @@ struct ASTBase
             this.exp = exp;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2338,7 +2338,7 @@ struct ASTBase
             this.tokens = tokens;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2359,7 +2359,7 @@ struct ASTBase
             this.exp = new DeclarationExp(loc, declaration);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2383,7 +2383,7 @@ struct ASTBase
                 statements.push(s);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2396,7 +2396,7 @@ struct ASTBase
             super(loc, statements);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2412,7 +2412,7 @@ struct ASTBase
             this.stc = stc;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -2433,6 +2433,9 @@ struct ASTBase
             this.handler = handler;
         }
     }
+
+    extern (C++) __gshared int Tsize_t = Tuns32;
+    extern (C++) __gshared int Tptrdiff_t = Tint32;
 
     extern (C++) abstract class Type : RootObject
     {
@@ -2465,7 +2468,22 @@ struct ASTBase
         extern (C++) static __gshared Type twchar;
         extern (C++) static __gshared Type tdchar;
 
-        extern (C++) static __gshared Type terror;
+        extern (C++) static __gshared Type[TMAX] basic;
+
+        extern (C++) static __gshared Type tshiftcnt;
+        extern (C++) static __gshared Type tvoidptr;    // void*
+        extern (C++) static __gshared Type tstring;     // immutable(char)[]
+        extern (C++) static __gshared Type twstring;    // immutable(wchar)[]
+        extern (C++) static __gshared Type tdstring;    // immutable(dchar)[]
+        extern (C++) static __gshared Type tvalist;     // va_list alias
+        extern (C++) static __gshared Type terror;      // for error recovery
+        extern (C++) static __gshared Type tnull;       // for null type
+
+        extern (C++) static __gshared Type tsize_t;     // matches size_t alias
+        extern (C++) static __gshared Type tptrdiff_t;  // matches ptrdiff_t alias
+        extern (C++) static __gshared Type thash_t;     // matches hash_t alias
+
+
 
         extern (C++) static __gshared ClassDeclaration dtypeinfo;
         extern (C++) static __gshared ClassDeclaration typeinfoclass;
@@ -2530,6 +2548,134 @@ struct ASTBase
         final extern (D) this(TY ty)
         {
             this.ty = ty;
+        }
+
+        static void _init()
+        {
+            stringtable._init(14000);
+
+            // Set basic types
+            static __gshared TY* basetab =
+            [
+                Tvoid,
+                Tint8,
+                Tuns8,
+                Tint16,
+                Tuns16,
+                Tint32,
+                Tuns32,
+                Tint64,
+                Tuns64,
+                Tint128,
+                Tuns128,
+                Tfloat32,
+                Tfloat64,
+                Tfloat80,
+                Timaginary32,
+                Timaginary64,
+                Timaginary80,
+                Tcomplex32,
+                Tcomplex64,
+                Tcomplex80,
+                Tbool,
+                Tchar,
+                Twchar,
+                Tdchar,
+                Terror
+            ];
+
+            for (size_t i = 0; basetab[i] != Terror; i++)
+            {
+                Type t = new TypeBasic(basetab[i]);
+                t = t.merge();
+                basic[basetab[i]] = t;
+            }
+            basic[Terror] = new TypeError();
+
+            tvoid = basic[Tvoid];
+            tint8 = basic[Tint8];
+            tuns8 = basic[Tuns8];
+            tint16 = basic[Tint16];
+            tuns16 = basic[Tuns16];
+            tint32 = basic[Tint32];
+            tuns32 = basic[Tuns32];
+            tint64 = basic[Tint64];
+            tuns64 = basic[Tuns64];
+            tint128 = basic[Tint128];
+            tuns128 = basic[Tuns128];
+            tfloat32 = basic[Tfloat32];
+            tfloat64 = basic[Tfloat64];
+            tfloat80 = basic[Tfloat80];
+
+            timaginary32 = basic[Timaginary32];
+            timaginary64 = basic[Timaginary64];
+            timaginary80 = basic[Timaginary80];
+
+            tcomplex32 = basic[Tcomplex32];
+            tcomplex64 = basic[Tcomplex64];
+            tcomplex80 = basic[Tcomplex80];
+
+            tbool = basic[Tbool];
+            tchar = basic[Tchar];
+            twchar = basic[Twchar];
+            tdchar = basic[Tdchar];
+
+            tshiftcnt = tint32;
+            terror = basic[Terror];
+            tnull = basic[Tnull];
+            tnull = new TypeNull();
+            tnull.deco = tnull.merge().deco;
+
+            tvoidptr = tvoid.pointerTo();
+            tstring = tchar.immutableOf().arrayOf();
+            twstring = twchar.immutableOf().arrayOf();
+            tdstring = tdchar.immutableOf().arrayOf();
+            tvalist = Target.va_listType();
+
+            if (global.params.isLP64)
+            {
+                Tsize_t = Tuns64;
+                Tptrdiff_t = Tint64;
+            }
+            else
+            {
+                Tsize_t = Tuns32;
+                Tptrdiff_t = Tint32;
+            }
+
+            tsize_t = basic[Tsize_t];
+            tptrdiff_t = basic[Tptrdiff_t];
+            thash_t = tsize_t;
+        }
+
+        final Type pointerTo()
+        {
+            if (ty == Terror)
+                return this;
+            if (!pto)
+            {
+                Type t = new TypePointer(this);
+                if (ty == Tfunction)
+                {
+                    t.deco = t.merge().deco;
+                    pto = t;
+                }
+                else
+                    pto = t.merge();
+            }
+            return pto;
+        }
+
+        final Type arrayOf()
+        {
+            if (ty == Terror)
+                return this;
+            if (!arrayof)
+            {
+                Type t = new TypeDArray(this);
+                arrayof = t.merge();
+            }
+            return arrayof;
         }
 
         final bool isImmutable() const
@@ -3109,7 +3255,7 @@ struct ASTBase
             return null;
         }
 
-        void accept(Visitor v)
+        void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3127,7 +3273,7 @@ struct ASTBase
             super(ty);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3140,7 +3286,7 @@ struct ASTBase
             super(Terror);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3153,7 +3299,7 @@ struct ASTBase
             super(Tnull);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3169,7 +3315,7 @@ struct ASTBase
             this.basetype = basetype;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3185,7 +3331,7 @@ struct ASTBase
             this.sym = sym;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3220,7 +3366,7 @@ struct ASTBase
             this.arguments = arguments;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3237,7 +3383,7 @@ struct ASTBase
             this.sym = sym;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3254,7 +3400,7 @@ struct ASTBase
             this.sym = sym;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3268,7 +3414,7 @@ struct ASTBase
             // BUG: what about references to static arrays?
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3289,7 +3435,7 @@ struct ASTBase
             return next;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3307,7 +3453,7 @@ struct ASTBase
             this.upr = upr;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3321,7 +3467,7 @@ struct ASTBase
             ty = Tdelegate;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3334,7 +3480,7 @@ struct ASTBase
             super(Tpointer, t);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3388,7 +3534,7 @@ struct ASTBase
                 this.trust = TRUSTtrusted;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3401,7 +3547,7 @@ struct ASTBase
             super(ty, next);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3414,7 +3560,7 @@ struct ASTBase
             super(Tarray, t);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3444,7 +3590,7 @@ struct ASTBase
             return t;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3469,7 +3615,7 @@ struct ASTBase
             return t;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3501,7 +3647,7 @@ struct ASTBase
             idents.push(e);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3517,7 +3663,7 @@ struct ASTBase
             this.ident = ident;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3530,7 +3676,7 @@ struct ASTBase
             super(Treturn, loc);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3546,7 +3692,7 @@ struct ASTBase
             this.exp = exp;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3562,7 +3708,7 @@ struct ASTBase
             this.tempinst = tempinst;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3610,7 +3756,7 @@ struct ASTBase
             return cast(Expression)memcpy(cast(void*)e, cast(void*)this, size);
         }
 
-        void accept(Visitor v)
+        void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3626,7 +3772,7 @@ struct ASTBase
             this.declaration = declaration;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3715,7 +3861,7 @@ struct ASTBase
             }
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3737,7 +3883,7 @@ struct ASTBase
             this.arguments = arguments;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3763,7 +3909,7 @@ struct ASTBase
             this.parameters = parameters;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3780,7 +3926,7 @@ struct ASTBase
             this.type = type;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3794,7 +3940,7 @@ struct ASTBase
             this.type = type;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3810,7 +3956,7 @@ struct ASTBase
             this.obj = o;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3828,7 +3974,7 @@ struct ASTBase
             this.args = args;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3871,7 +4017,7 @@ struct ASTBase
             this.sz = 1;                    // work around LDC bug #1286
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3893,7 +4039,7 @@ struct ASTBase
             this.arguments = arguments;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3912,7 +4058,7 @@ struct ASTBase
             this.values = values;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3943,7 +4089,7 @@ struct ASTBase
             this.elements = elements;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3970,7 +4116,7 @@ struct ASTBase
             assert(fd.fbody);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -3988,7 +4134,7 @@ struct ASTBase
             this.upr = upr;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4002,7 +4148,7 @@ struct ASTBase
             this.type = type;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4019,7 +4165,7 @@ struct ASTBase
             assert(!sds.isTemplateDeclaration());
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4035,7 +4181,7 @@ struct ASTBase
             this.ident = ident;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4051,7 +4197,7 @@ struct ASTBase
             this.e1 = e1;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4067,7 +4213,7 @@ struct ASTBase
             this.subop = subop;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4085,7 +4231,7 @@ struct ASTBase
             this.e2 = e2;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4103,7 +4249,7 @@ struct ASTBase
             this.hasOverloads = hasOverloads;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4122,7 +4268,7 @@ struct ASTBase
             this.fd = fd;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4141,7 +4287,7 @@ struct ASTBase
             this.hasOverloads = hasOverloads;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4158,7 +4304,7 @@ struct ASTBase
             this.type = var.type;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4271,7 +4417,7 @@ struct ASTBase
             return sa;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4284,7 +4430,7 @@ struct ASTBase
             super(loc, Id.dollar);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4297,7 +4443,7 @@ struct ASTBase
             super(loc, TOKthis, __traits(classInstanceSize, ThisExp));
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4311,7 +4457,7 @@ struct ASTBase
             op = TOKsuper;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4324,7 +4470,7 @@ struct ASTBase
             super(loc, TOKaddress, __traits(classInstanceSize, AddrExp), e);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4337,7 +4483,7 @@ struct ASTBase
             super(loc, op, __traits(classInstanceSize, PreExp), e);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4355,7 +4501,7 @@ struct ASTBase
             type = t;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4368,7 +4514,7 @@ struct ASTBase
             super(loc, TOKneg, __traits(classInstanceSize, NegExp), e);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4381,7 +4527,7 @@ struct ASTBase
             super(loc, TOKuadd, __traits(classInstanceSize, UAddExp), e);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4394,7 +4540,7 @@ struct ASTBase
             super(loc, TOKnot, __traits(classInstanceSize, NotExp), e);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4407,7 +4553,7 @@ struct ASTBase
             super(loc, TOKtilde, __traits(classInstanceSize, ComExp), e);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4423,7 +4569,7 @@ struct ASTBase
             this.isRAII = isRAII;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4445,7 +4591,7 @@ struct ASTBase
             this.mod = mod;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4488,7 +4634,7 @@ struct ASTBase
             this.arguments = arguments;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4504,7 +4650,7 @@ struct ASTBase
             this.ident = ident;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4520,7 +4666,7 @@ struct ASTBase
             this.msg = msg;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4533,7 +4679,7 @@ struct ASTBase
             super(loc, TOKmixin, __traits(classInstanceSize, CompileExp), e);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4546,7 +4692,7 @@ struct ASTBase
             super(loc, TOKimport, __traits(classInstanceSize, ImportExp), e);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4567,7 +4713,7 @@ struct ASTBase
             this.ti = ti;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4591,7 +4737,7 @@ struct ASTBase
             arguments = args;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4604,7 +4750,7 @@ struct ASTBase
             super(loc, TOKfuncstring, __traits(classInstanceSize, FuncInitExp));
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4617,7 +4763,7 @@ struct ASTBase
             super(loc, TOKprettyfunc, __traits(classInstanceSize, PrettyFuncInitExp));
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4630,7 +4776,7 @@ struct ASTBase
             super(loc, tok, __traits(classInstanceSize, FileInitExp));
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4643,7 +4789,7 @@ struct ASTBase
             super(loc, TOKline, __traits(classInstanceSize, LineInitExp));
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4656,7 +4802,7 @@ struct ASTBase
             super(loc, TOKmodulestring, __traits(classInstanceSize, ModuleInitExp));
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4673,7 +4819,7 @@ struct ASTBase
             allowCommaExp = isGenerated = generated;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4686,7 +4832,7 @@ struct ASTBase
             super(loc, op, __traits(classInstanceSize, PostExp), e, new IntegerExp(loc, 1, Type.tint32));
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4699,7 +4845,7 @@ struct ASTBase
             super(loc, TOKpow, __traits(classInstanceSize, PowExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4712,7 +4858,7 @@ struct ASTBase
             super(loc, TOKmul, __traits(classInstanceSize, MulExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4725,7 +4871,7 @@ struct ASTBase
             super(loc, TOKdiv, __traits(classInstanceSize, DivExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4738,7 +4884,7 @@ struct ASTBase
             super(loc, TOKmod, __traits(classInstanceSize, ModExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4751,7 +4897,7 @@ struct ASTBase
             super(loc, TOKadd, __traits(classInstanceSize, AddExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4764,7 +4910,7 @@ struct ASTBase
             super(loc, TOKmin, __traits(classInstanceSize, MinExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4777,7 +4923,7 @@ struct ASTBase
             super(loc, TOKcat, __traits(classInstanceSize, CatExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4790,7 +4936,7 @@ struct ASTBase
             super(loc, TOKshl, __traits(classInstanceSize, ShlExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4803,7 +4949,7 @@ struct ASTBase
             super(loc, TOKshr, __traits(classInstanceSize, ShrExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4816,7 +4962,7 @@ struct ASTBase
             super(loc, TOKushr, __traits(classInstanceSize, UshrExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4830,7 +4976,7 @@ struct ASTBase
             assert(op == TOKequal || op == TOKnotequal);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4843,7 +4989,7 @@ struct ASTBase
             super(loc, TOKin, __traits(classInstanceSize, InExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4856,7 +5002,7 @@ struct ASTBase
             super(loc, op, __traits(classInstanceSize, IdentityExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4869,7 +5015,7 @@ struct ASTBase
             super(loc, op, __traits(classInstanceSize, CmpExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4882,7 +5028,7 @@ struct ASTBase
             super(loc, TOKand, __traits(classInstanceSize, AndExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4895,7 +5041,7 @@ struct ASTBase
             super(loc, TOKxor, __traits(classInstanceSize, XorExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4908,7 +5054,7 @@ struct ASTBase
             super(loc, TOKor, __traits(classInstanceSize, OrExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4921,7 +5067,7 @@ struct ASTBase
             super(loc, TOKandand, __traits(classInstanceSize, AndAndExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4934,7 +5080,7 @@ struct ASTBase
             super(loc, TOKoror, __traits(classInstanceSize, OrOrExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4950,7 +5096,7 @@ struct ASTBase
             this.econd = econd;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4963,7 +5109,7 @@ struct ASTBase
             super(loc, TOKassign, __traits(classInstanceSize, AssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4976,7 +5122,7 @@ struct ASTBase
             super(loc, op, size, e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -4989,7 +5135,7 @@ struct ASTBase
             super(loc, TOKaddass, __traits(classInstanceSize, AddAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5002,7 +5148,7 @@ struct ASTBase
             super(loc, TOKminass, __traits(classInstanceSize, MinAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5015,7 +5161,7 @@ struct ASTBase
             super(loc, TOKmulass, __traits(classInstanceSize, MulAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5028,7 +5174,7 @@ struct ASTBase
             super(loc, TOKdivass, __traits(classInstanceSize, DivAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5041,7 +5187,7 @@ struct ASTBase
             super(loc, TOKmodass, __traits(classInstanceSize, ModAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5054,7 +5200,7 @@ struct ASTBase
             super(loc, TOKpowass, __traits(classInstanceSize, PowAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5067,7 +5213,7 @@ struct ASTBase
             super(loc, TOKandass, __traits(classInstanceSize, AndAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5080,7 +5226,7 @@ struct ASTBase
             super(loc, TOKorass, __traits(classInstanceSize, OrAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5093,7 +5239,7 @@ struct ASTBase
             super(loc, TOKxorass, __traits(classInstanceSize, XorAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5106,7 +5252,7 @@ struct ASTBase
             super(loc, TOKshlass, __traits(classInstanceSize, ShlAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5119,7 +5265,7 @@ struct ASTBase
             super(loc, TOKshrass, __traits(classInstanceSize, ShrAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5132,7 +5278,7 @@ struct ASTBase
             super(loc, TOKushrass, __traits(classInstanceSize, UshrAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5145,7 +5291,7 @@ struct ASTBase
             super(loc, TOKcatass, __traits(classInstanceSize, CatAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5164,7 +5310,7 @@ struct ASTBase
 
         abstract TemplateParameter syntaxCopy(){ return null;}
 
-        void accept(Visitor v)
+        void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5185,7 +5331,7 @@ struct ASTBase
             this.defaultAlias = defaultAlias;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5204,7 +5350,7 @@ struct ASTBase
             this.defaultType = defaultType;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5218,7 +5364,7 @@ struct ASTBase
             this.ident = ident;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5240,7 +5386,7 @@ struct ASTBase
             this.defaultValue = defaultValue;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5253,7 +5399,7 @@ struct ASTBase
             super(loc, ident, specType, defaultType);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5268,7 +5414,7 @@ struct ASTBase
             this.loc = loc;
         }
 
-        void accept(Visitor v)
+        void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5284,7 +5430,7 @@ struct ASTBase
             this.exp = exp;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5303,7 +5449,7 @@ struct ASTBase
             this.ident = ident;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5316,7 +5462,7 @@ struct ASTBase
             super(mod, level, ident);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5329,7 +5475,7 @@ struct ASTBase
             super(mod, level, ident);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5350,7 +5496,7 @@ struct ASTBase
             return null;
         }
 
-        void accept(Visitor v)
+        void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5366,7 +5512,7 @@ struct ASTBase
             this.exp = exp;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5388,7 +5534,7 @@ struct ASTBase
             this.value.push(value);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5414,7 +5560,7 @@ struct ASTBase
             type = null;
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5427,7 +5573,7 @@ struct ASTBase
             super(loc);
         }
 
-        override void accept(Visitor v)
+        override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
@@ -5613,5 +5759,28 @@ struct ASTBase
     struct Target
     {
         extern (C++) static __gshared int ptrsize;
+
+        extern (C++) static Type va_listType()
+        {
+            if (global.params.isWindows)
+            {
+                return Type.tchar.pointerTo();
+            }
+            else if (global.params.isLinux || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris || global.params.isOSX)
+            {
+                if (global.params.is64bit)
+                {
+                    return (new TypeIdentifier(Loc(), Identifier.idPool("__va_list_tag"))).pointerTo();
+                }
+                else
+                {
+                    return Type.tchar.pointerTo();
+                }
+            }
+            else
+            {
+                assert(0);
+            }
+        }
     }
 }
