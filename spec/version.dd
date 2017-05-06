@@ -291,7 +291,6 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
 	$(TROW $(ARGS $(D HPPA)) , $(ARGS The HP PA-RISC architecture, 32-bit))
 	$(TROW $(ARGS $(D HPPA64)) , $(ARGS The HP PA-RISC architecture, 64-bit))
 	$(TROW $(ARGS $(D SH)) , $(ARGS The SuperH architecture, 32-bit))
-	$(TROW $(ARGS $(D SH64)) , $(ARGS The SuperH architecture, 64-bit))
 	$(TROW $(ARGS $(D Alpha)) , $(ARGS The Alpha architecture))
 	$(TROW $(ARGS $(D Alpha_SoftFloat)) , $(ARGS The Alpha soft float ABI))
 	$(TROW $(ARGS $(D Alpha_HardFloat)) , $(ARGS The Alpha hard float ABI))
