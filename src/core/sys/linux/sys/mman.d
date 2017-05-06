@@ -111,22 +111,6 @@ else version (SH)
         MAP_HUGETLB = 0x40000,
     }
 }
-// http://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/sh/bits/mman.h
-else version (SH64)
-{
-    static if (__USE_MISC) enum
-    {
-        MAP_GROWSDOWN = 0x0100,
-        MAP_DENYWRITE = 0x0800,
-        MAP_EXECUTABLE = 0x1000,
-        MAP_LOCKED = 0x2000,
-        MAP_NORESERVE = 0x4000,
-        MAP_POPULATE = 0x8000,
-        MAP_NONBLOCK = 0x10000,
-        MAP_STACK = 0x20000,
-        MAP_HUGETLB = 0x40000,
-    }
-}
 // http://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/sparc/bits/mman.h
 else version (SPARC)
 {
