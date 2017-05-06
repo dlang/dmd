@@ -563,6 +563,8 @@ static assert(!__traits(compiles, matrix[5][2])); // Array index out of bounds.
 ---------
 )
 
+$(P More information can be found at $(LINK2 https://wiki.dlang.org/Dense_multidimensional_arrays, Dlang Wiki - Dense Multidimensional Arrays).)
+
 $(H2 $(LNAME2 array-properties, Array Properties))
 
         $(P Static array properties are:)
