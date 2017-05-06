@@ -10,7 +10,10 @@
 
 module ddmd.target;
 
+import ddmd.cppmangle;
+import ddmd.dclass;
 import ddmd.dmodule;
+import ddmd.dsymbol;
 import ddmd.expression;
 import ddmd.globals;
 import ddmd.identifier;
@@ -428,6 +431,25 @@ struct Target
         default:
             break;
         }
+    }
+
+    extern (C++) static const(char)* toCppMangle(Dsymbol s)
+    {
+        static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+            return toCppMangleItanium(s);
+        else static if (TARGET_WINDOS)
+            return toCppMangleMSVC(s);
+        else
+            static assert(0, "fix this");
+    }
+    extern (C++) static const(char)* cppTypeInfoMangle(ClassDeclaration cd)
+    {
+        static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+            return cppTypeInfoMangleItanium(cd);
+        else static if (TARGET_WINDOS)
+            return cppTypeInfoMangleMSVC(cd);
+        else
+            static assert(0, "fix this");
     }
 }
 
