@@ -655,6 +655,9 @@ final class Parser(AST) : Lexer
                         a = parseImport();
                         // keep pLastDecl
                     }
+                    else if (next == TOKforeach || next == TOKforeach_reverse){
+                        s = parseForeach!true(pLastDecl);
+                    }
                     else
                     {
                         stc = AST.STCstatic;
@@ -4795,6 +4798,142 @@ final class Parser(AST) : Lexer
            ddmd.errors.deprecation(loc, "instead of C-style syntax, use D-style syntax '%s%s%s'", t.toChars(), sp, s);
     }
 
+    private static template ParseForeachArgs(bool isStatic){
+        static alias Seq(T...) = T;
+        static if(!isStatic) alias ParseForeachArgs = Seq!();
+        else alias ParseForeachArgs = Seq!(AST.Dsymbol*);
+    }
+    static template ParseForeachRet(bool isStatic){
+        static if(!isStatic) alias ParseForeachRet = AST.Statement;
+        else alias ParseForeachRet = AST.StaticForeachDeclaration;
+    }
+    ParseForeachRet!isStatic parseForeach(bool isStatic)(ParseForeachArgs!isStatic args){
+        static if(isStatic)
+        {
+            nextToken();
+            auto pLastDecl = args[0];
+        }
+
+        TOK op = token.value;
+
+        nextToken();
+        check(TOKlparen);
+
+        auto parameters = new AST.Parameters();
+        while (1)
+        {
+            Identifier ai = null;
+            AST.Type at;
+
+            StorageClass storageClass = 0;
+            StorageClass stc = 0;
+        Lagain:
+            if (stc)
+            {
+                storageClass = appendStorageClass(storageClass, stc);
+                nextToken();
+            }
+            switch (token.value)
+            {
+                case TOKref:
+                    stc = AST.STCref;
+                    goto Lagain;
+
+                case TOKconst:
+	                if (peekNext() != TOKlparen)
+	                {
+		                stc = AST.STCconst;
+		                goto Lagain;
+	                }
+	                break;
+
+                case TOKimmutable:
+                    if (peekNext() != TOKlparen)
+                    {
+                        stc = AST.STCimmutable;
+                        goto Lagain;
+                    }
+                    break;
+
+                case TOKshared:
+                    if (peekNext() != TOKlparen)
+                    {
+                        stc = AST.STCshared;
+                        goto Lagain;
+                    }
+                    break;
+
+                case TOKwild:
+                    if (peekNext() != TOKlparen)
+                    {
+                        stc = AST.STCwild;
+                        goto Lagain;
+                    }
+                    break;
+		            
+                default:
+                    break;
+            }
+            if (token.value == TOKidentifier)
+            {
+                Token* t = peek(&token);
+                if (t.value == TOKcomma || t.value == TOKsemicolon)
+                {
+                    ai = token.ident;
+                    at = null; // infer argument type
+                    nextToken();
+                    goto Larg;
+                }
+            }
+            at = parseType(&ai);
+            if (!ai)
+                error("no identifier for declarator `%s`", at.toChars());
+        Larg:
+            auto p = new AST.Parameter(storageClass, at, ai, null);
+            parameters.push(p);
+            if (token.value == TOKcomma)
+            {
+                nextToken();
+                continue;
+            }
+            break;
+        }
+        check(TOKsemicolon);
+
+        AST.Expression aggr = parseExpression();
+        static if(isStatic){
+            bool isRange = false;
+        }
+        if (token.value == TOKslice && parameters.dim == 1)
+        {
+            nextToken();
+            AST.Expression upr = parseExpression();
+            check(TOKrparen);
+            Loc endloc;
+            static if(!isStatic)
+            {
+                AST.Parameter p = (*parameters)[0];
+                AST.Statement _body = parseStatement(0, null, &endloc);
+                return new AST.ForeachRangeStatement(loc, op, p, aggr, upr, _body, endloc);
+            }else{
+                return new AST.StaticForeachDeclaration(loc, op, parameters, null, aggr, upr, parseBlock(pLastDecl));
+            }
+        }
+        else
+        {
+            check(TOKrparen);
+            Loc endloc;
+            static if(!isStatic)
+            {
+                AST.Statement _body = parseStatement(0, null, &endloc);
+                return new AST.ForeachStatement(loc, op, parameters, aggr, _body, endloc);
+            }else{
+                return new AST.StaticForeachDeclaration(loc, op, parameters, aggr, null, null, parseBlock(pLastDecl));
+            }
+        }
+
+    }
+
     /*****************************************
      * Input:
      *      flags   PSxxxx
@@ -5192,110 +5331,8 @@ final class Parser(AST) : Lexer
         case TOKforeach:
         case TOKforeach_reverse:
             {
-                TOK op = token.value;
 
-                nextToken();
-                check(TOKlparen);
-
-                auto parameters = new AST.Parameters();
-                while (1)
-                {
-                    Identifier ai = null;
-                    AST.Type at;
-
-                    StorageClass storageClass = 0;
-                    StorageClass stc = 0;
-                Lagain:
-                    if (stc)
-                    {
-                        storageClass = appendStorageClass(storageClass, stc);
-                        nextToken();
-                    }
-                    switch (token.value)
-                    {
-                    case TOKref:
-                        stc = AST.STCref;
-                        goto Lagain;
-
-                    case TOKconst:
-                        if (peekNext() != TOKlparen)
-                        {
-                            stc = AST.STCconst;
-                            goto Lagain;
-                        }
-                        break;
-
-                    case TOKimmutable:
-                        if (peekNext() != TOKlparen)
-                        {
-                            stc = AST.STCimmutable;
-                            goto Lagain;
-                        }
-                        break;
-
-                    case TOKshared:
-                        if (peekNext() != TOKlparen)
-                        {
-                            stc = AST.STCshared;
-                            goto Lagain;
-                        }
-                        break;
-
-                    case TOKwild:
-                        if (peekNext() != TOKlparen)
-                        {
-                            stc = AST.STCwild;
-                            goto Lagain;
-                        }
-                        break;
-
-                    default:
-                        break;
-                    }
-                    if (token.value == TOKidentifier)
-                    {
-                        Token* t = peek(&token);
-                        if (t.value == TOKcomma || t.value == TOKsemicolon)
-                        {
-                            ai = token.ident;
-                            at = null; // infer argument type
-                            nextToken();
-                            goto Larg;
-                        }
-                    }
-                    at = parseType(&ai);
-                    if (!ai)
-                        error("no identifier for declarator `%s`", at.toChars());
-                Larg:
-                    auto p = new AST.Parameter(storageClass, at, ai, null);
-                    parameters.push(p);
-                    if (token.value == TOKcomma)
-                    {
-                        nextToken();
-                        continue;
-                    }
-                    break;
-                }
-                check(TOKsemicolon);
-
-                AST.Expression aggr = parseExpression();
-                if (token.value == TOKslice && parameters.dim == 1)
-                {
-                    AST.Parameter p = (*parameters)[0];
-                    nextToken();
-                    AST.Expression upr = parseExpression();
-                    check(TOKrparen);
-                    Loc endloc;
-                    AST.Statement _body = parseStatement(0, null, &endloc);
-                    s = new AST.ForeachRangeStatement(loc, op, p, aggr, upr, _body, endloc);
-                }
-                else
-                {
-                    check(TOKrparen);
-                    Loc endloc;
-                    AST.Statement _body = parseStatement(0, null, &endloc);
-                    s = new AST.ForeachStatement(loc, op, parameters, aggr, _body, endloc);
-                }
+                s = parseForeach!false();
                 break;
             }
         case TOKif:
