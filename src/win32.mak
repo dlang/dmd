@@ -419,7 +419,7 @@ $(IDGENOUTPUT) : $D\idgen.d
 	$G/idgen
 
 $G\VERSION : ..\VERSION
-	copy $< $@
+	copy ..\VERSION $@
 
 ############################# Intermediate Rules ############################
 
