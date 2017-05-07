@@ -4839,6 +4839,15 @@ final class Parser(AST) : Lexer
                     stc = AST.STCref;
                     goto Lagain;
 
+	            case TOKenum:
+		            stc = AST.STCmanifest;
+		            goto Lagain;
+
+	            case TOKalias:
+		            storageClass = appendStorageClass(storageClass, AST.STCalias);
+		            nextToken();
+		            break;
+
                 case TOKconst:
 	                if (peekNext() != TOKlparen)
 	                {
@@ -4870,7 +4879,7 @@ final class Parser(AST) : Lexer
                         goto Lagain;
                     }
                     break;
-		            
+
                 default:
                     break;
             }
