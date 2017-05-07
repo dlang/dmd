@@ -423,15 +423,10 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         auto sc2 = super.newScope(sc);
         if (isCOMclass())
         {
-            if (global.params.isWindows)
-                sc2.linkage = LINKwindows;
-            else
-            {
-                /* This enables us to use COM objects under Linux and
-                 * work with things like XPCOM
-                 */
-                sc2.linkage = LINKc;
-            }
+            /* This enables us to use COM objects under Linux and
+             * work with things like XPCOM
+             */
+            sc2.linkage = Target.systemLinkage();
         }
         return sc2;
     }
