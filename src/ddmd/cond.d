@@ -65,6 +65,68 @@ extern (C++) abstract class Condition : RootObject
 
 /***********************************************************
  */
+import ddmd.statement; // TODO: fix
+extern (C++) final class StaticForeach : RootObject
+{
+    Loc loc;
+
+    ForeachStatement aggrfe;
+    ForeachRangeStatement rangefe;
+
+    final extern (D) this(Loc loc,ForeachStatement aggrfe,ForeachRangeStatement rangefe)
+    in
+    {
+        assert(!!aggrfe^!!rangefe);
+    }
+    body
+    {
+        this.aggrfe=aggrfe;
+        this.rangefe=rangefe;
+    }
+
+    StaticForeach syntaxCopy(){
+        return new StaticForeach(
+            loc,
+            aggrfe?cast(ForeachStatement)aggrfe.syntaxCopy():null,
+            rangefe?cast(ForeachRangeStatement)rangefe.syntaxCopy():null
+        );
+    }
+
+
+    void prepare(Scope* sc)in{
+        assert(!!sc);
+    }body{
+        void dump(T)(T arg){
+            import core.stdc.stdio;
+            printf("%s\n",arg.toChars());
+        }
+        uint nerrors = global.errors;
+
+        if (aggrfe)
+        {
+            //aggr = aggr.semantic(sc);
+            //aggr.resolveProperties(sc, aggr);
+            //if (
+            sc = sc.startCTFE();
+            aggrfe.aggr = aggrfe.aggr.semantic(sc);
+            sc = sc.endCTFE();
+            aggrfe.aggr = aggrfe.aggr.optimize(WANTvalue);
+            auto tab = aggrfe.aggr.type.toBasetype();
+            if (tab.ty != Ttuple)
+            {
+                aggrfe.aggr = aggrfe.aggr.ctfeInterpret();
+            }
+        }
+        else
+        {
+
+        }
+        dump(aggrfe);
+    }
+}
+
+/***********************************************************
+ */
 extern (C++) class DVCondition : Condition
 {
     uint level;

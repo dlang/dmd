@@ -656,7 +656,7 @@ final class Parser(AST) : Lexer
                         // keep pLastDecl
                     }
                     else if (next == TOKforeach || next == TOKforeach_reverse){
-                        s = parseForeach!true(pLastDecl);
+                        s = parseForeach!(true,true)(pLastDecl);
                     }
                     else
                     {
@@ -4798,20 +4798,22 @@ final class Parser(AST) : Lexer
            ddmd.errors.deprecation(loc, "instead of C-style syntax, use D-style syntax '%s%s%s'", t.toChars(), sp, s);
     }
 
-    private static template ParseForeachArgs(bool isStatic){
+    private static template ParseForeachArgs(bool isStatic,bool isDecl){
         static alias Seq(T...) = T;
-        static if(!isStatic) alias ParseForeachArgs = Seq!();
-        else alias ParseForeachArgs = Seq!(AST.Dsymbol*);
+        static if(isDecl) alias ParseForeachArgs = Seq!(AST.Dsymbol*);
+        else static alias ParseForeachArgs = Seq!();
     }
-    static template ParseForeachRet(bool isStatic){
+    static template ParseForeachRet(bool isStatic,bool isDecl){
         static if(!isStatic) alias ParseForeachRet = AST.Statement;
-        else alias ParseForeachRet = AST.StaticForeachDeclaration;
+        else static if(isDecl) alias ParseForeachRet = AST.StaticForeachDeclaration;
+        else alias ParseForeachRet = AST.StaticForeachStatement;
     }
-    ParseForeachRet!isStatic parseForeach(bool isStatic)(ParseForeachArgs!isStatic args){
+    ParseForeachRet!(isStatic,isDecl) parseForeach(bool isStatic,bool isDecl)(ParseForeachArgs!(isStatic,isDecl) args){
+        static if(isDecl) static assert(isStatic);
         static if(isStatic)
         {
             nextToken();
-            auto pLastDecl = args[0];
+            static if(isDecl) auto pLastDecl = args[0];
         }
 
         TOK op = token.value;
@@ -4839,22 +4841,22 @@ final class Parser(AST) : Lexer
                     stc = AST.STCref;
                     goto Lagain;
 
-	            case TOKenum:
-		            stc = AST.STCmanifest;
-		            goto Lagain;
+                case TOKenum:
+                    stc = AST.STCmanifest;
+                    goto Lagain;
 
-	            case TOKalias:
-		            storageClass = appendStorageClass(storageClass, AST.STCalias);
-		            nextToken();
-		            break;
+                case TOKalias:
+                    storageClass = appendStorageClass(storageClass, AST.STCalias);
+                    nextToken();
+                    break;
 
                 case TOKconst:
-	                if (peekNext() != TOKlparen)
-	                {
-		                stc = AST.STCconst;
-		                goto Lagain;
-	                }
-	                break;
+                    if (peekNext() != TOKlparen)
+                    {
+                        stc = AST.STCconst;
+                        goto Lagain;
+                    }
+                    break;
 
                 case TOKimmutable:
                     if (peekNext() != TOKlparen)
@@ -4915,29 +4917,57 @@ final class Parser(AST) : Lexer
         }
         if (token.value == TOKslice && parameters.dim == 1)
         {
+            AST.Parameter p = (*parameters)[0];
             nextToken();
             AST.Expression upr = parseExpression();
             check(TOKrparen);
             Loc endloc;
-            static if(!isStatic)
+            static if (!isDecl)
             {
-                AST.Parameter p = (*parameters)[0];
                 AST.Statement _body = parseStatement(0, null, &endloc);
-                return new AST.ForeachRangeStatement(loc, op, p, aggr, upr, _body, endloc);
-            }else{
-                return new AST.StaticForeachDeclaration(loc, op, parameters, null, aggr, upr, parseBlock(pLastDecl));
+            }
+            else
+            {
+                AST.Statement _body = null;
+            }
+            auto rangefe = new AST.ForeachRangeStatement(loc, op, p, aggr, upr, _body, endloc);
+            static if (!isStatic)
+            {
+                return rangefe;
+            }
+            else static if(isDecl)
+            {
+                return new AST.StaticForeachDeclaration(new AST.StaticForeach(loc,null,rangefe),parseBlock(pLastDecl));
+            }
+            else
+            {
+                return new AST.StaticForeachStatement(loc,new AST.StaticForeach(loc,null,rangefe));
             }
         }
         else
         {
             check(TOKrparen);
             Loc endloc;
-            static if(!isStatic)
+            static if (!isDecl)
             {
                 AST.Statement _body = parseStatement(0, null, &endloc);
-                return new AST.ForeachStatement(loc, op, parameters, aggr, _body, endloc);
-            }else{
-                return new AST.StaticForeachDeclaration(loc, op, parameters, aggr, null, null, parseBlock(pLastDecl));
+            }
+            else
+            {
+                AST.Statement _body = null;
+            }
+            auto aggrfe = new AST.ForeachStatement(loc, op, parameters, aggr, _body, endloc);
+            static if(!isStatic)
+            {
+                return aggrfe;
+            }
+            else static if(isDecl)
+            {
+                return new AST.StaticForeachDeclaration(new AST.StaticForeach(loc,aggrfe,null), parseBlock(pLastDecl));
+            }
+            else
+            {
+                return new AST.StaticForeachStatement(loc,new AST.StaticForeach(loc,aggrfe,null));
             }
         }
 
@@ -5075,6 +5105,11 @@ final class Parser(AST) : Lexer
                 {
                     cond = parseStaticIfCondition();
                     goto Lcondition;
+                }
+                else if(t.value == TOKforeach)
+                {
+                    s = parseForeach!(true,false)();
+                    break;
                 }
                 if (t.value == TOKimport)
                 {
@@ -5340,8 +5375,7 @@ final class Parser(AST) : Lexer
         case TOKforeach:
         case TOKforeach_reverse:
             {
-
-                s = parseForeach!false();
+                s = parseForeach!(false,false)();
                 break;
             }
         case TOKif:

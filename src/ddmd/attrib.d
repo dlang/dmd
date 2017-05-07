@@ -1353,57 +1353,22 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
 
 extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 {
-    TOK op;                     // TOKforeach or TOKforeach_reverse
-    Parameters* parameters;     // array of Parameter*'s
-    Expression aggr;
-    Expression left,right;
-
-    VarDeclaration key;
-    VarDeclaration value;
-
-    FuncDeclaration func;       // function we're lexically in
+    StaticForeach sfe;
 
     ScopeDsymbol scopesym;
     bool addisdone;
 
-    extern (D) this(Loc loc, TOK op, Parameters* parameters, Expression aggr, Expression left, Expression right, Dsymbols* decl)
-    in
-    {
-        assert(!!aggr^(left&&right));
-    }
-    body
+    extern (D) this(StaticForeach sfe, Dsymbols* decl)
     {
         super(decl);
-        this.op = op;
-        this.parameters = parameters;
-        this.aggr = aggr;
-        this.left = left;
-        this.right = right;
-    }
-
-    bool checkForArgTypes()
-    {
-        bool result = false;
-        foreach (p; *parameters)
-        {
-            if (!p.type)
-            {
-                error("cannot infer type for %s", p.ident.toChars());
-                p.type = Type.terror;
-                result = true;
-            }
-        }
-        return result;
+        this.sfe = sfe;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new StaticForeachDeclaration(loc, op,
-            Parameter.arraySyntaxCopy(parameters),
-            aggr ? aggr.syntaxCopy() : null,
-            left ? left.syntaxCopy() : null,
-            right ? right.syntaxCopy() : null,
+        return new StaticForeachDeclaration(
+            sfe.syntaxCopy(),
             Dsymbol.arraySyntaxCopy(decl));
     }
 
@@ -1415,6 +1380,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 
     override Dsymbols* include(Scope* sc, ScopeDsymbol sds)
     {
+        sfe.prepare(sc);
         // TODO
         return decl;
     }

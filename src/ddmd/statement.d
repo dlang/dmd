@@ -1342,6 +1342,35 @@ extern (C++) final class ConditionalStatement : Statement
 
 /***********************************************************
  */
+extern (C++) final class StaticForeachStatement : Statement
+{
+    StaticForeach sfe;
+
+    extern (D) this(Loc loc, StaticForeach sfe)
+    {
+        super(loc);
+        this.sfe = sfe;
+    }
+
+    override Statement syntaxCopy()
+    {
+        return new StaticForeachStatement(loc,sfe.syntaxCopy());
+    }
+
+    override Statements* flatten(Scope* sc)
+    {
+        // TODO: expand
+        assert(0,"TODO");
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ */
 extern (C++) final class PragmaStatement : Statement
 {
     Identifier ident;
