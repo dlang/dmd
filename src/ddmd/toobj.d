@@ -109,9 +109,11 @@ void genModuleInfo(Module m)
     size_t aimports_dim = m.aimports.dim;
     for (size_t i = 0; i < m.aimports.dim; i++)
     {
-        Module mod = m.aimports[i];
-        if (!mod.needmoduleinfo)
+        Module imported = m.aimports[i];
+
+        if (!imported.needmoduleinfo || m.utImports[i])
             aimports_dim--;
+
     }
 
     FuncDeclaration sgetmembers = m.findGetMembers();
@@ -177,12 +179,12 @@ void genModuleInfo(Module m)
         dtb.size(aimports_dim);
         foreach (i; 0 .. m.aimports.dim)
         {
-            Module mod = m.aimports[i];
+            Module imported = m.aimports[i];
 
-            if (!mod.needmoduleinfo)
+            if (!imported.needmoduleinfo || m.utImports[i])
                 continue;
 
-            Symbol *s = toSymbol(mod);
+            Symbol *s = toSymbol(imported);
 
             /* Weak references don't pull objects in from the library,
              * they resolve to 0 if not pulled in by something else.

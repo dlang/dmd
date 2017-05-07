@@ -32,6 +32,7 @@ import ddmd.root.file;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
 import ddmd.root.port;
+import ddmd.root.array;
 import ddmd.target;
 import ddmd.visitor;
 
@@ -360,6 +361,7 @@ extern (C++) final class Module : Package
     Dsymbols* decldefs;         // top level declarations for this Module
 
     Modules aimports;           // all imported modules
+    BitArray utImports;         // whether the import is inside a unit test
 
     uint debuglevel;            // debug level
     Strings* debugids;          // debug identifiers

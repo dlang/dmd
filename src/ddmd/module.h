@@ -18,6 +18,7 @@
 
 #include "root.h"
 #include "dsymbol.h"
+#include "array.h"
 
 class ClassDeclaration;
 struct ModuleDeclaration;
@@ -102,6 +103,7 @@ public:
     Dsymbols *decldefs;         // top level declarations for this Module
 
     Modules aimports;             // all imported modules
+    BitArray utImports;           // whether import is in unit test
 
     unsigned debuglevel;        // debug level
     Strings *debugids;      // debug identifiers

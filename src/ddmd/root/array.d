@@ -224,13 +224,20 @@ nothrow:
 
     void opIndexAssign(bool val, size_t idx) pure
     {
-        import core.bitop : btc, bts;
+        import core.bitop : btr, bts;
 
         assert(idx < length);
         if (val)
             bts(ptr, idx);
         else
-            btc(ptr, idx);
+            btr(ptr, idx);
+    }
+
+    // helper to push a bit
+    void pushBit(bool b)
+    {
+        this.length = len + 1;
+        this[len - 1] = b;
     }
 
     @disable this(this);
