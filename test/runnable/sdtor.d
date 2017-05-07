@@ -3870,7 +3870,6 @@ bool test14022()
             this.sb = sa;   // TOKconstruct
             assert(op == "BC", op);
             assert(sb == [S('b'), S('c')]);
-            assert(op == "BCcb");
         }
         void test(ref S[2] sa)
         {
@@ -3900,10 +3899,8 @@ bool test14022()
         t.sb[1].x = 'y';
         assert(sa == [S('a'), S('b'), S('c')]);
         assert(t.sb == [S('x'), S('y')]);
-        // Array literals destroyed at the end of scope
-        assert(op == "BCcbcbayx");
     }
-    assert(op == "BCcbcbayxyxcba");
+    assert(op == "BCyxcba");
 
     op = null;
     {
@@ -3913,9 +3910,8 @@ bool test14022()
         t.test(sx[1..3]);
         assert(op == "BxCy");
         assert(t.sb == [S('b'), S('c')]);
-        assert(op == "BxCycb");
     }
-    assert(op == "BxCycbcbcba");
+    assert(op == "BxCycbcba");
 
     return true;
 }
@@ -3955,8 +3951,6 @@ bool test14023()
         a[0] = sa;      // index <-- resolveSlice(newva)
         assert(op == "BxCx");
         assert(a[0] == [S('b'), S('c')]);
-        // Array literals destroyed at the end of scope
-        assert(op == "BxCxcb");
     }
 
     op = null;
@@ -3986,9 +3980,9 @@ bool test14023()
     {
         S[3] sa = [S('a'), S('b'), S('c')];
         test(sa[1..3]);
-        assert(op == "BxCxcb");
+        assert(op == "BxCx");
     }
-    assert(op == "BxCxcbcba");
+    assert(op == "BxCxcba");
 
     return true;
 }
