@@ -442,6 +442,7 @@ struct Target
         else
             static assert(0, "fix this");
     }
+
     extern (C++) static const(char)* cppTypeInfoMangle(ClassDeclaration cd)
     {
         static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
@@ -450,6 +451,14 @@ struct Target
             return cppTypeInfoMangleMSVC(cd);
         else
             static assert(0, "fix this");
+    }
+
+    /**
+     * Return the default system linkage for the target.
+     */
+    extern (C++) static LINK systemLinkage()
+    {
+        return global.params.isWindows ? LINKwindows : LINKc;
     }
 }
 
