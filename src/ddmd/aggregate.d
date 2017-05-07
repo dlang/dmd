@@ -623,10 +623,10 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      *
      * nextoffset:    next location in aggregate
      * memsize:       size of member
-     * memalignsize:  size of member for alignment purposes
+     * memalignsize:  natural alignment of member
      * alignment:     alignment in effect for this member
      * paggsize:      size of aggregate (updated)
-     * paggalignsize: size of aggregate for alignment purposes (updated)
+     * paggalignsize: alignment of aggregate (updated)
      * isunion:       the aggregate is a union
      */
     static uint placeField(uint* nextoffset, uint memsize, uint memalignsize,
@@ -634,11 +634,12 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     {
         uint ofs = *nextoffset;
 
+        const uint actualAlignment =
+            alignment == STRUCTALIGN_DEFAULT ? memalignsize : alignment;
+
         // Ensure no overflow
         bool overflow;
-        const sz = addu(memsize,
-                        alignment == STRUCTALIGN_DEFAULT ? memalignsize : alignment,
-                        overflow);
+        const sz = addu(memsize, actualAlignment, overflow);
         const sum = addu(ofs, sz, overflow);
         if (overflow) assert(0);
 
@@ -650,14 +651,8 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         if (!isunion)
             *nextoffset = ofs;
 
-        if (alignment != STRUCTALIGN_DEFAULT)
-        {
-            if (memalignsize < alignment)
-                memalignsize = alignment;
-        }
-
-        if (*paggalignsize < memalignsize)
-            *paggalignsize = memalignsize;
+        if (*paggalignsize < actualAlignment)
+            *paggalignsize = actualAlignment;
 
         return memoffset;
     }
