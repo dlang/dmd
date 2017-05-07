@@ -259,9 +259,9 @@ extern (C++) final class Import : Dsymbol
                 bool isUnittest = false;
                 for (Scope* utscope = sc; utscope; utscope = utscope.enclosing)
                 {
-                    if(auto scopesym = utscope.func)
+                    if (auto scopesym = utscope.func)
                     {
-                        if(scopesym.isUnitTestDeclaration())
+                        if (scopesym.isUnitTestDeclaration())
                         {
                             isUnittest = true;
                             break;
