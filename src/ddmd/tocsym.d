@@ -609,7 +609,7 @@ Symbol *toModuleAssert(Module m)
 {
     if (!m.massert)
     {
-        auto t = type_function(TYjfunc, null, 0, false, tstypes[TYvoid]);
+        auto t = type_function(TYnfunc, null, 0, false, tstypes[TYvoid]);
         t.Tmangle = mTYman_d;
 
         m.massert = toSymbolX(m, "__assert", SCextern, t, "FiZv");
@@ -623,7 +623,7 @@ Symbol *toModuleUnittest(Module m)
 {
     if (!m.munittest)
     {
-        auto t = type_function(TYjfunc, null, 0, false, tstypes[TYvoid]);
+        auto t = type_function(TYnfunc, null, 0, false, tstypes[TYvoid]);
         t.Tmangle = mTYman_d;
 
         m.munittest = toSymbolX(m, "__unittest_fail", SCextern, t, "FiZv");
@@ -640,7 +640,7 @@ Symbol *toModuleArray(Module m)
 {
     if (!m.marray)
     {
-        auto t = type_function(TYjfunc, null, 0, false, tstypes[TYvoid]);
+        auto t = type_function(TYnfunc, null, 0, false, tstypes[TYvoid]);
         t.Tmangle = mTYman_d;
 
         m.marray = toSymbolX(m, "__array", SCextern, t, "Z");
