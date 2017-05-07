@@ -149,6 +149,11 @@ struct X86_BCGen
         code[ip++] = 0xF4;
     }
 
+    void Nop()
+    {
+        code[ip++] = 0x90;
+    }
+
     void Not(Reg r)
     {
         code[ip++] = 0xF7;
@@ -707,8 +712,8 @@ string dis(ubyte[] code)
     PrefixState ps;
     while (pos < code.length)
     {
-        result ~= "\n";
-        ps.parse(code, &pos);
+        result ~= "\n" ~ to!string(pos) ~ " : ";
+//        ps.parse(code, &pos);
         auto b = code[pos++];
         switch (b)
         {
@@ -717,11 +722,47 @@ string dis(ubyte[] code)
                 result ~= "ADD ";
             }
             break;
+        case 0x0F:
+            {
+                if (code[pos++] == 0x0B)
+                    result ~= "UD2";
+                else
+                    goto default;
+            }
+            break;
+
         case 0x05:
             {
                 result ~= "ADD EAX, #" ~ to!string(fromBytes(code, &pos, 4));
             }
             break;
+        case 0xE9 : 
+            {
+                result ~= "JMP #" ~ to!string(pos + fromBytes(code, &pos, 4) + 4);
+            }
+            break;
+        case 0x50: 
+            result ~= "PSH EAX";
+        break;
+        case 0x51: 
+            result ~= "PSH EDX";
+        break;
+        case 0x52: 
+            result ~= "PSH ECX";
+        break;
+        case 0x53: 
+            result ~= "PSH EBX";
+        break;
+        case 0x54: 
+            result ~= "PSH EBP";
+        break;
+        case 0x55: 
+            result ~= "PSH ESP";
+        break;
+
+        case 0x90 :
+            result ~= "NOP";
+        break;
         case 0xF4 :
             {
                 result ~= "HLT";
@@ -744,7 +785,7 @@ string dis(ubyte[] code)
 
 }
 
-pragma(msg, dis([0xf4, 0x05, 0x00, 0xFF, 0x00, 0xFE, 0xf4]));
+// pragma(msg, dis([0xf4, 0x05, 0x0F, 0x00, 0x00, 0x00, 0xf4]));
 
 string asHex(ubyte[] arr)
 {
@@ -765,7 +806,7 @@ string asHex(ubyte[] arr)
 
     return cast(string) result[0 .. $ - 1];
 }
-
+/+
 pragma(msg, ({
 X86_BCGen gen;
 with(gen)
@@ -774,13 +815,13 @@ with(gen)
     beginFunction();
     auto jmp = beginJmp();
     auto tmp1 = genTemporary(i32Type);
-    auto rv = genTemporary(i32Type);
-    Add3(imm32(1), tmp1, imm32(35));
-    Call(rv, imm32(1), []);
+    auto tmp2 = genTemporary(i32Type);
+    Add3(imm32(1), tmp1, imm32(0xFD));
     endJmp(jmp, genLabel());
-    Add3(imm32(0), imm32(24), imm32(70));
+    Add3(imm32(0), imm32(0xBA), imm32(0xDA));
     endFunction();
     Finalize();
     return code[0 .. ip];
 }
 })().asHex);
++/
