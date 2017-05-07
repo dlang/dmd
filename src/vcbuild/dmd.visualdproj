@@ -156,7 +156,7 @@
   <ccTransOpt>1</ccTransOpt>
   <program>$(DMDInstallDir)windows\bin\dmd.exe</program>
   <imppath />
-  <fileImppath>$(OutDir)\generated ..\..\res</fileImppath>
+  <fileImppath>$(OutDir) ..\..\res</fileImppath>
   <outdir>..\..\generated\Windows\$(ConfigurationName)\$(PlatformName)</outdir>
   <objdir>$(OutDir)</objdir>
   <objname />
@@ -258,7 +258,7 @@
   <ccTransOpt>1</ccTransOpt>
   <program>c:\l\d\dmd2\windows\bin\dmd.exe</program>
   <imppath />
-  <fileImppath>$(OutDir)\generated ..\..\res</fileImppath>
+  <fileImppath>$(OutDir) ..\..\res</fileImppath>
   <outdir>..\..\generated\Windows\$(ConfigurationName)\$(PlatformName)</outdir>
   <objdir>$(OutDir)</objdir>
   <objname />
@@ -360,7 +360,7 @@
   <ccTransOpt>1</ccTransOpt>
   <program>$(DMDInstallDir)windows\bin\dmd.exe</program>
   <imppath />
-  <fileImppath>$(OutDir)\generated ..\..\res</fileImppath>
+  <fileImppath>$(OutDir) ..\..\res</fileImppath>
   <outdir>..\..\generated\Windows\$(ConfigurationName)\$(PlatformName)</outdir>
   <objdir>$(OutDir)</objdir>
   <objname />
