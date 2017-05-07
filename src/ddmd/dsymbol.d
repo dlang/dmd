@@ -2018,6 +2018,13 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
     }
     override Dsymbol symtabInsert(Dsymbol s)
     {
+        if (auto d = s.isDeclaration())
+        {
+            if (d.storage_class & STClocal)
+            {
+                return super.symtabInsert(s);
+            }
+        }
         assert(!!forward);
         if (!forward.symtab)
         {

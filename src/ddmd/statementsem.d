@@ -580,6 +580,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 Initializer ie = new ExpInitializer(Loc(), new IntegerExp(k));
                 auto var = new VarDeclaration(loc, p.type, p.ident, ie);
                 var.storage_class |= STCmanifest;
+                static if(isStatic) var.storage_class |= STClocal;
                 st.push(new ExpStatement(loc, var));
                 p = (*fs.parameters)[1]; // value
             }
@@ -637,6 +638,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         p.type = paramtype;
                     Initializer ie = new ExpInitializer(Loc(), e);
                     auto v = new VarDeclaration(loc, p.type, p.ident, ie);
+                    static if(isStatic) v.storage_class |= STClocal;
                     if (p.storageClass & STCref)
                         v.storage_class |= STCref | STCforeach;
                     if (e.isConst() ||
@@ -671,7 +673,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             static if(!isStatic)
                 s = new ScopeStatement(loc, s, fs.endloc);
             else
-                s = new ForwardingScopeStatement(loc, s, fs.endloc); // TODO: loop variables should be marked specially, such that they are not forwarded.
+                s = new ForwardingScopeStatement(loc, s, fs.endloc);
             statements.push(s);
         }
 
