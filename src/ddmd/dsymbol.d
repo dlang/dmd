@@ -2010,18 +2010,20 @@ extern (C++) final class OverloadSet : Dsymbol
  */
 extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
 {
-	ScopeDsymbol forward;
-	extern (D) this(ScopeDsymbol forward)
-	{
-		super(null);
-		this.forward = forward;
-	}
-	override Dsymbol symtabInsert(Dsymbol s)
+    ScopeDsymbol forward;
+    extern (D) this(ScopeDsymbol forward)
     {
-	    //printf("%s\n",s.toPrettyChars());
-	    assert(!!forward);
-	    //return forward.symtabInsert(s);
-	    return super.symtabInsert(s);
+        super(null);
+        this.forward = forward;
+    }
+    override Dsymbol symtabInsert(Dsymbol s)
+    {
+        assert(!!forward);
+        if (!forward.symtab)
+        {
+            forward.symtab = new DsymbolTable();
+        }
+        return forward.symtabInsert(s);
     }
 }
 

@@ -671,7 +671,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             static if(!isStatic)
                 s = new ScopeStatement(loc, s, fs.endloc);
             else
-                s = new ForwardingScopeStatement(loc, s, fs.endloc);
+                s = new ForwardingScopeStatement(loc, s, fs.endloc); // TODO: loop variables should be marked specially, such that they are not forwarded.
             statements.push(s);
         }
 
