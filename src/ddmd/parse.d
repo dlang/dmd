@@ -8446,77 +8446,76 @@ unittest
 {
     import ddmd.astbase;
     import ddmd.impvisitor;
-    import ddmd.astcodegen;
 
     const(char)[] input =
-    "import A;
-     class Bar
-     {
-          import B;
-          void print()
-          {
-              import C;
-          }
-     }
+   "import A;
+    class Bar
+    {
+        import B;
+        void print()
+        {
+            import C;
+        }
+    }
 
-     struct str
-     {
-         import D;
-     }
-     void main()
-     {
-          int a;
-          alias b = float;
-          void print()
-          {
-              import E;
-              struct str2
-              {
-                  import F;
-              }
-          };
-          import G;
-          class Foo
-          {
-              import H;
-          }
-          struct str3
-          {
-              import I;
-          }
-          if (a<b) import J;
-          if (a<b) {}
-          else {import K;}
-          if (a<b) import L;
-          else import M;
-          while (a<b) import N;
-          do {import O;} while (a<b);
-          for (;;) import P;
-          foreach(a; b) import Q;
-          switch (a) case a: import R; case b: case c: import S; default: import T;
-          synchronized {import U;}
-          with(a<b) {import V;}
-          try {import X;} catch {import Y;}
-          try {import Z;} finally {import A;}
-          gigi : import B;
+    struct str
+    {
+        import D;
+    }
+    void main()
+    {
+        int a;
+        alias b = float;
+        void print()
+        {
+            import E;
+            struct str2
+            {
+                import F;
+            }
+        };
+        import G;
+        class Foo
+        {
+            import H;
+        }
+        struct str3
+        {
+            import I;
+        }
+        if (a<b) import J;
+        if (a<b) {}
+        else {import K;}
+        if (a<b) import L;
+        else import M;
+        while (a<b) import N;
+        do {import O;} while (a<b);
+        for (;;) import P;
+        foreach(a; b) import Q;
+        switch (a) case a: import R; case b: case c: import S; default: import T;
+        synchronized {import U;}
+        with(a<b) {import V;}
+        try {import X;} catch {import Y;}
+        try {import Z;} finally {import A;}
+        gigi : import B;
+        a = 7 + 10/9 * 30 - 5 + \"asd\";
+
+        template storage(T)
+        {
+            ubyte[T.sizeof] storage = 0;
+        }
+
+        template Sequence(TL...)
+        {
+            alias Sequence = TL;
+        }
      }";
-
-    const(char)[] input2 = "int a;";
 
     global._init();
     global.params.isLinux = true;
     global.params.is64bit = (size_t.sizeof == 8);
-    ASTCodegen.Type._init();
     ASTBase.Type._init();
 
-    printf("Parsing with ASTCodegen\n");
-    scope p1 = new Parser!ASTCodegen(null, input[0..input.length], false);
-    p1.nextToken();
-    p1.parseModule();
-
-    printf("====================================\n");
-
-    printf("Parsing with ASTBase\n");
     scope p = new Parser!ASTBase(null, input[0..input.length], false);
     p.nextToken();
 
