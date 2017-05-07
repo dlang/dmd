@@ -460,12 +460,9 @@ struct ModuleGroup
             return true;
         }
 
-        // `cycle` is set to `true` if deprecated cycle error otherwise set `result`.
-        void doSort(size_t relevantFlags, ref bool cycle, ref immutable(ModuleInfo)*[] result)
+        // returns `false` if deprecated cycle error otherwise set `result`.
+        bool doSort(size_t relevantFlags, ref immutable(ModuleInfo)*[] result)
         {
-            if (cycle)
-                return;
-
             clearFlags(relevant);
             clearFlags(ctorstart);
             clearFlags(ctordone);
@@ -495,10 +492,7 @@ struct ModuleGroup
                 if (!bt(ctordone, idx))
                 {
                     if (!processMod(idx))
-                    {
-                        cycle = true;
-                        return;
-                    }
+                        return false;
                 }
             }
 
@@ -506,22 +500,21 @@ struct ModuleGroup
             {
                 // no ctors in the list.
                 .free(ctors);
-                result = null;
-                return;
             }
-
-            ctors = cast(immutable(ModuleInfo)**).realloc(ctors, ctoridx * (void*).sizeof);
-            if (ctors is null)
-                assert(0);
-            result = ctors[0 .. ctoridx];
-            return;
+            else
+            {
+                ctors = cast(immutable(ModuleInfo)**).realloc(ctors, ctoridx * (void*).sizeof);
+                if (ctors is null)
+                    assert(0);
+                result = ctors[0 .. ctoridx];
+            }
+            return true;
         }
 
-        // finally, do the sorting for both shared and tls ctors.
-        bool cycle = false;
-        doSort(MIctor | MIdtor, cycle, _ctors);
-        doSort(MItlsctor | MItlsdtor, cycle, _tlsctors);
-        if (cycle)
+        // finally, do the sorting for both shared and tls ctors. If either returns false,
+        // print the deprecation warning.
+        if (!doSort(MIctor | MIdtor, _ctors) ||
+            !doSort(MItlsctor | MItlsdtor, _tlsctors))
         {
             // print a warning
             import core.stdc.stdio : fprintf, stderr;
