@@ -122,6 +122,8 @@ class Mutex :
         if (is(Q == Mutex) || is(Q == shared Mutex))
     in
     {
+        assert(obj !is null,
+            "Error: the argument passed to Mutex.this(Object obj) is null.");
         assert(obj.__monitor is null,
             "The provided object has a monitor already set!");
     }
