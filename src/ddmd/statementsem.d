@@ -308,14 +308,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         result = serror ? serror : uls;
     }
 
-    override void visit(ScopeStatement ss)
+    private void visitScopeStatement(ScopeStatement ss,ScopeDsymbol sym)
     {
-        ScopeDsymbol sym;
         //printf("ScopeStatement::semantic(sc = %p)\n", sc);
         if (ss.statement)
         {
-            sym = new ScopeDsymbol();
-            sym.parent = sc.scopesym;
             sym.endlinnum = ss.endloc.linnum;
             sc = sc.push(sym);
 
@@ -353,6 +350,25 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             sc.pop();
         }
         result = ss;
+    }
+
+    override void visit(ScopeStatement ss)
+    {
+        ScopeDsymbol sym;
+        if(ss.statement){
+            sym = new ScopeDsymbol();
+            sym.parent = sc.scopesym;
+        }
+        visitScopeStatement(ss,sym);
+    }
+
+    override void visit(ForwardingScopeStatement ss){
+        ScopeDsymbol sym;
+        if(ss.statement){
+            sym = new ForwardingScopeDsymbol(sc.scopesym);
+            sym.parent = sc.scopesym;
+        }
+        return visitScopeStatement(ss,sym);
     }
 
     override void visit(WhileStatement ws)
@@ -483,8 +499,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         result = fs;
     }
 
-    void makeTupleForeach(ForeachStatement fs,VarDeclaration vinit,ref Statement result)
+    void makeTupleForeach(bool isStatic,bool isDecl)(ForeachStatement fs,TupleForeachArgs!isDecl args)
     {
+        static if(isDecl){
+            static assert(isStatic);
+            auto dbody = args[0];
+        }
         Statement s = fs;
         auto loc = fs.loc;
         size_t dim = fs.parameters.dim;
@@ -648,18 +668,20 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
             st.push(fs._body.syntaxCopy());
             s = new CompoundStatement(loc, st);
-            s = new ScopeStatement(loc, s, fs.endloc);
+            static if(!isStatic)
+                s = new ScopeStatement(loc, s, fs.endloc);
+            else
+                s = new ForwardingScopeStatement(loc, s, fs.endloc);
             statements.push(s);
         }
 
-        s = new UnrolledLoopStatement(loc, statements);
-        if (LabelStatement ls = checkLabeledLoop(sc, fs))
-            ls.gotoTarget = s;
-        if (te && te.e0)
-            s = new CompoundStatement(loc, new ExpStatement(te.e0.loc, te.e0), s);
-        if (vinit)
-            s = new CompoundStatement(loc, new ExpStatement(loc, vinit), s);
-        s = s.semantic(sc);
+        static if(!isStatic){
+            s = new UnrolledLoopStatement(loc, statements);
+            if (LabelStatement ls = checkLabeledLoop(sc, fs))
+                ls.gotoTarget = s;
+            if (te && te.e0)
+                s = new CompoundStatement(loc, new ExpStatement(te.e0.loc, te.e0), s);
+        }else s = new CompoundStatement(loc, statements);
         result = s;
     }
 
@@ -762,8 +784,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
         if (tab.ty == Ttuple) // don't generate new scope for tuple loops
         {
-            makeTupleForeach(fs,vinit,s);
-            result=s;
+            makeTupleForeach!(false,false)(fs);
+            if (vinit)
+                result = new CompoundStatement(loc, new ExpStatement(loc, vinit), result);
+            result = result.semantic(sc);
             return;
         }
 
@@ -3596,4 +3620,16 @@ Statement semanticScope(Statement s, Scope* sc, Statement sbreak, Statement scon
     s = s.semanticNoScope(scd);
     scd.pop();
     return s;
+}
+
+static template TupleForeachArgs(bool isDecl){
+    alias Seq(T...)=T;
+    static if(!isDecl) alias TupleForeachArgs = Seq!();
+    else alias TupleForeachArgs = Seq!(Dsymbols*);
+}
+
+Statement makeTupleForeach(bool isStatic,bool isDecl)(Scope* sc,ForeachStatement fs,TupleForeachArgs!isDecl args){
+    scope v = new StatementSemanticVisitor(sc);
+    v.makeTupleForeach!(isStatic,isDecl)(fs);
+    return v.result;
 }

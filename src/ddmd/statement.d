@@ -947,7 +947,7 @@ extern (C++) final class UnrolledLoopStatement : Statement
 
 /***********************************************************
  */
-extern (C++) final class ScopeStatement : Statement
+extern (C++) class ScopeStatement : Statement
 {
     Statement statement;
     Loc endloc;                 // location of closing curly bracket
@@ -958,7 +958,6 @@ extern (C++) final class ScopeStatement : Statement
         this.statement = s;
         this.endloc = endloc;
     }
-
     override Statement syntaxCopy()
     {
         return new ScopeStatement(loc, statement ? statement.syntaxCopy() : null, endloc);
@@ -992,6 +991,21 @@ extern (C++) final class ScopeStatement : Statement
         v.visit(this);
     }
 }
+
+/***********************************************************
+ */
+extern (C++) final class ForwardingScopeStatement : ScopeStatement
+{
+    extern (D) this(Loc loc, Statement s, Loc endloc)
+    {
+        super(loc,s,endloc);
+    }
+
+    override void accept(Visitor v){
+        v.visit(this);
+    }
+}
+
 
 /***********************************************************
  */
@@ -1359,8 +1373,12 @@ extern (C++) final class StaticForeachStatement : Statement
 
     override Statements* flatten(Scope* sc)
     {
+        sfe.prepare(sc);
         // TODO: expand
-        assert(0,"TODO");
+        import ddmd.statementsem; // TODO: fix
+        auto a = new Statements();
+        a.push(makeTupleForeach!(true,false)(sc,sfe.aggrfe));
+        return a;
     }
 
     override void accept(Visitor v)

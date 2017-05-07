@@ -2005,6 +2005,26 @@ extern (C++) final class OverloadSet : Dsymbol
         v.visit(this);
     }
 }
+/***********************************************************
+ * Forwarding Dsymbol
+ */
+extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
+{
+	ScopeDsymbol forward;
+	extern (D) this(ScopeDsymbol forward)
+	{
+		super(null);
+		this.forward = forward;
+	}
+	override Dsymbol symtabInsert(Dsymbol s)
+    {
+	    //printf("%s\n",s.toPrettyChars());
+	    assert(!!forward);
+	    //return forward.symtabInsert(s);
+	    return super.symtabInsert(s);
+    }
+}
+
 
 /***********************************************************
  * Table of Dsymbol's

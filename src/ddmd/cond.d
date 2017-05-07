@@ -121,7 +121,7 @@ extern (C++) final class StaticForeach : RootObject
         {
 
         }
-        dump(aggrfe);
+        // dump(aggrfe);
     }
 }
 

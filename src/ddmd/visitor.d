@@ -84,6 +84,11 @@ extern (C++) class Visitor
         visit(cast(Statement)s);
     }
 
+    void visit(ForwardingScopeStatement s)
+    {
+        visit(cast(ScopeStatement)s);
+    }
+
     void visit(WhileStatement s)
     {
         visit(cast(Statement)s);
