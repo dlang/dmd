@@ -459,6 +459,11 @@ extern (C++) class Visitor
         visit(cast(ConditionalDeclaration)s);
     }
 
+    void visit(StaticForeachDeclaration s)
+    {
+        visit(cast(AttribDeclaration)s);
+    }
+
     void visit(CompileDeclaration s)
     {
         visit(cast(AttribDeclaration)s);
