@@ -48,12 +48,25 @@ alias _Unwind_Exception_Cleanup_Fn = void function(
         _Unwind_Reason_Code reason,
         _Unwind_Exception *exc);
 
-struct _Unwind_Exception
+version (X86_64)
 {
-    align(8) _Unwind_Exception_Class exception_class;
-    _Unwind_Exception_Cleanup_Fn exception_cleanup;
-    _Unwind_Word private_1;
-    _Unwind_Word private_2;
+    align(16) struct _Unwind_Exception
+    {
+        _Unwind_Exception_Class exception_class;
+        _Unwind_Exception_Cleanup_Fn exception_cleanup;
+        _Unwind_Word private_1;
+        _Unwind_Word private_2;
+    }
+}
+else
+{
+    align(8) struct _Unwind_Exception
+    {
+        _Unwind_Exception_Class exception_class;
+        _Unwind_Exception_Cleanup_Fn exception_cleanup;
+        _Unwind_Word private_1;
+        _Unwind_Word private_2;
+    }
 }
 
 struct _Unwind_Context;
