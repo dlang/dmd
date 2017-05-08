@@ -574,6 +574,11 @@ extern (C++) Statement toStatement(Dsymbol s)
             result = visitMembers(d.loc, d.include(null, null));
         }
 
+        override void visit(StaticForeachDeclaration d)
+        {
+            assert(0,"TODO");
+        }
+
         override void visit(CompileDeclaration d)
         {
             result = visitMembers(d.loc, d.include(null, null));
@@ -1377,7 +1382,10 @@ extern (C++) final class StaticForeachStatement : Statement
         // TODO: expand
         import ddmd.statementsem; // TODO: fix
         auto a = new Statements();
-        a.push(makeTupleForeach!(true,false)(sc,sfe.aggrfe));
+        if (sfe.aggrfe.aggr && sfe.aggrfe.aggr.type.toBasetype().ty == Ttuple)
+        {
+            a.push(makeTupleForeach!(true,false)(sc,sfe.aggrfe));
+        }
         return a;
     }
 

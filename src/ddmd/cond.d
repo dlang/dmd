@@ -117,9 +117,44 @@ extern (C++) final class StaticForeach : RootObject
                 aggrfe.aggr = aggrfe.aggr.ctfeInterpret();
             }
         }
-        else
-        {
 
+        if (aggrfe.aggr.type.toBasetype().ty == Terror)
+        {
+            return;
+        }
+
+        if (!aggrfe || aggrfe.aggr.type.toBasetype().ty != Ttuple)
+        {
+            if (aggrfe && aggrfe.aggr.type.toBasetype().ty == Tarray)
+            {
+                auto aggr = aggrfe.aggr;
+                Expression el = new ArrayLengthExp(aggr.loc, aggr);
+                el = el.semantic(sc);
+                el = el.optimize(WANTvalue);
+                if (el.op == TOKint64){
+                    dinteger_t length = el.toInteger();
+                    auto es = new Expressions();
+                    foreach(i;0..length)
+                    {
+                        auto index = new IntegerExp(loc, i, Type.tsize_t);
+                        auto value = new IndexExp(aggr.loc, aggr, index);
+                        es.push(value);
+                    }
+                    aggrfe.aggr = new TupleExp(aggr.loc, es);
+                    aggrfe.aggr = aggrfe.aggr.semantic(sc);
+                    aggrfe.aggr = aggrfe.aggr.optimize(WANTvalue);
+                }
+                else
+                {
+                    aggrfe.aggr = new ErrorExp();
+                    return;
+                }
+            }
+            else
+            {
+                dump(aggrfe.aggr.type);
+                assert(0,"TODO");
+            }
         }
         // dump(aggrfe);
     }
