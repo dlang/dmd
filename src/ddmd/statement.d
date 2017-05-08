@@ -1379,14 +1379,13 @@ extern (C++) final class StaticForeachStatement : Statement
     override Statements* flatten(Scope* sc)
     {
         sfe.prepare(sc);
-        // TODO: expand
-        import ddmd.statementsem; // TODO: fix
-        auto a = new Statements();
-        if (sfe.aggrfe && sfe.aggrfe.aggr && sfe.aggrfe.aggr.type.toBasetype().ty == Ttuple)
+        if (sfe.ready())
         {
-            a.push(makeTupleForeach!(true,false)(sc,sfe.aggrfe,sfe.needExpansion));
+            import ddmd.statementsem;
+            auto s = makeTupleForeach!(true,false)(sc, sfe.aggrfe,sfe.needExpansion);
+            return s.flatten(sc);
         }
-        return a;
+        return null;
     }
 
     override void accept(Visitor v)

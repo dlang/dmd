@@ -335,7 +335,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 Statement sentry;
                 Statement sexception;
                 Statement sfinally;
-
                 ss.statement = ss.statement.scopeCode(sc, &sentry, &sexception, &sfinally);
                 assert(!sentry);
                 assert(!sexception);
@@ -359,7 +358,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             sym = new ScopeDsymbol();
             sym.parent = sc.scopesym;
         }
-        visitScopeStatement(ss,sym);
+        visitScopeStatement(ss, sym);
     }
 
     override void visit(ForwardingScopeStatement ss){
@@ -368,7 +367,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             sym = new ForwardingScopeDsymbol(sc.scopesym);
             sym.parent = sc.scopesym;
         }
-        return visitScopeStatement(ss,sym);
+        visitScopeStatement(ss, sym);
     }
 
     override void visit(WhileStatement ws)
@@ -707,7 +706,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 auto field = Identifier.idPool(StaticForeach.tupleFieldName.ptr,StaticForeach.tupleFieldName.length);
                 Expression access = new DotIdExp(loc, e, field);
                 access = access.semantic(sc);
-                auto types = cast(TypeTuple)access.type;
+                auto types = access.type.isTuple();
                 if (!tuple) return;
                 //printf("%s\n",tuple.toChars());
                 foreach (l; 0 .. dim)

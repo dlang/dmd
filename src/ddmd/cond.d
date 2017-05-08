@@ -277,6 +277,11 @@ extern (C++) final class StaticForeach : RootObject
         }
         // dump(aggrfe);
     }
+
+    bool ready()
+    {
+        return aggrfe && aggrfe.aggr && aggrfe.aggr.type.toBasetype().ty == Ttuple;
+    }
 }
 
 /***********************************************************
