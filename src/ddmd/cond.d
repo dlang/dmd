@@ -77,6 +77,9 @@ extern (C++) final class StaticForeach : RootObject
     ForeachStatement aggrfe;
     ForeachRangeStatement rangefe;
 
+    bool needExpansion = false; // need to expand a tuple into multiple variables
+    __gshared static immutable tupleFieldName = "tuple";
+
     final extern (D) this(Loc loc,ForeachStatement aggrfe,ForeachRangeStatement rangefe)
     in
     {
@@ -156,7 +159,7 @@ extern (C++) final class StaticForeach : RootObject
         auto sdecl = new StructDeclaration(loc, sid);
         sdecl.storage_class |= STCstatic;
         sdecl.members = new Dsymbols();
-        auto fid = Identifier.generateId("field");
+        auto fid = Identifier.idPool(tupleFieldName.ptr, tupleFieldName.length);
         auto ty = new TypeTypeof(loc, new TupleExp(loc, e));
         sdecl.members.push(new VarDeclaration(loc, ty, fid, null, 0));
         return new TypeStruct(sdecl);
@@ -205,10 +208,11 @@ extern (C++) final class StaticForeach : RootObject
                 }
                 res[i] = createTuple(aloc, tplty, e);
             }
+            needExpansion = true;
         }
         auto s1 = new Statements();
         auto sfe = new Statements();
-        if(tplty) sfe.push(new ExpStatement(loc, tplty.sym)); // TODO: this is a hack. :)
+        if(tplty) sfe.push(new ExpStatement(loc, tplty.sym));
         sfe.push(new ReturnStatement(aloc, res[0]));
         s1.push(createForeach(aloc, pparams[0], new CompoundStatement(aloc, sfe)));
         s1.push(new ExpStatement(aloc, new AssertExp(aloc, new IntegerExp(aloc, 0, Type.tint32))));
