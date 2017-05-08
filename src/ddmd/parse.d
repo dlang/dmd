@@ -5106,7 +5106,7 @@ final class Parser(AST) : Lexer
                     cond = parseStaticIfCondition();
                     goto Lcondition;
                 }
-                else if(t.value == TOKforeach)
+                else if(t.value == TOKforeach || t.value == TOKforeach_reverse)
                 {
                     s = parseForeach!(true,false)();
                     break;
