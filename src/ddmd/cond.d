@@ -65,7 +65,11 @@ extern (C++) abstract class Condition : RootObject
 
 /***********************************************************
  */
-import ddmd.statement; // TODO: fix
+import ddmd.statement: ForeachStatement, ForeachRangeStatement, ReturnStatement, ExpStatement, CompoundStatement, Statement;
+import ddmd.declaration: VarDeclaration, StructDeclaration;
+import ddmd.func: FuncDeclaration, FuncLiteralDeclaration;
+import ddmd.aliasthis: AliasThis;
+import ddmd.dtemplate: TemplateTupleParameter, TemplateDeclaration;
 extern (C++) final class StaticForeach : RootObject
 {
     Loc loc;
@@ -92,21 +96,163 @@ extern (C++) final class StaticForeach : RootObject
         );
     }
 
+    private void dump(T)(T arg){ // TODO: remove
+        import core.stdc.stdio;
+        printf("%s\n",arg.toChars());
+    }
+
+    private void lowerArrayAggregate(Scope* sc)
+    {
+        auto aggr = aggrfe.aggr;
+        Expression el = new ArrayLengthExp(aggr.loc, aggr);
+        el = el.semantic(sc);
+        el = el.optimize(WANTvalue);
+        if (el.op == TOKint64){
+            dinteger_t length = el.toInteger();
+            auto es = new Expressions();
+            foreach(i;0..length)
+            {
+                auto index = new IntegerExp(loc, i, Type.tsize_t);
+                auto value = new IndexExp(aggr.loc, aggr, index);
+                es.push(value);
+            }
+            aggrfe.aggr = new TupleExp(aggr.loc, es);
+            aggrfe.aggr = aggrfe.aggr.semantic(sc);
+            aggrfe.aggr = aggrfe.aggr.optimize(WANTvalue);
+        }
+        else
+        {
+            aggrfe.aggr = new ErrorExp();
+            return;
+        }
+    }
+
+    private Expression evaluate(Loc loc,Statement s)
+    {
+        auto tf = new TypeFunction(new Parameters(), null, 0, LINK.def, 0);
+        auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, null);
+        fd.fbody = s;
+        auto fe = new FuncExp(loc, fd);
+        auto ce = new CallExp(loc,fe,new Expressions());
+        return ce;
+    }
+
+    private Statement createForeach(Loc loc, Parameters* parameters, Statement s)
+    {
+        if (aggrfe)
+        {
+            return new ForeachStatement(loc, aggrfe.op, parameters, aggrfe.aggr.syntaxCopy(), s, loc);
+        }
+        else
+        {
+            assert(!!rangefe && parameters.dim == 1);
+            return new ForeachRangeStatement(loc, rangefe.op, (*parameters)[0], rangefe.lwr.syntaxCopy(), rangefe.upr.syntaxCopy(), s, loc);
+        }
+    }
+
+    /+private Dsymbol createTupleType(Loc loc, Expressions* e)
+    {
+
+    }+/
+
+    private Expression createTuple(Loc loc, Expressions* e)
+    {   // TODO: move to druntime?
+        auto tpid = Identifier.generateId("T");
+
+        auto params = new Parameters();
+        auto pid = Identifier.generateId("param");
+        params.push(new Parameter(0, new TypeIdentifier(loc, tpid), pid, null));
+        auto s = new Statements();
+        auto sid = Identifier.generateId("Tuple");
+        auto sdecl = new StructDeclaration(loc, sid);
+        sdecl.members = new Dsymbols();
+        auto fid = Identifier.generateId("field");
+        sdecl.members.push(new VarDeclaration(loc, new TypeIdentifier(loc, tpid), fid, null, 0));
+        sdecl.members.push(new AliasThis(loc, fid));
+        s.push(new ExpStatement(loc, sdecl));
+        auto res = new CallExp(loc, new IdentifierExp(loc, sid), new IdentifierExp(loc, pid));
+        s.push(new ReturnStatement(loc, res));
+        auto tf = new TypeFunction(params, null, 0, LINK.def, 0);
+        auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, null);
+        fd.fbody = new CompoundStatement(loc, s);
+        auto tparams = new TemplateParameters();
+        tparams.push(new TemplateTupleParameter(loc, tpid));
+        auto decldefs = new Dsymbols();
+        decldefs.push(fd);
+        auto tmpl = new TemplateDeclaration(loc, fd.ident, tparams, null, decldefs, false, true);
+        auto fe = new FuncExp(loc, tmpl);
+        return new CallExp(loc, fe, e);
+    }
+
+    private void lowerNonArrayAggregate(Scope* sc)
+    {   // TODO: move to druntime?
+        auto nvars = aggrfe ? aggrfe.parameters.dim : 1;
+        auto aloc = aggrfe ? aggrfe.aggr.loc : rangefe.lwr.loc;
+        Parameters*[3] pparams = [new Parameters(),new Parameters(),new Parameters()];
+        foreach(i;0..nvars)
+        {
+            foreach(params;pparams)
+            {
+                auto p = aggrfe ? (*aggrfe.parameters)[i] : rangefe.prm;
+                params.push(new Parameter(p.storageClass, p.type, p.ident, null));
+            }
+        }
+        Expression[2] res;
+        if (nvars == 1)
+        {
+            foreach(i;0..2)
+            {
+                res[i] = new IdentifierExp(aloc, (*pparams[i])[0].ident);
+            }
+        }
+        else
+        {
+            foreach(i;0..2)
+            {
+                auto e = new Expressions();
+                foreach (j;0..pparams[0].dim)
+                {
+                    auto p = (*pparams[i])[j];
+                    e.push(new IdentifierExp(aloc, p.ident));
+                }
+                res[i] = createTuple(aloc, e);
+            }
+        }
+        auto s1 = new Statements();
+        s1.push(createForeach(aloc, pparams[0], new ReturnStatement(aloc, res[0])));
+        s1.push(new ExpStatement(aloc, new AssertExp(aloc, new IntegerExp(aloc, 0, Type.tint32))));
+        auto ety = new TypeTypeof(aloc, evaluate(aloc,new CompoundStatement(aloc,s1)));
+        auto aty = ety.arrayOf();
+        auto idres = Identifier.generateId("__res");
+        auto vard = new VarDeclaration(aloc, aty, idres, null);
+        auto s2 = new Statements();
+        s2.push(new ExpStatement(aloc, vard));
+        auto catass = new CatAssignExp(aloc, new IdentifierExp(aloc, idres), res[1]);
+        s2.push(createForeach(aloc, pparams[1], new ExpStatement(aloc, catass)));
+        s2.push(new ReturnStatement(aloc, new IdentifierExp(aloc, idres)));
+        auto aggr = evaluate(aloc, new CompoundStatement(aloc,s2));
+        sc = sc.startCTFE();
+        aggr = aggr.semantic(sc);
+        sc = sc.endCTFE();
+        aggr = aggr.optimize(WANTvalue);
+        aggr = aggr.ctfeInterpret();
+
+        assert(!!aggrfe^!!rangefe);
+        aggrfe = new ForeachStatement(loc, TOKforeach, pparams[2], aggr,
+                                      aggrfe ? aggrfe._body : rangefe._body,
+                                      aggrfe ? aggrfe.endloc : rangefe.endloc);
+        rangefe = null;
+        lowerArrayAggregate(sc);
+    }
+
 
     void prepare(Scope* sc)in{
         assert(!!sc);
     }body{
-        void dump(T)(T arg){
-            import core.stdc.stdio;
-            printf("%s\n",arg.toChars());
-        }
         uint nerrors = global.errors;
 
         if (aggrfe)
         {
-            //aggr = aggr.semantic(sc);
-            //aggr.resolveProperties(sc, aggr);
-            //if (
             sc = sc.startCTFE();
             aggrfe.aggr = aggrfe.aggr.semantic(sc);
             sc = sc.endCTFE();
@@ -118,7 +264,7 @@ extern (C++) final class StaticForeach : RootObject
             }
         }
 
-        if (aggrfe.aggr.type.toBasetype().ty == Terror)
+        if (aggrfe && aggrfe.aggr.type.toBasetype().ty == Terror)
         {
             return;
         }
@@ -127,33 +273,11 @@ extern (C++) final class StaticForeach : RootObject
         {
             if (aggrfe && aggrfe.aggr.type.toBasetype().ty == Tarray)
             {
-                auto aggr = aggrfe.aggr;
-                Expression el = new ArrayLengthExp(aggr.loc, aggr);
-                el = el.semantic(sc);
-                el = el.optimize(WANTvalue);
-                if (el.op == TOKint64){
-                    dinteger_t length = el.toInteger();
-                    auto es = new Expressions();
-                    foreach(i;0..length)
-                    {
-                        auto index = new IntegerExp(loc, i, Type.tsize_t);
-                        auto value = new IndexExp(aggr.loc, aggr, index);
-                        es.push(value);
-                    }
-                    aggrfe.aggr = new TupleExp(aggr.loc, es);
-                    aggrfe.aggr = aggrfe.aggr.semantic(sc);
-                    aggrfe.aggr = aggrfe.aggr.optimize(WANTvalue);
-                }
-                else
-                {
-                    aggrfe.aggr = new ErrorExp();
-                    return;
-                }
+                lowerArrayAggregate(sc);
             }
             else
             {
-                dump(aggrfe.aggr.type);
-                assert(0,"TODO");
+                lowerNonArrayAggregate(sc);
             }
         }
         // dump(aggrfe);

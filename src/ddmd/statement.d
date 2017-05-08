@@ -1382,7 +1382,7 @@ extern (C++) final class StaticForeachStatement : Statement
         // TODO: expand
         import ddmd.statementsem; // TODO: fix
         auto a = new Statements();
-        if (sfe.aggrfe.aggr && sfe.aggrfe.aggr.type.toBasetype().ty == Ttuple)
+        if (sfe.aggrfe && sfe.aggrfe.aggr && sfe.aggrfe.aggr.type.toBasetype().ty == Ttuple)
         {
             a.push(makeTupleForeach!(true,false)(sc,sfe.aggrfe));
         }
