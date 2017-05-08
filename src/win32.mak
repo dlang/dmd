@@ -183,7 +183,7 @@ BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $
 
 TK_HDRS= $(TK)/dlist.d
 
-STRING_IMPORT_FILES= $G\verstr.h ../res/default_ddoc_theme.ddoc
+STRING_IMPORT_FILES= $G\VERSION ../res/default_ddoc_theme.ddoc
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
@@ -418,8 +418,8 @@ $(IDGENOUTPUT) : $D\idgen.d
 	$(HOST_DC) -of$G\idgen $D\idgen.d
 	$G/idgen
 
-$G\verstr.h : ..\VERSION
-	echo "$(..\VERSION)" >$G\verstr.h
+$G\VERSION : ..\VERSION
+	copy ..\VERSION $@
 
 ############################# Intermediate Rules ############################
 

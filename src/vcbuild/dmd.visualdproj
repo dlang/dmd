@@ -156,7 +156,7 @@
   <ccTransOpt>1</ccTransOpt>
   <program>$(DMDInstallDir)windows\bin\dmd.exe</program>
   <imppath />
-  <fileImppath>$(OutDir)\generated ..\..\res</fileImppath>
+  <fileImppath>$(OutDir) ..\..\res</fileImppath>
   <outdir>..\..\generated\Windows\$(ConfigurationName)\$(PlatformName)</outdir>
   <objdir>$(OutDir)</objdir>
   <objname />
@@ -258,7 +258,7 @@
   <ccTransOpt>1</ccTransOpt>
   <program>c:\l\d\dmd2\windows\bin\dmd.exe</program>
   <imppath />
-  <fileImppath>$(OutDir)\generated ..\..\res</fileImppath>
+  <fileImppath>$(OutDir) ..\..\res</fileImppath>
   <outdir>..\..\generated\Windows\$(ConfigurationName)\$(PlatformName)</outdir>
   <objdir>$(OutDir)</objdir>
   <objname />
@@ -360,7 +360,7 @@
   <ccTransOpt>1</ccTransOpt>
   <program>$(DMDInstallDir)windows\bin\dmd.exe</program>
   <imppath />
-  <fileImppath>$(OutDir)\generated ..\..\res</fileImppath>
+  <fileImppath>$(OutDir) ..\..\res</fileImppath>
   <outdir>..\..\generated\Windows\$(ConfigurationName)\$(PlatformName)</outdir>
   <objdir>$(OutDir)</objdir>
   <objname />
@@ -410,7 +410,7 @@
  </Config>
  <Folder name="dmd">
   <Folder name="gen">
-   <File tool="Custom" path="..\..\VERSION" customcmd="cmd /E:ON /Q /C &quot;for /f %%f in ( ..\..\VERSION ) do ( echo &quot;%%f&quot; )&quot; &gt;$(OutDir)\generated\verstr.h" uptodateWithSameTime="true" outfile="$(OutDir)\generated\verstr.h" />
+   <File tool="Custom" path="..\..\VERSION" customcmd="copy ..\..\VERSION $(OutDir)\VERSION" uptodateWithSameTime="true" outfile="$(OutDir)\VERSION" />
   </Folder>
   <Folder name="generated">
    <Folder name="Debug_Win32">

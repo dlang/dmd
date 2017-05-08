@@ -335,7 +335,7 @@ TK_SRC = \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c
 
-STRING_IMPORT_FILES = $G/verstr.h $G/SYSCONFDIR.imp ../res/default_ddoc_theme.ddoc
+STRING_IMPORT_FILES = $G/VERSION $G/SYSCONFDIR.imp ../res/default_ddoc_theme.ddoc
 
 DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
@@ -455,7 +455,7 @@ $G/idgen: $D/idgen.d $(HOST_DMD_PATH)
 #########
 # STRING_IMPORT_FILES
 #
-# Create (or update) the verstr.h file.
+# Create (or update) the generated VERSION file.
 # The file is only updated if the VERSION file changes, or, only when RELEASE=1
 # is not used, when the full version string changes (i.e. when the git hash or
 # the working tree dirty states changes).
@@ -469,8 +469,8 @@ VERSION_GIT := $(shell printf "`$(GIT) rev-parse --short HEAD`"; \
        test -n "`$(GIT) status --porcelain -uno`" && printf -- -dirty)
 VERSION := $(addsuffix -devel$(if $(VERSION_GIT),-$(VERSION_GIT)),$(VERSION))
 endif
-$(shell test \"$(VERSION)\" != "`cat $G/verstr.h 2> /dev/null`" \
-		&& printf \"$(VERSION)\" > $G/verstr.h )
+$(shell test $(VERSION) != "`cat $G/VERSION 2> /dev/null`" \
+		&& printf $(VERSION) > $G/VERSION )
 $(shell test $(SYSCONFDIR) != "`cat $G/SYSCONFDIR.imp 2> /dev/null`" \
 		&& printf '$(SYSCONFDIR)' > $G/SYSCONFDIR.imp )
 
