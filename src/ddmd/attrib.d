@@ -1380,8 +1380,25 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 
     override Dsymbols* include(Scope* sc, ScopeDsymbol sds)
     {
-        sfe.prepare(sc);
+        sfe.prepare(_scope);
         // TODO
+        Dsymbols* d = decl; // TODO: fix
+        if (d && !addisdone)
+        {
+            // Add members lazily.
+            for (size_t i = 0; i < d.dim; i++)
+            {
+                Dsymbol s = (*d)[i];
+                s.addMember(_scope, scopesym);
+            }
+            // Set the member scopes lazily.
+            for (size_t i = 0; i < d.dim; i++)
+            {
+                Dsymbol s = (*d)[i];
+                s.setScope(_scope);
+            }
+            addisdone = true;
+        }
         return decl;
     }
 
@@ -1397,7 +1414,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 
     override void setScope(Scope* sc)
     {
-        // do not evaluate aggregate before semantic pass
+        // do not evaluate condition before semantic pass
         // But do set the scope, in case we need it for forward referencing
         Dsymbol.setScope(sc);
     }
