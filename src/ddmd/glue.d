@@ -152,9 +152,6 @@ void obj_write_deferred(Library library)
             md.doppelganger = 1;       // identify this module as doppelganger
             md.md = m.md;
             md.aimports.push(m);       // it only 'imports' m
-            md.massert = m.massert;
-            md.munittest = m.munittest;
-            md.marray = m.marray;
 
             genObjFile(md, false);
         }
