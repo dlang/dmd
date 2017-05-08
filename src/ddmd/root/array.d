@@ -192,6 +192,74 @@ public:
         assert(a <= b && b <= dim);
         return data[a .. b];
     }
+
+    private struct Range
+    {
+        private Array!T* outer;
+        private uint i;
+
+        ref front() inout nothrow pure
+        {
+            return (*outer)[i];
+        }
+
+        void popFront() nothrow pure
+        {
+            i++;
+        }
+
+        bool empty() inout nothrow pure
+        {
+            assert(outer, "Range does not have an array to iterate");
+            return i >= outer.dim;
+        }
+    }
+
+    Range range() pure nothrow return
+    {
+        typeof(return) result;
+        result.outer = &this;
+        return result;
+    }
+}
+
+//iterating over normally stops where the end was when starting.
+unittest
+{
+    int[] result;
+    Array!int source;
+    foreach(i; 0 .. 4) source.push(i);
+
+    foreach(i; source)
+    {
+        result ~= i;
+        if (i >= 2) source.push(i - 1);
+    }
+    assert(result == [0, 1, 2, 3]);
+    result.length = 0;
+    foreach(i; source) result ~= i;
+    assert(result == [0, 1, 2, 3, 1, 2]);
+    result.length = 0;
+}
+
+//Iterating over Array.Range continues iteration to the end
+//if array grows during it.
+unittest
+{
+    int[] result;
+    Array!int source;
+    foreach(i; 0 .. 4) source.push(i);
+
+    foreach(i; source.range)
+    {
+        result ~= i;
+        if (i >= 2) source.push(i - 1);
+    }
+    assert(result == [0, 1, 2, 3, 1, 2, 1]);
+    result.length = 0;
+    foreach(i; source.range) result ~= i;
+    assert(result == [0, 1, 2, 3, 1, 2, 1]);
+    result.length = 0;
 }
 
 struct BitArray
