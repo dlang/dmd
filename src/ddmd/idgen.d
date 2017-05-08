@@ -291,7 +291,6 @@ Msgtable[] msgtable =
     { "entrypoint", "__entrypoint" },
     { "rt_init" },
     { "__cmp" },
-    { "__equals"},
 
     // varargs implementation
     { "va_start" },

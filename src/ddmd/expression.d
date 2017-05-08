@@ -15647,7 +15647,6 @@ extern (C++) final class EqualExp : BinExp
 
         if (auto e = binSemanticProp(sc))
             return e;
-
         if (e1.op == TOKtype || e2.op == TOKtype)
             return incompatibleTypes();
 
@@ -15702,35 +15701,6 @@ extern (C++) final class EqualExp : BinExp
 
         if (!Target.isVectorOpSupported(t1, op, t2))
             return incompatibleTypes();
-
-        if ((t1.ty == Tarray || t1.ty == Tsarray) &&
-            (t2.ty == Tarray || t2.ty == Tsarray))
-        {
-            Type telement  = t1.nextOf().toBasetype();
-            Type telement2 = t2.nextOf().toBasetype();
-
-            // For e1 and e2 of struct type, lowers e1 == e2 to object.__equals(e1, e2)
-            // and e1 != e2 to !(object.__equals(e1, e2)).
-            if (telement.ty == Tstruct && telement2.ty == Tstruct)
-            {
-                Expression __equals = new IdentifierExp(loc, Id.empty);
-                Identifier id = Identifier.idPool("__equals");
-                __equals = new DotIdExp(loc, __equals, Id.object);
-                __equals = new DotIdExp(loc, __equals, id);
-
-                auto arguments = new Expressions();
-                arguments.push(e1);
-                arguments.push(e2);
-
-                __equals = new CallExp(loc, __equals, arguments);
-                if (op == TOKnotequal)
-                {
-                    __equals = new NotExp(loc, __equals);
-                }
-                __equals = __equals.semantic(sc);
-                return __equals;
-            }
-        }
 
         return this;
     }
