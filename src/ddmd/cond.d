@@ -66,7 +66,7 @@ extern (C++) abstract class Condition : RootObject
 /***********************************************************
  */
 import ddmd.statement: ForeachStatement, ForeachRangeStatement, ReturnStatement, ExpStatement, CompoundStatement, Statement;
-import ddmd.declaration: VarDeclaration, StructDeclaration;
+import ddmd.declaration: VarDeclaration, StructDeclaration, STCstatic;
 import ddmd.func: FuncDeclaration, FuncLiteralDeclaration;
 import ddmd.aliasthis: AliasThis;
 import ddmd.dtemplate: TemplateTupleParameter, TemplateDeclaration;
@@ -150,41 +150,24 @@ extern (C++) final class StaticForeach : RootObject
         }
     }
 
-    /+private Dsymbol createTupleType(Loc loc, Expressions* e)
-    {
-
-    }+/
-
-    private Expression createTuple(Loc loc, Expressions* e)
+    private TypeStruct createTupleType(Loc loc, Expressions* e, Scope* sc)
     {   // TODO: move to druntime?
-        auto tpid = Identifier.generateId("T");
-
-        auto params = new Parameters();
-        auto pid = Identifier.generateId("param");
-        params.push(new Parameter(0, new TypeIdentifier(loc, tpid), pid, null));
-        auto s = new Statements();
         auto sid = Identifier.generateId("Tuple");
         auto sdecl = new StructDeclaration(loc, sid);
+        sdecl.storage_class |= STCstatic;
         sdecl.members = new Dsymbols();
         auto fid = Identifier.generateId("field");
-        sdecl.members.push(new VarDeclaration(loc, new TypeIdentifier(loc, tpid), fid, null, 0));
-        sdecl.members.push(new AliasThis(loc, fid));
-        s.push(new ExpStatement(loc, sdecl));
-        auto res = new CallExp(loc, new IdentifierExp(loc, sid), new IdentifierExp(loc, pid));
-        s.push(new ReturnStatement(loc, res));
-        auto tf = new TypeFunction(params, null, 0, LINK.def, 0);
-        auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, null);
-        fd.fbody = new CompoundStatement(loc, s);
-        auto tparams = new TemplateParameters();
-        tparams.push(new TemplateTupleParameter(loc, tpid));
-        auto decldefs = new Dsymbols();
-        decldefs.push(fd);
-        auto tmpl = new TemplateDeclaration(loc, fd.ident, tparams, null, decldefs, false, true);
-        auto fe = new FuncExp(loc, tmpl);
-        return new CallExp(loc, fe, e);
+        auto ty = new TypeTypeof(loc, new TupleExp(loc, e));
+        sdecl.members.push(new VarDeclaration(loc, ty, fid, null, 0));
+        return new TypeStruct(sdecl);
     }
 
-    private void lowerNonArrayAggregate(Scope* sc)
+    private Expression createTuple(Loc loc, TypeStruct type, Expressions* e)
+    {   // TODO: move to druntime?
+        return new CallExp(loc, new TypeExp(loc, type), e);
+    }
+
+    private void lowerNonArrayAggregate(Scope* sc, bool loweredTuple=false)
     {   // TODO: move to druntime?
         auto nvars = aggrfe ? aggrfe.parameters.dim : 1;
         auto aloc = aggrfe ? aggrfe.aggr.loc : rangefe.lwr.loc;
@@ -198,6 +181,7 @@ extern (C++) final class StaticForeach : RootObject
             }
         }
         Expression[2] res;
+        TypeStruct tplty = null;
         if (nvars == 1)
         {
             foreach(i;0..2)
@@ -215,11 +199,18 @@ extern (C++) final class StaticForeach : RootObject
                     auto p = (*pparams[i])[j];
                     e.push(new IdentifierExp(aloc, p.ident));
                 }
-                res[i] = createTuple(aloc, e);
+                if (!tplty)
+                {
+                    tplty = createTupleType(aloc, e, sc);
+                }
+                res[i] = createTuple(aloc, tplty, e);
             }
         }
         auto s1 = new Statements();
-        s1.push(createForeach(aloc, pparams[0], new ReturnStatement(aloc, res[0])));
+        auto sfe = new Statements();
+        if(tplty) sfe.push(new ExpStatement(loc, tplty.sym)); // TODO: this is a hack. :)
+        sfe.push(new ReturnStatement(aloc, res[0]));
+        s1.push(createForeach(aloc, pparams[0], new CompoundStatement(aloc, sfe)));
         s1.push(new ExpStatement(aloc, new AssertExp(aloc, new IntegerExp(aloc, 0, Type.tint32))));
         auto ety = new TypeTypeof(aloc, evaluate(aloc,new CompoundStatement(aloc,s1)));
         auto aty = ety.arrayOf();
