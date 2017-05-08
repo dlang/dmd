@@ -252,8 +252,24 @@ extern (C++) final class Import : Dsymbol
         if (mod)
         {
             // Modules need a list of each imported module
-            //printf("%s imports %s\n", sc.module.toChars(), mod.toChars());
+            //printf("%s imports %s\n", sc._module.toChars(), mod.toChars());
             sc._module.aimports.push(mod);
+            // determine if import is in a unittest
+            {
+                bool isUnittest = false;
+                for (Scope* utscope = sc; utscope; utscope = utscope.enclosing)
+                {
+                    if (auto scopesym = utscope.func)
+                    {
+                        if (scopesym.isUnitTestDeclaration())
+                        {
+                            isUnittest = true;
+                            break;
+                        }
+                    }
+                }
+                sc._module.utImports.pushBit(isUnittest);
+            }
 
             if (sc.explicitProtection)
                 protection = sc.protection;
