@@ -133,7 +133,7 @@ extern (C++) final class StaticForeach : RootObject
     private Expression evaluate(Loc loc,Statement s)
     {
         auto tf = new TypeFunction(new Parameters(), null, 0, LINK.def, 0);
-        auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, null);
+        auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOKfunction, null);
         fd.fbody = s;
         auto fe = new FuncExp(loc, fd);
         auto ce = new CallExp(loc,fe,new Expressions());
