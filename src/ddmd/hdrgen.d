@@ -298,6 +298,20 @@ public:
         buf.writenl();
     }
 
+    override void visit(StaticForeachStatement s)
+    {
+        buf.writestring("static ");
+        if (s.sfe.aggrfe)
+        {
+            visit(s.sfe.aggrfe);
+        }
+        else
+        {
+            assert(!!s.sfe.rangefe);
+            visit(s.sfe.rangefe);
+        }
+    }
+
     override void visit(IfStatement s)
     {
         buf.writestring("if (");

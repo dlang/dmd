@@ -114,6 +114,11 @@ extern (C++) class Visitor
         visit(cast(Statement)s);
     }
 
+    void visit(StaticForeachStatement s)
+    {
+        visit(cast(Statement)s);
+    }
+
     void visit(IfStatement s)
     {
         visit(cast(Statement)s);
