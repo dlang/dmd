@@ -101,11 +101,6 @@ extern (C++) final class StaticForeach : RootObject
         );
     }
 
-    private void dump(T)(T arg){ // TODO: remove
-        import core.stdc.stdio;
-        printf("%s\n",arg.toChars());
-    }
-
     private void lowerArrayAggregate(Scope* sc)
     {
         auto aggr = aggrfe.aggr;
@@ -246,7 +241,6 @@ extern (C++) final class StaticForeach : RootObject
     void prepare(Scope* sc)in{
         assert(!!sc); // TODO: this can fail when building documentation. Why?
     }body{
-        uint nerrors = global.errors;
 
         if (aggrfe)
         {
@@ -277,7 +271,7 @@ extern (C++) final class StaticForeach : RootObject
                 lowerNonArrayAggregate(sc);
             }
         }
-        // dump(aggrfe);
+
     }
 
     bool ready()
