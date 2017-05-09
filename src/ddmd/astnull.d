@@ -74,8 +74,8 @@ struct ASTNull
     enum STCdeprecated             = 0;
     enum STCstatic                 = 0;
     enum STCextern                 = 0;
-	enum STCalias                  = 0;
-	
+    enum STCalias                  = 0;
+
     enum Tident                    = 0;
     enum Tfunction                 = 0;
     enum Taarray                   = 0;
@@ -414,13 +414,13 @@ struct ASTNull
         }
     }
 
-	extern (C++) class StaticForeachDeclaration : AttribDeclaration
-	{
-		extern (D) this(A,B)(A a,B b)
-		{
-			super(0);
-		}
-	}
+    extern (C++) class StaticForeachDeclaration : AttribDeclaration
+    {
+        extern (D) this(A,B)(A a,B b)
+        {
+            super(0);
+        }
+    }
 
     extern (C++) class EnumMember : VarDeclaration
     {
@@ -614,12 +614,12 @@ struct ASTNull
         }
     }
 
-	extern (C++) final class StaticForeachStatement : Statement
-	{
-		final extern (D) this(A,B)(A a,B b){
-			super(0);
-		}
-	}
+    extern (C++) final class StaticForeachStatement : Statement
+    {
+        final extern (D) this(A,B)(A a,B b){
+            super(0);
+        }
+    }
 
     extern (C++) final class PragmaStatement : Statement
     {
@@ -1686,10 +1686,10 @@ struct ASTNull
 
     extern (C++) final class StaticForeach : RootObject
     {
-	    final extern (D) this(A,B,C)(A a, B b, C c) {}
+        final extern (D) this(A,B,C)(A a, B b, C c) {}
     }
 
-	extern (C++) abstract class Condition : RootObject
+    extern (C++) abstract class Condition : RootObject
     {
         final extern (D) this(A)(A a) {}
     }
