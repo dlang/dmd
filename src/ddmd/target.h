@@ -48,6 +48,7 @@ struct Target
     // ABI and backend.
     static void loadModule(Module *m);
     static void prefixName(OutBuffer *buf, LINK linkage);
+    static LINK systemLinkage();
 };
 
 #endif

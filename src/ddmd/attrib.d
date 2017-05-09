@@ -33,6 +33,7 @@ import ddmd.mtype;
 import ddmd.parse;
 import ddmd.root.outbuffer;
 import ddmd.root.rmem;
+import ddmd.target;
 import ddmd.tokens;
 import ddmd.utf;
 import ddmd.utils;
@@ -499,7 +500,7 @@ extern (C++) final class LinkDeclaration : AttribDeclaration
     {
         super(decl);
         //printf("LinkDeclaration(linkage = %d, decl = %p)\n", p, decl);
-        linkage = p;
+        linkage = (p == LINKsystem) ? Target.systemLinkage() : p;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)

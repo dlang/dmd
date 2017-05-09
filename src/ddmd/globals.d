@@ -408,6 +408,7 @@ enum LINK : int
     windows,
     pascal,
     objc,
+    system,
 }
 
 alias LINKdefault = LINK.def;
@@ -417,6 +418,7 @@ alias LINKcpp = LINK.cpp;
 alias LINKwindows = LINK.windows;
 alias LINKpascal = LINK.pascal;
 alias LINKobjc = LINK.objc;
+alias LINKsystem = LINK.system;
 
 enum CPPMANGLE : int
 {
