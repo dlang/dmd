@@ -592,6 +592,13 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     setError();
                     mixin(returnEarly);
                 }
+                static if(isStatic)
+                {
+                    if(!p.type)
+                    {
+                        p.type = Type.tsize_t;
+                    }
+                }
                 p.type = p.type.semantic(loc, sc);
                 TY keyty = p.type.ty;
                 if (keyty != Tint32 && keyty != Tuns32)
