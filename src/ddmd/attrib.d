@@ -1376,7 +1376,9 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 
     override final bool oneMember(Dsymbol* ps, Identifier ident)
     {
-        assert(0); // TODO: is this method dead code?
+        // TODO: is there a better implementation for this?
+        *ps = null;
+        return false;
     }
 
     override Dsymbols* include(Scope* sc, ScopeDsymbol sds)
