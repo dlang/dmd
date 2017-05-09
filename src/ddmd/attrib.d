@@ -1378,7 +1378,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
     {
         // TODO: is there a better implementation for this?
         *ps = null;
-        return false;
+        return true;
     }
 
     override Dsymbols* include(Scope* sc, ScopeDsymbol sds)

@@ -75,13 +75,13 @@ template staticMap(alias F,T...){
     static foreach(i,A;T){
         mixin("alias state"~to!string(i+1)~" = Seq!(state"~to!string(i)~",F!A);");
     }
-    alias Result = Seq!(mixin("state"~to!string(T.length)));
+    alias staticMap = Seq!(mixin("state"~to!string(T.length)));
 }
 
 import std.traits;
 alias arrayOf(T)=T[];
-static assert(is(staticMap!(arrayOf,int,char,bool,Object).Result==Seq!(int[], char[], bool[], Object[])));
-pragma(msg, staticMap!(arrayOf,int,char,bool,Object).Result);
+static assert(is(staticMap!(arrayOf,int,char,bool,Object)==Seq!(int[], char[], bool[], Object[])));
+pragma(msg, staticMap!(arrayOf,int,char,bool,Object));
 
 
 
