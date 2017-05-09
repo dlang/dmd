@@ -41,7 +41,6 @@ import ddmd.glue;
 import ddmd.id;
 import ddmd.init;
 import ddmd.irstate;
-import ddmd.mars;
 import ddmd.mtype;
 import ddmd.s2ir;
 import ddmd.sideeffect;
@@ -5153,11 +5152,8 @@ elem *toElem(Expression e, IRState *irs)
 
                         // ed needs to be inserted into the code later
                         if (!irs.varsInScope)
-                            /* Don't have an Expressions_create(), so press VarDeclarations_create()
-                             * into service. Fix when this file is converted to D.
-                             */
-                            irs.varsInScope = VarDeclarations_create();
-                        irs.varsInScope.push(cast(VarDeclaration)ed);
+                            irs.varsInScope = new Array!(elem*)();
+                        irs.varsInScope.push(ed);
                     }
                 }
             }
@@ -5693,7 +5689,7 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
     elem *edtors = null;
     for (size_t i = starti; i != endi; ++i)
     {
-        elem *ed = cast(elem *)(*irs.varsInScope)[i];
+        elem *ed = (*irs.varsInScope)[i];
         if (ed)
         {
             //printf("appending dtor\n");

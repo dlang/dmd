@@ -266,9 +266,6 @@
     <ClInclude Include="..\ddmd\intrange.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="..\ddmd\irstate.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="..\ddmd\json.h">
       <Filter>src</Filter>
     </ClInclude>
@@ -291,9 +288,6 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\ddmd\template.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ddmd\toir.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\ddmd\version.h">

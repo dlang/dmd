@@ -52,7 +52,6 @@ import ddmd.identifier;
 import ddmd.id;
 import ddmd.irstate;
 import ddmd.lib;
-import ddmd.mars;
 import ddmd.mtype;
 import ddmd.objc;
 import ddmd.s2ir;
@@ -147,7 +146,7 @@ void obj_write_deferred(Library library)
             Identifier id = Identifier.create(idstr);
 
             Module md = Module.create(mname, id, 0, 0);
-            md.members = Dsymbols_create();
+            md.members = new Dsymbols();
             md.members.push(s);   // its only 'member' is s
             md.doppelganger = 1;       // identify this module as doppelganger
             md.md = m.md;
@@ -1184,7 +1183,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             StringExp se = StringExp.create(Loc(), s.Sident.ptr);
             se.type = Type.tstring;
             se.type = se.type.semantic(Loc(), null);
-            Expressions *exps = Expressions_create();
+            Expressions *exps = new Expressions();
             exps.push(se);
             FuncDeclaration fdpro = FuncDeclaration.genCfunc(null, Type.tvoid, "trace_pro");
             Expression ec = VarExp.create(Loc(), fdpro);

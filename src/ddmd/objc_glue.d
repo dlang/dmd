@@ -20,7 +20,6 @@ import ddmd.declaration;
 import ddmd.dmodule;
 import ddmd.func;
 import ddmd.identifier;
-import ddmd.mars;
 import ddmd.mtype;
 import ddmd.objc;
 

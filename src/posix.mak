@@ -297,7 +297,7 @@ ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h file.h filename.h \
 	rmem.h root.h stringtable.h)
 
 GLUE_SRC = \
-	$(addprefix $D/,toir.h irstate.h \
+	$(addprefix $D/, \
 	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
 	tk.c gluestub.d objc_glue.d)
 
