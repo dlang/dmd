@@ -648,16 +648,19 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     Type tb = e.type.toBasetype();
                     Dsymbol ds = null;
-                    if (!isStatic && (tb.ty == Tfunction || tb.ty == Tsarray) && e.op == TOKvar)
-                        ds = (cast(VarExp)e).var;
-                    else if (e.op == TOKtemplate)
-                        ds = (cast(TemplateExp)e).td;
-                    else if (e.op == TOKscope)
-                        ds = (cast(ScopeExp)e).sds;
-                    else if (e.op == TOKfunction)
+                    if (!(storageClass&STCmanifest))
                     {
-                        auto fe = cast(FuncExp)e;
-                        ds = fe.td ? cast(Dsymbol)fe.td : fe.fd;
+                        if ((tb.ty == Tfunction || tb.ty == Tsarray || storageClass&STCalias) && e.op == TOKvar)
+                            ds = (cast(VarExp)e).var;
+                        else if (e.op == TOKtemplate)
+                            ds = (cast(TemplateExp)e).td;
+                        else if (e.op == TOKscope)
+                            ds = (cast(ScopeExp)e).sds;
+                        else if (e.op == TOKfunction)
+                        {
+                            auto fe = cast(FuncExp)e;
+                            ds = fe.td ? cast(Dsymbol)fe.td : fe.fd;
+                        }
                     }
 
                     if (ds)
@@ -688,6 +691,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     }
                     else
                     {
+                        e = resolveProperties(sc, e);
                         type = e.type;
                         if (paramtype)
                             type = paramtype;
@@ -695,7 +699,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         auto v = new VarDeclaration(loc, type, ident, ie);
                         if (storageClass & STCref)
                             v.storage_class |= STCref | STCforeach;
-                        if (isStatic || e.isConst() ||
+                        if (isStatic || storageClass&STCmanifest || e.isConst() ||
                             e.op == TOKstring ||
                             e.op == TOKstructliteral ||
                             e.op == TOKarrayliteral)
