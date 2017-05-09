@@ -498,8 +498,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         result = fs;
     }
 
-    void makeTupleForeach(bool isStatic,bool isDecl)(ForeachStatement fs,TupleForeachArgs!(isStatic,isDecl) args)
+    private static template MakeTupleForeachRet(bool isDecl){
+        static if(isDecl) alias MakeTupleForeachRet = Dsymbols*;
+        else alias MakeTupleForeachRet = void;
+    }
+
+    MakeTupleForeachRet!isDecl makeTupleForeach(bool isStatic,bool isDecl)(ForeachStatement fs,TupleForeachArgs!(isStatic,isDecl) args)
     {
+        enum returnEarly = isDecl ? q{ return null; } : q{ return; };
         static if(isDecl)
         {
             static assert(isStatic);
@@ -509,7 +515,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         {
             auto needExpansion = args[$-1];
         }
-        Statement s = fs;
+        alias s = fs; // TODO: ???
+
         auto loc = fs.loc;
         size_t dim = fs.parameters.dim;
         static if(isStatic) bool skipCheck = needExpansion;
@@ -517,20 +524,30 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         if (!skipCheck && (dim < 1 || dim > 2))
         {
             fs.error("only one (value) or two (key,value) arguments for tuple foreach");
-            return setError();
+            setError();
+            mixin(returnEarly);
         }
 
         Type paramtype = (*fs.parameters)[dim - 1].type;
         if (paramtype)
         {
             paramtype = paramtype.semantic(loc, sc);
-            if (paramtype.ty == Terror)
-                return setError();
+            if (paramtype.ty == Terror){
+                setError();
+                mixin(returnEarly);
+            }
         }
 
         Type tab = fs.aggr.type.toBasetype();
         TypeTuple tuple = cast(TypeTuple)tab;
-        auto statements = new Statements();
+        static if(!isDecl)
+        {
+            auto statements = new Statements();
+        }
+        else
+        {
+            auto declarations = new Dsymbols();
+        }
         //printf("aggr: op = %d, %s\n", fs.aggr.op, fs.aggr.toChars());
         size_t n;
         TupleExp te = null;
@@ -555,7 +572,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             else
                 t = Parameter.getNth(tuple.arguments, k).type;
             Parameter p = (*fs.parameters)[0];
-            auto st = new Statements();
+            static if(!isDecl)
+            {
+                auto st = new Statements();
+            }
+            else
+            {
+                auto st = new Dsymbols();
+            }
 
             static if(isStatic) bool skip = needExpansion;
             else enum skip = false;
@@ -565,7 +589,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 if (p.storageClass & (STCout | STCref | STClazy))
                 {
                     fs.error("no storage class for key `%s`", p.ident.toChars());
-                    return setError();
+                    setError();
+                    mixin(returnEarly);
                 }
                 p.type = p.type.semantic(loc, sc);
                 TY keyty = p.type.ty;
@@ -576,29 +601,40 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         if (keyty != Tint64 && keyty != Tuns64)
                         {
                             fs.error("foreach: key type must be int or uint, long or ulong, not `%s`", p.type.toChars());
-                            return setError();
+                            setError();
+                            mixin(returnEarly);
                         }
                     }
                     else
                     {
                         fs.error("foreach: key type must be int or uint, not `%s`", p.type.toChars());
-                        return setError();
+                        setError();
+                        mixin(returnEarly);
                     }
                 }
                 Initializer ie = new ExpInitializer(Loc(), new IntegerExp(k));
                 auto var = new VarDeclaration(loc, p.type, p.ident, ie);
                 var.storage_class |= STCmanifest;
                 static if(isStatic) var.storage_class |= STClocal;
-                st.push(new ExpStatement(loc, var));
+                static if(!isDecl)
+                {
+                    st.push(new ExpStatement(loc, var));
+                }
+                else
+                {
+                    st.push(var);
+                }
                 p = (*fs.parameters)[1]; // value
             }
-            void declareVariable(StorageClass storageClass, Type type, Identifier ident, Expression e, Type t)
+            bool declareVariable(StorageClass storageClass, Type type, Identifier ident, Expression e, Type t)
             {
+                enum returnEarly = q{ return false; };
                 if (storageClass & (STCout | STClazy) ||
                     storageClass & STCref && !te)
                 {
                     fs.error("no storage class for value `%s`", ident.toChars());
-                    return setError();
+                    setError();
+                    mixin(returnEarly);
                 }
                 Declaration var;
                 if (e)
@@ -623,12 +659,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         if (storageClass & STCref)
                         {
                             fs.error("symbol `%s` cannot be ref", s.toChars());
-                            return setError();
+                            setError();
+                            mixin(returnEarly);
                         }
                         if (paramtype)
                         {
                             fs.error("cannot specify element type for symbol `%s`", ds.toChars());
-                            return setError();
+                            setError();
+                            mixin(returnEarly);
                         }
                     }
                     else if (e.op == TOKtype)
@@ -637,7 +675,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         if (paramtype)
                         {
                             fs.error("cannot specify element type for type `%s`", e.type.toChars());
-                            return setError();
+                            setError();
+                            mixin(returnEarly);
                         }
                     }
                     else
@@ -672,7 +711,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                                         fs.error("constant value `%s` cannot be ref", ident.toChars());
                                     }
                                 }
-                                return setError();
+                                setError();
+                                mixin(returnEarly);
                             }
                             else
                                 v.storage_class |= STCmanifest;
@@ -686,18 +726,33 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     if (paramtype)
                     {
                         fs.error("cannot specify element type for symbol `%s`", s.toChars());
-                        return setError();
+                        setError();
+                        mixin(returnEarly);
                     }
                 }
                 static if(isStatic) var.storage_class |= STClocal;
-                st.push(new ExpStatement(loc, var));
+                static if(!isDecl)
+                {
+                    st.push(new ExpStatement(loc, var));
+                }
+                else
+                {
+                    st.push(var);
+                }
+                return true;
             }
             static if(!isStatic){
                 // Declare value
-                declareVariable(p.storageClass, p.type, p.ident, e, t);
+                if(!declareVariable(p.storageClass, p.type, p.ident, e, t))
+                {
+                    mixin(returnEarly);
+                }
             }else if(!needExpansion){
                 // Declare value
-                declareVariable(p.storageClass, p.type, p.ident, e, t);
+                if(!declareVariable(p.storageClass, p.type, p.ident, e, t))
+                {
+                    mixin(returnEarly);
+                }
             }else{
                 assert(e && !t);
                 auto ident = Identifier.generateId("__value");
@@ -707,7 +762,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 Expression access = new DotIdExp(loc, e, field);
                 access = access.semantic(sc);
                 auto types = access.type.isTuple();
-                if (!tuple) return;
+                if (!tuple) mixin(returnEarly);
                 //printf("%s\n",tuple.toChars());
                 foreach (l; 0 .. dim)
                 {
@@ -719,23 +774,61 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
             }
 
-            st.push(fs._body.syntaxCopy());
-            s = new CompoundStatement(loc, st);
-            static if(!isStatic)
-                s = new ScopeStatement(loc, s, fs.endloc);
+            static if(!isDecl)
+            {
+                st.push(fs._body.syntaxCopy());
+                Statement res = new CompoundStatement(loc, st);
+            }
             else
-                s = new ForwardingScopeStatement(loc, s, fs.endloc);
-            statements.push(s);
+            {
+                st.append(Dsymbol.arraySyntaxCopy(dbody));
+            }
+            static if(!isStatic)
+            {
+                res = new ScopeStatement(loc, res, fs.endloc);
+            }
+            else static if(!isDecl)
+            {
+                res = new ForwardingScopeStatement(loc, res, fs.endloc);
+            }
+            else
+            {
+                import ddmd.attrib: ForwardingAttribDeclaration;
+                auto res = new ForwardingAttribDeclaration(st);
+            }
+            static if(!isDecl)
+            {
+                statements.push(res);
+            }
+            else
+            {
+                declarations.push(res);
+            }
         }
 
         static if(!isStatic){
-            s = new UnrolledLoopStatement(loc, statements);
+            Statement res = new UnrolledLoopStatement(loc, statements);
             if (LabelStatement ls = checkLabeledLoop(sc, fs))
-                ls.gotoTarget = s;
+                ls.gotoTarget = res;
             if (te && te.e0)
-                s = new CompoundStatement(loc, new ExpStatement(te.e0.loc, te.e0), s);
-        }else s = new CompoundStatement(loc, statements);
-        result = s;
+                res = new CompoundStatement(loc, new ExpStatement(te.e0.loc, te.e0), res);
+        }
+        else static if(!isDecl)
+        {
+            Statement res = new CompoundStatement(loc, statements);
+        }
+        else
+        {
+            auto res = declarations;
+        }
+        static if(!isDecl)
+        {
+            result = res;
+        }
+        else
+        {
+            return res;
+        }
     }
 
     override void visit(ForeachStatement fs)
@@ -3683,8 +3776,21 @@ static template TupleForeachArgs(bool isStatic, bool isDecl){
     else alias TupleForeachArgs = Seq!(Dsymbols*,T);
 }
 
-Statement makeTupleForeach(bool isStatic,bool isDecl)(Scope* sc,ForeachStatement fs,TupleForeachArgs!(isStatic,isDecl) args){
+static template TupleForeachRet(bool isStatic, bool isDecl){
+    alias Seq(T...)=T;
+    static if(!isDecl) alias TupleForeachRet = Statement;
+    else alias TupleForeachRet = Dsymbols*;
+}
+
+TupleForeachRet!(isStatic,isDecl) makeTupleForeach(bool isStatic,bool isDecl)(Scope* sc,ForeachStatement fs,TupleForeachArgs!(isStatic,isDecl) args){
     scope v = new StatementSemanticVisitor(sc);
-    v.makeTupleForeach!(isStatic,isDecl)(fs,args);
-    return v.result;
+    static if(!isDecl)
+    {
+        v.makeTupleForeach!(isStatic,isDecl)(fs,args);
+        return v.result;
+    }
+    else
+    {
+        return v.makeTupleForeach!(isStatic,isDecl)(fs,args);
+    }
 }

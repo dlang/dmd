@@ -1358,6 +1358,8 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
     ScopeDsymbol scopesym;
     bool addisdone;
 
+    Dsymbols* cache = null;
+
     extern (D) this(StaticForeach sfe, Dsymbols* decl)
     {
         super(decl);
@@ -1374,15 +1376,22 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 
     override final bool oneMember(Dsymbol* ps, Identifier ident)
     {
-        // TODO
-        return Dsymbol.oneMembers(decl, ps, ident);
+        assert(0); // TODO: is this method dead code?
     }
 
     override Dsymbols* include(Scope* sc, ScopeDsymbol sds)
     {
+        if (cache)
+        {
+            return cache;
+        }
         sfe.prepare(_scope);
-        // TODO
-        Dsymbols* d = decl; // TODO: fix
+        if (!sfe.ready())
+        {
+            return null; // TODO: ok?
+        }
+        import ddmd.statementsem: makeTupleForeach;
+        Dsymbols* d = makeTupleForeach!(true,true)(_scope, sfe.aggrfe, decl, sfe.needExpansion);
         if (d && !addisdone)
         {
             // Add members lazily.
@@ -1399,7 +1408,8 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
             }
             addisdone = true;
         }
-        return decl;
+        cache = d;
+        return d;
     }
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
@@ -1437,6 +1447,38 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+}
+
+extern(C++) final class ForwardingAttribDeclaration: AttribDeclaration
+{
+    ForwardingScopeDsymbol sym = null;
+
+    this(Dsymbols* decl)
+    {
+        super(decl);
+        sym = new ForwardingScopeDsymbol(null);
+        sym.symtab = new DsymbolTable();
+    }
+
+    override Scope* newScope(Scope* sc)
+    {
+        return sc.push(sym);
+    }
+
+    override void addMember(Scope* sc, ScopeDsymbol sds)
+    {
+        parent = sym.parent = sym.forward = sds; // TODO: merge parent and forward?
+        if (!sym.forward.symtab)
+        {
+            sym.forward.symtab = new DsymbolTable();
+        }
+        return super.addMember(sc, sym);
+    }
+
+    override inout(ForwardingAttribDeclaration) isForwardingAttribDeclaration() inout
+    {
+        return this;
     }
 }
 

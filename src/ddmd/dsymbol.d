@@ -397,7 +397,7 @@ extern (C++) class Dsymbol : RootObject
     final inout(Dsymbol) pastMixin() inout
     {
         //printf("Dsymbol::pastMixin() %s\n", toChars());
-        if (!isTemplateMixin())
+        if (!isTemplateMixin() && !isForwardingAttribDeclaration())
             return this;
         if (!parent)
             return null;
@@ -442,7 +442,7 @@ extern (C++) class Dsymbol : RootObject
     /// ditto
     final inout(Dsymbol) toParent2() inout
     {
-        if (!parent || !parent.isTemplateInstance)
+        if (!parent || !parent.isTemplateInstance && !parent.isForwardingAttribDeclaration())
             return parent;
         return parent.toParent2;
     }
@@ -615,7 +615,7 @@ extern (C++) class Dsymbol : RootObject
         {
             if (!sds.symtabInsert(this)) // if name is already defined
             {
-                Dsymbol s2 = sds.symtab.lookup(ident);
+                Dsymbol s2 = sds.symtabLookup(this,ident);
                 if (!s2.overloadInsert(this))
                 {
                     sds.multiplyDefined(Loc(), this, s2);
@@ -1059,6 +1059,11 @@ extern (C++) class Dsymbol : RootObject
     }
 
     inout(TemplateMixin) isTemplateMixin() inout
+    {
+        return null;
+    }
+
+    inout(ForwardingAttribDeclaration) isForwardingAttribDeclaration() inout
     {
         return null;
     }
@@ -1587,6 +1592,11 @@ public:
         return symtab.insert(s);
     }
 
+    Dsymbol symtabLookup(Dsymbol s,Identifier id)
+    {
+        return symtab.lookup(id);
+    }
+
     /****************************************
      * Return true if any of the members are static ctors or static dtors, or if
      * any members have members that are.
@@ -2018,20 +2028,47 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
     }
     override Dsymbol symtabInsert(Dsymbol s)
     {
+        assert(!!forward);
         if (auto d = s.isDeclaration())
         {
             if (d.storage_class & STClocal)
             {
+                if (!symtab)
+                {
+                    symtab = new DsymbolTable();
+                }
                 return super.symtabInsert(s);
             }
         }
-        assert(!!forward);
         if (!forward.symtab)
         {
             forward.symtab = new DsymbolTable();
         }
         return forward.symtabInsert(s);
     }
+
+    override Dsymbol symtabLookup(Dsymbol s,Identifier id)
+    {
+        assert(!!forward);
+        if (auto d = s.isDeclaration())
+        {
+            if (d.storage_class & STClocal)
+            {
+                if (!symtab)
+                {
+                    symtab = new DsymbolTable();
+                }
+                return super.symtabLookup(s,id);
+            }
+        }
+        if (!forward.symtab)
+        {
+            forward.symtab = new DsymbolTable();
+        }
+        return forward.symtabLookup(s,id);
+    }
+
+    override const(char)* kind()const{ return "ForwardingScopeDsymbol"; }
 }
 
 
