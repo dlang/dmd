@@ -327,7 +327,7 @@ static:
     alias Seq(T...)=T;
     auto test(){
         int k;
-        /+static foreach(x;[k]){ // error // TODO: this crashes the compiler
+        /+static foreach(x;[k]){ // error
             
         }+/
         foreach(enum x;[1,2,3]){} // TODO: BUG. this should print an error
