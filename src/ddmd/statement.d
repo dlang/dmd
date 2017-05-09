@@ -1385,7 +1385,12 @@ extern (C++) final class StaticForeachStatement : Statement
             auto s = makeTupleForeach!(true,false)(sc, sfe.aggrfe,sfe.needExpansion);
             return s.flatten(sc);
         }
-        return null;
+        else
+        {
+            auto a = new Statements();
+            a.push(new ErrorStatement());
+            return a;
+        }
     }
 
     override void accept(Visitor v)

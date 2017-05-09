@@ -271,11 +271,6 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
             result = BEfallthru;
         }
 
-        override void visit(StaticForeachStatement s)
-        {
-            result = BEfallthru;
-        }
-
         override void visit(IfStatement s)
         {
             //printf("IfStatement::blockExit(%p)\n", s);
