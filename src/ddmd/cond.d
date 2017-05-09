@@ -70,6 +70,9 @@ import ddmd.declaration: VarDeclaration, StructDeclaration, STCstatic;
 import ddmd.func: FuncDeclaration, FuncLiteralDeclaration;
 import ddmd.aliasthis: AliasThis;
 import ddmd.dtemplate: TemplateTupleParameter, TemplateDeclaration;
+
+
+immutable StaticForeach_tupleFieldName = "tuple";
 extern (C++) final class StaticForeach : RootObject
 {
     Loc loc;
@@ -78,7 +81,6 @@ extern (C++) final class StaticForeach : RootObject
     ForeachRangeStatement rangefe;
 
     bool needExpansion = false; // need to expand a tuple into multiple variables
-    __gshared static immutable tupleFieldName = "tuple";
 
     final extern (D) this(Loc loc,ForeachStatement aggrfe,ForeachRangeStatement rangefe)
     in
@@ -159,7 +161,7 @@ extern (C++) final class StaticForeach : RootObject
         auto sdecl = new StructDeclaration(loc, sid);
         sdecl.storage_class |= STCstatic;
         sdecl.members = new Dsymbols();
-        auto fid = Identifier.idPool(tupleFieldName.ptr, tupleFieldName.length);
+        auto fid = Identifier.idPool(StaticForeach_tupleFieldName.ptr, StaticForeach_tupleFieldName.length);
         auto ty = new TypeTypeof(loc, new TupleExp(loc, e));
         sdecl.members.push(new VarDeclaration(loc, ty, fid, null, 0));
         return new TypeStruct(sdecl);

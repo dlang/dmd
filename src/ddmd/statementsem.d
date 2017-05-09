@@ -769,7 +769,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 auto ident = Identifier.generateId("__value");
                 declareVariable(0, e.type, ident, e, null);
                 import ddmd.cond: StaticForeach;
-                auto field = Identifier.idPool(StaticForeach.tupleFieldName.ptr,StaticForeach.tupleFieldName.length);
+                auto field = Identifier.idPool(StaticForeach_tupleFieldName.ptr,StaticForeach_tupleFieldName.length);
                 Expression access = new DotIdExp(loc, e, field);
                 access = access.semantic(sc);
                 auto types = access.type.isTuple();
