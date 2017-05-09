@@ -3990,7 +3990,7 @@ elem *toElem(Expression e, IRState *irs)
 
                         case Tint64:
                         case Tuns64:
-                            e.EV.Vullong4[i] = integer;
+                            e.EV.Vullong4[i] = cast(targ_ullong)integer;
                             break;
 
                         case Tint32:

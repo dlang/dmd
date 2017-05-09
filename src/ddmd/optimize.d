@@ -11,6 +11,7 @@
 module ddmd.optimize;
 
 import core.stdc.stdio;
+import core.checkedint;
 
 import ddmd.constfold;
 import ddmd.ctfeexpr;
@@ -374,7 +375,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 VarExp ve = cast(VarExp)e.e1;
                 if (!ve.var.isOut() && !ve.var.isRef() && !ve.var.isImportedSymbol())
                 {
-                    ret = new SymOffExp(e.loc, ve.var, 0, ve.hasOverloads);
+                    ret = new SymOffExp(e.loc, ve.var, dinteger_t(0), ve.hasOverloads);
                     ret.type = e.type;
                     return;
                 }
@@ -397,7 +398,6 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                             return error();
                         }
 
-                        import core.checkedint : mulu;
                         bool overflow;
                         const offset = mulu(index, ts.nextOf().size(e.loc), overflow);
                         if (overflow)
@@ -849,7 +849,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                     // This can be removed once compiling with DMD 2.068 or
                     // older is no longer supported.
                     const r = e.e2.toReal();
-                    if (r == real_t(cast(sinteger_t)r))
+                    if (r == cast(real_t)cast(sinteger_t)r)
                         e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
                 }
                 else

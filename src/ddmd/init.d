@@ -552,7 +552,7 @@ extern (C++) final class ArrayInitializer : Initializer
                 const uinteger_t idxvalue = idx.toInteger();
                 if (idxvalue >= amax)
                 {
-                    error(loc, "array index %llu overflow", ulong(idxvalue));
+                    error(loc, "array index %llu overflow", cast(ulong)idxvalue);
                     errors = true;
                 }
                 length = cast(uint)idxvalue;

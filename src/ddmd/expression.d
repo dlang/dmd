@@ -2720,7 +2720,7 @@ extern (C++) abstract class Expression : RootObject
     {
         //printf("Expression %s\n", Token::toChars(op));
         error("integer constant expression expected instead of %s", toChars());
-        return 0;
+        return dinteger_t(0);
     }
 
     uinteger_t toUInteger()
@@ -3456,6 +3456,12 @@ extern (C++) final class IntegerExp : Expression
 {
     dinteger_t value;
 
+    static if (!is(d_uns64 == dinteger_t))
+    extern (D) this(Loc loc, d_uns64 value, Type type)
+    {
+        this(loc, dinteger_t(value), type);
+    }
+
     extern (D) this(Loc loc, dinteger_t value, Type type)
     {
         super(loc, TOKint64, __traits(classInstanceSize, IntegerExp));
@@ -3470,6 +3476,12 @@ extern (C++) final class IntegerExp : Expression
         }
         this.type = type;
         setInteger(value);
+    }
+
+    static if (!is(d_uns64 == dinteger_t))
+    extern (D) this(d_uns64 value)
+    {
+        this(dinteger_t(value));
     }
 
     extern (D) this(dinteger_t value)
@@ -14851,7 +14863,7 @@ extern (C++) final class PowExp : BinExp
         sinteger_t intpow = 0;
         if (e2.op == TOKint64 && (cast(sinteger_t)e2.toInteger() == 2 || cast(sinteger_t)e2.toInteger() == 3))
             intpow = e2.toInteger();
-        else if (e2.op == TOKfloat64 && (e2.toReal() == real_t(cast(sinteger_t)e2.toReal())))
+        else if (e2.op == TOKfloat64 && (e2.toReal() == cast(real_t)cast(sinteger_t)e2.toReal()))
             intpow = cast(sinteger_t)e2.toReal();
 
         // Deal with x^^2, x^^3 immediately, since they are of practical importance.

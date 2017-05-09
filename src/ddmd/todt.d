@@ -129,7 +129,7 @@ extern (C++) void Initializer_toDt(Initializer init, DtBuilder dtb)
             for (Type tbn = tn; tbn.ty == Tsarray; tbn = tbn.nextOf().toBasetype())
             {
                 TypeSArray tsa = cast(TypeSArray)tbn;
-                n *= tsa.dim.toInteger();
+                n *= cast(size_t)tsa.dim.toInteger();
             }
 
             dt_t* dtdefault = null;
@@ -897,7 +897,7 @@ private void toDtElem(TypeSArray tsa, DtBuilder dtb, Expression e)
         Type tbn = tnext.toBasetype();
         while (tbn.ty == Tsarray && (!e || !tbn.equivalent(e.type.nextOf())))
         {
-            len *= (cast(TypeSArray)tbn).dim.toInteger();
+            len *= cast(size_t)(cast(TypeSArray)tbn).dim.toInteger();
             tnext = tbn.nextOf();
             tbn = tnext.toBasetype();
         }
@@ -1134,7 +1134,7 @@ extern (C++) class TypeInfoDtVisitor : Visitor
         genTypeInfo(tc.next, null);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0);   // TypeInfo for array of type
 
-        dtb.size(tc.dim.toInteger());          // length
+        dtb.size(cast(ulong)tc.dim.toInteger());          // length
     }
 
     override void visit(TypeInfoVectorDeclaration d)

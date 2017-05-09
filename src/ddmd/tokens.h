@@ -201,8 +201,8 @@ struct Token
     union
     {
         // Integers
-        d_int64 int64value;
-        d_uns64 uns64value;
+        sinteger_t intvalue;
+        uinteger_t unsvalue;
 
         // Floats
         real_t floatvalue;

@@ -2135,6 +2135,11 @@ extern (C++) abstract class Type : RootObject
         t = t.merge();
         return t;
     }
+    static if (!is(d_uns64 == dinteger_t))
+    final Type sarrayOf(d_uns64 dim)
+    {
+        return sarrayOf(dinteger_t(dim));
+    }
 
     final Type aliasthisOf()
     {
@@ -4704,13 +4709,13 @@ extern (C++) final class TypeSArray : TypeArray
         sz = dim.toInteger();
         {
             bool overflow = false;
-            sz = mulu(next.size(), sz, overflow);
+            sz = mulu(cast(dinteger_t)next.size(), sz, overflow);
             if (overflow)
                 goto Loverflow;
         }
         if (sz > uint.max)
             goto Loverflow;
-        return sz;
+        return cast(d_uns64)sz;
 
     Loverflow:
         error(loc, "static array %s size overflowed to %lld", toChars(), cast(long)sz);
@@ -4812,7 +4817,7 @@ extern (C++) final class TypeSArray : TypeArray
                  * run on them for the size, since they may be forward referenced.
                  */
                 bool overflow = false;
-                if (mulu(tbn.size(loc), d2, overflow) >= Target.maxStaticDataSize || overflow)
+                if (mulu(cast(dinteger_t)tbn.size(loc), d2, overflow) >= Target.maxStaticDataSize || overflow)
                     goto Loverflow;
             }
         }

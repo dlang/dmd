@@ -2332,7 +2332,7 @@ public:
         size_t o = buf.offset;
         for (size_t i = 0; i < e.len; i++)
         {
-            uint c = e.charAt(i);
+            uint c = e.charAt(dinteger_t(i));
             switch (c)
             {
             case '"':

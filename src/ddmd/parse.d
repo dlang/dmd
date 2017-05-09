@@ -1052,7 +1052,7 @@ final class Parser(AST) : Lexer
                     if (token.value == TOKidentifier)
                         s = new AST.DebugSymbol(token.loc, token.ident);
                     else if (token.value == TOKint32v || token.value == TOKint64v)
-                        s = new AST.DebugSymbol(token.loc, cast(uint)token.uns64value);
+                        s = new AST.DebugSymbol(token.loc, cast(uint)token.unsvalue);
                     else
                     {
                         error("identifier or integer expected, not %s", token.toChars());
@@ -1076,7 +1076,7 @@ final class Parser(AST) : Lexer
                     if (token.value == TOKidentifier)
                         s = new AST.VersionSymbol(token.loc, token.ident);
                     else if (token.value == TOKint32v || token.value == TOKint64v)
-                        s = new AST.VersionSymbol(token.loc, cast(uint)token.uns64value);
+                        s = new AST.VersionSymbol(token.loc, cast(uint)token.unsvalue);
                     else
                     {
                         error("identifier or integer expected, not %s", token.toChars());
@@ -2262,7 +2262,7 @@ final class Parser(AST) : Lexer
             if (token.value == TOKidentifier)
                 id = token.ident;
             else if (token.value == TOKint32v || token.value == TOKint64v)
-                level = cast(uint)token.uns64value;
+                level = cast(uint)token.unsvalue;
             else
                 error("identifier or integer expected inside debug(...), not %s", token.toChars());
             nextToken();
@@ -2290,7 +2290,7 @@ final class Parser(AST) : Lexer
             if (token.value == TOKidentifier)
                 id = token.ident;
             else if (token.value == TOKint32v || token.value == TOKint64v)
-                level = cast(uint)token.uns64value;
+                level = cast(uint)token.unsvalue;
             else if (token.value == TOKunittest)
                 id = Identifier.idPool(Token.toString(TOKunittest));
             else if (token.value == TOKassert)
@@ -7055,22 +7055,22 @@ final class Parser(AST) : Lexer
             break;
 
         case TOKint32v:
-            e = new AST.IntegerExp(loc, cast(d_int32)token.int64value, AST.Type.tint32);
+            e = new AST.IntegerExp(loc, cast(d_int32)token.intvalue, AST.Type.tint32);
             nextToken();
             break;
 
         case TOKuns32v:
-            e = new AST.IntegerExp(loc, cast(d_uns32)token.uns64value, AST.Type.tuns32);
+            e = new AST.IntegerExp(loc, cast(d_uns32)token.unsvalue, AST.Type.tuns32);
             nextToken();
             break;
 
         case TOKint64v:
-            e = new AST.IntegerExp(loc, token.int64value, AST.Type.tint64);
+            e = new AST.IntegerExp(loc, cast(d_int64)token.intvalue, AST.Type.tint64);
             nextToken();
             break;
 
         case TOKuns64v:
-            e = new AST.IntegerExp(loc, token.uns64value, AST.Type.tuns64);
+            e = new AST.IntegerExp(loc, cast(d_uns64)token.unsvalue, AST.Type.tuns64);
             nextToken();
             break;
 
@@ -7162,17 +7162,17 @@ final class Parser(AST) : Lexer
             break;
 
         case TOKcharv:
-            e = new AST.IntegerExp(loc, cast(d_uns8)token.uns64value, AST.Type.tchar);
+            e = new AST.IntegerExp(loc, cast(d_uns8)token.unsvalue, AST.Type.tchar);
             nextToken();
             break;
 
         case TOKwcharv:
-            e = new AST.IntegerExp(loc, cast(d_uns16)token.uns64value, AST.Type.twchar);
+            e = new AST.IntegerExp(loc, cast(d_uns16)token.unsvalue, AST.Type.twchar);
             nextToken();
             break;
 
         case TOKdcharv:
-            e = new AST.IntegerExp(loc, cast(d_uns32)token.uns64value, AST.Type.tdchar);
+            e = new AST.IntegerExp(loc, cast(d_uns32)token.unsvalue, AST.Type.tdchar);
             nextToken();
             break;
 

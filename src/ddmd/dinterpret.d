@@ -2240,7 +2240,7 @@ public:
         {
             // Normally this is already done by optimize()
             // Do it here in case optimize(WANTvalue) wasn't run before CTFE
-            result = new SymOffExp(e.loc, (cast(VarExp)e.e1).var, 0);
+            result = new SymOffExp(e.loc, (cast(VarExp)e.e1).var, dinteger_t(0));
             result.type = e.type;
             return;
         }
@@ -4135,13 +4135,13 @@ public:
                     ctfeStack.pop(se.lengthVar); // $ is defined only in [L..U]
 
                 const dim = dollar;
-                lowerbound = lwr ? lwr.toInteger() : 0;
+                lowerbound = lwr ? lwr.toInteger() : dinteger_t(0);
                 upperbound = upr ? upr.toInteger() : dim;
 
                 if (lowerbound < 0 || dim < upperbound)
                 {
                     e.error("array bounds [0..%llu] exceeded in slice [%llu..%llu]",
-                        ulong(dim), ulong(lowerbound), ulong(upperbound));
+                        cast(ulong)dim, cast(ulong)lowerbound, cast(ulong)upperbound);
                     return CTFEExp.cantexp;
                 }
             }
@@ -4155,7 +4155,7 @@ public:
                 if (oldse.upr.toInteger() < upperbound + oldse.lwr.toInteger())
                 {
                     e.error("slice [%llu..%llu] exceeds array bounds [0..%llu]",
-                        ulong(lowerbound), ulong(upperbound), oldse.upr.toInteger() - oldse.lwr.toInteger());
+                        cast(ulong)lowerbound, cast(ulong)upperbound, oldse.upr.toInteger() - oldse.lwr.toInteger());
                     return CTFEExp.cantexp;
                 }
                 aggregate = oldse.e1;
@@ -4195,7 +4195,7 @@ public:
             if (srclen != (upperbound - lowerbound))
             {
                 e.error("array length mismatch assigning [0..%llu] to [%llu..%llu]",
-                    ulong(srclen), ulong(lowerbound), ulong(upperbound));
+                    cast(ulong)srclen, cast(ulong)lowerbound, cast(ulong)upperbound);
                 return CTFEExp.cantexp;
             }
         }
@@ -4220,7 +4220,7 @@ public:
                     lowerbound < srcupper && srclower < upperbound)
                 {
                     e.error("overlapping slice assignment [%llu..%llu] = [%llu..%llu]",
-                        ulong(lowerbound), ulong(upperbound), ulong(srclower), ulong(srcupper));
+                        cast(ulong)lowerbound, cast(ulong)upperbound, cast(ulong)srclower, cast(ulong)srcupper);
                     return CTFEExp.cantexp;
                 }
                 version (all) // todo: instead we can directly access to each elements of the slice
@@ -4251,7 +4251,7 @@ public:
 
             // String literal block slice assign
             const value = cast(dchar)newval.toInteger();
-            foreach (i; 0 .. upperbound - lowerbound)
+            foreach (i; 0 .. cast(size_t)(upperbound - lowerbound))
             {
                 existingSE.setCodeUnit(cast(size_t)(i + firstIndex), value);
             }
@@ -4339,7 +4339,7 @@ public:
                     lowerbound < srcupper && srclower < upperbound)
                 {
                     e.error("overlapping slice assignment [%llu..%llu] = [%llu..%llu]",
-                        ulong(lowerbound), ulong(upperbound), ulong(srclower), ulong(srcupper));
+                        cast(ulong)lowerbound, cast(ulong)upperbound, cast(ulong)srclower, cast(ulong)srcupper);
                     return CTFEExp.cantexp;
                 }
                 version (all) // todo: instead we can directly access to each elements of the slice

@@ -465,13 +465,13 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 {
                     if (e.type.isunsigned())
                     {
-                        const f = real_t(value);
+                        const f = cast(real_t)value;
                         if (cast(dinteger_t)f != value) // isn't this a noop, because the compiler prefers ld
                             return;
                     }
                     else
                     {
-                        const f = real_t(cast(sinteger_t)value);
+                        const f = cast(real_t)cast(sinteger_t)value;
                         if (cast(sinteger_t)f != cast(sinteger_t)value)
                             return;
                     }
@@ -2008,7 +2008,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 if (f)
                 {
                     f.tookAddressOf++;
-                    auto se = new SymOffExp(e.loc, f, 0, false);
+                    auto se = new SymOffExp(e.loc, f, dinteger_t(0), false);
                     se.semantic(sc);
                     // Let SymOffExp::castTo() do the heavy lifting
                     visit(se);
@@ -2274,7 +2274,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     }
                     else
                     {
-                        result = new SymOffExp(e.loc, f, 0, false);
+                        result = new SymOffExp(e.loc, f, dinteger_t(0), false);
                         result.type = t;
                     }
                     f.tookAddressOf++;

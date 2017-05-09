@@ -566,8 +566,8 @@ extern (C++) struct Token
     union
     {
         // Integers
-        d_int64 int64value;
-        d_uns64 uns64value;
+        sinteger_t intvalue;
+        uinteger_t unsvalue;
         // Floats
         real_t floatvalue;
 
@@ -931,19 +931,19 @@ extern (C++) struct Token
         switch (value)
         {
         case TOKint32v:
-            sprintf(&buffer[0], "%d", cast(d_int32)int64value);
+            sprintf(&buffer[0], "%d", cast(d_int32)intvalue);
             break;
         case TOKuns32v:
         case TOKcharv:
         case TOKwcharv:
         case TOKdcharv:
-            sprintf(&buffer[0], "%uU", cast(d_uns32)uns64value);
+            sprintf(&buffer[0], "%uU", cast(d_uns32)unsvalue);
             break;
         case TOKint64v:
-            sprintf(&buffer[0], "%lldL", cast(long)int64value);
+            sprintf(&buffer[0], "%lldL", cast(long)intvalue);
             break;
         case TOKuns64v:
-            sprintf(&buffer[0], "%lluUL", cast(ulong)uns64value);
+            sprintf(&buffer[0], "%lluUL", cast(ulong)unsvalue);
             break;
         case TOKfloat32v:
             CTFloat.sprint(&buffer[0], 'g', floatvalue);

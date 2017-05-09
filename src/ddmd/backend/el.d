@@ -190,6 +190,10 @@ void el_replacesym(elem *,Symbol *,Symbol *);
 elem *el_nelems(type *);
 
 extern (C) elem *el_long(tym_t,targ_llong);
+elem* el_long(T)(tym_t tym, T value)
+{
+    return el_long(tym, cast(targ_llong)value);
+}
 
 int ERTOL(elem *);
 int el_noreturn(elem *);

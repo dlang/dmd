@@ -473,7 +473,7 @@ extern (C++) static void encodeInteger(Expression e, ubyte* buffer)
     for (int p = 0; p < size; p++)
     {
         int offset = p; // Would be (size - 1) - p; on BigEndian
-        buffer[offset] = ((value >> (p * 8)) & 0xFF);
+        buffer[offset] = cast(ubyte)((value >> (p * 8)) & 0xFF);
     }
 }
 

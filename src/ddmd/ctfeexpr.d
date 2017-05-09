@@ -545,7 +545,7 @@ extern (C++) uinteger_t resolveArrayLength(Expression e)
     if (e.op == TOKvector)
         e = (cast(VectorExp)e).e1;
     if (e.op == TOKnull)
-        return 0;
+        return uinteger_t(0);
     if (e.op == TOKslice)
     {
         uinteger_t ilo = (cast(SliceExp)e).lwr.toInteger();
@@ -554,17 +554,17 @@ extern (C++) uinteger_t resolveArrayLength(Expression e)
     }
     if (e.op == TOKstring)
     {
-        return (cast(StringExp)e).len;
+        return cast(uinteger_t)(cast(StringExp)e).len;
     }
     if (e.op == TOKarrayliteral)
     {
         ArrayLiteralExp ale = cast(ArrayLiteralExp)e;
-        return ale.elements ? ale.elements.dim : 0;
+        return cast(uinteger_t)(ale.elements ? ale.elements.dim : 0);
     }
     if (e.op == TOKassocarrayliteral)
     {
         AssocArrayLiteralExp ale = cast(AssocArrayLiteralExp)e;
-        return ale.keys.dim;
+        return cast(uinteger_t)ale.keys.dim;
     }
     assert(0);
 }
@@ -878,7 +878,7 @@ extern (C++) UnionExp pointerArithmetic(Loc loc, TOK op, Type type, Expression e
     }
     if (agg1.op == TOKsymoff)
     {
-        emplaceExp!(SymOffExp)(&ue, loc, (cast(SymOffExp)agg1).var, indx * sz);
+        emplaceExp!(SymOffExp)(&ue, loc, (cast(SymOffExp)agg1).var, cast(dinteger_t)(indx * sz));
         SymOffExp se = cast(SymOffExp)ue.exp();
         se.type = type;
         return ue;
@@ -1426,7 +1426,7 @@ extern (C++) UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
                 return ue;
             }
             dinteger_t v = es2e.toInteger();
-            Port.valcpy(cast(char*)s + i * sz, v, sz);
+            Port.valcpy(cast(char*)s + i * sz, cast(uint)v, sz);
         }
         // Add terminating 0
         memset(cast(char*)s + len * sz, 0, sz);
@@ -1456,7 +1456,7 @@ extern (C++) UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
                 return ue;
             }
             dinteger_t v = es2e.toInteger();
-            Port.valcpy(cast(char*)s + (es1.len + i) * sz, v, sz);
+            Port.valcpy(cast(char*)s + (es1.len + i) * sz, cast(uint)v, sz);
         }
         // Add terminating 0
         memset(cast(char*)s + len * sz, 0, sz);
