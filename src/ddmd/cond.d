@@ -244,7 +244,7 @@ extern (C++) final class StaticForeach : RootObject
 
 
     void prepare(Scope* sc)in{
-        assert(!!sc);
+        assert(!!sc); // TODO: this can fail when building documentation. Why?
     }body{
         uint nerrors = global.errors;
 
