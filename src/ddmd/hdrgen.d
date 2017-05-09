@@ -164,7 +164,7 @@ public:
 
     override void visit(UnrolledLoopStatement s)
     {
-        buf.writestring("unrolled {");
+        buf.writestring("/*unrolled*/ {");
         buf.writenl();
         buf.level++;
         foreach (sx; *s.statements)
@@ -1461,12 +1461,7 @@ public:
         if (hgs.fullDump)
         {
             buf.writenl();
-            if (ti.aliasdecl)
-            {
-                // the ti.aliasDecl is the instantiated body
-                // if we have it, print it.
-                ti.aliasdecl.accept(this);
-            }
+            dumpTemplateInstance(ti);
         }
     }
 
@@ -1482,6 +1477,31 @@ public:
         }
         buf.writeByte(';');
         buf.writenl();
+        if (hgs.fullDump)
+            dumpTemplateInstance(tm);
+    }
+
+    void dumpTemplateInstance(TemplateInstance ti)
+    {
+        buf.writeByte('{');
+        buf.writenl();
+        buf.level++;
+
+        if (ti.aliasdecl)
+        {
+            ti.aliasdecl.accept(this);
+            buf.writenl();
+        }
+        else if (ti.members)
+        {
+            foreach(m;*ti.members)
+                m.accept(this);
+        }
+
+        buf.level--;
+        buf.writeByte('}');
+        buf.writenl();
+
     }
 
     void tiargsToBuffer(TemplateInstance ti)
