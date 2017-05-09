@@ -69,7 +69,6 @@ void main(){
 
 // iterative computation over AliasSeq:
 // (TODO: nice version with X template)
-// (TODO: make eponymous templates containing static foreach work?)
 template staticMap(alias F,T...){
     alias state0=Seq!();
     static foreach(i,A;T){
@@ -303,7 +302,7 @@ static:
         }+/
         return [x,y,z];
     }
-    static assert(test()==[2,2,2]); // TODO: BUG
+    static assert(test()==[2,2,2]);
 }
 
 struct EnumForeach{
@@ -328,7 +327,7 @@ static:
     alias Seq(T...)=T;
     auto test(){
         int k;
-        /+static foreach(x;[k]){ // error // TODO: this crashes the compile
+        /+static foreach(x;[k]){ // error // TODO: this crashes the compiler
             
         }+/
         foreach(enum x;[1,2,3]){} // TODO: BUG. this should print an error
