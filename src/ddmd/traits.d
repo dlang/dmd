@@ -1143,6 +1143,13 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             if (!sm)
                 return 1;
+            if (auto decl = sm.isDeclaration())
+            {
+                if (decl.storage_class & STClocal)
+                {
+                    return 0;
+                }
+            }
             //printf("\t[%i] %s %s\n", i, sm.kind(), sm.toChars());
             if (sm.ident)
             {
