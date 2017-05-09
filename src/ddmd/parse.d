@@ -656,7 +656,7 @@ final class Parser(AST) : Lexer
                         // keep pLastDecl
                     }
                     else if (next == TOKforeach || next == TOKforeach_reverse){
-                        s = parseForeach!(true,true)(pLastDecl);
+                        s = parseForeach!(true,true)(loc, pLastDecl);
                     }
                     else
                     {
@@ -4808,7 +4808,7 @@ final class Parser(AST) : Lexer
         else static if(isDecl) alias ParseForeachRet = AST.StaticForeachDeclaration;
         else alias ParseForeachRet = AST.StaticForeachStatement;
     }
-    ParseForeachRet!(isStatic,isDecl) parseForeach(bool isStatic,bool isDecl)(ParseForeachArgs!(isStatic,isDecl) args){
+    ParseForeachRet!(isStatic,isDecl) parseForeach(bool isStatic,bool isDecl)(Loc loc, ParseForeachArgs!(isStatic,isDecl) args){
         static if(isDecl) static assert(isStatic);
         static if(isStatic)
         {
@@ -5108,7 +5108,7 @@ final class Parser(AST) : Lexer
                 }
                 else if(t.value == TOKforeach || t.value == TOKforeach_reverse)
                 {
-                    s = parseForeach!(true,false)();
+                    s = parseForeach!(true,false)(loc);
                     break;
                 }
                 if (t.value == TOKimport)
@@ -5375,7 +5375,7 @@ final class Parser(AST) : Lexer
         case TOKforeach:
         case TOKforeach_reverse:
             {
-                s = parseForeach!(false,false)();
+                s = parseForeach!(false,false)(loc);
                 break;
             }
         case TOKif:
