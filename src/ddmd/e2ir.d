@@ -416,7 +416,7 @@ if (!global.params.is64bit) assert(tysize(TYnptr) == 4);
         {
             e = ep;
             /* Recognize store operations as:
-             *  ((op OPparam op1) OPparam op2)
+             *  (op OPparam (op1 OPparam op2))
              * Rewrite as:
              *  (op1 OPvecsto (op OPparam op2))
              * A separate operation is used for stores because it
@@ -424,15 +424,13 @@ if (!global.params.is64bit) assert(tysize(TYnptr) == 4);
              * the optimizer.
              */
             if (e.Eoper == OPparam &&
-                e.EV.E1.Eoper == OPparam &&
-                e.EV.E1.EV.E1.Eoper == OPconst &&
-                isXMMstore(cast(uint)el_tolong(e.EV.E1.EV.E1)))
+                e.EV.E1.Eoper == OPconst &&
+                isXMMstore(cast(uint)el_tolong(e.EV.E1)))
             {
-                //printf("OPvecsto\n");
-                elem *tmp = e.EV.E2;
-                e.EV.E2 = e.EV.E1;
-                e.EV.E1 = e.EV.E2.EV.E2;
-                e.EV.E2.EV.E2 = tmp;
+                printf("OPvecsto\n");
+                elem *tmp = e.EV.E1;
+                e.EV.E1 = e.EV.E2.EV.E1;
+                e.EV.E2.EV.E1 = tmp;
                 e.Eoper = OPvecsto;
                 e.Ety = tyret;
             }

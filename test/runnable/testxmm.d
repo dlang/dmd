@@ -1874,6 +1874,17 @@ void test17344()
 
 /*****************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=17356
+
+void test17356()
+{
+    float4 a = 13, b = 0;
+    __simd_sto(XMM.STOUPS, b, a);
+    assert(b.array == [13, 13, 13, 13]);
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -1912,6 +1923,7 @@ int main()
     testOPvecunsto();
     test10447();
     test17344();
+    test17356();
 
     return 0;
 }
