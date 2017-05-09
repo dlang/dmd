@@ -219,7 +219,6 @@ SRCS = $D/aggregate.h $D/aliasthis.h $D/arraytypes.h	\
 
 # Glue layer
 GLUESRC= \
-	$D/toir.h $D/irstate.h \
 	$D/libelf.d $D/scanelf.d $D/libmach.d $D/scanmach.d \
 	$D/tk.c $D/objc_glue.d \
 	$(GLUE_SRCS)

@@ -201,7 +201,6 @@ popd</Command>
     <ClInclude Include="..\ddmd\import.h" />
     <ClInclude Include="..\ddmd\init.h" />
     <ClInclude Include="..\ddmd\intrange.h" />
-    <ClInclude Include="..\ddmd\irstate.h" />
     <ClInclude Include="..\ddmd\json.h" />
     <ClInclude Include="..\ddmd\mars.h" />
     <ClInclude Include="..\ddmd\module.h" />
@@ -213,7 +212,6 @@ popd</Command>
     <ClInclude Include="..\ddmd\staticassert.h" />
     <ClInclude Include="..\ddmd\target.h" />
     <ClInclude Include="..\ddmd\template.h" />
-    <ClInclude Include="..\ddmd\toir.h" />
     <ClInclude Include="..\ddmd\tokens.h" />
     <ClInclude Include="..\ddmd\version.h" />
     <ClInclude Include="..\ddmd\backend\aa.h" />

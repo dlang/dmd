@@ -1861,41 +1861,6 @@ private const(char)* parse_conf_arg(Strings* args)
 
 
 /**
- * Helper function used by the glue layer
- *
- * Returns:
- *   A new array of Dsymbol
- */
-extern (C++) Dsymbols* Dsymbols_create()
-{
-    return new Dsymbols();
-}
-
-
-/**
- * Helper function used by the glue layer
- *
- * Returns:
- *   A new array of VarDeclaration
- */
-extern (C++) VarDeclarations* VarDeclarations_create()
-{
-    return new VarDeclarations();
-}
-
-
-/**
- * Helper function used by the glue layer
- *
- * Returns:
- *   A new array of Expression
- */
-extern (C++) Expressions* Expressions_create()
-{
-    return new Expressions();
-}
-
-/**
  * Set the default and debug libraries to link against, if not already set
  *
  * Must be called after argument parsing is done, as it won't
