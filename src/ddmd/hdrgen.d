@@ -3165,6 +3165,7 @@ extern (C++) const(char)* stcToChars(ref StorageClass stc)
         SCstring(STCtrusted, TOKat, "@trusted"),
         SCstring(STCsystem, TOKat, "@system"),
         SCstring(STCdisable, TOKat, "@disable"),
+        SCstring(STClocal, TOKlocal, "__local"),
         SCstring(0, TOKreserved)
     ];
     for (int i = 0; table[i].stc; i++)

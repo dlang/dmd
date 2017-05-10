@@ -1078,6 +1078,11 @@ extern (C++) class Dsymbol : RootObject
         return null;
     }
 
+    inout(StorageClassDeclaration) isStorageClassDeclaration() inout
+    {
+        return null;
+    }
+
     inout(ThisDeclaration) isThisDeclaration() inout
     {
         return null;
@@ -1703,6 +1708,8 @@ public:
         return this;
     }
 
+    override void semantic(Scope* sc) { }
+
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -2070,6 +2077,8 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
         }
         return forward.symtabLookup(s,id);
     }
+
+    override void semantic(Scope* sc){ }
 
     override const(char)* kind()const{ return "ForwardingScopeDsymbol"; }
 }

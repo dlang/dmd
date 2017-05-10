@@ -75,6 +75,7 @@ struct ASTNull
     enum STCstatic                 = 0;
     enum STCextern                 = 0;
     enum STCalias                  = 0;
+    enum STClocal                  = 0;
 
     enum Tident                    = 0;
     enum Tfunction                 = 0;

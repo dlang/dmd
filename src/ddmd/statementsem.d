@@ -517,6 +517,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         static if(isStatic)
         {
             auto needExpansion = args[$-1];
+            assert(!!sc);
+            auto previous = sc.scopesym;
         }
         alias s = fs; // TODO: ???
 
@@ -781,10 +783,26 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 foreach (l; 0 .. dim)
                 {
                     auto cp = (*fs.parameters)[l];
-                    Expression init_ = new IndexExp(loc,access,new IntegerExp(loc, l, Type.tsize_t));
+                    Expression init_ = new IndexExp(loc, access, new IntegerExp(loc, l, Type.tsize_t));
                     init_ = init_.semantic(sc);
                     assert(!!init_.type);
                     declareVariable(p.storageClass, init_.type, cp.ident, init_, null);
+                }
+            }
+
+            static if(isStatic)
+            {
+                auto ident = Identifier.idPool("__previous", "__previous".length);
+                auto prev = new AliasDeclaration(loc, ident, previous);
+                prev.storage_class |= STClocal;
+                static if(isDecl)
+                {
+                    st.push(prev);
+                }
+                else
+                {
+                    auto prevst = new ExpStatement(loc, prev);
+                    st.push(prevst);
                 }
             }
 
@@ -803,12 +821,15 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
             else static if(!isDecl)
             {
-                res = new ForwardingScopeStatement(loc, res, fs.endloc);
+                auto fwd = new ForwardingScopeStatement(loc, res, fs.endloc);
+                previous = fwd.sym;
+                res = fwd;
             }
             else
             {
                 import ddmd.attrib: ForwardingAttribDeclaration;
                 auto res = new ForwardingAttribDeclaration(st);
+                previous = res.sym;
             }
             static if(!isDecl)
             {

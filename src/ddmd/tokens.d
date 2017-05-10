@@ -303,6 +303,8 @@ enum TOK : int
     TOKvoidexp,
     TOKcantexp,
 
+    TOKlocal,
+
     TOKMAX,
 }
 
@@ -546,6 +548,8 @@ alias TOKpound = TOK.TOKpound;
 alias TOKinterval = TOK.TOKinterval;
 alias TOKvoidexp = TOK.TOKvoidexp;
 alias TOKcantexp = TOK.TOKcantexp;
+alias TOKlocal = TOK.TOKlocal;
+
 alias TOKMAX = TOK.TOKMAX;
 
 enum TOKwild = TOKinout;
@@ -693,6 +697,7 @@ extern (C++) struct Token
         TOKprettyfunc: "__PRETTY_FUNCTION__",
         TOKshared: "shared",
         TOKimmutable: "immutable",
+        TOKlocal: "__local",
 
         TOKeof: "EOF",
         TOKlcurly: "{",
@@ -1185,4 +1190,5 @@ private immutable TOK[] keywords =
     TOKprettyfunc,
     TOKshared,
     TOKimmutable,
+    TOKlocal,
 ];

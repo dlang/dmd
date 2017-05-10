@@ -4210,6 +4210,12 @@ extern (C++) final class DsymbolExp : Expression
             return e;
         }
 
+        if(ScopeDsymbol scs = s.isScopeDsymbol())
+        {
+            Expression sce = new ScopeExp(loc, scs);
+            sce = sce.semantic(sc);
+            return sce;
+        }
         .error(loc, "%s '%s' is not a variable", s.kind(), s.toChars());
         return new ErrorExp();
     }
@@ -7247,8 +7253,14 @@ extern (C++) final class DeclarationExp : Expression
                         Dsymbol s2;
                         if (scx.scopesym && scx.scopesym.symtab && (s2 = scx.scopesym.symtab.lookup(s.ident)) !is null && s != s2)
                         {
-                            error("%s %s is shadowing %s %s", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
-                            return new ErrorExp();
+                            // allow STClocal symbols to be shadowed
+                            // TODO: not really an optimal design
+                            auto decl = s2.isDeclaration();
+                            if (!decl || !(decl.storage_class & STClocal))
+                            {
+                                error("%s %s is shadowing %s %s", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
+                                return new ErrorExp();
+                            }
                         }
                     }
                 }

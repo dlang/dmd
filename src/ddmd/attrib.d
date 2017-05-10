@@ -396,6 +396,38 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
         return t;
     }
 
+    override void addMember(Scope* sc, ScopeDsymbol sds)
+    {
+        Dsymbols* d = include(sc, sds);
+        if (d)
+        {
+            Scope* sc2 = newScope(sc);
+            for (size_t i = 0; i < d.dim; i++)
+            {
+                Dsymbol s = (*d)[i];
+                //printf("\taddMember %s to %s\n", s.toChars(), sds.toChars());
+                // STClocal needs to be attached before the member is added to the scope (because it influences the parent symbol)
+                if (auto decl = s.isDeclaration())
+                {
+                    decl.storage_class |= stc & STClocal;
+                    if (auto sdecl = s.isStorageClassDeclaration()) // TODO: why is this not enough to deal with the nested case?
+                    {
+                        sdecl.stc |= stc & STClocal;
+                    }
+                }
+                s.addMember(sc2, sds);
+            }
+            if (sc2 != sc)
+                sc2.pop();
+        }
+
+    }
+
+    override inout(StorageClassDeclaration) isStorageClassDeclaration() inout
+    {
+        return this;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);

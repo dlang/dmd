@@ -66,6 +66,8 @@ public:
     Scope *newScope(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
 
+        StorageClassDeclaration *isStorageClassDeclaration();
+
     void accept(Visitor *v) { v->visit(this); }
 };
 
