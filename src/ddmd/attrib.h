@@ -65,8 +65,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
-
-        StorageClassDeclaration *isStorageClassDeclaration();
+    StorageClassDeclaration *isStorageClassDeclaration();
 
     void accept(Visitor *v) { v->visit(this); }
 };

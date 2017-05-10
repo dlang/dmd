@@ -248,7 +248,7 @@ public:
     virtual TemplateMixin *isTemplateMixin() { return NULL; }
     virtual Nspace *isNspace() { return NULL; }
     virtual Declaration *isDeclaration() { return NULL; }
-        virtual StorageClassDeclaration *isStorageClassDeclaration(){ return NULL; }
+    virtual StorageClassDeclaration *isStorageClassDeclaration(){ return NULL; }
     virtual ThisDeclaration *isThisDeclaration() { return NULL; }
     virtual TypeInfoDeclaration *isTypeInfoDeclaration() { return NULL; }
     virtual TupleDeclaration *isTupleDeclaration() { return NULL; }
