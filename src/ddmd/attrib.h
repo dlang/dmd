@@ -194,6 +194,32 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+class StaticForeachDeclaration : public ConditionalDeclaration
+{
+public:
+    ScopeDsymbol *scopesym;
+    bool addisdone;
+
+    Dsymbol *syntaxCopy(Dsymbol *s);
+    Dsymbols *include(Scope *sc, ScopeDsymbol *sds);
+    void addMember(Scope *sc, ScopeDsymbol *sds);
+    void setScope(Scope *sc);
+    void importAll(Scope *sc);
+    void semantic(Scope *sc);
+    const char *kind() const;
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class ForwardingAttribDeclaration: AttribDeclaration
+{
+public:
+        ForwardingScopeDsymbol *sym;
+
+        Scope* newScope(Scope *sc);
+        void addMember(Scope *sc, ScopeDsymbol *sds);
+        ForwardingAttribDeclaration *isForwardingAttribDeclaration();
+};
+
 // Mixin declarations
 
 class CompileDeclaration : public AttribDeclaration

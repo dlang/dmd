@@ -72,7 +72,7 @@ extern (C++) abstract class Condition : RootObject
 
 immutable StaticForeach_tupleFieldName = "tuple"; // used in lowering
 extern (C++) final class StaticForeach : RootObject
-{    
+{
     Loc loc;
 
     ForeachStatement aggrfe;
@@ -99,7 +99,7 @@ extern (C++) final class StaticForeach : RootObject
         );
     }
 
-    private void lowerArrayAggregate(Scope* sc)
+    private extern(D) void lowerArrayAggregate(Scope* sc)
     {
         auto aggr = aggrfe.aggr;
         Expression el = new ArrayLengthExp(aggr.loc, aggr);
@@ -128,7 +128,7 @@ extern (C++) final class StaticForeach : RootObject
         }
     }
 
-    private Expression evaluate(Loc loc,Statement s)
+    private extern(D) Expression evaluate(Loc loc,Statement s)
     {
         auto tf = new TypeFunction(new Parameters(), null, 0, LINK.def, 0);
         auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOKfunction, null);
@@ -138,7 +138,7 @@ extern (C++) final class StaticForeach : RootObject
         return ce;
     }
 
-    private Statement createForeach(Loc loc, Parameters* parameters, Statement s)
+    private extern(D) Statement createForeach(Loc loc, Parameters* parameters, Statement s)
     {
         if (aggrfe)
         {
@@ -151,7 +151,7 @@ extern (C++) final class StaticForeach : RootObject
         }
     }
 
-    private TypeStruct createTupleType(Loc loc, Expressions* e, Scope* sc)
+    private extern(D) TypeStruct createTupleType(Loc loc, Expressions* e, Scope* sc)
     {   // TODO: move to druntime?
         auto sid = Identifier.generateId("Tuple");
         auto sdecl = new StructDeclaration(loc, sid);
@@ -163,7 +163,7 @@ extern (C++) final class StaticForeach : RootObject
         return new TypeStruct(sdecl);
     }
 
-    private Expression createTuple(Loc loc, TypeStruct type, Expressions* e)
+    private extern(D) Expression createTuple(Loc loc, TypeStruct type, Expressions* e)
     {   // TODO: move to druntime?
         return new CallExp(loc, new TypeExp(loc, type), e);
     }
@@ -239,7 +239,7 @@ extern (C++) final class StaticForeach : RootObject
     }
 
 
-    void prepare(Scope* sc)in{
+    final extern(D) void prepare(Scope* sc)in{
         assert(!!sc); // TODO: this can fail when building documentation. Why?
     }body{
 
@@ -274,7 +274,7 @@ extern (C++) final class StaticForeach : RootObject
         }
     }
 
-    bool ready()
+    final extern(D) bool ready()
     {
         return aggrfe && aggrfe.aggr && aggrfe.aggr.type.toBasetype().ty == Ttuple;
     }
