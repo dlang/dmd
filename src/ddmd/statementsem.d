@@ -362,12 +362,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
     }
 
     override void visit(ForwardingScopeStatement ss){
-        ScopeDsymbol sym;
-        if(ss.statement){
-            sym = new ForwardingScopeDsymbol(sc.scopesym);
-            sym.parent = sc.scopesym;
-        }
-        visitScopeStatement(ss, sym);
+        assert(!!ss.sym);
+        ss.sym.parent = ss.sym.forward = sc.scopesym; // TODO: merge parent and forward?
+        visitScopeStatement(ss, ss.sym);
     }
 
     override void visit(WhileStatement ws)

@@ -224,6 +224,8 @@ public:
 
 class ForwardingScopeStatement : public Statement
 {
+    ForwardingScopeDsymbol *sym;
+
     void accept(Visitor *v) { v->visit(this); }
 };
 

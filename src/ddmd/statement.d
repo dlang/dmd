@@ -1003,9 +1003,13 @@ extern (C++) class ScopeStatement : Statement
  */
 extern (C++) final class ForwardingScopeStatement : ScopeStatement
 {
+    ForwardingScopeDsymbol sym = null;
+
     extern (D) this(Loc loc, Statement s, Loc endloc)
     {
         super(loc,s,endloc);
+        sym = new ForwardingScopeDsymbol(null);
+        sym.symtab = new DsymbolTable();
     }
 
     override void accept(Visitor v){
