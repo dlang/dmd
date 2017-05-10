@@ -1495,7 +1495,7 @@ struct BCScope
 
 debug = nullPtrCheck;
 debug = nullAllocCheck;
-//debug = andand;
+debug = andand;
 extern (C++) final class BCV(BCGenT) : Visitor
 {
     uint unresolvedGotoCount;
@@ -2676,10 +2676,11 @@ static if (is(BCGen))
 
                     if(e.e1.op != TOK.TOKandand)
                     {
-                        while (e.e2.op == TOK.TOKandand)
+                    /*     while (e.e2.op == TOK.TOKandand)
                             {
                                 e = cast(AndAndExp)e.e2;
                             }
+                    */
                         auto rhs = genExpr(e.e2);
 
                         if (!rhs || !canWorkWithType(rhs.type))
@@ -5376,33 +5377,35 @@ static if (is(BCGen))
         }
 
         uint oldFixupTableCount = fixupTableCount;
-        if (fs.condition.op == TOKandand || fs.condition.op == TOKoror)
+        bool isBoolExp = (fs.condition.op == TOKandand || fs.condition.op == TOKoror);
+        if (isBoolExp)
         {
             lastExpr = null;
             noRetval = true;
         }
         auto cond = genExpr(fs.condition);
+
         noRetval = false;
         if (!cond)
         {
             bailout("IfStatement: Could not genrate condition" ~ fs.condition.toString);
             return;
         }
-        /* TODO we need to do something else if we deal with cained && and || Exps
-        if (isChainedBoolExp())
-        {
-            BCBlock ifbody = fs.ifbody ? genBlock(fs.ifbody) : BCBlock.init;
-            BCBlock elsebody = fs.elsebody ? genBlock(fs.elsebody) : BCBlock.init;
-        }*/
 
-        auto cj = beginCndJmp(cond);
+        typeof(beginCndJmp(cond)) cj;
+
+        if (!isBoolExp)
+            cj = beginCndJmp(cond);
 
         BCBlock ifbody = fs.ifbody ? genBlock(fs.ifbody) : BCBlock.init;
         auto to_end = beginJmp();
         auto elseLabel = genLabel();
         BCBlock elsebody = fs.elsebody ? genBlock(fs.elsebody) : BCBlock.init;
         endJmp(to_end, genLabel());
-        endCndJmp(cj, elseLabel);
+
+        if (!isBoolExp)
+            endCndJmp(cj, elseLabel);
+
         doFixup(oldFixupTableCount, ifbody ? &ifbody.begin : null,
             elsebody ? &elsebody.begin : null);
         assert(oldFixupTableCount == fixupTableCount);
