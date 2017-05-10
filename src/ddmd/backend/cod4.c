@@ -192,7 +192,7 @@ STATIC code * opassdbl(elem *e,regm_t *pretregs,unsigned op)
     if ((cs.Iflags & CFSEG) == CFes)
         idxregs |= mES;
     cgstate.stackclean++;
-    cdb.append(scodelem(e->E2,&retregs2,idxregs,FALSE));
+    scodelem(cdb,e->E2,&retregs2,idxregs,FALSE);
     cgstate.stackclean--;
     cdb.append(callclib(e,clib,&retregs,0));
     if (e1->Ecount)
@@ -644,7 +644,7 @@ code *cdeq(elem *e,regm_t *pretregs)
         retregs |= mPSW;
         *pretregs &= ~mPSW;
   }
-    cdb.append(scodelem(e2,&retregs,0,TRUE));    // get rvalue
+    scodelem(cdb,e2,&retregs,0,TRUE);    // get rvalue
 
     // Look for special case of (*p++ = ...), where p is a register variable
     if (e1->Eoper == OPind &&
@@ -1108,11 +1108,11 @@ code *cdaddass(elem *e,regm_t *pretregs)
         retregs = mPSW;
         if (OTconv(e2->Eoper))
         {
-            cdb.append(scodelem(e2->E1,&retregs,keepmsk,TRUE));
+            scodelem(cdb,e2->E1,&retregs,keepmsk,TRUE);
             freenode(e2);
         }
         else
-            cdb.append(scodelem(e2,&retregs,keepmsk,TRUE));
+            scodelem(cdb,e2,&retregs,keepmsk,TRUE);
         cs.Iop = 0x81 ^ byte;                   // ADC EA,imm16/32
         unsigned reg = 2;                       // ADC
         if ((op == OPaddass) ^ (jop == JC))
@@ -1131,7 +1131,7 @@ code *cdaddass(elem *e,regm_t *pretregs)
         retregs = (byte) ? BYTEREGS : ALLREGS;  // pick working reg
         if (tyml == TYhptr)
             retregs &= ~mCX;                    // need CX for shift count
-        cdb.append(scodelem(e->E2,&retregs,0,TRUE));   // get rvalue
+        scodelem(cdb,e->E2,&retregs,0,TRUE);   // get rvalue
         cdb.append(getlvalue(&cs,e1,retregs));         // get lvalue
         cdb.append(modEA(&cs));
         cs.Iop = op1;
@@ -1883,7 +1883,7 @@ code *cdcmp(elem *e,regm_t *pretregs)
         retregs = mDX | mAX;
         cdb.append(codelem(e1,&retregs,FALSE));
         retregs = mCX | mBX;
-        cdb.append(scodelem(e2,&retregs,mDX | mAX,FALSE));
+        scodelem(cdb,e2,&retregs,mDX | mAX,FALSE);
 
         if (I16)
         {
@@ -1956,12 +1956,12 @@ code *cdcmp(elem *e,regm_t *pretregs)
   {
       default:
       L2:
-        cdb.append(scodelem(e1,&retregs,0,TRUE));      // compute left leaf
+        scodelem(cdb,e1,&retregs,0,TRUE);      // compute left leaf
       L1:
         rretregs = allregs & ~retregs;
         if (byte)
                 rretregs &= BYTEREGS;
-        cdb.append(scodelem(e2,&rretregs,retregs,TRUE));     // get right leaf
+        scodelem(cdb,e2,&rretregs,retregs,TRUE);     // get right leaf
         if (sz <= REGSIZE)                              // CMP reg,rreg
         {   reg = findreg(retregs);             // get reg that e1 is in
             rreg = findreg(rretregs);
@@ -2133,7 +2133,7 @@ code *cdcmp(elem *e,regm_t *pretregs)
                     rretregs = allregs & ~retregs;
                     if (byte)
                             rretregs &= BYTEREGS;
-                    cdb.append(scodelem(e2,&rretregs,retregs,TRUE));
+                    scodelem(cdb,e2,&rretregs,retregs,TRUE);
                     cs.Iop = 0x39 ^ byte ^ reverse;
                     if (sz > REGSIZE)
                     {
@@ -2205,18 +2205,18 @@ code *cdcmp(elem *e,regm_t *pretregs)
             !boolres(e2) && !evalinregister(e1))
         {
             retregs = mPSW;
-            cdb.append(scodelem(e1,&retregs,0,FALSE));
+            scodelem(cdb,e1,&retregs,0,FALSE);
             freenode(e2);
             break;
         }
         if (sz <= REGSIZE && !boolres(e2) && e1->Eoper == OPadd && *pretregs == mPSW)
         {
             retregs |= mPSW;
-            cdb.append(scodelem(e1,&retregs,0,FALSE));
+            scodelem(cdb,e1,&retregs,0,FALSE);
             freenode(e2);
             break;
         }
-        cdb.append(scodelem(e1,&retregs,0,TRUE));  // compute left leaf
+        scodelem(cdb,e1,&retregs,0,TRUE);  // compute left leaf
         if (sz == 1)
         {
             reg = findreg(retregs & allregs);   // get reg that e1 is in
@@ -2307,7 +2307,7 @@ code *cdcmp(elem *e,regm_t *pretregs)
             break;
         }
       L5:
-        cdb.append(scodelem(e1,&retregs,0,TRUE));      // compute left leaf
+        scodelem(cdb,e1,&retregs,0,TRUE);      // compute left leaf
         if (sz <= REGSIZE)                      // CMP reg,EA
         {
             reg = findreg(retregs & allregs);   // get reg that e1 is in
@@ -2470,9 +2470,9 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
   {
       default:
       L2:
-        cdb.append(scodelem(e1,&retregs,0,TRUE));      // compute left leaf
+        scodelem(cdb,e1,&retregs,0,TRUE);      // compute left leaf
         rretregs = ALLREGS & ~retregs;
-        cdb.append(scodelem(e2,&rretregs,retregs,TRUE));     // get right leaf
+        scodelem(cdb,e2,&rretregs,retregs,TRUE);     // get right leaf
         cdb.append(cse_flush(1));
         // Compare MSW, if they're equal then compare the LSW
         reg = findregmsw(retregs);
@@ -2505,7 +2505,7 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
                         if ((cs.Iflags & CFSEG) == CFes)
                                 retregs |= mES;         // take no chances
                         rretregs = ALLREGS & ~retregs;
-                        cdb.append(scodelem(e2,&rretregs,retregs,TRUE));
+                        scodelem(cdb,e2,&rretregs,retregs,TRUE);
                         cdb.append(cse_flush(1));
                         rreg = findregmsw(rretregs);
                         cs.Iop = 0x39;
@@ -2533,7 +2533,7 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
         if (evalinregister(e2))
             goto L2;
 
-        cdb.append(scodelem(e1,&retregs,0,TRUE));    // compute left leaf
+        scodelem(cdb,e1,&retregs,0,TRUE);    // compute left leaf
         cdb.append(cse_flush(1));
         reg = findregmsw(retregs);              // get reg that e1 is in
         cs.Irm = modregrm(3,7,reg);
@@ -2551,7 +2551,7 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
         {   unsigned msreg;
 
             retregs = allregs;
-            cdb.append(scodelem(e1->E1,&retregs,0,TRUE));
+            scodelem(cdb,e1->E1,&retregs,0,TRUE);
             freenode(e1);
             reg = findreg(retregs);
             retregs = allregs & ~retregs;
@@ -2566,7 +2566,7 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
         }
         else
         {
-            cdb.append(scodelem(e1,&retregs,0,TRUE));  // compute left leaf
+            scodelem(cdb,e1,&retregs,0,TRUE);  // compute left leaf
             cdb.append(cse_flush(1));
             reg = findregmsw(retregs);   // get reg that e1 is in
             cdb.append(loadea(e2,&cs,0x3B,reg,REGSIZE,retregs,0));
@@ -3270,7 +3270,7 @@ code *cdport(elem *e,regm_t *pretregs)
     {
         sz = tysize(e->E2->Ety);
         regm_t retregs = mAX;           // byte/word to output is in AL/AX
-        cdb.append(scodelem(e->E2,&retregs,((op & 0x08) ? mDX : (regm_t) 0),TRUE));
+        scodelem(cdb,e->E2,&retregs,((op & 0x08) ? mDX : (regm_t) 0),TRUE);
         op |= 0x02;                     // OUT opcode
     }
     else // OPinp
@@ -3454,7 +3454,7 @@ code *cdbtst(elem *e, regm_t *pretregs)
     else
     {
         retregs = ALLREGS & ~idxregs;
-        cdb.append(scodelem(e2,&retregs,idxregs,TRUE));
+        scodelem(cdb,e2,&retregs,idxregs,TRUE);
         reg = findreg(retregs);
 
         cs.Iop = 0x0F00 | op;                     // BT rm,reg
@@ -3574,7 +3574,7 @@ code *cdbt(elem *e, regm_t *pretregs)
     else
     {
         retregs = ALLREGS & ~idxregs;
-        cdb.append(scodelem(e2,&retregs,idxregs,TRUE));
+        scodelem(cdb,e2,&retregs,idxregs,TRUE);
         reg = findreg(retregs);
 
         cs.Iop = 0x0F00 | op;                     // BT rm,reg
@@ -3791,7 +3791,7 @@ code *cdpair(elem *e, regm_t *pretregs)
 
     CodeBuilder cdb;
     cdb.append(codelem(e->E1, &regs1, FALSE));
-    cdb.append(scodelem(e->E2, &regs2, regs1, FALSE));
+    scodelem(cdb,e->E2, &regs2, regs1, FALSE);
     //printf("2: regs1 = %s, regs2 = %s\n", regm_str(regs1), regm_str(regs2));
 
     if (e->E1->Ecount)
@@ -3835,8 +3835,7 @@ code *cdcmpxchg(elem *e, regm_t *pretregs)
         cdb.append(c);
 
         retregs = mCX|mBX;
-        c = scodelem(e2->E2,&retregs,mDX|mAX,FALSE); // [CX,BX] = e2->E2
-        cdb.append(c);
+        scodelem(cdb,e2->E2,&retregs,mDX|mAX,FALSE); // [CX,BX] = e2->E2
 
         code cs;
         c = getlvalue(&cs,e1,mCX|mBX|mAX|mDX);       // get EA
@@ -3866,8 +3865,7 @@ code *cdcmpxchg(elem *e, regm_t *pretregs)
         cdb.append(c);
 
         retregs = (ALLREGS | mBP) & ~mAX;
-        c = scodelem(e2->E2,&retregs,mAX,FALSE);   // load rvalue in reg
-        cdb.append(c);
+        scodelem(cdb,e2->E2,&retregs,mAX,FALSE);   // load rvalue in reg
 
         code cs;
         c = getlvalue(&cs,e1,mAX | retregs);       // get EA

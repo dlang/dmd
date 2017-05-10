@@ -1333,7 +1333,7 @@ void doswitch(block *b)
     Lifthen:
         regm_t retregs = ALLREGS;
         b->BC = BCifthen;
-        cdb.append(scodelem(e,&retregs,0,TRUE));
+        scodelem(cdb,e,&retregs,0,TRUE);
         unsigned reg, reg2;
         if (dword)
         {   reg = findreglsw(retregs);
@@ -1412,7 +1412,7 @@ void doswitch(block *b)
             retregs &= ~mBX;                            // need EBX for GOT
 #endif
         bool modify = (I16 || I64 || vmin);
-        cdb.append(scodelem(e,&retregs,0,!modify));
+        scodelem(cdb,e,&retregs,0,!modify);
         unsigned reg = findreg(retregs & IDXREGS); // reg that result is in
         unsigned reg2;
         if (dword)
@@ -1601,7 +1601,7 @@ void doswitch(block *b)
             retregs |= mDX;
         else if (ncases <= 6 || config.flags4 & CFG4speed)
             goto Lifthen;
-        cdb.append(scodelem(e,&retregs,0,TRUE));
+        scodelem(cdb,e,&retregs,0,TRUE);
         if (dword && mswsame)
         {   /* CMP DX,MSW       */
             cdb.genc2(0x81,modregrm(3,7,DX),msw);
