@@ -4798,18 +4798,38 @@ final class Parser(AST) : Lexer
            ddmd.errors.deprecation(loc, "instead of C-style syntax, use D-style syntax '%s%s%s'", t.toChars(), sp, s);
     }
 
-    private static template ParseForeachArgs(bool isStatic,bool isDecl){
+    private static template ParseForeachArgs(bool isStatic, bool isDecl)
+    {
         static alias Seq(T...) = T;
-        static if(isDecl) alias ParseForeachArgs = Seq!(AST.Dsymbol*);
-        else static alias ParseForeachArgs = Seq!();
+        static if(isDecl)
+        {
+            alias ParseForeachArgs = Seq!(AST.Dsymbol*);
+        }
+        else
+            alias ParseForeachArgs = Seq!();
+        }
     }
-    static template ParseForeachRet(bool isStatic,bool isDecl){
-        static if(!isStatic) alias ParseForeachRet = AST.Statement;
-        else static if(isDecl) alias ParseForeachRet = AST.StaticForeachDeclaration;
-        else alias ParseForeachRet = AST.StaticForeachStatement;
+    static template ParseForeachRet(bool isStatic, bool isDecl)
+    {
+        static if(!isStatic)
+        {
+            alias ParseForeachRet = AST.Statement;
+        }
+        else static if(isDecl)
+        {
+            alias ParseForeachRet = AST.StaticForeachDeclaration;
+        }
+        else
+        {
+            alias ParseForeachRet = AST.StaticForeachStatement;
+        }
     }
-    ParseForeachRet!(isStatic,isDecl) parseForeach(bool isStatic,bool isDecl)(Loc loc, ParseForeachArgs!(isStatic,isDecl) args){
-        static if(isDecl) static assert(isStatic);
+    ParseForeachRet!(isStatic, isDecl) parseForeach(bool isStatic, bool isDecl)(Loc loc, ParseForeachArgs!(isStatic, isDecl) args)
+    {
+        static if(isDecl)
+        {
+            static assert(isStatic);
+        }
         static if(isStatic)
         {
             nextToken();

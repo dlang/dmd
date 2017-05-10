@@ -616,7 +616,7 @@ struct ASTNull
 
     extern (C++) final class StaticForeachStatement : Statement
     {
-        final extern (D) this(A,B)(A a,B b){
+        final extern (D) this(A, B)(A a, B b){
             super(0);
         }
     }

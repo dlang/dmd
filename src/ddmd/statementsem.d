@@ -499,11 +499,17 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
     }
 
     private static template MakeTupleForeachRet(bool isDecl){
-        static if(isDecl) alias MakeTupleForeachRet = Dsymbols*;
-        else alias MakeTupleForeachRet = void;
+        static if(isDecl)
+        {
+            alias MakeTupleForeachRet = Dsymbols*;
+        }
+        else
+        {
+            alias MakeTupleForeachRet = void;
+        }
     }
 
-    MakeTupleForeachRet!isDecl makeTupleForeach(bool isStatic,bool isDecl)(ForeachStatement fs,TupleForeachArgs!(isStatic,isDecl) args)
+    MakeTupleForeachRet!isDecl makeTupleForeach(bool isStatic, bool isDecl)(ForeachStatement fs, TupleForeachArgs!(isStatic, isDecl) args)
     {
         enum returnEarly = isDecl ? q{ return null; } : q{ return; };
         static if(isDecl)
@@ -3793,15 +3799,15 @@ static template TupleForeachRet(bool isStatic, bool isDecl){
     else alias TupleForeachRet = Dsymbols*;
 }
 
-TupleForeachRet!(isStatic,isDecl) makeTupleForeach(bool isStatic,bool isDecl)(Scope* sc,ForeachStatement fs,TupleForeachArgs!(isStatic,isDecl) args){
+TupleForeachRet!(isStatic, isDecl) makeTupleForeach(bool isStatic, bool isDecl)(Scope* sc, ForeachStatement fs, TupleForeachArgs!(isStatic, isDecl) args){
     scope v = new StatementSemanticVisitor(sc);
     static if(!isDecl)
     {
-        v.makeTupleForeach!(isStatic,isDecl)(fs,args);
+        v.makeTupleForeach!(isStatic, isDecl)(fs, args);
         return v.result;
     }
     else
     {
-        return v.makeTupleForeach!(isStatic,isDecl)(fs,args);
+        return v.makeTupleForeach!(isStatic, isDecl)(fs, args);
     }
 }
