@@ -998,6 +998,8 @@ extern (C++) class ScopeStatement : Statement
 }
 
 /***********************************************************
+ * Scope that contains foreach index variables in a local scope and forwards other members.
+ * Also see: ddmd.attrib.ForwardingAttribDeclaration
  */
 extern (C++) final class ForwardingScopeStatement : ScopeStatement
 {
@@ -1360,6 +1362,13 @@ extern (C++) final class ConditionalStatement : Statement
 }
 
 /***********************************************************
+ * Static foreach statements, like:
+ *      void main(){
+ *           static foreach(i; 0 .. 10)
+ *           {
+ *               pragma(msg, i);
+ *           }
+ *      }
  */
 extern (C++) final class StaticForeachStatement : Statement
 {

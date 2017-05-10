@@ -1351,6 +1351,11 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
     }
 }
 
+/***********************************************************
+ * Static foreach at declaration scope, like:
+ *     static foreach(i; [0, 1, 2]){ }
+ */
+
 extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 {
     StaticForeach sfe;
@@ -1451,6 +1456,23 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
         v.visit(this);
     }
 }
+
+/***********************************************************
+ * Collection of declarations that stores foreach index variables in a local scope.
+ * Symbols declared within are inserted into another scope, like:
+ *
+ *      static foreach (i; 0 .. 10) // loop variables for different indices do not conflict.
+ *      { // this body is expanded into 10 ForwardingAttribDeclarations, where i has storage class STClocal
+ *          mixin("enum x" ~ to!string(i) ~ " = i"); // ok, can access current loop variable
+ *      }
+ *
+ *      static foreach (i; 0.. 10)
+ *      {
+ *          pragma(msg, mixin("x" ~ to!string(i))); // ok, all 10 symbols are visible
+ *      }
+ *
+ *      static assert (!is(typeof(i))); // loop index variable is not visible outside of the static foreach loop
+ */
 
 extern(C++) final class ForwardingAttribDeclaration: AttribDeclaration
 {

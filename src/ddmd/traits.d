@@ -1143,6 +1143,8 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             if (!sm)
                 return 1;
+
+            // skip local symbols, such as static foreach loop variables
             if (auto decl = sm.isDeclaration())
             {
                 if (decl.storage_class & STClocal)
@@ -1150,6 +1152,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                     return 0;
                 }
             }
+
             //printf("\t[%i] %s %s\n", i, sm.kind(), sm.toChars());
             if (sm.ident)
             {
