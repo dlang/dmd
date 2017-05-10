@@ -105,8 +105,11 @@ extern (C++) final class StaticForeach : RootObject
     {
         auto aggr = aggrfe.aggr;
         Expression el = new ArrayLengthExp(aggr.loc, aggr);
+        sc = sc.startCTFE();
         el = el.semantic(sc);
+        sc = sc.endCTFE();
         el = el.optimize(WANTvalue);
+        el = el.ctfeInterpret();
         if (el.op == TOKint64){
             dinteger_t length = el.toInteger();
             auto es = new Expressions();
@@ -260,7 +263,7 @@ extern (C++) final class StaticForeach : RootObject
             return;
         }
 
-        if (!aggrfe || aggrfe.aggr.type.toBasetype().ty != Ttuple)
+        if (!ready())
         {
             if (aggrfe && aggrfe.aggr.type.toBasetype().ty == Tarray)
             {
@@ -271,7 +274,6 @@ extern (C++) final class StaticForeach : RootObject
                 lowerNonArrayAggregate(sc);
             }
         }
-
     }
 
     bool ready()

@@ -153,7 +153,7 @@ static:
 struct StaticForeachByAliasDefault{
 static:
     alias Seq(T...)=T;
-    
+
     /+int[] test(){
         int a,b,c;
         static foreach(i,x;Seq!(a,b,c)) x=i; // error
@@ -250,7 +250,7 @@ struct RangeStaticForeach{
         static assert(mixin(`x`~cast(char)('0'+2*i))==2*i);
     }
     /+static foreach(i,k;Range()){ // error
-        
+
     }+/
 }
 
@@ -313,10 +313,10 @@ static:
     int gun(){ return 2; }
     int hun(){ return 3;}
     auto test(){
-        static foreach(i,enum x;Seq!(fun,gun,hun)){ 
+        static foreach(i,enum x;Seq!(fun,gun,hun)){
             static assert(i+1==x);
         }
-        foreach(i,enum x;Seq!(fun,gun,hun)){ 
+        foreach(i,enum x;Seq!(fun,gun,hun)){
             static assert(i+1==x);
         }
     }
@@ -328,7 +328,7 @@ static:
     auto test(){
         int k;
         /+static foreach(x;[k]){ // error
-            
+
         }+/
         foreach(enum x;[1,2,3]){} // TODO: BUG. this should print an error
         foreach(enum x;Seq!(1,2,3)){} // ok
@@ -440,6 +440,12 @@ int fun(int x){
 
 static foreach(i;0..10) static assert(fun(i)==(i<5?i:-1));
 
+static foreach(i;0..0) { }
+void testEmpty(){
+    static foreach(i;0..0) { }
+}
+
+
 void testest(){
     import std.stdio: writeln;
     import std.conv: to;
@@ -473,7 +479,7 @@ void testest(){
     static foreach(k;S(0)..S(5)){
         pragma(msg, k.x);
     }+/
-    
+
     /+static foreach(i,j,k;delegate(scope int delegate(ref int,ref int,ref int) dg){
         foreach(l;0..5){
             int a=l,b=l*l,c=l^^l;
@@ -551,4 +557,4 @@ static foreach(i;0..10){
     int mixin(`foo`~text(i))(){ return i; }
 }
 
-+/ 
++/
