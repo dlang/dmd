@@ -4806,6 +4806,7 @@ final class Parser(AST) : Lexer
             alias ParseForeachArgs = Seq!(AST.Dsymbol*);
         }
         else
+        {
             alias ParseForeachArgs = Seq!();
         }
     }
