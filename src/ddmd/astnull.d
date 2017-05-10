@@ -416,7 +416,7 @@ struct ASTNull
 
     extern (C++) class StaticForeachDeclaration : AttribDeclaration
     {
-        extern (D) this(A,B)(A a,B b)
+        extern (D) this(A, B)(A a, B b)
         {
             super(0);
         }
