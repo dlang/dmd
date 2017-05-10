@@ -2015,8 +2015,11 @@ extern (C++) final class OverloadSet : Dsymbol
         v.visit(this);
     }
 }
+
 /***********************************************************
- * Forwarding Dsymbol
+ * Forwarding ScopeDsymbol.
+ * This is used by ForwardingAttribDeclaration and ForwardingScopeDeclaration
+ * to forward symbol insertions to another scope.
  */
 extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
 {
