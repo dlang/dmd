@@ -26,7 +26,10 @@ import ddmd.tokens;
 import ddmd.utils;
 import ddmd.visitor;
 import ddmd.id;
-
+import ddmd.statement;
+import ddmd.declaration;
+import ddmd.dstruct;
+import ddmd.func;
 
 /***********************************************************
  */
@@ -67,16 +70,9 @@ extern (C++) abstract class Condition : RootObject
  * This class implements common functionality for StaticForeachDeclaration and StaticForeachStatement
  */
 
-import ddmd.statement: ForeachStatement, ForeachRangeStatement, ReturnStatement, ExpStatement, CompoundStatement, Statement;
-import ddmd.declaration: VarDeclaration, StructDeclaration, STCstatic;
-import ddmd.func: FuncDeclaration, FuncLiteralDeclaration;
-import ddmd.aliasthis: AliasThis;
-import ddmd.dtemplate: TemplateTupleParameter, TemplateDeclaration;
-
-
 immutable StaticForeach_tupleFieldName = "tuple"; // used in lowering
 extern (C++) final class StaticForeach : RootObject
-{
+{    
     Loc loc;
 
     ForeachStatement aggrfe;
