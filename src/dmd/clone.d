@@ -332,7 +332,10 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     }
     /* postblit was called when the value was passed to opAssign, we just need to blit the result */
     else if (sd.postblit)
+    {
         e = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
+        sd.hasBlitAssign = true;
+    }
     else
     {
         /* Do memberwise copy.

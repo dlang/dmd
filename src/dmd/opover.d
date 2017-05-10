@@ -621,7 +621,12 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
             if (e.op == TOK.assign && ad1 == ad2)
             {
                 StructDeclaration sd = ad1.isStructDeclaration();
-                if (sd && !sd.hasIdentityAssign)
+                if (sd &&
+                    (!sd.hasIdentityAssign ||
+                     /* Do a blit if we can and the rvalue is something like .init,
+                      * where a postblit is not necessary.
+                      */
+                     (sd.hasBlitAssign && !e.e2.isLvalue())))
                 {
                     /* This is bitwise struct assignment. */
                     return;

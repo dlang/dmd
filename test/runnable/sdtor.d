@@ -4428,6 +4428,21 @@ static assert(test14838());
 
 /**********************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=14639
+
+struct Biggy {
+    ulong[50000] a;
+    @disable this(this);
+}
+
+__gshared Biggy biggy;
+
+void test14639() {
+    biggy = Biggy.init;
+}
+
+/**********************************/
+
 struct S63
 {
     private long p = 87;
@@ -4803,6 +4818,7 @@ int main()
     test14246();
     test14696();
     test14838();
+    test14639();
     test63();
     test64();
     test65();
