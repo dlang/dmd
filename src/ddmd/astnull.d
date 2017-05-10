@@ -1686,7 +1686,7 @@ struct ASTNull
 
     extern (C++) final class StaticForeach : RootObject
     {
-        final extern (D) this(A,B,C)(A a, B b, C c) {}
+        final extern (D) this(A, B, C)(A a, B b, C c) {}
     }
 
     extern (C++) abstract class Condition : RootObject
