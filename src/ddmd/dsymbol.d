@@ -1208,6 +1208,11 @@ extern (C++) class Dsymbol : RootObject
         return null;
     }
 
+    inout(ForwardingScopeDsymbol) isForwardingScopeDsymbol() inout
+    {
+        return null;
+    }
+
     inout(WithScopeSymbol) isWithScopeSymbol() inout
     {
         return null;

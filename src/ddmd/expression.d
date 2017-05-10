@@ -4210,12 +4210,13 @@ extern (C++) final class DsymbolExp : Expression
             return e;
         }
 
-        if(ScopeDsymbol scs = s.isScopeDsymbol())
+        if(ScopeDsymbol scs = s.isForwardingScopeDsymbol())
         {
             Expression sce = new ScopeExp(loc, scs);
             sce = sce.semantic(sc);
             return sce;
         }
+
         .error(loc, "%s '%s' is not a variable", s.kind(), s.toChars());
         return new ErrorExp();
     }

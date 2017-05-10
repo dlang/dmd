@@ -274,6 +274,7 @@ public:
     virtual UnionDeclaration *isUnionDeclaration() { return NULL; }
     virtual InterfaceDeclaration *isInterfaceDeclaration() { return NULL; }
     virtual ScopeDsymbol *isScopeDsymbol() { return NULL; }
+    virtual ForwardingScopeDSymbol *isForwardingScopeDsymbol) { return NULL; }
     virtual WithScopeSymbol *isWithScopeSymbol() { return NULL; }
     virtual ArrayScopeSymbol *isArrayScopeSymbol() { return NULL; }
     virtual Import *isImport() { return NULL; }
