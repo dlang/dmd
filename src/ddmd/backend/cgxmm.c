@@ -132,7 +132,7 @@ code *orthxmm(elem *e, regm_t *pretregs)
 
         CodeBuilder cdb;
         cdb.append(codelem(e1,&retregs,FALSE)); // eval left leaf
-        cdb.append(scodelem(e2, &rretregs, retregs, TRUE));  // eval right leaf
+        scodelem(cdb, e2, &rretregs, retregs, TRUE);  // eval right leaf
 
         retregs |= rretregs;
         if (e->Eoper == OPmin)
@@ -161,7 +161,7 @@ code *orthxmm(elem *e, regm_t *pretregs)
     cdb.append(codelem(e1,&retregs,FALSE)); // eval left leaf
     unsigned reg = findreg(retregs);
     regm_t rretregs = XMMREGS & ~retregs;
-    cdb.append(scodelem(e2, &rretregs, retregs, TRUE));  // eval right leaf
+    scodelem(cdb, e2, &rretregs, retregs, TRUE);  // eval right leaf
 
     unsigned rreg = findreg(rretregs);
     unsigned op = xmmoperator(e1->Ety, e->Eoper);
@@ -235,7 +235,7 @@ code *xmmeq(elem *e, unsigned op, elem *e1, elem *e2,regm_t *pretregs)
         *pretregs &= ~mPSW;
     }
     CodeBuilder cdb;
-    cdb.append(scodelem(e2,&retregs,0,TRUE));    // get rvalue
+    scodelem(cdb,e2,&retregs,0,TRUE);    // get rvalue
 
     // Look for special case of (*p++ = ...), where p is a register variable
     if (e1->Eoper == OPind &&
@@ -1153,7 +1153,7 @@ code *cdvector(elem *e, regm_t *pretregs)
         else
         {
             unsigned rretregs = XMMREGS & ~retregs;
-            cdb.append(scodelem(op2, &rretregs, retregs, TRUE));
+            scodelem(cdb, op2, &rretregs, retregs, TRUE);
             unsigned rreg = findreg(rretregs) - XMM0;
             cs.Irm = modregrm(3,0,rreg & 7);
             cs.Iflags = 0;

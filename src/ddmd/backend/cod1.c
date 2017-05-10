@@ -85,12 +85,12 @@ code *cdisscaledindex(elem *e,regm_t *pidxregs,regm_t keepmsk)
     while (e->Eoper == OPcomma)
     {
         regm_t r = 0;
-        cdb.append(scodelem(e->E1,&r,keepmsk,TRUE));
+        scodelem(cdb,e->E1,&r,keepmsk,TRUE);
         freenode(e);
         e = e->E2;
     }
     assert(e->Eoper == OPshl);
-    cdb.append(scodelem(e->E1,pidxregs,keepmsk,TRUE));
+    scodelem(cdb,e->E1,pidxregs,keepmsk,TRUE);
     freenode(e->E2);
     freenode(e);
     return cdb.finish();
@@ -905,7 +905,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                         goto L6;
 
                     // Load index register with result of e11->E1
-                    cdb.append(scodelem(e11->E1,&idxregs,keepmsk,TRUE));
+                    scodelem(cdb,e11->E1,&idxregs,keepmsk,TRUE);
                     reg = findreg(idxregs);
 
                     int ss1 = ssindex_array[ssi].ss1;
@@ -976,7 +976,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 {
                  L6:
                     /* Load index register with result of e11   */
-                    cdb.append(scodelem(e11,&idxregs,keepmsk,TRUE));
+                    scodelem(cdb,e11,&idxregs,keepmsk,TRUE);
                     setaddrmode(pcs, idxregs);
                     if (stackfl[f])             /* if we need [EBP] too */
                     {   unsigned idx = pcs->Irm & 7;
@@ -998,7 +998,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 }
                 else
                     t = 0;                      /* [SI + disp]          */
-                cdb.append(scodelem(e11,&idxregs,keepmsk,TRUE)); /* load idx reg */
+                scodelem(cdb,e11,&idxregs,keepmsk,TRUE); // load idx reg
                 pcs->Irm = getaddrmode(idxregs) ^ t;
             }
             if (f == FLpara)
@@ -1126,7 +1126,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             }
             else
             {
-                cdb.append(scodelem(e11,&idxregs,keepmsk,TRUE)); // load index reg
+                scodelem(cdb,e11,&idxregs,keepmsk,TRUE); // load index reg
                 setaddrmode(pcs, idxregs);
             }
             goto Lptr;
@@ -1147,7 +1147,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             int ss = isscaledindex(e12);
             if (ss)
             {
-                cdb.append(scodelem(e11,&idxregs,keepmsk,TRUE));
+                scodelem(cdb,e11,&idxregs,keepmsk,TRUE);
                 idxregs2 = allregs & ~(idxregs | keepmsk);
                 cdb.append(cdisscaledindex(e12,&idxregs2,keepmsk | idxregs));
             }
@@ -1158,7 +1158,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 idxregs2 = idxregs;
                 cdb.append(cdisscaledindex(e11,&idxregs2,keepmsk));
                 idxregs = allregs & ~(idxregs2 | keepmsk);
-                cdb.append(scodelem(e12,&idxregs,keepmsk | idxregs2,TRUE));
+                scodelem(cdb,e12,&idxregs,keepmsk | idxregs2,TRUE);
             }
             // Look for *(((v1 << scale) + c1) + v2)
             else if (e11->Eoper == OPadd && !e11->Ecount &&
@@ -1170,15 +1170,15 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 idxregs2 = idxregs;
                 cdb.append(cdisscaledindex(e11->E1,&idxregs2,keepmsk));
                 idxregs = allregs & ~(idxregs2 | keepmsk);
-                cdb.append(scodelem(e12,&idxregs,keepmsk | idxregs2,TRUE));
+                scodelem(cdb,e12,&idxregs,keepmsk | idxregs2,TRUE);
                 freenode(e11->E2);
                 freenode(e11);
             }
             else
             {
-                cdb.append(scodelem(e11,&idxregs,keepmsk,TRUE));
+                scodelem(cdb,e11,&idxregs,keepmsk,TRUE);
                 idxregs2 = allregs & ~(idxregs | keepmsk);
-                cdb.append(scodelem(e12,&idxregs2,keepmsk | idxregs,TRUE));
+                scodelem(cdb,e12,&idxregs2,keepmsk | idxregs,TRUE);
             }
             base = findreg(idxregs);
             index = findreg(idxregs2);
@@ -1201,7 +1201,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
          */
 
         assert(e1free);
-        cdb.append(scodelem(e1,&idxregs,keepmsk,TRUE)); // load index register
+        scodelem(cdb,e1,&idxregs,keepmsk,TRUE);  // load index register
         setaddrmode(pcs, idxregs);
     Lptr:
         if (config.flags3 & CFG3ptrchk)
@@ -3115,7 +3115,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
                 }
                 cdb.append(cdbsave);
 
-                cdb.append(scodelem(ep,&retregs,keepmsk,FALSE));
+                scodelem(cdb,ep,&retregs,keepmsk,FALSE);
 
                 // Move result [mreg,lreg] into parameter registers from [preg2,preg]
                 retregs = 0;
@@ -3183,7 +3183,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
             }
             else
             {
-                cdb.append(scodelem(ep,&retregs,keepmsk,FALSE));
+                scodelem(cdb,ep,&retregs,keepmsk,FALSE);
             }
             keepmsk |= retregs;      // don't change preg when evaluating func address
         }
@@ -3444,7 +3444,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,
         {
             retregs = allregs & ~keepmsk;
             cgstate.stackclean++;
-            cdbe.append(scodelem(e11,&retregs,keepmsk,TRUE));
+            scodelem(cdbe,e11,&retregs,keepmsk,TRUE);
             cgstate.stackclean--;
             // Kill registers destroyed by an arbitrary function call
             cdbe.append(getregs(desmsk));
@@ -3805,7 +3805,7 @@ static code *movParams(elem *e,unsigned stackalign, unsigned funcargtos)
         }
     }
     CodeBuilder cdb;
-    cdb.append(scodelem(e,&retregs,0,TRUE));
+    scodelem(cdb,e,&retregs,0,TRUE);
     if (sz <= REGSIZE)
     {
         unsigned r = findreg(retregs);
@@ -4434,7 +4434,7 @@ code *pushParams(elem *e,unsigned stackalign)
         retregs = mSTACK;
 
     CodeBuilder cdb;
-    cdb.append(scodelem(e,&retregs,0,TRUE));
+    scodelem(cdb,e,&retregs,0,TRUE);
     if (retregs != mSTACK)                // if stackpush not already inc'd
         stackpush += sz;
     if (sz <= REGSIZE)

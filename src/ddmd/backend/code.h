@@ -109,7 +109,7 @@ struct CSE
         regm_t  regm;           // mask of register stored there
         char    flags;          // flag bytes
 #define CSEload         1       // set if the CSE was ever loaded
-#define CSEsimple       2       // CSE can be regenerated easily
+#define CSEsimple       2       // CSE can be regenerated easilly
 
 // != 0 if CSE was ever loaded
 #define CSE_loaded(i)   (csextab[i].flags & CSEload)
@@ -270,7 +270,7 @@ bool cssave (elem *e , regm_t regm , unsigned opsflag );
 bool evalinregister (elem *e );
 regm_t getscratch();
 code *codelem (elem *e , regm_t *pretregs , bool constflag );
-code *scodelem (elem *e , regm_t *pretregs , regm_t keepmsk , bool constflag );
+void scodelem(CodeBuilder& cdb, elem *e, regm_t *pretregs, regm_t keepmsk, bool constflag);
 const char *regm_str(regm_t rm);
 int numbitsset(regm_t);
 

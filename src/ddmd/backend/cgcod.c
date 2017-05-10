@@ -2702,7 +2702,7 @@ L1:
  *                      registers returned in *pretregs.
  */
 
-code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
+void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
 {
     regm_t touse;
 
@@ -2733,7 +2733,8 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
                     printf("-scodelem(e=%p *pretregs=%s keepmsk=%s constflag=%d\n",
                             e,regm_str(*pretregs),regm_str(keepmsk),constflag);
 #endif
-                return c;
+                cdb.append(c);
+                return;
         }
   }
   regm_t overlap = msavereg & keepmsk;
@@ -2745,13 +2746,13 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
   unsigned stackpushsave = stackpush;
   char calledafuncsave = calledafunc;
   calledafunc = 0;
-  CodeBuilder cdb;
-  cdb.append(codelem(e,pretregs,constflag));    // generate code for the elem
+  CodeBuilder cdbx;
+  cdbx.append(codelem(e,pretregs,constflag));    // generate code for the elem
 
   regm_t tosave = keepmsk & ~msavereg; /* registers to save                    */
   if (tosave)
   {     cgstate.stackclean++;
-        cdb.append(genstackclean(CNIL,stackpush - stackpushsave,*pretregs | msavereg));
+        cdbx.append(genstackclean(CNIL,stackpush - stackpushsave,*pretregs | msavereg));
         cgstate.stackclean--;
   }
 
@@ -2828,7 +2829,7 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
                     adjesp += size;
                 }
             }
-            cdb.append(getregs(mi));
+            cdbx.append(getregs(mi));
             tosave &= ~mi;
         }
   }
@@ -2869,7 +2870,10 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
         printf("-scodelem(e=%p *pretregs=%s keepmsk=%s constflag=%d\n",
                 e,regm_str(*pretregs),regm_str(keepmsk),constflag);
 #endif
-  return cat3(cs1,cdb.finish(),cs2);
+    cdb.append(cs1);
+    cdb.append(cdbx);
+    cdb.append(cs2);
+    return;
 }
 
 /*********************************************
