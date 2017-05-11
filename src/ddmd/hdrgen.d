@@ -3202,6 +3202,8 @@ extern (C++) const(char)* linkageToChars(LINK linkage)
         return "Pascal";
     case LINKobjc:
         return "Objective-C";
+    case LINKsystem:
+        return "System";
     default:
         assert(0);
     }

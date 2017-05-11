@@ -21,7 +21,6 @@ import ddmd.root.filename;
 import ddmd.root.outbuffer;
 import ddmd.root.rmem;
 import ddmd.root.rootobject;
-import ddmd.target;
 import ddmd.tokens;
 
 // How multiple declarations are parsed.
@@ -2194,7 +2193,7 @@ final class Parser(AST) : Lexer
             }
             else if (id == Id.System)
             {
-                link = Target.systemLinkage();
+                link = LINKsystem;
             }
             else
             {
