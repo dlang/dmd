@@ -139,7 +139,7 @@ extern (C++) __gshared const(StorageClass) STCStorageClass =
     (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal | STCabstract | STCsynchronized |
      STCdeprecated | STCfuture | STCoverride | STClazy | STCalias | STCout | STCin | STCmanifest |
      STCimmutable | STCshared | STCwild | STCnothrow | STCnogc | STCpure | STCref | STCtls | STCgshared |
-     STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable);
+     STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable | STClocal);
 
 struct Match
 {
