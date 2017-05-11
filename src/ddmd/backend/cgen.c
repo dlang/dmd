@@ -715,6 +715,8 @@ void CodeBuilder::genxmmreg(unsigned opcode,unsigned xreg,targ_size_t offset, ty
 
 code *gencodelem(code *c,elem *e,regm_t *pretregs,bool constflag)
 {
+    CodeBuilder cdb;
+    cdb.append(c);
     if (e)
     {
         unsigned stackpushsave;
@@ -723,12 +725,12 @@ code *gencodelem(code *c,elem *e,regm_t *pretregs,bool constflag)
         stackpushsave = stackpush;
         stackcleansave = cgstate.stackclean;
         cgstate.stackclean = 0;                         // defer cleaning of stack
-        c = cat(c,codelem(e,pretregs,constflag));
+        codelem(cdb,e,pretregs,constflag);
         assert(cgstate.stackclean == 0);
         cgstate.stackclean = stackcleansave;
-        c = genstackclean(c,stackpush - stackpushsave,*pretregs);       // do deferred cleaning
+        cdb.append(genstackclean(CNIL,stackpush - stackpushsave,*pretregs));       // do defered cleaning
     }
-    return c;
+    return cdb.finish();
 }
 
 /**********************************

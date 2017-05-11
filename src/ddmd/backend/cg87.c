@@ -986,7 +986,7 @@ code *orth87(elem *e,regm_t *pretregs)
         // Perform "mul 2.0" as fadd ST(0), ST
         CodeBuilder cdb;
         regm_t retregs = mST0;
-        cdb.append(codelem(e1,&retregs,FALSE));
+        codelem(cdb,e1,&retregs,FALSE);
         cdb.genf2(0xDC, 0xC0);                    // fadd ST(0), ST;
         cdb.append(fixresult87(e,mST0,pretregs)); // result is in ST(0).
         freenode(e2);
@@ -1082,7 +1082,7 @@ code *orth87(elem *e,regm_t *pretregs)
             assert((*pretregs & mST0) == 0);
             CodeBuilder cdb;
             regm_t retregs = mST0;
-            cdb.append(codelem(e1,&retregs,FALSE));
+            codelem(cdb,e1,&retregs,FALSE);
             note87(e1,0,0);
             regm_t resregm = mPSW;
 
@@ -1252,7 +1252,7 @@ code *orth87(elem *e,regm_t *pretregs)
         {
             CodeBuilder cdb;
             regm_t retregs = mST0;
-            cdb.append(codelem(e1, &retregs, FALSE));
+            codelem(cdb,e1, &retregs, FALSE);
             note87(e1, 0, 0);
             cdb.append(loadComplex(e2));
             cdb.append(makesure87(e1, 0, 2, 0));
@@ -1322,9 +1322,9 @@ code *orth87(elem *e,regm_t *pretregs)
         {
             CodeBuilder cdb;
             regm_t retregs = mST0;
-            cdb.append(codelem(e1, &retregs, FALSE));
+            codelem(cdb,e1, &retregs, FALSE);
             note87(e1, 0, 0);
-            cdb.append(codelem(e2, &retregs, FALSE));
+            codelem(cdb,e2, &retregs, FALSE);
             cdb.append(makesure87(e1, 0, 1, 0));
             if (eoper == OPmin)
                 cdb.genf2(0xD9, 0xE0);     // FCHS
@@ -1386,7 +1386,7 @@ code *orth87(elem *e,regm_t *pretregs)
                 }
             }
             regm_t retregs = mST0;
-            cdb.append(codelem(e2, &retregs, FALSE));
+            codelem(cdb,e2, &retregs, FALSE);
             cdb.append(makesure87(e1, sz2, 1, 0));
             cdb.append(makesure87(e1, 0, 2, 0));
             cdb.genf2(0xDC,0xC8 + 2);           // FMUL ST(2), ST
@@ -1410,7 +1410,7 @@ code *orth87(elem *e,regm_t *pretregs)
         {
             CodeBuilder cdb;
             regm_t retregs = mST0;
-            cdb.append(codelem(e1, &retregs, FALSE));
+            codelem(cdb,e1, &retregs, FALSE);
             note87(e1, 0, 0);
             cdb.append(loadComplex(e2));
             cdb.append(makesure87(e1, 0, 2, 0));
@@ -1430,7 +1430,7 @@ code *orth87(elem *e,regm_t *pretregs)
             CodeBuilder cdb;
             cdb.append(loadComplex(e1));
             regm_t retregs = mST0;
-            cdb.append(codelem(e2, &retregs, FALSE));
+            codelem(cdb,e2, &retregs, FALSE);
             cdb.append(makesure87(e1, sz2, 1, 0));
             cdb.append(makesure87(e1, 0, 2, 0));
             cdb.genf2(0xDC,0xF8 + 2);            // FDIV ST(2), ST
@@ -1450,7 +1450,7 @@ code *orth87(elem *e,regm_t *pretregs)
             xchg87(0, 1);
             cdb.genf2(0xD9, 0xE0);               // FCHS
             regm_t retregs = mST0;
-            cdb.append(codelem(e2, &retregs, FALSE));
+            codelem(cdb,e2, &retregs, FALSE);
             cdb.append(makesure87(e1, 0, 1, 0));
             cdb.append(makesure87(e1, sz2, 2, 0));
             cdb.genf2(0xDC,0xF8 + 2);        // FDIV ST(2), ST
@@ -1489,7 +1489,7 @@ code *orth87(elem *e,regm_t *pretregs)
             CodeBuilder cdb;
             cdb.append(loadComplex(e1));
             regm_t retregs = mST0;
-            cdb.append(codelem(e2, &retregs, FALSE));
+            codelem(cdb,e2, &retregs, FALSE);
             cdb.append(makesure87(e1, sz2, 1, 0));
             cdb.append(makesure87(e1, 0, 2, 0));
             cdb.genf2(0xD9, 0xC8 + 1);             // FXCH ST(1)
@@ -1551,7 +1551,7 @@ code *orth87(elem *e,regm_t *pretregs)
 
     CodeBuilder cdb;
     regm_t retregs = mST0;
-    cdb.append(codelem(e1,&retregs,FALSE));
+    codelem(cdb,e1,&retregs,FALSE);
     note87(e1,0,0);
 
     if (config.flags4 & CFG4fdivcall && e->Eoper == OPdiv)
@@ -1624,7 +1624,7 @@ code *loadComplex(elem *e)
         case TYdouble:
         case TYldouble:
             retregs = mST0;
-            cdb.append(codelem(e,&retregs,FALSE));
+            codelem(cdb,e,&retregs,FALSE);
             // Convert to complex with a 0 for the imaginary part
             cdb.append(push87());
             cdb.gen2(0xD9,0xEE);              // FLDZ
@@ -1637,7 +1637,7 @@ code *loadComplex(elem *e)
             cdb.append(push87());
             cdb.gen2(0xD9,0xEE);              // FLDZ
             retregs = mST0;
-            cdb.append(codelem(e,&retregs,FALSE));
+            codelem(cdb,e,&retregs,FALSE);
             break;
 
         case TYcfloat:
@@ -1645,7 +1645,7 @@ code *loadComplex(elem *e)
         case TYcldouble:
             sz /= 2;
             retregs = mST01;
-            cdb.append(codelem(e,&retregs,FALSE));
+            codelem(cdb,e,&retregs,FALSE);
             break;
 
         default:
@@ -1775,7 +1775,7 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                 else
                 {
                     retregs = mST0;
-                    cdb.append(codelem(e->E1,&retregs,FALSE));
+                    codelem(cdb,e->E1,&retregs,FALSE);
                     if (op != -1)
                     {
                         cdb.append(makesure87(eleft,eoffset,1,0));
@@ -1802,7 +1802,7 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                 else if (I64)
                 {
                     retregs = ALLREGS;
-                    cdb.append(codelem(e->E1,&retregs,FALSE));
+                    codelem(cdb,e->E1,&retregs,FALSE);
                     reg = findreg(retregs);
                     cdb.genfltreg(STO,reg,0);         // MOV floatreg,reg
                     code_orrex(cdb.last(), REX_W);
@@ -1812,7 +1812,7 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                 else
                 {
                     retregs = ALLREGS;
-                    cdb.append(codelem(e->E1,&retregs,FALSE));
+                    codelem(cdb,e->E1,&retregs,FALSE);
                     reg = findreglsw(retregs);
                     cdb.genfltreg(STO,reg,0);         // MOV floatreg,reglsw
                     reg = findregmsw(retregs);
@@ -1855,7 +1855,7 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                 if (op != -1)
                     note87(eleft,eoffset,0);    // don't trash this value
                 retregs = ALLREGS & mLSW;
-                cdb.append(codelem(e->E1,&retregs,FALSE));
+                codelem(cdb,e->E1,&retregs,FALSE);
                 cdb.append(regwithvalue(CNIL,ALLREGS & mMSW,0,&reg,0));  // 0-extend
                 retregs |= mask[reg];
                 mf1 = MFlong;
@@ -1874,7 +1874,7 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                 else
                 {
                     retregs = ALLREGS;
-                    cdb.append(codelem(e->E1,&retregs,FALSE));
+                    codelem(cdb,e->E1,&retregs,FALSE);
                 L3:
                     if (I16 && e->Eoper != OPs16_d)
                     {
@@ -1910,7 +1910,7 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                 else
                     cdb.append((*cdxxx[e->Eoper])(e,&retregs));
 #else
-                cdb.append(codelem(e,&retregs,FALSE));
+                codelem(cdb,e,&retregs,FALSE);
 #endif
                 if (op != -1)
                 {
@@ -2007,7 +2007,7 @@ code *eq87(elem *e,regm_t *pretregs)
         CodeBuilder cdb;
         assert(e->Eoper == OPeq);
         regm_t retregs = mST0 | (*pretregs & mPSW);
-        cdb.append(codelem(e->E2,&retregs,FALSE));
+        codelem(cdb,e->E2,&retregs,FALSE);
         tym_t ty1 = tybasic(e->E1->Ety);
         switch (ty1)
         {   case TYdouble_alias:
@@ -2119,7 +2119,7 @@ code *complex_eq87(elem *e,regm_t *pretregs)
         cs.Iflags = ADDFWAIT() ? CFwait : 0;
         cs.Irex = 0;
         regm_t retregs = mST01 | (*pretregs & mPSW);
-        cdb.append(codelem(e->E2,&retregs,FALSE));
+        codelem(cdb,e->E2,&retregs,FALSE);
         tym_t ty1 = tybasic(e->E1->Ety);
         switch (ty1)
         {
@@ -2237,7 +2237,7 @@ code *cnvteq87(elem *e,regm_t *pretregs)
         assert(!*pretregs);
         regm_t retregs = mST0;
         elem_debug(e->E2);
-        cdb.append(codelem(e->E2->E1,&retregs,FALSE));
+        codelem(cdb,e->E2->E1,&retregs,FALSE);
 
         switch (e->E2->Eoper)
         {   case OPd_s16:
@@ -2319,7 +2319,7 @@ code *opass87(elem *e,regm_t *pretregs)
         }
         CodeBuilder cdb;
         regm_t retregs = mST0;
-        cdb.append(codelem(e->E2,&retregs,FALSE));     // evaluate rvalue
+        codelem(cdb,e->E2,&retregs,FALSE);     // evaluate rvalue
         note87(e->E2,0,0);
         cdb.append(getlvalue87(&cs,e->E1,e->Eoper==OPmodass?mAX:0));
         cdb.append(makesure87(e->E2,0,0,0));
@@ -2436,7 +2436,7 @@ code *opmod_complex87(elem *e,regm_t *pretregs)
     unsigned sz2 = _tysize[ty1] / 2;
 
     regm_t retregs = mST0;
-    cdb.append(codelem(e->E2,&retregs,FALSE));         // FLD E2
+    codelem(cdb,e->E2,&retregs,FALSE);         // FLD E2
     note87(e->E2,0,0);
     cdb.append(getlvalue87(&cs,e->E1,0));
     cdb.append(makesure87(e->E2,0,0,0));
@@ -2531,7 +2531,7 @@ code *opass_complex87(elem *e,regm_t *pretregs)
         (e->Eoper == OPmulass || e->Eoper == OPdivass))
     {
         retregs = mST0;
-        cdb.append(codelem(e->E2, &retregs, FALSE));
+        codelem(cdb,e->E2, &retregs, FALSE);
         note87(e->E2, 0, 0);
         cdb.append(getlvalue87(&cs, e->E1, 0));
         cdb.append(makesure87(e->E2,0,0,0));
@@ -2905,7 +2905,7 @@ code *post87(elem *e,regm_t *pretregs)
             cs.IEVoffset1 += sz;
             cdb.gen(&cs);               // FLD e->E1
             regm_t retregs = mST0;      // note kludge to only load real part
-            cdb.append(codelem(e->E2,&retregs,FALSE)); // load rvalue
+            codelem(cdb,e->E2,&retregs,FALSE); // load rvalue
             cdb.genf2(0xD8,             // FADD/FSUBR ST,ST2
                 (e->Eoper == OPpostinc) ? 0xC0 + 2 : 0xE8 + 2);
             NEWREG(cs.Irm,reg);
@@ -2926,7 +2926,7 @@ code *post87(elem *e,regm_t *pretregs)
         if (*pretregs & mPSW)           // if result in flags
             cdb.append(genftst(CNIL,e,0));            // FTST ST0
         regm_t retregs = mST0;
-        cdb.append(codelem(e->E2,&retregs,FALSE));    // load rvalue
+        codelem(cdb,e->E2,&retregs,FALSE);    // load rvalue
         pop87();
         op = (e->Eoper == OPpostinc) ? modregrm(3,0,1) : modregrm(3,5,1);
         cdb.genf2(0xDE,op);             // FADDP/FSUBRP ST1
@@ -2980,7 +2980,7 @@ code *cdd_u64(elem *e, regm_t *pretregs)
          */
         CodeBuilder cdb;
         regm_t retregs = mST0;
-        cdb.append(codelem(e->E1, &retregs, FALSE));
+        codelem(cdb,e->E1, &retregs, FALSE);
         tym_t tym = e->Ety;
         retregs = *pretregs;
         if (!retregs)
@@ -3065,7 +3065,7 @@ code *cdd_u64(elem *e, regm_t *pretregs)
          */
         CodeBuilder cdb;
         regm_t retregs = mST0;
-        cdb.append(codelem(e->E1, &retregs, FALSE));
+        codelem(cdb,e->E1, &retregs, FALSE);
         tym_t tym = e->Ety;
         retregs = *pretregs;
         if (!retregs)
@@ -3144,7 +3144,7 @@ code *cdd_u32(elem *e, regm_t *pretregs)
      */
     CodeBuilder cdb;
     regm_t retregs = mST0;
-    cdb.append(codelem(e->E1, &retregs, FALSE));
+    codelem(cdb,e->E1, &retregs, FALSE);
     tym_t tym = e->Ety;
     retregs = *pretregs & ALLREGS;
     if (!retregs)
@@ -3219,12 +3219,12 @@ code *cnvt87(elem *e,regm_t *pretregs)
         {
             if (clib == CLIBdblllng)
             {   retregs = I32 ? DOUBLEREGS_32 : DOUBLEREGS_16;
-                cdb.append(codelem(e->E1,&retregs,FALSE));
+                codelem(cdb,e->E1,&retregs,FALSE);
                 cdb.append(callclib(e,clib,pretregs,0));
             }
             else
             {   retregs = mST0; //I32 ? DOUBLEREGS_32 : DOUBLEREGS_16;
-                cdb.append(codelem(e->E1,&retregs,FALSE));
+                codelem(cdb,e->E1,&retregs,FALSE);
                 cdb.append(callclib(e,clib,pretregs,0));
                 pop87();
             }
@@ -3246,7 +3246,7 @@ code *cnvt87(elem *e,regm_t *pretregs)
             szpush = (szpush + REGSIZE - 1) & ~(REGSIZE - 1);
 
             retregs = mST0;
-            cdb.append(codelem(e->E1,&retregs,FALSE));
+            codelem(cdb,e->E1,&retregs,FALSE);
 
             if (szpush == REGSIZE)
                 cdb.gen1(0x50 + AX);                // PUSH EAX
@@ -3296,7 +3296,7 @@ code *cnvt87(elem *e,regm_t *pretregs)
             // negative int (0x80000....). For -inf, 0x7FFFF... should be returned,
             // and for nan, 0 should be returned.
             retregs = mST0;
-            cdb.append(codelem(e->E1,&retregs,FALSE));
+            codelem(cdb,e->E1,&retregs,FALSE);
 
             cdb.append(genfwait(CNIL));
             cdb.append(genrnd(CNIL, CW_roundto0));     // FLDCW roundto0
@@ -3330,11 +3330,14 @@ code *cnvt87(elem *e,regm_t *pretregs)
 
 code *cdrndtol(elem *e,regm_t *pretregs)
 {
-    if (*pretregs == 0)
-        return codelem(e->E1,pretregs,FALSE);
     CodeBuilder cdb;
+    if (*pretregs == 0)
+    {
+        codelem(cdb,e->E1,pretregs,FALSE);
+        return cdb.finish();
+    }
     regm_t retregs = mST0;
-    cdb.append(codelem(e->E1,&retregs,FALSE));
+    codelem(cdb,e->E1,&retregs,FALSE);
 
     unsigned char op1,op2;
     tym_t tym = e->Ety;
@@ -3391,9 +3394,9 @@ code *cdscale(elem *e,regm_t *pretregs)
 
     CodeBuilder cdb;
     regm_t retregs = mST0;
-    cdb.append(codelem(e->E1,&retregs,FALSE));
+    codelem(cdb,e->E1,&retregs,FALSE);
     note87(e->E1,0,0);
-    cdb.append(codelem(e->E2,&retregs,FALSE));
+    codelem(cdb,e->E2,&retregs,FALSE);
     cdb.append(makesure87(e->E1,0,1,0));       // now have x,y on stack; need y,x
     switch (e->Eoper)
     {
@@ -3438,7 +3441,7 @@ code *neg87(elem *e,regm_t *pretregs)
         }
         CodeBuilder cdb;
         regm_t retregs = mST0;
-        cdb.append(codelem(e->E1,&retregs,FALSE));
+        codelem(cdb,e->E1,&retregs,FALSE);
         cdb.genf2(0xD9,op);                 // FCHS/FABS/FSQRT/FSIN/FCOS/FRNDINT
         cdb.append(fixresult87(e,mST0,pretregs));
         return cdb.finish();
@@ -3453,7 +3456,7 @@ code *neg_complex87(elem *e,regm_t *pretregs)
     assert(e->Eoper == OPneg);
     CodeBuilder cdb;
     regm_t retregs = mST01;
-    cdb.append(codelem(e->E1,&retregs,FALSE));
+    codelem(cdb,e->E1,&retregs,FALSE);
     cdb.genf2(0xD9,0xE0);           // FCHS
     cdb.genf2(0xD9,0xC8 + 1);            // FXCH ST(1)
     cdb.genf2(0xD9,0xE0);                // FCHS
@@ -3767,7 +3770,7 @@ code *cdconvt87(elem *e, regm_t *pretregs)
 {
     regm_t retregs = mST01;
     CodeBuilder cdb;
-    cdb.append(codelem(e->E1, &retregs, FALSE));
+    codelem(cdb,e->E1, &retregs, FALSE);
     switch (e->Eoper)
     {
         case OPc_r:
@@ -3906,9 +3909,9 @@ code *loadPair87(elem *e, regm_t *pretregs)
     assert(e->Eoper == OPpair || e->Eoper == OPrpair);
     regm_t retregs = mST0;
     CodeBuilder cdb;
-    cdb.append(codelem(e->E1, &retregs, FALSE));
+    codelem(cdb,e->E1, &retregs, FALSE);
     note87(e->E1, 0, 0);
-    cdb.append(codelem(e->E2, &retregs, FALSE));
+    codelem(cdb,e->E2, &retregs, FALSE);
     cdb.append(makesure87(e->E1, 0, 1, 0));
     if (e->Eoper == OPrpair)
         cdb.genf2(0xD9, 0xC8 + 1);   // FXCH ST(1)

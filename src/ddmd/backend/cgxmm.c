@@ -131,7 +131,7 @@ code *orthxmm(elem *e, regm_t *pretregs)
         assert(retregs && rretregs);
 
         CodeBuilder cdb;
-        cdb.append(codelem(e1,&retregs,FALSE)); // eval left leaf
+        codelem(cdb,e1,&retregs,FALSE); // eval left leaf
         scodelem(cdb, e2, &rretregs, retregs, TRUE);  // eval right leaf
 
         retregs |= rretregs;
@@ -158,7 +158,7 @@ code *orthxmm(elem *e, regm_t *pretregs)
     if (!retregs)
         retregs = XMMREGS;
     CodeBuilder cdb;
-    cdb.append(codelem(e1,&retregs,FALSE)); // eval left leaf
+    codelem(cdb,e1,&retregs,FALSE); // eval left leaf
     unsigned reg = findreg(retregs);
     regm_t rretregs = XMMREGS & ~retregs;
     scodelem(cdb, e2, &rretregs, retregs, TRUE);  // eval right leaf
@@ -404,7 +404,7 @@ code *xmmcnvt(elem *e,regm_t *pretregs)
     assert(op);
 
     CodeBuilder cdb;
-    cdb.append(codelem(e1, &regs, FALSE));
+    codelem(cdb,e1, &regs, FALSE);
     unsigned reg = findreg(regs);
     if (reg >= XMM0)
         reg -= XMM0;
@@ -456,7 +456,7 @@ code *xmmopass(elem *e,regm_t *pretregs)
 
     CodeBuilder cdb;
 
-    cdb.append(codelem(e2,&rretregs,FALSE)); // eval right leaf
+    codelem(cdb,e2,&rretregs,FALSE); // eval right leaf
     unsigned rreg = findreg(rretregs);
 
     code cs;
@@ -579,8 +579,7 @@ code *xmmpost(elem *e,regm_t *pretregs)
     regm_t rretregs = XMMREGS & ~(*pretregs | retregs | resultregs);
     if (!rretregs)
         rretregs = XMMREGS & ~(retregs | resultregs);
-    c = codelem(e2,&rretregs,FALSE); // eval right leaf
-    cdb.append(c);
+    codelem(cdb,e2,&rretregs,FALSE); // eval right leaf
     unsigned rreg = findreg(rretregs);
 
     unsigned op = xmmoperator(e1->Ety, e->Eoper);
@@ -630,7 +629,7 @@ code *xmmneg(elem *e,regm_t *pretregs)
      *    XOR reg,rreg
      */
     CodeBuilder cdb;
-    cdb.append(codelem(e->E1,&retregs,FALSE));
+    codelem(cdb,e->E1,&retregs,FALSE);
     cdb.append(getregs(retregs));
     unsigned reg = findreg(retregs);
     regm_t rretregs = XMMREGS & ~retregs;
@@ -1043,7 +1042,7 @@ code *cdvector(elem *e, regm_t *pretregs)
         CodeBuilder cdb;
         for (int i = 0; i < n; i++)
         {
-            cdb.append(codelem(params[i], pretregs, FALSE));
+            codelem(cdb,params[i], pretregs, FALSE);
             *pretregs = 0;      // in case they got set
         }
         return cdb.finish();
@@ -1076,7 +1075,7 @@ code *cdvector(elem *e, regm_t *pretregs)
         retregs = *pretregs & XMMREGS;
         if (!retregs)
             retregs = XMMREGS;
-        cdb.append(codelem(op1,&retregs,FALSE)); // eval left leaf
+        codelem(cdb,op1,&retregs,FALSE); // eval left leaf
         unsigned reg = findreg(retregs);
         int r;
         switch (op)
@@ -1113,7 +1112,7 @@ code *cdvector(elem *e, regm_t *pretregs)
         else
         {
             regm_t rretregs = XMMREGS;
-            cdb.append(codelem(op1, &rretregs, FALSE));
+            codelem(cdb,op1, &rretregs, FALSE);
             unsigned rreg = findreg(rretregs) - XMM0;
             cs.Irm = modregrm(3,0,rreg & 7);
             cs.Iflags = 0;
@@ -1143,7 +1142,7 @@ code *cdvector(elem *e, regm_t *pretregs)
         retregs = *pretregs & XMMREGS;
         if (!retregs)
             retregs = XMMREGS;
-        cdb.append(codelem(op1,&retregs,FALSE)); // eval left leaf
+        codelem(cdb,op1,&retregs,FALSE); // eval left leaf
         unsigned reg = findreg(retregs);
 
         if ((op2->Eoper == OPind && !op2->Ecount) || op2->Eoper == OPvar)
@@ -1282,8 +1281,7 @@ code *cdvecfill(elem *e, regm_t *pretregs)
             else
             {
                 // SHUFPS XMM0,XMM0,0    0F C6 /r ib
-                c = codelem(e1,&retregs,FALSE); // eval left leaf
-                cdb.append(c);
+                codelem(cdb,e1,&retregs,FALSE); // eval left leaf
                 reg = findreg(retregs) - XMM0;
                 cdb.append(getregs(retregs));
                 cs.Iop = SHUFPS;
@@ -1324,8 +1322,7 @@ code *cdvecfill(elem *e, regm_t *pretregs)
             else
             {
                 // UNPCKLPD XMM0,XMM0     66 0F 14 /r
-                c = codelem(e1,&retregs,FALSE); // eval left leaf
-                cdb.append(c);
+                codelem(cdb,e1,&retregs,FALSE); // eval left leaf
                 reg = findreg(retregs) - XMM0;
                 cdb.append(getregs(retregs));
                 cs.Iop = UNPCKLPD;
@@ -1352,8 +1349,7 @@ code *cdvecfill(elem *e, regm_t *pretregs)
              * PSHUFD    XMM0,XMM0,0
              */
             regm_t regm = ALLREGS;
-            c = codelem(e1,&regm,FALSE); // eval left leaf
-            cdb.append(c);
+            codelem(cdb,e1,&regm,FALSE); // eval left leaf
             unsigned r = findreg(regm);
 
             c = allocreg(&retregs,&reg, e->Ety);
@@ -1394,8 +1390,7 @@ code *cdvecfill(elem *e, regm_t *pretregs)
         case TYushort16:
         {
             regm_t regm = ALLREGS;
-            c = codelem(e1,&regm,FALSE); // eval left leaf
-            cdb.append(c);
+            codelem(cdb,e1,&regm,FALSE);   // eval left leaf
             unsigned r = findreg(regm);
 
             if (config.avx || tysize(ty) == 32)
@@ -1478,8 +1473,7 @@ code *cdvecfill(elem *e, regm_t *pretregs)
              * PSHUFD    XMM0,XMM1,0
              */
             regm_t regm = ALLREGS;
-            c = codelem(e1,&regm,FALSE); // eval left leaf
-            cdb.append(c);
+            codelem(cdb,e1,&regm,FALSE); // eval left leaf
             unsigned r = findreg(regm);
 
             c = allocreg(&retregs,&reg, e->Ety);
@@ -1542,8 +1536,7 @@ code *cdvecfill(elem *e, regm_t *pretregs)
                 /* MOVQ XMM0,mem128
                  * PUNPCKLQDQ XMM0,XMM0
                  */
-                c = codelem(e1,&retregs,FALSE); // eval left leaf
-                cdb.append(c);
+                codelem(cdb,e1,&retregs,FALSE); // eval left leaf
                 unsigned reg = findreg(retregs);
                 reg -= XMM0;
                 //cdb.gen2(LODD,modregxrmx(3,reg,r));     // MOVQ reg,r

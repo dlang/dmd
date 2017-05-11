@@ -145,7 +145,7 @@ code *opdouble(elem *e,regm_t *pretregs,unsigned clib)
     }
 
     CodeBuilder cdb;
-    cdb.append(codelem(e->E1, &retregs1,FALSE));
+    codelem(cdb,e->E1, &retregs1,FALSE);
     if (retregs1 & mSTACK)
         cgstate.stackclean++;
     scodelem(cdb,e->E2, &retregs2, retregs1 & ~mSTACK, FALSE);
@@ -169,9 +169,9 @@ code *cdorth(elem *e,regm_t *pretregs)
     if (*pretregs == 0)                   // if don't want result
     {
         CodeBuilder cdb;
-        cdb.append(codelem(e1,pretregs,FALSE)); // eval left leaf
+        codelem(cdb,e1,pretregs,FALSE); // eval left leaf
         *pretregs = 0;                          // in case they got set
-        cdb.append(codelem(e2,pretregs,FALSE));
+        codelem(cdb,e2,pretregs,FALSE);
         return cdb.finish();
     }
 
@@ -448,7 +448,7 @@ code *cdorth(elem *e,regm_t *pretregs)
                 freenode(e11);
             }
             else
-                cdb.append(codelem(e11,&retregs,FALSE));
+                codelem(cdb,e11,&retregs,FALSE);
 
             rretregs = ALLREGS & ~retregs & ~mBP;
             scodelem(cdb,ebase,&rretregs,retregs,TRUE);
@@ -530,7 +530,7 @@ code *cdorth(elem *e,regm_t *pretregs)
             if (!rretregs)
                 rretregs = mLSW;
             rretregs |= mCX;
-            cdb.append(codelem(e1,&rretregs,0));
+            codelem(cdb,e1,&rretregs,0);
             retregs &= ~rretregs;
             if (!(retregs & mLSW))
                 retregs |= mLSW & ~rretregs;
@@ -539,7 +539,7 @@ code *cdorth(elem *e,regm_t *pretregs)
         }
         else
         {   // long + hptr
-            cdb.append(codelem(e1,&retregs,0));
+            codelem(cdb,e1,&retregs,0);
             rretregs = (mLSW | mCX) & ~retregs;
             if (!(rretregs & mLSW))
                 rretregs |= mLSW;
@@ -595,7 +595,7 @@ code *cdorth(elem *e,regm_t *pretregs)
             retregs = ALLREGS;
         }
 
-        cdb.append(codelem(e1,&retregs,test));
+        codelem(cdb,e1,&retregs,test);
         reg = findreglsw(retregs);      /* reg is the register with the offset*/
     }
     else
@@ -629,7 +629,7 @@ code *cdorth(elem *e,regm_t *pretregs)
             e1 = e2;
             e2 = es;
         }
-        cdb.append(codelem(e1,&retregs,test));         // eval left leaf
+        codelem(cdb,e1,&retregs,test);         // eval left leaf
         reg = findreg(retregs);
   }
   switch (e2oper)
@@ -878,9 +878,9 @@ code *cdmul(elem *e,regm_t *pretregs)
     if (*pretregs == 0)                         // if don't want result
     {
         CodeBuilder cdb;
-        cdb.append(codelem(e->E1,pretregs,FALSE));      // eval left leaf
+        codelem(cdb,e->E1,pretregs,FALSE);      // eval left leaf
         *pretregs = 0;                          // in case they got set
-        cdb.append(codelem(e->E2,pretregs,FALSE));
+        codelem(cdb,e->E2,pretregs,FALSE);
         return cdb.finish();
     }
 
@@ -983,7 +983,7 @@ code *cdmul(elem *e,regm_t *pretregs)
             goto L2;
         op = (e2->Eoper == opunslng) ? 4 : 5;
         retregs = mAX;
-        cdb.append(codelem(e1->E1,&retregs,FALSE));    // eval left leaf
+        codelem(cdb,e1->E1,&retregs,FALSE);    // eval left leaf
         if (e2->E1->Eoper == OPvar ||
             (e2->E1->Eoper == OPind && !e2->E1->Ecount)
            )
@@ -1029,7 +1029,7 @@ code *cdmul(elem *e,regm_t *pretregs)
                 MUL     EDX
                 ADD     EDX,reg
              */
-            cdb.append(codelem(e1,&retregs,FALSE));    // eval left leaf
+            codelem(cdb,e1,&retregs,FALSE);    // eval left leaf
             regm_t scratch = allregs & ~(mAX | mDX);
             unsigned reg;
             cdb.append(allocreg(&scratch,&reg,TYint));
@@ -1090,7 +1090,7 @@ code *cdmul(elem *e,regm_t *pretregs)
             bool mhighbit = choose_multiplier(N, d, N - 1, &m, &shpost);
 
             regm_t regm = allregs & ~(mAX | mDX);
-            cdb.append(codelem(e1,&regm,FALSE));       // eval left leaf
+            codelem(cdb,e1,&regm,FALSE);       // eval left leaf
             unsigned reg = findreg(regm);
             cdb.append(getregs(regm | mDX | mAX));
 
@@ -1206,7 +1206,7 @@ code *cdmul(elem *e,regm_t *pretregs)
                 assert(shpre == 0);
 
                 regm = allregs & ~(mAX | mDX);
-                cdb.append(codelem(e1,&regm,FALSE));       // eval left leaf
+                codelem(cdb,e1,&regm,FALSE);       // eval left leaf
                 reg = findreg(regm);
                 cdb.append(getregs(mAX | mDX));
                 cdb.append(genmovreg(CNIL,AX,reg));                   // MOV EAX,reg
@@ -1239,7 +1239,7 @@ code *cdmul(elem *e,regm_t *pretregs)
                 regm = mAX;
                 if (oper == OPmod || oper == OPremquo)
                     regm = allregs & ~(mAX|mDX);
-                cdb.append(codelem(e1,&regm,FALSE));       // eval left leaf
+                codelem(cdb,e1,&regm,FALSE);       // eval left leaf
                 reg = findreg(regm);
 
                 if (reg != AX)
@@ -1362,7 +1362,7 @@ code *cdmul(elem *e,regm_t *pretregs)
 #if 1
                         regm_t regm = byte ? BYTEREGS : ALLREGS;
                         regm &= ~(mBP | mR13);                  // don't use EBP
-                        cdb.append(codelem(e->E1,&regm,TRUE));
+                        codelem(cdb,e->E1,&regm,TRUE);
                         unsigned r = findreg(regm);
 
                         if (ss2)
@@ -1397,7 +1397,7 @@ code *cdmul(elem *e,regm_t *pretregs)
                         if (!resreg)
                             resreg = retregs;
 
-                        cdb.append(codelem(e->E1,&resreg,FALSE));
+                        codelem(cdb,e->E1,&resreg,FALSE);
                         reg = findreg(resreg);
                         cdb.append(getregs(resreg));
                         cdb.gen2sib(LEA,modregrm(0,reg,4),
@@ -1430,7 +1430,7 @@ code *cdmul(elem *e,regm_t *pretregs)
                         cdb.append(allocreg(&resreg,&reg,TYint));
 
                         regm_t sregm = (ALLREGS & ~mR13) & ~resreg;
-                        cdb.append(codelem(e->E1,&sregm,FALSE));
+                        codelem(cdb,e->E1,&sregm,FALSE);
                         unsigned sreg = findreg(sregm);
                         cdb.append(getregs(resreg | sregm));
                         // LEA reg,[sreg * 4][sreg]
@@ -1480,7 +1480,7 @@ code *cdmul(elem *e,regm_t *pretregs)
                 // L1: sar     eax,1
 
                 retregs = allregs;
-                cdb.append(codelem(e->E1,&retregs,FALSE));  // eval left leaf
+                codelem(cdb,e->E1,&retregs,FALSE);  // eval left leaf
                 unsigned reg = findreg(retregs);
                 freenode(e2);
                 cdb.append(getregs(retregs));
@@ -1501,7 +1501,7 @@ code *cdmul(elem *e,regm_t *pretregs)
                 cdb.append(fixresult(e,resreg,pretregs));
                 return cdb.finish();
             }
-            cdb.append(codelem(e->E1,&retregs,FALSE));  // eval left leaf
+            codelem(cdb,e->E1,&retregs,FALSE);  // eval left leaf
             freenode(e2);
             cdb.append(getregs(mAX | mDX));             // modify these regs
             cdb.gen1(0x99);                             // CWD
@@ -1553,7 +1553,7 @@ code *cdmul(elem *e,regm_t *pretregs)
     default:                                    // OPconst and operators
     L2:
         //printf("test2 %p, retregs = %s rretregs = %s resreg = %s\n", e, regm_str(retregs), regm_str(rretregs), regm_str(resreg));
-        cdb.append(codelem(e1,&retregs,FALSE));           // eval left leaf
+        codelem(cdb,e1,&retregs,FALSE);           // eval left leaf
         scodelem(cdb,e2,&rretregs,retregs,TRUE);  // get rvalue
         if (sz <= REGSIZE)
         {
@@ -1609,7 +1609,7 @@ code *cdmul(elem *e,regm_t *pretregs)
                 retregs = *pretregs & (ALLREGS | mBP);
                 if (!retregs)
                     retregs = ALLREGS;
-                cdb.append(codelem(e1,&retregs,FALSE));        // eval left leaf
+                codelem(cdb,e1,&retregs,FALSE);        // eval left leaf
                 resreg = retregs;
                 cdb.append(loadea(e2,&cs,0x0FAF,findreg(resreg),0,retregs,retregs));
                 freenode(e2);
@@ -1627,7 +1627,7 @@ code *cdmul(elem *e,regm_t *pretregs)
                     goto L2;            // have to handle it with codelem()
 
                 retregs = ALLREGS & ~(mAX | mDX);
-                cdb.append(codelem(e1->E1,&retregs,FALSE));    // eval left leaf
+                codelem(cdb,e1->E1,&retregs,FALSE);    // eval left leaf
                 reg = findreg(retregs);
                 cdb.append(getregs(mAX));
                 cdb.append(genmovreg(CNIL,AX,reg));            // MOV AX,reg
@@ -1651,7 +1651,7 @@ code *cdmul(elem *e,regm_t *pretregs)
         }
 
         // loadea() handles CWD or CLR DX for divides
-        cdb.append(codelem(e->E1,&retregs,FALSE));     // eval left leaf
+        codelem(cdb,e->E1,&retregs,FALSE);     // eval left leaf
         cdb.append(loadea(e2,&cs,0xF7 ^ byte,op,0,
                 (oper == OPmul) ? mAX : mAX | mDX,
                 mAX | mDX));
@@ -1680,21 +1680,22 @@ code *cdnot(elem *e,regm_t *pretregs)
 {   unsigned reg;
     tym_t forflags;
     regm_t retregs;
-
     elem *e1 = e->E1;
+    CodeBuilder cdb;
+
     if (*pretregs == 0)
         goto L1;
     if (*pretregs == mPSW)
     {   //assert(e->Eoper != OPnot && e->Eoper != OPbool);*/ /* should've been optimized
     L1:
-        return codelem(e1,pretregs,FALSE);      // evaluate e1 for cc
+        codelem(cdb,e1,pretregs,FALSE);      // evaluate e1 for cc
+        return cdb.finish();
     }
 
     int op = e->Eoper;
     unsigned sz = tysize(e1->Ety);
     unsigned rex = (I64 && sz == 8) ? REX_W : 0;
     unsigned grex = rex << 16;
-    CodeBuilder cdb;
 
     if (!tyfloating(e1->Ety))
     {
@@ -1769,7 +1770,7 @@ code *cdnot(elem *e,regm_t *pretregs)
     {
         int jop = jmpopcode(e->E1);
         retregs = mPSW;
-        cdb.append(codelem(e->E1,&retregs,FALSE));
+        codelem(cdb,e->E1,&retregs,FALSE);
         retregs = *pretregs & BYTEREGS;
         if (!retregs)
             retregs = BYTEREGS;
@@ -1792,7 +1793,7 @@ code *cdnot(elem *e,regm_t *pretregs)
         retregs = *pretregs & (ALLREGS | mBP);
         if (sz == 1 && !(retregs &= BYTEREGS))
             retregs = BYTEREGS;
-        cdb.append(codelem(e->E1,&retregs,FALSE));
+        codelem(cdb,e->E1,&retregs,FALSE);
         reg = findreg(retregs);
         cdb.append(getregs(retregs));
         cdb.gen2(0xF7 ^ (sz == 1),grex | modregrmx(3,3,reg));   // NEG reg
@@ -1853,8 +1854,12 @@ code *cdnot(elem *e,regm_t *pretregs)
 
 code *cdcom(elem *e,regm_t *pretregs)
 {
+    CodeBuilder cdb;
     if (*pretregs == 0)
-        return codelem(e->E1,pretregs,FALSE);
+    {
+        codelem(cdb,e->E1,pretregs,FALSE);
+        return cdb.finish();
+    }
     tym_t tym = tybasic(e->Ety);
     int sz = _tysize[tym];
     unsigned rex = (I64 && sz == 8) ? REX_W : 0;
@@ -1862,8 +1867,7 @@ code *cdcom(elem *e,regm_t *pretregs)
     regm_t retregs = *pretregs & possregs;
     if (retregs == 0)
         retregs = possregs;
-    CodeBuilder cdb;
-    cdb.append(codelem(e->E1,&retregs,FALSE));
+    codelem(cdb,e->E1,&retregs,FALSE);
     cdb.append(getregs(retregs));                // retregs will be destroyed
 #if 0
     if (sz == 4 * REGSIZE)
@@ -1897,16 +1901,19 @@ code *cdcom(elem *e,regm_t *pretregs)
 
 code *cdbswap(elem *e,regm_t *pretregs)
 {
+    CodeBuilder cdb;
     if (*pretregs == 0)
-        return codelem(e->E1,pretregs,FALSE);
+    {
+        codelem(cdb,e->E1,pretregs,FALSE);
+        return cdb.finish();
+    }
 
     tym_t tym = tybasic(e->Ety);
     assert(_tysize[tym] == 4);
     regm_t retregs = *pretregs & allregs;
     if (retregs == 0)
         retregs = allregs;
-    CodeBuilder cdb;
-    cdb.append(codelem(e->E1,&retregs,FALSE));
+    codelem(cdb,e->E1,&retregs,FALSE);
     cdb.append(getregs(retregs));        // retregs will be destroyed
     unsigned reg = findreg(retregs);
     cdb.gen2(0x0FC8 + (reg & 7),0);      // BSWAP reg
@@ -1957,7 +1964,7 @@ code *cdcond(elem *e,regm_t *pretregs)
 
         code *cnop1 = gennop(CNIL);
         regm_t retregs = *pretregs | mPSW;
-        cdb.append(codelem(e1,&retregs,FALSE));
+        codelem(cdb,e1,&retregs,FALSE);
 
         cdb.append(cse_flush(1));                // flush CSEs to memory
         cdb.append(genjmp(CNIL,jop,FLcode,(block *)cnop1));
@@ -1969,7 +1976,7 @@ code *cdcond(elem *e,regm_t *pretregs)
         retregs |= psw;
         if (retregs & (mBP | ALLREGS))
             regimmed_set(findreg(retregs),0);
-        cdb.append(codelem(e22,&retregs,FALSE));
+        codelem(cdb,e22,&retregs,FALSE);
 
         andregcon(&regconsave);
         assert(stackpushsave == stackpush);
@@ -2027,7 +2034,7 @@ code *cdcond(elem *e,regm_t *pretregs)
         }
         else
         {
-            cdb.append(codelem(e1,&retregs,FALSE));
+            codelem(cdb,e1,&retregs,FALSE);
             unsigned reg = findreg(retregs);
 
             if (v1 == 0 && v2 == ~(targ_size_t)0)
@@ -2074,7 +2081,7 @@ code *cdcond(elem *e,regm_t *pretregs)
         code *cnop1 = gennop(CNIL);
         regm_t retregs = mPSW;
         jop = jmpopcode(e1);            // get jmp condition
-        cdb.append(codelem(e1,&retregs,FALSE));
+        codelem(cdb,e1,&retregs,FALSE);
 
         // Set the register with e21 without affecting the flags
         retregs = *pretregs & (ALLREGS | mBP);
@@ -2092,7 +2099,7 @@ code *cdcond(elem *e,regm_t *pretregs)
         regconsave = regcon;
         stackpushsave = stackpush;
 
-        cdb.append(codelem(e22,&retregs,FALSE));
+        codelem(cdb,e22,&retregs,FALSE);
 
         andregcon(&regconsave);
         assert(stackpushsave == stackpush);
@@ -2118,11 +2125,11 @@ code *cdcond(elem *e,regm_t *pretregs)
         retregs &= ~mPSW;
         if (!retregs)
             retregs = ALLREGS;
-        cdb1.append(codelem(e21,&retregs,FALSE));
+        codelem(cdb1,e21,&retregs,FALSE);
         cdb1.append(fixresult(e21,retregs,pretregs));
   }
   else
-        cdb1.append(codelem(e21,&retregs,FALSE));
+        codelem(cdb1,e21,&retregs,FALSE);
 
 #if SCPP
   if (CPP && e2->Eoper == OPcolon2)
@@ -2161,11 +2168,11 @@ code *cdcond(elem *e,regm_t *pretregs)
         retregs &= ~mPSW;
         if (!retregs)
             retregs = ALLREGS;
-        cdb2.append(codelem(e22,&retregs,FALSE));
+        codelem(cdb2,e22,&retregs,FALSE);
         cdb2.append(fixresult(e22,retregs,pretregs));
   }
   else
-        cdb2.append(codelem(e22,&retregs,FALSE)); // use same regs as E1
+        codelem(cdb2,e22,&retregs,FALSE);   // use same regs as E1
   *pretregs = retregs | psw;
   andregcon(&regconold);
   andregcon(&regconsave);
@@ -2192,8 +2199,8 @@ code *cdcomma(elem *e,regm_t *pretregs)
 {
     CodeBuilder cdb;
     regm_t retregs = 0;
-    cdb.append(codelem(e->E1,&retregs,FALSE));   // ignore value from left leaf
-    cdb.append(codelem(e->E2,pretregs,FALSE));   // do right leaf
+    codelem(cdb,e->E1,&retregs,FALSE);   // ignore value from left leaf
+    codelem(cdb,e->E2,pretregs,FALSE);   // do right leaf
     return cdb.finish();
 }
 
@@ -2243,7 +2250,7 @@ code *cdloglog(elem *e,regm_t *pretregs)
     if (*pretregs == 0)                 // if don't want result
     {
         int noreturn = el_noreturn(e2);
-        cdb.append(codelem(e2,pretregs,FALSE));
+        codelem(cdb,e2,pretregs,FALSE);
         if (noreturn)
         {
             regconsave.used |= regcon.used;
@@ -2264,7 +2271,7 @@ code *cdloglog(elem *e,regm_t *pretregs)
       !(*pretregs & mPSW) &&
       e2->Eoper == OPcall)
     {
-        cdb.append(codelem(e2,pretregs,FALSE));
+        codelem(cdb,e2,pretregs,FALSE);
 
         andregcon(&regconsave);
 
@@ -2339,9 +2346,9 @@ code *cdshift(elem *e,regm_t *pretregs)
     if (*pretregs == 0)                   // if don't want result
     {
         CodeBuilder cdb;
-        cdb.append(codelem(e1,pretregs,FALSE)); // eval left leaf
+        codelem(cdb,e1,pretregs,FALSE); // eval left leaf
         *pretregs = 0;                  // in case they got set
-        cdb.append(codelem(e->E2,pretregs,FALSE));
+        codelem(cdb,e->E2,pretregs,FALSE);
         return cdb.finish();
     }
 
@@ -2427,7 +2434,7 @@ code *cdshift(elem *e,regm_t *pretregs)
                    )
                 {   // Handle (shtlng)s << 16
                     regm_t r = retregs & mMSW;
-                    cdb.append(codelem(e1->E1,&r,FALSE));      // eval left leaf
+                    codelem(cdb,e1->E1,&r,FALSE);      // eval left leaf
                     cdb.append(regwithvalue(CNIL,retregs & mLSW,0,&resreg,0));
                     cdb.append(getregs(r));
                     retregs = r | mask[resreg];
@@ -2469,7 +2476,7 @@ code *cdshift(elem *e,regm_t *pretregs)
                     }
                 }
 
-                cdb.append(codelem(e1,&retregs,FALSE)); // eval left leaf
+                codelem(cdb,e1,&retregs,FALSE); // eval left leaf
                 //assert((retregs & regcon.mvar) == 0);
                 cdb.append(getregs(retregs));          // modify these regs
 
@@ -2600,7 +2607,7 @@ code *cdshift(elem *e,regm_t *pretregs)
             if (!(retregs & mMSW))
                 retregs = ALLREGS & ~mCX;
         }
-        cdb.append(codelem(e->E1,&retregs,FALSE));     // eval left leaf
+        codelem(cdb,e->E1,&retregs,FALSE);     // eval left leaf
 
         if (sz <= REGSIZE)
             resreg = findreg(retregs);
@@ -3150,7 +3157,7 @@ code *cdstrlen( elem *e, regm_t *pretregs)
     if (!tyreg(ty1))
         retregs |= mES;
     CodeBuilder cdb;
-    cdb.append(codelem(e->E1,&retregs,FALSE));
+    codelem(cdb,e->E1,&retregs,FALSE);
 
     // Make sure ES contains proper segment value
     cdb.append(cod2_setES(ty1));
@@ -3213,7 +3220,7 @@ code *cdstrcmp( elem *e, regm_t *pretregs)
     if (!tyreg(ty1))
         retregs1 |= mCX;
     CodeBuilder cdb;
-    cdb.append(codelem(e->E1,&retregs1,FALSE));
+    codelem(cdb,e->E1,&retregs1,FALSE);
 
     regm_t retregs = mDI;
     tym_t ty2 = e->E2->Ety;
@@ -3321,7 +3328,7 @@ code *cdmemcmp(elem *e,regm_t *pretregs)
     if (!tyreg(ty1))
         retregs1 |= mDX;
     CodeBuilder cdb;
-    cdb.append(codelem(e1->E1,&retregs1,FALSE));
+    codelem(cdb,e1->E1,&retregs1,FALSE);
 
     // Get s2 into ES:DI
     regm_t retregs = mDI;
@@ -3431,7 +3438,7 @@ code *cdstrcpy(elem *e,regm_t *pretregs)
         retregs |= mES;
     unsigned char rex = I64 ? REX_W : 0;
     CodeBuilder cdb;
-    cdb.append(codelem(e->E2,&retregs,FALSE));
+    codelem(cdb,e->E2,&retregs,FALSE);
 
     // Make sure ES contains proper segment value
     cdb.append(cod2_setES(ty2));
@@ -3540,7 +3547,7 @@ code *cdmemcpy(elem *e,regm_t *pretregs)
     if (!tyreg(ty2))
         retregs2 |= mDX;
     CodeBuilder cdb;
-    cdb.append(codelem(e2->E1,&retregs2,FALSE));
+    codelem(cdb,e2->E1,&retregs2,FALSE);
 
     // Get nbytes into CX
     regm_t retregs3 = mCX;
@@ -3695,7 +3702,7 @@ code *cdmemset(elem *e,regm_t *pretregs)
             retregs1 = *pretregs;
             if (!retregs1)
                 retregs1 = ALLREGS;
-            cdb.append(codelem(e->E1,&retregs1,FALSE));
+            codelem(cdb,e->E1,&retregs1,FALSE);
             reg = findreg(retregs1);
             if (e2->E2->Eoper == OPconst)
             {
@@ -3774,7 +3781,7 @@ fixres:
     {
         remainder = 0;
         op = 0xAA;                              // must move by bytes
-        cdb.append(codelem(e2->E1,&retregs2,FALSE));
+        codelem(cdb,e2->E1,&retregs2,FALSE);
     }
 
     // Get val into AX
@@ -3899,7 +3906,7 @@ code *cdstreq(elem *e,regm_t *pretregs)
                 need_DS = TRUE;
                 break;
         }
-        cdb.append(codelem(e21,&srcregs,FALSE));
+        codelem(cdb,e21,&srcregs,FALSE);
         freenode(e2);
         if (segreg != SEG_DS)           // if not DS
         {
@@ -3939,7 +3946,7 @@ code *cdstreq(elem *e,regm_t *pretregs)
         {   need_DS = TRUE;
             srcregs |= mCX;
         }
-        cdb.append(codelem(e2,&srcregs,FALSE));
+        codelem(cdb,e2,&srcregs,FALSE);
     }
 
     // now get pointer to lvalue (destination) in ES:DI
@@ -4381,7 +4388,11 @@ code *cdneg(elem *e,regm_t *pretregs)
     //printf("cdneg()\n");
     //elem_print(e);
     if (*pretregs == 0)
-        return codelem(e->E1,pretregs,FALSE);
+    {
+        CodeBuilder cdb;
+        codelem(cdb,e->E1,pretregs,FALSE);
+        return cdb.finish();
+    }
     tym_t tyml = tybasic(e->E1->Ety);
     int sz = _tysize[tyml];
     if (tyfloating(tyml))
@@ -4395,7 +4406,7 @@ code *cdneg(elem *e,regm_t *pretregs)
                 return neg87(e,pretregs);
         CodeBuilder cdb;
         regm_t retregs = (I16 && sz == 8) ? DOUBLEREGS_16 : ALLREGS;
-        cdb.append(codelem(e->E1,&retregs,FALSE));
+        codelem(cdb,e->E1,&retregs,FALSE);
         cdb.append(getregs(retregs));
         if (I32)
         {
@@ -4417,7 +4428,7 @@ code *cdneg(elem *e,regm_t *pretregs)
     if (retregs == 0)
         retregs = possregs;
     CodeBuilder cdb;
-    cdb.append(codelem(e->E1,&retregs,FALSE));
+    codelem(cdb,e->E1,&retregs,FALSE);
     cdb.append(getregs(retregs));                // retregs will be destroyed
     if (sz <= REGSIZE)
     {
@@ -4454,7 +4465,11 @@ code *cdabs( elem *e, regm_t *pretregs)
 {
     //printf("cdabs(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     if (*pretregs == 0)
-        return codelem(e->E1,pretregs,FALSE);
+    {
+        CodeBuilder cdb;
+        codelem(cdb,e->E1,pretregs,FALSE);
+        return cdb.finish();
+    }
     tym_t tyml = tybasic(e->E1->Ety);
     int sz = _tysize[tyml];
     unsigned rex = (I64 && sz == 8) ? REX_W : 0;
@@ -4464,7 +4479,7 @@ code *cdabs( elem *e, regm_t *pretregs)
             return neg87(e,pretregs);
         regm_t retregs = (!I32 && sz == 8) ? DOUBLEREGS_16 : ALLREGS;
         CodeBuilder cdb;
-        cdb.append(codelem(e->E1,&retregs,FALSE));
+        codelem(cdb,e->E1,&retregs,FALSE);
         cdb.append(getregs(retregs));
         if (I32)
         {
@@ -4490,7 +4505,7 @@ code *cdabs( elem *e, regm_t *pretregs)
     if (retregs == 0)
         retregs = possregs;
     CodeBuilder cdb;
-    cdb.append(codelem(e->E1,&retregs,FALSE));
+    codelem(cdb,e->E1,&retregs,FALSE);
     cdb.append(getregs(retregs));                // retregs will be destroyed
     if (sz <= REGSIZE)
     {
@@ -4969,9 +4984,9 @@ code *cdinfo(elem *e,regm_t *pretregs)
     {
 #if MARS
         case OPdctor:
-            cdb.append(codelem(e->E2,pretregs,FALSE));
+            codelem(cdb,e->E2,pretregs,FALSE);
             retregs = 0;
-            cdb.append(codelem(e->E1,&retregs,FALSE));
+            codelem(cdb,e->E1,&retregs,FALSE);
             break;
 #endif
 #if SCPP
@@ -4979,16 +4994,16 @@ code *cdinfo(elem *e,regm_t *pretregs)
             cdb.append(cdcomma(e,pretregs));
             break;
         case OPctor:
-            cdb.append(codelem(e->E2,pretregs,FALSE));
+            codelem(cdb,e->E2,pretregs,FALSE);
             retregs = 0;
-            cdb.append(codelem(e->E1,&retregs,FALSE));
+            codelem(cdb,e->E1,&retregs,FALSE);
             break;
         case OPmark:
             if (0 && config.exe == EX_WIN32)
             {
                 unsigned idx = except_index_get();
                 except_mark();
-                cdb.append(codelem(e->E2,pretregs,FALSE));
+                codelem(cdb,e->E2,pretregs,FALSE);
                 if (config.exe == EX_WIN32 && idx != except_index_get())
                 {   usednteh |= NTEHcleanup;
                     cdb.append(nteh_gensindex(idx - 1));
@@ -5002,7 +5017,7 @@ code *cdinfo(elem *e,regm_t *pretregs)
                 cs.Iflags = 0;
                 cs.Irex = 0;
                 cdb.gen(&cs);
-                cdb.append(codelem(e->E2,pretregs,FALSE));
+                codelem(cdb,e->E2,pretregs,FALSE);
                 cs.Iop = ESCAPE | ESCrelease;
                 cdb.gen(&cs);
             }
@@ -5069,7 +5084,7 @@ code *cdddtor(elem *e,regm_t *pretregs)
         assert(!cy);
 
         assert(*pretregs == 0);
-        cdb.append(codelem(e->E1,pretregs,FALSE));
+        codelem(cdb,e->E1,pretregs,FALSE);
         return cdb.finish();
     }
     else
@@ -5110,8 +5125,10 @@ code *cdddtor(elem *e,regm_t *pretregs)
         }
 
         assert(*pretregs == 0);
-        code *c = codelem(e->E1,pretregs,FALSE);
-        c = gen1(c,0xC3);                      // RET
+        CodeBuilder cdbx;
+        codelem(cdbx,e->E1,pretregs,FALSE);
+        cdbx.gen1(0xC3);                      // RET
+        code *c = cdbx.finish();
 
         if (config.flags3 & CFG3pic)
         {
@@ -5131,7 +5148,7 @@ code *cdddtor(elem *e,regm_t *pretregs)
         code *cnop = gennop(CNIL);
 
         cdb.append(genjmp(CNIL,JMP,FLcode,(block *)cnop));
-        cdb.append(c);
+        cdb.append(cdbx);
         cdb.append(cnop);
         return cdb.finish();
     }
@@ -5205,7 +5222,9 @@ code *cdsetjmp(elem *e,regm_t *pretregs)
 code *cdvoid(elem *e,regm_t *pretregs)
 {
     assert(*pretregs == 0);
-    return codelem(e->E1,pretregs,FALSE);
+    CodeBuilder cdb;
+    codelem(cdb,e->E1,pretregs,FALSE);
+    return cdb.finish();
 }
 
 /*****************************************

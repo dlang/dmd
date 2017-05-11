@@ -2365,18 +2365,20 @@ code *load_localgot()
             localgot->Sflags &= ~GTregcand;     // because this hack doesn't work with reg allocator
             elem *e = el_var(localgot);
             regm_t retregs = mBX;
-            code *c = codelem(e,&retregs,FALSE);
+            CodeBuilder cdb;
+            codelem(cdb,e,&retregs,FALSE);
             el_free(e);
-            return c;
+            return cdb.finish();
         }
         else
         {
             elem *e = el_long(TYnptr, 0);
             e->Eoper = OPgot;
             regm_t retregs = mBX;
-            code *c = codelem(e,&retregs,FALSE);
+            CodeBuilder cdb;
+            codelem(cdb,e,&retregs,FALSE);
             el_free(e);
-            return c;
+            return cdb.finish();
         }
     }
 #endif

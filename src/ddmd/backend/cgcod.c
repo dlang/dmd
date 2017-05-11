@@ -2571,7 +2571,7 @@ elem_print(e);
 
 #include "cdxxx.c"                      /* jump table                   */
 
-code *codelem(elem *e,regm_t *pretregs,bool constflag)
+void codelem(CodeBuilder& cdb,elem *e,regm_t *pretregs,bool constflag)
 { code *c;
   Symbol *s;
 
@@ -2691,7 +2691,7 @@ L1:
 #endif
     if (configv.addlinenumbers && e->Esrcpos.Slinnum)
         cgen_prelinnum(&c,e->Esrcpos);
-    return c;
+    cdb.append(c);
 }
 
 /*******************************
@@ -2747,7 +2747,7 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
   char calledafuncsave = calledafunc;
   calledafunc = 0;
   CodeBuilder cdbx;
-  cdbx.append(codelem(e,pretregs,constflag));    // generate code for the elem
+  codelem(cdbx,e,pretregs,constflag);    // generate code for the elem
 
   regm_t tosave = keepmsk & ~msavereg; /* registers to save                    */
   if (tosave)
@@ -2948,7 +2948,7 @@ code *docommas(elem **pe)
         if (e->Eoper != OPcomma)
                 break;
         regm_t retregs = 0;
-        cdb.append(codelem(e->E1,&retregs,TRUE));
+        codelem(cdb,e->E1,&retregs,TRUE);
         elem* eold = e;
         e = e->E2;
         freenode(eold);
