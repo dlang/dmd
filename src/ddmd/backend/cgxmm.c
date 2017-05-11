@@ -1004,7 +1004,8 @@ static unsigned xmmoperator(tym_t tym, unsigned oper)
     return op;
 }
 
-code *cdvector(elem *e, regm_t *pretregs)
+CDXXX(cdvector)
+code *cdvectorx(elem *e, regm_t *pretregs)
 {
     /* e should look like one of:
      *    vector
@@ -1200,7 +1201,8 @@ code *cdvector(elem *e, regm_t *pretregs)
  *  (op1 OPvecsto (op OPparam op2))
  * where op is the store instruction STOxxxx.
  */
-code *cdvecsto(elem *e, regm_t *pretregs)
+CDXXX(cdvecsto)
+code *cdvecstox(elem *e, regm_t *pretregs)
 {
     //printf("cdvecsto()\n");
     //elem_print(e);
@@ -1219,7 +1221,8 @@ code *cdvecsto(elem *e, regm_t *pretregs)
  * OPvecfill takes the single value in e1 and
  * fills the vector type with it.
  */
-code *cdvecfill(elem *e, regm_t *pretregs)
+CDXXX(cdvecfill)
+code *cdvecfillx(elem *e, regm_t *pretregs)
 {
     //printf("cdvecfill(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
 

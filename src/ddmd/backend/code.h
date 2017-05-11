@@ -192,8 +192,6 @@ extern CGstate cgstate;
 
 extern regm_t msavereg,mfuncreg,allregs;
 
-typedef code *cd_t (elem *e , regm_t *pretregs );
-
 extern  int BPRM;
 extern  regm_t FLOATREGS;
 extern  regm_t FLOATREGS2;
@@ -238,7 +236,7 @@ extern  int refparam;
 extern  int reflocal;
 extern  bool anyiasm;
 extern  char calledafunc;
-extern  code *(*cdxxx[])(elem *,regm_t *);
+extern  void(*cdxxx[])(CodeBuilder&,elem *,regm_t *);
 
 void stackoffsets(int);
 void codgen(Symbol *);
@@ -274,6 +272,85 @@ void scodelem(CodeBuilder& cdb, elem *e, regm_t *pretregs, regm_t keepmsk, bool 
 const char *regm_str(regm_t rm);
 int numbitsset(regm_t);
 
+/* cdxxx.c: functions that go into cdxxx[] table */
+typedef code *cd_t (elem *e , regm_t *pretregs); // old way
+
+typedef void cdxxx_t (CodeBuilder& cdb, elem *e, regm_t *pretregs);
+
+cdxxx_t
+        cdabs,
+        cdaddass,
+        cdasm,
+        cdbscan,
+        cdbswap,
+        cdbt,
+        cdbtst,
+        cdbyteint,
+        cdcmp,
+        cdcmpxchg,
+        cdcnvt,
+        cdcom,
+        cdcomma,
+        cdcond,
+        cdconvt87,
+        cdctor,
+        cddctor,
+        cdddtor,
+        cddtor,
+        cdeq,
+        cderr,
+        cdfar16,
+        cdframeptr,
+        cdfunc,
+        cdgot,
+        cdhalt,
+        cdind,
+        cdinfo,
+        cdlngsht,
+        cdloglog,
+        cdmark,
+        cdmemcmp,
+        cdmemcpy,
+        cdmemset,
+        cdmsw,
+        cdmul,
+        cdmulass,
+        cdneg,
+        cdnot,
+        cdorth,
+        cdpair,
+        cdpopcnt,
+        cdport,
+        cdpost,
+        cdprefetch,
+        cdrelconst,
+        cdrndtol,
+        cdscale,
+        cdsetjmp,
+        cdshass,
+        cdshift,
+        cdshtlng,
+        cdstrcmp,
+        cdstrcpy,
+        cdstreq,
+        cdstrlen,
+        cdstrthis,
+        cdvecfill,
+        cdvecsto,
+        cdvector,
+        cdvoid,
+        loaddata;
+
+#define CDX(cd) cd##x
+#define CDXXX(cd) \
+  void cd(CodeBuilder& cdb, elem *e, regm_t *pretregs) \
+  {                                                    \
+    extern cd_t CDX(cd);                               \
+    code *c = CDX(cd)(e, pretregs);                    \
+    cdb.append(c);                                     \
+  }
+
+
 /* cod1.c */
 extern int clib_inited;
 
@@ -294,11 +371,8 @@ code *fltregs (code *pcs , tym_t tym );
 code *tstresult (regm_t regm , tym_t tym , unsigned saveflag );
 code *fixresult (elem *e , regm_t retregs , regm_t *pretregs );
 code *callclib (elem *e , unsigned clib , regm_t *pretregs , regm_t keepmask );
-cd_t cdfunc;
-cd_t cdstrthis;
 code *pushParams(elem *, unsigned);
 code *offsetinreg (elem *e , regm_t *pretregs );
-code *loaddata (elem *e , regm_t *pretregs );
 
 /* cod2.c */
 int movOnly(elem *e);
@@ -306,43 +380,9 @@ regm_t idxregm(code *c);
 #if TARGET_WINDOS
 code *opdouble (elem *e , regm_t *pretregs , unsigned clib );
 #endif
-cd_t cdorth;
-cd_t cdmul;
-cd_t cdnot;
-cd_t cdcom;
-cd_t cdbswap;
-cd_t cdpopcnt;
-cd_t cdcond;
 void WRcodlst (code *c );
-cd_t cdcomma;
-cd_t cdloglog;
-cd_t cdshift;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-cd_t cdindpic;
-#endif
-cd_t cdind;
-cd_t cdstrlen;
-cd_t cdstrcmp;
-cd_t cdstrcpy;
-cd_t cdmemchr;
-cd_t cdmemcmp;
-cd_t cdmemcpy;
-cd_t cdmemset;
-cd_t cdstreq;
-cd_t cdrelconst;
+code *cdmemchr(elem *e, regm_t *pretregs);
 code *getoffset (elem *e , unsigned reg );
-cd_t cdneg;
-cd_t cdabs;
-cd_t cdpost;
-cd_t cdcmpxchg;
-cd_t cderr;
-cd_t cdinfo;
-cd_t cddctor;
-cd_t cdddtor;
-cd_t cdctor;
-cd_t cddtor;
-cd_t cdmark;
-cd_t cdclassinit;
 
 /* cod3.c */
 
@@ -378,8 +418,6 @@ code *genjmp (code *c , unsigned op , unsigned fltarg , block *targ );
 code *prolog (void );
 void epilog (block *b);
 code *gen_spill_reg(Symbol *s, bool toreg);
-cd_t cdframeptr;
-cd_t cdgot;
 code *load_localgot();
 targ_size_t cod3_spoff();
 code *cod3_load_got();
@@ -433,27 +471,6 @@ extern int cdcmp_flag;
 
 int doinreg(symbol *s, elem *e);
 code *modEA(code *c);
-cd_t cdeq;
-cd_t cdaddass;
-cd_t cdmulass;
-cd_t cdshass;
-cd_t cdcmp;
-cd_t cdcnvt;
-cd_t cdshtlng;
-cd_t cdbyteint;
-cd_t cdlngsht;
-cd_t cdmsw;
-cd_t cdport;
-cd_t cdasm;
-cd_t cdsetjmp;
-cd_t cdvoid;
-cd_t cdhalt;
-cd_t cdfar16;
-cd_t cdbtst;
-cd_t cdbt;
-cd_t cdbscan;
-cd_t cdpair;
-cd_t cdprefetch;
 code *longcmp (elem *,bool,unsigned,code *);
 
 /* cod5.c */
@@ -471,9 +488,6 @@ code *xmmpost(elem *e, regm_t *pretregs);
 code *xmmneg(elem *e, regm_t *pretregs);
 unsigned xmmload(tym_t tym, bool aligned = true);
 unsigned xmmstore(tym_t tym, bool aligned = true);
-code *cdvector(elem *e, regm_t *pretregs);
-code *cdvecsto(elem *e, regm_t *pretregs);
-code *cdvecfill(elem *e, regm_t *pretregs);
 bool xmmIsAligned(elem *e);
 void checkSetVex3(code *c);
 void checkSetVex(code *c, tym_t ty);
@@ -505,15 +519,12 @@ code *cdnegass87 (elem *e , regm_t *pretregs );
 code *post87 (elem *e , regm_t *pretregs );
 code *cnvt87 (elem *e , regm_t *pretregs );
 code *cnvteq87 (elem *e , regm_t *pretregs );
-cd_t cdrndtol;
-cd_t cdscale;
 code *neg87 (elem *e , regm_t *pretregs );
 code *neg_complex87(elem *e, regm_t *pretregs);
 code *cdind87(elem *e,regm_t *pretregs);
 #if TX86
 extern int stackused;
 #endif
-code *cdconvt87(elem *e, regm_t *pretregs);
 code *cload87(elem *e, regm_t *pretregs);
 code *cdd_u64(elem *e, regm_t *pretregs);
 code *cdd_u32(elem *e, regm_t *pretregs);

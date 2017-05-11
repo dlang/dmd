@@ -519,7 +519,7 @@ code *comsub87(elem *e,regm_t *pretregs)
         }
         else
             // Reload
-            cdb.append(loaddata(e,pretregs));
+            loaddata(cdb,e,pretregs);
     }
     else
     {
@@ -534,7 +534,7 @@ code *comsub87(elem *e,regm_t *pretregs)
         }
         else
             // Reload
-            cdb.append(loaddata(e,pretregs));
+            loaddata(cdb,e,pretregs);
     }
 
     freenode(e);
@@ -1908,7 +1908,7 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                     cdb.append(load87(e, 0, &retregs, NULL, -1));
                 }
                 else
-                    cdb.append((*cdxxx[e->Eoper])(e,&retregs));
+                    (*cdxxx[e->Eoper])(cdb,e,&retregs);
 #else
                 codelem(cdb,e,&retregs,FALSE);
 #endif
@@ -3328,7 +3328,8 @@ code *cnvt87(elem *e,regm_t *pretregs)
  * Do OPrndtol.
  */
 
-code *cdrndtol(elem *e,regm_t *pretregs)
+CDXXX(cdrndtol)
+code *cdrndtolx(elem *e,regm_t *pretregs)
 {
     CodeBuilder cdb;
     if (*pretregs == 0)
@@ -3388,7 +3389,8 @@ code *cdrndtol(elem *e,regm_t *pretregs)
  * Do OPscale, OPyl2x, OPyl2xp1.
  */
 
-code *cdscale(elem *e,regm_t *pretregs)
+CDXXX(cdscale)
+code *cdscalex(elem *e,regm_t *pretregs)
 {
     assert(*pretregs != 0);
 
@@ -3766,7 +3768,8 @@ code *fixresult_complex87(elem *e,regm_t retregs,regm_t *pretregs)
  * Operators OPc_r and OPc_i
  */
 
-code *cdconvt87(elem *e, regm_t *pretregs)
+CDXXX(cdconvt87)
+code *cdconvt87x(elem *e, regm_t *pretregs)
 {
     regm_t retregs = mST01;
     CodeBuilder cdb;

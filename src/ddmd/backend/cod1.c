@@ -2836,7 +2836,8 @@ int FuncParamRegs::alloc(type *t, tym_t ty, reg_t *preg1, reg_t *preg2)
  * Generate code sequence for function call.
  */
 
-code *cdfunc(elem *e,regm_t *pretregs)
+CDXXX(cdfunc)
+code *cdfuncx(elem *e,regm_t *pretregs)
 {
     //printf("cdfunc()\n"); elem_print(e);
     assert(e);
@@ -3263,7 +3264,8 @@ code *cdfunc(elem *e,regm_t *pretregs)
 /***********************************
  */
 
-code *cdstrthis(elem *e,regm_t *pretregs)
+CDXXX(cdstrthis)
+code *cdstrthisx(elem *e,regm_t *pretregs)
 {
     CodeBuilder cdb;
 
@@ -3359,7 +3361,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,
             retregs = allregs & ~keepmsk;
             s->Sflags &= ~GTregcand;
             s->Sflags |= SFLread;
-            cdbe.append(cdrelconst(e1,&retregs));
+            cdrelconst(cdbe,e1,&retregs);
             if (farfunc)
             {
                 unsigned reg = findregmsw(retregs);
@@ -3984,7 +3986,7 @@ code *pushParams(elem *e,unsigned stackalign)
                         {   seg = CFes;
                             retregs |= mES;
                         }
-                        cdb.append(cdrelconst(e1,&retregs));
+                        cdrelconst(cdb,e1,&retregs);
                         // Reverse the effect of the previous add
                         if (doneoff)
                             e1->EV.sp.Voffset -= sz - pushsize;
@@ -4491,7 +4493,8 @@ L3:
  * Generate code to load data into registers.
  */
 
-code *loaddata(elem *e,regm_t *pretregs)
+CDXXX(loaddata);
+code *loaddatax(elem *e,regm_t *pretregs)
 { unsigned reg,nreg,op,sreg;
   tym_t tym;
   code cs;
@@ -4508,7 +4511,11 @@ code *loaddata(elem *e,regm_t *pretregs)
         return CNIL;
   tym = tybasic(e->Ety);
   if (tym == TYstruct)
-        return cdrelconst(e,pretregs);
+  {
+        CodeBuilder cdb;
+        cdrelconst(cdb,e,pretregs);
+        return cdb.finish();
+  }
   if (tyfloating(tym))
   {     objmod->fltused();
         if (config.inline8087)

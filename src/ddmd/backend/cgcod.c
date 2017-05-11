@@ -2504,24 +2504,24 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
   }
 
 reload:                                 /* reload result from memory    */
-    code* c = CNIL;
+    CodeBuilder cdb;
     switch (e->Eoper)
     {
         case OPrelconst:
-            c = cdrelconst(e,pretregs);
+            cdrelconst(cdb,e,pretregs);
             break;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         case OPgot:
-            c = cdgot(e,pretregs);
+            cdgot(cdb,e,pretregs);
             break;
 #endif
         default:
-            c = loaddata(e,pretregs);
+            loaddata(cdb,e,pretregs);
             break;
     }
     cssave(e,*pretregs,FALSE);
     freenode(e);
-    return c;
+    return cdb.finish();
 }
 
 
@@ -2572,7 +2572,7 @@ elem_print(e);
 #include "cdxxx.c"                      /* jump table                   */
 
 void codelem(CodeBuilder& cdb,elem *e,regm_t *pretregs,bool constflag)
-{ code *c;
+{
   Symbol *s;
 
 #ifdef DEBUG
@@ -2600,11 +2600,16 @@ void codelem(CodeBuilder& cdb,elem *e,regm_t *pretregs,bool constflag)
 
   if (!constflag && *pretregs & (mES | ALLREGS | mBP | XMMREGS) & ~regcon.mvar)
         *pretregs &= ~regcon.mvar;                      /* can't use register vars */
-  unsigned op = e->Eoper;
-  if (e->Ecount && e->Ecount != e->Ecomsub)     /* if common subexp     */
-  {     c = comsub(e,pretregs);
+
+    if (configv.addlinenumbers && e->Esrcpos.Slinnum)
+        cdb.genlinnum(e->Esrcpos);
+
+    unsigned op = e->Eoper;
+    if (e->Ecount && e->Ecount != e->Ecomsub)     // if common subexp
+    {
+        cdb.append(comsub(e,pretregs));
         goto L1;
-  }
+    }
 
   switch (op)
   {
@@ -2625,10 +2630,10 @@ void codelem(CodeBuilder& cdb,elem *e,regm_t *pretregs,bool constflag)
             /* and an LSW specified in *pretregs                        */
         }
         assert(op <= OPMAX);
-        c = (*cdxxx[op])(e,pretregs);
+        (*cdxxx[op])(cdb,e,pretregs);
         break;
     case OPrelconst:
-        c = cdrelconst(e,pretregs);
+        cdrelconst(cdb,e,pretregs);
         break;
     case OPvar:
         if (constflag && (s = e->EV.sp.Vsym)->Sfl == FLreg &&
@@ -2675,12 +2680,12 @@ void codelem(CodeBuilder& cdb,elem *e,regm_t *pretregs,bool constflag)
                     break;
             }
         }
-        c = loaddata(e,pretregs);
+        loaddata(cdb,e,pretregs);
         break;
   }
   cssave(e,*pretregs,!OTleaf(op));
   freenode(e);
-L1:
+L1: ;
 #ifdef DEBUG
   if (debugw)
   {     printf("-codelem(e=%p,*pretregs=%s) ",e,regm_str(*pretregs));
@@ -2689,9 +2694,6 @@ L1:
                 regm_str(msavereg),regm_str(regcon.cse.mval),regm_str(regcon.cse.mops));
   }
 #endif
-    if (configv.addlinenumbers && e->Esrcpos.Slinnum)
-        cgen_prelinnum(&c,e->Esrcpos);
-    cdb.append(c);
 }
 
 /*******************************

@@ -313,7 +313,8 @@ STATIC code * opnegassdbl(elem *e,regm_t *pretregs)
  * Generate code for an assignment.
  */
 
-code *cdeq(elem *e,regm_t *pretregs)
+CDXXX(cdeq)
+code *cdeqx(elem *e,regm_t *pretregs)
 {
   tym_t tymll;
   unsigned reg;
@@ -787,7 +788,8 @@ Lp:
  * Generate code for += -= &= |= ^= negass
  */
 
-code *cdaddass(elem *e,regm_t *pretregs)
+CDXXX(cdaddass)
+code *cdaddassx(elem *e,regm_t *pretregs)
 {
     //printf("cdaddass(e=%p, *pretregs = %s)\n",e,regm_str(*pretregs));
     unsigned op = e->Eoper;
@@ -1293,7 +1295,8 @@ code *cdaddass(elem *e,regm_t *pretregs)
  * Generate code for *= /= %=
  */
 
-code *cdmulass(elem *e,regm_t *pretregs)
+CDXXX(cdmulass)
+code *cdmulassx(elem *e,regm_t *pretregs)
 {
     code cs;
     regm_t retregs;
@@ -1538,7 +1541,8 @@ code *cdmulass(elem *e,regm_t *pretregs)
  * Generate code for <<= and >>=
  */
 
-code *cdshass(elem *e,regm_t *pretregs)
+CDXXX(cdshass)
+code *cdshassx(elem *e,regm_t *pretregs)
 {
     code cs;
     regm_t retregs;
@@ -1782,7 +1786,8 @@ code *cdshass(elem *e,regm_t *pretregs)
  * Handles lt,gt,le,ge,eqeq,ne for all data types.
  */
 
-code *cdcmp(elem *e,regm_t *pretregs)
+CDXXX(cdcmp)
+code *cdcmpx(elem *e,regm_t *pretregs)
 { regm_t retregs,rretregs;
   unsigned reg,rreg;
   int fl;
@@ -2592,7 +2597,8 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
  * Depends on OPd_s32 and CLIBdbllng being in sequence.
  */
 
-code *cdcnvt(elem *e, regm_t *pretregs)
+CDXXX(cdcnvt)
+code *cdcnvtx(elem *e, regm_t *pretregs)
 {
     //printf("cdcnvt: *pretregs = %s\n", regm_str(*pretregs));
     //elem_print(e);
@@ -2780,7 +2786,8 @@ L1:
  * OPu64_128, OPs64_128
  */
 
-code *cdshtlng(elem *e,regm_t *pretregs)
+CDXXX(cdshtlng)
+code *cdshtlngx(elem *e,regm_t *pretregs)
 {
     unsigned reg;
     regm_t retregs;
@@ -3015,7 +3022,8 @@ code *cdshtlng(elem *e,regm_t *pretregs)
  * For OPu8_16 and OPs8_16.
  */
 
-code *cdbyteint(elem *e,regm_t *pretregs)
+CDXXX(cdbyteint)
+code *cdbyteintx(elem *e,regm_t *pretregs)
 {
     regm_t retregs;
     char size;
@@ -3153,7 +3161,8 @@ code *cdbyteint(elem *e,regm_t *pretregs)
  * OP128_64
  */
 
-code *cdlngsht(elem *e,regm_t *pretregs)
+CDXXX(cdlngsht)
+code *cdlngshtx(elem *e,regm_t *pretregs)
 {
 #ifdef DEBUG
     switch (e->Eoper)
@@ -3221,7 +3230,8 @@ code *cdlngsht(elem *e,regm_t *pretregs)
  * OPmsw
  */
 
-code *cdmsw(elem *e,regm_t *pretregs)
+CDXXX(cdmsw)
+code *cdmswx(elem *e,regm_t *pretregs)
 {
     assert(e->Eoper == OPmsw);
 
@@ -3257,7 +3267,8 @@ code *cdmsw(elem *e,regm_t *pretregs)
  * Handle operators OPinp and OPoutp.
  */
 
-code *cdport(elem *e,regm_t *pretregs)
+CDXXX(cdport)
+code *cdportx(elem *e,regm_t *pretregs)
 {
     //printf("cdport\n");
     unsigned char op = 0xE4;            // root of all IN/OUT opcodes
@@ -3309,7 +3320,8 @@ code *cdport(elem *e,regm_t *pretregs)
  * Generate code for an asm elem.
  */
 
-code *cdasm(elem *e,regm_t *pretregs)
+CDXXX(cdasm)
+code *cdasmx(elem *e,regm_t *pretregs)
 {
     CodeBuilder cdb;
     // Assume only regs normally destroyed by a function are destroyed
@@ -3323,7 +3335,8 @@ code *cdasm(elem *e,regm_t *pretregs)
  * Generate code for OPnp_f16p and OPf16p_np.
  */
 
-code *cdfar16( elem *e, regm_t *pretregs)
+CDXXX(cdfar16)
+code *cdfar16x( elem *e, regm_t *pretregs)
 {
     code *cnop;
     code cs;
@@ -3398,7 +3411,8 @@ code *cdfar16( elem *e, regm_t *pretregs)
  * Generate code for OPbtst
  */
 
-code *cdbtst(elem *e, regm_t *pretregs)
+CDXXX(cdbtst)
+code *cdbtstx(elem *e, regm_t *pretregs)
 {
     regm_t retregs;
     unsigned reg;
@@ -3525,7 +3539,8 @@ code *cdbtst(elem *e, regm_t *pretregs)
  * Generate code for OPbt, OPbtc, OPbtr, OPbts
  */
 
-code *cdbt(elem *e, regm_t *pretregs)
+CDXXX(cdbt)
+code *cdbtx(elem *e, regm_t *pretregs)
 {
     //printf("cdbt(%p, %s)\n", e, regm_str(*pretregs));
     regm_t retregs;
@@ -3643,7 +3658,8 @@ code *cdbt(elem *e, regm_t *pretregs)
  * Generate code for OPbsf and OPbsr.
  */
 
-code *cdbscan(elem *e, regm_t *pretregs)
+CDXXX(cdbscan)
+code *cdbscanx(elem *e, regm_t *pretregs)
 {
     //printf("cdbscan()\n");
     //elem_print(e);
@@ -3700,7 +3716,8 @@ code *cdbscan(elem *e, regm_t *pretregs)
  * OPpopcnt operator
  */
 
-code *cdpopcnt(elem *e,regm_t *pretregs)
+CDXXX(cdpopcnt)
+code *cdpopcntx(elem *e,regm_t *pretregs)
 {
     //printf("cdpopcnt()\n");
     //elem_print(e);
@@ -3761,7 +3778,8 @@ code *cdpopcnt(elem *e,regm_t *pretregs)
  * Generate code for OPpair, OPrpair.
  */
 
-code *cdpair(elem *e, regm_t *pretregs)
+CDXXX(cdpair)
+code *cdpairx(elem *e, regm_t *pretregs)
 {
     if (*pretregs == 0)                         // if don't want result
     {
@@ -3831,7 +3849,8 @@ code *cdpair(elem *e, regm_t *pretregs)
  * Generate code for OPcmpxchg
  */
 
-code *cdcmpxchg(elem *e, regm_t *pretregs)
+CDXXX(cdcmpxchg)
+code *cdcmpxchgx(elem *e, regm_t *pretregs)
 {
     /* The form is:
      *     OPcmpxchg
@@ -3931,7 +3950,8 @@ code *cdcmpxchg(elem *e, regm_t *pretregs)
  * Generate code for OPprefetch
  */
 
-code *cdprefetch(elem *e, regm_t *pretregs)
+CDXXX(cdprefetch)
+code *cdprefetchx(elem *e, regm_t *pretregs)
 {
     /* Generate the following based on e2:
      *    0: prefetch0

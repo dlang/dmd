@@ -2278,7 +2278,8 @@ code* gen_loadcse(code *c, unsigned reg, targ_uns i)
  * Gen code for OPframeptr
  */
 
-code *cdframeptr(elem *e, regm_t *pretregs)
+CDXXX(cdframeptr)
+code *cdframeptrx(elem *e, regm_t *pretregs)
 {
     CodeBuilder cdb;
 
@@ -2304,7 +2305,8 @@ code *cdframeptr(elem *e, regm_t *pretregs)
  * This value gets cached in the local variable 'localgot'.
  */
 
-code *cdgot(elem *e, regm_t *pretregs)
+CDXXX(cdgot)
+code *cdgotx(elem *e, regm_t *pretregs)
 {
 #if TARGET_OSX
     CodeBuilder cdb;
