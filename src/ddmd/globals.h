@@ -209,6 +209,8 @@ struct Global
 
     const char *version;
 
+    bool newCTFEGaveUp;
+
     Compiler compiler;
     Param params;
     unsigned errors;       // number of errors reported so far

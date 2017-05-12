@@ -228,6 +228,8 @@ struct Global
 
     const(char)* _version;
 
+    bool newCTFEGaveUp;
+
     Compiler compiler;
     Param params;
     uint errors;            // number of errors reported so far
