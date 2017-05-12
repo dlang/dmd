@@ -29,7 +29,7 @@ void usage()
           ~ "      REQUIRED_ARGS: arguments always passed to the compiler\n"
           ~ "      DMD:           compiler to use, ex: ../src/dmd\n"
           ~ "      CC:            C++ compiler to use, ex: dmc, g++\n"
-          ~ "      OS:            win32, win64, linux, freebsd, osx\n"
+          ~ "      OS:            win32, win64, linux, freebsd, osx, netbsd\n"
           ~ "      RESULTS_DIR:   base directory for test results\n"
           ~ "   windows vs non-windows portability env vars:\n"
           ~ "      DSEP:          \\\\ or /\n"
