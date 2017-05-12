@@ -2648,7 +2648,8 @@ extern (C++) abstract class Type : RootObject
         }
         if (ident == Id.stringof)
         {
-            /* Bugzilla 3796: this should demangle e.type.deco rather than
+            /* https://issues.dlang.org/show_bug.cgi?id=3796
+             * this should demangle e.type.deco rather than
              * pretty-printing the type.
              */
             const s = e.toChars();
@@ -2688,7 +2689,8 @@ extern (C++) abstract class Type : RootObject
             ident != Id._mangleof &&
             ident != Id.stringof &&
             ident != Id.offsetof &&
-            // Bugzilla 15045: Don't forward special built-in member functions.
+            // https://issues.dlang.org/show_bug.cgi?id=15045
+            // Don't forward special built-in member functions.
             ident != Id.ctor &&
             ident != Id.dtor &&
             ident != Id.__xdtor &&
@@ -3005,7 +3007,8 @@ extern (C++) abstract class Type : RootObject
     }
 
     /*************************************
-     * Bugzilla 14488: Check if the inner most base type is complex or imaginary.
+     * https://issues.dlang.org/show_bug.cgi?id=14488
+     * Check if the inner most base type is complex or imaginary.
      * Should only give alerts when set to emit transitional messages.
      */
     final void checkComplexTransition(Loc loc)
@@ -4429,7 +4432,8 @@ extern (C++) final class TypeVector : Type
         }
         if (ident == Id._init || ident == Id.offsetof || ident == Id.stringof || ident == Id.__xalignof)
         {
-            // init should return a new VectorExp (Bugzilla 12776)
+            // init should return a new VectorExp
+            // https://issues.dlang.org/show_bug.cgi?id=12776
             // offsetof does not work on a cast expression, so use e directly
             // stringof should not add a cast to the output
             return Type.dotExp(sc, e, ident, flag);
@@ -5807,7 +5811,8 @@ extern (C++) final class TypePointer : TypeNext
                         Type toret = tp.next.nextOf();
                         if (tret.ty == Tclass && toret.ty == Tclass)
                         {
-                            /* Bugzilla 10219: Check covariant interface return with offset tweaking.
+                            /* https://issues.dlang.org/show_bug.cgi?id=10219
+                             * Check covariant interface return with offset tweaking.
                              * interface I {}
                              * class C : Object, I {}
                              * I function() dg = function C() {}    // should be error
@@ -6345,7 +6350,7 @@ extern (C++) final class TypeFunction : TypeNext
                         iz = iz.semantic(argsc, fparam.type, INITnointerpret);
                         e = iz.toExpression();
                     }
-                    if (e.op == TOKfunction) // see Bugzilla 4820
+                    if (e.op == TOKfunction) // https://issues.dlang.org/show_bug.cgi?id=4820
                     {
                         FuncExp fe = cast(FuncExp)e;
                         // Replace function literal with a function symbol,
@@ -6390,7 +6395,8 @@ extern (C++) final class TypeFunction : TypeNext
                         {
                             Parameter narg = (*tt.arguments)[j];
 
-                            // Bugzilla 12744: If the storage classes of narg
+                            // https://issues.dlang.org/show_bug.cgi?id=12744
+                            // If the storage classes of narg
                             // conflict with the ones in fparam, it's ignored.
                             StorageClass stc  = fparam.storageClass | narg.storageClass;
                             StorageClass stc1 = fparam.storageClass & (STCref | STCout | STClazy);
@@ -6435,7 +6441,7 @@ extern (C++) final class TypeFunction : TypeNext
                         }
                         else
                             fparam.storageClass &= ~STCref; // value parameter
-                        fparam.storageClass &= ~STCauto;    // Bugzilla 14656
+                        fparam.storageClass &= ~STCauto;    // https://issues.dlang.org/show_bug.cgi?id=14656
                         fparam.storageClass |= STCautoref;
                     }
                     else
@@ -6975,7 +6981,8 @@ extern (C++) final class TypeFunction : TypeNext
                 // Non-lvalues do not match ref or out parameters
                 if (p.storageClass & (STCref | STCout))
                 {
-                    // Bugzilla 13783: Don't use toBasetype() to handle enum types.
+                    // https://issues.dlang.org/show_bug.cgi?id=13783
+                    // Don't use toBasetype() to handle enum types.
                     Type ta = targ;
                     Type tp = tprm;
                     //printf("fparam[%d] ta = %s, tp = %s\n", u, ta.toChars(), tp.toChars());
@@ -7009,7 +7016,8 @@ extern (C++) final class TypeFunction : TypeNext
                     }
 
                     /* Find most derived alias this type being matched.
-                     * Bugzilla 15674: Allow on both ref and out parameters.
+                     * https://issues.dlang.org/show_bug.cgi?id=15674
+                     * Allow on both ref and out parameters.
                      */
                     while (1)
                     {
@@ -7193,7 +7201,8 @@ extern (C++) final class TypeDelegate : TypeNext
         if (next.ty != Tfunction)
             return terror;
 
-        /* In order to deal with Bugzilla 4028, perhaps default arguments should
+        /* In order to deal with https://issues.dlang.org/show_bug.cgi?id=4028
+         * perhaps default arguments should
          * be removed from next before the merge.
          */
         version (none)
@@ -7257,7 +7266,8 @@ extern (C++) final class TypeDelegate : TypeNext
                 Type toret = (cast(TypeDelegate)to).next.nextOf();
                 if (tret.ty == Tclass && toret.ty == Tclass)
                 {
-                    /* Bugzilla 10219: Check covariant interface return with offset tweaking.
+                    /* https://issues.dlang.org/show_bug.cgi?id=10219
+                     * Check covariant interface return with offset tweaking.
                      * interface I {}
                      * class C : Object, I {}
                      * I delegate() dg = delegate C() {}    // should be error
@@ -7485,12 +7495,12 @@ extern (C++) abstract class TypeQualified : Type
                     break;
 
                 // ... '[type]'
-                case DYNCAST.type:          // Bugzilla 1215
+                case DYNCAST.type:          // https://issues.dlang.org/show_bug.cgi?id=1215
                     e = new ArrayExp(loc, e, new TypeExp(loc, cast(Type)id));
                     break;
 
                 // ... '[expr]'
-                case DYNCAST.expression:    // Bugzilla 1215
+                case DYNCAST.expression:    // https://issues.dlang.org/show_bug.cgi?id=1215
                     e = new ArrayExp(loc, e, cast(Expression)id);
                     break;
 
@@ -7576,7 +7586,8 @@ extern (C++) abstract class TypeQualified : Type
                     if (v.storage_class & (STCconst | STCimmutable | STCmanifest) ||
                         v.type.isConst() || v.type.isImmutable())
                     {
-                        // Bugzilla 13087: this.field is not constant always
+                        // https://issues.dlang.org/show_bug.cgi?id=13087
+                        // this.field is not constant always
                         if (!v.isThisDeclaration())
                             goto L3;
                     }
@@ -7665,7 +7676,7 @@ extern (C++) abstract class TypeQualified : Type
                 if (!v.type ||
                     !v.type.deco && v.inuse)
                 {
-                    if (v.inuse) // Bugzilla 9494
+                    if (v.inuse) // https://issues.dlang.org/show_bug.cgi?id=9494
                         error(loc, "circular reference to %s '%s'", v.kind(), v.toPrettyChars());
                     else
                         error(loc, "forward reference to %s '%s'", v.kind(), v.toPrettyChars());
@@ -8345,7 +8356,7 @@ extern (C++) final class TypeStruct : Type
         }
         assert(e.op != TOKdot);
 
-        // Bugzilla 14010
+        // https://issues.dlang.org/show_bug.cgi?id=14010
         if (ident == Id._mangleof)
             return getProperty(e.loc, ident, flag & 1);
 
@@ -8436,7 +8447,7 @@ extern (C++) final class TypeStruct : Type
             if (!v.type ||
                 !v.type.deco && v.inuse)
             {
-                if (v.inuse) // Bugzilla 9494
+                if (v.inuse) // https://issues.dlang.org/show_bug.cgi?id=9494
                     e.error("circular reference to %s '%s'", v.kind(), v.toPrettyChars());
                 else
                     e.error("forward reference to %s '%s'", v.kind(), v.toPrettyChars());
@@ -8588,7 +8599,7 @@ extern (C++) final class TypeStruct : Type
         Declaration d = new SymbolDeclaration(sym.loc, sym);
         assert(d);
         d.type = this;
-        d.storage_class |= STCrvalue; // Bugzilla 14398
+        d.storage_class |= STCrvalue; // https://issues.dlang.org/show_bug.cgi?id=14398
         return new VarExp(sym.loc, d);
     }
 
@@ -8901,7 +8912,7 @@ extern (C++) final class TypeEnum : Type
         {
             printf("TypeEnum::dotExp(e = '%s', ident = '%s') '%s'\n", e.toChars(), ident.toChars(), toChars());
         }
-        // Bugzilla 14010
+        // https://issues.dlang.org/show_bug.cgi?id=14010
         if (ident == Id._mangleof)
             return getProperty(e.loc, ident, flag & 1);
 
@@ -9175,7 +9186,7 @@ extern (C++) final class TypeClass : Type
         }
         assert(e.op != TOKdot);
 
-        // Bugzilla 12543
+        // https://issues.dlang.org/show_bug.cgi?id=12543
         if (ident == Id.__sizeof || ident == Id.__xalignof || ident == Id._mangleof)
         {
             return Type.getProperty(e.loc, ident, 0);
@@ -9359,7 +9370,8 @@ extern (C++) final class TypeClass : Type
                     return dve;
                 }
 
-                /* Bugzilla 15839: Find closest parent class through nested functions.
+                /* https://issues.dlang.org/show_bug.cgi?id=15839
+                 * Find closest parent class through nested functions.
                  */
                 for (auto p = sym.toParent2(); p; p = p.toParent2())
                 {
@@ -9411,7 +9423,7 @@ extern (C++) final class TypeClass : Type
             if (!v.type ||
                 !v.type.deco && v.inuse)
             {
-                if (v.inuse) // Bugzilla 9494
+                if (v.inuse) // https://issues.dlang.org/show_bug.cgi?id=9494
                     e.error("circular reference to %s '%s'", v.kind(), v.toPrettyChars());
                 else
                     e.error("forward reference to %s '%s'", v.kind(), v.toPrettyChars());

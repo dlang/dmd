@@ -984,7 +984,8 @@ public:
 
     override void visit(TypeStruct t)
     {
-        // Bugzilla 13776: Don't use ti.toAlias() to avoid forward reference error
+        // https://issues.dlang.org/show_bug.cgi?id=13776
+        // Don't use ti.toAlias() to avoid forward reference error
         // while printing messages.
         TemplateInstance ti = t.sym.parent ? t.sym.parent.isTemplateInstance() : null;
         if (ti && ti.aliasdecl == t.sym)
@@ -995,7 +996,8 @@ public:
 
     override void visit(TypeClass t)
     {
-        // Bugzilla 13776: Don't use ti.toAlias() to avoid forward reference error
+        // https://issues.dlang.org/show_bug.cgi?id=13776
+        // Don't use ti.toAlias() to avoid forward reference error
         // while printing messages.
         TemplateInstance ti = t.sym.parent.isTemplateInstance();
         if (ti && ti.aliasdecl == t.sym)
@@ -1538,7 +1540,7 @@ public:
         //printf("objectToBuffer()\n");
         /* The logic of this should match what genIdent() does. The _dynamic_cast()
          * function relies on all the pretty strings to be unique for different classes
-         * (see Bugzilla 7375).
+         * See https://issues.dlang.org/show_bug.cgi?id=7375
          * Perhaps it would be better to demangle what genIdent() does.
          */
         if (auto t = isType(oarg))
@@ -1549,7 +1551,7 @@ public:
         else if (auto e = isExpression(oarg))
         {
             if (e.op == TOKvar)
-                e = e.optimize(WANTvalue); // added to fix Bugzilla 7375
+                e = e.optimize(WANTvalue); // added to fix https://issues.dlang.org/show_bug.cgi?id=7375
             e.accept(this);
         }
         else if (Dsymbol s = isDsymbol(oarg))

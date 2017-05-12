@@ -2029,7 +2029,8 @@ public:
         }
         if (goal == ctfeNeedLvalue)
         {
-            // We might end up here with istate being zero (see bugzilla 16382)
+            // We might end up here with istate being zero
+            // https://issues.dlang.org/show_bug.cgi?id=16382
             if (istate && istate.fd.vthis)
             {
                 result = new VarExp(e.loc, istate.fd.vthis);

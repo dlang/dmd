@@ -608,7 +608,8 @@ extern (C++) final class EnumMember : VarDeclaration
                 }
                 if (ed.memtype.ty != Terror)
                 {
-                    /* Bugzilla 11746: All of named enum members should have same type
+                    /* https://issues.dlang.org/show_bug.cgi?id=11746
+                     * All of named enum members should have same type
                      * with the first member. If the following members were referenced
                      * during the first member semantic, their types should be unified.
                      */

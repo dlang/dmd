@@ -277,7 +277,8 @@ public:
         ids.foundReturn = true;
 
         auto exp = doInlineAs!Expression(s.exp, ids);
-        if (!exp) // Bugzilla 14560: 'return' must not leave in the expand result
+        if (!exp) // https://issues.dlang.org/show_bug.cgi?id=14560
+                  // 'return' must not leave in the expand result
             return;
         static if (asStatements)
             result = new ReturnStatement(s.loc, exp);
@@ -1534,7 +1535,8 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
             goto Lno;
         }
 
-        /* Bugzilla 14560: If fd returns void, all explicit `return;`s
+        /* https://issues.dlang.org/show_bug.cgi?id=14560
+         * If fd returns void, all explicit `return;`s
          * must not appear in the expanded result.
          * See also ReturnStatement.doInlineAs!Statement().
          */
@@ -1908,7 +1910,7 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
         //e.print();
         //e.print();
 
-        // Bugzilla 11322:
+        // https://issues.dlang.org/show_bug.cgi?id=11322
         if (tf.isref)
             e = e.toLvalue(null, null);
 
@@ -1919,7 +1921,7 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
          * a temporary, then returning the temporary. If the temporary is used as an
          * lvalue, it will work.
          * This only happens with struct returns.
-         * See Bugzilla 2127 for an example.
+         * See https://issues.dlang.org/show_bug.cgi?id=2127 for an example.
          *
          * On constructor call making __inlineretval is merely redundant, because
          * the returned reference is exactly same as vthis, and the 'this' variable
@@ -1951,7 +1953,7 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
             //fprintf(stderr, "CallExp.inlineScan: e = "); e.print();
         }
 
-        // Bugzilla 15210
+        // https://issues.dlang.org/show_bug.cgi?id=15210
         if (tf.next.ty == Tvoid && e && e.type.ty != Tvoid)
         {
             e = new CastExp(callLoc, e, Type.tvoid);
@@ -1982,7 +1984,8 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
  */
 public Expression inlineCopy(Expression e, Scope* sc)
 {
-    /* See Bugzilla 2935 for explanation of why just a copy() is broken
+    /* See https://issues.dlang.org/show_bug.cgi?id=2935
+     * for explanation of why just a copy() is broken
      */
     //return e.copy();
     if (e.op == TOKdelegate)
@@ -1990,7 +1993,7 @@ public Expression inlineCopy(Expression e, Scope* sc)
         DelegateExp de = cast(DelegateExp)e;
         if (de.func.isNested())
         {
-            /* See Bugzilla 4820
+            /* https://issues.dlang.org/show_bug.cgi?id=4820
              * Defer checking until later if we actually need the 'this' pointer
              */
             return de.copy();

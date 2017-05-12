@@ -904,9 +904,10 @@ private void toDtElem(TypeSArray tsa, DtBuilder dtb, Expression e)
         if (!e)                             // if not already supplied
             e = tsa.defaultInit(Loc());    // use default initializer
 
-        if (!e.type.implicitConvTo(tnext))    // Bugzilla 14996
+        if (!e.type.implicitConvTo(tnext))    // https://issues.dlang.org/show_bug.cgi?id=14996
         {
-            // Bugzilla 1914, 3198
+            // https://issues.dlang.org/show_bug.cgi?id=1914
+            // https://issues.dlang.org/show_bug.cgi?id=3198
             if (e.op == TOKstring)
                 len /= (cast(StringExp)e).numberOfCodeUnits();
             else if (e.op == TOKarrayliteral)

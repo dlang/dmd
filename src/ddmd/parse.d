@@ -1029,7 +1029,8 @@ final class Parser(AST) : Lexer
                     AST.Dsymbols* a2 = null;
                     if (token.value == TOKsemicolon)
                     {
-                        /* Bugzilla 2354: Accept single semicolon as an empty
+                        /* https://issues.dlang.org/show_bug.cgi?id=2354
+                         * Accept single semicolon as an empty
                          * DeclarationBlock following attribute.
                          *
                          * Attribute DeclarationBlock
@@ -3603,7 +3604,7 @@ final class Parser(AST) : Lexer
                 }
             case TOKlbracket:
                 {
-                    if (dontLookDotIdents) // workaround for Bugzilla 14911
+                    if (dontLookDotIdents) // workaround for https://issues.dlang.org/show_bug.cgi?id=14911
                         goto Lend;
 
                     nextToken();
@@ -4726,7 +4727,8 @@ final class Parser(AST) : Lexer
         case TOKsemicolon:
             if (!literal)
             {
-                // Bugzilla 15799: Semicolon becomes a part of function declaration
+                // https://issues.dlang.org/show_bug.cgi?id=15799
+                // Semicolon becomes a part of function declaration
                 // only when neither of contracts exists.
                 if (!f.frequire && !f.fensure)
                     nextToken();
@@ -4837,7 +4839,8 @@ final class Parser(AST) : Lexer
         case TOKdot:
         case TOKtypeof:
         case TOKvector:
-            /* Bugzilla 15163: If tokens can be handled as
+            /* https://issues.dlang.org/show_bug.cgi?id=15163
+             * If tokens can be handled as
              * old C-style declaration or D expression, prefer the latter.
              */
             if (isDeclaration(&token, NeedDeclaratorId.mustIfDstyle, TOKreserved, null))

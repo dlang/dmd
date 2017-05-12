@@ -267,7 +267,8 @@ void except_fillInEHTable(Symbol *s)
                 uint foffset;
                 for (; 1; c2 = code_next(c2))
                 {
-                    // Bugzilla 13720: optimizer might elide the corresponding ddtor
+                    // https://issues.dlang.org/show_bug.cgi?id=13720
+                    // optimizer might elide the corresponding ddtor
                     if (!c2)
                         goto Lnodtor;
 

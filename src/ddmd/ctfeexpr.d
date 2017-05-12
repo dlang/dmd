@@ -901,7 +901,7 @@ extern (C++) UnionExp pointerArithmetic(Loc loc, TOK op, Type type, Expression e
     // Create a CTFE pointer &agg1[indx]
     auto ofs = new IntegerExp(loc, indx, Type.tsize_t);
     Expression ie = new IndexExp(loc, agg1, ofs);
-    ie.type = type.toBasetype().nextOf(); // Bugzilla 13992
+    ie.type = type.toBasetype().nextOf(); // https://issues.dlang.org/show_bug.cgi?id=13992
     emplaceExp!(AddrExp)(&ue, loc, ie);
     ue.exp().type = type;
     return ue;
@@ -1018,7 +1018,8 @@ extern (C++) bool isCtfeComparable(Expression e)
         {
             return true;
         }
-        // Bugzilla 14123: TypeInfo object is comparable in CTFE
+        // https://issues.dlang.org/show_bug.cgi?id=14123
+        // TypeInfo object is comparable in CTFE
         if (e.op == TOKtypeid)
             return true;
         return false;
@@ -1575,7 +1576,8 @@ extern (C++) Expression ctfeCast(Loc loc, Type type, Type to, Expression e)
     }
     else if (to.toBasetype().ty == Tarray && type.toBasetype().ty == Tarray && to.toBasetype().nextOf().size() == type.toBasetype().nextOf().size())
     {
-        // Bugzilla 12495: Array reinterpret casts: eg. string to immutable(ubyte)[]
+        // https://issues.dlang.org/show_bug.cgi?id=12495
+        // Array reinterpret casts: eg. string to immutable(ubyte)[]
         return paintTypeOntoLiteral(to, e);
     }
     else

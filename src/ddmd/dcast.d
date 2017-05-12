@@ -842,7 +842,8 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
 
             /* See if fail only because of mod bits.
              *
-             * Bugzilla 14155: All pure functions can access global immutable data.
+             * https://issues.dlang.org/show_bug.cgi?id=14155
+             * All pure functions can access global immutable data.
              * So the returned pointer may refer an immutable global data,
              * and then the returned pointer that points non-mutable object
              * cannot be unique pointer.
@@ -1232,7 +1233,8 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 for (size_t i = 0; i < e.arguments.dim; ++i)
                 {
                     Expression earg = (*e.arguments)[i];
-                    if (!earg) // Bugzilla 14853: if it's on overlapped field
+                    if (!earg) // https://issues.dlang.org/show_bug.cgi?id=14853
+                               // if it's on overlapped field
                         continue;
                     Type targ = earg.type.toBasetype();
                     static if (LOG)
@@ -1598,7 +1600,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
 
             // typeof(null) <-- non-null references or values
             if (tob.ty == Tnull && t1b.ty != Tnull)
-                goto Lfail; // Bugzilla 14629
+                goto Lfail; // https://issues.dlang.org/show_bug.cgi?id=14629
             // typeof(null) --> non-null references or arithmetic values
             if (t1b.ty == Tnull && tob.ty != Tnull)
                 goto Lok;
@@ -2154,7 +2156,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     goto L1;
 
                 ae = cast(ArrayLiteralExp)e.copy();
-                ae.type = tbase; // Bugzilla 12642
+                ae.type = tbase; // https://issues.dlang.org/show_bug.cgi?id=12642
                 ae.elements = e.elements.copy();
                 Type telement = tv.elementType();
                 foreach (i; 0 .. edim)
@@ -2919,8 +2921,10 @@ Lagain:
     }
     else if ((t1.ty == Tsarray || t1.ty == Tarray) && (m = t1.implicitConvTo(t2)) != MATCHnomatch)
     {
-        // Bugzilla 7285: Tsarray op [x, y, ...] should to be Tsarray
-        // Bugzilla 14737: Tsarray ~ [x, y, ...] should to be Tarray
+        // https://issues.dlang.org/show_bug.cgi?id=7285
+        // Tsarray op [x, y, ...] should to be Tsarray
+        // https://issues.dlang.org/show_bug.cgi?id=14737
+        // Tsarray ~ [x, y, ...] should to be Tarray
         if (t1.ty == Tsarray && e2.op == TOKarrayliteral && op != TOKcat)
             goto Lt1;
         if (m == MATCHconst && (op == TOKaddass || op == TOKminass || op == TOKmulass || op == TOKdivass || op == TOKmodass || op == TOKpowass || op == TOKandass || op == TOKorass || op == TOKxorass))
@@ -2933,7 +2937,8 @@ Lagain:
     }
     else if ((t2.ty == Tsarray || t2.ty == Tarray) && t2.implicitConvTo(t1))
     {
-        // Bugzilla 7285 & 14737
+        // https://issues.dlang.org/show_bug.cgi?id=7285
+        // https://issues.dlang.org/show_bug.cgi?id=14737
         if (t2.ty == Tsarray && e1.op == TOKarrayliteral && op != TOKcat)
             goto Lt2;
         goto Lt1;
@@ -3180,7 +3185,8 @@ Lagain:
     }
     else if (t1.ty == Tvector && t2.ty == Tvector)
     {
-        // Bugzilla 13841, all vector types should have no common types between
+        // https://issues.dlang.org/show_bug.cgi?id=13841
+        // all vector types should have no common types between
         // different vectors, even though their sizes are same.
         auto tv1 = cast(TypeVector)t1;
         auto tv2 = cast(TypeVector)t2;
@@ -3256,7 +3262,7 @@ LmodCompare:
         }
         else if (t1.nextOf().implicitConvTo(e2.type))
         {
-            // (cast(T)U)[] op T    (Bugzilla 12780)
+            // (cast(T)U)[] op T    (https://issues.dlang.org/show_bug.cgi?id=12780)
             // e1 is left as U[], it will be handled in arrayOp() later.
             t = e2.type.arrayOf();
         }
@@ -3264,13 +3270,13 @@ LmodCompare:
         {
             if (t1.nextOf().implicitConvTo(t2.nextOf()))
             {
-                // (cast(T)U)[] op T[]  (Bugzilla 12780)
+                // (cast(T)U)[] op T[]  (https://issues.dlang.org/show_bug.cgi?id=12780)
                 // e1 is left as U[], it will be handled in arrayOp() later.
                 t = t2.nextOf().arrayOf();
             }
             else if (t2.nextOf().implicitConvTo(t1.nextOf()))
             {
-                // T[] op (cast(T)U)[]  (Bugzilla 12780)
+                // T[] op (cast(T)U)[]  (https://issues.dlang.org/show_bug.cgi?id=12780)
                 // e2 is left as U[], it will be handled in arrayOp() later.
                 t = t1.nextOf().arrayOf();
             }
@@ -3291,7 +3297,7 @@ LmodCompare:
         }
         else if (t2.nextOf().implicitConvTo(e1.type))
         {
-            // T op (cast(T)U)[]    (Bugzilla 12780)
+            // T op (cast(T)U)[]    (https://issues.dlang.org/show_bug.cgi?id=12780)
             // e2 is left as U[], it will be handled in arrayOp() later.
             t = e1.type.arrayOf();
         }

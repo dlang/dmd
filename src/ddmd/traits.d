@@ -630,9 +630,9 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto s = getDsymbol(o);
         if (s)
         {
-            if (auto fd = s.isFuncDeclaration()) // Bugzilla 8943
+            if (auto fd = s.isFuncDeclaration()) // https://issues.dlang.org/show_bug.cgi?id=8943
                 s = fd.toAliasFunc();
-            if (!s.isImport()) // Bugzilla 8922
+            if (!s.isImport()) // https://issues.dlang.org/show_bug.cgi?id=8922
                 s = s.toParent();
         }
         if (!s || s.isImport())
@@ -925,7 +925,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         if (auto imp = s.isImport())
         {
-            // Bugzilla 9692
+            // https://issues.dlang.org/show_bug.cgi?id=9692
             s = imp.mod;
         }
 
@@ -960,9 +960,9 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 {
                     return 0;
                 }
-                if (sm.isTypeInfoDeclaration()) // Bugzilla 15177
+                if (sm.isTypeInfoDeclaration()) // https://issues.dlang.org/show_bug.cgi?id=15177
                     return 0;
-                if (!sds.isModule() && sm.isImport()) // Bugzilla 17057
+                if (!sds.isModule() && sm.isImport()) // https://issues.dlang.org/show_bug.cgi?id=17057
                     return 0;
 
                 //printf("\t%s\n", sm.ident.toChars());
@@ -991,7 +991,8 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (cd && e.ident == Id.allMembers)
         {
             if (cd.semanticRun < PASSsemanticdone)
-                cd.semantic(null); // https://issues.dlang.org/show_bug.cgi?id=13668: Try to resolve forward reference
+                cd.semantic(null); // https://issues.dlang.org/show_bug.cgi?id=13668
+                                   // Try to resolve forward reference
 
             void pushBaseMembersDg(ClassDeclaration cd)
             {
@@ -1152,7 +1153,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 o.toChars());
             return new ErrorExp();
         }
-        if (auto imp = s.isImport()) // Bugzilla 10990
+        if (auto imp = s.isImport()) // https://issues.dlang.org/show_bug.cgi?id=10990
             s = imp.mod;
 
         auto sds = s.isScopeDsymbol();

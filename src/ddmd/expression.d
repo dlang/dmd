@@ -1204,7 +1204,8 @@ extern (C++) bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type
             //assert(e.op != TOKerror);
             if (e.op == TOKerror)
             {
-                /* Bugzilla 13024: a workaround for the bug in typeMerge -
+                /* https://issues.dlang.org/show_bug.cgi?id=13024
+                 * a workaround for the bug in typeMerge -
                  * it should paint e1 and e2 by deduced common type,
                  * but doesn't in this particular case.
                  */
@@ -1527,7 +1528,8 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                          *  T[dim] __arrayArg = [ arguments[i], ..., arguments[nargs-1] ];
                          *
                          * The array literal in the initializer of the hidden variable
-                         * is now optimized. See Bugzilla 2356.
+                         * is now optimized.
+                         * https://issues.dlang.org/show_bug.cgi?id=2356
                          */
                         Type tbn = (cast(TypeArray)tb).next;
                         Type tsa = tbn.sarrayOf(nargs - i);
@@ -1547,7 +1549,8 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                                 a = a.implicitCastTo(sc, tbn);
                             (*elements)[u] = a;
                         }
-                        // Bugzilla 14395: Convert to a static array literal, or its slice.
+                        // https://issues.dlang.org/show_bug.cgi?id=14395
+                        // Convert to a static array literal, or its slice.
                         arg = new ArrayLiteralExp(loc, elements);
                         arg.type = tsa;
                         if (tb.ty == Tarray)
@@ -2185,7 +2188,7 @@ extern (C++) int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expressi
                 }
 
                 sc.fieldinit[i] |= CSXthis_ctor;
-                if (var.overlapped) // Bugzilla 15258
+                if (var.overlapped) // https://issues.dlang.org/show_bug.cgi?id=15258
                 {
                     foreach (j, v; ad.fields)
                     {
@@ -2289,7 +2292,8 @@ extern (C++) Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
 {
     Expression e0;
     Expression e1 = Expression.extractLast(ue.e1, &e0);
-    // Bugzilla 12585: Extract the side effect part if ue.e1 is comma.
+    // https://issues.dlang.org/show_bug.cgi?id=12585
+    // Extract the side effect part if ue.e1 is comma.
 
     if (!isTrivialExp(e1))
     {
@@ -3053,7 +3057,8 @@ extern (C++) abstract class Expression : RootObject
         bool err = false;
         if (v.isDataseg())
         {
-            // Bugzilla 7533: Accessing implicit generated __gate is pure.
+            // https://issues.dlang.org/show_bug.cgi?id=7533
+            // Accessing implicit generated __gate is pure.
             if (v.ident == Id.gate)
                 return false;
 
@@ -3231,7 +3236,8 @@ extern (C++) abstract class Expression : RootObject
         t = t.baseElemOf();
         if (t.ty == Tstruct)
         {
-            // Bugzilla 11395: Require TypeInfo generation for array concatenation
+            // https://issues.dlang.org/show_bug.cgi?id=11395
+            // Require TypeInfo generation for array concatenation
             semanticTypeInfo(sc, t);
 
             StructDeclaration sd = (cast(TypeStruct)t).sym;
@@ -4051,7 +4057,8 @@ extern (C++) final class DsymbolExp : Expression
             if (!s.isFuncDeclaration()) // functions are checked after overloading
                 s.checkDeprecated(loc, sc);
 
-            // Bugzilla 12023: if 's' is a tuple variable, the tuple is returned.
+            // https://issues.dlang.org/show_bug.cgi?id=12023
+            // if 's' is a tuple variable, the tuple is returned.
             s = s.toAlias();
 
             //printf("s = '%s', s.kind = '%s', s.needThis() = %p\n", s.toChars(), s.kind(), s.needThis());
@@ -4962,7 +4969,7 @@ extern (C++) final class TupleExp : Expression
             else if (o.dyncast() == DYNCAST.expression)
             {
                 auto e = (cast(Expression)o).copy();
-                e.loc = loc;    // Bugzilla 15669
+                e.loc = loc;    // https://issues.dlang.org/show_bug.cgi?id=15669
                 this.exps.push(e);
             }
             else if (o.dyncast() == DYNCAST.type)
@@ -5976,7 +5983,8 @@ extern (C++) final class NewExp : Expression
         if (type) // if semantic() already run
             return this;
 
-        // Bugzilla 11581: With the syntax `new T[edim]` or `thisexp.new T[edim]`,
+        // https://issues.dlang.org/show_bug.cgi?id=11581
+        // With the syntax `new T[edim]` or `thisexp.new T[edim]`,
         // T should be analyzed first and edim should go into arguments iff it's
         // not a tuple.
         Expression edim = null;
@@ -6592,7 +6600,8 @@ extern (C++) final class VarExp : SymbolExp
             if (vd.checkNestedReference(sc, loc))
                 return new ErrorExp();
 
-            // Bugzilla 12025: If the variable is not actually used in runtime code,
+            // https://issues.dlang.org/show_bug.cgi?id=12025
+            // If the variable is not actually used in runtime code,
             // the purity violation error is redundant.
             //checkPurity(sc, vd);
         }
@@ -6645,7 +6654,7 @@ extern (C++) final class VarExp : SymbolExp
             error("compiler-generated variable __ctfe is not an lvalue");
             return new ErrorExp();
         }
-        if (var.ident == Id.dollar) // Bugzilla 13574
+        if (var.ident == Id.dollar) // https://issues.dlang.org/show_bug.cgi?id=13574
         {
             error("'$' is not an lvalue");
             return new ErrorExp();
@@ -6792,7 +6801,8 @@ extern (C++) final class FuncExp : Expression
             return new FuncExp(loc, td.syntaxCopy(null));
         else if (fd.semanticRun == PASSinit)
             return new FuncExp(loc, fd.syntaxCopy(null));
-        else // Bugzilla 13481: Prevent multiple semantic analysis of lambda body.
+        else // https://issues.dlang.org/show_bug.cgi?id=13481
+             // Prevent multiple semantic analysis of lambda body.
             return new FuncExp(loc, fd);
     }
 
@@ -6808,7 +6818,7 @@ extern (C++) final class FuncExp : Expression
 
         sc = sc.push(); // just create new scope
         sc.flags &= ~SCOPEctfe; // temporary stop CTFE
-        sc.protection = Prot(PROTpublic); // Bugzilla 12506
+        sc.protection = Prot(PROTpublic); // https://issues.dlang.org/show_bug.cgi?id=12506
 
         if (!type || type == Type.tvoid)
         {
@@ -7108,7 +7118,8 @@ extern (C++) final class FuncExp : Expression
                 (*presult) = cast(FuncExp)copy();
                 (*presult).type = to;
 
-                // Bugzilla 12508: Tweak function body for covariant returns.
+                // https://issues.dlang.org/show_bug.cgi?id=12508
+                // Tweak function body for covariant returns.
                 (*presult).fd.modifyReturns(sc, tof.next);
             }
         }
@@ -7225,7 +7236,8 @@ extern (C++) final class DeclarationExp : Expression
             }
             else if (sc.func)
             {
-                // Bugzilla 11720 - include Dataseg variables
+                // https://issues.dlang.org/show_bug.cgi?id=11720
+                // include Dataseg variables
                 if ((s.isFuncDeclaration() ||
                      s.isAggregateDeclaration() ||
                      s.isEnumDeclaration() ||
@@ -8152,7 +8164,8 @@ extern (C++) abstract class BinExp : Expression
         if (ie.e1.type.toBasetype().ty != Taarray)
             return be;
 
-        /* Fix evaluation order of setting AA element. (Bugzilla 3825)
+        /* Fix evaluation order of setting AA element
+         * https://issues.dlang.org/show_bug.cgi?id=3825
          * Rewrite:
          *     aa[k1][k2][k3] op= val;
          * as:
@@ -8658,7 +8671,8 @@ extern (C++) final class DotIdExp : UnaExp
             return e;
         }
 
-        // Bugzilla 14416: Template has no built-in properties except for 'stringof'.
+        // https://issues.dlang.org/show_bug.cgi?id=14416
+        // Template has no built-in properties except for 'stringof'.
         if ((e1.op == TOKdottd || e1.op == TOKtemplate) && ident != Id.stringof)
         {
             error("template %s does not have property '%s'", e1.toChars(), ident.toChars());
@@ -8931,7 +8945,7 @@ extern (C++) final class DotIdExp : UnaExp
             if (flag)
             {
                 AggregateDeclaration ad = isAggregate(t1bn);
-                if (ad && !ad.members) // Bugzilla 11312
+                if (ad && !ad.members) // https://issues.dlang.org/show_bug.cgi?id=11312
                     return null;
             }
 
@@ -9076,7 +9090,8 @@ extern (C++) final class DotVarExp : UnaExp
             if (!fd.functionSemantic())
                 return new ErrorExp();
 
-            /* Bugzilla 13843: If fd obviously has no overloads, we should
+            /* https://issues.dlang.org/show_bug.cgi?id=13843
+             * If fd obviously has no overloads, we should
              * normalize AST, and it will give a chance to wrap fd with FuncExp.
              */
             if (fd.isNested() || fd.isFuncLiteralDeclaration())
@@ -9130,7 +9145,7 @@ extern (C++) final class DotVarExp : UnaExp
                     return e;
             }
 
-            if (v && v.isDataseg()) // fix bugzilla 8238
+            if (v && v.isDataseg()) // fix https://issues.dlang.org/show_bug.cgi?id=8238
             {
                 // (e1, v)
                 checkAccess(loc, sc, e1, v);
@@ -9502,7 +9517,8 @@ extern (C++) final class DelegateExp : UnaExp
         }
         if (ad && ad.isClassDeclaration() && ad.type != e1.type)
         {
-            // A downcast is required for interfaces, see Bugzilla 3706
+            // A downcast is required for interfaces
+            // https://issues.dlang.org/show_bug.cgi?id=3706
             e1 = new CastExp(loc, e1, ad.type);
             e1 = e1.semantic(sc);
         }
@@ -9876,7 +9892,8 @@ extern (C++) final class CallExp : UnaExp
                     if (checkFrameAccess(loc, sc, sd, sle.elements.dim))
                         return new ErrorExp();
 
-                    // Bugzilla 14556: Set concrete type to avoid further redundant semantic().
+                    // https://issues.dlang.org/show_bug.cgi?id=14556
+                    // Set concrete type to avoid further redundant semantic().
                     sle.type = e1.type;
 
                     /* Constructor takes a mutable object, so don't use
@@ -9941,7 +9958,8 @@ extern (C++) final class CallExp : UnaExp
                 Expression e;
 
                 // Make sure to use the the enum type itself rather than its
-                // base type (see bugzilla 16346)
+                // base type
+                // https://issues.dlang.org/show_bug.cgi?id=16346
                 if (e1.type.ty == Tenum)
                 {
                     t1 = e1.type;
@@ -10117,7 +10135,7 @@ extern (C++) final class CallExp : UnaExp
                     }
                     else if (ue.e1.op == TOKsuper)
                         directcall = true;
-                    else if ((cd.storage_class & STCfinal) != 0) // Bugzilla 14211
+                    else if ((cd.storage_class & STCfinal) != 0) // https://issues.dlang.org/show_bug.cgi?id=14211
                         directcall = true;
 
                     if (ad != cd)
@@ -10464,7 +10482,8 @@ extern (C++) final class CallExp : UnaExp
 
         if (!type)
         {
-            e1 = e1org; // Bugzilla 10922, avoid recursive expression printing
+            e1 = e1org; // https://issues.dlang.org/show_bug.cgi?id=10922
+                        // avoid recursive expression printing
             error("forward reference to inferred return type of function call '%s'", toChars());
             return new ErrorExp();
         }
@@ -10724,7 +10743,8 @@ extern (C++) final class AddrExp : UnaExp
             FuncDeclaration f = dve.var.isFuncDeclaration();
             if (f)
             {
-                f = f.toAliasFunc(); // FIXME, should see overloads - Bugzilla 1983
+                f = f.toAliasFunc(); // FIXME, should see overloads
+                                     // https://issues.dlang.org/show_bug.cgi?id=1983
                 if (!dve.hasOverloads)
                     f.tookAddressOf++;
 
@@ -11145,7 +11165,8 @@ extern (C++) final class NotExp : UnaExp
 
         if (!Target.isVectorOpSupported(e1.type.toBasetype(), op))
             return incompatibleTypes();
-        // Bugzilla 13910: Today NotExp can take an array as its operand.
+        // https://issues.dlang.org/show_bug.cgi?id=13910
+        // Today NotExp can take an array as its operand.
         if (checkNonAssignmentArrayOp(e1))
             return new ErrorExp();
 
@@ -12438,7 +12459,9 @@ extern (C++) final class IndexExp : BinExp
             {
                 TypeAArray taa = cast(TypeAArray)t1b;
                 /* We can skip the implicit conversion if they differ only by
-                 * constness (Bugzilla 2684, see also bug 2954b)
+                 * constness
+                 * https://issues.dlang.org/show_bug.cgi?id=2684
+                 * see also bug https://issues.dlang.org/show_bug.cgi?id=2954 b
                  */
                 if (!arrayTypeCompatibleWithoutCasting(e2.loc, e2.type, taa.index))
                 {
@@ -13032,7 +13055,8 @@ extern (C++) class AssignExp : BinExp
             //printf("[%s] change to init - %s\n", loc.toChars(), toChars());
             op = TOKconstruct;
 
-            // Bugzilla 13515: set Index::modifiable flag for complex AA element initialization
+            // https://issues.dlang.org/show_bug.cgi?id=13515
+            // set Index::modifiable flag for complex AA element initialization
             if (e1.op == TOKindex)
             {
                 Expression e1x = (cast(IndexExp)e1).markSettingAAElem();
@@ -13071,7 +13095,8 @@ extern (C++) class AssignExp : BinExp
                     if (!sd.ctor)
                         sd.ctor = sd.searchCtor();
 
-                    // Bugzilla 15661: Look for the form from last of comma chain.
+                    // https://issues.dlang.org/show_bug.cgi?id=15661
+                    // Look for the form from last of comma chain.
                     auto e2y = e2x;
                     while (e2y.op == TOKcomma)
                         e2y = (cast(CommaExp)e2y).e2;
@@ -13093,7 +13118,8 @@ extern (C++) class AssignExp : BinExp
                         Expression einit;
                         if (sd.zeroInit == 1 && !sd.isNested())
                         {
-                            // Bugzilla 14606: Always use BlitExp for the special expression: (struct = 0)
+                            // https://issues.dlang.org/show_bug.cgi?id=14606
+                            // Always use BlitExp for the special expression: (struct = 0)
                             einit = new IntegerExp(loc, 0, Type.tint32);
                         }
                         else if (sd.isNested())
@@ -13206,7 +13232,7 @@ extern (C++) class AssignExp : BinExp
                     if (search_function(sd, Id.call))
                     {
                         /* Look for static opCall
-                         * (See bugzilla 2702 for more discussion)
+                         * https://issues.dlang.org/show_bug.cgi?id=2702
                          * Rewrite as:
                          *  e1 = typeof(e1).opCall(arguments)
                          */
@@ -13221,7 +13247,7 @@ extern (C++) class AssignExp : BinExp
                             return new ErrorExp();
                     }
                 }
-                else // Bugzilla 11355
+                else // https://issues.dlang.org/show_bug.cgi?id=11355
                 {
                     AggregateDeclaration ad2 = isAggregate(e2x.type);
                     if (ad2 && ad2.aliasthis && !(att2 && e2x.type == att2))
@@ -13295,7 +13321,8 @@ extern (C++) class AssignExp : BinExp
                                 return ey;
                             ex = e;
 
-                            // Bugzilla 14144: The whole expression should have the common type
+                            // https://issues.dlang.org/show_bug.cgi?id=14144
+                            // The whole expression should have the common type
                             // of opAssign() return and assigned AA entry.
                             // Even if there's no common type, expression should be typed as void.
                             Type t = null;
@@ -13573,7 +13600,8 @@ extern (C++) class AssignExp : BinExp
             }
             else
             {
-                /* Bugzilla 15778: A string literal has an array type of immutable
+                /* https://issues.dlang.org/show_bug.cgi?id=15778
+                 * A string literal has an array type of immutable
                  * elements by default, and normally it cannot be convertible to
                  * array type of mutable elements. But for element-wise assignment,
                  * elements need to be const at best. So we should give a chance
@@ -13627,7 +13655,8 @@ extern (C++) class AssignExp : BinExp
                 (isUnaArrayOp(e2.op) || isBinArrayOp(e2.op)))
             {
                 type = e1.type;
-                if (op == TOKconstruct) // Bugzilla 10282: tweak mutability of e1 element
+                if (op == TOKconstruct) // https://issues.dlang.org/show_bug.cgi?id=10282
+                                        // tweak mutability of e1 element
                     e1.type = e1.type.nextOf().mutableOf().arrayOf();
                 return arrayOp(this, sc);
             }
@@ -14382,7 +14411,8 @@ extern (C++) final class CatExp : BinExp
         // Check for: array ~ array
         if (tb1next && tb2next && (tb1next.implicitConvTo(tb2next) >= MATCHconst || tb2next.implicitConvTo(tb1next) >= MATCHconst || e1.op == TOKarrayliteral && e1.implicitConvTo(tb2) || e2.op == TOKarrayliteral && e2.implicitConvTo(tb1)))
         {
-            /* Bugzilla 9248: Here to avoid the case of:
+            /* https://issues.dlang.org/show_bug.cgi?id=9248
+             * Here to avoid the case of:
              *    void*[] a = [cast(void*)1];
              *    void*[] b = [cast(void*)2];
              *    a ~ b;
@@ -14390,7 +14420,8 @@ extern (C++) final class CatExp : BinExp
              *    a ~ [cast(void*)b];
              */
 
-            /* Bugzilla 14682: Also to avoid the case of:
+            /* https://issues.dlang.org/show_bug.cgi?id=14682
+             * Also to avoid the case of:
              *    int[][] a;
              *    a ~ [];
              * becoming:
@@ -14405,7 +14436,8 @@ extern (C++) final class CatExp : BinExp
             if (e1.op == TOKarrayliteral)
             {
                 e2 = doCopyOrMove(sc, e2);
-                // Bugzilla 14686: Postblit call appears in AST, and this is
+                // https://issues.dlang.org/show_bug.cgi?id=14686
+                // Postblit call appears in AST, and this is
                 // finally translated  to an ArrayLiteralExp in below optimize().
             }
             else if (e1.op == TOKstring)
@@ -15844,7 +15876,8 @@ extern (C++) final class CondExp : BinExp
         Type t2 = e2.type;
         // If either operand is void the result is void, we have to cast both
         // the expression to void so that we explicitly discard the expression
-        // value if any (bugzilla 16598)
+        // value if any
+        // https://issues.dlang.org/show_bug.cgi?id=16598
         if (t1.ty == Tvoid || t2.ty == Tvoid)
         {
             type = Type.tvoid;
@@ -15892,7 +15925,8 @@ extern (C++) final class CondExp : BinExp
             printf("e2 : %s\n", e2.type.toChars());
         }
 
-        /* Bugzilla 14696: If either e1 or e2 contain temporaries which need dtor,
+        /* https://issues.dlang.org/show_bug.cgi?id=14696
+         * If either e1 or e2 contain temporaries which need dtor,
          * make them conditional.
          * Rewrite:
          *      cond ? (__tmp1 = ..., __tmp1) : (__tmp2 = ..., __tmp2)

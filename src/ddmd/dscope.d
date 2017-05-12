@@ -101,7 +101,8 @@ enum SCOPEensure        = 0x0060;   /// inside out contract code
 enum SCOPEcontract      = 0x0060;   /// [mask] we're inside contract code
 enum SCOPEctfe          = 0x0080;   /// inside a ctfe-only expression
 enum SCOPEcompile       = 0x0100;   /// inside __traits(compile)
-enum SCOPEignoresymbolvisibility    = 0x0200;   /// ignore symbol visibility (Bugzilla 15907)
+enum SCOPEignoresymbolvisibility    = 0x0200;   /// ignore symbol visibility
+                                                /// https://issues.dlang.org/show_bug.cgi?id=15907
 enum SCOPEfree          = 0x8000;   /// is on free list
 
 enum SCOPEfullinst      = 0x10000;  /// fully instantiate templates
@@ -213,7 +214,8 @@ struct Scope
     {
         Scope* sc = Scope.alloc();
         *sc = this;
-        /* Bugzilla 11777: The copied scope should not inherit fieldinit.
+        /* https://issues.dlang.org/show_bug.cgi?id=11777
+         * The copied scope should not inherit fieldinit.
          */
         sc.fieldinit = null;
         return sc;
@@ -525,7 +527,7 @@ struct Scope
             if (!global.params.check10378)
                 return sold;
 
-            if (ident == Id.dollar) // Bugzilla 15825
+            if (ident == Id.dollar) // https://issues.dlang.org/show_bug.cgi?id=15825
                 return sold;
 
             // Search both ways
@@ -570,7 +572,7 @@ struct Scope
      */
     extern (C++) static void deprecation10378(Loc loc, Dsymbol sold, Dsymbol snew)
     {
-        // Bugzilla 15857
+        // https://issues.dlang.org/show_bug.cgi?id=15857
         //
         // The overloadset found via the new lookup rules is either
         // equal or a subset of the overloadset found via the old

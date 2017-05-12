@@ -120,7 +120,8 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
                 getTypeInfoType(t, sc);
                 sd.requestTypeInfo = true;
 
-                // Bugzilla 15149, if the typeid operand type comes from a
+                // https://issues.dlang.org/show_bug.cgi?id=15149
+                // if the typeid operand type comes from a
                 // result of auto function, it may be yet speculative.
                 unSpeculative(sc, sd);
             }

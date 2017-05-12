@@ -790,7 +790,7 @@ extern (C++) final class Module : Package
         /* If it has the extension ".dd", it is also a documentation
          * source file. Documentation source files may begin with "Ddoc"
          * but do not have to if they have the .dd extension.
-         * See: https://issues.dlang.org/show_bug.cgi?id=15465
+         * https://issues.dlang.org/show_bug.cgi?id=15465
          */
         if (FileName.equalsExt(arg, "dd"))
         {
@@ -939,7 +939,8 @@ extern (C++) final class Module : Package
                     error(loc, "from file %s is specified twice on the command line", srcname);
                 else
                     error(loc, "from file %s must be imported with 'import %s;'", srcname, toPrettyChars());
-                // Bugzilla 14446: Return previously parsed module to avoid AST duplication ICE.
+                // https://issues.dlang.org/show_bug.cgi?id=14446
+                // Return previously parsed module to avoid AST duplication ICE.
                 return mprev;
             }
             else if (Package pkg = prev.isPackage())
@@ -1166,7 +1167,8 @@ extern (C++) final class Module : Package
 
         if (errors == global.errors)
         {
-            // Bugzilla 10752: We can cache the result only when it does not cause
+            // https://issues.dlang.org/show_bug.cgi?id=10752
+            // Can cache the result only when it does not cause
             // access error so the side-effect should be reproduced in later search.
             searchCacheIdent = ident;
             searchCacheSymbol = s;

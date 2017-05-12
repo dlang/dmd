@@ -808,7 +808,8 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
                     offset = 0;
             }
 
-            /* Bugzilla 13613: If the fields in this.members had been already
+            /* https://issues.dlang.org/show_bug.cgi?id=13613
+             * If the fields in this.members had been already
              * added in ad.fields, just update *poffset for the subsequent
              * field offset calculation.
              */
@@ -999,7 +1000,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
                 error("function name expected for start address");
             else
             {
-                /* Bugzilla 11980:
+                /* https://issues.dlang.org/show_bug.cgi?id=11980
                  * resolveProperties and ctfeInterpret call are not necessary.
                  */
                 Expression e = (*args)[0];

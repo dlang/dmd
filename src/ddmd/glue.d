@@ -737,7 +737,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.type && fd.type.ty == Tfunction && (cast(TypeFunction)fd.type).next is null)
         return;
 
-    // If errors occurred compiling it, such as bugzilla 6118
+    // If errors occurred compiling it, such as https://issues.dlang.org/show_bug.cgi?id=6118
     if (fd.type && fd.type.ty == Tfunction && (cast(TypeFunction)fd.type).next.ty == Terror)
         return;
 
@@ -842,7 +842,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
     if (fd.inlinedNestedCallees)
     {
-        /* Bugzilla 15333: If fd contains inlined expressions that come from
+        /* https://issues.dlang.org/show_bug.cgi?id=15333
+         * If fd contains inlined expressions that come from
          * nested function bodies, the enclosing of the functions must be
          * generated first, in order to calculate correct frame pointer offset.
          */
