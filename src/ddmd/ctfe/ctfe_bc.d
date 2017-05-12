@@ -3991,8 +3991,8 @@ static if (is(BCGen))
                         }
                         bailout(_sharedCtfeState.elementType(lhs.type) != _sharedCtfeState.elementType(rhs.type), "rhs and lhs for ~= are not compatible");
                         auto elementType = _sharedCtfeState.elementType(lhs.type);
-                        retval = assignTo ? assignTo : genTemporary(i32Type);
-                        Cat(retval, lhs, rhs, _sharedCtfeState.size(elementType));
+                        retval = assignTo ? assignTo : genTemporary(i32Type);                        
+                        doCat(retval, lhs, rhs);
                     }
                     else
                     {
