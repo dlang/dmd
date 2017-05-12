@@ -4546,13 +4546,8 @@ static if (is(BCGen))
                         bailout("StructType has invalidSize (this is really bad): " ~ ae.e1.toString);
                         return ;
                     }
-                    // for some reason a a struct on the stack which is default-initalized
-                    // get's the integerExp 0 of integer type as rhs
-                    Alloc(lhs.i32, imm32(_sharedCtfeState.size(lhs.type)));
-                    // Allocate space for the value on the heap and store it in lhs :)
-                    MemCpyConst(lhs.i32, _sharedCtfeState.initializer(lhs.type));
-                    // Copy the initializer into the memory
-                    // TODO: (currently the initializer wiil only be set correctly on uints)
+                    // It seems like it's fine if we do nothing here ? 
+                    // given that the heap is already zerod
 
                 }
                 else
