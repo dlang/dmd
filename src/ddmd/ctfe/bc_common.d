@@ -47,19 +47,23 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
         {
             return 2;
         }
-    case c32, i32, u32:
+    case c32, i32, u32, f23:
         {
             return 4;
         }
-    case i64, u64:
+    case i64, u64, f52:
         {
             return 8;
         }
+    case f106:
+        {
+            return 16;
+        }
 
     case Function, Ptr, Null:
-       {
-           return 4;
-       }
+        {
+            return 4;
+        }
 
     case Void, Array, Struct:
         {
@@ -68,10 +72,17 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
     }
 }
 
-bool isBasicBCType(BCTypeEnum bct) @safe pure
+bool isBasicBCType(BCType bct) @safe pure
 {
-    return !(bct == BCTypeEnum.Struct || bct == BCTypeEnum.Array
-        || bct == BCType.Slice || bct == BCTypeEnum.Undef);
+    return !(bct.type == BCTypeEnum.Struct || bct.type == BCTypeEnum.Array
+            || bct.type == BCTypeEnum.Slice || bct.type == BCTypeEnum.Undef || bct.type == BCTypeEnum.Ptr);
+}
+
+static assert(!isBasicBCType(BCType(BCTypeEnum.Array, 1)));
+
+const(bool) isStackValueOrParameter(const BCValue val) pure @safe nothrow
+{
+    return (val.vType == BCValueType.StackValue || val.vType == BCValueType.Parameter);
 }
 
 enum BCTypeEnum : ubyte
@@ -100,6 +111,10 @@ enum BCTypeEnum : ubyte
     u32,
     u64,
 
+    f23, /// 32  bit float mantissa has 23 bit
+    f52, /// 64  bit float mantissa has 52 bit
+    f106, /// 128 bit float mantissa has 106 but (52+52)
+
     string8,
     String = string8,
     string16,
@@ -114,18 +129,31 @@ enum BCTypeEnum : ubyte
 
 }
 
-enum BCTypeFlags
+enum BCTypeFlags : ubyte
 {
-  Const = 0x1,
+    None = 0x0,
+    Const = 0x1,
 }
+
 struct BCType
 {
     BCTypeEnum type;
     alias type this;
-    /// 0 means basic type
     uint typeIndex;
     // additional information
-    ubyte flags;
+    BCTypeFlags flags;
+
+    string toString() const pure
+    {
+        import std.conv;
+
+        string result;
+
+        result ~= "BCType(type: " ~ to!string(type) ~ ", " ~ "typeIndex: " ~ to!string(
+                typeIndex) ~ ", " ~ "flags: " ~ to!string(flags) ~ ")";
+
+        return result;
+    }
 }
 
 enum BCValueType : ubyte
@@ -141,12 +169,9 @@ enum BCValueType : ubyte
 
     HeapValue = 0x10,
 
-
-
     LastCond = 0xFD,
     Bailout = 0xFE,
-    Error = 0xFF,
-    //Pinned = 0x80,
+    Error = 0xFF, //Pinned = 0x80,
     /// Pinned values can be returned
     /// And should be kept in the compacted heap
 
@@ -194,8 +219,9 @@ struct BCHeap
 
         foreach (i; 0 .. SizeOverFour)
         {
-            _heap[heapSize++] = (*(_string + (i * 4))) | (*(_string + (i * 4) + 1)) << 8 | (
-                *(_string + (i * 4) + 2)) << 16 | (*(_string + (i * 4) + 3)) << 24;
+            _heap[heapSize++] = (*(_string + (i * 4))) | (
+                    *(_string + (i * 4) + 1)) << 8 | (
+                    *(_string + (i * 4) + 2)) << 16 | (*(_string + (i * 4) + 3)) << 24;
         }
 
         final switch (size - 1 & 3)
@@ -233,10 +259,10 @@ struct BCAddr
     uint addr;
     alias addr this;
 
-//    T opCast(T : bool)()
-//    {
-//        return addr != 0;
-//    }
+    //    T opCast(T : bool)()
+    //    {
+    //        return addr != 0;
+    //    }
 }
 
 struct BCParameter
@@ -264,12 +290,12 @@ struct Imm32
     alias imm32 this;
 }
 
-
 BCValue imm32(uint value) pure @trusted
 {
     BCValue ret = void;
     ret.vType = BCValueType.Immediate;
-    ret.type = BCTypeEnum.i32;
+    ret.type.type = BCTypeEnum.i32;
+    ret.type.flags = BCTypeFlags.None;
     ret.imm32 = value;
     return ret;
 }
@@ -279,7 +305,6 @@ BCValue i32(BCValue val) pure @safe
     val.type.type = BCTypeEnum.i32;
     return val;
 }
-
 
 struct Imm64
 {
@@ -318,27 +343,37 @@ struct BCHeapRef
         Imm32 imm32;
     }
 
-    this(const(BCValue) that) pure
+@safe pure:
+    bool opCast(T : bool)() const pure
     {
-        switch(that.vType)
+        // the check for Undef is a workaround
+        // consider removing it when everything works correctly.
+
+        return this.vType != vType.Unknown;
+    }
+
+    this(const(BCValue) that)
+    {
+        switch (that.vType)
         {
-            case BCValueType.StackValue, BCValueType.Parameter :
-            case BCValueType.Temporary:
-                stackAddr = that.stackAddr;
-                tmpIndex = that.tmpIndex;
+        case BCValueType.StackValue, BCValueType.Parameter:
+        case BCValueType.Temporary:
+            stackAddr = that.stackAddr;
+            tmpIndex = that.tmpIndex;
             break;
 
-            case BCValueType.HeapValue :
-                heapAddr = that.heapAddr;
+        case BCValueType.HeapValue:
+            heapAddr = that.heapAddr;
             break;
 
-            case BCValueType.Immediate :
-                imm32 = that.imm32;
+        case BCValueType.Immediate:
+            imm32 = that.imm32;
             break;
 
-            default :
-                import std.conv : to;
-                assert(0, "vType unsupported: " ~ to!string(that.vType));
+        default:
+            import std.conv : to;
+
+            assert(0, "vType unsupported: " ~ to!string(that.vType));
         }
         vType = that.vType;
     }
@@ -346,8 +381,7 @@ struct BCHeapRef
 
 struct BCValue
 {
-    // only to workaround codegen issue
-    uint _;///FIXME remove when 2.074 is out!!
+    uint _; // avoid compile-time issues
 
     BCType type;
     BCValueType vType;
@@ -368,37 +402,55 @@ struct BCValue
     }
 
     //TORO PERF minor: use a 32bit value for heapRef;
-   BCHeapRef heapRef;
+    BCHeapRef heapRef;
 
     uint toUint() const pure
     {
-        switch(this.vType)
+        switch (this.vType)
         {
-            case BCValueType.Parameter,
-            BCValueType.Temporary,
-            BCValueType.StackValue :
-               return stackAddr;
-            case BCValueType.HeapValue :
-                return heapAddr;
-            case BCValueType.Immediate :
-                return imm32;
-            case BCValueType.Unknown : return this.imm32;
-            default :
-                {
-                    import std.conv : to;
-                    assert(0, "toUint not implement for " ~ vType.to!string);
-                }
+        case BCValueType.Parameter, BCValueType.Temporary,
+                BCValueType.StackValue:
+                return stackAddr;
+        case BCValueType.HeapValue:
+            return heapAddr;
+        case BCValueType.Immediate:
+            return imm32;
+        case BCValueType.Unknown:
+            return this.imm32;
+        default:
+            {
+                import std.conv : to;
+
+                assert(0, "toUint not implement for " ~ vType.to!string);
+            }
         }
 
     }
-
 
     string toString() const pure
     {
         import std.format;
 
-        return format("\nvType: %s\tType: %s\tstackAddr: %s\timm32 %s\t",
-            vType, type.type, stackAddr, imm32);
+        return format("\nvType: %s\tType: %s\tvalue:%s\n", vType, type.toString(), valueToString);
+    }
+
+    string valueToString() const pure
+    {
+        import std.conv;
+
+        switch (vType)
+        {
+        case BCValueType.Parameter, BCValueType.Temporary,
+                BCValueType.StackValue:
+                return "stackAddr: " ~ to!string(stackAddr);
+        case BCValueType.HeapValue:
+            return "heapAddr: " ~ to!string(heapAddr);
+        case BCValueType.Immediate:
+            return "imm: " ~ (type == BCTypeEnum.i64
+                    ? to!string(imm64) : to!string(imm32));
+        default:
+            return "unkown value format";
+        }
     }
 
 @safe pure:
@@ -407,12 +459,13 @@ struct BCValue
         // the check for Undef is a workaround
         // consider removing it when everything works correctly.
 
-        return this.vType != vType.Unknown && this.type != BCTypeEnum.Undef;
+        return this.vType != vType.Unknown && this.type.type != BCTypeEnum.Undef
+            && this.vType != vType.VoidValue;
     }
 
     bool opEquals(const BCValue rhs) pure const
     {
-        if (this.vType == rhs.vType && this.type.type == rhs.type)
+        if (this.vType == rhs.vType && this.type == rhs.type)
         {
             final switch (this.vType)
             {
@@ -496,32 +549,33 @@ struct BCValue
         this.heapAddr = addr;
     }
 
-    this(const BCHeapRef heapRef)
+    this(const BCHeapRef heapRef) pure
     {
         this.vType = heapRef.vType;
         switch (vType)
         {
-            case BCValueType.StackValue, BCValueType.Parameter :
-                stackAddr = heapRef.stackAddr;
-                tmpIndex = heapRef.tmpIndex;
-                break;
+        case BCValueType.StackValue, BCValueType.Parameter:
+            stackAddr = heapRef.stackAddr;
+            tmpIndex = heapRef.tmpIndex;
+            break;
 
-            case BCValueType.Temporary :
-                stackAddr = heapRef.stackAddr;
-                tmpIndex = heapRef.tmpIndex;
-                break;
+        case BCValueType.Temporary:
+            stackAddr = heapRef.stackAddr;
+            tmpIndex = heapRef.tmpIndex;
+            break;
 
-            case BCValueType.HeapValue :
-                heapAddr = heapRef.heapAddr;
-                break;
+        case BCValueType.HeapValue:
+            heapAddr = heapRef.heapAddr;
+            break;
 
-            case BCValueType.Immediate :
-                imm32 = heapRef.imm32;
-                break;
+        case BCValueType.Immediate:
+            imm32 = heapRef.imm32;
+            break;
 
-            default :
-                import std.conv : to;
-                assert(0, "vType unsupported: " ~ to!string(vType));
+        default:
+            import std.conv : to;
+
+            assert(0, "vType unsupported: " ~ to!string(vType));
         }
     }
 }
@@ -532,6 +586,14 @@ __gshared static immutable bcLastCond = () {
     result.vType = BCValueType.LastCond;
     return result;
 }();
+
+__gshared static immutable bcNull = () {
+    BCValue result;
+    result.vType = BCValueType.Immediate;
+    result.type.type = BCTypeEnum.Null;
+    return result;
+}();
+
 __gshared static immutable bcFour = BCValue(Imm32(4));
 __gshared static immutable bcOne = BCValue(Imm32(1));
 __gshared static immutable bcZero = BCValue(Imm32(0));
@@ -544,116 +606,93 @@ template BCGenFunction(T, alias fn)
 
     static if (is(typeof(T.init.functionalize()) == string))
     {
-        enum BCGenFunction = mixin(fn().functionalize);
+        static immutable BCGenFunction = mixin(fn().functionalize);
     }
     else /*static if (is(typeof(T.init.interpret(typeof(T.init.byteCode), typeof(params).init)()) : int))*/
     {
-        enum BCGenFunction = ((BCValue[] args, BCHeap* heapPtr) => fn().interpret(args,
-                heapPtr));
+        static immutable BCGenFunction = ((BCValue[] args,
+                BCHeap* heapPtr) => fn().interpret(args, heapPtr));
     }
 }
 
 template ensureIsBCGen(BCGenT)
 {
     static assert(is(typeof(BCGenT.beginFunction(uint.init)) == void),
-        BCGenT.stringof ~ " is missing void beginFunction(uint)");
-    static assert(is(typeof(BCGenT.endFunction())),
-        BCGenT.stringof ~ " is missing endFunction()");
+            BCGenT.stringof ~ " is missing void beginFunction(uint)");
+    static assert(is(typeof(BCGenT.endFunction())), BCGenT.stringof ~ " is missing endFunction()");
     static assert(is(typeof(BCGenT.Initialize()) == void),
-        BCGenT.stringof ~ " is missing void Initialize()");
+            BCGenT.stringof ~ " is missing void Initialize()");
     static assert(is(typeof(BCGenT.Finalize()) == void),
-        BCGenT.stringof ~ " is missing void Finalize()");
+            BCGenT.stringof ~ " is missing void Finalize()");
     static assert(is(typeof(BCGenT.genTemporary(BCType.init)) == BCValue),
-        BCGenT.stringof ~ " is missing BCValue genTemporary(BCType bct)");
+            BCGenT.stringof ~ " is missing BCValue genTemporary(BCType bct)");
     static assert(is(typeof(BCGenT.genParameter(BCType.init)) == BCValue),
-        BCGenT.stringof ~ " is missing BCValue genParameter(BCType bct)");
+            BCGenT.stringof ~ " is missing BCValue genParameter(BCType bct)");
     static assert(is(typeof(BCGenT.beginJmp()) == BCAddr),
-        BCGenT.stringof ~ " is missing BCAddr beginJmp()");
+            BCGenT.stringof ~ " is missing BCAddr beginJmp()");
+    static assert(is(typeof(BCGenT.endJmp(BCAddr.init, BCLabel.init)) == void),
+            BCGenT.stringof ~ " is missing void endJmp(BCAddr atIp, BCLabel target)");
     static assert(is(typeof(BCGenT.incSp()) == void), BCGenT.stringof ~ " is missing void incSp()");
     static assert(is(typeof(BCGenT.currSp()) == StackAddr),
-        BCGenT.stringof ~ " is missing StackAddr currSp()");
-    static assert(is(typeof(BCGenT.endJmp(BCAddr.init, BCLabel.init)) == void),
-        BCGenT.stringof ~ " is missing void endJmp(BCAddr atIp, BCLabel target)");
+            BCGenT.stringof ~ " is missing StackAddr currSp()");
     static assert(is(typeof(BCGenT.genLabel()) == BCLabel),
-        BCGenT.stringof ~ " is missing BCLabel genLabel()");
-    static assert(is(typeof(BCGenT.beginCndJmp(BCValue.init,
-        bool.init)) == CndJmpBegin),
-        BCGenT.stringof
-        ~ " is missing CndJmpBegin beginCndJmp(BCValue cond = BCValue.init, bool ifTrue = false)");
-    static assert(is(typeof(BCGenT.endCndJmp(CndJmpBegin.init,
-        BCLabel.init)) == void),
-        BCGenT.stringof ~ " is missing void endCndJmp(CndJmpBegin jmp, BCLabel target)");
+            BCGenT.stringof ~ " is missing BCLabel genLabel()");
+    static assert(is(typeof(BCGenT.beginCndJmp(BCValue.init, bool.init)) == CndJmpBegin),
+            BCGenT.stringof
+            ~ " is missing CndJmpBegin beginCndJmp(BCValue cond = BCValue.init, bool ifTrue = false)");
+    static assert(is(typeof(BCGenT.endCndJmp(CndJmpBegin.init, BCLabel.init)) == void),
+            BCGenT.stringof ~ " is missing void endCndJmp(CndJmpBegin jmp, BCLabel target)");
     static assert(is(typeof(BCGenT.genJump(BCLabel.init)) == void),
-        BCGenT.stringof ~ " is missing void genJump(BCLabel target)");
+            BCGenT.stringof ~ " is missing void genJump(BCLabel target)");
     static assert(is(typeof(BCGenT.emitFlg(BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void emitFlg(BCValue lhs)");
+            BCGenT.stringof ~ " is missing void emitFlg(BCValue lhs)");
     static assert(is(typeof(BCGenT.Alloc(BCValue.init, BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Alloc(BCValue heapPtr, BCValue size)");
+            BCGenT.stringof ~ " is missing void Alloc(BCValue heapPtr, BCValue size)");
     static assert(is(typeof(BCGenT.Assert(BCValue.init, BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Assert(BCValue value, BCValue message)");
+            BCGenT.stringof ~ " is missing void Assert(BCValue value, BCValue message)");
     static assert(is(typeof(BCGenT.Not(BCValue.init, BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Not(BCValue result, BCValue val)");
+            BCGenT.stringof ~ " is missing void Not(BCValue result, BCValue val)");
     static assert(is(typeof(BCGenT.Set(BCValue.init, BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Set(BCValue lhs, BCValue rhs)");
-    static assert(is(typeof(BCGenT.Lt3(BCValue.init, BCValue.init,
-        BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Lt3(BCValue result, BCValue lhs, BCValue rhs)");
-    static assert(is(typeof(BCGenT.Gt3(BCValue.init, BCValue.init,
-        BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Gt3(BCValue result, BCValue lhs, BCValue rhs)");
-    static assert(is(typeof(BCGenT.Eq3(BCValue.init, BCValue.init,
-        BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Eq3(BCValue result, BCValue lhs, BCValue rhs)");
-    static assert(is(typeof(BCGenT.Neq3(BCValue.init, BCValue.init,
-        BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Neq3(BCValue result, BCValue lhs, BCValue rhs)");
-    static assert(is(typeof(BCGenT.Add3(BCValue.init, BCValue.init,
-        BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Add3(BCValue result, BCValue lhs, BCValue rhs)");
-    static assert(is(typeof(BCGenT.Sub3(BCValue.init, BCValue.init,
-        BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Sub3(BCValue result, BCValue lhs, BCValue rhs)");
-    static assert(is(typeof(BCGenT.Mul3(BCValue.init, BCValue.init,
-        BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Mul3(BCValue result, BCValue lhs, BCValue rhs)");
-    static assert(is(typeof(BCGenT.Div3(BCValue.init, BCValue.init,
-        BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Div3(BCValue result, BCValue lhs, BCValue rhs)");
-    static assert(is(typeof(BCGenT.And3(BCValue.init, BCValue.init,
-        BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void And3(BCValue result, BCValue lhs, BCValue rhs)");
-    static assert(is(typeof(BCGenT.Or3(BCValue.init, BCValue.init,
-        BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Or3(BCValue result, BCValue lhs, BCValue rhs)");
-    static assert(is(typeof(BCGenT.Xor3(BCValue.init, BCValue.init,
-        BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Xor3(BCValue result, BCValue lhs, BCValue rhs)");
-    static assert(is(typeof(BCGenT.Lsh3(BCValue.init, BCValue.init,
-        BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Lsh3(BCValue result, BCValue lhs, BCValue rhs)");
-    static assert(is(typeof(BCGenT.Rsh3(BCValue.init, BCValue.init,
-        BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Rsh3(BCValue result, BCValue lhs, BCValue rhs)");
-    static assert(is(typeof(BCGenT.Mod3(BCValue.init, BCValue.init,
-        BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Mod3(BCValue result, BCValue lhs, BCValue rhs)");
+            BCGenT.stringof ~ " is missing void Set(BCValue lhs, BCValue rhs)");
+    static assert(is(typeof(BCGenT.Lt3(BCValue.init, BCValue.init, BCValue.init)) == void),
+            BCGenT.stringof ~ " is missing void Lt3(BCValue result, BCValue lhs, BCValue rhs)");
+    static assert(is(typeof(BCGenT.Gt3(BCValue.init, BCValue.init, BCValue.init)) == void),
+            BCGenT.stringof ~ " is missing void Gt3(BCValue result, BCValue lhs, BCValue rhs)");
+    static assert(is(typeof(BCGenT.Eq3(BCValue.init, BCValue.init, BCValue.init)) == void),
+            BCGenT.stringof ~ " is missing void Eq3(BCValue result, BCValue lhs, BCValue rhs)");
+    static assert(is(typeof(BCGenT.Neq3(BCValue.init, BCValue.init, BCValue.init)) == void),
+            BCGenT.stringof ~ " is missing void Neq3(BCValue result, BCValue lhs, BCValue rhs)");
+    static assert(is(typeof(BCGenT.Add3(BCValue.init, BCValue.init, BCValue.init)) == void),
+            BCGenT.stringof ~ " is missing void Add3(BCValue result, BCValue lhs, BCValue rhs)");
+    static assert(is(typeof(BCGenT.Sub3(BCValue.init, BCValue.init, BCValue.init)) == void),
+            BCGenT.stringof ~ " is missing void Sub3(BCValue result, BCValue lhs, BCValue rhs)");
+    static assert(is(typeof(BCGenT.Mul3(BCValue.init, BCValue.init, BCValue.init)) == void),
+            BCGenT.stringof ~ " is missing void Mul3(BCValue result, BCValue lhs, BCValue rhs)");
+    static assert(is(typeof(BCGenT.Div3(BCValue.init, BCValue.init, BCValue.init)) == void),
+            BCGenT.stringof ~ " is missing void Div3(BCValue result, BCValue lhs, BCValue rhs)");
+    static assert(is(typeof(BCGenT.And3(BCValue.init, BCValue.init, BCValue.init)) == void),
+            BCGenT.stringof ~ " is missing void And3(BCValue result, BCValue lhs, BCValue rhs)");
+    static assert(is(typeof(BCGenT.Or3(BCValue.init, BCValue.init, BCValue.init)) == void),
+            BCGenT.stringof ~ " is missing void Or3(BCValue result, BCValue lhs, BCValue rhs)");
+    static assert(is(typeof(BCGenT.Xor3(BCValue.init, BCValue.init, BCValue.init)) == void),
+            BCGenT.stringof ~ " is missing void Xor3(BCValue result, BCValue lhs, BCValue rhs)");
+    static assert(is(typeof(BCGenT.Lsh3(BCValue.init, BCValue.init, BCValue.init)) == void),
+            BCGenT.stringof ~ " is missing void Lsh3(BCValue result, BCValue lhs, BCValue rhs)");
+    static assert(is(typeof(BCGenT.Rsh3(BCValue.init, BCValue.init, BCValue.init)) == void),
+            BCGenT.stringof ~ " is missing void Rsh3(BCValue result, BCValue lhs, BCValue rhs)");
+    static assert(is(typeof(BCGenT.Mod3(BCValue.init, BCValue.init, BCValue.init)) == void),
+            BCGenT.stringof ~ " is missing void Mod3(BCValue result, BCValue lhs, BCValue rhs)");
     static assert(is(typeof(BCGenT.Call(BCValue.init, BCValue.init,
-        BCValue[].init)) == void),
-        BCGenT.stringof ~ " is missing void Call(BCValue result, BCValue fn, BCValue[] args)");
+            BCValue[].init)) == void),
+            BCGenT.stringof ~ " is missing void Call(BCValue result, BCValue fn, BCValue[] args)");
     static assert(is(typeof(BCGenT.Load32(BCValue.init, BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Load32(BCValue _to, BCValue from)");
-    static assert(is(typeof(BCGenT.Store32(BCValue.init,
-        BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Store32(BCValue _to, BCValue value)");
-    static assert(is(typeof(BCGenT.Byte3(BCValue.init, BCValue.init,
-        BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Byte3(BCValue result, BCValue word, BCValue idx)");
+            BCGenT.stringof ~ " is missing void Load32(BCValue _to, BCValue from)");
+    static assert(is(typeof(BCGenT.Store32(BCValue.init, BCValue.init)) == void),
+            BCGenT.stringof ~ " is missing void Store32(BCValue _to, BCValue value)");
     static assert(is(typeof(BCGenT.Ret(BCValue.init)) == void),
-        BCGenT.stringof ~ " is missing void Ret(BCValue val)");
-    static assert(is(typeof(BCGenT.Cat(BCValue.init, BCValue.init,
-        BCValue.init, uint.init)) == void),
-        BCGenT.stringof
-        ~ " is missing void Cat(BCValue result, const BCValue lhs, const BCValue rhs, const uint size)");
+            BCGenT.stringof ~ " is missing void Ret(BCValue val)");
+    static assert(is(typeof(BCGenT.insideFunction) == bool),
+        BCGenT.stringof ~ " is missing bool insideFunction");
 
     enum ensureIsBCGen = true;
 }

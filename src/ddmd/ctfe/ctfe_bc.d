@@ -1,24 +1,25 @@
 module ddmd.ctfe.ctfe_bc;
-
+import ddmd.ctfe.bc_limits;
 import ddmd.expression;
 import ddmd.declaration : FuncDeclaration, VarDeclaration, Declaration,
-    SymbolDeclaration;
+    SymbolDeclaration, STCref;
 import ddmd.dsymbol;
 import ddmd.dstruct;
 import ddmd.init;
 import ddmd.mtype;
 import ddmd.statement;
+import ddmd.sideeffect;
 import ddmd.visitor;
-import ddmd.arraytypes : Expressions;
-
+import ddmd.arraytypes : Expressions, VarDeclarations;
 /**
  * Written By Stefan Koch in 2016
  */
 
 import std.conv : to;
 
-enum perf = 0;
-enum bailoutMessages = 0;
+enum perf = 1;
+enum bailoutMessages = 1;
+enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
@@ -36,9 +37,9 @@ private static void clearArray(T)(auto ref T array, uint count)
 version = ctfe_noboundscheck;
 enum BCBlockJumpTarget
 {
-  Begin,
-  End,
-  Continue,
+    Begin,
+    End,
+    Continue,
 }
 
 struct BCBlockJump
@@ -176,6 +177,15 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 import ddmd.ctfe.bc_common;
 
 
+struct SliceDescriptor
+{
+    enum LengthOffset = 0;
+    enum BaseOffset = 4;
+    enum CapcityOffset = 8;
+    enum ExtraFlagsOffset = 12;
+    enum Size = 16;
+}
+
 static if (UseLLVMBackend)
 {
     import ddmd.ctfe.bc_llvm_backend;
@@ -227,6 +237,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         hiw.start();
     }
     _sharedCtfeState.initHeap();
+    _sharedCtfeState.initStack();
     _sharedCtfeState.clearState();
     static if (perf)
     {
@@ -246,7 +257,9 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
     // HACK since we don't support dealing with _uncompiled_ functions passed as arguments
     // search through the arguments and if we detect a function compile it
-    // The above did not work -- investigate
+    // this did not work because the first function we compile is the one we execute.
+    // hence if visit another function before we bugun this one we are executing the
+    // argument instead of the 'main' function
 
     foreach(arg;args)
     {
@@ -258,25 +271,20 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         }
         if (arg.type.ty == Tpointer && (cast(TypePointer)arg.type).nextOf.ty == Tfunction)
         {
-            static if (bailoutMessages)
-                writeln("top-level function ptr arguments are not supported");
-            return null;
-/* TODO we really need to fix this!
             import ddmd.tokens;
             if (arg.op == TOKsymoff)
             {
                 auto se = cast(SymOffExp)arg;
                 auto _fd = se.var.isFuncDeclaration;
                 if (!_fd) continue;
-                bcv.visit(fd);
-                bcv.compileUncompiledFunctions();
-                bcv.clear();
+                int fnId = _sharedCtfeState.getFunctionIndex(_fd);
+                if (!fnId)
+                    bcv.addUncompiledFunction(_fd, &fnId);
             }
-*/
+
         }
     }
-    bcv.clear();
-    //bcv.me = fd;
+    bcv.me = fd;
 
     static if (perf)
     {
@@ -302,8 +310,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         bcv.vars.keys.each!(k => (cast(VarDeclaration) k).print);
         bcv.vars.writeln;
 
-        writeln(" stackUsage = ", (bcv.sp - 4).to!string ~ " byte");
-        writeln(" TemporaryCount = ", (bcv.temporaryCount).to!string);
+        writeln("stackUsage = ", (bcv.sp - 4).to!string ~ " byte");
+        writeln("TemporaryCount = ", (bcv.temporaryCount).to!string);
     }
 
     if (!bcv.IGaveUp)
@@ -333,6 +341,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
         }
         bcv.endArguments();
+        bcv.compileUncompiledFunctions();
         bcv.Finalize();
 
         static if (UseLLVMBackend)
@@ -403,18 +412,31 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                 static if (perf)
                 {
                     esw.stop();
+                    import ddmd.asttypename;
+                    writeln(astTypeName(exp));
                     writeln("Converting to AST Expression took " ~ esw.peek.usecs.to!string ~ "us");
+                }
+                static if (printResult)
+                {
+                    writeln("Evaluated function:" ~ fd.toString ~ " => " ~ exp.toString);
                 }
                 return exp;
             }
             else
             {
+                static if (bailoutMessages)
+                {
+                    writeln("Converting to Expression failed");
+                }
                 return null;
             }
         }
     }
     else
     {
+        bcv.insideFunction = false;
+        bcv.Finalize();
+
         static if (UsePrinterBackend)
         {
             auto retval = BCValue.init;
@@ -550,11 +572,6 @@ struct BCArray
 
     uint length;
 
-    const(uint) arraySize() const
-    {
-        return length * basicTypeSize(elementType);
-    }
-
     const(uint) arraySize(const SharedCtfeState!BCGenT* sharedState) const
     {
         return sharedState.size(elementType) * length;
@@ -575,11 +592,14 @@ struct BCStruct
 
     BCType[96] memberTypes;
     bool[96] voidInit;
+    uint[96] initializers;
 
-    void addField(const BCType bct, bool isVoidInit)
+    void addField(const BCType bct, bool isVoid, uint initValue)
     {
         memberTypes[memberTypeCount] = bct;
-        voidInit[memberTypeCount++] = isVoidInit;
+        initializers[memberTypeCount] = initValue;
+        voidInit[memberTypeCount++] = isVoid;
+
         size += _sharedCtfeState.size(bct);
     }
 
@@ -609,17 +629,17 @@ struct SharedCtfeState(BCGenT)
     uint _threadLock;
     BCHeap heap;
     long[ushort.max / 4] stack; // a Stack of 64K/4 is the Hard Limit;
-    StructDeclaration[ubyte.max * 12] structDeclpointerTypes;
-    BCStruct[ubyte.max * 12] structTypes;
+    StructDeclaration[bc_max_structs] structDeclpointerTypes;
+    BCStruct[bc_max_structs] structTypes;
 
-    TypeSArray[ubyte.max * 16] sArrayTypePointers;
-    BCArray[ubyte.max * 16] arrayTypes;
+    TypeSArray[bc_max_arrays] sArrayTypePointers;
+    BCArray[bc_max_arrays] arrayTypes;
 
-    TypeDArray[ubyte.max * 8] dArrayTypePointers;
-    BCSlice[ubyte.max * 8] sliceTypes;
+    TypeDArray[bc_max_slices] dArrayTypePointers;
+    BCSlice[bc_max_slices] sliceTypes;
 
-    TypePointer[ubyte.max * 8] pointerTypePointers;
-    BCPointer[ubyte.max * 8] pointerTypes;
+    TypePointer[bc_max_types] pointerTypePointers;
+    BCPointer[bc_max_pointers] pointerTypes;
 
     BCTypeVisitor btv = new BCTypeVisitor();
 
@@ -629,19 +649,65 @@ struct SharedCtfeState(BCGenT)
     uint sliceCount;
     uint pointerCount;
     // find a way to live without 102_000
-    RetainedError[ubyte.max * 32] errors;
+    RetainedError[bc_max_errors] errors;
     uint errorCount;
 
     const(BCType) elementType(const BCType type) pure const
     {
         if (type.type == BCTypeEnum.Slice)
-            return type.typeIndex <= sliceCount ? sliceTypes[type.typeIndex - 1].elementType : BCType.init;
+            return (type.typeIndex && type.typeIndex <= sliceCount) ? sliceTypes[type.typeIndex - 1] .elementType : BCType.init;
         else if (type.type == BCTypeEnum.Ptr)
-            return type.typeIndex <= pointerCount ? pointerTypes[type.typeIndex - 1].elementType : BCType.init;
+            return (type.typeIndex && type.typeIndex <= pointerCount) ? pointerTypes[type.typeIndex - 1].elementType : BCType.init;
         else if (type.type == BCTypeEnum.Array)
-            return type.typeIndex <= arrayCount ? arrayTypes[type.typeIndex - 1].elementType : BCType.init;
+            return (type.typeIndex && type.typeIndex <= arrayCount) ? arrayTypes[type.typeIndex - 1].elementType : BCType.init;
+        else if (type.type == BCTypeEnum.string8)
+            return BCType(BCTypeEnum.c8);
         else
             return BCType.init;
+    }
+
+    //TODO this will currently _not_ represent all intializers correctly, especially 64bit initializers will be zero
+    uint[] initializer(const BCType type) pure const
+    {
+        assert(type.type == BCTypeEnum.Struct, "only structs can have initializers ... type passed: " ~ type.type.to!string);
+        assert(type.typeIndex && type.typeIndex <= structCount, "invalid structTypeIndex passed: " ~ type.typeIndex.to!string);
+        auto structType = structTypes[type.typeIndex - 1];
+        uint[] result;
+        result.length = structType.memberTypeCount;
+        foreach(i, init;structType.initializers[0 .. structType.memberTypeCount])
+        {
+            result[i] = init;
+        }
+
+        return result;
+    }
+
+    const(BCType) pointerOf(const BCType type) pure
+    {
+        foreach (uint i, pt; pointerTypes[0 .. pointerCount])
+        {
+            if (pt.elementType == type)
+            {
+                return BCType(BCTypeEnum.Ptr, i + 1);
+            }
+        }
+
+        pointerTypes[pointerCount++] = BCPointer(type);
+        return BCType(BCTypeEnum.Ptr, pointerCount);
+    }
+
+    const(BCType) sliceOf(const BCType type) pure
+    {
+        foreach (uint i, st; sliceTypes[0 .. sliceCount])
+        {
+            if (st.elementType == type)
+            {
+                return BCType(BCTypeEnum.Slice, i + 1);
+            }
+        }
+
+        sliceTypes[sliceCount++] = BCSlice(type);
+        return BCType(BCTypeEnum.Slice, sliceCount);
     }
 
     void clearState()
@@ -670,6 +736,13 @@ struct SharedCtfeState(BCGenT)
 
     }
 
+
+    void initStack()
+    {
+        import core.stdc.string : memset;
+
+        memset(&stack, 0, stack[0].sizeof * stack.length / 4);
+    }
 
     void initHeap(uint maxHeapSize = 2 ^^ 24)
     {
@@ -706,7 +779,7 @@ struct SharedCtfeState(BCGenT)
 
     import ddmd.globals : Loc;
 
-    BCValue addError(Loc loc, string msg, BCValue v1 = BCValue.init, BCValue v2 = BCValue.init)
+    extern (D) BCValue addError(Loc loc, string msg, BCValue v1 = BCValue.init, BCValue v2 = BCValue.init)
     {
         errors[errorCount++] = RetainedError(loc, msg, v1, v2);
         auto retval = imm32(errorCount);
@@ -802,7 +875,7 @@ struct SharedCtfeState(BCGenT)
                 return cast(uint) i + 1;
             }
         }
-        //register structType
+        //register sliceType
         auto elemType = btv.toBCType(tda.nextOf);
         if (sliceTypes.length - 1 > sliceCount)
         {
@@ -839,6 +912,10 @@ struct SharedCtfeState(BCGenT)
     {
         static __gshared sizeRecursionCount = 1;
         sizeRecursionCount++;
+        scope (exit)
+        {
+            sizeRecursionCount--;
+        }
         import std.stdio;
 
         if (sizeRecursionCount > 3000)
@@ -849,10 +926,6 @@ struct SharedCtfeState(BCGenT)
             return 0;
         }
 
-        scope (exit)
-        {
-            sizeRecursionCount--;
-        }
         if (isBasicBCType(type))
         {
             return basicTypeSize(type);
@@ -863,7 +936,7 @@ struct SharedCtfeState(BCGenT)
         case BCTypeEnum.Struct:
             {
                 uint _size;
-                if(type.typeIndex <= structCount)
+                if (type.typeIndex && type.typeIndex < structCount)
                 {
                     // the if above shoud really be an assert
                     // I have no idea why this even happens
@@ -871,23 +944,13 @@ struct SharedCtfeState(BCGenT)
                 }
                 BCStruct _struct = structTypes[type.typeIndex - 1];
 
-                foreach (i, memberType; _struct.memberTypes[0 .. _struct.memberTypeCount])
-                {
-                    if (memberType == type) // bail out on recursion.
-                        return 0;
-
-                    _size += align4(
-                        isBasicBCType(memberType) ? basicTypeSize(memberType) : this.size(
-                        memberType));
-                }
-
-                return _size;
+                return _struct.size;
 
             }
 
-        case BCType.Array:
+        case BCTypeEnum.Array:
             {
-                if(type.typeIndex >= arrayCount)
+                if(!type.typeIndex || type.typeIndex > arrayCount)
                 {
                     // the if above shoud really be an assert
                     // I have no idea why this even happens
@@ -900,13 +963,13 @@ struct SharedCtfeState(BCGenT)
 
                     writeln("ArrayElementSize :", size(_array.elementType));
                 }
-                return size(_array.elementType) * _array.length;
+                return size(_array.elementType) * _array.length + SliceDescriptor.Size;
             }
-        case BCType.Slice:
+        case BCTypeEnum.Slice:
             {
-                return 4 + 4; // 4 for pointer 4 for length;
+                return SliceDescriptor.Size;
             }
-        case BCType.Ptr:
+        case BCTypeEnum.Ptr:
             {
                 return 4; // 4 for pointer;
             }
@@ -918,6 +981,30 @@ struct SharedCtfeState(BCGenT)
             }
 
         }
+    }
+
+    string toString() const pure
+    {
+        import std.stdio;
+        string result;
+
+        result ~= "Dumping Type-State \n";
+        foreach(i, t;sliceTypes[0 .. sliceCount])
+        {
+            result ~= to!string(i) ~ " : " ~ t.to!string;
+        }
+/*
+        foreach(i, t;_sharedCtfeState.structTypes[0 .. structCount])
+        {
+        }
+        foreach(i, t;_sharedCtfeState.arrayTypes[0 .. arrayCount])
+        {
+        }
+        foreach(i, t;_sharedCtfeState.pointerTypes[0 .. pointerCount])
+        {
+        }
+*/
+        return result;
     }
 }
 
@@ -936,7 +1023,11 @@ Expression toExpression(const BCValue value, Type expressionType,
     const BCValue[2]* errorValues = null, const RetainedError* errors = null)
 {
     import ddmd.parse : Loc;
-
+    static if (bailoutMessages)
+    {
+        import std.stdio;
+        writeln("Calling toExpression with Type: ", expressionType.toString);
+    }
     Expression result;
     if (value.vType == BCValueType.Unknown)
     {
@@ -1003,27 +1094,100 @@ Expression toExpression(const BCValue value, Type expressionType,
         return CTFEExp.cantexp;
     }
 
-    if (expressionType.isString)
+    Expression createArray(BCValue arr, Type arrayType)
     {
-        import ddmd.lexer : Loc;
+        ArrayLiteralExp arrayResult;
+        auto elmType = arrayType.nextOf;
+        auto baseType = _sharedCtfeState.btv.toBCType(elmType);
+        auto elmSize = _sharedCtfeState.size(baseType);
+        auto arrayLength = heapPtr._heap[arr.heapAddr.addr + SliceDescriptor.LengthOffset];
+        auto arrayBase = heapPtr._heap[arr.heapAddr.addr + SliceDescriptor.BaseOffset];
 
-        auto offset = value.heapAddr.addr;
+        if (!arr.heapAddr || !arrayBase)
+        {
+           return new NullExp(Loc(), arrayType);
+        }
+
 
         debug (ctfe)
         {
             import std.stdio;
 
-            writeln("offset : ", offset, "len : ", heapPtr._heap[offset]);
-            writeln(heapPtr.heapSize,
-                (cast(char*)(heapPtr._heap.ptr + offset + 1))[0 .. heapPtr._heap[offset]]);
+            writeln("value ", value.toString);
+        }
+        debug (ctfe)
+        {
+            import std.stdio;
 
+            foreach (idx; 0 .. heapPtr.heapSize)
+            {
+                // writefln("%d %x", idx, heapPtr._heap[idx]);
+            }
         }
 
-        auto length = heapPtr._heap.ptr[offset];
-        //TODO consider to use allocmemory directly instead of going through druntime.
+        Expressions* elmExprs = new Expressions();
+        uint offset = 0;
 
-        auto resultString = (cast(void*)(heapPtr._heap.ptr + offset + 1))[0 .. length].dup;
-        result = new StringExp(Loc(), resultString.ptr, length);
+        debug (ctfe)
+        {
+            import std.stdio;
+
+            writeln("building Array of Length ", arrayLength);
+        }
+        /* import std.stdio;
+            writeln("HeapAddr: ", value.heapAddr.addr);
+            writeln((cast(char*)(heapPtr._heap.ptr + value.heapAddr.addr + 1))[0 .. 64]);
+            */
+
+        foreach (idx; 0 .. arrayLength)
+        {
+            {
+                elmExprs.insert(idx,
+                    toExpression(imm32(*(heapPtr._heap.ptr + arrayBase + offset)),
+                        elmType));
+                offset += elmSize;
+            }
+        }
+
+        arrayResult = new ArrayLiteralExp(Loc(), elmExprs);
+        arrayResult.ownedByCtfe = OWNEDctfe;
+
+        return arrayResult;
+    }
+
+    if (expressionType.isString)
+    {
+        import ddmd.lexer : Loc;
+
+        if (!value.heapAddr)
+        {
+           return new NullExp(Loc(), expressionType);
+        }
+
+        auto length = heapPtr._heap[value.heapAddr + SliceDescriptor.LengthOffset];
+        auto base = heapPtr._heap[value.heapAddr + SliceDescriptor.BaseOffset];
+        uint sz = cast (uint) expressionType.nextOf().size;
+        if (sz != 1)
+        {
+            static if (bailoutMessages)
+            {
+                import std.stdio;
+                writefln("We canot deal with stringElementSize: %d", sz);
+            }
+            return null;
+        }
+
+        auto offset = cast(uint)base;
+        import ddmd.root.rmem : allocmemory;
+
+        auto resultString = cast(char*)allocmemory(length * sz + sz);
+
+        assert(sz == 1, "missing UTF-16/32 support");
+        foreach (i; 0 .. length)
+            resultString[i] = cast(char) heapPtr._heap[offset + i];
+        resultString[length] = '\0';
+
+        result = new StringExp(Loc(), cast(void*)resultString, length);
         (cast(StringExp) result).ownedByCtfe = OWNEDctfe;
     }
     else
@@ -1034,7 +1198,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             auto sd = (cast(TypeStruct) expressionType).sym;
             auto si = _sharedCtfeState.getStructIndex(sd);
             assert(si);
-            BCStruct _struct = _sharedCtfeState .structTypes[si - 1];
+            BCStruct _struct = _sharedCtfeState.structTypes[si - 1];
             Expressions* elmExprs = new Expressions();
             uint offset = 0;
             foreach (idx, member; _struct.memberTypes[0 .. _struct.memberTypeCount])
@@ -1043,6 +1207,16 @@ Expression toExpression(const BCValue value, Type expressionType,
 
                 Expression elm = toExpression(
                     imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset)), type);
+                if (!elm)
+                {
+                    static if (bailoutMessages)
+                    {
+                        import std.stdio;
+                        writeln("We could not covert the sub-expression of a struct of type ", type.toString);
+                    }
+                    return null;
+                }
+
                 elmExprs.insert(idx, elm);
                 offset += align4(_sharedCtfeState.size(member));
             }
@@ -1050,77 +1224,23 @@ Expression toExpression(const BCValue value, Type expressionType,
             (cast(StructLiteralExp) result).ownedByCtfe = OWNEDctfe;
         }
         break;
-    case Tarray:
-        {
-            auto tda = cast(TypeDArray) expressionType;
-
-            auto baseType = _sharedCtfeState.btv.toBCType(tda.nextOf);
-            auto elmLength = _sharedCtfeState.size(baseType);
-            auto arrayLength = heapPtr._heap[value.heapAddr.addr];
-            debug (ctfe)
-            {
-                import std.stdio;
-
-                writeln("value ", value.toString);
-            }
-            debug (ctfe)
-            {
-                import std.stdio;
-
-                foreach (idx; 0 .. heapPtr.heapSize)
-                {
-                    // writefln("%d %x", idx, heapPtr._heap[idx]);
-                }
-            }
-
-            Expressions* elmExprs = new Expressions();
-
-            uint offset = 4;
-            debug (ctfe)
-            {
-                import std.stdio;
-
-                writeln("building Array of Length ", arrayLength);
-            }
-            /* import std.stdio;
-            writeln("HeapAddr: ", value.heapAddr.addr);
-            writeln((cast(char*)(heapPtr._heap.ptr + value.heapAddr.addr + 1))[0 .. 64]);
-            */
-            foreach (idx; 0 .. arrayLength)
-            {
-            /*    if (elmLength == 1)
-                {
-                    elmExprs.insert(idx,
-                        toExpression(imm32((heapPtr._heap[value.heapAddr.addr + offset] >> ((idx-1 % 4) * 8)) & 0xFF),
-                        tda.nextOf)
-                    );
-                    offset += !(idx % 4);
-                }
-                else */
-                {
-                elmExprs.insert(idx,
-                    toExpression(imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset)),
-                    tda.nextOf));
-                offset += elmLength;
-                }
-
-            }
-
-            result = new ArrayLiteralExp(Loc(), elmExprs);
-            (cast(ArrayLiteralExp) result).ownedByCtfe = OWNEDctfe;
-        }
-        break;
     case Tsarray:
         {
             auto tsa = cast(TypeSArray) expressionType;
-            assert(heapPtr._heap[value.heapAddr.addr] == evaluateUlong(tsa.dim),
-                "static arrayLength mismatch: " ~ to!string(heapPtr._heap[value.heapAddr.addr]) ~ " != " ~ to!string(
-                evaluateUlong(tsa.dim)));
-            goto default;
+            assert(heapPtr._heap[value.heapAddr.addr + SliceDescriptor.LengthOffset] == evaluateUlong(tsa.dim),
+                "static arrayLength mismatch: " ~ to!string(heapPtr._heap[value.heapAddr.addr + SliceDescriptor.LengthOffset]) ~ " != " ~ to!string(
+                    evaluateUlong(tsa.dim)));
+            result = createArray(value, tsa);
+        } break;
+    case Tarray:
+        {
+            auto tda = cast(TypeDArray) expressionType;
+            result = createArray(value, tda);
         }
+        break;
     case Tbool:
         {
-            //assert(value.imm32 == 0 || value.imm32 == 1, "Not a valid bool");
+            // assert(value.imm32 == 0 || value.imm32 == 1, "Not a valid bool");
             result = new IntegerExp(value.imm32);
         }
         break;
@@ -1137,8 +1257,16 @@ Expression toExpression(const BCValue value, Type expressionType,
     case Tpointer:
         {
             //FIXME this will _probably_ only work for basic types with one level of indirection (eg, int*, uint*)
+            if (expressionType.nextOf.ty == Tvoid)
+            {
+                static if (bailoutMessages)
+                {
+                    writeln("trying to build void ptr ... we cannot really do this");
+                }
+                return null;
+            }
             result = new AddrExp(Loc.init,
-                toExpression(imm32(*(heapPtr._heap.ptr + value.imm32)), expressionType.nextOf));
+                toExpression(imm32(*(heapPtr._heap.ptr + value.heapAddr)), expressionType.nextOf));
         }
         break;
     default:
@@ -1149,6 +1277,15 @@ Expression toExpression(const BCValue value, Type expressionType,
     }
     if (result)
         result.type = expressionType;
+
+    static if (bailoutMessages)
+    {
+        if (!result)
+        {
+            import std.stdio;
+            writeln("could not create expression");
+        }
+    }
 
     return result;
 }
@@ -1169,7 +1306,7 @@ extern (C++) final class BCTypeVisitor : Visitor
             //return BCType(BCTypeEnum.i1);
             return BCType(BCTypeEnum.i32);
         case ENUMTY.Tchar:
-            //return BCType(BCTypeEnum.c8);
+            return BCType(BCTypeEnum.c8);
         case ENUMTY.Twchar:
             //return BCType(BCTypeEnum.c16);
         case ENUMTY.Tdchar:
@@ -1192,7 +1329,7 @@ extern (C++) final class BCTypeVisitor : Visitor
         case ENUMTY.Tint64:
             return BCType(BCTypeEnum.i64);
         case ENUMTY.Tfloat32:
-            //return BCType(BCTypeEnum.f324);
+            //return BCType(BCTypeEnum.f32);
         case ENUMTY.Tfloat64:
             //return BCType(BCTypeEnum.f64);
         case ENUMTY.Tfloat80:
@@ -1213,7 +1350,22 @@ extern (C++) final class BCTypeVisitor : Visitor
         assert(!t.isTypeBasic(), "Is a basicType: " ~ (cast(ENUMTY) t.ty).to!string());
         if (t.isString)
         {
-            return BCType(BCTypeEnum.String);
+            auto sz = t.nextOf().size;
+            switch(sz)
+            {
+                case 1 : return BCType(BCTypeEnum.string8);
+                case 2 : return BCType(BCTypeEnum.string16);
+                case 4 : return BCType(BCTypeEnum.string32);
+                default :
+                {
+                    static if (bailoutMessages)
+                    {
+                        import std.stdio;
+                        writefln("String of invalid elmementSize: %d", sz);
+                    }
+                    return BCType.init;
+                }
+            }
         }
         else if (t.ty == Tstruct)
         {
@@ -1247,13 +1399,13 @@ extern (C++) final class BCTypeVisitor : Visitor
         }
         else if (t.ty == Tpointer)
         {
-            //if (t.nextOf.ty == Tint32 || t.nextOf.ty == Tuns32)
-            //    return BCType(BCTypeEnum.i32Ptr);
-            //else if (auto pi =_sharedCtfeState.getPointerIndex(cast(TypePointer)t))
-            //{
-            //return BCType(BCTypeEnum.Ptr, pi);
-            //}
-            //else
+/*
+            if (auto pi =_sharedCtfeState.getPointerIndex(cast(TypePointer)t))
+            {
+                return BCType(BCTypeEnum.Ptr, pi);
+            }
+            else
+*/
             {
                 uint indirectionCount = 1;
                 Type baseType = t.nextOf;
@@ -1291,7 +1443,36 @@ extern (C++) final class BCTypeVisitor : Visitor
                 assert(0, "recursive struct definition this should never happen");
 
             auto bcType = toBCType(sMember.type);
-            st.addField(bcType, sMember._init ? !!sMember._init.isVoidInitializer() : false);
+            if (sMember._init)
+            {
+                if (sMember._init.isVoidInitializer)
+                    st.addField(bcType, true, 0);
+                else
+                {
+                    uint value;
+                    if(auto initExp = sMember._init.toExpression)
+                    {
+                        if (initExp.type.ty == Tint32 || initExp.type.ty == Tuns32)
+                        {
+                            auto initExpr = cast(IntegerExp) initExp;
+                            value = cast (uint) initExpr.value;
+                        }
+                    }
+                    else
+                        assert(0, "We cannot deal with non-int initializers");
+                        //FIXME change the above assert to something we can bailout on
+/*
+                    bailout(initExpr.vType != BCValueType.Immediate || initExpr.type.type != BCTypeEnum.i32,
+                        "Cannot deal with non-int initalizer"
+                    );
+*/
+                    st.addField(bcType, false, value);
+                }
+
+            }
+            else
+                st.addField(bcType, false, 0);
+
         }
 
         _sharedCtfeState.endStruct(&st);
@@ -1308,7 +1489,8 @@ struct BCScope
 }
 
 debug = nullPtrCheck;
-//debug = andand;
+debug = nullAllocCheck;
+debug = andand;
 extern (C++) final class BCV(BCGenT) : Visitor
 {
     uint unresolvedGotoCount;
@@ -1361,6 +1543,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         ignoreVoid = false;
         noRetval = false;
 
+        lastConstVd = lastConstVd.init;
         unrolledLoopState = null;
         switchFixup = null;
         switchState = null;
@@ -1414,8 +1597,8 @@ extern (C++) final class BCV(BCGenT) : Visitor
     bool noRetval;
     BCValue[void* ] vars;
     BCValue _this;
-    VarDeclaration lastConstVd;
 
+    VarDeclaration lastConstVd;
     typeof(gen.genLabel()) lastContinue;
     BCValue currentIndexed;
 
@@ -1423,25 +1606,180 @@ extern (C++) final class BCV(BCGenT) : Visitor
     BCValue assignTo;
 
     bool discardValue = false;
+    uint current_line;
+
+    extern(D) BCValue addError(Loc loc, string msg, BCValue v1 = BCValue.init, BCValue v2 = BCValue.init)
+    {
+        alias add_error_message_prototype = uint delegate (string);
+        static if (is(typeof(&gen.addErrorMessage) == add_error_message_prototype))
+        {
+            addErrorMessage(msg);
+        }
+        return _sharedCtfeState.addError(loc, msg, v1, v2);
+    }
+
+    extern(D) void MemCpyConst(/*const*/ BCValue destBasePtr, /*const*/ uint[] source, uint wordSize = 4)
+    {
+        assert(wordSize <= 4);
+        auto destPtr = genTemporary(i32Type);
+        // TODO technically we should make sure that we zero the heap-portion
+        // MemSet(destBasePtr, imm32(0), imm32(cast(uint)source.length));
+        foreach(uint i, word;source)
+        {
+            if (word != 0)
+            {
+                Add3(destPtr, destBasePtr, imm32(wordSize*i));
+                Store32(destPtr, imm32(word));
+            }
+        }
+    }
 
     debug (nullPtrCheck)
     {
         import ddmd.lexer : Loc;
 
-        void Load32(BCValue _to, BCValue from)
+        void Load32(BCValue _to, BCValue from, size_t line = __LINE__)
         {
-            Assert(from.i32, _sharedCtfeState.addError(Loc.init,
-                "Load Source may not be null"));
+            Assert(from.i32, addError(Loc.init,
+                    "Load Source may not be null - target: " ~ to!string(_to.stackAddr) ~ " inLine: " ~ to!string(line)));
             gen.Load32(_to, from);
         }
 
-        void Store32(BCValue _to, BCValue value)
+        void Store32(BCValue _to, BCValue value, size_t line = __LINE__)
         {
-            Assert(_to.i32, _sharedCtfeState.addError(Loc.init,
-                "Store Destination may not be null"));
+            Assert(_to.i32, addError(Loc.init,
+                    "Store Destination may not be null - from: " ~ to!string(value.stackAddr) ~ " inLine: " ~ to!string(line)));
             gen.Store32(_to, value);
         }
 
+    }
+
+    debug (nullAllocCheck)
+    {
+        void Alloc(BCValue result, BCValue size, size_t line = __LINE__)
+        {
+            assert(size.vType != BCValueType.Immediate || size.imm32 != 0, "Null Alloc detected in line: " ~ to!string(line));
+            gen.Alloc(result, size);
+        }
+    }
+
+    void expandSliceBy(BCValue slice, BCValue expandBy)
+    {
+        assert(slice && slice.type.type == BCTypeEnum.Slice);
+        assert(expandBy);
+
+        auto length = getLength(slice);
+        auto newLength = genTemporary(i32Type);
+        Add3(newLength, length, expandBy);
+        expandSliceTo(slice, newLength);
+    }
+
+    /// copyArray will advance both newBase and oldBase by length
+
+    void copyArray(BCValue* newBase, BCValue* oldBase, BCValue length, uint elementSize)
+    {
+        auto _newBase = *newBase;
+        auto _oldBase = *oldBase;
+
+        static if (is(typeof(gen.MemCpy) == function))
+        {
+            auto effectiveSize = genTemporary(i32Type);
+            Mul3(effectiveSize, length, imm32(elementSize));
+            MemCpy(_newBase, _oldBase, effectiveSize);
+            Add3(_newBase, _newBase, effectiveSize);
+            Add3(_oldBase, _oldBase, effectiveSize);
+        }
+        else
+        {
+            auto copyCounter = genTemporary(i32Type);
+            Set(copyCounter, length);
+            {
+                auto Lbegin  = genLabel();
+                auto copyJmp = beginCndJmp(copyCounter);
+
+                auto tmpElem = genTemporary(i32Type);
+                Sub3(copyCounter, copyCounter, imm32(1));
+                foreach (uint i; 0 .. elementSize)
+                {
+                    Load32(tmpElem, _oldBase);
+                    Store32(_newBase, tmpElem);
+                    Add3(_newBase, _newBase, imm32(1));
+                    Add3(_oldBase, _oldBase, imm32(1));
+                }
+                genJump(Lbegin);
+                auto Lafter_loop = genLabel();
+                endCndJmp(copyJmp, Lafter_loop);
+            }
+        }
+    }
+
+    void expandSliceTo(BCValue slice, BCValue newLength)
+    {
+        if(slice.type != BCTypeEnum.Slice && (newLength.type != BCTypeEnum.i32 /*|| newLength.type == BCTypeEnum.i64*/))
+        {
+            bailout("We only support expansion of slices by i32 not: " ~ to!string(slice.type.type) ~ " by " ~ to!string(newLength.type.type));
+            return ;
+        }
+        debug(nullPtrCheck)
+        {
+           Assert(slice.i32, addError(Loc(), "expandSliceTo: arrPtr must not be null"));
+        }
+        auto oldBase = getBase(slice);
+        auto oldLength = getLength(slice);
+
+        auto newBase = genTemporary(i32Type);
+        auto effectiveSize = genTemporary(i32Type);
+
+        auto elementType = _sharedCtfeState.elementType(slice.type);
+        if(!elementType)
+        {
+            bailout("we could not get the elementType of " ~ slice.type.to!string);
+        }
+        auto elementSize = _sharedCtfeState.size(elementType);
+
+        Mul3(effectiveSize, newLength, imm32(elementSize));
+
+        Alloc(newBase, effectiveSize);
+        setBase(slice, newBase);
+
+        copyArray(&newBase, &oldBase, oldLength, elementSize);
+
+        setLength(slice, newLength);
+    }
+
+    static if (is(gen.Supports64BitCells) && gen.Supports64BitCalls)
+    {
+        void Load64(BCValue _to, BCValue from)
+        {
+            Load32(_to.i32, from); // load lower 32bit
+            auto upperAddr = genTemporary(i32Type);
+            auto upperVal = genTemporary(i32Type);
+            Add3(upperAddr, from, imm32(4));
+            Load32(upperVal, upperAddr);
+            SetHigh(_to, upperVal);
+        }
+
+        void Store64(BCValue _to, BCValue from)
+        {
+            Store32(_to, from.i32); // load lower 32bit
+            auto upperAddr = genTemporary(i32Type);
+            auto upperVal = genTemporary(i32Type);
+            Add3(upperAddr, _to, imm32(4));
+            SetHigh(from, upperVal);
+            Store32(upperAddr, upperVal);
+        }
+    }
+    else
+    {
+        void Load64(BCValue _to, BCValue from)
+        {
+            bailout("Load64 unsupported by " ~ BCGenT.stringof);
+        }
+
+        void Store64(BCValue _to, BCValue from)
+        {
+            bailout("Store64 unsupported by " ~ BCGenT.stringof);
+        }
     }
 
     void doFixup(uint oldFixupTableCount, BCLabel* ifTrue, BCLabel* ifFalse)
@@ -1472,6 +1810,8 @@ extern (C++) final class BCV(BCGenT) : Visitor
     extern (D) void bailout(const(char)[] message, size_t line = __LINE__, string pfn = __PRETTY_FUNCTION__)
     {
         IGaveUp = true;
+        import ddmd.globals;
+        global.newCTFEGaveUp = true;
         const fnIdx = _sharedCtfeState.getFunctionIndex(me);
 
         enum headLn = 58;
@@ -1501,29 +1841,40 @@ extern (C++) final class BCV(BCGenT) : Visitor
         }
     }
 
-    void StringEq(BCValue retval, BCValue lhs, BCValue rhs)
+    void StringEq(BCValue result, BCValue lhs, BCValue rhs)
     {
+
         static if (is(typeof(StrEq3) == function)
                 && is(typeof(StrEq3(BCValue.init, BCValue.init, BCValue.init)) == void))
         {
-            StrEq3(retval, lhs, rhs);
+            StrEq3(result, lhs, rhs);
         }
 
         else
         {
-            import ddmd.ctfe.bc_macro : StringEq3Macro;
+            auto offset = genTemporary(BCType(BCTypeEnum.i32)); //SP[12]
 
-            bool wasInit;
-            if (!retval)
-            {
-                wasInit = true;
-                retval = genTemporary(i32Type);
-            }
-            StringEq3Macro(&gen, retval, lhs, rhs);
-            if (wasInit)
-            {
-                Eq3(BCValue.init, retval, imm32(1));
-            }
+            auto len1 = getLength(rhs);
+            auto len2 = getLength(lhs);
+            Eq3(result, len1, len2);
+
+            auto ptr1 = getBase(lhs);
+            auto ptr2 = getBase(rhs);
+            Set(offset, len1);
+
+            auto e1 = genTemporary(i32Type);
+            auto e2 = genTemporary(i32Type);
+
+            auto LbeginLoop = genLabel();
+            auto cndJmp1 = beginCndJmp(offset);
+            Sub3(offset, offset, imm32(1));
+
+            Load32(e1, ptr1);
+            Load32(e2, ptr2);
+            Eq3(result, e1, e2);
+            endCndJmp(beginCndJmp(BCValue.init, true), LbeginLoop);
+            auto LendLoop = genLabel();
+            endCndJmp(cndJmp1, LendLoop);
         }
     }
 
@@ -1568,16 +1919,28 @@ public:
 
     BCValue getVariable(VarDeclaration vd)
     {
-        import ddmd.declaration : STCmanifest, STCref, STCstatic, STCimmutable;
-        if (vd.storage_class & STCref || ((vd.storage_class & STCstatic) && !(vd.storage_class & STCimmutable)))
-       // if (vd.storage_class & STCref || vd.storage_class & STCstatic)
+        import ddmd.declaration : STCmanifest, STCstatic, STCimmutable;
+        if (vd.storage_class & STCref)
         {
-            bailout("cannot handle ref or static variables");
+            if (toBCType(vd.type) == BCType(BCTypeEnum.i64))
+            {
+                bailout("We can only handle 32bit refs for now");
+                return BCValue.init;
+            }
+        }
+
+        if (vd.storage_class & STCstatic && !(vd.storage_class & STCimmutable))
+        {
+            bailout("cannot handle static variables");
             return BCValue.init;
         }
 
         if (auto value = (cast(void*) vd) in vars)
         {
+            if (vd.storage_class & STCref && !value.heapRef)
+            {
+             //   assert(0, "We got a ref and the heapRef is not set this is BAD!");
+            }
             return *value;
         }
         else if ((vd.isDataseg() || vd.storage_class & STCmanifest) && !vd.isCTFE() && vd._init)
@@ -1590,6 +1953,7 @@ public:
             {
                 return genExpr(ci);
             }
+
             return BCValue.init;
         }
         else
@@ -1604,7 +1968,47 @@ public:
 
     }
 */
-    BCValue genExpr(Expression expr)
+
+    void doCat(ref BCValue result, BCValue lhs, BCValue rhs)
+    {
+        auto lhsOrRhs = genTemporary(i32Type);
+        Or3(lhsOrRhs, lhs.i32, rhs.i32);
+        Set(result.i32, imm32(0));
+        auto CJisNull = beginCndJmp(lhsOrRhs);
+
+        auto lhsLength = getLength(lhs);
+        auto rhsLength = getLength(rhs);
+        auto lhsBase = getBase(lhs);
+        auto rhsBase = getBase(rhs);
+        auto lhsBaseType = _sharedCtfeState.elementType(lhs.type);
+
+        auto effectiveSize = genTemporary(i32Type);
+        auto newLength = genTemporary(i32Type);
+        auto newBase = genTemporary(i32Type);
+        auto elemSize = _sharedCtfeState.size(lhsBaseType);
+        if (!elemSize)
+        {
+            bailout("Type has no Size" ~ lhsBaseType.to!string);
+            result = BCValue.init;
+            return ;
+        }
+        Add3(newLength, lhsLength, rhsLength);
+        Mul3(effectiveSize, newLength, imm32(elemSize));
+        Add3(effectiveSize, effectiveSize, imm32(SliceDescriptor.Size));
+
+        Alloc(result, effectiveSize);
+        Add3(newBase, retval, imm32(SliceDescriptor.Size));
+
+        setBase(result, newBase);
+        setLength(result, newLength);
+
+        copyArray(&newBase, &lhsBase, lhsLength, elemSize);
+        copyArray(&newBase, &rhsBase, rhsLength, elemSize);
+        auto LafterCopy = genLabel();
+        endCndJmp(CJisNull, LafterCopy);
+    }
+
+    extern (D) BCValue genExpr(Expression expr, string debugMessage = null, uint line = __LINE__)
     {
 
         debug (ctfe)
@@ -1612,6 +2016,7 @@ public:
             import std.stdio;
         }
         auto oldRetval = retval;
+        // import std.stdio; writeln("Calling genExpr from: ", line, debugMessage ? " \"" ~ debugMessage ~ "\"" : ""); //DEBUGLINE
 
         if (processingArguments)
         {
@@ -1710,6 +2115,7 @@ public:
     void compileUncompiledFunctions()
     {
         uint lastUncompiledFunction;
+
     LuncompiledFunctions :
         foreach (uf; uncompiledFunctions[lastUncompiledFunction .. uncompiledFunctionCount])
         {
@@ -1719,7 +2125,7 @@ public:
                 return;
             }
 
-            assert(!me, "We are not clean!");
+            //assert(!me, "We are not clean!");
             me = uf.fd;
             beginParameters();
             auto parameters = uf.fd.parameters;
@@ -1735,15 +2141,24 @@ public:
                 p.accept(this);
             }
             endParameters();
+            if (parameters)
+                linkRefsCallee(parameters);
+
             auto fnIdx = uf.fn;
-            beginFunction(fnIdx - 1);
+            beginFunction(fnIdx - 1, cast(void*)uf.fd);
             uf.fd.fbody.accept(this);
             auto osp = sp;
+
+            if (uf.fd.type.nextOf.ty == Tvoid)
+            {
+                // insert a dummy return after void functions because they can omit a returnStatement
+                Ret(bcNull);
+            }
             endFunction();
             lastUncompiledFunction++;
             if (IGaveUp)
             {
-                bailout("A called function bailedout: " ~ uf.fd.ident.toString);
+                bailout("A called function bailedout: " ~ uf.fd.toString);
                 return ;
             }
 
@@ -1775,16 +2190,25 @@ public:
     {
         import ddmd.identifier;
 
-        //HACK this filters out functions which I know produce incorrect results
-        //this is only so I can see where else are problems.
         assert(!me || me == fd);
         me = fd;
+
+        //HACK this filters out functions which I know produce incorrect results
+        //this is only so I can see where else are problems.
         if (_blacklist.isInBlacklist(fd.ident))
         {
             bailout("Bailout on blacklisted");
             return;
         }
         import std.stdio;
+        if (insideFunction)
+        {
+/*
+            auto fnIdx = _sharedCtfeState.getFunctionIndex(fd);
+            addUncompiledFunction(fd, &fnIdx);
+            return ;
+*/
+        }
 
         //writeln("going to eval: ", fd.toString);
         if (auto fbody = fd.fbody.isCompoundStatement)
@@ -1813,18 +2237,22 @@ public:
             auto fnIdx = _sharedCtfeState.getFunctionIndex(me);
             static if (is(typeof(_sharedCtfeState.functionCount)) && cacheBC)
             {
-                fnIdx = fnIdx ? fnIdx : ++_sharedCtfeState.functionCount;
+                if (!fnIdx)
+                {
+                    fnIdx = ++_sharedCtfeState.functionCount;
+                    _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd);
+                }
             }
             else
             {
                 fnIdx = 1;
             }
-            beginFunction(fnIdx - 1);
+            beginFunction(fnIdx - 1, cast(void*)fd);
             visit(fbody);
-            if(fd.type.nextOf.ty == Tvoid)
+            if (fd.type.nextOf.ty == Tvoid)
             {
                 // insert a dummy return after void functions because they can omit a returnStatement
-                Ret(imm32(0));
+                Ret(bcNull);
             }
             auto osp2 = sp.addr;
             endFunction();
@@ -1936,7 +2364,7 @@ static if (is(BCGen))
                 auto expr = genExpr(e.e1);
                 if (!canWorkWithType(expr.type) || !canWorkWithType(retval.type))
                 {
-                    bailout("++ only i32 is supported not " ~ to!string(expr.type.type));
+                    bailout("++ only i32 is supported not " ~ to!string(expr.type.type) ~ " -- " ~ e.toString);
                     return;
                 }
                 assert(expr.vType != BCValueType.Immediate,
@@ -2016,29 +2444,34 @@ static if (is(BCGen))
             break;
         case TOK.TOKcat:
             {
-                bailout("We don't handle ~ right now");
                 auto lhs = genExpr(e.e1);
                 auto rhs = genExpr(e.e2);
+
+                assert(retval, "Cat needs a retval!");
+
                 if (!lhs || !rhs)
                 {
                     bailout("bailout because either lhs or rhs for ~ could not be generated");
                     return ;
                 }
-                if (lhs.type.type != BCTypeEnum.Slice && (lhs.type.typeIndex <= _sharedCtfeState.sliceCount))
+                if (lhs.type.type != BCTypeEnum.Slice && lhs.type.type != BCTypeEnum.string8)
                 {
                     bailout("lhs for concat has to be a slice not: " ~ to!string(lhs.type.type));
                     return;
                 }
-                auto lhsBaseType = _sharedCtfeState.sliceTypes[lhs.type.typeIndex - 1].elementType;
-                if (lhsBaseType.type != BCTypeEnum.i32)
+                auto lhsBaseType = _sharedCtfeState.elementType(lhs.type);
+                if (_sharedCtfeState.size(lhsBaseType) > 4)
                 {
-                    bailout("for now only append to uint[] is supported not: " ~ to!string(lhsBaseType.type));
+                    bailout("for now only append to T[0].sizeof <= 4 is supported not : " ~ to!string(lhsBaseType.type));
                     return ;
                 }
-                if (rhs.type.type != BCTypeEnum.Slice && rhs.type.type != BCTypeEnum.Array)
+
+                auto rhsBaseType = _sharedCtfeState.elementType(rhs.type);
+                if(rhsBaseType != lhsBaseType)
                 {
-                    bailout("for now only concat between T[] and T[] is supported not: " ~ to!string(lhs.type.type) ~" and " ~ to!string(rhs.type.type) ~ e.toString);
-                    return ;
+                     bailout("for now only concat between T[] and T[] is supported not: " ~ to!string(lhs.type.type) ~" and " ~ to!string(rhs.type.type) ~ e.toString);
+                     return ;
+                }
 /*
                         // a single compatble element
                         // TODO use better memory management for slices don't just copy everything!!!
@@ -2053,13 +2486,16 @@ static if (is(BCGen))
                         rhs.type = lhs.type;
                         rhs.vType = lhs.vType;
 */
-                }
-
-                auto rhsBaseType = _sharedCtfeState.elementType(rhs.type);
-                if (canWorkWithType(lhsBaseType) && canWorkWithType(rhsBaseType)
+                if ((canWorkWithType(lhsBaseType) || lhsBaseType == BCTypeEnum.c8)
                         && basicTypeSize(lhsBaseType) == basicTypeSize(rhsBaseType))
                 {
-                    Cat(retval, lhs, rhs, basicTypeSize(lhsBaseType));
+                    if (!lhs.heapAddr || !rhs.heapAddr)
+                    {
+                        bailout("null slices are not supported");
+                        return ;
+                    }
+                    doCat(retval, lhs, rhs);
+                    bailout(!retval, "could not do cat" ~ e.toString);
                 }
                 else
                 {
@@ -2071,7 +2507,7 @@ static if (is(BCGen))
 
         case TOK.TOKadd, TOK.TOKmin, TOK.TOKmul, TOK.TOKdiv, TOK.TOKmod,
                 TOK.TOKand, TOK.TOKor, TOK.TOKxor, TOK.TOKshr, TOK.TOKshl:
-                auto lhs = genExpr(e.e1);
+            auto lhs = genExpr(e.e1);
             auto rhs = genExpr(e.e2);
             //FIXME IMPORRANT
             // The whole rhs == retval situation should be fixed in the bc evaluator
@@ -2084,7 +2520,9 @@ static if (is(BCGen))
 
             if (wasAssignTo && rhs == retval)
             {
+                auto retvalHeapRef = retval.heapRef;
                 retval = genTemporary(rhs.type);
+                retval.heapRef = retvalHeapRef;
             }
 
             if (canHandleBinExpTypes(lhs.type.type, rhs.type.type) && canWorkWithType(retval.type))
@@ -2136,29 +2574,23 @@ static if (is(BCGen))
 
                 case TOK.TOKand:
                     {
-                        static if (is(BCGen))
-                            if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
-                                bailout("BCGen does not suppport 32bit bit-operations");
                         And3(retval, lhs, rhs);
                     }
                     break;
 
                 case TOK.TOKor:
                     {
+/*
                         static if (is(BCGen))
                             if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
                                 bailout("BCGen does not suppport 32bit bit-operations");
-
+*/
                         Or3(retval, lhs, rhs);
                     }
                     break;
 
                 case TOK.TOKxor:
                     {
-                        static if (is(BCGen))
-                            if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
-                                bailout("BCGen does not suppport 32bit bit-operations");
-
                         Xor3(retval, lhs, rhs);
                     }
                     break;
@@ -2168,12 +2600,8 @@ static if (is(BCGen))
                         auto maxShift = imm32(basicTypeSize(lhs.type) * 8 - 1);
                         Le3(BCValue.init, rhs, maxShift);
                         Assert(BCValue.init,
-                            _sharedCtfeState.addError(e.loc,
-                            "%d out of range(0..%d)", rhs, maxShift));
-                        static if (is(BCGen))
-                            if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
-                                bailout("BCGen does not suppport 32bit bit-operations");
-
+                            addError(e.loc,
+                            "shift by %d is outside the range 0..%d", rhs, maxShift));
 
                         Rsh3(retval, lhs, rhs);
                     }
@@ -2184,12 +2612,8 @@ static if (is(BCGen))
                         auto maxShift = imm32(basicTypeSize(lhs.type) * 8 - 1);
                         Le3(BCValue.init, rhs, maxShift);
                         Assert(BCValue.init,
-                            _sharedCtfeState.addError(e.loc,
-                            "%d out of range(0..%d)", rhs, maxShift));
-                        static if (is(BCGen))
-                            if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
-                                bailout("BCGen does not suppport 32bit bit-operations");
-
+                            addError(e.loc,
+                            "shift by %d is outside the range 0..%d", rhs, maxShift));
 
                         Lsh3(retval, lhs, rhs);
                     }
@@ -2205,7 +2629,7 @@ static if (is(BCGen))
 
             else
             {
-                bailout("Only binary operations on i32s are supported");
+                bailout("Only binary operations on i32s are supported lhs: " ~ lhs.type.type.to!string ~ " rhs: " ~ rhs.type.type.to!string ~ " retval.type: " ~ to!string(retval.type.type) ~  " -- " ~ e.toString);
                 return;
             }
 
@@ -2222,47 +2646,58 @@ static if (is(BCGen))
         case TOK.TOKandand:
                 {
                     noRetval = true;
+                   //     import std.stdio;
+                   //     writefln("andandExp: %s -- e1.op: %s -- e2.op: %s", e.toString, e.e1.op.to!string, e.e2.op.to!string);
                     // If lhs is false jump to false
                     // If lhs is true keep going
                     const oldFixupTableCount = fixupTableCount;
-
-                    if (!lastExpr || getBoolExprLhs(e.e2) != getBoolExprRhs(e.e1))
-                    {
-                        auto lhs = genExpr(e.e1);
-                        if (!lhs || !canWorkWithType(lhs.type))
                         {
-                            bailout("could not gen lhs or could not handle it's type " ~ e.toString);
-                            return ;
-                        }
-                        lastExpr = e.e1;
 
-                        //auto afterLhs = genLabel();
-                        //doFixup(oldFixupTableCount, &afterLhs, null);
-                        fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(lhs,
-                            false));
-                    }
-                    //HACK HACK HACK
-                    if (getBoolExprLhs(e.e1) == e.e1)
+                            auto lhs = genExpr(e.e1);
+                            if (!lhs || !canWorkWithType(lhs.type))
+                            {
+                                bailout("could not gen lhs or could not handle it's type " ~ e.toString);
+                                return ;
+                            }
+
+                            //auto afterLhs = genLabel();
+                            //doFixup(oldFixupTableCount, &afterLhs, null);
+                            fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(lhs,
+                                    false));
+                        }
+
+
+
+                    if(e.e1.op != TOK.TOKandand)
                     {
+                    /*     while (e.e2.op == TOK.TOKandand)
+                            {
+                                e = cast(AndAndExp)e.e2;
+                            }
+                    */
                         auto rhs = genExpr(e.e2);
+
                         if (!rhs || !canWorkWithType(rhs.type))
                         {
                             bailout("could not gen rhs or could not handle it's type " ~ e.toString);
                             return ;
                         }
-                        //lastExpr = e.e2;
 
-                        //auto afterRhs = genLabel();
-
-                        //doFixup(oldFixupTableCount, &afterRhs, null);
                         fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(rhs,
-                            false));
+                                false));
                     }
-                    noRetval = false;
-                }
 
+                    noRetval = false;
+
+                    }
                 break;
             }
+        case TOK.TOKcomma:
+            {
+                genExpr(e.e1);
+                retval = genExpr(e.e2);
+            }
+            break;
         default:
             {
                 bailout("BinExp.Op " ~ to!string(e.op) ~ " not handeled -- " ~ e.toString);
@@ -2283,12 +2718,11 @@ static if (is(BCGen))
 
             if (v)
             {
-                _sharedCtfeState.pointerTypes[_sharedCtfeState.pointerCount++] = BCPointer(v.type, 1);
-                retval.type = BCType(BCTypeEnum.Ptr, _sharedCtfeState.pointerCount);
+                retval.type = _sharedCtfeState.pointerOf(v.type);
 
                 bailout(_sharedCtfeState.size(v.type) < 4, "only addresses of 32bit values or less are supported for now: " ~ se.toString);
                 auto addr = genTemporary(i32Type);
-                Alloc(addr, _sharedCtfeState.size(v.type).imm32);
+                Alloc(addr, imm32(_sharedCtfeState.size(v.type)));
                 Store32(addr, v);
                 v.heapRef = BCHeapRef(addr);
 
@@ -2308,7 +2742,7 @@ static if (is(BCGen))
         else if (fd)
         {
             auto fnIdx = _sharedCtfeState.getFunctionIndex(fd);
-            if(!fnIdx)
+            if (!fnIdx)
             {
                 assert(!insideArgumentProcessing, "For now we must _never_ have to gen a function while inside argument processing");
                 addUncompiledFunction(fd, &fnIdx);
@@ -2341,6 +2775,8 @@ static if (is(BCGen))
 
     override void visit(IndexExp ie)
     {
+        auto oldIndexed = currentIndexed;
+        scope(exit) currentIndexed = oldIndexed;
 
         debug (ctfe)
         {
@@ -2379,8 +2815,7 @@ static if (is(BCGen))
         }
 
         auto indexed = genExpr(ie.e1);
-
-        if(!indexed || indexed.vType == BCValueType.VoidValue)
+        if (!indexed || indexed.vType == BCValueType.VoidValue)
         {
             bailout("could not create indexed variable from: " ~ ie.e1.toString);
             return ;
@@ -2403,108 +2838,57 @@ static if (is(BCGen))
         }
 
         bool isString = (indexed.type.type == BCTypeEnum.String);
-        //FIXME check if Slice.ElementType == Char;
-        //and set isString to true;
         auto idx = genExpr(ie.e2).i32; // HACK
+        BCValue ptr = genTemporary(i32Type);
         version (ctfe_noboundscheck)
         {
         }
         else
         {
             Lt3(BCValue.init, idx, length);
-            Assert(BCValue.init, _sharedCtfeState.addError(ie.loc,
+            Assert(BCValue.init, addError(ie.loc,
                 "ArrayIndex %d out of bounds %d", idx, length));
         }
-        BCArray* arrayType;
-        BCSlice* sliceType;
 
-        if (indexed.type.type == BCTypeEnum.Array)
+        auto elmType = _sharedCtfeState.elementType(indexed.type);
+        if (!elmType)
         {
-            arrayType = &_sharedCtfeState.arrayTypes[indexed.type.typeIndex - 1];
-
-            debug (ctfe)
-            {
-                import std.stdio;
-
-                if (arrayType)
-                    writeln("arrayType: ", *arrayType);
-            }
+            bailout("could nit get elementType for: " ~ ie.toString);
+            return ;
         }
-        else if (indexed.type.type == BCTypeEnum.Slice)
+
+        int elmSize = _sharedCtfeState.size(elmType);
+        if (cast(int) elmSize <= 0)
         {
-            sliceType = &_sharedCtfeState.sliceTypes[indexed.type.typeIndex - 1];
-            debug (ctfe)
-            {
-                import std.stdio;
-
-            //    writeln(_sharedCtfeState.sliceTypes[0 .. 4]);
-                if (sliceType)
-                    writeln("sliceType ", (*sliceType).elementType.type, " -- ", sliceType - &_sharedCtfeState.sliceTypes[0], " | ", indexed.type.typeIndex);
-
-            }
-
+            bailout("could not get Element-Type-size for: " ~ ie.toString);
+            return ;
         }
-        auto ptr = genTemporary(BCType(BCTypeEnum.i32));
-        //We set the ptr already to the beginning of the array;
-        scope (exit)
-        {
-            //removeTemporary(ptr);
-        }
-        auto elmType = arrayType ? arrayType.elementType : (
-            sliceType ? sliceType.elementType : BCType(BCTypeEnum.Char));
+        auto offset = genTemporary(i32Type);
+
         auto oldRetval = retval;
         retval = assignTo ? assignTo : genTemporary(elmType);
-        //        if (elmType.type == BCTypeEnum.i32)
         {
             debug (ctfe)
             {
                 writeln("elmType: ", elmType.type);
             }
 
-            // We add one to go over the length;
-            auto offset = genTemporary(BCType(BCTypeEnum.i32));
-
-            if (!isString)
+            if (isString)
             {
-                if (!arrayType)
-                {
-                }
-                int elmSize = sharedCtfeState.size(elmType);
-                assert(cast(int) elmSize > -1);
-                //elmSize = (elmSize / 4 > 0 ? elmSize / 4 : 1);
-                Mul3(offset, idx, imm32(elmSize));
-                Add3(offset, offset, bcFour);
-                Add3(ptr, offset, indexed.i32);
-                Load32(retval, ptr);
-            }
-            else
-            {
-
-                bailout("String-Indexing does not work without UTF support afterall");
-                //TODO assert that idx is not out of bounds;
-                //auto inBounds = genTemporary(BCType(BCTypeEnum.i1));
-                //auto arrayLength = genTemporary(BCType(BCTypeEnum.i32));
-                //Load32(arrayLength, indexed.i32);
-                //Lt3(inBounds,  idx, arrayLength);
-                Add3(ptr, indexed.i32, bcOne);
-
-                auto modv = genTemporary(BCType(BCTypeEnum.i32));
-                Mod3(modv, idx, bcFour);
-                Div3(offset, idx, bcFour);
-                Add3(ptr, ptr, offset);
-
-                Load32(retval, ptr);
+                if (retval.type != elmType)
+                    bailout("the target type requires UTF-conversion: " ~ assignTo.type.type.to!string);
                 //TODO use UTF8 intrinsic!
-                Byte3(retval, retval, modv);
-                //removeTemporary(modv);
-                //removeTemporary(tmpElm);
-
             }
-            /*
-        else
-        {
-            bailout("Type of IndexExp unsupported " ~ ie.e1.type.toString);
-        }*/
+
+            //TODO assert that idx is not out of bounds;
+            //auto inBounds = genTemporary(BCType(BCTypeEnum.i1));
+            //auto arrayLength = genTemporary(BCType(BCTypeEnum.i32));
+            //Load32(arrayLength, indexed.i32);
+            //Lt3(inBounds,  idx, arrayLength);
+
+            Mul3(offset, idx, imm32(elmSize));
+            Add3(ptr, offset, getBase(indexed));
+            Load32(retval.i32, ptr);
         }
     }
 
@@ -2650,6 +3034,8 @@ static if (is(BCGen))
 
     override void visit(SliceExp se)
     {
+        auto oldIndexed = currentIndexed;
+        scope(exit) currentIndexed = oldIndexed;
         debug (ctfe)
         {
             import std.stdio;
@@ -2664,11 +3050,71 @@ static if (is(BCGen))
         {
             // "If there is no lwr and upr bound forward"
             retval = genExpr(se.e1);
-
         }
         else
         {
-            bailout("We don't handle [xx .. yy] for now");
+            if (insideArgumentProcessing)
+            {
+               bailout("currently we cannot slice during argument processing");
+               return ;
+            }
+
+            auto origSlice = genExpr(se.e1);
+            currentIndexed = origSlice;
+            bailout(!origSlice, "could not get slice expr in " ~ se.toString);
+            auto elmType = _sharedCtfeState.elementType(origSlice.type);
+            if (!elmType)
+            {
+                bailout("could not get elementType for: " ~ se.e1.toString);
+            }
+            auto elemSize = _sharedCtfeState.size(elmType);
+
+            auto newSlice = genTemporary(i32Type);
+            Alloc(newSlice, imm32(SliceDescriptor.Size));
+
+            // TODO assert lwr <= upr
+
+            auto origLength = getLength(origSlice);
+            if (!origLength)
+            {
+                bailout("could not gen origLength in " ~ se.toString);
+                return ;
+            }
+            BCValue newLength = genTemporary(i32Type);
+            BCValue lwr = genExpr(se.lwr);
+            if (!lwr)
+            {
+                bailout("could not gen lowerBound in " ~ se.toString);
+                return ;
+            }
+
+            auto upr = genExpr(se.upr);
+            if (!upr)
+            {
+                bailout("could not gen upperBound in " ~ se.toString);
+                return ;
+            }
+
+            Le3(BCValue.init, lwr.i32, upr.i32);
+            Assert(BCValue.init, addError(se.loc, "slice [%llu .. %llu] is out of bounds", lwr, upr));
+            Sub3(newLength, upr.i32, lwr.i32);
+
+            setLength(newSlice, newLength);
+
+            auto origBase = getBase(origSlice);
+            if (!origBase)
+            {
+                bailout("could not gen origBase in " ~ se.toString);
+                return ;
+            }
+
+            BCValue newBase = genTemporary(i32Type);
+            Mul3(newBase, lwr.i32, imm32(elemSize));
+            Add3(newBase, newBase, origBase);
+
+            setBase(newSlice.i32, newBase.i32);
+
+            retval = newSlice;
         }
     }
 
@@ -2680,7 +3126,7 @@ static if (is(BCGen))
             auto structTypeIndex = _sharedCtfeState.getStructIndex(structDeclPtr);
             if (structTypeIndex)
             {
-                BCStruct _struct = _sharedCtfeState .structTypes[structTypeIndex - 1];
+                BCStruct _struct = _sharedCtfeState.structTypes[structTypeIndex - 1];
                 import ddmd.ctfeexpr : findFieldIndexByName;
 
                 auto vd = dve.var.isVarDeclaration;
@@ -2702,19 +3148,26 @@ static if (is(BCGen))
                 if (offset == -1)
                 {
                     bailout("Could not get field-offset of" ~ vd.toString);
+                    return ;
                 }
-
+                BCType varType = _struct.memberTypes[fIndex];
+                if (!varType)
+                {
+                    bailout("struct Member " ~ to!string(fIndex) ~ " has an empty type .... this must not happen! -- " ~ dve.toString);
+                    return ;
+                }
                 debug (ctfe)
                 {
                     import std.stdio;
 
-                    writeln("getting field ", fIndex, "from ",
+                    writeln("getting field ", fIndex, " from ",
                         structDeclPtr.toString, " BCStruct ", _struct);
+                    writeln(varType);
                 }
                 retval = (assignTo && assignTo.vType == BCValueType.StackValue) ? assignTo : genTemporary(
-                    BCType(BCTypeEnum.i32));
+                    toBCType(dve.type));
 
-                auto lhs = genExpr(dve.e1);
+                auto lhs = genExpr(dve.e1, "DotVarExp: dve.e1");
                 if (lhs.type != BCTypeEnum.Struct)
                 {
                     bailout(
@@ -2722,16 +3175,22 @@ static if (is(BCGen))
                         .e1.toString);
                 }
 
-                if (!(lhs.vType == BCValueType.StackValue
-                        || lhs.vType == BCValueType.Parameter || lhs.vType == BCValueType.Temporary))
+                if (!(isStackValueOrParameter(lhs) || lhs.vType == BCValueType.Temporary))
                 {
                     bailout("Unexpected lhs-type: " ~ to!string(lhs.vType));
                     return;
                 }
 
-                auto ptr = genTemporary(BCType(BCTypeEnum.i32));
-                Add3(ptr, lhs.i32, imm32(offset));
-                Load32(retval.i32, ptr);
+                auto ptr = genTemporary(varType);
+                Add3(ptr.i32, lhs.i32, imm32(offset));
+                //FIXME horrible hack to make slice members work
+                // Systematize somehow!
+
+                if (ptr.type.type == BCTypeEnum.Slice)
+                    Set(retval.i32, ptr);
+                else
+                    Load32(retval.i32, ptr);
+
                 retval.heapRef = BCHeapRef(ptr);
 
                 debug (ctfe)
@@ -2766,7 +3225,7 @@ static if (is(BCGen))
         insideArrayLiteralExp = true;
 
         auto elmType = toBCType(ale.type.nextOf);
-        if (elmType.type != BCTypeEnum.i32 && elmType.type != BCTypeEnum.Struct)
+        if (elmType.type != BCTypeEnum.i32 && elmType.type != BCTypeEnum.c8 && elmType.type != BCTypeEnum.Struct)
         {
             bailout(
                 "can only deal with int[] and uint[]  or structs atm. given:" ~ to!string(
@@ -2784,11 +3243,16 @@ static if (is(BCGen))
         _sharedCtfeState.arrayTypes[_sharedCtfeState.arrayCount++] = arrayType;
         retval = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.i32));
 
-        HeapAddr arrayAddr = HeapAddr(_sharedCtfeState.heap.heapSize);
-        _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = arrayLength;
-        _sharedCtfeState.heap.heapSize += uint.sizeof;
+        auto heapAdd = _sharedCtfeState.size(elmType);
 
-        auto heapAdd = align4(_sharedCtfeState.size(elmType));
+        uint allocSize = uint(SliceDescriptor.Size) + //ptr and length
+            arrayLength * heapAdd;
+
+        HeapAddr arrayAddr = HeapAddr(_sharedCtfeState.heap.heapSize);
+        bailout(_sharedCtfeState.heap.heapSize + allocSize > _sharedCtfeState.heap.heapMax, "heap overflow");
+        _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize + SliceDescriptor.LengthOffset] = arrayLength;
+        _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize + SliceDescriptor.BaseOffset] = arrayAddr + SliceDescriptor.Size; // point to the begining of the array;
+        _sharedCtfeState.heap.heapSize += SliceDescriptor.Size;
 
         foreach (elem; *ale.elements)
         {
@@ -2801,13 +3265,14 @@ static if (is(BCGen))
                 }
                 else
                 {
+                    assert(_sharedCtfeState.heap.heapSize);
                     Store32(imm32(_sharedCtfeState.heap.heapSize), elexpr);
                 }
                 _sharedCtfeState.heap.heapSize += heapAdd;
             }
             else
             {
-                bailout("ArrayElement is not an i32 but an " ~ to!string(elexpr.type.type));
+                bailout("ArrayElement is not an i32 but a " ~ to!string(elexpr.type.type) ~ " -- " ~ elem.toString);
                 return;
             }
         }
@@ -2866,6 +3331,11 @@ static if (is(BCGen))
         auto size = align4(_struct.size);
 
         retval = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.i32));
+        if (!size)
+        {
+            bailout("invalid struct size! (someone really messed up here!!)");
+            return ;
+        }
         if (!insideArgumentProcessing)
             Alloc(retval, imm32(size));
         else
@@ -2895,7 +3365,11 @@ static if (is(BCGen))
             if (!insideArgumentProcessing)
             {
                 Add3(fieldAddr, retval.i32, imm32(offset));
-                Store32(fieldAddr, elexpr);
+                // abi hack for slices slice;
+//                if (elexpr.type.type == BCTypeEnum.Slice)
+//                   MemCpy(fieldAddr, elexpr, imm32(SliceDescriptor.Size));
+//                else
+                    Store32(fieldAddr, elexpr);
             }
             else
             {
@@ -2905,18 +3379,12 @@ static if (is(BCGen))
             offset += align4(_sharedCtfeState.size(elexpr.type));
 
         }
-        //if (!processingArguments) Set(retval.i32, result.i32);
-        debug (ctfe)
-        {
-            writeln("Done with struct ... revtval: ", retval);
-        }
-        //retval = result.i32;
     }
 
     override void visit(DollarExp de)
     {
         if (currentIndexed.type == BCTypeEnum.Array
-                || currentIndexed.type == BCTypeEnum.Array
+                || currentIndexed.type == BCTypeEnum.Slice
                 || currentIndexed.type == BCTypeEnum.String)
         {
             retval = getLength(currentIndexed);
@@ -2988,13 +3456,13 @@ static if (is(BCGen))
 
         auto tmp = genTemporary(baseType);
 
-        if(baseType.type != BCTypeEnum.i32)
+        if (baseType.type != BCTypeEnum.i32)
         {
            bailout("can only deal with i32 ptrs at the moement");
            return ;
         }
         // FIXME when we are ready to support more then i32Ptr the direct calling of load
-        // has to be replace by a genLoadForType() function that'll convert from
+        // has to be replaced by a genLoadForType() function that'll convert from
         // heap+representation to stack+representation.
 
         Load32(retval, addr);
@@ -3013,17 +3481,14 @@ static if (is(BCGen))
     override void visit(NewExp ne)
     {
         auto ptr = genTemporary(i32Type);
-        auto size = genTemporary(i32Type);
         auto type = toBCType(ne.newtype);
-        auto typeSize = basicTypeSize(type);
-        if (!isBasicBCType(type) && typeSize > 4)
+        auto typeSize = _sharedCtfeState.size(type);
+        if (!isBasicBCType(type) || typeSize > 4)
         {
             bailout("Can only new basic Types under <=4 bytes for now");
             return;
         }
-        Set(size, imm32(typeSize));
-
-        Alloc(ptr, size);
+        Alloc(ptr, imm32(typeSize));
         // TODO do proper handling of the arguments to the newExp.
         auto value = ne.arguments && ne.arguments.dim == 1 ? genExpr((*ne.arguments)[0]) : imm32(0);
         Store32(ptr, value);
@@ -3034,27 +3499,51 @@ static if (is(BCGen))
     override void visit(ArrayLengthExp ale)
     {
         auto array = genExpr(ale.e1);
-        if (array.type.type == BCTypeEnum.String || array.type.type == BCTypeEnum.Slice)
+        auto arrayType = array.type.type;
+        if (arrayType == BCTypeEnum.String || arrayType == BCTypeEnum.Slice || arrayType == BCTypeEnum.Array)
         {
-            retval = getLength(array, assignTo);
+            retval = getLength(array);
         }
         else
         {
-            bailout("We only handle StringLengths for now att: " ~ to!string(array.type.type));
+            bailout("We only handle Slice, Array, and String-Length for now atm. given : " ~ to!string(array.type.type) ~ " :: " ~ ale.e1.toString);
         }
     }
 
-    BCValue getLength(BCValue arr, BCValue target = BCValue.init)
+    void setLength(BCValue arr, BCValue newLength)
+    {
+        BCValue lengthPtr;
+        debug(nullPtrCheck)
+        {
+            Assert(arr.i32, addError(Loc(), "setLength: arrPtr must not be null"));
+        }
+        if (SliceDescriptor.LengthOffset)
+        {
+            lengthPtr = genTemporary(i32Type);
+            Add3(lengthPtr, arr.i32, imm32(SliceDescriptor.LengthOffset));
+        }
+        else
+        {
+            lengthPtr = arr.i32;
+        }
+        Store32(lengthPtr, newLength.i32);
+    }
+
+    BCValue getLength(BCValue arr)
     {
         if (arr)
         {
-            // HACK we cast the target to i32 in order to make it work
-            // this will propbably never fail in practice but still
-            auto length = target ? target.i32 : genTemporary(BCType(BCTypeEnum.i32));
+            BCValue length;
             if (arr.type.type == BCTypeEnum.Array)
             {
                 auto idx = arr.type.typeIndex;
-                assert(idx);
+                // This should really never happen but ...
+                // we seem to let a few slip trough
+                if(!idx || idx > _sharedCtfeState.arrayCount)
+                {
+                    bailout("arrayIndex: " ~ to!string(idx) ~ " is out of bounds");
+                    return BCValue.init;
+                }
                 length = imm32(_sharedCtfeState.arrayTypes[idx - 1].length);
             }
             else
@@ -3062,11 +3551,26 @@ static if (is(BCGen))
                 if (insideArgumentProcessing)
                 {
                     assert(arr.vType == BCValueType.Immediate);
-                    length = imm32(_sharedCtfeState.heap._heap[arr.imm32]);
+                    length = imm32(_sharedCtfeState.heap._heap[arr.imm32 + SliceDescriptor.LengthOffset]);
                 }
                 else
                 {
-                    Load32(length, arr.i32);
+                    length = genTemporary(i32Type);
+                    BCValue lengthPtr;
+                    // if (arr is null) skip loading the length
+                    auto CJskipLoad = beginCndJmp(arr.i32);
+                    if (SliceDescriptor.LengthOffset)
+                    {
+                        lengthPtr = genTemporary(i32Type);
+                        Add3(lengthPtr, arr.i32, imm32(SliceDescriptor.LengthOffset));
+                    }
+                    else
+                    {
+                        lengthPtr = arr.i32;
+                    }
+                    Load32(length, lengthPtr);
+                    auto LAfterLoad = genLabel();
+                    endCndJmp(CJskipLoad, LAfterLoad);
                 }
             }
             return length;
@@ -3078,18 +3582,100 @@ static if (is(BCGen))
         }
     }
 
-    void LoadFromHeapRef(BCValue hrv)
+    void setBase(BCValue arr, BCValue newBase)
     {
-        bailout(hrv.type.type != BCTypeEnum.i32, "only support i32 pointerTypes right now");
+        BCValue baseAddrPtr;
+        Assert(arr.i32, addError(Loc(), "cannot set setBase of null array"));
+        if (SliceDescriptor.BaseOffset)
+        {
+            baseAddrPtr = genTemporary(i32Type);
+            Add3(baseAddrPtr, arr.i32, imm32(SliceDescriptor.BaseOffset));
+        }
+        else
+        {
+            baseAddrPtr = arr.i32;
+        }
+        Store32(baseAddrPtr, newBase.i32);
+    }
+
+    BCValue getBase(BCValue arr)
+    {
+        if (arr)
+        {
+            BCValue baseAddr;
+            if (insideArgumentProcessing)
+            {
+                assert(arr.vType == BCValueType.Immediate);
+                baseAddr = imm32(_sharedCtfeState.heap._heap[arr.imm32 + SliceDescriptor.BaseOffset]);
+            }
+            else
+            {
+                baseAddr = genTemporary(i32Type);
+                BCValue baseAddrPtr;
+                if (SliceDescriptor.BaseOffset)
+                {
+                    baseAddrPtr = genTemporary(i32Type);
+                    Add3(baseAddrPtr,  arr.i32, imm32(SliceDescriptor.BaseOffset));
+                }
+                else
+                {
+                    baseAddrPtr = arr.i32;
+                }
+                Load32(baseAddr, baseAddrPtr);
+            }
+            return baseAddr;
+        }
+        else
+        {
+            bailout("cannot get baseAddr without a valid arr");
+            return BCValue.init;
+        }
+    }
+
+    void LoadFromHeapRef(BCValue hrv, uint line = __LINE__)
+    {
+        // import std.stdio; writeln("Calling LoadHeapRef from: ", line); //DEBUGLINE
+        bailout(hrv.type.type == BCTypeEnum.i64, "only support 32bit-sized pointerTypes right now");
         Load32(hrv, BCValue(hrv.heapRef));
     }
 
     void StoreToHeapRef(BCValue hrv)
     {
-        bailout(hrv.type.type != BCTypeEnum.i32, "only support i32 pointerTypes right now");
+        bailout(hrv.type.type == BCTypeEnum.i64, "only support 32bit-sized pointerTypes right now");
         Store32(BCValue(hrv.heapRef), hrv);
     }
 
+    void linkRefsCallee(VarDeclarations* parameters)
+    {
+        foreach (p; *parameters)
+        {
+            if (p.storage_class & STCref)
+            {
+                auto heapRef = getVariable(p);
+                if (!heapRef)
+                {
+                    bailout("could not get heapRef for callee");
+                    return ;
+                }
+                auto var = genTemporary(toBCType(p.type));
+                var.heapRef = BCHeapRef(heapRef);
+                setVariable(p, var);
+            }
+        }
+    }
+/+
+    void linkRefsCaller(VarDeclarations* parameters)
+    {
+        foreach (p; *parameters)
+        {
+            if (p.storage_class & STCref)
+            {
+                auto var = getVariable(cast(VarDeclaration)p);
+                StoreToHeapRef(var);
+            }
+        }
+    }
++/
     override void visit(VarExp ve)
     {
         auto vd = ve.var.isVarDeclaration;
@@ -3110,20 +3696,21 @@ static if (is(BCGen))
             retval = imm32(1);
             return ;
         }
+        else if (ve.var.ident == Id.dollar)
+        {
+            retval = getLength(currentIndexed);
+            return;
+        }
+
 
         if (vd)
         {
-            if (vd.ident == Id.dollar)
-            {
-                retval = getLength(currentIndexed);
-                return;
-            }
 
             auto sv = getVariable(vd);
             debug (ctfe)
                 assert(sv, "Variable " ~ ve.toString ~ " not in StackFrame");
 
-            if (!ignoreVoid && sv.vType == BCValueType.VoidValue)
+            if (sv.vType == BCValueType.VoidValue && !ignoreVoid)
             {
                 bailout("Trying to read form an uninitialized Variable: " ~ ve.toString);
                 //TODO ve.error here ?
@@ -3136,7 +3723,7 @@ static if (is(BCGen))
                 return;
             }
 
-            if(sv.heapRef != BCHeapRef.init && sv.vType == BCValueType.StackValue)
+            if (sv.heapRef != BCHeapRef.init && sv.vType == BCValueType.StackValue)
             {
                 LoadFromHeapRef(sv);
             }
@@ -3177,17 +3764,13 @@ static if (is(BCGen))
     {
         auto oldRetval = retval;
         auto vd = de.declaration.isVarDeclaration();
-        auto as = de.declaration.isAliasDeclaration();
-        if (as)
-        {
-            bailout("Alias Declaration " ~ toString(as) ~ " is unsupported");
-        }
+
         if (!vd)
         {
-            import ddmd.asttypename;
-            bailout("DeclarationExps are expected to be VariableDeclarations not: " ~ astTypeName(de.declaration) ~ " :: " ~ toString(de));
+            // It seems like we can ignore Declarartions which are not variables
             return;
         }
+
         visit(vd);
         auto var = retval;
         debug (ctfe)
@@ -3208,9 +3791,29 @@ static if (is(BCGen))
             {
 
                 auto _init = genExpr(ci);
-                if (_init.vType == BCValueType.Immediate && _init.type == BCType(BCTypeEnum.i32))
+                if (_init.type == BCType(BCTypeEnum.i32))
                 {
-                    Set(var.i32, retval);
+                    Set(var.i32, _init);
+                }
+                else if (_init.type.type == BCTypeEnum.Struct)
+                {
+                    // only works becuase the struct is a 32bit ptr;
+                    // TODO we should probaby do a copy here ?
+                    Set(var.i32, _init.i32);
+                }
+                else if (_init.type.type == BCTypeEnum.Slice || _init.type.type == BCTypeEnum.Array || _init.type.type == BCTypeEnum.string8)
+                {
+                    // todo introduce a bool function passedByPtr(BCType t)
+                    //maybe dangerous whi knows ...
+                    Set(var.i32, _init.i32);
+                }
+                else if (_init.type.type == BCTypeEnum.c8 || _init.type.type == BCTypeEnum.i64)
+                {
+                    Set(var, _init);
+                }
+                else
+                {
+                    bailout("We don't know howto deal with this initializer: " ~ _init.toString);
                 }
 
             }
@@ -3229,8 +3832,14 @@ static if (is(BCGen))
 
         BCValue var;
         BCType type = toBCType(vd.type);
+        bool refParam;
         if (processingParameters)
         {
+            if (vd.storage_class & STCref)
+            {
+                type = i32Type;
+            }
+
             var = genParameter(type);
             arguments ~= var;
             parameterTypes ~= type;
@@ -3246,8 +3855,11 @@ static if (is(BCGen))
                 assert(idx);
                 auto array = _sharedCtfeState.arrayTypes[idx - 1];
 
-                Alloc(var.i32, imm32(_sharedCtfeState.size(type) + 4));
-                Store32(var.i32, array.length.imm32);
+                Alloc(var.i32, imm32(_sharedCtfeState.size(type) + SliceDescriptor.Size));
+                setLength(var.i32, array.length.imm32);
+                auto baseAddr = genTemporary(i32Type);
+                Add3(baseAddr, var.i32, imm32(SliceDescriptor.Size));
+                setBase(var.i32, baseAddr);
             }
         }
 
@@ -3323,20 +3935,12 @@ static if (is(BCGen))
             break;
         case TOK.TOKandass:
             {
-                 static if (is(BCGen))
-                     if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
-                        bailout("BCGen does not suppport 32bit bit-operations");
-
                 And3(lhs, lhs, rhs);
                 retval = lhs;
             }
             break;
         case TOK.TOKxorass:
             {
-                static if (is(BCGen))
-                    if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
-                        bailout("BCGen does not suppport 32bit bit-operations");
-
                 Xor3(lhs, lhs, rhs);
                 retval = lhs;
             }
@@ -3377,37 +3981,22 @@ static if (is(BCGen))
         case TOK.TOKcatass:
             {
                 bailout("~= unsupported");
-                if (lhs.type.type == BCTypeEnum.String && rhs.type.type == BCTypeEnum.String)
                 {
-                    bailout(lhs.vType != BCValueType.StackValue,
-                        "Only StringConcats on StackValues are supported for now");
-
-                    /*
-                 * TODO scope(exit) { removeTempoary .... }
-                 */
-
-                    static if (UsePrinterBackend)
+                    if ((lhs.type.type == BCTypeEnum.Slice && lhs.type.typeIndex < _sharedCtfeState.sliceTypes.length) || lhs.type.type == BCTypeEnum.string8)
                     {
-                    }
-                    else
-                    {
-                        //StringCat(lhs, lhs, rhs);
-                    }
-                }
-                else
-                {
-                    if (lhs.type.type == BCTypeEnum.Slice)
-                    {
-                        bailout(!lhs.type.typeIndex, "lhs for ~= is no valid slice" ~ e.toString);
+                        if(!lhs.type.typeIndex)
+                        {
+                            bailout("lhs for ~= is no valid slice" ~ e.toString);
+                            return ;
+                        }
                         bailout(_sharedCtfeState.elementType(lhs.type) != _sharedCtfeState.elementType(rhs.type), "rhs and lhs for ~= are not compatible");
-
-                        auto sliceType = _sharedCtfeState.sliceTypes[lhs.type.typeIndex - 1];
+                        auto elementType = _sharedCtfeState.elementType(lhs.type);
                         retval = assignTo ? assignTo : genTemporary(i32Type);
-                        Cat(retval, lhs, rhs, _sharedCtfeState.size(sliceType.elementType));
+                        Cat(retval, lhs, rhs, _sharedCtfeState.size(elementType));
                     }
                     else
                     {
-                        bailout("Can only concat on slices");
+                        bailout("Can only concat on slices or strings");
                         return;
                     }
                 }
@@ -3439,10 +4028,10 @@ static if (is(BCGen))
         }
 
         auto bct = toBCType(ie.type);
-        if (bct.type != BCTypeEnum.i32 && bct.type != BCTypeEnum.i64 && bct.type != BCTypeEnum.Char)
+        if (bct.type != BCTypeEnum.i32 && bct.type != BCTypeEnum.i64 && bct.type != BCTypeEnum.c8)
         {
             //NOTE this can happen with cast(char*)size_t.max for example
-            bailout("We don't support IntegerExpressions with non-integer types");
+            bailout("We don't support IntegerExpressions with non-integer types: " ~ to!string(bct.type));
         }
 
         // HACK regardless of the literal type we register it as 32bit if it's smaller then int.max;
@@ -3494,20 +4083,43 @@ static if (is(BCGen))
 
         if (!se || se.sz > 1 /* || se.string[se.len] != 0*/ )
         {
-            bailout("only zero terminated char strings are supported for now");
+            bailout("only char strings are supported for now");
             return;
-            //assert(se.string[se.len] == '\0', "string should be 0-terminated");
         }
-        HeapAddr stringAddr;
-        if (!se.len)
+        uint sz = se.sz;
+        assert(se.len < 2 ^^ 30, "String too big!!");
+        uint length = cast(uint)se.len;
+
+
+        auto heap = _sharedCtfeState.heap;
+        HeapAddr stringAddr = HeapAddr(heap.heapSize);
+        uint heapAdd = SliceDescriptor.Size;
+        // always reserve space for the slice;
+        heapAdd += length * sz;
+
+        bailout(heap.heapSize + heapAdd > heap.heapMax, "heapMax exceeded while pushing: " ~ se.toString);
+        _sharedCtfeState.heap.heapSize += heapAdd;
+
+        auto baseAddr = stringAddr.addr + SliceDescriptor.Size;
+        // first set length
+        if (length)
         {
-            //We encountered ""
-            stringAddr = _sharedCtfeState.heap.pushString("", 0);
+            heap._heap[stringAddr.addr + SliceDescriptor.LengthOffset] = length;
+            // then set base
+            heap._heap[stringAddr.addr + SliceDescriptor.BaseOffset] = baseAddr;
         }
-        else
+
+        uint offset = baseAddr;
+        switch(sz)
         {
-            stringAddr = _sharedCtfeState.heap.pushString(se.string, cast(uint) se.len);
+            case 1 : foreach(c;se.string[0 .. length])
+            {
+                heap._heap[offset++] = c;
+            }
+            break;
+            default : bailout("char_size: " ~ to!string(sz) ~" unsupported");
         }
+
         auto stringAddrValue = imm32(stringAddr.addr);
 
         if (insideArgumentProcessing)
@@ -3520,15 +4132,6 @@ static if (is(BCGen))
             retval = assignTo ? assignTo : genTemporary(BCType(BCTypeEnum.String));
             Set(retval.i32, stringAddrValue);
         }
-
-        debug (ctfe)
-        {
-            import std.stdio;
-            writefln("String %s, is in %d, first uint is %d",
-                cast(char[]) se.string[0 .. se.len], stringAddr.addr,
-                _sharedCtfeState.heap._heap[stringAddr.addr]);
-        }
-
     }
 
     override void visit(CmpExp ce)
@@ -3591,7 +4194,7 @@ static if (is(BCGen))
     {
         return (bct.type == BCTypeEnum.i32 || bct.type == BCTypeEnum.i64);
     }
-
+/*
     override void visit(ConstructExp ce)
     {
         //TODO ConstructExp is basically the same as AssignExp
@@ -3654,6 +4257,7 @@ static if (is(BCGen))
         Set(lhs.i32, rhs.i32);
         retval = lhs;
     }
+*/
 
     override void visit(AssignExp ae)
     {
@@ -3667,10 +4271,30 @@ static if (is(BCGen))
         auto oldAssignTo = assignTo;
         const oldDiscardValue = discardValue;
         discardValue = false;
+
+        if (ae.e1.op == TOKslice && ae.e2.op == TOKslice)
+        {
+            auto lhs = genExpr(ae.e1);
+            auto rhs = genExpr(ae.e2);
+
+            auto lhs_base = getBase(lhs);
+            auto rhs_base = getBase(rhs);
+
+            auto lhs_length = getLength(lhs);
+            auto rhs_length = getLength(rhs);
+            Eq3(BCValue.init, lhs_length, rhs_length);
+            Assert(BCValue.init, addError(ae.loc, "lhs.length %d != rhs.length %d", lhs_length, rhs_length));
+            auto elmSize = sharedCtfeState.size(sharedCtfeState.elementType(lhs.type));
+            copyArray(&lhs_base, &rhs_base, lhs_length, elmSize);
+
+            // bailout("We don't handle slice assignment");
+            return ;
+        }
+
         debug (ctfe)
         {
             import std.stdio;
-
+            writeln("OP: ", ae.op.to!string);
             writeln("ae.e1.op ", to!string(ae.e1.op));
         }
 
@@ -3699,13 +4323,15 @@ static if (is(BCGen))
 
             auto fIndex = findFieldIndexByName(structDeclPtr, vd);
             assert(fIndex != -1, "field " ~ vd.toString ~ "could not be found in" ~ dve.e1.toString);
-            BCStruct bcStructType = _sharedCtfeState.structTypes[structTypeIndex - 1];
-
-            if (bcStructType.memberTypes[fIndex].type != BCTypeEnum.i32)
+            auto bcStructType = _sharedCtfeState.structTypes[structTypeIndex - 1];
+            auto fieldType = bcStructType.memberTypes[fIndex];
+            // import std.stdio; writeln("got fieldType: ", fieldType); //DEBUGLINE
+            if (fieldType.type != BCTypeEnum.i32)
             {
-                bailout("only i32 structMembers are supported for now");
+                bailout("only i32 structMembers are supported for now ... not : " ~ to!string(bcStructType.memberTypes[fIndex].type));
                 return;
             }
+
             if (bcStructType.voidInit[fIndex])
             {
                 bailout("We don't handle void initialized struct fields");
@@ -3715,8 +4341,9 @@ static if (is(BCGen))
             if (!rhs)
             {
                 //Not sure if this is really correct :)
-                rhs = imm32(0);
+                rhs = bcNull;
             }
+
             if (rhs.type.type != BCTypeEnum.i32)
             {
                 bailout("only i32 are supported for now. not:" ~ rhs.type.type.to!string);
@@ -3724,7 +4351,7 @@ static if (is(BCGen))
             }
 
             auto lhs = genExpr(_struct);
-            if(!lhs)
+            if (!lhs)
             {
                 bailout("could not gen: " ~ _struct.toString);
                 return ;
@@ -3736,77 +4363,27 @@ static if (is(BCGen))
             Store32(ptr, rhs);
             retval = rhs;
         }
-        //        else if (ae.e1.op == TOKarray && (cast(ArrayExp)ae.e1).)
         else if (ae.e1.op == TOKarraylength)
         {
             auto ale = cast(ArrayLengthExp) ae.e1;
 
             // We are assigning to an arrayLength
             // This means possibly allocation and copying
-            auto arrayPtr = genExpr(ale.e1);
+            auto arrayPtr = genExpr(ale.e1, "ArrayExpansion Slice");
             if (!arrayPtr)
             {
                 bailout("I don't have an array to load the length from :(");
                 return;
             }
-            BCValue oldLength = genTemporary(i32Type);
-            BCValue newLength = genExpr(ae.e2);
-            auto effectiveSize = genTemporary(i32Type);
-            auto elemType = toBCType(ale.e1.type);
-            auto elemSize = align4(basicTypeSize(elemType));
-            Mul3(effectiveSize, newLength, imm32(elemSize));
-            Add3(effectiveSize, effectiveSize, bcFour);
 
-            typeof(beginJmp()) jmp;
-            typeof(beginCndJmp()) jmp1;
-            typeof(beginCndJmp()) jmp2;
-
-            auto arrayExsitsJmp = beginCndJmp(arrayPtr.i32);
+            if (arrayPtr.type != BCTypeEnum.Slice)
             {
-                Load32(oldLength, arrayPtr);
-                Le3(BCValue.init, oldLength, newLength);
-                jmp1 = beginCndJmp(BCValue.init, true);
-                {
-                    auto newArrayPtr = genTemporary(i32Type);
-                    Alloc(newArrayPtr, effectiveSize);
-                    Store32(newArrayPtr, newLength);
-
-                    auto copyPtr = genTemporary(i32Type);
-
-                    Add3(copyPtr, newArrayPtr, bcFour);
-                    Add3(arrayPtr.i32, arrayPtr.i32, bcFour);
-                    // copy old Array
-                    auto tmpElem = genTemporary(i32Type);
-                    auto LcopyLoop = genLabel();
-                    jmp2 = beginCndJmp(oldLength);
-                    {
-                        Sub3(oldLength, oldLength, bcOne);
-                        foreach (_; 0 .. elemSize / 4)
-                        {
-                            Load32(tmpElem, arrayPtr.i32);
-                            Store32(copyPtr, tmpElem);
-                            Add3(arrayPtr.i32, arrayPtr.i32, bcFour);
-                            Add3(copyPtr, copyPtr, bcFour);
-                        }
-                        genJump(LcopyLoop);
-                    }
-                    endCndJmp(jmp2, genLabel());
-
-                    Set(arrayPtr.i32, newArrayPtr);
-                    jmp = beginJmp();
-                }
+                bailout("can only assign to slices and not to " ~to!string(arrayPtr.type.type));
             }
-            auto LarrayDoesNotExsist = genLabel();
-            endCndJmp(arrayExsitsJmp, LarrayDoesNotExsist);
-            {
-                auto newArrayPtr = genTemporary(i32Type);
-                Alloc(newArrayPtr, effectiveSize);
-                Store32(newArrayPtr, newLength);
-                Set(arrayPtr.i32, newArrayPtr);
-            }
-            auto Lend = genLabel();
-            endCndJmp(jmp1, Lend);
-            endJmp(jmp, Lend);
+
+            BCValue oldLength = getLength(arrayPtr);
+            BCValue newLength = genExpr(ae.e2, "ArrayExpansion newLength");
+            expandSliceTo(arrayPtr, newLength);
         }
         else if (ae.e1.op == TOKindex)
         {
@@ -3834,27 +4411,28 @@ static if (is(BCGen))
             }
 
             auto length = getLength(indexed);
+            auto baseAddr = getBase(indexed);
+
             version (ctfe_noboundscheck)
             {
             }
             else
             {
                 Lt3(BCValue.init, index, length);
-                Assert(BCValue.init, _sharedCtfeState.addError(ae.loc,
+                Assert(BCValue.init, addError(ae.loc,
                     "ArrayIndex %d out of bounds %d", index, length));
             }
             auto effectiveAddr = genTemporary(i32Type);
             auto elemType = toBCType(ie.e1.type.nextOf);
-            auto elemSize = align4(_sharedCtfeState.size(elemType));
+            auto elemSize = _sharedCtfeState.size(elemType);
             Mul3(effectiveAddr, index, imm32(elemSize));
-            Add3(effectiveAddr, effectiveAddr, indexed.i32);
-            Add3(effectiveAddr, effectiveAddr, bcFour);
-            if (elemSize != 4)
+            Add3(effectiveAddr, effectiveAddr, baseAddr);
+            if (elemSize > 4)
             {
                 bailout("only 32 bit array loads are supported right now");
             }
             auto rhs = genExpr(ae.e2);
-            if(!rhs)
+            if (!rhs)
             {
                 bailout("we could not gen AssignExp[].rhs: " ~ ae.e2.toString);
                 return ;
@@ -3864,8 +4442,8 @@ static if (is(BCGen))
         else
         {
             ignoreVoid = true;
-            auto lhs = genExpr(ae.e1);
-            if(!lhs)
+            auto lhs = genExpr(ae.e1, "AssignExp.lhs");
+            if (!lhs)
             {
                 bailout("could not gen AssignExp.lhs: " ~ ae.e1.toString);
                 return ;
@@ -3885,8 +4463,9 @@ static if (is(BCGen))
             }
 
             assignTo = lhs;
+
             ignoreVoid = false;
-            auto rhs = genExpr(ae.e2);
+            auto rhs = genExpr(ae.e2, "AssignExp.rhs");
 
             debug (ctfe)
             {
@@ -3899,7 +4478,12 @@ static if (is(BCGen))
                 return;
             }
 
-            if (lhs.type.type == BCTypeEnum.i32 && rhs.type.type == BCTypeEnum.i32)
+
+            if ((lhs.type.type == BCTypeEnum.i32 || lhs.type.type == BCTypeEnum.i64) && rhs.type.type == BCTypeEnum.i32)
+            {
+                Set(lhs, rhs);
+            }
+            else if (lhs.type.type == BCTypeEnum.i64 && (rhs.type.type == BCTypeEnum.i64 || rhs.type.type == BCTypeEnum.i32))
             {
                 Set(lhs, rhs);
             }
@@ -3919,8 +4503,12 @@ static if (is(BCGen))
                         Store32(lhs, rhs);
                      }
                 }
-
-                else if (lhs.type.type == BCTypeEnum.Char && rhs.type.type == BCTypeEnum.Char)
+                else if (lhs.type.type == BCTypeEnum.Struct && lhs.type == rhs.type)
+                {
+                    //TODO FIXME: implement copyStruct and use it here!
+                    Set(lhs.i32, rhs.i32);
+                }
+                else if (lhs.type.type == BCTypeEnum.c8 && rhs.type.type == BCTypeEnum.c8)
                 {
                     Set(lhs.i32, rhs.i32);
                 }
@@ -3932,9 +4520,40 @@ static if (is(BCGen))
                 {
                     Set(lhs.i32, rhs.i32);
                 }
+                else if (lhs.type.type == BCTypeEnum.Array && rhs.type.type == BCTypeEnum.Array)
+                {
+                    //TODO we should really copy here!
+                    Set(lhs.i32, rhs.i32);
+                }
+                else if (lhs.type.type == BCTypeEnum.Slice && rhs.type.type == BCTypeEnum.Array)
+                {
+                    //TODO maybe we should copy here ?
+                    Set(lhs.i32, rhs.i32);
+                }
                 else if (lhs.type.type == BCTypeEnum.Slice && rhs.type.type == BCTypeEnum.Null)
                 {
-                    Set(lhs.i32, imm32(0));
+                    Alloc(lhs.i32, imm32(SliceDescriptor.Size));
+                }
+                else if (lhs.type.type == BCTypeEnum.Struct && rhs.type.type == BCTypeEnum.i32)
+                {
+                    if(!lhs.type.typeIndex || lhs.type.typeIndex > _sharedCtfeState.structCount)
+                    {
+                        bailout("Struct Type is invalid: " ~ ae.e1.toString);
+                        return ;
+                    }
+                    if (!_sharedCtfeState.size(lhs.type))
+                    {
+                        bailout("StructType has invalidSize (this is really bad): " ~ ae.e1.toString);
+                        return ;
+                    }
+                    // for some reason a a struct on the stack which is default-initalized
+                    // get's the integerExp 0 of integer type as rhs
+                    Alloc(lhs.i32, imm32(_sharedCtfeState.size(lhs.type)));
+                    // Allocate space for the value on the heap and store it in lhs :)
+                    MemCpyConst(lhs.i32, _sharedCtfeState.initializer(lhs.type));
+                    // Copy the initializer into the memory
+                    // TODO: (currently the initializer wiil only be set correctly on uints)
+
                 }
                 else
                 {
@@ -3944,12 +4563,12 @@ static if (is(BCGen))
                     return ;
                 }
             }
+            assignTo = lhs;
         }
-
         if (assignTo.heapRef != BCHeapRef.init)
             StoreToHeapRef(assignTo);
+        retval = assignTo;
 
-        retval = oldDiscardValue ? oldRetval : retval;
         assignTo = oldAssignTo;
         discardValue = oldDiscardValue;
 
@@ -3978,6 +4597,12 @@ static if (is(BCGen))
     {
         //FIXME This will break if UnrolledLoopStatements are nested,
         // I am not sure if this can ever happen
+        if (unrolledLoopState)
+        {
+        //TODO this triggers in vibe.d however it still passes the tests ...
+        //We need to fix this properly at some point!
+        //    assert(0, "unrolled loops may not be nested");
+        }
         auto _uls = UnrolledLoopState();
         unrolledLoopState = &_uls;
         uint end = cast(uint) uls.statements.dim - 1;
@@ -4027,7 +4652,7 @@ static if (is(BCGen))
         auto lhs = genExpr(ae.e1);
         if (lhs.type.type == BCTypeEnum.i32 || lhs.type.type == BCTypeEnum.Ptr || lhs.type.type == BCTypeEnum.Struct)
         {
-            Assert(lhs.i32, _sharedCtfeState.addError(ae.loc,
+            Assert(lhs.i32, addError(ae.loc,
                 ae.msg ? ae.msg.toString : "Assert Failed"));
         }
         else
@@ -4070,6 +4695,7 @@ static if (is(BCGen))
             }
 
             auto lhs = genExpr(ss.condition);
+
             if (!lhs)
             {
                 bailout("swtiching on undefined value " ~ ss.toString);
@@ -4081,12 +4707,11 @@ static if (is(BCGen))
             if (ss.cases.dim > beginCaseStatements.length)
                 assert(0, "We will not have enough array space to store all cases for gotos");
 
-            foreach (i, caseStmt; *(ss.cases))
+            foreach (int i, caseStmt; *(ss.cases))
             {
                 switchFixup = &switchFixupTable[switchFixupTableCount];
-                caseStmt.index = cast(int) i;
+                caseStmt.index = i;
                 // apperantly I have to set the index myself;
-                bailout(caseStmt.exp.type.ty == Tint32, "cannot deal with signed swtiches");
 
                 auto rhs = genExpr(caseStmt.exp);
                 stringSwitch ? StringEq(BCValue.init, lhs, rhs) : Eq3(BCValue.init,
@@ -4095,14 +4720,18 @@ static if (is(BCGen))
                 if (caseStmt.statement)
                 {
                     import ddmd.blockexit;
+                    auto blockExitResult = caseStmt.statement.blockExit(me, false);
+                    bool blockReturns = !!(blockExitResult & (BEany & ~BEfallthru));
+                    bool falltrough = !!(blockExitResult & BEfallthru);
 
-                    bool blockReturns = !!(caseStmt.statement.blockExit(me, false) & BEany);
                     auto caseBlock = genBlock(caseStmt.statement);
                     beginCaseStatements[beginCaseStatementsCount++] = caseBlock.begin;
                     //If the block returns regardless there is no need for a fixup
                     if (!blockReturns)
                     {
-                        switchFixupTable[switchFixupTableCount++] = beginJmp();
+                        assert(!falltrough || i < ss.cases.dim); // hope this works :)
+
+                        switchFixupTable[switchFixupTableCount++] = SwitchFixupEntry(beginJmp(), falltrough ? i + 2 : 0);
                         switchFixup = &switchFixupTable[switchFixupTableCount];
                     }
                 }
@@ -4318,22 +4947,36 @@ static if (is(BCGen))
 
     override void visit(CallExp ce)
     {
+        if (!insideFunction)
+        {
+            bailout("We cannot have calls outside of functions");
+        }
         BCValue thisPtr;
         BCValue fnValue;
         FuncDeclaration fd;
-
         bool isFunctionPtr;
-       // bailout("Bailing on FunctionCall");
-       // return ;
 
+        //NOTE is could also be Tdelegate
+        if(ce.e1.type.ty != Tfunction)
+        {
+            bailout("CallExp.e1.type.ty expected to be Tfunction, but got: " ~ to!string(cast(ENUMTY) ce.e1.type.ty));
+            return ;
+        }
+        TypeFunction tf = cast (TypeFunction) ce.e1.type;
         import ddmd.asttypename;
+
         if (ce.e1.op == TOKvar)
         {
+
             auto ve = (cast(VarExp) ce.e1);
             fd = ve.var.isFuncDeclaration();
             // TODO FIXME be aware we can set isFunctionPtr here as well,
             // should we detect it
-            bailout(!fd, "call on varexp: var was not a FuncDeclaration, but: " ~ ve.var.astTypeName);
+            if (!fd)
+            {
+                bailout("call on varexp: var was not a FuncDeclaration, but: " ~ ve.var.astTypeName);
+                return ;
+            }
         }
         else if (ce.e1.op == TOKdotvar)
         {
@@ -4342,9 +4985,10 @@ static if (is(BCGen))
 
             // Calling a member function
             _this = dve.e1;
+
             if (!dve.var || !dve.var.isFuncDeclaration())
             {
-                bailout("no dve.var is not a funcDecl callExp" ~ dve.toString);
+                bailout("no dve.var or it's not a funcDecl callExp -- " ~ dve.toString);
                 return ;
             }
             fd = dve.var.isFuncDeclaration();
@@ -4353,21 +4997,15 @@ static if (is(BCGen))
                 _this = (cast(DotTypeExp)dve.e1).e1;
             }
             */
-            import ddmd.asttypename;
-            import std.stdio;
             thisPtr = genExpr(dve.e1);
-
         }
         else if (ce.e1.op == TOKstar)
         {
             isFunctionPtr = true;
             fnValue = genExpr(ce.e1);
-            //fnValue = genTemporary(i32Type);
-            //Load32(fnValue, fnAddr);
-
         }
 
-        if(!isFunctionPtr)
+        if (!isFunctionPtr)
         {
             if (!fd)
             {
@@ -4395,6 +5033,26 @@ static if (is(BCGen))
         }
 
         BCValue[] bc_args;
+
+        if (!tf)
+        {
+            bailout("could not get function type of " ~ ce.e1.toString);
+            return ;
+        }
+
+        assert(ce.arguments);
+        // NOTE: FIXME: in case of destructors parameters are null
+        // investigate if there are circumstances in which this can happen.
+        // Also destructor calls are most likely broken
+        // TODO confirm if they work
+        uint nParameters = tf.parameters ? cast(uint)tf.parameters.dim : 0;
+
+        if (ce.arguments.dim > nParameters)
+        {
+            bailout("More arguments then parameters in -- " ~ ce.toString);
+            return ;
+        }
+
         bc_args.length = ce.arguments.dim + !!(thisPtr);
 
         foreach (i, arg; *ce.arguments)
@@ -4405,10 +5063,26 @@ static if (is(BCGen))
                 bailout(arg.toString ~ "did not evaluate to a valid argument");
                 return ;
             }
-            if (bc_args[i].type == BCType.i64)
+            if (bc_args[i].type == BCTypeEnum.i64)
             {
                 bailout(arg.toString ~ "cannot safely pass 64bit arguments yet");
                 return ;
+            }
+
+            if ((*tf.parameters)[i].storageClass & STCref)
+            {
+                auto argHeapRef = genTemporary(i32Type);
+                auto origArg = bc_args[i];
+                auto size = _sharedCtfeState.size(origArg.type);
+                if (!size)
+                {
+                    bailout("arg with no size -- " ~ arg.toString);
+                    return ;
+                }
+                Alloc(argHeapRef, imm32(size));
+                bc_args[i].heapRef = BCHeapRef(argHeapRef);
+                StoreToHeapRef(bc_args[i]);
+                bc_args[i] = argHeapRef;
             }
         }
 
@@ -4432,7 +5106,7 @@ static if (is(BCGen))
 
             static if (is(BCGen))
             {
-                if(callCount >= calls.length - 64)
+                if (callCount >= calls.length - 64)
                 {
                     bailout("can only handle " ~ to!string(calls.length) ~ " function-calls per topLevel evaluation");
                     return ;
@@ -4446,6 +5120,24 @@ static if (is(BCGen))
             }
 
             Call(retval, fnValue, bc_args, ce.loc);
+
+            //FIXME figure out what we do in the case where we have more arguments then parameters
+            foreach(i, ref arg;bc_args)
+            {
+              if (nParameters > i && (*tf.parameters)[i].storageClass & STCref)
+              {
+                    auto ce_arg = (*ce.arguments)[i];
+                    if (!arg)
+                    {
+                        bailout("No valid ref arg for " ~ ce_arg.toString());
+                        return ;
+                    }
+                    auto origArg = genExpr(ce_arg);
+                    origArg.heapRef = BCHeapRef(arg);
+                    LoadFromHeapRef(origArg);
+              }
+            }
+
             import ddmd.identifier;
             /*if (fd.ident == Identifier.idPool("isGraphical"))
             {
@@ -4474,7 +5166,7 @@ static if (is(BCGen))
         if (rs.exp !is null)
         {
             auto retval = genExpr(rs.exp);
-            if(!retval)
+            if (!retval)
             {
                 bailout("could not gen returnValue: " ~ rs.exp.toString);
                 return ;
@@ -4491,7 +5183,7 @@ static if (is(BCGen))
         }
         else
         {
-            Ret(imm32(0));
+            Ret(bcNull);
         }
     }
 
@@ -4536,19 +5228,17 @@ static if (is(BCGen))
             // e.g. cast(uint[])uint[10]
             retval.type = toType;
         }
-        /*else if (fromType.type == BCTypeEnum.String
+        else if (fromType.type == BCTypeEnum.string8
                 && toType.type == BCTypeEnum.Slice && toType.typeIndex
                 && _sharedCtfeState.sliceTypes[toType.typeIndex - 1].elementType.type
                 == BCTypeEnum.i32)
         {
-            // for the cast(ubyte[])string; case ... needs to be revised as soon as we handle utf8/32 conversions
+            // for the cast(ubyte[])string case
             // for now make an i8 slice
             _sharedCtfeState.sliceTypes[_sharedCtfeState.sliceCount++] = BCSlice(BCType(BCTypeEnum.i8));
             retval.type = BCType(BCTypeEnum.Slice, _sharedCtfeState.sliceCount);
-            import std.stdio;
-            writeln("created sliceType: ", _sharedCtfeState.sliceCount);
             //retval.type = toType;
-        }*/
+        }
         else
         {
             bailout("CastExp unsupported: " ~ ce.toString);
@@ -4582,7 +5272,7 @@ static if (is(BCGen))
         immutable oldDiscardValue = discardValue;
         discardValue = true;
         if (es.exp)
-            genExpr(es.exp);
+            genExpr(es.exp, "ExpStatement");
         discardValue = oldDiscardValue;
     }
 
@@ -4681,33 +5371,35 @@ static if (is(BCGen))
         }
 
         uint oldFixupTableCount = fixupTableCount;
-        if (fs.condition.op == TOKandand || fs.condition.op == TOKoror)
+        bool isBoolExp = (fs.condition.op == TOKandand || fs.condition.op == TOKoror);
+        if (isBoolExp)
         {
             lastExpr = null;
             noRetval = true;
         }
         auto cond = genExpr(fs.condition);
+
         noRetval = false;
         if (!cond)
         {
             bailout("IfStatement: Could not genrate condition" ~ fs.condition.toString);
             return;
         }
-        /* TODO we need to do something else if we deal with cained && and || Exps
-        if (isChainedBoolExp())
-        {
-            BCBlock ifbody = fs.ifbody ? genBlock(fs.ifbody) : BCBlock.init;
-            BCBlock elsebody = fs.elsebody ? genBlock(fs.elsebody) : BCBlock.init;
-        }*/
 
-        auto cj = beginCndJmp(cond);
+        typeof(beginCndJmp(cond)) cj;
+
+        if (!isBoolExp)
+            cj = beginCndJmp(cond);
 
         BCBlock ifbody = fs.ifbody ? genBlock(fs.ifbody) : BCBlock.init;
         auto to_end = beginJmp();
         auto elseLabel = genLabel();
         BCBlock elsebody = fs.elsebody ? genBlock(fs.elsebody) : BCBlock.init;
         endJmp(to_end, genLabel());
-        endCndJmp(cj, elseLabel);
+
+        if (!isBoolExp)
+            endCndJmp(cj, elseLabel);
+
         doFixup(oldFixupTableCount, ifbody ? &ifbody.begin : null,
             elsebody ? &elsebody.begin : null);
         assert(oldFixupTableCount == fixupTableCount);

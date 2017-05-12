@@ -614,7 +614,7 @@ else
     void Store32(BCValue _to, BCValue value)
     {
         sameLabel = false;
-        LLVMBuildStore(builder, toLLVMValueRef(value), heapGEP(_to));
+        LLVMBuildStore(builder, toLLVMValueRef(value), heapGEP(_to)); 
     }
 
     void Ret(BCValue val)

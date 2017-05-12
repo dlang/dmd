@@ -9,6 +9,7 @@ enum BCFunctionTypeEnum : byte
     Bytecode,
     Compiled,
 }
+enum withMemCpy = 1;
 
 //static if (is(typeof(() { import ddmd.declaration : FuncDeclaration; })))
 //{
@@ -40,6 +41,9 @@ struct Print_BCGen
         StackAddr sp = StackAddr(4);
     }
 
+    bool insideFunction = false;
+    string[102_000] errorMessages;
+    uint errorMessageCount;
     FunctionState[ubyte.max * 8] functionStates;
     uint functionStateCount;
     uint currentFunctionStateNumber;
@@ -57,6 +61,17 @@ struct Print_BCGen
     alias currentFunctionState this;
 
     string result = "\n";
+
+    uint addErrorMessage(string msg)
+    {
+        if (errorMessageCount < errorMessages.length)
+        {
+            errorMessages[errorMessageCount++] = msg;
+            return errorMessageCount;
+        }
+
+        return 0;
+    }
 
     string print(BCLabel label)
     {
@@ -119,7 +134,7 @@ struct Print_BCGen
             }
         case BCValueType.Error:
             {
-                return "Imm32(" ~ to!string(val.imm32) ~ ")/*Error*/";
+                return "Imm32(" ~ to!string(val.imm32) ~ ")/*"~ errorMessages[val.imm32 - 1]  ~"*/";
             }
         case BCValueType.Unknown:
             {
@@ -173,15 +188,22 @@ struct Print_BCGen
         result ~= "    Finalize(" ~ ");\n";
     }
 
-    void beginFunction(uint f = 0)
+    void beginFunction(uint f = 0, void* fnDecl = null)
     {
         sameLabel = false;
-        result ~= "    beginFunction(" ~ to!string(f) ~ ");\n";
+        import ddmd.declaration : FuncDeclaration;
+        import std.string;
+        assert(!insideFunction);
+        insideFunction = true;
+        auto fd = cast(FuncDeclaration) fnDecl;
+        result ~= "    beginFunction(" ~ to!string(f) ~ ");//" ~ fd.toChars.fromStringz ~ "\n";
     }
 
     void endFunction()
     {
         currentFunctionStateNumber++;
+        assert(insideFunction);
+        insideFunction = false;
         result ~= "    endFunction(" ~ ");\n\n";
     }
 
@@ -204,7 +226,7 @@ struct Print_BCGen
     {
         sameLabel = false;
         auto tmpAddr = sp.addr;
-        sp += align4(basicTypeSize(bct));
+        sp += isBasicBCType(bct) ? align4(basicTypeSize(bct)) : 4;
 
         result ~= "    auto tmp" ~ to!string(++temporaryCount) ~ functionSuffix ~ " = genTemporary(" ~ print(
             bct) ~ ");//SP[" ~ to!string(tmpAddr) ~ "]\n";
@@ -413,6 +435,18 @@ struct Print_BCGen
         sameLabel = false;
         result ~= "    Assert(" ~ print(value) ~ ", " ~ print(err) ~ ");\n";
     }
+    static if (withMemCpy)
+        void MemCpy(BCValue dst, BCValue src, BCValue size)
+    {
+        sameLabel = false;
+        result ~= "    MemCpy(" ~ print(dst) ~ ", " ~ print(src) ~ ", " ~ print(size) ~ ");\n";
+    }
+
+    void emitComment(string comment)
+    {
+        result ~= "    //" ~ comment ~ "\n";
+    }
+
 }
 
 enum genString = q{
