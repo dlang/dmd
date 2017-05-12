@@ -3991,7 +3991,7 @@ static if (is(BCGen))
                         }
                         bailout(_sharedCtfeState.elementType(lhs.type) != _sharedCtfeState.elementType(rhs.type), "rhs and lhs for ~= are not compatible");
                         auto elementType = _sharedCtfeState.elementType(lhs.type);
-                        retval = assignTo ? assignTo : genTemporary(i32Type);                        
+                        retval = assignTo ? assignTo : genTemporary(i32Type);
                         doCat(retval, lhs, rhs);
                     }
                     else
@@ -4546,7 +4546,7 @@ static if (is(BCGen))
                         bailout("StructType has invalidSize (this is really bad): " ~ ae.e1.toString);
                         return ;
                     }
-                    // It seems like it's fine if we do nothing here ? 
+                    // It seems like it's fine if we do nothing here ?
                     // given that the heap is already zerod
 
                 }
