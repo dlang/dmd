@@ -5632,7 +5632,7 @@ elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol *sym, b
                 else
                 {
                     elem *edim = el_long(TYsize_t, t1b.size() / t2b.size());
-                    e1 = setArray(e1, edim, t2b, ep, irs, op);
+                    e1 = setArray(e1, edim, t2b, ep, irs, op == TOKconstruct ? TOKblit : op);
                 }
             }
             else
