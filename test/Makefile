@@ -84,6 +84,8 @@ export OS
 
 ifeq (freebsd,$(OS))
     SHELL=/usr/local/bin/bash
+else ifeq (netbsd,$(OS))
+    SHELL=/usr/pkg/bin/bash
 else
     SHELL=/bin/bash
 endif
