@@ -92,6 +92,10 @@ enum BCTypeEnum : ubyte
     Null,
     Void,
 
+    c8,
+    c16,
+    c32,
+    Char = c32,
     /// signed by default
     i8,
     /// DITTO
@@ -100,11 +104,6 @@ enum BCTypeEnum : ubyte
     i32,
     /// DITTO
     i64,
-
-    c8,
-    c16,
-    c32,
-    Char = c32,
 
     u8,
     u16,
@@ -446,7 +445,7 @@ struct BCValue
         case BCValueType.HeapValue:
             return "heapAddr: " ~ to!string(heapAddr);
         case BCValueType.Immediate:
-            return "imm: " ~ (type.type == BCTypeEnum.i64 || type.type == BCTypeEnum.f52
+            return "imm: " ~ (type == BCTypeEnum.i64
                     ? to!string(imm64) : to!string(imm32));
         default:
             return "unkown value format";
@@ -542,7 +541,7 @@ struct BCValue
         this.type = type;
     }
 
-    this(const HeapAddr addr, const BCType type = i32Type) pure
+    this(const HeapAddr addr, const BCType type = BCType(BCTypeEnum.i32)) pure
     {
         this.vType = BCValueType.HeapValue;
         this.type = type;

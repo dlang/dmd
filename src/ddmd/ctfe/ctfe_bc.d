@@ -12,13 +12,13 @@ import ddmd.sideeffect;
 import ddmd.visitor;
 import ddmd.arraytypes : Expressions, VarDeclarations;
 /**
- * Written By Stefan Koch in 2016/17
+ * Written By Stefan Koch in 2016
  */
 
 import std.conv : to;
 
-enum perf = 0;
-enum bailoutMessages = 0;
+enum perf = 1;
+enum bailoutMessages = 1;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -263,12 +263,6 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
     foreach(arg;args)
     {
-        import ddmd.tokens;
-        if (arg.op == TOKcall)
-        {
-            bcv.bailout("Cannot handle calls in arguments");
-        }
-
         if (arg.type.ty == Tfunction)
         { //TODO we need to fix this!
             static if (bailoutMessages)
@@ -327,7 +321,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         import std.datetime : StopWatch;
         import std.stdio;
 
-        BCValue[4] errorValues;
+        BCValue[2] errorValues;
         StopWatch sw;
         sw.start();
         bcv.beginArguments();
@@ -336,7 +330,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         bcv.beginArguments();
         foreach (i, arg; args)
         {
-            bc_args[i] = bcv.genExpr(arg, "Arguments");
+            bc_args[i] = bcv.genExpr(arg);
             if (bcv.IGaveUp)
             {
                 static if (bailoutMessages)
@@ -381,7 +375,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
             auto retval = interpret_(bcv.byteCodeArray[0 .. bcv.ip], bc_args,
                 &_sharedCtfeState.heap, &_sharedCtfeState.functions[0], &bcv.calls[0],
-                &errorValues[0], &errorValues[1], &errorValues[2], &errorValues[3],
+                &errorValues[0], &errorValues[1],
                 &_sharedCtfeState.errors[0], _sharedCtfeState.stack[]);
             /*            if (fd.ident == Identifier.idPool("extractAttribFlags"))
             {
@@ -424,9 +418,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                 }
                 static if (printResult)
                 {
-                   import std.algorithm;
-                   import std.string;
-                    writeln(fd.toString ~ "(" ~ args.map!(a => a.toChars.fromStringz).join(", ")  ~ ")" ~ " == " ~ exp.toString);
+                    writeln("Evaluated function:" ~ fd.toString ~ " => " ~ exp.toString);
                 }
                 return exp;
             }
@@ -787,17 +779,12 @@ struct SharedCtfeState(BCGenT)
 
     import ddmd.globals : Loc;
 
-    extern (D) BCValue addError(Loc loc, string msg, BCValue v1 = BCValue.init, BCValue v2 = BCValue.init, BCValue v3 = BCValue.init, BCValue v4 = BCValue.init)
+    extern (D) BCValue addError(Loc loc, string msg, BCValue v1 = BCValue.init, BCValue v2 = BCValue.init)
     {
-        auto sa1 = TypedStackAddr(v1.type, v1.stackAddr);
-        auto sa2 = TypedStackAddr(v2.type, v2.stackAddr);
-        auto sa3 = TypedStackAddr(v3.type, v3.stackAddr);
-        auto sa4 = TypedStackAddr(v4.type, v4.stackAddr);
-
-        errors[errorCount++] = RetainedError(loc, msg, sa1, sa2, sa3, sa4);
-        auto error = imm32(errorCount);
-        error.vType = BCValueType.Error;
-        return error;
+        errors[errorCount++] = RetainedError(loc, msg, v1, v2);
+        auto retval = imm32(errorCount);
+        retval.vType = BCValueType.Error;
+        return retval;
     }
 
     int getArrayIndex(TypeSArray tsa)
@@ -1021,28 +1008,19 @@ struct SharedCtfeState(BCGenT)
     }
 }
 
-struct TypedStackAddr
-{
-    BCType type;
-    StackAddr addr;
-}
-
 struct RetainedError // Name is still undecided
 {
     import ddmd.tokens : Loc;
 
     Loc loc;
     string msg;
-
-    TypedStackAddr v1;
-    TypedStackAddr v2;
-    TypedStackAddr v3;
-    TypedStackAddr v4;
+    BCValue v1;
+    BCValue v2;
 }
 
 Expression toExpression(const BCValue value, Type expressionType,
     const BCHeap* heapPtr = &_sharedCtfeState.heap,
-    const BCValue[4]* errorValues = null, const RetainedError* errors = null)
+    const BCValue[2]* errorValues = null, const RetainedError* errors = null)
 {
     import ddmd.parse : Loc;
     static if (bailoutMessages)
@@ -1080,7 +1058,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             writeln("It means we have missed to fixup jumps or did not emit a return or something along those lines");
         }
         static if (abortOnCritical)
-            assert(0, "Critical Error ... we tried to execute code outside of range");
+            assert(0);
         else
             return null;
     }
@@ -1096,15 +1074,11 @@ Expression toExpression(const BCValue value, Type expressionType,
 
         uint e1;
         uint e2;
-        uint e3;
-        uint e4;
 
         if (errorValues)
         {
             e1 = (*errorValues)[0].imm32;
             e2 = (*errorValues)[1].imm32;
-            e3 = (*errorValues)[2].imm32;
-            e4 = (*errorValues)[3].imm32;
         }
         else
         {
@@ -1115,7 +1089,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             return null;
         }
         if (err.msg.ptr)
-            error(err.loc, err.msg.ptr, e1, e2, e3, e4);
+            error(err.loc, err.msg.ptr, e1, e2);
 
         return CTFEExp.cantexp;
     }
@@ -1270,16 +1244,6 @@ Expression toExpression(const BCValue value, Type expressionType,
             result = new IntegerExp(value.imm32);
         }
         break;
-    case Tfloat32:
-        {
-            result = new RealExp(Loc(), *cast(float*)&value.imm32, expressionType);
-        }
-        break;
-    case Tfloat64:
-        {
-            result = new RealExp(Loc(), *cast(double*)&value.imm64, expressionType);
-        }
-        break;
     case Tint32, Tuns32, Tint16, Tuns16, Tint8, Tuns8:
         {
             result = new IntegerExp(value.imm32);
@@ -1344,7 +1308,7 @@ extern (C++) final class BCTypeVisitor : Visitor
         case ENUMTY.Tchar:
             return BCType(BCTypeEnum.c8);
         case ENUMTY.Twchar:
-            return BCType(BCTypeEnum.c16);
+            //return BCType(BCTypeEnum.c16);
         case ENUMTY.Tdchar:
             //return BCType(BCTypeEnum.c32);
             return BCType(BCTypeEnum.Char);
@@ -1365,9 +1329,9 @@ extern (C++) final class BCTypeVisitor : Visitor
         case ENUMTY.Tint64:
             return BCType(BCTypeEnum.i64);
         case ENUMTY.Tfloat32:
-            return BCType(BCTypeEnum.f23);
+            //return BCType(BCTypeEnum.f32);
         case ENUMTY.Tfloat64:
-            return BCType(BCTypeEnum.f52);
+            //return BCType(BCTypeEnum.f64);
         case ENUMTY.Tfloat80:
             //return BCType(BCTypeEnum.f64);
         case ENUMTY.Timaginary32:
@@ -1415,9 +1379,9 @@ extern (C++) final class BCTypeVisitor : Visitor
                 assert(0, "This should never happen");
             }
             auto sd = (cast(TypeStruct) t).sym;
-            uint structIndex = _sharedCtfeState.getStructIndex(sd);
+            auto result = BCType(BCTypeEnum.Struct, _sharedCtfeState.getStructIndex(sd));
             topLevelAggregate = typeof(topLevelAggregate).init;
-            return structIndex ? BCType(BCTypeEnum.Struct, structIndex) : BCType.init;
+            return result;
         }
         else if (t.ty == Tarray)
         {
@@ -1471,8 +1435,6 @@ extern (C++) final class BCTypeVisitor : Visitor
 
     override void visit(StructDeclaration sd)
     {
-        import ddmd.initsem : initializerToExpression;
-
         auto st = sharedCtfeState.beginStruct(sd);
 
         foreach (sMember; sd.fields)
@@ -1488,9 +1450,9 @@ extern (C++) final class BCTypeVisitor : Visitor
                 else
                 {
                     uint value;
-                    if(auto initExp = sMember._init.initializerToExpression)
+                    if(auto initExp = sMember._init.toExpression)
                     {
-                        if (initExp.type && (initExp.type.ty == Tint32 || initExp.type.ty == Tuns32))
+                        if (initExp.type.ty == Tint32 || initExp.type.ty == Tuns32)
                         {
                             auto initExpr = cast(IntegerExp) initExp;
                             value = cast (uint) initExpr.value;
@@ -1528,9 +1490,7 @@ struct BCScope
 
 debug = nullPtrCheck;
 debug = nullAllocCheck;
-//debug = andand;
-//debug = SetLocation;
-//debug = LabelLocation;
+debug = andand;
 extern (C++) final class BCV(BCGenT) : Visitor
 {
     uint unresolvedGotoCount;
@@ -1557,8 +1517,6 @@ extern (C++) final class BCV(BCGenT) : Visitor
     bool insideArgumentProcessing;
     bool processingParameters;
     bool insideArrayLiteralExp;
-    bool inOrOr;
-    bool inAndAnd;
 
     bool IGaveUp;
 
@@ -1580,11 +1538,10 @@ extern (C++) final class BCV(BCGenT) : Visitor
         insideArgumentProcessing = false;
         processingParameters = false;
         insideArrayLiteralExp = false;
-        inOrOr = false;
-        inAndAnd = false;
         IGaveUp = false;
         discardValue = false;
         ignoreVoid = false;
+        noRetval = false;
 
         lastConstVd = lastConstVd.init;
         unrolledLoopState = null;
@@ -1596,7 +1553,6 @@ extern (C++) final class BCV(BCGenT) : Visitor
         currentIndexed = BCValue.init;
         retval = BCValue.init;
         assignTo = BCValue.init;
-        boolres = BCValue.init;
 
         labeledBlocks.destroy();
         vars.destroy();
@@ -1608,6 +1564,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     FuncDeclaration me;
     bool inReturnStatement;
+    Expression lastExpr;
 
     UnresolvedGoto[ubyte.max] unresolvedGotos = void;
     BCAddr[ubyte.max] breakFixups = void;
@@ -1637,6 +1594,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     BCBlock[void* ] labeledBlocks;
     bool ignoreVoid;
+    bool noRetval;
     BCValue[void* ] vars;
     BCValue _this;
 
@@ -1646,66 +1604,18 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     BCValue retval;
     BCValue assignTo;
-    BCValue boolres;
 
     bool discardValue = false;
     uint current_line;
 
-    extern(D) BCValue addError(Loc loc, string msg, BCValue v1 = BCValue.init, BCValue v2 = BCValue.init, BCValue v3 = BCValue.init, BCValue v4 = BCValue.init)
+    extern(D) BCValue addError(Loc loc, string msg, BCValue v1 = BCValue.init, BCValue v2 = BCValue.init)
     {
         alias add_error_message_prototype = uint delegate (string);
-        alias add_error_value_prototype = uint delegate (BCValue);
-
         static if (is(typeof(&gen.addErrorMessage) == add_error_message_prototype))
         {
             addErrorMessage(msg);
         }
-        static if (is(typeof(&gen.addErrorValue) == add_error_value_prototype))
-        {
-            if (v1) addErrorValue(v1);
-            if (v2) addErrorValue(v2);
-            if (v3) addErrorValue(v3);
-            if (v4) addErrorValue(v4);
-        }
-
-        if (v1)
-        {
-            if (v1.vType == BCValueType.Immediate)
-            {
-                BCValue t = genTemporary(v1.type);
-                Set(t, v1);
-                v1 = t;
-            }
-        }
-        if (v2)
-        {
-            if (v2.vType == BCValueType.Immediate)
-            {
-                BCValue t = genTemporary(v2.type);
-                Set(t, v2);
-                v2 = t;
-            }
-        }
-        if (v3)
-        {
-            if (v3.vType == BCValueType.Immediate)
-            {
-                BCValue t = genTemporary(v3.type);
-                Set(t, v3);
-                v3 = t;
-            }
-        }
-        if (v4)
-        {
-            if (v4.vType == BCValueType.Immediate)
-            {
-                BCValue t = genTemporary(v4.type);
-                Set(t, v4);
-                v4 = t;
-            }
-        }
-
-        return _sharedCtfeState.addError(loc, msg, v1, v2, v3, v4);
+        return _sharedCtfeState.addError(loc, msg, v1, v2);
     }
 
     extern(D) void MemCpyConst(/*const*/ BCValue destBasePtr, /*const*/ uint[] source, uint wordSize = 4)
@@ -1753,28 +1663,6 @@ extern (C++) final class BCV(BCGenT) : Visitor
         }
     }
 
-    debug (LabelLocation)
-    {
-        import std.stdio;
-        typeof(gen.genLabel()) genLabel(size_t line = __LINE__)
-        {
-            auto l = gen.genLabel();
-            Comment("genLabel from: " ~ to!string(line));
-            return l;
-        }
-    }
-
-    debug (SetLocation)
-    {
-        import std.stdio;
-        void Set(BCValue lhs, BCValue rhs, size_t line = __LINE__)
-        {
-            if (lhs.type.type == BCTypeEnum.string8 || lhs.type.type == BCTypeEnum.string8)
- writeln("Set(", lhs.toString, ", ", rhs.toString, ") called at: ", line);
-            gen.Set(lhs, rhs);
-        }
-    }
-
     void expandSliceBy(BCValue slice, BCValue expandBy)
     {
         assert(slice && slice.type.type == BCTypeEnum.Slice);
@@ -1796,7 +1684,6 @@ extern (C++) final class BCV(BCGenT) : Visitor
         static if (is(typeof(gen.MemCpy) == function))
         {
             auto effectiveSize = genTemporary(i32Type);
-//            assert(elementSize);
             Mul3(effectiveSize, length, imm32(elementSize));
             MemCpy(_newBase, _oldBase, effectiveSize);
             Add3(_newBase, _newBase, effectiveSize);
@@ -2087,7 +1974,7 @@ public:
         auto lhsOrRhs = genTemporary(i32Type);
         Or3(lhsOrRhs, lhs.i32, rhs.i32);
         Set(result.i32, imm32(0));
-        auto CJskipConcat = beginCndJmp(lhsOrRhs);
+        auto CJisNull = beginCndJmp(lhsOrRhs);
 
         auto lhsLength = getLength(lhs);
         auto rhsLength = getLength(rhs);
@@ -2117,22 +2004,11 @@ public:
 
         copyArray(&newBase, &lhsBase, lhsLength, elemSize);
         copyArray(&newBase, &rhsBase, rhsLength, elemSize);
-
-        auto LafterConcat = genLabel();
-        endCndJmp(CJskipConcat, LafterConcat);
-    }
-
-    bool isBoolExp(Expression e)
-    {
-        return (e && (e.op == TOKandand || e.op == TOKoror));
+        auto LafterCopy = genLabel();
+        endCndJmp(CJisNull, LafterCopy);
     }
 
     extern (D) BCValue genExpr(Expression expr, string debugMessage = null, uint line = __LINE__)
-    {
-        return genExpr(expr, false, debugMessage, line);
-    }
-
-    extern (D) BCValue genExpr(Expression expr, bool costumBoolFixup,  string debugMessage = null, uint line = __LINE__)
     {
 
         debug (ctfe)
@@ -2168,22 +2044,9 @@ public:
         }
         else
         {
-            const oldFixupTableCount = fixupTableCount;
+
             if (expr)
                 expr.accept(this);
-            if (isBoolExp(expr) && !costumBoolFixup)
-            {
-                if (!retval || retval.type.type != BCTypeEnum.i32)
-                    retval = genTemporary(i32Type);
-
-                auto Ltrue = genLabel();
-                Set(retval, imm32(1));
-                auto JtoEnd = beginJmp();
-                auto Lfalse = genLabel();
-                Set(retval, imm32(0));
-                endJmp(JtoEnd, genLabel());
-                doFixup(oldFixupTableCount, &Ltrue, &Lfalse);
-            }
         }
         debug (ctfe)
         {
@@ -2227,13 +2090,6 @@ public:
                 bailout("cannot deal with closures of any kind: " ~ fd.toString);
                 return ;
             }
-
-            if ((cast(TypeFunction)fd.type).parameters)
-                foreach(p;*(cast(TypeFunction)fd.type).parameters)
-                {
-                    if (p.defaultArg)
-                        bailout("default args unsupported");
-                }
 
             if (fd.fbody)
             {
@@ -2495,7 +2351,8 @@ static if (is(BCGen))
         }
         else
         {
-            retval = genTemporary(toBCType(e.type));
+            if (!noRetval)
+                retval = genTemporary(toBCType(e.type));
         }
         switch (e.op)
         {
@@ -2561,7 +2418,6 @@ static if (is(BCGen))
             break;
         case TOK.TOKquestion:
             {
-        Comment(": ? begin ");
                 auto ce = cast(CondExp) e;
                 auto cond = genExpr(ce.econd);
                 debug (ctfe)
@@ -2583,7 +2439,6 @@ static if (is(BCGen))
                 // FIXME this is a hack we should not call Set this way
                 Set(retval.i32, rhs.i32);
                 endCndJmp(cj, rhsEval);
-        Comment("Ending cndJmp for ?: rhs");
                 endJmp(toend, genLabel());
             }
             break;
@@ -2652,8 +2507,8 @@ static if (is(BCGen))
 
         case TOK.TOKadd, TOK.TOKmin, TOK.TOKmul, TOK.TOKdiv, TOK.TOKmod,
                 TOK.TOKand, TOK.TOKor, TOK.TOKxor, TOK.TOKshr, TOK.TOKshl:
-            auto lhs = genExpr(e.e1, "BinExp lhs: " ~ to!string(e.op));
-            auto rhs = genExpr(e.e2, "BinExp rhs: " ~ to!string(e.op));
+            auto lhs = genExpr(e.e1);
+            auto rhs = genExpr(e.e2);
             //FIXME IMPORRANT
             // The whole rhs == retval situation should be fixed in the bc evaluator
             // since targets with native 3 address code can do this!
@@ -2669,7 +2524,8 @@ static if (is(BCGen))
                 retval = genTemporary(rhs.type);
                 retval.heapRef = retvalHeapRef;
             }
-            if (canHandleBinExpTypes(retval.type.type, lhs.type.type) && canHandleBinExpTypes(retval.type.type, rhs.type.type))
+
+            if (canHandleBinExpTypes(lhs.type.type, rhs.type.type) && canWorkWithType(retval.type))
             {
                 const oldDiscardValue = discardValue;
                 discardValue = false;
@@ -2742,9 +2598,8 @@ static if (is(BCGen))
                 case TOK.TOKshr:
                     {
                         auto maxShift = imm32(basicTypeSize(lhs.type) * 8 - 1);
-                        auto v = genTemporary(i32Type);
-                        Le3(v, rhs, maxShift);
-                        Assert(v,
+                        Le3(BCValue.init, rhs, maxShift);
+                        Assert(BCValue.init,
                             addError(e.loc,
                             "shift by %d is outside the range 0..%d", rhs, maxShift));
 
@@ -2755,9 +2610,8 @@ static if (is(BCGen))
                 case TOK.TOKshl:
                     {
                         auto maxShift = imm32(basicTypeSize(lhs.type) * 8 - 1);
-                        auto v = genTemporary(i32Type);
-                        Le3(v, rhs, maxShift);
-                        Assert(v,
+                        Le3(BCValue.init, rhs, maxShift);
+                        Assert(BCValue.init,
                             addError(e.loc,
                             "shift by %d is outside the range 0..%d", rhs, maxShift));
 
@@ -2783,46 +2637,7 @@ static if (is(BCGen))
 
         case TOK.TOKoror:
             {
-                 debug(oror) {
-                    if (inAndAnd)
-                        bailout("Cannot deal with intermixed && and ||");
-
-                    inOrOr = true;
-                    const oldFixupTableCount = fixupTableCount;
-                        {
-                            Comment("|| beforeLhs");
-                            auto lhs = genExpr(e.e1);
-                            if (!lhs || !canWorkWithType(lhs.type))
-                            {
-                                bailout("could not gen lhs or could not handle it's type " ~ e.toString);
-                                return ;
-                            }
-
-                            auto afterLhs = genLabel();
-                            doFixup(oldFixupTableCount, null, &afterLhs);
-                            fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(lhs,
-                                    true));
-                            Comment("|| afterLhs");
-                        }
-
-
-
-                    if(e.e1.op != TOK.TOKoror)
-                    {
-                        auto rhs = genExpr(e.e2);
-
-                        if (!rhs || !canWorkWithType(rhs.type))
-                        {
-                            bailout("could not gen rhs or could not handle it's type " ~ e.toString);
-                            return ;
-                        }
-
-                        fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(rhs,
-                                true));
-                        Comment("|| afterRhs");
-                    }
-                    inOrOr = false;
-                }
+                bailout("|| is unsupported at the moment");
             }
             break;
 
@@ -2830,17 +2645,14 @@ static if (is(BCGen))
             {
         case TOK.TOKandand:
                 {
-                    if (inOrOr)
-                        bailout("Cannot deal with intermixed && and ||");
-                   inAndAnd = true;
-                   // noRetval = true;
+                    noRetval = true;
                    //     import std.stdio;
                    //     writefln("andandExp: %s -- e1.op: %s -- e2.op: %s", e.toString, e.e1.op.to!string, e.e2.op.to!string);
                     // If lhs is false jump to false
                     // If lhs is true keep going
                     const oldFixupTableCount = fixupTableCount;
                         {
-                            Comment("&& beforeLhs");
+
                             auto lhs = genExpr(e.e1);
                             if (!lhs || !canWorkWithType(lhs.type))
                             {
@@ -2852,13 +2664,17 @@ static if (is(BCGen))
                             //doFixup(oldFixupTableCount, &afterLhs, null);
                             fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(lhs,
                                     false));
-                            Comment("&& afterLhs");
                         }
 
 
 
                     if(e.e1.op != TOK.TOKandand)
                     {
+                    /*     while (e.e2.op == TOK.TOKandand)
+                            {
+                                e = cast(AndAndExp)e.e2;
+                            }
+                    */
                         auto rhs = genExpr(e.e2);
 
                         if (!rhs || !canWorkWithType(rhs.type))
@@ -2869,10 +2685,9 @@ static if (is(BCGen))
 
                         fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(rhs,
                                 false));
-                        Comment("&& afterRhs");
                     }
-                    inAndAnd = false;
 
+                    noRetval = false;
 
                     }
                 break;
@@ -3030,9 +2845,8 @@ static if (is(BCGen))
         }
         else
         {
-            auto v = genTemporary(i32Type);
-            Lt3(v, idx, length);
-            Assert(v, addError(ie.loc,
+            Lt3(BCValue.init, idx, length);
+            Assert(BCValue.init, addError(ie.loc,
                 "ArrayIndex %d out of bounds %d", idx, length));
         }
 
@@ -3156,7 +2970,6 @@ static if (is(BCGen))
                 bailout("For: No cond generated");
                 return;
             }
-
             auto condJmp = beginCndJmp(cond);
             const oldContinueFixupCount = continueFixupCount;
             const oldBreakFixupCount = breakFixupCount;
@@ -3221,6 +3034,8 @@ static if (is(BCGen))
 
     override void visit(SliceExp se)
     {
+        auto oldIndexed = currentIndexed;
+        scope(exit) currentIndexed = oldIndexed;
         debug (ctfe)
         {
             import std.stdio;
@@ -3234,21 +3049,17 @@ static if (is(BCGen))
         if (!se.lwr && !se.upr)
         {
             // "If there is no lwr and upr bound forward"
-            retval = genExpr(se.e1, "SliceExp (forwarding)");
+            retval = genExpr(se.e1);
         }
         else
         {
-            const oldIndexed = currentIndexed;
-            scope(exit)
-                currentIndexed = oldIndexed;
-
             if (insideArgumentProcessing)
             {
                bailout("currently we cannot slice during argument processing");
                return ;
             }
 
-            auto origSlice = genExpr(se.e1, "SliceExp origSlice");
+            auto origSlice = genExpr(se.e1);
             currentIndexed = origSlice;
             bailout(!origSlice, "could not get slice expr in " ~ se.toString);
             auto elmType = _sharedCtfeState.elementType(origSlice.type);
@@ -3258,8 +3069,8 @@ static if (is(BCGen))
             }
             auto elemSize = _sharedCtfeState.size(elmType);
 
-            auto newSlice = genTemporary(origSlice.type);
-            Alloc(newSlice.i32, imm32(SliceDescriptor.Size));
+            auto newSlice = genTemporary(i32Type);
+            Alloc(newSlice, imm32(SliceDescriptor.Size));
 
             // TODO assert lwr <= upr
 
@@ -3270,28 +3081,22 @@ static if (is(BCGen))
                 return ;
             }
             BCValue newLength = genTemporary(i32Type);
-            BCValue lwr = genExpr(se.lwr, "SliceExp lwr");
+            BCValue lwr = genExpr(se.lwr);
             if (!lwr)
             {
                 bailout("could not gen lowerBound in " ~ se.toString);
                 return ;
             }
 
-            auto upr = genExpr(se.upr, "SliceExp upr");
+            auto upr = genExpr(se.upr);
             if (!upr)
             {
                 bailout("could not gen upperBound in " ~ se.toString);
                 return ;
             }
 
-            {
-                Gt3(BCValue.init, lwr.i32, upr.i32);
-                auto CJoob = beginCndJmp();
-
-                Assert(imm32(0), addError(se.loc, "slice [%llu .. %llu] is out of bounds", lwr, upr));
-
-                endCndJmp(CJoob, genLabel());
-            }
+            Le3(BCValue.init, lwr.i32, upr.i32);
+            Assert(BCValue.init, addError(se.loc, "slice [%llu .. %llu] is out of bounds", lwr, upr));
             Sub3(newLength, upr.i32, lwr.i32);
 
             setLength(newSlice, newLength);
@@ -3414,6 +3219,8 @@ static if (is(BCGen))
                 ale.toString, insideArrayLiteralExp);
         }
 
+        retval = assignTo ? assignTo : genTemporary(toBCType(ale.type));
+
         auto oldInsideArrayLiteralExp = insideArrayLiteralExp;
         insideArrayLiteralExp = true;
 
@@ -3449,7 +3256,7 @@ static if (is(BCGen))
 
         foreach (elem; *ale.elements)
         {
-            auto elexpr = genExpr(elem, "ArrayLiteralElement");
+            auto elexpr = genExpr(elem);
             if (elexpr.type.type == BCTypeEnum.i32)
             {
                 if (elexpr.vType == BCValueType.Immediate)
@@ -3512,14 +3319,13 @@ static if (is(BCGen))
             {
                 bailout("We don't handle structs with void initalizers ... right now");
             }
-
-            auto ty = _struct.memberTypes[i];
-            if (ty.type != BCTypeEnum.i32)
+            /*    if (ty.type != BCTypeEnum.i32)
             {
-                bailout( "can only deal with ints and uints atm. not: BCType(" ~ to!string(ty.type) ~ ", " ~ to!string(
+                bailout( "can only deal with ints and uints atm. not: (" ~ to!string(ty.type) ~ ", " ~ to!string(
                         ty.typeIndex) ~ ")");
                 return;
             }
+          */
         }
         auto heap = _sharedCtfeState.heap;
         auto size = align4(_struct.size);
@@ -3537,23 +3343,20 @@ static if (is(BCGen))
             retval = BCValue(HeapAddr(heap.heapSize));
             heap.heapSize += size;
         }
-        auto rv_stackValue = retval.i32;
-        rv_stackValue.vType = BCValueType.StackValue;
-        MemCpyConst(rv_stackValue, _sharedCtfeState.initializer(BCType(BCTypeEnum.Struct, idx)));
 
         uint offset = 0;
         BCValue fieldAddr = genTemporary(i32Type);
         foreach (elem; *sle.elements)
         {
-            auto elexpr = genExpr(elem, "StructLiteralExp element");
+            auto elexpr = genExpr(elem);
             debug (ctfe)
             {
                 writeln("elExpr: ", elexpr.toString, " elem ", elem.toString);
             }
             /*
             if (elexpr.type != BCTypeEnum.i32
-                && (elexpr.vType != BCValueType.Immediate
-                || elexpr.vType != BCValueType.StackValue))
+                    && (elexpr.vType != BCValueType.Immediate
+                    || elexpr.vType != BCValueType.StackValue))
             {
                 bailout("StructLiteralExp-Element " ~ elexpr.type.type.to!string
                         ~ " is currently not handeled");
@@ -3581,8 +3384,8 @@ static if (is(BCGen))
     override void visit(DollarExp de)
     {
         if (currentIndexed.type == BCTypeEnum.Array
-            || currentIndexed.type == BCTypeEnum.Slice
-            || currentIndexed.type == BCTypeEnum.String)
+                || currentIndexed.type == BCTypeEnum.Slice
+                || currentIndexed.type == BCTypeEnum.String)
         {
             retval = getLength(currentIndexed);
             assert(retval);
@@ -3970,11 +3773,6 @@ static if (is(BCGen))
 
         visit(vd);
         auto var = retval;
-        if (!var)
-        {
-            bailout("var for Declarartion could not be generated -- " ~ de.toString);
-            return ;
-        }
         debug (ctfe)
         {
             import std.stdio;
@@ -4034,11 +3832,6 @@ static if (is(BCGen))
 
         BCValue var;
         BCType type = toBCType(vd.type);
-        if (!type)
-        {
-            bailout("could not get type for:" ~ vd.toString);
-            return ;
-        }
         bool refParam;
         if (processingParameters)
         {
@@ -4081,8 +3874,8 @@ static if (is(BCGen))
 
     static bool canHandleBinExpTypes(const BCTypeEnum lhs, const BCTypeEnum rhs) pure
     {
-        return ((lhs == BCTypeEnum.i32 || lhs == BCTypeEnum.f23 || lhs == BCTypeEnum.f52)
-            && rhs == lhs) || lhs == BCTypeEnum.i64
+        return (lhs == BCTypeEnum.i32
+            && rhs == BCTypeEnum.i32) || lhs == BCTypeEnum.i64
             && (rhs == BCTypeEnum.i64 || rhs == BCTypeEnum.i32);
     }
 
@@ -4187,6 +3980,7 @@ static if (is(BCGen))
 
         case TOK.TOKcatass:
             {
+                bailout("~= unsupported");
                 {
                     if ((lhs.type.type == BCTypeEnum.Slice && lhs.type.typeIndex < _sharedCtfeState.sliceTypes.length) || lhs.type.type == BCTypeEnum.string8)
                     {
@@ -4197,8 +3991,8 @@ static if (is(BCGen))
                         }
                         bailout(_sharedCtfeState.elementType(lhs.type) != _sharedCtfeState.elementType(rhs.type), "rhs and lhs for ~= are not compatible");
                         auto elementType = _sharedCtfeState.elementType(lhs.type);
-                        retval = lhs;
-                        doCat(lhs, lhs, rhs);
+                        retval = assignTo ? assignTo : genTemporary(i32Type);
+                        Cat(retval, lhs, rhs, _sharedCtfeState.size(elementType));
                     }
                     else
                     {
@@ -4234,8 +4028,7 @@ static if (is(BCGen))
         }
 
         auto bct = toBCType(ie.type);
-        if (bct.type != BCTypeEnum.i32 && bct.type != BCTypeEnum.i64 && bct.type != BCTypeEnum.c8 &&
-            bct.type != BCTypeEnum.c32)
+        if (bct.type != BCTypeEnum.i32 && bct.type != BCTypeEnum.i64 && bct.type != BCTypeEnum.c8)
         {
             //NOTE this can happen with cast(char*)size_t.max for example
             bailout("We don't support IntegerExpressions with non-integer types: " ~ to!string(bct.type));
@@ -4264,24 +4057,7 @@ static if (is(BCGen))
             writefln("RealExp %s", re.toString);
         }
 
-        if (re.type.ty == Tfloat32)
-        {
-            import std.stdio;
-            writeln("F32: ", re.value);
-            float tmp = cast(float)re.value;
-            retval = imm32(*cast(uint*)&tmp);
-            retval.type.type = BCTypeEnum.f23;
-        }
-        else if (re.type.ty == Tfloat64)
-        {
-            import std.stdio;
-            writeln("F64: ", re.value);
-            double tmp = cast(double)re.value;
-            retval = BCValue(Imm64(*cast(ulong*)&tmp));
-            retval.type.type = BCTypeEnum.f52;
-        }
-        else
-            bailout("RealExp unsupported");
+        bailout("RealExp unsupported");
     }
 
     override void visit(ComplexExp ce)
@@ -4410,13 +4186,13 @@ static if (is(BCGen))
         {
             bailout(
                 "CmpExp: cannot work with thoose types lhs: " ~ to!string(lhs.type.type) ~ " rhs: " ~ to!string(
-                rhs.type.type) ~ " result: " ~ to!string(oldAssignTo.type.type) );
+                rhs.type.type));
         }
     }
 
     static bool canWorkWithType(const BCType bct) pure
     {
-        return (bct.type == BCTypeEnum.i32 || bct.type == BCTypeEnum.i64 || bct.type == BCTypeEnum.f23 || bct.type == BCTypeEnum.f52);
+        return (bct.type == BCTypeEnum.i32 || bct.type == BCTypeEnum.i64);
     }
 /*
     override void visit(ConstructExp ce)
@@ -4459,7 +4235,7 @@ static if (is(BCGen))
 
         }
         else if (lhs.type.type == BCTypeEnum.String
-            || lhs.type.type == BCTypeEnum.Slice || lhs.type.type.Array)
+                || lhs.type.type == BCTypeEnum.Slice || lhs.type.type.Array)
         {
 
         }
@@ -4491,7 +4267,6 @@ static if (is(BCGen))
 
             writefln("AssignExp: %s", ae.toString);
         }
-
         auto oldRetval = retval;
         auto oldAssignTo = assignTo;
         const oldDiscardValue = discardValue;
@@ -4499,78 +4274,21 @@ static if (is(BCGen))
 
         if (ae.e1.op == TOKslice && ae.e2.op == TOKslice)
         {
-            SliceExp e1 = cast(SliceExp)ae.e1;
-            SliceExp e2 = cast(SliceExp)ae.e2;
-
-            auto lhs = genExpr(e1);
-            auto rhs = genExpr(e2);
+            auto lhs = genExpr(ae.e1);
+            auto rhs = genExpr(ae.e2);
 
             auto lhs_base = getBase(lhs);
             auto rhs_base = getBase(rhs);
 
             auto lhs_length = getLength(lhs);
             auto rhs_length = getLength(rhs);
-
-            auto lhs_lwr = (!e1.lwr) ? imm32(0) : genExpr(e1.lwr);
-            auto rhs_lwr = (!e2.lwr) ? imm32(0) : genExpr(e2.lwr);
-            auto lhs_upr = (!e1.upr) ? lhs_length : genExpr(e1.upr);
-            auto rhs_upr = (!e2.upr) ? rhs_length : genExpr(e2.upr);
-
-            {
-                Neq3(BCValue.init, lhs_length, rhs_length);
-                auto CJLengthUnequal = beginCndJmp();
-
-                Assert(imm32(0), addError(ae.loc, "array length mismatch assigning [%d..%d] to [%d..%d]", rhs_lwr, rhs_upr, lhs_lwr, lhs_upr));
-                endCndJmp(CJLengthUnequal, genLabel());
-            }
-
-            {
-                auto overlapError =  addError(ae.loc, "overlapping slice assignment [%d..%d] = [%d..%d]", lhs_lwr, lhs_upr, rhs_lwr, rhs_upr);
-
-                auto test1 = genTemporary(i32Type);
-
-                Lt3(test1, lhs_base, rhs_base);
-                auto cndJmp1 = beginCndJmp(test1);
-                {
-                    auto test2 = genTemporary(i32Type);
-                    auto lhs_base_plus_length = genTemporary(i32Type);
-                    Add3(lhs_base_plus_length, lhs_base, lhs_length);
-
-                    Le3(test2, lhs_base_plus_length, rhs_base);
-                    auto cndJmp2 = beginCndJmp(test2);
-                    {
-                        Assert(imm32(0), overlapError);
-                    }
-                    endCndJmp(cndJmp2, genLabel());
-                }
-
-                auto to_end_jmp = beginJmp();
-                endCndJmp(cndJmp1, genLabel());
-
-                auto test3 = genTemporary(i32Type);
-
-                Gt3(test3, lhs_base, rhs_base);
-                auto cndJmp3 = beginCndJmp(test3);
-                {
-                    auto test4 = genTemporary(i32Type);
-                    auto rhs_base_plus_length = genTemporary(i32Type);
-                    Add3(rhs_base_plus_length, rhs_base, rhs_length);
-
-                    Le3(test4, lhs_base, rhs_base_plus_length);
-                    auto cndJmp4 = beginCndJmp(test4);
-                    {
-                        Assert(imm32(0), overlapError);
-                    }
-                    endCndJmp(cndJmp4, genLabel());
-                }
-                endCndJmp(cndJmp3, genLabel());
-
-                endJmp(to_end_jmp, genLabel());
-            }
-
+            Eq3(BCValue.init, lhs_length, rhs_length);
+            Assert(BCValue.init, addError(ae.loc, "lhs.length %d != rhs.length %d", lhs_length, rhs_length));
             auto elmSize = sharedCtfeState.size(sharedCtfeState.elementType(lhs.type));
             copyArray(&lhs_base, &rhs_base, lhs_length, elmSize);
-            return ; // not sure why we return here ... it's possibly important
+
+            // bailout("We don't handle slice assignment");
+            return ;
         }
 
         debug (ctfe)
@@ -4700,9 +4418,8 @@ static if (is(BCGen))
             }
             else
             {
-                auto v = genTemporary(i32Type);
-                Lt3(v, index, length);
-                Assert(v, addError(ae.loc,
+                Lt3(BCValue.init, index, length);
+                Assert(BCValue.init, addError(ae.loc,
                     "ArrayIndex %d out of bounds %d", index, length));
             }
             auto effectiveAddr = genTemporary(i32Type);
@@ -4829,12 +4546,14 @@ static if (is(BCGen))
                         bailout("StructType has invalidSize (this is really bad): " ~ ae.e1.toString);
                         return ;
                     }
-                    // HACK allocate space for struct if structPtr is zero
-                    auto structZeroJmp = beginCndJmp(lhs.i32, true);
-                    auto structSize = _sharedCtfeState.size(lhs.type);
-                    Alloc(lhs.i32, imm32(structSize));
+                    // for some reason a a struct on the stack which is default-initalized
+                    // get's the integerExp 0 of integer type as rhs
+                    Alloc(lhs.i32, imm32(_sharedCtfeState.size(lhs.type)));
+                    // Allocate space for the value on the heap and store it in lhs :)
                     MemCpyConst(lhs.i32, _sharedCtfeState.initializer(lhs.type));
-                    endCndJmp(structZeroJmp, genLabel());
+                    // Copy the initializer into the memory
+                    // TODO: (currently the initializer wiil only be set correctly on uints)
+
                 }
                 else
                 {
@@ -5230,11 +4949,7 @@ static if (is(BCGen))
     {
         if (!insideFunction)
         {
-           // bailout("We cannot have calls outside of functions");
-           // We are not inside a function body hence we are expected to return the result of this call
-           // for that to work we construct a function which will look like this { return fn(); }
-           beginFunction(_sharedCtfeState.functionCount++);
-           retval = genTemporary(i32Type);
+            bailout("We cannot have calls outside of functions");
         }
         BCValue thisPtr;
         BCValue fnValue;
@@ -5350,11 +5065,8 @@ static if (is(BCGen))
             }
             if (bc_args[i].type == BCTypeEnum.i64)
             {
-                if (!is(BCGen))
-                {
-                    bailout(arg.toString ~ "cannot safely pass 64bit arguments yet");
-                    return ;
-                }
+                bailout(arg.toString ~ "cannot safely pass 64bit arguments yet");
+                return ;
             }
 
             if ((*tf.parameters)[i].storageClass & STCref)
@@ -5437,12 +5149,6 @@ static if (is(BCGen))
         {
             bailout("Functions are unsupported by backend " ~ BCGenT.stringof);
         }
-
-        if (!insideFunction)
-        {
-            Ret(retval);
-            endFunction();
-        }
         return;
 
     }
@@ -5459,16 +5165,15 @@ static if (is(BCGen))
         assert(!discardValue, "A returnStatement cannot be in discarding Mode");
         if (rs.exp !is null)
         {
-            auto retval = genExpr(rs.exp, "ReturnStatement");
+            auto retval = genExpr(rs.exp);
             if (!retval)
             {
                 bailout("could not gen returnValue: " ~ rs.exp.toString);
                 return ;
             }
-            if (retval.type.type == BCTypeEnum.i32 || retval.type.type == BCTypeEnum.Slice || retval.type.type == BCTypeEnum.c8 ||
-                retval.type.type == BCTypeEnum.c32 || retval.type.type == BCTypeEnum.Array || retval.type.type == BCTypeEnum.String ||
-                retval.type.type == BCTypeEnum.Struct || retval.type.type == BCTypeEnum.f23 || retval.type.type == BCTypeEnum.f52)
-                Ret(retval);
+            if (retval.type == BCTypeEnum.i32 || retval.type == BCTypeEnum.Slice
+                    || retval.type == BCTypeEnum.Array || retval.type == BCTypeEnum.String || retval.type == BCTypeEnum.Struct)
+                Ret(retval.i32);
             else
             {
                 bailout(
@@ -5478,13 +5183,8 @@ static if (is(BCGen))
         }
         else
         {
-            // rs.exp is null for  "return ";
-            // return ; is only legal when the return type is void
-            // so we can return a bcNull without fearing consequnces;
-
             Ret(bcNull);
         }
-
     }
 
     override void visit(CastExp ce)
@@ -5671,15 +5371,15 @@ static if (is(BCGen))
         }
 
         uint oldFixupTableCount = fixupTableCount;
-        bool boolExp = isBoolExp(fs.condition);
-
-        if (boolExp)
+        bool isBoolExp = (fs.condition.op == TOKandand || fs.condition.op == TOKoror);
+        if (isBoolExp)
         {
-            boolres = genTemporary(i32Type);
+            lastExpr = null;
+            noRetval = true;
         }
+        auto cond = genExpr(fs.condition);
 
-        auto cond = genExpr(fs.condition, true);
-
+        noRetval = false;
         if (!cond)
         {
             bailout("IfStatement: Could not genrate condition" ~ fs.condition.toString);
@@ -5688,10 +5388,8 @@ static if (is(BCGen))
 
         typeof(beginCndJmp(cond)) cj;
 
-        if (!boolExp)
-    {
+        if (!isBoolExp)
             cj = beginCndJmp(cond);
-    }
 
         BCBlock ifbody = fs.ifbody ? genBlock(fs.ifbody) : BCBlock.init;
         auto to_end = beginJmp();
@@ -5699,12 +5397,11 @@ static if (is(BCGen))
         BCBlock elsebody = fs.elsebody ? genBlock(fs.elsebody) : BCBlock.init;
         endJmp(to_end, genLabel());
 
-        if (!boolExp)
+        if (!isBoolExp)
             endCndJmp(cj, elseLabel);
 
         doFixup(oldFixupTableCount, ifbody ? &ifbody.begin : null,
             elsebody ? &elsebody.begin : null);
-
         assert(oldFixupTableCount == fixupTableCount);
 
     }

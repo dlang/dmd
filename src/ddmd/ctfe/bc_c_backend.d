@@ -180,7 +180,7 @@ pure:
     BCValue genTemporary(BCType bct)
     {
         auto tmp = BCValue(sp, bct, temporaryCount++);
-        currentFunctionState.sp += align4(basicTypeSize(bct.type)); //sharedState.size(bct.type, typeIndex));
+        currentFunctionState.sp += align4(basicTypeSize(bct)); //sharedState.size(bct.type, typeIndex));
 
         return tmp;
     }
@@ -262,7 +262,7 @@ pure:
     {
         sameLabel = false;
         string prefix = ifTrue ? "" : "!";
-        if ((cond.vType == BCValueType.StackValue || cond.vType == BCValueType.Parameter) && cond.type.type == BCTypeEnum.i32)
+        if ((cond.vType == BCValueType.StackValue || cond.vType == BCValueType.Parameter) && cond.type == BCType.i32)
         {
             code ~= "\tif (" ~ prefix ~ "(" ~ toCode(cond) ~ "))\n\t";
         }
@@ -664,11 +664,6 @@ pure:
 
         code ~= "\t" ~ resultString ~ functionString ~ "[" ~ args.map!(
             a => "imm32(" ~ toCode(a) ~ ")").join(", ") ~ "], heapPtr).imm32;\n";
-    }
-
-    void Comment(string comment)
-    {
-        code ~= "// " ~ comment ~ "\n";
     }
 
    /* void CallBuiltin(BCValue result, BCBuiltin fn, BCValue[] args)
