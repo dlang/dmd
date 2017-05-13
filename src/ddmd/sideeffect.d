@@ -353,7 +353,7 @@ extern (C++) bool discardValue(Expression e)
     default:
         break;
     }
-    e.error("%s has no effect in expression (%s)", Token.toChars(e.op), e.toChars());
+    e.error("`%s` has no effect in expression `%s`", Token.toChars(e.op), e.toChars());
     return true;
 }
 
