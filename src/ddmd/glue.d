@@ -1169,7 +1169,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
          * 2. impact on function inlining
          * 3. what to do when writing out .di files, or other pretty printing
          */
-        if (global.params.trace && !fd.isCMain())
+        if (global.params.trace && !fd.isCMain() && !fd.naked)
         {
             /* The profiler requires TLS, and TLS may not be set up yet when C main()
              * gets control (i.e. OSX), leading to a crash.
