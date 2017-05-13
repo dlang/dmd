@@ -59,6 +59,7 @@ SRCS=\
 	src\core\sys\posix\sys\socket.d \
 	src\core\sys\posix\sys\stat.d \
 	src\core\sys\posix\sys\wait.d \
+	src\core\sys\posix\sys\uio.d \
 	src\core\sys\posix\netdb.d \
 	src\core\sys\posix\sys\ioctl.d \
 	src\core\sys\posix\sys\utsname.d \
