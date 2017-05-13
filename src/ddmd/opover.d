@@ -811,7 +811,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 if (ad2 && id_r)
                 {
                     s_r = search_function(ad2, id_r);
-                    // Bugzilla 12778: If both x.opBinary(y) and y.opBinaryRight(x) found,
+                    // https://issues.dlang.org/show_bug.cgi?id=12778
+                    // If both x.opBinary(y) and y.opBinaryRight(x) found,
                     // and they are exactly same symbol, x.opBinary(y) should be preferred.
                     if (s_r && s_r == s)
                         s_r = null;
@@ -847,7 +848,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         result = new ErrorExp();
                         return;
                     }
-                    if (s_r && s_r == s) // Bugzilla 12778
+                    if (s_r && s_r == s) // https://issues.dlang.org/show_bug.cgi?id=12778
                         s_r = null;
                 }
                 // Set tiargs, the template argument list, which will be the operator string
@@ -939,7 +940,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     if (ad2 && id)
                     {
                         s = search_function(ad2, id);
-                        if (s && s == s_r) // Bugzilla 12778
+                        if (s && s == s_r) // https://issues.dlang.org/show_bug.cgi?id=12778
                             s = null;
                     }
                     if (s || s_r)
@@ -1022,7 +1023,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 }
             }
             // Try alias this on first operand
-            if (ad1 && ad1.aliasthis && !(e.op == TOKassign && ad2 && ad1 == ad2)) // See Bugzilla 2943
+            if (ad1 && ad1.aliasthis && !(e.op == TOKassign && ad2 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
             {
                 /* Rewrite (e1 op e2) as:
                  *      (e1.aliasthis op e2)
@@ -1039,7 +1040,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 return;
             }
             // Try alias this on second operand
-            /* Bugzilla 2943: make sure that when we're copying the struct, we don't
+            /* https://issues.dlang.org/show_bug.cgi?id=2943
+             * make sure that when we're copying the struct, we don't
              * just copy the alias this member
              */
             if (ad2 && ad2.aliasthis && !(e.op == TOKassign && ad1 && ad1 == ad2))
@@ -1146,8 +1148,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     Expression e1x = e.e1;
                     Expression e2x = e.e2;
 
-                    /* The explicit cast is necessary for interfaces,
-                     * see Bugzilla 4088.
+                    /* The explicit cast is necessary for interfaces
+                     * https://issues.dlang.org/show_bug.cgi?id=4088
                      */
                     Type to = ClassDeclaration.object.getType();
                     if (cd1.isInterfaceDeclaration())
@@ -1233,7 +1235,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 e.e2 = new DotIdExp(e.loc, e.e2, Id._tupleof);
                 result = e.semantic(sc);
 
-                /* Bugzilla 15292, if the rewrite result is same with the original,
+                /* https://issues.dlang.org/show_bug.cgi?id=15292
+                 * if the rewrite result is same with the original,
                  * the equality is unresolvable because it has recursive definition.
                  */
                 if (result.op == e.op &&

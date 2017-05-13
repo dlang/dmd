@@ -1129,7 +1129,8 @@ elem *toElem(Expression e, IRState *irs)
                     elem *ethis = getEthis(se.loc, irs, fd);
                     ethis = el_una(OPaddr, TYnptr, ethis);
 
-                    /* Bugzilla 9383: If 's' is a virtual function parameter
+                    /* https://issues.dlang.org/show_bug.cgi?id=9383
+                     * If 's' is a virtual function parameter
                      * placed in closure, and actually accessed from in/out
                      * contract, instead look at the original stack data.
                      */
@@ -2023,7 +2024,8 @@ elem *toElem(Expression e, IRState *irs)
 
                     if (ae.msg)
                     {
-                        /* Bugzilla 8360: If the condition is evalated to true,
+                        /* https://issues.dlang.org/show_bug.cgi?id=8360
+                         * If the condition is evalated to true,
                          * msg is not evaluated at all. so should use
                          * toElemDtor(msg, irs) instead of toElem(msg, irs).
                          */
@@ -3009,7 +3011,8 @@ elem *toElem(Expression e, IRState *irs)
                  * as:
                  *      e1[0] = x, e1[1..2] = a, e1[3] = b, ...;
                  */
-                if (ae.op == TOKconstruct &&   // Bugzilla 11238: avoid aliasing issue
+                if (ae.op == TOKconstruct &&   // https://issues.dlang.org/show_bug.cgi?id=11238
+                                               // avoid aliasing issue
                     ae.e2.op == TOKarrayliteral)
                 {
                     ArrayLiteralExp ale = cast(ArrayLiteralExp)ae.e2;
@@ -3030,7 +3033,8 @@ elem *toElem(Expression e, IRState *irs)
                     goto Lret;
                 }
 
-                /* Bugzilla 13661: Even if the elements in rhs are all rvalues and
+                /* https://issues.dlang.org/show_bug.cgi?id=13661
+                 * Even if the elements in rhs are all rvalues and
                  * don't have to call postblits, this assignment should call
                  * destructors on old assigned elements.
                  */
@@ -3506,7 +3510,7 @@ elem *toElem(Expression e, IRState *irs)
                 return;
             }
 
-            // Bugzilla 12900
+            // https://issues.dlang.org/show_bug.cgi?id=12900
             Type txb = dve.type.toBasetype();
             Type tyb = v.type.toBasetype();
             if (txb.ty == Tvector) txb = (cast(TypeVector)txb).basetype;
@@ -3517,7 +3521,7 @@ elem *toElem(Expression e, IRState *irs)
 
             assert(txb.ty == tyb.ty);
 
-            // Bugzilla 14730
+            // https://issues.dlang.org/show_bug.cgi?id=14730
             if (global.params.useInline && v.offset == 0)
             {
                 FuncDeclaration fd = v.parent.isFuncDeclaration();
@@ -3664,7 +3668,9 @@ elem *toElem(Expression e, IRState *irs)
                  * where the left of the . was turned into [2] or [3] for EH_DWARF:
                  *   [2] ec:  (dctor info ((__ctmp = initializer),__ctmp)), __ctmp
                  *   [3] ec:  (dctor info ((_flag=0),((__ctmp = initializer),__ctmp))), __ctmp
-                 * The trouble (Bugzilla 13095) is if ctor(args) throws, then __ctmp is destructed even though __ctmp
+                 * The trouble
+                 * https://issues.dlang.org/show_bug.cgi?id=13095
+                 * is if ctor(args) throws, then __ctmp is destructed even though __ctmp
                  * is not a fully constructed object yet. The solution is to move the ctor(args) itno the dctor tree.
                  * But first, detect [1], then [2], then split up [2] into:
                  *   eeq: (dctor info ((__ctmp = initializer),__ctmp))
@@ -4885,7 +4891,8 @@ elem *toElem(Expression e, IRState *irs)
             {
                 assert(t1.ty == tb.ty);   // Tarray or Tsarray
 
-                // Bugzilla 14672: If se is in left side operand of element-wise
+                // https://issues.dlang.org/show_bug.cgi?id=14672
+                // If se is in left side operand of element-wise
                 // assignment, the element type can be painted to the base class.
                 int offset;
                 assert(t1.nextOf().equivalent(tb.nextOf()) ||

@@ -140,7 +140,8 @@ extern (C++) Expression resolveAliasThis(Scope* sc, Expression e, bool gag = fal
             {
                 if (auto fd = (cast(VarExp)e).var.isFuncDeclaration())
                 {
-                    // Bugzilla 13009: Support better match for the overloaded alias this.
+                    // https://issues.dlang.org/show_bug.cgi?id=13009
+                    // Support better match for the overloaded alias this.
                     bool hasOverloads;
                     if (auto f = fd.overloadModMatch(loc, tthis, hasOverloads))
                     {

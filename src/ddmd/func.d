@@ -1119,7 +1119,8 @@ extern (C++) class FuncDeclaration : Declaration
         {
             if (storage_class & STCinference)
             {
-                /* Bugzilla 15044: For generated opAssign function, any errors
+                /* https://issues.dlang.org/show_bug.cgi?id=15044
+                 * For generated opAssign function, any errors
                  * from its body need to be gagged.
                  */
                 uint oldErrors = global.startGagging();
@@ -1475,7 +1476,7 @@ extern (C++) class FuncDeclaration : Declaration
                             returns.remove(i);
                             continue;
                         }
-                        if (inferRef && f.isref && !exp.type.constConv(f.next)) // Bugzilla 13336
+                        if (inferRef && f.isref && !exp.type.constConv(f.next)) // https://issues.dlang.org/show_bug.cgi?id=13336
                             f.isref = false;
                         i++;
                     }
@@ -1657,7 +1658,7 @@ extern (C++) class FuncDeclaration : Declaration
                             continue;
                         if (tret.ty == Terror)
                         {
-                            // Bugzilla 13702
+                            // https://issues.dlang.org/show_bug.cgi?id=13702
                             exp = checkGC(sc2, exp);
                             continue;
                         }
@@ -1681,7 +1682,7 @@ extern (C++) class FuncDeclaration : Declaration
                         {
                             exp = exp.optimize(WANTvalue);
 
-                            /* Bugzilla 10789:
+                            /* https://issues.dlang.org/show_bug.cgi?id=10789
                              * If NRVO is not possible, all returned lvalues should call their postblits.
                              */
                             if (!nrvo_can)
@@ -2036,10 +2037,10 @@ extern (C++) class FuncDeclaration : Declaration
         if (!f.deco && ident != Id.xopEquals && ident != Id.xopCmp)
         {
             sc = sc.push();
-            if (isCtorDeclaration()) // Bugzilla #15665
+            if (isCtorDeclaration()) // https://issues.dlang.org/show_bug.cgi?id=#15665
                 sc.flags |= SCOPEctor;
             sc.stc = 0;
-            sc.linkage = linkage; // Bugzilla 8496
+            sc.linkage = linkage; // https://issues.dlang.org/show_bug.cgi?id=8496
             type = f.semantic(loc, sc);
             sc = sc.pop();
         }
@@ -3410,7 +3411,8 @@ extern (C++) class FuncDeclaration : Declaration
                     if (checkEscapingSiblings(fx, this))
                         requiresClosure = true;
 
-                    /* Bugzilla 12406: Iterate all closureVars to mark all descendant
+                    /* https://issues.dlang.org/show_bug.cgi?id=12406
+                     * Iterate all closureVars to mark all descendant
                      * nested functions that access to the closing context of this function.
                      */
                 }
@@ -3523,7 +3525,8 @@ extern (C++) class FuncDeclaration : Declaration
          * by the overridden or overriding function's contracts.
          * This can happen because frequire and fensure are implemented as nested functions,
          * and they can be called directly by an overriding function and the overriding function's
-         * context had better match, or Bugzilla 7335 will bite.
+         * context had better match, or
+         * https://issues.dlang.org/show_bug.cgi?id=7335 will bite.
          */
         if (fdrequire || fdensure)
             return true;
@@ -3706,7 +3709,8 @@ extern (C++) class FuncDeclaration : Declaration
                     {
                         /* Making temporary reference variable is necessary
                          * in covariant return.
-                         * See bugzilla 5204 and 10479.
+                         * https://issues.dlang.org/show_bug.cgi?id=5204
+                         * https://issues.dlang.org/show_bug.cgi?id=10479
                          */
                         auto ei = new ExpInitializer(Loc(), eresult);
                         auto v = new VarDeclaration(Loc(), t1, Identifier.generateId("__covres"), ei);
@@ -3866,7 +3870,8 @@ extern (C++) Expression addInvariant(Loc loc, Scope* sc, AggregateDeclaration ad
         {
             version (all)
             {
-                // Workaround for bugzilla 13394: For the correct mangling,
+                // Workaround for https://issues.dlang.org/show_bug.cgi?id=13394
+                // For the correct mangling,
                 // run attribute inference on inv if needed.
                 inv.functionSemantic();
             }
@@ -3875,7 +3880,8 @@ extern (C++) Expression addInvariant(Loc loc, Scope* sc, AggregateDeclaration ad
             //e = new CallExp(Loc(), e);
             //e = e.semantic(sc2);
 
-            /* Bugzilla 13113: Currently virtual invariant calls completely
+            /* https://issues.dlang.org/show_bug.cgi?id=13113
+             * Currently virtual invariant calls completely
              * bypass attribute enforcement.
              * Change the behavior of pre-invariant call by following it.
              */
@@ -3891,7 +3897,8 @@ extern (C++) Expression addInvariant(Loc loc, Scope* sc, AggregateDeclaration ad
     {
         version (all)
         {
-            // Workaround for bugzilla 13394: For the correct mangling,
+            // Workaround for https://issues.dlang.org/show_bug.cgi?id=13394
+            // For the correct mangling,
             // run attribute inference on inv if needed.
             if (ad.isStructDeclaration() && ad.inv)
                 ad.inv.functionSemantic();

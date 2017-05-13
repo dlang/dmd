@@ -333,7 +333,7 @@ public:
             }
         }
         FuncDeclaration fd = e.var.isFuncDeclaration();
-        if (fd && fd.isNested()) // see Bugzilla 7199 for test case
+        if (fd && fd.isNested()) // https://issues.dlang.org/show_bug.cgi?id=7199 for test case
             cost = COST_MAX;
         else
             cost++;
@@ -437,7 +437,8 @@ public:
     override void visit(CallExp e)
     {
         //printf("CallExp.inlineCost3() %s\n", toChars());
-        // Bugzilla 3500: super.func() calls must be devirtualized, and the inliner
+        // https://issues.dlang.org/show_bug.cgi?id=3500
+        // super.func() calls must be devirtualized, and the inliner
         // can't handle that at present.
         if (e.e1.op == TOKdotvar && (cast(DotVarExp)e.e1).e1.op == TOKsuper)
             cost = COST_MAX;

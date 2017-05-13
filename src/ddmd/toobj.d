@@ -1334,7 +1334,8 @@ private void finishVtbl(ClassDeclaration cd)
             // Nothing to do
             continue;
         }
-        // Ensure function has a return value (Bugzilla 4869)
+        // Ensure function has a return value
+        // https://issues.dlang.org/show_bug.cgi?id=4869
         fd.functionSemantic();
 
         if (!cd.isFuncHidden(fd))

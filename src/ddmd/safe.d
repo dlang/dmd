@@ -125,7 +125,7 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
         return true;
     }
 
-    if (ttob.ty == Tarray && tfrom.ty == Tsarray) // Bugzilla 12502
+    if (ttob.ty == Tarray && tfrom.ty == Tsarray) // https://issues.dlang.org/show_bug.cgi?id=12502
         tfrom = tfrom.nextOf().arrayOf();
 
     if (ttob.ty == Tarray   && tfrom.ty == Tarray ||

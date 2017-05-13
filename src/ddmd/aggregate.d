@@ -131,7 +131,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         // Might need a scope to resolve forward references. The check for
         // semanticRun prevents unnecessary setting of _scope during deferred
         // setScope phases for aggregates which already finished semantic().
-        // Also see https://issues.dlang.org/show_bug.cgi?id=16607
+        // See https://issues.dlang.org/show_bug.cgi?id=16607
         if (semanticRun < PASSsemanticdone)
             ScopeDsymbol.setScope(sc);
     }
@@ -508,7 +508,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 }
                 else
                 {
-                    // Will fix Bugzilla 1432 by enabling this path always
+                    // fixes https://issues.dlang.org/show_bug.cgi?id=1432 by enabling this path always
 
                     /* Prefer explicitly initialized field
                      * union U { int a; int b = 2; }
@@ -553,7 +553,8 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                             type.toChars(), vx.toChars());
                         errors = true;
                     }
-                    /* Bugzilla 12509: Get the element of static array type.
+                    /* https://issues.dlang.org/show_bug.cgi?id=12509
+                     * Get the element of static array type.
                      */
                     Type telem = vx.type;
                     if (telem.ty == Tsarray)
@@ -704,7 +705,8 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         {
             enclosing = fd;
 
-            /* Bugzilla 14422: If a nested class parent is a function, its
+            /* https://issues.dlang.org/show_bug.cgi?id=14422
+             * If a nested class parent is a function, its
              * context pointer (== `outer`) should be void* always.
              */
             t = Type.tvoidptr;

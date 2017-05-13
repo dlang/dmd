@@ -448,7 +448,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
  *
  * Because a global symbol table tree is used for imported packages/modules,
  * access to them needs to be checked based on the imports in the scope chain
- * (see Bugzilla 313).
+ * (see https://issues.dlang.org/show_bug.cgi?id=313).
  *
  */
 extern (C++) bool checkAccess(Loc loc, Scope* sc, Package p)

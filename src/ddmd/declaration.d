@@ -1653,7 +1653,8 @@ extern (C++) class VarDeclaration : Declaration
             sc.stc &= ~(STC_TYPECTOR | STCpure | STCnothrow | STCnogc | STCref | STCdisable);
 
             ExpInitializer ei = _init.isExpInitializer();
-            if (ei) // Bugzilla 13424: Preset the required type to fail in FuncLiteralDeclaration::semantic3
+            if (ei) // https://issues.dlang.org/show_bug.cgi?id=13424
+                    // Preset the required type to fail in FuncLiteralDeclaration::semantic3
                 ei.exp = inferType(ei.exp, type);
 
             // If inside function, there is no semantic3() call
@@ -1739,7 +1740,8 @@ extern (C++) class VarDeclaration : Declaration
                 }
                 else
                 {
-                    // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
+                    // https://issues.dlang.org/show_bug.cgi?id=14166
+                    // Don't run CTFE for the temporary variables inside typeof
                     _init = _init.semantic(sc, type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
                 }
             }
@@ -1884,7 +1886,7 @@ extern (C++) class VarDeclaration : Declaration
         if (offset)
         {
             // already a field
-            *poffset = ad.structsize; // Bugzilla 13613
+            *poffset = ad.structsize; // https://issues.dlang.org/show_bug.cgi?id=13613
             return;
         }
         for (size_t i = 0; i < ad.fields.dim; i++)
@@ -1892,7 +1894,7 @@ extern (C++) class VarDeclaration : Declaration
             if (ad.fields[i] == this)
             {
                 // already a field
-                *poffset = ad.structsize; // Bugzilla 13613
+                *poffset = ad.structsize; // https://issues.dlang.org/show_bug.cgi?id=13613
                 return;
             }
         }
@@ -1957,7 +1959,8 @@ extern (C++) class VarDeclaration : Declaration
                     printf("type = %p\n", ei.exp.type);
                 }
             }
-            // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
+            // https://issues.dlang.org/show_bug.cgi?id=14166
+            // Don't run CTFE for the temporary variables inside typeof
             _init = _init.semantic(sc, type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
             inuse--;
         }
@@ -2378,13 +2381,14 @@ extern (C++) class VarDeclaration : Declaration
 
         //printf("fdthis is %s\n", fdthis.toChars());
         //printf("var %s in function %s is nested ref\n", toChars(), fdv.toChars());
-        // __dollar creates problems because it isn't a real variable Bugzilla 3326
+        // __dollar creates problems because it isn't a real variable
+        // https://issues.dlang.org/show_bug.cgi?id=3326
         if (ident == Id.dollar)
         {
             .error(loc, "cannnot use $ inside a function literal");
             return true;
         }
-        if (ident == Id.withSym) // Bugzilla 1759
+        if (ident == Id.withSym) // https://issues.dlang.org/show_bug.cgi?id=1759
         {
             ExpInitializer ez = _init.isExpInitializer();
             assert(ez);

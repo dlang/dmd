@@ -644,7 +644,8 @@ extern (C++) class ExpStatement : Statement
 
     override final Statements* flatten(Scope* sc)
     {
-        /* Bugzilla 14243: expand template mixin in statement scope
+        /* https://issues.dlang.org/show_bug.cgi?id=14243
+         * expand template mixin in statement scope
          * to handle variable destructors.
          */
         if (exp && exp.op == TOKdeclaration)

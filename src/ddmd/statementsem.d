@@ -263,7 +263,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 return;
             }
 
-            /* Bugzilla 11653: 'semantic' may return another CompoundStatement
+            /* https://issues.dlang.org/show_bug.cgi?id=11653
+             * 'semantic' may return another CompoundStatement
              * (eg. CaseRangeStatement), so flatten it here.
              */
             Statements* flt = s.flatten(sc);
@@ -510,7 +511,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             (cast(TypeStruct)(fs.aggr.type.toBasetype())).sym.dtor &&
             fs.aggr.op != TOKtype && !fs.aggr.isLvalue())
         {
-            // Bugzilla 14653: Extend the life of rvalue aggregate till the end of foreach.
+            // https://issues.dlang.org/show_bug.cgi?id=14653
+            // Extend the life of rvalue aggregate till the end of foreach.
             vinit = copyToTemp(STCrvalue, "__aggr", fs.aggr);
             vinit.endlinnum = fs.endloc.linnum;
             vinit.semantic(sc);
@@ -893,7 +895,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     size_t edim = ale.elements ? ale.elements.dim : 0;
                     auto telem = (*fs.parameters)[dim - 1].type;
 
-                    // Bugzilla 12936: if telem has been specified explicitly,
+                    // https://issues.dlang.org/show_bug.cgi?id=12936
+                    // if telem has been specified explicitly,
                     // converting array literal elements to telem might make it @nogc.
                     fs.aggr = fs.aggr.implicitCastTo(sc, telem.sarrayOf(edim));
                     if (fs.aggr.op == TOKerror)
@@ -977,7 +980,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 fs._body = new CompoundStatement(loc, ds, fs._body);
 
                 s = new ForStatement(loc, forinit, cond, increment, fs._body, fs.endloc);
-                if (auto ls = checkLabeledLoop(sc, fs))   // Bugzilla 15450: don't use sc2
+                if (auto ls = checkLabeledLoop(sc, fs))   // https://issues.dlang.org/show_bug.cgi?id=15450
+                                                          // don't use sc2
                     ls.gotoTarget = s;
                 s = s.semantic(sc2);
                 break;
@@ -1264,7 +1268,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     }
                     params.push(new Parameter(stc, p.type, id, null));
                 }
-                // Bugzilla 13840: Throwable nested function inside nothrow function is acceptable.
+                // https://issues.dlang.org/show_bug.cgi?id=13840
+                // Throwable nested function inside nothrow function is acceptable.
                 StorageClass stc = mergeFuncAttrs(STCsafe | STCpure | STCnogc, fs.func);
                 tfld = new TypeFunction(params, Type.tint32, 0, LINKd, stc);
                 fs.cases = new Statements();
@@ -1437,7 +1442,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                      */
                     if (fs.aggr.op == TOKdelegate && (cast(DelegateExp)fs.aggr).func.isNested())
                     {
-                        // See Bugzilla 3560
+                        // https://issues.dlang.org/show_bug.cgi?id=3560
                         fs.aggr = (cast(DelegateExp)fs.aggr).e1;
                     }
                     ec = new CallExp(loc, fs.aggr, flde);
@@ -1491,7 +1496,7 @@ else
                 if (!fs.cases.dim)
                 {
                     // Easy case, a clean exit from the loop
-                    e = new CastExp(loc, e, Type.tvoid); // Bugzilla 13899
+                    e = new CastExp(loc, e, Type.tvoid); // https://issues.dlang.org/show_bug.cgi?id=13899
                     s = new ExpStatement(loc, e);
                 }
                 else
@@ -3450,7 +3455,7 @@ else
             }
 
             s.semantic(sc);
-            Module.addDeferredSemantic2(s);     // Bugzilla 14666
+            Module.addDeferredSemantic2(s);     // https://issues.dlang.org/show_bug.cgi?id=14666
             sc.insert(s);
 
             foreach (aliasdecl; s.aliasdecls)

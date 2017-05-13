@@ -1334,7 +1334,8 @@ public:
                 {
                     if (flags & SearchImportsOnly)
                         continue;
-                    // compatibility with -transition=import (Bugzilla 15925)
+                    // compatibility with -transition=import
+                    // https://issues.dlang.org/show_bug.cgi?id=15925
                     // SearchLocalsOnly should always get set for new lookup rules
                     sflags |= (flags & SearchLocalsOnly);
                 }
@@ -1372,7 +1373,7 @@ public:
                         Import i2 = s2.isImport();
                         if (!(i1 && i2 && (i1.mod == i2.mod || (!i1.parent.isImport() && !i2.parent.isImport() && i1.ident.equals(i2.ident)))))
                         {
-                            /* Bugzilla 8668:
+                            /* https://issues.dlang.org/show_bug.cgi?id=8668
                              * Public selective import adds AliasDeclaration in module.
                              * To make an overload set, resolve aliases in here and
                              * get actual overload roots which accessible via s and s2.

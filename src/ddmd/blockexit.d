@@ -403,7 +403,8 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                 Identifier id = c.type.toBasetype().isClassHandle().ident;
                 if (c.internalCatch && (cresult & BEfallthru))
                 {
-                    // Bugzilla 11542: leave blockExit flags of the body
+                    // https://issues.dlang.org/show_bug.cgi?id=11542
+                    // leave blockExit flags of the body
                     cresult &= ~BEfallthru;
                 }
                 else if (id == Id.Object || id == Id.Throwable)
@@ -452,7 +453,8 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
 
             version (none)
             {
-                // Bugzilla 13201: Mask to prevent spurious warnings for
+                // https://issues.dlang.org/show_bug.cgi?id=13201
+                // Mask to prevent spurious warnings for
                 // destructor call, exit of synchronized statement, etc.
                 if (result == BEhalt && finalresult != BEhalt && s.finalbody && s.finalbody.hasCode())
                 {
@@ -475,7 +477,8 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
         {
             if (s.internalThrow)
             {
-                // Bugzilla 8675: Allow throwing 'Throwable' object even if mustNotThrow.
+                // https://issues.dlang.org/show_bug.cgi?id=8675
+                // Allow throwing 'Throwable' object even if mustNotThrow.
                 result = BEfallthru;
                 return;
             }

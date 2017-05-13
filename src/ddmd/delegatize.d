@@ -195,7 +195,8 @@ bool ensureStaticLinkTo(Dsymbol s, Dsymbol p)
             if (!fd.isThis() && !fd.isNested())
                 break;
 
-            // Bugzilla 15332: change to delegate if fd is actually nested.
+            // https://issues.dlang.org/show_bug.cgi?id=15332
+            // change to delegate if fd is actually nested.
             if (auto fld = fd.isFuncLiteralDeclaration())
                 fld.tok = TOKdelegate;
         }

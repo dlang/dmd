@@ -502,7 +502,9 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         if (baseok < BASEOKdone)
         {
-            /* Bugzilla 12078, 12143 and 15733:
+            /* https://issues.dlang.org/show_bug.cgi?id=12078
+             * https://issues.dlang.org/show_bug.cgi?id=12143
+             * https://issues.dlang.org/show_bug.cgi?id=15733
              * While resolving base classes and interfaces, a base may refer
              * the member of this derived class. In that time, if all bases of
              * this class can  be determined, we can go forward the semantc process
@@ -599,7 +601,8 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                     }
                 }
 
-                /* Bugzilla 11034: Essentially, class inheritance hierarchy
+                /* https://issues.dlang.org/show_bug.cgi?id=11034
+                 * Class inheritance hierarchy
                  * and instance size of each classes are orthogonal information.
                  * Therefore, even if tc.sym.sizeof == SIZEOKnone,
                  * we need to set baseClass field for class covariance check.
@@ -743,7 +746,8 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         {
             symtab = new DsymbolTable();
 
-            /* Bugzilla 12152: The semantic analysis of base classes should be finished
+            /* https://issues.dlang.org/show_bug.cgi?id=12152
+             * The semantic analysis of base classes should be finished
              * before the members semantic analysis of this class, in order to determine
              * vtbl in this class. However if a base class refers the member of this class,
              * it can be resolved as a normal forward reference.
@@ -1133,7 +1137,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         foreach (b; *baseclasses)
         {
             auto cdb = b.type.isClassHandle();
-            if (!cdb) // Bugzilla 10616
+            if (!cdb) // https://issues.dlang.org/show_bug.cgi?id=10616
                 return null;
             if (cdb.ident.equals(ident))
                 return cdb;
@@ -1415,7 +1419,8 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         if (isabstract != ABSfwdref)
             return isabstract == ABSyes;
 
-        /* Bugzilla 11169: Resolve forward references to all class member functions,
+        /* https://issues.dlang.org/show_bug.cgi?id=11169
+         * Resolve forward references to all class member functions,
          * and determine whether this class is abstract.
          */
         extern (C++) static int func(Dsymbol s, void* param)
@@ -1877,7 +1882,8 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
                 //printf("\tfound at offset %d\n", b.offset);
                 if (poffset)
                 {
-                    // don't return incorrect offsets https://issues.dlang.org/show_bug.cgi?id=16980
+                    // don't return incorrect offsets
+                    // https://issues.dlang.org/show_bug.cgi?id=16980
                     *poffset = cd.sizeok == SIZEOKdone ? b.offset : OFFSET_FWDREF;
                 }
                 // printf("\tfound at offset %d\n", b.offset);
