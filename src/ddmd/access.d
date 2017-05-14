@@ -190,7 +190,7 @@ extern (C++) bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymb
     }
     if (!result)
     {
-        ad.error(loc, "member %s is not accessible", smember.toChars());
+        ad.error(loc, "member `%s` is not accessible", smember.toChars());
         //printf("smember = %s %s, prot = %d, semanticRun = %d\n",
         //        smember.kind(), smember.toPrettyChars(), smember.prot(), smember.semanticRun);
         return true;
@@ -412,7 +412,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
     {
         if (d.prot().kind == PROTprivate && d.getAccessModule() != sc._module || d.prot().kind == PROTpackage && !hasPackageAccess(sc, d))
         {
-            error(loc, "%s %s is not accessible from module %s", d.kind(), d.toPrettyChars(), sc._module.toChars());
+            error(loc, "%s `%s` is not accessible from module `%s`", d.kind(), d.toPrettyChars(), sc._module.toChars());
             return true;
         }
     }
