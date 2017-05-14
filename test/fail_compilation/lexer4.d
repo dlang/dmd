@@ -5,14 +5,14 @@ fail_compilation/lexer4.d(22): Error: unterminated character constant
 fail_compilation/lexer4.d(24): Error: unterminated character constant
 fail_compilation/lexer4.d(25): Error: unterminated character constant
 fail_compilation/lexer4.d(26): Error: binary digit expected
-fail_compilation/lexer4.d(27): Error: radix 8 digit expected, not '8'
-fail_compilation/lexer4.d(27): Error: octal literals 0130 are no longer supported, use std.conv.octal!130 instead
-fail_compilation/lexer4.d(28): Error: radix 10 digit expected, not 'a'
+fail_compilation/lexer4.d(27): Error: radix 8 digit expected, not `8`
+fail_compilation/lexer4.d(27): Error: octal literals `0130` are no longer supported, use `std.conv.octal!130` instead
+fail_compilation/lexer4.d(28): Error: radix 10 digit expected, not `a`
 fail_compilation/lexer4.d(29): Error: unrecognized token
 fail_compilation/lexer4.d(30): Error: exponent required for hex float
 fail_compilation/lexer4.d(31): Error: lower case integer suffix 'l' is not allowed. Please use 'L' instead
 fail_compilation/lexer4.d(32): Error: use 'i' suffix instead of 'I'
-fail_compilation/lexer4.d(34): Error: line number 1234567891234567879 out of range
+fail_compilation/lexer4.d(34): Error: line number `1234567891234567879` out of range
 fail_compilation/lexer4.d(36): Error: #line integer ["filespec"]\n expected
 fail_compilation/lexer4.d(19): Error: #line integer ["filespec"]\n expected
 fail_compilation/lexer4.d(19): Error: declaration expected, not '"file"'

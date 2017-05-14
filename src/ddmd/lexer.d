@@ -1810,7 +1810,7 @@ class Lexer
                 ++p;
                 if (base < 10 && !err)
                 {
-                    error("radix %d digit expected, not '%c'", base, c);
+                    error("radix %d digit expected, not `%c`", base, c);
                     err = true;
                 }
                 d = c - '0';
@@ -1834,7 +1834,7 @@ class Lexer
                         goto Lreal;
                     if (!err)
                     {
-                        error("radix %d digit expected, not '%c'", base, c);
+                        error("radix %d digit expected, not `%c`", base, c);
                         err = true;
                     }
                 }
@@ -1928,7 +1928,7 @@ class Lexer
             break;
         }
         if (base == 8 && n >= 8)
-            error("octal literals 0%llo%.*s are no longer supported, use std.conv.octal!%llo%.*s instead", n, p - psuffix, psuffix, n, p - psuffix, psuffix);
+            error("octal literals `0%llo%.*s` are no longer supported, use `std.conv.octal!%llo%.*s` instead", n, p - psuffix, psuffix, n, p - psuffix, psuffix);
         TOK result;
         switch (flags)
         {
@@ -2150,7 +2150,7 @@ class Lexer
         if (isOutOfRange && !isLong)
         {
             const char* suffix = (result == TOKfloat32v || result == TOKimaginary32v) ? "f" : "";
-            error(scanloc, "number '%s%s' is not representable", sbufptr, suffix);
+            error(scanloc, "number `%s%s` is not representable", sbufptr, suffix);
         }
         debug
         {
@@ -2220,7 +2220,7 @@ class Lexer
         {
             const lin = cast(int)(tok.uns64value - 1);
             if (lin != tok.uns64value - 1)
-                error("line number %lld out of range", cast(ulong)tok.uns64value);
+                error("line number `%lld` out of range", cast(ulong)tok.uns64value);
             else
                 linnum = lin;
         }
