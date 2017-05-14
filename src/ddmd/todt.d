@@ -118,7 +118,7 @@ extern (C++) void Initializer_toDt(Initializer init, DtBuilder dtb)
                 scope dtb = new DtBuilder();
                 Initializer_toDt(ai.value[i], dtb);
                 if (dts[length])
-                    error(ai.loc, "duplicate initializations for index %d", length);
+                    error(ai.loc, "duplicate initializations for index `%d`", length);
                 dts[length] = dtb.finish();
                 length++;
             }
@@ -235,7 +235,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                 printf("Expression.toDt() %d\n", e.op);
                 print();
             }
-            e.error("non-constant expression %s", e.toChars());
+            e.error("non-constant expression `%s`", e.toChars());
             dtb.nzeros(1);
         }
 
@@ -489,7 +489,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                 {
                     printf("SymOffExp.toDt()\n");
                 }
-                e.error("non-constant expression %s", e.toChars());
+                e.error("non-constant expression `%s`", e.toChars());
                 return;
             }
             dtb.xoff(toSymbol(e.var), cast(uint)e.offset);
@@ -505,7 +505,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
             {
                 if (v.inuse)
                 {
-                    e.error("recursive reference %s", e.toChars());
+                    e.error("recursive reference `%s`", e.toChars());
                     return;
                 }
                 v.inuse++;
@@ -523,7 +523,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
             {
                 printf("VarExp.toDt(), kind = %s\n", e.var.kind());
             }
-            e.error("non-constant expression %s", e.toChars());
+            e.error("non-constant expression `%s`", e.toChars());
             dtb.nzeros(1);
         }
 
@@ -539,7 +539,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
             Symbol *s = toSymbol(e.fd);
             if (e.fd.isNested())
             {
-                e.error("non-constant nested delegate literal expression %s", e.toChars());
+                e.error("non-constant nested delegate literal expression `%s`", e.toChars());
                 return;
             }
             toObjFile(e.fd, false);
