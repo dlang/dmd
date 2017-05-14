@@ -2,9 +2,9 @@
 TEST_OUTPUT:
 ---
 fail_compilation/lookup.d(23): Error: no property 'X' for type 'lookup.B'
-fail_compilation/lookup.d(23):        while evaluating: static assert((B).X == 0)
+fail_compilation/lookup.d(23):        while evaluating: `static assert((B).X == 0)`
 fail_compilation/lookup.d(24): Error: no property 'Y' for type 'lookup.B'
-fail_compilation/lookup.d(24):        while evaluating: static assert((B).Y == 2)
+fail_compilation/lookup.d(24):        while evaluating: `static assert((B).Y == 2)`
 ---
 */
 
