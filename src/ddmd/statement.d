@@ -87,7 +87,7 @@ Expression checkAssignmentAsCondition(Expression e)
         ec = (cast(CommaExp)ec).e2;
     if (ec.op == TOKassign)
     {
-        ec.error("assignment cannot be used as a condition, perhaps == was meant?");
+        ec.error("assignment cannot be used as a condition, perhaps `==` was meant?");
         return new ErrorExp();
     }
     return e;
@@ -467,7 +467,7 @@ extern (C++) Statement toStatement(Dsymbol s)
 
         override void visit(Dsymbol s)
         {
-            .error(Loc(), "Internal Compiler Error: cannot mixin %s %s\n", s.kind(), s.toChars());
+            .error(Loc(), "Internal Compiler Error: cannot mixin %s `%s`\n", s.kind(), s.toChars());
             result = new ErrorStatement();
         }
 
@@ -1181,7 +1181,7 @@ extern (C++) final class ForeachStatement : Statement
         {
             if (!p.type)
             {
-                error("cannot infer type for %s", p.ident.toChars());
+                error("cannot infer type for `%s`", p.ident.toChars());
                 p.type = Type.terror;
                 result = true;
             }
@@ -2049,7 +2049,7 @@ extern (C++) final class GotoStatement : Statement
     {
         if (!label.statement)
         {
-            error("label '%s' is undefined", label.toChars());
+            error("label `%s` is undefined", label.toChars());
             return true;
         }
 
@@ -2062,16 +2062,16 @@ extern (C++) final class GotoStatement : Statement
             else
             {
                 if (label.statement.os)
-                    error("cannot goto in to %s block", Token.toChars(label.statement.os.tok));
+                    error("cannot goto in to `%s` block", Token.toChars(label.statement.os.tok));
                 else
-                    error("cannot goto out of %s block", Token.toChars(os.tok));
+                    error("cannot goto out of `%s` block", Token.toChars(os.tok));
                 return true;
             }
         }
 
         if (label.statement.tf != tf)
         {
-            error("cannot goto in or out of finally block");
+            error("cannot goto in or out of `finally` block");
             return true;
         }
 
@@ -2092,12 +2092,12 @@ extern (C++) final class GotoStatement : Statement
         }
         else if (vd.ident == Id.withSym)
         {
-            error("goto skips declaration of with temporary at %s", vd.loc.toChars());
+            error("`goto` skips declaration of `with` temporary at %s", vd.loc.toChars());
             return true;
         }
         else
         {
-            error("goto skips declaration of variable %s at %s", vd.toPrettyChars(), vd.loc.toChars());
+            error("`goto` skips declaration of variable `%s` at %s", vd.toPrettyChars(), vd.loc.toChars());
             return true;
         }
 
