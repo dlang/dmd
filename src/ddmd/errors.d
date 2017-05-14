@@ -219,7 +219,7 @@ extern (C++) void verrorPrint(const ref Loc loc, COLOR headerColor, const(char)*
     {
         colorSyntaxHighlight(&tmp);
         writeHighlights(&tmp);
-        resetConsoleColor();
+        fputc('\n', stderr);
     }
     else
         fprintf(stderr, "%s\n", tmp.peekString());
@@ -390,7 +390,16 @@ private void colorHighlightCode(OutBuffer* buf)
     import ddmd.lexer;
     import ddmd.tokens;
 
-    uint errorsave = global.errors;
+    __gshared int nested;
+    if (nested)
+    {
+        // Should never happen, but don't infinitely recurse if it does
+        --nested;
+        return;
+    }
+    ++nested;
+
+    auto gaggedErrorsSave = global.startGagging();
     scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, 0, 0);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf.data;
@@ -439,7 +448,8 @@ private void colorHighlightCode(OutBuffer* buf)
     //printf("res = '%.*s'\n", buf.offset, buf.data);
     buf.setsize(0);
     buf.write(&res);
-    global.errors = errorsave;
+    global.endGagging(gaggedErrorsSave);
+    --nested;
 }
 
 /*************************************
@@ -449,6 +459,15 @@ private void colorHighlightCode(OutBuffer* buf)
  */
 private void writeHighlights(const OutBuffer *buf)
 {
+    bool colors;
+    scope (exit)
+    {
+        /* Do not mess up console if highlighting aborts
+         */
+        if (colors)
+            resetConsoleColor();
+    }
+
     for (size_t i = 0; i < buf.offset; ++i)
     {
         const c = buf.data[i];
@@ -456,9 +475,15 @@ private void writeHighlights(const OutBuffer *buf)
         {
             const color = buf.data[++i];
             if (color == HIGHLIGHT.Default)
+            {
                 resetConsoleColor();
+                colors = false;
+            }
             else
+            {
                 setConsoleColor(cast(COLOR)color, true);
+                colors = true;
+            }
         }
         else
             fputc(c, stderr);
