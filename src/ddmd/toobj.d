@@ -276,6 +276,7 @@ void write_instance_pointers(Type type, Symbol *s, uint offset)
 
 void toObjFile(Dsymbol ds, bool multiobj)
 {
+    //printf("toObjFile(%s)\n", ds.toChars());
     extern (C++) final class ToObjFile : Visitor
     {
         alias visit = super.visit;
@@ -1361,7 +1362,7 @@ private void finishVtbl(ClassDeclaration cd)
             TypeFunction tf = cast(TypeFunction)fd.type;
             if (tf.ty == Tfunction)
             {
-                cd.error("use of %s%s is hidden by %s; use 'alias %s = %s.%s;' to introduce base class overload set",
+                cd.error("use of `%s%s` is hidden by `%s`; use `alias %s = %s.%s;` to introduce base class overload set",
                     fd.toPrettyChars(),
                     parametersTypeToChars(tf.parameters, tf.varargs),
                     cd.toChars(),
@@ -1370,7 +1371,7 @@ private void finishVtbl(ClassDeclaration cd)
                     fd.toChars());
             }
             else
-                cd.error("use of %s is hidden by %s", fd.toPrettyChars(), cd.toChars());
+                cd.error("use of `%s` is hidden by `%s`", fd.toPrettyChars(), cd.toChars());
             break;
         }
     }
