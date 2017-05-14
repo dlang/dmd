@@ -650,7 +650,7 @@ extern (C++) class S2irVisitor : Visitor
             }
             else
             {
-                pu[i] = cs.exp.toInteger();
+                pu[i] = cast(targ_llong)cs.exp.toInteger();
             }
         }
 

@@ -734,7 +734,7 @@ public:
         }
         if (t.isConst())
             buf.writeByte('K');
-        buf.printf("A%llu_", t.dim ? t.dim.toInteger() : 0);
+        buf.printf("A%llu_", t.dim ? t.dim.toInteger() : dinteger_t(0));
         t.next.accept(this);
     }
 
@@ -1776,7 +1776,7 @@ private:
         while (num)
         {
             --i;
-            buff[i] = num % 16 + 'A';
+            buff[i] = cast(char)(num % 16 + 'A');
             num /= 16;
         }
         buf.writestring(&buff[i]);
@@ -1838,12 +1838,12 @@ private:
             cur = cur.nextOf();
         }
         buf.writeByte('Y');
-        mangleNumber(i); // count of dimensions
+        mangleNumber(dinteger_t(i)); // count of dimensions
         cur = type;
         while (cur && cur.ty == Tsarray) // sizes of dimensions
         {
             TypeSArray sa = cast(TypeSArray)cur;
-            mangleNumber(sa.dim ? sa.dim.toInteger() : 0);
+            mangleNumber(sa.dim ? sa.dim.toInteger() : dinteger_t(0));
             cur = cur.nextOf();
         }
         flags |= IGNORE_CONST;

@@ -15,6 +15,7 @@ import core.stdc.stdlib;
 import ddmd.backend.cc : Classsym, Symbol;
 import ddmd.backend.ty;
 import ddmd.backend.type;
+import ddmd.backend.cdef;
 
 import ddmd.declaration;
 import ddmd.dstruct;
@@ -40,7 +41,7 @@ public:
 
     override void visit(TypeSArray t)
     {
-        t.ctype = type_static_array(t.dim.toInteger(), Type_toCtype(t.next));
+        t.ctype = type_static_array(cast(targ_size_t)t.dim.toInteger(), Type_toCtype(t.next));
     }
 
     override void visit(TypeDArray t)

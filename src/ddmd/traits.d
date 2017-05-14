@@ -192,7 +192,7 @@ extern (C++) d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data
             d_uns64 nextsize = t.next.size();
             if (nextsize == SIZE_INVALID)
                 error = true;
-            d_uns64 dim = t.dim.toInteger();
+            d_uns64 dim = cast(d_uns64)t.dim.toInteger();
             for (d_uns64 i = 0; i < dim; i++)
             {
                 offset = arrayoff + i * nextsize;

@@ -16,7 +16,7 @@ import ddmd.mtype;
 import ddmd.expression;
 import ddmd.globals;
 
-enum UINT64_MAX = 0xFFFFFFFFFFFFFFFFUL;
+enum UINT64_MAX = uinteger_t(0xFFFFFFFFFFFFFFFFUL);
 
 static uinteger_t copySign(uinteger_t x, bool sign)
 {
@@ -28,9 +28,21 @@ struct SignExtendedNumber
 {
     uinteger_t value;
     bool negative;
+
+    this(uinteger_t value, bool negative = false)
+    {
+        this.value = value;
+        this.negative = negative;
+    }
+    static if (!is(d_uns64 == uinteger_t))
+    this(d_uns64 value, bool negative = false)
+    {
+        this(uinteger_t(value), negative);
+    }
+
     static SignExtendedNumber fromInteger(uinteger_t value_)
     {
-        return SignExtendedNumber(value_, value_ >> 63);
+        return SignExtendedNumber(value_, (value_ >> 63) != 0);
     }
 
     static SignExtendedNumber extreme(bool minimum)
@@ -90,7 +102,7 @@ struct SignExtendedNumber
         if (negative != a.negative)
             return SignExtendedNumber(sum, !carry);
         else if (negative)
-            return SignExtendedNumber(carry ? sum : 0, true);
+            return SignExtendedNumber(carry ? sum : uinteger_t(0), true);
         else
             return SignExtendedNumber(carry ? UINT64_MAX : sum, false);
     }
@@ -234,7 +246,7 @@ struct SignExtendedNumber
         // Ref: http://graphics.stanford.edu/~seander/bithacks.html#IntegerLog
 
         // Why is this a size_t? Looks like a bug.
-        size_t r, s;
+        uinteger_t r, s;
 
         r = (v > 0xFFFFFFFFUL) << 5; v >>= r;
         s = (v > 0xFFFFUL    ) << 4; v >>= s; r |= s;
@@ -398,7 +410,7 @@ struct IntRange
     {
         // special case for dchar. Casting to dchar means "I'll ignore all
         //  invalid characters."
-        castUnsigned(0xFFFFFFFFUL);
+        castUnsigned(uinteger_t(0xFFFFFFFFUL));
         if (imin.value > 0x10FFFFUL) // ??
             imin.value = 0x10FFFFUL; // ??
         if (imax.value > 0x10FFFFUL)

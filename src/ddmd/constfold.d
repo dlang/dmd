@@ -826,7 +826,7 @@ extern (C++) UnionExp Equal(TOK op, Loc loc, Type type, Expression e1, Expressio
             cmp = 1; // if dim1 winds up being 0
             for (size_t i = 0; i < dim1; i++)
             {
-                uinteger_t c = es1.charAt(i);
+                uinteger_t c = es1.charAt(uinteger_t(i));
                 auto ee2 = es2.getElement(i);
                 if (ee2.isConst() != 1)
                 {
@@ -1343,7 +1343,7 @@ extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression
             size_t len = cast(size_t)(iupr - ilwr);
             ubyte sz = es1.sz;
             void* s = mem.xmalloc(len * sz);
-            memcpy(cast(char*)s, es1.string + ilwr * sz, len * sz);
+            memcpy(cast(char*)s, es1.string + cast(size_t)ilwr * sz, len * sz);
             emplaceExp!(StringExp)(&ue, loc, s, len, es1.postfix);
             StringExp es = cast(StringExp)ue.exp();
             es.sz = sz;
@@ -1365,7 +1365,7 @@ extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression
         {
             auto elements = new Expressions();
             elements.setDim(cast(size_t)(iupr - ilwr));
-            memcpy(elements.tdata(), es1.elements.tdata() + ilwr, cast(size_t)(iupr - ilwr) * ((*es1.elements)[0]).sizeof);
+            memcpy(elements.tdata(), es1.elements.tdata() + cast(size_t)ilwr, cast(size_t)(iupr - ilwr) * ((*es1.elements)[0]).sizeof);
             emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, elements);
             ue.exp().type = type;
         }
@@ -1473,7 +1473,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
             size_t len = (t.ty == tn.ty) ? 1 : utf_codeLength(sz, cast(dchar)v);
             void* s = mem.xmalloc(len * sz);
             if (t.ty == tn.ty)
-                Port.valcpy(s, v, sz);
+                Port.valcpy(s, cast(ulong)v, sz);
             else
                 utf_encode(sz, s, cast(dchar)v);
             emplaceExp!(StringExp)(&ue, loc, s, len);
@@ -1602,7 +1602,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         void* s = mem.xmalloc(len * sz);
         memcpy(s, es1.string, es1.len * sz);
         if (homoConcat)
-            Port.valcpy(cast(char*)s + (sz * es1.len), v, sz);
+            Port.valcpy(cast(char*)s + (sz * es1.len), cast(ulong)v, sz);
         else
             utf_encode(sz, cast(char*)s + (sz * es1.len), cast(dchar)v);
         emplaceExp!(StringExp)(&ue, loc, s, len);

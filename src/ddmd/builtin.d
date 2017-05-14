@@ -151,7 +151,7 @@ extern (C++) Expression eval_popcnt(Loc loc, FuncDeclaration fd, Expressions* ar
     int cnt = 0;
     while (n)
     {
-        cnt += (n & 1);
+        cnt += (n & 1) ? 1 : 0;
         n >>= 1;
     }
     return new IntegerExp(loc, cnt, arg0.type);
