@@ -127,7 +127,7 @@ extern (C++) d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data
     const sz_size_t = Type.tsize_t.size(loc);
     if (sz > sz.max - sz_size_t)
     {
-        error(loc, "size overflow for type %s", t.toChars());
+        error(loc, "size overflow for type `%s`", t.toChars());
         return d_uns64.max;
     }
 
@@ -348,7 +348,7 @@ extern (C++) Expression pointerBitmap(TraitsExp e)
     Type t = getType((*e.args)[0]);
     if (!t)
     {
-        error(e.loc, "%s is not a type", (*e.args)[0].toChars());
+        error(e.loc, "`%s` is not a type", (*e.args)[0].toChars());
         return new ErrorExp();
     }
 
@@ -386,7 +386,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 
     Expression dimError(int expected)
     {
-        e.error("expected %d arguments for %s but had %d", expected, e.ident.toChars(), cast(int)dim);
+        e.error("expected %d arguments for `%s` but had %d", expected, e.ident.toChars(), cast(int)dim);
         return new ErrorExp();
     }
 
@@ -490,7 +490,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto t = isType(o);
         if (!t)
         {
-            e.error("type expected as second argument of __traits %s instead of %s",
+            e.error("type expected as second argument of __traits `%s` instead of `%s`",
                 e.ident.toChars(), o.toChars());
             return new ErrorExp();
         }
@@ -521,7 +521,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             return fd.isNested() ? True() : False();
         }
 
-        e.error("aggregate or function expected instead of '%s'", o.toChars());
+        e.error("aggregate or function expected instead of `%s`", o.toChars());
         return new ErrorExp();
     }
     if (e.ident == Id.isAbstractFunction)
@@ -584,7 +584,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             Dsymbol s = getDsymbol(o);
             if (!s || !s.ident)
             {
-                e.error("argument %s has no identifier", o.toChars());
+                e.error("argument `%s` has no identifier", o.toChars());
                 return new ErrorExp();
             }
             id = s.ident;
@@ -610,7 +610,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!s)
         {
             if (!isError(o))
-                e.error("argument %s has no protection", o.toChars());
+                e.error("argument `%s` has no protection", o.toChars());
             return new ErrorExp();
         }
         if (s.semanticRun == PASSinit)
@@ -637,7 +637,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         if (!s || s.isImport())
         {
-            e.error("argument %s has no parent", o.toChars());
+            e.error("argument `%s` has no parent", o.toChars());
             return new ErrorExp();
         }
 
@@ -673,7 +673,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto ex = isExpression((*e.args)[1]);
         if (!ex)
         {
-            e.error("expression expected as second argument of __traits %s", e.ident.toChars());
+            e.error("expression expected as second argument of __traits `%s`", e.ident.toChars());
             return new ErrorExp();
         }
         ex = ex.ctfeInterpret();
@@ -681,7 +681,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         StringExp se = ex.toStringExp();
         if (!se || se.len == 0)
         {
-            e.error("string expected as second argument of __traits %s instead of %s", e.ident.toChars(), ex.toChars());
+            e.error("string expected as second argument of __traits `%s` instead of `%s`", e.ident.toChars(), ex.toChars());
             return new ErrorExp();
         }
         se = se.toUTF8(sc);
@@ -742,7 +742,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             Expression eorig = ex;
             ex = ex.semantic(scx);
             if (errors < global.errors)
-                e.error("%s cannot be resolved", eorig.toChars());
+                e.error("`%s` cannot be resolved", eorig.toChars());
             //ex.print();
 
             /* Create tuple of functions of ex
@@ -810,7 +810,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         if (cd.sizeok != SIZEOKdone)
         {
-            e.error("%s %s is forward referenced", cd.kind(), cd.toChars());
+            e.error("%s `%s` is forward referenced", cd.kind(), cd.toChars());
             return new ErrorExp();
         }
 
@@ -932,7 +932,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto sds = s.isScopeDsymbol();
         if (!sds || sds.isTemplateDeclaration())
         {
-            e.error("%s %s has no members", s.kind(), s.toChars());
+            e.error("%s `%s` has no members", s.kind(), s.toChars());
             return new ErrorExp();
         }
 
@@ -1149,7 +1149,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto s = getDsymbol(o);
         if (!s)
         {
-            e.error("argument %s to __traits(getUnitTests) must be a module or aggregate",
+            e.error("argument `%s` to __traits(getUnitTests) must be a module or aggregate",
                 o.toChars());
             return new ErrorExp();
         }
@@ -1159,7 +1159,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto sds = s.isScopeDsymbol();
         if (!sds)
         {
-            e.error("argument %s to __traits(getUnitTests) must be a module or aggregate, not a %s",
+            e.error("argument `%s` to __traits(getUnitTests) must be a module or aggregate, not a %s",
                 s.toChars(), s.kind());
             return new ErrorExp();
         }
@@ -1236,8 +1236,8 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     }
 
     if (auto sub = cast(const(char)*)speller(e.ident.toChars(), &trait_search_fp, idchars))
-        e.error("unrecognized trait '%s', did you mean '%s'?", e.ident.toChars(), sub);
+        e.error("unrecognized trait `%s`, did you mean `%s`?", e.ident.toChars(), sub);
     else
-        e.error("unrecognized trait '%s'", e.ident.toChars());
+        e.error("unrecognized trait `%s`", e.ident.toChars());
     return new ErrorExp();
 }
