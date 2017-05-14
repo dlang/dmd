@@ -91,7 +91,7 @@ bool evalStaticCondition(Scope* sc, Expression exp, Expression e, ref bool error
 
     if (!e.type.isBoolean())
     {
-        exp.error("expression %s of type %s does not have a boolean value", exp.toChars(), e.type.toChars());
+        exp.error("expression `%s` of type `%s` does not have a boolean value", exp.toChars(), e.type.toChars());
         errors = true;
         return false;
     }
@@ -103,7 +103,7 @@ bool evalStaticCondition(Scope* sc, Expression exp, Expression e, ref bool error
     else if (e.isBool(false))
         return false;
 
-    e.error("expression %s is not constant", e.toChars());
+    e.error("expression `%s` is not constant", e.toChars());
     errors = true;
     return false;
 }
