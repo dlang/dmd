@@ -225,7 +225,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol fd)
     {
         if (!irs.sthis)                // if no frame pointer for this function
         {
-            fd.error(loc, "is a nested function and cannot be accessed from %s", irs.getFunc().toPrettyChars());
+            fd.error(loc, "is a nested function and cannot be accessed from `%s`", irs.getFunc().toPrettyChars());
             return el_long(TYnptr, 0); // error recovery
         }
 
@@ -257,7 +257,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol fd)
                 if (!ad)
                 {
                   Lnoframe:
-                    irs.getFunc().error(loc, "cannot get frame pointer to %s", fd.toPrettyChars());
+                    irs.getFunc().error(loc, "cannot get frame pointer to `%s`", fd.toPrettyChars());
                     return el_long(TYnptr, 0);      // error recovery
                 }
                 ClassDeclaration cd = ad.isClassDeclaration();
