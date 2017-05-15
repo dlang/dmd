@@ -8,7 +8,7 @@ PERMUTE_ARGS:
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/switches.d(105): Error: case 2 not found
+fail_compilation/switches.d(105): Error: `case 2` not found
 ---
 */
 
