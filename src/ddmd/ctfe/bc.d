@@ -604,7 +604,7 @@ pure:
         assert(lhs.vType.StackValue, "only StackValues are supported as lhs");
         // FIXME remove the lhs.type == BCTypeEnum.Char as soon as we convert correctly.
         assert(lhs.type.type == BCTypeEnum.i32 || lhs.type.type == BCTypeEnum.i64 || lhs.type.type == BCTypeEnum.Char,
-            "only i32 or i32Ptr is supported for now not: " ~ to!string(lhs.type.type));
+            "only i32 is supported for now not: " ~ to!string(lhs.type.type));
 
         if (lhs.vType == BCValueType.Immediate)
         {
