@@ -26,6 +26,7 @@ import ddmd.astcodegen;
 import ddmd.gluelayer;
 import ddmd.builtin;
 import ddmd.cond;
+import ddmd.console;
 import ddmd.dinifile;
 import ddmd.dinterpret;
 import ddmd.dmodule;
