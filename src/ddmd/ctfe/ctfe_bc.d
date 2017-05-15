@@ -17,8 +17,8 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 
 import std.conv : to;
 
-enum perf = 0;
-enum bailoutMessages = 0;
+enum perf = 1;
+enum bailoutMessages = 1;
 enum printResult = 1;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -1058,7 +1058,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             writeln("It means we have missed to fixup jumps or did not emit a return or something along those lines");
         }
         static if (abortOnCritical)
-            assert(0);
+            assert(0, "Critical Error ... we tried to execute code outside of range");
         else
             return null;
     }
@@ -4944,7 +4944,11 @@ static if (is(BCGen))
     {
         if (!insideFunction)
         {
-            bailout("We cannot have calls outside of functions");
+           // bailout("We cannot have calls outside of functions");
+           // We are not inside a function body hence we are expected to return the result of this call
+           // for that to work we construct a function which will look like this { return fn(); } 
+           beginFunction();
+           retval = genTemporary(i32Type);
         }
         BCValue thisPtr;
         BCValue fnValue;
@@ -5143,6 +5147,12 @@ static if (is(BCGen))
         else
         {
             bailout("Functions are unsupported by backend " ~ BCGenT.stringof);
+        }
+
+        if (!insideFunction)
+        {
+            Ret(retval);
+            endFunction();
         }
         return;
 
