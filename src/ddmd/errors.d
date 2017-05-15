@@ -91,20 +91,35 @@ extern (C++) void deprecationSupplemental(const ref Loc loc, const(char)* format
     va_end(ap);
 }
 
-// Just print, doesn't care about gagging
-extern (C++) void verrorPrint(const ref Loc loc, COLOR headerColor, const(char)* header, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
+/******************************
+ * Just print to stderr, doesn't care about gagging.
+ * (format,ap) text within backticks gets syntax highlighted.
+ * Params:
+ *      loc = location of error
+ *      headerColor = color to set `header` output to
+ *      header = title of error message
+ *      format = printf-style format specification
+ *      ap = printf-style variadic arguments
+ *      p1 = additional message prefix
+ *      p2 = additional message prefix
+ */
+private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* header,
+        const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
+    Console* con = cast(Console*)global.console;
     const p = loc.toChars();
-    if (global.params.color)
-        setConsoleColorBright(true);
+    if (con)
+        con.setColorBright(true);
     if (*p)
+    {
         fprintf(stderr, "%s: ", p);
-    mem.xfree(cast(void*)p);
-    if (global.params.color)
-        setConsoleColor(headerColor, true);
+        mem.xfree(cast(void*)p);
+    }
+    if (con)
+        con.setColor(headerColor, true);
     fputs(header, stderr);
-    if (global.params.color)
-        resetConsoleColor();
+    if (con)
+        con.resetColor();
     if (p1)
         fprintf(stderr, "%s ", p1);
     if (p2)
@@ -112,15 +127,15 @@ extern (C++) void verrorPrint(const ref Loc loc, COLOR headerColor, const(char)*
     OutBuffer tmp;
     tmp.vprintf(format, ap);
 
-    if (global.params.color && strchr(tmp.peekString(), '`'))
+    if (con && strchr(tmp.peekString(), '`'))
     {
         colorSyntaxHighlight(&tmp);
-        writeHighlights(&tmp);
-        fputc('\n', stderr);
+        writeHighlights(con, &tmp);
     }
     else
-        fprintf(stderr, "%s\n", tmp.peekString());
-    fflush(stderr);
+        fputs(tmp.peekString(), stderr);
+    fputc('\n', stderr);
+    fflush(stderr);     // ensure it gets written out in case of compiler aborts
 }
 
 // header is "Error: " by default (see errors.h)
@@ -129,7 +144,7 @@ extern (C++) void verror(const ref Loc loc, const(char)* format, va_list ap, con
     global.errors++;
     if (!global.gag)
     {
-        verrorPrint(loc, COLOR_RED, header, format, ap, p1, p2);
+        verrorPrint(loc, Color.red, header, format, ap, p1, p2);
         if (global.errorLimit && global.errors >= global.errorLimit)
             fatal(); // moderate blizzard of cascading messages
     }
@@ -138,7 +153,7 @@ extern (C++) void verror(const ref Loc loc, const(char)* format, va_list ap, con
         if (global.params.showGaggedErrors)
         {
             fprintf(stderr, "(spec:%d) ", global.gag);
-            verrorPrint(loc, COLOR_MAGENTA, header, format, ap, p1, p2);
+            verrorPrint(loc, Color.magenta, header, format, ap, p1, p2);
         }
         global.gaggedErrors++;
     }
@@ -147,15 +162,15 @@ extern (C++) void verror(const ref Loc loc, const(char)* format, va_list ap, con
 // Doesn't increase error count, doesn't print "Error:".
 extern (C++) void verrorSupplemental(const ref Loc loc, const(char)* format, va_list ap)
 {
-    COLOR color;
+    Color color;
     if (global.gag)
     {
         if (!global.params.showGaggedErrors)
             return;
-        color = COLOR_MAGENTA;
+        color = Color.magenta;
     }
     else
-        color = COLOR_RED;
+        color = Color.red;
     verrorPrint(loc, color, "       ", format, ap);
 }
 
@@ -163,7 +178,7 @@ extern (C++) void vwarning(const ref Loc loc, const(char)* format, va_list ap)
 {
     if (global.params.warnings && !global.gag)
     {
-        verrorPrint(loc, COLOR_YELLOW, "Warning: ", format, ap);
+        verrorPrint(loc, Color.yellow, "Warning: ", format, ap);
         //halt();
         if (global.params.warnings == 1)
             global.warnings++; // warnings don't count if gagged
@@ -173,7 +188,7 @@ extern (C++) void vwarning(const ref Loc loc, const(char)* format, va_list ap)
 extern (C++) void vwarningSupplemental(const ref Loc loc, const(char)* format, va_list ap)
 {
     if (global.params.warnings && !global.gag)
-        verrorPrint(loc, COLOR_YELLOW, "       ", format, ap);
+        verrorPrint(loc, Color.yellow, "       ", format, ap);
 }
 
 extern (C++) void vdeprecation(const ref Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
@@ -182,7 +197,7 @@ extern (C++) void vdeprecation(const ref Loc loc, const(char)* format, va_list a
     if (global.params.useDeprecated == 0)
         verror(loc, format, ap, p1, p2, header);
     else if (global.params.useDeprecated == 2 && !global.gag)
-        verrorPrint(loc, COLOR_BLUE, header, format, ap, p1, p2);
+        verrorPrint(loc, Color.blue, header, format, ap, p1, p2);
 }
 
 extern (C++) void vdeprecationSupplemental(const ref Loc loc, const(char)* format, va_list ap)
@@ -190,7 +205,7 @@ extern (C++) void vdeprecationSupplemental(const ref Loc loc, const(char)* forma
     if (global.params.useDeprecated == 0)
         verrorSupplemental(loc, format, ap);
     else if (global.params.useDeprecated == 2 && !global.gag)
-        verrorPrint(loc, COLOR_BLUE, "       ", format, ap);
+        verrorPrint(loc, Color.blue, "       ", format, ap);
 }
 
 /***************************************
@@ -263,17 +278,17 @@ private void colorSyntaxHighlight(OutBuffer* buf)
 
 /****************************
  * Embed these highlighting commands in the text stream.
- * HIGHLIGHT.Escape indicats a COLOR follows.
+ * HIGHLIGHT.Escape indicats a Color follows.
  */
 enum HIGHLIGHT : ubyte
 {
-    Default    = COLOR_BLACK,           // back to whatever the console is set at
-    Escape     = '\xFF',                // highlight COLOR follows
-    Identifier = COLOR_MAGENTA,
-    Keyword    = COLOR_BLUE,
-    String     = COLOR_RED,
-    Comment    = COLOR_CYAN,
-    Other      = COLOR_GREEN,           // other tokens
+    Default    = Color.black,           // back to whatever the console is set at
+    Escape     = '\xFF',                // highlight Color follows
+    Identifier = Color.magenta,
+    Keyword    = Color.blue,
+    String     = Color.red,
+    Comment    = Color.cyan,
+    Other      = Color.green,           // other tokens
 }
 
 /**************************************************
@@ -354,7 +369,7 @@ private void colorHighlightCode(OutBuffer* buf)
  * Params:
  *      buf = highlighted text
  */
-private void writeHighlights(const OutBuffer *buf)
+private void writeHighlights(Console* con, const OutBuffer *buf)
 {
     bool colors;
     scope (exit)
@@ -362,7 +377,7 @@ private void writeHighlights(const OutBuffer *buf)
         /* Do not mess up console if highlighting aborts
          */
         if (colors)
-            resetConsoleColor();
+            con.resetColor();
     }
 
     for (size_t i = 0; i < buf.offset; ++i)
@@ -373,16 +388,16 @@ private void writeHighlights(const OutBuffer *buf)
             const color = buf.data[++i];
             if (color == HIGHLIGHT.Default)
             {
-                resetConsoleColor();
+                con.resetColor();
                 colors = false;
             }
             else
             {
-                setConsoleColor(cast(COLOR)color, true);
+                con.setColor(cast(Color)color, true);
                 colors = true;
             }
         }
         else
-            fputc(c, stderr);
+            fputc(c, con.fp);
     }
 }

@@ -218,6 +218,8 @@ struct Global
 
     unsigned errorLimit;
 
+    void* console;         // opaque pointer to console for controlling text attributes
+
     /* Start gagging. Return the current number of gagged errors
      */
     unsigned startGagging();

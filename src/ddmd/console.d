@@ -8,116 +8,206 @@
  * Source:      $(DMDSRC _console.d)
  */
 
+/********************************************
+ * Control the various text mode attributes, such as color, when writing text
+ * to the console.
+ */
+
 module ddmd.console;
 
 import core.stdc.stdio;
-import core.sys.posix.unistd;
-import core.sys.windows.windows;
+extern (C) int isatty(int);
 
-import core.stdc.string;
-import core.stdc.stdlib;
 
-version (Windows) extern (C) int isatty(int);
-
-enum COLOR : int
+enum Color : int
 {
-    COLOR_BLACK     = 0,
-    COLOR_RED       = 1,
-    COLOR_GREEN     = 2,
-    COLOR_BLUE      = 4,
-    COLOR_YELLOW    = COLOR_RED | COLOR_GREEN,
-    COLOR_MAGENTA   = COLOR_RED | COLOR_BLUE,
-    COLOR_CYAN      = COLOR_GREEN | COLOR_BLUE,
-    COLOR_WHITE     = COLOR_RED | COLOR_GREEN | COLOR_BLUE,
+    black     = 0,
+    red       = 1,
+    green     = 2,
+    blue      = 4,
+    yellow    = red | green,
+    magenta   = red | blue,
+    cyan      = green | blue,
+    white     = red | green | blue,
 }
 
-alias COLOR_BLACK = COLOR.COLOR_BLACK;
-alias COLOR_RED = COLOR.COLOR_RED;
-alias COLOR_GREEN = COLOR.COLOR_GREEN;
-alias COLOR_BLUE = COLOR.COLOR_BLUE;
-alias COLOR_YELLOW = COLOR.COLOR_YELLOW;
-alias COLOR_MAGENTA = COLOR.COLOR_MAGENTA;
-alias COLOR_CYAN = COLOR.COLOR_CYAN;
-alias COLOR_WHITE = COLOR.COLOR_WHITE;
-
-version (Windows)
+struct Console
 {
-    extern (C++) static WORD consoleAttributes(HANDLE h)
+    version (Windows)
     {
-        static __gshared CONSOLE_SCREEN_BUFFER_INFO sbi;
-        static __gshared bool sbi_inited = false;
-        if (!sbi_inited)
-            sbi_inited = GetConsoleScreenBufferInfo(h, &sbi) != FALSE;
-        return sbi.wAttributes;
-    }
+        import core.sys.windows.windows;
 
-    enum : int
-    {
-        FOREGROUND_WHITE = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE,
-    }
-}
+      private:
+        CONSOLE_SCREEN_BUFFER_INFO sbi;
+        HANDLE handle;
+        FILE* _fp;
 
-extern (C++) bool isConsoleColorSupported()
-{
-    version (CRuntime_DigitalMars)
-    {
-        return isatty(stderr._file) != 0;
-    }
-    else version (CRuntime_Microsoft)
-    {
-        return isatty(fileno(stderr)) != 0;
+      public:
+
+        @property FILE* fp() { return _fp; }
+
+        /*********************************
+         * Create an instance of Console connected to stream fp.
+         * Params:
+         *      fp = io stream
+         * Returns:
+         *      pointer to created Console
+         *      null if failed
+         */
+        static Console* create(FILE* fp)
+        {
+            /* Determine if stream fp is a console
+             */
+            version (CRuntime_DigitalMars)
+            {
+                if (!isatty(fp._file))
+                    return null;
+            }
+            else version (CRuntime_Microsoft)
+            {
+                if (!isatty(fileno(fp)))
+                    return null;
+            }
+            else
+            {
+                return null;
+            }
+
+            DWORD nStdHandle;
+            if (fp == stdout)
+                nStdHandle = STD_OUTPUT_HANDLE;
+            else if (fp == stderr)
+                nStdHandle = STD_ERROR_HANDLE;
+            else
+                return null;
+
+            auto h = GetStdHandle(nStdHandle);
+            CONSOLE_SCREEN_BUFFER_INFO sbi;
+            if (GetConsoleScreenBufferInfo(h, &sbi) == 0) // get initial state of console
+                return null;
+
+            auto c = new Console();
+            c._fp = fp;
+            c.handle = h;
+            c.sbi = sbi;
+            return c;
+        }
+
+        /*******************
+         * Turn on/off intensity.
+         * Params:
+         *      bright = turn it on
+         */
+        void setColorBright(bool bright)
+        {
+            SetConsoleTextAttribute(handle, sbi.wAttributes | (bright ? FOREGROUND_INTENSITY : 0));
+        }
+
+        /***************************
+         * Set color and intensity.
+         * Params:
+         *      color = the color
+         *      bright = turn intensity on
+         */
+        void setColor(Color color, bool bright)
+        {
+            enum FOREGROUND_WHITE = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
+            WORD attr = sbi.wAttributes;
+            attr = (attr & ~(FOREGROUND_WHITE | FOREGROUND_INTENSITY)) |
+                   ((color & Color.red)   ? FOREGROUND_RED   : 0) |
+                   ((color & Color.green) ? FOREGROUND_GREEN : 0) |
+                   ((color & Color.blue)  ? FOREGROUND_BLUE  : 0) |
+                   (bright ? FOREGROUND_INTENSITY : 0);
+            SetConsoleTextAttribute(handle, attr);
+        }
+
+        /******************
+         * Reset console attributes to what they were
+         * when create() was called.
+         */
+        void resetColor()
+        {
+            SetConsoleTextAttribute(handle, sbi.wAttributes);
+        }
     }
     else version (Posix)
     {
-        const(char)* term = getenv("TERM");
-        return isatty(STDERR_FILENO) && term && term[0] && 0 != strcmp(term, "dumb");
+        /* The ANSI escape codes are used.
+         * https://en.wikipedia.org/wiki/ANSI_escape_code
+         * Foreground colors: 30..37
+         * Background colors: 40..47
+         * Attributes:
+         *  0: reset all attributes
+         *  1: high intensity
+         *  2: low intensity
+         *  3: italic
+         *  4: single line underscore
+         *  5: slow blink
+         *  6: fast blink
+         *  7: reverse video
+         *  8: hidden
+         */
+
+        import core.sys.posix.unistd;
+
+      private:
+        FILE* _fp;
+
+      public:
+
+        @property FILE* fp() { return _fp; }
+
+        static Console* create(FILE* fp)
+        {
+            import core.stdc.stdlib : getenv;
+            const(char)* term = getenv("TERM");
+            import core.stdc.string : strcmp;
+            if (!(isatty(STDERR_FILENO) && term && term[0] && 0 != strcmp(term, "dumb")))
+                return null;
+
+            auto c = new Console();
+            c._fp = fp;
+            return c;
+        }
+
+        void setColorBright(bool bright)
+        {
+            fprintf(_fp, "\033[%dm", bright);
+        }
+
+        void setColor(Color color, bool bright)
+        {
+            fprintf(_fp, "\033[%d;%dm", bright, 30 + cast(int)color);
+        }
+
+        void resetColor()
+        {
+            fputs("\033[m", _fp);
+        }
     }
     else
     {
-        return false;
+        @property FILE* fp() { assert(0); }
+
+        static Console* create(FILE* fp)
+        {
+            return null;
+        }
+
+        void setColorBright(bool bright)
+        {
+            assert(0);
+        }
+
+        void setColor(Color color, bool bright)
+        {
+            assert(0);
+        }
+
+        void resetColor()
+        {
+            assert(0);
+        }
     }
+
 }
-
-extern (C++) void setConsoleColorBright(bool bright)
-{
-    version (Windows)
-    {
-        HANDLE h = GetStdHandle(STD_ERROR_HANDLE);
-        WORD attr = consoleAttributes(h);
-        SetConsoleTextAttribute(h, attr | (bright ? FOREGROUND_INTENSITY : 0));
-    }
-    else
-    {
-        fprintf(stderr, "\033[%dm", bright ? 1 : 0);
-    }
-}
-
-extern (C++) void setConsoleColor(COLOR color, bool bright)
-{
-    version (Windows)
-    {
-        HANDLE h = GetStdHandle(STD_ERROR_HANDLE);
-        WORD attr = consoleAttributes(h);
-        attr = (attr & ~(FOREGROUND_WHITE | FOREGROUND_INTENSITY)) | ((color & COLOR_RED) ? FOREGROUND_RED : 0) | ((color & COLOR_GREEN) ? FOREGROUND_GREEN : 0) | ((color & COLOR_BLUE) ? FOREGROUND_BLUE : 0) | (bright ? FOREGROUND_INTENSITY : 0);
-        SetConsoleTextAttribute(h, attr);
-    }
-    else
-    {
-        fprintf(stderr, "\033[%d;%dm", bright ? 1 : 0, 30 + cast(int)color);
-    }
-}
-
-extern (C++) void resetConsoleColor()
-{
-    version (Windows)
-    {
-        HANDLE h = GetStdHandle(STD_ERROR_HANDLE);
-        SetConsoleTextAttribute(h, consoleAttributes(h));
-    }
-    else
-    {
-        fprintf(stderr, "\033[m");
-    }
-}
-
-
