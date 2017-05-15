@@ -64,7 +64,7 @@ extern (C++) final class AliasThis : Dsymbol
         AggregateDeclaration ad = p.isAggregateDeclaration();
         if (!ad)
         {
-            .error(loc, "alias this can only be a member of aggregate, not %s %s", p.kind(), p.toChars());
+            .error(loc, "alias this can only be a member of aggregate, not %s `%s`", p.kind(), p.toChars());
             return;
         }
 
@@ -74,9 +74,9 @@ extern (C++) final class AliasThis : Dsymbol
         {
             s = sc.search(loc, ident, null);
             if (s)
-                .error(loc, "%s is not a member of %s", s.toChars(), ad.toChars());
+                .error(loc, "`%s` is not a member of `%s`", s.toChars(), ad.toChars());
             else
-                .error(loc, "undefined identifier %s", ident.toChars());
+                .error(loc, "undefined identifier `%s`", ident.toChars());
             return;
         }
         if (ad.aliasthis && s != ad.aliasthis)
@@ -100,7 +100,7 @@ extern (C++) final class AliasThis : Dsymbol
             assert(t);
             if (ad.type.implicitConvTo(t) > MATCHnomatch)
             {
-                .error(loc, "alias this is not reachable as %s already converts to %s", ad.toChars(), t.toChars());
+                .error(loc, "alias this is not reachable as `%s` already converts to `%s`", ad.toChars(), t.toChars());
             }
         }
 
