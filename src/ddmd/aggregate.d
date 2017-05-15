@@ -164,7 +164,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
     override final void semantic3(Scope* sc)
     {
-        //printf("AggregateDeclaration::semantic3(%s) type = %s, errors = %d\n", toChars(), type.toChars(), errors);
+        //printf("AggregateDeclaration::semantic3(sc=%p, %s) type = %s, errors = %d\n", sc, toChars(), type.toChars(), errors);
         if (!members)
             return;
 
@@ -270,7 +270,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             if (ad == (cast(TypeStruct)tv).sym)
             {
                 const(char)* psz = (v.type.toBasetype().ty == Tsarray) ? "static array of " : "";
-                ad.error("cannot have field %s with %ssame struct type", v.toChars(), psz);
+                ad.error("cannot have field `%s` with %ssame struct type", v.toChars(), psz);
                 ad.type = Type.terror;
                 ad.errors = true;
                 return 1;
@@ -429,7 +429,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
                 if (vx._init && v2._init)
                 {
-                    .error(loc, "overlapping default initialization for field %s and %s", v2.toChars(), vd.toChars());
+                    .error(loc, "overlapping default initialization for field `%s` and `%s`", v2.toChars(), vd.toChars());
                     errors = true;
                 }
             }
@@ -502,7 +502,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                     }
                     else if (v2._init)
                     {
-                        .error(loc, "overlapping initialization for field %s and %s", v2.toChars(), vd.toChars());
+                        .error(loc, "overlapping initialization for field `%s` and `%s`", v2.toChars(), vd.toChars());
                         errors = true;
                     }
                 }
@@ -525,7 +525,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                     }
                     else if (vx._init && v2._init)
                     {
-                        .error(loc, "overlapping default initialization for field %s and %s",
+                        .error(loc, "overlapping default initialization for field `%s` and `%s`",
                             v2.toChars(), vd.toChars());
                         errors = true;
                     }
@@ -549,7 +549,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 {
                     if ((vx.storage_class & STCnodefaultctor) && !ctorinit)
                     {
-                        .error(loc, "field %s.%s must be initialized because it has no default constructor",
+                        .error(loc, "field `%s.%s` must be initialized because it has no default constructor",
                             type.toChars(), vx.toChars());
                         errors = true;
                     }
