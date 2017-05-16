@@ -427,7 +427,6 @@ if (!global.params.is64bit) assert(tysize(TYnptr) == 4);
                 e.EV.E1.Eoper == OPconst &&
                 isXMMstore(cast(uint)el_tolong(e.EV.E1)))
             {
-                printf("OPvecsto\n");
                 elem *tmp = e.EV.E1;
                 e.EV.E1 = e.EV.E2.EV.E1;
                 e.EV.E2.EV.E1 = tmp;
