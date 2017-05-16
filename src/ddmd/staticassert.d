@@ -66,7 +66,7 @@ extern (C++) final class StaticAssert : Dsymbol
         sc = sc.pop();
         if (errors)
         {
-            errorSupplemental(loc, "while evaluating: static assert(%s)", exp.toChars());
+            errorSupplemental(loc, "while evaluating: `static assert(%s)`", exp.toChars());
         }
         else if (!result)
         {
@@ -87,7 +87,7 @@ extern (C++) final class StaticAssert : Dsymbol
                     error("%s", msg.toChars());
             }
             else
-                error("(%s) is false", exp.toChars());
+                error("`%s` is false", exp.toChars());
             if (sc.tinst)
                 sc.tinst.printInstantiationTrace();
             if (!global.gag)
