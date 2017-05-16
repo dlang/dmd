@@ -2278,11 +2278,8 @@ code* gen_loadcse(code *c, unsigned reg, targ_uns i)
  * Gen code for OPframeptr
  */
 
-CDXXX(cdframeptr)
-code *cdframeptrx(elem *e, regm_t *pretregs)
+void cdframeptr(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 {
-    CodeBuilder cdb;
-
     regm_t retregs = *pretregs & allregs;
     if  (!retregs)
         retregs = allregs;
@@ -2296,8 +2293,6 @@ code *cdframeptrx(elem *e, regm_t *pretregs)
     cs.Irm = reg;
     cdb.gen(&cs);
     cdb.append(fixresult(e,retregs,pretregs));
-
-    return cdb.finish();
 }
 
 /***************************************
@@ -2305,11 +2300,9 @@ code *cdframeptrx(elem *e, regm_t *pretregs)
  * This value gets cached in the local variable 'localgot'.
  */
 
-CDXXX(cdgot)
-code *cdgotx(elem *e, regm_t *pretregs)
+void cdgot(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 {
 #if TARGET_OSX
-    CodeBuilder cdb;
     regm_t retregs = *pretregs & allregs;
     if  (!retregs)
         retregs = allregs;
@@ -2320,9 +2313,7 @@ code *cdgotx(elem *e, regm_t *pretregs)
     cdb.gen1(0x58 + reg);             // L1: POP reg
 
     cdb.append(fixresult(e,retregs,pretregs));
-    return cdb.finish();
 #elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    CodeBuilder cdb;
     regm_t retregs = *pretregs & allregs;
     if  (!retregs)
         retregs = allregs;
@@ -2346,10 +2337,8 @@ code *cdgotx(elem *e, regm_t *pretregs)
 
     makeitextern(gotsym);
     cdb.append(fixresult(e,retregs,pretregs));
-    return cdb.finish();
 #else
     assert(0);
-    return NULL;
 #endif
 }
 
