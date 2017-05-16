@@ -572,14 +572,12 @@ code *nteh_gensindex(int sindex)
  * Generate code for setjmp().
  */
 
-CDXXX(cdsetjmp)
-code *cdsetjmpx(elem *e,regm_t *pretregs)
+void cdsetjmp(CodeBuilder& cdb, elem *e,regm_t *pretregs)
 {   code cs;
     regm_t retregs;
     unsigned stackpushsave;
     unsigned flag;
 
-    CodeBuilder cdb;
     stackpushsave = stackpush;
 #if SCPP
     if (CPP && (funcsym_p->Sfunc->Fflags3 & Fcppeh || usednteh & NTEHcpp))
@@ -694,7 +692,6 @@ code *cdsetjmpx(elem *e,regm_t *pretregs)
     stackpush = stackpushsave;
     retregs = regmask(e->Ety, TYnfunc);
     cdb.append(fixresult(e,retregs,pretregs));
-    return cdb.finish();
 }
 
 /****************************************
