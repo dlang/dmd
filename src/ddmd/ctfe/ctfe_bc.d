@@ -4952,8 +4952,8 @@ static if (is(BCGen))
         {
            // bailout("We cannot have calls outside of functions");
            // We are not inside a function body hence we are expected to return the result of this call
-           // for that to work we construct a function which will look like this { return fn(); } 
-           beginFunction();
+           // for that to work we construct a function which will look like this { return fn(); }
+           beginFunction(_sharedCtfeState.functionCount++);
            retval = genTemporary(i32Type);
         }
         BCValue thisPtr;
