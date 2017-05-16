@@ -330,7 +330,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         bcv.beginArguments();
         foreach (i, arg; args)
         {
-            bc_args[i] = bcv.genExpr(arg);
+            bc_args[i] = bcv.genExpr(arg, "Arguments");
             if (bcv.IGaveUp)
             {
                 static if (bailoutMessages)
@@ -2017,7 +2017,7 @@ public:
             import std.stdio;
         }
         auto oldRetval = retval;
-        // import std.stdio; writeln("Calling genExpr from: ", line, debugMessage ? " \"" ~ debugMessage ~ "\"" : ""); //DEBUGLINE
+        import std.stdio; writeln("Calling genExpr from: ", line, debugMessage ? " \"" ~ debugMessage ~ "\"" : ""); //DEBUGLINE
 
         if (processingArguments)
         {
@@ -2508,8 +2508,8 @@ static if (is(BCGen))
 
         case TOK.TOKadd, TOK.TOKmin, TOK.TOKmul, TOK.TOKdiv, TOK.TOKmod,
                 TOK.TOKand, TOK.TOKor, TOK.TOKxor, TOK.TOKshr, TOK.TOKshl:
-            auto lhs = genExpr(e.e1);
-            auto rhs = genExpr(e.e2);
+            auto lhs = genExpr(e.e1, "BinExp lhs: " ~ to!string(e.op));
+            auto rhs = genExpr(e.e2, "BinExp rhs: " ~ to!string(e.op));
             //FIXME IMPORRANT
             // The whole rhs == retval situation should be fixed in the bc evaluator
             // since targets with native 3 address code can do this!
@@ -3035,8 +3035,6 @@ static if (is(BCGen))
 
     override void visit(SliceExp se)
     {
-        auto oldIndexed = currentIndexed;
-        scope(exit) currentIndexed = oldIndexed;
         debug (ctfe)
         {
             import std.stdio;
@@ -3050,17 +3048,21 @@ static if (is(BCGen))
         if (!se.lwr && !se.upr)
         {
             // "If there is no lwr and upr bound forward"
-            retval = genExpr(se.e1);
+            retval = genExpr(se.e1, "SliceExp (forwarding)");
         }
         else
         {
+            const oldIndexed = currentIndexed;
+            scope(exit)
+                currentIndexed = oldIndexed;
+
             if (insideArgumentProcessing)
             {
                bailout("currently we cannot slice during argument processing");
                return ;
             }
 
-            auto origSlice = genExpr(se.e1);
+            auto origSlice = genExpr(se.e1, "SliceExp origSlice");
             currentIndexed = origSlice;
             bailout(!origSlice, "could not get slice expr in " ~ se.toString);
             auto elmType = _sharedCtfeState.elementType(origSlice.type);
@@ -3082,14 +3084,14 @@ static if (is(BCGen))
                 return ;
             }
             BCValue newLength = genTemporary(i32Type);
-            BCValue lwr = genExpr(se.lwr);
+            BCValue lwr = genExpr(se.lwr, "SliceExp lwr");
             if (!lwr)
             {
                 bailout("could not gen lowerBound in " ~ se.toString);
                 return ;
             }
 
-            auto upr = genExpr(se.upr);
+            auto upr = genExpr(se.upr, "SliceExp upr");
             if (!upr)
             {
                 bailout("could not gen upperBound in " ~ se.toString);
@@ -3220,8 +3222,6 @@ static if (is(BCGen))
                 ale.toString, insideArrayLiteralExp);
         }
 
-        retval = assignTo ? assignTo : genTemporary(toBCType(ale.type));
-
         auto oldInsideArrayLiteralExp = insideArrayLiteralExp;
         insideArrayLiteralExp = true;
 
@@ -3257,7 +3257,7 @@ static if (is(BCGen))
 
         foreach (elem; *ale.elements)
         {
-            auto elexpr = genExpr(elem);
+            auto elexpr = genExpr(elem, "ArrayLiteralElement");
             if (elexpr.type.type == BCTypeEnum.i32)
             {
                 if (elexpr.vType == BCValueType.Immediate)
@@ -3349,7 +3349,7 @@ static if (is(BCGen))
         BCValue fieldAddr = genTemporary(i32Type);
         foreach (elem; *sle.elements)
         {
-            auto elexpr = genExpr(elem);
+            auto elexpr = genExpr(elem, "StructLiteralExp element");
             debug (ctfe)
             {
                 writeln("elExpr: ", elexpr.toString, " elem ", elem.toString);
@@ -5176,7 +5176,7 @@ static if (is(BCGen))
         assert(!discardValue, "A returnStatement cannot be in discarding Mode");
         if (rs.exp !is null)
         {
-            auto retval = genExpr(rs.exp);
+            auto retval = genExpr(rs.exp, "ReturnStatement");
             if (!retval)
             {
                 bailout("could not gen returnValue: " ~ rs.exp.toString);
