@@ -161,7 +161,8 @@ code *opdouble(elem *e,regm_t *pretregs,unsigned clib)
  * ( + - & | ^ )
  */
 
-code *cdorth(elem *e,regm_t *pretregs)
+CDXXX(cdorth)
+code *cdorthx(elem *e,regm_t *pretregs)
 {
     //printf("cdorth(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
     elem *e1 = e->E1;
@@ -866,7 +867,8 @@ code *cdorth(elem *e,regm_t *pretregs)
  * Note that modulo isn't defined for doubles.
  */
 
-code *cdmul(elem *e,regm_t *pretregs)
+CDXXX(cdmul)
+code *cdmulx(elem *e,regm_t *pretregs)
 {   unsigned rreg,op,lib;
     regm_t resreg,retregs,rretregs;
     tym_t tyml;
@@ -1676,7 +1678,8 @@ code *cdmul(elem *e,regm_t *pretregs)
  *      cnop:   nop
  */
 
-code *cdnot(elem *e,regm_t *pretregs)
+CDXXX(cdnot)
+code *cdnotx(elem *e,regm_t *pretregs)
 {   unsigned reg;
     tym_t forflags;
     regm_t retregs;
@@ -1852,7 +1855,8 @@ code *cdnot(elem *e,regm_t *pretregs)
  * Complement operator
  */
 
-code *cdcom(elem *e,regm_t *pretregs)
+CDXXX(cdcom)
+code *cdcomx(elem *e,regm_t *pretregs)
 {
     CodeBuilder cdb;
     if (*pretregs == 0)
@@ -1899,7 +1903,8 @@ code *cdcom(elem *e,regm_t *pretregs)
  * Bswap operator
  */
 
-code *cdbswap(elem *e,regm_t *pretregs)
+CDXXX(cdbswap)
+code *cdbswapx(elem *e,regm_t *pretregs)
 {
     CodeBuilder cdb;
     if (*pretregs == 0)
@@ -1927,7 +1932,8 @@ code *cdbswap(elem *e,regm_t *pretregs)
  * ?: operator
  */
 
-code *cdcond(elem *e,regm_t *pretregs)
+CDXXX(cdcond)
+code *cdcondx(elem *e,regm_t *pretregs)
 {
   con_t regconold,regconsave;
   unsigned stackpushold,stackpushsave;
@@ -2195,7 +2201,8 @@ code *cdcond(elem *e,regm_t *pretregs)
  * Comma operator OPcomma
  */
 
-code *cdcomma(elem *e,regm_t *pretregs)
+CDXXX(cdcomma)
+code *cdcommax(elem *e,regm_t *pretregs)
 {
     CodeBuilder cdb;
     regm_t retregs = 0;
@@ -2225,7 +2232,8 @@ code *cdcomma(elem *e,regm_t *pretregs)
  *      cnop2:  NOP                     ;mark end of code
  */
 
-code *cdloglog(elem *e,regm_t *pretregs)
+CDXXX(cdloglog)
+code *cdloglogx(elem *e,regm_t *pretregs)
 {
     CodeBuilder cdb;
 
@@ -2337,7 +2345,8 @@ code *cdloglog(elem *e,regm_t *pretregs)
  * Generate code for shift left or shift right (OPshl,OPshr,OPashr,OProl,OPror).
  */
 
-code *cdshift(elem *e,regm_t *pretregs)
+CDXXX(cdshift)
+code *cdshiftx(elem *e,regm_t *pretregs)
 { unsigned resreg,shiftcnt;
   regm_t retregs,rretregs;
 
@@ -2828,7 +2837,8 @@ code *cdshift(elem *e,regm_t *pretregs)
  * Perform a 'star' reference (indirection).
  */
 
-code *cdind(elem *e,regm_t *pretregs)
+CDXXX(cdind)
+code *cdindx(elem *e,regm_t *pretregs)
 {
   regm_t retregs;
   unsigned reg,nreg;
@@ -3141,7 +3151,8 @@ STATIC code *cod2_setES(tym_t ty)
  * Generate code for intrinsic strlen().
  */
 
-code *cdstrlen( elem *e, regm_t *pretregs)
+CDXXX(cdstrlen)
+code *cdstrlenx( elem *e, regm_t *pretregs)
 {
     /* Generate strlen in CX:
         LES     DI,e1
@@ -3191,7 +3202,8 @@ code *cdstrlen( elem *e, regm_t *pretregs)
  * Generate code for strcmp(s1,s2) intrinsic.
  */
 
-code *cdstrcmp( elem *e, regm_t *pretregs)
+CDXXX(cdstrcmp);
+code *cdstrcmpx(elem *e, regm_t *pretregs)
 {
     char need_DS;
     int segreg;
@@ -3298,7 +3310,8 @@ code *cdstrcmp( elem *e, regm_t *pretregs)
  * Generate code for memcmp(s1,s2,n) intrinsic.
  */
 
-code *cdmemcmp(elem *e,regm_t *pretregs)
+CDXXX(cdmemcmp)
+code *cdmemcmpx(elem *e,regm_t *pretregs)
 {
     char need_DS;
     int segreg;
@@ -3409,7 +3422,8 @@ code *cdmemcmp(elem *e,regm_t *pretregs)
  * Generate code for strcpy(s1,s2) intrinsic.
  */
 
-code *cdstrcpy(elem *e,regm_t *pretregs)
+CDXXX(cdstrcpy)
+code *cdstrcpyx(elem *e,regm_t *pretregs)
 {
     char need_DS;
     int segreg;
@@ -3521,7 +3535,8 @@ code *cdstrcpy(elem *e,regm_t *pretregs)
  *      s2    n
  */
 
-code *cdmemcpy(elem *e,regm_t *pretregs)
+CDXXX(cdmemcpy)
+code *cdmemcpyx(elem *e,regm_t *pretregs)
 {
     char need_DS;
     int segreg;
@@ -3659,7 +3674,8 @@ code *cdmemcpy(elem *e,regm_t *pretregs)
  *      (s OPmemset (n OPparam val))
  */
 
-code *cdmemset(elem *e,regm_t *pretregs)
+CDXXX(cdmemset)
+code *cdmemsetx(elem *e,regm_t *pretregs)
 {
     regm_t retregs1;
     regm_t retregs2;
@@ -3870,7 +3886,8 @@ fixres:
  * Mebbe call cdstreq() for double assignments???
  */
 
-code *cdstreq(elem *e,regm_t *pretregs)
+CDXXX(cdstreq)
+code *cdstreqx(elem *e,regm_t *pretregs)
 {
     char need_DS = FALSE;
     elem *e1 = e->E1;
@@ -3920,11 +3937,10 @@ code *cdstreq(elem *e,regm_t *pretregs)
         if (e2->EV.sp.Vsym->ty() & mTYfar) // if e2 is in a far segment
         {   srcregs |= mCX;             // get segment also
             need_DS = TRUE;
-            cdb.append(cdrelconst(e2,&srcregs));
+            cdrelconst(cdb,e2,&srcregs);
         }
         else
         {
-            code *c1a = cdrelconst(e2,&srcregs);
             segreg = segfl[el_fl(e2)];
             if ((config.wflags & WFssneds) && segreg == SEG_SS || // if source is on stack
                 segreg == SEG_CS)               // if source is in CS
@@ -3936,7 +3952,7 @@ code *cdstreq(elem *e,regm_t *pretregs)
                 cdb.gen2(0x8C,                // MOV CX,[SS|CS]
                     modregrm(3,segreg,CX));
             }
-            cdb.append(c1a);
+            cdrelconst(cdb,e2,&srcregs);
         }
         freenode(e2);
     }
@@ -3959,7 +3975,7 @@ code *cdstreq(elem *e,regm_t *pretregs)
         scodelem(cdb,e1->E1,&dstregs,srcregs,FALSE);
     }
     else
-        cdb.append(cdrelconst(e1,&dstregs));
+        cdrelconst(cdb,e1,&dstregs);
     freenode(e1);
 
     cdb.append(getregs((srcregs | dstregs) & (mLSW | mDI)));
@@ -4034,7 +4050,8 @@ code *cdstreq(elem *e,regm_t *pretregs)
  * Is also called by cdstreq() to set up pointer to a structure.
  */
 
-code *cdrelconst(elem *e,regm_t *pretregs)
+CDXXX(cdrelconst)
+code *cdrelconstx(elem *e,regm_t *pretregs)
 {
     //printf("cdrelconst(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     CodeBuilder cdb;
@@ -4383,7 +4400,8 @@ code *getoffset(elem *e,unsigned reg)
  * Negate, sqrt operator
  */
 
-code *cdneg(elem *e,regm_t *pretregs)
+CDXXX(cdneg)
+code *cdnegx(elem *e,regm_t *pretregs)
 {
     //printf("cdneg()\n");
     //elem_print(e);
@@ -4461,7 +4479,9 @@ code *cdneg(elem *e,regm_t *pretregs)
  * Absolute value operator
  */
 
-code *cdabs( elem *e, regm_t *pretregs)
+
+CDXXX(cdabs)
+code *cdabsx(elem *e, regm_t *pretregs)
 {
     //printf("cdabs(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     if (*pretregs == 0)
@@ -4578,14 +4598,19 @@ code *cdabs( elem *e, regm_t *pretregs)
  * Post increment and post decrement.
  */
 
-code *cdpost(elem *e,regm_t *pretregs)
+CDXXX(cdpost)
+code *cdpostx(elem *e,regm_t *pretregs)
 {
   //printf("cdpost(pretregs = %s)\n", regm_str(*pretregs));
   code cs;
   regm_t retregs = *pretregs;
   unsigned op = e->Eoper;                       // OPxxxx
   if (retregs == 0)                             // if nothing to return
-        return cdaddass(e,pretregs);
+  {
+        CodeBuilder cdb;
+        cdaddass(cdb,e,pretregs);
+        return cdb.finish();
+  }
   tym_t tyml = tybasic(e->E1->Ety);
   int sz = _tysize[tyml];
   elem *e2 = e->E2;
@@ -4961,8 +4986,9 @@ code *cdpost(elem *e,regm_t *pretregs)
   }
 }
 
+CDXXX(cderr)
 
-code *cderr(elem *e,regm_t *pretregs)
+code *cderrx(elem *e,regm_t *pretregs)
 {
 #if DEBUG
         elem_print(e);
@@ -4974,7 +5000,8 @@ code *cderr(elem *e,regm_t *pretregs)
         return 0;
 }
 
-code *cdinfo(elem *e,regm_t *pretregs)
+CDXXX(cdinfo)
+code *cdinfox(elem *e,regm_t *pretregs)
 {
     CodeBuilder cdb;
     code cs;
@@ -4991,7 +5018,7 @@ code *cdinfo(elem *e,regm_t *pretregs)
 #endif
 #if SCPP
         case OPdtor:
-            cdb.append(cdcomma(e,pretregs));
+            cdcomma(cdb,e,pretregs);
             break;
         case OPctor:
             codelem(cdb,e->E2,pretregs,FALSE);
@@ -5034,7 +5061,8 @@ code *cdinfo(elem *e,regm_t *pretregs)
  * D constructor.
  */
 
-code *cddctor(elem *e,regm_t *pretregs)
+CDXXX(cddctor)
+code *cddctorx(elem *e,regm_t *pretregs)
 {
     /* Generate:
         ESCAPE | ESCdctor
@@ -5063,7 +5091,8 @@ code *cddctor(elem *e,regm_t *pretregs)
  * D destructor.
  */
 
-code *cdddtor(elem *e,regm_t *pretregs)
+CDXXX(cdddtor)
+code *cdddtorx(elem *e,regm_t *pretregs)
 {
     if (config.ehmethod == EH_DWARF)
     {
@@ -5159,7 +5188,8 @@ code *cdddtor(elem *e,regm_t *pretregs)
  * C++ constructor.
  */
 
-code *cdctor(elem *e,regm_t *pretregs)
+CDXXX(cdctor)
+code *cdctorx(elem *e,regm_t *pretregs)
 {
 #if SCPP
     code cs;
@@ -5181,7 +5211,8 @@ code *cdctor(elem *e,regm_t *pretregs)
 #endif
 }
 
-code *cddtor(elem *e,regm_t *pretregs)
+CDXXX(cddtor)
+code *cddtorx(elem *e,regm_t *pretregs)
 {
 #if SCPP
     code cs;
@@ -5203,13 +5234,15 @@ code *cddtor(elem *e,regm_t *pretregs)
 #endif
 }
 
-code *cdmark(elem *e,regm_t *pretregs)
+CDXXX(cdmark)
+code *cdmarkx(elem *e,regm_t *pretregs)
 {
     return NULL;
 }
 
 #if !NTEXCEPTIONS
-code *cdsetjmp(elem *e,regm_t *pretregs)
+CDXXX(cdsetjmp)
+code *cdsetjmpx(elem *e,regm_t *pretregs)
 {
     assert(0);
     return NULL;
@@ -5219,7 +5252,8 @@ code *cdsetjmp(elem *e,regm_t *pretregs)
 /*****************************************
  */
 
-code *cdvoid(elem *e,regm_t *pretregs)
+CDXXX(cdvoid)
+code *cdvoidx(elem *e,regm_t *pretregs)
 {
     assert(*pretregs == 0);
     CodeBuilder cdb;
@@ -5230,7 +5264,8 @@ code *cdvoid(elem *e,regm_t *pretregs)
 /*****************************************
  */
 
-code *cdhalt(elem *e,regm_t *pretregs)
+CDXXX(cdhalt)
+code *cdhaltx(elem *e,regm_t *pretregs)
 {
     assert(*pretregs == 0);
     return gen1(NULL, 0xF4);            // HLT

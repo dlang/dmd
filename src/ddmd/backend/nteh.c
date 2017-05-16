@@ -572,7 +572,8 @@ code *nteh_gensindex(int sindex)
  * Generate code for setjmp().
  */
 
-code *cdsetjmp(elem *e,regm_t *pretregs)
+CDXXX(cdsetjmp)
+code *cdsetjmpx(elem *e,regm_t *pretregs)
 {   code cs;
     regm_t retregs;
     unsigned stackpushsave;

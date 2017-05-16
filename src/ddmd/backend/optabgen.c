@@ -599,7 +599,7 @@ void dotab()
   fprintf(fdeb,"\t\"%s\"\n\t};\n",debtab[i]);
 
   f = fopen("cdxxx.c","w");
-  fprintf(f,"code *(*cdxxx[OPMAX]) (elem *,regm_t *) = \n\t{\n");
+  fprintf(f,"void (*cdxxx[OPMAX]) (CodeBuilder&,elem *,regm_t *) = \n\t{\n");
   for (i = 0; i < OPMAX - 1; i++)
         fprintf(f,"\t%s,\n",cdxxx[i]);
   fprintf(f,"\t%s\n\t};\n",cdxxx[i]);
