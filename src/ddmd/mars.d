@@ -291,7 +291,7 @@ private int tryMain(size_t argc, const(char)** argv)
     files.reserve(arguments.dim - 1);
     // Set default values
     global.params.argv0 = arguments[0];
-    global.params.color = isConsoleColorSupported();
+    global.params.color = true;
     global.params.link = true;
     global.params.useAssert = true;
     global.params.useInvariants = true;
@@ -1051,6 +1051,10 @@ Language changes listed by -transition=id:
             files.push(p);
         }
     }
+
+    if (global.params.color)
+        global.console = Console.create(core.stdc.stdio.stderr);
+
     global.params.cpu = setTargetCPU(global.params.cpu);
     if (global.params.is64bit != is64bit)
         error(Loc(), "the architecture must not be changed in the %s section of %s", envsection.ptr, global.inifilename);
