@@ -313,8 +313,7 @@ STATIC code * opnegassdbl(elem *e,regm_t *pretregs)
  * Generate code for an assignment.
  */
 
-CDXXX(cdeq)
-code *cdeqx(elem *e,regm_t *pretregs)
+void cdeq(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
   tym_t tymll;
   unsigned reg;
@@ -334,28 +333,42 @@ code *cdeqx(elem *e,regm_t *pretregs)
   regm_t retregs = *pretregs;
 
     if (tyxmmreg(tyml) && config.fpxmmregs)
-        return xmmeq(e, e->Eoper, e1, e2, pretregs);
+    {
+        cdb.append(xmmeq(e, e->Eoper, e1, e2, pretregs));
+        return;
+    }
 
     if (tyfloating(tyml) && config.inline8087)
     {
         if (tycomplex(tyml))
-            return complex_eq87(e, pretregs);
+        {
+            cdb.append(complex_eq87(e, pretregs));
+            return;
+        }
 
         if (!(retregs == 0 &&
               (e2oper == OPconst || e2oper == OPvar || e2oper == OPind))
            )
-            return eq87(e,pretregs);
+        {
+            cdb.append(eq87(e,pretregs));
+            return;
+        }
         if (config.target_cpu >= TARGET_PentiumPro &&
             (e2oper == OPvar || e2oper == OPind)
            )
-            return eq87(e,pretregs);
+        {
+            cdb.append(eq87(e,pretregs));
+            return;
+        }
         if (tyml == TYldouble || tyml == TYildouble)
-            return eq87(e,pretregs);
+        {
+            cdb.append(eq87(e,pretregs));
+            return;
+        }
     }
 
     unsigned sz = _tysize[tyml];           // # of bytes to transfer
     assert((int)sz > 0);
-    CodeBuilder cdb;
 
     if (retregs == 0)                     // if no return value
     {
@@ -780,7 +793,6 @@ Lp:
         }
     }
     freenode(e1);
-    return cdb.finish();
 }
 
 
@@ -788,8 +800,7 @@ Lp:
  * Generate code for += -= &= |= ^= negass
  */
 
-CDXXX(cdaddass)
-code *cdaddassx(elem *e,regm_t *pretregs)
+void cdaddass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
     //printf("cdaddass(e=%p, *pretregs = %s)\n",e,regm_str(*pretregs));
     unsigned op = e->Eoper;
@@ -802,7 +813,10 @@ code *cdaddassx(elem *e,regm_t *pretregs)
 
     // See if evaluate in XMM registers
     if (config.fpxmmregs && tyxmmreg(tyml) && op != OPnegass && !(*pretregs & mST0))
-        return xmmopass(e,pretregs);
+    {
+        cdb.append(xmmopass(e,pretregs));
+        return;
+    }
 
     if (tyfloating(tyml))
     {
@@ -818,7 +832,8 @@ code *cdaddassx(elem *e,regm_t *pretregs)
         else
             c = opassdbl(e,pretregs,op);
 #endif
-        return c;
+        cdb.append(c);
+        return;
     }
     unsigned opsize = (I16 && tylong(tyml) && config.target_cpu >= TARGET_80386)
         ? CFopsize : 0;
@@ -858,7 +873,6 @@ code *cdaddassx(elem *e,regm_t *pretregs)
   }
   op1 ^= byte;                  // bit 0 is 0 for byte operation
 
-  CodeBuilder cdb;
   if (op == OPnegass)
   {
         cdb.append(getlvalue(&cs,e1,0));
@@ -1288,15 +1302,13 @@ code *cdaddassx(elem *e,regm_t *pretregs)
     if (sz <= REGSIZE)
         *pretregs &= ~mPSW;            // flags are already set
     cdb.append(fixresult(e,retregs,pretregs));
-    return cdb.finish();
 }
 
 /********************************
  * Generate code for *= /= %=
  */
 
-CDXXX(cdmulass)
-code *cdmulassx(elem *e,regm_t *pretregs)
+void cdmulass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
     code cs;
     regm_t retregs;
@@ -1316,15 +1328,19 @@ code *cdmulassx(elem *e,regm_t *pretregs)
 
     // See if evaluate in XMM registers
     if (config.fpxmmregs && tyxmmreg(tyml) && op != OPmodass && !(*pretregs & mST0))
-        return xmmopass(e,pretregs);
+    {
+        cdb.append(xmmopass(e,pretregs));
+        return;
+    }
 
     if (tyfloating(tyml))
     {
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        return opass87(e,pretregs);
+        cdb.append(opass87(e,pretregs));
 #else
-        return opassdbl(e,pretregs,op);
+        cdb.append(opassdbl(e,pretregs,op));
 #endif
+        return;
     }
 
     if (sz <= REGSIZE)                  // if word or byte
@@ -1341,7 +1357,6 @@ code *cdmulassx(elem *e,regm_t *pretregs)
             if (op == OPmodass)
                 resreg = DX;            // remainder is in DX
         }
-        CodeBuilder cdb;
         if (op == OPmulass)             // if multiply
         {
             if (config.target_cpu >= TARGET_80286 &&
@@ -1473,7 +1488,7 @@ code *cdmulassx(elem *e,regm_t *pretregs)
                 cssave(e1,mask[resreg],EOP(e1));
         freenode(e1);
         cdb.append(fixresult(e,mask[resreg],pretregs));
-        return cdb.finish();
+        return;
   }
   else if (sz == 2 * REGSIZE)
   {
@@ -1483,7 +1498,6 @@ code *cdmulassx(elem *e,regm_t *pretregs)
                 if (op == OPmodass)
                         lib++;
         }
-        CodeBuilder cdb;
         retregs = mCX | mBX;
         codelem(cdb,e2,&retregs,FALSE);
         cdb.append(getlvalue(&cs,e1,mDX|mAX | mCX|mBX));
@@ -1527,12 +1541,11 @@ code *cdmulassx(elem *e,regm_t *pretregs)
                 cssave(e1,retregs,EOP(e1));
         freenode(e1);
         cdb.append(fixresult(e,retregs,pretregs));
-        return cdb.finish();
+        return;
   }
   else
   {     assert(0);
         // NOTREACHED
-        return 0;
   }
 }
 
@@ -1541,8 +1554,7 @@ code *cdmulassx(elem *e,regm_t *pretregs)
  * Generate code for <<= and >>=
  */
 
-CDXXX(cdshass)
-code *cdshassx(elem *e,regm_t *pretregs)
+void cdshass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
     code cs;
     regm_t retregs;
@@ -1608,7 +1620,6 @@ code *cdshassx(elem *e,regm_t *pretregs)
             v = 0xD1;                   // SHIFT xx,1
         }
     }
-    CodeBuilder cdb;
 
     if (v == 0xD3)                        // if COUNT == CL
     {
@@ -1777,7 +1788,6 @@ code *cdshassx(elem *e,regm_t *pretregs)
         cssave(e1,retregs,EOP(e1));
     freenode(e1);
     *pretregs = retregs;
-    return cdb.finish();
 }
 
 
@@ -1786,8 +1796,7 @@ code *cdshassx(elem *e,regm_t *pretregs)
  * Handles lt,gt,le,ge,eqeq,ne for all data types.
  */
 
-CDXXX(cdcmp)
-code *cdcmpx(elem *e,regm_t *pretregs)
+void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 { regm_t retregs,rretregs;
   unsigned reg,rreg;
   int fl;
@@ -1801,11 +1810,10 @@ code *cdcmpx(elem *e,regm_t *pretregs)
     elem *e2 = e->E2;
     if (*pretregs == 0)                 // if don't want result
     {
-        CodeBuilder cdb;
         codelem(cdb,e1,pretregs,FALSE);
         *pretregs = 0;                  // in case e1 changed it
         codelem(cdb,e2,pretregs,FALSE);
-        return cdb.finish();
+        return;
     }
 
     unsigned jop = jmpopcode(e);        // must be computed before
@@ -1823,7 +1831,6 @@ code *cdcmpx(elem *e,regm_t *pretregs)
     unsigned rex = (I64 && sz == 8) ? REX_W : 0;
     unsigned grex = rex << 16;          // 64 bit operands
 
-    CodeBuilder cdb;
     code cs;
     code *ce;
     if (tyfloating(tym))                  // if floating operation
@@ -2426,7 +2433,7 @@ L3:
         }
     }
 ret:
-    return cdb.finish();
+    ;
 }
 
 
@@ -2597,8 +2604,7 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
  * Depends on OPd_s32 and CLIBdbllng being in sequence.
  */
 
-CDXXX(cdcnvt)
-code *cdcnvtx(elem *e, regm_t *pretregs)
+void cdcnvt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
 {
     //printf("cdcnvt: *pretregs = %s\n", regm_str(*pretregs));
     //elem_print(e);
@@ -2627,9 +2633,8 @@ code *cdcnvtx(elem *e, regm_t *pretregs)
 
     if (!*pretregs)
     {
-        CodeBuilder cdb;
         codelem(cdb,e->E1,pretregs,FALSE);
-        return cdb.finish();
+        return;
     }
 
     regm_t retregs;
@@ -2643,24 +2648,25 @@ code *cdcnvtx(elem *e, regm_t *pretregs)
                 if (tycomplex(e->E1->Ety))
                 {
             Lcomplex:
-                    CodeBuilder cdb;
                     regm_t retregs = mST01 | (*pretregs & mPSW);
                     codelem(cdb,e->E1, &retregs, FALSE);
                     cdb.append(fixresult_complex87(e, retregs, pretregs));
-                    return cdb.finish();
+                    return;
                 }
-                CodeBuilder cdb;
                 regm_t retregs = mST0 | (*pretregs & mPSW);
                 codelem(cdb,e->E1, &retregs, FALSE);
                 cdb.append(fixresult87(e, retregs, pretregs));
-                return cdb.finish();
+                return;
             }
             case OPf_d:
             case OPd_f:
                 if (tycomplex(e->E1->Ety))
                     goto Lcomplex;
                 if (config.fpxmmregs && *pretregs & XMMREGS)
-                    return xmmcnvt(e, pretregs);
+                {
+                    cdb.append(xmmcnvt(e, pretregs));
+                    return;
+                }
 
                 /* if won't do us much good to transfer back and        */
                 /* forth between 8088 registers and 8087 registers      */
@@ -2669,11 +2675,10 @@ code *cdcnvtx(elem *e, regm_t *pretregs)
                     retregs = regmask(e->E1->Ety, e->E1->E1->Ety);
                     if (retregs & (mXMM1 | mXMM0 |mST01 | mST0))       // if return in ST0
                     {
-                        CodeBuilder cdb;
                         codelem(cdb,e->E1,pretregs,FALSE);
                         if (*pretregs & mST0)
                             note87(e, 0, 0);
-                        return cdb.finish();
+                        return;
                     }
                     else
                         break;
@@ -2686,18 +2691,25 @@ code *cdcnvtx(elem *e, regm_t *pretregs)
                 /* FALL-THROUGH */
             case OPs32_d:
                 if (config.fpxmmregs && *pretregs & XMMREGS)
-                    return xmmcnvt(e, pretregs);
+                {
+                    cdb.append(xmmcnvt(e, pretregs));
+                    return;
+                }
                 /* FALL-THROUGH */
             case OPs16_d:
             case OPu16_d:
             Lload87:
-                return load87(e,0,pretregs,NULL,-1);
+                cdb.append(load87(e,0,pretregs,NULL,-1));
+                return;
+
             case OPu32_d:
                 if (I64 && config.fpxmmregs && *pretregs & XMMREGS)
-                    return xmmcnvt(e,pretregs);
+                {
+                    cdb.append(xmmcnvt(e,pretregs));
+                    return;
+                }
                 else if (!I16)
                 {
-                    CodeBuilder cdb;
                     regm_t retregs = ALLREGS;
                     codelem(cdb,e->E1, &retregs, FALSE);
                     unsigned reg = findreg(retregs);
@@ -2710,7 +2722,7 @@ code *cdcnvtx(elem *e, regm_t *pretregs)
 
                     retregs = mST0 /*| (*pretregs & mPSW)*/;
                     cdb.append(fixresult87(e, retregs, pretregs));
-                    return cdb.finish();
+                    return;
                 }
                 break;
             case OPd_s64:
@@ -2719,17 +2731,27 @@ code *cdcnvtx(elem *e, regm_t *pretregs)
                 /* FALL-THROUGH */
             case OPd_s32:
                 if (config.fpxmmregs)
-                    return xmmcnvt(e,pretregs);
+                {
+                    cdb.append(xmmcnvt(e,pretregs));
+                    return;
+                }
                 /* FALL-THROUGH */
             case OPd_s16:
             case OPd_u16:
             Lcnvt87:
-                return cnvt87(e,pretregs);
+                cdb.append(cnvt87(e,pretregs));
+                return;
             case OPd_u32:               // use subroutine, not 8087
                 if (I64 && config.fpxmmregs)
-                    return xmmcnvt(e,pretregs);
+                {
+                    cdb.append(xmmcnvt(e,pretregs));
+                    return;
+                }
                 if (I32 || I64)
-                    return cdd_u32(e,pretregs);
+                {
+                    cdb.append(cdd_u32(e,pretregs));
+                    return;
+                }
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                 retregs = mST0;
 #else
@@ -2739,34 +2761,37 @@ code *cdcnvtx(elem *e, regm_t *pretregs)
 
             case OPd_u64:
                 if (I32 || I64)
-                    return cdd_u64(e,pretregs);
+                {
+                    cdb.append(cdd_u64(e,pretregs));
+                    return;
+                }
                 retregs = DOUBLEREGS;
                 goto L1;
             case OPu64_d:
                 if (*pretregs & mST0)
                 {
-                    CodeBuilder cdb;
                     regm_t retregs = I64 ? mAX : mAX|mDX;
                     codelem(cdb,e->E1,&retregs,FALSE);
                     cdb.append(callclib(e,CLIBu64_ldbl,pretregs,0));
-                    return cdb.finish();
+                    return;
                 }
                 break;
             case OPld_u64:
             {
                 if (I32 || I64)
-                    return cdd_u64(e,pretregs);
-                CodeBuilder cdb;
+                {
+                    cdb.append(cdd_u64(e,pretregs));
+                    return;
+                }
                 regm_t retregs = mST0;
                 codelem(cdb,e->E1,&retregs,FALSE);
                 cdb.append(callclib(e,CLIBld_u64,pretregs,0));
-                return cdb.finish();
+                return;
             }
         }
     }
     retregs = regmask(e->E1->Ety, TYnfunc);
 L1:
-    CodeBuilder cdb;
     codelem(cdb,e->E1,&retregs,FALSE);
     for (int i = 0; 1; i++)
     {
@@ -2776,7 +2801,6 @@ L1:
             break;
         }
     }
-    return cdb.finish();
 }
 
 
@@ -2786,8 +2810,7 @@ L1:
  * OPu64_128, OPs64_128
  */
 
-CDXXX(cdshtlng)
-code *cdshtlngx(elem *e,regm_t *pretregs)
+void cdshtlng(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
     unsigned reg;
     regm_t retregs;
@@ -2797,9 +2820,8 @@ code *cdshtlngx(elem *e,regm_t *pretregs)
     unsigned char op = e->Eoper;
     if ((*pretregs & (ALLREGS | mBP)) == 0)    // if don't need result in regs
     {
-        CodeBuilder cdb;
         codelem(cdb,e->E1,pretregs,FALSE);     // then conversion isn't necessary
-        return cdb.finish();
+        return;
     }
 
     else if (
@@ -2812,7 +2834,6 @@ code *cdshtlngx(elem *e,regm_t *pretregs)
          * Zero extend by putting a zero into most significant reg.
          */
 
-        CodeBuilder cdb;
         regm_t retregs = *pretregs & mLSW;
         assert(retregs);
         tym_t tym1 = tybasic(e->E1->Ety);
@@ -2841,11 +2862,10 @@ code *cdshtlngx(elem *e,regm_t *pretregs)
             cdb.append(movregconst(CNIL,reg,0,0));  // 0 extend
 
         cdb.append(fixresult(e,retregs | regm,pretregs));
-        return cdb.finish();
+        return;
     }
     else if (I64 && op == OPu32_64)
     {
-        CodeBuilder cdb;
         elem *e1 = e->E1;
         retregs = *pretregs;
         if (e1->Eoper == OPvar || (e1->Eoper == OPind && !e1->Ecount))
@@ -2873,23 +2893,21 @@ code *cdshtlngx(elem *e,regm_t *pretregs)
             }
         }
         cdb.append(fixresult(e,retregs,pretregs));
-        return cdb.finish();
+        return;
     }
     else if (I64 && op == OPs32_64 && OTrel(e->E1->Eoper) && !e->E1->Ecount)
     {
         /* Due to how e1 is calculated, the high 32 bits of the register
          * are already 0.
          */
-        CodeBuilder cdb;
         retregs = *pretregs;
         codelem(cdb,e->E1,&retregs,FALSE);
         cdb.append(fixresult(e,retregs,pretregs));
-        return cdb.finish();
+        return;
   }
   else if (!I16 && (op == OPs16_32 || op == OPu16_32) ||
             I64 && op == OPs32_64)
   {
-    CodeBuilder cdb;
     elem *e11;
 
     elem *e1 = e->E1;
@@ -2978,14 +2996,13 @@ code *cdshtlngx(elem *e,regm_t *pretregs)
         cdb.append(e1comsub ? getregs(retregs) : CNIL);
     }
     cdb.append(fixresult(e,retregs,pretregs));
-    return cdb.finish();
+    return;
   }
   else if (*pretregs & mPSW || config.target_cpu < TARGET_80286)
   {
     // OPs16_32, OPs32_64
     // CWD doesn't affect flags, so we can depend on the integer
     // math to provide the flags.
-    CodeBuilder cdb;
     retregs = mAX | mPSW;               // want integer result in AX
     *pretregs &= ~mPSW;                 // flags are already set
     codelem(cdb,e->E1,&retregs,FALSE);
@@ -2993,14 +3010,13 @@ code *cdshtlngx(elem *e,regm_t *pretregs)
     cdb.gen1(0x99);                     // CWD/CDQ
     cdb.append(e1comsub ? getregs(retregs) : CNIL);
     cdb.append(fixresult(e,mDX | retregs,pretregs));
-    return cdb.finish();
+    return;
   }
   else
   {
     // OPs16_32, OPs32_64
     unsigned msreg,lsreg;
 
-    CodeBuilder cdb;
     retregs = *pretregs & mLSW;
     assert(retregs);
     codelem(cdb,e->E1,&retregs,FALSE);
@@ -3012,7 +3028,7 @@ code *cdshtlngx(elem *e,regm_t *pretregs)
     assert(config.target_cpu >= TARGET_80286);              // 8088 can't handle SAR reg,imm8
     cdb.genc2(0xC1,modregrm(3,7,msreg),REGSIZE * 8 - 1);    // SAR msreg,31
     cdb.append(fixresult(e,retregs,pretregs));
-    return cdb.finish();
+    return;
   }
 }
 
@@ -3022,23 +3038,20 @@ code *cdshtlngx(elem *e,regm_t *pretregs)
  * For OPu8_16 and OPs8_16.
  */
 
-CDXXX(cdbyteint)
-code *cdbyteintx(elem *e,regm_t *pretregs)
+void cdbyteint(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
     regm_t retregs;
     char size;
 
     if ((*pretregs & (ALLREGS | mBP)) == 0)     // if don't need result in regs
     {
-        CodeBuilder cdb;
         codelem(cdb,e->E1,pretregs,FALSE);      // then conversion isn't necessary
-        return cdb.finish();
+        return;
     }
 
     //printf("cdbyteint(e = %p, *pretregs = %s\n", e, regm_str(*pretregs));
     char op = e->Eoper;
     elem *e1 = e->E1;
-    CodeBuilder cdb;
     if (e1->Eoper == OPcomma)
         cdb.append(docommas(&e1));
     if (!I16)
@@ -3063,7 +3076,7 @@ code *cdbyteintx(elem *e,regm_t *pretregs)
             }
             freenode(e1);
             cdb.append(fixresult(e,retregs,pretregs));
-            return cdb.finish();
+            return;
         }
         size = tysize(e->Ety);
         retregs = *pretregs & BYTEREGS;
@@ -3149,7 +3162,6 @@ code *cdbyteintx(elem *e,regm_t *pretregs)
     }
     cdb.append(getregs(retregs));
     cdb.append(fixresult(e,retregs,pretregs));
-    return cdb.finish();
 }
 
 
@@ -3161,8 +3173,7 @@ code *cdbyteintx(elem *e,regm_t *pretregs)
  * OP128_64
  */
 
-CDXXX(cdlngsht)
-code *cdlngshtx(elem *e,regm_t *pretregs)
+void cdlngsht(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
 #ifdef DEBUG
     switch (e->Eoper)
@@ -3179,7 +3190,6 @@ code *cdlngshtx(elem *e,regm_t *pretregs)
     }
 #endif
 
-    CodeBuilder cdb;
     regm_t retregs;
     if (e->Eoper == OP16_8)
     {
@@ -3220,7 +3230,6 @@ code *cdlngshtx(elem *e,regm_t *pretregs)
 #endif
     assert(!*pretregs || retregs);
     cdb.append(fixresult(e,retregs,pretregs));  // lsw only
-    return cdb.finish();
 }
 
 /**********************************************
@@ -3230,12 +3239,10 @@ code *cdlngshtx(elem *e,regm_t *pretregs)
  * OPmsw
  */
 
-CDXXX(cdmsw)
-code *cdmswx(elem *e,regm_t *pretregs)
+void cdmsw(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
     assert(e->Eoper == OPmsw);
 
-    CodeBuilder cdb;
     regm_t retregs = *pretregs ? ALLREGS : 0;
     codelem(cdb,e->E1,&retregs,FALSE);
     retregs &= mMSW;                    // want MSW only
@@ -3258,7 +3265,6 @@ code *cdmswx(elem *e,regm_t *pretregs)
 #endif
     assert(!*pretregs || retregs);
     cdb.append(fixresult(e,retregs,pretregs));  // msw only
-    return cdb.finish();
 }
 
 
@@ -3267,13 +3273,11 @@ code *cdmswx(elem *e,regm_t *pretregs)
  * Handle operators OPinp and OPoutp.
  */
 
-CDXXX(cdport)
-code *cdportx(elem *e,regm_t *pretregs)
+void cdport(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
     //printf("cdport\n");
     unsigned char op = 0xE4;            // root of all IN/OUT opcodes
     elem *e1 = e->E1;
-    CodeBuilder cdb;
 
     // See if we can use immediate mode of IN/OUT opcodes
     unsigned char port;
@@ -3313,36 +3317,30 @@ code *cdportx(elem *e,regm_t *pretregs)
         cdb.last()->Iflags |= CFopsize;
     regm_t retregs = mAX;
     cdb.append(fixresult(e,retregs,pretregs));
-    return cdb.finish();
 }
 
 /************************
  * Generate code for an asm elem.
  */
 
-CDXXX(cdasm)
-code *cdasmx(elem *e,regm_t *pretregs)
+void cdasm(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
-    CodeBuilder cdb;
     // Assume only regs normally destroyed by a function are destroyed
     cdb.append(getregs((ALLREGS | mES) & ~fregsaved));
     cdb.append(genasm(CNIL,(unsigned char *)e->EV.ss.Vstring,e->EV.ss.Vstrlen));
     cdb.append(fixresult(e,(I16 ? mDX | mAX : mAX),pretregs));
-    return cdb.finish();
 }
 
 /************************
  * Generate code for OPnp_f16p and OPf16p_np.
  */
 
-CDXXX(cdfar16)
-code *cdfar16x( elem *e, regm_t *pretregs)
+void cdfar16(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 {
     code *cnop;
     code cs;
 
     assert(I32);
-    CodeBuilder cdb;
     codelem(cdb,e->E1,pretregs,FALSE);
     unsigned reg = findreg(*pretregs);
     cdb.append(getregs(*pretregs));      // we will destroy the regs
@@ -3404,15 +3402,13 @@ code *cdfar16x( elem *e, regm_t *pretregs)
         cdb.gen(&cs);                                   // SHR reg,3
         cnop = NULL;
     }
-    return cdb.finish();
 }
 
 /*************************
  * Generate code for OPbtst
  */
 
-CDXXX(cdbtst)
-code *cdbtstx(elem *e, regm_t *pretregs)
+void cdbtst(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 {
     regm_t retregs;
     unsigned reg;
@@ -3426,14 +3422,13 @@ code *cdbtstx(elem *e, regm_t *pretregs)
     elem *e2 = e->E2;
     code cs;
     cs.Iflags = 0;
-    CodeBuilder cdb;
 
     if (*pretregs == 0)                   // if don't want result
     {
         codelem(cdb,e1,pretregs,FALSE);  // eval left leaf
         *pretregs = 0;                    // in case they got set
         codelem(cdb,e2,pretregs,FALSE);
-        return cdb.finish();
+        return;
     }
 
     regm_t idxregs;
@@ -3531,16 +3526,13 @@ code *cdbtstx(elem *e, regm_t *pretregs)
             cdb.append(cnop);
         }
     }
-
-    return cdb.finish();
 }
 
 /*************************
  * Generate code for OPbt, OPbtc, OPbtr, OPbts
  */
 
-CDXXX(cdbt)
-code *cdbtx(elem *e, regm_t *pretregs)
+void cdbt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
 {
     //printf("cdbt(%p, %s)\n", e, regm_str(*pretregs));
     regm_t retregs;
@@ -3563,13 +3555,12 @@ code *cdbtx(elem *e, regm_t *pretregs)
     elem *e2 = e->E2;
     code cs;
     cs.Iflags = 0;
-    CodeBuilder cdb;
 
     cdb.append(getlvalue(&cs, e, RMload));      // get addressing mode
     if (e->Eoper == OPbt && *pretregs == 0)
     {
         codelem(cdb,e2,pretregs,FALSE);
-        return cdb.finish();
+        return;
     }
 
     tym_t ty1 = tybasic(e1->Ety);
@@ -3650,24 +3641,20 @@ code *cdbtx(elem *e, regm_t *pretregs)
             cdb.append(cnop);
         }
     }
-
-    return cdb.finish();
 }
 
 /*************************************
  * Generate code for OPbsf and OPbsr.
  */
 
-CDXXX(cdbscan)
-code *cdbscanx(elem *e, regm_t *pretregs)
+void cdbscan(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 {
     //printf("cdbscan()\n");
     //elem_print(e);
     if (!*pretregs)
     {
-        CodeBuilder cdb;
         codelem(cdb,e->E1,pretregs,FALSE);
-        return cdb.finish();
+        return;
     }
 
     tym_t tyml = tybasic(e->E1->Ety);
@@ -3676,8 +3663,6 @@ code *cdbscanx(elem *e, regm_t *pretregs)
     regm_t retregs;
     unsigned reg;
     code cs;
-
-    CodeBuilder cdb;
 
     if ((e->E1->Eoper == OPind && !e->E1->Ecount) || e->E1->Eoper == OPvar)
     {
@@ -3709,24 +3694,21 @@ code *cdbscanx(elem *e, regm_t *pretregs)
         code_orrex(cdb.last(), REX_W);
 
     cdb.append(fixresult(e,retregs,pretregs));
-    return cdb.finish();
 }
 
 /************************
  * OPpopcnt operator
  */
 
-CDXXX(cdpopcnt)
-code *cdpopcntx(elem *e,regm_t *pretregs)
+void cdpopcnt(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
     //printf("cdpopcnt()\n");
     //elem_print(e);
     assert(!I16);
     if (!*pretregs)
     {
-        CodeBuilder cdb;
         codelem(cdb,e->E1,pretregs,FALSE);
-        return cdb.finish();
+        return;
     }
 
     tym_t tyml = tybasic(e->E1->Ety);
@@ -3734,7 +3716,6 @@ code *cdpopcntx(elem *e,regm_t *pretregs)
     int sz = _tysize[tyml];
     assert(sz == 2 || sz == 4 || (sz == 8 && I64));     // no byte op
 
-    CodeBuilder cdb;
     code cs;
     if ((e->E1->Eoper == OPind && !e->E1->Ecount) || e->E1->Eoper == OPvar)
     {
@@ -3770,7 +3751,6 @@ code *cdpopcntx(elem *e,regm_t *pretregs)
     *pretregs &= mBP | ALLREGS;             // flags already set
 
     cdb.append(fixresult(e,retregs,pretregs));
-    return cdb.finish();
 }
 
 
@@ -3778,16 +3758,14 @@ code *cdpopcntx(elem *e,regm_t *pretregs)
  * Generate code for OPpair, OPrpair.
  */
 
-CDXXX(cdpair)
-code *cdpairx(elem *e, regm_t *pretregs)
+void cdpair(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 {
     if (*pretregs == 0)                         // if don't want result
     {
-        CodeBuilder cdb;
         codelem(cdb,e->E1,pretregs,FALSE);     // eval left leaf
         *pretregs = 0;                          // in case they got set
         codelem(cdb,e->E2,pretregs,FALSE);
-        return cdb.finish();
+        return;
     }
 
     //printf("\ncdpair(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
@@ -3803,7 +3781,10 @@ code *cdpairx(elem *e, regm_t *pretregs)
     }
 
     if (retregs & mST01)
-        return loadPair87(e, pretregs);
+    {
+        cdb.append(loadPair87(e, pretregs));
+        return;
+    }
 
     regm_t regs1;
     regm_t regs2;
@@ -3831,7 +3812,6 @@ code *cdpairx(elem *e, regm_t *pretregs)
     }
     //printf("1: regs1 = %s, regs2 = %s\n", regm_str(regs1), regm_str(regs2));
 
-    CodeBuilder cdb;
     codelem(cdb,e->E1, &regs1, FALSE);
     scodelem(cdb,e->E2, &regs2, regs1, FALSE);
     //printf("2: regs1 = %s, regs2 = %s\n", regm_str(regs1), regm_str(regs2));
@@ -3842,15 +3822,13 @@ code *cdpairx(elem *e, regm_t *pretregs)
         cdb.append(getregs(regs2));
 
     cdb.append(fixresult(e,regs1 | regs2,pretregs));
-    return cdb.finish();
 }
 
 /*************************
  * Generate code for OPcmpxchg
  */
 
-CDXXX(cdcmpxchg)
-code *cdcmpxchgx(elem *e, regm_t *pretregs)
+void cdcmpxchg(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 {
     /* The form is:
      *     OPcmpxchg
@@ -3865,8 +3843,6 @@ code *cdcmpxchgx(elem *e, regm_t *pretregs)
     elem *e2 = e->E2;
     assert(e2->Eoper == OPparam);
     assert(!e2->Ecount);
-
-    CodeBuilder cdb;
 
     tym_t tyml = tybasic(e1->Ety);                   // type of lvalue
     unsigned sz = _tysize[tyml];
@@ -3942,16 +3918,13 @@ code *cdcmpxchgx(elem *e, regm_t *pretregs)
         cdb.gen2(0x0F94,ea);        // SETZ reg
         *pretregs = retregs;
     }
-
-    return cdb.finish();
 }
 
 /*************************
  * Generate code for OPprefetch
  */
 
-CDXXX(cdprefetch)
-code *cdprefetchx(elem *e, regm_t *pretregs)
+void cdprefetch(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 {
     /* Generate the following based on e2:
      *    0: prefetch0
@@ -3981,8 +3954,6 @@ code *cdprefetchx(elem *e, regm_t *pretregs)
 
     freenode(e->E2);
 
-    CodeBuilder cdb;
-
     code cs;
     code *c = getlvalue(&cs,e1,0);
     cdb.append(c);
@@ -3990,7 +3961,6 @@ code *cdprefetchx(elem *e, regm_t *pretregs)
     cs.Irm |= modregrm(0,reg,0);
     cs.Iflags |= CFvolatile;            // do not schedule
     cdb.gen(&cs);
-    return cdb.finish();
 }
 
 #endif // !SPP
