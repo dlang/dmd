@@ -3328,14 +3328,12 @@ code *cnvt87(elem *e,regm_t *pretregs)
  * Do OPrndtol.
  */
 
-CDXXX(cdrndtol)
-code *cdrndtolx(elem *e,regm_t *pretregs)
+void cdrndtol(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
-    CodeBuilder cdb;
     if (*pretregs == 0)
     {
         codelem(cdb,e->E1,pretregs,FALSE);
-        return cdb.finish();
+        return;
     }
     regm_t retregs = mST0;
     codelem(cdb,e->E1,&retregs,FALSE);
@@ -3381,20 +3379,16 @@ code *cdrndtolx(elem *e,regm_t *pretregs)
             code_orrex(cdb.last(), REX_W);
     }
     cdb.append(fixresult(e,retregs,pretregs));
-
-    return cdb.finish();
 }
 
 /*************************
  * Do OPscale, OPyl2x, OPyl2xp1.
  */
 
-CDXXX(cdscale)
-code *cdscalex(elem *e,regm_t *pretregs)
+void cdscale(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
     assert(*pretregs != 0);
 
-    CodeBuilder cdb;
     regm_t retregs = mST0;
     codelem(cdb,e->E1,&retregs,FALSE);
     note87(e->E1,0,0);
@@ -3417,7 +3411,6 @@ code *cdscalex(elem *e,regm_t *pretregs)
     }
     pop87();
     cdb.append(fixresult87(e,mST0,pretregs));
-    return cdb.finish();
 }
 
 
@@ -3768,11 +3761,9 @@ code *fixresult_complex87(elem *e,regm_t retregs,regm_t *pretregs)
  * Operators OPc_r and OPc_i
  */
 
-CDXXX(cdconvt87)
-code *cdconvt87x(elem *e, regm_t *pretregs)
+void cdconvt87(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 {
     regm_t retregs = mST01;
-    CodeBuilder cdb;
     codelem(cdb,e->E1, &retregs, FALSE);
     switch (e->Eoper)
     {
@@ -3791,7 +3782,6 @@ code *cdconvt87x(elem *e, regm_t *pretregs)
     }
     retregs = mST0;
     cdb.append(fixresult87(e, retregs, pretregs));
-    return cdb.finish();
 }
 
 /**************************************
