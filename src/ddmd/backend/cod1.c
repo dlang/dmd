@@ -2836,8 +2836,7 @@ int FuncParamRegs::alloc(type *t, tym_t ty, reg_t *preg1, reg_t *preg2)
  * Generate code sequence for function call.
  */
 
-CDXXX(cdfunc)
-code *cdfuncx(elem *e,regm_t *pretregs)
+void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
     //printf("cdfunc()\n"); elem_print(e);
     assert(e);
@@ -2862,8 +2861,6 @@ code *cdfuncx(elem *e,regm_t *pretregs)
     symbol *sf = NULL;                  // symbol of the function being called
     if (e->E1->Eoper == OPvar)
         sf = e->E1->EV.sp.Vsym;
-
-    CodeBuilder cdb;
 
     /* Special handling for call to __tls_get_addr, we must save registers
      * before evaluating the parameter, so that the parameter load and call
@@ -3258,17 +3255,13 @@ code *cdfuncx(elem *e,regm_t *pretregs)
 
     cdb.append(funccall(e,numpara,numalign,pretregs,keepmsk,usefuncarg));
     cgstate.funcargtos = funcargtossave;
-    return cdb.finish();
 }
 
 /***********************************
  */
 
-CDXXX(cdstrthis)
-code *cdstrthisx(elem *e,regm_t *pretregs)
+void cdstrthis(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
-    CodeBuilder cdb;
-
     assert(tysize(e->Ety) == REGSIZE);
     unsigned reg = findreg(*pretregs & allregs);
     cdb.append(getregs(mask[reg]));
@@ -3278,7 +3271,6 @@ code *cdstrthisx(elem *e,regm_t *pretregs)
     if (I64)
         code_orrex(cdb.last(), REX_W);
     cdb.append(fixresult(e,mask[reg],pretregs));
-    return cdb.finish();
 }
 
 /******************************
@@ -4493,8 +4485,7 @@ L3:
  * Generate code to load data into registers.
  */
 
-CDXXX(loaddata);
-code *loaddatax(elem *e,regm_t *pretregs)
+void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 { unsigned reg,nreg,op,sreg;
   tym_t tym;
   code cs;
@@ -4508,21 +4499,26 @@ code *loaddatax(elem *e,regm_t *pretregs)
   assert(e);
   elem_debug(e);
   if (*pretregs == 0)
-        return CNIL;
+        return;
   tym = tybasic(e->Ety);
   if (tym == TYstruct)
   {
-        CodeBuilder cdb;
         cdrelconst(cdb,e,pretregs);
-        return cdb.finish();
+        return;
   }
   if (tyfloating(tym))
   {     objmod->fltused();
         if (config.inline8087)
         {   if (*pretregs & mST0)
-                return load87(e,0,pretregs,NULL,-1);
+            {
+                cdb.append(load87(e,0,pretregs,NULL,-1));
+                return;
+            }
             else if (tycomplex(tym))
-                return cload87(e, pretregs);
+            {
+                cdb.append(cload87(e, pretregs));
+                return;
+            }
         }
   }
   int sz = _tysize[tym];
@@ -4530,7 +4526,6 @@ code *loaddatax(elem *e,regm_t *pretregs)
   cs.Irex = 0;
   if (*pretregs == mPSW)
   {
-        CodeBuilder cdb;
         symbol *s;
         regm = allregs;
         if (e->Eoper == OPconst)
@@ -4628,7 +4623,7 @@ code *loaddatax(elem *e,regm_t *pretregs)
             elem_print(e);
             assert(0);
         }
-        return cdb.finish();
+        return;
   }
   /* not for flags only */
   flags = *pretregs & mPSW;             /* save original                */
@@ -4644,7 +4639,6 @@ code *loaddatax(elem *e,regm_t *pretregs)
         if (sz == REGSIZE && reghasvalue(forregs,value,&reg))
             forregs = mask[reg];
 
-        CodeBuilder cdb;
         regm_t save = regcon.immed.mval;
         cdb.append(allocreg(&forregs,&reg,tym));        // allocate registers
         regcon.immed.mval = save;               // KLUDGE!
@@ -4755,7 +4749,7 @@ code *loaddatax(elem *e,regm_t *pretregs)
         // Flags may already be set
         *pretregs &= flags | ~mPSW;
         cdb.append(fixresult(e,forregs,pretregs));
-        return cdb.finish();
+        return;
   }
   else
   {
@@ -4774,10 +4768,10 @@ code *loaddatax(elem *e,regm_t *pretregs)
 #endif
         mfuncreg &= ~forregs;
         regcon.used |= forregs;
-        return fixresult(e,forregs,pretregs);
+        cdb.append(fixresult(e,forregs,pretregs));
+        return;
     }
 
-    CodeBuilder cdb;
     cdb.append(allocreg(&forregs,&reg,tym));            // allocate registers
 
     if (sz == 1)
@@ -4871,7 +4865,7 @@ code *loaddatax(elem *e,regm_t *pretregs)
                 i -= REGSIZE;
             }
             while (i >= 0);
-            return cdb.finish();
+            return;
         }
 
         reg = findregmsw(forregs);
@@ -4897,7 +4891,7 @@ code *loaddatax(elem *e,regm_t *pretregs)
                 i -= REGSIZE;
             }
             while (i >= 0);
-            return cdb.finish();
+            return;
         }
         else
         {
@@ -4913,7 +4907,7 @@ code *loaddatax(elem *e,regm_t *pretregs)
     // Flags may already be set
     *pretregs &= flags | ~mPSW;
     cdb.append(fixresult(e,forregs,pretregs));
-    return cdb.finish();
+    return;
   }
 }
 
