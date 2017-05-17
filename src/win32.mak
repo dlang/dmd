@@ -60,6 +60,9 @@
 
 # fixed model for win32.mak, overridden by win64.mak
 MODEL=32
+OS=windows
+BUILD=release
+
 
 ##### Directories
 
@@ -80,7 +83,7 @@ SCPDIR=..\backup
 
 # Generated files directory
 GEN = ..\generated
-G = $(GEN)\$(OS)$(MODEL)
+G = $(GEN)\$(OS)\$(BUILD)\$(MODEL)
 
 ##### Tools
 
@@ -322,11 +325,9 @@ DMDFRONTENDEXE = $G\dmd_frontend.exe
 
 $(DMDFRONTENDEXE): $(FRONT_SRCS) $D\gluelayer.d $(ROOT_SRCS) $G\newdelete.obj $G\liblexer.lib $(STRING_IMPORT_FILES)
 	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(LFLAGS) $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) newdelete.obj -version=NoBackend
-	copy $(DMDFRONTENDEXE) .
 
 $(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) $G\newdelete.obj $(LIBS) $(STRING_IMPORT_FILES)
 	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(LFLAGS) $(DMD_SRCS) $(ROOT_SRCS) $G\newdelete.obj $(LIBS)
-	copy $(TARGETEXE) .
 
 ############################ Maintenance Targets #############################
 

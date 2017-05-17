@@ -339,9 +339,9 @@ STRING_IMPORT_FILES = $G/VERSION $G/SYSCONFDIR.imp ../res/default_ddoc_theme.ddo
 
 DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
-all: dmd
+all: $G/dmd $G/dmd.conf
 
-auto-tester-build: dmd checkwhitespace $G/dmd_frontend
+auto-tester-build: $G/dmd checkwhitespace $G/dmd_frontend $G/dmd.conf
 .PHONY: auto-tester-build
 
 toolchain-info:
@@ -369,9 +369,6 @@ $G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT)
 $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
-dmd: $G/dmd $G/dmd.conf
-	cp $< .
-
 ifdef ENABLE_LTO
 $G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_GLUE_OBJS) $(G_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
@@ -383,7 +380,7 @@ endif
 
 clean:
 	rm -R $(GENERATED)
-	rm -f dmd $(idgen_output)
+	rm -f $(idgen_output)
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
 ######## Download and install the last dmd buildable without dmd
@@ -518,7 +515,7 @@ $G/newdelete.o: $G/%.o: $(ROOT)/%.c posix.mak
 install: all
 	$(eval bin_dir=$(if $(filter $(OS),osx), bin, bin$(MODEL)))
 	mkdir -p $(INSTALL_DIR)/$(OS)/$(bin_dir)
-	cp dmd $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd
+	cp $G/dmd $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd
 	cp ../ini/$(OS)/$(bin_dir)/dmd.conf $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd.conf
 	cp $D/boostlicense.txt $(INSTALL_DIR)/dmd-boostlicense.txt
 
