@@ -1598,6 +1598,7 @@ Language changes listed by -transition=id:
             cgFilename[modFilenameLength .. modFilenameLength + 4] = ".cg\0";
             auto cgFile = File(cgFilename);
             cgFile.setbuffer(buf.data, buf.offset);
+            cgFile._ref = 1;
             cgFile.write();
         }
     }
