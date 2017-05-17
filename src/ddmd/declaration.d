@@ -2195,6 +2195,11 @@ extern (C++) class VarDeclaration : Declaration
                  */
                 e.type = e.type.mutableOf();
 
+                // Enable calling destructors on shared objects.
+                // The destructor is always a single, non-overloaded function,
+                // and must serve both shared and non-shared objects.
+                e.type = e.type.unSharedOf;
+
                 e = new DotVarExp(loc, e, sd.dtor, false);
                 e = new CallExp(loc, e);
             }
