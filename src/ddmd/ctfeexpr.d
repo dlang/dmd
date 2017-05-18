@@ -1335,7 +1335,7 @@ extern (C++) int ctfeRawCmp(Loc loc, Expression e1, Expression e2)
         mem.xfree(used);
         return 0;
     }
-    error(loc, "CTFE internal error: bad compare");
+    error(loc, "CTFE internal error: bad compare of `%s` and `%s`", e1.toChars(), e2.toChars());
     assert(0);
 }
 
@@ -1802,7 +1802,7 @@ extern (C++) bool isCtfeValueValid(Expression newval)
     }
     if (newval.op == TOKnull)
     {
-        return tb.ty == Tnull || tb.ty == Tpointer || tb.ty == Tarray || tb.ty == Taarray || tb.ty == Tclass;
+        return tb.ty == Tnull || tb.ty == Tpointer || tb.ty == Tarray || tb.ty == Taarray || tb.ty == Tclass || tb.ty == Tdelegate;
     }
     if (newval.op == TOKstring)
         return true; // CTFE would directly use the StringExp in AST.
