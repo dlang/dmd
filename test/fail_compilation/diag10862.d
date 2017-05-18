@@ -18,7 +18,7 @@ fail_compilation/diag10862.d(44): Error: assignment cannot be used as a conditio
 fail_compilation/diag10862.d(45): Error: assignment cannot be used as a condition, perhaps `==` was meant?
 fail_compilation/diag10862.d(46): Error: assignment cannot be used as a condition, perhaps `==` was meant?
 fail_compilation/diag10862.d(47): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d(49): Error: undefined identifier 'semanticError'
+fail_compilation/diag10862.d(49): Error: undefined identifier `semanticError`
 ---
 */
 void test1()
@@ -60,8 +60,8 @@ fail_compilation/diag10862.d-mixin-82(82): Error: assignment cannot be used as a
 fail_compilation/diag10862.d-mixin-83(83): Deprecation: Using the result of a comma expression is deprecated
 fail_compilation/diag10862.d-mixin-83(83): Error: assignment cannot be used as a condition, perhaps == was meant?
 fail_compilation/diag10862.d-mixin-86(86): Error: a + b is not an lvalue
-fail_compilation/diag10862.d-mixin-87(87): Error: undefined identifier 'c'
-fail_compilation/diag10862.d(89): Error: undefined identifier 'semanticError'
+fail_compilation/diag10862.d-mixin-87(87): Error: undefined identifier `c`
+fail_compilation/diag10862.d(89): Error: undefined identifier `semanticError`
 ---
 */
 void test2()

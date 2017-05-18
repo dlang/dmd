@@ -7744,9 +7744,9 @@ extern (C++) abstract class TypeQualified : Type
                 auto id = new Identifier(p);
                 s = sc.search_correct(id);
                 if (s)
-                    error(loc, "undefined identifier '%s', did you mean %s '%s'?", p, s.kind(), s.toChars());
+                    error(loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s.kind(), s.toChars());
                 else
-                    error(loc, "undefined identifier '%s'", p);
+                    error(loc, "undefined identifier `%s`", p);
             }
             *pt = Type.terror;
         }

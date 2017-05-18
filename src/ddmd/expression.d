@@ -208,7 +208,6 @@ extern (C++) FuncDeclaration hasThis(Scope* sc)
 
     if (!fd.isThis())
     {
-        //printf("test '%s'\n", fd.toChars());
         goto Lno;
     }
 
@@ -3861,7 +3860,7 @@ extern (C++) class IdentifierExp : Expression
                     Dsymbol s2;
                     if (scx.scopesym && scx.scopesym.symtab && (s2 = scx.scopesym.symtab.lookup(s.ident)) !is null && s != s2)
                     {
-                        error("with symbol %s is shadowing local symbol %s", s.toPrettyChars(), s2.toPrettyChars());
+                        error("with symbol `%s` is shadowing local symbol `%s`", s.toPrettyChars(), s2.toPrettyChars());
                         return new ErrorExp();
                     }
                 }
@@ -3924,7 +3923,7 @@ extern (C++) class IdentifierExp : Expression
         {
             if (sc.flags & SCOPEctfe)
             {
-                error("variable __ctfe cannot be read at compile time");
+                error("variable `__ctfe` cannot be read at compile time");
                 return new ErrorExp();
             }
 
@@ -3963,14 +3962,14 @@ extern (C++) class IdentifierExp : Expression
 
         const(char)* n = importHint(ident.toChars());
         if (n)
-            error("'%s' is not defined, perhaps you need to import %s; ?", ident.toChars(), n);
+            error("`%s` is not defined, perhaps `import %s;` is needed?", ident.toChars(), n);
         else
         {
             s = sc.search_correct(ident);
             if (s)
-                error("undefined identifier '%s', did you mean %s '%s'?", ident.toChars(), s.kind(), s.toChars());
+                error("undefined identifier `%s`, did you mean %s `%s`?", ident.toChars(), s.kind(), s.toChars());
             else
-                error("undefined identifier '%s'", ident.toChars());
+                error("undefined identifier `%s`", ident.toChars());
         }
         return new ErrorExp();
     }
@@ -8934,9 +8933,9 @@ extern (C++) final class DotIdExp : UnaExp
                 return null;
             s = ie.sds.search_correct(ident);
             if (s)
-                error("undefined identifier '%s' in %s '%s', did you mean %s '%s'?", ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars(), s.kind(), s.toChars());
+                error("undefined identifier `%s` in %s `%s`, did you mean %s `%s`?", ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars(), s.kind(), s.toChars());
             else
-                error("undefined identifier '%s' in %s '%s'", ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars());
+                error("undefined identifier `%s` in %s `%s`", ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars());
             return new ErrorExp();
         }
         else if (t1b.ty == Tpointer && e1.type.ty != Tenum && ident != Id._init && ident != Id.__sizeof && ident != Id.__xalignof && ident != Id.offsetof && ident != Id._mangleof && ident != Id.stringof)

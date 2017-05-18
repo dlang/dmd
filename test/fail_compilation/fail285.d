@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail285.d(19): Error: with symbol fail285.S.x is shadowing local symbol fail285.main.x
+fail_compilation/fail285.d(19): Error: with symbol `fail285.S.x` is shadowing local symbol `fail285.main.x`
 ---
 */
 
