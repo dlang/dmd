@@ -4177,14 +4177,18 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                 //printf("tf = %s, args = %s\n", tf.deco, (*fargs)[0].type.deco);
                 if (hasOverloads)
                 {
-                    .error(loc, "none of the overloads of '%s' are callable using argument types %s, candidates are:",
+                    .error(loc, "none of the overloads of `%s` are callable using argument types `%s`, candidates are:",
                         fd.ident.toChars(), fargsBuf.peekString());
                 }
                 else
                 {
-                    fd.error(loc, "%s%s is not callable using argument types %s",
-                        parametersTypeToChars(tf.parameters, tf.varargs),
-                        tf.modToChars(), fargsBuf.peekString());
+                    fd.error(loc, "is not callable using argument types `%s`, the signature is:",
+                        fargsBuf.peekString());
+
+                    .errorSupplemental(fd.loc, "`%s%s%s`", 
+                        fd.toPrettyChars(),
+                        parametersTypeToChars(tf.parameters, tf.varargs, fargs),
+                        tf.modToChars());
                 }
             }
 
@@ -4200,12 +4204,12 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                         return 0;
 
                     auto tf = cast(TypeFunction)fd.type;
-                    .errorSupplemental(fd.loc, "%s%s", fd.toPrettyChars(),
-                        parametersTypeToChars(tf.parameters, tf.varargs));
+                    .errorSupplemental(fd.loc, "`%s%s`", fd.toPrettyChars(),
+                        parametersTypeToChars(tf.parameters, tf.varargs, fargs));
                 }
                 else
                 {
-                    .errorSupplemental(td.loc, "%s", td.toPrettyChars());
+                    .errorSupplemental(td.loc, "`%s`", td.toPrettyChars());
                 }
 
                 if (global.params.verbose || --numToDisplay != 0 || !fd)

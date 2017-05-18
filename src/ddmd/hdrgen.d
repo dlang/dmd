@@ -2975,7 +2975,7 @@ public:
         }
     }
 
-    void parametersToBuffer(Parameters* parameters, int varargs)
+    void parametersToBuffer(Parameters* parameters, int varargs, Expressions* fargs = null)
     {
         buf.writeByte('(');
         if (parameters)
@@ -2986,6 +2986,25 @@ public:
                 if (i)
                     buf.writestring(", ");
                 Parameter fparam = Parameter.getNth(parameters, i);
+
+                if (fargs)
+                {
+                    if (i < (*fargs).dim && !(*fargs)[i].type.implicitConvTo(fparam.type))
+                    {
+                        /*
+                            Type mismatch with given arguments, add the
+                            type given as a comment to the output for
+                            easier visual comparison by the reader.
+                        */
+                        buf.writestring("/* ");
+                        buf.writestring((*fargs)[i].type.toPrettyChars());
+                        buf.writestring(" */ ");
+                    }
+                    else if (i >= (*fargs).dim)
+                    {
+                        buf.writestring("/* missing */ ");
+                    }
+                }
                 fparam.accept(this);
             }
             if (varargs)
@@ -3306,11 +3325,11 @@ extern (C++) void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects)
     }
 }
 
-extern (C++) const(char)* parametersTypeToChars(Parameters* parameters, int varargs)
+extern (C++) const(char)* parametersTypeToChars(Parameters* parameters, int varargs, Expressions* fargs = null)
 {
     OutBuffer buf;
     HdrGenState hgs;
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(&buf, &hgs);
-    v.parametersToBuffer(parameters, varargs);
+    v.parametersToBuffer(parameters, varargs, fargs);
     return buf.extractString();
 }
