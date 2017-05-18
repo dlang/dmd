@@ -7113,7 +7113,8 @@ final class Parser(AST) : Lexer
 
         case TOKfile:
             {
-                const(char)* s = loc.filename ? loc.filename : mod.ident.toChars();
+                //const(char)* s = loc.filename ? loc.filename : mod.ident.toChars();
+                const(char)[] s = "yupii\n";
                 e = new AST.StringExp(loc, cast(char*)s);
                 nextToken();
                 break;
@@ -8421,8 +8422,11 @@ final class Parser(AST) : Lexer
      */
     void addComment(AST.Dsymbol s, const(char)* blockComment)
     {
-        s.addComment(combineComments(blockComment, token.lineComment, true));
-        token.lineComment = null;
+        if (s !is null)
+        {
+            s.addComment(combineComments(blockComment, token.lineComment, true));
+            token.lineComment = null;
+        }
     }
 }
 
@@ -8446,87 +8450,56 @@ unittest
 {
     import ddmd.astbase;
     import ddmd.impvisitor;
+    import std.stdio;
+    import std.file;
+    import ddmd.root.array;
 
-    const(char)[] input =
-   "import A;
-    class Bar
-    {
-        import B;
-        void print()
-        {
-            import C;
-        }
-    }
 
-    struct str
-    {
-        import D;
-    }
-    void main()
-    {
-        int a;
-        alias b = float;
-        void print()
-        {
-            import E;
-            struct str2
-            {
-                import F;
-            }
-        };
-        import G;
-        class Foo
-        {
-            import H;
-        }
-        struct str3
-        {
-            import I;
-        }
-        if (a<b) import J;
-        if (a<b) {}
-        else {import K;}
-        if (a<b) import L;
-        else import M;
-        while (a<b) import N;
-        do {import O;} while (a<b);
-        for (;;) import P;
-        foreach(a; b) import Q;
-        switch (a) case a: import R; case b: case c: import S; default: import T;
-        synchronized {import U;}
-        with(a<b) {import V;}
-        try {import X;} catch {import Y;}
-        try {import Z;} finally {import A;}
-        gigi : import B;
-        a = 7 + 10/9 * 30 - 5 + \"asd\";
-
-        template storage(T)
-        {
-            ubyte[T.sizeof] storage = 0;
-        }
-
-        template Sequence(TL...)
-        {
-            alias Sequence = TL;
-        }
-     }";
-
+    Id.initialize();
     global._init();
     global.params.isLinux = true;
     global.params.is64bit = (size_t.sizeof == 8);
     ASTBase.Type._init();
+/*
+    string[] files;
+    size_t i = 0;
 
-    scope p = new Parser!ASTBase(null, input[0..input.length], false);
+    auto dFiles = dirEntries("../../phobos/std/windows", "*.d", SpanMode.shallow);
+    foreach (d; dFiles)
+    {
+        files ~= d.name;
+        ++i;
+    }
+
+    foreach(f; files)
+    {
+        writeln("Processing: ", f);
+        scope p = new Parser!ASTBase(null, readText(f), false);
+        p.nextToken();
+        p.parseModule();
+        writeln("Finished!");
+    }
+
+    writeln(i);
+*/
+
+    string input = readText("../../phobos/std/c/stdio.d");
+
+    const(char)[] input2 = "";
+
+    scope p = new Parser!ASTBase(null, input, false);
     p.nextToken();
+    p.parseModule();
+
+/*
 
     OutBuffer buf;
     buf.reserve(32);
     scope vis = new ImportVisitor!ASTBase(&buf);
-
     vis.visitModuleMembers(p.parseModule());
     assert(!p.errors);
 
-    assert(strcmp(buf.extractString(), "ABCDEFGHIJKLMNOPQRSTUVXYZAB") == 0);
+    assert(strcmp(buf.extractString(), "ABCDEFGHIJKLMNOPQRSTUVXYZAB") == 0); */
 }
 
 enum PREC : int

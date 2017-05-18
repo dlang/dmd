@@ -462,6 +462,16 @@ struct ASTBase
             return null;
         }
 
+        inout(TemplateInstance) isTemplateInstance() inout
+        {
+            return null;
+        }
+
+        Dsymbol syntaxCopy(Dsymbol s)
+        {
+            return null;
+        }
+
         void accept(Visitor!ASTBase v)
         {
             v.visit(this);
@@ -1089,6 +1099,7 @@ struct ASTBase
         Dsymbol tempdecl;
         bool semantictiargsdone;
         bool havetempdecl;
+        TemplateInstance inst;
 
         final extern (D) this(Loc loc, Identifier ident, Objects* tiards)
         {
@@ -1106,6 +1117,47 @@ struct ASTBase
             this.tempdecl = td;
             this.semantictiargsdone = true;
             this.havetempdecl = true;
+        }
+
+        override final inout(TemplateInstance) isTemplateInstance() inout
+        {
+            return this;
+        }
+
+        Objects* arraySyntaxCopy(Objects* objs)
+        {
+            Objects* a = null;
+            if (objs)
+            {
+                a = new Objects();
+                a.setDim(objs.dim);
+                for (size_t i = 0; i < objs.dim; i++)
+                    (*a)[i] = objectSyntaxCopy((*objs)[i]);
+            }
+            return a;
+        }
+
+        RootObject objectSyntaxCopy(RootObject o)
+        {
+            if (!o)
+                return null;
+            if (Type t = isType(o))
+                return t.syntaxCopy();
+            if (Expression e = isExpression(o))
+                return e.syntaxCopy();
+            return o;
+        }
+
+        override Dsymbol syntaxCopy(Dsymbol s)
+        {
+            TemplateInstance ti = s ? cast(TemplateInstance)s : new TemplateInstance(loc, name, null);
+            ti.tiargs = arraySyntaxCopy(tiargs);
+            TemplateDeclaration td;
+            if (inst && tempdecl && (td = tempdecl.isTemplateDeclaration()) !is null)
+                td.ScopeDsymbol.syntaxCopy(ti);
+            else
+                ScopeDsymbol.syntaxCopy(ti);
+            return ti;
         }
 
         override void accept(Visitor!ASTBase v)
@@ -1775,10 +1827,29 @@ struct ASTBase
             return result;
         }
 
+        Parameter syntaxCopy()
+        {
+            return new Parameter(storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null);
+        }
+
         void accept(Visitor!ASTBase v)
         {
             v.visit(this);
         }
+
+        static Parameters* arraySyntaxCopy(Parameters* parameters)
+        {
+            Parameters* params = null;
+            if (parameters)
+            {
+                params = new Parameters();
+                params.setDim(parameters.dim);
+                for (size_t i = 0; i < params.dim; i++)
+                    (*params)[i] = (*parameters)[i].syntaxCopy();
+            }
+            return params;
+        }
+
     }
 
     extern (C++) abstract class Statement : RootObject
@@ -3432,6 +3503,11 @@ struct ASTBase
             super(Terror);
         }
 
+        override Type syntaxCopy()
+        {
+            return this;
+        }
+
         override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
@@ -3443,6 +3519,12 @@ struct ASTBase
         extern (D) this()
         {
             super(Tnull);
+        }
+
+        override Type syntaxCopy()
+        {
+            // No semantic analysis done, no need to copy
+            return this;
         }
 
         override void accept(Visitor!ASTBase v)
@@ -3461,6 +3543,11 @@ struct ASTBase
             this.basetype = basetype;
         }
 
+        override Type syntaxCopy()
+        {
+            return new TypeVector(Loc(), basetype.syntaxCopy());
+        }
+
         override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
@@ -3475,6 +3562,11 @@ struct ASTBase
         {
             super(Tenum);
             this.sym = sym;
+        }
+
+        override Type syntaxCopy()
+        {
+            return this;
         }
 
         override void accept(Visitor!ASTBase v)
@@ -3512,6 +3604,14 @@ struct ASTBase
             this.arguments = arguments;
         }
 
+        override Type syntaxCopy()
+        {
+            Parameters* args = Parameter.arraySyntaxCopy(arguments);
+            Type t = new TypeTuple(args);
+            t.mod = mod;
+            return t;
+        }
+
         override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
@@ -3527,6 +3627,11 @@ struct ASTBase
         {
             super(Tclass);
             this.sym = sym;
+        }
+
+        override Type syntaxCopy()
+        {
+            return this;
         }
 
         override void accept(Visitor!ASTBase v)
@@ -3546,6 +3651,11 @@ struct ASTBase
             this.sym = sym;
         }
 
+        override Type syntaxCopy()
+        {
+            return this;
+        }
+
         override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
@@ -3558,6 +3668,19 @@ struct ASTBase
         {
             super(Treference, t);
             // BUG: what about references to static arrays?
+        }
+
+        override Type syntaxCopy()
+        {
+            Type t = next.syntaxCopy();
+            if (t == next)
+                t = this;
+            else
+            {
+                t = new TypeReference(t);
+                t.mod = mod;
+            }
+            return t;
         }
 
         override void accept(Visitor!ASTBase v)
@@ -3599,6 +3722,13 @@ struct ASTBase
             this.upr = upr;
         }
 
+        override Type syntaxCopy()
+        {
+            Type t = new TypeSlice(next.syntaxCopy(), lwr.syntaxCopy(), upr.syntaxCopy());
+            t.mod = mod;
+            return t;
+        }
+
         override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
@@ -3613,6 +3743,19 @@ struct ASTBase
             ty = Tdelegate;
         }
 
+        override Type syntaxCopy()
+        {
+            Type t = next.syntaxCopy();
+            if (t == next)
+                t = this;
+            else
+            {
+                t = new TypeDelegate(t);
+                t.mod = mod;
+            }
+            return t;
+        }
+
         override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
@@ -3624,6 +3767,19 @@ struct ASTBase
         extern (D) this(Type t)
         {
             super(Tpointer, t);
+        }
+
+        override Type syntaxCopy()
+        {
+            Type t = next.syntaxCopy();
+            if (t == next)
+                t = this;
+            else
+            {
+                t = new TypePointer(t);
+                t.mod = mod;
+            }
+            return t;
         }
 
         override void accept(Visitor!ASTBase v)
@@ -3646,6 +3802,9 @@ struct ASTBase
         LINK linkage;               // calling convention
         TRUST trust;                // level of trust
         PURE purity = PUREimpure;
+
+        ubyte iswild;
+        Expressions* fargs;
 
         extern (D) this(Parameters* parameters, Type treturn, int varargs, LINK linkage, StorageClass stc = 0)
         {
@@ -3680,6 +3839,25 @@ struct ASTBase
                 this.trust = TRUSTtrusted;
         }
 
+        override Type syntaxCopy()
+        {
+            Type treturn = next ? next.syntaxCopy() : null;
+            Parameters* params = Parameter.arraySyntaxCopy(parameters);
+            auto t = new TypeFunction(params, treturn, varargs, linkage);
+            t.mod = mod;
+            t.isnothrow = isnothrow;
+            t.isnogc = isnogc;
+            t.purity = purity;
+            t.isproperty = isproperty;
+            t.isref = isref;
+            t.isreturn = isreturn;
+            t.isscope = isscope;
+            t.iswild = iswild;
+            t.trust = trust;
+            t.fargs = fargs;
+            return t;
+        }
+
         override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
@@ -3706,6 +3884,19 @@ struct ASTBase
             super(Tarray, t);
         }
 
+        override Type syntaxCopy()
+        {
+            Type t = next.syntaxCopy();
+            if (t == next)
+                t = this;
+            else
+            {
+                t = new TypeDArray(t);
+                t.mod = mod;
+            }
+            return t;
+        }
+
         override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
@@ -3715,6 +3906,7 @@ struct ASTBase
     extern (C++) final class TypeAArray : TypeArray
     {
         Type index;
+        Loc loc;
 
         extern (D) this(Type t, Type index)
         {
@@ -3734,6 +3926,18 @@ struct ASTBase
                 t.mod = mod;
             }
             return t;
+        }
+
+        override Expression toExpression()
+        {
+            Expression e = next.toExpression();
+            if (e)
+            {
+                Expression ei = index.toExpression();
+                if (ei)
+                    return new ArrayExp(loc, e, ei);
+            }
+            return null;
         }
 
         override void accept(Visitor!ASTBase v)
@@ -3759,6 +3963,14 @@ struct ASTBase
             t = new TypeSArray(t, e);
             t.mod = mod;
             return t;
+        }
+
+        override Expression toExpression()
+        {
+            Expression e = next.toExpression();
+            if (e)
+                e = new ArrayExp(dim.loc, e, dim);
+            return e;
         }
 
         override void accept(Visitor!ASTBase v)
@@ -3793,6 +4005,67 @@ struct ASTBase
             idents.push(e);
         }
 
+        final void syntaxCopyHelper(TypeQualified t)
+        {
+            idents.setDim(t.idents.dim);
+            for (size_t i = 0; i < idents.dim; i++)
+            {
+                RootObject id = t.idents[i];
+                if (id.dyncast() == DYNCAST.dsymbol)
+                {
+                    TemplateInstance ti = cast(TemplateInstance)id;
+                    ti = cast(TemplateInstance)ti.syntaxCopy(null);
+                    id = ti;
+                }
+                else if (id.dyncast() == DYNCAST.expression)
+                {
+                    Expression e = cast(Expression)id;
+                    e = e.syntaxCopy();
+                    id = e;
+                }
+                else if (id.dyncast() == DYNCAST.type)
+                {
+                    Type tx = cast(Type)id;
+                    tx = tx.syntaxCopy();
+                    id = tx;
+                }
+                idents[i] = id;
+            }
+        }
+
+        final Expression toExpressionHelper(Expression e, size_t i = 0)
+        {
+            for (; i < idents.dim; i++)
+            {
+                RootObject id = idents[i];
+
+                switch (id.dyncast())
+                {
+                    case DYNCAST.identifier:
+                        e = new DotIdExp(e.loc, e, cast(Identifier)id);
+                        break;
+
+                    case DYNCAST.dsymbol:
+                        auto ti = (cast(Dsymbol)id).isTemplateInstance();
+                        assert(ti);
+                        e = new DotTemplateInstanceExp(e.loc, e, ti.name, ti.tiargs);
+                        break;
+
+                    case DYNCAST.type:          // Bugzilla 1215
+                        e = new ArrayExp(loc, e, new TypeExp(loc, cast(Type)id));
+                        break;
+
+                    case DYNCAST.expression:    // Bugzilla 1215
+                        e = new ArrayExp(loc, e, cast(Expression)id);
+                        break;
+
+                    default:
+                        assert(0);
+                }
+            }
+            return e;
+        }
+
         override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
@@ -3809,6 +4082,19 @@ struct ASTBase
             this.ident = ident;
         }
 
+        override Type syntaxCopy()
+        {
+            auto t = new TypeIdentifier(loc, ident);
+            t.syntaxCopyHelper(this);
+            t.mod = mod;
+            return t;
+        }
+
+        override Expression toExpression()
+        {
+            return toExpressionHelper(new IdentifierExp(loc, ident));
+        }
+
         override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
@@ -3820,6 +4106,14 @@ struct ASTBase
         extern (D) this(Loc loc)
         {
             super(Treturn, loc);
+        }
+
+        override Type syntaxCopy()
+        {
+            auto t = new TypeReturn(loc);
+            t.syntaxCopyHelper(this);
+            t.mod = mod;
+            return t;
         }
 
         override void accept(Visitor!ASTBase v)
@@ -3838,6 +4132,14 @@ struct ASTBase
             this.exp = exp;
         }
 
+        override Type syntaxCopy()
+        {
+            auto t = new TypeTypeof(loc, exp.syntaxCopy());
+            t.syntaxCopyHelper(this);
+            t.mod = mod;
+            return t;
+        }
+
         override void accept(Visitor!ASTBase v)
         {
             v.visit(this);
@@ -3852,6 +4154,19 @@ struct ASTBase
         {
             super(Tinstance, loc);
             this.tempinst = tempinst;
+        }
+
+        override Type syntaxCopy()
+        {
+            auto t = new TypeInstance(loc, cast(TemplateInstance)tempinst.syntaxCopy(null));
+            t.syntaxCopyHelper(this);
+            t.mod = mod;
+            return t;
+        }
+
+        override Expression toExpression()
+        {
+            return toExpressionHelper(new ScopeExp(loc, tempinst));
         }
 
         override void accept(Visitor!ASTBase v)
@@ -4507,20 +4822,6 @@ struct ASTBase
                     error("%s is not an expression", o.toChars());
                 }
             }
-        }
-
-        extern (C++) Expression isExpression(RootObject o)
-        {
-            if (!o || o.dyncast() != DYNCAST.expression)
-                return null;
-            return cast(Expression)o;
-        }
-
-        extern (C++) Type isType(RootObject o)
-        {
-            if (!o || o.dyncast() != DYNCAST.type)
-                return null;
-            return cast(Type)o;
         }
 
         extern (C++) Dsymbol isDsymbol(RootObject o)
@@ -5774,6 +6075,22 @@ struct ASTBase
     {
 
     }
+
+    static extern (C++) Type isType(RootObject o)
+    {
+        if (!o || o.dyncast() != DYNCAST.type)
+            return null;
+        return cast(Type)o;
+    }
+
+    static extern (C++) Expression isExpression(RootObject o)
+    {
+        if (!o || o.dyncast() != DYNCAST.expression)
+            return null;
+        return cast(Expression)o;
+    }
+
+
 
     extern (C++) static const(char)* protectionToChars(PROTKIND kind)
     {
