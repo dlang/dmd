@@ -112,6 +112,21 @@ extern (C++) const(char)* lookForSourceFile(const(char)** path, const(char)* fil
     return null;
 }
 
+// function used to call semantic3 on a module's dependencies
+void semantic3OnDependencies(Module m)
+{
+    if (!m)
+        return;
+
+    if (m.semanticRun > PASSsemantic3)
+        return;
+
+    m.semantic3(null);
+
+    foreach (i; 1 .. m.aimports.dim)
+        semantic3OnDependencies(m.aimports[i]);
+}
+
 enum PKG : int
 {
     PKGunknown,     // not yet determined whether it's a package.d or not
