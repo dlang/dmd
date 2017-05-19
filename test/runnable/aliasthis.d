@@ -1570,6 +1570,22 @@ struct S10456
 }
 
 /***************************************************/
+// 10996
+
+void test10996()
+{
+    S10996 s;
+    assert("Hello world" == s, s);
+}
+
+struct S10996
+{
+    private string getPrivateData () { return "Hello world"; }
+    alias getPrivateData this;
+}
+
+
+/***************************************************/
 // 11261
 
 template Tuple11261(Specs...)
@@ -2023,6 +2039,7 @@ int main()
     test10004();
     test10180();
     test10456();
+    test10996();
     test11333();
     test11800();
     test13490();
