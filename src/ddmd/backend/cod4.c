@@ -117,10 +117,13 @@ STATIC code * opassdbl(elem *e,regm_t *pretregs,unsigned op)
     /* OPpostinc,OPpostdec,OPeq,OPaddass,OPminass,OPmulass,OPdivass       */
     {  CLIBdadd, CLIBdsub, (unsigned)-1,  CLIBdadd,CLIBdsub,CLIBdmul,CLIBddiv };
 
-    if (config.inline8087)
-        return opass87(e,pretregs);
-
     CodeBuilder cdb;
+    if (config.inline8087)
+    {
+        opass87(cdb,e,pretregs);
+        return cdb.finish();
+    }
+
     code cs;
     regm_t retregs2,retregs,idxregs;
 
@@ -210,14 +213,16 @@ STATIC code * opassdbl(elem *e,regm_t *pretregs,unsigned op)
 
 STATIC code * opnegassdbl(elem *e,regm_t *pretregs)
 {
+    CodeBuilder cdb;
     if (config.inline8087)
-        return cdnegass87(e,pretregs);
+    {
+        cdnegass87(cdb,e,pretregs);
+        return cdb.finish();
+    }
     elem *e1 = e->E1;
     tym_t tym = tybasic(e1->Ety);
     int sz = _tysize[tym];
     code cs;
-
-    CodeBuilder cdb;
 
     cdb.append(getlvalue(&cs,e1,*pretregs ? DOUBLEREGS | mBX | mCX : 0));
     cdb.append(modEA(&cs));
@@ -342,7 +347,7 @@ void cdeq(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     {
         if (tycomplex(tyml))
         {
-            cdb.append(complex_eq87(e, pretregs));
+            complex_eq87(cdb, e, pretregs);
             return;
         }
 
@@ -350,19 +355,19 @@ void cdeq(CodeBuilder& cdb,elem *e,regm_t *pretregs)
               (e2oper == OPconst || e2oper == OPvar || e2oper == OPind))
            )
         {
-            cdb.append(eq87(e,pretregs));
+            eq87(cdb,e,pretregs);
             return;
         }
         if (config.target_cpu >= TARGET_PentiumPro &&
             (e2oper == OPvar || e2oper == OPind)
            )
         {
-            cdb.append(eq87(e,pretregs));
+            eq87(cdb,e,pretregs);
             return;
         }
         if (tyml == TYldouble || tyml == TYildouble)
         {
-            cdb.append(eq87(e,pretregs));
+            eq87(cdb,e,pretregs);
             return;
         }
     }
@@ -820,19 +825,17 @@ void cdaddass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
     if (tyfloating(tyml))
     {
-        code *c;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         if (op == OPnegass)
-            c = cdnegass87(e,pretregs);
+            cdnegass87(cdb,e,pretregs);
         else
-            c = opass87(e,pretregs);
+            opass87(cdb,e,pretregs);
 #else
         if (op == OPnegass)
-            c = opnegassdbl(e,pretregs);
+            cdb.append(opnegassdbl(e,pretregs));
         else
-            c = opassdbl(e,pretregs,op);
+            cdb.append(opassdbl(e,pretregs,op));
 #endif
-        cdb.append(c);
         return;
     }
     unsigned opsize = (I16 && tylong(tyml) && config.target_cpu >= TARGET_80386)
@@ -1336,7 +1339,7 @@ void cdmulass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     if (tyfloating(tyml))
     {
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        cdb.append(opass87(e,pretregs));
+        opass87(cdb,e,pretregs);
 #else
         cdb.append(opassdbl(e,pretregs,op));
 #endif
@@ -1841,11 +1844,11 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             if (tyxmmreg(tym))
                 cdb.append(orthxmm(e,&retregs));
             else
-                cdb.append(orth87(e,&retregs));
+                orth87(cdb,e,&retregs);
         }
         else if (config.inline8087)
         {   retregs = mPSW;
-            cdb.append(orth87(e,&retregs));
+            orth87(cdb,e,&retregs);
         }
         else
         {
@@ -2650,12 +2653,12 @@ void cdcnvt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
             Lcomplex:
                     regm_t retregs = mST01 | (*pretregs & mPSW);
                     codelem(cdb,e->E1, &retregs, FALSE);
-                    cdb.append(fixresult_complex87(e, retregs, pretregs));
+                    fixresult_complex87(cdb, e, retregs, pretregs);
                     return;
                 }
                 regm_t retregs = mST0 | (*pretregs & mPSW);
                 codelem(cdb,e->E1, &retregs, FALSE);
-                cdb.append(fixresult87(e, retregs, pretregs));
+                fixresult87(cdb, e, retregs, pretregs);
                 return;
             }
             case OPf_d:
@@ -2699,7 +2702,7 @@ void cdcnvt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
             case OPs16_d:
             case OPu16_d:
             Lload87:
-                cdb.append(load87(e,0,pretregs,NULL,-1));
+                load87(cdb,e,0,pretregs,NULL,-1);
                 return;
 
             case OPu32_d:
@@ -2717,11 +2720,11 @@ void cdcnvt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
                     cdb.append(regwithvalue(CNIL,ALLREGS,0,&reg,0));
                     cdb.genfltreg(0x89, reg, 4);
 
-                    cdb.append(push87());
+                    push87(cdb);
                     cdb.genfltreg(0xDF,5,0);     // FILD m64int
 
                     retregs = mST0 /*| (*pretregs & mPSW)*/;
-                    cdb.append(fixresult87(e, retregs, pretregs));
+                    fixresult87(cdb, e, retregs, pretregs);
                     return;
                 }
                 break;
@@ -2739,7 +2742,7 @@ void cdcnvt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
             case OPd_s16:
             case OPd_u16:
             Lcnvt87:
-                cdb.append(cnvt87(e,pretregs));
+                cnvt87(cdb,e,pretregs);
                 return;
             case OPd_u32:               // use subroutine, not 8087
                 if (I64 && config.fpxmmregs)
@@ -2749,7 +2752,7 @@ void cdcnvt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
                 }
                 if (I32 || I64)
                 {
-                    cdb.append(cdd_u32(e,pretregs));
+                    cdd_u32(cdb,e,pretregs);
                     return;
                 }
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
@@ -2762,7 +2765,7 @@ void cdcnvt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
             case OPd_u64:
                 if (I32 || I64)
                 {
-                    cdb.append(cdd_u64(e,pretregs));
+                    cdd_u64(cdb,e,pretregs);
                     return;
                 }
                 retregs = DOUBLEREGS;
@@ -2780,7 +2783,7 @@ void cdcnvt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
             {
                 if (I32 || I64)
                 {
-                    cdb.append(cdd_u64(e,pretregs));
+                    cdd_u64(cdb,e,pretregs);
                     return;
                 }
                 regm_t retregs = mST0;
@@ -3782,7 +3785,7 @@ void cdpair(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 
     if (retregs & mST01)
     {
-        cdb.append(loadPair87(e, pretregs));
+        loadPair87(cdb, e, pretregs);
         return;
     }
 

@@ -2148,10 +2148,11 @@ code *getregs_imm(regm_t r)
 code *cse_flush(int do87)
 {
     //dbg_printf("cse_flush()\n");
-    code* c = cse_save(regcon.cse.mops);      // save any CSEs to memory
+    CodeBuilder cdb;
+    cdb.append(cse_save(regcon.cse.mops));      // save any CSEs to memory
     if (do87)
-        c = cat(c,save87());    // save any 8087 temporaries
-    return c;
+        save87(cdb);    // save any 8087 temporaries
+    return cdb.finish();
 }
 
 /*************************
@@ -2324,7 +2325,11 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
     else if (tyxmmreg(e->Ety) && config.fpxmmregs)
         ;
     else if (tyfloating(e->Ety) && config.inline8087)
-        return comsub87(e,pretregs);
+    {
+        CodeBuilder cdb;
+        comsub87(cdb,e,pretregs);
+        return cdb.finish();
+    }
 
 
   /* create mask of what's in csextab[] */

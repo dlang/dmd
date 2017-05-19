@@ -122,8 +122,12 @@ regm_t idxregm(code *c)
 
 code *opdouble(elem *e,regm_t *pretregs,unsigned clib)
 {
+    CodeBuilder cdb;
     if (config.inline8087)
-        return orth87(e,pretregs);
+    {
+        orth87(cdb,e,pretregs);
+        return cdb.finish();
+    }
 
     regm_t retregs1,retregs2;
     if (tybasic(e->E1->Ety) == TYfloat)
@@ -144,7 +148,6 @@ code *opdouble(elem *e,regm_t *pretregs,unsigned clib)
         }
     }
 
-    CodeBuilder cdb;
     codelem(cdb,e->E1, &retregs1,FALSE);
     if (retregs1 & mSTACK)
         cgstate.stackclean++;
@@ -190,7 +193,7 @@ void cdorth(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         }
         if (config.inline8087)
         {
-            cdb.append(orth87(e,pretregs));
+            orth87(cdb,e,pretregs);
             return;
         }
 #if TARGET_WINDOS
@@ -908,7 +911,7 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             return;
         }
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        cdb.append(orth87(e,pretregs));
+        orth87(cdb,e,pretregs);
 #else
         cdb.append(opdouble(e,pretregs,(oper == OPmul) ? CLIBdmul : CLIBddiv));
 #endif
@@ -2830,20 +2833,20 @@ void cdind(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         {
             if (*pretregs & mST0)
             {
-                cdb.append(cdind87(e, pretregs));
+                cdind87(cdb, e, pretregs);
                 return;
             }
             if (I64 && tym == TYcfloat && *pretregs & (ALLREGS | mBP))
                 ;
             else if (tycomplex(tym))
             {
-                cdb.append(cload87(e, pretregs));
+                cload87(cdb, e, pretregs);
                 return;
             }
 
             if (*pretregs & mPSW)
             {
-                cdb.append(cdind87(e, pretregs));
+                cdind87(cdb, e, pretregs);
                 return;
             }
         }
@@ -4376,7 +4379,7 @@ void cdneg(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     {
         if (tycomplex(tyml))
         {
-            cdb.append(neg_complex87(e, pretregs));
+            neg_complex87(cdb, e, pretregs);
             return;
         }
         if (tyxmmreg(tyml) && e->Eoper == OPneg && *pretregs & XMMREGS)
@@ -4387,7 +4390,7 @@ void cdneg(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         if (config.inline8087 &&
             ((*pretregs & (ALLREGS | mBP)) == 0 || e->Eoper == OPsqrt || I64))
             {
-                cdb.append(neg87(e,pretregs));
+                neg87(cdb,e,pretregs);
                 return;
             }
         regm_t retregs = (I16 && sz == 8) ? DOUBLEREGS_16 : ALLREGS;
@@ -4460,7 +4463,7 @@ void cdabs(CodeBuilder& cdb,elem *e, regm_t *pretregs)
     {
         if (config.inline8087 && ((*pretregs & (ALLREGS | mBP)) == 0 || I64))
         {
-            cdb.append(neg87(e,pretregs));
+            neg87(cdb,e,pretregs);
             return;
         }
         regm_t retregs = (!I32 && sz == 8) ? DOUBLEREGS_16 : ALLREGS;
@@ -4589,7 +4592,7 @@ void cdpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
         if (config.inline8087)
         {
-            cdb.append(post87(e,pretregs));
+            post87(cdb,e,pretregs);
             return;
         }
 #if TARGET_WINDOS
