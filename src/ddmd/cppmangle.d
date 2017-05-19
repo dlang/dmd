@@ -563,7 +563,7 @@ public:
         }
         else
         {
-            t.error(Loc(), "Internal Compiler Error: unsupported type %s\n", t.toChars());
+            t.error(Loc(), "Internal Compiler Error: type %s can not be mapped to C++\n", t.toChars());
         }
         fatal(); //Fatal, because this error should be handled in frontend
     }
@@ -994,7 +994,7 @@ public:
         }
         else
         {
-            type.error(Loc(), "Internal Compiler Error: unsupported type %s\n", type.toChars());
+            type.error(Loc(), "Internal Compiler Error: type %s can not be mapped to C++\n", type.toChars());
         }
         fatal(); //Fatal, because this error should be handled in frontend
     }
