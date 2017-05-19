@@ -990,10 +990,24 @@ extern (C++) int comparePointers(Loc loc, TOK op, Type type, Expression agg1, di
 }
 
 // True if conversion from type 'from' to 'to' involves a reinterpret_cast
-// floating point -> integer or integer -> floating point
-extern (C++) bool isFloatIntPaint(Type to, Type from)
+// between any combination of floating point and integral types, including
+// small static arrays (size permitting).
+extern (C++) bool isFloatIntPaint(Type from, Type to)
 {
-    return from.size() == to.size() && (from.isintegral() && to.isfloating() || from.isfloating() && to.isintegral());
+    const toUsed = (to.ty == Tfloat80) ? (Target.realsize - Target.realpad) : to.size();
+    if (toUsed > from.size() || from.size() > Target.paintMaxSize)
+        return false;
+
+    Type fromElem = (from.ty == Tsarray) ? (cast(TypeArray) from).next : from;
+    Type toElem = (to.ty == Tsarray) ? (cast(TypeArray) to).next : to;
+
+    if (!(fromElem.isintegral() || fromElem.isfloating()) || !(toElem.isintegral() || toElem.isfloating()))
+        return false;
+
+    if (fromElem.isintegral() == toElem.isintegral() && fromElem.size() == toElem.size())
+        return false; // This trivial case can be handled better elsewhere.
+
+    return true;
 }
 
 // Reinterpret float/int value 'fromVal' as a float/integer of type 'to'.
@@ -1001,7 +1015,7 @@ extern (C++) Expression paintFloatInt(Expression fromVal, Type to)
 {
     if (exceptionOrCantInterpret(fromVal))
         return fromVal;
-    assert(to.size() == 4 || to.size() == 8);
+
     return Target.paintAsType(fromVal, to);
 }
 

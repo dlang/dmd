@@ -10,6 +10,7 @@
 
 module ddmd.target;
 
+import ddmd.arraytypes;
 import ddmd.cppmangle;
 import ddmd.dclass;
 import ddmd.dmodule;
@@ -364,6 +365,9 @@ struct Target
         return supported;
     }
 
+    // The maximum size (in bytes) of type accepted by paintAsType.
+    enum int paintMaxSize = 64;
+
     /******************************
      * Encode the given expression, which is assumed to be an rvalue literal
      * as another type for use in CTFE.
@@ -371,39 +375,13 @@ struct Target
      */
     extern (C++) static Expression paintAsType(Expression e, Type type)
     {
-        // We support up to 512-bit values.
-        ubyte[64] buffer;
-        assert(e.type.size() == type.size());
-        // Write the expression into the buffer.
-        switch (e.type.ty)
-        {
-        case Tint32:
-        case Tuns32:
-        case Tint64:
-        case Tuns64:
-            encodeInteger(e, buffer.ptr);
-            break;
-        case Tfloat32:
-        case Tfloat64:
-            encodeReal(e, buffer.ptr);
-            break;
-        default:
-            assert(0);
-        }
-        // Interpret the buffer as a new type.
-        switch (type.ty)
-        {
-        case Tint32:
-        case Tuns32:
-        case Tint64:
-        case Tuns64:
-            return decodeInteger(e.loc, type, buffer.ptr);
-        case Tfloat32:
-        case Tfloat64:
-            return decodeReal(e.loc, type, buffer.ptr);
-        default:
-            assert(0);
-        }
+        align(16) ubyte[paintMaxSize] buffer = void;
+        const paintSize = (e.type.size() >= type.size()) ? e.type.size() : type.size();
+        assert (paintSize <= buffer.length);
+        buffer[0 .. cast(size_t) paintSize] = 0;
+
+        paintEncode(e, buffer.ptr);
+        return paintDecode(e.loc, type, buffer.ptr);
     }
 
     /******************************
@@ -465,75 +443,194 @@ struct Target
 /******************************
  * Private helpers for Target::paintAsType.
  */
-// Write the integer value of 'e' into a unsigned byte buffer.
-extern (C++) static void encodeInteger(Expression e, ubyte* buffer)
+// Write the bit patterns representing the value of `e` into `buffer`.
+private void paintEncode(Expression e, ubyte* buffer)
 {
-    dinteger_t value = e.toInteger();
-    int size = cast(int)e.type.size();
-    for (int p = 0; p < size; p++)
+    ubyte* bp = buffer;
+    ArrayLiteralExp arr = null;
+    int aLen = 0;
+    int ax = 0;
+    Expression elem = null;
+    int elemSize;
+
+    if (e.type.ty == Tsarray)
     {
-        int offset = p; // Would be (size - 1) - p; on BigEndian
-        buffer[offset] = ((value >> (p * 8)) & 0xFF);
+        assert (e.op == TOK.TOKarrayliteral);
+        arr = cast(ArrayLiteralExp) e;
+        aLen = cast(int) arr.elements.dim;
+        elemSize = cast(int) (cast(TypeArray) arr.type).next.size();
+    }
+    else
+    {
+        elem = e;
+        elemSize = cast(int) elem.type.size();
+        goto LbasicW;
+    }
+
+    while (ax < aLen)
+    {
+        elem = arr.getElement(ax);
+        ++ax;
+    LbasicW:
+        assert (bp + elemSize <= buffer + Target.paintMaxSize &&
+            (cast(size_t) bp) % elemSize == 0 &&
+            elemSize == cast(int) elem.type.size());
+
+        if (elem.type.isintegral())
+        {
+            const value = elem.toInteger();
+
+            final switch (elem.type.ty)
+            {
+            case Tint8:
+            case Tuns8:
+                *bp = cast(ubyte) value;
+                break;
+            case Tint16:
+            case Tuns16:
+                *(cast(ushort*) bp) = cast(ushort) value;
+                break;
+            case Tint32:
+            case Tuns32:
+                *(cast(uint*) bp) = cast(uint) value;
+                break;
+            case Tint64:
+            case Tuns64:
+                *(cast(ulong*) bp) = cast(ulong) value;
+                break;
+            }
+        }
+        else if (elem.type.isfloating())
+        {
+            const value = elem.toReal();
+
+            final switch (elem.type.ty)
+            {
+            case Tfloat32:
+                *(cast(float*) bp) = cast(float) value;
+                break;
+            case Tfloat64:
+                *(cast(double*) bp) = cast(double) value;
+                break;
+            case Tfloat80:
+                *(cast(real*) bp) = cast(real) value;
+                // Clear the padding area for consistency:
+                bp[(Target.realsize - Target.realpad) .. Target.realsize] = 0;
+                break;
+            }
+        }
+        else
+            assert (0);
+
+        // If host != target endian-ness, swap the byte order for bp[0 .. elemSize] here.
+        static if (false)
+        {
+            const last = elemSize - 1;
+            for (size_t x = 0; x <= last; ++x)
+                bp[x] = bp[last - x];
+        }
+
+        bp += elemSize;
     }
 }
 
-// Write the bytes encoded in 'buffer' into an integer and returns
-// the value as a new IntegerExp.
-extern (C++) static Expression decodeInteger(Loc loc, Type type, ubyte* buffer)
+// Reinterpret `buffer` as though it was of `type` and copy the value into a new Expression.
+private Expression paintDecode(Loc loc, Type type, ubyte* buffer)
 {
-    dinteger_t value = 0;
-    int size = cast(int)type.size();
-    for (int p = 0; p < size; p++)
-    {
-        int offset = p; // Would be (size - 1) - p; on BigEndian
-        value |= (cast(dinteger_t)buffer[offset] << (p * 8));
-    }
-    return new IntegerExp(loc, value, type);
-}
+    ubyte* bp = buffer;
+    Expressions* arr;
+    int aLen;
+    int ax = 0;
+    Expression elem = null;
+    Type elemType;
 
-// Write the real_t value of 'e' into a unsigned byte buffer.
-extern (C++) static void encodeReal(Expression e, ubyte* buffer)
-{
-    switch (e.type.ty)
+    if (type.ty == Tsarray)
     {
-    case Tfloat32:
-        {
-            float* p = cast(float*)buffer;
-            *p = cast(float)e.toReal();
-            break;
-        }
-    case Tfloat64:
-        {
-            double* p = cast(double*)buffer;
-            *p = cast(double)e.toReal();
-            break;
-        }
-    default:
-        assert(0);
+        arr = new Expressions();
+        aLen = cast(int) (cast(TypeSArray) type).dim.toInteger();
+        arr.setDim(aLen);
+        elemType = (cast(TypeSArray) type).next;
     }
-}
+    else
+    {
+        arr = null;
+        aLen = 1;
+        elemType = type;
+    }
 
-// Write the bytes encoded in 'buffer' into a real_t and returns
-// the value as a new RealExp.
-extern (C++) static Expression decodeReal(Loc loc, Type type, ubyte* buffer)
-{
-    real_t value;
-    switch (type.ty)
+    int elemSize = cast(int) elemType.size();
+    bool asInt = elemType.isintegral();
+    assert (asInt || elemType.isfloating());
+
+    while (ax < aLen)
     {
-    case Tfloat32:
+        assert (bp + elemSize <= buffer + Target.paintMaxSize &&
+            (cast(size_t) bp) % elemSize == 0);
+
+        // If host != target endian-ness, swap the byte order for bp[0 .. elemSize] here.
+        static if (false)
         {
-            float* p = cast(float*)buffer;
-            value = real_t(*p);
-            break;
+            const last = elemSize - 1;
+            for (size_t x = 0; x <= last; ++x)
+                bp[x] = bp[last - x];
         }
-    case Tfloat64:
+
+        if (asInt)
         {
-            double* p = cast(double*)buffer;
-            value = real_t(*p);
-            break;
+            dinteger_t value;
+
+            final switch (elemType.ty)
+            {
+            case Tint8:
+            case Tuns8:
+                value = *bp;
+                break;
+            case Tint16:
+            case Tuns16:
+                value = *(cast(ushort*) bp);
+                break;
+            case Tint32:
+            case Tuns32:
+                value = *(cast(uint*) bp);
+                break;
+            case Tint64:
+            case Tuns64:
+                value = *(cast(ulong*) bp);
+                break;
+            }
+
+            elem = new IntegerExp(loc, value, elemType);
         }
-    default:
-        assert(0);
+        else
+        {
+            real_t value;
+
+            final switch (elemType.ty)
+            {
+            case Tfloat32:
+                value = *(cast(float*) bp);
+                break;
+            case Tfloat64:
+                value = *(cast(double*) bp);
+                break;
+            case Tfloat80:
+                value = *(cast(real*) bp);
+                break;
+            }
+
+            elem = new RealExp(loc, value, elemType);
+        }
+
+        if (arr == null)
+            return elem;
+
+        bp += elemSize;
+        (*arr)[ax] = elem;
+        ++ax;
     }
-    return new RealExp(loc, value, type);
+
+    auto ret = new ArrayLiteralExp(loc, arr);
+    ret.type = type;
+    ret.ownedByCtfe = OWNEDctfe;
+    return ret;
 }

@@ -6050,21 +6050,28 @@ public:
         {
             printf("%s PtrExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
-        // Check for int<->float and long<->double casts.
-        if (e.e1.op == TOKsymoff && (cast(SymOffExp)e.e1).offset == 0 && (cast(SymOffExp)e.e1).var.isVarDeclaration() && isFloatIntPaint(e.type, (cast(SymOffExp)e.e1).var.type))
+
+        // Check for reinterpret casts between any combination of integral and floating-point types (size permitting).
+        if (e.e1.op == TOKsymoff)
         {
-            // *(cast(int*)&v), where v is a float variable
-            result = paintFloatInt(getVarExp(e.loc, istate, (cast(SymOffExp)e.e1).var, ctfeNeedRvalue), e.type);
-            return;
-        }
-        if (e.e1.op == TOKcast && (cast(CastExp)e.e1).e1.op == TOKaddress)
-        {
-            // *(cast(int*)&x), where x is a float expression
-            Expression x = (cast(AddrExp)(cast(CastExp)e.e1).e1).e1;
-            if (isFloatIntPaint(e.type, x.type))
+            auto from = cast(SymOffExp) e.e1;
+            if (from.offset == 0 && from.var.isVarDeclaration() && isFloatIntPaint(from.var.type, e.type))
             {
-                result = paintFloatInt(interpret(x, istate), e.type);
+                result = paintFloatInt(getVarExp(e.loc, istate, from.var, ctfeNeedRvalue), e.type);
                 return;
+            }
+        }
+        else if (e.e1.op == TOKcast)
+        {
+            auto from = cast(UnaExp) e.e1;
+            if (from.e1.op == TOKaddress)
+            {
+                from = cast(UnaExp) from.e1;
+                if (isFloatIntPaint(from.e1.type, e.type))
+                {
+                    result = paintFloatInt(interpret(from.e1, istate), e.type);
+                    return;
+                }
             }
         }
 
