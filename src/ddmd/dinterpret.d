@@ -2047,6 +2047,23 @@ public:
             assert(result.op == TOKstructliteral || result.op == TOKclassreference);
             return;
         }
+
+        // we probably have a nested delegate here.
+        // the thing to do is to iterate up the stack until we find
+        // a this that has a matching type.
+        // https://issues.dlang.org/showbug.cgi?id=16301
+        size_t stackOffset = ctfeStack.savedThis.dim;
+        while(stackOffset && (!result || !result.type.equals(e.type)))
+        {
+            result = ctfeStack.savedThis[--stackOffset];
+        }
+
+        if (result)
+        {
+            assert(result.op == TOKstructliteral || result.op == TOKclassreference);
+            return;
+        }
+
         e.error("value of 'this' is not known at compile time");
         result = CTFEExp.cantexp;
     }
@@ -6187,18 +6204,51 @@ public:
 
         StructLiteralExp se;
         int i;
+        Type wantedType = e.e1.type;
+        void updateFieldIndex()
+        {
+            // We can't use getField, because it makes a copy
 
-        // We can't use getField, because it makes a copy
-        if (ex.op == TOKclassreference)
-        {
-            se = (cast(ClassReferenceExp)ex).value;
-            i = (cast(ClassReferenceExp)ex).findFieldIndexByName(v);
+            if (ex.op == TOKclassreference)
+            {
+                se = (cast(ClassReferenceExp)ex).value;
+                i = (cast(ClassReferenceExp)ex).findFieldIndexByName(v);
+            }
+            else
+            {
+                se = cast(StructLiteralExp)ex;
+                i = findFieldIndexByName(se.sd, v);
+            }
         }
-        else
+        updateFieldIndex();
+
+        // if we could not find the field and the expression
+        // this-ptr is not of the required time look futher up
+        // in the stack of previous this pointers until we find
+        // a compatible type.
+        // https://issues.dlang.org/showbug.cgi?id=16301
+
+        if (i == -1 && !ex.type.equals(wantedType))
         {
-            se = cast(StructLiteralExp)ex;
-            i = findFieldIndexByName(se.sd, v);
+            size_t stackOffset = ctfeStack.savedThis.dim;
+            while(stackOffset && (!ex || ex.type != wantedType))
+            {
+                ex = ctfeStack.savedThis[--stackOffset];
+            }
+
+            if (ex)
+            {
+                assert(ex.op == TOKstructliteral || ex.op == TOKclassreference);
+                updateFieldIndex();
+            }
+            else
+            {
+                e.error("couldn't find 'this' of type %s in context-chain", wantedType.toChars());
+                result = CTFEExp.cantexp;
+                return;
+            }
         }
+
         if (i == -1)
         {
             e.error("couldn't find field %s of type %s in %s", v.toChars(), e.type.toChars(), se.toChars());
