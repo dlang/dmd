@@ -19,6 +19,16 @@ import ddmd.root.outbuffer;
 import ddmd.root.rmem;
 import ddmd.console;
 
+/**********************
+ * Color highlighting to classify messages
+ */
+enum Classification
+{
+    error = Color.red,          /// for errors
+    gagged = Color.magenta,     /// for gagged errors
+    warning = Color.yellow,     /// for warnings
+    deprecation = Color.blue,  /// for deprecations
+}
 
 /**************************************
  * Print error message
@@ -144,7 +154,7 @@ extern (C++) void verror(const ref Loc loc, const(char)* format, va_list ap, con
     global.errors++;
     if (!global.gag)
     {
-        verrorPrint(loc, Color.red, header, format, ap, p1, p2);
+        verrorPrint(loc, Classification.error, header, format, ap, p1, p2);
         if (global.errorLimit && global.errors >= global.errorLimit)
             fatal(); // moderate blizzard of cascading messages
     }
@@ -153,7 +163,7 @@ extern (C++) void verror(const ref Loc loc, const(char)* format, va_list ap, con
         if (global.params.showGaggedErrors)
         {
             fprintf(stderr, "(spec:%d) ", global.gag);
-            verrorPrint(loc, Color.magenta, header, format, ap, p1, p2);
+            verrorPrint(loc, Classification.gagged, header, format, ap, p1, p2);
         }
         global.gaggedErrors++;
     }
@@ -167,10 +177,10 @@ extern (C++) void verrorSupplemental(const ref Loc loc, const(char)* format, va_
     {
         if (!global.params.showGaggedErrors)
             return;
-        color = Color.magenta;
+        color = Classification.gagged;
     }
     else
-        color = Color.red;
+        color = Classification.error;
     verrorPrint(loc, color, "       ", format, ap);
 }
 
@@ -178,7 +188,7 @@ extern (C++) void vwarning(const ref Loc loc, const(char)* format, va_list ap)
 {
     if (global.params.warnings && !global.gag)
     {
-        verrorPrint(loc, Color.yellow, "Warning: ", format, ap);
+        verrorPrint(loc, Classification.warning, "Warning: ", format, ap);
         //halt();
         if (global.params.warnings == 1)
             global.warnings++; // warnings don't count if gagged
@@ -188,7 +198,7 @@ extern (C++) void vwarning(const ref Loc loc, const(char)* format, va_list ap)
 extern (C++) void vwarningSupplemental(const ref Loc loc, const(char)* format, va_list ap)
 {
     if (global.params.warnings && !global.gag)
-        verrorPrint(loc, Color.yellow, "       ", format, ap);
+        verrorPrint(loc, Classification.warning, "       ", format, ap);
 }
 
 extern (C++) void vdeprecation(const ref Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
@@ -197,7 +207,7 @@ extern (C++) void vdeprecation(const ref Loc loc, const(char)* format, va_list a
     if (global.params.useDeprecated == 0)
         verror(loc, format, ap, p1, p2, header);
     else if (global.params.useDeprecated == 2 && !global.gag)
-        verrorPrint(loc, Color.blue, header, format, ap, p1, p2);
+        verrorPrint(loc, Classification.deprecation, header, format, ap, p1, p2);
 }
 
 extern (C++) void vdeprecationSupplemental(const ref Loc loc, const(char)* format, va_list ap)
@@ -205,7 +215,7 @@ extern (C++) void vdeprecationSupplemental(const ref Loc loc, const(char)* forma
     if (global.params.useDeprecated == 0)
         verrorSupplemental(loc, format, ap);
     else if (global.params.useDeprecated == 2 && !global.gag)
-        verrorPrint(loc, Color.blue, "       ", format, ap);
+        verrorPrint(loc, Classification.deprecation, "       ", format, ap);
 }
 
 /***************************************
