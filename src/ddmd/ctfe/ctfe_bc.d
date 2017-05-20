@@ -5190,8 +5190,13 @@ static if (is(BCGen))
         }
         else
         {
+            // rs.exp is null for  "return ";
+            // return ; is only legal when the return type is void
+            // so we can return a bcNull without fearing consequnces;
+
             Ret(bcNull);
         }
+
     }
 
     override void visit(CastExp ce)
