@@ -1081,6 +1081,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         ad.dtors.shift(dd);
         ad.members.push(dd);
         dd.semantic(sc);
+        ad.fieldDtor = dd;
     }
 
     FuncDeclaration xdtor = null;
