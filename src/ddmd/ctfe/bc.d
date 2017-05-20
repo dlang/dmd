@@ -104,7 +104,6 @@ enum LongInst : ushort
     Mod,
 
     StrEq,
-    StrCat,
     Assert,
     AssertCnd,
 
@@ -1232,11 +1231,6 @@ string printInstructions(const int* startInstructions, uint length) pure
                 result ~= "StrEq SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
             break;
-        case LongInst.StrCat:
-            {
-                result ~= "StrCat SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
-            }
-            break;
         case LongInst.Eq:
             {
                 result ~= "Eq SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
@@ -2100,50 +2094,6 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                                 break;
                             }
                         }
-                    }
-                }
-            }
-            break;
-        case LongInst.StrCat:
-            {
-                auto _lhs = cast(uint)*lhsRef;
-                auto _rhs = cast(uint)*rhs;
-
-                assert(_lhs && _rhs, "trying to deref nullPointers");
-                assert(_lhs != _rhs);
-                auto result = &heapPtr._heap[0] + _lhs;
-                auto b = &heapPtr._heap[0] + _rhs;
-                uint bi = 1;
-                auto lhsLength = heapPtr._heap[_lhs];
-                auto rhsLength = heapPtr._heap[_rhs++];
-                auto cLength = lhsLength + rhsLength;
-                heapPtr._heap[_lhs++] = cLength;
-                auto bDollar = (align4(rhsLength) / 4);
-                auto resultPosition = (align4(lhsLength) / 4) + 1;
-                auto end = resultPosition + bDollar;
-                auto offset = lhsLength & 3;
-
-                if (offset)
-                {
-                    auto OffsetTimesEight = offset * 8;
-                    auto FourMinusOffsetTimesEight = (4 - offset) * 8;
-                    auto FirstAnd = (1 << FourMinusOffsetTimesEight) - 1;
-                    auto SecondAnd = (~FirstAnd) & uint.max;
-
-                    resultPosition--;
-                    for (uint cb = b[bi]; bi != bDollar; bi++)
-                    {
-                        result[resultPosition++] |= (cb & FirstAnd) << OffsetTimesEight;
-                        if (resultPosition == end)
-                            break;
-                        result[resultPosition] |= (cb & SecondAnd) >> FourMinusOffsetTimesEight;
-                    }
-                }
-                else
-                {
-                    for (uint cb = b[bi]; bi != bDollar; bi++)
-                    {
-                        result[resultPosition++] = cb;
                     }
                 }
             }
