@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice14185.d(12): Error: cannot implicitly convert expression (this) of type Mutexed to Mutexed*
+fail_compilation/ice14185.d(12): Error: cannot implicitly convert expression `this` of type `Mutexed` to `Mutexed*`
 ---
 */
 

@@ -90,14 +90,14 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
             {
                 if (!t.deco)
                 {
-                    e.error("forward reference to type %s", t.toChars());
+                    e.error("forward reference to type `%s`", t.toChars());
                 }
                 else
                 {
                     //printf("type %p ty %d deco %p\n", type, type.ty, type.deco);
                     //type = type.semantic(loc, sc);
                     //printf("type %s t %s\n", type.deco, t.deco);
-                    e.error("cannot implicitly convert expression (%s) of type %s to %s",
+                    e.error("cannot implicitly convert expression `%s` of type `%s` to `%s`",
                         e.toChars(), e.type.toChars(), t.toChars());
                 }
             }
@@ -197,7 +197,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 return;
             if (!e.type)
             {
-                e.error("%s is not an expression", e.toChars());
+                e.error("`%s` is not an expression", e.toChars());
                 e.type = Type.terror;
             }
 
@@ -1553,7 +1553,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             {
                 if (t1b.size(e.loc) == tob.size(e.loc))
                     goto Lok;
-                e.error("cannot cast expression %s of type %s to %s because of different sizes", e.toChars(), e.type.toChars(), t.toChars());
+                e.error("cannot cast expression `%s` of type `%s` to `%s` because of different sizes", e.toChars(), e.type.toChars(), t.toChars());
                 result = new ErrorExp();
                 return;
             }
@@ -1578,7 +1578,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     if (((cast(TypeSArray)t1b).dim.toInteger() * fsize) % tsize != 0)
                     {
                         // copied from sarray_toDarray() in e2ir.c
-                        e.error("cannot cast expression %s of type %s to %s since sizes don't line up", e.toChars(), e.type.toChars(), t.toChars());
+                        e.error("cannot cast expression `%s` of type `%s` to `%s` since sizes don't line up", e.toChars(), e.type.toChars(), t.toChars());
                         result = new ErrorExp();
                         return;
                     }
@@ -1629,7 +1629,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             if (t1b.ty == Tvoid && tob.ty != Tvoid)
             {
             Lfail:
-                e.error("cannot cast expression %s of type %s to %s", e.toChars(), e.type.toChars(), t.toChars());
+                e.error("cannot cast expression `%s` of type `%s` to `%s`", e.toChars(), e.type.toChars(), t.toChars());
                 result = new ErrorExp();
                 return;
             }
@@ -1708,7 +1708,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
 
             if (!e.committed && t.ty == Tpointer && t.nextOf().ty == Tvoid)
             {
-                e.error("cannot convert string literal to void*");
+                e.error("cannot convert string literal to `void*`");
                 result = new ErrorExp();
                 return;
             }
@@ -2263,7 +2263,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                         }
                         else if (f.needThis())
                         {
-                            e.error("no 'this' to create delegate for %s", f.toChars());
+                            e.error("no `this` to create delegate for `%s`", f.toChars());
                             result = new ErrorExp();
                             return;
                         }
@@ -2462,7 +2462,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     return;
                 }
             }
-            e.error("cannot cast expression %s of type %s to %s", e.toChars(), tsa ? tsa.toChars() : e.type.toChars(), t.toChars());
+            e.error("cannot cast expression `%s` of type `%s` to `%s`", e.toChars(), tsa ? tsa.toChars() : e.type.toChars(), t.toChars());
             result = new ErrorExp();
         }
     }
@@ -3439,7 +3439,7 @@ extern (C++) bool arrayTypeCompatible(Loc loc, Type t1, Type t2)
     {
         if (t1.nextOf().implicitConvTo(t2.nextOf()) < MATCHconst && t2.nextOf().implicitConvTo(t1.nextOf()) < MATCHconst && (t1.nextOf().ty != Tvoid && t2.nextOf().ty != Tvoid))
         {
-            error(loc, "array equality comparison type mismatch, %s vs %s", t1.toChars(), t2.toChars());
+            error(loc, "array equality comparison type mismatch, `%s` vs `%s`", t1.toChars(), t2.toChars());
         }
         return true;
     }

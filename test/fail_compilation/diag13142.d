@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag13142.d(25): Error: cannot implicitly convert expression (3) of type int to TYPE
+fail_compilation/diag13142.d(25): Error: cannot implicitly convert expression `3` of type `int` to `TYPE`
 ---
 */
 
