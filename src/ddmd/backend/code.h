@@ -341,15 +341,6 @@ cdxxx_t
         cdvoid,
         loaddata;
 
-#define CDX(cd) cd##x
-#define CDXXX(cd) \
-  void cd(CodeBuilder& cdb, elem *e, regm_t *pretregs) \
-  {                                                    \
-    extern cd_t CDX(cd);                               \
-    code *c = CDX(cd)(e, pretregs);                    \
-    cdb.append(c);                                     \
-  }
-
 
 /* cod1.c */
 extern int clib_inited;
