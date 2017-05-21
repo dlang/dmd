@@ -171,7 +171,7 @@ struct Print_BCGen
         }
         else
         {
-            result ~= indent ~ "\\";
+            result ~= indent ~ "//";
         }
         result ~= "auto label" ~ to!string(labelCount) ~ " = genLabel();\n";
         return BCLabel(BCAddr(labelCount));
