@@ -188,7 +188,7 @@ void cdorth(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             !(ty == TYldouble || ty == TYildouble)  // watch out for shrinkLongDoubleConstantIfPossible()
            )
         {
-            cdb.append(orthxmm(e,pretregs));
+            orthxmm(cdb,e,pretregs);
             return;
         }
         if (config.inline8087)
@@ -206,7 +206,7 @@ void cdorth(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     }
     if (tyxmmreg(ty1))
     {
-        cdb.append(orthxmm(e,pretregs));
+        orthxmm(cdb,e,pretregs);
         return;
     }
 
@@ -907,7 +907,7 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             !tycomplex(ty) // SIMD code is not set up to deal with complex mul/div
            )
         {
-            cdb.append(orthxmm(e,pretregs));
+            orthxmm(cdb,e,pretregs);
             return;
         }
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
@@ -920,7 +920,7 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
     if (tyxmmreg(tyml))
     {
-        cdb.append(orthxmm(e,pretregs));
+        orthxmm(cdb,e,pretregs);
         return;
     }
 
@@ -4384,7 +4384,7 @@ void cdneg(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         }
         if (tyxmmreg(tyml) && e->Eoper == OPneg && *pretregs & XMMREGS)
         {
-            cdb.append(xmmneg(e,pretregs));
+            xmmneg(cdb,e,pretregs);
             return;
         }
         if (config.inline8087 &&
@@ -4586,7 +4586,7 @@ void cdpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             !tycomplex(tyml) // SIMD code is not set up to deal with complex
            )
         {
-            cdb.append(xmmpost(e,pretregs));
+            xmmpost(cdb,e,pretregs);
             return;
         }
 
@@ -4693,7 +4693,7 @@ void cdpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
   }
   if (tyxmmreg(tyml))
   {
-        cdb.append(xmmpost(e,pretregs));
+        xmmpost(cdb,e,pretregs);
         return;
   }
 
