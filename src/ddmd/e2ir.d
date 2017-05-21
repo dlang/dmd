@@ -245,12 +245,7 @@ elem *callfunc(Loc loc,
             /* Avoid 'fixing' side effects of _array... functions as
              * they were already working right from the olden days before this fix
              */
-            if (ec.Eoper == OPvar &&
-                ec.EV.Vsym.Sident[0] == '_' &&
-                memcmp(ec.EV.Vsym.Sident.ptr, "_array".ptr, 6) == 0)
-            {
-            }
-            else
+            if (!(ec.Eoper == OPvar && fd.isArrayOp))
                 eside = fixArgumentEvaluationOrder(elems[0 .. n]);
         }
         foreach (const i; 0 .. n)
