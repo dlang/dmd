@@ -387,7 +387,11 @@ code *xmmcnvt(elem *e,regm_t *pretregs)
             break;
         case OPld_d:
             if (e->Eoper == OPd_s64)
-                return cnvt87(e,pretregs); // precision
+            {
+                CodeBuilder cdb;
+                cnvt87(cdb,e,pretregs); // precision
+                return cdb.finish();
+            }
             /* FALL-THROUGH */
         default:
             op = CVTTSD2SI;

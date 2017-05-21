@@ -490,36 +490,35 @@ void pop87(int, const char *);
 #else
 void pop87();
 #endif
-code *push87 (void );
-code *save87 (void );
-code *save87regs(unsigned n);
+void push87(CodeBuilder& cdb);
+void save87(CodeBuilder& cdb);
+void save87regs(CodeBuilder& cdb, unsigned n);
 void gensaverestore87(regm_t, code **, code **);
 code *genfltreg(code *c,unsigned opcode,unsigned reg,targ_size_t offset);
 code *genxmmreg(code *c,unsigned opcode,unsigned xreg,targ_size_t offset, tym_t tym);
 code *genfwait(code *c);
-code *comsub87(elem *e, regm_t *pretregs);
-code *fixresult87 (elem *e , regm_t retregs , regm_t *pretregs );
-code *fixresult_complex87(elem *e,regm_t retregs,regm_t *pretregs);
-code *orth87 (elem *e , regm_t *pretregs );
-code *load87(elem *e, unsigned eoffset, regm_t *pretregs, elem *eleft, int op);
+void comsub87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void fixresult87(CodeBuilder& cdb, elem *e, regm_t retregs, regm_t *pretregs);
+void fixresult_complex87(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretregs);
+void orth87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void load87(CodeBuilder& cdb, elem *e, unsigned eoffset, regm_t *pretregs, elem *eleft, int op);
 int cmporder87 (elem *e );
-code *eq87 (elem *e , regm_t *pretregs );
-code *complex_eq87 (elem *e , regm_t *pretregs );
-code *opass87 (elem *e , regm_t *pretregs );
-code *cdnegass87 (elem *e , regm_t *pretregs );
-code *post87 (elem *e , regm_t *pretregs );
-code *cnvt87 (elem *e , regm_t *pretregs );
-code *cnvteq87 (elem *e , regm_t *pretregs );
-code *neg87 (elem *e , regm_t *pretregs );
-code *neg_complex87(elem *e, regm_t *pretregs);
-code *cdind87(elem *e,regm_t *pretregs);
+void eq87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void complex_eq87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void opass87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void cdnegass87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void post87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void cnvt87(CodeBuilder& cdb, elem *e , regm_t *pretregs );
+void neg87(CodeBuilder& cdb, elem *e , regm_t *pretregs);
+void neg_complex87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void cdind87(CodeBuilder& cdb,elem *e,regm_t *pretregs);
 #if TX86
 extern int stackused;
 #endif
-code *cload87(elem *e, regm_t *pretregs);
-code *cdd_u64(elem *e, regm_t *pretregs);
-code *cdd_u32(elem *e, regm_t *pretregs);
-code *loadPair87(elem *e, regm_t *pretregs);
+void cload87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void cdd_u64(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void cdd_u32(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void loadPair87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
 
 #ifdef DEBUG
 #define pop87() pop87(__LINE__,__FILE__)

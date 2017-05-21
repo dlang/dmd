@@ -1710,7 +1710,10 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
   else if (forregs)             // if return the result in registers
   {
         if (forregs & (mST01 | mST0))
-            return fixresult87(e,retregs,pretregs);
+        {
+            fixresult87(cdb,e,retregs,pretregs);
+            return cdb.finish();
+        }
         unsigned opsflag = FALSE;
         if (I16 && sz == 8)
         {   if (forregs & mSTACK)
@@ -1812,7 +1815,7 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
   if (forccs)                           // if return result in flags
   {
         if (retregs & (mST01 | mST0))
-            cdb.append(fixresult87(e,retregs,pretregs));
+            fixresult87(cdb,e,retregs,pretregs);
         else
             cdb.append(tstresult(retregs,tym,forregs));
   }
@@ -2517,9 +2520,9 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
     gensaverestore2(keepmask, &c, &cpop);
     cdb.append(c);
 
-    cdb.append(save87regs(cinfo->push87));
+    save87regs(cdb,cinfo->push87);
     for (int i = 0; i < cinfo->push87; i++)
-        cdb.append(push87());
+        push87(cdb);
 
     for (int i = 0; i < cinfo->pop87; i++)
         pop87();
@@ -3319,7 +3322,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,
         if (s->Sflags & SFLexit)
         { }
         else if (s != tls_get_addr_sym)
-            cdb.append(save87());               // assume 8087 regs are all trashed
+            save87(cdb);               // assume 8087 regs are all trashed
 
         // Function calls may throw Errors, unless marked that they don't
         if (s == funcsym_p || !s->Sfunc || !(s->Sfunc->Fflags3 & Fnothrow))
@@ -3417,7 +3420,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,
         funcsym_p->Sfunc->Fflags3 &= ~Fnothrow;
 
         if (e1->Eoper != OPind) { WRFL((enum FL)el_fl(e1)); WROP(e1->Eoper); }
-        cdb.append(save87());                   // assume 8087 regs are all trashed
+        save87(cdb);                   // assume 8087 regs are all trashed
         assert(e1->Eoper == OPind);
         elem *e11 = e1->E1;
         tym_t e11ty = tybasic(e11->Ety);
@@ -3564,8 +3567,8 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,
         cdb.append(genadjfpu(CNIL, 1));
         if (*pretregs)                  // if we want the result
         {   //assert(stackused == 0);
-            push87();                   // one item on 8087 stack
-            cdb.append(fixresult87(e,retregs,pretregs));
+            push87(cdb);                // one item on 8087 stack
+            fixresult87(cdb,e,retregs,pretregs);
             return cdb.finish();
         }
         else
@@ -3577,9 +3580,9 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,
         cdb.append(genadjfpu(CNIL, 2));
         if (*pretregs)                  // if we want the result
         {   assert(stackused == 0);
-            push87();
-            push87();                   // two items on 8087 stack
-            cdb.append(fixresult_complex87(e,retregs,pretregs));
+            push87(cdb);
+            push87(cdb);                // two items on 8087 stack
+            fixresult_complex87(cdb,e,retregs,pretregs);
             return cdb.finish();
         }
         else
@@ -4511,12 +4514,12 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         if (config.inline8087)
         {   if (*pretregs & mST0)
             {
-                cdb.append(load87(e,0,pretregs,NULL,-1));
+                load87(cdb,e,0,pretregs,NULL,-1);
                 return;
             }
             else if (tycomplex(tym))
             {
-                cdb.append(cload87(e, pretregs));
+                cload87(cdb, e, pretregs);
                 return;
             }
         }
@@ -4617,7 +4620,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             }
         }
         else if (sz == tysize(TYldouble))               // TYldouble
-            cdb.append(load87(e,0,pretregs,NULL,-1));
+            load87(cdb,e,0,pretregs,NULL,-1);
         else
         {
             elem_print(e);
