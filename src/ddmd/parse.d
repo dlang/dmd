@@ -8426,12 +8426,6 @@ final class Parser(AST) : Lexer
     }
 }
 
-unittest
-{
-    import ddmd.astnull;
-    scope p = new Parser!ASTNull(null, null, false);
-}
-
 enum PREC : int
 {
     zero,
