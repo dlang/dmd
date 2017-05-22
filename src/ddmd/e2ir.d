@@ -863,20 +863,24 @@ StructDeclaration needsDtor(Type t)
 /*******************************************
  * Set an array pointed to by eptr to evalue:
  *      eptr[0..edim] = evalue;
- * Input:
- *      eptr    where to write the data to
- *      evalue  value to write
- *      edim    number of times to write evalue to eptr[]
- *      tb      type of evalue
+ * Params:
+ *      eptr =    where to write the data to
+ *      edim =    number of times to write evalue to eptr[]
+ *      tb =      type of evalue
+ *      evalue =  value to write
+ *      irs =     context
+ *      op =      TOKblit, TOKassign, or TOKconstruct
+ * Returns:
+ *      created IR code
  */
 
-elem *setArray(elem *eptr, elem *edim, Type tb, elem *evalue, IRState *irs, int op)
+private elem *setArray(elem *eptr, elem *edim, Type tb, elem *evalue, IRState *irs, int op)
 {
-    int r;
-    elem *e;
-    uint sz = cast(uint)tb.size();
+    assert(op == TOKblit || op == TOKassign || op == TOKconstruct);
+    const sz = cast(uint)tb.size();
 
 Lagain:
+    int r;
     switch (tb.ty)
     {
         case Tfloat80:
@@ -946,7 +950,7 @@ Lagain:
                     evalue = el_una(OPaddr, TYnptr, evalue);
                     // This is a hack so we can call postblits on const/immutable objects.
                     elem *eti = getTypeInfo(tb.unSharedOf().mutableOf(), irs);
-                    e = el_params(eti, edim, evalue, eptr, null);
+                    elem *e = el_params(eti, edim, evalue, eptr, null);
                     e = el_bin(OPcall,TYnptr,el_var(getRtlsym(r)),e);
                     return e;
                 }
@@ -982,7 +986,7 @@ Lagain:
                 // void *_memsetn(void *p, void *value, int dim, int sizelem)
                 evalue = el_una(OPaddr, TYnptr, evalue);
                 elem *esz = el_long(TYsize_t, sz);
-                e = el_params(esz, edim, evalue, eptr, null);
+                elem *e = el_params(esz, edim, evalue, eptr, null);
                 e = el_bin(OPcall,TYnptr,el_var(getRtlsym(r)),e);
                 return e;
             }
@@ -1005,15 +1009,14 @@ Lagain:
     // Be careful about parameter side effect ordering
     if (r == RTLSYM_MEMSET8)
     {
-        e = el_param(edim, evalue);
-        e = el_bin(OPmemset,TYnptr,eptr,e);
+        elem *e = el_param(edim, evalue);
+        return el_bin(OPmemset,TYnptr,eptr,e);
     }
     else
     {
-        e = el_params(edim, evalue, eptr, null);
-        e = el_bin(OPcall,TYnptr,el_var(getRtlsym(r)),e);
+        elem *e = el_params(edim, evalue, eptr, null);
+        return el_bin(OPcall,TYnptr,el_var(getRtlsym(r)),e);
     }
-    return e;
 }
 
 
@@ -5465,7 +5468,7 @@ elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
     return e;
 }
 
-elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol *sym, bool fillHoles)
+private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol *sym, bool fillHoles)
 {
     //printf("[%s] StructLiteralExp.toElem() %s\n", sle.loc.toChars(), sle.toChars());
     //printf("\tblit = %s, sym = %p fillHoles = %d\n", op == TOKblit, sym, fillHoles);
