@@ -1,24 +1,21 @@
-Comparison of values belonging to different enums is deprecated.
+Comparison that takes into account the enumerated type improves code correctness by
+disallowing comparison of unrelated enumerated types. 
 
-Since the comparison is done by comparing the value of the enumeration members
-we give up on the type-safety of the enumeration type possibly hiding a whole
-class of bugs that could be caught at compile time.
-
-This change doesn't affect the anonymous enumerations.
+This change does not affect anonymous enumerations.
 
 ---
 enum Status
 {
-    GOOD,
-    BAD
+    good,
+    bad
 }
 enum OtherStatus
 {
-    OK
-    NO,
+    ok
+    no,
 }
 
-// Deprecated - Even though both GOOD and OK evaluate to 0 they belong to
+// Deprecated - Even though both good and ok evaluate to 0 they belong to
 // different enumeration types
-static assert(Status.GOOD == OtherStatus.OK);
+static assert(Status.good == OtherStatus.ok);
 ---
