@@ -3161,7 +3161,7 @@ bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
 
     // This is function is used as a compiler intrinsic and explicitly written
     // in a lowered flavor to use as few CTFE instructions as possible.
-    auto idx = 0;
+    size_t idx = 0;
     auto length = a1.length;
 
     for(;idx < length;++idx)
