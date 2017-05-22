@@ -7124,7 +7124,7 @@ extern (C++) final class FuncExp : Expression
         }
         else if (!flag)
         {
-            error("cannot implicitly convert expression (%s) of type %s to %s", toChars(), tx.toChars(), to.toChars());
+            error("cannot implicitly convert expression `%s` of type `%s` to `%s`", toChars(), tx.toChars(), to.toChars());
         }
         return m;
     }

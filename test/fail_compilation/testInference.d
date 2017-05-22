@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/testInference.d(24): Error: cannot implicitly convert expression (this.a) of type inout(A8998) to immutable(A8998)
+fail_compilation/testInference.d(24): Error: cannot implicitly convert expression `this.a` of type `inout(A8998)` to `immutable(A8998)`
 ---
 */
 
@@ -28,10 +28,10 @@ class C8998
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/testInference.d(39): Error: cannot implicitly convert expression (s) of type const(char[]) to string
-fail_compilation/testInference.d(44): Error: cannot implicitly convert expression (a) of type int[] to immutable(int[])
-fail_compilation/testInference.d(49): Error: cannot implicitly convert expression (a) of type int[] to immutable(int[])
-fail_compilation/testInference.d(54): Error: cannot implicitly convert expression (a) of type int[] to immutable(int[])
+fail_compilation/testInference.d(39): Error: cannot implicitly convert expression `s` of type `const(char[])` to `string`
+fail_compilation/testInference.d(44): Error: cannot implicitly convert expression `a` of type `int[]` to `immutable(int[])`
+fail_compilation/testInference.d(49): Error: cannot implicitly convert expression `a` of type `int[]` to `immutable(int[])`
+fail_compilation/testInference.d(54): Error: cannot implicitly convert expression `a` of type `int[]` to `immutable(int[])`
 ---
 */
 string foo(in char[] s) pure
@@ -58,18 +58,18 @@ immutable(int[]) x3(immutable(int[]) org) /*pure*/
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/testInference.d(94): Error: cannot implicitly convert expression (c) of type testInference.C1 to immutable(C1)
-fail_compilation/testInference.d(95): Error: cannot implicitly convert expression (c) of type testInference.C1 to immutable(C1)
-fail_compilation/testInference.d(96): Error: cannot implicitly convert expression (c) of type testInference.C3 to immutable(C3)
-fail_compilation/testInference.d(97): Error: cannot implicitly convert expression (c) of type testInference.C3 to immutable(C3)
+fail_compilation/testInference.d(94): Error: cannot implicitly convert expression `c` of type `testInference.C1` to `immutable(C1)`
+fail_compilation/testInference.d(95): Error: cannot implicitly convert expression `c` of type `testInference.C1` to `immutable(C1)`
+fail_compilation/testInference.d(96): Error: cannot implicitly convert expression `c` of type `testInference.C3` to `immutable(C3)`
+fail_compilation/testInference.d(97): Error: cannot implicitly convert expression `c` of type `testInference.C3` to `immutable(C3)`
 fail_compilation/testInference.d(100): Error: undefined identifier `X1`, did you mean function `x1`?
-fail_compilation/testInference.d(106): Error: cannot implicitly convert expression (s) of type S1 to immutable(S1)
-fail_compilation/testInference.d(109): Error: cannot implicitly convert expression (a) of type int*[] to immutable(int*[])
-fail_compilation/testInference.d(110): Error: cannot implicitly convert expression (a) of type const(int)*[] to immutable(int*[])
-fail_compilation/testInference.d(114): Error: cannot implicitly convert expression (s) of type S2 to immutable(S2)
-fail_compilation/testInference.d(115): Error: cannot implicitly convert expression (s) of type S2 to immutable(S2)
-fail_compilation/testInference.d(116): Error: cannot implicitly convert expression (s) of type S2 to immutable(S2)
-fail_compilation/testInference.d(118): Error: cannot implicitly convert expression (a) of type const(int)*[] to immutable(int*[])
+fail_compilation/testInference.d(106): Error: cannot implicitly convert expression `s` of type `S1` to `immutable(S1)`
+fail_compilation/testInference.d(109): Error: cannot implicitly convert expression `a` of type `int*[]` to `immutable(int*[])`
+fail_compilation/testInference.d(110): Error: cannot implicitly convert expression `a` of type `const(int)*[]` to `immutable(int*[])`
+fail_compilation/testInference.d(114): Error: cannot implicitly convert expression `s` of type `S2` to `immutable(S2)`
+fail_compilation/testInference.d(115): Error: cannot implicitly convert expression `s` of type `S2` to `immutable(S2)`
+fail_compilation/testInference.d(116): Error: cannot implicitly convert expression `s` of type `S2` to `immutable(S2)`
+fail_compilation/testInference.d(118): Error: cannot implicitly convert expression `a` of type `const(int)*[]` to `immutable(int*[])`
 ---
 */
 immutable(Object) get(inout int*) pure
@@ -122,7 +122,7 @@ immutable(int*[]) bar2c(              S2 prm) pure { immutable(int)*[] a; return
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/testInference.d(134): Error: cannot implicitly convert expression (f10063(cast(inout(void*))p)) of type inout(void)* to immutable(void)*
+fail_compilation/testInference.d(134): Error: cannot implicitly convert expression `f10063(cast(inout(void*))p)` of type `inout(void)*` to `immutable(void)*`
 ---
 */
 inout(void)* f10063(inout void* p) pure

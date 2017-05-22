@@ -235,10 +235,10 @@ void* funretscope(scope dg_t ptr) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(249): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return scope @safe to void* delegate() scope @safe
-fail_compilation/retscope.d(249): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return scope @safe to void* delegate() scope @safe
-fail_compilation/retscope.d(250): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return scope @safe to void* delegate() scope @safe
-fail_compilation/retscope.d(250): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return scope @safe to void* delegate() scope @safe
+fail_compilation/retscope.d(249): Error: cannot implicitly convert expression `__lambda1` of type `void* delegate() pure nothrow @nogc return scope @safe` to `void* delegate() scope @safe`
+fail_compilation/retscope.d(249): Error: cannot implicitly convert expression `__lambda1` of type `void* delegate() pure nothrow @nogc return scope @safe` to `void* delegate() scope @safe`
+fail_compilation/retscope.d(250): Error: cannot implicitly convert expression `__lambda2` of type `void* delegate() pure nothrow @nogc return scope @safe` to `void* delegate() scope @safe`
+fail_compilation/retscope.d(250): Error: cannot implicitly convert expression `__lambda2` of type `void* delegate() pure nothrow @nogc return scope @safe` to `void* delegate() scope @safe`
 ---
 */
 
@@ -505,11 +505,11 @@ void foo16() @nogc nothrow
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(1701): Error: cannot implicitly convert expression (& func) of type int* function(int* p) to int* function(scope int* p)
-fail_compilation/retscope.d(1702): Error: cannot implicitly convert expression (& func) of type int* function(int* p) to int* function(return scope int* p)
-fail_compilation/retscope.d(1703): Error: cannot implicitly convert expression (& func) of type int* function(int* p) to int* function(return scope int* p)
-fail_compilation/retscope.d(1711): Error: cannot implicitly convert expression (& funcr) of type int* function(return scope int* p) to int* function(scope int* p)
-fail_compilation/retscope.d(1716): Error: cannot implicitly convert expression (& funcrs) of type int* function(return scope int* p) to int* function(scope int* p)
+fail_compilation/retscope.d(1701): Error: cannot implicitly convert expression `& func` of type `int* function(int* p)` to `int* function(scope int* p)`
+fail_compilation/retscope.d(1702): Error: cannot implicitly convert expression `& func` of type `int* function(int* p)` to `int* function(return scope int* p)`
+fail_compilation/retscope.d(1703): Error: cannot implicitly convert expression `& func` of type `int* function(int* p)` to `int* function(return scope int* p)`
+fail_compilation/retscope.d(1711): Error: cannot implicitly convert expression `& funcr` of type `int* function(return scope int* p)` to `int* function(scope int* p)`
+fail_compilation/retscope.d(1716): Error: cannot implicitly convert expression `& funcrs` of type `int* function(return scope int* p)` to `int* function(scope int* p)`
 ---
 */
 
@@ -547,11 +547,11 @@ void foo17()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(1801): Error: cannot implicitly convert expression (&c.func) of type int* delegate() to int* delegate() scope
-fail_compilation/retscope.d(1802): Error: cannot implicitly convert expression (&c.func) of type int* delegate() to int* delegate() return scope
-fail_compilation/retscope.d(1803): Error: cannot implicitly convert expression (&c.func) of type int* delegate() to int* delegate() return scope
-fail_compilation/retscope.d(1811): Error: cannot implicitly convert expression (&c.funcr) of type int* delegate() return scope to int* delegate() scope
-fail_compilation/retscope.d(1816): Error: cannot implicitly convert expression (&c.funcrs) of type int* delegate() return scope to int* delegate() scope
+fail_compilation/retscope.d(1801): Error: cannot implicitly convert expression `&c.func` of type `int* delegate()` to `int* delegate() scope`
+fail_compilation/retscope.d(1802): Error: cannot implicitly convert expression `&c.func` of type `int* delegate()` to `int* delegate() return scope`
+fail_compilation/retscope.d(1803): Error: cannot implicitly convert expression `&c.func` of type `int* delegate()` to `int* delegate() return scope`
+fail_compilation/retscope.d(1811): Error: cannot implicitly convert expression `&c.funcr` of type `int* delegate() return scope` to `int* delegate() scope`
+fail_compilation/retscope.d(1816): Error: cannot implicitly convert expression `&c.funcrs` of type `int* delegate() return scope` to `int* delegate() scope`
 ---
 */
 
