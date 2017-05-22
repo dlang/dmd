@@ -82,6 +82,7 @@ static this()
         "identifier",
         "getProtection",
         "parent",
+        "getLinkage",
         "getMember",
         "getOverloads",
         "getVirtualFunctions",
@@ -909,6 +910,35 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 
         auto tup = new TupleExp(e.loc, mods);
         return tup.semantic(sc);
+    }
+    if (e.ident == Id.getLinkage)
+    {
+        // get symbol linkage as a string
+        if (dim != 1)
+            return dimError(1);
+
+        auto o = (*e.args)[0];
+        auto s = getDsymbol(o);
+        Declaration d;
+        if (!s || (d = s.isDeclaration()) is null)
+        {
+            e.error("argument to `__traits(getLinkage, %s)` is not a declaration", o.toChars());
+            return new ErrorExp();
+        }
+        string linkage;
+        switch (d.linkage)
+        {
+            case LINK.d:        linkage = "D";           break;
+            case LINK.c:        linkage = "C";           break;
+            case LINK.cpp:      linkage = "C++";         break;
+            case LINK.windows:  linkage = "Windows";     break;
+            case LINK.pascal:   linkage = "Pascal";      break;
+            case LINK.objc:     linkage = "Objective-C"; break;
+            case LINK.system:   linkage = "System";      break;
+            default: assert(0);
+        }
+        auto se = new StringExp(e.loc, cast(char*)linkage.ptr);
+        return se.semantic(sc);
     }
     if (e.ident == Id.allMembers ||
         e.ident == Id.derivedMembers)
