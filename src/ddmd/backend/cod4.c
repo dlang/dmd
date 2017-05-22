@@ -339,7 +339,7 @@ void cdeq(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
     if (tyxmmreg(tyml) && config.fpxmmregs)
     {
-        cdb.append(xmmeq(e, e->Eoper, e1, e2, pretregs));
+        xmmeq(cdb, e, e->Eoper, e1, e2, pretregs);
         return;
     }
 
@@ -819,7 +819,7 @@ void cdaddass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     // See if evaluate in XMM registers
     if (config.fpxmmregs && tyxmmreg(tyml) && op != OPnegass && !(*pretregs & mST0))
     {
-        cdb.append(xmmopass(e,pretregs));
+        xmmopass(cdb,e,pretregs);
         return;
     }
 
@@ -1332,7 +1332,7 @@ void cdmulass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     // See if evaluate in XMM registers
     if (config.fpxmmregs && tyxmmreg(tyml) && op != OPmodass && !(*pretregs & mST0))
     {
-        cdb.append(xmmopass(e,pretregs));
+        xmmopass(cdb,e,pretregs);
         return;
     }
 
@@ -1842,7 +1842,7 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         {
             retregs = mPSW;
             if (tyxmmreg(tym))
-                cdb.append(orthxmm(e,&retregs));
+                orthxmm(cdb,e,&retregs);
             else
                 orth87(cdb,e,&retregs);
         }
@@ -2667,7 +2667,7 @@ void cdcnvt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
                     goto Lcomplex;
                 if (config.fpxmmregs && *pretregs & XMMREGS)
                 {
-                    cdb.append(xmmcnvt(e, pretregs));
+                    xmmcnvt(cdb, e, pretregs);
                     return;
                 }
 
@@ -2695,7 +2695,7 @@ void cdcnvt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
             case OPs32_d:
                 if (config.fpxmmregs && *pretregs & XMMREGS)
                 {
-                    cdb.append(xmmcnvt(e, pretregs));
+                    xmmcnvt(cdb, e, pretregs);
                     return;
                 }
                 /* FALL-THROUGH */
@@ -2708,7 +2708,7 @@ void cdcnvt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
             case OPu32_d:
                 if (I64 && config.fpxmmregs && *pretregs & XMMREGS)
                 {
-                    cdb.append(xmmcnvt(e,pretregs));
+                    xmmcnvt(cdb,e,pretregs);
                     return;
                 }
                 else if (!I16)
@@ -2735,7 +2735,7 @@ void cdcnvt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
             case OPd_s32:
                 if (config.fpxmmregs)
                 {
-                    cdb.append(xmmcnvt(e,pretregs));
+                    xmmcnvt(cdb,e,pretregs);
                     return;
                 }
                 /* FALL-THROUGH */
@@ -2747,7 +2747,7 @@ void cdcnvt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
             case OPd_u32:               // use subroutine, not 8087
                 if (I64 && config.fpxmmregs)
                 {
-                    cdb.append(xmmcnvt(e,pretregs));
+                    xmmcnvt(cdb,e,pretregs);
                     return;
                 }
                 if (I32 || I64)

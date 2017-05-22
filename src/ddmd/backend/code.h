@@ -470,13 +470,12 @@ void cod5_noprol();
 
 /* cgxmm.c */
 bool isXMMstore(unsigned op);
-code *movxmmconst(unsigned reg, unsigned sz, targ_size_t value, regm_t flags);
-code *orthxmm(elem *e, regm_t *pretregs);
-code *xmmeq(elem *e, unsigned op, elem *e1, elem *e2,regm_t *pretregs);
-code *xmmcnvt(elem *e,regm_t *pretregs);
-code *xmmopass(elem *e, regm_t *pretregs);
-code *xmmpost(elem *e, regm_t *pretregs);
-code *xmmneg(elem *e, regm_t *pretregs);
+void orthxmm(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void xmmeq(CodeBuilder& cdb, elem *e, unsigned op, elem *e1, elem *e2,regm_t *pretregs);
+void xmmcnvt(CodeBuilder& cdb,elem *e,regm_t *pretregs);
+void xmmopass(CodeBuilder& cdb,elem *e, regm_t *pretregs);
+void xmmpost(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void xmmneg(CodeBuilder& cdb,elem *e, regm_t *pretregs);
 unsigned xmmload(tym_t tym, bool aligned = true);
 unsigned xmmstore(tym_t tym, bool aligned = true);
 bool xmmIsAligned(elem *e);
