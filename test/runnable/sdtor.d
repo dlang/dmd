@@ -4154,6 +4154,25 @@ int test14815()
 static assert(test14815());
 
 /**********************************/
+// https://issues.dlang.org/show_bug.cgi?id=16197
+
+struct Elem {
+    static string r;
+    int x = -1;
+    this(this) { r ~= 'p'; printf("POSTBLIT %d\n", x++); }
+    ~this()    { r ~= 'd'; printf("DTOR %d\n"    , x++); }
+}
+
+struct Ctr {
+    Elem[3] arr;
+}
+
+void test16197() {
+    { auto p = Ctr(); }
+    assert(Elem.r == "ddd");
+}
+
+/**********************************/
 // 14860
 
 int test14860()
@@ -4556,6 +4575,7 @@ int main()
     test14264();
     test14686();
     test14815();
+    test16197();
     test14860();
     test14696();
     test14838();
