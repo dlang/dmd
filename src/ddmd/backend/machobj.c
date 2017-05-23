@@ -1814,6 +1814,7 @@ int Obj::comdat(Symbol *s)
         segname = "__DATA";
         align = 4;              // 16 byte alignment
         s->Sseg = MachObj::getsegment(sectname, segname, align, S_COALESCED);
+        Obj::data_start(s, 1 << align, s->Sseg);
     }
                                 // find or create new segment
     if (s->Salignment > (1 << align))
