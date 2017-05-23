@@ -12199,16 +12199,6 @@ extern (C++) final class IntervalExp : Expression
         return this;
     }
 
-    override Expression modifiableLvalue(Scope* sc, Expression e)
-    {
-        if (sc.func.setUnsafe())
-        {
-            error("cannot modify delegate pointer in @safe code %s", toChars());
-            return new ErrorExp();
-        }
-        return Expression.modifiableLvalue(sc, e);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);

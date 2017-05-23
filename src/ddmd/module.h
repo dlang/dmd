@@ -48,7 +48,7 @@ public:
 
     bool isAncestorPackageOf(const Package * const pkg) const;
 
-    void semantic(Scope *sc) { }
+    void semantic(Scope *) { }
     Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
     void accept(Visitor *v) { v->visit(this); }
 

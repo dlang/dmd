@@ -7719,3 +7719,15 @@ int[] f16094b()
 
 enum copy16094a = f16094a();
 enum copy16094b = f16094b();
+
+/**************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17407
+
+bool foo17407()
+{
+    void delegate ( ) longest_convert;
+    return __traits(compiles, longest_convert = &doesNotExists);
+}
+
+static assert(!foo17407);
+
