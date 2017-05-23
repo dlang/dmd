@@ -17,9 +17,9 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 
 import std.conv : to;
 
-enum perf = 1;
-enum bailoutMessages = 1;
-enum printResult = 1;
+enum perf = 0;
+enum bailoutMessages = 0;
+enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
@@ -330,7 +330,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         bcv.beginArguments();
         foreach (i, arg; args)
         {
-            bc_args[i] = bcv.genExpr(arg);
+            bc_args[i] = bcv.genExpr(arg, "Arguments");
             if (bcv.IGaveUp)
             {
                 static if (bailoutMessages)
@@ -1379,9 +1379,9 @@ extern (C++) final class BCTypeVisitor : Visitor
                 assert(0, "This should never happen");
             }
             auto sd = (cast(TypeStruct) t).sym;
-            auto result = BCType(BCTypeEnum.Struct, _sharedCtfeState.getStructIndex(sd));
+            uint structIndex = _sharedCtfeState.getStructIndex(sd);
             topLevelAggregate = typeof(topLevelAggregate).init;
-            return result;
+            return structIndex ? BCType(BCTypeEnum.Struct, structIndex) : BCType.init;
         }
         else if (t.ty == Tarray)
         {
@@ -1452,7 +1452,7 @@ extern (C++) final class BCTypeVisitor : Visitor
                     uint value;
                     if(auto initExp = sMember._init.toExpression)
                     {
-                        if (initExp.type.ty == Tint32 || initExp.type.ty == Tuns32)
+                        if (initExp.type && (initExp.type.ty == Tint32 || initExp.type.ty == Tuns32))
                         {
                             auto initExpr = cast(IntegerExp) initExp;
                             value = cast (uint) initExpr.value;
@@ -2507,8 +2507,8 @@ static if (is(BCGen))
 
         case TOK.TOKadd, TOK.TOKmin, TOK.TOKmul, TOK.TOKdiv, TOK.TOKmod,
                 TOK.TOKand, TOK.TOKor, TOK.TOKxor, TOK.TOKshr, TOK.TOKshl:
-            auto lhs = genExpr(e.e1);
-            auto rhs = genExpr(e.e2);
+            auto lhs = genExpr(e.e1, "BinExp lhs: " ~ to!string(e.op));
+            auto rhs = genExpr(e.e2, "BinExp rhs: " ~ to!string(e.op));
             //FIXME IMPORRANT
             // The whole rhs == retval situation should be fixed in the bc evaluator
             // since targets with native 3 address code can do this!
@@ -3034,8 +3034,6 @@ static if (is(BCGen))
 
     override void visit(SliceExp se)
     {
-        auto oldIndexed = currentIndexed;
-        scope(exit) currentIndexed = oldIndexed;
         debug (ctfe)
         {
             import std.stdio;
@@ -3049,17 +3047,21 @@ static if (is(BCGen))
         if (!se.lwr && !se.upr)
         {
             // "If there is no lwr and upr bound forward"
-            retval = genExpr(se.e1);
+            retval = genExpr(se.e1, "SliceExp (forwarding)");
         }
         else
         {
+            const oldIndexed = currentIndexed;
+            scope(exit)
+                currentIndexed = oldIndexed;
+
             if (insideArgumentProcessing)
             {
                bailout("currently we cannot slice during argument processing");
                return ;
             }
 
-            auto origSlice = genExpr(se.e1);
+            auto origSlice = genExpr(se.e1, "SliceExp origSlice");
             currentIndexed = origSlice;
             bailout(!origSlice, "could not get slice expr in " ~ se.toString);
             auto elmType = _sharedCtfeState.elementType(origSlice.type);
@@ -3081,14 +3083,14 @@ static if (is(BCGen))
                 return ;
             }
             BCValue newLength = genTemporary(i32Type);
-            BCValue lwr = genExpr(se.lwr);
+            BCValue lwr = genExpr(se.lwr, "SliceExp lwr");
             if (!lwr)
             {
                 bailout("could not gen lowerBound in " ~ se.toString);
                 return ;
             }
 
-            auto upr = genExpr(se.upr);
+            auto upr = genExpr(se.upr, "SliceExp upr");
             if (!upr)
             {
                 bailout("could not gen upperBound in " ~ se.toString);
@@ -3219,8 +3221,6 @@ static if (is(BCGen))
                 ale.toString, insideArrayLiteralExp);
         }
 
-        retval = assignTo ? assignTo : genTemporary(toBCType(ale.type));
-
         auto oldInsideArrayLiteralExp = insideArrayLiteralExp;
         insideArrayLiteralExp = true;
 
@@ -3256,7 +3256,7 @@ static if (is(BCGen))
 
         foreach (elem; *ale.elements)
         {
-            auto elexpr = genExpr(elem);
+            auto elexpr = genExpr(elem, "ArrayLiteralElement");
             if (elexpr.type.type == BCTypeEnum.i32)
             {
                 if (elexpr.vType == BCValueType.Immediate)
@@ -3343,20 +3343,23 @@ static if (is(BCGen))
             retval = BCValue(HeapAddr(heap.heapSize));
             heap.heapSize += size;
         }
+        auto rv_stackValue = retval.i32;
+        rv_stackValue.vType = BCValueType.StackValue;
+        MemCpyConst(rv_stackValue, _sharedCtfeState.initializer(BCType(BCTypeEnum.Struct, idx)));
 
         uint offset = 0;
         BCValue fieldAddr = genTemporary(i32Type);
         foreach (elem; *sle.elements)
         {
-            auto elexpr = genExpr(elem);
+            auto elexpr = genExpr(elem, "StructLiteralExp element");
             debug (ctfe)
             {
                 writeln("elExpr: ", elexpr.toString, " elem ", elem.toString);
             }
             /*
             if (elexpr.type != BCTypeEnum.i32
-                    && (elexpr.vType != BCValueType.Immediate
-                    || elexpr.vType != BCValueType.StackValue))
+                && (elexpr.vType != BCValueType.Immediate
+                || elexpr.vType != BCValueType.StackValue))
             {
                 bailout("StructLiteralExp-Element " ~ elexpr.type.type.to!string
                         ~ " is currently not handeled");
@@ -3384,8 +3387,8 @@ static if (is(BCGen))
     override void visit(DollarExp de)
     {
         if (currentIndexed.type == BCTypeEnum.Array
-                || currentIndexed.type == BCTypeEnum.Slice
-                || currentIndexed.type == BCTypeEnum.String)
+            || currentIndexed.type == BCTypeEnum.Slice
+            || currentIndexed.type == BCTypeEnum.String)
         {
             retval = getLength(currentIndexed);
             assert(retval);
@@ -3773,6 +3776,11 @@ static if (is(BCGen))
 
         visit(vd);
         auto var = retval;
+        if (!var)
+        {
+            bailout("var for Declarartion could not be generated -- " ~ de.toString);
+            return ;
+        }
         debug (ctfe)
         {
             import std.stdio;
@@ -3832,6 +3840,11 @@ static if (is(BCGen))
 
         BCValue var;
         BCType type = toBCType(vd.type);
+        if (!type)
+        {
+            bailout("could not get type for:" ~ vd.toString);
+            return ;
+        }
         bool refParam;
         if (processingParameters)
         {
@@ -3992,7 +4005,7 @@ static if (is(BCGen))
                         bailout(_sharedCtfeState.elementType(lhs.type) != _sharedCtfeState.elementType(rhs.type), "rhs and lhs for ~= are not compatible");
                         auto elementType = _sharedCtfeState.elementType(lhs.type);
                         retval = assignTo ? assignTo : genTemporary(i32Type);
-                        doCat(retval, lhs, rhs);
+                        Cat(retval, lhs, rhs, _sharedCtfeState.size(elementType));
                     }
                     else
                     {
@@ -4028,7 +4041,8 @@ static if (is(BCGen))
         }
 
         auto bct = toBCType(ie.type);
-        if (bct.type != BCTypeEnum.i32 && bct.type != BCTypeEnum.i64 && bct.type != BCTypeEnum.c8)
+        if (bct.type != BCTypeEnum.i32 && bct.type != BCTypeEnum.i64 && bct.type != BCTypeEnum.c8 && 
+            bct.type != BCTypeEnum.c32)
         {
             //NOTE this can happen with cast(char*)size_t.max for example
             bailout("We don't support IntegerExpressions with non-integer types: " ~ to!string(bct.type));
@@ -4235,7 +4249,7 @@ static if (is(BCGen))
 
         }
         else if (lhs.type.type == BCTypeEnum.String
-                || lhs.type.type == BCTypeEnum.Slice || lhs.type.type.Array)
+            || lhs.type.type == BCTypeEnum.Slice || lhs.type.type.Array)
         {
 
         }
@@ -4546,9 +4560,12 @@ static if (is(BCGen))
                         bailout("StructType has invalidSize (this is really bad): " ~ ae.e1.toString);
                         return ;
                     }
-                    // It seems like it's fine if we do nothing here ?
-                    // given that the heap is already zerod
-
+                    // HACK allocate space for struct if structPtr is zero
+                    auto structZeroJmp = beginCndJmp(lhs.i32, true);
+                    auto structSize = _sharedCtfeState.size(lhs.type);
+                    Alloc(lhs.i32, imm32(structSize));
+                    MemCpyConst(lhs.i32, _sharedCtfeState.initializer(lhs.type));
+                    endCndJmp(structZeroJmp, genLabel());
                 }
                 else
                 {
@@ -4946,8 +4963,8 @@ static if (is(BCGen))
         {
            // bailout("We cannot have calls outside of functions");
            // We are not inside a function body hence we are expected to return the result of this call
-           // for that to work we construct a function which will look like this { return fn(); } 
-           beginFunction();
+           // for that to work we construct a function which will look like this { return fn(); }
+           beginFunction(_sharedCtfeState.functionCount++);
            retval = genTemporary(i32Type);
         }
         BCValue thisPtr;
@@ -5170,14 +5187,15 @@ static if (is(BCGen))
         assert(!discardValue, "A returnStatement cannot be in discarding Mode");
         if (rs.exp !is null)
         {
-            auto retval = genExpr(rs.exp);
+            auto retval = genExpr(rs.exp, "ReturnStatement");
             if (!retval)
             {
                 bailout("could not gen returnValue: " ~ rs.exp.toString);
                 return ;
             }
-            if (retval.type == BCTypeEnum.i32 || retval.type == BCTypeEnum.Slice
-                    || retval.type == BCTypeEnum.Array || retval.type == BCTypeEnum.String || retval.type == BCTypeEnum.Struct)
+            if (retval.type.type == BCTypeEnum.i32 || retval.type.type == BCTypeEnum.Slice || retval.type.type == BCTypeEnum.c8 ||
+                retval.type.type == BCTypeEnum.c32 || retval.type.type == BCTypeEnum.Array || retval.type.type == BCTypeEnum.String ||
+                retval.type.type == BCTypeEnum.Struct)
                 Ret(retval.i32);
             else
             {
@@ -5188,8 +5206,13 @@ static if (is(BCGen))
         }
         else
         {
+            // rs.exp is null for  "return ";
+            // return ; is only legal when the return type is void
+            // so we can return a bcNull without fearing consequnces;
+
             Ret(bcNull);
         }
+
     }
 
     override void visit(CastExp ce)
