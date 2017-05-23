@@ -15681,6 +15681,14 @@ extern (C++) final class EqualExp : BinExp
         if (e1.op == TOKtype || e2.op == TOKtype)
             return incompatibleTypes();
 
+        {
+            auto t1 = e1.type;
+            auto t2 = e2.type;
+            if (t1.ty == Tenum && t2.ty == Tenum && !t1.equivalent(t2))
+                deprecation("Comparison between different enumeration types `%s` and `%s`; If this behavior is intended consider using `std.conv.asOriginalType`",
+                    t1.toChars(), t2.toChars());
+        }
+
         /* Before checking for operator overloading, check to see if we're
          * comparing the addresses of two statics. If so, we can just see
          * if they are the same symbol.
