@@ -356,6 +356,7 @@ Msgtable[] msgtable =
     { "getAliasThis" },
     { "getAttributes" },
     { "getFunctionAttributes" },
+    { "getLinkage" },
     { "getUnitTests" },
     { "getVirtualIndex" },
     { "getPointerBitmap" },
