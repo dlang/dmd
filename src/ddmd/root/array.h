@@ -148,8 +148,8 @@ struct Array
     #endif
             Array_sort_compare(const void *x, const void *y)
             {
-                RootObject *ox = *(RootObject **)x;
-                RootObject *oy = *(RootObject **)y;
+                RootObject *ox = *(RootObject **)const_cast<void *>(x);
+                RootObject *oy = *(RootObject **)const_cast<void *>(y);
 
                 return ox->compare(oy);
             }

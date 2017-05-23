@@ -53,7 +53,6 @@ class UnitTestDeclaration;
 class NewDeclaration;
 class VarDeclaration;
 class AttribDeclaration;
-struct Symbol;
 class Package;
 class Module;
 class Import;
@@ -74,6 +73,11 @@ class Expression;
 class DeleteDeclaration;
 class OverloadSet;
 struct AA;
+#ifdef IN_GCC
+typedef union tree_node Symbol;
+#else
+struct Symbol;
+#endif
 
 struct Ungag
 {

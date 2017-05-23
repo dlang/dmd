@@ -758,9 +758,8 @@ private void escapeByValue(Expression e, EscapeByResults* er)
 
         override void visit(ThisExp e)
         {
-            VarDeclaration v = e.var.isVarDeclaration();
-            if (v)
-                er.byvalue.push(v);
+            if (e.var)
+                er.byvalue.push(e.var);
         }
 
         override void visit(DotVarExp e)
@@ -1034,9 +1033,8 @@ private void escapeByRef(Expression e, EscapeByResults* er)
 
         override void visit(ThisExp e)
         {
-            auto v = e.var.isVarDeclaration();
-            if (v)
-                er.byref.push(v);
+            if (e.var)
+                er.byref.push(e.var);
         }
 
         override void visit(PtrExp e)
