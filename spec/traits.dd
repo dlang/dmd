@@ -43,6 +43,7 @@ $(GNAME TraitsKeyword):
     $(GBLINK getAttributes)
     $(GBLINK getFunctionAttributes)
     $(GBLINK getFunctionVariadicStyle)
+    $(GBLINK getLinkage)
     $(GBLINK getMember)
     $(GBLINK getOverloads)
     $(GBLINK getPointerBitmap)
@@ -530,6 +531,33 @@ pragma(msg, __traits(getFunctionAttributes, S.test));
 pragma(msg, __traits(getFunctionAttributes, (int x) @trusted { return x * 2; }));
 ---
 )
+
+$(H2 $(GNAME getLinkage))
+
+	$(P Takes one argument, which is a declaration symbol, or the type of a function,
+	delegate, or pointer to function.
+	Returns a string representing the $(LINK2 attribute.html#LinkageAttribute, LinkageAttribute)
+	of the declaration.
+	The string is one of:
+	)
+
+	$(UL
+	$(LI $(D "D"))
+	$(LI $(D "C"))
+	$(LI $(D "C++"))
+	$(LI $(D "Windows"))
+	$(LI $(D "Pascal"))
+	$(LI $(D "Objective-C"))
+	$(LI $(D "System"))
+	)
+
+---
+extern (C) int fooc();
+alias aliasc = fooc;
+
+static assert(__traits(getLinkage, fooc) == "C");
+static assert(__traits(getLinkage, aliasc) == "C");
+---
 
 $(H2 $(GNAME getMember))
 
