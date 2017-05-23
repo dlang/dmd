@@ -27,3 +27,11 @@ else
 extern (C) int global;
 static assert(__traits(getLinkage, global) == "C");
 
+static assert(__traits(getLinkage, typeof(fooc)) == "C");
+static assert(__traits(getLinkage, typeof(&fooc)) == "C");
+
+void bar()
+{
+    void nested() { }
+    static assert(__traits(getLinkage, typeof(&nested)) == "D");
+}
