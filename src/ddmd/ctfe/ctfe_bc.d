@@ -4041,7 +4041,7 @@ static if (is(BCGen))
         }
 
         auto bct = toBCType(ie.type);
-        if (bct.type != BCTypeEnum.i32 && bct.type != BCTypeEnum.i64 && bct.type != BCTypeEnum.c8 && 
+        if (bct.type != BCTypeEnum.i32 && bct.type != BCTypeEnum.i64 && bct.type != BCTypeEnum.c8 &&
             bct.type != BCTypeEnum.c32)
         {
             //NOTE this can happen with cast(char*)size_t.max for example
