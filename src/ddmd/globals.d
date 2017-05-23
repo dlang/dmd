@@ -23,7 +23,7 @@ template xversion(string s)
     enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();
 }
 
-enum IN_GCC     = xversion!`IN_GCC`;
+enum IN_GCC     = xversion!`IN_GCC`;  // %%
 
 enum TARGET_LINUX   = xversion!`linux`;
 enum TARGET_OSX     = xversion!`OSX`;

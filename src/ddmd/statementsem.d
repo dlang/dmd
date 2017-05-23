@@ -3572,7 +3572,7 @@ else
 
     override void visit(OnScopeStatement oss)
     {
-        static if (!IN_GCC)
+        static if (!IN_GCC) // %%
         {
             if (oss.tok != TOKon_scope_exit)
             {
@@ -3591,7 +3591,7 @@ else
                     return setError();
                 }
             }
-        }
+        }   // %%
 
         sc = sc.push();
         sc.tf = null;
@@ -3855,7 +3855,7 @@ void semantic(Catch c, Scope* sc)
 {
     //printf("Catch::semantic(%s)\n", ident.toChars());
 
-    static if (!IN_GCC)
+    static if (!IN_GCC) // %%
     {
         if (sc.os && sc.os.tok != TOKon_scope_failure)
         {
@@ -3874,7 +3874,7 @@ void semantic(Catch c, Scope* sc)
             error(c.loc, "cannot put catch statement inside finally block");
             c.errors = true;
         }
-    }
+    }   // %%
 
     auto sym = new ScopeDsymbol();
     sym.parent = sc.scopesym;

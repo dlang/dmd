@@ -40,11 +40,11 @@ class TypeBasic;
 class Parameter;
 
 // Back end
-#ifdef IN_GCC
+#ifdef IN_GCC   // %%
 typedef union tree_node type;
-#else
+#else   // %%
 typedef struct TYPE type;
-#endif
+#endif  // %%
 
 void semanticTypeInfo(Scope *sc, Type *t);
 MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL, size_t inferStart = 0);

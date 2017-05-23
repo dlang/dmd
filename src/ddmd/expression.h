@@ -49,11 +49,11 @@ class StringExp;
 class ArrayExp;
 class SliceExp;
 struct UnionExp;
-#ifdef IN_GCC
+#ifdef IN_GCC	// %%
 typedef union tree_node Symbol;
-#else
+#else	// %%
 struct Symbol;          // back end symbol
-#endif
+#endif	// %%
 
 Expression *resolveProperties(Scope *sc, Expression *e);
 Expression *resolvePropertiesOnly(Scope *sc, Expression *e1);

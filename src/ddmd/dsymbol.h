@@ -75,11 +75,11 @@ class Expression;
 class DeleteDeclaration;
 class OverloadSet;
 struct AA;
-#ifdef IN_GCC
+#ifdef IN_GCC	// %%
 typedef union tree_node Symbol;
-#else
+#else	// %%
 struct Symbol;
-#endif
+#endif	// %%
 
 struct Ungag
 {
