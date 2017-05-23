@@ -17,8 +17,8 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 
 import std.conv : to;
 
-enum perf = 1;
-enum bailoutMessages = 1;
+enum perf = 0;
+enum bailoutMessages = 0;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -1379,9 +1379,9 @@ extern (C++) final class BCTypeVisitor : Visitor
                 assert(0, "This should never happen");
             }
             auto sd = (cast(TypeStruct) t).sym;
-            auto result = BCType(BCTypeEnum.Struct, _sharedCtfeState.getStructIndex(sd));
+            uint structIndex = _sharedCtfeState.getStructIndex(sd);
             topLevelAggregate = typeof(topLevelAggregate).init;
-            return result;
+            return structIndex ? BCType(BCTypeEnum.Struct, structIndex) : BCType.init;
         }
         else if (t.ty == Tarray)
         {
@@ -1452,7 +1452,7 @@ extern (C++) final class BCTypeVisitor : Visitor
                     uint value;
                     if(auto initExp = sMember._init.toExpression)
                     {
-                        if (initExp.type.ty == Tint32 || initExp.type.ty == Tuns32)
+                        if (initExp.type && (initExp.type.ty == Tint32 || initExp.type.ty == Tuns32))
                         {
                             auto initExpr = cast(IntegerExp) initExp;
                             value = cast (uint) initExpr.value;
@@ -2017,7 +2017,7 @@ public:
             import std.stdio;
         }
         auto oldRetval = retval;
-        import std.stdio; writeln("Calling genExpr from: ", line, debugMessage ? " \"" ~ debugMessage ~ "\"" : ""); //DEBUGLINE
+        // import std.stdio; writeln("Calling genExpr from: ", line, debugMessage ? " \"" ~ debugMessage ~ "\"" : ""); //DEBUGLINE
 
         if (processingArguments)
         {
@@ -3344,6 +3344,9 @@ static if (is(BCGen))
             retval = BCValue(HeapAddr(heap.heapSize));
             heap.heapSize += size;
         }
+        auto rv_stackValue = retval.i32;
+        rv_stackValue.vType = BCValueType.StackValue;
+        MemCpyConst(rv_stackValue, _sharedCtfeState.initializer(BCType(BCTypeEnum.Struct, idx)));
 
         uint offset = 0;
         BCValue fieldAddr = genTemporary(i32Type);
@@ -3356,8 +3359,8 @@ static if (is(BCGen))
             }
             /*
             if (elexpr.type != BCTypeEnum.i32
-                    && (elexpr.vType != BCValueType.Immediate
-                    || elexpr.vType != BCValueType.StackValue))
+                && (elexpr.vType != BCValueType.Immediate
+                || elexpr.vType != BCValueType.StackValue))
             {
                 bailout("StructLiteralExp-Element " ~ elexpr.type.type.to!string
                         ~ " is currently not handeled");
@@ -3385,8 +3388,8 @@ static if (is(BCGen))
     override void visit(DollarExp de)
     {
         if (currentIndexed.type == BCTypeEnum.Array
-                || currentIndexed.type == BCTypeEnum.Slice
-                || currentIndexed.type == BCTypeEnum.String)
+            || currentIndexed.type == BCTypeEnum.Slice
+            || currentIndexed.type == BCTypeEnum.String)
         {
             retval = getLength(currentIndexed);
             assert(retval);
@@ -3774,6 +3777,11 @@ static if (is(BCGen))
 
         visit(vd);
         auto var = retval;
+        if (!var)
+        {
+            bailout("var for Declarartion could not be generated -- " ~ de.toString);
+            return ;
+        }
         debug (ctfe)
         {
             import std.stdio;
@@ -3833,6 +3841,11 @@ static if (is(BCGen))
 
         BCValue var;
         BCType type = toBCType(vd.type);
+        if (!type)
+        {
+            bailout("could not get type for:" ~ vd.toString);
+            return ;
+        }
         bool refParam;
         if (processingParameters)
         {
@@ -4029,7 +4042,8 @@ static if (is(BCGen))
         }
 
         auto bct = toBCType(ie.type);
-        if (bct.type != BCTypeEnum.i32 && bct.type != BCTypeEnum.i64 && bct.type != BCTypeEnum.c8)
+        if (bct.type != BCTypeEnum.i32 && bct.type != BCTypeEnum.i64 && bct.type != BCTypeEnum.c8 &&
+            bct.type != BCTypeEnum.c32)
         {
             //NOTE this can happen with cast(char*)size_t.max for example
             bailout("We don't support IntegerExpressions with non-integer types: " ~ to!string(bct.type));
@@ -4236,7 +4250,7 @@ static if (is(BCGen))
 
         }
         else if (lhs.type.type == BCTypeEnum.String
-                || lhs.type.type == BCTypeEnum.Slice || lhs.type.type.Array)
+            || lhs.type.type == BCTypeEnum.Slice || lhs.type.type.Array)
         {
 
         }
@@ -4549,7 +4563,9 @@ static if (is(BCGen))
                     }
                     // HACK allocate space for struct if structPtr is zero
                     auto structZeroJmp = beginCndJmp(lhs.i32, true);
-                    Alloc(lhs.i32, imm32(_sharedCtfeState.size(lhs.type)));
+                    auto structSize = _sharedCtfeState.size(lhs.type);
+                    Alloc(lhs.i32, imm32(structSize));
+                    MemCpyConst(lhs.i32, _sharedCtfeState.initializer(lhs.type));
                     endCndJmp(structZeroJmp, genLabel());
                 }
                 else
@@ -5178,8 +5194,9 @@ static if (is(BCGen))
                 bailout("could not gen returnValue: " ~ rs.exp.toString);
                 return ;
             }
-            if (retval.type == BCTypeEnum.i32 || retval.type == BCTypeEnum.Slice
-                    || retval.type == BCTypeEnum.Array || retval.type == BCTypeEnum.String || retval.type == BCTypeEnum.Struct)
+            if (retval.type.type == BCTypeEnum.i32 || retval.type.type == BCTypeEnum.Slice || retval.type.type == BCTypeEnum.c8 ||
+                retval.type.type == BCTypeEnum.c32 || retval.type.type == BCTypeEnum.Array || retval.type.type == BCTypeEnum.String ||
+                retval.type.type == BCTypeEnum.Struct)
                 Ret(retval.i32);
             else
             {
