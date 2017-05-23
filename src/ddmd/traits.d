@@ -96,6 +96,7 @@ static this()
         "getAliasThis",
         "getAttributes",
         "getFunctionAttributes",
+        "getFunctionVariadicStyle",
         "getUnitTests",
         "getVirtualIndex",
         "getPointerBitmap",
@@ -910,6 +911,62 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 
         auto tup = new TupleExp(e.loc, mods);
         return tup.semantic(sc);
+    }
+    if (e.ident == Id.getFunctionVariadicStyle)
+    {
+        /* Accept a symbol or a type. Returns one of the following:
+         *  "none"      not a variadic function
+         *  "argptr"    extern(D) void dstyle(...), use `__argptr` and `__arguments`
+         *  "stdarg"    extern(C) void cstyle(int, ...), use core.stdc.stdarg
+         *  "typesafe"  void typesafe(T[] ...)
+         */
+        // get symbol linkage as a string
+        if (dim != 1)
+            return dimError(1);
+
+        LINK link;
+        int varargs;
+        auto o = (*e.args)[0];
+        auto t = isType(o);
+        TypeFunction tf = null;
+        if (t)
+        {
+            if (t.ty == Tfunction)
+                tf = cast(TypeFunction)t;
+            else if (t.ty == Tdelegate)
+                tf = cast(TypeFunction)t.nextOf();
+            else if (t.ty == Tpointer && t.nextOf().ty == Tfunction)
+                tf = cast(TypeFunction)t.nextOf();
+        }
+        if (tf)
+        {
+            link = tf.linkage;
+            varargs = tf.varargs;
+        }
+        else
+        {
+            auto s = getDsymbol(o);
+            FuncDeclaration fd;
+            if (!s || (fd = s.isFuncDeclaration()) is null)
+            {
+                e.error("argument to `__traits(getFunctionVariadicStyle, %s)` is not a function", o.toChars());
+                return new ErrorExp();
+            }
+            link = fd.linkage;
+            fd.getParameters(&varargs);
+        }
+        string style;
+        switch (varargs)
+        {
+            case 0: style = "none";                       break;
+            case 1: style = (link == LINK.d) ? "argptr"
+                                             : "stdarg";  break;
+            case 2:     style = "typesafe";               break;
+            default:
+                assert(0);
+        }
+        auto se = new StringExp(e.loc, cast(char*)style);
+        return se.semantic(sc);
     }
     if (e.ident == Id.getLinkage)
     {
