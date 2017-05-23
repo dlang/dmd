@@ -917,27 +917,34 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (dim != 1)
             return dimError(1);
 
+        LINK link;
         auto o = (*e.args)[0];
-        auto s = getDsymbol(o);
-        Declaration d;
-        if (!s || (d = s.isDeclaration()) is null)
+        auto t = isType(o);
+        TypeFunction tf = null;
+        if (t)
         {
-            e.error("argument to `__traits(getLinkage, %s)` is not a declaration", o.toChars());
-            return new ErrorExp();
+            if (t.ty == Tfunction)
+                tf = cast(TypeFunction)t;
+            else if (t.ty == Tdelegate)
+                tf = cast(TypeFunction)t.nextOf();
+            else if (t.ty == Tpointer && t.nextOf().ty == Tfunction)
+                tf = cast(TypeFunction)t.nextOf();
         }
-        string linkage;
-        switch (d.linkage)
+        if (tf)
+            link = tf.linkage;
+        else
         {
-            case LINK.d:        linkage = "D";           break;
-            case LINK.c:        linkage = "C";           break;
-            case LINK.cpp:      linkage = "C++";         break;
-            case LINK.windows:  linkage = "Windows";     break;
-            case LINK.pascal:   linkage = "Pascal";      break;
-            case LINK.objc:     linkage = "Objective-C"; break;
-            case LINK.system:   linkage = "System";      break;
-            default: assert(0);
+            auto s = getDsymbol(o);
+            Declaration d;
+            if (!s || (d = s.isDeclaration()) is null)
+            {
+                e.error("argument to `__traits(getLinkage, %s)` is not a declaration", o.toChars());
+                return new ErrorExp();
+            }
+            link = d.linkage;
         }
-        auto se = new StringExp(e.loc, cast(char*)linkage.ptr);
+        auto linkage = linkageToChars(link);
+        auto se = new StringExp(e.loc, cast(char*)linkage);
         return se.semantic(sc);
     }
     if (e.ident == Id.allMembers ||
