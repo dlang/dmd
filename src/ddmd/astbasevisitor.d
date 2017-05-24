@@ -2,2154 +2,1070 @@ module ddmd.astbasevisitor;
 
 import ddmd.astbase;
 
-class Visitor(AST)
+class Visitor
 {
-    void visit(AST.Dsymbol)
+    void visit(ASTBase.Dsymbol)
     {
         assert(0);
     }
 
-    void visit(AST.AliasThis s)
+    void visit(ASTBase.AliasThis s)
     {
-        visit(cast(AST.Dsymbol)s);
+        visit(cast(ASTBase.Dsymbol)s);
     }
 
-    void visit(AST.Declaration s)
+    void visit(ASTBase.Declaration s)
     {
-        visit(cast(AST.Dsymbol)s);
+        visit(cast(ASTBase.Dsymbol)s);
     }
 
-    void visit(AST.ScopeDsymbol s)
+    void visit(ASTBase.ScopeDsymbol s)
     {
-        visit(cast(AST.Dsymbol)s);
+        visit(cast(ASTBase.Dsymbol)s);
     }
 
-    void visit(AST.Import s)
+    void visit(ASTBase.Import s)
     {
-        visit(cast(AST.Dsymbol)s);
+        visit(cast(ASTBase.Dsymbol)s);
     }
 
-    void visit(AST.AttribDeclaration s)
+    void visit(ASTBase.AttribDeclaration s)
     {
-        visit(cast(AST.Dsymbol)s);
+        visit(cast(ASTBase.Dsymbol)s);
     }
 
-    void visit(AST.StaticAssert s)
+    void visit(ASTBase.StaticAssert s)
     {
-        visit(cast(AST.Dsymbol)s);
+        visit(cast(ASTBase.Dsymbol)s);
     }
 
-    void visit(AST.DebugSymbol s)
+    void visit(ASTBase.DebugSymbol s)
     {
-        visit(cast(AST.Dsymbol)s);
+        visit(cast(ASTBase.Dsymbol)s);
     }
 
-    void visit(AST.VersionSymbol s)
+    void visit(ASTBase.VersionSymbol s)
     {
-        visit(cast(AST.Dsymbol)s);
+        visit(cast(ASTBase.Dsymbol)s);
     }
 
-    void visit(AST.VarDeclaration s)
+    void visit(ASTBase.VarDeclaration s)
     {
-        visit(cast(AST.Declaration)s);
+        visit(cast(ASTBase.Declaration)s);
     }
 
-    void visit(AST.FuncDeclaration s)
+    void visit(ASTBase.FuncDeclaration s)
     {
-        visit(cast(AST.Declaration)s);
+        visit(cast(ASTBase.Declaration)s);
     }
 
-    void visit(AST.AliasDeclaration s)
+    void visit(ASTBase.AliasDeclaration s)
     {
-        visit(cast(AST.Declaration)s);
+        visit(cast(ASTBase.Declaration)s);
     }
 
-    void visit(AST.TupleDeclaration s)
+    void visit(ASTBase.TupleDeclaration s)
     {
-        visit(cast(AST.Declaration)s);
+        visit(cast(ASTBase.Declaration)s);
     }
 
-    void visit(AST.FuncLiteralDeclaration s)
+    void visit(ASTBase.FuncLiteralDeclaration s)
     {
-        visit(cast(AST.FuncDeclaration)s);
+        visit(cast(ASTBase.FuncDeclaration)s);
     }
 
-    void visit(AST.PostBlitDeclaration s)
+    void visit(ASTBase.PostBlitDeclaration s)
     {
-        visit(cast(AST.FuncDeclaration)s);
+        visit(cast(ASTBase.FuncDeclaration)s);
     }
 
-    void visit(AST.CtorDeclaration s)
+    void visit(ASTBase.CtorDeclaration s)
     {
-        visit(cast(AST.FuncDeclaration)s);
+        visit(cast(ASTBase.FuncDeclaration)s);
     }
 
-    void visit(AST.DtorDeclaration s)
+    void visit(ASTBase.DtorDeclaration s)
     {
-        visit(cast(AST.FuncDeclaration)s);
+        visit(cast(ASTBase.FuncDeclaration)s);
     }
 
-    void visit(AST.InvariantDeclaration s)
+    void visit(ASTBase.InvariantDeclaration s)
     {
-        visit(cast(AST.FuncDeclaration)s);
+        visit(cast(ASTBase.FuncDeclaration)s);
     }
 
-    void visit(AST.UnitTestDeclaration s)
+    void visit(ASTBase.UnitTestDeclaration s)
     {
-        visit(cast(AST.FuncDeclaration)s);
+        visit(cast(ASTBase.FuncDeclaration)s);
     }
 
-    void visit(AST.NewDeclaration s)
+    void visit(ASTBase.NewDeclaration s)
     {
-        visit(cast(AST.FuncDeclaration)s);
+        visit(cast(ASTBase.FuncDeclaration)s);
     }
 
-    void visit(AST.DeleteDeclaration s)
+    void visit(ASTBase.DeleteDeclaration s)
     {
-        visit(cast(AST.FuncDeclaration)s);
+        visit(cast(ASTBase.FuncDeclaration)s);
     }
 
-    void visit(AST.StaticCtorDeclaration s)
+    void visit(ASTBase.StaticCtorDeclaration s)
     {
-        visit(cast(AST.FuncDeclaration)s);
+        visit(cast(ASTBase.FuncDeclaration)s);
     }
 
-    void visit(AST.StaticDtorDeclaration s)
+    void visit(ASTBase.StaticDtorDeclaration s)
     {
-        visit(cast(AST.FuncDeclaration)s);
+        visit(cast(ASTBase.FuncDeclaration)s);
     }
 
-    void visit(AST.SharedStaticCtorDeclaration s)
+    void visit(ASTBase.SharedStaticCtorDeclaration s)
     {
-        visit(cast(AST.FuncDeclaration)s);
+        visit(cast(ASTBase.FuncDeclaration)s);
     }
 
-    void visit(AST.SharedStaticDtorDeclaration s)
+    void visit(ASTBase.SharedStaticDtorDeclaration s)
     {
-        visit(cast(AST.FuncDeclaration)s);
+        visit(cast(ASTBase.FuncDeclaration)s);
     }
 
-    void visit(AST.Package s)
+    void visit(ASTBase.Package s)
     {
-        visit(cast(AST.ScopeDsymbol)s);
+        visit(cast(ASTBase.ScopeDsymbol)s);
     }
 
-    void visit(AST.EnumDeclaration s)
+    void visit(ASTBase.EnumDeclaration s)
     {
-        visit(cast(AST.ScopeDsymbol)s);
+        visit(cast(ASTBase.ScopeDsymbol)s);
     }
 
-    void visit(AST.AggregateDeclaration s)
+    void visit(ASTBase.AggregateDeclaration s)
     {
-        visit(cast(AST.ScopeDsymbol)s);
+        visit(cast(ASTBase.ScopeDsymbol)s);
     }
 
-    void visit(AST.TemplateDeclaration s)
+    void visit(ASTBase.TemplateDeclaration s)
     {
-        visit(cast(AST.ScopeDsymbol)s);
+        visit(cast(ASTBase.ScopeDsymbol)s);
     }
 
-    void visit(AST.TemplateInstance s)
+    void visit(ASTBase.TemplateInstance s)
     {
-        visit(cast(AST.ScopeDsymbol)s);
+        visit(cast(ASTBase.ScopeDsymbol)s);
     }
 
-    void visit(AST.Nspace s)
+    void visit(ASTBase.Nspace s)
     {
-        visit(cast(AST.ScopeDsymbol)s);
+        visit(cast(ASTBase.ScopeDsymbol)s);
     }
 
-    void visit(AST.CompileDeclaration s)
+    void visit(ASTBase.CompileDeclaration s)
     {
-        visit(cast(AST.AttribDeclaration)s);
+        visit(cast(ASTBase.AttribDeclaration)s);
     }
 
-    void visit(AST.UserAttributeDeclaration s)
+    void visit(ASTBase.UserAttributeDeclaration s)
     {
-        visit(cast(AST.AttribDeclaration)s);
+        visit(cast(ASTBase.AttribDeclaration)s);
     }
 
-    void visit(AST.LinkDeclaration s)
+    void visit(ASTBase.LinkDeclaration s)
     {
-        visit(cast(AST.AttribDeclaration)s);
+        visit(cast(ASTBase.AttribDeclaration)s);
     }
 
-    void visit(AST.AnonDeclaration s)
+    void visit(ASTBase.AnonDeclaration s)
     {
-        visit(cast(AST.AttribDeclaration)s);
+        visit(cast(ASTBase.AttribDeclaration)s);
     }
 
-    void visit(AST.AlignDeclaration s)
+    void visit(ASTBase.AlignDeclaration s)
     {
-        visit(cast(AST.AttribDeclaration)s);
+        visit(cast(ASTBase.AttribDeclaration)s);
     }
 
-    void visit(AST.CPPMangleDeclaration s)
+    void visit(ASTBase.CPPMangleDeclaration s)
     {
-        visit(cast(AST.AttribDeclaration)s);
+        visit(cast(ASTBase.AttribDeclaration)s);
     }
 
-    void visit(AST.ProtDeclaration s)
+    void visit(ASTBase.ProtDeclaration s)
     {
-        visit(cast(AST.AttribDeclaration)s);
+        visit(cast(ASTBase.AttribDeclaration)s);
     }
 
-    void visit(AST.PragmaDeclaration s)
+    void visit(ASTBase.PragmaDeclaration s)
     {
-        visit(cast(AST.AttribDeclaration)s);
+        visit(cast(ASTBase.AttribDeclaration)s);
     }
 
-    void visit(AST.StorageClassDeclaration s)
+    void visit(ASTBase.StorageClassDeclaration s)
     {
-        visit(cast(AST.AttribDeclaration)s);
+        visit(cast(ASTBase.AttribDeclaration)s);
     }
 
-    void visit(AST.ConditionalDeclaration s)
+    void visit(ASTBase.ConditionalDeclaration s)
     {
-        visit(cast(AST.AttribDeclaration)s);
+        visit(cast(ASTBase.AttribDeclaration)s);
     }
 
-    void visit(AST.DeprecatedDeclaration s)
+    void visit(ASTBase.DeprecatedDeclaration s)
     {
-        visit(cast(AST.StorageClassDeclaration)s);
+        visit(cast(ASTBase.StorageClassDeclaration)s);
     }
 
-    void visit(AST.StaticIfDeclaration s)
+    void visit(ASTBase.StaticIfDeclaration s)
     {
-        visit(cast(AST.ConditionalDeclaration)s);
+        visit(cast(ASTBase.ConditionalDeclaration)s);
     }
 
-    void visit(AST.EnumMember s)
+    void visit(ASTBase.EnumMember s)
     {
-        visit(cast(AST.VarDeclaration)s);
+        visit(cast(ASTBase.VarDeclaration)s);
     }
 
-    void visit(AST.Module s)
+    void visit(ASTBase.Module s)
     {
-        visit(cast(AST.Package)s);
+        visit(cast(ASTBase.Package)s);
     }
 
-    void visit(AST.StructDeclaration s)
+    void visit(ASTBase.StructDeclaration s)
     {
-        visit(cast(AST.AggregateDeclaration)s);
+        visit(cast(ASTBase.AggregateDeclaration)s);
     }
 
-    void visit(AST.UnionDeclaration s)
+    void visit(ASTBase.UnionDeclaration s)
     {
-        visit(cast(AST.StructDeclaration)s);
+        visit(cast(ASTBase.StructDeclaration)s);
     }
 
-    void visit(AST.ClassDeclaration s)
+    void visit(ASTBase.ClassDeclaration s)
     {
-        visit(cast(AST.AggregateDeclaration)s);
+        visit(cast(ASTBase.AggregateDeclaration)s);
     }
 
-    void visit(AST.InterfaceDeclaration s)
+    void visit(ASTBase.InterfaceDeclaration s)
     {
-        visit(cast(AST.ClassDeclaration)s);
+        visit(cast(ASTBase.ClassDeclaration)s);
     }
 
-    void visit(AST.TemplateMixin s)
+    void visit(ASTBase.TemplateMixin s)
     {
-        visit(cast(AST.TemplateInstance)s);
+        visit(cast(ASTBase.TemplateInstance)s);
     }
 
-    void visit(AST.Parameter)
+    void visit(ASTBase.Parameter)
     {
         assert(0);
     }
 
-    void visit(AST.Statement)
+    void visit(ASTBase.Statement)
     {
         assert(0);
     }
 
-    void visit(AST.ImportStatement s)
+    void visit(ASTBase.ImportStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.ScopeStatement s)
+    void visit(ASTBase.ScopeStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.ReturnStatement s)
+    void visit(ASTBase.ReturnStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.LabelStatement s)
+    void visit(ASTBase.LabelStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.StaticAssertStatement s)
+    void visit(ASTBase.StaticAssertStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.CompileStatement s)
+    void visit(ASTBase.CompileStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.WhileStatement s)
+    void visit(ASTBase.WhileStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.ForStatement s)
+    void visit(ASTBase.ForStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.DoStatement s)
+    void visit(ASTBase.DoStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.ForeachRangeStatement s)
+    void visit(ASTBase.ForeachRangeStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.ForeachStatement s)
+    void visit(ASTBase.ForeachStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.IfStatement s)
+    void visit(ASTBase.IfStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.OnScopeStatement s)
+    void visit(ASTBase.OnScopeStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.ConditionalStatement s)
+    void visit(ASTBase.ConditionalStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.PragmaStatement s)
+    void visit(ASTBase.PragmaStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.SwitchStatement s)
+    void visit(ASTBase.SwitchStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.CaseRangeStatement s)
+    void visit(ASTBase.CaseRangeStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.CaseStatement s)
+    void visit(ASTBase.CaseStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.DefaultStatement s)
+    void visit(ASTBase.DefaultStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.BreakStatement s)
+    void visit(ASTBase.BreakStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.ContinueStatement s)
+    void visit(ASTBase.ContinueStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.GotoDefaultStatement s)
+    void visit(ASTBase.GotoDefaultStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.GotoCaseStatement s)
+    void visit(ASTBase.GotoCaseStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.GotoStatement s)
+    void visit(ASTBase.GotoStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.SynchronizedStatement s)
+    void visit(ASTBase.SynchronizedStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.WithStatement s)
+    void visit(ASTBase.WithStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.TryCatchStatement s)
+    void visit(ASTBase.TryCatchStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.TryFinallyStatement s)
+    void visit(ASTBase.TryFinallyStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.ThrowStatement s)
+    void visit(ASTBase.ThrowStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.AsmStatement s)
+    void visit(ASTBase.AsmStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.ExpStatement s)
+    void visit(ASTBase.ExpStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.CompoundStatement s)
+    void visit(ASTBase.CompoundStatement s)
     {
-        visit(cast(AST.Statement)s);
+        visit(cast(ASTBase.Statement)s);
     }
 
-    void visit(AST.CompoundDeclarationStatement s)
+    void visit(ASTBase.CompoundDeclarationStatement s)
     {
-        visit(cast(AST.CompoundStatement)s);
+        visit(cast(ASTBase.CompoundStatement)s);
     }
 
-    void visit(AST.CompoundAsmStatement s)
+    void visit(ASTBase.CompoundAsmStatement s)
     {
-        visit(cast(AST.CompoundStatement)s);
+        visit(cast(ASTBase.CompoundStatement)s);
     }
 
-    void visit(AST.Type)
+    void visit(ASTBase.Type)
     {
         assert(0);
     }
 
-    void visit(AST.TypeBasic t)
+    void visit(ASTBase.TypeBasic t)
     {
-        visit(cast(AST.Type)t);
+        visit(cast(ASTBase.Type)t);
     }
 
-    void visit(AST.TypeError t)
+    void visit(ASTBase.TypeError t)
     {
-        visit(cast(AST.Type)t);
+        visit(cast(ASTBase.Type)t);
     }
 
-    void visit(AST.TypeNull t)
+    void visit(ASTBase.TypeNull t)
     {
-        visit(cast(AST.Type)t);
+        visit(cast(ASTBase.Type)t);
     }
 
-    void visit(AST.TypeVector t)
+    void visit(ASTBase.TypeVector t)
     {
-        visit(cast(AST.Type)t);
+        visit(cast(ASTBase.Type)t);
     }
 
-    void visit(AST.TypeEnum t)
+    void visit(ASTBase.TypeEnum t)
     {
-        visit(cast(AST.Type)t);
+        visit(cast(ASTBase.Type)t);
     }
 
-    void visit(AST.TypeTuple t)
+    void visit(ASTBase.TypeTuple t)
     {
-        visit(cast(AST.Type)t);
+        visit(cast(ASTBase.Type)t);
     }
 
-    void visit(AST.TypeClass t)
+    void visit(ASTBase.TypeClass t)
     {
-        visit(cast(AST.Type)t);
+        visit(cast(ASTBase.Type)t);
     }
 
-    void visit(AST.TypeStruct t)
+    void visit(ASTBase.TypeStruct t)
     {
-        visit(cast(AST.Type)t);
+        visit(cast(ASTBase.Type)t);
     }
 
-    void visit(AST.TypeNext t)
+    void visit(ASTBase.TypeNext t)
     {
-        visit(cast(AST.Type)t);
+        visit(cast(ASTBase.Type)t);
     }
 
-    void visit(AST.TypeReference t)
+    void visit(ASTBase.TypeReference t)
     {
-        visit(cast(AST.TypeNext)t);
+        visit(cast(ASTBase.TypeNext)t);
     }
 
-    void visit(AST.TypeSlice t)
+    void visit(ASTBase.TypeSlice t)
     {
-        visit(cast(AST.TypeNext)t);
+        visit(cast(ASTBase.TypeNext)t);
     }
 
-    void visit(AST.TypeDelegate t)
+    void visit(ASTBase.TypeDelegate t)
     {
-        visit(cast(AST.TypeNext)t);
+        visit(cast(ASTBase.TypeNext)t);
     }
 
-    void visit(AST.TypePointer t)
+    void visit(ASTBase.TypePointer t)
     {
-        visit(cast(AST.TypeNext)t);
+        visit(cast(ASTBase.TypeNext)t);
     }
 
-    void visit(AST.TypeFunction t)
+    void visit(ASTBase.TypeFunction t)
     {
-        visit(cast(AST.TypeNext)t);
+        visit(cast(ASTBase.TypeNext)t);
     }
 
-    void visit(AST.TypeArray t)
+    void visit(ASTBase.TypeArray t)
     {
-        visit(cast(AST.TypeNext)t);
+        visit(cast(ASTBase.TypeNext)t);
     }
 
-    void visit(AST.TypeDArray t)
+    void visit(ASTBase.TypeDArray t)
     {
-        visit(cast(AST.TypeArray)t);
+        visit(cast(ASTBase.TypeArray)t);
     }
 
-    void visit(AST.TypeAArray t)
+    void visit(ASTBase.TypeAArray t)
     {
-        visit(cast(AST.TypeArray)t);
+        visit(cast(ASTBase.TypeArray)t);
     }
 
-    void visit(AST.TypeSArray t)
+    void visit(ASTBase.TypeSArray t)
     {
-        visit(cast(AST.TypeArray)t);
+        visit(cast(ASTBase.TypeArray)t);
     }
 
-    void visit(AST.TypeQualified t)
+    void visit(ASTBase.TypeQualified t)
     {
-        visit(cast(AST.Type)t);
+        visit(cast(ASTBase.Type)t);
     }
 
-    void visit(AST.TypeIdentifier t)
+    void visit(ASTBase.TypeIdentifier t)
     {
-        visit(cast(AST.TypeQualified)t);
+        visit(cast(ASTBase.TypeQualified)t);
     }
 
-    void visit(AST.TypeReturn t)
+    void visit(ASTBase.TypeReturn t)
     {
-        visit(cast(AST.TypeQualified)t);
+        visit(cast(ASTBase.TypeQualified)t);
     }
 
-    void visit(AST.TypeTypeof t)
+    void visit(ASTBase.TypeTypeof t)
     {
-        visit(cast(AST.TypeQualified)t);
+        visit(cast(ASTBase.TypeQualified)t);
     }
 
-    void visit(AST.TypeInstance t)
+    void visit(ASTBase.TypeInstance t)
     {
-        visit(cast(AST.TypeQualified)t);
+        visit(cast(ASTBase.TypeQualified)t);
     }
 
-    void visit(AST.Expression e)
+    void visit(ASTBase.Expression e)
     {
         assert(0);
     }
 
-    void visit(AST.DeclarationExp e)
+    void visit(ASTBase.DeclarationExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.IntegerExp e)
+    void visit(ASTBase.IntegerExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.NewAnonClassExp e)
+    void visit(ASTBase.NewAnonClassExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.IsExp e)
+    void visit(ASTBase.IsExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.RealExp e)
+    void visit(ASTBase.RealExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.NullExp e)
+    void visit(ASTBase.NullExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.TypeidExp e)
+    void visit(ASTBase.TypeidExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.TraitsExp e)
+    void visit(ASTBase.TraitsExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.StringExp e)
+    void visit(ASTBase.StringExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.NewExp e)
+    void visit(ASTBase.NewExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.AssocArrayLiteralExp e)
+    void visit(ASTBase.AssocArrayLiteralExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.ArrayLiteralExp e)
+    void visit(ASTBase.ArrayLiteralExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.FuncExp e)
+    void visit(ASTBase.FuncExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.IntervalExp e)
+    void visit(ASTBase.IntervalExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.TypeExp e)
+    void visit(ASTBase.TypeExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.ScopeExp e)
+    void visit(ASTBase.ScopeExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.IdentifierExp e)
+    void visit(ASTBase.IdentifierExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.UnaExp e)
+    void visit(ASTBase.UnaExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.DefaultInitExp e)
+    void visit(ASTBase.DefaultInitExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.BinExp e)
+    void visit(ASTBase.BinExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.DsymbolExp e)
+    void visit(ASTBase.DsymbolExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.TemplateExp e)
+    void visit(ASTBase.TemplateExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.SymbolExp e)
+    void visit(ASTBase.SymbolExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.VarExp e)
+    void visit(ASTBase.VarExp e)
     {
-        visit(cast(AST.SymbolExp)e);
+        visit(cast(ASTBase.SymbolExp)e);
     }
 
-    void visit(AST.TupleExp e)
+    void visit(ASTBase.TupleExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.DollarExp e)
+    void visit(ASTBase.DollarExp e)
     {
-        visit(cast(AST.IdentifierExp)e);
+        visit(cast(ASTBase.IdentifierExp)e);
     }
 
-    void visit(AST.ThisExp e)
+    void visit(ASTBase.ThisExp e)
     {
-        visit(cast(AST.Expression)e);
+        visit(cast(ASTBase.Expression)e);
     }
 
-    void visit(AST.SuperExp e)
+    void visit(ASTBase.SuperExp e)
     {
-        visit(cast(AST.ThisExp)e);
+        visit(cast(ASTBase.ThisExp)e);
     }
 
-    void visit(AST.AddrExp e)
+    void visit(ASTBase.AddrExp e)
     {
-        visit(cast(AST.UnaExp)e);
+        visit(cast(ASTBase.UnaExp)e);
     }
 
-    void visit(AST.PreExp e)
+    void visit(ASTBase.PreExp e)
     {
-        visit(cast(AST.UnaExp)e);
+        visit(cast(ASTBase.UnaExp)e);
     }
 
-    void visit(AST.PtrExp e)
+    void visit(ASTBase.PtrExp e)
     {
-        visit(cast(AST.UnaExp)e);
+        visit(cast(ASTBase.UnaExp)e);
     }
 
-    void visit(AST.NegExp e)
+    void visit(ASTBase.NegExp e)
     {
-        visit(cast(AST.UnaExp)e);
+        visit(cast(ASTBase.UnaExp)e);
     }
 
-    void visit(AST.UAddExp e)
+    void visit(ASTBase.UAddExp e)
     {
-        visit(cast(AST.UnaExp)e);
+        visit(cast(ASTBase.UnaExp)e);
     }
 
-    void visit(AST.NotExp e)
+    void visit(ASTBase.NotExp e)
     {
-        visit(cast(AST.UnaExp)e);
+        visit(cast(ASTBase.UnaExp)e);
     }
 
-    void visit(AST.ComExp e)
+    void visit(ASTBase.ComExp e)
     {
-        visit(cast(AST.UnaExp)e);
+        visit(cast(ASTBase.UnaExp)e);
     }
 
-    void visit(AST.DeleteExp e)
+    void visit(ASTBase.DeleteExp e)
     {
-        visit(cast(AST.UnaExp)e);
+        visit(cast(ASTBase.UnaExp)e);
     }
 
-    void visit(AST.CastExp e)
+    void visit(ASTBase.CastExp e)
     {
-        visit(cast(AST.UnaExp)e);
+        visit(cast(ASTBase.UnaExp)e);
     }
 
-    void visit(AST.CallExp e)
+    void visit(ASTBase.CallExp e)
     {
-        visit(cast(AST.UnaExp)e);
+        visit(cast(ASTBase.UnaExp)e);
     }
 
-    void visit(AST.DotIdExp e)
+    void visit(ASTBase.DotIdExp e)
     {
-        visit(cast(AST.UnaExp)e);
+        visit(cast(ASTBase.UnaExp)e);
     }
 
-    void visit(AST.AssertExp e)
+    void visit(ASTBase.AssertExp e)
     {
-        visit(cast(AST.UnaExp)e);
+        visit(cast(ASTBase.UnaExp)e);
     }
 
-    void visit(AST.CompileExp e)
+    void visit(ASTBase.CompileExp e)
     {
-        visit(cast(AST.UnaExp)e);
+        visit(cast(ASTBase.UnaExp)e);
     }
 
-    void visit(AST.ImportExp e)
+    void visit(ASTBase.ImportExp e)
     {
-        visit(cast(AST.UnaExp)e);
+        visit(cast(ASTBase.UnaExp)e);
     }
 
-    void visit(AST.DotTemplateInstanceExp e)
+    void visit(ASTBase.DotTemplateInstanceExp e)
     {
-        visit(cast(AST.UnaExp)e);
+        visit(cast(ASTBase.UnaExp)e);
     }
 
-    void visit(AST.ArrayExp e)
+    void visit(ASTBase.ArrayExp e)
     {
-        visit(cast(AST.UnaExp)e);
+        visit(cast(ASTBase.UnaExp)e);
     }
 
-    void visit(AST.FuncInitExp e)
+    void visit(ASTBase.FuncInitExp e)
     {
-        visit(cast(AST.DefaultInitExp)e);
+        visit(cast(ASTBase.DefaultInitExp)e);
     }
 
-    void visit(AST.PrettyFuncInitExp e)
+    void visit(ASTBase.PrettyFuncInitExp e)
     {
-        visit(cast(AST.DefaultInitExp)e);
+        visit(cast(ASTBase.DefaultInitExp)e);
     }
 
-    void visit(AST.FileInitExp e)
+    void visit(ASTBase.FileInitExp e)
     {
-        visit(cast(AST.DefaultInitExp)e);
+        visit(cast(ASTBase.DefaultInitExp)e);
     }
 
-    void visit(AST.LineInitExp e)
+    void visit(ASTBase.LineInitExp e)
     {
-        visit(cast(AST.DefaultInitExp)e);
+        visit(cast(ASTBase.DefaultInitExp)e);
     }
 
-    void visit(AST.ModuleInitExp e)
+    void visit(ASTBase.ModuleInitExp e)
     {
-        visit(cast(AST.DefaultInitExp)e);
+        visit(cast(ASTBase.DefaultInitExp)e);
     }
 
-    void visit(AST.CommaExp e)
+    void visit(ASTBase.CommaExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.PostExp e)
+    void visit(ASTBase.PostExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.PowExp e)
+    void visit(ASTBase.PowExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.MulExp e)
+    void visit(ASTBase.MulExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.DivExp e)
+    void visit(ASTBase.DivExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.ModExp e)
+    void visit(ASTBase.ModExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.AddExp e)
+    void visit(ASTBase.AddExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.MinExp e)
+    void visit(ASTBase.MinExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.CatExp e)
+    void visit(ASTBase.CatExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.ShlExp e)
+    void visit(ASTBase.ShlExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.ShrExp e)
+    void visit(ASTBase.ShrExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.UshrExp e)
+    void visit(ASTBase.UshrExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.EqualExp e)
+    void visit(ASTBase.EqualExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.InExp e)
+    void visit(ASTBase.InExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.IdentityExp e)
+    void visit(ASTBase.IdentityExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.CmpExp e)
+    void visit(ASTBase.CmpExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.AndExp e)
+    void visit(ASTBase.AndExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.XorExp e)
+    void visit(ASTBase.XorExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.OrExp e)
+    void visit(ASTBase.OrExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.AndAndExp e)
+    void visit(ASTBase.AndAndExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.OrOrExp e)
+    void visit(ASTBase.OrOrExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.CondExp e)
+    void visit(ASTBase.CondExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.AssignExp e)
+    void visit(ASTBase.AssignExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.BinAssignExp e)
+    void visit(ASTBase.BinAssignExp e)
     {
-        visit(cast(AST.BinExp)e);
+        visit(cast(ASTBase.BinExp)e);
     }
 
-    void visit(AST.AddAssignExp e)
+    void visit(ASTBase.AddAssignExp e)
     {
-        visit(cast(AST.BinAssignExp)e);
+        visit(cast(ASTBase.BinAssignExp)e);
     }
 
-    void visit(AST.MinAssignExp e)
+    void visit(ASTBase.MinAssignExp e)
     {
-        visit(cast(AST.BinAssignExp)e);
+        visit(cast(ASTBase.BinAssignExp)e);
     }
 
-    void visit(AST.MulAssignExp e)
+    void visit(ASTBase.MulAssignExp e)
     {
-        visit(cast(AST.BinAssignExp)e);
+        visit(cast(ASTBase.BinAssignExp)e);
     }
 
-    void visit(AST.DivAssignExp e)
+    void visit(ASTBase.DivAssignExp e)
     {
-        visit(cast(AST.BinAssignExp)e);
+        visit(cast(ASTBase.BinAssignExp)e);
     }
 
-    void visit(AST.ModAssignExp e)
+    void visit(ASTBase.ModAssignExp e)
     {
-        visit(cast(AST.BinAssignExp)e);
+        visit(cast(ASTBase.BinAssignExp)e);
     }
 
-    void visit(AST.PowAssignExp e)
+    void visit(ASTBase.PowAssignExp e)
     {
-        visit(cast(AST.BinAssignExp)e);
+        visit(cast(ASTBase.BinAssignExp)e);
     }
 
-    void visit(AST.AndAssignExp e)
+    void visit(ASTBase.AndAssignExp e)
     {
-        visit(cast(AST.BinAssignExp)e);
+        visit(cast(ASTBase.BinAssignExp)e);
     }
 
-    void visit(AST.OrAssignExp e)
+    void visit(ASTBase.OrAssignExp e)
     {
-        visit(cast(AST.BinAssignExp)e);
+        visit(cast(ASTBase.BinAssignExp)e);
     }
 
-    void visit(AST.XorAssignExp e)
+    void visit(ASTBase.XorAssignExp e)
     {
-        visit(cast(AST.BinAssignExp)e);
+        visit(cast(ASTBase.BinAssignExp)e);
     }
 
-    void visit(AST.ShlAssignExp e)
+    void visit(ASTBase.ShlAssignExp e)
     {
-        visit(cast(AST.BinAssignExp)e);
+        visit(cast(ASTBase.BinAssignExp)e);
     }
 
-    void visit(AST.ShrAssignExp e)
+    void visit(ASTBase.ShrAssignExp e)
     {
-        visit(cast(AST.BinAssignExp)e);
+        visit(cast(ASTBase.BinAssignExp)e);
     }
 
-    void visit(AST.UshrAssignExp e)
+    void visit(ASTBase.UshrAssignExp e)
     {
-        visit(cast(AST.BinAssignExp)e);
+        visit(cast(ASTBase.BinAssignExp)e);
     }
 
-    void visit(AST.CatAssignExp e)
+    void visit(ASTBase.CatAssignExp e)
     {
-        visit(cast(AST.BinAssignExp)e);
+        visit(cast(ASTBase.BinAssignExp)e);
     }
 
-    void visit(AST.TemplateParameter)
+    void visit(ASTBase.TemplateParameter)
     {
         assert(0);
     }
 
-    void visit(AST.TemplateAliasParameter tp)
+    void visit(ASTBase.TemplateAliasParameter tp)
     {
-        visit(cast(AST.TemplateParameter)tp);
+        visit(cast(ASTBase.TemplateParameter)tp);
     }
 
-    void visit(AST.TemplateTypeParameter tp)
+    void visit(ASTBase.TemplateTypeParameter tp)
     {
-        visit(cast(AST.TemplateParameter)tp);
+        visit(cast(ASTBase.TemplateParameter)tp);
     }
 
-    void visit(AST.TemplateTupleParameter tp)
+    void visit(ASTBase.TemplateTupleParameter tp)
     {
-        visit(cast(AST.TemplateParameter)tp);
+        visit(cast(ASTBase.TemplateParameter)tp);
     }
 
-    void visit(AST.TemplateValueParameter tp)
+    void visit(ASTBase.TemplateValueParameter tp)
     {
-        visit(cast(AST.TemplateParameter)tp);
+        visit(cast(ASTBase.TemplateParameter)tp);
     }
 
-    void visit(AST.TemplateThisParameter tp)
+    void visit(ASTBase.TemplateThisParameter tp)
     {
-        visit(cast(AST.TemplateTypeParameter)tp);
+        visit(cast(ASTBase.TemplateTypeParameter)tp);
     }
 
-    void visit(AST.Condition c)
+    void visit(ASTBase.Condition c)
     {
         assert(0);
     }
 
-    void visit(AST.StaticIfCondition c)
+    void visit(ASTBase.StaticIfCondition c)
     {
-        visit(cast(AST.Condition)c);
+        visit(cast(ASTBase.Condition)c);
     }
 
-    void visit(AST.DVCondition c)
+    void visit(ASTBase.DVCondition c)
     {
-        visit(cast(AST.Condition)c);
+        visit(cast(ASTBase.Condition)c);
     }
 
-    void visit(AST.DebugCondition c)
+    void visit(ASTBase.DebugCondition c)
     {
-        visit(cast(AST.DVCondition)c);
+        visit(cast(ASTBase.DVCondition)c);
     }
 
-    void visit(AST.VersionCondition c)
+    void visit(ASTBase.VersionCondition c)
     {
-        visit(cast(AST.DVCondition)c);
+        visit(cast(ASTBase.DVCondition)c);
     }
 
-    void visit(AST.Initializer)
+    void visit(ASTBase.Initializer)
     {
         assert(0);
     }
 
-    void visit(AST.ExpInitializer i)
+    void visit(ASTBase.ExpInitializer i)
     {
-        visit(cast(AST.Initializer)i);
+        visit(cast(ASTBase.Initializer)i);
     }
 
-    void visit(AST.StructInitializer i)
+    void visit(ASTBase.StructInitializer i)
     {
-        visit(cast(AST.Initializer)i);
+        visit(cast(ASTBase.Initializer)i);
     }
 
-    void visit(AST.ArrayInitializer i)
+    void visit(ASTBase.ArrayInitializer i)
     {
-        visit(cast(AST.Initializer)i);
+        visit(cast(ASTBase.Initializer)i);
     }
 
-    void visit(AST.VoidInitializer i)
+    void visit(ASTBase.VoidInitializer i)
     {
-        visit(cast(AST.Initializer)i);
+        visit(cast(ASTBase.Initializer)i);
     }
-}
-
-class StrictVisitor(AST) : Visitor!AST
-{
-    alias visit = Visitor!AST.visit;
-
-    override void visit(AST.Dsymbol)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.AliasThis s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.Declaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ScopeDsymbol s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.Import s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.AttribDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.StaticAssert s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.DebugSymbol s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.VersionSymbol s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.VarDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.FuncDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.AliasDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TupleDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.FuncLiteralDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.PostBlitDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.CtorDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.DtorDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.InvariantDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.UnitTestDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.NewDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.DeleteDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.StaticCtorDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.StaticDtorDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.SharedStaticCtorDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.SharedStaticDtorDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.Package s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.EnumDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.AggregateDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TemplateDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TemplateInstance s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.Nspace s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.CompileDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.UserAttributeDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.LinkDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.AnonDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.AlignDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.CPPMangleDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ProtDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.PragmaDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.StorageClassDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ConditionalDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.DeprecatedDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.StaticIfDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.EnumMember s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.Module s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.StructDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.UnionDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ClassDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.InterfaceDeclaration s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TemplateMixin s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.Parameter)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.Statement)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ImportStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ScopeStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ReturnStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.LabelStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.StaticAssertStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.CompileStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.WhileStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ForStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.DoStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ForeachRangeStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ForeachStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.IfStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.OnScopeStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ConditionalStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.PragmaStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.SwitchStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.CaseRangeStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.CaseStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.DefaultStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.BreakStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ContinueStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.GotoDefaultStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.GotoCaseStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.GotoStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.SynchronizedStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.WithStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TryCatchStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TryFinallyStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ThrowStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.AsmStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ExpStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.CompoundStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.CompoundDeclarationStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.CompoundAsmStatement s)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.Type)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeBasic t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeError t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeNull t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeVector t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeEnum t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeTuple t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeClass t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeStruct t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeNext t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeReference t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeSlice t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeDelegate t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypePointer t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeFunction t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeArray t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeDArray t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeAArray t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeSArray t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeQualified t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeIdentifier t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeReturn t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeTypeof t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeInstance t)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.Expression e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.DeclarationExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.IntegerExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.NewAnonClassExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.IsExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.RealExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.NullExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeidExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TraitsExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.StringExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.NewExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.AssocArrayLiteralExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ArrayLiteralExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.FuncExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.IntervalExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TypeExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ScopeExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.IdentifierExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.UnaExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.DefaultInitExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.BinExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.DsymbolExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TemplateExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.SymbolExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.VarExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TupleExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.DollarExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ThisExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.SuperExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.AddrExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.PreExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.PtrExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.NegExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.UAddExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.NotExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ComExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.DeleteExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.CastExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.CallExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.DotIdExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.AssertExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.CompileExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ImportExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.DotTemplateInstanceExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ArrayExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.FuncInitExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.PrettyFuncInitExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.FileInitExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.LineInitExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ModuleInitExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.CommaExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.PostExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.PowExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.MulExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.DivExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ModExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.AddExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.MinExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.CatExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ShlExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ShrExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.UshrExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.EqualExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.InExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.IdentityExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.CmpExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.AndExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.XorExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.OrExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.AndAndExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.OrOrExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.CondExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.AssignExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.BinAssignExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.AddAssignExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.MinAssignExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.MulAssignExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.DivAssignExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ModAssignExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.PowAssignExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.AndAssignExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.OrAssignExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.XorAssignExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ShlAssignExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ShrAssignExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.UshrAssignExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.CatAssignExp e)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TemplateParameter)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TemplateAliasParameter tp)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TemplateTypeParameter tp)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TemplateTupleParameter tp)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TemplateValueParameter tp)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.TemplateThisParameter tp)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.Condition c)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.StaticIfCondition c)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.DVCondition c)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.DebugCondition c)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.VersionCondition c)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.Initializer)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ExpInitializer i)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.StructInitializer i)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.ArrayInitializer i)
-    {
-        assert(0);
-    }
-
-    override void visit(AST.VoidInitializer i)
-    {
-        assert(0);
-    }
-}
-
-class PermissiveVisitor(AST) : Visitor!AST
-{
-    alias visit = Visitor!AST.visit;
-
-    override void visit(AST.Dsymbol){}
-    override void visit(AST.Parameter){}
-    override void visit(AST.Statement){}
-    override void visit(AST.Type){}
-    override void visit(AST.Expression){}
-    override void visit(AST.TemplateParameter){}
-    override void visit(AST.Condition){}
-    override void visit(AST.Initializer){}
 }

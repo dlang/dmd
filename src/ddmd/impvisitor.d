@@ -1,14 +1,15 @@
 module ddmd.impvisitor;
 
-import ddmd.astbasevisitor;
+import ddmd.astbase;
+import ddmd.permissivevisitor;
 import ddmd.tokens;
 import ddmd.root.outbuffer;
 
 import core.stdc.stdio;
 
-class ImportVisitor(AST) : PermissiveVisitor!AST
+class ImportVisitor : PermissiveVisitor
 {
-    alias visit = PermissiveVisitor!AST.visit;
+    alias visit = super.visit;
     OutBuffer* buf;
 
     this(OutBuffer* buf)
@@ -16,7 +17,7 @@ class ImportVisitor(AST) : PermissiveVisitor!AST
         this.buf = buf;
     }
 
-    void visitModuleMembers(AST.Dsymbols* members)
+    void visitModuleMembers(ASTBase.Dsymbols* members)
     {
         foreach (s; *members)
         {
@@ -24,12 +25,12 @@ class ImportVisitor(AST) : PermissiveVisitor!AST
         }
     }
 
-    override void visit(AST.Import i)
+    override void visit(ASTBase.Import i)
     {
         buf.printf("%s", i.toChars());
     }
 
-    override void visit(AST.ImportStatement s)
+    override void visit(ASTBase.ImportStatement s)
     {
             foreach (imp; *s.imports)
             {
@@ -37,12 +38,12 @@ class ImportVisitor(AST) : PermissiveVisitor!AST
             }
     }
 
-    override void visit(AST.FuncDeclaration fd)
+    override void visit(ASTBase.FuncDeclaration fd)
     {
         fd.fbody.accept(this);
     }
 
-    override void visit(AST.ClassDeclaration cd)
+    override void visit(ASTBase.ClassDeclaration cd)
     {
         foreach (mem; *cd.members)
         {
@@ -50,7 +51,7 @@ class ImportVisitor(AST) : PermissiveVisitor!AST
         }
     }
 
-    override void visit(AST.StructDeclaration sd)
+    override void visit(ASTBase.StructDeclaration sd)
     {
         foreach (mem; *sd.members)
         {
@@ -58,7 +59,7 @@ class ImportVisitor(AST) : PermissiveVisitor!AST
         }
     }
 
-    override void visit(AST.CompoundStatement s)
+    override void visit(ASTBase.CompoundStatement s)
     {
         foreach (sx; *s.statements)
         {
@@ -66,13 +67,13 @@ class ImportVisitor(AST) : PermissiveVisitor!AST
         }
     }
 
-    override void visit(AST.ExpStatement s)
+    override void visit(ASTBase.ExpStatement s)
     {
         if (s.exp && s.exp.op == TOKdeclaration)
-            (cast(AST.DeclarationExp)s.exp).declaration.accept(this);
+            (cast(ASTBase.DeclarationExp)s.exp).declaration.accept(this);
     }
 
-    override void visit(AST.IfStatement s)
+    override void visit(ASTBase.IfStatement s)
     {
         if (s.ifbody)
             s.ifbody.accept(this);
@@ -80,64 +81,64 @@ class ImportVisitor(AST) : PermissiveVisitor!AST
             s.elsebody.accept(this);
     }
 
-    override void visit(AST.ScopeStatement s)
+    override void visit(ASTBase.ScopeStatement s)
     {
         s.statement.accept(this);
     }
 
-    override void visit(AST.WhileStatement s)
+    override void visit(ASTBase.WhileStatement s)
     {
         if (s._body)
             s._body.accept(this);
     }
 
-    override void visit(AST.DoStatement s)
+    override void visit(ASTBase.DoStatement s)
     {
         if (s._body)
             s._body.accept(this);
     }
 
-    override void visit(AST.ForStatement s)
+    override void visit(ASTBase.ForStatement s)
     {
         if (s._body)
             s._body.accept(this);
     }
 
-    override void visit(AST.ForeachStatement s)
+    override void visit(ASTBase.ForeachStatement s)
     {
         if (s._body)
             s._body.accept(this);
     }
 
-    override void visit(AST.SwitchStatement s)
+    override void visit(ASTBase.SwitchStatement s)
     {
         if (s._body)
             s._body.accept(this);
     }
 
-    override void visit(AST.CaseStatement s)
+    override void visit(ASTBase.CaseStatement s)
     {
         s.statement.accept(this);
     }
 
-    override void visit(AST.DefaultStatement s)
+    override void visit(ASTBase.DefaultStatement s)
     {
         s.statement.accept(this);
     }
 
-    override void visit(AST.SynchronizedStatement s)
+    override void visit(ASTBase.SynchronizedStatement s)
     {
         if (s._body)
             s._body.accept(this);
     }
 
-    override void visit(AST.WithStatement s)
+    override void visit(ASTBase.WithStatement s)
     {
         if (s._body)
             s._body.accept(this);
     }
 
-    override void visit(AST.TryCatchStatement s)
+    override void visit(ASTBase.TryCatchStatement s)
     {
         if (s._body)
             s._body.accept(this);
@@ -148,24 +149,24 @@ class ImportVisitor(AST) : PermissiveVisitor!AST
         }
     }
 
-    void visit(AST.Catch c)
+    void visit(ASTBase.Catch c)
     {
         if (c.handler)
             c.handler.accept(this);
     }
 
-    override void visit(AST.TryFinallyStatement s)
+    override void visit(ASTBase.TryFinallyStatement s)
     {
         s._body.accept(this);
         s.finalbody.accept(this);
     }
 
-    override void visit(AST.OnScopeStatement s)
+    override void visit(ASTBase.OnScopeStatement s)
     {
         s.statement.accept(this);
     }
 
-    override void visit(AST.LabelStatement s)
+    override void visit(ASTBase.LabelStatement s)
     {
          if (s.statement)
             s.statement.accept(this);

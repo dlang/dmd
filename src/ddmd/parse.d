@@ -8460,11 +8460,11 @@ unittest
     global.params.isLinux = true;
     global.params.is64bit = (size_t.sizeof == 8);
     ASTBase.Type._init();
-/*
+
     string[] files;
     size_t i = 0;
 
-    auto dFiles = dirEntries("../../phobos/std/windows", "*.d", SpanMode.shallow);
+    auto dFiles = dirEntries("../../phobos/std", "*.d", SpanMode.depth);
     foreach (d; dFiles)
     {
         files ~= d.name;
@@ -8481,8 +8481,8 @@ unittest
     }
 
     writeln(i);
-*/
 
+/*
     string input = readText("../../phobos/std/c/stdio.d");
 
     const(char)[] input2 = "";
@@ -8490,16 +8490,17 @@ unittest
     scope p = new Parser!ASTBase(null, input, false);
     p.nextToken();
     p.parseModule();
+*/
 
 /*
-
     OutBuffer buf;
     buf.reserve(32);
     scope vis = new ImportVisitor!ASTBase(&buf);
     vis.visitModuleMembers(p.parseModule());
     assert(!p.errors);
 
-    assert(strcmp(buf.extractString(), "ABCDEFGHIJKLMNOPQRSTUVXYZAB") == 0); */
+    assert(strcmp(buf.extractString(), "ABCDEFGHIJKLMNOPQRSTUVXYZAB") == 0);
+*/
 }
 
 enum PREC : int

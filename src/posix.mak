@@ -228,9 +228,9 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol	\
 	dtemplate dversion escape expression func			\
 	hdrgen impcnvtab imphint impvisitor init inline inlinecost intrange	\
-	json lib link mars mtype nogc nspace objc opover optimize parse sapply	\
-	sideeffect statement staticassert target traits visitor	\
-	typinf utils statement_rewrite_walker statementsem staticcond safe blockexit asttypename))
+	json lib link mars mtype nogc nspace objc opover optimize parse permissivevisitor sapply	\
+	sideeffect statement staticassert target traits visitor transitivevisitor	\
+	typinf utils statement_rewrite_walker statementsem staticcond strictvisitor safe blockexit asttypename))
 
 LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, console entity errors globals id identifier lexer tokens utf))
 
@@ -371,8 +371,8 @@ $G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT)
 $G/parser.a: $(PARSER_SRCS) $G/lexer.a $(ROOT_SRCS)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -J$G -L-lstdc++ $(DFLAGS) $(PARSER_SRCS) $G/lexer.a $(ROOT_SRCS) -Iddmd -J../res/
 
-parser_test: $G/parser.a
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -L-lstdc++ $(DFLAGS) $G/parser.a test_parser.d -Iddmd -J../res/
+parser_test: $G/parser.a test_parser.d
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -L-lstdc++ $(DFLAGS) -I$G -J$G $G/lexer.a $G/parser.a test_parser.d -Iddmd -J../res/
 
 $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
@@ -390,6 +390,7 @@ endif
 
 clean:
 	rm -R $(GENERATED)
+	rm -f parser_test parser_test.o
 	rm -f dmd $(idgen_output)
 	rm -f $(addprefix $D/backend/, $(optabgen_output))
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
