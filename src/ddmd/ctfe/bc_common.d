@@ -24,7 +24,27 @@ const(uint) align16(const uint val) pure
     return ((val + 15) & ~15);
 }
 
-const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
+const (uint) basicTypeSize(BCTypeEnum bct) @safe pure nothrow @nogc
+{
+    debug (ctfe)
+        if (bct == BCTypeEnum.Undef)
+            assert(0, "We should never encounter Undef");
+
+     static immutable sizeTable = () {
+        uint[BCTypeEnum.max] result;
+
+        uint i;
+        foreach(BCTypeEnum e; BCTypeEnum.min .. BCTypeEnum.max)
+        {
+            result[i++] = _basicTypeSize(e);
+        }
+
+        return result;
+    } ();
+    return sizeTable[bct];
+}
+
+const(uint) _basicTypeSize(const BCTypeEnum bct) @safe pure nothrow @nogc
 {
     final switch (bct) with (BCTypeEnum)
     {
