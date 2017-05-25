@@ -2241,7 +2241,7 @@ extern (C++) class VarDeclaration : Declaration
                     // Destructors are not supported on extern(C++) classes
                     break;
                 }
-                if (mynew || onstack || cd.dtors.dim) // if any destructors
+                if (mynew || onstack) // if any destructors
                 {
                     // delete this;
                     Expression ec;
