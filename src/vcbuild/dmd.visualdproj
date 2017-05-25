@@ -492,6 +492,7 @@
    <File path="..\ddmd\clone.d" />
    <File path="..\ddmd\complex.d" />
    <File path="..\ddmd\cond.d" />
+   <File path="..\ddmd\console.d" />
    <File path="..\ddmd\constfold.d" />
    <File path="..\ddmd\cppmangle.d" />
    <File path="..\ddmd\ctfeexpr.d" />
