@@ -1041,10 +1041,6 @@ extern (C++) class VarDeclaration : Declaration
     // The index of this variable on the CTFE stack, -1 if not allocated
     int ctfeAdrOnStack;
 
-    // if !=NULL, rundtor is tested at runtime to see
-    // if the destructor should be run. Used to prevent
-    // dtor calls on postblitted vars
-    VarDeclaration rundtor;
     Expression edtor;               // if !=null, does the destruction of the variable
     IntRange* range;                // if !=null, the variable is known to be within the range
 
