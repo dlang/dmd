@@ -357,6 +357,7 @@ Msgtable[] msgtable =
     { "getAttributes" },
     { "getFunctionAttributes" },
     { "getFunctionVariadicStyle" },
+    { "getParameterStorageClasses" },
     { "getLinkage" },
     { "getUnitTests" },
     { "getVirtualIndex" },
