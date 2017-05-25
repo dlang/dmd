@@ -42,6 +42,7 @@ $(GNAME TraitsKeyword):
     $(GBLINK getAliasThis)
     $(GBLINK getAttributes)
     $(GBLINK getFunctionAttributes)
+    $(GBLINK getFunctionVariadicStyle)
     $(GBLINK getMember)
     $(GBLINK getOverloads)
     $(GBLINK getPointerBitmap)
@@ -440,6 +441,43 @@ tuple(3)
 tuple("string", 7)
 tuple((Foo))
 )
+)
+
+$(SECTION2 $(GNAME getFunctionVariadicStyle),
+    $(P
+        Takes one argument which must either be a function symbol, or a type
+	that is a function, delegate or a function pointer.
+
+        It returns a string identifying the kind of
+        $(LINK2 function.html#variadic, variadic arguments) that are supported.
+    )
+
+    $(TABLE2 getFunctionVariadicStyle,
+	$(THEAD string returned, kind, access, example)
+	$(TROW $(D "none"), not a variadic function, &nbsp;, $(D void foo();))
+	$(TROW $(D "argptr"), D style variadic function, $(D _argptr) and $(D _arguments), $(D void bar(...)))
+	$(TROW $(D "stdarg"), C style variadic function, $(LINK2 $(ROOT_DIR)phobos/core_stdc_stdarg.html, $(D core.stdc.stdarg)), $(D extern (C) void abc(int, ...)))
+	$(TROW $(D "typesafe"), typesafe variadic function, array on stack, $(D void def(int[] ...)))
+    )
+
+---
+import core.stdc.stdarg;
+
+void novar() {}
+extern(C) void cstyle(int, ...) {}
+extern(C++) void cppstyle(int, ...) {}
+void dstyle(...) {}
+void typesafe(int[]...) {}
+
+static assert(__traits(getFunctionVariadicStyle, novar) == "none");
+static assert(__traits(getFunctionVariadicStyle, cstyle) == "stdarg");
+static assert(__traits(getFunctionVariadicStyle, cppstyle) == "stdarg");
+static assert(__traits(getFunctionVariadicStyle, dstyle) == "argptr");
+static assert(__traits(getFunctionVariadicStyle, typesafe) == "typesafe");
+
+static assert(__traits(getFunctionVariadicStyle, (int[] a...) {}) == "typesafe");
+static assert(__traits(getFunctionVariadicStyle, typeof(cstyle)) == "stdarg");
+---
 )
 
 $(SECTION2 $(GNAME getFunctionAttributes),
