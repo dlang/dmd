@@ -97,6 +97,7 @@ static this()
         "getAttributes",
         "getFunctionAttributes",
         "getFunctionVariadicStyle",
+        "getParameterStorageClasses",
         "getUnitTests",
         "getVirtualIndex",
         "getPointerBitmap",
@@ -967,6 +968,109 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         auto se = new StringExp(e.loc, cast(char*)style);
         return se.semantic(sc);
+    }
+    if (e.ident == Id.getParameterStorageClasses)
+    {
+        /* Accept a function symbol or a type, followed by a parameter index.
+         * Returns a tuple of strings of the parameter's storage classes.
+         */
+        // get symbol linkage as a string
+        if (dim != 2)
+            return dimError(2);
+
+        auto o1 = (*e.args)[1];
+        auto o = (*e.args)[0];
+        auto t = isType(o);
+        TypeFunction tf = null;
+        if (t)
+        {
+            if (t.ty == Tfunction)
+                tf = cast(TypeFunction)t;
+            else if (t.ty == Tdelegate)
+                tf = cast(TypeFunction)t.nextOf();
+            else if (t.ty == Tpointer && t.nextOf().ty == Tfunction)
+                tf = cast(TypeFunction)t.nextOf();
+        }
+        Parameters* fparams;
+        if (tf)
+        {
+            fparams = tf.parameters;
+        }
+        else
+        {
+            auto s = getDsymbol(o);
+            FuncDeclaration fd;
+            if (!s || (fd = s.isFuncDeclaration()) is null)
+            {
+                e.error("first argument to `__traits(getParameterStorageClasses, %s, %s)` is not a function",
+                    o.toChars(), o1.toChars());
+                return new ErrorExp();
+            }
+            fparams = fd.getParameters(null);
+        }
+
+        StorageClass stc;
+
+        // Set stc to storage class of the ith parameter
+        auto ex = isExpression((*e.args)[1]);
+        if (!ex)
+        {
+            e.error("expression expected as second argument of `__traits(getParameterStorageClasses, %s, %s)`",
+                o.toChars(), o1.toChars());
+            return new ErrorExp();
+        }
+        ex = ex.ctfeInterpret();
+        auto ii = ex.toUInteger();
+        if (ii >= fparams.dim)
+        {
+            e.error("parameter index must be in range 0..%u not %s", cast(uint)fparams.dim, ex.toChars());
+            return new ErrorExp();
+        }
+
+        uint n = cast(uint)ii;
+        Parameter p = Parameter.getNth(fparams, n);
+        stc = p.storageClass;
+
+        // This mirrors hdrgen.visit(Parameter p)
+        if (p.type && p.type.mod & MODshared)
+            stc &= ~STCshared;
+
+        auto exps = new Expressions;
+
+        void push(string s)
+        {
+            exps.push(new StringExp(e.loc, cast(char*)s.ptr, cast(uint)s.length));
+        }
+
+        if (stc & STCauto)
+            push("auto");
+        if (stc & STCreturn)
+            push("return");
+
+        if (stc & STCout)
+            push("out");
+        else if (stc & STCref)
+            push("ref");
+        else if (stc & STCin)
+            push("in");
+        else if (stc & STClazy)
+            push("lazy");
+        else if (stc & STCalias)
+            push("alias");
+
+        if (stc & STCconst)
+            push("const");
+        if (stc & STCimmutable)
+            push("immutable");
+        if (stc & STCwild)
+            push("inout");
+        if (stc & STCshared)
+            push("shared");
+        if (stc & STCscope)
+            push("scope");
+
+        auto tup = new TupleExp(e.loc, exps);
+        return tup.semantic(sc);
     }
     if (e.ident == Id.getLinkage)
     {
