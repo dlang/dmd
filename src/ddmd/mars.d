@@ -1593,11 +1593,11 @@ Language changes listed by -transition=id:
         import ddmd.hdrgen;
         foreach (mod; modules)
         {
-            auto buf = new OutBuffer;
+            auto buf = OutBuffer();
             buf.doindent = 1;
             scope HdrGenState hgs;
             hgs.fullDump = 1;
-            scope PrettyPrintVisitor ppv = new PrettyPrintVisitor(buf, &hgs);
+            scope PrettyPrintVisitor ppv = new PrettyPrintVisitor(&buf, &hgs);
             mod.accept(ppv);
 
             // write the output to $(filename).cg
