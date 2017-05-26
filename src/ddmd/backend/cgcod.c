@@ -990,7 +990,7 @@ Lagain:
             if (strcmp(sthis->Sident,"this") == 0)
                 break;
         }
-        cdb.append(nteh_monitor_prolog(sthis));
+        nteh_monitor_prolog(cdb,sthis);
         EBPtoESP += 3 * 4;
     }
 #endif
@@ -1011,7 +1011,7 @@ Lcont:
 
 #if NTEXCEPTIONS == 2
     if (usednteh & NTEH_except)
-        cdb2.append(nteh_setsp(0x89));            // MOV __context[EBP].esp,ESP
+        nteh_setsp(cdb2, 0x89);            // MOV __context[EBP].esp,ESP
 #endif
 
     // Load register parameters off of the stack. Do not use
@@ -1486,7 +1486,10 @@ STATIC void cgcod_eh()
             except_push(b,NULL,b);
             btry = b;
             tryidx = except_index_get();
-            b->Bcode = cat(nteh_gensindex(tryidx - 1),b->Bcode);
+            CodeBuilder cdb;
+            nteh_gensindex(cdb,tryidx - 1);
+            cdb.append(b->Bcode);
+            b->Bcode = cdb.finish();
         }
 
         stack = NULL;
@@ -1507,7 +1510,9 @@ STATIC void cgcod_eh()
                         except_pop(c,c->IEV1.Vtor,NULL);
                     L1: if (config.exe == EX_WIN32)
                         {
-                            c1 = nteh_gensindex(except_index_get() - 1);
+                            CodeBuilder cdb;
+                            nteh_gensindex(cdb,except_index_get() - 1);
+                            c1 = cdb.finish();
                             code_next(c1) = code_next(c);
                             code_next(c) = c1;
                         }
@@ -1525,7 +1530,10 @@ STATIC void cgcod_eh()
                         if (idx != except_index_get())
                         {
                             if (config.exe == EX_WIN32)
-                            {   c1 = nteh_gensindex(idx - 1);
+                            {
+                                CodeBuilder cdb;
+                                nteh_gensindex(cdb,idx - 1);
+                                c1 = cdb.finish();
                                 code_next(c1) = code_next(c);
                                 code_next(c) = c1;
                             }
@@ -1603,7 +1611,10 @@ STATIC void cgcod_eh()
                 pi = list_block(list)->Bendindex;
                 if (b->Bindex != pi)
                 {
-                    b->Bcode = cat(nteh_gensindex(b->Bindex - 1),b->Bcode);
+                    CodeBuilder cdb;
+                    nteh_gensindex(cdb,b->Bindex - 1);
+                    cdb.append(b->Bcode);
+                    b->Bcode = cdb.finish();
                     break;
                 }
             }

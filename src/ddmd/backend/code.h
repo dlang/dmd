@@ -528,19 +528,20 @@ void iasm_term( void );
 regm_t iasm_regs( block *bp );
 
 // nteh.c
-code *nteh_prolog(void);
-code *nteh_epilog(void);
-void nteh_usevars(void);
-void nteh_filltables(void);
+void nteh_prolog(CodeBuilder& cdb);
+void nteh_epilog(CodeBuilder& cdb);
+void nteh_usevars();
+void nteh_filltables();
 void nteh_gentables(Symbol *sfunc);
-code *nteh_setsp(int op);
-code *nteh_filter(block *b);
+void nteh_setsp(CodeBuilder& cdb, int op);
+void nteh_filter(CodeBuilder& cdb, block *b);
 void nteh_framehandler(Symbol *, Symbol *);
-code *nteh_gensindex(int);
+void nteh_gensindex(CodeBuilder&, int);
 #define GENSINDEXSIZE 7
-code *nteh_monitor_prolog(Symbol *shandle);
-code *nteh_monitor_epilog(regm_t retregs);
+void nteh_monitor_prolog(CodeBuilder& cdb,Symbol *shandle);
+void nteh_monitor_epilog(CodeBuilder& cdb,regm_t retregs);
 code *nteh_patchindex(code* c, int index);
+void nteh_unwind(CodeBuilder& cdb,regm_t retregs,unsigned index);
 
 // cgen.c
 code *code_last(code *c);

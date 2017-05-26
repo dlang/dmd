@@ -4999,7 +4999,7 @@ void cdinfo(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 codelem(cdb,e->E2,pretregs,FALSE);
                 if (config.exe == EX_WIN32 && idx != except_index_get())
                 {   usednteh |= NTEHcleanup;
-                    cdb.append(nteh_gensindex(idx - 1));
+                    nteh_gensindex(cdb,idx - 1);
                 }
                 except_release();
                 assert(idx == except_index_get());
@@ -5045,7 +5045,7 @@ void cddctor(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     cs.IFL1 = FLctor;
     cs.IEV1.Vtor = e;
     cdb.gen(&cs);
-    cdb.append(nteh_gensindex(0));      // the actual index will be patched in later
+    nteh_gensindex(cdb,0);              // the actual index will be patched in later
                                         // by except_fillInEHTable()
 }
 
@@ -5101,7 +5101,7 @@ void cdddtor(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         cs.IEV1.Vtor = e;
         cdb.gen(&cs);
 
-        cdb.append(nteh_gensindex(0));      // the actual index will be patched in later
+        nteh_gensindex(cdb,0);              // the actual index will be patched in later
                                             // by except_fillInEHTable()
 
         // Mark all registers as destroyed
