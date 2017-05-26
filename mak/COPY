@@ -1,5 +1,6 @@
 COPY=\
 	$(IMPDIR)\object.d \
+	\
 	$(IMPDIR)\core\atomic.d \
 	$(IMPDIR)\core\attribute.d \
 	$(IMPDIR)\core\bitop.d \
