@@ -83,7 +83,7 @@ private immutable char[TMAX] mangleChar =
     //              N   // Nh:vector Ng:wild
     //              O   // shared
     Tpointer     : 'P',
-    //              Q
+    //              Q   // Type/symbol/identifier backward reference
     Treference   : 'R',
     Tstruct      : 'S',
     //              T   // Ttypedef
@@ -169,6 +169,10 @@ extern (C++) final class Mangler : Visitor
 {
     alias visit = super.visit;
 public:
+    // cannot put C++ classes into a hash table, tries to call toHash
+    size_t[void*] types;
+    size_t[void*] symbols;
+    size_t[void*] idents;
     OutBuffer* buf;
 
     extern (D) this(OutBuffer* buf)
@@ -176,7 +180,85 @@ public:
         this.buf = buf;
     }
 
-    ////////////////////////////////////////////////////////////////////////////
+    /**
+    * writes a back reference with the relative position encoded with base 26
+    *  using upper case letters for all digits but the last digit which uses
+    *  a lower case letter.
+    * The decoder has to look up the referenced position to determine
+    *  whether the back reference is an identifer (starts with a digit)
+    *  or a type (starts with a letter).
+    *
+    * Params:
+    *  pos           = relative position to encode
+    */
+    final void writeBackRef(size_t pos)
+    {
+        buf.writeByte('Q');
+        enum base = 26;
+        size_t mul = 1;
+        while (pos >= mul * base)
+            mul *= base;
+        while (mul >= base)
+        {
+            auto dig = cast(ubyte)(pos / mul);
+            buf.writeByte('A' + dig);
+            pos -= dig * mul;
+            mul /= base;
+        }
+        buf.writeByte('a' + cast(ubyte)pos);
+    }
+
+    /**
+    * Back references a non-basic type
+    *
+    * The encoded mangling is
+    *       'Q' <relative position of first occurrence of type>
+    *
+    * Params:
+    *  t = the type to encode via back referencing
+    *
+    * Returns:
+    *  true if the type was found. A back reference has been encoded.
+    *  false if the type was not found. The current position is saved for later back references.
+    */
+    final bool backrefType(Type t)
+    {
+        if (!t.isTypeBasic())
+        {
+            if (auto p = cast(void*)t in types)
+            {
+                writeBackRef(buf.offset - *p);
+                return true;
+            }
+            types[cast(void*)t] = buf.offset;
+        }
+        return false;
+    }
+
+    /**
+    * Back references a single identifier
+    *
+    * The encoded mangling is
+    *       'Q' <relative position of first occurrence of type>
+    *
+    * Params:
+    *  id = the identifier to encode via back referencing
+    *
+    * Returns:
+    *  true if the identifier was found. A back reference has been encoded.
+    *  false if the identifier was not found. The current position is saved for later back references.
+    */
+    final bool backrefIdentifier(Identifier id)
+    {
+        if (auto p = cast(void*)id in idents)
+        {
+            writeBackRef(buf.offset - *p);
+            return true;
+        }
+        idents[cast(void*)id] = buf.offset;
+        return false;
+    }
+
     final void mangleSymbol(Dsymbol s)
     {
         s.accept(this);
@@ -184,12 +266,14 @@ public:
 
     final void mangleType(Type t)
     {
-        t.accept(this);
+        if (!backrefType(t))
+            t.accept(this);
     }
 
     final void mangleIdentifier(Identifier id, Dsymbol s)
     {
-        toBuffer(id.toChars(), s);
+        if (!backrefIdentifier(id))
+            toBuffer(id.toChars(), s);
     }
 
     ////////////////////////////////////////////////////////////////////////////
