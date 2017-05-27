@@ -68,8 +68,9 @@ private struct Demangle
     char[]          dst     = null;
     size_t          pos     = 0;
     size_t          len     = 0;
+    size_t          brp     = 0; // current back reference pos
     AddType         addType = AddType.yes;
-
+    bool            mute    = false;
 
     static class ParseException : Exception
     {
@@ -173,7 +174,7 @@ private struct Demangle
             dst[b] = t;
         }
 
-        if( val.length )
+        if( val.length && !mute )
         {
             assert( contains( dst[0 .. len], val ) );
             debug(info) printf( "shifting (%.*s)\n", cast(int) val.length, val.ptr );
@@ -193,7 +194,7 @@ private struct Demangle
 
     char[] append( const(char)[] val )
     {
-        if( val.length )
+        if( val.length && !mute )
         {
             if( !dst.length )
                 dst.length = minBufSize;
@@ -296,6 +297,13 @@ private struct Demangle
         return char.init;
     }
 
+    char peek( size_t n )
+    {
+        if( pos + n < buf.length )
+            return buf[pos + n];
+        return char.init;
+    }
+
 
     void test( char val )
     {
@@ -334,6 +342,56 @@ private struct Demangle
             popFront();
     }
 
+    bool isSymbolNameFront()
+    {
+        char val = front;
+        if( isDigit( val ) || val == '_' )
+            return true;
+        if( val != 'Q' )
+            return false;
+
+        // check the back reference encoding after 'Q'
+        val = peekBackref();
+        return isDigit( val ); // identifier ref
+    }
+
+    // return the first character at the back reference
+    char peekBackref()
+    {
+        assert( front == 'Q' );
+        auto n = decodeBackref!1();
+        if (!n || n > pos)
+            error("invalid back reference");
+
+        return buf[pos - n];
+    }
+
+    size_t decodeBackref(size_t peekAt = 0)()
+    {
+        enum base = 26;
+        size_t n = 0;
+        for (size_t p; ; p++)
+        {
+            char t;
+            static if (peekAt > 0)
+            {
+                t = peek(peekAt + p);
+            }
+            else
+            {
+                t = front;
+                popFront();
+            }
+            if (t < 'A' || t > 'Z')
+            {
+                if (t < 'a' || t > 'z')
+                    error("invalid back reference");
+                n = base * n + t - 'a';
+                return n;
+            }
+            n = base * n + t - 'A';
+        }
+    }
 
     //////////////////////////////////////////////////////////////////////////
     // Parsing Implementation
@@ -492,8 +550,24 @@ private struct Demangle
         debug(trace) printf( "parseLName+\n" );
         debug(trace) scope(success) printf( "parseLName-\n" );
 
+        if( front == 'Q' )
+        {
+            // back reference to LName
+            auto refPos = pos;
+            popFront();
+            size_t n = decodeBackref();
+            if( !n || n > refPos )
+                error( "Invalid LName back reference" );
+            if ( !mute )
+            {
+                auto savePos = pos;
+                scope(exit) pos = savePos;
+                pos = refPos - n;
+                parseLName();
+            }
+            return;
+        }
         auto n = decodeNumber();
-
         if( !n || n > buf.length || n > buf.length - pos )
             error( "LName must be at least 1 character" );
         if( '_' != front && !isAlpha( front ) )
@@ -713,8 +787,30 @@ private struct Demangle
         auto beg = len;
         auto t = front;
 
+        char[] parseBackrefType(scope char[] delegate() parseDg)
+        {
+            if (pos == brp)
+                error("recursive back reference");
+            auto refPos = pos;
+            popFront();
+            auto n = decodeBackref();
+            if (n == 0 || n > pos)
+                error("invalid back reference");
+            if ( mute )
+                return null;
+            auto savePos = pos;
+            auto saveBrp = brp;
+            scope(success) { pos = savePos; brp = saveBrp; }
+            pos = refPos - n;
+            brp = refPos;
+            auto ret = parseDg();
+            return ret;
+        }
+
         switch( t )
         {
+        case 'Q': // Type back reference
+            return parseBackrefType( () => parseType( name ) );
         case 'O': // Shared (O Type)
             popFront();
             put( "shared(" );
@@ -801,7 +897,10 @@ private struct Demangle
             return dst[beg .. len];
         case 'D': // TypeDelegate (D TypeFunction)
             popFront();
-            parseTypeFunction( name, IsDelegate.yes );
+            if( front == 'Q' )
+                parseBackrefType( () => parseTypeFunction( name, IsDelegate.yes ) );
+            else
+                parseTypeFunction( name, IsDelegate.yes );
             return dst[beg .. len];
         case 'n': // TypeNone (n)
             popFront();
@@ -1419,6 +1518,8 @@ private struct Demangle
                 //       generated by parseValue, so it is safe to simply
                 //       decrement len and let put/append do its thing.
                 char t = front; // peek at type for parseValue
+                if( t == 'Q' )
+                    t = peekBackref();
                 char[] name; silent( name = parseType() );
                 parseValue( name, t );
                 continue;
@@ -1430,7 +1531,7 @@ private struct Demangle
                 {
                     auto l = len;
                     auto p = pos;
-
+                    auto b = brp;
                     try
                     {
                         debug(trace) printf( "may be mangled name arg\n" );
@@ -1441,6 +1542,7 @@ private struct Demangle
                     {
                         len = l;
                         pos = p;
+                        brp = b;
                         debug(trace) printf( "not a mangled name arg\n" );
                     }
                 }
@@ -1489,7 +1591,12 @@ private struct Demangle
         debug(trace) scope(success) printf( "parseTemplateInstanceName-\n" );
 
         auto sav = pos;
-        scope(failure) pos = sav;
+        auto saveBrp = brp;
+        scope(failure)
+        {
+            pos = sav;
+            brp = saveBrp;
+        }
         auto n = hasNumber ? decodeNumber() : 0;
         auto beg = pos;
         match( "__T" );
@@ -1554,6 +1661,8 @@ private struct Demangle
                     len = t;
                 }
             }
+            goto case;
+        case 'Q':
             parseLName();
             return;
         default:
@@ -1561,6 +1670,47 @@ private struct Demangle
         }
     }
 
+    void parseFunctionType( bool muteReturnType )
+    {
+        if( 'M' == front )
+        {
+            // do not emit "needs this"
+            popFront();
+        }
+        if( isCallConvention( front ) )
+        {
+            // try to demangle a function, in case we are pointing to some function local
+            auto prevpos = pos;
+            auto prevlen = len;
+
+            // we don't want calling convention and attributes in the qualified name
+            parseCallConvention();
+            parseFuncAttr();
+            len = prevlen;
+
+            put( '(' );
+            parseFuncArguments();
+            put( ')' );
+            if( !isSymbolNameFront() ) // voldemort types don't have a return type on the function
+            {
+                auto funclen = len;
+
+                bool prevMute = mute;
+                scope(exit) mute = prevMute;
+                mute = muteReturnType;
+                parseType();
+
+                if( !muteReturnType && !isSymbolNameFront() )
+                {
+                    // not part of a qualified name, so back up
+                    pos = prevpos;
+                    len = prevlen;
+                }
+                else
+                    len = funclen; // remove return type from qualified name
+            }
+        }
+    }
 
     /*
     QualifiedName:
@@ -1579,37 +1729,8 @@ private struct Demangle
             if( n++ )
                 put( '.' );
             parseSymbolName();
-
-            if( isCallConvention( front ) )
-            {
-                // try to demangle a function, in case we are pointing to some function local
-                auto prevpos = pos;
-                auto prevlen = len;
-
-                // we don't want calling convention and attributes in the qualified name
-                parseCallConvention();
-                parseFuncAttr();
-                len = prevlen;
-
-                put( '(' );
-                parseFuncArguments();
-                put( ')' );
-                if( !isDigit( front ) && front != '_' ) // voldemort types don't have a return type on the function
-                {
-                    auto funclen = len;
-                    parseType();
-
-                    if( !isDigit( front ) && front != '_' )
-                    {
-                        // not part of a qualified name, so back up
-                        pos = prevpos;
-                        len = prevlen;
-                    }
-                    else
-                        len = funclen; // remove return type from qualified name
-                }
-            }
-        } while( isDigit( front ) || front == '_' );
+            parseFunctionType( false );
+        } while( isSymbolNameFront() );
         return dst[beg .. len];
     }
 
@@ -1662,7 +1783,7 @@ private struct Demangle
                 auto newsz = a < b ? b : a;
                 debug(info) printf( "growing dst to %lu bytes\n", newsz );
                 dst.length = newsz;
-                pos = len = 0;
+                pos = len = brp = 0;
                 continue;
             }
             catch( ParseException e )
@@ -1981,6 +2102,9 @@ version(unittest)
         ["_D5bug145Class3barMFNjZPv", "return void* bug14.Class.bar()"],
         ["_D5bug143fooFMPvZPv", "void* bug14.foo(scope void*)"],
         ["_D5bug143barFMNkPvZPv", "void* bug14.bar(scope return void*)"],
+        // back references
+        ["_D4core4stdc5errnoQgFZi", "int core.stdc.errno.errno()"], // identifier back reference
+        ["_D4testFS10structnameQnZb", "bool test(structname, structname)"], // type back reference
     ];
 
     template staticIota(int x)
