@@ -1483,21 +1483,21 @@ private struct Demangle
     TemplateInstanceName:
         Number __T LName TemplateArgs Z
     */
-    void parseTemplateInstanceName()
+    void parseTemplateInstanceName(bool hasNumber)
     {
         debug(trace) printf( "parseTemplateInstanceName+\n" );
         debug(trace) scope(success) printf( "parseTemplateInstanceName-\n" );
 
         auto sav = pos;
         scope(failure) pos = sav;
-        auto n = decodeNumber();
+        auto n = hasNumber ? decodeNumber() : 0;
         auto beg = pos;
         match( "__T" );
         parseLName();
         put( "!(" );
         parseTemplateArgs();
         match( 'Z' );
-        if( pos - beg != n )
+        if( hasNumber && pos - beg != n )
             error( "Template name length mismatch" );
         put( ')' );
     }
@@ -1532,6 +1532,11 @@ private struct Demangle
         // TemplateInstanceName -> Number "__T"
         switch( front )
         {
+        case '_':
+            // no length encoding for templates for new mangling
+            parseTemplateInstanceName(false);
+            return;
+
         case '0': .. case '9':
             if( mayBeTemplateInstanceName() )
             {
@@ -1540,7 +1545,7 @@ private struct Demangle
                 try
                 {
                     debug(trace) printf( "may be template instance name\n" );
-                    parseTemplateInstanceName();
+                    parseTemplateInstanceName(true);
                     return;
                 }
                 catch( ParseException e )
@@ -1589,12 +1594,12 @@ private struct Demangle
                 put( '(' );
                 parseFuncArguments();
                 put( ')' );
-                if( !isDigit( front ) ) // voldemort types don't have a return type on the function
+                if( !isDigit( front ) && front != '_' ) // voldemort types don't have a return type on the function
                 {
                     auto funclen = len;
                     parseType();
 
-                    if( !isDigit( front ) )
+                    if( !isDigit( front ) && front != '_' )
                     {
                         // not part of a qualified name, so back up
                         pos = prevpos;
@@ -1604,7 +1609,7 @@ private struct Demangle
                         len = funclen; // remove return type from qualified name
                 }
             }
-        } while( isDigit( front ) );
+        } while( isDigit( front ) || front == '_' );
         return dst[beg .. len];
     }
 
