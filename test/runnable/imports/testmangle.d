@@ -15,7 +15,7 @@ private
 pragma(msg,detectMangle.mangleof);
 static if(detectMangle.mangleof == "_D7imports10testmangle12detectMangleFPSQL3H6DetectZQ1e")
     enum { BackRefs = true, BackRefSymbols = true }
-else static if(detectMangle.mangleof == "_D7imports10testmangle12detectMangleFPSQ3HQ3C6DetectZQ1g")
+else static if(detectMangle.mangleof == "_D7imports10testmangle12detectMangleFPSQBlQBg6DetectZQq")
     enum { BackRefs = true, BackRefSymbols = false }
 else static if(detectMangle.mangleof == "_D7imports10testmangle12detectMangleFPS7imports10testmangle6DetectZPS7imports10testmangle6Detect")
     enum { BackRefs = false, BackRefSymbols = false }

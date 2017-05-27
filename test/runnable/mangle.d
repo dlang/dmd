@@ -177,8 +177,8 @@ void test8847b()
 
 struct Test8847
 {
-    enum result1 = "S6mangle8Test8847"~tl!("8")~"__T3fooZ"~id!("3foo","QF")~"MFZ6Result";
-    enum result2 = "S6mangle8Test8847"~tl!("8")~"__T3fooZ"~id!("3foo","QF")~"MxFiZ6Result";
+    enum result1 = "S6mangle8Test8847"~tl!("8")~"__T3fooZ"~id!("3foo","Qf")~"MFZ6Result";
+    enum result2 = "S6mangle8Test8847"~tl!("8")~"__T3fooZ"~id!("3foo","Qf")~"MxFiZ6Result";
 
     auto foo()()
     {
@@ -238,7 +238,7 @@ void test8847d()
 
 void test8847e()
 {
-    enum resultHere = "6mangle"~"9test8847eFZ"~tl!"8"~"__T3fooZ"~id!("3foo","QF");
+    enum resultHere = "6mangle"~"9test8847eFZ"~tl!"8"~"__T3fooZ"~id!("3foo","Qf");
     enum resultBar =  "S"~resultHere~"MFNaNfNgiZ3Bar";
     static if(BackRefs) {} else
       enum resultFoo = "_D"~resultHere~"MFNaNbNiNfNgiZNg"~resultBar;   // added 'Nb'
@@ -296,7 +296,7 @@ auto bar12352()
 
     return S();
 }
-static assert(       bar12352        .mangleof == "_D6mangle8bar12352FNaNbNiNfZS"~id!("6mangle8bar12352FZ","Q2HQ2DFZ","QL2H")~"1S");
+static assert(       bar12352        .mangleof == "_D6mangle8bar12352FNaNbNiNfZS"~id!("6mangle8bar12352FZ","QBbQxFZ","QL2H")~"1S");
 static assert(typeof(bar12352())     .mangleof ==  "S6mangle8bar12352FZ1S");
 static assert(typeof(bar12352()).func.mangleof == "_D6mangle8bar12352FZ1S4funcMFZv");
 
@@ -310,7 +310,7 @@ auto baz12352()
 
     return new C();
 }
-static assert(       baz12352      .mangleof == "_D6mangle8baz12352FNaNbNfZC"~id!("6mangle8baz12352FZ","Q2FQ2BFZ","QL2F")~"1C");
+static assert(       baz12352      .mangleof == "_D6mangle8baz12352FNaNbNfZC"~id!("6mangle8baz12352FZ","QzQuFZ","QL2F")~"1C");
 static assert(typeof(baz12352())     .mangleof ==  "C6mangle8baz12352FZ1C");
 static assert(typeof(baz12352()).func.mangleof == "_D6mangle8baz12352FZ1C4funcMFZv");
 
@@ -321,8 +321,8 @@ void f9525(T)(in T*) { }
 
 void test9525()
 {
-    enum result1 = "S6mangle8test9525FZ"~tl!"26"~"__T5test1S"~tl!"13"~id!("6mangle","Q2I")~"5f9525Z"~id!("5test1","Q1H")~"MFZ1S";
-    enum result2 = "S6mangle8test9525FZ"~tl!"26"~"__T5test2S"~tl!"13"~id!("6mangle","Q2I")~"5f9525Z"~id!("5test2","Q1H")~"MFNaNbZ1S";
+    enum result1 = "S6mangle8test9525FZ"~tl!"26"~"__T5test1S"~tl!"13"~id!("6mangle","QBc")~"5f9525Z"~id!("5test1","Qr")~"MFZ1S";
+    enum result2 = "S6mangle8test9525FZ"~tl!"26"~"__T5test2S"~tl!"13"~id!("6mangle","QBc")~"5f9525Z"~id!("5test2","Qr")~"MFNaNbZ1S";
 
     void test1(alias a)()
     {
@@ -409,8 +409,8 @@ void test11718()
     struct A {}
     static if (BackRefs)
     {
-        static assert(fn11718(A.init) == "S6mangle__T7Ty11718S_DQ2B__T7fn11718TSQ3H9test11718FZ1AZQ2IFQ2dZ1aQ2jZQ5J");
-        static assert(fn11718!A()     == "S6mangle__T7Ty11718S_DQ2B__T7fn11718TSQ3H9test11718FZ1AZQ2IFZ1aQ2gZQ5G");
+        static assert(fn11718(A.init) == "S6mangle__T7Ty11718S_DQv__T7fn11718TSQBk9test11718FZ1AZQBcFQxZ1aQBcZQCf");
+        static assert(fn11718!A()     == "S6mangle__T7Ty11718S_DQv__T7fn11718TSQBk9test11718FZ1AZQBcFZ1aQBaZQCd");
     }
     else
     {
@@ -435,10 +435,10 @@ void test11776()
         {
             auto s = S11776!(a => 1)();
             static assert(typeof(s).mangleof ==
-	        "S"~"6mangle"~tl!("56")~
+                "S"~"6mangle"~tl!("56")~
                 ("__T"~"6S11776"~"S"~tl!("42")~
-		 (id!("6mangle","Q1I")~"9test11776"~"FZ"~"9__lambda1MFZ"~id!("9__lambda1","Q1D"))~"Z"
-		 )~id!("6S11776", "Q4A"));
+                 (id!("6mangle","Qs")~"9test11776"~"FZ"~"9__lambda1MFZ"~id!("9__lambda1","Qn"))~"Z"
+                 )~id!("6S11776", "QBm"));
         }
     };
 }
@@ -495,7 +495,7 @@ void func12231a()()
 if (is(typeof({
         class C {}
         static assert(C.mangleof ==
-            "C6mangle"~tl!("16")~"__U10func12231aZ"~id!("10func12231a","Q1D")~"FZ9__lambda1MFZ1C");
+            "C6mangle"~tl!("16")~"__U10func12231aZ"~id!("10func12231a","Qn")~"FZ9__lambda1MFZ1C");
             //         ###            L                       #
     })))
 {}
@@ -503,13 +503,13 @@ if (is(typeof({
 void func12231b()()
 if (is(typeof({
         class C {}        static assert(C.mangleof ==
-            "C6mangle"~tl!("16")~"__U10func12231bZ"~id!("10func12231b","Q1D")~"FZ9__lambda1MFZ1C");
+            "C6mangle"~tl!("16")~"__U10func12231bZ"~id!("10func12231b","Qn")~"FZ9__lambda1MFZ1C");
             //         L__L           L                       LL
       })) &&
     is(typeof({
         class C {}
         static assert(C.mangleof ==
-            "C6mangle"~tl!("16")~"__U10func12231bZ"~id!("10func12231b","Q1D")~"FZ9__lambda2MFZ1C");
+            "C6mangle"~tl!("16")~"__U10func12231bZ"~id!("10func12231b","Qn")~"FZ9__lambda2MFZ1C");
             //         L__L           L                       LL
     })))
 {}
@@ -518,14 +518,14 @@ void func12231c()()
 if (is(typeof({
         class C {}
         static assert(C.mangleof ==
-            "C6mangle"~tl!("16")~"__U10func12231cZ"~id!("10func12231c","Q1D")~"FZ9__lambda1MFZ1C");
+            "C6mangle"~tl!("16")~"__U10func12231cZ"~id!("10func12231c","Qn")~"FZ9__lambda1MFZ1C");
             //         L__L           L                       LL
     })))
 {
     (){
         class C {}
         static assert(C.mangleof ==
-            "C6mangle"~tl!("16")~"__T10func12231cZ"~id!("10func12231c","Q1D")~"FZ9__lambda1MFZ1C");
+            "C6mangle"~tl!("16")~"__T10func12231cZ"~id!("10func12231c","Qn")~"FZ9__lambda1MFZ1C");
             //         L__L           L                       LL
     }();
 }
@@ -533,15 +533,15 @@ if (is(typeof({
 void func12231c(X)()
 if (is(typeof({
         class C {}
-        static assert(C.mangleof ==
-            "C6mangle"~tl!("20")~"__U10func12231cTAyaZ"~id!("10func12231c","Q1H")~"FZ9__lambda1MFZ1C");
+    static assert(C.mangleof ==
+            "C6mangle"~tl!("20")~"__U10func12231cTAyaZ"~id!("10func12231c","Qr")~"FZ9__lambda1MFZ1C");
             //         L__L           L___L                       LL
     })))
 {
     (){
         class C {}
         static assert(C.mangleof ==
-            "C6mangle"~tl!("20")~"__T10func12231cTAyaZ"~id!("10func12231c","Q1H")~"FZ9__lambda1MFZ1C");
+            "C6mangle"~tl!("20")~"__T10func12231cTAyaZ"~id!("10func12231c","Qr")~"FZ9__lambda1MFZ1C");
             //         L__L           L___L                       LL
     }();
 }
