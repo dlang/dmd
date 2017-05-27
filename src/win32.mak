@@ -154,18 +154,19 @@ DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$
 
 # D front end
 FRONT_SRCS=$D/access.d $D/aggregate.d $D/aliasthis.d $D/apply.d $D/argtypes.d $D/arrayop.d	\
-	$D/arraytypes.d $D/astcodegen.d $D/attrib.d $D/builtin.d $D/canthrow.d $D/clone.d $D/complex.d		\
-	$D/cond.d $D/constfold.d $D/cppmangle.d $D/ctfeexpr.d $D/dcast.d $D/dclass.d	\
+	$D/arraytypes.d $D/astbase.d $D/astbasevisitor.d $D/astcodegen.d $D/attrib.d	\
+	$D/builtin.d $D/canthrow.d $D/clone.d $D/complex.d		\
+	$D/cond.d $D/constfold.d $D/cppmangle.d $D/ctfeexpr.d $D/dcast.d $D/dclass.d		\
 	$D/declaration.d $D/delegatize.d $D/denum.d $D/dimport.d $D/dinifile.d $D/dinterpret.d	\
 	$D/dmacro.d $D/dmangle.d $D/dmodule.d $D/doc.d $D/dscope.d $D/dstruct.d $D/dsymbol.d		\
 	$D/dtemplate.d $D/dversion.d $D/escape.d			\
 	$D/expression.d $D/func.d $D/hdrgen.d $D/imphint.d	\
-	$D/impcnvtab.d $D/init.d $D/inline.d $D/inlinecost.d $D/intrange.d $D/json.d $D/lib.d $D/link.d	\
-	$D/mars.d $D/mtype.d $D/nogc.d $D/nspace.d $D/objc.d $D/opover.d $D/optimize.d $D/parse.d	\
-	$D/sapply.d $D/sideeffect.d $D/statement.d $D/staticassert.d $D/target.d	\
+	$D/impcnvtab.d $D/impvisitor.d $D/init.d $D/inline.d $D/inlinecost.d $D/intrange.d $D/json.d $D/lib.d $D/link.d	\
+	$D/mars.d $D/mtype.d $D/nogc.d $D/nspace.d $D/objc.d $D/opover.d $D/optimize.d $D/parse.d $D/permissivevisitor.d	\
+	$D/sapply.d $D/sideeffect.d $D/statement.d $D/staticassert.d $D/transitivevisitor.d $D/target.d	\
 	$D/safe.d $D/blockexit.d $D/asttypename.d \
 	$D/traits.d $D/utils.d $D/visitor.d $D/libomf.d $D/scanomf.d $D/typinf.d \
-	$D/libmscoff.d $D/scanmscoff.d $D/statement_rewrite_walker.d $D/statementsem.d $D/staticcond.d
+	$D/libmscoff.d $D/scanmscoff.d $D/statement_rewrite_walker.d $D/statementsem.d $D/staticcond.d $D/strictvisitor.d
 
 LEXER_SRCS=$D/console.d $D/entity.d $D/errors.d $D/globals.d $D/id.d $D/identifier.d \
 	$D/lexer.d $D/tokens.d $D/utf.d

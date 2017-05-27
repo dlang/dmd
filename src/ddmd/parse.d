@@ -8421,8 +8421,11 @@ final class Parser(AST) : Lexer
      */
     void addComment(AST.Dsymbol s, const(char)* blockComment)
     {
-        s.addComment(combineComments(blockComment, token.lineComment, true));
-        token.lineComment = null;
+        if (s !is null)
+        {
+            s.addComment(combineComments(blockComment, token.lineComment, true));
+            token.lineComment = null;
+        }
     }
 }
 
