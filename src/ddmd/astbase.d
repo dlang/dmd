@@ -1449,21 +1449,9 @@ struct ASTBase
 
     extern (C++) final class Module : Package
     {
-        version(Windows)
-        {
-            extern (C) char* getcwd(char* buffer, size_t maxlen);
-        }
-        else
-        {
-            import core.sys.posix.unistd : getcwd;
-        }
-
         extern (C++) static __gshared AggregateDeclaration moduleinfo;
 
         File* srcfile;
-        File* objfile;
-        File* hdrfile;
-        File* docfile;
         const(char)* arg;
         const(char)* srcfilePath;
 
@@ -1472,58 +1460,7 @@ struct ASTBase
             super(ident);
             this.arg = filename;
             const(char)* srcfilename = FileName.defaultExt(filename, global.mars_ext);
-            if (global.run_noext && global.params.run && !FileName.ext(filename)
-                && FileName.exists(srcfilename) == 0 && FileName.exists(filename) == 1)
-            {
-                FileName.free(srcfilename);
-                srcfilename = FileName.removeExt(filename); // just does a mem.strdup(filename)
-            }
-            else if (!FileName.equalsExt(srcfilename, global.mars_ext)
-                     && !FileName.equalsExt(srcfilename, global.hdr_ext)
-                     && !FileName.equalsExt(srcfilename, "dd"))
-            {
-                error("source file name '%s' must have .%s extension", srcfilename, global.mars_ext);
-                fatal();
-            }
             srcfile = new File(srcfilename);
-            if(!FileName.absolute(srcfilename)) {
-                srcfilePath = getcwd(null, 0);
-            }
-            objfile = setOutfile(global.params.objname, global.params.objdir, filename, global.obj_ext);
-            if (doDocComment)
-                docfile = setOutfile(global.params.docname, global.params.docdir, arg, global.doc_ext);
-            if (doHdrGen)
-                hdrfile = setOutfile(global.params.hdrname, global.params.hdrdir, arg, global.hdr_ext);
-        }
-
-        File* setOutfile(const(char)* name, const(char)* dir, const(char)* arg, const(char)* ext)
-        {
-            const(char)* docfilename;
-            if (name)
-            {
-                docfilename = name;
-            }
-            else
-            {
-                const(char)* argdoc;
-                if (global.params.preservePaths)
-                    argdoc = arg;
-                else
-                    argdoc = FileName.name(arg);
-                // If argdoc doesn't have an absolute path, make it relative to dir
-                if (!FileName.absolute(argdoc))
-                {
-                    //FileName::ensurePathExists(dir);
-                    argdoc = FileName.combine(dir, argdoc);
-                }
-                docfilename = FileName.forceExt(argdoc, ext);
-            }
-            if (FileName.equals(docfilename, srcfile.name.str))
-            {
-                error("source file and output file have same name '%s'", srcfile.name.str);
-                fatal();
-            }
-            return new File(docfilename);
         }
 
         override void accept(Visitor v)

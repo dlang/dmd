@@ -7113,8 +7113,7 @@ final class Parser(AST) : Lexer
 
         case TOKfile:
             {
-                //const(char)* s = loc.filename ? loc.filename : mod.ident.toChars();
-                const(char)[] s = "yupii\n";
+                const(char)* s = loc.filename ? loc.filename : mod.ident.toChars();
                 e = new AST.StringExp(loc, cast(char*)s);
                 nextToken();
                 break;
@@ -8428,79 +8427,6 @@ final class Parser(AST) : Lexer
             token.lineComment = null;
         }
     }
-}
-
-version (none) unittest
-{
-    import ddmd.astcodegen;
-
-    const(char)[] input = "int a;";
-
-
-    global._init();
-    global.params.isLinux = true;
-    global.params.is64bit = (size_t.sizeof == 8);
-    ASTCodegen.Type._init();
-    scope p = new Parser!ASTCodegen(null, input[0..input.length], false);
-    p.nextToken();
-    p.parseModule();
-}
-
-unittest
-{
-    import ddmd.astbase;
-    import ddmd.impvisitor;
-    import std.stdio;
-    import std.file;
-    import ddmd.root.array;
-
-
-    Id.initialize();
-    global._init();
-    global.params.isLinux = true;
-    global.params.is64bit = (size_t.sizeof == 8);
-    ASTBase.Type._init();
-
-    string[] files;
-    size_t i = 0;
-
-    auto dFiles = dirEntries("../../phobos/std", "*.d", SpanMode.depth);
-    foreach (d; dFiles)
-    {
-        files ~= d.name;
-        ++i;
-    }
-
-    foreach(f; files)
-    {
-        writeln("Processing: ", f);
-        scope p = new Parser!ASTBase(null, readText(f), false);
-        p.nextToken();
-        p.parseModule();
-        writeln("Finished!");
-    }
-
-    writeln(i);
-
-/*
-    string input = readText("../../phobos/std/c/stdio.d");
-
-    const(char)[] input2 = "";
-
-    scope p = new Parser!ASTBase(null, input, false);
-    p.nextToken();
-    p.parseModule();
-*/
-
-/*
-    OutBuffer buf;
-    buf.reserve(32);
-    scope vis = new ImportVisitor!ASTBase(&buf);
-    vis.visitModuleMembers(p.parseModule());
-    assert(!p.errors);
-
-    assert(strcmp(buf.extractString(), "ABCDEFGHIJKLMNOPQRSTUVXYZAB") == 0);
-*/
 }
 
 enum PREC : int

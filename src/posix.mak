@@ -241,7 +241,7 @@ ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
 	filename man outbuffer port response rmem rootobject speller \
 	stringtable hash))
 
-PARSER_SRCS=$(addsuffix .d, $(addprefix $D/,parse astbase astbasevisitor))
+PARSER_SRCS=$(addsuffix .d, $(addprefix $D/,parse astbase astbasevisitor impvisitor transitivevisitor permissivevisitor strictvisitor))
 
 GLUE_OBJS =
 

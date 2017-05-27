@@ -3,31 +3,45 @@ import std.file;
 
 import ddmd.parse;
 import ddmd.astbase;
+import ddmd.impvisitor;
 
 import ddmd.id;
 import ddmd.globals;
+import ddmd.identifier;
+
+import core.memory;
 
 void main()
 {
+
+    GC.disable();
     string path = "../../phobos/std/";
     string regex = "*.d";
 
     auto dFiles = dirEntries(path, regex, SpanMode.depth);
-    foreach (d; dFiles)
+    foreach (f; dFiles)
     {
-        writeln("Processing:", d.name);
+        writeln("Processing ", f);
 
         Id.initialize();
         global._init();
         global.params.isLinux = true;
         global.params.is64bit = (size_t.sizeof == 8);
+        global.params.useUnitTests = true;
         ASTBase.Type._init();
 
-        string content = readText(d.name);
+        auto id = Identifier.idPool(f);
+        auto m = new ASTBase.Module(&(f.dup)[0], id, false, false);
+        auto input = readText(f);
 
-        scope p = new Parser!ASTBase(null, content, false);
+        writeln("Started parsing...");
+        scope p = new Parser!ASTBase(m, input, false);
         p.nextToken();
-        p.parseModule();
+        m.members = p.parseModule();
+        writeln("Finished parsing. Starting transitive visitor");
+
+        scope vis = new ImportVisitor2();
+        m.accept(vis);
 
         writeln("Finished!");
     }
