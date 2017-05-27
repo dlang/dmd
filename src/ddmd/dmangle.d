@@ -198,11 +198,6 @@ public:
      */
     void visitWithMask(Type t, ubyte modMask)
     {
-        if (t.deco && modMask == 0)
-        {
-            buf.writestring(t.deco);    // don't need to recreate it
-            return;
-        }
         if (modMask != t.mod)
         {
             MODtoDecoBuffer(buf, t.mod);
@@ -260,8 +255,9 @@ public:
     void mangleFuncType(TypeFunction t, TypeFunction ta, ubyte modMask, Type tret)
     {
         //printf("mangleFuncType() %s\n", t.toChars());
-        if (t.inuse)
+        if (t.inuse && tret)
         {
+            // printf("TypeFunction.mangleFuncType() t = %s inuse\n", t.toChars());
             t.inuse = 2; // flag error to caller
             return;
         }
@@ -386,9 +382,9 @@ public:
         {
             mangleFunc(fd, false);
         }
-        else if (sthis.type.deco)
+        else if (sthis.type)
         {
-            buf.writestring(sthis.type.deco);
+            visitWithMask(sthis.type, 0);
         }
         else
             assert(0);
@@ -427,13 +423,13 @@ public:
             TypeFunction tfo = cast(TypeFunction)fd.originalType;
             mangleFuncType(tf, tfo, 0, null);
         }
-        else if (fd.type.deco)
+        else if (fd.type)
         {
-            buf.writestring(fd.type.deco);
+            visitWithMask(fd.type, 0);
         }
         else
         {
-            printf("[%s] %s %s\n", fd.loc.toChars(), fd.toChars(), fd.type.toChars());
+            printf("[%s] %s no type\n", fd.loc.toChars(), fd.toChars());
             assert(0); // don't mangle function until semantic3 done.
         }
     }
@@ -665,17 +661,7 @@ public:
             if (ta)
             {
                 buf.writeByte('T');
-                if (ta.deco)
-                    buf.writestring(ta.deco);
-                else
-                {
-                    debug
-                    {
-                        if (!global.errors)
-                            printf("ta = %d, %s\n", ta.ty, ta.toChars());
-                    }
-                    assert(global.errors);
-                }
+                visitWithMask(ta, 0);
             }
             else if (ea)
             {
@@ -716,9 +702,9 @@ public:
                 if (ea.op == TOKerror || olderr != global.errors)
                     continue;
 
-                /* Use deco that matches what it would be for a function parameter
+                /* Use type mangling that matches what it would be for a function parameter
                 */
-                buf.writestring(ea.type.deco);
+                visitWithMask(ea.type, 0);
                 mangleToBuffer(ea, buf);
             }
             else if (sa)
