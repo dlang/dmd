@@ -27,6 +27,7 @@ import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.id;
+import ddmd.identifier;
 import ddmd.mtype;
 import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;
@@ -176,6 +177,22 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
+    final void mangleSymbol(Dsymbol s)
+    {
+        s.accept(this);
+    }
+
+    final void mangleType(Type t)
+    {
+        t.accept(this);
+    }
+
+    final void mangleIdentifier(Identifier id, Dsymbol s)
+    {
+        toBuffer(id.toChars(), s);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
     /**************************************************
      * Type mangling
      */
@@ -190,7 +207,7 @@ public:
         {
             MODtoDecoBuffer(buf, t.mod);
         }
-        t.accept(this);
+        mangleType(t);
     }
 
     override void visit(Type t)
@@ -324,21 +341,21 @@ public:
     override void visit(TypeEnum t)
     {
         visit(cast(Type)t);
-        t.sym.accept(this);
+        mangleSymbol(t.sym);
     }
 
     override void visit(TypeStruct t)
     {
         //printf("TypeStruct.toDecoBuffer('%s') = '%s'\n", t.toChars(), name);
         visit(cast(Type)t);
-        t.sym.accept(this);
+        mangleSymbol(t.sym);
     }
 
     override void visit(TypeClass t)
     {
         //printf("TypeClass.toDecoBuffer('%s' mod=%x) = '%s'\n", t.toChars(), mod, name);
         visit(cast(Type)t);
-        t.sym.accept(this);
+        mangleSymbol(t.sym);
     }
 
     override void visit(TypeTuple t)
@@ -364,8 +381,7 @@ public:
     {
         mangleParent(sthis);
         assert(sthis.ident);
-        const(char)* id = sthis.ident.toChars();
-        toBuffer(id, sthis);
+        mangleIdentifier(sthis.ident, sthis);
         if (FuncDeclaration fd = sthis.isFuncDeclaration())
         {
             mangleFunc(fd, false);
@@ -390,8 +406,7 @@ public:
             mangleParent(p);
             if (p.getIdent())
             {
-                const(char)* id = p.ident.toChars();
-                toBuffer(id, s);
+                mangleIdentifier(p.ident, s);
                 if (FuncDeclaration f = p.isFuncDeclaration())
                     mangleFunc(f, true);
             }
@@ -522,7 +537,7 @@ public:
         }
         if (fa)
         {
-            fa.accept(this);
+            mangleSymbol(fa);
             return;
         }
         visit(cast(Dsymbol)fd);
@@ -547,7 +562,7 @@ public:
         {
             if (!od.hasOverloads || td.overnext is null)
             {
-                td.accept(this);
+                mangleSymbol(td);
                 return;
             }
         }
@@ -618,8 +633,10 @@ public:
         else
             mangleParent(ti);
         ti.getIdent();
-        const(char)* id = ti.ident ? ti.ident.toChars() : ti.toChars();
-        toBuffer(id, ti);
+        if (ti.ident)
+            mangleIdentifier(ti.ident, ti);
+        else
+            toBuffer(ti.toChars(), ti);
         //printf("TemplateInstance.mangle() %s = %s\n", ti.toChars(), ti.id);
     }
 
@@ -628,10 +645,10 @@ public:
         TemplateDeclaration tempdecl = ti.tempdecl.isTemplateDeclaration();
         assert(tempdecl);
 
-        const id = tempdecl.ident.toString();
         // Use "__U" for the symbols declared inside template constraint.
         const char T = ti.members ? 'T' : 'U';
-        buf.printf("__%c%u%.*s", T, cast(int)id.length, cast(int)id.length, id.ptr);
+        buf.printf("__%c", T);
+        mangleIdentifier(tempdecl.ident, tempdecl);
 
         auto args = ti.tiargs;
         size_t nparams = tempdecl.parameters.dim - (tempdecl.isVariadic() ? 1 : 0);
@@ -752,8 +769,10 @@ public:
             printf("\n");
         }
         mangleParent(s);
-        auto id = s.ident ? s.ident.toChars() : s.toChars();
-        toBuffer(id, s);
+        if (s.ident)
+            mangleIdentifier(s.ident, s);
+        else
+            toBuffer(s.toChars(), s);
         //printf("Dsymbol.mangle() %s = %s\n", s.toChars(), id);
     }
 
