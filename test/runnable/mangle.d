@@ -321,8 +321,8 @@ void f9525(T)(in T*) { }
 
 void test9525()
 {
-    enum result1 = "S6mangle8test9525FZ"~tl!"26"~"__T5test1S"~id!("136mangle","Q2I")~"5f9525Z"~id!("5test1","Q1H")~"MFZ1S";
-    enum result2 = "S6mangle8test9525FZ"~tl!"26"~"__T5test2S"~id!("136mangle","Q2I")~"5f9525Z"~id!("5test2","Q1H")~"MFNaNbZ1S";
+    enum result1 = "S6mangle8test9525FZ"~tl!"26"~"__T5test1S"~tl!"13"~id!("6mangle","Q2I")~"5f9525Z"~id!("5test1","Q1H")~"MFZ1S";
+    enum result2 = "S6mangle8test9525FZ"~tl!"26"~"__T5test2S"~tl!"13"~id!("6mangle","Q2I")~"5f9525Z"~id!("5test2","Q1H")~"MFNaNbZ1S";
 
     void test1(alias a)()
     {
@@ -401,7 +401,7 @@ void test11718()
                  "S6mangle9test11718FZ1AZ7fn11718"~paramPart~"1a"~
                  "S6mangle9test11718FZ1A";
         enum len = unsignedToString(s.length);
-        return len ~ s;
+        return tl!len ~ s;
     }
     enum result1 = TyName!("S" ~ fnName!("F"~"S6mangle9test11718FZ1A"~"Z") ~ "Z") ~ "7Ty11718";
     enum result2 = TyName!("S" ~ fnName!("F"~""                      ~"Z") ~ "Z") ~ "7Ty11718";
@@ -414,6 +414,7 @@ void test11718()
     }
     else
     {
+        pragma(msg, fn11718(A.init));
         static assert(fn11718(A.init) == result1);
         static assert(fn11718!A()     == result2);
     }

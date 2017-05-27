@@ -7,6 +7,7 @@ enum Method { A, B, }
 
 int foo(Method method = Method.A)()
 {
+pragma(msg, "_D8link6574"~tl!"28"~"__T3fooVE"~id!("8link6574","Q1I")~"6Methodi0Z"~id!("3foo","Q1J")~"FZi");
     static assert(foo.mangleof == "_D8link6574"~tl!"28"~"__T3fooVE"~id!("8link6574","Q1I")~"6Methodi0Z"~id!("3foo","Q1J")~"FZi");
     return 10 * foo!method();
 }
