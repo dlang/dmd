@@ -9,6 +9,7 @@ private
 {
     struct Detect;
     Detect* detectMangle(Detect*);
+    void DetectTmpl(T)() {}
 }
 
 pragma(msg,detectMangle.mangleof);
@@ -18,6 +19,15 @@ else static if(detectMangle.mangleof == "_D7imports10testmangle12detectMangleFPS
     enum { BackRefs = true, BackRefSymbols = false }
 else static if(detectMangle.mangleof == "_D7imports10testmangle12detectMangleFPS7imports10testmangle6DetectZPS7imports10testmangle6Detect")
     enum { BackRefs = false, BackRefSymbols = false }
+else
+    static assert(false, "unknown mangling");
+
+private enum tmplMangle = (DetectTmpl!int).mangleof;
+pragma(msg,tmplMangle);
+static if(tmplMangle[0..40] == "_D7imports10testmangle__T10DetectTmplTiZ")
+    enum HasTemplateLength = false;
+else static if(tmplMangle[0..42] == "_D7imports10testmangle18__T10DetectTmplTiZ")
+    enum HasTemplateLength = true;
 else
     static assert(false, "unknown mangling");
 
@@ -31,7 +41,7 @@ static if (BackRefs)
 }
 else
 {
-    string tl(string s)() { return s; }
+    string tl(string s)() { return HasTemplateLength ? s : null; }
     string id(string s, string r, string r2 = null)() { return s; }
 }
 

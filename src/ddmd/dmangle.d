@@ -358,13 +358,8 @@ public:
     {
         //printf("TypeTuple.toDecoBuffer() t = %p, %s\n", t, t.toChars());
         visit(cast(Type)t);
-        OutBuffer buf2;
-        buf2.reserve(32);
-        scope Mangler v = new Mangler(&buf2);
-        v.paramsToDecoBuffer(t.arguments);
-        auto s = buf2.peekSlice();
-        int len = cast(int)s.length;
-        buf.printf("%d%.*s", len, len, s.ptr);
+        paramsToDecoBuffer(t.arguments);
+        buf.writeByte('Z');
     }
 
     override void visit(TypeNull t)
@@ -400,7 +395,12 @@ public:
         if (p)
         {
             mangleParent(p);
-            if (p.getIdent())
+            auto ti = p.isTemplateInstance();
+            if (ti && !ti.isTemplateMixin())
+            {
+                mangleTemplateInstance(ti);
+            }
+            else if (p.getIdent())
             {
                 mangleIdentifier(p.ident, s);
                 if (FuncDeclaration f = p.isFuncDeclaration())
@@ -440,7 +440,7 @@ public:
     void toBuffer(const(char)* id, Dsymbol s)
     {
         size_t len = strlen(id);
-        if (len >= 8 * 1024 * 1024) // 8 megs ought be enough for anyone
+        if (buf.offset >= 8 * 1024 * 1024) // 8 megs ought be enough for anyone
             s.error("excessive length %llu for symbol, possible recursive expansion?", len);
         else
         {
@@ -628,12 +628,11 @@ public:
             ti.error("is not defined");
         else
             mangleParent(ti);
-        ti.getIdent();
-        if (ti.ident)
+
+        if (ti.isTemplateMixin() && ti.ident)
             mangleIdentifier(ti.ident, ti);
         else
-            toBuffer(ti.toChars(), ti);
-        //printf("TemplateInstance.mangle() %s = %s\n", ti.toChars(), ti.id);
+            mangleTemplateInstance(ti);
     }
 
     final void mangleTemplateInstance(TemplateInstance ti)
@@ -705,7 +704,7 @@ public:
                 /* Use type mangling that matches what it would be for a function parameter
                 */
                 visitWithMask(ea.type, 0);
-                mangleToBuffer(ea, buf);
+                ea.accept(this);
             }
             else if (sa)
             {
@@ -718,20 +717,7 @@ public:
                     ti.error("forward reference of %s %s", d.kind(), d.toChars());
                     continue;
                 }
-
-                OutBuffer bufsa;
-                mangleToBuffer(sa, &bufsa);
-                auto s = bufsa.peekSlice();
-
-                /* https://issues.dlang.org/show_bug.cgi?id=3043
-                * If the first character of p is a digit this
-                * causes ambiguity issues because the digits of the two numbers are adjacent.
-                * Current demanglers resolve this by trying various places to separate the
-                * numbers until one gets a successful demangle.
-                * Unfortunately, fixing this ambiguity will break existing binary
-                * compatibility and the demanglers, so we'll leave it as is.
-                */
-                buf.printf("%u%.*s", cast(uint)s.length, cast(int)s.length, s.ptr);
+                mangleSymbol(sa);
             }
             else if (va)
             {
