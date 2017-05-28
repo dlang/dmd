@@ -209,6 +209,36 @@ void test15()
 
 /******************************************/
 
+// see https://issues.dlang.org/show_bug.cgi?id=17277
+struct S16 {
+  char[5] a;
+  struct {
+    char b;
+    align(1) int c;
+  }
+}
+
+extern (C) S16 ctest16(ubyte x, S16, ubyte y);
+
+void test16()
+{
+  version (X86) // misaligned field
+  {
+  S16 t;
+  assert(S16.sizeof == 10);
+  assert(S16.alignof == 1);
+  t.a = "hello";
+  t.b = 3;
+  t.c = 0x11223344;
+  auto s = ctest16(1, t, 5);
+  assert(s.a == "hello");
+  assert(s.b == 3);
+  assert(s.c == 0x11223344);
+  }
+}
+
+/******************************************/
+
 int main()
 {
     test1();
@@ -226,6 +256,7 @@ else
     test13();
     test14();
     test15();
+    test16();
 
     return 0;
 }
