@@ -4327,10 +4327,12 @@ static if (is(BCGen))
                 Ge3(BCValue.init, lhs_base_plus_length, rhs_base);
                 auto CJRhsOverlapsLhs = beginCndJmp();
 
-                auto lhs_index = genExpr(e1.lwr);
-                auto rhs_index = genExpr(e2.lwr);
+                auto lhs_lwr = genExpr(e1.lwr);
+                auto rhs_lwr = genExpr(e2.lwr);
+                auto lhs_upr = genExpr(e1.upr);
+                auto rhs_upr = genExpr(e2.upr);
 
-                Assert(imm32(0), addError(ae.loc, "overlapping slice assignment [%d..%d] = [%d..%d]", lhs_index, lhs_length, rhs_index, rhs_length));
+                Assert(imm32(0), addError(ae.loc, "overlapping slice assignment [%d..%d] = [%d..%d]", lhs_lwr, lhs_upr, rhs_lwr, rhs_upr));
 
                 endCndJmp(CJRhsOverlapsLhs, genLabel());
             }
