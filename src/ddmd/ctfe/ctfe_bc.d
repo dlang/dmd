@@ -3337,13 +3337,14 @@ static if (is(BCGen))
             {
                 bailout("We don't handle structs with void initalizers ... right now");
             }
-            /*    if (ty.type != BCTypeEnum.i32)
+
+            auto ty = _struct.memberTypes[i];
+            if (ty.type != BCTypeEnum.i32)
             {
-                bailout( "can only deal with ints and uints atm. not: (" ~ to!string(ty.type) ~ ", " ~ to!string(
+                bailout( "can only deal with ints and uints atm. not: BCType(" ~ to!string(ty.type) ~ ", " ~ to!string(
                         ty.typeIndex) ~ ")");
                 return;
             }
-          */
         }
         auto heap = _sharedCtfeState.heap;
         auto size = align4(_struct.size);
