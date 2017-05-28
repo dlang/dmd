@@ -369,11 +369,10 @@ code *offsetinreg (elem *e , regm_t *pretregs );
 int movOnly(elem *e);
 regm_t idxregm(code *c);
 #if TARGET_WINDOS
-code *opdouble (elem *e , regm_t *pretregs , unsigned clib );
+void opdouble(CodeBuilder& cdb, elem *e, regm_t *pretregs, unsigned clib);
 #endif
 void WRcodlst (code *c );
-code *cdmemchr(elem *e, regm_t *pretregs);
-code *getoffset (elem *e , unsigned reg );
+void getoffset(CodeBuilder& cdb, elem *e, unsigned reg);
 
 /* cod3.c */
 

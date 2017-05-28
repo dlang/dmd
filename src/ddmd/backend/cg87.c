@@ -99,7 +99,7 @@ static void getlvalue87(CodeBuilder& cdb,code *pcs,elem *e,regm_t keepmsk)
     if (e->Eoper == OPvar || e->Eoper == OPrelconst)
         e->EV.sp.Vsym->Sflags &= ~GTregcand;
 
-    cdb.append(getlvalue(pcs, e, keepmsk));
+    getlvalue(cdb, pcs, e, keepmsk);
     if (ADDFWAIT())
         pcs->Iflags |= CFwait;
     if (I32)

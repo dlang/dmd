@@ -120,13 +120,12 @@ regm_t idxregm(code *c)
  * Gen code for call to floating point routine.
  */
 
-code *opdouble(elem *e,regm_t *pretregs,unsigned clib)
+void opdouble(CodeBuilder& cdb, elem *e,regm_t *pretregs,unsigned clib)
 {
-    CodeBuilder cdb;
     if (config.inline8087)
     {
         orth87(cdb,e,pretregs);
-        return cdb.finish();
+        return;
     }
 
     regm_t retregs1,retregs2;
@@ -155,7 +154,6 @@ code *opdouble(elem *e,regm_t *pretregs,unsigned clib)
     if (retregs1 & mSTACK)
         cgstate.stackclean--;
     cdb.append(callclib(e, clib, pretregs, 0));
-    return cdb.finish();;
 }
 #endif
 
@@ -197,8 +195,8 @@ void cdorth(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             return;
         }
 #if TARGET_WINDOS
-        cdb.append(opdouble(e,pretregs,(e->Eoper == OPadd) ? CLIBdadd
-                                                           : CLIBdsub));
+        opdouble(cdb,e,pretregs,(e->Eoper == OPadd) ? CLIBdadd
+                                                    : CLIBdsub);
         return;
 #else
         assert(0);
@@ -275,7 +273,7 @@ void cdorth(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             code cs;
             cs.Iflags = 0;
             cs.Irex = 0;
-            cdb.append(getlvalue(&cs,e1,0));
+            getlvalue(cdb,&cs,e1,0);
             targ_size_t value = e2->EV.Vpointer;
             if (sz == 2)
                 value &= 0xFFFF;
@@ -314,7 +312,7 @@ void cdorth(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             code cs;
             cs.Iflags = 0;
             cs.Irex = 0;
-            cdb.append(getlvalue(&cs,e1,0));
+            getlvalue(cdb,&cs,e1,0);
             code_newreg(&cs, reg);
             if (I64 && byte && reg >= 4)
                 cs.Irex |= REX;
@@ -362,7 +360,7 @@ void cdorth(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             int inc = e->Ecount != 0;
             nest += inc;
             code cs;
-            cdb.append(getlvalue(&cs,e,0));
+            getlvalue(cdb,&cs,e,0);
             nest -= inc;
             unsigned reg;
             cdb.append(allocreg(pretregs,&reg,ty));
@@ -913,7 +911,7 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         orth87(cdb,e,pretregs);
 #else
-        cdb.append(opdouble(e,pretregs,(oper == OPmul) ? CLIBdmul : CLIBddiv));
+        opdouble(cdb,e,pretregs,(oper == OPmul) ? CLIBdmul : CLIBddiv);
 #endif
         return;
     }
@@ -1708,7 +1706,7 @@ void cdnot(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     if (sz <= REGSIZE && e1->Eoper == OPvar)
     {   code cs;
 
-        cdb.append(getlvalue(&cs,e1,0));
+        getlvalue(cdb,&cs,e1,0);
         freenode(e1);
         if (!I16 && sz == 2)
             cs.Iflags |= CFopsize;
@@ -2868,7 +2866,7 @@ void cdind(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
     code cs;
 
-     cdb.append(getlvalue(&cs,e,RMload));          // get addressing mode
+     getlvalue(cdb,&cs,e,RMload);          // get addressing mode
   //printf("Irex = %02x, Irm = x%02x, Isib = x%02x\n", cs.Irex, cs.Irm, cs.Isib);
   //fprintf(stderr,"cd2 :\n"); WRcodlst(c);
   if (*pretregs == 0)
@@ -4116,7 +4114,7 @@ void cdrelconst(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         if (*pretregs & mES)
             cdb.gen2(0x8E,modregrm(3,0,mreg));        // MOV ES,mreg
     }
-    cdb.append(getoffset(e,lreg));
+    getoffset(cdb,e,lreg);
 }
 
 /*********************************
@@ -4124,10 +4122,9 @@ void cdrelconst(CodeBuilder& cdb,elem *e,regm_t *pretregs)
  * reg.
  */
 
-code *getoffset(elem *e,unsigned reg)
+void getoffset(CodeBuilder& cdb,elem *e,unsigned reg)
 {
   //printf("getoffset(e = %p, reg = %d)\n", e, reg);
-  CodeBuilder cdb;
   code cs;
   cs.Iflags = 0;
   unsigned char rex = 0;
@@ -4181,7 +4178,7 @@ code *getoffset(elem *e,unsigned reg)
                 css.IEVoffset1 = e->EV.sp.Voffset;
                 cdb.gen(&css);
             }
-            return cdb.finish();
+            return;
         }
         /* Generate:
          *      MOV reg,GS:[00000000]
@@ -4356,7 +4353,6 @@ code *getoffset(elem *e,unsigned reg)
 #endif
         assert(0);
   }
-  return cdb.finish();
 }
 
 
@@ -4597,7 +4593,7 @@ void cdpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         }
 #if TARGET_WINDOS
         assert(sz <= 8);
-        cdb.append(getlvalue(&cs,e->E1,DOUBLEREGS));
+        getlvalue(cdb,&cs,e->E1,DOUBLEREGS);
         freenode(e->E1);
         regm_t idxregs = idxregm(&cs);  // mask of index regs used
         cs.Iop = 0x8B;                  /* MOV DOUBLEREGS,EA            */
@@ -4700,7 +4696,7 @@ void cdpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
   assert(e2->Eoper == OPconst);
   unsigned byte = (sz == 1);
   regm_t possregs = byte ? BYTEREGS : allregs;
-  cdb.append(getlvalue(&cs,e->E1,0));
+  getlvalue(cdb,&cs,e->E1,0);
   freenode(e->E1);
   regm_t idxregs = idxregm(&cs);       // mask of index regs used
   if (sz <= REGSIZE && *pretregs == mPSW && (cs.Irm & 0xC0) == 0xC0 &&
