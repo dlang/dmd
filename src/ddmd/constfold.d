@@ -16,10 +16,12 @@ import ddmd.arraytypes;
 import ddmd.complex;
 import ddmd.ctfeexpr;
 import ddmd.declaration;
+import ddmd.dcast;
 import ddmd.dstruct;
 import ddmd.errors;
 import ddmd.expression;
 import ddmd.globals;
+import ddmd.intrange;
 import ddmd.mtype;
 import ddmd.root.ctfloat;
 import ddmd.root.port;
@@ -968,8 +970,6 @@ extern (C++) UnionExp Cmp(TOK op, Loc loc, Type type, Expression e1, Expression 
 {
     UnionExp ue;
     dinteger_t n;
-    real_t r1 = 0;
-    real_t r2 = 0;
     //printf("Cmp(e1 = %s, e2 = %s)\n", e1.toChars(), e2.toChars());
     if (e1.op == TOKstring && e2.op == TOKstring)
     {
@@ -985,40 +985,124 @@ extern (C++) UnionExp Cmp(TOK op, Loc loc, Type type, Expression e1, Expression 
             rawCmp = cast(int)(es1.len - es2.len);
         n = specificCmp(op, rawCmp);
     }
-    else if (e1.isConst() != 1 || e2.isConst() != 1)
+    else if (e1.isConst() == 1 && e2.isConst() == 1)
     {
-        emplaceExp!(CTFEExp)(&ue, TOKcantexp);
-        return ue;
-    }
-    else if (e1.type.isreal())
-    {
-        r1 = e1.toReal();
-        r2 = e2.toReal();
-        goto L1;
-    }
-    else if (e1.type.isimaginary())
-    {
-        r1 = e1.toImaginary();
-        r2 = e2.toImaginary();
-    L1:
-        n = realCmp(op, r1, r2);
-    }
-    else if (e1.type.iscomplex())
-    {
-        assert(0);
-    }
-    else
-    {
-        sinteger_t n1;
-        sinteger_t n2;
-        n1 = e1.toInteger();
-        n2 = e2.toInteger();
-        if (e1.type.isunsigned() || e2.type.isunsigned())
-            n = intUnsignedCmp(op, n1, n2);
+        real_t r1, r2;
+        if (e1.type.isreal())
+        {
+            r1 = e1.toReal();
+            r2 = e2.toReal();
+            goto L1;
+        }
+        else if (e1.type.isimaginary())
+        {
+            r1 = e1.toImaginary();
+            r2 = e2.toImaginary();
+        L1:
+            n = realCmp(op, r1, r2);
+        }
+        else if (e1.type.iscomplex())
+        {
+            assert(0);
+        }
         else
-            n = intSignedCmp(op, n1, n2);
+        {
+            sinteger_t n1 = e1.toInteger(), n2 = e2.toInteger();
+            n = e1.type.isunsigned() || e2.type.isunsigned() ?
+                intUnsignedCmp(op, n1, n2) :
+                intSignedCmp(op, n1, n2);
+        }
     }
+    else if (e1.type.isintegral())
+    {
+        /* Use VRP to determine if the comparison must be always true, or always false. */
+        bool anyUnsigned = e1.type.isunsigned() || e2.type.isunsigned();
+        IntRange r1 = getIntRange(e1), r2 = getIntRange(e2);
+        switch (op)
+        {
+        case TOKlt:
+        case TOKul:
+            if (r1.imax < r2.imin)
+                n = 1;
+            else if (r1.imin >= r2.imax)
+                n = 0;
+            else
+                goto Lcant;
+            break;
+
+        case TOKle:
+        case TOKule:
+            if (r1.imax <= r2.imin)
+                n = 1;
+            else if (r1.imin > r2.imax)
+                n = 0;
+            else
+                goto Lcant;
+            break;
+
+        case TOKgt:
+        case TOKug:
+            if (r1.imin > r2.imax)
+                n = 1;
+            else if (r1.imax <= r2.imin)
+                n = 0;
+            else
+                goto Lcant;
+            break;
+
+        case TOKge:
+        case TOKuge:
+            if (r1.imin >= r2.imax)
+                n = 1;
+            else if (r1.imax < r2.imin)
+                n = 0;
+            else
+                goto Lcant;
+            break;
+
+        case TOKleg:
+            n = 1;
+            break;
+
+        case TOKlg:
+            if (r1.imax < r2.imin || r1.imin > r2.imax)
+                n = 1;
+            else if (r1.imax == r2.imin && r1.imin == r2.imax)
+            {
+                // Equality should only be provable if e1.isConst() == 1 && e2.isConst() == 1
+                n = 0;
+            }
+            else
+                goto Lcant;
+            break;
+
+        case TOKunord:
+            n = 0;
+            break;
+
+        case TOKue:
+            if (r1.imax == r2.imin && r1.imin == r2.imax)
+            {
+                // Equality should only be provable if e1.isConst() == 1 && e2.isConst() == 1
+                n = 1;
+            }
+            else if (r1.imax < r2.imin || r1.imin > r2.imax)
+                n = 0;
+            else
+                goto Lcant;
+            break;
+
+        default:
+            assert(0);
+        }
+    } else
+        goto Lcant;
+
     emplaceExp!(IntegerExp)(&ue, loc, n, type);
+    return ue;
+
+Lcant:
+    emplaceExp!(CTFEExp)(&ue, TOKcantexp);
     return ue;
 }
 

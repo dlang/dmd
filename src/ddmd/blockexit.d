@@ -160,8 +160,12 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
 
                     if (!(result & BEfallthru) && !s.comeFrom())
                     {
-                        if (blockExit(s, func, mustNotThrow) != BEhalt && s.hasCode())
-                            s.warning("statement is not reachable");
+                        version(none)
+                        {
+                            // DMD issue #14835
+                            if (blockExit(s, func, mustNotThrow) != BEhalt && s.hasCode())
+                                s.warning("statement is not reachable");
+                        }
                     }
                     else
                     {
