@@ -240,12 +240,12 @@ void xmmeq(CodeBuilder& cdb, elem *e, unsigned op, elem *e1, elem *e2,regm_t *pr
         postinc = e11->E2->EV.Vint;
         if (e11->Eoper == OPpostdec)
             postinc = -postinc;
-        cdb.append(getlvalue(&cs,e11,RMstore | retregs));
+        getlvalue(cdb,&cs,e11,RMstore | retregs);
         freenode(e11->E2);
     }
     else
     {   postinc = 0;
-        cdb.append(getlvalue(&cs,e1,RMstore | retregs));       // get lvalue (cl == CNIL if regvar)
+        getlvalue(cdb,&cs,e1,RMstore | retregs);       // get lvalue (cl == CNIL if regvar)
     }
 
     cdb.append(getregs_imm(regvar ? varregm : 0));
@@ -472,7 +472,7 @@ void xmmopass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
     if (!regvar)
     {
-        cdb.append(getlvalue(&cs,e1,rretregs));        // get EA
+        getlvalue(cdb,&cs,e1,rretregs);         // get EA
         retregs = *pretregs & XMMREGS & ~rretregs;
         if (!retregs)
             retregs = XMMREGS & ~rretregs;
@@ -540,13 +540,11 @@ void xmmpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     code cs;
     if (!regvar)
     {
-        code *c = getlvalue(&cs,e1,0);          // get EA
-        cdb.append(c);
+        getlvalue(cdb,&cs,e1,0);                // get EA
         retregs = XMMREGS & ~*pretregs;
         if (!retregs)
             retregs = XMMREGS;
-        c = allocreg(&retregs,&reg,ty1);
-        cdb.append(c);
+        cdb.append(allocreg(&retregs,&reg,ty1));
         cs.Iop = xmmload(ty1, true);            // MOVSD xmm,xmm_m64
         code_newreg(&cs,reg - XMM0);
         cdb.gen(&cs);
@@ -1090,7 +1088,7 @@ void cdvector(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 
         if ((op1->Eoper == OPind && !op1->Ecount) || op1->Eoper == OPvar)
         {
-            cdb.append(getlvalue(&cs, op1, RMload));     // get addressing mode
+            getlvalue(cdb,&cs, op1, RMload);     // get addressing mode
         }
         else
         {
@@ -1130,7 +1128,7 @@ void cdvector(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 
         if ((op2->Eoper == OPind && !op2->Ecount) || op2->Eoper == OPvar)
         {
-            cdb.append(getlvalue(&cs, op2, RMload | retregs));     // get addressing mode
+            getlvalue(cdb,&cs, op2, RMload | retregs);     // get addressing mode
         }
         else
         {
@@ -1250,8 +1248,8 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
                     e1->EV.sp.Vsym->Sflags &= ~GTregcand;
 
                 // VBROADCASTSS XMM,MEM
-                cdb.append(getlvalue(&cs, e1, 0));         // get addressing mode
-                assert((cs.Irm & 0xC0) != 0xC0);           // AVX1 doesn't have register source operands
+                getlvalue(cdb,&cs, e1, 0);         // get addressing mode
+                assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
                 cdb.append(allocreg(&retregs,&reg,ty));
                 cs.Iop = VBROADCASTSS;
                 cs.Irex &= ~REX_W;
@@ -1291,8 +1289,8 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
                     e1->EV.sp.Vsym->Sflags &= ~GTregcand;
 
                 // VBROADCASTSD XMM,MEM
-                cdb.append(getlvalue(&cs, e1, 0));         // get addressing mode
-                assert((cs.Irm & 0xC0) != 0xC0);           // AVX1 doesn't have register source operands
+                getlvalue(cdb,&cs, e1, 0);         // get addressing mode
+                assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
                 cdb.append(allocreg(&retregs,&reg,ty));
                 cs.Iop = VBROADCASTSD;
                 cs.Irex &= ~REX_W;
@@ -1487,7 +1485,7 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
                     e1->EV.sp.Vsym->Sflags &= ~GTregcand;
 
                 // VMOVDDUP XMM,MEM
-                cdb.append(getlvalue(&cs, e1, 0));         // get addressing mode
+                getlvalue(cdb,&cs, e1, 0);         // get addressing mode
                 if ((cs.Irm & 0xC0) == 0xC0)
                 {
                     unsigned sreg = ((cs.Irm & 7) | (cs.Irex & REX_B ? 8 : 0));

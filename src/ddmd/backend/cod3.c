@@ -4102,7 +4102,7 @@ targ_size_t cod3_spoff()
 
 code* gen_spill_reg(Symbol* s, bool toreg)
 {
-    code *c;
+    CodeBuilder cdb;
     code cs;
     regm_t keepmsk = toreg ? RMload : RMstore;
     int sz = type_size(s->Stype);
@@ -4115,15 +4115,15 @@ code* gen_spill_reg(Symbol* s, bool toreg)
             cs.Iop = xmmload(s->Stype->Tty);        // MOVSS/D xreg,mem
         else
             cs.Iop = xmmstore(s->Stype->Tty);       // MOVSS/D mem,xreg
-        c = getlvalue(&cs,e,keepmsk);
+        getlvalue(cdb,&cs,e,keepmsk);
         cs.orReg(s->Sreglsw - XMM0);
-        c = gen(c,&cs);
+        cdb.gen(&cs);
     }
     else
     {
         cs.Iop = toreg ? 0x8B : 0x89; // MOV reg,mem[ESP] : MOV mem[ESP],reg
         cs.Iop ^= (sz == 1);
-        c = getlvalue(&cs,e,keepmsk);
+        getlvalue(cdb,&cs,e,keepmsk);
         cs.orReg(s->Sreglsw);
         if (I64 && sz == 1 && s->Sreglsw >= 4)
             cs.Irex |= REX;
@@ -4132,7 +4132,7 @@ code* gen_spill_reg(Symbol* s, bool toreg)
             (((cs.Irex >> 2) ^ cs.Irex) & 1) == 0)      // REX_R and REX_B match
             ;                                           // skip MOV reg,reg
         else
-            c = gen(c,&cs);
+            cdb.gen(&cs);
         if (sz > REGSIZE)
         {
             cs.setReg(s->Sregmsw);
@@ -4142,13 +4142,12 @@ code* gen_spill_reg(Symbol* s, bool toreg)
                 (((cs.Irex >> 2) ^ cs.Irex) & 1) == 0)  // REX_R and REX_B match
                 ;                                       // skip MOV reg,reg
             else
-                c = gen(c,&cs);
+                cdb.gen(&cs);
         }
     }
 
     el_free(e);
-
-    return c;
+    return cdb.finish();
 }
 
 /****************************

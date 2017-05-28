@@ -130,7 +130,7 @@ STATIC code * opassdbl(elem *e,regm_t *pretregs,unsigned op)
     unsigned clib = clibtab[op - OPpostinc];
     elem *e1 = e->E1;
     tym_t tym = tybasic(e1->Ety);
-    cdb.append(getlvalue(&cs,e1,DOUBLEREGS | mBX | mCX));
+    getlvalue(cdb,&cs,e1,DOUBLEREGS | mBX | mCX);
 
     if (tym == TYfloat)
     {
@@ -224,7 +224,7 @@ STATIC code * opnegassdbl(elem *e,regm_t *pretregs)
     int sz = _tysize[tym];
     code cs;
 
-    cdb.append(getlvalue(&cs,e1,*pretregs ? DOUBLEREGS | mBX | mCX : 0));
+    getlvalue(cdb,&cs,e1,*pretregs ? DOUBLEREGS | mBX | mCX : 0);
     cdb.append(modEA(&cs));
     cs.Irm |= modregrm(0,6,0);
     cs.Iop = 0x80;
@@ -420,12 +420,12 @@ void cdeq(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 postinc = e11->E2->EV.Vint;
                 if (e11->Eoper == OPpostdec)
                     postinc = -postinc;
-                cdb.append(getlvalue(&cs,e11,RMstore));
+                getlvalue(cdb,&cs,e11,RMstore);
                 freenode(e11->E2);
             }
             else
             {   postinc = 0;
-                cdb.append(getlvalue(&cs,e1,RMstore));
+                getlvalue(cdb,&cs,e1,RMstore);
 
                 if (e2oper == OPconst &&
                     config.flags4 & CFG4speed &&
@@ -682,14 +682,14 @@ void cdeq(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         postinc = e11->E2->EV.Vint;
         if (e11->Eoper == OPpostdec)
             postinc = -postinc;
-        cdb.append(getlvalue(&cs,e11,RMstore | retregs));
+        getlvalue(cdb,&cs,e11,RMstore | retregs);
         freenode(e11->E2);
         if (I64 && sz < 8)
             cs.Irex &= ~REX_W;                  // incorrectly set by getlvalue()
     }
     else
     {   postinc = 0;
-        cdb.append(getlvalue(&cs,e1,RMstore | retregs));     // get lvalue (cl == CNIL if regvar)
+        getlvalue(cdb,&cs,e1,RMstore | retregs);     // get lvalue (cl == CNIL if regvar)
     }
 
     cdb.append(getregs(varregm));
@@ -878,7 +878,7 @@ void cdaddass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
   if (op == OPnegass)
   {
-        cdb.append(getlvalue(&cs,e1,0));
+        getlvalue(cdb,&cs,e1,0);
         cdb.append(modEA(&cs));
         cs.Irm |= modregrm(0,3,0);
         cs.Iop = op1;
@@ -939,7 +939,7 @@ void cdaddass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
       )
      )
   {
-        cdb.append(getlvalue(&cs,e1,0));
+        getlvalue(cdb,&cs,e1,0);
         cdb.append(modEA(&cs));
         cs.IFL2 = FLconst;
         cs.IEV2.Vsize_t = e2->EV.Vint;
@@ -1096,7 +1096,7 @@ void cdaddass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
           !evalinregister(e2) &&
            sz <= REGSIZE)               // deal with later
   {
-        cdb.append(getlvalue(&cs,e2,0));
+        getlvalue(cdb,&cs,e2,0);
         freenode(e2);
         cdb.append(getregs(varregm));
         code_newreg(&cs, varreg);
@@ -1121,7 +1121,7 @@ void cdaddass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
          * e1 += (x >= y)   SBB EA,-1
          * e1 -= (x >= y)   ADC EA,-1
          */
-        cdb.append(getlvalue(&cs,e1,0));             // get lvalue
+        getlvalue(cdb,&cs,e1,0);             // get lvalue
         cdb.append(modEA(&cs));
         regm_t keepmsk = idxregm(&cs);
         retregs = mPSW;
@@ -1151,7 +1151,7 @@ void cdaddass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         if (tyml == TYhptr)
             retregs &= ~mCX;                    // need CX for shift count
         scodelem(cdb,e->E2,&retregs,0,TRUE);   // get rvalue
-        cdb.append(getlvalue(&cs,e1,retregs));         // get lvalue
+        getlvalue(cdb,&cs,e1,retregs);         // get lvalue
         cdb.append(modEA(&cs));
         cs.Iop = op1;
         if (sz <= REGSIZE || tyfv(tyml))
@@ -1369,7 +1369,7 @@ void cdmulass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 if (I64 && sz == 8 && e2factor != (int)e2factor)
                     goto L1;
                 freenode(e2);
-                cdb.append(getlvalue(&cs,e1,0));     // get EA
+                getlvalue(cdb,&cs,e1,0);     // get EA
                 regm_t idxregs = idxregm(&cs);
                 retregs = *pretregs & (ALLREGS | mBP) & ~idxregs;
                 if (!retregs)
@@ -1387,7 +1387,7 @@ void cdmulass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 if (!retregs)
                     retregs = ALLREGS;
                 codelem(cdb,e2,&retregs,FALSE); // load rvalue in reg
-                cdb.append(getlvalue(&cs,e1,retregs));  // get EA
+                getlvalue(cdb,&cs,e1,retregs);  // get EA
                 cdb.append(getregs(retregs));           // destroy these regs
                 cs.Iop = 0x0FAF;                        // IMUL resreg,EA
                 resreg = findreg(retregs);
@@ -1397,7 +1397,7 @@ void cdmulass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             {
                 retregs = mAX;
                 codelem(cdb,e2,&retregs,FALSE);      // load rvalue in AX
-                cdb.append(getlvalue(&cs,e1,mAX));           // get EA
+                getlvalue(cdb,&cs,e1,mAX);           // get EA
                 cdb.append(getregs(byte ? mAX : mAX | mDX)); // destroy these regs
                 cs.Iop = 0xF7 ^ byte;                        // [I]MUL EA
             }
@@ -1419,7 +1419,7 @@ void cdmulass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                )
             {
                 // Signed divide or modulo by power of 2
-                cdb.append(getlvalue(&cs,e1,mAX | mDX));
+                getlvalue(cdb,&cs,e1,mAX | mDX);
                 cs.Iop = 0x8B;
                 code_newreg(&cs, AX);
                 cdb.gen(&cs);                       // MOV AX,EA
@@ -1468,7 +1468,7 @@ void cdmulass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 retregs = ALLREGS & ~(mAX|mDX);         // DX gets sign extension
                 codelem(cdb,e2,&retregs,FALSE); // load rvalue in retregs
                 reg = findreg(retregs);
-                cdb.append(getlvalue(&cs,e1,mAX | mDX | retregs));     // get EA
+                getlvalue(cdb,&cs,e1,mAX | mDX | retregs);     // get EA
                 cdb.append(getregs(mAX | mDX));         // destroy these regs
                 cs.Irm |= modregrm(0,AX,0);
                 cs.Iop = 0x8B;
@@ -1503,7 +1503,7 @@ void cdmulass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         }
         retregs = mCX | mBX;
         codelem(cdb,e2,&retregs,FALSE);
-        cdb.append(getlvalue(&cs,e1,mDX|mAX | mCX|mBX));
+        getlvalue(cdb,&cs,e1,mDX|mAX | mCX|mBX);
         cdb.append(getregs(mDX | mAX));
         cs.Iop = 0x8B;
         cdb.gen(&cs);                   // MOV AX,EA
@@ -1631,7 +1631,7 @@ void cdshass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     }
     else
         freenode(e2);
-    cdb.append(getlvalue(&cs,e1,mCX));  // get lvalue, preserve CX
+    getlvalue(cdb,&cs,e1,mCX);          // get lvalue, preserve CX
     cdb.append(modEA(&cs));             // check for modifying register
 
     if (*pretregs == 0 ||               // if don't return result
@@ -1877,7 +1877,7 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             {   clib = CLIBdcmp;
                 if (rel_exception(op))
                     clib += CLIBdcmpexc - CLIBdcmp;
-                cdb.append(opdouble(e,&retregs,clib));
+                opdouble(cdb,e,&retregs,clib);
             }
 #else
             assert(0);
@@ -2138,7 +2138,7 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
              e1->Eoper == OPind) &&
             !evalinregister(e1))
         {
-                cdb.append(getlvalue(&cs,e1,RMload));
+                getlvalue(cdb,&cs,e1,RMload);
                 freenode(e1);
                 if (evalinregister(e2))
                 {
@@ -2311,7 +2311,7 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
            )
         {
             // CMP EA,e2
-            cdb.append(getlvalue(&cs,e1,RMload));
+            getlvalue(cdb,&cs,e1,RMload);
             freenode(e1);
             cs.Iop = 0x39 ^ byte ^ reverse;
             code_newreg(&cs,reg);
@@ -2512,7 +2512,7 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
              e1->Eoper == OPind) &&
             !evalinregister(e1))
         {
-                cdb.append(getlvalue(&cs,e1,0));
+                getlvalue(cdb,&cs,e1,0);
                 freenode(e1);
                 if (evalinregister(e2))
                 {
@@ -3437,7 +3437,7 @@ void cdbtst(CodeBuilder& cdb, elem *e, regm_t *pretregs)
     regm_t idxregs;
     if ((e1->Eoper == OPind && !e1->Ecount) || e1->Eoper == OPvar)
     {
-        cdb.append(getlvalue(&cs, e1, RMload));  // get addressing mode
+        getlvalue(cdb, &cs, e1, RMload);    // get addressing mode
         idxregs = idxregm(&cs);             // mask if index regs used
     }
     else
@@ -3559,7 +3559,7 @@ void cdbt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
     code cs;
     cs.Iflags = 0;
 
-    cdb.append(getlvalue(&cs, e, RMload));      // get addressing mode
+    getlvalue(cdb, &cs, e, RMload);      // get addressing mode
     if (e->Eoper == OPbt && *pretregs == 0)
     {
         codelem(cdb,e2,pretregs,FALSE);
@@ -3669,7 +3669,7 @@ void cdbscan(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 
     if ((e->E1->Eoper == OPind && !e->E1->Ecount) || e->E1->Eoper == OPvar)
     {
-        cdb.append(getlvalue(&cs, e->E1, RMload));     // get addressing mode
+        getlvalue(cdb, &cs, e->E1, RMload);     // get addressing mode
     }
     else
     {
@@ -3722,7 +3722,7 @@ void cdpopcnt(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     code cs;
     if ((e->E1->Eoper == OPind && !e->E1->Ecount) || e->E1->Eoper == OPvar)
     {
-        cdb.append(getlvalue(&cs, e->E1, RMload));     // get addressing mode
+        getlvalue(cdb, &cs, e->E1, RMload);     // get addressing mode
     }
     else
     {
@@ -3859,11 +3859,9 @@ void cdcmpxchg(CodeBuilder& cdb, elem *e, regm_t *pretregs)
         scodelem(cdb,e2->E2,&retregs,mDX|mAX,FALSE);  // [CX,BX] = e2->E2
 
         code cs;
-        code *c = getlvalue(&cs,e1,mCX|mBX|mAX|mDX);  // get EA
-        cdb.append(c);
+        getlvalue(cdb,&cs,e1,mCX|mBX|mAX|mDX);        // get EA
 
-        c = getregs(mDX|mAX);                         // CMPXCHG destroys these regs
-        cdb.append(c);
+        cdb.append(getregs(mDX|mAX));                 // CMPXCHG destroys these regs
 
         if (e1->Ety & mTYvolatile)
             cdb.gen1(LOCK);                           // LOCK prefix
@@ -3888,11 +3886,9 @@ void cdcmpxchg(CodeBuilder& cdb, elem *e, regm_t *pretregs)
         scodelem(cdb,e2->E2,&retregs,mAX,FALSE);   // load rvalue in reg
 
         code cs;
-        code *c = getlvalue(&cs,e1,mAX | retregs); // get EA
-        cdb.append(c);
+        getlvalue(cdb,&cs,e1,mAX | retregs); // get EA
 
-        c = getregs(mAX);                          // CMPXCHG destroys AX
-        cdb.append(c);
+        cdb.append(getregs(mAX));                  // CMPXCHG destroys AX
 
         if (e1->Ety & mTYvolatile)
             cdb.gen1(LOCK);                        // LOCK prefix
@@ -3958,8 +3954,7 @@ void cdprefetch(CodeBuilder& cdb, elem *e, regm_t *pretregs)
     freenode(e->E2);
 
     code cs;
-    code *c = getlvalue(&cs,e1,0);
-    cdb.append(c);
+    getlvalue(cdb,&cs,e1,0);
     cs.Iop = op;
     cs.Irm |= modregrm(0,reg,0);
     cs.Iflags |= CFvolatile;            // do not schedule

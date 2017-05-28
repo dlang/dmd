@@ -635,7 +635,7 @@ code *loadea(elem *e,code *cs,unsigned op,unsigned reg,targ_size_t offset,
         }
   }
 
-  cdb.append(getlvalue(cs,e,keepmsk));
+  getlvalue(cdb,cs,e,keepmsk);
   if (offset == REGSIZE)
         getlvalue_msw(cs);
   else
@@ -775,7 +775,7 @@ void getlvalue_lsw(code *c)
  *              if (keepmsk & RMload), this will be a read operation only
  */
 
-code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
+void getlvalue(CodeBuilder& cdb,code *pcs,elem *e,regm_t keepmsk)
 { regm_t idxregs;
   unsigned fl,f,opsave;
   elem *e1;
@@ -814,7 +814,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
   if (ty & mTYvolatile)
         pcs->Iflags |= CFvolatile;
 
-  CodeBuilder cdb;
   switch (fl)
   {
     case FLoper:
@@ -1452,7 +1451,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         symbol_print(s);
         assert(0);
   }
-  return cdb.finish();
 }
 
 /*****************************
@@ -4164,7 +4162,7 @@ code *pushParams(elem *e,unsigned stackalign)
 
             if (config.target_cpu >= TARGET_80286 && !e->Ecount)
             {
-                cdb.append(getoffset(e,STACK));
+                getoffset(cdb,e,STACK);
                 freenode(e);
                 return cdb.finish();
             }
@@ -4189,7 +4187,7 @@ code *pushParams(elem *e,unsigned stackalign)
                 cdb.last()->Iflags = CFseg;
                 cdb.append(genadjesp(CNIL,REGSIZE));
             }
-            cdb.append(getoffset(e,STACK));
+            getoffset(cdb,e,STACK);
             freenode(e);
             return cdb.finish();
         }
@@ -4476,7 +4474,7 @@ code *offsetinreg( elem *e, regm_t *pretregs)
 
     *pretregs = retregs;
     cdb.append(allocreg(pretregs,&reg,TYoffset));
-    cdb.append(getoffset(e,reg));
+    getoffset(cdb,e,reg);
 L3:
     cssave(e,*pretregs,FALSE);
     freenode(e);
