@@ -158,21 +158,9 @@
     </ClCompile>
     <ClCompile Include="..\ddmd\root\longdouble.c" />
     <ClCompile Include="..\ddmd\root\newdelete.c" />
-    <CustomBuild Include="..\ddmd\idgen.d">
-      <Message>Building and running $(IntDir)%(Filename).exe</Message>
-      <Outputs>$(IntDir)generated\ddmd\id.d;$(IntDir)generated\ddmd\id.c;$(IntDir)generated\ddmd\id.h;$(IntDir)generated\%(Filename).exe;%(Outputs)</Outputs>
-      <Command>set DMDDir=$(DMDBinDir)
-set PATH=%DMDDir%;%PATH%
-dmd -od$(IntDir)generated -of$(IntDir)generated\%(Filename).exe %(Identity) 
-if errorlevel 1 exit /B %ERRORLEVEL%
-pushd $(IntDir)generated
-%(Filename).exe
-if errorlevel 1 exit /B %ERRORLEVEL%
-popd</Command>
-    </CustomBuild>
     <CustomBuild Include="..\ddmd\backend\optabgen.c">
       <Message>Building and running $(IntDir)%(Filename).exe</Message>
-      <Command>cl /TP /I..\ddmd\tk /I..\ddmd\root /I. /I.. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)generated\%(Filename).exe" "%(FullPath)" 
+      <Command>cl /TP /I..\ddmd\tk /I..\ddmd\root /I. /I.. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)generated\%(Filename).exe" "%(FullPath)"
 if errorlevel 1 exit /B %ERRORLEVEL%
 pushd $(IntDir)generated
 "%(Filename).exe"
