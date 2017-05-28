@@ -1,5 +1,6 @@
 module ddmd.ctfe.bc;
 import ddmd.ctfe.bc_common;
+import ddmd.ctfe.bc_limits;
 import core.stdc.stdio;
 import std.conv;
 
@@ -1408,7 +1409,8 @@ __gshared int byteCodeCacheTop = 4;
 const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
     BCHeap* heapPtr = null, const BCFunction* functions = null,
     const RetainedCall* calls = null,
-    BCValue* ev1 = null, BCValue* ev2 = null, const RE* errors = null,
+    BCValue* ev1 = null, BCValue* ev2 = null, BCValue* ev3 = null,
+    BCValue* ev4 = null, const RE* errors = null,
     long[] stackPtr = null, uint stackOffset = 0)  @trusted
 {
     __gshared static uint callDepth;
@@ -1731,7 +1733,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
 
                     static if (is(RetainedError))
                     {
-                        if (*rhs - 1 < ubyte.sizeof * 4)
+                        if (*rhs - 1 < bc_max_errors)
                         {
                             auto err = errors[cast(uint)(*rhs - 1)];
                             if (err.v1.vType != BCValueType.Immediate)
@@ -1750,6 +1752,24 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                             else
                             {
                                 *ev2 = err.v2;
+                            }
+
+                            if (err.v3.vType != BCValueType.Immediate)
+                            {
+                                *ev3 = imm32(stackP[err.v3.toUint / 4] & uint.max);
+                            }
+                            else
+                            {
+                                *ev3 = err.v3;
+                            }
+
+                            if (err.v4.vType != BCValueType.Immediate)
+                            {
+                                *ev4 = imm32(stackP[err.v4.toUint / 4] & uint.max);
+                            }
+                            else
+                            {
+                                *ev4 = err.v4;
                             }
                         }
                     }
@@ -2032,7 +2052,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                         return bailoutValue;
                 }
                 auto cRetval = interpret_(functions[cast(size_t)(fn - 1)].byteCode,
-                    callArgs[0 .. call.args.length], heapPtr, functions, calls, ev1, ev2, errors, stack, stackOffsetCall);
+                    callArgs[0 .. call.args.length], heapPtr, functions, calls, ev1, ev2, ev3, ev4, errors, stack, stackOffsetCall);
 
                 if (cRetval.vType == BCValueType.Error || cRetval.vType == BCValueType.Bailout)
                 {
