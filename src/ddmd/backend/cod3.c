@@ -872,7 +872,12 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                 }
 #endif
                 if (config.exe == EX_WIN32)
-                    c = cat(c,nteh_unwind(0,toindex));
+                {
+                    CodeBuilder cdb;
+                    cdb.append(c);
+                    nteh_unwind(cdb,0,toindex);
+                    c = cdb.finish();
+                }
 #if MARS
                 else if (
 #if TARGET_WINDOS
@@ -1003,21 +1008,30 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
 
 #if NTEXCEPTIONS
         case BC_except:
+        {
+            CodeBuilder cdb;
+            cdb.append(c);
             assert(!e);
             usednteh |= NTEH_except;
-            c = cat(c,nteh_setsp(0x8B));
+            nteh_setsp(cdb,0x8B);
+            c = cdb.finish();
             getregs(allregs);
             goto L3;
-
+        }
         case BC_filter:
-            c = cat(c,nteh_filter(bl));
+        {
+            CodeBuilder cdb;
+            cdb.append(c);
+            nteh_filter(cdb, bl);
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in filter blocks.
             getregs(allregs);
             retregs = regmask(e->Ety, TYnfunc);
-            c = gencodelem(c,e,&retregs,TRUE);
-            bl->Bcode = gen1(c,0xC3);   // RET
+            cdb.append(gencodelem(NULL,e,&retregs,TRUE));
+            cdb.gen1(0xC3);   // RET
+            bl->Bcode = cdb.finish();
             break;
+        }
 #endif
 
         case BCretexp:
@@ -1095,14 +1109,23 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                             code *cs;
                             code *cr;
 
-                            c = cat(c,nteh_gensindex(-1));
+                            CodeBuilder cdb;
+                            cdb.append(c);
+                            nteh_gensindex(cdb,-1);
                             gensaverestore(retregs,&cs,&cr);
                             cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)bf->nthSucc(0));
                             regcon.immed.mval = 0;
-                            bl->Bcode = cat3(c,cs,cr);
+                            cdb.append(cs);
+                            cdb.append(cr);
+                            bl->Bcode = cdb.finish();
                         }
                         else
-                            bl->Bcode = cat(c,nteh_unwind(retregs,~0));
+                        {
+                            CodeBuilder cdb;
+                            cdb.append(c);
+                            nteh_unwind(cdb,retregs,~0);
+                            bl->Bcode = cdb.finish();
+                        }
                         break;
                     }
                     else
@@ -3009,8 +3032,9 @@ code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter, int* cfa
 #if NTEXCEPTIONS == 2
         if (usednteh & ~NTEHjmonitor && (config.exe == EX_WIN32))
         {
-            code *ce = nteh_prolog();
-            c = cat(c,ce);
+            CodeBuilder cdb;
+            nteh_prolog(cdb);
+            c = cat(c,cdb.finish());
             int sz = nteh_contextsym_size();
             assert(sz != 0);        // should be 5*4, not 0
             *xlocalsize -= sz;      // sz is already subtracted from ESP
@@ -3859,7 +3883,11 @@ void epilog(block *b)
     }
 
     if (usednteh & ~NTEHjmonitor && (config.exe == EX_WIN32 || MARS))
-        c = cat(c,nteh_epilog());
+    {
+        CodeBuilder cdb;
+        nteh_epilog(cdb);
+        c = cat(c,cdb.finish());
+    }
 
     cpopds = CNIL;
     if (tyf & mTYloadds)
@@ -3877,11 +3905,13 @@ void epilog(block *b)
 #if MARS
     if (usednteh & NTEHjmonitor)
     {
+        CodeBuilder cdb;
+        cdb.append(c);
         regm_t retregs = 0;
         if (b->BC == BCretexp)
             retregs = regmask(b->Belem->Ety, tym);
-        code *cn = nteh_monitor_epilog(retregs);
-        c = cat(c,cn);
+        nteh_monitor_epilog(cdb,retregs);
+        c = cdb.finish();
         xlocalsize += 8;
     }
 #endif

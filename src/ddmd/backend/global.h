@@ -269,7 +269,6 @@ elem *nteh_setScopeTableIndex(Blockx *blx, int scope_index);
 Symbol *nteh_contextsym();
 unsigned nteh_contextsym_size();
 Symbol *nteh_ecodesym();
-code *nteh_unwind(regm_t retregs,unsigned index);
 code *linux_unwind(regm_t retregs,unsigned index);
 int nteh_offset_sindex();
 int nteh_offset_sindex_seh();
