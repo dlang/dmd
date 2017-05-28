@@ -2105,7 +2105,15 @@ version(unittest)
         // back references
         ["_D4core4stdc5errnoQgFZi", "int core.stdc.errno.errno()"], // identifier back reference
         ["_D4testFS10structnameQnZb", "bool test(structname, structname)"], // type back reference
+        ["_D3std11parallelism__T4TaskS8unittest3cmpTAyaTQeZQBb6__dtorMFNfZv",
+        "@safe void std.parallelism.Task!(unittest.cmp, immutable(char)[], immutable(char)[]).Task.__dtor()"],
+        // 1.s.s.foo from https://issues.dlang.org/show_bug.cgi?id=15831
+        ["_D13testexpansion44__T1sTS13testexpansion8__T1sTiZ1sFiZ6ResultZ1sFS13testexpansion8__T1sTiZ1sFiZ6ResultZ6Result3fooMFNaNfZv",
+         "pure @safe void testexpansion.s!(testexpansion.s!(int).s(int).Result).s(testexpansion.s!(int).s(int).Result).Result.foo()"],
+        ["_D13testexpansion__T1sTSQw__TQjTiZQoFiZ6ResultZQBbFQBcZQq3fooMFNaNfZv",
+         "pure @safe void testexpansion.s!(testexpansion.s!(int).s(int).Result).s(testexpansion.s!(int).s(int).Result).Result.foo()"],
     ];
+
 
     template staticIota(int x)
     {
