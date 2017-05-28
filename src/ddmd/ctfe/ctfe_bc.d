@@ -655,7 +655,7 @@ struct SharedCtfeState(BCGenT)
     uint sliceCount;
     uint pointerCount;
     // find a way to live without 102_000
-    RetainedError[bc_max_errors] errors;
+    RetainedError[bc_max_errors/4] errors;
     uint errorCount;
 
     const(BCType) elementType(const BCType type) pure const
