@@ -321,7 +321,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         import std.datetime : StopWatch;
         import std.stdio;
 
-        BCValue[2] errorValues;
+        BCValue[4] errorValues;
         StopWatch sw;
         sw.start();
         bcv.beginArguments();
@@ -375,7 +375,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
             auto retval = interpret_(bcv.byteCodeArray[0 .. bcv.ip], bc_args,
                 &_sharedCtfeState.heap, &_sharedCtfeState.functions[0], &bcv.calls[0],
-                &errorValues[0], &errorValues[1],
+                &errorValues[0], &errorValues[1], &errorValues[2], &errorValues[3],
                 &_sharedCtfeState.errors[0], _sharedCtfeState.stack[]);
             /*            if (fd.ident == Identifier.idPool("extractAttribFlags"))
             {
@@ -781,12 +781,12 @@ struct SharedCtfeState(BCGenT)
 
     import ddmd.globals : Loc;
 
-    extern (D) BCValue addError(Loc loc, string msg, BCValue v1 = BCValue.init, BCValue v2 = BCValue.init)
+    extern (D) BCValue addError(Loc loc, string msg, BCValue v1 = BCValue.init, BCValue v2 = BCValue.init, BCValue v3 = BCValue.init, BCValue v4 = BCValue.init)
     {
-        errors[errorCount++] = RetainedError(loc, msg, v1, v2);
-        auto retval = imm32(errorCount);
-        retval.vType = BCValueType.Error;
-        return retval;
+        errors[errorCount++] = RetainedError(loc, msg, v1, v2, v3, v4);
+        auto error = imm32(errorCount);
+        error.vType = BCValueType.Error;
+        return error;
     }
 
     int getArrayIndex(TypeSArray tsa)
@@ -1018,11 +1018,13 @@ struct RetainedError // Name is still undecided
     string msg;
     BCValue v1;
     BCValue v2;
+    BCValue v3;
+    BCValue v4;
 }
 
 Expression toExpression(const BCValue value, Type expressionType,
     const BCHeap* heapPtr = &_sharedCtfeState.heap,
-    const BCValue[2]* errorValues = null, const RetainedError* errors = null)
+    const BCValue[4]* errorValues = null, const RetainedError* errors = null)
 {
     import ddmd.parse : Loc;
     static if (bailoutMessages)
@@ -1076,11 +1078,15 @@ Expression toExpression(const BCValue value, Type expressionType,
 
         uint e1;
         uint e2;
+        uint e3;
+        uint e4;
 
         if (errorValues)
         {
             e1 = (*errorValues)[0].imm32;
             e2 = (*errorValues)[1].imm32;
+            e3 = (*errorValues)[2].imm32;
+            e4 = (*errorValues)[3].imm32;
         }
         else
         {
@@ -1091,7 +1097,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             return null;
         }
         if (err.msg.ptr)
-            error(err.loc, err.msg.ptr, e1, e2);
+            error(err.loc, err.msg.ptr, e1, e2, e3, e4);
 
         return CTFEExp.cantexp;
     }
@@ -1610,14 +1616,23 @@ extern (C++) final class BCV(BCGenT) : Visitor
     bool discardValue = false;
     uint current_line;
 
-    extern(D) BCValue addError(Loc loc, string msg, BCValue v1 = BCValue.init, BCValue v2 = BCValue.init)
+    extern(D) BCValue addError(Loc loc, string msg, BCValue v1 = BCValue.init, BCValue v2 = BCValue.init, BCValue v3 = BCValue.init, BCValue v4 = BCValue.init)
     {
         alias add_error_message_prototype = uint delegate (string);
+        alias add_error_value_prototype = uint delegate (BCValue);
         static if (is(typeof(&gen.addErrorMessage) == add_error_message_prototype))
         {
             addErrorMessage(msg);
         }
-        return _sharedCtfeState.addError(loc, msg, v1, v2);
+        static if (is(typeof(&gen.addErrorValue) == add_error_value_prototype))
+        {
+            if (v1) addErrorValue(v1);
+            if (v2) addErrorValue(v2);
+            if (v3) addErrorValue(v3);
+            if (v4) addErrorValue(v4);
+        }
+
+        return _sharedCtfeState.addError(loc, msg, v1, v2, v3, v4);
     }
 
     extern(D) void MemCpyConst(/*const*/ BCValue destBasePtr, /*const*/ uint[] source, uint wordSize = 4)
@@ -4291,8 +4306,12 @@ static if (is(BCGen))
 
         if (ae.e1.op == TOKslice && ae.e2.op == TOKslice)
         {
-            auto lhs = genExpr(ae.e1);
-            auto rhs = genExpr(ae.e2);
+
+            SliceExp e1 = cast(SliceExp)ae.e1;
+            SliceExp e2 = cast(SliceExp)ae.e2;
+
+            auto lhs = genExpr(e1);
+            auto rhs = genExpr(e2);
 
             auto lhs_base = getBase(lhs);
             auto rhs_base = getBase(rhs);
@@ -4301,6 +4320,19 @@ static if (is(BCGen))
             auto rhs_length = getLength(rhs);
             Eq3(BCValue.init, lhs_length, rhs_length);
             Assert(BCValue.init, addError(ae.loc, "lhs.length %d != rhs.length %d", lhs_length, rhs_length));
+            {
+                auto lhs_base_plus_length = genTemporary(i32Type);
+                Add3(lhs_base_plus_length, lhs_base, lhs_length);
+                Ge3(BCValue.init, lhs_base_plus_length, rhs_base);
+                auto CJRhsOverlapsLhs = beginCndJmp();
+
+                auto lhs_index = genExpr(e1.lwr);
+                auto rhs_index = genExpr(e2.lwr);
+
+                Assert(imm32(0), addError(ae.loc, "overlapping slice assignment [%d..%d] = [%d..%d]", lhs_index, lhs_length, rhs_index, rhs_length));
+
+                endCndJmp(CJRhsOverlapsLhs, genLabel());
+            }
             auto elmSize = sharedCtfeState.size(sharedCtfeState.elementType(lhs.type));
             copyArray(&lhs_base, &rhs_base, lhs_length, elmSize);
 

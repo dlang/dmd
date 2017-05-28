@@ -26,6 +26,13 @@ struct BCFunction
     void* funcDecl;
 }
 
+struct ErrorInfo
+{
+    string msg;
+    BCValue[4] values;
+    uint valueCount;
+}
+
 struct Print_BCGen
 {
     import std.conv;
@@ -42,8 +49,8 @@ struct Print_BCGen
     }
 
     bool insideFunction = false;
-    string[102_000] errorMessages;
-    uint errorMessageCount;
+    ErrorInfo[102_000/2] errorInfos;
+    uint errorInfoCount;
     FunctionState[ubyte.max * 8] functionStates;
     uint functionStateCount;
     uint currentFunctionStateNumber;
@@ -76,10 +83,23 @@ struct Print_BCGen
 
     uint addErrorMessage(string msg)
     {
-        if (errorMessageCount < errorMessages.length)
+        if (errorInfoCount < errorInfos.length)
         {
-            errorMessages[errorMessageCount++] = msg;
-            return errorMessageCount;
+            errorInfos[errorInfoCount++].msg = msg;
+            return errorInfoCount;
+        }
+
+        return 0;
+    }
+
+    uint addErrorValue(BCValue v)
+    {
+        if (errorInfoCount < errorInfos.length)
+        {
+            auto eInfo = &errorInfos[errorInfoCount - 1];
+
+            eInfo.values[eInfo.valueCount++] = v;
+            return eInfo.valueCount;
         }
 
         return 0;
@@ -146,7 +166,18 @@ struct Print_BCGen
             }
         case BCValueType.Error:
             {
-                return "Imm32(" ~ to!string(val.imm32) ~ ")/*"~ errorMessages[val.imm32 - 1]  ~"*/";
+                string _result = "Imm32(" ~ to!string(val.imm32) ~ ") /*";
+                if (val.imm32)
+                {
+                    auto eInfo = errorInfos[val.imm32 - 1];
+                    _result ~= `"` ~ eInfo.msg ~ `", `;
+
+                    foreach(i;0 .. eInfo.valueCount)
+                        _result ~= print(eInfo.values[i]) ~ ", ";
+
+                    _result = _result[0 .. $-2] ~ "*/;";
+                }
+                return _result;
             }
         case BCValueType.Unknown:
             {
