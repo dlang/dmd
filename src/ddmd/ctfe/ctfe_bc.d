@@ -263,6 +263,12 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
     foreach(arg;args)
     {
+        import ddmd.tokens;
+        if (arg.op == TOKcall)
+        {
+            bcv.bailout("Cannot handle calls in arguments");
+        }
+
         if (arg.type.ty == Tfunction)
         { //TODO we need to fix this!
             static if (bailoutMessages)
