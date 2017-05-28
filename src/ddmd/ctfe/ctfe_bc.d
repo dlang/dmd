@@ -418,7 +418,9 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                 }
                 static if (printResult)
                 {
-                    writeln("Evaluated function:" ~ fd.toString ~ " => " ~ exp.toString);
+                   import std.algorithm;
+                   import std.string;
+                    writeln(fd.toString ~ "(" ~ args.map!(a => a.toChars.fromStringz).join(", ")  ~ ")" ~ " == " ~ exp.toString);
                 }
                 return exp;
             }
