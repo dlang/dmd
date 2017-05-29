@@ -558,7 +558,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
             if (tb.ty == Tarray || tb.ty == Tsarray)
             {
                 if (!gag)
-                    error(e.loc, "escaping reference to variadic parameter %s", v.toChars());
+                    error(e.loc, "returning `%s` escapes a reference to variadic parameter `%s`", e.toChars(), v.toChars());
                 result = false;
             }
         }
@@ -572,6 +572,21 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
     foreach (VarDeclaration v; er.byref)
     {
         //printf("byref `%s`\n", v.toChars());
+
+        void escapingRef(VarDeclaration v)
+        {
+            if (!gag)
+            {
+                const(char)* msg;
+                if (v.storage_class & STCparameter)
+                    msg = "returning `%s` escapes a reference to parameter `%s`, perhaps annotate with `return`";
+                else
+                    msg = "returning `%s` escapes a reference to local variable `%s`";
+                error(e.loc, msg, e.toChars(), v.toChars());
+            }
+            result = true;
+        }
+
         if (v.isDataseg())
             continue;
 
@@ -581,9 +596,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         {
             if (p == sc.func)
             {
-                if (!gag)
-                    error(e.loc, "escaping reference to local variable %s", v.toChars());
-                result = true;
+                escapingRef(v);
                 continue;
             }
             FuncDeclaration fd = p.isFuncDeclaration();
@@ -621,9 +634,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                 {
                     //printf("escaping reference to local ref variable %s\n", v.toChars());
                     //printf("storage class = x%llx\n", v.storage_class);
-                    if (!gag)
-                        error(e.loc, "escaping reference to local variable %s", v.toChars());
-                    result = true;
+                    escapingRef(v);
                     continue;
                 }
                 // Don't need to be concerned if v's parent does not return a ref

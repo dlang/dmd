@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -o- -d
+// REQUIRED_ARGS: -o- -d -m64
 
 struct S1 { int v; }
 struct S2 { int* p; }
@@ -7,14 +7,14 @@ class C { int v; }
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(32): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(33): Error: escaping reference to local variable s1
-fail_compilation/fail13902.d(38): Error: escaping reference to local variable sa1
-fail_compilation/fail13902.d(39): Error: escaping reference to local variable sa2
-fail_compilation/fail13902.d(40): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(41): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(42): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(45): Error: escaping reference to local variable y
+fail_compilation/fail13902.d(32): Error: returning `& x` escapes a reference to local variable `x`
+fail_compilation/fail13902.d(33): Error: returning `&s1.v` escapes a reference to local variable `s1`
+fail_compilation/fail13902.d(38): Error: returning `& sa1` escapes a reference to local variable `sa1`
+fail_compilation/fail13902.d(39): Error: returning `&sa2[0][0]` escapes a reference to local variable `sa2`
+fail_compilation/fail13902.d(40): Error: returning `& x` escapes a reference to local variable `x`
+fail_compilation/fail13902.d(41): Error: returning `(& x+4)` escapes a reference to local variable `x`
+fail_compilation/fail13902.d(42): Error: returning `& x + cast(long)x * 4L` escapes a reference to local variable `x`
+fail_compilation/fail13902.d(45): Error: returning `& y` escapes a reference to local variable `y`
 ---
 */
 int* testEscape1()
@@ -50,14 +50,14 @@ int* testEscape1()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(75): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(76): Error: escaping reference to local variable s1
-fail_compilation/fail13902.d(81): Error: escaping reference to local variable sa1
-fail_compilation/fail13902.d(82): Error: escaping reference to local variable sa2
-fail_compilation/fail13902.d(83): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(84): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(85): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(88): Error: escaping reference to local variable y
+fail_compilation/fail13902.d(75): Error: returning `& x` escapes a reference to parameter `x`, perhaps annotate with `return`
+fail_compilation/fail13902.d(76): Error: returning `&s1.v` escapes a reference to parameter `s1`, perhaps annotate with `return`
+fail_compilation/fail13902.d(81): Error: returning `& sa1` escapes a reference to parameter `sa1`, perhaps annotate with `return`
+fail_compilation/fail13902.d(82): Error: returning `&sa2[0][0]` escapes a reference to parameter `sa2`, perhaps annotate with `return`
+fail_compilation/fail13902.d(83): Error: returning `& x` escapes a reference to parameter `x`, perhaps annotate with `return`
+fail_compilation/fail13902.d(84): Error: returning `(& x+4)` escapes a reference to parameter `x`, perhaps annotate with `return`
+fail_compilation/fail13902.d(85): Error: returning `& x + cast(long)x * 4L` escapes a reference to parameter `x`, perhaps annotate with `return`
+fail_compilation/fail13902.d(88): Error: returning `& y` escapes a reference to parameter `y`, perhaps annotate with `return`
 ---
 */
 int* testEscape2(
@@ -128,15 +128,15 @@ int* testEscape3(
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(150): Error: escaping reference to local variable sa1
-fail_compilation/fail13902.d(151): Error: escaping reference to local variable sa1
-fail_compilation/fail13902.d(152): Error: escaping reference to local variable sa1
-fail_compilation/fail13902.d(155): Error: escaping reference to local variable sa2
-fail_compilation/fail13902.d(156): Error: escaping reference to local variable sa2
-fail_compilation/fail13902.d(157): Error: escaping reference to local variable sa2
-fail_compilation/fail13902.d(161): Error: escaping reference to local variable s
-fail_compilation/fail13902.d(162): Error: escaping reference to local variable s
-fail_compilation/fail13902.d(163): Error: escaping reference to local variable s
+fail_compilation/fail13902.d(150): Error: returning `cast(int[])sa1` escapes a reference to parameter `sa1`, perhaps annotate with `return`
+fail_compilation/fail13902.d(151): Error: returning `cast(int[])sa1` escapes a reference to parameter `sa1`, perhaps annotate with `return`
+fail_compilation/fail13902.d(152): Error: returning `sa1[]` escapes a reference to parameter `sa1`, perhaps annotate with `return`
+fail_compilation/fail13902.d(155): Error: returning `cast(int[])sa2` escapes a reference to local variable `sa2`
+fail_compilation/fail13902.d(156): Error: returning `cast(int[])sa2` escapes a reference to local variable `sa2`
+fail_compilation/fail13902.d(157): Error: returning `sa2[]` escapes a reference to local variable `sa2`
+fail_compilation/fail13902.d(161): Error: returning `cast(int[])s.sa` escapes a reference to local variable `s`
+fail_compilation/fail13902.d(162): Error: returning `cast(int[])s.sa` escapes a reference to local variable `s`
+fail_compilation/fail13902.d(163): Error: returning `s.sa[]` escapes a reference to local variable `s`
 fail_compilation/fail13902.d(166): Error: escaping reference to stack allocated value returned by makeSA()
 fail_compilation/fail13902.d(167): Error: escaping reference to stack allocated value returned by makeSA()
 fail_compilation/fail13902.d(168): Error: escaping reference to stack allocated value returned by makeSA()
@@ -178,14 +178,14 @@ int[] testEscape4(int[3] sa1)       // Bugzilla 9279
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(201): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(202): Error: escaping reference to local variable s1
-fail_compilation/fail13902.d(206): Error: escaping reference to local variable sa1
-fail_compilation/fail13902.d(207): Error: escaping reference to local variable sa2
-fail_compilation/fail13902.d(208): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(209): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(210): Error: escaping reference to local variable s1
-fail_compilation/fail13902.d(211): Error: escaping reference to local variable s1
+fail_compilation/fail13902.d(201): Error: returning `x` escapes a reference to local variable `x`
+fail_compilation/fail13902.d(202): Error: returning `s1.v` escapes a reference to local variable `s1`
+fail_compilation/fail13902.d(206): Error: returning `sa1[0]` escapes a reference to local variable `sa1`
+fail_compilation/fail13902.d(207): Error: returning `sa2[0][0]` escapes a reference to local variable `sa2`
+fail_compilation/fail13902.d(208): Error: returning `x = 1` escapes a reference to local variable `x`
+fail_compilation/fail13902.d(209): Error: returning `x += 1` escapes a reference to local variable `x`
+fail_compilation/fail13902.d(210): Error: returning `s1.v = 1` escapes a reference to local variable `s1`
+fail_compilation/fail13902.d(211): Error: returning `s1.v += 1` escapes a reference to local variable `s1`
 ---
 */
 ref int testEscapeRef1()
@@ -217,14 +217,14 @@ ref int testEscapeRef1()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(240): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(241): Error: escaping reference to local variable s1
-fail_compilation/fail13902.d(245): Error: escaping reference to local variable sa1
-fail_compilation/fail13902.d(246): Error: escaping reference to local variable sa2
-fail_compilation/fail13902.d(247): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(248): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(249): Error: escaping reference to local variable s1
-fail_compilation/fail13902.d(250): Error: escaping reference to local variable s1
+fail_compilation/fail13902.d(240): Error: returning `x` escapes a reference to parameter `x`, perhaps annotate with `return`
+fail_compilation/fail13902.d(241): Error: returning `s1.v` escapes a reference to parameter `s1`, perhaps annotate with `return`
+fail_compilation/fail13902.d(245): Error: returning `sa1[0]` escapes a reference to parameter `sa1`, perhaps annotate with `return`
+fail_compilation/fail13902.d(246): Error: returning `sa2[0][0]` escapes a reference to parameter `sa2`, perhaps annotate with `return`
+fail_compilation/fail13902.d(247): Error: returning `x = 1` escapes a reference to parameter `x`, perhaps annotate with `return`
+fail_compilation/fail13902.d(248): Error: returning `x += 1` escapes a reference to parameter `x`, perhaps annotate with `return`
+fail_compilation/fail13902.d(249): Error: returning `s1.v = 1` escapes a reference to parameter `s1`, perhaps annotate with `return`
+fail_compilation/fail13902.d(250): Error: returning `s1.v += 1` escapes a reference to parameter `s1`, perhaps annotate with `return`
 ---
 */
 ref int testEscapeRef2(
@@ -287,8 +287,8 @@ ref int testEscapeRef2(
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(294): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(295): Error: escaping reference to local variable x
+fail_compilation/fail13902.d(294): Error: returning `[& x]` escapes a reference to local variable `x`
+fail_compilation/fail13902.d(295): Error: returning `[& x]` escapes a reference to local variable `x`
 ---
 */
 int*[]  testArrayLiteral1() { int x; return [&x]; }
@@ -297,8 +297,8 @@ int*[1] testArrayLiteral2() { int x; return [&x]; }
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(304): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(305): Error: escaping reference to local variable x
+fail_compilation/fail13902.d(304): Error: returning `S2(& x)` escapes a reference to local variable `x`
+fail_compilation/fail13902.d(305): Error: returning `new S2(& x)` escapes a reference to local variable `x`
 ---
 */
 S2  testStructLiteral1() { int x; return     S2(&x); }
@@ -307,8 +307,8 @@ S2* testStructLiteral2() { int x; return new S2(&x); }
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(314): Error: escaping reference to local variable sa
-fail_compilation/fail13902.d(315): Error: escaping reference to local variable sa
+fail_compilation/fail13902.d(314): Error: returning `sa[]` escapes a reference to local variable `sa`
+fail_compilation/fail13902.d(315): Error: returning `sa[cast(ulong)n..2][1..2]` escapes a reference to local variable `sa`
 ---
 */
 int[] testSlice1() { int[3] sa; return sa[]; }
@@ -317,8 +317,8 @@ int[] testSlice2() { int[3] sa; int n; return sa[n..2][1..2]; }
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(324): Error: escaping reference to local variable vda
-fail_compilation/fail13902.d(325): Error: escaping reference to variadic parameter vda
+fail_compilation/fail13902.d(324): Error: returning `vda[0]` escapes a reference to parameter `vda`, perhaps annotate with `return`
+fail_compilation/fail13902.d(325): Error: returning `vda[]` escapes a reference to variadic parameter `vda`
 ---
 */
 ref int testDynamicArrayVariadic1(int[] vda...) { return vda[0]; }
@@ -328,8 +328,8 @@ int[3]  testDynamicArrayVariadic3(int[] vda...) { return vda[0..3]; }   // no er
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(335): Error: escaping reference to local variable vsa
-fail_compilation/fail13902.d(336): Error: escaping reference to variadic parameter vsa
+fail_compilation/fail13902.d(335): Error: returning `vsa[0]` escapes a reference to parameter `vsa`, perhaps annotate with `return`
+fail_compilation/fail13902.d(336): Error: returning `vsa[]` escapes a reference to variadic parameter `vsa`
 ---
 */
 ref int testStaticArrayVariadic1(int[3] vsa...) { return vsa[0]; }

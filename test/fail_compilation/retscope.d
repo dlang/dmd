@@ -4,7 +4,7 @@ PERMUTE_ARGS:
 TEST_OUTPUT:
 ---
 fail_compilation/retscope.d(23): Error: scope variable p may not be returned
-fail_compilation/retscope.d(33): Error: escaping reference to local variable j
+fail_compilation/retscope.d(33): Error: returning `b ? nested1(& i) : nested2(& j)` escapes a reference to local variable `j`
 fail_compilation/retscope.d(46): Error: scope variable p assigned to non-scope q
 fail_compilation/retscope.d(48): Error: address of variable i assigned to q with longer lifetime
 fail_compilation/retscope.d(49): Error: variadic variable a assigned to non-scope b
@@ -108,7 +108,7 @@ int[] bar8(int[] a) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(124): Error: escaping reference to local variable tmp
+fail_compilation/retscope.d(124): Error: returning `foo9(cast(char[])tmp)` escapes a reference to local variable `tmp`
 ---
 */
 
@@ -272,7 +272,7 @@ void escape5() @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(287): Error: escaping reference to local variable b
+fail_compilation/retscope.d(287): Error: returning `foo6(& b)` escapes a reference to local variable `b`
 ---
 */
 
@@ -364,7 +364,7 @@ void escape15() @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(1003): Error: escaping reference to local variable f
+fail_compilation/retscope.d(1003): Error: returning `f.foo()` escapes a reference to local variable `f`
 ---
 */
 
