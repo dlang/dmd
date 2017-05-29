@@ -728,7 +728,7 @@ code *gencodelem(code *c,elem *e,regm_t *pretregs,bool constflag)
         codelem(cdb,e,pretregs,constflag);
         assert(cgstate.stackclean == 0);
         cgstate.stackclean = stackcleansave;
-        cdb.append(genstackclean(CNIL,stackpush - stackpushsave,*pretregs));       // do defered cleaning
+        genstackclean(cdb,stackpush - stackpushsave,*pretregs);       // do defered cleaning
     }
     return cdb.finish();
 }

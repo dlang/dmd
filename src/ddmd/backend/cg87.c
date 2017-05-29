@@ -633,7 +633,7 @@ static void genftst(CodeBuilder& cdb,elem *e,int pop)
         // Call library function which does not raise exceptions
         regm_t regm = 0;
 
-        cdb.append(callclib(e,CLIBftest,&regm,0));
+        callclib(cdb,e,CLIBftest,&regm,0);
         if (pop)
         {
             cdb.genf2(0xDD,modregrm(3,3,0)); // FPOP
@@ -845,9 +845,9 @@ void fixresult87(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretregs)
             regm |= *pretregs & mPSW;
             fixresult(cdb,e,retregs,&regm);
             regm = 0;           // don't worry about result from CLIBxxx
-            cdb.append(callclib(e,
+            callclib(cdb,e,
                     ((sz == FLOATSIZE) ? CLIBfltto87 : CLIBdblto87),
-                    &regm,0));
+                    &regm,0);
         }
     }
     else if (*pretregs & (mBP | ALLREGS) && retregs & mST0)
@@ -1107,7 +1107,7 @@ void orth87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 {
                     regm_t regm = 0;
 
-                    cdb.append(callclib(e,CLIBftest0,&regm,0));
+                    callclib(cdb,e,CLIBftest0,&regm,0);
                     pop87();
                 }
                 else
@@ -1133,7 +1133,7 @@ void orth87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                     else
                         // Call a function instead so that exceptions
                         // are not generated.
-                        cdb.append(callclib(e,CLIBfcompp,&resregm,0));
+                        callclib(cdb,e,CLIBfcompp,&resregm,0);
                 }
             }
 
@@ -1219,7 +1219,7 @@ void orth87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             else
             {
                 int clib = eoper == OPmul ? CLIBcmul : CLIBcdiv;
-                cdb.append(callclib(e, clib, &retregs, 0));
+                callclib(cdb, e, clib, &retregs, 0);
             }
             fixresult_complex87(cdb, e, retregs, pretregs);
             return;
@@ -1277,7 +1277,7 @@ void orth87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             cdb.append(makesure87(e1, sz2, 2, 0));
             cdb.append(makesure87(e1, 0, 3, 0));
             regm_t retregs = 0;
-            cdb.append(callclib(e, CLIBccmp, &retregs, 0));
+            callclib(cdb, e, CLIBccmp, &retregs, 0);
             return;
         }
 
@@ -1528,7 +1528,7 @@ void orth87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         cdb.append(makesure87(e1,0,1,0));
         if (op == 7)                    // if reverse divide
             cdb.genf2(0xD9,0xC8 + 1);       // FXCH ST(1)
-        cdb.append(callclib(e,CLIBfdiv87,&retregs,0));
+        callclib(cdb,e,CLIBfdiv87,&retregs,0);
         pop87();
         regm_t resregm = mST0;
         freenode(e2);
@@ -1690,12 +1690,12 @@ void load87(CodeBuilder& cdb,elem *e,unsigned eoffset,regm_t *pretregs,elem *ele
                         case TYcfloat:
                         case TYcdouble:
                         case TYdouble_alias:
-                            cdb.append(loadea(e,&cs,ESC(mf,1),0,0,0,0)); // FLD var
+                            loadea(cdb,e,&cs,ESC(mf,1),0,0,0,0); // FLD var
                             break;
                         case TYldouble:
                         case TYildouble:
                         case TYcldouble:
-                            cdb.append(loadea(e,&cs,0xDB,5,0,0,0));      // FLD var
+                            loadea(cdb,e,&cs,0xDB,5,0,0,0);      // FLD var
                             break;
                         default:
                             printf("ty = x%x\n", ty);
@@ -1728,7 +1728,7 @@ void load87(CodeBuilder& cdb,elem *e,unsigned eoffset,regm_t *pretregs,elem *ele
                     }
                     cdb.gen(&cs);                     // FLD / Fop
 #else
-                    cdb.append(loadea(e->E1,&cs,ESC(mf1,1),0,0,0,0)); /* FLD e->E1 */
+                    loadea(cdb,e->E1,&cs,ESC(mf1,1),0,0,0,0); /* FLD e->E1 */
 #endif
                     /* Variable cannot be put into a register anymore   */
                     if (e->E1->Eoper == OPvar)
@@ -1998,7 +1998,7 @@ void eq87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         }
 #if 0
         // Doesn't work if ST(0) gets saved to the stack by getlvalue()
-        cdb.append(loadea(e->E1,&cs,op1,op2,0,0,0));
+        loadea(cdb,e->E1,&cs,op1,op2,0,0,0);
 #else
         cs.Irex = 0;
         cs.Iflags = 0;
@@ -2125,7 +2125,7 @@ void complex_eq87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         }
         else
         {
-            cdb.append(loadea(e->E1,&cs,op1,op2,sz,0,0));
+            loadea(cdb,e->E1,&cs,op1,op2,sz,0,0);
             cdb.append(genfwait(CNIL));
         }
         if (fxch)
@@ -2222,7 +2222,7 @@ static void cnvteq87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         cs.Iflags = ADDFWAIT() ? CFwait : 0;
         if (e->E1->Eoper == OPvar)
             notreg(e->E1);                      // cannot be put in register anymore
-        cdb.append(loadea(e->E1,&cs,op1,op2,0,0,0));
+        loadea(cdb,e->E1,&cs,op1,op2,0,0,0);
 
         cdb.append(genfwait(CNIL));
         genrnd(cdb, CW_roundtonearest);         // FLDCW roundtonearest
@@ -2287,7 +2287,7 @@ void opass87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 cs.Irm |= modregrm(0, 5, 0);    // FLD tbyte ptr ...
             cdb.gen(&cs);
             cdb.genf2(0xD9,0xC8 + 1);           // FXCH ST(1)
-            cdb.append(callclib(e,CLIBfdiv87,&retregs,0));
+            callclib(cdb,e,CLIBfdiv87,&retregs,0);
             pop87();
         }
         else if (e->Eoper == OPmodass)
@@ -2648,7 +2648,7 @@ static void opass_complex87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 cs.IEVoffset1 += sz2;
                 cdb.gen(&cs);                   // FLD e->E1.im
                 retregs = mST01;
-                cdb.append(callclib(e, CLIBcmul, &retregs, 0));
+                callclib(cdb, e, CLIBcmul, &retregs, 0);
                 goto L2;
             }
             else
@@ -2659,7 +2659,7 @@ static void opass_complex87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 cs.IEVoffset1 += sz2;
                 cdb.gen(&cs);                   // FLD e->E1.im
                 retregs = mST01;
-                cdb.append(callclib(e, CLIBcmul, &retregs, 0));
+                callclib(cdb, e, CLIBcmul, &retregs, 0);
                 if (*pretregs & (mST01 | mPSW))
                 {
                     cs.Irm |= modregrm(0, 2, 0);
@@ -2695,7 +2695,7 @@ static void opass_complex87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 cdb.gen(&cs);                   // FLD e->E1.im
                 cdb.genf2(0xD9,0xC8 + 2);       // FXCH ST(2)
                 retregs = mST01;
-                cdb.append(callclib(e, CLIBcdiv, &retregs, idxregs));
+                callclib(cdb, e, CLIBcdiv, &retregs, idxregs);
                 goto L2;
             }
             else
@@ -2708,7 +2708,7 @@ static void opass_complex87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 cdb.gen(&cs);                   // FLD e->E1.im
                 cdb.genf2(0xD9,0xC8 + 2);       // FXCH ST(2)
                 retregs = mST01;
-                cdb.append(callclib(e, CLIBcdiv, &retregs, idxregs));
+                callclib(cdb, e, CLIBcdiv, &retregs, idxregs);
                 if (*pretregs & (mST01 | mPSW))
                 {
                     cs.Irm |= modregrm(0, 2, 0);
@@ -3160,12 +3160,12 @@ void cnvt87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             if (clib == CLIBdblllng)
             {   retregs = I32 ? DOUBLEREGS_32 : DOUBLEREGS_16;
                 codelem(cdb,e->E1,&retregs,FALSE);
-                cdb.append(callclib(e,clib,pretregs,0));
+                callclib(cdb,e,clib,pretregs,0);
             }
             else
             {   retregs = mST0; //I32 ? DOUBLEREGS_32 : DOUBLEREGS_16;
                 codelem(cdb,e->E1,&retregs,FALSE);
-                cdb.append(callclib(e,clib,pretregs,0));
+                callclib(cdb,e,clib,pretregs,0);
                 pop87();
             }
         }
@@ -3765,13 +3765,13 @@ __body
             {
                 case TYcfloat:
                 case TYcdouble:
-                    cdb.append(loadea(e,&cs,ESC(mf,1),0,0,0,0));        // FLD var
+                    loadea(cdb,e,&cs,ESC(mf,1),0,0,0,0);        // FLD var
                     cs.IEVoffset1 += sz;
                     cdb.gen(&cs);
                     break;
 
                 case TYcldouble:
-                    cdb.append(loadea(e,&cs,0xDB,5,0,0,0));             // FLD var
+                    loadea(cdb,e,&cs,0xDB,5,0,0,0);             // FLD var
                     cs.IEVoffset1 += sz;
                     cdb.gen(&cs);
                     break;

@@ -778,6 +778,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
     switch (bl->BC)                     /* block exit condition         */
     {
         case BCiftrue:
+        {
             jcond = TRUE;
             bs1 = bl->nthSucc(0);
             bs2 = bl->nthSucc(1);
@@ -790,9 +791,13 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                 bs1 = bs2;
                 bs2 = btmp;
             }
-            c = cat(c,logexp(e,jcond,FLblock,(code *) bs1));
+            CodeBuilder cdb;
+            cdb.append(c);
+            logexp(cdb,e,jcond,FLblock,(code *) bs1);
+            c = cdb.finish();
             nextb = bs2;
             bl->Bcode = NULL;
+        }
         L2:
             if (configv.addlinenumbers && bl->Bsrcpos.Slinnum &&
                 !(funcsym_p->ty() & mTYnaked))

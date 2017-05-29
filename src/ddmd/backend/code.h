@@ -354,16 +354,16 @@ void genEEcode();
 void docommas(CodeBuilder& cdb,elem **pe);
 unsigned gensaverestore(regm_t, code **, code **);
 unsigned gensaverestore2(regm_t regm,code **csave,code **crestore);
-code *genstackclean(code *c,unsigned numpara,regm_t keepmsk);
-code *logexp (elem *e , int jcond , unsigned fltarg , code *targ );
+void genstackclean(CodeBuilder& cdb,unsigned numpara,regm_t keepmsk);
+void logexp(CodeBuilder& cdb, elem *e, int jcond, unsigned fltarg, code *targ);
 unsigned getaddrmode (regm_t idxregs );
 void setaddrmode(code *c, regm_t idxregs);
-code *fltregs (code *pcs , tym_t tym );
+void fltregs(CodeBuilder& cdb, code *pcs, tym_t tym);
 void tstresult(CodeBuilder& cdb, regm_t regm, tym_t tym, unsigned saveflag);
 void fixresult(CodeBuilder& cdb, elem *e, regm_t retregs, regm_t *pretregs);
-code *callclib (elem *e , unsigned clib , regm_t *pretregs , regm_t keepmask );
-code *pushParams(elem *, unsigned);
-code *offsetinreg (elem *e , regm_t *pretregs );
+void callclib(CodeBuilder& cdb, elem *e, unsigned clib, regm_t *pretregs, regm_t keepmask);
+void pushParams(CodeBuilder& cdb,elem *, unsigned);
+void offsetinreg(CodeBuilder& cdb, elem *e, regm_t *pretregs);
 
 /* cod2.c */
 int movOnly(elem *e);
