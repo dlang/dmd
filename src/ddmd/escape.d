@@ -495,7 +495,7 @@ bool checkReturnEscapeRef(Scope* sc, Expression e, bool gag)
 
 private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 {
-    //printf("[%s] checkReturnEscapeImpl, e = %s\n", e.loc.toChars(), e.toChars());
+    //printf("[%s] checkReturnEscapeImpl, e: `%s`\n", e.loc.toChars(), e.toChars());
     EscapeByResults er;
 
     if (refs)
@@ -509,7 +509,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
     bool result = false;
     foreach (VarDeclaration v; er.byvalue)
     {
-        //printf("byvalue %s\n", v.toChars());
+        //printf("byvalue `%s`\n", v.toChars());
         if (v.isDataseg())
             continue;
 
@@ -571,7 +571,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
     foreach (VarDeclaration v; er.byref)
     {
-        //printf("byref %s\n", v.toChars());
+        //printf("byref `%s`\n", v.toChars());
         if (v.isDataseg())
             continue;
 
@@ -771,6 +771,11 @@ private void escapeByValue(Expression e, EscapeByResults* er)
 
         override void visit(DelegateExp e)
         {
+            Type t = e.e1.type.toBasetype();
+            if (t.ty == Tclass || t.ty == Tpointer)
+                escapeByValue(e.e1, er);
+            else
+                escapeByRef(e.e1, er);
             er.byfunc.push(e.func);
         }
 
