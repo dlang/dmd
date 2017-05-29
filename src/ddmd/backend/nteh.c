@@ -679,7 +679,7 @@ void cdsetjmp(CodeBuilder& cdb, elem *e,regm_t *pretregs)
 
     stackpush = stackpushsave;
     retregs = regmask(e->Ety, TYnfunc);
-    cdb.append(fixresult(e,retregs,pretregs));
+    fixresult(cdb,e,retregs,pretregs);
 }
 
 /****************************************

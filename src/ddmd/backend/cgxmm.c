@@ -147,7 +147,7 @@ void orthxmm(CodeBuilder& cdb, elem *e, regm_t *pretregs)
             cdb.gen2(xop,modregxrmx(3,rreg-XMM0,sreg-XMM0));
         }
         if (retregs != *pretregs)
-            cdb.append(fixresult(e,retregs,pretregs));
+            fixresult(cdb,e,retregs,pretregs);
         return;
     }
 
@@ -178,7 +178,7 @@ void orthxmm(CodeBuilder& cdb, elem *e, regm_t *pretregs)
     cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));
     checkSetVex(cdb.last(), e1->Ety);
     if (retregs != *pretregs)
-        cdb.append(fixresult(e,retregs,pretregs));
+        fixresult(cdb,e,retregs,pretregs);
 }
 
 
@@ -272,7 +272,7 @@ void xmmeq(CodeBuilder& cdb, elem *e, unsigned op, elem *e1, elem *e2,regm_t *pr
         cssave(e1,retregs,EOP(e1));     // if lvalue is a CSE
     }
 
-    cdb.append(fixresult(e,retregs,pretregs));
+    fixresult(cdb,e,retregs,pretregs);
 Lp:
     if (postinc)
     {
@@ -431,7 +431,7 @@ void xmmcnvt(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         code_orrex(cdb.last(), rex);
 
     if (*pretregs != retregs)
-        cdb.append(fixresult(e,retregs,pretregs));
+        fixresult(cdb,e,retregs,pretregs);
 }
 
 /********************************
@@ -503,7 +503,7 @@ void xmmopass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         cssave(e1,retregs,EOP(e1));     // if lvalue is a CSE
     }
 
-    cdb.append(fixresult(e,retregs,pretregs));
+    fixresult(cdb,e,retregs,pretregs);
     freenode(e1);
 }
 
@@ -588,7 +588,7 @@ void xmmpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         cssave(e1,retregs,EOP(e1));     // if lvalue is a CSE
     }
 
-    cdb.append(fixresult(e,resultregs,pretregs));
+    fixresult(cdb,e,resultregs,pretregs);
     freenode(e1);
 }
 
@@ -627,7 +627,7 @@ void xmmneg(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     cdb.append(getregs(retregs));
     unsigned op = (sz == 8) ? XORPD : XORPS;       // XORPD/S reg,rreg
     cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));
-    cdb.append(fixresult(e,retregs,pretregs));
+    fixresult(cdb,e,retregs,pretregs);
 }
 
 /*****************************
@@ -1169,7 +1169,7 @@ void cdvector(CodeBuilder& cdb, elem *e, regm_t *pretregs)
     }
     else
         assert(0);
-    cdb.append(fixresult(e,retregs,pretregs));
+    fixresult(cdb,e,retregs,pretregs);
     free(params);
     freenode(e);
 }
@@ -1490,7 +1490,7 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
                 {
                     unsigned sreg = ((cs.Irm & 7) | (cs.Irex & REX_B ? 8 : 0));
                     regm_t sregm = XMMREGS;
-                    cdb.append(fixresult(e1, mask[sreg], &sregm));
+                    fixresult(cdb,e1, mask[sreg], &sregm);
                     unsigned rmreg = findreg(sregm);
                     cs.Irm = (cs.Irm & ~7) | ((rmreg - XMM0) & 7);
                     if ((rmreg - XMM0) & 8)
@@ -1531,8 +1531,7 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
             assert(0);
     }
 
-    c = fixresult(e,retregs,pretregs);
-    cdb.append(c);
+    fixresult(cdb,e,retregs,pretregs);
 }
 
 /*******************************************

@@ -2377,10 +2377,11 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
         {
             if (EOP(e) || !(regm & regcon.mvar) || (*pretregs & regcon.mvar) == *pretregs)
             {
+                CodeBuilder cdb;
                 regm = mask[findreg(regm)];
-                code *c = fixresult(e,regm,pretregs);
+                fixresult(cdb,e,regm,pretregs);
                 freenode(e);
-                return c;
+                return cdb.finish();
             }
         }
 
@@ -2423,7 +2424,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
                         L10:
                             regcon.cse.mval |= mask[reg]; // cs is in a reg
                             regcon.cse.value[reg] = e;
-                            cdb.append(fixresult(e,retregs,pretregs));
+                            fixresult(cdb,e,retregs,pretregs);
                         }
                     }
                     freenode(e);
@@ -2485,7 +2486,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
         }
 
         regm = mask[msreg] | mask[lsreg];       /* mask of result       */
-        cdb.append(fixresult(e,regm,pretregs));
+        fixresult(cdb,e,regm,pretregs);
         freenode(e);
         return cdb.finish();
   }
@@ -2501,7 +2502,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
                     cdb.append(loadcse(e,reg,mask[reg]));
             }
             regm = DOUBLEREGS_16;
-            cdb.append(fixresult(e,regm,pretregs));
+            fixresult(cdb,e,regm,pretregs);
             freenode(e);
             return cdb.finish();
         }
@@ -2743,7 +2744,7 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
                 unsigned sz2 = tysize(e->EV.sp.Vsym->Stype->Tty);
                 if (sz1 <= REGSIZE && sz2 > REGSIZE)
                     regm &= mLSW | XMMREGS;
-                code *c = fixresult(e,regm,pretregs);
+                fixresult(cdb,e,regm,pretregs);
                 cssave(e,regm,0);
                 freenode(e);
 #ifdef DEBUG
@@ -2751,7 +2752,6 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
                     printf("-scodelem(e=%p *pretregs=%s keepmsk=%s constflag=%d\n",
                             e,regm_str(*pretregs),regm_str(keepmsk),constflag);
 #endif
-                cdb.append(c);
                 return;
         }
   }
@@ -2949,12 +2949,11 @@ const char *regm_str(regm_t rm)
  *      code generated for left branches of comma-expressions
  */
 
-code *docommas(elem **pe)
+void docommas(CodeBuilder& cdb,elem **pe)
 {
     unsigned stackpushsave = stackpush;
     int stackcleansave = cgstate.stackclean;
     cgstate.stackclean = 0;
-    CodeBuilder cdb;
     elem* e = *pe;
     while (1)
     {
@@ -2975,7 +2974,6 @@ code *docommas(elem **pe)
     assert(cgstate.stackclean == 0);
     cgstate.stackclean = stackcleansave;
     cdb.append(genstackclean(CNIL,stackpush - stackpushsave,0));
-    return cdb.finish();
 }
 
 /**************************
