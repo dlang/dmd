@@ -519,7 +519,7 @@ void comsub87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             if (*pretregs & XMMREGS)
                 fixresult87(cdb,e,mST0,pretregs);
             else
-                cdb.append(fixresult(e,mST0,pretregs));
+                fixresult(cdb,e,mST0,pretregs);
         }
         else
             // Reload
@@ -821,7 +821,7 @@ void fixresult87(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretregs)
             if (*pretregs & mPSW)
             {   // Set flags
                 regm_t r = retregs | mPSW;
-                cdb.append(fixresult(e,retregs,&r));
+                fixresult(cdb,e,retregs,&r);
             }
             push87(cdb);
             if (sz == REGSIZE || (I64 && sz == 4))
@@ -843,7 +843,7 @@ void fixresult87(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretregs)
         {
             regm_t regm = (sz == FLOATSIZE) ? FLOATREGS : DOUBLEREGS;
             regm |= *pretregs & mPSW;
-            cdb.append(fixresult(e,retregs,&regm));
+            fixresult(cdb,e,retregs,&regm);
             regm = 0;           // don't worry about result from CLIBxxx
             cdb.append(callclib(e,
                     ((sz == FLOATSIZE) ? CLIBfltto87 : CLIBdblto87),
@@ -1654,7 +1654,7 @@ void load87(CodeBuilder& cdb,elem *e,unsigned eoffset,regm_t *pretregs,elem *ele
         switch (e->Eoper)
         {
             case OPcomma:
-                cdb.append(docommas(&e));
+                docommas(cdb,&e);
                 goto L5;
 
             case OPvar:
@@ -2975,7 +2975,7 @@ void cdd_u64(CodeBuilder& cdb, elem *e, regm_t *pretregs)
         cdb.append(cnop2);
 
         pop87();
-        cdb.append(fixresult(e,retregs,pretregs));
+        fixresult(cdb,e,retregs,pretregs);
         return;
     }
     else if (I64)
@@ -3062,7 +3062,7 @@ void cdd_u64(CodeBuilder& cdb, elem *e, regm_t *pretregs)
         cdb.append(cnop2);
 
         pop87();
-        cdb.append(fixresult(e,retregs,pretregs));
+        fixresult(cdb,e,retregs,pretregs);
         return;
     }
     else
@@ -3107,7 +3107,7 @@ void cdd_u32(CodeBuilder& cdb, elem *e, regm_t *pretregs)
     cdb.genfltreg(LOD,reg,0);                    // MOV reg,floatreg
 
     pop87();
-    cdb.append(fixresult(e,retregs,pretregs));
+    fixresult(cdb,e,retregs,pretregs);
 }
 
 /************************
@@ -3228,7 +3228,7 @@ void cnvt87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
             if (szpush)
                 cdb.append(cod3_stackadj(CNIL, -szpush));
-            cdb.append(fixresult(e,retregs,pretregs));
+            fixresult(cdb,e,retregs,pretregs);
         }
         else
         {
@@ -3259,7 +3259,7 @@ void cnvt87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             else
                 cdb.genfltreg(LOD,reg,0);                // MOV reg,floatreg
             genrnd(cdb, CW_roundtonearest);              // FLDCW roundtonearest
-            cdb.append(fixresult(e,retregs,pretregs));
+            fixresult(cdb,e,retregs,pretregs);
         }
 }
 
@@ -3317,7 +3317,7 @@ void cdrndtol(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         if (tysize(tym) == 8 && I64)
             code_orrex(cdb.last(), REX_W);
     }
-    cdb.append(fixresult(e,retregs,pretregs));
+    fixresult(cdb,e,retregs,pretregs);
 }
 
 /*************************

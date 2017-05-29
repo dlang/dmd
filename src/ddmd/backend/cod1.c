@@ -418,7 +418,7 @@ code *logexp(elem *e,int jcond,unsigned fltarg,code *targ)
     //printf("logexp(e = %p, jcond = %d)\n", e, jcond);
     int no87 = (jcond & 2) == 0;
     CodeBuilder cdb;
-    cdb.append(docommas(&e));            // scan down commas
+    docommas(cdb,&e);             // scan down commas
     cgstate.stackclean++;
 
     code *c, *ce, *cnop;
@@ -1513,7 +1513,7 @@ code *fltregs(code *pcs,tym_t tym)
  * registers.
  */
 
-code *tstresult(regm_t regm,tym_t tym,unsigned saveflag)
+void tstresult(CodeBuilder& cdb,regm_t regm,tym_t tym,unsigned saveflag)
 {
   unsigned scrreg;                      // scratch register
   regm_t scrregm;
@@ -1529,16 +1529,14 @@ code *tstresult(regm_t regm,tym_t tym,unsigned saveflag)
   unsigned sz = _tysize[tym];
   if (sz == 1)
   {
-        CodeBuilder cdb;
         assert(regm & BYTEREGS);
         cdb.append(genregs(CNIL,0x84,reg,reg));        // TEST regL,regL
         if (I64 && reg >= 4)
             code_orrex(cdb.last(), REX);
-        return cdb.finish();
+        return;
   }
   if (regm & XMMREGS)
   {
-        CodeBuilder cdb;
         unsigned xreg;
         regm_t xregs = XMMREGS & ~regm;
         cdb.append(allocreg(&xregs, &xreg, TYdouble));
@@ -1555,11 +1553,10 @@ code *tstresult(regm_t regm,tym_t tym,unsigned saveflag)
             cdb.gen2(op | 0x0F2E,modregrm(3,xreg-XMM0,reg-XMM0));        // UCOMISS xreg,reg
             cdb.append(cnop);
         }
-        return cdb.finish();
+        return;
   }
   if (sz <= REGSIZE)
   {
-    CodeBuilder cdb;
     if (!I16)
     {
         if (tym == TYfloat)
@@ -1572,7 +1569,7 @@ code *tstresult(regm_t regm,tym_t tym,unsigned saveflag)
             }
             cdb.append(getregs(mask[reg]));
             cdb.gen2(0xD1,modregrmx(3,4,reg)); // SHL reg,1
-            return cdb.finish();
+            return;
         }
         cdb.append(gentstreg(CNIL,reg));                 // TEST reg,reg
         if (sz == SHORTSIZE)
@@ -1582,10 +1579,9 @@ code *tstresult(regm_t regm,tym_t tym,unsigned saveflag)
     }
     else
         cdb.append(gentstreg(CNIL,reg));                 // TEST reg,reg
-    return cdb.finish();
+    return;
   }
 
-    CodeBuilder cdb;
     if (saveflag || tyfv(tym))
     {
         scrregm = ALLREGS & ~regm;              // possible scratch regs
@@ -1655,7 +1651,6 @@ code *tstresult(regm_t regm,tym_t tym,unsigned saveflag)
             assert(0);
     }
     code_orflag(cdb.last(),CFpsw);
-    return cdb.finish();
 }
 
 
@@ -1664,12 +1659,12 @@ code *tstresult(regm_t regm,tym_t tym,unsigned saveflag)
  * generate necessary code to return result in *pretregs.
  */
 
-code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
+void fixresult(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretregs)
 {
   unsigned reg,rreg;
 
   //printf("fixresult(e = %p, retregs = %s, *pretregs = %s)\n",e,regm_str(retregs),regm_str(*pretregs));
-  if (*pretregs == 0) return CNIL;      // if don't want result
+  if (*pretregs == 0) return;           // if don't want result
   assert(e && retregs);                 // need something to work with
   regm_t forccs = *pretregs & mPSW;
   regm_t forregs = *pretregs & (mST01 | mST0 | mBP | ALLREGS | mES | mSTACK | XMMREGS);
@@ -1687,7 +1682,6 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
   }
 #endif
     int sz = _tysize[tym];
-    CodeBuilder cdb;
 
   if (sz == 1)
   {
@@ -1710,7 +1704,7 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
         if (forregs & (mST01 | mST0))
         {
             fixresult87(cdb,e,retregs,pretregs);
-            return cdb.finish();
+            return;
         }
         unsigned opsflag = FALSE;
         if (I16 && sz == 8)
@@ -1815,9 +1809,8 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
         if (retregs & (mST01 | mST0))
             fixresult87(cdb,e,retregs,pretregs);
         else
-            cdb.append(tstresult(retregs,tym,forregs));
+            tstresult(cdb,retregs,tym,forregs);
   }
-  return cdb.finish();
 }
 
 /*******************************
@@ -2599,7 +2592,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
         stackpush -= cinfo->pop;
     regm_t retregs = I16 ? cinfo->retregs16 : cinfo->retregs32;
     cdb.append(cpop);
-    cdb.append(fixresult(e,retregs,pretregs));
+    fixresult(cdb,e,retregs,pretregs);
     return cdb.finish();
 }
 
@@ -3271,7 +3264,7 @@ void cdstrthis(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     cdb.genc1(0x8D,(modregrm(0,4,SP) << 8) | modregxrm(2,reg,4),FLconst,np);
     if (I64)
         code_orrex(cdb.last(), REX_W);
-    cdb.append(fixresult(e,mask[reg],pretregs));
+    fixresult(cdb,e,mask[reg],pretregs);
 }
 
 /******************************
@@ -3591,7 +3584,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,
         }
     }
 
-    cdb.append(fixresult(e,retregs,pretregs));
+    fixresult(cdb,e,retregs,pretregs);
     return cdb.finish();
 }
 
@@ -3851,7 +3844,7 @@ code *pushParams(elem *e,unsigned stackalign)
     {
         CodeBuilder cdb;
         elem *e1 = e->E1;
-        cdb.append(docommas(&e1));              // skip over any comma expressions
+        docommas(cdb,&e1);              // skip over any comma expressions
 
         cdb.append(cod3_stackadj(CNIL, sz));
         stackpush += sz;
@@ -3901,7 +3894,7 @@ code *pushParams(elem *e,unsigned stackalign)
                 if (sz == 0)
                 {
                     CodeBuilder cdb;
-                    cdb.append(docommas(&e1)); // skip over any commas
+                    docommas(cdb,&e1); // skip over any commas
                     freenode(e);
                     return cdb.finish();
                 }
@@ -3911,7 +3904,7 @@ code *pushParams(elem *e,unsigned stackalign)
                     goto L1;
                 }
                 CodeBuilder cdb;
-                cdb.append(docommas(&e1));     // skip over any commas
+                docommas(cdb,&e1);             // skip over any commas
                 unsigned seg = 0;              // assume no seg override
                 regm_t retregs = sz ? IDXREGS : 0;
                 bool doneoff = FALSE;
@@ -4541,7 +4534,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             s->Sregm & XMMREGS &&
             (tym == TYfloat || tym == TYifloat || tym == TYdouble || tym ==TYidouble))
         {
-            cdb.append(tstresult(s->Sregm,e->Ety,TRUE));
+            tstresult(cdb,s->Sregm,e->Ety,TRUE);
         }
         else if (sz <= REGSIZE)
         {
@@ -4565,7 +4558,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             {
                 cdb.append(allocreg(&regm,&reg,TYoffset));   // get a register
                 cdb.append(loadea(e,&cs,0x8B,reg,0,0,0));    // MOV reg,data
-                cdb.append(fixresult(e,regm,pretregs));
+                fixresult(cdb,e,regm,pretregs);
             }
 #endif
             else
@@ -4749,7 +4742,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             assert(0);
         // Flags may already be set
         *pretregs &= flags | ~mPSW;
-        cdb.append(fixresult(e,forregs,pretregs));
+        fixresult(cdb,e,forregs,pretregs);
         return;
   }
   else
@@ -4769,7 +4762,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 #endif
         mfuncreg &= ~forregs;
         regcon.used |= forregs;
-        cdb.append(fixresult(e,forregs,pretregs));
+        fixresult(cdb,e,forregs,pretregs);
         return;
     }
 
@@ -4907,7 +4900,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         assert(0);
     // Flags may already be set
     *pretregs &= flags | ~mPSW;
-    cdb.append(fixresult(e,forregs,pretregs));
+    fixresult(cdb,e,forregs,pretregs);
     return;
   }
 }

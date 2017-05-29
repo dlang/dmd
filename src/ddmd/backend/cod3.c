@@ -1044,7 +1044,10 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             if (config.flags4 & CFG4optimized)
             {   regm_t usedsave;
 
-                c = cat(c,docommas(&e));
+                CodeBuilder cdb;
+                cdb.append(c);
+                docommas(cdb,&e);
+                c = cdb.finish();
                 usedsave = regcon.used;
                 if (EOP(e))
                     c = gencodelem(c,e,&retregs,TRUE);
@@ -1301,7 +1304,7 @@ void doswitch(block *b)
 
     elem *e = b->Belem;
     elem_debug(e);
-    cdb.append(docommas(&e));
+    docommas(cdb,&e);
     cgstate.stackclean++;
     tym_t tys = tybasic(e->Ety);
     int sz = _tysize[tys];
@@ -2315,7 +2318,7 @@ void cdframeptr(CodeBuilder& cdb, elem *e, regm_t *pretregs)
     cs.Irex = 0;
     cs.Irm = reg;
     cdb.gen(&cs);
-    cdb.append(fixresult(e,retregs,pretregs));
+    fixresult(cdb,e,retregs,pretregs);
 }
 
 /***************************************
@@ -2335,7 +2338,7 @@ void cdgot(CodeBuilder& cdb, elem *e, regm_t *pretregs)
     cdb.genc(CALL,0,0,0,FLgot,0);     //     CALL L1
     cdb.gen1(0x58 + reg);             // L1: POP reg
 
-    cdb.append(fixresult(e,retregs,pretregs));
+    fixresult(cdb,e,retregs,pretregs);
 #elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     regm_t retregs = *pretregs & allregs;
     if  (!retregs)
@@ -2359,7 +2362,7 @@ void cdgot(CodeBuilder& cdb, elem *e, regm_t *pretregs)
     cgot->IEVoffset2 = (reg == AX) ? 2 : 3;
 
     makeitextern(gotsym);
-    cdb.append(fixresult(e,retregs,pretregs));
+    fixresult(cdb,e,retregs,pretregs);
 #else
     assert(0);
 #endif
