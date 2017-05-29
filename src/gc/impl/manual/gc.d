@@ -214,7 +214,7 @@ class ManualGC : GC
         assert(false);
     }
 
-    @property RootIterator rootIter() @nogc
+    @property RootIterator rootIter() return @nogc
     {
         return &rootsApply;
     }
@@ -248,7 +248,7 @@ class ManualGC : GC
         assert(false);
     }
 
-    @property RangeIterator rangeIter() @nogc
+    @property RangeIterator rangeIter() return @nogc
     {
         return &rangesApply;
     }
