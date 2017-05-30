@@ -113,6 +113,7 @@ void out_config_init(
         config.flags3 |= CFG3pic;
         config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
+    config.flags |= CFGromable; // put switch tables in code segment
     config.objfmt = OBJ_ELF;
 #endif
 #if TARGET_OSX
@@ -157,6 +158,7 @@ void out_config_init(
         config.flags3 |= CFG3pic;
         config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
+    config.flags |= CFGromable; // put switch tables in code segment
     config.objfmt = OBJ_ELF;
 #endif
 #if TARGET_OPENBSD
@@ -175,6 +177,7 @@ void out_config_init(
     config.flags |= CFGalwaysframe;
     if (!exe)
         config.flags3 |= CFG3pic;
+    config.flags |= CFGromable; // put switch tables in code segment
     config.objfmt = OBJ_ELF;
     config.ehmethod = EH_DM;
 #endif
@@ -194,6 +197,7 @@ void out_config_init(
     config.flags |= CFGalwaysframe;
     if (!exe)
         config.flags3 |= CFG3pic;
+    config.flags |= CFGromable; // put switch tables in code segment
     config.objfmt = OBJ_ELF;
     config.ehmethod = EH_DM;
 #endif
