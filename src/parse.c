@@ -2974,7 +2974,6 @@ Statement *Parser::parseStatement(int flags)
         case TOKconst:
         case TOKauto:
         case TOKextern:
-        case TOKfinal:
         case TOKinvariant:
 #if DMDV2
         case TOKimmutable:
@@ -3361,6 +3360,12 @@ Statement *Parser::parseStatement(int flags)
             s = new PragmaStatement(loc, ident, args, body);
             break;
         }
+
+        case TOKfinal:
+            nextToken();
+            if (token.value != TOKswitch)
+                error("found '%s' when expecting 'switch' following final", token.toChars());
+            // Implicit fallthrough on purpose
 
         case TOKswitch:
         {
@@ -5752,4 +5757,3 @@ void initPrecedence()
     precedence[TOKcomma] = PREC_expr;
     precedence[TOKdeclaration] = PREC_expr;
 }
-
