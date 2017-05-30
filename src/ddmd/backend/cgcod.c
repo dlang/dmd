@@ -2770,7 +2770,7 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
   regm_t tosave = keepmsk & ~msavereg; /* registers to save                    */
   if (tosave)
   {     cgstate.stackclean++;
-        cdbx.append(genstackclean(CNIL,stackpush - stackpushsave,*pretregs | msavereg));
+        genstackclean(cdbx,stackpush - stackpushsave,*pretregs | msavereg);
         cgstate.stackclean--;
   }
 
@@ -2973,7 +2973,7 @@ void docommas(CodeBuilder& cdb,elem **pe)
     *pe = e;
     assert(cgstate.stackclean == 0);
     cgstate.stackclean = stackcleansave;
-    cdb.append(genstackclean(CNIL,stackpush - stackpushsave,0));
+    genstackclean(cdb,stackpush - stackpushsave,0);
 }
 
 /**************************

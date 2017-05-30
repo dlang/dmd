@@ -528,4 +528,4 @@ extern NDP _8087elems[8];
 void getlvalue_msw(code *);
 void getlvalue_lsw(code *);
 void getlvalue(CodeBuilder& cdb, code *pcs, elem *e, regm_t keepmsk);
-code *loadea (elem *e , code *cs , unsigned op , unsigned reg , targ_size_t offset , regm_t keepmsk , regm_t desmsk );
+void loadea(CodeBuilder& cdb, elem *e, code *cs, unsigned op, unsigned reg, targ_size_t offset, regm_t keepmsk, regm_t desmsk);

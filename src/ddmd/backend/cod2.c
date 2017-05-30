@@ -153,7 +153,7 @@ void opdouble(CodeBuilder& cdb, elem *e,regm_t *pretregs,unsigned clib)
     scodelem(cdb,e->E2, &retregs2, retregs1 & ~mSTACK, FALSE);
     if (retregs1 & mSTACK)
         cgstate.stackclean--;
-    cdb.append(callclib(e, clib, pretregs, 0));
+    callclib(cdb, e, clib, pretregs, 0);
 }
 #endif
 
@@ -812,9 +812,9 @@ void cdorth(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 goto L2;
         if (!test)
             cdb.append(getregs(retregs));          // we will trash these regs
-        cdb.append(loadea(e2,&cs,op1,
+        loadea(cdb,e2,&cs,op1,
                 ((numwords == 2) ? findreglsw(retregs) : reg),
-                0,retregs,retregs));
+                0,retregs,retregs);
         if (!I16 && word)
         {   if (*pretregs & mPSW)
                 code_orflag(cdb.last(),word);
@@ -833,7 +833,7 @@ void cdorth(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 cdb.gen(&cs);                 // ADC reg,data+2
             }
             else
-                cdb.append(loadea(e2,&cs,op2,reg,REGSIZE,retregs,0));
+                loadea(cdb,e2,&cs,op2,reg,REGSIZE,retregs,0);
         }
         else if (I64 && sz == 8)
             code_orrex(cdb.last(), REX_W);
@@ -993,7 +993,7 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             (e2->E1->Eoper == OPind && !e2->E1->Ecount)
            )
         {
-            cdb.append(loadea(e2->E1,&cs,0xF7,op,0,mAX,mAX | mDX));
+            loadea(cdb,e2->E1,&cs,0xF7,op,0,mAX,mAX | mDX);
         }
         else
         {
@@ -1598,7 +1598,7 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                  fixresult(cdb,e,mDX|mAX,pretregs);
             }
             else
-                cdb.append(callclib(e,lib,pretregs,keepregs));
+                callclib(cdb,e,lib,pretregs,keepregs);
         }
         else
                 assert(0);
@@ -1616,7 +1616,7 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                     retregs = ALLREGS;
                 codelem(cdb,e1,&retregs,FALSE);        // eval left leaf
                 resreg = retregs;
-                cdb.append(loadea(e2,&cs,0x0FAF,findreg(resreg),0,retregs,retregs));
+                loadea(cdb,e2,&cs,0x0FAF,findreg(resreg),0,retregs,retregs);
                 freenode(e2);
                 fixresult(cdb,e,resreg,pretregs);
                 return;
@@ -1636,12 +1636,12 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 reg = findreg(retregs);
                 cdb.append(getregs(mAX));
                 cdb.append(genmovreg(CNIL,AX,reg));            // MOV AX,reg
-                cdb.append(loadea(e2,&cs,0xF7,4,REGSIZE,mAX | mDX | mskl(reg),mAX | mDX));  // MUL EA+2
+                loadea(cdb,e2,&cs,0xF7,4,REGSIZE,mAX | mDX | mskl(reg),mAX | mDX);  // MUL EA+2
                 cdb.append(getregs(retregs));
                 cdb.gen1(0x90 + reg);                          // XCHG AX,reg
                 cdb.append(getregs(mAX | mDX));
                 if ((cs.Irm & 0xC0) == 0xC0)            // if EA is a register
-                    cdb.append(loadea(e2,&cs,0xF7,4,0,mAX | mskl(reg),mAX | mDX)); // MUL EA
+                    loadea(cdb,e2,&cs,0xF7,4,0,mAX | mskl(reg),mAX | mDX); // MUL EA
                 else
                 {   getlvalue_lsw(&cs);
                     cdb.gen(&cs);                       // MUL EA
@@ -1657,9 +1657,9 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
         // loadea() handles CWD or CLR DX for divides
         codelem(cdb,e->E1,&retregs,FALSE);     // eval left leaf
-        cdb.append(loadea(e2,&cs,0xF7 ^ byte,op,0,
+        loadea(cdb,e2,&cs,0xF7 ^ byte,op,0,
                 (oper == OPmul) ? mAX : mAX | mDX,
-                mAX | mDX));
+                mAX | mDX);
         freenode(e2);
         fixresult(cdb,e,resreg,pretregs);
         return;
@@ -1828,7 +1828,7 @@ void cdnot(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     }
     code *cnop = gennop(CNIL);
     code *ctrue = gennop(CNIL);
-    cdb.append(logexp(e->E1,(op == OPnot) ? FALSE : TRUE,FLcode,ctrue));
+    logexp(cdb,e->E1,(op == OPnot) ? FALSE : TRUE,FLcode,ctrue);
     forflags = *pretregs & mPSW;
     if (I64 && sz == 8)
         forflags |= 64;
@@ -2111,7 +2111,7 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
   code *cnop1 = gennop(CNIL);
   code *cnop2 = gennop(CNIL);         // dummy target addresses
-  cdb.append(logexp(e1,FALSE,FLcode,cnop1));    // evaluate condition
+  logexp(cdb,e1,FALSE,FLcode,cnop1);    // evaluate condition
   regconold = regcon;
   stackusedold = stackused;
   stackpushold = stackpush;
@@ -2235,9 +2235,9 @@ void cdloglog(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     cdb1.append(cnop1);
     code *cnop3 = gennop(CNIL);
     elem *e2 = e->E2;
-    cdb.append((e->Eoper == OPoror)
-        ? logexp(e->E1,1,FLcode,cnop1)
-        : logexp(e->E1,0,FLcode,cnop3));
+    (e->Eoper == OPoror)
+        ? logexp(cdb,e->E1,1,FLcode,cnop1)
+        : logexp(cdb,e->E1,0,FLcode,cnop3);
     con_t regconsave = regcon;
     unsigned stackpushsave = stackpush;
     if (*pretregs == 0)                 // if don't want result
@@ -2295,7 +2295,7 @@ void cdloglog(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         cgstate.stackclean--;
         return;
     }
-    cdb.append(logexp(e2,1,FLcode,cnop1));
+    logexp(cdb,e2,1,FLcode,cnop1);
     andregcon(&regconsave);
 
     // stack depth should not change when evaluating E2
@@ -4330,7 +4330,7 @@ void getoffset(CodeBuilder& cdb,elem *e,unsigned reg)
 
             cdb.append(allocreg(&retregs,&reg,TYoffset));
             reg = findreg(retregs);
-            cdb.append(loadea(e,&cs,LEA,reg,0,0,0));    // LEA reg,EA
+            loadea(cdb,e,&cs,LEA,reg,0,0,0);    // LEA reg,EA
             if (I64)
                 code_orrex(cdb.last(), REX_W);
             cdb.gen1(0x50 + (reg & 7));               // PUSH reg
@@ -4341,7 +4341,7 @@ void getoffset(CodeBuilder& cdb,elem *e,unsigned reg)
         }
         else
         {
-            cdb.append(loadea(e,&cs,LEA,reg,0,0,0));   // LEA reg,EA
+            loadea(cdb,e,&cs,LEA,reg,0,0,0);   // LEA reg,EA
             if (I64)
                 code_orrex(cdb.last(), REX_W);
         }
@@ -4597,7 +4597,7 @@ void cdpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         freenode(e->E1);
         regm_t idxregs = idxregm(&cs);  // mask of index regs used
         cs.Iop = 0x8B;                  /* MOV DOUBLEREGS,EA            */
-        cdb.append(fltregs(&cs,tyml));
+        fltregs(cdb,&cs,tyml);
         stackchanged = 1;
         int stackpushsave = stackpush;
         if (sz == 8)
@@ -4641,17 +4641,17 @@ void cdpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         if (tyml == TYdouble || tyml == TYdouble_alias)
         {
             retregs = DOUBLEREGS;
-            cdb.append(callclib(e,(op == OPpostinc) ? CLIBdadd : CLIBdsub,
-                    &retregs,idxregs));
+            callclib(cdb,e,(op == OPpostinc) ? CLIBdadd : CLIBdsub,
+                    &retregs,idxregs);
         }
         else /* tyml == TYfloat */
         {
             retregs = FLOATREGS;
-            cdb.append(callclib(e,(op == OPpostinc) ? CLIBfadd : CLIBfsub,
-                    &retregs,idxregs));
+            callclib(cdb,e,(op == OPpostinc) ? CLIBfadd : CLIBfsub,
+                    &retregs,idxregs);
         }
         cs.Iop = 0x89;                  /* MOV EA,DOUBLEREGS            */
-        cdb.append(fltregs(&cs,tyml));
+        fltregs(cdb,&cs,tyml);
         stackpushsave = stackpush;
         if (tyml == TYdouble || tyml == TYdouble_alias)
         {   if (*pretregs == mSTACK)
