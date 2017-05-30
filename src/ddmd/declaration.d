@@ -2172,7 +2172,7 @@ extern (C++) class VarDeclaration : Declaration
         if (tv.ty == Tstruct)
         {
             StructDeclaration sd = (cast(TypeStruct)tv).sym;
-            if (!sd.dtor)
+            if (!sd.dtor || sd.errors)
                 return null;
 
             const sz = type.size();
