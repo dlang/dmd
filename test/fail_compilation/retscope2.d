@@ -116,8 +116,8 @@ fail_compilation/retscope2.d(614): Error: template instance retscope2.test600!(i
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope2.d(719): Error: escaping reference to local variable s
-fail_compilation/retscope2.d(721): Error: escaping reference to local variable s
+fail_compilation/retscope2.d(719): Error: returning `get2(s)` escapes a reference to local variable `s`
+fail_compilation/retscope2.d(721): Error: returning `s.get1()` escapes a reference to local variable `s`
 ---
 */
 
