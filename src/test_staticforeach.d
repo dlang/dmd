@@ -1,3 +1,4 @@
+// -*- compile-command: "cd src && make -fposix.mak DEBUG=1 && cd .. && ./src/dmd test_staticforeach.d" -*-
 
 import std.range, std.algorithm, std.conv;
 
@@ -238,7 +239,7 @@ struct RangeStaticForeach{
     static:
     struct Range{
         int x=0;
-        this(int x){ this.x=x; } // // TODO: struct default constructors
+        this(int x){ this.x=x; }
         @property int front(){ return x; }
         void popFront(){ x += 2; }
         @property bool empty(){ return x>=10; }
@@ -452,10 +453,10 @@ void testest(){
     import std.range: iota;
     import std.algorithm: map;
     import std.typecons: tuple;
-    /+static foreach(i;0..1){
+    static foreach(i;0..3){
         scope(exit) writeln("hi ",i);
     }
-    writeln("ho");+/ // TODO: BUG: should write "ho" before writing "hi"!
+    writeln("ho"); // writes "ho" before writing "hi"!
     /+static foreach(i;Seq!(0,1,2)){
         mixin(`int x`~to!string(i)~"=i;");
     }+/

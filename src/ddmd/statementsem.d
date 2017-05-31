@@ -356,13 +356,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
     override void visit(ForwardingStatement ss){
         assert(!!ss.sym);
         ss.sym.forward = sc.scopesym;
-        if (ss.statement)
-        {
-            sc = sc.push(ss.sym);
-            ss.statement = ss.statement.semantic(sc);
-            sc = sc.pop();
-        }
-        result = ss;
+        sc = sc.push(ss.sym);
+        ss.statement = ss.statement.semantic(sc);
+        sc = sc.pop();
+        result = ss.statement ? ss : null;
     }
 
     override void visit(WhileStatement ws)

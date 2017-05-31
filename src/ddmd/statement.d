@@ -1004,15 +1004,96 @@ extern (C++) class ScopeStatement : Statement
 extern (C++) final class ForwardingStatement : Statement
 {
     ForwardingScopeDsymbol sym = null;
-
     Statement statement;
-    
-    extern (D) this(Loc loc, Statement s)
+
+    extern (D) this(Loc loc, ForwardingScopeDsymbol sym, Statement s)
     {
         super(loc);
+        this.sym = sym;
+        assert(!!s);
         statement = s;
-        sym = new ForwardingScopeDsymbol(null);
+    }
+
+    extern (D) this(Loc loc, Statement s)
+    {
+        auto sym = new ForwardingScopeDsymbol(null);
         sym.symtab = new DsymbolTable();
+        this(loc, sym, s);
+    }
+
+    override Statement syntaxCopy()
+    {
+        return new ForwardingStatement(loc, statement.syntaxCopy());
+    }
+
+    override Statement getRelatedLabeled()
+    {
+        if (!statement)
+        {
+            return null;
+        }
+        return statement.getRelatedLabeled();
+    }
+
+    override bool hasBreak()
+    {
+        if (!statement)
+        {
+            return false;
+        }
+        return statement.hasBreak();
+    }
+
+    override bool hasContinue()
+    {
+        if (!statement)
+        {
+            return false;
+        }
+        return statement.hasContinue();
+    }
+
+    override Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
+    {
+        if (!statement)
+        {
+            return this;
+        }
+        sc = sc.push(sym);
+        statement = statement.scopeCode(sc, sentry, sexception, sfinally);
+        sc = sc.pop();
+        return statement ? this : null;
+    }
+
+    override inout(Statement) last() inout nothrow pure
+    {
+        if (!statement)
+        {
+            return null;
+        }
+        return statement.last();
+    }
+
+    override Statements* flatten(Scope* sc)
+    {
+        if (!statement)
+        {
+            return null;
+        }
+        sc = sc.push(sym);
+        auto a = statement.flatten(sc);
+        sc = sc.pop();
+        if (!a)
+        {
+            return a;
+        }
+        auto b = new Statements();
+        b.setDim(a.dim);
+        foreach (i, s; *a)
+        {
+            (*b)[i] = s ? new ForwardingStatement(s.loc, sym, s) : null;
+        }
+        return b;
     }
 
     override void accept(Visitor v){
