@@ -309,7 +309,7 @@ public:
     virtual void visit(CompoundDeclarationStatement *s) { visit((CompoundStatement *)s); }
     virtual void visit(UnrolledLoopStatement *s) { visit((Statement *)s); }
     virtual void visit(ScopeStatement *s) { visit((Statement *)s); }
-    virtual void visit(ForwardingScopeStatement *s) { visit((Statement *)s); }
+    virtual void visit(ForwardingStatement *s) { visit((Statement *)s); }
     virtual void visit(WhileStatement *s) { visit((Statement *)s); }
     virtual void visit(DoStatement *s) { visit((Statement *)s); }
     virtual void visit(ForStatement *s) { visit((Statement *)s); }

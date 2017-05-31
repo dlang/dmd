@@ -222,8 +222,9 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-class ForwardingScopeStatement : public Statement
+class ForwardingStatement : public Statement
 {
+    Statement *statement;
     ForwardingScopeDsymbol *sym;
 
     void accept(Visitor *v) { v->visit(this); }
