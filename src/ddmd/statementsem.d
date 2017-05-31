@@ -308,11 +308,13 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         result = serror ? serror : uls;
     }
 
-    private void visitScopeStatement(ScopeStatement ss,ScopeDsymbol sym)
+    override void visit(ScopeStatement ss)
     {
         //printf("ScopeStatement::semantic(sc = %p)\n", sc);
         if (ss.statement)
         {
+            ScopeDsymbol sym = new ScopeDsymbol();
+            sym.parent = sc.scopesym;
             sym.endlinnum = ss.endloc.linnum;
             sc = sc.push(sym);
 
@@ -351,20 +353,16 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         result = ss;
     }
 
-    override void visit(ScopeStatement ss)
-    {
-        ScopeDsymbol sym;
-        if(ss.statement){
-            sym = new ScopeDsymbol();
-            sym.parent = sc.scopesym;
-        }
-        visitScopeStatement(ss, sym);
-    }
-
-    override void visit(ForwardingScopeStatement ss){
+    override void visit(ForwardingStatement ss){
         assert(!!ss.sym);
-        ss.sym.parent = ss.sym.forward = sc.scopesym; // TODO: merge parent and forward?
-        visitScopeStatement(ss, ss.sym);
+        ss.sym.forward = sc.scopesym;
+        if (ss.statement)
+        {
+            sc = sc.push(ss.sym);
+            ss.statement = ss.statement.semantic(sc);
+            sc = sc.pop();
+        }
+        result = ss;
     }
 
     override void visit(WhileStatement ws)
@@ -821,7 +819,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
             else static if(!isDecl)
             {
-                auto fwd = new ForwardingScopeStatement(loc, res, fs.endloc);
+                auto fwd = new ForwardingStatement(loc, res);
                 previous = fwd.sym;
                 res = fwd;
             }

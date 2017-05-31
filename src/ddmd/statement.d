@@ -1001,13 +1001,16 @@ extern (C++) class ScopeStatement : Statement
  * Scope that contains foreach index variables in a local scope and forwards other members.
  * Also see: ddmd.attrib.ForwardingAttribDeclaration
  */
-extern (C++) final class ForwardingScopeStatement : ScopeStatement
+extern (C++) final class ForwardingStatement : Statement
 {
     ForwardingScopeDsymbol sym = null;
 
-    extern (D) this(Loc loc, Statement s, Loc endloc)
+    Statement statement;
+    
+    extern (D) this(Loc loc, Statement s)
     {
-        super(loc,s,endloc);
+        super(loc);
+        statement = s;
         sym = new ForwardingScopeDsymbol(null);
         sym.symtab = new DsymbolTable();
     }

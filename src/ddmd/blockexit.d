@@ -194,6 +194,18 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
             result = blockExit(s.statement, func, mustNotThrow);
         }
 
+        override void visit(ForwardingStatement s)
+        {
+            if (s.statement)
+            {
+                s.statement.accept(this);
+            }
+            else
+            {
+                result = BEfallthru;
+            }
+        }
+
         override void visit(WhileStatement s)
         {
             assert(global.errors);

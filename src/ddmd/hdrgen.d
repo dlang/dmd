@@ -189,6 +189,14 @@ public:
         buf.writenl();
     }
 
+    override void visit(ForwardingStatement s)
+    {
+        if (s.statement)
+        {
+            s.statement.accept(this);
+        }
+    }
+
     override void visit(WhileStatement s)
     {
         buf.writestring("while (");
