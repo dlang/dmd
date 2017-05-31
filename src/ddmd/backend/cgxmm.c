@@ -248,7 +248,7 @@ void xmmeq(CodeBuilder& cdb, elem *e, unsigned op, elem *e1, elem *e2,regm_t *pr
         getlvalue(cdb,&cs,e1,RMstore | retregs);       // get lvalue (cl == CNIL if regvar)
     }
 
-    cdb.append(getregs_imm(regvar ? varregm : 0));
+    getregs_imm(cdb,regvar ? varregm : 0);
 
     reg = findreg(retregs & XMMREGS);
     cs.Irm |= modregrm(0,(reg - XMM0) & 7,0);
@@ -266,7 +266,7 @@ void xmmeq(CodeBuilder& cdb, elem *e, unsigned op, elem *e1, elem *e2,regm_t *pr
     if (e1->Ecount ||                     // if lvalue is a CSE or
         regvar)                           // rvalue can't be a CSE
     {
-        cdb.append(getregs_imm(retregs));        // necessary if both lvalue and
+        getregs_imm(cdb,retregs);        // necessary if both lvalue and
                                         //  rvalue are CSEs (since a reg
                                         //  can hold only one e at a time)
         cssave(e1,retregs,EOP(e1));     // if lvalue is a CSE
@@ -497,7 +497,7 @@ void xmmopass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     if (e1->Ecount ||                     // if lvalue is a CSE or
         regvar)                           // rvalue can't be a CSE
     {
-        cdb.append(getregs_imm(retregs));        // necessary if both lvalue and
+        getregs_imm(cdb,retregs);        // necessary if both lvalue and
                                         //  rvalue are CSEs (since a reg
                                         //  can hold only one e at a time)
         cssave(e1,retregs,EOP(e1));     // if lvalue is a CSE
@@ -582,7 +582,7 @@ void xmmpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     if (e1->Ecount ||                     // if lvalue is a CSE or
         regvar)                           // rvalue can't be a CSE
     {
-        cdb.append(getregs_imm(retregs)); // necessary if both lvalue and
+        getregs_imm(cdb,retregs); // necessary if both lvalue and
                                         //  rvalue are CSEs (since a reg
                                         //  can hold only one e at a time)
         cssave(e1,retregs,EOP(e1));     // if lvalue is a CSE

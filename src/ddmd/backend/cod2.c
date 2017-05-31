@@ -1964,7 +1964,7 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         regm_t retregs = *pretregs | mPSW;
         codelem(cdb,e1,&retregs,FALSE);
 
-        cdb.append(cse_flush(1));                // flush CSEs to memory
+        cse_flush(cdb,1);                // flush CSEs to memory
         cdb.append(genjmp(CNIL,jop,FLcode,(block *)cnop1));
         freenode(e21);
 
@@ -2090,7 +2090,7 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         cdb.append(regwithvalue(CNIL,retregs,e21->EV.Vllong,&reg,tysize(e21->Ety) == 8 ? 64|8 : 8));
         retregs = mask[reg];
 
-        cdb.append(cse_flush(1));                // flush CSE's to memory
+        cse_flush(cdb,1);                // flush CSE's to memory
         cdb.append(genjmp(CNIL,jop,FLcode,(block *)cnop1));
         freenode(e21);
 
@@ -3161,7 +3161,7 @@ void cdstrlen(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 
     unsigned char rex = I64 ? REX_W : 0;
 
-    cdb.append(getregs_imm(mAX | mCX));
+    getregs_imm(cdb,mAX | mCX);
     cdb.append(movregconst(CNIL,AX,0,1));               // MOV AL,0
     cdb.append(movregconst(CNIL,CX,-1LL,I64 ? 64 : 0)); // MOV CX,-1
     cdb.append(getregs(mDI|mCX));
@@ -3225,7 +3225,7 @@ void cdstrcmp(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 
     // Make sure ES contains proper segment value
     cdb.append(cod2_setES(ty2));
-    cdb.append(getregs_imm(mAX | mCX));
+    getregs_imm(cdb,mAX | mCX);
 
     unsigned char rex = I64 ? REX_W : 0;
 
@@ -3433,7 +3433,7 @@ void cdstrcpy(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
     // Make sure ES contains proper segment value
     cdb.append(cod2_setES(ty2));
-    cdb.append(getregs_imm(mAX | mCX));
+    getregs_imm(cdb,mAX | mCX);
     cdb.append(movregconst(CNIL,AX,0,1));       // MOV AL,0
     cdb.append(movregconst(CNIL,CX,-1,I64?64:0));  // MOV CX,-1
     cdb.append(getregs(mAX|mCX|mSI|mDI));
@@ -3968,7 +3968,7 @@ void cdstreq(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 #if 1
         unsigned remainder = numbytes & (REGSIZE - 1);
         numbytes /= REGSIZE;            // number of words
-        cdb.append(getregs_imm(mCX));
+        getregs_imm(cdb,mCX);
         cdb.append(movregconst(CNIL,CX,numbytes,0));   // # of bytes/words
         cdb.gen1(0xF3);                 // REP
         if (REGSIZE == 8)
@@ -3988,7 +3988,7 @@ void cdstreq(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             movs = 0xA5;                // MOVSW
             numbytes /= REGSIZE;        // # of words
         }
-        cdb.append(getregs_imm(mCX));
+        getregs_imm(cdb,mCX);
         cdb.append(movregconst(CNIL,CX,numbytes,0));   // # of bytes/words
         cdb.gen1(0xF3);                 // REP
         cdb.gen1(movs);

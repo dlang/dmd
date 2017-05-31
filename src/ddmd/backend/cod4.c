@@ -759,7 +759,7 @@ void cdeq(CodeBuilder& cdb,elem *e,regm_t *pretregs)
   if (e1->Ecount ||                     // if lvalue is a CSE or
       regvar)                           // rvalue can't be a CSE
   {
-        cdb.append(getregs_imm(retregs));        // necessary if both lvalue and
+        getregs_imm(cdb,retregs);       // necessary if both lvalue and
                                         //  rvalue are CSEs (since a reg
                                         //  can hold only one e at a time)
         cssave(e1,retregs,EOP(e1));     // if lvalue is a CSE
@@ -2488,7 +2488,7 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
         scodelem(cdb,e1,&retregs,0,TRUE);      // compute left leaf
         rretregs = ALLREGS & ~retregs;
         scodelem(cdb,e2,&rretregs,retregs,TRUE);     // get right leaf
-        cdb.append(cse_flush(1));
+        cse_flush(cdb,1);
         // Compare MSW, if they're equal then compare the LSW
         reg = findregmsw(retregs);
         rreg = findregmsw(rretregs);
@@ -2521,7 +2521,7 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
                                 retregs |= mES;         // take no chances
                         rretregs = ALLREGS & ~retregs;
                         scodelem(cdb,e2,&rretregs,retregs,TRUE);
-                        cdb.append(cse_flush(1));
+                        cse_flush(cdb,1);
                         rreg = findregmsw(rretregs);
                         cs.Iop = 0x39;
                         cs.Irm |= modregrm(0,rreg,0);
@@ -2533,7 +2533,7 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
                 }
                 else
                 {
-                        cdb.append(cse_flush(1));
+                        cse_flush(cdb,1);
                         cs.Irm |= modregrm(0,7,0);
                         getlvalue_msw(&cs);
                         cdb.gen(&cs);           // CMP EA+2,const
@@ -2549,7 +2549,7 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
             goto L2;
 
         scodelem(cdb,e1,&retregs,0,TRUE);    // compute left leaf
-        cdb.append(cse_flush(1));
+        cse_flush(cdb,1);
         reg = findregmsw(retregs);              // get reg that e1 is in
         cs.Irm = modregrm(3,7,reg);
 
@@ -2573,7 +2573,7 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
             cdb.append(allocreg(&retregs,&msreg,TYint));
             cdb.append(genmovreg(CNIL,msreg,reg));                  // MOV msreg,reg
             cdb.genc2(0xC1,modregrm(3,7,msreg),REGSIZE * 8 - 1);    // SAR msreg,31
-            cdb.append(cse_flush(1));
+            cse_flush(cdb,1);
             loadea(cdb,e2,&cs,0x3B,msreg,REGSIZE,mask[reg],0);
             cdb.append(cdbjmp);
             loadea(cdb,e2,&cs,0x3B,reg,0,mask[reg],0);
@@ -2582,7 +2582,7 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
         else
         {
             scodelem(cdb,e1,&retregs,0,TRUE);  // compute left leaf
-            cdb.append(cse_flush(1));
+            cse_flush(cdb,1);
             reg = findregmsw(retregs);   // get reg that e1 is in
             loadea(cdb,e2,&cs,0x3B,reg,REGSIZE,retregs,0);
             cdb.append(cdbjmp);

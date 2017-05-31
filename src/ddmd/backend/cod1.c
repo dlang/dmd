@@ -528,9 +528,9 @@ void logexp(CodeBuilder& cdb,elem *e,int jcond,unsigned fltarg,code *targ)
     unsigned op = jmpopcode(e);           // get jump opcode
     if (!(jcond & 1))
         op ^= 0x101;                      // toggle jump condition(s)
-    codelem(cdb,e,&retregs,TRUE); // evaluate elem
+    codelem(cdb,e,&retregs,TRUE);         // evaluate elem
     if (no87)
-        cdb.append(cse_flush(no87));      // flush CSE's to memory
+        cse_flush(cdb,no87);              // flush CSE's to memory
     cdb.append(genjmp(CNIL,op,fltarg,(block *) targ)); // generate jmp instruction
     cgstate.stackclean--;
 }
@@ -3987,7 +3987,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
                 }
                 else if (sz)
                 {
-                    cdb.append(getregs_imm(mCX | retregs));
+                    getregs_imm(cdb,mCX | retregs);
                                                         // MOV CX,sz/2
                     cdb.append(movregconst(CNIL,CX,npushes,0));
                     if (!doneoff)
