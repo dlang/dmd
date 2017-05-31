@@ -2275,10 +2275,8 @@ bool cse_simple(code *c, elem *e)
     return false;
 }
 
-code* gen_testcse(code *c, unsigned sz, targ_uns i)
+void gen_testcse(CodeBuilder& cdb, unsigned sz, targ_uns i)
 {
-    CodeBuilder cdb;
-    cdb.append(c);
     bool byte = sz == 1;
     cdb.genc(0x81 ^ byte,modregrm(2,7,BPRM),
                 FLcs,i, FLconst,(targ_uns) 0);
@@ -2286,13 +2284,10 @@ code* gen_testcse(code *c, unsigned sz, targ_uns i)
         cdb.last()->Iflags |= CFopsize;
     if (I64 && sz == 8)
         code_orrex(cdb.last(), REX_W);
-    return cdb.finish();
 }
 
-code* gen_loadcse(code *c, unsigned reg, targ_uns i)
+void gen_loadcse(CodeBuilder& cdb, unsigned reg, targ_uns i)
 {
-    CodeBuilder cdb;
-    cdb.append(c);
     unsigned op = 0x8B;
     if (reg == ES)
     {
@@ -2302,7 +2297,6 @@ code* gen_loadcse(code *c, unsigned reg, targ_uns i)
     cdb.genc1(op,modregxrm(2,reg,BPRM),FLcs,i);
     if (I64)
         code_orrex(cdb.last(), REX_W);
-    return cdb.finish();
 }
 
 /***************************************
