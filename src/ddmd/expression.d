@@ -56,6 +56,7 @@ import ddmd.nspace;
 import ddmd.opover;
 import ddmd.optimize;
 import ddmd.parse;
+import ddmd.printast;
 import ddmd.root.ctfloat;
 import ddmd.root.file;
 import ddmd.root.filename;
@@ -2601,18 +2602,6 @@ extern (C++) abstract class Expression : RootObject
         HdrGenState hgs;
         toCBuffer(this, &buf, &hgs);
         return buf.extractString();
-    }
-
-    /********************
-     * Print AST data structure in a nice format.
-     * Params:
-     *  indent = indentation level
-     */
-    void printAST(int indent = 0)
-    {
-        foreach (i; 0 .. indent)
-            printf(" ");
-        printf("%s %s\n", Token.toChars(op), type ? type.toChars() : "");
     }
 
     final void error(const(char)* format, ...) const
@@ -6468,14 +6457,6 @@ extern (C++) class SymbolExp : Expression
     {
         v.visit(this);
     }
-
-    override void printAST(int indent)
-    {
-        Expression.printAST(indent);
-        foreach (i; 0 .. indent + 2)
-            printf(" ");
-        printf(".var: %s\n", var ? var.toChars() : "");
-    }
 }
 
 /***********************************************************
@@ -7878,12 +7859,6 @@ extern (C++) class UnaExp : Expression
     {
         v.visit(this);
     }
-
-    override void printAST(int indent)
-    {
-        Expression.printAST(indent);
-        e1.printAST(indent + 2);
-    }
 }
 
 extern (C++) alias fp_t = UnionExp function(Loc loc, Type, Expression, Expression);
@@ -8204,13 +8179,6 @@ extern (C++) abstract class BinExp : Expression
     override void accept(Visitor v)
     {
         v.visit(this);
-    }
-
-    override void printAST(int indent)
-    {
-        Expression.printAST(indent);
-        e1.printAST(indent + 2);
-        e2.printAST(indent + 2);
     }
 }
 
@@ -9527,14 +9495,6 @@ extern (C++) final class DelegateExp : UnaExp
     override void accept(Visitor v)
     {
         v.visit(this);
-    }
-
-    override void printAST(int indent)
-    {
-        UnaExp.printAST(indent);
-        foreach (i; 0 .. indent + 2)
-            printf(" ");
-        printf(".func: %s\n", func ? func.toChars() : "");
     }
 }
 
