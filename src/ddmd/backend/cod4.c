@@ -92,6 +92,7 @@ int doinreg(symbol *s, elem *e)
 
 code *modEA(code *c)
 {
+    CodeBuilder cdb;
     if ((c->Irm & 0xC0) == 0xC0)        // addressing mode refers to a register
     {
         unsigned reg = c->Irm & 7;
@@ -99,9 +100,9 @@ code *modEA(code *c)
         {   reg |= 8;
             assert(I64);
         }
-        return getregs(mask[reg]);
+        getregs(cdb,mask[reg]);
     }
-    return CNIL;
+    return cdb.finish();
 }
 
 #if TARGET_WINDOS
@@ -137,7 +138,7 @@ STATIC code * opassdbl(elem *e,regm_t *pretregs,unsigned op)
         clib += CLIBfadd - CLIBdadd;    /* convert to float operation   */
 
         // Load EA into FLOATREGS
-        cdb.append(getregs(FLOATREGS));
+        getregs(cdb,FLOATREGS);
         cs.Iop = 0x8B;
         cs.Irm |= modregrm(0,AX,0);
         cdb.gen(&cs);
@@ -159,7 +160,7 @@ STATIC code * opassdbl(elem *e,regm_t *pretregs,unsigned op)
         if (I32)
         {
             // Load EA into DOUBLEREGS
-            cdb.append(getregs(DOUBLEREGS_32));
+            getregs(cdb,DOUBLEREGS_32);
             cs.Iop = 0x8B;
             cs.Irm |= modregrm(0,AX,0);
             cdb.gen(&cs);
@@ -246,7 +247,7 @@ STATIC code * opnegassdbl(elem *e,regm_t *pretregs)
         if (tym == TYfloat)
         {
             // Load EA into FLOATREGS
-            cdb.append(getregs(FLOATREGS));
+            getregs(cdb,FLOATREGS);
             cs.Iop = 0x8B;
             NEWREG(cs.Irm, AX);
             cdb.gen(&cs);
@@ -266,7 +267,7 @@ STATIC code * opnegassdbl(elem *e,regm_t *pretregs)
             if (I32)
             {
                 // Load EA into DOUBLEREGS
-                cdb.append(getregs(DOUBLEREGS_32));
+                getregs(cdb,DOUBLEREGS_32);
                 cs.Iop = 0x8B;
                 cs.Irm &= ~modregrm(0,7,0);
                 cs.Irm |= modregrm(0,AX,0);
@@ -492,7 +493,7 @@ void cdeq(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             {
                 cdb.append(modEA(&cs));
                 if (sz == 2 * REGSIZE && cs.IFL1 == FLreg)
-                    cdb.append(getregs(cs.IEVsym1->Sregm));
+                    getregs(cdb,cs.IEVsym1->Sregm);
             }
             cs.Iop = (sz == 1) ? 0xC6 : 0xC7;
 
@@ -692,7 +693,7 @@ void cdeq(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         getlvalue(cdb,&cs,e1,RMstore | retregs);     // get lvalue (cl == CNIL if regvar)
     }
 
-    cdb.append(getregs(varregm));
+    getregs(cdb,varregm);
 
     assert(!(retregs & mES && (cs.Iflags & CFSEG) == CFes));
     if ((tyml == TYfptr || tyml == TYhptr) && retregs & mES)
@@ -1098,7 +1099,7 @@ void cdaddass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
   {
         getlvalue(cdb,&cs,e2,0);
         freenode(e2);
-        cdb.append(getregs(varregm));
+        getregs(cdb,varregm);
         code_newreg(&cs, varreg);
         if (I64 && sz == 1 && varreg >= 4)
             cs.Irex |= REX;
@@ -1166,7 +1167,7 @@ void cdaddass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         {
             unsigned mreg = findregmsw(retregs);
             unsigned lreg = findreglsw(retregs);
-            cdb.append(getregs(retregs | mCX));
+            getregs(cdb,retregs | mCX);
 
             // If h -= l, convert to h += -l
             if (e->Eoper == OPminass)
@@ -1388,7 +1389,7 @@ void cdmulass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                     retregs = ALLREGS;
                 codelem(cdb,e2,&retregs,FALSE); // load rvalue in reg
                 getlvalue(cdb,&cs,e1,retregs);  // get EA
-                cdb.append(getregs(retregs));           // destroy these regs
+                getregs(cdb,retregs);           // destroy these regs
                 cs.Iop = 0x0FAF;                        // IMUL resreg,EA
                 resreg = findreg(retregs);
                 opr = resreg;
@@ -1398,7 +1399,7 @@ void cdmulass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 retregs = mAX;
                 codelem(cdb,e2,&retregs,FALSE);      // load rvalue in AX
                 getlvalue(cdb,&cs,e1,mAX);           // get EA
-                cdb.append(getregs(byte ? mAX : mAX | mDX)); // destroy these regs
+                getregs(cdb,byte ? mAX : mAX | mDX); // destroy these regs
                 cs.Iop = 0xF7 ^ byte;                        // [I]MUL EA
             }
             code_newreg(&cs,opr);
@@ -1424,7 +1425,7 @@ void cdmulass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 code_newreg(&cs, AX);
                 cdb.gen(&cs);                       // MOV AX,EA
                 freenode(e2);
-                cdb.append(getregs(mAX | mDX));     // trash these regs
+                getregs(cdb,mAX | mDX);     // trash these regs
                 cdb.gen1(0x99);                     // CWD
                 code_orrex(cdb.last(), rex);
                 if (pow2 == 1)
@@ -1469,7 +1470,7 @@ void cdmulass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 codelem(cdb,e2,&retregs,FALSE); // load rvalue in retregs
                 reg = findreg(retregs);
                 getlvalue(cdb,&cs,e1,mAX | mDX | retregs);     // get EA
-                cdb.append(getregs(mAX | mDX));         // destroy these regs
+                getregs(cdb,mAX | mDX);         // destroy these regs
                 cs.Irm |= modregrm(0,AX,0);
                 cs.Iop = 0x8B;
                 cdb.gen(&cs);                   // MOV AX,EA
@@ -1479,7 +1480,7 @@ void cdmulass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 {   cdb.gen1(0x99);             // CWD
                     code_orrex(cdb.last(),rex);
                 }
-                cdb.append(getregs(mDX | mAX)); // DX and AX will be destroyed
+                getregs(cdb,mDX | mAX); // DX and AX will be destroyed
                 cdb.append(genregs(CNIL,0xF7,opr,reg));   // OPR reg
                 code_orrex(cdb.last(),rex);
             }
@@ -1504,7 +1505,7 @@ void cdmulass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         retregs = mCX | mBX;
         codelem(cdb,e2,&retregs,FALSE);
         getlvalue(cdb,&cs,e1,mDX|mAX | mCX|mBX);
-        cdb.append(getregs(mDX | mAX));
+        getregs(cdb,mDX | mAX);
         cs.Iop = 0x8B;
         cdb.gen(&cs);                   // MOV AX,EA
         getlvalue_msw(&cs);
@@ -1520,7 +1521,7 @@ void cdmulass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 MUL     EBX
                 ADD     EDX,ECX
              */
-             cdb.append(getregs(mAX|mDX|mCX));
+             getregs(cdb,mAX|mDX|mCX);
              cdb.gen2(0x0FAF,modregrm(3,CX,AX));
              cdb.gen2(0x0FAF,modregrm(3,DX,BX));
              cdb.gen2(0x03,modregrm(3,CX,DX));
@@ -1659,7 +1660,7 @@ void cdshass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 code *ce = gennop(CNIL);                  // ce: NOP
                 if (v == 0xD3)
                 {
-                    cdb.append(getregs(mCX));
+                    getregs(cdb,mCX);
                     if (!conste2)
                     {   assert(loopcnt == 0);
                         cdb.append(genjmp(CNIL,JCXZ,FLcode,(block *) ce));   // JCXZ ce
@@ -1919,7 +1920,7 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
              * C3:  INC  EDX
              * C1:
              */
-             cdb.append(getregs(mDX));
+             getregs(cdb,mDX);
              cdb.append(genregs(CNIL,0x39,CX,DX));             // CMP EDX,ECX
              code *c1 = gennop(CNIL);
              cdb.append(genjmp(CNIL,JNE,FLcode,(block *)c1));  // JNE C1
@@ -1932,7 +1933,7 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
              cdb.append(genjmp(CNIL,JMPS,FLcode,(block *)c1)); // JMP C1
              cdb.append(c3);
              cdb.append(c1);
-             cdb.append(getregs(mDX));
+             getregs(cdb,mDX);
              retregs = mPSW;
         }
         goto L3;
@@ -2061,7 +2062,7 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             assert(*pretregs & (allregs));
             codelem(cdb,e1,pretregs,FALSE);
             reg = findreg(*pretregs);
-            cdb.append(getregs(mask[reg]));
+            getregs(cdb,mask[reg]);
             switch (op)
             {   case OPle:
                     cdb.genc2(0x81,grex | modregrmx(3,0,reg),(unsigned)-1);   // ADD reg,-1
@@ -2390,7 +2391,7 @@ L3:
             if ((*pretregs & mPSW) == 0 &&
                 (jop == JC || jop == JNC))
             {
-                cdb.append(getregs(retregs));
+                getregs(cdb,retregs);
                 cdb.append(genregs(CNIL,0x19,reg,reg));     // SBB reg,reg
                 if (rex)
                     code_orrex(cdb.last(), rex);
@@ -2847,7 +2848,7 @@ void cdshtlng(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             regm = mMSW & ALLREGS;
         cdb.append(allocreg(&regm,&reg,TYint));
         if (e1comsub)
-            cdb.append(getregs(retregs));
+            getregs(cdb,retregs);
         if (op == OPnp_fp)
         {   int segreg;
 
@@ -2890,7 +2891,7 @@ void cdshtlng(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             else
             {
                 // Zero high 32 bits
-                cdb.append(getregs(retregs));
+                getregs(cdb,retregs);
                 reg = findreg(retregs);
                 cdb.append(genregs(NULL,0x89,reg,reg));  // MOV Ereg,Ereg
             }
@@ -2961,7 +2962,7 @@ void cdshtlng(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         codelem(cdbx,e1,&retregs,FALSE);
         code *cx = cdbx.finish();
         cdb.append(cdbx);
-        cdb.append(getregs(retregs));
+        getregs(cdb,retregs);
         if (op == OPu16_32 && cx)
         {
             cx = code_last(cx);
@@ -2996,7 +2997,8 @@ void cdshtlng(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             }
         }
      L1:
-        cdb.append(e1comsub ? getregs(retregs) : CNIL);
+        if (e1comsub)
+            getregs(cdb,retregs);
     }
     fixresult(cdb,e,retregs,pretregs);
     return;
@@ -3009,9 +3011,10 @@ void cdshtlng(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     retregs = mAX | mPSW;               // want integer result in AX
     *pretregs &= ~mPSW;                 // flags are already set
     codelem(cdb,e->E1,&retregs,FALSE);
-    cdb.append(getregs(mDX));           // sign extend into DX
+    getregs(cdb,mDX);           // sign extend into DX
     cdb.gen1(0x99);                     // CWD/CDQ
-    cdb.append(e1comsub ? getregs(retregs) : CNIL);
+    if (e1comsub)
+        getregs(cdb,retregs);
     fixresult(cdb,e,mDX | retregs,pretregs);
     return;
   }
@@ -3163,7 +3166,7 @@ void cdbyteint(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             }
         }
     }
-    cdb.append(getregs(retregs));
+    getregs(cdb,retregs);
     fixresult(cdb,e,retregs,pretregs);
 }
 
@@ -3220,7 +3223,7 @@ void cdlngsht(CodeBuilder& cdb,elem *e,regm_t *pretregs)
      * a register can only hold the contents of one elem at a time.
      */
     if (e->Ecount)
-        cdb.append(getregs(retregs));
+        getregs(cdb,retregs);
     else
         useregs(retregs);
 
@@ -3255,7 +3258,7 @@ void cdmsw(CodeBuilder& cdb,elem *e,regm_t *pretregs)
      * a register can only hold the contents of one elem at a time.
      */
     if (e->Ecount)
-        cdb.append(getregs(retregs));
+        getregs(cdb,retregs);
     else
         useregs(retregs);
 
@@ -3309,7 +3312,7 @@ void cdport(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     }
     else // OPinp
     {
-        cdb.append(getregs(mAX));
+        getregs(cdb,mAX);
         sz = tysize(e->Ety);
     }
 
@@ -3329,7 +3332,7 @@ void cdport(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 void cdasm(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
     // Assume only regs normally destroyed by a function are destroyed
-    cdb.append(getregs((ALLREGS | mES) & ~fregsaved));
+    getregs(cdb,(ALLREGS | mES) & ~fregsaved);
     cdb.append(genasm(CNIL,(unsigned char *)e->EV.ss.Vstring,e->EV.ss.Vstrlen));
     fixresult(cdb,e,(I16 ? mDX | mAX : mAX),pretregs);
 }
@@ -3346,7 +3349,7 @@ void cdfar16(CodeBuilder& cdb, elem *e, regm_t *pretregs)
     assert(I32);
     codelem(cdb,e->E1,pretregs,FALSE);
     unsigned reg = findreg(*pretregs);
-    cdb.append(getregs(*pretregs));      // we will destroy the regs
+    getregs(cdb,*pretregs);      // we will destroy the regs
 
     cs.Iop = 0xC1;
     cs.Irm = modregrm(3,0,reg);
@@ -3512,7 +3515,7 @@ void cdbtst(CodeBuilder& cdb, elem *e, regm_t *pretregs)
             regcon.immed.mval = save;
             if ((*pretregs & mPSW) == 0)
             {
-                cdb.append(getregs(retregs));
+                getregs(cdb,retregs);
                 cdb.append(genregs(CNIL,0x19,reg,reg));     // SBB reg,reg
                 cdb.gen2(0xF7,modregrmx(3,3,reg));          // NEG reg
             }
@@ -3627,7 +3630,7 @@ void cdbt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
             regcon.immed.mval = save;
             if ((*pretregs & mPSW) == 0)
             {
-                cdb.append(getregs(retregs));
+                getregs(cdb,retregs);
                 cdb.append(genregs(CNIL,0x19,reg,reg));     // SBB reg,reg
                 cdb.gen2(0xF7,modregrmx(3,3,reg));          // NEG reg
             }
@@ -3820,9 +3823,9 @@ void cdpair(CodeBuilder& cdb, elem *e, regm_t *pretregs)
     //printf("2: regs1 = %s, regs2 = %s\n", regm_str(regs1), regm_str(regs2));
 
     if (e->E1->Ecount)
-        cdb.append(getregs(regs1));
+        getregs(cdb,regs1);
     if (e->E2->Ecount)
-        cdb.append(getregs(regs2));
+        getregs(cdb,regs2);
 
     fixresult(cdb,e,regs1 | regs2,pretregs);
 }
@@ -3861,7 +3864,7 @@ void cdcmpxchg(CodeBuilder& cdb, elem *e, regm_t *pretregs)
         code cs;
         getlvalue(cdb,&cs,e1,mCX|mBX|mAX|mDX);        // get EA
 
-        cdb.append(getregs(mDX|mAX));                 // CMPXCHG destroys these regs
+        getregs(cdb,mDX|mAX);                 // CMPXCHG destroys these regs
 
         if (e1->Ety & mTYvolatile)
             cdb.gen1(LOCK);                           // LOCK prefix
@@ -3888,7 +3891,7 @@ void cdcmpxchg(CodeBuilder& cdb, elem *e, regm_t *pretregs)
         code cs;
         getlvalue(cdb,&cs,e1,mAX | retregs); // get EA
 
-        cdb.append(getregs(mAX));                  // CMPXCHG destroys AX
+        getregs(cdb,mAX);                  // CMPXCHG destroys AX
 
         if (e1->Ety & mTYvolatile)
             cdb.gen1(LOCK);                        // LOCK prefix

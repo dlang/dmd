@@ -658,7 +658,7 @@ void loadea(CodeBuilder& cdb,elem *e,code *cs,unsigned op,unsigned reg,targ_size
   else if ((op & 0xFFF8) == 0xD8 && ADDFWAIT())
         cs->Iflags |= CFwait;
 L2:
-  cdb.append(getregs(desmsk));                  // save any regs we destroy
+  getregs(cdb,desmsk);                  // save any regs we destroy
 
   /* KLUDGE! fix up DX for divide instructions */
   if (op == 0xF7 && desmsk == (mAX|mDX))        /* if we need to fix DX */
@@ -1391,7 +1391,7 @@ void getlvalue(CodeBuilder& cdb,code *pcs,elem *e,regm_t keepmsk)
     case FLpseudo:
 #if MARS
     {
-        cdb.append(getregs(mask[s->Sreglsw]));
+        getregs(cdb,mask[s->Sreglsw]);
         pcs->Irm = modregrm(3,0,s->Sreglsw & 7);
         if (s->Sreglsw & 8)
             pcs->Irex |= REX_B;
@@ -1410,7 +1410,7 @@ void getlvalue(CodeBuilder& cdb,code *pcs,elem *e,regm_t keepmsk)
 #else
     {
         unsigned u = s->Sreglsw;
-        cdb.append(getregs(pseudomask[u]));
+        getregs(cdb,pseudomask[u]);
         pcs->Irm = modregrm(3,0,pseudoreg[u] & 7);
         break;
     }
@@ -1423,7 +1423,7 @@ void getlvalue(CodeBuilder& cdb,code *pcs,elem *e,regm_t keepmsk)
     {
         regm_t regm = ALLREGS & ~keepmsk;       // need scratch register
         cdb.append(allocreg(&regm,&reg,TYint));
-        cdb.append(getregs(mES));
+        getregs(cdb,mES);
         // MOV mreg,seg of symbol
         cdb.gencs(0xB8 + reg,0,FLextern,s);
         cdb.last()->Iflags = CFseg;
@@ -1460,7 +1460,7 @@ void fltregs(CodeBuilder& cdb,code *pcs,tym_t tym)
     tym = tybasic(tym);
     if (I32)
     {
-        cdb.append(getregs((tym == TYfloat) ? mAX : mAX | mDX));
+        getregs(cdb,(tym == TYfloat) ? mAX : mAX | mDX);
         if (tym != TYfloat)
         {
             pcs->IEVoffset1 += REGSIZE;
@@ -1473,7 +1473,7 @@ void fltregs(CodeBuilder& cdb,code *pcs,tym_t tym)
     }
     else
     {
-        cdb.append(getregs((tym == TYfloat) ? FLOATREGS_16 : DOUBLEREGS_16));
+        getregs(cdb,(tym == TYfloat) ? FLOATREGS_16 : DOUBLEREGS_16);
         pcs->IEVoffset1 += (tym == TYfloat) ? 2 : 6;
         if (tym == TYfloat)
             NEWREG(pcs->Irm,DX);
@@ -1559,7 +1559,7 @@ void tstresult(CodeBuilder& cdb,regm_t regm,tym_t tym,unsigned saveflag)
                 cdb.append(genmovreg(CNIL,scrreg,reg));  // MOV scrreg,msreg
                 reg = scrreg;
             }
-            cdb.append(getregs(mask[reg]));
+            getregs(cdb,mask[reg]);
             cdb.gen2(0xD1,modregrmx(3,4,reg)); // SHL reg,1
             return;
         }
@@ -1623,7 +1623,7 @@ void tstresult(CodeBuilder& cdb,regm_t regm,tym_t tym,unsigned saveflag)
             assert(regm & mMSW & ALLREGS && regm & (mLSW | mBP));
 
             reg = findregmsw(regm);
-            cdb.append(getregs(mask[reg]));            // we're going to trash reg
+            getregs(cdb,mask[reg]);            // we're going to trash reg
             if (tyfloating(tym) && sz == 2 * intsize)
                 cdb.gen2(0xD1,modregrm(3,4,reg));   // SHL reg,1
             cdb.append(genorreg(CNIL,reg,findreglsw(regm)));     // OR reg,reg+1
@@ -1632,7 +1632,7 @@ void tstresult(CodeBuilder& cdb,regm_t regm,tym_t tym,unsigned saveflag)
        }
         else if (sz == 8)
         {   assert(regm == DOUBLEREGS_16);
-            cdb.append(getregs(mAX));                  // allocate AX
+            getregs(cdb,mAX);                  // allocate AX
             if (tym == TYdouble || tym == TYdouble_alias)
                 cdb.gen2(0xD1,modregrm(3,4,AX));       // SHL AX,1
             cdb.append(genorreg(CNIL,AX,BX));          // OR AX,BX
@@ -1712,7 +1712,7 @@ void fixresult(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretregs)
             else if (retregs & mSTACK)
             {   assert(forregs == DOUBLEREGS_16);
                 // Pop floating regs
-                cdb.append(getregs(forregs));
+                getregs(cdb,forregs);
                 cdb.gen1(0x58 + DX);
                 cdb.gen1(0x58 + CX);
                 cdb.gen1(0x58 + BX);
@@ -2494,7 +2494,7 @@ void callclib(CodeBuilder& cdb,elem *e,unsigned clib,regm_t *pretregs,regm_t kee
 
     if (I16)
         assert(!(cinfo->flags & (INF32 | INF64)));
-    cdb.append(getregs((~s->Sregsaved & (mES | mBP | ALLREGS)) & ~keepmask)); // mask of regs destroyed
+    getregs(cdb,(~s->Sregsaved & (mES | mBP | ALLREGS)) & ~keepmask); // mask of regs destroyed
     keepmask &= ~s->Sregsaved;
     int npushed = numbitsset(keepmask);
     code *c = CNIL;
@@ -2853,7 +2853,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     if (np == 1 && sf)
     {
         if (sf == tls_get_addr_sym)
-            cdb.append(getregs(~sf->Sregsaved & (mBP | ALLREGS | mES | XMMREGS)));
+            getregs(cdb,~sf->Sregsaved & (mBP | ALLREGS | mES | XMMREGS));
     }
 
     unsigned stackalign = REGSIZE;
@@ -3105,7 +3105,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                     retregs |= mask[preg];
                 if (preg2 != mreg)
                     retregs |= mask[preg2];
-                cdb.append(getregs(retregs));
+                getregs(cdb,retregs);
 
                 tym_t ty1 = tybasic(ep->Ety);
                 tym_t ty2 = ty1;
@@ -3152,7 +3152,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             }
             else if (ep->Eoper == OPstrthis)
             {
-                cdb.append(getregs(retregs));
+                getregs(cdb,retregs);
                 // LEA preg,np[RSP]
                 unsigned np = stackpush - ep->EV.Vuns;   // stack delta to parameter
                 cdb.genc1(LEA,
@@ -3204,21 +3204,21 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                     case XMM3: reg = R9; break;
                     default:   assert(0);
                 }
-                cdb.append(getregs(mask[reg]));
+                getregs(cdb,mask[reg]);
                 cdb.gen2(STOD,(REX_W << 16) | modregxrmx(3,preg-XMM0,reg)); // MOVD reg,preg
             }
         }
     }
 
     // Restore any register parameters we saved
-    cdb.append(getregs(saved));
+    getregs(cdb,saved);
     cdb.append(cdbrestore);
     keepmsk |= saved;
 
     // Variadic functions store the number of XMM registers used in AL
     if (I64 && config.exe != EX_WIN64 && e->Eflags & EFLAGS_variadic)
     {
-        cdb.append(getregs(mAX));
+        getregs(cdb,mAX);
         cdb.append(movregconst(CNIL,AX,xmmcnt,1));
         keepmsk |= mAX;
     }
@@ -3248,7 +3248,7 @@ void cdstrthis(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
     assert(tysize(e->Ety) == REGSIZE);
     unsigned reg = findreg(*pretregs & allregs);
-    cdb.append(getregs(mask[reg]));
+    getregs(cdb,mask[reg]);
     // LEA reg,np[ESP]
     unsigned np = stackpush - e->EV.Vuns;        // stack delta to parameter
     cdb.genc1(0x8D,(modregrm(0,4,SP) << 8) | modregxrm(2,reg,4),FLconst,np);
@@ -3315,9 +3315,9 @@ static void funccall(CodeBuilder& cdb,elem *e,unsigned numpara,unsigned numalign
         }
         else if (!tyfunc(s->ty()) || !(config.flags4 & CFG4optimized))
             // so we can replace func at runtime
-            cdbe.append(getregs(~fregsaved & (mBP | ALLREGS | mES | XMMREGS)));
+            getregs(cdbe,~fregsaved & (mBP | ALLREGS | mES | XMMREGS));
         else
-            cdbe.append(getregs(~s->Sregsaved & (mBP | ALLREGS | mES | XMMREGS)));
+            getregs(cdbe,~s->Sregsaved & (mBP | ALLREGS | mES | XMMREGS));
         if (strcmp(s->Sident,"alloca") == 0)
         {
             s = getRtlsym(RTLSYM_ALLOCA);
@@ -3325,7 +3325,7 @@ static void funccall(CodeBuilder& cdb,elem *e,unsigned numpara,unsigned numalign
             int areg = CX;
             if (config.exe == EX_WIN64)
                 areg = DX;
-            cdbe.append(getregs(mask[areg]));
+            getregs(cdbe,mask[areg]);
             cdbe.genc(0x8D,modregrm(2,areg,BPRM),FLallocatmp,0,0,0);  // LEA areg,&localsize[BP]
             if (I64)
                 code_orrex(cdbe.last(), REX_W);
@@ -3424,7 +3424,7 @@ static void funccall(CodeBuilder& cdb,elem *e,unsigned numpara,unsigned numalign
             scodelem(cdbe,e11,&retregs,keepmsk,TRUE);
             cgstate.stackclean--;
             // Kill registers destroyed by an arbitrary function call
-            cdbe.append(getregs(desmsk));
+            getregs(cdbe,desmsk);
             if (e11ty == TYfptr)
             {
                 unsigned reg = findregmsw(retregs);
@@ -3996,7 +3996,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
                                                         // ADD reg,sz-2
                         cdb.genc2(0x81,grex | modregrmx(3,0,reg),sz-pushsize);
                     }
-                    cdb.append(getregs(mCX));                       // the LOOP decrements it
+                    getregs(cdb,mCX);                       // the LOOP decrements it
                     cdb.gen2(0xFF,buildModregrm(0,6,rm));           // PUSH [reg]
                     cdb.last()->Iflags |= seg | CFtarg2;
                     code *c3 = cdb.last();
@@ -4424,7 +4424,7 @@ void offsetinreg(CodeBuilder& cdb, elem *e, regm_t *pretregs)
             if (mask[i] & rm && regcon.cse.value[i] == e)
             {
                 *pretregs = mask[i];
-                cdb.append(getregs(*pretregs));
+                getregs(cdb,*pretregs);
                 goto L3;
             }
             rm &= ~mask[i];
