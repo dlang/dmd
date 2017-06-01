@@ -668,7 +668,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         var = new AliasDeclaration(loc, ident, ds);
                         if (storageClass & STCref)
                         {
-                            fs.error("symbol `%s` cannot be ref", s.toChars());
+                            fs.error("symbol `%s` cannot be ref", ds.toChars());
                             setError();
                             mixin(returnEarly);
                         }
@@ -718,7 +718,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                                     }
                                     else
                                     {
-                                        // TODO: this error does not show a location
                                         fs.error("constant value `%s` cannot be ref", ident.toChars());
                                     }
                                 }
@@ -973,6 +972,19 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         auto sc2 = sc.push(sym);
 
         sc2.noctor++;
+
+        foreach (i; 0 .. dim)
+        {
+            Parameter p = (*fs.parameters)[i];
+            if (p.storageClass & STCmanifest)
+            {
+                fs.error("cannot declare enum loop variables for non-unrolled foreach");
+            }
+            if (p.storageClass & STCalias)
+            {
+                fs.error("cannot declare alias loop variables for non-unrolled foreach");
+            }
+        }
 
         switch (tab.ty)
         {
