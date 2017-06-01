@@ -1825,13 +1825,13 @@ Lreg:
 
 #undef allocreg
 
-code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
+void allocreg(CodeBuilder& cdb,regm_t *pretregs,unsigned *preg,tym_t tym
 #ifdef DEBUG
         ,int line,const char *file
 #endif
         )
 #ifdef DEBUG
-#define allocreg(a,b,c) allocreg((a),(b),(c),__LINE__,__FILE__)
+#define allocreg(a,b,c,d) allocreg((a),(b),(c),(d),__LINE__,__FILE__)
 #endif
 {
 #if TX86
@@ -1847,7 +1847,6 @@ code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
             dbg_printf("\n");
         }
 #endif
-        CodeBuilder cdb;
         tym = tybasic(tym);
         unsigned size = _tysize[tym];
         *pretregs &= mES | allregs | XMMREGS;
@@ -1868,7 +1867,7 @@ if (retregs == 0) printf("allocreg: file %s(%d)\n", file, line);
             else
                 assert(0);
             getregs(cdb,retregs);
-            return cdb.finish();
+            return;
         }
         int count = 0;
 L1:
@@ -2001,7 +2000,6 @@ L3:
         last2retregs = lastretregs;
         lastretregs = retregs;
         getregs(cdb, retregs);
-        return cdb.finish();
 #else
 #warning cpu specific code
 #endif
@@ -2410,7 +2408,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
                             retregs = BYTEREGS;
                         else if (!(retregs & allregs))
                             retregs = allregs;
-                        cdb.append(allocreg(&retregs,&reg,tym));
+                        allocreg(cdb,&retregs,&reg,tym);
                         code *cr = &csextab[i].csimple;
                         cr->setReg(reg);
                         cdb.gen(cr);
@@ -2429,7 +2427,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
                             retregs = *pretregs;
                             if (byte && !(retregs & BYTEREGS))
                                     retregs = BYTEREGS;
-                            cdb.append(allocreg(&retregs,&reg,tym));
+                            allocreg(cdb,&retregs,&reg,tym);
                             gen_loadcse(cdb, reg, i);
                         L10:
                             regcon.cse.mval |= mask[reg]; // cs is in a reg
@@ -2477,7 +2475,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
         {
             if (!regm)
                 regm = mMSW & ALLREGS;
-            cdb.append(allocreg(&regm,&msreg,TYint));
+            allocreg(cdb,&regm,&msreg,TYint);
             loadcse(cdb,e,msreg,mMSW);
         }
 
@@ -2490,7 +2488,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
         {
             if (!regm)
                 regm = mLSW;
-            cdb.append(allocreg(&regm,&lsreg,TYint));
+            allocreg(cdb,&regm,&lsreg,TYint);
             loadcse(cdb,e,lsreg,mLSW | mBP);
         }
 

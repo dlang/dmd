@@ -65,7 +65,7 @@ static void movxmmconst(CodeBuilder& cdb, unsigned xreg, unsigned sz, targ_size_
     {
         unsigned r;
         regm_t rm = ALLREGS;
-        cdb.append(allocreg(&rm,&r,TYint));         // allocate scratch register
+        allocreg(cdb,&rm,&r,TYint);         // allocate scratch register
         union { targ_size_t s; targ_long l[2]; } u;
         u.l[1] = 0;
         u.s = value;
@@ -137,7 +137,7 @@ void orthxmm(CodeBuilder& cdb, elem *e, regm_t *pretregs)
             unsigned nretregs = XMMREGS & ~retregs;
             unsigned sreg; // hold sign bit
             unsigned sz = tysize(e1->Ety);
-            cdb.append(allocreg(&nretregs,&sreg,e2->Ety));
+            allocreg(cdb,&nretregs,&sreg,e2->Ety);
             targ_size_t signbit = 0x80000000;
             if (sz == 8)
                 signbit = 0x8000000000000000LL;
@@ -421,7 +421,7 @@ void xmmcnvt(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     }
 
     unsigned rreg;
-    cdb.append(allocreg(&retregs,&rreg,ty));
+    allocreg(cdb,&retregs,&rreg,ty);
     if (rreg >= XMM0)
         rreg -= XMM0;
 
@@ -476,7 +476,7 @@ void xmmopass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         retregs = *pretregs & XMMREGS & ~rretregs;
         if (!retregs)
             retregs = XMMREGS & ~rretregs;
-        cdb.append(allocreg(&retregs,&reg,ty1));
+        allocreg(cdb,&retregs,&reg,ty1);
         cs.Iop = xmmload(ty1, true);            // MOVSD xmm,xmm_m64
         code_newreg(&cs,reg - XMM0);
         cdb.gen(&cs);
@@ -544,7 +544,7 @@ void xmmpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         retregs = XMMREGS & ~*pretregs;
         if (!retregs)
             retregs = XMMREGS;
-        cdb.append(allocreg(&retregs,&reg,ty1));
+        allocreg(cdb,&retregs,&reg,ty1);
         cs.Iop = xmmload(ty1, true);            // MOVSD xmm,xmm_m64
         code_newreg(&cs,reg - XMM0);
         cdb.gen(&cs);
@@ -556,8 +556,7 @@ void xmmpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     if (!resultregs)
         resultregs = XMMREGS & ~retregs;
     unsigned resultreg;
-    code *c = allocreg(&resultregs, &resultreg, ty1);
-    cdb.append(c);
+    allocreg(cdb,&resultregs, &resultreg, ty1);
 
     cdb.gen2(xmmload(ty1,true),modregxrmx(3,resultreg-XMM0,reg-XMM0));   // MOVSS/D resultreg,reg
     checkSetVex(cdb.last(), ty1);
@@ -618,7 +617,7 @@ void xmmneg(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     unsigned reg = findreg(retregs);
     regm_t rretregs = XMMREGS & ~retregs;
     unsigned rreg;
-    cdb.append(allocreg(&rretregs,&rreg,tyml));
+    allocreg(cdb,&rretregs,&rreg,tyml);
     targ_size_t signbit = 0x80000000;
     if (sz == 8)
         signbit = 0x8000000000000000LL;
@@ -1106,7 +1105,7 @@ void cdvector(CodeBuilder& cdb, elem *e, regm_t *pretregs)
         if (!retregs)
             retregs = XMMREGS;
         unsigned reg;
-        cdb.append(allocreg(&retregs, &reg, e->Ety));
+        allocreg(cdb,&retregs, &reg, e->Ety);
         code_newreg(&cs, reg - XMM0);
         cs.Iop = op;
         cdb.gen(&cs);
@@ -1250,7 +1249,7 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
                 // VBROADCASTSS XMM,MEM
                 getlvalue(cdb,&cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
-                cdb.append(allocreg(&retregs,&reg,ty));
+                allocreg(cdb,&retregs,&reg,ty);
                 cs.Iop = VBROADCASTSS;
                 cs.Irex &= ~REX_W;
                 code_newreg(&cs,reg - XMM0);
@@ -1291,7 +1290,7 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
                 // VBROADCASTSD XMM,MEM
                 getlvalue(cdb,&cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
-                cdb.append(allocreg(&retregs,&reg,ty));
+                allocreg(cdb,&retregs,&reg,ty);
                 cs.Iop = VBROADCASTSD;
                 cs.Irex &= ~REX_W;
                 code_newreg(&cs,reg - XMM0);
@@ -1331,8 +1330,7 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
             codelem(cdb,e1,&regm,FALSE); // eval left leaf
             unsigned r = findreg(regm);
 
-            c = allocreg(&retregs,&reg, e->Ety);
-            cdb.append(c);
+            allocreg(cdb,&retregs,&reg, e->Ety);
             reg -= XMM0;
             cdb.gen2(LODD,modregxrmx(3,reg,r));     // MOVD reg,r
             checkSetVex(cdb.last(),TYschar16);
@@ -1381,7 +1379,7 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
                  * VPINSRW XMM0,XMM0,r,2
                  * VPINSRW XMM0,XMM0,r,3
                  */
-                cdb.append(allocreg(&retregs,&reg, ty));
+                allocreg(cdb,&retregs,&reg, ty);
                 cdb.gen2(PXOR,modregxrmx(3,reg-XMM0,reg-XMM0));
                 checkSetVex(cdb.last(), TYshort8);
                 for (int i = 0; i < tysize(ty) / 4; ++i)
@@ -1418,8 +1416,7 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
                  * PUNPCKLWD XMM0,XMM0
                  * PSHUFD    XMM0,XMM0,0
                  */
-                c = allocreg(&retregs,&reg, e->Ety);
-                cdb.append(c);
+                allocreg(cdb,&retregs,&reg, e->Ety);
                 reg -= XMM0;
                 cdb.gen2(LODD,modregxrmx(3,reg,r));     // MOVD reg,r
                 checkSetVex(cdb.last(),e->Ety);
@@ -1455,8 +1452,7 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
             codelem(cdb,e1,&regm,FALSE); // eval left leaf
             unsigned r = findreg(regm);
 
-            c = allocreg(&retregs,&reg, e->Ety);
-            cdb.append(c);
+            allocreg(cdb,&retregs,&reg, e->Ety);
             reg -= XMM0;
             cdb.gen2(LODD,modregxrmx(3,reg,r));     // MOVD reg,r
 
@@ -1498,7 +1494,7 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
                     else
                         cs.Irex &= ~REX_B;
                 }
-                cdb.append(allocreg(&retregs,&reg,ty));
+                allocreg(cdb,&retregs,&reg,ty);
                 if (config.avx >= 2 ||  tysize(ty) >= 32)
                 {
                     cs.Iop = VBROADCASTSD;
