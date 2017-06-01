@@ -1257,11 +1257,11 @@ $(GCSTUB) : src\gcstub\gc.d win64.mak
 ################### Library generation #########################
 
 $(DRUNTIME): $(OBJS) $(SRCS) win64.mak
-	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
+	*$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
 # due to -conf= on the command line, LINKCMD and LIB need to be set in the environment
 unittest : $(SRCS) $(DRUNTIME)
-	$(DMD) $(UDFLAGS) -version=druntime_unittest -unittest -ofunittest.exe -main $(SRCS) $(DRUNTIME) -debuglib=$(DRUNTIME) -defaultlib=$(DRUNTIME) user32.lib
+	*$(DMD) $(UDFLAGS) -version=druntime_unittest -unittest -ofunittest.exe -main $(SRCS) $(DRUNTIME) -debuglib=$(DRUNTIME) -defaultlib=$(DRUNTIME) user32.lib
 	unittest
 
 ################### Win32 COFF support #########################
@@ -1295,4 +1295,3 @@ clean:
 auto-tester-build: target
 
 auto-tester-test: unittest
-
