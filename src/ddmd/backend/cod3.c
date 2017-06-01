@@ -824,7 +824,9 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
         {
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in catch blocks.
-            c = cat(c,getregs(lpadregs()));
+            CodeBuilder cdb;
+            cdb.append(c);
+            getregs(cdb,lpadregs());
 
             if (config.ehmethod == EH_DWARF)
             {
@@ -834,17 +836,23 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                  * may have arguments pushed on the stack.
                  * This instruction will reset ESP to the correct offset from EBP.
                  */
-                c = gen1(c, ESCAPE | ESCfixesp);
+                cdb.gen1(ESCAPE | ESCfixesp);
             }
+            c = cdb.finish();
             goto case_goto;
         }
 #endif
 #if SCPP
         case BCcatch:
+        {
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in catch blocks.
-            c = cat(c,getregs(allregs | mES));
+            CodeBuilder cdb;
+            cdb.append(c);
+            getregs(cdb,allregs | mES);
+            c = cdb.finish();
             goto case_goto;
+        }
 
         case BCtry:
             usednteh |= EHtry;
@@ -958,8 +966,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             if (config.ehmethod == EH_DWARF)
             {
                 // Mark scratch registers as destroyed.
-                code *cy = getregs(lpadregs());
-                assert(!cy);
+                getregsNoSave(lpadregs());
 
                 retregs = 0;
                 bl->Bcode = gencodelem(NULL,bl->Belem,&retregs,TRUE);
@@ -972,8 +979,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             {
                 // Mark all registers as destroyed. This will prevent
                 // register assignments to variables used in finally blocks.
-                code *cy = getregs(lpadregs());
-                assert(!cy);
+                getregsNoSave(lpadregs());
 
                 assert(!e);
                 assert(!bl->Bcode);
@@ -990,8 +996,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             assert(config.ehmethod == EH_DWARF);
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in finally blocks.
-            code *cy = getregs(lpadregs());
-            assert(!cy);
+            getregsNoSave(lpadregs());
 
             retregs = 0;
             bl->Bcode = gencodelem(c,bl->Belem,&retregs,TRUE);
@@ -1020,7 +1025,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             usednteh |= NTEH_except;
             nteh_setsp(cdb,0x8B);
             c = cdb.finish();
-            getregs(allregs);
+            getregsNoSave(allregs);
             goto L3;
         }
         case BC_filter:
@@ -1030,7 +1035,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             nteh_filter(cdb, bl);
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in filter blocks.
-            getregs(allregs);
+            getregsNoSave(allregs);
             retregs = regmask(e->Ety, TYnfunc);
             cdb.append(gencodelem(NULL,e,&retregs,TRUE));
             cdb.gen1(0xC3);   // RET
@@ -1148,10 +1153,14 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
 
 #if SCPP || MARS
         case BCasm:
+        {
             assert(!e);
             // Mark destroyed registers
+            CodeBuilder cdb;
             assert(!c);
-            c = cat(c,getregs(iasm_regs(bl)));
+            getregs(cdb,iasm_regs(bl));
+            c = cdb.finish();
+        }
             if (bl->Bsucc)
             {   nextb = bl->nthSucc(0);
                 if (!bl->Bnext)
@@ -1161,10 +1170,9 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                     !(bl->Bnext->BC == BCgoto &&
                      !bl->Bnext->Belem &&
                      nextb == bl->Bnext->nthSucc(0)))
-                {   code *cl;
-
+                {
                     // See if already have JMP at end of block
-                    cl = code_last(bl->Bcode);
+                    code *cl = code_last(bl->Bcode);
                     if (!cl || cl->Iop != JMP)
                         goto L2;        // add JMP at end of block
                 }
@@ -1223,8 +1231,7 @@ static void cmpval(CodeBuilder& cdb, targ_llong val, unsigned sz, unsigned reg, 
             cdb.append(movregconst(CNIL,sreg,val,64));  // MOV sreg,val64
             cdb.append(genregs(CNIL,0x3B,reg,sreg));    // CMP reg,sreg
             code_orrex(cdb.last(), REX_W);
-            code *c = getregs(mask[sreg]);              // don't remember we loaded this constant
-            assert(!c);
+            getregsNoSave(mask[sreg]);                  // don't remember we loaded this constant
         }
     }
     else if (reg2 == NOREG)
@@ -1451,7 +1458,7 @@ void doswitch(block *b)
         if (modify)
         {
             assert(!(retregs & regcon.mvar));
-            cdb.append(getregs(retregs));
+            getregs(cdb,retregs);
         }
         if (vmin)                       // if there is a minimum
         {
@@ -1638,11 +1645,11 @@ void doswitch(block *b)
             cdb.genc2(0x81,modregrm(3,7,DX),msw);
             cdb.append(genjmp(CNIL,JNE,FLblock,b->nthSucc(0))); // JNE default
         }
-        cdb.append(getregs(mCX|mDI));
+        getregs(cdb,mCX|mDI);
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         if (config.flags3 & CFG3pic)
         {   // Add in GOT
-            cdb.append(getregs(mDX));
+            getregs(cdb,mDX);
             cdb.genc2(CALL,0,0);        //     CALL L1
             cdb.gen1(0x58 + DI);        // L1: POP EDI
 
@@ -1674,11 +1681,11 @@ void doswitch(block *b)
         if (config.flags3 & CFG3eseqds)
         {
             assert(!csseg);
-            cdb.append(getregs(mCX));           // allocate CX
+            getregs(cdb,mCX);           // allocate CX
         }
         else
         {
-            cdb.append(getregs(mES|mCX));       // allocate ES and CX
+            getregs(cdb,mES|mCX);       // allocate ES and CX
             cdb.gen1(csseg ? 0x0E : 0x1E);      // PUSH CS/DS
             cdb.gen1(0x07);                     // POP  ES
         }
@@ -2153,7 +2160,7 @@ void cod3_ptrchk(CodeBuilder& cdb,code *pcs,regm_t keepmsk)
         makeitextern(getRtlsym(RTLSYM_PTRCHK));
 
         used &= ~(keepmsk | idxregs);           // regs destroyed by this exercise
-        cdb.append(getregs(used));
+        getregs(cdb,used);
                                                 // CALL __ptrchk
         cdb.gencs((LARGECODE) ? 0x9A : CALL,0,FLfunc,getRtlsym(RTLSYM_PTRCHK));
     }
@@ -2937,10 +2944,10 @@ code* prolog_16bit_windows_farfunc(tym_t* tyf, bool* pushds)
         wflags &= ~(WFdgroup | WFds | WFss);
     }
 
-    code* c = getregs(mAX);
-    assert(!c);                     /* should not have any value in AX */
+    getregsNoSave(mAX);                     // should not have any value in AX
 
     int segreg;
+    code *c = NULL;
     switch (wflags & (WFdgroup | WFds | WFss))
     {   case WFdgroup:                      // MOV  AX,DGROUP
             if (wflags & WFreduced)

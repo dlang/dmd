@@ -258,8 +258,9 @@ code *allocreg (regm_t *pretregs , unsigned *preg , tym_t tym );
 #endif
 regm_t lpadregs();
 void useregs (regm_t regm );
-code *getregs (regm_t r );
-void getregs_imm(CodeBuilder& cdb,regm_t r );
+void getregs(CodeBuilder& cdb, regm_t r);
+void getregsNoSave(regm_t r);
+void getregs_imm(CodeBuilder& cdb, regm_t r);
 void cse_flush(CodeBuilder&, int);
 bool cse_simple(code *c, elem *e);
 void gen_testcse(CodeBuilder& cdb, unsigned sz, targ_uns i);

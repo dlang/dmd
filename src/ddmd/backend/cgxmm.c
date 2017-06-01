@@ -142,7 +142,7 @@ void orthxmm(CodeBuilder& cdb, elem *e, regm_t *pretregs)
             if (sz == 8)
                 signbit = 0x8000000000000000LL;
             movxmmconst(cdb,sreg, sz, signbit, 0);
-            cdb.append(getregs(nretregs));
+            getregs(cdb,nretregs);
             unsigned xop = (sz == 8) ? XORPD : XORPS;       // XORPD/S rreg,sreg
             cdb.gen2(xop,modregxrmx(3,rreg-XMM0,sreg-XMM0));
         }
@@ -173,7 +173,7 @@ void orthxmm(CodeBuilder& cdb, elem *e, regm_t *pretregs)
         return;
     }
     else
-        cdb.append(getregs(retregs));
+        getregs(cdb,retregs);
 
     cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));
     checkSetVex(cdb.last(), e1->Ety);
@@ -404,7 +404,7 @@ void xmmcnvt(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         reg -= XMM0;
     else if (zx)
     {   assert(I64);
-        cdb.append(getregs(regs));
+        getregs(cdb,regs);
         cdb.append(genregs(CNIL,STO,reg,reg)); // MOV reg,reg to zero upper 32-bit
         code_orflag(cdb.last(),CFvolatile);
     }
@@ -466,7 +466,7 @@ void xmmopass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         {   regvar = TRUE;
             retregs = varregm;
             reg = varreg;                       // evaluate directly in target register
-            cdb.append(getregs(retregs));       // destroy these regs
+            getregs(cdb,retregs);       // destroy these regs
         }
     }
 
@@ -533,7 +533,7 @@ void xmmpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             regvar = TRUE;
             retregs = varregm;
             reg = varreg;                       // evaluate directly in target register
-            cdb.append(getregs(retregs));       // destroy these regs
+            getregs(cdb,retregs);       // destroy these regs
         }
     }
 
@@ -614,7 +614,7 @@ void xmmneg(CodeBuilder& cdb,elem *e,regm_t *pretregs)
      *    XOR reg,rreg
      */
     codelem(cdb,e->E1,&retregs,FALSE);
-    cdb.append(getregs(retregs));
+    getregs(cdb,retregs);
     unsigned reg = findreg(retregs);
     regm_t rretregs = XMMREGS & ~retregs;
     unsigned rreg;
@@ -624,7 +624,7 @@ void xmmneg(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         signbit = 0x8000000000000000LL;
     movxmmconst(cdb,rreg, sz, signbit, 0);
 
-    cdb.append(getregs(retregs));
+    getregs(cdb,retregs);
     unsigned op = (sz == 8) ? XORPD : XORPS;       // XORPD/S reg,rreg
     cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));
     fixresult(cdb,e,retregs,pretregs);
@@ -1077,7 +1077,7 @@ void cdvector(CodeBuilder& cdb, elem *e, regm_t *pretregs)
                 assert(0);
                 break;
         }
-        cdb.append(getregs(retregs));
+        getregs(cdb,retregs);
         cdb.genc2(op,modregrmx(3,r,reg-XMM0), el_tolong(op2));
     }
     else if (n == 2)
@@ -1142,7 +1142,7 @@ void cdvector(CodeBuilder& cdb, elem *e, regm_t *pretregs)
                 cs.Irex |= REX_B;
         }
 
-        cdb.append(getregs(retregs));
+        getregs(cdb,retregs);
         if (n == 4)
         {
             switch (op)
@@ -1262,7 +1262,7 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
                 // SHUFPS XMM0,XMM0,0    0F C6 /r ib
                 codelem(cdb,e1,&retregs,FALSE); // eval left leaf
                 reg = findreg(retregs) - XMM0;
-                cdb.append(getregs(retregs));
+                getregs(cdb,retregs);
                 cs.Iop = SHUFPS;
                 cs.Irm = modregxrmx(3,reg,reg);
                 cs.Iflags = 0;
@@ -1303,7 +1303,7 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
                 // UNPCKLPD XMM0,XMM0     66 0F 14 /r
                 codelem(cdb,e1,&retregs,FALSE); // eval left leaf
                 reg = findreg(retregs) - XMM0;
-                cdb.append(getregs(retregs));
+                getregs(cdb,retregs);
                 cs.Iop = UNPCKLPD;
                 cs.Irm = modregxrmx(3,reg,reg);
                 cs.Iflags = 0;

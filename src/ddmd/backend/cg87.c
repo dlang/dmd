@@ -552,7 +552,7 @@ static void cg87_87topsw(CodeBuilder& cdb)
      * and will cause a seg fault
      */
     assert(!NOSAHF);
-    cdb.append(getregs(mAX));
+    getregs(cdb,mAX);
     if (config.target_cpu >= TARGET_80286)
         cdb.genf2(0xDF,0xE0);             // FSTSW AX
     else
@@ -573,7 +573,7 @@ static void genjmpifC2(CodeBuilder& cdb, code *ctarget)
 {
     if (NOSAHF)
     {
-        cdb.append(getregs(mAX));
+        getregs(cdb,mAX);
         cdb.genf2(0xDF,0xE0);                                    // FSTSW AX
         cdb.genc2(0xF6,modregrm(3,0,4),4);                       // TEST AH,4
         cdb.append(genjmp(CNIL, JNE, FLcode, (block *)ctarget)); // JNE ctarget
@@ -2935,7 +2935,7 @@ void cdd_u64(CodeBuilder& cdb, elem *e, regm_t *pretregs)
         reg  = findreglsw(retregs);
         reg2 = findregmsw(retregs);
         cdb.append(movregconst(CNIL,reg2,0x80000000,0));
-        cdb.append(getregs(mask[reg2] | mAX));
+        getregs(cdb,mask[reg2] | mAX);
 
         cdb.genfltreg(0xC7,0,0);
         code *cf1 = cdb.last();
@@ -3020,7 +3020,7 @@ void cdd_u64(CodeBuilder& cdb, elem *e, regm_t *pretregs)
         unsigned reg2;
         cdb.append(allocreg(&regm2,&reg2,tym));
         cdb.append(movregconst(CNIL,reg2,0x80000000,0));
-        cdb.append(getregs(mask[reg2] | mAX));
+        getregs(cdb,mask[reg2] | mAX);
 
         cdb.genfltreg(0xC7,0,0);
         code *cf1 = cdb.last();
@@ -3612,7 +3612,7 @@ void fixresult_complex87(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretreg
         pop87();
         cdb.genfltreg(ESC(MFfloat,1),3,0);      // FSTP floatreg
         cdb.append(genfwait(CNIL));
-        cdb.append(getregs(mDX|mAX));
+        getregs(cdb,mDX|mAX);
         cdb.genfltreg(LOD, DX, 0);              // MOV EDX,floatreg
 
         pop87();
@@ -3644,7 +3644,7 @@ void fixresult_complex87(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretreg
         pop87();
         cdb.genfltreg(ESC(mf,1),3,0);           // FSTP floatreg
         cdb.append(genfwait(CNIL));
-        cdb.append(getregs(mXMM0|mXMM1));
+        getregs(cdb,mXMM0|mXMM1);
         cdb.genxmmreg(xop,XMM1,0,tyf);
 
         pop87();

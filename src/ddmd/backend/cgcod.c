@@ -1847,6 +1847,7 @@ code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
             dbg_printf("\n");
         }
 #endif
+        CodeBuilder cdb;
         tym = tybasic(tym);
         unsigned size = _tysize[tym];
         *pretregs &= mES | allregs | XMMREGS;
@@ -1866,7 +1867,8 @@ if (retregs == 0) printf("allocreg: file %s(%d)\n", file, line);
             }
             else
                 assert(0);
-            return getregs(retregs);
+            getregs(cdb,retregs);
+            return cdb.finish();
         }
         int count = 0;
 L1:
@@ -1998,7 +2000,8 @@ L3:
         last3retregs = last2retregs;
         last2retregs = lastretregs;
         lastretregs = retregs;
-        return getregs(retregs);
+        getregs(cdb, retregs);
+        return cdb.finish();
 #else
 #warning cpu specific code
 #endif
@@ -2039,7 +2042,7 @@ void useregs(regm_t regm)
  * Generate any code necessary to save any regs.
  */
 
-code *getregs(regm_t r)
+void getregs(CodeBuilder& cdb, regm_t r)
 {
     //printf("getregs(x%x) %s\n", r, regm_str(r));
     regm_t ms = r & regcon.cse.mops;           // mask of common subs we must save
@@ -2048,12 +2051,21 @@ code *getregs(regm_t r)
     msavereg &= ~r;                     // regs that are destroyed
     regcon.immed.mval &= ~r;
     if (ms)
-    {
-        CodeBuilder cdb;
         cse_save(cdb, ms);
-        return cdb.finish();
-    }
-    return NULL;
+}
+
+/*************************
+ * We are going to use the registers in mask r.
+ * Same as getregs(), but assert if code is needed to be generated.
+ */
+void getregsNoSave(regm_t r)
+{
+    //printf("getregsNoSave(x%x) %s\n", r, regm_str(r));
+    assert(!(r & regcon.cse.mops));            // mask of common subs we must save
+    useregs(r);
+    regcon.cse.mval &= ~r;
+    msavereg &= ~r;                     // regs that are destroyed
+    regcon.immed.mval &= ~r;
 }
 
 /*****************************************
@@ -2149,7 +2161,7 @@ Lret:
 void getregs_imm(CodeBuilder& cdb, regm_t r)
 {
     regm_t save = regcon.immed.mval;
-    cdb.append(getregs(r));
+    getregs(cdb,r);
     regcon.immed.mval = save;
 }
 
@@ -2553,7 +2565,7 @@ static void loadcse(CodeBuilder& cdb,elem *e,unsigned reg,regm_t regm)
                 csextab[i].flags |= CSEload;    /* it was loaded        */
                 regcon.cse.value[reg] = e;
                 regcon.cse.mval |= mask[reg];
-                cdb.append(getregs(mask[reg]));
+                getregs(cdb,mask[reg]);
                 gen_loadcse(cdb, reg, i);
                 return;
         }
@@ -2841,7 +2853,7 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
                     adjesp += size;
                 }
             }
-            cdbx.append(getregs(mi));
+            getregs(cdbx,mi);
             tosave &= ~mi;
         }
   }

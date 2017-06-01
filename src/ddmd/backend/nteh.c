@@ -479,7 +479,7 @@ void nteh_filter(CodeBuilder& cdb, block *b)
                 mov     __ecode[EBP],EAX
          */
 
-        cdb.append(getregs(mAX));
+        getregs(cdb,mAX);
 
         cs.Iop = 0x8B;
         cs.Irm = modregrm(2,AX,BPRM);
@@ -671,7 +671,7 @@ void cdsetjmp(CodeBuilder& cdb, elem *e,regm_t *pretregs)
 
     pushParams(cdb,e->E1,REGSIZE);
 
-    cdb.append(getregs(~getRtlsym(RTLSYM_SETJMP3)->Sregsaved & (ALLREGS | mES)));
+    getregs(cdb,~getRtlsym(RTLSYM_SETJMP3)->Sregsaved & (ALLREGS | mES));
     cdb.gencs(0xE8,0,FLfunc,getRtlsym(RTLSYM_SETJMP3));      // CALL __setjmp3
 
     cdb.append(cod3_stackadj(NULL, -(stackpush - stackpushsave)));
@@ -712,7 +712,7 @@ void nteh_unwind(CodeBuilder& cdb,regm_t retregs,unsigned index)
     gensaverestore(retregs & desregs,&cs1,&cs2);
 
     CodeBuilder cdbx;
-    cdbx.append(getregs(desregs));
+    getregs(cdbx,desregs);
 
     cs.Iop = 0x8D;
     cs.Irm = modregrm(2,reg,BPRM);
@@ -773,7 +773,8 @@ code *linux_unwind(regm_t retregs,unsigned index)
     code *cs2;
     gensaverestore(retregs & desregs,&cs1,&cs2);
 
-    CodeBuilder cdb(getregs(desregs));
+    CodeBuilder cdb;
+    getregs(cdb,desregs);
     cdb.genc2(0x68,0,index);                  // PUSH index
 
 #if MARS
@@ -846,7 +847,7 @@ void nteh_monitor_prolog(CodeBuilder& cdb, Symbol *shandle)
 
     Symbol *s = getRtlsym(RTLSYM_MONITOR_PROLOG);
     regm_t desregs = ~s->Sregsaved & ALLREGS;
-    cdbx.append(getregs(desregs));
+    getregs(cdbx,desregs);
     cdbx.gencs(0xE8,0,FLfunc,s);       // CALL _d_monitor_prolog
 
     cs.Iop = 0x89;
@@ -883,7 +884,7 @@ void nteh_monitor_epilog(CodeBuilder& cdb,regm_t retregs)
     gensaverestore(retregs& desregs,&cs1,&cs2);
     cdb.append(cs1);
 
-    cdb.append(getregs(desregs));
+    getregs(cdb,desregs);
     cdb.gencs(0xE8,0,FLfunc,s);               // CALL __d_monitor_epilog
 
     cdb.append(cs2);
