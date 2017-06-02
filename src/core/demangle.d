@@ -185,6 +185,20 @@ private struct Demangle
         return null;
     }
 
+    // remove val from dst buffer
+    void remove( const(char)[] val )
+    {
+        if( val.length )
+        {
+            assert( contains( dst[0 .. len], val ) );
+            debug(info) printf( "removing (%.*s)\n", cast(int) val.length, val.ptr );
+
+            size_t v = val.ptr - dst.ptr;
+            for (size_t p = v; p < len; p++)
+                dst[p] = dst[p + val.length];
+            len -= val.length;
+        }
+    }
 
     char[] append( const(char)[] val )
     {
@@ -891,10 +905,19 @@ private struct Demangle
             return dst[beg .. len];
         case 'D': // TypeDelegate (D TypeFunction)
             popFront();
+            auto modbeg = len;
+            parseModifier();
+            auto modend = len;
             if( front == 'Q' )
                 parseBackrefType( () => parseTypeFunction( name, IsDelegate.yes ) );
             else
                 parseTypeFunction( name, IsDelegate.yes );
+            if (modend > modbeg)
+            {
+                // move modifiers behind the function arguments
+                shift(dst[modend-1 .. modend]); // trailing space
+                shift(dst[modbeg .. modend-1]);
+            }
             return dst[beg .. len];
         case 'n': // TypeNone (n)
             popFront();
@@ -1049,6 +1072,39 @@ private struct Demangle
         }
     }
 
+    void parseModifier()
+    {
+        switch( front )
+        {
+        case 'y':
+            popFront();
+            put( "immutable " );
+            break;
+        case 'O':
+            popFront();
+            put( "shared " );
+            if( front == 'x' )
+                goto case 'x';
+            if( front == 'N' )
+                goto case 'N';
+            break;
+        case 'N':
+            if( peek( 1 ) != 'g' )
+                break;
+            popFront();
+            popFront();
+            put( "inout " );
+            if( front == 'x' )
+                goto case 'x';
+            break;
+        case 'x':
+            popFront();
+            put( "const " );
+            break;
+        default: break;
+        }
+    }
+
     void parseFuncAttr()
     {
         // FuncAttrs
@@ -1174,7 +1230,11 @@ private struct Demangle
     }
 
     enum IsDelegate { no, yes }
-    // returns the argument list with the left parenthesis, but not the right
+
+    /*
+        TypeFunction:
+            CallConvention FuncAttrs Arguments ArgClose Type
+    */
     char[] parseTypeFunction( char[] name = null, IsDelegate isdg = IsDelegate.no )
     {
         debug(trace) printf( "parseTypeFunction+\n" );
@@ -1182,33 +1242,40 @@ private struct Demangle
         auto beg = len;
 
         parseCallConvention();
+        auto attrbeg = len;
         parseFuncAttr();
 
-        beg = len;
+        auto argbeg = len;
         put( '(' );
-        scope(success)
-        {
-            put( ')' );
-            auto t = len;
-            parseType();
-            put( ' ' );
-            if( name.length )
-            {
-                if( !contains( dst[0 .. len], name ) )
-                    put( name );
-                else if( shift( name ).ptr != name.ptr )
-                {
-                    beg -= name.length;
-                    t -= name.length;
-                }
-            }
-            else if( IsDelegate.yes == isdg )
-                put( "delegate" );
-            else
-                put( "function" );
-            shift( dst[beg .. t] );
-        }
         parseFuncArguments();
+        put( ')' );
+        if (attrbeg < argbeg)
+        {
+            // move function attributes behind arguments
+            shift( dst[argbeg - 1 .. argbeg] ); // trailing space
+            shift( dst[attrbeg .. argbeg - 1] ); // attributes
+            argbeg = attrbeg;
+        }
+        auto retbeg = len;
+        parseType();
+        put( ' ' );
+        // append name/delegate/function
+        if( name.length )
+        {
+            if( !contains( dst[0 .. len], name ) )
+                put( name );
+            else if( shift( name ).ptr != name.ptr )
+            {
+                argbeg -= name.length;
+                retbeg -= name.length;
+            }
+        }
+        else if( IsDelegate.yes == isdg )
+            put( "delegate" );
+        else
+            put( "function" );
+        // move arguments and attributes behind name
+        shift( dst[argbeg .. retbeg] );
         return dst[beg..len];
     }
 
@@ -1609,7 +1676,7 @@ private struct Demangle
         size_t n = 0;
         if ( isDigit( front ) )
             n = decodeNumber();
-        parseMangledName( n );
+        parseMangledName( false, n );
     }
 
 
@@ -1702,46 +1769,52 @@ private struct Demangle
         }
     }
 
-    void parseFunctionType( bool muteReturnType )
+    // parse optional function arguments as part of a symbol name, i.e without return type
+    // if keepAttr, the calling convention and function attributes are not discarded, but returned
+    char[] parseFunctionTypeNoReturn( bool keepAttr = false )
     {
-        if( 'M' == front )
-        {
-            // do not emit "needs this"
-            popFront();
-        }
-        if( isCallConvention( front ) )
-        {
-            // try to demangle a function, in case we are pointing to some function local
-            auto prevpos = pos;
-            auto prevlen = len;
+        // try to demangle a function, in case we are pointing to some function local
+        auto prevpos = pos;
+        auto prevlen = len;
+        auto prevbrp = brp;
 
-            // we don't want calling convention and attributes in the qualified name
-            parseCallConvention();
-            parseFuncAttr();
-            len = prevlen;
-
-            put( '(' );
-            parseFuncArguments();
-            put( ')' );
-            if( !isSymbolNameFront() ) // voldemort types don't have a return type on the function
+        char[] attr;
+        try
+        {
+            if( 'M' == front )
             {
-                auto funclen = len;
-
-                bool prevMute = mute;
-                scope(exit) mute = prevMute;
-                mute = muteReturnType;
-                parseType();
-
-                if( !muteReturnType && !isSymbolNameFront() )
+                // do not emit "needs this"
+                popFront();
+                parseModifier();
+            }
+            if( isCallConvention( front ) )
+            {
+                // we don't want calling convention and attributes in the qualified name
+                parseCallConvention();
+                parseFuncAttr();
+                if( keepAttr )
                 {
-                    // not part of a qualified name, so back up
-                    pos = prevpos;
-                    len = prevlen;
+                    attr = dst[prevlen .. len];
                 }
                 else
-                    len = funclen; // remove return type from qualified name
+                {
+                    len = prevlen;
+                }
+
+                put( '(' );
+                parseFuncArguments();
+                put( ')' );
             }
         }
+        catch( ParseException )
+        {
+            // not part of a qualified name, so back up
+            pos = prevpos;
+            len = prevlen;
+            brp = prevbrp;
+            attr = null;
+        }
+        return attr;
     }
 
     /*
@@ -1761,7 +1834,8 @@ private struct Demangle
             if( n++ )
                 put( '.' );
             parseSymbolName();
-            parseFunctionType( false );
+            parseFunctionTypeNoReturn();
+
         } while( isSymbolNameFront() );
         return dst[beg .. len];
     }
@@ -1772,7 +1846,7 @@ private struct Demangle
         _D QualifiedName Type
         _D QualifiedName M Type
     */
-    void parseMangledName(size_t n = 0)
+    void parseMangledName( bool displayType, size_t n = 0 )
     {
         debug(trace) printf( "parseMangledName+\n" );
         debug(trace) scope(success) printf( "parseMangledName-\n" );
@@ -1784,18 +1858,68 @@ private struct Demangle
         match( 'D' );
         do
         {
-            name = parseQualifiedName();
+            size_t  beg = len;
+            size_t  nameEnd = len;
+            char[] attr;
+            do
+            {
+                if( attr )
+                    remove( attr ); // dump attributes of parent symbols
+                if( beg != len )
+                    put( '.' );
+                parseSymbolName();
+                nameEnd = len;
+                attr = parseFunctionTypeNoReturn( displayType );
+
+            } while( isSymbolNameFront() );
+
+            if( displayType )
+            {
+                attr = shift( attr );
+                nameEnd = len - attr.length;  // name includes function arguments
+            }
+            name = dst[beg .. nameEnd];
+
             debug(info) printf( "name (%.*s)\n", cast(int) name.length, name.ptr );
             if( 'M' == front )
                 popFront(); // has 'this' pointer
-            if( AddType.yes == addType )
-                parseType( name );
+
+            auto lastlen = len;
+            auto type = parseType();
+            if( displayType )
+            {
+                if( type.length )
+                    put( ' ' );
+                // sort (name,attr,type) -> (attr,type,name)
+                shift( name );
+            }
+            else
+            {
+                // remove type
+                assert( attr.length == 0 );
+                len = lastlen;
+            }
             if( pos >= buf.length || (n != 0 && pos >= end) )
                 return;
+
+            switch( front )
+            {
+            case 'T': // terminators when used as template alias parameter
+            case 'V':
+            case 'S':
+            case 'Z':
+                return;
+            default:
+            }
             put( '.' );
+
         } while( true );
     }
 
+    void parseMangledName()
+    {
+        parseMangledName( AddType.yes == addType );
+    }
 
     char[] doDemangle(alias FUNC)()
     {
@@ -2081,7 +2205,8 @@ version(unittest)
         ["_D4test3fooAa", "char[] test.foo"],
         ["_D8demangle8demangleFAaZAa", "char[] demangle.demangle(char[])"],
         ["_D6object6Object8opEqualsFC6ObjectZi", "int object.Object.opEquals(Object)"],
-        ["_D4test2dgDFiYd", "double test.dg(int, ...)"],
+        ["_D4test2dgDFiYd", "double delegate(int, ...) test.dg"],
+        ["_D4test2dgDxFNfiYd", "double delegate(int, ...) @safe const test.dg"],
         //["_D4test58__T9factorialVde67666666666666860140VG5aa5_68656c6c6fVPvnZ9factorialf", ""],
         //["_D4test101__T9factorialVde67666666666666860140Vrc9a999999999999d9014000000000000000c00040VG5aa5_68656c6c6fVPvnZ9factorialf", ""],
         ["_D4test34__T3barVG3uw3_616263VG3wd3_646566Z1xi", "int test.bar!(\"abc\"w, \"def\"d).x"],
@@ -2117,7 +2242,7 @@ version(unittest)
         ["_D8demangle4testFNhG4fZv", "void demangle.test(__vector(float[4]))"],
         ["_D8demangle4testFNhG2dZv", "void demangle.test(__vector(double[2]))"],
         ["_D8demangle4testFNhG4fNhG4fZv", "void demangle.test(__vector(float[4]), __vector(float[4]))"],
-        ["_D8bug1119234__T3fooS23_D8bug111924mainFZ3bariZ3fooMFZv","void bug11192.foo!(int bug11192.main().bar).foo()"],
+        ["_D8bug1119234__T3fooS23_D8bug111924mainFZ3bariZ3fooMFZv","void bug11192.foo!(bug11192.main().bar).foo()"],
         ["_D13libd_demangle12__ModuleInfoZ", "libd_demangle.__ModuleInfo"],
         ["_D15TypeInfo_Struct6__vtblZ", "TypeInfo_Struct.__vtbl"],
         ["_D3std5stdio12__ModuleInfoZ", "std.stdio.__ModuleInfo"],
