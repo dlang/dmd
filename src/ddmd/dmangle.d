@@ -533,33 +533,40 @@ public:
         }
     }
 
-    override void visit(Declaration d)
+    static const(char)* externallyMangledIdentifier(Declaration d)
     {
-        //printf("Declaration.mangle(this = %p, '%s', parent = '%s', linkage = %d)\n",
-        //        d, d.toChars(), d.parent ? d.parent.toChars() : "null", d.linkage);
         if (!d.parent || d.parent.isModule() || d.linkage == LINKcpp) // if at global scope
         {
             switch (d.linkage)
             {
-            case LINKd:
-                break;
-            case LINKc:
-            case LINKwindows:
-            case LINKpascal:
-            case LINKobjc:
-                buf.writestring(d.ident.toChars());
-                return;
-            case LINKcpp:
-                buf.writestring(Target.toCppMangle(d));
-                return;
-            case LINKdefault:
-                d.error("forward declaration");
-                buf.writestring(d.ident.toChars());
-                return;
-            default:
-                fprintf(stderr, "'%s', linkage = %d\n", d.toChars(), d.linkage);
-                assert(0);
+                case LINKd:
+                    break;
+                case LINKc:
+                case LINKwindows:
+                case LINKpascal:
+                case LINKobjc:
+                    return d.ident.toChars();
+                case LINKcpp:
+                    return Target.toCppMangle(d);
+                case LINKdefault:
+                    d.error("forward declaration");
+                    return d.ident.toChars();
+                default:
+                    fprintf(stderr, "'%s', linkage = %d\n", d.toChars(), d.linkage);
+                    assert(0);
             }
+        }
+        return null;
+    }
+
+    override void visit(Declaration d)
+    {
+        //printf("Declaration.mangle(this = %p, '%s', parent = '%s', linkage = %d)\n",
+        //        d, d.toChars(), d.parent ? d.parent.toChars() : "null", d.linkage);
+        if (auto id = externallyMangledIdentifier(d))
+        {
+            buf.writestring(id);
+            return;
         }
         buf.writestring("_D");
         mangleDecl(d);
@@ -793,14 +800,30 @@ public:
             else if (sa)
             {
             Lsa:
-                buf.writeByte('S');
                 sa = sa.toAlias();
-                Declaration d = sa.isDeclaration();
-                if (d && (!d.type || !d.type.deco))
+                if (Declaration d = sa.isDeclaration())
                 {
-                    ti.error("forward reference of %s %s", d.kind(), d.toChars());
-                    continue;
+                    if (auto fad = d.isFuncAliasDeclaration())
+                        d = fad.toAliasFunc();
+                    if (d.mangleOverride)
+                    {
+                        buf.writeByte('X');
+                        toBuffer(d.mangleOverride, d);
+                        continue;
+                    }
+                    if (auto id = externallyMangledIdentifier(d))
+                    {
+                        buf.writeByte('X');
+                        toBuffer(id, d);
+                        continue;
+                    }
+                    if (!d.type || !d.type.deco)
+                    {
+                        ti.error("forward reference of %s %s", d.kind(), d.toChars());
+                        continue;
+                    }
                 }
+                buf.writeByte('S');
                 mangleSymbol(sa);
             }
             else if (va)
