@@ -556,10 +556,11 @@ pure:
     void Comment(string comment)
     {
         uint alignedLength = align4(cast(uint) comment.length) / 4;
-        emitLongInst(LongInst64(LongInst.Comment, StackAddr.init, Imm32(alignedLength)));
         uint commentLength = cast(uint) comment.length;
+
+        emitLongInst(LongInst64(LongInst.Comment, StackAddr.init, Imm32(commentLength)));
         uint idx;
-        while(commentLength > 4)
+        while(commentLength >= 4)
         {
             byteCodeArray[ip++] = comment[idx] | comment[idx+1] << 8 | comment[idx+2] << 16 | comment[idx+3] << 24;
             idx += 4;
@@ -914,7 +915,7 @@ pure:
             auto stackref = BCValue(currSp(), val.type);
             Set(stackref.i32, val);
 
-            sp += align4(basicTypeSize(val.type));
+            sp += align4(basicTypeSize(val.type.type));
             return stackref;
         }
         else
@@ -927,7 +928,6 @@ pure:
     {
         if (val.vType == BCValueType.StackValue || val.vType == BCValueType.Parameter)
         {
-
             byteCodeArray[ip] = ShortInst16(LongInst.Ret, val.stackAddr);
             byteCodeArray[ip + 1] = 0;
             ip += 2;
@@ -975,7 +975,7 @@ pure:
     void LoadIndexed(BCValue result, BCValue array, BCValue idx, BCValue arrayLength)
     {
 
-        auto elmSize = imm32(basicTypeSize(result.type));
+        auto elmSize = imm32(basicTypeSize(result.type.type));
 
         assert(result.vType == BCValueType.StackValue);
         assert(idx.type.type == BCTypeEnum.i32);
@@ -1374,16 +1374,17 @@ string printInstructions(const int* startInstructions, uint length) pure
         case LongInst.Comment:
             {
                 auto commentLength = hi;
-                result ~= "CommentBegin (length: " ~  to!string(length) ~ ")\n";
+                auto alignedLength = align4(commentLength) / 4;
+                result ~= "CommentBegin (CommentLength: " ~  to!string(commentLength) ~ ")\n";
                 // alignLengthBy2
-                auto alignedLength = ((commentLength + 1) & 1);
-                assert(pos + alignedLength < length, "comment longer then code");
+                assert(alignedLength < length, "comment (" ~ to!string(alignedLength) ~") longer then code (" ~ to!string(length) ~ ")");
 
-                foreach(c4i; pos .. pos + commentLength)
+                foreach(c4i; pos .. pos + commentLength / 4)
                 {
                     result ~= *(cast(const(char[4])*) &arr[c4i]);
                 }
-        pos += alignedLength;
+                pos += alignedLength;
+                length -= alignedLength;
                 result ~= "\nCommentEnd\n";
             }
             break;
@@ -2089,7 +2090,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
             break;
         case LongInst.Comment:
             {
-                ip += cast(uint)((hi + 1) & 1);
+                ip += align4(hi) / 4;
             }
             break;
         case LongInst.StrEq:

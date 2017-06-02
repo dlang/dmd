@@ -12,7 +12,7 @@ import ddmd.sideeffect;
 import ddmd.visitor;
 import ddmd.arraytypes : Expressions, VarDeclarations;
 /**
- * Written By Stefan Koch in 2016
+ * Written By Stefan Koch in 2016/17
  */
 
 import std.conv : to;
@@ -1567,6 +1567,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         currentIndexed = BCValue.init;
         retval = BCValue.init;
         assignTo = BCValue.init;
+        boolres = BCValue.init;
 
         labeledBlocks.destroy();
         vars.destroy();
@@ -1578,7 +1579,6 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     FuncDeclaration me;
     bool inReturnStatement;
-    Expression lastExpr;
 
     UnresolvedGoto[ubyte.max] unresolvedGotos = void;
     BCAddr[ubyte.max] breakFixups = void;
@@ -1618,6 +1618,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     BCValue retval;
     BCValue assignTo;
+    BCValue boolres;
 
     bool discardValue = false;
     uint current_line;
@@ -2031,7 +2032,17 @@ public:
         endCndJmp(CJisNull, LafterCopy);
     }
 
+    bool isBoolExp(Expression e)
+    {
+        return (e && (e.op == TOKandand || e.op == TOKoror));
+    }
+
     extern (D) BCValue genExpr(Expression expr, string debugMessage = null, uint line = __LINE__)
+    {
+        return genExpr(expr, false, debugMessage, line);
+    }
+
+    extern (D) BCValue genExpr(Expression expr, bool costumBoolFixup,  string debugMessage = null, uint line = __LINE__)
     {
 
         debug (ctfe)
@@ -2067,9 +2078,19 @@ public:
         }
         else
         {
-
+            const oldFixupTableCount = fixupTableCount;
             if (expr)
                 expr.accept(this);
+            if (isBoolExp(expr) && !costumBoolFixup)
+            {
+                auto Ltrue = genLabel();
+                Set(retval, imm32(1));
+                auto JtoEnd = beginJmp();
+                auto Lfalse = genLabel();
+                Set(retval, imm32(0));
+                endJmp(JtoEnd, genLabel());
+                doFixup(oldFixupTableCount, &Ltrue, &Lfalse);
+            }
         }
         debug (ctfe)
         {
@@ -2441,6 +2462,7 @@ static if (is(BCGen))
             break;
         case TOK.TOKquestion:
             {
+		Comment(": ? begin");
                 auto ce = cast(CondExp) e;
                 auto cond = genExpr(ce.econd);
                 debug (ctfe)
@@ -2462,6 +2484,7 @@ static if (is(BCGen))
                 // FIXME this is a hack we should not call Set this way
                 Set(retval.i32, rhs.i32);
                 endCndJmp(cj, rhsEval);
+		Comment("Ending cndJmp for ?: rhs");
                 endJmp(toend, genLabel());
             }
             break;
@@ -2675,7 +2698,7 @@ static if (is(BCGen))
                     // If lhs is true keep going
                     const oldFixupTableCount = fixupTableCount;
                         {
-
+                            Comment("&& beforeLhs");
                             auto lhs = genExpr(e.e1);
                             if (!lhs || !canWorkWithType(lhs.type))
                             {
@@ -2687,6 +2710,7 @@ static if (is(BCGen))
                             //doFixup(oldFixupTableCount, &afterLhs, null);
                             fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(lhs,
                                     false));
+                            Comment("&& afterLhs");
                         }
 
 
@@ -2708,6 +2732,7 @@ static if (is(BCGen))
 
                         fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(rhs,
                                 false));
+                        Comment("&& afterRhs");
                     }
 
                     noRetval = false;
@@ -5442,13 +5467,15 @@ static if (is(BCGen))
         }
 
         uint oldFixupTableCount = fixupTableCount;
-        bool isBoolExp = (fs.condition.op == TOKandand || fs.condition.op == TOKoror);
-        if (isBoolExp)
+        bool boolExp = isBoolExp(fs.condition);
+
+        if (boolExp)
         {
-            lastExpr = null;
+            boolres = genTemporary(i32Type);
             noRetval = true;
         }
-        auto cond = genExpr(fs.condition);
+
+        auto cond = genExpr(fs.condition, true);
 
         noRetval = false;
         if (!cond)
@@ -5459,8 +5486,10 @@ static if (is(BCGen))
 
         typeof(beginCndJmp(cond)) cj;
 
-        if (!isBoolExp)
+        if (!boolExp)
+	{
             cj = beginCndJmp(cond);
+	}
 
         BCBlock ifbody = fs.ifbody ? genBlock(fs.ifbody) : BCBlock.init;
         auto to_end = beginJmp();
@@ -5468,11 +5497,12 @@ static if (is(BCGen))
         BCBlock elsebody = fs.elsebody ? genBlock(fs.elsebody) : BCBlock.init;
         endJmp(to_end, genLabel());
 
-        if (!isBoolExp)
+        if (!boolExp)
             endCndJmp(cj, elseLabel);
 
         doFixup(oldFixupTableCount, ifbody ? &ifbody.begin : null,
             elsebody ? &elsebody.begin : null);
+
         assert(oldFixupTableCount == fixupTableCount);
 
     }
