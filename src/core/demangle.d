@@ -1553,7 +1553,7 @@ private struct Demangle
         T Type
         V Type Value
         S Number_opt QualifiedName
-        S LName
+        X ExternallyMangledName
     */
     void parseTemplateArgs()
     {
@@ -1636,6 +1636,11 @@ private struct Demangle
                     }
                 }
                 parseQualifiedName();
+                continue;
+            case 'X':
+                popFront();
+                putComma(n);
+                parseLName();
                 continue;
             default:
                 return;
@@ -2269,6 +2274,8 @@ version(unittest)
          "pure @safe void testexpansion.s!(testexpansion.s!(int).s(int).Result).s(testexpansion.s!(int).s(int).Result).Result.foo()"],
         ["_D13testexpansion__T1sTSQw__TQjTiZQoFiZ6ResultZQBbFQBcZQq3fooMFNaNfZv",
          "pure @safe void testexpansion.s!(testexpansion.s!(int).s(int).Result).s(testexpansion.s!(int).s(int).Result).Result.foo()"],
+        ["_D3std5stdio4File__T8lockImplX10LockFileExTykZQBaMFmmykZi", // C function as template alias parameter
+         "int std.stdio.File.lockImpl!(LockFileEx, immutable(uint)).lockImpl(ulong, ulong, immutable(uint))"],
     ];
 
 
