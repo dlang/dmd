@@ -165,27 +165,21 @@ private struct Demangle
     }
 
 
+    // move val to the end of the dst buffer
     char[] shift( const(char)[] val )
     {
-        void exch( size_t a, size_t b )
-        {
-            char t = dst[a];
-            dst[a] = dst[b];
-            dst[b] = t;
-        }
-
         if( val.length && !mute )
         {
             assert( contains( dst[0 .. len], val ) );
             debug(info) printf( "shifting (%.*s)\n", cast(int) val.length, val.ptr );
 
-            for( size_t n = 0; n < val.length; n++ )
-            {
-                for( size_t v = val.ptr - dst.ptr; v + 1 < len; v++ )
-                {
-                    exch( v, v + 1 );
-                }
-            }
+            if (len + val.length > dst.length)
+                overflow();
+            size_t v = val.ptr - dst.ptr;
+            dst[len .. len + val.length] = val[];
+            for (size_t p = v; p < len; p++)
+                dst[p] = dst[p + val.length];
+
             return dst[len - val.length .. len];
         }
         return null;
