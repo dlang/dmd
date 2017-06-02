@@ -1485,6 +1485,7 @@ private struct Demangle
     TemplateArgX:
         T Type
         V Type Value
+        S Number_opt QualifiedName
         S LName
     */
     void parseTemplateArgs()
@@ -1492,6 +1493,7 @@ private struct Demangle
         debug(trace) printf( "parseTemplateArgs+\n" );
         debug(trace) scope(success) printf( "parseTemplateArgs-\n" );
 
+    L_nextArg:
         for( size_t n = 0; true; n++ )
         {
             if( front == 'H' )
@@ -1540,7 +1542,32 @@ private struct Demangle
                         debug(trace) printf( "not a mangled name arg\n" );
                     }
                 }
-
+                if( isDigit( front ) && isDigit( peek( 1 ) ) )
+                {
+                    // ambiguity: length followed by qualified name (starting with number)
+                    // try all possible pairs of numbers
+                    auto qlen = decodeNumber() / 10; // last digit needed for QualifiedName
+                    pos--;
+                    auto l = len;
+                    auto p = pos;
+                    auto b = brp;
+                    while( qlen > 0 )
+                    {
+                        try
+                        {
+                            parseQualifiedName();
+                            if( pos == p + qlen )
+                                continue L_nextArg;
+                        }
+                        catch( ParseException e )
+                        {
+                        }
+                        qlen /= 10; // retry with one digit less
+                        pos = --p;
+                        len = l;
+                        brp = b;
+                    }
+                }
                 parseQualifiedName();
                 continue;
             default:
@@ -1557,11 +1584,20 @@ private struct Demangle
 
         auto p = pos;
         scope(exit) pos = p;
-        auto n = decodeNumber();
-        return n >= 4 &&
-           pos < buf.length && '_' == buf[pos++] &&
-           pos < buf.length && 'D' == buf[pos++] &&
-           isDigit(buf[pos]);
+        if ( isDigit( buf[pos] ) )
+        {
+            auto n = decodeNumber();
+            return n >= 4 &&
+                pos < buf.length && '_' == buf[pos++] &&
+                pos < buf.length && 'D' == buf[pos++] &&
+                isDigit( buf[pos] );
+        }
+        else
+        {
+            return pos < buf.length && '_' == buf[pos++] &&
+                   pos < buf.length && 'D' == buf[pos++] &&
+                   isSymbolNameFront();
+        }
     }
 
 
@@ -1570,7 +1606,9 @@ private struct Demangle
         debug(trace) printf( "parseMangledNameArg+\n" );
         debug(trace) scope(success) printf( "parseMangledNameArg-\n" );
 
-        auto n = decodeNumber();
+        size_t n = 0;
+        if ( isDigit( front ) )
+            n = decodeNumber();
         parseMangledName( n );
     }
 
