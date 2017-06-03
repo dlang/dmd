@@ -163,7 +163,7 @@ FRONT_SRCS=$D/access.d $D/aggregate.d $D/aliasthis.d $D/apply.d $D/argtypes.d $D
 	$D/impcnvtab.d $D/init.d $D/inline.d $D/inlinecost.d $D/intrange.d $D/json.d $D/lib.d $D/link.d	\
 	$D/mars.d $D/mtype.d $D/nogc.d $D/nspace.d $D/objc.d $D/opover.d $D/optimize.d $D/parse.d	\
 	$D/sapply.d $D/sideeffect.d $D/statement.d $D/staticassert.d $D/target.d	\
-	$D/safe.d $D/blockexit.d $D/asttypename.d \
+	$D/safe.d $D/blockexit.d $D/asttypename.d $D/printast.d \
 	$D/traits.d $D/utils.d $D/visitor.d $D/libomf.d $D/scanomf.d $D/typinf.d \
 	$D/libmscoff.d $D/scanmscoff.d $D/statement_rewrite_walker.d $D/statementsem.d $D/staticcond.d
 
