@@ -1228,7 +1228,7 @@ static void cmpval(CodeBuilder& cdb, targ_llong val, unsigned sz, unsigned reg, 
         else
         {
             assert(sreg != NOREG);
-            cdb.append(movregconst(CNIL,sreg,val,64));  // MOV sreg,val64
+            movregconst(cdb,sreg,val,64);  // MOV sreg,val64
             cdb.append(genregs(CNIL,0x3B,reg,sreg));    // CMP reg,sreg
             code_orrex(cdb.last(), REX_W);
             getregsNoSave(mask[sreg]);                  // don't remember we loaded this constant
@@ -1673,7 +1673,7 @@ void doswitch(block *b)
             cdb.gencs(0xC7,modregrm(3,0,DI),FLswitch,NULL);
             cdb.last()->IEV2.Vswitch = b;
         }
-        cdb.append(movregconst(CNIL,CX,ncases,0));    // MOV CX,ncases
+        movregconst(cdb,CX,ncases,0);    // MOV CX,ncases
 
         /* The switch table will be accessed through ES:DI.
          * Therefore, load ES with proper segment value.
@@ -2575,7 +2575,7 @@ code *genshift(code *c)
  *      code (if any) generated
  */
 
-code *movregconst(code *c,unsigned reg,targ_size_t value,regm_t flags)
+void movregconst(CodeBuilder& cdb,unsigned reg,targ_size_t value,regm_t flags)
 {   unsigned r;
     regm_t mreg;
 
@@ -2613,14 +2613,14 @@ code *movregconst(code *c,unsigned reg,targ_size_t value,regm_t flags)
             if (mreg & 1)
             {
                 if ((regcon.immed.value[r] & 0xFF) == value)
-                {   c = genregs(c,0x8A,reg,r);          // MOV regL,rL
+                {   cdb.append(genregs(CNIL,0x8A,reg,r));          // MOV regL,rL
                     if (I64 && reg >= 4 || r >= 4)
-                        code_orrex(c, REX);
+                        code_orrex(cdb.last(), REX);
                     goto L2;
                 }
                 if (!(I64 && reg >= 4) &&
                     r < 4 && ((regcon.immed.value[r] >> 8) & 0xFF) == value)
-                {   c = genregs(c,0x8A,reg,r | 4);      // MOV regL,rH
+                {   cdb.append(genregs(CNIL,0x8A,reg,r | 4));      // MOV regL,rH
                     goto L2;
                 }
             }
@@ -2631,24 +2631,24 @@ code *movregconst(code *c,unsigned reg,targ_size_t value,regm_t flags)
         {
             if (!(flags & 4) &&                 // if we can set the whole register
                 !(flags & 16 && reg & 4))       // and reg is not an H register
-            {   c = genregs(c,0x31,reg,reg);    // XOR reg,reg
+            {   cdb.append(genregs(CNIL,0x31,reg,reg));      // XOR reg,reg
                 regimmed_set(reg,value);
                 regv = 0;
             }
             else
-                c = genregs(c,0x30,reg,reg);    // XOR regL,regL
+                cdb.append(genregs(CNIL,0x30,reg,reg));      // XOR regL,regL
             flags &= ~mPSW;                     // flags already set by XOR
         }
         else
-        {   c = genc2(c,0xC6,modregrmx(3,0,reg),value);  /* MOV regL,value */
+        {   cdb.genc2(0xC6,modregrmx(3,0,reg),value);  // MOV regL,value
             if (reg >= 4 && I64)
             {
-                code_orrex(c, REX);
+                code_orrex(cdb.last(), REX);
             }
         }
     L2:
         if (flags & mPSW)
-            genregs(c,0x84,reg,reg);            // TEST regL,regL
+            cdb.append(genregs(CNIL,0x84,reg,reg));            // TEST regL,regL
 
         if (regm)
             // Set just the 'L' part of the register value
@@ -2656,11 +2656,11 @@ code *movregconst(code *c,unsigned reg,targ_size_t value,regm_t flags)
         else if (flags & 16 && reg & 4 && regcon.immed.mval & mask[reg & 3])
             // Set just the 'H' part of the register value
             regimmed_set((reg & 3),(regv & ~(targ_size_t)0xFF00) | (value << 8));
-        return c;
+        return;
     }
 L3:
     if (I16)
-        value = (targ_short) value;             /* sign-extend MSW      */
+        value = (targ_short) value;             // sign-extend MSW
     else if (I32)
         value = (targ_int) value;
 
@@ -2673,28 +2673,27 @@ L3:
         {
             if (flags & mPSW)
                 goto L1;
-            code *c1 = genc2(CNIL,0xC7,modregrmx(3,0,reg),value); // MOV reg,value
-            c1->Iflags |= CFopsize;             // yes, even for I64
-            c = cat(c,c1);
+            cdb.genc2(0xC7,modregrmx(3,0,reg),value); // MOV reg,value
+            cdb.last()->Iflags |= CFopsize;           // yes, even for I64
             if (regm)
                 // High bits of register are not affected by 16 bit load
                 regimmed_set(reg,(regv & ~(targ_size_t)0xFFFF) | value);
         }
-        return c;
+        return;
     }
 L1:
 
-    /* If we already have the right value in the right register */
+    // If we already have the right value in the right register
     if (regm && (regv & 0xFFFFFFFF) == (value & 0xFFFFFFFF) && !(flags & 64))
     {   if (flags & mPSW)
-            c = gentstreg(c,reg);
+            cdb.append(gentstreg(CNIL,reg));
     }
     else if (flags & 64 && regm && regv == value)
     {   // Look at the full 64 bits
         if (flags & mPSW)
         {
-            c = gentstreg(c,reg);
-            code_orrex(c, REX_W);
+            cdb.append(gentstreg(CNIL,reg));
+            code_orrex(cdb.last(), REX_W);
         }
     }
     else
@@ -2703,50 +2702,50 @@ L1:
         {
             switch (value)
             {   case 0:
-                    c = genclrreg(c,reg);
+                    cdb.append(genclrreg(CNIL,reg));
                     break;
                 case 1:
                     if (I64)
                         goto L4;
-                    c = genclrreg(c,reg);
+                    cdb.append(genclrreg(CNIL,reg));
                     goto inc;
                 case -1:
                     if (I64)
                         goto L4;
-                    c = genclrreg(c,reg);
+                    cdb.append(genclrreg(CNIL,reg));
                     goto dec;
                 default:
                 L4:
                     if (flags & 64)
                     {
-                        c = genc2(c,0xB8 + (reg&7),REX_W << 16 | (reg&8) << 13,value); // MOV reg,value64
-                        gentstreg(c,reg);
-                        code_orrex(c, REX_W);
+                        cdb.genc2(0xB8 + (reg&7),REX_W << 16 | (reg&8) << 13,value); // MOV reg,value64
+                        cdb.append(gentstreg(CNIL,reg));
+                        code_orrex(cdb.last(), REX_W);
                     }
                     else
                     {
                         value &= 0xFFFFFFFF;
-                        c = genc2(c,0xB8 + (reg&7),(reg&8) << 13,value); /* MOV reg,value */
-                        gentstreg(c,reg);
+                        cdb.genc2(0xB8 + (reg&7),(reg&8) << 13,value); // MOV reg,value
+                        cdb.append(gentstreg(CNIL,reg));
                     }
                     break;
             }
         }
         else
         {
-            /* Look for single byte conversion  */
+            // Look for single byte conversion
             if (regcon.immed.mval & mAX)
             {
                 if (I32)
                 {   if (reg == AX && value == (targ_short) regv)
-                    {   c = gen1(c,0x98);               /* CWDE         */
+                    {   cdb.gen1(0x98);               // CWDE
                         goto done;
                     }
                     if (reg == DX &&
                         value == (regcon.immed.value[AX] & 0x80000000 ? 0xFFFFFFFF : 0) &&
                         !(config.flags4 & CFG4speed && config.target_cpu >= TARGET_Pentium)
                        )
-                    {   c = gen1(c,0x99);               /* CDQ          */
+                    {   cdb.gen1(0x99);               // CDQ
                         goto done;
                     }
                 }
@@ -2754,7 +2753,7 @@ L1:
                 {
                     if (reg == AX &&
                         (targ_short) value == (signed char) regv)
-                    {   c = gen1(c,0x98);               /* CBW          */
+                    {   cdb.gen1(0x98);               // CBW
                         goto done;
                     }
 
@@ -2762,34 +2761,34 @@ L1:
                         (targ_short) value == (regcon.immed.value[AX] & 0x8000 ? (targ_short) 0xFFFF : (targ_short) 0) &&
                         !(config.flags4 & CFG4speed && config.target_cpu >= TARGET_Pentium)
                        )
-                    {   c = gen1(c,0x99);               /* CWD          */
+                    {   cdb.gen1(0x99);               // CWD
                         goto done;
                     }
                 }
             }
             if (value == 0 && !(flags & 8) && config.target_cpu >= TARGET_80486)
-            {   c = genclrreg(c,reg);           // CLR reg
+            {   cdb.append(genclrreg(CNIL,reg));           // CLR reg
                 goto done;
             }
 
             if (!I64 && regm && !(flags & 8))
             {   if (regv + 1 == value ||
-                    /* Catch case of (0xFFFF+1 == 0) for 16 bit compiles */
+                    // Catch case of (0xFFFF+1 == 0) for 16 bit compiles
                     (I16 && (targ_short)(regv + 1) == (targ_short)value))
                 {
                 inc:
-                    c = gen1(c,0x40 + reg);     /* INC reg              */
+                    cdb.gen1(0x40 + reg);     // INC reg
                     goto done;
                 }
                 if (regv - 1 == value)
                 {
                 dec:
-                    c = gen1(c,0x48 + reg);     /* DEC reg              */
+                    cdb.gen1(0x48 + reg);     // DEC reg
                     goto done;
                 }
             }
 
-            /* See if another register has the right value      */
+            // See if another register has the right value
             r = 0;
             for (mreg = regcon.immed.mval; mreg; mreg >>= 1)
             {
@@ -2797,45 +2796,44 @@ L1:
                 assert(!I16 || regcon.immed.value[r] == (targ_short)regcon.immed.value[r]);
 #endif
                 if (mreg & 1 && regcon.immed.value[r] == value)
-                {   c = genmovreg(c,reg,r);
+                {   cdb.append(genmovreg(CNIL,reg,r));
                     goto done;
                 }
                 r++;
             }
 
             if (value == 0 && !(flags & 8))
-            {   c = genclrreg(c,reg);           // CLR reg
+            {   cdb.append(genclrreg(CNIL,reg));           // CLR reg
             }
             else
-            {   /* See if we can just load a byte       */
+            {   // See if we can just load a byte
                 if (regm & BYTEREGS &&
                     !(config.flags4 & CFG4speed && config.target_cpu >= TARGET_PentiumPro)
                    )
                 {
                     if ((regv & ~(targ_size_t)0xFF) == (value & ~(targ_size_t)0xFF))
-                    {   c = movregconst(c,reg,value,(flags & 8) |4|1);  // load regL
-                        return c;
+                    {   movregconst(cdb,reg,value,(flags & 8) |4|1);  // load regL
+                        return;
                     }
                     if (regm & (mAX|mBX|mCX|mDX) &&
                         (regv & ~(targ_size_t)0xFF00) == (value & ~(targ_size_t)0xFF00) &&
                         !I64)
-                    {   c = movregconst(c,4|reg,value >> 8,(flags & 8) |4|1|16); // load regH
-                        return c;
+                    {   movregconst(cdb,4|reg,value >> 8,(flags & 8) |4|1|16); // load regH
+                        return;
                     }
                 }
                 if (flags & 64)
-                    c = genc2(c,0xB8 + (reg&7),REX_W << 16 | (reg&8) << 13,value); // MOV reg,value64
+                    cdb.genc2(0xB8 + (reg&7),REX_W << 16 | (reg&8) << 13,value); // MOV reg,value64
                 else
                 {
                     value &= 0xFFFFFFFF;
-                    c = genc2(c,0xB8 + (reg&7),(reg&8) << 13,value); /* MOV reg,value */
+                    cdb.genc2(0xB8 + (reg&7),(reg&8) << 13,value); // MOV reg,value
                 }
             }
         }
     done:
         regimmed_set(reg,value);
     }
-    return c;
 }
 
 /**************************
@@ -3082,13 +3080,14 @@ code* prolog_frameadj(tym_t tyf, unsigned xlocalsize, bool enter, bool* pushallo
 #endif
        )
     {
+        CodeBuilder cdb;
         if (I16)
         {
             // BUG: Won't work if parameter is passed in AX
-            c = movregconst(c,AX,xlocalsize,FALSE); // MOV AX,localsize
+            movregconst(cdb,AX,xlocalsize,FALSE); // MOV AX,localsize
             makeitextern(getRtlsym(RTLSYM_CHKSTK));
                                                     // CALL _chkstk
-            gencs(c,(LARGECODE) ? 0x9A : CALL,0,FLfunc,getRtlsym(RTLSYM_CHKSTK));
+            cdb.gencs((LARGECODE) ? 0x9A : CALL,0,FLfunc,getRtlsym(RTLSYM_CHKSTK));
             useregs((ALLREGS | mBP | mES) & ~getRtlsym(RTLSYM_CHKSTK)->Sregsaved);
         }
         else
@@ -3104,23 +3103,23 @@ code* prolog_frameadj(tym_t tyf, unsigned xlocalsize, bool enter, bool* pushallo
              *      JNE     L1
              *      SUB     ESP, xlocalsize % 0x1000
              */
-            c = movregconst(c, reg, xlocalsize / 0x1000, FALSE);
-            code *csub = cod3_stackadj(NULL, 0x1000);
-            code_orflag(csub, CFtarg2);
-            gen2sib(csub, 0x85, modregrm(0,SP,4),modregrm(0,4,SP));
+            movregconst(cdb, reg, xlocalsize / 0x1000, FALSE);
+            cdb.append(cod3_stackadj(NULL, 0x1000));
+            code_orflag(cdb.last(), CFtarg2);
+            cdb.gen2sib(0x85, modregrm(0,SP,4),modregrm(0,4,SP));
             if (I64)
-            {   gen2(csub, 0xFF, modregrmx(3,1,R11));   // DEC R11D
-                genc2(csub,JNE,0,(targ_uns)-15);
+            {   cdb.gen2(0xFF, modregrmx(3,1,R11));   // DEC R11D
+                cdb.genc2(JNE,0,(targ_uns)-15);
             }
             else
-            {   gen1(csub, 0x48 + DX);                  // DEC EDX
-                genc2(csub,JNE,0,(targ_uns)-12);
+            {   cdb.gen1(0x48 + DX);                  // DEC EDX
+                cdb.genc2(JNE,0,(targ_uns)-12);
             }
             regimmed_set(reg,0);             // reg is now 0
-            cod3_stackadj(csub, xlocalsize & 0xFFF);
-            c = cat(c,csub);
+            cdb.append(cod3_stackadj(CNIL, xlocalsize & 0xFFF));
             useregs(mask[reg]);
         }
+        c = cdb.finish();
     }
     else
 #endif

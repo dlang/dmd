@@ -70,9 +70,9 @@ static void movxmmconst(CodeBuilder& cdb, unsigned xreg, unsigned sz, targ_size_
         u.l[1] = 0;
         u.s = value;
         targ_long *p = &u.l[0];
-        cdb.append(movregconst(CNIL,r,p[0],0));
+        movregconst(cdb,r,p[0],0);
         cdb.genfltreg(STO,r,0);                     // MOV floatreg,r
-        cdb.append(movregconst(CNIL,r,p[1],0));
+        movregconst(cdb,r,p[1],0);
         cdb.genfltreg(STO,r,4);                     // MOV floatreg+4,r
 
         unsigned op = xmmload(TYdouble, true);

@@ -2934,7 +2934,7 @@ void cdd_u64(CodeBuilder& cdb, elem *e, regm_t *pretregs)
         allocreg(cdb,&retregs,&reg,tym);
         reg  = findreglsw(retregs);
         reg2 = findregmsw(retregs);
-        cdb.append(movregconst(CNIL,reg2,0x80000000,0));
+        movregconst(cdb,reg2,0x80000000,0);
         getregs(cdb,mask[reg2] | mAX);
 
         cdb.genfltreg(0xC7,0,0);
@@ -3019,7 +3019,7 @@ void cdd_u64(CodeBuilder& cdb, elem *e, regm_t *pretregs)
         regm_t regm2 = ALLREGS & ~retregs & ~mAX;
         unsigned reg2;
         allocreg(cdb,&regm2,&reg2,tym);
-        cdb.append(movregconst(CNIL,reg2,0x80000000,0));
+        movregconst(cdb,reg2,0x80000000,0);
         getregs(cdb,mask[reg2] | mAX);
 
         cdb.genfltreg(0xC7,0,0);
