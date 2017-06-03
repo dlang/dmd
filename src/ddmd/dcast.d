@@ -2703,7 +2703,7 @@ extern (C++) bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expres
     Type t1b = e1.type.toBasetype();
     Type t2b = e2.type.toBasetype();
 
-    if (op != TOKquestion || t1b.ty != t2b.ty && (t1b.isTypeBasic() && t2b.isTypeBasic()))
+    if (op != TOKquestion && t1b.ty != t2b.ty && (t1b.isTypeBasic() && t2b.isTypeBasic()))
     {
         e1 = integralPromotions(e1, sc);
         e2 = integralPromotions(e2, sc);
