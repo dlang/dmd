@@ -3229,41 +3229,21 @@ template RTInfo(T)
     enum RTInfo = null;
 }
 
-bool __equals(T1, T2, size_t n1)(auto ref T1[n1] lhs, T2[] rhs)
-{
-    T1[] lhs1 = lhs;
-    return __equals(lhs1, rhs);
-}
-
-bool __equals(T1, T2, size_t n2)(T1[] lhs, auto ref T2[n2] rhs)
-{
-    T2[] rhs1 = rhs;
-    return __equals(lhs, rhs1);
-}
-
-bool __equals(T1, T2, size_t n1, size_t n2)(auto ref T1[n1] lhs, auto ref T2[n2] rhs)
-{
-    T1[] lhs1 = lhs;
-    T2[] rhs1 = rhs;
-    return __equals(lhs1, rhs1);
-}
-
-// lhs == rhs lowers to __equals(lhs, rhs) for arrays of all struct types.
-// old path: Typeinfo_array => TypeInfo_struct
+// lhs == rhs lowers to __equals(lhs, rhs) for dynamic arrays
 bool __equals(T1, T2)(T1[] lhs, T2[] rhs)
 {
-    if (lhs.length != rhs.length)
-        return false;
-
-    if (lhs.length == 0 && rhs.length == 0)
-        return true;
-
     import core.internal.traits : Unqual;
     alias U1 = Unqual!T1;
     alias U2 = Unqual!T2;
 
     static @trusted ref R at(R)(R[] r, size_t i) { return r.ptr[i]; }
     static @trusted R trustedCast(R, S)(S[] r) { return cast(R) r; }
+
+    if (lhs.length != rhs.length)
+        return false;
+
+    if (lhs.length == 0 && rhs.length == 0)
+        return true;
 
     static if (is(U1 == void) && is(U2 == void))
     {
@@ -3277,12 +3257,26 @@ bool __equals(T1, T2)(T1[] lhs, T2[] rhs)
     {
         return __equals(lhs, trustedCast!(ubyte[])(rhs));
     }
+    else static if (!is(U1 == U2))
+    {
+        // This should replace src/object.d _ArrayEq which
+        // compares arrays of different types such as long & int,
+        // char & wchar.
+        // Compiler lowers to __ArrayEq in dmd/src/opover.d
+        foreach (const u; 0 .. lhs.length)
+        {
+            if (at(lhs, u) != at(rhs, u))
+                return false;
+        }
+        return true;
+    }
     else static if (__traits(isIntegral, U1))
     {
+
         if (!__ctfe)
         {
             import core.stdc.string : memcmp;
-            return () @trusted { return memcmp(lhs.ptr, rhs.ptr, lhs.length * U1.sizeof) == 0; }();
+            return () @trusted { return memcmp(cast(void*)lhs.ptr, cast(void*)rhs.ptr, lhs.length * U1.sizeof) == 0; }();
         }
         else
         {
@@ -3300,21 +3294,33 @@ bool __equals(T1, T2)(T1[] lhs, T2[] rhs)
         {
             static if (__traits(compiles, __equals(at(lhs, u), at(rhs, u))))
             {
-                return __equals(at(lhs, u), at(rhs, u));
+                if (!__equals(at(lhs, u), at(rhs, u)))
+                    return false;
             }
             else static if (__traits(isFloating, U1))
             {
                 if (at(lhs, u) != at(rhs, u))
                     return false;
             }
-            else static if (is(U1 == Object) && is(U2 == Object))
+            else static if (is(U1 : Object) && is(U2 : Object))
             {
-                if (!(lhs is rhs) || lhs && lhs.opEquals(rhs))
+                if (!(cast(Object)at(lhs, u) is cast(Object)at(rhs, u)
+                    || at(lhs, u) && (cast(Object)at(lhs, u)).opEquals(cast(Object)at(rhs, u))))
                     return false;
             }
-            else static if (__traits(compiles, at(lhs, u).opEquals(at(rhs, u))))
+            else static if (__traits(hasMember, U1, "opEquals"))
             {
                 if (!at(lhs, u).opEquals(at(rhs, u)))
+                    return false;
+            }
+            else static if (is(U1 == delegate))
+            {
+                if (at(lhs, u) != at(rhs, u))
+                    return false;
+            }
+            else static if (is(U1 == U11*, U11))
+            {
+                if (at(lhs, u) != at(rhs, u))
                     return false;
             }
             else
@@ -3328,7 +3334,10 @@ bool __equals(T1, T2)(T1[] lhs, T2[] rhs)
     }
 }
 
-
+unittest {
+    assert(__equals([], []));
+    assert(!__equals([1, 2], [1, 2, 3]));
+}
 
 unittest
 {
