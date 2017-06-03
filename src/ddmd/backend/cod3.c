@@ -1405,7 +1405,7 @@ void doswitch(block *b)
             // See if we need a scratch register
             if (sreg == NOREG && I64 && sz == 8 && p[n] != (int)p[n])
             {   regm_t regm = ALLREGS & ~mask[reg];
-                cdb.append(allocreg(&regm, &sreg, TYint));
+                allocreg(cdb,&regm, &sreg, TYint);
             }
         }
 
@@ -1494,10 +1494,10 @@ void doswitch(block *b)
                  */
                 unsigned r1;
                 regm_t scratchm = ALLREGS & ~mask[reg];
-                cdb.append(allocreg(&scratchm,&r1,TYint));
+                allocreg(cdb,&scratchm,&r1,TYint);
                 unsigned r2;
                 scratchm = ALLREGS & ~(mask[reg] | mask[r1]);
-                cdb.append(allocreg(&scratchm,&r2,TYint));
+                allocreg(cdb,&scratchm,&r2,TYint);
 
                 CodeBuilder cdbe;
                 cdbe.genc1(LEA,(REX_W << 16) | modregxrm(0,r1,5),FLswitch,0);        // LEA R1,disp[RIP]
@@ -1552,7 +1552,7 @@ void doswitch(block *b)
             // Allocate scratch register jreg
             regm_t scratchm = ALLREGS & ~mask[reg];
             unsigned jreg = AX;
-            cdb.append(allocreg(&scratchm,&jreg,TYint));
+            allocreg(cdb,&scratchm,&jreg,TYint);
 
             // LEA jreg, offset ctable[reg][reg*4]
             cdb.genc1(LEA,modregrm(2,jreg,4),FLcode,6);
@@ -1573,7 +1573,7 @@ void doswitch(block *b)
             // Allocate scratch register r1
             regm_t scratchm = ALLREGS & ~mask[reg];
             unsigned r1;
-            cdb.append(allocreg(&scratchm,&r1,TYint));
+            allocreg(cdb,&scratchm,&r1,TYint);
 
             cdb.genc2(CALL,0,0);                           //     CALL L1
             cdb.gen1(0x58 + r1);                           // L1: POP R1
@@ -1595,7 +1595,7 @@ void doswitch(block *b)
                 // Allocate scratch register r1
                 regm_t scratchm = ALLREGS & ~(mask[reg] | mBX);
                 unsigned r1;
-                cdb.append(allocreg(&scratchm,&r1,TYint));
+                allocreg(cdb,&scratchm,&r1,TYint);
 
                 cdb.append(genmovreg(CNIL,r1,BX));              // MOV R1,EBX
                 cdb.genc1(0x2B,modregxrm(2,r1,4),FLswitch,0);   // SUB R1,disp[reg*4][EBX]
@@ -2082,7 +2082,7 @@ void cod3_ptrchk(CodeBuilder& cdb,code *pcs,regm_t keepmsk)
         // Load the offset into a register, so we can push the address
         idxregs = (I16 ? IDXREGS : ALLREGS) & ~keepmsk; // only these can be index regs
         assert(idxregs);
-        cdb.append(allocreg(&idxregs,&reg,TYoffset));
+        allocreg(cdb,&idxregs,&reg,TYoffset);
 
         opsave = pcs->Iop;
         flagsave = pcs->Iflags;
@@ -2316,7 +2316,7 @@ void cdframeptr(CodeBuilder& cdb, elem *e, regm_t *pretregs)
     if  (!retregs)
         retregs = allregs;
     unsigned reg;
-    cdb.append(allocreg(&retregs, &reg, TYint));
+    allocreg(cdb,&retregs, &reg, TYint);
 
     code cs;
     cs.Iop = ESCAPE | ESCframeptr;
@@ -2339,7 +2339,7 @@ void cdgot(CodeBuilder& cdb, elem *e, regm_t *pretregs)
     if  (!retregs)
         retregs = allregs;
     unsigned reg;
-    cdb.append(allocreg(&retregs, &reg, TYnptr));
+    allocreg(cdb,&retregs, &reg, TYnptr);
 
     cdb.genc(CALL,0,0,0,FLgot,0);     //     CALL L1
     cdb.gen1(0x58 + reg);             // L1: POP reg
@@ -2350,7 +2350,7 @@ void cdgot(CodeBuilder& cdb, elem *e, regm_t *pretregs)
     if  (!retregs)
         retregs = allregs;
     unsigned reg;
-    cdb.append(allocreg(&retregs, &reg, TYnptr));
+    allocreg(cdb,&retregs, &reg, TYnptr);
 
     cdb.genc2(CALL,0,0);        //     CALL L1
     cdb.gen1(0x58 + reg);       // L1: POP reg

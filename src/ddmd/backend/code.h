@@ -251,10 +251,10 @@ unsigned findreg (regm_t regm );
 void freenode (elem *e );
 int isregvar (elem *e , regm_t *pregm , unsigned *preg );
 #ifdef DEBUG
-code *allocreg (regm_t *pretregs , unsigned *preg , tym_t tym , int line , const char *file );
-#define allocreg(a,b,c) allocreg((a),(b),(c),__LINE__,__FILE__)
+void allocreg(CodeBuilder& cdb, regm_t *pretregs, unsigned *preg, tym_t tym, int line, const char *file);
+#define allocreg(a,b,c,d) allocreg((a),(b),(c),(d),__LINE__,__FILE__)
 #else
-code *allocreg (regm_t *pretregs , unsigned *preg , tym_t tym );
+void allocreg(CodeBuilder& cdb, regm_t *pretregs, unsigned *preg, tym_t tym);
 #endif
 regm_t lpadregs();
 void useregs (regm_t regm );

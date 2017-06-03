@@ -861,7 +861,7 @@ void fixresult87(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretregs)
         cdb.genfltreg(ESC(mf,1),3,0);
         cdb.append(genfwait(CNIL));
         unsigned reg;
-        cdb.append(allocreg(pretregs,&reg,(sz == FLOATSIZE) ? TYfloat : TYdouble));
+        allocreg(cdb,pretregs,&reg,(sz == FLOATSIZE) ? TYfloat : TYdouble);
         if (sz == FLOATSIZE)
         {
             if (!I16)
@@ -925,7 +925,7 @@ void fixresult87(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretregs)
             cdb.append(genfwait(CNIL));
             // MOVD XMM?,floatreg
             unsigned reg;
-            cdb.append(allocreg(pretregs,&reg,(sz == FLOATSIZE) ? TYfloat : TYdouble));
+            allocreg(cdb,pretregs,&reg,(sz == FLOATSIZE) ? TYfloat : TYdouble);
             cdb.genxmmreg(xmmload(tym),reg,0,tym);
         }
         else
@@ -2931,7 +2931,7 @@ void cdd_u64(CodeBuilder& cdb, elem *e, regm_t *pretregs)
         if (!retregs)
             retregs = ALLREGS;
         unsigned reg, reg2;
-        cdb.append(allocreg(&retregs,&reg,tym));
+        allocreg(cdb,&retregs,&reg,tym);
         reg  = findreglsw(retregs);
         reg2 = findregmsw(retregs);
         cdb.append(movregconst(CNIL,reg2,0x80000000,0));
@@ -3015,10 +3015,10 @@ void cdd_u64(CodeBuilder& cdb, elem *e, regm_t *pretregs)
         if (!retregs)
             retregs = ALLREGS;
         unsigned reg;
-        cdb.append(allocreg(&retregs,&reg,tym));
+        allocreg(cdb,&retregs,&reg,tym);
         regm_t regm2 = ALLREGS & ~retregs & ~mAX;
         unsigned reg2;
-        cdb.append(allocreg(&regm2,&reg2,tym));
+        allocreg(cdb,&regm2,&reg2,tym);
         cdb.append(movregconst(CNIL,reg2,0x80000000,0));
         getregs(cdb,mask[reg2] | mAX);
 
@@ -3092,7 +3092,7 @@ void cdd_u32(CodeBuilder& cdb, elem *e, regm_t *pretregs)
     if (!retregs)
         retregs = ALLREGS;
     unsigned reg;
-    cdb.append(allocreg(&retregs,&reg,tym));
+    allocreg(cdb,&retregs,&reg,tym);
 
     cdb.genfltreg(0xC7,0,8);
     code *cf3 = cdb.last();
@@ -3214,7 +3214,7 @@ void cnvt87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             retregs = *pretregs & (ALLREGS | mBP);
             if (!retregs)
                     retregs = ALLREGS;
-            cdb.append(allocreg(&retregs,&reg,tym));
+            allocreg(cdb,&retregs,&reg,tym);
 
             cdb.append(genfwait(CNIL));                                           // FWAIT
             cdb.genc1(0xD9,modregrm(2,5,4) + 256*modregrm(0,4,SP),FLconst,szoff); // FLDCW szoff[ESP]
@@ -3246,7 +3246,7 @@ void cnvt87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             retregs = *pretregs & (ALLREGS | mBP);
             if (!retregs)
                     retregs = ALLREGS;
-            cdb.append(allocreg(&retregs,&reg,tym));
+            allocreg(cdb,&retregs,&reg,tym);
 
             cdb.append(genfwait(CNIL));
 
@@ -3303,7 +3303,7 @@ void cdrndtol(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     if (!retregs)
             retregs = ALLREGS;
     unsigned reg;
-    cdb.append(allocreg(&retregs,&reg,tym));
+    allocreg(cdb,&retregs,&reg,tym);
     cdb.append(genfwait(NULL));                     // FWAIT
     if (tysize(tym) > REGSIZE)
     {
