@@ -2898,6 +2898,27 @@ elem *toElem(Expression e, IRState *irs)
                     e = toElem(ae.e2, irs);
                     goto Lret;
                 }
+
+                /* Look for:
+                 *  v = structliteral.ctor(args)
+                 * and have the structliteral write into v, rather than create a temporary
+                 * and copy the temporary into v
+                 */
+                if (ae.e1.op == TOKvar && ce.e1.op == TOKdotvar)
+                {
+                    auto dve = cast(DotVarExp)ce.e1;
+                    auto fd = dve.var.isFuncDeclaration();
+                    if (fd && fd.isCtorDeclaration())
+                    {
+                        if (dve.e1.op == TOKstructliteral)
+                        {
+                            auto sle = cast(StructLiteralExp)dve.e1;
+                            sle.sym = toSymbol((cast(VarExp)ae.e1).var);
+                            e = toElem(ae.e2, irs);
+                            goto Lret;
+                        }
+                    }
+                }
             }
 
             //if (ae.op == TOKconstruct) printf("construct\n");
