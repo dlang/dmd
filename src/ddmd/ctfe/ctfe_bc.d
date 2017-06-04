@@ -1505,6 +1505,7 @@ struct BCScope
 debug = nullPtrCheck;
 debug = nullAllocCheck;
 debug = andand;
+debug = SetLocation;
 extern (C++) final class BCV(BCGenT) : Visitor
 {
     uint unresolvedGotoCount;
@@ -1684,6 +1685,16 @@ extern (C++) final class BCV(BCGenT) : Visitor
         {
             assert(size.vType != BCValueType.Immediate || size.imm32 != 0, "Null Alloc detected in line: " ~ to!string(line));
             gen.Alloc(result, size);
+        }
+    }
+
+    debug (SetLocation)
+    {
+        import std.stdio;
+        void Set(BCValue lhs, BCValue rhs, size_t line = __LINE__)
+        {
+            writeln("Set(", lhs.toString, ", ", rhs.toString, ") called at: ", line);
+            gen.Set(lhs, rhs);
         }
     }
 
@@ -3021,6 +3032,7 @@ static if (is(BCGen))
                 bailout("For: No cond generated");
                 return;
             }
+
             auto condJmp = beginCndJmp(cond);
             const oldContinueFixupCount = continueFixupCount;
             const oldBreakFixupCount = breakFixupCount;
