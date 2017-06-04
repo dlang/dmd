@@ -1693,7 +1693,8 @@ extern (C++) final class BCV(BCGenT) : Visitor
         import std.stdio;
         void Set(BCValue lhs, BCValue rhs, size_t line = __LINE__)
         {
-            if (lhs.vType != BCValueType.StackValue) writeln("Set(", lhs.toString, ", ", rhs.toString, ") called at: ", line);
+            if (lhs.vType != BCValueType.StackValue || lhs.vType != BCValueType.Parameter)
+ writeln("Set(", lhs.toString, ", ", rhs.toString, ") called at: ", line);
             gen.Set(lhs, rhs);
         }
     }
