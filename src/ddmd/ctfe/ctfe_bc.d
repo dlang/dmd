@@ -2474,7 +2474,7 @@ static if (is(BCGen))
             break;
         case TOK.TOKquestion:
             {
-		Comment(": ? begin");
+        Comment(": ? begin");
                 auto ce = cast(CondExp) e;
                 auto cond = genExpr(ce.econd);
                 debug (ctfe)
@@ -2496,7 +2496,7 @@ static if (is(BCGen))
                 // FIXME this is a hack we should not call Set this way
                 Set(retval.i32, rhs.i32);
                 endCndJmp(cj, rhsEval);
-		Comment("Ending cndJmp for ?: rhs");
+        Comment("Ending cndJmp for ?: rhs");
                 endJmp(toend, genLabel());
             }
             break;
@@ -5499,9 +5499,9 @@ static if (is(BCGen))
         typeof(beginCndJmp(cond)) cj;
 
         if (!boolExp)
-	{
+    {
             cj = beginCndJmp(cond);
-	}
+    }
 
         BCBlock ifbody = fs.ifbody ? genBlock(fs.ifbody) : BCBlock.init;
         auto to_end = beginJmp();
