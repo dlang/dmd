@@ -3219,7 +3219,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     if (I64 && config.exe != EX_WIN64 && e->Eflags & EFLAGS_variadic)
     {
         getregs(cdb,mAX);
-        cdb.append(movregconst(CNIL,AX,xmmcnt,1));
+        movregconst(cdb,AX,xmmcnt,1);
         keepmsk |= mAX;
     }
 
@@ -3989,7 +3989,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
                 {
                     getregs_imm(cdb,mCX | retregs);
                                                         // MOV CX,sz/2
-                    cdb.append(movregconst(CNIL,CX,npushes,0));
+                    movregconst(cdb,CX,npushes,0);
                     if (!doneoff)
                     {   // This should be done when
                         // reg is loaded. Fix later
@@ -4632,7 +4632,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             }
             else
             {
-                cdb.append(movregconst(CNIL,reg,value,flags));
+                movregconst(cdb,reg,value,flags);
                 flags = 0;                          // flags are already set
             }
         }
@@ -4644,14 +4644,14 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             regm_t mswflags = 0;
             if (forregs & mES)
             {
-                cdb.append(movregconst(CNIL,reg,msw,0)); // MOV reg,segment
+                movregconst(cdb,reg,msw,0); // MOV reg,segment
                 cdb.append(genregs(CNIL,0x8E,0,reg));    // MOV ES,reg
                 msw = lsw;                               // MOV reg,offset
             }
             else
             {
                 sreg = findreglsw(forregs);
-                cdb.append( movregconst(CNIL,sreg,lsw,0));
+                movregconst(cdb,sreg,lsw,0);
                 reg = findregmsw(forregs);
                 /* Decide if we need to set flags when we load msw      */
                 if (flags && (msw && msw|lsw || !(msw|lsw)))
@@ -4659,7 +4659,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                     flags = 0;
                 }
             }
-            cdb.append(movregconst(CNIL,reg,msw,mswflags));
+            movregconst(cdb,reg,msw,mswflags);
         }
         else if (sz == 8)
         {
@@ -4674,9 +4674,9 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                     unsigned r;
                     regm_t rm = ALLREGS;
                     allocreg(cdb,&rm,&r,TYint);    // allocate scratch register
-                    cdb.append(movregconst(CNIL,r,p[0],0));
+                    movregconst(cdb,r,p[0],0);
                     cdb.genfltreg(0x89,r,0);               // MOV floatreg,r
-                    cdb.append(movregconst(CNIL,r,p[1],0));
+                    movregconst(cdb,r,p[1],0);
                     cdb.genfltreg(0x89,r,4);               // MOV floatreg+4,r
 
                     unsigned op = xmmload(tym);
@@ -4684,24 +4684,24 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 }
                 else
                 {
-                    cdb.append(movregconst(CNIL,findreglsw(forregs),p[0],0));
-                    cdb.append(movregconst(CNIL,findregmsw(forregs),p[1],0));
+                    movregconst(cdb,findreglsw(forregs),p[0],0);
+                    movregconst(cdb,findregmsw(forregs),p[1],0);
                 }
             }
             else
             {   targ_short *p = (targ_short *) &e->EV.Vdouble;
 
                 assert(reg == AX);
-                cdb.append(movregconst(CNIL,AX,p[3],0));   // MOV AX,p[3]
-                cdb.append(movregconst(CNIL,DX,p[0],0));
-                cdb.append(movregconst(CNIL,CX,p[1],0));
-                cdb.append(movregconst(CNIL,BX,p[2],0));
+                movregconst(cdb,AX,p[3],0);   // MOV AX,p[3]
+                movregconst(cdb,DX,p[0],0);
+                movregconst(cdb,CX,p[1],0);
+                movregconst(cdb,BX,p[2],0);
             }
         }
         else if (I64 && sz == 16)
         {
-            cdb.append(movregconst(CNIL,findreglsw(forregs),e->EV.Vcent.lsw,64));
-            cdb.append(movregconst(CNIL,findregmsw(forregs),e->EV.Vcent.msw,64));
+            movregconst(cdb,findreglsw(forregs),e->EV.Vcent.lsw,64);
+            movregconst(cdb,findregmsw(forregs),e->EV.Vcent.msw,64);
         }
         else
             assert(0);

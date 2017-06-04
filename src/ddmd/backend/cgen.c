@@ -776,7 +776,7 @@ code *regwithvalue(code *c,regm_t regm,targ_size_t value,unsigned *preg,regm_t f
         regm_t save = regcon.immed.mval;
         allocreg(cdb,&regm,preg,TYint);  // allocate register
         regcon.immed.mval = save;
-        cdb.append(movregconst(CNIL,*preg,value,flags));   // store value into reg
+        movregconst(cdb,*preg,value,flags);   // store value into reg
     }
     return cdb.finish();
 }
