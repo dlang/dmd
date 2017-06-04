@@ -285,7 +285,7 @@ void genEEcode()
     cdb.append(cod3_stackadj(NULL, EEStack.offset - REGSIZE));
     cdb.gen1(0x50 + SI);                      // PUSH ESI
     cdb.append(genadjesp(CNIL,EEStack.offset));
-    cdb.append(gencodelem(CNIL,eecontext.EEelem,&retregs, FALSE));
+    gencodelem(cdb,eecontext.EEelem,&retregs, FALSE);
     code *c = cdb.finish();
     assignaddrc(c);
     pinholeopt(c,NULL);

@@ -317,7 +317,12 @@ tryagain:
         switch (b->BC)
         {   case BCret:
                 if (configv.addlinenumbers && b->Bsrcpos.Slinnum && !(sfunc->ty() & mTYnaked))
-                    cgen_linnum(&b->Bcode,b->Bsrcpos);
+                {
+                    CodeBuilder cdb;
+                    cdb.append(b->Bcode);
+                    cdb.genlinnum(b->Bsrcpos);
+                    b->Bcode = cdb.finish();
+                }
             case BCretexp:
                 epilog(b);
                 break;
