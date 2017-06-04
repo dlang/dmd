@@ -2081,6 +2081,9 @@ public:
                 expr.accept(this);
             if (isBoolExp(expr) && !costumBoolFixup)
             {
+                if (!retval)
+                    retval = genTemporary(i32Type);
+
                 auto Ltrue = genLabel();
                 Set(retval, imm32(1));
                 auto JtoEnd = beginJmp();
