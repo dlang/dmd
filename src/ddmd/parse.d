@@ -780,7 +780,10 @@ final class Parser(AST) : Lexer
 
                 /* Look for return type inference for template functions.
                  */
-                if (token.value == TOKidentifier && skipParens(peek(&token), &tk) && skipAttributes(tk, &tk) && (tk.value == TOKlparen || tk.value == TOKlcurly || tk.value == TOKin || tk.value == TOKout || tk.value == TOKbody))
+                if (token.value == TOKidentifier && skipParens(peek(&token), &tk) && skipAttributes(tk, &tk) &&
+                    (tk.value == TOKlparen || tk.value == TOKlcurly || tk.value == TOKin ||
+                     tk.value == TOKout || tk.value == TOKdo ||
+                     tk.value == TOKidentifier && tk.ident == Id._body))
                 {
                     a = parseDeclarations(true, pAttrs, pAttrs.comment);
                     if (a && a.dim)
@@ -4303,7 +4306,10 @@ final class Parser(AST) : Lexer
 
         /* Look for return type inference for template functions.
          */
-        if ((storage_class || udas) && token.value == TOKidentifier && skipParens(peek(&token), &tk) && skipAttributes(tk, &tk) && (tk.value == TOKlparen || tk.value == TOKlcurly || tk.value == TOKin || tk.value == TOKout || tk.value == TOKbody))
+        if ((storage_class || udas) && token.value == TOKidentifier && skipParens(peek(&token), &tk) &&
+            skipAttributes(tk, &tk) &&
+            (tk.value == TOKlparen || tk.value == TOKlcurly || tk.value == TOKin || tk.value == TOKout ||
+             tk.value == TOKdo || tk.value == TOKidentifier && tk.ident == Id._body))
         {
             ts = null;
         }
@@ -4662,7 +4668,12 @@ final class Parser(AST) : Lexer
             f.endloc = endloc;
             break;
 
-        case TOKbody:
+        case TOKidentifier:
+            if (token.ident == Id._body)
+                goto case TOKdo;
+            goto default;
+
+        case TOKdo:
             nextToken();
             f.fbody = parseStatement(PScurly);
             f.endloc = endloc;
@@ -6609,7 +6620,7 @@ final class Parser(AST) : Lexer
             case TOKlcurly:
             case TOKin:
             case TOKout:
-            case TOKbody:
+            case TOKdo:
                 // The !parens is to disallow unnecessary parentheses
                 if (!parens && (endtok == TOKreserved || endtok == t.value))
                 {
@@ -6618,6 +6629,11 @@ final class Parser(AST) : Lexer
                 }
                 return false;
 
+            case TOKidentifier:
+                if (t.ident == Id._body)
+                    goto case TOKdo;
+                goto default;
+
             case TOKif:
                 return haveTpl ? true : false;
 
@@ -6625,6 +6641,7 @@ final class Parser(AST) : Lexer
                 return false;
             }
         }
+        assert(0);
     }
 
     bool isParameters(Token** pt)

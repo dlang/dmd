@@ -267,7 +267,6 @@ enum TOK : int
 
     // 213
     // Contracts
-    TOKbody,
     TOKinvariant,
 
     // Testing
@@ -520,7 +519,6 @@ alias TOKscope = TOK.TOKscope;
 alias TOKon_scope_exit = TOK.TOKon_scope_exit;
 alias TOKon_scope_failure = TOK.TOKon_scope_failure;
 alias TOKon_scope_success = TOK.TOKon_scope_success;
-alias TOKbody = TOK.TOKbody;
 alias TOKinvariant = TOK.TOKinvariant;
 alias TOKunittest = TOK.TOKunittest;
 alias TOKargTypes = TOK.TOKargTypes;
@@ -674,7 +672,6 @@ extern (C++) struct Token
         TOKprotected: "protected",
         TOKpublic: "public",
         TOKexport: "export",
-        TOKbody: "body",
         TOKinvariant: "invariant",
         TOKunittest: "unittest",
         TOKversion: "version",
@@ -1167,7 +1164,6 @@ private immutable TOK[] keywords =
     TOKprotected,
     TOKpublic,
     TOKexport,
-    TOKbody,
     TOKinvariant,
     TOKunittest,
     TOKversion,

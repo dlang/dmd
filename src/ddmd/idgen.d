@@ -88,6 +88,7 @@ Msgtable[] msgtable =
     { "cpp_type_info_ptr", "__cpp_type_info_ptr" },
     { "_assert", "assert" },
     { "_unittest", "unittest" },
+    { "_body", "body" },
 
     { "TypeInfo" },
     { "TypeInfo_Class" },
