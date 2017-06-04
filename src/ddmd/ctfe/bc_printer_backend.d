@@ -223,7 +223,7 @@ struct Print_BCGen
 
     void Initialize()
     {
-	result = result[0 .. 0];
+    result = result[0 .. 0];
         result ~= indent ~ "Initialize(" ~ ");\n";
         incIndent();
     }
