@@ -579,7 +579,7 @@ class TransitiveVisitor : PermissiveVisitor
 
     bool visitEponymousMember(ASTBase.TemplateDeclaration d)
     {
-        //printf("Visiting TemplateDeclaration\n");
+        //printf("Visiting EponymousMember\n");
         if (!d.members || d.members.dim != 1)
             return false;
         ASTBase.Dsymbol onemember = (*d.members)[0];

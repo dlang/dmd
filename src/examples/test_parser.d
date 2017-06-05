@@ -3,7 +3,8 @@ import std.file;
 
 import ddmd.parse;
 import ddmd.astbase;
-import ddmd.impvisitor;
+
+import examples.impvisitor;
 
 import ddmd.id;
 import ddmd.globals;
