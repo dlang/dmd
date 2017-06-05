@@ -655,9 +655,9 @@ pragma(inline, true)
 uint mulu(uint x, uint y, ref bool overflow)
 {
     ulong r = ulong(x) * ulong(y);
-    if (r > uint.max)
+    if (r >> 32)
         overflow = true;
-    return cast(uint)r;
+    return cast(uint) r;
 }
 
 unittest
@@ -682,29 +682,66 @@ unittest
 
 /// ditto
 pragma(inline, true)
+ulong mulu(ulong x, uint y, ref bool overflow)
+{
+    ulong r = x * y;
+    if (x >> 32 &&
+            r / x != y)
+        overflow = true;
+    return r;
+}
+
+/// ditto
+pragma(inline, true)
 ulong mulu(ulong x, ulong y, ref bool overflow)
 {
     ulong r = x * y;
-    if (x && (r / x) != y)
+    if ((x | y) >> 32 &&
+            x &&
+            r / x != y)
         overflow = true;
     return r;
 }
 
 unittest
 {
-    void test(ulong x, ulong y, ulong r, bool overflow) @nogc nothrow
+    void test(T, U)(T x, U y, ulong r, bool overflow) @nogc nothrow
     {
         bool o;
         assert(mulu(x, y, o) == r);
         assert(o == overflow);
     }
+    // One operand is zero
+    test(0, 3, 0, false);
+    test(0UL, 3, 0, false);
+    test(0UL, 3UL, 0, false);
+    test(3, 0, 0, false);
+    test(3UL, 0, 0, false);
+    test(3UL, 0UL, 0, false);
+    // Small numbers
     test(2, 3, 6, false);
+    test(2UL, 3, 6, false);
+    test(2UL, 3UL, 6, false);
+    // At the 32/64 border
+    test(1, ulong(uint.max), uint.max, false);
+    test(1UL, ulong(uint.max), uint.max, false);
+    test(ulong(uint.max), 1, uint.max, false);
+    test(ulong(uint.max), 1UL, uint.max, false);
+    test(1, 1 + ulong(uint.max), 1 + ulong(uint.max), false);
+    test(1UL, 1 + ulong(uint.max), 1 + ulong(uint.max), false);
+    test(1 + ulong(uint.max), 1, 1 + ulong(uint.max), false);
+    test(1 + ulong(uint.max), 1UL, 1 + ulong(uint.max), false);
+    // At the limit
     test(1, ulong.max, ulong.max, false);
+    test(1UL, ulong.max, ulong.max, false);
+    test(ulong.max, 1, ulong.max, false);
+    test(ulong.max, 1UL, ulong.max, false);
+    // Miscellaneous
     test(0, 1, 0, false);
     test(0, ulong.max, 0, false);
     test(ulong.max, 2, 2 * ulong.max, true);
     test(1UL << 32, 1UL << 32, 0, true);
-
+    // Must be sticky
     bool overflow = true;
     assert(mulu(0UL, 0UL, overflow) == 0);
     assert(overflow);                   // sticky
