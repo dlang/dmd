@@ -551,6 +551,7 @@
    <File path="..\ddmd\osmodel.mak" />
    <File path="..\ddmd\parse.d" />
    <File path="..\ddmd\posix.mak" />
+   <File path="..\ddmd\printast.d" />
    <File path="..\ddmd\s2ir.d" />
    <File path="..\ddmd\safe.d" />
    <File path="..\ddmd\sapply.d" />
