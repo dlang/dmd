@@ -1247,13 +1247,12 @@ extern (C++) class FuncDeclaration : Declaration
              *      class C { int x; void delegate() dg = (){ this.x = 1; }; }
              *
              * However, lambdas could be used inside typeof, in order to check
-             * some expressions varidity at compile time. For such case the lambda
+             * some expressions validity at compile time. For such case the lambda
              * body can access aggregate instance members.
              * e.g.
              *      class C { int x; static assert(is(typeof({ this.x = 1; }))); }
              *
-             * To properly accept it, mark these lambdas as member functions -
-             * isThis() returns true and isNested() returns false.
+             * To properly accept it, mark these lambdas as member functions.
              */
             if (auto fld = isFuncLiteralDeclaration())
             {
@@ -1271,7 +1270,6 @@ extern (C++) class FuncDeclaration : Declaration
                         if (fld.tok != TOKfunction)
                             fld.tok = TOKdelegate;
                     }
-                    assert(!isNested());
                 }
             }
 
