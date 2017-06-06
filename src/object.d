@@ -3457,7 +3457,10 @@ if (!__traits(isScalar, T1))
     alias U2 = Unqual!T2;
     static assert(is(U1 == U2), "Internal error.");
 
-    static @trusted ref R at(R)(R[] r, size_t i) { return r.ptr[i]; }
+    static if (is(U1 == void))
+        static @trusted ref inout(ubyte) at(inout(void)[] r, size_t i) { return (cast(inout(ubyte)*) r.ptr)[i]; }
+    else
+        static @trusted ref R at(R)(R[] r, size_t i) { return r.ptr[i]; }
 
     // All unsigned byte-wide types = > dstrcmp
     immutable len = s1.length <= s2.length ? s1.length : s2.length;
@@ -3563,6 +3566,22 @@ if (!__traits(isScalar, T1))
     // qualifiers
     compareMinMax!(const real);
     compareMinMax!(immutable real);
+}
+
+// void[]
+@safe unittest
+{
+    void[] a;
+    const(void)[] b;
+
+    (() @trusted
+    {
+        a = cast(void[]) "bb";
+        b = cast(const(void)[]) "aa";
+    })();
+
+    assert(__cmp(a, b) > 0);
+    assert(__cmp(b, a) < 0);
 }
 
 // objects
