@@ -15199,17 +15199,6 @@ extern (C++) final class OrOrExp : BinExp
         e1 = e1.toBoolean(sc);
         uint cs1 = sc.callSuper;
 
-        if (sc.flags & SCOPEcondition)
-        {
-            /* If in static if, don't evaluate e2 if we don't have to.
-             */
-            e1 = e1.optimize(WANTvalue);
-            if (e1.isBool(true))
-            {
-                return new IntegerExp(loc, 1, Type.tbool);
-            }
-        }
-
         e2 = e2.semantic(sc);
         sc.mergeCallSuper(loc, cs1);
         e2 = resolveProperties(sc, e2);
@@ -15275,17 +15264,6 @@ extern (C++) final class AndAndExp : BinExp
         e1 = resolveProperties(sc, e1);
         e1 = e1.toBoolean(sc);
         uint cs1 = sc.callSuper;
-
-        if (sc.flags & SCOPEcondition)
-        {
-            /* If in static if, don't evaluate e2 if we don't have to.
-             */
-            e1 = e1.optimize(WANTvalue);
-            if (e1.isBool(false))
-            {
-                return new IntegerExp(loc, 0, Type.tbool);
-            }
-        }
 
         e2 = e2.semantic(sc);
         sc.mergeCallSuper(loc, cs1);
