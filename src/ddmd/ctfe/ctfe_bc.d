@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 0;
+enum bailoutMessages = 1;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -1499,6 +1499,7 @@ struct BCScope
 debug = nullPtrCheck;
 debug = nullAllocCheck;
 debug = andand;
+
 extern (C++) final class BCV(BCGenT) : Visitor
 {
     uint unresolvedGotoCount;
@@ -1701,6 +1702,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         static if (is(typeof(gen.MemCpy) == function))
         {
             auto effectiveSize = genTemporary(i32Type);
+//            assert(elementSize);
             Mul3(effectiveSize, length, imm32(elementSize));
             MemCpy(_newBase, _oldBase, effectiveSize);
             Add3(_newBase, _newBase, effectiveSize);
@@ -3089,8 +3091,8 @@ static if (is(BCGen))
             }
             auto elemSize = _sharedCtfeState.size(elmType);
 
-            auto newSlice = genTemporary(i32Type);
-            Alloc(newSlice, imm32(SliceDescriptor.Size));
+            auto newSlice = genTemporary(origSlice.type);
+            Alloc(newSlice.i32, imm32(SliceDescriptor.Size));
 
             // TODO assert lwr <= upr
 
@@ -3115,8 +3117,14 @@ static if (is(BCGen))
                 return ;
             }
 
-            Le3(BCValue.init, lwr.i32, upr.i32);
-            Assert(BCValue.init, addError(se.loc, "slice [%llu .. %llu] is out of bounds", lwr, upr));
+            {
+                Le3(BCValue.init, lwr.i32, upr.i32);
+                auto CJoob = beginCndJmp();
+
+                Assert(imm32(1), addError(se.loc, "slice [%llu .. %llu] is out of bounds", lwr, upr));
+
+                endCndJmp(CJoob, genLabel());
+            }
             Sub3(newLength, upr.i32, lwr.i32);
 
             setLength(newSlice, newLength);
@@ -4307,7 +4315,6 @@ static if (is(BCGen))
 
         if (ae.e1.op == TOKslice && ae.e2.op == TOKslice)
         {
-
             SliceExp e1 = cast(SliceExp)ae.e1;
             SliceExp e2 = cast(SliceExp)ae.e2;
 
@@ -4319,18 +4326,30 @@ static if (is(BCGen))
 
             auto lhs_length = getLength(lhs);
             auto rhs_length = getLength(rhs);
-            Eq3(BCValue.init, lhs_length, rhs_length);
-            Assert(BCValue.init, addError(ae.loc, "lhs.length %d != rhs.length %d", lhs_length, rhs_length));
+
+            auto lhs_lwr = (!e1.lwr) ? genExpr(e1.lwr) : imm32(0);
+            auto rhs_lwr = (!e2.lwr) ? genExpr(e2.lwr) : imm32(0);
+            auto lhs_upr = (!e1.upr) ? genExpr(e1.upr) : lhs_length;
+            auto rhs_upr = (!e2.upr) ? genExpr(e2.upr) : rhs_length;
+
             {
+                Neq3(BCValue.init, lhs_length, rhs_length);
+                auto CJLengthUnequal = beginCndJmp();
+
+                Assert(imm32(0), addError(ae.loc, "array length mismatch assigning [%d..%d] to [%d..%d]", lhs_lwr, lhs_upr, rhs_lwr, rhs_upr));
+                endCndJmp(CJLengthUnequal, genLabel());
+            }
+
+            {
+                auto rhsOverlapsLhs = genTemporary(i32Type);
+                auto test1 = genTemporary(i32Type);
+                auto test2 = genTemporary(i32Type);
                 auto lhs_base_plus_length = genTemporary(i32Type);
                 Add3(lhs_base_plus_length, lhs_base, lhs_length);
-                Ge3(BCValue.init, lhs_base_plus_length, rhs_base);
-                auto CJRhsOverlapsLhs = beginCndJmp();
-
-                auto lhs_lwr = genExpr(e1.lwr);
-                auto rhs_lwr = genExpr(e2.lwr);
-                auto lhs_upr = genExpr(e1.upr);
-                auto rhs_upr = genExpr(e2.upr);
+                Ge3(test1, lhs_base_plus_length, rhs_base);
+                Lt3(test2, lhs_base, rhs_base);
+                And3(rhsOverlapsLhs, test1, test2);
+                auto CJRhsOverlapsLhs = beginCndJmp(rhsOverlapsLhs);
 
                 Assert(imm32(0), addError(ae.loc, "overlapping slice assignment [%d..%d] = [%d..%d]", lhs_lwr, lhs_upr, rhs_lwr, rhs_upr));
 
