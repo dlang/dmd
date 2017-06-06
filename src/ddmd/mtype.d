@@ -4530,136 +4530,14 @@ extern (C++) class TypeArray : TypeNext
 
     override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
-        static Expression errorReturn()
-        {
-            return new ErrorExp();
-        }
-
         Type n = this.next.toBasetype(); // uncover any typedef's
         static if (LOGDOTEXP)
         {
             printf("TypeArray::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());
         }
-        if (e.op == TOKtype)
-        {
-            if (ident == Id.sort || ident == Id.reverse)
-            {
-                e.error("%s is not an expression", e.toChars());
-                return errorReturn();
-            }
-        }
-        if (!n.isMutable())
-        {
-            if (ident == Id.sort || ident == Id.reverse)
-            {
-                error(e.loc, "can only %s a mutable array", ident.toChars());
-                return errorReturn();
-            }
-        }
-        if (ident == Id.reverse && (n.ty == Tchar || n.ty == Twchar))
-        {
-            static __gshared const(char)** reverseName = ["_adReverseChar", "_adReverseWchar"];
-            static __gshared FuncDeclaration* reverseFd = [null, null];
 
-            deprecation(e.loc, "use std.algorithm.reverse instead of .reverse property");
-            int i = n.ty == Twchar;
-            if (!reverseFd[i])
-            {
-                auto params = new Parameters();
-                Type next = n.ty == Twchar ? Type.twchar : Type.tchar;
-                Type arrty = next.arrayOf();
-                params.push(new Parameter(0, arrty, null, null));
-                reverseFd[i] = FuncDeclaration.genCfunc(params, arrty, reverseName[i]);
-            }
+        e = Type.dotExp(sc, e, ident, flag);
 
-            Expression ec = new VarExp(Loc(), reverseFd[i], false);
-            e = e.castTo(sc, n.arrayOf()); // convert to dynamic array
-            auto arguments = new Expressions();
-            arguments.push(e);
-            e = new CallExp(e.loc, ec, arguments);
-            e.type = next.arrayOf();
-        }
-        else if (ident == Id.sort && (n.ty == Tchar || n.ty == Twchar))
-        {
-            static __gshared const(char)** sortName = ["_adSortChar", "_adSortWchar"];
-            static __gshared FuncDeclaration* sortFd = [null, null];
-
-            deprecation(e.loc, "use std.algorithm.sort instead of .sort property");
-            int i = n.ty == Twchar;
-            if (!sortFd[i])
-            {
-                auto params = new Parameters();
-                Type next = n.ty == Twchar ? Type.twchar : Type.tchar;
-                Type arrty = next.arrayOf();
-                params.push(new Parameter(0, arrty, null, null));
-                sortFd[i] = FuncDeclaration.genCfunc(params, arrty, sortName[i]);
-            }
-
-            Expression ec = new VarExp(Loc(), sortFd[i], false);
-            e = e.castTo(sc, n.arrayOf()); // convert to dynamic array
-            auto arguments = new Expressions();
-            arguments.push(e);
-            e = new CallExp(e.loc, ec, arguments);
-            e.type = next.arrayOf();
-        }
-        else if (ident == Id.reverse)
-        {
-            Expression ec;
-            FuncDeclaration fd;
-            Expressions* arguments;
-            dinteger_t size = next.size(e.loc);
-
-            deprecation(e.loc, "use std.algorithm.reverse instead of .reverse property");
-            assert(size);
-
-            static __gshared FuncDeclaration adReverse_fd = null;
-            if (!adReverse_fd)
-            {
-                auto params = new Parameters();
-                params.push(new Parameter(0, Type.tvoid.arrayOf(), null, null));
-                params.push(new Parameter(0, Type.tsize_t, null, null));
-                adReverse_fd = FuncDeclaration.genCfunc(params, Type.tvoid.arrayOf(), Id.adReverse);
-            }
-            fd = adReverse_fd;
-
-            ec = new VarExp(Loc(), fd, false);
-            e = e.castTo(sc, n.arrayOf()); // convert to dynamic array
-            arguments = new Expressions();
-            arguments.push(e);
-            arguments.push(new IntegerExp(Loc(), size, Type.tsize_t));
-            e = new CallExp(e.loc, ec, arguments);
-            e.type = next.mutableOf().arrayOf();
-        }
-        else if (ident == Id.sort)
-        {
-            static __gshared FuncDeclaration fd = null;
-            Expression ec;
-            Expressions* arguments;
-
-            deprecation(e.loc, "use std.algorithm.sort instead of .sort property");
-            if (!fd)
-            {
-                auto params = new Parameters();
-                params.push(new Parameter(0, Type.tvoid.arrayOf(), null, null));
-                params.push(new Parameter(0, Type.dtypeinfo.type, null, null));
-                fd = FuncDeclaration.genCfunc(params, Type.tvoid.arrayOf(), "_adSort");
-            }
-
-            ec = new VarExp(Loc(), fd, false);
-            e = e.castTo(sc, n.arrayOf()); // convert to dynamic array
-            arguments = new Expressions();
-            arguments.push(e);
-            // don't convert to dynamic array
-            Expression tid = new TypeidExp(e.loc, n);
-            tid = tid.semantic(sc);
-            arguments.push(tid);
-            e = new CallExp(e.loc, ec, arguments);
-            e.type = next.arrayOf();
-        }
-        else
-        {
-            e = Type.dotExp(sc, e, ident, flag);
-        }
         if (!(flag & 1) || e)
             e = e.semantic(sc);
         return e;
