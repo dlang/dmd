@@ -1395,6 +1395,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
     ScopeDsymbol scopesym;
     bool addisdone;
 
+    bool cached = false;
     Dsymbols* cache = null;
 
     extern (D) this(StaticForeach sfe, Dsymbols* decl)
@@ -1420,7 +1421,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 
     override Dsymbols* include(Scope* sc, ScopeDsymbol sds)
     {
-        if (cache)
+        if (cached)
         {
             return cache;
         }
@@ -1429,6 +1430,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
         {
             return null; // TODO: ok?
         }
+
         import ddmd.statementsem: makeTupleForeach;
         Dsymbols* d = makeTupleForeach!(true,true)(_scope, sfe.aggrfe, decl, sfe.needExpansion);
         if (d && !addisdone)
@@ -1447,6 +1449,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
             }
             addisdone = true;
         }
+        cached = true;
         cache = d;
         return d;
     }
