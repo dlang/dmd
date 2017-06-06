@@ -1462,6 +1462,9 @@ extern (C++) final class StaticForeachStatement : Statement
 {
     StaticForeach sfe;
 
+    bool cached = false;
+    Statements* cache = null;
+
     extern (D) this(Loc loc, StaticForeach sfe)
     {
         super(loc);
@@ -1475,18 +1478,28 @@ extern (C++) final class StaticForeachStatement : Statement
 
     override Statements* flatten(Scope* sc)
     {
+        if (cached)
+        {
+            return cache;
+        }
         sfe.prepare(sc);
         if (sfe.ready())
         {
             import ddmd.statementsem;
             auto s = makeTupleForeach!(true,false)(sc, sfe.aggrfe,sfe.needExpansion);
-            return s.flatten(sc);
+            cached = true;
+            cache = s.flatten(sc);
+            if(cache) return cache;
+            cache = new Statements();
+            cache.push(s);
+            return cache;
         }
         else
         {
-            auto a = new Statements();
-            a.push(new ErrorStatement());
-            return a;
+            cached = true;
+            cache = new Statements();
+            cache.push(new ErrorStatement());
+            return cache;
         }
     }
 

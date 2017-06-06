@@ -503,7 +503,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
     MakeTupleForeachRet!isDecl makeTupleForeach(bool isStatic, bool isDecl)(ForeachStatement fs, TupleForeachArgs!(isStatic, isDecl) args)
     {
-        enum returnEarly = isDecl ? q{ return null; } : q{ return; };
+        enum returnEarly = isDecl ? q{ return null; } : q{ result = new ErrorStatement(); return; };
         static if(isDecl)
         {
             static assert(isStatic);
@@ -648,9 +648,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     Type tb = e.type.toBasetype();
                     Dsymbol ds = null;
-                    if (!(storageClass&STCmanifest))
+                    if (!(storageClass & STCmanifest))
                     {
-                        if ((tb.ty == Tfunction || tb.ty == Tsarray || storageClass&STCalias) && e.op == TOKvar)
+                        if ((isStatic || tb.ty == Tfunction || tb.ty == Tsarray || storageClass&STCalias) && e.op == TOKvar)
                             ds = (cast(VarExp)e).var;
                         else if (e.op == TOKtemplate)
                             ds = (cast(TemplateExp)e).td;
@@ -661,6 +661,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             auto fe = cast(FuncExp)e;
                             ds = fe.td ? cast(Dsymbol)fe.td : fe.fd;
                         }
+                    }
+                    else if (storageClass & STCalias)
+                    {
+                        fs.error("foreach loop variable cannot be both enum and alias");
+                        setError();
+                        mixin(returnEarly);
                     }
 
                     if (ds)

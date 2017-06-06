@@ -168,7 +168,7 @@ extern (C++) final class StaticForeach : RootObject
         return new CallExp(loc, new TypeExp(loc, type), e);
     }
 
-    private void lowerNonArrayAggregate(Scope* sc, bool loweredTuple=false)
+    private void lowerNonArrayAggregate(Scope* sc)
     {   // TODO: move to druntime?
         auto nvars = aggrfe ? aggrfe.parameters.dim : 1;
         auto aloc = aggrfe ? aggrfe.aggr.loc : rangefe.lwr.loc;
