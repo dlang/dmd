@@ -131,7 +131,7 @@ extern (C++) final class StaticForeach : RootObject
     private extern(D) Expression evaluate(Loc loc,Statement s)
     {
         auto tf = new TypeFunction(new Parameters(), null, 0, LINK.def, 0);
-        auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOKfunction, null);
+        auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOKreserved, null);
         fd.fbody = s;
         auto fe = new FuncExp(loc, fd);
         auto ce = new CallExp(loc,fe,new Expressions());
@@ -226,6 +226,7 @@ extern (C++) final class StaticForeach : RootObject
         auto aggr = evaluate(aloc, new CompoundStatement(aloc,s2));
         sc = sc.startCTFE();
         aggr = aggr.semantic(sc);
+        aggr = resolveProperties(sc, aggr);
         sc = sc.endCTFE();
         aggr = aggr.optimize(WANTvalue);
         aggr = aggr.ctfeInterpret();
