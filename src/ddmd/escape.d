@@ -255,7 +255,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
             {
                 if (!va.isScope() && inferScope)
                 {   //printf("inferring scope for %s\n", va.toChars());
-                    va.storage_class |= STCscope;
+                    va.storage_class |= STCscope | STCscopeinferred;
                     va.storage_class |= v.storage_class & STCreturn;
                 }
                 continue;
@@ -276,7 +276,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                 {
                     if (!va.isScope() && inferScope)
                     {   //printf("inferring scope for %s\n", va.toChars());
-                        va.storage_class |= STCscope;
+                        va.storage_class |= STCscope | STCscopeinferred;
                     }
                     continue;
                 }
@@ -326,7 +326,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                 if (!va.isScope() && inferScope &&
                     va.type.toBasetype().ty != Tclass)  // scope classes are special
                 {   //printf("inferring scope for %s\n", va.toChars());
-                    va.storage_class |= STCscope;
+                    va.storage_class |= STCscope | STCscopeinferred;
                 }
                 continue;
             }
@@ -364,7 +364,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                      * won't be generated for sc.func.
                      */
                     //if (!va.isScope() && inferScope)
-                        //va.storage_class |= STCscope;
+                        //va.storage_class |= STCscope | STCscopeinferred;
                     continue;
                 }
                 if (sc.func.setUnsafe())
@@ -384,7 +384,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         {
             if (!va.isScope() && inferScope)
             {   //printf("inferring scope for %s\n", va.toChars());
-                va.storage_class |= STCscope;
+                va.storage_class |= STCscope | STCscopeinferred;
             }
             continue;
         }

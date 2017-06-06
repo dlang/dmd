@@ -2972,7 +2972,7 @@ public:
         StorageClass stc = p.storageClass;
         if (p.type && p.type.mod & MODshared)
             stc &= ~STCshared;
-        if (stcToBuffer(buf, stc & (STCconst | STCimmutable | STCwild | STCshared | STCscope)))
+        if (stcToBuffer(buf, stc & (STCconst | STCimmutable | STCwild | STCshared | STCscope | STCscopeinferred)))
             buf.writeByte(' ');
         if (p.storageClass & STCalias)
         {
@@ -3090,6 +3090,8 @@ extern (C++) bool stcToBuffer(OutBuffer* buf, StorageClass stc)
     bool result = false;
     if ((stc & (STCreturn | STCscope)) == (STCreturn | STCscope))
         stc &= ~STCscope;
+    if (stc & STCscopeinferred)
+        stc &= ~(STCscope | STCscopeinferred);
     while (stc)
     {
         const(char)* p = stcToChars(stc);

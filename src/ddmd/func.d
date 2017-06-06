@@ -507,6 +507,7 @@ extern (C++) class FuncDeclaration : Declaration
             TypeFunction tfx = type.toTypeFunction();
             tfo.mod = tfx.mod;
             tfo.isscope = tfx.isscope;
+            tfo.isscopeinferred = tfx.isscopeinferred;
             tfo.isref = tfx.isref;
             tfo.isnothrow = tfx.isnothrow;
             tfo.isnogc = tfx.isnogc;
@@ -2015,8 +2016,8 @@ extern (C++) class FuncDeclaration : Declaration
                     //printf("Inferring scope for %s\n", v.toChars());
                     Parameter p = Parameter.getNth(f.parameters, u);
                     v.storage_class &= ~STCmaybescope;
-                    v.storage_class |= STCscope;
-                    p.storageClass |= STCscope;
+                    v.storage_class |= STCscope | STCscopeinferred;
+                    p.storageClass |= STCscope | STCscopeinferred;
                     assert(!(p.storageClass & STCmaybescope));
                 }
             }
@@ -2025,8 +2026,9 @@ extern (C++) class FuncDeclaration : Declaration
         if (vthis && vthis.storage_class & STCmaybescope)
         {
             vthis.storage_class &= ~STCmaybescope;
-            vthis.storage_class |= STCscope;
+            vthis.storage_class |= STCscope | STCscopeinferred;
             f.isscope = true;
+            f.isscopeinferred = true;
         }
 
         // reset deco to apply inference result to mangled name

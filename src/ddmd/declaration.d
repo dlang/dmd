@@ -128,6 +128,7 @@ enum STCautoref             = (1L << 45);   // Mark for the already deduced 'aut
 enum STCinference           = (1L << 46);   // do attribute inference
 enum STCexptemp             = (1L << 47);   // temporary variable that has lifetime restricted to an expression
 enum STCmaybescope          = (1L << 48);   // parameter might be 'scope'
+enum STCscopeinferred       = (1L << 49);   // 'scope' has been inferred and should not be part of mangling
 
 enum STC_TYPECTOR = (STCconst | STCimmutable | STCshared | STCwild);
 enum STC_FUNCATTR = (STCref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem);
