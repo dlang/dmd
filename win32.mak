@@ -1284,10 +1284,10 @@ $(GCSTUB) : src\gcstub\gc.d win$(MODEL).mak
 ################### Library generation #########################
 
 $(DRUNTIME): $(OBJS) $(SRCS) win$(MODEL).mak
-	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
+	*$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
 unittest : $(SRCS) $(DRUNTIME)
-	$(DMD) $(UDFLAGS) -L/co -unittest -ofunittest.exe -main $(SRCS) $(DRUNTIME) -debuglib=$(DRUNTIME) -defaultlib=$(DRUNTIME)
+	*$(DMD) $(UDFLAGS) -L/co -unittest -ofunittest.exe -main $(SRCS) $(DRUNTIME) -debuglib=$(DRUNTIME) -defaultlib=$(DRUNTIME)
 	unittest
 
 zip: druntime.zip
@@ -1308,4 +1308,3 @@ clean:
 auto-tester-build: target
 
 auto-tester-test: unittest
-
