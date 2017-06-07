@@ -21,7 +21,7 @@ $(SPEC_S Memory Safety,
 		)
 	)
 
-$(H3 Usage)
+$(H3 $(LNAME2 usage, Usage))
 
 	$(P Memory safety can be enabled on a per-function basis using
 	the $(DDSUBLINK spec/function, safe-functions, $(D @safe) attribute).
@@ -36,7 +36,7 @@ $(H3 Usage)
 	-release) mode.
 	)
 
-$(H3 Limitations)
+$(H3 $(LNAME2 limitations, Limitations))
 
 	$(P Memory safety does not imply that code is portable, uses only
 	sound programming practices, is free of byte order dependencies,

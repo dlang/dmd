@@ -85,7 +85,7 @@ int foo(S s)
 }
 ---
 
-$(H3 Postincrement $(I e)$(D ++) and Postdecrement $(I e)$(D --) Operators)
+$(H3 $(LNAME2 postincrement_postdecrement_operators, Postincrement $(I e)$(D ++) and Postdecrement $(I e)$(D --) Operators))
 
 	$(P These are not directly overloadable, but instead are rewritten
 	in terms of the ++$(I e) and --$(I e) prefix operators:
@@ -101,7 +101,7 @@ $(H3 Postincrement $(I e)$(D ++) and Postdecrement $(I e)$(D --) Operators)
 	$(ARGS $(D $(LPAREN)auto t =) $(I e)$(D , ++)$(I e)$(D , t$(RPAREN))))
 	)
 
-$(H3 Overloading Index Unary Operators)
+$(H3 $(LNAME2 index_unary_operators, Overloading Index Unary Operators))
 
 	$(TABLE2 Overloadable Index Unary Operators,
 	$(THEAD $(I op), $(I rewrite))
@@ -130,7 +130,7 @@ $(H3 Overloading Index Unary Operators)
 	)
 	)
 
-$(H3 Overloading Slice Unary Operators)
+$(H3 $(LNAME2 slice_unary_operators, Overloading Slice Unary Operators))
 
 	$(TABLE2 Overloadable Slice Unary Operators,
 	$(THEAD $(I op), $(I rewrite))
@@ -202,7 +202,7 @@ $(H3 Overloading Slice Unary Operators)
 
 $(H2 $(LEGACY_LNAME2 Cast, cast, Cast Operator Overloading))
 
-    $(P To define how one type can be cast to another, define the 
+    $(P To define how one type can be cast to another, define the
       `opCast` template method, which is used as follows:)
 	$(TABLE2 Cast Operators,
 	$(THEAD $(I op), $(I rewrite))
@@ -216,7 +216,7 @@ $(H2 $(LEGACY_LNAME2 Cast, cast, Cast Operator Overloading))
         expression, except in the case of boolean operations (see next
         section))
 
-$(H3 Boolean Operations)
+$(H3 $(LNAME2 boolean_operators, Boolean Operations))
 
 	$(P Notably absent from the list of overloaded unary operators is the !
 	logical negation operator. More obscurely absent is a unary operator
@@ -571,7 +571,7 @@ $(H2 $(LEGACY_LNAME2 Assignment, assignment, Assignment Operator Overloading))
     c = 1;        // Rewritten to c.opAssign(1);
     ---
 
-$(H3 Index Assignment Operator Overloading)
+$(H3 $(LNAME2 index_assignment_operator, Index Assignment Operator Overloading))
 
 	$(P If the left hand side of an assignment is an index operation
 	on a struct or class instance,
@@ -593,7 +593,7 @@ void test()
 }
 -------
 
-$(H3 Slice Assignment Operator Overloading)
+$(H3 $(LNAME2 slice_assignment_operator, Slice Assignment Operator Overloading))
 
 	$(P If the left hand side of an assignment is a slice operation on a
 	struct or class instance, it can be overloaded by implementing an $(D
@@ -653,7 +653,7 @@ a $(METACODE op)= b
 a.opOpAssign!($(DOUBLEQUOTE $(METACODE op)))(b)
 ---
 
-$(H3 Index Op Assignment Operator Overloading)
+$(H3 $(LNAME2 index_op_assignment, Index Op Assignment Operator Overloading))
 
 	$(P If the left hand side of an $(I op)= is an index expression on
 	a struct or class instance and $(D opIndexOpAssign) is a member:)
@@ -668,7 +668,7 @@ a[$(METACODE $(ARGUMENTS))] $(METACODE op)= c
 a.opIndexOpAssign!($(DOUBLEQUOTE $(METACODE op)))(c, $(METACODE $(ARGUMENTS)))
 ---
 
-$(H3 Slice Op Assignment Operator Overloading)
+$(H3 $(LNAME2 slice_op_assignment, Slice Op Assignment Operator Overloading))
 
 	$(P If the left hand side of an $(I op)= is a slice expression on
 	a struct or class instance and $(D opIndexOpAssign) is a member:)
