@@ -289,7 +289,7 @@ $(TROW $(D .sizeof), Size in bytes of struct)
 $(TROW $(D .alignof), Size boundary struct needs to be aligned on)
 $(TROW $(D .tupleof), Gets type tuple of fields))
 
-$(H3 Struct Field Properties)
+$(H3 $(LNAME2 struct_field_properties, Struct Field Properties))
 
 $(TABLE2 Struct Field Properties,
 $(THEAD Name, Description)
