@@ -86,13 +86,15 @@ void emplaceExp(T : UnionExp)(T* p, Expression e)
 }
 
 /*************************************************************
- * Given var, we need to get the
- * right 'this' pointer if var is in an outer class, but our
- * existing 'this' pointer is in an inner class.
- * Input:
- *      e1      existing 'this'
- *      ad      struct or class we need the correct 'this' for
- *      var     the specific member of ad we're accessing
+ * Given var, get the
+ * right `this` pointer if var is in an outer class, but our
+ * existing `this` pointer is in an inner class.
+ * Params:
+ *      e1 = existing `this`
+ *      ad = struct or class we need the correct `this` for
+ *      var = the specific member of ad we're accessing
+ * Returns:
+ *      Expression representing the `this` for the var
  */
 extern (C++) Expression getRightThis(Loc loc, Scope* sc, AggregateDeclaration ad, Expression e1, Declaration var, int flag = 0)
 {
@@ -103,7 +105,9 @@ L1:
 
     /* If e1 is not the 'this' pointer for ad
      */
-    if (ad && !(t.ty == Tpointer && t.nextOf().ty == Tstruct && (cast(TypeStruct)t.nextOf()).sym == ad) && !(t.ty == Tstruct && (cast(TypeStruct)t).sym == ad))
+    if (ad &&
+        !(t.ty == Tpointer && t.nextOf().ty == Tstruct && (cast(TypeStruct)t.nextOf()).sym == ad) &&
+        !(t.ty == Tstruct && (cast(TypeStruct)t).sym == ad))
     {
         ClassDeclaration cd = ad.isClassDeclaration();
         ClassDeclaration tcd = t.isClassHandle();
@@ -170,8 +174,13 @@ L1:
 }
 
 /*****************************************
- * Determine if 'this' is available.
- * If it is, return the FuncDeclaration that has it.
+ * Determine if `this` is available by walking up the enclosing
+ * scopes until a function is found.
+ *
+ * Params:
+ *      sc = context
+ * Returns:
+ *      Found function if it satisfies `isThis()`, otherwise `null`
  */
 extern (C++) FuncDeclaration hasThis(Scope* sc)
 {
@@ -219,6 +228,8 @@ Lno:
     return null; // don't have 'this' available
 }
 
+/***********************************
+ */
 extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
 {
     if (sc.intypeof == 1)
@@ -515,6 +526,8 @@ extern (C++) Expression resolveProperties(Scope* sc, Expression e)
 
 /******************************
  * Check the tail CallExp is really property function call.
+ * Bugs:
+ * This doesn't appear to do anything.
  */
 extern (C++) bool checkPropertyCall(Expression e, Expression emsg)
 {
