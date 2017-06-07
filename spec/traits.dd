@@ -45,6 +45,7 @@ $(GNAME TraitsKeyword):
     $(GBLINK getFunctionVariadicStyle)
     $(GBLINK getMember)
     $(GBLINK getOverloads)
+    $(GBLINK getParameterStorageClasses)
     $(GBLINK getPointerBitmap)
     $(GBLINK getProtection)
     $(GBLINK getVirtualFunctions)
@@ -604,6 +605,28 @@ void()
 int()
 2
 )
+
+$(H2 $(GNAME getParameterStorageClasses))
+
+    $(P
+        Takes two arguments.
+        The first must either be a function symbol, or a type
+	that is a function, delegate or a function pointer.
+	The second is an integer identifying which parameter, where the first parameter is
+	0.
+	It returns a tuple of strings representing the storage classes of that parameter.
+    )
+
+---
+ref int foo(return ref const int* p, scope int* a, out int b, lazy int c);
+
+static assert(__traits(getParameterStorageClasses, foo, 0)[0] == "return");
+static assert(__traits(getParameterStorageClasses, foo, 0)[1] == "ref");
+
+static assert(__traits(getParameterStorageClasses, foo, 1)[0] == "scope");
+static assert(__traits(getParameterStorageClasses, foo, 2)[0] == "out");
+static assert(__traits(getParameterStorageClasses, typeof(&foo), 3)[0] == "lazy");
+---
 
 $(H2 $(GNAME getPointerBitmap))
 
