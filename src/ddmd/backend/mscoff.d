@@ -1,4 +1,4 @@
-/* Microsoft COFF object file format
+/** Microsoft COFF object file format
  *
  * Source: $(DMDSRC backend/_mscoff.d)
  */
