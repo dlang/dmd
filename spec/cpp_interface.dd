@@ -88,6 +88,8 @@ void main()
     and then running it yields:)
 
 $(CONSOLE
+> g++ -c foo.cpp
+> dmd bar.d foo.o -L-lstdc++ $(ANDAND) ./bar
 i = 1
 j = 2
 k = 3
@@ -151,6 +153,8 @@ void bar()
     $(P Compiling, linking, and running produces the output:)
 
 $(CONSOLE
+> dmd -c foo.d
+> g++ bar.cpp foo.o -lphobos2 -pthread -o bar $(ANDAND) ./bar
 i = 6
 j = 7
 k = 8
@@ -302,6 +306,8 @@ void main()
 $(P Compiling, linking, and running produces the output:)
 
 $(CONSOLE
+> g++ base.cpp
+> dmd main.d base.o $(ANDAND) ./main
 5
 20
 a = 1
@@ -331,6 +337,7 @@ class F : E
 {
     extern (C++) int bar(int i, int j, int k)
     {
+        import std.stdio : writefln;
         writefln("i = %s", i);
         writefln("j = %s", j);
         writefln("k = %s", k);
@@ -359,6 +366,14 @@ int callE(E *e)
 {
     return e->bar(11, 12, 13);
 }
+)
+
+$(CONSOLE
+> dmd -c base.d
+> g++ klass.cpp base.o -lphobos2 -pthread -o klass $(ANDAND) ./klass
+i = 11
+j = 12
+k = 13
 )
 
 $(H2 $(LNAME2 cpp-templates, C++ Templates))
@@ -475,6 +490,8 @@ extern(D) void main()
 $(P Compiling, linking, and running produces the output:)
 
 $(CONSOLE
+> g++ -c template.cpp
+> dmd main.d template.o -L-lstdc++ $(ANDAND) ./main
 A
 B
 C
@@ -898,3 +915,4 @@ $(SPEC_SUBNAV_PREV_NEXT interfaceToC, Interfacing to C, objc_interface, Interfac
 Macros:
     CHAPTER=33
     TITLE=Interfacing to C++
+    ANDAND=$(AMP)$(AMP)
