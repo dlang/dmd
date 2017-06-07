@@ -1,4 +1,4 @@
-/* Dwarf debug
+/** Dwarf debug
  *
  * Source: $(DMDSRC backend/_dwarf.d)
  */
