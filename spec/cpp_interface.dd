@@ -750,7 +750,7 @@ $(H2 $(LNAME2 exception-handling, Exception Handling))
     directly in C++ code (but they will be throwable indirectly by calling into
     a D function with C++ linkage).)
 
-$(SECTION2 Comparing D Immutable and Const with C++ Const,
+$(SECTION2 $(LNAME2 comparing-d-immutable-and-const-with-cpp-const, Comparing D Immutable and Const with C++ Const),
 
 $(TABLE_SPECIAL $(ARGS Const, Immutable Comparison),
     $(THEAD Feature, D, C++98)
