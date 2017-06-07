@@ -1066,7 +1066,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             push("inout");
         if (stc & STCshared)
             push("shared");
-        if (stc & STCscope)
+        if (stc & STCscope && !(stc & STCscopeinferred))
             push("scope");
 
         auto tup = new TupleExp(e.loc, exps);

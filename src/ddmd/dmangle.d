@@ -287,7 +287,7 @@ public:
                 buf.writestring("Ni");
             if (ta.isreturn)
                 buf.writestring("Nj");
-            if (ta.isscope && !ta.isreturn)
+            if (ta.isscope && !ta.isreturn && !ta.isscopeinferred)
                 buf.writestring("Nl");
             switch (ta.trust)
             {

@@ -5913,6 +5913,7 @@ extern (C++) final class TypeFunction : TypeNext
     bool isref;                 // true: returns a reference
     bool isreturn;              // true: 'this' is returned by ref
     bool isscope;               // true: 'this' is scope
+    bool isscopeinferred;       // true: 'this' is scope from inferrence
     LINK linkage;               // calling convention
     TRUST trust;                // level of trust
     PURE purity = PUREimpure;
@@ -5945,6 +5946,8 @@ extern (C++) final class TypeFunction : TypeNext
             this.isreturn = true;
         if (stc & STCscope)
             this.isscope = true;
+        if (stc & STCscopeinferred)
+            this.isscopeinferred = true;
 
         this.trust = TRUSTdefault;
         if (stc & STCsafe)
@@ -5978,6 +5981,7 @@ extern (C++) final class TypeFunction : TypeNext
         t.isref = isref;
         t.isreturn = isreturn;
         t.isscope = isscope;
+        t.isscopeinferred = isscopeinferred;
         t.iswild = iswild;
         t.trust = trust;
         t.fargs = fargs;
@@ -6024,6 +6028,8 @@ extern (C++) final class TypeFunction : TypeNext
             tf.isreturn = true;
         if (sc.stc & STCscope)
             tf.isscope = true;
+        if (sc.stc & STCscopeinferred)
+            tf.isscopeinferred = true;
 
 //        if (tf.isreturn && !tf.isref)
 //            tf.isscope = true;                                  // return by itself means 'return scope'
@@ -6613,6 +6619,7 @@ extern (C++) final class TypeFunction : TypeNext
             tf.isref = t.isref;
             tf.isreturn = t.isreturn;
             tf.isscope = t.isscope;
+            tf.isscopeinferred = t.isscopeinferred;
             tf.trust = t.trust;
             tf.iswild = t.iswild;
 
@@ -6625,7 +6632,11 @@ extern (C++) final class TypeFunction : TypeNext
             if (stc & STCsafe)
                 tf.trust = TRUSTsafe;
             if (stc & STCscope)
+            {
                 tf.isscope = true;
+                if (stc & STCscopeinferred)
+                    tf.isscopeinferred = true;
+            }
 
             tf.deco = tf.merge().deco;
             t = tf;
@@ -6668,7 +6679,7 @@ extern (C++) final class TypeFunction : TypeNext
         if (res)
             return res;
 
-        if (isscope)
+        if (isscope && !isscopeinferred)
             res = fp(param, "scope");
         if (res)
             return res;
@@ -6725,6 +6736,7 @@ extern (C++) final class TypeFunction : TypeNext
         t.isref = isref;
         t.isreturn = isreturn;
         t.isscope = isscope;
+        t.isscopeinferred = isscopeinferred;
         t.iswild = 0;
         t.trust = trust;
         t.fargs = fargs;
@@ -7108,11 +7120,14 @@ extern (C++) final class TypeDelegate : TypeNext
          *  alias dg_t = void* delegate();
          *  scope dg_t dg = ...;
          */
-        auto n = t.next.addStorageClass(stc & STCscope);
-        if (n != t.next)
+        if(stc & STCscope)
         {
-            t.next = n;
-            t.deco = t.merge().deco;
+            auto n = t.next.addStorageClass(STCscope | STCscopeinferred);
+            if (n != t.next)
+            {
+                t.next = n;
+                t.deco = t.merge().deco; // mangling supposed to not be changed due to STCscopeinferrred
+            }
         }
         return t;
     }
