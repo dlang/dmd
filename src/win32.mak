@@ -60,6 +60,7 @@
 
 # fixed model for win32.mak, overridden by win64.mak
 MODEL=32
+BUILD=release
 
 ##### Directories
 
@@ -80,7 +81,7 @@ SCPDIR=..\backup
 
 # Generated files directory
 GEN = ..\generated
-G = $(GEN)\$(OS)$(MODEL)
+G = $(GEN)\$(OS)\$(BUILD)\$(MODEL)
 
 ##### Tools
 
@@ -333,7 +334,7 @@ $(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) $G\newdelete.obj $(LIBS) $(STRING_IMPORT_
 clean:
 	$(RD) /s /q $(GEN)
 	$(DEL) $D\msgs.h $D\msgs.c
-	$(DEL) optabgen.exe
+	$(DEL) optabgen.exe parser_test.exe example_avg.exe
 	$(DEL) $(TARGETEXE) $(DMDFRONTENDEXE) $(IDGENOUTPUT) *.map *.obj
 
 install: detab install-copy
