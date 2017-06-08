@@ -1533,14 +1533,43 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
         if (tf.varargs == 1)
             goto Lno;
 
+        /* No lazy parameters when inlining by statement, as the inliner tries to
+         * operate on the created delegate itself rather than the return value.
+         * Discussion: https://github.com/dlang/dmd/pull/6815
+         */
+        if (statementsToo && fd.parameters)
+        {
+            foreach (param; *fd.parameters)
+            {
+                if (param.storage_class & STClazy)
+                    goto Lno;
+            }
+        }
+
+        static bool hasDtor(Type t)
+        {
+            auto tv = t.baseElemOf();
+            return tv.ty == Tstruct || tv.ty == Tclass; // for now assume these might have a destructor
+        }
+
         /* Don't inline a function that returns non-void, but has
          * no return expression.
-         * No statement inlining for non-voids.
+         * When inlining as a statement:
+         * 1. don't inline array operations, because the order the arguments
+         *    get evaluated gets reversed. This is the same issue that e2ir.callfunc()
+         *    has with them
+         * 2. don't inline when the return value has a destructor, as it doesn't
+         *    get handled properly
          */
         if (tf.next && tf.next.ty != Tvoid &&
-            (!(fd.hasReturnExp & 1) || statementsToo) &&
+            (!(fd.hasReturnExp & 1) ||
+             statementsToo && (fd.isArrayOp || hasDtor(tf.next))) &&
             !hdrscan)
         {
+            static if (CANINLINE_LOG)
+            {
+                printf("\t3: no %s\n", fd.toChars());
+            }
             goto Lno;
         }
 
@@ -1569,6 +1598,10 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
                      fd.hasNestedFrameRefs() ||
                      (fd.isVirtual() && !fd.isFinalFunc())))
     {
+        static if (CANINLINE_LOG)
+        {
+            printf("\t4: no %s\n", fd.toChars());
+        }
         goto Lno;
     }
 
