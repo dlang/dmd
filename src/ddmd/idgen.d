@@ -357,6 +357,7 @@ Msgtable[] msgtable =
     { "getUnitTests" },
     { "getVirtualIndex" },
     { "getPointerBitmap" },
+    { "documentation" },
 
     // For C++ mangling
     { "allocator" },

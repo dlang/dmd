@@ -80,6 +80,7 @@ static this()
         "isLazy",
         "hasMember",
         "identifier",
+        "documentation",
         "getProtection",
         "parent",
         "getLinkage",
@@ -594,6 +595,21 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
 
         auto se = new StringExp(e.loc, cast(char*)id.toChars());
+        return se.semantic(sc);
+    }
+    if (e.ident == Id.documentation)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto o = (*e.args)[0];
+        auto s = getDsymbol(o);
+        if (!s)
+        {
+            e.error("argument %s is not a symbol", o.toChars());
+            return new ErrorExp();
+        }
+        StringExp se = new StringExp(e.loc, cast(char*)s.comment);
         return se.semantic(sc);
     }
     if (e.ident == Id.getProtection)

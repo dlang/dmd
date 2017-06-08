@@ -816,7 +816,9 @@ extern (C++) final class Module : Package
             return this;
         }
         {
-            scope p = new Parser!ASTCodegen(this, buf[0 .. buflen], docfile !is null);
+            // Always lex comments; __traits(documentation, ...) might require it.
+            bool doDocComment = true;
+            scope p = new Parser!ASTCodegen(this, buf[0 .. buflen], doDocComment);
             p.nextToken();
             members = p.parseModule();
             md = p.md;
