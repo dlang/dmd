@@ -575,15 +575,6 @@ void CodeBuilder::genlinnum(Srcpos srcpos)
     gen(&cs);
 }
 
-/******************************
- * Append line number to existing code.
- */
-
-void cgen_linnum(code **pc,Srcpos srcpos)
-{
-    *pc = genlinnum(*pc,srcpos);
-}
-
 /*****************************
  * Prepend line number to existing code.
  */
@@ -713,10 +704,8 @@ void CodeBuilder::genxmmreg(unsigned opcode,unsigned xreg,targ_size_t offset, ty
  * Clean stack after call to codelem().
  */
 
-code *gencodelem(code *c,elem *e,regm_t *pretregs,bool constflag)
+void gencodelem(CodeBuilder& cdb,elem *e,regm_t *pretregs,bool constflag)
 {
-    CodeBuilder cdb;
-    cdb.append(c);
     if (e)
     {
         unsigned stackpushsave;
@@ -730,7 +719,6 @@ code *gencodelem(code *c,elem *e,regm_t *pretregs,bool constflag)
         cgstate.stackclean = stackcleansave;
         genstackclean(cdb,stackpush - stackpushsave,*pretregs);       // do defered cleaning
     }
-    return cdb.finish();
 }
 
 /**********************************

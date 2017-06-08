@@ -39,6 +39,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 extern targ_size_t retsize;
 STATIC void pinholeopt_unittest();
+static void doswitch(CodeBuilder& cdb, block *b);
 
 //#define JMPJMPTABLE   TARGET_WINDOS
 #define JMPJMPTABLE     0               // benchmarking shows it's slower
@@ -767,21 +768,26 @@ static code *callFinallyBlock(block *bf, regm_t retregs)
 /*******************************
  * Generate block exit code
  */
-void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, symbol** retsym, const regm_t mfuncregsave)
+void outblkexitcode(block *bl, code* c, int& anyspill, const char* sflsave, symbol** retsym, const regm_t mfuncregsave)
 {
+    CodeBuilder cdb;
+    CodeBuilder cdb2;
     elem *e = bl->Belem;
     block *nextb;
-    block *bs1,*bs2;
     regm_t retregs = 0;
-    bool jcond;
+
+    cdb.append(c);
+
+    if (bl->BC != BCasm)
+        assert(bl->Bcode == NULL);
 
     switch (bl->BC)                     /* block exit condition         */
     {
         case BCiftrue:
         {
-            jcond = TRUE;
-            bs1 = bl->nthSucc(0);
-            bs2 = bl->nthSucc(1);
+            bool jcond = TRUE;
+            block *bs1 = bl->nthSucc(0);
+            block *bs2 = bl->nthSucc(1);
             if (bs1 == bl->Bnext)
             {   // Swap bs1 and bs2
                 block *btmp;
@@ -791,41 +797,38 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                 bs1 = bs2;
                 bs2 = btmp;
             }
-            CodeBuilder cdb;
-            cdb.append(c);
             logexp(cdb,e,jcond,FLblock,(code *) bs1);
-            c = cdb.finish();
             nextb = bs2;
             bl->Bcode = NULL;
         }
-        L2:
+        L5:
             if (configv.addlinenumbers && bl->Bsrcpos.Slinnum &&
                 !(funcsym_p->ty() & mTYnaked))
             {
                 //printf("BCiftrue: %s(%u)\n", bl->Bsrcpos.Sfilename ? bl->Bsrcpos.Sfilename : "", bl->Bsrcpos.Slinnum);
-                cgen_linnum(&c,bl->Bsrcpos);
+                cdb.genlinnum(bl->Bsrcpos);
             }
             if (nextb != bl->Bnext)
             {
                 assert(!(bl->Bflags & BFLepilog));
-                c = cat(c,genjmp(CNIL,JMP,FLblock,nextb));
+                cdb.append(genjmp(CNIL,JMP,FLblock,nextb));
             }
-            bl->Bcode = cat(bl->Bcode,c);
+            bl->Bcode = cdb.finish();
             break;
+
         case BCjmptab:
         case BCifthen:
         case BCswitch:
+        {
             assert(!(bl->Bflags & BFLepilog));
-            doswitch(bl);               /* hide messy details           */
-            bl->Bcode = cat(c,bl->Bcode);
+            doswitch(cdb,bl);               // hide messy details
+            bl->Bcode = cdb.finish();
             break;
+        }
 #if MARS
         case BCjcatch:
-        {
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in catch blocks.
-            CodeBuilder cdb;
-            cdb.append(c);
             getregs(cdb,lpadregs());
 
             if (config.ehmethod == EH_DWARF)
@@ -838,21 +841,14 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                  */
                 cdb.gen1(ESCAPE | ESCfixesp);
             }
-            c = cdb.finish();
             goto case_goto;
-        }
 #endif
 #if SCPP
         case BCcatch:
-        {
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in catch blocks.
-            CodeBuilder cdb;
-            cdb.append(c);
             getregs(cdb,allregs | mES);
-            c = cdb.finish();
             goto case_goto;
-        }
 
         case BCtry:
             usednteh |= EHtry;
@@ -868,9 +864,8 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                 bl->Btry != nextb->Btry &&
                 nextb->BC != BC_finally)
             {
-                bl->Bcode = NULL;
-                retregs = 0;
-                c = gencodelem(c,e,&retregs,TRUE);
+                regm_t retregs = 0;
+                gencodelem(cdb,e,&retregs,TRUE);
                 int toindex = nextb->Btry ? nextb->Btry->Bscope_index : -1;
                 assert(bl->Btry);
                 int fromindex = bl->Btry->Bscope_index;
@@ -880,16 +875,13 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                     if (bl->Btry &&
                         bl->Btry->nthSucc(1)->BC == BCjcatch)
                     {
-                        goto L2;        // it's a try-catch, not a try-finally
+                        goto L5;        // it's a try-catch, not a try-finally
                     }
                 }
 #endif
                 if (config.exe == EX_WIN32)
                 {
-                    CodeBuilder cdb;
-                    cdb.append(c);
                     nteh_unwind(cdb,0,toindex);
-                    c = cdb.finish();
                 }
 #if MARS
                 else if (
@@ -921,15 +913,16 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                             continue;
 
                         // call __finally
-                        c = cat(c, callFinallyBlock(bf->nthSucc(0), retregs));
+                        cdb.append(callFinallyBlock(bf->nthSucc(0), retregs));
                     }
                 }
 #endif
-                goto L2;
+                goto L5;
             }
         case_goto:
-            retregs = 0;
-            c = gencodelem(c,e,&retregs,TRUE);
+        {
+            regm_t retregs = 0;
+            gencodelem(cdb,e,&retregs,TRUE);
             if (anyspill)
             {   // Add in the epilog code
                 code *cstore = NULL;
@@ -945,13 +938,12 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                         cgreg_spillreg_epilog(bl,s,&cstore,&cload);
                     }
                 }
-                c = cat3(c,cstore,cload);
+                cdb.append(cstore);
+                cdb.append(cload);
             }
-
-        L3:
-            bl->Bcode = NULL;
             nextb = bl->nthSucc(0);
-            goto L2;
+            goto L5;
+        }
 
         case BC_try:
             if (config.exe == EX_WIN32)
@@ -968,12 +960,15 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                 // Mark scratch registers as destroyed.
                 getregsNoSave(lpadregs());
 
-                retregs = 0;
-                bl->Bcode = gencodelem(NULL,bl->Belem,&retregs,TRUE);
+                regm_t retregs = 0;
+                gencodelem(cdb,bl->Belem,&retregs,TRUE);
 
                 // JMP bl->nthSucc(1)
                 nextb = bl->nthSucc(1);
-                goto L2;
+
+                bl->Bcode = NULL;
+//              cdb.append(c);
+                goto L5;
             }
             else
             {
@@ -984,11 +979,12 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                 assert(!e);
                 assert(!bl->Bcode);
                 // Generate CALL to finalizer code
-                c = cat(c, callFinallyBlock(bl->nthSucc(0), 0));
+                cdb.append(callFinallyBlock(bl->nthSucc(0), 0));
 
                 // JMP bl->nthSucc(1)
                 nextb = bl->nthSucc(1);
-                goto L2;
+
+                goto L5;
             }
 
         case BC_lpad:
@@ -998,46 +994,46 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             // register assignments to variables used in finally blocks.
             getregsNoSave(lpadregs());
 
-            retregs = 0;
-            bl->Bcode = gencodelem(c,bl->Belem,&retregs,TRUE);
+            regm_t retregs = 0;
+            gencodelem(cdb,bl->Belem,&retregs,TRUE);
 
             // JMP bl->nthSucc(0)
             nextb = bl->nthSucc(0);
-            goto L2;
+            goto L5;
         }
 
         case BC_ret:
-            retregs = 0;
-            c = gencodelem(c,e,&retregs,TRUE);
+        {
+            regm_t retregs = 0;
+            gencodelem(cdb,e,&retregs,TRUE);
             if (config.ehmethod == EH_DWARF)
             {
             }
             else
-                bl->Bcode = gen1(c,0xC3);   // RET
+                cdb.gen1(0xC3);   // RET
+            bl->Bcode = cdb.finish();
             break;
+        }
 
 #if NTEXCEPTIONS
         case BC_except:
         {
-            CodeBuilder cdb;
-            cdb.append(c);
             assert(!e);
             usednteh |= NTEH_except;
             nteh_setsp(cdb,0x8B);
-            c = cdb.finish();
             getregsNoSave(allregs);
-            goto L3;
+            bl->Bcode = NULL;
+            nextb = bl->nthSucc(0);
+            goto L5;
         }
         case BC_filter:
         {
-            CodeBuilder cdb;
-            cdb.append(c);
             nteh_filter(cdb, bl);
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in filter blocks.
             getregsNoSave(allregs);
-            retregs = regmask(e->Ety, TYnfunc);
-            cdb.append(gencodelem(NULL,e,&retregs,TRUE));
+            regm_t retregs = regmask(e->Ety, TYnfunc);
+            gencodelem(cdb,e,&retregs,TRUE);
             cdb.gen1(0xC3);   // RET
             bl->Bcode = cdb.finish();
             break;
@@ -1054,18 +1050,15 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             if (config.flags4 & CFG4optimized)
             {   regm_t usedsave;
 
-                CodeBuilder cdb;
-                cdb.append(c);
                 docommas(cdb,&e);
-                c = cdb.finish();
                 usedsave = regcon.used;
                 if (EOP(e))
-                    c = gencodelem(c,e,&retregs,TRUE);
+                    gencodelem(cdb,e,&retregs,TRUE);
                 else
                 {
                     if (e->Eoper == OPconst)
                         regcon.mvar = 0;
-                    c = gencodelem(c,e,&retregs,TRUE);
+                    gencodelem(cdb,e,&retregs,TRUE);
                     regcon.used = usedsave;
                     if (e->Eoper == OPvar)
                     {   symbol *s = e->EV.sp.Vsym;
@@ -1077,16 +1070,15 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             }
             else
             {
-                c = gencodelem(c,e,&retregs,TRUE);
+                gencodelem(cdb,e,&retregs,TRUE);
             }
             goto L4;
 
         case BCret:
         case BCexit:
             retregs = 0;
-            c = gencodelem(c,e,&retregs,TRUE);
+            gencodelem(cdb,e,&retregs,TRUE);
         L4:
-            bl->Bcode = c;
             if (retregs == mST0)
             {   assert(stackused == 1);
                 pop87();                // account for return value
@@ -1122,33 +1114,27 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                             code *cs;
                             code *cr;
 
-                            CodeBuilder cdb;
-                            cdb.append(c);
                             nteh_gensindex(cdb,-1);
                             gensaverestore(retregs,&cs,&cr);
-                            cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)bf->nthSucc(0));
-                            regcon.immed.mval = 0;
                             cdb.append(cs);
+                            cdb.genc(0xE8,0,0,0,FLblock,(targ_size_t)bf->nthSucc(0));
+                            regcon.immed.mval = 0;
                             cdb.append(cr);
-                            bl->Bcode = cdb.finish();
                         }
                         else
                         {
-                            CodeBuilder cdb;
-                            cdb.append(c);
                             nteh_unwind(cdb,retregs,~0);
-                            bl->Bcode = cdb.finish();
                         }
                         break;
                     }
                     else
                     {
                         // call __finally
-                        c = cat(c, callFinallyBlock(bf->nthSucc(0), retregs));
-                        bl->Bcode = c;
+                        cdb.append(callFinallyBlock(bf->nthSucc(0), retregs));
                     }
                 }
             }
+            bl->Bcode = cdb.finish();
             break;
 
 #if SCPP || MARS
@@ -1158,13 +1144,17 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             // Mark destroyed registers
             CodeBuilder cdb;
             assert(!c);
-            getregs(cdb,iasm_regs(bl));
+            getregs(cdb,iasm_regs(bl));         // mark destroyed registers
             c = cdb.finish();
         }
             if (bl->Bsucc)
             {   nextb = bl->nthSucc(0);
                 if (!bl->Bnext)
-                    goto L2;
+                {
+                    cdb.append(bl->Bcode);
+                    cdb.append(c);
+                    goto L5;
+                }
                 if (nextb != bl->Bnext &&
                     bl->Bnext &&
                     !(bl->Bnext->BC == BCgoto &&
@@ -1174,7 +1164,11 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                     // See if already have JMP at end of block
                     code *cl = code_last(bl->Bcode);
                     if (!cl || cl->Iop != JMP)
-                        goto L2;        // add JMP at end of block
+                    {
+                        cdb.append(bl->Bcode);
+                        cdb.append(c);
+                        goto L5;        // add JMP at end of block
+                    }
                 }
             }
             break;
@@ -1302,9 +1296,8 @@ static void ifthen(CodeBuilder& cdb, CaseVal *casevals, size_t ncases,
  *      BCswitch        search table for match
  */
 
-void doswitch(block *b)
+void doswitch(CodeBuilder& cdb, block *b)
 {
-    CodeBuilder cdb;
     targ_ulong msw;
 
 #if TARGET_SEGMENTED
@@ -1420,7 +1413,6 @@ void doswitch(block *b)
 
         free(casevals);
 
-        b->Bcode = cdb.finish();
         cgstate.stackclean--;
         return;
     }
@@ -1560,8 +1552,6 @@ void doswitch(block *b)
             cdb.gen2(0xFF,modregrm(3,4,jreg));      // JMP jreg
             cdb.append(ctable);
             b->Btablesize = 0;
-            b->Bcode = cdb.finish();
-            //assert(b->Bcode);
             cgstate.stackclean--;
             return;
 #elif TARGET_OSX
@@ -1621,7 +1611,6 @@ void doswitch(block *b)
         }
         else
             assert(0);
-        b->Bcode = cdb.finish();
         cgstate.stackclean--;
         return;
     }
@@ -1735,7 +1724,6 @@ void doswitch(block *b)
             cdb.last()->Iflags |= csseg ? CFcs : 0;
         }
         b->Btablesize = disp + intsize + ncases * tysize(TYnptr);
-        b->Bcode = cdb.finish();
         //assert(b->Bcode);
         cgstate.stackclean--;
         return;
