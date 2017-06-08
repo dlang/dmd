@@ -1,0 +1,9 @@
+Deprecate the use of private selectively imported members
+
+The spec highlights clearly that a private member is visible
+only from within the same module. Due to a bug, selectively
+imported private members were visible from other modules. This
+represents a severe violation of the private keyword specification.
+At this point the use of selectively imported private members has
+been deprecated and should be transformed into an error as soon
+as possible.
