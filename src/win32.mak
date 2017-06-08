@@ -174,7 +174,7 @@ LEXER_ROOT=$(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d $(ROOT)/filename.d \
 	$(ROOT)/outbuffer.d $(ROOT)/port.d $(ROOT)/rmem.d $(ROOT)/rootobject.d \
 	$(ROOT)/stringtable.d $(ROOT)/hash.d
 
-PARSER_SRCS=$D/astbase.d $D/astbasevisitor.d $D/parse.d $D/transitivevisitor.d $D/permissivevisitor $D/strictvisitor.d
+PARSER_SRCS=$D/astbase.d $D/astbasevisitor.d $D/parse.d $D/transitivevisitor.d $D/permissivevisitor.d $D/strictvisitor.d
 
 GLUE_SRCS=$D/irstate.d $D/toctype.d $D/glue.d $D/gluelayer.d $D/todt.d $D/tocsym.d $D/toir.d $D/dmsc.d \
 	$D/tocvdebug.d $D/s2ir.d $D/toobj.d $D/e2ir.d $D/objc_glue_stubs.d $D/eh.d $D/iasm.d
@@ -317,21 +317,21 @@ LIBS=$G\backend.lib $G\lexer.lib
 $G\backend.lib: $(GBACKOBJ) $(OBJ_MSVC)
 	$(LIB) -p512 -n -c $@ $(GBACKOBJ) $(OBJ_MSVC)
 
-$G\lexer.lib: $(LEXER_SRCS) $(LEXER_ROOT) $(STRING_IMPORT_FILES)
-	$(HOST_DC) -of$@ -vtls -lib -J$G $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
+$G\lexer.lib: $(LEXER_SRCS) $(ROOT_SRCS) $(STRING_IMPORT_FILES) $G
+	$(HOST_DC) -of$@ -vtls -lib -J$G $(DFLAGS) $(LEXER_SRCS) $(ROOT_SRCS)
 
-$G\parser.lib: $(PARSER_SRCS) $G\liblexer.lib $(ROOT_SRCS)
-	$(HOST_DC) -of$@ -vtls -lib $(DFLAGS) $(PARSER_SRCS) $G\liblexer.lib $(ROOT_SRCS)
+$G\parser.lib: $(PARSER_SRCS) $G\lexer.lib $G
+	$(HOST_DC) -of$@ -vtls -lib $(DFLAGS) $(PARSER_SRCS) $G\lexer.lib
 
-parser_test: $G\libparser.lib examples\test_parser.d
-	$(HOST_DC) -of$@ -vtls $(DFLAGS) $G\libparser.lib examples\test_parser.d examples\impvisitor.d
+parser_test: $G\parser.lib examples\test_parser.d
+	$(HOST_DC) -of$@ -vtls $(DFLAGS) $G\parser.lib examples\test_parser.d examples\impvisitor.d
 
 example_avg: $G\libparser.lib examples\avg.d
 	$(HOST_DC) -of$@ -vtls $(DFLAGS) $G\libparser.lib examples\avg.d
 
 DMDFRONTENDEXE = $G\dmd_frontend.exe
 
-$(DMDFRONTENDEXE): $(FRONT_SRCS) $D\gluelayer.d $(ROOT_SRCS) $G\newdelete.obj $G\liblexer.lib $(STRING_IMPORT_FILES)
+$(DMDFRONTENDEXE): $(FRONT_SRCS) $D\gluelayer.d $(ROOT_SRCS) $G\newdelete.obj $G\lexer.lib $(STRING_IMPORT_FILES)
 	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(LFLAGS) $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) newdelete.obj -version=NoBackend
 	copy $(DMDFRONTENDEXE) .
 
@@ -344,7 +344,7 @@ $(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) $G\newdelete.obj $(LIBS) $(STRING_IMPORT_
 clean:
 	$(RD) /s /q $(GEN)
 	$(DEL) $D\msgs.h $D\msgs.c
-	$(DEL) optabgen.exe test_parser.exe example_avg.exe
+	$(DEL) optabgen.exe parser_test.exe example_avg.exe
 	$(DEL) $(TARGETEXE) $(DMDFRONTENDEXE) $(IDGENOUTPUT) *.map *.obj
 
 install: detab install-copy
@@ -428,7 +428,7 @@ $(IDGENOUTPUT) : $D\idgen.d
 	$(HOST_DC) -of$G\idgen $D\idgen.d
 	$G/idgen
 
-$G\VERSION : ..\VERSION
+$G\VERSION : ..\VERSION $G
 	copy ..\VERSION $@
 
 ############################# Intermediate Rules ############################

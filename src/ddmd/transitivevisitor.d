@@ -8,6 +8,8 @@ import ddmd.root.rootobject;
 
 import core.stdc.stdio;
 
+/** Visitor that implements the AST traversal logic. The nodes just accept their children.
+  */
 class TransitiveVisitor : PermissiveVisitor
 {
     alias visit = super.visit;

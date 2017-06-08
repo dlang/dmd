@@ -1,4 +1,4 @@
-/* This file contains an example on how to use the tranzitive visitor.
+/* This file contains an example on how to use the transitive visitor.
    It implements a visitor which computes the average function length from
    a *.d file.
  */
@@ -21,19 +21,15 @@ class FunctionLengthVisitor : TransitiveVisitor
     alias visit = super.visit;
     ulong[] lengths;
 
-    float getAvgLen(ASTBase.Module m)
+    double getAvgLen(ASTBase.Module m)
     {
         m.accept(this);
 
         if (lengths.length == 0)
             return 0;
 
-        ulong sum = 0;
-        foreach (len; lengths)
-            sum += len;
-
-        //writeln(lengths);
-        return sum/lengths.length;
+        import std.algorithm;
+        return double(lengths.sum)/lengths.length;
     }
 
     override void visitFuncBody(ASTBase.FuncDeclaration fd)
@@ -45,7 +41,6 @@ class FunctionLengthVisitor : TransitiveVisitor
 
 void main()
 {
-
     string fname = "examples/testavg.d";
 
     Id.initialize();

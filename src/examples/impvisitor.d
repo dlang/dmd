@@ -9,13 +9,37 @@ import ddmd.root.outbuffer;
 
 import core.stdc.stdio;
 
-class ImportVisitor2: TransitiveVisitor
+class ImportVisitor2 : TransitiveVisitor
 {
     alias visit = super.visit;
 
     override void visit(ASTBase.Import imp)
     {
-        printf("import %s %s\n", imp.toChars(), imp.id.toChars());
+        if (imp.isstatic)
+            printf("static ");
+
+        printf("import ");
+
+        if (imp.packages && imp.packages.dim)
+            foreach (const pid; *imp.packages)
+                printf("%s.", pid.toChars());
+
+        printf("%s", imp.id.toChars());
+
+        if (imp.names.dim)
+        {
+            printf(" : ");
+            foreach (const i, const name; imp.names)
+            {
+                if (i)
+                    printf(", ");
+                 printf("%s", name.toChars());
+            }
+        }
+
+        printf(";");
+        printf("\n");
+
     }
 }
 

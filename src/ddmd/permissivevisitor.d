@@ -3,6 +3,10 @@ module ddmd.permissivevisitor;
 import ddmd.astbase;
 import ddmd.astbasevisitor;
 
+/** PermissiveVisitor overrides all the visit methods in  the parent class
+  * that assert(0) in order to facilitate the traversal of subsets of the AST.
+  * It does not implement any visiting logic.
+  */
 class PermissiveVisitor: Visitor
 {
     alias visit = super.visit;

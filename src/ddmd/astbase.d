@@ -2,6 +2,12 @@ module ddmd.astbase;
 
 import ddmd.astbasevisitor;
 
+/** The ASTBase  family defines a family of AST nodes appropriate for parsing with
+  * no semantic information. It defines all the AST nodes that the parser needs
+  * and also all the conveniance methods and variables. The resulting AST can be
+  * visited with the strict, permissive and transitive visitors.
+  * The ASTBase family is used to instantiate the parser in the parser library.
+  */
 struct ASTBase
 {
     import ddmd.root.file;
@@ -154,8 +160,6 @@ struct ASTBase
     extern (C++) __gshared const(StorageClass) STCStorageClass =
         (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal | STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias | STCout | STCin | STCmanifest | STCimmutable | STCshared | STCwild | STCnothrow | STCnogc | STCpure | STCref | STCtls | STCgshared | STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable);
 
-
-
     enum ENUMTY : int
     {
         Tarray,     // slice array, aka T[]
@@ -206,7 +210,7 @@ struct ASTBase
         Tvector,
         Tint128,
         Tuns128,
-        TMAX,
+        TMAX
     }
 
     alias Tarray = ENUMTY.Tarray;
