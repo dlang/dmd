@@ -60,6 +60,7 @@
 
 # fixed model for win32.mak, overridden by win64.mak
 MODEL=32
+BUILD=release
 
 ##### Directories
 
@@ -80,7 +81,7 @@ SCPDIR=..\backup
 
 # Generated files directory
 GEN = ..\generated
-G = $(GEN)\$(OS)$(MODEL)
+G = $(GEN)\$(OS)\$(BUILD)\$(MODEL)
 
 ##### Tools
 
