@@ -1517,7 +1517,7 @@ struct BCScope
 debug = nullPtrCheck;
 debug = nullAllocCheck;
 //debug = andand;
-debug = SetLocation;
+//debug = SetLocation;
 extern (C++) final class BCV(BCGenT) : Visitor
 {
     uint unresolvedGotoCount;
@@ -2146,7 +2146,7 @@ public:
                 expr.accept(this);
             if (isBoolExp(expr) && !costumBoolFixup)
             {
-                if (!retval)
+                if (!retval || retval.type.type != BCTypeEnum.i32)
                     retval = genTemporary(i32Type);
 
                 auto Ltrue = genLabel();
