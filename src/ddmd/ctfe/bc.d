@@ -107,7 +107,6 @@ enum LongInst : ushort
     StrEq,
     StrCat,
     Assert,
-    AssertCnd,
 
     // Immedate operand
     ImmAdd,
@@ -539,7 +538,7 @@ pure:
         }
         else
         {
-            emitLongInst(LongInst64(LongInst.AssertCnd, value.stackAddr, _msg.stackAddr));
+            assert(0, "BCValue.init is no longer a valid value for assert");
         }
 
     }
@@ -1221,11 +1220,6 @@ string printInstructions(const int* startInstructions, uint length) pure
                     hi >> 16) ~ "]\n";
             }
             break;
-        case LongInst.AssertCnd:
-            {
-                result ~= "AssertCnd ErrNo SP[" ~ to!string(hi >> 16) ~ "]]\n";
-            }
-            break;
         case LongInst.StrEq:
             {
                 result ~= "StrEq SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
@@ -1737,79 +1731,15 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                         if (*rhs - 1 < bc_max_errors)
                         {
                             auto err = errors[cast(uint)(*rhs - 1)];
-                            if (err.v1.vType != BCValueType.Immediate)
-                            {
-                                *ev1 = imm32(stackP[err.v1.toUint / 4] & uint.max);
-                            }
-                            else
-                            {
-                                *ev1 = err.v1;
-                            }
 
-                            if (err.v2.vType != BCValueType.Immediate)
-                            {
-                                *ev2 = imm32(stackP[err.v2.toUint / 4] & uint.max);
-                            }
-                            else
-                            {
-                                *ev2 = err.v2;
-                            }
-
-                            if (err.v3.vType != BCValueType.Immediate)
-                            {
-                                *ev3 = imm32(stackP[err.v3.toUint / 4] & uint.max);
-                            }
-                            else
-                            {
-                                *ev3 = err.v3;
-                            }
-
-                            if (err.v4.vType != BCValueType.Immediate)
-                            {
-                                *ev4 = imm32(stackP[err.v4.toUint / 4] & uint.max);
-                            }
-                            else
-                            {
-                                *ev4 = err.v4;
-                            }
+                            *ev1 = imm32(stackP[err.v1.addr / 4] & uint.max);
+                            *ev2 = imm32(stackP[err.v2.addr / 4] & uint.max);
+                            *ev3 = imm32(stackP[err.v3.addr / 4] & uint.max);
+                            *ev4 = imm32(stackP[err.v4.addr / 4] & uint.max);
                         }
                     }
                     return retval;
 
-                }
-            }
-            break;
-        case LongInst.AssertCnd:
-            {
-                if (!cond)
-                {
-                    BCValue retval = imm32((*rhs) & uint.max);
-                    retval.vType = BCValueType.Error;
-                    static if (is(RetainedError))
-                    {
-                        if (*rhs - 1 < ubyte.sizeof * 4)
-                        {
-                            auto err = errors[cast(uint)(*rhs - 1)];
-                            if (err.v1.vType != BCValueType.Immediate)
-                            {
-                                *ev1 = imm32(stackP[err.v1.toUint / 4] & uint.max);
-                            }
-                            else
-                            {
-                                *ev1 = err.v1;
-                            }
-
-                            if (err.v2.vType != BCValueType.Immediate)
-                            {
-                                *ev2 = imm32(stackP[err.v2.toUint / 4] & uint.max);
-                            }
-                            else
-                            {
-                                *ev2 = err.v2;
-                            }
-                        }
-                    }
-                    return retval;
                 }
             }
             break;

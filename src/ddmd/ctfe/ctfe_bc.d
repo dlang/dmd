@@ -655,7 +655,7 @@ struct SharedCtfeState(BCGenT)
     uint sliceCount;
     uint pointerCount;
     // find a way to live without 102_000
-    RetainedError[bc_max_errors/4] errors;
+    RetainedError[bc_max_errors] errors;
     uint errorCount;
 
     const(BCType) elementType(const BCType type) pure const
@@ -787,7 +787,12 @@ struct SharedCtfeState(BCGenT)
 
     extern (D) BCValue addError(Loc loc, string msg, BCValue v1 = BCValue.init, BCValue v2 = BCValue.init, BCValue v3 = BCValue.init, BCValue v4 = BCValue.init)
     {
-        errors[errorCount++] = RetainedError(loc, msg, v1, v2, v3, v4);
+        auto sa1 = TypedStackAddr(v1.type, v1.stackAddr);
+        auto sa2 = TypedStackAddr(v2.type, v2.stackAddr);
+        auto sa3 = TypedStackAddr(v3.type, v3.stackAddr);
+        auto sa4 = TypedStackAddr(v4.type, v4.stackAddr);
+
+        errors[errorCount++] = RetainedError(loc, msg, sa1, sa2, sa3, sa4);
         auto error = imm32(errorCount);
         error.vType = BCValueType.Error;
         return error;
@@ -1014,16 +1019,23 @@ struct SharedCtfeState(BCGenT)
     }
 }
 
+struct TypedStackAddr
+{
+    BCType type;
+    StackAddr addr;
+}
+
 struct RetainedError // Name is still undecided
 {
     import ddmd.tokens : Loc;
 
     Loc loc;
     string msg;
-    BCValue v1;
-    BCValue v2;
-    BCValue v3;
-    BCValue v4;
+
+    TypedStackAddr v1;
+    TypedStackAddr v2;
+    TypedStackAddr v3;
+    TypedStackAddr v4;
 }
 
 Expression toExpression(const BCValue value, Type expressionType,
@@ -1502,7 +1514,7 @@ struct BCScope
 
 debug = nullPtrCheck;
 debug = nullAllocCheck;
-debug = andand;
+//debug = andand;
 //debug = SetLocation;
 extern (C++) final class BCV(BCGenT) : Visitor
 {
@@ -1626,6 +1638,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     {
         alias add_error_message_prototype = uint delegate (string);
         alias add_error_value_prototype = uint delegate (BCValue);
+
         static if (is(typeof(&gen.addErrorMessage) == add_error_message_prototype))
         {
             addErrorMessage(msg);
@@ -1636,6 +1649,43 @@ extern (C++) final class BCV(BCGenT) : Visitor
             if (v2) addErrorValue(v2);
             if (v3) addErrorValue(v3);
             if (v4) addErrorValue(v4);
+        }
+
+        if (v1)
+        {
+            if (v1.vType == BCValueType.Immediate)
+            {
+                BCValue t = genTemporary(v1.type);
+                Set(t, v1);
+                v1 = t;
+            }
+        }
+        if (v2)
+        {
+            if (v2.vType == BCValueType.Immediate)
+            {
+                BCValue t = genTemporary(v2.type);
+                Set(t, v2);
+                v2 = t;
+            }
+        }
+        if (v3)
+        {
+            if (v3.vType == BCValueType.Immediate)
+            {
+                BCValue t = genTemporary(v3.type);
+                Set(t, v3);
+                v3 = t;
+            }
+        }
+        if (v4)
+        {
+            if (v4.vType == BCValueType.Immediate)
+            {
+                BCValue t = genTemporary(v4.type);
+                Set(t, v4);
+                v4 = t;
+            }
         }
 
         return _sharedCtfeState.addError(loc, msg, v1, v2, v3, v4);
@@ -2658,8 +2708,9 @@ static if (is(BCGen))
                 case TOK.TOKshr:
                     {
                         auto maxShift = imm32(basicTypeSize(lhs.type) * 8 - 1);
-                        Le3(BCValue.init, rhs, maxShift);
-                        Assert(BCValue.init,
+                        auto v = genTemporary(i32Type);
+                        Le3(v, rhs, maxShift);
+                        Assert(v,
                             addError(e.loc,
                             "shift by %d is outside the range 0..%d", rhs, maxShift));
 
@@ -2670,8 +2721,9 @@ static if (is(BCGen))
                 case TOK.TOKshl:
                     {
                         auto maxShift = imm32(basicTypeSize(lhs.type) * 8 - 1);
-                        Le3(BCValue.init, rhs, maxShift);
-                        Assert(BCValue.init,
+                        auto v = genTemporary(i32Type);
+                        Le3(v, rhs, maxShift);
+                        Assert(v,
                             addError(e.loc,
                             "shift by %d is outside the range 0..%d", rhs, maxShift));
 
@@ -2907,8 +2959,9 @@ static if (is(BCGen))
         }
         else
         {
-            Lt3(BCValue.init, idx, length);
-            Assert(BCValue.init, addError(ie.loc,
+            auto v = genTemporary(i32Type);
+            Lt3(v, idx, length);
+            Assert(v, addError(ie.loc,
                 "ArrayIndex %d out of bounds %d", idx, length));
         }
 
@@ -4062,7 +4115,6 @@ static if (is(BCGen))
 
         case TOK.TOKcatass:
             {
-                bailout("~= unsupported");
                 {
                     if ((lhs.type.type == BCTypeEnum.Slice && lhs.type.typeIndex < _sharedCtfeState.sliceTypes.length) || lhs.type.type == BCTypeEnum.string8)
                     {
@@ -4073,8 +4125,8 @@ static if (is(BCGen))
                         }
                         bailout(_sharedCtfeState.elementType(lhs.type) != _sharedCtfeState.elementType(rhs.type), "rhs and lhs for ~= are not compatible");
                         auto elementType = _sharedCtfeState.elementType(lhs.type);
-                        retval = assignTo ? assignTo : genTemporary(i32Type);
-                        Cat(retval, lhs, rhs, _sharedCtfeState.size(elementType));
+                        retval = lhs;
+                        doCat(lhs, lhs, rhs);
                     }
                     else
                     {
@@ -4531,8 +4583,9 @@ static if (is(BCGen))
             }
             else
             {
-                Lt3(BCValue.init, index, length);
-                Assert(BCValue.init, addError(ae.loc,
+                auto v = genTemporary(i32Type);
+                Lt3(v, index, length);
+                Assert(v, addError(ae.loc,
                     "ArrayIndex %d out of bounds %d", index, length));
             }
             auto effectiveAddr = genTemporary(i32Type);
