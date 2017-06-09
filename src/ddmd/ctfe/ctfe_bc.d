@@ -18,12 +18,12 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 0;
+enum bailoutMessages = 1;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
-enum UseCBackend = 0;
+enum UseCBackend = 1;
 enum abortOnCritical = 1;
 
 private static void clearArray(T)(auto ref T array, uint count)
@@ -1516,7 +1516,7 @@ struct BCScope
 
 debug = nullPtrCheck;
 debug = nullAllocCheck;
-//debug = andand;
+debug = andand;
 //debug = SetLocation;
 extern (C++) final class BCV(BCGenT) : Visitor
 {
@@ -2759,7 +2759,7 @@ static if (is(BCGen))
             {
         case TOK.TOKandand:
                 {
-                    noRetval = true;
+                   // noRetval = true;
                    //     import std.stdio;
                    //     writefln("andandExp: %s -- e1.op: %s -- e2.op: %s", e.toString, e.e1.op.to!string, e.e2.op.to!string);
                     // If lhs is false jump to false
