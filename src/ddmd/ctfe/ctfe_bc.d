@@ -4372,16 +4372,16 @@ static if (is(BCGen))
             auto lhs_length = getLength(lhs);
             auto rhs_length = getLength(rhs);
 
-            auto lhs_lwr = (!e1.lwr) ? genExpr(e1.lwr) : imm32(0);
-            auto rhs_lwr = (!e2.lwr) ? genExpr(e2.lwr) : imm32(0);
-            auto lhs_upr = (!e1.upr) ? genExpr(e1.upr) : lhs_length;
-            auto rhs_upr = (!e2.upr) ? genExpr(e2.upr) : rhs_length;
+            auto lhs_lwr = (!e1.lwr) ? imm32(0) : genExpr(e1.lwr);
+            auto rhs_lwr = (!e2.lwr) ? imm32(0) : genExpr(e2.lwr);
+            auto lhs_upr = (!e1.upr) ? lhs_length : genExpr(e1.upr);
+            auto rhs_upr = (!e2.upr) ? rhs_length : genExpr(e2.upr);
 
             {
                 Neq3(BCValue.init, lhs_length, rhs_length);
                 auto CJLengthUnequal = beginCndJmp();
 
-                Assert(imm32(0), addError(ae.loc, "array length mismatch assigning [%d..%d] to [%d..%d]", lhs_lwr, lhs_upr, rhs_lwr, rhs_upr));
+                Assert(imm32(0), addError(ae.loc, "array length mismatch assigning [%d..%d] to [%d..%d]", rhs_lwr, rhs_upr, lhs_lwr, lhs_upr));
                 endCndJmp(CJLengthUnequal, genLabel());
             }
 
