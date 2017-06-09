@@ -3,7 +3,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail9368.d(20): Error: enum member b not represented in final switch
+fail_compilation/fail9368.d(20): Error: enum member `b` not represented in final switch
 ---
 */
 
@@ -22,3 +22,28 @@ void main()
         case F.a:
     }
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail9368.d(41): Error: enum member `B` not represented in final switch
+---
+*/
+
+enum G
+{
+    A,B,C
+}
+
+void test286()
+{
+    G e;
+    final switch (e)
+    {
+        case G.A:
+//      case G.B:
+        case G.C:
+            ;
+    }
+}
+

@@ -1,10 +1,12 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2017 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _dstruct.d)
+ */
 
 module ddmd.dstruct;
 
@@ -44,7 +46,7 @@ extern (C++) FuncDeclaration search_toString(StructDeclaration sd)
         if (!tftostring)
         {
             tftostring = new TypeFunction(null, Type.tstring, 0, LINKd);
-            tftostring = cast(TypeFunction)tftostring.merge();
+            tftostring = tftostring.merge().toTypeFunction();
         }
         fd = fd.overloadExactMatch(tftostring);
     }
@@ -52,7 +54,7 @@ extern (C++) FuncDeclaration search_toString(StructDeclaration sd)
 }
 
 /***************************************
- * Request additonal semantic analysis for TypeInfo generation.
+ * Request additional semantic analysis for TypeInfo generation.
  */
 extern (C++) void semanticTypeInfo(Scope* sc, Type t)
 {
@@ -98,6 +100,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
 
         override void visit(TypeStruct t)
         {
+            //printf("semanticTypeInfo.visit(TypeStruct = %s)\n", t.toChars());
             StructDeclaration sd = t.sym;
 
             /* Step 1: create TypeInfoDeclaration
@@ -119,7 +122,8 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
                 getTypeInfoType(t, sc);
                 sd.requestTypeInfo = true;
 
-                // Bugzilla 15149, if the typeid operand type comes from a
+                // https://issues.dlang.org/show_bug.cgi?id=15149
+                // if the typeid operand type comes from a
                 // result of auto function, it may be yet speculative.
                 unSpeculative(sc, sd);
             }
@@ -571,8 +575,12 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         //printf("-StructDeclaration::finalizeSize() %s, fields.dim = %d, structsize = %d\n", toChars(), fields.dim, structsize);
 
+        if (errors)
+            return;
+
         // Calculate fields[i].overlapped
-        checkOverlappedFields();
+        if (checkOverlappedFields())
+            errors = true;
 
         // Determine if struct is all zeros or not
         zeroInit = 1;

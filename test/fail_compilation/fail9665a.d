@@ -150,7 +150,7 @@ struct S3
 /+
 TEST_OUTPUT:
 ---
-fail_compilation/fail9665a.d(163): Error: static assert  (__traits(compiles, this.v = 1)) is false
+fail_compilation/fail9665a.d(163): Error: static assert  `__traits(compiles, this.v = 1)` is false
 ---
 +/
 struct S4

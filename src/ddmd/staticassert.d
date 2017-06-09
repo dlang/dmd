@@ -48,6 +48,8 @@ extern (C++) final class StaticAssert : Dsymbol
 
     override void semantic(Scope* sc)
     {
+        if (semanticRun < PASSsemanticdone)
+            semanticRun = PASSsemanticdone;
     }
 
     override void semantic2(Scope* sc)
@@ -57,27 +59,16 @@ extern (C++) final class StaticAssert : Dsymbol
         sc = sc.push(sds);
         sc.tinst = null;
         sc.minst = null;
-        sc.flags |= SCOPEcondition;
-        sc = sc.startCTFE();
-        Expression e = exp.semantic(sc);
-        e = resolveProperties(sc, e);
-        sc = sc.endCTFE();
+
+        import ddmd.staticcond;
+        bool errors;
+        bool result = evalStaticCondition(sc, exp, exp, errors);
         sc = sc.pop();
-        // Simplify expression, to make error messages nicer if CTFE fails
-        e = e.optimize(WANTvalue);
-        if (!e.type.isBoolean())
+        if (errors)
         {
-            if (e.type.toBasetype() != Type.terror)
-                exp.error("expression %s of type %s does not have a boolean value", exp.toChars(), e.type.toChars());
-            return;
+            errorSupplemental(loc, "while evaluating: `static assert(%s)`", exp.toChars());
         }
-        uint olderrs = global.errors;
-        e = e.ctfeInterpret();
-        if (global.errors != olderrs)
-        {
-            errorSupplemental(loc, "while evaluating: static assert(%s)", exp.toChars());
-        }
-        else if (e.isBool(false))
+        else if (!result)
         {
             if (msg)
             {
@@ -96,15 +87,11 @@ extern (C++) final class StaticAssert : Dsymbol
                     error("%s", msg.toChars());
             }
             else
-                error("(%s) is false", exp.toChars());
+                error("`%s` is false", exp.toChars());
             if (sc.tinst)
                 sc.tinst.printInstantiationTrace();
             if (!global.gag)
                 fatal();
-        }
-        else if (!e.isBool(true))
-        {
-            error("(%s) is not evaluatable at compile time", exp.toChars());
         }
     }
 

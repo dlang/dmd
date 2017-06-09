@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail302.d(21): Error: cannot implicitly convert expression (1) of type int to Bar
+fail_compilation/fail302.d(21): Error: cannot implicitly convert expression `1` of type `int` to `Bar`
 ---
 */
 

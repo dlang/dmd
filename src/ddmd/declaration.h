@@ -31,6 +31,7 @@ class ExpInitializer;
 class StructDeclaration;
 struct InterState;
 struct CompiledCtfeFunction;
+struct ObjcSelector;
 
 enum LINK;
 enum TOK;
@@ -254,10 +255,6 @@ public:
     // When interpreting, these point to the value (NULL if value not determinable)
     // The index of this variable on the CTFE stack, -1 if not allocated
     int ctfeAdrOnStack;
-    // if !NULL, rundtor is tested at runtime to see
-    // if the destructor should be run. Used to prevent
-    // dtor calls on postblitted vars
-    VarDeclaration *rundtor;
     Expression *edtor;          // if !=NULL, does the destruction of the variable
     IntRange *range;            // if !NULL, the variable is known to be within the range
 
@@ -509,7 +506,7 @@ public:
     DsymbolTable *localsymtab;
     VarDeclaration *vthis;              // 'this' parameter (member and nested)
     VarDeclaration *v_arguments;        // '_arguments' parameter
-    Objc_FuncDeclaration objc;
+    ObjcSelector* selector;             // Objective-C method selector (member function only)
     VarDeclaration *v_argptr;           // '_argptr' variable
     VarDeclarations *parameters;        // Array of VarDeclaration's for parameters
     DsymbolTable *labtab;               // statement label symbol table

@@ -165,7 +165,7 @@ public:
         {
             if (!t.sym.memtype)
             {
-                // Bugzilla 13792
+                // https://issues.dlang.org/show_bug.cgi?id=13792
                 t.ctype = Type_toCtype(Type.tvoid);
             }
             else if (t.sym.memtype.toBasetype().ty == Tint32)

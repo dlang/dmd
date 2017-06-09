@@ -1,10 +1,12 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2017 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _dinterpret.d)
+ */
 
 module ddmd.dinterpret;
 
@@ -751,7 +753,7 @@ extern (C++) Expression ctfeInterpretForPragmaMsg(Expression e)
     if (e.op != TOKtuple)
         return e.ctfeInterpret();
 
-    // Tuples need to be treated seperately, since they are
+    // Tuples need to be treated separately, since they are
     // allowed to contain a TypeExp in this case.
 
     TupleExp tup = cast(TupleExp)e;
@@ -1158,7 +1160,7 @@ public:
         {
             Statement sx = (*s.statements)[i];
             Expression e = interpret(sx, istate);
-            if (!e) // suceeds to interpret, or goto target was not found
+            if (!e) // succeeds to interpret, or goto target was not found
                 continue;
             if (exceptionOrCant(e))
                 return;
@@ -1808,20 +1810,27 @@ public:
         }
         // Little sanity check to make sure it's really a Throwable
         ClassReferenceExp boss = oldest.thrown;
-        assert((*boss.value.elements)[4].type.ty == Tclass); // Throwable.next
+        const next = 4;                         // index of Throwable.next
+        assert((*boss.value.elements)[next].type.ty == Tclass); // Throwable.next
         ClassReferenceExp collateral = newest.thrown;
         if (isAnErrorException(collateral.originalClass()) && !isAnErrorException(boss.originalClass()))
         {
+            /* Find the index of the Error.bypassException field
+             */
+            auto bypass = next + 1;
+            if ((*collateral.value.elements)[bypass].type.ty == Tuns32)
+                bypass += 1;  // skip over _refcount field
+            assert((*collateral.value.elements)[bypass].type.ty == Tclass);
+
             // The new exception bypass the existing chain
-            assert((*collateral.value.elements)[5].type.ty == Tclass);
-            (*collateral.value.elements)[5] = boss;
+            (*collateral.value.elements)[bypass] = boss;
             return newest;
         }
-        while ((*boss.value.elements)[4].op == TOKclassreference)
+        while ((*boss.value.elements)[next].op == TOKclassreference)
         {
-            boss = cast(ClassReferenceExp)(*boss.value.elements)[4];
+            boss = cast(ClassReferenceExp)(*boss.value.elements)[next];
         }
-        (*boss.value.elements)[4] = collateral;
+        (*boss.value.elements)[next] = collateral;
         return oldest;
     }
 
@@ -2022,7 +2031,8 @@ public:
         }
         if (goal == ctfeNeedLvalue)
         {
-            // We might end up here with istate being zero (see bugzilla 16382)
+            // We might end up here with istate being zero
+            // https://issues.dlang.org/show_bug.cgi?id=16382
             if (istate && istate.fd.vthis)
             {
                 result = new VarExp(e.loc, istate.fd.vthis);
@@ -2290,9 +2300,9 @@ public:
             if (v.ident == Id.ctfe)
                 return new IntegerExp(loc, 1, Type.tbool);
 
-            if (!v.originalType && v._scope) // semantic() not yet run
+            if (!v.originalType && v.semanticRun < PASSsemanticdone) // semantic() not yet run
             {
-                v.semantic(v._scope);
+                v.semantic(null);
                 if (v.type.ty == Terror)
                     return CTFEExp.cantexp;
             }
@@ -4692,7 +4702,7 @@ public:
             // The valid cases are:
             // p1 > p2 && p3 > p4  (same direction, also for < && <)
             // p1 > p2 && p3 < p4  (different direction, also < && >)
-            // Changing any > into >= doesnt affect the result
+            // Changing any > into >= doesn't affect the result
             if ((dir1 == dir2 && pointToSameMemoryBlock(agg1, agg4) && pointToSameMemoryBlock(agg2, agg3)) || (dir1 != dir2 && pointToSameMemoryBlock(agg1, agg3) && pointToSameMemoryBlock(agg2, agg4)))
             {
                 // it's a legal two-sided comparison

@@ -84,6 +84,8 @@ export OS
 
 ifeq (freebsd,$(OS))
     SHELL=/usr/local/bin/bash
+else ifeq (netbsd,$(OS))
+    SHELL=/usr/pkg/bin/bash
 else
     SHELL=/bin/bash
 endif
@@ -114,7 +116,7 @@ export SEP=/
 
 DRUNTIME_PATH=../../druntime
 PHOBOS_PATH=../../phobos
-# link against shared libraries (defaults to true on supported platforms, can be overriden w/ make SHARED=0)
+# link against shared libraries (defaults to true on supported platforms, can be overridden w/ make SHARED=0)
 SHARED=$(if $(findstring $(OS),linux freebsd),1,)
 DFLAGS=-I$(DRUNTIME_PATH)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/release/$(MODEL)
 ifeq (1,$(SHARED))

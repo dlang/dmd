@@ -4,7 +4,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/warn7444.d(23): Error: cannot implicitly convert expression (e) of type int to int[]
+fail_compilation/warn7444.d(23): Error: cannot implicitly convert expression `e` of type `int` to `int[]`
 ---
 */
 
@@ -16,7 +16,7 @@ void test7444()
 
     {
         // X: Changed accepts-invalid to rejects-invalid by this issue
-        // a: slice assginment
+        // a: slice assignment
         // b: element-wise assignment
         sa   = e;      // X
         sa[] = e;      // b

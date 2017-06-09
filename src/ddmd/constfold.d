@@ -1594,7 +1594,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         StringExp es;
         ubyte sz = es1.sz;
         dinteger_t v = e2.toInteger();
-        // Is it a concatentation of homogenous types?
+        // Is it a concatenation of homogenous types?
         // (char[] ~ char, wchar[]~wchar, or dchar[]~dchar)
         bool homoConcat = (sz == t2.size());
         size_t len = es1.len;

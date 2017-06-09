@@ -155,9 +155,6 @@ Msgtable[] msgtable =
     { "values" },
     { "rehash" },
 
-    { "sort" },
-    { "reverse" },
-
     { "property" },
     { "nogc" },
     { "safe" },
@@ -254,8 +251,6 @@ Msgtable[] msgtable =
     { "Fback", "back" },
     { "FpopFront", "popFront" },
     { "FpopBack", "popBack" },
-
-    { "adReverse", "_adReverse" },
 
     // For internal functions
     { "aaLen", "_aaLen" },
@@ -356,6 +351,9 @@ Msgtable[] msgtable =
     { "getAliasThis" },
     { "getAttributes" },
     { "getFunctionAttributes" },
+    { "getFunctionVariadicStyle" },
+    { "getParameterStorageClasses" },
+    { "getLinkage" },
     { "getUnitTests" },
     { "getVirtualIndex" },
     { "getPointerBitmap" },
@@ -407,7 +405,7 @@ int main()
         auto fp = fopen("ddmd/id.d","wb");
         if (!fp)
         {
-            printf("can't open ddmd/id.d\n");
+            printf("can't open ddmd.id.d\n");
             exit(EXIT_FAILURE);
         }
 

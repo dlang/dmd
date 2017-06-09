@@ -170,7 +170,8 @@ extern (C++) bool isSpeculativeType(Type t)
                     if (ti.minst || sd.requestTypeInfo)
                         return;
 
-                    /* Bugzilla 14425: TypeInfo_Struct would refer the members of
+                    /* https://issues.dlang.org/show_bug.cgi?id=14425
+                     * TypeInfo_Struct would refer the members of
                      * struct (e.g. opEquals via xopEquals field), so if it's instantiated
                      * in speculative context, TypeInfo creation should also be
                      * stopped to avoid 'unresolved symbol' linker errors.

@@ -15,6 +15,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 import ddmd.aggregate;
 import ddmd.arraytypes;
+import ddmd.astcodegen;
 import ddmd.gluelayer;
 import ddmd.dimport;
 import ddmd.dmacro;
@@ -109,6 +110,21 @@ extern (C++) const(char)* lookForSourceFile(const(char)** path, const(char)* fil
         FileName.free(n);
     }
     return null;
+}
+
+// function used to call semantic3 on a module's dependencies
+void semantic3OnDependencies(Module m)
+{
+    if (!m)
+        return;
+
+    if (m.semanticRun > PASSsemantic3)
+        return;
+
+    m.semantic3(null);
+
+    foreach (i; 1 .. m.aimports.dim)
+        semantic3OnDependencies(m.aimports[i]);
 }
 
 enum PKG : int
@@ -232,6 +248,8 @@ extern (C++) class Package : ScopeDsymbol
 
     override void semantic(Scope* sc)
     {
+        if (semanticRun < PASSsemanticdone)
+            semanticRun = PASSsemanticdone;
     }
 
     override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
@@ -787,7 +805,7 @@ extern (C++) final class Module : Package
         /* If it has the extension ".dd", it is also a documentation
          * source file. Documentation source files may begin with "Ddoc"
          * but do not have to if they have the .dd extension.
-         * See: https://issues.dlang.org/show_bug.cgi?id=15465
+         * https://issues.dlang.org/show_bug.cgi?id=15465
          */
         if (FileName.equalsExt(arg, "dd"))
         {
@@ -798,7 +816,7 @@ extern (C++) final class Module : Package
             return this;
         }
         {
-            scope Parser p = new Parser(this, buf[0 .. buflen], docfile !is null);
+            scope p = new Parser!ASTCodegen(this, buf[0 .. buflen], docfile !is null);
             p.nextToken();
             members = p.parseModule();
             md = p.md;
@@ -865,29 +883,29 @@ extern (C++) final class Module : Package
             }
             if (arreq)
             {
-                scope Parser p = new Parser(loc, this, code_ArrayEq, false);
+                scope p = new Parser!ASTCodegen(loc, this, code_ArrayEq, false);
                 p.nextToken();
                 members.append(p.parseDeclDefs(0));
             }
             {
-                scope Parser p = new Parser(loc, this, code_ArrayPostblit, false);
+                scope p = new Parser!ASTCodegen(loc, this, code_ArrayPostblit, false);
                 p.nextToken();
                 members.append(p.parseDeclDefs(0));
             }
             {
-                scope Parser p = new Parser(loc, this, code_ArrayDtor, false);
+                scope p = new Parser!ASTCodegen(loc, this, code_ArrayDtor, false);
                 p.nextToken();
                 members.append(p.parseDeclDefs(0));
             }
             if (xopeq)
             {
-                scope Parser p = new Parser(loc, this, code_xopEquals, false);
+                scope p = new Parser!ASTCodegen(loc, this, code_xopEquals, false);
                 p.nextToken();
                 members.append(p.parseDeclDefs(0));
             }
             if (xopcmp)
             {
-                scope Parser p = new Parser(loc, this, code_xopCmp, false);
+                scope p = new Parser!ASTCodegen(loc, this, code_xopCmp, false);
                 p.nextToken();
                 members.append(p.parseDeclDefs(0));
             }
@@ -936,7 +954,8 @@ extern (C++) final class Module : Package
                     error(loc, "from file %s is specified twice on the command line", srcname);
                 else
                     error(loc, "from file %s must be imported with 'import %s;'", srcname, toPrettyChars());
-                // Bugzilla 14446: Return previously parsed module to avoid AST duplication ICE.
+                // https://issues.dlang.org/show_bug.cgi?id=14446
+                // Return previously parsed module to avoid AST duplication ICE.
                 return mprev;
             }
             else if (Package pkg = prev.isPackage())
@@ -1163,7 +1182,8 @@ extern (C++) final class Module : Package
 
         if (errors == global.errors)
         {
-            // Bugzilla 10752: We can cache the result only when it does not cause
+            // https://issues.dlang.org/show_bug.cgi?id=10752
+            // Can cache the result only when it does not cause
             // access error so the side-effect should be reproduced in later search.
             searchCacheIdent = ident;
             searchCacheSymbol = s;
@@ -1370,9 +1390,6 @@ extern (C++) final class Module : Package
     Symbol* sshareddtor; // module shared destructor
     Symbol* stest; // module unit test
     Symbol* sfilename; // symbol for filename
-    Symbol* massert; // module assert function
-    Symbol* munittest; // module unittest failure function
-    Symbol* marray; // module array bounds function
 
     override inout(Module) isModule() inout
     {

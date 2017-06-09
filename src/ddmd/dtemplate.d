@@ -581,7 +581,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         }
         if (semanticRun != PASSinit)
             return; // semantic() already run
-        semanticRun = PASSsemantic;
 
         // Remember templates defined in module object that we need to know about
         if (sc._module && sc._module.ident == Id.object)
@@ -598,6 +597,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             this._scope = sc.copy();
             this._scope.setNoFree();
         }
+
+        semanticRun = PASSsemantic;
 
         parent = sc.parent;
         protection = sc.protection;
@@ -693,6 +694,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         /* BUG: should check:
          *  o no virtual functions or non-static data members of classes
          */
+
+        semanticRun = PASSsemanticdone;
     }
 
     /**********************************
@@ -880,38 +883,20 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         Expression e = constraint.syntaxCopy();
 
-        scx = scx.startCTFE();
-        scx.flags |= SCOPEcondition | SCOPEconstraint;
+        import ddmd.staticcond;
+
         assert(ti.inst is null);
         ti.inst = ti; // temporary instantiation to enable genIdent()
-
-        //printf("\tscx.parent = %s %s\n", scx.parent.kind(), scx.parent.toPrettyChars());
-        e = e.semantic(scx);
-        e = resolveProperties(scx, e);
-
+        scx.flags |= SCOPEconstraint;
+        bool errors;
+        bool result = evalStaticCondition(scx, constraint, e, errors);
         ti.inst = null;
         ti.symtab = null;
-        scx = scx.endCTFE();
-
         scx = scx.pop();
         previous = pr.prev; // unlink from threaded list
-
-        if (nerrors != global.errors) // if any errors from evaluating the constraint, no match
+        if (errors)
             return false;
-        if (e.op == TOKerror)
-            return false;
-
-        e = e.ctfeInterpret();
-        if (e.isBool(true))
-        {
-        }
-        else if (e.isBool(false))
-            return false;
-        else
-        {
-            e.error("constraint %s is not constant or does not evaluate to a bool", e.toChars());
-        }
-        return true;
+        return result;
     }
 
     /***************************************
@@ -2484,7 +2469,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
     }
 
     // results
-    int property = 0;   // 0: unintialized
+    int property = 0;   // 0: uninitialized
                         // 1: seen @property
                         // 2: not @property
     size_t ov_index = 0;
@@ -2502,10 +2487,10 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
         if (tiargs && tiargs.dim > 0)
             return 0;
 
-        if (fd.semanticRun == PASSinit && fd._scope)
+        if (fd.semanticRun < PASSsemanticdone)
         {
             Ungag ungag = fd.ungagSpeculative();
-            fd.semantic(fd._scope);
+            fd.semantic(null);
         }
         if (fd.semanticRun == PASSinit)
         {
@@ -4397,7 +4382,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             // From previous matched expressions to current deduced type
             MATCH match1 = xt ? xt.matchAll(tt) : MATCHnomatch;
 
-            // From current expresssion to previous deduced type
+            // From current expressions to previous deduced type
             Type pt = at.addMod(tparam.mod);
             if (*wm)
                 pt = pt.substWildTo(*wm);
@@ -8261,8 +8246,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             }
             else if (ea)
             {
-                // Don't interpret it yet, it might actually be an alias
-                ea = ea.optimize(WANTvalue);
+                // Don't interpret it yet, it might actually be an alias template parameter.
+                // Only constfold manifest constants, not const/immutable lvalues, see https://issues.dlang.org/show_bug.cgi?id=17339.
+                enum keepLvalue = true;
+                ea = ea.optimize(WANTvalue, keepLvalue);
                 if (ea.op == TOKvar)
                 {
                     sa = (cast(VarExp)ea).var;
@@ -8589,7 +8576,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
          */
         if (!findTempDecl(sc) || !semanticTiargs(sc) || !findBestMatch(sc, null))
         {
-            if (semanticRun == PASSinit) // forward reference had occured
+            if (semanticRun == PASSinit) // forward reference had occurred
             {
                 //printf("forward reference - deferring\n");
                 _scope = scx ? scx : sc.copy();

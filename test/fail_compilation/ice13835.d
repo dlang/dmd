@@ -1,5 +1,5 @@
 /*
-TEST_OUPUT:
+TEST_OUTPUT:
 ---
 fail_compilation/ice13835.d(15): Error: value of 'this' is not known at compile time
 fail_compilation/ice13835.d(21): Error: template instance ice13835.Foo!int error instantiating

@@ -2105,8 +2105,7 @@ STATIC void findbasivs(loop *l)
 
         biv->IVbasic = s;               // symbol of basic IV
 
-        cmes3("Symbol '%s' (%d) is a basic IV, ",s->Sident
-                ? (char *)s->Sident : "",i);
+        cmes3("Symbol '%s' (%d) is a basic IV, ", s->Sident, i);
 
         /* We have the sym idx of the basic IV. We need to find         */
         /* the parent of the increment elem for it.                     */
@@ -2232,8 +2231,7 @@ STATIC void findopeqs(loop *l)
 
         biv->IVbasic = s;               // symbol of basic IV
 
-        cmes3("Symbol '%s' (%d) is an opeq IV, ",s->Sident
-                ? (char *)s->Sident : "",i);
+        cmes3("Symbol '%s' (%d) is an opeq IV, ",s->Sident,i);
 
         // We have the sym idx of the basic IV. We need to find
         // the parent of the increment elem for it.
@@ -3044,8 +3042,7 @@ STATIC void elimbasivs(loop *l)
                         }
                 }
 
-                cmes3("No uses, eliminating basic IV '%s' (%p)\n",(X->Sident)
-                        ? (char *)X->Sident : "",X);
+                cmes3("No uses, eliminating basic IV '%s' (%p)\n",X->Sident,X);
 
                 /* Dump the increment elem                              */
                 /* (Replace it with an OPconst that only serves as a    */
@@ -3105,8 +3102,7 @@ STATIC void elimopeqs(loop *l)
                 }
             }
 
-            cmes3("No uses, eliminating opeq IV '%s' (%p)\n",(X->Sident)
-                    ? (char *)X->Sident : "",X);
+            cmes3("No uses, eliminating opeq IV '%s' (%p)\n",X->Sident,X);
 
             // Dump the increment elem
             // (Replace it with an OPconst that only serves as a

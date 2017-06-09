@@ -834,6 +834,12 @@ extern (C++) struct Token
         TOKcantexp: "cantexp",
     ];
 
+    static assert(() {
+        foreach (s; tochars)
+            assert(s.length);
+        return true;
+    }());
+
     static this()
     {
         Identifier.initTable();
@@ -841,11 +847,6 @@ extern (C++) struct Token
         {
             //printf("keyword[%d] = '%s'\n",kw, tochars[kw].ptr);
             Identifier.idPool(tochars[kw].ptr, tochars[kw].length, cast(uint)kw);
-        }
-
-        foreach (i, s; tochars)
-        {
-            assert(s.length);
         }
     }
 

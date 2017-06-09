@@ -22,6 +22,7 @@ import ddmd.argtypes;
 import ddmd.arrayop;
 import ddmd.arraytypes;
 import ddmd.attrib;
+import ddmd.astcodegen;
 import ddmd.gluelayer;
 import ddmd.canthrow;
 import ddmd.complex;
@@ -55,6 +56,7 @@ import ddmd.nspace;
 import ddmd.opover;
 import ddmd.optimize;
 import ddmd.parse;
+import ddmd.printast;
 import ddmd.root.ctfloat;
 import ddmd.root.file;
 import ddmd.root.filename;
@@ -121,7 +123,7 @@ L1:
                 e1 = new DotVarExp(loc, e1, tcd.vthis);
                 e1.type = tcd.vthis.type;
                 e1.type = e1.type.addMod(t.mod);
-                // Do not call checkNestedRef()
+                // Do not call ensureStaticLinkTo()
                 //e1 = e1.semantic(sc);
 
                 // Skip up over nested functions, and get the enclosing
@@ -207,7 +209,6 @@ extern (C++) FuncDeclaration hasThis(Scope* sc)
 
     if (!fd.isThis())
     {
-        //printf("test '%s'\n", fd.toChars());
         goto Lno;
     }
 
@@ -529,9 +530,9 @@ extern (C++) bool checkPropertyCall(Expression e, Expression emsg)
             tf = cast(TypeFunction)ce.f.type;
             /* If a forward reference to ce.f, try to resolve it
              */
-            if (!tf.deco && ce.f._scope)
+            if (!tf.deco && ce.f.semanticRun < PASSsemanticdone)
             {
-                ce.f.semantic(ce.f._scope);
+                ce.f.semantic(null);
                 tf = cast(TypeFunction)ce.f.type;
             }
         }
@@ -1203,7 +1204,8 @@ extern (C++) bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type
             //assert(e.op != TOKerror);
             if (e.op == TOKerror)
             {
-                /* Bugzilla 13024: a workaround for the bug in typeMerge -
+                /* https://issues.dlang.org/show_bug.cgi?id=13024
+                 * a workaround for the bug in typeMerge -
                  * it should paint e1 and e2 by deduced common type,
                  * but doesn't in this particular case.
                  */
@@ -1360,7 +1362,7 @@ extern (C++) Expression callCpCtor(Scope* sc, Expression e)
             /* Create a variable tmp, and replace the argument e with:
              *      (tmp = e),tmp
              * and let AssignExp() handle the construction.
-             * This is not the most efficent, ideally tmp would be constructed
+             * This is not the most efficient, ideally tmp would be constructed
              * directly onto the stack.
              */
             auto tmp = copyToTemp(STCrvalue, "__copytmp", e);
@@ -1526,7 +1528,8 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                          *  T[dim] __arrayArg = [ arguments[i], ..., arguments[nargs-1] ];
                          *
                          * The array literal in the initializer of the hidden variable
-                         * is now optimized. See Bugzilla 2356.
+                         * is now optimized.
+                         * https://issues.dlang.org/show_bug.cgi?id=2356
                          */
                         Type tbn = (cast(TypeArray)tb).next;
                         Type tsa = tbn.sarrayOf(nargs - i);
@@ -1546,7 +1549,8 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                                 a = a.implicitCastTo(sc, tbn);
                             (*elements)[u] = a;
                         }
-                        // Bugzilla 14395: Convert to a static array literal, or its slice.
+                        // https://issues.dlang.org/show_bug.cgi?id=14395
+                        // Convert to a static array literal, or its slice.
                         arg = new ArrayLiteralExp(loc, elements);
                         arg.type = tsa;
                         if (tb.ty == Tarray)
@@ -2184,7 +2188,7 @@ extern (C++) int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expressi
                 }
 
                 sc.fieldinit[i] |= CSXthis_ctor;
-                if (var.overlapped) // Bugzilla 15258
+                if (var.overlapped) // https://issues.dlang.org/show_bug.cgi?id=15258
                 {
                     foreach (j, v; ad.fields)
                     {
@@ -2288,7 +2292,8 @@ extern (C++) Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
 {
     Expression e0;
     Expression e1 = Expression.extractLast(ue.e1, &e0);
-    // Bugzilla 12585: Extract the side effect part if ue.e1 is comma.
+    // https://issues.dlang.org/show_bug.cgi?id=12585
+    // Extract the side effect part if ue.e1 is comma.
 
     if (!isTrivialExp(e1))
     {
@@ -2597,18 +2602,6 @@ extern (C++) abstract class Expression : RootObject
         HdrGenState hgs;
         toCBuffer(this, &buf, &hgs);
         return buf.extractString();
-    }
-
-    /********************
-     * Print AST data structure in a nice format.
-     * Params:
-     *  indent = indentation level
-     */
-    void printAST(int indent = 0)
-    {
-        foreach (i; 0 .. indent)
-            printf(" ");
-        printf("%s %s\n", Token.toChars(op), type ? type.toChars() : "");
     }
 
     final void error(const(char)* format, ...) const
@@ -2981,7 +2974,7 @@ extern (C++) abstract class Expression : RootObject
             /* Today, static local functions are impure by default, but they cannot
              * violate purity of enclosing functions.
              *
-             *  auto foo() pure {      // non instantiated funciton
+             *  auto foo() pure {      // non instantiated function
              *    static auto bar() {  // static, without pure attribute
              *      impureFunc();      // impure call
              *      // Although impureFunc is called inside bar, f(= impureFunc)
@@ -3052,7 +3045,8 @@ extern (C++) abstract class Expression : RootObject
         bool err = false;
         if (v.isDataseg())
         {
-            // Bugzilla 7533: Accessing implicit generated __gate is pure.
+            // https://issues.dlang.org/show_bug.cgi?id=7533
+            // Accessing implicit generated __gate is pure.
             if (v.ident == Id.gate)
                 return false;
 
@@ -3063,7 +3057,7 @@ extern (C++) abstract class Expression : RootObject
             /* Today, static local functions are impure by default, but they cannot
              * violate purity of enclosing functions.
              *
-             *  auto foo() pure {      // non instantiated funciton
+             *  auto foo() pure {      // non instantiated function
              *    static auto bar() {  // static, without pure attribute
              *      globalData++;      // impure access
              *      // Although globalData is accessed inside bar,
@@ -3230,7 +3224,8 @@ extern (C++) abstract class Expression : RootObject
         t = t.baseElemOf();
         if (t.ty == Tstruct)
         {
-            // Bugzilla 11395: Require TypeInfo generation for array concatenation
+            // https://issues.dlang.org/show_bug.cgi?id=11395
+            // Require TypeInfo generation for array concatenation
             semanticTypeInfo(sc, t);
 
             StructDeclaration sd = (cast(TypeStruct)t).sym;
@@ -3854,7 +3849,7 @@ extern (C++) class IdentifierExp : Expression
                     Dsymbol s2;
                     if (scx.scopesym && scx.scopesym.symtab && (s2 = scx.scopesym.symtab.lookup(s.ident)) !is null && s != s2)
                     {
-                        error("with symbol %s is shadowing local symbol %s", s.toPrettyChars(), s2.toPrettyChars());
+                        error("with symbol `%s` is shadowing local symbol `%s`", s.toPrettyChars(), s2.toPrettyChars());
                         return new ErrorExp();
                     }
                 }
@@ -3917,13 +3912,14 @@ extern (C++) class IdentifierExp : Expression
         {
             if (sc.flags & SCOPEctfe)
             {
-                error("variable __ctfe cannot be read at compile time");
+                error("variable `__ctfe` cannot be read at compile time");
                 return new ErrorExp();
             }
 
             // Create the magic __ctfe bool variable
             auto vd = new VarDeclaration(loc, Type.tbool, Id.ctfe, null);
             vd.storage_class |= STCtemp;
+            vd.semanticRun = PASSsemanticdone;
             Expression e = new VarExp(loc, vd);
             e = e.semantic(sc);
             return e;
@@ -3955,14 +3951,14 @@ extern (C++) class IdentifierExp : Expression
 
         const(char)* n = importHint(ident.toChars());
         if (n)
-            error("'%s' is not defined, perhaps you need to import %s; ?", ident.toChars(), n);
+            error("`%s` is not defined, perhaps `import %s;` is needed?", ident.toChars(), n);
         else
         {
             s = sc.search_correct(ident);
             if (s)
-                error("undefined identifier '%s', did you mean %s '%s'?", ident.toChars(), s.kind(), s.toChars());
+                error("undefined identifier `%s`, did you mean %s `%s`?", ident.toChars(), s.kind(), s.toChars());
             else
-                error("undefined identifier '%s'", ident.toChars());
+                error("undefined identifier `%s`", ident.toChars());
         }
         return new ErrorExp();
     }
@@ -4049,7 +4045,8 @@ extern (C++) final class DsymbolExp : Expression
             if (!s.isFuncDeclaration()) // functions are checked after overloading
                 s.checkDeprecated(loc, sc);
 
-            // Bugzilla 12023: if 's' is a tuple variable, the tuple is returned.
+            // https://issues.dlang.org/show_bug.cgi?id=12023
+            // if 's' is a tuple variable, the tuple is returned.
             s = s.toAlias();
 
             //printf("s = '%s', s.kind = '%s', s.needThis() = %p\n", s.toChars(), s.kind(), s.needThis());
@@ -4960,7 +4957,7 @@ extern (C++) final class TupleExp : Expression
             else if (o.dyncast() == DYNCAST.expression)
             {
                 auto e = (cast(Expression)o).copy();
-                e.loc = loc;    // Bugzilla 15669
+                e.loc = loc;    // https://issues.dlang.org/show_bug.cgi?id=15669
                 this.exps.push(e);
             }
             else if (o.dyncast() == DYNCAST.type)
@@ -5134,7 +5131,7 @@ extern (C++) final class ArrayLiteralExp : Expression
      *      e2  = If it's not `null`, it will be pushed/appended to the new
      *            `Expressions` by the same way with `e1`.
      * Returns:
-     *      Newly allocated `Expresions. Note that it points the original
+     *      Newly allocated `Expressions`. Note that it points to the original
      *      `Expression` values in e1 and e2.
      */
     static Expressions* copyElements(Expression e1, Expression e2 = null)
@@ -5974,7 +5971,8 @@ extern (C++) final class NewExp : Expression
         if (type) // if semantic() already run
             return this;
 
-        // Bugzilla 11581: With the syntax `new T[edim]` or `thisexp.new T[edim]`,
+        // https://issues.dlang.org/show_bug.cgi?id=11581
+        // With the syntax `new T[edim]` or `thisexp.new T[edim]`,
         // T should be analyzed first and edim should go into arguments iff it's
         // not a tuple.
         Expression edim = null;
@@ -6144,7 +6142,7 @@ extern (C++) final class NewExp : Expression
                 else if (auto fdn = s.isFuncDeclaration())
                 {
                     // make sure the parent context fdn of cd is reachable from sc
-                    if (checkNestedRef(sc.parent, fdn))
+                    if (!ensureStaticLinkTo(sc.parent, fdn))
                     {
                         error("outer function context of %s is needed to 'new' nested class %s",
                             fdn.toPrettyChars(), cd.toPrettyChars());
@@ -6459,14 +6457,6 @@ extern (C++) class SymbolExp : Expression
     {
         v.visit(this);
     }
-
-    override void printAST(int indent)
-    {
-        Expression.printAST(indent);
-        foreach (i; 0 .. indent + 2)
-            printf(" ");
-        printf(".var: %s\n", var ? var.toChars() : "");
-    }
 }
 
 /***********************************************************
@@ -6590,7 +6580,8 @@ extern (C++) final class VarExp : SymbolExp
             if (vd.checkNestedReference(sc, loc))
                 return new ErrorExp();
 
-            // Bugzilla 12025: If the variable is not actually used in runtime code,
+            // https://issues.dlang.org/show_bug.cgi?id=12025
+            // If the variable is not actually used in runtime code,
             // the purity violation error is redundant.
             //checkPurity(sc, vd);
         }
@@ -6643,7 +6634,7 @@ extern (C++) final class VarExp : SymbolExp
             error("compiler-generated variable __ctfe is not an lvalue");
             return new ErrorExp();
         }
-        if (var.ident == Id.dollar) // Bugzilla 13574
+        if (var.ident == Id.dollar) // https://issues.dlang.org/show_bug.cgi?id=13574
         {
             error("'$' is not an lvalue");
             return new ErrorExp();
@@ -6790,7 +6781,8 @@ extern (C++) final class FuncExp : Expression
             return new FuncExp(loc, td.syntaxCopy(null));
         else if (fd.semanticRun == PASSinit)
             return new FuncExp(loc, fd.syntaxCopy(null));
-        else // Bugzilla 13481: Prevent multiple semantic analysis of lambda body.
+        else // https://issues.dlang.org/show_bug.cgi?id=13481
+             // Prevent multiple semantic analysis of lambda body.
             return new FuncExp(loc, fd);
     }
 
@@ -6806,7 +6798,7 @@ extern (C++) final class FuncExp : Expression
 
         sc = sc.push(); // just create new scope
         sc.flags &= ~SCOPEctfe; // temporary stop CTFE
-        sc.protection = Prot(PROTpublic); // Bugzilla 12506
+        sc.protection = Prot(PROTpublic); // https://issues.dlang.org/show_bug.cgi?id=12506
 
         if (!type || type == Type.tvoid)
         {
@@ -7106,13 +7098,14 @@ extern (C++) final class FuncExp : Expression
                 (*presult) = cast(FuncExp)copy();
                 (*presult).type = to;
 
-                // Bugzilla 12508: Tweak function body for covariant returns.
+                // https://issues.dlang.org/show_bug.cgi?id=12508
+                // Tweak function body for covariant returns.
                 (*presult).fd.modifyReturns(sc, tof.next);
             }
         }
         else if (!flag)
         {
-            error("cannot implicitly convert expression (%s) of type %s to %s", toChars(), tx.toChars(), to.toChars());
+            error("cannot implicitly convert expression `%s` of type `%s` to `%s`", toChars(), tx.toChars(), to.toChars());
         }
         return m;
     }
@@ -7223,7 +7216,8 @@ extern (C++) final class DeclarationExp : Expression
             }
             else if (sc.func)
             {
-                // Bugzilla 11720 - include Dataseg variables
+                // https://issues.dlang.org/show_bug.cgi?id=11720
+                // include Dataseg variables
                 if ((s.isFuncDeclaration() ||
                      s.isAggregateDeclaration() ||
                      s.isEnumDeclaration() ||
@@ -7558,8 +7552,8 @@ extern (C++) final class IsExp : Expression
                     ClassDeclaration cd = (cast(TypeClass)targ).sym;
                     auto args = new Parameters();
                     args.reserve(cd.baseclasses.dim);
-                    if (cd._scope && !cd.symtab)
-                        cd.semantic(cd._scope);
+                    if (cd.semanticRun < PASSsemanticdone)
+                        cd.semantic(null);
                     for (size_t i = 0; i < cd.baseclasses.dim; i++)
                     {
                         BaseClass* b = (*cd.baseclasses)[i];
@@ -7821,6 +7815,28 @@ extern (C++) class UnaExp : Expression
         return null;
     }
 
+    /********************************
+     * The type for a unary expression is incompatible.
+     * Print error message.
+     * Returns:
+     *  ErrorExp
+     */
+    final Expression incompatibleTypes()
+    {
+        if (e1.type.toBasetype() == Type.terror)
+            return e1;
+
+        if (e1.op == TOKtype)
+        {
+            error("incompatible type for (%s(%s)): cannot use '%s' with types", Token.toChars(op), e1.toChars(), Token.toChars(op));
+        }
+        else
+        {
+            error("incompatible type for (%s(%s)): '%s'", Token.toChars(op), e1.toChars(), e1.type.toChars());
+        }
+        return new ErrorExp();
+    }
+
     /*********************
      * Mark the operand as will never be dereferenced,
      * which is useful info for @safe checks.
@@ -7842,12 +7858,6 @@ extern (C++) class UnaExp : Expression
     override void accept(Visitor v)
     {
         v.visit(this);
-    }
-
-    override void printAST(int indent)
-    {
-        Expression.printAST(indent);
-        e1.printAST(indent + 2);
     }
 }
 
@@ -7917,23 +7927,30 @@ extern (C++) abstract class BinExp : Expression
         return null;
     }
 
+    /********************************
+     * The types for a binary expression are incompatible.
+     * Print error message.
+     * Returns:
+     *  ErrorExp
+     */
     final Expression incompatibleTypes()
     {
-        if (e1.type.toBasetype() != Type.terror && e2.type.toBasetype() != Type.terror)
+        if (e1.type.toBasetype() == Type.terror)
+            return e1;
+        if (e2.type.toBasetype() == Type.terror)
+            return e2;
+
+        // CondExp uses 'a ? b : c' but we're comparing 'b : c'
+        TOK thisOp = (op == TOKquestion) ? TOKcolon : op;
+        if (e1.op == TOKtype || e2.op == TOKtype)
         {
-            // CondExp uses 'a ? b : c' but we're comparing 'b : c'
-            TOK thisOp = (op == TOKquestion) ? TOKcolon : op;
-            if (e1.op == TOKtype || e2.op == TOKtype)
-            {
-                error("incompatible types for ((%s) %s (%s)): cannot use '%s' with types", e1.toChars(), Token.toChars(thisOp), e2.toChars(), Token.toChars(op));
-            }
-            else
-            {
-                error("incompatible types for ((%s) %s (%s)): '%s' and '%s'", e1.toChars(), Token.toChars(thisOp), e2.toChars(), e1.type.toChars(), e2.type.toChars());
-            }
-            return new ErrorExp();
+            error("incompatible types for ((%s) %s (%s)): cannot use '%s' with types", e1.toChars(), Token.toChars(thisOp), e2.toChars(), Token.toChars(op));
         }
-        return this;
+        else
+        {
+            error("incompatible types for ((%s) %s (%s)): '%s' and '%s'", e1.toChars(), Token.toChars(thisOp), e2.toChars(), e1.type.toChars(), e2.type.toChars());
+        }
+        return new ErrorExp();
     }
 
     final Expression checkOpAssignTypes(Scope* sc)
@@ -8121,7 +8138,8 @@ extern (C++) abstract class BinExp : Expression
         if (ie.e1.type.toBasetype().ty != Taarray)
             return be;
 
-        /* Fix evaluation order of setting AA element. (Bugzilla 3825)
+        /* Fix evaluation order of setting AA element
+         * https://issues.dlang.org/show_bug.cgi?id=3825
          * Rewrite:
          *     aa[k1][k2][k3] op= val;
          * as:
@@ -8161,13 +8179,6 @@ extern (C++) abstract class BinExp : Expression
     override void accept(Visitor v)
     {
         v.visit(this);
-    }
-
-    override void printAST(int indent)
-    {
-        Expression.printAST(indent);
-        e1.printAST(indent + 2);
-        e2.printAST(indent + 2);
     }
 }
 
@@ -8244,19 +8255,7 @@ extern (C++) class BinAssignExp : BinExp
             e2 = e2.castTo(sc, Type.tshiftcnt);
         }
 
-        // vectors
-        if (shift && (e1.type.toBasetype().ty == Tvector || e2.type.toBasetype().ty == Tvector))
-            return incompatibleTypes();
-
-        int isvector = type.toBasetype().ty == Tvector;
-
-        if (op == TOKmulass && isvector && !e2.type.isfloating() && (cast(TypeVector)type.toBasetype()).elementType().size(loc) != 2)
-            return incompatibleTypes(); // Only short[8] and ushort[8] work with multiply
-
-        if (op == TOKdivass && isvector && !e1.type.isfloating())
-            return incompatibleTypes();
-
-        if (op == TOKmodass && isvector)
+        if (!Target.isVectorOpSupported(type.toBasetype(), op, e2.type.toBasetype()))
             return incompatibleTypes();
 
         if (e1.op == TOKerror || e2.op == TOKerror)
@@ -8315,7 +8314,7 @@ extern (C++) final class CompileExp : UnaExp
         se = se.toUTF8(sc);
 
         uint errors = global.errors;
-        scope Parser p = new Parser(loc, sc._module, se.toStringz(), false);
+        scope p = new Parser!ASTCodegen(loc, sc._module, se.toStringz(), false);
         p.nextToken();
         //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
@@ -8639,7 +8638,8 @@ extern (C++) final class DotIdExp : UnaExp
             return e;
         }
 
-        // Bugzilla 14416: Template has no built-in properties except for 'stringof'.
+        // https://issues.dlang.org/show_bug.cgi?id=14416
+        // Template has no built-in properties except for 'stringof'.
         if ((e1.op == TOKdottd || e1.op == TOKtemplate) && ident != Id.stringof)
         {
             error("template %s does not have property '%s'", e1.toChars(), ident.toChars());
@@ -8901,9 +8901,9 @@ extern (C++) final class DotIdExp : UnaExp
                 return null;
             s = ie.sds.search_correct(ident);
             if (s)
-                error("undefined identifier '%s' in %s '%s', did you mean %s '%s'?", ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars(), s.kind(), s.toChars());
+                error("undefined identifier `%s` in %s `%s`, did you mean %s `%s`?", ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars(), s.kind(), s.toChars());
             else
-                error("undefined identifier '%s' in %s '%s'", ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars());
+                error("undefined identifier `%s` in %s `%s`", ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars());
             return new ErrorExp();
         }
         else if (t1b.ty == Tpointer && e1.type.ty != Tenum && ident != Id._init && ident != Id.__sizeof && ident != Id.__xalignof && ident != Id.offsetof && ident != Id._mangleof && ident != Id.stringof)
@@ -8912,7 +8912,7 @@ extern (C++) final class DotIdExp : UnaExp
             if (flag)
             {
                 AggregateDeclaration ad = isAggregate(t1bn);
-                if (ad && !ad.members) // Bugzilla 11312
+                if (ad && !ad.members) // https://issues.dlang.org/show_bug.cgi?id=11312
                     return null;
             }
 
@@ -9057,7 +9057,8 @@ extern (C++) final class DotVarExp : UnaExp
             if (!fd.functionSemantic())
                 return new ErrorExp();
 
-            /* Bugzilla 13843: If fd obviously has no overloads, we should
+            /* https://issues.dlang.org/show_bug.cgi?id=13843
+             * If fd obviously has no overloads, we should
              * normalize AST, and it will give a chance to wrap fd with FuncExp.
              */
             if (fd.isNested() || fd.isFuncLiteralDeclaration())
@@ -9111,7 +9112,7 @@ extern (C++) final class DotVarExp : UnaExp
                     return e;
             }
 
-            if (v && v.isDataseg()) // fix bugzilla 8238
+            if (v && v.isDataseg()) // fix https://issues.dlang.org/show_bug.cgi?id=8238
             {
                 // (e1, v)
                 checkAccess(loc, sc, e1, v);
@@ -9483,7 +9484,8 @@ extern (C++) final class DelegateExp : UnaExp
         }
         if (ad && ad.isClassDeclaration() && ad.type != e1.type)
         {
-            // A downcast is required for interfaces, see Bugzilla 3706
+            // A downcast is required for interfaces
+            // https://issues.dlang.org/show_bug.cgi?id=3706
             e1 = new CastExp(loc, e1, ad.type);
             e1 = e1.semantic(sc);
         }
@@ -9493,14 +9495,6 @@ extern (C++) final class DelegateExp : UnaExp
     override void accept(Visitor v)
     {
         v.visit(this);
-    }
-
-    override void printAST(int indent)
-    {
-        UnaExp.printAST(indent);
-        foreach (i; 0 .. indent + 2)
-            printf(" ");
-        printf(".func: %s\n", func ? func.toChars() : "");
     }
 }
 
@@ -9787,7 +9781,7 @@ extern (C++) final class CallExp : UnaExp
                 VarExp ve = cast(VarExp)e1;
                 if (ve.var.storage_class & STClazy)
                 {
-                    // lazy paramaters can be called without violating purity and safety
+                    // lazy parameters can be called without violating purity and safety
                     Type tw = ve.var.type;
                     Type tc = ve.var.type.substWildTo(MODconst);
                     auto tf = new TypeFunction(null, tc, 0, LINKd, STCsafe | STCpure);
@@ -9857,7 +9851,8 @@ extern (C++) final class CallExp : UnaExp
                     if (checkFrameAccess(loc, sc, sd, sle.elements.dim))
                         return new ErrorExp();
 
-                    // Bugzilla 14556: Set concrete type to avoid further redundant semantic().
+                    // https://issues.dlang.org/show_bug.cgi?id=14556
+                    // Set concrete type to avoid further redundant semantic().
                     sle.type = e1.type;
 
                     /* Constructor takes a mutable object, so don't use
@@ -9922,7 +9917,8 @@ extern (C++) final class CallExp : UnaExp
                 Expression e;
 
                 // Make sure to use the the enum type itself rather than its
-                // base type (see bugzilla 16346)
+                // base type
+                // https://issues.dlang.org/show_bug.cgi?id=16346
                 if (e1.type.ty == Tenum)
                 {
                     t1 = e1.type;
@@ -10098,7 +10094,7 @@ extern (C++) final class CallExp : UnaExp
                     }
                     else if (ue.e1.op == TOKsuper)
                         directcall = true;
-                    else if ((cd.storage_class & STCfinal) != 0) // Bugzilla 14211
+                    else if ((cd.storage_class & STCfinal) != 0) // https://issues.dlang.org/show_bug.cgi?id=14211
                         directcall = true;
 
                     if (ad != cd)
@@ -10445,7 +10441,8 @@ extern (C++) final class CallExp : UnaExp
 
         if (!type)
         {
-            e1 = e1org; // Bugzilla 10922, avoid recursive expression printing
+            e1 = e1org; // https://issues.dlang.org/show_bug.cgi?id=10922
+                        // avoid recursive expression printing
             error("forward reference to inferred return type of function call '%s'", toChars());
             return new ErrorExp();
         }
@@ -10705,7 +10702,8 @@ extern (C++) final class AddrExp : UnaExp
             FuncDeclaration f = dve.var.isFuncDeclaration();
             if (f)
             {
-                f = f.toAliasFunc(); // FIXME, should see overloads - Bugzilla 1983
+                f = f.toAliasFunc(); // FIXME, should see overloads
+                                     // https://issues.dlang.org/show_bug.cgi?id=1983
                 if (!dve.hasOverloads)
                     f.tookAddressOf++;
 
@@ -11002,7 +11000,8 @@ extern (C++) final class NegExp : UnaExp
             }
             return this;
         }
-
+        if (!Target.isVectorOpSupported(tb, op))
+            return incompatibleTypes();
         if (e1.checkNoBool())
             return new ErrorExp();
         if (e1.checkArithmetic())
@@ -11038,6 +11037,8 @@ extern (C++) final class UAddExp : UnaExp
         if (e)
             return e;
 
+        if (!Target.isVectorOpSupported(e1.type.toBasetype(), op))
+            return incompatibleTypes();
         if (e1.checkNoBool())
             return new ErrorExp();
         if (e1.checkArithmetic())
@@ -11081,7 +11082,8 @@ extern (C++) final class ComExp : UnaExp
             }
             return this;
         }
-
+        if (!Target.isVectorOpSupported(tb, op))
+            return incompatibleTypes();
         if (e1.checkNoBool())
             return new ErrorExp();
         if (e1.checkIntegral())
@@ -11120,7 +11122,10 @@ extern (C++) final class NotExp : UnaExp
         if (e1.type == Type.terror)
             return e1;
 
-        // Bugzilla 13910: Today NotExp can take an array as its operand.
+        if (!Target.isVectorOpSupported(e1.type.toBasetype(), op))
+            return incompatibleTypes();
+        // https://issues.dlang.org/show_bug.cgi?id=13910
+        // Today NotExp can take an array as its operand.
         if (checkNonAssignmentArrayOp(e1))
             return new ErrorExp();
 
@@ -12403,7 +12408,9 @@ extern (C++) final class IndexExp : BinExp
             {
                 TypeAArray taa = cast(TypeAArray)t1b;
                 /* We can skip the implicit conversion if they differ only by
-                 * constness (Bugzilla 2684, see also bug 2954b)
+                 * constness
+                 * https://issues.dlang.org/show_bug.cgi?id=2684
+                 * see also bug https://issues.dlang.org/show_bug.cgi?id=2954 b
                  */
                 if (!arrayTypeCompatibleWithoutCasting(e2.loc, e2.type, taa.index))
                 {
@@ -12997,7 +13004,8 @@ extern (C++) class AssignExp : BinExp
             //printf("[%s] change to init - %s\n", loc.toChars(), toChars());
             op = TOKconstruct;
 
-            // Bugzilla 13515: set Index::modifiable flag for complex AA element initialization
+            // https://issues.dlang.org/show_bug.cgi?id=13515
+            // set Index::modifiable flag for complex AA element initialization
             if (e1.op == TOKindex)
             {
                 Expression e1x = (cast(IndexExp)e1).markSettingAAElem();
@@ -13036,7 +13044,8 @@ extern (C++) class AssignExp : BinExp
                     if (!sd.ctor)
                         sd.ctor = sd.searchCtor();
 
-                    // Bugzilla 15661: Look for the form from last of comma chain.
+                    // https://issues.dlang.org/show_bug.cgi?id=15661
+                    // Look for the form from last of comma chain.
                     auto e2y = e2x;
                     while (e2y.op == TOKcomma)
                         e2y = (cast(CommaExp)e2y).e2;
@@ -13058,7 +13067,8 @@ extern (C++) class AssignExp : BinExp
                         Expression einit;
                         if (sd.zeroInit == 1 && !sd.isNested())
                         {
-                            // Bugzilla 14606: Always use BlitExp for the special expression: (struct = 0)
+                            // https://issues.dlang.org/show_bug.cgi?id=14606
+                            // Always use BlitExp for the special expression: (struct = 0)
                             einit = new IntegerExp(loc, 0, Type.tint32);
                         }
                         else if (sd.isNested())
@@ -13171,7 +13181,7 @@ extern (C++) class AssignExp : BinExp
                     if (search_function(sd, Id.call))
                     {
                         /* Look for static opCall
-                         * (See bugzilla 2702 for more discussion)
+                         * https://issues.dlang.org/show_bug.cgi?id=2702
                          * Rewrite as:
                          *  e1 = typeof(e1).opCall(arguments)
                          */
@@ -13186,7 +13196,7 @@ extern (C++) class AssignExp : BinExp
                             return new ErrorExp();
                     }
                 }
-                else // Bugzilla 11355
+                else // https://issues.dlang.org/show_bug.cgi?id=11355
                 {
                     AggregateDeclaration ad2 = isAggregate(e2x.type);
                     if (ad2 && ad2.aliasthis && !(att2 && e2x.type == att2))
@@ -13260,7 +13270,8 @@ extern (C++) class AssignExp : BinExp
                                 return ey;
                             ex = e;
 
-                            // Bugzilla 14144: The whole expression should have the common type
+                            // https://issues.dlang.org/show_bug.cgi?id=14144
+                            // The whole expression should have the common type
                             // of opAssign() return and assigned AA entry.
                             // Even if there's no common type, expression should be typed as void.
                             Type t = null;
@@ -13538,7 +13549,8 @@ extern (C++) class AssignExp : BinExp
             }
             else
             {
-                /* Bugzilla 15778: A string literal has an array type of immutable
+                /* https://issues.dlang.org/show_bug.cgi?id=15778
+                 * A string literal has an array type of immutable
                  * elements by default, and normally it cannot be convertible to
                  * array type of mutable elements. But for element-wise assignment,
                  * elements need to be const at best. So we should give a chance
@@ -13592,7 +13604,8 @@ extern (C++) class AssignExp : BinExp
                 (isUnaArrayOp(e2.op) || isBinArrayOp(e2.op)))
             {
                 type = e1.type;
-                if (op == TOKconstruct) // Bugzilla 10282: tweak mutability of e1 element
+                if (op == TOKconstruct) // https://issues.dlang.org/show_bug.cgi?id=10282
+                                        // tweak mutability of e1 element
                     e1.type = e1.type.nextOf().mutableOf().arrayOf();
                 return arrayOp(this, sc);
             }
@@ -13927,8 +13940,6 @@ extern (C++) final class PowAssignExp : BinAssignExp
             }
             e = Expression.combine(e0, e);
             e = e.semantic(sc);
-            if (e.type.toBasetype().ty == Tvector)
-                return incompatibleTypes();
             return e;
         }
         return incompatibleTypes();
@@ -14140,10 +14151,8 @@ extern (C++) final class AddExp : BinExp
         }
 
         tb1 = e1.type.toBasetype();
-        if (tb1.ty == Tvector && !tb1.isscalar())
-        {
+        if (!Target.isVectorOpSupported(tb1, op, tb2))
             return incompatibleTypes();
-        }
         if ((tb1.isreal() && e2.type.isimaginary()) || (tb1.isimaginary() && e2.type.isreal()))
         {
             switch (type.toBasetype().ty)
@@ -14271,10 +14280,8 @@ extern (C++) final class MinExp : BinExp
 
         t1 = e1.type.toBasetype();
         t2 = e2.type.toBasetype();
-        if (t1.ty == Tvector && !t1.isscalar())
-        {
+        if (!Target.isVectorOpSupported(t1, op, t2))
             return incompatibleTypes();
-        }
         if ((t1.isreal() && t2.isimaginary()) || (t1.isimaginary() && t2.isreal()))
         {
             switch (type.ty)
@@ -14353,7 +14360,8 @@ extern (C++) final class CatExp : BinExp
         // Check for: array ~ array
         if (tb1next && tb2next && (tb1next.implicitConvTo(tb2next) >= MATCHconst || tb2next.implicitConvTo(tb1next) >= MATCHconst || e1.op == TOKarrayliteral && e1.implicitConvTo(tb2) || e2.op == TOKarrayliteral && e2.implicitConvTo(tb1)))
         {
-            /* Bugzilla 9248: Here to avoid the case of:
+            /* https://issues.dlang.org/show_bug.cgi?id=9248
+             * Here to avoid the case of:
              *    void*[] a = [cast(void*)1];
              *    void*[] b = [cast(void*)2];
              *    a ~ b;
@@ -14361,7 +14369,8 @@ extern (C++) final class CatExp : BinExp
              *    a ~ [cast(void*)b];
              */
 
-            /* Bugzilla 14682: Also to avoid the case of:
+            /* https://issues.dlang.org/show_bug.cgi?id=14682
+             * Also to avoid the case of:
              *    int[][] a;
              *    a ~ [];
              * becoming:
@@ -14376,7 +14385,8 @@ extern (C++) final class CatExp : BinExp
             if (e1.op == TOKarrayliteral)
             {
                 e2 = doCopyOrMove(sc, e2);
-                // Bugzilla 14686: Postblit call appears in AST, and this is
+                // https://issues.dlang.org/show_bug.cgi?id=14686
+                // Postblit call appears in AST, and this is
                 // finally translated  to an ArrayLiteralExp in below optimize().
             }
             else if (e1.op == TOKstring)
@@ -14599,11 +14609,8 @@ extern (C++) final class MulExp : BinExp
                 type = t1; // t1 is complex
             }
         }
-        else if (tb.ty == Tvector && (cast(TypeVector)tb).elementType().size(loc) != 2)
-        {
-            // Only short[8] and ushort[8] work with multiply
+        else if (!Target.isVectorOpSupported(tb, op, e2.type.toBasetype()))
             return incompatibleTypes();
-        }
         return this;
     }
 
@@ -14701,10 +14708,8 @@ extern (C++) final class DivExp : BinExp
                 type = t1; // t1 is complex
             }
         }
-        else if (tb.ty == Tvector)
-        {
+        else if (!Target.isVectorOpSupported(tb, op, e2.type.toBasetype()))
             return incompatibleTypes();
-        }
         return this;
     }
 
@@ -14747,10 +14752,8 @@ extern (C++) final class ModExp : BinExp
             }
             return this;
         }
-        if (tb.ty == Tvector)
-        {
+        if (!Target.isVectorOpSupported(tb, op, e2.type.toBasetype()))
             return incompatibleTypes();
-        }
 
         if (checkArithmeticBin())
             return new ErrorExp();
@@ -14810,6 +14813,9 @@ extern (C++) final class PowExp : BinExp
 
         if (checkArithmeticBin())
             return new ErrorExp();
+
+        if (!Target.isVectorOpSupported(tb, op, e2.type.toBasetype()))
+            return incompatibleTypes();
 
         // For built-in numeric types, there are several cases.
         // TODO: backend support, especially for  e1 ^^ 2.
@@ -14923,10 +14929,8 @@ extern (C++) final class ShlExp : BinExp
 
         if (checkIntegralBin())
             return new ErrorExp();
-        if (e1.type.toBasetype().ty == Tvector || e2.type.toBasetype().ty == Tvector)
-        {
+        if (!Target.isVectorOpSupported(e1.type.toBasetype(), op, e2.type.toBasetype()))
             return incompatibleTypes();
-        }
         e1 = integralPromotions(e1, sc);
         e2 = e2.castTo(sc, Type.tshiftcnt);
 
@@ -14962,10 +14966,8 @@ extern (C++) final class ShrExp : BinExp
 
         if (checkIntegralBin())
             return new ErrorExp();
-        if (e1.type.toBasetype().ty == Tvector || e2.type.toBasetype().ty == Tvector)
-        {
+        if (!Target.isVectorOpSupported(e1.type.toBasetype(), op, e2.type.toBasetype()))
             return incompatibleTypes();
-        }
         e1 = integralPromotions(e1, sc);
         e2 = e2.castTo(sc, Type.tshiftcnt);
 
@@ -15001,11 +15003,8 @@ extern (C++) final class UshrExp : BinExp
 
         if (checkIntegralBin())
             return new ErrorExp();
-        if (e1.type.toBasetype().ty == Tvector || e2.type.toBasetype().ty == Tvector)
-        {
+        if (!Target.isVectorOpSupported(e1.type.toBasetype(), op, e2.type.toBasetype()))
             return incompatibleTypes();
-        }
-
         e1 = integralPromotions(e1, sc);
         e2 = e2.castTo(sc, Type.tshiftcnt);
 
@@ -15058,7 +15057,8 @@ extern (C++) final class AndExp : BinExp
             }
             return this;
         }
-
+        if (!Target.isVectorOpSupported(tb, op, e2.type.toBasetype()))
+            return incompatibleTypes();
         if (checkIntegralBin())
             return new ErrorExp();
 
@@ -15110,7 +15110,8 @@ extern (C++) final class OrExp : BinExp
             }
             return this;
         }
-
+        if (!Target.isVectorOpSupported(tb, op, e2.type.toBasetype()))
+            return incompatibleTypes();
         if (checkIntegralBin())
             return new ErrorExp();
 
@@ -15162,7 +15163,8 @@ extern (C++) final class XorExp : BinExp
             }
             return this;
         }
-
+        if (!Target.isVectorOpSupported(tb, op, e2.type.toBasetype()))
+            return incompatibleTypes();
         if (checkIntegralBin())
             return new ErrorExp();
 
@@ -15434,7 +15436,7 @@ extern (C++) final class CmpExp : BinExp
             error("%s is not defined for associative arrays", Token.toChars(op));
             return new ErrorExp();
         }
-        else if (t1.ty == Tvector)
+        else if (!Target.isVectorOpSupported(t1, op, t2))
         {
             return incompatibleTypes();
         }
@@ -15629,6 +15631,14 @@ extern (C++) final class EqualExp : BinExp
         if (e1.op == TOKtype || e2.op == TOKtype)
             return incompatibleTypes();
 
+        {
+            auto t1 = e1.type;
+            auto t2 = e2.type;
+            if (t1.ty == Tenum && t2.ty == Tenum && !t1.equivalent(t2))
+                deprecation("Comparison between different enumeration types `%s` and `%s`; If this behavior is intended consider using `std.conv.asOriginalType`",
+                    t1.toChars(), t2.toChars());
+        }
+
         /* Before checking for operator overloading, check to see if we're
          * comparing the addresses of two statics. If so, we can just see
          * if they are the same symbol.
@@ -15675,7 +15685,10 @@ extern (C++) final class EqualExp : BinExp
         if (e1.type.toBasetype().ty == Taarray)
             semanticTypeInfo(sc, e1.type.toBasetype());
 
-        if (e1.type.toBasetype().ty == Tvector)
+        Type t1 = e1.type.toBasetype();
+        Type t2 = e2.type.toBasetype();
+
+        if (!Target.isVectorOpSupported(t1, op, t2))
             return incompatibleTypes();
 
         return this;
@@ -15724,7 +15737,9 @@ extern (C++) final class IdentityExp : BinExp
             e2 = e2.castTo(sc, Type.tcomplex80);
         }
 
-        if (e1.type.toBasetype().ty == Tvector)
+        auto tb1 = e1.type.toBasetype();
+        auto tb2 = e2.type.toBasetype();
+        if (!Target.isVectorOpSupported(tb1, op, tb2))
             return incompatibleTypes();
 
         if (e1.type.toBasetype().ty == Tsarray ||
@@ -15818,7 +15833,8 @@ extern (C++) final class CondExp : BinExp
         Type t2 = e2.type;
         // If either operand is void the result is void, we have to cast both
         // the expression to void so that we explicitly discard the expression
-        // value if any (bugzilla 16598)
+        // value if any
+        // https://issues.dlang.org/show_bug.cgi?id=16598
         if (t1.ty == Tvoid || t2.ty == Tvoid)
         {
             type = Type.tvoid;
@@ -15866,7 +15882,8 @@ extern (C++) final class CondExp : BinExp
             printf("e2 : %s\n", e2.type.toChars());
         }
 
-        /* Bugzilla 14696: If either e1 or e2 contain temporaries which need dtor,
+        /* https://issues.dlang.org/show_bug.cgi?id=14696
+         * If either e1 or e2 contain temporaries which need dtor,
          * make them conditional.
          * Rewrite:
          *      cond ? (__tmp1 = ..., __tmp1) : (__tmp2 = ..., __tmp2)

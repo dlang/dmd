@@ -23,7 +23,6 @@ import core.stdc.string;
 
 import ddmd.declaration;
 import ddmd.denum;
-import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.errors;
@@ -33,7 +32,6 @@ import ddmd.globals;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.init;
-import ddmd.mars;
 import ddmd.mtype;
 import ddmd.statement;
 import ddmd.target;

@@ -804,7 +804,8 @@ version (Windows)
                 }
             }
         }
-        // Normalize executable path separators, see Bugzilla 9330
+        // Normalize executable path separators
+        // https://issues.dlang.org/show_bug.cgi?id=9330
         cmd = toWinPath(cmd);
         version (CRuntime_Microsoft)
         {

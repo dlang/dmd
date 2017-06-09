@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/imports/foo10727b.d(25): Error: undefined identifier 'Frop'
+fail_compilation/imports/foo10727b.d(25): Error: undefined identifier `Frop`
 ---
 */
 

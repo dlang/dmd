@@ -150,7 +150,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol fd)
                  * fd is the nested function '__require' or '__ensure'.
                  * Even if there's a closure environment, we should give
                  * original stack data as the nested function frame.
-                 * See also: SymbolExp.toElem() in e2ir.c (Bugzilla 9383 fix)
+                 * See also: SymbolExp.toElem() in e2ir.c (https://issues.dlang.org/show_bug.cgi?id=9383 fix)
                  */
                 /* Address of 'sthis' gives the 'this' for the nested
                  * function.
@@ -170,7 +170,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol fd)
                 //printf("%s to %s, offset = %d\n", cd.toChars(), cdp.toChars(), offset);
                 if (offset)
                 {
-                    /* Bugzilla 7517: If fdp is declared in interface, offset the
+                    /* https://issues.dlang.org/show_bug.cgi?id=7517: If fdp is declared in interface, offset the
                      * 'this' pointer to get correct interface type reference.
                      */
                     Symbol *stmp = symbol_genauto(TYnptr);
@@ -225,7 +225,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol fd)
     {
         if (!irs.sthis)                // if no frame pointer for this function
         {
-            fd.error(loc, "is a nested function and cannot be accessed from %s", irs.getFunc().toPrettyChars());
+            fd.error(loc, "is a nested function and cannot be accessed from `%s`", irs.getFunc().toPrettyChars());
             return el_long(TYnptr, 0); // error recovery
         }
 
@@ -257,7 +257,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol fd)
                 if (!ad)
                 {
                   Lnoframe:
-                    irs.getFunc().error(loc, "cannot get frame pointer to %s", fd.toPrettyChars());
+                    irs.getFunc().error(loc, "cannot get frame pointer to `%s`", fd.toPrettyChars());
                     return el_long(TYnptr, 0);      // error recovery
                 }
                 ClassDeclaration cd = ad.isClassDeclaration();
@@ -836,7 +836,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
             }
             if (v.isargptr)
             {
-                /* See Bugzilla 2479
+                /* See https://issues.dlang.org/show_bug.cgi?id=2479
                  * This is actually a bug, but better to produce a nice
                  * message at compile time rather than memory corruption at runtime
                  */

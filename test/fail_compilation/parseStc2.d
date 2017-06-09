@@ -65,3 +65,13 @@ align(1) align(1) void f12() {}
 align    align(1) void f13() {}
 align(1) align    void f14() {}
 align(1) align(2) void f15() {}
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/parseStc2.d(76): Error: redundant linkage extern (System)
+fail_compilation/parseStc2.d(77): Error: conflicting linkage extern (System) and extern (C++)
+---
+*/
+extern(System) extern(System) void f16() {}
+extern(System) extern(C++) void f17() {}

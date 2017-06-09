@@ -16,6 +16,7 @@ import ddmd.constfold;
 import ddmd.ctfeexpr;
 import ddmd.dclass;
 import ddmd.declaration;
+import ddmd.dsymbol;
 import ddmd.expression;
 import ddmd.globals;
 import ddmd.init;
@@ -28,15 +29,25 @@ import ddmd.visitor;
 /*************************************
  * If variable has a const initializer,
  * return that initializer.
+ * Returns:
+ *      initializer if there is one,
+ *      null if not,
+ *      ErrorExp if error
  */
 extern (C++) Expression expandVar(int result, VarDeclaration v)
 {
     //printf("expandVar(result = %d, v = %p, %s)\n", result, v, v ? v.toChars() : "null");
+
+    static Expression errorReturn()
+    {
+        return new ErrorExp();
+    }
+
     Expression e = null;
     if (!v)
         return e;
-    if (!v.originalType && v._scope) // semantic() not yet run
-        v.semantic(v._scope);
+    if (!v.originalType && v.semanticRun < PASSsemanticdone) // semantic() not yet run
+        v.semantic(null);
     if (v.isConst() || v.isImmutable() || v.storage_class & STCmanifest)
     {
         if (!v.type)
@@ -53,7 +64,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                     if (v.storage_class & STCmanifest)
                     {
                         v.error("recursive initialization of constant");
-                        goto Lerror;
+                        return errorReturn();
                     }
                     goto L1;
                 }
@@ -63,7 +74,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                     if (v.storage_class & STCmanifest)
                     {
                         v.error("enum cannot be initialized with %s", v._init.toChars());
-                        goto Lerror;
+                        return errorReturn();
                     }
                     goto L1;
                 }
@@ -76,7 +87,8 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                     }
                     else if (ei.op == TOKstring)
                     {
-                        // Bugzilla 14459: We should not constfold the string literal
+                        // https://issues.dlang.org/show_bug.cgi?id=14459
+                        // Do not constfold the string literal
                         // if it's typed as a C string, because the value expansion
                         // will drop the pointer identity.
                         if (!(result & WANTexpand) && ei.type.toBasetype().ty == Tpointer)
@@ -137,8 +149,6 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
 L1:
     //if (e) printf("\te = %p, %s, e.type = %d, %s\n", e, e.toChars(), e.type.ty, e.type.toChars());
     return e;
-Lerror:
-    return new ErrorExp();
 }
 
 extern (C++) Expression fromConstInitializer(int result, Expression e1)
@@ -473,7 +483,8 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 VarDeclaration vf = e.var.isVarDeclaration();
                 if (vf && !vf.overlapped)
                 {
-                    /* Bugzilla 13021: Prevent optimization if vf has overlapped fields.
+                    /* https://issues.dlang.org/show_bug.cgi?id=13021
+                     * Prevent optimization if vf has overlapped fields.
                      */
                     ex = sle.getField(e.type, vf.offset);
                     if (ex && !CTFEExp.isCantExp(ex))
@@ -556,7 +567,8 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
                 if (e1sz == esz)
                 {
-                    // Bugzilla 12937: If target type is void array, trying to paint
+                    // https://issues.dlang.org/show_bug.cgi?id=12937
+                    // If target type is void array, trying to paint
                     // e.e1 with that type will cause infinite recursive optimization.
                     if (e.type.nextOf().ty == Tvoid)
                         return;
@@ -1024,7 +1036,8 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 if (CTFEExp.isCantExp(ret))
                     ret = e;
             }
-            // Bugzilla 14649: We need to leave the slice form so it might be
+            // https://issues.dlang.org/show_bug.cgi?id=14649
+            // Leave the slice form so it might be
             // a part of array operation.
             // Assume that the backend codegen will handle the form `e[]`
             // as an equal to `e` itself.
@@ -1139,7 +1152,8 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 return;
             if (e.e1.op == TOKcat)
             {
-                // Bugzilla 12798: optimize ((expr ~ str1) ~ str2)
+                // https://issues.dlang.org/show_bug.cgi?id=12798
+                // optimize ((expr ~ str1) ~ str2)
                 CatExp ce1 = cast(CatExp)e.e1;
                 scope CatExp cex = new CatExp(e.loc, ce1.e2, e.e2);
                 cex.type = e.type;

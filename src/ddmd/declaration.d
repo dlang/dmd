@@ -50,7 +50,7 @@ extern (C++) bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, 
     {
         //printf("ad = %p %s [%s], parent:%p\n", ad, ad.toChars(), ad.loc.toChars(), ad.parent);
         //printf("sparent = %p %s [%s], parent: %s\n", sparent, sparent.toChars(), sparent.loc.toChars(), sparent.parent,toChars());
-        if (checkNestedRef(s, sparent))
+        if (!ensureStaticLinkTo(s, sparent))
         {
             error(loc, "cannot access frame pointer of %s", ad.toPrettyChars());
             return true;
@@ -128,6 +128,7 @@ enum STCautoref             = (1L << 45);   // Mark for the already deduced 'aut
 enum STCinference           = (1L << 46);   // do attribute inference
 enum STCexptemp             = (1L << 47);   // temporary variable that has lifetime restricted to an expression
 enum STCmaybescope          = (1L << 48);   // parameter might be 'scope'
+enum STCscopeinferred       = (1L << 49);   // 'scope' has been inferred and should not be part of mangling
 
 enum STC_TYPECTOR = (STCconst | STCimmutable | STCshared | STCwild);
 enum STC_FUNCATTR = (STCref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem);
@@ -1041,10 +1042,6 @@ extern (C++) class VarDeclaration : Declaration
     // The index of this variable on the CTFE stack, -1 if not allocated
     int ctfeAdrOnStack;
 
-    // if !=NULL, rundtor is tested at runtime to see
-    // if the destructor should be run. Used to prevent
-    // dtor calls on postblitted vars
-    VarDeclaration rundtor;
     Expression edtor;               // if !=null, does the destruction of the variable
     IntRange* range;                // if !=null, the variable is known to be within the range
 
@@ -1104,6 +1101,11 @@ extern (C++) class VarDeclaration : Declaration
             scx = sc;
             _scope = null;
         }
+
+        if (!sc)
+            return;
+
+        semanticRun = PASSsemantic;
 
         /* Pick up storage classes from context, but except synchronized,
          * override, abstract, and final.
@@ -1275,6 +1277,7 @@ extern (C++) class VarDeclaration : Declaration
                     else if (isAliasThisTuple(e))
                     {
                         auto v = copyToTemp(0, "__tup", e);
+                        v.semantic(sc);
                         auto ve = new VarExp(loc, v);
                         ve.type = e.type;
 
@@ -1647,7 +1650,8 @@ extern (C++) class VarDeclaration : Declaration
             sc.stc &= ~(STC_TYPECTOR | STCpure | STCnothrow | STCnogc | STCref | STCdisable);
 
             ExpInitializer ei = _init.isExpInitializer();
-            if (ei) // Bugzilla 13424: Preset the required type to fail in FuncLiteralDeclaration::semantic3
+            if (ei) // https://issues.dlang.org/show_bug.cgi?id=13424
+                    // Preset the required type to fail in FuncLiteralDeclaration::semantic3
                 ei.exp = inferType(ei.exp, type);
 
             // If inside function, there is no semantic3() call
@@ -1674,7 +1678,7 @@ extern (C++) class VarDeclaration : Declaration
                             if (!e)
                             {
                                 error("is not a static and cannot have static initializer");
-                                return;
+                                e = new ErrorExp();
                             }
                         }
                         ei = new ExpInitializer(_init.loc, e);
@@ -1733,7 +1737,8 @@ extern (C++) class VarDeclaration : Declaration
                 }
                 else
                 {
-                    // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
+                    // https://issues.dlang.org/show_bug.cgi?id=14166
+                    // Don't run CTFE for the temporary variables inside typeof
                     _init = _init.semantic(sc, type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
                 }
             }
@@ -1878,7 +1883,7 @@ extern (C++) class VarDeclaration : Declaration
         if (offset)
         {
             // already a field
-            *poffset = ad.structsize; // Bugzilla 13613
+            *poffset = ad.structsize; // https://issues.dlang.org/show_bug.cgi?id=13613
             return;
         }
         for (size_t i = 0; i < ad.fields.dim; i++)
@@ -1886,7 +1891,7 @@ extern (C++) class VarDeclaration : Declaration
             if (ad.fields[i] == this)
             {
                 // already a field
-                *poffset = ad.structsize; // Bugzilla 13613
+                *poffset = ad.structsize; // https://issues.dlang.org/show_bug.cgi?id=13613
                 return;
             }
         }
@@ -1951,7 +1956,8 @@ extern (C++) class VarDeclaration : Declaration
                     printf("type = %p\n", ei.exp.type);
                 }
             }
-            // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
+            // https://issues.dlang.org/show_bug.cgi?id=14166
+            // Don't run CTFE for the temporary variables inside typeof
             _init = _init.semantic(sc, type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
             inuse--;
         }
@@ -2167,7 +2173,7 @@ extern (C++) class VarDeclaration : Declaration
         if (tv.ty == Tstruct)
         {
             StructDeclaration sd = (cast(TypeStruct)tv).sym;
-            if (!sd.dtor)
+            if (!sd.dtor || sd.errors)
                 return null;
 
             const sz = type.size();
@@ -2185,6 +2191,11 @@ extern (C++) class VarDeclaration : Declaration
                  * fix properly.
                  */
                 e.type = e.type.mutableOf();
+
+                // Enable calling destructors on shared objects.
+                // The destructor is always a single, non-overloaded function,
+                // and must serve both shared and non-shared objects.
+                e.type = e.type.unSharedOf;
 
                 e = new DotVarExp(loc, e, sd.dtor, false);
                 e = new CallExp(loc, e);
@@ -2323,7 +2334,7 @@ extern (C++) class VarDeclaration : Declaration
         Dsymbol p = toParent2();
 
         // Function literals from fdthis to p must be delegates
-        checkNestedRef(fdthis, p);
+        ensureStaticLinkTo(fdthis, p);
 
         // The function that this variable is in
         FuncDeclaration fdv = p.isFuncDeclaration();
@@ -2372,13 +2383,14 @@ extern (C++) class VarDeclaration : Declaration
 
         //printf("fdthis is %s\n", fdthis.toChars());
         //printf("var %s in function %s is nested ref\n", toChars(), fdv.toChars());
-        // __dollar creates problems because it isn't a real variable Bugzilla 3326
+        // __dollar creates problems because it isn't a real variable
+        // https://issues.dlang.org/show_bug.cgi?id=3326
         if (ident == Id.dollar)
         {
             .error(loc, "cannnot use $ inside a function literal");
             return true;
         }
-        if (ident == Id.withSym) // Bugzilla 1759
+        if (ident == Id.withSym) // https://issues.dlang.org/show_bug.cgi?id=1759
         {
             ExpInitializer ez = _init.isExpInitializer();
             assert(ez);

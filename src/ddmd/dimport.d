@@ -229,11 +229,19 @@ extern (C++) final class Import : Dsymbol
     override void semantic(Scope* sc)
     {
         //printf("Import::semantic('%s') %s\n", toPrettyChars(), id.toChars());
+        if (semanticRun > PASSinit)
+            return;
+
         if (_scope)
         {
             sc = _scope;
             _scope = null;
         }
+        if (!sc)
+            return;
+
+        semanticRun = PASSsemantic;
+
         // Load if not already done so
         if (!mod)
         {
@@ -268,7 +276,8 @@ extern (C++) final class Import : Dsymbol
 
                 // Mark the imported packages as accessible from the current
                 // scope. This access check is necessary when using FQN b/c
-                // we're using a single global package tree. See Bugzilla 313.
+                // we're using a single global package tree.
+                // https://issues.dlang.org/show_bug.cgi?id=313
                 if (packages)
                 {
                     // import a.b.c.d;
@@ -316,8 +325,13 @@ extern (C++) final class Import : Dsymbol
             sc = sc.pop();
         }
 
-        // object self-imports itself, so skip that (Bugzilla 7547)
-        // don't list pseudo modules __entrypoint.d, __main.d (Bugzilla 11117, 11164)
+        semanticRun = PASSsemanticdone;
+
+        // object self-imports itself, so skip that
+        // https://issues.dlang.org/show_bug.cgi?id=7547
+        // don't list pseudo modules __entrypoint.d, __main.d
+        // https://issues.dlang.org/show_bug.cgi?id=11117
+        // https://issues.dlang.org/show_bug.cgi?id=11164
         if (global.params.moduleDeps !is null && !(id == Id.object && sc._module.ident == Id.object) &&
             sc._module.ident != Id.entrypoint &&
             strcmp(sc._module.ident.toChars(), "__main") != 0)
@@ -471,7 +485,8 @@ extern (C++) final class Import : Dsymbol
     override bool overloadInsert(Dsymbol s)
     {
         /* Allow multiple imports with the same package base, but disallow
-         * alias collisions (Bugzilla 5412).
+         * alias collisions
+         * https://issues.dlang.org/show_bug.cgi?id=5412
          */
         assert(ident && ident == s.ident);
         Import imp;

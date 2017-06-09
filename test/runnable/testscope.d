@@ -298,6 +298,31 @@ void test11()
 }
 
 /********************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17432
+
+int test17432(scope int delegate() dg)
+{
+	return dg();
+}
+
+// stripped down version of std.traits.Parameters
+template Parameters(alias func)
+{
+    static if (is(typeof(func) P == function))
+        alias Parameters = P;
+    else
+        static assert(0, "unsupported");
+}
+
+alias op = Parameters!(test17432)[0];
+enum typeString = op.stringof;
+mixin(typeString ~ " dg;");
+alias ty = typeof(dg);
+
+static assert(op.stringof == ty.stringof);
+static assert(op.mangleof == ty.mangleof);
+
+/********************************************/
 
 byte typify13(T)(byte val) { return val; }
 alias INT8_C13  = typify13!byte;

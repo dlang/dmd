@@ -42,6 +42,7 @@ D = ddmd
 C=$D/backend
 TK=$D/tk
 ROOT=$D/root
+EX=examples
 
 GENERATED = ../generated
 G = $(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
@@ -209,7 +210,7 @@ ifdef ENABLE_COVERAGE
 DFLAGS  += -cov
 endif
 
-# Uniqe extra flags if necessary
+# Unique extra flags if necessary
 DMD_FLAGS  := -I$(ROOT) -Wuninitialized
 GLUE_FLAGS := -I$(ROOT) -I$(TK) -I$(C)
 BACK_FLAGS := -I$(ROOT) -I$(TK) -I$(C) -I$G -I$D -DDMDV2=1
@@ -223,24 +224,25 @@ endif
 
 
 FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argtypes arrayop	\
-	arraytypes attrib builtin canthrow clone complex cond constfold		\
+	arraytypes astcodegen attrib builtin canthrow clone complex cond constfold		\
 	cppmangle ctfeexpr dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol	\
-	dtemplate dversion entity errors escape expression func			\
-	globals hdrgen id identifier impcnvtab imphint init inline intrange	\
-	json lexer lib link mars mtype nogc nspace opover optimize parse sapply	\
-	sideeffect statement staticassert target tokens traits utf visitor	\
-	typinf utils  statement_rewrite_walker statementsem safe blockexit asttypename))
+	dtemplate dversion escape expression func			\
+	hdrgen impcnvtab imphint init inline inlinecost intrange	\
+	json lib link mars mtype nogc nspace objc opover optimize parse sapply	\
+	sideeffect statement staticassert target traits visitor	\
+	typinf utils statement_rewrite_walker statementsem staticcond safe blockexit asttypename printast))
 
-ifeq ($(D_OBJC),1)
-	FRONT_SRCS += $D/objc.d
-else
-	FRONT_SRCS += $D/objc_stubs.d
-endif
+LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, console entity errors globals id identifier lexer tokens utf))
+
+LEXER_ROOT=$(addsuffix .d, $(addprefix $(ROOT)/, array ctfloat file filename outbuffer port rmem \
+	rootobject stringtable hash))
 
 ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
 	filename man outbuffer port response rmem rootobject speller \
 	stringtable hash))
+
+PARSER_SRCS=$(addsuffix .d, $(addprefix $D/,parse astbase astbasevisitor transitivevisitor permissivevisitor strictvisitor))
 
 GLUE_OBJS =
 
@@ -298,7 +300,7 @@ ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h file.h filename.h \
 	rmem.h root.h stringtable.h)
 
 GLUE_SRC = \
-	$(addprefix $D/,toir.h irstate.h \
+	$(addprefix $D/, \
 	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
 	tk.c gluestub.d objc_glue.d)
 
@@ -336,7 +338,7 @@ TK_SRC = \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c
 
-STRING_IMPORT_FILES = $G/verstr.h $G/SYSCONFDIR.imp ../res/default_ddoc_theme.ddoc
+STRING_IMPORT_FILES = $G/VERSION $G/SYSCONFDIR.imp ../res/default_ddoc_theme.ddoc
 
 DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
@@ -345,30 +347,57 @@ all: dmd
 auto-tester-build: dmd checkwhitespace $G/dmd_frontend
 .PHONY: auto-tester-build
 
+toolchain-info:
+	@echo '==== Toolchain Information ===='
+	@echo 'uname -a:' $$(uname -a)
+	@echo 'MAKE(${MAKE}):' $$(${MAKE} --version)
+	@echo 'SHELL(${SHELL}):' $$(${SHELL} --version || true)
+	@echo 'HOST_DMD(${HOST_DMD}):' $$(${HOST_DMD} --version)
+	@echo 'HOST_CXX(${HOST_CXX}):' $$(${HOST_CXX} --version)
+# Not currently possible to choose what linker HOST_CXX uses via `make LD=ld.gold`.
+	@echo ld: $$(ld -v)
+	@echo gdb: $$(! command -v gdb &>/dev/null || gdb --version)
+	@echo '==== Toolchain Information ===='
+	@echo
+
 $G/glue.a: $(G_GLUE_OBJS)
 	$(AR) rcs $@ $(G_GLUE_OBJS)
 
 $G/backend.a: $(G_OBJS)
 	$(AR) rcs $@ $(G_OBJS)
 
-$G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+$G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT)
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -J$G -L-lstdc++ $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
+
+$G/parser.a: $(PARSER_SRCS) $G/lexer.a $(ROOT_SRCS)
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $(PARSER_SRCS) $G/lexer.a $(ROOT_SRCS)
+
+parser_test: $G/parser.a $(EX)/test_parser.d
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $G/parser.a $(EX)/test_parser.d $(EX)/impvisitor.d
+
+example_avg: $G/parser.a $(EX)/avg.d
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $G/parser.a $(EX)/avg.d
+
+$G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
 dmd: $G/dmd $G/dmd.conf
 	cp $< .
 
 ifdef ENABLE_LTO
-$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $(G_GLUE_OBJS) $(G_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_GLUE_OBJS) $(G_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 else
-$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/backend.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
+$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/backend.a $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT),$^)
 endif
 
 
 clean:
 	rm -R $(GENERATED)
+	rm -f parser_test parser_test.o example_avg example_avg.o
 	rm -f dmd $(idgen_output)
+	rm -f $(addprefix $D/backend/, $(optabgen_output))
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
 ######## Download and install the last dmd buildable without dmd
@@ -440,7 +469,7 @@ $G/idgen: $D/idgen.d $(HOST_DMD_PATH)
 #########
 # STRING_IMPORT_FILES
 #
-# Create (or update) the verstr.h file.
+# Create (or update) the generated VERSION file.
 # The file is only updated if the VERSION file changes, or, only when RELEASE=1
 # is not used, when the full version string changes (i.e. when the git hash or
 # the working tree dirty states changes).
@@ -454,8 +483,8 @@ VERSION_GIT := $(shell printf "`$(GIT) rev-parse --short HEAD`"; \
        test -n "`$(GIT) status --porcelain -uno`" && printf -- -dirty)
 VERSION := $(addsuffix -devel$(if $(VERSION_GIT),-$(VERSION_GIT)),$(VERSION))
 endif
-$(shell test \"$(VERSION)\" != "`cat $G/verstr.h 2> /dev/null`" \
-		&& printf \"$(VERSION)\" > $G/verstr.h )
+$(shell test $(VERSION) != "`cat $G/VERSION 2> /dev/null`" \
+		&& printf $(VERSION) > $G/VERSION )
 $(shell test $(SYSCONFDIR) != "`cat $G/SYSCONFDIR.imp 2> /dev/null`" \
 		&& printf '$(SYSCONFDIR)' > $G/SYSCONFDIR.imp )
 

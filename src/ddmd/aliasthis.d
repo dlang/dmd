@@ -41,19 +41,30 @@ extern (C++) final class AliasThis : Dsymbol
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        /* Since there is no semantic information stored here,
-         * we don't need to copy it.
-         */
-        return this;
+        return new AliasThis(loc, ident);
     }
 
     override void semantic(Scope* sc)
     {
+        if (semanticRun != PASSinit)
+            return;
+
+        if (_scope)
+        {
+            sc = _scope;
+            _scope = null;
+        }
+
+        if (!sc)
+            return;
+
+        semanticRun = PASSsemantic;
+
         Dsymbol p = sc.parent.pastMixin();
         AggregateDeclaration ad = p.isAggregateDeclaration();
         if (!ad)
         {
-            .error(loc, "alias this can only be a member of aggregate, not %s %s", p.kind(), p.toChars());
+            .error(loc, "alias this can only be a member of aggregate, not %s `%s`", p.kind(), p.toChars());
             return;
         }
 
@@ -63,9 +74,9 @@ extern (C++) final class AliasThis : Dsymbol
         {
             s = sc.search(loc, ident, null);
             if (s)
-                .error(loc, "%s is not a member of %s", s.toChars(), ad.toChars());
+                .error(loc, "`%s` is not a member of `%s`", s.toChars(), ad.toChars());
             else
-                .error(loc, "undefined identifier %s", ident.toChars());
+                .error(loc, "undefined identifier `%s`", ident.toChars());
             return;
         }
         if (ad.aliasthis && s != ad.aliasthis)
@@ -89,11 +100,12 @@ extern (C++) final class AliasThis : Dsymbol
             assert(t);
             if (ad.type.implicitConvTo(t) > MATCHnomatch)
             {
-                .error(loc, "alias this is not reachable as %s already converts to %s", ad.toChars(), t.toChars());
+                .error(loc, "alias this is not reachable as `%s` already converts to `%s`", ad.toChars(), t.toChars());
             }
         }
 
         ad.aliasthis = s;
+        semanticRun = PASSsemanticdone;
     }
 
     override const(char)* kind() const
@@ -128,7 +140,8 @@ extern (C++) Expression resolveAliasThis(Scope* sc, Expression e, bool gag = fal
             {
                 if (auto fd = (cast(VarExp)e).var.isFuncDeclaration())
                 {
-                    // Bugzilla 13009: Support better match for the overloaded alias this.
+                    // https://issues.dlang.org/show_bug.cgi?id=13009
+                    // Support better match for the overloaded alias this.
                     bool hasOverloads;
                     if (auto f = fd.overloadModMatch(loc, tthis, hasOverloads))
                     {

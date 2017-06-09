@@ -22,9 +22,11 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 import ddmd.arraytypes;
+import ddmd.astcodegen;
 import ddmd.gluelayer;
 import ddmd.builtin;
 import ddmd.cond;
+import ddmd.console;
 import ddmd.dinifile;
 import ddmd.dinterpret;
 import ddmd.dmodule;
@@ -132,7 +134,6 @@ Where:
   -dip25           implement http://wiki.dlang.org/DIP25 (experimental)
   -dip1000         implement http://wiki.dlang.org/DIP1000 (experimental)
   -g               add symbolic debug info
-  -gc              add symbolic debug info, optimize for non D debuggers
   -gs              always emit stack frame
   -gx              add stack stomp code
   -H               generate 'header' file
@@ -226,7 +227,7 @@ extern (C++) void genCmain(Scope* sc)
     };
     Identifier id = Id.entrypoint;
     auto m = new Module("__entrypoint.d", id, 0, 0);
-    scope Parser p = new Parser(m, cmaincode, false);
+    scope p = new Parser!ASTCodegen(m, cmaincode, false);
     p.scanloc = Loc();
     p.nextToken();
     m.members = p.parseModule();
@@ -290,7 +291,7 @@ private int tryMain(size_t argc, const(char)** argv)
     files.reserve(arguments.dim - 1);
     // Set default values
     global.params.argv0 = arguments[0];
-    global.params.color = isConsoleColorSupported();
+    global.params.color = true;
     global.params.link = true;
     global.params.useAssert = true;
     global.params.useInvariants = true;
@@ -464,7 +465,11 @@ private int tryMain(size_t argc, const(char)** argv)
             else if (strcmp(p + 1, "g") == 0)
                 global.params.symdebug = 1;
             else if (strcmp(p + 1, "gc") == 0)
+            {
+                Loc loc;
+                deprecation(loc, "use -g instead of -gc");
                 global.params.symdebug = 2;
+            }
             else if (strcmp(p + 1, "gs") == 0)
                 global.params.alwaysframe = true;
             else if (strcmp(p + 1, "gx") == 0)
@@ -1046,6 +1051,10 @@ Language changes listed by -transition=id:
             files.push(p);
         }
     }
+
+    if (global.params.color)
+        global.console = Console.create(core.stdc.stdio.stderr);
+
     global.params.cpu = setTargetCPU(global.params.cpu);
     if (global.params.is64bit != is64bit)
         error(Loc(), "the architecture must not be changed in the %s section of %s", envsection.ptr, global.inifilename);
@@ -1153,7 +1162,6 @@ Language changes listed by -transition=id:
 
     // Predefined version identifiers
     addDefaultVersionIdentifiers();
-    objc_tryMain_dObjc();
 
     setDefaultLibrary();
 
@@ -1163,7 +1171,7 @@ Language changes listed by -transition=id:
     Module._init();
     Target._init();
     Expression._init();
-    objc_tryMain_init();
+    Objc._init();
     builtin_init();
 
     if (global.params.verbose)
@@ -1506,6 +1514,9 @@ Language changes listed by -transition=id:
     // So deps file generation should be moved after the inlinig stage.
     if (global.params.moduleDeps)
     {
+        foreach (i; 1 .. modules[0].aimports.dim)
+            semantic3OnDependencies(modules[0].aimports[i]);
+
         OutBuffer* ob = global.params.moduleDeps;
         if (global.params.moduleDepsFile)
         {
@@ -1582,11 +1593,11 @@ Language changes listed by -transition=id:
         import ddmd.hdrgen;
         foreach (mod; modules)
         {
-            auto buf = new OutBuffer;
+            auto buf = OutBuffer();
             buf.doindent = 1;
             scope HdrGenState hgs;
             hgs.fullDump = 1;
-            scope PrettyPrintVisitor ppv = new PrettyPrintVisitor(buf, &hgs);
+            scope PrettyPrintVisitor ppv = new PrettyPrintVisitor(&buf, &hgs);
             mod.accept(ppv);
 
             // write the output to $(filename).cg
@@ -1597,6 +1608,7 @@ Language changes listed by -transition=id:
             cgFilename[modFilenameLength .. modFilenameLength + 4] = ".cg\0";
             auto cgFile = File(cgFilename);
             cgFile.setbuffer(buf.data, buf.offset);
+            cgFile._ref = 1;
             cgFile.write();
         }
     }
@@ -1705,9 +1717,9 @@ int main()
             return path;
         }
         version (Windows)
-            enum sourcePath = dirName(__FILE_FULL_PATH__, `\`);
+            enum sourcePath = dirName(dirName(__FILE_FULL_PATH__, `\`), `\`);
         else
-            enum sourcePath = dirName(__FILE_FULL_PATH__, '/');
+            enum sourcePath = dirName(dirName(__FILE_FULL_PATH__, '/'), '/');
 
         dmd_coverSourcePath(sourcePath);
         dmd_coverDestPath(sourcePath);
@@ -1856,41 +1868,6 @@ private const(char)* parse_conf_arg(Strings* args)
     return conf;
 }
 
-
-/**
- * Helper function used by the glue layer
- *
- * Returns:
- *   A new array of Dsymbol
- */
-extern (C++) Dsymbols* Dsymbols_create()
-{
-    return new Dsymbols();
-}
-
-
-/**
- * Helper function used by the glue layer
- *
- * Returns:
- *   A new array of VarDeclaration
- */
-extern (C++) VarDeclarations* VarDeclarations_create()
-{
-    return new VarDeclarations();
-}
-
-
-/**
- * Helper function used by the glue layer
- *
- * Returns:
- *   A new array of Expression
- */
-extern (C++) Expressions* Expressions_create()
-{
-    return new Expressions();
-}
 
 /**
  * Set the default and debug libraries to link against, if not already set

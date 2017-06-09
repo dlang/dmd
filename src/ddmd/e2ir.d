@@ -41,7 +41,6 @@ import ddmd.glue;
 import ddmd.id;
 import ddmd.init;
 import ddmd.irstate;
-import ddmd.mars;
 import ddmd.mtype;
 import ddmd.s2ir;
 import ddmd.sideeffect;
@@ -108,7 +107,7 @@ bool ISWIN64REF(Declaration var)
  * If argument to a function should use OPstrpar,
  * fix it so it does and return it.
  */
-elem *useOPstrpar(elem *e)
+private elem *useOPstrpar(elem *e)
 {
     tym_t ty = tybasic(e.Ety);
     if (ty == TYstruct || ty == TYarray)
@@ -182,10 +181,10 @@ elem *callfunc(Loc loc,
     ty = ec.Ety;
     if (fd)
         ty = toSymbol(fd).Stype.Tty;
-    reverse = tyrevfunc(ty);
+    reverse = tyrevfunc(ty);    // left-to-right parameter evaluation (TYnpfunc, TYjfunc, TYfpfunc, TYf16func)
     ep = null;
     op = fd ? intrinsic_op(fd) : -1;
-    if (arguments)
+    if (arguments && arguments.dim)
     {
         if (op == OPvector)
         {
@@ -194,27 +193,21 @@ elem *callfunc(Loc loc,
                 arg.error("simd operator must be an integer constant, not '%s'", arg.toChars());
         }
 
-        for (size_t i = 0; i < arguments.dim; i++)
-        {
-        Lagain:
-            Expression arg = (*arguments)[i];
-            assert(arg.op != TOKtuple);
-            if (arg.op == TOKcomma)
-            {
-                CommaExp ce = cast(CommaExp)arg;
-                eside = el_combine(eside, toElem(ce.e1, irs));
-                (*arguments)[i] = ce.e2;
-                goto Lagain;
-            }
-        }
+        /* Convert arguments[] to elems[] in left-to-right order
+         */
+        const n = arguments.dim;
+        elem*[5] elems_array = void;
+        import core.stdc.stdlib : malloc, free;
+        auto elems = (n <= 5) ? elems_array.ptr : cast(elem**)malloc(arguments.dim * (elem*).sizeof);
+        assert(elems);
 
         // j=1 if _arguments[] is first argument
         int j = (tf.linkage == LINKd && tf.varargs == 1);
 
-        for (size_t i = 0; i < arguments.dim ; i++)
+        foreach (const i; 0 .. n)
         {
             Expression arg = (*arguments)[i];
-            elem *ea;
+            elem *ea = toElem(arg, irs);
 
             //printf("\targ[%d]: %s\n", i, arg.toChars());
 
@@ -226,7 +219,6 @@ elem *callfunc(Loc loc,
                 if (p.storageClass & (STCout | STCref))
                 {
                     // Convert argument to a pointer
-                    ea = toElem(arg, irs);
                     ea = addressElem(ea, arg.type.pointerTo());
                     goto L1;
                 }
@@ -236,11 +228,9 @@ elem *callfunc(Loc loc,
                 /* Copy to a temporary, and make the argument a pointer
                  * to that temporary.
                  */
-                ea = toElem(arg, irs);
                 ea = addressElem(ea, arg.type, true);
                 goto L1;
             }
-            ea = toElem(arg, irs);
             if (config.exe == EX_WIN64 && tybasic(ea.Ety) == TYcfloat)
             {
                 /* Treat a cfloat like it was a struct { float re,im; }
@@ -248,12 +238,38 @@ elem *callfunc(Loc loc,
                 ea.Ety = TYllong;
             }
         L1:
-            ea = useOPstrpar(ea);
-            if (reverse)
-                ep = el_param(ep,ea);
-            else
-                ep = el_param(ea,ep);
+            elems[i] = ea;
         }
+        if (!reverse)
+        {
+            /* Avoid 'fixing' side effects of _array... functions as
+             * they were already working right from the olden days before this fix
+             */
+            if (!(ec.Eoper == OPvar && fd.isArrayOp))
+                eside = fixArgumentEvaluationOrder(elems[0 .. n]);
+        }
+        foreach (const i; 0 .. n)
+        {
+            elems[i] = useOPstrpar(elems[i]);
+        }
+
+        if (!reverse)   // swap order if right-to-left
+        {
+            auto i = 0;
+            auto k = n - 1;
+            while (i < k)
+            {
+                elem *tmp = elems[i];
+                elems[i] = elems[k];
+                elems[k] = tmp;
+                ++i;
+                --k;
+            }
+        }
+        ep = el_params(cast(void**)elems, cast(int)n);
+
+        if (elems != elems_array.ptr)
+            free(elems);
     }
 
     objc_callfunc_setupMethodSelector(tret, fd, t, ehidden, &esel);
@@ -395,7 +411,7 @@ if (!global.params.is64bit) assert(tysize(TYnptr) == 4);
         {
             e = ep;
             /* Recognize store operations as:
-             *  ((op OPparam op1) OPparam op2)
+             *  (op OPparam (op1 OPparam op2))
              * Rewrite as:
              *  (op1 OPvecsto (op OPparam op2))
              * A separate operation is used for stores because it
@@ -403,15 +419,12 @@ if (!global.params.is64bit) assert(tysize(TYnptr) == 4);
              * the optimizer.
              */
             if (e.Eoper == OPparam &&
-                e.EV.E1.Eoper == OPparam &&
-                e.EV.E1.EV.E1.Eoper == OPconst &&
-                isXMMstore(cast(uint)el_tolong(e.EV.E1.EV.E1)))
+                e.EV.E1.Eoper == OPconst &&
+                isXMMstore(cast(uint)el_tolong(e.EV.E1)))
             {
-                //printf("OPvecsto\n");
-                elem *tmp = e.EV.E2;
-                e.EV.E2 = e.EV.E1;
-                e.EV.E1 = e.EV.E2.EV.E2;
-                e.EV.E2.EV.E2 = tmp;
+                elem *tmp = e.EV.E1;
+                e.EV.E1 = e.EV.E2.EV.E1;
+                e.EV.E2.EV.E1 = tmp;
                 e.Eoper = OPvecsto;
                 e.Ety = tyret;
             }
@@ -481,6 +494,92 @@ if (!global.params.is64bit) assert(tysize(TYnptr) == 4);
     }
     e = el_combine(eside, e);
     return e;
+}
+
+/**********************************
+ * D presumes left-to-right argument evaluation, but we're evaluating things
+ * right-to-left here.
+ * 1. determine if this matters
+ * 2. fix it if it does
+ * Params:
+ *      arguments = function arguments, these will get rewritten in place
+ * Returns:
+ *      elem that evaluates the side effects
+ */
+private extern (D) elem *fixArgumentEvaluationOrder(elem*[] elems)
+{
+    /* It matters if all are true:
+     * 1. at least one argument has side effects
+     * 2. at least one other argument may depend on side effects
+     */
+    if (elems.length <= 1)
+        return null;
+
+    size_t ifirstside = 0;      // index-1 of first side effect
+    size_t ifirstdep = 0;       // index-1 of first dependency on side effect
+    foreach (i, e; elems)
+    {
+        switch (e.Eoper)
+        {
+            case OPconst:
+            case OPrelconst:
+            case OPstring:
+                continue;
+
+            default:
+                break;
+        }
+
+        if (el_sideeffect(e))
+        {
+            if (!ifirstside)
+                ifirstside = i + 1;
+            else if (!ifirstdep)
+                ifirstdep = i + 1;
+        }
+        else
+        {
+            if (!ifirstdep)
+                ifirstdep = i + 1;
+        }
+        if (ifirstside && ifirstdep)
+            break;
+    }
+
+    if (!ifirstdep || !ifirstside)
+        return null;
+
+    /* Now fix by appending side effects and dependencies to eside and replacing
+     * argument with a temporary.
+     * Rely on the optimizer removing some unneeded ones using flow analysis.
+     */
+    elem* eside = null;
+    foreach (i, e; elems)
+    {
+        while (e.Eoper == OPcomma)
+        {
+            eside = el_combine(eside, e.EV.E1);
+            e = e.EV.E2;
+            elems[i] = e;
+        }
+
+        switch (e.Eoper)
+        {
+            case OPconst:
+            case OPrelconst:
+            case OPstring:
+                continue;
+
+            default:
+                break;
+        }
+
+        elem *es = e;
+        elems[i] = el_copytotmp(&es);
+        eside = el_combine(eside, es);
+    }
+
+    return eside;
 }
 
 /*******************************************
@@ -764,20 +863,24 @@ StructDeclaration needsDtor(Type t)
 /*******************************************
  * Set an array pointed to by eptr to evalue:
  *      eptr[0..edim] = evalue;
- * Input:
- *      eptr    where to write the data to
- *      evalue  value to write
- *      edim    number of times to write evalue to eptr[]
- *      tb      type of evalue
+ * Params:
+ *      eptr =    where to write the data to
+ *      edim =    number of times to write evalue to eptr[]
+ *      tb =      type of evalue
+ *      evalue =  value to write
+ *      irs =     context
+ *      op =      TOKblit, TOKassign, or TOKconstruct
+ * Returns:
+ *      created IR code
  */
 
-elem *setArray(elem *eptr, elem *edim, Type tb, elem *evalue, IRState *irs, int op)
+private elem *setArray(elem *eptr, elem *edim, Type tb, elem *evalue, IRState *irs, int op)
 {
-    int r;
-    elem *e;
-    uint sz = cast(uint)tb.size();
+    assert(op == TOKblit || op == TOKassign || op == TOKconstruct);
+    const sz = cast(uint)tb.size();
 
 Lagain:
+    int r;
     switch (tb.ty)
     {
         case Tfloat80:
@@ -847,7 +950,7 @@ Lagain:
                     evalue = el_una(OPaddr, TYnptr, evalue);
                     // This is a hack so we can call postblits on const/immutable objects.
                     elem *eti = getTypeInfo(tb.unSharedOf().mutableOf(), irs);
-                    e = el_params(eti, edim, evalue, eptr, null);
+                    elem *e = el_params(eti, edim, evalue, eptr, null);
                     e = el_bin(OPcall,TYnptr,el_var(getRtlsym(r)),e);
                     return e;
                 }
@@ -883,7 +986,7 @@ Lagain:
                 // void *_memsetn(void *p, void *value, int dim, int sizelem)
                 evalue = el_una(OPaddr, TYnptr, evalue);
                 elem *esz = el_long(TYsize_t, sz);
-                e = el_params(esz, edim, evalue, eptr, null);
+                elem *e = el_params(esz, edim, evalue, eptr, null);
                 e = el_bin(OPcall,TYnptr,el_var(getRtlsym(r)),e);
                 return e;
             }
@@ -906,15 +1009,14 @@ Lagain:
     // Be careful about parameter side effect ordering
     if (r == RTLSYM_MEMSET8)
     {
-        e = el_param(edim, evalue);
-        e = el_bin(OPmemset,TYnptr,eptr,e);
+        elem *e = el_param(edim, evalue);
+        return el_bin(OPmemset,TYnptr,eptr,e);
     }
     else
     {
-        e = el_params(edim, evalue, eptr, null);
-        e = el_bin(OPcall,TYnptr,el_var(getRtlsym(r)),e);
+        elem *e = el_params(edim, evalue, eptr, null);
+        return el_bin(OPcall,TYnptr,el_var(getRtlsym(r)),e);
     }
-    return e;
 }
 
 
@@ -1022,7 +1124,8 @@ elem *toElem(Expression e, IRState *irs)
                     elem *ethis = getEthis(se.loc, irs, fd);
                     ethis = el_una(OPaddr, TYnptr, ethis);
 
-                    /* Bugzilla 9383: If 's' is a virtual function parameter
+                    /* https://issues.dlang.org/show_bug.cgi?id=9383
+                     * If 's' is a virtual function parameter
                      * placed in closure, and actually accessed from in/out
                      * contract, instead look at the original stack data.
                      */
@@ -1916,7 +2019,8 @@ elem *toElem(Expression e, IRState *irs)
 
                     if (ae.msg)
                     {
-                        /* Bugzilla 8360: If the condition is evalated to true,
+                        /* https://issues.dlang.org/show_bug.cgi?id=8360
+                         * If the condition is evalated to true,
                          * msg is not evaluated at all. so should use
                          * toElemDtor(msg, irs) instead of toElem(msg, irs).
                          */
@@ -2794,6 +2898,27 @@ elem *toElem(Expression e, IRState *irs)
                     e = toElem(ae.e2, irs);
                     goto Lret;
                 }
+
+                /* Look for:
+                 *  v = structliteral.ctor(args)
+                 * and have the structliteral write into v, rather than create a temporary
+                 * and copy the temporary into v
+                 */
+                if (ae.e1.op == TOKvar && ce.e1.op == TOKdotvar)
+                {
+                    auto dve = cast(DotVarExp)ce.e1;
+                    auto fd = dve.var.isFuncDeclaration();
+                    if (fd && fd.isCtorDeclaration())
+                    {
+                        if (dve.e1.op == TOKstructliteral)
+                        {
+                            auto sle = cast(StructLiteralExp)dve.e1;
+                            sle.sym = toSymbol((cast(VarExp)ae.e1).var);
+                            e = toElem(ae.e2, irs);
+                            goto Lret;
+                        }
+                    }
+                }
             }
 
             //if (ae.op == TOKconstruct) printf("construct\n");
@@ -2902,7 +3027,8 @@ elem *toElem(Expression e, IRState *irs)
                  * as:
                  *      e1[0] = x, e1[1..2] = a, e1[3] = b, ...;
                  */
-                if (ae.op == TOKconstruct &&   // Bugzilla 11238: avoid aliasing issue
+                if (ae.op == TOKconstruct &&   // https://issues.dlang.org/show_bug.cgi?id=11238
+                                               // avoid aliasing issue
                     ae.e2.op == TOKarrayliteral)
                 {
                     ArrayLiteralExp ale = cast(ArrayLiteralExp)ae.e2;
@@ -2923,7 +3049,8 @@ elem *toElem(Expression e, IRState *irs)
                     goto Lret;
                 }
 
-                /* Bugzilla 13661: Even if the elements in rhs are all rvalues and
+                /* https://issues.dlang.org/show_bug.cgi?id=13661
+                 * Even if the elements in rhs are all rvalues and
                  * don't have to call postblits, this assignment should call
                  * destructors on old assigned elements.
                  */
@@ -3399,7 +3526,7 @@ elem *toElem(Expression e, IRState *irs)
                 return;
             }
 
-            // Bugzilla 12900
+            // https://issues.dlang.org/show_bug.cgi?id=12900
             Type txb = dve.type.toBasetype();
             Type tyb = v.type.toBasetype();
             if (txb.ty == Tvector) txb = (cast(TypeVector)txb).basetype;
@@ -3410,7 +3537,7 @@ elem *toElem(Expression e, IRState *irs)
 
             assert(txb.ty == tyb.ty);
 
-            // Bugzilla 14730
+            // https://issues.dlang.org/show_bug.cgi?id=14730
             if (global.params.useInline && v.offset == 0)
             {
                 FuncDeclaration fd = v.parent.isFuncDeclaration();
@@ -3557,7 +3684,9 @@ elem *toElem(Expression e, IRState *irs)
                  * where the left of the . was turned into [2] or [3] for EH_DWARF:
                  *   [2] ec:  (dctor info ((__ctmp = initializer),__ctmp)), __ctmp
                  *   [3] ec:  (dctor info ((_flag=0),((__ctmp = initializer),__ctmp))), __ctmp
-                 * The trouble (Bugzilla 13095) is if ctor(args) throws, then __ctmp is destructed even though __ctmp
+                 * The trouble
+                 * https://issues.dlang.org/show_bug.cgi?id=13095
+                 * is if ctor(args) throws, then __ctmp is destructed even though __ctmp
                  * is not a fully constructed object yet. The solution is to move the ctor(args) itno the dctor tree.
                  * But first, detect [1], then [2], then split up [2] into:
                  *   eeq: (dctor info ((__ctmp = initializer),__ctmp))
@@ -4778,7 +4907,8 @@ elem *toElem(Expression e, IRState *irs)
             {
                 assert(t1.ty == tb.ty);   // Tarray or Tsarray
 
-                // Bugzilla 14672: If se is in left side operand of element-wise
+                // https://issues.dlang.org/show_bug.cgi?id=14672
+                // If se is in left side operand of element-wise
                 // assignment, the element type can be painted to the base class.
                 int offset;
                 assert(t1.nextOf().equivalent(tb.nextOf()) ||
@@ -5045,11 +5175,8 @@ elem *toElem(Expression e, IRState *irs)
 
                         // ed needs to be inserted into the code later
                         if (!irs.varsInScope)
-                            /* Don't have an Expressions_create(), so press VarDeclarations_create()
-                             * into service. Fix when this file is converted to D.
-                             */
-                            irs.varsInScope = VarDeclarations_create();
-                        irs.varsInScope.push(cast(VarDeclaration)ed);
+                            irs.varsInScope = new Array!(elem*)();
+                        irs.varsInScope.push(ed);
                     }
                 }
             }
@@ -5362,7 +5489,7 @@ elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
     return e;
 }
 
-elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol *sym, bool fillHoles)
+private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol *sym, bool fillHoles)
 {
     //printf("[%s] StructLiteralExp.toElem() %s\n", sle.loc.toChars(), sle.toChars());
     //printf("\tblit = %s, sym = %p fillHoles = %d\n", op == TOKblit, sym, fillHoles);
@@ -5521,7 +5648,7 @@ elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol *sym, b
                 else
                 {
                     elem *edim = el_long(TYsize_t, t1b.size() / t2b.size());
-                    e1 = setArray(e1, edim, t2b, ep, irs, op);
+                    e1 = setArray(e1, edim, t2b, ep, irs, op == TOKconstruct ? TOKblit : op);
                 }
             }
             else
@@ -5585,7 +5712,7 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
     elem *edtors = null;
     for (size_t i = starti; i != endi; ++i)
     {
-        elem *ed = cast(elem *)(*irs.varsInScope)[i];
+        elem *ed = (*irs.varsInScope)[i];
         if (ed)
         {
             //printf("appending dtor\n");

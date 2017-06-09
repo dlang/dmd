@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail189.d(10): Error: undefined identifier 'foo'
+fail_compilation/fail189.d(10): Error: undefined identifier `foo`
 ---
 */
 
