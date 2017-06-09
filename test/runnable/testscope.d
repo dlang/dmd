@@ -316,11 +316,16 @@ template Parameters(alias func)
 
 alias op = Parameters!(test17432)[0];
 enum typeString = op.stringof;
+static assert(typeString == "int delegate()"); // no scope added?
 mixin(typeString ~ " dg;");
 alias ty = typeof(dg);
 
 static assert(op.stringof == ty.stringof);
 static assert(op.mangleof == ty.mangleof);
+
+void test17432_2()(scope void delegate () dg) { dg(); }
+
+static assert(typeof(&test17432_2!()).stringof == "void function(scope void delegate() dg) @system");
 
 /********************************************/
 

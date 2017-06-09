@@ -93,6 +93,7 @@ enum PINLINE;
 #define STCinference     0x400000000000LL // do attribute inference
 #define STCexptemp       0x800000000000LL // temporary variable that has lifetime restricted to an expression
 #define STCmaybescope    0x1000000000000LL // parameter might be 'scope'
+#define STCscopeinferred 0x2000000000000LL // 'scope' has been inferred and should not be part of mangling
 
 const StorageClass STCStorageClass = (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal |
     STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias |

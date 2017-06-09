@@ -1328,7 +1328,7 @@ extern (C++) class FuncDeclaration : Declaration
                     stc |= STCparameter;
                     if (f.varargs == 2 && i + 1 == nparams)
                         stc |= STCvariadic;
-                    if (flags & FUNCFLAGinferScope)
+                    if (flags & FUNCFLAGinferScope && !(fparam.storageClass & STCscope))
                         stc |= STCmaybescope;
                     stc |= fparam.storageClass & (STCin | STCout | STCref | STCreturn | STCscope | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
                     v.storage_class = stc;
@@ -2195,7 +2195,7 @@ extern (C++) class FuncDeclaration : Declaration
                 if (tf.isscope)
                     v.storage_class |= STCscope;
             }
-            if (flags & FUNCFLAGinferScope)
+            if (flags & FUNCFLAGinferScope && !(v.storage_class & STCscope))
                 v.storage_class |= STCmaybescope;
 
             v.semantic(sc);
@@ -2220,7 +2220,7 @@ extern (C++) class FuncDeclaration : Declaration
                 if (tf.isscope)
                     v.storage_class |= STCscope;
             }
-            if (flags & FUNCFLAGinferScope)
+            if (flags & FUNCFLAGinferScope && !(v.storage_class & STCscope))
                 v.storage_class |= STCmaybescope;
 
             v.semantic(sc);
