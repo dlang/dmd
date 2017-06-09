@@ -27,12 +27,14 @@ T[] arrayOp(T : T[], Args...)(T[] res, Filter!(isType, Args) args) @trusted @nog
         alias load = .load!(T, vec.length);
         alias store = .store!(T, vec.length);
 
-        auto n = res.length / vec.length;
-        enum nScalarInits = scalarIndices!Args.length;
-        if (n > 2 * (1 + nScalarInits)) // empirically found cost estimate
+        // Given that there are at most as many scalars broadcast as there are
+        // operations in any `ary[] = ary[] op const op const`, it should always be
+        // worthwhile to choose vector operations.
+        if (res.length >= vec.length)
         {
             mixin(initScalarVecs!Args);
 
+            auto n = res.length / vec.length;
             do
             {
                 mixin(vectorExp!Args ~ ";");
@@ -244,26 +246,19 @@ string scalarExp(Args...)()
     return stack[0];
 }
 
-size_t[] scalarIndices(Args...)()
-{
-    size_t[] scalars;
-    foreach (i, arg; Args)
-    {
-        if (is(arg == T[], T))
-        {
-        }
-        else if (is(arg))
-            scalars ~= i;
-    }
-    return scalars;
-}
-
 string initScalarVecs(Args...)()
 {
-    auto scalars = scalarIndices!Args;
+    size_t scalarsIdx;
     string res;
-    foreach (i, aidx; scalars)
-        res ~= "immutable vec scalar" ~ i.toString ~ " = args[" ~ aidx.toString ~ "];\n";
+    foreach (aidx, arg; Args)
+    {
+        static if (is(arg == T[], T))
+        {
+        }
+        else static if (is(arg))
+            res ~= "immutable vec scalar" ~ scalarsIdx++.toString ~ " = args["
+                ~ aidx.toString ~ "];\n";
+    }
     return res;
 }
 
