@@ -1515,7 +1515,7 @@ struct BCScope
 debug = nullPtrCheck;
 debug = nullAllocCheck;
 //debug = andand;
-//debug = SetLocation;
+debug = SetLocation;
 extern (C++) final class BCV(BCGenT) : Visitor
 {
     uint unresolvedGotoCount;
@@ -1741,7 +1741,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         import std.stdio;
         void Set(BCValue lhs, BCValue rhs, size_t line = __LINE__)
         {
-            if (lhs.vType != BCValueType.StackValue || lhs.vType != BCValueType.Parameter)
+            if (lhs.type.type == BCTypeEnum.string8 || lhs.type.type == BCTypeEnum.string8)
  writeln("Set(", lhs.toString, ", ", rhs.toString, ") called at: ", line);
             gen.Set(lhs, rhs);
         }
