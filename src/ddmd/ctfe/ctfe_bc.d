@@ -1518,6 +1518,7 @@ debug = nullPtrCheck;
 debug = nullAllocCheck;
 debug = andand;
 //debug = SetLocation;
+debug = LabelLocation;
 extern (C++) final class BCV(BCGenT) : Visitor
 {
     uint unresolvedGotoCount;
@@ -1735,6 +1736,17 @@ extern (C++) final class BCV(BCGenT) : Visitor
         {
             assert(size.vType != BCValueType.Immediate || size.imm32 != 0, "Null Alloc detected in line: " ~ to!string(line));
             gen.Alloc(result, size);
+        }
+    }
+
+    debug (LabelLocation)
+    {
+        import std.stdio;
+        typeof(gen.genLabel()) genLabel(size_t line = __LINE__)
+        {
+            auto l = gen.genLabel();
+            Comment("genLabel from: " ~ to!string(line));
+            return l;
         }
     }
 
