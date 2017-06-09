@@ -1,0 +1,16 @@
+the property assignment to non-@property functions with default argument has been deprecated.
+
+Rationale: in an assignment, it is ambiguous whether the property should be invoked with no argument and the result be assigned to, or the property should be invoked with one argument.
+
+---
+ref int* getTheIntPtr(string str = "Hello") {
+    assert(str !is null);
+    return gInt;
+}
+
+unittest {
+    int x;
+    getTheIntPtr = &x; // => parenthesis-less call => getThisIntPtr() = &x
+    getTheIntPtr = null; // null coerces to string => getThisIntPtr(null)
+}
+---

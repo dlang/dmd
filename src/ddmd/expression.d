@@ -261,6 +261,11 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
     return true;
 }
 
+static bool isProperty(FuncDeclaration fd)
+{
+    return ((cast(TypeFunction)fd.type).isproperty || fd.storage_class & STCproperty || fd.storage_class2 & STCproperty);
+}
+
 /***************************************
  * Pull out any properties.
  */
@@ -301,6 +306,8 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
 
             Expressions a;
             a.push(e2);
+            TypeFunction tf = null;
+
 
             for (size_t i = 0; i < os.a.dim; i++)
             {
@@ -311,11 +318,15 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
                         return new ErrorExp();
                     fd = f;
                     assert(fd.type.ty == Tfunction);
-                    TypeFunction tf = cast(TypeFunction)fd.type;
+                    tf = cast(TypeFunction)fd.type;
+
                 }
             }
             if (fd)
             {
+                if (!isProperty(fd) && (*tf.parameters)[0].defaultArg)
+                    deprecation(e1.loc, "assignment to non-property function with default argument `%s` is deprecated.", fd.toFullSignature);
+
                 Expression e = new CallExp(loc, e1, e2);
                 return e.semantic(sc);
             }
@@ -424,6 +435,10 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
                     return new ErrorExp();
                 assert(fd.type.ty == Tfunction);
                 TypeFunction tf = cast(TypeFunction)fd.type;
+
+                if (!isProperty(fd) && (*tf.parameters)[0].defaultArg)
+                    deprecation(e1.loc, "assignment to non-property function with default argument `%s` is deprecated.", fd.toFullSignature);
+
                 Expression e = new CallExp(loc, e1, e2);
                 return e.semantic(sc);
             }
@@ -12900,7 +12915,9 @@ extern (C++) class AssignExp : BinExp
              *      f() = value
              */
             if (Expression e = resolvePropertiesX(sc, e1x, e2))
+            {
                 return e;
+            }
             if (e1x.checkRightThis(sc))
                 return new ErrorExp();
             e1 = e1x;
