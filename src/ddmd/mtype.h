@@ -598,7 +598,7 @@ public:
     bool isref;         // true: returns a reference
     bool isreturn;      // true: 'this' is returned by ref
     bool isscope;       // true: 'this' is scope
-    bool isscopeinferred; // true: 'this' is scope from inferrence
+    bool isscopeinferred; // true: 'this' is scope from inference
     LINK linkage;  // calling convention
     TRUST trust;   // level of trust
     PURE purity;   // PURExxxx
