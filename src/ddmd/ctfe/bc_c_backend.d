@@ -666,6 +666,11 @@ pure:
             a => "imm32(" ~ toCode(a) ~ ")").join(", ") ~ "], heapPtr).imm32;\n";
     }
 
+    void Comment(string comment)
+    {
+        code ~= "// " ~ comment ~ "\n";
+    }
+
    /* void CallBuiltin(BCValue result, BCBuiltin fn, BCValue[] args)
     {
         assert(result.vType == BCValueType.StackValue);
