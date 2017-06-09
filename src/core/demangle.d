@@ -1862,19 +1862,19 @@ unittest
 
 private template isExternD(FT) if (is(FT == function))
 {
-    enum isExternD = FT.mangleof[0] == 'F';
+    enum isExternD = __traits(getLinkage, FT) == "D";
 }
 
 private template isExternCPP(FT) if (is(FT == function))
 {
-    enum isExternCPP = FT.mangleof[0] == 'R';
+    enum isExternCPP = __traits(getLinkage, FT) == "C++";
 }
 
 private template hasPlainMangling(FT) if (is(FT == function))
 {
-    enum c = FT.mangleof[0];
+    enum lnk = __traits(getLinkage, FT);
     // C || Pascal || Windows
-    enum hasPlainMangling = c == 'U' || c == 'V' || c == 'W';
+    enum hasPlainMangling = lnk == "C" || lnk == "Pascal" || lnk == "Windows";
 }
 
 unittest
