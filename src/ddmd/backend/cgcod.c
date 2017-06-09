@@ -863,7 +863,7 @@ Lagain:
 
     if (tym == TYifunc)
     {
-        cdb.append(prolog_ifunc(&tyf));
+        prolog_ifunc(cdb,&tyf);
         hasframe = 1;
         cdb2.append(cdb);
         goto Lcont;
@@ -901,9 +901,9 @@ Lagain:
 
     if (I16 && config.wflags & WFwindows && farfunc)
     {
-        cdb.append(prolog_16bit_windows_farfunc(&tyf, &pushds));
-        enter = false;                  /* don't use ENTER instruction  */
-        hasframe = 1;                   /* we have a stack frame        */
+        prolog_16bit_windows_farfunc(cdb, &tyf, &pushds);
+        enter = false;                  // don't use ENTER instruction
+        hasframe = 1;                   // we have a stack frame
     }
     else if (needframe)                 // if variables or parameters
     {
@@ -917,7 +917,7 @@ Lagain:
     {
         cdb.append(prolog_frameadj(tyf, xlocalsize, enter, &pushalloc));
         if (Alloca.size)
-            cdb.append(prolog_setupalloca());
+            prolog_setupalloca(cdb);
     }
     else if (needframe)                      /* if variables or parameters   */
     {
@@ -925,7 +925,7 @@ Lagain:
         {
             cdb.append(prolog_frameadj(tyf, xlocalsize, enter, &pushalloc));
             if (Alloca.size)
-                cdb.append(prolog_setupalloca());
+                prolog_setupalloca(cdb);
         }
         else
             assert(Alloca.size == 0);
@@ -933,7 +933,7 @@ Lagain:
     else if (xlocalsize)
     {
         assert(I32 || I64);
-        cdb.append(prolog_frameadj2(tyf, xlocalsize, &pushalloc));
+        prolog_frameadj2(cdb, tyf, xlocalsize, &pushalloc);
         BPoff += REGSIZE;
     }
     else
@@ -947,6 +947,8 @@ Lagain:
         code *c = cdb.finish(); // cdb.peek()
         pinholeopt(c, NULL);
         prolog_allocoffset = calcblksize(c);
+        cdb.reset();
+        cdb.append(c);
     }
 
 #if SCPP
@@ -977,7 +979,7 @@ Lagain:
         }
 
         unsigned regsaved;
-        cdb.append(prolog_trace(farfunc, &regsaved));
+        prolog_trace(cdgb, farfunc, &regsaved);
 
         if (spalign)
             cdb.append(cod3_stackadj(CNIL, -spalign));
@@ -1000,7 +1002,8 @@ Lagain:
     }
 #endif
 
-    cdb2.append(prolog_saveregs(cdb.finish(), topush, cfa_offset));
+    cdb2.append(cdb);
+    prolog_saveregs(cdb2, topush, cfa_offset);
 
 Lcont:
 
@@ -1012,7 +1015,7 @@ Lcont:
         return cdb2.finish();
     }
 
-    cdb2.append(prolog_ifunc2(tyf, tym, pushds));
+    prolog_ifunc2(cdb2, tyf, tym, pushds);
 
 #if NTEXCEPTIONS == 2
     if (usednteh & NTEH_except)
@@ -1304,7 +1307,6 @@ void stackoffsets(int flags)
 STATIC void blcodgen(block *bl)
 {
     regm_t mfuncregsave = mfuncreg;
-    char *sflsave = NULL;
 
     //dbg_printf("blcodgen(%p)\n",bl);
 
@@ -1338,18 +1340,19 @@ STATIC void blcodgen(block *bl)
     regcon.cse.mops &= regcon.cse.mval;
 
     // Set regcon.mvar according to what variables are in registers for this block
-    code* c = NULL;
+    CodeBuilder cdb;
     regcon.mvar = 0;
     regcon.mpvar = 0;
     regcon.indexregs = 1;
     int anyspill = 0;
+    char *sflsave = NULL;
     if (config.flags4 & CFG4optimized)
-    {   SYMIDX i;
+    {
         code *cload = NULL;
         code *cstore = NULL;
 
         sflsave = (char *) alloca(globsym.top * sizeof(char));
-        for (i = 0; i < globsym.top; i++)
+        for (SYMIDX i = 0; i < globsym.top; i++)
         {   symbol *s = globsym.tab[i];
 
             sflsave[i] = s->Sfl;
@@ -1386,11 +1389,12 @@ STATIC void blcodgen(block *bl)
         }
         if ((regcon.cse.mops & regcon.cse.mval) != regcon.cse.mops)
         {
-            CodeBuilder cdb;
-            cse_save(cdb,regcon.cse.mops & ~regcon.cse.mval);
-            cstore = cat(cdb.finish(), cstore);
+            CodeBuilder cdb2;
+            cse_save(cdb2,regcon.cse.mops & ~regcon.cse.mval);
+            cstore = cat(cdb2.finish(), cstore);
         }
-        c = cat(cstore,cload);
+        cdb.append(cstore);
+        cdb.append(cload);
         mfuncreg &= ~regcon.mvar;               // use these registers
         regcon.used |= regcon.mvar;
 
@@ -1409,7 +1413,8 @@ STATIC void blcodgen(block *bl)
     refparam = 0;
     assert((regcon.cse.mops & regcon.cse.mval) == regcon.cse.mops);
 
-    outblkexitcode(bl, c, anyspill, sflsave, &retsym, mfuncregsave);
+    outblkexitcode(cdb, bl, anyspill, sflsave, &retsym, mfuncregsave);
+    bl->Bcode = cdb.finish();
 
     for (int i = 0; i < anyspill; i++)
     {   symbol *s = globsym.tab[i];
@@ -1438,34 +1443,27 @@ STATIC void blcodgen(block *bl)
 #if SCPP
 
 STATIC void cgcod_eh()
-{   block *btry;
-    code *c;
-    code *c1;
+{
     list_t stack;
-    list_t list;
-    block *b;
     int idx;
-    int lastidx;
     int tryidx;
-    int i;
 
     if (!(usednteh & (EHtry | EHcleanup)))
         return;
 
     // Compute Bindex for each block
-    for (b = startblock; b; b = b->Bnext)
+    for (block *b = startblock; b; b = b->Bnext)
     {   b->Bindex = -1;
         b->Bflags &= ~BFLvisited;               /* mark as unvisited    */
     }
-    btry = NULL;
-    lastidx = 0;
+    block *btry = NULL;
+    int lastidx = 0;
     startblock->Bindex = 0;
-    for (b = startblock; b; b = b->Bnext)
+    for (block *b = startblock; b; b = b->Bnext)
     {
         if (btry == b->Btry && b->BC == BCcatch)  // if don't need to pop try block
-        {   block *br;
-
-            br = list_block(b->Bpred);          // find corresponding try block
+        {
+            block *br = list_block(b->Bpred);          // find corresponding try block
             assert(br->BC == BCtry);
             b->Bindex = br->Bindex;
         }
@@ -1498,11 +1496,11 @@ STATIC void cgcod_eh()
         }
 
         stack = NULL;
-        for (c = b->Bcode; c; c = code_next(c))
+        for (code *c = b->Bcode; c; c = code_next(c))
         {
             if ((c->Iop & ESCAPEmask) == ESCAPE)
             {
-                c1 = NULL;
+                code *c1 = NULL;
                 switch (c->Iop & 0xFFFF00)
                 {
                     case ESCctor:
@@ -1567,8 +1565,8 @@ STATIC void cgcod_eh()
             lastidx = b->Bendindex;
 
         // Set starting index for each of the successors
-        i = 0;
-        for (list = b->Bsucc; list; list = list_next(list))
+        int i = 0;
+        for (list_t list = b->Bsucc; list; list = list_next(list))
         {   block *bs = list_block(list);
 
             if (b->BC == BCtry)
@@ -1606,14 +1604,13 @@ STATIC void cgcod_eh()
     }
 
     if (config.exe == EX_WIN32)
-        for (b = startblock; b; b = b->Bnext)
+        for (block *b = startblock; b; b = b->Bnext)
         {
             if (/*!b->Bcount ||*/ b->BC == BCtry)
                 continue;
-            for (list = b->Bpred; list; list = list_next(list))
-            {   int pi;
-
-                pi = list_block(list)->Bendindex;
+            for (list_t list = b->Bpred; list; list = list_next(list))
+            {
+                int pi = list_block(list)->Bendindex;
                 if (b->Bindex != pi)
                 {
                     CodeBuilder cdb;
