@@ -598,7 +598,7 @@ $(DOC_OUTPUT_DIR)/$(call D2HTML,$p) : $p $(STDDOC) $(HOST_DMD_PATH) ;\
 $(DOC_OUTPUT_DIR) :
 	mkdir -p $@
 
-html: $(HTMLS) project.ddoc | $(DOC_OUTPUT_DIR)
+html: $(HTMLS) project.ddoc $D/id.d | $(DOC_OUTPUT_DIR)
 endif
 
 ######################################################
