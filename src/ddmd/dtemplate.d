@@ -6963,7 +6963,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         if (enclosing != ti.enclosing)
         {
             //printf("test2 enclosing %s ti.enclosing %s\n", enclosing ? enclosing.toChars() : "", ti.enclosing ? ti.enclosing.toChars() : "");
-            goto Lnotequals;
+            goto Lnotequals; // nocoverage
         }
         //printf("parent = %s, ti.parent = %s\n", parent.toPrettyChars(), ti.parent.toPrettyChars());
 
