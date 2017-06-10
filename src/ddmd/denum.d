@@ -118,7 +118,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         if (semanticRun == PASSsemantic)
         {
             assert(memtype);
-            .error(loc, "circular reference to enum base type %s", memtype.toChars());
+            .error(loc, "circular reference to enum base type `%s`", memtype.toChars());
             errors = true;
             semanticRun = PASSsemanticdone;
             return;
@@ -213,7 +213,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
 
         if (members.dim == 0)
         {
-            error("enum %s must have at least one member", toChars());
+            error("enum `%s` must have at least one member", toChars());
             errors = true;
             return;
         }
@@ -320,7 +320,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
 
         if (!members || !symtab || _scope)
         {
-            error("is forward referenced when looking for '%s'", ident.toChars());
+            error("is forward referenced when looking for `%s`", ident.toChars());
             //*(char*)0=0;
             return null;
         }
@@ -365,7 +365,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
 
         if (inuse)
         {
-            error(loc, "recursive definition of .%s property", id.toChars());
+            error(loc, "recursive definition of `.%s` property", id.toChars());
             return errorReturn();
         }
         if (*pval)
@@ -377,12 +377,12 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             return errorReturn();
         if (semanticRun == PASSinit || !members)
         {
-            error("is forward referenced looking for .%s", id.toChars());
+            error("is forward referenced looking for `.%s`", id.toChars());
             return errorReturn();
         }
         if (!(memtype && memtype.isintegral()))
         {
-            error(loc, "has no .%s property because base type %s is not an integral type", id.toChars(), memtype ? memtype.toChars() : "");
+            error(loc, "has no `.%s` property because base type `%s` is not an integral type", id.toChars(), memtype ? memtype.toChars() : "");
             return errorReturn();
         }
 
@@ -443,7 +443,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             goto Lerrors;
         if (semanticRun == PASSinit || !members)
         {
-            error(loc, "forward reference of %s.init", toChars());
+            error(loc, "forward reference of `%s.init`", toChars());
             goto Lerrors;
         }
 
@@ -723,7 +723,7 @@ extern (C++) final class EnumMember : VarDeclaration
             e = e.ctfeInterpret();
             if (e.toInteger())
             {
-                error("initialization with (%s.%s + 1) causes overflow for type '%s'",
+                error("initialization with `%s.%s+1` causes overflow for type `%s`",
                     emprev.ed.toChars(), emprev.toChars(), ed.memtype.toChars());
                 return errorReturn();
             }
@@ -753,7 +753,7 @@ extern (C++) final class EnumMember : VarDeclaration
                 etest = etest.ctfeInterpret();
                 if (etest.toInteger())
                 {
-                    error("has inexact value, due to loss of precision");
+                    error("has inexact value due to loss of precision");
                     return errorReturn();
                 }
             }
