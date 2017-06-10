@@ -115,6 +115,10 @@ coverage()
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd ENABLE_COVERAGE=1
 
     make -j$N -C test MODEL=$MODEL ARGS="-O -inline -release" DMD_TEST_COVERAGE=1
+
+    # Remove coverage information from lines with non-deterministic coverage.
+    # These lines are annotated with a comment containing "nocoverage".
+    sed -i 's/^ *[0-9]*\(|.*nocoverage.*\)$/       \1/' ./src/*.lst
 }
 
 codecov()
