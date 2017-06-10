@@ -119,12 +119,12 @@ while (1)
                             continue;
 
                         default:
-;
+                            {}
                     }
                     return;
                 }
             default:
-;
+                {}
         }
 
     Lnumber:

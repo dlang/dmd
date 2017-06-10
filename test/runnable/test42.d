@@ -698,7 +698,7 @@ void test46()
 
 void test47()
 {
-    enum { _P_WAIT, _P_NOWAIT, _P_OVERLAY };
+    enum { _P_WAIT, _P_NOWAIT, _P_OVERLAY }
 
     alias _P_WAIT P_WAIT;
     alias _P_NOWAIT P_NOWAIT;

@@ -710,7 +710,7 @@ void test36()
 
 void test6685()
 {
-    struct S { int x; };
+    struct S { int x; }
     with({ return S(); }())
     {
         x++;
@@ -2736,7 +2736,7 @@ void test129()
 /***************************************************/
 // 6169
 
-auto ctfefunc6169() { return ";"; }
+auto ctfefunc6169() { return "{}"; }
 enum ctfefptr6169 = &ctfefunc6169;
 int ctfefunc6169a() { return 1; }
 template x6169(string c) { alias int x6169; }
@@ -4126,7 +4126,7 @@ void test4963()
 {
     struct Value {
         byte a;
-    };
+    }
     Value single()
     {
         return Value();
@@ -4430,7 +4430,7 @@ void test4392()
 // 6220
 
 void test6220() {
-    struct Foobar { real x; real y; real z;};
+    struct Foobar { real x; real y; real z;}
     switch("x") {
         foreach(i,member; __traits(allMembers, Foobar)) {
             case member : break;

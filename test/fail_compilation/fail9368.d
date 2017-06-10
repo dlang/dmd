@@ -43,7 +43,7 @@ void test286()
         case G.A:
 //      case G.B:
         case G.C:
-            ;
+            {}
     }
 }
 
