@@ -1,5 +1,6 @@
 /*
 REQUIRED_ARGS: -mcpu=native
+PERMUTE_ARGS: -O -inline
 */
 
 import core.stdc.stdio;
@@ -1545,6 +1546,29 @@ void test16102()
 
 ////////////////////////////////////////////////////////////////////////
 
+void test5a(ulong x, ulong y)
+{
+    int a;
+    if (x >> 32)
+        a = 1;
+    else
+        a = 2;
+    assert(a == 1);
+
+    if (y >> 32)
+        a = 1;
+    else
+        a = 2;
+    assert(a == 2);
+}
+
+void test5()
+{
+    test5a(uint.max + 1L, uint.max);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -1599,6 +1623,7 @@ int main()
     test13474();
     test16699();
     test16102();
+    test5();
     printf("Success\n");
     return 0;
 }

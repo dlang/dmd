@@ -3912,7 +3912,7 @@ L1:
   if (cnst(e2))
   {
         tym_t tym;
-        int sz;
+        int sz = tysize(e2->Ety);
 
         if (e1->Eoper == OPu16_32 && e2->EV.Vulong <= (targ_ulong) SHORTMASK ||
                  e1->Eoper == OPs16_32 &&
@@ -3929,7 +3929,7 @@ L1:
         if (OPTIMIZER &&
             e1->Eoper == OPand &&
             e1->E2->Eoper == OPconst &&
-            (sz = tysize(e2->Ety)) > CHARSIZE)
+            sz > CHARSIZE)
         {   int op;
 
             assert(tyintegral(e2->Ety) || typtr(e2->Ety));
@@ -3964,6 +3964,18 @@ L1:
                 e = optelem(e,GOALvalue);
                 goto ret;
             }
+        }
+
+        /* Convert (ulong > uint.max) to (msw(ulong) != 0)
+         */
+        if (OPTIMIZER && I32 && e->Eoper == OPgt && sz == LLONGSIZE && e2->EV.Vullong == 0xFFFFFFFF)
+        {
+            e->Eoper = OPne;
+            e2->Ety = TYulong;
+            e2->EV.Vulong = 0;
+            e->E1 = el_una(OPmsw,TYulong,e1);
+            e = optelem(e,GOALvalue);
+            goto ret;
         }
 
         if (e1->Eoper == OPu8_16 && e2->EV.Vuns < 256 ||
