@@ -1,5 +1,4 @@
 // REQUIRED_ARGS:
-// DISABLED: win64
 // PERMUTE_ARGS: -mcpu=native
 
 version (D_SIMD)
