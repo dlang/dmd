@@ -647,6 +647,10 @@ extern (C++) abstract class Type : RootObject
     /*******************************
      * Covariant means that 'this' can substitute for 't',
      * i.e. a pure function is a match for an impure type.
+     * Params:
+     *      t = type 'this' is covariant with
+     *      pstc = if not null, store STCxxxx which would make it covariant
+     *      fix17349 = enable fix https://issues.dlang.org/show_bug.cgi?id=17349
      * Returns:
      *      0       types are distinct
      *      1       this is covariant with t
@@ -655,7 +659,7 @@ extern (C++) abstract class Type : RootObject
      *      3       cannot determine covariance because of forward references
      *      *pstc   STCxxxx which would make it covariant
      */
-    final int covariant(Type t, StorageClass* pstc = null)
+    final int covariant(Type t, StorageClass* pstc = null, bool fix17349 = true)
     {
         version (none)
         {
@@ -668,7 +672,7 @@ extern (C++) abstract class Type : RootObject
             *pstc = 0;
         StorageClass stc = 0;
 
-        int inoutmismatch = 0;
+        bool notcovariant = false;
 
         TypeFunction t1;
         TypeFunction t2;
@@ -698,9 +702,42 @@ extern (C++) abstract class Type : RootObject
 
                 if (!fparam1.type.equals(fparam2.type))
                 {
+                    if (!fix17349)
+                        goto Ldistinct;
+                    Type tp1 = fparam1.type;
+                    Type tp2 = fparam2.type;
+                    if (tp1.ty == tp2.ty)
+                    {
+                        if (tp1.ty == Tclass)
+                        {
+                            if ((cast(TypeClass)tp1).sym == (cast(TypeClass)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
+                                goto Lcov;
+                        }
+                        else if (tp1.ty == Tstruct)
+                        {
+                            if ((cast(TypeStruct)tp1).sym == (cast(TypeStruct)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
+                                goto Lcov;
+                        }
+                        else if (tp1.ty == Tpointer)
+                        {
+                            if (tp2.implicitConvTo(tp1))
+                                goto Lcov;
+                        }
+                        else if (tp1.ty == Tarray)
+                        {
+                            if (tp2.implicitConvTo(tp1))
+                                goto Lcov;
+                        }
+                        else if (tp1.ty == Tdelegate)
+                        {
+                            if (tp1.implicitConvTo(tp2))
+                                goto Lcov;
+                        }
+                    }
                     goto Ldistinct;
                 }
-                inoutmismatch = !fparam1.isCovariant(t1.isref, fparam2);
+            Lcov:
+                notcovariant |= !fparam1.isCovariant(t1.isref, fparam2);
             }
         }
         else if (t1.parameters != t2.parameters)
@@ -712,7 +749,7 @@ extern (C++) abstract class Type : RootObject
         }
 
         // The argument lists match
-        if (inoutmismatch)
+        if (notcovariant)
             goto Lnotcovariant;
         if (t1.linkage != t2.linkage)
             goto Lnotcovariant;

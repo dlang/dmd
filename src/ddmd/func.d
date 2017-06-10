@@ -779,9 +779,17 @@ extern (C++) class FuncDeclaration : Declaration
                     if (fdv.isFinalFunc())
                         error("cannot override final function %s", fdv.toPrettyChars());
 
-                    doesoverride = true;
                     if (!isOverride())
-                        .error(loc, "cannot implicitly override base class method %s with %s; add 'override' attribute", fdv.toPrettyChars(), toPrettyChars());
+                    {
+                            int vi2 = findVtblIndex(&cd.baseClass.vtbl, cast(int)cd.baseClass.vtbl.dim, false);
+                            if (vi2 < 0)
+                                // https://issues.dlang.org/show_bug.cgi?id=17349
+                                .deprecation(loc, "cannot implicitly override base class method `%s` with `%s`; add `override` attribute", fdv.toPrettyChars(), toPrettyChars());
+                            else
+                                .error(loc, "cannot implicitly override base class method %s with %s; add 'override' attribute", fdv.toPrettyChars(), toPrettyChars());
+                    }
+
+                    doesoverride = true;
                     if (fdc.toParent() == parent)
                     {
                         // If both are mixins, or both are not, then error.
@@ -2289,12 +2297,15 @@ extern (C++) class FuncDeclaration : Declaration
      * Find index of function in vtbl[0..dim] that
      * this function overrides.
      * Prefer an exact match to a covariant one.
+     * Params:
+     *      fix17349 = enable fix https://issues.dlang.org/show_bug.cgi?id=17349
      * Returns:
      *      -1      didn't find one
      *      -2      can't determine because of forward references
      */
-    final int findVtblIndex(Dsymbols* vtbl, int dim)
+    final int findVtblIndex(Dsymbols* vtbl, int dim, bool fix17349 = true)
     {
+        //printf("findVtblIndex() %s\n", toChars());
         FuncDeclaration mismatch = null;
         StorageClass mismatchstc = 0;
         int mismatchvi = -1;
@@ -2321,7 +2332,7 @@ extern (C++) class FuncDeclaration : Declaration
                 }
 
                 StorageClass stc = 0;
-                int cov = type.covariant(fdv.type, &stc);
+                int cov = type.covariant(fdv.type, &stc, fix17349);
                 //printf("\tbaseclass cov = %d\n", cov);
                 switch (cov)
                 {

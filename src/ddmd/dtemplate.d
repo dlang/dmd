@@ -2555,6 +2555,21 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
                 if (c1 < c2) goto LlastIsBetter;
             }
 
+            /* The 'overrides' check above does covariant checking only
+             * for virtual member functions. It should do it for all functions,
+             * but in order to not risk breaking code we put it after
+             * the 'leastAsSpecialized' check.
+             * In the future try moving it before.
+             * I.e. a not-the-same-but-covariant match is preferred,
+             * as it is more restrictive.
+             */
+            if (!m.lastf.type.equals(fd.type))
+            {
+                //printf("cov: %d %d\n", m.lastf.type.covariant(fd.type), fd.type.covariant(m.lastf.type));
+                if (m.lastf.type.covariant(fd.type) == 1) goto LlastIsBetter;
+                if (fd.type.covariant(m.lastf.type) == 1) goto LfIsBetter;
+            }
+
             /* If the two functions are the same function, like:
              *    int foo(int);
              *    int foo(int x) { ... }

@@ -7922,6 +7922,27 @@ void test16408()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17349
+
+void test17349()
+{
+    static struct S
+    {
+        int bar(void delegate(ref int*)) { return 1; }
+        int bar(void delegate(ref const int*)) const { return 2; }
+    }
+
+    void dg1(ref int*) { }
+    void dg2(ref const int*) { }
+    S s;
+    int i;
+    i = s.bar(&dg1);
+    assert(i == 1);
+    i = s.bar(&dg2);
+    assert(i == 2);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -8240,6 +8261,7 @@ int main()
     test16233();
     test16466();
     test16408();
+    test17349();
 
     printf("Success\n");
     return 0;
