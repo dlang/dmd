@@ -4223,6 +4223,38 @@ int test14860()
 static assert(test14860());
 
 /**********************************/
+// https://issues.dlang.org/show_bug.cgi?id=14246
+
+struct A14246 {
+     int a = 3;
+     static string s;
+     this( int var ) { printf("A()\n"); a += var; s ~= "a"; }
+
+     ~this() { printf("~A()\n"); s ~= "b"; }
+}
+
+struct B14246 {
+     int i;
+     A14246 a;
+
+     this( int var ) {
+         A14246.s ~= "c";
+         a = A14246(var+1);
+         throw new Exception("An exception");
+     }
+}
+
+void test14246() {
+    try {
+         auto b = B14246(2);
+    } catch( Exception ex ) {
+        printf("Caught ex\n");
+        A14246.s ~= "d";
+    }
+    assert(A14246.s == "cabd");
+}
+
+/**********************************/
 // 14696
 
 void test14696(int len = 2)
@@ -4605,6 +4637,7 @@ int main()
     test14815();
     test16197();
     test14860();
+    test14246();
     test14696();
     test14838();
     test63();

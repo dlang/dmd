@@ -1102,7 +1102,7 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     // Do the semantic analysis on the internals of the function.
-    override final void semantic3(Scope* sc)
+    override void semantic3(Scope* sc)
     {
         VarDeclaration _arguments = null;
 
@@ -4689,6 +4689,35 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
                 ad.defaultCtor = this;
             }
         }
+    }
+
+    override final void semantic3(Scope* sc)
+    {
+        if (semanticRun >= PASSsemantic3)
+            return;
+
+        /* If any of the fields of the struct have a destructor, add
+         *   scope (failure) { this.fieldDtor(); }
+         * as the first statement. It is not necessary to add it after
+         * each initialization of a field, because destruction of .init constructed
+         * structs should be benign.
+         */
+        AggregateDeclaration ad = toParent2().isAggregateDeclaration();
+        if (ad && ad.fieldDtor)
+        {
+            /* Generate:
+             *   scope (failure) { this.fieldDtor(); }
+             */
+            Expression e = new ThisExp(loc);
+            e.type = ad.type.mutableOf();
+            e = new DotVarExp(loc, e, ad.fieldDtor, false);
+            e = new CallExp(loc, e);
+            auto sexp = new ExpStatement(loc, e);
+            auto s = new OnScopeStatement(loc, TOKon_scope_failure, sexp);
+
+            fbody = new CompoundStatement(loc, s, fbody);
+        }
+        FuncDeclaration.semantic3(sc);
     }
 
     override const(char)* kind() const
