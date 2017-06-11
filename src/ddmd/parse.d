@@ -5113,7 +5113,7 @@ final class Parser(AST) : Lexer
             if (!(flags & PSsemi_ok))
             {
                 if (flags & PSsemi)
-                    warning(loc, "use '{ }' for an empty statement, not a ';'");
+                    deprecation("use '{ }' for an empty statement, not a ';'");
                 else
                     error("use '{ }' for an empty statement, not a ';'");
             }
