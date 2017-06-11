@@ -11007,10 +11007,7 @@ extern (C++) final class NegExp : UnaExp
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(e1))
-            {
-                error("invalid array operation %s (possible missing [])", toChars());
-                return new ErrorExp();
-            }
+                return arrayOpInvalidError(this);
             return this;
         }
         if (!Target.isVectorOpSupported(tb, op))
@@ -11089,10 +11086,7 @@ extern (C++) final class ComExp : UnaExp
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(e1))
-            {
-                error("invalid array operation %s (possible missing [])", toChars());
-                return new ErrorExp();
-            }
+                return arrayOpInvalidError(this);
             return this;
         }
         if (!Target.isVectorOpSupported(tb, op))
@@ -14156,10 +14150,7 @@ extern (C++) final class AddExp : BinExp
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(this))
-            {
-                error("invalid array operation %s (possible missing [])", toChars());
-                return new ErrorExp();
-            }
+                return arrayOpInvalidError(this);
             return this;
         }
 
@@ -14284,10 +14275,7 @@ extern (C++) final class MinExp : BinExp
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(this))
-            {
-                error("invalid array operation %s (possible missing [])", toChars());
-                return new ErrorExp();
-            }
+                return arrayOpInvalidError(this);
             return this;
         }
 
@@ -14562,10 +14550,7 @@ extern (C++) final class MulExp : BinExp
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(this))
-            {
-                error("invalid array operation %s (possible missing [])", toChars());
-                return new ErrorExp();
-            }
+                return arrayOpInvalidError(this);
             return this;
         }
 
@@ -14660,10 +14645,7 @@ extern (C++) final class DivExp : BinExp
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(this))
-            {
-                error("invalid array operation %s (possible missing [])", toChars());
-                return new ErrorExp();
-            }
+                return arrayOpInvalidError(this);
             return this;
         }
 
@@ -14759,10 +14741,7 @@ extern (C++) final class ModExp : BinExp
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(this))
-            {
-                error("invalid array operation %s (possible missing [])", toChars());
-                return new ErrorExp();
-            }
+                return arrayOpInvalidError(this);
             return this;
         }
         if (!Target.isVectorOpSupported(tb, op, e2.type.toBasetype()))
@@ -14817,10 +14796,7 @@ extern (C++) final class PowExp : BinExp
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(this))
-            {
-                error("invalid array operation %s (possible missing [])", toChars());
-                return new ErrorExp();
-            }
+                return arrayOpInvalidError(this);
             return this;
         }
 
@@ -15064,10 +15040,7 @@ extern (C++) final class AndExp : BinExp
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(this))
-            {
-                error("invalid array operation %s (possible missing [])", toChars());
-                return new ErrorExp();
-            }
+                return arrayOpInvalidError(this);
             return this;
         }
         if (!Target.isVectorOpSupported(tb, op, e2.type.toBasetype()))
@@ -15117,10 +15090,7 @@ extern (C++) final class OrExp : BinExp
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(this))
-            {
-                error("invalid array operation %s (possible missing [])", toChars());
-                return new ErrorExp();
-            }
+                return arrayOpInvalidError(this);
             return this;
         }
         if (!Target.isVectorOpSupported(tb, op, e2.type.toBasetype()))
@@ -15170,10 +15140,7 @@ extern (C++) final class XorExp : BinExp
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(this))
-            {
-                error("invalid array operation %s (possible missing [])", toChars());
-                return new ErrorExp();
-            }
+                return arrayOpInvalidError(this);
             return this;
         }
         if (!Target.isVectorOpSupported(tb, op, e2.type.toBasetype()))

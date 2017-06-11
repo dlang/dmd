@@ -3,8 +3,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_arrayop2.d(12): Error: array operation [1, 2, 3] - [1, 2, 3] without destination memory not allowed
-fail_compilation/fail_arrayop2.d(15): Error: invalid array operation "a" - "b" (possible missing [])
+fail_compilation/fail_arrayop2.d(12): Error: array operation `[1, 2, 3] - [1, 2, 3]` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(15): Error: invalid array operation `"a" - "b"` (possible missing [])
 ---
 */
 void test2603() // Issue 2603 - ICE(cgcs.c) on subtracting string literals
@@ -18,17 +18,17 @@ void test2603() // Issue 2603 - ICE(cgcs.c) on subtracting string literals
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_arrayop2.d(37): Error: array operation -a[] without destination memory not allowed (possible missing [])
-fail_compilation/fail_arrayop2.d(38): Error: array operation ~a[] without destination memory not allowed (possible missing [])
-fail_compilation/fail_arrayop2.d(40): Error: array operation a[] + a[] without destination memory not allowed (possible missing [])
-fail_compilation/fail_arrayop2.d(41): Error: array operation a[] - a[] without destination memory not allowed (possible missing [])
-fail_compilation/fail_arrayop2.d(42): Error: array operation a[] * a[] without destination memory not allowed (possible missing [])
-fail_compilation/fail_arrayop2.d(43): Error: array operation a[] / a[] without destination memory not allowed (possible missing [])
-fail_compilation/fail_arrayop2.d(44): Error: array operation a[] % a[] without destination memory not allowed (possible missing [])
-fail_compilation/fail_arrayop2.d(45): Error: array operation a[] ^ a[] without destination memory not allowed (possible missing [])
-fail_compilation/fail_arrayop2.d(46): Error: array operation a[] & a[] without destination memory not allowed (possible missing [])
-fail_compilation/fail_arrayop2.d(47): Error: array operation a[] | a[] without destination memory not allowed (possible missing [])
-fail_compilation/fail_arrayop2.d(48): Error: array operation a[] ^^ a[] without destination memory not allowed (possible missing [])
+fail_compilation/fail_arrayop2.d(37): Error: array operation `-a[]` without destination memory not allowed (possible missing [])
+fail_compilation/fail_arrayop2.d(38): Error: array operation `~a[]` without destination memory not allowed (possible missing [])
+fail_compilation/fail_arrayop2.d(40): Error: array operation `a[] + a[]` without destination memory not allowed (possible missing [])
+fail_compilation/fail_arrayop2.d(41): Error: array operation `a[] - a[]` without destination memory not allowed (possible missing [])
+fail_compilation/fail_arrayop2.d(42): Error: array operation `a[] * a[]` without destination memory not allowed (possible missing [])
+fail_compilation/fail_arrayop2.d(43): Error: array operation `a[] / a[]` without destination memory not allowed (possible missing [])
+fail_compilation/fail_arrayop2.d(44): Error: array operation `a[] % a[]` without destination memory not allowed (possible missing [])
+fail_compilation/fail_arrayop2.d(45): Error: array operation `a[] ^ a[]` without destination memory not allowed (possible missing [])
+fail_compilation/fail_arrayop2.d(46): Error: array operation `a[] & a[]` without destination memory not allowed (possible missing [])
+fail_compilation/fail_arrayop2.d(47): Error: array operation `a[] | a[]` without destination memory not allowed (possible missing [])
+fail_compilation/fail_arrayop2.d(48): Error: array operation `a[] ^^ a[]` without destination memory not allowed (possible missing [])
 ---
 */
 void test9459()
@@ -51,19 +51,19 @@ void test9459()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_arrayop2.d(74): Error: array operation a[] + a[] without destination memory not allowed
-fail_compilation/fail_arrayop2.d(75): Error: array operation a[] - a[] without destination memory not allowed
-fail_compilation/fail_arrayop2.d(76): Error: array operation a[] * a[] without destination memory not allowed
-fail_compilation/fail_arrayop2.d(77): Error: array operation a[] / a[] without destination memory not allowed
-fail_compilation/fail_arrayop2.d(78): Error: array operation a[] % a[] without destination memory not allowed
-fail_compilation/fail_arrayop2.d(79): Error: array operation a[] ^ a[] without destination memory not allowed
-fail_compilation/fail_arrayop2.d(80): Error: array operation a[] & a[] without destination memory not allowed
-fail_compilation/fail_arrayop2.d(81): Error: array operation a[] | a[] without destination memory not allowed
-fail_compilation/fail_arrayop2.d(82): Error: array operation a[] ^^ 10 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(83): Error: array operation -a[] without destination memory not allowed
-fail_compilation/fail_arrayop2.d(84): Error: array operation ~a[] without destination memory not allowed
-fail_compilation/fail_arrayop2.d(89): Error: array operation [1] + a[] without destination memory not allowed
-fail_compilation/fail_arrayop2.d(90): Error: array operation [1] + a[] without destination memory not allowed
+fail_compilation/fail_arrayop2.d(74): Error: array operation `a[] + a[]` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(75): Error: array operation `a[] - a[]` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(76): Error: array operation `a[] * a[]` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(77): Error: array operation `a[] / a[]` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(78): Error: array operation `a[] % a[]` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(79): Error: array operation `a[] ^ a[]` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(80): Error: array operation `a[] & a[]` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(81): Error: array operation `a[] | a[]` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(82): Error: array operation `a[] ^^ 10` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(83): Error: array operation `-a[]` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(84): Error: array operation `~a[]` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(89): Error: array operation `[1] + a[]` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(90): Error: array operation `[1] + a[]` without destination memory not allowed
 ---
 */
 void test12179()
@@ -93,7 +93,7 @@ void test12179()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_arrayop2.d(104): Error: array operation h * y[] without destination memory not allowed
+fail_compilation/fail_arrayop2.d(104): Error: array operation `h * y[]` without destination memory not allowed
 ---
 */
 void test12381()
@@ -107,8 +107,8 @@ void test12381()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_arrayop2.d(117): Error: array operation -a[] without destination memory not allowed
-fail_compilation/fail_arrayop2.d(119): Error: array operation (-a[])[0..4] without destination memory not allowed
+fail_compilation/fail_arrayop2.d(117): Error: array operation `-a[]` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(119): Error: array operation `(-a[])[0..4]` without destination memory not allowed
 ---
 */
 float[] test12769(float[] a)
@@ -122,11 +122,11 @@ float[] test12769(float[] a)
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_arrayop2.d(136): Error: array operation a[] - a[] without destination memory not allowed
-fail_compilation/fail_arrayop2.d(138): Error: array operation a[] - a[] without destination memory not allowed
-fail_compilation/fail_arrayop2.d(139): Error: array operation a[] - a[] without destination memory not allowed
-fail_compilation/fail_arrayop2.d(142): Error: array operation a[] - a[] without destination memory not allowed
-fail_compilation/fail_arrayop2.d(144): Error: array operation a[] - a[] without destination memory not allowed
+fail_compilation/fail_arrayop2.d(136): Error: array operation `a[] - a[]` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(138): Error: array operation `a[] - a[]` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(139): Error: array operation `a[] - a[]` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(142): Error: array operation `a[] - a[]` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(144): Error: array operation `a[] - a[]` without destination memory not allowed
 ---
 */
 void test13208()
@@ -147,10 +147,10 @@ void test13208()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_arrayop2.d(159): Error: array operation a[] * a[] without destination memory not allowed
-fail_compilation/fail_arrayop2.d(160): Error: array operation (a[] * a[])[0..1] without destination memory not allowed
-fail_compilation/fail_arrayop2.d(163): Error: array operation a[] * a[] without destination memory not allowed (possible missing [])
-fail_compilation/fail_arrayop2.d(164): Error: array operation (a[] * a[])[0..1] without destination memory not allowed (possible missing [])
+fail_compilation/fail_arrayop2.d(159): Error: array operation `a[] * a[]` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(160): Error: array operation `(a[] * a[])[0..1]` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(163): Error: array operation `a[] * a[]` without destination memory not allowed (possible missing [])
+fail_compilation/fail_arrayop2.d(164): Error: array operation `(a[] * a[])[0..1]` without destination memory not allowed (possible missing [])
 ---
 */
 void test13497()
@@ -167,7 +167,7 @@ void test13497()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_arrayop2.d(180): Error: array operation data[segmentId][28..29] & cast(ubyte)(1 << 0) without destination memory not allowed
+fail_compilation/fail_arrayop2.d(180): Error: array operation `data[segmentId][28..29] & cast(ubyte)(1 << 0)` without destination memory not allowed
 ---
 */
 void test13910()
@@ -184,8 +184,8 @@ void test13910()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_arrayop2.d(194): Error: array operation a[] + 1 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(194): Error: array operation a[] * 2 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(194): Error: array operation `a[] + 1` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(194): Error: array operation `a[] * 2` without destination memory not allowed
 ---
 */
 void test14895()
@@ -197,40 +197,40 @@ void test14895()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_arrayop2.d(245): Error: array operation [1] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(246): Error: array operation [1] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(247): Error: array operation [1] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(252): Error: array operation [1] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(255): Error: array operation [1] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(264): Error: array operation [1] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(267): Error: array operation [1] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(268): Error: array operation "abc"[] + '\x01' without destination memory not allowed
-fail_compilation/fail_arrayop2.d(271): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(245): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(246): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(247): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(252): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(255): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(264): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(267): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(268): Error: array operation `"abc"[] + '\x01'` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(271): Error: array operation `[1] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(274): Error: ([1] * 6)[0..2] is not an lvalue
 fail_compilation/fail_arrayop2.d(277): Error: can only * a pointer, not a 'int[]'
 fail_compilation/fail_arrayop2.d(280): Error: [1] * 6 is not an lvalue
-fail_compilation/fail_arrayop2.d(283): Error: array operation da[] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(286): Error: array operation da[] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(283): Error: array operation `da[] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(286): Error: array operation `da[] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(289): Error: [1] * 6 is not an lvalue
-fail_compilation/fail_arrayop2.d(290): Error: invalid array operation '[1] * 6 -= 1' for element type int
+fail_compilation/fail_arrayop2.d(290): Error: invalid array operation `[1] * 6 -= 1` for element type `int`
 fail_compilation/fail_arrayop2.d(293): Error: [1] * 6 is not an lvalue
 fail_compilation/fail_arrayop2.d(294): Error: ([1] * 6)[] is not an lvalue
-fail_compilation/fail_arrayop2.d(297): Error: invalid array operation '[1] * 6 += 1' for element type int
-fail_compilation/fail_arrayop2.d(298): Error: invalid array operation '[1] * 6 *= 2' for element type int
-fail_compilation/fail_arrayop2.d(299): Error: invalid array operation '[1] * 6 ^^= 3' for element type int
+fail_compilation/fail_arrayop2.d(297): Error: invalid array operation `[1] * 6 += 1` for element type `int`
+fail_compilation/fail_arrayop2.d(298): Error: invalid array operation `[1] * 6 *= 2` for element type `int`
+fail_compilation/fail_arrayop2.d(299): Error: invalid array operation `[1] * 6 ^^= 3` for element type `int`
 fail_compilation/fail_arrayop2.d(302): Error: [1] * 6 is not an lvalue
 fail_compilation/fail_arrayop2.d(303): Error: [1] * 6 is not an lvalue
 fail_compilation/fail_arrayop2.d(306): Error: '[1] * 6' is not of integral type, it is a int[]
 fail_compilation/fail_arrayop2.d(307): Error: '[1] * 6' is not of integral type, it is a int[]
 fail_compilation/fail_arrayop2.d(308): Error: '[1] * 6' is not of integral type, it is a int[]
-fail_compilation/fail_arrayop2.d(311): Error: array operation [1] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(312): Error: array operation [1] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(315): Error: array operation [1] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(316): Error: array operation [1] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(317): Error: array operation [1] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(320): Error: array operation [1] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(320): Error: array operation [1] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(320): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(311): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(312): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(315): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(316): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(317): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(320): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(320): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(320): Error: array operation `[1] * 6` without destination memory not allowed
 ---
 */
 // Test all expressions, which can take arrays as their operands but cannot be a part of array operation.
@@ -323,14 +323,14 @@ void test15407exp()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_arrayop2.d(341): Error: array operation [1] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(344): Error: array operation [1] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(347): Error: array operation [1] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(348): Error: array operation [1] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(349): Error: array operation [1] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(352): Error: array operation [1] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(355): Error: array operation [1] * 6 without destination memory not allowed
-fail_compilation/fail_arrayop2.d(358): Error: array operation "str"[] + cast(immutable(char))1 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(341): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(344): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(347): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(348): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(349): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(352): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(355): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(358): Error: array operation `"str"[] + cast(immutable(char))1` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(366): Error: CTFE internal error: non-constant value "uvt"[]
 ---
 */
