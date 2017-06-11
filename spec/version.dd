@@ -254,6 +254,8 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
 	$(TROW $(ARGS $(D CRuntime_DigitalMars)) , $(ARGS DigitalMars C runtime))
 	$(TROW $(ARGS $(D CRuntime_Glibc)) , $(ARGS Glibc C runtime))
 	$(TROW $(ARGS $(D CRuntime_Microsoft)) , $(ARGS Microsoft C runtime))
+	$(TROW $(ARGS $(D CRuntime_Musl)) , $(ARGS musl C runtime))
+	$(TROW $(ARGS $(D CRuntime_UClibc)) , $(ARGS uClibc C runtime))
 	$(TROW $(ARGS $(D X86)) , $(ARGS Intel and AMD 32-bit processors))
 	$(TROW $(ARGS $(D X86_64)) , $(ARGS Intel and AMD 64-bit processors))
 	$(TROW $(ARGS $(D ARM)) , $(ARGS The ARM architecture (32-bit) (AArch32 et al)))
