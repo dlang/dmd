@@ -33,8 +33,12 @@ import ddmd.typinf;
 import ddmd.visitor;
 
 /***************************************
- * Search toString member function for TypeInfo_Struct.
- *      string toString();
+ * Search sd for a member function of the form:
+ *   `extern (D) string toString();`
+ * Params:
+ *   sd = struct declaration to search
+ * Returns:
+ *   FuncDeclaration of `toString()` if found, `null` if not
  */
 extern (C++) FuncDeclaration search_toString(StructDeclaration sd)
 {
@@ -55,6 +59,9 @@ extern (C++) FuncDeclaration search_toString(StructDeclaration sd)
 
 /***************************************
  * Request additional semantic analysis for TypeInfo generation.
+ * Params:
+ *      sc = context
+ *      t = type that TypeInfo is being generated for
  */
 extern (C++) void semanticTypeInfo(Scope* sc, Type t)
 {
@@ -215,6 +222,7 @@ alias ISPODyes = StructPOD.ISPODyes;
 alias ISPODfwd = StructPOD.ISPODfwd;
 
 /***********************************************************
+ * All `struct` declarations are an instance of this.
  */
 extern (C++) class StructDeclaration : AggregateDeclaration
 {
@@ -614,14 +622,16 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     }
 
     /***************************************
-     * Fit elements[] to the corresponding type of field[].
-     * Input:
-     *      loc
-     *      sc
-     *      elements    The explicit arguments that given to construct object.
-     *      stype       The constructed object type.
-     * Returns false if any errors occur.
-     * Otherwise, returns true and elements[] are rewritten for the output.
+     * Fit elements[] to the corresponding types of the struct's fields.
+     *
+     * Params:
+     *      loc = location to use for error messages
+     *      sc = context
+     *      elements = explicit arguments used to construct object
+     *      stype = the constructed object type.
+     * Returns:
+     *      false if any errors occur,
+     *      otherwise true and elements[] are rewritten for the output.
      */
     final bool fit(Loc loc, Scope* sc, Expressions* elements, Type stype)
     {
@@ -704,12 +714,18 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     }
 
     /***************************************
-     * Return true if struct is POD (Plain Old Data).
-     * This is defined as:
-     *      not nested
-     *      no postblits, destructors, or assignment operators
-     *      no 'ref' fields or fields that are themselves non-POD
+     * Determine if struct is POD (Plain Old Data).
+     *
+     * POD is defined as:
+     *      $(OL
+     *      $(LI not nested)
+     *      $(LI no postblits, destructors, or assignment operators)
+     *      $(LI no `ref` fields or fields that are themselves non-POD)
+     *      )
      * The idea being these are compatible with C structs.
+     *
+     * Returns:
+     *     true if struct is POD
      */
     final bool isPOD()
     {
@@ -760,6 +776,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 }
 
 /***********************************************************
+ * Unions are a variation on structs.
  */
 extern (C++) final class UnionDeclaration : StructDeclaration
 {
