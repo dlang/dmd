@@ -123,7 +123,7 @@ private elem *useOPstrpar(elem *e)
  * Call a function.
  */
 
-elem *callfunc(Loc loc,
+private elem *callfunc(Loc loc,
         IRState *irs,
         int directcall,         // 1: don't do virtual call
         Type tret,              // return type
@@ -135,16 +135,10 @@ elem *callfunc(Loc loc,
         Expressions *arguments,
         elem *esel = null)      // selector for Objective-C methods (when not provided by fd)
 {
-    elem *ep;
     elem *e;
     elem *ethis = null;
     elem *eside = null;
-    tym_t ty;
-    tym_t tyret;
-    RET retmethod;
-    int reverse;
     TypeFunction tf;
-    int op;
     elem *eresult = ehidden;
 
     version (none)
@@ -177,13 +171,11 @@ elem *callfunc(Loc loc,
         assert(t.ty == Tfunction);
         tf = cast(TypeFunction)(t);
     }
-    retmethod = retStyle(tf);
-    ty = ec.Ety;
-    if (fd)
-        ty = toSymbol(fd).Stype.Tty;
-    reverse = tyrevfunc(ty);    // left-to-right parameter evaluation (TYnpfunc, TYjfunc, TYfpfunc, TYf16func)
-    ep = null;
-    op = fd ? intrinsic_op(fd) : -1;
+    const ty = fd ? toSymbol(fd).Stype.Tty : ec.Ety;
+    const left_to_right = tyrevfunc(ty);   // left-to-right parameter evaluation
+                                           // (TYnpfunc, TYjfunc, TYfpfunc, TYf16func)
+    elem* ep = null;
+    const op = fd ? intrinsic_op(fd) : -1;
     if (arguments && arguments.dim)
     {
         if (op == OPvector)
@@ -240,7 +232,7 @@ elem *callfunc(Loc loc,
         L1:
             elems[i] = ea;
         }
-        if (!reverse)
+        if (!left_to_right)
         {
             /* Avoid 'fixing' side effects of _array... functions as
              * they were already working right from the olden days before this fix
@@ -253,7 +245,7 @@ elem *callfunc(Loc loc,
             elems[i] = useOPstrpar(elems[i]);
         }
 
-        if (!reverse)   // swap order if right-to-left
+        if (!left_to_right)   // swap order if right-to-left
         {
             auto i = 0;
             auto k = n - 1;
@@ -273,8 +265,9 @@ elem *callfunc(Loc loc,
     }
 
     objc_callfunc_setupMethodSelector(tret, fd, t, ehidden, &esel);
-    objc_callfunc_setupEp(esel, &ep, reverse);
+    objc_callfunc_setupEp(esel, &ep, left_to_right);
 
+    const retmethod = retStyle(tf);
     if (retmethod == RETstack)
     {
         if (!ehidden)
@@ -304,7 +297,7 @@ elem *callfunc(Loc loc,
             if (ep)
             {
                 /* // BUG: implement
-                if (reverse && type_mangle(tfunc) == mTYman_cpp)
+                if (left_to_right && type_mangle(tfunc) == mTYman_cpp)
                     ep = el_param(ehidden,ep);
                 else
                 */
@@ -327,6 +320,12 @@ elem *callfunc(Loc loc,
             if (ad.isStructDeclaration() && tybasic(ec.Ety) != TYnptr)
             {
                 ethis = addressElem(ec, ectype);
+            }
+            if (el_sideeffect(ethis))
+            {
+                elem *ex = ethis;
+                ethis = el_copytotmp(&ex);
+                eside = el_combine(ex, eside);
             }
         }
         else
@@ -376,7 +375,7 @@ if (!global.params.is64bit) assert(tysize(TYnptr) == 4);
     if (ehidden)
         ep = el_param(ep, ehidden);     // if ehidden goes last
 
-    tyret = totym(tret);
+    const tyret = totym(tret);
 
     // Look for intrinsic functions
     if (ec.Eoper == OPvar && op != -1)
