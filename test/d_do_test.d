@@ -405,6 +405,8 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
 // marked by $n$ that contain compiler generated unique numbers
 bool compareOutput(string output, string refoutput)
 {
+    import std.ascii : digits;
+    import std.utf : byCodeUnit;
     for ( ; ; )
     {
         auto pos = refoutput.indexOf("$n$");
@@ -416,7 +418,8 @@ bool compareOutput(string output, string refoutput)
             return false;
         refoutput = refoutput[pos + 3 ..$];
         output = output[pos..$];
-        munch(output, "0123456789");
+        auto p = output.byCodeUnit.countUntil!(e => !digits.canFind(e));
+        output = output[p..$];
     }
 }
 
