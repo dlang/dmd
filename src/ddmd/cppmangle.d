@@ -638,7 +638,7 @@ public:
             c = 'd';
             break;
         case Tfloat80:
-            c = Target.realislongdouble ? 'e' : 'g';
+            c = 'e';
             break;
         case Tbool:
             c = 'b';
