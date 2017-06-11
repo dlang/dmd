@@ -803,14 +803,16 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if ((e.e1.op == TOKint64 && e.e1.toInteger() == 1) || (e.e1.op == TOKfloat64 && e.e1.toReal() == CTFloat.one))
             {
                 ret = new CommaExp(e.loc, e.e2, e.e1);
+                ret.type = e.type;
                 return;
             }
             // Replace -1 ^^ x by (x&1) ? -1 : 1, where x is integral
             if (e.e2.type.isintegral() && e.e1.op == TOKint64 && cast(sinteger_t)e.e1.toInteger() == -1)
             {
-                Type resultType = e.type;
                 ret = new AndExp(e.loc, e.e2, new IntegerExp(e.loc, 1, e.e2.type));
-                ret = new CondExp(e.loc, ret, new IntegerExp(e.loc, -1, resultType), new IntegerExp(e.loc, 1, resultType));
+                ret.type = e.e2.type;
+                ret = new CondExp(e.loc, ret, new IntegerExp(e.loc, -1, e.type), new IntegerExp(e.loc, 1, e.type));
+                ret.type = e.type;
                 return;
             }
             // Replace x ^^ 0 or x^^0.0 by (x, 1)
@@ -821,6 +823,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 else
                     ret = new RealExp(e.loc, CTFloat.one, e.e1.type);
                 ret = new CommaExp(e.loc, e.e1, ret);
+                ret.type = e.type;
                 return;
             }
             // Replace x ^^ 1 or x^^1.0 by (x)
@@ -833,6 +836,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (e.e2.op == TOKfloat64 && e.e2.toReal() == CTFloat.minusone)
             {
                 ret = new DivExp(e.loc, new RealExp(e.loc, CTFloat.one, e.e2.type), e.e1);
+                ret.type = e.type;
                 return;
             }
             // All other negative integral powers are illegal
