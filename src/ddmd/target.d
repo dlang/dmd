@@ -451,6 +451,15 @@ struct Target
     }
 
     /**
+     * For a vendor-specific type, return a string containing the C++ mangling.
+     * In all other cases, return null.
+     */
+    extern (C++) static const(char)* cppTypeMangle(Type t)
+    {
+        return null;
+    }
+
+    /**
      * Return the default system linkage for the target.
      */
     extern (C++) static LINK systemLinkage()
