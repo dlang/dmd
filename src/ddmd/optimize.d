@@ -1199,7 +1199,14 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
     }
 
     scope OptimizeVisitor v = new OptimizeVisitor(result, keepLvalue);
+    Expression ex = null;
     v.ret = e;
-    e.accept(v);
-    return v.ret;
+
+    // Optimize the expression until it can no longer be simplified.
+    while (ex != v.ret)
+    {
+        ex = v.ret;
+        ex.accept(v);
+    }
+    return ex;
 }
