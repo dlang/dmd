@@ -79,26 +79,26 @@ fail_compilation/reserved_version.d(180): Error: version identifier 'CRuntime_Bi
 fail_compilation/reserved_version.d(181): Error: version identifier 'CRuntime_DigitalMars' is reserved and cannot be set
 fail_compilation/reserved_version.d(182): Error: version identifier 'CRuntime_Glibc' is reserved and cannot be set
 fail_compilation/reserved_version.d(183): Error: version identifier 'CRuntime_Microsoft' is reserved and cannot be set
-fail_compilation/reserved_version.d(184): Error: version identifier 'D_Coverage' is reserved and cannot be set
-fail_compilation/reserved_version.d(185): Error: version identifier 'D_Ddoc' is reserved and cannot be set
-fail_compilation/reserved_version.d(186): Error: version identifier 'D_InlineAsm_X86' is reserved and cannot be set
-fail_compilation/reserved_version.d(187): Error: version identifier 'D_InlineAsm_X86_64' is reserved and cannot be set
-fail_compilation/reserved_version.d(188): Error: version identifier 'D_LP64' is reserved and cannot be set
-fail_compilation/reserved_version.d(189): Error: version identifier 'D_X32' is reserved and cannot be set
-fail_compilation/reserved_version.d(190): Error: version identifier 'D_HardFloat' is reserved and cannot be set
-fail_compilation/reserved_version.d(191): Error: version identifier 'D_SoftFloat' is reserved and cannot be set
-fail_compilation/reserved_version.d(192): Error: version identifier 'D_PIC' is reserved and cannot be set
-fail_compilation/reserved_version.d(193): Error: version identifier 'D_SIMD' is reserved and cannot be set
-fail_compilation/reserved_version.d(194): Error: version identifier 'D_Version2' is reserved and cannot be set
-fail_compilation/reserved_version.d(195): Error: version identifier 'D_NoBoundsChecks' is reserved and cannot be set
-fail_compilation/reserved_version.d(198): Error: version identifier 'all' is reserved and cannot be set
-fail_compilation/reserved_version.d(199): Error: version identifier 'none' is reserved and cannot be set
+fail_compilation/reserved_version.d(184): Error: version identifier 'CRuntime_Musl' is reserved and cannot be set
+fail_compilation/reserved_version.d(185): Error: version identifier 'CRuntime_UClibc' is reserved and cannot be set
+fail_compilation/reserved_version.d(186): Error: version identifier 'D_Coverage' is reserved and cannot be set
+fail_compilation/reserved_version.d(187): Error: version identifier 'D_Ddoc' is reserved and cannot be set
+fail_compilation/reserved_version.d(188): Error: version identifier 'D_InlineAsm_X86' is reserved and cannot be set
+fail_compilation/reserved_version.d(189): Error: version identifier 'D_InlineAsm_X86_64' is reserved and cannot be set
+fail_compilation/reserved_version.d(190): Error: version identifier 'D_LP64' is reserved and cannot be set
+fail_compilation/reserved_version.d(191): Error: version identifier 'D_X32' is reserved and cannot be set
+fail_compilation/reserved_version.d(192): Error: version identifier 'D_HardFloat' is reserved and cannot be set
+fail_compilation/reserved_version.d(193): Error: version identifier 'D_SoftFloat' is reserved and cannot be set
+fail_compilation/reserved_version.d(194): Error: version identifier 'D_PIC' is reserved and cannot be set
+fail_compilation/reserved_version.d(195): Error: version identifier 'D_SIMD' is reserved and cannot be set
+fail_compilation/reserved_version.d(196): Error: version identifier 'D_Version2' is reserved and cannot be set
+fail_compilation/reserved_version.d(197): Error: version identifier 'D_NoBoundsChecks' is reserved and cannot be set
+fail_compilation/reserved_version.d(200): Error: version identifier 'all' is reserved and cannot be set
+fail_compilation/reserved_version.d(201): Error: version identifier 'none' is reserved and cannot be set
 ---
 */
 
 // Some extra empty lines to help fixup the manual line numbering after adding new version identifiers
-
-
 
 
 
@@ -181,6 +181,8 @@ version = CRuntime_Bionic;
 version = CRuntime_DigitalMars;
 version = CRuntime_Glibc;
 version = CRuntime_Microsoft;
+version = CRuntime_Musl;
+version = CRuntime_UClibc;
 version = D_Coverage;
 version = D_Ddoc;
 version = D_InlineAsm_X86;
@@ -274,6 +276,8 @@ debug = CRuntime_Bionic;
 debug = CRuntime_DigitalMars;
 debug = CRuntime_Glibc;
 debug = CRuntime_Microsoft;
+debug = CRuntime_Musl;
+debug = CRuntime_UClibc;
 debug = D_Coverage;
 debug = D_Ddoc;
 debug = D_InlineAsm_X86;

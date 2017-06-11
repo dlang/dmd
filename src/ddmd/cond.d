@@ -326,6 +326,8 @@ extern (C++) final class VersionCondition : DVCondition
             "CRuntime_DigitalMars",
             "CRuntime_Glibc",
             "CRuntime_Microsoft",
+            "CRuntime_Musl",
+            "CRuntime_UClibc",
             "unittest",
             "assert",
             "all",
