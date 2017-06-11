@@ -198,6 +198,8 @@ extern (C++) TypeTuple toArgTypes(Type t)
                 return t1;
             const sz1 = t1.size(Loc());
             const sz2 = t2.size(Loc());
+            if (t1.ty == Terror || t2.ty == Terror)
+                return null;
             assert(sz1 != SIZE_INVALID && sz2 != SIZE_INVALID);
             if (t1.ty != t2.ty && (t1.ty == Tfloat80 || t2.ty == Tfloat80))
                 return null;
