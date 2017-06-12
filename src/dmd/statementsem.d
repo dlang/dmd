@@ -299,7 +299,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                              * As:
                              *      s;
                              *      try { s1; s2; }
-                             *      catch (Throwable __o)
+                             *      catch (Exception __o)
                              *      { sexception; throw __o; }
                              */
                             auto a = new Statements();
@@ -320,7 +320,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             }
 
                             auto catches = new Catches();
-                            auto ctch = new Catch(Loc.initial, getThrowable(), id, handler);
+                            auto ctch = new Catch(Loc.initial, getException(), id, handler);
                             ctch.internalCatch = true;
                             catches.push(ctch);
 
