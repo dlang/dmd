@@ -160,7 +160,9 @@ extern (C++) final class StaticForeach : RootObject
         auto fid = Identifier.idPool(StaticForeach_tupleFieldName.ptr, StaticForeach_tupleFieldName.length);
         auto ty = new TypeTypeof(loc, new TupleExp(loc, e));
         sdecl.members.push(new VarDeclaration(loc, ty, fid, null, 0));
-        return new TypeStruct(sdecl);
+        auto r = cast(TypeStruct)sdecl.type;
+        r.vtinfo = TypeInfoStructDeclaration.create(r); // prevent typeinfo from going to object file
+        return r;
     }
 
     private extern(D) Expression createTuple(Loc loc, TypeStruct type, Expressions* e)
