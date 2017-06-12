@@ -87,6 +87,7 @@ extern (C++) final class StaticForeach : RootObject
     }
     body
     {
+        this.loc=loc;
         this.aggrfe=aggrfe;
         this.rangefe=rangefe;
     }
