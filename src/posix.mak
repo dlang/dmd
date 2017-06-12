@@ -27,6 +27,7 @@ ifneq ($(BUILD),release)
     ifneq ($(BUILD),debug)
         $(error Unrecognized BUILD=$(BUILD), must be 'debug' or 'release')
     endif
+    ENABLE_DEBUG := 1
 endif
 
 GIT_HOME=https://github.com/dlang
