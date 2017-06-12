@@ -5921,7 +5921,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) abstract class StaticForeach : RootObject
+    extern (C++) final class StaticForeach : RootObject
     {
         Loc loc;
 
