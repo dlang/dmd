@@ -43,7 +43,7 @@ public:
     Loc loc;
 
     ForeachStatement *aggrfe;
-    ForeachrangeStatement *rangefe;
+    ForeachRangeStatement *rangefe;
 
     bool needExpansion;
 
