@@ -153,6 +153,7 @@ struct ASTBase
     enum STCexptemp             = (1L << 47);   // temporary variable that has lifetime restricted to an expression
     enum STCmaybescope          = (1L << 48);   // parameter might be 'scope'
     enum STCfuture              = (1L << 49);   // introducing new base class function
+    enum STClocal               = (1L << 50);   // do not forward
 
     enum STC_TYPECTOR = (STCconst | STCimmutable | STCshared | STCwild);
 
@@ -1432,6 +1433,22 @@ struct ASTBase
         }
     }
 
+    extern (C++) final class StaticForeachDeclaration : AttribDeclaration
+    {
+        StaticForeach sfe;
+
+        extern (D) this(StaticForeach sfe, Dsymbols* decl)
+        {
+            super(decl);
+            this.sfe = sfe;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
     extern (C++) final class EnumMember : VarDeclaration
     {
         Expression origValue;
@@ -2148,6 +2165,22 @@ struct ASTBase
             this.condition = condition;
             this.ifbody = ifbody;
             this.elsebody = elsebody;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class StaticForeachStatement : Statement
+    {
+        StaticForeach sfe;
+
+        extern (D) this(Loc loc, StaticForeach sfe)
+        {
+            super(loc);
+            this.sfe = sfe;
         }
 
         override void accept(Visitor v)
@@ -5880,6 +5913,31 @@ struct ASTBase
         final extern (D) this(Loc loc)
         {
             this.loc = loc;
+        }
+
+        void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) abstract class StaticForeach : RootObject
+    {
+        Loc loc;
+
+        ForeachStatement aggrfe;
+        ForeachRangeStatement rangefe;
+
+        final extern (D) this(Loc loc,ForeachStatement aggrfe,ForeachRangeStatement rangefe)
+        in
+        {
+            assert(!!aggrfe^!!rangefe);
+        }
+        body
+        {
+            this.loc = loc;
+            this.aggrfe = aggrfe;
+            this.rangefe = rangefe;
         }
 
         void accept(Visitor v)
