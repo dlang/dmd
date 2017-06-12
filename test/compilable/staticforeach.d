@@ -1,4 +1,5 @@
-// -*- compile-command: "cd src && make -fposix.mak DEBUG=1 && cd .. && ./src/dmd test_staticforeach.d" -*-
+// REQUIRED_ARGS: -o-
+// PERMUTE_ARGS:
 
 struct Tuple(T...){
 	T expand;
@@ -9,8 +10,6 @@ auto tuple(T...)(T t){ return Tuple!T(t); }
 /+struct TupleStaticForeach{ // should work, but is not the fault of the static foreach implementation.
 	//pragma(msg, [tuple(1,"2",'3'),tuple(2,"3",'4')].map!((x)=>x));
 	static foreach(a,b,c;[tuple(1,"2",'3'),tuple(2,"3",'4')].map!((x)=>x)){
-		import std.stdio;
-		//writeln(a," ",b," ",c);
 		pragma(msg,a," ",b," ",c);
 	}
 }+/
@@ -594,116 +593,3 @@ void testEmpty(){
     static foreach(i;0..0) { }
 }
 
-
-/+void testest(){
-    import std.stdio: writeln;
-    import std.conv: to;
-    import std.range: iota;
-    import std.algorithm: map;
-    import std.typecons: tuple;
-    static foreach(i;0..3){
-        scope(exit) writeln("hi ",i);
-    }
-    writeln("ho"); // writes "ho" before writing "hi"!
-    /+static foreach(i;Seq!(0,1,2)){
-        mixin(`int x`~to!string(i)~"=i;");
-    }+/
-    static foreach(i;["0","1","2"]){
-        mixin(`int x`~i~"="~i~";");
-    }
-    /+static foreach(i;iota(3).map!(x=>to!string(x))){
-        mixin(`int x`~i~"="~i~";");
-    }+/
-    /+static foreach(i,j,k;iota(3).map!(i=>tuple(to!string(i),i*i,[i*i*i,i+i]))){
-        //mixin("int x"~i~"=j;");
-        pragma(msg, i," ",j," ",k);
-    }+/
-
-    /+struct S{
-        int x;
-        S opUnary(string op:"++")(){ return S(++x); }
-        int opCmp(S r){ return (x>r.x)-(x<r.x); }
-    }
-
-    static foreach(k;S(0)..S(5)){
-        pragma(msg, k.x);
-    }+/
-
-    /+static foreach(i,j,k;delegate(scope int delegate(ref int,ref int,ref int) dg){
-        foreach(l;0..5){
-            int a=l,b=l*l,c=l^^l;
-            if(auto r=dg(a,b,c)) return r;
-        }
-        return 0;
-    }){
-        pragma(msg, i, " ", j, " ", k);
-    }+/
-    writeln(x0," ",x1," ",x2);
-    /+struct Tuple{
-        Seq!(string,int) field;
-        alias field this;
-    }
-    foreach(i,j;[Tuple("0",0),Tuple("1",1)].map!(x=>x)){
-        writeln(i," ",j);
-    }+/
-}+/
-
-/+static foreach(i;[1,2]~[3]){
-    int k=i;
-}+/
-
-//int x;
-/+
-void main(){
-    //import std.stdio;
-    //writeln(x);
-    int a=3,b,c;
-    int x=0;
-    static foreach(i;Seq!(a)){
-        //writeln(i);
-        //int x;
-        //scope(exit) assert(0);
-        break;
-    }
-    //assert(0);
-    //static if(is(int S)){}
-    //pragma(msg, S);
-}
-//int x;
-+/
-/+
-int foo(int x){
-    int r=0;
-    switch(x){
-        static foreach(i;Seq!(0,1,2,3)){
-            case i: r=i; break;
-        }
-        default: r=-1; break;
-    }
-    return r;
-}
-
-pragma(msg, foo(4));
-+/
-
-
-
-/+
-string text(int x){
-    if(!x) return "0";
-    if(x<0) return "-"~text(-x);
-    string r;
-    while(x){
-        r~=cast(char)('0'+x%10);
-        x/=10;
-    }
-    return r;
-}
-
-
-static foreach(i;0..10){
-    mixin(`int foo`~text(i)~`(){ return i; }`);
-    int mixin(`foo`~text(i))(){ return i; }
-}
-
-+/
