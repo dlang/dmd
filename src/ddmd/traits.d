@@ -1021,9 +1021,9 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         ex = ex.ctfeInterpret();
         auto ii = ex.toUInteger();
-        if (ii >= fparams.dim)
+        if (ii >= Parameter.dim(fparams))
         {
-            e.error("parameter index must be in range 0..%u not %s", cast(uint)fparams.dim, ex.toChars());
+            e.error("parameter index must be in range 0..%u not %s", cast(uint)Parameter.dim(fparams), ex.toChars());
             return new ErrorExp();
         }
 
