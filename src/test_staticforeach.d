@@ -1,5 +1,32 @@
 // -*- compile-command: "cd src && make -fposix.mak DEBUG=1 && cd .. && ./src/dmd test_staticforeach.d" -*-
 
+struct Tuple(T...){
+	T expand;
+	alias expand this;
+}
+auto tuple(T...)(T t){ return Tuple!T(t); }
+
+/+struct TupleStaticForeach{ // should work, but is not the fault of the static foreach implementation.
+	//pragma(msg, [tuple(1,"2",'3'),tuple(2,"3",'4')].map!((x)=>x));
+	static foreach(a,b,c;[tuple(1,"2",'3'),tuple(2,"3",'4')].map!((x)=>x)){
+		import std.stdio;
+		//writeln(a," ",b," ",c);
+		pragma(msg,a," ",b," ",c);
+	}
+}+/
+
+void main(){
+	static foreach(a,b,c;[tuple(1,"2",'3'),tuple(2,"3",'4')].map!((x)=>x)){
+		pragma(msg, a," ",b," ",c);
+	}
+}
+
+auto front(T)(T[] a){ return a[0]; }
+auto popFront(T)(ref T[] a){ a=a[1..$]; }
+auto empty(T)(T[] a){ return !a.length; }
+auto back(T)(T[] a){ return a[$-1]; }
+auto popBack(T)(ref T[] a){ a=a[0..$-1]; }
+
 struct Iota(T){
 	T s,e;
 	@property bool empty(){ return s>=e; }
@@ -13,7 +40,6 @@ auto iota(T)(T s, T e){ return Iota!T(s,e); }
 template map(alias a){
 	struct Map(R){
 		R r;
-		this(R r){ this.r=r; }
 		@property front(){ return a(r.front); }
 		@property back(){ return a(r.back); }
 		@property bool empty(){ return r.empty; }
@@ -448,7 +474,6 @@ static:
         static foreach(alias x;[1,2,3]){} // ok
         static assert(!is(typeof({
             static foreach(enum alias x;[1,2,3]){}
-            // static foreach(ref x;[1,2,3]){}
         })));
         int x;
         static foreach(i;Seq!x){ } // ok
