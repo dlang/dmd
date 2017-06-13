@@ -306,7 +306,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
     OverloadSet *mergeOverloadSet(Identifier *ident, OverloadSet *os, Dsymbol *s);
-    void importScope(Dsymbol *s, Prot protection);
+    virtual void importScope(Dsymbol *s, Prot protection);
     void addAccessiblePackage(Package *p, Prot protection);
     virtual bool isPackageAccessible(Package *p, Prot protection, int flags = 0);
     bool isforwardRef();
