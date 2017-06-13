@@ -1543,6 +1543,8 @@ extern (C++) final class BCV(BCGenT) : Visitor
     bool insideArgumentProcessing;
     bool processingParameters;
     bool insideArrayLiteralExp;
+    bool inOrOr;
+    bool inAndAnd;
 
     bool IGaveUp;
 
@@ -1564,6 +1566,8 @@ extern (C++) final class BCV(BCGenT) : Visitor
         insideArgumentProcessing = false;
         processingParameters = false;
         insideArrayLiteralExp = false;
+        inOrOr = false;
+        inAndAnd = false;
         IGaveUp = false;
         discardValue = false;
         ignoreVoid = false;
