@@ -7,7 +7,7 @@ import std.conv;
 /**
  * Written By Stefan Koch in 2016
  */
-
+debug = 1;
 enum InstKind
 {
     ShortInst,
@@ -1369,7 +1369,7 @@ string printInstructions(const int* startInstructions, uint length) pure
                 auto alignedLength = align4(commentLength) / 4;
                 result ~= "CommentBegin (CommentLength: " ~  to!string(commentLength) ~ ")\n";
                 // alignLengthBy2
-                assert(alignedLength < length, "comment (" ~ to!string(alignedLength) ~") longer then code (" ~ to!string(length) ~ ")");
+                assert(alignedLength <= length, "comment (" ~ to!string(alignedLength) ~") longer then code (" ~ to!string(length) ~ ")");
 
                 foreach(c4i; pos .. pos + commentLength / 4)
                 {
