@@ -266,17 +266,21 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             if (v.storage_class & STCref)
                 return 0;
             auto tv = v.type.baseElemOf();
-            if (tv.ty != Tstruct)
-                return 0;
-            if (ad == (cast(TypeStruct)tv).sym)
+            // Propagate pending errors from fields to aggregate.
+            // https://issues.dlang.org/show_bug.cgi?id=17489
+            if (v.type.ty == Terror)
+                goto Lerror;
+            if (tv.ty == Tstruct && ad == (cast(TypeStruct)tv).sym)
             {
                 const(char)* psz = (v.type.toBasetype().ty == Tsarray) ? "static array of " : "";
                 ad.error("cannot have field `%s` with %ssame struct type", v.toChars(), psz);
-                ad.type = Type.terror;
-                ad.errors = true;
-                return 1;
+                goto Lerror;
             }
             return 0;
+        Lerror:
+            ad.type = Type.terror;
+            ad.errors = true;
+            return 1;
         }
 
         for (size_t i = 0; i < members.dim; i++)
