@@ -30,7 +30,6 @@ struct Target
     extern (C++) static __gshared int realsize;             // size a real consumes in memory
     extern (C++) static __gshared int realpad;              // 'padding' added to the CPU real size to bring it up to realsize
     extern (C++) static __gshared int realalignsize;        // alignment for reals
-    extern (C++) static __gshared bool realislongdouble;    // distinguish between C 'long double' and '__float128'
     extern (C++) static __gshared bool reverseCppOverloads; // with dmc and cl, overloaded functions are grouped and in reverse order
     extern (C++) static __gshared bool cppExceptions;       // set if catching C++ exceptions is supported
     extern (C++) static __gshared int c_longsize;           // size of a C 'long' or 'unsigned long' type
@@ -127,7 +126,6 @@ struct Target
                 c_longsize = 8;
             }
         }
-        realislongdouble = true;
         c_long_doublesize = realsize;
         if (global.params.is64bit && global.params.isWindows)
             c_long_doublesize = 8;
@@ -448,6 +446,15 @@ struct Target
             return cppTypeInfoMangleMSVC(cd);
         else
             static assert(0, "fix this");
+    }
+
+    /**
+     * For a vendor-specific type, return a string containing the C++ mangling.
+     * In all other cases, return null.
+     */
+    extern (C++) static const(char)* cppTypeMangle(Type t)
+    {
+        return null;
     }
 
     /**

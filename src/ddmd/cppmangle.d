@@ -638,7 +638,7 @@ public:
             c = 'd';
             break;
         case Tfloat80:
-            c = Target.realislongdouble ? 'e' : 'g';
+            c = 'e';
             break;
         case Tbool:
             c = 'b';
@@ -699,9 +699,18 @@ public:
         }
         if (t.isConst())
             buf.writeByte('K');
-        if (p)
-            buf.writeByte(p);
-        buf.writeByte(c);
+
+        // Handle any target-specific basic types.
+        if (auto tm = Target.cppTypeMangle(t))
+        {
+            buf.writestring(tm);
+        }
+        else
+        {
+            if (p)
+                buf.writeByte(p);
+            buf.writeByte(c);
+        }
     }
 
     override void visit(TypeVector t)
@@ -716,11 +725,20 @@ public:
         }
         if (t.isConst())
             buf.writeByte('K');
-        assert(t.basetype && t.basetype.ty == Tsarray);
-        assert((cast(TypeSArray)t.basetype).dim);
-        //buf.printf("Dv%llu_", ((TypeSArray *)t.basetype).dim.toInteger());// -- Gnu ABI v.4
-        buf.writestring("U8__vector"); //-- Gnu ABI v.3
-        t.basetype.nextOf().accept(this);
+
+        // Handle any target-specific vector types.
+        if (auto tm = Target.cppTypeMangle(t))
+        {
+            buf.writestring(tm);
+        }
+        else
+        {
+            assert(t.basetype && t.basetype.ty == Tsarray);
+            assert((cast(TypeSArray)t.basetype).dim);
+            //buf.printf("Dv%llu_", ((TypeSArray *)t.basetype).dim.toInteger());// -- Gnu ABI v.4
+            buf.writestring("U8__vector"); //-- Gnu ABI v.3
+            t.basetype.nextOf().accept(this);
+        }
     }
 
     override void visit(TypeSArray t)
@@ -859,13 +877,22 @@ public:
         }
         if (t.isConst())
             buf.writeByte('K');
-        if (!substitute(t.sym))
+
+        // Handle any target-specific struct types.
+        if (auto tm = Target.cppTypeMangle(t))
         {
-            cpp_mangle_name(t.sym, t.isConst());
+            buf.writestring(tm);
         }
-        if (t.isImmutable() || t.isShared())
+        else
         {
-            visit(cast(Type)t);
+            if (!substitute(t.sym))
+            {
+                cpp_mangle_name(t.sym, t.isConst());
+            }
+            if (t.isImmutable() || t.isShared())
+            {
+                visit(cast(Type)t);
+            }
         }
         if (t.isConst())
             store(t);
