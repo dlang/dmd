@@ -458,7 +458,7 @@ $(P
         in the $(PS0).
 )
 
-$(H4 Foreach over Arrays)
+$(H4 $(LNAME2 foreach_over_arrays, Foreach over Arrays))
 
 $(P
         If the aggregate is a static or dynamic array, there
@@ -505,7 +505,7 @@ foreach (auto n; arr) // error, auto is redundant
     writeln(n);
 --------------
 
-$(H4 Foreach over Arrays of Characters)
+$(H4 $(LNAME2 foreach_over_arrays_of_characters, Foreach over Arrays of Characters))
 
         $(P If the aggregate expression is a static or dynamic array of
         $(D char)s, $(D wchar)s, or $(D dchar)s, then the $(I Type) of
@@ -560,7 +560,7 @@ $(CONSOLE
 'y'
 )
 
-$(H4 Foreach over Associative Arrays)
+$(H4 $(LNAME2 foreach_over_associative_arrays, Foreach over Associative Arrays))
 
         $(P If the aggregate expression is an associative array, there
         can be one or two variables declared. If one, then the variable
@@ -586,7 +586,7 @@ foreach (string s, double d; a)
 }
 --------------
 
-$(H4 Foreach over Structs and Classes with opApply)
+$(H4 $(LNAME2 foreach_over_struct_and_classes, Foreach over Structs and Classes with opApply))
 
     $(P If the aggregate expression is a struct or class object,
         the $(D foreach) is defined by the
@@ -703,8 +703,8 @@ $(CONSOLE
         --------------
 
     $(P It is important to make sure that, if $(D opApply) catches any exceptions, that those
-        exceptions did not originate from the delegate passed to $(I opApply). The user would expect 
-        exceptions thrown from a `foreach` body to both terminate the loop, and propagate outside 
+        exceptions did not originate from the delegate passed to $(I opApply). The user would expect
+        exceptions thrown from a `foreach` body to both terminate the loop, and propagate outside
         the `foreach` body.
      )
 
@@ -777,7 +777,7 @@ $(H4 $(LEGACY_LNAME2 foreach_with_ranges, foreach-with-ranges, Foreach over Stru
         }
         ---
 
-$(H4 Foreach over Delegates)
+$(H4 $(LNAME2 foreach_over_delegates, Foreach over Delegates))
 
         $(P If $(I ForeachAggregate) is a delegate, the type signature of
         the delegate is of the same as for $(D opApply). This enables
@@ -820,7 +820,7 @@ void main()
 	that is confusing to read. Therefore, using $(D foreach_reverse) with a
 	delegate is now deprecated, and will be rejected in the future.)
 
-$(H4 Foreach over Tuples)
+$(H4 $(LNAME2 foreach_over_tuples, Foreach over Tuples))
 
 $(P
         If the aggregate expression is a tuple, there
@@ -866,7 +866,7 @@ long
 double
 )
 
-$(H4 Foreach Ref Parameters)
+$(H4 $(LNAME2 foreach_ref_parameters, Foreach Ref Parameters))
 
         $(P $(D ref) can be used to update the original elements:
         )
@@ -900,7 +900,7 @@ $(CONSOLE
         the type of the $(I ForeachAggregate).
         )
 
-$(H4 Foreach Restrictions)
+$(H4 $(LNAME2 foreach_restrictions, Foreach Restrictions))
 
         $(P The aggregate itself must not be resized, reallocated, free'd,
         reassigned or destructed
@@ -975,7 +975,7 @@ foo0123456789
 )
 
 
-$(H4 Break and Continue out of Foreach)
+$(H4 $(LNAME2 break_and_continue_out_of_foreach, Break and Continue out of Foreach))
 
 
         $(P A $(GLINK BreakStatement) in the body of the foreach will exit the
@@ -1699,7 +1699,7 @@ $(CONSOLE
         may not exit with a throw, goto, break, continue, or
         return; nor may it be entered with a goto.
 
-$(H4 Catching C++ Class Objects)
+$(H4 $(LNAME2 catching_cpp_class_objects, Catching C++ Class Objects))
 
         $(P
         On many platforms, catching C++ class objects is supported.
