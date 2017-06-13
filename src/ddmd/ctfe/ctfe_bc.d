@@ -19,7 +19,7 @@ import std.conv : to;
 
 enum perf = 0;
 enum bailoutMessages = 0;
-enum printResult = 0;
+enum printResult = 1;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
@@ -3267,7 +3267,7 @@ static if (is(BCGen))
                 Le3(BCValue.init, lwr.i32, upr.i32);
                 auto CJoob = beginCndJmp();
 
-                Assert(imm32(1), addError(se.loc, "slice [%llu .. %llu] is out of bounds", lwr, upr));
+                Assert(imm32(0), addError(se.loc, "slice [%llu .. %llu] is out of bounds", lwr, upr));
 
                 endCndJmp(CJoob, genLabel());
             }
