@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 1;
+enum bailoutMessages = 0;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -1571,7 +1571,6 @@ extern (C++) final class BCV(BCGenT) : Visitor
         IGaveUp = false;
         discardValue = false;
         ignoreVoid = false;
-        noRetval = false;
 
         lastConstVd = lastConstVd.init;
         unrolledLoopState = null;
@@ -1624,7 +1623,6 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     BCBlock[void* ] labeledBlocks;
     bool ignoreVoid;
-    bool noRetval;
     BCValue[void* ] vars;
     BCValue _this;
 
@@ -2475,8 +2473,7 @@ static if (is(BCGen))
         }
         else
         {
-            if (!noRetval)
-                retval = genTemporary(toBCType(e.type));
+            retval = genTemporary(toBCType(e.type));
         }
         switch (e.op)
         {
@@ -2779,8 +2776,8 @@ static if (is(BCGen))
                                 return ;
                             }
 
-                            //auto afterLhs = genLabel();
-                            //doFixup(oldFixupTableCount, &afterLhs, null);
+                            auto afterLhs = genLabel();
+                            doFixup(oldFixupTableCount, null, &afterLhs);
                             fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(lhs,
                                     true));
                             Comment("|| afterLhs");
@@ -4461,12 +4458,7 @@ static if (is(BCGen))
 
         if (ae.e1.op == TOKslice && ae.e2.op == TOKslice)
         {
-            {
-                bailout("SliceAssignment not fully supported");
-                return ;
-            }
-
-            SliceExp e1 = cast(SliceExp)ae.e1;
+	    SliceExp e1 = cast(SliceExp)ae.e1;
             SliceExp e2 = cast(SliceExp)ae.e2;
 
             auto lhs = genExpr(e1);
@@ -4492,25 +4484,52 @@ static if (is(BCGen))
             }
 
             {
-                auto rhsOverlapsLhs = genTemporary(i32Type);
+                auto overlapError =  addError(ae.loc, "overlapping slice assignment [%d..%d] = [%d..%d]", lhs_lwr, lhs_upr, rhs_lwr, rhs_upr);
+
                 auto test1 = genTemporary(i32Type);
-                auto test2 = genTemporary(i32Type);
-                auto lhs_base_plus_length = genTemporary(i32Type);
-                Add3(lhs_base_plus_length, lhs_base, lhs_length);
-                Ge3(test1, lhs_base_plus_length, rhs_base);
-                Lt3(test2, lhs_base, rhs_base);
-                And3(rhsOverlapsLhs, test1, test2);
-                auto CJRhsOverlapsLhs = beginCndJmp(rhsOverlapsLhs);
 
-                Assert(imm32(0), addError(ae.loc, "overlapping slice assignment [%d..%d] = [%d..%d]", lhs_lwr, lhs_upr, rhs_lwr, rhs_upr));
+                Lt3(test1, lhs_base, rhs_base);
+                auto cndJmp1 = beginCndJmp(test1);
+                {
+                    auto test2 = genTemporary(i32Type);
+                    auto lhs_base_plus_length = genTemporary(i32Type);
+                    Add3(lhs_base_plus_length, lhs_base, lhs_length);
 
-                endCndJmp(CJRhsOverlapsLhs, genLabel());
+                    Gt3(test2, lhs_base_plus_length, rhs_base);
+                    auto cndJmp2 = beginCndJmp(test2);
+                    {
+                        Assert(imm32(0), overlapError);
+                    }
+                    endCndJmp(cndJmp2, genLabel());
+                }
+
+                auto to_end_jmp = beginJmp();
+                endCndJmp(cndJmp1, genLabel());
+
+                auto test3 = genTemporary(i32Type);
+
+                Gt3(test3, lhs_base, rhs_base);
+                auto cndJmp3 = beginCndJmp(test3);
+                {
+                    auto test4 = genTemporary(i32Type);
+                    auto rhs_base_plus_length = genTemporary(i32Type);
+                    Add3(rhs_base_plus_length, rhs_base, rhs_length);
+
+                    Lt3(test4, lhs_base, rhs_base_plus_length);
+                    auto cndJmp4 = beginCndJmp(test4);
+                    {
+                        Assert(imm32(0), overlapError);
+                    }
+                    endCndJmp(cndJmp4, genLabel());
+                }
+                endCndJmp(cndJmp3, genLabel());
+
+                endJmp(to_end_jmp, genLabel());
             }
+
             auto elmSize = sharedCtfeState.size(sharedCtfeState.elementType(lhs.type));
             copyArray(&lhs_base, &rhs_base, lhs_length, elmSize);
-
-            // bailout("We don't handle slice assignment");
-            return ;
+            return ; // not sure why we return here ... it's possibly important
         }
 
         debug (ctfe)
@@ -5613,12 +5632,10 @@ static if (is(BCGen))
         if (boolExp)
         {
             boolres = genTemporary(i32Type);
-            noRetval = true;
         }
 
         auto cond = genExpr(fs.condition, true);
 
-        noRetval = false;
         if (!cond)
         {
             bailout("IfStatement: Could not genrate condition" ~ fs.condition.toString);
