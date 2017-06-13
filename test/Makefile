@@ -1,6 +1,7 @@
 # Execute the dmd test suite
 #
-# Targets:
+# Targets
+# -------
 #
 #    default | all:      run all unit tests that haven't been run yet
 #
@@ -14,8 +15,11 @@
 #
 #    clean:              remove all temporary or result files from prevous runs
 #
-#
-# In-test variables:
+#    test_results/compilable/json.d.out      runs an individual test
+#                                            (run log of the test is stored)
+
+# In-test variables
+# -----------------
 #
 #   COMPILE_SEPARATELY:  if present, forces each .d file to compile separately and linked
 #                        together in an extra setp.
