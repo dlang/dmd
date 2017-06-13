@@ -1488,7 +1488,7 @@ public:
         return os;
     }
 
-    final void importScope(Dsymbol s, Prot protection)
+    void importScope(Dsymbol s, Prot protection)
     {
         //printf("%s.ScopeDsymbol::importScope(%s, %d)\n", toChars(), s.toChars(), protection);
         // No circular or redundant import's
@@ -2081,6 +2081,11 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
             forward.symtab = new DsymbolTable();
         }
         return forward.symtabLookup(s,id);
+    }
+
+    override void importScope(Dsymbol s, Prot protection)
+    {
+        forward.importScope(s, protection);
     }
 
     override void semantic(Scope* sc){ }

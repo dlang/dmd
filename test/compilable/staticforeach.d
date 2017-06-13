@@ -2,22 +2,42 @@
 // PERMUTE_ARGS:
 
 struct Tuple(T...){
-	T expand;
-	alias expand this;
+    T expand;
+    alias expand this;
 }
 auto tuple(T...)(T t){ return Tuple!T(t); }
 
 /+struct TupleStaticForeach{ // should work, but is not the fault of the static foreach implementation.
-	//pragma(msg, [tuple(1,"2",'3'),tuple(2,"3",'4')].map!((x)=>x));
-	static foreach(a,b,c;[tuple(1,"2",'3'),tuple(2,"3",'4')].map!((x)=>x)){
-		pragma(msg,a," ",b," ",c);
-	}
+    //pragma(msg, [tuple(1,"2",'3'),tuple(2,"3",'4')].map!((x)=>x));
+    static foreach(a,b,c;[tuple(1,"2",'3'),tuple(2,"3",'4')].map!((x)=>x)){
+        pragma(msg,a," ",b," ",c);
+    }
 }+/
 
 void main(){
-	static foreach(a,b,c;[tuple(1,"2",'3'),tuple(2,"3",'4')].map!((x)=>x)){
-		pragma(msg, a," ",b," ",c);
-	}
+    static foreach(a,b,c;[tuple(1,"2",'3'),tuple(2,"3",'4')].map!((x)=>x)){
+        pragma(msg, a," ",b," ",c);
+    }
+    static struct S{
+        // (aggregate scope, forward referencing possible)
+        static assert(stripA("123")==1);
+        static assert(stripA([1],2)==2);
+        static foreach(i;0..2){
+            mixin(`import imports.imp12242a`~text(i+1)~`;`);
+            static assert(stripA("123")==1);
+            static assert(stripA([1],2)==2);
+        }
+        static assert(stripA("123")==1);
+        static assert(stripA([1],2)==2);
+    }
+    static foreach(i;0..2){
+        // (function scope, no forward referencing)
+        mixin(`import imports.imp12242a`~text(i+1)~`;`);
+        static assert(stripA("123")==1);
+        static if(i) static assert(stripA([1],2)==2);
+    }
+    static assert(stripA("123")==1);
+    static assert(stripA([1],2)==2);
 }
 
 auto front(T)(T[] a){ return a[0]; }
@@ -27,57 +47,57 @@ auto back(T)(T[] a){ return a[$-1]; }
 auto popBack(T)(ref T[] a){ a=a[0..$-1]; }
 
 struct Iota(T){
-	T s,e;
-	@property bool empty(){ return s>=e; }
-	@property T front(){ return s; }
-	@property T back(){ return cast(T)(e-1); }
-	void popFront(){ s++; }
-	void popBack(){ e--; }
+    T s,e;
+    @property bool empty(){ return s>=e; }
+    @property T front(){ return s; }
+    @property T back(){ return cast(T)(e-1); }
+    void popFront(){ s++; }
+    void popBack(){ e--; }
 }
 auto iota(T)(T s, T e){ return Iota!T(s,e); }
 
 template map(alias a){
-	struct Map(R){
-		R r;
-		@property front(){ return a(r.front); }
-		@property back(){ return a(r.back); }
-		@property bool empty(){ return r.empty; }
-		void popFront(){ r.popFront(); }
-		void popBack(){ r.popBack(); }
-	}
-	auto map(R)(R r){ return Map!R(r); }
+    struct Map(R){
+        R r;
+        @property front(){ return a(r.front); }
+        @property back(){ return a(r.back); }
+        @property bool empty(){ return r.empty; }
+        void popFront(){ r.popFront(); }
+        void popBack(){ r.popBack(); }
+    }
+    auto map(R)(R r){ return Map!R(r); }
 }
 
 template to(T:string){
-	string to(S)(S x)if(is(S:int)||is(S:size_t)||is(S:char)){
-		static if(is(S==char)) return cast(string)[x];
-		if(x<0) return "-"~to(-x);
-		if(x==0) return "0";
-		return (x>=10?to(x/10):"")~cast(char)(x%10+'0');
-	}
+    string to(S)(S x)if(is(S:int)||is(S:size_t)||is(S:char)){
+        static if(is(S==char)) return cast(string)[x];
+        if(x<0) return "-"~to(-x);
+        if(x==0) return "0";
+        return (x>=10?to(x/10):"")~cast(char)(x%10+'0');
+    }
 }
 auto text(T)(T arg){ return to!string(arg); };
 
 template all(alias a){
-	bool all(R)(R r){
-		foreach(x;r) if(!a(x)) return false;
-		return true;
-	}
+    bool all(R)(R r){
+        foreach(x;r) if(!a(x)) return false;
+        return true;
+    }
 }
 template any(alias a){
-	bool any(R)(R r){
-		foreach(x;r) if(a(x)) return true;
-		return false;
-	}
+    bool any(R)(R r){
+        foreach(x;r) if(a(x)) return true;
+        return false;
+    }
 }
 auto join(R)(R r,string sep=""){
-	string a;
-	int first=0;
-	foreach(x;r){
-		if(first++) a~=sep;
-		a~=x;
-	}
-	return a;
+    string a;
+    int first=0;
+    foreach(x;r){
+        if(first++) a~=sep;
+        a~=x;
+    }
+    return a;
 }
 
 static foreach_reverse(x;iota(0,10).map!(to!string)){
@@ -87,7 +107,7 @@ static foreach_reverse(x;iota(0,10).map!(to!string)){
 // create struct members iteratively
 struct S{
     static foreach(i;a){
-	    mixin("int x"~to!string(i)~";");
+        mixin("int x"~to!string(i)~";");
     }
     immutable int[] a = [0,1,2];
 }
@@ -122,40 +142,40 @@ alias Seq(T...)=T;
 
 // simple boilerplate-free visitor pattern
 static foreach(char T;'A'..'F'){
-	mixin("class "~T~q{{
-		void accept(Visitor v){
-			return v.visit(this);
-		}
-	}});
+    mixin("class "~T~q{{
+        void accept(Visitor v){
+            return v.visit(this);
+        }
+    }});
 }
 alias Types = Seq!(mixin("Seq!("~iota('A','F').map!(to!string).join(", ")~")"));
 abstract class Visitor{
-	static foreach(T;Types){
-		abstract void visit(T);
-	}
+    static foreach(T;Types){
+        abstract void visit(T);
+    }
 }
 
 string testVisitor(){
-	string r;
-	void writeln(T...)(T args){
-		static foreach(x;args) r~=x;
-		r~='\n';
-	}
-	class Visitor: .Visitor{
-		static foreach(T;Types){
-			override void visit(T){
-				writeln("visited: ",T.stringof);
-			}
-		}
-	}
-	void main(){
-		auto v=new Visitor;
-		static foreach(T;Types){
-			v.visit(new T);
-		}
-	}
-	main();
-	return r;
+    string r;
+    void writeln(T...)(T args){
+        static foreach(x;args) r~=x;
+        r~='\n';
+    }
+    class Visitor: .Visitor{
+        static foreach(T;Types){
+            override void visit(T){
+                writeln("visited: ",T.stringof);
+            }
+        }
+    }
+    void main(){
+        auto v=new Visitor;
+        static foreach(T;Types){
+            v.visit(new T);
+        }
+    }
+    main();
+    return r;
 }
 static assert(testVisitor()=="visited: A
 visited: B
@@ -486,9 +506,9 @@ static:
 struct SeqForeachConstant{
 static:
     alias Seq(T...)=T;
-	static assert(!is(typeof({
+    static assert(!is(typeof({
         foreach(x;Seq!1) x=2;
-	})));
+    })));
     int test2(){
         int r=0;
         foreach(x;Seq!(1,2,3)){
