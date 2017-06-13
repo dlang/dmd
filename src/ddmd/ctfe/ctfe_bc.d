@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 1;
+enum bailoutMessages = 0;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -4453,6 +4453,11 @@ static if (is(BCGen))
 
             writefln("AssignExp: %s", ae.toString);
         }
+        {
+            bailout("SliceAssignment not fully supported");
+            return ;
+        }
+
         auto oldRetval = retval;
         auto oldAssignTo = assignTo;
         const oldDiscardValue = discardValue;
