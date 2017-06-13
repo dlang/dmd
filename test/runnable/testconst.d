@@ -1176,7 +1176,7 @@ void test72()
 {
     int a;
     const int b;
-    enum { int c = 0 };
+    enum { int c = 0 }
     immutable int d = 0;
 
     assert(__traits(isSame, a, a));

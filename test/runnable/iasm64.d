@@ -3125,7 +3125,7 @@ void func48(void delegate () callback)
 
 void test48()
 {
-    func48(() { asm{ mov EAX,EAX; }; });
+    func48(() { asm{ mov EAX,EAX; } });
 }
 
 /****************************************************/

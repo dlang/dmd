@@ -772,7 +772,7 @@ int getRefNonref(T)(    T s){ return 2; }
 
 int getAutoRef(T)(auto ref T s){ return __traits(isRef, s) ? 1 : 2; }
 
-void getOut(T)(out T s){ ; }
+void getOut(T)(out T s){ {} }
 
 void getLazy1(T=int)(lazy void s){ s(), s(); }
 void getLazy2(T)(lazy T s){  s(), s(); }
@@ -1545,7 +1545,7 @@ struct Bar7755
 {
     void qux()
     {
-        if (is(typeof(to7755!string(Foo7755!int)))){};
+        if (is(typeof(to7755!string(Foo7755!int)))){}
     }
 }
 

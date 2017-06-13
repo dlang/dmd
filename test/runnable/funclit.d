@@ -1125,7 +1125,7 @@ void test12421()
     // This is problematic case, and should be disallowed in the future.
     alias f = x => y;
     int y = 10;
-    assert(f(1) == 10);;
+    assert(f(1) == 10);
 }
 
 /***************************************************/
