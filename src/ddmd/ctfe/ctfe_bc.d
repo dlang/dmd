@@ -1516,7 +1516,7 @@ debug = nullPtrCheck;
 debug = nullAllocCheck;
 debug = andand;
 //debug = SetLocation;
-debug = LabelLocation;
+//debug = LabelLocation;
 extern (C++) final class BCV(BCGenT) : Visitor
 {
     uint unresolvedGotoCount;
@@ -4503,8 +4503,8 @@ static if (is(BCGen))
                     endCndJmp(cndJmp2, genLabel());
                 }
 
-                auto to_end_jmp = beginJmp();
                 endCndJmp(cndJmp1, genLabel());
+                auto to_end_jmp = beginJmp();
 
                 auto test3 = genTemporary(i32Type);
 
