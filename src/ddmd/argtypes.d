@@ -341,6 +341,8 @@ extern (C++) TypeTuple toArgTypes(Type t)
                     {
                         VarDeclaration f = t.sym.fields[i];
                         //printf("  [%d] %s f.type = %s\n", cast(int)i, f.toChars(), f.type.toChars());
+                        if (f.type.ty == Terror)
+                            goto Lmemory;
                         TypeTuple tup = toArgTypes(f.type);
                         if (!tup)
                             goto Lmemory;
