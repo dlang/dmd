@@ -23,7 +23,7 @@ enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
-enum UseCBackend = 1;
+enum UseCBackend = 0;
 enum abortOnCritical = 1;
 
 private static void clearArray(T)(auto ref T array, uint count)
@@ -2767,7 +2767,44 @@ static if (is(BCGen))
 
         case TOK.TOKoror:
             {
-                bailout("|| is unsupported at the moment");
+                    if (inAndAnd)
+                        bailout("Cannot deal with intermixed && and ||");
+
+                    inOrOr = true;
+                    const oldFixupTableCount = fixupTableCount;
+                        {
+                            Comment("|| beforeLhs");
+                            auto lhs = genExpr(e.e1);
+                            if (!lhs || !canWorkWithType(lhs.type))
+                            {
+                                bailout("could not gen lhs or could not handle it's type " ~ e.toString);
+                                return ;
+                            }
+
+                            //auto afterLhs = genLabel();
+                            //doFixup(oldFixupTableCount, &afterLhs, null);
+                            fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(lhs,
+                                    true));
+                            Comment("|| afterLhs");
+                        }
+
+
+
+                    if(e.e1.op != TOK.TOKoror)
+                    {
+                        auto rhs = genExpr(e.e2);
+
+                        if (!rhs || !canWorkWithType(rhs.type))
+                        {
+                            bailout("could not gen rhs or could not handle it's type " ~ e.toString);
+                            return ;
+                        }
+
+                        fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(rhs,
+                                true));
+                        Comment("|| afterRhs");
+                    }
+                    inOrOr = false;
             }
             break;
 
@@ -2775,6 +2812,9 @@ static if (is(BCGen))
             {
         case TOK.TOKandand:
                 {
+                    if (inOrOr)
+                        bailout("Cannot deal with intermixed && and ||");
+                   inAndAnd = true;
                    // noRetval = true;
                    //     import std.stdio;
                    //     writefln("andandExp: %s -- e1.op: %s -- e2.op: %s", e.toString, e.e1.op.to!string, e.e2.op.to!string);
@@ -2801,11 +2841,6 @@ static if (is(BCGen))
 
                     if(e.e1.op != TOK.TOKandand)
                     {
-                    /*     while (e.e2.op == TOK.TOKandand)
-                            {
-                                e = cast(AndAndExp)e.e2;
-                            }
-                    */
                         auto rhs = genExpr(e.e2);
 
                         if (!rhs || !canWorkWithType(rhs.type))
@@ -2818,8 +2853,8 @@ static if (is(BCGen))
                                 false));
                         Comment("&& afterRhs");
                     }
+                    inAndAnd = false;
 
-                    noRetval = false;
 
                     }
                 break;
