@@ -7,7 +7,7 @@ import std.conv;
 /**
  * Written By Stefan Koch in 2016
  */
-debug = 1;
+
 enum InstKind
 {
     ShortInst,
@@ -1383,7 +1383,7 @@ string printInstructions(const int* startInstructions, uint length) pure
 
         }
     }
-    return result ~ "\n EndInstructionDump";
+    return result ~ "\nEndInstructionDump\n";
 }
 
 static if (is(typeof(() { import ddmd.ctfe.ctfe_bc : RetainedError;  })))
