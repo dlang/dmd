@@ -1960,6 +1960,12 @@ elem *toElem(Expression e, IRState *irs)
             elem *e;
             if (global.params.useAssert)
             {
+                if (global.params.betterC)
+                {
+                    result = callCAssert(irs, ae);
+                    return;
+                }
+
                 e = toElem(ae.e1, irs);
                 Symbol *ts = null;
                 elem *einv = null;
@@ -5998,3 +6004,85 @@ void toTraceGC(IRState *irs, elem *e, Loc *loc)
         e.EV.E2 = el_param(e.EV.E2, filelinefunction(irs, loc));
     }
 }
+
+/****************************************
+ * Generate call to C's assert failure function.
+ * Params:
+ *      irs = context
+ *      e = expression to test
+ * Returns:
+ *      generated call
+ */
+
+elem *callCAssert(IRState *irs, AssertExp ae)
+{
+    //printf("callCAssert.toElem() %s\n", ae.toChars());
+    elem *econd = toElem(ae.e1, irs);
+
+    Module m = cast(Module)irs.blx._module;
+    const(char)* mname = m.srcfile.toChars();
+
+    //printf("filename = '%s'\n", ae.loc.filename);
+    //printf("module = '%s'\n", mname);
+
+    /* If the source file name has changed, probably due
+     * to a #line directive.
+     */
+    elem *efilename;
+    if (ae.loc.filename && strcmp(ae.loc.filename, mname) != 0)
+    {
+        const(char)* id = ae.loc.filename;
+        size_t len = strlen(id);
+        Symbol *si = toStringSymbol(id, len, 1);
+        efilename = el_ptr(si);
+    }
+    else
+    {
+        efilename = toEfilenamePtr(m);
+    }
+
+    elem *emsg;
+    if (ae.msg)
+    {
+        // Assuming here that ae.msg generates a 0 terminated string
+        elem *e = toElemDtor(ae.msg, irs);
+        emsg = array_toPtr(Type.tvoid.arrayOf(), e);
+    }
+    else
+    {
+        // Generate a message out of the assert expression
+        const(char)* id = ae.e1.toChars();
+        const len = strlen(id);
+        Symbol *si = toStringSymbol(id, len, 1);
+        emsg = el_ptr(si);
+    }
+
+    auto eline = el_long(TYint, ae.loc.linnum);
+
+    elem *ea;
+    if (global.params.isOSX)
+    {
+        // __assert_rtn(func, file, line, msg);
+        const(char)* id = "";
+        FuncDeclaration fd = irs.getFunc();
+        if (fd)
+            id = fd.toPrettyChars();
+        const len = strlen(id);
+        Symbol *si = toStringSymbol(id, len, 1);
+        elem *efunc = el_ptr(si);
+
+        auto eassert = el_var(getRtlsym(RTLSYM_C__ASSERT_RTN));
+        ea = el_bin(OPcall, TYvoid, eassert, el_params(emsg, eline, efilename, efunc, null));
+    }
+    else
+    {
+        // [_]_assert(msg, file, line);
+        const rtlsym = (global.params.isWindows) ? RTLSYM_C_ASSERT : RTLSYM_C__ASSERT;
+        auto eassert = el_var(getRtlsym(rtlsym));
+        ea = el_bin(OPcall, TYvoid, eassert, el_params(eline, efilename, emsg, null));
+    }
+    auto e = el_bin(OPoror,TYvoid,econd,ea);
+    elem_setLoc(e,ae.loc);
+    return e;
+}
+
