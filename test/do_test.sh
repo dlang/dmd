@@ -95,7 +95,7 @@ if [ "${input_dir}" != "runnable" ]; then
     extra_compile_args="-c"
 fi
 
-if [ "${input_dir}" != "fail_compilation" ]; then
+if [ "${input_dir}" == "fail_compilation" ]; then
     expect_compile_rc=1
 else
     expect_compile_rc=0
@@ -109,7 +109,7 @@ ${RESULTS_DIR}/combinations ${p_args} | while read x; do
     if [ ${separate} -ne 0 ]; then
         echo ${DMD} -m${MODEL} -I${input_dir} ${r_args} $x -od${output_dir} -of${test_app_dmd} ${extra_compile_args} ${all_sources[*]} >> ${output_file}
              ${DMD} -m${MODEL} -I${input_dir} ${r_args} $x -od${output_dir} -of${test_app_dmd} ${extra_compile_args} ${all_sources[*]} >> ${output_file} 2>&1
-        if [ $? -eq ${expect_compile_rc} -o $? -gt 125 ]; then
+        if [ $? -ne ${expect_compile_rc} -o $? -gt 125 ]; then
             cat ${output_file}
             rm -f ${output_file}
             exit 1
@@ -118,7 +118,7 @@ ${RESULTS_DIR}/combinations ${p_args} | while read x; do
         for file in ${all_sources[*]}; do
             echo ${DMD} -m${MODEL} -I${input_dir} ${r_args} $x -od${output_dir} -c $file >> ${output_file}
                  ${DMD} -m${MODEL} -I${input_dir} ${r_args} $x -od${output_dir} -c $file >> ${output_file} 2>&1
-            if [ $? -eq ${expect_compile_rc} -o $? -gt 125 ]; then
+            if [ $? -ne ${expect_compile_rc} -o $? -gt 125 ]; then
                 cat ${output_file}
                 rm -f ${output_file}
                 exit 1
@@ -132,7 +132,7 @@ ${RESULTS_DIR}/combinations ${p_args} | while read x; do
         if [ "${input_dir}" = "runnable" ]; then
             echo ${DMD} -m${MODEL} -od${output_dir} -of${test_app_dmd} ${all_os[*]} >> ${output_file}
                  ${DMD} -m${MODEL} -od${output_dir} -of${test_app_dmd} ${all_os[*]} >> ${output_file} 2>&1
-            if [ $? -eq ${expect_compile_rc} -o $? -gt 125 ]; then
+            if [ $? -ne ${expect_compile_rc} -o $? -gt 125 ]; then
                 cat ${output_file}
                 rm -f ${output_file}
                 exit 1
