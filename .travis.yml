@@ -25,6 +25,7 @@ env:
 branches:
   only:
     - dmd-1.x
+    - /^v1\..*$/
 
 install: beaver install
 
