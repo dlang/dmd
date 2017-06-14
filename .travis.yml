@@ -5,4 +5,4 @@ compiler:
 branches:
   only:
     - dmd-1.x
-script: make -C src -f posix.mak HOST_CC="$CXX"
+script: make all pkg HOST_CC="$CXX"
