@@ -19,7 +19,7 @@ import std.conv : to;
 
 enum perf = 0;
 enum bailoutMessages = 0;
-enum printResult = 1;
+enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
@@ -3262,7 +3262,7 @@ static if (is(BCGen))
             }
 
             {
-                Le3(BCValue.init, lwr.i32, upr.i32);
+                Gt3(BCValue.init, lwr.i32, upr.i32);
                 auto CJoob = beginCndJmp();
 
                 Assert(imm32(0), addError(se.loc, "slice [%llu .. %llu] is out of bounds", lwr, upr));
@@ -4495,7 +4495,7 @@ static if (is(BCGen))
                     auto lhs_base_plus_length = genTemporary(i32Type);
                     Add3(lhs_base_plus_length, lhs_base, lhs_length);
 
-                    Gt3(test2, lhs_base_plus_length, rhs_base);
+                    Le3(test2, lhs_base_plus_length, rhs_base);
                     auto cndJmp2 = beginCndJmp(test2);
                     {
                         Assert(imm32(0), overlapError);
@@ -4503,8 +4503,8 @@ static if (is(BCGen))
                     endCndJmp(cndJmp2, genLabel());
                 }
 
-                endCndJmp(cndJmp1, genLabel());
                 auto to_end_jmp = beginJmp();
+                endCndJmp(cndJmp1, genLabel());
 
                 auto test3 = genTemporary(i32Type);
 
@@ -4515,7 +4515,7 @@ static if (is(BCGen))
                     auto rhs_base_plus_length = genTemporary(i32Type);
                     Add3(rhs_base_plus_length, rhs_base, rhs_length);
 
-                    Lt3(test4, lhs_base, rhs_base_plus_length);
+                    Le3(test4, lhs_base, rhs_base_plus_length);
                     auto cndJmp4 = beginCndJmp(test4);
                     {
                         Assert(imm32(0), overlapError);
