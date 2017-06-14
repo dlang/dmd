@@ -1,0 +1,4 @@
+#!/bin/sh
+set -xeu
+
+# Nothing extra is needed

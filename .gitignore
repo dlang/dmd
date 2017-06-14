@@ -1,3 +1,4 @@
+build/
 *.[oa]
 src/verstr.h
 src/cdxxx.c
