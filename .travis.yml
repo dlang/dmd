@@ -30,3 +30,10 @@ install: beaver install
 
 script: beaver make all pkg
 
+deploy:
+    provider: script
+    script: beaver bintray upload -d sociomantic-tsunami/dlang/dmd1
+            build/last/pkg/*.deb
+    skip_cleanup: true
+    on:
+        tags: true
