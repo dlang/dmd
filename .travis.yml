@@ -1,8 +1,32 @@
-language: cpp
-compiler:
-  - gcc
-  - clang
+# We will use docker to set up out environment, so don't use any particular
+# language in Travis itself
+language: generic
+
+# Enable docker
+sudo: required
+services:
+    - docker
+
+# Disable automatic submodule fetching (it's done recursively)
+git:
+    submodules: false
+
+# Do a shallow submodule fetch
+before_install: git submodule update --init
+
+env:
+    global:
+        # Make sure beaver is in the PATH
+        - PATH="$(git config -f .gitmodules submodule.beaver.path)/bin:$PATH"
+    matrix:
+        - DIST=trusty
+        - DIST=xenial
+
 branches:
   only:
     - dmd-1.x
-script: make all pkg HOST_CC="$CXX"
+
+install: beaver install
+
+script: beaver make all pkg
+
