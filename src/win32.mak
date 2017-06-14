@@ -215,15 +215,15 @@ ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d \
 SRCS = $D/aggregate.h $D/aliasthis.h $D/arraytypes.h	\
 	$D/attrib.h $D/complex_t.h $D/cond.h $D/ctfe.h $D/ctfe.h $D/declaration.h $D/dsymbol.h	\
 	$D/enum.h $D/errors.h $D/expression.h $D/globals.h $D/hdrgen.h $D/identifier.h $D/idgen.d	\
-	$D/import.h $D/init.h $D/intrange.h $D/json.h $D/lexer.h	\
+	$D/import.h $D/init.h $D/intrange.h $D/json.h	\
 	$D/mars.h $D/module.h $D/mtype.h $D/nspace.h $D/objc.h                         \
 	$D/scope.h $D/statement.h $D/staticassert.h $D/target.h $D/template.h $D/tokens.h	\
-	$D/version.h $D/visitor.h $D/objc.d) $(DMD_SRCS)
+	$D/version.h $D/visitor.h $D/objc.d $(DMD_SRCS)
 
 # Glue layer
 GLUESRC= \
 	$D/libelf.d $D/scanelf.d $D/libmach.d $D/scanmach.d \
-	$D/tk.c $D/objc_glue.d \
+	$D/objc_glue.d \
 	$(GLUE_SRCS)
 
 # D back end
@@ -404,10 +404,10 @@ pvs:
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(TK) /Tp $(TKSRCC) --source-file $(TKSRCC)
 
 checkwhitespace: $(TOOLS_DIR)\checkwhitespace.d
-	$(HOST_DC) -run $(TOOLS_DIR)\checkwhitespace $(SRCS) $(GLUESRC) $(ROOTSRC)
+	$(HOST_DC) -run $(TOOLS_DIR)\checkwhitespace $(SRCS) $(GLUESRC) $(ROOTSRC) $(TKSRC) $(BACKSRC) $(CH)
 
 $(TOOLS_DIR)\checkwhitespace.d:
-	git clone --depth=1 $(GIT_HOME)/tools $(TOOLS_DIR)
+	-git clone --depth=1 $(GIT_HOME)/tools $(TOOLS_DIR)
 
 ######################################################
 
