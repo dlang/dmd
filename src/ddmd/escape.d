@@ -323,8 +323,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         {
             if (va && !va.isDataseg() && !va.doNotInferScope)
             {
-                if (!va.isScope() && inferScope &&
-                    va.type.toBasetype().ty != Tclass)  // scope classes are special
+                if (!va.isScope() && inferScope)
                 {   //printf("inferring scope for %s\n", va.toChars());
                     va.storage_class |= STCscope | STCscopeinferred;
                 }
