@@ -1,0 +1,17 @@
+OPTS = dict(
+    name = VAR.name,
+    description = "Digital Mars D1 Compiler",
+    category = 'devel',
+    url = 'https://github.com/dlang/dmd',
+    maintainer = 'Sociomantic Tsunami <tsunami@sociomantic.com>',
+    vendor = 'Sociomantic Labs GmbH',
+    license = 'Boost Software License 1.0',
+    depends = ['gcc'] + FUN.autodeps('src/dmd'),
+    deb_recommends = 'dmd1-rt',
+)
+
+ARGS = [
+    "src/dmd=/usr/bin/dmd1",
+    "docs/man/man1/dmd.1=/usr/share/man/man1/dmd1.1",
+    "docs/man/man5/dmd1.conf.5=/usr/share/man/man5/dmd1.conf.5",
+]

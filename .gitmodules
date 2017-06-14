@@ -1,0 +1,3 @@
+[submodule "makd"]
+	path = makd
+	url = https://github.com/sociomantic-tsunami/makd
