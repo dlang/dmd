@@ -2090,7 +2090,13 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
 
     override void semantic(Scope* sc){ }
 
-    override const(char)* kind()const{ return "ForwardingScopeDsymbol"; }
+    override const(char)* kind()const{ return "local scope"; }
+
+    override inout(ForwardingScopeDsymbol) isForwardingScopeDsymbol() inout
+    {
+        return this;
+    }
+
 }
 
 
