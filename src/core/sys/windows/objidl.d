@@ -590,7 +590,7 @@ interface IStream : ISequentialStream {
 
 interface IMarshal : IUnknown {
     HRESULT GetUnmarshalClass(REFIID, PVOID, DWORD, PVOID, DWORD, CLSID*);
-    HRESULT GetMarshalSizeMax(REFIID, PVOID, DWORD, PVOID, PDWORD, ULONG*);
+    HRESULT GetMarshalSizeMax(REFIID, PVOID, DWORD, PVOID, DWORD, ULONG*);
     HRESULT MarshalInterface(IStream, REFIID, PVOID, DWORD, PVOID, DWORD);
     HRESULT UnmarshalInterface(IStream, REFIID, void**);
     HRESULT ReleaseMarshalData(IStream);
