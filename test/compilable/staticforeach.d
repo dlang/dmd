@@ -119,7 +119,7 @@ static foreach(member;__traits(allMembers,S)){
     pragma(msg, member,": ",mixin("s."~member));
 }
 
-// print prime numbers using overload sets as state variables. :)
+// print prime numbers using overload sets as state variables.
 static assert(is(typeof(bad57)));
 static assert(!is(typeof(bad53)));
 
@@ -185,7 +185,6 @@ visited: E
 ");
 
 // iterative computation over AliasSeq:
-// (TODO: nice version with X template)
 template staticMap(alias F,T...){
     alias state0=Seq!();
     static foreach(i,A;T){
@@ -197,8 +196,6 @@ template staticMap(alias F,T...){
 alias arrayOf(T)=T[];
 static assert(is(staticMap!(arrayOf,int,char,bool,Object)==Seq!(int[], char[], bool[], Object[])));
 pragma(msg, staticMap!(arrayOf,int,char,bool,Object));
-
-
 
 
 struct StaticForeachLoopVariable{
