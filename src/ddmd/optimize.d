@@ -351,7 +351,6 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 ae.type = e.type;
                 ret = new CommaExp(ce.loc, ce.e1, ae);
                 ret.type = e.type;
-                ret = ret.optimize(result);
                 return;
             }
             // Keep lvalue-ness
@@ -1070,7 +1069,6 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                     ret = new CastExp(e.loc, ret, Type.tvoid);
                     ret.type = e.type;
                 }
-                ret = ret.optimize(result);
                 return;
             }
             if (expOptimize(e.e2, WANTvalue))
@@ -1111,7 +1109,6 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                     ret = new CastExp(e.loc, ret, Type.tvoid);
                     ret.type = e.type;
                 }
-                ret = ret.optimize(result);
                 return;
             }
             if (expOptimize(e.e2, WANTvalue))
