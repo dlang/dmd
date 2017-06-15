@@ -4042,13 +4042,16 @@ private const(char)* prependSpace(const(char)* str)
 /*******************************************
  * Given a symbol that could be either a FuncDeclaration or
  * a function template, resolve it to a function symbol.
- *      loc             instantiation location
- *      sc              instantiation scope
- *      tiargs          initial list of template arguments
- *      tthis           if !NULL, the 'this' pointer argument
- *      fargs           arguments to function
- *      flags           1: do not issue error message on no match, just return NULL
+ * Params:
+ *      loc =           instantiation location
+ *      sc =            instantiation scope
+ *      tiargs =        initial list of template arguments
+ *      tthis =         if !NULL, the `this` argument type
+ *      fargs =         arguments to function
+ *      flags =         1: do not issue error message on no match, just return NULL
  *                      2: overloadResolve only
+ * Returns:
+ *      if match is found, then function symbol, else null
  */
 extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
     Objects* tiargs, Type tthis, Expressions* fargs, int flags = 0)
@@ -4059,6 +4062,8 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
     version (none)
     {
         printf("resolveFuncCall('%s')\n", s.toChars());
+        if (tthis)
+            printf("\tthis: %s\n", tthis.toChars());
         if (fargs)
         {
             for (size_t i = 0; i < fargs.dim; i++)
@@ -4275,11 +4280,14 @@ extern (C++) Type getIndirection(Type t)
  * available, can alias memory reachable from A based on the types involved
  * (either directly or via any number of indirections).
  *
- * Note that this relation is not symmetric in the two arguments. For example,
+ * This relation is not symmetric in the two arguments. For example,
  * a const(int) reference can point to a pre-existing int, but not the other
  * way round.
+ *
+ * Returns:
+ *      true if so
  */
-extern (C++) bool traverseIndirections(Type ta, Type tb, void* p = null, bool reversePass = false)
+private bool traverseIndirections(Type ta, Type tb, void* p = null, bool reversePass = false)
 {
     Type source = ta;
     Type target = tb;
@@ -4299,8 +4307,8 @@ extern (C++) bool traverseIndirections(Type ta, Type tb, void* p = null, bool re
     if (tbb != tb)
         return traverseIndirections(ta, tbb, p, reversePass);
 
-    // context date to detect circular look up
-    struct Ctxt
+    // context data to detect circular look up
+    static struct Ctxt
     {
         Ctxt* prev;
         Type type;
@@ -4348,7 +4356,7 @@ extern (C++) bool traverseIndirections(Type ta, Type tb, void* p = null, bool re
 /* For all functions between outerFunc and f, mark them as needing
  * a closure.
  */
-extern (C++) void markAsNeedingClosure(Dsymbol f, FuncDeclaration outerFunc)
+private void markAsNeedingClosure(Dsymbol f, FuncDeclaration outerFunc)
 {
     for (Dsymbol sx = f; sx && sx != outerFunc; sx = sx.parent)
     {
@@ -4363,17 +4371,23 @@ extern (C++) void markAsNeedingClosure(Dsymbol f, FuncDeclaration outerFunc)
     }
 }
 
-/* Given a nested function f inside a function outerFunc, check
+/********
+ * Given a nested function f inside a function outerFunc, check
  * if any sibling callers of f have escaped. If so, mark
  * all the enclosing functions as needing closures.
- * Return true if any closures were detected.
  * This is recursive: we need to check the callers of our siblings.
  * Note that nested functions can only call lexically earlier nested
  * functions, so loops are impossible.
+ * Params:
+ *      f = inner function (nested within outerFunc)
+ *      outerFunc = outer function
+ *      p = for internal recursion use
+ * Returns:
+ *      true if any closures were needed
  */
-extern (C++) bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outerFunc, void* p = null)
+private bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outerFunc, void* p = null)
 {
-    struct PrevSibling
+    static struct PrevSibling
     {
         PrevSibling* p;
         FuncDeclaration f;
