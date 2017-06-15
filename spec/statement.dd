@@ -703,8 +703,8 @@ $(CONSOLE
         --------------
 
     $(P It is important to make sure that, if $(D opApply) catches any exceptions, that those
-        exceptions did not originate from the delegate passed to $(I opApply). The user would expect 
-        exceptions thrown from a `foreach` body to both terminate the loop, and propagate outside 
+        exceptions did not originate from the delegate passed to $(I opApply). The user would expect
+        exceptions thrown from a `foreach` body to both terminate the loop, and propagate outside
         the `foreach` body.
      )
 
