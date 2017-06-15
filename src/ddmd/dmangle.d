@@ -31,6 +31,7 @@ import ddmd.identifier;
 import ddmd.mtype;
 import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;
+import ddmd.root.aav;
 import ddmd.target;
 import ddmd.tokens;
 import ddmd.utf;
@@ -169,10 +170,9 @@ extern (C++) final class Mangler : Visitor
 {
     alias visit = super.visit;
 public:
-    // cannot put C++ classes into a hash table, tries to call toHash
-    size_t[void*] types;
-    size_t[void*] symbols;
-    size_t[void*] idents;
+    static assert(Key.sizeof == size_t.sizeof);
+    AA* types;
+    AA* idents;
     OutBuffer* buf;
 
     extern (D) this(OutBuffer* buf)
@@ -225,12 +225,13 @@ public:
     {
         if (!t.isTypeBasic())
         {
-            if (auto p = cast(void*)t in types)
+            auto p = cast(size_t*)dmd_aaGet(&types, cast(Key)t);
+            if (*p)
             {
                 writeBackRef(buf.offset - *p);
                 return true;
             }
-            types[cast(void*)t] = buf.offset;
+            *p = buf.offset;
         }
         return false;
     }
@@ -250,12 +251,13 @@ public:
     */
     final bool backrefIdentifier(Identifier id)
     {
-        if (auto p = cast(void*)id in idents)
+        auto p = cast(size_t*)dmd_aaGet(&idents, cast(Key)id);
+        if (*p)
         {
             writeBackRef(buf.offset - *p);
             return true;
         }
-        idents[cast(void*)id] = buf.offset;
+        *p = buf.offset;
         return false;
     }
 
