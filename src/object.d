@@ -1684,7 +1684,7 @@ class Throwable : Object
     /**
      * Overrides $(D Object.toString) and returns the error message.
      * Internally this forwards to the $(D toString) overload that
-     * takes a $(PARAM sink) delegate.
+     * takes a $(D_PARAM sink) delegate.
      */
     override string toString()
     {
@@ -1695,7 +1695,7 @@ class Throwable : Object
 
     /**
      * The Throwable hierarchy uses a toString overload that takes a
-     * $(PARAM sink) delegate to avoid GC allocations, which cannot be
+     * $(D_PARAM _sink) delegate to avoid GC allocations, which cannot be
      * performed in certain error situations.  Override this $(D
      * toString) method to customize the error message.
      */
