@@ -1368,7 +1368,7 @@ with (expression)
 }
 --------------
 
-        $(P Note that $(EXPRESSION) only gets evaluated once.
+        $(P Note that $(EXPRESSION) only gets evaluated once and is not copied.
         The with statement does not change what $(D this) or
         $(D super) refer to.
         )
