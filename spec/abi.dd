@@ -869,11 +869,11 @@ $(H3 $(LNAME2 exception_handling, Exception Handling))
 
 $(H3 $(LNAME2 garbage_collection, Garbage Collection))
 
-	$(P The interface to this is found in $(D phobos/internal/gc).)
+	$(P The interface to this is found in Druntime's $(DRUNTIMESRC gc/gcinterface.d).)
 
 $(H3 $(LNAME2 runtime_helper_functions, Runtime Helper Functions))
 
-	$(P These are found in $(D phobos/internal).)
+	$(P These are found in Druntime's $(DRUNTIMESRC rt/).)
 
 $(H3 $(LNAME2 module_init_and_fina, Module Initialization and Termination))
 
