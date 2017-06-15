@@ -1475,6 +1475,7 @@ $(H2 $(LNAME2 limitations, Limitations))
         }
         ------
     )
+$(SPEC_SUBNAV_PREV_NEXT operatoroverloading, Operator Overloading, template-mixin, Template Mixins)
 )
 
 Macros:

@@ -710,6 +710,7 @@ $(H2 $(LNAME2 unions_and_special_memb_funct, Unions and Special Member Functions
 
     $(P Unions may not have postblits, destructors, or invariants.)
 
+$(SPEC_SUBNAV_PREV_NEXT hash-map, Associative Arrays, class, Classes)
 )
 
 Macros:

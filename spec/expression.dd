@@ -2148,6 +2148,7 @@ $(H3 $(LNAME2 associativity, Associativity and Commutativity))
     $(P This rule precludes any associative or commutative reordering of
         floating point expressions.
     )
+$(SPEC_SUBNAV_PREV_NEXT pragma, Pragmas, statement, Statements)
 )
 
 Macros:

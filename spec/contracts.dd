@@ -256,6 +256,7 @@ $(H2 $(LNAME2 references, References))
 	$(LINK2 http://jan.newmarch.name/java/contracts/paper-long.html, Adding Contracts to Java)
 	)
 
+$(SPEC_SUBNAV_PREV_NEXT template-mixin, Template Mixins, version, Conditional Compilation)
 )
 
 Macros:

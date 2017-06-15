@@ -330,6 +330,7 @@ void test()
 }
 ------
 
+$(SPEC_SUBNAV_PREV_NEXT template, Templates, contracts, Contract Programming)
 )
 
 Macros:

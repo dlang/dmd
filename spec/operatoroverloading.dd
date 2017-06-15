@@ -1078,6 +1078,7 @@ $(H2 $(LEGACY_LNAME2 Old-Style, old-style, D1 style operator overloading))
         are still allowed. There is no guarantee that these mechanisms will be
         supported in the future.
 	)
+$(SPEC_SUBNAV_PREV_NEXT function, Functions, template, Templates)
 )
 
 Macros:

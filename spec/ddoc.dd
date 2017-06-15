@@ -1050,6 +1050,7 @@ $(P
     can be found on our $(LINK2 https://wiki.dlang.org/Community:Open_Source_Projects, wiki page).
 )
 
+$(SPEC_SUBNAV_PREV_NEXT iasm, D x86 Inline Assembler, interfaceToC, Interfacing to C)
 )
 
 Macros:

@@ -1159,6 +1159,7 @@ SMX
 getsec
 )
 
+$(SPEC_SUBNAV_PREV_NEXT float, Floating Point, ddoc, Embedded Documentation)
 )
 
 Macros:

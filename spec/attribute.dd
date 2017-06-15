@@ -813,6 +813,7 @@ pragma(msg, __traits(getAttributes, typeof(a))); // prints tuple("hello")
             attributes accumulate or override earlier ones is also up to how the user
             interprets them.
         )
+$(SPEC_SUBNAV_PREV_NEXT property, Properties, pragma, Pragmas)
 )
 
 Macros:

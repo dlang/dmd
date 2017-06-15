@@ -50,3 +50,21 @@ $(SUBNAV_TEMPLATE
         )
     )
 )
+SPEC_SUBNAV_NEXT=
+$(SPEC_NEXT $(LINK2 $(ROOT_DIR)/spec/$1.html, $2))
+$(CLEAR)
+
+SPEC_SUBNAV_PREV_NEXT=
+$(SPEC_PREV $(LINK2 $(ROOT_DIR)/spec/$1.html, $2))
+$(SPEC_NEXT $(LINK2 $(ROOT_DIR)/spec/$3.html, $4))
+$(CLEAR)
+
+SPEC_SUBNAV_PREV=
+$(SPEC_PREV $(LINK2 $(ROOT_DIR)/spec/$1.html, $2))
+$(CLEAR)
+
+SPEC_NEXT=<div style="float: right">$1 $(FA_ICON angle-right)</div>
+SPEC_PREV=<div style="float: left">$(FA_ICON angle-left) $1</div>
+
+CLEAR=<div style="clear:both"></div>
+_=

@@ -581,6 +581,7 @@ void foo()
 	additional information, such as a text string, that will be
 	printed out along with the error diagnostic.
 	)
+$(SPEC_SUBNAV_PREV_NEXT contracts, Contract Programming, traits, Traits)
 )
 
 Macros:

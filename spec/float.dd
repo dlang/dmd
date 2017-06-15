@@ -179,6 +179,7 @@ $(COMMENT
 	$(P Of course, transformations that would alter side effects are also
 	invalid.)
 
+$(SPEC_SUBNAV_PREV_NEXT garbage, Garbage Collection, iasm, D x86 Inline Assembler)
 )
 
 Macros:

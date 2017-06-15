@@ -1343,6 +1343,7 @@ $(SECTION3 $(LEGACY_LNAME2 ConstClass, const-class, Const, Immutable and Shared 
         from it are also const, immutable or shared.
     )
 )
+$(SPEC_SUBNAV_PREV_NEXT struct, Structs and Unions, interface, Interfaces)
 )
 
 Macros:

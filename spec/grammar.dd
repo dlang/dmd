@@ -1834,6 +1834,7 @@ $(GNAME MixinDeclaration):
     $(D mixin) $(D $(LPAREN)) $(ASSIGNEXPRESSION) $(D $(RPAREN)) $(D ;)
 )
 
+$(SPEC_SUBNAV_PREV_NEXT lex, Lexical, module, Modules)
 )
 
 Macros:

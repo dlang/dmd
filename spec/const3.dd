@@ -464,6 +464,7 @@ void main()
 	)
 
 
+$(SPEC_SUBNAV_PREV_NEXT enum, Enums, function, Functions)
 )
 
 Macros:
