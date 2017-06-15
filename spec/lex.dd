@@ -923,6 +923,16 @@ $(GNAME LeadingDecimal):
 	It is not an error if the literal is rounded to fit into
 	the significant digits of the type.
 	)
+	$(P If a floating literal has a $(B .) and a type suffix, at least one
+	    digit must be in-between:)
+
+---------
+1f; // OK
+1.f; // forbidden
+1d; // OK
+1.d; // forbidden
+1.; // OK, int
+---------
 
 	$(P Complex literals are not tokens, but are assembled from
 	real and imaginary expressions during semantic analysis:
