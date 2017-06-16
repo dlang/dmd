@@ -9,7 +9,7 @@ void foo2(const C2 c);
 struct Foo3
 {
 	int k;
-	~this();
+	@trusted @nogc @disable ~this();
 	this(this);
 }
 class C3
@@ -22,6 +22,9 @@ T foo3(T)()
 struct S4A(T)
 {
 	T x;
+	@safe ~this()
+	{
+	}
 }
 struct S4B(T) if (1)
 {

@@ -30,12 +30,12 @@ class CHelloClassFactory : ComObject, IClassFactory
 public:
     this()
     {
-        MessageBoxA(null, "CHelloClassFactory()", null, MB_OK);
+        printf("CHelloClassFactory()\n");
     }
 
     ~this()
     {
-        MessageBoxA(null, "~CHelloClassFactory()", null, MB_OK);
+        printf("~CHelloClassFactory()");
     }
 
     extern (Windows) :
@@ -43,16 +43,16 @@ public:
     // IUnknown members
     override HRESULT QueryInterface(const (IID)*riid, LPVOID *ppv)
     {
-        MessageBoxA(null, "CHelloClassFactory.QueryInterface()", null, MB_OK);
+        printf("CHelloClassFactory.QueryInterface()\n");
 
         if (IID_IUnknown == *riid)
         {
-            MessageBoxA(null, "IUnknown", null, MB_OK);
+            printf("IUnknown\n");
             *ppv = cast(void*) cast(IUnknown) this;
         }
         else if (IID_IClassFactory == *riid)
         {
-            MessageBoxA(null, "IClassFactory", null, MB_OK);
+            printf("IClassFactory\n");
             *ppv = cast(void*) cast(IClassFactory) this;
         }
         else
@@ -71,7 +71,7 @@ public:
         CHello  pObj;
         HRESULT hr;
 
-        MessageBoxA(null, "CHelloClassFactory.CreateInstance()", null, MB_OK);
+        printf("CHelloClassFactory.CreateInstance()\n");
         *ppvObj = null;
         hr      = E_OUTOFMEMORY;
 
@@ -101,7 +101,7 @@ public:
 
     HRESULT LockServer(BOOL fLock)
     {
-        MessageBoxA(null, "CHelloClassFactory.LockServer()", null, MB_OK);
+        printf("CHelloClassFactory.LockServer(%d)\n", fLock);
 
         if (fLock)
             g_cLock++;
@@ -116,52 +116,40 @@ public:
 ULONG g_cObj =0;
 ULONG g_cLock=0;
 
+import core.sys.windows.dll;
 HINSTANCE g_hInst;
 
-extern (C)
-{
-void *_atopsp;
-void gc_init();
-void gc_term();
-void _minit();
-void _moduleCtor();
-void _moduleUnitTests();
-}
-
-extern (Windows) :
+extern (Windows):
 
 BOOL DllMain(HINSTANCE hInstance, ULONG ulReason, LPVOID pvReserved)
 {
-    // _atopsp = (void*)&hInstance;
-
     switch (ulReason)
     {
         case DLL_PROCESS_ATTACH:
-            gc_init();
-            _minit();
-            _moduleCtor();
-
-            //      _moduleUnitTests();
-            MessageBoxA(null, "ATTACH", null, MB_OK);
+            g_hInst = hInstance;
+            dll_process_attach( hInstance, true );
+            printf("ATTACH\n");
+            version(CRuntime_DigitalMars) _fcloseallp = null; // https://issues.dlang.org/show_bug.cgi?id=1550
             break;
 
         case DLL_PROCESS_DETACH:
-            MessageBoxA(null, "DETACH", null, MB_OK);
-            gc_term();
+            printf("DETACH\n");
+            dll_process_detach( hInstance, true );
             break;
 
         case DLL_THREAD_ATTACH:
-        case DLL_THREAD_DETACH:
+            dll_thread_attach( true, true );
+            printf("THREAD_ATTACH\n");
+            break;
 
-            // Multiple threads not supported yet
-            MessageBoxA(null, "THREAD", null, MB_OK);
-            return false;
+        case DLL_THREAD_DETACH:
+            dll_thread_detach( true, true );
+            printf("THREAD_DETACH\n");
+            break;
 
         default:
             assert(0);
     }
-
-    g_hInst=hInstance;
     return true;
 }
 
@@ -194,9 +182,7 @@ HRESULT DllGetClassObject(CLSID*rclsid, IID*riid, LPVOID *ppv)
     HRESULT hr;
     CHelloClassFactory pObj;
 
-    MessageBoxA(null, "DllGetClassObject()", null, MB_OK);
-
-    // printf("DllGetClassObject()\n");
+    printf("DllGetClassObject()\n");
 
     if (CLSID_Hello != *rclsid)
         return E_FAIL;
@@ -225,7 +211,7 @@ HRESULT DllCanUnloadNow()
 {
     SCODE sc;
 
-    MessageBoxA(null, "DllCanUnloadNow()", null, MB_OK);
+    printf("DllCanUnloadNow()\n");
 
     // Any locks or objects?
     sc = (0 == g_cObj && 0 == g_cLock) ? S_OK : S_FALSE;
@@ -241,11 +227,11 @@ HRESULT DllCanUnloadNow()
  */
 HRESULT DllRegisterServer()
 {
-    char szID[128];
-    char szCLSID[128];
-    char szModule[512];
+    char[128] szID;
+    char[128] szCLSID;
+    char[512] szModule;
 
-    MessageBoxA(null, "DllRegisterServer()", null, MB_OK);
+    printf("DllRegisterServer()\n");
 
     // Create some base key strings.
     StringFromGUID2(&CLSID_Hello, cast(LPOLESTR) szID, 128);
@@ -284,11 +270,11 @@ HRESULT DllRegisterServer()
  */
 HRESULT DllUnregisterServer()
 {
-    char szID[128];
-    char szCLSID[128];
-    char szTemp[256];
+    char[128] szID;
+    char[128] szCLSID;
+    char[256] szTemp;
 
-    MessageBoxA(null, "DllUnregisterServer()", null, MB_OK);
+    printf("DllUnregisterServer()\n");
 
     // Create some base key strings.
     StringFromGUID2(&CLSID_Hello, cast(LPOLESTR) szID, 128);
@@ -345,7 +331,7 @@ HRESULT DllUnregisterServer()
 BOOL SetKeyAndValue(LPCSTR pszKey, LPCSTR pszSubkey, LPCSTR pszValue)
 {
     HKEY hKey;
-    char szKey[256];
+    char[256] szKey;
     BOOL result;
 
     strcpy(szKey.ptr, pszKey);
@@ -358,16 +344,21 @@ BOOL SetKeyAndValue(LPCSTR pszKey, LPCSTR pszSubkey, LPCSTR pszValue)
 
     result = true;
 
-    if (ERROR_SUCCESS != RegCreateKeyExA(HKEY_CLASSES_ROOT,
+    int regresult = RegCreateKeyExA(HKEY_CLASSES_ROOT,
                                           szKey.ptr, 0, null, REG_OPTION_NON_VOLATILE,
-                                          KEY_ALL_ACCESS, null, &hKey, null))
+                                          KEY_ALL_ACCESS, null, &hKey, null);
+    if (ERROR_SUCCESS != regresult)
+    {
         result = false;
+        // If the value is 5, you'll need to run the program with Administrator privileges
+        printf("RegCreateKeyExA() failed with 0x%x\n", regresult);
+    }
     else
     {
         if (null != pszValue)
         {
             if (RegSetValueExA(hKey, null, 0, REG_SZ, cast(BYTE *) pszValue,
-                               (strlen(pszValue) + 1) * char.sizeof) != ERROR_SUCCESS)
+                               cast(int)((strlen(pszValue) + 1) * char.sizeof)) != ERROR_SUCCESS)
                 result = false;
         }
 
@@ -376,7 +367,7 @@ BOOL SetKeyAndValue(LPCSTR pszKey, LPCSTR pszSubkey, LPCSTR pszValue)
     }
 
     if (!result)
-        MessageBoxA(null, "SetKeyAndValue() failed", null, MB_OK);
+        printf("SetKeyAndValue() failed\n");
 
     return result;
 }
@@ -392,7 +383,7 @@ BOOL SetKeyAndValue(LPCSTR pszKey, LPCSTR pszSubkey, LPCSTR pszValue)
 
 extern (D) void ObjectDestroyed()
 {
-    MessageBoxA(null, "ObjectDestroyed()", null, MB_OK);
+    printf("ObjectDestroyed()\n");
     g_cObj--;
 }
 
@@ -404,9 +395,4 @@ void unicode2ansi(char *s)
         *s++ = cast(char)*w;
 
     *s = 0;
-}
-
-extern (C) int printf(char *format, ...)
-{
-    return 0;
 }

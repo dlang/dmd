@@ -390,7 +390,7 @@ void test13()
 
     auto k = __traits(classInstanceSize, C);
     writeln(k);
-    assert(k == C.classinfo.init.length);
+    assert(k == C.classinfo.initializer.length);
 }
 
 /********************************************************/
@@ -1511,6 +1511,19 @@ void test12237()
             return 10;
     }(1) == 10);
 }
+
+/********************************************************/
+
+void async(ARGS...)(ARGS)
+{
+        static void compute(ARGS)
+        {
+        }
+
+        auto x = __traits(getParameterStorageClasses, compute, 1);
+}
+
+alias test17495 = async!(int, int);
 
 /********************************************************/
 

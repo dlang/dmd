@@ -1,10 +1,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11426.d(15): Error: cannot implicitly convert expression (udarr) of type uint[] to int[]
-fail_compilation/fail11426.d(16): Error: cannot implicitly convert expression (usarr) of type uint[1] to int[]
-fail_compilation/fail11426.d(18): Error: cannot implicitly convert expression (udarr) of type uint[] to int[]
-fail_compilation/fail11426.d(19): Error: cannot implicitly convert expression (usarr) of type uint[1] to int[]
+fail_compilation/fail11426.d(15): Error: cannot implicitly convert expression `udarr` of type `uint[]` to `int[]`
+fail_compilation/fail11426.d(16): Error: cannot implicitly convert expression `usarr` of type `uint[1]` to `int[]`
+fail_compilation/fail11426.d(18): Error: cannot implicitly convert expression `udarr` of type `uint[]` to `int[]`
+fail_compilation/fail11426.d(19): Error: cannot implicitly convert expression `usarr` of type `uint[1]` to `int[]`
 ---
 */
 void main()

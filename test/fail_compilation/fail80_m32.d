@@ -2,8 +2,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail80_m32.d(28): Error: cannot implicitly convert expression ("progress_rem") of type string to uint
-fail_compilation/fail80_m32.d(29): Error: cannot implicitly convert expression ("redo") of type string to uint
+fail_compilation/fail80_m32.d(28): Error: cannot implicitly convert expression `"progress_rem"` of type `string` to `uint`
+fail_compilation/fail80_m32.d(29): Error: cannot implicitly convert expression `"redo"` of type `string` to `uint`
 ---
 */
 

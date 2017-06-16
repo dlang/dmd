@@ -897,13 +897,6 @@ int staticdynamic()
 }
 static assert(staticdynamic() == 0);
 
-int[] crashing()
-{
-    int[12] cra;
-    return (cra[2 .. $] = 3);
-}
-static assert(crashing()[9] == 3);
-
 int chainassign()
 {
     int[4] x = 6;
@@ -2362,7 +2355,7 @@ static assert(!is(typeof(Compileable!(bug10840(1)))));
 **************************************************/
 
 // Four-pointer relations. Return true if [p1 .. p2] points inside [q1 .. q2]
-// (where the end points dont coincide).
+// (where the end points don't coincide).
 bool ptr4cmp(void* p1, void* p2, void* q1, void* q2)
 {
 // Each compare can be written with <, <=, >, or >=.
@@ -4250,7 +4243,7 @@ static assert({ bug6851(); return true; }());
     7876
 **************************************************/
 
-int* bug7876(int n)
+int* bug7876(int n) @system
 {
     int x;
     auto ptr = &x;
@@ -4264,7 +4257,7 @@ struct S7876
     int* p;
 }
 
-S7876 bug7876b(int n)
+S7876 bug7876b(int n) @system
 {
     int x;
     S7876 s;
@@ -7352,7 +7345,7 @@ string getStr12495()
     s ~= 'a';                               // this should allocate.
     assert(buf.ptr != s.ptr);
     return s.idup;                          // this should allocate again, and
-                                            // definitly point immutable memory.
+                                            // definitely point immutable memory.
 }
 auto indexOf12495(string s)
 {
@@ -7726,3 +7719,15 @@ int[] f16094b()
 
 enum copy16094a = f16094a();
 enum copy16094b = f16094b();
+
+/**************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17407
+
+bool foo17407()
+{
+    void delegate ( ) longest_convert;
+    return __traits(compiles, longest_convert = &doesNotExists);
+}
+
+static assert(!foo17407);
+

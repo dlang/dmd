@@ -29,7 +29,7 @@ void usage()
           ~ "      REQUIRED_ARGS: arguments always passed to the compiler\n"
           ~ "      DMD:           compiler to use, ex: ../src/dmd\n"
           ~ "      CC:            C++ compiler to use, ex: dmc, g++\n"
-          ~ "      OS:            win32, win64, linux, freebsd, osx\n"
+          ~ "      OS:            win32, win64, linux, freebsd, osx, netbsd\n"
           ~ "      RESULTS_DIR:   base directory for test results\n"
           ~ "   windows vs non-windows portability env vars:\n"
           ~ "      DSEP:          \\\\ or /\n"
@@ -405,6 +405,8 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
 // marked by $n$ that contain compiler generated unique numbers
 bool compareOutput(string output, string refoutput)
 {
+    import std.ascii : digits;
+    import std.utf : byCodeUnit;
     for ( ; ; )
     {
         auto pos = refoutput.indexOf("$n$");
@@ -416,7 +418,8 @@ bool compareOutput(string output, string refoutput)
             return false;
         refoutput = refoutput[pos + 3 ..$];
         output = output[pos..$];
-        munch(output, "0123456789");
+        auto p = output.byCodeUnit.countUntil!(e => !digits.canFind(e));
+        output = output[p..$];
     }
 }
 
@@ -552,6 +555,11 @@ int main(string[] args)
             auto reqArgs =
                 (testArgs.mode == TestMode.FAIL_COMPILE ? "-verrors=0 " : null) ~
                 testArgs.requiredArgs;
+
+            // https://issues.dlang.org/show_bug.cgi?id=10664: exceptions don't work reliably with COMDAT folding
+            // it also slows down some tests drastically, e.g. runnable/test17338.d
+            if (msc)
+                reqArgs ~= " -L/OPT:NOICF";
 
             string compile_output;
             if (!testArgs.compileSeparately)

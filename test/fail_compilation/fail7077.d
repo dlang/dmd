@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail7077.d(11): Error: undefined identifier 'x'
+fail_compilation/fail7077.d(11): Error: undefined identifier `x`
 ---
 */
 

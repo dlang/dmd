@@ -13,7 +13,7 @@ class Foo
     {   void* p;
 
         printf("Foo.new(sz = %d, x = %d)\n", sz, x);
-        assert(sz == Foo.classinfo.init.length);
+        assert(sz == Foo.classinfo.initializer.length);
         assert(x == 5);
 
         p = core.stdc.stdlib.malloc(sz);

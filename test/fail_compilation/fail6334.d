@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail6334.d(12): Error: static assert  (0) is false
+fail_compilation/fail6334.d(12): Error: static assert  `0` is false
 ---
 */
 

@@ -698,7 +698,7 @@ void test46()
 
 void test47()
 {
-    enum { _P_WAIT, _P_NOWAIT, _P_OVERLAY };
+    enum { _P_WAIT, _P_NOWAIT, _P_OVERLAY }
 
     alias _P_WAIT P_WAIT;
     alias _P_NOWAIT P_NOWAIT;
@@ -3595,9 +3595,9 @@ void test220()
   mixin T220!(int);
 
   // all print 8
-  writeln(T220!(int).C.classinfo.init.length);
-  writeln(C.classinfo.init.length);
-  writeln(D220.classinfo.init.length);
+  writeln(T220!(int).C.classinfo.initializer.length);
+  writeln(C.classinfo.initializer.length);
+  writeln(D220.classinfo.initializer.length);
 
   auto c = new C; // segfault in _d_newclass
 }
@@ -5562,22 +5562,25 @@ void testdbl_to_ulong()
     //writeln(u);
     assert(u == 12345);
 
-    real adjust = 1.0L/real.epsilon;
-    u = d2ulong(adjust);
-    //writefln("%s %s", adjust, u);
-    static if(real.mant_dig == 64)
-        assert(u == 9223372036854775808UL);
-    else static if(real.mant_dig == 53)
-        assert(u == 4503599627370496UL);
-    else
-        static assert(false, "Test not implemented for this architecture");
+    static if (real.mant_dig <= 64)
+    {
+        real adjust = 1.0L/real.epsilon;
+        u = d2ulong(adjust);
+        //writefln("%s %s", adjust, u);
+        static if(real.mant_dig == 64)
+            assert(u == 9223372036854775808UL);
+        else static if(real.mant_dig == 53)
+            assert(u == 4503599627370496UL);
+        else
+            static assert(false, "Test not implemented for this architecture");
 
-    auto v = d2ulong(adjust * 1.1);
-    //writefln("%s %s %s", adjust, v, u + u/10);
+        auto v = d2ulong(adjust * 1.1);
+        //writefln("%s %s %s", adjust, v, u + u/10);
 
-    // The following can vary in the last bits with different optimization settings,
-    // i.e. the conversion from real to double may not happen.
-    //assert(v == 10145709240540254208UL);
+        // The following can vary in the last bits with different optimization settings,
+        // i.e. the conversion from real to double may not happen.
+        //assert(v == 10145709240540254208UL);
+    }
 }
 
 /***************************************************/

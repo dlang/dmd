@@ -1,11 +1,11 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag16977.d(22): Error: undefined identifier 'undefined', did you mean function 'undefinedId'?
-fail_compilation/diag16977.d(23): Error: cannot implicitly convert expression ("\x01string") of type string to int
+fail_compilation/diag16977.d(22): Error: undefined identifier `undefined`, did you mean function `undefinedId`?
+fail_compilation/diag16977.d(23): Error: cannot implicitly convert expression `"\x01string"` of type `string` to `int`
 fail_compilation/diag16977.d(24): Error: template diag16977.templ cannot deduce function from argument types !()(int), candidates are:
 fail_compilation/diag16977.d(17):        diag16977.templ(S)(S s) if (false)
-fail_compilation/diag16977.d(25): Error: cannot implicitly convert expression (5) of type int to string
+fail_compilation/diag16977.d(25): Error: cannot implicitly convert expression `5` of type `int` to `string`
 fail_compilation/diag16977.d(27): Error: template instance diag16977.test.funcTemplate!string error instantiating
 ---
 */

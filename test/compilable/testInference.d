@@ -597,7 +597,7 @@ void test10148()
     fb10148!int.fc!int;  // [0] instantiate fb
                          // [3] instantiate fc
 
-    // [6] Afer semantic3 done, fc!int is deduced to @system.
+    // [6] After semantic3 done, fc!int is deduced to @system.
     static assert(is(typeof(&fb10148!int.fc!int) == void delegate() @system));
 }
 

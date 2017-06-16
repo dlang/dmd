@@ -583,8 +583,9 @@ class C42
 
 void test42()
 {
-    printf("%d\n", C42.classinfo.init.length);
-    assert(C42.classinfo.init.length == 12 + (void*).sizeof + (void*).sizeof);
+    printf("%d\n", C42.classinfo.initializer.length);
+    assert(C42.classinfo.initializer.length == 12 + (void*).sizeof +
+        (void*).sizeof);
     C42 c = new C42;
     assert(c.a == 1);
     assert(c.b == 2);
@@ -1175,7 +1176,7 @@ void test72()
 {
     int a;
     const int b;
-    enum { int c = 0 };
+    enum { int c = 0 }
     immutable int d = 0;
 
     assert(__traits(isSame, a, a));

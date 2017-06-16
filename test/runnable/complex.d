@@ -405,6 +405,16 @@ void test15()
 }
 
 /***************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17087
+
+cfloat toComplex(int x) { return cast(cfloat)x; }
+
+void test17087()
+{
+    assert (toComplex(1) == 1.0);
+}
+
+/***************************************/
 
 int main(char[][] args)
 {
@@ -432,6 +442,7 @@ int main(char[][] args)
     test7806();
     test7976();
     test15();
+    test17087();
 
     printf("Success!\n");
     return 0;
