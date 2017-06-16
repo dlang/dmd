@@ -556,6 +556,11 @@ int main(string[] args)
                 (testArgs.mode == TestMode.FAIL_COMPILE ? "-verrors=0 " : null) ~
                 testArgs.requiredArgs;
 
+            // https://issues.dlang.org/show_bug.cgi?id=10664: exceptions don't work reliably with COMDAT folding
+            // it also slows down some tests drastically, e.g. runnable/test17338.d
+            if (msc)
+                reqArgs ~= " -L/OPT:NOICF";
+
             string compile_output;
             if (!testArgs.compileSeparately)
             {
