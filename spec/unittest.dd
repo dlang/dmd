@@ -30,7 +30,7 @@ unittest
     following it.
     )
 
-    $(P A compiler switch, such as $(DDSUBLINK dmd-windows, switch-unittest, $(B -unittest))
+    $(P A compiler switch, such as $(DDSUBLINK dmd, switch-unittest, $(B -unittest))
     for $(B dmd), will
     cause the unittest test code to be compiled and incorporated into
     the resulting executable. The unittest code gets run after
