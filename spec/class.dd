@@ -811,7 +811,7 @@ class Foo
 }
 ------
 
-$(H3 Shared Static Constructors)
+$(H3 $(LNAME2 shared_static_constructors, Shared Static Constructors))
 
 $(GRAMMAR
 $(GNAME SharedStaticConstructor):
@@ -823,7 +823,7 @@ $(GNAME SharedStaticConstructor):
         and are intended for initializing any shared global data.
         )
 
-$(H3 Shared Static Destructors)
+$(H3 $(LNAME2 shared_static_destructors, Shared Static Destructors))
 
 $(GRAMMAR
 $(GNAME SharedStaticDestructor):

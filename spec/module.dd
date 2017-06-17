@@ -224,6 +224,7 @@ $(H3 $(LNAME2 name_lookup, Symbol Name Lookup))
 	$(P The simplest form of importing is to just list the
 	modules being imported:)
 
+$(RUNNABLE_EXAMPLE
 ---------
 module myapp.main;
 
@@ -239,6 +240,7 @@ class Foo : BaseClass
     }
 }
 ---------
+)
 
 	$(P When a symbol name is used unqualified, a two-phase lookup will happen.
     First, the module scope will be searched, starting from the innermost
@@ -383,6 +385,7 @@ $(H3 $(LNAME2 renamed_imports, Renamed Imports))
 	all references to the module's symbols must be qualified
 	with:)
 
+$(RUNNABLE_EXAMPLE
 ---
 import io = std.stdio;
 
@@ -393,6 +396,7 @@ void main()
     writeln("hello!");           // error, writeln is undefined
 }
 ---
+)
 
 	$(P Renamed imports are handy when dealing with
 	very long import names.)
@@ -402,6 +406,7 @@ $(H3 $(LNAME2 selective_imports, Selective Imports))
 	$(P Specific symbols can be exclusively imported from
 	a module and bound into the current namespace:)
 
+$(RUNNABLE_EXAMPLE
 ---
 import std.stdio : writeln, foo = write;
 
@@ -414,6 +419,7 @@ void main()
     fwritefln(stdout, "abc");    // error, fwritefln undefined
 }
 ---
+)
 
 	$(P $(D static) cannot be used with selective imports.)
 
@@ -421,6 +427,7 @@ $(H3 $(LNAME2 renamed_selective_imports, Renamed and Selective Imports))
 
 	$(P When renaming and selective importing are combined:)
 
+$(RUNNABLE_EXAMPLE
 ------------
 import io = std.stdio : foo = writeln;
 
@@ -437,12 +444,14 @@ void main()
                               // foo is not a member of io
 }
 --------------
+)
 
 
 $(H3 $(LNAME2 scoped_imports, Scoped Imports))
 
     $(P Import declarations may be used at any scope. For example:)
 
+$(RUNNABLE_EXAMPLE
 --------------
 void main()
 {
@@ -450,6 +459,7 @@ void main()
     writeln("bar");
 }
 --------------
+)
 
     $(P The imports are looked up to satisfy any unresolved symbols at that scope.
     Imported symbols may hide symbols from outer scopes.)
@@ -461,6 +471,7 @@ void main()
 	at function scope cannot be forward referenced.
 	)
 
+$(RUNNABLE_EXAMPLE
 --------------
 void main()
 {
@@ -477,6 +488,7 @@ void main()
     std.stdio.writeln("bar");  // error, std is undefined
 }
 --------------
+)
 
 
 

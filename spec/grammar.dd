@@ -481,6 +481,7 @@ $(GNAME TraitsKeyword):
     $(TRAITS_LINK2 isFinalFunction)
     $(TRAITS_LINK2 isStaticFunction)
     $(TRAITS_LINK2 isOverrideFunction)
+    $(TRAITS_LINK2 isTemplate)
     $(TRAITS_LINK2 isRef)
     $(TRAITS_LINK2 isOut)
     $(TRAITS_LINK2 isLazy)
@@ -489,8 +490,11 @@ $(GNAME TraitsKeyword):
     $(TRAITS_LINK2 getAliasThis)
     $(TRAITS_LINK2 getAttributes)
     $(TRAITS_LINK2 getFunctionAttributes)
+    $(TRAITS_LINK2 getFunctionVariadicStyle)
+    $(TRAITS_LINK2 getLinkage)
     $(TRAITS_LINK2 getMember)
     $(TRAITS_LINK2 getOverloads)
+    $(TRAITS_LINK2 getParameterStorageClasses)
     $(TRAITS_LINK2 getPointerBitmap)
     $(TRAITS_LINK2 getProtection)
     $(TRAITS_LINK2 getVirtualFunctions)
@@ -1626,7 +1630,6 @@ $(GNAME LinkageType):
     $(D Pascal)
     $(D System)
     $(D Objective-C)
-)
 
 $(GNAME CppAggregateType):
     $(D class)
@@ -1772,7 +1775,15 @@ $(GNAME DeclDef):
 
 $(GRAMMAR
 $(GNAME ModuleDeclaration):
-    $(D module) $(I ModuleFullyQualifiedName) $(D ;)
+    $(I ModuleAttributes)$(OPT) $(D module) $(I ModuleFullyQualifiedName) $(D ;)
+
+$(GNAME ModuleAttributes):
+    $(GLINK ModuleAttribute)
+    $(GLINK ModuleAttribute) $(I ModuleAttributes)
+
+$(GNAME ModuleAttribute):
+    $(GLINK2 attribute, DeprecatedAttribute)
+    $(GLINK2 attribute, UserDefinedAttribute)
 
 $(GNAME ModuleFullyQualifiedName):
     $(I ModuleName)

@@ -49,7 +49,7 @@ $(GNAME CommaExpression):
         operand, and the result is the result of the right operand.
     )
 
-$(H3 Assign Expressions)
+$(H3 $(LNAME2 assign_expressions, Assign Expressions))
 
 $(GRAMMAR
 $(GNAME AssignExpression):
@@ -78,7 +78,7 @@ $(GNAME AssignExpression):
 
     $(P The left operand must be an lvalue.)
 
-$(H4 Assignment Operator Expressions)
+$(H4 $(LNAME2 assignment_operator_expressions, Assignment Operator Expressions))
 
     $(P Assignment operator expressions, such as:
 
@@ -101,7 +101,7 @@ $(H4 Assignment Operator Expressions)
         $(LI the left operand of $(D >>>=) does not undergo integral promotions before shifting)
     )
 
-$(H3 Conditional Expressions)
+$(H3 $(LNAME2 conditional_expressions, Conditional Expressions))
 
 $(GRAMMAR
 $(GNAME ConditionalExpression):
@@ -126,7 +126,7 @@ $(GNAME ConditionalExpression):
         the result type of the conditional expression.
     )
 
-$(H3 OrOr Expressions)
+$(H3 $(LNAME2 oror_expressions, OrOr Expressions))
 
 $(GRAMMAR
 $(GNAME OrOrExpression):
@@ -154,7 +154,7 @@ $(GNAME OrOrExpression):
         expression is the right operand converted to type $(D bool).
     )
 
-$(H3 AndAnd Expressions)
+$(H3 $(LNAME2 andand_expressions, AndAnd Expressions))
 
 $(GRAMMAR
 $(GNAME AndAndExpression):
@@ -182,7 +182,7 @@ $(GNAME AndAndExpression):
         expression is the right operand converted to type $(D bool).
     )
 
-$(H3 Bitwise Expressions)
+$(H3 $(LNAME2 bitwise_expressions, Bitwise Expressions))
 
     $(P Bit wise expressions perform a bitwise operation on their operands.
         Their operands must be integral types.
@@ -190,7 +190,7 @@ $(H3 Bitwise Expressions)
         operation is done.
     )
 
-$(H4 Or Expressions)
+$(H4 $(LNAME2 or_expressions, Or Expressions))
 
 $(GRAMMAR
 $(GNAME OrExpression):
@@ -200,7 +200,7 @@ $(GNAME OrExpression):
 
     $(P The operands are OR'd together.)
 
-$(H4 Xor Expressions)
+$(H4 $(LNAME2 xor_expressions, Xor Expressions))
 
 $(GRAMMAR
 $(GNAME XorExpression):
@@ -210,7 +210,7 @@ $(GNAME XorExpression):
 
     $(P The operands are XOR'd together.)
 
-$(H4 And Expressions)
+$(H4 $(LNAME2 and_expressions, And Expressions))
 
 $(GRAMMAR
 $(GNAME AndExpression):
@@ -220,7 +220,7 @@ $(GNAME AndExpression):
 
     $(P The operands are AND'd together.)
 
-$(H3 Compare Expressions)
+$(H3 $(LNAME2 compare_expressions, Compare Expressions))
 
 $(GRAMMAR
 $(GNAME CmpExpression):
@@ -231,7 +231,7 @@ $(GNAME CmpExpression):
     $(GLINK InExpression)
 )
 
-$(H3 Equality Expressions)
+$(H3 $(LNAME2 equality_expressions, Equality Expressions))
 
 $(GRAMMAR
 $(GNAME EqualExpression):
@@ -306,7 +306,7 @@ $(GNAME EqualExpression):
         matching, and all the elements are equal.
     )
 
-$(H4 Identity Expressions)
+$(H4 $(LNAME2 identity_expressions, Identity Expressions))
 
 $(GRAMMAR
 $(GNAME IdentityExpression):
@@ -341,7 +341,7 @@ $(GNAME IdentityExpression):
     $(P The identity operator $(D is) cannot be overloaded.
     )
 
-$(H3 Relational Expressions)
+$(H3 $(LNAME2 relation_expressions, Relational Expressions))
 
 $(GRAMMAR
 $(GNAME RelExpression):
@@ -381,7 +381,7 @@ $(GNAME RelExpression):
         longer array.
     )
 
-$(H4 Integer comparisons)
+$(H4 $(LNAME2 integer_comparisons, Integer comparisons))
 
     $(P Integer comparisons happen when both operands are integral
         types.
@@ -465,7 +465,7 @@ $(H4 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class comparisons))
         ---
     )
 
-$(H3 In Expressions)
+$(H3 $(LNAME2 in_expressions, In Expressions))
 
 $(GRAMMAR
 $(GNAME InExpression):
@@ -495,7 +495,7 @@ $(GNAME InExpression):
         operation.
     )
 
-$(H3 Shift Expressions)
+$(H3 $(LNAME2 shift_expressions, Shift Expressions))
 
 $(GRAMMAR
 $(GNAME ShiftExpression):
@@ -525,7 +525,7 @@ $(GNAME ShiftExpression):
         -------------
     )
 
-$(H3 Add Expressions)
+$(H3 $(LNAME2 add_expressions, Add Expressions))
 
 $(GRAMMAR
 $(GNAME AddExpression):
@@ -577,7 +577,7 @@ $(GNAME AddExpression):
     $(P Add expressions for floating point operands are not associative.
     )
 
-$(H3 Cat Expressions)
+$(H3 $(LNAME2 cat_expressions, Cat Expressions))
 
 $(GRAMMAR
 $(GNAME CatExpression):
@@ -592,7 +592,7 @@ $(GNAME CatExpression):
         and then the concatenation is performed.
     )
 
-$(H3 Mul Expressions)
+$(H3 $(LNAME2 mul_expressions, Mul Expressions))
 
 $(GRAMMAR
 $(GNAME MulExpression):
@@ -647,7 +647,7 @@ $(GNAME UnaryExpression):
     $(GLINK PowExpression)
 )
 
-$(H4 Complement Expressions)
+$(H4 $(LNAME2 complement_expressions, Complement Expressions))
 
 $(GRAMMAR
 $(GNAME ComplementExpression):
@@ -662,7 +662,7 @@ $(GNAME ComplementExpression):
         prior to the complement operation.
     )
 
-$(H4 New Expressions)
+$(H4 $(LNAME2 new_expressions, New Expressions))
 
 $(GRAMMAR
 $(GNAME NewExpression):
@@ -741,7 +741,7 @@ $(GNAME ArgumentList):
         or using the class specific allocator.
     )
 
-$(H4 Delete Expressions)
+$(H4 $(LNAME2 delete_expressions, Delete Expressions))
 
 $(GRAMMAR
 $(GNAME DeleteExpression):
@@ -783,7 +783,7 @@ $(GNAME DeleteExpression):
         is called.
     )
 
-$(H4 Cast Expressions)
+$(H4 $(LNAME2 cast_expressions, Cast Expressions))
 
 $(GRAMMAR
 $(GNAME CastExpression):
@@ -944,7 +944,7 @@ $(GNAME CastExpression):
         ----
     )
 
-$(H3 Pow Expressions)
+$(H3 $(LNAME2 pow_expressions, Pow Expressions))
 
 $(GRAMMAR
 $(GNAME PowExpression):
@@ -956,7 +956,7 @@ $(GNAME PowExpression):
         right operand.
     )
 
-$(H3 Postfix Expressions)
+$(H3 $(LNAME2 postfix_expressions, Postfix Expressions))
 
 $(GRAMMAR
 $(GNAME PostfixExpression):
@@ -972,7 +972,7 @@ $(GNAME PostfixExpression):
     $(GLINK SliceExpression)
 )
 
-$(H3 Index Expressions)
+$(H3 $(LNAME2 index_expressions, Index Expressions))
 
 $(GRAMMAR
 $(GNAME IndexExpression):
@@ -1002,7 +1002,7 @@ $(GNAME IndexExpression):
         It is an error if $(I n) is out of bounds of the $(I ExpressionTuple).
     )
 
-$(H3 Slice Expressions)
+$(H3 $(LNAME2 slice_expressions, Slice Expressions))
 
 $(GRAMMAR
 $(GNAME SliceExpression):
@@ -1108,7 +1108,7 @@ $(GNAME Slice):
         bounds are out of range.
     )
 
-$(H3 Primary Expressions)
+$(H3 $(LNAME2 primary_expressions, Primary Expressions))
 
 $(GRAMMAR
 $(GNAME PrimaryExpression):
@@ -1145,7 +1145,7 @@ $(GNAME PrimaryExpression):
     $(GLINK2 traits, SpecialKeyword)
 )
 
-$(H4 .Identifier)
+$(H4 $(LNAME2 identifier, .Identifier))
 
     $(P $(IDENTIFIER) is looked up at module scope, rather than the current
         lexically nested scope.
@@ -1213,7 +1213,7 @@ $(H4 $(LNAME2 null, null))
         but no longer exact.
     )
 
-$(H4 true, false)
+$(H4 $(LNAME2 true_false, true, false))
 
     $(P These are of type $(D bool) and when cast to another integral
         type become the values 1 and 0,
@@ -1230,7 +1230,7 @@ $(H4 $(LEGACY_LNAME2 CharacterLiteral, character-literal, Character Literals))
         will fit into.
     )
 
-$(H4 String Literals)
+$(H4 $(LNAME2 string_literals, String Literals))
 
 $(GRAMMAR
 $(GNAME StringLiterals):
@@ -1283,7 +1283,7 @@ $(GNAME StringLiterals):
         string literal.
     )
 
-$(H4 Array Literals)
+$(H4 $(LNAME2 array_literals, Array Literals))
 
 $(GRAMMAR
 $(GNAME ArrayLiteral):
@@ -1380,7 +1380,7 @@ $(GNAME ArrayLiteral):
         In other words, casting literal expression will change the literal type.
     )
 
-$(H4 Associative Array Literals)
+$(H4 $(LNAME2 associative_array_literals, Associative Array Literals))
 
 $(GRAMMAR
 $(GNAME AssocArrayLiteral):
@@ -1425,7 +1425,7 @@ $(GNAME ValueExpression):
         are inserted as arguments in place of the tuple.
     )
 
-$(H4 Function Literals)
+$(H4 $(LNAME2 function_literals, Function Literals))
 
 $(GRAMMAR
 $(GNAME FunctionLiteral):
@@ -1584,7 +1584,7 @@ $(GNAME FunctionLiteralBody):
         function, a function literal cannot.
     )
 
-$(H4 Lambdas)
+$(H4 $(LNAME2 lambdas, Lambdas))
 
 $(GRAMMAR
 $(GNAME Lambda):
@@ -1630,7 +1630,7 @@ $(GNAME Lambda):
         ---
     )
 
-$(H4 Uniform construction syntax for built-in scalar types)
+$(H4 $(LNAME2 uniform_construction_syntax, Uniform construction syntax for built-in scalar types))
 
     $(P The implicit conversions of built-in scalar types can be explicitly
         represented by using function call syntax. For example:
@@ -1653,7 +1653,7 @@ $(H4 Uniform construction syntax for built-in scalar types)
     )
 
 
-$(H4 Assert Expressions)
+$(H4 $(LNAME2 assert_expressions, Assert Expressions))
 
 $(GRAMMAR
 $(GNAME AssertExpression):
@@ -1725,7 +1725,7 @@ Error: AssertError Failure test.d(3) an error message
 )
     )
 
-$(H4 Mixin Expressions)
+$(H4 $(LNAME2 mixin_expressions, Mixin Expressions))
 
 $(GRAMMAR
 $(GNAME MixinExpression):
@@ -1745,7 +1745,7 @@ $(GNAME MixinExpression):
         ---
     )
 
-$(H4 Import Expressions)
+$(H4 $(LNAME2 import_expressions, Import Expressions))
 
 $(GRAMMAR
 $(GNAME ImportExpression):
@@ -1778,7 +1778,7 @@ $(GNAME ImportExpression):
         ---
     )
 
-$(H4 Typeid Expressions)
+$(H4 $(LNAME2 typeid_expressions, Typeid Expressions))
 
 $(GRAMMAR
 $(GNAME TypeidExpression):
@@ -1817,7 +1817,7 @@ $(GNAME TypeidExpression):
         ---
     )
 
-$(H4 IsExpression)
+$(H4 $(LNAME2 is_expression, IsExpression))
 
 $(GRAMMAR
 $(GNAME IsExpression):

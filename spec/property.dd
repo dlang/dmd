@@ -65,7 +65,7 @@ $(THEAD Property, Description)
 $(TROW $(RELATIVE_LINK2 classinfo, $(D .classinfo)), Information about the dynamic type of the class)
 )
 
-$(SECTION3 $(LNAME2 init, .init) Property,
+$(SECTION3 $(LNAME2 init, .init Property),
 
 	$(P $(D .init) produces a constant expression that is the default
 	initializer. If applied to a type, it is the default initializer
@@ -144,7 +144,7 @@ void main()
     )
 )
 
-$(SECTION3 $(LNAME2 stringof, .stringof) Property,
+$(SECTION3 $(LNAME2 stringof, .stringof Property),
 
 	$(P $(D .stringof) produces a constant string that is the
 	source representation of its prefix.
@@ -226,7 +226,7 @@ $(SECTION3 $(LNAME2 alignof, .alignof Property),
 	)
 )
 
-$(SECTION3 $(LNAME2 classinfo, .classinfo) Property,
+$(SECTION3 $(LNAME2 classinfo, .classinfo Property),
 
 	$(P $(CODE .classinfo) provides information about the dynamic type
 	of a class object.

@@ -82,7 +82,7 @@ $(H3 $(LEGACY_LNAME2 Predefined-Pragmas, predefined-pragmas, Predefined Pragmas)
 pragma(inline)
 ---
         Sets the behavior to match the default behavior set by the compiler switch
-        $(DDSUBLINK dmd-windows, switch-inline, $(TT -inline)).
+        $(DDSUBLINK dmd, switch-inline, $(TT -inline)).
         )
         $(LI
 ---
@@ -94,7 +94,7 @@ pragma(inline, false)
 ---
 pragma(inline, true)
 ---
-        If a function cannot be inlined with the $(DDSUBLINK dmd-windows, switch-inline, $(TT -inline))
+        If a function cannot be inlined with the $(DDSUBLINK dmd, switch-inline, $(TT -inline))
         switch, an error message is issued. This is expected to be improved in the future to causing
         functions to always be inlined regardless of compiler switch settings. Whether a compiler can
         inline a particular function or not is implementation defined.
@@ -158,7 +158,7 @@ pragma(startaddress, foo);
     )
     )
 
-$(H3 Vendor Specific Pragmas)
+$(H3 $(LNAME2 vendor_specific_pragmas, Vendor Specific Pragmas))
 
         $(P Vendor specific pragma $(I Identifier)s can be defined if they
         are prefixed by the vendor's trademarked name, in a similar manner

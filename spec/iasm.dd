@@ -187,7 +187,7 @@ $(GNAME Register64):
     $(D YMM8) $(D YMM9) $(D YMM10) $(D YMM11) $(D YMM12) $(D YMM13) $(D YMM14) $(D YMM15)
 )
 
-$(H3 Special Cases)
+$(H3 $(LNAME2 special_cases, Special Cases))
 
 $(DL
     $(DT $(D lock), $(D rep), $(D repe), $(D repne), $(D repnz), $(D repz))
@@ -1072,7 +1072,7 @@ $(H3 $(LNAME2 simd, SIMD))
     $(P SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2 and AVX are supported.)
 
 $(COMMENT
-$(H3 Other)
+$(H3 $(LNAME2 other, Other))
     $(P AES, CMUL, FSGSBASE, RDRAND, FP16C and FMA are supported.)
 )
 

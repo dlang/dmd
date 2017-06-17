@@ -8,7 +8,7 @@ $(SPEC_S Interfacing to C++,
     through a $(DDLINK spec/interfaceToC, Interfacing to C, C interface) or a
     COM interface.)
 
-$(H2 The General Idea)
+$(H2 $(LNAME2 general_idea, The General Idea))
 
     $(P Being 100% compatible with C++ means more or less adding
     a fully functional C++ compiler front end to D.
@@ -45,7 +45,7 @@ $(H2 $(LNAME2 global-functions, Global Functions))
     $(P C++ global functions, including those in namespaces, can be declared
     and called in D, or defined in D and called in C++.)
 
-$(H3 Calling C++ Global Functions from D)
+$(H3 $(LNAME2 calling_cpp_global_from_d, Calling C++ Global Functions from D))
 
     $(P Given a C++ function in a C++ source file:)
 
@@ -113,7 +113,7 @@ k = 3
 
     )
 
-$(H3 Calling Global D Functions From C++)
+$(H3 $(LNAME2 calling_global_d_functions_from_cpp, Calling Global D Functions From C++))
 
     $(P To make a D function accessible from C++, give it
     C++ linkage:)
@@ -186,8 +186,8 @@ $(H2 $(LNAME2 classes, Classes))
     $(P Unlike classes and interfaces with D linkage, $(CODE extern (C++))
     classes and interfaces are not rooted in $(CODE Object) and cannot be used
     with $(CODE typeid).)
-    
-    $(P D structs and classes have different semantics whereas C++ structs and 
+
+    $(P D structs and classes have different semantics whereas C++ structs and
     classes are basically the same. The use of a D struct or class depends on
     the C++ implementation and not on the used C++ keyword.
     When mapping a D $(CODE class) onto a C++ $(CODE struct),
@@ -205,7 +205,7 @@ class Bar
 }
 ---
 
-$(H3 Using C++ Classes From D)
+$(H3 $(LNAME2 using_cpp_classes_from_d, Using C++ Classes From D))
 
     $(P The following example shows binding of a pure virtual function, its
     implementation in a derived class, a non-virtual member function, and a
@@ -260,7 +260,7 @@ void deleteInstance(Derived *&d)
 ---
 extern(C++)
 {
-    interface Base
+    abstract class Base
     {
         void print3i(int a, int b, int c);
     }
@@ -315,7 +315,7 @@ instead disabled on the D side; an alternative would be to reimplement the
 constructor in D. See the $(DDSUBLINK spec/cpp_interface, lifetime-management,
 section below on lifetime management) for more information.)
 
-$(H3 Using D Classes From C++)
+$(H3 $(LNAME2 using_d_classes_from_cpp, Using D Classes From C++))
 
     $(P Given D code like:)
 
@@ -750,7 +750,7 @@ $(H2 $(LNAME2 exception-handling, Exception Handling))
     directly in C++ code (but they will be throwable indirectly by calling into
     a D function with C++ linkage).)
 
-$(SECTION2 Comparing D Immutable and Const with C++ Const,
+$(SECTION2 $(LNAME2 comparing-d-immutable-and-const-with-cpp-const, Comparing D Immutable and Const with C++ Const),
 
 $(TABLE_SPECIAL $(ARGS Const, Immutable Comparison),
     $(THEAD Feature, D, C++98)
