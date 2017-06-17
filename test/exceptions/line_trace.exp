@@ -2,8 +2,3 @@ object.Exception@src/line_trace.d(17): exception
 ----------------
 src/line_trace.d:17 void line_trace.f1() [ADDR]
 src/line_trace.d:5 _Dmain [ADDR]
-src/rt/dmain2.d:476 _D2rt6dmain211_d_run_mainUiPPaPUAAaZiZ6runAllMFZ9__lambda1MFZv [ADDR]
-src/rt/dmain2.d:451 void rt.dmain2._d_run_main(int, char**, extern (C) int function(char[][])*).tryExec(void delegate()) [ADDR]
-src/rt/dmain2.d:476 void rt.dmain2._d_run_main(int, char**, extern (C) int function(char[][])*).runAll() [ADDR]
-src/rt/dmain2.d:451 void rt.dmain2._d_run_main(int, char**, extern (C) int function(char[][])*).tryExec(void delegate()) [ADDR]
-src/rt/dmain2.d:484 _d_run_main [ADDR]

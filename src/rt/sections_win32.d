@@ -17,8 +17,7 @@ version(CRuntime_DigitalMars):
 // debug = PRINTF;
 debug(PRINTF) import core.stdc.stdio;
 import rt.minfo;
-
-version = conservative;
+import core.stdc.stdlib : malloc, free;
 
 struct SectionGroup
 {
@@ -49,18 +48,22 @@ struct SectionGroup
 
 private:
     ModuleGroup _moduleGroup;
-    version(conservative)
-        void[][2] _gcRanges;
-    else
-        void[][] _gcRanges;
+    void[][] _gcRanges;
 }
+
+shared(bool) conservative;
 
 void initSections() nothrow @nogc
 {
     _sections._moduleGroup = ModuleGroup(getModuleInfos());
 
-    version(conservative)
+    import rt.sections;
+    conservative = !scanDataSegPrecisely();
+
+    if (conservative)
     {
+        _sections._gcRanges = (cast(void[]*) malloc(2 * (void[]).sizeof))[0..2];
+
         auto databeg = cast(void*)&_xi_a;
         auto dataend = cast(void*)_moduleinfo_array.ptr;
         _sections._gcRanges[0] = databeg[0 .. dataend - databeg];
@@ -72,25 +75,26 @@ void initSections() nothrow @nogc
     }
     else
     {
-        import core.stdc.stdlib : malloc;
-
         size_t count = &_DPend - &_DPbegin;
         auto ranges = cast(void[]*) malloc(count * (void[]).sizeof);
+        size_t r = 0;
+        void* prev = null;
         for (size_t i = 0; i < count; i++)
         {
             void* addr = (&_DPbegin)[i];
-            ranges[i] = (cast(void**)addr)[0..1]; // TODO: optimize consecutive pointers into single range
+            if (prev + (void*).sizeof == addr)
+                ranges[r-1] = ranges[r-1].ptr[0 .. ranges[r-1].length + (void*).sizeof];
+            else
+                ranges[r++] = (cast(void**)addr)[0..1];
+            prev = addr;
         }
-        _sections._gcRanges = ranges[0..count];
+        _sections._gcRanges = ranges[0..r];
     }
 }
 
 void finiSections() nothrow @nogc
 {
-    import core.stdc.stdlib : free;
-
-    version(conservative) {} else
-        free(_sections._gcRanges.ptr);
+    free(_sections._gcRanges.ptr);
 }
 
 void[] initTLSRanges() nothrow @nogc
@@ -106,15 +110,23 @@ void finiTLSRanges(void[] rng) nothrow @nogc
 
 void scanTLSRanges(void[] rng, scope void delegate(void* pbeg, void* pend) nothrow dg) nothrow
 {
-    version(conservative)
+    if (conservative)
     {
         dg(rng.ptr, rng.ptr + rng.length);
     }
     else
     {
-        size_t count = &_TPend - &_TPbegin;
-        for (auto p = &_TPbegin; p < &_TPend; p++)
-            dg(rng.ptr + *p, rng.ptr + *p + (void*).sizeof);
+        for (auto p = &_TPbegin; p < &_TPend; )
+        {
+            uint beg = *p++;
+            uint end = beg + cast(uint)((void*).sizeof);
+            while (p < &_TPend && *p == end)
+            {
+                end += (void*).sizeof;
+                p++;
+            }
+            dg(rng.ptr + beg, rng.ptr + end);
+        }
     }
 }
 

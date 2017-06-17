@@ -167,13 +167,6 @@ struct ModuleGroup
         import core.bitop : bts, btr, bt, BitRange;
         import rt.util.container.hashtab;
 
-        // used to unwind stack for printing deprecation message.
-        static class DeprecatedCycleException : Exception
-        {
-            this() { super(""); }
-        }
-        scope deprecation = new DeprecatedCycleException();
-
         enum OnCycle
         {
             deprecate,
@@ -318,7 +311,8 @@ struct ModuleGroup
         // trivial modules to get at the non-trivial ones.
         //
         // If a cycle is detected, returns the index of the module that completes the cycle.
-        void findDeps(size_t idx, size_t* reachable)
+        // Returns: true for success, false for a deprecated cycle error
+        bool findDeps(size_t idx, size_t* reachable)
         {
             static struct stackFrame
             {
@@ -367,7 +361,7 @@ struct ModuleGroup
                                     if(sortCtorsOld(edges))
                                     {
                                         // unwind to print deprecation message.
-                                        throw deprecation;
+                                        return false;   // deprecated cycle error
                                     }
                                     goto case abort; // fall through
                                 case abort:
@@ -408,6 +402,7 @@ struct ModuleGroup
                 // next dependency
                 ++sp.curDep;
             }
+            return true; // success
         }
 
         // The list of constructors that will be returned by the sorting.
@@ -422,7 +417,8 @@ struct ModuleGroup
         // Each call into this function is given a module that has static
         // ctor/dtors that must be dealt with. It recurses only when it finds
         // dependencies that also have static ctor/dtors.
-        void processMod(size_t curidx)
+        // Returns: true for success, false for a deprecated cycle error
+        bool processMod(size_t curidx)
         {
             immutable ModuleInfo* current = _modules[curidx];
 
@@ -430,7 +426,8 @@ struct ModuleGroup
             auto reachable = cast(size_t*) malloc(flagbytes);
             scope (exit)
                 .free(reachable);
-            findDeps(curidx, reachable);
+            if (!findDeps(curidx, reachable))
+                return false;   // deprecated cycle error
 
             // process the dependencies. First, we process all relevant ones
             bts(ctorstart, curidx);
@@ -440,7 +437,10 @@ struct ModuleGroup
                 // note, don't check for cycles here, because the config could have been set to ignore cycles.
                 // however, don't recurse if there is one, so still check for started ctor.
                 if (i != curidx && bt(relevant, i) && !bt(ctordone, i) && !bt(ctorstart, i))
-                    processMod(i);
+                {
+                    if (!processMod(i))
+                        return false; // deprecated cycle error
+                }
             }
 
             // now mark this node, and all nodes reachable from this module as done.
@@ -457,9 +457,11 @@ struct ModuleGroup
 
             // add this module to the construction order list
             ctors[ctoridx++] = current;
+            return true;
         }
 
-        immutable(ModuleInfo)*[] doSort(size_t relevantFlags)
+        // returns `false` if deprecated cycle error otherwise set `result`.
+        bool doSort(size_t relevantFlags, ref immutable(ModuleInfo)*[] result)
         {
             clearFlags(relevant);
             clearFlags(ctorstart);
@@ -488,29 +490,31 @@ struct ModuleGroup
             foreach (idx; BitRange(relevant, len))
             {
                 if (!bt(ctordone, idx))
-                    processMod(idx);
+                {
+                    if (!processMod(idx))
+                        return false;
+                }
             }
 
             if (ctoridx == 0)
             {
                 // no ctors in the list.
                 .free(ctors);
-                return null;
             }
-
-            ctors = cast(immutable(ModuleInfo)**).realloc(ctors, ctoridx * (void*).sizeof);
-            if (ctors is null)
-                assert(0);
-            return ctors[0 .. ctoridx];
+            else
+            {
+                ctors = cast(immutable(ModuleInfo)**).realloc(ctors, ctoridx * (void*).sizeof);
+                if (ctors is null)
+                    assert(0);
+                result = ctors[0 .. ctoridx];
+            }
+            return true;
         }
 
-        // finally, do the sorting for both shared and tls ctors.
-        try
-        {
-            _ctors = doSort(MIctor | MIdtor);
-            _tlsctors = doSort(MItlsctor | MItlsdtor);
-        }
-        catch(DeprecatedCycleException)
+        // finally, do the sorting for both shared and tls ctors. If either returns false,
+        // print the deprecation warning.
+        if (!doSort(MIctor | MIdtor, _ctors) ||
+            !doSort(MItlsctor | MItlsdtor, _tlsctors))
         {
             // print a warning
             import core.stdc.stdio : fprintf, stderr;

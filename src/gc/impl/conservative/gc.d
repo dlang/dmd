@@ -3368,3 +3368,12 @@ unittest
     assert(thrown);
 */
 }
+
+unittest
+{
+    import core.memory;
+
+    // https://issues.dlang.org/show_bug.cgi?id=9275
+    GC.removeRoot(null);
+    GC.removeRoot(cast(void*)13);
+}

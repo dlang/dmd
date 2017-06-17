@@ -159,15 +159,27 @@ else version( CRuntime_Glibc )
     }
 }
 else version (FreeBSD) {
+    // Note: it appears that FreeBSD (prior to 7) and OSX do not support realtime signals
     // https://github.com/freebsd/freebsd/blob/e79c62ff68fc74d88cb6f479859f6fae9baa5101/sys/sys/signal.h#L117
     enum SIGRTMIN = 65;
     enum SIGRTMAX = 126;
 }
-// Note: it appears that FreeBSD (prior to 7) and OSX do not support realtime signals
 else version(NetBSD)
 {
     enum SIGRTMIN = 33;
     enum SIGRTMAX = 63;
+}
+else version (CRuntime_Bionic)
+{
+    enum SIGRTMIN = 32;
+    version(ARM)
+        enum SIGRTMAX = 64;
+    else version(X86)
+        enum SIGRTMAX = 64;
+    else version(MIPS32)
+        enum SIGRTMAX = 128;
+    else
+        static assert(false, "Architecture not supported.");
 }
 
 version( linux )

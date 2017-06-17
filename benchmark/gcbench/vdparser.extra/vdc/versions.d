@@ -87,7 +87,6 @@ static @property int[string] sPredefinedVersions()
             "HPPA" : -1,
             "HPPA64" : -1,
             "SH" : -1,
-            "SH64" : -1,
             "Alpha" : -1,
             "Alpha_SoftFloat" : -1,
             "Alpha_HardFloat" : -1,

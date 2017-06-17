@@ -450,8 +450,6 @@ else version( FreeBSD )
 }
 else version(NetBSD)
 {
-    alias void function(void*) _pthread_cleanup_routine;
-
     struct _pthread_cleanup_store
     {
         void*[4]    pthread_cleanup_pad;
@@ -513,7 +511,7 @@ else version( CRuntime_Bionic )
     struct __pthread_cleanup_t
     {
         __pthread_cleanup_t*     __cleanup_prev;
-        __pthread_cleanup_func_t __cleanup_routine;
+        _pthread_cleanup_routine __cleanup_routine;
         void*                    __cleanup_arg;
     }
 

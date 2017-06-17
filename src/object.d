@@ -285,11 +285,6 @@ class TypeInfo
      */
     abstract const(void)[] initializer() nothrow pure const @safe @nogc;
 
-    /// $(RED Removed.) Please use `initializer` instead.
-    @disable static const(void)[] init(); // since 2.074
-    /* Planned for 2.075: Remove init, making way for the init type property,
-    fixing issue 12233. */
-
     /** Get flags for type: 1 means GC should scan for pointers,
     2 means arg of this type is passed in XMM register */
     @property uint flags() nothrow pure const @safe @nogc { return 0; }
@@ -358,6 +353,12 @@ class TypeInfo_Typedef : TypeInfo
     TypeInfo base;
     string   name;
     void[]   m_init;
+}
+
+unittest // issue 12233
+{
+    static assert(is(typeof(TypeInfo.init) == TypeInfo));
+    assert(TypeInfo.init is null);
 }
 
 class TypeInfo_Enum : TypeInfo_Typedef
@@ -1683,7 +1684,7 @@ class Throwable : Object
     /**
      * Overrides $(D Object.toString) and returns the error message.
      * Internally this forwards to the $(D toString) overload that
-     * takes a $(PARAM sink) delegate.
+     * takes a $(D_PARAM sink) delegate.
      */
     override string toString()
     {
@@ -1694,7 +1695,7 @@ class Throwable : Object
 
     /**
      * The Throwable hierarchy uses a toString overload that takes a
-     * $(PARAM sink) delegate to avoid GC allocations, which cannot be
+     * $(D_PARAM _sink) delegate to avoid GC allocations, which cannot be
      * performed in certain error situations.  Override this $(D
      * toString) method to customize the error message.
      */
@@ -3160,7 +3161,7 @@ bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
 
     // This is function is used as a compiler intrinsic and explicitly written
     // in a lowered flavor to use as few CTFE instructions as possible.
-    auto idx = 0;
+    size_t idx = 0;
     auto length = a1.length;
 
     for(;idx < length;++idx)
@@ -3228,33 +3229,114 @@ template RTInfo(T)
     enum RTInfo = null;
 }
 
-// lhs == rhs lowers to __equals(lhs, rhs) for arrays of all struct types.
-// old path: Typeinfo_array => TypeInfo_struct
+// lhs == rhs lowers to __equals(lhs, rhs) for dynamic arrays
 bool __equals(T1, T2)(T1[] lhs, T2[] rhs)
 {
+    import core.internal.traits : Unqual;
+    alias U1 = Unqual!T1;
+    alias U2 = Unqual!T2;
+
+    static @trusted ref R at(R)(R[] r, size_t i) { return r.ptr[i]; }
+    static @trusted R trustedCast(R, S)(S[] r) { return cast(R) r; }
+
     if (lhs.length != rhs.length)
         return false;
 
-    import core.internal.traits : Unqual;
-    static assert(is(Unqual!T1 == Unqual!T2), "Internal error.");
+    if (lhs.length == 0 && rhs.length == 0)
+        return true;
 
-    static @trusted ref R at(R)(R[] r, size_t i) { return r.ptr[i]; }
-
-    foreach (const u; 0 .. lhs.length)
+    static if (is(U1 == void) && is(U2 == void))
     {
-        static if (__traits(compiles, at(lhs, u).opEquals(at(rhs, u))))
+        return __equals(trustedCast!(ubyte[])(lhs), trustedCast!(ubyte[])(rhs));
+    }
+    else static if (is(U1 == void))
+    {
+        return __equals(trustedCast!(ubyte[])(lhs), rhs);
+    }
+    else static if (is(U2 == void))
+    {
+        return __equals(lhs, trustedCast!(ubyte[])(rhs));
+    }
+    else static if (!is(U1 == U2))
+    {
+        // This should replace src/object.d _ArrayEq which
+        // compares arrays of different types such as long & int,
+        // char & wchar.
+        // Compiler lowers to __ArrayEq in dmd/src/opover.d
+        foreach (const u; 0 .. lhs.length)
         {
-            if (!at(lhs, u).opEquals(at(rhs, u)))
+            if (at(lhs, u) != at(rhs, u))
                 return false;
+        }
+        return true;
+    }
+    else static if (__traits(isIntegral, U1))
+    {
+
+        if (!__ctfe)
+        {
+            import core.stdc.string : memcmp;
+            return () @trusted { return memcmp(cast(void*)lhs.ptr, cast(void*)rhs.ptr, lhs.length * U1.sizeof) == 0; }();
         }
         else
         {
-            if (at(lhs, u).tupleof != at(rhs, u).tupleof)
-                return false;
+            foreach (const u; 0 .. lhs.length)
+            {
+                if (at(lhs, u) != at(rhs, u))
+                    return false;
+            }
+            return true;
         }
     }
+    else
+    {
+        foreach (const u; 0 .. lhs.length)
+        {
+            static if (__traits(compiles, __equals(at(lhs, u), at(rhs, u))))
+            {
+                if (!__equals(at(lhs, u), at(rhs, u)))
+                    return false;
+            }
+            else static if (__traits(isFloating, U1))
+            {
+                if (at(lhs, u) != at(rhs, u))
+                    return false;
+            }
+            else static if (is(U1 : Object) && is(U2 : Object))
+            {
+                if (!(cast(Object)at(lhs, u) is cast(Object)at(rhs, u)
+                    || at(lhs, u) && (cast(Object)at(lhs, u)).opEquals(cast(Object)at(rhs, u))))
+                    return false;
+            }
+            else static if (__traits(hasMember, U1, "opEquals"))
+            {
+                if (!at(lhs, u).opEquals(at(rhs, u)))
+                    return false;
+            }
+            else static if (is(U1 == delegate))
+            {
+                if (at(lhs, u) != at(rhs, u))
+                    return false;
+            }
+            else static if (is(U1 == U11*, U11))
+            {
+                if (at(lhs, u) != at(rhs, u))
+                    return false;
+            }
+            else
+            {
+                if (at(lhs, u).tupleof != at(rhs, u).tupleof)
+                    return false;
+            }
+        }
 
-    return true;
+        return true;
+    }
+}
+
+unittest {
+    assert(__equals([], []));
+    assert(!__equals([1, 2], [1, 2, 3]));
 }
 
 unittest

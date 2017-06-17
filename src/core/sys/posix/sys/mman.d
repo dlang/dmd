@@ -245,8 +245,6 @@ version( CRuntime_Glibc )
     }
     else version (SH)
         private enum DEFAULTS = true;
-    else version (SH64)
-        private enum DEFAULTS = true;
     else version (AArch64)
         private enum DEFAULTS = true;
     else version (ARM)
