@@ -289,7 +289,7 @@ $(TROW $(D .sizeof), Size in bytes of struct)
 $(TROW $(D .alignof), Size boundary struct needs to be aligned on)
 $(TROW $(D .tupleof), Gets type tuple of fields))
 
-$(H3 Struct Field Properties)
+$(H3 $(LNAME2 struct_field_properties, Struct Field Properties))
 
 $(TABLE2 Struct Field Properties,
 $(THEAD Name, Description)
@@ -347,6 +347,98 @@ $(SECTION3 $(LEGACY_LNAME2 Struct-Constructor, struct-constructor, Struct Constr
             auto b = S();  // same as auto b = S.init;
         }
         ------
+
+$(COMMENT
+$(P Inside a constructor, the first occurrence (in lexical order) of assignments
+of the form $(CODE member = expression;) are handled differently than usual
+assignments. The first such assignment in lexical order is converted to a
+constructor call for the member's type. Example:)
+
+------
+import std.stdio;
+
+struct A
+{
+    this(int x) { writef("A.this(%s)", x); }
+}
+
+struct B
+{
+    A a;
+    this(int x)
+    {
+        write("[= ");
+        a = x;
+        writeln(" =]");
+        // a = x; does not compile here, it already occurred lexically.
+    }
+}
+
+void main(string[] args)
+{
+    auto b = B(10);
+    // b.a = 10; does not compile here, A does not define opAssign(int).
+}
+------
+
+$(P The program above prints the line $(CODE "[= A.this(10) =]"). Anywhere else
+attempting to assign an integer to an object of type `A` would count as an
+assignment (and is not compilable because `A` does not define `opAssign(int)`).)
+
+$(P Finding the first assignment in lexical order is flow-sensitive upon the
+`if` statement. Consider a change to struct `B` in the previous example as
+follows:)
+
+------
+struct B
+{
+    A a;
+    this(int x)
+    {
+        if (x < 0)
+            a = -x;
+        else
+            a = x;
+    }
+}
+------
+
+$(P This code issues a constructor call on each branch of the `if` statement.
+However, such flow sensitivity is limited. There is no static or dynamic
+analysis of coverage of the `if` statement. For example:)
+
+------
+struct B
+{
+    A a;
+    this(int x)
+    {
+        if (false) a = 0; // constructor call even if never covered
+        a = x; // error, cannot assign
+    }
+}
+------
+
+$(P Also, member assignments inside loops are never considered constructors,
+even if it can be determined statically that the loop executes at most once.
+Example:)
+
+------
+struct B
+{
+    A a;
+    this(int x)
+    {
+        foreach (i; 0 .. x ? 0 : 1) a = i; // error, cannot assign
+    }
+}
+------
+
+$(P If an exception is thrown at any point from within a constructor,
+destructors are called for all members, in reverse lexical order of their
+declaration. Members that have not been explicitly initialized in the
+constructor will have their `.init` values upon destruction.)
+)
 
         $(P A constructor qualifier allows the object to be constructed with
         that specific qualifier.

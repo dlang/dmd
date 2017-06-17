@@ -889,7 +889,7 @@ import std.stdio;
 writefln("the string is '%s'", str);
 ---------
 
-$(H3 Void Arrays)
+$(H3 $(LNAME2 void_arrays, Void Arrays))
 
     $(P There is a special type of array which acts as a wildcard that can hold
     arrays of any kind, declared as $(D void[]). Void arrays are used for

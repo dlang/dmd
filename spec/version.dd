@@ -109,7 +109,7 @@ else
 ------
 
 $(P The $(D version(unittest)) is satisfied if and only if the code is
-	compiled with unit tests enabled (the $(DDSUBLINK dmd-windows, switch-unittest, $(TT -unittest)) option on $(TT dmd)).
+	compiled with unit tests enabled (the $(DDSUBLINK dmd, switch-unittest, $(TT -unittest)) option on $(TT dmd)).
 	)
 
 
@@ -254,6 +254,8 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
 	$(TROW $(ARGS $(D CRuntime_DigitalMars)) , $(ARGS DigitalMars C runtime))
 	$(TROW $(ARGS $(D CRuntime_Glibc)) , $(ARGS Glibc C runtime))
 	$(TROW $(ARGS $(D CRuntime_Microsoft)) , $(ARGS Microsoft C runtime))
+	$(TROW $(ARGS $(D CRuntime_Musl)) , $(ARGS musl C runtime))
+	$(TROW $(ARGS $(D CRuntime_UClibc)) , $(ARGS uClibc C runtime))
 	$(TROW $(ARGS $(D X86)) , $(ARGS Intel and AMD 32-bit processors))
 	$(TROW $(ARGS $(D X86_64)) , $(ARGS Intel and AMD 64-bit processors))
 	$(TROW $(ARGS $(D ARM)) , $(ARGS The ARM architecture (32-bit) (AArch32 et al)))
@@ -291,7 +293,6 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
 	$(TROW $(ARGS $(D HPPA)) , $(ARGS The HP PA-RISC architecture, 32-bit))
 	$(TROW $(ARGS $(D HPPA64)) , $(ARGS The HP PA-RISC architecture, 64-bit))
 	$(TROW $(ARGS $(D SH)) , $(ARGS The SuperH architecture, 32-bit))
-	$(TROW $(ARGS $(D SH64)) , $(ARGS The SuperH architecture, 64-bit))
 	$(TROW $(ARGS $(D Alpha)) , $(ARGS The Alpha architecture))
 	$(TROW $(ARGS $(D Alpha_SoftFloat)) , $(ARGS The Alpha soft float ABI))
 	$(TROW $(ARGS $(D Alpha_HardFloat)) , $(ARGS The Alpha hard float ABI))
@@ -300,13 +301,13 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
 	$(TROW $(ARGS $(D ELFv1)) , $(ARGS The Executable and Linkable Format v1))
 	$(TROW $(ARGS $(D ELFv2)) , $(ARGS The Executable and Linkable Format v2))
 	$(TROW $(ARGS $(D D_Coverage)) , $(ARGS $(DDLINK code_coverage, Code coverage analysis, Code coverage analysis) instrumentation
-		(command line switch $(DDSUBLINK dmd-windows, switch-cov, $(TT -cov))) is being generated))
+		(command line switch $(DDSUBLINK dmd, switch-cov, $(TT -cov))) is being generated))
 	$(TROW $(ARGS $(D D_Ddoc)) , $(ARGS $(DDLINK spec/ddoc, Embedded Documentation, Ddoc) documentation
-		(command line switch $(DDSUBLINK dmd-windows, switch-D, $(TT -D))) is being generated))
+		(command line switch $(DDSUBLINK dmd, switch-D, $(TT -D))) is being generated))
 	$(TROW $(ARGS $(D D_InlineAsm_X86)) , $(ARGS $(DDLINK spec/iasm, Inline Assembler, Inline assembler) for X86 is implemented))
 	$(TROW $(ARGS $(D D_InlineAsm_X86_64)) , $(ARGS $(DDLINK spec/iasm, Inline Assembler, Inline assembler) for X86-64 is implemented))
 	$(TROW $(ARGS $(D D_LP64)) , $(ARGS $(B Pointers) are 64 bits
-		(command line switch $(DDSUBLINK dmd-windows, switch-m64, $(TT -m64))). (Do not confuse this with C's LP64 model)))
+		(command line switch $(DDSUBLINK dmd, switch-m64, $(TT -m64))). (Do not confuse this with C's LP64 model)))
 	$(TROW $(ARGS $(D D_X32)) , $(ARGS Pointers are 32 bits, but words are still 64 bits (x32 ABI) (This can be defined in parallel to $(D X86_64))))
 	$(TROW $(ARGS $(D D_HardFloat)) , $(ARGS The target hardware has a floating point unit))
 	$(TROW $(ARGS $(D D_SoftFloat)) , $(ARGS The target hardware does not have a floating point unit))
@@ -315,10 +316,10 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
 	$(TROW $(ARGS $(D D_SIMD)) , $(ARGS $(DDLINK spec/simd, simd, Vector extensions) (via $(D __simd)) are supported))
 	$(TROW $(ARGS $(D D_Version2)) , $(ARGS This is a D version 2 compiler))
 	$(TROW $(ARGS $(D D_NoBoundsChecks)) , $(ARGS Array bounds checks are disabled
-		(command line switch $(DDSUBLINK dmd-windows, switch-boundscheck, $(TT -boundscheck=off)))))
+		(command line switch $(DDSUBLINK dmd, switch-boundscheck, $(TT -boundscheck=off)))))
 	$(TROW $(ARGS $(D D_ObjectiveC)) , $(ARGS The target supports interfacing with Objective-C))
 	$(TROW $(ARGS $(D unittest)) , $(ARGS $(DDLINK spec/unittest, Unit Tests, Unit tests) are enabled
-		(command line switch $(DDSUBLINK dmd-windows, switch-unittest, $(TT -unittest)))))
+		(command line switch $(DDSUBLINK dmd, switch-unittest, $(TT -unittest)))))
 	$(TROW $(ARGS $(D assert)) , $(ARGS Checks are being emitted for $(GLINK2 expression, AssertExpression)s))
 	$(TROW $(ARGS $(D none)) , $(ARGS Never defined; used to just disable a section of code))
 	$(TROW $(ARGS $(D all)) , $(ARGS Always defined; used as the opposite of $(D none)))

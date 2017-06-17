@@ -179,7 +179,7 @@ $(GNAME Initializer):
     $(GLINK NonVoidInitializer)
 
 $(GNAME NonVoidInitializer):
-    $(GLINK ExpInitializer):
+    $(GLINK ExpInitializer)
     $(GLINK ArrayInitializer)
     $(GLINK StructInitializer)
 
