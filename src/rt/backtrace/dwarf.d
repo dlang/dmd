@@ -90,7 +90,7 @@ int traceHandlerOpApplyImpl(const void*[] callstack, scope int delegate(ref size
         auto output = buffer[0 .. bufferLength];
         auto pos = i;
         ret = dg(pos, output);
-        if (ret) break;
+        if (ret || symbol == "_Dmain") break;
     }
     return ret;
 }

@@ -18,6 +18,8 @@ struct inotify_event
     uint cookie;
     uint len;
     char[0] name;
+
+    @disable this(this);
 }
 
 enum: uint

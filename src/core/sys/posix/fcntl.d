@@ -679,6 +679,8 @@ else version( CRuntime_Bionic )
 
     int   creat(in char*, mode_t);
     int   open(in char*, int, ...);
+
+    enum AT_FDCWD = -100;
 }
 else
 {

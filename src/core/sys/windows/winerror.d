@@ -2226,7 +2226,7 @@ enum : HRESULT {
 }
 
 
-enum : bool {
+enum : uint {
     SEVERITY_SUCCESS = 0,
     SEVERITY_ERROR   = 1
 }
