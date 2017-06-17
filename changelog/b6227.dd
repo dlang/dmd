@@ -1,5 +1,4 @@
-Comparison that takes into account the enumerated type improves code correctness by
-disallowing comparison of unrelated enumerated types. 
+Comparison of values belonging to different enums is deprecated.
 
 This change does not affect anonymous enumerations.
 
