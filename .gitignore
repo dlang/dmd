@@ -13,6 +13,7 @@ src/dmd.exe
 -.DS_Store
 -trace.def
 -trace.log
+*.lst
 
 # Visual Studio files
 *.exe

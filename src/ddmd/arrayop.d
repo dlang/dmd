@@ -371,7 +371,8 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
                     (t2.ty == Tarray && !t1.equivalent(tb) ||
                      t2.ty != Tarray && !t1.nextOf().equivalent(e.e2.type)))
                 {
-                    // Bugzilla 12780: if A is narrower than B
+                    // https://issues.dlang.org/show_bug.cgi?id=12780
+                    // if A is narrower than B:
                     //  A[] op B[]
                     //  A[] op B
                     buf.writestring("Of");
@@ -382,7 +383,8 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
                     (t1.ty == Tarray && !t2.equivalent(tb) ||
                      t1.ty != Tarray && !t2.nextOf().equivalent(e.e1.type)))
                 {
-                    // Bugzilla 12780: if B is narrower than A:
+                    // https://issues.dlang.org/show_bug.cgi?id=12780
+                    // if B is narrower than A:
                     //  A[] op B[]
                     //  A op B[]
                     buf.writestring("Of");

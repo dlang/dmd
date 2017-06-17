@@ -15,7 +15,7 @@ def clone (repo_url, git_ref = "master") {
 def pipeline
 node {
     dir('dlang/ci') {
-        clone 'https://github.com/Dicebot/dlangci.git', 'master'
+        clone 'https://github.com/dlang/ci.git', 'master'
     }
     pipeline = load 'dlang/ci/pipeline.groovy'
 }

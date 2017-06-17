@@ -217,6 +217,37 @@ S15 ctest15(char x, S15 s, char y) {
 }
 
 
+/**********************************************/
+
+typedef struct S16 {
+  char a[5];
+#ifdef __GNUC__
+  struct __attribute__((packed))
+#else
+  #pragma pack(push, 1)
+  struct
+#endif
+  {
+    char b;
+    int c;
+  };
+#ifndef __GNUC__
+  #pragma pack(pop)
+#endif
+} S16;
+
+S16 ctest16(char x, S16 s, char y) {
+  printf("C sz = %d\n", (int)sizeof(S16));
+  assert(sizeof(S16) == 10);
+  printf("x   = %d\n", (int)x);
+  printf("s.a = %.*s\n", 5, s.a);
+  printf("s.b = %d\n", (int)s.b);
+  printf("s.c = %d\n", s.c);
+  printf("y   = %d\n", (int)y);
+  return s;
+}
+
+
 
 #if __cplusplus
 }

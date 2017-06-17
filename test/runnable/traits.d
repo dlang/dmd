@@ -1514,6 +1514,19 @@ void test12237()
 
 /********************************************************/
 
+void async(ARGS...)(ARGS)
+{
+        static void compute(ARGS)
+        {
+        }
+
+        auto x = __traits(getParameterStorageClasses, compute, 1);
+}
+
+alias test17495 = async!(int, int);
+
+/********************************************************/
+
 int main()
 {
     test1();

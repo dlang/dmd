@@ -34,6 +34,7 @@ import ddmd.opover;
 import ddmd.statement;
 import ddmd.tokens;
 import ddmd.visitor;
+import ddmd.inlinecost;
 
 private:
 
@@ -41,372 +42,6 @@ enum LOG = false;
 enum CANINLINE_LOG = false;
 enum EXPANDINLINE_LOG = false;
 
-enum COST_MAX = 250;
-enum STATEMENT_COST = 0x1000;
-enum STATEMENT_COST_MAX = 250 * STATEMENT_COST;
-
-// STATEMENT_COST be power of 2 and greater than COST_MAX
-static assert((STATEMENT_COST & (STATEMENT_COST - 1)) == 0);
-static assert(STATEMENT_COST > COST_MAX);
-
-bool tooCostly(int cost)
-{
-    return ((cost & (STATEMENT_COST - 1)) >= COST_MAX);
-}
-
-/***********************************************************
- * Compute cost of inlining.
- *
- * Walk trees to determine if inlining can be done, and if so,
- * if it is too complex to be worth inlining or not.
- */
-extern (C++) final class InlineCostVisitor : Visitor
-{
-    alias visit = super.visit;
-public:
-    int nested;
-    bool hasthis;
-    bool hdrscan;       // if inline scan for 'header' content
-    bool allowAlloca;
-    FuncDeclaration fd;
-    int cost;           // zero start for subsequent AST
-
-    extern (D) this()
-    {
-    }
-
-    extern (D) this(InlineCostVisitor icv)
-    {
-        nested = icv.nested;
-        hasthis = icv.hasthis;
-        hdrscan = icv.hdrscan;
-        allowAlloca = icv.allowAlloca;
-        fd = icv.fd;
-    }
-
-    override void visit(Statement s)
-    {
-        //printf("Statement.inlineCost = %d\n", COST_MAX);
-        //printf("%p\n", s.isScopeStatement());
-        //printf("%s\n", s.toChars());
-        cost += COST_MAX; // default is we can't inline it
-    }
-
-    override void visit(ExpStatement s)
-    {
-        expressionInlineCost(s.exp);
-    }
-
-    override void visit(CompoundStatement s)
-    {
-        scope InlineCostVisitor icv = new InlineCostVisitor(this);
-        foreach (i; 0 .. s.statements.dim)
-        {
-            Statement s2 = (*s.statements)[i];
-            if (s2)
-            {
-                /* Specifically allow:
-                 *  if (condition)
-                 *      return exp1;
-                 *  return exp2;
-                 */
-                IfStatement ifs;
-                Statement s3;
-                if ((ifs = s2.isIfStatement()) !is null &&
-                    ifs.ifbody &&
-                    ifs.ifbody.isReturnStatement() &&
-                    !ifs.elsebody &&
-                    i + 1 < s.statements.dim &&
-                    (s3 = (*s.statements)[i + 1]) !is null &&
-                    s3.isReturnStatement()
-                   )
-                {
-                    if (ifs.prm)       // if variables are declared
-                    {
-                        cost = COST_MAX;
-                        return;
-                    }
-                    expressionInlineCost(ifs.condition);
-                    ifs.ifbody.accept(this);
-                    s3.accept(this);
-                }
-                else
-                    s2.accept(icv);
-                if (tooCostly(icv.cost))
-                    break;
-            }
-        }
-        cost += icv.cost;
-    }
-
-    override void visit(UnrolledLoopStatement s)
-    {
-        scope InlineCostVisitor icv = new InlineCostVisitor(this);
-        foreach (s2; *s.statements)
-        {
-            if (s2)
-            {
-                s2.accept(icv);
-                if (tooCostly(icv.cost))
-                    break;
-            }
-        }
-        cost += icv.cost;
-    }
-
-    override void visit(ScopeStatement s)
-    {
-        cost++;
-        if (s.statement)
-            s.statement.accept(this);
-    }
-
-    override void visit(IfStatement s)
-    {
-        /* Can't declare variables inside ?: expressions, so
-         * we cannot inline if a variable is declared.
-         */
-        if (s.prm)
-        {
-            cost = COST_MAX;
-            return;
-        }
-        expressionInlineCost(s.condition);
-        /* Specifically allow:
-         *  if (condition)
-         *      return exp1;
-         *  else
-         *      return exp2;
-         * Otherwise, we can't handle return statements nested in if's.
-         */
-        if (s.elsebody && s.ifbody && s.ifbody.isReturnStatement() && s.elsebody.isReturnStatement())
-        {
-            s.ifbody.accept(this);
-            s.elsebody.accept(this);
-            //printf("cost = %d\n", cost);
-        }
-        else
-        {
-            nested += 1;
-            if (s.ifbody)
-                s.ifbody.accept(this);
-            if (s.elsebody)
-                s.elsebody.accept(this);
-            nested -= 1;
-        }
-        //printf("IfStatement.inlineCost = %d\n", cost);
-    }
-
-    override void visit(ReturnStatement s)
-    {
-        // Can't handle return statements nested in if's
-        if (nested)
-        {
-            cost = COST_MAX;
-        }
-        else
-        {
-            expressionInlineCost(s.exp);
-        }
-    }
-
-    override void visit(ImportStatement s)
-    {
-    }
-
-    override void visit(ForStatement s)
-    {
-        cost += STATEMENT_COST;
-        if (s._init)
-            s._init.accept(this);
-        if (s.condition)
-            s.condition.accept(this);
-        if (s.increment)
-            s.increment.accept(this);
-        if (s._body)
-            s._body.accept(this);
-        //printf("ForStatement: inlineCost = %d\n", cost);
-    }
-
-    override void visit(ThrowStatement s)
-    {
-        cost += STATEMENT_COST;
-        s.exp.accept(this);
-    }
-
-    /* -------------------------- */
-    void expressionInlineCost(Expression e)
-    {
-        //printf("expressionInlineCost()\n");
-        //e.print();
-        if (e)
-        {
-            extern (C++) final class LambdaInlineCost : StoppableVisitor
-            {
-                alias visit = super.visit;
-                InlineCostVisitor icv;
-
-            public:
-                extern (D) this(InlineCostVisitor icv)
-                {
-                    this.icv = icv;
-                }
-
-                override void visit(Expression e)
-                {
-                    e.accept(icv);
-                    stop = icv.cost >= COST_MAX;
-                }
-            }
-
-            scope InlineCostVisitor icv = new InlineCostVisitor(this);
-            scope LambdaInlineCost lic = new LambdaInlineCost(icv);
-            walkPostorder(e, lic);
-            cost += icv.cost;
-        }
-    }
-
-    override void visit(Expression e)
-    {
-        cost++;
-    }
-
-    override void visit(VarExp e)
-    {
-        //printf("VarExp.inlineCost3() %s\n", toChars());
-        Type tb = e.type.toBasetype();
-        if (tb.ty == Tstruct)
-        {
-            StructDeclaration sd = (cast(TypeStruct)tb).sym;
-            if (sd.isNested())
-            {
-                /* An inner struct will be nested inside another function hierarchy than where
-                 * we're inlining into, so don't inline it.
-                 * At least not until we figure out how to 'move' the struct to be nested
-                 * locally. Example:
-                 *   struct S(alias pred) { void unused_func(); }
-                 *   void abc() { int w; S!(w) m; }
-                 *   void bar() { abc(); }
-                 */
-                cost = COST_MAX;
-                return;
-            }
-        }
-        FuncDeclaration fd = e.var.isFuncDeclaration();
-        if (fd && fd.isNested()) // see Bugzilla 7199 for test case
-            cost = COST_MAX;
-        else
-            cost++;
-    }
-
-    override void visit(ThisExp e)
-    {
-        //printf("ThisExp.inlineCost3() %s\n", toChars());
-        if (!fd)
-        {
-            cost = COST_MAX;
-            return;
-        }
-        if (!hdrscan)
-        {
-            if (fd.isNested() || !hasthis)
-            {
-                cost = COST_MAX;
-                return;
-            }
-        }
-        cost++;
-    }
-
-    override void visit(StructLiteralExp e)
-    {
-        //printf("StructLiteralExp.inlineCost3() %s\n", toChars());
-        if (e.sd.isNested())
-            cost = COST_MAX;
-        else
-            cost++;
-    }
-
-    override void visit(NewExp e)
-    {
-        //printf("NewExp.inlineCost3() %s\n", e.toChars());
-        AggregateDeclaration ad = isAggregate(e.newtype);
-        if (ad && ad.isNested())
-            cost = COST_MAX;
-        else
-            cost++;
-    }
-
-    override void visit(FuncExp e)
-    {
-        //printf("FuncExp.inlineCost3()\n");
-        // Right now, this makes the function be output to the .obj file twice.
-        cost = COST_MAX;
-    }
-
-    override void visit(DelegateExp e)
-    {
-        //printf("DelegateExp.inlineCost3()\n");
-        cost = COST_MAX;
-    }
-
-    override void visit(DeclarationExp e)
-    {
-        //printf("DeclarationExp.inlineCost3()\n");
-        VarDeclaration vd = e.declaration.isVarDeclaration();
-        if (vd)
-        {
-            TupleDeclaration td = vd.toAlias().isTupleDeclaration();
-            if (td)
-            {
-                cost = COST_MAX; // finish DeclarationExp.doInlineAs
-                return;
-            }
-            if (!hdrscan && vd.isDataseg())
-            {
-                cost = COST_MAX;
-                return;
-            }
-            if (vd.edtor)
-            {
-                // if destructor required
-                // needs work to make this work
-                cost = COST_MAX;
-                return;
-            }
-            // Scan initializer (vd.init)
-            if (vd._init)
-            {
-                ExpInitializer ie = vd._init.isExpInitializer();
-                if (ie)
-                {
-                    expressionInlineCost(ie.exp);
-                }
-            }
-            cost += 1;
-        }
-        // These can contain functions, which when copied, get output twice.
-        if (e.declaration.isStructDeclaration() || e.declaration.isClassDeclaration() || e.declaration.isFuncDeclaration() || e.declaration.isAttribDeclaration() || e.declaration.isTemplateMixin())
-        {
-            cost = COST_MAX;
-            return;
-        }
-        //printf("DeclarationExp.inlineCost3('%s')\n", toChars());
-    }
-
-    override void visit(CallExp e)
-    {
-        //printf("CallExp.inlineCost3() %s\n", toChars());
-        // Bugzilla 3500: super.func() calls must be devirtualized, and the inliner
-        // can't handle that at present.
-        if (e.e1.op == TOKdotvar && (cast(DotVarExp)e.e1).e1.op == TOKsuper)
-            cost = COST_MAX;
-        else if (e.f && e.f.ident == Id.__alloca && e.f.linkage == LINKc && !allowAlloca)
-            cost = COST_MAX; // inlining alloca may cause stack overflows
-        else
-            cost++;
-    }
-}
 
 /***********************************************************
  * Represent a context to inline statements and expressions.
@@ -642,10 +277,20 @@ public:
         ids.foundReturn = true;
 
         auto exp = doInlineAs!Expression(s.exp, ids);
-        if (!exp) // Bugzilla 14560: 'return' must not leave in the expand result
+        if (!exp) // https://issues.dlang.org/show_bug.cgi?id=14560
+                  // 'return' must not leave in the expand result
             return;
         static if (asStatements)
-            result = new ReturnStatement(s.loc, exp);
+        {
+            /* Any return statement should be the last statement in the function being
+             * inlined, otherwise things shouldn't have gotten this far. Since the
+             * return value is being ignored (otherwise it wouldn't be inlined as a statement)
+             * we only need to evaluate `exp` for side effects.
+             * Already disallowed this if `exp` produces an object that needs destruction -
+             * an enhancement would be to do the destruction here.
+             */
+            result = new ExpStatement(s.loc, exp);
+        }
         else
             result = exp;
     }
@@ -1439,7 +1084,7 @@ public:
 
     override void visit(DeclarationExp e)
     {
-        //printf("DeclarationExp.inlineScan()\n");
+        //printf("DeclarationExp.inlineScan() %s\n", e.toChars());
         scanVar(e.declaration);
     }
 
@@ -1888,18 +1533,48 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
         if (tf.varargs == 1)
             goto Lno;
 
+        /* No lazy parameters when inlining by statement, as the inliner tries to
+         * operate on the created delegate itself rather than the return value.
+         * Discussion: https://github.com/dlang/dmd/pull/6815
+         */
+        if (statementsToo && fd.parameters)
+        {
+            foreach (param; *fd.parameters)
+            {
+                if (param.storage_class & STClazy)
+                    goto Lno;
+            }
+        }
+
+        static bool hasDtor(Type t)
+        {
+            auto tv = t.baseElemOf();
+            return tv.ty == Tstruct || tv.ty == Tclass; // for now assume these might have a destructor
+        }
+
         /* Don't inline a function that returns non-void, but has
          * no return expression.
-         * No statement inlining for non-voids.
+         * When inlining as a statement:
+         * 1. don't inline array operations, because the order the arguments
+         *    get evaluated gets reversed. This is the same issue that e2ir.callfunc()
+         *    has with them
+         * 2. don't inline when the return value has a destructor, as it doesn't
+         *    get handled properly
          */
         if (tf.next && tf.next.ty != Tvoid &&
-            (!(fd.hasReturnExp & 1) || statementsToo) &&
+            (!(fd.hasReturnExp & 1) ||
+             statementsToo && (fd.isArrayOp || hasDtor(tf.next))) &&
             !hdrscan)
         {
+            static if (CANINLINE_LOG)
+            {
+                printf("\t3: no %s\n", fd.toChars());
+            }
             goto Lno;
         }
 
-        /* Bugzilla 14560: If fd returns void, all explicit `return;`s
+        /* https://issues.dlang.org/show_bug.cgi?id=14560
+         * If fd returns void, all explicit `return;`s
          * must not appear in the expanded result.
          * See also ReturnStatement.doInlineAs!Statement().
          */
@@ -1923,16 +1598,15 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
                      fd.hasNestedFrameRefs() ||
                      (fd.isVirtual() && !fd.isFinalFunc())))
     {
+        static if (CANINLINE_LOG)
+        {
+            printf("\t4: no %s\n", fd.toChars());
+        }
         goto Lno;
     }
 
     {
-        scope InlineCostVisitor icv = new InlineCostVisitor();
-        icv.hasthis = hasthis;
-        icv.fd = fd;
-        icv.hdrscan = hdrscan;
-        fd.fbody.accept(icv);
-        cost = icv.cost;
+        cost = inlineCostFunction(fd, hasthis, hdrscan);
     }
     static if (CANINLINE_LOG)
     {
@@ -1958,12 +1632,7 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
         if (fd.inlineStatusExp == ILSuninitialized)
         {
             // Need to redo cost computation, as some statements or expressions have been inlined
-            scope InlineCostVisitor icv = new InlineCostVisitor();
-            icv.hasthis = hasthis;
-            icv.fd = fd;
-            icv.hdrscan = hdrscan;
-            fd.fbody.accept(icv);
-            cost = icv.cost;
+            cost = inlineCostFunction(fd, hasthis, hdrscan);
             static if (CANINLINE_LOG)
             {
                 printf("recomputed cost = %d for %s\n", cost, fd.toChars());
@@ -2042,7 +1711,7 @@ public void inlineScanModule(Module m)
  *      callLoc = location of CallExp
  *      fd = function to expand
  *      parent = function that the call to fd is being expanded into
- *      eret = expression describing the lvalue of where the return value goes
+ *      eret = if !null then the lvalue of where the nrvo return value goes
  *      ethis = 'this' reference
  *      arguments = arguments passed to fd
  *      asStatements = expand to Statements rather than Expressions
@@ -2051,7 +1720,7 @@ public void inlineScanModule(Module m)
  *      again = if true, then fd can be inline scanned again because there may be
  *           more opportunities for inlining
  */
-void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expression eret,
+private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expression eret,
         Expression ethis, Expressions* arguments, bool asStatements,
         out Expression eresult, out Statement sresult, out bool again)
 {
@@ -2283,24 +1952,26 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
         //e.print();
         //e.print();
 
-        // Bugzilla 11322:
+        // https://issues.dlang.org/show_bug.cgi?id=11322
         if (tf.isref)
             e = e.toLvalue(null, null);
 
-        /* There's a problem if what the function returns is used subsequently as an
+        /* If the inlined function returns a copy of a struct,
+         * and then the return value is used subsequently as an
          * lvalue, as in a struct return that is then used as a 'this'.
-         * If we take the address of the return value, we will be taking the address
+         * Taking the address of the return value will be taking the address
          * of the original, not the copy. Fix this by assigning the return value to
          * a temporary, then returning the temporary. If the temporary is used as an
          * lvalue, it will work.
          * This only happens with struct returns.
-         * See Bugzilla 2127 for an example.
+         * See https://issues.dlang.org/show_bug.cgi?id=2127 for an example.
          *
          * On constructor call making __inlineretval is merely redundant, because
          * the returned reference is exactly same as vthis, and the 'this' variable
          * already exists at the caller side.
          */
-        if (tf.next.ty == Tstruct && !fd.nrvo_var && !fd.isCtorDeclaration())
+        if (tf.next.ty == Tstruct && !fd.nrvo_var && !fd.isCtorDeclaration() &&
+            !isConstruction(e))
         {
             /* Generate a new variable to hold the result and initialize it with the
              * inlined body of the function:
@@ -2326,7 +1997,7 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
             //fprintf(stderr, "CallExp.inlineScan: e = "); e.print();
         }
 
-        // Bugzilla 15210
+        // https://issues.dlang.org/show_bug.cgi?id=15210
         if (tf.next.ty == Tvoid && e && e.type.ty != Tvoid)
         {
             e = new CastExp(callLoc, e, Type.tvoid);
@@ -2348,6 +2019,46 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
     parent.inlineStatusExp = ILSuninitialized;
 }
 
+/****************************************************
+ * Determine if the value of `e` is the result of construction.
+ *
+ * Params:
+ *      e = expression to check
+ * Returns:
+ *      true for value generated by a constructor or struct literal
+ */
+private bool isConstruction(Expression e)
+{
+    while (e.op == TOKcomma)
+        e = (cast(CommaExp)e).e2;
+
+    if (e.op == TOKstructliteral)
+    {
+        return true;
+    }
+    /* Detect:
+     *    structliteral.ctor(args)
+     */
+    else if (e.op == TOKcall)
+    {
+        auto ce = cast(CallExp)e;
+        if (ce.e1.op == TOKdotvar)
+        {
+            auto dve = cast(DotVarExp)ce.e1;
+            auto fd = dve.var.isFuncDeclaration();
+            if (fd && fd.isCtorDeclaration())
+            {
+                if (dve.e1.op == TOKstructliteral)
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+
 /***********************************************************
  * Perform the "inline copying" of a default argument for a function parameter.
  *
@@ -2357,7 +2068,8 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
  */
 public Expression inlineCopy(Expression e, Scope* sc)
 {
-    /* See Bugzilla 2935 for explanation of why just a copy() is broken
+    /* See https://issues.dlang.org/show_bug.cgi?id=2935
+     * for explanation of why just a copy() is broken
      */
     //return e.copy();
     if (e.op == TOKdelegate)
@@ -2365,17 +2077,13 @@ public Expression inlineCopy(Expression e, Scope* sc)
         DelegateExp de = cast(DelegateExp)e;
         if (de.func.isNested())
         {
-            /* See Bugzilla 4820
+            /* https://issues.dlang.org/show_bug.cgi?id=4820
              * Defer checking until later if we actually need the 'this' pointer
              */
             return de.copy();
         }
     }
-    scope InlineCostVisitor icv = new InlineCostVisitor();
-    icv.hdrscan = 1;
-    icv.allowAlloca = true;
-    icv.expressionInlineCost(e);
-    int cost = icv.cost;
+    int cost = inlineCostExpression(e);
     if (cost >= COST_MAX)
     {
         e.error("cannot inline default argument %s", e.toChars());

@@ -3,7 +3,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_casting.d(12): Error: cannot cast expression x of type short[2] to int[2] because of different sizes
+fail_compilation/fail_casting.d(12): Error: cannot cast expression `x` of type `short[2]` to `int[2]` because of different sizes
 ---
 */
 void test3133()
@@ -15,10 +15,10 @@ void test3133()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_casting.d(28): Error: cannot cast expression null of type typeof(null) to S1
-fail_compilation/fail_casting.d(29): Error: cannot cast expression null of type typeof(null) to S2
-fail_compilation/fail_casting.d(30): Error: cannot cast expression s1 of type S1 to typeof(null)
-fail_compilation/fail_casting.d(31): Error: cannot cast expression s2 of type S2 to typeof(null)
+fail_compilation/fail_casting.d(28): Error: cannot cast expression `null` of type `typeof(null)` to `S1`
+fail_compilation/fail_casting.d(29): Error: cannot cast expression `null` of type `typeof(null)` to `S2`
+fail_compilation/fail_casting.d(30): Error: cannot cast expression `s1` of type `S1` to `typeof(null)`
+fail_compilation/fail_casting.d(31): Error: cannot cast expression `s2` of type `S2` to `typeof(null)`
 ---
 */
 void test9904()
@@ -34,10 +34,10 @@ void test9904()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_casting.d(46): Error: cannot cast expression x of type Object[] to object.Object
-fail_compilation/fail_casting.d(47): Error: cannot cast expression x of type Object[2] to object.Object
-fail_compilation/fail_casting.d(49): Error: cannot cast expression x of type object.Object to Object[]
-fail_compilation/fail_casting.d(50): Error: cannot cast expression x of type object.Object to Object[2]
+fail_compilation/fail_casting.d(46): Error: cannot cast expression `x` of type `Object[]` to `object.Object`
+fail_compilation/fail_casting.d(47): Error: cannot cast expression `x` of type `Object[2]` to `object.Object`
+fail_compilation/fail_casting.d(49): Error: cannot cast expression `x` of type `object.Object` to `Object[]`
+fail_compilation/fail_casting.d(50): Error: cannot cast expression `x` of type `object.Object` to `Object[2]`
 ---
 */
 void test10646()
@@ -53,14 +53,14 @@ void test10646()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_casting.d(69): Error: cannot cast expression x of type int[1] to int
-fail_compilation/fail_casting.d(70): Error: cannot cast expression x of type int to int[1]
-fail_compilation/fail_casting.d(71): Error: cannot cast expression x of type float[1] to int
-fail_compilation/fail_casting.d(72): Error: cannot cast expression x of type int to float[1]
-fail_compilation/fail_casting.d(75): Error: cannot cast expression x of type int[] to int
-fail_compilation/fail_casting.d(76): Error: cannot cast expression x of type int to int[]
-fail_compilation/fail_casting.d(77): Error: cannot cast expression x of type float[] to int
-fail_compilation/fail_casting.d(78): Error: cannot cast expression x of type int to float[]
+fail_compilation/fail_casting.d(69): Error: cannot cast expression `x` of type `int[1]` to `int`
+fail_compilation/fail_casting.d(70): Error: cannot cast expression `x` of type `int` to `int[1]`
+fail_compilation/fail_casting.d(71): Error: cannot cast expression `x` of type `float[1]` to `int`
+fail_compilation/fail_casting.d(72): Error: cannot cast expression `x` of type `int` to `float[1]`
+fail_compilation/fail_casting.d(75): Error: cannot cast expression `x` of type `int[]` to `int`
+fail_compilation/fail_casting.d(76): Error: cannot cast expression `x` of type `int` to `int[]`
+fail_compilation/fail_casting.d(77): Error: cannot cast expression `x` of type `float[]` to `int`
+fail_compilation/fail_casting.d(78): Error: cannot cast expression `x` of type `int` to `float[]`
 ---
 */
 void test11484()
@@ -81,10 +81,10 @@ void test11484()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_casting.d(97): Error: cannot cast expression x of type int to fail_casting.test11485.C
-fail_compilation/fail_casting.d(98): Error: cannot cast expression x of type int to fail_casting.test11485.I
-fail_compilation/fail_casting.d(101): Error: cannot cast expression x of type fail_casting.test11485.C to int
-fail_compilation/fail_casting.d(102): Error: cannot cast expression x of type fail_casting.test11485.I to int
+fail_compilation/fail_casting.d(97): Error: cannot cast expression `x` of type `int` to `fail_casting.test11485.C`
+fail_compilation/fail_casting.d(98): Error: cannot cast expression `x` of type `int` to `fail_casting.test11485.I`
+fail_compilation/fail_casting.d(101): Error: cannot cast expression `x` of type `fail_casting.test11485.C` to `int`
+fail_compilation/fail_casting.d(102): Error: cannot cast expression `x` of type `fail_casting.test11485.I` to `int`
 ---
 */
 
@@ -105,8 +105,8 @@ void test11485()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_casting.d(114): Error: cannot cast expression x of type typeof(null) to int[2]
-fail_compilation/fail_casting.d(115): Error: cannot cast expression x of type int[2] to typeof(null)
+fail_compilation/fail_casting.d(114): Error: cannot cast expression `x` of type `typeof(null)` to `int[2]`
+fail_compilation/fail_casting.d(115): Error: cannot cast expression `x` of type `int[2]` to `typeof(null)`
 ---
 */
 void test8179()
@@ -118,8 +118,8 @@ void test8179()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_casting.d(128): Error: cannot cast expression x of type S to int*
-fail_compilation/fail_casting.d(130): Error: cannot cast expression x of type void* to S
+fail_compilation/fail_casting.d(128): Error: cannot cast expression `x` of type `S` to `int*`
+fail_compilation/fail_casting.d(130): Error: cannot cast expression `x` of type `void*` to `S`
 ---
 */
 void test13959()
@@ -133,7 +133,7 @@ void test13959()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_casting.d(144): Error: cannot cast expression mi.x of type int to MyUbyte14154
+fail_compilation/fail_casting.d(144): Error: cannot cast expression `mi.x` of type `int` to `MyUbyte14154`
 ---
 */
 struct MyUbyte14154 { ubyte x; alias x this; }
@@ -147,8 +147,8 @@ void test14154()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_casting.d(179): Error: cannot cast expression __tup$n$.__expand_field_0 of type int to object.Object
-fail_compilation/fail_casting.d(179): Error: cannot cast expression __tup$n$.__expand_field_1 of type int to object.Object
+fail_compilation/fail_casting.d(179): Error: cannot cast expression `__tup$n$.__expand_field_0` of type `int` to `object.Object`
+fail_compilation/fail_casting.d(179): Error: cannot cast expression `__tup$n$.__expand_field_1` of type `int` to `object.Object`
 ---
 */
 alias TypeTuple14093(T...) = T;
@@ -182,8 +182,8 @@ void test14093()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_casting.d(192): Error: cannot cast expression p of type void* to char[]
-fail_compilation/fail_casting.d(193): Error: cannot cast expression p of type void* to char[2]
+fail_compilation/fail_casting.d(192): Error: cannot cast expression `p` of type `void*` to `char[]`
+fail_compilation/fail_casting.d(193): Error: cannot cast expression `p` of type `void*` to `char[2]`
 ---
 */
 void test14596()
@@ -196,12 +196,12 @@ void test14596()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_casting.d(217): Error: cannot cast expression c of type fail_casting.test14629.C to typeof(null)
-fail_compilation/fail_casting.d(218): Error: cannot cast expression p of type int* to typeof(null)
-fail_compilation/fail_casting.d(219): Error: cannot cast expression da of type int[] to typeof(null)
-fail_compilation/fail_casting.d(220): Error: cannot cast expression aa of type int[int] to typeof(null)
-fail_compilation/fail_casting.d(221): Error: cannot cast expression fp of type int function() to typeof(null)
-fail_compilation/fail_casting.d(222): Error: cannot cast expression dg of type int delegate() to typeof(null)
+fail_compilation/fail_casting.d(217): Error: cannot cast expression `c` of type `fail_casting.test14629.C` to `typeof(null)`
+fail_compilation/fail_casting.d(218): Error: cannot cast expression `p` of type `int*` to `typeof(null)`
+fail_compilation/fail_casting.d(219): Error: cannot cast expression `da` of type `int[]` to `typeof(null)`
+fail_compilation/fail_casting.d(220): Error: cannot cast expression `aa` of type `int[int]` to `typeof(null)`
+fail_compilation/fail_casting.d(221): Error: cannot cast expression `fp` of type `int function()` to `typeof(null)`
+fail_compilation/fail_casting.d(222): Error: cannot cast expression `dg` of type `int delegate()` to `typeof(null)`
 ---
 */
 void test14629()

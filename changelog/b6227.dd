@@ -1,0 +1,20 @@
+Comparison of values belonging to different enums is deprecated.
+
+This change does not affect anonymous enumerations.
+
+---
+enum Status
+{
+    good,
+    bad
+}
+enum OtherStatus
+{
+    ok
+    no,
+}
+
+// Deprecated - Even though both good and ok evaluate to 0 they belong to
+// different enumeration types
+static assert(Status.good == OtherStatus.ok);
+---

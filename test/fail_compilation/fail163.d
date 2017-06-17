@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail163.d(11): Error: cannot implicitly convert expression (q) of type const(char)[] to char[]
+fail_compilation/fail163.d(11): Error: cannot implicitly convert expression `q` of type `const(char)[]` to `char[]`
 ---
 */
 void test1()
@@ -14,7 +14,7 @@ void test1()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail163.d(24): Error: cannot implicitly convert expression (p) of type const(int***) to const(int)***
+fail_compilation/fail163.d(24): Error: cannot implicitly convert expression `p` of type `const(int***)` to `const(int)***`
 ---
 */
 void test2()
@@ -40,7 +40,7 @@ void test3()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail163.d(50): Error: cannot implicitly convert expression (cp) of type const(int)***[] to const(uint***)[]
+fail_compilation/fail163.d(50): Error: cannot implicitly convert expression `cp` of type `const(int)***[]` to `const(uint***)[]`
 ---
 */
 void test4()
@@ -66,7 +66,7 @@ void test5()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail163.d(76): Error: cannot implicitly convert expression (& x) of type int* to immutable(int)*
+fail_compilation/fail163.d(76): Error: cannot implicitly convert expression `& x` of type `int*` to `immutable(int)*`
 fail_compilation/fail163.d(77): Error: cannot modify immutable expression *p
 ---
 */
@@ -80,7 +80,7 @@ void test6()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail163.d(89): Error: cannot implicitly convert expression (& x) of type const(int)* to int*
+fail_compilation/fail163.d(89): Error: cannot implicitly convert expression `& x` of type `const(int)*` to `int*`
 ---
 */
 void test7()

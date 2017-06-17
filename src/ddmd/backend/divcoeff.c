@@ -94,7 +94,7 @@ void u128Div(ullong xh, ullong xl, ullong yh, ullong yl, ullong *pqh, ullong *pq
 }
 
 /************************************
- * Implemement Algorithm 6.2: Selection of multiplier and shift count
+ * Implement Algorithm 6.2: Selection of multiplier and shift count
  * Input:
  *      N       32 or 64
  *      d       divisor (must not be 0 or a power of 2)

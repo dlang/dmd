@@ -647,6 +647,10 @@ extern (C++) abstract class Type : RootObject
     /*******************************
      * Covariant means that 'this' can substitute for 't',
      * i.e. a pure function is a match for an impure type.
+     * Params:
+     *      t = type 'this' is covariant with
+     *      pstc = if not null, store STCxxxx which would make it covariant
+     *      fix17349 = enable fix https://issues.dlang.org/show_bug.cgi?id=17349
      * Returns:
      *      0       types are distinct
      *      1       this is covariant with t
@@ -655,7 +659,7 @@ extern (C++) abstract class Type : RootObject
      *      3       cannot determine covariance because of forward references
      *      *pstc   STCxxxx which would make it covariant
      */
-    final int covariant(Type t, StorageClass* pstc = null)
+    final int covariant(Type t, StorageClass* pstc = null, bool fix17349 = true)
     {
         version (none)
         {
@@ -668,7 +672,7 @@ extern (C++) abstract class Type : RootObject
             *pstc = 0;
         StorageClass stc = 0;
 
-        int inoutmismatch = 0;
+        bool notcovariant = false;
 
         TypeFunction t1;
         TypeFunction t2;
@@ -698,9 +702,42 @@ extern (C++) abstract class Type : RootObject
 
                 if (!fparam1.type.equals(fparam2.type))
                 {
+                    if (!fix17349)
+                        goto Ldistinct;
+                    Type tp1 = fparam1.type;
+                    Type tp2 = fparam2.type;
+                    if (tp1.ty == tp2.ty)
+                    {
+                        if (tp1.ty == Tclass)
+                        {
+                            if ((cast(TypeClass)tp1).sym == (cast(TypeClass)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
+                                goto Lcov;
+                        }
+                        else if (tp1.ty == Tstruct)
+                        {
+                            if ((cast(TypeStruct)tp1).sym == (cast(TypeStruct)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
+                                goto Lcov;
+                        }
+                        else if (tp1.ty == Tpointer)
+                        {
+                            if (tp2.implicitConvTo(tp1))
+                                goto Lcov;
+                        }
+                        else if (tp1.ty == Tarray)
+                        {
+                            if (tp2.implicitConvTo(tp1))
+                                goto Lcov;
+                        }
+                        else if (tp1.ty == Tdelegate)
+                        {
+                            if (tp1.implicitConvTo(tp2))
+                                goto Lcov;
+                        }
+                    }
                     goto Ldistinct;
                 }
-                inoutmismatch = !fparam1.isCovariant(t1.isref, fparam2);
+            Lcov:
+                notcovariant |= !fparam1.isCovariant(t1.isref, fparam2);
             }
         }
         else if (t1.parameters != t2.parameters)
@@ -712,7 +749,7 @@ extern (C++) abstract class Type : RootObject
         }
 
         // The argument lists match
-        if (inoutmismatch)
+        if (notcovariant)
             goto Lnotcovariant;
         if (t1.linkage != t2.linkage)
             goto Lnotcovariant;
@@ -738,7 +775,7 @@ extern (C++) abstract class Type : RootObject
 
                 // If t1n is forward referenced:
                 ClassDeclaration cd = (cast(TypeClass)t1n).sym;
-                if (cd._scope)
+                if (cd.semanticRun < PASSsemanticdone)
                     cd.semantic(null);
                 if (!cd.isBaseInfoComplete())
                 {
@@ -2648,7 +2685,8 @@ extern (C++) abstract class Type : RootObject
         }
         if (ident == Id.stringof)
         {
-            /* Bugzilla 3796: this should demangle e.type.deco rather than
+            /* https://issues.dlang.org/show_bug.cgi?id=3796
+             * this should demangle e.type.deco rather than
              * pretty-printing the type.
              */
             const s = e.toChars();
@@ -2688,7 +2726,8 @@ extern (C++) abstract class Type : RootObject
             ident != Id._mangleof &&
             ident != Id.stringof &&
             ident != Id.offsetof &&
-            // Bugzilla 15045: Don't forward special built-in member functions.
+            // https://issues.dlang.org/show_bug.cgi?id=15045
+            // Don't forward special built-in member functions.
             ident != Id.ctor &&
             ident != Id.dtor &&
             ident != Id.__xdtor &&
@@ -3005,7 +3044,8 @@ extern (C++) abstract class Type : RootObject
     }
 
     /*************************************
-     * Bugzilla 14488: Check if the inner most base type is complex or imaginary.
+     * https://issues.dlang.org/show_bug.cgi?id=14488
+     * Check if the inner most base type is complex or imaginary.
      * Should only give alerts when set to emit transitional messages.
      */
     final void checkComplexTransition(Loc loc)
@@ -3074,6 +3114,13 @@ extern (C++) abstract class Type : RootObject
     void accept(Visitor v)
     {
         v.visit(this);
+    }
+
+    final TypeFunction toTypeFunction()
+    {
+        if (ty != Tfunction)
+            assert(0);
+        return cast(TypeFunction)this;
     }
 }
 
@@ -4358,7 +4405,7 @@ extern (C++) final class TypeVector : Type
         }
         TypeSArray t = cast(TypeSArray)basetype;
         int sz = cast(int)t.size(loc);
-        switch (Target.checkVectorType(sz, t.nextOf()))
+        switch (Target.isVectorTypeSupported(sz, t.nextOf()))
         {
         case 0:
             // valid
@@ -4422,7 +4469,8 @@ extern (C++) final class TypeVector : Type
         }
         if (ident == Id._init || ident == Id.offsetof || ident == Id.stringof || ident == Id.__xalignof)
         {
-            // init should return a new VectorExp (Bugzilla 12776)
+            // init should return a new VectorExp
+            // https://issues.dlang.org/show_bug.cgi?id=12776
             // offsetof does not work on a cast expression, so use e directly
             // stringof should not add a cast to the output
             return Type.dotExp(sc, e, ident, flag);
@@ -4524,132 +4572,12 @@ extern (C++) class TypeArray : TypeNext
         {
             printf("TypeArray::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());
         }
-        if (e.op == TOKtype)
-        {
-            if (ident == Id.sort || ident == Id.reverse)
-            {
-                e.error("%s is not an expression", e.toChars());
-                return new ErrorExp();
-            }
-        }
-        if (!n.isMutable())
-        {
-            if (ident == Id.sort || ident == Id.reverse)
-            {
-                error(e.loc, "can only %s a mutable array", ident.toChars());
-                goto Lerror;
-            }
-        }
-        if (ident == Id.reverse && (n.ty == Tchar || n.ty == Twchar))
-        {
-            static __gshared const(char)** reverseName = ["_adReverseChar", "_adReverseWchar"];
-            static __gshared FuncDeclaration* reverseFd = [null, null];
 
-            deprecation(e.loc, "use std.algorithm.reverse instead of .reverse property");
-            int i = n.ty == Twchar;
-            if (!reverseFd[i])
-            {
-                auto params = new Parameters();
-                Type next = n.ty == Twchar ? Type.twchar : Type.tchar;
-                Type arrty = next.arrayOf();
-                params.push(new Parameter(0, arrty, null, null));
-                reverseFd[i] = FuncDeclaration.genCfunc(params, arrty, reverseName[i]);
-            }
+        e = Type.dotExp(sc, e, ident, flag);
 
-            Expression ec = new VarExp(Loc(), reverseFd[i], false);
-            e = e.castTo(sc, n.arrayOf()); // convert to dynamic array
-            auto arguments = new Expressions();
-            arguments.push(e);
-            e = new CallExp(e.loc, ec, arguments);
-            e.type = next.arrayOf();
-        }
-        else if (ident == Id.sort && (n.ty == Tchar || n.ty == Twchar))
-        {
-            static __gshared const(char)** sortName = ["_adSortChar", "_adSortWchar"];
-            static __gshared FuncDeclaration* sortFd = [null, null];
-
-            deprecation(e.loc, "use std.algorithm.sort instead of .sort property");
-            int i = n.ty == Twchar;
-            if (!sortFd[i])
-            {
-                auto params = new Parameters();
-                Type next = n.ty == Twchar ? Type.twchar : Type.tchar;
-                Type arrty = next.arrayOf();
-                params.push(new Parameter(0, arrty, null, null));
-                sortFd[i] = FuncDeclaration.genCfunc(params, arrty, sortName[i]);
-            }
-
-            Expression ec = new VarExp(Loc(), sortFd[i], false);
-            e = e.castTo(sc, n.arrayOf()); // convert to dynamic array
-            auto arguments = new Expressions();
-            arguments.push(e);
-            e = new CallExp(e.loc, ec, arguments);
-            e.type = next.arrayOf();
-        }
-        else if (ident == Id.reverse)
-        {
-            Expression ec;
-            FuncDeclaration fd;
-            Expressions* arguments;
-            dinteger_t size = next.size(e.loc);
-
-            deprecation(e.loc, "use std.algorithm.reverse instead of .reverse property");
-            assert(size);
-
-            static __gshared FuncDeclaration adReverse_fd = null;
-            if (!adReverse_fd)
-            {
-                auto params = new Parameters();
-                params.push(new Parameter(0, Type.tvoid.arrayOf(), null, null));
-                params.push(new Parameter(0, Type.tsize_t, null, null));
-                adReverse_fd = FuncDeclaration.genCfunc(params, Type.tvoid.arrayOf(), Id.adReverse);
-            }
-            fd = adReverse_fd;
-
-            ec = new VarExp(Loc(), fd, false);
-            e = e.castTo(sc, n.arrayOf()); // convert to dynamic array
-            arguments = new Expressions();
-            arguments.push(e);
-            arguments.push(new IntegerExp(Loc(), size, Type.tsize_t));
-            e = new CallExp(e.loc, ec, arguments);
-            e.type = next.mutableOf().arrayOf();
-        }
-        else if (ident == Id.sort)
-        {
-            static __gshared FuncDeclaration fd = null;
-            Expression ec;
-            Expressions* arguments;
-
-            deprecation(e.loc, "use std.algorithm.sort instead of .sort property");
-            if (!fd)
-            {
-                auto params = new Parameters();
-                params.push(new Parameter(0, Type.tvoid.arrayOf(), null, null));
-                params.push(new Parameter(0, Type.dtypeinfo.type, null, null));
-                fd = FuncDeclaration.genCfunc(params, Type.tvoid.arrayOf(), "_adSort");
-            }
-
-            ec = new VarExp(Loc(), fd, false);
-            e = e.castTo(sc, n.arrayOf()); // convert to dynamic array
-            arguments = new Expressions();
-            arguments.push(e);
-            // don't convert to dynamic array
-            Expression tid = new TypeidExp(e.loc, n);
-            tid = tid.semantic(sc);
-            arguments.push(tid);
-            e = new CallExp(e.loc, ec, arguments);
-            e.type = next.arrayOf();
-        }
-        else
-        {
-            e = Type.dotExp(sc, e, ident, flag);
-        }
         if (!(flag & 1) || e)
             e = e.semantic(sc);
         return e;
-
-    Lerror:
-        return new ErrorExp();
     }
 
     override void accept(Visitor v)
@@ -4716,6 +4644,12 @@ extern (C++) final class TypeSArray : TypeArray
     override Type semantic(Loc loc, Scope* sc)
     {
         //printf("TypeSArray::semantic() %s\n", toChars());
+
+        static Type errorReturn()
+        {
+            return Type.terror;
+        }
+
         Type t;
         Expression e;
         Dsymbol s;
@@ -4726,19 +4660,19 @@ extern (C++) final class TypeSArray : TypeArray
             dim = semanticLength(sc, tup, dim);
             dim = dim.ctfeInterpret();
             if (dim.op == TOKerror)
-                return Type.terror;
+                return errorReturn();
             uinteger_t d = dim.toUInteger();
             if (d >= tup.objects.dim)
             {
                 error(loc, "tuple index %llu exceeds %u", d, tup.objects.dim);
-                return Type.terror;
+                return errorReturn();
             }
 
             RootObject o = (*tup.objects)[cast(size_t)d];
             if (o.dyncast() != DYNCAST.type)
             {
                 error(loc, "%s is not a type", toChars());
-                return Type.terror;
+                return errorReturn();
             }
             t = (cast(Type)o).addMod(this.mod);
             return t;
@@ -4746,7 +4680,7 @@ extern (C++) final class TypeSArray : TypeArray
 
         Type tn = next.semantic(loc, sc);
         if (tn.ty == Terror)
-            return terror;
+            return errorReturn();
 
         Type tbn = tn.toBasetype();
         if (dim)
@@ -4754,35 +4688,35 @@ extern (C++) final class TypeSArray : TypeArray
             uint errors = global.errors;
             dim = semanticLength(sc, tbn, dim);
             if (errors != global.errors)
-                goto Lerror;
+                return errorReturn();
 
             dim = dim.optimize(WANTvalue);
             dim = dim.ctfeInterpret();
             if (dim.op == TOKerror)
-                goto Lerror;
+                return errorReturn();
             errors = global.errors;
             dinteger_t d1 = dim.toInteger();
             if (errors != global.errors)
-                goto Lerror;
+                return errorReturn();
 
             dim = dim.implicitCastTo(sc, tsize_t);
             dim = dim.optimize(WANTvalue);
             if (dim.op == TOKerror)
-                goto Lerror;
+                return errorReturn();
             errors = global.errors;
             dinteger_t d2 = dim.toInteger();
             if (errors != global.errors)
-                goto Lerror;
+                return errorReturn();
 
             if (dim.op == TOKerror)
-                goto Lerror;
+                return errorReturn();
 
             if (d1 != d2)
             {
             Loverflow:
                 error(loc, "%s size %llu * %llu exceeds 0x%llx size limit for static array",
                         toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1, Target.maxStaticDataSize);
-                goto Lerror;
+                return errorReturn();
             }
             Type tbx = tbn.baseElemOf();
             if (tbx.ty == Tstruct && !(cast(TypeStruct)tbx).sym.members || tbx.ty == Tenum && !(cast(TypeEnum)tbx).sym.members)
@@ -4812,7 +4746,7 @@ extern (C++) final class TypeSArray : TypeArray
                 if (d >= tt.arguments.dim)
                 {
                     error(loc, "tuple index %llu exceeds %u", d, tt.arguments.dim);
-                    goto Lerror;
+                    return errorReturn();
                 }
                 Type telem = (*tt.arguments)[cast(size_t)d].type;
                 return telem.addMod(this.mod);
@@ -4820,14 +4754,14 @@ extern (C++) final class TypeSArray : TypeArray
         case Tfunction:
         case Tnone:
             error(loc, "can't have array of %s", tbn.toChars());
-            goto Lerror;
+            return errorReturn();
         default:
             break;
         }
         if (tbn.isscope())
         {
             error(loc, "cannot have array of scope %s", tbn.toChars());
-            goto Lerror;
+            return errorReturn();
         }
 
         /* Ensure things like const(immutable(T)[3]) become immutable(T[3])
@@ -4838,9 +4772,6 @@ extern (C++) final class TypeSArray : TypeArray
         t = addMod(tn.mod);
 
         return t.merge();
-
-    Lerror:
-        return Type.terror;
     }
 
     override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
@@ -5445,7 +5376,7 @@ extern (C++) final class TypeAArray : TypeArray
             /* AA's need typeid(index).equals() and getHash(). Issue error if not correctly set up.
              */
             StructDeclaration sd = (cast(TypeStruct)tbase).sym;
-            if (sd._scope)
+            if (sd.semanticRun < PASSsemanticdone)
                 sd.semantic(null);
 
             // duplicate a part of StructDeclaration::semanticTypeInfoMembers
@@ -5507,7 +5438,7 @@ extern (C++) final class TypeAArray : TypeArray
         else if (tbase.ty == Tclass && !(cast(TypeClass)tbase).sym.isInterfaceDeclaration())
         {
             ClassDeclaration cd = (cast(TypeClass)tbase).sym;
-            if (cd._scope)
+            if (cd.semanticRun < PASSsemanticdone)
                 cd.semantic(null);
 
             if (!ClassDeclaration.object)
@@ -5605,14 +5536,14 @@ extern (C++) final class TypeAArray : TypeArray
                 auto fparams = new Parameters();
                 fparams.push(new Parameter(STCin, this, null, null));
                 fd_aaLen = FuncDeclaration.genCfunc(fparams, Type.tsize_t, Id.aaLen);
-                TypeFunction tf = cast(TypeFunction)fd_aaLen.type;
+                TypeFunction tf = fd_aaLen.type.toTypeFunction();
                 tf.purity = PUREconst;
                 tf.isnothrow = true;
                 tf.isnogc = false;
             }
             Expression ev = new VarExp(e.loc, fd_aaLen, false);
             e = new CallExp(e.loc, ev, e);
-            e.type = (cast(TypeFunction)fd_aaLen.type).next;
+            e.type = fd_aaLen.type.toTypeFunction().next;
         }
         else
             e = Type.dotExp(sc, e, ident, flag);
@@ -5795,7 +5726,8 @@ extern (C++) final class TypePointer : TypeNext
                         Type toret = tp.next.nextOf();
                         if (tret.ty == Tclass && toret.ty == Tclass)
                         {
-                            /* Bugzilla 10219: Check covariant interface return with offset tweaking.
+                            /* https://issues.dlang.org/show_bug.cgi?id=10219
+                             * Check covariant interface return with offset tweaking.
                              * interface I {}
                              * class C : Object, I {}
                              * I function() dg = function C() {}    // should be error
@@ -6018,6 +5950,7 @@ extern (C++) final class TypeFunction : TypeNext
     bool isref;                 // true: returns a reference
     bool isreturn;              // true: 'this' is returned by ref
     bool isscope;               // true: 'this' is scope
+    bool isscopeinferred;       // true: 'this' is scope from inference
     LINK linkage;               // calling convention
     TRUST trust;                // level of trust
     PURE purity = PUREimpure;
@@ -6050,6 +5983,8 @@ extern (C++) final class TypeFunction : TypeNext
             this.isreturn = true;
         if (stc & STCscope)
             this.isscope = true;
+        if (stc & STCscopeinferred)
+            this.isscopeinferred = true;
 
         this.trust = TRUSTdefault;
         if (stc & STCsafe)
@@ -6083,6 +6018,7 @@ extern (C++) final class TypeFunction : TypeNext
         t.isref = isref;
         t.isreturn = isreturn;
         t.isscope = isscope;
+        t.isscopeinferred = isscopeinferred;
         t.iswild = iswild;
         t.trust = trust;
         t.fargs = fargs;
@@ -6105,7 +6041,7 @@ extern (C++) final class TypeFunction : TypeNext
          * This can produce redundant copies if inferring return type,
          * as semantic() will get called again on this.
          */
-        TypeFunction tf = cast(TypeFunction)copy();
+        TypeFunction tf = copy().toTypeFunction();
         if (parameters)
         {
             tf.parameters = parameters.copy();
@@ -6129,6 +6065,8 @@ extern (C++) final class TypeFunction : TypeNext
             tf.isreturn = true;
         if (sc.stc & STCscope)
             tf.isscope = true;
+        if (sc.stc & STCscopeinferred)
+            tf.isscopeinferred = true;
 
 //        if (tf.isreturn && !tf.isref)
 //            tf.isscope = true;                                  // return by itself means 'return scope'
@@ -6333,7 +6271,7 @@ extern (C++) final class TypeFunction : TypeNext
                         iz = iz.semantic(argsc, fparam.type, INITnointerpret);
                         e = iz.toExpression();
                     }
-                    if (e.op == TOKfunction) // see Bugzilla 4820
+                    if (e.op == TOKfunction) // https://issues.dlang.org/show_bug.cgi?id=4820
                     {
                         FuncExp fe = cast(FuncExp)e;
                         // Replace function literal with a function symbol,
@@ -6378,7 +6316,8 @@ extern (C++) final class TypeFunction : TypeNext
                         {
                             Parameter narg = (*tt.arguments)[j];
 
-                            // Bugzilla 12744: If the storage classes of narg
+                            // https://issues.dlang.org/show_bug.cgi?id=12744
+                            // If the storage classes of narg
                             // conflict with the ones in fparam, it's ignored.
                             StorageClass stc  = fparam.storageClass | narg.storageClass;
                             StorageClass stc1 = fparam.storageClass & (STCref | STCout | STClazy);
@@ -6423,7 +6362,7 @@ extern (C++) final class TypeFunction : TypeNext
                         }
                         else
                             fparam.storageClass &= ~STCref; // value parameter
-                        fparam.storageClass &= ~STCauto;    // Bugzilla 14656
+                        fparam.storageClass &= ~STCauto;    // https://issues.dlang.org/show_bug.cgi?id=14656
                         fparam.storageClass |= STCautoref;
                     }
                     else
@@ -6699,7 +6638,7 @@ extern (C++) final class TypeFunction : TypeNext
     override Type addStorageClass(StorageClass stc)
     {
         //printf("addStorageClass(%llx) %d\n", stc, (stc & STCscope) != 0);
-        TypeFunction t = cast(TypeFunction)Type.addStorageClass(stc);
+        TypeFunction t = Type.addStorageClass(stc).toTypeFunction();
         if ((stc & STCpure && !t.purity) ||
             (stc & STCnothrow && !t.isnothrow) ||
             (stc & STCnogc && !t.isnogc) ||
@@ -6717,6 +6656,7 @@ extern (C++) final class TypeFunction : TypeNext
             tf.isref = t.isref;
             tf.isreturn = t.isreturn;
             tf.isscope = t.isscope;
+            tf.isscopeinferred = t.isscopeinferred;
             tf.trust = t.trust;
             tf.iswild = t.iswild;
 
@@ -6729,7 +6669,11 @@ extern (C++) final class TypeFunction : TypeNext
             if (stc & STCsafe)
                 tf.trust = TRUSTsafe;
             if (stc & STCscope)
+            {
                 tf.isscope = true;
+                if (stc & STCscopeinferred)
+                    tf.isscopeinferred = true;
+            }
 
             tf.deco = tf.merge().deco;
             t = tf;
@@ -6772,7 +6716,7 @@ extern (C++) final class TypeFunction : TypeNext
         if (res)
             return res;
 
-        if (isscope)
+        if (isscope && !isscopeinferred)
             res = fp(param, "scope");
         if (res)
             return res;
@@ -6829,6 +6773,7 @@ extern (C++) final class TypeFunction : TypeNext
         t.isref = isref;
         t.isreturn = isreturn;
         t.isscope = isscope;
+        t.isscopeinferred = isscopeinferred;
         t.iswild = 0;
         t.trust = trust;
         t.fargs = fargs;
@@ -6963,7 +6908,8 @@ extern (C++) final class TypeFunction : TypeNext
                 // Non-lvalues do not match ref or out parameters
                 if (p.storageClass & (STCref | STCout))
                 {
-                    // Bugzilla 13783: Don't use toBasetype() to handle enum types.
+                    // https://issues.dlang.org/show_bug.cgi?id=13783
+                    // Don't use toBasetype() to handle enum types.
                     Type ta = targ;
                     Type tp = tprm;
                     //printf("fparam[%d] ta = %s, tp = %s\n", u, ta.toChars(), tp.toChars());
@@ -6997,7 +6943,8 @@ extern (C++) final class TypeFunction : TypeNext
                     }
 
                     /* Find most derived alias this type being matched.
-                     * Bugzilla 15674: Allow on both ref and out parameters.
+                     * https://issues.dlang.org/show_bug.cgi?id=15674
+                     * Allow on both ref and out parameters.
                      */
                     while (1)
                     {
@@ -7181,7 +7128,8 @@ extern (C++) final class TypeDelegate : TypeNext
         if (next.ty != Tfunction)
             return terror;
 
-        /* In order to deal with Bugzilla 4028, perhaps default arguments should
+        /* In order to deal with https://issues.dlang.org/show_bug.cgi?id=4028
+         * perhaps default arguments should
          * be removed from next before the merge.
          */
         version (none)
@@ -7209,11 +7157,14 @@ extern (C++) final class TypeDelegate : TypeNext
          *  alias dg_t = void* delegate();
          *  scope dg_t dg = ...;
          */
-        auto n = t.next.addStorageClass(stc & STCscope);
-        if (n != t.next)
+        if(stc & STCscope)
         {
-            t.next = n;
-            t.deco = t.merge().deco;
+            auto n = t.next.addStorageClass(STCscope | STCscopeinferred);
+            if (n != t.next)
+            {
+                t.next = n;
+                t.deco = t.merge().deco; // mangling supposed to not be changed due to STCscopeinferrred
+            }
         }
         return t;
     }
@@ -7245,7 +7196,8 @@ extern (C++) final class TypeDelegate : TypeNext
                 Type toret = (cast(TypeDelegate)to).next.nextOf();
                 if (tret.ty == Tclass && toret.ty == Tclass)
                 {
-                    /* Bugzilla 10219: Check covariant interface return with offset tweaking.
+                    /* https://issues.dlang.org/show_bug.cgi?id=10219
+                     * Check covariant interface return with offset tweaking.
                      * interface I {}
                      * class C : Object, I {}
                      * I delegate() dg = delegate C() {}    // should be error
@@ -7473,12 +7425,12 @@ extern (C++) abstract class TypeQualified : Type
                     break;
 
                 // ... '[type]'
-                case DYNCAST.type:          // Bugzilla 1215
+                case DYNCAST.type:          // https://issues.dlang.org/show_bug.cgi?id=1215
                     e = new ArrayExp(loc, e, new TypeExp(loc, cast(Type)id));
                     break;
 
                 // ... '[expr]'
-                case DYNCAST.expression:    // Bugzilla 1215
+                case DYNCAST.expression:    // https://issues.dlang.org/show_bug.cgi?id=1215
                     e = new ArrayExp(loc, e, cast(Expression)id);
                     break;
 
@@ -7564,7 +7516,8 @@ extern (C++) abstract class TypeQualified : Type
                     if (v.storage_class & (STCconst | STCimmutable | STCmanifest) ||
                         v.type.isConst() || v.type.isImmutable())
                     {
-                        // Bugzilla 13087: this.field is not constant always
+                        // https://issues.dlang.org/show_bug.cgi?id=13087
+                        // this.field is not constant always
                         if (!v.isThisDeclaration())
                             goto L3;
                     }
@@ -7653,7 +7606,7 @@ extern (C++) abstract class TypeQualified : Type
                 if (!v.type ||
                     !v.type.deco && v.inuse)
                 {
-                    if (v.inuse) // Bugzilla 9494
+                    if (v.inuse) // https://issues.dlang.org/show_bug.cgi?id=9494
                         error(loc, "circular reference to %s '%s'", v.kind(), v.toPrettyChars());
                     else
                         error(loc, "forward reference to %s '%s'", v.kind(), v.toPrettyChars());
@@ -7721,9 +7674,9 @@ extern (C++) abstract class TypeQualified : Type
                 auto id = new Identifier(p);
                 s = sc.search_correct(id);
                 if (s)
-                    error(loc, "undefined identifier '%s', did you mean %s '%s'?", p, s.kind(), s.toChars());
+                    error(loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s.kind(), s.toChars());
                 else
-                    error(loc, "undefined identifier '%s'", p);
+                    error(loc, "undefined identifier `%s`", p);
             }
             *pt = Type.terror;
         }
@@ -8027,7 +7980,7 @@ extern (C++) final class TypeTypeof : TypeQualified
         }
         inuse++;
 
-        /* Currently we cannot evalute 'exp' in speculative context, because
+        /* Currently we cannot evaluate 'exp' in speculative context, because
          * the type implementation may leak to the final execution. Consider:
          *
          * struct S(T) {
@@ -8333,7 +8286,7 @@ extern (C++) final class TypeStruct : Type
         }
         assert(e.op != TOKdot);
 
-        // Bugzilla 14010
+        // https://issues.dlang.org/show_bug.cgi?id=14010
         if (ident == Id._mangleof)
             return getProperty(e.loc, ident, flag & 1);
 
@@ -8424,7 +8377,7 @@ extern (C++) final class TypeStruct : Type
             if (!v.type ||
                 !v.type.deco && v.inuse)
             {
-                if (v.inuse) // Bugzilla 9494
+                if (v.inuse) // https://issues.dlang.org/show_bug.cgi?id=9494
                     e.error("circular reference to %s '%s'", v.kind(), v.toPrettyChars());
                 else
                     e.error("forward reference to %s '%s'", v.kind(), v.toPrettyChars());
@@ -8535,8 +8488,8 @@ extern (C++) final class TypeStruct : Type
                     return e;
                 }
             }
-            if (d.semanticRun == PASSinit && d._scope)
-                d.semantic(d._scope);
+            if (d.semanticRun == PASSinit)
+                d.semantic(null);
             checkAccess(e.loc, sc, e, d);
             auto ve = new VarExp(e.loc, d);
             if (d.isVarDeclaration() && d.needThis())
@@ -8576,7 +8529,7 @@ extern (C++) final class TypeStruct : Type
         Declaration d = new SymbolDeclaration(sym.loc, sym);
         assert(d);
         d.type = this;
-        d.storage_class |= STCrvalue; // Bugzilla 14398
+        d.storage_class |= STCrvalue; // https://issues.dlang.org/show_bug.cgi?id=14398
         return new VarExp(sym.loc, d);
     }
 
@@ -8889,12 +8842,12 @@ extern (C++) final class TypeEnum : Type
         {
             printf("TypeEnum::dotExp(e = '%s', ident = '%s') '%s'\n", e.toChars(), ident.toChars(), toChars());
         }
-        // Bugzilla 14010
+        // https://issues.dlang.org/show_bug.cgi?id=14010
         if (ident == Id._mangleof)
             return getProperty(e.loc, ident, flag & 1);
 
-        if (sym._scope)
-            sym.semantic(sym._scope);
+        if (sym.semanticRun < PASSsemanticdone)
+            sym.semantic(null);
         if (!sym.members)
         {
             if (!(flag & 1))
@@ -9163,7 +9116,7 @@ extern (C++) final class TypeClass : Type
         }
         assert(e.op != TOKdot);
 
-        // Bugzilla 12543
+        // https://issues.dlang.org/show_bug.cgi?id=12543
         if (ident == Id.__sizeof || ident == Id.__xalignof || ident == Id._mangleof)
         {
             return Type.getProperty(e.loc, ident, 0);
@@ -9337,7 +9290,7 @@ extern (C++) final class TypeClass : Type
 
             if (ident == Id.outer && sym.vthis)
             {
-                if (sym.vthis._scope)
+                if (sym.vthis.semanticRun == PASSinit)
                     sym.vthis.semantic(null);
 
                 if (auto cdp = sym.toParent2().isClassDeclaration())
@@ -9347,7 +9300,8 @@ extern (C++) final class TypeClass : Type
                     return dve;
                 }
 
-                /* Bugzilla 15839: Find closest parent class through nested functions.
+                /* https://issues.dlang.org/show_bug.cgi?id=15839
+                 * Find closest parent class through nested functions.
                  */
                 for (auto p = sym.toParent2(); p; p = p.toParent2())
                 {
@@ -9399,7 +9353,7 @@ extern (C++) final class TypeClass : Type
             if (!v.type ||
                 !v.type.deco && v.inuse)
             {
-                if (v.inuse) // Bugzilla 9494
+                if (v.inuse) // https://issues.dlang.org/show_bug.cgi?id=9494
                     e.error("circular reference to %s '%s'", v.kind(), v.toPrettyChars());
                 else
                     e.error("forward reference to %s '%s'", v.kind(), v.toPrettyChars());
@@ -9527,7 +9481,7 @@ extern (C++) final class TypeClass : Type
                         e1 = new DotVarExp(e.loc, e1, tcd.vthis);
                         e1.type = tcd.vthis.type;
                         e1.type = e1.type.addMod(t.mod);
-                        // Do not call checkNestedRef()
+                        // Do not call ensureStaticLinkTo()
                         //e1 = e1.semantic(sc);
 
                         // Skip up over nested functions, and get the enclosing
@@ -9562,8 +9516,8 @@ extern (C++) final class TypeClass : Type
                 }
             }
             //printf("e = %s, d = %s\n", e.toChars(), d.toChars());
-            if (d.semanticRun == PASSinit && d._scope)
-                d.semantic(d._scope);
+            if (d.semanticRun == PASSinit)
+                d.semantic(null);
             checkAccess(e.loc, sc, e, d);
             auto ve = new VarExp(e.loc, d);
             if (d.isVarDeclaration() && d.needThis())
@@ -9614,9 +9568,9 @@ extern (C++) final class TypeClass : Type
         if (cdto)
         {
             //printf("TypeClass::implicitConvTo(to = '%s') %s, isbase = %d %d\n", to.toChars(), toChars(), cdto.isBaseInfoComplete(), sym.isBaseInfoComplete());
-            if (cdto._scope && !cdto.isBaseInfoComplete())
+            if (cdto.semanticRun < PASSsemanticdone && !cdto.isBaseInfoComplete())
                 cdto.semantic(null);
-            if (sym._scope && !sym.isBaseInfoComplete())
+            if (sym.semanticRun < PASSsemanticdone && !sym.isBaseInfoComplete())
                 sym.semantic(null);
             if (cdto.isBaseOf(sym, null) && MODimplicitConv(mod, to.mod))
             {
@@ -10046,6 +10000,7 @@ extern (C++) final class TypeNull : Type
 {
     extern (D) this()
     {
+        //printf("TypeNull %p\n", this);
         super(Tnull);
     }
 
@@ -10146,7 +10101,7 @@ extern (C++) final class Parameter : RootObject
             if (tel.ty == Tdelegate)
             {
                 TypeDelegate td = cast(TypeDelegate)tel;
-                TypeFunction tf = cast(TypeFunction)td.next;
+                TypeFunction tf = td.next.toTypeFunction();
                 if (!tf.varargs && Parameter.dim(tf.parameters) == 0)
                 {
                     return tf.next; // return type of delegate

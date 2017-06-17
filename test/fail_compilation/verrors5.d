@@ -31,10 +31,10 @@ void main()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/verrors5.d(5): Error: undefined identifier 'T'
-fail_compilation/verrors5.d(6): Error: undefined identifier 'T'
-fail_compilation/verrors5.d(7): Error: undefined identifier 'T'
-fail_compilation/verrors5.d(8): Error: undefined identifier 'T'
-fail_compilation/verrors5.d(9): Error: undefined identifier 'T'
+fail_compilation/verrors5.d(5): Error: undefined identifier `T`
+fail_compilation/verrors5.d(6): Error: undefined identifier `T`
+fail_compilation/verrors5.d(7): Error: undefined identifier `T`
+fail_compilation/verrors5.d(8): Error: undefined identifier `T`
+fail_compilation/verrors5.d(9): Error: undefined identifier `T`
 ---
 */

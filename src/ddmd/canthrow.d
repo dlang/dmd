@@ -97,7 +97,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             {
                 if (ne.allocator)
                 {
-                    // Bugzilla 14407
+                    // https://issues.dlang.org/show_bug.cgi?id=14407
                     Type t = ne.allocator.type.toBasetype();
                     if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
                     {

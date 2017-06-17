@@ -575,15 +575,6 @@ void CodeBuilder::genlinnum(Srcpos srcpos)
     gen(&cs);
 }
 
-/******************************
- * Append line number to existing code.
- */
-
-void cgen_linnum(code **pc,Srcpos srcpos)
-{
-    *pc = genlinnum(*pc,srcpos);
-}
-
 /*****************************
  * Prepend line number to existing code.
  */
@@ -713,7 +704,7 @@ void CodeBuilder::genxmmreg(unsigned opcode,unsigned xreg,targ_size_t offset, ty
  * Clean stack after call to codelem().
  */
 
-code *gencodelem(code *c,elem *e,regm_t *pretregs,bool constflag)
+void gencodelem(CodeBuilder& cdb,elem *e,regm_t *pretregs,bool constflag)
 {
     if (e)
     {
@@ -723,12 +714,11 @@ code *gencodelem(code *c,elem *e,regm_t *pretregs,bool constflag)
         stackpushsave = stackpush;
         stackcleansave = cgstate.stackclean;
         cgstate.stackclean = 0;                         // defer cleaning of stack
-        c = cat(c,codelem(e,pretregs,constflag));
+        codelem(cdb,e,pretregs,constflag);
         assert(cgstate.stackclean == 0);
         cgstate.stackclean = stackcleansave;
-        c = genstackclean(c,stackpush - stackpushsave,*pretregs);       // do defered cleaning
+        genstackclean(cdb,stackpush - stackpushsave,*pretregs);       // do defered cleaning
     }
-    return c;
 }
 
 /**********************************
@@ -760,22 +750,23 @@ bool reghasvalue(regm_t regm,targ_size_t value,unsigned *preg)
  */
 
 code *regwithvalue(code *c,regm_t regm,targ_size_t value,unsigned *preg,regm_t flags)
-{   unsigned reg;
-
+{
     //printf("regwithvalue(value = %lld)\n", (long long)value);
+    CodeBuilder cdb;
+    cdb.append(c);
+    unsigned reg;
     if (!preg)
         preg = &reg;
 
-    /* If we don't already have a register with the right value in it   */
+    // If we don't already have a register with the right value in it
     if (!reghasvalue(regm,value,preg))
-    {   regm_t save;
-
-        save = regcon.immed.mval;
-        c = cat(c,allocreg(&regm,preg,TYint));  // allocate register
+    {
+        regm_t save = regcon.immed.mval;
+        allocreg(cdb,&regm,preg,TYint);  // allocate register
         regcon.immed.mval = save;
-        c = movregconst(c,*preg,value,flags);   // store value into reg
+        movregconst(cdb,*preg,value,flags);   // store value into reg
     }
-    return c;
+    return cdb.finish();
 }
 
 /************************

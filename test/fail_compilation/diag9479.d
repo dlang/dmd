@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag9479.d(10): Error: undefined identifier 'something_undefined'
+fail_compilation/diag9479.d(10): Error: undefined identifier `something_undefined`
 ---
 */
 

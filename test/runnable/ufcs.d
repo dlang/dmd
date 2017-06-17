@@ -152,7 +152,6 @@ void test3()
     assert("s"  .init!string()     == 1);
 
     assert([1].sort!"a<b"() == 1);
-    assert([1].sort == [1]);
 
     // templatized properties runs UFCS call.
     assert(1024.max!"a<b" == 1);

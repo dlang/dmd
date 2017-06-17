@@ -10,6 +10,8 @@
 
 module ddmd.irstate;
 
+import ddmd.root.array;
+
 import ddmd.arraytypes;
 import ddmd.backend.type;
 import ddmd.dmodule;
@@ -49,7 +51,7 @@ struct IRState
     Dsymbols* deferToObj;           // array of Dsymbol's to run toObjFile(bool multiobj) on later
     elem* ehidden;                  // transmit hidden pointer to CallExp::toElem()
     Symbol* startaddress;
-    VarDeclarations* varsInScope;   // variables that are in scope that will need destruction later
+    Array!(elem*)* varsInScope;      // variables that are in scope that will need destruction later
     Label*[void*]* labels;          // table of labels used/declared in function
 
     block* breakBlock;

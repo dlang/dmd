@@ -675,7 +675,7 @@ STATIC void local_ambigref()
 }
 
 //////////////////////////////////////
-// Ambigous definition. Remove all with ambiguous refs.
+// Ambiguous definition. Remove all with ambiguous refs.
 //
 
 STATIC void local_ambigdef()

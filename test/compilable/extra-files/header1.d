@@ -93,7 +93,7 @@ template Foo(T, int V)
         break;
     }
 
-        enum Label { A, B, C };
+        enum Label { A, B, C }
         void fswitch(Label l)
         {
             final switch (l)
