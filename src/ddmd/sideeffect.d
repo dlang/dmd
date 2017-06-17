@@ -40,7 +40,8 @@ extern (C++) bool isTrivialExp(Expression e)
 
         override void visit(Expression e)
         {
-            /* Bugzilla 11201: CallExp is always non trivial expression,
+            /* https://issues.dlang.org/show_bug.cgi?id=11201
+             * CallExp is always non trivial expression,
              * especially for inlining.
              */
             if (e.op == TOKcall)
@@ -90,7 +91,8 @@ extern (C++) bool hasSideEffect(Expression e)
  */
 extern (C++) int callSideEffectLevel(FuncDeclaration f)
 {
-    /* Bugzilla 12760: ctor call always has side effects.
+    /* https://issues.dlang.org/show_bug.cgi?id=12760
+     * ctor call always has side effects.
      */
     if (f.isCtorDeclaration())
         return 0;
@@ -235,7 +237,8 @@ extern (C++) bool discardValue(Expression e)
             VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
             if (v && (v.storage_class & STCtemp))
             {
-                // Bugzilla 5810: Don't complain about an internal generated variable.
+                // https://issues.dlang.org/show_bug.cgi?id=5810
+                // Don't complain about an internal generated variable.
                 return false;
             }
             break;
@@ -293,7 +296,9 @@ extern (C++) bool discardValue(Expression e)
     case TOKquestion:
         {
             CondExp ce = cast(CondExp)e;
-            /* Bugzilla 6178 & 14089: Either CondExp::e1 or e2 may have
+            /* https://issues.dlang.org/show_bug.cgi?id=6178
+             * https://issues.dlang.org/show_bug.cgi?id=14089
+             * Either CondExp::e1 or e2 may have
              * redundant expression to make those types common. For example:
              *
              *  struct S { this(int n); int v; alias v this; }
@@ -324,7 +329,7 @@ extern (C++) bool discardValue(Expression e)
             /* Check for compiler-generated code of the form  auto __tmp, e, __tmp;
              * In such cases, only check e for side effect (it's OK for __tmp to have
              * no side effect).
-             * See Bugzilla 4231 for discussion
+             * See https://issues.dlang.org/show_bug.cgi?id=4231 for discussion
              */
             CommaExp firstComma = ce;
             while (firstComma.e1.op == TOKcomma)
@@ -348,7 +353,7 @@ extern (C++) bool discardValue(Expression e)
     default:
         break;
     }
-    e.error("%s has no effect in expression (%s)", Token.toChars(e.op), e.toChars());
+    e.error("`%s` has no effect in expression `%s`", Token.toChars(e.op), e.toChars());
     return true;
 }
 

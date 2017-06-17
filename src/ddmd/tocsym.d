@@ -602,54 +602,6 @@ Symbol *toInitializer(EnumDeclaration ed)
 }
 
 
-/******************************************
- */
-
-Symbol *toModuleAssert(Module m)
-{
-    if (!m.massert)
-    {
-        auto t = type_function(TYjfunc, null, 0, false, tstypes[TYvoid]);
-        t.Tmangle = mTYman_d;
-
-        m.massert = toSymbolX(m, "__assert", SCextern, t, "FiZv");
-        m.massert.Sfl = FLextern;
-        m.massert.Sflags |= SFLnodebug | SFLexit;
-    }
-    return m.massert;
-}
-
-Symbol *toModuleUnittest(Module m)
-{
-    if (!m.munittest)
-    {
-        auto t = type_function(TYjfunc, null, 0, false, tstypes[TYvoid]);
-        t.Tmangle = mTYman_d;
-
-        m.munittest = toSymbolX(m, "__unittest_fail", SCextern, t, "FiZv");
-        m.munittest.Sfl = FLextern;
-        m.munittest.Sflags |= SFLnodebug;
-    }
-    return m.munittest;
-}
-
-/******************************************
- */
-
-Symbol *toModuleArray(Module m)
-{
-    if (!m.marray)
-    {
-        auto t = type_function(TYjfunc, null, 0, false, tstypes[TYvoid]);
-        t.Tmangle = mTYman_d;
-
-        m.marray = toSymbolX(m, "__array", SCextern, t, "Z");
-        m.marray.Sfl = FLextern;
-        m.marray.Sflags |= SFLnodebug | SFLexit;
-    }
-    return m.marray;
-}
-
 /********************************************
  * Determine the right symbol to look up
  * an associative array element.
@@ -777,7 +729,7 @@ Symbol* toSymbolCpp(ClassDeclaration cd)
  */
 Symbol *toSymbolCppTypeInfo(ClassDeclaration cd)
 {
-    const id = cppTypeInfoMangle(cd);
+    const id = Target.cppTypeInfoMangle(cd);
     auto s = symbol_calloc(id, cast(uint)strlen(id));
     s.Sclass = SCextern;
     s.Sfl = FLextern;          // C++ code will provide the definition

@@ -2209,7 +2209,7 @@ elem * evalu8(elem *e, goal_t goal)
             case TYllong4:
             case TYullong4:
                 for (int i = 0; i < 4; ++i)
-                    e->EV.Vullong2[i] = (targ_ullong)l1;
+                    e->EV.Vullong4[i] = (targ_ullong)l1;
                 break;
 
             default:

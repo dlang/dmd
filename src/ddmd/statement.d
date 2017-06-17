@@ -16,6 +16,7 @@ import core.stdc.stdio;
 import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.attrib;
+import ddmd.astcodegen;
 import ddmd.gluelayer;
 import ddmd.canthrow;
 import ddmd.cond;
@@ -86,7 +87,7 @@ Expression checkAssignmentAsCondition(Expression e)
         ec = (cast(CommaExp)ec).e2;
     if (ec.op == TOKassign)
     {
-        ec.error("assignment cannot be used as a condition, perhaps == was meant?");
+        ec.error("assignment cannot be used as a condition, perhaps `==` was meant?");
         return new ErrorExp();
     }
     return e;
@@ -466,7 +467,7 @@ extern (C++) Statement toStatement(Dsymbol s)
 
         override void visit(Dsymbol s)
         {
-            .error(Loc(), "Internal Compiler Error: cannot mixin %s %s\n", s.kind(), s.toChars());
+            .error(Loc(), "Internal Compiler Error: cannot mixin %s `%s`\n", s.kind(), s.toChars());
             result = new ErrorStatement();
         }
 
@@ -643,7 +644,8 @@ extern (C++) class ExpStatement : Statement
 
     override final Statements* flatten(Scope* sc)
     {
-        /* Bugzilla 14243: expand template mixin in statement scope
+        /* https://issues.dlang.org/show_bug.cgi?id=14243
+         * expand template mixin in statement scope
          * to handle variable destructors.
          */
         if (exp && exp.op == TOKdeclaration)
@@ -752,7 +754,7 @@ extern (C++) final class CompileStatement : Statement
         se = se.toUTF8(sc);
 
         uint errors = global.errors;
-        scope Parser p = new Parser(loc, sc._module, se.toStringz(), false);
+        scope p = new Parser!ASTCodegen(loc, sc._module, se.toStringz(), false);
         p.nextToken();
 
         auto a = new Statements();
@@ -786,7 +788,7 @@ extern (C++) class CompoundStatement : Statement
      * array of `Statement`s
      *
      * Params:
-     *   loc = Instantiation informations
+     *   loc = Instantiation information
      *   s   = An array of `Statement`s, that will referenced by this class
      */
     final extern (D) this(Loc loc, Statements* s)
@@ -799,7 +801,7 @@ extern (C++) class CompoundStatement : Statement
      * Construct a `CompoundStatement` from an array of `Statement`s
      *
      * Params:
-     *   loc = Instantiation informations
+     *   loc = Instantiation information
      *   s   = A variadic array of `Statement`s, that will copied in this class
      *         The entries themselves will not be copied.
      */
@@ -1179,7 +1181,7 @@ extern (C++) final class ForeachStatement : Statement
         {
             if (!p.type)
             {
-                error("cannot infer type for %s", p.ident.toChars());
+                error("cannot infer type for `%s`", p.ident.toChars());
                 p.type = Type.terror;
                 result = true;
             }
@@ -1933,6 +1935,7 @@ extern (C++) final class OnScopeStatement : Statement
                  *  sfinally: if (!x) statement;
                  */
                 auto v = copyToTemp(0, "__os", new IntegerExp(Loc(), 0, Type.tbool));
+                v.semantic(sc);
                 *sentry = new ExpStatement(loc, v);
 
                 Expression e = new IntegerExp(Loc(), 1, Type.tbool);
@@ -2046,7 +2049,7 @@ extern (C++) final class GotoStatement : Statement
     {
         if (!label.statement)
         {
-            error("label '%s' is undefined", label.toChars());
+            error("label `%s` is undefined", label.toChars());
             return true;
         }
 
@@ -2059,16 +2062,16 @@ extern (C++) final class GotoStatement : Statement
             else
             {
                 if (label.statement.os)
-                    error("cannot goto in to %s block", Token.toChars(label.statement.os.tok));
+                    error("cannot goto in to `%s` block", Token.toChars(label.statement.os.tok));
                 else
-                    error("cannot goto out of %s block", Token.toChars(os.tok));
+                    error("cannot goto out of `%s` block", Token.toChars(os.tok));
                 return true;
             }
         }
 
         if (label.statement.tf != tf)
         {
-            error("cannot goto in or out of finally block");
+            error("cannot goto in or out of `finally` block");
             return true;
         }
 
@@ -2089,12 +2092,12 @@ extern (C++) final class GotoStatement : Statement
         }
         else if (vd.ident == Id.withSym)
         {
-            error("goto skips declaration of with temporary at %s", vd.loc.toChars());
+            error("`goto` skips declaration of `with` temporary at %s", vd.loc.toChars());
             return true;
         }
         else
         {
-            error("goto skips declaration of variable %s at %s", vd.toPrettyChars(), vd.loc.toChars());
+            error("`goto` skips declaration of variable `%s` at %s", vd.toPrettyChars(), vd.loc.toChars());
             return true;
         }
 

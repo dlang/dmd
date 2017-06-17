@@ -109,7 +109,7 @@ typedef struct
         #define SHT_RESTYPE      10         /* Reserved section type*/
         #define SHT_DYNTAB       11         /* Dynamic linker symbol table */
         #define SHT_GROUP        17         /* Section group (COMDAT) */
-        #define SHT_SYMTAB_SHNDX 18         /* Extended section indeces */
+        #define SHT_SYMTAB_SHNDX 18         /* Extended section indices */
   Elf32_Word   sh_flags;               /* Section attribute flags */
         #define SHF_WRITE       (1 << 0)    /* Writable during execution */
         #define SHF_ALLOC       (1 << 1)    /* In memory during execution */
@@ -406,6 +406,9 @@ typedef struct {
     Elf64_Sxword r_addend;
 } Elf64_Rela;
 
-#define GRP_COMDAT 1
+// Section Group Flags
+#define GRP_COMDAT   1
+#define GRP_MASKOS   0x0ff00000
+#define GRP_MASKPROC 0xf0000000
 
 #endif

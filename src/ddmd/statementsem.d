@@ -263,7 +263,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 return;
             }
 
-            /* Bugzilla 11653: 'semantic' may return another CompoundStatement
+            /* https://issues.dlang.org/show_bug.cgi?id=11653
+             * 'semantic' may return another CompoundStatement
              * (eg. CaseRangeStatement), so flatten it here.
              */
             Statements* flt = s.flatten(sc);
@@ -510,7 +511,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             (cast(TypeStruct)(fs.aggr.type.toBasetype())).sym.dtor &&
             fs.aggr.op != TOKtype && !fs.aggr.isLvalue())
         {
-            // Bugzilla 14653: Extend the life of rvalue aggregate till the end of foreach.
+            // https://issues.dlang.org/show_bug.cgi?id=14653
+            // Extend the life of rvalue aggregate till the end of foreach.
             vinit = copyToTemp(STCrvalue, "__aggr", fs.aggr);
             vinit.endlinnum = fs.endloc.linnum;
             vinit.semantic(sc);
@@ -524,7 +526,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             {
                 msg = ", define opApply(), range primitives, or use .tupleof";
             }
-            fs.error("invalid foreach aggregate %s%s", oaggr.toChars(), msg);
+            fs.error("invalid foreach aggregate `%s`%s", oaggr.toChars(), msg);
             return setError();
         }
 
@@ -627,7 +629,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     // Declare key
                     if (p.storageClass & (STCout | STCref | STClazy))
                     {
-                        fs.error("no storage class for key %s", p.ident.toChars());
+                        fs.error("no storage class for key `%s`", p.ident.toChars());
                         return setError();
                     }
                     p.type = p.type.semantic(loc, sc);
@@ -638,13 +640,13 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         {
                             if (keyty != Tint64 && keyty != Tuns64)
                             {
-                                fs.error("foreach: key type must be int or uint, long or ulong, not %s", p.type.toChars());
+                                fs.error("foreach: key type must be int or uint, long or ulong, not `%s`", p.type.toChars());
                                 return setError();
                             }
                         }
                         else
                         {
-                            fs.error("foreach: key type must be int or uint, not %s", p.type.toChars());
+                            fs.error("foreach: key type must be int or uint, not `%s`", p.type.toChars());
                             return setError();
                         }
                     }
@@ -658,7 +660,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 if (p.storageClass & (STCout | STClazy) ||
                     p.storageClass & STCref && !te)
                 {
-                    fs.error("no storage class for value %s", p.ident.toChars());
+                    fs.error("no storage class for value `%s`", p.ident.toChars());
                     return setError();
                 }
                 Dsymbol var;
@@ -683,12 +685,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         var = new AliasDeclaration(loc, p.ident, ds);
                         if (p.storageClass & STCref)
                         {
-                            fs.error("symbol %s cannot be ref", s.toChars());
+                            fs.error("symbol `%s` cannot be ref", s.toChars());
                             return setError();
                         }
                         if (paramtype)
                         {
-                            fs.error("cannot specify element type for symbol %s", ds.toChars());
+                            fs.error("cannot specify element type for symbol `%s`", ds.toChars());
                             return setError();
                         }
                     }
@@ -697,7 +699,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         var = new AliasDeclaration(loc, p.ident, e.type);
                         if (paramtype)
                         {
-                            fs.error("cannot specify element type for type %s", e.type.toChars());
+                            fs.error("cannot specify element type for type `%s`", e.type.toChars());
                             return setError();
                         }
                     }
@@ -717,7 +719,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         {
                             if (v.storage_class & STCref)
                             {
-                                fs.error("constant value %s cannot be ref", ie.toChars());
+                                fs.error("constant value `%s` cannot be ref", ie.toChars());
                                 return setError();
                             }
                             else
@@ -731,7 +733,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     var = new AliasDeclaration(loc, p.ident, t);
                     if (paramtype)
                     {
-                        fs.error("cannot specify element type for symbol %s", s.toChars());
+                        fs.error("cannot specify element type for symbol `%s`", s.toChars());
                         return setError();
                     }
                 }
@@ -831,7 +833,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         {
                             if (var.type.constConv(p.type) <= MATCHnomatch)
                             {
-                                fs.error("key type mismatch, %s to ref %s",
+                                fs.error("key type mismatch, `%s` to `ref %s`",
                                     var.type.toChars(), p.type.toChars());
                                 goto case Terror;
                             }
@@ -842,7 +844,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             IntRange dimrange = getIntRange(ta.dim);
                             if (!IntRange.fromType(var.type).contains(dimrange))
                             {
-                                fs.error("index type '%s' cannot cover index range 0..%llu",
+                                fs.error("index type `%s` cannot cover index range 0..%llu",
                                     p.type.toChars(), ta.dim.toInteger());
                                 goto case Terror;
                             }
@@ -866,7 +868,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             Type t = tab.nextOf();
                             if (t.constConv(p.type) <= MATCHnomatch)
                             {
-                                fs.error("argument type mismatch, %s to ref %s",
+                                fs.error("argument type mismatch, `%s` to `ref %s`",
                                     t.toChars(), p.type.toChars());
                                 goto case Terror;
                             }
@@ -893,7 +895,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     size_t edim = ale.elements ? ale.elements.dim : 0;
                     auto telem = (*fs.parameters)[dim - 1].type;
 
-                    // Bugzilla 12936: if telem has been specified explicitly,
+                    // https://issues.dlang.org/show_bug.cgi?id=12936
+                    // if telem has been specified explicitly,
                     // converting array literal elements to telem might make it @nogc.
                     fs.aggr = fs.aggr.implicitCastTo(sc, telem.sarrayOf(edim));
                     if (fs.aggr.op == TOKerror)
@@ -977,7 +980,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 fs._body = new CompoundStatement(loc, ds, fs._body);
 
                 s = new ForStatement(loc, forinit, cond, increment, fs._body, fs.endloc);
-                if (auto ls = checkLabeledLoop(sc, fs))   // Bugzilla 15450: don't use sc2
+                if (auto ls = checkLabeledLoop(sc, fs))   // https://issues.dlang.org/show_bug.cgi?id=15450
+                                                          // don't use sc2
                     ls.gotoTarget = s;
                 s = s.semantic(sc2);
                 break;
@@ -1046,6 +1050,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 else
                 {
                     r = copyToTemp(0, "__r", fs.aggr);
+                    r.semantic(sc);
                     _init = new ExpStatement(loc, r);
                     if (vinit)
                         _init = new CompoundStatement(loc, new ExpStatement(loc, vinit), _init);
@@ -1078,6 +1083,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 else
                 {
                     auto vd = copyToTemp(STCref, "__front", einit);
+                    vd.semantic(sc);
                     makeargs = new ExpStatement(loc, vd);
 
                     Type tfront;
@@ -1103,7 +1109,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         tfront = tfront.toBasetype().nextOf();
                     if (tfront.ty == Tvoid)
                     {
-                        fs.error("%s.front is void and has no value", oaggr.toChars());
+                        fs.error("`%s.front` is void and has no value", oaggr.toChars());
                         goto case Terror;
                     }
 
@@ -1235,7 +1241,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         {
                             if (!stc)
                             {
-                                fs.error("foreach: cannot make %s ref", p.ident.toChars());
+                                fs.error("foreach: cannot make `%s` ref", p.ident.toChars());
                                 goto case Terror;
                             }
                             goto LcopyArg;
@@ -1262,7 +1268,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     }
                     params.push(new Parameter(stc, p.type, id, null));
                 }
-                // Bugzilla 13840: Throwable nested function inside nothrow function is acceptable.
+                // https://issues.dlang.org/show_bug.cgi?id=13840
+                // Throwable nested function inside nothrow function is acceptable.
                 StorageClass stc = mergeFuncAttrs(STCsafe | STCpure | STCnogc, fs.func);
                 tfld = new TypeFunction(params, Type.tint32, 0, LINKd, stc);
                 fs.cases = new Statements();
@@ -1307,7 +1314,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         Type ti = (isRef ? taa.index.addMod(MODconst) : taa.index);
                         if (isRef ? !ti.constConv(ta) : !ti.implicitConvTo(ta))
                         {
-                            fs.error("foreach: index must be type %s, not %s",
+                            fs.error("foreach: index must be type `%s`, not `%s`",
                                 ti.toChars(), ta.toChars());
                             goto case Terror;
                         }
@@ -1318,7 +1325,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     Type taav = taa.nextOf();
                     if (isRef ? !taav.constConv(ta) : !taav.implicitConvTo(ta))
                     {
-                        fs.error("foreach: value must be type %s, not %s",
+                        fs.error("foreach: value must be type `%s`, not `%s`",
                             taav.toChars(), ta.toChars());
                         goto case Terror;
                     }
@@ -1435,7 +1442,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                      */
                     if (fs.aggr.op == TOKdelegate && (cast(DelegateExp)fs.aggr).func.isNested())
                     {
-                        // See Bugzilla 3560
+                        // https://issues.dlang.org/show_bug.cgi?id=3560
                         fs.aggr = (cast(DelegateExp)fs.aggr).e1;
                     }
                     ec = new CallExp(loc, fs.aggr, flde);
@@ -1444,7 +1451,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         goto case Terror;
                     if (ec.type != Type.tint32)
                     {
-                        fs.error("opApply() function for %s must return an int", tab.toChars());
+                        fs.error("opApply() function for `%s` must return an int", tab.toChars());
                         goto case Terror;
                     }
                 }
@@ -1480,7 +1487,7 @@ else
                         goto case Terror;
                     if (ec.type != Type.tint32)
                     {
-                        fs.error("opApply() function for %s must return an int", tab.toChars());
+                        fs.error("opApply() function for `%s` must return an int", tab.toChars());
                         goto case Terror;
                     }
                 }
@@ -1489,7 +1496,7 @@ else
                 if (!fs.cases.dim)
                 {
                     // Easy case, a clean exit from the loop
-                    e = new CastExp(loc, e, Type.tvoid); // Bugzilla 13899
+                    e = new CastExp(loc, e, Type.tvoid); // https://issues.dlang.org/show_bug.cgi?id=13899
                     s = new ExpStatement(loc, e);
                 }
                 else
@@ -1521,7 +1528,7 @@ else
             break;
 
         default:
-            fs.error("foreach: %s is not an aggregate type", fs.aggr.type.toChars());
+            fs.error("foreach: `%s` is not an aggregate type", fs.aggr.type.toChars());
             goto case Terror;
         }
         sc2.noctor--;
@@ -1538,7 +1545,7 @@ else
         fs.lwr = fs.lwr.optimize(WANTvalue);
         if (!fs.lwr.type)
         {
-            fs.error("invalid range lower bound %s", fs.lwr.toChars());
+            fs.error("invalid range lower bound `%s`", fs.lwr.toChars());
             return setError();
         }
 
@@ -1547,7 +1554,7 @@ else
         fs.upr = fs.upr.optimize(WANTvalue);
         if (!fs.upr.type)
         {
-            fs.error("invalid range upper bound %s", fs.upr.toChars());
+            fs.error("invalid range upper bound `%s`", fs.upr.toChars());
             return setError();
         }
 
@@ -1701,7 +1708,7 @@ else
         {
             if (fs.key.type.constConv(fs.prm.type) <= MATCHnomatch)
             {
-                fs.error("prmument type mismatch, %s to ref %s", fs.key.type.toChars(), fs.prm.type.toChars());
+                fs.error("argument type mismatch, `%s` to ref `%s`", fs.key.type.toChars(), fs.prm.type.toChars());
                 return setError();
             }
         }
@@ -1906,7 +1913,7 @@ else
                 Dsymbol sa = getDsymbol(e);
                 if (!sa || !sa.isFuncDeclaration())
                 {
-                    ps.error("function name expected for start address, not '%s'", e.toChars());
+                    ps.error("function name expected for start address, not `%s`", e.toChars());
                     return setError();
                 }
                 if (ps._body)
@@ -1937,7 +1944,7 @@ else
                 Expression e = (*ps.args)[0];
                 if (e.op != TOKint64 || !e.type.equals(Type.tbool))
                 {
-                    ps.error("pragma(inline, true or false) expected, not %s", e.toChars());
+                    ps.error("pragma(inline, true or false) expected, not `%s`", e.toChars());
                     return setError();
                 }
 
@@ -1957,7 +1964,7 @@ else
         }
         else
         {
-            ps.error("unrecognized pragma(%s)", ps.ident.toChars());
+            ps.error("unrecognized `pragma(%s)`", ps.ident.toChars());
             return setError();
         }
 
@@ -2022,7 +2029,7 @@ else
 
             if (ss.condition.op != TOKerror)
             {
-                ss.error("'%s' must be of integral or string type, it is a %s",
+                ss.error("`%s` must be of integral or string type, it is a `%s`",
                     ss.condition.toChars(), ss.condition.type.toChars());
                 conditionError = true;
                 break;
@@ -2078,7 +2085,7 @@ else
                     }
                 }
             }
-            gcs.error("case %s not found", gcs.exp.toChars());
+            gcs.error("`case %s` not found", gcs.exp.toChars());
             sc.pop();
             return setError();
         }
@@ -2105,7 +2112,7 @@ else
                             if (cs.exp.equals(em.value) || (!cs.exp.type.isString() && !em.value.type.isString() && cs.exp.toInteger() == em.value.toInteger()))
                                 continue Lmembers;
                         }
-                        ss.error("enum member %s not represented in final switch", em.toChars());
+                        ss.error("enum member `%s` not represented in final switch", em.toChars());
                         sc.pop();
                         return setError();
                     }
@@ -2120,7 +2127,7 @@ else
             ss.hasNoDefault = 1;
 
             if (!ss.isFinal && !ss._body.isErrorStatement())
-                ss.error("switch statement without a default; use 'final switch' or add 'default: assert(0);' or add 'default: break;'");
+                ss.error("switch statement without a default; use `final switch` or add `default: assert(0);` or add `default: break;`");
 
                 // Generate runtime error if the default is hit
             auto a = new Statements();
@@ -2211,7 +2218,7 @@ else
                 cs.exp = se;
             else if (cs.exp.op != TOKint64 && cs.exp.op != TOKerror)
             {
-                cs.error("case must be a string or an integral constant, not %s", cs.exp.toChars());
+                cs.error("case must be a string or an integral constant, not `%s`", cs.exp.toChars());
                 errors = true;
             }
 
@@ -2221,7 +2228,7 @@ else
                 //printf("comparing '%s' with '%s'\n", exp.toChars(), cs.exp.toChars());
                 if (cs2.exp.equals(cs.exp))
                 {
-                    cs.error("duplicate case %s in switch statement", cs.exp.toChars());
+                    cs.error("duplicate `case %s` in switch statement", cs.exp.toChars());
                     errors = true;
                     break;
                 }
@@ -2309,7 +2316,7 @@ else
         uinteger_t lval = crs.last.toInteger();
         if ((crs.first.type.isunsigned() && fval > lval) || (!crs.first.type.isunsigned() && cast(sinteger_t)fval > cast(sinteger_t)lval))
         {
-            crs.error("first case %s is greater than last case %s", crs.first.toChars(), crs.last.toChars());
+            crs.error("first `case %s` is greater than last `case %s`", crs.first.toChars(), crs.last.toChars());
             errors = true;
             lval = fval;
         }
@@ -2474,12 +2481,12 @@ else
         }
         if (sc.os && sc.os.tok != TOKon_scope_failure)
         {
-            rs.error("return statements cannot be in %s bodies", Token.toChars(sc.os.tok));
+            rs.error("return statements cannot be in `%s` bodies", Token.toChars(sc.os.tok));
             errors = true;
         }
         if (sc.tf)
         {
-            rs.error("return statements cannot be in finally bodies");
+            rs.error("return statements cannot be in `finally` bodies");
             errors = true;
         }
 
@@ -2576,7 +2583,7 @@ else
                     }
                     else if (rs.exp.op != TOKerror)
                     {
-                        rs.error("mismatched function return type inference of %s and %s", rs.exp.type.toChars(), tret.toChars());
+                        rs.error("mismatched function return type inference of `%s` and `%s`", rs.exp.type.toChars(), tret.toChars());
                         errors = true;
                         tf.next = Type.terror;
                     }
@@ -2595,7 +2602,7 @@ else
                 {
                     /* May return by ref
                      */
-                    if (checkEscapeRef(sc, rs.exp, true))
+                    if (checkReturnEscapeRef(sc, rs.exp, true))
                         tf.isref = false; // return by value
                 }
                 else
@@ -2649,7 +2656,7 @@ else
                 {
                     if (tf.next.ty != Terror)
                     {
-                        rs.error("mismatched function return type inference of void and %s", tf.next.toChars());
+                        rs.error("mismatched function return type inference of `void` and `%s`", tf.next.toChars());
                     }
                     errors = true;
                     tf.next = Type.terror;
@@ -2695,7 +2702,7 @@ else
                 bool mustInit = (v.storage_class & STCnodefaultctor || v.type.needsNested());
                 if (mustInit && !(sc.fieldinit[i] & CSXthis_ctor))
                 {
-                    rs.error("an earlier return statement skips field %s initialization", v.toChars());
+                    rs.error("an earlier return statement skips field `%s` initialization", v.toChars());
                     errors = true;
                 }
                 sc.fieldinit[i] |= CSXreturn;
@@ -2794,7 +2801,7 @@ else
                 {
                     Statement s = ls.statement;
                     if (!s || !s.hasBreak())
-                        bs.error("label '%s' has no break", bs.ident.toChars());
+                        bs.error("label `%s` has no break", bs.ident.toChars());
                     else if (ls.tf != sc.tf)
                         bs.error("cannot break out of finally block");
                     else
@@ -2806,14 +2813,14 @@ else
                     return setError();
                 }
             }
-            bs.error("enclosing label '%s' for break not found", bs.ident.toChars());
+            bs.error("enclosing label `%s` for break not found", bs.ident.toChars());
             return setError();
         }
         else if (!sc.sbreak)
         {
             if (sc.os && sc.os.tok != TOKon_scope_failure)
             {
-                bs.error("break is not inside %s bodies", Token.toChars(sc.os.tok));
+                bs.error("break is not inside `%s` bodies", Token.toChars(sc.os.tok));
             }
             else if (sc.fes)
             {
@@ -2875,7 +2882,7 @@ else
                 {
                     Statement s = ls.statement;
                     if (!s || !s.hasContinue())
-                        cs.error("label '%s' has no continue", cs.ident.toChars());
+                        cs.error("label `%s` has no continue", cs.ident.toChars());
                     else if (ls.tf != sc.tf)
                         cs.error("cannot continue out of finally block");
                     else
@@ -2886,14 +2893,14 @@ else
                     return setError();
                 }
             }
-            cs.error("enclosing label '%s' for continue not found", cs.ident.toChars());
+            cs.error("enclosing label `%s` for continue not found", cs.ident.toChars());
             return setError();
         }
         else if (!sc.scontinue)
         {
             if (sc.os && sc.os.tok != TOKon_scope_failure)
             {
-                cs.error("continue is not inside %s bodies", Token.toChars(sc.os.tok));
+                cs.error("continue is not inside `%s` bodies", Token.toChars(sc.os.tok));
             }
             else if (sc.fes)
             {
@@ -2926,7 +2933,7 @@ else
             ClassDeclaration cd = ss.exp.type.isClassHandle();
             if (!cd)
             {
-                ss.error("can only synchronize on class objects, not '%s'", ss.exp.type.toChars());
+                ss.error("can only synchronize on class objects, not `%s`", ss.exp.type.toChars());
                 return setError();
             }
             else if (cd.isInterfaceDeclaration())
@@ -2955,6 +2962,7 @@ else
                  *  try { body } finally { _d_monitorexit(tmp); }
                  */
                 auto tmp = copyToTemp(0, "__sync", ss.exp);
+                tmp.semantic(sc);
 
                 auto cs = new Statements();
                 cs.push(new ExpStatement(ss.loc, tmp));
@@ -3050,7 +3058,7 @@ else
             Dsymbol s = (cast(TypeExp)ws.exp).type.toDsymbol(sc);
             if (!s || !s.isScopeDsymbol())
             {
-                ws.error("with type %s has no members", ws.exp.toChars());
+                ws.error("with type `%s` has no members", ws.exp.toChars());
                 return setError();
             }
             sym = new WithScopeSymbol(ws);
@@ -3095,6 +3103,7 @@ else
                      * }
                      */
                     auto tmp = copyToTemp(0, "__withtmp", ws.exp);
+                    tmp.semantic(sc);
                     auto es = new ExpStatement(ws.loc, tmp);
                     ws.exp = new VarExp(ws.loc, tmp);
                     Statement ss = new ScopeStatement(ws.loc, new CompoundStatement(ws.loc, es, ws), ws.endloc);
@@ -3113,7 +3122,7 @@ else
             }
             else
             {
-                ws.error("with expressions must be aggregate types or pointers to them, not '%s'", olde.type.toChars());
+                ws.error("with expressions must be aggregate types or pointers to them, not `%s`", olde.type.toChars());
                 return setError();
             }
         }
@@ -3261,12 +3270,12 @@ else
                 if (sc.os && sc.os.tok != TOKon_scope_failure)
                 {
                     // If enclosing is scope(success) or scope(exit), this will be placed in finally block.
-                    oss.error("cannot put %s statement inside %s", Token.toChars(oss.tok), Token.toChars(sc.os.tok));
+                    oss.error("cannot put `%s` statement inside `%s`", Token.toChars(oss.tok), Token.toChars(sc.os.tok));
                     return setError();
                 }
                 if (sc.tf)
                 {
-                    oss.error("cannot put %s statement inside finally block", Token.toChars(oss.tok));
+                    oss.error("cannot put `%s` statement inside finally block", Token.toChars(oss.tok));
                     return setError();
                 }
             }
@@ -3304,10 +3313,12 @@ else
         if (ts.exp.op == TOKerror)
             return setError();
 
+        checkThrowEscape(sc, ts.exp, false);
+
         ClassDeclaration cd = ts.exp.type.toBasetype().isClassHandle();
         if (!cd || ((cd != ClassDeclaration.throwable) && !ClassDeclaration.throwable.isBaseOf(cd, null)))
         {
-            ts.error("can only throw class objects derived from Throwable, not type %s", ts.exp.type.toChars());
+            ts.error("can only throw class objects derived from Throwable, not type `%s`", ts.exp.type.toChars());
             return setError();
         }
 
@@ -3377,7 +3388,7 @@ else
         LabelDsymbol ls2 = fd.searchLabel(ls.ident);
         if (ls2.statement)
         {
-            ls.error("label '%s' already defined", ls2.toChars());
+            ls.error("label `%s` already defined", ls2.toChars());
             return setError();
         }
         else
@@ -3444,7 +3455,7 @@ else
             }
 
             s.semantic(sc);
-            Module.addDeferredSemantic2(s);     // Bugzilla 14666
+            Module.addDeferredSemantic2(s);     // https://issues.dlang.org/show_bug.cgi?id=14666
             sc.insert(s);
 
             foreach (aliasdecl; s.aliasdecls)
@@ -3472,7 +3483,7 @@ void semantic(Catch c, Scope* sc)
         if (sc.os && sc.os.tok != TOKon_scope_failure)
         {
             // If enclosing is scope(success) or scope(exit), this will be placed in finally block.
-            error(c.loc, "cannot put catch statement inside %s", Token.toChars(sc.os.tok));
+            error(c.loc, "cannot put catch statement inside `%s`", Token.toChars(sc.os.tok));
             c.errors = true;
         }
         if (sc.tf)
@@ -3508,7 +3519,7 @@ void semantic(Catch c, Scope* sc)
         auto cd = c.type.toBasetype().isClassHandle();
         if (!cd)
         {
-            error(c.loc, "can only catch class objects, not '%s'", c.type.toChars());
+            error(c.loc, "can only catch class objects, not `%s`", c.type.toChars());
             c.errors = true;
         }
         else if (cd.isCPPclass())
@@ -3526,14 +3537,14 @@ void semantic(Catch c, Scope* sc)
         }
         else if (cd != ClassDeclaration.throwable && !ClassDeclaration.throwable.isBaseOf(cd, null))
         {
-            error(c.loc, "can only catch class objects derived from Throwable, not '%s'", c.type.toChars());
+            error(c.loc, "can only catch class objects derived from Throwable, not `%s`", c.type.toChars());
             c.errors = true;
         }
         else if (sc.func && !sc.intypeof && !c.internalCatch &&
                  cd != ClassDeclaration.exception && !ClassDeclaration.exception.isBaseOf(cd, null) &&
                  sc.func.setUnsafe())
         {
-            error(c.loc, "can only catch class objects derived from Exception in @safe code, not '%s'", c.type.toChars());
+            error(c.loc, "can only catch class objects derived from Exception in @safe code, not `%s`", c.type.toChars());
             c.errors = true;
         }
 

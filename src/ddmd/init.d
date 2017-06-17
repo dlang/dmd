@@ -521,7 +521,7 @@ extern (C++) final class ArrayInitializer : Initializer
                     e = toAssocArrayLiteral();
                 else
                     e = toExpression();
-                if (!e) // Bugzilla 13987
+                if (!e) // https://issues.dlang.org/show_bug.cgi?id=13987
                 {
                     error(loc, "cannot use array to initialize %s", t.toChars());
                     goto Lerr;

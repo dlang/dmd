@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/gag4269g.d(10): Error: undefined identifier 'Y13', did you mean template 'X13(Y13 y)'?
+fail_compilation/gag4269g.d(10): Error: undefined identifier `Y13`, did you mean template `X13(Y13 y)`?
 ---
 */
 

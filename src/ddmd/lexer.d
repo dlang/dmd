@@ -186,7 +186,7 @@ class Lexer
         //initKeywords();
         /* If first line starts with '#!', ignore the line
          */
-        if (p[0] == '#' && p[1] == '!')
+        if (p && p[0] == '#' && p[1] == '!')
         {
             p += 2;
             while (1)
@@ -1810,7 +1810,7 @@ class Lexer
                 ++p;
                 if (base < 10 && !err)
                 {
-                    error("radix %d digit expected, not '%c'", base, c);
+                    error("radix %d digit expected, not `%c`", base, c);
                     err = true;
                 }
                 d = c - '0';
@@ -1834,7 +1834,7 @@ class Lexer
                         goto Lreal;
                     if (!err)
                     {
-                        error("radix %d digit expected, not '%c'", base, c);
+                        error("radix %d digit expected, not `%c`", base, c);
                         err = true;
                     }
                 }
@@ -1928,7 +1928,7 @@ class Lexer
             break;
         }
         if (base == 8 && n >= 8)
-            error("octal literals 0%llo%.*s are no longer supported, use std.conv.octal!%llo%.*s instead", n, p - psuffix, psuffix, n, p - psuffix, psuffix);
+            error("octal literals `0%llo%.*s` are no longer supported, use `std.conv.octal!%llo%.*s` instead", n, p - psuffix, psuffix, n, p - psuffix, psuffix);
         TOK result;
         switch (flags)
         {
@@ -2018,6 +2018,7 @@ class Lexer
         {
             assert(*p == '.' || isdigit(*p));
         }
+        bool isWellformedString = true;
         stringbuffer.reset();
         auto pstart = p;
         bool hex = false;
@@ -2079,12 +2080,18 @@ class Lexer
                     continue;
                 }
                 if (!anyexp)
+                {
                     error("missing exponent");
+                    isWellformedString = false;
+                }
                 break;
             }
         }
         else if (hex)
+        {
             error("exponent required for hex float");
+            isWellformedString = false;
+        }
         --p;
         while (pstart < p)
         {
@@ -2096,17 +2103,19 @@ class Lexer
         auto sbufptr = cast(const(char)*)stringbuffer.data;
         TOK result;
         bool isOutOfRange = false;
-        t.floatvalue = CTFloat.parse(sbufptr, &isOutOfRange);
+        t.floatvalue = (isWellformedString ? CTFloat.parse(sbufptr, &isOutOfRange) : CTFloat.zero);
         switch (*p)
         {
         case 'F':
         case 'f':
-            isOutOfRange = (isOutOfRange || Port.isFloat32LiteralOutOfRange(sbufptr));
+            if (isWellformedString && !isOutOfRange)
+                isOutOfRange = Port.isFloat32LiteralOutOfRange(sbufptr);
             result = TOKfloat32v;
             p++;
             break;
         default:
-            isOutOfRange = (isOutOfRange || Port.isFloat64LiteralOutOfRange(sbufptr));
+            if (isWellformedString && !isOutOfRange)
+                isOutOfRange = Port.isFloat64LiteralOutOfRange(sbufptr);
             result = TOKfloat64v;
             break;
         case 'l':
@@ -2141,7 +2150,7 @@ class Lexer
         if (isOutOfRange && !isLong)
         {
             const char* suffix = (result == TOKfloat32v || result == TOKimaginary32v) ? "f" : "";
-            error(scanloc, "number '%s%s' is not representable", sbufptr, suffix);
+            error(scanloc, "number `%s%s` is not representable", sbufptr, suffix);
         }
         debug
         {
@@ -2211,7 +2220,7 @@ class Lexer
         {
             const lin = cast(int)(tok.uns64value - 1);
             if (lin != tok.uns64value - 1)
-                error("line number %lld out of range", cast(ulong)tok.uns64value);
+                error("line number `%lld` out of range", cast(ulong)tok.uns64value);
             else
                 linnum = lin;
         }

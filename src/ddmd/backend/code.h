@@ -109,7 +109,7 @@ struct CSE
         regm_t  regm;           // mask of register stored there
         char    flags;          // flag bytes
 #define CSEload         1       // set if the CSE was ever loaded
-#define CSEsimple       2       // CSE can be regenerated easilly
+#define CSEsimple       2       // CSE can be regenerated easily
 
 // != 0 if CSE was ever loaded
 #define CSE_loaded(i)   (csextab[i].flags & CSEload)
@@ -192,8 +192,6 @@ extern CGstate cgstate;
 
 extern regm_t msavereg,mfuncreg,allregs;
 
-typedef code *cd_t (elem *e , regm_t *pretregs );
-
 extern  int BPRM;
 extern  regm_t FLOATREGS;
 extern  regm_t FLOATREGS2;
@@ -238,7 +236,7 @@ extern  int refparam;
 extern  int reflocal;
 extern  bool anyiasm;
 extern  char calledafunc;
-extern  code *(*cdxxx[])(elem *,regm_t *);
+extern  void(*cdxxx[])(CodeBuilder&,elem *,regm_t *);
 
 void stackoffsets(int);
 void codgen(Symbol *);
@@ -253,26 +251,97 @@ unsigned findreg (regm_t regm );
 void freenode (elem *e );
 int isregvar (elem *e , regm_t *pregm , unsigned *preg );
 #ifdef DEBUG
-code *allocreg (regm_t *pretregs , unsigned *preg , tym_t tym , int line , const char *file );
-#define allocreg(a,b,c) allocreg((a),(b),(c),__LINE__,__FILE__)
+void allocreg(CodeBuilder& cdb, regm_t *pretregs, unsigned *preg, tym_t tym, int line, const char *file);
+#define allocreg(a,b,c,d) allocreg((a),(b),(c),(d),__LINE__,__FILE__)
 #else
-code *allocreg (regm_t *pretregs , unsigned *preg , tym_t tym );
+void allocreg(CodeBuilder& cdb, regm_t *pretregs, unsigned *preg, tym_t tym);
 #endif
 regm_t lpadregs();
 void useregs (regm_t regm );
-code *getregs (regm_t r );
-code *getregs_imm (regm_t r );
-code *cse_flush(int);
+void getregs(CodeBuilder& cdb, regm_t r);
+void getregsNoSave(regm_t r);
+void getregs_imm(CodeBuilder& cdb, regm_t r);
+void cse_flush(CodeBuilder&, int);
 bool cse_simple(code *c, elem *e);
-code* gen_testcse(code *c, unsigned sz, targ_uns i);
-code* gen_loadcse(code *c, unsigned reg, targ_uns i);
+void gen_testcse(CodeBuilder& cdb, unsigned sz, targ_uns i);
+void gen_loadcse(CodeBuilder& cdb, unsigned reg, targ_uns i);
 bool cssave (elem *e , regm_t regm , unsigned opsflag );
 bool evalinregister (elem *e );
 regm_t getscratch();
-code *codelem (elem *e , regm_t *pretregs , bool constflag );
-code *scodelem (elem *e , regm_t *pretregs , regm_t keepmsk , bool constflag );
+void codelem(CodeBuilder& cdb, elem *e, regm_t *pretregs, bool constflag);
+void scodelem(CodeBuilder& cdb, elem *e, regm_t *pretregs, regm_t keepmsk, bool constflag);
 const char *regm_str(regm_t rm);
 int numbitsset(regm_t);
+
+/* cdxxx.c: functions that go into cdxxx[] table */
+typedef code *cd_t (elem *e , regm_t *pretregs); // old way
+
+typedef void cdxxx_t (CodeBuilder& cdb, elem *e, regm_t *pretregs);
+
+cdxxx_t
+        cdabs,
+        cdaddass,
+        cdasm,
+        cdbscan,
+        cdbswap,
+        cdbt,
+        cdbtst,
+        cdbyteint,
+        cdcmp,
+        cdcmpxchg,
+        cdcnvt,
+        cdcom,
+        cdcomma,
+        cdcond,
+        cdconvt87,
+        cdctor,
+        cddctor,
+        cdddtor,
+        cddtor,
+        cdeq,
+        cderr,
+        cdfar16,
+        cdframeptr,
+        cdfunc,
+        cdgot,
+        cdhalt,
+        cdind,
+        cdinfo,
+        cdlngsht,
+        cdloglog,
+        cdmark,
+        cdmemcmp,
+        cdmemcpy,
+        cdmemset,
+        cdmsw,
+        cdmul,
+        cdmulass,
+        cdneg,
+        cdnot,
+        cdorth,
+        cdpair,
+        cdpopcnt,
+        cdport,
+        cdpost,
+        cdprefetch,
+        cdrelconst,
+        cdrndtol,
+        cdscale,
+        cdsetjmp,
+        cdshass,
+        cdshift,
+        cdshtlng,
+        cdstrcmp,
+        cdstrcpy,
+        cdstreq,
+        cdstrlen,
+        cdstrthis,
+        cdvecfill,
+        cdvecsto,
+        cdvector,
+        cdvoid,
+        loaddata;
+
 
 /* cod1.c */
 extern int clib_inited;
@@ -283,66 +352,28 @@ void buildEA(code *c,int base,int index,int scale,targ_size_t disp);
 unsigned buildModregrm(int mod, int reg, int rm);
 void andregcon (con_t *pregconsave);
 void genEEcode();
-code *docommas (elem **pe );
+void docommas(CodeBuilder& cdb,elem **pe);
 unsigned gensaverestore(regm_t, code **, code **);
 unsigned gensaverestore2(regm_t regm,code **csave,code **crestore);
-code *genstackclean(code *c,unsigned numpara,regm_t keepmsk);
-code *logexp (elem *e , int jcond , unsigned fltarg , code *targ );
+void genstackclean(CodeBuilder& cdb,unsigned numpara,regm_t keepmsk);
+void logexp(CodeBuilder& cdb, elem *e, int jcond, unsigned fltarg, code *targ);
 unsigned getaddrmode (regm_t idxregs );
 void setaddrmode(code *c, regm_t idxregs);
-code *fltregs (code *pcs , tym_t tym );
-code *tstresult (regm_t regm , tym_t tym , unsigned saveflag );
-code *fixresult (elem *e , regm_t retregs , regm_t *pretregs );
-code *callclib (elem *e , unsigned clib , regm_t *pretregs , regm_t keepmask );
-cd_t cdfunc;
-cd_t cdstrthis;
-code *pushParams(elem *, unsigned);
-code *offsetinreg (elem *e , regm_t *pretregs );
-code *loaddata (elem *e , regm_t *pretregs );
+void fltregs(CodeBuilder& cdb, code *pcs, tym_t tym);
+void tstresult(CodeBuilder& cdb, regm_t regm, tym_t tym, unsigned saveflag);
+void fixresult(CodeBuilder& cdb, elem *e, regm_t retregs, regm_t *pretregs);
+void callclib(CodeBuilder& cdb, elem *e, unsigned clib, regm_t *pretregs, regm_t keepmask);
+void pushParams(CodeBuilder& cdb,elem *, unsigned);
+void offsetinreg(CodeBuilder& cdb, elem *e, regm_t *pretregs);
 
 /* cod2.c */
 int movOnly(elem *e);
 regm_t idxregm(code *c);
 #if TARGET_WINDOS
-code *opdouble (elem *e , regm_t *pretregs , unsigned clib );
+void opdouble(CodeBuilder& cdb, elem *e, regm_t *pretregs, unsigned clib);
 #endif
-cd_t cdorth;
-cd_t cdmul;
-cd_t cdnot;
-cd_t cdcom;
-cd_t cdbswap;
-cd_t cdpopcnt;
-cd_t cdcond;
 void WRcodlst (code *c );
-cd_t cdcomma;
-cd_t cdloglog;
-cd_t cdshift;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-cd_t cdindpic;
-#endif
-cd_t cdind;
-cd_t cdstrlen;
-cd_t cdstrcmp;
-cd_t cdstrcpy;
-cd_t cdmemchr;
-cd_t cdmemcmp;
-cd_t cdmemcpy;
-cd_t cdmemset;
-cd_t cdstreq;
-cd_t cdrelconst;
-code *getoffset (elem *e , unsigned reg );
-cd_t cdneg;
-cd_t cdabs;
-cd_t cdpost;
-cd_t cdcmpxchg;
-cd_t cderr;
-cd_t cdinfo;
-cd_t cddctor;
-cd_t cdddtor;
-cd_t cdctor;
-cd_t cddtor;
-cd_t cdmark;
-cd_t cdclassinit;
+void getoffset(CodeBuilder& cdb, elem *e, unsigned reg);
 
 /* cod3.c */
 
@@ -359,8 +390,7 @@ code* cod3_stackadj(code* c, int nbytes);
 regm_t regmask(tym_t tym, tym_t tyf);
 void cgreg_dst_regs(unsigned *dst_integer_reg, unsigned *dst_float_reg);
 void cgreg_set_priorities(tym_t ty, unsigned char **pseq, unsigned char **pseqmsw);
-void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, symbol** retsym, const regm_t mfuncregsave );
-void doswitch (block *b );
+void outblkexitcode(block *bl, code* c, int& anyspill, const char* sflsave, symbol** retsym, const regm_t mfuncregsave );
 void outjmptab (block *b );
 void outswitab (block *b );
 int jmpopcode (elem *e );
@@ -373,13 +403,11 @@ code* gensavereg(unsigned& reg, targ_uns slot);
 code *genmovreg (code *c , unsigned to , unsigned from );
 code *genmulimm(code *c,unsigned r1,unsigned r2,targ_int imm);
 code *genshift(code *);
-code *movregconst (code *c , unsigned reg , targ_size_t value , regm_t flags );
+void movregconst(CodeBuilder& cdb,unsigned reg,targ_size_t value,regm_t flags);
 code *genjmp (code *c , unsigned op , unsigned fltarg , block *targ );
 code *prolog (void );
 void epilog (block *b);
 code *gen_spill_reg(Symbol *s, bool toreg);
-cd_t cdframeptr;
-cd_t cdgot;
 code *load_localgot();
 targ_size_t cod3_spoff();
 code *cod3_load_got();
@@ -433,27 +461,6 @@ extern int cdcmp_flag;
 
 int doinreg(symbol *s, elem *e);
 code *modEA(code *c);
-cd_t cdeq;
-cd_t cdaddass;
-cd_t cdmulass;
-cd_t cdshass;
-cd_t cdcmp;
-cd_t cdcnvt;
-cd_t cdshtlng;
-cd_t cdbyteint;
-cd_t cdlngsht;
-cd_t cdmsw;
-cd_t cdport;
-cd_t cdasm;
-cd_t cdsetjmp;
-cd_t cdvoid;
-cd_t cdhalt;
-cd_t cdfar16;
-cd_t cdbtst;
-cd_t cdbt;
-cd_t cdbscan;
-cd_t cdpair;
-cd_t cdprefetch;
 code *longcmp (elem *,bool,unsigned,code *);
 
 /* cod5.c */
@@ -462,18 +469,14 @@ void cod5_noprol();
 
 /* cgxmm.c */
 bool isXMMstore(unsigned op);
-code *movxmmconst(unsigned reg, unsigned sz, targ_size_t value, regm_t flags);
-code *orthxmm(elem *e, regm_t *pretregs);
-code *xmmeq(elem *e, unsigned op, elem *e1, elem *e2,regm_t *pretregs);
-code *xmmcnvt(elem *e,regm_t *pretregs);
-code *xmmopass(elem *e, regm_t *pretregs);
-code *xmmpost(elem *e, regm_t *pretregs);
-code *xmmneg(elem *e, regm_t *pretregs);
+void orthxmm(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void xmmeq(CodeBuilder& cdb, elem *e, unsigned op, elem *e1, elem *e2,regm_t *pretregs);
+void xmmcnvt(CodeBuilder& cdb,elem *e,regm_t *pretregs);
+void xmmopass(CodeBuilder& cdb,elem *e, regm_t *pretregs);
+void xmmpost(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void xmmneg(CodeBuilder& cdb,elem *e, regm_t *pretregs);
 unsigned xmmload(tym_t tym, bool aligned = true);
 unsigned xmmstore(tym_t tym, bool aligned = true);
-code *cdvector(elem *e, regm_t *pretregs);
-code *cdvecsto(elem *e, regm_t *pretregs);
-code *cdvecfill(elem *e, regm_t *pretregs);
 bool xmmIsAligned(elem *e);
 void checkSetVex3(code *c);
 void checkSetVex(code *c, tym_t ty);
@@ -485,39 +488,35 @@ void pop87(int, const char *);
 #else
 void pop87();
 #endif
-code *push87 (void );
-code *save87 (void );
-code *save87regs(unsigned n);
+void push87(CodeBuilder& cdb);
+void save87(CodeBuilder& cdb);
+void save87regs(CodeBuilder& cdb, unsigned n);
 void gensaverestore87(regm_t, code **, code **);
 code *genfltreg(code *c,unsigned opcode,unsigned reg,targ_size_t offset);
 code *genxmmreg(code *c,unsigned opcode,unsigned xreg,targ_size_t offset, tym_t tym);
 code *genfwait(code *c);
-code *comsub87(elem *e, regm_t *pretregs);
-code *fixresult87 (elem *e , regm_t retregs , regm_t *pretregs );
-code *fixresult_complex87(elem *e,regm_t retregs,regm_t *pretregs);
-code *orth87 (elem *e , regm_t *pretregs );
-code *load87(elem *e, unsigned eoffset, regm_t *pretregs, elem *eleft, int op);
+void comsub87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void fixresult87(CodeBuilder& cdb, elem *e, regm_t retregs, regm_t *pretregs);
+void fixresult_complex87(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretregs);
+void orth87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void load87(CodeBuilder& cdb, elem *e, unsigned eoffset, regm_t *pretregs, elem *eleft, int op);
 int cmporder87 (elem *e );
-code *eq87 (elem *e , regm_t *pretregs );
-code *complex_eq87 (elem *e , regm_t *pretregs );
-code *opass87 (elem *e , regm_t *pretregs );
-code *cdnegass87 (elem *e , regm_t *pretregs );
-code *post87 (elem *e , regm_t *pretregs );
-code *cnvt87 (elem *e , regm_t *pretregs );
-code *cnvteq87 (elem *e , regm_t *pretregs );
-cd_t cdrndtol;
-cd_t cdscale;
-code *neg87 (elem *e , regm_t *pretregs );
-code *neg_complex87(elem *e, regm_t *pretregs);
-code *cdind87(elem *e,regm_t *pretregs);
+void eq87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void complex_eq87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void opass87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void cdnegass87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void post87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void cnvt87(CodeBuilder& cdb, elem *e , regm_t *pretregs );
+void neg87(CodeBuilder& cdb, elem *e , regm_t *pretregs);
+void neg_complex87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void cdind87(CodeBuilder& cdb,elem *e,regm_t *pretregs);
 #if TX86
 extern int stackused;
 #endif
-code *cdconvt87(elem *e, regm_t *pretregs);
-code *cload87(elem *e, regm_t *pretregs);
-code *cdd_u64(elem *e, regm_t *pretregs);
-code *cdd_u32(elem *e, regm_t *pretregs);
-code *loadPair87(elem *e, regm_t *pretregs);
+void cload87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void cdd_u64(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void cdd_u32(CodeBuilder& cdb, elem *e, regm_t *pretregs);
+void loadPair87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
 
 #ifdef DEBUG
 #define pop87() pop87(__LINE__,__FILE__)
@@ -528,19 +527,20 @@ void iasm_term( void );
 regm_t iasm_regs( block *bp );
 
 // nteh.c
-code *nteh_prolog(void);
-code *nteh_epilog(void);
-void nteh_usevars(void);
-void nteh_filltables(void);
+void nteh_prolog(CodeBuilder& cdb);
+void nteh_epilog(CodeBuilder& cdb);
+void nteh_usevars();
+void nteh_filltables();
 void nteh_gentables(Symbol *sfunc);
-code *nteh_setsp(int op);
-code *nteh_filter(block *b);
+void nteh_setsp(CodeBuilder& cdb, int op);
+void nteh_filter(CodeBuilder& cdb, block *b);
 void nteh_framehandler(Symbol *, Symbol *);
-code *nteh_gensindex(int);
+void nteh_gensindex(CodeBuilder&, int);
 #define GENSINDEXSIZE 7
-code *nteh_monitor_prolog(Symbol *shandle);
-code *nteh_monitor_epilog(regm_t retregs);
+void nteh_monitor_prolog(CodeBuilder& cdb,Symbol *shandle);
+void nteh_monitor_epilog(CodeBuilder& cdb,regm_t retregs);
 code *nteh_patchindex(code* c, int index);
+void nteh_unwind(CodeBuilder& cdb,regm_t retregs,unsigned index);
 
 // cgen.c
 code *code_last(code *c);
@@ -562,12 +562,11 @@ code *genc2 (code *c , unsigned op , unsigned rm , targ_size_t EV2 );
 code *genc1 (code *c , unsigned op , unsigned rm , unsigned FL1 , targ_size_t EV1 );
 code *genc (code *c , unsigned op , unsigned rm , unsigned FL1 , targ_size_t EV1 , unsigned FL2 , targ_size_t EV2 );
 code *genlinnum(code *,Srcpos);
-void cgen_linnum(code **pc,Srcpos srcpos);
 void cgen_prelinnum(code **pc,Srcpos srcpos);
 code *genadjesp(code *c, int offset);
 code *genadjfpu(code *c, int offset);
 code *gennop(code *);
-code *gencodelem(code *c,elem *e,regm_t *pretregs,bool constflag);
+void gencodelem(CodeBuilder& cdb,elem *e,regm_t *pretregs,bool constflag);
 bool reghasvalue (regm_t regm , targ_size_t value , unsigned *preg );
 code *regwithvalue (code *c , regm_t regm , targ_size_t value , unsigned *preg , regm_t flags );
 

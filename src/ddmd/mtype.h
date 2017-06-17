@@ -237,7 +237,7 @@ public:
     bool equivalent(Type *t);
     // kludge for template.isType()
     int dyncast() const { return DYNCAST_TYPE; }
-    int covariant(Type *t, StorageClass *pstc = NULL);
+    int covariant(Type *t, StorageClass *pstc = NULL, bool fix17349 = true);
     const char *toChars();
     char *toPrettyChars(bool QualifyTypes = false);
     static void _init();
@@ -598,6 +598,7 @@ public:
     bool isref;         // true: returns a reference
     bool isreturn;      // true: 'this' is returned by ref
     bool isscope;       // true: 'this' is scope
+    bool isscopeinferred; // true: 'this' is scope from inference
     LINK linkage;  // calling convention
     TRUST trust;   // level of trust
     PURE purity;   // PURExxxx

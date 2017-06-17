@@ -66,8 +66,7 @@ int main (string[] args)
     }
 
     printf("--------------------------------------\n");
-
-    foreach (string word1; dictionary.keys.sort)
+    foreach (string word1; dictionary.keys)
     {
         printf("%3d %.*s\n", dictionary[word1], word1.length, word1.ptr);
     }

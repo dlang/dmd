@@ -55,7 +55,7 @@ One and only one of these macros must be set by the makefile:
 /* Windows/DOS/DOSX Version
  * ------------------------
  * There are two main issues: hosting the compiler on windows,
- * and generating (targetting) windows/dos/dosx executables.
+ * and generating (targeting) windows/dos/dosx executables.
  * The "_WIN32" and "__DMC__" macros control hosting issues
  * for operating system and compiler dependencies, respectively.
  * To target linux executables, use OMFOBJ for things specific to the
@@ -70,7 +70,7 @@ One and only one of these macros must be set by the makefile:
 /* Linux Version
  * -------------
  * There are two main issues: hosting the compiler on linux,
- * and generating (targetting) linux executables.
+ * and generating (targeting) linux executables.
  * The "linux" and "__GNUC__" macros control hosting issues
  * for operating system and compiler dependencies, respectively.
  * To target linux executables, use ELFOBJ for things specific to the
@@ -85,7 +85,7 @@ One and only one of these macros must be set by the makefile:
 /* OSX Version
  * -------------
  * There are two main issues: hosting the compiler on OSX,
- * and generating (targetting) OSX executables.
+ * and generating (targeting) OSX executables.
  * The "__APPLE__" and "__GNUC__" macros control hosting issues
  * for operating system and compiler dependencies, respectively.
  * To target OSX executables, use MACHOBJ for things specific to the
@@ -100,7 +100,7 @@ One and only one of these macros must be set by the makefile:
 /* FreeBSD Version
  * -------------
  * There are two main issues: hosting the compiler on FreeBSD,
- * and generating (targetting) FreeBSD executables.
+ * and generating (targeting) FreeBSD executables.
  * The "__FreeBSD__" and "__GNUC__" macros control hosting issues
  * for operating system and compiler dependencies, respectively.
  * To target FreeBSD executables, use ELFOBJ for things specific to the
@@ -115,7 +115,7 @@ One and only one of these macros must be set by the makefile:
 /* OpenBSD Version
  * -------------
  * There are two main issues: hosting the compiler on OpenBSD,
- * and generating (targetting) OpenBSD executables.
+ * and generating (targeting) OpenBSD executables.
  * The "__OpenBSD__" and "__GNUC__" macros control hosting issues
  * for operating system and compiler dependencies, respectively.
  * To target OpenBSD executables, use ELFOBJ for things specific to the
@@ -130,7 +130,7 @@ One and only one of these macros must be set by the makefile:
 /* Solaris Version
  * -------------
  * There are two main issues: hosting the compiler on Solaris,
- * and generating (targetting) Solaris executables.
+ * and generating (targeting) Solaris executables.
  * The "__sun" and "__GNUC__" macros control hosting issues
  * for operating system and compiler dependencies, respectively.
  * To target Solaris executables, use ELFOBJ for things specific to the
@@ -905,7 +905,7 @@ struct Config
     windows_flags_t wflags;     // flags for Windows code generation
 
     bool fpxmmregs;             // use XMM registers for floating point
-    bool avx;                   // use AVX instruction set
+    unsigned char avx;          // use AVX instruction set (0, 1, 2)
     char inline8087;            /* 0:   emulator
                                    1:   IEEE 754 inline 8087 code
                                    2:   fast inline 8087 code

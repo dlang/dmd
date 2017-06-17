@@ -67,7 +67,7 @@ deprecated template Vaz(T)
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag14875.d(75): Error: static assert  (0) is false
+fail_compilation/diag14875.d(75): Error: static assert  `0` is false
 ---
 */
 void main()

@@ -52,7 +52,6 @@ import ddmd.identifier;
 import ddmd.id;
 import ddmd.irstate;
 import ddmd.lib;
-import ddmd.mars;
 import ddmd.mtype;
 import ddmd.objc;
 import ddmd.s2ir;
@@ -147,14 +146,11 @@ void obj_write_deferred(Library library)
             Identifier id = Identifier.create(idstr);
 
             Module md = Module.create(mname, id, 0, 0);
-            md.members = Dsymbols_create();
+            md.members = new Dsymbols();
             md.members.push(s);   // its only 'member' is s
             md.doppelganger = 1;       // identify this module as doppelganger
             md.md = m.md;
             md.aimports.push(m);       // it only 'imports' m
-            md.massert = m.massert;
-            md.munittest = m.munittest;
-            md.marray = m.marray;
 
             genObjFile(md, false);
         }
@@ -741,7 +737,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.type && fd.type.ty == Tfunction && (cast(TypeFunction)fd.type).next is null)
         return;
 
-    // If errors occurred compiling it, such as bugzilla 6118
+    // If errors occurred compiling it, such as https://issues.dlang.org/show_bug.cgi?id=6118
     if (fd.type && fd.type.ty == Tfunction && (cast(TypeFunction)fd.type).next.ty == Terror)
         return;
 
@@ -846,7 +842,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
     if (fd.inlinedNestedCallees)
     {
-        /* Bugzilla 15333: If fd contains inlined expressions that come from
+        /* https://issues.dlang.org/show_bug.cgi?id=15333
+         * If fd contains inlined expressions that come from
          * nested function bodies, the enclosing of the functions must be
          * generated first, in order to calculate correct frame pointer offset.
          */
@@ -1172,7 +1169,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
          * 2. impact on function inlining
          * 3. what to do when writing out .di files, or other pretty printing
          */
-        if (global.params.trace && !fd.isCMain())
+        if (global.params.trace && !fd.isCMain() && !fd.naked)
         {
             /* The profiler requires TLS, and TLS may not be set up yet when C main()
              * gets control (i.e. OSX), leading to a crash.
@@ -1187,7 +1184,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             StringExp se = StringExp.create(Loc(), s.Sident.ptr);
             se.type = Type.tstring;
             se.type = se.type.semantic(Loc(), null);
-            Expressions *exps = Expressions_create();
+            Expressions *exps = new Expressions();
             exps.push(se);
             FuncDeclaration fdpro = FuncDeclaration.genCfunc(null, Type.tvoid, "trace_pro");
             Expression ec = VarExp.create(Loc(), fdpro);

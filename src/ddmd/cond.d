@@ -315,7 +315,6 @@ extern (C++) final class VersionCondition : DVCondition
             "HPPA",
             "HPPA64",
             "SH",
-            "SH64",
             "Alpha",
             "Alpha_SoftFloat",
             "Alpha_HardFloat",
@@ -327,6 +326,8 @@ extern (C++) final class VersionCondition : DVCondition
             "CRuntime_DigitalMars",
             "CRuntime_Glibc",
             "CRuntime_Microsoft",
+            "CRuntime_Musl",
+            "CRuntime_UClibc",
             "unittest",
             "assert",
             "all",
@@ -508,12 +509,20 @@ extern (C++) final class StaticIfCondition : Condition
                 printf("\ts = '%s', kind = %s\n", sds.toChars(), sds.kind());
             }
         }
+
+        int errorReturn()
+        {
+            if (!global.gag)
+                inc = 2; // so we don't see the error message again
+            return 0;
+        }
+
         if (inc == 0)
         {
             if (exp.op == TOKerror || nest > 100)
             {
                 error(loc, (nest > 1000) ? "unresolvable circular static if expression" : "error evaluating static if expression");
-                goto Lerror;
+                return errorReturn();
             }
             if (!sc)
             {
@@ -521,47 +530,28 @@ extern (C++) final class StaticIfCondition : Condition
                 inc = 2;
                 return 0;
             }
+
             ++nest;
             sc = sc.push(sc.scopesym);
             sc.sds = sds; // sds gets any addMember()
-            //sc.speculative = true;       // TODO: static if (is(T U)) { /* U is available */ }
-            sc.flags |= SCOPEcondition;
-            sc = sc.startCTFE();
-            Expression e = exp.semantic(sc);
-            e = resolveProperties(sc, e);
-            sc = sc.endCTFE();
+
+            import ddmd.staticcond;
+            bool errors;
+            bool result = evalStaticCondition(sc, exp, exp, errors);
             sc.pop();
             --nest;
             // Prevent repeated condition evaluation.
             // See: fail_compilation/fail7815.d
             if (inc != 0)
                 return (inc == 1);
-            if (!e.type.isBoolean())
-            {
-                if (e.type.toBasetype() != Type.terror)
-                    exp.error("expression %s of type %s does not have a boolean value", exp.toChars(), e.type.toChars());
-                goto Lerror;
-            }
-            e = e.ctfeInterpret();
-            if (e.op == TOKerror)
-            {
-                goto Lerror;
-            }
-            else if (e.isBool(true))
+            if (errors)
+                return errorReturn();
+            if (result)
                 inc = 1;
-            else if (e.isBool(false))
-                inc = 2;
             else
-            {
-                e.error("expression %s is not constant or does not evaluate to a bool", e.toChars());
-                goto Lerror;
-            }
+                inc = 2;
         }
         return (inc == 1);
-    Lerror:
-        if (!global.gag)
-            inc = 2; // so we don't see the error message again
-        return 0;
     }
 
     override void accept(Visitor v)

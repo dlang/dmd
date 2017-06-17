@@ -773,6 +773,7 @@ extern (C++) class S2irVisitor : Visitor
 
     override void visit(ReturnStatement s)
     {
+        //printf("s2ir.ReturnStatement: %s\n", s.toChars());
         Blockx *blx = irs.blx;
         BC bc;
 
@@ -790,6 +791,7 @@ extern (C++) class S2irVisitor : Visitor
             if (retmethod == RETstack)
             {
                 elem *es;
+                bool writetohp;
 
                 /* If returning struct literal, write result
                  * directly into return value
@@ -798,11 +800,34 @@ extern (C++) class S2irVisitor : Visitor
                 {
                     StructLiteralExp sle = cast(StructLiteralExp)s.exp;
                     sle.sym = irs.shidden;
+                    writetohp = true;
+                }
+                /* Detect:
+                 *    structliteral.ctor(args)
+                 * and construct directly into *shidden
+                 */
+                else if (s.exp.op == TOKcall)
+                {
+                    auto ce = cast(CallExp)s.exp;
+                    if (ce.e1.op == TOKdotvar)
+                    {
+                        auto dve = cast(DotVarExp)ce.e1;
+                        auto fd = dve.var.isFuncDeclaration();
+                        if (fd && fd.isCtorDeclaration())
+                        {
+                            if (dve.e1.op == TOKstructliteral)
+                            {
+                                auto sle = cast(StructLiteralExp)dve.e1;
+                                sle.sym = irs.shidden;
+                                writetohp = true;
+                            }
+                        }
+                    }
                 }
                 e = toElemDtor(s.exp, irs);
                 assert(e);
 
-                if (s.exp.op == TOKstructliteral ||
+                if (writetohp ||
                     (func.nrvo_can && func.nrvo_var))
                 {
                     // Return value via hidden pointer passed as parameter

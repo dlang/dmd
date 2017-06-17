@@ -170,19 +170,33 @@ extern (C++) bool lambdaCheckForNestedRef(Expression e, Scope* sc)
     return v.result;
 }
 
-bool checkNestedRef(Dsymbol s, Dsymbol p)
+/*****************************************
+ * See if context `s` is nested within context `p`, meaning
+ * it `p` is reachable at runtime by walking the static links.
+ * If any of the intervening contexts are function literals,
+ * make sure they are delegates.
+ * Params:
+ *      s = inner context
+ *      p = outer context
+ * Returns:
+ *      true means it is accessible by walking the context pointers at runtime
+ * References:
+ *      for static links see https://en.wikipedia.org/wiki/Call_stack#Functions_of_the_call_stack
+ */
+bool ensureStaticLinkTo(Dsymbol s, Dsymbol p)
 {
     while (s)
     {
         if (s == p) // hit!
-            return false;
+            return true;
 
         if (auto fd = s.isFuncDeclaration())
         {
             if (!fd.isThis() && !fd.isNested())
                 break;
 
-            // Bugzilla 15332: change to delegate if fd is actually nested.
+            // https://issues.dlang.org/show_bug.cgi?id=15332
+            // change to delegate if fd is actually nested.
             if (auto fld = fd.isFuncLiteralDeclaration())
                 fld.tok = TOKdelegate;
         }
@@ -193,5 +207,5 @@ bool checkNestedRef(Dsymbol s, Dsymbol p)
         }
         s = s.toParent2();
     }
-    return true;
+    return false;
 }

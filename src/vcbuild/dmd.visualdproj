@@ -156,7 +156,7 @@
   <ccTransOpt>1</ccTransOpt>
   <program>$(DMDInstallDir)windows\bin\dmd.exe</program>
   <imppath />
-  <fileImppath>$(OutDir)\generated ..\..\res</fileImppath>
+  <fileImppath>$(OutDir) ..\..\res</fileImppath>
   <outdir>..\..\generated\Windows\$(ConfigurationName)\$(PlatformName)</outdir>
   <objdir>$(OutDir)</objdir>
   <objname />
@@ -258,7 +258,7 @@
   <ccTransOpt>1</ccTransOpt>
   <program>c:\l\d\dmd2\windows\bin\dmd.exe</program>
   <imppath />
-  <fileImppath>$(OutDir)\generated ..\..\res</fileImppath>
+  <fileImppath>$(OutDir) ..\..\res</fileImppath>
   <outdir>..\..\generated\Windows\$(ConfigurationName)\$(PlatformName)</outdir>
   <objdir>$(OutDir)</objdir>
   <objname />
@@ -360,7 +360,7 @@
   <ccTransOpt>1</ccTransOpt>
   <program>$(DMDInstallDir)windows\bin\dmd.exe</program>
   <imppath />
-  <fileImppath>$(OutDir)\generated ..\..\res</fileImppath>
+  <fileImppath>$(OutDir) ..\..\res</fileImppath>
   <outdir>..\..\generated\Windows\$(ConfigurationName)\$(PlatformName)</outdir>
   <objdir>$(OutDir)</objdir>
   <objname />
@@ -410,7 +410,7 @@
  </Config>
  <Folder name="dmd">
   <Folder name="gen">
-   <File tool="Custom" path="..\..\VERSION" customcmd="cmd /E:ON /Q /C &quot;for /f %%f in ( ..\..\VERSION ) do ( echo &quot;%%f&quot; )&quot; &gt;$(OutDir)\generated\verstr.h" uptodateWithSameTime="true" outfile="$(OutDir)\generated\verstr.h" />
+   <File tool="Custom" path="..\..\VERSION" customcmd="copy ..\..\VERSION $(OutDir)\VERSION" uptodateWithSameTime="true" outfile="$(OutDir)\VERSION" />
   </Folder>
   <Folder name="generated">
    <Folder name="Debug_Win32">
@@ -483,6 +483,7 @@
    <File path="..\ddmd\argtypes.d" />
    <File path="..\ddmd\arrayop.d" />
    <File path="..\ddmd\arraytypes.d" />
+   <File path="..\ddmd\astcodegen.d" />
    <File path="..\ddmd\attrib.d" />
    <File path="..\ddmd\blockexit.d" />
    <File path="..\ddmd\boostlicense.txt" />
@@ -491,6 +492,7 @@
    <File path="..\ddmd\clone.d" />
    <File path="..\ddmd\complex.d" />
    <File path="..\ddmd\cond.d" />
+   <File path="..\ddmd\console.d" />
    <File path="..\ddmd\constfold.d" />
    <File path="..\ddmd\cppmangle.d" />
    <File path="..\ddmd\ctfeexpr.d" />
@@ -529,6 +531,7 @@
    <File path="..\ddmd\imphint.d" />
    <File path="..\ddmd\init.d" />
    <File path="..\ddmd\inline.d" />
+   <File path="..\ddmd\inlinecost.d" />
    <File path="..\ddmd\intrange.d" />
    <File path="..\ddmd\irstate.d" />
    <File path="..\ddmd\json.d" />
@@ -541,14 +544,14 @@
    <File path="..\ddmd\mtype.d" />
    <File path="..\ddmd\nogc.d" />
    <File path="..\ddmd\nspace.d" />
-   <File tool="None" path="..\ddmd\objc.d" />
+   <File path="..\ddmd\objc.d" />
    <File path="..\ddmd\objc_glue_stubs.d" />
-   <File path="..\ddmd\objc_stubs.d" />
    <File path="..\ddmd\opover.d" />
    <File path="..\ddmd\optimize.d" />
    <File path="..\ddmd\osmodel.mak" />
    <File path="..\ddmd\parse.d" />
    <File path="..\ddmd\posix.mak" />
+   <File path="..\ddmd\printast.d" />
    <File path="..\ddmd\s2ir.d" />
    <File path="..\ddmd\safe.d" />
    <File path="..\ddmd\sapply.d" />
@@ -559,6 +562,7 @@
    <File path="..\ddmd\statementsem.d" />
    <File path="..\ddmd\statement_rewrite_walker.d" />
    <File path="..\ddmd\staticassert.d" />
+   <File path="..\ddmd\staticcond.d" />
    <File path="..\ddmd\target.d" />
    <File path="..\ddmd\tocsym.d" />
    <File path="..\ddmd\toctype.d" />

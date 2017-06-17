@@ -8,7 +8,7 @@ fail_compilation/fail14249.d(25): Error: static constructor can only be member o
 fail_compilation/fail14249.d(26): Error: static destructor can only be member of module/aggregate/template, not function main
 fail_compilation/fail14249.d(27): Error: unittest can only be a member of module/aggregate/template, not function main
 fail_compilation/fail14249.d(28): Error: invariant can only be a member of aggregate, not function main
-fail_compilation/fail14249.d(29): Error: alias this can only be a member of aggregate, not function main
+fail_compilation/fail14249.d(29): Error: alias this can only be a member of aggregate, not function `main`
 fail_compilation/fail14249.d(30): Error: allocator can only be a member of aggregate, not function main
 fail_compilation/fail14249.d(31): Error: deallocator can only be a member of aggregate, not function main
 fail_compilation/fail14249.d(32): Error: constructor can only be a member of aggregate, not function main

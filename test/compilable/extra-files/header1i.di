@@ -106,7 +106,6 @@ template Foo(T, int V)
 			B,
 			C,
 		}
-		;
 		void fswitch(Label l)
 		{
 			final switch (l)

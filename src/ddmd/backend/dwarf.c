@@ -75,7 +75,9 @@ unsigned CIE_offset_no_unwind;  // CIE offset for no unwind data
 IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, unsigned sz,
         unsigned typ, unsigned bind, IDXSEC sec,
         unsigned char visibility = STV_DEFAULT);
+void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
 #endif
+
 
 static Outbuffer  *reset_symbuf;        // Keep pointers to reset symbols
 
@@ -119,10 +121,10 @@ int dwarf_getsegment(const char *name, int align)
 #endif
 }
 
-int dwarf_getsegment_alloc(const char *name, int align)
+int dwarf_getsegment_alloc(const char *name, const char *suffix, int align)
 {
 #if ELFOBJ
-    return ElfObj::getsegment(name, NULL, SHT_PROGBITS, SHF_ALLOC, align * 4);
+    return ElfObj::getsegment(name, suffix, SHT_PROGBITS, SHF_ALLOC, align * 4);
 #elif MACHOBJ
     return MachObj::getsegment(name, "__DWARF", align * 2, S_ATTR_DEBUG);
 #else
@@ -131,10 +133,24 @@ int dwarf_getsegment_alloc(const char *name, int align)
 #endif
 }
 
-int dwarf_except_table_alloc()
+int dwarf_except_table_alloc(Symbol *s)
 {
+    //printf("dwarf_except_table_alloc('%s')\n", s->Sident);
 #if ELFOBJ
-    return dwarf_getsegment_alloc(".gcc_except_table", 1);
+    /* If `s` is in a COMDAT, then this table needs to go into
+     * a unique section, which then gets added to the COMDAT group
+     * associated with `s`.
+     */
+    seg_data *pseg = SegData[s->Sseg];
+    if (pseg->SDassocseg)
+    {
+        const char *suffix = s->Sident; // cpp_mangle(s);
+        segidx_t tableseg = ElfObj::getsegment(".gcc_except_table.", suffix, SHT_PROGBITS, SHF_ALLOC|SHF_GROUP, 1);
+        addSegmentToComdat(tableseg, s->Sseg);
+        return tableseg;
+    }
+    else
+        return dwarf_getsegment_alloc(".gcc_except_table", NULL, 1);
 #elif MACHOBJ
     int seg = MachObj::getsegment("__gcc_except_tab", "__TEXT", 2, S_REGULAR);
     except_table_seg = seg;
@@ -148,7 +164,7 @@ int dwarf_except_table_alloc()
 int dwarf_eh_frame_alloc()
 {
 #if ELFOBJ
-    return dwarf_getsegment_alloc(".eh_frame", I64 ? 2 : 1);
+    return dwarf_getsegment_alloc(".eh_frame", NULL, I64 ? 2 : 1);
 #elif MACHOBJ
     int seg = MachObj::getsegment("__eh_frame", "__TEXT", I64 ? 3 : 2,
         S_COALESCED | S_ATTR_NO_TOC | S_ATTR_STRIP_STATIC_SYMS | S_ATTR_LIVE_SUPPORT);
@@ -953,7 +969,7 @@ void writeEhFrameFDE(IDXSEC dfseg, Symbol *sfunc, bool ehunwind, unsigned CIE_of
 #endif
     if (ehunwind)
     {
-        int etseg = dwarf_except_table_alloc();
+        int etseg = dwarf_except_table_alloc(sfunc);
 #if ELFOBJ
         buf->writeByten(4);                             // Augmentation Data Length
         buf->write32(I64 ? 0 : sfunc->Sfunc->LSDAoffset); // address of LSDA (".gcc_except_table")
@@ -2945,7 +2961,7 @@ void dwarf_except_gentables(Funcsym *sfunc, unsigned startoffset, unsigned retof
     if (!doUnwindEhFrame())
         return;
 
-    int seg = dwarf_except_table_alloc();
+    int seg = dwarf_except_table_alloc(sfunc);
     Outbuffer *buf = SegData[seg]->SDbuf;
     buf->reserve(100);
 

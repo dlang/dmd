@@ -117,126 +117,143 @@ struct ObjcSelector
     }
 }
 
-struct Objc_ClassDeclaration
-{
-    // true if this is an Objective-C class/interface
-    bool objc;
+private __gshared Objc _objc;
 
-    // MARK: Objc_ClassDeclaration
-    extern (C++) bool isInterface()
-    {
-        return objc;
-    }
+Objc objc()
+{
+    return _objc;
 }
 
-struct Objc_FuncDeclaration
+// Should be an interface
+extern(C++) abstract class Objc
 {
-    FuncDeclaration fdecl;
-    // Objective-C method selector (member function only)
-    ObjcSelector* selector;
-
-    extern (D) this(FuncDeclaration fdecl)
+    static void _init()
     {
-        this.fdecl = fdecl;
-    }
-}
-
-// MARK: semantic
-extern (C++) void objc_ClassDeclaration_semantic_PASSinit_LINKobjc(ClassDeclaration cd)
-{
-    if (global.params.hasObjectiveC)
-        cd.objc.objc = true;
-    else
-        cd.error("Objective-C classes not supported");
-}
-
-extern (C++) void objc_InterfaceDeclaration_semantic_objcExtern(InterfaceDeclaration id, Scope* sc)
-{
-    if (sc.linkage == LINKobjc)
-    {
-        if (global.params.hasObjectiveC)
-            id.objc.objc = true;
+        if (global.params.isOSX && global.params.is64bit)
+            _objc = new Supported;
         else
-            id.error("Objective-C interfaces not supported");
+            _objc = new Unsupported;
+    }
+
+    abstract void setObjc(ClassDeclaration cd);
+    abstract void setObjc(InterfaceDeclaration);
+    abstract void setSelector(FuncDeclaration, Scope* sc);
+    abstract void validateSelector(FuncDeclaration fd);
+    abstract void checkLinkage(FuncDeclaration fd);
+}
+
+extern(C++) private final class Unsupported : Objc
+{
+    extern(D) final this()
+    {
+    }
+
+    override void setObjc(ClassDeclaration cd)
+    {
+        cd.error("Objective-C classes not supported");
+    }
+
+    override void setObjc(InterfaceDeclaration id)
+    {
+        id.error("Objective-C interfaces not supported");
+    }
+
+    override void setSelector(FuncDeclaration, Scope*)
+    {
+        // noop
+    }
+
+    override void validateSelector(FuncDeclaration)
+    {
+        // noop
+    }
+
+    override void checkLinkage(FuncDeclaration)
+    {
+        // noop
     }
 }
 
-// MARK: semantic
-extern (C++) void objc_FuncDeclaration_semantic_setSelector(FuncDeclaration fd, Scope* sc)
+extern(C++) private final class Supported : Objc
 {
-    import ddmd.tokens;
-
-    if (!fd.userAttribDecl)
-        return;
-    Expressions* udas = fd.userAttribDecl.getAttributes();
-    arrayExpressionSemantic(udas, sc, true);
-    for (size_t i = 0; i < udas.dim; i++)
+    extern(D) final this()
     {
-        Expression uda = (*udas)[i];
-        assert(uda);
-        if (uda.op != TOKtuple)
-            continue;
-        Expressions* exps = (cast(TupleExp)uda).exps;
-        for (size_t j = 0; j < exps.dim; j++)
+        VersionCondition.addPredefinedGlobalIdent("D_ObjectiveC");
+
+        objc_initSymbols();
+        ObjcSelector._init();
+    }
+
+    override void setObjc(ClassDeclaration cd)
+    {
+        cd.isobjc = true;
+    }
+
+    override void setObjc(InterfaceDeclaration id)
+    {
+        id.isobjc = true;
+    }
+
+    override void setSelector(FuncDeclaration fd, Scope* sc)
+    {
+        import ddmd.tokens;
+
+        if (!fd.userAttribDecl)
+            return;
+        Expressions* udas = fd.userAttribDecl.getAttributes();
+        arrayExpressionSemantic(udas, sc, true);
+        for (size_t i = 0; i < udas.dim; i++)
         {
-            Expression e = (*exps)[j];
-            assert(e);
-            if (e.op != TOKstructliteral)
+            Expression uda = (*udas)[i];
+            assert(uda);
+            if (uda.op != TOKtuple)
                 continue;
-            StructLiteralExp literal = cast(StructLiteralExp)e;
-            assert(literal.sd);
-            if (!objc_isUdaSelector(literal.sd))
-                continue;
-            if (fd.objc.selector)
+            Expressions* exps = (cast(TupleExp)uda).exps;
+            for (size_t j = 0; j < exps.dim; j++)
             {
-                fd.error("can only have one Objective-C selector per method");
-                return;
+                Expression e = (*exps)[j];
+                assert(e);
+                if (e.op != TOKstructliteral)
+                    continue;
+                StructLiteralExp literal = cast(StructLiteralExp)e;
+                assert(literal.sd);
+                if (!isUdaSelector(literal.sd))
+                    continue;
+                if (fd.selector)
+                {
+                    fd.error("can only have one Objective-C selector per method");
+                    return;
+                }
+                assert(literal.elements.dim == 1);
+                StringExp se = (*literal.elements)[0].toStringExp();
+                assert(se);
+                fd.selector = ObjcSelector.lookup(cast(const(char)*)se.toUTF8(sc).string);
             }
-            assert(literal.elements.dim == 1);
-            StringExp se = (*literal.elements)[0].toStringExp();
-            assert(se);
-            fd.objc.selector = ObjcSelector.lookup(cast(const(char)*)se.toUTF8(sc).string);
         }
     }
-}
 
-extern (C++) bool objc_isUdaSelector(StructDeclaration sd)
-{
-    if (sd.ident != Id.udaSelector || !sd.parent)
-        return false;
-    Module _module = sd.parent.isModule();
-    return _module && _module.isCoreModule(Id.attribute);
-}
-
-extern (C++) void objc_FuncDeclaration_semantic_validateSelector(FuncDeclaration fd)
-{
-    if (!fd.objc.selector)
-        return;
-    TypeFunction tf = cast(TypeFunction)fd.type;
-    if (fd.objc.selector.paramCount != tf.parameters.dim)
-        fd.error("number of colons in Objective-C selector must match number of parameters");
-    if (fd.parent && fd.parent.isTemplateInstance())
-        fd.error("template cannot have an Objective-C selector attached");
-}
-
-extern (C++) void objc_FuncDeclaration_semantic_checkLinkage(FuncDeclaration fd)
-{
-    if (fd.linkage != LINKobjc && fd.objc.selector)
-        fd.error("must have Objective-C linkage to attach a selector");
-}
-
-// MARK: init
-extern (C++) void objc_tryMain_dObjc()
-{
-    if (global.params.isOSX && global.params.is64bit)
+    override void validateSelector(FuncDeclaration fd)
     {
-        global.params.hasObjectiveC = true;
-        VersionCondition.addPredefinedGlobalIdent("D_ObjectiveC");
+        if (!fd.selector)
+            return;
+        TypeFunction tf = cast(TypeFunction)fd.type;
+        if (fd.selector.paramCount != tf.parameters.dim)
+            fd.error("number of colons in Objective-C selector must match number of parameters");
+        if (fd.parent && fd.parent.isTemplateInstance())
+            fd.error("template cannot have an Objective-C selector attached");
     }
-}
 
-extern (C++) void objc_tryMain_init()
-{
-    objc_initSymbols();
-    ObjcSelector._init();
+    override void checkLinkage(FuncDeclaration fd)
+    {
+        if (fd.linkage != LINKobjc && fd.selector)
+            fd.error("must have Objective-C linkage to attach a selector");
+    }
+
+    extern(D) private bool isUdaSelector(StructDeclaration sd)
+    {
+        if (sd.ident != Id.udaSelector || !sd.parent)
+            return false;
+        Module _module = sd.parent.isModule();
+        return _module && _module.isCoreModule(Id.attribute);
+    }
 }

@@ -745,34 +745,6 @@ void test24()
 
 /* ================================ */
 
-void test25()
-{
-    printf("test25()\n");
-    int a[10];
-
-    a[0] = 23;
-    a[1] = 1;
-    a[2] = 64;
-    a[3] = 5;
-    a[4] = 6;
-    a[5] = 5;
-    a[6] = 17;
-    a[7] = 3;
-    a[8] = 0;
-    a[9] = -1;
-
-    a.sort;
-
-    for (int i = 0; i < a.length - 1; i++)
-    {
-        //printf("i = %d", i);
-        //printf(" %d %d\n", a[i], a[i + 1]);
-        assert(a[i] <= a[i + 1]);
-    }
-}
-
-/* ================================ */
-
 void test27()
 {
     static real[1] n = [ -1 ];
@@ -961,34 +933,6 @@ int test37()
 
 /* ================================ */
 
-void test38()
-{
-    version (D_Bits)
-    {
-        bit a[];
-        a.length=3;
-        a[0]=false;
-        a[1]=true;
-        a[2]=false;
-
-        bit[] b=a.sort;
-
-        assert(a.length==3);
-        assert(!a[0]);
-        assert(!a[1]);
-        assert(a[2]);
-
-        assert(b.length==3);
-        assert(!b[0]);
-        assert(!b[1]);
-        assert(b[2]);
-
-        assert(&a != &b);
-    }
-}
-
-/* ================================ */
-
 void test39()
 {
         char[] array;
@@ -1055,9 +999,8 @@ void test41()
 
 void test42()
 {
-        real[10] array;
-        real[] copy = array.dup;
-        copy.sort;
+    real[10] array;
+    real[] copy = array.dup;
 }
 
 /* ================================ */
@@ -1520,7 +1463,6 @@ int main()
     test22();
     test23();
     test24();
-    test25();
 //    test26();
     test27();
 //    test28();
@@ -1533,7 +1475,6 @@ int main()
     test35();
     test36();
     test37();
-    test38();
     test39();
     test40();
     test41();

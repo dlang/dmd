@@ -118,7 +118,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         if (semanticRun == PASSsemantic)
         {
             assert(memtype);
-            .error(loc, "circular reference to enum base type %s", memtype.toChars());
+            .error(loc, "circular reference to enum base type `%s`", memtype.toChars());
             errors = true;
             semanticRun = PASSsemanticdone;
             return;
@@ -132,6 +132,9 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             scx = _scope; // save so we don't make redundant copies
             _scope = null;
         }
+
+        if (!sc)
+            return;
 
         parent = sc.parent;
         type = type.semantic(loc, sc);
@@ -210,7 +213,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
 
         if (members.dim == 0)
         {
-            error("enum %s must have at least one member", toChars());
+            error("enum `%s` must have at least one member", toChars());
             errors = true;
             return;
         }
@@ -317,7 +320,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
 
         if (!members || !symtab || _scope)
         {
-            error("is forward referenced when looking for '%s'", ident.toChars());
+            error("is forward referenced when looking for `%s`", ident.toChars());
             //*(char*)0=0;
             return null;
         }
@@ -362,7 +365,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
 
         if (inuse)
         {
-            error(loc, "recursive definition of .%s property", id.toChars());
+            error(loc, "recursive definition of `.%s` property", id.toChars());
             return errorReturn();
         }
         if (*pval)
@@ -374,12 +377,12 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             return errorReturn();
         if (semanticRun == PASSinit || !members)
         {
-            error("is forward referenced looking for .%s", id.toChars());
+            error("is forward referenced looking for `.%s`", id.toChars());
             return errorReturn();
         }
         if (!(memtype && memtype.isintegral()))
         {
-            error(loc, "has no .%s property because base type %s is not an integral type", id.toChars(), memtype ? memtype.toChars() : "");
+            error(loc, "has no `.%s` property because base type `%s` is not an integral type", id.toChars(), memtype ? memtype.toChars() : "");
             return errorReturn();
         }
 
@@ -440,17 +443,18 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             goto Lerrors;
         if (semanticRun == PASSinit || !members)
         {
-            error(loc, "forward reference of %s.init", toChars());
+            error(loc, "forward reference of `%s.init`", toChars());
             goto Lerrors;
         }
 
-        for (size_t i = 0; i < members.dim; i++)
+        foreach (const i; 0 .. members.dim)
         {
             EnumMember em = (*members)[i].isEnumMember();
-            if (!em)
-                continue;
-            defaultval = em.value;
-            return defaultval;
+            if (em)
+            {
+                defaultval = em.value;
+                return defaultval;
+            }
         }
 
     Lerrors:
@@ -565,13 +569,15 @@ extern (C++) final class EnumMember : VarDeclaration
 
         if (_scope)
             sc = _scope;
+        if (!sc)
+            return;
+
+        semanticRun = PASSsemantic;
 
         protection = ed.isAnonymous() ? ed.protection : Prot(PROTpublic);
         linkage = LINKd;
         storage_class = STCmanifest;
         userAttribDecl = ed.isAnonymous() ? ed.userAttribDecl : null;
-
-        semanticRun = PASSsemantic;
 
         // The first enum member is special
         bool first = (this == (*ed.members)[0]);
@@ -602,7 +608,8 @@ extern (C++) final class EnumMember : VarDeclaration
                 }
                 if (ed.memtype.ty != Terror)
                 {
-                    /* Bugzilla 11746: All of named enum members should have same type
+                    /* https://issues.dlang.org/show_bug.cgi?id=11746
+                     * All of named enum members should have same type
                      * with the first member. If the following members were referenced
                      * during the first member semantic, their types should be unified.
                      */
@@ -716,7 +723,7 @@ extern (C++) final class EnumMember : VarDeclaration
             e = e.ctfeInterpret();
             if (e.toInteger())
             {
-                error("initialization with (%s.%s + 1) causes overflow for type '%s'",
+                error("initialization with `%s.%s+1` causes overflow for type `%s`",
                     emprev.ed.toChars(), emprev.toChars(), ed.memtype.toChars());
                 return errorReturn();
             }
@@ -746,7 +753,7 @@ extern (C++) final class EnumMember : VarDeclaration
                 etest = etest.ctfeInterpret();
                 if (etest.toInteger())
                 {
-                    error("has inexact value, due to loss of precision");
+                    error("has inexact value due to loss of precision");
                     return errorReturn();
                 }
             }

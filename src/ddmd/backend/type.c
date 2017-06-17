@@ -579,7 +579,7 @@ STATIC type * type_allocbasic(tym_t ty)
 
     t = type_alloc(ty);
     t->Tmangle = mTYman_c;
-    t->Tcount = 1;              /* so it is not inadvertantly free'd    */
+    t->Tcount = 1;              /* so it is not inadvertently free'd    */
     return t;
 }
 

@@ -1071,8 +1071,8 @@ STATIC void cpwalk(elem *n,vec_t IN)
                         if (debugc)
                         {
                             printf("Copyprop, from '%s'(%d) to '%s'(%d)\n",
-                                (v->Sident) ? (char *)v->Sident : "temp", v->Ssymnum,
-                                (f->Sident) ? (char *)f->Sident : "temp", f->Ssymnum);
+                                (v->Sident[0]) ? (char *)v->Sident : "temp", v->Ssymnum,
+                                (f->Sident[0]) ? (char *)f->Sident : "temp", f->Ssymnum);
                         }
 #endif
                         type *nt = n->ET;
@@ -1716,7 +1716,7 @@ void verybusyexp()
 
                         /* Mark all the vbe elems found but one (the    */
                         /* go.expnod[j] one) so that the expression will   */
-                        /* only be hoisted again if other occurrances   */
+                        /* only be hoisted again if other occurrences   */
                         /* of the expression are found later. This      */
                         /* will substitute for the fact that the        */
                         /* el_copytree() expression does not appear in go.expnod[]. */
