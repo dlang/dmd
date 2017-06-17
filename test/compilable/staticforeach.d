@@ -140,6 +140,28 @@ static foreach(x;iota(2,100)){
 
 alias Seq(T...)=T;
 
+alias Overloads(alias a) = Seq!(__traits(getOverloads, __traits(parent, a), __traits(identifier, a)));
+
+template Parameters(alias f){
+    static if(is(typeof(f) P == function)) alias Parameters=P;
+}
+
+template forward(alias a){
+    enum x=2;
+    static foreach(f;Overloads!a){
+        auto ref forward(Parameters!f args){
+            return f(args);
+        }
+    }
+    enum y=3;
+}
+
+int foo(int x){ return x; }
+string foo(string x){ return x; }
+
+static assert(forward!foo(2)==2 && forward!foo("hi") == "hi");
+
+
 // simple boilerplate-free visitor pattern
 static foreach(char T;'A'..'F'){
     mixin("class "~T~q{{

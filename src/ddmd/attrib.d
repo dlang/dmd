@@ -1414,9 +1414,12 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 
     override final bool oneMember(Dsymbol* ps, Identifier ident)
     {
-        // TODO: is there a better implementation for this?
+        if (cached)
+        {
+            return super.oneMember(ps, ident);
+        }
         *ps = null;
-        return true;
+        return false;
     }
 
     override Dsymbols* include(Scope* sc, ScopeDsymbol sds)
