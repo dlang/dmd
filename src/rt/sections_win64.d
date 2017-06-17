@@ -19,8 +19,6 @@ debug(PRINTF) import core.stdc.stdio;
 import core.stdc.stdlib : malloc, free;
 import rt.deh, rt.minfo;
 
-version = conservative;
-
 struct SectionGroup
 {
     static int opApply(scope int delegate(ref SectionGroup) dg)
@@ -58,11 +56,10 @@ struct SectionGroup
 
 private:
     ModuleGroup _moduleGroup;
-    version(conservative)
-        void[][1] _gcRanges;
-    else
-        void[][] _gcRanges;
+    void[][] _gcRanges;
 }
+
+shared(bool) conservative;
 
 void initSections() nothrow @nogc
 {
@@ -72,28 +69,43 @@ void initSections() nothrow @nogc
     void[] dataSection = findImageSection(".data");
     debug(PRINTF) printf("found .data section: [%p,+%llx]\n", dataSection.ptr,
                          cast(ulong)dataSection.length);
-    version(conservative)
+
+    import rt.sections;
+    conservative = !scanDataSegPrecisely();
+
+    if (conservative)
     {
+        _sections._gcRanges = (cast(void[]*) malloc((void[]).sizeof))[0..1];
         _sections._gcRanges[0] = dataSection;
     }
     else
     {
         size_t count = &_DP_end - &_DP_beg;
         auto ranges = cast(void[]*) malloc(count * (void[]).sizeof);
+        size_t r = 0;
+        void* prev = null;
         for (size_t i = 0; i < count; i++)
         {
-            void* addr = dataSection.ptr + (&_DP_beg)[i];
-            ranges[i] = (cast(void**)addr)[0..1]; // TODO: optimize consecutive pointers into single range
+            auto off = (&_DP_beg)[i];
+            if (off == 0) // skip zero entries added by incremental linking
+                continue; // assumes there is no D-pointer at the very beginning of .data
+            void* addr = dataSection.ptr + off;
+            debug(PRINTF) printf("  scan %p\n", addr);
+            // combine consecutive pointers into single range
+            if (prev + (void*).sizeof == addr)
+                ranges[r-1] = ranges[r-1].ptr[0 .. ranges[r-1].length + (void*).sizeof];
+            else
+                ranges[r++] = (cast(void**)addr)[0..1];
+            prev = addr;
         }
-        _sections._gcRanges = ranges[0..count];
+        _sections._gcRanges = ranges[0..r];
     }
 }
 
 void finiSections() nothrow @nogc
 {
     .free(cast(void*)_sections.modules.ptr);
-    version(conservative) {} else
-        .free(_sections._gcRanges.ptr);
+    .free(_sections._gcRanges.ptr);
 }
 
 void[] initTLSRanges() nothrow @nogc
@@ -109,15 +121,23 @@ void finiTLSRanges(void[] rng) nothrow @nogc
 
 void scanTLSRanges(void[] rng, scope void delegate(void* pbeg, void* pend) nothrow dg) nothrow
 {
-    version(conservative)
+    if (conservative)
     {
         dg(rng.ptr, rng.ptr + rng.length);
     }
     else
     {
-        size_t count = &_TP_end - &_TP_beg;
-        for (auto p = &_TP_beg; p < &_TP_end; p++)
-            dg(rng.ptr + *p, rng.ptr + *p + (void*).sizeof);
+        for (auto p = &_TP_beg; p < &_TP_end; )
+        {
+            uint beg = *p++;
+            uint end = beg + cast(uint)((void*).sizeof);
+            while (p < &_TP_end && *p == end)
+            {
+                end += (void*).sizeof;
+                p++;
+            }
+            dg(rng.ptr + beg, rng.ptr + end);
+        }
     }
 }
 
