@@ -348,6 +348,7 @@ $(SECTION3 $(LEGACY_LNAME2 Struct-Constructor, struct-constructor, Struct Constr
         }
         ------
 
+$(COMMENT
 $(P Inside a constructor, the first occurrence (in lexical order) of assignments
 of the form $(CODE member = expression;) are handled differently than usual
 assignments. The first such assignment in lexical order is converted to a
@@ -437,6 +438,7 @@ $(P If an exception is thrown at any point from within a constructor,
 destructors are called for all members, in reverse lexical order of their
 declaration. Members that have not been explicitly initialized in the
 constructor will have their `.init` values upon destruction.)
+)
 
         $(P A constructor qualifier allows the object to be constructed with
         that specific qualifier.
