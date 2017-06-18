@@ -574,8 +574,8 @@ $(H4 Escape Sequences)
         specified as two hexadecimal digits.$(BR)For example: $(D \xFF)
         represents the character with the value 255.)
     $(TROW $(D \)$(I n)$(BR)$(D \)$(I nn)$(BR)$(D \)$(I nnn), Byte value in
-        octal.$(BR)For example: $(D \775) represents the character with the
-        value 509.)
+        octal.$(BR)For example: $(D \101) represents the character with the
+        value 65 ($(D 'A')).)
     $(TROW $(D \u)$(I nnnn), Unicode character U+$(I nnnn)$(COMMA) where
         $(I nnnn) are four hexadecimal digits.$(BR)For example$(COMMA)
         $(D \u042F) represents the Unicode character Я (U+42F).)
