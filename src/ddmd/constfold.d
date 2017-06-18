@@ -431,7 +431,8 @@ extern (C++) UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
         if (n2 == 0)
         {
             e2.error("divide by 0");
-            n2 = 1;
+            emplaceExp!(ErrorExp)(&ue);
+            return ue;
         }
         if (n2 == -1 && !type.isunsigned())
         {
@@ -495,7 +496,8 @@ extern (C++) UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
         if (n2 == 0)
         {
             e2.error("divide by 0");
-            n2 = 1;
+            emplaceExp!(ErrorExp)(&ue);
+            return ue;
         }
         if (n2 == -1 && !type.isunsigned())
         {
