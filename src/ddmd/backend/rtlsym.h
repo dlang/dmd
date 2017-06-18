@@ -193,6 +193,9 @@ SYMBOL_MARS(TRACEARRAYAPPENDWD,   FLfunc,FREGSAVED,"_d_arrayappendwdTrace", 0, t
 SYMBOL_MARS(TRACEARRAYSETLENGTHT, FLfunc,FREGSAVED,"_d_arraysetlengthTTrace", 0, t) \
 SYMBOL_MARS(TRACEARRAYSETLENGTHIT,FLfunc,FREGSAVED,"_d_arraysetlengthiTTrace", 0, t) \
 SYMBOL_MARS(TRACEALLOCMEMORY,     FLfunc,FREGSAVED,"_d_allocmemoryTrace", 0, t) \
+SYMBOL_MARS(C_ASSERT,             FLfunc,FREGSAVED,"_assert", SFLexit, t) \
+SYMBOL_MARS(C__ASSERT,            FLfunc,FREGSAVED,"__assert", SFLexit, t) \
+SYMBOL_MARS(C__ASSERT_RTN,        FLfunc,FREGSAVED,"__assert_rtn", SFLexit, t) \
 
 
 // Migrate to function interface to rtl symbols
