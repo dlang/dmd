@@ -845,11 +845,11 @@ $(P
 
 -----
 import std.stdio;
-import std.typetuple; // for TypeTuple
+import std.meta : AliasSeq;
 
 void main()
 {
-    alias TL = TypeTuple!(int, long, double);
+    alias TL = AliasSeq!(int, long, double);
 
     foreach (T; TL)
     {
