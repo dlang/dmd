@@ -689,6 +689,7 @@ $(H3 $(LEGACY_LNAME2 PackageModule, package-module, Package Module))
 
     void main() { }
     ---------
+$(SPEC_SUBNAV_PREV_NEXT grammar, Grammar, declaration, Declarations)
 )
 
 Macros:

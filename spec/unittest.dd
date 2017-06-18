@@ -203,6 +203,7 @@ $(H3 $(LNAME2 versioning, Versioning))
 	is done with unit tests enabled.
 	)
 
+$(SPEC_SUBNAV_PREV_NEXT errors, Error Handling, garbage, Garbage Collection)
 )
 
 Macros:

@@ -338,6 +338,7 @@ $(SECTION3 $(LNAME2 ptrdiff_t, $(D ptrdiff_t)),
     $(P $(D ptrdiff_t) is an alias to the signed basic type the same size as $(D size_t).)
 )
 
+$(SPEC_SUBNAV_PREV_NEXT declaration, Declarations, property, Properties)
 )
 
 Macros:

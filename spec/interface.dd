@@ -327,6 +327,7 @@ class Ifoo
 )
 
 
+$(SPEC_SUBNAV_PREV_NEXT class, Classes, enum, Enums)
 )
 
 Macros:

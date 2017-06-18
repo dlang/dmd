@@ -112,6 +112,7 @@ $(H2 $(LNAME2 os_specific_code, OS Specific Code))
 	specific import, and then using that constant in an
 	$(I IfStatement) or $(I StaticIfStatement).
 	)
+$(SPEC_SUBNAV_PREV_NEXT objc_interface, Interfacing to Objective-C, entity, Named Character Entities)
 )
 
 Macros:

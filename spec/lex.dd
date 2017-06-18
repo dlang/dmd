@@ -1157,6 +1157,7 @@ x;  // this is now line 6 of file foo\bar
 	$(P Note that the backslash character is not treated specially inside
 	$(GLINK Filespec) strings.
 	)
+$(SPEC_SUBNAV_PREV_NEXT intro, Introduction, grammar, Grammar)
 )
 
 Macros:

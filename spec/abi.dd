@@ -954,6 +954,7 @@ $(H3 $(LNAME2 codeview, Codeview Debugger Extensions))
 	$(P The $(LINK2 http://ddbg.mainia.de/releases.html, Ddbg) debugger
 	supports them.)
 	)
+$(SPEC_SUBNAV_PREV_NEXT memory-safe-d, Memory Safety, simd, Vector Extensions)
 )
 
 Macros:

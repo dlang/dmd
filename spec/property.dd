@@ -244,6 +244,7 @@ $(SECTION3 $(LNAME2 classproperties, User Defined Properties),
 	$(P User defined properties can be created using $(LINK2 function.html#property-functions, Property Functions).)
 )
 
+$(SPEC_SUBNAV_PREV_NEXT type, Types, attribute, Attributes)
 )
 
 Macros:

@@ -44,6 +44,7 @@ $(H3 $(LNAME2 limitations, Limitations))
 	possibilities.
 	)
 
+$(SPEC_SUBNAV_PREV_NEXT entity, Named Character Entities, abi, Application Binary Interface)
 )
 
 Macros:
