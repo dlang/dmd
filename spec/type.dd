@@ -87,7 +87,7 @@ $(SECTION3 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit 
     types as required.
     )
 
-    $(P A  enum can be implicitly converted to its base
+    $(P An enum can be implicitly converted to its base
     type, but going the other way requires an explicit
     conversion.
 
@@ -149,7 +149,7 @@ $(SECTION3 $(LEGACY_LNAME2 Integer Promotions, integer-promotions, Integer Promo
     )
     )
 
-    $(P If a  enum has as a base type one of the types
+    $(P If an enum has as a base type one of the types
     in the left column, it is converted to the type in the right
     column.
     )
