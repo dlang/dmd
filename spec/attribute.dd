@@ -352,7 +352,7 @@ $(GNAME VisibilityAttribute):
         $(D public) or $(D export).
         )
 
-        $(P They may be refered to as protection attributes in documents written
+        $(P They may be referred to as protection attributes in documents written
         before $(LINK2 http://wiki.dlang.org/DIP22, DIP22) was implemented.)
 
         $(P Symbols with $(D private) visibility can only be accessed from
