@@ -240,6 +240,7 @@ extern (C++) struct CodeBuilder
   extern (C++):
   final:
     code *finish() { return head; }
+    void reset() { head = null; pTail = &head; }
 
     void append(ref CodeBuilder cdb);
     void append(ref CodeBuilder cdb1, ref CodeBuilder cdb2);

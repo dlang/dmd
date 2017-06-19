@@ -390,7 +390,7 @@ code* cod3_stackadj(code* c, int nbytes);
 regm_t regmask(tym_t tym, tym_t tyf);
 void cgreg_dst_regs(unsigned *dst_integer_reg, unsigned *dst_float_reg);
 void cgreg_set_priorities(tym_t ty, unsigned char **pseq, unsigned char **pseqmsw);
-void outblkexitcode(block *bl, code* c, int& anyspill, const char* sflsave, symbol** retsym, const regm_t mfuncregsave );
+void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sflsave, symbol** retsym, const regm_t mfuncregsave );
 void outjmptab (block *b );
 void outswitab (block *b );
 int jmpopcode (elem *e );
@@ -441,16 +441,16 @@ extern bool pushoffuse;         // using pushoff
 extern int BPoff;               // offset from BP
 extern int EBPtoESP;            // add to EBP offset to get ESP offset
 
-code* prolog_ifunc(tym_t* tyf);
-code* prolog_ifunc2(tym_t tyf, tym_t tym, bool pushds);
-code* prolog_16bit_windows_farfunc(tym_t* tyf, bool* pushds);
+void prolog_ifunc(CodeBuilder& cdb, tym_t* tyf);
+void prolog_ifunc2(CodeBuilder& cdb, tym_t tyf, tym_t tym, bool pushds);
+void prolog_16bit_windows_farfunc(CodeBuilder& cdb, tym_t* tyf, bool* pushds);
 code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter, int* cfa_offset);
 code* prolog_frameadj(tym_t tyf, unsigned xlocalsize, bool enter, bool* pushalloc);
-code* prolog_frameadj2(tym_t tyf, unsigned xlocalsize, bool* pushalloc);
-code* prolog_setupalloca();
-code* prolog_saveregs(code *c, regm_t topush, int cfa_offset);
+void prolog_frameadj2(CodeBuilder& cdb, tym_t tyf, unsigned xlocalsize, bool* pushalloc);
+void prolog_setupalloca(CodeBuilder& cdb);
+void prolog_saveregs(CodeBuilder& cdb, regm_t topush, int cfa_offset);
 code* epilog_restoreregs(code *c, regm_t topop);
-code* prolog_trace(bool farfunc, unsigned* regsaved);
+void prolog_trace(CodeBuilder& cdb, bool farfunc, unsigned* regsaved);
 code* prolog_gen_win64_varargs();
 code* prolog_genvarargs(symbol* sv, regm_t* namedargs);
 code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs);
@@ -713,6 +713,7 @@ struct CodeBuilder
     CodeBuilder() { head = NULL; pTail = &head; }
     CodeBuilder(code *c);
     code *finish() { return head; }
+    void reset() { head = NULL; pTail = &head; }
 
     void append(CodeBuilder& cdb);
     void append(CodeBuilder& cdb1, CodeBuilder& cdb2);
