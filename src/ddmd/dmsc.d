@@ -55,7 +55,8 @@ void out_config_init(
                         // 2: fake it with C symbolic debug info
         bool alwaysframe,       // always create standard function frame
         bool stackstomp,        // add stack stomping code
-        bool avx                // use AVX instruction set
+        bool avx,               // use AVX instruction set
+        bool betterC            // implement "Better C"
         );
 
 void out_config_debug(
@@ -113,7 +114,8 @@ void backend_init()
         params.symdebug,
         params.alwaysframe,
         params.stackstomp,
-        params.cpu >= CPU.avx
+        params.cpu >= CPU.avx,
+        params.betterC
     );
 
     debug

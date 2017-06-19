@@ -660,12 +660,12 @@ public int runLINK()
             const(char)* p = (*global.params.dllfiles)[i];
             argv.push(p);
         }
-        /* Standard libraries must go after user specified libraries
+        /* D runtime libraries must go after user specified libraries
          * passed with -l.
          */
         const(char)* libname = global.params.symdebug ? global.params.debuglibname : global.params.defaultlibname;
         size_t slen = strlen(libname);
-        if (slen)
+        if (!global.params.betterC && slen)
         {
             char* buf = cast(char*)malloc(3 + slen + 1);
             strcpy(buf, "-l");
