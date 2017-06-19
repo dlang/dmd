@@ -2730,18 +2730,12 @@ unittest
     does is done and so that it no longer references any other objects. It does
     $(I not) initiate a GC cycle or free any GC memory.
   +/
-version (D_Ddoc)
-{
-    void destroy(T)(T obj);
-    ///
-    void destroy(T)(ref T obj);
-}
-
 void destroy(T)(T obj) if (is(T == class))
 {
     rt_finalize(cast(void*)obj);
 }
 
+/// ditto
 void destroy(T)(T obj) if (is(T == interface))
 {
     destroy(cast(Object)obj);
@@ -2802,6 +2796,7 @@ version(unittest) unittest
    }
 }
 
+/// ditto
 void destroy(T)(ref T obj) if (is(T == struct))
 {
     _destructRecurse(obj);
@@ -2854,6 +2849,7 @@ version(unittest) nothrow @safe @nogc unittest
    }
 }
 
+/// ditto
 void destroy(T : U[n], U, size_t n)(ref T obj) if (!is(T == struct))
 {
     foreach_reverse (ref e; obj[])
@@ -2917,6 +2913,7 @@ unittest
     }
 }
 
+/// ditto
 void destroy(T)(ref T obj)
     if (!is(T == struct) && !is(T == interface) && !is(T == class) && !_isStaticArray!T)
 {
