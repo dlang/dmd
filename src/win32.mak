@@ -61,6 +61,7 @@
 # fixed model for win32.mak, overridden by win64.mak
 MODEL=32
 BUILD=release
+OS=windows
 
 ##### Directories
 
