@@ -71,7 +71,8 @@ enum LongInst : ushort
     //Former ShortInst
     //Prt,
     RelJmp,
-    Ret,
+    Ret32,
+    Ret64,
     Not,
 
     Flg, // writes the conditionFlag into [lw >> 16]
@@ -970,17 +971,11 @@ pure:
 
     void Ret(BCValue val)
     {
+        LongInst inst = basicTypeSize(val.type) == 8 ? LongInst.Ret64 : LongInst.Ret32;
+        val = pushOntoStack(val);
         if (val.vType == BCValueType.StackValue || val.vType == BCValueType.Parameter)
         {
-            byteCodeArray[ip] = ShortInst16(LongInst.Ret, val.stackAddr);
-            byteCodeArray[ip + 1] = 0;
-            ip += 2;
-        }
-        else if (val.vType == BCValueType.Immediate)
-        {
-            auto sv = pushOntoStack(val);
-            assert(sv.vType == BCValueType.StackValue);
-            byteCodeArray[ip] = ShortInst16(LongInst.Ret, sv.stackAddr);
+            byteCodeArray[ip] = ShortInst16(inst, val.stackAddr);
             byteCodeArray[ip + 1] = 0;
             ip += 2;
         }
@@ -1388,9 +1383,14 @@ string printInstructions(const int* startInstructions, uint length) pure
             }
             break;
 */
-        case LongInst.Ret:
+        case LongInst.Ret32:
             {
-                result ~= "Ret SP[" ~ to!string(lw >> 16) ~ "] \n";
+                result ~= "Ret32 SP[" ~ to!string(lw >> 16) ~ "] \n";
+            }
+            break;
+        case LongInst.Ret64:
+            {
+                result ~= "Ret64 SP[" ~ to!string(lw >> 16) ~ "] \n";
             }
             break;
         case LongInst.RelJmp:
@@ -1442,7 +1442,7 @@ string printInstructions(const int* startInstructions, uint length) pure
                 // alignLengthBy2
                 assert(alignedLength <= length, "comment (" ~ to!string(alignedLength) ~") longer then code (" ~ to!string(length) ~ ")");
 
-                foreach(c4i; pos .. pos + commentLength / 4)
+                foreach(c4i; pos .. pos + ((commentLength + 3) / 4))
                 {
                     result ~= *(cast(const(char[4])*) &arr[c4i]);
                 }
@@ -1510,7 +1510,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 argOffset += uint.sizeof;
             }
             break;
-        case BCTypeEnum.i64:
+        case BCTypeEnum.i64, BCTypeEnum.f52:
             {
                 *(stackP + argOffset / 4) = arg.imm64;
                 argOffset += uint.sizeof;
@@ -1884,9 +1884,9 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
             break;
         case LongInst.FMul64:
             {
-                ulong _lhs = *lhsRef ;
+                ulong _lhs = *lhsRef;
                 double flhs = *cast(double*)&_lhs;
-                ulong _rhs = *rhs ;
+                ulong _rhs = *rhs;
                 double frhs = *cast(double*)&_rhs;
 
                 flhs *= frhs;
@@ -1905,7 +1905,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 flhs /= frhs;
 
                 _lhs = *cast(ulong*)&flhs;
-                *lhsRef = _lhs;
+                *(cast(ulong*)lhsRef) = _lhs;
             }
             break;
         case LongInst.FMod64:
@@ -1918,7 +1918,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 flhs %= frhs;
 
                 _lhs = *cast(ulong*)&flhs;
-                *lhsRef = _lhs;
+                *(cast(ulong*)lhsRef) = _lhs;
             }
             break;
 
@@ -2108,7 +2108,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
             }
             break;
 */
-        case LongInst.Ret:
+        case LongInst.Ret32:
             {
                 debug (bc)
                     if (!__ctfe)
@@ -2118,6 +2118,17 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                         writeln("Ret SP[", lhsOffset, "] (", *opRef, ")\n");
                     }
                 return imm32(*opRef & uint.max);
+            }
+        case LongInst.Ret64:
+            {
+                debug (bc)
+                    if (!__ctfe)
+                    {
+                        import std.stdio;
+
+                        writeln("Ret SP[", lhsOffset, "] (", *opRef, ")\n");
+                    }
+                return BCValue(Imm64(*opRef));
             }
 
         case LongInst.RelJmp:
@@ -2164,8 +2175,10 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 {
                     if(isStackValueOrParameter(arg))
                     {
-                        assert(stackP[arg.stackAddr.addr / 4] <= uint.max, "64bit argument would be truncated");
-                        callArgs[i] = imm32(stackP[arg.stackAddr.addr / 4] & uint.max);
+                        if(stackP[arg.stackAddr.addr / 4] <= uint.max)
+                            callArgs[i] = imm32(stackP[arg.stackAddr.addr / 4] & uint.max);
+                        else
+                            callArgs[i] = BCValue(Imm64(stackP[arg.stackAddr.addr]));
                     }
                     else if (arg.vType == BCValueType.Immediate)
                     {

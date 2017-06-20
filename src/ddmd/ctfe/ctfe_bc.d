@@ -1273,6 +1273,11 @@ Expression toExpression(const BCValue value, Type expressionType,
             result = new RealExp(Loc(), *cast(float*)&value.imm32, expressionType);
         }
         break;
+    case Tfloat64:
+        {
+            result = new RealExp(Loc(), *cast(double*)&value.imm64, expressionType);
+        }
+        break;
     case Tint32, Tuns32, Tint16, Tuns16, Tint8, Tuns8:
         {
             result = new IntegerExp(value.imm32);
@@ -1337,7 +1342,7 @@ extern (C++) final class BCTypeVisitor : Visitor
         case ENUMTY.Tchar:
             return BCType(BCTypeEnum.c8);
         case ENUMTY.Twchar:
-            //return BCType(BCTypeEnum.c16);
+            return BCType(BCTypeEnum.c16);
         case ENUMTY.Tdchar:
             //return BCType(BCTypeEnum.c32);
             return BCType(BCTypeEnum.Char);
@@ -1360,7 +1365,7 @@ extern (C++) final class BCTypeVisitor : Visitor
         case ENUMTY.Tfloat32:
             return BCType(BCTypeEnum.f23);
         case ENUMTY.Tfloat64:
-            //return BCType(BCTypeEnum.f64);
+            return BCType(BCTypeEnum.f52);
         case ENUMTY.Tfloat80:
             //return BCType(BCTypeEnum.f64);
         case ENUMTY.Timaginary32:
@@ -1519,7 +1524,7 @@ struct BCScope
 
 debug = nullPtrCheck;
 debug = nullAllocCheck;
-debug = andand;
+//debug = andand;
 //debug = SetLocation;
 //debug = LabelLocation;
 extern (C++) final class BCV(BCGenT) : Visitor
@@ -2218,6 +2223,13 @@ public:
                 return ;
             }
 
+            if ((cast(TypeFunction)fd.type).parameters)
+                foreach(p;*(cast(TypeFunction)fd.type).parameters)
+                {
+                    if (p.defaultArg)
+                        bailout("default args unsupported");
+                }
+
             if (fd.fbody)
             {
                 const fnIdx = ++_sharedCtfeState.functionCount;
@@ -2544,7 +2556,7 @@ static if (is(BCGen))
             break;
         case TOK.TOKquestion:
             {
-        Comment(": ? begin");
+        Comment(": ? begin ");
                 auto ce = cast(CondExp) e;
                 auto cond = genExpr(ce.econd);
                 debug (ctfe)
@@ -2767,6 +2779,7 @@ static if (is(BCGen))
 
         case TOK.TOKoror:
             {
+                 debug(oror) {
                     if (inAndAnd)
                         bailout("Cannot deal with intermixed && and ||");
 
@@ -2805,6 +2818,7 @@ static if (is(BCGen))
                         Comment("|| afterRhs");
                     }
                     inOrOr = false;
+                }
             }
             break;
 
@@ -4062,7 +4076,7 @@ static if (is(BCGen))
 
     static bool canHandleBinExpTypes(const BCTypeEnum lhs, const BCTypeEnum rhs) pure
     {
-        return ((lhs == BCTypeEnum.i32 || lhs == BCTypeEnum.f23)
+        return ((lhs == BCTypeEnum.i32 || lhs == BCTypeEnum.f23 || lhs == BCTypeEnum.f52)
             && rhs == lhs) || lhs == BCTypeEnum.i64
             && (rhs == BCTypeEnum.i64 || rhs == BCTypeEnum.i32);
     }
@@ -4247,9 +4261,19 @@ static if (is(BCGen))
 
         if (re.type.ty == Tfloat32)
         {
+            import std.stdio;
+            writeln("F32: ", re.value);
             float tmp = cast(float)re.value;
             retval = imm32(*cast(uint*)&tmp);
             retval.type.type = BCTypeEnum.f23;
+        }
+        else if (re.type.ty == Tfloat64)
+        {
+            import std.stdio;
+            writeln("F64: ", re.value);
+            double tmp = cast(double)re.value;
+            retval = BCValue(Imm64(*cast(ulong*)&tmp));
+            retval.type.type = BCTypeEnum.f52;
         }
         else
             bailout("RealExp unsupported");
@@ -4381,13 +4405,13 @@ static if (is(BCGen))
         {
             bailout(
                 "CmpExp: cannot work with thoose types lhs: " ~ to!string(lhs.type.type) ~ " rhs: " ~ to!string(
-                rhs.type.type));
+                rhs.type.type) ~ " result: " ~ to!string(oldAssignTo.type.type) );
         }
     }
 
     static bool canWorkWithType(const BCType bct) pure
     {
-        return (bct.type == BCTypeEnum.i32 || bct.type == BCTypeEnum.i64 || bct.type == BCTypeEnum.f23);
+        return (bct.type == BCTypeEnum.i32 || bct.type == BCTypeEnum.i64 || bct.type == BCTypeEnum.f23 || bct.type == BCTypeEnum.f52);
     }
 /*
     override void visit(ConstructExp ce)
@@ -5321,8 +5345,11 @@ static if (is(BCGen))
             }
             if (bc_args[i].type == BCTypeEnum.i64)
             {
-                bailout(arg.toString ~ "cannot safely pass 64bit arguments yet");
-                return ;
+                if (!is(BCGen))
+                {
+                    bailout(arg.toString ~ "cannot safely pass 64bit arguments yet");
+                    return ;
+                }
             }
 
             if ((*tf.parameters)[i].storageClass & STCref)
@@ -5435,8 +5462,8 @@ static if (is(BCGen))
             }
             if (retval.type.type == BCTypeEnum.i32 || retval.type.type == BCTypeEnum.Slice || retval.type.type == BCTypeEnum.c8 ||
                 retval.type.type == BCTypeEnum.c32 || retval.type.type == BCTypeEnum.Array || retval.type.type == BCTypeEnum.String ||
-                retval.type.type == BCTypeEnum.Struct || retval.type.type == BCTypeEnum.f23)
-                Ret(retval.i32);
+                retval.type.type == BCTypeEnum.Struct || retval.type.type == BCTypeEnum.f23 || retval.type.type == BCTypeEnum.f52)
+                Ret(retval);
             else
             {
                 bailout(
