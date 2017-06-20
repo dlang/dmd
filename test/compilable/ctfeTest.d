@@ -237,10 +237,12 @@ static assert(fastLog10(1000) == 3);
 
 static assert(echo(fastPow10tbl[1]) == 10);
 
+version(linux)
+{
 import core.time;
 import core.sys.linux.time;
 
- auto _posixClock(ClockType clockType)
+auto _posixClock(ClockType clockType)
     {
             with(ClockType) final switch(clockType)
             {
@@ -256,7 +258,7 @@ import core.sys.linux.time;
 }
 
 static assert(_posixClock(ClockType.bootTime) == CLOCK_BOOTTIME);
-
+}
 uint rfn(uint n)
 {
   if (n > 2) return n + rfn(n-1) + rfn(n-2);
