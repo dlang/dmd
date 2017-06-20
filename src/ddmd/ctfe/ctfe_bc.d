@@ -1268,6 +1268,11 @@ Expression toExpression(const BCValue value, Type expressionType,
             result = new IntegerExp(value.imm32);
         }
         break;
+    case Tfloat32:
+        {
+            result = new RealExp(Loc(), *cast(float*)&value.imm32, expressionType);
+        }
+        break;
     case Tint32, Tuns32, Tint16, Tuns16, Tint8, Tuns8:
         {
             result = new IntegerExp(value.imm32);
@@ -1353,7 +1358,7 @@ extern (C++) final class BCTypeVisitor : Visitor
         case ENUMTY.Tint64:
             return BCType(BCTypeEnum.i64);
         case ENUMTY.Tfloat32:
-            //return BCType(BCTypeEnum.f32);
+            return BCType(BCTypeEnum.f23);
         case ENUMTY.Tfloat64:
             //return BCType(BCTypeEnum.f64);
         case ENUMTY.Tfloat80:
@@ -4057,8 +4062,8 @@ static if (is(BCGen))
 
     static bool canHandleBinExpTypes(const BCTypeEnum lhs, const BCTypeEnum rhs) pure
     {
-        return (lhs == BCTypeEnum.i32
-            && rhs == BCTypeEnum.i32) || lhs == BCTypeEnum.i64
+        return ((lhs == BCTypeEnum.i32 || lhs == BCTypeEnum.f23)
+            && rhs == lhs) || lhs == BCTypeEnum.i64
             && (rhs == BCTypeEnum.i64 || rhs == BCTypeEnum.i32);
     }
 
@@ -4240,7 +4245,14 @@ static if (is(BCGen))
             writefln("RealExp %s", re.toString);
         }
 
-        bailout("RealExp unsupported");
+        if (re.type.ty == Tfloat32)
+        {
+            float tmp = cast(float)re.value;
+            retval = imm32(*cast(uint*)&tmp);
+            retval.type.type = BCTypeEnum.f23;
+        }
+        else
+            bailout("RealExp unsupported");
     }
 
     override void visit(ComplexExp ce)
@@ -4375,7 +4387,7 @@ static if (is(BCGen))
 
     static bool canWorkWithType(const BCType bct) pure
     {
-        return (bct.type == BCTypeEnum.i32 || bct.type == BCTypeEnum.i64);
+        return (bct.type == BCTypeEnum.i32 || bct.type == BCTypeEnum.i64 || bct.type == BCTypeEnum.f23);
     }
 /*
     override void visit(ConstructExp ce)
@@ -4458,7 +4470,7 @@ static if (is(BCGen))
 
         if (ae.e1.op == TOKslice && ae.e2.op == TOKslice)
         {
-	    SliceExp e1 = cast(SliceExp)ae.e1;
+            SliceExp e1 = cast(SliceExp)ae.e1;
             SliceExp e2 = cast(SliceExp)ae.e2;
 
             auto lhs = genExpr(e1);
@@ -5423,7 +5435,7 @@ static if (is(BCGen))
             }
             if (retval.type.type == BCTypeEnum.i32 || retval.type.type == BCTypeEnum.Slice || retval.type.type == BCTypeEnum.c8 ||
                 retval.type.type == BCTypeEnum.c32 || retval.type.type == BCTypeEnum.Array || retval.type.type == BCTypeEnum.String ||
-                retval.type.type == BCTypeEnum.Struct)
+                retval.type.type == BCTypeEnum.Struct || retval.type.type == BCTypeEnum.f23)
                 Ret(retval.i32);
             else
             {
