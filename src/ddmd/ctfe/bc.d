@@ -137,6 +137,14 @@ enum LongInst : ushort
 //    F32ToI32,
 //    I32ToF32,
 
+    FAdd64,
+    FSub64,
+    FDiv64,
+    FMul64,
+    FMod64,
+//    F64ToI64,
+//    I64ToF64,
+
     SetHighImm,
 
     Call,
@@ -174,13 +182,11 @@ static immutable bc_order_errors = () {
 static assert(!bc_order_errors, bc_order_errors);
 
 
-pragma(msg, 2 ^^ 6 - LongInst.max, " opcodes remaining");
+pragma(msg, 2 ^^ 7 - LongInst.max, " opcodes remaining");
 static assert(LongInst.ImmAdd - LongInst.Add == LongInst.ImmRsh - LongInst.Rsh);
 static assert(LongInst.ImmAnd - LongInst.And == LongInst.ImmMod - LongInst.Mod);
 
-enum IndirectionFlagMask = ubyte(0x40); // check 7th bit
-
-enum InstMask = ubyte(0x3F); // mask for bit 0-5
+enum InstMask = ubyte(0x7F); // mask for bit 0-6
 //enum CondFlagMask = ~ushort(0x2FF); // mask for 8-10th bit
 enum CondFlagMask = 0b11_0000_0000;
 
@@ -241,7 +247,7 @@ struct LongInst64
 
 }
 
-static assert(LongInst.max < 0x3F, "Instruction do not fit in 6 bit anymore");
+static assert(LongInst.max < 0x7F, "Instruction do not fit in 7 bit anymore");
 
 static short isShortJump(const int offset) pure @safe
 {
@@ -633,8 +639,9 @@ pure:
         }
         // FIXME remove the lhs.type == BCTypeEnum.Char as soon as we convert correctly.
         assert(lhs.type.type == BCTypeEnum.i32 || lhs.type.type == BCTypeEnum.i64
-            || lhs.type.type == BCTypeEnum.f23 || lhs.type.type == BCTypeEnum.Char,
-            "only i32, i64, f23, is supported for now not: " ~ to!string(lhs.type.type));
+            || lhs.type.type == BCTypeEnum.f23 || lhs.type.type == BCTypeEnum.Char
+            || lhs.type.type == BCTypeEnum.f52,
+            "only i32, i64, f23, f52, is supported for now not: " ~ to!string(lhs.type.type));
         //assert(lhs.type.type == rhs.type.type, lhs.type.type.to!string ~ " != " ~ rhs.type.type.to!string);
 
         if (lhs.vType == BCValueType.Immediate)
@@ -648,6 +655,16 @@ pure:
 
             if (inst != LongInst.Set)
                 inst += (LongInst.FAdd32 - LongInst.Add);
+
+            emitLongInst(LongInst64(inst, lhs.stackAddr, rhs.stackAddr));
+        }
+        else if (lhs.type.type == BCTypeEnum.f52)
+        {
+            assert(rhs.type.type == BCTypeEnum.f52);
+            rhs = pushOntoStack(rhs);
+
+            if (inst != LongInst.Set)
+                inst += (LongInst.FAdd64 - LongInst.Add);
 
             emitLongInst(LongInst64(inst, lhs.stackAddr, rhs.stackAddr));
         }
@@ -1242,6 +1259,31 @@ string printInstructions(const int* startInstructions, uint length) pure
                 result ~= "FMod32 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
             break;
+        case LongInst.FAdd64:
+            {
+                result ~= "FAdd64 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+        case LongInst.FSub64:
+            {
+                result ~= "FSub64 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+        case LongInst.FMul64:
+            {
+                result ~= "FMul64 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+        case LongInst.FDiv64:
+            {
+                result ~= "FDiv64 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+        case LongInst.FMod64:
+            {
+                result ~= "FMod64 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
 
         case LongInst.Assert:
             {
@@ -1813,6 +1855,71 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 flhs %= frhs;
 
                 _lhs = *cast(uint*)&flhs;
+                *lhsRef = _lhs;
+            }
+            break;
+        case LongInst.FAdd64:
+            {
+                ulong _lhs = *lhsRef;
+                double flhs = *cast(double*)&_lhs;
+                ulong _rhs = *rhs;
+                double frhs = *cast(double*)&_rhs;
+
+                flhs += frhs;
+
+                _lhs = *cast(ulong*)&flhs;
+                *lhsRef = _lhs;
+            }
+            break;
+        case LongInst.FSub64:
+            {
+                ulong _lhs = *lhsRef;
+                double flhs = *cast(double*)&_lhs;
+                ulong _rhs = *rhs;
+                double frhs = *cast(double*)&_rhs;
+
+                flhs -= frhs;
+
+                _lhs = *cast(ulong*)&flhs;
+                *lhsRef = _lhs;
+            }
+            break;
+        case LongInst.FMul64:
+            {
+                ulong _lhs = *lhsRef ;
+                double flhs = *cast(double*)&_lhs;
+                ulong _rhs = *rhs ;
+                double frhs = *cast(double*)&_rhs;
+
+                flhs *= frhs;
+
+                _lhs = *cast(ulong*)&flhs;
+                *lhsRef = _lhs;
+            }
+            break;
+        case LongInst.FDiv64:
+            {
+                ulong _lhs = *lhsRef;
+                double flhs = *cast(double*)&_lhs;
+                ulong _rhs = *rhs;
+                double frhs = *cast(double*)&_rhs;
+
+                flhs /= frhs;
+
+                _lhs = *cast(ulong*)&flhs;
+                *lhsRef = _lhs;
+            }
+            break;
+        case LongInst.FMod64:
+            {
+                ulong _lhs = *lhsRef;
+                double flhs = *cast(double*)&_lhs;
+                ulong _rhs = *rhs;
+                double frhs = *cast(double*)&_rhs;
+
+                flhs %= frhs;
+
+                _lhs = *cast(ulong*)&flhs;
                 *lhsRef = _lhs;
             }
             break;
