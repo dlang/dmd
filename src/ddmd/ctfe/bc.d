@@ -635,7 +635,7 @@ pure:
         assert(lhs.type.type == BCTypeEnum.i32 || lhs.type.type == BCTypeEnum.i64
             || lhs.type.type == BCTypeEnum.f23 || lhs.type.type == BCTypeEnum.Char,
             "only i32, i64, f23, is supported for now not: " ~ to!string(lhs.type.type));
-        assert(lhs.type.type == rhs.type.type, lhs.type.type.to!string ~ " != " ~ rhs.type.type.to!string);
+        //assert(lhs.type.type == rhs.type.type, lhs.type.type.to!string ~ " != " ~ rhs.type.type.to!string);
 
         if (lhs.vType == BCValueType.Immediate)
         {
