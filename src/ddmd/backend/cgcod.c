@@ -301,7 +301,9 @@ tryagain:
     // Otherwise, jmp's to startblock will execute the prolog again
     assert(!startblock->Bpred);
 
-    code* cprolog = prolog();                 // gen function start code
+    CodeBuilder cdbprolog;
+    prolog(cdbprolog);           // gen function start code
+    code *cprolog = cdbprolog.finish();
     if (cprolog)
         pinholeopt(cprolog,NULL);       // optimize
 
@@ -637,7 +639,7 @@ targ_size_t alignsection(targ_size_t base, unsigned alignment, int bias)
  *      BPoff
  */
 
-code *prolog()
+void prolog(CodeBuilder& cdb)
 {
     bool enter;
     regm_t namedargs = 0;
@@ -686,8 +688,7 @@ code *prolog()
        )
         needframe = 1;
 
-    CodeBuilder cdb;
-    CodeBuilder cdb2;
+    CodeBuilder cdbx;
 
 Lagain:
     spoff = 0;
@@ -858,14 +859,14 @@ Lagain:
     if (tyf & mTYnaked)                 // if no prolog/epilog for function
     {
         hasframe = 1;
-        return NULL;
+        return;
     }
 
     if (tym == TYifunc)
     {
-        prolog_ifunc(cdb,&tyf);
+        prolog_ifunc(cdbx,&tyf);
         hasframe = 1;
-        cdb2.append(cdb);
+        cdb.append(cdbx);
         goto Lcont;
     }
 
@@ -901,13 +902,13 @@ Lagain:
 
     if (I16 && config.wflags & WFwindows && farfunc)
     {
-        prolog_16bit_windows_farfunc(cdb, &tyf, &pushds);
+        prolog_16bit_windows_farfunc(cdbx, &tyf, &pushds);
         enter = false;                  // don't use ENTER instruction
         hasframe = 1;                   // we have a stack frame
     }
     else if (needframe)                 // if variables or parameters
     {
-        cdb.append(prolog_frame(farfunc, &xlocalsize, &enter, &cfa_offset));
+        prolog_frame(cdbx, farfunc, &xlocalsize, &enter, &cfa_offset);
         hasframe = 1;
     }
 
@@ -915,17 +916,17 @@ Lagain:
      */
     if (config.flags & CFGstack)        // if stack overflow check
     {
-        cdb.append(prolog_frameadj(tyf, xlocalsize, enter, &pushalloc));
+        prolog_frameadj(cdbx, tyf, xlocalsize, enter, &pushalloc);
         if (Alloca.size)
-            prolog_setupalloca(cdb);
+            prolog_setupalloca(cdbx);
     }
     else if (needframe)                      /* if variables or parameters   */
     {
         if (xlocalsize)                 /* if any stack offset          */
         {
-            cdb.append(prolog_frameadj(tyf, xlocalsize, enter, &pushalloc));
+            prolog_frameadj(cdbx, tyf, xlocalsize, enter, &pushalloc);
             if (Alloca.size)
-                prolog_setupalloca(cdb);
+                prolog_setupalloca(cdbx);
         }
         else
             assert(Alloca.size == 0);
@@ -933,7 +934,7 @@ Lagain:
     else if (xlocalsize)
     {
         assert(I32 || I64);
-        prolog_frameadj2(cdb, tyf, xlocalsize, &pushalloc);
+        prolog_frameadj2(cdbx, tyf, xlocalsize, &pushalloc);
         BPoff += REGSIZE;
     }
     else
@@ -944,11 +945,9 @@ Lagain:
      */
     if (config.exe == EX_WIN64)
     {
-        code *c = cdb.finish(); // cdb.peek()
+        code *c = cdbx.peek();
         pinholeopt(c, NULL);
         prolog_allocoffset = calcblksize(c);
-        cdb.reset();
-        cdb.append(c);
     }
 
 #if SCPP
@@ -975,14 +974,14 @@ Lagain:
              * registers are saved. But I don't remember why the call is here
              * and not there.
              */
-            cdb.append(cod3_stackadj(CNIL, spalign));
+            cdbx.append(cod3_stackadj(CNIL, spalign));
         }
 
         unsigned regsaved;
-        prolog_trace(cdgb, farfunc, &regsaved);
+        prolog_trace(cdbx, farfunc, &regsaved);
 
         if (spalign)
-            cdb.append(cod3_stackadj(CNIL, -spalign));
+            cdbx.append(cod3_stackadj(CNIL, -spalign));
         useregs((ALLREGS | mBP | mES) & ~regsaved);
     }
 #endif
@@ -997,45 +996,43 @@ Lagain:
             if (strcmp(sthis->Sident,"this") == 0)
                 break;
         }
-        nteh_monitor_prolog(cdb,sthis);
+        nteh_monitor_prolog(cdbx,sthis);
         EBPtoESP += 3 * 4;
     }
 #endif
 
-    cdb2.append(cdb);
-    prolog_saveregs(cdb2, topush, cfa_offset);
+    cdb.append(cdbx);
+    prolog_saveregs(cdb, topush, cfa_offset);
 
 Lcont:
 
     if (config.exe == EX_WIN64)
     {
         if (variadic(funcsym_p->Stype))
-            cdb2.append(prolog_gen_win64_varargs());
-        cdb2.append(prolog_loadparams(tyf, pushalloc, &namedargs));
-        return cdb2.finish();
+            prolog_gen_win64_varargs(cdb);
+        prolog_loadparams(cdb, tyf, pushalloc, &namedargs);
+        return;
     }
 
-    prolog_ifunc2(cdb2, tyf, tym, pushds);
+    prolog_ifunc2(cdb, tyf, tym, pushds);
 
 #if NTEXCEPTIONS == 2
     if (usednteh & NTEH_except)
-        nteh_setsp(cdb2, 0x89);            // MOV __context[EBP].esp,ESP
+        nteh_setsp(cdb, 0x89);            // MOV __context[EBP].esp,ESP
 #endif
 
     // Load register parameters off of the stack. Do not use
     // assignaddr(), as it will replace the stack reference with
     // the register!
-    cdb2.append(prolog_loadparams(tyf, pushalloc, &namedargs));
+    prolog_loadparams(cdb, tyf, pushalloc, &namedargs);
 
     if (sv64)
-        cdb2.append(prolog_genvarargs(sv64, &namedargs));
+        prolog_genvarargs(cdb, sv64, &namedargs);
 
     /* Alignment checks
      */
     //assert(Auto.alignment <= STACKALIGN);
     //assert(((Auto.size + Para.size + BPoff) & (Auto.alignment - 1)) == 0);
-
-    return cdb2.finish();
 }
 
 /************************************

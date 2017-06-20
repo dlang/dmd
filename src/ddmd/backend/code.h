@@ -405,7 +405,7 @@ code *genmulimm(code *c,unsigned r1,unsigned r2,targ_int imm);
 code *genshift(code *);
 void movregconst(CodeBuilder& cdb,unsigned reg,targ_size_t value,regm_t flags);
 code *genjmp (code *c , unsigned op , unsigned fltarg , block *targ );
-code *prolog (void );
+void prolog(CodeBuilder& cdb);
 void epilog (block *b);
 code *gen_spill_reg(Symbol *s, bool toreg);
 code *load_localgot();
@@ -444,16 +444,16 @@ extern int EBPtoESP;            // add to EBP offset to get ESP offset
 void prolog_ifunc(CodeBuilder& cdb, tym_t* tyf);
 void prolog_ifunc2(CodeBuilder& cdb, tym_t tyf, tym_t tym, bool pushds);
 void prolog_16bit_windows_farfunc(CodeBuilder& cdb, tym_t* tyf, bool* pushds);
-code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter, int* cfa_offset);
-code* prolog_frameadj(tym_t tyf, unsigned xlocalsize, bool enter, bool* pushalloc);
+void prolog_frame(CodeBuilder& cdb, unsigned farfunc, unsigned* xlocalsize, bool* enter, int* cfa_offset);
+void prolog_frameadj(CodeBuilder& cdb, tym_t tyf, unsigned xlocalsize, bool enter, bool* pushalloc);
 void prolog_frameadj2(CodeBuilder& cdb, tym_t tyf, unsigned xlocalsize, bool* pushalloc);
 void prolog_setupalloca(CodeBuilder& cdb);
 void prolog_saveregs(CodeBuilder& cdb, regm_t topush, int cfa_offset);
 code* epilog_restoreregs(code *c, regm_t topop);
 void prolog_trace(CodeBuilder& cdb, bool farfunc, unsigned* regsaved);
-code* prolog_gen_win64_varargs();
-code* prolog_genvarargs(symbol* sv, regm_t* namedargs);
-code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs);
+void prolog_gen_win64_varargs(CodeBuilder& cdb);
+void prolog_genvarargs(CodeBuilder& cdb, symbol* sv, regm_t* namedargs);
+void prolog_loadparams(CodeBuilder& cdb, tym_t tyf, bool pushalloc, regm_t* namedargs);
 
 /* cod4.c */
 extern  const unsigned dblreg[];
@@ -713,6 +713,7 @@ struct CodeBuilder
     CodeBuilder() { head = NULL; pTail = &head; }
     CodeBuilder(code *c);
     code *finish() { return head; }
+    code *peek() { return head; }       // non-destructively look at the list
     void reset() { head = NULL; pTail = &head; }
 
     void append(CodeBuilder& cdb);
