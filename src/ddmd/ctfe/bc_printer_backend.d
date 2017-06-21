@@ -241,8 +241,8 @@ struct Print_BCGen
         import std.string;
         assert(!insideFunction);
         insideFunction = true;
-        auto fd = cast(FuncDeclaration) fnDecl;
-        result ~= indent ~ "beginFunction(" ~ to!string(f) ~ ");//" ~ fd.toChars.fromStringz ~ "\n";
+        auto fd = *(cast(FuncDeclaration*) &fnDecl);
+        result ~= indent ~ "beginFunction(" ~ to!string(f) ~ ");//" ~ (fd && fd.ident ? fd.toChars.fromStringz : "(nameless)") ~ "\n";
         incIndent();
     }
 
