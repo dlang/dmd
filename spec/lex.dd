@@ -575,7 +575,9 @@ $(H4 Escape Sequences)
         represents the character with the value 255.)
     $(TROW $(D \)$(I n)$(BR)$(D \)$(I nn)$(BR)$(D \)$(I nnn), Byte value in
         octal.$(BR)For example: $(D \101) represents the character with the
-        value 65 ($(D 'A')).)
+        value 65 ($(D 'A')). Analogous to hexadecimal characters$(COMMA)
+        the largest byte value is $(D \377) (= $(D \xFF) in hexadecimal
+        or $(D 255) in decimal))
     $(TROW $(D \u)$(I nnnn), Unicode character U+$(I nnnn)$(COMMA) where
         $(I nnnn) are four hexadecimal digits.$(BR)For example$(COMMA)
         $(D \u042F) represents the Unicode character Я (U+42F).)
