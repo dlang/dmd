@@ -24,7 +24,14 @@ else version (WatchOS)
 debug(trace) import core.stdc.stdio : printf;
 debug(info) import core.stdc.stdio : printf;
 
-private struct Demangle
+private struct NoHooks
+{
+    // supported hooks
+    // static bool parseLName(ref Demangle);
+    // static char[] parseType(ref Demangle, char[])
+}
+
+private struct Demangle(Hooks = NoHooks)
 {
     // NOTE: This implementation currently only works with mangled function
     //       names as they exist in an object file.  Type names mangled via
@@ -71,6 +78,7 @@ pure:
     size_t          brp     = 0; // current back reference pos
     AddType         addType = AddType.yes;
     bool            mute    = false;
+    Hooks           hooks;
 
     static class ParseException : Exception
     {
@@ -555,6 +563,10 @@ pure:
         debug(trace) printf( "parseLName+\n" );
         debug(trace) scope(success) printf( "parseLName-\n" );
 
+        static if(__traits(hasMember, Hooks, "parseLName"))
+            if (hooks.parseLName(this))
+                return;
+
         if( front == 'Q' )
         {
             // back reference to LName
@@ -786,6 +798,10 @@ pure:
             "void", // v
             "dchar", // w
         ];
+
+        static if (__traits(hasMember, Hooks, "parseType"))
+            if (auto n = hooks.parseType(this, name))
+                return n;
 
         debug(trace) printf( "parseType+\n" );
         debug(trace) scope(success) printf( "parseType-\n" );
@@ -1986,7 +2002,7 @@ pure:
 char[] demangle( const(char)[] buf, char[] dst = null )
 {
     //return Demangle(buf, dst)();
-    auto d = Demangle(buf, dst);
+    auto d = Demangle!()(buf, dst);
     return d.demangleName();
 }
 
@@ -2004,10 +2020,178 @@ char[] demangle( const(char)[] buf, char[] dst = null )
 */
 char[] demangleType( const(char)[] buf, char[] dst = null )
 {
-    auto d = Demangle(buf, dst);
+    auto d = Demangle!()(buf, dst);
     return d.demangleType();
 }
 
+/**
+* reencode a mangled symbol name that might include duplicate occurrences
+* of the same identifier by replacing all but the first occurence with
+* a back reference.
+*
+* Params:
+*  mangled = The mangled string representing the type
+*
+* Returns:
+*  The mangled name with deduplicated identifiers
+*/
+char[] reencodeMangled(const(char)[] mangled) nothrow pure @safe
+{
+    static struct PrependHooks
+    {
+        size_t lastpos;
+        char[] result;
+        size_t[const(char)[]] idpos; // identifier positions
+
+        static struct Replacement
+        {
+            size_t pos;    // postion in original mangled string
+            size_t respos; // postion in result string
+        }
+        Replacement [] replacements;
+
+    pure:
+        size_t positionInResult(size_t pos)
+        {
+            foreach_reverse (r; replacements)
+                if (pos >= r.pos)
+                    return r.respos + pos - r.pos;
+            return pos;
+        }
+
+        alias Remangle = Demangle!(PrependHooks);
+
+        void flushPosition(ref Remangle d)
+        {
+            if (lastpos < d.pos)
+            {
+                result ~= d.buf[lastpos .. d.pos];
+            }
+            else if (lastpos > d.pos)
+            {
+                // roll back to earlier position
+                while (replacements.length > 0 && replacements[$-1].pos > d.pos)
+                    replacements = replacements[0 .. $-1];
+
+                if (replacements.length > 0)
+                    result.length = replacements[$-1].respos + d.pos - replacements[$-1].pos;
+                else
+                    result.length = d.pos;
+            }
+        }
+
+        bool parseLName(ref Remangle d)
+        {
+            flushPosition(d);
+
+            auto reslen = result.length;
+            auto refpos = d.pos;
+            if (d.front == 'Q')
+            {
+                size_t npos;
+                {
+                    scope(exit) result.length = reslen; // remove all intermediate additions
+                    // only support identifier back references
+                    d.popFront();
+                    size_t n = d.decodeBackref();
+                    if (!n || n > refpos)
+                        d.error("invalid back reference");
+
+                    auto savepos = d.pos;
+                    scope(exit) d.pos = savepos;
+                    size_t srcpos = refpos - n;
+
+                    auto idlen = d.decodeNumber();
+                    if (d.pos + idlen > d.buf.length)
+                        d.error("invalid back reference");
+                    auto id = d.buf[d.pos .. d.pos + idlen];
+                    auto pid = id in idpos;
+                    if (!pid)
+                        d.error("invalid back reference");
+                    npos = positionInResult(*pid);
+                }
+                encodeBackref(reslen - npos);
+                replacements ~= Replacement(d.pos, result.length);
+            }
+            else
+            {
+                auto n = d.decodeNumber();
+                if(!n || n > d.buf.length || n > d.buf.length - d.pos)
+                    d.error("LName too shot or too long");
+                auto id = d.buf[d.pos .. d.pos + n];
+                d.pos += n;
+                if (auto pid = id in idpos)
+                {
+                    size_t npos = positionInResult(*pid);
+                    result.length = reslen;
+                    encodeBackref(reslen - npos);
+                    replacements ~= Replacement(d.pos, result.length);
+                }
+                else
+                {
+                    idpos[id] = refpos;
+                    result ~= d.buf[refpos .. d.pos];
+                }
+            }
+            lastpos = d.pos;
+            return true;
+        }
+
+        char[] parseType( ref Remangle d, char[] name = null )
+        {
+            if (d.front != 'Q')
+                return null;
+
+            flushPosition(d);
+
+            auto refPos = d.pos;
+            d.popFront();
+            auto n = d.decodeBackref();
+            if (n == 0 || n > refPos)
+                d.error("invalid back reference");
+
+            size_t npos = positionInResult(refPos - n);
+            size_t reslen = result.length;
+            encodeBackref(reslen - npos);
+
+            lastpos = d.pos;
+            return result[reslen .. $]; // anything but null
+        }
+
+        void encodeBackref(size_t relpos)
+        {
+            result ~= 'Q';
+            enum base = 26;
+            size_t div = 1;
+            while (relpos >= div * base)
+                div *= base;
+            while (div >= base)
+            {
+                auto dig = (relpos / div);
+                result ~= cast(char)('A' + dig);
+                relpos -= dig * div;
+                div /= base;
+            }
+            result ~= cast(char)('a' + relpos);
+        }
+    }
+
+    auto d = Demangle!(PrependHooks)(mangled, null);
+    d.hooks = PrependHooks();
+    d.mute = true; // no demangled output
+    try
+    {
+        () @trusted { d.parseMangledName(); }();
+        if (d.hooks.lastpos < d.pos)
+            d.hooks.result ~= d.buf[d.hooks.lastpos .. d.pos];
+        return d.hooks.result;
+    }
+    catch(Exception)
+    {
+        // overflow exception cannot occur
+        return mangled.dup;
+    }
+}
 
 /**
  * Mangles a D symbol.
@@ -2069,7 +2253,11 @@ char[] mangle(T)(const(char)[] fqn, char[] dst = null) @safe pure nothrow
     }
     dst[i .. i + T.mangleof.length] = T.mangleof[];
     i += T.mangleof.length;
-    return dst[0 .. i];
+
+    static if(hasTypeBackRef)
+        return reencodeMangled(dst[0 .. i]);
+    else
+        return dst[0 .. i];
 }
 
 
@@ -2129,12 +2317,25 @@ char[] mangleFunc(T:FT*, FT)(const(char)[] fqn, char[] dst = null) @safe pure no
     }
 }
 
+private enum hasTypeBackRef = (int function(void**,void**)).mangleof[$-4 .. $] == "QdZi";
 
 ///
 unittest
 {
     assert(mangleFunc!(int function(int))("a.b") == "_D1a1bFiZi");
-    assert(mangleFunc!(int function(Object))("object.Object.opEquals") == "_D6object6Object8opEqualsFC6ObjectZi");
+    static if(hasTypeBackRef)
+    {
+        assert(mangleFunc!(int function(Object))("object.Object.opEquals") == "_D6object6Object8opEqualsFCQsZi");
+        assert(mangleFunc!(int function(Object, Object))("object.Object.opEquals") == "_D6object6Object8opEqualsFCQsQdZi");
+    }
+    else
+    {
+        auto mngl = mangleFunc!(int function(Object))("object.Object.opEquals");
+        assert(mngl == "_D6object6Object8opEqualsFC6ObjectZi");
+        assert(reencodeMangled(mngl) == "_D6object6Object8opEqualsFCQtZi");
+    }
+    // trigger back tracking with ambiguity on '__T', template or identifier
+    assert(reencodeMangled("_D3std4conv4conv7__T3std4convi") == "_D3std4convQf7__T3stdQpi");
 }
 
 unittest
@@ -2373,7 +2574,7 @@ string decodeDmdString( const(char)[] ln, ref size_t p )
                 break;
             s ~= s[$ - zpos .. $ - zpos + zlen];
         }
-        else if( Demangle.isAlpha(cast(char)ch) || Demangle.isDigit(cast(char)ch) || ch == '_' )
+        else if( Demangle!().isAlpha(cast(char)ch) || Demangle!().isDigit(cast(char)ch) || ch == '_' )
             s ~= cast(char) ch;
         else
         {
