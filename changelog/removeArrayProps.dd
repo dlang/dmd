@@ -1,4 +1,0 @@
-The deprecated built-in array properties `.sort` and `.reverse` were removed.
-
-Usage of those built-in array properties was deprecated since 2.072.0 and they have now been removed.
-Use $(REF sort, std, algorithm, sorting) and $(REF reverse, std, algorithm, mutation) instead.
