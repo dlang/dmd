@@ -2666,8 +2666,7 @@ static if (is(BCGen))
                 retval = genTemporary(rhs.type);
                 retval.heapRef = retvalHeapRef;
             }
-
-            if (canHandleBinExpTypes(lhs.type.type, rhs.type.type) && canWorkWithType(retval.type))
+            if (canHandleBinExpTypes(retval.type.type, lhs.type.type) && canHandleBinExpTypes(retval.type.type, rhs.type.type))
             {
                 const oldDiscardValue = discardValue;
                 discardValue = false;
