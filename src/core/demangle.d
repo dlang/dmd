@@ -43,7 +43,7 @@ private struct Demangle
     //       allocation during the course of a parsing run, this is still
     //       faster than assembling the result piecemeal.
 
-
+pure:
     enum AddType { no, yes }
 
 
@@ -524,10 +524,7 @@ private struct Demangle
 
         tbuf[tlen] = 0;
         debug(info) printf( "got (%s)\n", tbuf.ptr );
-        import core.stdc.stdlib : strtold;
-        val = strtold( tbuf.ptr, null );
-        import core.stdc.stdio : snprintf;
-        tlen = snprintf( tbuf.ptr, tbuf.length, "%#Lg", val );
+        pureReprintReal( tbuf.ptr, tbuf.length );
         debug(info) printf( "converted (%.*s)\n", cast(int) tlen, tbuf.ptr );
         put( tbuf[0 .. tlen] );
     }
@@ -795,7 +792,7 @@ private struct Demangle
         auto beg = len;
         auto t = front;
 
-        char[] parseBackrefType(scope char[] delegate() parseDg)
+        char[] parseBackrefType(scope char[] delegate() pure parseDg) pure
         {
             if (pos == brp)
                 error("recursive back reference");
@@ -2385,4 +2382,24 @@ string decodeDmdString( const(char)[] ln, ref size_t p )
         }
     }
     return s;
+}
+
+// locally purified for internal use here only
+extern (C) private
+{
+    pure @trusted @nogc nothrow pragma(mangle, "fakePureReprintReal") real pureReprintReal(char* nptr, size_t len);
+
+    char* fakePureReprintReal(char* nptr, size_t len)
+    {
+        import core.stdc.stdlib : strtold;
+        import core.stdc.stdio : snprintf;
+        import core.stdc.errno : errno;
+
+        const err = errno;
+        real val = strtold(nptr, null);
+        len = snprintf(nptr, len, "%#Lg", val);
+        errno = err;
+
+        return nptr;
+    }
 }
