@@ -24,27 +24,7 @@ const(uint) align16(const uint val) pure
     return ((val + 15) & ~15);
 }
 
-const (uint) basicTypeSize(BCTypeEnum bct) @safe pure nothrow @nogc
-{
-    debug (ctfe)
-        if (bct == BCTypeEnum.Undef)
-            assert(0, "We should never encounter Undef");
-
-     static immutable sizeTable = () {
-        uint[BCTypeEnum.max] result;
-
-        uint i;
-        foreach(BCTypeEnum e; BCTypeEnum.min .. BCTypeEnum.max)
-        {
-            result[i++] = _basicTypeSize(e);
-        }
-
-        return result;
-    } ();
-    return sizeTable[bct];
-}
-
-const(uint) _basicTypeSize(const BCTypeEnum bct) @safe pure nothrow @nogc
+const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
 {
     final switch (bct) with (BCTypeEnum)
     {
@@ -466,7 +446,7 @@ struct BCValue
         case BCValueType.HeapValue:
             return "heapAddr: " ~ to!string(heapAddr);
         case BCValueType.Immediate:
-            return "imm: " ~ (type == BCTypeEnum.i64
+            return "imm: " ~ (type.type == BCTypeEnum.i64 || type.type == BCTypeEnum.f52
                     ? to!string(imm64) : to!string(imm32));
         default:
             return "unkown value format";
@@ -562,7 +542,7 @@ struct BCValue
         this.type = type;
     }
 
-    this(const HeapAddr addr, const BCType type = BCType(BCTypeEnum.i32)) pure
+    this(const HeapAddr addr, const BCType type = i32Type) pure
     {
         this.vType = BCValueType.HeapValue;
         this.type = type;

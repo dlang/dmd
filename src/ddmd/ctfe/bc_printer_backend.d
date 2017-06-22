@@ -49,7 +49,7 @@ struct Print_BCGen
     }
 
     bool insideFunction = false;
-    ErrorInfo[102_000/2] errorInfos;
+    ErrorInfo[102_000/4] errorInfos;
     uint errorInfoCount;
     FunctionState[ubyte.max * 8] functionStates;
     uint functionStateCount;
@@ -223,6 +223,7 @@ struct Print_BCGen
 
     void Initialize()
     {
+    result = result[0 .. 0];
         result ~= indent ~ "Initialize(" ~ ");\n";
         incIndent();
     }
@@ -240,8 +241,8 @@ struct Print_BCGen
         import std.string;
         assert(!insideFunction);
         insideFunction = true;
-        auto fd = cast(FuncDeclaration) fnDecl;
-        result ~= indent ~ "beginFunction(" ~ to!string(f) ~ ");//" ~ fd.toChars.fromStringz ~ "\n";
+        auto fd = *(cast(FuncDeclaration*) &fnDecl);
+        result ~= indent ~ "beginFunction(" ~ to!string(f) ~ ");//" ~ (fd && fd.ident ? fd.toChars.fromStringz : "(nameless)") ~ "\n";
         incIndent();
     }
 
@@ -489,7 +490,7 @@ struct Print_BCGen
         result ~= indent ~ "MemCpy(" ~ print(dst) ~ ", " ~ print(src) ~ ", " ~ print(size) ~ ");\n";
     }
 
-    void emitComment(string comment)
+    void Comment(string comment)
     {
         result ~= indent ~ "//" ~ comment ~ "\n";
     }

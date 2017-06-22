@@ -736,27 +736,27 @@ string dis(ubyte[] code)
                 result ~= "ADD EAX, #" ~ to!string(fromBytes(code, &pos, 4));
             }
             break;
-        case 0xE9 : 
+        case 0xE9 :
             {
                 result ~= "JMP #" ~ to!string(pos + fromBytes(code, &pos, 4) + 4);
             }
             break;
-        case 0x50: 
+        case 0x50:
             result ~= "PSH EAX";
         break;
-        case 0x51: 
+        case 0x51:
             result ~= "PSH EDX";
         break;
-        case 0x52: 
+        case 0x52:
             result ~= "PSH ECX";
         break;
-        case 0x53: 
+        case 0x53:
             result ~= "PSH EBX";
         break;
-        case 0x54: 
+        case 0x54:
             result ~= "PSH EBP";
         break;
-        case 0x55: 
+        case 0x55:
             result ~= "PSH ESP";
         break;
 
