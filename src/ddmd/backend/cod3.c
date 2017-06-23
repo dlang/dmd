@@ -3800,23 +3800,18 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
  */
 
 void epilog(block *b)
-{   code *c;
-    code *cr;
-    code *ce;
+{
     code *cpopds;
     unsigned reg;
     unsigned regx;                      // register that's not a return reg
     regm_t topop,regm;
-    tym_t tyf,tym;
     int op;
-    char farfunc;
     targ_size_t xlocalsize = localsize;
 
-    c = CNIL;
-    ce = b->Bcode;
-    tyf = funcsym_p->ty();
-    tym = tybasic(tyf);
-    farfunc = tyfarfunc(tym);
+    CodeBuilder cdbx;
+    tym_t tyf = funcsym_p->ty();
+    tym_t tym = tybasic(tyf);
+    char farfunc = tyfarfunc(tym);
     if (!(b->Bflags & BFLepilog))       // if no epilog code
         goto Lret;                      // just generate RET
     regx = (b->BC == BCret) ? AX : CX;
@@ -3833,10 +3828,10 @@ void epilog(block *b)
                                         0x59,0x58,0xCF,0 };
         unsigned char *p;
 
-        c = genregs(c,0x8B,SP,BP);              // MOV SP,BP
+        cdbx.append(genregs(CNIL,0x8B,SP,BP));              // MOV SP,BP
         p = (config.target_cpu >= TARGET_80286) ? ops2 : ops0;
         do
-            gen1(c,*p);
+            cdbx.gen1(*p);
         while (*++p);
         goto Lopt;
     }
@@ -3851,23 +3846,21 @@ void epilog(block *b)
     {
         symbol *s = getRtlsym(farfunc ? RTLSYM_TRACE_EPI_F : RTLSYM_TRACE_EPI_N);
         makeitextern(s);
-        c = gencs(c,I16 ? 0x9A : CALL,0,FLfunc,s);      // CALLF _trace
+        cdbx.gencs(I16 ? 0x9A : CALL,0,FLfunc,s);      // CALLF _trace
         if (!I16)
-            code_orflag(c,CFoff | CFselfrel);
+            code_orflag(cdbx.last(),CFoff | CFselfrel);
         useregs((ALLREGS | mBP | mES) & ~s->Sregsaved);
     }
 
     if (usednteh & ~NTEHjmonitor && (config.exe == EX_WIN32 || MARS))
     {
-        CodeBuilder cdb;
-        nteh_epilog(cdb);
-        c = cat(c,cdb.finish());
+        nteh_epilog(cdbx);
     }
 
     cpopds = CNIL;
     if (tyf & mTYloadds)
-    {   cpopds = gen1(cpopds,0x1F);             // POP DS
-        c = cat(c,cpopds);
+    {   cdbx.gen1(0x1F);             // POP DS
+        cpopds = cdbx.last();
     }
 
     /* Pop all the general purpose registers saved on the stack
@@ -3875,18 +3868,15 @@ void epilog(block *b)
      * order they were pushed.
      */
     topop = fregsaved & ~mfuncreg;
-    c = epilog_restoreregs(c, topop);
+    cdbx.append(epilog_restoreregs(CNIL, topop));
 
 #if MARS
     if (usednteh & NTEHjmonitor)
     {
-        CodeBuilder cdb;
-        cdb.append(c);
         regm_t retregs = 0;
         if (b->BC == BCretexp)
             retregs = regmask(b->Belem->Ety, tym);
-        nteh_monitor_epilog(cdb,retregs);
-        c = cdb.finish();
+        nteh_monitor_epilog(cdbx,retregs);
         xlocalsize += 8;
     }
 #endif
@@ -3903,16 +3893,16 @@ void epilog(block *b)
 
         if (localsize)
         {
-            c = genc1(c,LEA,modregrm(1,SP,6),FLconst,(targ_uns)-2); /* LEA SP,-2[BP] */
+            cdbx.genc1(LEA,modregrm(1,SP,6),FLconst,(targ_uns)-2); /* LEA SP,-2[BP] */
         }
         if (wflags & (WFsaveds | WFds | WFss | WFdgroup))
         {   if (cpopds)
                 cpopds->Iop = NOP;              // don't need previous one
-            c = gen1(c,0x1F);                   // POP DS
+            cdbx.gen1(0x1F);                    // POP DS
         }
-        c = gen1(c,0x58 + BP);                  // POP BP
+        cdbx.gen1(0x58 + BP);                   // POP BP
         if (config.wflags & WFincbp)
-            gen1(c,0x48 + BP);                  // DEC BP
+            cdbx.gen1(0x48 + BP);               // DEC BP
         assert(hasframe);
     }
     else
@@ -3943,53 +3933,52 @@ void epilog(block *b)
                     reg_t reg = CX;
                     mfuncreg &= ~mask[reg];
                     unsigned grex = I64 ? REX_W << 16 : 0;
-                    code *c1 = genc2(CNIL,0xC7,grex | modregrmx(3,0,reg),value);// MOV reg,value
-                    gen2sib(c1,0x89,grex | modregrm(0,reg,4),modregrm(0,4,SP)); // MOV [ESP],reg
-                    genc2(c1,0x81,grex | modregrm(3,0,SP),REGSIZE);     // ADD ESP,REGSIZE
-                    genregs(c1,0x39,SP,BP);                             // CMP EBP,ESP
+                    cdbx.genc2(0xC7,grex | modregrmx(3,0,reg),value);     // MOV reg,value
+                    cdbx.gen2sib(0x89,grex | modregrm(0,reg,4),modregrm(0,4,SP)); // MOV [ESP],reg
+                    code *c1 = cdbx.last();
+                    cdbx.genc2(0x81,grex | modregrm(3,0,SP),REGSIZE);     // ADD ESP,REGSIZE
+                    cdbx.append(genregs(CNIL,0x39,SP,BP));                // CMP EBP,ESP
                     if (I64)
-                        code_orrex(c1,REX_W);
-                    code *cjmp = genjmp(CNIL,JNE,FLcode,(block *)c1);           // JNE L1
+                        code_orrex(cdbx.last(),REX_W);
+                    cdbx.append(genjmp(CNIL,JNE,FLcode,(block *)c1));     // JNE L1
                     // explicitly mark as short jump, needed for correct retsize calculation (Bugzilla 15779)
-                    cjmp->Iflags &= ~CFjmp16;
-                    c1 = cat(c1, cjmp);
-                    gen1(c1,0x58 + BP);                                 // POP BP
-                    c = cat(c,c1);
+                    cdbx.last()->Iflags &= ~CFjmp16;
+                    cdbx.gen1(0x58 + BP);                                 // POP BP
                 }
                 else if (config.exe == EX_WIN64)
                 {   // See http://msdn.microsoft.com/en-us/library/tawsa7cb(v=vs.80).aspx
                     // LEA RSP,0[RBP]
-                    c = genc1(c,LEA,(REX_W<<16)|modregrm(2,SP,BPRM),FLconst,0);
-                    c = gen1(c,0x58 + BP);      // POP RBP
+                    cdbx.genc1(LEA,(REX_W<<16)|modregrm(2,SP,BPRM),FLconst,0);
+                    cdbx.gen1(0x58 + BP);      // POP RBP
                 }
                 else if (config.target_cpu >= TARGET_80286 &&
                     !(config.target_cpu >= TARGET_80386 && config.flags4 & CFG4speed)
                    )
-                    c = gen1(c,0xC9);           // LEAVE
+                    cdbx.gen1(0xC9);           // LEAVE
                 else if (0 && xlocalsize == REGSIZE && Alloca.size == 0 && I32)
                 {   // This doesn't work - I should figure out why
                     mfuncreg &= ~mask[regx];
-                    c = gen1(c,0x58 + regx);    // POP regx
-                    c = gen1(c,0x58 + BP);      // POP BP
+                    cdbx.gen1(0x58 + regx);    // POP regx
+                    cdbx.gen1(0x58 + BP);      // POP BP
                 }
                 else
-                {   c = genregs(c,0x8B,SP,BP);  // MOV SP,BP
+                {   cdbx.append(genregs(CNIL,0x8B,SP,BP));  // MOV SP,BP
                     if (I64)
-                        code_orrex(c, REX_W);   // MOV RSP,RBP
-                    c = gen1(c,0x58 + BP);      // POP BP
+                        code_orrex(cdbx.last(), REX_W);   // MOV RSP,RBP
+                    cdbx.gen1(0x58 + BP);      // POP BP
                 }
             }
             else
-                c = gen1(c,0x58 + BP);          // POP BP
+                cdbx.gen1(0x58 + BP);          // POP BP
             if (config.wflags & WFincbp && farfunc)
-                gen1(c,0x48 + BP);              // DEC BP
+                cdbx.gen1(0x48 + BP);              // DEC BP
         }
         else if (xlocalsize == REGSIZE && (!I16 || b->BC == BCret))
         {   mfuncreg &= ~mask[regx];
-            c = gen1(c,0x58 + regx);                    // POP regx
+            cdbx.gen1(0x58 + regx);                    // POP regx
         }
         else if (xlocalsize)
-            c = cod3_stackadj(c, -xlocalsize);
+            cdbx.append(cod3_stackadj(CNIL, -xlocalsize));
     }
     if (b->BC == BCret || b->BC == BCretexp)
     {
@@ -3997,13 +3986,13 @@ Lret:
         op = tyfarfunc(tym) ? 0xCA : 0xC2;
         if (tym == TYhfunc)
         {
-            c = genc2(c,0xC2,0,4);                      // RET 4
+            cdbx.genc2(0xC2,0,4);                      // RET 4
         }
         else if (!typfunc(tym) ||                       // if caller cleans the stack
                  config.exe == EX_WIN64 ||
                  Para.offset == 0)                          // or nothing pushed on the stack anyway
         {   op++;                                       // to a regular RET
-            c = gen1(c,op);
+            cdbx.gen1(op);
         }
         else
         {   // Stack is always aligned on register size boundary
@@ -4015,23 +4004,26 @@ Lret:
                     ADD ESP, Para.offset
                     JMP REG
                 */
-                c = gen1(c, 0x58+regx);
-                c = genc2(c, 0x81, modregrm(3,0,SP), Para.offset);
+                cdbx.gen1(0x58+regx);
+                cdbx.genc2(0x81, modregrm(3,0,SP), Para.offset);
                 if (I64)
-                    code_orrex(c, REX_W);
-                c = genc2(c, 0xFF, modregrm(3,4,regx), 0);
+                    code_orrex(cdbx.last(), REX_W);
+                cdbx.genc2(0xFF, modregrm(3,4,regx), 0);
                 if (I64)
-                    code_orrex(c, REX_W);
+                    code_orrex(cdbx.last(), REX_W);
             }
             else
-                c = genc2(c,op,0,Para.offset);          // RET Para.offset
+                cdbx.genc2(op,0,Para.offset);          // RET Para.offset
         }
     }
 
 Lopt:
     // If last instruction in ce is ADD SP,imm, and first instruction
     // in c sets SP, we can dump the ADD.
-    cr = code_last(ce);
+    CodeBuilder cdb;
+    cdb.append(b->Bcode);
+    code *cr = cdb.last();
+    code *c = cdbx.peek();
     if (cr && c && !I64)
     {
         if (cr->Iop == 0x81 && cr->Irm == modregrm(3,0,SP))     // if ADD SP,imm
@@ -4062,7 +4054,8 @@ Lopt:
 
     pinholeopt(c, NULL);
     retsize += calcblksize(c);          // compute size of function epilog
-    b->Bcode = cat(ce,c);
+    cdb.append(cdbx);
+    b->Bcode = cdb.finish();
 }
 
 /*******************************

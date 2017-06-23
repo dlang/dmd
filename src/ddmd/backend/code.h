@@ -713,6 +713,7 @@ struct CodeBuilder
     CodeBuilder() { head = NULL; pTail = &head; }
     CodeBuilder(code *c);
     code *finish() { return head; }
+    code *peek() { return head; }       // non-destructively look at the list
     void reset() { head = NULL; pTail = &head; }
 
     void append(CodeBuilder& cdb);
