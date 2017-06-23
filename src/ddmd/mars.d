@@ -134,6 +134,7 @@ Where:
   -dip25           implement http://wiki.dlang.org/DIP25 (experimental)
   -dip1000         implement http://wiki.dlang.org/DIP1000 (experimental)
   -g               add symbolic debug info
+  -gf              emit debug info for all referenced types
   -gs              always emit stack frame
   -gx              add stack stomp code
   -H               generate 'header' file
@@ -469,6 +470,12 @@ private int tryMain(size_t argc, const(char)** argv)
                 Loc loc;
                 deprecation(loc, "use -g instead of -gc");
                 global.params.symdebug = 2;
+            }
+            else if (strcmp(p + 1, "gf") == 0)
+            {
+                if (!global.params.symdebug)
+                    global.params.symdebug = 1;
+                global.params.symdebugref = true;
             }
             else if (strcmp(p + 1, "gs") == 0)
                 global.params.alwaysframe = true;

@@ -46,6 +46,7 @@ import ddmd.statement;
 import ddmd.staticassert;
 import ddmd.target;
 import ddmd.tocsym;
+import ddmd.toctype;
 import ddmd.tocvdebug;
 import ddmd.todt;
 import ddmd.tokens;
@@ -327,7 +328,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
             }
 
-            if (global.params.symdebug)
+            if (global.params.symdebugref)
+                Type_toCtype(cd.type); // calls toDebug() only once
+            else if (global.params.symdebug)
                 toDebug(cd);
 
             assert(cd.semanticRun >= PASSsemantic3done);     // semantic() should have been run to completion
@@ -646,7 +649,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (!id.members)
                 return;
 
-            if (global.params.symdebug)
+            if (global.params.symdebugref)
+                Type_toCtype(id.type); // calls toDebug() only once
+            else if (global.params.symdebug)
                 toDebug(id);
 
             enum_SC scclass = SCcomdat;
@@ -828,7 +833,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
             // do not output forward referenced structs's
             if (!sd.isAnonymous() && sd.members)
             {
-                if (global.params.symdebug)
+                if (global.params.symdebugref)
+                    Type_toCtype(sd.type); // calls toDebug() only once
+                else if (global.params.symdebug)
                     toDebug(sd);
 
                 if (!global.params.betterC)
@@ -988,7 +995,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (ed.isAnonymous())
                 return;
 
-            if (global.params.symdebug)
+            if (global.params.symdebugref)
+                Type_toCtype(ed.type); // calls toDebug() only once
+            else if (global.params.symdebug)
                 toDebug(ed);
 
             if (!global.params.betterC)
