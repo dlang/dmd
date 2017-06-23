@@ -16065,6 +16065,8 @@ extern (C++) final class FileInitExp : DefaultInitExp
     {
         //printf("FileInitExp::resolve() %s\n", toChars());
         const(char)* s = loc.filename ? loc.filename : sc._module.ident.toChars();
+        if (subop == TOKfilefullpath)
+            s = FileName.combine(sc._module.srcfilePath, s);
         Expression e = new StringExp(loc, cast(char*)s);
         e = e.semantic(sc);
         e = e.castTo(sc, type);
