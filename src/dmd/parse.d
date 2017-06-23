@@ -4666,11 +4666,12 @@ final class Parser(AST) : Lexer
         // The following is irrelevant, as it is overridden by sc.linkage in
         // TypeFunction::semantic
         linkage = LINK.d; // nested functions have D linkage
+        bool requireDo = false;
     L1:
         switch (token.value)
         {
         case TOK.leftCurly:
-            if (f.frequire || f.fensure)
+            if (requireDo)
                 error("missing `do { ... }` after `in` or `out`");
             f.fbody = parseStatement(ParseStatementFlags.semi);
             f.endloc = endloc;
@@ -4720,27 +4721,81 @@ final class Parser(AST) : Lexer
             }
 
         case TOK.in_:
+            // in { statements... }
+            // in (expression)
+            auto loc = token.loc;
             nextToken();
             if (f.frequire)
-                error("redundant `in` statement");
-            f.frequire = parseStatement(ParseStatementFlags.curly | ParseStatementFlags.scope_);
+                error("redundant `in` contract");
+            if (token.value == TOK.leftParentheses)
+            {
+                nextToken();
+                AST.Expression e = parseAssignExp(), msg = null;
+                if (token.value == TOK.comma)
+                {
+                    nextToken();
+                    if (token.value != TOK.rightParentheses)
+                    {
+                        msg = parseAssignExp();
+                        if (token.value == TOK.comma)
+                            nextToken();
+                    }
+                }
+                check(TOK.rightParentheses);
+                e = new AST.AssertExp(loc, e, msg);
+                f.frequire = new AST.ExpStatement(loc, e);
+                requireDo = false;
+            }
+            else
+            {
+                f.frequire = parseStatement(ParseStatementFlags.curly | ParseStatementFlags.scope_);
+                requireDo = true;
+            }
             goto L1;
 
         case TOK.out_:
-            // parse: out (identifier) { statement }
+            // out { statements... }
+            // out (; expression)
+            // out (identifier) { statements... }
+            // out (identifier; expression)
+            auto loc = token.loc;
             nextToken();
+            if (f.fensure)
+                error("redundant `out` contract");
             if (token.value != TOK.leftCurly)
             {
                 check(TOK.leftParentheses);
-                if (token.value != TOK.identifier)
-                    error("`(identifier)` following `out` expected, not `%s`", token.toChars());
-                f.outId = token.ident;
-                nextToken();
+                if (token.value != TOK.identifier && token.value != TOK.semicolon)
+                    error("`(identifier) { ... }` or `(identifier; expression)` following `out` expected, not `%s`", token.toChars());
+                if (token.value != TOK.semicolon)
+                {
+                    f.outId = token.ident;
+                    nextToken();
+                }
+                if (token.value == TOK.semicolon)
+                {
+                    nextToken();
+                    AST.Expression e = parseAssignExp(), msg = null;
+                    if (token.value == TOK.comma)
+                    {
+                        nextToken();
+                        if (token.value != TOK.rightParentheses)
+                        {
+                            msg = parseAssignExp();
+                            if (token.value == TOK.comma)
+                                nextToken();
+                        }
+                    }
+                    check(TOK.rightParentheses);
+                    e = new AST.AssertExp(loc, e, msg);
+                    f.fensure = new AST.ExpStatement(loc, e);
+                    requireDo = false;
+                    goto L1;
+                }
                 check(TOK.rightParentheses);
             }
-            if (f.fensure)
-                error("redundant `out` statement");
             f.fensure = parseStatement(ParseStatementFlags.curly | ParseStatementFlags.scope_);
+            requireDo = true;
             goto L1;
 
         case TOK.semicolon:
@@ -4748,8 +4803,8 @@ final class Parser(AST) : Lexer
             {
                 // https://issues.dlang.org/show_bug.cgi?id=15799
                 // Semicolon becomes a part of function declaration
-                // only when neither of contracts exists.
-                if (!f.frequire && !f.fensure)
+                // only when 'do' is not required
+                if (!requireDo)
                     nextToken();
                 break;
             }
@@ -4758,10 +4813,10 @@ final class Parser(AST) : Lexer
         default:
             if (literal)
             {
-                const(char)* sbody = (f.frequire || f.fensure) ? "do " : "";
+                const(char)* sbody = requireDo ? "do " : "";
                 error("missing `%s{ ... }` for function literal", sbody);
             }
-            else if (!f.frequire && !f.fensure) // allow these even with no body
+            else if (!requireDo) // allow contracts even with no body
             {
                 TOK t = token.value;
                 if (t == TOK.const_ || t == TOK.immutable_ || t == TOK.inout_ || t == TOK.return_ ||

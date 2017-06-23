@@ -1080,6 +1080,44 @@ void test14779()
 
 /*******************************************/
 
+//******************************************/
+// DIP 1009
+
+int dip1009_1(int x)
+in  (x>0, "x must be positive!")
+out (r; r<0, "r must be negative!")
+{
+    return -x;
+}
+
+int dip1009_2(int x)
+in  (x>0)
+out (r; r<0)
+{
+    return -x;
+}
+
+int dip1009_3(int x)
+in  (x>0,)
+out (r; r<0,)
+do
+{
+    return -x;
+}
+
+void dip1009_4(int x)
+in  (x>0)
+out (; x>1)
+{
+    x += 1;
+}
+
+void dip1009_5(int x)
+in  (x>0)
+out (; x>1);
+
+/*******************************************/
+
 int main()
 {
     test1();
@@ -1102,6 +1140,10 @@ int main()
     test15524();
     test15524a();
     test14779();
+    dip1009_1(1);
+    dip1009_2(1);
+    dip1009_3(1);
+    dip1009_4(1);
 
     printf("Success\n");
     return 0;
