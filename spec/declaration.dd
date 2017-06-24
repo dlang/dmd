@@ -325,7 +325,7 @@ $(H3 $(LNAME2 alias, Alias Declarations))
 $(GRAMMAR
 $(GNAME AliasDeclaration):
     $(D alias) $(GLINK StorageClasses)$(OPT) $(GLINK BasicType) $(GLINK Declarators) $(D ;)
-    $(D alias) $(GLINK StorageClasses)$(OPT) $(GLINK BasicType) $(GLINK FuncDeclarator) $(D ;)
+    $(D alias) $(GLINK StorageClasses)$(OPT) $(GLINK BasicType) $(GLINK2 function, FuncDeclarator) $(D ;)
     $(D alias) $(I AliasDeclarationX) $(D ;)
 
 $(GNAME AliasDeclarationX):
