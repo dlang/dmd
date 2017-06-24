@@ -102,7 +102,7 @@ code *setOpcode(code *c, code *cs, unsigned op)
  */
 
 #if TX86 && __INTSIZE == 4 && __DMC__
-__declspec(naked) code * __pascal cat(code *c1,code *c2)
+__declspec(naked) code *cat(code *c1,code *c2)
 {
     _asm
     {
@@ -111,7 +111,7 @@ __declspec(naked) code * __pascal cat(code *c1,code *c2)
         test    EAX,EAX
         jne     L6D
         mov     EAX,ECX
-        ret     8
+        ret
 
 L6D:    mov     EDX,EAX
         cmp     dword ptr [EAX],0
@@ -120,11 +120,11 @@ L74:    mov     EDX,[EDX]
         cmp     dword ptr [EDX],0
         jne     L74
 L7B:    mov     [EDX],ECX
-        ret     8
+        ret
     }
 }
 #else
-code * __pascal cat(code *c1,code *c2)
+code *cat(code *c1,code *c2)
 {   code **pc;
 
     if (!c1)
