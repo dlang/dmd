@@ -4725,8 +4725,10 @@ final class Parser(AST) : Lexer
             // in (expression)
             auto loc = token.loc;
             nextToken();
-            if (f.frequire)
-                error("redundant `in` contract");
+            if (!f.frequires)
+            {
+                f.frequires = new AST.Statements;
+            }
             if (token.value == TOK.leftParentheses)
             {
                 nextToken();
@@ -4743,12 +4745,12 @@ final class Parser(AST) : Lexer
                 }
                 check(TOK.rightParentheses);
                 e = new AST.AssertExp(loc, e, msg);
-                f.frequire = new AST.ExpStatement(loc, e);
+                f.frequires.push(new AST.ExpStatement(loc, e));
                 requireDo = false;
             }
             else
             {
-                f.frequire = parseStatement(ParseStatementFlags.curly | ParseStatementFlags.scope_);
+                f.frequires.push(parseStatement(ParseStatementFlags.curly | ParseStatementFlags.scope_));
                 requireDo = true;
             }
             goto L1;
@@ -4760,8 +4762,11 @@ final class Parser(AST) : Lexer
             // out (identifier; expression)
             auto loc = token.loc;
             nextToken();
-            if (f.fensure)
-                error("redundant `out` contract");
+            if (!f.fensures)
+            {
+                f.fensures = new AST.Ensures;
+            }
+            Identifier id = null;
             if (token.value != TOK.leftCurly)
             {
                 check(TOK.leftParentheses);
@@ -4769,7 +4774,7 @@ final class Parser(AST) : Lexer
                     error("`(identifier) { ... }` or `(identifier; expression)` following `out` expected, not `%s`", token.toChars());
                 if (token.value != TOK.semicolon)
                 {
-                    f.outId = token.ident;
+                    id = token.ident;
                     nextToken();
                 }
                 if (token.value == TOK.semicolon)
@@ -4788,13 +4793,13 @@ final class Parser(AST) : Lexer
                     }
                     check(TOK.rightParentheses);
                     e = new AST.AssertExp(loc, e, msg);
-                    f.fensure = new AST.ExpStatement(loc, e);
+                    f.fensures.push(AST.Ensure(id, new AST.ExpStatement(loc, e)));
                     requireDo = false;
                     goto L1;
                 }
                 check(TOK.rightParentheses);
             }
-            f.fensure = parseStatement(ParseStatementFlags.curly | ParseStatementFlags.scope_);
+            f.fensures.push(AST.Ensure(id, parseStatement(ParseStatementFlags.curly | ParseStatementFlags.scope_)));
             requireDo = true;
             goto L1;
 

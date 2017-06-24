@@ -85,6 +85,23 @@ extern (C++) abstract class Statement : RootObject
         assert(0);
     }
 
+    /*************************************
+     * Do syntax copy of an array of Statement's.
+     */
+    static Statements* arraySyntaxCopy(Statements* a)
+    {
+        Statements* b = null;
+        if (a)
+        {
+            b = a.copy();
+            foreach (i, s; *a)
+            {
+                (*b)[i] = s ? s.syntaxCopy() : null;
+            }
+        }
+        return b;
+    }
+
     override final void print()
     {
         fprintf(stderr, "%s\n", toChars());
@@ -853,13 +870,7 @@ extern (C++) class CompoundStatement : Statement
 
     override Statement syntaxCopy()
     {
-        auto a = new Statements();
-        a.setDim(statements.dim);
-        foreach (i, s; *statements)
-        {
-            (*a)[i] = s ? s.syntaxCopy() : null;
-        }
-        return new CompoundStatement(loc, a);
+        return new CompoundStatement(loc, Statement.arraySyntaxCopy(statements));
     }
 
     override Statements* flatten(Scope* sc)

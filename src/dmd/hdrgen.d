@@ -1910,26 +1910,58 @@ public:
         hgs.autoMember = 0;
         buf.writenl();
         // in{}
-        if (f.frequire)
+        if (f.frequires)
         {
-            buf.writestring("in");
-            buf.writenl();
-            f.frequire.accept(this);
+            foreach (frequire; *f.frequires)
+            {
+                buf.writestring("in");
+                buf.writenl();
+                if (!frequire.isScopeStatement())
+                {
+                    buf.writeByte('{');
+                    buf.writenl();
+                    buf.level++;
+                    frequire.accept(this);
+                    buf.level--;
+                    buf.writeByte('}');
+                    buf.writenl();
+                }
+                else
+                {
+                    frequire.accept(this);
+                }
+            }
         }
         // out{}
-        if (f.fensure)
+        if (f.fensures)
         {
-            buf.writestring("out");
-            if (f.outId)
+            foreach (fensure; *f.fensures)
             {
-                buf.writeByte('(');
-                buf.writestring(f.outId.toChars());
-                buf.writeByte(')');
+                buf.writestring("out");
+                if (fensure.id)
+                {
+                    buf.writeByte('(');
+                    buf.writestring(fensure.id.toChars());
+                    buf.writeByte(')');
+                }
+                buf.writenl();
+                if (!fensure.ensure.isScopeStatement())
+                {
+                    buf.writeByte('{');
+                    buf.writenl();
+                    buf.level++;
+                    fensure.ensure.accept(this);
+                    buf.level--;
+                    buf.writeByte('}');
+                    buf.writenl();
+                }
+                else
+                {
+                    fensure.ensure.accept(this);
+                }
             }
-            buf.writenl();
-            f.fensure.accept(this);
         }
-        if (f.frequire || f.fensure)
+        if (f.frequires || f.fensures)
         {
             buf.writestring("do");
             buf.writenl();

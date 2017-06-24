@@ -281,12 +281,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         uint oldErrors = global.errors;
 
-        if (funcdecl.frequire)
+        if (funcdecl.frequires)
         {
             for (size_t i = 0; i < funcdecl.foverrides.dim; i++)
             {
                 FuncDeclaration fdv = funcdecl.foverrides[i];
-                if (fdv.fbody && !fdv.frequire)
+                if (fdv.fbody && !fdv.frequires)
                 {
                     funcdecl.error("cannot have an in contract when overridden function `%s` does not have an in contract", fdv.toPrettyChars());
                     break;
@@ -297,7 +297,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         // Remember whether we need to generate an 'out' contract.
         immutable bool needEnsure = FuncDeclaration.needsFensure(funcdecl);
 
-        if (funcdecl.fbody || funcdecl.frequire || needEnsure)
+        if (funcdecl.fbody || funcdecl.frequires || needEnsure)
         {
             /* Symbol table into which we place parameters and nested functions,
              * solely to diagnose name collisions.
@@ -884,7 +884,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             }
 
             funcdecl.frequire = funcdecl.mergeFrequire(funcdecl.frequire);
-            funcdecl.fensure = funcdecl.mergeFensure(funcdecl.fensure, funcdecl.outId);
+            funcdecl.fensure = funcdecl.mergeFensure(funcdecl.fensure, Id.result);
 
             Statement freq = funcdecl.frequire;
             Statement fens = funcdecl.fensure;
@@ -920,8 +920,17 @@ private extern(C++) final class Semantic3Visitor : Visitor
             {
                 /* fensure is composed of the [out] contracts
                  */
-                if (f.next.ty == Tvoid && funcdecl.outId)
-                    funcdecl.error("`void` functions have no result");
+                if (f.next.ty == Tvoid && funcdecl.fensures)
+                {
+                    foreach (e; *funcdecl.fensures)
+                    {
+                        if (e.id)
+                        {
+                            funcdecl.error(e.ensure.loc, "`void` functions have no result");
+                            //fens = null;
+                        }
+                    }
+                }
 
                 sc2 = scout; //push
                 sc2.flags = (sc2.flags & ~SCOPE.contract) | SCOPE.ensure;
@@ -1118,7 +1127,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 }
             }
 
-            if (funcdecl.naked && (funcdecl.fensure || funcdecl.frequire))
+            if (funcdecl.naked && (funcdecl.fensures || funcdecl.frequires))
                 funcdecl.error("naked assembly functions with contracts are not supported");
 
             sc2.ctorflow.callSuper = CSX.none;

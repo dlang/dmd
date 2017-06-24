@@ -44,6 +44,7 @@ struct ASTBase
     alias Catches               = Array!(Catch);
     alias Identifiers           = Array!(Identifier);
     alias Initializers          = Array!(Initializer);
+    alias Ensures               = Array!(Ensure);
 
     enum Sizeok : int
     {
@@ -674,13 +675,18 @@ struct ASTBase
         }
     }
 
+    extern (C++) struct Ensure
+    {
+        Identifier id;
+        Statement ensure;
+    }
+
     extern (C++) class FuncDeclaration : Declaration
     {
         Statement fbody;
-        Statement frequire;
-        Statement fensure;
+        Statements* frequires;
+        Ensures* fensures;
         Loc endloc;
-        Identifier outId;
         StorageClass storage_class;
         Type type;
         bool inferRetType;
