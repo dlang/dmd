@@ -434,6 +434,49 @@ $(H2 $(LNAME2 gc_config, Configuring the Garbage Collector))
         options specified through the environment or embedded in the executable.
     )
 
+$(H2 $(LNAME2 precise_dataseg, Precise Scanning of the DATA and TLS segment))
+
+    $(P $(B Windows only:) As of version 2.075, the DATA (global shared data)
+        and TLS segment (thread local data) of an executable
+        or DLL can be configured to be scanned precisely by the garbage collector
+        instead of conservatively. This takes
+        advantage of information emitted by the compiler to
+        identify possible mutable pointers inside these segments. Immutable pointers
+        $(DDSUBLINK spec/const3, immutable_storage_class, with initializers)
+        are excluded from scanning, too, as they can only point to preallocated memory.
+    )
+
+    $(P Precise scanning can be enabled with the D runtime option "scanDataSeg". Possible option
+        values are "conservative" (default) and "precise". As with the GC options, it can be
+        specified on the command line, in the environment or embedded into the executable, e.g.
+        ---------
+        extern(C) __gshared string[] rt_options = [ "scanDataSeg=precise" ];
+        ---------
+    )
+
+    $(P $(RED Attention:) Enabling precise scanning needs slightly more caution typing
+        global memory. For example, if you pre-allocate memory in the DATA/TLS segment and later
+        emplace an object instance with references to other allocations into this memory,
+        you must not use basic integer types to reserve the space. Doing so will cause the
+        garbage collector not to detect the references. Instead, use an array type that
+        will scan this area conservatively. Using `void*` is usually the best option as it also
+        ensures proper alignment for pointers being scanned by the GC.
+        ---------
+        class Singleton { void[] mem; }
+        void*[(__traits(classInstanceSize, Singleton) - 1) / (void*).sizeof + 1] singleton_store;
+        static this() { emplace!Singleton(singleton_store).mem = allocateMem(); }
+        Singleton singleton() { return cast(Singleton)singleton_store.ptr; }
+        ---------
+        For precise typing of that area, you can also let the compiler generate the class
+        instance into the DATA segment for you:
+        ---------
+        class Singleton { void[] mem; }
+        shared(Singleton) singleton = new Singleton;
+        shared static this() { singleton.mem = allocateSharedMem(); }
+        ---------
+        This doesn't work for TLS memory, though.
+    )
+
 $(H2 $(LNAME2 references, References))
 
 	$(UL
