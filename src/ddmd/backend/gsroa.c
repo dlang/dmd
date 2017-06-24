@@ -56,7 +56,7 @@ static void sliceStructs_Gather(SymInfo *sia, elem *e)
                 {
                     assert(si < globsym.top);
                     unsigned sz = tysize(e->Ety);
-                    if (sz == 2 * REGSIZE)
+                    if (sz == 2 * REGSIZE && !tyfv(e->Ety))
                     {
                         // Rewrite as OPpair later
                         sia[si].usePair = true;
