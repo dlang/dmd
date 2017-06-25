@@ -237,9 +237,9 @@ extern (C++) void genCmain(Scope* sc)
     global.params.verbose = false;
     m.importedFrom = m;
     m.importAll(null);
-    m.semantic();
-    m.semantic2();
-    m.semantic3();
+    m.doSemanticPass1();
+    m.doSemanticPass2();
+    m.doSemanticPass3();
     global.params.verbose = v;
     entrypoint = m;
     rootHasMain = sc._module;
@@ -1454,8 +1454,8 @@ Language changes listed by -transition=id:
     {
         Module m = modules[i];
         if (global.params.verbose)
-            fprintf(global.stdmsg, "semantic  %s\n", m.toChars());
-        m.semantic();
+            fprintf(global.stdmsg, "doSemanticPass1  %s\n", m.toChars());
+        m.doSemanticPass1();
     }
     //if (global.errors)
     //    fatal();
@@ -1476,8 +1476,8 @@ Language changes listed by -transition=id:
     {
         Module m = modules[i];
         if (global.params.verbose)
-            fprintf(global.stdmsg, "semantic2 %s\n", m.toChars());
-        m.semantic2();
+            fprintf(global.stdmsg, "doSemanticPass2 %s\n", m.toChars());
+        m.doSemanticPass2();
     }
     Module.runDeferredSemantic2();
     if (global.errors)
@@ -1488,8 +1488,8 @@ Language changes listed by -transition=id:
     {
         Module m = modules[i];
         if (global.params.verbose)
-            fprintf(global.stdmsg, "semantic3 %s\n", m.toChars());
-        m.semantic3();
+            fprintf(global.stdmsg, "doSemanticPass3 %s\n", m.toChars());
+        m.doSemanticPass3();
     }
     Module.runDeferredSemantic3();
     if (global.errors)

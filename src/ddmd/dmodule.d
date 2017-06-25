@@ -112,7 +112,7 @@ extern (C++) const(char)* lookForSourceFile(const(char)** path, const(char)* fil
     return null;
 }
 
-// function used to call semantic3 on a module's dependencies
+// function used to call doSemanticPass3 on a module's dependencies
 void semantic3OnDependencies(Module m)
 {
     if (!m)
@@ -121,7 +121,7 @@ void semantic3OnDependencies(Module m)
     if (m.semanticRun > PASSsemantic3)
         return;
 
-    m.semantic3();
+    m.doSemanticPass3();
 
     foreach (i; 1 .. m.aimports.dim)
         semantic3OnDependencies(m.aimports[i]);
@@ -1047,11 +1047,11 @@ extern (C++) final class Module : Package
     }
 
     // semantic analysis
-    void semantic()
+    void doSemanticPass1()
     {
         if (semanticRun != PASSinit)
             return;
-        //printf("+Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
+        //printf("+Module::doSemanticPass1(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
         semanticRun = PASSsemantic;
         // Note that modules get their own scope, from scratch.
         // This is so regardless of where in the syntax a module
@@ -1080,13 +1080,13 @@ extern (C++) final class Module : Package
             sc.pop(); // 2 pops because Scope::createGlobal() created 2
         }
         semanticRun = PASSsemanticdone;
-        //printf("-Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
+        //printf("-Module::doSemanticPass1(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
     }
 
     // pass 2 semantic analysis
-    void semantic2()
+    void doSemanticPass2()
     {
-        //printf("Module::semantic2('%s'): parent = %p\n", toChars(), parent);
+        //printf("Module::doSemanticPass2('%s'): parent = %p\n", toChars(), parent);
         if (semanticRun != PASSsemanticdone) // semantic() not completed yet - could be recursive call
             return;
         semanticRun = PASSsemantic2;
@@ -1108,13 +1108,13 @@ extern (C++) final class Module : Package
         sc = sc.pop();
         sc.pop();
         semanticRun = PASSsemantic2done;
-        //printf("-Module::semantic2('%s'): parent = %p\n", toChars(), parent);
+        //printf("-Module::doSemanticPass2('%s'): parent = %p\n", toChars(), parent);
     }
 
     // pass 3 semantic analysis
-    void semantic3()
+    void doSemanticPass3()
     {
-        //printf("Module::semantic3('%s'): parent = %p\n", toChars(), parent);
+        //printf("Module::doSemanticPass3('%s'): parent = %p\n", toChars(), parent);
         if (semanticRun != PASSsemantic2done)
             return;
         semanticRun = PASSsemantic3;
