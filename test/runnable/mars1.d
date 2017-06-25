@@ -1546,6 +1546,35 @@ void test16102()
 
 ////////////////////////////////////////////////////////////////////////
 
+
+/* Test the pattern:
+ *   replace ((i / C1) / C2) with (i / (C1 * C2))
+ * when e1 is 0 or 1 and (i2-i1) is a power of 2.
+ */
+
+void divdiv(T, T C1, T C2)(T i)
+{
+    auto a = (i / C1) / C2;
+    auto b = i / (C1 * C2);
+    if (a != b) assert(0);
+}
+
+void testdivdiv()
+{
+    divdiv!(int,10,20)(30);
+    divdiv!(uint,10,20)(30);
+    divdiv!(long,10,20)(30);
+    divdiv!(ulong,10,20)(30);
+
+    divdiv!(int,-10,20)(30);
+    divdiv!(long,-10,20)(30);
+
+    divdiv!(int,-10,-20)(-30);
+    divdiv!(long,-10,-20)(-30);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 void test5a(ulong x, ulong y)
 {
     int a;
@@ -1664,6 +1693,7 @@ int main()
     test13474();
     test16699();
     test16102();
+    testdivdiv();
     test5();
     test6();
     printf("Success\n");

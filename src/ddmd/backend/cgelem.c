@@ -2272,13 +2272,11 @@ STATIC elem * elmod(elem *e, goal_t goal)
  */
 
 STATIC elem * eldiv(elem *e, goal_t goal)
-{   elem *e2;
-    tym_t tym;
-    int uns;
-
-    e2 = e->E2;
-    tym = e->E1->Ety;
-    uns = tyuns(tym) | tyuns(e2->Ety);
+{
+    //printf("eldiv()\n");
+    elem *e2 = e->E2;
+    tym_t tym = e->E1->Ety;
+    int uns = tyuns(tym) | tyuns(e2->Ety);
     if (cnst(e2))
     {
 #if 0 && MARS
@@ -2325,6 +2323,76 @@ STATIC elem * eldiv(elem *e, goal_t goal)
 
     if (OPTIMIZER)
     {
+        const int SQRT_INT_MAX = 0xB504;
+        const unsigned SQRT_UINT_MAX = 0x10000;
+        elem *e1 = e->E1;
+        if (tyintegral(tym) && e->Eoper == OPdiv && e2->Eoper == OPconst &&
+            e1->Eoper == OPdiv && e1->E2->Eoper == OPconst)
+        {
+            /* Replace:
+             *   (e / c1) / c2
+             * With:
+             *   e / (c1 * c2)
+             */
+            targ_llong c1 = el_tolong(e1->E2);
+            targ_llong c2 = el_tolong(e2);
+            bool uns1 = tyuns(e1->E1->Ety) || tyuns(e1->E2->Ety);
+            bool uns2 = tyuns(e1->Ety) || tyuns(e2->Ety);
+            if (uns1 == uns2)   // identity doesn't hold for mixed sign case
+            {
+                // The transformation will fail if c1*c2 overflows. This substitutes
+                // for a proper overflow check.
+                if (uns1 ? (c1 < SQRT_UINT_MAX && c2 < SQRT_UINT_MAX)
+                         : (-SQRT_INT_MAX < c1 && c1 < SQRT_INT_MAX && -SQRT_INT_MAX < c2 && c2 < SQRT_INT_MAX))
+                {
+                    e->E1 = e1->E1;
+                    e1->E1 = e1->E2;
+                    e1->E2 = e2;
+                    e->E2 = e1;
+                    e1->Eoper = OPmul;
+                    return optelem(e, GOALvalue);
+                }
+            }
+        }
+
+        if (tyintegral(tym) && e->Eoper == OPdiv && e2->Eoper == OPconst &&
+            e1->Eoper == OP64_32 &&
+            e1->E1->Eoper == OPremquo && e1->E1->E2->Eoper == OPconst)
+        {
+            /* Replace:
+             *   (64_32 (e /% c1)) / c2
+             * With:
+             *   e / (c1 * c2)
+             */
+            elem *erq = e1->E1;
+            targ_llong c1 = el_tolong(erq->E2);
+            targ_llong c2 = el_tolong(e2);
+            bool uns1 = tyuns(erq->E1->Ety) || tyuns(erq->E2->Ety);
+            bool uns2 = tyuns(e1->Ety) || tyuns(e2->Ety);
+            if (uns1 == uns2)   // identity doesn't hold for mixed sign case
+            {
+                // The transformation will fail if c1*c2 overflows. This substitutes
+                // for a proper overflow check.
+                if (uns1 ? (c1 < SQRT_UINT_MAX && c2 < SQRT_UINT_MAX)
+                         : (-SQRT_INT_MAX < c1 && c1 < SQRT_INT_MAX && -SQRT_INT_MAX < c2 && c2 < SQRT_INT_MAX))
+                {
+                    e->E1 = erq->E1;
+                    erq->E1 = erq->E2;
+                    erq->E2 = e2;
+                    e->E2 = erq;
+                    erq->Eoper = OPmul;
+                    erq->Ety = e1->Ety;
+                    e1->E1 = NULL;
+                    el_free(e1);
+                    return optelem(e, GOALvalue);
+                }
+            }
+        }
+
+        /* TODO: (i*c1)/c2 => i*(c1/c2) if (c1%c2)==0
+         * TODO: i/(x?c1:c2) => i>>(x?log2(c1):log2(c2)) if c1 and c2 are powers of 2
+         */
+
         if (tyintegral(tym) && (e->Eoper == OPdiv || e->Eoper == OPmod))
         {   int sz = tysize(tym);
 
@@ -2337,9 +2405,9 @@ STATIC elem * eldiv(elem *e, goal_t goal)
                 // Don't do it if there are special code sequences in the
                 // code generator (see cdmul())
                 int pow2;
-                if (e->E2->Eoper == OPconst &&
+                if (e2->Eoper == OPconst &&
                     !uns &&
-                    (pow2 = ispow2(el_tolong(e->E2))) != -1 &&
+                    (pow2 = ispow2(el_tolong(e2))) != -1 &&
                     !(config.target_cpu < TARGET_80286 && pow2 != 1 && e->Eoper == OPdiv)
                    )
                     ;
