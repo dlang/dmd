@@ -1972,6 +1972,10 @@ extern (C) void thread_init()
     //       functions to detect the condition and return immediately.
 
     Thread.initLocks();
+    // The Android VM runtime intercepts SIGUSR1 and apparently doesn't allow
+    // its signal handler to run, so swap the two signals on Android, since
+    // thread_resumeHandler does nothing.
+    version( Android ) thread_setGCSignals(SIGUSR2, SIGUSR1);
 
     version( Darwin )
     {

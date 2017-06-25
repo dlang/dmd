@@ -372,6 +372,9 @@ unittest
     // by checking that locking is not possible. This assumes
     // that the underlying implementation is well behaved
     // and makes the object non-lockable upon destruction.
+    // For example, Bionic doesn't appear to do so, so this test is
+    // not run on Android.
+    version (CRuntime_Bionic) {} else
     assert(!mtx.tryLock_nothrow());
 
     free(cast(void*) mtx);
