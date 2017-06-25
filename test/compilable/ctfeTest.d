@@ -317,13 +317,13 @@ struct iota_range
   {
     return current > end;
   }
-
+/*
   this(uint end) pure
   {
     this(end, 0, 1);
   }
-
-  this(uint end, uint begin, uint step) pure
+*/
+  this(uint end, uint begin = 0, uint step = 1) pure
   {
     assert(step != 0, "cannot have a step of 0");
     this.step = step;
