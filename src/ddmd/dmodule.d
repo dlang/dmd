@@ -121,7 +121,7 @@ void semantic3OnDependencies(Module m)
     if (m.semanticRun > PASSsemantic3)
         return;
 
-    m.semantic3(null);
+    m.semantic3();
 
     foreach (i; 1 .. m.aimports.dim)
         semantic3OnDependencies(m.aimports[i]);
