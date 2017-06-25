@@ -27,7 +27,6 @@ src/verstr.h
 trace.def
 trace.log
 Makefile
-src/magicport/magicport
 
 # Visual Studio files
 *.exe
