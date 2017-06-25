@@ -41,32 +41,6 @@ CC=$(HOST_CC)
 AR=ar
 GIT=git
 
-HOST_DC?=
-ifneq (,$(HOST_DC))
-  $(warning ========== Use HOST_DMD instead of HOST_DC ========== )
-  HOST_DMD=$(HOST_DC)
-endif
-
-# Host D compiler for bootstrapping
-ifeq (,$(AUTO_BOOTSTRAP))
-  # No bootstrap, a $(HOST_DC) installation must be available
-  HOST_DMD?=dmd
-  ifeq (,$(shell which $(HOST_DMD)))
-    $(error '$(HOST_DMD)' not found, get a D compiler or make AUTO_BOOTSTRAP=1)
-  endif
-  HOST_DMD_RUN:=$(HOST_DMD)
-else
-  # Auto-bootstrapping, will download dmd automatically
-  HOST_DMD_VER=2.067.1
-  HOST_DMD_ROOT=/tmp/.host_dmd-$(HOST_DMD_VER)
-  # dmd.2.067.1.osx.zip or dmd.2.067.1.freebsd-64.zip
-  HOST_DMD_ZIP=dmd.$(HOST_DMD_VER).$(OS)$(if $(filter $(OS),freebsd),-$(MODEL),).zip
-  # http://downloads.dlang.org/releases/2.x/2.067.1/dmd.2.067.1.osx.zip
-  HOST_DMD_URL=http://downloads.dlang.org/releases/2.x/$(HOST_DMD_VER)/$(HOST_DMD_ZIP)
-  HOST_DMD=$(HOST_DMD_ROOT)/dmd2/$(OS)/$(if $(filter $(OS),osx),bin,bin$(MODEL))/dmd
-  HOST_DMD_RUN=$(HOST_DMD) -conf=$(dir $(HOST_DMD))dmd.conf
-endif
-
 # Compiler Warnings
 ifdef ENABLE_WARNINGS
 WARNINGS := -Wall -Wextra \
@@ -323,7 +297,7 @@ DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
 all: dmd
 
-auto-tester-build: dmd checkwhitespace ddmd
+auto-tester-build: dmd
 .PHONY: auto-tester-build
 
 frontend.a: $(DMD_OBJS)
@@ -353,18 +327,6 @@ clean:
 		*.cov *.deps *.gcda *.gcno *.a \
 		$(GENSRC)
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
-
-######## Download and install the last dmd buildable without dmd
-
-ifneq (,$(AUTO_BOOTSTRAP))
-.PHONY: host-dmd
-host-dmd: ${HOST_DMD}
-
-${HOST_DMD}:
-	mkdir -p ${HOST_DMD_ROOT}
-	TMPFILE=$$(mktemp deleteme.XXXXXXXX) && curl -fsSL ${HOST_DMD_URL} > $${TMPFILE}.zip && \
-		unzip -qd ${HOST_DMD_ROOT} $${TMPFILE}.zip && rm $${TMPFILE}.zip
-endif
 
 ######## generate a default dmd.conf
 
@@ -492,11 +454,6 @@ install: all
 
 ######################################################
 
-checkwhitespace:
-	CC=$(HOST_CC) $(HOST_DMD_RUN) -run checkwhitespace $(SRC) $(GLUE_SRC) $(ROOT_SRC)
-
-######################################################
-
 gcov:
 	gcov access.c
 	gcov aliasthis.c
@@ -584,11 +541,6 @@ endif
 zip:
 	-rm -f dmdsrc.zip
 	zip dmdsrc $(SRC) $(ROOT_SRC) $(GLUE_SRC) $(BACK_SRC) $(TK_SRC)
-
-######################################################
-
-../changelog.html: ../changelog.dd
-	$(HOST_DMD_RUN) -Df$@ $<
 
 #############################
 

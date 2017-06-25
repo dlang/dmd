@@ -77,8 +77,6 @@ SCPDIR=..\backup
 
 # C++ compiler
 CC=dmc
-# D compiler (set with env variable)
-#HOST_DC=dmd
 # Make program
 MAKE=make
 # Librarian
@@ -268,7 +266,7 @@ MAKEFILES=win32.mak posix.mak osmodel.mak
 
 defaulttarget: debdmd
 
-auto-tester-build: dmd checkwhitespace ddmd
+auto-tester-build: dmd
 
 dmd: reldmd
 ddmd: relddmd
@@ -378,14 +376,6 @@ pvs:
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp $(ROOTSRCC) --source-file $(ROOTSRCC)
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$C;$(TK) /Tp $(BACKSRC) --source-file $(BACKSRC)
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(TK) /Tp $(TKSRCC) --source-file $(TKSRCC)
-
-checkwhitespace:
-	$(HOST_DC) -run checkwhitespace $(SRCS) $(GLUESRC) $(ROOTSRC)
-
-######################################################
-
-..\changelog.html: ..\changelog.dd
-	$(HOST_DC) -Df$@ $<
 
 ############################## Generated Source ##############################
 
