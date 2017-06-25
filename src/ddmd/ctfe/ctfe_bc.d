@@ -18,8 +18,8 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 0;
-enum printResult = 0;
+enum bailoutMessages = 1;
+enum printResult = 1;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
@@ -1125,7 +1125,7 @@ Expression toExpression(const BCValue value, Type expressionType,
         ArrayLiteralExp arrayResult;
         auto elmType = arrayType.nextOf;
         auto baseType = _sharedCtfeState.btv.toBCType(elmType);
-        auto elmSize = _sharedCtfeState.size(baseType);
+        auto elemSize = _sharedCtfeState.size(baseType);
         auto arrayLength = heapPtr._heap[arr.heapAddr.addr + SliceDescriptor.LengthOffset];
         auto arrayBase = heapPtr._heap[arr.heapAddr.addr + SliceDescriptor.BaseOffset];
 
@@ -1171,7 +1171,7 @@ Expression toExpression(const BCValue value, Type expressionType,
                 elmExprs.insert(idx,
                     toExpression(imm32(*(heapPtr._heap.ptr + arrayBase + offset)),
                         elmType));
-                offset += elmSize;
+                offset += elemSize;
             }
         }
 
@@ -1768,7 +1768,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         void Set(BCValue lhs, BCValue rhs, size_t line = __LINE__)
         {
             if (lhs.type.type == BCTypeEnum.string8 || lhs.type.type == BCTypeEnum.string8)
- writeln("Set(", lhs.toString, ", ", rhs.toString, ") called at: ", line);
+            writeln("Set(", lhs.toString, ", ", rhs.toString, ") called at: ", line);
             gen.Set(lhs, rhs);
         }
     }
@@ -1856,41 +1856,6 @@ extern (C++) final class BCV(BCGenT) : Visitor
         copyArray(&newBase, &oldBase, oldLength, elementSize);
 
         setLength(slice, newLength);
-    }
-
-    static if (is(gen.Supports64BitCells) && gen.Supports64BitCalls)
-    {
-        void Load64(BCValue _to, BCValue from)
-        {
-            Load32(_to.i32, from); // load lower 32bit
-            auto upperAddr = genTemporary(i32Type);
-            auto upperVal = genTemporary(i32Type);
-            Add3(upperAddr, from, imm32(4));
-            Load32(upperVal, upperAddr);
-            SetHigh(_to, upperVal);
-        }
-
-        void Store64(BCValue _to, BCValue from)
-        {
-            Store32(_to, from.i32); // load lower 32bit
-            auto upperAddr = genTemporary(i32Type);
-            auto upperVal = genTemporary(i32Type);
-            Add3(upperAddr, _to, imm32(4));
-            SetHigh(from, upperVal);
-            Store32(upperAddr, upperVal);
-        }
-    }
-    else
-    {
-        void Load64(BCValue _to, BCValue from)
-        {
-            bailout("Load64 unsupported by " ~ BCGenT.stringof);
-        }
-
-        void Store64(BCValue _to, BCValue from)
-        {
-            bailout("Store64 unsupported by " ~ BCGenT.stringof);
-        }
     }
 
     void doFixup(uint oldFixupTableCount, BCLabel* ifTrue, BCLabel* ifFalse)
@@ -2225,13 +2190,6 @@ public:
                 return ;
             }
 
-            if ((cast(TypeFunction)fd.type).parameters)
-                foreach(p;*(cast(TypeFunction)fd.type).parameters)
-                {
-                    if (p.defaultArg)
-                        bailout("default args unsupported");
-                }
-
             if (fd.fbody)
             {
                 const fnIdx = ++_sharedCtfeState.functionCount;
@@ -2292,6 +2250,7 @@ public:
 
             if (uf.fd.type.nextOf.ty == Tvoid)
             {
+
                 // insert a dummy return after void functions because they can omit a returnStatement
                 Ret(bcNull);
             }
@@ -2344,11 +2303,9 @@ public:
         import std.stdio;
         if (insideFunction)
         {
-/*
             auto fnIdx = _sharedCtfeState.getFunctionIndex(fd);
             addUncompiledFunction(fd, &fnIdx);
             return ;
-*/
         }
 
         //writeln("going to eval: ", fd.toString);
@@ -2666,7 +2623,8 @@ static if (is(BCGen))
                 retval = genTemporary(rhs.type);
                 retval.heapRef = retvalHeapRef;
             }
-            if (canHandleBinExpTypes(retval.type.type, lhs.type.type) && canHandleBinExpTypes(retval.type.type, rhs.type.type))
+
+            if (canHandleBinExpTypes(retval.type.type, lhs.type.type) && canHandleBinExpTypes(retval.type.type, rhs.type.type) || (e.op == TOKmod && canHandleBinExpTypes(rhs.type.type, retval.type.type)))
             {
                 const oldDiscardValue = discardValue;
                 discardValue = false;
@@ -3040,8 +2998,8 @@ static if (is(BCGen))
             return ;
         }
 
-        int elmSize = _sharedCtfeState.size(elmType);
-        if (cast(int) elmSize <= 0)
+        int elemSize = _sharedCtfeState.size(elmType);
+        if (cast(int) elemSize <= 0)
         {
             bailout("could not get Element-Type-size for: " ~ ie.toString);
             return ;
@@ -3069,9 +3027,14 @@ static if (is(BCGen))
             //Load32(arrayLength, indexed.i32);
             //Lt3(inBounds,  idx, arrayLength);
 
-            Mul3(offset, idx, imm32(elmSize));
+            Mul3(offset, idx, imm32(elemSize));
             Add3(ptr, offset, getBase(indexed));
-            Load32(retval.i32, ptr);
+            if (elemSize <= 4)
+                Load32(retval.i32, ptr);
+            else if (elemSize == 8)
+                Load64(retval.i32, ptr);
+            else
+                bailout("can only load basicTypes (i8,i16,i32 and i64, c8, c16, c32 and f23, f52)");
         }
     }
 
@@ -3415,7 +3378,7 @@ static if (is(BCGen))
         insideArrayLiteralExp = true;
 
         auto elmType = toBCType(ale.type.nextOf);
-        if (elmType.type != BCTypeEnum.i32 && elmType.type != BCTypeEnum.c8 && elmType.type != BCTypeEnum.Struct)
+        if (elmType.type != BCTypeEnum.i32 && elmType.type != BCTypeEnum.i64  && elmType.type != BCTypeEnum.c8 && elmType.type != BCTypeEnum.Struct)
         {
             bailout(
                 "can only deal with int[] and uint[]  or structs atm. given:" ~ to!string(
@@ -3457,6 +3420,20 @@ static if (is(BCGen))
                 {
                     assert(_sharedCtfeState.heap.heapSize);
                     Store32(imm32(_sharedCtfeState.heap.heapSize), elexpr);
+                }
+                _sharedCtfeState.heap.heapSize += heapAdd;
+            }
+            else if (elexpr.type.type == BCTypeEnum.i64)
+            {
+                if (elexpr.vType == BCValueType.Immediate)
+                {
+                    _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = elexpr.imm64 & uint.max;
+                    _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize + 4] = elexpr.imm64 >> 32;
+                }
+                else
+                {
+                    assert(_sharedCtfeState.heap.heapSize);
+                    Store64(imm32(_sharedCtfeState.heap.heapSize), elexpr);
                 }
                 _sharedCtfeState.heap.heapSize += heapAdd;
             }
@@ -3511,7 +3488,7 @@ static if (is(BCGen))
             }
 
             auto ty = _struct.memberTypes[i];
-            if (ty.type != BCTypeEnum.i32)
+            if (ty.type.basicTypeSize > 4)
             {
                 bailout( "can only deal with ints and uints atm. not: BCType(" ~ to!string(ty.type) ~ ", " ~ to!string(
                         ty.typeIndex) ~ ")");
@@ -3829,14 +3806,18 @@ static if (is(BCGen))
     void LoadFromHeapRef(BCValue hrv, uint line = __LINE__)
     {
         // import std.stdio; writeln("Calling LoadHeapRef from: ", line); //DEBUGLINE
-        bailout(hrv.type.type == BCTypeEnum.i64, "only support 32bit-sized pointerTypes right now");
-        Load32(hrv, BCValue(hrv.heapRef));
+        if(hrv.type.type == BCTypeEnum.i64)
+            Load64(hrv, BCValue(hrv.heapRef));
+        else
+            Load32(hrv, BCValue(hrv.heapRef));
     }
 
     void StoreToHeapRef(BCValue hrv)
     {
-        bailout(hrv.type.type == BCTypeEnum.i64, "only support 32bit-sized pointerTypes right now");
-        Store32(BCValue(hrv.heapRef), hrv);
+        if(hrv.type.type == BCTypeEnum.i64)
+            Store64(BCValue(hrv.heapRef), hrv);
+        else
+            Store32(BCValue(hrv.heapRef), hrv);
     }
 
     void linkRefsCallee(VarDeclarations* parameters)
@@ -3996,9 +3977,9 @@ static if (is(BCGen))
                 }
                 else if (_init.type.type == BCTypeEnum.Struct)
                 {
-                    // only works becuase the struct is a 32bit ptr;
-                    // TODO we should probaby do a copy here ?
                     Set(var.i32, _init.i32);
+                    //TODO we should really do a memcopy here instead of copying the pointer;
+                    //MemCpy(var.i32, _init.i32, imm32(_sharedCtfeState.size(_init.type)));
                 }
                 else if (_init.type.type == BCTypeEnum.Slice || _init.type.type == BCTypeEnum.Array || _init.type.type == BCTypeEnum.string8)
                 {
@@ -4367,7 +4348,7 @@ static if (is(BCGen))
         assignTo = BCValue.init;
         auto lhs = genExpr(ce.e1);
         auto rhs = genExpr(ce.e2);
-        if (canWorkWithType(lhs.type) && canWorkWithType(rhs.type) && canWorkWithType(oldAssignTo.type))
+        if (canWorkWithType(lhs.type) && canWorkWithType(rhs.type) && (!oldAssignTo || canWorkWithType(oldAssignTo.type)))
         {
             switch (ce.op)
             {
@@ -4565,8 +4546,8 @@ static if (is(BCGen))
                 endJmp(to_end_jmp, genLabel());
             }
 
-            auto elmSize = sharedCtfeState.size(sharedCtfeState.elementType(lhs.type));
-            copyArray(&lhs_base, &rhs_base, lhs_length, elmSize);
+            auto elemSize = sharedCtfeState.size(sharedCtfeState.elementType(lhs.type));
+            copyArray(&lhs_base, &rhs_base, lhs_length, elemSize);
             return ; // not sure why we return here ... it's possibly important
         }
 
@@ -4707,9 +4688,9 @@ static if (is(BCGen))
             auto elemSize = _sharedCtfeState.size(elemType);
             Mul3(effectiveAddr, index, imm32(elemSize));
             Add3(effectiveAddr, effectiveAddr, baseAddr);
-            if (elemSize > 4)
+            if (elemSize > 4 && elemSize != 8)
             {
-                bailout("only 32 bit array loads are supported right now");
+                bailout("only 32/64 bit array loads are supported right now");
             }
             auto rhs = genExpr(ae.e2);
             if (!rhs)
@@ -4717,7 +4698,13 @@ static if (is(BCGen))
                 bailout("we could not gen AssignExp[].rhs: " ~ ae.e2.toString);
                 return ;
             }
-            Store32(effectiveAddr, rhs.i32);
+            if (elemSize <= 4)
+                Store32(effectiveAddr, rhs.i32);
+            else if (elemSize == 8)
+                Store64(effectiveAddr, rhs);
+            else
+               bailout("cannot deal with this store");
+
         }
         else
         {
@@ -5334,8 +5321,8 @@ static if (is(BCGen))
             bailout("More arguments then parameters in -- " ~ ce.toString);
             return ;
         }
-
-        bc_args.length = ce.arguments.dim + !!(thisPtr);
+        uint lastArgIndx = cast(uint)ce.arguments.dim;//cast(uint)(ce.arguments.dim > nParameters ? ce.arguments.dim : nParameters);
+        bc_args.length = lastArgIndx + !!(thisPtr);
 
         foreach (i, arg; *ce.arguments)
         {
@@ -5347,7 +5334,7 @@ static if (is(BCGen))
             }
             if (bc_args[i].type == BCTypeEnum.i64)
             {
-                if (!is(BCGen))
+                if (!is(BCGen) && !is(Print_BCGen))
                 {
                     bailout(arg.toString ~ "cannot safely pass 64bit arguments yet");
                     return ;
@@ -5371,9 +5358,16 @@ static if (is(BCGen))
             }
         }
 
+        //put in the default args
+        foreach(dai;ce.arguments.dim .. nParameters)
+        {
+            auto defaultArg = (*tf.parameters)[dai].defaultArg;
+            Comment("Doing defaultArg " ~ to!string(dai - ce.arguments.dim));
+            //bc_args[dai] = genExpr(defaultArg);
+        }
         if (thisPtr)
         {
-            bc_args[ce.arguments.dim] = thisPtr;
+            bc_args[lastArgIndx] = thisPtr;
         }
 
         static if (is(BCFunction) && is(typeof(_sharedCtfeState.functionCount)))
@@ -5464,7 +5458,8 @@ static if (is(BCGen))
             }
             if (retval.type.type == BCTypeEnum.i32 || retval.type.type == BCTypeEnum.Slice || retval.type.type == BCTypeEnum.c8 ||
                 retval.type.type == BCTypeEnum.c32 || retval.type.type == BCTypeEnum.Array || retval.type.type == BCTypeEnum.String ||
-                retval.type.type == BCTypeEnum.Struct || retval.type.type == BCTypeEnum.f23 || retval.type.type == BCTypeEnum.f52)
+                retval.type.type == BCTypeEnum.Struct || retval.type.type == BCTypeEnum.f23 || retval.type.type == BCTypeEnum.f52 ||
+                retval.type.type == BCTypeEnum.i64)
                 Ret(retval);
             else
             {

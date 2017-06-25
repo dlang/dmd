@@ -151,6 +151,8 @@ enum LongInst : ushort
     Call,
     HeapLoad32, ///SP[hi & 0xFFFF] = Heap[align4(SP[hi >> 16])]
     HeapStore32, ///Heap[align4(SP[hi & 0xFFFF)] = SP[hi >> 16]]
+    HeapLoad64,
+    HeapStore64,
     Alloc, /// SP[hi & 0xFFFF] = heapSize; heapSize += SP[hi >> 16]
     MemCpy,
 
@@ -955,6 +957,41 @@ pure:
         emitLongInst(LongInst64(LongInst.HeapStore32, _to.stackAddr, value.stackAddr));
     }
 
+    void Load64(BCValue _to, BCValue from)
+    {
+        if (!isStackValueOrParameter(from))
+        {
+            from = pushOntoStack(from);
+        }
+        if (!isStackValueOrParameter(_to))
+        {
+            _to = pushOntoStack(_to);
+        }
+        assert(isStackValueOrParameter(_to), "to has the vType " ~ to!string(_to.vType));
+        assert(isStackValueOrParameter(from), "from has the vType " ~ to!string(from.vType));
+
+        emitLongInst(LongInst64(LongInst.HeapLoad64, _to.stackAddr, from.stackAddr));
+    }
+
+    void Store64(BCValue _to, BCValue value)
+    {
+        if (!isStackValueOrParameter(value))
+        {
+            value = pushOntoStack(value);
+        }
+        if (!isStackValueOrParameter(_to))
+
+        {
+            _to = pushOntoStack(_to);
+        }
+
+        assert(isStackValueOrParameter(_to), "to has the vType " ~ to!string(_to.vType));
+        assert(isStackValueOrParameter(value), "value has the vType " ~ to!string(value.vType));
+
+        emitLongInst(LongInst64(LongInst.HeapStore64, _to.stackAddr, value.stackAddr));
+    }
+
+
     BCValue pushOntoStack(BCValue val)
     {
         if (!isStackValueOrParameter(val))
@@ -1375,6 +1412,20 @@ string printInstructions(const int* startInstructions, uint length) pure
         case LongInst.HeapStore32:
             {
                 result ~= "HeapStore32 HEAP[SP[" ~ to!string(hi & 0xFFFF) ~ "]], SP[" ~ to!string(
+                    hi >> 16) ~ "]\n";
+            }
+            break;
+
+        case LongInst.HeapLoad64:
+            {
+                result ~= "HeapLoad64 SP[" ~ to!string(hi & 0xFFFF) ~ "], HEAP[SP[" ~ to!string(
+                    hi >> 16) ~ "]]\n";
+            }
+            break;
+
+        case LongInst.HeapStore64:
+            {
+                result ~= "HeapStore64 HEAP[SP[" ~ to!string(hi & 0xFFFF) ~ "]], SP[" ~ to!string(
                     hi >> 16) ~ "]\n";
             }
             break;
@@ -2089,6 +2140,29 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 (*(heapPtr._heap.ptr + *lhsRef)) = (*rhs) & 0xFF_FF_FF_FF;
             }
             break;
+
+        case LongInst.HeapLoad64:
+            {
+                assert(*rhs, "trying to deref null pointer");
+                (*lhsRef) = *(heapPtr._heap.ptr + *rhs);
+                (*lhsRef) |= long(*(heapPtr._heap.ptr + 4 + *rhs)) << 32;
+
+                debug(bc)
+                {
+                    import std.stdio;
+                    writeln("Loaded[",*rhs,"] = ",*lhsRef);
+                }
+            }
+            break;
+
+        case LongInst.HeapStore64:
+            {
+                assert(*lhsRef, "trying to deref null pointer SP[" ~ to!string((lhsRef - stackP)*4) ~ "] at : &" ~ to!string (ip - 2));
+                (*(heapPtr._heap.ptr + *lhsRef)) = (*rhs) & 0xFF_FF_FF_FF;
+                (*(heapPtr._heap.ptr + 4 + *lhsRef)) = ((*rhs & 0xFF_FF_FF_FF_00_00_00_00) >> 32);
+            }
+            break;
+
 /*
         case LongInst.ExB:
             {
