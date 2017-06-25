@@ -14912,7 +14912,7 @@ extern (C++) Module loadStdMath()
         if (s.mod)
         {
             s.mod.importAll(null);
-            s.mod.semantic(null);
+            s.mod.semantic();
         }
         impStdMath = s;
     }
