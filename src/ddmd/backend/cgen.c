@@ -136,32 +136,6 @@ code *cat(code *c1,code *c2)
 }
 #endif
 
-code * cat3(code *c1,code *c2,code *c3)
-{   code **pc;
-
-    for (pc = &c1; *pc; pc = &code_next(*pc))
-        ;
-    for (*pc = c2; *pc; pc = &code_next(*pc))
-        ;
-    *pc = c3;
-    return c1;
-}
-
-code * cat4(code *c1,code *c2,code *c3,code *c4)
-{   code **pc;
-
-    for (pc = &c1; *pc; pc = &code_next(*pc))
-        ;
-    for (*pc = c2; *pc; pc = &code_next(*pc))
-        ;
-    for (*pc = c3; *pc; pc = &code_next(*pc))
-        ;
-    *pc = c4;
-    return c1;
-}
-
-code * cat6(code *c1,code *c2,code *c3,code *c4,code *c5,code *c6)
-{ return cat(cat4(c1,c2,c3,c4),cat(c5,c6)); }
 
 /************************************
  * Concatenate code.
@@ -749,11 +723,9 @@ bool reghasvalue(regm_t regm,targ_size_t value,unsigned *preg)
  *      *preg   the register selected
  */
 
-code *regwithvalue(code *c,regm_t regm,targ_size_t value,unsigned *preg,regm_t flags)
+void regwithvalue(CodeBuilder& cdb,regm_t regm,targ_size_t value,unsigned *preg,regm_t flags)
 {
     //printf("regwithvalue(value = %lld)\n", (long long)value);
-    CodeBuilder cdb;
-    cdb.append(c);
     unsigned reg;
     if (!preg)
         preg = &reg;
@@ -766,7 +738,6 @@ code *regwithvalue(code *c,regm_t regm,targ_size_t value,unsigned *preg,regm_t f
         regcon.immed.mval = save;
         movregconst(cdb,*preg,value,flags);   // store value into reg
     }
-    return cdb.finish();
 }
 
 /************************

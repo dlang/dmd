@@ -2087,7 +2087,7 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             retregs &= ~regcon.mvar;    // don't disturb register variables
         // NOTE: see my email (sign extension bug? possible fix, some questions
         unsigned reg;
-        cdb.append(regwithvalue(CNIL,retregs,e21->EV.Vllong,&reg,tysize(e21->Ety) == 8 ? 64|8 : 8));
+        regwithvalue(cdb,retregs,e21->EV.Vllong,&reg,tysize(e21->Ety) == 8 ? 64|8 : 8);
         retregs = mask[reg];
 
         cse_flush(cdb,1);                // flush CSE's to memory
@@ -2428,7 +2428,7 @@ void cdshift(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 {   // Handle (shtlng)s << 16
                     regm_t r = retregs & mMSW;
                     codelem(cdb,e1->E1,&r,FALSE);      // eval left leaf
-                    cdb.append(regwithvalue(CNIL,retregs & mLSW,0,&resreg,0));
+                    regwithvalue(cdb,retregs & mLSW,0,&resreg,0);
                     getregs(cdb,r);
                     retregs = r | mask[resreg];
                     if (forccs)
@@ -3377,7 +3377,7 @@ void cdmemcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     code_orflag(cdb.last(), CFpsw);             // keep flags
 #else
     if (*pretregs != mPSW)                      // if not flags only
-        cdb.append(regwithvalue(CNIL,mAX,0,NULL,0));  // put 0 in AX
+        regwithvalue(cdb,mAX,0,NULL,0);         // put 0 in AX
 #endif
 
     getregs(cdb,mCX | mSI | mDI);
@@ -3711,7 +3711,7 @@ void cdmemset(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 }
             }
 
-            cdb.append(regwithvalue(CNIL, BYTEREGS & ~retregs1, value, &vreg, I64 ? 64 : 0));
+            regwithvalue(cdb, BYTEREGS & ~retregs1, value, &vreg, I64 ? 64 : 0);
             freenode(e2->E2);
             freenode(e2);
 
@@ -3776,7 +3776,7 @@ fixres:
     retregs3 = mAX;
     if (!I16 && e2->E2->Eoper == OPconst)
     {
-        cdb.append(regwithvalue(CNIL, mAX, value, NULL, I64?64:0));
+        regwithvalue(cdb, mAX, value, NULL, I64?64:0);
         freenode(e2->E2);
     }
     else

@@ -1819,7 +1819,7 @@ void load87(CodeBuilder& cdb,elem *e,unsigned eoffset,regm_t *pretregs,elem *ele
                     note87(eleft,eoffset,0);    // don't trash this value
                 retregs = ALLREGS & mLSW;
                 codelem(cdb,e->E1,&retregs,FALSE);
-                cdb.append(regwithvalue(CNIL,ALLREGS & mMSW,0,&reg,0));  // 0-extend
+                regwithvalue(cdb,ALLREGS & mMSW,0,&reg,0);  // 0-extend
                 retregs |= mask[reg];
                 mf1 = MFlong;
                 goto L3;

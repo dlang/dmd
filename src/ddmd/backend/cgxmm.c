@@ -81,7 +81,7 @@ static void movxmmconst(CodeBuilder& cdb, unsigned xreg, unsigned sz, targ_size_
     else
     {
         unsigned reg;
-        cdb.append(regwithvalue(CNIL,ALLREGS,value,&reg,(sz == 8) ? 64 : 0));
+        regwithvalue(cdb,ALLREGS,value,&reg,(sz == 8) ? 64 : 0);
         cdb.gen2(LODD,modregxrmx(3,xreg-XMM0,reg));     // MOVD xreg,reg
         if (sz == 8)
             code_orrex(cdb.last(), REX_W);
