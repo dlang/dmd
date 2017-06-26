@@ -51,7 +51,8 @@ void out_config_init(
                         // 2: fake it with C symbolic debug info
         bool alwaysframe,       // always create standard function frame
         bool stackstomp,        // add stack stomping code
-        bool avx                // use AVX instruction set
+        bool avx,               // use AVX instruction set
+        bool betterC            // implement "Better C"
         )
 {
 #if MARS
@@ -252,6 +253,8 @@ void out_config_init(
         config.flags |= CFGalwaysframe;
     if (stackstomp)
         config.flags2 |= CFG2stomp;
+
+    config.betterC = betterC;
 
     ph_init();
     block_init();

@@ -1127,7 +1127,8 @@ void Obj::term(const char *objfilename)
     }
 
 #if MARS
-    obj_rtinit();
+    if (!config.betterC)
+        obj_rtinit();
 #endif
 
 #if SCPP

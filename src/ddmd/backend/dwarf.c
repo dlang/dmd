@@ -98,7 +98,8 @@ bool doUnwindEhFrame()
      * g++ on FreeBSD does not generate mixed frames, while g++ on OSX and Linux does.
      */
     assert(!(usednteh & ~(EHtry | EHcleanup)));
-    return (usednteh & (EHtry | EHcleanup)) || (config.exe & (EX_FREEBSD | EX_FREEBSD64));
+    return (usednteh & (EHtry | EHcleanup)) ||
+           (config.exe & (EX_FREEBSD | EX_FREEBSD64)) && !config.betterC;
 }
 
 #if ELFOBJ

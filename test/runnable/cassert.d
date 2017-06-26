@@ -10,7 +10,7 @@ void test(int ij)
     assert(ij,"it is not zero");
 }
 
-int main()
+extern (C) int main()
 {
     test(1);
     return 0;
