@@ -466,25 +466,20 @@ $G/idgen: $D/idgen.d $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $<
 	$G/idgen
 
-#########
-# STRING_IMPORT_FILES
-#
-# Create (or update) the generated VERSION file.
-# The file is only updated if the VERSION file changes, or, only when RELEASE=1
-# is not used, when the full version string changes (i.e. when the git hash or
-# the working tree dirty states changes).
-# The full version string have the form VERSION-devel-HASH(-dirty).
-# The "-dirty" part is only present when the repository had uncommitted changes
-# at the moment it was compiled (only files already tracked by git are taken
-# into account, untracked files don't affect the dirty state).
-VERSION := $(shell cat ../VERSION)
-ifneq (1,$(RELEASE))
-VERSION_GIT := $(shell printf "`$(GIT) rev-parse --short HEAD`"; \
-       test -n "`$(GIT) status --porcelain -uno`" && printf -- -dirty)
-VERSION := $(addsuffix -devel$(if $(VERSION_GIT),-$(VERSION_GIT)),$(VERSION))
+######## VERSION
+
+VERSION := $(shell cat ../VERSION) # default to checked-in VERSION file
+ifneq (1,$(RELEASE)) # unless building a release
+	VERSION_GIT := $(shell printf "`$(GIT) describe --dirty`") # use git describe
+	ifneq (,$(VERSION_GIT)) # check for git failures
+		VERSION := $(VERSION_GIT)
+	endif
 endif
+
+# only update $G/VERSION when it differs to avoid unnecessary rebuilds
 $(shell test $(VERSION) != "`cat $G/VERSION 2> /dev/null`" \
 		&& printf $(VERSION) > $G/VERSION )
+
 $(shell test $(SYSCONFDIR) != "`cat $G/SYSCONFDIR.imp 2> /dev/null`" \
 		&& printf '$(SYSCONFDIR)' > $G/SYSCONFDIR.imp )
 
