@@ -2222,6 +2222,13 @@ public:
                 return;
             }
 
+            if ((cast(TypeFunction)fd.type).parameters)
+                foreach(p;*(cast(TypeFunction)fd.type).parameters)
+                {
+                    if (p.defaultArg)
+                        bailout("default args unsupported");
+                }
+
             //assert(!me, "We are not clean!");
             me = uf.fd;
             beginParameters();
