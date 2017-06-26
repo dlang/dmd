@@ -470,10 +470,7 @@ $G/idgen: $D/idgen.d $(HOST_DMD_PATH)
 
 VERSION := $(shell cat ../VERSION) # default to checked-in VERSION file
 ifneq (1,$(RELEASE)) # unless building a release
-	VERSION_GIT := $(shell printf "`$(GIT) describe --dirty`") # use git describe
-	ifneq (,$(VERSION_GIT)) # check for git failures
-		VERSION := $(VERSION_GIT)
-	endif
+	VERSION := $(shell printf "`$(GIT) describe --dirty || cat ../VERSION`") # use git describe
 endif
 
 # only update $G/VERSION when it differs to avoid unnecessary rebuilds
