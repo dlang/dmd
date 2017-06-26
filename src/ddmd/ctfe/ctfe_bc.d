@@ -2182,6 +2182,14 @@ public:
                 return ;
             }
 
+            if ((cast(TypeFunction)fd.type).parameters)
+                foreach(p;*(cast(TypeFunction)fd.type).parameters)
+                {
+                    if (p.defaultArg)
+                        bailout("default args unsupported");
+                }
+
+
             if (fd.hasNestedFrameRefs /*|| fd.isNested*/)
             {
                 bailout("cannot deal with closures of any kind: " ~ fd.toString);
@@ -2221,13 +2229,6 @@ public:
                 bailout("Bailout on blacklisted");
                 return;
             }
-
-            if ((cast(TypeFunction)fd.type).parameters)
-                foreach(p;*(cast(TypeFunction)fd.type).parameters)
-                {
-                    if (p.defaultArg)
-                        bailout("default args unsupported");
-                }
 
             //assert(!me, "We are not clean!");
             me = uf.fd;
