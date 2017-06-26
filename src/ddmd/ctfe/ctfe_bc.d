@@ -672,7 +672,7 @@ struct SharedCtfeState(BCGenT)
             return BCType.init;
     }
 
-    //TODO this will currently _not_ represent all intializers correctly, especially 64bit initializers will be zero
+    //TODO FIXME: this will currently _not_ represent all intializers correctly, especially 64bit initializers will be zero
     uint[] initializer(const BCType type) pure const
     {
         assert(type.type == BCTypeEnum.Struct, "only structs can have initializers ... type passed: " ~ type.type.to!string);
@@ -739,6 +739,7 @@ struct SharedCtfeState(BCGenT)
 
         static if (is(BCFunction))
             _sharedCtfeState.functionCount = 0;
+
 
     }
 
@@ -1280,7 +1281,7 @@ Expression toExpression(const BCValue value, Type expressionType,
         break;
     case Tint32, Tuns32, Tint16, Tuns16, Tint8, Tuns8:
         {
-            result = new IntegerExp(value.imm32);
+            result = new IntegerExp(Loc(), value.imm32, expressionType);
         }
         break;
     case Tint64, Tuns64:
@@ -1538,6 +1539,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     uint processedArgs;
     uint switchStateCount;
     uint currentFunction;
+    uint lastLine;
 
     BCGenT gen;
     alias gen this;
@@ -1568,6 +1570,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         processedArgs = 0;
         switchStateCount = 0;
         currentFunction = 0;
+        lastLine = 0;
 
         arguments = [];
         parameterTypes = [];
@@ -1792,7 +1795,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         static if (is(typeof(gen.MemCpy) == function))
         {
             auto effectiveSize = genTemporary(i32Type);
-//            assert(elementSize);
+            assert(elementSize);
             Mul3(effectiveSize, length, imm32(elementSize));
             MemCpy(_newBase, _oldBase, effectiveSize);
             Add3(_newBase, _newBase, effectiveSize);
@@ -1915,6 +1918,16 @@ extern (C++) final class BCV(BCGenT) : Visitor
         }
     }
 
+    void Line(uint line)
+    {
+        if (line && line != lastLine)
+        {
+            gen.Line(line);
+            lastLine = line;
+        }
+
+    }
+
     void StringEq(BCValue result, BCValue lhs, BCValue rhs)
     {
 
@@ -1994,14 +2007,6 @@ public:
     BCValue getVariable(VarDeclaration vd)
     {
         import ddmd.declaration : STCmanifest, STCstatic, STCimmutable;
-        if (vd.storage_class & STCref)
-        {
-            if (toBCType(vd.type) == BCType(BCTypeEnum.i64))
-            {
-                bailout("We can only handle 32bit refs for now");
-                return BCValue.init;
-            }
-        }
 
         if (vd.storage_class & STCstatic && !(vd.storage_class & STCimmutable))
         {
@@ -2294,6 +2299,7 @@ public:
 
     override void visit(FuncDeclaration fd)
     {
+        Line(fd.loc.linnum);
         import ddmd.identifier;
 
         assert(!me || me == fd);
@@ -2437,6 +2443,7 @@ static if (is(BCGen))
 
     override void visit(BinExp e)
     {
+        Line(e.loc.linnum);
         debug (ctfe)
         {
             import std.stdio;
@@ -2854,6 +2861,7 @@ static if (is(BCGen))
 
     override void visit(SymOffExp se)
     {
+        Line(se.loc.linnum);
         //bailout();
         auto vd = se.var.isVarDeclaration();
         auto fd = se.var.isFuncDeclaration();
@@ -2921,6 +2929,7 @@ static if (is(BCGen))
 
     override void visit(IndexExp ie)
     {
+        Line(ie.loc.linnum);
         auto oldIndexed = currentIndexed;
         scope(exit) currentIndexed = oldIndexed;
 
@@ -3094,6 +3103,7 @@ static if (is(BCGen))
 
     override void visit(ForStatement fs)
     {
+        Line(fs.loc.linnum);
         debug (ctfe)
         {
             import std.stdio;
@@ -3158,6 +3168,7 @@ static if (is(BCGen))
 
     override void visit(Expression e)
     {
+        Line(e.loc.linnum);
         debug (ctfe)
         {
             import std.stdio;
@@ -3171,6 +3182,7 @@ static if (is(BCGen))
 
     override void visit(NullExp ne)
     {
+        Line(ne.loc.linnum);
         retval = BCValue.init;
         retval.vType = BCValueType.Immediate;
         retval.type.type = BCTypeEnum.Null;
@@ -3180,6 +3192,7 @@ static if (is(BCGen))
 
     override void visit(HaltExp he)
     {
+        Line(he.loc.linnum);
         retval = BCValue.init;
         debug (ctfe)
             assert(0, "I don't really handle assert(0)");
@@ -3187,6 +3200,7 @@ static if (is(BCGen))
 
     override void visit(SliceExp se)
     {
+        Line(se.loc.linnum);
         debug (ctfe)
         {
             import std.stdio;
@@ -3281,6 +3295,7 @@ static if (is(BCGen))
 
     override void visit(DotVarExp dve)
     {
+        Line(dve.loc.linnum);
         if (dve.e1.type.ty == Tstruct && (cast(TypeStruct) dve.e1.type).sym)
         {
             auto structDeclPtr = (cast(TypeStruct) dve.e1.type).sym;
@@ -3372,6 +3387,7 @@ static if (is(BCGen))
 
     override void visit(ArrayLiteralExp ale)
     {
+        Line(ale.loc.linnum);
         debug (ctfe)
         {
             import std.stdio;
@@ -3467,6 +3483,7 @@ static if (is(BCGen))
 
     override void visit(StructLiteralExp sle)
     {
+        Line(sle.loc.linnum);
 
         debug (ctfe)
         {
@@ -3560,6 +3577,7 @@ static if (is(BCGen))
 
     override void visit(DollarExp de)
     {
+        Line(de.loc.linnum);
         if (currentIndexed.type == BCTypeEnum.Array
             || currentIndexed.type == BCTypeEnum.Slice
             || currentIndexed.type == BCTypeEnum.String)
@@ -3576,6 +3594,7 @@ static if (is(BCGen))
 
     override void visit(AddrExp ae)
     {
+        Line(ae.loc.linnum);
         retval = genExpr(ae.e1);
         //Alloc()
         //assert(0, "Dieng on Addr ?");
@@ -3583,6 +3602,7 @@ static if (is(BCGen))
 
     override void visit(ThisExp te)
     {
+        Line(te.loc.linnum);
         import std.stdio;
 
         debug (ctfe)
@@ -3597,11 +3617,13 @@ static if (is(BCGen))
 
     override void visit(ComExp ce)
     {
+        Line(ce.loc.linnum);
         Not(retval, genExpr(ce.e1));
     }
 
     override void visit(PtrExp pe)
     {
+        Line(pe.loc.linnum);
         bool isFunctionPtr = pe.type.ty == Tfunction;
         auto addr = genExpr(pe.e1);
 
@@ -3657,6 +3679,7 @@ static if (is(BCGen))
 
     override void visit(NewExp ne)
     {
+        Line(ne.loc.linnum);
         auto ptr = genTemporary(i32Type);
         auto type = toBCType(ne.newtype);
         auto typeSize = _sharedCtfeState.size(type);
@@ -3675,6 +3698,7 @@ static if (is(BCGen))
 
     override void visit(ArrayLengthExp ale)
     {
+        Line(ale.loc.linnum);
         auto array = genExpr(ale.e1);
         auto arrayType = array.type.type;
         if (arrayType == BCTypeEnum.String || arrayType == BCTypeEnum.Slice || arrayType == BCTypeEnum.Array)
@@ -3859,6 +3883,7 @@ static if (is(BCGen))
 +/
     override void visit(VarExp ve)
     {
+        Line(ve.loc.linnum);
         auto vd = ve.var.isVarDeclaration;
         auto symd = ve.var.isSymbolDeclaration;
 
@@ -3943,6 +3968,7 @@ static if (is(BCGen))
 
     override void visit(DeclarationExp de)
     {
+        Line(de.loc.linnum);
         auto oldRetval = retval;
         auto vd = de.declaration.isVarDeclaration();
 
@@ -4009,6 +4035,7 @@ static if (is(BCGen))
 
     override void visit(VarDeclaration vd)
     {
+        Line(vd.loc.linnum);
         debug (ctfe)
         {
             import std.stdio;
@@ -4072,6 +4099,7 @@ static if (is(BCGen))
 
     override void visit(BinAssignExp e)
     {
+        Line(e.loc.linnum);
         debug (ctfe)
         {
             import std.stdio;
@@ -4210,6 +4238,7 @@ static if (is(BCGen))
 
     override void visit(IntegerExp ie)
     {
+        Line(ie.loc.linnum);
         debug (ctfe)
         {
             import std.stdio;
@@ -4241,6 +4270,7 @@ static if (is(BCGen))
 
     override void visit(RealExp re)
     {
+        Line(re.loc.linnum);
         debug (ctfe)
         {
             import std.stdio;
@@ -4270,6 +4300,7 @@ static if (is(BCGen))
 
     override void visit(ComplexExp ce)
     {
+        Line(ce.loc.linnum);
         debug (ctfe)
         {
             import std.stdio;
@@ -4282,6 +4313,7 @@ static if (is(BCGen))
 
     override void visit(StringExp se)
     {
+        Line(se.loc.linnum);
         debug (ctfe)
         {
             import std.stdio;
@@ -4344,6 +4376,7 @@ static if (is(BCGen))
 
     override void visit(CmpExp ce)
     {
+        Line(ce.loc.linnum);
         debug (ctfe)
         {
             import std.stdio;
@@ -4405,6 +4438,7 @@ static if (is(BCGen))
 /*
     override void visit(ConstructExp ce)
     {
+        Line(ce.loc.linnum);
         //TODO ConstructExp is basically the same as AssignExp
         // find a way to merge those
 
@@ -4469,6 +4503,7 @@ static if (is(BCGen))
 
     override void visit(AssignExp ae)
     {
+        Line(ae.loc.linnum);
         debug (ctfe)
         {
             import std.stdio;
@@ -4592,6 +4627,7 @@ static if (is(BCGen))
             auto bcStructType = _sharedCtfeState.structTypes[structTypeIndex - 1];
             auto fieldType = bcStructType.memberTypes[fIndex];
             // import std.stdio; writeln("got fieldType: ", fieldType); //DEBUGLINE
+
             if (fieldType.type != BCTypeEnum.i32)
             {
                 bailout("only i32 structMembers are supported for now ... not : " ~ to!string(bcStructType.memberTypes[fIndex].type));
@@ -4626,7 +4662,15 @@ static if (is(BCGen))
             auto ptr = genTemporary(BCType(BCTypeEnum.i32));
 
             Add3(ptr, lhs.i32, imm32(bcStructType.offset(fIndex)));
-            Store32(ptr, rhs);
+            immutable size = _sharedCtfeState.size(rhs.type);
+            if (size <= 4)
+                Store32(ptr, rhs);
+            else if (size == 8)
+                Store64(ptr, rhs);
+            else
+                bailout("only sizes [1 .. 4], and 8  are supported. MemberSize: " ~ to!string(size));
+
+
             retval = rhs;
         }
         else if (ae.e1.op == TOKarraylength)
@@ -4847,16 +4891,19 @@ static if (is(BCGen))
 
     override void visit(SwitchErrorStatement _)
     {
+        Line(_.loc.linnum);
         //assert(0, "encounterd SwitchErrorStatement" ~ toString(_));
     }
 
     override void visit(NegExp ne)
     {
+        Line(ne.loc.linnum);
         Sub3(retval, imm32(0), genExpr(ne.e1));
     }
 
     override void visit(NotExp ne)
     {
+        Line(ne.loc.linnum);
         {
             retval = assignTo ? assignTo : genTemporary(i32Type);
             Eq3(retval, genExpr(ne.e1).i32, imm32(0));
@@ -4866,6 +4913,7 @@ static if (is(BCGen))
 
     override void visit(UnrolledLoopStatement uls)
     {
+        Line(uls.loc.linnum);
         //FIXME This will break if UnrolledLoopStatements are nested,
         // I am not sure if this can ever happen
         if (unrolledLoopState)
@@ -4914,12 +4962,14 @@ static if (is(BCGen))
 
     override void visit(ImportStatement _is)
     {
+        Line(_is.loc.linnum);
         // can be skipped
         return;
     }
 
     override void visit(AssertExp ae)
     {
+        Line(ae.loc.linnum);
         auto lhs = genExpr(ae.e1);
         if (lhs.type.type == BCTypeEnum.i32 || lhs.type.type == BCTypeEnum.Ptr || lhs.type.type == BCTypeEnum.Struct)
         {
@@ -4935,6 +4985,7 @@ static if (is(BCGen))
 
     override void visit(SwitchStatement ss)
     {
+        Line(ss.loc.linnum);
         if (switchStateCount)
             bailout("We cannot deal with nested switches right now");
 
@@ -5054,6 +5105,7 @@ static if (is(BCGen))
 
     override void visit(GotoCaseStatement gcs)
     {
+        Line(gcs.loc.linnum);
         with (switchState)
         {
             *switchFixup = SwitchFixupEntry(beginJmp(), gcs.cs.index + 1);
@@ -5063,6 +5115,7 @@ static if (is(BCGen))
 
     override void visit(GotoDefaultStatement gd)
     {
+        Line(gd.loc.linnum);
         with (switchState)
         {
             *switchFixup = SwitchFixupEntry(beginJmp(), -1);
@@ -5089,6 +5142,7 @@ static if (is(BCGen))
 
     override void visit(GotoStatement gs)
     {
+        Line(gs.loc.linnum);
         auto ident = cast(void*) gs.ident;
 
         if (auto labeledBlock = ident in labeledBlocks)
@@ -5103,6 +5157,7 @@ static if (is(BCGen))
 
     override void visit(LabelStatement ls)
     {
+        Line(ls.loc.linnum);
         debug (ctfe)
         {
             import std.stdio;
@@ -5155,6 +5210,7 @@ static if (is(BCGen))
 
     override void visit(ContinueStatement cs)
     {
+        Line(cs.loc.linnum);
         if (cs.ident)
         {
             if (auto target = cast(void*) cs.ident in labeledBlocks)
@@ -5178,6 +5234,7 @@ static if (is(BCGen))
 
     override void visit(BreakStatement bs)
     {
+        Line(bs.loc.linnum);
         if (bs.ident)
         {
             if (auto target = cast(void*) bs.ident in labeledBlocks)
@@ -5218,6 +5275,7 @@ static if (is(BCGen))
 
     override void visit(CallExp ce)
     {
+        Line(ce.loc.linnum);
         if (!insideFunction)
         {
            // bailout("We cannot have calls outside of functions");
@@ -5446,6 +5504,7 @@ static if (is(BCGen))
 
     override void visit(ReturnStatement rs)
     {
+        Line(rs.loc.linnum);
         debug (ctfe)
         {
             import std.stdio;
@@ -5487,6 +5546,7 @@ static if (is(BCGen))
 
     override void visit(CastExp ce)
     {
+        Line(ce.loc.linnum);
         //FIXME make this handle casts properly
         //e.g. do truncation and so on
         debug (ctfe)
@@ -5561,6 +5621,7 @@ static if (is(BCGen))
 
     override void visit(ExpStatement es)
     {
+        Line(es.loc.linnum);
         debug (ctfe)
         {
             import std.stdio;
@@ -5576,6 +5637,7 @@ static if (is(BCGen))
 
     override void visit(DoStatement ds)
     {
+        Line(ds.loc.linnum);
         debug (ctfe)
         {
             import std.stdio;
@@ -5613,6 +5675,7 @@ static if (is(BCGen))
 
     override void visit(WithStatement ws)
     {
+        Line(ws.loc.linnum);
 
         debug (ctfe)
         {
@@ -5636,6 +5699,7 @@ static if (is(BCGen))
 
     override void visit(Statement s)
     {
+        Line(s.loc.linnum);
         debug (ctfe)
         {
             import std.stdio;
@@ -5648,6 +5712,7 @@ static if (is(BCGen))
 
     override void visit(IfStatement fs)
     {
+        Line(fs.loc.linnum);
         debug (ctfe)
         {
             import std.stdio;
@@ -5709,6 +5774,7 @@ static if (is(BCGen))
 
     override void visit(ScopeStatement ss)
     {
+        Line(ss.loc.linnum);
         debug (ctfe)
         {
             import std.stdio;
@@ -5720,6 +5786,7 @@ static if (is(BCGen))
 
     override void visit(CompoundStatement cs)
     {
+        Line(cs.loc.linnum);
         debug (ctfe)
         {
             import std.stdio;
@@ -5749,3 +5816,4 @@ static if (is(BCGen))
         }
     }
 }
+

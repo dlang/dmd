@@ -688,6 +688,12 @@ template ensureIsBCGen(BCGenT)
             BCGenT.stringof ~ " is missing void Load32(BCValue _to, BCValue from)");
     static assert(is(typeof(BCGenT.Store32(BCValue.init, BCValue.init)) == void),
             BCGenT.stringof ~ " is missing void Store32(BCValue _to, BCValue value)");
+/*
+    static assert(is(typeof(BCGenT.Load64(BCValue.init, BCValue.init)) == void),
+        BCGenT.stringof ~ " is missing void Load64(BCValue _to, BCValue from)");
+    static assert(is(typeof(BCGenT.Store64(BCValue.init, BCValue.init)) == void),
+        BCGenT.stringof ~ " is missing void Store64(BCValue _to, BCValue value)");
+*/
     static assert(is(typeof(BCGenT.Ret(BCValue.init)) == void),
             BCGenT.stringof ~ " is missing void Ret(BCValue val)");
     static assert(is(typeof(BCGenT.insideFunction) == bool),
