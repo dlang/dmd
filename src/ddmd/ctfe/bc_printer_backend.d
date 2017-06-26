@@ -11,15 +11,15 @@ enum BCFunctionTypeEnum : byte
 }
 enum withMemCpy = 1;
 
-//static if (is(typeof(() { import ddmd.declaration : FuncDeclaration; })))
-//{
-//    import ddmd.declaration : FuncDeclaration;
-//    alias FT = FuncDeclaration;
-//}
-//else
-//{
-//    alias FT = void*;
-//}
+static if (is(typeof(() { import ddmd.declaration : FuncDeclaration; })))
+{
+    import ddmd.declaration : FuncDeclaration;
+    alias FT = FuncDeclaration;
+}
+else
+{
+   alias FT = void*;
+}
 
 struct BCFunction
 {
@@ -453,6 +453,18 @@ struct Print_BCGen
         result ~= indent ~ "Store32(" ~ print(to) ~ ", " ~ print(from) ~ ");\n";
     }
 
+    void Load64(BCValue to, BCValue from)
+    {
+        sameLabel = false;
+        result ~= indent ~ "Load64(" ~ print(to) ~ ", " ~ print(from) ~ ");\n";
+    }
+
+    void Store64(BCValue to, BCValue from)
+    {
+        sameLabel = false;
+        result ~= indent ~ "Store64(" ~ print(to) ~ ", " ~ print(from) ~ ");\n";
+    }
+
     void Alloc(BCValue heapPtr, BCValue size)
     {
         sameLabel = false;
@@ -483,6 +495,7 @@ struct Print_BCGen
         sameLabel = false;
         result ~= indent ~ "Assert(" ~ print(value) ~ ", " ~ print(err) ~ ");\n";
     }
+
     static if (withMemCpy)
         void MemCpy(BCValue dst, BCValue src, BCValue size)
     {
@@ -492,7 +505,7 @@ struct Print_BCGen
 
     void Comment(string comment)
     {
-        result ~= indent ~ "//" ~ comment ~ "\n";
+        result ~= indent ~ "Commment(\"" ~ comment ~ "\"\n";
     }
 
 }
