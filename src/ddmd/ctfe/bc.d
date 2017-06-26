@@ -135,6 +135,13 @@ enum LongInst : ushort
     FDiv32,
     FMul32,
     FMod32,
+    FEq32,
+    FNeq32,
+    FLt32,
+    FLe32,
+    FGt32,
+    FGe32,
+//    F32ToF64
 //    F32ToI32,
 //    I32ToF32,
 
@@ -143,6 +150,13 @@ enum LongInst : ushort
     FDiv64,
     FMul64,
     FMod64,
+    FEq64,
+    FNeq64,
+    FLt64,
+    FLe64,
+    FGt64,
+    FGe64,
+//    F64ToF32
 //    F64ToI64,
 //    I64ToF64,
 
@@ -158,6 +172,7 @@ enum LongInst : ushort
 
     BuiltinCall, // call a builtin.
     Comment,
+    Line,
 
 }
 //Imm-Intructuins and corrospinding 2Operand instructions have to be in the same order
@@ -566,6 +581,11 @@ pure:
         dst = pushOntoStack(dst);
 
         emitLongInst(LongInst64(LongInst.MemCpy, dst.stackAddr, src.stackAddr, size.stackAddr));
+    }
+
+    void Line(uint line)
+    {
+        emitLongInst(LongInst64(LongInst.Line, StackAddr(0), Imm32(line)));
     }
 
     void Comment(string comment)
@@ -1224,6 +1244,11 @@ string printInstructions(const int* startInstructions, uint length) pure
                 result ~= "Div SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
             break;
+        case LongInst.Mod:
+            {
+                result ~= "Mod SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
         case LongInst.And:
             {
                 result ~= "And SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
@@ -1259,9 +1284,35 @@ string printInstructions(const int* startInstructions, uint length) pure
                 result ~= "Rsh SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
             break;
-        case LongInst.Mod:
+
+        case LongInst.FEq32:
             {
-                result ~= "Mod SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+                result ~= "FEq32 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+        case LongInst.FNeq32:
+            {
+                result ~= "FNeq32 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+        case LongInst.FLt32:
+            {
+                result ~= "FLt32 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+        case LongInst.FLe32:
+            {
+                result ~= "FLe32 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+        case LongInst.FGt32:
+            {
+                result ~= "FGt32 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+        case LongInst.FGe32:
+            {
+                result ~= "FGe32 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
             break;
         case LongInst.FAdd32:
@@ -1287,6 +1338,37 @@ string printInstructions(const int* startInstructions, uint length) pure
         case LongInst.FMod32:
             {
                 result ~= "FMod32 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+
+        case LongInst.FEq64:
+            {
+                result ~= "FEq64 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+        case LongInst.FNeq64:
+            {
+                result ~= "FNeq64 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+        case LongInst.FLt64:
+            {
+                result ~= "FLt64 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+        case LongInst.FLe64:
+            {
+                result ~= "FLe64 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+        case LongInst.FGt64:
+            {
+                result ~= "FGt64 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+        case LongInst.FGe64:
+            {
+                result ~= "FGe64 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
             break;
         case LongInst.FAdd64:
@@ -1500,6 +1582,11 @@ string printInstructions(const int* startInstructions, uint length) pure
                 pos += alignedLength;
                 length -= alignedLength;
                 result ~= "\nCommentEnd\n";
+            }
+            break;
+        case LongInst.Line:
+            {
+                result ~= "Line #" ~ to!string(hi) ~ "\n";
             }
             break;
 
@@ -1841,6 +1928,66 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 (*lhsRef) %= *rhs;
             }
             break;
+        case LongInst.FGt32 :
+            {
+                uint _lhs = *lhsRef & uint.max;
+                float flhs = *cast(float*)&_lhs;
+                uint _rhs = *rhs & uint.max;
+                float frhs = *cast(float*)&_rhs;
+
+                cond = flhs > frhs;
+            }
+            break;
+        case LongInst.FGe32 :
+            {
+                uint _lhs = *lhsRef & uint.max;
+                float flhs = *cast(float*)&_lhs;
+                uint _rhs = *rhs & uint.max;
+                float frhs = *cast(float*)&_rhs;
+
+                cond = flhs >= frhs;
+            }
+            break;
+        case LongInst.FEq32 :
+            {
+                uint _lhs = *lhsRef & uint.max;
+                float flhs = *cast(float*)&_lhs;
+                uint _rhs = *rhs & uint.max;
+                float frhs = *cast(float*)&_rhs;
+
+                cond = flhs == frhs;
+            }
+            break;
+        case LongInst.FNeq32 :
+            {
+                uint _lhs = *lhsRef & uint.max;
+                float flhs = *cast(float*)&_lhs;
+                uint _rhs = *rhs & uint.max;
+                float frhs = *cast(float*)&_rhs;
+
+                cond = flhs != frhs;
+            }
+            break;
+        case LongInst.FLt32 :
+            {
+                uint _lhs = *lhsRef & uint.max;
+                float flhs = *cast(float*)&_lhs;
+                uint _rhs = *rhs & uint.max;
+                float frhs = *cast(float*)&_rhs;
+
+                cond = flhs < frhs;
+            }
+            break;
+        case LongInst.FLe32 :
+            {
+                uint _lhs = *lhsRef & uint.max;
+                float flhs = *cast(float*)&_lhs;
+                uint _rhs = *rhs & uint.max;
+                float frhs = *cast(float*)&_rhs;
+
+                cond = flhs <= frhs;
+            }
+            break;
 
         case LongInst.FAdd32:
             {
@@ -1905,6 +2052,66 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
 
                 _lhs = *cast(uint*)&flhs;
                 *lhsRef = _lhs;
+            }
+            break;
+        case LongInst.FEq64 :
+            {
+                ulong _lhs = *lhsRef;
+                double flhs = *cast(float*)&_lhs;
+                ulong _rhs = *rhs;
+                double frhs = *cast(float*)&_rhs;
+
+                cond = flhs == frhs;
+            }
+            break;
+        case LongInst.FNeq64 :
+            {
+                ulong _lhs = *lhsRef;
+                double flhs = *cast(float*)&_lhs;
+                ulong _rhs = *rhs;
+                double frhs = *cast(float*)&_rhs;
+
+                cond = flhs < frhs;
+            }
+            break;
+        case LongInst.FLt64 :
+            {
+                ulong _lhs = *lhsRef;
+                double flhs = *cast(float*)&_lhs;
+                ulong _rhs = *rhs;
+                double frhs = *cast(float*)&_rhs;
+
+                cond = flhs < frhs;
+            }
+            break;
+        case LongInst.FLe64 :
+            {
+                ulong _lhs = *lhsRef;
+                double flhs = *cast(float*)&_lhs;
+                ulong _rhs = *rhs;
+                double frhs = *cast(float*)&_rhs;
+
+                cond = flhs <= frhs;
+            }
+            break;
+        case LongInst.FGt64 :
+            {
+                ulong _lhs = *lhsRef;
+                double flhs = *cast(float*)&_lhs;
+                ulong _rhs = *rhs;
+                double frhs = *cast(float*)&_rhs;
+
+                cond = flhs > frhs;
+            }
+            break;
+        case LongInst.FGe64 :
+            {
+                ulong _lhs = *lhsRef;
+                double flhs = *cast(float*)&_lhs;
+                ulong _rhs = *rhs;
+                double frhs = *cast(float*)&_rhs;
+
+                cond = flhs >= frhs;
             }
             break;
         case LongInst.FAdd64:
@@ -2389,7 +2596,11 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 }
             }
             break;
-
+        case LongInst.Line :
+            {
+                // maybe check breakpoint list ?
+            }
+            break;
         }
     }
     Lbailout :
