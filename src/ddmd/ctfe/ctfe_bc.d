@@ -2255,6 +2255,7 @@ public:
                 linkRefsCallee(parameters);
 
             auto fnIdx = uf.fn;
+            Line(uf.fd.loc.linnum);
             beginFunction(fnIdx - 1, cast(void*)uf.fd);
             uf.fd.fbody.accept(this);
             auto osp = sp;
@@ -2265,7 +2266,9 @@ public:
                 // insert a dummy return after void functions because they can omit a returnStatement
                 Ret(bcNull);
             }
+            Line(uf.fd.endloc.linnum);
             endFunction();
+
             lastUncompiledFunction++;
             if (IGaveUp)
             {
@@ -2299,7 +2302,6 @@ public:
 
     override void visit(FuncDeclaration fd)
     {
-        Line(fd.loc.linnum);
         import ddmd.identifier;
 
         assert(!me || me == fd);
@@ -2321,6 +2323,7 @@ public:
         }
 
         //writeln("going to eval: ", fd.toString);
+        Line(fd.loc.linnum);
         if (auto fbody = fd.fbody.isCompoundStatement)
         {
             beginParameters();
@@ -2365,6 +2368,7 @@ public:
                 Ret(bcNull);
             }
             auto osp2 = sp.addr;
+            Line(fd.endloc.linnum);
             endFunction();
             if (IGaveUp)
             {
