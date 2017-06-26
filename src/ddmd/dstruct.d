@@ -368,7 +368,10 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         {
             auto s = (*members)[i];
             s.semantic(sc2);
+            this.errors |= s.errors;
         }
+        if (this.errors)
+            type = Type.terror;
 
         if (!determineFields())
         {
