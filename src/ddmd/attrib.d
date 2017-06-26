@@ -479,7 +479,7 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
             if (auto se = msg.toStringExp())
                 msgstr = se.toStringz().ptr;
             else
-                msg.error("compile time constant expected, not '%s'", msg.toChars());
+                msg.error("compile time constant expected, not `%s`", msg.toChars());
         }
         return msgstr;
     }
@@ -628,7 +628,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
             Module m = sc._module;
             Package pkg = m.parent ? m.parent.isPackage() : null;
             if (!pkg || !protection.pkg.isAncestorPackageOf(pkg))
-                error("does not bind to one of ancestor packages of module '%s'", m.toPrettyChars(true));
+                error("does not bind to one of ancestor packages of module `%s`", m.toPrettyChars(true));
         }
         return AttribDeclaration.addMember(sc, sds);
     }
@@ -761,7 +761,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
         auto ad = p.isAggregateDeclaration();
         if (!ad)
         {
-            .error(loc, "%s can only be a part of an aggregate, not %s %s", kind(), p.kind(), p.toChars());
+            .error(loc, "%s can only be a part of an aggregate, not %s `%s`", kind(), p.kind(), p.toChars());
             return;
         }
 
@@ -902,7 +902,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
                 inlining = PINLINEdefault;
             else if (args.dim != 1)
             {
-                error("one boolean expression expected for pragma(inline), not %d", args.dim);
+                error("one boolean expression expected for `pragma(inline)`, not %d", args.dim);
                 args.setDim(1);
                 (*args)[0] = new ErrorExp();
             }
@@ -913,7 +913,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
                 {
                     if (e.op != TOKerror)
                     {
-                        error("pragma(inline, true or false) expected, not %s", e.toChars());
+                        error("pragma(`inline`, `true` or `false`) expected, not `%s`", e.toChars());
                         (*args)[0] = new ErrorExp();
                     }
                 }
@@ -1010,7 +1010,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
                 (*args)[0] = e;
                 Dsymbol sa = getDsymbol(e);
                 if (!sa || !sa.isFuncDeclaration())
-                    error("function name expected for start address, not '%s'", e.toChars());
+                    error("function name expected for start address, not `%s`", e.toChars());
             }
             goto Lnodecl;
         }
@@ -1076,7 +1076,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
                     }
                     if (!isUniAlpha(c))
                     {
-                        error("char 0x%04x not allowed in mangled name", c);
+                        error("char `0x%04x` not allowed in mangled name", c);
                         break;
                     }
                 }
@@ -1113,7 +1113,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
             goto Lnodecl;
         }
         else
-            error("unrecognized pragma(%s)", ident.toChars());
+            error("unrecognized `pragma(%s)`", ident.toChars());
     Ldecl:
         if (decl)
         {
@@ -1143,7 +1143,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
     Lnodecl:
         if (decl)
         {
-            error("pragma is missing closing ';'");
+            error("pragma is missing closing `;`");
             goto Ldecl;
             // do them anyway, to avoid segfaults.
         }
@@ -1400,7 +1400,7 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
 
         decl = p.parseDeclDefs(0);
         if (p.token.value != TOKeof)
-            exp.error("incomplete mixin declaration (%s)", se.toChars());
+            exp.error("incomplete mixin declaration `%s`", se.toChars());
         if (p.errors)
         {
             assert(global.errors != errors);
