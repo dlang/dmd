@@ -585,7 +585,12 @@ pure:
             return;
         }
         auto n = decodeNumber();
-        if( !n || n > buf.length || n > buf.length - pos )
+        if( n == 0 )
+        {
+            put( "__anonymous" );
+            return;
+        }
+        if( n > buf.length || n > buf.length - pos )
             error( "LName must be at least 1 character" );
         if( '_' != front && !isAlpha( front ) )
             error( "Invalid character in LName" );
@@ -2332,7 +2337,8 @@ unittest
     {
         auto mngl = mangleFunc!(int function(Object))("object.Object.opEquals");
         assert(mngl == "_D6object6Object8opEqualsFC6ObjectZi");
-        assert(reencodeMangled(mngl) == "_D6object6Object8opEqualsFCQtZi");
+        auto remngl = reencodeMangled(mngl);
+        assert(remngl == "_D6object6Object8opEqualsFCQsZi");
     }
     // trigger back tracking with ambiguity on '__T', template or identifier
     assert(reencodeMangled("_D3std4conv4conv7__T3std4convi") == "_D3std4convQf7__T3stdQpi");
@@ -2468,6 +2474,10 @@ version(unittest)
          "pure @safe int std.format.getNth!(\"integer width\", std.traits.isIntegral, int, uint, uint).getNth(uint, uint, uint)"],
         ["_D3std11parallelism42__T16RoundRobinBufferTDFKAaZvTDxFNaNdNeZbZ16RoundRobinBuffer5primeMFZv",
          "void std.parallelism.RoundRobinBuffer!(void delegate(ref char[]), bool delegate() pure @property @trusted const).RoundRobinBuffer.prime()"],
+        // Lname '0'
+        ["_D3std9algorithm9iteration__T9MapResultSQBmQBlQBe005stripTAAyaZQBi7opSliceMFNaNbNiNfmmZSQDiQDhQDa__TQCtSQDyQDxQDq00QCmTQCjZQDq",
+         "pure nothrow @nogc @safe std.algorithm.iteration.MapResult!(std.algorithm.iteration.__anonymous.strip, "
+        ~"immutable(char)[][]).MapResult std.algorithm.iteration.MapResult!(std.algorithm.iteration.strip, immutable(char)[][]).MapResult.opSlice(ulong, ulong)"],
 
         // back references
         ["_D4core4stdc5errnoQgFZi", "int core.stdc.errno.errno()"], // identifier back reference
