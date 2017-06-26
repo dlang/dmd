@@ -398,23 +398,6 @@ extern (C++) UnionExp copyLiteral(Expression e)
         r.type = e.type;
         return ue;
     }
-    if (isPointer(e.type))
-    {
-        // For pointers, we only do a shallow copy.
-        if (e.op == TOKaddress)
-            emplaceExp!(AddrExp)(&ue, e.loc, (cast(AddrExp)e).e1);
-        else if (e.op == TOKindex)
-            emplaceExp!(IndexExp)(&ue, e.loc, (cast(IndexExp)e).e1, (cast(IndexExp)e).e2);
-        else if (e.op == TOKdotvar)
-        {
-            emplaceExp!(DotVarExp)(&ue, e.loc, (cast(DotVarExp)e).e1, (cast(DotVarExp)e).var, (cast(DotVarExp)e).hasOverloads);
-        }
-        else
-            assert(0);
-        Expression r = ue.exp();
-        r.type = e.type;
-        return ue;
-    }
     if (e.op == TOKslice)
     {
         SliceExp se = cast(SliceExp)e;
@@ -441,6 +424,24 @@ extern (C++) UnionExp copyLiteral(Expression e)
             r.type = e.type;
             return ue;
         }
+    }
+    if (isPointer(e.type))
+    {
+        // For pointers, we only do a shallow copy.
+        if (e.op == TOKaddress)
+            emplaceExp!(AddrExp)(&ue, e.loc, (cast(AddrExp)e).e1);
+        else if (e.op == TOKindex)
+            emplaceExp!(IndexExp)(&ue, e.loc, (cast(IndexExp)e).e1, (cast(IndexExp)e).e2);
+        else if (e.op == TOKdotvar)
+        {
+            emplaceExp!(DotVarExp)(&ue, e.loc, (cast(DotVarExp)e).e1, (cast(DotVarExp)e).var, (cast(DotVarExp)e).hasOverloads);
+        }
+        else
+            assert(0);
+
+        Expression r = ue.exp();
+        r.type = e.type;
+        return ue;
     }
     if (e.op == TOKclassreference)
     {

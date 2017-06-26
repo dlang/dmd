@@ -336,7 +336,7 @@ struct Global
         }
         copyright = "Copyright (c) 1999-2017 by Digital Mars";
         written = "written by Walter Bright";
-        _version = ('v' ~ import("VERSION") ~ '\0').ptr;
+        _version = (import("VERSION") ~ '\0').ptr;
         compiler.vendor = "Digital Mars D";
         stdmsg = stdout;
         main_d = "__main.d";
