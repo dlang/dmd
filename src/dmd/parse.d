@@ -533,10 +533,11 @@ final class Parser(AST) : Lexer
             case TOK.invariant_:
                 {
                     Token* t = peek(&token);
-                    if (t.value == TOK.leftParentheses && peek(t).value == TOK.rightParentheses || t.value == TOK.leftCurly)
+                    if (t.value == TOK.leftParentheses || t.value == TOK.leftCurly)
                     {
-                        // invariant {}
-                        // invariant() {}
+                        // invariant { statements... }
+                        // invariant() { statements... }
+                        // invariant (expression);
                         s = parseInvariant(pAttrs);
                     }
                     else
@@ -2616,7 +2617,9 @@ final class Parser(AST) : Lexer
 
     /*****************************************
      * Parse an invariant definition:
-     *      invariant() { body }
+     *      invariant { statements... }
+     *      invariant() { statements... }
+     *      invariant (expression);
      * Current token is 'invariant'.
      */
     AST.Dsymbol parseInvariant(PrefixAttributes!AST* pAttrs)
@@ -2625,10 +2628,33 @@ final class Parser(AST) : Lexer
         StorageClass stc = getStorageClass!AST(pAttrs);
 
         nextToken();
-        if (token.value == TOK.leftParentheses) // optional ()
+        if (token.value == TOK.leftParentheses) // optional () or invariant (expression);
         {
             nextToken();
-            check(TOK.rightParentheses);
+            if (token.value != TOK.rightParentheses) // invariant (expression);
+            {
+                AST.Expression e = parseAssignExp(), msg = null;
+                if (token.value == TOK.comma)
+                {
+                    nextToken();
+                    if (token.value != TOK.rightParentheses)
+                    {
+                        msg = parseAssignExp();
+                        if (token.value == TOK.comma)
+                            nextToken();
+                    }
+                }
+                check(TOK.rightParentheses);
+                check(TOK.semicolon);
+                e = new AST.AssertExp(loc, e, msg);
+                auto fbody = new AST.ExpStatement(loc, e);
+                auto f = new AST.InvariantDeclaration(loc, token.loc, stc, null, fbody);
+                return f;
+            }
+            else
+            {
+                nextToken();
+            }
         }
 
         auto fbody = parseStatement(ParseStatementFlags.curly);

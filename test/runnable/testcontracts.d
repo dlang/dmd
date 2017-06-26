@@ -1131,14 +1131,24 @@ int dip1009_6(int x, int y)
 }
 
 int dip1009_7(int x)
-  in (x>0)
-  in { assert(x>1); }
-  out { assert(x>2); }
-  out (; x>3)
-  out (r; r>3)
+  in (x > 0)
+  in { assert(x > 1); }
+  out { assert(x > 2); }
+  out (; x > 3)
+  out (r; r > 3)
 {
-    x+=2;
+    x += 2;
     return x;
+}
+
+class DIP1009_8
+{
+    private int x = 4;
+    invariant (x > 0, "x must stay positive");
+    invariant (x > 1, "x must be greater than one",);
+    invariant (x > 2);
+    invariant (x > 3,);
+    void foo(){ x = 5; }
 }
 
 /*******************************************/
@@ -1171,6 +1181,7 @@ int main()
     dip1009_4(1);
     dip1009_6(1, 1);
     dip1009_7(3);
+    new DIP1009_8().foo();
 
     printf("Success\n");
     return 0;
