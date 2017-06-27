@@ -27,7 +27,7 @@ enum Classification
     error = Color.brightRed,          /// for errors
     gagged = Color.brightBlue,        /// for gagged errors
     warning = Color.brightYellow,     /// for warnings
-    deprecation = Color.brightMagenta,/// for deprecations
+    deprecation = Color.brightCyan,   /// for deprecations
 }
 
 /**************************************
@@ -294,11 +294,11 @@ enum HIGHLIGHT : ubyte
 {
     Default    = Color.black,           // back to whatever the console is set at
     Escape     = '\xFF',                // highlight Color follows
-    Identifier = Color.brightMagenta,
-    Keyword    = Color.brightBlue,
-    String     = Color.brightRed,
-    Comment    = Color.brightCyan,
-    Other      = Color.brightGreen,     // other tokens
+    Identifier = Color.white,
+    Keyword    = Color.white,
+    Literal    = Color.white,
+    Comment    = Color.darkGray,
+    Other      = Color.cyan,           // other tokens
 }
 
 /**************************************************
@@ -343,8 +343,11 @@ private void colorHighlightCode(OutBuffer* buf)
         case TOKcomment:
             highlight = HIGHLIGHT.Comment;
             break;
+        case TOKint32v:
+            ..
+        case TOKdcharv:
         case TOKstring:
-            highlight = HIGHLIGHT.String;
+            highlight = HIGHLIGHT.Literal;
             break;
         default:
             if (tok.isKeyword())
@@ -400,6 +403,13 @@ private void writeHighlights(Console* con, const OutBuffer *buf)
             {
                 con.resetColor();
                 colors = false;
+            }
+            else
+            if (color == Color.white)
+            {
+                con.resetColor();
+                con.setColorBright(true);
+                colors = true;
             }
             else
             {
