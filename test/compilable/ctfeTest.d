@@ -526,4 +526,17 @@ static immutable as = assignSlice(1, 4, [9, 8, 7]);
 static assert(as == [1, 9, 8, 7, 5, 6, 7, 8]);
 
 
+float fmaddf(float a, float b, float c)
+{
+    float result;
+    result = b + a * c;
+    return result;
+}
+
+static assert(fmaddf(0x1.acccccp+2f, 0x1.166666p+3f, 0x1.4cccccp+0f) == 0x1.168f5cp+4f);
+static assert(fmaddf(0x1.acccccp+2f, 0x1.166666p+3f, -0x1.4cccccp+0f) == -0x1.47a8p-7f);
+
+
 static assert(!__traits(newCTFEGaveUp));
+
+
