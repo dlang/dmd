@@ -24,10 +24,10 @@ import ddmd.console;
  */
 enum Classification
 {
-    error = Color.red,          /// for errors
-    gagged = Color.blue,        /// for gagged errors
-    warning = Color.yellow,     /// for warnings
-    deprecation = Color.magenta,/// for deprecations
+    error = Color.brightRed,          /// for errors
+    gagged = Color.brightBlue,        /// for gagged errors
+    warning = Color.brightYellow,     /// for warnings
+    deprecation = Color.brightMagenta,/// for deprecations
 }
 
 /**************************************
@@ -126,7 +126,7 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
         mem.xfree(cast(void*)p);
     }
     if (con)
-        con.setColor(headerColor, true);
+        con.setColor(headerColor);
     fputs(header, stderr);
     if (con)
         con.resetColor();
@@ -294,11 +294,11 @@ enum HIGHLIGHT : ubyte
 {
     Default    = Color.black,           // back to whatever the console is set at
     Escape     = '\xFF',                // highlight Color follows
-    Identifier = Color.magenta,
-    Keyword    = Color.blue,
-    String     = Color.red,
-    Comment    = Color.cyan,
-    Other      = Color.green,           // other tokens
+    Identifier = Color.brightMagenta,
+    Keyword    = Color.brightBlue,
+    String     = Color.brightRed,
+    Comment    = Color.brightCyan,
+    Other      = Color.brightGreen,     // other tokens
 }
 
 /**************************************************
@@ -403,7 +403,7 @@ private void writeHighlights(Console* con, const OutBuffer *buf)
             }
             else
             {
-                con.setColor(cast(Color)color, true);
+                con.setColor(cast(Color)color);
                 colors = true;
             }
         }
