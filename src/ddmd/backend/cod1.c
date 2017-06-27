@@ -41,7 +41,6 @@ enum MF
         MFdouble        = 2,
         MFword          = 3
 };
-code * genf2(code *c,unsigned op,unsigned rm);
 
 targ_size_t paramsize(elem *e);
 static void funccall(CodeBuilder& cdb,elem *,unsigned,unsigned,regm_t *,regm_t,bool);
@@ -4381,7 +4380,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             }
             if (LARGEDATA)
                 cdb.last()->Iflags |= CFss;     // want to store into stack
-            cdb.append(genfwait(CNIL));         // FWAIT
+            genfwait(cdb);         // FWAIT
             return;
         }
         else if (I16 && (tym == TYdouble || tym == TYdouble_alias))
