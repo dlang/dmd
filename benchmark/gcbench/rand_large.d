@@ -13,7 +13,7 @@
  */
 import std.random, core.memory, std.stdio;
 
-enum nIter = 1000;
+enum nIter = 10000;
 
 void main()
 {

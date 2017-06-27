@@ -24,7 +24,7 @@ void producer(Tid consumer)
     auto text = cast(string)read("extra-files/dante.txt");
     foreach (word; text.splitter.map!(to!(dchar[])))
     {
-        foreach (_; 0 .. 3)
+        foreach (_; 0 .. 7)
         {
             immutable val = buildVal(word);
             consumer.send(val);

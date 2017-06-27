@@ -15,7 +15,7 @@ import std.random, core.memory, std.stdio, std.conv;
 
 void main(string[] args)
 {
-    size_t nIter = 1000;
+    size_t nIter = 10000;
     if(args.length > 1)
         nIter = to!size_t(args[1]);
 
