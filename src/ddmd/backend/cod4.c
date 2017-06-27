@@ -441,7 +441,7 @@ void cdeq(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                         // MOV EA,reg
                         regm_t rregm = allregs & ~idxregm(&cs);
                         unsigned reg;
-                        cdb.append(regwithvalue(CNIL,rregm,e2->EV.Vpointer,&reg,64));
+                        regwithvalue(cdb,rregm,e2->EV.Vpointer,&reg,64);
                         cs.Iop = 0x89;
                         cs.Irm |= modregrm(0,reg & 7,0);
                         if (reg & 8)
@@ -456,7 +456,7 @@ void cdeq(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                         // MOV EA,reg
                         regm_t rregm = allregs & ~idxregm(&cs);
                         unsigned reg;
-                        cdb.append(regwithvalue(CNIL,rregm,e2->EV.Vint,&reg,0));
+                        regwithvalue(cdb,rregm,e2->EV.Vint,&reg,0);
                         cs.Iop = 0x89;
                         cs.Irm |= modregrm(0,reg & 7,0);
                         if (reg & 8)
@@ -475,7 +475,7 @@ void cdeq(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                         regm_t rregm = getscratch() & ~idxregm(&cs);
                         if (rregm)
                         {
-                            cdb.append(regwithvalue(CNIL,rregm,e2->EV.Vint,&reg,0));
+                            regwithvalue(cdb,rregm,e2->EV.Vint,&reg,0);
                             cs.Iop = 0x89;
                             cs.Irm |= modregrm(0,reg,0);
                             cdb.gen(&cs);
@@ -548,7 +548,7 @@ void cdeq(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                     // MOV EA,reg
                     regm_t rregm = allregs & ~idxregm(&cs);
                     unsigned reg;
-                    cdb.append(regwithvalue(CNIL,rregm,*p,&reg,64));
+                    regwithvalue(cdb,rregm,*p,&reg,64);
                     cs.Iop = 0x89;
                     cs.Irm |= modregrm(0,reg & 7,0);
                     if (reg & 8)
@@ -569,7 +569,7 @@ void cdeq(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                         {
                             regm_t rregm = allregs & ~idxregm(&cs);
                             unsigned reg;
-                            cdb.append(regwithvalue(CNIL,rregm,*p,&reg,64));
+                            regwithvalue(cdb,rregm,*p,&reg,64);
                             cs.Iop = 0x89;
                             cs.Irm |= modregrm(0,reg & 7,0);
                             if (reg & 8)
@@ -2718,7 +2718,7 @@ void cdcnvt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
                     codelem(cdb,e->E1, &retregs, FALSE);
                     unsigned reg = findreg(retregs);
                     cdb.genfltreg(0x89, reg, 0);
-                    cdb.append(regwithvalue(CNIL,ALLREGS,0,&reg,0));
+                    regwithvalue(cdb,ALLREGS,0,&reg,0);
                     cdb.genfltreg(0x89, reg, 4);
 
                     push87(cdb);
