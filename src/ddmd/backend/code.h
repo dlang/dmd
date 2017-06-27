@@ -547,7 +547,7 @@ code *code_last(code *c);
 void code_orflag(code *c,unsigned flag);
 void code_orrex(code *c,unsigned rex);
 code *setOpcode(code *c, code *cs, unsigned op);
-code * __pascal cat (code *c1 , code *c2 );
+code *cat(code *c1, code *c2);
 code * cat3 (code *c1 , code *c2 , code *c3 );
 code * cat4 (code *c1 , code *c2 , code *c3 , code *c4 );
 code * cat6 (code *c1 , code *c2 , code *c3 , code *c4 , code *c5 , code *c6 );
