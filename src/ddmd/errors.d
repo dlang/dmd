@@ -25,9 +25,9 @@ import ddmd.console;
 enum Classification
 {
     error = Color.red,          /// for errors
-    gagged = Color.magenta,     /// for gagged errors
+    gagged = Color.blue,        /// for gagged errors
     warning = Color.yellow,     /// for warnings
-    deprecation = Color.blue,  /// for deprecations
+    deprecation = Color.magenta,/// for deprecations
 }
 
 /**************************************
