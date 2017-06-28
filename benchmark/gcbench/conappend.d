@@ -11,7 +11,7 @@ import std.conv;
 import std.file;
 import std.exception;
 
-__gshared int N = 25000;
+__gshared int N = 10000;
 __gshared int NT = 4;
 
 __gshared ubyte[] BYTES;
