@@ -13,9 +13,9 @@ fail_compilation/fail14407.d(23): Error: pure function 'fail14407.testC' cannot 
 fail_compilation/fail14407.d(23): Error: @safe function 'fail14407.testC' cannot call @system constructor 'imports.a14407.C.this'
 fail_compilation/fail14407.d(23): Error: @nogc function 'fail14407.testC' cannot call non-@nogc constructor 'imports.a14407.C.this'
 fail_compilation/fail14407.d(23): Error: class imports.a14407.C member `this` is not accessible
-fail_compilation/fail14407.d(23): Error: allocator 'imports.a14407.C.new' is not nothrow
-fail_compilation/fail14407.d(23): Error: constructor 'imports.a14407.C.this' is not nothrow
-fail_compilation/fail14407.d(21): Error: nothrow function 'fail14407.testC' may throw
+fail_compilation/fail14407.d(23): Error: allocator `imports.a14407.C.new` is not nothrow
+fail_compilation/fail14407.d(23): Error: constructor `imports.a14407.C.this` is not nothrow
+fail_compilation/fail14407.d(21): Error: nothrow function `fail14407.testC` may throw
 ---
 */
 void testC() pure nothrow @safe @nogc
@@ -36,9 +36,9 @@ fail_compilation/fail14407.d(46): Error: pure function 'fail14407.testS' cannot 
 fail_compilation/fail14407.d(46): Error: @safe function 'fail14407.testS' cannot call @system constructor 'imports.a14407.S.this'
 fail_compilation/fail14407.d(46): Error: @nogc function 'fail14407.testS' cannot call non-@nogc constructor 'imports.a14407.S.this'
 fail_compilation/fail14407.d(46): Error: struct imports.a14407.S member `this` is not accessible
-fail_compilation/fail14407.d(46): Error: allocator 'imports.a14407.S.new' is not nothrow
-fail_compilation/fail14407.d(46): Error: constructor 'imports.a14407.S.this' is not nothrow
-fail_compilation/fail14407.d(44): Error: nothrow function 'fail14407.testS' may throw
+fail_compilation/fail14407.d(46): Error: allocator `imports.a14407.S.new` is not nothrow
+fail_compilation/fail14407.d(46): Error: constructor `imports.a14407.S.this` is not nothrow
+fail_compilation/fail14407.d(44): Error: nothrow function `fail14407.testS` may throw
 ---
 */
 void testS() pure nothrow @safe @nogc

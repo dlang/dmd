@@ -1584,7 +1584,7 @@ extern (C++) class FuncDeclaration : Declaration
                     uint nothrowErrors = global.errors;
                     blockexit = fbody.blockExit(this, f.isnothrow);
                     if (f.isnothrow && (global.errors != nothrowErrors))
-                        .error(loc, "nothrow %s '%s' may throw", kind(), toPrettyChars());
+                        .error(loc, "nothrow %s `%s` may throw", kind(), toPrettyChars());
                     if (flags & FUNCFLAGnothrowInprocess)
                     {
                         if (type == f)
@@ -1899,7 +1899,7 @@ extern (C++) class FuncDeclaration : Declaration
                             bool isnothrow = f.isnothrow & !(flags & FUNCFLAGnothrowInprocess);
                             int blockexit = s.blockExit(this, isnothrow);
                             if (f.isnothrow && isnothrow && blockexit & BEthrow)
-                                .error(loc, "nothrow %s '%s' may throw", kind(), toPrettyChars());
+                                .error(loc, "nothrow %s `%s` may throw", kind(), toPrettyChars());
                             if (flags & FUNCFLAGnothrowInprocess && blockexit & BEthrow)
                                 f.isnothrow = false;
 

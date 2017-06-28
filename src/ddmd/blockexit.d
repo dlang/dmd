@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(DMDSRC _blockexit.d)
@@ -493,7 +493,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                 return;
             }
             if (mustNotThrow)
-                s.error("%s is thrown but not caught", s.exp.type.toChars());
+                s.error("`%s` is thrown but not caught", s.exp.type.toChars());
 
             result = BEthrow;
         }
@@ -515,7 +515,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
         override void visit(CompoundAsmStatement s)
         {
             if (mustNotThrow && !(s.stc & STCnothrow))
-                s.deprecation("asm statement is assumed to throw - mark it with 'nothrow' if it does not");
+                s.deprecation("asm statement is assumed to throw - mark it with `nothrow` if it does not");
 
             // Assume the worst
             result = BEfallthru | BEreturn | BEgoto | BEhalt;
