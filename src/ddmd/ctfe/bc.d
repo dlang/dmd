@@ -217,8 +217,8 @@ enum CondFlagMask = 0b11_0000_0000;
 * [48-64] StackOffset (rhs)
 * *************************
 * ImmInstructions Layout :
-* [0-6] Instruction
-* [6-8] Flags
+* [0-7] Instruction
+* [7-8] Flags
 * ------------------------
 * [8-12] CondFlag (or Padding)
 * [12-16] Padding
@@ -229,7 +229,7 @@ struct LongInst64
 {
     uint lw;
     uint hi;
-@safe pure const:
+@safe pure const nothrow:
     this(const LongInst i, const BCAddr targetAddr)
     {
         lw = i;
@@ -1606,18 +1606,46 @@ __gshared int[ushort.max * 2] byteCodeCache;
 
 __gshared int byteCodeCacheTop = 4;
 
+enum DebugOrder
+{
+    Invalid,
+    Nothing,
+
+    SetBreakpoint,
+    UnsetBreakpoint,
+
+    ReadStack,
+    WriteStack,
+
+    ReadHeap,
+    WriteHeap,
+
+    Continue,
+}
+
+struct DebugCommand
+{
+    DebugOrder order;
+    BCValue v1;
+}
+
 const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
     BCHeap* heapPtr = null, const BCFunction* functions = null,
     const RetainedCall* calls = null,
     BCValue* ev1 = null, BCValue* ev2 = null, BCValue* ev3 = null,
     BCValue* ev4 = null, const RE* errors = null,
-    long[] stackPtr = null, uint stackOffset = 0)  @trusted
+    long[] stackPtr = null, uint stackOffset = 0,
+    DebugCommand function() reciveCommand = {return DebugCommand(DebugOrder.Nothing);},
+    BCValue* debugOutput = null)  @trusted
 {
     __gshared static uint callDepth;
     import std.conv;
     import std.stdio;
 
-    uint[] breakLines;
+    bool paused; // true if we are in a breakpoint.
+
+
+    uint[] breakLines = [265];
     uint lastLine;
 
     if (!__ctfe)
@@ -1680,6 +1708,56 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
     if (!__ctfe) debug writeln("Interpreter started");
     while (true && ip <= byteCode.length - 1)
     {
+        DebugCommand command = reciveCommand();
+        do
+        {
+            debug
+            {
+                import std.stdio;
+                if (!__ctfe) writeln("Order: ", to!string(command.order));
+            }
+
+            Switch : final switch(command.order) with(DebugOrder)
+            {
+                case Invalid : {assert(0, "Invalid DebugOrder");} break;
+                case SetBreakpoint :
+                {
+                    auto bl = command.v1.imm32;
+                    foreach(_bl;breakLines)
+                    {
+                        if (bl == _bl)
+                            break Switch;
+                    }
+
+                    breakLines ~= bl;
+                } break;
+                case UnsetBreakpoint :
+                {
+                    auto bl = command.v1.imm32;
+                    foreach(uint i, _bl;breakLines)
+                    {
+                        if (_bl == bl)
+                        {
+                            breakLines[i] = breakLines[$-1];
+                            breakLines = breakLines[0 .. $-1];
+                            break;
+                        }
+                    }
+                } break;
+                case ReadStack : {assert(0);} break;
+                case WriteStack : {assert(0);} break;
+                case ReadHeap : {assert(0);} break;
+                case WriteHeap : {assert(0);} break;
+                case Continue : {paused = false;} break;
+                case Nothing :
+                {
+                    if (!paused)
+                    { /*__mmPause()*/ }
+                } break;
+            }
+
+        } while (paused || command.order != DebugOrder.Nothing);
+
         import std.range;
 
         debug (bc_stack)
@@ -2553,14 +2631,23 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
             break;
         case LongInst.Line :
             {
+                uint breakingOn;
                 uint line = hi;
-                foreach(breakLine;breakLines)
+                lastLine = line;
+                foreach(bl;breakLines)
                 {
-                     if (line == breakLine)
-                     {
-//                         paused = true;
+                    if (line == bl)
+                    {
+                        debug
+                        if (!__ctfe)
+                        {
+                            import std.stdio;
+                            writeln("breaking at: ", ip-2);
 
-                     }
+                        }
+                        paused = true;
+                    }
+                    break;
                 }
             }
             break;
