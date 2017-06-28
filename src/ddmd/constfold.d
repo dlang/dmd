@@ -72,7 +72,13 @@ extern (C++) UnionExp Neg(Type type, Expression e1)
     Loc loc = e1.loc;
     if (e1.type.isreal())
     {
-        emplaceExp!(RealExp)(&ue, loc, -e1.toReal(), type);
+        auto ty = e1.type.ty;
+        if (ty == Tfloat32)
+                emplaceExp!(RealExp)(&ue, loc, { float r = e1.toReal();r = -r; return r; }(), type);
+        else if (ty == Tfloat64)
+            emplaceExp!(RealExp)(&ue, loc, { double r = e1.toReal();r = -r; return r; }(), type);
+        else
+            emplaceExp!(RealExp)(&ue, loc, -e1.toReal(), type);
     }
     else if (e1.type.isimaginary())
     {
@@ -122,7 +128,12 @@ extern (C++) UnionExp Add(Loc loc, Type type, Expression e1, Expression e2)
     }
     if (type.isreal())
     {
-        emplaceExp!(RealExp)(&ue, loc, e1.toReal() + e2.toReal(), type);
+        if (type.ty == Tfloat32)
+            emplaceExp!(RealExp)(&ue, loc, { float r; float a = e1.toReal(); float b = e2.toReal(); r = a + b; return r; }(), type);
+        else if (type.ty == Tfloat64)
+            emplaceExp!(RealExp)(&ue, loc, { double r; double a = e1.toReal(); double b = e2.toReal(); r = a + b; return r; }(), type);
+        else
+            emplaceExp!(RealExp)(&ue, loc, e1.toReal() + e2.toReal(), type);
     }
     else if (type.isimaginary())
     {
@@ -225,7 +236,12 @@ extern (C++) UnionExp Min(Loc loc, Type type, Expression e1, Expression e2)
     UnionExp ue;
     if (type.isreal())
     {
-        emplaceExp!(RealExp)(&ue, loc, e1.toReal() - e2.toReal(), type);
+        if (type.ty == Tfloat32)
+            emplaceExp!(RealExp)(&ue, loc, { float r; float a = e1.toReal(); float b = e2.toReal(); r = a - b; return r; }(), type);
+        else if (type.ty == Tfloat64)
+            emplaceExp!(RealExp)(&ue, loc, { double r; double a = e1.toReal(); double b = e2.toReal(); r = a - b; return r; }(), type);
+        else
+            emplaceExp!(RealExp)(&ue, loc, e1.toReal() - e2.toReal(), type);
     }
     else if (type.isimaginary())
     {
@@ -322,6 +338,19 @@ extern (C++) UnionExp Min(Loc loc, Type type, Expression e1, Expression e2)
 extern (C++) UnionExp Mul(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
+
+    if (type.isreal() && e1.type.isreal() && e2.type.isreal())
+    {
+        if (type.ty == Tfloat32)
+            emplaceExp!(RealExp)(&ue, loc, { float r; float a = e1.toReal(); float b = e2.toReal(); r = a * b; return r; }(), type);
+        else if (type.ty == Tfloat64)
+            emplaceExp!(RealExp)(&ue, loc, { double r; double a = e1.toReal(); double b = e2.toReal(); r = a * b; return r; }(), type);
+        else
+            emplaceExp!(RealExp)(&ue, loc, e1.toReal() * e2.toReal(), type);
+
+        return ue;
+    }
+
     if (type.isfloating())
     {
         auto c = complex_t(CTFloat.zero);
@@ -371,6 +400,19 @@ extern (C++) UnionExp Mul(Loc loc, Type type, Expression e1, Expression e2)
 extern (C++) UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
+
+    if (type.isreal() && e1.type.isreal() && e2.type.isreal())
+    {
+        if (type.ty == Tfloat32)
+            emplaceExp!(RealExp)(&ue, loc, { float r; float a = e1.toReal(); float b = e2.toReal(); r = a / b; return r; }(), type);
+        else if (type.ty == Tfloat64)
+            emplaceExp!(RealExp)(&ue, loc, { double r; double a = e1.toReal(); double b = e2.toReal(); r = a / b; return r; }(), type);
+        else
+            emplaceExp!(RealExp)(&ue, loc, e1.toReal() / e2.toReal(), type);
+
+        return ue;
+    }
+
     if (type.isfloating())
     {
         auto c = complex_t(CTFloat.zero);
@@ -462,6 +504,19 @@ extern (C++) UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
 extern (C++) UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
+
+    if (type.isreal() && e1.type.isreal() && e2.type.isreal())
+    {
+        if (type.ty == Tfloat32)
+            emplaceExp!(RealExp)(&ue, loc, { float r; float a = e1.toReal(); float b = e2.toReal(); r = a % b; return r; }(), type);
+        else if (type.ty == Tfloat64)
+            emplaceExp!(RealExp)(&ue, loc, { double r; double a = e1.toReal(); double b = e2.toReal(); r = a % b; return r; }(), type);
+        else
+            emplaceExp!(RealExp)(&ue, loc, e1.toReal() % e2.toReal(), type);
+
+        return ue;
+    }
+
     if (type.isfloating())
     {
         auto c = complex_t(CTFloat.zero);
