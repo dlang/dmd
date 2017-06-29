@@ -393,7 +393,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                         sinteger_t dim = ts.dim.toInteger();
                         if (index < 0 || index >= dim)
                         {
-                            e.error("array index %lld is out of bounds [0..%lld]", index, dim);
+                            e.error("array index %lld is out of bounds `[0..%lld]`", index, dim);
                             return error();
                         }
 

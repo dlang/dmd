@@ -1529,7 +1529,7 @@ extern (C++) Expression ctfeIndex(Loc loc, Type type, Expression e1, uinteger_t 
         StringExp es1 = cast(StringExp)e1;
         if (indx >= es1.len)
         {
-            error(loc, "string index %llu is out of bounds [0 .. %llu]", indx, cast(ulong)es1.len);
+            error(loc, "string index %llu is out of bounds `[0 .. %llu]`", indx, cast(ulong)es1.len);
             return CTFEExp.cantexp;
         }
         return new IntegerExp(loc, es1.charAt(indx), type);
@@ -1539,7 +1539,7 @@ extern (C++) Expression ctfeIndex(Loc loc, Type type, Expression e1, uinteger_t 
         ArrayLiteralExp ale = cast(ArrayLiteralExp)e1;
         if (indx >= ale.elements.dim)
         {
-            error(loc, "array index %llu is out of bounds %s[0 .. %llu]", indx, e1.toChars(), cast(ulong)ale.elements.dim);
+            error(loc, "array index %llu is out of bounds `%s[0 .. %llu]`", indx, e1.toChars(), cast(ulong)ale.elements.dim);
             return CTFEExp.cantexp;
         }
         Expression e = (*ale.elements)[cast(size_t)indx];
