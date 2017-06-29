@@ -773,6 +773,8 @@ class DotIdExp : public UnaExp
 {
 public:
     Identifier *ident;
+    bool noderef;       // true if the result of the expression will never be dereferenced
+    bool wantsym;       // do not replace Symbol with its initializer during semantic()
 
     static DotIdExp *create(Loc loc, Expression *e, Identifier *ident);
     Expression *semantic(Scope *sc);
