@@ -223,7 +223,7 @@ struct Print_BCGen
 
     void Initialize()
     {
-    result = result[0 .. 0];
+        result = result[0 .. 0];
         result ~= indent ~ "Initialize(" ~ ");\n";
         incIndent();
     }
@@ -239,7 +239,7 @@ struct Print_BCGen
         sameLabel = false;
         import ddmd.declaration : FuncDeclaration;
         import std.string;
-        assert(!insideFunction);
+//        assert(!insideFunction);
         insideFunction = true;
         auto fd = *(cast(FuncDeclaration*) &fnDecl);
         result ~= indent ~ "beginFunction(" ~ to!string(f) ~ ");//" ~ (fd && fd.ident ? fd.toChars.fromStringz : "(nameless)") ~ "\n";
@@ -505,7 +505,12 @@ struct Print_BCGen
 
     void Comment(string comment)
     {
-        result ~= indent ~ "Commment(\"" ~ comment ~ "\"\n";
+        result ~= indent ~ "Commment(\"" ~ comment ~ "\");\n";
+    }
+
+    void Line(uint line)
+    {
+        result ~= indent ~ "Line(" ~ to!string(line) ~ ");\n";
     }
 
 }
