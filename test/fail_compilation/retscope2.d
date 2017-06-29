@@ -3,8 +3,8 @@ REQUIRED_ARGS: -dip1000
 PERMUTE_ARGS:
 TEST_OUTPUT:
 ---
-fail_compilation/retscope2.d(102): Error: scope variable s assigned to p with longer lifetime
-fail_compilation/retscope2.d(107): Error: address of variable s assigned to p with longer lifetime
+fail_compilation/retscope2.d(102): Error: scope variable `s` assigned to `p` with longer lifetime
+fail_compilation/retscope2.d(107): Error: address of variable `s` assigned to `p` with longer lifetime
 ---
 */
 
@@ -37,7 +37,7 @@ void test200()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope2.d(302): Error: scope variable a assigned to return scope b
+fail_compilation/retscope2.d(302): Error: scope variable `a` assigned to return scope `b`
 ---
 */
 
@@ -53,7 +53,7 @@ fail_compilation/retscope2.d(302): Error: scope variable a assigned to return sc
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope2.d(403): Error: scope variable a assigned to return scope c
+fail_compilation/retscope2.d(403): Error: scope variable `a` assigned to return scope `c`
 ---
 */
 
@@ -70,7 +70,7 @@ fail_compilation/retscope2.d(403): Error: scope variable a assigned to return sc
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope2.d(504): Error: scope variable c may not be returned
+fail_compilation/retscope2.d(504): Error: scope variable `c` may not be returned
 ---
 */
 
@@ -87,8 +87,8 @@ fail_compilation/retscope2.d(504): Error: scope variable c may not be returned
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope2.d(604): Error: scope variable _param_0 assigned to non-scope parameter unnamed calling retscope2.foo600
-fail_compilation/retscope2.d(604): Error: scope variable _param_1 assigned to non-scope parameter unnamed calling retscope2.foo600
+fail_compilation/retscope2.d(604): Error: scope variable `_param_0` assigned to non-scope parameter `unnamed` calling retscope2.foo600
+fail_compilation/retscope2.d(604): Error: scope variable `_param_1` assigned to non-scope parameter `unnamed` calling retscope2.foo600
 fail_compilation/retscope2.d(614): Error: template instance retscope2.test600!(int*, int*) error instantiating
 ---
 */
@@ -151,7 +151,7 @@ S700* escape700(int i) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope2.d(804): Error: scope variable e may not be thrown
+fail_compilation/retscope2.d(804): Error: scope variable `e` may not be thrown
 ---
 */
 

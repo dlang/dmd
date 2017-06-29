@@ -65,7 +65,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier par, Ex
         if (global.params.vsafe && sc.func.setUnsafe())
         {
             if (!gag)
-                error(arg.loc, "%s %s assigned to non-scope parameter %s calling %s",
+                error(arg.loc, "%s `%s` assigned to non-scope parameter `%s` calling %s",
                     desc, v.toChars(),
                     par ? par.toChars() : "unnamed",
                     fdc ? fdc.toPrettyChars() : "indirectly");
@@ -148,7 +148,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier par, Ex
         if (sc.func.setUnsafe())
         {
             if (!gag)
-                error(ee.loc, "reference to stack allocated value returned by %s assigned to non-scope parameter %s",
+                error(ee.loc, "reference to stack allocated value returned by `%s` assigned to non-scope parameter `%s`",
                     ee.toChars(),
                     par ? par.toChars() : "unnamed");
             result = true;
@@ -235,7 +235,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                 sc.func.setUnsafe())
             {
                 if (!gag)
-                    error(ae.loc, "scope variable %s assigned to return scope %s", v.toChars(), va.toChars());
+                    error(ae.loc, "scope variable `%s` assigned to return scope `%s`", v.toChars(), va.toChars());
                 result = true;
                 continue;
             }
@@ -246,7 +246,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                 sc.func.setUnsafe())
             {
                 if (!gag)
-                    error(ae.loc, "scope variable %s assigned to %s with longer lifetime", v.toChars(), va.toChars());
+                    error(ae.loc, "scope variable `%s` assigned to `%s` with longer lifetime", v.toChars(), va.toChars());
                 result = true;
                 continue;
             }
@@ -263,7 +263,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
             if (sc.func.setUnsafe())
             {
                 if (!gag)
-                    error(ae.loc, "scope variable %s assigned to non-scope %s", v.toChars(), e1.toChars());
+                    error(ae.loc, "scope variable `%s` assigned to non-scope `%s`", v.toChars(), e1.toChars());
                 result = true;
             }
         }
@@ -283,7 +283,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                 if (sc.func.setUnsafe())
                 {
                     if (!gag)
-                        error(ae.loc, "variadic variable %s assigned to non-scope %s", v.toChars(), e1.toChars());
+                        error(ae.loc, "variadic variable `%s` assigned to non-scope `%s`", v.toChars(), e1.toChars());
                     result = true;
                 }
             }
@@ -311,7 +311,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
             sc.func.setUnsafe())
         {
             if (!gag)
-                error(ae.loc, "address of variable %s assigned to %s with longer lifetime", v.toChars(), va.toChars());
+                error(ae.loc, "address of variable `%s` assigned to `%s` with longer lifetime", v.toChars(), va.toChars());
             result = true;
             continue;
         }
@@ -332,7 +332,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
             if (sc.func.setUnsafe())
             {
                 if (!gag)
-                    error(ae.loc, "reference to local variable %s assigned to non-scope %s", v.toChars(), e1.toChars());
+                    error(ae.loc, "reference to local variable `%s` assigned to non-scope `%s`", v.toChars(), e1.toChars());
                 result = true;
             }
             continue;
@@ -369,7 +369,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                 if (sc.func.setUnsafe())
                 {
                     if (!gag)
-                        error(ae.loc, "reference to local %s assigned to non-scope %s in @safe code", v.toChars(), e1.toChars());
+                        error(ae.loc, "reference to local `%s` assigned to non-scope `%s` in @safe code", v.toChars(), e1.toChars());
                     result = true;
                 }
                 continue;
@@ -390,7 +390,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         if (sc.func.setUnsafe())
         {
             if (!gag)
-                error(ee.loc, "reference to stack allocated value returned by %s assigned to non-scope %s",
+                error(ee.loc, "reference to stack allocated value returned by `%s` assigned to non-scope `%s`",
                     ee.toChars(), e1.toChars());
             result = true;
         }
@@ -437,7 +437,7 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
                 if (global.params.vsafe) // https://issues.dlang.org/show_bug.cgi?id=17029
                 {
                     if (!gag)
-                        error(e.loc, "scope variable %s may not be thrown", v.toChars());
+                        error(e.loc, "scope variable `%s` may not be thrown", v.toChars());
                     result = true;
                 }
                 continue;
@@ -545,7 +545,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                 if (global.params.vsafe) // https://issues.dlang.org/show_bug.cgi?id=17029
                 {
                     if (!gag)
-                        error(e.loc, "scope variable %s may not be returned", v.toChars());
+                        error(e.loc, "scope variable `%s` may not be returned", v.toChars());
                     result = true;
                 }
                 continue;
@@ -644,7 +644,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                     if (tf.isref)
                     {
                         if (!gag)
-                            error(e.loc, "escaping reference to outer local variable %s", v.toChars());
+                            error(e.loc, "escaping reference to outer local variable `%s`", v.toChars());
                         result = true;
                         continue;
                     }
@@ -658,7 +658,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
     {
         //printf("byexp %s\n", ee.toChars());
         if (!gag)
-            error(ee.loc, "escaping reference to stack allocated value returned by %s", ee.toChars());
+            error(ee.loc, "escaping reference to stack allocated value returned by `%s`", ee.toChars());
         result = true;
     }
 
