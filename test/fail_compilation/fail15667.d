@@ -2,8 +2,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/imports/a15667.d(16): Error: basic type expected, not ;
-fail_compilation/imports/a15667.d(19): Error: declaration expected following attribute, not EOF
+fail_compilation/imports/a15667.d(16): Error: basic type expected, not `;`
+fail_compilation/imports/a15667.d(19): Error: declaration expected following attribute, not end of file
 ---
 */
 
