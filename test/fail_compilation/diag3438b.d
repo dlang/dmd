@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag3438b.d(9): Error: default argument expected for y
+fail_compilation/diag3438b.d(9): Error: default argument expected for `y`
 ---
 */
 

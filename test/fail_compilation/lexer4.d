@@ -15,7 +15,7 @@ fail_compilation/lexer4.d(32): Error: use 'i' suffix instead of 'I'
 fail_compilation/lexer4.d(34): Error: line number `1234567891234567879` out of range
 fail_compilation/lexer4.d(36): Error: #line integer ["filespec"]\n expected
 fail_compilation/lexer4.d(19): Error: #line integer ["filespec"]\n expected
-fail_compilation/lexer4.d(19): Error: declaration expected, not '"file"'
+fail_compilation/lexer4.d(19): Error: declaration expected, not `"file"`
 ---
 */
 
