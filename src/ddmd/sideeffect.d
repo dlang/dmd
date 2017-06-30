@@ -281,7 +281,7 @@ extern (C++) bool discardValue(Expression e)
         }
         return false;
     case TOKscope:
-        e.error("%s has no effect", e.toChars());
+        e.error("`%s` has no effect", e.toChars());
         return true;
     case TOKandand:
         {

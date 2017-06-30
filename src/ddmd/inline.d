@@ -455,7 +455,7 @@ public:
         override void visit(ThisExp e)
         {
             //if (!ids.vthis)
-            //    e.error("no 'this' when inlining %s", ids.parent.toChars());
+            //    e.error("no `this` when inlining `%s`", ids.parent.toChars());
             if (!ids.vthis)
             {
                 result = e;
@@ -2086,7 +2086,7 @@ public Expression inlineCopy(Expression e, Scope* sc)
     int cost = inlineCostExpression(e);
     if (cost >= COST_MAX)
     {
-        e.error("cannot inline default argument %s", e.toChars());
+        e.error("cannot inline default argument `%s`", e.toChars());
         return new ErrorExp();
     }
     scope ids = new InlineDoState(sc.parent, null);
