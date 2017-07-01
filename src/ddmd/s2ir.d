@@ -761,10 +761,17 @@ extern (C++) class S2irVisitor : Visitor
         Blockx *blx = irs.blx;
 
         //printf("SwitchErrorStatement.toIR()\n");
-
-        elem *efilename = el_ptr(toSymbol(cast(Dsymbol)blx._module));
-        elem *elinnum = el_long(TYint, s.loc.linnum);
-        elem *e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DSWITCHERR)), el_param(elinnum, efilename));
+        elem *e;
+        if (global.params.betterC)
+        {
+            e = callCAssert(irs, s.loc, null, null, "no switch default");
+        }
+        else
+        {
+            auto efilename = el_ptr(toSymbol(cast(Dsymbol)blx._module));
+            auto elinnum = el_long(TYint, s.loc.linnum);
+            e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DSWITCHERR)), el_param(elinnum, efilename));
+        }
         block_appendexp(blx.curblock, e);
     }
 

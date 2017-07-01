@@ -1962,7 +1962,11 @@ elem *toElem(Expression e, IRState *irs)
             {
                 if (global.params.betterC)
                 {
-                    result = callCAssert(irs, ae);
+                    auto econd = toElem(ae.e1, irs);
+                    auto ea = callCAssert(irs, ae.e1.loc, ae.e1, ae.msg, null);
+                    auto eo = el_bin(OPoror, TYvoid, econd, ea);
+                    elem_setLoc(eo, ae.loc);
+                    result = eo;
                     return;
                 }
 
@@ -5936,6 +5940,10 @@ elem *filelinefunction(IRState *irs, Loc *loc)
  */
 elem *buildArrayBoundsError(IRState *irs, const ref Loc loc)
 {
+    if (global.params.betterC)
+    {
+        return callCAssert(irs, loc, null, null, "array overflow");
+    }
     auto eassert = el_var(getRtlsym(RTLSYM_DARRAYP));
     auto efile = toEfilenamePtr(cast(Module)irs.blx._module);
     auto eline = el_long(TYint, loc.linnum);
@@ -6005,33 +6013,35 @@ void toTraceGC(IRState *irs, elem *e, Loc *loc)
     }
 }
 
+
 /****************************************
  * Generate call to C's assert failure function.
+ * One of exp, emsg, or str must not be null.
  * Params:
  *      irs = context
- *      e = expression to test
+ *      loc = location to use for assert message
+ *      exp = if not null expression to test (not evaluated, but converted to a string)
+ *      emsg = if not null then informative message to be computed at run time
+ *      str = if not null then informative message string
  * Returns:
  *      generated call
  */
-
-elem *callCAssert(IRState *irs, AssertExp ae)
+elem *callCAssert(IRState *irs, Loc loc, Expression exp, Expression emsg, const(char)* str)
 {
-    //printf("callCAssert.toElem() %s\n", ae.toChars());
-    elem *econd = toElem(ae.e1, irs);
-
+    //printf("callCAssert.toElem() %s\n", e.toChars());
     Module m = cast(Module)irs.blx._module;
     const(char)* mname = m.srcfile.toChars();
 
-    //printf("filename = '%s'\n", ae.loc.filename);
+    //printf("filename = '%s'\n", loc.filename);
     //printf("module = '%s'\n", mname);
 
     /* If the source file name has changed, probably due
      * to a #line directive.
      */
     elem *efilename;
-    if (ae.loc.filename && strcmp(ae.loc.filename, mname) != 0)
+    if (loc.filename && strcmp(loc.filename, mname) != 0)
     {
-        const(char)* id = ae.loc.filename;
+        const(char)* id = loc.filename;
         size_t len = strlen(id);
         Symbol *si = toStringSymbol(id, len, 1);
         efilename = el_ptr(si);
@@ -6041,23 +6051,30 @@ elem *callCAssert(IRState *irs, AssertExp ae)
         efilename = toEfilenamePtr(m);
     }
 
-    elem *emsg;
-    if (ae.msg)
+    elem *elmsg;
+    if (emsg)
     {
-        // Assuming here that ae.msg generates a 0 terminated string
-        elem *e = toElemDtor(ae.msg, irs);
-        emsg = array_toPtr(Type.tvoid.arrayOf(), e);
+        // Assuming here that emsg generates a 0 terminated string
+        auto e = toElemDtor(emsg, irs);
+        elmsg = array_toPtr(Type.tvoid.arrayOf(), e);
+    }
+    else if (exp)
+    {
+        // Generate a message out of the assert expression
+        const(char)* id = exp.toChars();
+        const len = strlen(id);
+        Symbol *si = toStringSymbol(id, len, 1);
+        elmsg = el_ptr(si);
     }
     else
     {
-        // Generate a message out of the assert expression
-        const(char)* id = ae.e1.toChars();
-        const len = strlen(id);
-        Symbol *si = toStringSymbol(id, len, 1);
-        emsg = el_ptr(si);
+        assert(str);
+        const len = strlen(str);
+        Symbol *si = toStringSymbol(str, len, 1);
+        elmsg = el_ptr(si);
     }
 
-    auto eline = el_long(TYint, ae.loc.linnum);
+    auto eline = el_long(TYint, loc.linnum);
 
     elem *ea;
     if (global.params.isOSX)
@@ -6072,17 +6089,15 @@ elem *callCAssert(IRState *irs, AssertExp ae)
         elem *efunc = el_ptr(si);
 
         auto eassert = el_var(getRtlsym(RTLSYM_C__ASSERT_RTN));
-        ea = el_bin(OPcall, TYvoid, eassert, el_params(emsg, eline, efilename, efunc, null));
+        ea = el_bin(OPcall, TYvoid, eassert, el_params(elmsg, eline, efilename, efunc, null));
     }
     else
     {
         // [_]_assert(msg, file, line);
         const rtlsym = (global.params.isWindows) ? RTLSYM_C_ASSERT : RTLSYM_C__ASSERT;
         auto eassert = el_var(getRtlsym(rtlsym));
-        ea = el_bin(OPcall, TYvoid, eassert, el_params(eline, efilename, emsg, null));
+        ea = el_bin(OPcall, TYvoid, eassert, el_params(eline, efilename, elmsg, null));
     }
-    auto e = el_bin(OPoror,TYvoid,econd,ea);
-    elem_setLoc(e,ae.loc);
-    return e;
+    return ea;
 }
 
