@@ -1,5 +1,7 @@
-// REQUIRED_ARGS: -g -L-export-dynamic
+// REQUIRED_ARGS: -g
+// REQUIRED_ARGS(linux freebsd): -L-export-dynamic
 // PERMUTE_ARGS:
+// DISABLED: osx
 
 import core.stdc.stdio;
 
