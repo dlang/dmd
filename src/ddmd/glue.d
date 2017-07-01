@@ -177,9 +177,16 @@ void obj_write_deferred(Library library)
 
 /***********************************************
  * Generate function that calls array of functions and gates.
+ * Params:
+ *      m = module symbol (for name mangling purposes)
+ *      sctors = array of functions
+ *      ectorgates = array of gates
+ *      id = identifier string for generator function
+ * Returns:
+ *      function Symbol generated
  */
 
-Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarations *ectorgates,
+private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarations *ectorgates,
         const(char)* id)
 {
     Symbol *sctor = null;
@@ -198,6 +205,7 @@ Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarations *ect
         }
 
         localgot = null;
+
         sctor = toSymbolX(m, id, SCglobal, t, "FZv");
         cstate.CSpsymtab = &sctor.Sfunc.Flocsym;
         elem *ector = null;
@@ -483,6 +491,14 @@ void genObjFile(Module m, bool multiobj)
         m.ssharedctor = callFuncsAndGates(m, &ssharedctors, cast(StaticDtorDeclarations *)&esharedctorgates, "__modsharedctor");
         m.sshareddtor = callFuncsAndGates(m, &sshareddtors, null, "__modshareddtor");
         m.stest = callFuncsAndGates(m, &stests, null, "__modtest");
+
+        if (global.params.betterC)
+        {
+            if (m.ssharedctor)
+                objmod.setModuleCtorDtor(m.ssharedctor, true);
+            if (m.sshareddtor)
+                objmod.setModuleCtorDtor(m.sshareddtor, false);
+        }
 
         if (m.doppelganger)
             genModuleInfo(m);
