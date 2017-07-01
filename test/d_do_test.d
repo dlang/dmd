@@ -84,7 +84,7 @@ struct EnvData
     bool coverage_build;
 }
 
-bool findTestParameter(string file, string token, ref string result)
+bool findTestParameter(const ref EnvData envData, string file, string token, ref string result)
 {
     auto tokenStart = std.string.indexOf(file, token);
     if (tokenStart == -1) return false;
@@ -99,6 +99,19 @@ bool findTestParameter(string file, string token, ref string result)
     //writeln("found ", token, " in line: '", file[tokenStart .. tokenStart+lineEnd], "'");
 
     result = strip(file[tokenStart+token.length .. tokenStart+lineEnd]);
+    // filter by OS specific setting (os1 os2 ...)
+    if (result.length > 0 && result[0] == '(')
+    {
+        auto close = std.string.indexOf(result, ")");
+        if (close >= 0)
+        {
+            string[] oss = split(result[1 .. close], " ");
+            if (oss.canFind(envData.os))
+                result = result[close + 1..$];
+            else
+                result = null;
+        }
+    }
     // skips the :, if present
     if (result.length > 0 && result[0] == ':')
         result = strip(result[1 .. $]);
@@ -106,7 +119,7 @@ bool findTestParameter(string file, string token, ref string result)
     //writeln("arg: '", result, "'");
 
     string result2;
-    if (findTestParameter(file[tokenStart+lineEnd..$], token, result2))
+    if (findTestParameter(envData, file[tokenStart+lineEnd..$], token, result2))
         result ~= " " ~ result2;
 
     return true;
@@ -165,18 +178,18 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
 {
     string file = cast(string)std.file.read(input_file);
 
-    findTestParameter(file, "REQUIRED_ARGS", testArgs.requiredArgs);
+    findTestParameter(envData, file, "REQUIRED_ARGS", testArgs.requiredArgs);
     if(envData.required_args.length)
         testArgs.requiredArgs ~= " " ~ envData.required_args;
     replaceResultsDir(testArgs.requiredArgs, envData);
 
-    if (! findTestParameter(file, "PERMUTE_ARGS", testArgs.permuteArgs))
+    if (! findTestParameter(envData, file, "PERMUTE_ARGS", testArgs.permuteArgs))
     {
         if (testArgs.mode == TestMode.RUN)
             testArgs.permuteArgs = envData.all_args;
 
         string unittestJunk;
-        if(!findTestParameter(file, "unittest", unittestJunk))
+        if(!findTestParameter(envData, file, "unittest", unittestJunk))
             testArgs.permuteArgs = replace(testArgs.permuteArgs, "-unittest", "");
     }
     replaceResultsDir(testArgs.permuteArgs, envData);
@@ -192,25 +205,25 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     // clean up extra spaces
     testArgs.permuteArgs = strip(replace(testArgs.permuteArgs, "  ", " "));
 
-    findTestParameter(file, "EXECUTE_ARGS", testArgs.executeArgs);
+    findTestParameter(envData, file, "EXECUTE_ARGS", testArgs.executeArgs);
     replaceResultsDir(testArgs.executeArgs, envData);
 
     string extraSourcesStr;
-    findTestParameter(file, "EXTRA_SOURCES", extraSourcesStr);
+    findTestParameter(envData, file, "EXTRA_SOURCES", extraSourcesStr);
     testArgs.sources = [input_file];
     // prepend input_dir to each extra source file
     foreach(s; split(extraSourcesStr))
         testArgs.sources ~= input_dir ~ "/" ~ s;
 
     string extraCppSourcesStr;
-    findTestParameter(file, "EXTRA_CPP_SOURCES", extraCppSourcesStr);
+    findTestParameter(envData, file, "EXTRA_CPP_SOURCES", extraCppSourcesStr);
     testArgs.cppSources = [];
     // prepend input_dir to each extra source file
     foreach(s; split(extraCppSourcesStr))
         testArgs.cppSources ~= s;
 
     string extraObjcSourcesStr;
-    auto objc = findTestParameter(file, "EXTRA_OBJC_SOURCES", extraObjcSourcesStr);
+    auto objc = findTestParameter(envData, file, "EXTRA_OBJC_SOURCES", extraObjcSourcesStr);
 
     if (objc && !envData.dobjc)
         return false;
@@ -227,18 +240,18 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     //writeln ("sources: ", testArgs.sources);
 
     // COMPILE_SEPARATELY can take optional compiler switches when link .o files
-    testArgs.compileSeparately = findTestParameter(file, "COMPILE_SEPARATELY", testArgs.requiredArgsForLink);
+    testArgs.compileSeparately = findTestParameter(envData, file, "COMPILE_SEPARATELY", testArgs.requiredArgsForLink);
 
     string disabledPlatformsStr;
-    findTestParameter(file, "DISABLED", disabledPlatformsStr);
+    findTestParameter(envData, file, "DISABLED", disabledPlatformsStr);
     testArgs.disabledPlatforms = split(disabledPlatformsStr);
 
     findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
 
     findOutputParameter(file, "GDB_SCRIPT", testArgs.gdbScript, envData.sep);
-    findTestParameter(file, "GDB_MATCH", testArgs.gdbMatch);
+    findTestParameter(envData, file, "GDB_MATCH", testArgs.gdbMatch);
 
-    if (findTestParameter(file, "POST_SCRIPT", testArgs.postScript))
+    if (findTestParameter(envData, file, "POST_SCRIPT", testArgs.postScript))
         testArgs.postScript = replace(testArgs.postScript, "/", to!string(envData.sep));
 
     return true;
