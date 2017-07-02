@@ -51,7 +51,7 @@ class Obj
     void segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
     void staticctor(Symbol *s,int dtor,int seg);
     void staticdtor(Symbol *s);
-    void funcptr(Symbol *s);
+    void setModuleCtorDtor(Symbol *s, bool isCtor);
     void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
     void ehsections();
     void moduleinfo(Symbol *scc);
@@ -128,7 +128,7 @@ class MsCoffObj : Obj
 //    void segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
     override void staticctor(Symbol *s,int dtor,int seg);
     override void staticdtor(Symbol *s);
-    override void funcptr(Symbol *s);
+    override void setModuleCtorDtor(Symbol *s, bool isCtor);
     override void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
     override void ehsections();
     override void moduleinfo(Symbol *scc);
@@ -221,7 +221,7 @@ class Obj
     static void segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
     static void staticctor(Symbol *s,int dtor,int seg);
     static void staticdtor(Symbol *s);
-    static void funcptr(Symbol *s);
+    static void setModuleCtorDtor(Symbol *s, bool isCtor);
     static void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
     static void ehsections();
     static void moduleinfo(Symbol *scc);

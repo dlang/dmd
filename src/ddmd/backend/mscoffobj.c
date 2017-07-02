@@ -1181,9 +1181,9 @@ void MsCoffObj::staticdtor(Symbol *s)
  * Used for static ctor and dtor lists.
  */
 
-void MsCoffObj::funcptr(Symbol *s)
+void MsCoffObj::setModuleCtorDtor(Symbol *s, bool isCtor)
 {
-    //dbg_printf("MsCoffObj::funcptr(%s) \n",s->Sident);
+    //dbg_printf("MsCoffObj::setModuleCtorDtor(%s) \n",s->Sident);
 }
 
 

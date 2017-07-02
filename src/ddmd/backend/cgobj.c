@@ -1724,11 +1724,14 @@ void Obj::staticdtor(Symbol *s)
 
 
 /***************************************
- * Stuff pointer to function in its own segment.
- * Used for static ctor and dtor lists.
+ * Set up function to be called as static constructor on program
+ * startup or static destructor on program shutdown.
+ * Params:
+ *      s = function symbol
+ *      isCtor = true if constructor, false if destructor
  */
 
-void Obj::funcptr(Symbol *s)
+void Obj::setModuleCtorDtor(Symbol *s, bool isCtor)
 {
     // We need to always put out the segments in triples, so that the
     // linker will put them in the correct order.
@@ -1742,16 +1745,15 @@ void Obj::funcptr(Symbol *s)
     static int lnamesize[4] = { 4+3+4,4+3+4,5+4+5,5+4+5 };
 
     int dsegattr;
-    int i;
 
     symbol_debug(s);
-#ifdef DEBUG
+#if defined(DEBUG) && SCPP
     assert(memcmp(s->Sident,"_ST",3) == 0);
 #endif
 
     // Determine if constructor or destructor
     // _STI... is a constructor, _STD... is a destructor
-    i = s->Sident[3] == 'D';
+    int i = !isCtor;
     // Determine if near or far function
     if (tyfarfunc(s->Stype->Tty))
         i += 2;
