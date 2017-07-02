@@ -1569,6 +1569,47 @@ void test5()
 
 ////////////////////////////////////////////////////////////////////////
 
+/* Test the pattern:
+ *   replace (e ? i1 : i2) with (i1 + e * (i2 - i1))
+ * when e1 is 0 or 1 and (i2-i1) is a power of 2.
+ */
+
+int foo61(int i)
+{
+    return (i % 2 != 0) ? 4 : 2;
+}
+
+int foo62(int i)
+{
+    return (i % 2 != 0) ? 2 : 4;
+}
+
+bool bar6(bool b) { return b; }
+
+int foo63(bool b)
+{
+    return bar6(b) ? 16 : 8;
+}
+
+int foo64(bool b)
+{
+    return bar6(b) ? 8 : 16;
+}
+
+void test6()
+{
+    if (foo61(0) != 2) assert(0);
+    if (foo61(1) != 4) assert(0);
+    if (foo62(0) != 4) assert(0);
+    if (foo62(1) != 2) assert(0);
+    if (foo63(0) != 8) assert(0);
+    if (foo63(1) != 16) assert(0);
+    if (foo64(0) != 16) assert(0);
+    if (foo64(1) != 8) assert(0);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -1624,6 +1665,7 @@ int main()
     test16699();
     test16102();
     test5();
+    test6();
     printf("Success\n");
     return 0;
 }
