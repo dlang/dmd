@@ -304,15 +304,9 @@ void CodeBuilder::gen2(unsigned op, unsigned rm)
  * Generate floating point instruction.
  */
 
-code *genf2(code *c,unsigned op,unsigned rm)
-{
-    return gen2(genfwait(c),op,rm);
-}
-
-
 void CodeBuilder::genf2(unsigned op, unsigned rm)
 {
-    append(genfwait(CNIL));
+    genfwait(*this);
     gen2(op, rm);
 }
 
@@ -637,21 +631,12 @@ void CodeBuilder::gennop()
  * Generate code to deal with floatreg.
  */
 
-code *genfltreg(code *c,unsigned opcode,unsigned reg,targ_size_t offset)
-{
-    floatreg = TRUE;
-    reflocal = TRUE;
-    if ((opcode & ~7) == 0xD8)
-        c = genfwait(c);
-    return genc1(c,opcode,modregxrm(2,reg,BPRM),FLfltreg,offset);
-}
-
 void CodeBuilder::genfltreg(unsigned opcode,unsigned reg,targ_size_t offset)
 {
     floatreg = TRUE;
     reflocal = TRUE;
     if ((opcode & ~7) == 0xD8)
-        append(genfwait(CNIL));
+        genfwait(*this);
     genc1(opcode,modregxrm(2,reg,BPRM),FLfltreg,offset);
 }
 
