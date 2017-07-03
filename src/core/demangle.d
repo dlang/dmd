@@ -1980,12 +1980,12 @@ version(unittest)
 
     template staticIota(int x)
     {
-        template Seq(T...){ alias T Seq; }
+        template Seq(T...){ alias Seq = T; }
 
         static if (x == 0)
-            alias Seq!() staticIota;
+            alias staticIota = Seq!();
         else
-            alias Seq!(staticIota!(x - 1), x - 1) staticIota;
+            alias staticIota = Seq!(staticIota!(x - 1), x - 1);
     }
 }
 unittest
