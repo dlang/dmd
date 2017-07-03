@@ -50,7 +50,7 @@ private struct Demangle(Hooks = NoHooks)
     //       allocation during the course of a parsing run, this is still
     //       faster than assembling the result piecemeal.
 
-pure:
+pure @safe:
     enum AddType { no, yes }
 
 
@@ -98,7 +98,7 @@ pure:
     }
 
 
-    static void error( string msg = "Invalid symbol" )
+    static void error( string msg = "Invalid symbol" ) @trusted /* exception only used in module */
     {
         //throw new ParseException( msg );
         debug(info) printf( "error: %.*s\n", cast(int) msg.length, msg.ptr );
@@ -108,7 +108,7 @@ pure:
     }
 
 
-    static void overflow( string msg = "Buffer overflow" )
+    static void overflow( string msg = "Buffer overflow" ) @trusted /* exception only used in module */
     {
         //throw new OverflowException( msg );
         debug(info) printf( "overflow: %.*s\n", cast(int) msg.length, msg.ptr );
@@ -161,7 +161,7 @@ pure:
     //////////////////////////////////////////////////////////////////////////
 
 
-    static bool contains( const(char)[] a, const(char)[] b )
+    static bool contains( const(char)[] a, const(char)[] b ) @trusted
     {
         if (a.length && b.length)
         {
@@ -183,7 +183,7 @@ pure:
 
             if (len + val.length > dst.length)
                 overflow();
-            size_t v = val.ptr - dst.ptr;
+            size_t v = &val[0] - &dst[0];
             dst[len .. len + val.length] = val[];
             for (size_t p = v; p < len; p++)
                 dst[p] = dst[p + val.length];
@@ -201,7 +201,7 @@ pure:
             assert( contains( dst[0 .. len], val ) );
             debug(info) printf( "removing (%.*s)\n", cast(int) val.length, val.ptr );
 
-            size_t v = val.ptr - dst.ptr;
+            size_t v = &val[0] - &dst[0];
             for (size_t p = v; p < len; p++)
                 dst[p] = dst[p + val.length];
             len -= val.length;
@@ -217,7 +217,7 @@ pure:
             assert( !contains( dst[0 .. len], val ) );
             debug(info) printf( "appending (%.*s)\n", cast(int) val.length, val.ptr );
 
-            if( dst.ptr + len == val.ptr &&
+            if( &dst[len] == &val[0] &&
                 dst.length - len >= val.length )
             {
                 // data is already in place
@@ -532,7 +532,7 @@ pure:
 
         tbuf[tlen] = 0;
         debug(info) printf( "got (%s)\n", tbuf.ptr );
-        pureReprintReal( tbuf.ptr, tbuf.length );
+        pureReprintReal( tbuf[] );
         debug(info) printf( "converted (%.*s)\n", cast(int) tlen, tbuf.ptr );
         put( tbuf[0 .. tlen] );
     }
@@ -813,7 +813,7 @@ pure:
         auto beg = len;
         auto t = front;
 
-        char[] parseBackrefType(scope char[] delegate() pure parseDg) pure
+        char[] parseBackrefType(scope char[] delegate() pure @safe parseDg) pure @safe
         {
             if (pos == brp)
                 error("recursive back reference");
@@ -1977,15 +1977,19 @@ pure:
                 dst[0 .. buf.length] = buf[];
                 return dst[0 .. buf.length];
             }
+            catch( Exception e )
+            {
+                assert( false ); // no other exceptions thrown
+            }
         }
     }
 
-    char[] demangleName()
+    char[] demangleName() nothrow
     {
         return doDemangle!parseMangledName();
     }
 
-    char[] demangleType()
+    char[] demangleType() nothrow
     {
         return doDemangle!parseType();
     }
@@ -2004,7 +2008,7 @@ pure:
  *  The demangled name or the original string if the name is not a mangled D
  *  name.
  */
-char[] demangle( const(char)[] buf, char[] dst = null )
+char[] demangle( const(char)[] buf, char[] dst = null ) nothrow pure @safe
 {
     //return Demangle(buf, dst)();
     auto d = Demangle!()(buf, dst);
@@ -2023,7 +2027,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
  *  The demangled type name or the original string if the name is not a
  *  mangled D type.
 */
-char[] demangleType( const(char)[] buf, char[] dst = null )
+char[] demangleType( const(char)[] buf, char[] dst = null ) nothrow pure @safe
 {
     auto d = Demangle!()(buf, dst);
     return d.demangleType();
@@ -2055,7 +2059,7 @@ char[] reencodeMangled(const(char)[] mangled) nothrow pure @safe
         }
         Replacement [] replacements;
 
-    pure:
+    pure @safe:
         size_t positionInResult(size_t pos)
         {
             foreach_reverse (r; replacements)
@@ -2186,7 +2190,7 @@ char[] reencodeMangled(const(char)[] mangled) nothrow pure @safe
     d.mute = true; // no demangled output
     try
     {
-        () @trusted { d.parseMangledName(); }();
+        d.parseMangledName();
         if (d.hooks.lastpos < d.pos)
             d.hooks.result ~= d.buf[d.hooks.lastpos .. d.pos];
         return d.hooks.result;
@@ -2267,14 +2271,14 @@ char[] mangle(T)(const(char)[] fqn, char[] dst = null) @safe pure nothrow
 
 
 ///
-unittest
+@safe pure nothrow unittest
 {
     assert(mangle!int("a.b") == "_D1a1bi");
     assert(mangle!(char[])("test.foo") == "_D4test3fooAa");
     assert(mangle!(int function(int))("a.b") == "_D1a1bPFiZi");
 }
 
-unittest
+@safe pure nothrow unittest
 {
     static assert(mangle!int("a.b") == "_D1a1bi");
 
@@ -2325,7 +2329,7 @@ char[] mangleFunc(T:FT*, FT)(const(char)[] fqn, char[] dst = null) @safe pure no
 private enum hasTypeBackRef = (int function(void**,void**)).mangleof[$-4 .. $] == "QdZi";
 
 ///
-unittest
+@safe pure nothrow unittest
 {
     assert(mangleFunc!(int function(int))("a.b") == "_D1a1bFiZi");
     static if(hasTypeBackRef)
@@ -2344,7 +2348,7 @@ unittest
     assert(reencodeMangled("_D3std4conv4conv7__T3std4convi") == "_D3std4convQf7__T3stdQpi");
 }
 
-unittest
+@safe pure nothrow unittest
 {
     int function(lazy int[], ...) fp;
     assert(mangle!(typeof(fp))("demangle.test") == "_D8demangle4testPFLAiYi");
@@ -2368,7 +2372,7 @@ private template hasPlainMangling(FT) if (is(FT == function))
     enum hasPlainMangling = c == 'U' || c == 'V' || c == 'W';
 }
 
-unittest
+@safe pure nothrow unittest
 {
     static extern(D) void fooD();
     static extern(C) void fooC();
@@ -2533,7 +2537,7 @@ version(unittest)
             alias staticIota = Seq!(staticIota!(x - 1), x - 1);
     }
 }
-unittest
+@safe pure nothrow unittest
 {
     foreach( i, name; table )
     {
@@ -2553,7 +2557,7 @@ unittest
 /*
  *
  */
-string decodeDmdString( const(char)[] ln, ref size_t p )
+string decodeDmdString( const(char)[] ln, ref size_t p ) nothrow pure @safe
 {
     string s;
     uint zlen, zpos;
@@ -2598,19 +2602,17 @@ string decodeDmdString( const(char)[] ln, ref size_t p )
 // locally purified for internal use here only
 extern (C) private
 {
-    pure @trusted @nogc nothrow pragma(mangle, "fakePureReprintReal") real pureReprintReal(char* nptr, size_t len);
+    pure @trusted @nogc nothrow pragma(mangle, "fakePureReprintReal") void pureReprintReal(char[] nptr);
 
-    char* fakePureReprintReal(char* nptr, size_t len)
+    void fakePureReprintReal(char[] nptr)
     {
         import core.stdc.stdlib : strtold;
         import core.stdc.stdio : snprintf;
         import core.stdc.errno : errno;
 
         const err = errno;
-        real val = strtold(nptr, null);
-        len = snprintf(nptr, len, "%#Lg", val);
+        real val = strtold(nptr.ptr, null);
+        snprintf(nptr.ptr, nptr.length, "%#Lg", val);
         errno = err;
-
-        return nptr;
     }
 }
