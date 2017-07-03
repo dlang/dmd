@@ -3376,7 +3376,7 @@ extern (C++) class FuncDeclaration : Declaration
          * 3) has a parent that escapes
          * 4) calls another nested function that needs a closure
          * -or-
-         * 5) this function returns a local struct/class
+         * 5) this function returns a local non-static struct/class
          *
          * Note that since a non-virtual function can be called by
          * a virtual one, if that non-virtual function accesses a closure
@@ -3451,13 +3451,20 @@ extern (C++) class FuncDeclaration : Declaration
             {
                 Dsymbol st = tret.toDsymbol(null);
                 //printf("\t\treturning class/struct %s\n", tret.toChars());
-                for (Dsymbol s = st.parent; s; s = s.parent)
+
+                auto ad = st.isAggregateDeclaration();
+                assert(ad !is null);
+                // A closure is only needed when returning a _non-static_ struct/class.
+                if ((ad.storage_class & STCstatic) == 0)
                 {
-                    //printf("\t\t\tparent = %s %s\n", s.kind(), s.toChars());
-                    if (s == this)
+                    for (Dsymbol s = st.parent; s; s = s.parent)
                     {
-                        //printf("\t\treturning local %s\n", st.toChars());
-                        goto Lyes;
+                        //printf("\t\t\tparent = %s %s\n", s.kind(), s.toChars());
+                        if (s == this)
+                        {
+                            //printf("\t\treturning local %s\n", st.toChars());
+                            goto Lyes;
+                        }
                     }
                 }
             }
