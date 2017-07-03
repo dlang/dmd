@@ -191,28 +191,16 @@ class Lexer
             p += 2;
             while (1)
             {
-                char c = *p;
+                char c = *p++;
                 switch (c)
                 {
-                case '\n':
-                    p++;
-                    break;
-                case '\r':
-                    p++;
-                    if (*p == '\n')
-                        p++;
-                    break;
                 case 0:
                 case 0x1A:
+                    p--;
+                    goto case;
+                case '\n':
                     break;
                 default:
-                    if (c & 0x80)
-                    {
-                        uint u = decodeUTF();
-                        if (u == PS || u == LS)
-                            break;
-                    }
-                    p++;
                     continue;
                 }
                 break;
