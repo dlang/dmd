@@ -1490,7 +1490,7 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 cdb.append(gentstreg(CNIL,reg));            // TEST reg,reg
                 code_orrex(cdb.last(), rex);
                 code *cnop = gennop(CNIL);
-                cdb.append(genjmp(CNIL,JNS,FLcode,(block *)cnop));  // JNS cnop
+                genjmp(cdb,JNS,FLcode,(block *)cnop);  // JNS cnop
                 if (I64)
                 {
                     cdb.gen2(0xFF,modregrmx(3,0,reg));      // INC reg
@@ -1843,7 +1843,7 @@ void cdnot(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     regcon.immed.mval &= ~mask[reg];                          // mark reg as unavail
     movregconst(cdbtrue,reg,1,forflags);                      // mov 1 into reg
     regcon.immed.mval &= ~mask[reg];                          // mark reg as unavail
-    cdbfalse2.append(genjmp(CNIL,JMP,FLcode,(block *) cnop)); // skip over ctrue
+    genjmp(cdbfalse2,JMP,FLcode,(block *) cnop);              // skip over ctrue
     cdb.append(cfalse);
     cdb.append(cdbfalse2);
     cdb.append(cdbtrue);
@@ -1965,7 +1965,7 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         codelem(cdb,e1,&retregs,FALSE);
 
         cse_flush(cdb,1);                // flush CSEs to memory
-        cdb.append(genjmp(CNIL,jop,FLcode,(block *)cnop1));
+        genjmp(cdb,jop,FLcode,(block *)cnop1);
         freenode(e21);
 
         regconsave = regcon;
@@ -2091,7 +2091,7 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         retregs = mask[reg];
 
         cse_flush(cdb,1);                // flush CSE's to memory
-        cdb.append(genjmp(CNIL,jop,FLcode,(block *)cnop1));
+        genjmp(cdb,jop,FLcode,(block *)cnop1);
         freenode(e21);
 
         regconsave = regcon;
@@ -2178,7 +2178,7 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
   assert(stackpush == stackpushsave);
   memcpy(_8087elems,_8087save,sizeof(_8087elems));
   freenode(e2);
-  cdb.append(genjmp(CNIL,JMP,FLcode,(block *) cnop2));
+  genjmp(cdb,JMP,FLcode,(block *) cnop2);
   cdb.append(cnop1);
   cdb.append(cdb2);
   cdb.append(cnop2);
@@ -2281,13 +2281,13 @@ void cdloglog(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         if (e->Eoper == OPoror)
         {
             cdb.append(cnop3);
-            cdb.append(genjmp(NULL,JMP,FLcode,(block *) cnop2));    // JMP cnop2
+            genjmp(cdb,JMP,FLcode,(block *) cnop2);    // JMP cnop2
             cdb.append(cdb1);
             cdb.append(cnop2);
         }
         else
         {
-            cdb.append(genjmp(NULL,JMP,FLcode,(block *) cnop2));    // JMP cnop2
+            genjmp(cdb,JMP,FLcode,(block *) cnop2);    // JMP cnop2
             cdb.append(cnop3);
             cdb.append(cdb1);
             cdb.append(cnop2);
@@ -2314,7 +2314,7 @@ void cdloglog(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     CodeBuilder cdbcg2;
     movregconst(cdbcg2,reg,0,*pretregs & mPSW);              // MOV reg,0
     regcon.immed.mval &= ~mask[reg];                         // mark reg as unavail
-    cdbcg2.append(genjmp(CNIL, JMP,FLcode,(block *) cnop2)); // JMP cnop2
+    genjmp(cdbcg2, JMP,FLcode,(block *) cnop2);              // JMP cnop2
     movregconst(cdb1,reg,1,*pretregs & mPSW);                // reg = 1
     regcon.immed.mval &= ~mask[reg];                         // mark reg as unavail
     *pretregs = retregs;
@@ -2738,7 +2738,7 @@ void cdshift(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                     cdb1.append(genmovreg(CNIL,hreg,lreg));
                     cdb1.append(genregs(CNIL,0x31,lreg,lreg));
 
-                    cdb.append(genjmp(CNIL,JNE,FLcode,(block *)cl1));
+                    genjmp(cdb,JNE,FLcode,(block *)cl1);
                     cdb.gen2(0x0FA5,modregrm(3,lreg,hreg));
                     cdb.gen2(0xD3,modregrm(3,4,lreg));
                 }
@@ -2783,12 +2783,12 @@ void cdshift(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                         cdb1.append(genmovreg(CNIL,lreg,hreg));
                         cdb1.append(genregs(CNIL,0x31,hreg,hreg));
                     }
-                    cdb.append(genjmp(CNIL,JNE,FLcode,(block *)cl1));
+                    genjmp(cdb,JNE,FLcode,(block *)cl1);
                     cdb.gen2(0x0FAD,modregrm(3,hreg,lreg));
                     cdb.gen2(0xD3,modregrm(3,s1,hreg));
                 }
                 cl2 = gennop(NULL);
-                cdb.append(genjmp(CNIL,JMPS,FLcode,(block *)cl2));
+                genjmp(cdb,JMPS,FLcode,(block *)cl2);
                 cdb.append(cdb1);
                 cdb.append(cl2);
             }
@@ -3278,7 +3278,7 @@ void cdstrcmp(CodeBuilder& cdb, elem *e, regm_t *pretregs)
     code *c4 = gennop(CNIL);
     if (*pretregs != mPSW)                       // if not flags only
     {
-        cdb.append(genjmp(CNIL,JE,FLcode,(block *) c4));      // JE L1
+        genjmp(cdb,JE,FLcode,(block *) c4);      // JE L1
         getregs(cdb,mAX);
         cdb.append(genregs(CNIL,0x1B,AX,AX));                 // SBB AX,AX
         code_orrex(cdb.last(),rex);
@@ -3388,7 +3388,7 @@ void cdmemcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     if (*pretregs != mPSW)                      // if not flags only
     {
         code *c4 = gennop(CNIL);
-        cdb.append(genjmp(CNIL,JE,FLcode,(block *) c4));  // JE L1
+        genjmp(cdb,JE,FLcode,(block *) c4);  // JE L1
         getregs(cdb,mAX);
         cdb.append(genregs(CNIL,0x1B,AX,AX));             // SBB AX,AX
         cdb.genc2(0x81,modregrm(3,3,AX),(targ_uns)-1);    // SBB AX,-1
@@ -3613,14 +3613,14 @@ void cdmemcpy(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         cdb.append(genmovreg(CNIL,DX,CX));                  // MOV EDX,ECX
         cdb.genc2(0xC1,modregrm(3,5,CX),2);                 // SHR ECX,2
         code *cx = gennop(CNIL);
-        cdb.append(genjmp(CNIL, JE, FLcode, (block *)cx));  // JZ L1
+        genjmp(cdb, JE, FLcode, (block *)cx);  // JZ L1
         cdb.gen1(0xF3);                                     // REPE
         cdb.gen1(0xA5);                                     // MOVSW
         cdb.append(cx);
         cdb.genc2(0x81, modregrm(3,4,DX),3);                // AND EDX,3
 
         code *cnop = gennop(CNIL);
-        cdb.append(genjmp(CNIL, JE, FLcode, (block *)cnop));  // JZ L2
+        genjmp(cdb, JE, FLcode, (block *)cnop);  // JZ L2
         cdb.append(genmovreg(CNIL,CX,DX));                    // MOV ECX,EDX
         cdb.gen1(0xF3);                          // REPE
         cdb.gen1(0xA4);                          // MOVSB
@@ -4547,7 +4547,7 @@ void cdabs(CodeBuilder& cdb,elem *e, regm_t *pretregs)
         unsigned msreg = findregmsw(retregs);
         unsigned lsreg = findreglsw(retregs);
         cdb.append(genorreg(CNIL,msreg,msreg));
-        cdb.append(genjmp(CNIL,JNS,FLcode,(block *)cnop));
+        genjmp(cdb,JNS,FLcode,(block *)cnop);
         cdb.gen2(0xF7,modregrm(3,3,msreg));       // NEG msreg
         cdb.gen2(0xF7,modregrm(3,3,lsreg));       // NEG lsreg+1
         cdb.genc2(0x81,modregrm(3,3,msreg),0);    // SBB msreg,0
@@ -5118,16 +5118,16 @@ void cdddtor(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 cdb.append(cod3_stackadj(CNIL, nalign));
             }
             calledafunc = 1;
-            cdb.append(genjmp(CNIL,0xE8,FLcode,(block *)c));   // CALL Ldtor
+            genjmp(cdb,0xE8,FLcode,(block *)c);   // CALL Ldtor
             if (nalign)
                 cdb.append(cod3_stackadj(CNIL, -nalign));
         }
         else
-            cdb.append(genjmp(CNIL,0xE8,FLcode,(block *)c));   // CALL Ldtor
+            genjmp(cdb,0xE8,FLcode,(block *)c);   // CALL Ldtor
 
         code *cnop = gennop(CNIL);
 
-        cdb.append(genjmp(CNIL,JMP,FLcode,(block *)cnop));
+        genjmp(cdb,JMP,FLcode,(block *)cnop);
         cdb.append(cdbx);
         cdb.append(cnop);
         return;

@@ -577,12 +577,12 @@ static void genjmpifC2(CodeBuilder& cdb, code *ctarget)
         getregs(cdb,mAX);
         cdb.genf2(0xDF,0xE0);                                    // FSTSW AX
         cdb.genc2(0xF6,modregrm(3,0,4),4);                       // TEST AH,4
-        cdb.append(genjmp(CNIL, JNE, FLcode, (block *)ctarget)); // JNE ctarget
+        genjmp(cdb, JNE, FLcode, (block *)ctarget); // JNE ctarget
     }
     else
     {
         cg87_87topsw(cdb);
-        cdb.append(genjmp(CNIL, JP, FLcode, (block *)ctarget));  // JP ctarget
+        genjmp(cdb, JP, FLcode, (block *)ctarget);  // JP ctarget
     }
 }
 
@@ -2956,7 +2956,7 @@ void cdd_u64(CodeBuilder& cdb, elem *e, regm_t *pretregs)
         cdb.genfltreg(0xD9,5,10);                       // FLDCW floatreg+10
         cdb.genc2(0xF6,modregrm(3,0,4),1);              // TEST AH,1
         code *cnop1 = gennop(CNIL);
-        cdb.append(genjmp(CNIL,JE,FLcode,(block *)cnop1));           // JZ L1
+        genjmp(cdb,JE,FLcode,(block *)cnop1);           // JZ L1
 
         cdb.genfltreg(0xDB,5,0);                        // FLD real ptr floatreg
         cdb.genf2(0xDE,0xE8+1);                         // FSUBP ST(1),ST
@@ -2965,7 +2965,7 @@ void cdd_u64(CodeBuilder& cdb, elem *e, regm_t *pretregs)
         cdb.genfltreg(0x03,reg2,4);                     // ADD reg,floatreg+4
         cdb.genfltreg(0xD9,5,12);                       // FLDCW floatreg+12
         code *cnop2 = gennop(CNIL);
-        cdb.append(genjmp(CNIL,JMP,FLcode,(block *)cnop2));          // JMP L2
+        genjmp(cdb,JMP,FLcode,(block *)cnop2);          // JMP L2
 
         cdb.append(cnop1);
         cdb.genfltreg(0xDF,7,0);                        // FISTP dword ptr floatreg
@@ -3041,7 +3041,7 @@ void cdd_u64(CodeBuilder& cdb, elem *e, regm_t *pretregs)
         cdb.genfltreg(0xD9,5,10);                       // FLDCW floatreg+10
         cdb.genc2(0xF6,modregrm(3,0,4),1);              // TEST AH,1
         code *cnop1 = gennop(CNIL);
-        cdb.append(genjmp(CNIL,JE,FLcode,(block *)cnop1));           // JZ L1
+        genjmp(cdb,JE,FLcode,(block *)cnop1);           // JZ L1
 
         cdb.genfltreg(0xDB,5,0);                        // FLD real ptr floatreg
         cdb.genf2(0xDE,0xE8+1);                         // FSUBP ST(1),ST
@@ -3052,7 +3052,7 @@ void cdd_u64(CodeBuilder& cdb, elem *e, regm_t *pretregs)
         cdb.gen2(0x03,(REX_W << 16) | modregxrmx(3,reg,reg2));  // ADD reg,reg2
         cdb.genfltreg(0xD9,5,12);                       // FLDCW floatreg+12
         code *cnop2 = gennop(CNIL);
-        cdb.append(genjmp(CNIL,JMP,FLcode,(block *)cnop2));          // JMP L2
+        genjmp(cdb,JMP,FLcode,(block *)cnop2);          // JMP L2
 
         cdb.append(cnop1);
         cdb.genfltreg(0xDF,7,0);                        // FISTP dword ptr floatreg
@@ -3546,8 +3546,8 @@ __body
     {
         cdb.gen2(0xDF,0xE9);                   // FUCOMIP
         pop87();
-        cdb.append(genjmp(CNIL,JNE,FLcode,(block *) cnop)); // JNE     L1
-        cdb.append(genjmp(CNIL,JP, FLcode,(block *) cnop)); // JP      L1
+        genjmp(cdb,JNE,FLcode,(block *) cnop); // JNE     L1
+        genjmp(cdb,JP, FLcode,(block *) cnop); // JP      L1
         cdb.gen2(0xD9,0xEE);                   // FLDZ
         cdb.gen2(0xDF,0xEA);                   // FUCOMIP ST(2)
         if (pop)
@@ -3567,8 +3567,8 @@ __body
         cdb.gen2(0xD9,0xEE);                   // FLDZ
         cdb.gen2(0xDA,0xE9);                   // FUCOMPP
         pop87();
-        cdb.append(genjmp(CNIL,JNE,FLcode,(block *) cnop)); // JNE     L1
-        cdb.append(genjmp(CNIL,JP, FLcode,(block *) cnop)); // JP      L1
+        genjmp(cdb,JNE,FLcode,(block *) cnop); // JNE     L1
+        genjmp(cdb,JP, FLcode,(block *) cnop); // JP      L1
         cg87_87topsw(cdb);                     // put 8087 flags in CPU flags
     }
     else
@@ -3577,8 +3577,8 @@ __body
         cg87_87topsw(cdb);                     // put 8087 flags in CPU flags
         cdb.gen2(0xDD,0xEA);                   // FUCOMP ST(2)
         pop87();
-        cdb.append(genjmp(CNIL,JNE,FLcode,(block *) cnop)); // JNE     L1
-        cdb.append(genjmp(CNIL,JP, FLcode,(block *) cnop)); // JP      L1
+        genjmp(cdb,JNE,FLcode,(block *) cnop); // JNE     L1
+        genjmp(cdb,JP, FLcode,(block *) cnop); // JP      L1
         cg87_87topsw(cdb);                     // put 8087 flags in CPU flags
     }
     cdb.append(cdbnop);

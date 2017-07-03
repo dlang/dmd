@@ -491,7 +491,7 @@ void logexp(CodeBuilder& cdb,elem *e,int jcond,unsigned fltarg,code *targ)
                 logexp(cdb,e->E1,FALSE,FLcode,cnop2);   // eval condition
                 con_t regconold = regcon;
                 logexp(cdb,e->E2->E1,jcond,fltarg,targ);
-                cdb.append(genjmp(CNIL,JMP,FLcode,(block *) cnop)); // skip second leaf
+                genjmp(cdb,JMP,FLcode,(block *) cnop); // skip second leaf
 
                 con_t regconsave = regcon;
                 regcon = regconold;
@@ -530,7 +530,7 @@ void logexp(CodeBuilder& cdb,elem *e,int jcond,unsigned fltarg,code *targ)
     codelem(cdb,e,&retregs,TRUE);         // evaluate elem
     if (no87)
         cse_flush(cdb,no87);              // flush CSE's to memory
-    cdb.append(genjmp(CNIL,op,fltarg,(block *) targ)); // generate jmp instruction
+    genjmp(cdb,op,fltarg,(block *) targ); // generate jmp instruction
     cgstate.stackclean--;
 }
 
@@ -1538,8 +1538,8 @@ void tstresult(CodeBuilder& cdb,regm_t regm,tym_t tym,unsigned saveflag)
         cdb.gen2(op | 0x0F2E,modregrm(3,xreg-XMM0,reg-XMM0));    // UCOMISS xreg,reg
         if (tym == TYcfloat || tym == TYcdouble)
         {   code *cnop = gennop(CNIL);
-            cdb.append(genjmp(CNIL,JNE,FLcode,(block *) cnop)); // JNE     L1
-            cdb.append(genjmp(CNIL,JP, FLcode,(block *) cnop)); // JP      L1
+            genjmp(cdb,JNE,FLcode,(block *) cnop); // JNE     L1
+            genjmp(cdb,JP, FLcode,(block *) cnop); // JP      L1
             reg = findreg(regm & ~mask[reg]);
             cdb.gen2(op | 0x0F2E,modregrm(3,xreg-XMM0,reg-XMM0));        // UCOMISS xreg,reg
             cdb.append(cnop);
@@ -4000,7 +4000,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
                     cdb.last()->Iflags |= seg | CFtarg2;
                     code *c3 = cdb.last();
                     cdb.genc2(0x81,grex | buildModregrm(3,5,reg),pushsize);  // SUB reg,2
-                    cdb.append(genjmp(CNIL,0xE2,FLcode,(block *)c3));        // LOOP c3
+                    genjmp(cdb,0xE2,FLcode,(block *)c3);        // LOOP c3
                     regimmed_set(CX,0);
                     cdb.append(genadjesp(CNIL,sz));
                 }
