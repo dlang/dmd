@@ -5,7 +5,9 @@
 
 QUIET:=
 
-include osmodel.mak
+DMD_DIR=../dmd
+
+include $(DMD_DIR)/src/osmodel.mak
 
 # Default to a release built, override with BUILD=debug
 ifeq (,$(BUILD))
@@ -21,7 +23,7 @@ ifneq ($(BUILD),release)
     endif
 endif
 
-DMD=../dmd/generated/$(OS)/release/$(MODEL)/dmd
+DMD=$(DMD_DIR)/generated/$(OS)/release/$(MODEL)/dmd
 INSTALL_DIR=../install
 
 DOCDIR=doc
