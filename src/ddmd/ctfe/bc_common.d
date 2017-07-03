@@ -413,8 +413,10 @@ struct BCValue
         HeapAddr heapAddr;
         Imm32 imm32;
         Imm64 imm64;
+/* for now we represent floats in imm32 or imm64 respectivly
         Imm23f imm23f;
         Imm52f imm52f;
+*/
         // instead of void*
         void* voidStar;
     }
@@ -535,6 +537,20 @@ struct BCValue
         this.type.type = BCTypeEnum.i64;
         this.vType = BCValueType.Immediate;
         this.imm64 = imm64;
+    }
+
+    this(const Imm23f imm23f) pure @trusted
+    {
+        this.type.type = BCTypeEnum.f23;
+        this.vType = BCValueType.Immediate;
+        this.imm32.imm32 = *cast(uint*)&imm23f;
+    }
+
+    this(const Imm52f imm52f) pure @trusted
+    {
+        this.type.type = BCTypeEnum.f52;
+        this.vType = BCValueType.Immediate;
+        this.imm64.imm64 = *cast(ulong*)&imm52f;
     }
 
     this(const BCParameter param) pure
