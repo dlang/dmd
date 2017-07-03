@@ -439,13 +439,13 @@ extern (C++) UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
             // Check for int.min / -1
             if (n1 == 0xFFFFFFFF80000000UL && type.toBasetype().ty != Tint64)
             {
-                e2.error("integer overflow: int.min / -1");
+                e2.error("integer overflow: `int.min / -1`");
                 emplaceExp!(ErrorExp)(&ue);
                 return ue;
             }
             else if (n1 == 0x8000000000000000L) // long.min / -1
             {
-                e2.error("integer overflow: long.min / -1");
+                e2.error("integer overflow: `long.min / -1L`");
                 emplaceExp!(ErrorExp)(&ue);
                 return ue;
             }
@@ -504,13 +504,13 @@ extern (C++) UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
             // Check for int.min % -1
             if (n1 == 0xFFFFFFFF80000000UL && type.toBasetype().ty != Tint64)
             {
-                e2.error("integer overflow: int.min %% -1");
+                e2.error("integer overflow: `int.min %% -1`");
                 emplaceExp!(ErrorExp)(&ue);
                 return ue;
             }
             else if (n1 == 0x8000000000000000L) // long.min % -1
             {
-                e2.error("integer overflow: long.min %% -1");
+                e2.error("integer overflow: `long.min %% -1L`");
                 emplaceExp!(ErrorExp)(&ue);
                 return ue;
             }
@@ -1174,7 +1174,7 @@ extern (C++) UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
         {
             // have to change to Internal Compiler Error
             // all invalid casts should be handled already in Expression::castTo().
-            error(loc, "cannot cast %s to %s", e1.type.toChars(), type.toChars());
+            error(loc, "cannot cast `%s` to `%s`", e1.type.toChars(), type.toChars());
         }
         emplaceExp!(ErrorExp)(&ue);
     }
@@ -1226,7 +1226,7 @@ extern (C++) UnionExp Index(Type type, Expression e1, Expression e2)
         uinteger_t i = e2.toInteger();
         if (i >= es1.len)
         {
-            e1.error("string index %llu is out of bounds [0 .. %llu]", i, cast(ulong)es1.len);
+            e1.error("string index %llu is out of bounds `[0 .. %llu]`", i, cast(ulong)es1.len);
             emplaceExp!(ErrorExp)(&ue);
         }
         else
@@ -1241,7 +1241,7 @@ extern (C++) UnionExp Index(Type type, Expression e1, Expression e2)
         uinteger_t i = e2.toInteger();
         if (i >= length)
         {
-            e1.error("array index %llu is out of bounds %s[0 .. %llu]", i, e1.toChars(), length);
+            e1.error("array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toChars(), length);
             emplaceExp!(ErrorExp)(&ue);
         }
         else if (e1.op == TOKarrayliteral)
@@ -1266,7 +1266,7 @@ extern (C++) UnionExp Index(Type type, Expression e1, Expression e2)
             ArrayLiteralExp ale = cast(ArrayLiteralExp)e1;
             if (i >= ale.elements.dim)
             {
-                e1.error("array index %llu is out of bounds %s[0 .. %u]", i, e1.toChars(), ale.elements.dim);
+                e1.error("array index %llu is out of bounds `%s[0 .. %u]`", i, e1.toChars(), ale.elements.dim);
                 emplaceExp!(ErrorExp)(&ue);
             }
             else
@@ -1337,7 +1337,7 @@ extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression
         uinteger_t iupr = upr.toInteger();
         if (iupr > es1.len || ilwr > iupr)
         {
-            e1.error("string slice [%llu .. %llu] is out of bounds", ilwr, iupr);
+            e1.error("string slice `[%llu .. %llu]` is out of bounds", ilwr, iupr);
             emplaceExp!(ErrorExp)(&ue);
         }
         else
@@ -1360,7 +1360,7 @@ extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression
         uinteger_t iupr = upr.toInteger();
         if (iupr > es1.elements.dim || ilwr > iupr)
         {
-            e1.error("array slice [%llu .. %llu] is out of bounds", ilwr, iupr);
+            e1.error("array slice `[%llu .. %llu]` is out of bounds", ilwr, iupr);
             emplaceExp!(ErrorExp)(&ue);
         }
         else

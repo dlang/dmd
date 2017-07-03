@@ -5317,7 +5317,7 @@ public:
             *pidx = e2.toInteger();
             if (len <= *pidx)
             {
-                e.error("array index %lld is out of bounds [0..%lld]", *pidx, len);
+                e.error("array index %lld is out of bounds `[0..%lld]`", *pidx, len);
                 return false;
             }
         }
@@ -5566,7 +5566,7 @@ public:
                 result = e1;
                 return;
             }
-            e1.error("slice [%llu..%llu] is out of bounds", ilwr, iupr);
+            e1.error("slice `[%llu..%llu]` is out of bounds", ilwr, iupr);
             result = CTFEExp.cantexp;
             return;
         }

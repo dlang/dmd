@@ -11712,7 +11712,7 @@ extern (C++) final class SliceExp : UnaExp
 
             if (i2 < i1 || length < i2)
             {
-                error("string slice [%llu .. %llu] is out of bounds", i1, i2);
+                error("string slice `[%llu .. %llu]` is out of bounds", i1, i2);
                 return new ErrorExp();
             }
 
