@@ -1663,7 +1663,7 @@ void cdshass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                     getregs(cdb,mCX);
                     if (!conste2)
                     {   assert(loopcnt == 0);
-                        cdb.append(genjmp(CNIL,JCXZ,FLcode,(block *) ce));   // JCXZ ce
+                        genjmp(cdb,JCXZ,FLcode,(block *) ce);   // JCXZ ce
                     }
                 }
                 code *cg;
@@ -1689,7 +1689,7 @@ void cdshass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 }
                 if (v == 0xD3)                    // if building a loop
                 {
-                    cdb.append(genjmp(CNIL,LOOP,FLcode,(block *) cg)); // LOOP cg
+                    genjmp(cdb,LOOP,FLcode,(block *) cg); // LOOP cg
                     regimmed_set(CX,0);           // note that now CX == 0
                 }
                 cdb.append(ce);
@@ -1923,14 +1923,14 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
              getregs(cdb,mDX);
              cdb.append(genregs(CNIL,0x39,CX,DX));             // CMP EDX,ECX
              code *c1 = gennop(CNIL);
-             cdb.append(genjmp(CNIL,JNE,FLcode,(block *)c1));  // JNE C1
+             genjmp(cdb,JNE,FLcode,(block *)c1);  // JNE C1
              movregconst(cdb,DX,0,0);             // XOR EDX,EDX
              cdb.append(genregs(CNIL,0x39,BX,AX));             // CMP EAX,EBX
-             cdb.append(genjmp(CNIL,JE,FLcode,(block *)c1));   // JZ C1
+             genjmp(cdb,JE,FLcode,(block *)c1);   // JZ C1
              code *c3 = gen1(CNIL,0x40 + DX);                  // INC EDX
-             cdb.append(genjmp(CNIL,JA,FLcode,(block *)c3));   // JA C3
+             genjmp(cdb,JA,FLcode,(block *)c3);   // JA C3
              cdb.gen1(0x48 + DX);                              // DEC EDX
-             cdb.append(genjmp(CNIL,JMPS,FLcode,(block *)c1)); // JMP C1
+             genjmp(cdb,JMPS,FLcode,(block *)c1); // JMP C1
              cdb.append(c3);
              cdb.append(c1);
              getregs(cdb,mDX);
@@ -1999,7 +1999,7 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 cdb.last()->Iflags |= CFopsize;         // seg is only 16 bits
             else if (I64)
                 code_orrex(cdb.last(), REX_W);
-            cdb.append(genjmp(CNIL,JNE,FLcode,(block *) ce));   // JNE nop
+            genjmp(cdb,JNE,FLcode,(block *) ce);   // JNE nop
 
             reg = findreglsw(retregs);
             rreg = findreglsw(rretregs);
@@ -2161,7 +2161,7 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                             cdb.last()->Iflags |= CFopsize;      // seg is only 16 bits
                         if (I64 && byte && rreg >= 4)
                             cdb.last()->Irex |= REX;
-                        cdb.append(genjmp(CNIL,JNE,FLcode,(block *) ce)); // JNE nop
+                        genjmp(cdb,JNE,FLcode,(block *) ce); // JNE nop
                         rreg = findreglsw(rretregs);
                         NEWREG(cs.Irm,rreg);
                         getlvalue_lsw(&cs);
@@ -2189,7 +2189,7 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                         cdb.gen(&cs);              // CMP EA+2,const
                         if (!I16 && sz == 6)
                             cdb.last()->Iflags |= CFopsize;      // seg is only 16 bits
-                        cdb.append(genjmp(CNIL,JNE,FLcode,(block *) ce)); // JNE nop
+                        genjmp(cdb,JNE,FLcode,(block *) ce); // JNE nop
                         if (e2->Eoper == OPconst)
                             cs.IEV2.Vint = e2->EV.Vllong;
                         else if (e2->Eoper == OPrelconst)
@@ -2270,7 +2270,7 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             cdb.gen(&cs);                       // CMP reg,MSW
             if (I32 && sz == 6)
                 cdb.last()->Iflags |= CFopsize;  // seg is only 16 bits
-            cdb.append(genjmp(CNIL,JNE,FLcode,(block *) ce));  // JNE ce
+            genjmp(cdb,JNE,FLcode,(block *) ce);  // JNE ce
 
             reg = findreglsw(retregs);
             cs.Irm = modregrm(3,7,reg);
@@ -2338,7 +2338,7 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             loadea(cdb,e2,&cs,0x3B ^ reverse,reg,REGSIZE,RMload | retregs,0);
             if (I32 && sz == 6)
                 cdb.last()->Iflags |= CFopsize;        // seg is only 16 bits
-            cdb.append(genjmp(CNIL,JNE,FLcode,(block *) ce));  // JNE ce
+            genjmp(cdb,JNE,FLcode,(block *) ce);  // JNE ce
             reg = findreglsw(retregs);
             if (e2->Eoper == OPind)
             {
@@ -2417,7 +2417,7 @@ L3:
                 assert(!flag);
                 movregconst(cdb,reg,1,64|8);   // MOV reg,1
                 nop = gennop(nop);
-                cdb.append(genjmp(CNIL,jop,FLcode,(block *) nop));  // Jtrue nop
+                genjmp(cdb,jop,FLcode,(block *) nop);  // Jtrue nop
                                                             // MOV reg,0
                 movregconst(cdb,reg,0,(*pretregs & mPSW) ? 64|8 : 64);
                 regcon.immed.mval &= ~mask[reg];
@@ -2427,7 +2427,7 @@ L3:
                 assert(!flag);
                 movregconst(cdb,reg,1,8);      // MOV reg,1
                 nop = gennop(nop);
-                cdb.append(genjmp(CNIL,jop,FLcode,(block *) nop));  // Jtrue nop
+                genjmp(cdb,jop,FLcode,(block *) nop);  // Jtrue nop
                                                             // MOV reg,0
                 movregconst(cdb,reg,0,(*pretregs & mPSW) ? 8 : 0);
                 regcon.immed.mval &= ~mask[reg];
@@ -2479,8 +2479,8 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
     unsigned jop = jopmsw[op - OPle];
     if (!(jcond & 1)) jop ^= (JL ^ JG);                   // toggle jump condition
     CodeBuilder cdbjmp;
-    cdbjmp.append(genjmp(CNIL,jop,fltarg,(block *) targ));   // Jx targ
-    cdbjmp.append(genjmp(CNIL,jop ^ (JL ^ JG),FLcode,(block *) ce));   // Jy nop
+    genjmp(cdbjmp,jop,fltarg,(block *) targ);             // Jx targ
+    genjmp(cdbjmp,jop ^ (JL ^ JG),FLcode,(block *) ce);   // Jy nop
 
   switch (e2->Eoper)
   {
@@ -2596,7 +2596,7 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
 
     jop = joplsw[op - OPle];
     if (!(jcond & 1)) jop ^= 1;                           // toggle jump condition
-    cdb.append(genjmp(CNIL,jop,fltarg,(block *) targ));   // Jcond targ
+    genjmp(cdb,jop,fltarg,(block *) targ);   // Jcond targ
 
     cdb.append(ce);
     freenode(e);
@@ -3388,7 +3388,7 @@ void cdfar16(CodeBuilder& cdb, elem *e, regm_t *pretregs)
             cdb.append(gentstreg(CNIL,reg));
             jop = JE;
         }
-        cdb.append(genjmp(CNIL,jop,FLcode,(block *)cnop));  // Jop L1
+        genjmp(cdb,jop,FLcode,(block *)cnop);  // Jop L1
         NEWREG(cs.Irm,4);
         cdb.gen(&cs);                                   // SHL reg,3
         cdb.append(genregs(CNIL,0x8C,2,rx));            // MOV rx,SS
@@ -3523,7 +3523,7 @@ void cdbtst(CodeBuilder& cdb, elem *e, regm_t *pretregs)
             {
                 movregconst(cdb,reg,1,8);      // MOV reg,1
                 cnop = gennop(CNIL);
-                cdb.append(genjmp(CNIL,JC,FLcode,(block *) cnop));  // Jtrue nop
+                genjmp(cdb,JC,FLcode,(block *) cnop);  // Jtrue nop
                                                             // MOV reg,0
                 movregconst(cdb,reg,0,8);
                 regcon.immed.mval &= ~mask[reg];
@@ -3638,7 +3638,7 @@ void cdbt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
             {
                 movregconst(cdb,reg,1,8);      // MOV reg,1
                 cnop = gennop(CNIL);
-                cdb.append(genjmp(CNIL,JC,FLcode,(block *) cnop));    // Jtrue nop
+                genjmp(cdb,JC,FLcode,(block *) cnop);    // Jtrue nop
                                                             // MOV reg,0
                 movregconst(cdb,reg,0,8);
                 regcon.immed.mval &= ~mask[reg];

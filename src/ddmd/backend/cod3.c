@@ -807,7 +807,7 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
             if (nextb != bl->Bnext)
             {
                 assert(!(bl->Bflags & BFLepilog));
-                cdb.append(genjmp(CNIL,JMP,FLblock,nextb));
+                genjmp(cdb,JMP,FLblock,nextb);
             }
             break;
 
@@ -1222,7 +1222,7 @@ static void cmpval(CodeBuilder& cdb, targ_llong val, unsigned sz, unsigned reg, 
     {
         cdb.genc2(0x81,modregrm(3,7,reg2),MSREG(val));  // CMP reg2,MSREG(casevalue)
         code *cnext = gennop(CNIL);
-        cdb.append(genjmp(CNIL,JNE,FLcode,(block *) cnext));  // JNE cnext
+        genjmp(cdb,JNE,FLcode,(block *) cnext);  // JNE cnext
         cdb.genc2(0x81,modregrm(3,7,reg),val);          // CMP reg,casevalue
         cdb.append(cnext);
     }
@@ -1246,9 +1246,9 @@ static void ifthen(CodeBuilder& cdb, CaseVal *casevals, size_t ncases,
 
         // Compare for caseval[pivot]
         cmpval(cdb, casevals[pivot].val, sz, reg, reg2, sreg);
-        cdb.append(genjmp(CNIL,JE,FLblock,casevals[pivot].target)); // JE target
+        genjmp(cdb,JE,FLblock,casevals[pivot].target); // JE target
         // Note unsigned jump here, as cases were sorted using unsigned comparisons
-        cdb.append(genjmp(CNIL,JA,FLcode,(block *) c2));           // JG c2
+        genjmp(cdb,JA,FLcode,(block *) c2);           // JG c2
 
         cdb.append(cdb1);
         cdb.append(c2);
@@ -1264,15 +1264,15 @@ static void ifthen(CodeBuilder& cdb, CaseVal *casevals, size_t ncases,
             if (reg2 != NOREG)
             {
                 cnext = gennop(CNIL);
-                cdb.append(genjmp(CNIL,JNE,FLcode,(block *) cnext));  // JNE cnext
+                genjmp(cdb,JNE,FLcode,(block *) cnext);  // JNE cnext
                 cdb.genc2(0x81,modregrm(3,7,reg2),MSREG(val));   // CMP reg2,MSREG(casevalue)
             }
-            cdb.append(genjmp(CNIL,JE,FLblock,casevals[n].target));   // JE caseaddr
+            genjmp(cdb,JE,FLblock,casevals[n].target);   // JE caseaddr
             cdb.append(cnext);
         }
 
         if (last)       // if default is not next block
-            cdb.append(genjmp(CNIL,JMP,FLblock,bdefault));
+            genjmp(cdb,JMP,FLblock,bdefault);
     }
 }
 
@@ -1368,7 +1368,7 @@ void doswitch(CodeBuilder& cdb, block *b)
         if (dword && mswsame)
         {
             cdb.genc2(0x81,modregrm(3,7,reg2),msw);   // CMP reg2,MSW
-            cdb.append(genjmp(CNIL,JNE,FLblock,bdefault));  // JNE default
+            genjmp(cdb,JNE,FLblock,bdefault);  // JNE default
             reg2 = NOREG;
         }
 
@@ -1445,19 +1445,19 @@ void doswitch(CodeBuilder& cdb, block *b)
             cdb.genc2(0x81,modregrm(3,5,reg),vmin); // SUB reg,vmin
             if (dword)
             {   cdb.genc2(0x81,modregrm(3,3,reg2),MSREG(vmin)); // SBB reg2,vmin
-                cdb.append(genjmp(CNIL,JNE,FLblock,b->nthSucc(0))); // JNE default
+                genjmp(cdb,JNE,FLblock,b->nthSucc(0)); // JNE default
             }
         }
         else if (dword)
         {   cdb.append(gentstreg(CNIL,reg2));              // TEST reg2,reg2
-            cdb.append(genjmp(CNIL,JNE,FLblock,b->nthSucc(0))); // JNE default
+            genjmp(cdb,JNE,FLblock,b->nthSucc(0)); // JNE default
         }
         if (vmax - vmin != REGMASK)     // if there is a maximum
         {                               // CMP reg,vmax-vmin
             cdb.genc2(0x81,modregrm(3,7,reg),vmax-vmin);
             if (I64)
                 code_orrex(cdb.last(), REX_W);
-            cdb.append(genjmp(CNIL,JA,FLblock,b->nthSucc(0)));  // JA default
+            genjmp(cdb,JA,FLblock,b->nthSucc(0));  // JA default
         }
         if (I64)
         {
@@ -1523,7 +1523,7 @@ void doswitch(CodeBuilder& cdb, block *b)
                         break;
                     }
                 }
-                ctable.append(genjmp(CNIL,JMP,FLblock,targ));
+                genjmp(ctable,JMP,FLblock,targ);
                 ctable.last()->Iflags |= CFjmp5;           // don't shrink these
                 if (u == vmax)
                     break;
@@ -1620,7 +1620,7 @@ void doswitch(CodeBuilder& cdb, block *b)
         if (dword && mswsame)
         {   /* CMP DX,MSW       */
             cdb.genc2(0x81,modregrm(3,7,DX),msw);
-            cdb.append(genjmp(CNIL,JNE,FLblock,b->nthSucc(0))); // JNE default
+            genjmp(cdb,JNE,FLblock,b->nthSucc(0)); // JNE default
         }
         getregs(cdb,mCX|mDI);
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
@@ -1682,7 +1682,7 @@ void doswitch(CodeBuilder& cdb, block *b)
             code *cloop = genc2(CNIL,0xE0,0,-7 - mod - csseg);   // LOOPNE scasw
             cdb.gen1(0xAF);                                      // SCASW
             code_orflag(cdb.last(),CFtarg2);                     // target of jump
-            cdb.append(genjmp(CNIL,JNE,FLcode,(block *) cloop)); // JNE loop
+            genjmp(cdb,JNE,FLcode,(block *) cloop); // JNE loop
                                                                  // CMP DX,[CS:]disp[DI]
             cdb.genc1(0x39,modregrm(mod,DX,5),FLconst,disp);
             cdb.last()->Iflags |= csseg ? CFcs : 0;              // possible seg override
@@ -1694,7 +1694,7 @@ void doswitch(CodeBuilder& cdb, block *b)
             cdb.gen1(0xF2);              // REPNE
             cdb.gen1(0xAF);              // SCASW
         }
-        cdb.append(genjmp(CNIL,JNE,FLblock,b->nthSucc(0))); // JNE default
+        genjmp(cdb,JNE,FLblock,b->nthSucc(0)); // JNE default
         const int mod = (disp > 127) ? 2 : 1;     // 1 or 2 byte displacement
         if (csseg)
             cdb.gen1(SEGCS);            // table is in code segment
@@ -2816,40 +2816,45 @@ L1:
  * Generate a jump instruction.
  */
 
-code *genjmp(code *c,unsigned op,unsigned fltarg,block *targ)
-{   code cs;
-    code *cj;
-    code *cnop;
-
+void genjmp(CodeBuilder& cdb,unsigned op,unsigned fltarg,block *targ)
+{
+    code cs;
     cs.Iop = op & 0xFF;
     cs.Iflags = 0;
     cs.Irex = 0;
     if (op != JMP && op != 0xE8)        // if not already long branch
-          cs.Iflags = CFjmp16;          /* assume long branch for op = 0x7x */
-    cs.IFL2 = fltarg;                   /* FLblock (or FLcode)          */
-    cs.IEV2.Vblock = targ;              /* target block (or code)       */
+          cs.Iflags = CFjmp16;          // assume long branch for op = 0x7x
+    cs.IFL2 = fltarg;                   // FLblock (or FLcode)
+    cs.IEV2.Vblock = targ;              // target block (or code)
     if (fltarg == FLcode)
         ((code *)targ)->Iflags |= CFtarg;
 
     if (config.flags4 & CFG4fastfloat)  // if fast floating point
-        return gen(c,&cs);
-
-    cj = gen(CNIL,&cs);
-    switch (op & 0xFF00)                /* look at second jump opcode   */
     {
-        /* The JP and JNP come from floating point comparisons          */
+        cdb.gen(&cs);
+        return;
+    }
+
+    switch (op & 0xFF00)                // look at second jump opcode
+    {
+        // The JP and JNP come from floating point comparisons
         case JP << 8:
+            cdb.gen(&cs);
             cs.Iop = JP;
-            gen(cj,&cs);
+            cdb.gen(&cs);
             break;
         case JNP << 8:
-            /* Do a JP around the jump instruction      */
-            cnop = gennop(CNIL);
-            c = genjmp(c,JP,FLcode,(block *) cnop);
-            cat(cj,cnop);
+        {
+            // Do a JP around the jump instruction
+            code *cnop = gennop(CNIL);
+            genjmp(cdb,JP,FLcode,(block *) cnop);
+            cdb.gen(&cs);
+            cdb.append(cnop);
             break;
-        case 1 << 8:                    /* toggled no jump              */
+        }
+        case 1 << 8:                    // toggled no jump
         case 0 << 8:
+            cdb.gen(&cs);
             break;
         default:
 #ifdef DEBUG
@@ -2857,7 +2862,6 @@ code *genjmp(code *c,unsigned op,unsigned fltarg,block *targ)
 #endif
             assert(0);
     }
-    return cat(c,cj);
 }
 
 /*********************************************
@@ -3917,7 +3921,7 @@ void epilog(block *b)
                     cdbx.append(genregs(CNIL,0x39,SP,BP));                // CMP EBP,ESP
                     if (I64)
                         code_orrex(cdbx.last(),REX_W);
-                    cdbx.append(genjmp(CNIL,JNE,FLcode,(block *)c1));     // JNE L1
+                    genjmp(cdbx,JNE,FLcode,(block *)c1);                  // JNE L1
                     // explicitly mark as short jump, needed for correct retsize calculation (Bugzilla 15779)
                     cdbx.last()->Iflags &= ~CFjmp16;
                     cdbx.gen1(0x58 + BP);                                 // POP BP

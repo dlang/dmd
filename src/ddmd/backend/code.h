@@ -404,7 +404,7 @@ code *genmovreg (code *c , unsigned to , unsigned from );
 code *genmulimm(code *c,unsigned r1,unsigned r2,targ_int imm);
 code *genshift(code *);
 void movregconst(CodeBuilder& cdb,unsigned reg,targ_size_t value,regm_t flags);
-code *genjmp (code *c , unsigned op , unsigned fltarg , block *targ );
+void genjmp(CodeBuilder& cdb, unsigned op, unsigned fltarg, block *targ);
 void prolog(CodeBuilder& cdb);
 void epilog (block *b);
 code *gen_spill_reg(Symbol *s, bool toreg);
