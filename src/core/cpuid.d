@@ -565,20 +565,20 @@ void getcacheinfoCPUID4()
         }
         ++cachenum;
         if ((a&0x1F)==0) break; // no more caches
-        uint numthreads = ((a>>14) & 0xFFF)  + 1;
-        uint numcores = ((a>>26) & 0x3F) + 1;
+        immutable uint numthreads = ((a>>14) & 0xFFF)  + 1;
+        immutable uint numcores = ((a>>26) & 0x3F) + 1;
         if (numcores > cpuFeatures.maxCores) cpuFeatures.maxCores = numcores;
         if ((a&0x1F)!=1 && ((a&0x1F)!=3)) continue; // we only want data & unified caches
 
         ++number_of_sets;
-        ubyte level = cast(ubyte)(((a>>5)&7)-1);
+        immutable ubyte level = cast(ubyte)(((a>>5)&7)-1);
         if (level > datacache.length) continue; // ignore deep caches
         datacache[level].associativity = a & 0x200 ? ubyte.max :cast(ubyte)((b>>22)+1);
         datacache[level].lineSize = (b & 0xFFF)+ 1; // system coherency line size
-        uint line_partitions = ((b >> 12)& 0x3FF) + 1;
+        immutable uint line_partitions = ((b >> 12)& 0x3FF) + 1;
         // Size = number of sets * associativity * cachelinesize * linepartitions
         // and must convert to Kb, also dividing by the number of hyperthreads using this cache.
-        ulong sz = (datacache[level].associativity< ubyte.max)? number_of_sets *
+        immutable ulong sz = (datacache[level].associativity< ubyte.max)? number_of_sets *
             datacache[level].associativity : number_of_sets;
         datacache[level].size = cast(size_t)(
                 (sz * datacache[level].lineSize * line_partitions ) / (numthreads *1024));
@@ -744,8 +744,8 @@ void cpuidX86()
         cf.miscfeatures = c;
     }
     stepping = a & 0xF;
-    uint fbase = (a >> 8) & 0xF;
-    uint mbase = (a >> 4) & 0xF;
+    immutable uint fbase = (a >> 8) & 0xF;
+    immutable uint mbase = (a >> 4) & 0xF;
     family = ((fbase == 0xF) || (fbase == 0)) ? fbase + (a >> 20) & 0xFF : fbase;
     model = ((fbase == 0xF) || (fbase == 6 && cf.probablyIntel) ) ?
          mbase + ((a >> 12) & 0xF0) : mbase;
