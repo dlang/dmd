@@ -464,7 +464,14 @@ void cod3_align(int seg)
 #endif
 }
 
-code* cod3_stackadj(code* c, int nbytes)
+
+/**********************************
+ * Generate code to adjust the stack pointer by `nbytes`
+ * Params:
+ *      cdb = code builder
+ *      nbytes = number of bytes to adjust stack pointer
+ */
+void cod3_stackadj(CodeBuilder& cdb, int nbytes)
 {
     //printf("cod3_stackadj(%d)\n", nbytes);
     unsigned grex = I64 ? REX_W << 16 : 0;
@@ -476,8 +483,7 @@ code* cod3_stackadj(code* c, int nbytes)
         nbytes = -nbytes;
         rm = modregrm(3,0,SP); // ADD ESP,nbytes
     }
-    c = genc2(c, 0x81, grex | rm, nbytes);
-    return c;
+    cdb.genc2(0x81, grex | rm, nbytes);
 }
 
 #if ELFOBJ
@@ -751,18 +757,23 @@ static code *callFinallyBlock(block *bf, regm_t retregs)
     int nalign = 0;
 
     unsigned npush = gensaverestore(retregs,&cs,&cr);
+
+    CodeBuilder cdbs(cs);
+    CodeBuilder cdbr(cr);
+
     if (STACKALIGN == 16)
     {   npush += REGSIZE;
         if (npush & (STACKALIGN - 1))
         {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
-            cs = cod3_stackadj(cs, nalign);
+            cod3_stackadj(cdbs, nalign);
         }
     }
-    cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)bf);
+    cdbs.genc(0xE8,0,0,0,FLblock,(targ_size_t)bf);
     regcon.immed.mval = 0;
     if (nalign)
-        cs = cod3_stackadj(cs, -nalign);
-    return cat(cs, cr);
+        cod3_stackadj(cdbs, -nalign);
+    cdbs.append(cdbr);
+    return cdbs.finish();
 }
 
 /*******************************
@@ -2881,7 +2892,7 @@ void prolog_ifunc(CodeBuilder& cdb, tym_t* tyf)
 
     cdb.append(genregs(CNIL,0x8B,BP,SP));     // MOV BP,SP
     if (localsize)
-        cdb.append(cod3_stackadj(CNIL, localsize));
+        cod3_stackadj(cdb, localsize);
 
     *tyf |= mTYloadds;
 }
@@ -3069,7 +3080,7 @@ void prolog_frameadj(CodeBuilder& cdb, tym_t tyf, unsigned xlocalsize, bool ente
              *      SUB     ESP, xlocalsize % 0x1000
              */
             movregconst(cdb, reg, xlocalsize / 0x1000, FALSE);
-            cdb.append(cod3_stackadj(NULL, 0x1000));
+            cod3_stackadj(cdb, 0x1000);
             code_orflag(cdb.last(), CFtarg2);
             cdb.gen2sib(0x85, modregrm(0,SP,4),modregrm(0,4,SP));
             if (I64)
@@ -3081,7 +3092,7 @@ void prolog_frameadj(CodeBuilder& cdb, tym_t tyf, unsigned xlocalsize, bool ente
                 cdb.genc2(JNE,0,(targ_uns)-12);
             }
             regimmed_set(reg,0);             // reg is now 0
-            cdb.append(cod3_stackadj(CNIL, xlocalsize & 0xFFF));
+            cod3_stackadj(cdb, xlocalsize & 0xFFF);
             useregs(mask[reg]);
         }
     }
@@ -3101,7 +3112,7 @@ void prolog_frameadj(CodeBuilder& cdb, tym_t tyf, unsigned xlocalsize, bool ente
             *pushalloc = true;
         }
         else
-            cdb.append(cod3_stackadj(CNIL, xlocalsize));
+            cod3_stackadj(cdb, xlocalsize);
     }
 }
 
@@ -3118,7 +3129,7 @@ void prolog_frameadj2(CodeBuilder& cdb, tym_t tyf, unsigned xlocalsize, bool* pu
         *pushalloc = true;
     }
     else
-        cdb.append(cod3_stackadj(CNIL, xlocalsize));
+        cod3_stackadj(cdb, xlocalsize);
 }
 
 void prolog_setupalloca(CodeBuilder& cdb)
@@ -3210,7 +3221,7 @@ void prolog_saveregs(CodeBuilder& cdb, regm_t topush, int cfa_offset)
             if (reg >= XMM0)
             {
                 // SUB RSP,16
-                cdb.append(cod3_stackadj(CNIL, 16));
+                cod3_stackadj(cdb, 16);
                 // MOVUPD 0[RSP],xmm
                 cdb.genc1(STOUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,0);
                 EBPtoESP += 16;
@@ -3308,7 +3319,7 @@ static void epilog_restoreregs(CodeBuilder& cdb, regm_t topop)
                     // MOVUPD xmm,0[RSP]
                     cdb.genc1(LODUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,0);
                     // ADD RSP,16
-                    cdb.append(cod3_stackadj(CNIL, -16));
+                    cod3_stackadj(cdb, -16);
                 }
                 else
                 {
@@ -3959,7 +3970,7 @@ void epilog(block *b)
             cdbx.gen1(0x58 + regx);                    // POP regx
         }
         else if (xlocalsize)
-            cdbx.append(cod3_stackadj(CNIL, -xlocalsize));
+            cod3_stackadj(cdbx, -xlocalsize);
     }
     if (b->BC == BCret || b->BC == BCretexp)
     {

@@ -386,7 +386,7 @@ void cod3_set64 (void );
 void cod3_align_bytes(int seg, size_t nbytes);
 void cod3_align(int seg);
 void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset);
-code* cod3_stackadj(code* c, int nbytes);
+void cod3_stackadj(CodeBuilder& cdb, int nbytes);
 regm_t regmask(tym_t tym, tym_t tyf);
 void cgreg_dst_regs(unsigned *dst_integer_reg, unsigned *dst_float_reg);
 void cgreg_set_priorities(tym_t ty, unsigned char **pseq, unsigned char **pseqmsw);

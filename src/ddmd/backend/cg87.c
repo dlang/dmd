@@ -3191,7 +3191,7 @@ void cnvt87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             if (szpush == REGSIZE)
                 cdb.gen1(0x50 + AX);                // PUSH EAX
             else
-                cdb.append(cod3_stackadj(CNIL, szpush));
+                cod3_stackadj(cdb, szpush);
             genfwait(cdb);
             cdb.genc1(0xD9,modregrm(2,7,4) + 256*modregrm(0,4,SP),FLconst,szoff); // FSTCW szoff[ESP]
 
@@ -3227,7 +3227,7 @@ void cnvt87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             cdb.append(genpop(CNIL,reg));                           // POP reg
 
             if (szpush)
-                cdb.append(cod3_stackadj(CNIL, -szpush));
+                cod3_stackadj(cdb, -szpush);
             fixresult(cdb,e,retregs,pretregs);
         }
         else

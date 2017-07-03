@@ -5115,12 +5115,12 @@ void cdddtor(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             int nalign = 0;
             if (STACKALIGN == 16)
             {   nalign = STACKALIGN - REGSIZE;
-                cdb.append(cod3_stackadj(CNIL, nalign));
+                cod3_stackadj(cdb, nalign);
             }
             calledafunc = 1;
             genjmp(cdb,0xE8,FLcode,(block *)c);   // CALL Ldtor
             if (nalign)
-                cdb.append(cod3_stackadj(CNIL, -nalign));
+                cod3_stackadj(cdb, -nalign);
         }
         else
             genjmp(cdb,0xE8,FLcode,(block *)c);   // CALL Ldtor

@@ -974,14 +974,14 @@ Lagain:
              * registers are saved. But I don't remember why the call is here
              * and not there.
              */
-            cdbx.append(cod3_stackadj(CNIL, spalign));
+            cod3_stackadj(cdbx, spalign);
         }
 
         unsigned regsaved;
         prolog_trace(cdbx, farfunc, &regsaved);
 
         if (spalign)
-            cdbx.append(cod3_stackadj(CNIL, -spalign));
+            cod3_stackadj(cdbx, -spalign);
         useregs((ALLREGS | mBP | mES) & ~regsaved);
     }
 #endif
@@ -2854,6 +2854,9 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
             tosave &= ~mi;
         }
   }
+  CodeBuilder cdbs1;
+  cdbs1.append(cs1);
+  CodeBuilder cdbs2;
   if (adjesp)
   {
         // If this is done an odd number of times, it
@@ -2870,18 +2873,21 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
             regm_t mval_save = regcon.immed.mval;
             regcon.immed.mval = 0;      // prevent reghasvalue() optimizations
                                         // because c hasn't been executed yet
-            cs1 = cod3_stackadj(cs1, sz);
+            cod3_stackadj(cdbs1, sz);
             regcon.immed.mval = mval_save;
-            cs1 = genadjesp(cs1, sz);
+            cdbs1.append(genadjesp(CNIL, sz));
 
-            code *cx = cod3_stackadj(NULL, -sz);
-            cx = genadjesp(cx, -sz);
-            cs2 = cat(cx, cs2);
+            cod3_stackadj(cdbs2, -sz);
+            cdbs2.append(genadjesp(CNIL, -sz));
         }
+        cdbs2.append(cs2);
 
-        cs1 = genadjesp(cs1,adjesp);
-        cs2 = genadjesp(cs2,-adjesp);
+
+        cdbs1.append(genadjesp(CNIL,adjesp));
+        cdbs2.append(genadjesp(CNIL,-adjesp));
   }
+  else
+        cdbs2.append(cs2);
 
   calledafunc |= calledafuncsave;
   msavereg &= ~keepmsk | overlap; /* remove from mask of regs to save   */
@@ -2891,9 +2897,9 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
         printf("-scodelem(e=%p *pretregs=%s keepmsk=%s constflag=%d\n",
                 e,regm_str(*pretregs),regm_str(keepmsk),constflag);
 #endif
-    cdb.append(cs1);
+    cdb.append(cdbs1);
     cdb.append(cdbx);
-    cdb.append(cs2);
+    cdb.append(cdbs2);
     return;
 }
 
