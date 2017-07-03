@@ -142,7 +142,7 @@ enum LongInst : ushort
     FGe32,
 //    F32ToF64
 //    F32ToI32,
-//    I32ToF32,
+    IToF32,
 
     FAdd64,
     FSub64,
@@ -157,7 +157,7 @@ enum LongInst : ushort
     FGe64,
 //    F64ToF32
 //    F64ToI64,
-//    I64ToF64,
+    IToF64,
 
     SetHighImm,
 
@@ -672,8 +672,22 @@ pure:
         }
         if (lhs.type.type == BCTypeEnum.f23)
         {
-            assert(rhs.type.type == BCTypeEnum.f23);
-            rhs = pushOntoStack(rhs);
+            if(rhs.type.type == BCTypeEnum.i32)
+            {
+                if (rhs.vType == BCValueType.Immediate)
+                () @trusted {
+                    float frhs = float(rhs.imm32);
+                    rhs = imm32(*cast(int*)&frhs);
+                } ();
+                else
+                    assert("i32Tof32 is not supported right now");
+            }
+            else if (rhs.type.type == BCTypeEnum.f23)
+            {
+                rhs = pushOntoStack(rhs);
+            }
+            else
+                assert(0, "did not expecte type " ~ to!string(rhs.type.type) ~ "to be used in a float expression");
 
             if (inst != LongInst.Set)
                 inst += (LongInst.FAdd32 - LongInst.Add);
@@ -1015,6 +1029,7 @@ pure:
     {
         if (!isStackValueOrParameter(val))
         {
+
             auto stackref = BCValue(currSp(), val.type);
             Set(stackref.i32, val);
 
@@ -1041,6 +1056,22 @@ pure:
         {
                 assert(0, "I cannot deal with this type of return" ~ to!string(val.vType));
         }
+    }
+
+    void IToF32(BCValue result, BCValue rhs)
+    {
+        assert(isStackValueOrParameter(result));
+        assert(isStackValueOrParameter(rhs));
+
+        emitLongInst(LongInst64(LongInst.IToF32, result.stackAddr, rhs.stackAddr));
+    }
+
+    void IToF64(BCValue result, BCValue rhs)
+    {
+        assert(isStackValueOrParameter(result));
+        assert(isStackValueOrParameter(rhs));
+
+        emitLongInst(LongInst64(LongInst.IToF64, result.stackAddr, rhs.stackAddr));
     }
 
     void StrEq3(BCValue result, BCValue lhs, BCValue rhs)
@@ -1316,6 +1347,11 @@ string printInstructions(const int* startInstructions, uint length) pure
                 result ~= "FGe32 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
             break;
+        case LongInst.IToF32:
+            {
+                result ~= "IToF32 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
         case LongInst.FAdd32:
             {
                 result ~= "FAdd32 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
@@ -1370,6 +1406,11 @@ string printInstructions(const int* startInstructions, uint length) pure
         case LongInst.FGe64:
             {
                 result ~= "FGe64 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+        case LongInst.IToF64:
+            {
+                result ~= "ItoF64 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
             break;
         case LongInst.FAdd64:
@@ -1626,7 +1667,7 @@ enum DebugOrder
 struct DebugCommand
 {
     DebugOrder order;
-    BCValue v1;
+    uint v1;
 }
 
 const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
@@ -1645,7 +1686,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
     bool paused; // true if we are in a breakpoint.
 
 
-    uint[] breakLines = [265];
+    uint[] breakLines = [];
     uint lastLine;
 
     if (!__ctfe)
@@ -1708,6 +1749,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
     if (!__ctfe) debug writeln("Interpreter started");
     while (true && ip <= byteCode.length - 1)
     {
+/+
         DebugCommand command = reciveCommand();
         do
         {
@@ -1722,7 +1764,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 case Invalid : {assert(0, "Invalid DebugOrder");} break;
                 case SetBreakpoint :
                 {
-                    auto bl = command.v1.imm32;
+                    auto bl = command.v1;
                     foreach(_bl;breakLines)
                     {
                         if (bl == _bl)
@@ -1733,7 +1775,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 } break;
                 case UnsetBreakpoint :
                 {
-                    auto bl = command.v1.imm32;
+                    auto bl = command.v1;
                     foreach(uint i, _bl;breakLines)
                     {
                         if (_bl == bl)
@@ -1757,7 +1799,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
             }
 
         } while (paused || command.order != DebugOrder.Nothing);
-
++/
         import std.range;
 
         debug (bc_stack)
@@ -2065,6 +2107,13 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 cond = flhs <= frhs;
             }
             break;
+        case LongInst.IToF32 :
+            {
+                float frhs = *rhs;
+                uint _lhs = *cast(uint*)&frhs;
+                *lhsRef = _lhs;
+            }
+            break;
 
         case LongInst.FAdd32:
             {
@@ -2191,6 +2240,14 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 cond = flhs >= frhs;
             }
             break;
+
+        case LongInst.IToF64 :
+            {
+                double frhs = cast(double)*rhs;
+                *lhsRef = *cast(long*)&frhs;
+            }
+            break;
+
         case LongInst.FAdd64:
             {
                 ulong _lhs = *lhsRef;
