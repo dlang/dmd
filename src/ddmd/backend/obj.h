@@ -50,7 +50,7 @@ class Obj
     VIRTUAL void segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
     VIRTUAL void staticctor(Symbol *s,int dtor,int seg);
     VIRTUAL void staticdtor(Symbol *s);
-    VIRTUAL void funcptr(Symbol *s);
+    VIRTUAL void setModuleCtorDtor(Symbol *s, bool isCtor);
     VIRTUAL void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
     VIRTUAL void ehsections();
     VIRTUAL void moduleinfo(Symbol *scc);
@@ -161,7 +161,7 @@ class MsCoffObj : public Obj
 //    VIRTUAL void segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
     VIRTUAL void staticctor(Symbol *s,int dtor,int seg);
     VIRTUAL void staticdtor(Symbol *s);
-    VIRTUAL void funcptr(Symbol *s);
+    VIRTUAL void setModuleCtorDtor(Symbol *s, bool isCtor);
     VIRTUAL void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
     VIRTUAL void ehsections();
     VIRTUAL void moduleinfo(Symbol *scc);

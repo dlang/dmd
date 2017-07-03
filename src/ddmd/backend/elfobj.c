@@ -1639,9 +1639,9 @@ void Obj::staticdtor(Symbol *s)
  * Used for static ctor and dtor lists.
  */
 
-void Obj::funcptr(Symbol *s)
+void Obj::setModuleCtorDtor(Symbol *s, bool isCtor)
 {
-    //dbg_printf("Obj::funcptr(%s) \n",s->Sident);
+    //dbg_printf("Obj::setModuleCtorDtor(%s) \n",s->Sident);
 }
 
 

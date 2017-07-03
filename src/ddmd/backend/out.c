@@ -1426,7 +1426,7 @@ STATIC void writefunc2(symbol *sfunc)
         if (p[0] == '_' && p[1] == 'S' && p[2] == 'T' &&
             (p[3] == 'I' || p[3] == 'D'))
 #endif
-            objmod->funcptr(sfunc);
+            objmod->setModuleCtorDtor(sfunc, sfunc->Sident[3] == 'I');
     }
 
 Ldone:
