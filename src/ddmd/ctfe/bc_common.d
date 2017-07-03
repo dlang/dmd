@@ -72,6 +72,11 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
     }
 }
 
+bool isFloat(BCType bct) @safe pure nothrow
+{
+    return bct.type == BCTypeEnum.f23 || bct.type == BCTypeEnum.f52;
+}
+
 bool isBasicBCType(BCType bct) @safe pure
 {
     return !(bct.type == BCTypeEnum.Struct || bct.type == BCTypeEnum.Array
@@ -311,6 +316,18 @@ struct Imm64
     alias imm64 this;
 }
 
+struct Imm23f
+{
+    float imm23f;
+    alias imm23f this;
+}
+
+struct Imm52f
+{
+    double imm52f;
+    alias imm52f this;
+}
+
 struct BCBlock
 {
 @safe pure:
@@ -396,6 +413,8 @@ struct BCValue
         HeapAddr heapAddr;
         Imm32 imm32;
         Imm64 imm64;
+        Imm23f imm23f;
+        Imm52f imm52f;
         // instead of void*
         void* voidStar;
     }

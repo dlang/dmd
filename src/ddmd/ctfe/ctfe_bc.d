@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 0;
+enum bailoutMessages = 1;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -2487,6 +2487,7 @@ static if (is(BCGen))
                 discardValue = oldDiscardValue;
                 Set(retval, expr);
 
+                bailout(isFloat(expr.type), "Cannot deal with floatingPoint++");
                 Add3(expr, expr, imm32(1));
 
             }
@@ -2507,6 +2508,7 @@ static if (is(BCGen))
                 discardValue = oldDiscardValue;
                 Set(retval, expr);
 
+                bailout(isFloat(expr.type), "Cannot deal with floatingPoint--");
                 Sub3(expr, expr, imm32(1));
             }
             break;
@@ -2641,7 +2643,7 @@ static if (is(BCGen))
                 retval.heapRef = retvalHeapRef;
             }
 
-            if (canHandleBinExpTypes(retval.type.type, lhs.type.type) && canHandleBinExpTypes(retval.type.type, rhs.type.type) || (e.op == TOKmod && canHandleBinExpTypes(rhs.type.type, retval.type.type)))
+            if ((isFloat(lhs.type) && isFloat(rhs.type)) || (canHandleBinExpTypes(retval.type.type, lhs.type.type) && canHandleBinExpTypes(retval.type.type, rhs.type.type)) || (e.op == TOKmod && canHandleBinExpTypes(rhs.type.type, retval.type.type)))
             {
                 const oldDiscardValue = discardValue;
                 discardValue = false;
@@ -4011,6 +4013,10 @@ static if (is(BCGen))
                 {
                     Set(var.i32, _init);
                 }
+                else if (_init.type == BCType(BCTypeEnum.f23))
+                {
+                    Set(var.i32, _init.i32);
+                }
                 else if (_init.type.type == BCTypeEnum.Struct)
                 {
                     Set(var.i32, _init.i32);
@@ -4020,7 +4026,7 @@ static if (is(BCGen))
                 else if (_init.type.type == BCTypeEnum.Slice || _init.type.type == BCTypeEnum.Array || _init.type.type == BCTypeEnum.string8)
                 {
                     // todo introduce a bool function passedByPtr(BCType t)
-                    //maybe dangerous whi knows ...
+                    // maybe dangerous who knows ...
                     Set(var.i32, _init.i32);
                 }
                 else if (_init.type.type == BCTypeEnum.c8 || _init.type.type == BCTypeEnum.i64)
@@ -4808,6 +4814,14 @@ static if (is(BCGen))
             {
                 Set(lhs, rhs);
             }
+            else if (lhs.type.type == BCTypeEnum.f23 && rhs.type.type == BCTypeEnum.f23)
+            {
+                Set(lhs, rhs);
+            }
+            else if (lhs.type.type == BCTypeEnum.f52 && rhs.type.type == BCTypeEnum.f52)
+            {
+                Set(lhs, rhs);
+            }
             else
             {
                 if (lhs.type.type == BCTypeEnum.Ptr)
@@ -5575,13 +5589,30 @@ static if (is(BCGen))
             bailout("We cannot cast pointers");
             return ;
         }
-        else if (toType.type == BCTypeEnum.i32 || fromType == BCTypeEnum.i32)
+        else if (fromType.type == BCTypeEnum.i32)
         {
-            // FIXME: we cast if we either cast from or to int
-            // this is not correct just a stopgap
+            if (toType == BCTypeEnum.i64) {} // nop
+            else if (toType == BCTypeEnum.f23)
+            {
+                const from = retval;
+                retval = genTemporary(BCType(BCTypeEnum.f23));
+                IToF32(retval, from);
+            }
+            else if (toType == BCTypeEnum.f52)
+            {
+                const from = retval;
+                retval = genTemporary(BCType(BCTypeEnum.f52));
+                IToF64(retval, from);
+            }
+            else if (toType == BCTypeEnum.i32) {} // nop
+            else if (toType == BCTypeEnum.i64) {} // nop
+            else
+            {
+                bailout("Cast not implemented: " ~ ce.toString);
+                return ;
+            }
             retval.type = toType;
         }
-
         else if (fromType.type == BCTypeEnum.Array && fromType.typeIndex
                 && toType.type == BCTypeEnum.Slice && toType.typeIndex
                 && _sharedCtfeState.arrayTypes[fromType.typeIndex - 1].elementType
