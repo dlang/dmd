@@ -1345,7 +1345,7 @@ extern (C++) final class BCTypeVisitor : Visitor
         case ENUMTY.Tchar:
             return BCType(BCTypeEnum.c8);
         case ENUMTY.Twchar:
-            return BCType(BCTypeEnum.c16);
+            //return BCType(BCTypeEnum.c16);
         case ENUMTY.Tdchar:
             //return BCType(BCTypeEnum.c32);
             return BCType(BCTypeEnum.Char);
