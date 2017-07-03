@@ -297,6 +297,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         if (this.errors)
             type = Type.terror;
+        if (semanticRun == PASSinit)
+            type = type.addSTC(sc.stc | storage_class);
         type = type.semantic(loc, sc);
         if (type.ty == Tstruct && (cast(TypeStruct)type).sym != this)
         {
