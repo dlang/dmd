@@ -24,10 +24,10 @@ import ddmd.console;
  */
 enum Classification
 {
-    error = Color.red,          /// for errors
-    gagged = Color.magenta,     /// for gagged errors
-    warning = Color.yellow,     /// for warnings
-    deprecation = Color.blue,  /// for deprecations
+    error = Color.brightRed,          /// for errors
+    gagged = Color.brightBlue,        /// for gagged errors
+    warning = Color.brightYellow,     /// for warnings
+    deprecation = Color.brightCyan,   /// for deprecations
 }
 
 /**************************************
@@ -126,7 +126,7 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
         mem.xfree(cast(void*)p);
     }
     if (con)
-        con.setColor(headerColor, true);
+        con.setColor(headerColor);
     fputs(header, stderr);
     if (con)
         con.resetColor();
@@ -294,11 +294,11 @@ enum HIGHLIGHT : ubyte
 {
     Default    = Color.black,           // back to whatever the console is set at
     Escape     = '\xFF',                // highlight Color follows
-    Identifier = Color.magenta,
-    Keyword    = Color.blue,
-    String     = Color.red,
-    Comment    = Color.cyan,
-    Other      = Color.green,           // other tokens
+    Identifier = Color.white,
+    Keyword    = Color.white,
+    Literal    = Color.white,
+    Comment    = Color.darkGray,
+    Other      = Color.cyan,           // other tokens
 }
 
 /**************************************************
@@ -322,7 +322,7 @@ private void colorHighlightCode(OutBuffer* buf)
     ++nested;
 
     auto gaggedErrorsSave = global.startGagging();
-    scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, 0, 0);
+    scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, 0, 1);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf.data;
     //printf("colorHighlightCode('%.*s')\n", buf.offset - 1, buf.data);
@@ -343,8 +343,11 @@ private void colorHighlightCode(OutBuffer* buf)
         case TOKcomment:
             highlight = HIGHLIGHT.Comment;
             break;
+        case TOKint32v:
+            ..
+        case TOKdcharv:
         case TOKstring:
-            highlight = HIGHLIGHT.String;
+            highlight = HIGHLIGHT.Literal;
             break;
         default:
             if (tok.isKeyword())
@@ -402,8 +405,15 @@ private void writeHighlights(Console* con, const OutBuffer *buf)
                 colors = false;
             }
             else
+            if (color == Color.white)
             {
-                con.setColor(cast(Color)color, true);
+                con.resetColor();
+                con.setColorBright(true);
+                colors = true;
+            }
+            else
+            {
+                con.setColor(cast(Color)color);
                 colors = true;
             }
         }
