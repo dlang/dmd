@@ -418,30 +418,18 @@ $(P Assuming `T` is an unqualified type, the graph below illustrates how
 qualifiers combine (combinations with `immutable` are omitted). For each node,
 applying the qualifier labeling the edge leads to the resulting type.)
 
-$(COMMENT To generate qualifier-combinations.svg, run "dot -Tsvg t.dot
->qualifier-conversions.svg" against a file t.dot containing the following:
+$(COMMENT To generate images/qualifier-combinations.{svg,eps} refer to
+images/qualifier-combinations.dot.)
 
-digraph "Qualifer Combinations" {
-    rankdir="TB";
-    "T" -> "const T" [label="const"];
-    "T" -> "inout T" [label="inout"];
-    "T" -> "shared T" [label="shared"];
-    "const T" -> "const inout T" [label="inout"];
-    "const T" -> "const shared T" [label="shared"];
-    "inout T" -> "const inout T" [label="const"];
-    "inout T" -> "inout shared T" [label="shared"];
-    "shared T" -> "const shared T" [label="const"];
-    "shared T" -> "inout shared T" [label="inout"];
-    "const inout T" -> "const inout shared T" [label="shared"];
-    "const shared T" -> "const inout shared T" [label="inout"];
-    "inout shared T" -> "const inout shared T" [label="const"];
-}
-)
-
-<center>
+$(HTMLTAG3 center, ,
   <img id="conversions" alt="Qualifier combination rules"
     src="$(STATIC images/qualifier-combinations.svg)">
-</center>
+)
+$(LATEX
+{\centering
+\includegraphics{images/qualifier-combinations.eps}
+}
+)
 
 $(H2 $(LNAME2 implicit_qualifier_conversions, Implicit Qualifier Conversions))
 
@@ -453,26 +441,18 @@ inout shared).)
 $(P References to qualified objects can be implicitly converted according to the
 following rules:)
 
-$(COMMENT To generate qualifier-conversions.svg, run "dot -Tsvg t.dot
->qualifier-conversions.svg" against a file t.dot containing the following:
+$(COMMENT To generate images/qualifier-conversions.{svg,eps} refer to
+images/qualifier-conversions.dot.)
 
-digraph "conversions" {
-    rankdir="BT";
-    "mutable" -> "const";
-    "const inout" -> "const";
-    "inout" -> "const inout";
-    "immutable" -> "const inout";
-    "immutable" -> "const inout shared";
-    "inout shared" -> "const inout shared";
-    "shared" -> "const shared";
-    "const inout shared" -> "const shared";
-}
-)
-
-<center>
+$(HTMLTAG3 center, ,
   <img id="conversions" alt="Qualifier conversion rules"
     src="$(STATIC images/qualifier-conversions.svg)">
-</center>
+)
+$(LATEX
+{\centering
+\includegraphics{images/qualifier-conversions.eps}
+}
+)
 
 $(P In the graph above, any directed path is a legal implicit conversion. No
 other qualifier combinations than the ones shown is valid. The same information
