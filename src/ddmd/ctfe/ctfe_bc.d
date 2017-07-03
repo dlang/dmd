@@ -1330,7 +1330,7 @@ Expression toExpression(const BCValue value, Type expressionType,
 extern (C++) final class BCTypeVisitor : Visitor
 {
     alias visit = super.visit;
-    Type topLevelAggregate;
+    Type topLevelType;
     uint prevAggregateTypeCount;
     Type[32] prevAggregateTypes;
 
@@ -1406,22 +1406,37 @@ extern (C++) final class BCTypeVisitor : Visitor
         }
         else if (t.ty == Tstruct)
         {
-            if (!topLevelAggregate)
+            if (!topLevelType)
             {
-                topLevelAggregate = t;
+                topLevelType = t;
             }
-            else if (topLevelAggregate == t)
+            else if (topLevelType == t)
             {
                 // struct S { S s } is illegal!
                 assert(0, "This should never happen");
             }
             auto sd = (cast(TypeStruct) t).sym;
             uint structIndex = _sharedCtfeState.getStructIndex(sd);
-            topLevelAggregate = typeof(topLevelAggregate).init;
+            topLevelType = typeof(topLevelType).init;
             return structIndex ? BCType(BCTypeEnum.Struct, structIndex) : BCType.init;
         }
         else if (t.ty == Tarray)
         {
+            auto oldTopLevelType = topLevelType;
+            scope(exit) topLevelType = oldTopLevelType;
+            if (!topLevelType)
+            {
+                topLevelType = t;
+            }
+            else
+            {
+                if (topLevelType.ty == Tarray || topLevelType.ty == Tsarray)
+                {
+                    //("Arrays of slices or Arrays of Arrays are unsupported for now");
+                    return BCType.init;
+                }
+            }
+
             auto tarr = (cast(TypeDArray) t);
             return BCType(BCTypeEnum.Slice, _sharedCtfeState.getSliceIndex(tarr));
         }
@@ -1431,6 +1446,22 @@ extern (C++) final class BCTypeVisitor : Visitor
         }
         else if (t.ty == Tsarray)
         {
+            auto oldTopLevelType = topLevelType;
+            scope(exit) topLevelType = oldTopLevelType;
+
+            if (!topLevelType)
+            {
+                topLevelType = t;
+            }
+            else
+            {
+                if (topLevelType.ty == Tarray || topLevelType.ty == Tsarray)
+                {
+                    //("Arrays of slices or Arrays of Arrays are unsupported for now");
+                    return BCType.init;
+                }
+            }
+
             auto tsa = cast(TypeSArray) t;
             return BCType(BCTypeEnum.Array, _sharedCtfeState.getArrayIndex(tsa));
         }
@@ -1454,7 +1485,7 @@ extern (C++) final class BCTypeVisitor : Visitor
                 _sharedCtfeState.pointerTypePointers[_sharedCtfeState.pointerCount] = cast(
                     TypePointer) t;
                 _sharedCtfeState.pointerTypes[_sharedCtfeState.pointerCount++] = BCPointer(
-                    baseType != topLevelAggregate ? toBCType(baseType) : BCType(BCTypeEnum.Struct,
+                    baseType != topLevelType ? toBCType(baseType) : BCType(BCTypeEnum.Struct,
                     _sharedCtfeState.structCount + 1), indirectionCount);
                 return BCType(BCTypeEnum.Ptr, _sharedCtfeState.pointerCount);
             }
@@ -2489,9 +2520,18 @@ static if (is(BCGen))
                 discardValue = oldDiscardValue;
                 Set(retval, expr);
 
-                bailout(isFloat(expr.type), "Cannot deal with floatingPoint++");
-                Add3(expr, expr, imm32(1));
-
+                if (expr.type.type == BCTypeEnum.f23)
+                {
+                    Add3(expr, expr, BCValue(Imm23f(1.0f)));
+                }
+                else if (expr.type.type == BCTypeEnum.f52)
+                {
+                    Add3(expr, expr, BCValue(Imm52f(1.0)));
+                }
+                else
+                {
+                    Add3(expr, expr, imm32(1));
+                }
             }
             break;
         case TOK.TOKminusminus:
