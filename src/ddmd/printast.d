@@ -60,6 +60,21 @@ extern (C++) final class PrintASTVisitor : Visitor
         printf(".var: %s\n", e.var ? e.var.toChars() : "");
     }
 
+    override void visit(DsymbolExp e)
+    {
+        visit(cast(Expression)e);
+        printIndent(indent + 2);
+        printf(".s: %s\n", e.s ? e.s.toChars() : "");
+    }
+
+    override void visit(DotIdExp e)
+    {
+        visit(cast(Expression)e);
+        printIndent(indent + 2);
+        printf(".ident: %s\n", e.ident.toChars());
+        printAST(e.e1, indent + 2);
+    }
+
     override void visit(UnaExp e)
     {
         visit(cast(Expression)e);
