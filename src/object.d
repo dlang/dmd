@@ -2726,7 +2726,7 @@ unittest
 
 /++
     Destroys the given object and puts it in an invalid state. It's used to
-    destroy an object so that any cleanup which its destructor or finalizer
+    _destroy an object so that any cleanup which its destructor or finalizer
     does is done and so that it no longer references any other objects. It does
     $(I not) initiate a GC cycle or free any GC memory.
   +/
@@ -2735,6 +2735,7 @@ void destroy(T)(T obj) if (is(T == class))
     rt_finalize(cast(void*)obj);
 }
 
+/// ditto
 void destroy(T)(T obj) if (is(T == interface))
 {
     destroy(cast(Object)obj);
@@ -2795,6 +2796,7 @@ version(unittest) unittest
    }
 }
 
+/// ditto
 void destroy(T)(ref T obj) if (is(T == struct))
 {
     _destructRecurse(obj);
@@ -2847,6 +2849,7 @@ version(unittest) nothrow @safe @nogc unittest
    }
 }
 
+/// ditto
 void destroy(T : U[n], U, size_t n)(ref T obj) if (!is(T == struct))
 {
     foreach_reverse (ref e; obj[])
@@ -2910,6 +2913,7 @@ unittest
     }
 }
 
+/// ditto
 void destroy(T)(ref T obj)
     if (!is(T == struct) && !is(T == interface) && !is(T == class) && !_isStaticArray!T)
 {
@@ -2955,15 +2959,15 @@ private
 }
 
 /**
- * (Property) Get the current capacity of a slice. The capacity is the size
+ * (Property) Gets the current _capacity of a slice. The _capacity is the size
  * that the slice can grow to before the underlying array must be
  * reallocated or extended.
  *
  * If an append must reallocate a slice with no possibility of extension, then
- * 0 is returned. This happens when the slice references a static array, or
+ * `0` is returned. This happens when the slice references a static array, or
  * if another slice references elements past the end of the current slice.
  *
- * Note: The capacity of a slice may be impacted by operations on other slices.
+ * Note: The _capacity of a slice may be impacted by operations on other slices.
  */
 @property size_t capacity(T)(T[] arr) pure nothrow @trusted
 {
@@ -2997,7 +3001,7 @@ private
  * that the slice can grow to before the underlying array must be
  * reallocated or extended.
  *
- * The return value is the new capacity of the array (which may be larger than
+ * Returns: The new capacity of the array (which may be larger than
  * the requested capacity).
  */
 size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
@@ -3041,7 +3045,7 @@ unittest
  * array in the memory block.  If there are, those elements will be
  * overwritten by appending to this array.
  *
- * Calling this function, and then using references to data located after the
+ * Warning: Calling this function, and then using references to data located after the
  * given array results in undefined behavior.
  *
  * Returns:
@@ -3174,7 +3178,7 @@ bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
 
 /**
 Calculates the hash value of $(D arg) with $(D seed) initial value.
-Result may be non-equals with `typeid(T).getHash(&arg)`
+The result may not be equal to `typeid(T).getHash(&arg)`.
 The $(D seed) value may be used for hash chaining:
 ----
 struct Test
