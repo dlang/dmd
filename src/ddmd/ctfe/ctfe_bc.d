@@ -5341,13 +5341,16 @@ static if (is(BCGen))
     override void visit(CallExp ce)
     {
         Line(ce.loc.linnum);
+        bool wrappingCallFn;
         if (!insideFunction)
         {
-           // bailout("We cannot have calls outside of functions");
-           // We are not inside a function body hence we are expected to return the result of this call
-           // for that to work we construct a function which will look like this { return fn(); }
-           beginFunction(_sharedCtfeState.functionCount++);
-           retval = genTemporary(i32Type);
+            // bailout("We cannot have calls outside of functions");
+            // We are not inside a function body hence we are expected to return the result of this call
+            // for that to work we construct a function which will look like this { return fn(); }
+            beginFunction(_sharedCtfeState.functionCount++);
+            retval = genTemporary(i32Type);
+            insideFunction = true;
+            wrappingCallFn = true;
         }
         BCValue thisPtr;
         BCValue fnValue;
@@ -5558,10 +5561,11 @@ static if (is(BCGen))
             bailout("Functions are unsupported by backend " ~ BCGenT.stringof);
         }
 
-        if (!insideFunction)
+        if (wrappingCallFn)
         {
             Ret(retval);
             endFunction();
+            insideFunction = false;
         }
         return;
 
@@ -5834,9 +5838,9 @@ static if (is(BCGen))
         typeof(beginCndJmp(cond)) cj;
 
         if (!boolExp)
-    {
+        {
             cj = beginCndJmp(cond);
-    }
+        }
 
         BCBlock ifbody = fs.ifbody ? genBlock(fs.ifbody) : BCBlock.init;
         auto to_end = beginJmp();
