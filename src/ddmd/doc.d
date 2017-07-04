@@ -2177,10 +2177,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 // inserted lazily at the close quote, meaning the rest of the
                 // text is already OK.
             }
-            if (!sc._module.isDocFile && !inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
+            if (!inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
-                immutable blankline = "$(DDOC_BLANKLINE)\n";
-                i = buf.insert(i, blankline);
+                i = buf.insert(i, "$(DDOC_BLANKLINE)");
             }
             leadingBlank = 1;
             iLineStart = i + 1;
