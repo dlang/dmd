@@ -281,7 +281,7 @@ void genEEcode()
     regcon.immed.mval = 0;
     regm_t retregs = 0;    //regmask(eecontext.EEelem->Ety);
     assert(EEStack.offset >= REGSIZE);
-    cdb.append(cod3_stackadj(NULL, EEStack.offset - REGSIZE));
+    cod3_stackadj(cdb, EEStack.offset - REGSIZE);
     cdb.gen1(0x50 + SI);                      // PUSH ESI
     cdb.append(genadjesp(CNIL,EEStack.offset));
     gencodelem(cdb,eecontext.EEelem,&retregs, FALSE);
@@ -390,7 +390,7 @@ void genstackclean(CodeBuilder& cdb,unsigned numpara,regm_t keepmsk)
                 cdb.gen1(0x58 + r);           // POP r
             }
             else
-                cdb.append(cod3_stackadj(CNIL, -numpara));
+                cod3_stackadj(cdb, -numpara);
         }
         stackpush -= numpara;
         cdb.append(genadjesp(CNIL,-numpara));
@@ -2543,7 +2543,7 @@ void callclib(CodeBuilder& cdb,elem *e,unsigned clib,regm_t *pretregs,regm_t kee
             int npush = (npushed + pushebx) * REGSIZE + stackpush;
             if (npush & (STACKALIGN - 1))
             {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
-                cdb.append(cod3_stackadj(CNIL, nalign));
+                cod3_stackadj(cdb, nalign);
             }
         }
         if (pushebx)
@@ -2565,7 +2565,7 @@ void callclib(CodeBuilder& cdb,elem *e,unsigned clib,regm_t *pretregs,regm_t kee
         cdb.append(cgot);                                        // EBX = localgot
         cdb.append(gencs(CNIL,LARGECODE ? 0x9A : 0xE8,0,FLfunc,s));  // CALL s
         if (nalign)
-            cdb.append(cod3_stackadj(CNIL, -nalign));
+            cod3_stackadj(cdb, -nalign);
         calledafunc = 1;
 
 #if SCPP & TX86
@@ -2969,7 +2969,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     if (!usefuncarg && STACKALIGN == 16 && (numpara + stackpush) & (STACKALIGN - 1))
     {
         numalign = STACKALIGN - ((numpara + stackpush) & (STACKALIGN - 1));
-        cdb.append(cod3_stackadj(CNIL, numalign));
+        cod3_stackadj(cdb, numalign);
         cdb.append(genadjesp(CNIL, numalign));
         stackpush += numalign;
         stackpushsave += numalign;
@@ -3045,7 +3045,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             }
             else if (numalign)
             {
-                cdb.append(cod3_stackadj(CNIL, numalign));
+                cod3_stackadj(cdb, numalign);
                 cdb.append(genadjesp(CNIL, numalign));
                 stackpush += numalign;
             }
@@ -3181,7 +3181,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             }
             else
             {
-                cdb.append(cod3_stackadj(CNIL, sz));
+                cod3_stackadj(cdb, sz);
                 cdb.append(genadjesp(CNIL, sz));
                 stackpush += sz;
             }
@@ -3826,7 +3826,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
         elem *e1 = e->E1;
         docommas(cdb,&e1);              // skip over any comma expressions
 
-        cdb.append(cod3_stackadj(CNIL, sz));
+        cod3_stackadj(cdb, sz);
         stackpush += sz;
         cdb.append(genadjesp(CNIL,sz));
 
@@ -4313,7 +4313,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
         codelem(cdb,e,&retregs,FALSE);
         stackpush += sz;
         cdb.append(genadjesp(CNIL,sz));
-        cdb.append(cod3_stackadj(CNIL, sz));
+        cod3_stackadj(cdb, sz);
         unsigned op = xmmstore(tym);
         unsigned r = findreg(retregs);
         cdb.gen2sib(op,modregxrm(0,r - XMM0,4),modregrm(0,4,SP));   // MOV [ESP],r
@@ -4328,7 +4328,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             codelem(cdb,e,&retregs,FALSE);
             stackpush += sz;
             cdb.append(genadjesp(CNIL,sz));
-            cdb.append(cod3_stackadj(CNIL, sz));
+            cod3_stackadj(cdb, sz);
             unsigned op;
             unsigned r;
             switch (tym)
