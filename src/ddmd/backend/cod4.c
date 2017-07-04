@@ -90,9 +90,8 @@ int doinreg(symbol *s, elem *e)
  * This is called just before modifying an EA.
  */
 
-code *modEA(code *c)
+void modEA(CodeBuilder& cdb,code *c)
 {
-    CodeBuilder cdb;
     if ((c->Irm & 0xC0) == 0xC0)        // addressing mode refers to a register
     {
         unsigned reg = c->Irm & 7;
@@ -102,7 +101,6 @@ code *modEA(code *c)
         }
         getregs(cdb,mask[reg]);
     }
-    return cdb.finish();
 }
 
 #if TARGET_WINDOS
@@ -112,17 +110,16 @@ code *modEA(code *c)
  * Gen code for op= for doubles.
  */
 
-STATIC code * opassdbl(elem *e,regm_t *pretregs,unsigned op)
+STATIC void opassdbl(CodeBuilder& cdb,elem *e,regm_t *pretregs,unsigned op)
 {
     static unsigned clibtab[OPdivass - OPpostinc + 1] =
     /* OPpostinc,OPpostdec,OPeq,OPaddass,OPminass,OPmulass,OPdivass       */
     {  CLIBdadd, CLIBdsub, (unsigned)-1,  CLIBdadd,CLIBdsub,CLIBdmul,CLIBddiv };
 
-    CodeBuilder cdb;
     if (config.inline8087)
     {
         opass87(cdb,e,pretregs);
-        return cdb.finish();
+        return;
     }
 
     code cs;
@@ -205,20 +202,18 @@ STATIC code * opassdbl(elem *e,regm_t *pretregs,unsigned op)
     cs.Iop = 0x89;                              // MOV EA,DOUBLEREGS
     fltregs(cdb,&cs,tym);
     fixresult(cdb,e,retregs,pretregs);
-    return cdb.finish();
 }
 
 /****************************
  * Gen code for OPnegass for doubles.
  */
 
-STATIC code * opnegassdbl(elem *e,regm_t *pretregs)
+STATIC void opnegassdbl(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
-    CodeBuilder cdb;
     if (config.inline8087)
     {
         cdnegass87(cdb,e,pretregs);
-        return cdb.finish();
+        return;
     }
     elem *e1 = e->E1;
     tym_t tym = tybasic(e1->Ety);
@@ -226,7 +221,7 @@ STATIC code * opnegassdbl(elem *e,regm_t *pretregs)
     code cs;
 
     getlvalue(cdb,&cs,e1,*pretregs ? DOUBLEREGS | mBX | mCX : 0);
-    cdb.append(modEA(&cs));
+    modEA(cdb,&cs);
     cs.Irm |= modregrm(0,6,0);
     cs.Iop = 0x80;
     cs.IEVoffset1 += sz - 1;
@@ -309,7 +304,6 @@ STATIC code * opnegassdbl(elem *e,regm_t *pretregs)
 
     freenode(e1);
     fixresult(cdb,e,retregs,pretregs);
-    return cdb.finish();
 }
 #endif
 
@@ -491,7 +485,7 @@ void cdeq(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             // If loading result into a register
             if ((cs.Irm & 0xC0) == 0xC0)
             {
-                cdb.append(modEA(&cs));
+                modEA(cdb,&cs);
                 if (sz == 2 * REGSIZE && cs.IFL1 == FLreg)
                     getregs(cdb,cs.IEVsym1->Sregm);
             }
@@ -833,9 +827,9 @@ void cdaddass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             opass87(cdb,e,pretregs);
 #else
         if (op == OPnegass)
-            cdb.append(opnegassdbl(e,pretregs));
+            opnegassdbl(cdb,e,pretregs);
         else
-            cdb.append(opassdbl(e,pretregs,op));
+            opassdbl(cdb,e,pretregs,op);
 #endif
         return;
     }
@@ -880,7 +874,7 @@ void cdaddass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
   if (op == OPnegass)
   {
         getlvalue(cdb,&cs,e1,0);
-        cdb.append(modEA(&cs));
+        modEA(cdb,&cs);
         cs.Irm |= modregrm(0,3,0);
         cs.Iop = op1;
         switch (_tysize[tyml])
@@ -941,7 +935,7 @@ void cdaddass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
      )
   {
         getlvalue(cdb,&cs,e1,0);
-        cdb.append(modEA(&cs));
+        modEA(cdb,&cs);
         cs.IFL2 = FLconst;
         cs.IEV2.Vsize_t = e2->EV.Vint;
         if (sz <= REGSIZE || tyfv(tyml) || opsize)
@@ -1123,7 +1117,7 @@ void cdaddass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
          * e1 -= (x >= y)   ADC EA,-1
          */
         getlvalue(cdb,&cs,e1,0);             // get lvalue
-        cdb.append(modEA(&cs));
+        modEA(cdb,&cs);
         regm_t keepmsk = idxregm(&cs);
         retregs = mPSW;
         if (OTconv(e2->Eoper))
@@ -1153,7 +1147,7 @@ void cdaddass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             retregs &= ~mCX;                    // need CX for shift count
         scodelem(cdb,e->E2,&retregs,0,TRUE);   // get rvalue
         getlvalue(cdb,&cs,e1,retregs);         // get lvalue
-        cdb.append(modEA(&cs));
+        modEA(cdb,&cs);
         cs.Iop = op1;
         if (sz <= REGSIZE || tyfv(tyml))
         {   reg = findreg(retregs);
@@ -1342,7 +1336,7 @@ void cdmulass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         opass87(cdb,e,pretregs);
 #else
-        cdb.append(opassdbl(e,pretregs,op));
+        opassdbl(cdb,e,pretregs,op);
 #endif
         return;
     }
@@ -1633,7 +1627,7 @@ void cdshass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     else
         freenode(e2);
     getlvalue(cdb,&cs,e1,mCX);          // get lvalue, preserve CX
-    cdb.append(modEA(&cs));             // check for modifying register
+    modEA(cdb,&cs);             // check for modifying register
 
     if (*pretregs == 0 ||               // if don't return result
         (*pretregs == mPSW && conste2 && _tysize[tym] <= REGSIZE) ||
@@ -2447,7 +2441,7 @@ ret:
  *      targ    block* or code*
  */
 
-code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
+void longcmp(CodeBuilder& cdb,elem *e,bool jcond,unsigned fltarg,code *targ)
 {
                                          // <=  >   <   >=
     static const unsigned char jopmsw[4] = {JL, JG, JL, JG };
@@ -2470,7 +2464,6 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
     cs.Iflags = 0;
     cs.Irex = 0;
 
-    CodeBuilder cdb;
     code *ce = gennop(CNIL);
     regm_t retregs = ALLREGS;
     regm_t rretregs;
@@ -2600,7 +2593,6 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
 
     cdb.append(ce);
     freenode(e);
-    return cdb.finish();
 }
 
 /*****************************

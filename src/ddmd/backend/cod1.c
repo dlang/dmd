@@ -518,7 +518,7 @@ void logexp(CodeBuilder& cdb,elem *e,int jcond,unsigned fltarg,code *targ)
           (I32 && tybasic(e->E1->Ety) == TYllong && tybasic(e->E2->Ety) == TYllong))
        )
     {
-        cdb.append(longcmp(e,jcond,fltarg,targ));
+        longcmp(cdb,e,jcond,fltarg,targ);
         cgstate.stackclean--;
         return;
     }
@@ -2928,7 +2928,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
          * is stepped on.
          * A better solution is turn this off only inside the cleanup code.
          */
-        !(usednteh & ~NTEHjmonitor) &&
+        !usednteh &&
         (numpara || config.exe == EX_WIN64) &&
         stackpush == 0 &&               // cgstate.funcarg needs to be at top of stack
         (cgstate.funcargtos == ~0 || numpara < cgstate.funcargtos) &&
