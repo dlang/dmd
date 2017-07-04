@@ -1422,23 +1422,21 @@ extern (C++) final class BCTypeVisitor : Visitor
         }
         else if (t.ty == Tarray)
         {
-            auto oldTopLevelType = topLevelType;
-            scope(exit) topLevelType = oldTopLevelType;
-            if (!topLevelType)
+            auto tarr = (cast(TypeDArray) t);
+            auto rt = BCType(BCTypeEnum.Slice, _sharedCtfeState.getSliceIndex(tarr));
+            BCType et;
+
+            if (rt)
             {
-                topLevelType = t;
+                et = _sharedCtfeState.elementType(rt);
             }
-            else
+            if (!et || et.type == BCTypeEnum.Slice || et.type == BCTypeEnum.Array)
             {
-                if (topLevelType.ty == Tarray || topLevelType.ty == Tsarray)
-                {
-                    //("Arrays of slices or Arrays of Arrays are unsupported for now");
-                    return BCType.init;
-                }
+                //TODO FIXME as soon as we support multi-dimensional arrays remove the if above
+                rt = BCType.init;          
             }
 
-            auto tarr = (cast(TypeDArray) t);
-            return BCType(BCTypeEnum.Slice, _sharedCtfeState.getSliceIndex(tarr));
+            return rt;
         }
         else if (t.ty == Tenum)
         {
@@ -1446,24 +1444,21 @@ extern (C++) final class BCTypeVisitor : Visitor
         }
         else if (t.ty == Tsarray)
         {
-            auto oldTopLevelType = topLevelType;
-            scope(exit) topLevelType = oldTopLevelType;
-
-            if (!topLevelType)
-            {
-                topLevelType = t;
-            }
-            else
-            {
-                if (topLevelType.ty == Tarray || topLevelType.ty == Tsarray)
-                {
-                    //("Arrays of slices or Arrays of Arrays are unsupported for now");
-                    return BCType.init;
-                }
-            }
-
             auto tsa = cast(TypeSArray) t;
-            return BCType(BCTypeEnum.Array, _sharedCtfeState.getArrayIndex(tsa));
+            auto rt = BCType(BCTypeEnum.Array, _sharedCtfeState.getArrayIndex(tsa));
+            BCType et;
+
+            if (rt)
+            {
+                et = _sharedCtfeState.elementType(rt);
+            }
+            if (!et || et.type == BCTypeEnum.Slice || et.type == BCTypeEnum.Array)
+            {
+                //TODO FIXME as soon as we support multi-dimensional arrays remove the if above
+                rt = BCType.init;          
+            }
+
+            return rt;
         }
         else if (t.ty == Tpointer)
         {
