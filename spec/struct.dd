@@ -28,8 +28,8 @@ $(SPEC_S Structs and Unions,
         $(CHECK), $(UNCHECK), $(CHECK), $(CHECK))
         $(TROW static members, $(CHECK), $(CHECK), $(UNCHECK),
         $(CHECK), $(CHECK))
-        $(TROW default member initializers, $(CHECK), $(CHECK),
-        $(UNCHECK), $(UNCHECK), $(UNCHECK))
+        $(TROW $(RELATIVE_LINK2 static_struct_init, default member initializers),
+        $(CHECK), $(CHECK), $(UNCHECK), $(UNCHECK), $(UNCHECK))
         $(TROW bit fields, $(UNCHECK), $(UNCHECK), $(CHECK), $(CHECK),
         $(CHECK))
         $(TROW non-virtual member functions, $(CHECK), $(CHECK),
@@ -158,18 +158,28 @@ S* p;     // ok, knowledge of members is not necessary
 
 $(H2 $(LNAME2 static_struct_init, Static Initialization of Structs))
 
-$(P Static struct members are by default initialized to whatever the default
-initializer for the member is, and if none supplied, to the default initializer
-for the member's type. If a static initializer is supplied, the members are
-initialized by the member name, colon, expression syntax. The members may be
-initialized in any order. Initializers for statics must be evaluatable at
-compile time. Members not specified in the initializer list are default
-initialized.)
+        $(P Static struct members are by default initialized to whatever the
+        default initializer for the member is, and if none is supplied, to
+        the default initializer for the member's type.
+        )
 
 ------
-struct S { int a; int b; int c; int d = 7;}
+struct S { int a = 4; int b; }
+static S x; // a is set to 4, b to 0
+------
+
+        $(P If a static initializer is supplied, the
+        members are initialized by the `memberName:expression` syntax.
+        The members may be initialized in any order.
+        Initializers for statics must be evaluatable at
+        compile time. Members not specified in the initializer list are default
+        initialized.
+        )
+
+------
+struct S { int a, b, c, d = 7; }
 static S x = { a:1, b:2};            // c is set to 0, d to 7
-static S z = { c:4, b:5, a:2 , d:5}; // z.a = 2, z.b = 5, z.c = 4, z.d = 5
+static S z = { c:4, b:5, a:2, d:5};  // z.a = 2, z.b = 5, z.c = 4, z.d = 5
 ------
 
 $(P C-style initialization, based on the order of the members in the struct
@@ -180,22 +190,11 @@ static S q = { 1, 2 }; // q.a = 1, q.b = 2, q.c = 0, q.d = 7
 ------
 
         $(P Struct literals can also be used to initialize statics, but
-        they must be evaluable at compile time.)
+        they must be evaluatable at compile time.)
 
 -----
 static S q = S( 1, 2+3 ); // q.a = 1, q.b = 5, q.c = 0, q.d = 7
 -----
-
-        $(P The static initializer syntax can also be used to initialize
-        non-static variables, provided that the member names are not given.
-        The initializer need not be evaluatable at compile time.)
-
-----
-void test(int i)
-{
-    S q = { 1, i }; // q.a = 1, q.b = i, q.c = 0, q.d = 7
-}
-----
 
 
 $(H2 $(LNAME2 static_union_init, Static Initialization of Unions))
@@ -211,6 +210,19 @@ $(P Other members of the union that overlay the initializer, but occupy more
 storage, have the extra storage initialized to zero.)
 
 $(H2 $(LNAME2 dynamic_struct_init, Dynamic Initialization of Structs))
+
+        $(P The $(RELATIVE_LINK2 static_struct_init, static initializer syntax)
+        can also be used to initialize non-static variables.
+        The initializer need not be evaluatable at compile time.)
+
+----
+struct S { int a, b, c, d = 7; }
+
+void test(int i)
+{
+    S q = { 1, i }; // q.a = 1, q.b = i, q.c = 0, q.d = 7
+}
+----
 
         $(P Structs can be dynamically initialized from another
         value of the same type:)
