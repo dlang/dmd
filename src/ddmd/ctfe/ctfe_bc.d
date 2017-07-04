@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 1;
+enum bailoutMessages = 0;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -2550,8 +2550,18 @@ static if (is(BCGen))
                 discardValue = oldDiscardValue;
                 Set(retval, expr);
 
-                bailout(isFloat(expr.type), "Cannot deal with floatingPoint--");
-                Sub3(expr, expr, imm32(1));
+                if (expr.type.type == BCTypeEnum.f23)
+                {
+                    Sub3(expr, expr, BCValue(Imm23f(1.0f)));
+                }
+                else if (expr.type.type == BCTypeEnum.f52)
+                {
+                    Sub3(expr, expr, BCValue(Imm52f(1.0)));
+                }
+                else
+                {
+                    Sub3(expr, expr, imm32(1));
+                }
             }
             break;
         case TOK.TOKequal, TOK.TOKnotequal:
