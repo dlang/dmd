@@ -2179,8 +2179,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             }
             if (!inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
-                static immutable blankline = "$(DDOC_BLANKLINE)";
-                i = buf.insert(i, blankline.ptr, blankline.length);
+                i = buf.insert(i, "$(DDOC_BLANKLINE)");
             }
             leadingBlank = 1;
             iLineStart = i + 1;
