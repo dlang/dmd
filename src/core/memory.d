@@ -233,8 +233,8 @@ struct GC
 
         This can be used to manually allocate arrays. Initial slice size is 0.
 
-        Note: The slice's useable size will not match the block size. Use
-        $(LREF capacity) to retrieve actual useable capacity.
+        Note: The slice's usable size will not match the block size. Use
+        $(LREF capacity) to retrieve actual usable capacity.
 
         Example:
         ----
@@ -510,7 +510,7 @@ struct GC
      *  Extend may also be used to extend slices (or memory blocks with
      *  $(LREF APPENDABLE) info). However, use the return value only
      *  as an indicator of success. $(LREF capacity) should be used to
-     *  retrieve actual useable slice capacity.
+     *  retrieve actual usable slice capacity.
      */
     static size_t extend( void* p, size_t mx, size_t sz, const TypeInfo ti = null ) pure nothrow
     {
