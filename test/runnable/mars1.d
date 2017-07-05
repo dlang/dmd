@@ -1639,6 +1639,29 @@ void test6()
 
 ////////////////////////////////////////////////////////////////////////
 
+int dataflow(int b) {
+  int ret;
+
+  if (b==4)
+    ret = 3;
+  else
+    ret = 5;
+
+  if (ret == 4)
+    return 0;
+  else
+    return 1;
+}
+
+void testeqeqranges()
+{
+    int i = dataflow(4);
+    if (i != 1)
+        assert(0);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -1696,6 +1719,7 @@ int main()
     testdivdiv();
     test5();
     test6();
+    testeqeqranges();
     printf("Success\n");
     return 0;
 }
