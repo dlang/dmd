@@ -70,15 +70,15 @@ static assert((int a){int a4 = a*4; int result; while(a4--) { result++; } return
 uint Sum3Arrays (uint[] a1, uint[] a2, uint[] a3)
 {
   uint result;
-  for(int i; i != a1.length; i++)
+  for(int i; i != cast(int) a1.length; i++)
   {
     result += a1[i];
   }
-  for(int i; i < a2.length; i++)
+  for(int i; i < cast(int) a2.length; i++)
   {
     result += a2[i];
   }
-  for(int i; i != a3.length; i++)
+  for(int i; i != cast(int) a3.length; i++)
   {
     result += a3[i];
   }
@@ -317,19 +317,25 @@ struct iota_range
   {
     return current > end;
   }
-/*
+
   this(uint end) pure
   {
     this(end, 0, 1);
   }
-*/
-  this(uint end, uint begin = 0, uint step = 1) pure
+
+  this(uint end, uint begin) pure
+  {
+    this(end, begin, 1);
+  }
+
+  this(uint end, uint begin, uint step) pure
   {
     assert(step != 0, "cannot have a step of 0");
     this.step = step;
     this.current = begin;
     this.end = end;
   }
+
 }
 
 auto Iota(int end)
@@ -533,10 +539,10 @@ float fmaddf(float a, float b, float c)
     return result;
 }
 
-static assert(fmaddf(0x1.acccccp+2f, 0x1.166666p+3f, 0x1.4cccccp+0f) == 0x1.168f5cp+4f);
-static assert(fmaddf(0x1.acccccp+2f, 0x1.166666p+3f, -0x1.4cccccp+0f) == -0x1.47a8p-7f);
-
+static immutable bool fl1 = fmaddf(0x1.acccccp+2f, 0x1.166666p+3f, 0x1.4cccccp+0f) == 0x1.168f5cp+4f;
+static immutable bool fl2 = fmaddf(0x1.acccccp+2f, 0x1.166666p+3f, -0x1.4cccccp+0f) == -0x1.47a8p-7f;
+static assert(fl1);
+static assert(fl2);
 
 static assert(!__traits(newCTFEGaveUp));
-
 

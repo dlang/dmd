@@ -662,7 +662,7 @@ pure:
         // FIXME remove the lhs.type == BCTypeEnum.Char as soon as we convert correctly.
         assert(lhs.type.type == BCTypeEnum.i32 || lhs.type.type == BCTypeEnum.i64
             || lhs.type.type == BCTypeEnum.f23 || lhs.type.type == BCTypeEnum.Char
-            || lhs.type.type == BCTypeEnum.f52,
+            || lhs.type.type == BCTypeEnum.c8  || lhs.type.type == BCTypeEnum.f52,
             "only i32, i64, f23, f52, is supported for now not: " ~ to!string(lhs.type.type));
         //assert(lhs.type.type == rhs.type.type, lhs.type.type.to!string ~ " != " ~ rhs.type.type.to!string);
 
