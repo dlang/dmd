@@ -513,6 +513,16 @@ struct Print_BCGen
         result ~= indent ~ "Line(" ~ to!string(line) ~ ");\n";
     }
 
+    void IToF32(BCValue _result, BCValue value)
+    {
+        result ~= indent ~ "IToF32(" ~ print(_result) ~ ", " ~ print(value) ~ ");\n";
+    }
+
+    void IToF64(BCValue _result, BCValue value)
+    {
+        result ~= indent ~ "IToF64(" ~ print(_result) ~ ", " ~ print(value) ~ ");\n";
+    }
+
 }
 
 enum genString = q{
