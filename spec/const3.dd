@@ -459,7 +459,7 @@ other qualifier combinations than the ones shown is valid. The same information
 is shown below in tabular format:)
 
     $(TABLE_10 $(ARGS Implicit Conversion of Reference Types),
-    $(VERTROW from/to, $(I mutable), $(D const), $(D shared), $(D const shared), $(D inout), $(D const inout), $(D inout shared), $(D const inout shared), $(D immutable)),
+    $(VERTROW from/to, $(I mutable), $(D const), $(D shared), $(D const shared), $(D inout), $(D const inout), $(D inout shared), $(D const inout shared), $(D immutable))
     $(TROW $(I mutable),            $(YES), $(YES), $(NO),  $(NO),  $(NO),  $(NO),  $(NO),  $(NO),  $(NO) )
     $(TROW $(D const),              $(NO),  $(YES), $(NO),  $(NO),  $(NO),  $(NO),  $(NO),  $(NO),  $(NO) )
     $(TROW $(D const inout),        $(NO),  $(YES), $(NO),  $(NO),  $(NO),  $(YES), $(NO),  $(NO),  $(NO) )
