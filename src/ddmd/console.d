@@ -21,14 +21,23 @@ extern (C) int isatty(int);
 
 enum Color : int
 {
-    black     = 0,
-    red       = 1,
-    green     = 2,
-    blue      = 4,
-    yellow    = red | green,
-    magenta   = red | blue,
-    cyan      = green | blue,
-    white     = red | green | blue,
+    black         = 0,
+    red           = 1,
+    green         = 2,
+    blue          = 4,
+    yellow        = red | green,
+    magenta       = red | blue,
+    cyan          = green | blue,
+    lightGray     = red | green | blue,
+    bright        = 8,
+    darkGray      = bright | black,
+    brightRed     = bright | red,
+    brightGreen   = bright | green,
+    brightBlue    = bright | blue,
+    brightYellow  = bright | yellow,
+    brightMagenta = bright | magenta,
+    brightCyan    = bright | cyan,
+    white         = bright | lightGray,
 }
 
 struct Console
@@ -107,17 +116,16 @@ struct Console
          * Set color and intensity.
          * Params:
          *      color = the color
-         *      bright = turn intensity on
          */
-        void setColor(Color color, bool bright)
+        void setColor(Color color)
         {
             enum FOREGROUND_WHITE = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
             WORD attr = sbi.wAttributes;
             attr = (attr & ~(FOREGROUND_WHITE | FOREGROUND_INTENSITY)) |
-                   ((color & Color.red)   ? FOREGROUND_RED   : 0) |
-                   ((color & Color.green) ? FOREGROUND_GREEN : 0) |
-                   ((color & Color.blue)  ? FOREGROUND_BLUE  : 0) |
-                   (bright ? FOREGROUND_INTENSITY : 0);
+                   ((color & Color.red)    ? FOREGROUND_RED   : 0) |
+                   ((color & Color.green)  ? FOREGROUND_GREEN : 0) |
+                   ((color & Color.blue)   ? FOREGROUND_BLUE  : 0) |
+                   ((color & Color.bright) ? FOREGROUND_INTENSITY : 0);
             SetConsoleTextAttribute(handle, attr);
         }
 
@@ -175,9 +183,9 @@ struct Console
             fprintf(_fp, "\033[%dm", bright);
         }
 
-        void setColor(Color color, bool bright)
+        void setColor(Color color)
         {
-            fprintf(_fp, "\033[%d;%dm", bright, 30 + cast(int)color);
+            fprintf(_fp, "\033[%d;%dm", color & Color.bright ? 1 : 0, 30 + (color & ~Color.bright));
         }
 
         void resetColor()
@@ -199,7 +207,7 @@ struct Console
             assert(0);
         }
 
-        void setColor(Color color, bool bright)
+        void setColor(Color color)
         {
             assert(0);
         }
