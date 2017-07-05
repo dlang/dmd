@@ -103,7 +103,7 @@ void constprop()
 {
     rd_compute();
     intranges();                // compute integer ranges
-    //eqeqranges();               // see if we can eliminate some relationals
+    eqeqranges();               // see if we can eliminate some relationals
     elemdatafree(&eqeqlist);
     elemdatafree(&rellist);
     elemdatafree(&inclist);
