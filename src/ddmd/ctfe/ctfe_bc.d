@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 0;
+enum bailoutMessages = 1;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -5640,16 +5640,25 @@ static if (is(BCGen))
             bailout("We cannot cast pointers");
             return ;
         }
-        else if (fromType.type == BCTypeEnum.i32)
+        else if (fromType.type == BCTypeEnum.c8)
         {
-            if (toType == BCTypeEnum.i64) {} // nop
-            else if (toType == BCTypeEnum.f23)
+            if (toType.type != BCTypeEnum.i32 && toType.type != BCTypeEnum.i64)
+                bailout("CastExp unsupported: " ~ ce.toString);
+        }
+        else if (fromType.type == BCTypeEnum.c32)
+        {
+            if (toType.type != BCTypeEnum.i32 && toType.type != BCTypeEnum.i64)
+                bailout("CastExp unsupported: " ~ ce.toString);
+        }
+        else if (fromType.type == BCTypeEnum.i32 || fromType.type == BCTypeEnum.i64)
+        {
+            if (toType.type == BCTypeEnum.f23)
             {
                 const from = retval;
                 retval = genTemporary(BCType(BCTypeEnum.f23));
                 IToF32(retval, from);
             }
-            else if (toType == BCTypeEnum.f52)
+            else if (toType.type == BCTypeEnum.f52)
             {
                 const from = retval;
                 retval = genTemporary(BCType(BCTypeEnum.f52));
