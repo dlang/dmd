@@ -2690,7 +2690,7 @@ static if (is(BCGen))
                 retval.heapRef = retvalHeapRef;
             }
 
-            if ((isFloat(lhs.type) && isFloat(rhs.type)) || (canHandleBinExpTypes(retval.type.type, lhs.type.type) && canHandleBinExpTypes(retval.type.type, rhs.type.type)) || (e.op == TOKmod && canHandleBinExpTypes(rhs.type.type, retval.type.type)))
+            if ((isFloat(lhs.type) && isFloat(rhs.type) && lhs.type.type == rhs.type.type) || (canHandleBinExpTypes(retval.type.type, lhs.type.type) && canHandleBinExpTypes(retval.type.type, rhs.type.type)) || (e.op == TOKmod && canHandleBinExpTypes(rhs.type.type, retval.type.type)))
             {
                 const oldDiscardValue = discardValue;
                 discardValue = false;
@@ -4338,7 +4338,6 @@ static if (is(BCGen))
         if (re.type.ty == Tfloat32)
         {
             import std.stdio;
-            writeln("F32: ", re.value);
             float tmp = cast(float)re.value;
             retval = imm32(*cast(uint*)&tmp);
             retval.type.type = BCTypeEnum.f23;
@@ -4346,7 +4345,6 @@ static if (is(BCGen))
         else if (re.type.ty == Tfloat64)
         {
             import std.stdio;
-            writeln("F64: ", re.value);
             double tmp = cast(double)re.value;
             retval = BCValue(Imm64(*cast(ulong*)&tmp));
             retval.type.type = BCTypeEnum.f52;
@@ -4591,6 +4589,12 @@ static if (is(BCGen))
             auto rhs_lwr = (!e2.lwr) ? imm32(0) : genExpr(e2.lwr);
             auto lhs_upr = (!e1.upr) ? lhs_length : genExpr(e1.upr);
             auto rhs_upr = (!e2.upr) ? rhs_length : genExpr(e2.upr);
+
+            if (!rhs || !lhs || !lhs_length || !rhs_length)
+            {
+                bailout("SliceAssign could not be generated: " ~ ae.toString);
+                return ;
+            }
 
             {
                 Neq3(BCValue.init, lhs_length, rhs_length);
