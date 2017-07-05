@@ -47,7 +47,8 @@ $(SUBNAV_TEMPLATE
             $(ROOT_DIR)spec/entity.html, Named Character Entities,
             $(ROOT_DIR)spec/memory-safe-d.html, Memory Safety,
             $(ROOT_DIR)spec/abi.html, Application Binary Interface,
-            $(ROOT_DIR)spec/simd.html, Vector Extensions
+            $(ROOT_DIR)spec/simd.html, Vector Extensions,
+            $(ROOT_DIR)spec/betterc.html, Better C
         )
     )
 )

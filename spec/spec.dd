@@ -48,7 +48,8 @@ $(TOC Table of Contents,
 		$(A entity.html, Named Character Entities),
 		$(A memory-safe-d.html, Memory Safety),
 		$(A abi.html, Application Binary Interface),
-		$(A simd.html, Vector Extensions)
+		$(A simd.html, Vector Extensions),
+		$(A betterc.html, Better C)
 	))
 )
 
