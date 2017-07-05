@@ -1737,9 +1737,17 @@ STATIC void setup_comdat(Symbol *s)
         const char *p = cpp_mangle(s);
         // Create a section for the comdat symbol with the SHF_GROUP bit set
         s->Sseg = ElfObj::getsegment(".text.", p, SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR|SHF_GROUP, align);
-        assert(MAP_SEG2SECIDX(s->Sseg) > groupsecidx); // no existing section with identical mangling
+        /* If that text section already existed, we've hit one of the few occurences of different
+         * symbols with identical mangling. This should not happen, but as a workaround we leave the
+         * just created section group empty and reuse the existing one.  Also see
+         * https://issues.dlang.org/show_bug.cgi?id=17352,
+         * https://issues.dlang.org/show_bug.cgi?id=14831, and
+         * https://issues.dlang.org/show_bug.cgi?id=17339.
+        */
+        const bool collidingSection = MAP_SEG2SECIDX(s->Sseg) < groupsecidx;
         // add to section group
-        SegData[groupseg]->SDbuf->write32(MAP_SEG2SECIDX(s->Sseg));
+        if (!collidingSection)
+            SegData[groupseg]->SDbuf->write32(MAP_SEG2SECIDX(s->Sseg));
 
         // Create a weak symbol for the comdat
         IDXSTR namidx = Obj::addstr(symtab_strings, p);
@@ -1754,8 +1762,17 @@ STATIC void setup_comdat(Symbol *s)
 
         if (s->Salignment > align)
             SegData[s->Sseg]->SDalignment = s->Salignment;
-        SegData[s->Sseg]->SDsym = s;
-        SegData[s->Sseg]->SDassocseg = groupseg;
+        if (collidingSection)
+        {
+            // existing section symbol and associated group
+            assert(SegData[s->Sseg]->SDsym);
+            assert(SegData[s->Sseg]->SDassocseg);
+        }
+        else
+        {
+            SegData[s->Sseg]->SDsym = s;
+            SegData[s->Sseg]->SDassocseg = groupseg;
+        }
         return;
 #endif
     }
