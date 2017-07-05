@@ -134,7 +134,7 @@ extern (C++) class Section
                 buf.writeByte((c == '_') ? ' ' : c);
             }
             escapeStrayParenthesis(loc, buf, o);
-            buf.writestring(":)\n");
+            buf.writestring(")");
         }
         else
         {
@@ -145,7 +145,7 @@ extern (C++) class Section
         buf.write(_body, bodylen);
         escapeStrayParenthesis(loc, buf, o);
         highlightText(sc, a, buf, o);
-        buf.writestring(")\n");
+        buf.writestring(")");
     }
 }
 
@@ -252,7 +252,7 @@ extern (C++) final class ParamSection : Section
                         escapeStrayParenthesis(loc, buf, o);
                         highlightCode(sc, a, buf, o);
                     }
-                    buf.writestring(")\n");
+                    buf.writestring(")");
                     buf.writestring("$(DDOC_PARAM_DESC ");
                     {
                         size_t o = buf.offset;
@@ -262,7 +262,7 @@ extern (C++) final class ParamSection : Section
                     }
                     buf.writestring(")");
                 }
-                buf.writestring(")\n");
+                buf.writestring(")");
                 namelen = 0;
                 if (p >= pend)
                     break;
@@ -288,7 +288,7 @@ extern (C++) final class ParamSection : Section
         if (namelen)
             goto L1;
         // write out last one
-        buf.writestring(")\n");
+        buf.writestring(")");
         TypeFunction tf = a.dim == 1 ? isTypeFunction(s) : null;
         if (tf)
         {
@@ -438,7 +438,7 @@ extern (C++) void gendocfile(Module m)
     //printf("BODY= '%.*s'\n", buf.offset, buf.data);
     Macro.define(&m.macrotable, "BODY", buf.peekSlice());
     OutBuffer buf2;
-    buf2.writestring("$(DDOC)\n");
+    buf2.writestring("$(DDOC)");
     size_t end = buf2.offset;
     m.macrotable.expand(&buf2, 0, &end, null, 0);
     version (all)
@@ -801,7 +801,7 @@ extern (C++) void emitMemberComments(ScopeDsymbol sds, OutBuffer* buf, Scope* sc
         buf.offset = offset1;
     }
     else
-        buf.writestring(")\n");
+        buf.writestring(")");
 }
 
 extern (C++) void emitProtection(OutBuffer* buf, Prot prot)
@@ -1737,7 +1737,7 @@ struct DocComment
                 buf.write(sec._body, sec.bodylen);
                 escapeStrayParenthesis(loc, buf, o);
                 highlightText(sc, a, buf, o);
-                buf.writestring(")\n");
+                buf.writestring(")");
             }
             else
                 sec.write(loc, &this, sc, a, buf);
@@ -1780,7 +1780,7 @@ struct DocComment
             buf.writestring("\n");
         }
         else
-            buf.writestring(")\n");
+            buf.writestring(")");
     }
 }
 
