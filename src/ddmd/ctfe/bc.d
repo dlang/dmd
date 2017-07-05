@@ -1676,8 +1676,8 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
     BCValue* ev1 = null, BCValue* ev2 = null, BCValue* ev3 = null,
     BCValue* ev4 = null, const RE* errors = null,
     long[] stackPtr = null, uint stackOffset = 0,
-    DebugCommand function() reciveCommand = {return DebugCommand(DebugOrder.Nothing);},
-    BCValue* debugOutput = null)  @trusted
+/+    DebugCommand function() reciveCommand = {return DebugCommand(DebugOrder.Nothing);},
+    BCValue* debugOutput = null+/)  @trusted
 {
     __gshared static uint callDepth;
     import std.conv;
