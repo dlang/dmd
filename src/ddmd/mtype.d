@@ -2717,6 +2717,23 @@ extern (C++) abstract class Type : RootObject
      */
     final Expression noMember(Scope* sc, Expression e, Identifier ident, int flag)
     {
+        //printf("Type.noMember(e: %s ident: %s flag: %d)\n", e.toChars(), ident.toChars(), flag);
+
+        static __gshared int nest;      // https://issues.dlang.org/show_bug.cgi?id=17380
+
+        static Expression returnExp(Expression e)
+        {
+            --nest;
+            return e;
+        }
+
+        if (++nest > 500)
+        {
+            .error(e.loc, "cannot resolve identifier `%`", ident.toChars());
+            return returnExp(flag & 1 ? null : new ErrorExp());
+        }
+
+
         assert(ty == Tstruct || ty == Tclass);
         auto sym = toDsymbol(sc).isAggregateDeclaration();
         assert(sym);
@@ -2744,7 +2761,7 @@ extern (C++) abstract class Type : RootObject
                  */
                 e = build_overload(e.loc, sc, e, null, fd);
                 e = new DotIdExp(e.loc, e, ident);
-                return e.semantic(sc);
+                return returnExp(e.semantic(sc));
             }
 
             /* Look for overloaded opDispatch to see if we should forward request
@@ -2759,7 +2776,7 @@ extern (C++) abstract class Type : RootObject
                 if (!td)
                 {
                     fd.error("must be a template opDispatch(string s), not a %s", fd.kind());
-                    return new ErrorExp();
+                    return returnExp(new ErrorExp());
                 }
                 auto se = new StringExp(e.loc, cast(char*)ident.toChars());
                 auto tiargs = new Objects();
@@ -2775,7 +2792,7 @@ extern (C++) abstract class Type : RootObject
                 e = dti.semanticY(sc, 0);
                 if (flag & 1 && global.endGagging(errors))
                     e = null;
-                return e;
+                return returnExp(e);
             }
 
             /* See if we should forward to the alias this.
@@ -2787,10 +2804,10 @@ extern (C++) abstract class Type : RootObject
                  */
                 e = resolveAliasThis(sc, e);
                 auto die = new DotIdExp(e.loc, e, ident);
-                return die.semanticY(sc, flag & 1);
+                return returnExp(die.semanticY(sc, flag & 1));
             }
         }
-        return Type.dotExp(sc, e, ident, flag);
+        return returnExp(Type.dotExp(sc, e, ident, flag));
     }
 
     Expression defaultInit(Loc loc = Loc())
