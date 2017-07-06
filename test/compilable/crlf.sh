@@ -46,9 +46,6 @@ printf 'static assert(wstr == "%s");\n' 'foo\nbar\nbaz\n' >> ${fn}
 printf 'enum dstr = q"(\r\nfoo\r\nbar\nbaz\r\n)";\n' >> ${fn}
 printf 'static assert(dstr == "%s");\n' '\nfoo\nbar\nbaz\n' >> ${fn}
 
-printf 'enum xstr = x"61 62\n63\r\n64";\n' >> ${fn}
-printf 'static assert(xstr == "abcd");\n' >> ${fn}
-
 $DMD -c -D -Dd${dir} -m${MODEL} -of${dir}/${name}a${OBJ} ${fn} || exit 1
 
 rm -f ${dir}/${name}a${OBJ} ${dir}/${name}.html ${fn}

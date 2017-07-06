@@ -1,0 +1,3 @@
+HexString literals are deprecated.
+
+$(LINK2 http://dlang.org/spec/lex.html#HexString, HexString literals) are deprecated. Instead, the $(LINK2 https://dlang.org/phobos/std_conv.html#hexString, hexString) template must be used.
