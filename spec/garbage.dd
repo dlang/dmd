@@ -107,7 +107,7 @@ $(SPEC_S Garbage Collection,
 	)
 
 	$(P These constraints are addressed by techniques outlined
-	in $(DPLLINK https://wiki.dlang.org/Memory_Management, Memory Management), including the mechanisms provided by
+	in $(LINK2 https://wiki.dlang.org/Memory_Management, Memory Management), including the mechanisms provided by
 	D to control allocations outside the GC heap.
 	)
 

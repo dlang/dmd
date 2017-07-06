@@ -247,7 +247,7 @@ $(H2 $(LNAME2 x86_64_vec, X86 And X86$(UNDERSCORE)64 Vector Extension Implementa
 $(H3 $(LNAME2 vector_op_intrinsics, Vector Operation Intrinsics))
 
 	$(P See $(CORE_SIMD) for the supported intrinsics.)
-$(SPEC_SUBNAV_PREV_NEXT abi, Application Binary Interface)
+$(SPEC_SUBNAV_PREV abi, Application Binary Interface)
 )
 
 Macros:
