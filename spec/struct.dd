@@ -178,8 +178,8 @@ static S x; // a is set to 4, b to 0
 
 ------
 struct S { int a, b, c, d = 7; }
-static S x = { a:1, b:2};            // c is set to 0, d to 7
-static S z = { c:4, b:5, a:2, d:5};  // z.a = 2, z.b = 5, z.c = 4, z.d = 5
+static S x = { a:1, b:2 };           // c is set to 0, d to 7
+static S z = { c:4, b:5, a:2, d:5 }; // z.a = 2, z.b = 5, z.c = 4, z.d = 5
 ------
 
 $(P C-style initialization, based on the order of the members in the struct
@@ -189,8 +189,14 @@ declaration, is also supported:)
 static S q = { 1, 2 }; // q.a = 1, q.b = 2, q.c = 0, q.d = 7
 ------
 
+        $(P The two styles can be combined:)
+
+------
+static S q = { 1, d:3 }; // q.a = 1, q.b = 0, q.c = 0, q.d = 3
+------
+
         $(P Struct literals can also be used to initialize statics, but
-        they must be evaluatable at compile time.)
+        they must be evaluable at compile time.)
 
 -----
 static S q = S( 1, 2+3 ); // q.a = 1, q.b = 5, q.c = 0, q.d = 7
@@ -213,14 +219,14 @@ $(H2 $(LNAME2 dynamic_struct_init, Dynamic Initialization of Structs))
 
         $(P The $(RELATIVE_LINK2 static_struct_init, static initializer syntax)
         can also be used to initialize non-static variables.
-        The initializer need not be evaluatable at compile time.)
+        The initializer need not be evaluable at compile time.)
 
 ----
 struct S { int a, b, c, d = 7; }
 
 void test(int i)
 {
-    S q = { 1, i }; // q.a = 1, q.b = i, q.c = 0, q.d = 7
+    S q = { 1, b:i }; // q.a = 1, q.b = i, q.c = 0, q.d = 7
 }
 ----
 
@@ -252,14 +258,12 @@ struct S
 
     static S $(CODE_HIGHLIGHT opCall)(S v)
     {
-        S s;
-        s.a = v.a + 1;
-        return s;
+        assert(0);
     }
 }
 
-S s = 3; // sets s.a to 3
-S t = s; // sets t.a to 3, S.opCall(s) is not called
+S s = 3; // sets s.a to 3 using S.opCall(int)
+S t = s; // sets t.a to 3, S.opCall(S) is not called
 ----
 
 $(H2 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
