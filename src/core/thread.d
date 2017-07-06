@@ -2043,7 +2043,7 @@ extern (C) void thread_init()
  */
 extern (C) void thread_term()
 {
-    try destroy(Thread.sm_main); catch (Exception) {}
+    destroy(Thread.sm_main);
     Thread.sm_main = null;
 
     assert(Thread.sm_tbeg && Thread.sm_tlen == 1);
