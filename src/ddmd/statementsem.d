@@ -841,11 +841,13 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         if (tab.ty == Tsarray)
                         {
                             TypeSArray ta = cast(TypeSArray)tab;
-                            IntRange dimrange = getIntRange(ta.dim);
+                            auto size = ta.dim.toInteger();
+                            auto max_value = size > 0 ? size - 1 : 0;
+                            auto dimrange = IntRange(SignExtendedNumber.fromInteger(max_value));
                             if (!IntRange.fromType(var.type).contains(dimrange))
                             {
                                 fs.error("index type `%s` cannot cover index range 0..%llu",
-                                    p.type.toChars(), ta.dim.toInteger());
+                                    p.type.toChars(), max_value);
                                 goto case Terror;
                             }
                             fs.key.range = new IntRange(SignExtendedNumber(0), dimrange.imax);
