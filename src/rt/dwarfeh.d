@@ -13,6 +13,7 @@ module rt.dwarfeh;
 
 version (Posix):
 
+import rt.dmain2: _d_print_throwable;
 import rt.unwind;
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -217,11 +218,13 @@ extern(C) void _d_throwdwarf(Throwable o)
         case _URC_END_OF_STACK:
             /* Unwound the stack without encountering a catch clause.
              * In C++, this would mean call uncaught_exception().
-             * In D, this should never happen since everything is enclosed
-             * by a top-level try/catch.
+             * In D, this can happen only if `rt_trapException` is cleared
+             * since otherwise everything is enclosed by a top-level
+             * try/catch.
              */
             fprintf(stderr, "uncaught exception\n");
-            terminate(__LINE__);                          // should never happen
+            _d_print_throwable(o);
+            abort();
             assert(0);
 
         case _URC_FATAL_PHASE1_ERROR:
