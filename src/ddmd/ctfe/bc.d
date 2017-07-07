@@ -140,8 +140,8 @@ enum LongInst : ushort
     FLe32,
     FGt32,
     FGe32,
-//    F32ToF64
-//    F32ToI32,
+    F32ToF64,
+    F32ToI,
     IToF32,
 
     FAdd64,
@@ -155,8 +155,8 @@ enum LongInst : ushort
     FLe64,
     FGt64,
     FGe64,
-//    F64ToF32
-//    F64ToI64,
+    F64ToF32,
+    F64ToI,
     IToF64,
 
     SetHighImm,
@@ -551,20 +551,14 @@ pure:
     void Assert(BCValue value, BCValue err)
     {
         BCValue _msg;
-        if(err.vType == BCValueType.Error)
+        if (isStackValueOrParameter(err))
         {
-            _msg = genTemporary(i32Type);
-            Set(_msg, imm32(err.imm32));
-        }
-        else if (isStackValueOrParameter(err))
-        {
-            //assert(0, "err.vType is not Error but: " ~ err.vType.to!string);
-            _msg = err;
+            assert(0, "err.vType is not Error but: " ~ err.vType.to!string);
         }
 
         if (value)
         {
-            emitLongInst(LongInst64(LongInst.Assert, pushOntoStack(value).stackAddr, _msg.stackAddr));
+            emitLongInst(LongInst64(LongInst.Assert, pushOntoStack(value).stackAddr, err.imm32));
         }
         else
         {
@@ -604,13 +598,13 @@ pure:
         switch(commentLength)
         {
             case 3 :
-                byteCodeArray[ip] |= comment[idx+2] << 16;
+                byteCodeArray[ip] |= comment[idx+2] << 24;
             goto case;
             case 2 :
-                byteCodeArray[ip] |= comment[idx+1] << 8;
+                byteCodeArray[ip] |= comment[idx+1] << 16;
             goto case;
             case 1 :
-                 byteCodeArray[ip++] |= comment[idx];
+                 byteCodeArray[ip++] |= comment[idx] << 8;
             goto case;
             case 0 :
             break;
@@ -1347,6 +1341,16 @@ string printInstructions(const int* startInstructions, uint length) pure
                 result ~= "FGe32 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
             break;
+        case LongInst.F32ToF64:
+            {
+                result ~= "F32ToF64 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+        case LongInst.F32ToI:
+            {
+                result ~= "F32ToI SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
         case LongInst.IToF32:
             {
                 result ~= "IToF32 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
@@ -1408,9 +1412,19 @@ string printInstructions(const int* startInstructions, uint length) pure
                 result ~= "FGe64 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
             break;
+        case LongInst.F64ToF32:
+            {
+                result ~= "F64ToF32 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+        case LongInst.F64ToI:
+            {
+                result ~= "F64ToI SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
         case LongInst.IToF64:
             {
-                result ~= "ItoF64 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+                result ~= "IToF64 SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
             break;
         case LongInst.FAdd64:
@@ -1441,8 +1455,7 @@ string printInstructions(const int* startInstructions, uint length) pure
 
         case LongInst.Assert:
             {
-                result ~= "Assert SP[" ~ to!string(hi & 0xFFFF) ~ "], ErrNo SP[" ~ to!string(
-                    hi >> 16) ~ "]\n";
+                result ~= "Assert SP[" ~ to!string(lw >> 16) ~ "], ErrNo #" ~  to!string(hi) ~ "\n";
             }
             break;
         case LongInst.StrEq:
@@ -1612,7 +1625,7 @@ string printInstructions(const int* startInstructions, uint length) pure
                 // alignLengthBy2
                 assert(alignedLength <= length, "comment (" ~ to!string(alignedLength) ~") longer then code (" ~ to!string(length) ~ ")");
 
-                foreach(c4i; pos .. pos + ((commentLength + 3) / 4))
+                foreach(c4i; pos .. pos + alignedLength)
                 {
                     result ~= *(cast(const(char[4])*) &arr[c4i]);
                 }
@@ -1704,7 +1717,18 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
             writeln("before pushing args");
         }
     long* stackP = &stack[0] + (stackOffset / 4);
-
+/+
+    struct Stack
+    {
+        long* opIndex(size_t idx) pure
+        {
+            long* result = &stack[0] + (stackOffset / 4) + idx;
+            debug if (!__ctfe) { writeln("SP[", idx*4, "] = ", *result); }
+            return result;
+        }
+    }
+    auto stackP = Stack();
++/
     size_t argOffset = 4;
     foreach (arg; args)
     {
@@ -1712,13 +1736,13 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
         {
         case BCTypeEnum.i32, BCTypeEnum.f23:
             {
-                *(stackP + argOffset / 4) = arg.imm32;
+                *(&stackP[argOffset / 4]) = arg.imm32;
                 argOffset += uint.sizeof;
             }
             break;
         case BCTypeEnum.i64, BCTypeEnum.f52:
             {
-                *(stackP + argOffset / 4) = arg.imm64;
+                *(&stackP[0] + argOffset / 4) = arg.imm64;
                 argOffset += uint.sizeof;
                 //TODO find out why adding ulong.sizeof does not work here
                 //make variable-sized stack possible ... if it should be needed
@@ -1728,7 +1752,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
         case BCTypeEnum.Struct, BCTypeEnum.String, BCTypeEnum.Array, BCTypeEnum.Ptr:
             {
                 // This might need to be removed agaein ?
-                *(stackP + argOffset / 4) = arg.heapAddr.addr;
+                *(&stackP[argOffset / 4]) = arg.heapAddr.addr;
                 argOffset += uint.sizeof;
             }
             break;
@@ -1822,10 +1846,10 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
         const uint lhsOffset = hi & 0xFFFF;
         const uint rhsOffset = (hi >> 16) & 0xFFFF;
 
-        auto lhsRef = (stackP + (lhsOffset / 4));
-        auto rhs = (stackP + (rhsOffset / 4));
-        auto lhsStackRef = (stackP + (opRefOffset / 4));
-        auto opRef = stackP + (opRefOffset / 4);
+        auto lhsRef = (&stackP[(lhsOffset / 4)]);
+        auto rhs = (&stackP[(rhsOffset / 4)]);
+        auto lhsStackRef = (&stackP[(opRefOffset / 4)]);
+        auto opRef = &stackP[(opRefOffset / 4)];
 
         if (!lw)
         { // Skip NOPS
@@ -1860,27 +1884,27 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
 
         case LongInst.ImmAnd:
             {
-                (*lhsStackRef) &= hi;
+                (*lhsStackRef) &= cast(uint)hi;
             }
             break;
         case LongInst.ImmAnd32:
             {
-                *lhsStackRef = (cast(uint)*lhsStackRef) & hi;
+                *lhsStackRef = (cast(uint)*lhsStackRef) & cast(uint)hi;
             }
             break;
         case LongInst.ImmOr:
             {
-                (*lhsStackRef) |= hi;
+                (*lhsStackRef) |= cast(uint)hi;
             }
             break;
         case LongInst.ImmXor:
             {
-                (*lhsStackRef) ^= hi;
+                (*lhsStackRef) ^= cast(uint)hi;
             }
             break;
         case LongInst.ImmXor32:
             {
-                *lhsStackRef = (cast(uint)*lhsStackRef) ^ hi;
+                *lhsStackRef = (cast(uint)*lhsStackRef) ^ cast(uint)hi;
             }
             break;
 
@@ -1969,7 +1993,6 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 {
                     cond = false;
                 }
-
             }
             break;
         case LongInst.ImmGe:
@@ -1982,7 +2005,6 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 {
                     cond = false;
                 }
-
             }
             break;
 
@@ -2107,6 +2129,22 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 cond = flhs <= frhs;
             }
             break;
+        case LongInst.F32ToF64 :
+            {
+                uint rhs32 = (*rhs & uint.max);
+                float frhs = *cast(float*)&rhs32;
+                double flhs = frhs;
+                *lhsRef = *cast(long*)flhs;
+            }
+            break;
+        case LongInst.F32ToI :
+            {
+                uint rhs32 = (*rhs & uint.max);
+                float frhs = *cast(float*)&rhs32;
+                uint _lhs = cast(int)frhs;
+                *lhsRef = _lhs;
+            }
+            break;
         case LongInst.IToF32 :
             {
                 float frhs = *rhs;
@@ -2183,9 +2221,9 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
         case LongInst.FEq64 :
             {
                 ulong _lhs = *lhsRef;
-                double flhs = *cast(float*)&_lhs;
+                double flhs = *cast(double*)&_lhs;
                 ulong _rhs = *rhs;
-                double frhs = *cast(float*)&_rhs;
+                double frhs = *cast(double*)&_rhs;
 
                 cond = flhs == frhs;
             }
@@ -2193,9 +2231,9 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
         case LongInst.FNeq64 :
             {
                 ulong _lhs = *lhsRef;
-                double flhs = *cast(float*)&_lhs;
+                double flhs = *cast(double*)&_lhs;
                 ulong _rhs = *rhs;
-                double frhs = *cast(float*)&_rhs;
+                double frhs = *cast(double*)&_rhs;
 
                 cond = flhs < frhs;
             }
@@ -2203,9 +2241,9 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
         case LongInst.FLt64 :
             {
                 ulong _lhs = *lhsRef;
-                double flhs = *cast(float*)&_lhs;
+                double flhs = *cast(double*)&_lhs;
                 ulong _rhs = *rhs;
-                double frhs = *cast(float*)&_rhs;
+                double frhs = *cast(double*)&_rhs;
 
                 cond = flhs < frhs;
             }
@@ -2213,9 +2251,9 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
         case LongInst.FLe64 :
             {
                 ulong _lhs = *lhsRef;
-                double flhs = *cast(float*)&_lhs;
+                double flhs = *cast(double*)&_lhs;
                 ulong _rhs = *rhs;
-                double frhs = *cast(float*)&_rhs;
+                double frhs = *cast(double*)&_rhs;
 
                 cond = flhs <= frhs;
             }
@@ -2223,9 +2261,9 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
         case LongInst.FGt64 :
             {
                 ulong _lhs = *lhsRef;
-                double flhs = *cast(float*)&_lhs;
+                double flhs = *cast(double*)&_lhs;
                 ulong _rhs = *rhs;
-                double frhs = *cast(float*)&_rhs;
+                double frhs = *cast(double*)&_rhs;
 
                 cond = flhs > frhs;
             }
@@ -2233,14 +2271,27 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
         case LongInst.FGe64 :
             {
                 ulong _lhs = *lhsRef;
-                double flhs = *cast(float*)&_lhs;
+                double flhs = *cast(double*)&_lhs;
                 ulong _rhs = *rhs;
-                double frhs = *cast(float*)&_rhs;
+                double frhs = *cast(double*)&_rhs;
 
                 cond = flhs >= frhs;
             }
             break;
 
+        case LongInst.F64ToF32 :
+            {
+                double frhs = *cast(double*)rhs;
+                float flhs = frhs;
+                *lhsRef = *cast(uint*)&flhs;
+            }
+            break;
+        case LongInst.F64ToI :
+            {
+                float frhs = *cast(double*)rhs;
+                *lhsRef = cast(long)frhs;
+            }
+            break;
         case LongInst.IToF64 :
             {
                 double frhs = cast(double)*rhs;
@@ -2316,16 +2367,16 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
 
         case LongInst.Assert:
             {
-                if (*lhsRef == 0)
+                if (*opRef == 0)
                 {
-                    BCValue retval = imm32((*rhs) & uint.max);
+                    BCValue retval = imm32(hi);
                     retval.vType = BCValueType.Error;
 
                     static if (is(RetainedError))
                     {
-                        if (*rhs - 1 < bc_max_errors)
+                        if (hi - 1 < bc_max_errors)
                         {
-                            auto err = errors[cast(uint)(*rhs - 1)];
+                            auto err = errors[cast(uint)(hi - 1)];
 
                             *ev1 = imm32(stackP[err.v1.addr / 4] & uint.max);
                             *ev2 = imm32(stackP[err.v2.addr / 4] & uint.max);
@@ -2475,7 +2526,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
             break;
         case LongInst.HeapStore32:
             {
-                assert(*lhsRef, "trying to deref null pointer SP[" ~ to!string((lhsRef - stackP)*4) ~ "] at : &" ~ to!string (ip - 2));
+                assert(*lhsRef, "trying to deref null pointer SP[" ~ to!string((lhsRef - &stackP[0])*4) ~ "] at : &" ~ to!string (ip - 2));
                 (*(heapPtr._heap.ptr + *lhsRef)) = (*rhs) & 0xFF_FF_FF_FF;
             }
             break;
@@ -2496,7 +2547,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
 
         case LongInst.HeapStore64:
             {
-                assert(*lhsRef, "trying to deref null pointer SP[" ~ to!string((lhsRef - stackP)*4) ~ "] at : &" ~ to!string (ip - 2));
+                assert(*lhsRef, "trying to deref null pointer SP[" ~ to!string((lhsRef - &stackP[0])*4) ~ "] at : &" ~ to!string (ip - 2));
                 (*(heapPtr._heap.ptr + *lhsRef)) = (*rhs) & 0xFF_FF_FF_FF;
                 (*(heapPtr._heap.ptr + 4 + *lhsRef)) = ((*rhs & 0xFF_FF_FF_FF_00_00_00_00) >> 32);
             }
@@ -2645,7 +2696,8 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 auto cpySrc = cast(uint) *rhs;
                 auto cpyDst = cast(uint) *lhsRef;
 
-                assert(cpyDst >= cpySrc + cpySize, "Overlapping MemCpy is not supported");
+                assert(cpyDst >= cpySrc + cpySize, "Overlapping MemCpy is not supported --- src: " ~ to!string(cpySrc)
+                    ~ " dst: " ~ to!string(cpyDst) ~ " size: " ~ to!string(cpySize));
                 heapPtr._heap[cpyDst .. cpyDst + cpySize] = heapPtr._heap[cpySrc .. cpySrc + cpySize];
             }
             break;
