@@ -2,6 +2,8 @@ LPAREN = (
 RPAREN = )
 BACKTICK = `
 DOLLAR = $
+LF =
+$(LF)
 
 ESCAPES =
   /</&lt;/
@@ -528,18 +530,18 @@ DDOC =
       </article>
     </div>
   </body>
-</html>
+</html>$(LF)
 
 DDOC_MODULE_MEMBERS = <section class="section ddoc_module_members_section">
   <div class="ddoc_module_members">
     $(DDOC_MEMBERS $0)
   </div>
-</section>
+</section>$(LF)
 
-DDOC_CLASS_MEMBERS = $(DDOC_MEMBERS $0)
-DDOC_STRUCT_MEMBERS = $(DDOC_MEMBERS $0)
-DDOC_ENUM_MEMBERS = $(DDOC_MEMBERS $0)
-DDOC_TEMPLATE_MEMBERS = $(DDOC_MEMBERS $0)
+DDOC_CLASS_MEMBERS = $(DDOC_MEMBERS $0)$(LF)
+DDOC_STRUCT_MEMBERS = $(DDOC_MEMBERS $0)$(LF)
+DDOC_ENUM_MEMBERS = $(DDOC_MEMBERS $0)$(LF)
+DDOC_TEMPLATE_MEMBERS = $(DDOC_MEMBERS $0)$(LF)
 
 DDOC_MEMBERS = <ul class="ddoc_members">
   $0
@@ -580,20 +582,20 @@ DDOC_DECL_DD = <div class="ddoc_decl">
 
 DDOC_SECTIONS = <section class="section ddoc_sections">
   $0
-</section>
+</section>$(LF)
 
 DDOC_SUMMARY = <div class="ddoc_summary">
   <p class="para">
     $0
   </p>
-</div>
+</div>$(LF)
 
 DDOC_DESCRIPTION = <div class="ddoc_description">
   <h4>Discussion</h4>
   <p class="para">
     $0
   </p>
-</div>
+</div>$(LF)
 
 DDOC_EXAMPLES = <div class="ddoc_examples">
   <h4>Examples</h4>
@@ -607,7 +609,7 @@ DDOC_RETURNS = <div class="ddoc_returns">
   <p class="para">
     $0
   </p>
-</div>
+</div>$(LF)
 
 DDOC_PARAMS = <div class="ddoc_params">
   <h4>Parameters</h4>
@@ -616,17 +618,17 @@ DDOC_PARAMS = <div class="ddoc_params">
       $0
     </tbody>
   </table>
-</div>
+</div>$(LF)
 
 DDOC_PARAM_ROW = <tr class="ddoc_param_row">
   $0
-</tr>
+</tr>$(LF)
 
 DDOC_PARAM_ID = <td scope="ddoc_param_id">
   <code class="code">
     <em class="term">$0</em>
   </code>
-</td>
+</td>$(LF)
 
 DDOC_PARAM_DESC = <td>
   <div class="ddoc_param_desc">
@@ -641,56 +643,56 @@ DDOC_LICENSE = <div class="ddoc_license">
   <p class="para">
     $0
   </p>
-</div>
+</div>$(LF)
 
 DDOC_AUTHORS = <div class="ddoc_authors">
   <h4>Authors</h4>
   <p class="para">
     $0
   </p>
-</div>
+</div>$(LF)
 
 DDOC_BUGS = <div class="ddoc_bugs">
   <h4>Bugs</h4>
   <p class="para">
     $0
   </p>
-</div>
+</div>$(LF)
 
 DDOC_COPYRIGHT = <div class="ddoc_copyright">
   <h4>Copyright</h4>
   <p class="para">
     $0
   </p>
-</div>
+</div>$(LF)
 
 DDOC_DATE = <div class="ddoc_date">
   <h4>Date</h4>
   <p class="para">
     $0
   </p>
-</div>
+</div>$(LF)
 
 DDOC_DEPRECATED = <div class="ddoc_deprecated">
   <h4>Deprecated</h4>
   <p class="para">
     $0
   </p>
-</div>
+</div>$(LF)
 
 DDOC_HISTORY = <div class="ddoc_history">
   <h4>History</h4>
   <p class="para">
     $0
   </p>
-</div>
+</div>$(LF)
 
 DDOC_SEE_ALSO = <div class="ddoc_see_also">
   <h4>See Also</h4>
   <p class="para">
     $0
   </p>
-</div>
+</div>$(LF)
 
 DDOC_STANDARDS = <div class="ddoc_standards">
   <h4>Standards</h4>
@@ -717,9 +719,9 @@ DDOC_SECTION = <div class="ddoc_section">
   <p class="para">
     $0
   </p>
-</div>
+</div>$(LF)
 
-DDOC_SECTION_H = <span class="ddoc_section_h">$0</span>
+DDOC_SECTION_H = <span class="ddoc_section_h">$0:</span>$(LF)
 
 DDOC_DITTO = <br>
 $0
