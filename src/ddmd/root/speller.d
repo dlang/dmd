@@ -32,7 +32,7 @@ __gshared const(char)* idchars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRST
  *      true    if the cost is less or equal 0
  *      false   otherwise
  */
-bool combineSpellerResult(ref void* p, ref int cost, void* np, int ncost)
+private bool combineSpellerResult(ref void* p, ref int cost, void* np, int ncost)
 {
     if (np && ncost < cost)
     {
@@ -44,7 +44,7 @@ bool combineSpellerResult(ref void* p, ref int cost, void* np, int ncost)
     return false;
 }
 
-void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, const(char)* charset, size_t index, int* cost)
+private void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, const(char)* charset, size_t index, int* cost)
 {
     if (!seedlen)
         return null;
@@ -103,7 +103,7 @@ void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, const(char)* 
     return p; // return "best" result
 }
 
-void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, const(char)* charset, int flag)
+private void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, const(char)* charset, int flag)
 {
     if (!seedlen)
         return null;
@@ -191,13 +191,13 @@ void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, const(char)* 
  * Looks for correct spelling.
  * Currently only looks a 'distance' of one from the seed[].
  * This does an exhaustive search, so can potentially be very slow.
- * Input:
- *      seed            wrongly spelled word
- *      dg              search delegate
- *      charset         character set
+ * Params:
+ *      seed = wrongly spelled word
+ *      dg = search delegate
+ *      charset = character set
  * Returns:
- *      NULL            no correct spellings found
- *      void*           value returned by dg() for first possible correct spelling
+ *      null = no correct spellings found, otherwise
+ *      the value returned by dg() for first possible correct spelling
  */
 void* speller(const(char)* seed, scope dg_speller_t dg, const(char)* charset)
 {
