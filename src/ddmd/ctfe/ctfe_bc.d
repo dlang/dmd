@@ -3613,9 +3613,16 @@ static if (is(BCGen))
             {
                 Add3(fieldAddr, retval.i32, imm32(offset));
                 // abi hack for slices slice;
-//                if (elexpr.type.type == BCTypeEnum.Slice)
-//                   MemCpy(fieldAddr, elexpr, imm32(SliceDescriptor.Size));
-//                else
+                if (elexpr.type.type == BCTypeEnum.Slice || elexpr.type.type == BCTypeEnum.Array)
+                {
+                    //TODO FIXME BROKEN!!! This is still broken! Stablize Slice ABI!!!
+                    // For the slice in struct case.
+                    // Can we use a Pointer here ??
+                    auto slicePtr = genTemporary(i32Type);
+                    Load32(slicePtr, fieldAddr);
+                    MemCpy(fieldAddr, elexpr, imm32(SliceDescriptor.Size));
+                }
+                else
                     Store32(fieldAddr, elexpr);
             }
             else
@@ -4066,9 +4073,9 @@ static if (is(BCGen))
                 }
                 else if (_init.type.type == BCTypeEnum.Struct)
                 {
-                    Set(var.i32, _init.i32);
+                    //Set(var.i32, _init.i32);
                     //TODO we should really do a memcopy here instead of copying the pointer;
-                    //MemCpy(var.i32, _init.i32, imm32(_sharedCtfeState.size(_init.type)));
+                    MemCpy(var.i32, _init.i32, imm32(_sharedCtfeState.size(_init.type)));
                 }
                 else if (_init.type.type == BCTypeEnum.Slice || _init.type.type == BCTypeEnum.Array || _init.type.type == BCTypeEnum.string8)
                 {
@@ -4490,7 +4497,7 @@ static if (is(BCGen))
     {
         return (bct.type == BCTypeEnum.i32 || bct.type == BCTypeEnum.i64 || bct.type == BCTypeEnum.f23 || bct.type == BCTypeEnum.f52);
     }
-/*
+/+
     override void visit(ConstructExp ce)
     {
         Line(ce.loc.linnum);
@@ -4554,7 +4561,7 @@ static if (is(BCGen))
         Set(lhs.i32, rhs.i32);
         retval = lhs;
     }
-*/
++/
 
     override void visit(AssignExp ae)
     {
@@ -4891,8 +4898,7 @@ static if (is(BCGen))
                 }
                 else if (lhs.type.type == BCTypeEnum.Struct && lhs.type == rhs.type)
                 {
-                    //TODO FIXME: implement copyStruct and use it here!
-                    Set(lhs.i32, rhs.i32);
+                     MemCpy(lhs.i32, rhs.i32, imm32(_sharedCtfeState.size(lhs.type)));
                 }
                 else if (lhs.type.type == BCTypeEnum.c8 && rhs.type.type == BCTypeEnum.c8)
                 {
@@ -4900,21 +4906,30 @@ static if (is(BCGen))
                 }
                 else if (lhs.type.type == BCTypeEnum.String && rhs.type.type == BCTypeEnum.String)
                 {
-                    Set(lhs.i32, rhs.i32);
+                    MemCpy(lhs.i32, rhs.i32, imm32(SliceDescriptor.Size));
                 }
                 else if (lhs.type.type == BCTypeEnum.Slice && rhs.type.type == BCTypeEnum.Slice)
                 {
-                    Set(lhs.i32, rhs.i32);
+                    MemCpy(lhs.i32, rhs.i32, imm32(SliceDescriptor.Size));
                 }
                 else if (lhs.type.type == BCTypeEnum.Array && rhs.type.type == BCTypeEnum.Array)
                 {
-                    //TODO we should really copy here!
-                    Set(lhs.i32, rhs.i32);
+                    auto lhsBase = getBase(lhs);
+                    auto rhsBase = getBase(rhs);
+                    auto lhsLength = getLength(lhs);
+                    auto rhsLength = getLength(lhs);
+                    auto sameLength = genTemporary(i32Type);
+                    auto lhsBaseType = _sharedCtfeState.elementType(lhs.type);
+
+                    Eq3(sameLength, lhsLength, rhsLength);
+                    Assert(sameLength, addError(ae.loc, "%d != %d", rhsLength, lhsLength));
+
+                    copyArray(&lhsBase, &rhsBase, lhsLength, _sharedCtfeState.size(lhsBaseType));
                 }
                 else if (lhs.type.type == BCTypeEnum.Slice && rhs.type.type == BCTypeEnum.Array)
                 {
                     //TODO maybe we should copy here ?
-                    Set(lhs.i32, rhs.i32);
+                    bailout("Slice = Array -- don't know what to do");
                 }
                 else if (lhs.type.type == BCTypeEnum.Slice && rhs.type.type == BCTypeEnum.Null)
                 {
@@ -4922,6 +4937,7 @@ static if (is(BCGen))
                 }
                 else if (lhs.type.type == BCTypeEnum.Struct && rhs.type.type == BCTypeEnum.i32)
                 {
+                    Comment("Struct == 0");
                     if(!lhs.type.typeIndex || lhs.type.typeIndex > _sharedCtfeState.structCount)
                     {
                         bailout("Struct Type is invalid: " ~ ae.e1.toString);

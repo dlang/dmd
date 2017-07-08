@@ -2695,10 +2695,12 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 auto cpySize = cast(uint) *opRef;
                 auto cpySrc = cast(uint) *rhs;
                 auto cpyDst = cast(uint) *lhsRef;
-
-                assert(cpyDst >= cpySrc + cpySize, "Overlapping MemCpy is not supported --- src: " ~ to!string(cpySrc)
-                    ~ " dst: " ~ to!string(cpyDst) ~ " size: " ~ to!string(cpySize));
-                heapPtr._heap[cpyDst .. cpyDst + cpySize] = heapPtr._heap[cpySrc .. cpySrc + cpySize];
+                if (cpySrc != cpyDst)
+                {
+                    assert(cpyDst >= cpySrc + cpySize, "Overlapping MemCpy is not supported --- src: " ~ to!string(cpySrc)
+                        ~ " dst: " ~ to!string(cpyDst) ~ " size: " ~ to!string(cpySize));
+                    heapPtr._heap[cpyDst .. cpyDst + cpySize] = heapPtr._heap[cpySrc .. cpySrc + cpySize];
+                }
             }
             break;
         case LongInst.Comment:

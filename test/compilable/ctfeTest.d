@@ -539,10 +539,8 @@ float fmaddf(float a, float b, float c)
     return result;
 }
 
-static immutable bool fl1 = fmaddf(0x1.acccccp+2f, 0x1.166666p+3f, 0x1.4cccccp+0f) == 0x1.168f5cp+4f;
-static immutable bool fl2 = fmaddf(0x1.acccccp+2f, 0x1.166666p+3f, -0x1.4cccccp+0f) == -0x1.47a8p-7f;
-static assert(fl1);
-static assert(fl2);
+static assert(fmaddf(0x1.acccccp+2f, 0x1.166666p+3f, 0x1.4cccccp+0f) == 0x1.168f5cp+4f);
+static assert(fmaddf(0x1.acccccp+2f, 0x1.166666p+3f, -0x1.4cccccp+0f) == -0x1.47a8p-7f);
 
 static assert(!__traits(newCTFEGaveUp));
 
