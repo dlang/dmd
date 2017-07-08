@@ -454,7 +454,6 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
                 }
             }
 
-            assert(pdso._handle == handleForAddr(data._slot));
             unsetDSOForHandle(pdso, pdso._handle);
             pdso._handle = null;
         }
