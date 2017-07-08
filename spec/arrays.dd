@@ -962,9 +962,8 @@ $(H2 $(LNAME2 implicit-conversions, Implicit Conversions))
         $(LI $(D void[]))
         )
 
-        $(P A dynamic array $(D T[]) can be implicitly converted to
-        one of the following:
-        )
+        $(P A dynamic array $(D T[]) can be implicitly converted to one of the
+        following ($(D U) is a base class of $(D T)):)
 
         $(UL
         $(LI $(D const(U)[]))
@@ -972,7 +971,6 @@ $(H2 $(LNAME2 implicit-conversions, Implicit Conversions))
         $(LI $(D void[]))
         )
 
-        $(P Where $(D U) is a base class of $(D T).)
 $(SPEC_SUBNAV_PREV_NEXT statement, Statements, hash-map, Associative Arrays)
 )
 

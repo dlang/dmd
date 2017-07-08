@@ -701,7 +701,7 @@ $(GNAME ArgumentList):
         bar = new int[][][](5, 20, 30);
         ---------------
 
-    Which is equivalent to:
+    The code above is equivalent to:
 
         ----------
         bar = new int[][][5];
@@ -1051,8 +1051,8 @@ $(GNAME Slice):
         }
         -------------
 
-$(P Following forms of slice expression can be convertible to a static array
- type:)
+$(P The following forms of slice expression can be convertible to a static array
+type:)
 
         $(DL
         $(DT $(I e))$(DD An expression that contains no side effects.)

@@ -216,28 +216,28 @@ ulong  u4 = cast(long)-1; // ok, -1 can be represented in a ulong
 
 $(H2 $(LNAME2 bool, $(D bool)))
 
-$(P The bool type is a 1 byte size type that can only hold the value
-$(D_KEYWORD true) or $(D_KEYWORD false).)
+$(P The bool type is a byte-size type that can only hold the value `true` or
+`false`.)
 
 $(P The only operators that can accept operands of type bool are: $(CODE_AMP)
 $(CODE_PIPE) $(D ^) $(CODE_AMP)$(D =) $(CODE_PIPE)$(D =) $(D ^=) !
 $(CODE_AMP)$(CODE_AMP) $(CODE_PIPE)$(CODE_PIPE) $(D ?:).)
 
-$(P A $(D bool) value can be implicitly converted to any integral type, with
-$(D_KEYWORD false) becoming 0 and $(D_KEYWORD true) becoming 1.)
+$(P A `bool` value can be implicitly converted to any integral type, with
+`false` becoming 0 and `true` becoming 1.)
 
-$(P The numeric literals 0 and 1 can be implicitly converted to the bool values
-$(D_KEYWORD false) and $(D_KEYWORD true), respectively. Casting an expression to
-bool means testing for 0 or !=0 for arithmetic types, and $(D_KEYWORD null) or
-!=$(D_KEYWORD null) for pointers or references.)
+$(P The numeric literals `0` and `1` can be implicitly converted to the `bool`
+values `false` and `true`, respectively. Casting an expression to `bool` means
+testing for `0` or `!=0` for arithmetic types, and `null` or `!=null` for
+pointers or references.)
 
 $(H2 $(LNAME2 delegates, Delegates))
 
 $(P There are no pointers-to-members in D, but a more useful concept called $(I
-delegates) are supported. Delegates are an aggregate of two pieces of data: an
+delegates) is supported. Delegates are an aggregate of two pieces of data: an
 object reference and a pointer to a non-static member function, or a pointer to
 a closure and a pointer to a nested function. The object reference forms the
-$(I this) pointer when the function is called.)
+`this` pointer when the function is called.)
 
 $(P Delegates are declared similarly to function pointers, except that the
 keyword $(D delegate) takes the place of (*), and the identifier occurs

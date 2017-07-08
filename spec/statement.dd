@@ -402,7 +402,7 @@ so, it is treated as if it evaluated to true.)
 
 $(H2 $(LEGACY_LNAME2 ForeachStatement, foreach-statement, Foreach Statement))
 
-$(P A foreach statement loops over the contents of an aggregate.)
+$(P A `foreach` statement loops over the contents of an aggregate.)
 
 $(GRAMMAR
 $(GNAME ForeachStatement):
@@ -960,7 +960,7 @@ void main()
 }
 ---
 
-Prints:
+prints:
 
 $(CONSOLE
 foo0123456789
@@ -1164,8 +1164,8 @@ $(GNAME ContinueStatement):
     $(D continue) $(I Identifier)$(OPT) $(D ;)
 )
 
-$(P A continue aborts the current iteration of its enclosing loop statement, and
- starts the next iteration.)
+$(P `continue` aborts the current iteration of its enclosing loop statement, and
+starts the next iteration.)
 
         $(P continue executes the next iteration of its innermost enclosing
         while, for, foreach, or do loop. The increment clause is executed.)
@@ -1198,9 +1198,8 @@ $(GNAME BreakStatement):
     $(D break) $(I Identifier)$(OPT) $(D ;)
 )
 
-$(P A break exits the enclosing statement. break exits the innermost enclosing
-while, for, foreach, do, or switch statement, resuming execution at the
-statement following it.)
+$(P `break` exits the innermost enclosing while, for, foreach, do, or switch
+statement, resuming execution at the statement following it.)
 
         $(P If break is followed by $(I Identifier), the $(I Identifier)
         must be the label of an enclosing while, for, do or switch
@@ -1228,7 +1227,7 @@ $(GNAME ReturnStatement):
     $(D return) $(EXPRESSION)$(OPT) $(D ;)
 )
 
-$(P A return exits the current function and supplies its return value.)
+$(P `return` exits the current function and supplies its return value.)
 
 $(P $(EXPRESSION) is required if the function specifies a return type that is
 not void. The $(EXPRESSION) is implicitly converted to the function return
@@ -1279,7 +1278,7 @@ $(GNAME GotoStatement):
     $(D goto) $(D case) $(EXPRESSION) $(D ;)
 )
 
-$(P A goto transfers to the statement labeled with $(I Identifier).)
+$(P `goto` transfers to the statement labeled with $(I Identifier).)
 
 ---
     if (foo)
@@ -1324,7 +1323,7 @@ intervening synchronization mutexes.)
 
 $(H2 $(LEGACY_LNAME2 WithStatement, with-statement, With Statement))
 
-$(P The with statement is a way to simplify repeated references to the same
+$(P The `with` statement is a way to simplify repeated references to the same
 object.)
 
 $(GRAMMAR
@@ -1337,7 +1336,9 @@ $(GNAME WithStatement):
         where $(EXPRESSION) evaluates to a class reference or struct
         instance.
         Within the with body the referenced object is searched first for
-        identifier symbols. The $(I WithStatement)
+        identifier symbols.
+
+$(P The $(I WithStatement))
 
 --------------
 with (expression)
@@ -1566,15 +1567,15 @@ done
 
 $(H2 $(LEGACY_LNAME2 ThrowStatement, throw-statement, Throw Statement))
 
-$(P Throw an exception.)
+$(P Throws an exception.)
 
 $(GRAMMAR
 $(GNAME ThrowStatement):
     $(D throw) $(EXPRESSION) $(D ;)
 )
 
-$(P $(EXPRESSION) is evaluated and must be a Throwable reference. The Throwable
-reference is thrown as an exception.)
+$(P $(EXPRESSION) is evaluated and must be  a `Throwable` reference. The
+`Throwable` reference is thrown as an exception.)
 
 ---
 throw new Exception("message");

@@ -12,7 +12,7 @@ C and C++.)
 
 $(H2 $(LNAME2 source_text, Source Text))
 
-$(P D source text can be in one of the following formats:)
+$(P Source text can be in one of the following formats:)
 
 	$(LIST
 	ASCII,
@@ -55,7 +55,7 @@ $(UL
 	$(LI A $(D ..) embedded inside what looks like two floating point
 		literals, as in $(D 1..2), is interpreted as if the $(D ..) was
 		separated by a space from the first integer.)
-	$(LI A $(D 1.a) is interpreted as the three tokens $(D 1), $(D .), and $(D a), while $(D 1. a) is interpreted as the two tokens $(D 1.) and $(D a))
+	$(LI A `1.a` is interpreted as the three tokens `1`, `.`, and `a`, whereas `1. a` is interpreted as the two tokens `1.` and `a`.)
 )
 
 $(H2 $(LNAME2 character_set, Character Set))

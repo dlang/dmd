@@ -375,13 +375,12 @@ $(GNAME Constructor):
         super)() is inserted at the beginning of the constructor.)
 
         $(P If there is no constructor for a class, but there is a constructor
-        for the base class, a default constructor of the form:)
+        for the base class, a default constructor is implicitly generated with
+        the form:)
 
         ------
         this() { }
         ------
-
-        $(P is implicitly generated.)
 
         $(P Class object construction is very flexible, but some restrictions
         apply:)
