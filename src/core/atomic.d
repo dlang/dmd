@@ -1304,8 +1304,8 @@ version( unittest )
     }
     body
     {
-        T         base;
-        shared(T) atom;
+        T         base = cast(T)null;
+        shared(T) atom = cast(shared(T))null;
 
         assert( base !is val, T.stringof );
         assert( atom is base, T.stringof );
