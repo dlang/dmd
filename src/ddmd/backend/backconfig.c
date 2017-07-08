@@ -51,7 +51,7 @@ void out_config_init(
                         // 2: fake it with C symbolic debug info
         bool alwaysframe,       // always create standard function frame
         bool stackstomp,        // add stack stomping code
-        bool avx,               // use AVX instruction set
+        unsigned char avx,      // use AVX instruction set (0, 1, 2)
         bool betterC            // implement "Better C"
         )
 {
@@ -478,4 +478,3 @@ unsigned eve::sizeCheck() { return sizeof(eve); }
 
 // type.d
 unsigned TYPE::sizeCheck() { return sizeof(type); }
-

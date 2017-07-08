@@ -580,6 +580,7 @@ CPU architectures supported by -mcpu=id:
   =?             list information on all architecture choices
   =baseline      use default architecture as determined by target
   =avx           use AVX 1 instructions
+  =avx2          use AVX 2 instructions
   =native        use CPU architecture that this compiler is running on
 ");
                         exit(EXIT_SUCCESS);
@@ -594,6 +595,9 @@ CPU architectures supported by -mcpu=id:
                             break;
                         case "avx":
                             global.params.cpu = CPU.avx;
+                            break;
+                        case "avx2":
+                            global.params.cpu = CPU.avx2;
                             break;
                         case "native":
                             global.params.cpu = CPU.native;
@@ -1979,9 +1983,9 @@ private void addDefaultVersionIdentifiers()
     {
         VersionCondition.addPredefinedGlobalIdent("D_SIMD");
         if (global.params.cpu >= CPU.avx)
-        {
             VersionCondition.addPredefinedGlobalIdent("D_AVX");
-        }
+        if (global.params.cpu >= CPU.avx2)
+            VersionCondition.addPredefinedGlobalIdent("D_AVX2");
     }
 
     if (global.params.is64bit)
@@ -2081,7 +2085,9 @@ private CPU setTargetCPU(CPU cpu)
         {
             import core.cpuid;
             cpu = baseline;
-            if (core.cpuid.avx)
+            if (core.cpuid.avx2)
+                cpu = CPU.avx2;
+            else if (core.cpuid.avx)
                 cpu = CPU.avx;
             break;
         }
