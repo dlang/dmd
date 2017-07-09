@@ -627,32 +627,38 @@ pure:
         ip += 2;
     }
 
-    void emitArithInstruction(LongInst inst, BCValue lhs, BCValue rhs)
+    BCTypeEnum commonTypeEnum(BCTypeEnum* lhs, BCTypeEnum* rhs)
+    {
+        // HACK
+
+        BCTypeEnum commonType;
+        BCTypeEnum _lhs = *lhs;
+        BCTypeEnum _rhs = *rhs;
+
+        if (_lhs == BCTypeEnum.f52 || _rhs == BCTypeEnum.f52)
+        {
+            commonType = BCTypeEnum.f52; 
+        }
+        else if (_lhs == BCTypeEnum.f23 || _rhs == BCTypeEnum.f23)
+        {
+            commonType = BCTypeEnum.f23;
+        }
+        else if (_lhs == BCTypeEnum.i64 || _rhs == BCTypeEnum.i64)
+        {
+            commonType = BCTypeEnum.i64;
+        }
+        else
+            commonType = BCTypeEnum.i32;
+
+        return commonType;
+    }
+
+    void emitArithInstruction(LongInst inst, BCValue lhs, BCValue rhs, BCTypeEnum* resultTypeEnum = null)
     {
         assert(inst >= LongInst.Add && inst < LongInst.ImmAdd,
             "Instruction is not in Range for Arith Instructions");
         assert(lhs.vType.StackValue, "only StackValues are supported as lhs");
-        // HACK
-        if (lhs.type.type == BCTypeEnum.c32)
-        {
-            lhs = lhs.i32;
-        }
-        if (lhs.type.type == BCTypeEnum.i64)
-        {
-            rhs.type.type = BCTypeEnum.i64;
-        }
-        else if (rhs.type.type == BCTypeEnum.i64)
-        {
-            lhs.type.type = BCTypeEnum.i64;
-        }
-        if (rhs.type.type == BCTypeEnum.string8)
-        {
-            rhs = rhs.i32;
-        }
-        if (rhs.type.type == BCTypeEnum.c32)
-        {
-            rhs = rhs.i32;
-        }
+
         // FIXME remove the lhs.type == BCTypeEnum.Char as soon as we convert correctly.
         assert(lhs.type.type == BCTypeEnum.i32 || lhs.type.type == BCTypeEnum.i64
             || lhs.type.type == BCTypeEnum.f23 || lhs.type.type == BCTypeEnum.Char
@@ -664,6 +670,11 @@ pure:
         {
             lhs = pushOntoStack(lhs);
         }
+        
+        BCTypeEnum commonType = commonTypeEnum(&lhs.type.type, &rhs.type.type);
+        if (resultTypeEnum !is null)
+            *resultTypeEnum = commonType;
+
         if (lhs.type.type == BCTypeEnum.f23)
         {
             if(rhs.type.type == BCTypeEnum.i32)
@@ -674,7 +685,7 @@ pure:
                     rhs = imm32(*cast(int*)&frhs);
                 } ();
                 else
-                    assert("i32Tof32 is not supported right now");
+                    rhs = castTo(rhs, BCTypeEnum.f23);
             }
             else if (rhs.type.type == BCTypeEnum.f23)
             {
@@ -821,7 +832,7 @@ pure:
             Set(result, lhs);
         }
 
-        emitArithInstruction(LongInst.Add, result, rhs);
+        emitArithInstruction(LongInst.Add, result, rhs, &result.type.type);
     }
 
     void Sub3(BCValue result, BCValue lhs, BCValue rhs)
@@ -834,7 +845,7 @@ pure:
             Set(result, lhs);
         }
 
-        emitArithInstruction(LongInst.Sub, result, rhs);
+        emitArithInstruction(LongInst.Sub, result, rhs, &result.type.type);
     }
 
     void Mul3(BCValue result, BCValue lhs, BCValue rhs)
@@ -847,7 +858,7 @@ pure:
             Set(result, lhs);
         }
 
-        emitArithInstruction(LongInst.Mul, result, rhs);
+        emitArithInstruction(LongInst.Mul, result, rhs, &result.type.type);
     }
 
     void Div3(BCValue result, BCValue lhs, BCValue rhs)
@@ -859,7 +870,7 @@ pure:
         {
             Set(result, lhs);
         }
-        emitArithInstruction(LongInst.Div, result, rhs);
+        emitArithInstruction(LongInst.Div, result, rhs, &result.type.type);
     }
 
     void And3(BCValue result, BCValue lhs, BCValue rhs)
@@ -939,8 +950,9 @@ pure:
         {
             Set(result, lhs);
         }
-        emitArithInstruction(LongInst.Mod, result, rhs);
+        emitArithInstruction(LongInst.Mod, result, rhs, &result.type.type);
     }
+
     import ddmd.globals : Loc;
     void Call(BCValue result, BCValue fn, BCValue[] args, Loc l = Loc.init)
     {
@@ -1016,6 +1028,45 @@ pure:
         emitLongInst(LongInst64(LongInst.HeapStore64, _to.stackAddr, value.stackAddr));
     }
 
+
+    BCValue castTo(BCValue rhs, BCTypeEnum targetType)
+    {
+        auto sourceType = rhs.type.type;
+
+        if (sourceType == targetType)
+            return rhs;
+
+        auto lhs = genTemporary(BCType(targetType));
+            
+        assert(isStackValueOrParameter(rhs));
+
+        switch(targetType) with (BCTypeEnum)
+        {
+            case f52 : 
+                if (sourceType == f23)
+                    emitLongInst(LongInst64(LongInst.F32ToF64, lhs.stackAddr, rhs.stackAddr)); 
+                else
+                    emitLongInst(LongInst64(LongInst.IToF64, lhs.stackAddr, rhs.stackAddr));
+            break; 
+            case f23 :
+                if (sourceType == f52)
+                    emitLongInst(LongInst64(LongInst.F64ToF32, lhs.stackAddr, rhs.stackAddr)); 
+                else
+                    emitLongInst(LongInst64(LongInst.IToF32, lhs.stackAddr, rhs.stackAddr));
+            break; 
+            case i32 : 
+                if (sourceType == f23)
+                    emitLongInst(LongInst64(LongInst.F32ToI, lhs.stackAddr, rhs.stackAddr)); 
+                else if (sourceType == f52) 
+                    emitLongInst(LongInst64(LongInst.F64ToI, lhs.stackAddr, rhs.stackAddr));
+            break;
+            default :
+                debug{assert(0, "me no have no cast for targetType " ~ to!string(targetType));}
+            break;  
+        }
+
+        return lhs;        
+    }
 
     BCValue pushOntoStack(BCValue val)
     {
