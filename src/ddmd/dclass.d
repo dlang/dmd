@@ -967,6 +967,18 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         sc2.pop();
 
+        if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=17492
+            ClassDeclaration cd = (cast(TypeClass)type).sym;
+            version (none)
+            {
+                printf("this = %p %s\n", this, this.toPrettyChars());
+                printf("type = %d sym = %p, %s\n", type.ty, cd, cd.toPrettyChars());
+            }
+            error("already exists at %s. Perhaps in another function with the same name?", cd.loc.toChars());
+        }
+
         if (global.errors != errors)
         {
             // The type is no good.
@@ -995,16 +1007,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             deferred.semantic2(sc);
             deferred.semantic3(sc);
         }
-
-        version (none)
-        {
-            if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
-            {
-                printf("this = %p %s\n", this, this.toChars());
-                printf("type = %d sym = %p\n", type.ty, (cast(TypeClass)type).sym);
-            }
-        }
-        assert(type.ty != Tclass || (cast(TypeClass)type).sym == this);
         //printf("-ClassDeclaration.semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
     }
 
