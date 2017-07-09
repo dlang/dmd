@@ -71,6 +71,10 @@ extern (C++) const(char)* lookForSourceFile(const(char)** path, const(char)* fil
          * Therefore, the result should be: filename/package.d
          * iff filename/package.d is a file
          */
+        const(char)* ni = FileName.combine(filename, "package.di");
+        if (FileName.exists(ni) == 1)
+            return ni;
+        FileName.free(ni);
         const(char)* n = FileName.combine(filename, "package.d");
         if (FileName.exists(n) == 1)
             return n;
@@ -100,6 +104,10 @@ extern (C++) const(char)* lookForSourceFile(const(char)** path, const(char)* fil
         FileName.free(b);
         if (FileName.exists(n) == 2)
         {
+            const(char)* n2i = FileName.combine(n, "package.di");
+            if (FileName.exists(n2i) == 1)
+                return n2i;
+            FileName.free(n2i);
             const(char)* n2 = FileName.combine(n, "package.d");
             if (FileName.exists(n2) == 1) {
                 *path = p;
@@ -586,7 +594,7 @@ extern (C++) final class Module : Package
             else
             {
                 // if module is not named 'package' but we're trying to read 'package.d', we're looking for a package module
-                bool isPackageMod = (strcmp(toChars(), "package") != 0) && (strcmp(srcfile.name.name(), "package.d") == 0);
+                bool isPackageMod = (strcmp(toChars(), "package") != 0) && (strcmp(srcfile.name.name(), "package.d") == 0 || (strcmp(srcfile.name.name(), "package.di") == 0));
                 if (isPackageMod)
                     .error(loc, "importing package '%s' requires a 'package.d' file which cannot be found in '%s'", toChars(), srcfile.toChars());
                 else
@@ -619,7 +627,8 @@ extern (C++) final class Module : Package
         //printf("Module::parse(srcfile='%s') this=%p\n", srcfile.name.toChars(), this);
         const(char)* srcname = srcfile.name.toChars();
         //printf("Module::parse(srcname = '%s')\n", srcname);
-        isPackageFile = (strcmp(srcfile.name.name(), "package.d") == 0);
+        isPackageFile = (strcmp(srcfile.name.name(), "package.d") == 0 ||
+                         strcmp(srcfile.name.name(), "package.di") == 0);
         char* buf = cast(char*)srcfile.buffer;
         size_t buflen = srcfile.len;
         if (buflen >= 2)
@@ -842,7 +851,8 @@ extern (C++) final class Module : Package
             dst = Package.resolve(md.packages, &this.parent, &ppack);
             assert(dst);
             Module m = ppack ? ppack.isModule() : null;
-            if (m && strcmp(m.srcfile.name.name(), "package.d") != 0)
+            if (m && (strcmp(m.srcfile.name.name(), "package.d") != 0 &&
+                      strcmp(m.srcfile.name.name(), "package.di") != 0))
             {
                 .error(md.loc, "package name '%s' conflicts with usage as a module name in file %s", ppack.toPrettyChars(), m.srcfile.toChars());
             }
