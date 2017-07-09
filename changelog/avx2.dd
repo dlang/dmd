@@ -1,0 +1,5 @@
+AVX2 was added as $(TT -mcpu=avx2) architecture.
+
+This allows the backend to emit AVX2 instructions. The compiler will
+add the predefined version $(LINK2 $(ROOT_DIR)spec/version.html#predefined-versions, `D_AVX2`).
+AVX2 support is automatically detected with -mcpu=native.
