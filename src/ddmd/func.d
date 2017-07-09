@@ -3375,13 +3375,15 @@ extern (C++) class FuncDeclaration : Declaration
          * 2) has its address taken
          * 3) has a parent that escapes
          * 4) calls another nested function that needs a closure
-         * -or-
-         * 5) this function returns a local non-static struct/class
          *
          * Note that since a non-virtual function can be called by
          * a virtual one, if that non-virtual function accesses a closure
          * var, the closure still has to be taken. Hence, we check for isThis()
          * instead of isVirtual(). (thanks to David Friedman)
+         *
+         * When the function returns a local struct or class, `requiresClosure`
+         * is already set to `true` upon entering this function when the
+         * struct/class refers to a local variable and a closure is needed.
          */
 
         //printf("FuncDeclaration::needsClosure() %s\n", toChars());
@@ -3438,37 +3440,6 @@ extern (C++) class FuncDeclaration : Declaration
         }
         if (requiresClosure)
             goto Lyes;
-
-        /* Look for case (5)
-         */
-        if (closureVars.dim)
-        {
-            Type tret = type.toTypeFunction().next;
-            assert(tret);
-            tret = tret.toBasetype();
-            //printf("\t\treturning %s\n", tret.toChars());
-            if (tret.ty == Tclass || tret.ty == Tstruct)
-            {
-                Dsymbol st = tret.toDsymbol(null);
-                //printf("\t\treturning class/struct %s\n", tret.toChars());
-
-                auto ad = st.isAggregateDeclaration();
-                assert(ad !is null);
-                // A closure is only needed when returning a _non-static_ struct/class.
-                if ((ad.storage_class & STCstatic) == 0)
-                {
-                    for (Dsymbol s = st.parent; s; s = s.parent)
-                    {
-                        //printf("\t\t\tparent = %s %s\n", s.kind(), s.toChars());
-                        if (s == this)
-                        {
-                            //printf("\t\treturning local %s\n", st.toChars());
-                            goto Lyes;
-                        }
-                    }
-                }
-            }
-        }
 
         return false;
 
