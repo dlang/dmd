@@ -1357,10 +1357,10 @@ version( unittest )
         testCAS!(shared Klass)( new shared(Klass) );
 
         testType!(float)(1.0f);
-        testType!(double)(1.0);
 
         static if( has64BitCAS )
         {
+            testType!(double)(1.0);
             testType!(long)();
             testType!(ulong)();
         }
@@ -1377,9 +1377,12 @@ version( unittest )
         atomicOp!"+="( f, 1 );
         assert( f == 1 );
 
-        shared double d = 0;
-        atomicOp!"+="( d, 1 );
-        assert( d == 1 );
+        static if( has64BitCAS )
+        {
+            shared double d = 0;
+            atomicOp!"+="( d, 1 );
+            assert( d == 1 );
+        }
     }
 
     pure nothrow unittest
