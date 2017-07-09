@@ -5386,7 +5386,7 @@ void pinholeopt(code *c,block *b)
             }
 
             /* Look for LEA reg,[ireg], replace with MOV reg,ireg       */
-            else if (op == LEA)
+            if (op == LEA)
             {   rm = c->Irm & 7;
                 mod = c->Irm & modregrm(3,0,0);
                 if (mod == 0)
