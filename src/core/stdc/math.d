@@ -93,16 +93,16 @@ else version (CRuntime_Glibc)
     else version (ARM)
     {
         ///
-        enum int FP_ILOGB0        = -2147483647;
+        enum int FP_ILOGB0        = -int.max;
         ///
-        enum int FP_ILOGBNAN      = 2147483647;
+        enum int FP_ILOGBNAN      = int.max;
     }
     else version (AArch64)
     {
         ///
-        enum int FP_ILOGB0        = -2147483647;
+        enum int FP_ILOGB0        = -int.max;
         ///
-        enum int FP_ILOGBNAN      = 2147483647;
+        enum int FP_ILOGBNAN      = int.max;
     }
     else version (MIPS32)
     {
@@ -114,23 +114,23 @@ else version (CRuntime_Glibc)
     else version (MIPS64)
     {
         ///
-        enum int FP_ILOGB0        = -2147483647;
+        enum int FP_ILOGB0        = -int.max;
         ///
-        enum int FP_ILOGBNAN      = 2147483647;
+        enum int FP_ILOGBNAN      = int.max;
     }
     else version (PPC)
     {
         ///
-        enum int FP_ILOGB0        = -2147483647;
+        enum int FP_ILOGB0        = -int.max;
         ///
-        enum int FP_ILOGBNAN      = 2147483647;
+        enum int FP_ILOGBNAN      = int.max;
     }
     else version (PPC64)
     {
         ///
-        enum int FP_ILOGB0        = -2147483647;
+        enum int FP_ILOGB0        = -int.max;
         ///
-        enum int FP_ILOGBNAN      = 2147483647;
+        enum int FP_ILOGBNAN      = int.max;
     }
     else version (SPARC64)
     {
