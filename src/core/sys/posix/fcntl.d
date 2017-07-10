@@ -224,6 +224,19 @@ version( CRuntime_Glibc )
         enum O_DSYNC        = 0x1000;   // octal   010000
         enum O_RSYNC        = O_SYNC;
     }
+    else version (SPARC64)
+    {
+        enum O_CREAT        = 0x200;
+        enum O_EXCL         = 0x800;
+        enum O_NOCTTY       = 0x8000;
+        enum O_TRUNC        = 0x400;
+
+        enum O_APPEND       = 0x8;
+        enum O_NONBLOCK     = 0x4000;
+        enum O_SYNC         = 0x802000;
+        enum O_DSYNC        = 0x2000;
+        enum O_RSYNC        = O_SYNC;
+    }
     else version (SystemZ)
     {
         enum O_CREAT        = 0x40;     // octal     0100
