@@ -1,4 +1,6 @@
 // REQUIRED_ARGS: -gf
+// PERMUTE_ARGS:
+
 import core.time;
 
 void main(string[] args)
