@@ -325,10 +325,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             userAttribDecl = sc.userAttribDecl;
         }
         else if (symtab && !scx)
-        {
-            semanticRun = PASSsemanticdone;
             return;
-        }
+
         semanticRun = PASSsemantic;
 
         if (!members) // if opaque declaration
@@ -379,6 +377,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         {
             assert(type.ty == Terror);
             sc2.pop();
+            semanticRun = PASSsemanticdone;
             return;
         }
         /* Following special member functions creation needs semantic analysis
