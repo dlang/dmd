@@ -2104,6 +2104,7 @@ $(H3 $(LNAME2 interpretation, Compile Time Function Execution (CTFE)))
     $(LI Non-portable casts (eg, from $(D int[]) to $(D float[])), including
         casts which depend on endianness, are not permitted.
         Casts between signed and unsigned types are permitted)
+    $(LI Reinterpretation of overlapped fields in a Union.)
     )
 
     $(P Pointers are permitted in CTFE, provided they are used safely:)
