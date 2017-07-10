@@ -685,14 +685,19 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             // If no base class, and this is not an Object, use Object as base class
             if (!baseClass && ident != Id.Object && !cpp)
             {
-                if (!object)
+                void badObjectDotD()
                 {
                     error("missing or corrupt object.d");
                     fatal();
                 }
 
+                if (!object || object.errors)
+                    badObjectDotD();
+
                 Type t = object.type;
                 t = t.semantic(loc, sc).toBasetype();
+                if (t.ty == Terror)
+                    badObjectDotD();
                 assert(t.ty == Tclass);
                 TypeClass tc = cast(TypeClass)t;
 
