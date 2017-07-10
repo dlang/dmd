@@ -821,6 +821,20 @@ void test11()
 }
 
 /****************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17481
+
+class C17481
+{
+    synchronized void trigger(){ new ubyte[1]; }
+}
+
+void test17481()
+{
+    auto k = new shared C17481;
+    k.trigger;
+}
+
+/****************************************************/
 
 int main()
 {
@@ -845,6 +859,7 @@ int main()
     test12989();
     test10();
     test11();
+    test17481();
 
     printf("finish\n");
     return 0;
