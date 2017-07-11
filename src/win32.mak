@@ -155,19 +155,21 @@ DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$
 ############################### Rule Variables ###############################
 
 # D front end
-FRONT_SRCS=$D/access.d $D/aggregate.d $D/aliasthis.d $D/apply.d $D/argtypes.d $D/arrayop.d	\
+FRONT_LIB_SRCS=$D/access.d $D/aggregate.d $D/aliasthis.d $D/apply.d $D/argtypes.d $D/arrayop.d	\
 	$D/arraytypes.d $D/astcodegen.d $D/attrib.d $D/builtin.d $D/canthrow.d $D/clone.d $D/complex.d		\
 	$D/cond.d $D/constfold.d $D/cppmangle.d $D/ctfeexpr.d $D/dcast.d $D/dclass.d		\
 	$D/declaration.d $D/delegatize.d $D/denum.d $D/dimport.d $D/dinifile.d $D/dinterpret.d	\
 	$D/dmacro.d $D/dmangle.d $D/dmodule.d $D/doc.d $D/dscope.d $D/dstruct.d $D/dsymbol.d		\
 	$D/dtemplate.d $D/dversion.d $D/escape.d			\
-	$D/expression.d $D/expressionsem.d $D/func.d $D/hdrgen.d $D/id.d $D/imphint.d	\
+	$D/expression.d $D/expressionsem.d $D/func.d $D/gencmain.d $D/hdrgen.d $D/imphint.d	\
 	$D/impcnvtab.d $D/init.d $D/initsem.d $D/inline.d $D/inlinecost.d $D/intrange.d $D/json.d $D/lib.d $D/link.d	\
-	$D/mars.d $D/mtype.d $D/nogc.d $D/nspace.d $D/objc.d $D/opover.d $D/optimize.d $D/parse.d	\
+	$D/mtype.d $D/nogc.d $D/nspace.d $D/objc.d $D/opover.d $D/optimize.d $D/parse.d	\
 	$D/sapply.d $D/sideeffect.d $D/statement.d $D/staticassert.d $D/target.d	\
 	$D/safe.d $D/blockexit.d $D/asttypename.d $D/printast.d \
 	$D/traits.d $D/utils.d $D/visitor.d $D/libomf.d $D/scanomf.d $D/typinf.d \
 	$D/libmscoff.d $D/scanmscoff.d $D/statement_rewrite_walker.d $D/statementsem.d $D/staticcond.d
+
+FRONT_SRCS = $(FRONT_LIB_SRCS) $D/mars.d
 
 LEXER_SRCS=$D/console.d $D/entity.d $D/errors.d $D/globals.d $D/id.d $D/identifier.d \
 	$D/lexer.d $D/tokens.d $D/utf.d
@@ -182,7 +184,7 @@ GLUE_SRCS=$D/irstate.d $D/toctype.d $D/glue.d $D/gluelayer.d $D/todt.d $D/tocsym
 	$D/tocvdebug.d $D/s2ir.d $D/toobj.d $D/e2ir.d $D/objc_glue_stubs.d $D/eh.d $D/iasm.d
 
 BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
-	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d $C/iasm.d \
+	$C/obj.d $C/oper.d $C/rtlsym.d $C/code_x86.d $C/iasm.d \
 	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/md5.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d
 
 TK_HDRS= $(TK)/dlist.d
@@ -190,6 +192,8 @@ TK_HDRS= $(TK)/dlist.d
 STRING_IMPORT_FILES= $G\VERSION ../res/default_ddoc_theme.ddoc
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
+
+DMD_LIB_SRCS=$(FRONT_LIB_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
 # Glue layer
 GLUEOBJ=
@@ -337,17 +341,19 @@ $(DMDFRONTENDEXE): $(FRONT_SRCS) $D\gluelayer.d $(ROOT_SRCS) $G\newdelete.obj $G
 	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(LFLAGS) $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) newdelete.obj -version=NoBackend
 	copy $(DMDFRONTENDEXE) .
 
-$(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) $G\newdelete.obj $(LIBS) $(STRING_IMPORT_FILES)
-	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(LFLAGS) $(DMD_SRCS) $(ROOT_SRCS) $G\newdelete.obj $(LIBS)
+$(TARGETEXE) : $G\dmd.lib $D\mars.d
+	$(HOST_DC) $(DSRC) -of$@ -vtls -I$D -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(LFLAGS) $G/dmd.lib $D/mars.d $C/outbuf.d
 	copy $(TARGETEXE) .
+
+$G\dmd.lib: $(DMD_LIB_SRCS) $G\newdelete.obj $(LIBS) $(STRING_IMPORT_FILES)
+	$(HOST_DC) $(DSRC) -lib -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(LFLAGS) $(DMD_LIB_SRCS) $G\newdelete.obj $(LIBS)
 
 ############################ Maintenance Targets #############################
 
 clean:
 	$(RD) /s /q $(GEN)
 	$(DEL) $D\msgs.h $D\msgs.c
-	$(DEL) optabgen.exe parser_test.exe example_avg.exe
-	$(DEL) $(TARGETEXE) $(DMDFRONTENDEXE) *.map *.obj
+	$(DEL) $(TARGETEXE) $(DMDFRONTENDEXE) *.map *.obj *.exe
 
 install: detab install-copy
 
