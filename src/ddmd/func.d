@@ -28,6 +28,7 @@ import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.escape;
 import ddmd.expression;
+import ddmd.gencmain;
 import ddmd.globals;
 import ddmd.hdrgen;
 import ddmd.id;

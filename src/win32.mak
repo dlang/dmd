@@ -154,20 +154,23 @@ DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$
 
 ############################### Rule Variables ###############################
 
-# D front end
-FRONT_SRCS=$D/access.d $D/aggregate.d $D/aliasthis.d $D/apply.d $D/argtypes.d $D/arrayop.d	\
+# library sources (all but ddmd/mars.d)
+DMDLIBFRONT_SRCS=$D/access.d $D/aggregate.d $D/aliasthis.d $D/apply.d $D/argtypes.d $D/arrayop.d	\
 	$D/arraytypes.d $D/astcodegen.d $D/attrib.d $D/builtin.d $D/canthrow.d $D/clone.d $D/complex.d		\
 	$D/cond.d $D/constfold.d $D/cppmangle.d $D/ctfeexpr.d $D/dcast.d $D/dclass.d		\
 	$D/declaration.d $D/delegatize.d $D/denum.d $D/dimport.d $D/dinifile.d $D/dinterpret.d	\
 	$D/dmacro.d $D/dmangle.d $D/dmodule.d $D/doc.d $D/dscope.d $D/dstruct.d $D/dsymbol.d		\
 	$D/dtemplate.d $D/dversion.d $D/escape.d			\
-	$D/expression.d $D/func.d $D/hdrgen.d $D/imphint.d	\
+	$D/expression.d $D/func.d $D/gencmain.d $D/hdrgen.d $D/imphint.d	\
 	$D/impcnvtab.d $D/init.d $D/inline.d $D/inlinecost.d $D/intrange.d $D/json.d $D/lib.d $D/link.d	\
-	$D/mars.d $D/mtype.d $D/nogc.d $D/nspace.d $D/objc.d $D/opover.d $D/optimize.d $D/parse.d	\
+	$D/mtype.d $D/nogc.d $D/nspace.d $D/objc.d $D/opover.d $D/optimize.d $D/parse.d	\
 	$D/sapply.d $D/sideeffect.d $D/statement.d $D/staticassert.d $D/target.d	\
 	$D/safe.d $D/blockexit.d $D/asttypename.d $D/printast.d \
 	$D/traits.d $D/utils.d $D/visitor.d $D/libomf.d $D/scanomf.d $D/typinf.d \
 	$D/libmscoff.d $D/scanmscoff.d $D/statement_rewrite_walker.d $D/statementsem.d $D/staticcond.d
+
+# D front end
+FRONT_SRCS= $(DMDLIBFRONT_SRCS) $D/mars.d
 
 LEXER_SRCS=$D/console.d $D/entity.d $D/errors.d $D/globals.d $D/id.d $D/identifier.d \
 	$D/lexer.d $D/tokens.d $D/utf.d
@@ -176,7 +179,7 @@ LEXER_ROOT=$(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d $(ROOT)/filename.d \
 	$(ROOT)/outbuffer.d $(ROOT)/port.d $(ROOT)/rmem.d $(ROOT)/rootobject.d \
 	$(ROOT)/stringtable.d $(ROOT)/hash.d
 
-PARSER_SRCS=$D/astbase.d $D/astbasevisitor.d $D/parse.d $D/transitivevisitor.d $D/permissivevisitor.d $D/strictvisitor.d
+PARSER_SRCS=$D/astattributes.d $D/astbase.d $D/astbasevisitor.d $D/mixinastnodes.d $D/parse.d $D/transitivevisitor.d $D/permissivevisitor.d $D/strictvisitor.d
 
 GLUE_SRCS=$D/irstate.d $D/toctype.d $D/glue.d $D/gluelayer.d $D/todt.d $D/tocsym.d $D/toir.d $D/dmsc.d \
 	$D/tocvdebug.d $D/s2ir.d $D/toobj.d $D/e2ir.d $D/objc_glue_stubs.d $D/eh.d $D/iasm.d
@@ -190,6 +193,8 @@ TK_HDRS= $(TK)/dlist.d
 STRING_IMPORT_FILES= $G\VERSION ../res/default_ddoc_theme.ddoc
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
+
+DMD_LIB_SRCS=$(DMDLIBFRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
 # Glue layer
 GLUEOBJ=
@@ -285,6 +290,8 @@ auto-tester-build: $G dmd checkwhitespace $(DMDFRONTENDEXE)
 
 dmd: $G reldmd
 
+lib : $G libdmd
+
 release:
 	$(DMDMAKE) clean
 	$(DEL) $(TARGETEXE)
@@ -293,6 +300,9 @@ release:
 
 $G :
 	if not exist "$G" mkdir $G
+
+libdmd:
+	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "DDEBUG=-debug -g -unittest" "DOPT=" "LFLAGS=-L/ma/co/la" $G\dmd.lib
 
 debdmd:
 	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "DDEBUG=-debug -g -unittest" "DOPT=" "LFLAGS=-L/ma/co/la" $(TARGETEXE)
@@ -328,8 +338,8 @@ $G\parser.lib: $(PARSER_SRCS) $G\lexer.lib $G
 parser_test: $G\parser.lib examples\test_parser.d
 	$(HOST_DC) -of$@ -vtls $(DFLAGS) $G\parser.lib examples\test_parser.d examples\impvisitor.d
 
-example_avg: $G\libparser.lib examples\avg.d
-	$(HOST_DC) -of$@ -vtls $(DFLAGS) $G\libparser.lib examples\avg.d
+example_avg: $G\parser.lib examples\avg.d
+	$(HOST_DC) -of$@ -vtls $(DFLAGS) $G\parser.lib examples\avg.d
 
 DMDFRONTENDEXE = $G\dmd_frontend.exe
 
@@ -337,16 +347,23 @@ $(DMDFRONTENDEXE): $(FRONT_SRCS) $D\gluelayer.d $(ROOT_SRCS) $G\newdelete.obj $G
 	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(LFLAGS) $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) newdelete.obj -version=NoBackend
 	copy $(DMDFRONTENDEXE) .
 
-$(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) $G\newdelete.obj $(LIBS) $(STRING_IMPORT_FILES)
-	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(LFLAGS) $(DMD_SRCS) $(ROOT_SRCS) $G\newdelete.obj $(LIBS)
+$(TARGETEXE): $(DMD_SRCS) $G\newdelete.obj $(LIBS) $(STRING_IMPORT_FILES)
+	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(LFLAGS) $(DMD_SRCS) $G\newdelete.obj $(LIBS)
 	copy $(TARGETEXE) .
+
+$G\dmd.lib: $(DMD_LIB_SRCS) $G\newdelete.obj $(LIBS) $(STRING_IMPORT_FILES)
+	$(HOST_DC) $(DSRC) -of$@ -vtls -lib -I$D -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(LFLAGS) $(DMD_LIB_SRCS) $G\newdelete.obj $(LIBS)
+
+dmd_bin.exe: $G\dmd.lib $D\mars.d
+	$(HOST_DC) -of$@ -vtls $(DFLAGS) $G\dmd.lib $D\mars.d
+
 
 ############################ Maintenance Targets #############################
 
 clean:
 	$(RD) /s /q $(GEN)
 	$(DEL) $D\msgs.h $D\msgs.c
-	$(DEL) optabgen.exe parser_test.exe example_avg.exe
+	$(DEL) optabgen.exe parser_test.exe example_avg.exe dmd.exe
 	$(DEL) $(TARGETEXE) $(DMDFRONTENDEXE) $(IDGENOUTPUT) *.map *.obj
 
 install: detab install-copy

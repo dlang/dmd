@@ -742,7 +742,7 @@ final class Parser(AST) : Lexer
                 stc = AST.STCgshared;
                 goto Lstc;
 
-            //case TOKmanifest:   stc = STCmanifest;     goto Lstc;
+            //case TOKmanifest:   stc = AST.STCmanifest;     goto Lstc;
 
             case TOKat:
                 {
@@ -2809,15 +2809,15 @@ final class Parser(AST) : Lexer
                     version (none)
                     {
                     case TOKstatic:
-                        stc = STCstatic;
+                        stc = AST.STCstatic;
                         goto L2;
 
                     case TOKauto:
-                        storageClass = STCauto;
+                        storageClass = AST.STCauto;
                         goto L4;
 
                     case TOKalias:
-                        storageClass = STCalias;
+                        storageClass = AST.STCalias;
                         goto L4;
                     L4:
                         nextToken();
@@ -2850,7 +2850,7 @@ final class Parser(AST) : Lexer
                         // if stc is not a power of 2
                         if (stc & (stc - 1) && !(stc == (AST.STCin | AST.STCref)))
                             error("incompatible parameter storage classes");
-                        //if ((storageClass & STCscope) && (storageClass & (STCref | STCout)))
+                        //if ((storageClass & AST.STCscope) && (storageClass & (AST.STCref | AST.STCout)))
                             //error("scope cannot be ref or out");
 
                         if (tpl && token.value == TOKidentifier)
@@ -4326,7 +4326,7 @@ final class Parser(AST) : Lexer
         if (pAttrs)
         {
             storage_class |= pAttrs.storageClass;
-            //pAttrs.storageClass = STCundefined;
+            //pAttrs.storageClass = AST.STCundefined;
         }
 
         while (1)
@@ -6122,7 +6122,7 @@ final class Parser(AST) : Lexer
 
     /*****************************************
      * Parses default argument initializer expression that is an assign expression,
-     * with special handling for __FILE__, __FILE_DIR__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__.
+     * with special handling for __FILE__, __FILE_DIR__, __LINE__, __AST.MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__.
      */
     AST.Expression parseDefaultInitExp()
     {

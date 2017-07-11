@@ -228,7 +228,7 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	cppmangle ctfeexpr dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol	\
 	dtemplate dversion escape expression func			\
-	hdrgen impcnvtab imphint init inline inlinecost intrange	\
+	gencmain hdrgen impcnvtab imphint init inline inlinecost intrange	\
 	json lib link mars mtype nogc nspace objc opover optimize parse sapply	\
 	sideeffect statement staticassert target traits visitor	\
 	typinf utils statement_rewrite_walker statementsem staticcond safe blockexit asttypename printast))
@@ -242,7 +242,8 @@ ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
 	filename man outbuffer port response rmem rootobject speller \
 	stringtable hash))
 
-PARSER_SRCS=$(addsuffix .d, $(addprefix $D/,parse astbase astbasevisitor transitivevisitor permissivevisitor strictvisitor))
+PARSER_SRCS=$(addsuffix .d, $(addprefix $D/,parse astattributes astbase astbasevisitor \
+	mixinastnodes transitivevisitor permissivevisitor strictvisitor))
 
 GLUE_OBJS =
 
@@ -391,6 +392,14 @@ else
 $G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/backend.a $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT),$^)
 endif
+
+# build the compiler as a library
+$G/dmd.a: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/backend.a $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT) $D/mars.d,$^)
+
+# build the compiler binary using mars.d (where main is located) and the compiler library
+dmd_bin: $G/dmd.a $D/mars.d
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$G/$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $G/dmd.a $D/mars.d -I$D -J../res
 
 
 clean:
