@@ -1,5 +1,13 @@
 module ddmd.mixinastnodes;
 
+/*  This file contains mixin templates which implement the constructors
+ *  and some of the fields needed by AST nodes. The fields and methods
+ *  implemented represent the minimum necessary to have a functional
+ *  D parsing. These mixin templates are used in ASTBase and should
+ *  be used in ASTCodegen to avoid code duplication.
+ */
+
+// Array types for AST nodes
 mixin template MArrays()
 {
     alias Dsymbols              = Array!(Dsymbol);

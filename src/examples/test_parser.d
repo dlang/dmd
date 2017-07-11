@@ -3,8 +3,10 @@ import std.file;
 
 import ddmd.parse;
 import ddmd.astbase;
+import ddmd.astcodegen;
 
 import examples.impvisitor;
+import ddmd.transitivevisitor;
 
 import ddmd.id;
 import ddmd.globals;
@@ -38,14 +40,26 @@ void main()
         auto m = new AST.Module(&(fn.dup)[0], id, false, false);
         auto input = readText(fn);
 
-        //writeln("Started parsing...");
+        auto m1 = new ASTCodegen.Module(&(fn.dup)[0], id, false, false);
+
+        writeln("Starting parsing with ASTBase");
         scope p = new Parser!AST(m, input, false);
         p.nextToken();
         m.members = p.parseModule();
-        //writeln("Finished parsing. Starting transitive visitor");
 
-        scope vis = new ImportVisitor2!AST();
+        scope vis = new TransitiveVisitor!AST();
         m.accept(vis);
+
+        writeln("Finished parsing with ASTBase");
+        writeln("===================================================");
+        writeln("Starting parsing with ASTCodegen");
+
+        scope pc = new Parser!ASTCodegen(m1, input, false);
+        pc.nextToken();
+        m1.members = pc.parseModule();
+
+        scope vis2 = new TransitiveVisitor!ASTCodegen();
+        m1.accept(vis2);
 
         //writeln("Finished!");
     }

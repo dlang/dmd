@@ -245,9 +245,6 @@ ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
 PARSER_SRCS=$(addsuffix .d, $(addprefix $D/,parse astattributes astbase astbasevisitor \
 	mixinastnodes transitivevisitor permissivevisitor strictvisitor))
 
-SEMANTIC_SRCS=$(addsuffix .d, $(addprefix $D/,parse astattributes astbase astbasevisitor astsemantic\
-	mixinastnodes transitivevisitor permissivevisitor strictvisitor))
-
 GLUE_OBJS =
 
 ifeq (osx,$(OS))
