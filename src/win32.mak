@@ -427,8 +427,7 @@ $(OPTABGENOUTPUT) : \
 	$(DEL) *.c
 
 $(IDGENOUTPUT) : $D\idgen.d
-	$(HOST_DC) -of$G\idgen $D\idgen.d
-	$G/idgen
+	$(HOST_DC) -run $D\idgen.d
 
 $G\VERSION : ..\VERSION $G
 	copy ..\VERSION $@
