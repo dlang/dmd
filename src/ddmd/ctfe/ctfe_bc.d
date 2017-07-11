@@ -5788,7 +5788,7 @@ static if (is(BCGen))
 
     override void visit(WithStatement ws)
     {
-        Line(ws.loc.linnum);
+        //Line(ws.loc.linnum);
 
         debug (ctfe)
         {

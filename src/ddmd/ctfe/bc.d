@@ -1709,7 +1709,7 @@ __gshared int[ushort.max * 2] byteCodeCache;
 
 __gshared int byteCodeCacheTop = 4;
 
-enum DebugOrder
+enum DebugCmd
 {
     Invalid,
     Nothing,
@@ -1728,7 +1728,7 @@ enum DebugOrder
 
 struct DebugCommand
 {
-    DebugOrder order;
+    DebugCmd order;
     uint v1;
 }
 
@@ -1738,7 +1738,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
     BCValue* ev1 = null, BCValue* ev2 = null, BCValue* ev3 = null,
     BCValue* ev4 = null, const RE* errors = null,
     long[] stackPtr = null, uint stackOffset = 0,
-/+    DebugCommand function() reciveCommand = {return DebugCommand(DebugOrder.Nothing);},
+/+    DebugCommand function() reciveCommand = {return DebugCommand(DebugCmd.Nothing);},
     BCValue* debugOutput = null+/)  @trusted
 {
     __gshared static uint callDepth;
@@ -1832,9 +1832,9 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 if (!__ctfe) writeln("Order: ", to!string(command.order));
             }
 
-            Switch : final switch(command.order) with(DebugOrder)
+            Switch : final switch(command.order) with(DebugCmd)
             {
-                case Invalid : {assert(0, "Invalid DebugOrder");} break;
+                case Invalid : {assert(0, "Invalid DebugCmd");} break;
                 case SetBreakpoint :
                 {
                     auto bl = command.v1;
@@ -1871,7 +1871,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 } break;
             }
 
-        } while (paused || command.order != DebugOrder.Nothing);
+        } while (paused || command.order != DebugCmd.Nothing);
 +/
         import std.range;
 
