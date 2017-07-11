@@ -492,13 +492,11 @@ Lcant:
 
 void cgreg_spillreg_prolog(block *b,Symbol *s,code **pcstore,code **pcload)
 {
-    list_t bl;
-    code *cstore = *pcstore;
-    code *cload = *pcload;
-    int bi = b->Bdfoidx;
+    const int bi = b->Bdfoidx;
 
     //printf("cgreg_spillreg_prolog(block %d, s = '%s')\n",bi,s->Sident);
 
+    bool load = false;
     int inoutp;
     if (vec_testbit(bi,s->Slvreg))
     {   inoutp = 1;
@@ -507,61 +505,65 @@ void cgreg_spillreg_prolog(block *b,Symbol *s,code **pcstore,code **pcload)
         if (s->Sflags & SFLspill && bi == 0 &&
             (s->Sclass == SCparameter || s->Sclass == SCfastpar || s->Sclass == SCshadowreg))
         {
-            goto Lload;
+            load = true;
         }
     }
     else
         inoutp = -1;
 
-    if (cgreg_gotoepilog(b,s))
-        return;
-
-    // Look at predecessors to see if we need to load in/out of register
-    for (bl = b->Bpred; bl; bl = list_next(bl))
+    if (!load)
     {
-      {
-        block *bp = list_block(bl);
-        int bpi = bp->Bdfoidx;
+        if (cgreg_gotoepilog(b,s))
+            return;
 
-        if (!vec_testbit(bpi,s->Srange))
-            continue;
-        if (vec_testbit(bpi,s->Slvreg))
+        // Look at predecessors to see if we need to load in/out of register
+        for (list_t bl = b->Bpred; 1; bl = list_next(bl))
         {
-            if (inoutp != -1)
-                continue;
-        }
-        else
-        {
-            if (inoutp != 1)
-                continue;
-        }
-      }
+            if (!bl)
+                return;
 
-Lload:
-#ifdef DEBUG
-        if (debugr)
-        {
-            int sz = type_size(s->Stype);
-            if (inoutp == -1)
-                printf("B%d: prolog moving %s into '%s'\n",bi,regstring[s->Sreglsw],s->Sident);
+            block *bp = list_block(bl);
+            const int bpi = bp->Bdfoidx;
+
+            if (!vec_testbit(bpi,s->Srange))
+                continue;
+            if (vec_testbit(bpi,s->Slvreg))
+            {
+                if (inoutp != -1)
+                    continue;
+            }
             else
-                printf("B%d: prolog moving '%s' into %s:%s\n",
-                        bi, s->Sident, regstring[s->Sregmsw], sz > REGSIZE ? regstring[s->Sreglsw] : "");
+            {
+                if (inoutp != 1)
+                    continue;
+            }
+            break;
         }
-#endif
-
-        code* c = gen_spill_reg(s, inoutp == 1);
-
-        if (inoutp == -1)
-            cstore = cat(cstore,c);
-        else
-            cload = cat(cload,c);
-        break;
     }
 
+#ifdef DEBUG
+    if (debugr)
+    {
+        int sz = type_size(s->Stype);
+        if (inoutp == -1)
+            printf("B%d: prolog moving %s into '%s'\n",bi,regstring[s->Sreglsw],s->Sident);
+        else
+            printf("B%d: prolog moving '%s' into %s:%s\n",
+                    bi, s->Sident, regstring[s->Sregmsw], sz > REGSIZE ? regstring[s->Sreglsw] : "");
+    }
+#endif
+
+    CodeBuilder cdbload(*pcload);
+    CodeBuilder cdbstore(*pcstore);
+
+    if (inoutp == -1)
+        gen_spill_reg(cdbstore, s, false);
+    else
+        gen_spill_reg(cdbload, s, true);
+
     // Store old register values before loading in new ones
-    *pcstore = cstore;
-    *pcload = cload;
+    *pcstore = cdbstore.finish();
+    *pcload = cdbload.finish();
 }
 
 /**********************************
@@ -571,14 +573,14 @@ Lload:
 
 void cgreg_spillreg_epilog(block *b,Symbol *s,code **pcstore,code **pcload)
 {
-    code *cstore = *pcstore;
-    code *cload = *pcload;
     int bi = b->Bdfoidx;
-
     //printf("cgreg_spillreg_epilog(block %d, s = '%s')\n",bi,s->Sident);
     //assert(b->BC == BCgoto);
     if (!cgreg_gotoepilog(b->nthSucc(0), s))
         return;
+
+    CodeBuilder cdbload(*pcload);
+    CodeBuilder cdbstore(*pcstore);
 
     int inoutp;
     if (vec_testbit(bi,s->Slvreg))
@@ -614,18 +616,16 @@ void cgreg_spillreg_epilog(block *b,Symbol *s,code **pcstore,code **pcload)
         }
 #endif
 
-        code* c = gen_spill_reg(s, inoutp == -1);
-
         if (inoutp == 1)
-            cstore = cat(cstore,c);
+            gen_spill_reg(cdbstore, s, false);
         else
-            cload = cat(cload,c);
+            gen_spill_reg(cdbload, s, true);
         break;
     }
 
     // Store old register values before loading in new ones
-    *pcstore = cstore;
-    *pcload = cload;
+    *pcstore = cdbstore.finish();
+    *pcload = cdbload.finish();
 }
 
 /***************************
@@ -845,11 +845,17 @@ int cgreg_assign(Symbol *retsym)
             #ifdef DEBUG
             if (debugr)
             if (s->Sfl == FLreg)
+            {
                 printf("symbol '%s' is in reg %s\n",s->Sident,regm_str(s->Sregm));
+            }
             else if (s->Sflags & SFLspill)
+            {
                 printf("symbol '%s' spilled in reg %s\n",s->Sident,regm_str(s->Sregm));
+            }
             else if (!(s->Sflags & GTregcand))
+            {
                 printf("symbol '%s' is not a reg candidate\n",s->Sident);
+            }
             else
                 printf("symbol '%s' is not a candidate\n",s->Sident);
             #endif

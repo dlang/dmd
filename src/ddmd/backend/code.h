@@ -407,7 +407,7 @@ void movregconst(CodeBuilder& cdb,unsigned reg,targ_size_t value,regm_t flags);
 void genjmp(CodeBuilder& cdb, unsigned op, unsigned fltarg, block *targ);
 void prolog(CodeBuilder& cdb);
 void epilog (block *b);
-code *gen_spill_reg(Symbol *s, bool toreg);
+void gen_spill_reg(CodeBuilder& cdb, Symbol *s, bool toreg);
 code *load_localgot();
 targ_size_t cod3_spoff();
 code *cod3_load_got();
