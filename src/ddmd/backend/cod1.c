@@ -518,7 +518,7 @@ void logexp(CodeBuilder& cdb,elem *e,int jcond,unsigned fltarg,code *targ)
           (I32 && tybasic(e->E1->Ety) == TYllong && tybasic(e->E2->Ety) == TYllong))
        )
     {
-        cdb.append(longcmp(e,jcond,fltarg,targ));
+        longcmp(cdb,e,jcond,fltarg,targ);
         cgstate.stackclean--;
         return;
     }

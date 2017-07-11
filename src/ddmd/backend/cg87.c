@@ -2758,7 +2758,7 @@ void cdnegass87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     if (e1->Eoper == OPvar)
         e1->EV.sp.Vsym->Sflags &= ~GTregcand;
 
-    cdb.append(modEA(&cs));
+    modEA(cdb,&cs);
     cs.Irm |= modregrm(0,6,0);
     cs.Iop = 0x80;
     if (tysize(TYldouble) > 10)

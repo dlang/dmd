@@ -459,8 +459,8 @@ extern  const unsigned dblreg[];
 extern int cdcmp_flag;
 
 int doinreg(symbol *s, elem *e);
-code *modEA(code *c);
-code *longcmp (elem *,bool,unsigned,code *);
+void modEA(CodeBuilder& cdb, code *c);
+void longcmp(CodeBuilder&,elem *,bool,unsigned,code *);
 
 /* cod5.c */
 void cod5_prol_epi();
