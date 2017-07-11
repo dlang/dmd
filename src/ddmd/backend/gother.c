@@ -199,17 +199,37 @@ STATIC void conpropwalk(elem *n,vec_t IN)
         //printf("conpropwalk()\n"),elem_print(n);
         op = n->Eoper;
         if (op == OPcolon || op == OPcolon2)
-        {       L = vec_clone(IN);
-                conpropwalk(n->E1,L);
-                conpropwalk(n->E2,IN);
-                vec_orass(IN,L);                /* IN = L | R           */
+        {
+                L = vec_clone(IN);
+                switch (el_noreturn(n->E1) * 2 | el_noreturn(n->E2))
+                {
+                    case 0:
+                        conpropwalk(n->E1,L);
+                        conpropwalk(n->E2,IN);
+                        vec_orass(IN,L);                // IN = L | R
+                        break;
+                    case 1:
+                        conpropwalk(n->E1,IN);
+                        conpropwalk(n->E2,L);
+                        break;
+                    case 2:
+                        conpropwalk(n->E1,L);
+                        conpropwalk(n->E2,IN);
+                        break;
+                    case 3:
+                        conpropwalk(n->E1,L);
+                        vec_copy(L,IN);
+                        conpropwalk(n->E2,L);
+                        break;
+                }
                 vec_free(L);
         }
         else if (op == OPandand || op == OPoror)
         {       conpropwalk(n->E1,IN);
                 R = vec_clone(IN);
                 conpropwalk(n->E2,R);
-                vec_orass(IN,R);                /* IN |= R              */
+                if (!el_noreturn(n->E2))
+                    vec_orass(IN,R);                // IN |= R
                 vec_free(R);
         }
         else if (OTunary(op))

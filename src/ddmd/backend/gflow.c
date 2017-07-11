@@ -324,18 +324,44 @@ STATIC void accumrd(vec_t GEN,vec_t KILL,elem *n)
                 rdelem(&Gl,&Kl,n->E1);
                 rdelem(&Gr,&Kr,n->E2);
 
-                /* GEN = (GEN - Kl) | Gl |      */
-                /*      (GEN - Kr) | Gr         */
-                /* KILL |= Kl & Kr              */
+                switch (el_noreturn(n->E1) * 2 | el_noreturn(n->E2))
+                {
+                    case 0: // E1 and E2 return
+                        /* GEN = (GEN - Kl) | Gl |
+                         *       (GEN - Kr) | Gr
+                         * KILL |= Kl & Kr
+                         */
+                        vec_orass(Gl,Gr);
+                        vec_sub(Gr,GEN,Kl);
+                        vec_orass(Gl,Gr);
+                        vec_sub(Gr,GEN,Kr);
+                        vec_or(GEN,Gl,Gr);
 
-                vec_orass(Gl,Gr);
-                vec_sub(Gr,GEN,Kl);
-                vec_orass(Gl,Gr);
-                vec_sub(Gr,GEN,Kr);
-                vec_or(GEN,Gl,Gr);
+                        vec_andass(Kl,Kr);
+                        vec_orass(KILL,Kl);
+                        break;
 
-                vec_andass(Kl,Kr);
-                vec_orass(KILL,Kl);
+                    case 1: // E1 returns
+                        /* GEN = (GEN - Kl) | Gl
+                         * KILL |= Kl
+                         */
+                        vec_subass(GEN,Kl);
+                        vec_orass(GEN,Gl);
+                        vec_orass(KILL,Kl);
+                        break;
+
+                    case 2: // E2 returns
+                        /* GEN = (GEN - Kr) | Gr
+                         * KILL |= Kr
+                         */
+                        vec_subass(GEN,Kr);
+                        vec_orass(GEN,Gr);
+                        vec_orass(KILL,Kr);
+                        break;
+
+                    case 3: // neither returns
+                        break;
+                }
 
                 vec_free(Gl);
                 vec_free(Kl);
@@ -346,7 +372,8 @@ STATIC void accumrd(vec_t GEN,vec_t KILL,elem *n)
             {
                 accumrd(GEN,KILL,n->E1);
                 rdelem(&Gr,&Kr,n->E2);
-                vec_orass(GEN,Gr);      /* GEN |= Gr                    */
+                if (!el_noreturn(n->E2))
+                    vec_orass(GEN,Gr);      // GEN |= Gr
 
                 vec_free(Gr);
                 vec_free(Kr);
