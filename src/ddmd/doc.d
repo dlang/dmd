@@ -1643,13 +1643,10 @@ struct DocComment
                     const(char)* q = p + utfStride(p);
                     while (isIdTail(q))
                         q += utfStride(q);
-                    if (*q == ':' &&            // 'identifier:' ends it
-                                                // but not 'http://' or 'https://'
-                        !(q[1] == '/' && q[2] == '/' &&
-                          (q - p == 4 && Port.memicmp(p, "http".ptr, 4) == 0 ||
-                           q - p == 5 && Port.memicmp(p, "https".ptr, 5) == 0)
-                         )
-                       )
+
+                    // Detected tag ends it
+                    if (*q == ':' && isupper(*p)
+                            && (isspace(q[1]) || q[1] == 0))
                     {
                         idlen = q - p;
                         idstart = p;
