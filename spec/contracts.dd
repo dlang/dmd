@@ -84,14 +84,14 @@ do
     although $(D do) is preferred.)
 
 	$(P By definition, if a pre contract fails, then the function received bad
-	parameters.
-	An AssertError is thrown. If a post contract fails,
-	then there is a bug in the function. An AssertError is thrown.)
+	parameters. An `AssertError` is thrown. If a post contract fails,
+	then there is a bug in the function. An `AssertError` is thrown.)
 
-	$(P Either the <code>in</code> or the <code>out</code> clause can be omitted.
-	If the <code>out</code> clause is for a function
-	body, the variable <code>result</code> is declared and assigned the return
+	$(P Either the `in` or the `out` clause can be omitted.
+	If the `out` contract is for a function
+	body, the given `result` variable is declared and assigned the return
 	value of the function. For example, let's implement a square root function:)
+
 ------
 long square_root(long x)
 in
@@ -107,18 +107,22 @@ do
     return cast(long)std.math.sqrt(cast(real)x);
 }
 ------
-	$(P The assert's in the in and out bodies are called <dfn>contracts</dfn>.
+	$(P The `assert`s in the `in` and `out` bodies are called $(I contracts).
 	Any other D
 	statement or expression is allowed in the bodies, but it is important
 	to ensure that the
 	code has no side effects, and that the release version of the code
 	will not depend on any 	effects of the code.
-	For a release build of the code, the in and out code is not
+	For a release build of the code, the `in` and `out` code is not
 	inserted.)
 
-	$(P If the function returns a void, there is no result, and so there can be no
-	result declaration in the out clause.
-	In that case, use:)
+$(H3 $(LNAME2 out_without_result, Post Contracts Without a Result Variable))
+
+	$(P If the function returns `void`, there is no result, and so there can be no
+	result variable in the `out` clause. An `out` contract can still be useful,
+	(e.g. to check a global variable or a `ref` parameter was set correctly).)
+
+	$(P Regardless of return type, `out` contracts don't require a result variable:)
 ------
 void func()
 out
@@ -130,8 +134,6 @@ do
     ...
 }
 ------
-	$(P In an out statement, $(I result) is initialized and set to the
-	return value of the function.)
 
 $(H2 $(LNAME2 in_out_inheritance, In, Out and Inheritance))
 
@@ -209,7 +211,7 @@ class Date
 	up being called in an infinitely recursive manner.
 	)
 
-	$(P Invariants are implicitly const.)
+	$(P Invariants are implicitly `const`.)
 
 	$(P Since the invariant is called at the start of public or
 	exported members, such members should not be called from
