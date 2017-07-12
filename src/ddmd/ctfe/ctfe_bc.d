@@ -1,4 +1,4 @@
-module ddmd.ctfe.ctfe_bc;
+ module ddmd.ctfe.ctfe_bc;
 import ddmd.ctfe.bc_limits;
 import ddmd.expression;
 import ddmd.declaration : FuncDeclaration, VarDeclaration, Declaration,
@@ -179,8 +179,8 @@ import ddmd.ctfe.bc_common;
 
 struct SliceDescriptor
 {
-    enum LengthOffset = 0;
-    enum BaseOffset = 4;
+    enum BaseOffset = 0;
+    enum LengthOffset = 4;
     enum CapcityOffset = 8;
     enum ExtraFlagsOffset = 12;
     enum Size = 16;
@@ -760,14 +760,14 @@ struct SharedCtfeState(BCGenT)
             void* mem = allocmemory(maxHeapSize * uint.sizeof);
             heap._heap = (cast(uint*) mem)[0 .. maxHeapSize];
             heap.heapMax = maxHeapSize;
-            heap.heapSize = 4;
+            heap.heapSize = 100;
         }
         else
         {
             import core.stdc.string : memset;
 
             memset(&heap._heap[0], 0, heap._heap[0].sizeof * heap.heapSize);
-            heap.heapSize = 4;
+            heap.heapSize = 100;
         }
     }
 
@@ -920,7 +920,7 @@ struct SharedCtfeState(BCGenT)
 
     }
     */
-    const(uint) size(const BCType type) const
+    const(uint) size(const BCType type, const bool isMember = false) const
     {
         static __gshared sizeRecursionCount = 1;
         sizeRecursionCount++;
@@ -975,7 +975,7 @@ struct SharedCtfeState(BCGenT)
 
                     writeln("ArrayElementSize :", size(_array.elementType));
                 }
-                return size(_array.elementType) * _array.length + SliceDescriptor.Size;
+                return isMember ? 16 : size(_array.elementType) * _array.length + SliceDescriptor.Size;
             }
         case BCTypeEnum.Slice:
             {
@@ -1047,7 +1047,7 @@ Expression toExpression(const BCValue value, Type expressionType,
     static if (bailoutMessages)
     {
         import std.stdio;
-        writeln("Calling toExpression with Type: ", expressionType.toString);
+        writeln("Calling toExpression with Type: ", (cast(ENUMTY)(expressionType.ty)).to!string, " Value:", value);
     }
     Expression result;
     if (value.vType == BCValueType.Unknown)
@@ -1127,7 +1127,11 @@ Expression toExpression(const BCValue value, Type expressionType,
         auto elemSize = _sharedCtfeState.size(baseType);
         auto arrayLength = heapPtr._heap[arr.heapAddr.addr + SliceDescriptor.LengthOffset];
         auto arrayBase = heapPtr._heap[arr.heapAddr.addr + SliceDescriptor.BaseOffset];
-
+        debug (abi)
+        {
+            writefln("creating Array from {base: &%d = %d} {length: &%d = %d}",
+                arr.heapAddr.addr + SliceDescriptor.BaseOffset, arrayBase, arr.heapAddr.addr + SliceDescriptor.LengthOffset, arrayLength);
+        }
         if (!arr.heapAddr || !arrayBase)
         {
            return new NullExp(Loc(), arrayType);
@@ -1224,14 +1228,41 @@ Expression toExpression(const BCValue value, Type expressionType,
             auto si = _sharedCtfeState.getStructIndex(sd);
             assert(si);
             BCStruct _struct = _sharedCtfeState.structTypes[si - 1];
+            auto structBegin = heapPtr._heap.ptr + value.heapAddr.addr;
             Expressions* elmExprs = new Expressions();
             uint offset = 0;
+            debug (abi)
+            {
+                writeln("StructHeapRep: ", structBegin[0 .. _struct.size]);
+            }
             foreach (idx, member; _struct.memberTypes[0 .. _struct.memberTypeCount])
             {
+                debug (abi)
+                {
+                    writeln("StructIdx:", si, " memberIdx: " ,  idx, " offset: ", offset);
+                }
                 auto type = sd.fields[idx].type;
 
-                Expression elm = toExpression(
-                    imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset)), type);
+                Expression elm;
+
+                if (member.type == BCTypeEnum.i64)
+                {
+                    BCValue imm64;
+                    imm64.vType = BCValueType.Immediate;
+                    imm64.type = BCTypeEnum.i64;
+                    imm64.imm64 = *(heapPtr._heap.ptr + value.heapAddr.addr + offset);
+                    imm64.imm64 |= ulong(*(heapPtr._heap.ptr + value.heapAddr.addr + offset + 1)) << 32;
+                    elm = toExpression(imm64, type);
+                }
+                else if (member.type == BCTypeEnum.Slice || member.type == BCTypeEnum.Array, member.type == BCTypeEnum.Struct)
+                {
+                    elm = toExpression(imm32(value.heapAddr.addr + offset), type);
+                }
+                else
+                {
+                    elm = toExpression(
+                        imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset)), type);
+                }
                 if (!elm)
                 {
                     static if (bailoutMessages)
@@ -1243,7 +1274,7 @@ Expression toExpression(const BCValue value, Type expressionType,
                 }
 
                 elmExprs.insert(idx, elm);
-                offset += align4(_sharedCtfeState.size(member));
+                offset += align4(_sharedCtfeState.size(member, true));
             }
             result = new StructLiteralExp(Loc(), sd, elmExprs);
             (cast(StructLiteralExp) result).ownedByCtfe = OWNEDctfe;
@@ -1431,7 +1462,7 @@ extern (C++) final class BCTypeVisitor : Visitor
             if (!et || et.type == BCTypeEnum.Slice || et.type == BCTypeEnum.Array)
             {
                 //TODO FIXME as soon as we support multi-dimensional arrays remove the if above
-                rt = BCType.init;          
+                rt = BCType.init;
             }
 
             return rt;
@@ -1453,7 +1484,7 @@ extern (C++) final class BCTypeVisitor : Visitor
             if (!et || et.type == BCTypeEnum.Slice || et.type == BCTypeEnum.Array)
             {
                 //TODO FIXME as soon as we support multi-dimensional arrays remove the if above
-                rt = BCType.init;          
+                rt = BCType.init;
             }
 
             return rt;
@@ -1551,6 +1582,7 @@ struct BCScope
 
 debug = nullPtrCheck;
 debug = nullAllocCheck;
+//debug = ctfe;
 //debug = andand;
 //debug = SetLocation;
 //debug = LabelLocation;
@@ -1771,9 +1803,11 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     debug (nullAllocCheck)
     {
-        void Alloc(BCValue result, BCValue size, size_t line = __LINE__)
+        void Alloc(BCValue result, BCValue size, BCType type = BCType.init, uint line = __LINE__)
         {
+
             assert(size.vType != BCValueType.Immediate || size.imm32 != 0, "Null Alloc detected in line: " ~ to!string(line));
+            Comment("Alloc From: " ~ to!string(line));
             gen.Alloc(result, size);
         }
     }
@@ -1934,7 +1968,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
             }
         debug (ctfe)
         {
-            assert(0, "bailout on " ~ pfn ~ " (" ~ to!string(line) ~ "): " ~ message);
+//            assert(0, "bailout on " ~ pfn ~ " (" ~ to!string(line) ~ "): " ~ message);
         }
         else
         {
@@ -2131,7 +2165,7 @@ public:
             import std.stdio;
         }
         auto oldRetval = retval;
-        // import std.stdio; writeln("Calling genExpr from: ", line, debugMessage ? " \"" ~ debugMessage ~ "\"" : ""); //DEBUGLINE
+        import std.stdio; writeln("Calling genExpr from: ", line, debugMessage ? " \"" ~ debugMessage ~ "\"" : ""); //DEBUGLINE
 
         if (processingArguments)
         {
@@ -3579,7 +3613,7 @@ static if (is(BCGen))
             return ;
         }
         if (!insideArgumentProcessing)
-            Alloc(retval, imm32(size));
+            Alloc(retval, imm32(size), BCType(BCTypeEnum.Struct, idx));
         else
         {
             retval = BCValue(HeapAddr(heap.heapSize));
@@ -3593,10 +3627,17 @@ static if (is(BCGen))
         BCValue fieldAddr = genTemporary(i32Type);
         foreach (elem; *sle.elements)
         {
+            Comment("StructLiteralExp element: " ~ elem.toString);
             auto elexpr = genExpr(elem, "StructLiteralExp element");
             debug (ctfe)
             {
                 writeln("elExpr: ", elexpr.toString, " elem ", elem.toString);
+            }
+
+            if (!elexpr)
+            {
+                bailout("could not gen StructMember: " ~ elem.toString);
+                return ;
             }
             /*
             if (elexpr.type != BCTypeEnum.i32
@@ -3609,15 +3650,19 @@ static if (is(BCGen))
             }*/
             if (!insideArgumentProcessing)
             {
-                Add3(fieldAddr, retval.i32, imm32(offset));
+                if (offset)
+                    Add3(fieldAddr, retval.i32, imm32(offset));
+                else
+                    Set(fieldAddr, retval.i32);
                 // abi hack for slices slice;
                 if (elexpr.type.type == BCTypeEnum.Slice || elexpr.type.type == BCTypeEnum.Array)
                 {
-                    //TODO FIXME BROKEN!!! This is still broken! Stablize Slice ABI!!!
-                    // For the slice in struct case.
-                    // Can we use a Pointer here ??
-                    auto slicePtr = genTemporary(i32Type);
-                    Load32(slicePtr, fieldAddr);
+/*
+                    auto sBase = getBase(elexpr);
+                    auto sLength = getLength(elexpr);
+                    setBase(fieldAddr, sBase);
+                    setLength(fieldAddr, sLength);
+*/
                     MemCpy(fieldAddr, elexpr, imm32(SliceDescriptor.Size));
                 }
                 else
@@ -3653,7 +3698,7 @@ static if (is(BCGen))
     override void visit(AddrExp ae)
     {
         Line(ae.loc.linnum);
-        retval = genExpr(ae.e1);
+        retval = genExpr(ae.e1, "AddrExp");
         //Alloc()
         //assert(0, "Dieng on Addr ?");
     }
@@ -3972,7 +4017,9 @@ static if (is(BCGen))
 
             auto sv = getVariable(vd);
             debug (ctfe)
-                assert(sv, "Variable " ~ ve.toString ~ " not in StackFrame");
+            {
+                //assert(sv, "Variable " ~ ve.toString ~ " not in StackFrame");
+            }
 
             if (sv.vType == BCValueType.VoidValue && !ignoreVoid)
             {
@@ -4317,7 +4364,7 @@ static if (is(BCGen))
         }
 
         // HACK regardless of the literal type we register it as 32bit if it's smaller then int.max;
-        if (ie.value > uint.max)
+        if (bct.type == BCTypeEnum.i64)
         {
             retval = BCValue(Imm64(ie.value));
         }
@@ -4694,7 +4741,7 @@ static if (is(BCGen))
             auto fieldType = bcStructType.memberTypes[fIndex];
             // import std.stdio; writeln("got fieldType: ", fieldType); //DEBUGLINE
 
-            if (fieldType.type != BCTypeEnum.i32)
+            if (fieldType.type != BCTypeEnum.i32 || fieldType.type != BCTypeEnum.i64)
             {
                 bailout("only i32 structMembers are supported for now ... not : " ~ to!string(bcStructType.memberTypes[fIndex].type));
                 return;
@@ -5053,7 +5100,7 @@ static if (is(BCGen))
     override void visit(AssertExp ae)
     {
         Line(ae.loc.linnum);
-        auto lhs = genExpr(ae.e1);
+        auto lhs = genExpr(ae.e1, "AssertExp.e1");
         if (lhs.type.type == BCTypeEnum.i32 || lhs.type.type == BCTypeEnum.Ptr || lhs.type.type == BCTypeEnum.Struct)
         {
             Assert(lhs.i32, addError(ae.loc,
@@ -5608,10 +5655,15 @@ static if (is(BCGen))
                 bailout("could not gen returnValue: " ~ rs.exp.toString);
                 return ;
             }
-            if (retval.type.type == BCTypeEnum.i32 || retval.type.type == BCTypeEnum.Slice || retval.type.type == BCTypeEnum.c8 ||
-                retval.type.type == BCTypeEnum.c32 || retval.type.type == BCTypeEnum.Array || retval.type.type == BCTypeEnum.String ||
-                retval.type.type == BCTypeEnum.Struct || retval.type.type == BCTypeEnum.f23 || retval.type.type == BCTypeEnum.f52 ||
-                retval.type.type == BCTypeEnum.i64)
+            static immutable acceptedReturnTypes =
+            () {
+                with (BCTypeEnum)
+                {
+                    return [c8, c32, i32, i64, f23, f52, Slice, Array, Struct, string8];
+                }
+            } ();
+
+            if (retval.type.type.anyOf(acceptedReturnTypes))
                 Ret(retval);
             else
             {
