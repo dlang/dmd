@@ -2068,7 +2068,7 @@ STATIC elem * elcond(elem *e, goal_t goal)
              *    (a && noreturn), c
              * because that means fewer noreturn cases for the data flow analysis to deal with
              */
-            else if (el_noreturn(ec1))
+            else if (!el_returns(ec1))
             {
                 e->Eoper = OPcomma;
                 e->E1 = e->E2;
@@ -2084,7 +2084,7 @@ STATIC elem * elcond(elem *e, goal_t goal)
              * with:
              *    (a || noreturn), b
              */
-            else if (el_noreturn(ec2))
+            else if (!el_returns(ec2))
             {
                 e->Eoper = OPcomma;
                 e->E1 = e->E2;

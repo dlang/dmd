@@ -2242,7 +2242,7 @@ void cdloglog(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     unsigned stackpushsave = stackpush;
     if (*pretregs == 0)                 // if don't want result
     {
-        int noreturn = el_noreturn(e2);
+        int noreturn = !el_returns(e2);
         codelem(cdb,e2,pretregs,FALSE);
         if (noreturn)
         {

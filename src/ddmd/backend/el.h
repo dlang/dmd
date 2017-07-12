@@ -202,7 +202,7 @@ elem *el_long(tym_t,targ_llong);
 }
 
 int ERTOL(elem *);
-int el_noreturn(elem *);
+bool el_returns(elem *);
 //elem *el_dctor(elem *e,void *decl);
 //elem *el_ddtor(elem *e,void *decl);
 elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor);

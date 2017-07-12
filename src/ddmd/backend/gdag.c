@@ -246,7 +246,7 @@ STATIC void aewalk(elem **pn,vec_t ae)
                 /* ae &= aer    */
                 aer = vec_clone(ae);
                 aewalk(&(n->E2),aer);
-                if (!el_noreturn(n->E2))
+                if (el_returns(n->E2))
                     vec_andass(ae,aer);
                 vec_free(aer);
                 break;
@@ -661,14 +661,14 @@ STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
             abeboolres(n->E1,ae,aeval);
             vec_t aer = vec_clone(ae);
             vec_t aerval = vec_clone(aeval);
-            if (el_noreturn(n->E2->E1))
+            if (!el_returns(n->E2->E1))
             {
                 abeset(n->E1,aer,aerval,true);
                 abewalk(n->E2->E1,aer,aerval);
                 abeset(n->E1,ae,aeval,false);
                 abewalk(n->E2->E2,ae,aeval);
             }
-            else if (el_noreturn(n->E2->E2))
+            else if (!el_returns(n->E2->E2))
             {
                 abeset(n->E1,ae,aeval,true);
                 abewalk(n->E2->E1,ae,aeval);
@@ -706,7 +706,7 @@ STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
             abeboolres(n->E1,ae,aeval);
             vec_t aer = vec_clone(ae);
             vec_t aerval = vec_clone(aeval);
-            if (el_noreturn(n->E2))
+            if (!el_returns(n->E2))
             {
                 abeset(n->E1,aer,aerval,(op == OPandand));
                 abewalk(n->E2,aer,aerval);

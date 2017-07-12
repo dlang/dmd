@@ -1181,7 +1181,7 @@ STATIC void writefunc2(symbol *sfunc)
         if (b->Belem)
         {   outelem(b->Belem);
 #if SCPP
-            if (el_noreturn(b->Belem) && !(config.flags3 & CFG3eh))
+            if (!el_returns(b->Belem) && !(config.flags3 & CFG3eh))
             {   b->BC = BCexit;
                 list_free(&b->Bsucc,FPNULL);
             }

@@ -1005,29 +1005,29 @@ STATIC void markinvar(elem *n,vec_t rd)
                 markinvar(n->E1,rd);
                 tmp = vec_clone(rd);
                 markinvar(n->E2,tmp);
-                if (!el_noreturn(n->E2))
+                if (el_returns(n->E2))
                     vec_orass(rd,tmp);              // rd |= tmp
                 vec_free(tmp);
                 break;
         case OPcolon:
         case OPcolon2:
                 tmp = vec_clone(rd);
-                switch (el_noreturn(n->E1) * 2 | el_noreturn(n->E2))
+                switch (el_returns(n->E1) * 2 | el_returns(n->E2))
                 {
-                    case 0:
+                    case 3: // E1 and E2 return
                         markinvar(n->E1,rd);
                         markinvar(n->E2,tmp);
                         vec_orass(rd,tmp);              // rd |= tmp
                         break;
-                    case 1:
+                    case 2: // E1 returns
                         markinvar(n->E1,rd);
                         markinvar(n->E2,tmp);
                         break;
-                    case 2:
+                    case 1: // E2 returns
                         markinvar(n->E1,tmp);
                         markinvar(n->E2,rd);
                         break;
-                    case 3:
+                    case 0: // neither returns
                         markinvar(n->E1,tmp);
                         vec_copy(tmp,rd);
                         markinvar(n->E2,tmp);
