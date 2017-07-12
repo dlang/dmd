@@ -35,10 +35,6 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
                 assert(0, "We should never encounter undef or bailout");
             return 0;
         }
-    case Slice, string8, string16, string32:
-        {
-            return 4;
-        }
     case c8, i8, u8:
         {
             return 1;
@@ -65,11 +61,28 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
             return 4;
         }
 
-    case Void, Array, Struct:
+    case Void, Array, Slice, Struct,
+        string8, string16, string32:
         {
             return 0;
         }
     }
+}
+
+bool anyOf(BCTypeEnum type, const BCTypeEnum[] acceptedTypes)
+{
+    bool result = false;
+
+    foreach(acceptedType;acceptedTypes)
+    {
+        if (type == acceptedType)
+        {
+            result = true;
+            break;
+        }
+    }
+
+    return result;
 }
 
 bool isFloat(BCType bct) @safe pure nothrow
