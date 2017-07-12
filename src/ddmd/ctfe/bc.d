@@ -7,7 +7,7 @@ import std.conv;
 /**
  * Written By Stefan Koch in 2016
  */
-
+debug = 1;
 enum InstKind
 {
     ShortInst,
@@ -377,11 +377,42 @@ struct BCGen
     }
 
 pure:
-
-    void emitLongInst(LongInst64 i)
+    /// The emitLongInst functions have be kept up to date if
+    /// LongInst64 is changed.
+    void emitLongInst(const LongInst i, const BCAddr targetAddr)
     {
-        byteCodeArray[ip] = i.lw;
-        byteCodeArray[ip + 1] = i.hi;
+        byteCodeArray[ip] = i;
+        byteCodeArray[ip + 1] = targetAddr.addr;
+        ip += 2;
+    }
+
+    void emitLongInst(const LongInst i, const StackAddr stackAddrLhs, const BCAddr targetAddr)
+    {
+        byteCodeArray[ip] = i | stackAddrLhs.addr << 16;
+        byteCodeArray[ip + 1] = targetAddr.addr;
+        ip += 2;
+    }
+
+    void emitLongInst(const LongInst i, const StackAddr stackAddrLhs,
+        const StackAddr stackAddrRhs)
+    {
+        byteCodeArray[ip] = i;
+        byteCodeArray[ip + 1] = stackAddrLhs.addr | stackAddrRhs.addr << 16;
+        ip += 2;
+    }
+
+    void emitLongInst(const LongInst i, const StackAddr stackAddrLhs, const Imm32 rhs)
+    {
+        byteCodeArray[ip] = i | stackAddrLhs.addr << 16;
+        byteCodeArray[ip + 1] = rhs.imm32;
+        ip += 2;
+    }
+
+    void emitLongInst(const LongInst i, const StackAddr stackAddrLhs,
+        const StackAddr stackAddrRhs, StackAddr stackAddrOp)
+    {
+        byteCodeArray[ip] = i | stackAddrOp.addr << 16;
+        byteCodeArray[ip + 1] = stackAddrLhs.addr | stackAddrRhs.addr << 16;
         ip += 2;
     }
 
@@ -545,7 +576,7 @@ pure:
         assert(isStackValueOrParameter(size));
         assert(isStackValueOrParameter(heapPtr));
 
-        emitLongInst(LongInst64(LongInst.Alloc, heapPtr.stackAddr, size.stackAddr));
+        emitLongInst(LongInst.Alloc, heapPtr.stackAddr, size.stackAddr);
     }
 
     void Assert(BCValue value, BCValue err)
@@ -558,7 +589,7 @@ pure:
 
         if (value)
         {
-            emitLongInst(LongInst64(LongInst.Assert, pushOntoStack(value).stackAddr, err.imm32));
+            emitLongInst(LongInst.Assert, pushOntoStack(value).stackAddr, err.imm32);
         }
         else
         {
@@ -573,12 +604,12 @@ pure:
         src = pushOntoStack(src);
         dst = pushOntoStack(dst);
 
-        emitLongInst(LongInst64(LongInst.MemCpy, dst.stackAddr, src.stackAddr, size.stackAddr));
+        emitLongInst(LongInst.MemCpy, dst.stackAddr, src.stackAddr, size.stackAddr);
     }
 
     void Line(uint line)
     {
-        emitLongInst(LongInst64(LongInst.Line, StackAddr(0), Imm32(line)));
+        emitLongInst(LongInst.Line, StackAddr(0), Imm32(line));
     }
 
     void Comment(string comment)
@@ -586,7 +617,7 @@ pure:
         uint alignedLength = align4(cast(uint) comment.length) / 4;
         uint commentLength = cast(uint) comment.length;
 
-        emitLongInst(LongInst64(LongInst.Comment, StackAddr.init, Imm32(commentLength)));
+        emitLongInst(LongInst.Comment, StackAddr.init, Imm32(commentLength));
         uint idx;
         while(commentLength >= 4)
         {
@@ -637,7 +668,7 @@ pure:
 
         if (_lhs == BCTypeEnum.f52 || _rhs == BCTypeEnum.f52)
         {
-            commonType = BCTypeEnum.f52; 
+            commonType = BCTypeEnum.f52;
         }
         else if (_lhs == BCTypeEnum.f23 || _rhs == BCTypeEnum.f23)
         {
@@ -670,7 +701,7 @@ pure:
         {
             lhs = pushOntoStack(lhs);
         }
-        
+
         BCTypeEnum commonType = commonTypeEnum(&lhs.type.type, &rhs.type.type);
         if (resultTypeEnum !is null)
             *resultTypeEnum = commonType;
@@ -696,8 +727,6 @@ pure:
 
             if (inst != LongInst.Set)
                 inst += (LongInst.FAdd32 - LongInst.Add);
-
-            emitLongInst(LongInst64(inst, lhs.stackAddr, rhs.stackAddr));
         }
         else if (lhs.type.type == BCTypeEnum.f52)
         {
@@ -706,18 +735,17 @@ pure:
 
             if (inst != LongInst.Set)
                 inst += (LongInst.FAdd64 - LongInst.Add);
-
-            emitLongInst(LongInst64(inst, lhs.stackAddr, rhs.stackAddr));
         }
         else if (rhs.vType == BCValueType.Immediate)
         {
             //Change the instruction into the corrosponding Imm Instruction;
             inst += (LongInst.ImmAdd - LongInst.Add);
-            emitLongInst(LongInst64(inst, lhs.stackAddr, rhs.imm32));
+            emitLongInst(inst, lhs.stackAddr, rhs.imm32);
+            return ;
         }
         else if (isStackValueOrParameter(rhs))
         {
-            emitLongInst(LongInst64(inst, lhs.stackAddr, rhs.stackAddr));
+            emitLongInst(inst, lhs.stackAddr, rhs.stackAddr);
         }
         else
         {
@@ -959,7 +987,7 @@ pure:
     void Call(BCValue result, BCValue fn, BCValue[] args, Loc l = Loc.init)
     {
         calls[callCount++] = RetainedCall(fn, args, functionId, ip, sp, l);
-        emitLongInst(LongInst64(LongInst.Call, result.stackAddr, pushOntoStack(imm32(callCount)).stackAddr));
+        emitLongInst(LongInst.Call, result.stackAddr, pushOntoStack(imm32(callCount)).stackAddr);
     }
 
     void Load32(BCValue _to, BCValue from)
@@ -975,7 +1003,7 @@ pure:
         assert(isStackValueOrParameter(_to), "to has the vType " ~ to!string(_to.vType));
         assert(isStackValueOrParameter(from), "from has the vType " ~ to!string(from.vType));
 
-        emitLongInst(LongInst64(LongInst.HeapLoad32, _to.stackAddr, from.stackAddr));
+        emitLongInst(LongInst.HeapLoad32, _to.stackAddr, from.stackAddr);
     }
 
     void Store32(BCValue _to, BCValue value)
@@ -993,7 +1021,7 @@ pure:
         assert(isStackValueOrParameter(_to), "to has the vType " ~ to!string(_to.vType));
         assert(isStackValueOrParameter(value), "value has the vType " ~ to!string(value.vType));
 
-        emitLongInst(LongInst64(LongInst.HeapStore32, _to.stackAddr, value.stackAddr));
+        emitLongInst(LongInst.HeapStore32, _to.stackAddr, value.stackAddr);
     }
 
     void Load64(BCValue _to, BCValue from)
@@ -1009,7 +1037,7 @@ pure:
         assert(isStackValueOrParameter(_to), "to has the vType " ~ to!string(_to.vType));
         assert(isStackValueOrParameter(from), "from has the vType " ~ to!string(from.vType));
 
-        emitLongInst(LongInst64(LongInst.HeapLoad64, _to.stackAddr, from.stackAddr));
+        emitLongInst(LongInst.HeapLoad64, _to.stackAddr, from.stackAddr);
     }
 
     void Store64(BCValue _to, BCValue value)
@@ -1027,7 +1055,7 @@ pure:
         assert(isStackValueOrParameter(_to), "to has the vType " ~ to!string(_to.vType));
         assert(isStackValueOrParameter(value), "value has the vType " ~ to!string(value.vType));
 
-        emitLongInst(LongInst64(LongInst.HeapStore64, _to.stackAddr, value.stackAddr));
+        emitLongInst(LongInst.HeapStore64, _to.stackAddr, value.stackAddr);
     }
 
 
@@ -1039,35 +1067,35 @@ pure:
             return rhs;
 
         auto lhs = genTemporary(BCType(targetType));
-            
+
         assert(isStackValueOrParameter(rhs));
 
         switch(targetType) with (BCTypeEnum)
         {
-            case f52 : 
+            case f52 :
                 if (sourceType == f23)
-                    emitLongInst(LongInst64(LongInst.F32ToF64, lhs.stackAddr, rhs.stackAddr)); 
+                    emitLongInst(LongInst.F32ToF64, lhs.stackAddr, rhs.stackAddr);
                 else
-                    emitLongInst(LongInst64(LongInst.IToF64, lhs.stackAddr, rhs.stackAddr));
-            break; 
+                    emitLongInst(LongInst.IToF64, lhs.stackAddr, rhs.stackAddr);
+            break;
             case f23 :
                 if (sourceType == f52)
-                    emitLongInst(LongInst64(LongInst.F64ToF32, lhs.stackAddr, rhs.stackAddr)); 
+                    emitLongInst(LongInst.F64ToF32, lhs.stackAddr, rhs.stackAddr);
                 else
-                    emitLongInst(LongInst64(LongInst.IToF32, lhs.stackAddr, rhs.stackAddr));
-            break; 
-            case i32 : 
+                    emitLongInst(LongInst.IToF32, lhs.stackAddr, rhs.stackAddr);
+            break;
+            case i32 :
                 if (sourceType == f23)
-                    emitLongInst(LongInst64(LongInst.F32ToI, lhs.stackAddr, rhs.stackAddr)); 
-                else if (sourceType == f52) 
-                    emitLongInst(LongInst64(LongInst.F64ToI, lhs.stackAddr, rhs.stackAddr));
+                    emitLongInst(LongInst.F32ToI, lhs.stackAddr, rhs.stackAddr);
+                else if (sourceType == f52)
+                    emitLongInst(LongInst.F64ToI, lhs.stackAddr, rhs.stackAddr);
             break;
             default :
                 debug{assert(0, "me no have no cast for targetType " ~ to!string(targetType));}
-            break;  
+            break;
         }
 
-        return lhs;        
+        return lhs;
     }
 
     BCValue pushOntoStack(BCValue val)
@@ -1108,7 +1136,7 @@ pure:
         assert(isStackValueOrParameter(result));
         assert(isStackValueOrParameter(rhs));
 
-        emitLongInst(LongInst64(LongInst.IToF32, result.stackAddr, rhs.stackAddr));
+        emitLongInst(LongInst.IToF32, result.stackAddr, rhs.stackAddr);
     }
 
     void IToF64(BCValue result, BCValue rhs)
@@ -1116,7 +1144,7 @@ pure:
         assert(isStackValueOrParameter(result));
         assert(isStackValueOrParameter(rhs));
 
-        emitLongInst(LongInst64(LongInst.IToF64, result.stackAddr, rhs.stackAddr));
+        emitLongInst(LongInst.IToF64, result.stackAddr, rhs.stackAddr);
     }
 
     void StrEq3(BCValue result, BCValue lhs, BCValue rhs)
@@ -1137,7 +1165,7 @@ pure:
         assert(isStackValueOrParameter(rhs),
             "The rhs of StrEq3 not a StackValue" ~ to!string(rhs.vType));
 
-        emitLongInst(LongInst64(LongInst.StrEq, lhs.stackAddr, rhs.stackAddr));
+        emitLongInst(LongInst.StrEq, lhs.stackAddr, rhs.stackAddr);
 
         if (isStackValueOrParameter(result))
         {
@@ -2568,7 +2596,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
             {
                 assert(*rhs, "trying to deref null pointer");
                 (*lhsRef) = *(heapPtr._heap.ptr + *rhs);
-                debug(bc)
+                debug
                 {
                     import std.stdio;
                     writeln("Loaded[",*rhs,"] = ",*lhsRef);
@@ -2579,6 +2607,12 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
             {
                 assert(*lhsRef, "trying to deref null pointer SP[" ~ to!string((lhsRef - &stackP[0])*4) ~ "] at : &" ~ to!string (ip - 2));
                 (*(heapPtr._heap.ptr + *lhsRef)) = (*rhs) & 0xFF_FF_FF_FF;
+                debug
+                {
+                    import std.stdio;
+                    writeln("Store[",*lhsRef,"] = ",*rhs & uint.max);
+                }
+
             }
             break;
 
@@ -2734,6 +2768,10 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 {
                     *lhsRef = heapPtr.heapSize;
                     heapPtr.heapSize += *rhs;
+                    debug
+                    {
+                        writefln("Alloc(#%d) = &%d", *rhs, *lhsRef);
+                    }
                 }
                 else
                 {
@@ -2748,7 +2786,11 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 auto cpyDst = cast(uint) *lhsRef;
                 if (cpySrc != cpyDst)
                 {
-                    assert(cpyDst >= cpySrc + cpySize, "Overlapping MemCpy is not supported --- src: " ~ to!string(cpySrc)
+                    assert(cpySize, "cpySize == 0");
+                    assert(cpySrc, "cpySrc == 0");
+                    assert(cpyDst, "cpyDst == 0");
+
+                    assert(cpyDst >= cpySrc + cpySize || cpyDst + cpySize < cpySrc, "Overlapping MemCpy is not supported --- src: " ~ to!string(cpySrc)
                         ~ " dst: " ~ to!string(cpyDst) ~ " size: " ~ to!string(cpySize));
                     heapPtr._heap[cpyDst .. cpyDst + cpySize] = heapPtr._heap[cpySrc .. cpySrc + cpySize];
                 }
