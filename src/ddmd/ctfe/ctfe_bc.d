@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 1;
+enum bailoutMessages = 0;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -1133,6 +1133,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             writefln("creating Array from {base: &%d = %d} {length: &%d = %d}",
                 arr.heapAddr.addr + SliceDescriptor.BaseOffset, arrayBase, arr.heapAddr.addr + SliceDescriptor.LengthOffset, arrayLength);
         }
+
         if (!arr.heapAddr || !arrayBase)
         {
            return new NullExp(Loc(), arrayType);
@@ -1255,7 +1256,7 @@ Expression toExpression(const BCValue value, Type expressionType,
                     imm64.imm64 |= ulong(*(heapPtr._heap.ptr + value.heapAddr.addr + offset + 4)) << 32;
                     elm = toExpression(imm64, type);
                 }
-                else if (member.type == BCTypeEnum.Slice || member.type == BCTypeEnum.Array, member.type == BCTypeEnum.Struct)
+                else if (member.type == BCTypeEnum.Slice || member.type == BCTypeEnum.Array || member.type == BCTypeEnum.Struct)
                 {
                     elm = toExpression(imm32(value.heapAddr.addr + offset), type);
                 }
