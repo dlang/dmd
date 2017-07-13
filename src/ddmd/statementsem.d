@@ -739,7 +739,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
                 st.push(new ExpStatement(loc, var));
 
-                st.push(fs._body.syntaxCopy());
+                if (fs._body)
+                    st.push(fs._body.syntaxCopy());
                 s = new CompoundStatement(loc, st);
                 s = new ScopeStatement(loc, s, fs.endloc);
                 statements.push(s);
