@@ -1,4 +1,4 @@
- module ddmd.ctfe.ctfe_bc;
+module ddmd.ctfe.ctfe_bc;
 import ddmd.ctfe.bc_limits;
 import ddmd.expression;
 import ddmd.declaration : FuncDeclaration, VarDeclaration, Declaration,
@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 0;
+enum bailoutMessages = 1;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -672,15 +672,14 @@ struct SharedCtfeState(BCGenT)
             return BCType.init;
     }
 
-    //TODO FIXME: this will currently _not_ represent all intializers correctly, especially 64bit initializers will be zero
     uint[] initializer(const BCType type) pure const
     {
         assert(type.type == BCTypeEnum.Struct, "only structs can have initializers ... type passed: " ~ type.type.to!string);
         assert(type.typeIndex && type.typeIndex <= structCount, "invalid structTypeIndex passed: " ~ type.typeIndex.to!string);
         auto structType = structTypes[type.typeIndex - 1];
         uint[] result;
-        result.length = structType.memberTypeCount;
-        foreach(i, init;structType.initializers[0 .. structType.memberTypeCount])
+        result.length = structType.size;
+        foreach(i, init;structType.initializers[0 .. structType.size])
         {
             result[i] = init;
         }
@@ -1251,7 +1250,7 @@ Expression toExpression(const BCValue value, Type expressionType,
                     imm64.vType = BCValueType.Immediate;
                     imm64.type = BCTypeEnum.i64;
                     imm64.imm64 = *(heapPtr._heap.ptr + value.heapAddr.addr + offset);
-                    imm64.imm64 |= ulong(*(heapPtr._heap.ptr + value.heapAddr.addr + offset + 1)) << 32;
+                    imm64.imm64 |= ulong(*(heapPtr._heap.ptr + value.heapAddr.addr + offset + 4)) << 32;
                     elm = toExpression(imm64, type);
                 }
                 else if (member.type == BCTypeEnum.Slice || member.type == BCTypeEnum.Array, member.type == BCTypeEnum.Struct)
@@ -1317,7 +1316,7 @@ Expression toExpression(const BCValue value, Type expressionType,
         break;
     case Tint64, Tuns64:
         {
-            result = new IntegerExp(value.imm64);
+            result = new IntegerExp(Loc(), value.imm64, expressionType);
         }
         break;
     case Tpointer:
@@ -2250,8 +2249,8 @@ public:
             if ((cast(TypeFunction)fd.type).parameters)
                 foreach(p;*(cast(TypeFunction)fd.type).parameters)
                 {
-                    if (p.defaultArg)
-                        bailout("default args unsupported");
+ //                  if (p.defaultArg)
+ //                       bailout("default args unsupported");
                 }
 
 
@@ -3639,15 +3638,7 @@ static if (is(BCGen))
                 bailout("could not gen StructMember: " ~ elem.toString);
                 return ;
             }
-            /*
-            if (elexpr.type != BCTypeEnum.i32
-                && (elexpr.vType != BCValueType.Immediate
-                || elexpr.vType != BCValueType.StackValue))
-            {
-                bailout("StructLiteralExp-Element " ~ elexpr.type.type.to!string
-                        ~ " is currently not handeled");
-                return;
-            }*/
+
             if (!insideArgumentProcessing)
             {
                 if (offset)
@@ -3657,12 +3648,6 @@ static if (is(BCGen))
                 // abi hack for slices slice;
                 if (elexpr.type.type == BCTypeEnum.Slice || elexpr.type.type == BCTypeEnum.Array)
                 {
-/*
-                    auto sBase = getBase(elexpr);
-                    auto sLength = getLength(elexpr);
-                    setBase(fieldAddr, sBase);
-                    setLength(fieldAddr, sLength);
-*/
                     MemCpy(fieldAddr, elexpr, imm32(SliceDescriptor.Size));
                 }
                 else
@@ -4741,7 +4726,7 @@ static if (is(BCGen))
             auto fieldType = bcStructType.memberTypes[fIndex];
             // import std.stdio; writeln("got fieldType: ", fieldType); //DEBUGLINE
 
-            if (fieldType.type != BCTypeEnum.i32 || fieldType.type != BCTypeEnum.i64)
+            if (fieldType.type != BCTypeEnum.i32 && fieldType.type != BCTypeEnum.i64)
             {
                 bailout("only i32 structMembers are supported for now ... not : " ~ to!string(bcStructType.memberTypes[fIndex].type));
                 return;
@@ -4759,9 +4744,17 @@ static if (is(BCGen))
                 rhs = bcNull;
             }
 
-            if (rhs.type.type != BCTypeEnum.i32)
+            static immutable supportedStructTypes =
+            () {
+                with(BCTypeEnum)
+                {
+                    return [i32, i64, f23, f52];
+                }
+            } ();
+
+            if (!rhs.type.type.anyOf(supportedStructTypes))
             {
-                bailout("only i32 are supported for now. not:" ~ rhs.type.type.to!string);
+                bailout("only " ~ to!string(supportedStructTypes) ~ " are supported for now. not:" ~ rhs.type.type.to!string);
                 return;
             }
 
@@ -4776,7 +4769,7 @@ static if (is(BCGen))
 
             Add3(ptr, lhs.i32, imm32(bcStructType.offset(fIndex)));
             immutable size = _sharedCtfeState.size(rhs.type);
-            if (size <= 4)
+            if (size && size <= 4)
                 Store32(ptr, rhs);
             else if (size == 8)
                 Store64(ptr, rhs);
