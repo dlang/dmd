@@ -1645,11 +1645,15 @@ class Throwable : Object
     string      msg;    /// A message describing the error.
 
     /**
-     * The _file name and line number of the D source code corresponding with
+     * The _file name of the D source code corresponding with
      * where the error was thrown from.
      */
     string      file;
-    size_t      line;   /// ditto
+    /**
+     * The _line number of the D source code corresponding with
+     * where the error was thrown from.
+     */
+    size_t      line;
 
     /**
      * The stack trace of where the error happened. This is an opaque object
