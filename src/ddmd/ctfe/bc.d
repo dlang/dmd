@@ -5,7 +5,7 @@ import core.stdc.stdio;
 import std.conv;
 
 /**
- * Written By Stefan Koch in 2016
+ * Written By Stefan Koch in 2016/17
  */
 
 enum InstKind
