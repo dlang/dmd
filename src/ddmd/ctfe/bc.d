@@ -7,7 +7,7 @@ import std.conv;
 /**
  * Written By Stefan Koch in 2016
  */
-debug = 1;
+
 enum InstKind
 {
     ShortInst,
@@ -758,8 +758,16 @@ pure:
         assert(isStackValueOrParameter(lhs), "Set lhs is has to be a StackValue");
         assert(rhs.vType == BCValueType.Immediate || isStackValueOrParameter(rhs), "Set rhs is has to be a StackValue or Imm");
 
-        if (lhs != rhs) // do not emit self asignments;
+        if (rhs.vType == BCValueType.Immediate && (rhs.type.type == BCTypeEnum.i64 || rhs.type.type == BCTypeEnum.f52))
+        {
+            emitLongInst(LongInst.ImmSet, lhs.stackAddr, rhs.imm32);
+            emitLongInst(LongInst.SetHighImm, lhs.stackAddr, Imm32(rhs.imm64 >> 32));
+        }
+
+        else if (lhs != rhs) // do not emit self asignments;
+        {
             emitArithInstruction(LongInst.Set, lhs, rhs);
+        }
     }
 
     void SetHigh(BCValue lhs, BCValue rhs)
