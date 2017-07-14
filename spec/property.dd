@@ -65,7 +65,7 @@ $(THEAD Property, Description)
 $(TROW $(RELATIVE_LINK2 classinfo, $(D .classinfo)), Information about the dynamic type of the class)
 )
 
-$(SECTION3 $(LNAME2 init, .init Property),
+$(H2 $(LNAME2 init, .init Property))
 
 	$(P $(D .init) produces a constant expression that is the default
 	initializer. If applied to a type, it is the default initializer
@@ -142,9 +142,8 @@ void main()
 }
 ----------------
     )
-)
 
-$(SECTION3 $(LNAME2 stringof, .stringof Property),
+$(H2 $(LNAME2 stringof, .stringof Property))
 
 	$(P $(D .stringof) produces a constant string that is the
 	source representation of its prefix.
@@ -185,9 +184,8 @@ $(P $(B Note): Using $(D .stringof) for code generation is not recommended,
 $(P Instead you should prefer to use the
     $(DDSUBLINK spec/traits, identifier, identifier) trait,
     or one of the Phobos helper functions such as $(PHOBOS traits, fullyQualifiedName, fullyQualifiedName).)
-)
 
-$(SECTION3 $(LNAME2 sizeof, .sizeof Property),
+$(H2 $(LNAME2 sizeof, .sizeof Property))
 
 	$(P $(CODE e.sizeof) gives the size in bytes of the expression
 	$(D e).
@@ -216,17 +214,14 @@ void test()
 	$(P $(CODE .sizeof) applied to a class object returns the size of
 	the class reference, not the class instantiation.)
 
-)
-
-$(SECTION3 $(LNAME2 alignof, .alignof Property),
+$(H2 $(LNAME2 alignof, .alignof Property))
 
 	$(P $(CODE .alignof) gives the aligned size of an expression or type.
 	For example, an aligned size of 1 means that it is aligned on
 	a byte boundary, 4 means it is aligned on a 32 bit boundary.
 	)
-)
 
-$(SECTION3 $(LNAME2 classinfo, .classinfo Property),
+$(H2 $(LNAME2 classinfo, .classinfo Property))
 
 	$(P $(CODE .classinfo) provides information about the dynamic type
 	of a class object.
@@ -237,12 +232,10 @@ $(SECTION3 $(LNAME2 classinfo, .classinfo Property),
 	$(P $(CODE .classinfo) applied to an interface gives the information for
 	the interface, not the class it might be an instance of.
 	)
-)
 
-$(SECTION3 $(LNAME2 classproperties, User Defined Properties),
+$(H2 $(LNAME2 classproperties, User Defined Properties))
 
 	$(P User defined properties can be created using $(LINK2 function.html#property-functions, Property Functions).)
-)
 
 $(SPEC_SUBNAV_PREV_NEXT type, Types, attribute, Attributes)
 )

@@ -295,7 +295,7 @@ $(TABLE2 Struct Field Properties,
 $(THEAD Name, Description)
 $(TROW $(D .offsetof), Offset in bytes of field from beginning of struct))
 
-$(SECTION3 $(LEGACY_LNAME2 ConstStruct, const-struct, Const, Immutable and Shared Structs),
+$(H2 $(LEGACY_LNAME2 ConstStruct, const-struct, Const, Immutable and Shared Structs))
 
         $(P A struct declaration can have a storage class of
         $(CODE const), $(CODE immutable) or $(CODE shared). It has an equivalent
@@ -314,9 +314,8 @@ $(SECTION3 $(LEGACY_LNAME2 ConstStruct, const-struct, Const, Immutable and Share
             t.a = 4;    // error, t.a is const
         }
         ----
-)
 
-$(SECTION3 $(LEGACY_LNAME2 Struct-Constructor, struct-constructor, Struct Constructors),
+$(H2 $(LEGACY_LNAME2 Struct-Constructor, struct-constructor, Struct Constructors))
 
         $(P Struct constructors are used to initialize an instance
         of a struct.
@@ -504,9 +503,8 @@ constructor will have their `.init` values upon destruction.)
             S s = S(1);   // construction with calling constructor
         }
         ------
-)
 
-$(SECTION3 $(LEGACY_LNAME2 StructPostblit, struct-postblit, Struct Postblits),
+$(H2 $(LEGACY_LNAME2 StructPostblit, struct-postblit, Struct Postblits))
 
 $(GRAMMAR
 $(GNAME Postblit):
@@ -565,9 +563,8 @@ $(GNAME Postblit):
         ---
 
         $(P Unions may not have fields that have postblits.)
-)
 
-$(SECTION3 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructors),
+$(H2 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructors))
 
         $(P Destructors are called when an object goes out of scope.
         Their purpose is to free up resources owned by the struct
@@ -575,9 +572,8 @@ $(SECTION3 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructo
         )
 
         $(P Unions may not have fields that have destructors.)
-)
 
-$(SECTION3 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment Overload),
+$(H2 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment Overload))
 
         $(P While copy construction takes care of initializing
         an object from another object of the same type,
@@ -658,9 +654,6 @@ $(SECTION3 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment 
         will pointlessly free and reallocate it. The custom $(CODE opAssign)
         will reuse the existing storage.
         )
-
-)
-
 
 $(H2 $(LNAME2 nested, Nested Structs))
 
