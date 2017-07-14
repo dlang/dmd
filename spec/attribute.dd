@@ -484,11 +484,9 @@ runtime error.)
 
 ---
 @disable void foo() { }
-
-void main()
-{
-    foo();   // error, foo is disabled
-}
+---
+---
+void main() { foo(); /* error, foo is disabled */ }
 ---
 
         $(P $(DDSUBLINK spec/struct, Struct-Constructor, Disabling struct no-arg constructor)
@@ -718,12 +716,13 @@ $(GNAME UserDefinedAttribute):
     $(D @) $(GLINK2 template, TemplateInstance)
     $(D @) $(GLINK2 template, TemplateInstance) $(D $(LPAREN)) $(GLINK2 expression, ArgumentList)$(OPT) $(D $(RPAREN))
 )
-        $(P
-            And looks like:
-        )
+
+And looks like:
 
 ---
 @(3) int a;
+---
+---
 @("string", 7) int b;
 
 enum Foo;
