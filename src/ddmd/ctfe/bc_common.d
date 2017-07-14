@@ -100,7 +100,7 @@ static assert(!isBasicBCType(BCType(BCTypeEnum.Array, 1)));
 
 const(bool) isStackValueOrParameter(const BCValue val) pure @safe nothrow
 {
-    return (val.vType == BCValueType.StackValue || val.vType == BCValueType.Parameter);
+    return (val.vType == BCValueType.StackValue || val.vType == BCValueType.Parameter || val.vType == BCValueType.Local);
 }
 
 enum BCTypeEnum : ubyte
@@ -177,14 +177,15 @@ enum BCValueType : ubyte
 {
     Unknown = 0,
 
-    Temporary = 0x1,
-    Parameter = 0x2,
+    Temporary = 1,
+    Parameter = 2,
+    Local = 3,
 
-    StackValue = 0x4,
-    VoidValue = 0x20,
-    Immediate = 0x8,
+    StackValue = 1 << 3,
+    Immediate = 2 << 3,
+    VoidValue = 3 << 3,
 
-    HeapValue = 0x10,
+    HeapValue = 4 << 3,
 
     LastCond = 0xFD,
     Bailout = 0xFE,
@@ -282,9 +283,17 @@ struct BCAddr
     //    }
 }
 
+struct BCLocal
+{
+    ushort idx;
+    BCType type;
+    StackAddr addr;
+    string name;
+}
+
 struct BCParameter
 {
-    ubyte param;
+    ubyte idx;
     BCType type;
     StackAddr pOffset;
 }
@@ -363,7 +372,11 @@ struct BCBranch
 struct BCHeapRef
 {
     BCValueType vType;
-    ushort tmpIndex;
+    union 
+    {
+        ushort tmpIndex;
+        ushort localIndex;
+    }
 
     union
     {
@@ -391,6 +404,11 @@ struct BCHeapRef
             tmpIndex = that.tmpIndex;
             break;
 
+        case BCValueType.Local:
+            stackAddr = that.stackAddr;
+            localIndex = that.localIndex;
+            break;
+
         case BCValueType.HeapValue:
             heapAddr = that.heapAddr;
             break;
@@ -416,8 +434,9 @@ struct BCValue
     BCValueType vType;
     union
     {
-        byte param;
+        byte paramIndex;
         ushort tmpIndex;
+        ushort localIndex;
     }
 
     union
@@ -434,8 +453,9 @@ struct BCValue
         void* voidStar;
     }
 
-    //TORO PERF minor: use a 32bit value for heapRef;
+    //TOTO PERF minor: use a 32bit value for heapRef;
     BCHeapRef heapRef;
+    string name; 
 
     uint toUint() const pure
     {
@@ -473,6 +493,7 @@ struct BCValue
 
         switch (vType)
         {
+        case BCValueType.Local : goto case;
         case BCValueType.Parameter, BCValueType.Temporary,
                 BCValueType.StackValue:
                 return "stackAddr: " ~ to!string(stackAddr);
@@ -503,7 +524,7 @@ struct BCValue
             final switch (this.vType)
             {
             case BCValueType.StackValue, BCValueType.VoidValue,
-                    BCValueType.Parameter:
+                    BCValueType.Parameter, BCValueType.Local:
                     return this.stackAddr == rhs.stackAddr;
             case BCValueType.Temporary:
                 return tmpIndex == rhs.tmpIndex;
@@ -570,7 +591,7 @@ struct BCValue
     {
         this.vType = BCValueType.Parameter;
         this.type = param.type;
-        this.param = param.param;
+        this.paramIndex = param.idx;
         this.stackAddr = param.pOffset;
     }
 
@@ -580,6 +601,15 @@ struct BCValue
         this.stackAddr = sp;
         this.type = type;
         this.tmpIndex = tmpIndex;
+    }
+
+    this(const StackAddr sp, const BCType type, const ushort localIndex, string name) pure
+    {
+        this.vType = BCValueType.Local;
+        this.stackAddr = sp;
+        this.type = type;
+        this.localIndex = localIndex;
+        this.name = name;
     }
 
     this(const void* base, const short addr, const BCType type) pure
@@ -604,6 +634,10 @@ struct BCValue
         case BCValueType.StackValue, BCValueType.Parameter:
             stackAddr = heapRef.stackAddr;
             tmpIndex = heapRef.tmpIndex;
+            break;
+        case BCValueType.Local:
+            stackAddr = heapRef.stackAddr;
+            tmpIndex = heapRef.localIndex;
             break;
 
         case BCValueType.Temporary:

@@ -14,7 +14,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 /**
  * Written By Stefan Koch in 2016/17
  */
-
+debug = abi;
 import std.conv : to;
 
 enum perf = 0;
@@ -382,7 +382,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             auto retval = interpret_(bcv.byteCodeArray[0 .. bcv.ip], bc_args,
                 &_sharedCtfeState.heap, &_sharedCtfeState.functions[0], &bcv.calls[0],
                 &errorValues[0], &errorValues[1], &errorValues[2], &errorValues[3],
-                &_sharedCtfeState.errors[0], _sharedCtfeState.stack[]);
+                &_sharedCtfeState.errors[0], _sharedCtfeState.stack[], bcv.stackMap());
             /*            if (fd.ident == Identifier.idPool("extractAttribFlags"))
             {
                 import ddmd.hdrgen;
@@ -1128,6 +1128,7 @@ Expression toExpression(const BCValue value, Type expressionType,
         auto arrayBase = heapPtr._heap[arr.heapAddr.addr + SliceDescriptor.BaseOffset];
         debug (abi)
         {
+            import std.stdio;
             writefln("creating Array from {base: &%d = %d} {length: &%d = %d}",
                 arr.heapAddr.addr + SliceDescriptor.BaseOffset, arrayBase, arr.heapAddr.addr + SliceDescriptor.LengthOffset, arrayLength);
         }
@@ -1233,6 +1234,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             uint offset = 0;
             debug (abi)
             {
+                import std.stdio;
                 writeln("StructHeapRep: ", structBegin[0 .. _struct.size]);
             }
             foreach (idx, member; _struct.memberTypes[0 .. _struct.memberTypeCount])
@@ -4159,8 +4161,7 @@ static if (is(BCGen))
         }
         else
         {
-            var = BCValue(currSp(), type);
-            incSp();
+            var = genLocal(type, cast(string)vd.ident.toString);
 
             if (type.type == BCTypeEnum.Array)
             {
@@ -4168,7 +4169,7 @@ static if (is(BCGen))
                 assert(idx);
                 auto array = _sharedCtfeState.arrayTypes[idx - 1];
 
-                Alloc(var.i32, imm32(_sharedCtfeState.size(type) + SliceDescriptor.Size));
+                Alloc(var.i32, imm32(_sharedCtfeState.size(type) + SliceDescriptor.Size), type);
                 setLength(var.i32, array.length.imm32);
                 auto baseAddr = genTemporary(i32Type);
                 Add3(baseAddr, var.i32, imm32(SliceDescriptor.Size));
