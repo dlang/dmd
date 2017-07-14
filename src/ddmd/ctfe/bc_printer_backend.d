@@ -42,6 +42,7 @@ struct Print_BCGen
         uint cndJumpCount;
         uint jmpCount;
         ubyte parameterCount;
+        ushort localCount;
         ushort temporaryCount;
         uint labelCount;
         bool sameLabel;
@@ -156,13 +157,17 @@ struct Print_BCGen
                 result ~= "StackAddr(" ~ to!string(val.stackAddr.addr) ~ "), " ~ print(val.type);
             }
             break;
+        case BCValueType.Local :
+            auto name = val.name ? val.name ~ "_" ~ to!string(val.localIndex) : "local" ~ to!string(val.localIndex);
+            return name ~ functionSuffix;
+
         case BCValueType.Temporary:
             {
                 return "tmp" ~ to!string(val.tmpIndex) ~ functionSuffix;
             }
         case BCValueType.Parameter:
             {
-                return "p" ~ to!string(val.param) ~ functionSuffix;
+                return "p" ~ to!string(val.paramIndex) ~ functionSuffix;
             }
         case BCValueType.Error:
             {
@@ -280,6 +285,20 @@ struct Print_BCGen
             bct) ~ ");//SP[" ~ to!string(tmpAddr) ~ "]\n";
         return BCValue(StackAddr(tmpAddr), bct, temporaryCount);
     }
+
+    BCValue genLocal(BCType bct, string name)
+    {
+        sameLabel = false;
+        auto localAddr = sp.addr;
+        sp += isBasicBCType(bct) ? align4(basicTypeSize(bct)) : 4;
+
+        auto localName = name ? name ~ "_" ~ to!string(++localCount) : "local" ~ to!string(++localCount);
+
+        result ~= indent ~ "auto " ~ localName ~ functionSuffix ~ " = genLocal(" ~ print(
+            bct) ~ ", \"" ~ (name ? name : "") ~ "\");//SP[" ~ to!string(localAddr) ~ "]\n";
+        return BCValue(StackAddr(localAddr), bct, localCount, name);
+    }
+
 
     BCAddr beginJmp()
     {
