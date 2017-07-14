@@ -300,6 +300,7 @@ extern (C++) final class VersionCondition : DVCondition
             "MIPS_EABI",
             "MIPS_SoftFloat",
             "MIPS_HardFloat",
+            "MSP430",
             "NVPTX",
             "NVPTX64",
             "RISCV32",
