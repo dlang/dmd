@@ -608,7 +608,7 @@ $(P
     ---------
 
 $(P
-    The above would generate the following output:
+    The above would generate the following output:)
 
     ------------------------------------
     <h1>test</h1>
@@ -619,7 +619,6 @@ $(P
     </dd>
     </dl>
     ------------------------------------
-)
 
 $(P
     The replacement text is recursively scanned for more macros.
@@ -991,7 +990,7 @@ $(P
 
 $(P
     To create a documented unit test just add three forward
-    slashes before the unittest block, like this:
+    slashes before the unittest block, like this:)
 
 ------
 ///
@@ -1001,7 +1000,7 @@ unittest
 }
 ------
 
-    For more information please see the full section on
+    $(P For more information please see the full section on
     $(DPLLINK unittest.html#documented-unittests, documented unit tests).
 )
 

@@ -494,7 +494,7 @@ is shown below in tabular format:)
 
 	$(P A $(I Unique Expression) is one for which there are no other references to the
 	value of the expression and all expressions it transitively refers to are either
-	also unique or are immutable. For example:
+	also unique or are immutable. For example:)
 ---
 void main()
 {
@@ -507,7 +507,6 @@ void main()
     immutable int** r = new immutable(int)*(&y); // ok, y is immutable
 }
 ---
-	)
 
 	$(P Otherwise, a $(GLINK2 expression, CastExpression) can be used to force a conversion
 	when an implicit version is disallowed, but this cannot be done in $(D @safe) code,

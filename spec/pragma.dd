@@ -55,7 +55,7 @@ pragma(ident)   // influence block of statements
 
 $(H2 $(LEGACY_LNAME2 Predefined-Pragmas, predefined-pragmas, Predefined Pragmas))
 
-$(P All implementations must support these, even if by just ignoring them:
+$(P All implementations must support these, even if by just ignoring them:)
 
 $(UL
     $(LI $(LINK2 #inline, pragma inline))
@@ -63,7 +63,6 @@ $(UL
     $(LI $(LINK2 #mangle, pragma mangle))
     $(LI $(LINK2 #msg, pragma msg))
     $(LI $(LINK2 #startaddress, pragma startaddress))
-)
 )
 
     $(DL

@@ -16,7 +16,7 @@ $(H2 $(LNAME2 order-of-evaluation, Order Of Evaluation))
 $(P Binary expressions and function arguments are evaluated in strictly
 left-to-right order. This is similar to Java but different to C and C++, where
 the evaluation order is unspecified. Thus, the following code is valid and well
-defined.
+defined.)
 
         -------------
         import std.conv;
@@ -25,7 +25,6 @@ defined.
         assert(i == 13); // left to right evaluation of side effects
         assert(text(++i, ++i) == "1415"); // left to right evaluation of arguments
         -------------
-    )
 
     $(P But even though the order of evaluation is well defined, writing code that
         depends on it is rarely recommended.
@@ -80,7 +79,7 @@ $(GNAME AssignExpression):
 
 $(H3 $(LNAME2 assignment_operator_expressions, Assignment Operator Expressions))
 
-    $(P Assignment operator expressions, such as:
+    $(P Assignment operator expressions, such as:)
 
         --------------
         a op= b
@@ -91,9 +90,8 @@ $(H3 $(LNAME2 assignment_operator_expressions, Assignment Operator Expressions))
         --------------
         a = cast(typeof(a))(a op b)
         --------------
-    )
 
-    $(P except that:)
+    except that:
 
     $(UL
         $(LI operand $(D a) is only evaluated once)
@@ -256,7 +254,7 @@ $(GNAME EqualExpression):
         patterns are compared for equality.
     )
 
-    $(P For complex numbers, equality is defined as equivalent to:
+    $(P For complex numbers, equality is defined as equivalent to:)
 
         ---
         x.re == y.re && x.im == y.im
@@ -267,7 +265,6 @@ $(GNAME EqualExpression):
         ---
         x.re != y.re || x.im != y.im
         ---
-    )
 
     $(P Equality for struct objects means the logical product of all equality
         results of the corresponding object fields.
@@ -289,7 +286,7 @@ $(GNAME EqualExpression):
         The default $(D opEquals) provided by the root $(D Object) class is
         equivalent to the $(D is) operator.
         Comparing against $(D null) is invalid, as $(D null) has no contents.
-        Use the $(D is) and $(D !is) operators instead.
+        Use the $(D is) and $(D !is) operators instead.)
 
         ---
         class C;
@@ -299,7 +296,6 @@ $(GNAME EqualExpression):
         if (c is null)  // ok
             ...
         ---
-    )
 
     $(P For static and dynamic arrays, equality is defined as the
         lengths of the arrays
@@ -365,12 +361,11 @@ $(GNAME RelExpression):
 
     $(P For class objects, the result of Object.opCmp() forms the left
         operand, and 0 forms the right operand. The result of the
-        relational expression (o1 op o2) is:
+        relational expression (o1 op o2) is:)
 
         ---
         (o1.opCmp(o2) op 0)
         ---
-    )
 
     $(P It is an error to compare objects if one is $(D null).)
 
@@ -415,7 +410,7 @@ $(H3 $(LEGACY_LNAME2 floating_point_comparisons, floating-point-comparisons, Flo
         values is less, greater, equal, or unordered (unordered means
         either or both of the
         operands is a NAN). That means there are 14 possible comparison
-        conditions to test for:
+        conditions to test for:)
 
         $(TABLE2 Floating point comparison operators,
         $(THEAD Operator, Greater, Less, Equal, Unordered, Exception, Relation)
@@ -434,7 +429,6 @@ $(H3 $(LEGACY_LNAME2 floating_point_comparisons, floating-point-comparisons, Flo
         $(TROW $(D !>),$(D F),$(D T),$(D T),$(D T),$(D no),$(ARGS unordered, less, or equal))
         $(TROW $(D !<>),$(D F),$(D F),$(D T),$(D T),$(D no),$(ARGS unordered or equal))
         )
-    )
 
     $(H4 Notes:)
 
@@ -455,7 +449,7 @@ $(H3 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class comparisons))
     $(P For class objects, the relational
         operators compare the
         contents of the objects. Therefore, comparing against
-        $(CODE null) is invalid, as $(CODE null) has no contents.
+        $(CODE null) is invalid, as $(CODE null) has no contents.)
 
         ---
         class C;
@@ -463,7 +457,6 @@ $(H3 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class comparisons))
         if (c < null)  // error
             ...
         ---
-    )
 
 $(H2 $(LNAME2 in_expressions, In Expressions))
 
@@ -473,7 +466,7 @@ $(GNAME InExpression):
     $(GLINK ShiftExpression) $(D !in) $(GLINK ShiftExpression)
 )
 
-    $(P An associative array can be tested to see if an element is in the array:
+$(P An associative array can be tested to see if an element is in the array:)
 
         -------------
         int foo[char[]];
@@ -481,7 +474,6 @@ $(GNAME InExpression):
         if ("hello" in foo)
             ...
         -------------
-    )
 
     $(P The $(D in) expression has the same precedence as the
         relational expressions $(D <), $(D <)$(D =),
@@ -517,13 +509,12 @@ $(GNAME ShiftExpression):
     )
 
     $(P It's illegal to shift by the same or more bits than the size of the
-        quantity being shifted:
+        quantity being shifted:)
 
         -------------
         int c;
         auto x = c << 33;        // error
         -------------
-    )
 
 $(H2 $(LNAME2 add_expressions, Add Expressions))
 
@@ -688,32 +679,29 @@ $(GNAME ArgumentList):
     )
 
     $(P To allocate multidimensional arrays, the declaration reads
-        in the same order as the prefix array declaration order.
+        in the same order as the prefix array declaration order.)
 
         -------------
         char[][] foo;   // dynamic array of strings
         ...
         foo = new char[][30]; // allocate array of 30 strings
         -------------
-    )
 
-    $(P The above allocation can also be written as:
+    $(P The above allocation can also be written as:)
 
         -------------
         foo = new char[][](30); // allocate array of 30 strings
         -------------
-    )
 
-    $(P To allocate the nested arrays, multiple arguments can be used:
+    $(P To allocate the nested arrays, multiple arguments can be used:)
 
         ---------------
         int[][][] bar;
         ...
         bar = new int[][][](5, 20, 30);
         ---------------
-    )
 
-    $(P Which is equivalent to:
+    Which is equivalent to:
 
         ----------
         bar = new int[][][5];
@@ -726,7 +714,6 @@ $(GNAME ArgumentList):
             }
         }
         -----------
-    )
 
     $(P If there is a $(D new $(LPAREN)) $(GLINK ArgumentList) $(D $(RPAREN)),
         then
@@ -792,13 +779,12 @@ $(GNAME CastExpression):
 )
 
     $(P A $(I CastExpression) converts the $(I UnaryExpression)
-        to $(GLINK2 declaration, Type).
+        to $(GLINK2 declaration, Type).)
 
         -------------
         cast(foo) -p; // cast (-p) to type foo
         (foo) - p;      // subtract p from foo
         -------------
-    )
 
     $(P Any casting of a class reference to a
         derived class reference is done with a runtime check to make sure it
@@ -806,7 +792,7 @@ $(GNAME CastExpression):
     )
 
     $(P $(B Note:) This is equivalent to the behavior of the
-        $(D dynamic_cast) operator in C++.
+        $(D dynamic_cast) operator in C++.)
 
         -------------
         class A { ... }
@@ -820,10 +806,9 @@ $(GNAME CastExpression):
             A ax = cast(A) b; // no runtime check needed for upcast
         }
         -------------
-    )
 
     $(P In order to determine if an object $(D o) is an instance of
-        a class $(D B) use a cast:
+        a class $(D B) use a cast:)
 
         -------------
         if (cast(B) o)
@@ -835,7 +820,6 @@ $(GNAME CastExpression):
             // o is not an instance of B
         }
         -------------
-    )
 
     $(P Casting a pointer type to and from a class type is done as a type paint
         (i.e. a reinterpret cast).
@@ -844,7 +828,7 @@ $(GNAME CastExpression):
     $(P Casting a dynamic array to another dynamic array is done only if the
         array lengths multiplied by the element sizes match. The cast is done
         as a type paint, with the array length adjusted to match any change in
-        element size. If there's not a match, a runtime error is generated.
+        element size. If there's not a match, a runtime error is generated.)
 
         ---
         import std.stdio;
@@ -862,11 +846,10 @@ $(GNAME CastExpression):
             return 0;
         }
         ---
-    )
 
     $(P Casting a floating point literal from one type to another
         changes its type, but internally it is retained at full
-        precision for the purposes of constant folding.
+        precision for the purposes of constant folding.)
 
         ---
         void test()
@@ -884,10 +867,9 @@ $(GNAME CastExpression):
             assert(x == a);     // truncated if the initializer is visible
         }
         ---
-    )
 
     $(P Casting a floating point value to an integral type is the equivalent
-        of converting to an integer using truncation.
+        of converting to an integer using truncation.)
 
         ---
         void main()
@@ -900,39 +882,35 @@ $(GNAME CastExpression):
             assert(c == -1);
         }
         ---
-    )
 
     $(P Casting a value $(I v) to a struct $(I S), when value is not a struct
-        of the same type, is equivalent to:
+        of the same type, is equivalent to:)
 
         ---
         S(v)
         ---
-    )
 
     $(P Casting to a $(GLINK CastQual) replaces the qualifiers to the type of
-        the $(GLINK UnaryExpression).
+        the $(GLINK UnaryExpression).)
 
         ---
         shared int x;
         assert(is(typeof(cast(const)x) == const int));
         ---
-    )
 
     $(P Casting with no $(GLINK Type) or $(GLINK CastQual) removes
         any top level $(D const), $(D immutable), $(D shared) or $(D inout)
         type modifiers from the type
-        of the $(GLINK UnaryExpression).
+        of the $(GLINK UnaryExpression).)
 
         ---
         shared int x;
         assert(is(typeof(cast()x) == int));
         ---
-    )
 
     $(P Casting an expression to $(D void) type is allowed to mark that
         the result is unused. On $(GLINK2 statement, ExpressionStatement),
-        it could be used properly to avoid "has no effect" error.
+        it could be used properly to avoid "has no effect" error.)
 
         ----
         void foo(lazy void exp) {}
@@ -942,7 +920,6 @@ $(GNAME CastExpression):
             foo(cast(void)10);  // OK
         }
         ----
-    )
 
 $(H2 $(LNAME2 pow_expressions, Pow Expressions))
 
@@ -979,19 +956,12 @@ $(GNAME IndexExpression):
     $(GLINK PostfixExpression) $(D [) $(GLINK ArgumentList) $(D ])
 )
 
-    $(P $(I PostfixExpression) is evaluated.
-
-        If $(I PostfixExpression) is an expression of type
-        static array or dynamic array, the symbol $(DOLLAR) is
-        set to be the the number of elements in the array.
-
-        If $(I PostfixExpression) is an $(I ExpressionTuple),
-        the symbol $(DOLLAR) is
-        set to be the the number of elements in the tuple.
-
-        A new declaration scope is created for the evaluation of the
-        $(GLINK ArgumentList) and $(DOLLAR) appears in that scope only.
-    )
+$(P $(I PostfixExpression) is evaluated. If $(I PostfixExpression) is an
+expression of type static array or dynamic array, the symbol $(DOLLAR) is set to
+be the the number of elements in the array. If $(I PostfixExpression) is an $(I
+ExpressionTuple), the symbol $(DOLLAR) is set to be the the number of elements
+in the tuple. A new declaration scope is created for the evaluation of the
+$(GLINK ArgumentList) and $(DOLLAR) appears in that scope only.)
 
     $(P If $(I PostfixExpression) is an $(I ExpressionTuple),
         then the $(GLINK ArgumentList) must consist of only one argument,
@@ -1043,7 +1013,7 @@ $(GNAME Slice):
     $(P A $(I SliceExpression) is not a modifiable lvalue.)
 
     $(P If the slice bounds can be known at compile time, the slice expression
-        is implicitly convertible to an lvalue of static array. For example:
+    is implicitly convertible to an lvalue of static array. For example:)
 
         -------------
         arr[a .. b]     // typed T[]
@@ -1081,7 +1051,8 @@ $(GNAME Slice):
         }
         -------------
 
-        Following forms of slice expression can be convertible to a static array type:
+$(P Following forms of slice expression can be convertible to a static array
+ type:)
 
         $(DL
         $(DT $(I e))$(DD An expression that contains no side effects.)
@@ -1098,7 +1069,6 @@ $(GNAME Slice):
         $(TROW $(D arr[$(I e)+a .. $(I e)+b]), $(D b - a) $(I if) $(D a <= b))
         $(TROW $(D arr[$(I e)-a .. $(I e)-b]), $(D a - b) $(I if) $(D a >= b))
         )
-    )
 
     $(P If $(I PostfixExpression) is an $(I ExpressionTuple), then
         the result of the slice is a new $(I ExpressionTuple) formed
@@ -1158,7 +1128,7 @@ $(H3 $(LNAME2 this, this))
         If the object is an instance of a struct, $(D this) will
         be a pointer to that instance.
         If a member function is called with an explicit reference
-        to $(D typeof(this)), a non-virtual call is made:
+        to $(D typeof(this)), a non-virtual call is made:)
 
         -------------
         class A
@@ -1182,7 +1152,6 @@ $(H3 $(LNAME2 this, this))
             assert(b.bar() == 'B');
         }
         -------------
-    )
 
     $(P Assignment to $(D this) is not allowed.)
 
@@ -1253,7 +1222,7 @@ $(GNAME StringLiterals):
 
     $(P By default, a string literal is typed as a dynamic array, but the element
         count is known at compile time. So all string literals can be
-        implicitly converted to static array types.
+        implicitly converted to static array types.)
 
         -------------
         void foo(char[2] a)
@@ -1274,7 +1243,6 @@ $(GNAME StringLiterals):
           //baz(str[1 .. 3]); // cannot match length
         }
         -------------
-    )
 
     $(P String literals have a 0 appended to them, which makes
         them easy to pass to C or C++ functions expecting a $(CODE const char*)
@@ -1296,17 +1264,16 @@ $(GNAME ArrayLiteral):
         the length of the array is the number of elements.
         The common type of the all elements is taken to be the type of
         the array element, and all elements are implicitly converted
-        to that type.
+        to that type.)
 
         ---
         auto a1 = [1,2,3];  // type is int[], with elements 1, 2 and 3
         auto a2 = [1u,2,3]; // type is uint[], with elements 1u, 2u, and 3u
         ---
-    )
 
     $(P By default, an array literal is typed as a dynamic array, but the element
         count is known at compile time. So all array literals can be
-        implicitly converted to static array types.
+        implicitly converted to static array types.)
 
         -------------
         void foo(long[2] a)
@@ -1335,7 +1302,6 @@ $(GNAME ArrayLiteral):
           //baz(arr[1 .. 3]); // cannot match length
         }
         -------------
-    )
 
     $(P If any of the arguments in the $(GLINK ArgumentList) are
         an $(I ExpressionTuple), then the elements of the $(I ExpressionTuple)
@@ -1343,7 +1309,7 @@ $(GNAME ArrayLiteral):
     )
 
     $(P Array literals are allocated on the memory managed heap.
-        Thus, they can be returned safely from functions:
+        Thus, they can be returned safely from functions:)
 
         ---
         int[] foo()
@@ -1351,12 +1317,11 @@ $(GNAME ArrayLiteral):
             return [1, 2, 3];
         }
         ---
-    )
 
     $(P When array literals are cast to another array type, each
         element of the array is cast to the new element type.
         When arrays that are not literals are cast, the array is
-        reinterpreted as the new type, and the length is recomputed:
+        reinterpreted as the new type, and the length is recomputed:)
 
         ---
         import std.stdio;
@@ -1378,7 +1343,6 @@ $(GNAME ArrayLiteral):
         ---
 
         In other words, casting literal expression will change the literal type.
-    )
 
 $(H3 $(LNAME2 associative_array_literals, Associative Array Literals))
 
@@ -1411,14 +1375,13 @@ $(GNAME ValueExpression):
         the associative array, and all values are implicitly converted
         to that type.
         An $(I AssocArrayLiteral) cannot be used to statically initialize
-        anything.
+        anything.)
 
         ---
         [21u:"he", 38:"ho", 2:"hi"];  // type is string[uint],
                                       // with keys 21u, 38u and 2u
                                       // and values "he", "ho", and "hi"
         ---
-    )
 
     $(P If any of the keys or values in the $(I KeyValuePairs) are
         an $(I ExpressionTuple), then the elements of the $(I ExpressionTuple)
@@ -1461,7 +1424,7 @@ $(GNAME FunctionLiteralBody):
         accessing to the outer context.
     )
 
-    $(P For example:
+    $(P For example:)
 
         -------------
         int function(char c) fp; // declare pointer to a function
@@ -1484,9 +1447,8 @@ $(GNAME FunctionLiteralBody):
             fp = function int(char c) { return 6;} ;
         }
         -------------
-    )
 
-    $(P And:
+    $(P Also:)
 
         -------------
         int abc(int delegate(int i));
@@ -1512,10 +1474,9 @@ $(GNAME FunctionLiteralBody):
             abc( delegate int(int c) { return 6 + b; } );
         }
         -------------
-    )
 
     $(P and the following where the return type $(D int) and
-        $(D function)/$(D delegate) are inferred:
+        $(D function)/$(D delegate) are inferred:)
 
         -------------
         int abc(int delegate(int i));
@@ -1532,10 +1493,9 @@ $(GNAME FunctionLiteralBody):
             // is inferred to delegate. But def cannot receive delegate.
         }
         -------------
-    )
 
     $(P If the type of a function literal can be uniquely determined from its context,
-        the parameter type inference is possible.
+        the parameter type inference is possible.)
 
         -------------
         void foo(int function(int) fp);
@@ -1549,10 +1509,9 @@ $(GNAME FunctionLiteralBody):
             // The type of parameter n is inferred to int.
         }
         -------------
-    )
 
     $(P Anonymous delegates can behave like arbitrary statement literals.
-        For example, here an arbitrary statement is executed by a loop:
+        For example, here an arbitrary statement is executed by a loop:)
 
         -------------
         double test()
@@ -1574,7 +1533,6 @@ $(GNAME FunctionLiteralBody):
             return d + f;
         }
         -------------
-    )
 
     $(P When comparing with $(DDSUBLINK spec/function, nested, nested functions),
         the $(D function) form is analogous to static
@@ -1609,7 +1567,7 @@ $(GNAME Lambda):
         )
     )
 
-    $(P Example usage:
+    $(P Example usage:)
 
         ---
         import std.stdio;
@@ -1628,29 +1586,26 @@ $(GNAME Lambda):
             writeln(mul_n(i));   // prints 15
         }
         ---
-    )
 
 $(H3 $(LNAME2 uniform_construction_syntax, Uniform construction syntax for built-in scalar types))
 
     $(P The implicit conversions of built-in scalar types can be explicitly
-        represented by using function call syntax. For example:
+        represented by using function call syntax. For example:)
 
         ---
         auto a = short(1);  // implicitly convert an integer literal '1' to short
         auto b = double(a); // implicitly convert a short variable 'a' to double
         auto c = byte(128); // error, 128 cannot be represented in a byte
         ---
-    )
 
     $(P If the argument is omitted, it means default construction of the
-        scalar type:
+        scalar type:)
 
         ---
         auto a = ushort();  // same as: ushort.init
         auto b = wchar();   // same as: wchar.init
         auto c = creal();   // same as: creal.init
         ---
-    )
 
 
 $(H3 $(LNAME2 assert_expressions, Assert Expressions))
@@ -1708,7 +1663,7 @@ $(GNAME AssertExpression):
         convertible to type $(D const(char)[]).
         It is evaluated if the
         result is false, and the string result is appended to the
-        $(D AssertError)'s message.
+        $(D AssertError)'s message.)
 
         ----
         void main()
@@ -1716,14 +1671,12 @@ $(GNAME AssertExpression):
             assert(0, "an" ~ " error message");
         }
         ----
-    )
 
-    $(P When compiled and run, it will produce the message:
+    $(P When compiled and run, it will produce the message:)
 
 $(CONSOLE
 Error: AssertError Failure test.d(3) an error message
 )
-    )
 
 $(H3 $(LNAME2 mixin_expressions, Mixin Expressions))
 
@@ -1735,7 +1688,7 @@ $(GNAME MixinExpression):
     $(P The $(I AssignExpression) must evaluate at compile time
         to a constant string.
         The text contents of the string must be compilable as a valid
-        $(I Expression), and is compiled as such.
+        $(I Expression), and is compiled as such.)
 
         ---
         int foo(int x)
@@ -1743,7 +1696,6 @@ $(GNAME MixinExpression):
             return mixin("x + 1") * 7;  // same as ((x + 1) * 7)
         }
         ---
-    )
 
 $(H3 $(LNAME2 import_expressions, Import Expressions))
 
@@ -1767,7 +1719,7 @@ $(GNAME ImportExpression):
 
     $(P Note that by default an import expression will not compile unless
         you pass one or more paths via the $(B -J) switch. This tells the compiler
-        where it should look for the files to import. This is a security feature.
+        where it should look for the files to import. This is a security feature.)
 
         ---
         void foo()
@@ -1776,7 +1728,6 @@ $(GNAME ImportExpression):
             writeln(import("foo.txt"));
         }
         ---
-    )
 
 $(H3 $(LNAME2 typeid_expressions, Typeid Expressions))
 
@@ -1798,7 +1749,7 @@ $(GNAME TypeidExpression):
         to the type of the $(I Expression).
         If the type is a class, it returns the $(D TypeInfo)
         of the dynamic type (i.e. the most derived type).
-        The $(I Expression) is always executed.
+        The $(I Expression) is always executed.)
 
         ---
         class A { }
@@ -1815,7 +1766,6 @@ $(GNAME TypeidExpression):
             writeln(typeid(typeof(a)));  // A
         }
         ---
-    )
 
 $(H3 $(LNAME2 is_expression, IsExpression))
 
@@ -1921,8 +1871,8 @@ void foo()
 
         $(LI $(D is $(LPAREN)) $(I Type) $(D ==) $(I TypeSpecialization) $(D $(RPAREN))$(BR)
 
-        $(P The condition is satisfied if $(I Type) is semantically
-        correct and is the same type as $(I TypeSpecialization).)
+        The condition is satisfied if $(I Type) is semantically correct and is
+        the same type as $(I TypeSpecialization).
 
         If $(I TypeSpecialization) is one of
 
@@ -1976,7 +1926,6 @@ void foo()
 
         $(LI $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D $(RPAREN))$(BR)
 
-        $(P
         The condition is satisfied if $(I Type) is the same as
         $(I TypeSpecialization), or if $(I Type) is a class and
         $(I TypeSpecialization) is a base class or base interface
@@ -1984,7 +1933,6 @@ void foo()
         The $(I Identifier) is declared to be either an alias of the
         $(I TypeSpecialization) or, if $(I TypeSpecialization) is
         dependent on $(I Identifier), the deduced type.
-        )
 
 -------------
 alias Bar = int;
@@ -2006,23 +1954,21 @@ void foo()
 }
 -------------
 
-        $(P The way the type of $(I Identifier) is determined is analogous
+        The way the type of $(I Identifier) is determined is analogous
         to the way template parameter types are determined by
         $(GLINK2 template, TemplateTypeParameterSpecialization).
-        )
         )
 
         $(LI $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D ==) $(I TypeSpecialization) $(D $(RPAREN))$(BR)
 
 
-        $(P The condition is satisfied if $(I Type) is semantically
+        The condition is satisfied if $(I Type) is semantically
         correct and is the same as $(I TypeSpecialization).
         The $(I Identifier) is declared to be either an alias of the
         $(I TypeSpecialization) or, if $(I TypeSpecialization) is
         dependent on $(I Identifier), the deduced type.
-        )
 
-        $(P If $(I TypeSpecialization) is one of
+        If $(I TypeSpecialization) is one of
                $(D struct)
                 $(D union)
                 $(D class)
@@ -2036,7 +1982,6 @@ void foo()
 
         then the condition is satisfied if $(I Type) is one of those.
         Furthermore, $(I Identifier) is set to be an alias of the type:
-        )
 
         $(TABLE_2COLS ,
         $(THEAD keyword, alias type for $(I Identifier))
@@ -2088,11 +2033,10 @@ void foo()
              $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))$(BR)
              $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D ==) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
 
-        $(P More complex types can be pattern matched; the
+        More complex types can be pattern matched; the
         $(GLINK2 template, TemplateParameterList) declares symbols based on the
         parts of the pattern that are matched, analogously to the
         way implied template parameters are matched.
-        )
 
 ---
 import std.stdio, std.typecons;

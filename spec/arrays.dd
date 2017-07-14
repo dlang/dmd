@@ -452,13 +452,12 @@ Returns an array literal with each element of the literal being the $(D .init) p
 
         $(P For the $(D .sort) property to work on arrays of
         structs or unions, the struct or union definition must
-        define the function:
+        define the function:)
 
         $(D int opCmp(ref const S) const).
 
         The type $(D S) is the type of the struct or union.
         This function will determine the sort ordering.
-        )
 
     $(P Examples:)
 
@@ -501,17 +500,10 @@ array = array[0..7];
         default initializer.
         )
 
-        $(P To maximize efficiency, the runtime always tries to resize the
-        array in place to avoid extra copying.
-
-        It will always do a copy if the new size is larger and the array
-        was not allocated via the new operator or resizing in place would
-        overwrite valid data in the array.
-        )
-
-
-
-        For example:
+        $(P To maximize efficiency, the runtime always tries to resize the array
+        in place to avoid extra copying. It will always do a copy if the new
+        size is larger and the array was not allocated via the new operator or
+        resizing in place would overwrite valid data in the array. For example:)
 
 ---------
 char[] a = new char[20];
@@ -567,9 +559,8 @@ while (1)
 }
 ---------
 
-        $(P will work, it will be inefficient. A more practical
+        will work, it will be inefficient. A more practical
         approach would be to minimize the number of resizes:
-        )
 
 ---------
 int[] array;
@@ -782,7 +773,7 @@ char* p = str;     // pointer to 1st element
 str ~= "\0";
 ---------
 
-        $(P or use the function $(D std.string.toStringz).)
+        or use the function $(D std.string.toStringz).
 
         $(P The type of a string is determined by the semantic phase of
         compilation. The type is
@@ -852,7 +843,7 @@ str ~= "\0";
 printf("the string is '%s'\n", cast(char*)str);
 ---------
 
-        $(P or:)
+        or:
 
 ---------
 import std.string;

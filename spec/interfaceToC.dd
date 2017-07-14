@@ -28,7 +28,7 @@ $(H2 $(LNAME2 calling_c_functions, Calling C Functions))
 extern (C) int strcmp(const char* string1, const char* string2);
 ------
 
-	$(P and then it can be called within D code in the obvious way:)
+	and then it can be called within D code in the obvious way:
 
 ------
 import std.string;

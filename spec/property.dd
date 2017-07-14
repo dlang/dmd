@@ -223,15 +223,12 @@ $(H2 $(LNAME2 alignof, .alignof Property))
 
 $(H2 $(LNAME2 classinfo, .classinfo Property))
 
-	$(P $(CODE .classinfo) provides information about the dynamic type
-	of a class object.
+$(P $(CODE .classinfo) provides information about the dynamic type of a class
+object. It returns a reference to type $(DDLINK	phobos/object, TypeInfo_Class,
+$(D object.TypeInfo_Class)).)
 
-	It returns a reference to type $(DDLINK	phobos/object, TypeInfo_Class, $(D object.TypeInfo_Class)).
-	)
-
-	$(P $(CODE .classinfo) applied to an interface gives the information for
-	the interface, not the class it might be an instance of.
-	)
+$(P $(CODE .classinfo) applied to an interface gives the information for the
+interface, not the class it might be an instance of.)
 
 $(H2 $(LNAME2 classproperties, User Defined Properties))
 

@@ -37,12 +37,12 @@ $(GNAME DeclDef):
     $(D ;)
 )
 
-Modules have a one-to-one correspondence with source files. The module name is,
-by default, the file name with the path and extension stripped off, and can be
-set explicitly with the module declaration.
+$(P Modules have a one-to-one correspondence with source files. The module name
+is, by default, the file name with the path and extension stripped off, and can
+be set explicitly with the module declaration.)
 
-Modules automatically provide a namespace scope for their contents. Modules
-superficially resemble classes, but differ in that:
+$(P Modules automatically provide a namespace scope for their contents. Modules
+superficially resemble classes, but differ in that:)
 
 $(UL
 	$(LI There's only one instance of each module, and it is
@@ -60,9 +60,9 @@ $(UL
 	by surrounding attributes or other modifiers.)
 )
 
-Modules can be grouped together in hierarchies called $(I packages).
+$(P Modules can be grouped together in hierarchies called $(I packages).)
 
-Modules offer several guarantees:
+$(P Modules offer several guarantees:)
 
 $(UL
 
@@ -79,9 +79,9 @@ $(UL
 
 $(H2 $(LNAME2 module_declaration, Module Declaration))
 
-The $(I ModuleDeclaration) sets the name of the module and what package it
+$(P The $(I ModuleDeclaration) sets the name of the module and what package it
 belongs to. If absent, the module name is taken to be the same name (stripped of
-path and extension) of the source file name.
+path and extension) of the source file name.)
 
 $(GRAMMAR
 $(GNAME ModuleDeclaration):
@@ -110,36 +110,36 @@ $(GNAME PackageName):
     $(I Identifier)
 )
 
-The $(I Identifiers) preceding the rightmost are the $(I Packages) that the
+$(P The $(I Identifiers) preceding the rightmost are the $(I Packages) that the
 module is in. The packages correspond to directory names in the source file
 path. Package names cannot be keywords, hence the corresponding directory names
-cannot be keywords, either.
+cannot be keywords, either.)
 
-If present, the $(I ModuleDeclaration) appears syntactically first in the source
-file, and there can be only one per source file.
+$(P If present, the $(I ModuleDeclaration) appears syntactically first in the
+source file, and there can be only one per source file.)
 
-Example:
+$(P Example:)
 
 ---------
 module c.stdio; // module stdio in the c package
 ---------
 
-By convention, package and module names are all lower case. This is because
+$(P By convention, package and module names are all lower case. This is because
 those names can have a one-to-one correspondence with the operating system's
 directory and file names, and many file systems are not case sensitive. All
 lower case package and module names will minimize problems moving projects
-between dissimilar file systems.
+between dissimilar file systems.)
 
-If the file name of a module is an invalid module name (e.g. $(D foo-bar.d)),
-you may use a module declaration to set a valid module name:
+$(P If the file name of a module is an invalid module name (e.g. $(D
+foo-bar.d)), you may use a module declaration to set a valid module name:)
 
 ---------
 module foo_bar;
 ---------
 
-$(I ModuleDeclaration) can have an optional $(GLINK2 attribute,
+$(P $(I ModuleDeclaration) can have an optional $(GLINK2 attribute,
 DeprecatedAttribute). The compiler will produce a message when the deprecated
-module is imported.
+module is imported.)
 
 ---------
 deprecated module foo;
@@ -150,8 +150,8 @@ module bar;
 import foo;  // Deprecated: module foo is deprecated
 ---------
 
-$(I DeprecatedAttribute) can have an optional string argument to provide
-a more expressive message.
+$(P $(I DeprecatedAttribute) can have an optional string argument to provide a
+more expressive message.)
 
 ---------
 deprecated("Please use foo2 instead.")
@@ -165,8 +165,8 @@ import foo;  // Deprecated: module foo is deprecated - Please use foo2 instead.
 
 $(H2 $(LEGACY_LNAME2 ImportDeclaration, import-declaration, Import Declaration))
 
-Symbols from one module are made available in another module by using the $(I
-ImportDeclaration):
+$(P Symbols from one module are made available in another module by using the
+$(I ImportDeclaration):)
 
 $(GRAMMAR
 $(GNAME ImportDeclaration):
@@ -197,18 +197,18 @@ $(GNAME ModuleAliasIdentifier):
     $(I Identifier)
 )
 
-There are several forms of the $(I ImportDeclaration), from generalized to
-fine-grained importing.
+$(P There are several forms of the $(I ImportDeclaration), from generalized to
+fine-grained importing.)
 
-The order in which $(I ImportDeclaration)s occur has no significance.
+$(P The order in which $(I ImportDeclaration)s occur has no significance.)
 
-$(I ModuleFullyQualifiedName)s in the $(I ImportDeclaration) must be fully
+$(P $(I ModuleFullyQualifiedName)s in the $(I ImportDeclaration) must be fully
 qualified with whatever packages they are in. They are not considered to be
-relative to the module that imports them.
+relative to the module that imports them.)
 
 $(H2 $(LNAME2 name_lookup, Symbol Name Lookup))
 
-The simplest form of importing is to just list the modules being imported:
+$(P The simplest form of importing is to just list the modules being imported:)
 
 $(RUNNABLE_EXAMPLE
 ---------
@@ -228,10 +228,10 @@ class Foo : BaseClass
 ---------
 )
 
-When a symbol name is used unqualified, a two-phase lookup will happen. First,
-the module scope will be searched, starting from the innermost scope.  For
-example, in the previous example, while looking for $(SINGLEQUOTE writeln), the
-order will be:
+$(P When a symbol name is used unqualified, a two-phase lookup will happen.
+First, the module scope will be searched, starting from the innermost scope.
+For example, in the previous example, while looking for $(SINGLEQUOTE writeln),
+the order will be:)
 
 $(UL
     $(LI Declarations inside $(SINGLEQUOTE bar).)
@@ -240,14 +240,14 @@ $(UL
     $(LI Declarations at module scope.)
 )
 
-If the first lookup wasn't successful, a second one is performed on imports. In
-the second lookup phase inherited scopes are ignored.  This includes scope of
+$(P If the first lookup wasn't successful, a second one is performed on imports.
+In the second lookup phase inherited scopes are ignored.  This includes scope of
 base classes and interface (in this example, $(SINGLEQUOTE BaseClass)'s imports
-would be ignored), as well as imports in mixed-in $(D template).
+would be ignored), as well as imports in mixed-in $(D template).)
 
-Symbol lookup stops as soon as a symbol is found. If two symbols with the same
-name are found at the same lookup phase, this ambiguity will result in a
-compilation error.
+$(P Symbol lookup stops as soon as a symbol is found. If two symbols with the
+same name are found at the same lookup phase, this ambiguity will result in a
+compilation error.)
 
 ---
 module A;
@@ -299,21 +299,21 @@ void test()
 
 $(H2 $(LNAME2 public_imports, Public Imports))
 
-By default, imports are $(I private). This means that if module A imports module
-B, and module B imports module C, then names from C are visible only from B and
-not from A. This prevents surprising name clashes from modules which haven't
-directly been imported.
+$(P By default, imports are $(I private). This means that if module A imports
+module B, and module B imports module C, then names from C are visible only from
+B and not from A. This prevents surprising name clashes from modules which
+haven't directly been imported.)
 
-An import can be however specifically declared $(I public), which will cause
+$(P An import can be however specifically declared $(I public), which will cause
 names from the imported module to be visible to further imports. So in the above
 example where module A imports module B, if module B $(I publicly) imports
-module C, names from C will be visible in A as well.
+module C, names from C will be visible in A as well.)
 
-All symbols from a publicly imported module are also aliased in the importing
-module. Thus in the above example if C contains the name foo, it will be
-accessible in A as $(D foo), $(D B.foo) and $(D C.foo).
+$(P All symbols from a publicly imported module are also aliased in the
+importing module. Thus in the above example if C contains the name foo, it will
+be accessible in A as $(D foo), $(D B.foo) and $(D C.foo).)
 
-For another example:
+$(P For another example:)
 
 ---
 module W;
@@ -346,11 +346,11 @@ Y.bar(); // ok, Y.bar() is an alias to X.bar()
 
 $(H2 $(LNAME2 static_imports, Static Imports))
 
-Basic imports work well for programs with relatively few modules and imports. If
-there are a lot of imports, name collisions can start occurring between the
-names in the various imported modules. One way to stop this is by using static
-imports. A static import requires one to use a fully qualified name to reference
-the module's names:
+$(P Basic imports work well for programs with relatively few modules and
+imports. If there are a lot of imports, name collisions can start occurring
+between the names in the various imported modules. One way to stop this is by
+using static imports. A static import requires one to use a fully qualified name
+to reference the module's names:)
 
 ---
 static import std.stdio;
@@ -364,8 +364,8 @@ void main()
 
 $(H2 $(LNAME2 renamed_imports, Renamed Imports))
 
-A local name for an import can be given, through which all references to the
-module's symbols must be qualified with:
+$(P A local name for an import can be given, through which all references to the
+module's symbols must be qualified with:)
 
 $(RUNNABLE_EXAMPLE
 ---
@@ -380,12 +380,12 @@ void main()
 ---
 )
 
-Renamed imports are handy when dealing with very long import names.
+$(P Renamed imports are handy when dealing with very long import names.)
 
 $(H2 $(LNAME2 selective_imports, Selective Imports))
 
-Specific symbols can be exclusively imported from a module and bound into the
-current namespace:
+$(P Specific symbols can be exclusively imported from a module and bound into
+the current namespace:)
 
 $(RUNNABLE_EXAMPLE
 ---
@@ -402,11 +402,11 @@ void main()
 ---
 )
 
-$(D static) cannot be used with selective imports.
+$(P $(D static) cannot be used with selective imports.)
 
 $(H2 $(LNAME2 renamed_selective_imports, Renamed and Selective Imports))
 
-When renaming and selective importing are combined:
+$(P When renaming and selective importing are combined:)
 
 $(RUNNABLE_EXAMPLE
 ------------
@@ -429,7 +429,7 @@ void main()
 
 $(H2 $(LNAME2 scoped_imports, Scoped Imports))
 
-Import declarations may be used at any scope. For example:
+$(P Import declarations may be used at any scope. For example:)
 
 $(RUNNABLE_EXAMPLE
 --------------
@@ -441,12 +441,12 @@ void main()
 --------------
 )
 
-The imports are looked up to satisfy any unresolved symbols at that scope.
-Imported symbols may hide symbols from outer scopes.
+$(P The imports are looked up to satisfy any unresolved symbols at that scope.
+Imported symbols may hide symbols from outer scopes.)
 
-In function scopes, imported symbols only become visible after the import
+$(P In function scopes, imported symbols only become visible after the import
 declaration lexically appears in the function body. In other words, imported
-symbols at function scope cannot be forward referenced.
+symbols at function scope cannot be forward referenced.)
 
 $(RUNNABLE_EXAMPLE
 --------------
@@ -469,9 +469,9 @@ void main()
 
 $(H2 $(LNAME2 module_scope_operators, Module Scope Operator))
 
-Sometimes, it's necessary to override the usual lexical scoping rules to access
-a name hidden by a local name. This is done with the global scope operator,
-which is a leading $(SINGLEQUOTE .):
+$(P Sometimes, it's necessary to override the usual lexical scoping rules to
+access a name hidden by a local name. This is done with the global scope
+operator, which is a leading $(SINGLEQUOTE .):)
 
 ---------
 int x;
@@ -485,44 +485,45 @@ int foo(int x)
 }
 ---------
 
-The leading $(SINGLEQUOTE .) means look up the name at the module scope level.
+$(P The leading $(SINGLEQUOTE .) means look up the name at the module scope
+level.)
 
 $(H2 $(LNAME2 staticorder, Static Construction and Destruction))
 
-Static constructors are code that gets executed to initialize a module or a
+$(P Static constructors are code that gets executed to initialize a module or a
 class before the main() function gets called. Static destructors are code that
 gets executed after the main() function returns, and are normally used for
-releasing system resources.
+releasing system resources.)
 
-There can be multiple static constructors and static destructors within one
+$(P There can be multiple static constructors and static destructors within one
 module. The static constructors are run in lexical order, the static destructors
-are run in reverse lexical order.
+are run in reverse lexical order.)
 
-Static constructors and static destructors run on thread local data, and are run
-whenever threads are created or destroyed.
+$(P Static constructors and static destructors run on thread local data, and are
+run whenever threads are created or destroyed.)
 
-Shared static constructors and shared static destructors are run on global
+$(P Shared static constructors and shared static destructors are run on global
 shared data, and constructors are run once on program startup and destructors
-are run once on program termination.
+are run once on program termination.)
 
 $(H2 $(LNAME2 order_of_static_ctor, Order of Static Construction))
 
-Shared static constructors on all modules are run before any static
-constructors.
+$(P Shared static constructors on all modules are run before any static
+constructors.)
 
-The order of static initialization is implicitly determined by the $(I import)
-declarations in each module. Each module is assumed to depend on any imported
-modules being statically constructed first. Other than following that rule,
-there is no imposed order on executing the module static constructors.
+$(P The order of static initialization is implicitly determined by the $(I
+import) declarations in each module. Each module is assumed to depend on any
+imported modules being statically constructed first. Other than following that
+rule, there is no imposed order on executing the module static constructors.)
 
-Cycles (circular dependencies) in the import declarations are allowed as long as
-not both of the modules contain static constructors or static destructors.
-Violation of this rule will result in a runtime exception.
+$(P Cycles (circular dependencies) in the import declarations are allowed as
+long as not both of the modules contain static constructors or static
+destructors. Violation of this rule will result in a runtime exception.)
 
 $(H2 $(LNAME2 override_cycle_abort, Overriding Cycle Detection Abort))
 
-You can override the cyclic detection behavior using the D Runtime switch
-`--DRT-oncycle=...` The following behaviors are supported:
+$(P You can override the cyclic detection behavior using the D Runtime switch
+`--DRT-oncycle=...` The following behaviors are supported:)
 
 $(OL
     $(LI `abort` The default behavior. The normal behavior as described
@@ -542,20 +543,21 @@ $(OL
 
 $(H2 $(LNAME2 order_of_static_ctors, Order of Static Construction within a Module))
 
-Within a module, the static construction occurs in the lexical order in which
-they appear.
+$(P Within a module, the static construction occurs in the lexical order in
+which they appear.)
 
 $(H2 $(LNAME2 order_static_dtor, Order of Static Destruction))
 
-It is defined to be exactly the reverse order that static construction was
+$(P It is defined to be exactly the reverse order that static construction was
 performed in. Static destructors for individual modules will only be run if the
-corresponding static constructor successfully completed.
+corresponding static constructor successfully completed.)
 
-Shared static destructors are executed after static destructors.
+$(P Shared static destructors are executed after static destructors.)
 
 $(H2 $(LNAME2 order_of_unittests, Order of Unit tests))
 
-Unit tests are run in the lexical order in which they appear within a module.
+$(P Unit tests are run in the lexical order in which they appear within a
+module.)
 
 $(H2 $(LEGACY_LNAME2 MixinDeclaration, mixin-declaration, Mixin Declaration))
 
@@ -564,16 +566,16 @@ $(GNAME MixinDeclaration):
     $(D mixin) $(D $(LPAREN)) $(ASSIGNEXPRESSION) $(D $(RPAREN)) $(D ;)
 )
 
-The $(ASSIGNEXPRESSION) must evaluate at compile time to a constant string. The
-text contents of the string must be compilable as a valid $(GLINK DeclDefs), and
-is compiled as such.
+$(P The $(ASSIGNEXPRESSION) must evaluate at compile time to a constant string.
+The text contents of the string must be compilable as a valid $(GLINK DeclDefs),
+and is compiled as such.)
 
 $(H2 $(LEGACY_LNAME2 PackageModule, package-module, Package Module))
 
-A package module can be used to publicly import other modules, while enabling a
-simpler import syntax. It enables converting a module into a package of modules,
-without breaking existing code which uses that module. Example of a set of
-library modules:
+$(P A package module can be used to publicly import other modules, while
+enabling a simpler import syntax. It enables converting a module into a package
+of modules, without breaking existing code which uses that module. Example of a
+set of library modules:)
 
 $(B libweb/client.d:)
 
@@ -600,9 +602,9 @@ public import libweb.client;
 public import libweb.server;
 ---------
 
-The package module must have the file name $(D package.d). The module name is
-declared to be the fully qualified name of the package. Package modules can be
-imported just like any other modules:
+$(P The package module must have the file name $(D package.d). The module name
+is declared to be the fully qualified name of the package. Package modules can
+be imported just like any other modules:)
 
 $(B test.d:)
 
@@ -619,7 +621,7 @@ void main()
 }
 ---------
 
-A package module can be nested inside of a sub-package:
+$(P A package module can be nested inside of a sub-package:)
 
 $(B libweb/utils/package.d:)
 
@@ -632,8 +634,8 @@ public import libweb.utils.conv;
 public import libweb.utils.text;
 ---------
 
-The package module can then be imported with the standard module import
-declaration:
+$(P The package module can then be imported with the standard module import
+declaration:)
 
 $(B test.d:)
 

@@ -168,7 +168,7 @@ $(TROW $(D size_t), $(D .ptr), pointer to array data)
 type[] array;
 ---------
 
-	$(P whereas a static array is declared as:)
+	whereas a static array is declared as:
 
 ---------
 type[dimension] array;
@@ -182,9 +182,9 @@ type[dimension] array;
 $(H2 $(LNAME2 associative_arrays, Associative Arrays))
 
 	$(P Associative arrays consist of a pointer to an opaque, implementation
-	defined type.
+	defined type.)
 
-	The current implementation is contained in and defined by
+	$(P The current implementation is contained in and defined by
 	 $(DRUNTIMESRC rt/aaA.d).
 	)
 
@@ -705,7 +705,7 @@ $(H4 $(LNAME2 parameters, Parameters))
 foo(a1, a2, ..., an);
 ---
 
-	$(P are passed as follows:)
+	are passed as follows:
 
 	$(TABLE
 	$(TR $(TD a1))
@@ -752,7 +752,7 @@ void foo(int p1, int p2, int[] p3...)
 foo(a1, a2, ..., an);
 ---
 
-	$(P are passed as follows:)
+	are passed as follows:
 
 	$(TABLE
 	$(TR $(TD p1))
@@ -772,7 +772,7 @@ void foo(int p1, int p2, ...)
 foo(a1, a2, a3, ..., an);
 ---
 
-	$(P are passed as follows:)
+	are passed as follows:
 
 	$(TABLE
 	$(TR $(TD an))
@@ -938,7 +938,7 @@ $(H3 $(LNAME2 codeview, Codeview Debugger Extensions))
 	$(TROW associative array, $(D LF_OEM), $(I OEM), 2, 2, @$(I key), @$(I element))
 	$(TROW delegate, $(D LF_OEM), $(I OEM), 3, 2, @$(I this), @$(I function)))
 
-	$(P Where:)
+	where:
 
 	$(TABLE_2COLS ,
 	$(TROW $(ARGS $(I OEM)), $(ARGS 0x42))
@@ -949,11 +949,8 @@ $(H3 $(LNAME2 codeview, Codeview Debugger Extensions))
 	$(TROW $(I function), $(ARGS type index of function)))
 
 	$(P These extensions can be pretty-printed
-	by $(LINK2 http://www.digitalmars.com/ctg/obj2asm.html, obj2asm).
-
-	$(P The $(LINK2 http://ddbg.mainia.de/releases.html, Ddbg) debugger
+	by $(LINK2 http://www.digitalmars.com/ctg/obj2asm.html, obj2asm). The $(LINK2 http://ddbg.mainia.de/releases.html, Ddbg) debugger
 	supports them.)
-	)
 $(SPEC_SUBNAV_PREV_NEXT memory-safe-d, Memory Safety, simd, Vector Extensions)
 )
 
