@@ -757,7 +757,6 @@ struct Bar
 @('c') string s;
 pragma(msg, __traits(getAttributes, s)); // prints tuple('c')
 ---
-)
 
         $(P
             If there are no user defined attributes for the symbol, an empty tuple is returned.
