@@ -29,6 +29,31 @@ enum {
     FALLOC_FL_UNSHARE_RANGE = 0x40
 }
 
+// From asm-generic/fcntl.h
+/**
+
+Open File Description locks
+
+Usually record locks held by a process are released on *any* close and are
+not inherited across a fork().
+
+These cmd values will set locks that conflict with process-associated
+record  locks, but are "owned" by the open file description, not the
+process. This means that they are inherited across fork() like BSD (flock)
+locks, and they are only released automatically when the last reference to
+the the open file against which they were acquired is put.
+
+*/
+enum
+{
+    /// Queries the system if the lock could be placed
+    F_OFD_GETLK  = 36,
+    /// Acquires or releases an open file description lock
+    F_OFD_SETLK  = 37,
+    /// Same as F_OFD_SETLK, but waits if a conflicting lock is held on the file
+    F_OFD_SETLKW = 38
+}
+
 // Linux-specific fallocate
 // (http://man7.org/linux/man-pages/man2/fallocate.2.html)
 int fallocate(int fd, int mode, off_t offset, off_t len);
