@@ -12,7 +12,7 @@ $(SPEC_S Arrays,
         $(TROW $(ARGS $(I type)[$(I type)]), $(ARGS $(DDLINK spec/hash-map, Associative Arrays, Associative arrays)))
     )
 
-$(H4 $(LNAME2 pointers, Pointers))
+$(H3 $(LNAME2 pointers, Pointers))
 
 ---------
 int* p;
@@ -29,7 +29,7 @@ int* p;
         and reference types.
         )
 
-$(H4 $(LNAME2 static-arrays, Static Arrays))
+$(H3 $(LNAME2 static-arrays, Static Arrays))
 
 ---------
 int[3] s;
@@ -56,7 +56,7 @@ int[3] s;
         )
 
 
-$(H4 $(LNAME2 dynamic-arrays, Dynamic Arrays))
+$(H3 $(LNAME2 dynamic-arrays, Dynamic Arrays))
 
 ---------
 int[] a;

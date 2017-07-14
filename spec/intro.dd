@@ -8,7 +8,7 @@ $(SPEC_S Introduction,
 	native executable.
 	)
 
-$(H3 Phases of Compilation)
+$(H2 Phases of Compilation)
 
 	The process of compiling is divided into multiple phases. Each phase
 	has no dependence on subsequent phases. For example, the scanner is

@@ -9,7 +9,7 @@ $(SPEC_S Application Binary Interface,
 	D binaries built by other implementations.
 	)
 
-$(H3 $(LNAME2 c_abi, C ABI))
+$(H2 $(LNAME2 c_abi, C ABI))
 
 	$(P The C ABI referred to in this specification means the C Application
 	Binary Interface of the target system.
@@ -17,7 +17,7 @@ $(H3 $(LNAME2 c_abi, C ABI))
 	code shall have access to the entire C ABI runtime library.
 	)
 
-$(H3 $(LNAME2 endianness, Endianness))
+$(H2 $(LNAME2 endianness, Endianness))
 
 	$(P The $(LINK2 https://en.wikipedia.org/wiki/Endianness, endianness)
 	(byte order) of the layout of the data
@@ -27,7 +27,7 @@ $(H3 $(LNAME2 endianness, Endianness))
 	$(D 0D 0C 0B 0A).
 	)
 
-$(H3 $(LNAME2 basic_types, Basic Types))
+$(H2 $(LNAME2 basic_types, Basic Types))
 
 	$(TABLE
 	$(TROW bool, 8 bit byte with the values 0 for false and 1 for true)
@@ -47,7 +47,7 @@ $(H3 $(LNAME2 basic_types, Basic Types))
 	 80 bit IEEE 754 extended real)
 	)
 
-$(H3 $(LNAME2 delegates, Delegates))
+$(H2 $(LNAME2 delegates, Delegates))
 
 	$(P Delegates are $(I fat pointers) with two parts:)
 
@@ -63,11 +63,11 @@ $(H3 $(LNAME2 delegates, Delegates))
 	function's stack frame (nested functions).
 	)
 
-$(H3 $(LNAME2 structs, Structs))
+$(H2 $(LNAME2 structs, Structs))
 
 	$(P Conforms to the target's C ABI struct layout.)
 
-$(H3 $(LNAME2 classes, Classes))
+$(H2 $(LNAME2 classes, Classes))
 
 	$(P An object consists of:)
 
@@ -131,7 +131,7 @@ class XXXX
 	$(LI An instance of StaticClassXXXX called StaticXXXX for the static members.)
 	)
 
-$(H3 $(LNAME2 interfaces, Interfaces))
+$(H2 $(LNAME2 interfaces, Interfaces))
 
 	$(P An interface is a pointer to a pointer to a vtbl[].
 	The vtbl[0] entry is a pointer to the corresponding
@@ -152,7 +152,7 @@ $(H3 $(LNAME2 interfaces, Interfaces))
 	on the target machine.
 	)
 
-$(H3 $(LNAME2 arrays, Arrays))
+$(H2 $(LNAME2 arrays, Arrays))
 
 	$(P A dynamic array consists of:)
 
@@ -179,7 +179,7 @@ type[dimension] array;
 	and forth to each other.
 	)
 
-$(H3 $(LNAME2 associative_arrays, Associative Arrays))
+$(H2 $(LNAME2 associative_arrays, Associative Arrays))
 
 	$(P Associative arrays consist of a pointer to an opaque, implementation
 	defined type.
@@ -188,7 +188,7 @@ $(H3 $(LNAME2 associative_arrays, Associative Arrays))
 	 $(DRUNTIMESRC rt/aaA.d).
 	)
 
-$(H3 $(LNAME2 references_types, Reference Types))
+$(H2 $(LNAME2 references_types, Reference Types))
 
 	$(P D has reference types, but they are implicit. For example, classes are always
 	referred to by reference; this means that class instances can never reside on the stack
@@ -196,7 +196,7 @@ $(H3 $(LNAME2 references_types, Reference Types))
 	)
 
 
-$(H3 $(LNAME2 name_mangling, Name Mangling))
+$(H2 $(LNAME2 name_mangling, Name Mangling))
 
 	$(P D accomplishes typesafe linking by $(I mangling) a D identifier
 	to include scope and type information.
@@ -370,7 +370,7 @@ $(H3 $(LNAME2 name_mangling, Name Mangling))
 	the number of characters in the $(GLINK Name).
 	)
 
-$(H3 $(LNAME2 type_mangling, Type Mangling))
+$(H2 $(LNAME2 type_mangling, Type Mangling))
 
 	$(P Types are mangled using a simple linear scheme:)
 
@@ -627,7 +627,7 @@ $(H3 $(LNAME2 type_mangling, Type Mangling))
         $(B B) $(GLINK Number) $(GLINK Parameters)
     )
 
-$(H3 $(LNAME2 function_calling_conventions, Function Calling Conventions))
+$(H2 $(LNAME2 function_calling_conventions, Function Calling Conventions))
 
 	$(P The $(D extern (C)) and $(D extern (D)) calling convention matches the C
 	calling convention
@@ -789,7 +789,7 @@ foo(a1, a2, a3, ..., an);
 	$(D _argptr) is not
 	passed, it is computed by the callee.)
 
-$(H3 $(LNAME2 exception_handling, Exception Handling))
+$(H2 $(LNAME2 exception_handling, Exception Handling))
 
     $(H4 $(LNAME2 windows_eh, Windows))
 
@@ -867,15 +867,15 @@ $(H3 $(LNAME2 exception_handling, Exception Handling))
 	$(TR $(D void*), catch handler code)
 	)
 
-$(H3 $(LNAME2 garbage_collection, Garbage Collection))
+$(H2 $(LNAME2 garbage_collection, Garbage Collection))
 
 	$(P The interface to this is found in Druntime's $(DRUNTIMESRC gc/gcinterface.d).)
 
-$(H3 $(LNAME2 runtime_helper_functions, Runtime Helper Functions))
+$(H2 $(LNAME2 runtime_helper_functions, Runtime Helper Functions))
 
 	$(P These are found in Druntime's $(DRUNTIMESRC rt/).)
 
-$(H3 $(LNAME2 module_init_and_fina, Module Initialization and Termination))
+$(H2 $(LNAME2 module_init_and_fina, Module Initialization and Termination))
 
 	$(P All the static constructors for a module are aggregated into a
 	single function, and a pointer to that function is inserted
@@ -889,7 +889,7 @@ $(H3 $(LNAME2 module_init_and_fina, Module Initialization and Termination))
 	module.
 	)
 
-$(H3 $(LNAME2 unit_testing, Unit Testing))
+$(H2 $(LNAME2 unit_testing, Unit Testing))
 
 	$(P All the unit tests for a module are aggregated into a
 	single function, and a pointer to that function is inserted

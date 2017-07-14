@@ -53,7 +53,7 @@ pragma(ident)   // influence block of statements
         is up to the individual pragma semantics.
         )
 
-$(H3 $(LEGACY_LNAME2 Predefined-Pragmas, predefined-pragmas, Predefined Pragmas))
+$(H2 $(LEGACY_LNAME2 Predefined-Pragmas, predefined-pragmas, Predefined Pragmas))
 
 $(P All implementations must support these, even if by just ignoring them:
 
@@ -157,7 +157,7 @@ pragma(startaddress, foo);
     )
     )
 
-$(H3 $(LNAME2 vendor_specific_pragmas, Vendor Specific Pragmas))
+$(H2 $(LNAME2 vendor_specific_pragmas, Vendor Specific Pragmas))
 
         $(P Vendor specific pragma $(I Identifier)s can be defined if they
         are prefixed by the vendor's trademarked name, in a similar manner

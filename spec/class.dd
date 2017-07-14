@@ -97,14 +97,14 @@ class Foo { }
 Foo var;
 ------
 
-$(H3 $(LNAME2 access_control, Access Control))
+$(H2 $(LNAME2 access_control, Access Control))
 
 	$(P Access to class members is controlled using $(GLINK2 attribute, ProtectionAttribute)s.
 	The default protection attribute is $(D public).
 	Access control does not affect visibility.
 	)
 
-$(H3 $(LNAME2 fields, Fields))
+$(H2 $(LNAME2 fields, Fields))
 
         $(P Class members are always accessed with the . operator.
         )
@@ -139,7 +139,7 @@ void foo(B b)
         types, not classes.
         )
 
-$(H3 $(LNAME2 field_properties, Field Properties))
+$(H2 $(LNAME2 field_properties, Field Properties))
 
         $(P The $(D .offsetof) property gives the offset in bytes of the field
         from the beginning of the class instantiation.
@@ -163,7 +163,7 @@ void test(Foo foo)
 }
 ------
 
-$(H3 $(LNAME2 class_properties, Class Properties))
+$(H2 $(LNAME2 class_properties, Class Properties))
 
         $(P The $(D .tupleof) property returns an $(I ExpressionTuple)
         of all the fields
@@ -186,13 +186,13 @@ void test(Foo foo)
         should not be used in user code.
         )
 
-$(H3 $(LNAME2 super_class, Super Class))
+$(H2 $(LNAME2 super_class, Super Class))
 
         All classes inherit from a super class. If one is not specified,
         it inherits from Object. Object forms the root of the D class
         inheritance hierarchy.
 
-$(H3 $(LNAME2 member-functions, Member Functions))
+$(H2 $(LNAME2 member-functions, Member Functions))
 
         $(P Non-static member functions have an extra hidden parameter
         called $(I this) through which the class object's other members
@@ -220,7 +220,7 @@ class C
 ---
 
 
-$(H3 $(LNAME2 synchronized-classes, Synchronized Classes))
+$(H2 $(LNAME2 synchronized-classes, Synchronized Classes))
 
         $(P All member functions of synchronized classes are synchronized.
         A static member function is synchronized on the $(I classinfo)
@@ -284,7 +284,7 @@ $(H3 $(LNAME2 synchronized-classes, Synchronized Classes))
         $(P The $(D synchronized) attribute can only be applied to classes,
         structs cannot be marked to be synchronized.)
 
-$(H3 $(LNAME2 constructors, Constructors))
+$(H2 $(LNAME2 constructors, Constructors))
 
 $(GRAMMAR
 $(GNAME Constructor):
@@ -523,7 +523,7 @@ $(GNAME Constructor):
         C m = new C([1,2,3]);       // this(int[]) immutable pure is called
         ------
 
-$(H3 $(LNAME2 field-init, Field initialization inside constructor))
+$(H2 $(LNAME2 field-init, Field initialization inside constructor))
 
     $(P Inside constructor, the first instance field assignment is specially
         handled for its initialization.
@@ -598,7 +598,7 @@ $(H3 $(LNAME2 field-init, Field initialization inside constructor))
         }
         ------
 
-$(H3 $(LNAME2 destructors, Destructors))
+$(H2 $(LNAME2 destructors, Destructors))
 
 $(GRAMMAR
 $(GNAME Destructor):
@@ -659,7 +659,7 @@ $(GNAME Destructor):
         by the gc.
         )
 
-$(H3 $(LNAME2 static-constructor, Static Constructors))
+$(H2 $(LNAME2 static-constructor, Static Constructors))
 
 $(GRAMMAR
 $(GNAME StaticConstructor):
@@ -763,7 +763,7 @@ class Foo
 }
 ------
 
-$(H3 $(LNAME2 static-destructor, Static Destructors))
+$(H2 $(LNAME2 static-destructor, Static Destructors))
 
 $(GRAMMAR
 $(GNAME StaticDestructor):
@@ -811,7 +811,7 @@ class Foo
 }
 ------
 
-$(H3 $(LNAME2 shared_static_constructors, Shared Static Constructors))
+$(H2 $(LNAME2 shared_static_constructors, Shared Static Constructors))
 
 $(GRAMMAR
 $(GNAME SharedStaticConstructor):
@@ -823,7 +823,7 @@ $(GNAME SharedStaticConstructor):
         and are intended for initializing any shared global data.
         )
 
-$(H3 $(LNAME2 shared_static_destructors, Shared Static Destructors))
+$(H2 $(LNAME2 shared_static_destructors, Shared Static Destructors))
 
 $(GRAMMAR
 $(GNAME SharedStaticDestructor):
@@ -837,7 +837,7 @@ $(GNAME SharedStaticDestructor):
         )
 
 
-$(H3 $(LNAME2 invariants, Class Invariants))
+$(H2 $(LNAME2 invariants, Class Invariants))
 
 $(GRAMMAR
 $(GNAME Invariant):
@@ -849,7 +849,7 @@ $(GNAME Invariant):
     must be true (except while executing a member function).
     They are described in $(GLINK2 contracts, Invariants).
 
-$(H3 $(LNAME2 allocators, Class Allocators))
+$(H2 $(LNAME2 allocators, Class Allocators))
 $(B Note): Class allocators are deprecated in D2.
 $(GRAMMAR
 $(GNAME Allocator):
@@ -918,7 +918,7 @@ new(1,2) Foo(a);        // calls new(Foo.sizeof,1,2)
         Explicit Class Instance Allocation).
         )
 
-$(H3 $(LNAME2 deallocators, Class Deallocators))
+$(H2 $(LNAME2 deallocators, Class Deallocators))
 $(B Note): Class deallocators and the delete operator are deprecated in D2.
 Use the $(D destroy) function to finalize an object by calling its destructor.
 The memory of the object is $(B not) immediately deallocated, instead the GC
@@ -975,7 +975,7 @@ delete f;
         Explicit Class Instance Allocation).
         )
 
-$(H3 $(LEGACY_LNAME2 AliasThis, alias-this, Alias This))
+$(H2 $(LEGACY_LNAME2 AliasThis, alias-this, Alias This))
 
 $(GRAMMAR
 $(GNAME AliasThis):
@@ -1068,7 +1068,7 @@ void test()
         )
 
 
-$(H3 $(LNAME2 auto, Scope Classes))
+$(H2 $(LNAME2 auto, Scope Classes))
 $(B Note): Scope classes have been $(DDSUBLINK deprecate, scope for allocating classes on the stack, recommended for deprecation).
 
         $(P A scope class is a class with the $(D scope) attribute, as in:)
@@ -1097,7 +1097,7 @@ void func()
         (if any) for it is automatically called. This holds true even if
         the scope was exited via a thrown exception.
 
-$(H3 $(LNAME2 final, Final Classes))
+$(H2 $(LNAME2 final, Final Classes))
 
         $(P Final classes cannot be subclassed:)
 
@@ -1309,7 +1309,7 @@ class Outer
 }
 ----
 
-$(H3 $(LNAME2 anonymous, Anonymous Nested Classes))
+$(H2 $(LNAME2 anonymous, Anonymous Nested Classes))
 
         $(P An anonymous nested class is both defined and instantiated with
         a $(I NewAnonClassExpression):

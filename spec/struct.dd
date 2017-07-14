@@ -132,7 +132,7 @@ ABC x;
 )
 
 
-$(H3 $(LNAME2 opaque_struct_unions, Opaque Structs and Unions))
+$(H2 $(LNAME2 opaque_struct_unions, Opaque Structs and Unions))
 
     $(P Opaque struct and union declarations do not have a $(GLINK AggregateBody):)
 
@@ -156,7 +156,7 @@ S* p;     // ok, knowledge of members is not necessary
         $(LINK2 https://en.wikipedia.org/wiki/Opaque_pointer, PIMPL idiom).)
 
 
-$(H3 $(LNAME2 static_struct_init, Static Initialization of Structs))
+$(H2 $(LNAME2 static_struct_init, Static Initialization of Structs))
 
         Static struct members are by default initialized to whatever the
         default initializer for the member is, and if none supplied, to
@@ -199,7 +199,7 @@ void test(int i)
 ----
 
 
-$(H3 $(LNAME2 static_union_init, Static Initialization of Unions))
+$(H2 $(LNAME2 static_union_init, Static Initialization of Unions))
 
         Unions are initialized explicitly.
 
@@ -212,7 +212,7 @@ static U u = { b : 5.0 }; // u.b = 5.0
         but occupy more storage, have
         the extra storage initialized to zero.
 
-$(H3 $(LNAME2 dynamic_struct_init, Dynamic Initialization of Structs))
+$(H2 $(LNAME2 dynamic_struct_init, Dynamic Initialization of Structs))
 
         $(P Structs can be dynamically initialized from another
         value of the same type:)
@@ -252,7 +252,7 @@ S s = 3; // sets s.a to 3
 S t = s; // sets t.a to 3, S.opCall(s) is not called
 ----
 
-$(H3 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
+$(H2 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
 
         $(P Struct literals consist of the name of the struct followed
         by a parenthesized argument list:)
@@ -281,7 +281,7 @@ $(H3 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
         initialized.
         )
 
-$(H3 $(LNAME2 struct_properties, Struct Properties))
+$(H2 $(LNAME2 struct_properties, Struct Properties))
 
 $(TABLE2 Struct Properties,
 $(THEAD Name, Description)
@@ -289,7 +289,7 @@ $(TROW $(D .sizeof), Size in bytes of struct)
 $(TROW $(D .alignof), Size boundary struct needs to be aligned on)
 $(TROW $(D .tupleof), Gets type tuple of fields))
 
-$(H3 $(LNAME2 struct_field_properties, Struct Field Properties))
+$(H2 $(LNAME2 struct_field_properties, Struct Field Properties))
 
 $(TABLE2 Struct Field Properties,
 $(THEAD Name, Description)

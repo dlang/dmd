@@ -211,7 +211,7 @@ $(GNAME StructMemberInitializer):
     $(I Identifier) $(D :) $(GLINK NonVoidInitializer)
 )
 
-$(H3 $(LNAME2 declaration_syntax, Declaration Syntax))
+$(H2 $(LNAME2 declaration_syntax, Declaration Syntax))
 
 $(P Declaration syntax generally reads right to left:)
 
@@ -273,7 +273,7 @@ int[] x,y; // x and y are arrays of ints
 int x[],y; // error, multiple types
 --------------------
 
-$(H3 $(LEGACY_LNAME2 AutoDeclaration, auto-declaration, Implicit Type Inference))
+$(H2 $(LEGACY_LNAME2 AutoDeclaration, auto-declaration, Implicit Type Inference))
 
 $(GRAMMAR
 $(GNAME AutoDeclaration):
@@ -320,7 +320,7 @@ auto v = ["hello", "world"]; // type is string[], not string[2]
 
 
 
-$(H3 $(LNAME2 alias, Alias Declarations))
+$(H2 $(LNAME2 alias, Alias Declarations))
 
 $(GRAMMAR
 $(GNAME AliasDeclaration):
@@ -473,7 +473,7 @@ alias b = S.i; // ok
 b = 4;         // sets S.i to 4
 -----------
 
-$(H3 $(LNAME2 extern, Extern Declarations))
+$(H2 $(LNAME2 extern, Extern Declarations))
 
         Variable declarations with the storage class $(D extern) are
         not allocated storage within the module.
@@ -492,7 +492,7 @@ extern extern(C) int bar; // variable allocated outside this module with C linka
                           // (e.g. in a statically linked C library or another module)
 ---------------
 
-$(H3 $(LNAME2 typeof, $(D typeof)))
+$(H2 $(LNAME2 typeof, $(D typeof)))
 
 $(GRAMMAR
 $(GNAME Typeof):
@@ -582,7 +582,7 @@ $(GNAME Typeof):
         template code.
         )
 
-$(H3 $(LNAME2 void_init, Void Initializations))
+$(H2 $(LNAME2 void_init, Void Initializations))
 
 $(GRAMMAR
 $(GNAME VoidInitializer):
@@ -608,7 +608,7 @@ void foo()
         last resort when optimizing critical code.
 	)
 
-$(H3 $(LNAME2 global_static_init, Global and Static Initializers))
+$(H2 $(LNAME2 global_static_init, Global and Static Initializers))
 
 	$(P The $(GLINK Initializer) for a global or static variable must be
 	evaluatable at compile time.
@@ -617,7 +617,7 @@ $(H3 $(LNAME2 global_static_init, Global and Static Initializers))
 	Runtime initialization can be done with static constructors.
 	)
 
-$(H3 $(LNAME2 typequal_vs_storageclass, Type Qualifiers vs. Storage Classes))
+$(H2 $(LNAME2 typequal_vs_storageclass, Type Qualifiers vs. Storage Classes))
 
 	$(P D draws a distinction between a type qualifer and a storage class.)
 
