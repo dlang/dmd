@@ -1068,5 +1068,6 @@ $(SPEC_SUBNAV_PREV_NEXT version, Conditional Compilation, errors, Error Handling
 )
 
 Macros:
+	CHAPTER=25
 	TITLE=Traits
 	GBLINK=$(RELATIVE_LINK2 $0, $(D $0))

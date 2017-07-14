@@ -2097,6 +2097,7 @@ $(SPEC_SUBNAV_PREV_NEXT pragma, Pragmas, statement, Statements)
 )
 
 Macros:
+        CHAPTER=10
         TITLE=Expressions
         IDENTIFIER=$(GLINK2 lex, Identifier)
         _=

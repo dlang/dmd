@@ -1053,6 +1053,7 @@ $(SPEC_SUBNAV_PREV_NEXT iasm, D x86 Inline Assembler, interfaceToC, Interfacing 
 )
 
 Macros:
+    CHAPTER=31
     TITLE=Documentation Generator
     _= Remove the following line when 2.067.0 is used to compile the site.
     BACKTIP=`

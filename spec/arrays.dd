@@ -977,5 +977,6 @@ $(SPEC_SUBNAV_PREV_NEXT statement, Statements, hash-map, Associative Arrays)
 )
 
 Macros:
+        CHAPTER=12
         TITLE=Arrays
         _=

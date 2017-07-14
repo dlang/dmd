@@ -311,4 +311,5 @@ $(SPEC_SUBNAV_PREV_NEXT declaration, Declarations, property, Properties)
 )
 
 Macros:
+    CHAPTER=6
     TITLE=Types

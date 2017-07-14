@@ -330,4 +330,5 @@ $(SPEC_SUBNAV_PREV_NEXT class, Classes, enum, Enums)
 )
 
 Macros:
+    CHAPTER=16
     TITLE=Interfaces

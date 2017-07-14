@@ -184,4 +184,5 @@ $(SPEC_SUBNAV_PREV_NEXT attribute, Attributes, expression, Expressions)
 )
 
 Macros:
+        CHAPTER=9
         TITLE=Pragmas

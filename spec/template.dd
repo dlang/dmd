@@ -1427,5 +1427,6 @@ $(SPEC_SUBNAV_PREV_NEXT operatoroverloading, Operator Overloading, template-mixi
 )
 
 Macros:
+        CHAPTER=21
         TITLE=Templates
         _=

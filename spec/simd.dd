@@ -250,6 +250,7 @@ $(SPEC_SUBNAV_PREV abi, Application Binary Interface)
 )
 
 Macros:
+	CHAPTER=39
 	TITLE=Vector Extensions
 	Y=$(TIMES)
 	N=$(NDASH)

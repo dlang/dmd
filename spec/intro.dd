@@ -71,3 +71,4 @@ $(SPEC_SUBNAV_NEXT lex, Lexical)
 
 Macros:
 TITLE = Introduction
+CHAPTER = 1

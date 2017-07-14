@@ -810,4 +810,5 @@ $(SPEC_SUBNAV_PREV_NEXT property, Properties, pragma, Pragmas)
 )
 
 Macros:
+        CHAPTER=8
         TITLE=Attributes

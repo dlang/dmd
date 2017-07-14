@@ -58,7 +58,7 @@ class Sum
 }
 ------
 
-$(H4 $(LNAME2 attributes_unittest, Attributed Unittests))
+$(H2 $(LNAME2 attributes_unittest, Attributed Unittests))
 
 $(P A unittest may be attributed with any of the global function attributes.
 Such unittests are useful in verifying the given attribute(s) on a template
@@ -88,7 +88,7 @@ idiom allows $(D myFunc) to be instantiated with such types, yet at the same
 time verify that the $(D @system) and throwing behaviour is not introduced by
 the code within $(D myFunc) itself.)
 
-$(H4 $(LNAME2 documented-unittests, Documented Unittests))
+$(H2 $(LNAME2 documented-unittests, Documented Unittests))
 
 $(P Documented unittests allow the developer to deliver code examples to the user,
     while at the same time automatically verifying that the examples are valid. This
@@ -196,7 +196,7 @@ code sample generated, even if it is empty or only includes comments
 </dl>
 
 
-$(H3 $(LNAME2 versioning, Versioning))
+$(H2 $(LNAME2 versioning, Versioning))
 
 	$(P The $(DDSUBLINK spec/version, PredefinedVersions, version identifier)
 	$(D unittest) is predefined if the compilation
@@ -207,6 +207,6 @@ $(SPEC_SUBNAV_PREV_NEXT errors, Error Handling, garbage, Garbage Collection)
 )
 
 Macros:
+    CHAPTER=27
 	TITLE=Unit Tests
 	_=
-

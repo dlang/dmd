@@ -1839,6 +1839,7 @@ $(SPEC_SUBNAV_PREV_NEXT lex, Lexical, module, Modules)
 )
 
 Macros:
+        CHAPTER=3
         TITLE=D Grammar
         IDENTIFIER=$(GLINK Identifier)
         EXPRESSION=$(GLINK Expression)

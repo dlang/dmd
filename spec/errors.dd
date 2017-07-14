@@ -210,5 +210,5 @@ $(SPEC_SUBNAV_PREV_NEXT traits, Traits, unittest, Unit Tests)
 )
 
 Macros:
+	CHAPTER=26
 	TITLE=Errors
-

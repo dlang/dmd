@@ -1146,4 +1146,5 @@ $(SPEC_SUBNAV_PREV_NEXT intro, Introduction, grammar, Grammar)
 )
 
 Macros:
+CHAPTER = 2
 TITLE = Lexical
