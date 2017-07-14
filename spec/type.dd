@@ -89,10 +89,7 @@ $(SECTION3 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit 
 
     $(P An enum can be implicitly converted to its base
     type, but going the other way requires an explicit
-    conversion.
-
-    For example:
-    )
+    conversion. For example:)
 
 -------------------
 int i;
@@ -235,48 +232,42 @@ ulong  u4 = cast(long)-1; // ok, -1 can be represented in a ulong
 
 $(SECTION3 $(LNAME2 bool, $(D bool)),
 
-    $(P The bool type is a 1 byte size type that can only hold the
-    value $(D_KEYWORD true) or $(D_KEYWORD false).
-    The only operators that can accept operands of type bool are:
-    $(CODE_AMP) $(CODE_PIPE) $(D ^) $(CODE_AMP)$(D =) $(CODE_PIPE)$(D =)
-    $(D ^=) ! $(CODE_AMP)$(CODE_AMP) $(CODE_PIPE)$(CODE_PIPE) $(D ?:).
-    A $(D bool) value can be implicitly converted to any integral type,
-    with $(D_KEYWORD false) becoming 0 and $(D_KEYWORD true) becoming 1.
-    The numeric literals 0 and 1 can be implicitly
-    converted to the bool values $(D_KEYWORD false) and $(D_KEYWORD true),
-    respectively.
-    Casting an expression to bool means testing for 0 or !=0 for
-    arithmetic types, and $(D_KEYWORD null) or !=$(D_KEYWORD null)
-    for pointers or references.
-    )
+$(P The bool type is a 1 byte size type that can only hold the value
+$(D_KEYWORD true) or $(D_KEYWORD false).)
+
+$(P The only operators that can accept operands of type bool are: $(CODE_AMP)
+$(CODE_PIPE) $(D ^) $(CODE_AMP)$(D =) $(CODE_PIPE)$(D =) $(D ^=) !
+$(CODE_AMP)$(CODE_AMP) $(CODE_PIPE)$(CODE_PIPE) $(D ?:).)
+
+$(P A $(D bool) value can be implicitly converted to any integral type, with
+$(D_KEYWORD false) becoming 0 and $(D_KEYWORD true) becoming 1.)
+
+$(P The numeric literals 0 and 1 can be implicitly converted to the bool values
+$(D_KEYWORD false) and $(D_KEYWORD true), respectively. Casting an expression to
+bool means testing for 0 or !=0 for arithmetic types, and $(D_KEYWORD null) or
+!=$(D_KEYWORD null) for pointers or references.)
+
 )
 
 
 $(SECTION3 $(LNAME2 delegates, Delegates),
 
-    $(P There are no pointers-to-members in D, but a more useful
-    concept called $(I delegates) are supported.
-    Delegates are an aggregate of two pieces of data: an
-    object reference and a pointer to a non-static member function,
-    or a pointer to a closure and a pointer to a nested function.
-    The object reference
-    forms the $(I this) pointer when the function is called.
-    )
+$(P There are no pointers-to-members in D, but a more useful concept called $(I
+delegates) are supported. Delegates are an aggregate of two pieces of data: an
+object reference and a pointer to a non-static member function, or a pointer to
+a closure and a pointer to a nested function. The object reference forms the
+$(I this) pointer when the function is called.)
 
-    $(P Delegates are declared similarly to function pointers,
-    except that the keyword $(D delegate) takes the place
-    of (*), and the identifier occurs afterwards:
-    )
+$(P Delegates are declared similarly to function pointers, except that the
+keyword $(D delegate) takes the place of (*), and the identifier occurs
+afterwards:)
 
 -------------------
 int function(int) fp; // fp is pointer to a function
 int delegate(int) dg; // dg is a delegate to a function
 -------------------
 
-    $(P The C style syntax for declaring pointers to functions is
-
-deprecated:
-    )
+$(P The C style syntax for declaring pointers to functions is deprecated:)
 
 -------------------
 int (*fp)(int);  // fp is pointer to a function
@@ -343,4 +334,3 @@ $(SPEC_SUBNAV_PREV_NEXT declaration, Declarations, property, Properties)
 
 Macros:
     TITLE=Types
-

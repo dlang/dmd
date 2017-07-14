@@ -492,7 +492,6 @@ extern extern(C) int bar; // variable allocated outside this module with C linka
                           // (e.g. in a statically linked C library or another module)
 ---------------
 
-
 $(H3 $(LNAME2 typeof, $(D typeof)))
 
 $(GRAMMAR

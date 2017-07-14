@@ -976,7 +976,6 @@ $(H2 $(LNAME2 implicit-conversions, Implicit Conversions))
         )
 
         $(UL
-
         $(LI $(D const(U)[]))
         $(LI $(D const(U[])))
         $(LI $(D void[]))

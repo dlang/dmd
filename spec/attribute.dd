@@ -481,20 +481,19 @@ $(H3 $(LNAME2 gshared, $(D __gshared) Attribute))
 
 $(H3 $(LNAME2 disable, $(D @disable) Attribute))
 
-        $(P A reference to a declaration marked with the $(CODE @disable) attribute causes
-        a compile time error.
-        This can be used to explicitly disallow certain operations or overloads
-        at compile time rather than relying on generating a runtime error.
-        )
+$(P A reference to a declaration marked with the $(CODE @disable) attribute
+causes a compile time error. This can be used to explicitly disallow certain
+operations or overloads at compile time rather than relying on generating a
+runtime error.)
 
-        ---
-        @disable void foo() { }
+---
+@disable void foo() { }
 
-        void main()
-        {
-            foo();   // error, foo is disabled
-        }
-        ---
+void main()
+{
+    foo();   // error, foo is disabled
+}
+---
 
         $(P $(DDSUBLINK spec/struct, Struct-Constructor, Disabling struct no-arg constructor)
         disallows default construction of the struct.

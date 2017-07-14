@@ -55,17 +55,16 @@ pragma(ident)   // influence block of statements
 
 $(H3 $(LEGACY_LNAME2 Predefined-Pragmas, predefined-pragmas, Predefined Pragmas))
 
-        $(P All implementations must support these, even if by just ignoring
-        them:
+$(P All implementations must support these, even if by just ignoring them:
 
-        $(UL
-            $(LI $(LINK2 #inline, pragma inline))
-            $(LI $(LINK2 #lib, pragma lib))
-            $(LI $(LINK2 #mangle, pragma mangle))
-            $(LI $(LINK2 #msg, pragma msg))
-            $(LI $(LINK2 #startaddress, pragma startaddress))
-        )
-        )
+$(UL
+    $(LI $(LINK2 #inline, pragma inline))
+    $(LI $(LINK2 #lib, pragma lib))
+    $(LI $(LINK2 #mangle, pragma mangle))
+    $(LI $(LINK2 #msg, pragma msg))
+    $(LI $(LINK2 #startaddress, pragma startaddress))
+)
+)
 
     $(DL
 
@@ -187,4 +186,3 @@ $(SPEC_SUBNAV_PREV_NEXT attribute, Attributes, expression, Expressions)
 
 Macros:
         TITLE=Pragmas
-

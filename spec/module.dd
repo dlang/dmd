@@ -362,7 +362,6 @@ void main()
 }
 ---
 
-
 $(H3 $(LNAME2 renamed_imports, Renamed Imports))
 
 A local name for an import can be given, through which all references to the

@@ -13,10 +13,10 @@ $(SPEC_S Expressions,
 
 $(H3 $(LNAME2 order-of-evaluation, Order Of Evaluation))
 
-    $(P Binary expressions and function arguments are evaluated in strictly
-        left-to-right order. This is similar to Java but different to C and C++,
-        where the evaluation order is unspecified.
-        Thus, the following code is valid and well defined.
+$(P Binary expressions and function arguments are evaluated in strictly
+left-to-right order. This is similar to Java but different to C and C++, where
+the evaluation order is unspecified. Thus, the following code is valid and well
+defined.
 
         -------------
         import std.conv;

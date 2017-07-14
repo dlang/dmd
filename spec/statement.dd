@@ -307,7 +307,6 @@ while (i < 10)
 
 $(H3 $(LEGACY_LNAME2 DoStatement, do-statement, Do Statement))
 
-
 $(GRAMMAR
 $(GNAME DoStatement):
     $(D do) $(PSSCOPE) $(D  while $(LPAREN)) $(EXPRESSION) $(D $(RPAREN)) $(D ;)
@@ -1337,6 +1336,7 @@ switch (x)
         break;
 }
 ---
+
         Any intervening finally clauses are executed, along with
         releasing any intervening synchronization mutexes.
 
