@@ -3694,7 +3694,6 @@ static if (is(BCGen))
                 bailout(elexpr.vType != BCValueType.Immediate, "When struct-literals are used as arguments all initializers, have to be immediates");
                 if (elexpr.type.type.anyOf([BCTypeEnum.Slice, BCTypeEnum.Array, BCTypeEnum.Struct]))
                 {
-                    import std.stdio; writeln("doing heap initializer copy for: ", to!string(elexpr.type));
                     immutable size_t targetAddr = retval.heapAddr + offset;
                     immutable size_t sourceAddr = elexpr.heapAddr;
                     immutable size_t _size = _sharedCtfeState.size(elexpr.type, true);
@@ -4194,7 +4193,6 @@ static if (is(BCGen))
 
         BCValue var;
         BCType type = toBCType(vd.type);
-        import std.stdio; writeln("vd.type: ", vd.type.toString," bcType: ",type); //debugline
         if (!type)
         {
             bailout("could not get type for:" ~ vd.toString);
@@ -4429,14 +4427,12 @@ static if (is(BCGen))
 
         if (re.type.ty == Tfloat32)
         {
-            import std.stdio;
             float tmp = cast(float)re.value;
             retval = imm32(*cast(uint*)&tmp);
             retval.type.type = BCTypeEnum.f23;
         }
         else if (re.type.ty == Tfloat64)
         {
-            import std.stdio;
             double tmp = cast(double)re.value;
             retval = BCValue(Imm64(*cast(ulong*)&tmp));
             retval.type.type = BCTypeEnum.f52;
