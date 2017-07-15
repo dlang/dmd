@@ -1945,7 +1945,6 @@ extern (C++) final class BCV(BCGenT) : Visitor
             bailout("we could not get the elementType of " ~ slice.type.to!string);
         }
         auto elementSize = _sharedCtfeState.size(elementType);
-        Assert(newLength.i32, addError(Loc(), "newLength is zero WHAAAT ??"));
 
         Mul3(effectiveSize, newLength, imm32(elementSize));
 
@@ -1953,7 +1952,13 @@ extern (C++) final class BCV(BCGenT) : Visitor
         setBase(slice, newBase);
         setLength(slice, newLength);
 
+	// If we are trying to expand a freshly created slice
+	// we don't have to copy the old contence
+	// therefore jump over the copyArray if oldBase == 0
+
+	auto CJZeroOldBase = beginCndJmp(oldBase);
         copyArray(&newBase, &oldBase, oldLength, elementSize);
+	endCndJmp(CJZeroOldBase, genLabel());
 
     }
 
