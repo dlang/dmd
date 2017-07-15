@@ -4075,7 +4075,7 @@ static if (is(BCGen))
                 return;
             }
 
-            if (sv.heapRef != BCHeapRef.init && sv.vType == BCValueType.StackValue)
+            if (sv.heapRef != BCHeapRef.init && (sv.vType == BCValueType.StackValue || sv.vType == BCValueType.Local))
             {
                 LoadFromHeapRef(sv);
             }
