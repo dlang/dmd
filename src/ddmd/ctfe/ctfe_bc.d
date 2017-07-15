@@ -4086,7 +4086,7 @@ static if (is(BCGen))
                 return;
             }
 
-            if (sv.heapRef != BCHeapRef.init && (sv.vType == BCValueType.StackValue || sv.vType == BCValueType.Local))
+            if (sv.heapRef != BCHeapRef.init && isStackValueOrParameter(sv))
             {
                 LoadFromHeapRef(sv);
             }
@@ -4226,8 +4226,11 @@ static if (is(BCGen))
         else
         {
             var = genLocal(type, cast(string)vd.ident.toString);
-
-            if (type.type == BCTypeEnum.Array)
+            if (type.type == BCTypeEnum.Slice || type.type == BCTypeEnum.string8)
+            {
+                Alloc(var.i32, imm32(SliceDescriptor.Size));
+            }
+            else if (type.type == BCTypeEnum.Array)
             {
                 auto idx = type.typeIndex;
                 assert(idx);
@@ -4488,7 +4491,8 @@ static if (is(BCGen))
 
 
         auto heap = _sharedCtfeState.heap;
-        BCValue stringAddr = BCValue(HeapAddr(heap.heapSize));
+        BCValue stringAddr = imm32(heap.heapSize);
+        stringAddr.type = BCType(BCTypeEnum.string8);
         uint heapAdd = SliceDescriptor.Size;
 
         // always reserve space for the slice;
