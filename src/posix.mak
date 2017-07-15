@@ -228,7 +228,7 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	cppmangle ctfeexpr dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol	\
 	dtemplate dversion escape expression func			\
-	hdrgen impcnvtab imphint init inline inlinecost intrange	\
+	hdrgen id impcnvtab imphint init inline inlinecost intrange	\
 	json lib link mars mtype nogc nspace objc opover optimize parse sapply	\
 	sideeffect statement staticassert target traits visitor	\
 	typinf utils statement_rewrite_walker statementsem staticcond safe blockexit asttypename printast))
@@ -288,7 +288,7 @@ endif
 
 SRC = $(addprefix $D/, win32.mak posix.mak osmodel.mak aggregate.h aliasthis.h arraytypes.h	\
 	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
-	enum.h errors.h expression.h globals.h hdrgen.h identifier.h idgen.d	\
+	enum.h errors.h expression.h globals.h hdrgen.h identifier.h \
 	import.h init.h intrange.h json.h lexer.h \
 	mars.h module.h mtype.h nspace.h objc.h                         \
 	scope.h statement.h staticassert.h target.h template.h tokens.h	\
@@ -396,7 +396,7 @@ endif
 clean:
 	rm -R $(GENERATED)
 	rm -f parser_test parser_test.o example_avg example_avg.o
-	rm -f dmd $(idgen_output)
+	rm -f dmd
 	rm -f $(addprefix $D/backend/, $(optabgen_output))
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
@@ -456,15 +456,6 @@ optabgen_files = $(addprefix $G/, $(optabgen_output))
 $(optabgen_files): optabgen.out
 .INTERMEDIATE: optabgen.out
 optabgen.out : $G/optabgen
-
-######## idgen generates some source
-
-idgen_output = $D/id.h $D/id.d
-$(idgen_output) : $G/idgen
-
-$G/idgen: $D/idgen.d $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $<
-	$G/idgen
 
 ######## VERSION
 
