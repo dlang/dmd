@@ -3377,3 +3377,43 @@ unittest
     GC.removeRoot(null);
     GC.removeRoot(cast(void*)13);
 }
+
+// improve predictability of coverage of code that is eventually not hit by other tests
+unittest
+{
+    import core.memory;
+    auto p = GC.malloc(260 << 20); // new pool has 390 MB
+    auto q = GC.malloc(65 << 20);  // next chunk (larger than 64MB to ensure the same pool is used)
+    auto r = GC.malloc(65 << 20);  // another chunk in same pool
+    assert(p + (260 << 20) == q);
+    assert(q + (65 << 20) == r);
+    GC.free(q);
+    // should trigger "assert(bin == B_FREE);" in mark due to dangling pointer q:
+    GC.collect();
+    // should trigger "break;" in extendNoSync:
+    size_t sz = GC.extend(p, 64 << 20, 66 << 20); // trigger size after p large enough (but limited)
+    assert(sz == 325 << 20);
+    GC.free(p);
+    GC.free(r);
+    r = q; // ensure q is not trashed before collection above
+
+    p = GC.malloc(70 << 20); // from the same pool
+    q = GC.malloc(70 << 20);
+    r = GC.malloc(70 << 20);
+    auto s = GC.malloc(70 << 20);
+    auto t = GC.malloc(70 << 20); // 350 MB of 390 MB used
+    assert(p + (70 << 20) == q);
+    assert(q + (70 << 20) == r);
+    assert(r + (70 << 20) == s);
+    assert(s + (70 << 20) == t);
+    GC.free(r); // ensure recalculation of largestFree in nxxt allocPages
+    auto z = GC.malloc(75 << 20); // needs new pool
+
+    GC.free(p);
+    GC.free(q);
+    GC.free(s);
+    GC.free(t);
+    GC.free(z);
+    GC.minimize(); // release huge pool
+}
+
