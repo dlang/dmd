@@ -1,0 +1,5 @@
+Removed prelude assert for constructors & destructors
+
+The compiler used to insert an `assert(this, "null this");` at the start of constructors & destructors.
+To trigger these asserts one needed to construct or destruct an aggregate at the null memory location.
+This would crash upon any data member access, which is required for a constructor or destructor to do anything useful.
