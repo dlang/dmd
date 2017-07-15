@@ -600,13 +600,31 @@ struct BCStruct
     bool[96] voidInit;
     uint[96] initializers;
 
+    string toString() const
+    {
+        string result;
+        result ~= " Size: " ~ to!string(size);
+        result ~= " MemberCount: " ~ to!string(memberTypeCount);
+        result ~= " [";
+
+        foreach(i; 0 .. memberTypeCount)
+        {
+            result ~= memberTypes[i].toString;
+            result ~= " {" ~ to!string(offset(i)) ~ "}, ";
+        }
+
+        result ~= "]\n";
+
+        return result;
+    }
+
     void addField(const BCType bct, bool isVoid, uint initValue)
     {
         memberTypes[memberTypeCount] = bct;
         initializers[memberTypeCount] = initValue;
         voidInit[memberTypeCount++] = isVoid;
 
-        size += _sharedCtfeState.size(bct);
+        size += _sharedCtfeState.size(bct, true);
     }
 
     const int offset(const int idx)
@@ -622,7 +640,7 @@ struct BCStruct
 
         foreach (t; memberTypes[0 .. idx])
         {
-            _offset += align4(sharedCtfeState.size(t));
+            _offset += align4(sharedCtfeState.size(t, true));
         }
 
         return _offset;
@@ -679,7 +697,7 @@ struct SharedCtfeState(BCGenT)
         auto structType = structTypes[type.typeIndex - 1];
         uint[] result;
         result.length = structType.size;
-        foreach(i, init;structType.initializers[0 .. structType.size])
+        foreach(i, init;structType.initializers[0 .. structType.memberTypeCount])
         {
             result[i] = init;
         }
@@ -974,7 +992,7 @@ struct SharedCtfeState(BCGenT)
 
                     writeln("ArrayElementSize :", size(_array.elementType));
                 }
-                return isMember ? 16 : size(_array.elementType) * _array.length + SliceDescriptor.Size;
+                return size(_array.elementType) * _array.length + SliceDescriptor.Size;
             }
         case BCTypeEnum.Slice:
             {
@@ -1235,9 +1253,10 @@ Expression toExpression(const BCValue value, Type expressionType,
             debug (abi)
             {
                 import std.stdio;
+                writeln("structType: ", _struct);
                 writeln("StructHeapRep: ", structBegin[0 .. _struct.size]);
             }
-            foreach (idx, member; _struct.memberTypes[0 .. _struct.memberTypeCount])
+            foreach (idx, memberType; _struct.memberTypes[0 .. _struct.memberTypeCount])
             {
                 debug (abi)
                 {
@@ -1247,7 +1266,7 @@ Expression toExpression(const BCValue value, Type expressionType,
 
                 Expression elm;
 
-                if (member.type == BCTypeEnum.i64)
+                if (memberType.type == BCTypeEnum.i64)
                 {
                     BCValue imm64;
                     imm64.vType = BCValueType.Immediate;
@@ -1256,12 +1275,17 @@ Expression toExpression(const BCValue value, Type expressionType,
                     imm64.imm64 |= ulong(*(heapPtr._heap.ptr + value.heapAddr.addr + offset + 4)) << 32;
                     elm = toExpression(imm64, type);
                 }
-                else if (member.type == BCTypeEnum.Slice || member.type == BCTypeEnum.Array || member.type == BCTypeEnum.Struct)
+                else if (memberType.type.anyOf([BCTypeEnum.Slice, BCTypeEnum.Array, BCTypeEnum.Struct]))
                 {
                     elm = toExpression(imm32(value.heapAddr.addr + offset), type);
                 }
                 else
                 {
+                    debug (abi)
+                    {
+                        import std.stdio;
+                        writeln("memberType: ", memberType);
+                    }
                     elm = toExpression(
                         imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset)), type);
                 }
@@ -1276,7 +1300,7 @@ Expression toExpression(const BCValue value, Type expressionType,
                 }
 
                 elmExprs.insert(idx, elm);
-                offset += align4(_sharedCtfeState.size(member, true));
+                offset += align4(_sharedCtfeState.size(memberType, true));
             }
             result = new StructLiteralExp(Loc(), sd, elmExprs);
             (cast(StructLiteralExp) result).ownedByCtfe = OWNEDctfe;
@@ -1588,6 +1612,7 @@ debug = nullAllocCheck;
 //debug = andand;
 //debug = SetLocation;
 //debug = LabelLocation;
+
 extern (C++) final class BCV(BCGenT) : Visitor
 {
     uint unresolvedGotoCount;
@@ -1710,6 +1735,8 @@ extern (C++) final class BCV(BCGenT) : Visitor
     bool discardValue = false;
     uint current_line;
 
+    uint uniqueCounter = 1;
+
     extern(D) BCValue addError(Loc loc, string msg, BCValue v1 = BCValue.init, BCValue v2 = BCValue.init, BCValue v3 = BCValue.init, BCValue v4 = BCValue.init)
     {
         alias add_error_message_prototype = uint delegate (string);
@@ -1809,7 +1836,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         {
 
             assert(size.vType != BCValueType.Immediate || size.imm32 != 0, "Null Alloc detected in line: " ~ to!string(line));
-            Comment("Alloc From: " ~ to!string(line));
+            Comment("Alloc From: " ~ to!string(line) ~  "forType: " ~ type.toString);
             gen.Alloc(result, size);
         }
     }
@@ -1896,7 +1923,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         }
         debug(nullPtrCheck)
         {
-           Assert(slice.i32, addError(Loc(), "expandSliceTo: arrPtr must not be null"));
+            Assert(slice.i32, addError(Loc(), "expandSliceTo: arrPtr must not be null"));
         }
         auto oldBase = getBase(slice);
         auto oldLength = getLength(slice);
@@ -1910,15 +1937,16 @@ extern (C++) final class BCV(BCGenT) : Visitor
             bailout("we could not get the elementType of " ~ slice.type.to!string);
         }
         auto elementSize = _sharedCtfeState.size(elementType);
+        Assert(newLength.i32, addError(Loc(), "newLength is zero WHAAAT ??"));
 
         Mul3(effectiveSize, newLength, imm32(elementSize));
 
         Alloc(newBase, effectiveSize);
         setBase(slice, newBase);
+        setLength(slice, newLength);
 
         copyArray(&newBase, &oldBase, oldLength, elementSize);
 
-        setLength(slice, newLength);
     }
 
     void doFixup(uint oldFixupTableCount, BCLabel* ifTrue, BCLabel* ifFalse)
@@ -3326,7 +3354,7 @@ static if (is(BCGen))
             auto elemSize = _sharedCtfeState.size(elmType);
 
             auto newSlice = genTemporary(origSlice.type);
-            Alloc(newSlice.i32, imm32(SliceDescriptor.Size));
+            Alloc(newSlice.i32, imm32(SliceDescriptor.Size), origSlice.type);
 
             // TODO assert lwr <= upr
 
@@ -3527,7 +3555,6 @@ static if (is(BCGen))
                 }
                 else
                 {
-                    assert(_sharedCtfeState.heap.heapSize);
                     Store32(imm32(_sharedCtfeState.heap.heapSize), elexpr);
                 }
                 _sharedCtfeState.heap.heapSize += heapAdd;
@@ -3541,7 +3568,6 @@ static if (is(BCGen))
                 }
                 else
                 {
-                    assert(_sharedCtfeState.heap.heapSize);
                     Store64(imm32(_sharedCtfeState.heap.heapSize), elexpr);
                 }
                 _sharedCtfeState.heap.heapSize += heapAdd;
@@ -3615,12 +3641,16 @@ static if (is(BCGen))
             return ;
         }
         if (!insideArgumentProcessing)
+        {
             Alloc(retval, imm32(size), BCType(BCTypeEnum.Struct, idx));
+        }
         else
         {
             retval = BCValue(HeapAddr(heap.heapSize));
             heap.heapSize += size;
         }
+        retval.type = BCType(BCTypeEnum.Struct, idx);
+
         auto rv_stackValue = retval.i32;
         rv_stackValue.vType = BCValueType.StackValue;
         MemCpyConst(rv_stackValue, _sharedCtfeState.initializer(BCType(BCTypeEnum.Struct, idx)));
@@ -3649,19 +3679,39 @@ static if (is(BCGen))
                 else
                     Set(fieldAddr, retval.i32);
                 // abi hack for slices slice;
-                if (elexpr.type.type == BCTypeEnum.Slice || elexpr.type.type == BCTypeEnum.Array)
+                if (elexpr.type.type.anyOf([BCTypeEnum.Slice, BCTypeEnum.Array, BCTypeEnum.Struct]))
                 {
-                    MemCpy(fieldAddr, elexpr, imm32(SliceDescriptor.Size));
+                    // copy Member
+                    MemCpy(fieldAddr, elexpr, imm32(_sharedCtfeState.size(elexpr.type, true)));
                 }
+                else if (basicTypeSize(elexpr.type.type) == 8)
+                    Store64(fieldAddr, elexpr);
                 else
                     Store32(fieldAddr, elexpr);
             }
             else
             {
                 bailout(elexpr.vType != BCValueType.Immediate, "When struct-literals are used as arguments all initializers, have to be immediates");
-                heap._heap[retval.heapAddr + offset] = elexpr.imm32;
+                if (elexpr.type.type.anyOf([BCTypeEnum.Slice, BCTypeEnum.Array, BCTypeEnum.Struct]))
+                {
+                    import std.stdio; writeln("doing heap initializer copy for: ", to!string(elexpr.type));
+                    immutable size_t targetAddr = retval.heapAddr + offset;
+                    immutable size_t sourceAddr = elexpr.heapAddr;
+                    immutable size_t _size = _sharedCtfeState.size(elexpr.type, true);
+                    foreach(i;0 .. _size)
+                    {
+                        heap._heap[targetAddr + i] = heap._heap[sourceAddr + i];
+                    }
+                }
+                else if (basicTypeSize(elexpr.type.type) == 8)
+                {
+                    heap._heap[retval.heapAddr + offset] = elexpr.imm64 & uint.max;
+                    heap._heap[retval.heapAddr + offset + 4] = elexpr.imm64 >> 32;
+                }
+                else
+                    heap._heap[retval.heapAddr + offset] = elexpr.imm32;
             }
-            offset += align4(_sharedCtfeState.size(elexpr.type));
+            offset += align4(_sharedCtfeState.size(elexpr.type, true));
 
         }
     }
@@ -3807,6 +3857,7 @@ static if (is(BCGen))
         BCValue lengthPtr;
         debug(nullPtrCheck)
         {
+            Comment("SetLengthNullPtrCheck");
             Assert(arr.i32, addError(Loc(), "setLength: arrPtr must not be null"));
         }
         if (SliceDescriptor.LengthOffset)
@@ -3847,7 +3898,7 @@ static if (is(BCGen))
                 }
                 else
                 {
-                    length = genTemporary(i32Type);
+                    length = genLocal(i32Type, "ArrayLength" ~ to!string(uniqueCounter++));
                     BCValue lengthPtr;
                     // if (arr is null) skip loading the length
                     auto CJskipLoad = beginCndJmp(arr.i32);
@@ -3887,6 +3938,7 @@ static if (is(BCGen))
         {
             baseAddrPtr = arr.i32;
         }
+        Comment("setBase");
         Store32(baseAddrPtr, newBase.i32);
     }
 
@@ -4142,6 +4194,7 @@ static if (is(BCGen))
 
         BCValue var;
         BCType type = toBCType(vd.type);
+        import std.stdio; writeln("vd.type: ", vd.type.toString," bcType: ",type); //debugline
         if (!type)
         {
             bailout("could not get type for:" ~ vd.toString);
@@ -4783,6 +4836,7 @@ static if (is(BCGen))
         }
         else if (ae.e1.op == TOKarraylength)
         {
+            Comment(ae.toString);
             auto ale = cast(ArrayLengthExp) ae.e1;
 
             // We are assigning to an arrayLength

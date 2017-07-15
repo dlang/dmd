@@ -69,7 +69,7 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
     }
 }
 
-bool anyOf(BCTypeEnum type, const BCTypeEnum[] acceptedTypes)
+bool anyOf(BCTypeEnum type, const BCTypeEnum[] acceptedTypes) pure @safe
 {
     bool result = false;
 
@@ -782,4 +782,31 @@ template ensureIsBCGen(BCGenT)
         BCGenT.stringof ~ " is missing bool insideFunction");
 
     enum ensureIsBCGen = true;
+}
+
+/// commonType enum used for implicit conversion
+static immutable smallIntegerTypes = [BCTypeEnum.i32, BCTypeEnum.i16, BCTypeEnum.i8];
+
+BCTypeEnum commonTypeEnum(BCTypeEnum lhs, BCTypeEnum rhs) pure @safe
+{
+    // HACK
+    
+    BCTypeEnum commonType;
+    
+    if (lhs == BCTypeEnum.f52 || rhs == BCTypeEnum.f52)
+    {
+        commonType = BCTypeEnum.f52;
+    }
+    else if (lhs == BCTypeEnum.f23 || rhs == BCTypeEnum.f23)
+    {
+        commonType = BCTypeEnum.f23;
+    }
+    else if (lhs == BCTypeEnum.i64 || rhs == BCTypeEnum.i64)
+    {
+        commonType = BCTypeEnum.i64;
+    }
+    else if (lhs.anyOf(smallIntegerTypes) || rhs.anyOf(smallIntegerTypes))
+        commonType = BCTypeEnum.i32;
+    
+    return commonType;
 }
