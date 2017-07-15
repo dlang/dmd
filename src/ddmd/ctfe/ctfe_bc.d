@@ -14,11 +14,11 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 /**
  * Written By Stefan Koch in 2016/17
  */
-debug = abi;
+
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 0;
+enum bailoutMessages = 1;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -1217,6 +1217,14 @@ Expression toExpression(const BCValue value, Type expressionType,
         auto length = heapPtr._heap[value.heapAddr + SliceDescriptor.LengthOffset];
         auto base = heapPtr._heap[value.heapAddr + SliceDescriptor.BaseOffset];
         uint sz = cast (uint) expressionType.nextOf().size;
+
+        debug (abi)
+        {
+            import std.stdio;
+            writefln("creating String from {base: &%d = %d} {length: &%d = %d}",
+                value.heapAddr.addr + SliceDescriptor.BaseOffset, base, value.heapAddr.addr + SliceDescriptor.LengthOffset, length);
+        }
+
         if (sz != 1)
         {
             static if (bailoutMessages)
@@ -1918,7 +1926,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     void expandSliceTo(BCValue slice, BCValue newLength)
     {
-        if(slice.type != BCTypeEnum.Slice && (newLength.type != BCTypeEnum.i32 /*|| newLength.type == BCTypeEnum.i64*/))
+        if((slice.type != BCTypeEnum.Slice && slice.type != BCTypeEnum.string8) && (newLength.type != BCTypeEnum.i32 && newLength.type == BCTypeEnum.i64))
         {
             bailout("We only support expansion of slices by i32 not: " ~ to!string(slice.type.type) ~ " by " ~ to!string(newLength.type.type));
             return ;
@@ -4477,21 +4485,23 @@ static if (is(BCGen))
 
 
         auto heap = _sharedCtfeState.heap;
-        HeapAddr stringAddr = HeapAddr(heap.heapSize);
+        BCValue stringAddr = BCValue(HeapAddr(heap.heapSize));
         uint heapAdd = SliceDescriptor.Size;
+
         // always reserve space for the slice;
         heapAdd += length * sz;
+        heapAdd = align4(heapAdd);
 
         bailout(heap.heapSize + heapAdd > heap.heapMax, "heapMax exceeded while pushing: " ~ se.toString);
         _sharedCtfeState.heap.heapSize += heapAdd;
 
-        auto baseAddr = stringAddr.addr + SliceDescriptor.Size;
+        auto baseAddr = stringAddr.heapAddr.addr + SliceDescriptor.Size;
         // first set length
         if (length)
         {
-            heap._heap[stringAddr.addr + SliceDescriptor.LengthOffset] = length;
+            heap._heap[stringAddr.heapAddr.addr + SliceDescriptor.LengthOffset] = length;
             // then set base
-            heap._heap[stringAddr.addr + SliceDescriptor.BaseOffset] = baseAddr;
+            heap._heap[stringAddr.heapAddr.addr + SliceDescriptor.BaseOffset] = baseAddr;
         }
 
         uint offset = baseAddr;
@@ -4505,17 +4515,16 @@ static if (is(BCGen))
             default : bailout("char_size: " ~ to!string(sz) ~" unsupported");
         }
 
-        auto stringAddrValue = imm32(stringAddr.addr);
+        stringAddr.type = BCType(BCTypeEnum.string8);
 
         if (insideArgumentProcessing)
         {
-            retval = stringAddrValue;
-            return;
+            retval = stringAddr;
         }
         else
         {
             retval = assignTo ? assignTo : genTemporary(BCType(BCTypeEnum.String));
-            Set(retval.i32, stringAddrValue);
+            Set(retval.i32, imm32(stringAddr.heapAddr));
         }
     }
 
@@ -4846,7 +4855,7 @@ static if (is(BCGen))
                 return;
             }
 
-            if (arrayPtr.type != BCTypeEnum.Slice)
+            if (arrayPtr.type != BCTypeEnum.Slice && arrayPtr.type != BCTypeEnum.string8)
             {
                 bailout("can only assign to slices and not to " ~to!string(arrayPtr.type.type));
             }
@@ -5783,6 +5792,7 @@ static if (is(BCGen))
             }
             else if (toType == BCTypeEnum.i32) {} // nop
             else if (toType == BCTypeEnum.i64) {} // nop
+            else if (toType == BCTypeEnum.c8) {} //FIXME should not be a nop but for now it is :)
             else
             {
                 bailout("Cast not implemented: " ~ ce.toString);
