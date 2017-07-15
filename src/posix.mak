@@ -366,16 +366,16 @@ $G/glue.a: $(G_GLUE_OBJS)
 $G/backend.a: $(G_OBJS)
 	$(AR) rcs $@ $(G_OBJS)
 
-$G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT)
+$G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -J$G -L-lstdc++ $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
 
-$G/parser.a: $(PARSER_SRCS) $G/lexer.a $(ROOT_SRCS)
+$G/parser.a: $(PARSER_SRCS) $G/lexer.a $(ROOT_SRCS) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $(PARSER_SRCS) $G/lexer.a $(ROOT_SRCS)
 
-parser_test: $G/parser.a $(EX)/test_parser.d
+parser_test: $G/parser.a $(EX)/test_parser.d $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $G/parser.a $(EX)/test_parser.d $(EX)/impvisitor.d
 
-example_avg: $G/parser.a $(EX)/avg.d
+example_avg: $G/parser.a $(EX)/avg.d $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $G/parser.a $(EX)/avg.d
 
 $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
