@@ -7,7 +7,7 @@ import std.conv;
 /**
  * Written By Stefan Koch in 2016/17
  */
-debug = 1;
+
 enum InstKind
 {
     ShortInst,
