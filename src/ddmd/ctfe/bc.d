@@ -752,7 +752,8 @@ pure:
             emitLongInst(inst, lhs.stackAddr, rhs.imm32);
             return ;
         }
-        else if (isStackValueOrParameter(rhs))
+
+        if (isStackValueOrParameter(rhs))
         {
             emitLongInst(inst, lhs.stackAddr, rhs.stackAddr);
         }
