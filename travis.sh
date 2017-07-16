@@ -54,6 +54,7 @@ rebuild() {
 
 # test druntime, phobos, dmd
 test() {
+    test_dub_package
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL unittest
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL unittest
     test_dmd
@@ -67,6 +68,13 @@ test_dmd() {
     else
         make -j$N -C test MODEL=$MODEL ARGS="-O -inline -release"
     fi
+}
+
+# test dub package
+test_dub_package() {
+    pushd test/dub_package
+    dub test
+    popd
 }
 
 for proj in druntime phobos; do
