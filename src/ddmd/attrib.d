@@ -1464,7 +1464,8 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 
     override final void addComment(const(char)* comment)
     {
-        // TODO
+        // do nothing
+        // change this to give a semantics to documentation comments on static foreach declarations
     }
 
     override void setScope(Scope* sc)
