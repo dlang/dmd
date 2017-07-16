@@ -1350,7 +1350,7 @@ private void finishVtbl(ClassDeclaration cd)
         // https://issues.dlang.org/show_bug.cgi?id=4869
         fd.functionSemantic();
 
-        if (!cd.isFuncHidden(fd))
+        if (!cd.isFuncHidden(fd) || fd.isFuture())
         {
             // All good, no name hiding to check for
             continue;
@@ -1366,6 +1366,8 @@ private void finishVtbl(ClassDeclaration cd)
                 continue;
             FuncDeclaration fd2 = cd.vtbl[j].isFuncDeclaration();
             if (!fd2.ident.equals(fd.ident))
+                continue;
+            if (fd2.isFuture())
                 continue;
             if (!fd.leastAsSpecialized(fd2) && !fd2.leastAsSpecialized(fd))
                 continue;

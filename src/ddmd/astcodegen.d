@@ -69,6 +69,7 @@ struct ASTCodegen
     alias STCdeprecated             = ddmd.declaration.STCdeprecated;
     alias STCstatic                 = ddmd.declaration.STCstatic;
     alias STCextern                 = ddmd.declaration.STCextern;
+    alias STCfuture                 = ddmd.declaration.STCfuture;
 
     alias Dsymbol                   = ddmd.dsymbol.Dsymbol;
     alias Dsymbols                  = ddmd.dsymbol.Dsymbols;

@@ -781,14 +781,22 @@ extern (C++) class FuncDeclaration : Declaration
 
                     if (!isOverride())
                     {
+                        if (fdv.isFuture())
+                        {
+                            .deprecation(loc, "@future base class method %s is being overridden by %s; rename the latter", fdv.toPrettyChars(), toPrettyChars());
+                            // Treat 'this' as an introducing function, giving it a separate hierarchy in the vtbl[]
+                            goto Lintro;
+                        }
+                        else
+                        {
                             int vi2 = findVtblIndex(&cd.baseClass.vtbl, cast(int)cd.baseClass.vtbl.dim, false);
                             if (vi2 < 0)
                                 // https://issues.dlang.org/show_bug.cgi?id=17349
                                 .deprecation(loc, "cannot implicitly override base class method `%s` with `%s`; add `override` attribute", fdv.toPrettyChars(), toPrettyChars());
                             else
                                 .error(loc, "cannot implicitly override base class method %s with %s; add 'override' attribute", fdv.toPrettyChars(), toPrettyChars());
+                        }
                     }
-
                     doesoverride = true;
                     if (fdc.toParent() == parent)
                     {
@@ -2324,7 +2332,14 @@ extern (C++) class FuncDeclaration : Declaration
                 if (type.equals(fdv.type)) // if exact match
                 {
                     if (fdv.parent.isClassDeclaration())
+                    {
+                        if (fdv.isFuture())
+                        {
+                            bestvi = vi;
+                            continue;           // keep looking
+                        }
                         return vi; // no need to look further
+                    }
 
                     if (exactvi >= 0)
                     {
