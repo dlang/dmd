@@ -1496,12 +1496,10 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
                 }
                 allocreg(cdb,&retregs,&reg,ty);
                 if (config.avx >= 2 ||  tysize(ty) >= 32)
-                {
                     cs.Iop = VBROADCASTSD;
-                    cs.Irex &= ~REX_W;
-                }
                 else
                     cs.Iop = MOVDDUP;
+                cs.Irex &= ~REX_W;
                 code_newreg(&cs,reg - XMM0);
                 checkSetVex(&cs,ty);
                 cdb.gen(&cs);
