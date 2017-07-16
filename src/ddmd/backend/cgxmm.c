@@ -1279,15 +1279,13 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 
         case TYdouble2:
         case TYdouble4:
-            if (config.avx &&
-                ((e1->Eoper == OPind && !e1->Ecount) || e1->Eoper == OPvar && !isregvar(e1,&varregm,&varreg)) ||
-                tysize(ty) == 32 && !isregvar(e1,&varregm,&varreg)
-               )
+            if (config.avx && tysize(ty) == 32 &&
+                (e1->Eoper == OPind && !e1->Ecount || !isregvar(e1,&varregm,&varreg)))
             {
                 if (e1->Eoper == OPvar)
                     e1->EV.sp.Vsym->Sflags &= ~GTregcand;
 
-                // VBROADCASTSD XMM,MEM
+                // VBROADCASTSD YMM,MEM
                 getlvalue(cdb,&cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
                 allocreg(cdb,&retregs,&reg,ty);
@@ -1306,9 +1304,9 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
                 cs.Iop = UNPCKLPD;
                 cs.Irm = modregxrmx(3,reg,reg);
                 cs.Iflags = 0;
-                if (config.avx >= 2 || tysize(ty) == 32)
+                if (tysize(ty) == 32)
                 {
-                    // VBROADCASTSD XMM,XMM
+                    // VBROADCASTSD YMM,XMM
                     cs.Iop = VBROADCASTSD;
                     checkSetVex(&cs, ty);
                 }
@@ -1495,7 +1493,7 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
                         cs.Irex &= ~REX_B;
                 }
                 allocreg(cdb,&retregs,&reg,ty);
-                if (config.avx >= 2 ||  tysize(ty) >= 32)
+                if (tysize(ty) == 32)
                     cs.Iop = VBROADCASTSD;
                 else
                     cs.Iop = MOVDDUP;
@@ -1582,7 +1580,6 @@ void checkSetVex(code *c, tym_t ty)
         unsigned vreg = (c->Irm >> 3) & 7;
         if (c->Irex & REX_R)
             vreg |= 8;
-        int VEX_L = 0;
 
         // TODO: This is too simplistic, depending on the instruction, vex.vvvv
         // encodes NDS, NDD, DDS, or no operand (NOO). The code below assumes
@@ -1628,7 +1625,7 @@ void checkSetVex(code *c, tym_t ty)
 
             case VBROADCASTSD:
             case VBROADCASTF128:
-                VEX_L = 1;
+                assert(tysize(ty) == 32); // AVX-256 only instructions
                 vreg = 0;       // for 2 operand vex instructions
                 break;
         }
@@ -1654,7 +1651,7 @@ void checkSetVex(code *c, tym_t ty)
         c->Ivex.x = !(c->Irex & REX_X);
         c->Ivex.b = !(c->Irex & REX_B);
         c->Ivex.w = (c->Irex & REX_W) != 0;
-        c->Ivex.l = (tysize(ty) == 32) | VEX_L;
+        c->Ivex.l = tysize(ty) == 32;
 
         c->Ivex.vvvv = ~vreg;
 
