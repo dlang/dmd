@@ -243,10 +243,13 @@ extern (C++) final class StaticForeach : RootObject
     }
 
 
-    final extern(D) void prepare(Scope* sc)in{
-        assert(!!sc); // TODO: this can fail when building documentation. Why?
-    }body{
-
+    final extern(D) void prepare(Scope* sc)
+    in
+    {
+        assert(!!sc);
+    }
+    body
+    {
         if (aggrfe)
         {
             sc = sc.startCTFE();
