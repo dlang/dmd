@@ -790,22 +790,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
             }
 
-            static if(isStatic)
-            {
-                auto ident = Identifier.idPool("__previous", "__previous".length);
-                auto prev = new AliasDeclaration(loc, ident, previous);
-                prev.storage_class |= STClocal;
-                static if(isDecl)
-                {
-                    st.push(prev);
-                }
-                else
-                {
-                    auto prevst = new ExpStatement(loc, prev);
-                    st.push(prevst);
-                }
-            }
-
             static if(!isDecl)
             {
                 st.push(fs._body.syntaxCopy());
