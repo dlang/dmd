@@ -5927,7 +5927,7 @@ struct ASTBase
         ForeachStatement aggrfe;
         ForeachRangeStatement rangefe;
 
-        final extern (D) this(Loc loc,ForeachStatement aggrfe,ForeachRangeStatement rangefe)
+        final extern (D) this(Loc loc, ForeachStatement aggrfe, ForeachRangeStatement rangefe)
         in
         {
             assert(!!aggrfe^!!rangefe);
