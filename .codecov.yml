@@ -13,4 +13,9 @@ coverage:
     patch: false
     changes: false
 
+  notify:
+    webhook:
+      default:
+        url: "https://dlang-bot.herokuapp.com/codecov_hook"
+
 comment: false
