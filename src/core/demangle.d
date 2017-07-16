@@ -100,6 +100,8 @@ pure @safe:
 
     static void error( string msg = "Invalid symbol" ) @trusted /* exception only used in module */
     {
+        pragma(inline, false); // tame dmd inliner
+
         //throw new ParseException( msg );
         debug(info) printf( "error: %.*s\n", cast(int) msg.length, msg.ptr );
         throw __ctfe ? new ParseException(msg)
@@ -110,6 +112,8 @@ pure @safe:
 
     static void overflow( string msg = "Buffer overflow" ) @trusted /* exception only used in module */
     {
+        pragma(inline, false); // tame dmd inliner
+
         //throw new OverflowException( msg );
         debug(info) printf( "overflow: %.*s\n", cast(int) msg.length, msg.ptr );
         throw cast(OverflowException) cast(void*) typeid(OverflowException).initializer;
@@ -176,6 +180,8 @@ pure @safe:
     // move val to the end of the dst buffer
     char[] shift( const(char)[] val )
     {
+        pragma(inline, false); // tame dmd inliner
+
         if( val.length && !mute )
         {
             assert( contains( dst[0 .. len], val ) );
@@ -196,6 +202,8 @@ pure @safe:
     // remove val from dst buffer
     void remove( const(char)[] val )
     {
+        pragma(inline, false); // tame dmd inliner
+
         if( val.length )
         {
             assert( contains( dst[0 .. len], val ) );
@@ -210,6 +218,8 @@ pure @safe:
 
     char[] append( const(char)[] val )
     {
+        pragma(inline, false); // tame dmd inliner
+
         if( val.length && !mute )
         {
             if( !dst.length )
@@ -252,6 +262,8 @@ pure @safe:
 
     char[] put( const(char)[] val )
     {
+        pragma(inline, false); // tame dmd inliner
+
         if( val.length )
         {
             if( !contains( dst[0 .. len], val ) )
