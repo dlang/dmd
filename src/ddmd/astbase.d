@@ -153,7 +153,6 @@ struct ASTBase
     enum STCexptemp             = (1L << 47);   // temporary variable that has lifetime restricted to an expression
     enum STCmaybescope          = (1L << 48);   // parameter might be 'scope'
     enum STCfuture              = (1L << 49);   // introducing new base class function
-    enum STClocal               = (1L << 50);   // do not forward
 
     enum STC_TYPECTOR = (STCconst | STCimmutable | STCshared | STCwild);
 
