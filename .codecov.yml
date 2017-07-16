@@ -9,8 +9,13 @@ coverage:
 
   status:
     # Learn more at https://codecov.io/docs#yaml_default_commit_status
-    project: true
-    patch: true
+    project: false
+    patch: false
     changes: false
+
+  notify:
+    webhook:
+      default:
+        url: "https://dlang-bot.herokuapp.com/codecov_hook"
 
 comment: false
