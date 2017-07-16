@@ -1757,20 +1757,29 @@ void fixresult(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretregs)
             else if (forregs & XMMREGS)
             {
                 reg = findreg(retregs & (mBP | ALLREGS));
-                // MOV floatreg,reg
-                cdb.genfltreg(0x89,reg,0);
-                if (sz == 8)
+                switch (sz)
                 {
+                case 4:
+                    cdb.gen2(LODD, modregxrmx(3,rreg - XMM0,reg)); // MOVD xmm,reg
+                    break;
+                case 8:
                     if (I32)
                     {
+                        cdb.genfltreg(0x89,reg,0);
                         reg = findregmsw(retregs);
                         cdb.genfltreg(0x89,reg,4);
+                        cdb.append(genxmmreg(CNIL,xmmload(tym),rreg,0,tym)); // MOVQ xmm,mem
                     }
                     else
-                        code_orrex(cdb.last(),REX_W);
+                    {
+                        cdb.gen2(LODD /* [sic!] */, modregxrmx(3,rreg - XMM0,reg));
+                        code_orrex(cdb.last(),REX_W); // MOVQ xmm,reg
+                    }
+                    break;
+                default:
+                    assert(false);
                 }
-                // MOVSS/MOVSD XMMreg,floatreg
-                cdb.append(genxmmreg(CNIL,xmmload(tym),rreg,0,tym));
+                checkSetVex(cdb.last(), tym);
             }
             else if (sz > REGSIZE)
             {

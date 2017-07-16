@@ -225,11 +225,10 @@ alias baselineCases = AliasSeq!(
         /* ret                            */ 0xc3,
     ]),
     Code!(ulong, 16 / ulong.sizeof)([
-        /* sub    rsp,0x18                */ 0x48, 0x83, 0xec, 0x18,
-        /* mov    QWORD PTR [rsp],rdi     */ 0x48, 0x89, 0x3c, 0x24,
-        /* movq   xmm0,QWORD PTR [rsp]    */ 0xf3, 0x0f, 0x7e, 0x04, 0x24,
+        /* push   rax                     */ 0x50,
+        /* movq   xmm0,rdi                */ 0x66, 0x48, 0x0f, 0x6e, 0xc7,
         /* punpcklqdq xmm0,xmm0           */ 0x66, 0x0f, 0x6c, 0xc0,
-        /* add    rsp,0x18                */ 0x48, 0x83, 0xc4, 0x18,
+        /* pop    rcx                     */ 0x59,
         /* ret                            */ 0xc3,
     ]),
     Code!(ulong*, 16 / ulong.sizeof)([
@@ -240,11 +239,10 @@ alias baselineCases = AliasSeq!(
         /* ret                            */ 0xc3,
     ]),
     Code!(long, 16 / long.sizeof)([
-        /* sub    rsp,0x18                */ 0x48, 0x83, 0xec, 0x18,
-        /* mov    QWORD PTR [rsp],rdi     */ 0x48, 0x89, 0x3c, 0x24,
-        /* movq   xmm0,QWORD PTR [rsp]    */ 0xf3, 0x0f, 0x7e, 0x04, 0x24,
+        /* push   rax                     */ 0x50,
+        /* movq   xmm0,rdi                */ 0x66, 0x48, 0x0f, 0x6e, 0xc7,
         /* punpcklqdq xmm0,xmm0           */ 0x66, 0x0f, 0x6c, 0xc0,
-        /* add    rsp,0x18                */ 0x48, 0x83, 0xc4, 0x18,
+        /* pop    rcx                     */ 0x59,
         /* ret                            */ 0xc3,
     ]),
     Code!(long*, 16 / long.sizeof)([
