@@ -1473,30 +1473,13 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
         case TYullong2:
         case TYllong4:
         case TYullong4:
-            if (config.avx || tysize(ty) >= 32)
+            if (e1->Eoper == OPind && !e1->Ecount)
             {
-                if (e1->Eoper == OPvar)
-                    e1->EV.sp.Vsym->Sflags &= ~GTregcand;
-
-                // VMOVDDUP XMM,MEM
+                // VPBROADCASTQ/VBROADCASTSD/(V)PUNPCKLQDQ X/YMM,MEM
                 getlvalue(cdb,&cs, e1, 0);         // get addressing mode
-                if ((cs.Irm & 0xC0) == 0xC0)
-                {
-                    unsigned sreg = ((cs.Irm & 7) | (cs.Irex & REX_B ? 8 : 0));
-                    regm_t sregm = XMMREGS;
-                    fixresult(cdb,e1, mask[sreg], &sregm);
-                    unsigned rmreg = findreg(sregm);
-                    cs.Irm = (cs.Irm & ~7) | ((rmreg - XMM0) & 7);
-                    if ((rmreg - XMM0) & 8)
-                        cs.Irex |= REX_B;
-                    else
-                        cs.Irex &= ~REX_B;
-                }
+                assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
                 allocreg(cdb,&retregs,&reg,ty);
-                if (tysize(ty) == 32)
-                    cs.Iop = VBROADCASTSD;
-                else
-                    cs.Iop = MOVDDUP;
+                cs.Iop = config.avx >= 2 ? VPBROADCASTQ : tysize(ty) == 32 ? VBROADCASTSD : PUNPCKLQDQ;
                 cs.Irex &= ~REX_W;
                 code_newreg(&cs,reg - XMM0);
                 checkSetVex(&cs,ty);
@@ -1504,18 +1487,27 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
             }
             else
             {
-                /* MOVQ XMM0,mem128
-                 * PUNPCKLQDQ XMM0,XMM0
-                 */
                 codelem(cdb,e1,&retregs,FALSE); // eval left leaf
-                unsigned reg = findreg(retregs);
-                reg -= XMM0;
-                //cdb.gen2(LODD,modregxrmx(3,reg,r));     // MOVQ reg,r
-
-                cs.Iop = PUNPCKLQDQ;
-                cs.Irm = modregxrmx(3,reg,reg);
-                cs.Iflags = 0;
-                cdb.gen(&cs);
+                reg = findreg(retregs) - XMM0;
+                getregs(cdb,retregs);
+                if (config.avx >= 2)
+                {
+                    // VPBROADCASTQ X/YMM,XMM
+                    cdb.gen2(VPBROADCASTQ, modregxrmx(3,reg,reg));
+                    checkSetVex(cdb.last(), ty);
+                }
+                else
+                {
+                    // (V)PUNPCKLQDQ XMM,XMM
+                    cdb.genc2(PUNPCKLQDQ, modregxrmx(3,reg,reg), 0);
+                    checkSetVex(cdb.last(), TYullong2); // AVX-128
+                    if (tysize(ty) == 32)
+                    {
+                        // VINSERTI/F128 YMM,YMM,XMM,1
+                        cdb.genc2(config.avx >= 2 ? VINSERTI128 : VINSERTF128, modregxrmx(3,reg,reg), 1);
+                        checkSetVex(cdb.last(), ty);
+                    }
+                }
             }
             break;
 
@@ -1620,11 +1612,16 @@ void checkSetVex(code *c, tym_t ty)
             case PSHUFD:
             case PSHUFHW:
             case PSHUFLW:
+            case VPBROADCASTB:
+            case VPBROADCASTW:
+            case VPBROADCASTD:
+            case VPBROADCASTQ:
                 vreg = 0;       // for 2 operand vex instructions
                 break;
 
             case VBROADCASTSD:
             case VBROADCASTF128:
+            case VBROADCASTI128:
                 assert(tysize(ty) == 32); // AVX-256 only instructions
                 vreg = 0;       // for 2 operand vex instructions
                 break;
