@@ -33,7 +33,8 @@ $(ROOT)/both.done: $(ROOT)/%.done: $(ROOT)/%
 	$(QUIET)$(TIMELIMIT)$(ROOT)/$* $(ROOT)/both.log $(ROOT)/both.def $(ROOT)/bothgc.log
 	$(QUIET)$(GREP) -q '1 .*_Dmain' $(ROOT)/both.log
 	$(QUIET)$(GREP) -q '1000 .*both.Num\* both.foo(uint)' $(ROOT)/both.log
-	$(QUIET)$(DIFF) both.def.exp $(ROOT)/both.def
+	# (temporarily) allow both the new and the old mangling in both.def
+	$(QUIET)$(DIFF) both.def.exp $(ROOT)/both.def || $(DIFF) bothnew.def.exp $(ROOT)/both.def
 	$(QUIET)$(DIFF) bothgc.log.exp $(ROOT)/bothgc.log
 	@touch $@
 
