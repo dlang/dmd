@@ -234,7 +234,7 @@ alias baselineCases = AliasSeq!(
     ]),
     Code!(ulong*, 16 / ulong.sizeof)([
         /* push   rax                     */ 0x50,
-        /* rex.W movq xmm0,QWORD PTR [rdi] */ 0xf3, 0x48, 0x0f, 0x7e, 0x07,
+        /* movq   xmm0,QWORD PTR [rdi]    */ 0xf3, 0x0f, 0x7e, 0x07,
         /* punpcklqdq xmm0,xmm0           */ 0x66, 0x0f, 0x6c, 0xc0,
         /* pop    rcx                     */ 0x59,
         /* ret                            */ 0xc3,
@@ -249,7 +249,7 @@ alias baselineCases = AliasSeq!(
     ]),
     Code!(long*, 16 / long.sizeof)([
         /* push   rax                     */ 0x50,
-        /* rex.W movq xmm0,QWORD PTR [rdi] */ 0xf3, 0x48, 0x0f, 0x7e, 0x07,
+        /* movq   xmm0,QWORD PTR [rdi]    */ 0xf3, 0x0f, 0x7e, 0x07,
         /* punpcklqdq xmm0,xmm0           */ 0x66, 0x0f, 0x6c, 0xc0,
         /* pop    rcx                     */ 0x59,
         /* ret                            */ 0xc3,
@@ -275,7 +275,7 @@ alias baselineCases = AliasSeq!(
     ]),
     Code!(double*, 16 / double.sizeof)([
         /* push   rax                     */ 0x50,
-        /* rex.W movsd xmm0,QWORD PTR [rdi] */ 0xf2, 0x48, 0x0f, 0x10, 0x07,
+        /* movsd  xmm0,QWORD PTR [rdi]    */ 0xf2, 0x0f, 0x10, 0x07,
         /* unpcklpd xmm0,xmm0             */ 0x66, 0x0f, 0x14, 0xc0,
         /* pop    rcx                     */ 0x59,
         /* ret                            */ 0xc3,
@@ -615,8 +615,7 @@ alias avxCases = AliasSeq!(
     ]),
     Code!(double*, 16 / double.sizeof)([
         /* push   rax                     */ 0x50,
-        /* (bad)                          */ 0xc4, 0xe1, 0xfb, 0x10,
-        /* (bad)                          */ 0x07,
+        /* vmovsd xmm0,QWORD PTR [rdi]    */ 0xc5, 0xfb, 0x10, 0x07,
         /* unpcklpd xmm0,xmm0             */ 0x66, 0x0f, 0x14, 0xc0,
         /* pop    rcx                     */ 0x59,
         /* ret                            */ 0xc3,
@@ -969,8 +968,7 @@ alias avx2Cases = AliasSeq!(
     ]),
     Code!(double*, 16 / double.sizeof)([
         /* push   rax                     */ 0x50,
-        /* (bad)                          */ 0xc4, 0xe1, 0xfb, 0x10,
-        /* (bad)                          */ 0x07,
+        /* vmovsd xmm0,QWORD PTR [rdi]    */ 0xc5, 0xfb, 0x10, 0x07,
         /* unpcklpd xmm0,xmm0             */ 0x66, 0x0f, 0x14, 0xc0,
         /* pop    rcx                     */ 0x59,
         /* ret                            */ 0xc3,
