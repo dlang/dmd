@@ -745,9 +745,6 @@ final class Parser(AST) : Lexer
                 stc = AST.STCgshared;
                 goto Lstc;
 
-            case TOKlocal:
-                stc = AST.STClocal;
-                goto Lstc;
             //case TOKmanifest:   stc = STCmanifest;     goto Lstc;
 
             case TOKat:
@@ -4026,10 +4023,6 @@ final class Parser(AST) : Lexer
                 stc = AST.STCmanifest;
                 goto L1;
 
-            case TOKlocal:
-                stc = AST.STClocal;
-                goto L1;
-
             case TOKat:
                 {
                     stc = parseAttribute(&udas);
@@ -5203,7 +5196,6 @@ final class Parser(AST) : Lexer
         case TOKpure:
         case TOKref:
         case TOKgshared:
-        case TOKlocal:
         case TOKat:
         case TOKstruct:
         case TOKunion:
@@ -7032,7 +7024,6 @@ final class Parser(AST) : Lexer
             case TOKreturn:
             //case TOKmanifest:
                 break;
-            case TOKlocal:
 
             case TOKat:
                 t = peek(t);
