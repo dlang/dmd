@@ -1168,7 +1168,7 @@ pure:
     void StrEq3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(result.vType == BCValueType.Unknown
-            || result.vType == BCValueType.StackValue,
+            || isStackValueOrParameter(result),
             "The result for this must be Empty or a StackValue not: " ~ to!string(result.vType));
         if (lhs.vType == BCValueType.Immediate)
         {

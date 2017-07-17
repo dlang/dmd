@@ -1892,37 +1892,12 @@ extern (C++) final class BCV(BCGenT) : Visitor
         auto _newBase = *newBase;
         auto _oldBase = *oldBase;
 
-        static if (is(typeof(gen.MemCpy) == function))
-        {
-            auto effectiveSize = genTemporary(i32Type);
-            assert(elementSize);
-            Mul3(effectiveSize, length, imm32(elementSize));
-            MemCpy(_newBase, _oldBase, effectiveSize);
-            Add3(_newBase, _newBase, effectiveSize);
-            Add3(_oldBase, _oldBase, effectiveSize);
-        }
-        else
-        {
-            auto copyCounter = genTemporary(i32Type);
-            Set(copyCounter, length);
-            {
-                auto Lbegin  = genLabel();
-                auto copyJmp = beginCndJmp(copyCounter);
-
-                auto tmpElem = genTemporary(i32Type);
-                Sub3(copyCounter, copyCounter, imm32(1));
-                foreach (uint i; 0 .. elementSize)
-                {
-                    Load32(tmpElem, _oldBase);
-                    Store32(_newBase, tmpElem);
-                    Add3(_newBase, _newBase, imm32(1));
-                    Add3(_oldBase, _oldBase, imm32(1));
-                }
-                genJump(Lbegin);
-                auto Lafter_loop = genLabel();
-                endCndJmp(copyJmp, Lafter_loop);
-            }
-        }
+        auto effectiveSize = genTemporary(i32Type);
+        assert(elementSize);
+        Mul3(effectiveSize, length, imm32(elementSize));
+        MemCpy(_newBase, _oldBase, effectiveSize);
+        Add3(_newBase, _newBase, effectiveSize);
+        Add3(_oldBase, _oldBase, effectiveSize);
     }
 
     void expandSliceTo(BCValue slice, BCValue newLength)
@@ -1955,14 +1930,15 @@ extern (C++) final class BCV(BCGenT) : Visitor
         setBase(slice, newBase);
         setLength(slice, newLength);
 
-	// If we are trying to expand a freshly created slice
-	// we don't have to copy the old contence
-	// therefore jump over the copyArray if oldBase == 0
+    	// If we are trying to expand a freshly created slice
+    	// we don't have to copy the old contence
+    	// therefore jump over the copyArray if oldBase == 0
 
-	auto CJZeroOldBase = beginCndJmp(oldBase);
-        copyArray(&newBase, &oldBase, oldLength, elementSize);
-	endCndJmp(CJZeroOldBase, genLabel());
-
+	    auto CJZeroOldBase = beginCndJmp(oldBase);
+        {
+            copyArray(&newBase, &oldBase, oldLength, elementSize);
+        }
+	    endCndJmp(CJZeroOldBase, genLabel());
     }
 
     void doFixup(uint oldFixupTableCount, BCLabel* ifTrue, BCLabel* ifFalse)
