@@ -2156,13 +2156,22 @@ public:
         Add3(effectiveSize, effectiveSize, imm32(SliceDescriptor.Size));
 
         Alloc(result, effectiveSize);
-        Add3(newBase, retval, imm32(SliceDescriptor.Size));
+        Add3(newBase, result, imm32(SliceDescriptor.Size));
 
         setBase(result, newBase);
         setLength(result, newLength);
 
-        copyArray(&newBase, &lhsBase, lhsLength, elemSize);
-        copyArray(&newBase, &rhsBase, rhsLength, elemSize);
+        {
+            auto CJlhsIsNull = beginCndJmp(lhsBase);
+            copyArray(&newBase, &lhsBase, lhsLength, elemSize);
+            endCndJmp(CJlhsIsNull, genLabel());
+        }
+        {
+            auto CJrhsIsNull = beginCndJmp(rhsBase);
+            copyArray(&newBase, &rhsBase, rhsLength, elemSize);
+            endCndJmp(CJrhsIsNull, genLabel());
+        }
+
         auto LafterCopy = genLabel();
         endCndJmp(CJisNull, LafterCopy);
     }
