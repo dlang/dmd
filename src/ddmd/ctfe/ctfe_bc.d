@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 1;
+enum bailoutMessages = 0;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -150,6 +150,7 @@ struct BlackList
     {
         initialize([
                 "modify14304", //because of fail_compilation/fail14304.d; We should not be required to check for this.
+                "myToString", // temporary
         ]);
     }
 
@@ -3528,7 +3529,7 @@ static if (is(BCGen))
         insideArrayLiteralExp = true;
 
         auto elmType = toBCType(ale.type.nextOf);
-        if (elmType.type != BCTypeEnum.i32 && elmType.type != BCTypeEnum.i64  && elmType.type != BCTypeEnum.c8 && elmType.type != BCTypeEnum.Struct)
+        if (!isBasicBCType(elmType)  && elmType.type != BCTypeEnum.c8 && elmType.type != BCTypeEnum.Struct)
         {
             bailout(
                 "can only deal with int[] and uint[]  or structs atm. given:" ~ to!string(
@@ -3560,7 +3561,7 @@ static if (is(BCGen))
         foreach (elem; *ale.elements)
         {
             auto elexpr = genExpr(elem, "ArrayLiteralElement");
-            if (elexpr.type.type == BCTypeEnum.i32)
+            if (elexpr.type.type == BCTypeEnum.i32 || elexpr.type.type == BCTypeEnum.f23)
             {
                 if (elexpr.vType == BCValueType.Immediate)
                 {
@@ -3572,7 +3573,7 @@ static if (is(BCGen))
                 }
                 _sharedCtfeState.heap.heapSize += heapAdd;
             }
-            else if (elexpr.type.type == BCTypeEnum.i64)
+            else if (elexpr.type.type == BCTypeEnum.i64 || elexpr.type.type == BCTypeEnum.f52)
             {
                 if (elexpr.vType == BCValueType.Immediate)
                 {
