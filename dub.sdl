@@ -1,7 +1,7 @@
 name "dmd"
 description "The DMD compiler"
 authors "Walter Bright"
-copyright "Copyright © 1999-2017, Digital Mars"
+copyright "Copyright © 1999-2017, The D Language Foundation"
 license "BSL-1.0"
 
 targetType "none"

@@ -355,7 +355,7 @@ struct Global
         {
             static assert(0, "fix this");
         }
-        copyright = "Copyright (c) 1999-2017 by Digital Mars";
+        copyright = "Copyright (c) 1999-2017 by The D Language Foundation";
         written = "written by Walter Bright";
         _version = (import("VERSION") ~ '\0').ptr;
         compiler.vendor = "Digital Mars D";
