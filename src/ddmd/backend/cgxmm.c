@@ -1319,46 +1319,68 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
         case TYuchar16:
         case TYschar32:
         case TYuchar32:
-        {
-            /* MOVD      XMM0,r
-             * PUNPCKLBW XMM0,XMM0
-             * PUNPCKLWD XMM0,XMM0
-             * PSHUFD    XMM0,XMM0,0
-             */
-            regm_t regm = ALLREGS;
-            codelem(cdb,e1,&regm,FALSE); // eval left leaf
-            unsigned r = findreg(regm);
-
-            allocreg(cdb,&retregs,&reg, e->Ety);
-            reg -= XMM0;
-            cdb.gen2(LODD,modregxrmx(3,reg,r));     // MOVD reg,r
-            checkSetVex(cdb.last(),TYschar16);
-
-            cs.Iop = PUNPCKLBW;
-            cs.Irm = modregxrmx(3,reg,reg);
-            cs.Iflags = 0;
-            cdb.gen(&cs);
-            cs.Iop = PUNPCKLWD;
-            cdb.gen(&cs);
-
-            cs.Iop = PSHUFD;
-            cs.IFL2 = FLconst;
-            cs.IEV2.Vsize_t = 0;
-            checkSetVex(&cs,TYschar16);
-            cdb.gen(&cs);
-            if (tysize(ty) == 32)
+            if (config.avx >= 2 && e1->Eoper == OPind && !e1->Ecount)
             {
-                // VINSERTF128 YMM0,YMM0,XMM0,1
-                cs.Iop = VINSERTF128;
-                cs.Irm = modregxrmx(3,reg,reg);
-                cs.Iflags = 0;
-                cs.IFL2 = FLconst;
-                cs.IEV2.Vsize_t = 1;
+                // VPBROADCASTB X/YMM,MEM
+                getlvalue(cdb,&cs, e1, 0);         // get addressing mode
+                assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
+                allocreg(cdb,&retregs,&reg,ty);
+                cs.Iop = VPBROADCASTB;
+                cs.Irex &= ~REX_W;
+                code_newreg(&cs,reg - XMM0);
                 checkSetVex(&cs,ty);
                 cdb.gen(&cs);
             }
+            else
+            {
+                regm_t regm = ALLREGS;
+                codelem(cdb,e1,&regm,FALSE); // eval left leaf
+                unsigned r = findreg(regm);
+
+                allocreg(cdb,&retregs,&reg, e->Ety);
+                reg -= XMM0;
+                // (V)MOVD reg,r
+                cdb.gen2(LODD,modregxrmx(3,reg,r));
+                checkSetVex(cdb.last(), TYushort8);
+                if (config.avx >= 2)
+                {
+                    // VPBROADCASTB X/YMM,XMM
+                    cdb.gen2(VPBROADCASTB, modregxrmx(3,reg,reg));
+                    checkSetVex(cdb.last(), ty);
+                }
+                else
+                {
+                    if (config.avx)
+                    {
+                        unsigned zeroreg;
+                        regm = XMMREGS & ~retregs;
+                        // VPXOR XMM1,XMM1,XMM1
+                        allocreg(cdb,&regm,&zeroreg, ty);
+                        zeroreg -= XMM0;
+                        cdb.gen2(PXOR, modregxrmx(3,zeroreg,zeroreg));
+                        checkSetVex(cdb.last(), TYuchar16); // AVX-128
+                        // VPSHUFB XMM,XMM,XMM1
+                        cdb.gen2(PSHUFB, modregxrmx(3,reg,zeroreg));
+                        checkSetVex(cdb.last(), TYuchar16); // AVX-128
+                    }
+                    else
+                    {
+                        // PUNPCKLBW XMM,XMM
+                        cdb.gen2(PUNPCKLBW, modregxrmx(3,reg,reg));
+                        // PUNPCKLWD XMM,XMM
+                        cdb.gen2(PUNPCKLWD, modregxrmx(3,reg,reg));
+                        // PSHUFD XMM,XMM,0
+                        cdb.genc2(PSHUFD, modregxrmx(3,reg,reg), 0);
+                    }
+                    if (tysize(ty) == 32)
+                    {
+                        // VINSERTF128 YMM,YMM,XMM,1
+                        cdb.genc2(VINSERTF128, modregxrmx(3,reg,reg), 1);
+                        checkSetVex(cdb.last(), ty);
+                    }
+                }
+            }
             break;
-        }
 
         case TYshort8:
         case TYushort8:
