@@ -42,7 +42,7 @@ void main()
         m.members = p.parseModule();
         //writeln("Finished parsing. Starting transitive visitor");
 
-        scope vis = new ImportVisitor2();
+        scope vis = new ImportVisitor2!ASTBase();
         m.accept(vis);
 
         //writeln("Finished!");
