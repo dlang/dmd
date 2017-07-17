@@ -150,7 +150,6 @@ struct BlackList
     {
         initialize([
                 "modify14304", //because of fail_compilation/fail14304.d; We should not be required to check for this.
-                "myToString", // temporary
         ]);
     }
 
@@ -830,6 +829,9 @@ struct SharedCtfeState(BCGenT)
         }
         // if we get here the type was not found and has to be registerd.
         auto elemType = btv.toBCType(tsa.nextOf);
+        // if it's impossible to get the elmType return 0
+        if (!elemType)
+            return 0;
         auto arraySize = evaluateUlong(tsa.dim);
         assert(arraySize < uint.max);
         if (arrayCount == arrayTypes.length)
