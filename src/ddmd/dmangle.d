@@ -526,8 +526,8 @@ public:
     void toBuffer(const(char)* id, Dsymbol s)
     {
         size_t len = strlen(id);
-        if (buf.offset >= 8 * 1024 * 1024) // 8 megs ought be enough for anyone
-            s.error("excessive length %llu for symbol, possible recursive expansion?", len);
+        if (buf.offset + len >= 8 * 1024 * 1024) // 8 megs ought be enough for anyone
+            s.error("excessive length %llu for symbol, possible recursive expansion?", buf.offset + len);
         else
         {
             buf.printf("%u", cast(uint)len);
