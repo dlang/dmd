@@ -310,11 +310,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
     override void visit(ScopeStatement ss)
     {
-        ScopeDsymbol sym;
         //printf("ScopeStatement::semantic(sc = %p)\n", sc);
         if (ss.statement)
         {
-            sym = new ScopeDsymbol();
+            ScopeDsymbol sym = new ScopeDsymbol();
             sym.parent = sc.scopesym;
             sym.endlinnum = ss.endloc.linnum;
             sc = sc.push(sym);
@@ -338,7 +337,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 Statement sentry;
                 Statement sexception;
                 Statement sfinally;
-
                 ss.statement = ss.statement.scopeCode(sc, &sentry, &sexception, &sfinally);
                 assert(!sentry);
                 assert(!sexception);
@@ -353,6 +351,15 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             sc.pop();
         }
         result = ss;
+    }
+
+    override void visit(ForwardingStatement ss){
+        assert(!!ss.sym);
+        ss.sym.forward = sc.scopesym;
+        sc = sc.push(ss.sym);
+        ss.statement = ss.statement.semantic(sc);
+        sc = sc.pop();
+        result = ss.statement ? ss : null;
     }
 
     override void visit(WhileStatement ws)
@@ -483,6 +490,366 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         result = fs;
     }
 
+    private static template MakeTupleForeachRet(bool isDecl){
+        static if(isDecl)
+        {
+            alias MakeTupleForeachRet = Dsymbols*;
+        }
+        else
+        {
+            alias MakeTupleForeachRet = void;
+        }
+    }
+
+    MakeTupleForeachRet!isDecl makeTupleForeach(bool isStatic, bool isDecl)(ForeachStatement fs, TupleForeachArgs!(isStatic, isDecl) args)
+    {
+        enum returnEarly = isDecl ? q{ return null; } : q{ result = new ErrorStatement(); return; };
+        static if(isDecl)
+        {
+            static assert(isStatic);
+            auto dbody = args[0];
+        }
+        static if(isStatic)
+        {
+            auto needExpansion = args[$-1];
+            assert(!!sc);
+            auto previous = sc.scopesym;
+        }
+        alias s = fs; // TODO: ???
+
+        auto loc = fs.loc;
+        size_t dim = fs.parameters.dim;
+        static if(isStatic) bool skipCheck = needExpansion;
+        else enum skipCheck = false;
+        if (!skipCheck && (dim < 1 || dim > 2))
+        {
+            fs.error("only one (value) or two (key,value) arguments for tuple foreach");
+            setError();
+            mixin(returnEarly);
+        }
+
+        Type paramtype = (*fs.parameters)[dim - 1].type;
+        if (paramtype)
+        {
+            paramtype = paramtype.semantic(loc, sc);
+            if (paramtype.ty == Terror){
+                setError();
+                mixin(returnEarly);
+            }
+        }
+
+        Type tab = fs.aggr.type.toBasetype();
+        TypeTuple tuple = cast(TypeTuple)tab;
+        static if(!isDecl)
+        {
+            auto statements = new Statements();
+        }
+        else
+        {
+            auto declarations = new Dsymbols();
+        }
+        //printf("aggr: op = %d, %s\n", fs.aggr.op, fs.aggr.toChars());
+        size_t n;
+        TupleExp te = null;
+        if (fs.aggr.op == TOKtuple) // expression tuple
+        {
+            te = cast(TupleExp)fs.aggr;
+            n = te.exps.dim;
+        }
+        else if (fs.aggr.op == TOKtype) // type tuple
+        {
+            n = Parameter.dim(tuple.arguments);
+        }
+        else
+            assert(0);
+        foreach (j; 0 .. n)
+        {
+            size_t k = (fs.op == TOKforeach) ? j : n - 1 - j;
+            Expression e = null;
+            Type t = null;
+            if (te)
+                e = (*te.exps)[k];
+            else
+                t = Parameter.getNth(tuple.arguments, k).type;
+            Parameter p = (*fs.parameters)[0];
+            static if(!isDecl)
+            {
+                auto st = new Statements();
+            }
+            else
+            {
+                auto st = new Dsymbols();
+            }
+
+            static if(isStatic) bool skip = needExpansion;
+            else enum skip = false;
+            if (!skip && dim == 2)
+            {
+                // Declare key
+                if (p.storageClass & (STCout | STCref | STClazy))
+                {
+                    fs.error("no storage class for key `%s`", p.ident.toChars());
+                    setError();
+                    mixin(returnEarly);
+                }
+                static if(isStatic)
+                {
+                    if(!p.type)
+                    {
+                        p.type = Type.tsize_t;
+                    }
+                }
+                p.type = p.type.semantic(loc, sc);
+                TY keyty = p.type.ty;
+                if (keyty != Tint32 && keyty != Tuns32)
+                {
+                    if (global.params.isLP64)
+                    {
+                        if (keyty != Tint64 && keyty != Tuns64)
+                        {
+                            fs.error("foreach: key type must be int or uint, long or ulong, not `%s`", p.type.toChars());
+                            setError();
+                            mixin(returnEarly);
+                        }
+                    }
+                    else
+                    {
+                        fs.error("foreach: key type must be int or uint, not `%s`", p.type.toChars());
+                        setError();
+                        mixin(returnEarly);
+                    }
+                }
+                Initializer ie = new ExpInitializer(Loc(), new IntegerExp(k));
+                auto var = new VarDeclaration(loc, p.type, p.ident, ie);
+                var.storage_class |= STCmanifest;
+                static if(isStatic) var.storage_class |= STClocal;
+                static if(!isDecl)
+                {
+                    st.push(new ExpStatement(loc, var));
+                }
+                else
+                {
+                    st.push(var);
+                }
+                p = (*fs.parameters)[1]; // value
+            }
+            bool declareVariable(StorageClass storageClass, Type type, Identifier ident, Expression e, Type t)
+            {
+                enum returnEarly = q{ return false; };
+                if (storageClass & (STCout | STClazy) ||
+                    storageClass & STCref && !te)
+                {
+                    fs.error("no storage class for value `%s`", ident.toChars());
+                    setError();
+                    mixin(returnEarly);
+                }
+                Declaration var;
+                if (e)
+                {
+                    Type tb = e.type.toBasetype();
+                    Dsymbol ds = null;
+                    if (!(storageClass & STCmanifest))
+                    {
+                        if ((isStatic || tb.ty == Tfunction || tb.ty == Tsarray || storageClass&STCalias) && e.op == TOKvar)
+                            ds = (cast(VarExp)e).var;
+                        else if (e.op == TOKtemplate)
+                            ds = (cast(TemplateExp)e).td;
+                        else if (e.op == TOKscope)
+                            ds = (cast(ScopeExp)e).sds;
+                        else if (e.op == TOKfunction)
+                        {
+                            auto fe = cast(FuncExp)e;
+                            ds = fe.td ? cast(Dsymbol)fe.td : fe.fd;
+                        }
+                    }
+                    else if (storageClass & STCalias)
+                    {
+                        fs.error("foreach loop variable cannot be both enum and alias");
+                        setError();
+                        mixin(returnEarly);
+                    }
+
+                    if (ds)
+                    {
+                        var = new AliasDeclaration(loc, ident, ds);
+                        if (storageClass & STCref)
+                        {
+                            fs.error("symbol `%s` cannot be ref", ds.toChars());
+                            setError();
+                            mixin(returnEarly);
+                        }
+                        if (paramtype)
+                        {
+                            fs.error("cannot specify element type for symbol `%s`", ds.toChars());
+                            setError();
+                            mixin(returnEarly);
+                        }
+                    }
+                    else if (e.op == TOKtype)
+                    {
+                        var = new AliasDeclaration(loc, ident, e.type);
+                        if (paramtype)
+                        {
+                            fs.error("cannot specify element type for type `%s`", e.type.toChars());
+                            setError();
+                            mixin(returnEarly);
+                        }
+                    }
+                    else
+                    {
+                        e = resolveProperties(sc, e);
+                        type = e.type;
+                        if (paramtype)
+                            type = paramtype;
+                        Initializer ie = new ExpInitializer(Loc(), e);
+                        auto v = new VarDeclaration(loc, type, ident, ie);
+                        if (storageClass & STCref)
+                            v.storage_class |= STCref | STCforeach;
+                        if (isStatic || storageClass&STCmanifest || e.isConst() ||
+                            e.op == TOKstring ||
+                            e.op == TOKstructliteral ||
+                            e.op == TOKarrayliteral)
+                        {
+                            if (v.storage_class & STCref)
+                            {
+                                static if(!isStatic)
+                                {
+                                    fs.error("constant value `%s` cannot be ref", ie.toChars());
+                                }
+                                else
+                                {
+                                    if (!needExpansion)
+                                    {
+                                        fs.error("constant value `%s` cannot be ref", ie.toChars());
+                                    }
+                                    else
+                                    {
+                                        fs.error("constant value `%s` cannot be ref", ident.toChars());
+                                    }
+                                }
+                                setError();
+                                mixin(returnEarly);
+                            }
+                            else
+                                v.storage_class |= STCmanifest;
+                        }
+                        var = v;
+                    }
+                }
+                else
+                {
+                    var = new AliasDeclaration(loc, ident, t);
+                    if (paramtype)
+                    {
+                        fs.error("cannot specify element type for symbol `%s`", s.toChars());
+                        setError();
+                        mixin(returnEarly);
+                    }
+                }
+                static if(isStatic) var.storage_class |= STClocal;
+                static if(!isDecl)
+                {
+                    st.push(new ExpStatement(loc, var));
+                }
+                else
+                {
+                    st.push(var);
+                }
+                return true;
+            }
+            static if(!isStatic){
+                // Declare value
+                if(!declareVariable(p.storageClass, p.type, p.ident, e, t))
+                {
+                    mixin(returnEarly);
+                }
+            }else if(!needExpansion){
+                // Declare value
+                if(!declareVariable(p.storageClass, p.type, p.ident, e, t))
+                {
+                    mixin(returnEarly);
+                }
+            }else{
+                assert(e && !t);
+                auto ident = Identifier.generateId("__value");
+                declareVariable(0, e.type, ident, e, null);
+                import ddmd.cond: StaticForeach;
+                auto field = Identifier.idPool(StaticForeach_tupleFieldName.ptr,StaticForeach_tupleFieldName.length);
+                Expression access = new DotIdExp(loc, e, field);
+                access = access.semantic(sc);
+                auto types = access.type.isTuple();
+                if (!tuple) mixin(returnEarly);
+                //printf("%s\n",tuple.toChars());
+                foreach (l; 0 .. dim)
+                {
+                    auto cp = (*fs.parameters)[l];
+                    Expression init_ = new IndexExp(loc, access, new IntegerExp(loc, l, Type.tsize_t));
+                    init_ = init_.semantic(sc);
+                    assert(!!init_.type);
+                    declareVariable(p.storageClass, init_.type, cp.ident, init_, null);
+                }
+            }
+
+            static if(!isDecl)
+            {
+                st.push(fs._body.syntaxCopy());
+                Statement res = new CompoundStatement(loc, st);
+            }
+            else
+            {
+                st.append(Dsymbol.arraySyntaxCopy(dbody));
+            }
+            static if(!isStatic)
+            {
+                res = new ScopeStatement(loc, res, fs.endloc);
+            }
+            else static if(!isDecl)
+            {
+                auto fwd = new ForwardingStatement(loc, res);
+                previous = fwd.sym;
+                res = fwd;
+            }
+            else
+            {
+                import ddmd.attrib: ForwardingAttribDeclaration;
+                auto res = new ForwardingAttribDeclaration(st);
+                previous = res.sym;
+            }
+            static if(!isDecl)
+            {
+                statements.push(res);
+            }
+            else
+            {
+                declarations.push(res);
+            }
+        }
+
+        static if(!isStatic){
+            Statement res = new UnrolledLoopStatement(loc, statements);
+            if (LabelStatement ls = checkLabeledLoop(sc, fs))
+                ls.gotoTarget = res;
+            if (te && te.e0)
+                res = new CompoundStatement(loc, new ExpStatement(te.e0.loc, te.e0), res);
+        }
+        else static if(!isDecl)
+        {
+            Statement res = new CompoundStatement(loc, statements);
+        }
+        else
+        {
+            auto res = declarations;
+        }
+        static if(!isDecl)
+        {
+            result = res;
+        }
+        else
+        {
+            return res;
+        }
+    }
+
     override void visit(ForeachStatement fs)
     {
         //printf("ForeachStatement::semantic() %p\n", fs);
@@ -582,178 +949,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
         if (tab.ty == Ttuple) // don't generate new scope for tuple loops
         {
-            if (dim < 1 || dim > 2)
-            {
-                fs.error("only one (value) or two (key,value) arguments for tuple foreach");
-                return setError();
-            }
-
-            Type paramtype = (*fs.parameters)[dim - 1].type;
-            if (paramtype)
-            {
-                paramtype = paramtype.semantic(loc, sc);
-                if (paramtype.ty == Terror)
-                    return setError();
-            }
-
-            TypeTuple tuple = cast(TypeTuple)tab;
-            auto statements = new Statements();
-            //printf("aggr: op = %d, %s\n", fs.aggr.op, fs.aggr.toChars());
-            size_t n;
-            TupleExp te = null;
-            if (fs.aggr.op == TOKtuple) // expression tuple
-            {
-                te = cast(TupleExp)fs.aggr;
-                n = te.exps.dim;
-            }
-            else if (fs.aggr.op == TOKtype) // type tuple
-            {
-                n = Parameter.dim(tuple.arguments);
-            }
-            else
-                assert(0);
-            foreach (j; 0 .. n)
-            {
-                size_t k = (fs.op == TOKforeach) ? j : n - 1 - j;
-                Expression e = null;
-                Type t = null;
-                if (te)
-                    e = (*te.exps)[k];
-                else
-                    t = Parameter.getNth(tuple.arguments, k).type;
-                Parameter p = (*fs.parameters)[0];
-                auto st = new Statements();
-
-                if (dim == 2)
-                {
-                    // Declare key
-                    if (p.storageClass & (STCout | STCref | STClazy))
-                    {
-                        fs.error("no storage class for key `%s`", p.ident.toChars());
-                        return setError();
-                    }
-                    p.type = p.type.semantic(loc, sc);
-                    TY keyty = p.type.ty;
-                    if (keyty != Tint32 && keyty != Tuns32)
-                    {
-                        if (global.params.isLP64)
-                        {
-                            if (keyty != Tint64 && keyty != Tuns64)
-                            {
-                                fs.error("foreach: key type must be int or uint, long or ulong, not `%s`", p.type.toChars());
-                                return setError();
-                            }
-                        }
-                        else
-                        {
-                            fs.error("foreach: key type must be int or uint, not `%s`", p.type.toChars());
-                            return setError();
-                        }
-                    }
-                    Initializer ie = new ExpInitializer(Loc(), new IntegerExp(k));
-                    auto var = new VarDeclaration(loc, p.type, p.ident, ie);
-                    var.storage_class |= STCmanifest;
-                    st.push(new ExpStatement(loc, var));
-                    p = (*fs.parameters)[1]; // value
-                }
-                // Declare value
-                if (p.storageClass & (STCout | STClazy) ||
-                    p.storageClass & STCref && !te)
-                {
-                    fs.error("no storage class for value `%s`", p.ident.toChars());
-                    return setError();
-                }
-                Dsymbol var;
-                if (te)
-                {
-                    Type tb = e.type.toBasetype();
-                    Dsymbol ds = null;
-                    if ((tb.ty == Tfunction || tb.ty == Tsarray) && e.op == TOKvar)
-                        ds = (cast(VarExp)e).var;
-                    else if (e.op == TOKtemplate)
-                        ds = (cast(TemplateExp)e).td;
-                    else if (e.op == TOKscope)
-                        ds = (cast(ScopeExp)e).sds;
-                    else if (e.op == TOKfunction)
-                    {
-                        auto fe = cast(FuncExp)e;
-                        ds = fe.td ? cast(Dsymbol)fe.td : fe.fd;
-                    }
-
-                    if (ds)
-                    {
-                        var = new AliasDeclaration(loc, p.ident, ds);
-                        if (p.storageClass & STCref)
-                        {
-                            fs.error("symbol `%s` cannot be ref", s.toChars());
-                            return setError();
-                        }
-                        if (paramtype)
-                        {
-                            fs.error("cannot specify element type for symbol `%s`", ds.toChars());
-                            return setError();
-                        }
-                    }
-                    else if (e.op == TOKtype)
-                    {
-                        var = new AliasDeclaration(loc, p.ident, e.type);
-                        if (paramtype)
-                        {
-                            fs.error("cannot specify element type for type `%s`", e.type.toChars());
-                            return setError();
-                        }
-                    }
-                    else
-                    {
-                        p.type = e.type;
-                        if (paramtype)
-                            p.type = paramtype;
-                        Initializer ie = new ExpInitializer(Loc(), e);
-                        auto v = new VarDeclaration(loc, p.type, p.ident, ie);
-                        if (p.storageClass & STCref)
-                            v.storage_class |= STCref | STCforeach;
-                        if (e.isConst() ||
-                            e.op == TOKstring ||
-                            e.op == TOKstructliteral ||
-                            e.op == TOKarrayliteral)
-                        {
-                            if (v.storage_class & STCref)
-                            {
-                                fs.error("constant value `%s` cannot be ref", ie.toChars());
-                                return setError();
-                            }
-                            else
-                                v.storage_class |= STCmanifest;
-                        }
-                        var = v;
-                    }
-                }
-                else
-                {
-                    var = new AliasDeclaration(loc, p.ident, t);
-                    if (paramtype)
-                    {
-                        fs.error("cannot specify element type for symbol `%s`", s.toChars());
-                        return setError();
-                    }
-                }
-                st.push(new ExpStatement(loc, var));
-
-                st.push(fs._body.syntaxCopy());
-                s = new CompoundStatement(loc, st);
-                s = new ScopeStatement(loc, s, fs.endloc);
-                statements.push(s);
-            }
-
-            s = new UnrolledLoopStatement(loc, statements);
-            if (LabelStatement ls = checkLabeledLoop(sc, fs))
-                ls.gotoTarget = s;
-            if (te && te.e0)
-                s = new CompoundStatement(loc, new ExpStatement(te.e0.loc, te.e0), s);
+            makeTupleForeach!(false,false)(fs);
             if (vinit)
-                s = new CompoundStatement(loc, new ExpStatement(loc, vinit), s);
-            s = s.semantic(sc);
-            result = s;
+                result = new CompoundStatement(loc, new ExpStatement(loc, vinit), result);
+            result = result.semantic(sc);
             return;
         }
 
@@ -763,6 +962,19 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         auto sc2 = sc.push(sym);
 
         sc2.noctor++;
+
+        foreach (i; 0 .. dim)
+        {
+            Parameter p = (*fs.parameters)[i];
+            if (p.storageClass & STCmanifest)
+            {
+                fs.error("cannot declare enum loop variables for non-unrolled foreach");
+            }
+            if (p.storageClass & STCalias)
+            {
+                fs.error("cannot declare alias loop variables for non-unrolled foreach");
+            }
+        }
 
         switch (tab.ty)
         {
@@ -3586,4 +3798,31 @@ Statement semanticScope(Statement s, Scope* sc, Statement sbreak, Statement scon
     s = s.semanticNoScope(scd);
     scd.pop();
     return s;
+}
+
+static template TupleForeachArgs(bool isStatic, bool isDecl){
+    alias Seq(T...)=T;
+    static if(isStatic) alias T = Seq!(bool);
+    else alias T = Seq!();
+    static if(!isDecl) alias TupleForeachArgs = T;
+    else alias TupleForeachArgs = Seq!(Dsymbols*,T);
+}
+
+static template TupleForeachRet(bool isStatic, bool isDecl){
+    alias Seq(T...)=T;
+    static if(!isDecl) alias TupleForeachRet = Statement;
+    else alias TupleForeachRet = Dsymbols*;
+}
+
+TupleForeachRet!(isStatic, isDecl) makeTupleForeach(bool isStatic, bool isDecl)(Scope* sc, ForeachStatement fs, TupleForeachArgs!(isStatic, isDecl) args){
+    scope v = new StatementSemanticVisitor(sc);
+    static if(!isDecl)
+    {
+        v.makeTupleForeach!(isStatic, isDecl)(fs, args);
+        return v.result;
+    }
+    else
+    {
+        return v.makeTupleForeach!(isStatic, isDecl)(fs, args);
+    }
 }

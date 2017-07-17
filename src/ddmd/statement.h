@@ -222,6 +222,14 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+class ForwardingStatement : public Statement
+{
+    Statement *statement;
+    ForwardingScopeDsymbol *sym;
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
 class WhileStatement : public Statement
 {
 public:
@@ -340,6 +348,17 @@ public:
     Condition *condition;
     Statement *ifbody;
     Statement *elsebody;
+
+    Statement *syntaxCopy();
+    Statements *flatten(Scope *sc);
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class StaticForeachStatement : public Statement
+{
+public:
+    StaticForeach *sfe;
 
     Statement *syntaxCopy();
     Statements *flatten(Scope *sc);

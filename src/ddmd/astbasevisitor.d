@@ -15,6 +15,7 @@ class Visitor
     void visit(ASTBase.Expression) { assert(0); }
     void visit(ASTBase.TemplateParameter) { assert(0); }
     void visit(ASTBase.Condition) { assert(0); }
+    void visit(ASTBase.StaticForeach) { assert(0); }
     void visit(ASTBase.Initializer) { assert(0); }
 
     //=======================================================================================
@@ -73,6 +74,7 @@ class Visitor
     // Miscellaneous
     void visit(ASTBase.DeprecatedDeclaration s) { visit(cast(ASTBase.StorageClassDeclaration)s); }
     void visit(ASTBase.StaticIfDeclaration s) { visit(cast(ASTBase.ConditionalDeclaration)s); }
+    void visit(ASTBase.StaticForeachDeclaration s) { visit(cast(ASTBase.ConditionalDeclaration)s); }
     void visit(ASTBase.EnumMember s) { visit(cast(ASTBase.VarDeclaration)s); }
     void visit(ASTBase.Module s) { visit(cast(ASTBase.Package)s); }
     void visit(ASTBase.StructDeclaration s) { visit(cast(ASTBase.AggregateDeclaration)s); }
@@ -97,6 +99,7 @@ class Visitor
     void visit(ASTBase.IfStatement s) { visit(cast(ASTBase.Statement)s); }
     void visit(ASTBase.OnScopeStatement s) { visit(cast(ASTBase.Statement)s); }
     void visit(ASTBase.ConditionalStatement s) { visit(cast(ASTBase.Statement)s); }
+    void visit(ASTBase.StaticForeachStatement s) { visit(cast(ASTBase.Statement)s); }
     void visit(ASTBase.PragmaStatement s) { visit(cast(ASTBase.Statement)s); }
     void visit(ASTBase.SwitchStatement s) { visit(cast(ASTBase.Statement)s); }
     void visit(ASTBase.CaseRangeStatement s) { visit(cast(ASTBase.Statement)s); }

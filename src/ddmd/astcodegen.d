@@ -70,6 +70,8 @@ struct ASTCodegen
     alias STCstatic                 = ddmd.declaration.STCstatic;
     alias STCextern                 = ddmd.declaration.STCextern;
     alias STCfuture                 = ddmd.declaration.STCfuture;
+    alias STCalias                  = ddmd.declaration.STCalias;
+    alias STClocal                  = ddmd.declaration.STClocal;
 
     alias Dsymbol                   = ddmd.dsymbol.Dsymbol;
     alias Dsymbols                  = ddmd.dsymbol.Dsymbols;

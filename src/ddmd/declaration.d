@@ -130,6 +130,7 @@ enum STCexptemp             = (1L << 47);   // temporary variable that has lifet
 enum STCmaybescope          = (1L << 48);   // parameter might be 'scope'
 enum STCscopeinferred       = (1L << 49);   // 'scope' has been inferred and should not be part of mangling
 enum STCfuture              = (1L << 50);   // introducing new base class function
+enum STClocal               = (1L << 51);   // do not forward
 
 enum STC_TYPECTOR = (STCconst | STCimmutable | STCshared | STCwild);
 enum STC_FUNCATTR = (STCref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem);
@@ -138,7 +139,7 @@ extern (C++) __gshared const(StorageClass) STCStorageClass =
     (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal | STCabstract | STCsynchronized |
      STCdeprecated | STCfuture | STCoverride | STClazy | STCalias | STCout | STCin | STCmanifest |
      STCimmutable | STCshared | STCwild | STCnothrow | STCnogc | STCpure | STCref | STCtls | STCgshared |
-     STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable);
+     STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable | STClocal);
 
 struct Match
 {

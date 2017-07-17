@@ -397,7 +397,7 @@ extern (C++) class Dsymbol : RootObject
     final inout(Dsymbol) pastMixin() inout
     {
         //printf("Dsymbol::pastMixin() %s\n", toChars());
-        if (!isTemplateMixin())
+        if (!isTemplateMixin() && !isForwardingAttribDeclaration())
             return this;
         if (!parent)
             return null;
@@ -442,7 +442,7 @@ extern (C++) class Dsymbol : RootObject
     /// ditto
     final inout(Dsymbol) toParent2() inout
     {
-        if (!parent || !parent.isTemplateInstance)
+        if (!parent || !parent.isTemplateInstance && !parent.isForwardingAttribDeclaration())
             return parent;
         return parent.toParent2;
     }
@@ -615,7 +615,7 @@ extern (C++) class Dsymbol : RootObject
         {
             if (!sds.symtabInsert(this)) // if name is already defined
             {
-                Dsymbol s2 = sds.symtab.lookup(ident);
+                Dsymbol s2 = sds.symtabLookup(this,ident);
                 if (!s2.overloadInsert(this))
                 {
                     sds.multiplyDefined(Loc(), this, s2);
@@ -1063,12 +1063,22 @@ extern (C++) class Dsymbol : RootObject
         return null;
     }
 
+    inout(ForwardingAttribDeclaration) isForwardingAttribDeclaration() inout
+    {
+        return null;
+    }
+
     inout(Nspace) isNspace() inout
     {
         return null;
     }
 
     inout(Declaration) isDeclaration() inout
+    {
+        return null;
+    }
+
+    inout(StorageClassDeclaration) isStorageClassDeclaration() inout
     {
         return null;
     }
@@ -1194,6 +1204,11 @@ extern (C++) class Dsymbol : RootObject
     }
 
     inout(ScopeDsymbol) isScopeDsymbol() inout
+    {
+        return null;
+    }
+
+    inout(ForwardingScopeDsymbol) isForwardingScopeDsymbol() inout
     {
         return null;
     }
@@ -1473,7 +1488,7 @@ public:
         return os;
     }
 
-    final void importScope(Dsymbol s, Prot protection)
+    void importScope(Dsymbol s, Prot protection)
     {
         //printf("%s.ScopeDsymbol::importScope(%s, %d)\n", toChars(), s.toChars(), protection);
         // No circular or redundant import's
@@ -1587,6 +1602,11 @@ public:
         return symtab.insert(s);
     }
 
+    Dsymbol symtabLookup(Dsymbol s,Identifier id)
+    {
+        return symtab.lookup(id);
+    }
+
     /****************************************
      * Return true if any of the members are static ctors or static dtors, or if
      * any members have members that are.
@@ -1692,6 +1712,8 @@ public:
     {
         return this;
     }
+
+    override void semantic(Scope* sc) { }
 
     override void accept(Visitor v)
     {
@@ -2005,6 +2027,78 @@ extern (C++) final class OverloadSet : Dsymbol
         v.visit(this);
     }
 }
+
+/***********************************************************
+ * Forwarding ScopeDsymbol.
+ * This is used by ForwardingAttribDeclaration and ForwardingScopeDeclaration
+ * to forward symbol insertions to another scope.
+ */
+extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
+{
+    ScopeDsymbol forward;
+    extern (D) this(ScopeDsymbol forward)
+    {
+        super(null);
+        this.forward = forward;
+    }
+    override Dsymbol symtabInsert(Dsymbol s)
+    {
+        assert(!!forward);
+        if (auto d = s.isDeclaration())
+        {
+            if (d.storage_class & STClocal)
+            {
+                if (!symtab)
+                {
+                    symtab = new DsymbolTable();
+                }
+                return super.symtabInsert(s);
+            }
+        }
+        if (!forward.symtab)
+        {
+            forward.symtab = new DsymbolTable();
+        }
+        return forward.symtabInsert(s);
+    }
+
+    override Dsymbol symtabLookup(Dsymbol s,Identifier id)
+    {
+        assert(!!forward);
+        if (auto d = s.isDeclaration())
+        {
+            if (d.storage_class & STClocal)
+            {
+                if (!symtab)
+                {
+                    symtab = new DsymbolTable();
+                }
+                return super.symtabLookup(s,id);
+            }
+        }
+        if (!forward.symtab)
+        {
+            forward.symtab = new DsymbolTable();
+        }
+        return forward.symtabLookup(s,id);
+    }
+
+    override void importScope(Dsymbol s, Prot protection)
+    {
+        forward.importScope(s, protection);
+    }
+
+    override void semantic(Scope* sc){ }
+
+    override const(char)* kind()const{ return "local scope"; }
+
+    override inout(ForwardingScopeDsymbol) isForwardingScopeDsymbol() inout
+    {
+        return this;
+    }
+
+}
+
 
 /***********************************************************
  * Table of Dsymbol's

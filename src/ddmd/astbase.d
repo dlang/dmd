@@ -1432,6 +1432,22 @@ struct ASTBase
         }
     }
 
+    extern (C++) final class StaticForeachDeclaration : AttribDeclaration
+    {
+        StaticForeach sfe;
+
+        extern (D) this(StaticForeach sfe, Dsymbols* decl)
+        {
+            super(decl);
+            this.sfe = sfe;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
     extern (C++) final class EnumMember : VarDeclaration
     {
         Expression origValue;
@@ -2148,6 +2164,22 @@ struct ASTBase
             this.condition = condition;
             this.ifbody = ifbody;
             this.elsebody = elsebody;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class StaticForeachStatement : Statement
+    {
+        StaticForeach sfe;
+
+        extern (D) this(Loc loc, StaticForeach sfe)
+        {
+            super(loc);
+            this.sfe = sfe;
         }
 
         override void accept(Visitor v)
@@ -5880,6 +5912,31 @@ struct ASTBase
         final extern (D) this(Loc loc)
         {
             this.loc = loc;
+        }
+
+        void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class StaticForeach : RootObject
+    {
+        Loc loc;
+
+        ForeachStatement aggrfe;
+        ForeachRangeStatement rangefe;
+
+        final extern (D) this(Loc loc, ForeachStatement aggrfe, ForeachRangeStatement rangefe)
+        in
+        {
+            assert(!!aggrfe^!!rangefe);
+        }
+        body
+        {
+            this.loc = loc;
+            this.aggrfe = aggrfe;
+            this.rangefe = rangefe;
         }
 
         void accept(Visitor v)

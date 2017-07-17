@@ -189,6 +189,14 @@ public:
         buf.writenl();
     }
 
+    override void visit(ForwardingStatement s)
+    {
+        if (s.statement)
+        {
+            s.statement.accept(this);
+        }
+    }
+
     override void visit(WhileStatement s)
     {
         buf.writestring("while (");
@@ -296,6 +304,20 @@ public:
         buf.level--;
         buf.writeByte('}');
         buf.writenl();
+    }
+
+    override void visit(StaticForeachStatement s)
+    {
+        buf.writestring("static ");
+        if (s.sfe.aggrfe)
+        {
+            visit(s.sfe.aggrfe);
+        }
+        else
+        {
+            assert(!!s.sfe.rangefe);
+            visit(s.sfe.rangefe);
+        }
     }
 
     override void visit(IfStatement s)

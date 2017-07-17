@@ -396,6 +396,38 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
         return t;
     }
 
+    override void addMember(Scope* sc, ScopeDsymbol sds)
+    {
+        Dsymbols* d = include(sc, sds);
+        if (d)
+        {
+            Scope* sc2 = newScope(sc);
+            for (size_t i = 0; i < d.dim; i++)
+            {
+                Dsymbol s = (*d)[i];
+                //printf("\taddMember %s to %s\n", s.toChars(), sds.toChars());
+                // STClocal needs to be attached before the member is added to the scope (because it influences the parent symbol)
+                if (auto decl = s.isDeclaration())
+                {
+                    decl.storage_class |= stc & STClocal;
+                    if (auto sdecl = s.isStorageClassDeclaration()) // TODO: why is this not enough to deal with the nested case?
+                    {
+                        sdecl.stc |= stc & STClocal;
+                    }
+                }
+                s.addMember(sc2, sds);
+            }
+            if (sc2 != sc)
+                sc2.pop();
+        }
+
+    }
+
+    override inout(StorageClassDeclaration) isStorageClassDeclaration() inout
+    {
+        return this;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1350,6 +1382,169 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
         v.visit(this);
     }
 }
+
+/***********************************************************
+ * Static foreach at declaration scope, like:
+ *     static foreach(i; [0, 1, 2]){ }
+ */
+
+extern (C++) final class StaticForeachDeclaration : AttribDeclaration
+{
+    StaticForeach sfe;
+
+    ScopeDsymbol scopesym;
+    bool addisdone;
+
+    bool cached = false;
+    Dsymbols* cache = null;
+
+    extern (D) this(StaticForeach sfe, Dsymbols* decl)
+    {
+        super(decl);
+        this.sfe = sfe;
+    }
+
+    override Dsymbol syntaxCopy(Dsymbol s)
+    {
+        assert(!s);
+        return new StaticForeachDeclaration(
+            sfe.syntaxCopy(),
+            Dsymbol.arraySyntaxCopy(decl));
+    }
+
+    override final bool oneMember(Dsymbol* ps, Identifier ident)
+    {
+        if (cached)
+        {
+            return super.oneMember(ps, ident);
+        }
+        *ps = null;
+        return false;
+    }
+
+    override Dsymbols* include(Scope* sc, ScopeDsymbol sds)
+    {
+        if (cached)
+        {
+            return cache;
+        }
+        sfe.prepare(_scope);
+        if (!sfe.ready())
+        {
+            return null; // TODO: ok?
+        }
+
+        import ddmd.statementsem: makeTupleForeach;
+        Dsymbols* d = makeTupleForeach!(true,true)(_scope, sfe.aggrfe, decl, sfe.needExpansion);
+        if (d && !addisdone)
+        {
+            // Add members lazily.
+            for (size_t i = 0; i < d.dim; i++)
+            {
+                Dsymbol s = (*d)[i];
+                s.addMember(_scope, scopesym);
+            }
+            // Set the member scopes lazily.
+            for (size_t i = 0; i < d.dim; i++)
+            {
+                Dsymbol s = (*d)[i];
+                s.setScope(_scope);
+            }
+            addisdone = true;
+        }
+        cached = true;
+        cache = d;
+        return d;
+    }
+
+    override void addMember(Scope* sc, ScopeDsymbol sds)
+    {
+        this.scopesym = sds;
+    }
+
+    override final void addComment(const(char)* comment)
+    {
+        // do nothing
+        // change this to give a semantics to documentation comments on static foreach declarations
+    }
+
+    override void setScope(Scope* sc)
+    {
+        // do not evaluate condition before semantic pass
+        // But do set the scope, in case we need it for forward referencing
+        Dsymbol.setScope(sc);
+    }
+
+    override void importAll(Scope* sc)
+    {
+        // do not evaluate aggregate before semantic pass
+    }
+
+    override void semantic(Scope* sc)
+    {
+        AttribDeclaration.semantic(sc);
+    }
+
+    override const(char)* kind() const
+    {
+        return "static foreach";
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ * Collection of declarations that stores foreach index variables in a local scope.
+ * Symbols declared within are inserted into another scope, like:
+ *
+ *      static foreach (i; 0 .. 10) // loop variables for different indices do not conflict.
+ *      { // this body is expanded into 10 ForwardingAttribDeclarations, where i has storage class STClocal
+ *          mixin("enum x" ~ to!string(i) ~ " = i"); // ok, can access current loop variable
+ *      }
+ *
+ *      static foreach (i; 0.. 10)
+ *      {
+ *          pragma(msg, mixin("x" ~ to!string(i))); // ok, all 10 symbols are visible
+ *      }
+ *
+ *      static assert (!is(typeof(i))); // loop index variable is not visible outside of the static foreach loop
+ */
+
+extern(C++) final class ForwardingAttribDeclaration: AttribDeclaration
+{
+    ForwardingScopeDsymbol sym = null;
+
+    this(Dsymbols* decl)
+    {
+        super(decl);
+        sym = new ForwardingScopeDsymbol(null);
+        sym.symtab = new DsymbolTable();
+    }
+
+    override Scope* newScope(Scope* sc)
+    {
+        return sc.push(sym);
+    }
+
+    override void addMember(Scope* sc, ScopeDsymbol sds)
+    {
+        parent = sym.parent = sym.forward = sds; // TODO: merge parent and forward?
+        if (!sym.forward.symtab)
+        {
+            sym.forward.symtab = new DsymbolTable();
+        }
+        return super.addMember(sc, sym);
+    }
+
+    override inout(ForwardingAttribDeclaration) isForwardingAttribDeclaration() inout
+    {
+        return this;
+    }
+}
+
 
 /***********************************************************
  * Mixin declarations, like:

@@ -84,6 +84,11 @@ extern (C++) class Visitor
         visit(cast(Statement)s);
     }
 
+    void visit(ForwardingStatement s)
+    {
+        visit(cast(Statement)s);
+    }
+
     void visit(WhileStatement s)
     {
         visit(cast(Statement)s);
@@ -105,6 +110,11 @@ extern (C++) class Visitor
     }
 
     void visit(ForeachRangeStatement s)
+    {
+        visit(cast(Statement)s);
+    }
+
+    void visit(StaticForeachStatement s)
     {
         visit(cast(Statement)s);
     }
@@ -457,6 +467,11 @@ extern (C++) class Visitor
     void visit(StaticIfDeclaration s)
     {
         visit(cast(ConditionalDeclaration)s);
+    }
+
+    void visit(StaticForeachDeclaration s)
+    {
+        visit(cast(AttribDeclaration)s);
     }
 
     void visit(CompileDeclaration s)

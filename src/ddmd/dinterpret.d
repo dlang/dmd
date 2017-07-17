@@ -415,6 +415,12 @@ public:
             ctfeCompile(s.statement);
     }
 
+    override void visit(ForwardingStatement s)
+    {
+        assert(!!s.statement);
+        s.statement.accept(this);
+    }
+
     override void visit(OnScopeStatement s)
     {
         debug (LOGCOMPILE)
@@ -1236,6 +1242,12 @@ public:
             istate.start = null;
 
         result = interpret(s.statement, istate);
+    }
+
+    override void visit(ForwardingStatement s)
+    {
+        assert(!!s.statement);
+        s.statement.accept(this);
     }
 
     /**

@@ -983,6 +983,15 @@ extern (C++) class S2irVisitor : Visitor
     /***************************************
      */
 
+    override void visit(ForwardingStatement s)
+    {
+        assert(!!s.statement);
+        s.statement.accept(this);
+    }
+
+    /***************************************
+     */
+
     override void visit(WithStatement s)
     {
         Symbol *sp;

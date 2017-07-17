@@ -248,6 +248,7 @@ public:
     virtual TemplateMixin *isTemplateMixin() { return NULL; }
     virtual Nspace *isNspace() { return NULL; }
     virtual Declaration *isDeclaration() { return NULL; }
+    virtual StorageClassDeclaration *isStorageClassDeclaration(){ return NULL; }
     virtual ThisDeclaration *isThisDeclaration() { return NULL; }
     virtual TypeInfoDeclaration *isTypeInfoDeclaration() { return NULL; }
     virtual TupleDeclaration *isTupleDeclaration() { return NULL; }
@@ -273,6 +274,7 @@ public:
     virtual UnionDeclaration *isUnionDeclaration() { return NULL; }
     virtual InterfaceDeclaration *isInterfaceDeclaration() { return NULL; }
     virtual ScopeDsymbol *isScopeDsymbol() { return NULL; }
+    virtual ForwardingScopeDSymbol *isForwardingScopeDsymbol) { return NULL; }
     virtual WithScopeSymbol *isWithScopeSymbol() { return NULL; }
     virtual ArrayScopeSymbol *isArrayScopeSymbol() { return NULL; }
     virtual Import *isImport() { return NULL; }
@@ -304,7 +306,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
     OverloadSet *mergeOverloadSet(Identifier *ident, OverloadSet *os, Dsymbol *s);
-    void importScope(Dsymbol *s, Prot protection);
+    virtual void importScope(Dsymbol *s, Prot protection);
     void addAccessiblePackage(Package *p, Prot protection);
     virtual bool isPackageAccessible(Package *p, Prot protection, int flags = 0);
     bool isforwardRef();
