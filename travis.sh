@@ -54,7 +54,9 @@ rebuild() {
 
 # test druntime, phobos, dmd
 test() {
-    test_dub_package
+    # Temporarily skip testing the DUB package
+    #See also: https://github.com/dlang/dmd/pull/6999
+    #test_dub_package
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL unittest
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL unittest
     test_dmd
