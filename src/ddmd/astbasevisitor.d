@@ -1,7 +1,5 @@
 module ddmd.astbasevisitor;
 
-import ddmd.astbase;
-
 /** Basic and dumm visitor which implements a visit method for each AST node
   * implemented in AST. This visitor is the parent of strict, transitive
   * and permissive visitors.

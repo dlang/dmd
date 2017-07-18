@@ -3,6 +3,7 @@ import std.file;
 
 import ddmd.parse;
 import ddmd.astbase;
+import ddmd.astcodegen;
 
 import examples.impvisitor;
 
@@ -19,6 +20,8 @@ void main()
     string path = "../../phobos/std/";
     string regex = "*.d";
 
+    alias AST = ASTCodegen;
+
     auto dFiles = dirEntries(path, regex, SpanMode.depth);
     foreach (f; dFiles)
     {
@@ -30,19 +33,19 @@ void main()
         global.params.isLinux = true;
         global.params.is64bit = (size_t.sizeof == 8);
         global.params.useUnitTests = true;
-        ASTBase.Type._init();
+        AST.Type._init();
 
         auto id = Identifier.idPool(fn);
-        auto m = new ASTBase.Module(&(fn.dup)[0], id, false, false);
+        auto m = new AST.Module(&(fn.dup)[0], id, false, false);
         auto input = readText(fn);
 
         //writeln("Started parsing...");
-        scope p = new Parser!ASTBase(m, input, false);
+        scope p = new Parser!AST(m, input, false);
         p.nextToken();
         m.members = p.parseModule();
         //writeln("Finished parsing. Starting transitive visitor");
 
-        scope vis = new ImportVisitor2!ASTBase();
+        scope vis = new ImportVisitor2!AST();
         m.accept(vis);
 
         //writeln("Finished!");
