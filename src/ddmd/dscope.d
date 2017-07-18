@@ -29,6 +29,7 @@ import ddmd.root.outbuffer;
 import ddmd.root.rmem;
 import ddmd.root.speller;
 import ddmd.statement;
+import ddmd.tokens;
 
 //version=LOGSEARCH;
 
@@ -644,6 +645,30 @@ struct Scope
         }
 
         return cast(Dsymbol)speller(ident.toChars(), &scope_search_fp, idchars);
+    }
+
+    /************************************
+     * Maybe `ident` was a C or C++ name. Check for that,
+     * and suggest the D equivalent.
+     * Params:
+     *  ident = unknown identifier
+     * Returns:
+     *  D identifier string if found, null if not
+     */
+    extern (C++) static const(char)* search_correct_C(Identifier ident)
+    {
+        TOK tok;
+        if (ident == Id.NULL)
+            tok = TOKnull;
+        else if (ident == Id.TRUE)
+            tok = TOKtrue;
+        else if (ident == Id.FALSE)
+            tok = TOKfalse;
+        else if (ident == Id.unsigned)
+            tok = TOKuns32;
+        else
+            return null;
+        return Token.toChars(tok);
     }
 
     extern (C++) Dsymbol insert(Dsymbol s)

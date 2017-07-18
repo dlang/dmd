@@ -281,17 +281,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
-        const(char)* n = importHint(exp.ident.toChars());
-        if (n)
+        /* Look for what user might have meant
+         */
+        if (const n = importHint(exp.ident.toChars()))
             exp.error("`%s` is not defined, perhaps `import %s;` is needed?", exp.ident.toChars(), n);
+        else if (auto s2 = sc.search_correct(exp.ident))
+            exp.error("undefined identifier `%s`, did you mean %s `%s`?", exp.ident.toChars(), s2.kind(), s2.toChars());
+        else if (const p = Scope.search_correct_C(exp.ident))
+            exp.error("undefined identifier `%s`, did you mean `%s`?", exp.ident.toChars(), p);
         else
-        {
-            s = sc.search_correct(exp.ident);
-            if (s)
-                exp.error("undefined identifier `%s`, did you mean %s `%s`?", exp.ident.toChars(), s.kind(), s.toChars());
-            else
-                exp.error("undefined identifier `%s`", exp.ident.toChars());
-        }
+            exp.error("undefined identifier `%s`", exp.ident.toChars());
+
         result = new ErrorExp();
     }
 

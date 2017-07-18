@@ -7615,19 +7615,19 @@ extern (C++) abstract class TypeQualified : Type
         }
         if (!s)
         {
-            const(char)* p = mutableOf().unSharedOf().toChars();
-            const(char)* n = importHint(p);
-            if (n)
-                error(loc, "'%s' is not defined, perhaps you need to import %s; ?", p, n);
+            /* Look for what user might have intended
+             */
+            const p = mutableOf().unSharedOf().toChars();
+            auto id = Identifier.idPool(p, strlen(p));
+            if (const n = importHint(p))
+                error(loc, "`%s` is not defined, perhaps `import %s;` ?", p, n);
+            else if (auto s2 = sc.search_correct(id))
+                error(loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toChars());
+            else if (const q = Scope.search_correct_C(id))
+                error(loc, "undefined identifier `%s`, did you mean `%s`?", p, q);
             else
-            {
-                auto id = new Identifier(p);
-                s = sc.search_correct(id);
-                if (s)
-                    error(loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s.kind(), s.toChars());
-                else
-                    error(loc, "undefined identifier `%s`", p);
-            }
+                error(loc, "undefined identifier `%s`", p);
+
             *pt = Type.terror;
         }
     }
