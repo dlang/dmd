@@ -86,7 +86,10 @@ extern (C++) class Visitor
 
     void visit(ForwardingStatement s)
     {
-        visit(cast(Statement)s);
+        if (s.statement)
+        {
+            s.statement.accept(this);
+        }
     }
 
     void visit(WhileStatement s)

@@ -632,3 +632,9 @@ void testEmpty(){
     static foreach(i;0..0) { }
 }
 
+auto bug17660(){
+    int x;
+    static foreach (i; 0 .. 1) { return 3; }
+    return x;
+}
+static assert(bug17660()==3);
