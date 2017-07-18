@@ -70,15 +70,15 @@ out (result)
 {
     ...contract postconditions...
 }
-body
+do
 {
     ...code...
 }
 ------
-	$(P By definition, if a pre contract fails, then the body received bad
+	$(P By definition, if a pre contract fails, then the function received bad
 	parameters.
 	An AssertError is thrown. If a post contract fails,
-	then there is a bug in the body. An AssertError is thrown.)
+	then there is a bug in the function. An AssertError is thrown.)
 
 	$(P Either the <code>in</code> or the <code>out</code> clause can be omitted.
 	If the <code>out</code> clause is for a function
@@ -94,7 +94,7 @@ out (result)
 {
     assert((result * result) <= x && (result+1) * (result+1) > x);
 }
-body
+do
 {
     return cast(long)std.math.sqrt(cast(real)x);
 }
@@ -117,7 +117,7 @@ out
 {
     ...contracts...
 }
-body
+do
 {
     ...
 }
@@ -186,7 +186,7 @@ class Date
 	$(OL
 	$(LI preconditions)
 	$(LI invariant)
-	$(LI body)
+	$(LI function body)
 	$(LI invariant)
 	$(LI postconditions)
 	)
