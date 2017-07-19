@@ -766,7 +766,7 @@ pure:
     void Set(BCValue lhs, BCValue rhs)
     {
         assert(isStackValueOrParameter(lhs), "Set lhs is has to be a StackValue");
-        assert(rhs.vType == BCValueType.Immediate || isStackValueOrParameter(rhs), "Set rhs is has to be a StackValue or Imm");
+        assert(rhs.vType == BCValueType.Immediate || isStackValueOrParameter(rhs), "Set rhs is has to be a StackValue or Imm not: " ~ rhs.vType.to!string);
 
         if (rhs.vType == BCValueType.Immediate && (rhs.type.type == BCTypeEnum.i64 || rhs.type.type == BCTypeEnum.f52))
         {

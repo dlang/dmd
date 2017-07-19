@@ -28,10 +28,7 @@ enum abortOnCritical = 1;
 
 private static void clearArray(T)(auto ref T array, uint count)
 {
-    foreach(i;0 .. count)
-    {
-        array[i] = typeof(array[0]).init;
-    }
+        array[0 .. count] = typeof(array[0]).init;
 }
 
 version = ctfe_noboundscheck;
@@ -534,7 +531,8 @@ Expression getBoolExprRhs(Expression be)
 }
 
 string toString(T)(T value) if (is(T : Statement) || is(T : Declaration)
-        || is(T : Expression) || is(T : Dsymbol) || is(T : Type) || is(T : Initializer))
+        || is(T : Expression) || is(T : Dsymbol) || is(T : Type) || is(T : Initializer)
+        || is(T : StructDeclaration))
 {
     string result;
     import std.string : fromStringz;
@@ -675,6 +673,35 @@ struct SharedCtfeState(BCGenT)
     // find a way to live without 102_000
     RetainedError[bc_max_errors] errors;
     uint errorCount;
+
+    string typeToString(const BCType type) const
+    {
+        string result;
+
+        if (type.type == BCTypeEnum.Slice || type.type == BCTypeEnum.Array)
+        {
+            if (type.typeIndex)
+            {
+                auto elemType = elementType(type);
+                result = type.toString ~ "{ElementType: " ~ typeToString(elemType);
+            }
+            else
+                result = type.toString;
+        }
+
+        else if (type.type == BCTypeEnum.Struct)
+        {
+            if (type.typeIndex)
+                result = "BCStruct: " ~ (cast()structDeclpointerTypes[type.typeIndex - 1]).toString;
+            else
+                result = type.toString;
+        }
+
+        else
+            result = to!string(type.type) ~ ".toString: " ~ type.toString();
+
+        return result;
+    }
 
     const(BCType) elementType(const BCType type) pure const
     {
@@ -827,7 +854,7 @@ struct SharedCtfeState(BCGenT)
         }
         // if we get here the type was not found and has to be registerd.
         auto elemType = btv.toBCType(tsa.nextOf);
-        // if it's impossible to get the elmType return 0
+        // if it's impossible to get the elemType return 0
         if (!elemType)
             return 0;
         auto arraySize = evaluateUlong(tsa.dim);
@@ -1142,8 +1169,8 @@ Expression toExpression(const BCValue value, Type expressionType,
     Expression createArray(BCValue arr, Type arrayType)
     {
         ArrayLiteralExp arrayResult;
-        auto elmType = arrayType.nextOf;
-        auto baseType = _sharedCtfeState.btv.toBCType(elmType);
+        auto elemType = arrayType.nextOf;
+        auto baseType = _sharedCtfeState.btv.toBCType(elemType);
         auto elemSize = _sharedCtfeState.size(baseType);
         auto arrayLength = heapPtr._heap[arr.heapAddr.addr + SliceDescriptor.LengthOffset];
         auto arrayBase = heapPtr._heap[arr.heapAddr.addr + SliceDescriptor.BaseOffset];
@@ -1195,7 +1222,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             {
                 elmExprs.insert(idx,
                     toExpression(imm32(*(heapPtr._heap.ptr + arrayBase + offset)),
-                        elmType));
+                        elemType));
                 offset += elemSize;
             }
         }
@@ -1930,15 +1957,15 @@ extern (C++) final class BCV(BCGenT) : Visitor
         setBase(slice, newBase);
         setLength(slice, newLength);
 
-    	// If we are trying to expand a freshly created slice
-    	// we don't have to copy the old contence
-    	// therefore jump over the copyArray if oldBase == 0
+        // If we are trying to expand a freshly created slice
+        // we don't have to copy the old contence
+        // therefore jump over the copyArray if oldBase == 0
 
-	    auto CJZeroOldBase = beginCndJmp(oldBase);
+        auto CJZeroOldBase = beginCndJmp(oldBase);
         {
             copyArray(&newBase, &oldBase, oldLength, elementSize);
         }
-	    endCndJmp(CJZeroOldBase, genLabel());
+        endCndJmp(CJZeroOldBase, genLabel());
     }
 
     void doFixup(uint oldFixupTableCount, BCLabel* ifTrue, BCLabel* ifFalse)
@@ -2134,7 +2161,12 @@ public:
     {
         auto lhsOrRhs = genTemporary(i32Type);
         Or3(lhsOrRhs, lhs.i32, rhs.i32);
-        Set(result.i32, imm32(0));
+
+        // lhs == result happens when doing e = e ~ x;
+        // in that case we must not the result to zero
+        if (lhs != result)
+            Set(result.i32, imm32(0));
+
         auto CJisNull = beginCndJmp(lhsOrRhs);
 
         auto lhsLength = getLength(lhs);
@@ -2196,7 +2228,7 @@ public:
             import std.stdio;
         }
         auto oldRetval = retval;
-        // import std.stdio; writeln("Calling genExpr from: ", line, debugMessage ? " \"" ~ debugMessage ~ "\"" : ""); //DEBUGLINE
+        import std.stdio; writeln("Calling genExpr from: ", line, debugMessage ? " \"" ~ debugMessage ~ "\"" : ""); //DEBUGLINE
 
         if (processingArguments)
         {
@@ -2672,8 +2704,8 @@ static if (is(BCGen))
             break;
         case TOK.TOKcat:
             {
-                auto lhs = genExpr(e.e1);
-                auto rhs = genExpr(e.e2);
+                auto lhs = genExpr(e.e1, "Cat lhs");
+                auto rhs = genExpr(e.e2, "Cat rhs");
 
                 assert(retval, "Cat needs a retval!");
 
@@ -3085,7 +3117,7 @@ static if (is(BCGen))
             assert(0, "Arguments are not allowed to go here ... they shall not pass");
         }
 
-        auto indexed = genExpr(ie.e1);
+        auto indexed = genExpr(ie.e1, "IndexExp.e1 e1[x]");
         if (!indexed || indexed.vType == BCValueType.VoidValue)
         {
             bailout("could not create indexed variable from: " ~ ie.e1.toString);
@@ -3122,14 +3154,14 @@ static if (is(BCGen))
                 "ArrayIndex %d out of bounds %d", idx, length));
         }
 
-        auto elmType = _sharedCtfeState.elementType(indexed.type);
-        if (!elmType)
+        auto elemType = _sharedCtfeState.elementType(indexed.type);
+        if (!elemType)
         {
             bailout("could nit get elementType for: " ~ ie.toString);
             return ;
         }
 
-        int elemSize = _sharedCtfeState.size(elmType);
+        int elemSize = _sharedCtfeState.size(elemType);
         if (cast(int) elemSize <= 0)
         {
             bailout("could not get Element-Type-size for: " ~ ie.toString);
@@ -3138,16 +3170,16 @@ static if (is(BCGen))
         auto offset = genTemporary(i32Type);
 
         auto oldRetval = retval;
-        retval = assignTo ? assignTo : genTemporary(elmType);
+        retval = assignTo ? assignTo : genTemporary(elemType);
         {
             debug (ctfe)
             {
-                writeln("elmType: ", elmType.type);
+                writeln("elemType: ", elemType.type);
             }
 
             if (isString)
             {
-                if (retval.type != elmType)
+                if (retval.type != elemType)
                     bailout("the target type requires UTF-conversion: " ~ assignTo.type.type.to!string);
                 //TODO use UTF8 intrinsic!
             }
@@ -3160,12 +3192,17 @@ static if (is(BCGen))
 
             Mul3(offset, idx, imm32(elemSize));
             Add3(ptr, offset, getBase(indexed));
-            if (elemSize <= 4)
+            if (elemType.type == BCTypeEnum.Struct)
+            {
+                // on structs we return the ptr!
+                Set(retval.i32, ptr);
+            }
+            else if (elemSize <= 4)
                 Load32(retval.i32, ptr);
             else if (elemSize == 8)
                 Load64(retval.i32, ptr);
             else
-                bailout("can only load basicTypes (i8,i16,i32 and i64, c8, c16, c32 and f23, f52)");
+                bailout("can only load basicTypes (i8, i16,i32 and i64, c8, c16, c32 and f23, f52) not: " ~ elemType.toString);
         }
     }
 
@@ -3242,7 +3279,7 @@ static if (is(BCGen))
 
             BCLabel condEval = genLabel();
 
-            BCValue cond = genExpr(fs.condition);
+            BCValue cond = genExpr(fs.condition, "IfStatement.condition");
             if (!cond)
             {
                 bailout("For: No cond generated");
@@ -3347,12 +3384,12 @@ static if (is(BCGen))
             auto origSlice = genExpr(se.e1, "SliceExp origSlice");
             currentIndexed = origSlice;
             bailout(!origSlice, "could not get slice expr in " ~ se.toString);
-            auto elmType = _sharedCtfeState.elementType(origSlice.type);
-            if (!elmType)
+            auto elemType = _sharedCtfeState.elementType(origSlice.type);
+            if (!elemType)
             {
                 bailout("could not get elementType for: " ~ se.e1.toString);
             }
-            auto elemSize = _sharedCtfeState.size(elmType);
+            auto elemSize = _sharedCtfeState.size(elemType);
 
             auto newSlice = genTemporary(origSlice.type);
             Alloc(newSlice.i32, imm32(SliceDescriptor.Size), origSlice.type);
@@ -3515,17 +3552,17 @@ static if (is(BCGen))
         auto oldInsideArrayLiteralExp = insideArrayLiteralExp;
         insideArrayLiteralExp = true;
 
-        auto elmType = toBCType(ale.type.nextOf);
-        if (!isBasicBCType(elmType)  && elmType.type != BCTypeEnum.c8 && elmType.type != BCTypeEnum.Struct)
+        auto elemType = toBCType(ale.type.nextOf);
+        if (!isBasicBCType(elemType)  && elemType.type != BCTypeEnum.c8 && elemType.type != BCTypeEnum.Struct)
         {
             bailout(
                 "can only deal with int[] and uint[]  or structs atm. given:" ~ to!string(
-                elmType.type));
+                elemType.type));
             return;
         }
         auto arrayLength = cast(uint) ale.elements.dim;
         //_sharedCtfeState.getArrayIndex(ale.type);
-        auto arrayType = BCArray(elmType, arrayLength);
+        auto arrayType = BCArray(elemType, arrayLength);
         debug (ctfe)
         {
             writeln("Adding array of Type:  ", arrayType);
@@ -3534,7 +3571,8 @@ static if (is(BCGen))
         _sharedCtfeState.arrayTypes[_sharedCtfeState.arrayCount++] = arrayType;
         retval = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.i32));
 
-        auto heapAdd = _sharedCtfeState.size(elmType);
+        auto heapAdd = _sharedCtfeState.size(elemType);
+        assert(heapAdd, "heapAdd was zero indicating we had an invalid type in the arrayliteral or something");
 
         uint allocSize = uint(SliceDescriptor.Size) + //ptr and length
             arrayLength * heapAdd;
@@ -3558,7 +3596,6 @@ static if (is(BCGen))
                 {
                     Store32(imm32(_sharedCtfeState.heap.heapSize), elexpr);
                 }
-                _sharedCtfeState.heap.heapSize += heapAdd;
             }
             else if (elexpr.type.type == BCTypeEnum.i64 || elexpr.type.type == BCTypeEnum.f52)
             {
@@ -3571,13 +3608,39 @@ static if (is(BCGen))
                 {
                     Store64(imm32(_sharedCtfeState.heap.heapSize), elexpr);
                 }
-                _sharedCtfeState.heap.heapSize += heapAdd;
+            }
+            else if (elexpr.type.type == BCTypeEnum.Struct)
+            {
+                if (!elexpr.type.typeIndex || elexpr.type.type >= _sharedCtfeState.structTypes.length)
+                {
+                    // this can actually never be hit because no invalid types can have a valid size
+                    // bailout("We have an invalid structType in: " ~ ale.toString);
+                    assert(0);
+                }
+
+                if (elexpr.vType == BCValueType.Immediate)
+                {
+                    immutable size_t sourceAddr = elexpr.heapAddr.addr;
+                    immutable size_t targetAddr = _sharedCtfeState.heap.heapSize;
+
+                    _sharedCtfeState.heap._heap[targetAddr .. targetAddr + heapAdd] =
+                        _sharedCtfeState.heap._heap[sourceAddr .. sourceAddr + heapAdd];
+                }
+                else
+                {
+                    auto elexpr_sv = elexpr.i32;
+                    elexpr_sv.vType = BCValueType.StackValue;
+
+                    MemCpy(imm32(_sharedCtfeState.heap.heapSize), elexpr_sv, imm32(heapAdd));
+                }
             }
             else
             {
-                bailout("ArrayElement is not an i32 but a " ~ to!string(elexpr.type.type) ~ " -- " ~ elem.toString);
+                bailout("ArrayElement is not an i32, i64, f23, f52 or Struct - but a " ~ elexpr.type.toString ~ " -- " ~ _sharedCtfeState.typeToString(elexpr.type));
                 return;
             }
+
+            _sharedCtfeState.heap.heapSize += heapAdd;
         }
         //        if (!oldInsideArrayLiteralExp)
         retval = imm32(arrayAddr.addr);
@@ -3698,10 +3761,8 @@ static if (is(BCGen))
                     immutable size_t targetAddr = retval.heapAddr + offset;
                     immutable size_t sourceAddr = elexpr.heapAddr;
                     immutable size_t _size = _sharedCtfeState.size(elexpr.type, true);
-                    foreach(i;0 .. _size)
-                    {
-                        heap._heap[targetAddr + i] = heap._heap[sourceAddr + i];
-                    }
+
+                    heap._heap[targetAddr .. targetAddr + _size] = heap._heap[sourceAddr  .. sourceAddr + _size];
                 }
                 else if (basicTypeSize(elexpr.type.type) == 8)
                 {
@@ -3981,16 +4042,21 @@ static if (is(BCGen))
         // import std.stdio; writeln("Calling LoadHeapRef from: ", line); //DEBUGLINE
         if(hrv.type.type == BCTypeEnum.i64)
             Load64(hrv, BCValue(hrv.heapRef));
-        else
+        else if (hrv.type.type == BCTypeEnum.i32)
             Load32(hrv, BCValue(hrv.heapRef));
+        else
+            bailout(to!string(hrv.type.type) ~ " is not supported in LoadFromHeapRef");
+
     }
 
     void StoreToHeapRef(BCValue hrv)
     {
         if(hrv.type.type == BCTypeEnum.i64)
             Store64(BCValue(hrv.heapRef), hrv);
-        else
+        else if (hrv.type.type == BCTypeEnum.i32)
             Store32(BCValue(hrv.heapRef), hrv);
+        else
+            bailout(to!string(hrv.type.type) ~ " is not supported in StoreToHeapRef");
     }
 
     void linkRefsCallee(VarDeclarations* parameters)
@@ -4347,13 +4413,19 @@ static if (is(BCGen))
                 retval = lhs;
             }
             break;
+        case TOK.TOKmodass:
+            {
+                Mod3(lhs, lhs, rhs);
+                retval = lhs;
+            }
+            break;
 
         case TOK.TOKcatass:
             {
                 {
                     if ((lhs.type.type == BCTypeEnum.Slice && lhs.type.typeIndex < _sharedCtfeState.sliceTypes.length) || lhs.type.type == BCTypeEnum.string8)
                     {
-                        if(!lhs.type.typeIndex)
+                        if(!lhs.type.typeIndex && lhs.type.type != BCTypeEnum.string8)
                         {
                             bailout("lhs for ~= is no valid slice" ~ e.toString);
                             return ;
@@ -4514,7 +4586,7 @@ static if (is(BCGen))
 
         if (insideArgumentProcessing)
         {
-            retval = stringAddr;
+            retval = stringAddr.i32;
         }
         else
         {
@@ -4862,13 +4934,13 @@ static if (is(BCGen))
         else if (ae.e1.op == TOKindex)
         {
             auto ie = cast(IndexExp) ae.e1;
-            auto indexed = genExpr(ie.e1);
+            auto indexed = genExpr(ie.e1, "AssignExp.e1(indexExp).e1 (e1[x])");
             if (!indexed)
             {
                 bailout("could not fetch indexed_var in " ~ ae.toString);
                 return;
             }
-            auto index = genExpr(ie.e2);
+            auto index = genExpr(ie.e2, "AssignExp.e1(indexExp).e2: (x[e2])");
             if (!index)
             {
                 bailout("could not fetch index in " ~ ae.toString);
@@ -4900,6 +4972,7 @@ static if (is(BCGen))
             auto effectiveAddr = genTemporary(i32Type);
             auto elemType = toBCType(ie.e1.type.nextOf);
             auto elemSize = _sharedCtfeState.size(elemType);
+
             Mul3(effectiveAddr, index, imm32(elemSize));
             Add3(effectiveAddr, effectiveAddr, baseAddr);
             if (elemSize > 4 && elemSize != 8)
@@ -5024,8 +5097,11 @@ static if (is(BCGen))
                 }
                 else if (lhs.type.type == BCTypeEnum.Slice && rhs.type.type == BCTypeEnum.Array)
                 {
-                    //TODO maybe we should copy here ?
-                    bailout("Slice = Array -- don't know what to do");
+                    if (ae.op == TOKconstruct)
+                        Alloc(lhs.i32, imm32(SliceDescriptor.Size));
+
+                    MemCpy(lhs.i32, rhs.i32, imm32(SliceDescriptor.Size));
+                    //bailout("Slice = Array -- don't know what to do");
                 }
                 else if (lhs.type.type == BCTypeEnum.Slice && rhs.type.type == BCTypeEnum.Null)
                 {
@@ -5574,7 +5650,7 @@ static if (is(BCGen))
 
         foreach (i, arg; *ce.arguments)
         {
-            bc_args[i] = genExpr(arg);
+            bc_args[i] = genExpr(arg, "CallExpssion Argument");
             if (bc_args[i].vType == BCValueType.Unknown)
             {
                 bailout(arg.toString ~ "did not evaluate to a valid argument");
@@ -5751,7 +5827,7 @@ static if (is(BCGen))
         auto toType = toBCType(ce.type);
         auto fromType = toBCType(ce.e1.type);
 
-        retval = genExpr(ce.e1);
+        retval = genExpr(ce.e1, "CastExp.e1");
         if (toType == fromType)
         {
             //newCTFE does not need to cast
