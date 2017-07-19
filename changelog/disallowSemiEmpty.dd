@@ -1,5 +1,0 @@
-Deprecate empty statements made by semicolon
-
-Creating empty statements using semicolons, for which
-was previously issued a warning is now causing a deprecation
-hint.
