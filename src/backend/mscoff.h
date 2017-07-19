@@ -23,8 +23,8 @@ struct filehdr
         unsigned long f_nscns;      // number of sections
         unsigned long f_symptr;     // file offset of symbol table
         unsigned long f_nsyms;      // number of entries in the symbol table
-        
-        
+
+
 #define IMAGE_FILE_MACHINE_UNKNOWN 0            // applies to any machine type
 #define IMAGE_FILE_MACHINE_I386    0x14C        // x86
 #define IMAGE_FILE_MACHINE_AMD64   0x8664       // x86_64
@@ -267,7 +267,7 @@ union auxent
 
     // Section definitions
     struct
-    {   
+    {
         unsigned length;
         unsigned short NumberOfRelocations;
         unsigned short NumberOfLinenumbers;

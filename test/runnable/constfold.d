@@ -743,6 +743,37 @@ void test3697or()
     auto z = y || 1 / x;
 }
 
+/************************************/
+// 14459
+
+void test14459()
+{
+    const char* s0 = "hi0";
+    const(char)* p0 = s0;
+    assert(p0 == s0);
+
+    const char* s1 = "hi1";
+    const char* s2 = "hi2";
+    const char* s3 = "hi3";
+    const char* s4 = "hi4";
+    const char* s5 = "hi5";
+    const char* s6 = "hi6";
+    const char* s7 = "hi7";
+    const char* s8 = "hi8";
+    const char* s9 = "hi9";
+    const char* s10 = "hi10";
+    const char* s11 = "hi11";
+    const char* s12 = "hi12";
+    const char* s13 = "hi13";
+    const char* s14 = "hi14";
+    const char* s15 = "hi15";
+    assert(p0 == s0);           // ok
+    const char* s16 = "hi16";
+    assert(p0 == s0);           // ok <- fails
+}
+
+/************************************/
+
 int main()
 {
     test1();
@@ -757,6 +788,7 @@ int main()
     test11159();
     test13977();
     test13978();
+    test14459();
 
     printf("Success\n");
     return 0;

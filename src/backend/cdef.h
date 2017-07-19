@@ -13,7 +13,6 @@
 /* Macros defined by the compiler, not the code:
 
     Compiler:
-        __SC__          Symantec compiler
         __DMC__         Digital Mars compiler
         _MSC_VER        Microsoft compiler
         __GNUC__        Gnu compiler
@@ -576,7 +575,6 @@ typedef int bool;
 #define _far
 #define __far
 #define __cs
-#define __ss
 #endif
 
 #if _WINDLL
@@ -680,8 +678,8 @@ struct Config
     unsigned objfmt;            // target object format
 #define OBJ_OMF         1
 #define OBJ_MSCOFF      2
-#define OBJ_ELF         3
-#define OBJ_MACH        4
+#define OBJ_ELF         4
+#define OBJ_MACH        8
     unsigned exe;               // target operating system
 #define EX_DOSX         1       // DOSX 386 program
 #define EX_ZPM          2       // ZPM 286 program

@@ -654,6 +654,18 @@
 				>
 			</File>
 			<File
+				RelativePath=".\objc.h"
+				>
+			</File>
+			<File
+				RelativePath=".\objc_glue_stubs.c"
+				>
+			</File>
+			<File
+				RelativePath=".\objc_stubs.c"
+				>
+			</File>
+			<File
 				RelativePath=".\objfile.h"
 				>
 			</File>
@@ -1426,6 +1438,10 @@
 				</File>
 				<File
 					RelativePath=".\root\man.c"
+					>
+				</File>
+				<File
+					RelativePath=".\root\newdelete.c"
 					>
 				</File>
 				<File

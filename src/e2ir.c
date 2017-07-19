@@ -54,7 +54,6 @@ Symbol *toSymbol(Dsymbol *s);
 elem *toElem(Expression *e, IRState *irs);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 Symbol *toStringSymbol(const char *str, size_t len, size_t sz);
-Symbol *toStringDarraySymbol(const char *str, size_t len, size_t sz);
 void toObjFile(Dsymbol *ds, bool multiobj);
 Symbol *toModuleAssert(Module *m);
 Symbol *toModuleUnittest(Module *m);
@@ -70,6 +69,10 @@ void genTypeInfo(Type *t, Scope *sc);
 
 int callSideEffectLevel(FuncDeclaration *f);
 int callSideEffectLevel(Type *t);
+
+void objc_callfunc_setupMethodSelector(Type *tret, FuncDeclaration *fd, Type *t, elem *ehidden, elem **esel);
+void objc_callfunc_setupMethodCall(elem **ec, elem *ehidden, elem *ethis, TypeFunction *tf);
+void objc_callfunc_setupEp(elem *esel, elem **ep, int reverse);
 
 #define el_setLoc(e,loc)        ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
                                  (e)->Esrcpos.Slinnum = (loc).linnum, \
@@ -121,7 +124,8 @@ elem *callfunc(Loc loc,
         FuncDeclaration *fd,    // if !=NULL, this is the function being called
         Type *t,                // TypeDelegate or TypeFunction for this function
         elem *ehidden,          // if !=NULL, this is the 'hidden' argument
-        Expressions *arguments)
+        Expressions *arguments,
+        elem *esel = NULL)      // selector for Objective-C methods (when not provided by fd)
 {
     elem *ep;
     elem *e;
@@ -235,6 +239,9 @@ elem *callfunc(Loc loc,
         }
     }
 
+    objc_callfunc_setupMethodSelector(tret, fd, t, ehidden, &esel);
+    objc_callfunc_setupEp(esel, &ep, reverse);
+
     if (retmethod == RETstack)
     {
         if (!ehidden)
@@ -294,7 +301,11 @@ elem *callfunc(Loc loc,
         }
         Symbol *sfunc = toSymbol(fd);
 
-        if (!fd->isVirtual() ||
+        if (esel)
+        {
+            objc_callfunc_setupMethodCall(&ec, ehidden, ethis, tf);
+        }
+        else if (!fd->isVirtual() ||
             directcall ||               // BUG: fix
             fd->isFinalFunc()
            /* Future optimization: || (whole program analysis && not overridden)
@@ -703,9 +714,8 @@ elem *getTypeInfo(Type *t, IRState *irs)
 }
 
 /********************************************
- * Determine if t is an array of structs that need a postblit.
+ * Determine if t is a struct that has postblit.
  */
-
 StructDeclaration *needsPostblit(Type *t)
 {
     t = t->baseElemOf();
@@ -713,6 +723,21 @@ StructDeclaration *needsPostblit(Type *t)
     {
         StructDeclaration *sd = ((TypeStruct *)t)->sym;
         if (sd->postblit)
+            return sd;
+    }
+    return NULL;
+}
+
+/********************************************
+ * Determine if t is a struct that has destructor.
+ */
+StructDeclaration *needsDtor(Type *t)
+{
+    t = t->baseElemOf();
+    if (t->ty == Tstruct)
+    {
+        StructDeclaration *sd = ((TypeStruct *)t)->sym;
+        if (sd->dtor)
             return sd;
     }
     return NULL;
@@ -795,10 +820,9 @@ Lagain:
              */
             if (op != TOKblit)
             {
-                StructDeclaration *sd = needsPostblit(tb);
-                if (sd)
+                if (needsPostblit(tb) || needsDtor(tb))
                 {
-                    /* Need to do postblit.
+                    /* Need to do postblit/destructor.
                      *   void *_d_arraysetassign(void *p, void *value, int dim, TypeInfo ti);
                      */
                     r = (op == TOKconstruct) ? RTLSYM_ARRAYSETCTOR : RTLSYM_ARRAYSETASSIGN;
@@ -962,8 +986,28 @@ elem *toElem(Expression *e, IRState *irs)
                     elem *ethis = getEthis(se->loc, irs, fd);
                     ethis = el_una(OPaddr, TYnptr, ethis);
 
+                    /* Bugzilla 9383: If 's' is a virtual function parameter
+                     * placed in closure, and actually accessed from in/out
+                     * contract, instead look at the original stack data.
+                     */
+                    bool forceStackAccess = false;
+                    if (s->Sclass == SCparameter &&
+                        fd->isVirtual() && (fd->fdrequire || fd->fdensure))
+                    {
+                        Dsymbol *sx = irs->getFunc();
+                        while (sx != fd)
+                        {
+                            if (sx->ident == Id::require || sx->ident == Id::ensure)
+                            {
+                                forceStackAccess = true;
+                                break;
+                            }
+                            sx = sx->toParent2();
+                        }
+                    }
+
                     int soffset;
-                    if (v && v->offset)
+                    if (v && v->offset && !forceStackAccess)
                         soffset = v->offset;
                     else
                     {
@@ -1328,8 +1372,8 @@ elem *toElem(Expression *e, IRState *irs)
             Type *tb = se->type->toBasetype();
             if (tb->ty == Tarray)
             {
-                Symbol *si = toStringDarraySymbol((const char *)se->string, se->len, se->sz);
-                e = el_var(si);
+                Symbol *si = toStringSymbol((const char *)se->string, se->len, se->sz);
+                e = el_pair(TYdarray, el_long(TYsize_t, se->len), el_ptr(si));
             }
             else if (tb->ty == Tsarray)
             {
@@ -2574,18 +2618,19 @@ elem *toElem(Expression *e, IRState *irs)
 
                     /* Determine if we need to do postblit
                      */
-                    int postblit = 0;
+                    bool postblit = false;
                     if (needsPostblit(t1->nextOf()) &&
                         (ae->e2->op == TOKslice && ((UnaExp *)ae->e2)->e1->isLvalue() ||
                          ae->e2->op == TOKcast  && ((UnaExp *)ae->e2)->e1->isLvalue() ||
                          ae->e2->op != TOKslice && ae->e2->isLvalue()))
                     {
-                        postblit = 1;
+                        postblit = true;
                     }
+                    bool destructor = needsDtor(t1->nextOf()) != NULL;
 
                     assert(ae->e2->type->ty != Tpointer);
 
-                    if (!postblit && !irs->arrayBoundsCheck())
+                    if (!postblit && !destructor && !irs->arrayBoundsCheck())
                     {
                         elem *ex = el_same(&eto);
 
@@ -2610,7 +2655,7 @@ elem *toElem(Expression *e, IRState *irs)
                         e = el_pair(eto->Ety, el_copytree(elen), e);
                         e = el_combine(eto, e);
                     }
-                    else if (postblit && ae->op != TOKblit)
+                    else if ((postblit || destructor) && ae->op != TOKblit)
                     {
                         /* Generate:
                          *      _d_arrayassign(ti, efrom, eto)
@@ -2798,6 +2843,7 @@ elem *toElem(Expression *e, IRState *irs)
                 assert(ae->e2->type->toBasetype()->ty == Tsarray);
 
                 bool postblit = needsPostblit(t1b->nextOf()) != NULL;
+                bool destructor = needsDtor(t1b->nextOf()) != NULL;
 
                 /* Optimize static array assignment with array literal.
                  * Rewrite:
@@ -2890,8 +2936,10 @@ elem *toElem(Expression *e, IRState *irs)
 
                 elem *e2 = toElem(ae->e2, irs);
 
-                if (!postblit || (!lvalueElem && ae->op == TOKconstruct) ||
-                    ae->op == TOKblit || type_size(e1->ET) == 0)
+                if (!postblit && !destructor ||
+                    ae->op == TOKconstruct && !lvalueElem && postblit ||
+                    ae->op == TOKblit ||
+                    type_size(e1->ET) == 0)
                 {
                     e = el_bin(OPstreq, tym, e1, e2);
                     e->ET = Type_toCtype(ae->e1->type);
@@ -3931,15 +3979,12 @@ elem *toElem(Expression *e, IRState *irs)
                 goto Lret;
             }
 
-            // Casting from base class to derived class requires a runtime check
+            // Casting between class/interface may require a runtime check
             if (fty == Tclass && tty == Tclass)
             {
-                // Casting from derived class to base class is a no-op
-                int offset;
-                int rtl = RTLSYM_DYNAMIC_CAST;
-
                 ClassDeclaration *cdfrom = tfrom->isClassHandle();
                 ClassDeclaration *cdto   = t->isClassHandle();
+
                 if (cdfrom->cpp)
                 {
                     if (cdto->cpp)
@@ -3961,13 +4006,14 @@ elem *toElem(Expression *e, IRState *irs)
                     e = el_bin(OPcomma, TYnptr, e, el_long(TYnptr, 0));
                     goto Lret;
                 }
-                if (cdfrom->isInterfaceDeclaration())
-                {
-                    rtl = RTLSYM_INTERFACE_CAST;
-                }
+
+                int offset;
                 if (cdto->isBaseOf(cdfrom, &offset) && offset != OFFSET_RUNTIME)
                 {
-                    /* The offset from cdfrom=>cdto is known at compile time.
+                    /* The offset from cdfrom => cdto is known at compile time.
+                     * Cases:
+                     *  - class => base class (upcast)
+                     *  - class => base interface (upcast)
                      */
 
                     //printf("offset = %d\n", offset);
@@ -3988,13 +4034,26 @@ elem *toElem(Expression *e, IRState *irs)
                             e = el_bin(OPcond, TYnptr, e, ex);
                         }
                     }
-                    goto Lret;                  // no-op
+                    else
+                    {
+                        // Casting from derived class to base class is a no-op
+                    }
                 }
-
-                /* The offset from cdfrom=>cdto can only be determined at runtime.
-                 */
-                elem *ep = el_param(el_ptr(toSymbol(cdto)), e);
-                e = el_bin(OPcall, TYnptr, el_var(rtlsym[rtl]), ep);
+                else
+                {
+                    /* The offset from cdfrom => cdto can only be determined at runtime.
+                     * Cases:
+                     *  - class     => derived class (downcast)
+                     *  - interface => derived class (downcast)
+                     *  - class     => foreign interface (cross cast)
+                     *  - interface => base or foreign interface (cross cast)
+                     */
+                    int rtl = cdfrom->isInterfaceDeclaration()
+                                ? RTLSYM_INTERFACE_CAST
+                                : RTLSYM_DYNAMIC_CAST;
+                    elem *ep = el_param(el_ptr(toSymbol(cdto)), e);
+                    e = el_bin(OPcall, TYnptr, el_var(rtlsym[rtl]), ep);
+                }
                 goto Lret;
             }
 
@@ -5561,28 +5620,6 @@ Symbol *toStringSymbol(const char *str, size_t len, size_t sz)
     return (Symbol *)sv->ptrvalue;
 }
 
-/*******************************************************
- * Write read-only string to object file as a darray, create a local symbol for it.
- */
-
-Symbol *toStringDarraySymbol(const char *str, size_t len, size_t sz)
-{
-    Symbol *si = toStringSymbol(str, len, sz);
-
-    /* sida shold be cached along with si, but currently StringTable only gives us one
-     * slot, 'ptrvalue'.
-     */
-    dt_t *dt = NULL;
-    dtsize_t(&dt, len);
-    dtxoff(&dt, si, 0);
-
-    Symbol *sida = symbol_generate(SCstatic,type_fake(TYdarray));
-    sida->Sdt = dt;
-    sida->Sfl = FLdata;
-    out_readonly(sida);
-    outdata(sida);
-    return sida;
-}
 
 /******************************************************
  * Return an elem that is the file, line, and function suitable

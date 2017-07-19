@@ -855,7 +855,18 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                     check(TOKrparen);           // pragma(identifier)
 
                 Dsymbols *a2 = NULL;
-                if (token.value != TOKsemicolon)
+                if (token.value == TOKsemicolon)
+                {
+                    /* Bugzilla 2354: Accept single semicolon as an empty
+                     * DeclarationBlock following attribute.
+                     *
+                     * Attribute DeclarationBlock
+                     * Pragma    DeclDef
+                     *           ;
+                     */
+                    nextToken();
+                }
+                else
                     a2 = parseBlock(pLastDecl);
                 s = new PragmaDeclaration(loc, ident, args, a2);
                 break;
@@ -979,9 +990,7 @@ StorageClass Parser::appendStorageClass(StorageClass storageClass, StorageClass 
         (stc & STCin && storageClass & (STCconst | STCscope)))
     {
         OutBuffer buf;
-        StorageClassDeclaration::stcToCBuffer(&buf, stc);
-        if (buf.data[buf.offset - 1] == ' ')
-            buf.data[buf.offset - 1] = '\0';
+        stcToBuffer(&buf, stc);
         if (deprec)
             deprecation("redundant attribute '%s'", buf.peekString());
         else
@@ -1324,13 +1333,30 @@ LINK Parser::parseLinkage(Identifiers **pidents)
                 }
             }
         }
+        else if (id == Id::Objective) // Looking for tokens "Objective-C"
+        {
+            if (token.value == TOKmin)
+            {
+                nextToken();
+                if (token.ident == Id::C)
+                {
+                    link = LINKobjc;
+                    nextToken();
+                }
+                else
+                    goto LinvalidLinkage;
+            }
+            else
+                goto LinvalidLinkage;
+        }
         else if (id == Id::System)
         {
             link = global.params.isWindows ? LINKwindows : LINKc;
         }
         else
         {
-            error("valid linkage identifiers are D, C, C++, Pascal, Windows, System");
+        LinvalidLinkage:
+            error("valid linkage identifiers are D, C, C++, Objective-C, Pascal, Windows, System");
             link = LINKd;
         }
     }
@@ -1639,9 +1665,7 @@ Dsymbol *Parser::parseStaticCtor(PrefixAttributes *pAttrs)
     else if (StorageClass modStc = stc & STC_TYPECTOR)
     {
         OutBuffer buf;
-        StorageClassDeclaration::stcToCBuffer(&buf, modStc);
-        if (buf.data[buf.offset - 1] == ' ')
-            buf.data[buf.offset - 1] = '\0';
+        stcToBuffer(&buf, modStc);
         error(loc, "static constructor cannot be %s", buf.peekString());
     }
     stc &= ~(STCstatic | STC_TYPECTOR);
@@ -1679,9 +1703,7 @@ Dsymbol *Parser::parseStaticDtor(PrefixAttributes *pAttrs)
     else if (StorageClass modStc = stc & STC_TYPECTOR)
     {
         OutBuffer buf;
-        StorageClassDeclaration::stcToCBuffer(&buf, modStc);
-        if (buf.data[buf.offset - 1] == ' ')
-            buf.data[buf.offset - 1] = '\0';
+        stcToBuffer(&buf, modStc);
         error(loc, "static destructor cannot be %s", buf.peekString());
     }
     stc &= ~(STCstatic | STC_TYPECTOR);
@@ -1723,9 +1745,7 @@ Dsymbol *Parser::parseSharedStaticCtor(PrefixAttributes *pAttrs)
     else if (StorageClass modStc = stc & STC_TYPECTOR)
     {
         OutBuffer buf;
-        StorageClassDeclaration::stcToCBuffer(&buf, modStc);
-        if (buf.data[buf.offset - 1] == ' ')
-            buf.data[buf.offset - 1] = '\0';
+        stcToBuffer(&buf, modStc);
         error(loc, "shared static constructor cannot be %s", buf.peekString());
     }
     stc &= ~(STCstatic | STC_TYPECTOR);
@@ -1762,9 +1782,7 @@ Dsymbol *Parser::parseSharedStaticDtor(PrefixAttributes *pAttrs)
     else if (StorageClass modStc = stc & STC_TYPECTOR)
     {
         OutBuffer buf;
-        StorageClassDeclaration::stcToCBuffer(&buf, modStc);
-        if (buf.data[buf.offset - 1] == ' ')
-            buf.data[buf.offset - 1] = '\0';
+        stcToBuffer(&buf, modStc);
         error(loc, "shared static destructor cannot be %s", buf.peekString());
     }
     stc &= ~(STCstatic | STC_TYPECTOR);

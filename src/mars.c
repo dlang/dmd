@@ -41,6 +41,7 @@
 #include "declaration.h"
 #include "hdrgen.h"
 #include "doc.h"
+#include "objc.h"
 
 bool response_expand(Strings *arguments);
 
@@ -1192,6 +1193,7 @@ Language changes listed by -transition=id:\n\
         VersionCondition::addPredefinedGlobalIdent("D_NoBoundsChecks");
 
     VersionCondition::addPredefinedGlobalIdent("D_HardFloat");
+    objc_tryMain_dObjc();
 
     // Initialization
     Lexer::initLexer();
@@ -1200,6 +1202,7 @@ Language changes listed by -transition=id:\n\
     Module::init();
     Target::init();
     Expression::init();
+    objc_tryMain_init();
     initPrecedence();
     builtin_init();
     initTraitsStringTable();
@@ -1897,7 +1900,5 @@ static const char* parse_conf_arg(Strings *args)
 }
 
 Dsymbols *Dsymbols_create() { return new Dsymbols(); }
-Symbols *Symbols_create() { return new Symbols(); }
 VarDeclarations *VarDeclarations_create() { return new VarDeclarations(); }
-Blocks *Blocks_create() { return new Blocks(); }
 Expressions *Expressions_create() { return new Expressions(); }
