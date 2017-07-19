@@ -109,6 +109,7 @@ public:
     virtual GotoCaseStatement *isGotoCaseStatement() { return NULL; }
     virtual BreakStatement *isBreakStatement() { return NULL; }
     virtual DtorExpStatement *isDtorExpStatement() { return NULL; }
+    virtual ForwardingStatement *isForwardingStatement() { return NULL; }
     virtual void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -227,6 +228,7 @@ class ForwardingStatement : public Statement
     Statement *statement;
     ForwardingScopeDsymbol *sym;
 
+    ForwardingStatement *isForwardingStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 

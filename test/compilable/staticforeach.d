@@ -558,11 +558,11 @@ struct TestStaticForeach{
 static:
     int test(int x){
         int r=0;
-        switch(x){
+    label: switch(x){
             static foreach(i;0..10){
-                case i: r=i; break;
+                case i: r=i; break label; // TODO: remove label when restriction is lifted
             }
-            default: r=-1; break;
+            default: r=-1; break label;
         }
         return r;
     }
@@ -615,12 +615,12 @@ static foreach(i;Seq!(1,2,3,4,int)){
 
 int fun(int x){
     int r=0;
-    switch(x){
+    label: switch(x){
         static foreach(i;Seq!(0,1,2,3,4,5,6)){
             static if (i < 5)
-                case i: r=i; break; // TODO: error?
+                case i: r=i; break label; // TODO: remove label when restriction is lifted
         }
-        default: r=-1; break;
+        default: r=-1; break label;
     }
     return r;
 }
@@ -638,3 +638,36 @@ auto bug17660(){
     return x;
 }
 static assert(bug17660()==3);
+
+int breakContinueBan(){
+    static assert(!is(typeof({
+        for(;;){
+            static foreach(i;0..1){
+                break;
+            }
+        }
+    })));
+    static assert(!is(typeof({
+        for(;;){
+            static foreach(i;0..1){
+                continue;
+            }
+        }
+    })));
+    Louter1: for(;;){
+        static foreach(i;0..1){
+            break Louter1;
+        }
+    }
+    Louter2: foreach(i;0..10){
+        static foreach(j;0..1){
+            continue Louter2;
+        }
+        return 0;
+    }
+    static foreach(i;0..1){
+        for(;;){ break; } // ok
+    }
+    return 1;
+}
+static assert(breakContinueBan()==1);

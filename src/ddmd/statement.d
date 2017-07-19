@@ -389,6 +389,11 @@ extern (C++) abstract class Statement : RootObject
         return null;
     }
 
+    ForwardingStatement isForwardingStatement()
+    {
+        return null;
+    }
+
     void accept(Visitor v)
     {
         v.visit(this);
@@ -1094,6 +1099,11 @@ extern (C++) final class ForwardingStatement : Statement
             (*b)[i] = s ? new ForwardingStatement(s.loc, sym, s) : null;
         }
         return b;
+    }
+
+    override ForwardingStatement isForwardingStatement()
+    {
+        return this;
     }
 
     override void accept(Visitor v){
