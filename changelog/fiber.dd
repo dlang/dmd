@@ -1,7 +1,0 @@
-Add Fiber's stack-protection page for Posix.
-
-The feature already existing for Windows' fiber implementation is now added to
-the systems using mmap to allocate fibers' stacks: After (or before) the last
-page used for the Fiber's stack, the page is allocate which is protected for
-any kind of access. This will cause system to trap immediately on the fiber's
-stack overflow.
