@@ -43,4 +43,6 @@ void arrayObjectsToBuffer(OutBuffer *buf, Objects *objects);
 
 const char *parametersTypeToChars(Parameters *parameters, int varargs);
 
+bool stcToBuffer(OutBuffer *buf, StorageClass stc);
+const char *stcToChars(StorageClass& stc);
 const char *linkageToChars(LINK linkage);

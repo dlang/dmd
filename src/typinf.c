@@ -332,7 +332,7 @@ public:
         const char *name = sd->toPrettyChars();
         size_t namelen = strlen(name);
         dtsize_t(pdt, namelen);
-        dtabytes(pdt, 0, namelen + 1, name);
+        dtxoff(pdt, d->csym, Type::typeinfoenum->structsize);
 
         // void[] init;
         if (!sd->members || d->tinfo->isZeroInit())
@@ -346,6 +346,9 @@ public:
             dtsize_t(pdt, sd->type->size()); // init.length
             dtxoff(pdt, toInitializer(sd), 0);    // init.ptr
         }
+
+        // Put out name[] immediately following TypeInfo_Enum
+        dtnbytes(pdt, namelen + 1, name);
     }
 
     void visit(TypeInfoPointerDeclaration *d)
@@ -452,7 +455,10 @@ public:
         assert(name);
         size_t namelen = strlen(name);
         dtsize_t(pdt, namelen);
-        dtabytes(pdt, 0, namelen + 1, name);
+        dtxoff(pdt, d->csym, Type::typeinfofunction->structsize);
+
+        // Put out name[] immediately following TypeInfo_Function
+        dtnbytes(pdt, namelen + 1, name);
     }
 
     void visit(TypeInfoDelegateDeclaration *d)
@@ -474,7 +480,10 @@ public:
         assert(name);
         size_t namelen = strlen(name);
         dtsize_t(pdt, namelen);
-        dtabytes(pdt, 0, namelen + 1, name);
+        dtxoff(pdt, d->csym, Type::typeinfodelegate->structsize);
+
+        // Put out name[] immediately following TypeInfo_Delegate
+        dtnbytes(pdt, namelen + 1, name);
     }
 
     void visit(TypeInfoStructDeclaration *d)
@@ -541,7 +550,7 @@ public:
         const char *name = sd->toPrettyChars();
         size_t namelen = strlen(name);
         dtsize_t(pdt, namelen);
-        dtabytes(pdt, 0, namelen + 1, name);
+        dtxoff(pdt, d->csym, Type::typeinfostruct->structsize);
 
         // void[] init;
         dtsize_t(pdt, sd->structsize);       // init.length
@@ -639,6 +648,9 @@ public:
             dtsize_t(pdt, 1);
         else
             dtsize_t(pdt, 0);
+
+        // Put out name[] immediately following TypeInfo_Struct
+        dtnbytes(pdt, namelen + 1, name);
     }
 
     void visit(TypeInfoClassDeclaration *d)

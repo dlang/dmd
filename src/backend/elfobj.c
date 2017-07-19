@@ -1839,6 +1839,15 @@ int ElfObj::getsegment(const char *name, const char *suffix, int type, int flags
     return seg;
 }
 
+/**********************************
+ * Reset code seg to existing seg.
+ * Used after a COMDAT for a function is done.
+ */
+
+void Obj::setcodeseg(int seg)
+{
+}
+
 /********************************
  * Define a new code segment.
  * Input:
@@ -3493,7 +3502,8 @@ static void obj_rtinit()
 
         // put a reference into .ctors/.dtors each
         const char *p[] = {".dtors.d_dso_dtor", ".ctors.d_dso_ctor"};
-        const int flags = SHF_ALLOC|SHF_GROUP;
+        // needs to be writeable for PIC code, see Bugzilla 13117
+        const int flags = SHF_ALLOC | SHF_WRITE | SHF_GROUP;
         for (size_t i = 0; i < 2; ++i)
         {
             seg = ElfObj::getsegment(p[i], NULL, SHT_PROGBITS, flags, NPTRSIZE);

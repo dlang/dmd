@@ -20,7 +20,24 @@
 #include        "code.h"
 #include        "global.h"
 
-static code *code_list;
+code *code_list = NULL;
+
+/************************************
+ * Allocate a chunk of code's and add them to
+ * code_list.
+ */
+code *code_chunk_alloc()
+{
+    const size_t n = 4096 / sizeof(code);
+    code *chunk = (code *)mem_fmalloc(n * sizeof(code));
+    for (size_t i = 0; i < n - 1; ++i)
+    {
+        code_next(&chunk[i]) = &chunk[i + 1];
+    }
+    code_next(&chunk[n - 1]) = NULL;
+    code_list = chunk;
+    return chunk;
+}
 
 /*****************
  * Allocate code
@@ -29,20 +46,7 @@ static code *code_list;
 code *code_calloc()
 {
     //printf("code %d\n", sizeof(code));
-    code *c = code_list;
-    if (!c)
-    {
-        const size_t n = 4096 / sizeof(*c);
-        code *chunk = (code *)mem_fmalloc(n * sizeof(code));
-        for (size_t i = 0; i < n - 1; ++i)
-        {
-            code_next(&chunk[i]) = &chunk[i + 1];
-        }
-        code_next(&chunk[n - 1]) = NULL;
-        code_list = chunk;
-        c = chunk;
-    }
-
+    code *c = code_list ? code_list : code_chunk_alloc();
     code_list = code_next(c);
     MEMCLEAR(c, sizeof(*c));
 

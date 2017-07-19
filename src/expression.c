@@ -939,7 +939,7 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
  * Perform semantic() on an array of Expressions.
  */
 
-bool arrayExpressionSemantic(Expressions *exps, Scope *sc)
+bool arrayExpressionSemantic(Expressions *exps, Scope *sc, bool preserveErrors)
 {
     bool err = false;
     if (exps)
@@ -952,7 +952,7 @@ bool arrayExpressionSemantic(Expressions *exps, Scope *sc)
                 e = e->semantic(sc);
                 if (e->op == TOKerror)
                     err = true;
-                else
+                if (preserveErrors || e->op != TOKerror)
                     (*exps)[i] = e;
             }
         }
@@ -2750,7 +2750,7 @@ Lagain:
         /* Don't really need to check for opCast first, but by doing so we
          * get better error messages if it isn't there.
          */
-        Dsymbol *fd = search_function(ad, Id::cast);
+        Dsymbol *fd = search_function(ad, Id::_cast);
         if (fd)
         {
             e = new CastExp(loc, e, Type::tbool);
@@ -3335,13 +3335,22 @@ Lagain:
 
     //printf("DsymbolExp:: %p '%s' is a symbol\n", this, toChars());
     //printf("s = '%s', s->kind = '%s'\n", s->toChars(), s->kind());
-    if (!s->isFuncDeclaration())        // functions are checked after overloading
-        checkDeprecated(sc, s);
     Dsymbol *olds = s;
-    s = s->toAlias();
-    //printf("s = '%s', s->kind = '%s', s->needThis() = %p\n", s->toChars(), s->kind(), s->needThis());
-    if (s != olds && !s->isFuncDeclaration())
-        checkDeprecated(sc, s);
+    Declaration *d = s->isDeclaration();
+    if (d && (d->storage_class & STCtemplateparameter))
+    {
+        s = s->toAlias();
+    }
+    else
+    {
+        if (!s->isFuncDeclaration())        // functions are checked after overloading
+            checkDeprecated(sc, s);
+        s = s->toAlias();
+        //printf("s = '%s', s->kind = '%s', s->needThis() = %p\n", s->toChars(), s->kind(), s->needThis());
+        if (s != olds && !s->isFuncDeclaration())
+            checkDeprecated(sc, s);
+    }
+
 
     if (VarDeclaration *v = s->isVarDeclaration())
     {
@@ -4383,9 +4392,6 @@ Expression *StructLiteralExp::semantic(Scope *sc)
     if (!sd->fit(loc, sc, elements, stype))
         return new ErrorExp();
 
-    if (checkFrameAccess(loc, sc, sd, elements->dim))
-        return new ErrorExp();
-
     /* Fill out remainder of elements[] with default initializers for fields[]
      */
     if (!sd->fill(loc, elements, false))
@@ -4397,6 +4403,10 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         global.increaseErrorCount();
         return new ErrorExp();
     }
+
+    if (checkFrameAccess(loc, sc, sd, elements->dim))
+        return new ErrorExp();
+
     type = stype ? stype : sd->type;
     return this;
 }
@@ -5068,13 +5078,17 @@ Lagain:
 
             member = f->isCtorDeclaration();
             assert(member);
+
+            if (checkFrameAccess(loc, sc, sd, sd->fields.dim))
+                return new ErrorExp();
         }
         else
         {
             if (!sd->fit(loc, sc, arguments, tb))
                 return new ErrorExp();
-
             if (!sd->fill(loc, arguments, false))
+                return new ErrorExp();
+            if (checkFrameAccess(loc, sc, sd, arguments ? arguments->dim : 0))
                 return new ErrorExp();
         }
 
@@ -7128,7 +7142,7 @@ Expression *DotIdExp::semanticX(Scope *sc)
     if (Expression *ex = unaSemantic(sc))
         return ex;
 
-    if (ident == Id::mangleof)
+    if (ident == Id::_mangleof)
     {
         // symbol.mangleof
         Dsymbol *ds;
@@ -7439,9 +7453,9 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
         return new ErrorExp();
     }
     else if (t1b->ty == Tpointer && e1->type->ty != Tenum &&
-             ident != Id::init && ident != Id::__sizeof &&
+             ident != Id::_init && ident != Id::__sizeof &&
              ident != Id::__xalignof && ident != Id::offsetof &&
-             ident != Id::mangleof && ident != Id::stringof)
+             ident != Id::_mangleof && ident != Id::stringof)
     {
         Type *t1bn = t1b->nextOf();
         if (flag)
@@ -8451,6 +8465,8 @@ Lagain:
 
                 StructLiteralExp *sle = new StructLiteralExp(loc, sd, NULL, e1->type);
                 if (!sd->fill(loc, sle->elements, true))
+                    return new ErrorExp();
+                if (checkFrameAccess(loc, sc, sd, sle->elements->dim))
                     return new ErrorExp();
                 // Bugzilla 14556: Set concrete type to avoid further redundant semantic().
                 sle->type = e1->type;
@@ -13546,6 +13562,18 @@ Expression *EqualExp::semantic(Scope *sc)
         return e;
     }
 
+    if (t1->ty == Tpointer || t2->ty == Tpointer)
+    {
+        /* Rewrite:
+         *      ptr1 == ptr2
+         * as:
+         *      ptr1 is ptr2
+         */
+        e = new IdentityExp(op == TOKequal ? TOKidentity : TOKnotidentity, loc, e1, e2);
+        e = e->semantic(sc);
+        return e;
+    }
+
     if (t1->ty == Tstruct && t2->ty == Tstruct)
     {
         StructDeclaration *sd = ((TypeStruct *)t1)->sym;
@@ -13553,8 +13581,8 @@ Expression *EqualExp::semantic(Scope *sc)
         {
             if (needOpEquals(sd))
             {
-                this->e1 = new DotIdExp(loc, e1, Id::tupleof);
-                this->e2 = new DotIdExp(loc, e2, Id::tupleof);
+                this->e1 = new DotIdExp(loc, e1, Id::_tupleof);
+                this->e2 = new DotIdExp(loc, e2, Id::_tupleof);
                 e = this;
             }
             else

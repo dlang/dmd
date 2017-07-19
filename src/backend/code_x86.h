@@ -205,6 +205,7 @@ extern regm_t BYTEREGS;
 #define LOOP    0xE2
 #define LES     0xC4
 #define LEA     0x8D
+#define LOCK    0xF0
 
 #define JO      0x70
 #define JNO     0x71

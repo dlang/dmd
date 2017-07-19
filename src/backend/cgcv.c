@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2013 by Digital Mars
+// Copyright (C) 2000-2015 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -16,14 +16,6 @@
 #include        <string.h>
 #include        <time.h>
 #include        <stdlib.h>
-
-#if _WIN32 || __linux__
-#include        <malloc.h>
-#endif
-
-#if __sun
-#include        <alloca.h>
-#endif
 
 #include        "cc.h"
 #include        "type.h"
@@ -58,12 +50,6 @@ static unsigned debtyphash[DEBTYPHASHDIM];
  * in optlink/cv/cvhashes.asm
  */
 #define CVIDMAX (0xFF0-20)   // the -20 is picked by trial and error
-
-#if 0
-#define DBG(a)  a
-#else
-#define DBG(a)
-#endif
 
 #define LOCATsegrel     0xC000
 
@@ -534,17 +520,19 @@ void cv_init()
         // Put out S_TDBNAME record
         if (config.fulltypes == CVTDB)
         {
-            unsigned char *ds;
-            size_t len;
+            unsigned char buf[50];
 
             pstate.STtdbtimestamp = tdb_gettimestamp();
-            len = cv_stringbytes(ftdbname);
-            ds = (unsigned char *) alloca(8 + len);
+            size_t len = cv_stringbytes(ftdbname);
+            unsigned char *ds = (8 + len <= sizeof(buf)) ? buf : (unsigned char *) malloc(8 + len);
+            assert(ds);
             TOWORD(ds,6 + len);
             TOWORD(ds + 2,S_TDBNAME);
             TOLONG(ds + 4,pstate.STtdbtimestamp);
             cv_namestring(ds + 8,ftdbname);
             objmod->write_bytes(SegData[DEBSYM],8 + len,ds);
+            if (ds != buf)
+                free(ds);
         }
 #endif
     }
@@ -739,9 +727,7 @@ STATIC int cv4_methodlist(symbol *sf,int *pcount)
             case 0:
                 break;
             default:
-#ifdef DEBUG
                 symbol_print(s);
-#endif
                 assert(0);
         }
         TOIDX(p,attribute);
@@ -987,7 +973,7 @@ idx_t cv4_struct(Classsym *s,int flags)
         }
             break;
         default:
-#if DEBUG && SCPP
+#if SCPP
             symbol_print(s);
 #endif
             assert(0);
@@ -2228,7 +2214,8 @@ STATIC void cv4_outsym(symbol *s)
     unsigned u;
     tym_t tym;
     const char *id;
-    unsigned char __ss *debsym;
+    unsigned char *debsym = NULL;
+    unsigned char buf[64];
 
     //dbg_printf("cv4_outsym(%s)\n",s->Sident);
     symbol_debug(s);
@@ -2265,7 +2252,8 @@ STATIC void cv4_outsym(symbol *s)
 
         // Length of record
         length = 2 + 2 + 4 * 3 + intsize * 4 + 2 + cgcv.sz_idx + 1;
-        debsym = (unsigned char __ss *) alloca(length + len);
+        debsym = (length + len <= sizeof(buf)) ? buf : (unsigned char *) malloc(length + len);
+        assert(debsym);
         memset(debsym,0,length + len);
 
         // Symbol type
@@ -2340,7 +2328,8 @@ STATIC void cv4_outsym(symbol *s)
         id = prettyident(s);
 #endif
         len = strlen(id);
-        debsym = (unsigned char __ss *) alloca(39 + IDOHD + len);
+        debsym = (39 + IDOHD + len <= sizeof(buf)) ? buf : (unsigned char *) malloc(39 + IDOHD + len);
+        assert(debsym);
         switch (s->Sclass)
         {
             case SCparameter:
@@ -2403,7 +2392,7 @@ STATIC void cv4_outsym(symbol *s)
                 // Common blocks have a non-zero Sxtrnnum and an UNKNOWN seg
                 if (!(s->Sxtrnnum && s->Sseg == UNKNOWN)) // if it's not really a common block
                 {
-                        return;
+                        goto Lret;
                 }
                 /* FALL-THROUGH */
             case SCglobal:
@@ -2474,7 +2463,7 @@ STATIC void cv4_outsym(symbol *s)
                     objmod->write_long(DEBSYM,offset + fixoff,s->Soffset,
                         cgcv.LCFDpointer + fd,idx1,idx2);
                 }
-                return;
+                goto Lret;
 
 #if 1
             case SCtypedef:
@@ -2483,13 +2472,13 @@ STATIC void cv4_outsym(symbol *s)
 
             case SCstruct:
                 if (s->Sstruct->Sflags & STRnotagname)
-                    return;
+                    goto Lret;
                 goto L4;
 
             case SCenum:
 #if SCPP
                 if (CPP && s->Senum->SEflags & SENnotagname)
-                    return;
+                    goto Lret;
 #endif
             L4:
                 // Output a 'user-defined type' for the tag name
@@ -2514,11 +2503,14 @@ STATIC void cv4_outsym(symbol *s)
                 break;
 #endif
             default:
-                return;
+                goto Lret;
         }
         assert(length <= 40 + len);
         objmod->write_bytes(SegData[DEBSYM],length,debsym);
     }
+Lret:
+    if (debsym != buf)
+        free(debsym);
 }
 
 /******************************************

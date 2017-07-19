@@ -63,7 +63,7 @@ Prot getAccess(AggregateDeclaration *ad, Dsymbol *smember)
         {
             BaseClass *b = (*cd->baseclasses)[i];
 
-            Prot access = getAccess(b->base, smember);
+            Prot access = getAccess(b->sym, smember);
             switch (access.kind)
             {
                 case PROTnone:
@@ -130,9 +130,9 @@ static bool isAccessible(
             for (size_t i = 0; i < cdthis->baseclasses->dim; i++)
             {
                 BaseClass *b = (*cdthis->baseclasses)[i];
-                Prot access = getAccess(b->base, smember);
+                Prot access = getAccess(b->sym, smember);
                 if (access.kind >= PROTprotected ||
-                    isAccessible(smember, sfunc, b->base, cdscope))
+                    isAccessible(smember, sfunc, b->sym, cdscope))
                 {
                     return true;
                 }
@@ -148,7 +148,7 @@ static bool isAccessible(
                 for (size_t i = 0; i < cdthis->baseclasses->dim; i++)
                 {
                     BaseClass *b = (*cdthis->baseclasses)[i];
-                    if (isAccessible(smember, sfunc, b->base, cdscope))
+                    if (isAccessible(smember, sfunc, b->sym, cdscope))
                         return true;
                 }
             }

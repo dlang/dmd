@@ -13,4 +13,4 @@ bool lookup(bool[string] aa, string n)
     return p !is null;
 }
 
-auto dropdefaultctor = ["Loc", "Token", "HdrGenState", "CtfeStack", "InterState", "BaseClass", "Mem", "StringValue", "OutBuffer", "Scope", "DocComment", "PrefixAttributes", "Prot", "UnionExp"];
+auto dropdefaultctor = ["Loc", "Token", "HdrGenState", "CtfeStack", "InterState", "BaseClass", "Mem", "StringValue", "OutBuffer", "Scope", "DocComment", "PrefixAttributes", "Prot", "UnionExp", "Objc_FuncDeclaration"];

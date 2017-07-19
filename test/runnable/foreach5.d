@@ -1032,6 +1032,57 @@ void test13756()
 }
 
 /***************************************/
+// 14653
+
+static string result14653;
+
+class RangeClass14653
+{
+    int a;
+
+    this(T)(T...) { result14653 ~= "c"; }
+    ~this()       { result14653 ~= "d"; a = -1; }
+
+    @property bool empty() { result14653 ~= "e"; return a >= 2; }
+    @property int front()  { result14653 ~= "f"; assert(a >= 0); return a; }
+    void popFront()        { result14653 ~= "p"; ++a; }
+}
+
+auto scoped14653(T, A...)(A args)
+{
+    static struct Scoped(T)
+    {
+        void[__traits(classInstanceSize, T)] store;
+        T payload() { return cast(T)cast(void*)store.ptr; }
+        alias payload this;
+
+        ~this()
+        {
+            //.destroy(payload);
+            payload.__dtor();
+            (cast(byte[])store)[] = 0;
+        }
+    }
+
+    Scoped!T result = void;
+
+    //emplace!T(result.store[], args);
+    result.store[] = typeid(T).init[];
+    result.payload.__ctor(args);
+
+    return result;
+}
+
+void test14653()
+{
+    foreach (e; scoped14653!RangeClass14653(1))
+    {
+        result14653 ~= "b";
+    }
+    assert(result14653 == "cefbpefbped", result14653);
+}
+
+/***************************************/
 
 int main()
 {
@@ -1061,6 +1112,7 @@ int main()
     test12739();
     test12932();
     test13756();
+    test14653();
 
     printf("Success\n");
     return 0;
