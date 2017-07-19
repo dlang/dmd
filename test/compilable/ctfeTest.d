@@ -542,4 +542,47 @@ float fmaddf(float a, float b, float c)
 static assert(fmaddf(0x1.acccccp+2f, 0x1.166666p+3f, 0x1.4cccccp+0f) == 0x1.168f5cp+4f);
 static assert(fmaddf(0x1.acccccp+2f, 0x1.166666p+3f, -0x1.4cccccp+0f) == -0x1.47a8p-7f);
 
+struct S {
+    long l;
+    ulong u;
+    long v;
+}
+
+ulong u()
+{
+    return ulong(ushort.max | ulong(ushort.max) << 32);
+}
+
+S v()
+{
+  S s;
+  s.v = ulong(ushort.max | ulong(ushort.max) << 32);
+  return s;
+}
+
+
+S makeSMin()
+{
+  S s;
+  s.l = long.min;
+  s.u = ulong.min;
+  return s;
+}
+
+S makeSMax()
+{
+  S s;
+  s.l = long.max;
+  s.u = ulong.max;
+  return s;
+}
+
+static assert(makeSMax.u == ulong.max);
+static assert(makeSMax.l == long.max);
+
+static assert(makeSMin.u == ulong.min);
+static assert(makeSMin.l == long.min);
+
+static assert(() { return ulong(ushort.max | ulong(ushort.max) << 32); }() == 281470681808895LU);
+
 static assert(!__traits(newCTFEGaveUp));
