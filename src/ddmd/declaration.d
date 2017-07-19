@@ -28,6 +28,7 @@ import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.init;
+import ddmd.initsem;
 import ddmd.intrange;
 import ddmd.mtype;
 import ddmd.root.outbuffer;
