@@ -100,7 +100,7 @@ in
 }
 out (result)
 {
-    assert((result * result) <= x && (result+1) * (result+1) > x);
+    assert(result ^^ 2 <= x && (result + 1) ^^ 2 > x);
 }
 do
 {
