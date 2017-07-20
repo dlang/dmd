@@ -330,15 +330,16 @@ STATIC void accumrd(vec_t GEN,vec_t KILL,elem *n)
                         /* GEN = (GEN - Kl) | Gl |
                          *       (GEN - Kr) | Gr
                          * KILL |= Kl & Kr
+                         * This simplifies to:
+                         * GEN = GEN | (Gl | Gr) | (GEN - (Kl & Kr)
+                         * KILL |= Kl & Kr
                          */
-                        vec_orass(Gl,Gr);
-                        vec_sub(Gr,GEN,Kl);
-                        vec_orass(Gl,Gr);
-                        vec_sub(Gr,GEN,Kr);
-                        vec_or(GEN,Gl,Gr);
-
                         vec_andass(Kl,Kr);
                         vec_orass(KILL,Kl);
+
+                        vec_orass(Gl,Gr);
+                        vec_sub(Gr,GEN,Kl);  // (GEN - (Kl & Kr)
+                        vec_or(GEN,Gl,Gr);
                         break;
 
                     case 1: // E1 returns
