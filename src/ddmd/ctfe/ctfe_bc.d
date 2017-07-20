@@ -17,7 +17,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 
 import std.conv : to;
 
-enum perf = 0;
+enum perf = 1;
 enum bailoutMessages = 0;
 enum printResult = 0;
 enum cacheBC = 1;
@@ -2228,7 +2228,7 @@ public:
             import std.stdio;
         }
         auto oldRetval = retval;
-        import std.stdio; writeln("Calling genExpr from: ", line, debugMessage ? " \"" ~ debugMessage ~ "\"" : ""); //DEBUGLINE
+        // import std.stdio; writeln("Calling genExpr from: ", line, debugMessage ? " \"" ~ debugMessage ~ "\"" : ""); //DEBUGLINE
 
         if (processingArguments)
         {
@@ -4816,7 +4816,6 @@ static if (is(BCGen))
 
             auto elemSize = sharedCtfeState.size(sharedCtfeState.elementType(lhs.type));
             copyArray(&lhs_base, &rhs_base, lhs_length, elemSize);
-            return ; // not sure why we return here ... it's possibly important
         }
 
         debug (ctfe)
@@ -5103,7 +5102,7 @@ static if (is(BCGen))
                     MemCpy(lhs.i32, rhs.i32, imm32(SliceDescriptor.Size));
                     //bailout("Slice = Array -- don't know what to do");
                 }
-                else if (lhs.type.type == BCTypeEnum.Slice && rhs.type.type == BCTypeEnum.Null)
+                else if ((lhs.type.type == BCTypeEnum.Slice || lhs.type.type == BCTypeEnum.String) && rhs.type.type == BCTypeEnum.Null)
                 {
                     Alloc(lhs.i32, imm32(SliceDescriptor.Size));
                 }
