@@ -2250,7 +2250,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 uint rhs32 = (*rhs & uint.max);
                 float frhs = *cast(float*)&rhs32;
                 double flhs = frhs;
-                *lhsRef = *cast(long*)flhs;
+                *lhsRef = *cast(long*)&flhs;
             }
             break;
         case LongInst.F32ToI :
