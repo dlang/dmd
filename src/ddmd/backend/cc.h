@@ -430,6 +430,7 @@ enum
     BFLoutsideprolog = 0x800,   // outside function prolog/epilog
     BFLlabel         = 0x2000,  // block preceded by label
     BFLvolatile      = 0x4000,  // block is volatile
+    BFLnounroll      = 0x8000,  // do not unroll loop
 };
 
 struct block

@@ -15,9 +15,9 @@ module ddmd.backend.cc;
 import tk.dlist;
 import ddmd.backend.cdef;        // host and target compiler definition
 import ddmd.backend.code_x86;
-import ddmd.backend.type;
-import ddmd.backend.el;
 import ddmd.backend.dt;
+import ddmd.backend.el;
+import ddmd.backend.type;
 
 extern (C++):
 @nogc:
@@ -418,6 +418,7 @@ enum
     BFLoutsideprolog = 0x800,   // outside function prolog/epilog
     BFLlabel         = 0x2000,  // block preceded by label
     BFLvolatile      = 0x4000,  // block is volatile
+    BFLnounroll      = 0x8000,  // do not unroll loop
 }
 
 struct block

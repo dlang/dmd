@@ -113,6 +113,7 @@ STATIC void countrefs(elem **pn , bool flag);
 STATIC int countrefs2(elem *e);
 STATIC void elimspec(loop *l);
 STATIC void elimspecwalk(elem **pn);
+static bool loopunroll(loop *l);
 
 static  bool addblk;                    /* if TRUE, then we added a block */
 
@@ -629,6 +630,7 @@ STATIC int looprotate(loop *l)
             list_append(&(head2->Bsucc),list_block(bl));
             list_append(&(list_block(bl)->Bpred),head2);
         }
+        cmes2("1Rotated loop %p\n", l);
         go.changes++;
         return TRUE;
     }
@@ -661,7 +663,7 @@ STATIC int looprotate(loop *l)
         b->Bnext = head->Bnext;
         head->Bnext = tail->Bnext;
         tail->Bnext = head;
-        cmes2( "Rotated loop %p\n", l);
+        cmes2("2Rotated loop %p\n", l);
         go.changes++;
     }
 Lret:
@@ -683,7 +685,6 @@ static bool doflow;             // TRUE if flow analysis has to be redone
 void loopopt()
 {
     list_t bl;
-    loop *l;
     loop *ln;
     vec_t rd;
     loop *startloop;
@@ -701,7 +702,7 @@ restart:
     compdom();                          // compute dominators
     findloops(&startloop);              // find the loops
 
-    for (l = startloop; l; l = ln)
+    for (loop *l = startloop; l; l = ln)
     {
         ln = l->Lnext;
         if (looprotate(l))              // rotate the loop
@@ -719,7 +720,7 @@ restart:
     // Make sure there is a preheader for each loop.
 
     addblk = FALSE;                     /* assume no blocks added        */
-    for (l = startloop; l; l = l->Lnext)/* for each loop                 */
+    for (loop *l = startloop; l; l = l->Lnext) // for each loop
     {
 #ifdef DEBUG
         //if (debugc) l->print();
@@ -794,9 +795,31 @@ restart:
     /* one first, thus moving LIs out as far as possible.       */
 
     doflow = TRUE;                      /* do flow analysis             */
+
+    if (go.mfoptim & MFtime)
+    {
+        cmes("Starting loop unrolling\n");
+        for (loop *l = startloop; l; l = ln)
+        {
+            ln = l->Lnext;
+            if (loopunroll(l))
+            {
+                compdfo();                      // compute depth-first order
+                blockinit();
+                compdom();
+                findloops(&startloop);          // recompute block info
+                doflow = TRUE;
+                if (ln)
+                {   ln = startloop;         // start over
+                    file_progress();
+                }
+            }
+        }
+    }
+
     cmes("Starting loop invariants\n");
 
-    for (l = startloop; l; l = l->Lnext)
+    for (loop *l = startloop; l; l = l->Lnext)
     {   unsigned i,j;
 
 #ifdef DEBUG
@@ -3475,6 +3498,284 @@ STATIC void elimspecwalk(elem **pn)
                 }
         }
   }
+}
+
+/*********************************
+ * Unroll loop if possible.
+ * Params:
+ *      l = loop to unroll
+ * Returns:
+ *      true if loop was unrolled
+ */
+
+struct UnrollWalker
+{
+    unsigned defnum;
+    int state;
+    Symbol *v;
+    targ_llong increment;
+
+    void walker(elem *e);
+};
+
+
+static bool loopunroll(loop *l)
+{
+    const bool log = false;
+    if (log) printf("loopunroll(%p)\n", l);
+
+    /* Do not repeatedly unroll the same loop,
+     * or waste time attempting to
+     */
+    if (l->Lhead->Bflags & BFLnounroll)
+        return false;
+    l->Lhead->Bflags |= BFLnounroll;
+
+    /* For simplification, only unroll loops that consist only
+     * of a head and tail, and the tail is the exit block.
+     */
+    int numblocks = 0;
+    int i;
+    foreach (i,dfotop,l->Lloop)
+        ++numblocks;
+    if (numblocks != 2)
+    {
+        if (log) printf("\tnot 2 blocks\n");
+        return false;
+    }
+    assert(l->Lhead != l->Ltail);
+
+    /* tail must be the sole exit block
+     */
+    if (vec_testbit(l->Lhead->Bdfoidx, l->Lexit) ||
+        !vec_testbit(l->Ltail->Bdfoidx, l->Lexit))
+    {
+        if (log) printf("\ttail not sole exit block\n");
+        return false;
+    }
+
+    elem *ehead = l->Lhead->Belem;
+    elem *etail = l->Ltail->Belem;
+
+    if (log)
+    {
+        printf("Unroll candidate:\n");
+        printf("  head:\t"); WReqn(l->Lhead->Belem); printf("\n");
+        printf("  tail:\t"); WReqn(l->Ltail->Belem); printf("\n");
+    }
+
+    /* Tail must be of the form: (v < c) where v is an unsigned integer
+     */
+    if (etail->Eoper != OPlt ||
+        etail->E1->Eoper != OPvar ||
+        etail->E2->Eoper != OPconst)
+    {
+        if (log) printf("\tnot (v < c)\n");
+        return false;
+    }
+
+    elem *e1 = etail->E1;
+    elem *e2 = etail->E2;
+
+    if (!tyintegral(e1->Ety) ||
+        tysize(e1->Ety) > sizeof(targ_llong) ||
+        !(tyuns(e1->Ety) || tyuns(e2->Ety)))
+    {
+        if (log) printf("\tnot (integral unsigned)\n");
+        return false;
+    }
+
+    extern int el_length(elem *e);
+    int cost = el_length(ehead);
+    //printf("test4 cost: %d\n", cost);
+
+    if (cost > 100)
+    {
+        if (log) printf("\tcost %d\n", cost);
+        return false;
+    }
+
+    Symbol* v = e1->EV.sp.Vsym;
+
+    // RD info is only reliable for registers and autos
+    if (!(sytab[v->Sclass] & SCRD) || !(v->Sflags & SFLunambig))
+    {
+        if (log) printf("\tnot SCRD\n");
+        return false;
+    }
+
+    /* Find the initial, increment elem, and final value of s
+     */
+    elem *einitial;
+    elem *eincrement;
+    extern bool findloopparameters(elem* erel, elem*& rdeq, elem*& rdinc);
+    if (!findloopparameters(etail, einitial, eincrement))
+    {
+        if (log) printf("\tnot findloopparameters()\n");
+        return false;
+    }
+
+    targ_llong initial = el_tolong(einitial->E2);
+    targ_llong increment = el_tolong(eincrement->E2);
+    if (eincrement->Eoper == OPpostdec || eincrement->Eoper == OPminass)
+        increment = -increment;
+    targ_llong final = el_tolong(e2);
+
+    if (log) printf("initial = %ld, increment = %ld, final = %ld\n",(long)initial,(long)increment,(long)final);
+
+    if (initial < 0 ||
+        final < initial ||
+        increment <= 0 ||
+        (final - initial) % increment)
+    {
+        if (log) printf("\tnot (evenly divisible)\n");
+        return false;
+    }
+
+    /* If loop would only execute once anyway, just remove the test at the end
+     */
+    if (initial + increment == final)
+    {
+        if (log) printf("\tjust once\n");
+        etail->Eoper = OPcomma;
+        e2->EV.Vllong = 0;
+        e2->Ety = etail->Ety;
+        return false;
+    }
+
+    /* Unroll once
+     */
+    if ((final - initial) % 2)
+    {
+        if (log) printf("\tnot (divisible by 2)\n");
+        return false;
+    }
+
+    if (log) printf("Unrolling starting\n");
+
+    // Double the increment
+    eincrement->E2->EV.Vllong *= 2;
+    //printf("  4head:\t"); WReqn(l->Lhead->Belem); printf("\n");
+
+    elem *esecond = el_copytree(ehead);
+    elem *e = el_combine(ehead, esecond);
+
+    /* Walk e in execution order.
+     * When eincrement is found, remove it.
+     * Continue, replacing instances of `v` with `v+increment`
+     * When second eincrement is found, stop.
+     */
+    UnrollWalker uw;
+    uw.defnum = eincrement->Edef;
+    uw.state = 0;
+    uw.v = v;
+    uw.increment = increment;
+    uw.walker(e);
+    assert(uw.state == 2);
+
+    l->Lhead->Belem = e;
+
+    /* If unrolled loop would only execute once anyway, just remove the test at the end
+     */
+    if (initial + 2 * increment == final)
+    {
+        if (log) printf("\tjust twice\n");
+        etail->Eoper = OPcomma;
+        e2->EV.Vllong = 0;
+        e2->Ety = etail->Ety;
+    }
+
+    //WRfunc();
+    return true;
+}
+
+/******************************
+ * Count number of elems in a tree
+ * Params:
+ *  e = tree
+ * Returns:
+ *  number of elems in tree
+ */
+int el_length(elem *e)
+{
+    int n = 0;
+    while (e)
+    {
+        n += 1;
+        if (EOP(e))
+        {
+            n += el_length(e->E2);
+            e = e->E1;
+        }
+        else
+            break;
+    }
+    return n;
+}
+
+/***********************************
+ * Walk e in execution order, fixing it according to state.
+ * state == 0: when rdinc is found, remove it, advance to state 1
+ * state == 1: continue, replacing instances of v with v+increment,
+ *             when second rdinc is found, advance to state 2
+ * state == 2: continue
+ */
+
+void UnrollWalker::walker(elem *e)
+{
+    assert(e);
+    unsigned op = e->Eoper;
+    if (ERTOL(e))
+    {
+        if (e->Edef != defnum)
+        {
+            walker(e->E2);
+            walker(e->E1);
+        }
+    }
+    else if (OTbinary(op))
+    {
+        if (e->Edef != defnum)
+        {
+            walker(e->E1);
+            walker(e->E2);
+        }
+    }
+    else if (OTunary(op))
+    {
+        assert(e->Edef != defnum);
+        walker(e->E1);
+    }
+    else if (op == OPvar &&
+             state == 1 &&
+             e->EV.sp.Vsym == v)
+    {
+        // overwrite e with (v+increment)
+        elem *e1 = el_calloc();
+        el_copy(e1,e);
+        e->Eoper = OPadd;
+        e->E1 = e1;
+        e->E2 = el_long(e->Ety, increment);
+    }
+    if (OTdef(op) && e->Edef == defnum)
+    {
+        switch (state)
+        {
+            case 0:
+                el_free(e->E1);
+                el_free(e->E2);
+                e->Eoper = OPconst;
+                e->EV.Vllong = 0;
+                break;
+
+            case 1:
+                break;
+
+            default:
+                assert(0);
+        }
+        ++state;
+    }
 }
 
 #endif
