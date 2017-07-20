@@ -137,7 +137,7 @@ do
 
 $(H2 $(LNAME2 in_out_inheritance, In, Out and Inheritance))
 
-	$(P If a function in a derived class overrides a function in its
+	$(P If a function in a derived class overrides a function from its
 	super class, then only one of
 	the $(D in) contracts of the function and its base functions
 	must be satisfied.
@@ -149,7 +149,7 @@ $(H2 $(LNAME2 in_out_inheritance, In, Out and Inheritance))
 	$(P A function without an $(D in) contract means that any values
 	of the function parameters are allowed. This implies that if any
 	function in an inheritance hierarchy has no $(D in) contract,
-	then $(D in) contracts on functions overriding it have no useful
+	then any $(D in) contracts on functions overriding it have no useful
 	effect.
 	)
 
@@ -162,7 +162,7 @@ $(H2 $(LNAME2 in_out_inheritance, In, Out and Inheritance))
 $(H2 $(LNAME2 Invariants, Invariants))
 
 	$(P Invariants are used to specify characteristics of a class or struct that
-	always must be true (except while executing a member function).
+	must always be true (except while executing a member function).
 	For example, a class representing a date might have an invariant that the
 	day must be 1..31 and the hour must be 0..23:
 	)
@@ -187,9 +187,9 @@ class Date
 }
 ------
 
-	$(P The invariant is a contract saying that the asserts must hold true.
+	$(P The invariant is a contract saying that the `assert`s must hold true.
 	The invariant is checked when a class or struct constructor completes,
-	at the start of the class or struct destructor. For public or exported
+	and at the start of the class or struct destructor. For public or exported
 	functions, the order of execution is:
 	)
 
@@ -250,10 +250,10 @@ assert(&s);               // check that struct S invariant holds
 	$(P Invariants contain assert expressions, and so when they fail,
 	they throw $(D AssertError)s.
 	Class invariants are inherited, that is,
-	any class invariant is implicitly anded with the invariants of its base
+	any class invariant is implicitly in addition to the invariants of its base
 	classes.)
 
-	$(P There can be more than one $(D invariant) per class or struct.)
+	$(P There can be more than one invariant declared per class or struct.)
 
 	$(P When compiling for release, the invariant code is not generated, and the compiled program runs at maximum speed.
 	The compiler is free to assume the invariant holds true, regardless of whether code is generated for it or not, and
