@@ -324,9 +324,9 @@ STATIC void accumrd(vec_t GEN,vec_t KILL,elem *n)
                 rdelem(&Gl,&Kl,n->E1);
                 rdelem(&Gr,&Kr,n->E2);
 
-                switch (el_noreturn(n->E1) * 2 | el_noreturn(n->E2))
+                switch (el_returns(n->E1) * 2 | el_returns(n->E2))
                 {
-                    case 0: // E1 and E2 return
+                    case 3: // E1 and E2 return
                         /* GEN = (GEN - Kl) | Gl |
                          *       (GEN - Kr) | Gr
                          * KILL |= Kl & Kr
@@ -342,7 +342,7 @@ STATIC void accumrd(vec_t GEN,vec_t KILL,elem *n)
                         vec_or(GEN,Gl,Gr);
                         break;
 
-                    case 1: // E1 returns
+                    case 2: // E1 returns
                         /* GEN = (GEN - Kl) | Gl
                          * KILL |= Kl
                          */
@@ -351,7 +351,7 @@ STATIC void accumrd(vec_t GEN,vec_t KILL,elem *n)
                         vec_orass(KILL,Kl);
                         break;
 
-                    case 2: // E2 returns
+                    case 1: // E2 returns
                         /* GEN = (GEN - Kr) | Gr
                          * KILL |= Kr
                          */
@@ -360,7 +360,7 @@ STATIC void accumrd(vec_t GEN,vec_t KILL,elem *n)
                         vec_orass(KILL,Kr);
                         break;
 
-                    case 3: // neither returns
+                    case 0: // neither returns
                         break;
                 }
 
@@ -373,7 +373,7 @@ STATIC void accumrd(vec_t GEN,vec_t KILL,elem *n)
             {
                 accumrd(GEN,KILL,n->E1);
                 rdelem(&Gr,&Kr,n->E2);
-                if (!el_noreturn(n->E2))
+                if (el_returns(n->E2))
                     vec_orass(GEN,Gr);      // GEN |= Gr
 
                 vec_free(Gr);
@@ -1042,7 +1042,7 @@ STATIC void accumaecpx(elem *n)
             accumaecpx(n->E1);
             aecpelem(&Gr,&Kr,n->E2);
 
-            if (!el_noreturn(n->E2))
+            if (el_returns(n->E2))
             {
                 // KILL |= Kr
                 // GEN &= (GEN - Kr) | Gr

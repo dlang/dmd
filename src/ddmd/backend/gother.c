@@ -220,22 +220,22 @@ STATIC void conpropwalk(elem *n,vec_t IN)
         if (op == OPcolon || op == OPcolon2)
         {
                 L = vec_clone(IN);
-                switch (el_noreturn(n->E1) * 2 | el_noreturn(n->E2))
+                switch (el_returns(n->E1) * 2 | el_returns(n->E2))
                 {
-                    case 0:
+                    case 3: // E1 and E2 return
                         conpropwalk(n->E1,L);
                         conpropwalk(n->E2,IN);
                         vec_orass(IN,L);                // IN = L | R
                         break;
-                    case 1:
+                    case 2: // E1 returns
                         conpropwalk(n->E1,IN);
                         conpropwalk(n->E2,L);
                         break;
-                    case 2:
+                    case 1: // E2 returns
                         conpropwalk(n->E1,L);
                         conpropwalk(n->E2,IN);
                         break;
-                    case 3:
+                    case 0: // neither returns
                         conpropwalk(n->E1,L);
                         vec_copy(L,IN);
                         conpropwalk(n->E2,L);
@@ -247,7 +247,7 @@ STATIC void conpropwalk(elem *n,vec_t IN)
         {       conpropwalk(n->E1,IN);
                 R = vec_clone(IN);
                 conpropwalk(n->E2,R);
-                if (!el_noreturn(n->E2))
+                if (el_returns(n->E2))
                     vec_orass(IN,R);                // IN |= R
                 vec_free(R);
         }

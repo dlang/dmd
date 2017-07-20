@@ -1848,13 +1848,16 @@ int ERTOL(elem *e)
 }
 
 /********************************
- * Return !=0 if expression never returns.
+ * Determine if expression may return.
  * Does not detect all cases, errs on the side of saying it returns.
+ * Params:
+ *      e = tree
+ * Returns:
+ *      false if expression never returns.
  */
 
-int el_noreturn(elem *e)
-{   int result = 0;
-
+bool el_returns(elem *e)
+{
     while (1)
     {   elem_debug(e);
         switch (e->Eoper)
@@ -1863,12 +1866,11 @@ int el_noreturn(elem *e)
             case OPucall:
                 e = e->E1;
                 if (e->Eoper == OPvar && e->EV.sp.Vsym->Sflags & SFLexit)
-                    result = 1;
+                    return false;
                 break;
 
             case OPhalt:
-                result = 1;
-                break;
+                return false;
 
             case OPandand:
             case OPoror:
@@ -1877,13 +1879,13 @@ int el_noreturn(elem *e)
 
             case OPcolon:
             case OPcolon2:
-                return el_noreturn(e->E1) && el_noreturn(e->E2);
+                return el_returns(e->E1) || el_returns(e->E2);
 
             default:
                 if (EBIN(e))
                 {
-                    if (el_noreturn(e->E2))
-                        return 1;
+                    if (!el_returns(e->E2))
+                        return false;
                     e = e->E1;
                     continue;
                 }
@@ -1896,7 +1898,7 @@ int el_noreturn(elem *e)
         }
         break;
     }
-    return result;
+    return true;
 }
 
 /********************************
