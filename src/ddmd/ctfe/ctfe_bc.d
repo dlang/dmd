@@ -4361,10 +4361,10 @@ static if (is(BCGen))
             }
             else if (type.type == BCTypeEnum.Array)
             {
-                Alloc(var.i32, imm32(_sharedCtfeState.size(type)), type);
-                assert(type.typeIndex);
-                auto arrayType = _sharedCtfeState.arrayTypes[type.typeIndex - 1];
-                setArraySliceDesc(var, arrayType);
+//                Alloc(var.i32, imm32(_sharedCtfeState.size(type)), type);
+//                assert(type.typeIndex);
+//                auto arrayType = _sharedCtfeState.arrayTypes[type.typeIndex - 1];
+//                setArraySliceDesc(var, arrayType);
             }
         }
 
