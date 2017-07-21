@@ -1185,8 +1185,10 @@ Expression toExpression(const BCValue value, Type expressionType,
         debug (abi)
         {
             import std.stdio;
-            writefln("creating Array from {base: &%d = %d} {length: &%d = %d}",
-                arr.heapAddr.addr + SliceDescriptor.BaseOffset, arrayBase, arr.heapAddr.addr + SliceDescriptor.LengthOffset, arrayLength);
+            writefln("creating Array (%s[]) from {base: &%d = %d} {length: &%d = %d} Content: %s",
+                _sharedCtfeState.typeToString(_sharedCtfeState.btv.toBCType(arrayType)),
+                arr.heapAddr.addr + SliceDescriptor.BaseOffset, arrayBase, arr.heapAddr.addr + SliceDescriptor.LengthOffset, arrayLength,
+                heapPtr._heap[arrayBase .. arrayBase + arrayLength*7*4]);
         }
 
         if (!arr.heapAddr || !arrayBase)
@@ -1356,7 +1358,7 @@ Expression toExpression(const BCValue value, Type expressionType,
         {
             auto tsa = cast(TypeSArray) expressionType;
             assert(heapPtr._heap[value.heapAddr.addr + SliceDescriptor.LengthOffset] == evaluateUlong(tsa.dim),
-                "static arrayLength mismatch: " ~ to!string(heapPtr._heap[value.heapAddr.addr + SliceDescriptor.LengthOffset]) ~ " != " ~ to!string(
+                "static arrayLength mismatch: &" ~ to!string(value.heapAddr.addr + SliceDescriptor.LengthOffset) ~ " (" ~ to!string(heapPtr._heap[value.heapAddr.addr + SliceDescriptor.LengthOffset]) ~ ") != " ~ to!string(
                     evaluateUlong(tsa.dim)));
             result = createArray(value, tsa);
         } break;
@@ -4138,6 +4140,31 @@ static if (is(BCGen))
         }
     }
 +/
+    void setArraySliceDesc(BCValue arr, BCArray arrayType)
+    {
+        //debug (NullAllocCheck)
+        {
+            Assert(arr.i32, addError(Loc(), "trying to set sliceDesc null Array"));
+        }
+        auto offset = genTemporary(i32Type);
+        Add3(offset, arr.i32, imm32(SliceDescriptor.Size));
+
+        setBase(arr.i32, offset);
+        setLength(arr.i32, imm32(arrayType.length));
+        auto et = arrayType.elementType;
+
+        if (et.type == BCTypeEnum.Array)
+        {
+            assert(et.typeIndex);
+            auto at = _sharedCtfeState.arrayTypes[et.typeIndex - 1];
+            foreach(i;0 .. arrayType.length)
+            {
+                setArraySliceDesc(offset, at);
+                Add3(offset, offset, imm32(_sharedCtfeState.size(et)));
+            }
+        }
+    }
+
     override void visit(VarExp ve)
     {
         Line(ve.loc.linnum);
@@ -4334,15 +4361,10 @@ static if (is(BCGen))
             }
             else if (type.type == BCTypeEnum.Array)
             {
-                auto idx = type.typeIndex;
-                assert(idx);
-                auto array = _sharedCtfeState.arrayTypes[idx - 1];
-
                 Alloc(var.i32, imm32(_sharedCtfeState.size(type)), type);
-                setLength(var.i32, array.length.imm32);
-                auto baseAddr = genTemporary(i32Type);
-                Add3(baseAddr, var.i32, imm32(SliceDescriptor.Size));
-                setBase(var.i32, baseAddr);
+                assert(type.typeIndex);
+                auto arrayType = _sharedCtfeState.arrayTypes[type.typeIndex - 1];
+                setArraySliceDesc(var, arrayType);
             }
         }
 
@@ -5172,9 +5194,7 @@ static if (is(BCGen))
                 {
                     auto arrayType = _sharedCtfeState.arrayTypes[lhs.type.typeIndex - 1];
                     Alloc(lhs.i32, imm32(_sharedCtfeState.size(lhs.type)), lhs.type);
-                    auto baseAddr = genTemporary(i32Type);
-                    Add3(baseAddr, lhs.i32, imm32(SliceDescriptor.Size));
-                    setBase(lhs.i32, baseAddr);
+                    setArraySliceDesc(lhs, arrayType);
                     setLength(lhs.i32, imm32(arrayType.length));
                 }
                 else if (lhs.type.type == BCTypeEnum.Struct && rhs.type.type == BCTypeEnum.i32)
