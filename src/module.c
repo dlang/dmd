@@ -883,9 +883,16 @@ Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
      * This is done with the cache.
      */
 
-    //printf("%s Module::search('%s', flags = %d) insearch = %d\n", toChars(), ident->toChars(), flags, insearch);
+    //printf("%s Module::search('%s', flags = x%x) insearch = %d\n", toChars(), ident->toChars(), flags, insearch);
     if (insearch)
         return NULL;
+
+    /* Qualified module searches always search their imports,
+     * even if SearchLocalsOnly
+     */
+    if (!(flags & SearchUnqualifiedModule))
+        flags &= ~(SearchUnqualifiedModule | SearchLocalsOnly);
+
     if (searchCacheIdent == ident && searchCacheFlags == flags)
     {
         //printf("%s Module::search('%s', flags = %d) insearch = %d searchCacheSymbol = %s\n",
@@ -1269,6 +1276,8 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
 
 Dsymbol *Package::search(Loc loc, Identifier *ident, int flags)
 {
+    //printf("%s Package::search('%s', flags = x%x)\n", toChars(), ident->toChars(), flags);
+    flags &= ~SearchLocalsOnly;  // searching an import is always transitive
     if (!isModule() && mod)
     {
         // Prefer full package name.

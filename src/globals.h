@@ -95,7 +95,8 @@ struct Param
     bool betterC;       // be a "better C" compiler; no dependency on D runtime
     bool addMain;       // add a default main() function
     bool allInst;       // generate code for all template instantiations
-    bool vsafe;          // use enhanced @safe checking
+    bool bug10378;      // use pre-bugzilla 10378 search strategy
+    bool vsafe;         // use enhanced @safe checking
 
     BOUNDSCHECK useArrayBounds;
 

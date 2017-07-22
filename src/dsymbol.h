@@ -142,6 +142,12 @@ enum
     IgnorePrivateMembers    = 0x01, // don't find private members
     IgnoreErrors            = 0x02, // don't give error messages
     IgnoreAmbiguous         = 0x04, // return NULL if ambiguous
+    SearchLocalsOnly        = 0x08, // only look at locals (don't search imports)
+    SearchImportsOnly       = 0x10, // only look in imports
+    SearchUnqualifiedModule = 0x20, // the module scope search is unqualified,
+                                    // meaning don't search imports in that scope,
+                                    // because qualified module searches search
+                                    // their imports
 };
 
 typedef int (*Dsymbol_apply_ft_t)(Dsymbol *, void *);
@@ -297,7 +303,7 @@ public:
     ScopeDsymbol();
     ScopeDsymbol(Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
+    Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
     OverloadSet *mergeOverloadSet(Identifier *ident, OverloadSet *os, Dsymbol *s);
     void importScope(Dsymbol *s, Prot protection);
     bool isforwardRef();
@@ -325,7 +331,7 @@ public:
     WithStatement *withstate;
 
     WithScopeSymbol(WithStatement *withstate);
-    Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
+    Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
 
     WithScopeSymbol *isWithScopeSymbol() { return this; }
     void accept(Visitor *v) { v->visit(this); }

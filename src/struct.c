@@ -1113,7 +1113,7 @@ LafterSizeok:
 
 Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)
 {
-    //printf("%s.StructDeclaration::search('%s')\n", toChars(), ident->toChars());
+    //printf("%s.StructDeclaration::search('%s', flags = x%x)\n", toChars(), ident->toChars(), flags);
 
     if (_scope && !symtab)
         semantic(_scope);

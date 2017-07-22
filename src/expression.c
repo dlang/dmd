@@ -673,20 +673,17 @@ Expression *resolvePropertiesOnly(Scope *sc, Expression *e1)
 }
 
 
-/******************************
- * Find symbol in accordance with the UFCS name look up rule
- */
-
-Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
+// TODO: merge with Scope::search::searchScopes()
+static Dsymbol *searchScopes(Scope *sc, Loc loc, Identifier *ident, int flags)
 {
-    Loc loc = ue->loc;
     Dsymbol *s = NULL;
-
     for (Scope *scx = sc; scx; scx = scx->enclosing)
     {
         if (!scx->scopesym)
             continue;
-        s = scx->scopesym->search(loc, ident);
+        if (scx->scopesym->isModule())
+            flags |= SearchUnqualifiedModule;    // tell Module.search() that SearchLocalsOnly is to be obeyed
+        s = scx->scopesym->search(loc, ident, flags);
         if (s)
         {
             // overload set contains only module scope symbols.
@@ -704,7 +701,33 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
                 break;
         }
         s = NULL;
+
+        // Stop when we hit a module, but keep going if that is not just under the global scope
+        if (scx->scopesym->isModule() && !(scx->enclosing && !scx->enclosing->enclosing))
+            break;
     }
+    return s;
+}
+
+/******************************
+ * Find symbol in accordance with the UFCS name look up rule
+ */
+
+Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
+{
+    //printf("searchUFCS(ident = %s)\n", ident->toChars());
+    Loc loc = ue->loc;
+    Dsymbol *s = NULL;
+
+    if (global.params.bug10378)
+        s = searchScopes(sc, loc, ident, 0);
+    else
+    {
+        s = searchScopes(sc, loc, ident, SearchLocalsOnly);
+        if (!s)
+            s = searchScopes(sc, loc, ident, SearchImportsOnly);
+    }
+
     if (!s)
         return ue->e1->type->Type::getProperty(loc, ident, 0);
 
@@ -731,6 +754,7 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
     }
     else
     {
+        //printf("-searchUFCS() %s\n", s->toChars());
         return new DsymbolExp(loc, s);
     }
 }
@@ -7585,7 +7609,7 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
          * the current module should have access to its own imports.
          */
         Dsymbol *s = ie->sds->search(loc, ident,
-            (ie->sds->isModule() && ie->sds != sc->module) ? IgnorePrivateMembers : IgnoreNone);
+            (ie->sds->isModule() && ie->sds != sc->module) ? IgnorePrivateMembers | SearchLocalsOnly : SearchLocalsOnly);
         if (s)
         {
             /* Check for access before resolving aliases because public

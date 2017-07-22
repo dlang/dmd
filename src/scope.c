@@ -389,9 +389,69 @@ Module *Scope::instantiatingModule()
     return minst ? minst : module;
 }
 
+static Dsymbol *searchScopes(Scope *scope, Loc loc, Identifier *ident, Dsymbol **pscopesym, int flags)
+{
+    for (Scope *sc = scope; sc; sc = sc->enclosing)
+    {
+        assert(sc != sc->enclosing);
+        if (!sc->scopesym)
+            continue;
+        //printf("\tlooking in scopesym '%s', kind = '%s', flags = x%x\n", sc->scopesym->toChars(), sc->scopesym->kind(), flags);
+
+        if (sc->scopesym->isModule())
+            flags |= SearchUnqualifiedModule;        // tell Module.search() that SearchLocalsOnly is to be obeyed
+
+        if (Dsymbol *s = sc->scopesym->search(loc, ident, flags))
+        {
+            if (!(flags & (SearchImportsOnly | IgnoreErrors)) &&
+                ident == Id::length && sc->scopesym->isArrayScopeSymbol() &&
+                sc->enclosing && sc->enclosing->search(loc, ident, NULL, flags))
+            {
+                warning(s->loc, "array 'length' hides other 'length' name in outer scope");
+            }
+            //printf("\tfound %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
+            if (pscopesym)
+                *pscopesym = sc->scopesym;
+            return s;
+        }
+        // Stop when we hit a module, but keep going if that is not just under the global scope
+        if (sc->scopesym->isModule() && !(sc->enclosing && !sc->enclosing->enclosing))
+            break;
+    }
+    return NULL;
+}
+
+/************************************
+ * Perform unqualified name lookup by following the chain of scopes up
+ * until found.
+ *
+ * Params:
+ *  loc = location to use for error messages
+ *  ident = name to look up
+ *  pscopesym = if supplied and name is found, set to scope that ident was found in
+ *  flags = modify search based on flags
+ *
+ * Returns:
+ *  symbol if found, null if not
+ */
 Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flags)
 {
-    //printf("Scope::search(%p, '%s')\n", this, ident->toChars());
+#ifdef LOGSEARCH
+    printf("Scope::search(%p, '%s' flags=x%x)\n", this, ident->toChars(), flags);
+    // Print scope chain
+    for (Scope *sc = this; sc; sc = sc->enclosing)
+    {
+        if (!sc->scopesym)
+            continue;
+        printf("\tscope %s\n", sc->scopesym->toChars());
+    }
+#endif
+
+    // This function is called only for unqualified lookup
+    assert(!(flags & (SearchLocalsOnly | SearchImportsOnly)));
+
+    /* If ident is "start at module scope", only look at module scope
+     */
     if (ident == Id::empty)
     {
         // Look for module scope
@@ -403,7 +463,7 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flag
 
             if (Dsymbol *s = sc->scopesym->isModule())
             {
-                //printf("\tfound %s.%s\n", s->parent ? s->parent->toChars() : "", s->toChars());
+                //printf("\tfound %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
                 if (pscopesym)
                     *pscopesym = sc->scopesym;
                 return s;
@@ -412,30 +472,25 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flag
         return NULL;
     }
 
-    for (Scope *sc = this; sc; sc = sc->enclosing)
+    if (global.params.bug10378)
+        return searchScopes(this, loc, ident, pscopesym, flags);
+
+    // First look in local scopes
+    Dsymbol *s = searchScopes(this, loc, ident, pscopesym, flags | SearchLocalsOnly);
+    if (s)
     {
-        assert(sc != sc->enclosing);
-        if (!sc->scopesym)
-            continue;
-
-        //printf("\tlooking in scopesym '%s', kind = '%s'\n", sc->scopesym->toChars(), sc->scopesym->kind());
-        if (Dsymbol *s = sc->scopesym->search(loc, ident, flags))
-        {
-            if (ident == Id::length &&
-                sc->scopesym->isArrayScopeSymbol() &&
-                sc->enclosing &&
-                sc->enclosing->search(loc, ident, NULL, flags))
-            {
-                warning(s->loc, "array 'length' hides other 'length' name in outer scope");
-            }
-
-            //printf("\tfound %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
-            if (pscopesym)
-                *pscopesym = sc->scopesym;
-            return s;
-        }
+        //printf("\t-Scope::search() found local %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
+        return s;
     }
 
+    s = searchScopes(this, loc, ident, pscopesym, flags | SearchImportsOnly);     // look in imported modules
+    if (s)
+    {
+        //printf("\t-Scope::search() found import %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
+        return s;
+    }
+
+    //printf("\t-Scope::search() not found\n");
     return NULL;
 }
 

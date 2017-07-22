@@ -458,10 +458,12 @@ void Dsymbol::semantic3(Scope *sc)
 
 /*********************************************
  * Search for ident as member of s.
- * Input:
- *      flags:  (see IgnoreXXX declared in dsymbol.h)
+ * Params:
+ *  loc = location to print for error messages
+ *  ident = identifier to search for
+ *  flags = IgnoreXXXX
  * Returns:
- *      NULL if not found
+ *  NULL if not found
  */
 
 Dsymbol *Dsymbol::search(Loc loc, Identifier *ident, int flags)
@@ -956,20 +958,28 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     //printf("%s->ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident->toChars(), flags);
     //if (strcmp(ident->toChars(),"c") == 0) *(char*)0=0;
 
-    // Look in symbols declared in this module
-    Dsymbol *s1 = symtab ? symtab->lookup(ident) : NULL;
-    //printf("\ts1 = %p, importedScopes = %p, %d\n", s1, importedScopes, importedScopes ? importedScopes->dim : 0);
-    if (s1)
-    {
-        //printf("\ts = '%s.%s'\n",toChars(),s1->toChars());
-        return s1;
-    }
+    if (global.params.bug10378)
+        flags &= ~(SearchImportsOnly | SearchLocalsOnly);
 
+    // Look in symbols declared in this module
+    if (symtab && !(flags & SearchImportsOnly))
+    {
+        //printf(" look in locals\n");
+        Dsymbol *s1 = symtab->lookup(ident);
+        if (s1)
+        {
+            //printf("\tfound in locals = '%s.%s'\n",toChars(),s1->toChars());
+            return s1;
+        }
+    }
+    //printf(" not found in locals\n");
+
+    // Look in imported scopes
     if (importedScopes)
     {
+        //printf(" look in imports\n");
         Dsymbol *s = NULL;
         OverloadSet *a = NULL;
-        int sflags = flags & (IgnoreErrors | IgnoreAmbiguous); // remember these in recursive searches
 
         // Look in imported modules
         for (size_t i = 0; i < importedScopes->dim; i++)
@@ -978,9 +988,23 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             if ((flags & IgnorePrivateMembers) && prots[i] == PROTprivate)
                 continue;
 
+            int sflags = flags & (IgnoreErrors | IgnoreAmbiguous); // remember these in recursive searches
             Dsymbol *ss = (*importedScopes)[i];
 
             //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
+
+            if (ss->isModule())
+            {
+                if (flags & SearchLocalsOnly)
+                    continue;
+            }
+            else
+            {
+                if (flags & SearchImportsOnly)
+                    continue;
+                sflags |= SearchLocalsOnly;
+            }
+
             /* Don't find private members if ss is a module
              */
             Dsymbol *s2 = ss->search(loc, ident, sflags | (ss->isModule() ? IgnorePrivateMembers : IgnoreNone));
@@ -1062,11 +1086,13 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                 if (!s->isImport())
                     error(loc, "%s %s is private", s->kind(), s->toPrettyChars());
             }
+            //printf("\tfound in imports %s.%s\n", toChars(), s.toChars());
             return s;
         }
+        //printf(" not found in imports\n");
     }
 
-    return s1;
+    return NULL;
 }
 
 OverloadSet *ScopeDsymbol::mergeOverloadSet(Identifier *ident, OverloadSet *os, Dsymbol *s)
@@ -1337,6 +1363,10 @@ WithScopeSymbol::WithScopeSymbol(WithStatement *withstate)
 
 Dsymbol *WithScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 {
+    //printf("WithScopeSymbol::search(%s)\n", ident->toChars());
+    if (flags & SearchImportsOnly)
+        return NULL;
+
     // Acts as proxy to the with class declaration
     Dsymbol *s = NULL;
     Expression *eold = NULL;
@@ -1357,7 +1387,7 @@ Dsymbol *WithScopeSymbol::search(Loc loc, Identifier *ident, int flags)
         }
         if (s)
         {
-            s = s->search(loc, ident);
+            s = s->search(loc, ident, flags);
             if (s)
                 return s;
         }
