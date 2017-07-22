@@ -4160,9 +4160,10 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 }
             }
             // Now recursively test the inherited interfaces
-            for (size_t j = 0; j < b->baseInterfaces_dim; ++j)
+            for (size_t j = 0; j < b->baseInterfaces.length; ++j)
             {
-                deduceBaseClassParameters( &(b->baseInterfaces)[j],
+                BaseClass *bi = &b->baseInterfaces.ptr[j];
+                deduceBaseClassParameters(bi,
                     sc, tparam, parameters, dedtypes,
                     best, numBaseClassMatches);
             }
@@ -4241,9 +4242,9 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         best, numBaseClassMatches);
 
                     // Test the interfaces inherited by the base class
-                    for (size_t i = 0; i < s->interfaces_dim; ++i)
+                    for (size_t i = 0; i < s->interfaces.length; ++i)
                     {
-                        BaseClass *b = s->interfaces[i];
+                        BaseClass *b = s->interfaces.ptr[i];
                         deduceBaseClassParameters(b, sc, tparam, parameters, dedtypes,
                             best, numBaseClassMatches);
                     }

@@ -644,13 +644,13 @@ public:
             {
                 property("base", cd->baseClass->toPrettyChars(true));
             }
-            if (cd->interfaces_dim)
+            if (cd->interfaces.length)
             {
                 propertyStart("interfaces");
                 arrayStart();
-                for (size_t i = 0; i < cd->interfaces_dim; i++)
+                for (size_t i = 0; i < cd->interfaces.length; i++)
                 {
-                    BaseClass *b = cd->interfaces[i];
+                    BaseClass *b = cd->interfaces.ptr[i];
                     item(b->sym->toPrettyChars(true));
                 }
                 arrayEnd();

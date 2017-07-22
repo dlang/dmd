@@ -810,9 +810,9 @@ void FuncDeclaration::semantic(Scope *sc)
                         /* if overriding an interface function, then this is not
                          * introducing and don't put it in the class vtbl[]
                          */
-                        for (size_t i = 0; i < cd->interfaces_dim; i++)
+                        for (size_t i = 0; i < cd->interfaces.length; i++)
                         {
-                            BaseClass* b = cd->interfaces[i];
+                            BaseClass* b = cd->interfaces.ptr[i];
                             int v = findVtblIndex((Dsymbols*)&b->sym->vtbl, (int)b->sym->vtbl.dim);
                             if (v >= 0)
                             {
@@ -948,9 +948,9 @@ void FuncDeclaration::semantic(Scope *sc)
          * functions, set the tintro.
          */
     Linterfaces:
-        for (size_t i = 0; i < cd->interfaces_dim; i++)
+        for (size_t i = 0; i < cd->interfaces.length; i++)
         {
-            BaseClass *b = cd->interfaces[i];
+            BaseClass *b = cd->interfaces.ptr[i];
             vi = findVtblIndex((Dsymbols *)&b->sym->vtbl, (int)b->sym->vtbl.dim);
             switch (vi)
             {
@@ -1040,9 +1040,9 @@ void FuncDeclaration::semantic(Scope *sc)
         /* Go through all the interface bases.
          * Disallow overriding any final functions in the interface(s).
          */
-        for (size_t i = 0; i < cd->interfaces_dim; i++)
+        for (size_t i = 0; i < cd->interfaces.length; i++)
         {
-            BaseClass *b = cd->interfaces[i];
+            BaseClass *b = cd->interfaces.ptr[i];
             if (b->sym)
             {
                 Dsymbol *s = search_function(b->sym, ident);

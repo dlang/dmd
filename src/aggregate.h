@@ -222,10 +222,8 @@ struct BaseClass
     // making up the vtbl[]
     FuncDeclarations vtbl;
 
-    size_t baseInterfaces_dim;
-    // if BaseClass is an interface, these
-    // are a copy of the InterfaceDeclaration::interfaces
-    BaseClass *baseInterfaces;
+    DArray<BaseClass> baseInterfaces;   // if BaseClass is an interface, these
+                                        // are a copy of the InterfaceDeclaration::interfaces
 
     BaseClass();
     BaseClass(Type *type);
@@ -268,8 +266,7 @@ public:
     BaseClasses *baseclasses;           // Array of BaseClass's; first is super,
                                         // rest are Interface's
 
-    size_t interfaces_dim;
-    BaseClass **interfaces;             // interfaces[interfaces_dim] for this class
+    DArray<BaseClass*> interfaces;      // interfaces[interfaces_dim] for this class
                                         // (does not include baseClass)
 
     BaseClasses *vtblInterfaces;        // array of base interfaces that have
