@@ -118,6 +118,7 @@ public:
     unsigned size(Loc loc);
     virtual void finalizeSize(Scope *sc) = 0;
     bool checkOverlappedFields();
+    bool fill(Loc loc, Expressions *elements, bool ctorinit);
     static void alignmember(structalign_t salign, unsigned size, unsigned *poffset);
     static unsigned placeField(unsigned *nextoffset,
         unsigned memsize, unsigned memalignsize, structalign_t memalign,
@@ -188,7 +189,6 @@ public:
     const char *kind();
     void finalizeSize(Scope *sc);
     bool fit(Loc loc, Scope *sc, Expressions *elements, Type *stype);
-    bool fill(Loc loc, Expressions *elements, bool ctorinit);
     bool isPOD();
 
     StructDeclaration *isStructDeclaration() { return this; }
