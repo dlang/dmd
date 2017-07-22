@@ -16,9 +16,7 @@
 #pragma once
 #endif
 
-#include <stdint.h>
-
-#include "longdouble.h"
+#include "ctfloat.h"
 #include "outbuffer.h"
 #include "filename.h"
 
@@ -264,8 +262,6 @@ typedef int32_t                 d_int32;
 typedef uint32_t                d_uns32;
 typedef int64_t                 d_int64;
 typedef uint64_t                d_uns64;
-
-typedef longdouble real_t;
 
 // Represents a D [ ] array
 template<typename T>

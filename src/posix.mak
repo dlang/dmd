@@ -163,14 +163,15 @@ DMD_OBJS = \
 	cppmangle.o opover.o optimize.o \
 	parse.o scope.o statement.o \
 	struct.o template.o \
-	version.o utf.o utils.o staticassert.o \
-	statementsem.o entity.o doc.o macro.o \
+	version.o utf.o staticassert.o \
+	entity.o doc.o macro.o \
 	hdrgen.o delegatize.o interpret.o traits.o \
 	builtin.o ctfeexpr.o clone.o aliasthis.o \
 	arrayop.o json.o unittests.o \
 	imphint.o argtypes.o apply.o sapply.o sideeffect.o \
 	intrange.o canthrow.o target.o nspace.o errors.o \
-	escape.o tokens.o globals.o
+	escape.o tokens.o globals.o \
+	utils.o statementsem.o
 
 ifeq ($(D_OBJC),1)
 	DMD_OBJS += objc.o
@@ -233,8 +234,8 @@ SRC = win32.mak posix.mak osmodel.mak \
 	identifier.h parse.h \
 	scope.h enum.h import.h mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h statement.h \
-	utf.h utf.c utils.c staticassert.h staticassert.c \
-	statementsem.c entity.c \
+	utf.h utf.c staticassert.h staticassert.c \
+	entity.c \
 	doc.h doc.c macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h arrayop.c \
@@ -243,7 +244,8 @@ SRC = win32.mak posix.mak osmodel.mak \
 	intrange.h intrange.c canthrow.c target.c target.h \
 	scanmscoff.c scanomf.c ctfe.h ctfeexpr.c \
 	ctfe.h ctfeexpr.c visitor.h nspace.h nspace.c errors.h errors.c \
-	escape.c tokens.h tokens.c globals.h globals.c objc.c objc.h objc_stubs.c
+	escape.c tokens.h tokens.c globals.h globals.c objc.c objc.h objc_stubs.c \
+	utils.c statementsem.c
 
 ROOT_SRC = $(ROOT)/root.h \
 	$(ROOT)/array.h \
@@ -258,7 +260,8 @@ ROOT_SRC = $(ROOT)/root.h \
 	$(ROOT)/outbuffer.h $(ROOT)/outbuffer.c \
 	$(ROOT)/object.h $(ROOT)/object.c \
 	$(ROOT)/filename.h $(ROOT)/filename.c \
-	$(ROOT)/file.h $(ROOT)/file.c
+	$(ROOT)/file.h $(ROOT)/file.c \
+	$(ROOT)/ctfloat.h
 
 GLUE_SRC = glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \

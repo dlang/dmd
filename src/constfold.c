@@ -142,15 +142,15 @@ UnionExp Add(Type *type, Expression *e1, Expression *e2)
     {
         // This rigamarole is necessary so that -0.0 doesn't get
         // converted to +0.0 by doing an extraneous add with +0.0
-        complex_t c1;
+        complex_t c1 = complex_t(ldouble(0));
         real_t r1 = ldouble (0.0);
         real_t i1 = ldouble (0.0);
 
-        complex_t c2;
+        complex_t c2 = complex_t(ldouble(0));
         real_t r2 = ldouble (0.0);
         real_t i2 = ldouble (0.0);
 
-        complex_t v;
+        complex_t v = complex_t(ldouble(0));
         int x;
 
         if (e1->type->isreal())
@@ -186,16 +186,35 @@ UnionExp Add(Type *type, Expression *e1, Expression *e2)
 
         switch (x)
         {
-            case 0+0:   v = complex_t(r1 + r2, 0);      break;
-            case 0+1:   v = complex_t(r1, i2);          break;
-            case 0+2:   v = complex_t(r1 + creall(c2), cimagl(c2));     break;
-            case 3+0:   v = complex_t(r2, i1);          break;
-            case 3+1:   v = complex_t(0, i1 + i2);      break;
-            case 3+2:   v = complex_t(creall(c2), i1 + cimagl(c2));     break;
-            case 6+0:   v = complex_t(creall(c1) + r2, cimagl(c2));     break;
-            case 6+1:   v = complex_t(creall(c1), cimagl(c1) + i2);     break;
-            case 6+2:   v = c1 + c2;                    break;
-            default: assert(0);
+        case 0 + 0:
+            v = complex_t(r1 + r2);
+            break;
+        case 0 + 1:
+            v = complex_t(r1, i2);
+            break;
+        case 0 + 2:
+            v = complex_t(r1 + creall(c2), cimagl(c2));
+            break;
+        case 3 + 0:
+            v = complex_t(r2, i1);
+            break;
+        case 3 + 1:
+            v = complex_t(ldouble(0), i1 + i2);
+            break;
+        case 3 + 2:
+            v = complex_t(creall(c2), i1 + cimagl(c2));
+            break;
+        case 6 + 0:
+            v = complex_t(creall(c1) + r2, cimagl(c2));
+            break;
+        case 6 + 1:
+            v = complex_t(creall(c1), cimagl(c1) + i2);
+            break;
+        case 6 + 2:
+            v = c1 + c2;
+            break;
+        default:
+            assert(0);
         }
         new(&ue) ComplexExp(loc, v, type);
     }
@@ -234,15 +253,15 @@ UnionExp Min(Type *type, Expression *e1, Expression *e2)
     {
         // This rigamarole is necessary so that -0.0 doesn't get
         // converted to +0.0 by doing an extraneous add with +0.0
-        complex_t c1;
+        complex_t c1 = complex_t(ldouble(0));
         real_t r1 = ldouble (0.0);
         real_t i1 = ldouble (0.0);
 
-        complex_t c2;
+        complex_t c2 = complex_t(ldouble(0));
         real_t r2 = ldouble (0.0);
         real_t i2 = ldouble (0.0);
 
-        complex_t v;
+        complex_t v = complex_t(ldouble(0));
         int x;
 
         if (e1->type->isreal())
@@ -278,16 +297,35 @@ UnionExp Min(Type *type, Expression *e1, Expression *e2)
 
         switch (x)
         {
-            case 0+0:   v = complex_t(r1 - r2, 0);      break;
-            case 0+1:   v = complex_t(r1, -i2);         break;
-            case 0+2:   v = complex_t(r1 - creall(c2), -cimagl(c2));    break;
-            case 3+0:   v = complex_t(-r2, i1);         break;
-            case 3+1:   v = complex_t(0, i1 - i2);      break;
-            case 3+2:   v = complex_t(-creall(c2), i1 - cimagl(c2));    break;
-            case 6+0:   v = complex_t(creall(c1) - r2, cimagl(c1));     break;
-            case 6+1:   v = complex_t(creall(c1), cimagl(c1) - i2);     break;
-            case 6+2:   v = c1 - c2;                    break;
-            default: assert(0);
+        case 0 + 0:
+            v = complex_t(r1 - r2);
+            break;
+        case 0 + 1:
+            v = complex_t(r1, -i2);
+            break;
+        case 0 + 2:
+            v = complex_t(r1 - creall(c2), -cimagl(c2));
+            break;
+        case 3 + 0:
+            v = complex_t(-r2, i1);
+            break;
+        case 3 + 1:
+            v = complex_t(ldouble(0), i1 - i2);
+            break;
+        case 3 + 2:
+            v = complex_t(-creall(c2), i1 - cimagl(c2));
+            break;
+        case 6 + 0:
+            v = complex_t(creall(c1) - r2, cimagl(c1));
+            break;
+        case 6 + 1:
+            v = complex_t(creall(c1), cimagl(c1) - i2);
+            break;
+        case 6 + 2:
+            v = c1 - c2;
+            break;
+        default:
+            assert(0);
         }
         new(&ue) ComplexExp(loc, v, type);
     }
@@ -311,7 +349,7 @@ UnionExp Mul(Type *type, Expression *e1, Expression *e2)
 
     if (type->isfloating())
     {
-        complex_t c;
+        complex_t c = complex_t(ldouble(0));
         real_t r;
 
         if (e1->type->isreal())
@@ -364,7 +402,7 @@ UnionExp Div(Type *type, Expression *e1, Expression *e2)
 
     if (type->isfloating())
     {
-        complex_t c;
+        complex_t c = complex_t(ldouble(0));
         real_t r;
 
         //e1->type->print();
@@ -429,7 +467,7 @@ UnionExp Mod(Type *type, Expression *e1, Expression *e2)
 
     if (type->isfloating())
     {
-        complex_t c;
+        complex_t c = complex_t(ldouble(0));
 
         if (e2->type->isreal())
         {
@@ -521,7 +559,7 @@ UnionExp Pow(Type *type, Expression *e1, Expression *e2)
         if (e1->type->iscomplex())
         {
             new(&ur) ComplexExp(loc, e1->toComplex(), e1->type);
-            new(&uv) ComplexExp(loc, complex_t(1.0, 0.0), e1->type);
+            new(&uv) ComplexExp(loc, complex_t(ldouble(1)), e1->type);
         }
         else if (e1->type->isfloating())
         {
@@ -1122,17 +1160,33 @@ L1:
 
             switch (typeb->ty)
             {
-                case Tint8:     result = (d_int8)r;     break;
+                case Tint8:
+                    result = (d_int8)(sinteger_t)r;
+                    break;
                 case Tchar:
-                case Tuns8:     result = (d_uns8)r;     break;
-                case Tint16:    result = (d_int16)r;    break;
+                case Tuns8:
+                    result = (d_uns8)(dinteger_t)r;
+                    break;
+                case Tint16:
+                    result = (d_int16)(sinteger_t)r;
+                    break;
                 case Twchar:
-                case Tuns16:    result = (d_uns16)r;    break;
-                case Tint32:    result = (d_int32)r;    break;
+                case Tuns16:
+                    result = (d_uns16)(dinteger_t)r;
+                    break;
+                case Tint32:
+                    result = (d_int32)r;
+                    break;
                 case Tdchar:
-                case Tuns32:    result = (d_uns32)r;    break;
-                case Tint64:    result = (d_int64)r;    break;
-                case Tuns64:    result = (d_uns64)r;    break;
+                case Tuns32:
+                    result = (d_uns32)r;
+                    break;
+                case Tint64:
+                    result = (d_int64)r;
+                    break;
+                case Tuns64:
+                    result = (d_uns64)r;
+                    break;
                 default:
                     assert(0);
             }

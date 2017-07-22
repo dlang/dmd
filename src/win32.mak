@@ -250,6 +250,7 @@ ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\filename.h \
 	$(ROOT)\file.h \
 	$(ROOT)\array.h \
+	$(ROOT)\ctfloat.h \
 	$(ROOTSRCC)
 # Removed garbage collector bits (look in history)
 #	$(ROOT)\gc\bits.c $(ROOT)\gc\gc.c $(ROOT)\gc\gc.h $(ROOT)\gc\mscbitops.h \

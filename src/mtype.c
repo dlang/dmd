@@ -3301,11 +3301,7 @@ Lfvalue:
         e = new RealExp(loc, fvalue, this);
     else
     {
-        complex_t cvalue;
-
-        cvalue.re = fvalue;
-        cvalue.im = fvalue;
-
+        complex_t cvalue = complex_t(fvalue, fvalue);
         //for (int i = 0; i < 20; i++)
         //    printf("%02x ", ((unsigned char *)&cvalue)[i]);
         //printf("\n");
@@ -3424,9 +3420,7 @@ Expression *TypeBasic::defaultInit(Loc loc)
         case Tcomplex64:
         case Tcomplex80:
         {   // Can't use fvalue + I*fvalue (the im part becomes a quiet NaN).
-            complex_t cvalue;
-            ((real_t *)&cvalue)[0] = Port::snan;
-            ((real_t *)&cvalue)[1] = Port::snan;
+            complex_t cvalue = complex_t(Port::snan, Port::snan);
             return new ComplexExp(loc, cvalue, this);
         }
 

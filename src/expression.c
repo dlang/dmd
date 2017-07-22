@@ -2349,7 +2349,7 @@ real_t Expression::toImaginary()
 complex_t Expression::toComplex()
 {
     error("floating point constant expression expected instead of %s", toChars());
-    return (complex_t)0.0;
+    return complex_t(ldouble(0));
 }
 
 StringExp *Expression::toStringExp()
@@ -3265,9 +3265,8 @@ bool RealExp::isBool(bool result)
 /******************************** ComplexExp **************************/
 
 ComplexExp::ComplexExp(Loc loc, complex_t value, Type *type)
-        : Expression(loc, TOKcomplex80, sizeof(ComplexExp))
+        : value(value), Expression(loc, TOKcomplex80, sizeof(ComplexExp))
 {
-    this->value = value;
     this->type = type;
     //printf("ComplexExp::ComplexExp(%s)\n", toChars());
 }
