@@ -87,8 +87,8 @@ struct Ungag
     ~Ungag() { global.gag = oldgag; }
 };
 
-const char *mangle(Dsymbol *s);
 const char *mangleExact(FuncDeclaration *fd);
+void mangleToBuffer(Dsymbol *s, OutBuffer* buf);
 
 enum PROTKIND
 {

@@ -7252,7 +7252,9 @@ Expression *DotIdExp::semanticX(Scope *sc)
                         return new ErrorExp();
                     }
                 }
-                const char* s = mangle(ds);
+                OutBuffer buf;
+                mangleToBuffer(ds, &buf);
+                const char *s = buf.extractString();
                 Expression *e = new StringExp(loc, (void*)s, strlen(s));
                 e = e->semantic(sc);
                 return e;

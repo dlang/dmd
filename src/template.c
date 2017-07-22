@@ -7488,16 +7488,19 @@ Identifier *TemplateInstance::genIdent(Objects *args)
                 error("forward reference of %s %s", d->kind(), d->toChars());
                 continue;
             }
-            const char *p = mangle(sa);
 
-            /* Bugzilla 3043: if the first character of p is a digit this
+            OutBuffer bufsa;
+            mangleToBuffer(sa, &bufsa);
+            const char *s = bufsa.extractString();
+
+            /* Bugzilla 3043: if the first character of s is a digit this
              * causes ambiguity issues because the digits of the two numbers are adjacent.
              * Current demanglers resolve this by trying various places to separate the
              * numbers until one gets a successful demangle.
              * Unfortunately, fixing this ambiguity will break existing binary
              * compatibility and the demanglers, so we'll leave it as is.
              */
-            buf.printf("%llu%s", (ulonglong)strlen(p), p);
+            buf.printf("%u%s", (unsigned)strlen(s), s);
         }
         else if (va)
         {
