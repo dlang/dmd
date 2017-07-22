@@ -2340,6 +2340,10 @@ TypeBasic *Type::isTypeBasic()
 }
 
 
+/***************************************
+ * Resolve 'this' type to either type, symbol, or expression.
+ * If errors happened, resolved to Type.terror.
+ */
 void Type::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid)
 {
     //printf("Type::resolve() %s, %d\n", toChars(), ty);
@@ -2347,6 +2351,70 @@ void Type::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps,
     *pt = t;
     *pe = NULL;
     *ps = NULL;
+}
+
+/***************************************
+ * Normalize `e` as the result of Type::resolve() process.
+ */
+void Type::resolveExp(Expression *e, Type **pt, Expression **pe, Dsymbol **ps)
+{
+    *pt = NULL;
+    *pe = NULL;
+    *ps = NULL;
+
+    Dsymbol *s;
+    switch (e->op)
+    {
+        case TOKerror:
+            *pt = Type::terror;
+            return;
+
+        case TOKtype:
+            *pt = e->type;
+            return;
+
+        case TOKvar:
+            s = ((VarExp *)e)->var;
+            if (s->isVarDeclaration())
+                goto Ldefault;
+            //if (s->isOverDeclaration())
+            //    todo;
+            break;
+
+        case TOKtemplate:
+            // TemplateDeclaration
+            s = ((TemplateExp *)e)->td;
+            break;
+
+        case TOKimport:
+            s = ((ScopeExp *)e)->sds;
+            // TemplateDeclaration, TemplateInstance, Import, Package, Module
+            break;
+
+        case TOKfunction:
+            s = getDsymbol(e);
+            break;
+
+        //case TOKthis:
+        //case TOKsuper:
+
+        //case TOKtuple:
+
+        //case TOKoverloadset:
+
+        //case TOKdotvar:
+        //case TOKdottd:
+        //case TOKdotti:
+        //case TOKdottype:
+        //case TOKdot:
+
+        default:
+    Ldefault:
+            *pe = e;
+            return;
+    }
+
+    *ps = s;
 }
 
 /***************************************
@@ -6426,12 +6494,7 @@ void TypeQualified::resolveTupleIndex(Loc loc, Scope *sc, Dsymbol *s,
             eindex = DsymbolExp::resolve(loc, sc, sindex, false);
         Expression *e = new IndexExp(loc, DsymbolExp::resolve(loc, sc, s, false), eindex);
         e = e->semantic(sc);
-        if (e->op == TOKerror)
-            *pt = Type::terror;
-        else if (e->op == TOKtype)
-            *pt = ((TypeExp *)e)->type;
-        else
-            *pe = e;
+        resolveExp(e, pt, pe, ps);
         return;
     }
 
@@ -6472,52 +6535,51 @@ void TypeQualified::resolveTupleIndex(Loc loc, Scope *sc, Dsymbol *s,
 
     if (*pt)
         *pt = (*pt)->semantic(loc, sc);
+    if (*pe)
+        resolveExp(*pe, pt, pe, ps);
 }
 
-void TypeQualified::resolveExprType(Loc loc, Scope *sc,
-        Expression *e, size_t i, Expression **pe, Type **pt)
+Expression *TypeQualified::toExpressionHelper(Expression *e, size_t i)
 {
-    //printf("resolveExprType(e = %s %s, type = %s)\n", Token::toChars(e->op), e->toChars(), e->type->toChars());
-
-    e = e->semantic(sc);
-
+    //printf("toExpressionHelper(e = %s %s)\n", Token::toChars(e->op), e->toChars());
     for (; i < idents.dim; i++)
     {
-        if (e->op == TOKerror)
-            break;
-
         RootObject *id = idents[i];
-        //printf("e: '%s', id: '%s', type = %s\n", e->toChars(), id->toChars(), e->type->toChars());
-        if (id->dyncast() == DYNCAST_IDENTIFIER)
+        //printf("\t[%d] e: '%s', id: '%s'\n", i, e->toChars(), id->toChars());
+
+        switch (id->dyncast())
         {
-            DotIdExp *die = new DotIdExp(e->loc, e, (Identifier *)id);
-            e = die->semanticY(sc, 0);
-        }
-        else if (id->dyncast() == DYNCAST_TYPE)         // Bugzilla 1215
-        {
-            e = new IndexExp(loc, e, new TypeExp(loc, (Type *)id));
-            e = e->semantic(sc);
-        }
-        else if (id->dyncast() == DYNCAST_EXPRESSION)   // Bugzilla 1215
-        {
-            e = new IndexExp(loc, e, (Expression *)id);
-            e = e->semantic(sc);
-        }
-        else
-        {
-            assert(id->dyncast() == DYNCAST_DSYMBOL);
-            TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
-            assert(ti);
-            DotTemplateInstanceExp *dte = new DotTemplateInstanceExp(e->loc, e, ti->name, ti->tiargs);
-            e = dte->semanticY(sc, 0);
+            case DYNCAST_IDENTIFIER:
+            {
+                // ... '. ident'
+                e = new DotIdExp(e->loc, e, (Identifier *)id);
+                break;
+            }
+            case DYNCAST_DSYMBOL:
+            {
+                // ... '. name!(tiargs)'
+                TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
+                assert(ti);
+                e = new DotTemplateInstanceExp(e->loc, e, ti->name, ti->tiargs);
+                break;
+            }
+            case DYNCAST_TYPE:          // Bugzilla 1215
+            {
+                // ... '[type]'
+                e = new ArrayExp(loc, e, new TypeExp(loc, (Type *)id));
+                break;
+            }
+            case DYNCAST_EXPRESSION:    // Bugzilla 1215
+            {
+                // ... '[expr]'
+                e = new ArrayExp(loc, e, (Expression *)id);
+                break;
+            }
+            default:
+                assert(0);
         }
     }
-    if (e->op == TOKerror)
-        *pt = Type::terror;
-    else if (e->op == TOKtype)
-        *pt = e->type;
-    else
-        *pe = e;
+    return e;
 }
 
 /*************************************
@@ -6569,7 +6631,10 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 if (tx)
                     ex = new TypeExp(loc, tx);
                 assert(ex);
-                resolveExprType(loc, sc, ex, i + 1, pe, pt);
+
+                ex = toExpressionHelper(ex, i + 1);
+                ex = ex->semantic(sc);
+                resolveExp(ex, pt, pe, ps);
                 return;
             }
 
@@ -6628,7 +6693,9 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     else
                         e = new VarExp(loc, s->isDeclaration(), true);
 
-                    resolveExprType(loc, sc, e, i, pe, pt);
+                    e = toExpressionHelper(e, i);
+                    e = e->semantic(sc);
+                    resolveExp(e, pt, pe, ps);
                     return;
                 }
                 else
@@ -6869,40 +6936,7 @@ Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
 
 Expression *TypeIdentifier::toExpression()
 {
-    Expression *e = new IdentifierExp(loc, ident);
-    for (size_t i = 0; i < idents.dim; i++)
-    {
-        RootObject *id = idents[i];
-        switch (id->dyncast())
-        {
-            case DYNCAST_IDENTIFIER:
-            {
-                e = new DotIdExp(loc, e, (Identifier *)id);
-                break;
-            }
-            case DYNCAST_DSYMBOL:
-            {
-                TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
-                assert(ti);
-                e = new DotTemplateInstanceExp(loc, e, ti->name, ti->tiargs);
-                break;
-            }
-            case DYNCAST_TYPE:
-            {
-                e = new ArrayExp(loc, e, new TypeExp(loc, (Type *)id));
-                break;
-            }
-            case DYNCAST_EXPRESSION:
-            {
-                e = new ArrayExp(loc, e, (Expression *)id);
-                break;
-            }
-            default:
-                assert(0);
-        }
-    }
-
-    return e;
+    return toExpressionHelper(new IdentifierExp(loc, ident));
 }
 
 /***************************** TypeInstance *****************************/
@@ -7009,40 +7043,7 @@ Dsymbol *TypeInstance::toDsymbol(Scope *sc)
 
 Expression *TypeInstance::toExpression()
 {
-    Expression *e = new ScopeExp(loc, tempinst);
-    for (size_t i = 0; i < idents.dim; i++)
-    {
-        RootObject *id = idents[i];
-        switch (id->dyncast())
-        {
-            case DYNCAST_IDENTIFIER:
-            {
-                e = new DotIdExp(loc, e, (Identifier *)id);
-                break;
-            }
-            case DYNCAST_DSYMBOL:
-            {
-                TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
-                assert(ti);
-                e = new DotTemplateInstanceExp(loc, e, ti->name, ti->tiargs);
-                break;
-            }
-            case DYNCAST_TYPE:
-            {
-                e = new ArrayExp(loc, e, new TypeExp(loc, (Type *)id));
-                break;
-            }
-            case DYNCAST_EXPRESSION:
-            {
-                e = new ArrayExp(loc, e, (Expression *)id);
-                break;
-            }
-            default:
-                assert(0);
-        }
-    }
-
-    return e;
+    return toExpressionHelper(new ScopeExp(loc, tempinst));
 }
 
 
@@ -7150,45 +7151,9 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             resolveHelper(loc, sc, s, NULL, pe, pt, ps, intypeid);
         else
         {
-            Expression *e = new TypeExp(loc, t);
-            for (size_t i = 0; i < idents.dim; i++)
-            {
-                RootObject *id = idents[i];
-                switch (id->dyncast())
-                {
-                    case DYNCAST_IDENTIFIER:
-                    {
-                        e = new DotIdExp(loc, e, (Identifier *)id);
-                        break;
-                    }
-                    case DYNCAST_DSYMBOL:
-                    {
-                        TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
-                        e = new DotExp(loc, e, new ScopeExp(loc, ti));
-                        break;
-                    }
-                    case DYNCAST_TYPE:
-                    {
-                        e = new ArrayExp(loc, e, new TypeExp(loc, (Type *)id));
-                        break;
-                    }
-                    case DYNCAST_EXPRESSION:
-                    {
-                        e = new ArrayExp(loc, e, (Expression *)id);
-                        break;
-                    }
-                    default:
-                        assert(0);
-                }
-            }
+            Expression *e = toExpressionHelper(new TypeExp(loc, t));
             e = e->semantic(sc);
-            if ((*ps = getDsymbol(e)) == NULL)
-            {
-                if (e->op == TOKtype)
-                    *pt = e->type;
-                else
-                    *pe = e;
-            }
+            resolveExp(e, pt, pe, ps);
         }
     }
     if (*pt)
@@ -7288,45 +7253,9 @@ void TypeReturn::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             resolveHelper(loc, sc, s, NULL, pe, pt, ps, intypeid);
         else
         {
-            Expression *e = new TypeExp(loc, t);
-            for (size_t i = 0; i < idents.dim; i++)
-            {
-                RootObject *id = idents[i];
-                switch (id->dyncast())
-                {
-                    case DYNCAST_IDENTIFIER:
-                    {
-                        e = new DotIdExp(loc, e, (Identifier *)id);
-                        break;
-                    }
-                    case DYNCAST_DSYMBOL:
-                    {
-                        TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
-                        e = new DotExp(loc, e, new ScopeExp(loc, ti));
-                        break;
-                    }
-                    case DYNCAST_TYPE:
-                    {
-                        e = new ArrayExp(loc, e, new TypeExp(loc, (Type *)id));
-                        break;
-                    }
-                    case DYNCAST_EXPRESSION:
-                    {
-                        e = new ArrayExp(loc, e, (Expression *)id);
-                        break;
-                    }
-                    default:
-                        assert(0);
-                }
-            }
+            Expression *e = toExpressionHelper(new TypeExp(loc, t));
             e = e->semantic(sc);
-            if ((*ps = getDsymbol(e)) == NULL)
-            {
-                if (e->op == TOKtype)
-                    *pt = e->type;
-                else
-                    *pe = e;
-            }
+            resolveExp(e, pt, pe, ps);
         }
     }
     if (*pt)
