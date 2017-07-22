@@ -757,7 +757,7 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
     {
         Dsymbol *snew = s;
         if (sold != snew)
-	  Scope::deprecation10378(loc, sold, snew);
+            Scope::deprecation10378(loc, sold, snew);
         if (global.params.bug10378)
             s = sold;
     }
@@ -4994,8 +4994,8 @@ Expression *ScopeExp::semantic(Scope *sc)
     //printf("\tparent = '%s'\n", sds2->parent->toChars());
     sds2->semantic(sc);
 
-    if (AggregateDeclaration *ad = sds2->isAggregateDeclaration())
-        return (new TypeExp(loc, ad->type))->semantic(sc);
+    if (Type *t = sds2->getType())    // (Aggregate|Enum)Declaration
+        return (new TypeExp(loc, t))->semantic(sc);
 
     sds = sds2;
     type = Type::tvoid;

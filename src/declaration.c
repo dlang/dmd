@@ -345,11 +345,7 @@ void AliasDeclaration::semantic(Scope *sc)
     // toAlias() will return aliasssym.
 
     unsigned int errors = global.errors;
-    Type *savedtype = type;
-
-    Dsymbol *s;
-    Type *t;
-    Expression *e;
+    Type *oldtype = type;
 
     // Ungag errors when not instantiated DeclDefs scope alias
     Ungag ungag(global.gag);
@@ -360,12 +356,12 @@ void AliasDeclaration::semantic(Scope *sc)
         global.gag = 0;
     }
 
-    /* This section is needed because resolve() will:
+    /* This section is needed because Type::resolve() will:
      *   const x = 3;
-     *   alias x y;
-     * try to alias y to 3.
+     *   alias y = x;
+     * try to convert identifier x to 3.
      */
-    s = type->toDsymbol(sc);
+    Dsymbol *s = type->toDsymbol(sc);
     if (errors != global.errors)
     {
         s = NULL;
@@ -377,129 +373,68 @@ void AliasDeclaration::semantic(Scope *sc)
         s = NULL;
         type = Type::terror;
     }
-    if (s && ((s->getType() && type->equals(s->getType())) || s->isEnumMember()))
-        goto L2;                        // it's a symbolic alias
-
-    type = type->addSTC(storage_class);
-    if (storage_class & (STCref | STCnothrow | STCnogc | STCpure | STCdisable))
+    if (!s || !((s->getType() && type->equals(s->getType())) || s->isEnumMember()))
     {
-        // For 'ref' to be attached to function types, and picked
-        // up by Type::resolve(), it has to go into sc.
-        sc = sc->push();
-        sc->stc |= storage_class & (STCref | STCnothrow | STCnogc | STCpure | STCshared | STCdisable);
-        type->resolve(loc, sc, &e, &t, &s);
-        sc = sc->pop();
+        Type *t;
+        Expression *e;
+        Scope* sc2 = sc;
+        if (storage_class & (STCref | STCnothrow | STCnogc | STCpure | STCdisable))
+        {
+            // For 'ref' to be attached to function types, and picked
+            // up by Type::resolve(), it has to go into sc.
+            sc2 = sc->push();
+            sc2->stc |= storage_class & (STCref | STCnothrow | STCnogc | STCpure | STCshared | STCdisable);
+        }
+        type = type->addSTC(storage_class);
+        type->resolve(loc, sc2, &e, &t, &s);
+        if (sc2 != sc)
+            sc2->pop();
+
+        if (e)
+        {
+            s = getDsymbol(e);
+            if (!s)
+            {
+                if (e->op != TOKerror)
+                    error("cannot alias an expression %s", e->toChars());
+                t = Type::terror;
+            }
+        }
+        type = t;
     }
-    else
-        type->resolve(loc, sc, &e, &t, &s);
-    if (s)
+    if (s == this)
     {
-        goto L2;
-    }
-    else if (e)
-    {
-        // Try to convert Expression to Dsymbol
-        s = getDsymbol(e);
-        if (s)
-            goto L2;
-
-        if (e->op != TOKerror)
-            error("cannot alias an expression %s", e->toChars());
-        t = e->type;
-    }
-    else if (t)
-    {
-        type = t->semantic(loc, sc);
-        //printf("\talias resolved to type %s\n", type->toChars());
-    }
-    if (overnext)
-        ScopeDsymbol::multiplyDefined(Loc(), overnext, this);
-    inuse = 0;
-
-    if (global.gag && errors != global.errors)
-        type = savedtype;
-
-    semanticRun = PASSsemanticdone;
-    return;
-
-  L2:
-    //printf("alias is a symbol %s %s\n", s->kind(), s->toChars());
-    type = NULL;
-    VarDeclaration *v = s->isVarDeclaration();
-    if (0 && v && v->linkage == LINKdefault)
-    {
-        error("forward reference of %s", v->toChars());
+        assert(global.errors);
+        type = Type::terror;
         s = NULL;
     }
-    else
+    if (!s) // it's a type alias
     {
-        Dsymbol *savedovernext = overnext;
-        Dsymbol *sa = s->toAlias();
-        if (FuncDeclaration *fd = sa->isFuncDeclaration())
-        {
-            if (overnext)
-            {
-                FuncAliasDeclaration *fa = new FuncAliasDeclaration(ident, fd);
-                if (!fa->overloadInsert(overnext))
-                    ScopeDsymbol::multiplyDefined(Loc(), overnext, fd);
-                overnext = NULL;
-                s = fa;
-                s->parent = sc->parent;
-            }
-        }
-        else if (TemplateDeclaration *td = sa->isTemplateDeclaration())
-        {
-            if (overnext)
-            {
-                OverDeclaration *od = new OverDeclaration(ident, td);
-                if (!od->overloadInsert(overnext))
-                    ScopeDsymbol::multiplyDefined(Loc(), overnext, td);
-                overnext = NULL;
-                s = od;
-                s->parent = sc->parent;
-            }
-        }
-        else if (OverDeclaration *od = sa->isOverDeclaration())
-        {
-            if (overnext)
-            {
-                OverDeclaration *od2 = new OverDeclaration(ident, od);
-                if (!od2->overloadInsert(overnext))
-                    ScopeDsymbol::multiplyDefined(Loc(), overnext, od);
-                overnext = NULL;
-                s = od2;
-                s->parent = sc->parent;
-            }
-        }
-        else if (OverloadSet *os = sa->isOverloadSet())
-        {
-            if (overnext)
-            {
-                os = new OverloadSet(ident, os);
-                os->push(overnext);
-                overnext = NULL;
-                s = os;
-                s->parent = sc->parent;
-            }
-        }
-        if (overnext)
-            ScopeDsymbol::multiplyDefined(Loc(), overnext, this);
-        if (s == this)
-        {
-            assert(global.errors);
-            s = NULL;
-        }
-        if (global.gag && errors != global.errors)
-        {
-            type = savedtype;
-            overnext = savedovernext;
-            s = NULL;
-        }
+        //printf("alias %s resolved to type %s\n", toChars(), type->toChars());
+        type = type->semantic(loc, sc);
+        aliassym = NULL;
     }
-    //printf("setting aliassym %s to %s %s\n", toChars(), s->kind(), s->toChars());
-    aliassym = s;
+    else    // it's a symbolic alias
+    {
+        //printf("alias %s resolved to %s %s\n", toChars(), s->kind(), s->toChars());
+        type = NULL;
+        aliassym = s;
+    }
+    if (global.gag && errors != global.errors)
+    {
+        type = oldtype;
+        aliassym = NULL;
+    }
     inuse = 0;
     semanticRun = PASSsemanticdone;
+
+    if (Dsymbol *sx = overnext)
+    {
+        overnext = NULL;
+
+        if (!overloadInsert(sx))
+            ScopeDsymbol::multiplyDefined(Loc(), sx, this);
+    }
 }
 
 bool AliasDeclaration::overloadInsert(Dsymbol *s)
@@ -521,15 +456,36 @@ bool AliasDeclaration::overloadInsert(Dsymbol *s)
         Dsymbol *sa = aliassym->toAlias();
         if (FuncDeclaration *fd = sa->isFuncDeclaration())
         {
-            FuncAliasDeclaration *fa = new FuncAliasDeclaration(ident, fd);
-            aliassym = fa;
-            return fa->overloadInsert(s);
+            aliassym = new FuncAliasDeclaration(ident, fd);
+            aliassym->parent = parent;
+            return aliassym->overloadInsert(s);
         }
         if (TemplateDeclaration *td = sa->isTemplateDeclaration())
         {
-            OverDeclaration *od = new OverDeclaration(ident, td);
-            aliassym = od;
+            aliassym = new OverDeclaration(ident, td);
+            aliassym->parent = parent;
+            return aliassym->overloadInsert(s);
+        }
+        if (OverDeclaration *od = sa->isOverDeclaration())
+        {
+            if (sa->ident != ident || sa->parent != parent)
+            {
+                od = new OverDeclaration(ident, od);
+                od->parent = parent;
+                aliassym = od;
+            }
             return od->overloadInsert(s);
+        }
+        if (OverloadSet *os = sa->isOverloadSet())
+        {
+            if (sa->ident != ident || sa->parent != parent)
+            {
+                os = new OverloadSet(ident, os);
+                os->parent = parent;
+                aliassym = os;
+            }
+            os->push(s);
+            return true;
         }
         return false;
     }
@@ -604,8 +560,13 @@ Dsymbol *AliasDeclaration::toAlias()
         return aliassym;
     }
 
-    if (aliassym || type->deco)
-        ;   // semantic is already done.
+    if (aliassym)
+    {
+        // semantic is already done.
+
+        // Even if type.deco !is null, "alias T = const int;` needs semantic
+        // call to take the storage class `const` as type qualifier.
+    }
     else if (_import && _import->_scope)
     {
         /* If this is an internal alias for selective/renamed import,
@@ -614,7 +575,9 @@ Dsymbol *AliasDeclaration::toAlias()
         _import->semantic(NULL);
     }
     else if (_scope)
+    {
         semantic(_scope);
+    }
     inuse = 1;
     Dsymbol *s = aliassym ? aliassym->toAlias() : this;
     inuse = 0;
@@ -698,19 +661,12 @@ bool OverDeclaration::equals(RootObject *o)
 bool OverDeclaration::overloadInsert(Dsymbol *s)
 {
     //printf("OverDeclaration::overloadInsert('%s') aliassym = %p, overnext = %p\n", s->toChars(), aliassym, overnext);
-    if (overnext == NULL)
-    {
-        if (s == this)
-        {
-            return true;
-        }
-        overnext = s;
-        return true;
-    }
-    else
-    {
+    if (overnext)
         return overnext->overloadInsert(s);
-    }
+    if (s == this)
+        return true;
+    overnext = s;
+    return true;
 }
 
 Dsymbol *OverDeclaration::toAlias()

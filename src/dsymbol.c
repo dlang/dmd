@@ -158,7 +158,7 @@ bool Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident)
                 if (!s)
                     s = *ps;
                 else if ((s->isOverloadable() || isOverloadableAlias(s)) &&
-			 ((*ps)->isOverloadable() || isOverloadableAlias(*ps)))
+                         ((*ps)->isOverloadable() || isOverloadableAlias(*ps)))
                 {
                     // keep head of overload set
                     FuncDeclaration *f1 = s->isFuncDeclaration();
