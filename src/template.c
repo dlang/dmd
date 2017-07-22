@@ -5715,6 +5715,7 @@ TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *ti
     this->tnext = NULL;
     this->minst = NULL;
     this->deferred = NULL;
+    this->memberOf = NULL;
     this->argsym = NULL;
     this->aliasdecl = NULL;
     this->semantictiargsdone = true;
