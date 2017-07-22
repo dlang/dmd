@@ -483,6 +483,9 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flag
         if (!global.params.check10378)
             return sold;
 
+        if (ident == Id::dollar) // Bugzilla 15825
+            return sold;
+
         // Search both ways
         flags |= SearchCheckImports;
     }
