@@ -10156,6 +10156,15 @@ Expression *VectorExp::syntaxCopy()
     return new VectorExp(loc, e1->syntaxCopy(), to->syntaxCopy());
 }
 
+static bool checkVectorElem(Expression *e, Expression *elem)
+{
+    if (elem->isConst() == 1)
+        return false;
+
+    e->error("constant expression expected, not %s", elem->toChars());
+    return true;
+}
+
 Expression *VectorExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
@@ -10175,7 +10184,23 @@ Expression *VectorExp::semantic(Scope *sc)
     Type *te = tv->elementType();
     dim = (int)(tv->size(loc) / te->size(loc));
 
-    return this;
+    e1 = e1->optimize(WANTvalue);
+    bool result = false;
+    if (e1->op == TOKarrayliteral)
+    {
+        for (size_t i = 0; i < dim; i++)
+        {
+            // Do not stop on first error - check all AST nodes even if error found
+            result |= checkVectorElem(this, ((ArrayLiteralExp *)e1)->getElement(i));
+        }
+    }
+    else
+        result = checkVectorElem(this, e1);
+
+    Expression *e = this;
+    if (result)
+        e = new ErrorExp();
+    return e;
 }
 
 /************************************************************/
