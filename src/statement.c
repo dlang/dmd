@@ -34,6 +34,7 @@
 
 bool walkPostorder(Statement *s, StoppableVisitor *v);
 StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration *f);
+bool checkEscapeRef(Scope *sc, Expression *e, bool gag);
 
 Identifier *fixupLabelName(Scope *sc, Identifier *ident)
 {

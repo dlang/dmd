@@ -33,6 +33,8 @@
 #include "objc.h"
 
 Expression *addInvariant(Loc loc, Scope *sc, AggregateDeclaration *ad, VarDeclaration *vthis, bool direct);
+bool checkEscape(Scope *sc, Expression *e, bool gag);
+bool checkEscapeRef(Scope *sc, Expression *e, bool gag);
 
 void genCmain(Scope *sc);
 

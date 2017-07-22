@@ -15,6 +15,9 @@
 #include "declaration.h"
 #include "module.h"
 
+bool checkEscape(Scope *sc, Expression *e, bool gag);
+bool checkEscapeRef(Scope *sc, Expression *e, bool gag);
+
 /************************************
  * Detect cases where pointers to the stack can 'escape' the
  * lifetime of the stack frame.
