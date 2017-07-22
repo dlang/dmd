@@ -897,9 +897,16 @@ bool Dsymbol::inNonRoot()
 
 /********************************* OverloadSet ****************************/
 
-OverloadSet::OverloadSet(Identifier *ident)
+OverloadSet::OverloadSet(Identifier *ident, OverloadSet *os)
     : Dsymbol(ident)
 {
+    if (os)
+    {
+        for (size_t i = 0; i < os->a.dim; i++)
+        {
+            a.push(os->a[i]);
+        }
+    }
 }
 
 void OverloadSet::push(Dsymbol *s)
@@ -986,7 +993,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             {
                 s = s2;
                 if (s && s->isOverloadSet())
-                    a = mergeOverloadSet(a, s);
+                    a = mergeOverloadSet(ident, a, s);
             }
             else if (s2 && s != s2)
             {
@@ -1031,7 +1038,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                         if ((s2->isOverloadSet() || s2->isOverloadable()) &&
                             (a || s->isOverloadable()))
                         {
-                            a = mergeOverloadSet(a, s2);
+                            a = mergeOverloadSet(ident, a, s2);
                             continue;
                         }
                         if (flags & IgnoreAmbiguous)    // if return NULL on ambiguity
@@ -1051,7 +1058,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             if (a)
             {
                 if (!s->isOverloadSet())
-                    a = mergeOverloadSet(a, s);
+                    a = mergeOverloadSet(ident, a, s);
                 s = a;
             }
 
@@ -1067,11 +1074,11 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     return s1;
 }
 
-OverloadSet *ScopeDsymbol::mergeOverloadSet(OverloadSet *os, Dsymbol *s)
+OverloadSet *ScopeDsymbol::mergeOverloadSet(Identifier *ident, OverloadSet *os, Dsymbol *s)
 {
     if (!os)
     {
-        os = new OverloadSet(s->ident);
+        os = new OverloadSet(ident);
         os->parent = this;
     }
     if (OverloadSet *os2 = s->isOverloadSet())
@@ -1086,7 +1093,7 @@ OverloadSet *ScopeDsymbol::mergeOverloadSet(OverloadSet *os, Dsymbol *s)
         {
             for (size_t i = 0; i < os2->a.dim; i++)
             {
-                os = mergeOverloadSet(os, os2->a[i]);
+                os = mergeOverloadSet(ident, os, os2->a[i]);
             }
         }
     }

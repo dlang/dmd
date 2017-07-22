@@ -7014,8 +7014,6 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
 
         if (errs != global.errors)
             errorSupplemental(loc, "while looking for match for %s", toChars());
-        else if (tovers)
-            error("does not match template overload set %s", tovers->toChars());
         else if (tdecl && !tdecl->overnext)
         {
             // Only one template, so we can give better error message

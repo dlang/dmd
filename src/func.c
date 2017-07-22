@@ -4434,8 +4434,8 @@ Parameters *FuncDeclaration::getParameters(int *pvarargs)
 
 // Used as a way to import a set of functions from another scope into this one.
 
-FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias, bool hasOverloads)
-    : FuncDeclaration(funcalias->loc, funcalias->endloc, funcalias->ident,
+FuncAliasDeclaration::FuncAliasDeclaration(Identifier *ident, FuncDeclaration *funcalias, bool hasOverloads)
+    : FuncDeclaration(funcalias->loc, funcalias->endloc, ident,
         funcalias->storage_class, funcalias->type)
 {
     assert(funcalias != this);

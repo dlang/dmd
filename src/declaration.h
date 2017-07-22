@@ -215,7 +215,7 @@ public:
     Dsymbol *aliassym;
     bool hasOverloads;
 
-    OverDeclaration(Dsymbol *s, bool hasOverloads = true);
+    OverDeclaration(Identifier *ident, Dsymbol *s, bool hasOverloads = true);
     const char *kind();
     void semantic(Scope *sc);
     bool equals(RootObject *o);
@@ -670,7 +670,7 @@ public:
     FuncDeclaration *funcalias;
     bool hasOverloads;
 
-    FuncAliasDeclaration(FuncDeclaration *funcalias, bool hasOverloads = true);
+    FuncAliasDeclaration(Identifier *ident, FuncDeclaration *funcalias, bool hasOverloads = true);
 
     FuncAliasDeclaration *isFuncAliasDeclaration() { return this; }
     const char *kind();

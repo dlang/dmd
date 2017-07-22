@@ -66,12 +66,12 @@ static int fptraits(void *param, Dsymbol *s)
         return 0;
 
     Expression *e;
-    FuncAliasDeclaration* alias = new FuncAliasDeclaration(f, 0);
-    alias->protection = f->protection;
+    FuncAliasDeclaration* ad = new FuncAliasDeclaration(f->ident, f, 0);
+    ad->protection = f->protection;
     if (p->e1)
-        e = new DotVarExp(Loc(), p->e1, alias);
+        e = new DotVarExp(Loc(), p->e1, ad);
     else
-        e = new DsymbolExp(Loc(), alias);
+        e = new DsymbolExp(Loc(), ad);
     p->exps->push(e);
     return 0;
 }
@@ -103,9 +103,9 @@ static void collectUnitTests(Dsymbols *symbols, AA *uniqueUnitTests, Expressions
         {
             if (!dmd_aaGetRvalue(uniqueUnitTests, (void *)unitTest))
             {
-                FuncAliasDeclaration* alias = new FuncAliasDeclaration(unitTest, 0);
-                alias->protection = unitTest->protection;
-                Expression* e = new DsymbolExp(Loc(), alias);
+                FuncAliasDeclaration* ad = new FuncAliasDeclaration(unitTest->ident, unitTest, 0);
+                ad->protection = unitTest->protection;
+                Expression* e = new DsymbolExp(Loc(), ad);
                 unitTests->push(e);
                 bool* value = (bool*) dmd_aaGet(&uniqueUnitTests, (void *)unitTest);
                 *value = true;
