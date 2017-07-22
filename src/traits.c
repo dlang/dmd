@@ -706,7 +706,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             }
         }
 
-        return (new DsymbolExp(e->loc, s))->semantic(sc);
+        return DsymbolExp::resolve(e->loc, sc, s, false);
     }
     else if (e->ident == Id::hasMember ||
              e->ident == Id::getMember ||
