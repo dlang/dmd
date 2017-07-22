@@ -147,9 +147,8 @@ bool lambdaCheckForNestedRef(Expression *e, Scope *sc)
 
         void visit(ThisExp *e)
         {
-            VarDeclaration *v = e->var->isVarDeclaration();
-            if (v)
-                result = v->checkNestedReference(sc, Loc());
+            if (e->var)
+                result = e->var->checkNestedReference(sc, Loc());
         }
 
         void visit(DeclarationExp *e)
