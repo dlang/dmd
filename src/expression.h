@@ -790,10 +790,10 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-class FileExp : public UnaExp
+class ImportExp : public UnaExp
 {
 public:
-    FileExp(Loc loc, Expression *e);
+    ImportExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };

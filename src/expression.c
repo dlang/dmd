@@ -6956,18 +6956,18 @@ Expression *CompileExp::semantic(Scope *sc)
 
 /************************************************************/
 
-FileExp::FileExp(Loc loc, Expression *e)
-        : UnaExp(loc, TOKmixin, sizeof(FileExp), e)
+ImportExp::ImportExp(Loc loc, Expression *e)
+        : UnaExp(loc, TOKmixin, sizeof(ImportExp), e)
 {
 }
 
-Expression *FileExp::semantic(Scope *sc)
+Expression *ImportExp::semantic(Scope *sc)
 {
     const char *name;
     StringExp *se;
 
 #if LOGSEMANTIC
-    printf("FileExp::semantic('%s')\n", toChars());
+    printf("ImportExp::semantic('%s')\n", toChars());
 #endif
     sc = sc->startCTFE();
     e1 = e1->semantic(sc);
