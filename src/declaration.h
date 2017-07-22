@@ -615,7 +615,6 @@ public:
     bool isImportedSymbol();
     bool isCodeseg();
     bool isOverloadable();
-    bool hasOverloads();
     PURE isPure();
     PURE isPureBypassingInference();
     bool setImpure();

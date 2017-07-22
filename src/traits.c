@@ -66,12 +66,12 @@ static int fptraits(void *param, Dsymbol *s)
         return 0;
 
     Expression *e;
-    FuncAliasDeclaration* ad = new FuncAliasDeclaration(f->ident, f, 0);
+    FuncAliasDeclaration* ad = new FuncAliasDeclaration(f->ident, f, false);
     ad->protection = f->protection;
     if (p->e1)
-        e = new DotVarExp(Loc(), p->e1, ad);
+        e = new DotVarExp(Loc(), p->e1, ad, false);
     else
-        e = new DsymbolExp(Loc(), ad);
+        e = new DsymbolExp(Loc(), ad, false);
     p->exps->push(e);
     return 0;
 }
@@ -103,9 +103,9 @@ static void collectUnitTests(Dsymbols *symbols, AA *uniqueUnitTests, Expressions
         {
             if (!dmd_aaGetRvalue(uniqueUnitTests, (void *)unitTest))
             {
-                FuncAliasDeclaration* ad = new FuncAliasDeclaration(unitTest->ident, unitTest, 0);
+                FuncAliasDeclaration* ad = new FuncAliasDeclaration(unitTest->ident, unitTest, false);
                 ad->protection = unitTest->protection;
-                Expression* e = new DsymbolExp(Loc(), ad);
+                Expression* e = new DsymbolExp(Loc(), ad, false);
                 unitTests->push(e);
                 bool* value = (bool*) dmd_aaGet(&uniqueUnitTests, (void *)unitTest);
                 *value = true;
@@ -701,7 +701,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             if (FuncLiteralDeclaration *fld = f->isFuncLiteralDeclaration())
             {
                 // Directly translate to VarExp instead of FuncExp
-                Expression *ex = new VarExp(e->loc, fld, 1);
+                Expression *ex = new VarExp(e->loc, fld, true);
                 return ex->semantic(sc);
             }
         }

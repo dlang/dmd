@@ -1149,7 +1149,7 @@ void FuncDeclaration::semantic(Scope *sc)
                 Id::require, STCundefined, tf);
             fd->fbody = frequire;
             Statement *s1 = new ExpStatement(loc, fd);
-            Expression *e = new CallExp(loc, new VarExp(loc, fd, 0), (Expressions *)NULL);
+            Expression *e = new CallExp(loc, new VarExp(loc, fd, false), (Expressions *)NULL);
             Statement *s2 = new ExpStatement(loc, e);
             frequire = new CompoundStatement(loc, s1, s2);
             fdrequire = fd;
@@ -1185,7 +1185,7 @@ void FuncDeclaration::semantic(Scope *sc)
             Expression *eresult = NULL;
             if (outId)
                 eresult = new IdentifierExp(loc, outId);
-            Expression *e = new CallExp(loc, new VarExp(loc, fd, 0), eresult);
+            Expression *e = new CallExp(loc, new VarExp(loc, fd, false), eresult);
             Statement *s2 = new ExpStatement(loc, e);
             fensure = new CompoundStatement(loc, s1, s2);
             fdensure = fd;
@@ -2459,7 +2459,7 @@ Statement *FuncDeclaration::mergeFrequire(Statement *sf)
              *   catch { frequire; }
              */
             Expression *eresult = NULL;
-            Expression *e = new CallExp(loc, new VarExp(loc, fdv->fdrequire, 0), eresult);
+            Expression *e = new CallExp(loc, new VarExp(loc, fdv->fdrequire, false), eresult);
             Statement *s2 = new ExpStatement(loc, e);
 
             Catch *c = new Catch(loc, NULL, NULL, sf);
@@ -2532,7 +2532,7 @@ Statement *FuncDeclaration::mergeFensure(Statement *sf, Identifier *oid)
                     eresult = new CommaExp(Loc(), de, ve);
                 }
             }
-            Expression *e = new CallExp(loc, new VarExp(loc, fdv->fdensure, 0), eresult);
+            Expression *e = new CallExp(loc, new VarExp(loc, fdv->fdensure, false), eresult);
             Statement *s2 = new ExpStatement(loc, e);
 
             if (sf)
@@ -3631,11 +3631,6 @@ bool FuncDeclaration::isOverloadable()
     return true;                // functions can be overloaded
 }
 
-bool FuncDeclaration::hasOverloads()
-{
-    return overnext != NULL;
-}
-
 PURE FuncDeclaration::isPure()
 {
     //printf("FuncDeclaration::isPure() '%s'\n", toChars());
@@ -4017,7 +4012,7 @@ Expression *addInvariant(Loc loc, Scope *sc, AggregateDeclaration *ad, VarDeclar
              */
             e = new ThisExp(Loc());
             e->type = vthis->type;
-            e = new DotVarExp(Loc(), e, inv, 0);
+            e = new DotVarExp(Loc(), e, inv, false);
             e->type = inv->type;
             e = new CallExp(Loc(), e);
             e->type = Type::tvoid;

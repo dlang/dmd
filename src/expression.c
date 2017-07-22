@@ -731,7 +731,7 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
     }
     else
     {
-        return new DsymbolExp(loc, s, 1);
+        return new DsymbolExp(loc, s);
     }
 }
 
@@ -3369,6 +3369,13 @@ Expression *DsymbolExp::semantic(Scope *sc)
     return resolve(loc, sc, s, hasOverloads);
 }
 
+/****************************************
+ * Resolve a symbol `s` and wraps it in an expression object.
+ * Params:
+ *      hasOverloads = works if the aliased symbol is a function.
+ *          true:  it's overloaded and will be resolved later.
+ *          false: it's exact function symbol.
+ */
 Expression *DsymbolExp::resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads)
 {
 #if LOGSEMANTIC
@@ -3494,7 +3501,7 @@ Lagain:
     }
     if (OverDeclaration *od = s->isOverDeclaration())
     {
-        e = new VarExp(loc, od, 1);
+        e = new VarExp(loc, od, true);
         e->type = Type::tvoid;
         return e;
     }
@@ -4749,7 +4756,7 @@ Expression *TypeExp::semantic(Scope *sc)
     else if (s)
     {
         //printf("s = %s %s\n", s->kind(), s->toChars());
-        e = DsymbolExp::resolve(loc, sc, s, s->hasOverloads());
+        e = DsymbolExp::resolve(loc, sc, s, true);
     }
     else
         assert(0);
@@ -4919,7 +4926,7 @@ Expression *ScopeExp::semantic(Scope *sc)
         }
 
         //printf("s = %s, '%s'\n", s->kind(), s->toChars());
-        Expression *e = DsymbolExp::resolve(loc, sc, s, s->hasOverloads());
+        Expression *e = DsymbolExp::resolve(loc, sc, s, true);
         //printf("-1ScopeExp::semantic()\n");
         return e;
     }
@@ -5473,12 +5480,17 @@ SymbolExp::SymbolExp(Loc loc, TOK op, int size, Declaration *var, bool hasOverlo
 /********************** SymOffExp **************************************/
 
 SymOffExp::SymOffExp(Loc loc, Declaration *var, dinteger_t offset, bool hasOverloads)
-    : SymbolExp(loc, TOKsymoff, sizeof(SymOffExp), var, hasOverloads)
+    : SymbolExp(loc, TOKsymoff, sizeof(SymOffExp), var,
+                var->isVarDeclaration() ? false : hasOverloads)
 {
+    if (VarDeclaration *v = var->isVarDeclaration())
+    {
+        // FIXME: This error report will never be handled anyone.
+        // It should be done before the SymOffExp construction.
+        if (v->needThis())
+            ::error(loc, "need 'this' for address of %s", v->toChars());
+    }
     this->offset = offset;
-    VarDeclaration *v = var->isVarDeclaration();
-    if (v && v->needThis())
-        error("need 'this' for address of %s", v->toChars());
 }
 
 Expression *SymOffExp::semantic(Scope *sc)
@@ -5510,7 +5522,8 @@ bool SymOffExp::isBool(bool result)
 /******************************** VarExp **************************/
 
 VarExp::VarExp(Loc loc, Declaration *var, bool hasOverloads)
-    : SymbolExp(loc, TOKvar, sizeof(VarExp), var, hasOverloads)
+    : SymbolExp(loc, TOKvar, sizeof(VarExp), var,
+                var->isVarDeclaration() ? false : hasOverloads)
 {
     //printf("VarExp(this = %p, '%s', loc = %s)\n", this, var->toChars(), loc.toChars());
     //if (strcmp(var->ident->toChars(), "func") == 0) halt();
@@ -5564,7 +5577,6 @@ Expression *VarExp::semantic(Scope *sc)
 
     if (VarDeclaration *vd = var->isVarDeclaration())
     {
-        hasOverloads = 0;
         if (vd->checkNestedReference(sc, loc))
             return new ErrorExp();
         // Bugzilla 12025: If the variable is not actually used in runtime code,
@@ -7630,12 +7642,12 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
                 {
                     if (!eleft)
                         eleft = new ThisExp(loc);
-                    e = new DotVarExp(loc, eleft, f);
+                    e = new DotVarExp(loc, eleft, f, true);
                     e = e->semantic(sc);
                 }
                 else
                 {
-                    e = new VarExp(loc, f, 1);
+                    e = new VarExp(loc, f, true);
                     if (eleft)
                     {   e = new CommaExp(loc, eleft, e);
                         e->type = f->type;
@@ -7645,7 +7657,7 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             }
             if (OverDeclaration *od = s->isOverDeclaration())
             {
-                e = new VarExp(loc, od, 1);
+                e = new VarExp(loc, od, true);
                 if (eleft)
                 {
                     e = new CommaExp(loc, eleft, e);
@@ -7780,12 +7792,12 @@ Expression *DotTemplateExp::semantic(Scope *sc)
 
 /************************************************************/
 
-DotVarExp::DotVarExp(Loc loc, Expression *e, Declaration *v, bool hasOverloads)
+DotVarExp::DotVarExp(Loc loc, Expression *e, Declaration *var, bool hasOverloads)
         : UnaExp(loc, TOKdotvar, sizeof(DotVarExp), e)
 {
     //printf("DotVarExp()\n");
-    this->var = v;
-    this->hasOverloads = hasOverloads;
+    this->var = var;
+    this->hasOverloads = var->isVarDeclaration() ? false : hasOverloads;
 }
 
 Expression *DotVarExp::semantic(Scope *sc)
@@ -8525,7 +8537,7 @@ Expression *CallExp::semantic(Scope *sc)
     if (e1->op == TOKdelegate)
     {
         DelegateExp *de = (DelegateExp *)e1;
-        e1 = new DotVarExp(de->loc, de->e1, de->func);
+        e1 = new DotVarExp(de->loc, de->e1, de->func, de->hasOverloads);
         return semantic(sc);
     }
 
@@ -8621,7 +8633,7 @@ Ldotti:
                     e1 = new DotTemplateExp(loc, se->e1, td);
                 else if (OverDeclaration *od = ti->tempdecl->isOverDeclaration())
                 {
-                    e1 = new DotVarExp(loc, se->e1, od);
+                    e1 = new DotVarExp(loc, se->e1, od, true);
                 }
                 else
                     e1 = new DotExp(loc, se->e1, new OverExp(loc, ti->tempdecl->isOverloadSet()));
@@ -8702,7 +8714,7 @@ Lagain:
         else if (e1->op == TOKsymoff && ((SymOffExp *)e1)->hasOverloads)
         {
             SymOffExp *se = (SymOffExp *)e1;
-            e1 = new VarExp(se->loc, se->var, 1);
+            e1 = new VarExp(se->loc, se->var, true);
             e1 = e1->semantic(sc);
         }
         else if (e1->op == TOKdot)
@@ -8778,7 +8790,7 @@ Lagain:
                 Expression *e = sle;
                 if (CtorDeclaration *cf = sd->ctor->isCtorDeclaration())
                 {
-                    e = new DotVarExp(loc, e, cf, 1);
+                    e = new DotVarExp(loc, e, cf, true);
                 }
                 else if (TemplateDeclaration *td = sd->ctor->isTemplateDeclaration())
                 {
@@ -8930,7 +8942,7 @@ Lagain:
         checkAccess(loc, sc, ue->e1, f);
         if (!f->needThis())
         {
-            VarExp *ve = new VarExp(loc, f);
+            VarExp *ve = new VarExp(loc, f, false);
             if ((ue->e1)->op == TOKtype) // just a FQN
                 e1 = ve;
             else // things like (new Foo).bar()
@@ -8948,7 +8960,7 @@ Lagain:
             }
             else
             {
-                e1 = new DotVarExp(loc, dte->e1, f);
+                e1 = new DotVarExp(loc, dte->e1, f, false);
                 e1 = e1->semantic(sc);
                 if (e1->op == TOKerror)
                     return new ErrorExp();
@@ -9026,7 +9038,7 @@ Lagain:
         checkNogc(sc, f);
         checkAccess(loc, sc, NULL, f);
 
-        e1 = new DotVarExp(e1->loc, e1, f);
+        e1 = new DotVarExp(e1->loc, e1, f, false);
         e1 = e1->semantic(sc);
         t1 = e1->type;
     }
@@ -9064,7 +9076,7 @@ Lagain:
         checkNogc(sc, f);
         //checkAccess(loc, sc, NULL, f);    // necessary?
 
-        e1 = new DotVarExp(e1->loc, e1, f);
+        e1 = new DotVarExp(e1->loc, e1, f, false);
         e1 = e1->semantic(sc);
         t1 = e1->type;
 
@@ -9083,9 +9095,9 @@ Lagain:
         if (!f)
             return new ErrorExp();
         if (ethis)
-            e1 = new DotVarExp(loc, ethis, f);
+            e1 = new DotVarExp(loc, ethis, f, false);
         else
-            e1 = new VarExp(loc, f);
+            e1 = new VarExp(loc, f, false);
         goto Lagain;
     }
     else if (!t1)
@@ -9134,10 +9146,10 @@ Lagain:
             {
                 dve->var = f;
                 dve->type = f->type;
-                dve->hasOverloads = 0;
+                dve->hasOverloads = false;
                 goto Lagain;
             }
-            e1 = new VarExp(dve->loc, f, 0);
+            e1 = new VarExp(dve->loc, f, false);
             Expression *e = new CommaExp(loc, dve->e1, this);
             return e->semantic(sc);
         }
@@ -9160,7 +9172,7 @@ Lagain:
                 {
                     // Supply an implicit 'this', as in
                     //    this.ident
-                    e1 = new DotVarExp(loc, (new ThisExp(loc))->semantic(sc), f);
+                    e1 = new DotVarExp(loc, (new ThisExp(loc))->semantic(sc), f, false);
                     goto Lagain;
                 }
                 else if (isNeedThisScope(sc, f))
@@ -9169,7 +9181,7 @@ Lagain:
                     return new ErrorExp();
                 }
             }
-            e1 = new VarExp(e1->loc, f, 0);
+            e1 = new VarExp(e1->loc, f, false);
             goto Lagain;
         }
         else
@@ -9281,6 +9293,8 @@ Lagain:
                 //    this.ident
 
                 e1 = new DotVarExp(loc, (new ThisExp(loc))->semantic(sc), ve->var);
+                // Note: we cannot use f directly, because further overload resolution
+                // through the supplied 'this' may cause different result.
                 goto Lagain;
             }
             else if (isNeedThisScope(sc, f))
@@ -9303,7 +9317,7 @@ Lagain:
 
         if (ve->hasOverloads)
         {
-            e1 = new VarExp(ve->loc, f, 0);
+            e1 = new VarExp(ve->loc, f, false);
             e1->type = f->type;
         }
         t1 = f->type;
@@ -9504,7 +9518,7 @@ Expression *AddrExp::semantic(Scope *sc)
             if (f->needThis())
                 e = new DelegateExp(loc, dve->e1, f, dve->hasOverloads);
             else // It is a function pointer. Convert &v.f() --> (v, &V.f())
-                e = new CommaExp(loc, dve->e1, new AddrExp(loc, new VarExp(loc, f)));
+                e = new CommaExp(loc, dve->e1, new AddrExp(loc, new VarExp(loc, f, dve->hasOverloads)));
             e = e->semantic(sc);
             return e;
         }
@@ -9877,7 +9891,7 @@ Expression *DeleteExp::semantic(Scope *sc)
 
                 if (fd)
                 {   Expression *e = ea ? new VarExp(loc, v) : e1;
-                    e = new DotVarExp(Loc(), e, fd, 0);
+                    e = new DotVarExp(Loc(), e, fd, false);
                     eb = new CallExp(loc, e);
                     eb = eb->semantic(sc);
                 }
@@ -9886,7 +9900,7 @@ Expression *DeleteExp::semantic(Scope *sc)
                 {
                     Type *tpv = Type::tvoid->pointerTo();
                     Expression *e = ea ? new VarExp(loc, v) : e1->castTo(sc, tpv);
-                    e = new CallExp(loc, new VarExp(loc, f), e);
+                    e = new CallExp(loc, new VarExp(loc, f, false), e);
                     ec = e->semantic(sc);
                 }
                 ea = combine(ea, eb);
@@ -11641,7 +11655,7 @@ Expression *AssignExp::semantic(Scope *sc)
                         Expression *e = e1x->copy();
                         e->type = e->type->mutableOf();
                         e = new BlitExp(loc, e, e2x);
-                        e = new DotVarExp(loc, e, sd->postblit, 0);
+                        e = new DotVarExp(loc, e, sd->postblit, false);
                         e = new CallExp(loc, e);
                         return e->semantic(sc);
                     }

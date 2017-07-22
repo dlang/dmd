@@ -609,11 +609,6 @@ bool Dsymbol::isOverloadable()
     return false;
 }
 
-bool Dsymbol::hasOverloads()
-{
-    return false;
-}
-
 LabelDsymbol *Dsymbol::isLabel()                // is this a LabelDsymbol()?
 {
     return NULL;

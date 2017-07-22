@@ -1989,7 +1989,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     if (f)
                     {
                         f->tookAddressOf++;
-                        SymOffExp *se = new SymOffExp(e->loc, f, 0, 0);
+                        SymOffExp *se = new SymOffExp(e->loc, f, 0, false);
                         se->semantic(sc);
                         // Let SymOffExp::castTo() do the heavy lifting
                         visit(se);
@@ -2009,7 +2009,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                         f = f->overloadExactMatch(tb->nextOf());
                         if (f)
                         {
-                            result = new VarExp(e->loc, f);
+                            result = new VarExp(e->loc, f, false);
                             result->type = f->type;
                             result = new AddrExp(e->loc, result);
                             result->type = t;
@@ -2210,12 +2210,12 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     {
                         if (f->needThis() && hasThis(sc))
                         {
-                            result = new DelegateExp(e->loc, new ThisExp(e->loc), f);
+                            result = new DelegateExp(e->loc, new ThisExp(e->loc), f, false);
                             result = result->semantic(sc);
                         }
                         else if (f->isNested())
                         {
-                            result = new DelegateExp(e->loc, new IntegerExp(0), f);
+                            result = new DelegateExp(e->loc, new IntegerExp(0), f, false);
                             result = result->semantic(sc);
                         }
                         else if (f->needThis())
@@ -2233,7 +2233,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     }
                     else
                     {
-                        result = new SymOffExp(e->loc, f, 0);
+                        result = new SymOffExp(e->loc, f, 0, false);
                         result->type = t;
                     }
                     f->tookAddressOf++;
@@ -2268,7 +2268,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                             if (f->tintro && f->tintro->nextOf()->isBaseOf(f->type->nextOf(), &offset) && offset)
                                 e->error("%s", msg);
                             f->tookAddressOf++;
-                            result = new DelegateExp(e->loc, e->e1, f);
+                            result = new DelegateExp(e->loc, e->e1, f, false);
                             result->type = t;
                             return;
                         }

@@ -214,7 +214,6 @@ public:
     virtual bool isImportedSymbol();            // is Dsymbol imported?
     virtual bool isDeprecated();                // is Dsymbol deprecated?
     virtual bool isOverloadable();
-    virtual bool hasOverloads();
     virtual LabelDsymbol *isLabel();            // is this a LabelDsymbol?
     AggregateDeclaration *isMember();           // is this a member of an AggregateDeclaration?
     AggregateDeclaration *isMember2();          // is this a member of an AggregateDeclaration?

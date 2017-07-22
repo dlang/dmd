@@ -1402,7 +1402,7 @@ Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *ea
     //earg->type->print();
     Declaration *decl = d->isDeclaration();
     if (decl)
-        e = new DotVarExp(loc, ethis, decl, 0);
+        e = new DotVarExp(loc, ethis, decl, false);
     else
         e = new DotIdExp(loc, ethis, d->ident);
     e = new CallExp(loc, e, earg);

@@ -2537,7 +2537,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 exps->push(new IntegerExp(Loc(), keysize, Type::tsize_t));
                 exps->push(flde);
 
-                ec = new VarExp(Loc(), fdapply[i]);
+                ec = new VarExp(Loc(), fdapply[i], false);
                 ec = new CallExp(loc, ec, exps);
                 ec->type = Type::tint32; // don't run semantic() on ec
             }
@@ -2594,7 +2594,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     flde->type = dgty;
                 }
 
-                ec = new VarExp(Loc(), fdapply);
+                ec = new VarExp(Loc(), fdapply, false);
                 ec = new CallExp(loc, ec, aggr, flde);
                 ec->type = Type::tint32; // don't run semantic() on ec
             }
@@ -4438,12 +4438,12 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         args->push(new Parameter(0, ClassDeclaration::object->type, NULL, NULL));
 
         FuncDeclaration *fdenter = FuncDeclaration::genCfunc(args, Type::tvoid, Id::monitorenter);
-        Expression *e = new CallExp(loc, new VarExp(loc, fdenter), new VarExp(loc, tmp));
+        Expression *e = new CallExp(loc, new VarExp(loc, fdenter, false), new VarExp(loc, tmp));
         e->type = Type::tvoid;                  // do not run semantic on e
         cs->push(new ExpStatement(loc, e));
 
         FuncDeclaration *fdexit = FuncDeclaration::genCfunc(args, Type::tvoid, Id::monitorexit);
-        e = new CallExp(loc, new VarExp(loc, fdexit), new VarExp(loc, tmp));
+        e = new CallExp(loc, new VarExp(loc, fdexit, false), new VarExp(loc, tmp));
         e->type = Type::tvoid;                  // do not run semantic on e
         Statement *s = new ExpStatement(loc, e);
         s = new TryFinallyStatement(loc, _body, s);
@@ -4481,14 +4481,14 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         FuncDeclaration *fdenter = FuncDeclaration::genCfunc(args, Type::tvoid, Id::criticalenter, STCnothrow);
         Expression *e = new DotIdExp(loc, new VarExp(loc, tmp), Id::ptr);
         e = e->semantic(sc);
-        e = new CallExp(loc, new VarExp(loc, fdenter), e);
+        e = new CallExp(loc, new VarExp(loc, fdenter, false), e);
         e->type = Type::tvoid;                  // do not run semantic on e
         cs->push(new ExpStatement(loc, e));
 
         FuncDeclaration *fdexit = FuncDeclaration::genCfunc(args, Type::tvoid, Id::criticalexit, STCnothrow);
         e = new DotIdExp(loc, new VarExp(loc, tmp), Id::ptr);
         e = e->semantic(sc);
-        e = new CallExp(loc, new VarExp(loc, fdexit), e);
+        e = new CallExp(loc, new VarExp(loc, fdexit, false), e);
         e->type = Type::tvoid;                  // do not run semantic on e
         Statement *s = new ExpStatement(loc, e);
         s = new TryFinallyStatement(loc, _body, s);

@@ -265,7 +265,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
             /* Instead of running the destructor on s, run it
              * on tmp. This avoids needing to copy tmp back in to s.
              */
-            Expression *ec2 = new DotVarExp(loc, new VarExp(loc, tmp), sd->dtor, 0);
+            Expression *ec2 = new DotVarExp(loc, new VarExp(loc, tmp), sd->dtor, false);
             ec2 = new CallExp(loc, ec2);
             e = Expression::combine(e, ec2);
         }
@@ -280,8 +280,8 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
             VarDeclaration *v = sd->fields[i];
             // this.v = s.v;
             AssignExp *ec = new AssignExp(loc,
-                new DotVarExp(loc, new ThisExp(loc), v, 0),
-                new DotVarExp(loc, new IdentifierExp(loc, Id::p), v, 0));
+                new DotVarExp(loc, new ThisExp(loc), v),
+                new DotVarExp(loc, new IdentifierExp(loc, Id::p), v));
             e = Expression::combine(e, ec);
         }
     }
@@ -813,7 +813,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
             a = new Statements();
 
         Expression *ex = new ThisExp(loc);
-        ex = new DotVarExp(loc, ex, v, 0);
+        ex = new DotVarExp(loc, ex, v);
         if (v->type->toBasetype()->ty == Tstruct)
         {
             // this.v.__xpostblit()
@@ -825,7 +825,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
 
-            ex = new DotVarExp(loc, ex, sdv->postblit, 0);
+            ex = new DotVarExp(loc, ex, sdv->postblit, false);
             ex = new CallExp(loc, ex);
         }
         else
@@ -857,7 +857,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
         sdv->dtor->functionSemantic();
 
         ex = new ThisExp(loc);
-        ex = new DotVarExp(loc, ex, v, 0);
+        ex = new DotVarExp(loc, ex, v);
         if (v->type->toBasetype()->ty == Tstruct)
         {
             // this.v.__xdtor()
@@ -869,7 +869,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
 
-            ex = new DotVarExp(loc, ex, sdv->dtor, 0);
+            ex = new DotVarExp(loc, ex, sdv->dtor, false);
             ex = new CallExp(loc, ex);
         }
         else
@@ -931,7 +931,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
                     break;
                 }
                 Expression *ex = new ThisExp(loc);
-                ex = new DotVarExp(loc, ex, fd, 0);
+                ex = new DotVarExp(loc, ex, fd, false);
                 ex = new CallExp(loc, ex);
                 e = Expression::combine(e, ex);
             }
@@ -990,7 +990,7 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
         }
 
         Expression *ex = new ThisExp(loc);
-        ex = new DotVarExp(loc, ex, v, 0);
+        ex = new DotVarExp(loc, ex, v);
         if (v->type->toBasetype()->ty == Tstruct)
         {
             // this.v.__xdtor()
@@ -1002,7 +1002,7 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
 
-            ex = new DotVarExp(loc, ex, sdv->dtor, 0);
+            ex = new DotVarExp(loc, ex, sdv->dtor, false);
             ex = new CallExp(loc, ex);
         }
         else
@@ -1063,7 +1063,7 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
                     break;
                 }
                 Expression *ex = new ThisExp(loc);
-                ex = new DotVarExp(loc, ex, fd, 0);
+                ex = new DotVarExp(loc, ex, fd, false);
                 ex = new CallExp(loc, ex);
                 e = Expression::combine(ex, e);
             }
@@ -1131,7 +1131,7 @@ FuncDeclaration *buildInv(AggregateDeclaration *ad, Scope *sc)
                     break;
             #endif
                 }
-                e = Expression::combine(e, new CallExp(loc, new VarExp(loc, ad->invs[i])));
+                e = Expression::combine(e, new CallExp(loc, new VarExp(loc, ad->invs[i], false)));
             }
             InvariantDeclaration *inv;
             inv = new InvariantDeclaration(declLoc, Loc(), stc | stcx, Id::classInvariant);
