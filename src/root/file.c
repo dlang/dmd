@@ -146,7 +146,7 @@ err1:
     DWORD size;
     DWORD numread;
 
-    char *name = this->name->toChars();
+    const char *name = this->name->toChars();
     HANDLE h = CreateFileA(name,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,
         FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
     if (h == INVALID_HANDLE_VALUE)
@@ -224,7 +224,7 @@ err:
 #elif _WIN32
     DWORD numwritten;
 
-    char *name = this->name->toChars();
+    const char *name = this->name->toChars();
     HANDLE h = CreateFileA(name,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,
         FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
     if (h == INVALID_HANDLE_VALUE)
