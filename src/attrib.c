@@ -649,6 +649,13 @@ Dsymbol *AnonDeclaration::syntaxCopy(Dsymbol *s)
     return new AnonDeclaration(loc, isunion, Dsymbol::arraySyntaxCopy(decl));
 }
 
+void AnonDeclaration::setScope(Scope *sc)
+{
+    //printf("AnonDeclaration::setScope() %p\n", this);
+    AttribDeclaration::setScope(sc);
+    alignment = sc->structalign;
+}
+
 void AnonDeclaration::semantic(Scope *sc)
 {
     //printf("\tAnonDeclaration::semantic %s %p\n", isunion ? "union" : "struct", this);
