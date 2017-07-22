@@ -472,4 +472,5 @@ void Token::initTokens()
     Token::tochars[TOKon_scope_exit]    = "scope(exit)";
     Token::tochars[TOKon_scope_success] = "scope(success)";
     Token::tochars[TOKon_scope_failure] = "scope(failure)";
+    Token::tochars[TOKdelegateptr]      = "delegateptr";
 }

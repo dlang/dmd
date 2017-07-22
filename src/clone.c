@@ -137,6 +137,8 @@ FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc)
 bool needOpAssign(StructDeclaration *sd)
 {
     //printf("StructDeclaration::needOpAssign() %s\n", sd->toChars());
+    if (sd->isUnionDeclaration())
+        return false;
 
     if (sd->hasIdentityAssign)
         goto Lneed;         // because has identity==elaborate opAssign
@@ -152,10 +154,14 @@ bool needOpAssign(StructDeclaration *sd)
         VarDeclaration *v = sd->fields[i];
         if (v->storage_class & STCref)
             continue;
+        if (v->overlapped)              // if field of a union
+            continue;                   // user must handle it themselves
         Type *tv = v->type->baseElemOf();
         if (tv->ty == Tstruct)
         {
             TypeStruct *ts = (TypeStruct *)tv;
+            if (ts->sym->isUnionDeclaration())
+                continue;
             if (needOpAssign(ts->sym))
                 goto Lneed;
         }
@@ -220,6 +226,8 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
         {
             VarDeclaration *v = sd->fields[i];
             if (v->storage_class & STCref)
+                continue;
+            if (v->overlapped)
                 continue;
             Type *tv = v->type->baseElemOf();
             if (tv->ty != Tstruct)
@@ -338,12 +346,11 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
 bool needOpEquals(StructDeclaration *sd)
 {
     //printf("StructDeclaration::needOpEquals() %s\n", sd->toChars());
+    if (sd->isUnionDeclaration())
+        goto Ldontneed;
 
     if (sd->hasIdentityEquals)
         goto Lneed;
-
-    if (sd->isUnionDeclaration())
-        goto Ldontneed;
 
     /* If any of the fields has an opEquals, then we
      * need it too.
@@ -353,7 +360,20 @@ bool needOpEquals(StructDeclaration *sd)
         VarDeclaration *v = sd->fields[i];
         if (v->storage_class & STCref)
             continue;
+        if (v->overlapped)
+            continue;
         Type *tv = v->type->toBasetype();
+        Type *tvbase = tv->baseElemOf();
+        if (tvbase->ty == Tstruct)
+        {
+            TypeStruct *ts = (TypeStruct *)tvbase;
+            if (ts->sym->isUnionDeclaration())
+                continue;
+            if (needOpEquals(ts->sym))
+                goto Lneed;
+            if (ts->sym->aliasthis)     // Bugzilla 14806
+                goto Lneed;
+        }
         if (tv->isfloating())
         {
             // This is necessray for:
@@ -367,15 +387,6 @@ bool needOpEquals(StructDeclaration *sd)
             goto Lneed;
         if (tv->ty == Tclass)
             goto Lneed;
-        tv = tv->baseElemOf();
-        if (tv->ty == Tstruct)
-        {
-            TypeStruct *ts = (TypeStruct *)tv;
-            if (needOpEquals(ts->sym))
-                goto Lneed;
-            if (ts->sym->aliasthis)     // Bugzilla 14806
-                goto Lneed;
-        }
     }
 Ldontneed:
     //printf("\tdontneed\n");
@@ -668,12 +679,11 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
 bool needToHash(StructDeclaration *sd)
 {
     //printf("StructDeclaration::needToHash() %s\n", sd->toChars());
+    if (sd->isUnionDeclaration())
+        goto Ldontneed;
 
     if (sd->xhash)
         goto Lneed;
-
-    if (sd->isUnionDeclaration())
-        goto Ldontneed;
 
     /* If any of the fields has an opEquals, then we
      * need it too.
@@ -683,7 +693,20 @@ bool needToHash(StructDeclaration *sd)
         VarDeclaration *v = sd->fields[i];
         if (v->storage_class & STCref)
             continue;
+        if (v->overlapped)
+            continue;
         Type *tv = v->type->toBasetype();
+        Type *tvbase = tv->baseElemOf();
+        if (tvbase->ty == Tstruct)
+        {
+            TypeStruct *ts = (TypeStruct *)tvbase;
+            if (ts->sym->isUnionDeclaration())
+                continue;
+            if (needToHash(ts->sym))
+                goto Lneed;
+            if (ts->sym->aliasthis)     // Bugzilla 14948
+                goto Lneed;
+        }
         if (tv->isfloating())
         {
             // This is necessray for:
@@ -696,15 +719,6 @@ bool needToHash(StructDeclaration *sd)
             goto Lneed;
         if (tv->ty == Tclass)
             goto Lneed;
-        tv = tv->baseElemOf();
-        if (tv->ty == Tstruct)
-        {
-            TypeStruct *ts = (TypeStruct *)tv;
-            if (needToHash(ts->sym))
-                goto Lneed;
-            if (ts->sym->aliasthis)     // Bugzilla 14948
-                goto Lneed;
-        }
     }
 Ldontneed:
     //printf("\tdontneed\n");
@@ -789,6 +803,9 @@ FuncDeclaration *buildXtoHash(StructDeclaration *sd, Scope *sc)
 FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
 {
     //printf("StructDeclaration::buildPostBlit() %s\n", sd->toChars());
+    if (sd->isUnionDeclaration())
+        return NULL;
+
     StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = sd->postblits.dim ? sd->postblits[0]->loc : sd->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
@@ -804,12 +821,15 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
         VarDeclaration *v = sd->fields[i];
         if (v->storage_class & STCref)
             continue;
+        if (v->overlapped)
+            continue;
         Type *tv = v->type->baseElemOf();
         if (tv->ty != Tstruct)
             continue;
         StructDeclaration *sdv = ((TypeStruct *)tv)->sym;
         if (!sdv->postblit)
             continue;
+        assert(!sdv->isUnionDeclaration());
         sdv->postblit->functionSemantic();
 
         stc = mergeFuncAttrs(stc, sdv->postblit);
@@ -1001,6 +1021,9 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
 FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
 {
     //printf("AggregateDeclaration::buildDtor() %s\n", ad->toChars());
+    if (ad->isUnionDeclaration())
+        return NULL;
+
     StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = ad->dtors.dim ? ad->dtors[0]->loc : ad->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
@@ -1010,6 +1033,8 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
     {
         VarDeclaration *v = ad->fields[i];
         if (v->storage_class & STCref)
+            continue;
+        if (v->overlapped)
             continue;
         Type *tv = v->type->baseElemOf();
         if (tv->ty != Tstruct)

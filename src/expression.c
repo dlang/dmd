@@ -60,6 +60,70 @@ MOD MODmerge(MOD mod1, MOD mod2);
 #define LOGSEMANTIC     0
 
 /*************************************************************
+ * Check for unsafe access in @safe code:
+ * 1. read overlapped pointers
+ * 2. write misaligned pointers
+ * 3. write overlapped storage classes
+ * Print error if unsafe.
+ * Params:
+ *      sc = scope
+ *      e = expression to check
+ *      readonly = if access is read-only
+ *      printmsg = print error message if true
+ * Returns:
+ *      true if error
+ */
+
+static bool checkUnsafeAccess(Scope *sc, Expression *e, bool readonly, bool printmsg)
+{
+    if (e->op != TOKdotvar)
+        return false;
+    DotVarExp *dve = (DotVarExp *)e;
+    if (VarDeclaration *v = dve->var->isVarDeclaration())
+    {
+        if (sc->intypeof || !sc->func || !sc->func->isSafeBypassingInference())
+            return false;
+
+        AggregateDeclaration *ad = v->toParent2()->isAggregateDeclaration();
+        if (!ad)
+            return false;
+
+        if (v->overlapped && v->type->hasPointers() && sc->func->setUnsafe())
+        {
+            if (printmsg)
+                e->error("field %s.%s cannot access pointers in @safe code that overlap other fields",
+                    ad->toChars(), v->toChars());
+            return true;
+        }
+
+        if (readonly || !e->type->isMutable())
+            return false;
+
+        if (v->type->hasPointers() && v->type->toBasetype()->ty != Tstruct)
+        {
+            if ((ad->type->alignment() < Target::ptrsize ||
+                 (v->offset & (Target::ptrsize - 1))) &&
+                sc->func->setUnsafe())
+            {
+                if (printmsg)
+                    e->error("field %s.%s cannot modify misaligned pointers in @safe code",
+                        ad->toChars(), v->toChars());
+                return true;
+            }
+        }
+
+        if (v->overlapUnsafe && sc->func->setUnsafe())
+        {
+            if (printmsg)
+                e->error("field %s.%s cannot modify fields in @safe code that overlap fields with other storage classes",
+                    ad->toChars(), v->toChars());
+            return true;
+        }
+    }
+    return false;
+}
+
+/*************************************************************
  * Given var, we need to get the
  * right 'this' pointer if var is in an outer class, but our
  * existing 'this' pointer is in an inner class.
@@ -484,24 +548,20 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
         else if (e1->op == TOKdotvar)
         {
             // Check for reading overlapped pointer field in @safe code.
-            VarDeclaration *v = ((DotVarExp *)e1)->var->isVarDeclaration();
-            if (v && v->overlapped &&
-                sc->func && !sc->intypeof)
-            {
-                AggregateDeclaration *ad = v->toParent2()->isAggregateDeclaration();
-                if (ad && e1->type->hasPointers() &&
-                    sc->func->setUnsafe())
-                {
-                    e1->error("field %s.%s cannot be accessed in @safe code because it overlaps with a pointer",
-                        ad->toChars(), v->toChars());
-                    return new ErrorExp();
-                }
-            }
+            if (checkUnsafeAccess(sc, e1, true, true))
+                return new ErrorExp();
         }
         else if (e1->op == TOKdot)
         {
             e1->error("expression has no value");
             return new ErrorExp();
+        }
+        else if (e1->op == TOKcall)
+        {
+            CallExp *ce = (CallExp *)e1;
+            // Check for reading overlapped pointer field in @safe code.
+            if (checkUnsafeAccess(sc, ce->e1, true, true))
+                return new ErrorExp();
         }
     }
 
@@ -1717,6 +1777,9 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 }
                 else
                     arg = arg->toLvalue(sc, arg);
+
+                // Look for mutable misaligned pointer, etc., in @safe mode
+                err |= checkUnsafeAccess(sc, arg, false, true);
             }
             else if (p->storageClass & STCout)
             {
@@ -1727,7 +1790,11 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     err = true;
                 }
                 else
+                {
+                    // Look for misaligned pointer, etc., in @safe mode
+                    err |= checkUnsafeAccess(sc, arg, false, true);
                     err |= checkDefCtor(arg->loc, t);   // t must be default constructible
+                }
                 arg = arg->toLvalue(sc, arg);
             }
             else if (p->storageClass & STClazy)
@@ -8070,13 +8137,15 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
             (!e1 || e1->op == TOKthis)
            )
         {
-            var->ctorinit = 1;
+            bool result = true;
+
+            var->ctorinit = true;
             //printf("setting ctorinit\n");
-            int result = true;
+
             if (var->isField() && sc->fieldinit && !sc->intypeof)
             {
                 assert(e1);
-                bool mustInit = (var->storage_class & STCnodefaultctor ||
+                bool mustInit = ((var->storage_class & STCnodefaultctor) != 0 ||
                                  var->type->needsNested());
 
                 size_t dim = sc->fieldinit_dim;
@@ -8090,6 +8159,7 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
                 }
                 assert(i < dim);
                 unsigned fi = sc->fieldinit[i];
+
                 if (fi & CSXthis_ctor)
                 {
                     if (var->type->isMutable() && e1->type->isMutable())
@@ -8100,7 +8170,7 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
                         ::error(loc, "%s field '%s' initialized multiple times", modStr, var->toChars());
                     }
                 }
-                else if (sc->noctor || fi & CSXlabel)
+                else if (sc->noctor || (fi & CSXlabel))
                 {
                     if (!mustInit && var->type->isMutable() && e1->type->isMutable())
                         result = false;
@@ -8111,6 +8181,17 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
                     }
                 }
                 sc->fieldinit[i] |= CSXthis_ctor;
+                if (var->overlapped) // Bugzilla 15258
+                {
+                    for (size_t j = 0; j < ad->fields.dim; j++)
+                    {
+                        VarDeclaration *v = ad->fields[j];
+                        if (v == var || !var->isOverlappedWith(v))
+                            continue;
+                        v->ctorinit = true;
+                        sc->fieldinit[j] = CSXthis_ctor;
+                    }
+                }
             }
             else if (fd != sc->func)
             {
@@ -8147,6 +8228,9 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
 int DotVarExp::checkModifiable(Scope *sc, int flag)
 {
     //printf("DotVarExp::checkModifiable %s %s\n", toChars(), type->toChars());
+    if (checkUnsafeAccess(sc, this, false, !flag))
+        return 2;
+
     if (e1->op == TOKthis)
         return var->checkModify(loc, sc, type, e1, flag);
 
@@ -9551,6 +9635,28 @@ FuncDeclaration *isFuncAddress(Expression *e, bool *hasOverloads = NULL)
     return NULL;
 }
 
+static bool checkAddressVar(Scope *sc, AddrExp *e, VarDeclaration *v)
+{
+    if (v)
+    {
+        if (!v->canTakeAddressOf())
+        {
+            e->error("cannot take address of %s", e->e1->toChars());
+            return false;
+        }
+        if (sc->func && !sc->intypeof && !v->isDataseg())
+        {
+            if (sc->func->setUnsafe())
+            {
+                const char *p = v->isParameter() ? "parameter" : "local";
+                e->error("cannot take address of %s %s in @safe function %s", p, v->toChars(), sc->func->toChars());
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 /************************************************************/
 
 AddrExp::AddrExp(Loc loc, Expression *e)
@@ -9654,6 +9760,31 @@ Expression *AddrExp::semantic(Scope *sc)
             e = e->semantic(sc);
             return e;
         }
+
+        // Look for misaligned pointer in @safe mode
+        if (checkUnsafeAccess(sc, dve, !type->isMutable(), true))
+            return new ErrorExp();
+
+        if (dve->e1->op == TOKvar && global.params.vsafe)
+        {
+            VarExp *ve = (VarExp *)dve->e1;
+            VarDeclaration *v = ve->var->isVarDeclaration();
+            if (v)
+            {
+                if (!checkAddressVar(sc, this, v))
+                    return new ErrorExp();
+            }
+        }
+        else if ((dve->e1->op == TOKthis || dve->e1->op == TOKsuper) && global.params.vsafe)
+        {
+            ThisExp *ve = (ThisExp *)dve->e1;
+            VarDeclaration *v = ve->var->isVarDeclaration();
+            if (v && v->storage_class & STCref)
+            {
+                if (!checkAddressVar(sc, this, v))
+                    return new ErrorExp();
+            }
+        }
     }
     else if (e1->op == TOKvar)
     {
@@ -9662,23 +9793,8 @@ Expression *AddrExp::semantic(Scope *sc)
         VarDeclaration *v = ve->var->isVarDeclaration();
         if (v)
         {
-            if (!v->canTakeAddressOf())
-            {
-                error("cannot take address of %s", e1->toChars());
+            if (!checkAddressVar(sc, this, v))
                 return new ErrorExp();
-            }
-
-            if (sc->func && !sc->intypeof && !v->isDataseg())
-            {
-                if (sc->func->setUnsafe())
-                {
-                    const char *p = v->isParameter() ? "parameter" : "local";
-                    error("cannot take address of %s %s in @safe function %s",
-                        p,
-                        v->toChars(),
-                        sc->func->toChars());
-                }
-            }
 
             ve->checkPurity(sc, v);
         }
@@ -9719,6 +9835,16 @@ Expression *AddrExp::semantic(Scope *sc)
                 e = e->semantic(sc);
                 return e;
             }
+        }
+    }
+    else if ((e1->op == TOKthis || e1->op == TOKsuper) && global.params.vsafe)
+    {
+        ThisExp *ve = (ThisExp *)e1;
+        VarDeclaration *v = ve->var->isVarDeclaration();
+        if (v)
+        {
+            if (!checkAddressVar(sc, this, v))
+                return new ErrorExp();
         }
     }
     else if (wasCond)
@@ -10809,6 +10935,16 @@ Expression *DelegatePtrExp::toLvalue(Scope *sc, Expression *e)
     return this;
 }
 
+Expression *DelegatePtrExp::modifiableLvalue(Scope *sc, Expression *e)
+{
+    if (sc->func->setUnsafe())
+    {
+        error("cannot modify delegate pointer in @safe code %s", toChars());
+        return new ErrorExp();
+    }
+    return Expression::modifiableLvalue(sc, e);
+}
+
 /********************** DelegateFuncptrExp **************************************/
 
 DelegateFuncptrExp::DelegateFuncptrExp(Loc loc, Expression *e1)
@@ -10842,6 +10978,16 @@ Expression *DelegateFuncptrExp::toLvalue(Scope *sc, Expression *e)
 {
     e1 = e1->toLvalue(sc, e);
     return this;
+}
+
+Expression *DelegateFuncptrExp::modifiableLvalue(Scope *sc, Expression *e)
+{
+    if (sc->func->setUnsafe())
+    {
+        error("cannot modify delegate function pointer in @safe code %s", toChars());
+        return new ErrorExp();
+    }
+    return Expression::modifiableLvalue(sc, e);
 }
 
 /*********************** ArrayExp *************************************/

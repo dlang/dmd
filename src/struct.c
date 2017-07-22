@@ -27,6 +27,7 @@
 Type *getTypeInfoType(Type *t, Scope *sc);
 TypeTuple *toArgTypes(Type *t);
 void unSpeculative(Scope *sc, RootObject *o);
+bool MODimplicitConv(MOD modfrom, MOD modto);
 
 FuncDeclaration *StructDeclaration::xerreq;     // object.xopEquals
 FuncDeclaration *StructDeclaration::xerrcmp;    // object.xopCmp
@@ -538,7 +539,7 @@ bool AggregateDeclaration::isExport()
 }
 
 /***************************************
- * Calculate field[i].overlapped, and check that all of explicit
+ * Calculate field[i].overlapped and overlapUnsafe, and check that all of explicit
  * field initializers have unique memory space on instance.
  * Returns:
  *      true if any errors happen.
@@ -561,6 +562,9 @@ bool AggregateDeclaration::checkOverlappedFields()
     for (size_t i = 0; i < nfields; i++)
     {
         VarDeclaration *vd = fields[i];
+        if (vd->errors)
+            continue;
+
         VarDeclaration *vx = vd;
         if (vd->_init && vd->_init->isVoidInitializer())
             vx = NULL;
@@ -574,25 +578,14 @@ bool AggregateDeclaration::checkOverlappedFields()
             if (!vd->isOverlappedWith(v2))
                 continue;
 
-            // vd and v2 are overlapping. If either has destructors, postblits, etc., then error
-            //printf("overlapping fields %s and %s\n", vd->toChars(), v2->toChars());
-            for (size_t k = 0; k < 2; k++)
-            {
-                VarDeclaration *v = k == 0 ? vd : v2;
-                Type *tv = v->type->baseElemOf();
-                Dsymbol *sv = tv->toDsymbol(NULL);
-                if (!sv || errors)
-                    continue;
-                StructDeclaration *sd = sv->isStructDeclaration();
-                if (sd && (sd->dtor || sd->inv || sd->postblit))
-                {
-                    error("destructors, postblits and invariants are not allowed in overlapping fields %s and %s",
-                          vd->toChars(), v2->toChars());
-                    errors = true;
-                    break;
-                }
-            }
+            // vd and v2 are overlapping.
             vd->overlapped = true;
+            v2->overlapped = true;
+
+            if (!MODimplicitConv(vd->type->mod, v2->type->mod))
+                v2->overlapUnsafe = true;
+            if (!MODimplicitConv(v2->type->mod, vd->type->mod))
+                vd->overlapUnsafe = true;
 
             if (!vx)
                 continue;
