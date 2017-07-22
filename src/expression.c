@@ -1130,7 +1130,7 @@ bool arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
             continue;
         }
 
-        e = e->isLvalue() ? callCpCtor(sc, e) : valueNoDtor(e);
+        e = doCopyOrMove(sc, e);
 
         if (t0 && !t0->equals(e->type))
         {
@@ -1345,6 +1345,24 @@ Expression *callCpCtor(Scope *sc, Expression *e)
             ve->type = e->type;
             e = Expression::combine(de, ve);
         }
+    }
+    return e;
+}
+
+/************************************************
+ * Handle the postblit call on lvalue, or the move of rvalue.
+ */
+Expression *doCopyOrMove(Scope *sc, Expression *e)
+{
+    if (e->op == TOKquestion)
+    {
+        CondExp *ce = (CondExp *)e;
+        ce->e1 = doCopyOrMove(sc, ce->e1);
+        ce->e2 = doCopyOrMove(sc, ce->e2);
+    }
+    else
+    {
+        e = e->isLvalue() ? callCpCtor(sc, e) : valueNoDtor(e);
     }
     return e;
 }
@@ -1651,10 +1669,6 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 else
                     arg = toDelegate(arg, arg->type, sc);
             }
-            else
-            {
-//                arg = arg->isLvalue() ? callCpCtor(sc, arg) : valueNoDtor(arg);
-            }
 
             //printf("arg: %s\n", arg->toChars());
             //printf("type: %s\n", arg->type->toChars());
@@ -1874,7 +1888,7 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
             else if (ts)
             {
-                arg = arg->isLvalue() ? callCpCtor(sc, arg) : valueNoDtor(arg);
+                arg = doCopyOrMove(sc, arg);
             }
             else if (anythrow && firstthrow <= i && i <= lastthrow && gate)
             {
@@ -12038,7 +12052,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
         if (e2->checkPostblit(sc, tb2))
             return new ErrorExp();
         e2 = e2->castTo(sc, tb1next);
-        e2 = e2->isLvalue() ? callCpCtor(sc, e2) : valueNoDtor(e2);
+        e2 = doCopyOrMove(sc, e2);
     }
     else if (tb1->ty == Tarray &&
         (tb1next->ty == Tchar || tb1next->ty == Twchar) &&

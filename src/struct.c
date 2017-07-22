@@ -1303,7 +1303,7 @@ bool StructDeclaration::fit(Loc loc, Scope *sc, Expressions *elements, Type *sty
         if (e->op == TOKerror)
             return false;
 
-        (*elements)[i] = e->isLvalue() ? callCpCtor(sc, e) : valueNoDtor(e);
+        (*elements)[i] = doCopyOrMove(sc, e);
     }
     return true;
 }

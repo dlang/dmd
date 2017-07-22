@@ -1791,8 +1791,8 @@ void FuncDeclaration::semantic3(Scope *sc)
                         /* Bugzilla 10789:
                          * If NRVO is not possible, all returned lvalues should call their postblits.
                          */
-                        if (!nrvo_can && exp->isLvalue())
-                            exp = callCpCtor(sc2, exp);
+                        if (!nrvo_can)
+                            exp = doCopyOrMove(sc2, exp);
 
                         checkEscape(sc2, exp, false);
                     }
