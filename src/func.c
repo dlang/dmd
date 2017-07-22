@@ -383,14 +383,14 @@ void FuncDeclaration::semantic(Scope *sc)
     assert(semanticRun <= PASSsemantic);
     semanticRun = PASSsemantic;
 
-    parent = sc->parent;
-    Dsymbol *parent = toParent();
-
     if (_scope)
     {
         sc = _scope;
         _scope = NULL;
     }
+
+    parent = sc->parent;
+    Dsymbol *parent = toParent();
 
     unsigned dprogress_save = Module::dprogress;
 
@@ -714,7 +714,7 @@ void FuncDeclaration::semantic(Scope *sc)
         }
 
         if (storage_class & STCabstract)
-            cd->isabstract = true;
+            cd->isabstract = ABSyes;
 
         // if static function, do not put in vtbl[]
         if (!isVirtual())

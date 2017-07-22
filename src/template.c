@@ -8504,6 +8504,8 @@ bool TemplateMixin::oneMember(Dsymbol **ps, Identifier *ident)
 
 int TemplateMixin::apply(Dsymbol_apply_ft_t fp, void *param)
 {
+    if (_scope) // if fwd reference
+        semantic(NULL); // try to resolve it
     if (members)
     {
         for (size_t i = 0; i < members->dim; i++)

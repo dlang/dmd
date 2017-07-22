@@ -231,7 +231,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     com = false;
     cpp = false;
     isscope = false;
-    isabstract = false;
+    isabstract = ABSfwdref;
     inuse = 0;
     baseok = BASEOKnone;
     objc.objc = false;
@@ -316,7 +316,7 @@ void ClassDeclaration::semantic(Scope *sc)
         if (storage_class & STCscope)
             isscope = true;
         if (storage_class & STCabstract)
-            isabstract = true;
+            isabstract = ABSyes;
 
         userAttribDecl = sc->userAttribDecl;
 
@@ -1263,19 +1263,55 @@ bool ClassDeclaration::isCPPinterface() const
 
 bool ClassDeclaration::isAbstract()
 {
-    if (isabstract)
-        return true;
-    for (size_t i = 1; i < vtbl.dim; i++)
-    {
-        FuncDeclaration *fd = vtbl[i]->isFuncDeclaration();
+    if (isabstract != ABSfwdref)
+        return isabstract == ABSyes;
 
-        //printf("\tvtbl[%d] = %p\n", i, fd);
-        if (!fd || fd->isAbstract())
+    /* Bugzilla 11169: Resolve forward references to all class member functions,
+     * and determine whether this class is abstract.
+     */
+    struct SearchAbstract
+    {
+        static int fp(Dsymbol *s, void* param)
         {
-            isabstract = true;
+            FuncDeclaration *fd = s->isFuncDeclaration();
+            if (!fd)
+                return 0;
+            if (fd->storage_class & STCstatic)
+                return 0;
+
+            if (fd->_scope)
+                fd->semantic(NULL);
+
+            if (fd->isAbstract())
+                return 1;
+            return 0;
+        }
+    };
+
+    for (size_t i = 0; i < members->dim; i++)
+    {
+        Dsymbol *s = (*members)[i];
+        if (s->apply(&SearchAbstract::fp, this))
+        {
+            isabstract = ABSyes;
             return true;
         }
     }
+
+    /* Iterate inherited member functions and check their abstract attribute.
+     */
+    for (size_t i = 1; i < vtbl.dim; i++)
+    {
+        FuncDeclaration *fd = vtbl[i]->isFuncDeclaration();
+        //if (fd) printf("\tvtbl[%d] = [%s] %s\n", i, fd->loc.toChars(), fd->toChars());
+        if (!fd || fd->isAbstract())
+        {
+            isabstract = ABSyes;
+            return true;
+        }
+    }
+
+    isabstract = ABSno;
     return false;
 }
 
