@@ -251,7 +251,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
     Dsymbol *s;
     Objects *tiargs;
     Type *tthis;
-    if (e1->op == TOKdotexp)
+    if (e1->op == TOKdot)
     {
         DotExp *de = (DotExp *)e1;
         if (de->e2->op == TOKoverloadset)
@@ -495,7 +495,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
                 }
             }
         }
-        else if (e1->op == TOKdotexp)
+        else if (e1->op == TOKdot)
         {
             e1->error("expression has no value");
             return new ErrorExp();
@@ -580,7 +580,7 @@ Expression *resolvePropertiesOnly(Scope *sc, Expression *e1)
     FuncDeclaration *fd;
     TemplateDeclaration *td;
 
-    if (e1->op == TOKdotexp)
+    if (e1->op == TOKdot)
     {
         DotExp *de = (DotExp *)e1;
         if (de->e2->op == TOKoverloadset)
@@ -758,7 +758,7 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
     Expression *eleft;
     Expression *e;
 
-    if (ce->e1->op == TOKdot)
+    if (ce->e1->op == TOKdotid)
     {
         DotIdExp *die = (DotIdExp *)ce->e1;
         Identifier *ident = die->ident;
@@ -866,7 +866,7 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
     Expression *eleft;
     Expression *e;
 
-    if (e1->op == TOKdot)
+    if (e1->op == TOKdotid)
     {
         DotIdExp *die = (DotIdExp *)e1;
         eleft = die->e1;
@@ -7119,7 +7119,7 @@ Expression *AssertExp::semantic(Scope *sc)
 /************************************************************/
 
 DotIdExp::DotIdExp(Loc loc, Expression *e, Identifier *ident)
-        : UnaExp(loc, TOKdot, sizeof(DotIdExp), e)
+        : UnaExp(loc, TOKdotid, sizeof(DotIdExp), e)
 {
     this->ident = ident;
 }
@@ -7214,7 +7214,7 @@ Expression *DotIdExp::semanticX(Scope *sc)
         return e1->type->dotExp(sc, e1, ident, 0);
     }
 
-    if (e1->op == TOKdotexp)
+    if (e1->op == TOKdot)
     {
     }
     else
@@ -7299,7 +7299,7 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
 
     Expression *eleft;
     Expression *eright;
-    if (e1->op == TOKdotexp)
+    if (e1->op == TOKdot)
     {
         DotExp *de = (DotExp *)e1;
         eleft = de->e1;
@@ -7851,7 +7851,7 @@ bool DotTemplateInstanceExp::findTempDecl(Scope *sc)
 
     Expression *e = new DotIdExp(loc, e1, ti->name);
     e = e->semantic(sc);
-    if (e->op == TOKdotexp)
+    if (e->op == TOKdot)
         e = ((DotExp *)e)->e2;
 
     Dsymbol *s = NULL;
@@ -8025,7 +8025,7 @@ L1:
         e = e->semantic(sc);
         return e;
     }
-    else if (e->op == TOKdotexp)
+    else if (e->op == TOKdot)
     {
         DotExp *de = (DotExp *)e;
         e1 = de->e1;    // pull semantic() result
@@ -8366,7 +8366,7 @@ Lagain:
     }
     else
     {
-        if (e1->op == TOKdot)
+        if (e1->op == TOKdotid)
         {
             DotIdExp *die = (DotIdExp *)e1;
             e1 = die->semantic(sc);
@@ -8427,7 +8427,7 @@ Lagain:
             e1 = new VarExp(se->loc, se->var, 1);
             e1 = e1->semantic(sc);
         }
-        else if (e1->op == TOKdotexp)
+        else if (e1->op == TOKdot)
         {
             DotExp *de = (DotExp *) e1;
 
@@ -10437,7 +10437,7 @@ Expression *ArrayExp::toLvalue(Scope *sc, Expression *e)
 /************************* DotExp ***********************************/
 
 DotExp::DotExp(Loc loc, Expression *e1, Expression *e2)
-        : BinExp(loc, TOKdotexp, sizeof(DotExp), e1, e2)
+        : BinExp(loc, TOKdot, sizeof(DotExp), e1, e2)
 {
 }
 
@@ -11072,7 +11072,7 @@ Expression *AssignExp::semantic(Scope *sc)
                 return resolveUFCSProperties(sc, e1x, e2);
             e1x = e;
         }
-        else if (e1x->op == TOKdot)
+        else if (e1x->op == TOKdotid)
         {
             DotIdExp *die = (DotIdExp *)e1x;
             Expression *e = die->semanticY(sc, 1);
