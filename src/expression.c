@@ -2066,6 +2066,18 @@ char *Expression::toChars()
     return buf.extractString();
 }
 
+/********************
+ * Print AST data structure in a nice format.
+ * Params:
+ *  indent = indentation level
+ */
+void Expression::printAST(int indent)
+{
+    for (int i = 0; i < indent; i++)
+        printf(" ");
+    printf("%s %s\n", Token::toChars(op), type ? type->toChars() : "");
+}
+
 void Expression::error(const char *format, ...)
 {
     if (type != Type::terror)
@@ -6562,6 +6574,12 @@ Expression *UnaExp::resolveLoc(Loc loc, Scope *sc)
     return this;
 }
 
+void UnaExp::printAST(int indent)
+{
+    Expression::printAST(indent);
+    e1->printAST(indent + 2);
+}
+
 /************************************************************/
 
 BinExp::BinExp(Loc loc, TOK op, int size, Expression *e1, Expression *e2)
@@ -6790,6 +6808,13 @@ bool BinExp::checkArithmeticBin()
     bool r1 = e1->checkArithmetic();
     bool r2 = e2->checkArithmetic();
     return (r1 || r2);
+}
+
+void BinExp::printAST(int indent)
+{
+    Expression::printAST(indent);
+    e1->printAST(indent + 2);
+    e2->printAST(indent + 2);
 }
 
 /********************** BinAssignExp **************************************/
