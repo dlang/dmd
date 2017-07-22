@@ -351,7 +351,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
         tthis  = dte->e1->type;
         goto Lfd;
     }
-    else if (e1->op == TOKimport)
+    else if (e1->op == TOKscope)
     {
         s = ((ScopeExp *)e1)->sds;
         if (s->isTemplateDeclaration())
@@ -628,7 +628,7 @@ Expression *resolvePropertiesOnly(Scope *sc, Expression *e1)
         td = ((DotTemplateExp *)e1)->td;
         goto Ltd;
     }
-    else if (e1->op == TOKimport)
+    else if (e1->op == TOKscope)
     {
         Dsymbol *s = ((ScopeExp *)e1)->sds;
         td = s->isTemplateDeclaration();
@@ -4780,7 +4780,7 @@ bool TypeExp::checkValue()
 // Mainly just a placeholder
 
 ScopeExp::ScopeExp(Loc loc, ScopeDsymbol *pkg)
-    : Expression(loc, TOKimport, sizeof(ScopeExp))
+    : Expression(loc, TOKscope, sizeof(ScopeExp))
 {
     //printf("ScopeExp::ScopeExp(pkg = '%s')\n", pkg->toChars());
     //static int count; if (++count == 38) *(char*)0=0;
@@ -7230,7 +7230,7 @@ Expression *CompileExp::semantic(Scope *sc)
 /************************************************************/
 
 ImportExp::ImportExp(Loc loc, Expression *e)
-        : UnaExp(loc, TOKmixin, sizeof(ImportExp), e)
+        : UnaExp(loc, TOKimport, sizeof(ImportExp), e)
 {
 }
 
@@ -7422,7 +7422,7 @@ Expression *DotIdExp::semanticX(Scope *sc)
         Dsymbol *ds;
         switch (e1->op)
         {
-            case TOKimport:
+            case TOKscope:
                 ds = ((ScopeExp *)e1)->sds;
                 goto L1;
             case TOKvar:
@@ -7567,7 +7567,7 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
 
     Type *t1b = e1->type->toBasetype();
 
-    if (eright->op == TOKimport)        // also used for template alias's
+    if (eright->op == TOKscope)        // also used for template alias's
     {
         ScopeExp *ie = (ScopeExp *)eright;
 
@@ -8112,7 +8112,7 @@ bool DotTemplateInstanceExp::findTempDecl(Scope *sc)
     {
         case TOKoverloadset:    s = ((OverExp *)e)->vars;       break;
         case TOKdottd:          s = ((DotTemplateExp *)e)->td;  break;
-        case TOKimport:         s = ((ScopeExp *)e)->sds;       break;
+        case TOKscope:          s = ((ScopeExp *)e)->sds;       break;
         case TOKdotvar:         s = ((DotVarExp *)e)->var;      break;
         case TOKvar:            s = ((VarExp *)e)->var;         break;
         default:                return false;
@@ -8263,7 +8263,7 @@ L1:
         e = e->semantic(sc);
         return e;
     }
-    else if (e->op == TOKimport)
+    else if (e->op == TOKscope)
     {
         ScopeExp *se = (ScopeExp *)e;
         TemplateDeclaration *td = se->sds->isTemplateDeclaration();
@@ -8310,7 +8310,7 @@ L1:
             return e;
         }
 
-        if (de->e2->op == TOKimport)
+        if (de->e2->op == TOKscope)
         {
             // This should *really* be moved to ScopeExp::semantic()
             ScopeExp *se = (ScopeExp *)de->e2;
@@ -8553,7 +8553,7 @@ Expression *CallExp::semantic(Scope *sc)
     /* This recognizes:
      *  foo!(tiargs)(funcargs)
      */
-    if (e1->op == TOKimport && !e1->type)
+    if (e1->op == TOKscope && !e1->type)
     {
         ScopeExp *se = (ScopeExp *)e1;
         TemplateInstance *ti = se->sds->isTemplateInstance();
@@ -8696,7 +8696,7 @@ Lagain:
                 return new ErrorExp();
         }
 
-        if (e1->op == TOKimport)
+        if (e1->op == TOKscope)
         {
             // Perhaps this should be moved to ScopeExp::semantic()
             ScopeExp *se = (ScopeExp *)e1;
@@ -8719,7 +8719,7 @@ Lagain:
                 e1 = de->e2;
             }
 
-            if (de->e2->op == TOKimport)
+            if (de->e2->op == TOKscope)
             {
                 // This should *really* be moved to ScopeExp::semantic()
                 ScopeExp *se = (ScopeExp *)de->e2;
@@ -9444,7 +9444,7 @@ Expression *AddrExp::semantic(Scope *sc)
             }
         }
     }
-    else if (e1->op == TOKimport)
+    else if (e1->op == TOKscope)
     {
         TemplateInstance *ti = ((ScopeExp *)e1)->sds->isTemplateInstance();
         if (ti)
@@ -10741,7 +10741,7 @@ Expression *DotExp::semantic(Scope *sc)
 #endif
     e1 = e1->semantic(sc);
     e2 = e2->semantic(sc);
-    if (e2->op == TOKimport)
+    if (e2->op == TOKscope)
     {
         ScopeExp *se = (ScopeExp *)e2;
         TemplateDeclaration *td = se->sds->isTemplateDeclaration();
@@ -13473,7 +13473,7 @@ Expression *OrOrExp::semantic(Scope *sc)
         e2 = e2->toBoolean(sc);
         type = Type::tbool;
     }
-    if (e2->op == TOKtype || e2->op == TOKimport)
+    if (e2->op == TOKtype || e2->op == TOKscope)
     {
         error("%s is not an expression", e2->toChars());
         return new ErrorExp();
@@ -13529,7 +13529,7 @@ Expression *AndAndExp::semantic(Scope *sc)
         e2 = e2->toBoolean(sc);
         type = Type::tbool;
     }
-    if (e2->op == TOKtype || e2->op == TOKimport)
+    if (e2->op == TOKtype || e2->op == TOKscope)
     {
         error("%s is not an expression", e2->toChars());
         return new ErrorExp();

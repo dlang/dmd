@@ -7711,7 +7711,7 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
     if (e->op == TOKdot)
     {
         DotExp *de = (DotExp *)e;
-        if (de->e1->op == TOKimport)
+        if (de->e1->op == TOKscope)
         {
             assert(0);  // cannot find a case where this happens; leave
                         // assert in until we do
@@ -8224,7 +8224,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
     if (e->op == TOKdot)
     {
         DotExp *de = (DotExp *)e;
-        if (de->e1->op == TOKimport)
+        if (de->e1->op == TOKscope)
         {
             ScopeExp *se = (ScopeExp *)de->e1;
             s = se->sds->search(e->loc, ident);

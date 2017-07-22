@@ -805,7 +805,7 @@ Initializer *ExpInitializer::inferType(Scope *sc)
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
 
-    if (exp->op == TOKimport)
+    if (exp->op == TOKscope)
     {
         ScopeExp *se = (ScopeExp *)exp;
         TemplateInstance *ti = se->sds->isTemplateInstance();

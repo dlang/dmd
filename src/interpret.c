@@ -594,7 +594,7 @@ public:
         printf("%s WithStatement::ctfeCompile\n", s->loc.toChars());
     #endif
         // If it is with(Enum) {...}, just execute the body.
-        if (s->exp->op == TOKimport || s->exp->op == TOKtype)
+        if (s->exp->op == TOKscope || s->exp->op == TOKtype)
         {
         }
         else
@@ -1904,7 +1904,7 @@ public:
         }
 
         // If it is with(Enum) {...}, just execute the body.
-        if (s->exp->op == TOKimport || s->exp->op == TOKtype)
+        if (s->exp->op == TOKscope || s->exp->op == TOKtype)
         {
             result = interpret(s->_body, istate);
             return;

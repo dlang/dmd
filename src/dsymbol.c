@@ -1347,7 +1347,7 @@ Dsymbol *WithScopeSymbol::search(Loc loc, Identifier *ident, int flags)
     Expression *eold = NULL;
     for (Expression *e = withstate->exp; e != eold; e = resolveAliasThis(_scope, e))
     {
-        if (e->op == TOKimport)
+        if (e->op == TOKscope)
         {
             s = ((ScopeExp *)e)->sds;
         }

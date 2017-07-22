@@ -586,7 +586,7 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
             switch (e->op)
             {
                 case TOKoverloadset:    s = ((OverExp *)e)->vars;       break;
-                case TOKimport:         s = ((ScopeExp *)e)->sds;       break;
+                case TOKscope:          s = ((ScopeExp *)e)->sds;       break;
                 case TOKvar:            s = ((VarExp *)e)->var;         break;
                 default:                break;
             }

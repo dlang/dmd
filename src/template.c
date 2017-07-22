@@ -216,7 +216,7 @@ Expression *getValue(Dsymbol *&s)
 bool definitelyValueParameter(Expression *e)
 {
     // None of these can be value parameters
-    if (e->op == TOKtuple || e->op == TOKimport  ||
+    if (e->op == TOKtuple || e->op == TOKscope  ||
         e->op == TOKtype || e->op == TOKdottype ||
         e->op == TOKtemplate ||  e->op == TOKdottd ||
         e->op == TOKfunction || e->op == TOKerror ||
@@ -2041,7 +2041,7 @@ RootObject *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *
 
     if (ea && ea->op == TOKtype)
         ta = ea->type;
-    else if (ea && ea->op == TOKimport)
+    else if (ea && ea->op == TOKscope)
         sa = ((ScopeExp *)ea)->sds;
     else if (ea && (ea->op == TOKthis || ea->op == TOKsuper))
         sa = ((ThisExp *)ea)->var;
@@ -5127,7 +5127,7 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
     Expression *ea = isExpression(oarg);
     if (ea && (ea->op == TOKthis || ea->op == TOKsuper))
         sa = ((ThisExp *)ea)->var;
-    else if (ea && ea->op == TOKimport)
+    else if (ea && ea->op == TOKscope)
         sa = ((ScopeExp *)ea)->sds;
     if (sa)
     {
@@ -6757,7 +6757,7 @@ bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 ta = ea->type;
                 goto Ltype;
             }
-            if (ea->op == TOKimport)
+            if (ea->op == TOKscope)
             {
                 sa = ((ScopeExp *)ea)->sds;
                 goto Ldsym;
