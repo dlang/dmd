@@ -418,6 +418,8 @@ void AliasDeclaration::semantic(Scope *sc)
 
     if (global.gag && errors != global.errors)
         type = savedtype;
+
+    semanticRun = PASSsemanticdone;
     return;
 
   L2:
@@ -497,17 +499,25 @@ void AliasDeclaration::semantic(Scope *sc)
     //printf("setting aliassym %s to %s %s\n", toChars(), s->kind(), s->toChars());
     aliassym = s;
     inuse = 0;
+    semanticRun = PASSsemanticdone;
 }
 
 bool AliasDeclaration::overloadInsert(Dsymbol *s)
 {
-    /* Don't know yet what the aliased symbol is, so assume it can
-     * be overloaded and check later for correctness.
-     */
+    //printf("[%s] AliasDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
+    //    loc.toChars(), toChars(), s->kind(), s->toChars(), s->loc.toChars());
 
-    //printf("AliasDeclaration::overloadInsert('%s')\n", s->toChars());
-    if (aliassym) // see test/test56.d
+    /* semantic analysis is already finished, and the aliased entity
+     * is not overloadable.
+     */
+    if (semanticRun >= PASSsemanticdone)
     {
+        if (type)
+            return false;
+
+        /* When s is added in member scope by static if, mixin("code") or others,
+         * aliassym is determined already. See the case in: test/compilable/test61.d
+         */
         Dsymbol *sa = aliassym->toAlias();
         if (FuncDeclaration *fd = sa->isFuncDeclaration())
         {
@@ -521,21 +531,18 @@ bool AliasDeclaration::overloadInsert(Dsymbol *s)
             aliassym = od;
             return od->overloadInsert(s);
         }
+        return false;
     }
 
-    if (overnext == NULL)
-    {
-        if (s == this)
-        {
-            return true;
-        }
-        overnext = s;
-        return true;
-    }
-    else
-    {
+    /* Don't know yet what the aliased symbol is, so assume it can
+     * be overloaded and check later for correctness.
+     */
+    if (overnext)
         return overnext->overloadInsert(s);
-    }
+    if (s == this)
+        return true;
+    overnext = s;
+    return true;
 }
 
 const char *AliasDeclaration::kind()
