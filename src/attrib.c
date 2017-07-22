@@ -286,7 +286,7 @@ bool AttribDeclaration::hasStaticCtorOrDtor()
     return false;
 }
 
-const char *AttribDeclaration::kind()
+const char *AttribDeclaration::kind() const
 {
     return "attribute";
 }
@@ -519,7 +519,7 @@ void ProtDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
     return AttribDeclaration::addMember(sc, sds);
 }
 
-const char *ProtDeclaration::kind()
+const char *ProtDeclaration::kind() const
 {
     return "protection attribute";
 }
@@ -681,7 +681,7 @@ void AnonDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset
     }
 }
 
-const char *AnonDeclaration::kind()
+const char *AnonDeclaration::kind() const
 {
     return (isunion ? "anonymous union" : "anonymous struct");
 }
@@ -1025,7 +1025,7 @@ Lnodecl:
     }
 }
 
-const char *PragmaDeclaration::kind()
+const char *PragmaDeclaration::kind() const
 {
     return "pragma";
 }
@@ -1212,7 +1212,7 @@ void StaticIfDeclaration::semantic(Scope *sc)
     AttribDeclaration::semantic(sc);
 }
 
-const char *StaticIfDeclaration::kind()
+const char *StaticIfDeclaration::kind() const
 {
     return "static if";
 }
@@ -1303,7 +1303,7 @@ void CompileDeclaration::semantic(Scope *sc)
     AttribDeclaration::semantic(sc);
 }
 
-const char *CompileDeclaration::kind()
+const char *CompileDeclaration::kind() const
 {
     return "mixin";
 }
@@ -1407,7 +1407,7 @@ Expressions *UserAttributeDeclaration::getAttributes()
     return exps;
 }
 
-const char *UserAttributeDeclaration::kind()
+const char *UserAttributeDeclaration::kind() const
 {
     return "UserAttribute";
 }

@@ -2078,7 +2078,7 @@ void Expression::printAST(int indent)
     printf("%s %s\n", Token::toChars(op), type ? type->toChars() : "");
 }
 
-void Expression::error(const char *format, ...)
+void Expression::error(const char *format, ...) const
 {
     if (type != Type::terror)
     {
@@ -2089,7 +2089,7 @@ void Expression::error(const char *format, ...)
     }
 }
 
-void Expression::warning(const char *format, ...)
+void Expression::warning(const char *format, ...) const
 {
     if (type != Type::terror)
     {
@@ -2100,7 +2100,7 @@ void Expression::warning(const char *format, ...)
     }
 }
 
-void Expression::deprecation(const char *format, ...)
+void Expression::deprecation(const char *format, ...) const
 {
     if (type != Type::terror)
     {
@@ -4072,7 +4072,7 @@ Expression *StringExp::modifiableLvalue(Scope *sc, Expression *e)
     return new ErrorExp();
 }
 
-unsigned StringExp::charAt(uinteger_t i)
+unsigned StringExp::charAt(uinteger_t i) const
 {   unsigned value;
 
     switch (sz)

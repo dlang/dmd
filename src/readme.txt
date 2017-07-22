@@ -1,7 +1,7 @@
 
 		The D Programming Language
 		Compiler Front End Source
-		Copyright (c) 1999-2014, by Digital Mars
+		Copyright (c) 1999-2016, by Digital Mars
 		http://www.digitalmars.com/
 		All Rights Reserved
 

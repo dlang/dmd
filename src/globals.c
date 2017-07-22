@@ -101,7 +101,7 @@ void Global::increaseErrorCount()
 }
 
 
-char *Loc::toChars()
+const char *Loc::toChars() const
 {
     OutBuffer buf;
 

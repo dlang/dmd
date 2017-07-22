@@ -51,7 +51,7 @@ void Token::print()
 }
 #endif
 
-const char *Token::toChars()
+const char *Token::toChars() const
 {
     static char buffer[3 + 3 * sizeof(float80value) + 1];
 

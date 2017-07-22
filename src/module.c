@@ -1158,20 +1158,13 @@ Module *Package::isPackageMod()
  * Returns:
  *  see description
  */
-bool Package::isAncestorPackageOf(Package* pkg)
+bool Package::isAncestorPackageOf(const Package * const pkg) const
 {
-    while (pkg)
-    {
-        if (this == pkg)
-            return true;
-
-        if (!pkg->parent)
-            break;
-
-        pkg = pkg->parent->isPackage();
-    }
-
-    return false;
+    if (this == pkg)
+        return true;
+    if (!pkg || !pkg->parent)
+        return false;
+    return isAncestorPackageOf(pkg->parent->isPackage());
 }
 
 /****************************************************

@@ -1237,22 +1237,22 @@ unsigned ClassDeclaration::setBaseInterfaceOffsets(unsigned baseOffset)
 /****************************************
  */
 
-bool ClassDeclaration::isCOMclass()
+bool ClassDeclaration::isCOMclass() const
 {
     return com;
 }
 
-bool ClassDeclaration::isCOMinterface()
+bool ClassDeclaration::isCOMinterface() const
 {
     return false;
 }
 
-bool ClassDeclaration::isCPPclass()
+bool ClassDeclaration::isCPPclass() const
 {
     return cpp;
 }
 
-bool ClassDeclaration::isCPPinterface()
+bool ClassDeclaration::isCPPinterface() const
 {
     return false;
 }
@@ -1290,7 +1290,7 @@ bool ClassDeclaration::isAbstract()
  *      1       vtbl[0] is classinfo/interfaceinfo pointer
  */
 
-int ClassDeclaration::vtblOffset()
+int ClassDeclaration::vtblOffset() const
 {
     return cpp ? 0 : 1;
 }
@@ -1748,19 +1748,19 @@ bool InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
  * For non-COM interfaces, yes, this is where the Interface ptr goes.
  */
 
-int InterfaceDeclaration::vtblOffset()
+int InterfaceDeclaration::vtblOffset() const
 {
     if (isCOMinterface() || isCPPinterface())
         return 0;
     return 1;
 }
 
-bool InterfaceDeclaration::isCOMinterface()
+bool InterfaceDeclaration::isCOMinterface() const
 {
     return com;
 }
 
-bool InterfaceDeclaration::isCPPinterface()
+bool InterfaceDeclaration::isCPPinterface() const
 {
     return cpp;
 }

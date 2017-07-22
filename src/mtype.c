@@ -2358,7 +2358,7 @@ void Type::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps,
  * Return !=0 if the type or any of its subtypes is wild.
  */
 
-int Type::hasWild()
+int Type::hasWild() const
 {
     return mod & MODwild;
 }
@@ -2508,7 +2508,7 @@ void TypeNext::checkDeprecated(Loc loc, Scope *sc)
         next->checkDeprecated(loc, sc);
 }
 
-int TypeNext::hasWild()
+int TypeNext::hasWild() const
 {
     if (ty == Tfunction)
         return 0;

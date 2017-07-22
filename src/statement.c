@@ -4642,8 +4642,8 @@ Statement *TryCatchStatement::semantic(Scope *sc)
         // Determine if current catch 'hides' any previous catches
         for (size_t j = 0; j < i; j++)
         {   Catch *cj = (*catches)[j];
-            char *si = c->loc.toChars();
-            char *sj = cj->loc.toChars();
+            const char *si = c->loc.toChars();
+            const char *sj = cj->loc.toChars();
 
             if (c->type->toBasetype()->implicitConvTo(cj->type->toBasetype()))
             {

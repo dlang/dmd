@@ -1,12 +1,12 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
+ * Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/D-Programming-Language/dmd/blob/master/src/expression.h
+ * https://github.com/dlang/dmd/blob/master/src/expression.h
  */
 
 #ifndef DMD_EXPRESSION_H
@@ -145,9 +145,9 @@ public:
     void print();
     const char *toChars();
     virtual void printAST(int ident = 0);
-    void error(const char *format, ...);
-    void warning(const char *format, ...);
-    void deprecation(const char *format, ...);
+    void error(const char *format, ...) const;
+    void warning(const char *format, ...) const;
+    void deprecation(const char *format, ...) const;
 
     // creates a single expression which is effectively (e1, e2)
     // this new expression does not necessarily need to have valid D source code representation,
@@ -380,7 +380,7 @@ public:
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    unsigned charAt(uinteger_t i);
+    unsigned charAt(uinteger_t i) const;
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -709,7 +709,7 @@ public:
     Identifier *id;     // can be NULL
     TOK tok;       // ':' or '=='
     Type *tspec;        // can be NULL
-    TOK tok2;      // 'struct', 'union', 'typedef', etc.
+    TOK tok2;      // 'struct', 'union', etc.
     TemplateParameters *parameters;
 
     IsExp(Loc loc, Type *targ, Identifier *id, TOK tok, Type *tspec,

@@ -1,12 +1,12 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
+ * Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/D-Programming-Language/dmd/blob/master/src/aggregate.h
+ * https://github.com/dlang/dmd/blob/master/src/aggregate.h
  */
 
 #ifndef DMD_AGGREGATE_H
@@ -295,12 +295,12 @@ public:
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
     void interfaceSemantic(Scope *sc);
     unsigned setBaseInterfaceOffsets(unsigned baseOffset);
-    bool isCOMclass();
-    virtual bool isCOMinterface();
-    bool isCPPclass();
-    virtual bool isCPPinterface();
+    bool isCOMclass() const;
+    virtual bool isCOMinterface() const;
+    bool isCPPclass() const;
+    virtual bool isCPPinterface() const;
     bool isAbstract();
-    virtual int vtblOffset();
+    virtual int vtblOffset() const;
     const char *kind();
 
     void addLocalClass(ClassDeclarations *);
@@ -322,9 +322,9 @@ public:
     bool isBaseOf(ClassDeclaration *cd, int *poffset);
     bool isBaseOf(BaseClass *bc, int *poffset);
     const char *kind();
-    int vtblOffset();
-    bool isCPPinterface();
-    bool isCOMinterface();
+    int vtblOffset() const;
+    bool isCPPinterface() const;
+    bool isCOMinterface() const;
 
     InterfaceDeclaration *isInterfaceDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
