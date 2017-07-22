@@ -3154,6 +3154,24 @@ public:
         }
     }
 
+    bool evalOperand(Expression *e, Expression *ex, Expression *&er)
+    {
+        er = interpret(ex, istate);
+        if (exceptionOrCant(er))
+            return false;
+        if (er->isConst() != 1)
+        {
+            if (er->op == TOKarrayliteral)
+                // Until we get it to work, issue a reasonable error message
+                e->error("cannot interpret array literal expression %s at compile time", e->toChars());
+            else
+                e->error("CTFE internal error: non-constant value %s", ex->toChars());
+            result = CTFEExp::cantexp;
+            return false;
+        }
+        return true;
+    }
+
     void interpretCommon(BinExp *e, fp_t fp)
     {
     #if LOG
@@ -3199,25 +3217,12 @@ public:
             return;
         }
 
-        Expression *e1 = interpret(e->e1, istate);
-        if (exceptionOrCant(e1))
+        Expression *e1;
+        if (!evalOperand(e, e->e1, e1))
             return;
-        if (e1->isConst() != 1)
-        {
-            e->error("CTFE internal error: non-constant value %s", e->e1->toChars());
-            result = CTFEExp::cantexp;
+        Expression *e2;
+        if (!evalOperand(e, e->e2, e2))
             return;
-        }
-
-        Expression *e2 = interpret(e->e2, istate);
-        if (exceptionOrCant(e2))
-            return;
-        if (e2->isConst() != 1)
-        {
-            e->error("CTFE internal error: non-constant value %s", e->e2->toChars());
-            result = CTFEExp::cantexp;
-            return;
-        }
 
         if (e->op == TOKshr || e->op == TOKshl || e->op == TOKushr)
         {
