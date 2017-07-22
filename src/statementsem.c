@@ -2025,9 +2025,9 @@ public:
                         for (size_t j = 0; j < ss->cases->dim; j++)
                         {
                             CaseStatement *cs = (*ss->cases)[j];
-                            if (cs->exp->equals(em->value) ||
-                                (!cs->exp->type->isString() && !em->value->type->isString() &&
-                                 cs->exp->toInteger() == em->value->toInteger()))
+                            if (cs->exp->equals(em->value()) ||
+                                (!cs->exp->type->isString() && !em->value()->type->isString() &&
+                                 cs->exp->toInteger() == em->value()->toInteger()))
                                 goto L1;
                         }
                         ss->error("enum member %s not represented in final switch", em->toChars());

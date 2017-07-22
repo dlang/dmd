@@ -837,9 +837,9 @@ public:
     {
         objectStart();
 
-        jsonProperties(s);
+        jsonProperties((Dsymbol*)s);
 
-        property("type", "deco", s->type);
+        property("type", "deco", s->origType);
 
         objectEnd();
     }

@@ -1097,10 +1097,10 @@ public:
             typeToBuffer(em->type, em->ident);
         else
             buf->writestring(em->ident->toChars());
-        if (em->value)
+        if (em->value())
         {
             buf->writestring(" = ");
-            em->value->accept(this);
+            em->value()->accept(this);
         }
     }
 

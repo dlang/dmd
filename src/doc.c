@@ -148,6 +148,8 @@ static Dsymbol *getEponymousMember(TemplateDeclaration *td)
         return ad;
     if (FuncDeclaration *fd = td->onemember->isFuncDeclaration())
         return fd;
+    if (EnumMember *em = td->onemember->isEnumMember())
+        return NULL;    // Keep backward compatibility. See compilable/ddoc9.d
     if (VarDeclaration *vd = td->onemember->isVarDeclaration())
         return td->constraint ? NULL : vd;
 

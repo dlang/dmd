@@ -371,7 +371,7 @@ public:
     virtual void visit(StaticAssert *s) { visit((Dsymbol *)s); }
     virtual void visit(DebugSymbol *s) { visit((Dsymbol *)s); }
     virtual void visit(VersionSymbol *s) { visit((Dsymbol *)s); }
-    virtual void visit(EnumMember *s) { visit((Dsymbol *)s); }
+    virtual void visit(EnumMember *s) { visit((VarDeclaration *)s); }
     virtual void visit(Import *s) { visit((Dsymbol *)s); }
     virtual void visit(OverloadSet *s) { visit((Dsymbol *)s); }
     virtual void visit(LabelDsymbol *s) { visit((Dsymbol *)s); }
