@@ -250,7 +250,7 @@ Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
     for (size_t i = 0; i < cd->baseclasses->dim; i++)
     {
         BaseClass *b = (*this->baseclasses)[i];
-        BaseClass *b2 = new BaseClass(b->type->syntaxCopy(), b->protection);
+        BaseClass *b2 = new BaseClass(b->type->syntaxCopy());
         (*cd->baseclasses)[i] = b2;
     }
 
@@ -353,13 +353,12 @@ void ClassDeclaration::semantic(Scope *sc)
             if (tb->ty == Ttuple)
             {
                 TypeTuple *tup = (TypeTuple *)tb;
-                Prot protection = b->protection;
                 baseclasses->remove(i);
                 size_t dim = Parameter::dim(tup->arguments);
                 for (size_t j = 0; j < dim; j++)
                 {
                     Parameter *arg = Parameter::getNth(tup->arguments, j);
-                    b = new BaseClass(arg->type, protection);
+                    b = new BaseClass(arg->type);
                     baseclasses->insert(i + j, b);
                 }
             }
@@ -509,7 +508,7 @@ void ClassDeclaration::semantic(Scope *sc)
             assert(t->ty == Tclass);
             TypeClass *tc = (TypeClass *)t;
 
-            BaseClass *b = new BaseClass(tc, Prot(PROTpublic));
+            BaseClass *b = new BaseClass(tc);
             baseclasses->shift(b);
 
             baseClass = tc->sym;
@@ -1439,13 +1438,12 @@ void InterfaceDeclaration::semantic(Scope *sc)
             if (tb->ty == Ttuple)
             {
                 TypeTuple *tup = (TypeTuple *)tb;
-                Prot protection = b->protection;
                 baseclasses->remove(i);
                 size_t dim = Parameter::dim(tup->arguments);
                 for (size_t j = 0; j < dim; j++)
                 {
                     Parameter *arg = Parameter::getNth(tup->arguments, j);
-                    b = new BaseClass(arg->type, protection);
+                    b = new BaseClass(arg->type);
                     baseclasses->insert(i + j, b);
                 }
             }
@@ -1817,11 +1815,10 @@ BaseClass::BaseClass()
     memset(this, 0, sizeof(BaseClass));
 }
 
-BaseClass::BaseClass(Type *type, Prot protection)
+BaseClass::BaseClass(Type *type)
 {
     //printf("BaseClass(this = %p, '%s')\n", this, type->toChars());
     this->type = type;
-    this->protection = protection;
     this->sym = NULL;
     this->offset = 0;
 
