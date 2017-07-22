@@ -610,8 +610,6 @@ public:
     bool inUnittest();
     MATCH leastAsSpecialized(FuncDeclaration *g);
     LabelDsymbol *searchLabel(Identifier *ident);
-    AggregateDeclaration *isThis();
-    AggregateDeclaration *isMember2();
     int getLevel(Loc loc, Scope *sc, FuncDeclaration *fd); // lexical nesting level difference
     const char *toPrettyChars(bool QualifyTypes = false);
     const char *toFullSignature();  // for diagnostics, e.g. 'int foo(int x, int y) pure'
@@ -640,6 +638,7 @@ public:
     bool isolateReturn();
     bool parametersIntersect(Type *t);
     virtual bool isNested();
+    AggregateDeclaration *isThis();
     bool needThis();
     bool isVirtualMethod();
     virtual bool isVirtual();

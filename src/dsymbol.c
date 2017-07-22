@@ -284,11 +284,6 @@ Dsymbol *Dsymbol::toAlias2()
     return toAlias();
 }
 
-Dsymbol *Dsymbol::toParent()
-{
-    return parent ? parent->pastMixin() : NULL;
-}
-
 Dsymbol *Dsymbol::pastMixin()
 {
     Dsymbol *s = this;
@@ -300,11 +295,41 @@ Dsymbol *Dsymbol::pastMixin()
 }
 
 /**********************************
- * Use this instead of toParent() when looking for the
- * 'this' pointer of the enclosing function/class.
- * This skips over both TemplateInstance's and TemplateMixin's.
+ * `parent` field returns a lexically enclosing scope symbol this is a member of.
+ *
+ * `toParent()` returns a logically enclosing scope symbol this is a member of.
+ * It skips over TemplateMixin's.
+ *
+ * `toParent2()` returns an enclosing scope symbol this is living at runtime.
+ * It skips over both TemplateInstance's and TemplateMixin's.
+ * It's used when looking for the 'this' pointer of the enclosing function/class.
+ *
+ * Examples:
+ *  module mod;
+ *  template Foo(alias a) { mixin Bar!(); }
+ *  mixin template Bar() {
+ *    public {  // ProtDeclaration
+ *      void baz() { a = 2; }
+ *    }
+ *  }
+ *  void test() {
+ *    int v = 1;
+ *    alias foo = Foo!(v);
+ *    foo.baz();
+ *    assert(v == 2);
+ *  }
+ *
+ *  // s == FuncDeclaration('mod.test.Foo!().Bar!().baz()')
+ *  // s.parent == TemplateMixin('mod.test.Foo!().Bar!()')
+ *  // s.toParent() == TemplateInstance('mod.test.Foo!()')
+ *  // s.toParent2() == FuncDeclaration('mod.test')
  */
+Dsymbol *Dsymbol::toParent()
+{
+    return parent ? parent->pastMixin() : NULL;
+}
 
+/// ditto
 Dsymbol *Dsymbol::toParent2()
 {
     Dsymbol *s = parent;
@@ -538,28 +563,6 @@ AggregateDeclaration *Dsymbol::isThis()
     return NULL;
 }
 
-AggregateDeclaration *Dsymbol::isAggregateMember()      // are we a member of an aggregate?
-{
-    Dsymbol *parent = toParent();
-    if (parent && parent->isAggregateDeclaration())
-        return (AggregateDeclaration *)parent;
-    return NULL;
-}
-
-AggregateDeclaration *Dsymbol::isAggregateMember2()     // are we a member of an aggregate?
-{
-    Dsymbol *parent = toParent2();
-    if (parent && parent->isAggregateDeclaration())
-        return (AggregateDeclaration *)parent;
-    return NULL;
-}
-
-ClassDeclaration *Dsymbol::isClassMember()      // are we a member of a class?
-{
-    AggregateDeclaration *ad = isAggregateMember();
-    return ad ? ad->isClassDeclaration() : NULL;
-}
-
 bool Dsymbol::isExport()
 {
     return false;
@@ -590,12 +593,29 @@ LabelDsymbol *Dsymbol::isLabel()                // is this a LabelDsymbol()?
     return NULL;
 }
 
-AggregateDeclaration *Dsymbol::isMember()       // is this a member of an AggregateDeclaration?
+/// Returns an AggregateDeclaration when toParent() is that.
+AggregateDeclaration *Dsymbol::isMember()
 {
     //printf("Dsymbol::isMember() %s\n", toChars());
     Dsymbol *parent = toParent();
     //printf("parent is %s %s\n", parent->kind(), parent->toChars());
     return parent ? parent->isAggregateDeclaration() : NULL;
+}
+
+/// Returns an AggregateDeclaration when toParent2() is that.
+AggregateDeclaration *Dsymbol::isMember2()
+{
+    //printf("Dsymbol::isMember2() %s\n", toChars());
+    Dsymbol *parent = toParent2();
+    //printf("parent is %s %s\n", parent->kind(), parent->toChars());
+    return parent ? parent->isAggregateDeclaration() : NULL;
+}
+
+// is this a member of a ClassDeclaration?
+ClassDeclaration *Dsymbol::isClassMember()
+{
+    AggregateDeclaration *ad = isMember();
+    return ad ? ad->isClassDeclaration() : NULL;
 }
 
 Type *Dsymbol::getType()

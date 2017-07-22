@@ -1525,7 +1525,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             sym->endlinnum = endloc.linnum;
             sc2 = sc2->push(sym);
 
-            AggregateDeclaration *ad2 = isAggregateMember2();
+            AggregateDeclaration *ad2 = isMember2();
             unsigned *fieldinit = NULL;
 
             /* If this is a class constructor
@@ -3379,28 +3379,6 @@ AggregateDeclaration *FuncDeclaration::isThis()
         ad = isMember2();
     }
     //printf("-FuncDeclaration::isThis() %p\n", ad);
-    return ad;
-}
-
-AggregateDeclaration *FuncDeclaration::isMember2()
-{
-    //printf("+FuncDeclaration::isMember2() '%s'\n", toChars());
-    AggregateDeclaration *ad = NULL;
-    for (Dsymbol *s = this; s; s = s->parent)
-    {
-        //printf("\ts = '%s', parent = '%s', kind = %s\n", s->toChars(), s->parent->toChars(), s->parent->kind());
-        ad = s->isMember();
-        if (ad)
-        {
-            break;
-        }
-        if (!s->parent ||
-            (!s->parent->isTemplateInstance()))
-        {
-            break;
-        }
-    }
-    //printf("-FuncDeclaration::isMember2() %p\n", ad);
     return ad;
 }
 

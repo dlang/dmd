@@ -365,7 +365,7 @@ void Scope::mergeFieldInit(Loc loc, unsigned *fies)
     {
         FuncDeclaration *f = func;
         if (fes) f = fes->func;
-        AggregateDeclaration *ad = f->isAggregateMember2();
+        AggregateDeclaration *ad = f->isMember2();
         assert(ad);
 
         for (size_t i = 0; i < ad->fields.dim; i++)
