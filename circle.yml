@@ -1,0 +1,7 @@
+general:
+  branches:
+    ignore:
+      - dmd-cxx
+test:
+  override:
+    - echo pass

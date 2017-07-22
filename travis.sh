@@ -2,15 +2,24 @@
 
 set -exo pipefail
 
+VERSION=v2.068.2
 N=2
 
-make -j$N -C src -f posix.mak ddmd HOST_DMD=$DMD
+## build dmd.
+make -j$N -C src -f posix.mak dmd HOST_CC="$CXX"
 make -j$N -C src -f posix.mak dmd.conf
-git clone --depth=1 https://github.com/D-Programming-Language/druntime.git ../druntime
-git clone --depth=1 https://github.com/D-Programming-Language/phobos.git ../phobos
-make -j$N -C ../druntime -f posix.mak DMD=../dmd/src/ddmd
-make -j$N -C ../phobos -f posix.mak DMD=../dmd/src/ddmd
 
-make -j$N -C ../druntime -f posix.mak DMD=../dmd/src/ddmd unittest
-make -j$N -C ../phobos -f posix.mak DMD=../dmd/src/ddmd unittest
-make -j$N -C test DMD=../src/ddmd MODEL=64
+## build druntime and phobos.
+#git clone --depth=1 --branch=$VERSION https://github.com/dlang/druntime.git ../druntime
+#git clone --depth=1 --branch=$VERSION https://github.com/dlang/phobos.git ../phobos
+#make -j$N -C ../druntime -f posix.mak DMD=../dmd/src/dmd
+#make -j$N -C ../phobos -f posix.mak DMD=../dmd/src/dmd
+
+## run unittest and testsuite.
+#make -j$N -C ../druntime -f posix.mak DMD=../dmd/src/dmd unittest
+#make -j$N -C ../phobos -f posix.mak DMD=../dmd/src/dmd unittest
+#make -j$N -C test DMD=../src/dmd MODEL=64
+
+## build dmd master
+#git clone --depth=1 https://github.com/dlang/dmd.git ../dmd-master
+#make -j$N -C ../dmd-master -f posix.mak HOST_DMD=../../dmd/src/dmd

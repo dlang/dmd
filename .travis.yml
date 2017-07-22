@@ -1,17 +1,8 @@
-language: d
-d:
-  - dmd-2.067.1
-  - gdc
-  - ldc
-
+language: cpp
+compiler:
+  - gcc
+  - clang
+branches:
+  only:
+    - dmd-cxx
 script: ./travis.sh
-
-addons:
-  apt:
-    packages:
-    - gdb
-
-matrix:
-  allow_failures:
-    - d: gdc
-    - d: ldc
