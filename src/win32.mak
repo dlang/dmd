@@ -149,13 +149,13 @@ FRONTOBJ= enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	builtin.obj clone.obj arrayop.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj apply.obj sapply.obj \
 	sideeffect.obj intrange.obj canthrow.obj target.obj nspace.obj \
-	errors.obj escape.obj tokens.obj globals.obj
+	errors.obj escape.obj tokens.obj globals.obj objc_stubs.obj
 
 # Glue layer
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	toobj.obj toctype.obj tocvdebug.obj toir.obj \
 	libmscoff.obj scanmscoff.obj irstate.obj typinf.obj \
-	libomf.obj scanomf.obj iasm.obj
+	libomf.obj scanomf.obj iasm.obj objc_glue_stubs.obj
 
 #GLUEOBJ=gluestub.obj
 
@@ -168,7 +168,7 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 	cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj outbuf.obj \
 	bcomplex.obj ptrntab.obj aa.obj ti_achar.obj md5.obj \
 	ti_pvoid.obj mscoffobj.obj pdata.obj cv8.obj backconfig.obj \
-	divcoeff.obj \
+	divcoeff.obj dwarf.obj \
 	ph2.obj util2.obj eh.obj tk.obj \
 
 
@@ -195,14 +195,14 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.d impcnvgen.c utf.h \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c sapply.c sideeffect.c ctfe.h \
 	intrange.h intrange.c canthrow.c target.c target.h visitor.h \
-	tokens.h tokens.c globals.h globals.c
+	tokens.h tokens.c globals.h globals.c objc.h objc_stubs.c objc.c
 
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \
 	libmscoff.c scanmscoff.c irstate.h irstate.c typinf.c iasm.c \
 	toelfdebug.c libomf.c scanomf.c libelf.c scanelf.c libmach.c scanmach.c \
-	tk.c eh.c gluestub.c
+	tk.c eh.c gluestub.c objc_glue_stubs.c objc_glue.c
 
 # D back end
 BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
@@ -334,7 +334,7 @@ GENSRC=access.d aggregate.d aliasthis.d apply.d \
 	cppmangle.d ctfeexpr.d declaration.d \
 	delegatize.d doc.d dsymbol.d \
 	denum.d expression.d func.d \
-	hdrgen.d id.d identifier.d imphint.d \
+	hdrgen.d identifier.d imphint.d \
 	dimport.d dinifile.d inline.d init.d \
 	dinterpret.d json.d lexer.d link.d \
 	dmacro.d dmangle.d mars.d \
@@ -351,18 +351,43 @@ GENSRC=access.d aggregate.d aliasthis.d apply.d \
 
 MANUALSRC= \
 	intrange.d complex.d \
-	entity.d backend.d \
+	entity.d backend.d objc_stubs.d \
 	$(ROOT)\array.d $(ROOT)\longdouble.d \
 	$(ROOT)\rootobject.d $(ROOT)\port.d \
-	$(ROOT)\rmem.d
+	$(ROOT)\rmem.d id.d impcnvtab.d
 
-$(GENSRC) : $(SRCS) $(ROOTSRC) magicport.json $(MAGICPORT) id.c impcnvtab.c
+$(GENSRC) : $(SRCS) $(ROOTSRC) magicport.json $(MAGICPORT)
 	$(MAGICPORT) . .
 
 DSRC= $(GENSRC) $(MANUALSRC)
 
-ddmd.exe: $(DSRC) newdelete.obj glue.lib backend.lib
-	$(HOST_DC) $(DSRC) -ofddmd.exe newdelete.obj glue.lib backend.lib -vtls -J.. -d -L/STACK:8388608 $(DFLAGS)
+ddmd.exe: $(DSRC) newdelete.obj glue.lib backend.lib verstr.h
+	$(HOST_DC) $(DSRC) -ofddmd.exe newdelete.obj glue.lib backend.lib -vtls -J. -d -L/STACK:8388608 $(DFLAGS)
+
+
+DELSRCS=access.c aliasthis.c apply.c argtypes.c arrayop.c attrib.c builtin.c	\
+	canthrow.c cast.c class.c clone.c cond.c constfold.c cppmangle.c	\
+	ctfeexpr.c declaration.c delegatize.c doc.c dsymbol.c entity.c enum.c	\
+	errors.c escape.c expression.c func.c globals.c hdrgen.c identifier.c	\
+	imphint.c import.c inifile.c init.c inline.c interpret.c intrange.c	\
+	json.c lexer.c link.c macro.c mangle.c mars.c module.c mtype.c nogc.c	\
+	nspace.c objc.c objc_stubs.c opover.c optimize.c parse.c root/aav.c	\
+	root/async.c root/async.h root/checkedint.c root/checkedint.h		\
+	root/file.c root/filename.c root/longdouble.c root/man.c root/object.c	\
+	root/outbuffer.c root/port.c root/response.c root/rmem.c root/speller.c	\
+	root/stringtable.c sapply.c scope.c sideeffect.c statement.c		\
+	staticassert.c struct.c target.c template.c tokens.c traits.c		\
+	unittests.c utf.c version.c
+
+convert_tree : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT)
+	$(MAGICPORT) . .
+	$(DEL) $(DELSRCS)
+	$(DEL) $(MAGICPORT) $(MAGICPORTDIR)\*.obj
+
+convert_index : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT)
+	$(MAGICPORT) . .
+	git add $(GENSRC) objc.d
+	git rm $(DELSRCS)
 
 ############################ Maintenance Targets #############################
 
@@ -370,8 +395,8 @@ clean:
 	$(DEL) *.obj *.lib *.map
 	$(DEL) msgs.h msgs.c
 	$(DEL) elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
-	$(DEL) impcnvtab.c impcnvgen.exe optabgen.exe
-	$(DEL) id.h id.c
+	$(DEL) impcnvtab.d impcnvtab.c impcnvgen.exe optabgen.exe
+	$(DEL) id.h id.c id.d
 	$(DEL) verstr.h
 	$(DEL) $(GENSRC)
 	$(DEL) $(MAGICPORT) $(MAGICPORTDIR)\*.obj
@@ -447,11 +472,11 @@ elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \
 	$(CC) -cpp -ooptabgen.exe $C\optabgen -DMARS -DDM_TARGET_CPU_X86=1 -I$(TK)
 	.\optabgen.exe
 
-impcnvtab.c : impcnvgen.c
+impcnvtab.c impcnvtab.d : impcnvgen.c
 	$(CC) -I$(ROOT) -cpp -DDM_TARGET_CPU_X86=1 impcnvgen
 	.\impcnvgen.exe
 
-id.h id.c : idgen.d
+id.h id.c id.d : idgen.d
 	$(HOST_DC) -run idgen
 
 verstr.h : ..\VERSION
@@ -554,6 +579,9 @@ divcoeff.obj : $C\divcoeff.c
 
 dt.obj : $C\dt.h $C\dt.c
 	$(CC) -c $(MFLAGS) $C\dt
+
+dwarf.obj : $C\dwarf.h $C\dwarf.c
+	$(CC) -c $(MFLAGS) $C\dwarf
 
 ee.obj : $C\ee.c
 	$(CC) -c $(MFLAGS) $C\ee
@@ -749,7 +777,7 @@ file.obj : $(ROOT)\file.c
 
 # These rules were generated by makedep, but are not currently maintained
 
-access.obj : $(TOTALH) enum.h aggregate.h init.h attrib.h access.c
+access.obj : $(TOTALH) enum.h objc.h aggregate.h init.h attrib.h access.c
 aliasthis.obj : $(TOTALH) aliasthis.h aliasthis.c
 apply.obj : $(TOTALH) apply.c
 argtypes.obj : $(TOTALH) mtype.h argtypes.c
@@ -790,6 +818,8 @@ link.obj : $(TOTALH) link.c
 macro.obj : $(TOTALH) macro.h macro.c
 mangle.obj : $(TOTALH) dsymbol.h declaration.h mangle.c
 nspace.obj : $(TOTALH) nspace.c
+objc_stubs.obj : $(TOTALH) objc.h objc_stubs.c
+objc_glue_stubs.obj : $(TOTALH) objc.h objc_glue_stubs.c
 opover.obj : $(TOTALH) expression.h opover.c
 optimize.obj : $(TOTALH) expression.h optimize.c
 parse.obj : $(TOTALH) attrib.h lexer.h parse.h parse.c

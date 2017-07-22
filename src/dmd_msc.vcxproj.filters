@@ -435,6 +435,9 @@
     <ClCompile Include="root\man.c">
       <Filter>src\root</Filter>
     </ClCompile>
+    <ClCompile Include="root\newdelete.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
     <ClCompile Include="root\port.c">
       <Filter>src\root</Filter>
     </ClCompile>
@@ -520,6 +523,18 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="nspace.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="objc.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="objc_stubs.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="objc_glue.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="objc_glue_stubs.c">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="tokens.c">
@@ -777,6 +792,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="nspace.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="objc.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="backend\obj.h">

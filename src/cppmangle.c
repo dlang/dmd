@@ -406,7 +406,7 @@ class CppMangleVisitor : public Visitor
         Dsymbol *p = d->toParent();
         if (p && !p->isModule()) //for example: char Namespace1::beta[6] should be mangled as "_ZN10Namespace14betaE"
         {
-            buf.writestring(global.params.isOSX ? "__ZN" : "_ZN");      // "__Z" for OSX, "_Z" for other
+            buf.writestring("_ZN");
             prefix_name(p);
             source_name(d);
             buf.writeByte('E');
@@ -415,13 +415,11 @@ class CppMangleVisitor : public Visitor
         {
             if (!is_temp_arg_ref)
             {
-                if (global.params.isOSX)
-                    buf.writeByte('_');
                 buf.writestring(d->ident->toChars());
             }
             else
             {
-                buf.writestring(global.params.isOSX ? "__Z" : "_Z");
+                buf.writestring("_Z");
                 source_name(d);
             }
         }
@@ -438,7 +436,7 @@ class CppMangleVisitor : public Visitor
          */
         TypeFunction *tf = (TypeFunction *)d->type;
 
-        buf.writestring(global.params.isOSX ? "__Z" : "_Z");      // "__Z" for OSX, "_Z" for other
+        buf.writestring("_Z");
         Dsymbol *p = d->toParent();
         if (p && !p->isModule() && tf->linkage == LINKcpp)
         {
@@ -560,6 +558,7 @@ public:
         {
             assert(0);
         }
+        Target::prefixName(&buf, LINKcpp);
         return buf.extractString();
     }
 
@@ -988,6 +987,8 @@ public:
             case Tfloat32:  buf.writeByte('M');        break;
             case Tint64:    buf.writestring("_J");     break;
             case Tuns64:    buf.writestring("_K");     break;
+            case Tint128:   buf.writestring("_L");     break;
+            case Tuns128:   buf.writestring("_M");     break;
             case Tfloat64:  buf.writeByte('N');        break;
             case Tbool:     buf.writestring("_N");     break;
             case Tchar:     buf.writeByte('D');        break;

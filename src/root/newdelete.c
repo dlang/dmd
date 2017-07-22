@@ -12,9 +12,11 @@
 #include <string.h>
 
 #if defined(__has_feature)
-#if __has_feature(address_sanitizer)
-#define USE_ASAN_NEW_DELETE
-#endif
+# if __has_feature(address_sanitizer)
+# define USE_ASAN_NEW_DELETE
+# endif
+#elif defined(__SANITIZE_ADDRESS__)
+# define USE_ASAN_NEW_DELETE
 #endif
 
 #if !defined(USE_ASAN_NEW_DELETE)

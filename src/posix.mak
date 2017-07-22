@@ -21,6 +21,7 @@ endif
 INSTALL_DIR=../../install
 # can be set to override the default /etc/
 SYSCONFDIR=/etc/
+PGO_DIR=$(abspath pgo)
 
 C=backend
 TK=tk
@@ -37,26 +38,33 @@ LDFLAGS=-lm -lstdc++ -lpthread
 	HOST_CC=g++
 #endif
 CC=$(HOST_CC)
+AR=ar
 GIT=git
+
+HOST_DC?=
+ifneq (,$(HOST_DC))
+  $(warning ========== Use HOST_DMD instead of HOST_DC ========== )
+  HOST_DMD=$(HOST_DC)
+endif
 
 # Host D compiler for bootstrapping
 ifeq (,$(AUTO_BOOTSTRAP))
   # No bootstrap, a $(HOST_DC) installation must be available
-  HOST_DC?=dmd
-  HOST_DC_FULL:=$(shell which $(HOST_DC))
-  ifeq (,$(HOST_DC_FULL))
-    $(error '$(HOST_DC)' not found, get a D compiler or make AUTO_BOOTSTRAP=1)
+  HOST_DMD?=dmd
+  ifeq (,$(shell which $(HOST_DMD)))
+    $(error '$(HOST_DMD)' not found, get a D compiler or make AUTO_BOOTSTRAP=1)
   endif
-  HOST_DC_RUN:=$(HOST_DC)
-  HOST_DC:=$(HOST_DC_FULL)
+  HOST_DMD_RUN:=$(HOST_DMD)
 else
   # Auto-bootstrapping, will download dmd automatically
   HOST_DMD_VER=2.067.1
   HOST_DMD_ROOT=/tmp/.host_dmd-$(HOST_DMD_VER)
-  HOST_DMD_URL=http://downloads.dlang.org/releases/2015/dmd.$(HOST_DMD_VER).$(OS).zip
+  # dmd.2.067.1.osx.zip or dmd.2.067.1.freebsd-64.zip
+  HOST_DMD_ZIP=dmd.$(HOST_DMD_VER).$(OS)$(if $(filter $(OS),freebsd),-$(MODEL),).zip
+  # http://downloads.dlang.org/releases/2.x/2.067.1/dmd.2.067.1.osx.zip
+  HOST_DMD_URL=http://downloads.dlang.org/releases/2.x/$(HOST_DMD_VER)/$(HOST_DMD_ZIP)
   HOST_DMD=$(HOST_DMD_ROOT)/dmd2/$(OS)/$(if $(filter $(OS),osx),bin,bin$(MODEL))/dmd
-  HOST_DC=$(HOST_DMD)
-  HOST_DC_RUN=$(HOST_DC) -conf=$(dir $(HOST_DC))dmd.conf
+  HOST_DMD_RUN=$(HOST_DMD) -conf=$(dir $(HOST_DMD))dmd.conf
 endif
 
 # Compiler Warnings
@@ -91,7 +99,7 @@ WARNINGS := $(WARNINGS) \
 	-Wno-unused-but-set-variable \
 	-Wno-uninitialized
 endif
-# Clangn Specific
+# Clang Specific
 ifeq ($(HOST_CC), clang++)
 WARNINGS := $(WARNINGS) \
 	-Wno-tautological-constant-out-of-range-compare \
@@ -103,6 +111,7 @@ endif
 else
 # Default Warnings
 WARNINGS := -Wno-deprecated -Wstrict-aliasing
+# Clang Specific
 ifeq ($(HOST_CC), clang++)
 WARNINGS := $(WARNINGS) \
     -Wno-logical-op-parentheses \
@@ -120,6 +129,11 @@ CFLAGS := $(WARNINGS) \
 	-fno-exceptions -fno-rtti \
 	-D__pascal= -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 \
 	$(MODEL_FLAG)
+# GCC Specific
+ifeq ($(HOST_CC), g++)
+CFLAGS := $(CFLAGS) \
+    -std=gnu++98
+endif
 # Default D compiler flags for all source files
 DFLAGS=
 
@@ -127,18 +141,27 @@ ifneq (,$(DEBUG))
 ENABLE_DEBUG := 1
 endif
 
-# Append different flags for debugging, profiling and release. Define
-# ENABLE_DEBUG and ENABLE_PROFILING to enable profiling.
+# Append different flags for debugging, profiling and release.
 ifdef ENABLE_DEBUG
 CFLAGS += -g -g3 -DDEBUG=1 -DUNITTEST
 DFLAGS += -g -debug
+else
+CFLAGS += -O2
+DFLAGS += -O -inline
+endif
 ifdef ENABLE_PROFILING
 CFLAGS  += -pg -fprofile-arcs -ftest-coverage
 LDFLAGS += -pg -fprofile-arcs -ftest-coverage
 endif
-else
-CFLAGS += -O2
-DFLAGS += -O -inline
+ifdef ENABLE_PGO_GENERATE
+CFLAGS  += -fprofile-generate=${PGO_DIR}
+endif
+ifdef ENABLE_PGO_USE
+CFLAGS  += -fprofile-use=${PGO_DIR} -freorder-blocks-and-partition
+endif
+ifdef ENABLE_LTO
+CFLAGS  += -flto
+LDFLAGS += -flto
 endif
 
 # Uniqe extra flags if necessary
@@ -147,6 +170,11 @@ GLUE_FLAGS := -I$(ROOT) -I$(TK) -I$(C)
 BACK_FLAGS := -I$(ROOT) -I$(TK) -I$(C) -I. -DDMDV2=1
 ROOT_FLAGS := -I$(ROOT)
 
+ifeq ($(OS), osx)
+ifeq ($(MODEL), 64)
+D_OBJC := 1
+endif
+endif
 
 DMD_OBJS = \
 	access.o attrib.o \
@@ -170,6 +198,12 @@ DMD_OBJS = \
 	intrange.o canthrow.o target.o nspace.o errors.o \
 	escape.o tokens.o globals.o
 
+ifeq ($(D_OBJC),1)
+	DMD_OBJS += objc.o
+else
+	DMD_OBJS += objc_stubs.o
+endif
+
 ROOT_OBJS = \
 	rmem.o port.o man.o stringtable.o response.o \
 	aav.o speller.o outbuffer.o object.o \
@@ -180,6 +214,13 @@ GLUE_OBJS = \
 	glue.o msc.o s2ir.o todt.o e2ir.o tocsym.o \
 	toobj.o toctype.o toelfdebug.o toir.o \
 	irstate.o typinf.o iasm.o
+
+
+ifeq ($(D_OBJC),1)
+	GLUE_OBJS += objc_glue.o
+else
+	GLUE_OBJS += objc_glue_stubs.o
+endif
 
 ifeq (osx,$(OS))
     GLUE_OBJS += libmach.o scanmach.o
@@ -228,7 +269,7 @@ SRC = win32.mak posix.mak osmodel.mak \
 	intrange.h intrange.c canthrow.c target.c target.h \
 	scanmscoff.c scanomf.c ctfe.h ctfeexpr.c \
 	ctfe.h ctfeexpr.c visitor.h nspace.h nspace.c errors.h errors.c \
-	escape.c tokens.h tokens.c globals.h globals.c
+	escape.c tokens.h tokens.c globals.h globals.c objc.c objc.h objc_stubs.c
 
 ROOT_SRC = $(ROOT)/root.h \
 	$(ROOT)/array.h \
@@ -249,7 +290,7 @@ GLUE_SRC = glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \
 	libmscoff.c scanmscoff.c irstate.h irstate.c typinf.c iasm.c \
 	toelfdebug.c libomf.c scanomf.c libelf.c scanelf.c libmach.c scanmach.c \
-	tk.c eh.c gluestub.c
+	tk.c eh.c gluestub.c objc_glue.c objc_glue_stubs.c
 
 BACK_SRC = \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
@@ -286,26 +327,32 @@ auto-tester-build: dmd checkwhitespace ddmd
 .PHONY: auto-tester-build
 
 frontend.a: $(DMD_OBJS)
-	ar rcs frontend.a $(DMD_OBJS)
+	$(AR) rcs frontend.a $(DMD_OBJS)
 
 root.a: $(ROOT_OBJS)
-	ar rcs root.a $(ROOT_OBJS)
+	$(AR) rcs root.a $(ROOT_OBJS)
 
 glue.a: $(GLUE_OBJS)
-	ar rcs glue.a $(GLUE_OBJS)
+	$(AR) rcs glue.a $(GLUE_OBJS)
 
 backend.a: $(BACK_OBJS)
-	ar rcs backend.a $(BACK_OBJS)
+	$(AR) rcs backend.a $(BACK_OBJS)
 
+ifdef ENABLE_LTO
+dmd: $(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS)
+	$(HOST_CC) -o dmd $(MODEL_FLAG) $^ $(LDFLAGS)
+else
 dmd: frontend.a root.a glue.a backend.a
 	$(HOST_CC) -o dmd $(MODEL_FLAG) frontend.a root.a glue.a backend.a $(LDFLAGS)
+endif
 
 clean:
 	rm -f $(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
-		impcnvtab.c optabgen debtab.c optab.c cdxxx.c elxxx.c fltables.c \
+		impcnvtab.d id.d impcnvtab.c optabgen debtab.c optab.c cdxxx.c elxxx.c fltables.c \
 		tytab.c verstr.h core \
 		*.cov *.deps *.gcda *.gcno *.a \
 		$(GENSRC) $(MAGICPORT)
+	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
 ######## Download and install the last dmd buildable without dmd
 
@@ -345,16 +392,16 @@ $(optabgen_output) : optabgen
 
 ######## idgen generates some source
 
-idgen_output = id.h id.c
+idgen_output = id.h id.c id.d
 $(idgen_output) : idgen
 
-idgen: idgen.d $(HOST_DC)
-	$(HOST_DC_RUN) idgen.d
+idgen: idgen.d
+	CC=$(HOST_CC) $(HOST_DMD_RUN) idgen.d
 	./idgen
 
 ######### impcnvgen generates some source
 
-impcnvtab_output = impcnvtab.c
+impcnvtab_output = impcnvtab.c impcnvtab.d
 $(impcnvtab_output) : impcnvgen
 
 impcnvgen : mtype.h impcnvgen.c
@@ -445,8 +492,8 @@ install: all
 
 ######################################################
 
-checkwhitespace: $(HOST_DC)
-	$(HOST_DC_RUN) -run checkwhitespace $(SRC) $(GLUE_SRC) $(ROOT_SRC)
+checkwhitespace:
+	CC=$(HOST_CC) $(HOST_DMD_RUN) -run checkwhitespace $(SRC) $(GLUE_SRC) $(ROOT_SRC)
 
 ######################################################
 
@@ -500,6 +547,13 @@ endif
 	gcov msc.c
 	gcov mtype.c
 	gcov nspace.c
+ifeq ($(D_OBJC),1)
+	gcov objc.c
+	gcov objc_glue.c
+else
+	gcov objc_stubs.c
+	gcov objc_glue_stubs.c
+endif
 	gcov opover.c
 	gcov optimize.c
 	gcov parse.c
@@ -534,7 +588,7 @@ zip:
 ######################################################
 
 ../changelog.html: ../changelog.dd
-	$(HOST_DC_RUN) -Df$@ $<
+	$(HOST_DMD_RUN) -Df$@ $<
 
 ############################# DDMD stuff ############################
 
@@ -548,8 +602,8 @@ MAGICPORTSRC = \
 
 MAGICPORT = $(MAGICPORTDIR)/magicport2
 
-$(MAGICPORT) : $(MAGICPORTSRC) $(HOST_DC)
-	$(HOST_DC_RUN) -of$(MAGICPORT) $(MAGICPORTSRC)
+$(MAGICPORT) : $(MAGICPORTSRC)
+	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$(MAGICPORT) $(MAGICPORTSRC)
 
 GENSRC=access.d aggregate.d aliasthis.d apply.d \
 	argtypes.d arrayop.d arraytypes.d \
@@ -558,7 +612,7 @@ GENSRC=access.d aggregate.d aliasthis.d apply.d \
 	cppmangle.d ctfeexpr.d declaration.d \
 	delegatize.d doc.d dsymbol.d \
 	denum.d expression.d func.d \
-	hdrgen.d id.d identifier.d imphint.d \
+	hdrgen.d identifier.d imphint.d \
 	dimport.d dinifile.d inline.d init.d \
 	dinterpret.d json.d lexer.d link.d \
 	dmacro.d dmangle.d mars.d \
@@ -578,15 +632,44 @@ MANUALSRC= \
 	entity.d backend.d \
 	$(ROOT)/array.d $(ROOT)/longdouble.d \
 	$(ROOT)/rootobject.d $(ROOT)/port.d \
-	$(ROOT)/rmem.d
+	$(ROOT)/rmem.d id.d impcnvtab.d
 
-mars.d : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT) id.c impcnvtab.c
+ifeq ($(D_OBJC),1)
+	GENSRC += objc.d
+else
+	MANUALSRC += objc_stubs.d
+endif
+
+mars.d : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT)
 	$(MAGICPORT) . .
 
 DSRC= $(GENSRC) $(MANUALSRC)
 
-ddmd: mars.d $(MANUALSRC) newdelete.o glue.a backend.a $(HOST_DC)
-	CC=$(HOST_CC) $(HOST_DC_RUN) $(MODEL_FLAG) $(DSRC) -ofddmd newdelete.o glue.a backend.a -vtls -J.. -d $(DFLAGS)
+ddmd: mars.d $(MANUALSRC) newdelete.o glue.a backend.a verstr.h
+	CC=$(HOST_CC) $(HOST_DMD_RUN) $(MODEL_FLAG) $(DSRC) -ofddmd newdelete.o glue.a backend.a -vtls -J. -d $(DFLAGS)
+
+DELSRCS=access.c aliasthis.c apply.c argtypes.c arrayop.c attrib.c builtin.c	\
+	canthrow.c cast.c class.c clone.c cond.c constfold.c cppmangle.c	\
+	ctfeexpr.c declaration.c delegatize.c doc.c dsymbol.c entity.c enum.c	\
+	errors.c escape.c expression.c func.c globals.c hdrgen.c identifier.c	\
+	imphint.c import.c inifile.c init.c inline.c interpret.c intrange.c	\
+	json.c lexer.c link.c macro.c mangle.c mars.c module.c mtype.c nogc.c	\
+	nspace.c objc.c objc_stubs.c opover.c optimize.c parse.c sapply.c	\
+	scope.c sideeffect.c statement.c staticassert.c struct.c target.c	\
+	template.c tokens.c traits.c unittests.c utf.c version.c $(addprefix	\
+	$(ROOT)/,aav.c async.c async.h checkedint.c checkedint.h file.c		\
+	filename.c longdouble.c man.c object.c outbuffer.c port.c response.c	\
+	rmem.c speller.c stringtable.c)
+
+convert_tree : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT)
+	$(MAGICPORT) . .
+	rm $(DELSRCS)
+	rm $(MAGICPORT) $(MAGICPORTDIR)/*.o
+
+convert_index : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT)
+	$(MAGICPORT) . .
+	git add $(GENSRC) objc.d
+	git rm $(DELSRCS)
 
 #############################
 

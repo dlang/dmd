@@ -26,6 +26,7 @@
 #include "statement.h"
 #include "ctfe.h"
 #include "target.h"
+#include "hdrgen.h"
 
 /************************************
  * Check to see the aggregate type is nested and its context pointer is
@@ -50,6 +51,8 @@ bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t iStar
             {
                 if (!fd->isThis() && !fd->isNested())
                     break;
+                if (FuncLiteralDeclaration *fld = fd->isFuncLiteralDeclaration())
+                    fld->tok = TOKdelegate;
             }
             if (AggregateDeclaration *ad2 = s->isAggregateDeclaration())
             {
@@ -831,9 +834,10 @@ void VarDeclaration::semantic(Scope *sc)
         scope = NULL;
     }
 
-    /* Pick up storage classes from context, but skip synchronized
+    /* Pick up storage classes from context, but except synchronized,
+     * override, abstract, and final.
      */
-    storage_class |= (sc->stc & ~STCsynchronized);
+    storage_class |= (sc->stc & ~(STCsynchronized | STCoverride | STCabstract | STCfinal));
     if (storage_class & STCextern && init)
         error("extern symbols cannot have initializers");
 
@@ -1138,24 +1142,17 @@ Lnomatch:
     else if (type->isWild())
         storage_class |= STCwild;
 
-    if (storage_class & (STCmanifest | STCstatic | STCgshared))
+    if (StorageClass stc = storage_class & (STCsynchronized | STCoverride | STCabstract | STCfinal))
     {
-    }
-    else if (isSynchronized())
-    {
-        error("variable %s cannot be synchronized", toChars());
-    }
-    else if (isOverride())
-    {
-        error("override cannot be applied to variable");
-    }
-    else if (isAbstract())
-    {
-        error("abstract cannot be applied to variable");
-    }
-    else if (storage_class & STCfinal)
-    {
-        error("final cannot be applied to variable, perhaps you meant const?");
+        if (stc == STCfinal)
+            error("cannot be final, perhaps you meant const?");
+        else
+        {
+            OutBuffer buf;
+            stcToBuffer(&buf, stc);
+            error("cannot be %s", buf.peekString());
+        }
+        storage_class &= ~stc;  // strip off
     }
 
     if (storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe))
@@ -1859,10 +1856,10 @@ bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                     break;
             }
 
-            if (fdthis->ident != Id::ensure)
+            if (fdthis->ident != Id::require && fdthis->ident != Id::ensure)
             {
-                /* __ensure is always called directly,
-                 * so it never becomes closure.
+                /* __require and __ensure will always get called directly,
+                 * so they never make outer functions closure.
                  */
 
                 //printf("\tfdv = %s\n", fdv->toChars());

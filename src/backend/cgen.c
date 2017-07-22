@@ -92,7 +92,7 @@ code *setOpcode(code *c, code *cs, unsigned op)
  * Concatenate two code lists together. Return pointer to result.
  */
 
-#if TX86 && __INTSIZE == 4 && __SC__
+#if TX86 && __INTSIZE == 4 && __DMC__
 __declspec(naked) code * __pascal cat(code *c1,code *c2)
 {
     _asm
@@ -173,7 +173,7 @@ code *gen(code *c,code *cs)
 #if TX86
     assert(I64 || cs->Irex == 0);
 #endif
-    code* ce = code_calloc();
+    code* ce = code_malloc();
     *ce = *cs;
     //printf("ce = %p %02x\n", ce, ce->Iop);
     ccheck(ce);

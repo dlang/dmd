@@ -15,12 +15,13 @@
         "interpret.c", "ctfeexpr.c", "traits.c", "builtin.c", "clone.c",
         "arrayop.c", "aliasthis.h", "aliasthis.c", "json.h", "json.c",
         "unittests.c", "imphint.c", "argtypes.c", "apply.c", "sapply.c", "sideeffect.c",
-        "ctfe.h", "canthrow.c", "target.c", "target.h", "id.c", "id.h",
-        "impcnvtab.c", "visitor.h", "lib.h", "nogc.c", "nspace.h", "nspace.c",
+        "ctfe.h", "canthrow.c", "target.c", "target.h",
+        "visitor.h", "lib.h", "nogc.c", "nspace.h", "nspace.c",
         "errors.c", "errors.h",
         "tokens.c", "tokens.h",
         "globals.c", "globals.h",
         "escape.c",
+        "objc.c", "objc.h",
         "root/aav.h", "root/aav.c",
         "root/filename.h", "root/filename.c",
         "root/file.h", "root/file.c",
@@ -110,6 +111,43 @@
             ]
         },
         {
+            "module" : "objc",
+            "package" : "",
+            "imports" : [
+                "arraytypes",
+                "cond",
+                "dclass",
+                "dmangle",
+                "dmodule",
+                "dscope",
+                "dstruct",
+                "expression",
+                "func",
+                "globals",
+                "id",
+                "identifier",
+                "mtype",
+                "root.outbuffer",
+                "root.stringtable"
+            ],
+            "members" : [
+                "struct ObjcSelector",
+                "struct Objc_ClassDeclaration",
+                "struct Objc_FuncDeclaration",
+                "function objc_ClassDeclaration_semantic_PASSinit_LINKobjc",
+                "function objc_InterfaceDeclaration_semantic_objcExtern",
+                "function objc_FuncDeclaration_semantic_setSelector",
+                "function objc_isUdaSelector",
+                "function objc_FuncDeclaration_semantic_validateSelector",
+                "function objc_FuncDeclaration_semantic_checkLinkage",
+                "function objc_tryMain_dObjc",
+                "function objc_tryMain_init"
+            ],
+            "extra" : [
+                "extern(C++) void objc_initSymbols();"
+            ]
+        },
+        {
             "module" : "dclass",
             "package" : "",
             "imports" :
@@ -132,6 +170,7 @@
                 "identifier",
                 "globals",
                 "mtype",
+                "objc",
                 "root.outbuffer",
                 "root.rmem",
                 "root.rootobject",
@@ -229,7 +268,6 @@
                 "function ctfeIndex",
                 "function ctfeCast",
                 "function assignInPlace",
-                "function recursiveBlockAssign",
                 "function changeOneElement",
                 "function modifyStructField",
                 "function assignAssocArrayElement",
@@ -374,7 +412,8 @@
                 "root.longdouble",
                 "globals",
                 "mtype",
-                "dmodule"
+                "dmodule",
+                "root.outbuffer"
             ],
             "members" :
             [
@@ -678,6 +717,8 @@
                 "function toCBufferDsymbol*OutBuffer*HdrGenState*",
                 "function toCBufferInstance",
                 "function toCBufferInitializer*OutBuffer*HdrGenState*",
+                "function stcToBuffer",
+                "function stcToChars",
                 "function trustToBuffer",
                 "function trustToChars",
                 "function linkageToBuffer",
@@ -983,9 +1024,7 @@
                 "typedef GotoCaseStatements",
                 "typedef ReturnStatements",
                 "typedef GotoStatements",
-                "typedef TemplateInstances",
-                "typedef Blocks",
-                "typedef Symbols"
+                "typedef TemplateInstances"
             ]
         },
         {
@@ -1044,7 +1083,6 @@
             [
                 "variable LOGDOTEXP",
                 "variable LOGDEFAULTINIT",
-                "variable IMPLICIT_ARRAY_TO_PTR",
                 "variable Tsize_t",
                 "variable Tptrdiff_t",
                 "function MODimplicitConv",
@@ -1283,6 +1321,7 @@
                 "expression",
                 "func",
                 "id",
+                "impcnvtab",
                 "init",
                 "intrange",
                 "tokens",
@@ -1442,6 +1481,7 @@
                 "globals",
                 "mtype",
                 "nogc",
+                "objc",
                 "opover",
                 "root.filename",
                 "root.outbuffer",
@@ -1726,19 +1766,6 @@
             ]
         },
         {
-            "module" : "id",
-            "package" : "",
-            "imports" :
-            [
-                "identifier",
-                "tokens"
-            ],
-            "members" :
-            [
-                "struct Id"
-            ]
-        },
-        {
             "module" : "identifier",
             "package" : "",
             "imports" :
@@ -1948,6 +1975,8 @@
                 "core.stdc.ctype",
                 "core.stdc.string",
                 "doc",
+                "errors",
+                "globals",
                 "root.outbuffer",
                 "root.rmem",
                 "utf"
@@ -2517,6 +2546,7 @@
                 "lib",
                 "link",
                 "mtype",
+                "objc",
                 "parse",
                 "root.file",
                 "root.filename",
@@ -2531,7 +2561,6 @@
             ],
             "extra" :
             [
-                "enum ASYNCREAD = false;"
             ],
             "members" :
             [
@@ -2551,9 +2580,7 @@
                 "function parse_arch_arg",
                 "function parse_conf_arg",
                 "function Dsymbols_create",
-                "function Symbols_create",
                 "function VarDeclarations_create",
-                "function Blocks_create",
                 "function Expressions_create"
             ]
         },
@@ -2574,6 +2601,13 @@
                 "template xversion(string s)",
                 "{",
                 "    enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();",
+                "}",
+                "",
+                "private string stripRight(string s)",
+                "{",
+                "    while (s.length && (s[$-1] == ' ' || s[$-1] == '\\n' || s[$-1] == '\\r'))",
+                "        s = s[0 .. $-1];",
+                "    return s;",
                 "}",
                 "",
                 "enum __linux__ = xversion!`linux`;",

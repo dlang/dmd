@@ -211,7 +211,6 @@ public:
     virtual bool isExport();                    // is Dsymbol exported?
     virtual bool isImportedSymbol();            // is Dsymbol imported?
     virtual bool isDeprecated();                // is Dsymbol deprecated?
-    virtual bool muteDeprecationMessage();      // disable deprecation message on Dsymbol?
     virtual bool isOverloadable();
     virtual bool hasOverloads();
     virtual LabelDsymbol *isLabel();            // is this a LabelDsymbol?

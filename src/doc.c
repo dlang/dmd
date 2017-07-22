@@ -1205,7 +1205,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
 
                 if (bc->protection.kind == PROTprivate)
                     continue;
-                if (bc->base && bc->base->ident == Id::Object)
+                if (bc->sym && bc->sym->ident == Id::Object)
                     continue;
 
                 if (any)
@@ -1216,9 +1216,9 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
                     any = 1;
                 }
                 emitProtection(buf, bc->protection);
-                if (bc->base)
+                if (bc->sym)
                 {
-                    buf->printf("$(DDOC_PSUPER_SYMBOL %s)", bc->base->toPrettyChars());
+                    buf->printf("$(DDOC_PSUPER_SYMBOL %s)", bc->sym->toPrettyChars());
                 }
                 else
                 {
