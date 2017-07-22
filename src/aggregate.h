@@ -181,7 +181,7 @@ public:
     // For those, today TypeInfo_Struct is generated in COMDAT.
     bool requestTypeInfo;
 
-    StructDeclaration(Loc loc, Identifier *id);
+    StructDeclaration(Loc loc, Identifier *id, bool inObject = false);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void semanticTypeInfoMembers();

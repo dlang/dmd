@@ -878,7 +878,7 @@ Dsymbol *AggregateDeclaration::searchCtor()
 
 /********************************* StructDeclaration ****************************/
 
-StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
+StructDeclaration::StructDeclaration(Loc loc, Identifier *id, bool inObject)
     : AggregateDeclaration(loc, id)
 {
     zeroInit = 0;       // assume false until we do semantic processing
@@ -898,8 +898,11 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     // For forward references
     type = new TypeStruct(this);
 
-    if (id == Id::ModuleInfo && !Module::moduleinfo)
-        Module::moduleinfo = this;
+    if (inObject)
+    {
+        if (id == Id::ModuleInfo && !Module::moduleinfo)
+            Module::moduleinfo = this;
+    }
 }
 
 Dsymbol *StructDeclaration::syntaxCopy(Dsymbol *s)

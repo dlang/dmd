@@ -2273,7 +2273,10 @@ Dsymbol *Parser::parseAggregate()
 
         case TOKstruct:
             if (id)
-                a = new StructDeclaration(loc, id);
+            {
+                bool inObject = md && !md->packages && md->id == Id::object;
+                a = new StructDeclaration(loc, id, inObject);
+            }
             else
                 anon = 1;
             break;
