@@ -586,7 +586,7 @@ Lancestorsdone:
         }
         sc2->protection = Prot(PROTpublic);
         sc2->explicitProtection = 0;
-        sc2->structalign = STRUCTALIGN_DEFAULT;
+        sc2->aligndecl = NULL;
         sc2->userAttribDecl = NULL;
 
         /* Set scope so if there are forward references, we still might be able to
@@ -700,7 +700,7 @@ Lancestorsdone:
     }
     sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
-    sc2->structalign = STRUCTALIGN_DEFAULT;
+    sc2->aligndecl = NULL;
     sc2->userAttribDecl = NULL;
 
     for (size_t i = 0; i < members->dim; i++)
@@ -1634,7 +1634,7 @@ Lancestorsdone:
         sc2->linkage = LINKobjc;
     sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
-    sc2->structalign = STRUCTALIGN_DEFAULT;
+    sc2->aligndecl = NULL;
     sc2->userAttribDecl = NULL;
 
     finalizeSize(sc2);

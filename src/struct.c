@@ -211,7 +211,7 @@ void AggregateDeclaration::semantic2(Scope *sc)
     //    sc2->inunion = 1;
     sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
-    sc2->structalign = STRUCTALIGN_DEFAULT;
+    sc2->aligndecl = NULL;
     sc2->userAttribDecl = NULL;
 
     for (size_t i = 0; i < members->dim; i++)
@@ -245,7 +245,7 @@ void AggregateDeclaration::semantic3(Scope *sc)
         sc2->inunion = 1;
     sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
-    sc2->structalign = STRUCTALIGN_DEFAULT;
+    sc2->aligndecl = NULL;
     sc2->userAttribDecl = NULL;
 
     for (size_t i = 0; i < members->dim; i++)
@@ -902,7 +902,7 @@ void StructDeclaration::semantic(Scope *sc)
     {
         protection = sc->protection;
 
-        alignment = sc->structalign;
+        alignment = sc->alignment();
 
         storage_class |= sc->stc;
         if (storage_class & STCdeprecated)
@@ -943,7 +943,7 @@ void StructDeclaration::semantic(Scope *sc)
         sc2->inunion = 1;
     sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
-    sc2->structalign = STRUCTALIGN_DEFAULT;
+    sc2->aligndecl = NULL;
     sc2->userAttribDecl = NULL;
 
     if (sizeok == SIZEOKdone)

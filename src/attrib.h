@@ -37,7 +37,7 @@ public:
     int apply(Dsymbol_apply_ft_t fp, void *param);
     static Scope *createNewScope(Scope *sc,
         StorageClass newstc, LINK linkage, CPPMANGLE cppmangle, Prot protection,
-        int explictProtection, structalign_t structalign, PINLINE inlining);
+        int explictProtection, AlignDeclaration *aligndecl, PINLINE inlining);
     virtual Scope *newScope(Scope *sc);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void setScope(Scope *sc);
@@ -130,11 +130,15 @@ public:
 class AlignDeclaration : public AttribDeclaration
 {
 public:
-    unsigned salign;
+    Expression *ealign;
+    structalign_t salign;
 
-    AlignDeclaration(unsigned sa, Dsymbols *decl);
+    AlignDeclaration(Loc loc, Expression *ealign, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
+    void setScope(Scope *sc);
+    void semantic2(Scope *sc);
+    structalign_t getAlignment();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -142,7 +146,6 @@ class AnonDeclaration : public AttribDeclaration
 {
 public:
     bool isunion;
-    structalign_t alignment;
     int sem;                    // 1 if successful semantic()
     unsigned anonoffset;        // offset of anonymous struct
     unsigned anonstructsize;    // size of anonymous struct

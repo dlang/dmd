@@ -66,7 +66,7 @@ Scope::Scope()
     this->scontinue = NULL;
     this->fes = NULL;
     this->callsc = NULL;
-    this->structalign = STRUCTALIGN_DEFAULT;
+    this->aligndecl = NULL;
     this->func = NULL;
     this->slabel = NULL;
     this->linkage = LINKd;
@@ -108,7 +108,7 @@ Scope *Scope::createGlobal(Module *module)
     Scope *sc = Scope::alloc();
     memset(sc, 0, sizeof(Scope));
 
-    sc->structalign = STRUCTALIGN_DEFAULT;
+    sc->aligndecl = NULL;
     sc->linkage = LINKd;
     sc->inlining = PINLINEdefault;
     sc->protection = Prot(PROTpublic);
@@ -533,6 +533,14 @@ void Scope::setNoFree()
         //if (++i == 10)
             //assert(0);
     }
+}
+
+structalign_t Scope::alignment()
+{
+    if (aligndecl)
+        return aligndecl->getAlignment();
+    else
+        return STRUCTALIGN_DEFAULT;
 }
 
 /************************************************

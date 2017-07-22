@@ -231,7 +231,8 @@ struct PrefixAttributes
     Expression *depmsg;
     LINK link;
     Prot protection;
-    unsigned alignment;
+    bool setAlignment;
+    Expression *ealign;
     Expressions *udas;
     const utf8_t *comment;
 
@@ -240,7 +241,8 @@ struct PrefixAttributes
           depmsg(NULL),
           link(LINKdefault),
           protection(PROTundefined),
-          alignment(0),
+          setAlignment(false),
+          ealign(NULL),
           udas(NULL),
           comment(NULL)
     {
@@ -783,59 +785,38 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
 
             case TOKalign:
             {
+                const Loc attrLoc = token.loc;
+
                 nextToken();
 
-                unsigned n;
+                Expression *e = NULL; // default
                 if (token.value == TOKlparen)
                 {
                     nextToken();
-                    if (token.value == TOKint32v && token.uns64value > 0)
-                    {
-                        if (token.uns64value & (token.uns64value - 1))
-                            error("align(%s) must be a power of 2", token.toChars());
-                        n = (unsigned)token.uns64value;
-                    }
-                    else
-                    {
-                        error("positive integer expected, not %s", token.toChars());
-                        n = 1;
-                    }
-                    nextToken();
+                    e = parseAssignExp();
                     check(TOKrparen);
                 }
-                else
-                    n = STRUCTALIGN_DEFAULT;             // default
 
-                if (pAttrs->alignment != 0)
+                if (pAttrs->setAlignment)
                 {
                     const char *s1 = "";
                     OutBuffer buf1;
-                    if (n != STRUCTALIGN_DEFAULT)
+                    if (e)
                     {
-                        buf1.printf("(%d)", n);
+                        buf1.printf("(%s)", e->toChars());
                         s1 = buf1.peekString();
                     }
-                    if (pAttrs->alignment != n)
-                    {
-                        OutBuffer buf2;
-                        const char *s2 = "";
-                        if (pAttrs->alignment != STRUCTALIGN_DEFAULT)
-                        {
-                            buf2.printf("(%d)", pAttrs->alignment);
-                            s2 = buf2.peekString();
-                        }
-                        error("conflicting alignment attribute align%s and align%s", s2, s1);
-                    }
-                    else
-                        error("redundant alignment attribute align%s", s1);
+                    error("redundant alignment attribute align%s", s1);
                 }
 
-                pAttrs->alignment = n;
+                pAttrs->setAlignment = true;
+                pAttrs->ealign = e;
                 a = parseBlock(pLastDecl, pAttrs);
-                if (pAttrs->alignment != 0)
+                if (pAttrs->setAlignment)
                 {
-                    s = new AlignDeclaration(pAttrs->alignment, a);
-                    pAttrs->alignment = 0;
+                    s = new AlignDeclaration(attrLoc, pAttrs->ealign, a);
+                    pAttrs->setAlignment = false;
+                    pAttrs->ealign = NULL;
                 }
                 break;
             }
@@ -3581,7 +3562,8 @@ Type *Parser::parseDeclarator(Type *t, int *palt, Identifier **pident,
     return ts;
 }
 
-void Parser::parseStorageClasses(StorageClass &storage_class, LINK &link, unsigned &structalign, Expressions *&udas)
+void Parser::parseStorageClasses(StorageClass &storage_class, LINK &link,
+    bool &setAlignment, Expression *&ealign, Expressions *&udas)
 {
     StorageClass stc;
     bool sawLinkage = false;            // seen a linkage declaration
@@ -3668,21 +3650,13 @@ void Parser::parseStorageClasses(StorageClass &storage_class, LINK &link, unsign
             case TOKalign:
             {
                 nextToken();
+                setAlignment = true;
                 if (token.value == TOKlparen)
                 {
                     nextToken();
-                    if (token.value == TOKint32v && token.uns64value > 0)
-                        structalign = (unsigned)token.uns64value;
-                    else
-                    {
-                        error("positive integer expected, not %s", token.toChars());
-                        structalign = 1;
-                    }
-                    nextToken();
+                    ealign = parseExpression();
                     check(TOKrparen);
                 }
-                else
-                    structalign = STRUCTALIGN_DEFAULT;   // default
                 continue;
             }
             default:
@@ -3709,7 +3683,8 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, con
     Identifier *ident;
     TOK tok = TOKreserved;
     LINK link = linkage;
-    unsigned structalign = 0;
+    bool setAlignment = false;
+    Expression *ealign = NULL;
     Loc loc = token.loc;
     Expressions *udas = NULL;
     Token *tk;
@@ -3780,9 +3755,10 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, con
 
                 storage_class = STCundefined;
                 link = linkage;
-                structalign = 0;
+                setAlignment = false;
+                ealign = NULL;
                 udas = NULL;
-                parseStorageClasses(storage_class, link, structalign, udas);
+                parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
 
                 if (udas)
                     error("user defined attributes not allowed for %s declarations", Token::toChars(tok));
@@ -3799,6 +3775,12 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, con
                     TemplateDeclaration *tempdecl =
                         new TemplateDeclaration(loc, ident, tpl, NULL, a2);
                     s = tempdecl;
+                }
+                if (setAlignment)
+                {
+                    Dsymbols *ax = new Dsymbols();
+                    ax->push(s);
+                    s = new AlignDeclaration(v->loc, ealign, ax);
                 }
                 if (link != linkage)
                 {
@@ -3841,7 +3823,7 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, con
         // alias StorageClasses type ident;
     }
 
-    parseStorageClasses(storage_class, link, structalign, udas);
+    parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
 
     if (token.value == TOKstruct ||
         token.value == TOKunion ||
@@ -3858,9 +3840,9 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, con
             a = new Dsymbols();
             a->push(s);
         }
-        if (structalign != 0)
+        if (setAlignment)
         {
-            s = new AlignDeclaration(structalign, a);
+            s = new AlignDeclaration(s->loc, ealign, a);
             a = new Dsymbols();
             a->push(s);
         }
