@@ -2886,6 +2886,7 @@ Objects *Parser::parseTemplateSingleArgument()
         case TOKstring:
         case TOKxstring:
         case TOKfile:
+        case TOKfilefullpath:
         case TOKline:
         case TOKmodulestring:
         case TOKfuncstring:
@@ -4641,12 +4642,13 @@ Initializer *Parser::parseInitializer()
 
 /*****************************************
  * Parses default argument initializer expression that is an assign expression,
- * with special handling for __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__.
+ * with special handling for __FILE__, __FILE_FULL_PATH__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__.
  */
 
 Expression *Parser::parseDefaultInitExp()
 {
     if (token.value == TOKfile ||
+        token.value == TOKfilefullpath ||
         token.value == TOKline ||
         token.value == TOKmodulestring ||
         token.value == TOKfuncstring ||
@@ -4657,7 +4659,9 @@ Expression *Parser::parseDefaultInitExp()
         {
             Expression *e = NULL;
             if (token.value == TOKfile)
-                e = new FileInitExp(token.loc);
+                e = new FileInitExp(token.loc, TOKfile);
+            else if (token.value == TOKfilefullpath)
+                e = new FileInitExp(token.loc, TOKfilefullpath);
             else if (token.value == TOKline)
                 e = new LineInitExp(token.loc);
             else if (token.value == TOKmodulestring)
@@ -4800,6 +4804,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr, Loc *pEndloc
         case TOKlbracket:
         case TOKtraits:
         case TOKfile:
+        case TOKfilefullpath:
         case TOKline:
         case TOKmodulestring:
         case TOKfuncstring:
@@ -5965,6 +5970,7 @@ bool Parser::isBasicType(Token **pt)
                         case TOKstring:
                         case TOKxstring:
                         case TOKfile:
+                        case TOKfilefullpath:
                         case TOKline:
                         case TOKmodulestring:
                         case TOKfuncstring:
@@ -6691,7 +6697,21 @@ Expression *Parser::parsePrimaryExp()
             break;
 
         case TOKfile:
-        {   const char *s = loc.filename ? loc.filename : mod->ident->toChars();
+        {
+            const char *s = loc.filename ? loc.filename : mod->ident->toChars();
+            e = new StringExp(loc, (char *)s, strlen(s), 0);
+            nextToken();
+            break;
+        }
+
+        case TOKfilefullpath:
+        {
+            const char *srcfile = mod->srcfile->name->toChars();
+            const char *s;
+            if (loc.filename && !FileName::equals(loc.filename, srcfile))
+                s = loc.filename;
+            else
+                s = FileName::combine(mod->srcfilePath, srcfile);
             e = new StringExp(loc, (char *)s, strlen(s), 0);
             nextToken();
             break;
@@ -7354,6 +7374,7 @@ Expression *Parser::parseUnaryExp()
                     case TOKtypeof:
                     case TOKvector:
                     case TOKfile:
+                    case TOKfilefullpath:
                     case TOKline:
                     case TOKmodulestring:
                     case TOKfuncstring:
@@ -7881,6 +7902,7 @@ void initPrecedence()
     precedence[TOKassocarrayliteral] = PREC_primary;
     precedence[TOKclassreference] = PREC_primary;
     precedence[TOKfile] = PREC_primary;
+    precedence[TOKfilefullpath] = PREC_primary;
     precedence[TOKline] = PREC_primary;
     precedence[TOKmodulestring] = PREC_primary;
     precedence[TOKfuncstring] = PREC_primary;

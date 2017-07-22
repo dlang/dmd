@@ -331,6 +331,7 @@ static Keyword keywords[] =
     {   "__vector",     TOKvector       },
     {   "__overloadset", TOKoverloadset },
     {   "__FILE__",     TOKfile         },
+    {   "__FILE_FULL_PATH__", TOKfilefullpath  },
     {   "__LINE__",     TOKline         },
     {   "__MODULE__",   TOKmodulestring },
     {   "__FUNCTION__", TOKfuncstring   },

@@ -1507,7 +1507,7 @@ public:
 class FileInitExp : public DefaultInitExp
 {
 public:
-    FileInitExp(Loc loc);
+    FileInitExp(Loc loc, TOK tok);
     Expression *semantic(Scope *sc);
     Expression *resolveLoc(Loc loc, Scope *sc);
     void accept(Visitor *v) { v->visit(this); }

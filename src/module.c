@@ -26,6 +26,14 @@
 #include "attrib.h"
 #include "target.h"
 
+// For getcwd()
+#if _WIN32
+#include <direct.h>
+#endif
+#if POSIX
+#include <unistd.h>
+#endif
+
 AggregateDeclaration *Module::moduleinfo;
 
 Module *Module::rootModule;
@@ -37,7 +45,7 @@ Dsymbols Module::deferred2; // deferred Dsymbol's needing semantic2() run on the
 Dsymbols Module::deferred3; // deferred Dsymbol's needing semantic3() run on them
 unsigned Module::dprogress;
 
-const char *lookForSourceFile(const char *filename);
+const char *lookForSourceFile(const char **path, const char *filename);
 
 void Module::init()
 {
@@ -77,6 +85,7 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
     sfilename = NULL;
     importedFrom = NULL;
     srcfile = NULL;
+    srcfilePath = NULL;
     docfile = NULL;
 
     debuglevel = 0;
@@ -113,6 +122,8 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
         fatal();
     }
     srcfile = new File(srcfilename);
+    if (!FileName::absolute(srcfilename))
+        srcfilePath = getcwd(NULL, 0);
 
     objfile = setOutfile(global.params.objname, global.params.objdir, filename, global.obj_ext);
 
@@ -225,9 +236,16 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 
     /* Look for the source file
      */
-    const char *result = lookForSourceFile(filename);
+    const char *path;
+    const char *result = lookForSourceFile(&path, filename);
     if (result)
+    {
         m->srcfile = new File(result);
+        if (path)
+            m->srcfilePath = path;
+        else if (!FileName::absolute(result))
+            m->srcfilePath = getcwd(NULL, 0);
+    }
 
     if (!m->read(loc))
         return NULL;
@@ -1270,6 +1288,8 @@ Dsymbol *Package::search(Loc loc, Identifier *ident, int flags)
  * Look for the source file if it's different from filename.
  * Look for .di, .d, directory, and along global.path.
  * Does not open the file.
+ * Output:
+ *      path            the path where the file was found if it was not the current directory
  * Input:
  *      filename        as supplied by the user
  *      global.path
@@ -1277,11 +1297,11 @@ Dsymbol *Package::search(Loc loc, Identifier *ident, int flags)
  *      NULL if it's not different from filename.
  */
 
-const char *lookForSourceFile(const char *filename)
+const char *lookForSourceFile(const char **path, const char *filename)
 {
-
     /* Search along global.path for .di file, then .d file.
      */
+    *path = NULL;
 
     const char *sdi = FileName::forceExt(filename, global.hdr_ext);
     if (FileName::exists(sdi) == 1)
@@ -1315,12 +1335,18 @@ const char *lookForSourceFile(const char *filename)
 
         const char *n = FileName::combine(p, sdi);
         if (FileName::exists(n) == 1)
+        {
+            *path = p;
             return n;
+        }
         FileName::free(n);
 
         n = FileName::combine(p, sd);
         if (FileName::exists(n) == 1)
+        {
+            *path = p;
             return n;
+        }
         FileName::free(n);
 
         const char *b = FileName::removeExt(filename);
@@ -1330,7 +1356,10 @@ const char *lookForSourceFile(const char *filename)
         {
             const char *n2 = FileName::combine(n, "package.d");
             if (FileName::exists(n2) == 1)
+            {
+                *path = p;
                 return n2;
+            }
             FileName::free(n2);
         }
         FileName::free(n);

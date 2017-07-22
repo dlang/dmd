@@ -14089,8 +14089,8 @@ DefaultInitExp::DefaultInitExp(Loc loc, TOK subop, int size)
 
 /****************************************************************/
 
-FileInitExp::FileInitExp(Loc loc)
-    : DefaultInitExp(loc, TOKfile, sizeof(FileInitExp))
+FileInitExp::FileInitExp(Loc loc, TOK tok)
+    : DefaultInitExp(loc, tok, sizeof(FileInitExp))
 {
 }
 
