@@ -31,6 +31,7 @@
 bool walkPostorder(Statement *s, StoppableVisitor *v);
 StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration *f);
 bool checkEscapeRef(Scope *sc, Expression *e, bool gag);
+VarDeclaration *copyToTemp(StorageClass stc, const char *name, Expression *e);
 
 Identifier *fixupLabelName(Scope *sc, Identifier *ident)
 {
@@ -964,7 +965,7 @@ Statements *CompileStatement::flatten(Scope *sc)
         {
             se = se->toUTF8(sc);
             unsigned errors = global.errors;
-            Parser p(loc, sc->module, (utf8_t *)se->string, se->len, 0);
+            Parser p(loc, sc->_module, (utf8_t *)se->string, se->len, 0);
             p.nextToken();
 
             while (p.token.value != TOKeof)
@@ -1469,6 +1470,10 @@ static bool checkVar(SwitchStatement *s, VarDeclaration *vd)
     {
         // All good, the label's scope has no variables
     }
+    else if (vd->storage_class & STCexptemp)
+    {
+        // Lifetime ends at end of expression, so no issue with skipping the statement
+    }
     else if (vd->ident == Id::withSym)
     {
         s->error("'switch' skips declaration of 'with' temporary at %s", vd->loc.toChars());
@@ -1793,11 +1798,7 @@ Statement *OnScopeStatement::scopeCode(Scope *sc, Statement **sentry, Statement 
              *  sexception:    x = true;
              *  sfinally: if (!x) statement;
              */
-            Identifier *id = Identifier::generateId("__os");
-
-            ExpInitializer *ie = new ExpInitializer(loc, new IntegerExp(Loc(), 0, Type::tbool));
-            VarDeclaration *v = new VarDeclaration(loc, Type::tbool, id, ie);
-            v->storage_class |= STCtemp;
+            VarDeclaration *v = copyToTemp(0, "__os", new IntegerExp(Loc(), 0, Type::tbool));
             *sentry = new ExpStatement(loc, v);
 
             Expression *e = new IntegerExp(Loc(), 1, Type::tbool);

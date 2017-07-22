@@ -198,7 +198,7 @@ bool checkAccess(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember)
                  hasPrivateAccess(ad, f) ||
                  isFriendOf(ad, cdscope) ||
                  (access.kind == PROTpackage && hasPackageAccess(sc, smember)) ||
-                 ad->getAccessModule() == sc->module;
+                 ad->getAccessModule() == sc->_module;
 #if LOG
         printf("result1 = %d\n", result);
 #endif
@@ -266,7 +266,7 @@ bool isFriendOf(AggregateDeclaration *ad, AggregateDeclaration *cd)
  */
 bool hasPackageAccess(Scope *sc, Dsymbol *s)
 {
-    return hasPackageAccess(sc->module, s);
+    return hasPackageAccess(sc->_module, s);
 }
 
 bool hasPackageAccess(Module *mod, Dsymbol *s)
@@ -359,7 +359,7 @@ bool hasProtectedAccess(Scope *sc, Dsymbol *s)
                 return true;
         }
     }
-    return sc->module == s->getAccessModule();
+    return sc->_module == s->getAccessModule();
 }
 
 /**********************************
@@ -444,11 +444,11 @@ bool checkAccess(Loc loc, Scope *sc, Expression *e, Declaration *d)
     }
     if (!e)
     {
-        if (d->prot().kind == PROTprivate && d->getAccessModule() != sc->module ||
+        if (d->prot().kind == PROTprivate && d->getAccessModule() != sc->_module ||
             d->prot().kind == PROTpackage && !hasPackageAccess(sc, d))
         {
             error(loc, "%s %s is not accessible from module %s",
-                d->kind(), d->toPrettyChars(), sc->module->toChars());
+                d->kind(), d->toPrettyChars(), sc->_module->toChars());
             return true;
         }
     }
@@ -489,7 +489,7 @@ bool checkAccess(Loc loc, Scope *sc, Expression *e, Declaration *d)
  */
 bool checkAccess(Loc loc, Scope *sc, Package *p)
 {
-    if (sc->module == p)
+    if (sc->_module == p)
         return false;
     for (; sc; sc = sc->enclosing)
     {
@@ -565,9 +565,9 @@ bool symbolIsVisible(Scope *sc, Dsymbol *s)
         case PROTnone:
             return false; // no access
         case PROTprivate:
-            return sc->module == s->getAccessModule();
+            return sc->_module == s->getAccessModule();
         case PROTpackage:
-            return hasPackageAccess(sc->module, s);
+            return hasPackageAccess(sc->_module, s);
         case PROTprotected:
             return hasProtectedAccess(sc, s);
         case PROTpublic:

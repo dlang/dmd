@@ -590,9 +590,9 @@ void ProtDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
         pkg_identifiers = NULL;
     }
 
-    if (protection.kind == PROTpackage && protection.pkg && sc->module)
+    if (protection.kind == PROTpackage && protection.pkg && sc->_module)
     {
-        Module *m = sc->module;
+        Module *m = sc->_module;
         Package* pkg = m->parent ? m->parent->isPackage() : NULL;
         if (!pkg || !protection.pkg->isAncestorPackageOf(pkg))
             error("does not bind to one of ancestor packages of module '%s'",
@@ -1428,7 +1428,7 @@ void CompileDeclaration::compileIt(Scope *sc)
         {
             se = se->toUTF8(sc);
             unsigned errors = global.errors;
-            Parser p(loc, sc->module, (utf8_t *)se->string, se->len, 0);
+            Parser p(loc, sc->_module, (utf8_t *)se->string, se->len, 0);
             p.nextToken();
 
             decl = p.parseDeclDefs(0);

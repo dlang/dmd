@@ -99,7 +99,7 @@ void semanticTypeInfo(Scope *sc, Type *t)
             if (!sc) // inline may request TypeInfo.
             {
                 Scope scx;
-                scx.module = sd->getModule();
+                scx._module = sd->getModule();
                 getTypeInfoType(t, &scx);
                 sd->requestTypeInfo = true;
             }
@@ -1118,7 +1118,7 @@ void StructDeclaration::semantic(Scope *sc)
 
         _scope = scx ? scx : sc->copy();
         _scope->setNoFree();
-        _scope->module->addDeferredSemantic(this);
+        _scope->_module->addDeferredSemantic(this);
 
         //printf("\tdeferring %s\n", toChars());
         return;

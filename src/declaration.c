@@ -31,6 +31,7 @@
 #include "hdrgen.h"
 
 bool checkNestedRef(Dsymbol *s, Dsymbol *p);
+VarDeclaration *copyToTemp(StorageClass stc, const char *name, Expression *e);
 
 /************************************
  * Check to see the aggregate type is nested and its context pointer is
@@ -1049,10 +1050,7 @@ void VarDeclaration::semantic(Scope *sc)
                 }
                 else if (isAliasThisTuple(e))
                 {
-                    Identifier *id = Identifier::generateId("__tup");
-                    ExpInitializer *ei = new ExpInitializer(e->loc, e);
-                    VarDeclaration *v = new VarDeclaration(loc, NULL, id, ei);
-                    v->storage_class = STCtemp | STCctfe | STCref | STCforeach;
+                    VarDeclaration *v = copyToTemp(0, "__tup", e);
                     VarExp *ve = new VarExp(loc, v);
                     ve->type = e->type;
 
@@ -1270,8 +1268,7 @@ Lnomatch:
         }
     }
 
-    if ((storage_class & (STCref | STCparameter | STCforeach)) == STCref &&
-        ident != Id::This)
+    if ((storage_class & (STCref | STCparameter | STCforeach | STCtemp | STCresult)) == STCref && ident != Id::This)
     {
         error("only parameters or foreach declarations can be ref");
     }
@@ -1607,7 +1604,7 @@ Ldtor:
     if (edtor)
     {
         if (sc->func && storage_class & (STCstatic | STCgshared))
-            edtor = edtor->semantic(sc->module->_scope);
+            edtor = edtor->semantic(sc->_module->_scope);
         else
             edtor = edtor->semantic(sc);
 

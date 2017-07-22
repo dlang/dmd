@@ -220,7 +220,7 @@ void genCmain(Scope *sc)
     global.params.verbose = v;
 
     entrypoint = m;
-    rootHasMain = sc->module;
+    rootHasMain = sc->_module;
 }
 
 int tryMain(size_t argc, const char *argv[])

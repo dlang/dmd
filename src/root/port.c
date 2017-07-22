@@ -118,11 +118,6 @@ int Port::memicmp(const char *s1, const char *s2, int n)
     return ::memicmp(s1, s2, n);
 }
 
-int Port::stricmp(const char *s1, const char *s2)
-{
-    return ::stricmp(s1, s2);
-}
-
 
 extern "C" const char * __cdecl __locale_decpoint;
 
@@ -330,11 +325,6 @@ int Port::memicmp(const char *s1, const char *s2, int n)
     return ::memicmp(s1, s2, n);
 }
 
-int Port::stricmp(const char *s1, const char *s2)
-{
-    return ::stricmp(s1, s2);
-}
-
 float Port::strtof(const char *p, char **endp)
 {
     if(endp)
@@ -535,29 +525,6 @@ int Port::memicmp(const char *s1, const char *s2, int n)
             if (result)
                 break;
         }
-    }
-    return result;
-}
-
-int Port::stricmp(const char *s1, const char *s2)
-{
-    int result = 0;
-
-    for (;;)
-    {   char c1 = *s1;
-        char c2 = *s2;
-
-        result = c1 - c2;
-        if (result)
-        {
-            result = toupper(c1) - toupper(c2);
-            if (result)
-                break;
-        }
-        if (!c1)
-            break;
-        s1++;
-        s2++;
     }
     return result;
 }
@@ -798,29 +765,6 @@ int Port::memicmp(const char *s1, const char *s2, int n)
     return result;
 }
 
-int Port::stricmp(const char *s1, const char *s2)
-{
-    int result = 0;
-
-    for (;;)
-    {   char c1 = *s1;
-        char c2 = *s2;
-
-        result = c1 - c2;
-        if (result)
-        {
-            result = toupper(c1) - toupper(c2);
-            if (result)
-                break;
-        }
-        if (!c1)
-            break;
-        s1++;
-        s2++;
-    }
-    return result;
-}
-
 float Port::strtof(const char *p, char **endp)
 {
     return ::strtof(p, endp);
@@ -1052,29 +996,6 @@ int Port::memicmp(const char *s1, const char *s2, int n)
             if (result)
                 break;
         }
-    }
-    return result;
-}
-
-int Port::stricmp(const char *s1, const char *s2)
-{
-    int result = 0;
-
-    for (;;)
-    {   char c1 = *s1;
-        char c2 = *s2;
-
-        result = c1 - c2;
-        if (result)
-        {
-            result = toupper(c1) - toupper(c2);
-            if (result)
-                break;
-        }
-        if (!c1)
-            break;
-        s1++;
-        s2++;
     }
     return result;
 }

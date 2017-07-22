@@ -79,7 +79,7 @@ void genTypeInfo(Type *torig, Scope *sc)
             if (sc)                     // if in semantic() pass
             {
                 // Find module that will go all the way to an object file
-                Module *m = sc->module->importedFrom;
+                Module *m = sc->_module->importedFrom;
                 m->members->push(t->vtinfo);
             }
             else                        // if in obj generation pass

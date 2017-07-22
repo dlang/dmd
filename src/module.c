@@ -203,6 +203,31 @@ const char *Module::kind()
     return "module";
 }
 
+static void checkModFileAlias(OutBuffer *buf, OutBuffer *dotmods,
+                              Array<const char *> *ms, size_t msdim, const char *p)
+{
+    /* Check and replace the contents of buf[] with
+     * an alias string from global.params.modFileAliasStrings[]
+     */
+    dotmods->writestring(p);
+    for (size_t j = msdim; j--;)
+    {
+        const char *m = (*ms)[j];
+        const char *q = strchr(m, '=');
+        assert(q);
+        if (dotmods->offset <= q - m && memcmp(dotmods->peekString(), m, q - m) == 0)
+        {
+            buf->reset();
+            size_t qlen = strlen(q + 1);
+            if (qlen && (q[qlen] == '/' || q[qlen] == '\\'))
+                --qlen;             // remove trailing separator
+            buf->write(q + 1, qlen);
+            break;                  // last matching entry in ms[] wins
+        }
+    }
+    dotmods->writeByte('.');
+}
+
 Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 {
     //printf("Module::load(ident = '%s')\n", ident->toChars());
@@ -215,11 +240,17 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
     if (packages && packages->dim)
     {
         OutBuffer buf;
+        OutBuffer dotmods;
+        Array<const char *> *ms = global.params.modFileAliasStrings;
+        const size_t msdim = ms ? ms->dim : 0;
 
         for (size_t i = 0; i < packages->dim; i++)
-        {   Identifier *pid = (*packages)[i];
-
-            buf.writestring(pid->toChars());
+        {
+            Identifier *pid = (*packages)[i];
+            const char *p = pid->toChars();
+            buf.writestring(p);
+            if (msdim)
+                checkModFileAlias(&buf, &dotmods, ms, msdim, p);
 #if _WIN32
             buf.writeByte('\\');
 #else
@@ -227,6 +258,8 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 #endif
         }
         buf.writestring(filename);
+        if (msdim)
+            checkModFileAlias(&buf, &dotmods, ms, msdim, filename);
         buf.writeByte(0);
         filename = (char *)buf.extractData();
     }

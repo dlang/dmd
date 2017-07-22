@@ -52,6 +52,7 @@ bool symbolIsVisible(Scope *sc, Dsymbol *s);
 typedef int (*ForeachDg)(void *ctx, size_t paramidx, Parameter *param);
 int Parameter_foreach(Parameters *parameters, ForeachDg dg, void *ctx, size_t *pn = NULL);
 FuncDeclaration *isFuncAddress(Expression *e, bool *hasOverloads = NULL);
+Expression *extractSideEffect(Scope *sc, const char *name, Expression **e0, Expression *e, bool alwaysCopy = false);
 
 int Tsize_t = Tuns32;
 int Tptrdiff_t = Tint32;
@@ -6732,7 +6733,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
             Dsymbol *sm = s->searchX(loc, sc, id);
             if (sm && !(sc->flags & SCOPEignoresymbolvisibility) && !symbolIsVisible(sc, sm))
             {
-                ::deprecation(loc, "%s is not visible from module %s", sm->toPrettyChars(), sc->module->toChars());
+                ::deprecation(loc, "%s is not visible from module %s", sm->toPrettyChars(), sc->_module->toChars());
                 // sm = NULL;
             }
             if (global.errors != errorsave)
@@ -7741,21 +7742,14 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
          */
         e = e->semantic(sc);    // do this before turning on noaccesscheck
         e->type->size();        // do semantic of type
-        Expressions *exps = new Expressions;
-        exps->reserve(sym->fields.dim);
 
         Expression *e0 = NULL;
         Expression *ev = e->op == TOKtype ? NULL : e;
-        if (sc->func && ev && !isTrivialExp(ev))
-        {
-            Identifier *id = Identifier::generateId("__tup");
-            ExpInitializer *ei = new ExpInitializer(e->loc, ev);
-            VarDeclaration *vd = new VarDeclaration(e->loc, NULL, id, ei);
-            vd->storage_class |= STCtemp | STCctfe
-                              | (ev->isLvalue() ? STCref | STCforeach : STCrvalue);
-            e0 = new DeclarationExp(e->loc, vd);
-            ev = new VarExp(e->loc, vd);
-        }
+        if (ev)
+            ev = extractSideEffect(sc, "__tup", &e0, ev);
+
+        Expressions *exps = new Expressions;
+        exps->reserve(sym->fields.dim);
         for (size_t i = 0; i < sym->fields.dim; i++)
         {
             VarDeclaration *v = sym->fields[i];
@@ -7805,7 +7799,7 @@ L1:
     }
     if (!(sc->flags & SCOPEignoresymbolvisibility) && !symbolIsVisible(sc, s))
     {
-        ::deprecation(e->loc, "%s is not visible from module %s", s->toPrettyChars(), sc->module->toPrettyChars());
+        ::deprecation(e->loc, "%s is not visible from module %s", s->toPrettyChars(), sc->_module->toPrettyChars());
         // return noMember(sc, e, ident, flag);
     }
     if (!s->isFuncDeclaration())        // because of overloading
@@ -8360,21 +8354,13 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         // Detect that error, and at least try to run semantic() on it if we can
         sym->size(e->loc);
 
-        Expressions *exps = new Expressions;
-        exps->reserve(sym->fields.dim);
-
         Expression *e0 = NULL;
         Expression *ev = e->op == TOKtype ? NULL : e;
-        if (sc->func && ev && !isTrivialExp(ev))
-        {
-            Identifier *id = Identifier::generateId("__tup");
-            ExpInitializer *ei = new ExpInitializer(e->loc, ev);
-            VarDeclaration *vd = new VarDeclaration(e->loc, NULL, id, ei);
-            vd->storage_class |= STCtemp | STCctfe
-                              | (ev->isLvalue() ? STCref | STCforeach : STCrvalue);
-            e0 = new DeclarationExp(e->loc, vd);
-            ev = new VarExp(e->loc, vd);
-        }
+        if (ev)
+            ev = extractSideEffect(sc, "__tup", &e0, ev);
+
+        Expressions *exps = new Expressions;
+        exps->reserve(sym->fields.dim);
         for (size_t i = 0; i < sym->fields.dim; i++)
         {
             VarDeclaration *v = sym->fields[i];
@@ -8391,6 +8377,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
             }
             exps->push(ex);
         }
+
         e = new TupleExp(e->loc, e0, exps);
         Scope *sc2 = sc->push();
         sc2->flags = sc->flags | SCOPEnoaccesscheck;
@@ -8541,7 +8528,7 @@ L1:
     }
     if (!(sc->flags & SCOPEignoresymbolvisibility) && !symbolIsVisible(sc, s))
     {
-        ::deprecation(e->loc, "%s is not visible from module %s", s->toPrettyChars(), sc->module->toChars());
+        ::deprecation(e->loc, "%s is not visible from module %s", s->toPrettyChars(), sc->_module->toChars());
         // return noMember(sc, e, ident, flag);
     }
     if (!s->isFuncDeclaration())        // because of overloading

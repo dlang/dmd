@@ -219,12 +219,14 @@ bool lambdaHasSideEffect(Expression *e)
 
 /***********************************
  * The result of this expression will be discarded.
- * Complain if the operation has no side effects (and hence is meaningless).
+ * Print error messages if the operation has no side effects (and hence is meaningless).
+ * Returns:
+ *      true if expression has no side effects
  */
-void discardValue(Expression *e)
+bool discardValue(Expression *e)
 {
     if (lambdaHasSideEffect(e))     // check side-effect shallowly
-        return;
+        return false;
     switch (e->op)
     {
         case TOKcast:
@@ -235,13 +237,13 @@ void discardValue(Expression *e)
                 /*
                  * Don't complain about an expression with no effect if it was cast to void
                  */
-                return;
+                return false;
             }
             break;          // complain
         }
 
         case TOKerror:
-            return;
+            return false;
 
         case TOKvar:
         {
@@ -249,7 +251,7 @@ void discardValue(Expression *e)
             if (v && (v->storage_class & STCtemp))
             {
                 // Bugzilla 5810: Don't complain about an internal generated variable.
-                return;
+                return false;
             }
             break;
         }
@@ -293,24 +295,22 @@ void discardValue(Expression *e)
                     }
                 }
             }
-            return;
+            return false;
 
         case TOKscope:
             e->error("%s has no effect", e->toChars());
-            return;
+            return true;
 
         case TOKandand:
         {
             AndAndExp *aae = (AndAndExp *)e;
-            discardValue(aae->e2);
-            return;
+            return discardValue(aae->e2);
         }
 
         case TOKoror:
         {
             OrOrExp *ooe = (OrOrExp *)e;
-            discardValue(ooe->e2);
-            return;
+            return discardValue(ooe->e2);
         }
 
         case TOKquestion:
@@ -338,10 +338,10 @@ void discardValue(Expression *e)
             if (!lambdaHasSideEffect(ce->e1) &&
                 !lambdaHasSideEffect(ce->e2))
             {
-                discardValue(ce->e1);
-                discardValue(ce->e2);
+                return discardValue(ce->e1) |
+                       discardValue(ce->e2);
             }
-            return;
+            return false;
         }
 
         case TOKcomma:
@@ -359,12 +359,11 @@ void discardValue(Expression *e)
                 ce->e2->op == TOKvar &&
                 ((DeclarationExp *)firstComma->e1)->declaration == ((VarExp*)ce->e2)->var)
             {
-                return;
+                return false;
             }
             // Don't check e1 until we cast(void) the a,b code generation
             //discardValue(ce->e1);
-            discardValue(ce->e2);
-            return;
+            return discardValue(ce->e2);
         }
 
         case TOKtuple:
@@ -374,10 +373,67 @@ void discardValue(Expression *e)
              */
             if (!hasSideEffect(e))
                 break;
-            return;
+            return false;
 
         default:
             break;
     }
     e->error("%s has no effect in expression (%s)", Token::toChars(e->op), e->toChars());
+    return true;
+}
+
+/**************************************************
+ * Build a temporary variable to copy the value of e into.
+ * Params:
+ *  stc = storage classes will be added to the made temporary variable
+ *  name = name for temporary variable
+ *  e = original expression
+ * Returns:
+ *  Newly created temporary variable.
+ */
+VarDeclaration *copyToTemp(StorageClass stc, const char *name, Expression *e)
+{
+    assert(name && name[0] == '_' && name[1] == '_');
+    Identifier *id = Identifier::generateId(name);
+    ExpInitializer *ez = new ExpInitializer(e->loc, e);
+    VarDeclaration *vd = new VarDeclaration(e->loc, e->type, id, ez);
+    vd->storage_class = stc;
+    vd->storage_class |= STCtemp;
+    vd->storage_class |= STCctfe; // temporary is always CTFEable
+    return vd;
+}
+
+/**************************************************
+ * Build a temporary variable to extract e's evaluation, if e is not trivial.
+ * Params:
+ *  sc = scope
+ *  name = name for temporary variable
+ *  e0 = a new side effect part will be appended to it.
+ *  e = original expression
+ *  alwaysCopy = if true, build new temporary variable even if e is trivial.
+ * Returns:
+ *  When e is trivial and alwaysCopy == false, e itself is returned.
+ *  Otherwise, a new VarExp is returned.
+ * Note:
+ *  e's lvalue-ness will be handled well by STCref or STCrvalue.
+ */
+Expression *extractSideEffect(Scope *sc, const char *name,
+    Expression **e0, Expression *e, bool alwaysCopy = false)
+{
+    if (!alwaysCopy && isTrivialExp(e))
+        return e;
+
+    VarDeclaration *vd = copyToTemp(0, name, e);
+    if (e->isLvalue())
+        vd->storage_class |= STCref;
+    else
+        vd->storage_class |= STCrvalue;
+
+    Expression *de = new DeclarationExp(vd->loc, vd);
+    Expression *ve = new VarExp(vd->loc, vd);
+    de = de->semantic(sc);
+    ve = ve->semantic(sc);
+
+    *e0 = Expression::combine(*e0, de);
+    return ve;
 }

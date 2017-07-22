@@ -77,7 +77,7 @@ Expression *doCopyOrMove(Scope *sc, Expression *e);
 Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, Expression **pe0);
 Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, IntervalExp *ie, Expression **pe0);
 Expression *integralPromotions(Expression *e, Scope *sc);
-void discardValue(Expression *e);
+bool discardValue(Expression *e);
 bool isTrivialExp(Expression *e);
 
 int isConst(Expression *e);
@@ -141,7 +141,7 @@ public:
     Expression *trySemantic(Scope *sc);
 
     // kludge for template.isExpression()
-    int dyncast() const { return DYNCAST_EXPRESSION; }
+    int dyncast() { return DYNCAST_EXPRESSION; }
 
     void print();
     const char *toChars();

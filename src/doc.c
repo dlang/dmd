@@ -783,7 +783,7 @@ void emitComment(Dsymbol *s, OutBuffer *buf, Scope *sc)
             if (s)
             {
                 DocComment *dc = DocComment::parse(sc, s, com);
-                dc->pmacrotable = &sc->module->macrotable;
+                dc->pmacrotable = &sc->_module->macrotable;
                 sc->lastdc = dc;
             }
         }
@@ -2241,7 +2241,7 @@ void highlightText(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset)
                     // text is already OK.
                 }
 
-                if (!sc->module->isDocFile &&
+                if (!sc->_module->isDocFile &&
                     !inCode && i == iLineStart && i + 1 < buf->offset)    // if "\n\n"
                 {
                     static const char blankline[] = "$(DDOC_BLANKLINE)\n";
@@ -2258,7 +2258,7 @@ void highlightText(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset)
                 if (inCode)
                     break;
                 utf8_t *p = (utf8_t *)&buf->data[i];
-                const char *se = sc->module->escapetable->escapeChar('<');
+                const char *se = sc->_module->escapetable->escapeChar('<');
                 if (se && strcmp(se, "&lt;") == 0)
                 {
                     // Generating HTML
@@ -2319,7 +2319,7 @@ void highlightText(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset)
                 if (inCode)
                     break;
                 // Replace '>' with '&gt;' character entity
-                const char *se = sc->module->escapetable->escapeChar('>');
+                const char *se = sc->_module->escapetable->escapeChar('>');
                 if (se)
                 {
                     size_t len = strlen(se);
@@ -2338,7 +2338,7 @@ void highlightText(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset)
                 if (p[1] == '#' || isalpha(p[1]))
                     break;                      // already a character entity
                 // Replace '&' with '&amp;' character entity
-                const char *se = sc->module->escapetable->escapeChar('&');
+                const char *se = sc->_module->escapetable->escapeChar('&');
                 if (se)
                 {
                     size_t len = strlen(se);
@@ -2495,7 +2495,7 @@ void highlightText(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset)
 
             default:
                 leadingBlank = 0;
-                if (sc->module->isDocFile || inCode)
+                if (sc->_module->isDocFile || inCode)
                     break;
 
                 utf8_t *start = (utf8_t *)buf->data + i;
@@ -2577,7 +2577,7 @@ void highlightCode(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset)
     for (size_t i = offset; i < buf->offset; i++)
     {
         utf8_t c = buf->data[i];
-        const char *se = sc->module->escapetable->escapeChar(c);
+        const char *se = sc->_module->escapetable->escapeChar(c);
         if (se)
         {
             size_t len = strlen(se);
@@ -2618,7 +2618,7 @@ void highlightCode3(Scope *sc, OutBuffer *buf, const utf8_t *p, const utf8_t *pe
 {
     for (; p < pend; p++)
     {
-        const char *s = sc->module->escapetable->escapeChar(*p);
+        const char *s = sc->_module->escapetable->escapeChar(*p);
         if (s)
             buf->writestring(s);
         else

@@ -1979,7 +1979,7 @@ static void expandInline(Loc callLoc, FuncDeclaration *fd, FuncDeclaration *pare
             ExpInitializer *ei = new ExpInitializer(callLoc, NULL);
             Identifier *tmp = Identifier::generateId("__retvar");
             vret = new VarDeclaration(fd->loc, eret->type, tmp, ei);
-            vret->storage_class |= STCtemp | STCforeach | STCref;
+            vret->storage_class |= STCtemp | STCref;
             vret->linkage = LINKd;
             vret->parent = parent;
 
@@ -2203,7 +2203,7 @@ static void expandInline(Loc callLoc, FuncDeclaration *fd, FuncDeclaration *pare
             ExpInitializer* ei = new ExpInitializer(callLoc, e);
             Identifier* tmp = Identifier::generateId("__inlineretval");
             VarDeclaration* vd = new VarDeclaration(callLoc, tf->next, tmp, ei);
-            vd->storage_class = (tf->isref ? STCref : 0) | STCtemp | STCrvalue;
+            vd->storage_class = STCtemp | (tf->isref ? STCref : STCrvalue);
             vd->linkage = tf->linkage;
             vd->parent = parent;
 

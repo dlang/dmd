@@ -494,14 +494,14 @@ void TemplateDeclaration::semantic(Scope *sc)
 #if LOG
     printf("TemplateDeclaration::semantic(this = %p, id = '%s')\n", this, ident->toChars());
     printf("sc->stc = %llx\n", sc->stc);
-    printf("sc->module = %s\n", sc->module->toChars());
+    printf("sc->module = %s\n", sc->_module->toChars());
 #endif
     if (semanticRun != PASSinit)
         return;         // semantic() already run
     semanticRun = PASSsemantic;
 
     // Remember templates defined in module object that we need to know about
-    if (sc->module && sc->module->ident == Id::object)
+    if (sc->_module && sc->_module->ident == Id::object)
     {
         if (ident == Id::RTInfo)
             Type::rtinfo = this;
@@ -5839,7 +5839,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     printf("Scope\n");
     for (Scope *scx = sc; scx; scx = scx->enclosing)
     {
-        printf("\t%s parent %s\n", scx->module ? scx->module->toChars() : "null", scx->parent ? scx->parent->toChars() : "null");
+        printf("\t%s parent %s\n", scx->_module ? scx->_module->toChars() : "null", scx->parent ? scx->parent->toChars() : "null");
     }
 #endif
 
@@ -8286,7 +8286,7 @@ void TemplateMixin::semantic(Scope *sc)
             //printf("forward reference - deferring\n");
             _scope = scx ? scx : sc->copy();
             _scope->setNoFree();
-            _scope->module->addDeferredSemantic(this);
+            _scope->_module->addDeferredSemantic(this);
             return;
         }
 

@@ -60,10 +60,8 @@ struct Port
     static void yl2x_impl(longdouble* x, longdouble* y, longdouble* res);
     static void yl2xp1_impl(longdouble* x, longdouble* y, longdouble* res);
 
-    static char *strupr(char *);
-
     static int memicmp(const char *s1, const char *s2, int n);
-    static int stricmp(const char *s1, const char *s2);
+    static char *strupr(char *);
 
     static float strtof(const char *p, char **endp);
     static double strtod(const char *p, char **endp);

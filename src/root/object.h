@@ -22,18 +22,6 @@ typedef size_t hash_t;
 
 struct OutBuffer;
 
-enum DYNCAST
-{
-    DYNCAST_OBJECT,
-    DYNCAST_EXPRESSION,
-    DYNCAST_DSYMBOL,
-    DYNCAST_TYPE,
-    DYNCAST_IDENTIFIER,
-    DYNCAST_TUPLE,
-    DYNCAST_PARAMETER,
-    DYNCAST_STATEMENT,
-};
-
 /*
  * Root of our class library.
  */
@@ -62,7 +50,7 @@ public:
      * Used as a replacement for dynamic_cast. Returns a unique number
      * defined by the library user. For Object, the return value is 0.
      */
-    virtual int dyncast() const;
+    virtual int dyncast();
 };
 
 #endif

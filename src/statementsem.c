@@ -36,6 +36,7 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag);
 LabelStatement *checkLabeledLoop(Scope *sc, Statement *statement);
 Identifier *fixupLabelName(Scope *sc, Identifier *ident);
 FuncDeclaration *isFuncAddress(Expression *e, bool *hasOverloads = NULL);
+VarDeclaration *copyToTemp(StorageClass stc, const char *name, Expression *e);
 
 Statement *semantic(Statement *s, Scope *sc);
 void semantic(Catch *c, Scope *sc);
@@ -97,7 +98,8 @@ public:
                 if (f->checkForwardRef(s->exp->loc))
                     s->exp = new ErrorExp();
             }
-            discardValue(s->exp);
+            if (discardValue(s->exp))
+                s->exp = new ErrorExp();
 
             s->exp = s->exp->optimize(WANTvalue);
             s->exp = checkGC(sc, s->exp);
@@ -493,9 +495,7 @@ public:
             fs->aggr->op != TOKtype && !fs->aggr->isLvalue())
         {
             // Bugzilla 14653: Extend the life of rvalue aggregate till the end of foreach.
-            vinit = new VarDeclaration(loc, fs->aggr->type,
-                                       Identifier::generateId("__aggr"), new ExpInitializer(loc, fs->aggr));
-            vinit->storage_class |= STCtemp;
+            vinit = copyToTemp(STCrvalue, "__aggr", fs->aggr);
             vinit->semantic(sc);
             fs->aggr = new VarExp(fs->aggr->loc, vinit);
         }
@@ -1019,9 +1019,7 @@ public:
                     }
                     else
                     {
-                        Identifier *rid = Identifier::generateId("__r");
-                        r = new VarDeclaration(loc, NULL, rid, new ExpInitializer(loc, fs->aggr));
-                        r->storage_class |= STCtemp;
+                        r = copyToTemp(0, "__r", fs->aggr);
                         init = new ExpStatement(loc, r);
                         if (vinit)
                             init = new CompoundStatement(loc, new ExpStatement(loc, vinit), init);
@@ -1053,11 +1051,7 @@ public:
                     }
                     else
                     {
-                        Identifier *id = Identifier::generateId("__front");
-                        ExpInitializer *ei = new ExpInitializer(loc, einit);
-                        VarDeclaration *vd = new VarDeclaration(loc, NULL, id, ei);
-                        vd->storage_class |= STCtemp | STCctfe | STCref | STCforeach;
-
+                        VarDeclaration *vd = copyToTemp(STCref, "__front", einit);
                         makeargs = new ExpStatement(loc, vd);
 
                         Declaration *d = sfront->isDeclaration();
@@ -2878,10 +2872,7 @@ public:
              *  _d_monitorenter(tmp);
              *  try { body } finally { _d_monitorexit(tmp); }
              */
-            Identifier *id = Identifier::generateId("__sync");
-            ExpInitializer *ie = new ExpInitializer(ss->loc, ss->exp);
-            VarDeclaration *tmp = new VarDeclaration(ss->loc, ss->exp->type, id, ie);
-            tmp->storage_class |= STCtemp;
+            VarDeclaration *tmp = copyToTemp(0, "__sync", ss->exp);
 
             Statements *cs = new Statements();
             cs->push(new ExpStatement(ss->loc, tmp));
@@ -2914,7 +2905,7 @@ public:
              *  try { body } finally { _d_criticalexit(critsec.ptr); }
              */
             Identifier *id = Identifier::generateId("__critsec");
-            Type *t = new TypeSArray(Type::tint8, new IntegerExp(Target::ptrsize + Target::critsecsize()));
+            Type *t = Type::tint8->sarrayOf(Target::ptrsize + Target::critsecsize());
             VarDeclaration *tmp = new VarDeclaration(ss->loc, t, id, NULL);
             tmp->storage_class |= STCtemp | STCgshared | STCstatic;
 
@@ -3029,11 +3020,9 @@ public:
                      *   }
                      * }
                      */
-                    init = new ExpInitializer(ws->loc, ws->exp);
-                    ws->wthis = new VarDeclaration(ws->loc, ws->exp->type, Identifier::generateId("__withtmp"), init);
-                    ws->wthis->storage_class |= STCtemp;
-                    ExpStatement *es = new ExpStatement(ws->loc, ws->wthis);
-                    ws->exp = new VarExp(ws->loc, ws->wthis);
+                    VarDeclaration *tmp = copyToTemp(0, "__withtmp", ws->exp);
+                    ExpStatement *es = new ExpStatement(ws->loc, tmp);
+                    ws->exp = new VarExp(ws->loc, tmp);
                     Statement *ss = new ScopeStatement(ws->loc, new CompoundStatement(ws->loc, es, ws), ws->endloc);
                     result = semantic(ss, sc);
                     return;

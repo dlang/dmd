@@ -52,7 +52,7 @@ Scope::Scope()
     // Create root scope
 
     //printf("Scope::Scope() %p\n", this);
-    this->module = NULL;
+    this->_module = NULL;
     this->scopesym = NULL;
     this->sds = NULL;
     this->enclosing = NULL;
@@ -103,7 +103,7 @@ Scope *Scope::copy()
     return sc;
 }
 
-Scope *Scope::createGlobal(Module *module)
+Scope *Scope::createGlobal(Module *_module)
 {
     Scope *sc = Scope::alloc();
     memset(sc, 0, sizeof(Scope));
@@ -113,24 +113,24 @@ Scope *Scope::createGlobal(Module *module)
     sc->inlining = PINLINEdefault;
     sc->protection = Prot(PROTpublic);
 
-    sc->module = module;
+    sc->_module = _module;
 
     sc->tinst = NULL;
-    sc->minst = module;
+    sc->minst = _module;
 
     sc->scopesym = new ScopeDsymbol();
     sc->scopesym->symtab = new DsymbolTable();
 
     // Add top level package as member of this global scope
-    Dsymbol *m = module;
+    Dsymbol *m = _module;
     while (m->parent)
         m = m->parent;
     m->addMember(NULL, sc->scopesym);
     m->parent = NULL;                   // got changed by addMember()
 
     // Create the module scope underneath the global scope
-    sc = sc->push(module);
-    sc->parent = module;
+    sc = sc->push(_module);
+    sc->parent = _module;
     return sc;
 }
 
@@ -387,7 +387,7 @@ void Scope::mergeFieldInit(Loc loc, unsigned *fies)
 Module *Scope::instantiatingModule()
 {
     // TODO: in speculative context, returning 'module' is correct?
-    return minst ? minst : module;
+    return minst ? minst : _module;
 }
 
 static Dsymbol *searchScopes(Scope *scope, Loc loc, Identifier *ident, Dsymbol **pscopesym, int flags)
@@ -521,7 +521,7 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flag
                 s = searchScopes(this, loc, ident, pscopesym, flags | SearchImportsOnly | IgnoreSymbolVisibility);
 
             if (s && !(flags & IgnoreErrors))
-                ::deprecation(loc, "%s is not visible from module %s", s->toPrettyChars(), module->toChars());
+                ::deprecation(loc, "%s is not visible from module %s", s->toPrettyChars(), _module->toChars());
 #ifdef LOGSEARCH
             if (s)
                 printf("\t-Scope::search() found imported private symbol%s.%s, kind = '%s'\n",

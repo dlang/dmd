@@ -93,7 +93,7 @@ void Identifier::print()
     fprintf(stderr, "%s",string);
 }
 
-int Identifier::dyncast() const
+int Identifier::dyncast()
 {
     return DYNCAST_IDENTIFIER;
 }

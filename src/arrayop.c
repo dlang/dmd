@@ -77,10 +77,10 @@ FuncDeclaration *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc, Loc loc
     fd->linkage = LINKc;
     fd->isArrayOp = 1;
 
-    sc->module->importedFrom->members->push(fd);
+    sc->_module->importedFrom->members->push(fd);
 
     sc = sc->push();
-    sc->parent = sc->module->importedFrom;
+    sc->parent = sc->_module->importedFrom;
     sc->stc = 0;
     sc->linkage = LINKc;
     fd->semantic(sc);

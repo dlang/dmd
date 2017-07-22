@@ -181,7 +181,7 @@ void Import::load(Scope *sc)
         }
     }
     if (mod && !mod->importedFrom)
-        mod->importedFrom = sc ? sc->module->importedFrom : Module::rootModule;
+        mod->importedFrom = sc ? sc->_module->importedFrom : Module::rootModule;
     if (!pkg)
         pkg = mod;
 
@@ -237,8 +237,8 @@ void Import::semantic(Scope *sc)
     if (mod)
     {
         // Modules need a list of each imported module
-        //printf("%s imports %s\n", sc->module->toChars(), mod->toChars());
-        sc->module->aimports.push(mod);
+        //printf("%s imports %s\n", sc->_module->toChars(), mod->toChars());
+        sc->_module->aimports.push(mod);
 
         if (sc->explicitProtection)
             protection = sc->protection;
@@ -283,8 +283,8 @@ void Import::semantic(Scope *sc)
 
         if (mod->needmoduleinfo)
         {
-            //printf("module4 %s because of %s\n", sc->module->toChars(), mod->toChars());
-            sc->module->needmoduleinfo = 1;
+            //printf("module4 %s because of %s\n", sc->_module->toChars(), mod->toChars());
+            sc->_module->needmoduleinfo = 1;
         }
 
         sc = sc->push(mod);
@@ -316,9 +316,9 @@ void Import::semantic(Scope *sc)
     // object self-imports itself, so skip that (Bugzilla 7547)
     // don't list pseudo modules __entrypoint.d, __main.d (Bugzilla 11117, 11164)
     if (global.params.moduleDeps != NULL &&
-        !(id == Id::object && sc->module->ident == Id::object) &&
-        sc->module->ident != Id::entrypoint &&
-        strcmp(sc->module->ident->toChars(), "__main") != 0)
+        !(id == Id::object && sc->_module->ident == Id::object) &&
+        sc->_module->ident != Id::entrypoint &&
+        strcmp(sc->_module->ident->toChars(), "__main") != 0)
     {
         /* The grammar of the file is:
          *      ImportDeclaration
@@ -406,9 +406,9 @@ void Import::semantic2(Scope *sc)
         mod->semantic2(NULL);
         if (mod->needmoduleinfo)
         {
-            //printf("module5 %s because of %s\n", sc->module->toChars(), mod->toChars());
+            //printf("module5 %s because of %s\n", sc->_module->toChars(), mod->toChars());
             if (sc)
-                sc->module->needmoduleinfo = 1;
+                sc->_module->needmoduleinfo = 1;
         }
     }
 }

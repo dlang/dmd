@@ -39,9 +39,9 @@ const char *RootObject::toChars()
     return (char *)"Object";
 }
 
-int RootObject::dyncast() const
+int RootObject::dyncast()
 {
-    return DYNCAST_OBJECT;
+    return 0;
 }
 
 void RootObject::toBuffer(OutBuffer *b)

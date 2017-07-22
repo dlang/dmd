@@ -36,7 +36,7 @@ public:
     const char *toChars();
     int getValue() const;
     const char *toHChars2();
-    int dyncast() const;
+    int dyncast();
 
     static StringTable stringtable;
     static Identifier *generateId(const char *prefix);
