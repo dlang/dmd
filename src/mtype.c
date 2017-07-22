@@ -2380,6 +2380,18 @@ bool Type::hasPointers()
 }
 
 /*************************************
+ * Detect if type has pointer fields that are initialized to void.
+ * Local stack variables with such void fields can remain uninitialized,
+ * leading to pointer bugs.
+ * Returns:
+ *  true if so
+ */
+bool Type::hasVoidInitPointers()
+{
+    return false;
+}
+
+/*************************************
  * If this is a type of something, return that something.
  */
 
@@ -7561,6 +7573,11 @@ bool TypeEnum::hasPointers()
     return sym->getMemtype(Loc())->hasPointers();
 }
 
+bool TypeEnum::hasVoidInitPointers()
+{
+    return sym->getMemtype(Loc())->hasVoidInitPointers();
+}
+
 Type *TypeEnum::nextOf()
 {
     return sym->getMemtype(Loc())->nextOf();
@@ -8020,6 +8037,23 @@ bool TypeStruct::hasPointers()
     {
         Declaration *d = s->fields[i];
         if (d->storage_class & STCref || d->hasPointers())
+            return true;
+    }
+    return false;
+}
+
+bool TypeStruct::hasVoidInitPointers()
+{
+    // Probably should cache this information in sym rather than recompute
+    StructDeclaration *s = sym;
+
+    sym->size(Loc()); // give error for forward references
+    for (size_t i = 0; i < s->fields.dim; i++)
+    {
+        VarDeclaration *v = s->fields[i];
+        if (v->_init && v->_init->isVoidInitializer() && v->type->hasPointers())
+            return true;
+        if (!v->_init && v->type->hasVoidInitPointers())
             return true;
     }
     return false;
