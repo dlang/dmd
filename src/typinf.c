@@ -121,7 +121,7 @@ TypeInfoDeclaration *getTypeInfoDeclaration(Type *t)
         else
             return TypeInfoClassDeclaration::create(t);
     default:
-        return TypeInfoDeclaration::create(t, 0);
+        return TypeInfoDeclaration::create(t);
     }
 }
 

@@ -2163,8 +2163,8 @@ SymbolDeclaration::SymbolDeclaration(Loc loc, StructDeclaration *dsym)
 
 /********************************* TypeInfoDeclaration ****************************/
 
-TypeInfoDeclaration::TypeInfoDeclaration(Type *tinfo, int internal)
-    : VarDeclaration(Loc(), Type::dtypeinfo->type, tinfo->getTypeInfoIdent(internal), NULL)
+TypeInfoDeclaration::TypeInfoDeclaration(Type *tinfo)
+    : VarDeclaration(Loc(), Type::dtypeinfo->type, tinfo->getTypeInfoIdent(), NULL)
 {
     this->tinfo = tinfo;
     storage_class = STCstatic | STCgshared;
@@ -2172,9 +2172,9 @@ TypeInfoDeclaration::TypeInfoDeclaration(Type *tinfo, int internal)
     linkage = LINKc;
 }
 
-TypeInfoDeclaration *TypeInfoDeclaration::create(Type *tinfo, int internal)
+TypeInfoDeclaration *TypeInfoDeclaration::create(Type *tinfo)
 {
-    return new TypeInfoDeclaration(tinfo, internal);
+    return new TypeInfoDeclaration(tinfo);
 }
 
 Dsymbol *TypeInfoDeclaration::syntaxCopy(Dsymbol *s)
@@ -2201,7 +2201,7 @@ char *TypeInfoDeclaration::toChars()
 /***************************** TypeInfoConstDeclaration **********************/
 
 TypeInfoConstDeclaration::TypeInfoConstDeclaration(Type *tinfo)
-    : TypeInfoDeclaration(tinfo, 0)
+    : TypeInfoDeclaration(tinfo)
 {
     if (!Type::typeinfoconst)
     {
@@ -2218,7 +2218,7 @@ TypeInfoConstDeclaration *TypeInfoConstDeclaration::create(Type *tinfo)
 /***************************** TypeInfoInvariantDeclaration **********************/
 
 TypeInfoInvariantDeclaration::TypeInfoInvariantDeclaration(Type *tinfo)
-    : TypeInfoDeclaration(tinfo, 0)
+    : TypeInfoDeclaration(tinfo)
 {
     if (!Type::typeinfoinvariant)
     {
@@ -2235,7 +2235,7 @@ TypeInfoInvariantDeclaration *TypeInfoInvariantDeclaration::create(Type *tinfo)
 /***************************** TypeInfoSharedDeclaration **********************/
 
 TypeInfoSharedDeclaration::TypeInfoSharedDeclaration(Type *tinfo)
-    : TypeInfoDeclaration(tinfo, 0)
+    : TypeInfoDeclaration(tinfo)
 {
     if (!Type::typeinfoshared)
     {
@@ -2252,7 +2252,7 @@ TypeInfoSharedDeclaration *TypeInfoSharedDeclaration::create(Type *tinfo)
 /***************************** TypeInfoWildDeclaration **********************/
 
 TypeInfoWildDeclaration::TypeInfoWildDeclaration(Type *tinfo)
-    : TypeInfoDeclaration(tinfo, 0)
+    : TypeInfoDeclaration(tinfo)
 {
     if (!Type::typeinfowild)
     {
@@ -2269,7 +2269,7 @@ TypeInfoWildDeclaration *TypeInfoWildDeclaration::create(Type *tinfo)
 /***************************** TypeInfoStructDeclaration **********************/
 
 TypeInfoStructDeclaration::TypeInfoStructDeclaration(Type *tinfo)
-    : TypeInfoDeclaration(tinfo, 0)
+    : TypeInfoDeclaration(tinfo)
 {
     if (!Type::typeinfostruct)
     {
@@ -2286,7 +2286,7 @@ TypeInfoStructDeclaration *TypeInfoStructDeclaration::create(Type *tinfo)
 /***************************** TypeInfoClassDeclaration ***********************/
 
 TypeInfoClassDeclaration::TypeInfoClassDeclaration(Type *tinfo)
-    : TypeInfoDeclaration(tinfo, 0)
+    : TypeInfoDeclaration(tinfo)
 {
     if (!Type::typeinfoclass)
     {
@@ -2303,7 +2303,7 @@ TypeInfoClassDeclaration *TypeInfoClassDeclaration::create(Type *tinfo)
 /***************************** TypeInfoInterfaceDeclaration *******************/
 
 TypeInfoInterfaceDeclaration::TypeInfoInterfaceDeclaration(Type *tinfo)
-    : TypeInfoDeclaration(tinfo, 0)
+    : TypeInfoDeclaration(tinfo)
 {
     if (!Type::typeinfointerface)
     {
@@ -2320,7 +2320,7 @@ TypeInfoInterfaceDeclaration *TypeInfoInterfaceDeclaration::create(Type *tinfo)
 /***************************** TypeInfoPointerDeclaration *********************/
 
 TypeInfoPointerDeclaration::TypeInfoPointerDeclaration(Type *tinfo)
-    : TypeInfoDeclaration(tinfo, 0)
+    : TypeInfoDeclaration(tinfo)
 {
     if (!Type::typeinfopointer)
     {
@@ -2337,7 +2337,7 @@ TypeInfoPointerDeclaration *TypeInfoPointerDeclaration::create(Type *tinfo)
 /***************************** TypeInfoArrayDeclaration ***********************/
 
 TypeInfoArrayDeclaration::TypeInfoArrayDeclaration(Type *tinfo)
-    : TypeInfoDeclaration(tinfo, 0)
+    : TypeInfoDeclaration(tinfo)
 {
     if (!Type::typeinfoarray)
     {
@@ -2354,7 +2354,7 @@ TypeInfoArrayDeclaration *TypeInfoArrayDeclaration::create(Type *tinfo)
 /***************************** TypeInfoStaticArrayDeclaration *****************/
 
 TypeInfoStaticArrayDeclaration::TypeInfoStaticArrayDeclaration(Type *tinfo)
-    : TypeInfoDeclaration(tinfo, 0)
+    : TypeInfoDeclaration(tinfo)
 {
     if (!Type::typeinfostaticarray)
     {
@@ -2371,7 +2371,7 @@ TypeInfoStaticArrayDeclaration *TypeInfoStaticArrayDeclaration::create(Type *tin
 /***************************** TypeInfoAssociativeArrayDeclaration ************/
 
 TypeInfoAssociativeArrayDeclaration::TypeInfoAssociativeArrayDeclaration(Type *tinfo)
-    : TypeInfoDeclaration(tinfo, 0)
+    : TypeInfoDeclaration(tinfo)
 {
     if (!Type::typeinfoassociativearray)
     {
@@ -2388,7 +2388,7 @@ TypeInfoAssociativeArrayDeclaration *TypeInfoAssociativeArrayDeclaration::create
 /***************************** TypeInfoVectorDeclaration ***********************/
 
 TypeInfoVectorDeclaration::TypeInfoVectorDeclaration(Type *tinfo)
-    : TypeInfoDeclaration(tinfo, 0)
+    : TypeInfoDeclaration(tinfo)
 {
     if (!Type::typeinfovector)
     {
@@ -2405,7 +2405,7 @@ TypeInfoVectorDeclaration *TypeInfoVectorDeclaration::create(Type *tinfo)
 /***************************** TypeInfoEnumDeclaration ***********************/
 
 TypeInfoEnumDeclaration::TypeInfoEnumDeclaration(Type *tinfo)
-    : TypeInfoDeclaration(tinfo, 0)
+    : TypeInfoDeclaration(tinfo)
 {
     if (!Type::typeinfoenum)
     {
@@ -2422,7 +2422,7 @@ TypeInfoEnumDeclaration *TypeInfoEnumDeclaration::create(Type *tinfo)
 /***************************** TypeInfoFunctionDeclaration ********************/
 
 TypeInfoFunctionDeclaration::TypeInfoFunctionDeclaration(Type *tinfo)
-    : TypeInfoDeclaration(tinfo, 0)
+    : TypeInfoDeclaration(tinfo)
 {
     if (!Type::typeinfofunction)
     {
@@ -2439,7 +2439,7 @@ TypeInfoFunctionDeclaration *TypeInfoFunctionDeclaration::create(Type *tinfo)
 /***************************** TypeInfoDelegateDeclaration ********************/
 
 TypeInfoDelegateDeclaration::TypeInfoDelegateDeclaration(Type *tinfo)
-    : TypeInfoDeclaration(tinfo, 0)
+    : TypeInfoDeclaration(tinfo)
 {
     if (!Type::typeinfodelegate)
     {
@@ -2456,7 +2456,7 @@ TypeInfoDelegateDeclaration *TypeInfoDelegateDeclaration::create(Type *tinfo)
 /***************************** TypeInfoTupleDeclaration **********************/
 
 TypeInfoTupleDeclaration::TypeInfoTupleDeclaration(Type *tinfo)
-    : TypeInfoDeclaration(tinfo, 0)
+    : TypeInfoDeclaration(tinfo)
 {
     if (!Type::typeinfotypelist)
     {

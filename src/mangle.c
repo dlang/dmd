@@ -888,20 +888,6 @@ void mangleToBuffer(Type *t, OutBuffer *buf)
     v.visitWithMask(t, 0);
 }
 
-void mangleToBuffer(Type *t, OutBuffer *buf, bool internal)
-{
-    if (internal)
-    {
-        buf->writestring(mangleChar[t->ty]);
-        if (t->ty == Tarray)
-            buf->writestring(mangleChar[((TypeArray *)t)->next->ty]);
-    }
-    else if (t->deco)
-        buf->writestring(t->deco);
-    else
-        mangleToBuffer(t, buf);
-}
-
 void mangleToBuffer(Expression *e, OutBuffer *buf)
 {
     Mangler v(buf);
