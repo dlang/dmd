@@ -7085,19 +7085,18 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
         exp = exp->semantic(sc2);
         exp = resolvePropertiesOnly(sc2, exp);
         sc2->pop();
-        if (exp->op == TOKtype)
+        if (exp->op == TOKtype ||
+            exp->op == TOKscope)
         {
-            error(loc, "argument %s to typeof is not an expression", exp->toChars());
-            goto Lerr;
-        }
-        else if (exp->op == TOKimport)
-        {
-            ScopeDsymbol *sds = ((ScopeExp *)exp)->sds;
-            if (sds->isPackage())
-            {
-                error(loc, "%s has no type", exp->toChars());
+            if (exp->checkType())
                 goto Lerr;
-            }
+
+            /* Today, 'typeof(func)' returns void if func is a
+             * function template (TemplateExp), or
+             * template lambda (FuncExp).
+             * It's actually used in Phobos as an idiom, to branch code for
+             * template functions.
+             */
         }
         t = exp->type;
         if (!t)

@@ -3916,13 +3916,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
             exp = inferType(exp, fld->treq->nextOf()->nextOf());
         exp = exp->semantic(sc);
         exp = resolveProperties(sc, exp);
-        if (exp->type && exp->type->ty != Tvoid ||
-            exp->op == TOKfunction || exp->op == TOKtype || exp->op == TOKtemplate)
-        {
-            // don't make error for void expression
-            if (exp->checkValue())
-                exp = new ErrorExp();
-        }
+        if (exp->checkType())
+            exp = new ErrorExp();
         if (checkNonAssignmentArrayOp(exp))
             exp = new ErrorExp();
 

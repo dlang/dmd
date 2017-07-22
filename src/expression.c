@@ -2282,15 +2282,31 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
     return toLvalue(sc, e);
 }
 
+/****************************************
+ * Check that the expression has a valid type.
+ * If not, generates an error "... has no type".
+ * Returns:
+ *      true if the expression is not valid.
+ * Note:
+ *      When this function returns true, `checkValue()` should also return true.
+ */
+bool Expression::checkType()
+{
+    return false;
+}
+
+/****************************************
+ * Check that the expression has a valid value.
+ * If not, generates an error "... has no value".
+ * Returns:
+ *      true if the expression is not valid or has void type.
+ */
 bool Expression::checkValue()
 {
     if (type && type->toBasetype()->ty == Tvoid)
     {
         error("expression %s is void and has no value", toChars());
-#if 0
-        print();
-        halt();
-#endif
+        //print(); halt();
         if (!global.gag)
             type = Type::terror;
         return true;
@@ -4668,6 +4684,12 @@ Expression *TypeExp::semantic(Scope *sc)
     return e;
 }
 
+bool TypeExp::checkType()
+{
+    error("type %s is not an expression", toChars());
+    return true;
+}
+
 bool TypeExp::checkValue()
 {
     error("type %s has no value", toChars());
@@ -4788,6 +4810,33 @@ Lagain:
     return this;
 }
 
+bool ScopeExp::checkType()
+{
+    if (sds->isPackage())
+    {
+        error("%s %s has no type", sds->kind(), sds->toChars());
+        return true;
+    }
+    if (TemplateInstance *ti = sds->isTemplateInstance())
+    {
+        //assert(ti->needsTypeInference(sc));
+        if (ti->tempdecl &&
+            ti->semantictiargsdone &&
+            ti->semanticRun == PASSinit)
+        {
+            error("partial %s %s has no type", sds->kind(), toChars());
+            return true;
+        }
+    }
+    return false;
+}
+
+bool ScopeExp::checkValue()
+{
+    error("%s %s has no value", sds->kind(), sds->toChars());
+    return true;
+}
+
 /********************** TemplateExp **************************************/
 
 // Mainly just a placeholder
@@ -4800,9 +4849,15 @@ TemplateExp::TemplateExp(Loc loc, TemplateDeclaration *td, FuncDeclaration *fd)
     this->fd = fd;
 }
 
+bool TemplateExp::checkType()
+{
+    error("%s %s has no type", td->kind(), toChars());
+    return true;
+}
+
 bool TemplateExp::checkValue()
 {
-    error("template %s has no value", toChars());
+    error("%s %s has no value", td->kind(), toChars());
     return true;
 }
 
@@ -6005,6 +6060,16 @@ Expression *FuncExp::semantic(Scope *sc, Expressions *arguments)
 const char *FuncExp::toChars()
 {
     return fd->toChars();
+}
+
+bool FuncExp::checkType()
+{
+    if (td)
+    {
+        error("template lambda has no type");
+        return true;
+    }
+    return false;
 }
 
 bool FuncExp::checkValue()
@@ -9764,11 +9829,24 @@ Expression *CastExp::semantic(Scope *sc)
     if (type)
         return this;
 
+    if (to)
+    {
+        to = to->semantic(loc, sc);
+        if (to == Type::terror)
+            return new ErrorExp();
+
+        // When e1 is a template lambda, this cast may instantiate it with
+        // the type 'to'.
+        e1 = inferType(e1, to);
+    }
+
     if (Expression *ex = unaSemantic(sc))
         return ex;
     Expression *e1x = resolveProperties(sc, e1);
     if (e1x->op == TOKerror)
         return e1x;
+    if (e1x->checkType())
+        return new ErrorExp();
     e1 = e1x;
 
     if (!e1->type)
@@ -9778,10 +9856,13 @@ Expression *CastExp::semantic(Scope *sc)
     }
 
     if (!to)    // Handle cast(const) and cast(immutable), etc.
+    {
         to = e1->type->castMod(mod);
-    to = to->semantic(loc, sc);
-    if (to == Type::terror)
-        return new ErrorExp();
+        to = to->semantic(loc, sc);
+        if (to == Type::terror)
+            return new ErrorExp();
+    }
+
     if (to->ty == Ttuple)
     {
         error("cannot cast %s to tuple type %s", e1->toChars(), to->toChars());
