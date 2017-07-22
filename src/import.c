@@ -218,7 +218,7 @@ void Import::importAll(Scope *sc)
 
 void Import::semantic(Scope *sc)
 {
-    //printf("Import::semantic('%s')\n", toPrettyChars());
+    //printf("Import::semantic('%s') %s\n", toPrettyChars(), id->toChars());
 
     if (_scope)
     {
@@ -298,7 +298,7 @@ void Import::semantic(Scope *sc)
         for (size_t i = 0; i < aliasdecls.dim; i++)
         {
             AliasDeclaration *ad = aliasdecls[i];
-            //printf("\tImport alias semantic('%s')\n", ad->toChars());
+            //printf("\tImport %s alias %s = %s, scope = %p\n", toPrettyChars(), aliases[i]->toChars(), names[i]->toChars(), ad->_scope);
             if (mod->search(loc, names[i]))
             {
                 ad->semantic(sc);
@@ -429,6 +429,7 @@ Dsymbol *Import::toAlias()
 
 void Import::addMember(Scope *sc, ScopeDsymbol *sd)
 {
+    //printf("Import::addMember(this=%s, sd=%s, sc=%p)\n", toChars(), sd->toChars(), sc);
     if (names.dim == 0)
         return Dsymbol::addMember(sc, sd);
 
@@ -452,6 +453,28 @@ void Import::addMember(Scope *sc, ScopeDsymbol *sd)
         ad->addMember(sc, sd);
 
         aliasdecls.push(ad);
+    }
+}
+
+void Import::setScope(Scope *sc)
+{
+    Dsymbol::setScope(sc);
+    if (aliasdecls.dim)
+    {
+        if (!mod)
+            importAll(sc);
+
+        sc = sc->push(mod);
+        /* BUG: Protection checks can't be enabled yet. The issue is
+         * that Dsymbol::search errors before overload resolution.
+         */
+        sc->protection = Prot(PROTpublic);
+        for (size_t i = 0; i < aliasdecls.dim; i++)
+        {
+            AliasDeclaration *ad = aliasdecls[i];
+            ad->setScope(sc);
+        }
+        sc = sc->pop();
     }
 }
 

@@ -5728,6 +5728,7 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
     this->argsym = NULL;
     this->aliasdecl = NULL;
     this->semantictiargsdone = false;
+    this->inuse = 0;
     this->nest = 0;
     this->havetempdecl = false;
     this->enclosing = NULL;
@@ -5759,6 +5760,7 @@ TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *ti
     this->argsym = NULL;
     this->aliasdecl = NULL;
     this->semantictiargsdone = true;
+    this->inuse = 0;
     this->nest = 0;
     this->havetempdecl = true;
     this->enclosing = NULL;
