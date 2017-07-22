@@ -288,7 +288,6 @@ void ClassDeclaration::semantic(Scope *sc)
 
     if (semanticRun >= PASSsemanticdone)
         return;
-    unsigned dprogress_save = Module::dprogress;
     int errors = global.errors;
 
     //printf("+ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
@@ -686,10 +685,6 @@ Lancestorsdone:
             makeNested();
     }
 
-    // it might be determined already, by AggregateDeclaration::size().
-    if (sizeok != SIZEOKdone)
-        sizeok = SIZEOKnone;
-
     Scope *sc2 = newScope(sc);
 
     for (size_t i = 0; i < members->dim; i++)
@@ -704,43 +699,17 @@ Lancestorsdone:
         Dsymbol *s = (*members)[i];
         s->semantic(sc2);
     }
-    finalizeSize();
 
-    if (sizeok == SIZEOKfwd)
+    if (!determineFields())
     {
-        // semantic() failed due to forward references
-        // Unwind what we did, and defer it for later
-        for (size_t i = 0; i < fields.dim; i++)
-        {
-            VarDeclaration *v = fields[i];
-            v->offset = 0;
-        }
-        fields.setDim(0);
-        structsize = 0;
-        alignsize = 0;
-
+        assert(type == Type::terror);
         sc2->pop();
-
-        _scope = scx ? scx : sc->copy();
-        _scope->setNoFree();
-        _scope->module->addDeferredSemantic(this);
-
-        Module::dprogress = dprogress_save;
-        //printf("\tsemantic('%s') failed due to forward references\n", toChars());
         return;
     }
 
-    Module::dprogress++;
-    semanticRun = PASSsemanticdone;
-
-    //printf("-ClassDeclaration::semantic(%s), type = %p\n", toChars(), type);
-    //members->print();
-
-#if 0   // FIXME
-LafterSizeok:
-    // The additions of special member functions should have its own
-    // sub-semantic analysis pass, and have to be deferred sometimes.
-    // See the case in compilable/test14838.d
+    /* Following special member functions creation needs semantic analysis
+     * completion of sub-structs in each field types.
+     */
     for (size_t i = 0; i < fields.dim; i++)
     {
         VarDeclaration *v = fields[i];
@@ -756,11 +725,9 @@ LafterSizeok:
         _scope = scx ? scx : sc->copy();
         _scope->setNoFree();
         _scope->module->addDeferredSemantic(this);
-
         //printf("\tdeferring %s\n", toChars());
         return;
     }
-#endif
 
     /* Look for special member functions.
      * They must be in this class, not in a base class.
@@ -770,7 +737,8 @@ LafterSizeok:
     aggNew    =    (NewDeclaration *)search(Loc(), Id::classNew);
     aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete);
 
-    // this->ctor is already set
+    // Look for the constructor
+    ctor = searchCtor();
 
     if (!ctor && noDefaultCtor)
     {
@@ -822,6 +790,11 @@ LafterSizeok:
 
     inv = buildInv(this, sc2);
 
+    Module::dprogress++;
+    semanticRun = PASSsemanticdone;
+    //printf("-ClassDeclaration.semantic(%s), type = %p\n", toChars(), type);
+    //members.print();
+
     sc2->pop();
 
     if (global.errors != errors)
@@ -831,6 +804,21 @@ LafterSizeok:
         this->errors = true;
         if (deferred)
             deferred->errors = true;
+    }
+
+    // Verify fields of a synchronized class are not public
+    if (storage_class & STCsynchronized)
+    {
+        for (size_t i = 0; i < fields.dim; i++)
+        {
+            VarDeclaration *vd = fields[i];
+            if (!vd->isThisDeclaration() &&
+                !vd->prot().isMoreRestrictiveThan(Prot(PROTpublic)))
+            {
+                vd->error("Field members of a synchronized class cannot be %s",
+                    protectionToChars(vd->prot().kind));
+            }
+        }
     }
 
     if (deferred && !global.gag)
@@ -1011,6 +999,10 @@ static unsigned membersPlace(BaseClasses *vtblInterfaces, size_t &bi, ClassDecla
     for (size_t i = 0; i < cd->interfaces.length; i++)
     {
         BaseClass *b = cd->interfaces.ptr[i];
+        if (b->sym->sizeok != SIZEOKdone)
+            b->sym->finalizeSize();
+        assert(b->sym->sizeok == SIZEOKdone);
+
         if (!b->sym->alignsize)
             b->sym->alignsize = Target::ptrsize;
         cd->alignmember(b->sym->alignsize, b->sym->alignsize, &offset);
@@ -1040,8 +1032,7 @@ static unsigned membersPlace(BaseClasses *vtblInterfaces, size_t &bi, ClassDecla
 
 void ClassDeclaration::finalizeSize()
 {
-    if (sizeok != SIZEOKnone)
-        return;
+    assert(sizeok != SIZEOKdone);
 
     // Set the offsets of the fields and determine the size of the class
     if (baseClass)
@@ -1069,7 +1060,7 @@ void ClassDeclaration::finalizeSize()
             structsize += Target::ptrsize; // allow room for __monitor
     }
 
-    //printf("finalizeSize() %s\n", toChars());
+    //printf("finalizeSize() %s, sizeok = %d\n", toChars(), sizeok);
     size_t bi = 0;                  // index into vtblInterfaces[]
 
     // Add vptr's for any interfaces implemented by this class
@@ -1081,43 +1072,21 @@ void ClassDeclaration::finalizeSize()
         return;
     }
 
+    // FIXME: Currently setFieldOffset functions need to increase fields
+    // to calculate each variable offsets. It can be improved later.
+    fields.setDim(0);
+
     unsigned offset = structsize;
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
         s->setFieldOffset(this, &offset, false);
     }
-    if (sizeok == SIZEOKfwd)
-        return;
 
     sizeok = SIZEOKdone;
 
     // Calculate fields[i]->overlapped
     checkOverlappedFields();
-
-    // Look for the constructor
-    ctor = searchCtor();
-    if (ctor && ctor->toParent() != this)
-        ctor = NULL;    // search() looks through ancestor classes
-    if (ctor)
-    {
-        // Finish all constructors semantics to determine this->noDefaultCtor.
-        struct SearchCtor
-        {
-            static int fp(Dsymbol *s, void *ctxt)
-            {
-                CtorDeclaration *f = s->isCtorDeclaration();
-                if (f && f->semanticRun == PASSinit)
-                    f->semantic(NULL);
-                return 0;
-            }
-        };
-        for (size_t i = 0; i < members->dim; i++)
-        {
-            Dsymbol *s = (*members)[i];
-            s->apply(&SearchCtor::fp, NULL);
-        }
-    }
 }
 
 /**********************************************************
@@ -1420,6 +1389,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
         return;
     int errors = global.errors;
 
+    //printf("+InterfaceDeclaration.semantic(%s), type = %p\n", toChars(), type);
+
     Scope *scx = NULL;
     if (_scope)
     {
@@ -1696,19 +1667,18 @@ Lancestorsdone:
         s->semantic(sc2);
     }
 
-    finalizeSize();
-
+    Module::dprogress++;
     semanticRun = PASSsemanticdone;
+    //printf("-InterfaceDeclaration.semantic(%s), type = %p\n", toChars(), type);
+    //members->print();
+
+    sc2->pop();
 
     if (global.errors != errors)
     {
         // The type is no good.
         type = Type::terror;
     }
-
-    //members->print();
-    sc2->pop();
-    //printf("-InterfaceDeclaration::semantic(%s), type = %p\n", toChars(), type);
 
 #if 0
     if (type->ty == Tclass && ((TypeClass *)type)->sym != this)

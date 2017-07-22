@@ -8278,23 +8278,10 @@ void TemplateMixin::semantic(Scope *sc)
     {
         if (semanticRun == PASSinit)    // forward reference had occured
         {
-            /* Cannot handle forward references if mixin is a struct member,
-             * because addField must happen during struct's semantic, not
-             * during the mixin semantic.
-             * runDeferred will re-run mixin's semantic outside of the struct's
-             * semantic.
-             */
-            AggregateDeclaration *ad = toParent()->isAggregateDeclaration();
-            if (ad)
-                ad->sizeok = SIZEOKfwd;
-            else
-            {
-                // Forward reference
-                //printf("forward reference - deferring\n");
-                _scope = scx ? scx : sc->copy();
-                _scope->setNoFree();
-                _scope->module->addDeferredSemantic(this);
-            }
+            //printf("forward reference - deferring\n");
+            _scope = scx ? scx : sc->copy();
+            _scope->setNoFree();
+            _scope->module->addDeferredSemantic(this);
             return;
         }
 

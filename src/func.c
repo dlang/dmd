@@ -401,8 +401,6 @@ void FuncDeclaration::semantic(Scope *sc)
     parent = sc->parent;
     Dsymbol *parent = toParent();
 
-    unsigned dprogress_save = Module::dprogress;
-
     foverrides.setDim(0);       // reset in case semantic() is being retried for this function
 
     storage_class |= sc->stc & ~STCref;
@@ -863,9 +861,8 @@ void FuncDeclaration::semantic(Scope *sc)
                 }
                 break;
 
-            case -2:    // can't determine because of fwd refs
-                cd->sizeok = SIZEOKfwd; // can't finish due to forward reference
-                Module::dprogress = dprogress_save;
+            case -2:
+                // can't determine because of forward references
                 return;
 
             default:
@@ -964,8 +961,7 @@ void FuncDeclaration::semantic(Scope *sc)
                     break;
 
                 case -2:
-                    cd->sizeok = SIZEOKfwd;     // can't finish due to forward reference
-                    Module::dprogress = dprogress_save;
+                    // can't determine because of forward references
                     return;
 
                 default:
@@ -990,20 +986,8 @@ void FuncDeclaration::semantic(Scope *sc)
                         /* Only need to have a tintro if the vptr
                          * offsets differ
                          */
-                        unsigned errors = global.errors;
-                        global.gag++;            // suppress printing of error messages
                         int offset;
-                        int baseOf = fdv->type->nextOf()->isBaseOf(type->nextOf(), &offset);
-                        global.gag--;            // suppress printing of error messages
-                        if (errors != global.errors)
-                        {
-                            // any error in isBaseOf() is a forward reference error, so we bail out
-                            global.errors = errors;
-                            cd->sizeok = SIZEOKfwd;    // can't finish due to forward reference
-                            Module::dprogress = dprogress_save;
-                            return;
-                        }
-                        if (baseOf)
+                        if (fdv->type->nextOf()->isBaseOf(type->nextOf(), &offset))
                         {
                             ti = fdv->type;
                         }
@@ -1678,6 +1662,8 @@ void FuncDeclaration::semantic3(Scope *sc)
                     for (size_t i = 0; i < ad2->fields.dim; i++)
                     {
                         VarDeclaration *v = ad2->fields[i];
+                        if (v->isThisDeclaration())
+                            continue;
                         if (v->ctorinit == 0)
                         {
                             /* Current bugs in the flow analysis:

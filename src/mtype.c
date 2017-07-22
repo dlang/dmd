@@ -2168,6 +2168,10 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
         {
             if (v->isField())
             {
+                AggregateDeclaration *ad = v->toParent()->isAggregateDeclaration();
+                ad->size(e->loc);
+                if (ad->sizeok != SIZEOKdone)
+                    return new ErrorExp();
                 e = new IntegerExp(e->loc, v->offset, Type::tsize_t);
                 return e;
             }
@@ -7883,7 +7887,7 @@ L1:
 structalign_t TypeStruct::alignment()
 {
     if (sym->alignment == 0)
-        sym->size(Loc());
+        sym->size(sym->loc);
     return sym->alignment;
 }
 

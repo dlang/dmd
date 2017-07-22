@@ -1674,6 +1674,8 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
         return;
     assert(!(storage_class & (STCstatic | STCextern | STCparameter | STCtls)));
 
+    //printf("+VarDeclaration::setFieldOffset(ad = %s) %s\n", ad->toChars(), toChars());
+
     /* Fields that are tuples appear both as part of TupleDeclarations and
      * as members. That means ignore them if they are already a field.
      */
@@ -1700,31 +1702,17 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
         // References are the size of a pointer
         t = Type::tvoidptr;
     }
-    if (t->ty == Tstruct || t->ty == Tsarray)
+    Type *tv = t->baseElemOf();
+    if (tv->ty == Tstruct)
     {
-        Type *tv = t->baseElemOf();
-        if (tv->ty == Tstruct)
+        TypeStruct *ts = (TypeStruct *)tv;
+        assert(ts->sym != ad);   // already checked in ad->determineFields()
+        if (!ts->sym->determineSize(loc))
         {
-            TypeStruct *ts = (TypeStruct *)tv;
-            if (ts->sym == ad)
-            {
-                const char *s = (t->ty == Tsarray) ? "static array of " : "";
-                ad->error("cannot have field %s with %ssame struct type", toChars(), s);
-                return;
-            }
-            if (ts->sym->sizeok != SIZEOKdone && ts->sym->_scope)
-                ts->sym->semantic(NULL);
-            if (ts->sym->sizeok != SIZEOKdone)
-            {
-                ad->sizeok = SIZEOKfwd;         // cannot finish; flag as forward referenced
-                return;
-            }
+            type = Type::terror;
+            errors = true;
+            return;
         }
-    }
-    if (t->ty == Tident)
-    {
-        ad->sizeok = SIZEOKfwd;             // cannot finish; flag as forward referenced
-        return;
     }
 
     // List in ad->fields. Even if the type is error, it's necessary to avoid

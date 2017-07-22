@@ -846,10 +846,9 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             e->error("first argument is not a class");
             goto Lfalse;
         }
-        if (cd->sizeok == SIZEOKnone)
+        if (cd->sizeok != SIZEOKdone)
         {
-            if (cd->_scope)
-                cd->semantic(cd->_scope);
+            cd->size(cd->loc);
         }
         if (cd->sizeok != SIZEOKdone)
         {

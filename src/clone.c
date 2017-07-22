@@ -795,7 +795,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->baseElemOf();
-        if (tv->ty != Tstruct || !v->type->size())
+        if (tv->ty != Tstruct)
             continue;
         StructDeclaration *sdv = ((TypeStruct *)tv)->sym;
         if (!sdv->postblit)
@@ -812,11 +812,14 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
         if (!a)
             a = new Statements();
 
-        Expression *ex = new ThisExp(loc);
-        ex = new DotVarExp(loc, ex, v);
-        if (v->type->toBasetype()->ty == Tstruct)
+        Expression *ex = NULL;
+        tv = v->type->toBasetype();
+        if (tv->ty == Tstruct)
         {
             // this.v.__xpostblit()
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, v);
 
             // This is a hack so we can call postblits on const/immutable objects.
             ex = new AddrExp(loc, ex);
@@ -832,13 +835,24 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
         {
             // _ArrayPostblit((cast(S*)this.v.ptr)[0 .. n])
 
+            uinteger_t n = 1;
+            while (tv->ty == Tsarray)
+            {
+                n *= ((TypeSArray *)tv)->dim->toUInteger();
+                tv = tv->nextOf()->toBasetype();
+            }
+            if (n == 0)
+                continue;
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, v);
+
             // This is a hack so we can call postblits on const/immutable objects.
             ex = new DotIdExp(loc, ex, Id::ptr);
             ex = new CastExp(loc, ex, sdv->type->pointerTo());
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
 
-            uinteger_t n = v->type->size() / sdv->type->size();
             ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type::tsize_t),
                                        new IntegerExp(loc, n, Type::tsize_t));
             // Prevent redundant bounds check
@@ -856,11 +870,13 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
             continue;
         sdv->dtor->functionSemantic();
 
-        ex = new ThisExp(loc);
-        ex = new DotVarExp(loc, ex, v);
+        tv = v->type->toBasetype();
         if (v->type->toBasetype()->ty == Tstruct)
         {
             // this.v.__xdtor()
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, v);
 
             // This is a hack so we can call destructors on const/immutable objects.
             ex = new AddrExp(loc, ex);
@@ -876,13 +892,24 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
         {
             // _ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
 
+            uinteger_t n = 1;
+            while (tv->ty == Tsarray)
+            {
+                n *= ((TypeSArray *)tv)->dim->toUInteger();
+                tv = tv->nextOf()->toBasetype();
+            }
+            //if (n == 0)
+            //    continue;
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, v);
+
             // This is a hack so we can call destructors on const/immutable objects.
             ex = new DotIdExp(loc, ex, Id::ptr);
             ex = new CastExp(loc, ex, sdv->type->pointerTo());
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
 
-            uinteger_t n = v->type->size() / sdv->type->size();
             ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type::tsize_t),
                                        new IntegerExp(loc, n, Type::tsize_t));
             // Prevent redundant bounds check
@@ -975,7 +1002,7 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->baseElemOf();
-        if (tv->ty != Tstruct || !v->type->size())
+        if (tv->ty != Tstruct)
             continue;
         StructDeclaration *sdv = ((TypeStruct *)tv)->sym;
         if (!sdv->dtor)
@@ -989,11 +1016,14 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
             break;
         }
 
-        Expression *ex = new ThisExp(loc);
-        ex = new DotVarExp(loc, ex, v);
-        if (v->type->toBasetype()->ty == Tstruct)
+        Expression *ex = NULL;
+        tv = v->type->toBasetype();
+        if (tv->ty == Tstruct)
         {
             // this.v.__xdtor()
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, v);
 
             // This is a hack so we can call destructors on const/immutable objects.
             ex = new AddrExp(loc, ex);
@@ -1009,13 +1039,24 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
         {
             // _ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
 
+            uinteger_t n = 1;
+            while (tv->ty == Tsarray)
+            {
+                n *= ((TypeSArray *)tv)->dim->toUInteger();
+                tv = tv->nextOf()->toBasetype();
+            }
+            if (n == 0)
+                continue;
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, v);
+
             // This is a hack so we can call destructors on const/immutable objects.
             ex = new DotIdExp(loc, ex, Id::ptr);
             ex = new CastExp(loc, ex, sdv->type->pointerTo());
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
 
-            uinteger_t n = v->type->size() / sdv->type->size();
             ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type::tsize_t),
                                        new IntegerExp(loc, n, Type::tsize_t));
             // Prevent redundant bounds check
