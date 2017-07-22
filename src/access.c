@@ -341,6 +341,25 @@ bool hasPackageAccess(Module *mod, Dsymbol *s)
     return false;
 }
 
+/****************************************
+ * Determine if scope sc has protected level access to cd.
+ */
+bool hasProtectedAccess(Scope *sc, Dsymbol *s)
+{
+    if (ClassDeclaration *cd = s->isClassMember()) // also includes interfaces
+    {
+        for (Scope *scx = sc; scx; scx = scx->enclosing)
+        {
+            if (!scx->scopesym)
+                continue;
+            ClassDeclaration *cd2 = scx->scopesym->isClassDeclaration();
+            if (cd2 && cd->isBaseOf(cd2, NULL))
+                return true;
+        }
+    }
+    return sc->module == s->getAccessModule();
+}
+
 /**********************************
  * Determine if smember has access to private members of this declaration.
  */
@@ -493,7 +512,6 @@ bool checkAccess(Loc loc, Scope *sc, Package *p)
  */
 bool symbolIsVisible(Module *mod, Dsymbol *s)
 {
-    /// Count function overloads.
     struct OverloadVisible
     {
         static int fp(void *param, Dsymbol *s2)
@@ -539,4 +557,54 @@ bool symbolIsVisible(Module *mod, Dsymbol *s)
 bool symbolIsVisible(Dsymbol *origin, Dsymbol *s)
 {
     return symbolIsVisible(origin->getAccessModule(), s);
+}
+
+/**
+ * Same as above but also checks for protected symbols visible from scope `sc`.
+ * Used for qualified name lookup.
+ *
+ * Params:
+ *  sc = lookup scope
+ *  s = symbol to check for visibility
+ * Returns: true if s is visible by origin
+ */
+bool symbolIsVisible(Scope *sc, Dsymbol *s)
+{
+    struct OverloadVisible
+    {
+        static int fp(void *param, Dsymbol *s2)
+        {
+            Dsymbol **s = (Dsymbol **)param;
+            if ((*s)->prot().isMoreRestrictiveThan(s2->prot()))
+                *s = s2;
+            return 0;
+        }
+    };
+
+    // should sort overloads by ascending protection instead of iterating here
+    if (s->isOverloadable())
+    {
+        // Use the least protected overload to determine visibility
+        // and perform an access check after overload resolution.
+        overloadApply(s, &s, &OverloadVisible::fp);
+    }
+
+    switch (s->prot().kind)
+    {
+        case PROTundefined:
+            return true;
+        case PROTnone:
+            return false; // no access
+        case PROTprivate:
+            return sc->module == s->getAccessModule();
+        case PROTpackage:
+            return hasPackageAccess(sc->module, s);
+        case PROTprotected:
+            return hasProtectedAccess(sc, s);
+        case PROTpublic:
+        case PROTexport:
+            return true;
+        default:
+            assert(0);
+    }
 }
