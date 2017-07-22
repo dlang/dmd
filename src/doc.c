@@ -2184,8 +2184,7 @@ bool isReservedName(utf8_t *str, size_t len)
         "__returnLabel", "__vptr", "__monitor", "__gate", "__xopEquals", "__xopCmp",
         "__LINE__", "__FILE__", "__MODULE__", "__FUNCTION__", "__PRETTY_FUNCTION__",
         "__DATE__", "__TIME__", "__TIMESTAMP__", "__VENDOR__", "__VERSION__",
-        "__EOF__", "__LOCAL_SIZE", "___tls_get_addr", "__entrypoint", "__va_argsave_t",
-        "__va_argsave", NULL };
+        "__EOF__", "__LOCAL_SIZE", "___tls_get_addr", "__entrypoint", NULL };
 
     for (int i = 0; table[i]; i++)
     {
