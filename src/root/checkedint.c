@@ -229,8 +229,7 @@ int64_t subs(int64_t x, int64_t y, bool& overflow)
 {
     int64_t r = (uint64_t)x - (uint64_t)y;
     if (x <  0 && y >= 0 && r >= 0 ||
-        x >= 0 && y <  0 && r <  0 ||
-        y == INT64_MIN)
+        x >= 0 && y <  0 && (r <  0 || y == INT64_MIN))
         overflow = true;
     return r;
 }
@@ -244,6 +243,8 @@ void unittest6()
     assert(subs((int64_t)1, -INT64_MAX + (int64_t)1, overflow) == INT64_MAX);
     assert(!overflow);
     assert(subs(INT64_MIN + 1, (int64_t)1, overflow) == INT64_MIN);
+    assert(!overflow);
+    assert(subs((int64_t)-1, INT64_MIN, overflow) == INT64_MAX);
     assert(!overflow);
     assert(subs(INT64_MAX, (int64_t)-1, overflow) == INT64_MIN);
     assert(overflow);
@@ -432,7 +433,8 @@ void unittest11()
 int64_t muls(int64_t x, int64_t y, bool& overflow)
 {
     int64_t r = (uint64_t)x * (uint64_t)y;
-    if (x && (r / x) != y)
+    int64_t not0or1 = ~(int64_t)1;
+    if ((x & not0or1) && ((r == y) ? r : (r / x) != y))
         overflow = true;
     return r;
 }
@@ -450,6 +452,9 @@ void unittest12()
     assert(muls(INT64_MIN, (int64_t)1, overflow) == INT64_MIN);
     assert(!overflow);
     assert(muls(INT64_MAX, (int64_t)2, overflow) == (INT64_MAX * 2));
+    assert(overflow);
+    overflow = false;
+    assert(muls((int64_t)-1, INT64_MIN, overflow) == INT64_MIN);
     assert(overflow);
     overflow = false;
     assert(muls(INT64_MIN, (int64_t)-1, overflow) == INT64_MIN);
@@ -475,10 +480,10 @@ void unittest12()
 
 unsigned mulu(unsigned x, unsigned y, bool& overflow)
 {
-    unsigned r = x * y;
-    if (r && (r < x || r < y))
+    uint64_t r = (uint64_t)x * (uint64_t)y;
+    if (r > UINT32_MAX)
         overflow = true;
-    return r;
+    return (unsigned)r;
 }
 
 #ifdef DEBUG
@@ -506,7 +511,7 @@ void unittest13()
 uint64_t mulu(uint64_t x, uint64_t y, bool& overflow)
 {
     uint64_t r = x * y;
-    if (r && (r < x || r < y))
+    if (x && (r / x) != y)
         overflow = true;
     return r;
 }

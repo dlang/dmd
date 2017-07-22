@@ -343,11 +343,21 @@ Expression *pointerBitmap(TraitsExp *e)
         error(e->loc, "%s is not a type", (*e->args)[0]->toChars());
         return new ErrorExp();
     }
-    d_uns64 sz = t->size(e->loc);
+    d_uns64 sz;
     if (t->ty == Tclass && !((TypeClass*)t)->sym->isInterfaceDeclaration())
         sz = ((TypeClass*)t)->sym->AggregateDeclaration::size(e->loc);
+    else
+        sz = t->size(e->loc);
+    if (sz == SIZE_INVALID)
+        return new ErrorExp();
 
-    d_uns64 sz_size_t = Type::tsize_t->size(e->loc);
+    const d_uns64 sz_size_t = Type::tsize_t->size(e->loc);
+    if (sz > UINT64_MAX - sz_size_t)
+    {
+        error(e->loc, "size overflow for type %s", t->toChars());
+        return new ErrorExp();
+    }
+
     d_uns64 bitsPerWord = sz_size_t * 8;
     d_uns64 cntptr = (sz + sz_size_t - 1) / sz_size_t;
     d_uns64 cntdata = (cntptr + bitsPerWord - 1) / bitsPerWord;
@@ -359,7 +369,7 @@ Expression *pointerBitmap(TraitsExp *e)
     {
     public:
         PointerBitmapVisitor(Array<d_uns64>* _data, d_uns64 _sz_size_t)
-            : data(_data), offset(0), sz_size_t(_sz_size_t)
+            : data(_data), offset(0), sz_size_t(_sz_size_t), error(false)
         {}
 
         void setpointer(d_uns64 off)
@@ -386,6 +396,8 @@ Expression *pointerBitmap(TraitsExp *e)
         {
             d_uns64 arrayoff = offset;
             d_uns64 nextsize = t->next->size();
+            if (nextsize == SIZE_INVALID)
+                error = true;
             d_uns64 dim = t->dim->toInteger();
             for (d_uns64 i = 0; i < dim; i++)
             {
@@ -451,6 +463,7 @@ Expression *pointerBitmap(TraitsExp *e)
         Array<d_uns64>* data;
         d_uns64 offset;
         d_uns64 sz_size_t;
+        bool error;
     };
 
     PointerBitmapVisitor pbv(&data, sz_size_t);
@@ -458,6 +471,8 @@ Expression *pointerBitmap(TraitsExp *e)
         pbv.visitClass((TypeClass*)t);
     else
         t->accept(&pbv);
+    if (pbv.error)
+        return new ErrorExp();
 
     Expressions* exps = new Expressions;
     exps->push(new IntegerExp(e->loc, sz, Type::tsize_t));

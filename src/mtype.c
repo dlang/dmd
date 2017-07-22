@@ -3914,8 +3914,9 @@ Type *TypeSArray::syntaxCopy()
 }
 
 d_uns64 TypeSArray::size(Loc loc)
-{   dinteger_t sz;
-
+{
+    //printf("TypeSArray::size()\n");
+    dinteger_t sz;
     if (!dim)
         return Type::size(loc);
     sz = dim->toInteger();
@@ -3927,10 +3928,12 @@ d_uns64 TypeSArray::size(Loc loc)
         if (overflow)
             goto Loverflow;
     }
+    if (sz > UINT32_MAX)
+        goto Loverflow;
     return sz;
 
 Loverflow:
-    error(loc, "index %lld overflow for static array", (long long)sz);
+    error(loc, "static array %s size overflowed to %lld", toChars(), (long long)sz);
     return SIZE_INVALID;
 }
 

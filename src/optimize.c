@@ -13,6 +13,7 @@
 #include <assert.h>
 #include <math.h>
 
+#include "checkedint.h"
 #include "lexer.h"
 #include "mtype.h"
 #include "expression.h"
@@ -193,6 +194,11 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         OptimizeVisitor(int result, bool keepLvalue)
             : result(result), keepLvalue(keepLvalue)
         {
+        }
+
+        void error()
+        {
+            ret = new ErrorExp();
         }
 
         bool expOptimize(Expression *&e, int flags, bool keepLvalue = false)
@@ -393,10 +399,18 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                         if (index < 0 || index >= dim)
                         {
                             e->error("array index %lld is out of bounds [0..%lld]", index, dim);
-                            ret = new ErrorExp();
-                            return;
+                            return error();
                         }
-                        ret = new SymOffExp(e->loc, ve->var, index * ts->nextOf()->size());
+
+                        bool overflow = false;
+                        const d_uns64 offset = mulu(index, ts->nextOf()->size(e->loc), overflow);
+                        if (overflow)
+                        {
+                            e->error("array offset overflow");
+                            return error();
+                        }
+
+                        ret = new SymOffExp(e->loc, ve->var, offset);
                         ret->type = e->type;
                         return;
                     }
@@ -559,17 +573,24 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             }
 
             if ((e->e1->op == TOKstring || e->e1->op == TOKarrayliteral) &&
-                (e->type->ty == Tpointer || e->type->ty == Tarray) &&
-                e->e1->type->toBasetype()->nextOf()->size() == e->type->nextOf()->size())
+                (e->type->ty == Tpointer || e->type->ty == Tarray))
             {
-                // Bugzilla 12937: If target type is void array, trying to paint
-                // e->e1 with that type will cause infinite recursive optimization.
-                if (e->type->nextOf()->ty == Tvoid)
-                    return;
+                const d_uns64 esz = e->type->nextOf()->size(e->loc);
+                const d_uns64 e1sz = e->e1->type->toBasetype()->nextOf()->size(e->e1->loc);
+                if (esz == SIZE_INVALID || e1sz == SIZE_INVALID)
+                    return error();
 
-                ret = e->e1->castTo(NULL, e->type);
-                //printf(" returning1 %s\n", ret->toChars());
-                return;
+                if (e1sz == esz)
+                {
+                    // Bugzilla 12937: If target type is void array, trying to paint
+                    // e->e1 with that type will cause infinite recursive optimization.
+                    if (e->type->nextOf()->ty == Tvoid)
+                        return;
+
+                    ret = e->e1->castTo(NULL, e->type);
+                    //printf(" returning1 %s\n", ret->toChars());
+                    return;
+                }
             }
 
             if (e->e1->op == TOKstructliteral &&
@@ -620,10 +641,16 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             {
                 if (e->e1->op == TOKsymoff)
                 {
-                    if (e->type->size() == e->e1->type->size() &&
-                        e->type->toBasetype()->ty != Tsarray)
+                    if (e->type->toBasetype()->ty != Tsarray)
                     {
-                        goto L1;
+                        const d_uns64 esz = e->type->size(e->loc);
+                        const d_uns64 e1sz = e->e1->type->size(e->e1->loc);
+                        if (esz == SIZE_INVALID ||
+                            e1sz == SIZE_INVALID)
+                            return error();
+
+                        if (esz == e1sz)
+                            goto L1;
                     }
                     return;
                 }
@@ -651,12 +678,13 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 if (e->e2->isConst() == 1)
                 {
                     sinteger_t i2 = e->e2->toInteger();
-                    d_uns64 sz = e->e1->type->size() * 8;
+                    d_uns64 sz = e->e1->type->size(e->e1->loc);
+                    assert(sz != SIZE_INVALID);
+                    sz *= 8;
                     if (i2 < 0 || i2 >= sz)
                     {
                         e->error("shift assign by %lld is outside the range 0..%llu", i2, (ulonglong)sz - 1);
-                        ret = new ErrorExp();
-                        return;
+                        return error();
                     }
                 }
             }
@@ -735,12 +763,13 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             if (e->e2->isConst() == 1)
             {
                 sinteger_t i2 = e->e2->toInteger();
-                d_uns64 sz = e->e1->type->size() * 8;
+                d_uns64 sz = e->e1->type->size();
+                assert(sz != SIZE_INVALID);
+                sz *= 8;
                 if (i2 < 0 || i2 >= sz)
                 {
                     e->error("shift by %lld is outside the range 0..%llu", i2, (ulonglong)sz - 1);
-                    ret = new ErrorExp();
-                    return;
+                    return error();
                 }
                 if (e->e1->isConst() == 1)
                     ret = (*shift)(e->type, e->e1, e->e2).copy();
@@ -847,8 +876,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             {
                 e->error("cannot raise %s to a negative integer power. Did you mean (cast(real)%s)^^%s ?",
                       e->e1->type->toBasetype()->toChars(), e->e1->toChars(), e->e2->toChars());
-                ret = new ErrorExp();
-                return;
+                return error();
             }
 
             // If e2 *could* have been an integer, make it one.

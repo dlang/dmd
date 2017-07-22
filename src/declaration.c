@@ -86,10 +86,10 @@ const char *Declaration::kind()
     return "declaration";
 }
 
-unsigned Declaration::size(Loc loc)
+d_uns64 Declaration::size(Loc loc)
 {
     assert(type);
-    return (unsigned)type->size();
+    return type->size();
 }
 
 bool Declaration::isDelete()
@@ -906,6 +906,8 @@ void VarDeclaration::semantic(Scope *sc)
         sc2->pop();
     }
     //printf(" semantic type = %s\n", type ? type->toChars() : "null");
+    if (type->ty == Terror)
+        errors = true;
 
     type->checkDeprecated(loc, sc);
     linkage = sc->linkage;
@@ -1316,13 +1318,17 @@ Lnomatch:
         error("manifest constants must have initializers");
 
     bool isBlit = false;
+    d_uns64 sz = 0;
     if (!_init && !sc->inunion && !(storage_class & (STCstatic | STCgshared | STCextern)) && fd &&
         (!(storage_class & (STCfield | STCin | STCforeach | STCparameter | STCresult))
          || (storage_class & STCout)) &&
-        type->size() != 0)
+        (sz = type->size()) != 0)
     {
         // Provide a default initializer
         //printf("Providing default initializer for '%s'\n", toChars());
+        if (sz == SIZE_INVALID && type->ty != Terror)
+            error("size of type %s is invalid", type->toChars());
+
         if (type->needsNested())
         {
             Type *tv = type;
@@ -1722,7 +1728,9 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
     if (t->ty == Terror)
         return;
 
-    unsigned memsize      = (unsigned)t->size(loc);  // size of member
+    const d_uns64 sz = t->size(loc);
+    assert(sz != SIZE_INVALID && sz < UINT32_MAX);
+    unsigned memsize = (unsigned)sz;                 // size of member
     unsigned memalignsize = Target::fieldalign(t);   // size of member for alignment purposes
 
     offset = AggregateDeclaration::placeField(poffset, memsize, memalignsize, alignment,
@@ -1996,8 +2004,11 @@ bool VarDeclaration::isCTFE()
 
 bool VarDeclaration::isOverlappedWith(VarDeclaration *v)
 {
-  return (offset < v->offset + v->type->size() &&
-          v->offset < offset + type->size());
+    const d_uns64 vsz = v->type->size();
+    const d_uns64 tsz = type->size();
+    assert(vsz != SIZE_INVALID && tsz != SIZE_INVALID);
+    return offset < v->offset + vsz &&
+        v->offset < offset + tsz;
 }
 
 bool VarDeclaration::hasPointers()
@@ -2039,7 +2050,12 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
     if (tv->ty == Tstruct)
     {
         StructDeclaration *sd = ((TypeStruct *)tv)->sym;
-        if (!sd->dtor || !type->size())
+        if (!sd->dtor)
+           return NULL;
+
+        const d_uns64 sz = type->size();
+        assert(sz != SIZE_INVALID);
+        if (!sz)
             return NULL;
 
         if (type->toBasetype()->ty == Tstruct)
@@ -2061,7 +2077,9 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
             // _ArrayDtor(v[0 .. n])
             e = new VarExp(loc, this);
 
-            uinteger_t n = type->size() / sd->type->size();
+            const d_uns64 sdsz = sd->type->size();
+            assert(sdsz != SIZE_INVALID && sdsz != 0);
+            const d_uns64 n = sz / sdsz;
             e = new SliceExp(loc, e, new IntegerExp(loc, 0, Type::tsize_t),
                                      new IntegerExp(loc, n, Type::tsize_t));
             // Prevent redundant bounds check

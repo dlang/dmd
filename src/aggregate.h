@@ -120,12 +120,13 @@ public:
 
     AggregateDeclaration(Loc loc, Identifier *id);
     virtual Scope *newScope(Scope *sc);
+    void setScope(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     bool determineFields();
     bool determineSize(Loc loc);
     virtual void finalizeSize() = 0;
-    unsigned size(Loc loc);
+    d_uns64 size(Loc loc);
     bool checkOverlappedFields();
     bool fill(Loc loc, Expressions *elements, bool ctorinit);
     static void alignmember(structalign_t salign, unsigned size, unsigned *poffset);

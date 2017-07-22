@@ -232,6 +232,16 @@ Scope *AggregateDeclaration::newScope(Scope *sc)
     return sc2;
 }
 
+void AggregateDeclaration::setScope(Scope *sc)
+{
+    // Might need a scope to resolve forward references. The check for
+    // semanticRun prevents unnecessary setting of _scope during deferred
+    // setScope phases for aggregates which already finished semantic().
+    // Also see https://issues.dlang.org/show_bug.cgi?id=16607
+    if (semanticRun < PASSsemanticdone)
+        ScopeDsymbol::setScope(sc);
+}
+
 void AggregateDeclaration::semantic2(Scope *sc)
 {
     //printf("AggregateDeclaration::semantic2(%s) type = %s, errors = %d\n", toChars(), type->toChars(), errors);
@@ -504,12 +514,12 @@ void StructDeclaration::semanticTypeInfoMembers()
     }
 }
 
-unsigned AggregateDeclaration::size(Loc loc)
+d_uns64 AggregateDeclaration::size(Loc loc)
 {
     //printf("+AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
-    determineSize(loc);
+    bool ok = determineSize(loc);
     //printf("-AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
-    return structsize;
+    return ok ? structsize : SIZE_INVALID;
 }
 
 Type *AggregateDeclaration::getType()

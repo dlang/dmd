@@ -1302,8 +1302,11 @@ public:
 
                         Expressions *exps = new Expressions();
                         exps->push(fs->aggr);
-                        size_t keysize = (size_t)taa->index->size();
-                        keysize = (keysize + ((size_t)Target::ptrsize-1)) & ~((size_t)Target::ptrsize-1);
+                        d_uns64 keysize = taa->index->size();
+                        if (keysize == SIZE_INVALID)
+                            goto Lerror2;
+                        assert(keysize < UINT64_MAX - Target::ptrsize);
+                        keysize = (keysize + (Target::ptrsize- 1)) & ~(Target::ptrsize - 1);
                         // paint delegate argument to the type runtime expects
                         if (!fldeTy[i]->equals(flde->type))
                         {

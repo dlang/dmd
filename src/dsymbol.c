@@ -580,10 +580,10 @@ bool Dsymbol::overloadInsert(Dsymbol *s)
     return false;
 }
 
-unsigned Dsymbol::size(Loc loc)
+d_uns64 Dsymbol::size(Loc loc)
 {
     error("Dsymbol '%s' has no size", toChars());
-    return 0;
+    return SIZE_INVALID;
 }
 
 bool Dsymbol::isforwardRef()

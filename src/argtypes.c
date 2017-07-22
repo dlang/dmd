@@ -215,8 +215,9 @@ TypeTuple *toArgTypes(Type *t)
             if (!t2)
                 return t1;
 
-            unsigned sz1 = (unsigned)t1->size(Loc());
-            unsigned sz2 = (unsigned)t2->size(Loc());
+            const d_uns64 sz1 = t1->size(Loc());
+            const d_uns64 sz2 = t2->size(Loc());
+            assert(sz1 != SIZE_INVALID && sz2 != SIZE_INVALID);
 
             if (t1->ty != t2->ty &&
                 (t1->ty == Tfloat80 || t2->ty == Tfloat80))
@@ -244,6 +245,7 @@ TypeTuple *toArgTypes(Type *t)
                 t = t1;
 
             // If t2 does not lie within t1, need to increase the size of t to enclose both
+            assert(sz2 < UINT64_MAX - UINT32_MAX);
             if (offset2 && sz1 < offset2 + sz2)
             {
                 switch (offset2 + sz2)
@@ -318,7 +320,7 @@ TypeTuple *toArgTypes(Type *t)
             }
             Type *t1 = NULL;
             Type *t2 = NULL;
-            d_uns64 sz = t->size(Loc());
+            const d_uns64 sz = t->size(Loc());
             assert(sz < 0xFFFFFFFF);
             switch ((unsigned)sz)
             {
@@ -398,7 +400,8 @@ TypeTuple *toArgTypes(Type *t)
                             goto Lmemory;
 
                         // Fields that overlap the 8byte boundary goto Lmemory
-                        d_uns64 fieldsz = f->type->size(Loc());
+                        const d_uns64 fieldsz = f->type->size(Loc());
+                        assert(fieldsz != SIZE_INVALID && fieldsz < UINT64_MAX - UINT32_MAX);
                         if (f->offset < 8 && (f->offset + fieldsz) > 8)
                             goto Lmemory;
                     }

@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include "checkedint.h"
 #include "mars.h"
 #include "init.h"
 #include "expression.h"
@@ -406,7 +407,7 @@ Lno:
 
 Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
 {
-    size_t length;
+    unsigned length;
     const unsigned amax = 0x80000000;
     bool errors = false;
 
@@ -464,7 +465,13 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
             sc = sc->endCTFE();
             idx = idx->ctfeInterpret();
             index[i] = idx;
-            length = (size_t)idx->toInteger();
+            const uinteger_t idxvalue = idx->toInteger();
+            if (idxvalue >= amax)
+            {
+                error(loc, "array index %llu overflow", idxvalue);
+                errors = true;
+            }
+            length = (unsigned)idx->toInteger();
             if (idx->op == TOKerror)
                 errors = true;
         }
@@ -510,22 +517,27 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
     }
     if (t->ty == Tsarray)
     {
-        dinteger_t edim = ((TypeSArray *)t)->dim->toInteger();
+        uinteger_t edim = ((TypeSArray *)t)->dim->toInteger();
         if (dim > edim)
         {
-            error(loc, "array initializer has %u elements, but array length is %lld", dim, edim);
+            error(loc, "array initializer has %u elements, but array length is %llu", dim, edim);
             goto Lerr;
         }
     }
     if (errors)
         goto Lerr;
-
-    if ((uinteger_t) dim * t->nextOf()->size() >= amax)
+    else
     {
-        error(loc, "array dimension %u exceeds max of %u", (unsigned) dim, (unsigned)(amax / t->nextOf()->size()));
-        goto Lerr;
+        d_uns64 sz = t->nextOf()->size();
+        bool overflow = false;
+        const d_uns64 max = mulu((d_uns64)dim, sz, overflow);
+        if (overflow || max > amax)
+        {
+            error(loc, "array dimension %llu exceeds max of %llu", dim, (amax / sz));
+            goto Lerr;
+        }
+        return this;
     }
-    return this;
 
 Lerr:
     return new ErrorInitializer();
@@ -542,7 +554,8 @@ Expression *ArrayInitializer::toExpression(Type *tx)
     //static int i; if (++i == 2) halt();
 
     Expressions *elements;
-    size_t edim;
+    unsigned edim;
+    const unsigned amax = 0x80000000;
     Type *t = NULL;
     if (type)
     {
@@ -552,38 +565,47 @@ Expression *ArrayInitializer::toExpression(Type *tx)
         t = type->toBasetype();
         switch (t->ty)
         {
-           case Tsarray:
-               edim = (size_t)((TypeSArray *)t)->dim->toInteger();
-               break;
+            case Tvector:
+                t = ((TypeVector *)t)->basetype;
+                /* fall through */
 
-           case Tvector:
-               t = ((TypeVector *)t)->basetype;
-               edim = (size_t)((TypeSArray *)t)->dim->toInteger();
-               break;
+            case Tsarray:
+            {
+                uinteger_t adim = ((TypeSArray *)t)->dim->toInteger();
+                if (adim >= amax)
+                    goto Lno;
+                edim = (unsigned)adim;
+                break;
+            }
 
-           case Tpointer:
-           case Tarray:
-               edim = dim;
-               break;
+            case Tpointer:
+            case Tarray:
+                edim = dim;
+                break;
 
-           default:
-               assert(0);
+            default:
+                assert(0);
         }
     }
     else
     {
-        edim = value.dim;
+        edim = (unsigned)value.dim;
         for (size_t i = 0, j = 0; i < value.dim; i++, j++)
         {
             if (index[i])
             {
                 if (index[i]->op == TOKint64)
-                    j = (size_t)index[i]->toInteger();
+                {
+                    const uinteger_t idxval = index[i]->toInteger();
+                    if (idxval >= amax)
+                        goto Lno;
+                    j = (size_t)idxval;
+                }
                 else
                     goto Lno;
             }
             if (j >= edim)
-                edim = j + 1;
+                edim = (unsigned)(j + 1);
         }
     }
 
