@@ -884,7 +884,7 @@ ScopeDsymbol::ScopeDsymbol()
     members = NULL;
     symtab = NULL;
     endlinnum = 0;
-    imports = NULL;
+    importedScopes = NULL;
     prots = NULL;
 }
 
@@ -893,7 +893,8 @@ ScopeDsymbol::ScopeDsymbol(Identifier *id)
 {
     members = NULL;
     symtab = NULL;
-    imports = NULL;
+    endlinnum = 0;
+    importedScopes = NULL;
     prots = NULL;
 }
 
@@ -918,27 +919,27 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
 
     // Look in symbols declared in this module
     Dsymbol *s1 = symtab ? symtab->lookup(ident) : NULL;
-    //printf("\ts1 = %p, imports = %p, %d\n", s1, imports, imports ? imports->dim : 0);
+    //printf("\ts1 = %p, importedScopes = %p, %d\n", s1, importedScopes, importedScopes ? importedScopes->dim : 0);
     if (s1)
     {
         //printf("\ts = '%s.%s'\n",toChars(),s1->toChars());
         return s1;
     }
 
-    if (imports)
+    if (importedScopes)
     {
         Dsymbol *s = NULL;
         OverloadSet *a = NULL;
         int sflags = flags & (IgnoreErrors | IgnoreAmbiguous); // remember these in recursive searches
 
         // Look in imported modules
-        for (size_t i = 0; i < imports->dim; i++)
+        for (size_t i = 0; i < importedScopes->dim; i++)
         {
             // If private import, don't search it
             if ((flags & IgnorePrivateMembers) && prots[i] == PROTprivate)
                 continue;
 
-            Dsymbol *ss = (*imports)[i];
+            Dsymbol *ss = (*importedScopes)[i];
 
             //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
             /* Don't find private members if ss is a module
@@ -1086,13 +1087,13 @@ void ScopeDsymbol::importScope(Dsymbol *s, Prot protection)
     // No circular or redundant import's
     if (s != this)
     {
-        if (!imports)
-            imports = new Dsymbols();
+        if (!importedScopes)
+            importedScopes = new Dsymbols();
         else
         {
-            for (size_t i = 0; i < imports->dim; i++)
+            for (size_t i = 0; i < importedScopes->dim; i++)
             {
-                Dsymbol *ss = (*imports)[i];
+                Dsymbol *ss = (*importedScopes)[i];
                 if (ss == s)                    // if already imported
                 {
                     if (protection.kind > prots[i])
@@ -1101,9 +1102,9 @@ void ScopeDsymbol::importScope(Dsymbol *s, Prot protection)
                 }
             }
         }
-        imports->push(s);
-        prots = (PROTKIND *)mem.xrealloc(prots, imports->dim * sizeof(prots[0]));
-        prots[imports->dim - 1] = protection.kind;
+        importedScopes->push(s);
+        prots = (PROTKIND *)mem.xrealloc(prots, importedScopes->dim * sizeof(prots[0]));
+        prots[importedScopes->dim - 1] = protection.kind;
     }
 }
 
