@@ -731,9 +731,6 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
             s = sold;
             goto Lsearchdone;
         }
-
-        // Search both ways
-        flags |= SearchCheckImports;
     }
 
     // First look in local scopes
@@ -760,11 +757,7 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
     {
         Dsymbol *snew = s;
         if (sold != snew)
-        {
-            deprecation(loc, "local import search method found %s %s instead of %s %s",
-                sold ? sold->kind() : "nothing", sold ? sold->toPrettyChars() : NULL,
-                snew ? snew->kind() : "nothing", snew ? snew->toPrettyChars() : NULL);
-        }
+	  Scope::deprecation10378(loc, sold, snew);
         if (global.params.bug10378)
             s = sold;
     }

@@ -928,7 +928,11 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
         return NULL;
     }
 
-    Dsymbol *s = ScopeDsymbol::search(loc, ident, (flags & SearchImportsOnly) ? flags : flags | SearchLocalsOnly);
+    Dsymbol *s = ScopeDsymbol::search(loc, ident, flags);
+
+    if (!(flags & (SearchLocalsOnly | SearchImportsOnly)))
+        flags |= SearchLocalsOnly;
+
     if (!s)
     {
         // Search bases classes in depth-first, left to right order
@@ -943,7 +947,7 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
                     error("base %s is forward referenced", b->sym->ident->toChars());
                 else
                 {
-                    s = b->sym->search(loc, ident, flags | SearchLocalsOnly);
+                    s = b->sym->search(loc, ident, flags);
                     if (!s)
                         continue;
                     else if (s == this) // happens if s is nested in this and derives from this

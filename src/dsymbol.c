@@ -961,9 +961,6 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     //printf("%s->ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident->toChars(), flags);
     //if (strcmp(ident->toChars(),"c") == 0) *(char*)0=0;
 
-    if (global.params.bug10378 && !(flags & SearchCheckImports))
-        flags &= ~(SearchImportsOnly | SearchLocalsOnly);
-
     // Look in symbols declared in this module
     if (symtab && !(flags & SearchImportsOnly))
     {
@@ -999,15 +996,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             if (ss->isModule())
             {
                 if (flags & SearchLocalsOnly)
-                {
-                    if (global.params.check10378 && !(flags & SearchCheckImports))
-                    {
-                        Dsymbol *s3 = ss->search(loc, ident, sflags | IgnorePrivateImports);
-                        if (s3)
-                            deprecation("%s %s found in local import", s3->kind(), s3->toPrettyChars());
-                    }
                     continue;
-                }
             }
             else
             {

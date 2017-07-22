@@ -7584,6 +7584,29 @@ Dsymbol *TypeStruct::toDsymbol(Scope *sc)
     return sym;
 }
 
+static Dsymbol *searchSym(Dsymbol *sym, Expression *e, Identifier *ident)
+{
+    int flags = 0;
+    Dsymbol *sold;
+    if (global.params.bug10378 || global.params.check10378)
+    {
+        sold = sym->search(e->loc, ident, flags);
+        if (!global.params.check10378)
+            return sold;
+    }
+
+    Dsymbol *s = sym->search(e->loc, ident, flags | SearchLocalsOnly);
+    if (global.params.check10378)
+    {
+        Dsymbol *snew = s;
+        if (sold != snew)
+            Scope::deprecation10378(e->loc, sold, snew);
+        if (global.params.bug10378)
+            s = sold;
+    }
+    return s;
+}
+
 Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
 {
     Dsymbol *s;
@@ -7660,14 +7683,14 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
         }
     }
 
-    s = sym->search(e->loc, ident);
+    s = searchSym(sym, e, ident);
 L1:
     if (!s)
     {
         if (sym->_scope)                 // it's a fwd ref, maybe we can resolve it
         {
             sym->semantic(NULL);
-            s = sym->search(e->loc, ident);
+            s = searchSym(sym, e, ident);
         }
         if (!s)
             return noMember(sc, e, ident, flag);
@@ -8239,7 +8262,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         return e;
     }
 
-    s = sym->search(e->loc, ident);
+    s = searchSym(sym, e, ident);
 L1:
     if (!s)
     {

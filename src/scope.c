@@ -487,7 +487,6 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flag
             return sold;
 
         // Search both ways
-        flags |= SearchCheckImports;
     }
 
     // First look in local scopes
@@ -531,11 +530,7 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flag
     {
         Dsymbol *snew = s;
         if (sold != snew)
-        {
-            deprecation(loc, "local import search method found %s %s instead of %s %s",
-                        sold ? sold->kind() : "nothing", sold ? sold->toPrettyChars() : NULL,
-                        snew ? snew->kind() : "nothing", snew ? snew->toPrettyChars() : NULL);
-        }
+            deprecation10378(loc, sold, snew);
         if (global.params.bug10378)
             s = sold;
     }
@@ -682,6 +677,23 @@ void *scope_search_fp(void *arg, const char *seed, int* cost)
         }
     }
     return (void*)s;
+}
+
+void Scope::deprecation10378(Loc loc, Dsymbol *sold, Dsymbol *snew)
+{
+    OutBuffer buf;
+    buf.writestring("local import search method found ");
+    if (sold)
+        buf.printf("%s %s", sold->kind(), sold->toPrettyChars());
+    else
+        buf.writestring("nothing");
+    buf.writestring(" instead of ");
+    if (snew)
+        buf.printf("%s %s", snew->kind(), snew->toPrettyChars());
+    else
+        buf.writestring("nothing");
+
+    deprecation(loc, buf.peekString());
 }
 
 Dsymbol *Scope::search_correct(Identifier *ident)
