@@ -828,14 +828,7 @@ unsigned AggregateDeclaration::placeField(
     if (!isunion)
         *nextoffset = ofs;
 
-    if (alignment == STRUCTALIGN_DEFAULT)
-    {
-        if (global.params.is64bit && memalignsize == 16)
-            ;
-        else if (8 < memalignsize)
-            memalignsize = 8;
-    }
-    else
+    if (alignment != STRUCTALIGN_DEFAULT)
     {
         if (memalignsize < alignment)
             memalignsize = alignment;

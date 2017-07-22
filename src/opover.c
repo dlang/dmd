@@ -437,6 +437,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                         t1b->ty == Tarray ||
                         t1b->ty == Taarray ||
                         t1b->ty == Ttuple ||
+                        t1b->ty == Tvector ||
                         ae->e1->op == TOKtype)
                     {
                         // Convert to SliceExp
