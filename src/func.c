@@ -37,6 +37,7 @@ bool checkEscape(Scope *sc, Expression *e, bool gag);
 bool checkEscapeRef(Scope *sc, Expression *e, bool gag);
 
 void genCmain(Scope *sc);
+RET retStyle(TypeFunction *tf);
 
 /* A visitor to walk entire statements and provides ability to replace any sub-statements.
  */
@@ -2318,7 +2319,7 @@ void FuncDeclaration::buildResultVar(Scope *sc, Type *tret)
         vresult->parent = this;
     }
 
-    if (sc && vresult->sem == SemanticStart)
+    if (sc && vresult->semanticRun == PASSinit)
     {
         assert(type->ty == Tfunction);
         TypeFunction *tf = (TypeFunction *)type;

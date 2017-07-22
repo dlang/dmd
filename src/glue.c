@@ -62,6 +62,8 @@ Symbol *toModuleArray(Module *m);
 Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const char *suffix);
 static void genhelpers(Module *m);
 
+RET retStyle(TypeFunction *tf);
+
 elem *eictor;
 symbol *ictorlocalgot;
 symbols sctors;

@@ -67,6 +67,7 @@ Symbol* toSymbol(ClassReferenceExp *cre);
 elem *filelinefunction(IRState *irs, Expression *e);
 void toTraceGC(IRState *irs, elem *e, Loc *loc);
 void genTypeInfo(Type *t, Scope *sc);
+RET retStyle(TypeFunction *tf);
 
 int callSideEffectLevel(FuncDeclaration *f);
 int callSideEffectLevel(Type *t);

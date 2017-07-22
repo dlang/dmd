@@ -48,7 +48,6 @@ typedef struct TYPE type;
 
 void semanticTypeInfo(Scope *sc, Type *t);
 MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL, size_t inferStart = 0);
-Type *reliesOnTident(Type *t, TemplateParameters *tparams = NULL, size_t iStart = 0);
 StorageClass ModToStc(unsigned mod);
 
 enum ENUMTY
@@ -240,7 +239,6 @@ public:
     int covariant(Type *t, StorageClass *pstc = NULL);
     const char *toChars();
     char *toPrettyChars(bool QualifyTypes = false);
-    static char needThisPrefix();
     static void init();
 
     #define SIZE_INVALID (~(d_uns64)0)
@@ -593,8 +591,6 @@ enum PURE
     PUREconst = 3,      // parameters are values or const
     PUREstrong = 4,     // parameters are values or immutable
 };
-
-RET retStyle(TypeFunction *tf);
 
 class TypeFunction : public TypeNext
 {
