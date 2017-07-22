@@ -48,6 +48,7 @@ Dsymbol::Dsymbol()
     this->loc = Loc();
     this->comment = NULL;
     this->_scope = NULL;
+    this->prettystring = NULL;
     this->semanticRun = PASSinit;
     this->errors = false;
     this->depmsg = NULL;
@@ -65,6 +66,7 @@ Dsymbol::Dsymbol(Identifier *ident)
     this->loc = Loc();
     this->comment = NULL;
     this->_scope = NULL;
+    this->prettystring = NULL;
     this->semanticRun = PASSinit;
     this->errors = false;
     this->depmsg = NULL;
@@ -215,33 +217,57 @@ const char *Dsymbol::toPrettyCharsHelper()
 }
 
 const char *Dsymbol::toPrettyChars(bool QualifyTypes)
-{   Dsymbol *p;
-    char *s;
-    char *q;
-    size_t len;
+{
+    if (prettystring && !QualifyTypes)
+        return (char *)prettystring;
 
     //printf("Dsymbol::toPrettyChars() '%s'\n", toChars());
     if (!parent)
-        return toChars();
-
-    len = 0;
-    for (p = this; p; p = p->parent)
-        len += strlen(QualifyTypes ? p->toPrettyCharsHelper() : p->toChars()) + 1;
-
-    s = (char *)mem.xmalloc(len);
-    q = s + len - 1;
-    *q = 0;
-    for (p = this; p; p = p->parent)
     {
-        const char *t = QualifyTypes ? p->toPrettyCharsHelper() : p->toChars();
-        len = strlen(t);
+        const char *s = toChars();
+        if (!QualifyTypes)
+            prettystring = (utf8_t *)s;
+        return s;
+    }
+
+    // Computer number of components
+    size_t complength = 0;
+    for (Dsymbol *p = this; p; p = p->parent)
+        ++complength;
+
+    // Allocate temporary array comp[]
+    const char **comp = (const char **)malloc(complength * sizeof(char**));
+    if (!comp)
+        Mem::error();
+
+    // Fill in comp[] and compute length of final result
+    size_t length = 0;
+    int i = 0;
+    for (Dsymbol *p = this; p; p = p->parent)
+    {
+        const char *s = QualifyTypes ? p->toPrettyCharsHelper() : p->toChars();
+        const size_t len = strlen(s);
+        comp[i] = s;
+        ++i;
+        length += len + 1;
+    }
+
+    char *s = (char *)mem.xmalloc(length);
+    char *q = s + length - 1;
+    *q = 0;
+    for (size_t j = 0; j < complength; j++)
+    {
+        const char *t = comp[j];
+        const size_t len = strlen(t);
         q -= len;
         memcpy(q, t, len);
         if (q == s)
             break;
-        q--;
-        *q = '.';
+        *--q = '.';
     }
+    free(comp);
+    if (!QualifyTypes)
+        prettystring = (utf8_t *)s;
     return s;
 }
 
