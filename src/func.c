@@ -321,6 +321,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     isArrayOp = 0;
     semantic3Errors = false;
     fes = NULL;
+    interfaceVirtual = NULL;
     introducing = 0;
     tintro = NULL;
     /* The type given for "infer the return type" is a TypeFunction with
@@ -804,7 +805,26 @@ void FuncDeclaration::semantic(Scope *sc)
                 }
                 else
                 {
-                    //printf("\tintroducing function\n");
+                    if (global.params.mscoff && cd->cpp)
+                    {
+                        /* if overriding an interface function, then this is not
+                         * introducing and don't put it in the class vtbl[]
+                         */
+                        for (size_t i = 0; i < cd->interfaces_dim; i++)
+                        {
+                            BaseClass* b = cd->interfaces[i];
+                            int v = findVtblIndex((Dsymbols*)&b->sym->vtbl, (int)b->sym->vtbl.dim);
+                            if (v >= 0)
+                            {
+                                //printf("\tinterface function %s\n", toChars());
+                                cd->vtblFinal.push(this);
+                                interfaceVirtual = b;
+                                goto Linterfaces;
+                            }
+                        }
+                    }
+
+                    //printf("\tintroducing function %s\n", toChars());
                     introducing = 1;
                     if (cd->cpp && Target::reverseCppOverloads)
                     {
@@ -927,6 +947,7 @@ void FuncDeclaration::semantic(Scope *sc)
          * If this function is covariant with any members of those interface
          * functions, set the tintro.
          */
+    Linterfaces:
         for (size_t i = 0; i < cd->interfaces_dim; i++)
         {
             BaseClass *b = cd->interfaces[i];

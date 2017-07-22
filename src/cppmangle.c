@@ -1316,7 +1316,7 @@ private:
         if (d->needThis()) // <flags> ::= <virtual/protection flag> <const/volatile flag> <calling convention flag>
         {
             // Pivate methods always non-virtual in D and it should be mangled as non-virtual in C++
-            if (d->isVirtual() && d->vtblIndex != -1)
+            if (d->isVirtual() && (d->vtblIndex != -1 || d.interfaceVirtual))
             {
                 switch (d->protection.kind)
                 {

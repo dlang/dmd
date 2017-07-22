@@ -544,6 +544,7 @@ public:
     // true if errors in semantic3 this function's frame ptr
     bool semantic3Errors;
     ForeachStatement *fes;              // if foreach body, this is the foreach
+    BaseClass* interfaceVirtual;        // if virtual, but only appears in interface vtbl[]
     bool introducing;                   // true if 'introducing' function
     // if !=NULL, then this is the type
     // of the 'introducing' function

@@ -994,6 +994,9 @@ void ClassDeclaration::finalizeSize(Scope *sc)
             structsize = Target::ptrsize * 2;   // allow room for __vptr and __monitor
     }
 
+    // Add vptr's for any interfaces implemented by this class
+    structsize += setBaseInterfaceOffsets(structsize);
+
     unsigned offset = structsize;
     for (size_t i = 0; i < members->dim; i++)
     {
@@ -1003,8 +1006,6 @@ void ClassDeclaration::finalizeSize(Scope *sc)
     if (sizeok == SIZEOKfwd)
         return;
 
-    // Add vptr's for any interfaces implemented by this class
-    structsize += setBaseInterfaceOffsets(structsize);
     sizeok = SIZEOKdone;
 
     // Calculate fields[i]->overlapped
@@ -1849,9 +1850,9 @@ bool BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newin
                 fd->error("linkage doesn't match interface function");
 
             // Check that it is current
-            if (newinstance &&
-                fd->toParent() != cd &&
-                ifd->toParent() == sym)
+            //printf("newinstance = %d fd->toParent() = %s ifd->toParent() = %s\n",
+                //newinstance, fd->toParent()->toChars(), ifd->toParent()->toChars());
+            if (newinstance && fd->toParent() != cd && ifd->toParent() == sym)
                 cd->error("interface function '%s' is not implemented", ifd->toFullSignature());
 
             if (fd->toParent() == cd)
@@ -1859,7 +1860,7 @@ bool BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newin
         }
         else
         {
-            //printf("            not found\n");
+            //printf("            not found %p\n", fd);
             // BUG: should mark this class as abstract?
             if (!cd->isAbstract())
                 cd->error("interface function '%s' is not implemented", ifd->toFullSignature());

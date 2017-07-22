@@ -8409,6 +8409,37 @@ Expression *CallExp::syntaxCopy()
     return new CallExp(loc, e1->syntaxCopy(), arraySyntaxCopy(arguments));
 }
 
+static FuncDeclaration *resolveOverloadSet(Loc loc, Scope *sc,
+    OverloadSet *os, Objects* tiargs, Type *tthis, Expressions *arguments)
+{
+    FuncDeclaration *f = NULL;
+    for (size_t i = 0; i < os->a.dim; i++)
+    {
+        Dsymbol *s = os->a[i];
+        if (tiargs && s->isFuncDeclaration())
+            continue;
+        if (FuncDeclaration *f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, arguments, 1))
+        {
+            if (f2->errors)
+                return NULL;
+            if (f)
+            {
+                /* Error if match in more than one overload set,
+                 * even if one is a 'better' match than the other.
+                 */
+                ScopeDsymbol::multiplyDefined(loc, f, f2);
+            }
+            else
+                f = f2;
+        }
+    }
+    if (!f)
+        ::error(loc, "no overload matches for %s", os->toChars());
+    else if (f->errors)
+        f = NULL;
+    return f;
+}
+
 Expression *CallExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
@@ -8808,7 +8839,20 @@ Lagain:
         f = resolveFuncCall(loc, sc, s, tiargs, ue1 ? ue1->type : NULL, arguments);
         if (!f || f->errors || f->type->ty == Terror)
             return new ErrorExp();
-
+        if (f->interfaceVirtual)
+        {
+            /* Cast 'this' to the type of the interface, and replace f with the interface's equivalent
+             */
+            BaseClass *b = f->interfaceVirtual;
+            ClassDeclaration *ad2 = b->sym;
+            ue->e1 = ue->e1->castTo(sc, ad2->type->addMod(ue->e1->type->mod));
+            ue->e1 = ue->e1->semantic(sc);
+            ue1 = ue->e1;
+            int vi = f->findVtblIndex((Dsymbols*)&ad2->vtbl, (int)ad2->vtbl.dim);
+            assert(vi >= 0);
+            f = ad2->vtbl[vi]->isFuncDeclaration();
+            assert(f);
+        }
         if (f->needThis())
         {
             AggregateDeclaration *ad = f->toParent2()->isAggregateDeclaration();
@@ -8897,10 +8941,8 @@ Lagain:
     else if (e1->op == TOKsuper)
     {
         // Base class constructor call
-        ClassDeclaration *cd = NULL;
-
-        if (sc->func && sc->func->isThis())
-            cd = sc->func->isThis()->isClassDeclaration();
+        AggregateDeclaration *ad = sc->func ? sc->func->isThis() : NULL;
+        ClassDeclaration *cd = ad ? ad->isClassDeclaration() : NULL;
         if (!cd || !cd->baseClass || !sc->func->isCtorDeclaration())
         {
             error("super class constructor call must be in a constructor");
@@ -8924,7 +8966,10 @@ Lagain:
         }
 
         tthis = cd->type->addMod(sc->func->type->mod);
-        f = resolveFuncCall(loc, sc, cd->baseClass->ctor, NULL, tthis, arguments, 0);
+        if (OverloadSet *os = cd->baseClass->ctor->isOverloadSet())
+            f = resolveOverloadSet(loc, sc, os, NULL, tthis, arguments);
+        else
+            f = resolveFuncCall(loc, sc, cd->baseClass->ctor, NULL, tthis, arguments, 0);
         if (!f || f->errors)
             return new ErrorExp();
         checkDeprecated(sc, f);
@@ -8940,11 +8985,8 @@ Lagain:
     else if (e1->op == TOKthis)
     {
         // same class constructor call
-        AggregateDeclaration *cd = NULL;
-
-        if (sc->func && sc->func->isThis())
-            cd = sc->func->isThis()->isAggregateDeclaration();
-        if (!cd || !sc->func->isCtorDeclaration())
+        AggregateDeclaration *ad = sc->func ? sc->func->isThis() : NULL;
+        if (!ad || !sc->func->isCtorDeclaration())
         {
             error("constructor call must be in a constructor");
             return new ErrorExp();
@@ -8961,8 +9003,11 @@ Lagain:
             sc->callSuper |= CSXany_ctor | CSXthis_ctor;
         }
 
-        tthis = cd->type->addMod(sc->func->type->mod);
-        f = resolveFuncCall(loc, sc, cd->ctor, NULL, tthis, arguments, 0);
+        tthis = ad->type->addMod(sc->func->type->mod);
+        if (OverloadSet *os = ad->ctor->isOverloadSet())
+            f = resolveOverloadSet(loc, sc, os, NULL, tthis, arguments);
+        else
+            f = resolveFuncCall(loc, sc, ad->ctor, NULL, tthis, arguments, 0);
         if (!f || f->errors)
             return new ErrorExp();
         checkDeprecated(sc, f);
@@ -8985,37 +9030,10 @@ Lagain:
     }
     else if (e1->op == TOKoverloadset)
     {
-        OverExp *eo = (OverExp *)e1;
-        FuncDeclaration *f = NULL;
-        Dsymbol *s = NULL;
-        for (size_t i = 0; i < eo->vars->a.dim; i++)
-        {
-            s = eo->vars->a[i];
-            if (tiargs && s->isFuncDeclaration())
-                continue;
-            FuncDeclaration *f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, arguments, 1);
-            if (f2)
-            {
-                if (f2->errors)
-                    return new ErrorExp();
-                if (f)
-                {
-                    /* Error if match in more than one overload set,
-                     * even if one is a 'better' match than the other.
-                     */
-                    ScopeDsymbol::multiplyDefined(loc, f, f2);
-                }
-                else
-                    f = f2;
-            }
-        }
+        OverloadSet *os = ((OverExp *)e1)->vars;
+        f = resolveOverloadSet(loc, sc, os, tiargs, tthis, arguments);
         if (!f)
-        {
-            /* No overload matches
-             */
-            error("no overload matches for %s", s->toChars());
             return new ErrorExp();
-        }
         if (ethis)
             e1 = new DotVarExp(loc, ethis, f);
         else
