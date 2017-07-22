@@ -416,14 +416,18 @@ public:
 class ArrayLiteralExp : public Expression
 {
 public:
+    Expression *basis;
     Expressions *elements;
     OwnedBy ownedByCtfe;
 
     ArrayLiteralExp(Loc loc, Expressions *elements);
     ArrayLiteralExp(Loc loc, Expression *e);
+    ArrayLiteralExp(Loc loc, Expression *basis, Expressions *elements);
 
     Expression *syntaxCopy();
     bool equals(RootObject *o);
+    Expression *getElement(d_size_t i);
+    static Expressions* copyElements(Expression *e1, Expression *e2 = NULL);
     Expression *semantic(Scope *sc);
     bool isBool(bool result);
     StringExp *toStringExp();

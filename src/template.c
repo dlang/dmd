@@ -4455,13 +4455,22 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             {
                 Type *tn = ((TypeDArray *)tparam)->next;
                 result = MATCHexact;
-                for (size_t i = 0; i < e->elements->dim; i++)
+                if (e->basis)
                 {
-                    MATCH m = deduceType((*e->elements)[i], sc, tn, parameters, dedtypes, wm);
+                    MATCH m = deduceType(e->basis, sc, tn, parameters, dedtypes, wm);
                     if (m < result)
                         result = m;
+                }
+                for (size_t i = 0; i < e->elements->dim; i++)
+                {
                     if (result <= MATCHnomatch)
                         break;
+                    Expression *el = (*e->elements)[i];
+                    if (!el)
+                        continue;
+                    MATCH m = deduceType(el, sc, tn, parameters, dedtypes, wm);
+                    if (m < result)
+                        result = m;
                 }
                 return;
             }

@@ -798,9 +798,8 @@ UnionExp Equal(TOK op, Type *type, Expression *e1, Expression *e2)
         {
             for (size_t i = 0; i < es1->elements->dim; i++)
             {
-                Expression *ee1 = (*es1->elements)[i];
-                Expression *ee2 = (*es2->elements)[i];
-
+                Expression *ee1 = es1->getElement(i);
+                Expression *ee2 = es2->getElement(i);
                 ue = Equal(TOKequal, Type::tint32, ee1, ee2);
                 if (CTFEExp::isCantExp(ue.exp()))
                     return ue;
@@ -833,7 +832,7 @@ UnionExp Equal(TOK op, Type *type, Expression *e1, Expression *e2)
             for (size_t i = 0; i < dim1; i++)
             {
                 uinteger_t c = es1->charAt(i);
-                Expression *ee2 = (*es2->elements)[i];
+                Expression *ee2 = es2->getElement(i);
                 if (ee2->isConst() != 1)
                 {
                     new(&ue) CTFEExp(TOKcantexp);
@@ -1277,7 +1276,7 @@ UnionExp Index(Type *type, Expression *e1, Expression *e2)
         else if (e1->op == TOKarrayliteral)
         {
             ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
-            Expression *e = (*ale->elements)[(size_t)i];
+            Expression *e = ale->getElement((size_t)i);
             e->type = type;
             e->loc = loc;
             if (hasSideEffect(e))
@@ -1302,7 +1301,7 @@ UnionExp Index(Type *type, Expression *e1, Expression *e2)
             }
             else
             {
-                Expression *e = (*ale->elements)[(size_t)i];
+                Expression *e = ale->getElement((size_t)i);
                 e->type = type;
                 e->loc = loc;
                 if (hasSideEffect(e))
@@ -1450,7 +1449,7 @@ void sliceAssignStringFromArrayLiteral(StringExp *existingSE, ArrayLiteralExp *n
     void *s = existingSE->string;
     for (size_t j = 0; j < newae->elements->dim; j++)
     {
-        unsigned val = (unsigned)((*newae->elements)[j]->toInteger());
+        unsigned val = (unsigned)newae->getElement(j)->toInteger();
         switch (existingSE->sz)
         {
             case 1:     (( utf8_t *)s)[j + firstIndex] = ( utf8_t)val;  break;
@@ -1494,7 +1493,7 @@ int sliceCmpStringWithArray(StringExp *se1, ArrayLiteralExp *ae2, size_t lo1, si
 
     for (size_t j = 0; j < len; j++)
     {
-        unsigned val2 = (unsigned)((*ae2->elements)[j + lo2]->toInteger());
+        unsigned val2 = (unsigned)ae2->getElement(j + lo2)->toInteger();
         unsigned val1;
         switch (sz)
         {
@@ -1644,7 +1643,7 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
         elems->setDim(len);
         for (size_t i= 0; i < ea->elements->dim; ++i)
         {
-            (*elems)[i] = (*ea->elements)[i];
+            (*elems)[i] = ea->getElement(i);
         }
         new(&ue) ArrayLiteralExp(e1->loc, elems);
         ArrayLiteralExp *dest = (ArrayLiteralExp *)ue.exp();
@@ -1664,7 +1663,7 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
         elems->setDim(len);
         for (size_t i= 0; i < ea->elements->dim; ++i)
         {
-            (*elems)[es->len + i] = (*ea->elements)[i];
+            (*elems)[es->len + i] = ea->getElement(i);
         }
         new(&ue) ArrayLiteralExp(e1->loc, elems);
         ArrayLiteralExp *dest = (ArrayLiteralExp *)ue.exp();
@@ -1732,17 +1731,14 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
         t1->nextOf()->equals(t2->nextOf()))
     {
         // Concatenate the arrays
-        ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
-        ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
+        Expressions *elems = ArrayLiteralExp::copyElements(e1, e2);
 
-        new(&ue) ArrayLiteralExp(es1->loc, (Expressions *)es1->elements->copy());
-        es1 = (ArrayLiteralExp *)ue.exp();
-        es1->elements->insert(es1->elements->dim, es2->elements);
-        e = es1;
+        new(&ue) ArrayLiteralExp(e1->loc, elems);
 
+        e = ue.exp();
         if (type->toBasetype()->ty == Tsarray)
         {
-            e->type = t1->nextOf()->sarrayOf(es1->elements->dim);
+            e->type = t1->nextOf()->sarrayOf(elems->dim);
         }
         else
             e->type = type;
@@ -1761,15 +1757,14 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
         e = e2;
      L3:
         // Concatenate the array with null
-        ArrayLiteralExp *es = (ArrayLiteralExp *)e;
+        Expressions *elems = ArrayLiteralExp::copyElements(e);
 
-        new(&ue) ArrayLiteralExp(es->loc, (Expressions *)es->elements->copy());
-        es = (ArrayLiteralExp *)ue.exp();
-        e = es;
+        new(&ue) ArrayLiteralExp(e->loc, elems);
 
+        e = ue.exp();
         if (type->toBasetype()->ty == Tsarray)
         {
-            e->type = t1->nextOf()->sarrayOf(es->elements->dim);
+            e->type = t1->nextOf()->sarrayOf(elems->dim);
         }
         else
             e->type = type;
@@ -1780,24 +1775,16 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
         e1->type->toBasetype()->nextOf() &&
         e1->type->toBasetype()->nextOf()->equals(e2->type))
     {
-        ArrayLiteralExp *es1;
-        if (e1->op == TOKarrayliteral)
-        {
-            es1 = (ArrayLiteralExp *)e1;
-            new(&ue) ArrayLiteralExp(es1->loc, (Expressions *)es1->elements->copy());
-            es1 = (ArrayLiteralExp *)ue.exp();
-            es1->elements->push(e2);
-        }
-        else
-        {
-            new(&ue) ArrayLiteralExp(e1->loc, e2);
-            es1 = (ArrayLiteralExp *)ue.exp();
-        }
-        e = es1;
+        Expressions *elems = (e1->op == TOKarrayliteral)
+            ? ArrayLiteralExp::copyElements(e1) : new Expressions();
+        elems->push(e2);
 
+        new(&ue) ArrayLiteralExp(e1->loc, elems);
+
+        e = ue.exp();
         if (type->toBasetype()->ty == Tsarray)
         {
-            e->type = e2->type->sarrayOf(es1->elements->dim);
+            e->type = e2->type->sarrayOf(elems->dim);
         }
         else
             e->type = type;
@@ -1807,16 +1794,14 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
     else if (e2->op == TOKarrayliteral &&
         e2->type->toBasetype()->nextOf()->equals(e1->type))
     {
-        ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
+        Expressions *elems = ArrayLiteralExp::copyElements(e1, e2);
 
-        new(&ue) ArrayLiteralExp(es2->loc, (Expressions *)es2->elements->copy());
-        es2 = (ArrayLiteralExp *)ue.exp();
-        es2->elements->shift(e1);
-        e = es2;
+        new(&ue) ArrayLiteralExp(e2->loc, elems);
 
+        e = ue.exp();
         if (type->toBasetype()->ty == Tsarray)
         {
-            e->type = e1->type->sarrayOf(es2->elements->dim);
+            e->type = e1->type->sarrayOf(elems->dim);
         }
         else
             e->type = type;

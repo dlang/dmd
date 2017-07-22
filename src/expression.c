@@ -4195,6 +4195,7 @@ unsigned StringExp::charAt(uinteger_t i) const
 ArrayLiteralExp::ArrayLiteralExp(Loc loc, Expressions *elements)
     : Expression(loc, TOKarrayliteral, sizeof(ArrayLiteralExp))
 {
+    this->basis = NULL;
     this->elements = elements;
     this->ownedByCtfe = OWNEDcode;
 }
@@ -4202,8 +4203,17 @@ ArrayLiteralExp::ArrayLiteralExp(Loc loc, Expressions *elements)
 ArrayLiteralExp::ArrayLiteralExp(Loc loc, Expression *e)
     : Expression(loc, TOKarrayliteral, sizeof(ArrayLiteralExp))
 {
+    this->basis = NULL;
     elements = new Expressions;
     elements->push(e);
+    this->ownedByCtfe = OWNEDcode;
+}
+
+ArrayLiteralExp::ArrayLiteralExp(Loc loc, Expression *basis, Expressions *elements)
+    : Expression(loc, TOKarrayliteral, sizeof(ArrayLiteralExp))
+{
+    this->basis = basis;
+    this->elements = elements;
     this->ownedByCtfe = OWNEDcode;
 }
 
@@ -4226,6 +4236,10 @@ bool ArrayLiteralExp::equals(RootObject *o)
         {
             Expression *e1 = (*elements)[i];
             Expression *e2 = (*ae->elements)[i];
+            if (!e1)
+                e1 = basis;
+            if (!e2)
+                e2 = basis;
             if (e1 != e2 &&
                 (!e1 || !e2 || !e1->equals(e2)))
                 return false;
@@ -4237,7 +4251,61 @@ bool ArrayLiteralExp::equals(RootObject *o)
 
 Expression *ArrayLiteralExp::syntaxCopy()
 {
-    return new ArrayLiteralExp(loc, arraySyntaxCopy(elements));
+    return new ArrayLiteralExp(loc,
+        basis ? basis->syntaxCopy() : NULL,
+        arraySyntaxCopy(elements));
+}
+
+Expression *ArrayLiteralExp::getElement(d_size_t i)
+{
+    Expression *el = (*elements)[i];
+    if (!el)
+        el = basis;
+    return el;
+}
+
+static void appendArrayLiteral(Expressions *elems, ArrayLiteralExp *ale)
+{
+    if (!ale->elements)
+        return;
+    size_t d = elems->dim;
+    elems->append(ale->elements);
+    for (size_t i = d; i < elems->dim; i++)
+    {
+        Expression *el = (*elems)[i];
+        if (!el)
+            (*elems)[i] = ale->basis;
+    }
+}
+
+/* Copy element `Expressions` in the parameters when they're `ArrayLiteralExp`s.
+ * Params:
+ *      e1  = If it's ArrayLiteralExp, its `elements` will be copied.
+ *            Otherwise, `e1` itself will be pushed into the new `Expressions`.
+ *      e2  = If it's not `null`, it will be pushed/appended to the new
+ *            `Expressions` by the same way with `e1`.
+ * Returns:
+ *      Newly allocated `Expresions. Note that it points the original
+ *      `Expression` values in e1 and e2.
+ */
+Expressions* ArrayLiteralExp::copyElements(Expression *e1, Expression *e2)
+{
+    Expressions *elems = new Expressions();
+
+    if (e1->op == TOKarrayliteral)
+        appendArrayLiteral(elems, (ArrayLiteralExp *)e1);
+    else
+        elems->push(e1);
+
+    if (e2)
+    {
+        if (e2->op == TOKarrayliteral)
+            appendArrayLiteral(elems, (ArrayLiteralExp *)e2);
+        else
+            elems->push(e2);
+    }
+
+    return elems;
 }
 
 Expression *ArrayLiteralExp::semantic(Scope *sc)
@@ -4298,12 +4366,15 @@ StringExp *ArrayLiteralExp::toStringExp()
         {
             for (size_t i = 0; i < elements->dim; ++i)
             {
-                Expression *ch = (*elements)[i];
+                Expression *ch = getElement(i);
                 if (ch->op != TOKint64)
                     return NULL;
-                     if (sz == 1) buf.writeByte((unsigned)ch->toInteger());
-                else if (sz == 2) buf.writeword((unsigned)ch->toInteger());
-                else              buf.write4((unsigned)ch->toInteger());
+                if (sz == 1)
+                    buf.writeByte((unsigned)ch->toInteger());
+                else if (sz == 2)
+                    buf.writeword((unsigned)ch->toInteger());
+                else
+                    buf.write4((unsigned)ch->toInteger());
             }
         }
         char prefix;

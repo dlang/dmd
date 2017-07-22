@@ -1090,7 +1090,8 @@ Expression *doInline(Expression *e, InlineDoState *ids)
         void visit(ArrayLiteralExp *e)
         {
             ArrayLiteralExp *ce = (ArrayLiteralExp *)e->copy();
-
+            if (ce->basis)
+                ce->basis = doInline(e->basis, ids);
             ce->elements = arrayExpressiondoInline(e->elements);
             result = ce;
 
@@ -1550,6 +1551,7 @@ public:
     void visit(ArrayLiteralExp *e)
     {
         //printf("ArrayLiteralExp::inlineScan()\n");
+        inlineScan(&e->basis);
         arrayInlineScan(e->elements);
     }
 

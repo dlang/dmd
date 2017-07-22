@@ -228,7 +228,7 @@ bool needToCopyLiteral(Expression *expr)
     }
 }
 
-Expressions *copyLiteralArray(Expressions *oldelems)
+Expressions *copyLiteralArray(Expressions *oldelems, Expression *basis = NULL)
 {
     if (!oldelems)
         return oldelems;
@@ -236,7 +236,12 @@ Expressions *copyLiteralArray(Expressions *oldelems)
     Expressions *newelems = new Expressions();
     newelems->setDim(oldelems->dim);
     for (size_t i = 0; i < oldelems->dim; i++)
-        (*newelems)[i] = copyLiteral((*oldelems)[i]).copy();
+    {
+        Expression *el = (*oldelems)[i];
+        if (!el)
+            el = basis;
+        (*newelems)[i] = copyLiteral(el).copy();
+    }
     return newelems;
 }
 
@@ -261,8 +266,12 @@ UnionExp copyLiteral(Expression *e)
     }
     if (e->op == TOKarrayliteral)
     {
-        ArrayLiteralExp *ae = (ArrayLiteralExp *)e;
-        new(&ue) ArrayLiteralExp(e->loc, copyLiteralArray(ae->elements));
+        ArrayLiteralExp *ale = (ArrayLiteralExp *)e;
+        Expression *basis = ale->basis ? copyLiteral(ale->basis).copy() : NULL;
+        Expressions *elements = copyLiteralArray(ale->elements, ale->basis);
+
+        new(&ue) ArrayLiteralExp(e->loc, elements);
+
         ArrayLiteralExp *r = (ArrayLiteralExp *)ue.exp();
         r->type = e->type;
         r->ownedByCtfe = OWNEDctfe;

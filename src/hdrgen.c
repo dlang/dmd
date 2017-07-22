@@ -2047,17 +2047,20 @@ public:
     /**************************************************
      * Write out argument list to buf.
      */
-    void argsToBuffer(Expressions *expressions)
+    void argsToBuffer(Expressions *expressions, Expression *basis = NULL)
     {
         if (!expressions || !expressions->dim)
             return;
 
         for (size_t i = 0; i < expressions->dim; i++)
         {
+            Expression *el = (*expressions)[i];
             if (i)
                 buf->writestring(", ");
-            if (Expression *e = (*expressions)[i])
-                expToBuffer(e, PREC_assign);
+            if (!el)
+                el = basis;
+            if (el)
+                expToBuffer(el, PREC_assign);
         }
     }
 
@@ -2362,7 +2365,7 @@ public:
     void visit(ArrayLiteralExp *e)
     {
         buf->writeByte('[');
-        argsToBuffer(e->elements);
+        argsToBuffer(e->elements, e->basis);
         buf->writeByte(']');
     }
 

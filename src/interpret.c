@@ -2673,15 +2673,26 @@ public:
         Type *tn = e->type->toBasetype()->nextOf()->toBasetype();
         bool wantCopy = (tn->ty == Tsarray || tn->ty == Tstruct);
 
+        Expression *basis = interpret(e->basis, istate);
+        if (exceptionOrCant(basis))
+            return;
+
         Expressions *expsx = NULL;
         size_t dim = e->elements ? e->elements->dim : 0;
         for (size_t i = 0; i < dim; i++)
         {
             Expression *exp = (*e->elements)[i];
+            Expression *ex;
+            if (!exp)
+            {
+                ex = copyLiteral(basis).copy();
+                goto Lcow;
+            }
 
-            if (exp->op == TOKindex)  // segfault bug 6250
-                assert(((IndexExp *)exp)->e1 != e);
-            Expression *ex = interpret(exp, istate);
+            // segfault bug 6250
+            assert(exp->op != TOKindex || ((IndexExp *)exp)->e1 != e);
+
+            ex = interpret(exp, istate);
             if (exceptionOrCant(ex))
                 return;
 
@@ -2692,22 +2703,26 @@ public:
             if (wantCopy || ex == exp && expsx)
                 ex = copyLiteral(ex).copy();
 
+            if (ex == exp && !expsx)
+                continue;
+
             /* If any changes, do Copy On Write
              */
-            if (ex != exp)
+        Lcow:
+            if (!expsx)
             {
-                if (!expsx)
+                expsx = new Expressions();
+                ++CtfeStatus::numArrayAllocs;
+                expsx->setDim(dim);
+                for (size_t j = 0; j < i; j++)
                 {
-                    expsx = new Expressions();
-                    ++CtfeStatus::numArrayAllocs;
-                    expsx->setDim(dim);
-                    for (size_t j = 0; j < i; j++)
-                    {
-                        (*expsx)[j] = copyLiteral((*e->elements)[j]).copy();
-                    }
+                    Expression *el = (*e->elements)[j];
+                    if (!el)
+                        el = e->basis;
+                    (*expsx)[j] = copyLiteral(el).copy();
                 }
-                (*expsx)[i] = ex;
             }
+            (*expsx)[i] = ex;
         }
         if (expsx)
         {
@@ -2719,7 +2734,7 @@ public:
                 result = CTFEExp::cantexp;
                 return;
             }
-            ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, expsx);
+            ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, basis, expsx);
             ae->type = e->type;
             ae->ownedByCtfe = OWNEDctfe;
             result = ae;

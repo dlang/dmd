@@ -109,7 +109,7 @@ public:
 
     void visit(ArrayLiteralExp *e)
     {
-        doCond(e->elements) || applyTo(e);
+        doCond(e->basis) || doCond(e->elements) || applyTo(e);
     }
 
     void visit(AssocArrayLiteralExp *e)

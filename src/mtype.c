@@ -4270,8 +4270,8 @@ Expression *TypeSArray::defaultInitLiteral(Loc loc)
     Expressions *elements = new Expressions();
     elements->setDim(d);
     for (size_t i = 0; i < d; i++)
-        (*elements)[i] = elementinit;
-    ArrayLiteralExp *ae = new ArrayLiteralExp(Loc(), elements);
+        (*elements)[i] = NULL;
+    ArrayLiteralExp *ae = new ArrayLiteralExp(Loc(), elementinit, elements);
     ae->type = this;
     return ae;
 }
