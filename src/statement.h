@@ -232,8 +232,9 @@ class ScopeStatement : public Statement
 {
 public:
     Statement *statement;
+    Loc endloc;                 // location of closing curly bracket
 
-    ScopeStatement(Loc loc, Statement *s);
+    ScopeStatement(Loc loc, Statement *s, Loc endloc);
     Statement *syntaxCopy();
     ScopeStatement *isScopeStatement() { return this; }
     ReturnStatement *isReturnStatement();
@@ -265,8 +266,9 @@ class DoStatement : public Statement
 public:
     Statement *_body;
     Expression *condition;
+    Loc endloc;                 // location of ';' after while
 
-    DoStatement(Loc loc, Statement *b, Expression *c);
+    DoStatement(Loc loc, Statement *b, Expression *c, Loc endloc);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     bool hasBreak();
@@ -356,10 +358,11 @@ public:
     Expression *condition;
     Statement *ifbody;
     Statement *elsebody;
+    Loc endloc;                 // location of closing curly bracket
 
     VarDeclaration *match;      // for MatchExpression results
 
-    IfStatement(Loc loc, Parameter *prm, Expression *condition, Statement *ifbody, Statement *elsebody);
+    IfStatement(Loc loc, Parameter *prm, Expression *condition, Statement *ifbody, Statement *elsebody, Loc endloc);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     IfStatement *isIfStatement() { return this; }
@@ -570,8 +573,9 @@ public:
     Expression *exp;
     Statement *_body;
     VarDeclaration *wthis;
+    Loc endloc;
 
-    WithStatement(Loc loc, Expression *exp, Statement *body);
+    WithStatement(Loc loc, Expression *exp, Statement *body, Loc endloc);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
 

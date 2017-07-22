@@ -789,6 +789,7 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     canassign = 0;
     overlapped = false;
     lastVar = NULL;
+    endlinnum = 0;
     ctfeAdrOnStack = -1;
     rundtor = NULL;
     edtor = NULL;
@@ -1539,6 +1540,13 @@ Ldtor:
 
     if (type->toBasetype()->ty == Terror)
         errors = true;
+
+    if (sc->scopesym && !sc->scopesym->isAggregateDeclaration())
+    {
+        for (ScopeDsymbol *sym = sc->scopesym; sym && endlinnum == 0;
+             sym = sym->parent ? sym->parent->isScopeDsymbol() : NULL)
+            endlinnum = sym->endlinnum;
+    }
 }
 
 void VarDeclaration::semantic2(Scope *sc)

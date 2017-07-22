@@ -1326,6 +1326,8 @@ void FuncDeclaration::semantic3(Scope *sc)
         // Establish function scope
         ScopeDsymbol *ss = new ScopeDsymbol();
         ss->parent = sc->scopesym;
+        ss->loc = loc;
+        ss->endlinnum = endloc.linnum;
         Scope *sc2 = sc->push(ss);
         sc2->func = this;
         sc2->parent = this;
@@ -1535,6 +1537,8 @@ void FuncDeclaration::semantic3(Scope *sc)
             // scope of out contract (need for vresult->semantic)
             ScopeDsymbol *sym = new ScopeDsymbol();
             sym->parent = sc2->scopesym;
+            sym->loc = loc;
+            sym->endlinnum = endloc.linnum;
             scout = sc2->push(sym);
         }
 
@@ -1542,6 +1546,8 @@ void FuncDeclaration::semantic3(Scope *sc)
         {
             ScopeDsymbol *sym = new ScopeDsymbol();
             sym->parent = sc2->scopesym;
+            sym->loc = loc;
+            sym->endlinnum = endloc.linnum;
             sc2 = sc2->push(sym);
 
             AggregateDeclaration *ad2 = isAggregateMember2();
@@ -1860,6 +1866,8 @@ void FuncDeclaration::semantic3(Scope *sc)
              */
             ScopeDsymbol *sym = new ScopeDsymbol();
             sym->parent = sc2->scopesym;
+            sym->loc = loc;
+            sym->endlinnum = endloc.linnum;
             sc2 = sc2->push(sym);
             sc2->flags = (sc2->flags & ~SCOPEcontract) | SCOPErequire;
 
@@ -4951,7 +4959,7 @@ void StaticCtorDeclaration::semantic(Scope *sc)
         Expression *e = new IdentifierExp(Loc(), v->ident);
         e = new AddAssignExp(Loc(), e, new IntegerExp(1));
         e = new EqualExp(TOKnotequal, Loc(), e, new IntegerExp(1));
-        s = new IfStatement(Loc(), NULL, e, new ReturnStatement(Loc(), NULL), NULL);
+        s = new IfStatement(Loc(), NULL, e, new ReturnStatement(Loc(), NULL), NULL, Loc());
         sa->push(s);
         if (fbody)
             sa->push(fbody);
@@ -5078,7 +5086,7 @@ void StaticDtorDeclaration::semantic(Scope *sc)
         Expression *e = new IdentifierExp(Loc(), v->ident);
         e = new AddAssignExp(Loc(), e, new IntegerExp(-1));
         e = new EqualExp(TOKnotequal, Loc(), e, new IntegerExp(0));
-        s = new IfStatement(Loc(), NULL, e, new ReturnStatement(Loc(), NULL), NULL);
+        s = new IfStatement(Loc(), NULL, e, new ReturnStatement(Loc(), NULL), NULL, Loc());
         sa->push(s);
         if (fbody)
             sa->push(fbody);

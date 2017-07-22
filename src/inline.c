@@ -485,7 +485,7 @@ Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
         void visit(ScopeStatement *s)
         {
             //printf("ScopeStatement::inlineAsStatement() %d\n", s->statement->dim);
-            result = s->statement ? new ScopeStatement(s->loc, inlineAsStatement(s->statement, ids)) : s;
+            result = s->statement ? new ScopeStatement(s->loc, inlineAsStatement(s->statement, ids), s->endloc) : s;
         }
 
         void visit(IfStatement *s)
@@ -499,7 +499,7 @@ Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
             Statement *elsebody = s->elsebody ? inlineAsStatement(s->elsebody, ids) : NULL;
             ids->foundReturn = ids->foundReturn && bodyReturn;
 
-            result = new IfStatement(s->loc, s->prm, condition, ifbody, elsebody);
+            result = new IfStatement(s->loc, s->prm, condition, ifbody, elsebody, s->endloc);
         }
 
         void visit(ReturnStatement *s)
@@ -2055,7 +2055,7 @@ static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
         fd->inlineNest++;
         Statement *s = inlineAsStatement(fd->fbody, &ids);
         as->push(s);
-        *ps = new ScopeStatement(Loc(), new CompoundStatement(Loc(), as));
+        *ps = new ScopeStatement(Loc(), new CompoundStatement(Loc(), as), Loc());
         fd->inlineNest--;
     }
     else
