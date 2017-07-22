@@ -32,8 +32,9 @@ Module *Module::rootModule;
 DsymbolTable *Module::modules;
 Modules Module::amodules;
 
-Dsymbols Module::deferred; // deferred Dsymbol's needing semantic() run on them
-Dsymbols Module::deferred3;
+Dsymbols Module::deferred;  // deferred Dsymbol's needing semantic() run on them
+Dsymbols Module::deferred2; // deferred Dsymbol's needing semantic2() run on them
+Dsymbols Module::deferred3; // deferred Dsymbol's needing semantic3() run on them
 unsigned Module::dprogress;
 
 const char *lookForSourceFile(const char *filename);
@@ -925,6 +926,17 @@ void Module::addDeferredSemantic(Dsymbol *s)
     deferred.push(s);
 }
 
+void Module::addDeferredSemantic2(Dsymbol *s)
+{
+    //printf("Module::addDeferredSemantic2('%s')\n", s->toChars());
+    deferred2.push(s);
+}
+
+void Module::addDeferredSemantic3(Dsymbol *s)
+{
+    //printf("Module::addDeferredSemantic3('%s')\n", s->toChars());
+    deferred3.push(s);
+}
 
 /******************************************
  * Run semantic() on deferred symbols.
@@ -980,20 +992,26 @@ void Module::runDeferredSemantic()
     //printf("-Module::runDeferredSemantic(), len = %d\n", deferred.dim);
 }
 
-void Module::addDeferredSemantic3(Dsymbol *s)
+void Module::runDeferredSemantic2()
 {
-    // Don't add it if it is already there
-    for (size_t i = 0; i < deferred3.dim; i++)
+    Module::runDeferredSemantic();
+
+    Dsymbols *a = &Module::deferred2;
+    for (size_t i = 0; i < a->dim; i++)
     {
-        Dsymbol *sd = deferred3[i];
-        if (sd == s)
-            return;
+        Dsymbol *s = (*a)[i];
+        //printf("[%d] %s semantic2a\n", i, s->toPrettyChars());
+        s->semantic2(NULL);
+
+        if (global.errors)
+            break;
     }
-    deferred3.push(s);
 }
 
 void Module::runDeferredSemantic3()
 {
+    Module::runDeferredSemantic2();
+
     Dsymbols *a = &Module::deferred3;
     for (size_t i = 0; i < a->dim; i++)
     {

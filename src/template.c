@@ -5802,7 +5802,7 @@ void TemplateInstance::expandMembers(Scope *sc2)
         //printf("test3: enclosing = %d, s->parent = %s\n", enclosing, s->parent->toChars());
         s->semantic(sc2);
         //printf("test4: enclosing = %d, s->parent = %s\n", enclosing, s->parent->toChars());
-        sc2->module->runDeferredSemantic();
+        Module::runDeferredSemantic();
     }
 }
 

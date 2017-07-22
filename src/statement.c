@@ -22,6 +22,7 @@
 #include "init.h"
 #include "staticassert.h"
 #include "mtype.h"
+#include "module.h"
 #include "scope.h"
 #include "declaration.h"
 #include "aggregate.h"
@@ -5374,7 +5375,7 @@ Statement *ImportStatement::semantic(Scope *sc)
         }
 
         s->semantic(sc);
-        //s->semantic2(sc);     // Bugzilla 14666
+        Module::addDeferredSemantic2(s);     // Bugzilla 14666
         sc->insert(s);
 
         for (size_t j = 0; j < s->aliasdecls.dim; j++)

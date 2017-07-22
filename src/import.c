@@ -384,7 +384,8 @@ void Import::semantic2(Scope *sc)
         if (mod->needmoduleinfo)
         {
             //printf("module5 %s because of %s\n", sc->module->toChars(), mod->toChars());
-            sc->module->needmoduleinfo = 1;
+            if (sc)
+                sc->module->needmoduleinfo = 1;
         }
     }
 }
