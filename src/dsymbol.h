@@ -148,6 +148,7 @@ enum
                                     // meaning don't search imports in that scope,
                                     // because qualified module searches search
                                     // their imports
+    SearchCheckImports      = 0x40, // unqualified search with transition=checkimports switch
 };
 
 typedef int (*Dsymbol_apply_ft_t)(Dsymbol *, void *);

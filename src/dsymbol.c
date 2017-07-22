@@ -996,7 +996,15 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             if (ss->isModule())
             {
                 if (flags & SearchLocalsOnly)
+                {
+                    if (global.params.check10378 && !(flags & SearchCheckImports))
+                    {
+                        Dsymbol *s3 = ss->search(loc, ident, sflags | IgnorePrivateMembers);
+                        if (s3)
+                            deprecation("%s %s found in local import", s3->kind(), s3->toPrettyChars());
+                    }
                     continue;
+                }
             }
             else
             {

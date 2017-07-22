@@ -719,7 +719,24 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
     Loc loc = ue->loc;
     Dsymbol *s = NULL;
 
-    if (global.params.bug10378)
+    if (global.params.check10378)
+    {
+        // Search both ways
+        Dsymbol *sold = searchScopes(sc, loc, ident, SearchCheckImports);
+        Dsymbol *snew = searchScopes(sc, loc, ident, SearchCheckImports | SearchLocalsOnly);
+
+        if (!snew)
+            snew = searchScopes(sc, loc, ident, SearchCheckImports | SearchImportsOnly);
+
+        if (sold != snew)
+        {
+            deprecation(loc, "local import search method found %s %s instead of %s %s",
+                        sold ? sold->kind() : "nothing", sold ? sold->toPrettyChars() : NULL,
+                        snew ? snew->kind() : "nothing", snew ? snew->toPrettyChars() : NULL);
+        }
+        s = sold;
+    }
+    else if (global.params.bug10378)
         s = searchScopes(sc, loc, ident, 0);
     else
     {

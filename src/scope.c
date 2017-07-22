@@ -472,6 +472,24 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flag
         return NULL;
     }
 
+    if (global.params.check10378)
+    {
+        // Search both ways
+        Dsymbol *sold = searchScopes(this, loc, ident, pscopesym, flags | SearchCheckImports);
+        Dsymbol *snew = searchScopes(this, loc, ident, pscopesym, flags | SearchCheckImports | SearchLocalsOnly);
+
+        if (!snew)
+            snew = searchScopes(this, loc, ident, pscopesym, flags | SearchCheckImports | SearchImportsOnly);
+
+        if (sold != snew)
+        {
+            deprecation(loc, "local import search method found %s %s instead of %s %s",
+                        sold ? sold->kind() : "nothing", sold ? sold->toPrettyChars() : NULL,
+                        snew ? snew->kind() : "nothing", snew ? snew->toPrettyChars() : NULL);
+        }
+        return sold;
+    }
+
     if (global.params.bug10378)
         return searchScopes(this, loc, ident, pscopesym, flags);
 
