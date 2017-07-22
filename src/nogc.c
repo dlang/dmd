@@ -63,9 +63,9 @@ public:
     {
         // Note that, walkPostorder does not support DeclarationExp today.
         VarDeclaration *v = e->declaration->isVarDeclaration();
-        if (v && !(v->storage_class & STCmanifest) && !v->isDataseg() && v->init)
+        if (v && !(v->storage_class & STCmanifest) && !v->isDataseg() && v->_init)
         {
-            if (ExpInitializer *ei = v->init->isExpInitializer())
+            if (ExpInitializer *ei = v->_init->isExpInitializer())
             {
                 doCond(ei->exp);
             }

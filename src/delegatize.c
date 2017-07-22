@@ -170,9 +170,9 @@ bool lambdaCheckForNestedRef(Expression *e, Scope *sc)
                  * expression e does not have any nested references by
                  * checking the declaration initializer too.
                  */
-                if (v->init && v->init->isExpInitializer())
+                if (v->_init && v->_init->isExpInitializer())
                 {
-                    Expression *ie = v->init->toExpression();
+                    Expression *ie = v->_init->toExpression();
                     result = lambdaCheckForNestedRef(ie, sc);
                 }
             }

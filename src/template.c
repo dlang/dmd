@@ -504,10 +504,10 @@ void TemplateDeclaration::semantic(Scope *sc)
     /* Remember Scope for later instantiations, but make
      * a copy since attributes can change.
      */
-    if (!this->scope)
+    if (!this->_scope)
     {
-        this->scope = sc->copy();
-        this->scope->setNoFree();
+        this->_scope = sc->copy();
+        this->_scope->setNoFree();
     }
 
     // Set up scope for parameters
@@ -519,7 +519,7 @@ void TemplateDeclaration::semantic(Scope *sc)
     if (!parent)
         parent = sc->parent;
 
-    isstatic = toParent()->isModule() || (scope->stc & STCstatic);
+    isstatic = toParent()->isModule() || (_scope->stc & STCstatic);
 
     protection = sc->protection;
 
@@ -827,12 +827,12 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
     assert(dedtypes_dim == parameters_dim);
     assert(dedtypes_dim >= ti->tiargs->dim || variadic);
 
-    assert(scope);
+    assert(_scope);
 
     // Set up scope for template parameters
     ScopeDsymbol *paramsym = new ScopeDsymbol();
-    paramsym->parent = scope->parent;
-    Scope *paramscope = scope->push(paramsym);
+    paramsym->parent = _scope->parent;
+    Scope *paramscope = _scope->push(paramsym);
     paramscope->tinst = ti;
     paramscope->minst = sc->minst;
     paramscope->callsc = sc;
@@ -1140,7 +1140,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
         printf("tthis = %s\n", tthis->toChars());
 #endif
 
-    assert(scope);
+    assert(_scope);
 
     dedargs->setDim(parameters->dim);
     dedargs->zero();
@@ -1153,8 +1153,8 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
 
     // Set up scope for parameters
     ScopeDsymbol *paramsym = new ScopeDsymbol();
-    paramsym->parent = scope->parent;   // should use hasnestedArgs and enclosing?
-    Scope *paramscope = scope->push(paramsym);
+    paramsym->parent = _scope->parent;   // should use hasnestedArgs and enclosing?
+    Scope *paramscope = _scope->push(paramsym);
     paramscope->tinst = ti;
     paramscope->minst = sc->minst;
     paramscope->callsc = sc;
@@ -1293,7 +1293,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
         }
     }
 
-    if (toParent()->isModule() || (scope->stc & STCstatic))
+    if (toParent()->isModule() || (_scope->stc & STCstatic))
         tthis = NULL;
     if (tthis)
     {
@@ -1319,7 +1319,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
         // Match attributes of tthis against attributes of fd
         if (fd->type && !fd->isCtorDeclaration())
         {
-            StorageClass stc = scope->stc | fd->storage_class2;
+            StorageClass stc = _scope->stc | fd->storage_class2;
             // Propagate parent storage class (see bug 5504)
             Dsymbol *p = parent;
             while (p->isTemplateDeclaration() || p->isTemplateInstance())
@@ -1976,7 +1976,7 @@ Lmatch:
     // Partially instantiate function for constraint and fd->leastAsSpecialized()
     {
         assert(paramsym);
-        Scope *sc2 = scope;
+        Scope *sc2 = _scope;
         sc2 = sc2->push(paramsym);
         sc2 = sc2->push(ti);
         sc2->parent = ti;
@@ -2115,7 +2115,7 @@ RootObject *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *
     /* So the caller's o gets updated with the result of semantic() being run on o
      */
     if (v)
-        o = v->init->toExpression();
+        o = v->_init->toExpression();
     return o;
 }
 
@@ -2181,7 +2181,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         printf("\t%s %s\n", arg->type->toChars(), arg->toChars());
         //printf("\tty = %d\n", arg->type->ty);
     }
-    //printf("stc = %llx\n", dstart->scope->stc);
+    //printf("stc = %llx\n", dstart->_scope->stc);
     //printf("match:t/f = %d/%d\n", ta_last, m->last);
 #endif
 
@@ -2224,10 +2224,10 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         if (tiargs && tiargs->dim > 0)
             return 0;
 
-        if (fd->semanticRun == PASSinit && fd->scope)
+        if (fd->semanticRun == PASSinit && fd->_scope)
         {
             Ungag ungag = fd->ungagSpeculative();
-            fd->semantic(fd->scope);
+            fd->semantic(fd->_scope);
         }
         if (fd->semanticRun == PASSinit)
         {
@@ -2333,13 +2333,13 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             return 0;
 
         if (!sc)
-            sc = td->scope; // workaround for Type::aliasthisOf
+            sc = td->_scope; // workaround for Type::aliasthisOf
 
-        if (td->semanticRun == PASSinit && td->scope)
+        if (td->semanticRun == PASSinit && td->_scope)
         {
             // Try to fix forward reference. Ungag errors while doing so.
             Ungag ungag = td->ungagSpeculative();
-            td->semantic(td->scope);
+            td->semantic(td->_scope);
         }
         if (td->semanticRun == PASSinit)
         {
@@ -2446,7 +2446,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
 
          Ltd2:
             // td is the new best match
-            assert(td->scope);
+            assert(td->_scope);
             td_best = td;
             ti_best = NULL;
             property = 0;   // (backward compatibility)
@@ -2547,7 +2547,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
 
           Ltd:              // td is the new best match
             //printf("Ltd\n");
-            assert(td->scope);
+            assert(td->_scope);
             td_best = td;
             ti_best = ti;
             property = 0;   // (backward compatibility)
@@ -2595,8 +2595,8 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         /* The best match is td_best with arguments tdargs.
          * Now instantiate the template.
          */
-        assert(p.td_best->scope);
-        if (!sc) sc = p.td_best->scope; // workaround for Type::aliasthisOf
+        assert(p.td_best->_scope);
+        if (!sc) sc = p.td_best->_scope; // workaround for Type::aliasthisOf
 
         TemplateInstance *ti = new TemplateInstance(loc, p.td_best, p.ti_best->tiargs);
         ti->semantic(sc, fargs);
@@ -2817,7 +2817,7 @@ Prot TemplateDeclaration::prot()
 TemplateInstance *TemplateDeclaration::findExistingInstance(TemplateInstance *tithis, Expressions *fargs)
 {
     tithis->fargs = fargs;
-    hash_t hash = tithis->hashCode();
+    hash_t hash = tithis->toHash();
 
     if (!buckets.dim)
     {
@@ -4522,7 +4522,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 TypeFunction *tof = (TypeFunction *)to->nextOf();
 
                 // Parameter types inference from 'tof'
-                assert(e->td->scope);
+                assert(e->td->_scope);
                 TypeFunction *tf = (TypeFunction *)e->fd->type;
                 //printf("\ttof = %s\n", tof->toChars());
                 //printf("\ttf  = %s\n", tf->toChars());
@@ -4566,7 +4566,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     e->fd->treq = tparam;
 
                 TemplateInstance *ti = new TemplateInstance(e->loc, e->td, tiargs);
-                Expression *ex = (new ScopeExp(e->loc, ti))->semantic(e->td->scope);
+                Expression *ex = (new ScopeExp(e->loc, ti))->semantic(e->td->_scope);
 
                 // Reset inference target for the later re-semantic
                 e->fd->treq = NULL;
@@ -5740,7 +5740,7 @@ TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *ti
     this->hash = 0;
     this->fargs = NULL;
 
-    assert(tempdecl->scope);
+    assert(tempdecl->_scope);
 }
 
 
@@ -6055,7 +6055,7 @@ Lerror:
     }
 
     // Create our own scope for the template parameters
-    Scope *scope = tempdecl->scope;
+    Scope *scope = tempdecl->_scope;
     if (tempdecl->semanticRun == PASSinit)
     {
         error("template instantiation %s forward references template declaration %s", toChars(), tempdecl->toChars());
@@ -6427,11 +6427,11 @@ bool TemplateInstance::findTempDecl(Scope *sc, WithScopeSymbol **pwithsym)
         TemplateInstance *ti = (TemplateInstance *)param;
         if (td->semanticRun == PASSinit)
         {
-            if (td->scope)
+            if (td->_scope)
             {
                 // Try to fix forward reference. Ungag errors while doing so.
                 Ungag ungag = td->ungagSpeculative();
-                td->semantic(td->scope);
+                td->semantic(td->_scope);
             }
             if (td->semanticRun == PASSinit)
             {
@@ -6836,7 +6836,7 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
     {
         TemplateDeclaration *tempdecl = this->tempdecl->isTemplateDeclaration();
         assert(tempdecl);
-        assert(tempdecl->scope);
+        assert(tempdecl->_scope);
         // Deduce tdtypes
         tdtypes.setDim(tempdecl->parameters->dim);
         if (!tempdecl->matchWithInstance(sc, this, &tdtypes, fargs, 2))
@@ -7559,7 +7559,7 @@ void TemplateInstance::semantic2(Scope *sc)
         TemplateDeclaration *tempdecl = this->tempdecl->isTemplateDeclaration();
         assert(tempdecl);
 
-        sc = tempdecl->scope;
+        sc = tempdecl->_scope;
         assert(sc);
         sc = sc->push(argsym);
         sc = sc->push(this);
@@ -7619,7 +7619,7 @@ void TemplateInstance::semantic3(Scope *sc)
         TemplateDeclaration *tempdecl = this->tempdecl->isTemplateDeclaration();
         assert(tempdecl);
 
-        sc = tempdecl->scope;
+        sc = tempdecl->_scope;
         sc = sc->push(argsym);
         sc = sc->push(this);
         sc->tinst = this;
@@ -7752,9 +7752,9 @@ Dsymbol *TemplateInstance::toAlias()
     if (!inst)
     {
         // Maybe we can resolve it
-        if (scope)
+        if (_scope)
         {
-            semantic(scope);
+            semantic(_scope);
         }
         if (!inst)
         {
@@ -7854,12 +7854,13 @@ int TemplateInstance::compare(RootObject *o)
     return 1;
 }
 
-hash_t TemplateInstance::hashCode()
+hash_t TemplateInstance::toHash()
 {
     if (!hash)
     {
         hash = (size_t)(void *)enclosing;
         hash += arrayObjectHash(&tdtypes);
+        hash += hash == 0;
     }
     return hash;
 }
@@ -8161,8 +8162,8 @@ bool TemplateMixin::findTempDecl(Scope *sc)
         TemplateMixin *tm = (TemplateMixin *)param;
         if (td->semanticRun == PASSinit)
         {
-            if (td->scope)
-                td->semantic(td->scope);
+            if (td->_scope)
+                td->semantic(td->_scope);
             else
             {
                 tm->semanticRun = PASSinit;
@@ -8205,11 +8206,11 @@ void TemplateMixin::semantic(Scope *sc)
 #endif
 
     Scope *scx = NULL;
-    if (scope)
+    if (_scope)
     {
-        sc = scope;
-        scx = scope;            // save so we don't make redundant copies
-        scope = NULL;
+        sc = _scope;
+        scx = _scope;            // save so we don't make redundant copies
+        _scope = NULL;
     }
 
     /* Run semantic on each argument, place results in tiargs[],
@@ -8234,9 +8235,9 @@ void TemplateMixin::semantic(Scope *sc)
             {
                 // Forward reference
                 //printf("forward reference - deferring\n");
-                scope = scx ? scx : sc->copy();
-                scope->setNoFree();
-                scope->module->addDeferredSemantic(this);
+                _scope = scx ? scx : sc->copy();
+                _scope->setNoFree();
+                _scope->module->addDeferredSemantic(this);
             }
             return;
         }
@@ -8535,7 +8536,7 @@ bool TemplateMixin::hasPointers()
 void TemplateMixin::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion)
 {
     //printf("TemplateMixin::setFieldOffset() %s\n", toChars());
-    if (scope)                  // if fwd reference
+    if (_scope)                  // if fwd reference
         semantic(NULL);         // try to resolve it
     if (members)
     {

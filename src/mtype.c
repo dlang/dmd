@@ -1277,7 +1277,7 @@ Type *Type::aliasthisOf()
         TemplateDeclaration *td = s->isTemplateDeclaration();
         if (td)
         {
-            assert(td->scope);
+            assert(td->_scope);
             FuncDeclaration *fd = resolveFuncCall(Loc(), NULL, td, NULL, this, NULL, 1);
             if (fd && fd->errors)
                 return Type::terror;
@@ -2982,7 +2982,7 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident, int flag)
 {
     Expression *e;
     dinteger_t ivalue;
-    d_float80 fvalue;
+    real_t fvalue;
 
     //printf("TypeBasic::getProperty('%s')\n", ident->toChars());
     if (ident == Id::max)
@@ -4601,16 +4601,16 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
         /* AA's need typeid(index).equals() and getHash(). Issue error if not correctly set up.
          */
         StructDeclaration *sd = ((TypeStruct *)tbase)->sym;
-        if (sd->scope)
+        if (sd->_scope)
             sd->semantic(NULL);
 
         // duplicate a part of StructDeclaration::semanticTypeInfoMembers
         if (sd->xeq &&
-            sd->xeq->scope &&
+            sd->xeq->_scope &&
             sd->xeq->semanticRun < PASSsemantic3done)
         {
             unsigned errors = global.startGagging();
-            sd->xeq->semantic3(sd->xeq->scope);
+            sd->xeq->semantic3(sd->xeq->_scope);
             if (global.endGagging(errors))
                 sd->xeq = sd->xerreq;
         }
@@ -4668,7 +4668,7 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
     else if (tbase->ty == Tclass && !((TypeClass *)tbase)->sym->isInterfaceDeclaration())
     {
         ClassDeclaration *cd = ((TypeClass *)tbase)->sym;
-        if (cd->scope)
+        if (cd->_scope)
             cd->semantic(NULL);
 
         if (!ClassDeclaration::object)
@@ -5262,7 +5262,7 @@ int Type::covariant(Type *t, StorageClass *pstc)
 
         // If t1n is forward referenced:
         ClassDeclaration *cd = ((TypeClass *)t1n)->sym;
-        if (cd->scope)
+        if (cd->_scope)
             cd->semantic(NULL);
         if (!cd->isBaseInfoComplete())
         {
@@ -6649,7 +6649,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     *pe = new ErrorExp();
                     return;
                 }
-                if (v->sem < SemanticDone && v->scope)
+                if (v->sem < SemanticDone && v->_scope)
                     v->semantic(NULL);
             }
             assert(v->type);        // Bugzilla 14642
@@ -6700,8 +6700,8 @@ L1:
         {
             if (reliesOnTident(t))
             {
-                if (s->scope)
-                    t = t->semantic(loc, s->scope);
+                if (s->_scope)
+                    t = t->semantic(loc, s->_scope);
                 else
                 {
                     /* Attempt to find correct scope in which to evaluate t.
@@ -7418,8 +7418,8 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int fl
     if (ident == Id::_mangleof)
         return getProperty(e->loc, ident, flag);
 
-    if (sym->scope)
-        sym->semantic(sym->scope);
+    if (sym->_scope)
+        sym->semantic(sym->_scope);
     if (!sym->members)
     {
         if (!flag)
@@ -7719,7 +7719,7 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
 L1:
     if (!s)
     {
-        if (sym->scope)                 // it's a fwd ref, maybe we can resolve it
+        if (sym->_scope)                 // it's a fwd ref, maybe we can resolve it
         {
             sym->semantic(NULL);
             s = sym->search(e->loc, ident);
@@ -7739,9 +7739,9 @@ L1:
             e->error("circular reference to '%s'", v->toPrettyChars());
             return new ErrorExp();
         }
-        if (v->scope)
+        if (v->_scope)
         {
-            v->semantic(v->scope);
+            v->semantic(v->_scope);
             s = v->toAlias();   // Need this if 'v' is a tuple variable
             v = s->isVarDeclaration();
         }
@@ -7849,8 +7849,8 @@ L1:
                 return e;
             }
         }
-        if (d->semanticRun == PASSinit && d->scope)
-            d->semantic(d->scope);
+        if (d->semanticRun == PASSinit && d->_scope)
+            d->semantic(d->_scope);
         checkAccess(e->loc, sc, e, d);
         VarExp *ve = new VarExp(e->loc, d, 1);
         if (d->isVarDeclaration() && d->needThis())
@@ -7936,9 +7936,9 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
         }
         if (vd->offset < offset || vd->type->size() == 0)
             e = NULL;
-        else if (vd->init)
+        else if (vd->_init)
         {
-            if (vd->init->isVoidInitializer())
+            if (vd->_init->isVoidInitializer())
                 e = NULL;
             else
                 e = vd->getConstInitializer(false);
@@ -8362,7 +8362,7 @@ L1:
 
         if (ident == Id::outer && sym->vthis)
         {
-            if (sym->vthis->scope)
+            if (sym->vthis->_scope)
                 sym->vthis->semantic(NULL);
 
             ClassDeclaration *cdp = sym->toParent2()->isClassDeclaration();
@@ -8387,9 +8387,9 @@ L1:
             e->error("circular reference to '%s'", v->toPrettyChars());
             return new ErrorExp();
         }
-        if (v->scope)
+        if (v->_scope)
         {
-            v->semantic(v->scope);
+            v->semantic(v->_scope);
             s = v->toAlias();   // Need this if 'v' is a tuple variable
             v = s->isVarDeclaration();
         }
@@ -8555,8 +8555,8 @@ L1:
             }
         }
         //printf("e = %s, d = %s\n", e->toChars(), d->toChars());
-        if (d->semanticRun == PASSinit && d->scope)
-            d->semantic(d->scope);
+        if (d->semanticRun == PASSinit && d->_scope)
+            d->semantic(d->_scope);
         checkAccess(e->loc, sc, e, d);
         VarExp *ve = new VarExp(e->loc, d, 1);
         if (d->isVarDeclaration() && d->needThis())
@@ -8620,9 +8620,9 @@ MATCH TypeClass::implicitConvTo(Type *to)
     if (cdto)
     {
         //printf("TypeClass::implicitConvTo(to = '%s') %s, isbase = %d %d\n", to->toChars(), toChars(), cdto->isBaseInfoComplete(), sym->isBaseInfoComplete());
-        if (cdto->scope && !cdto->isBaseInfoComplete())
+        if (cdto->_scope && !cdto->isBaseInfoComplete())
             cdto->semantic(NULL);
-        if (sym->scope && !sym->isBaseInfoComplete())
+        if (sym->_scope && !sym->isBaseInfoComplete())
             sym->semantic(NULL);
         if (cdto->isBaseOf(sym, NULL) && MODimplicitConv(mod, to->mod))
         {

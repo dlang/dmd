@@ -308,11 +308,11 @@ public:
     Dsymbol *aliasdecl;                 // !=NULL if instance is an alias for its sole member
     TemplateInstance *inst;             // refer to existing instance
     ScopeDsymbol *argsym;               // argument symbol table
-    int nest;                           // for recursion detection
+    int nest;                           // for recursive pretty printing detection
     bool semantictiargsdone;            // has semanticTiargs() been done?
     bool havetempdecl;                  // if used second constructor
     bool gagged;                        // if the instantiation is done with error gagging
-    hash_t hash;                        // cached result of hashCode()
+    hash_t hash;                        // cached result of toHash()
     Expressions *fargs;                 // for function template, these are the function arguments
 
     TemplateInstances* deferred;
@@ -339,7 +339,7 @@ public:
     void printInstantiationTrace();
     Identifier *getIdent();
     int compare(RootObject *o);
-    hash_t hashCode();
+    hash_t toHash();
 
     bool needsCodegen();
 

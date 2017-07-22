@@ -195,14 +195,14 @@ public:
     void visit(ForStatement *s)
     {
         cost += STATEMENT_COST;
-        if (s->init)
-            s->init->accept(this);
+        if (s->_init)
+            s->_init->accept(this);
         if (s->condition)
             s->condition->accept(this);
         if (s->increment)
             s->increment->accept(this);
-        if (s->body)
-            s->body->accept(this);
+        if (s->_body)
+            s->_body->accept(this);
         //printf("ForStatement: inlineCost = %d\n", cost);
     }
 
@@ -350,9 +350,9 @@ public:
                 return;
             }
             // Scan initializer (vd->init)
-            if (vd->init)
+            if (vd->_init)
             {
-                ExpInitializer *ie = vd->init->isExpInitializer();
+                ExpInitializer *ie = vd->_init->isExpInitializer();
 
                 if (ie)
                 {
@@ -518,10 +518,10 @@ Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
         void visit(ForStatement *s)
         {
             //printf("ForStatement::inlineAsStatement()\n");
-            Statement *init = s->init ? inlineAsStatement(s->init, ids) : NULL;
+            Statement *init = s->_init ? inlineAsStatement(s->_init, ids) : NULL;
             Expression *condition = s->condition ? doInline(s->condition, ids) : NULL;
             Expression *increment = s->increment ? doInline(s->increment, ids) : NULL;
-            Statement *body = s->body ? inlineAsStatement(s->body, ids) : NULL;
+            Statement *body = s->_body ? inlineAsStatement(s->_body, ids) : NULL;
             result = new ForStatement(s->loc, init, condition, increment, body, s->endloc);
         }
 
@@ -850,19 +850,19 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                         {
                             if (vd == ids->from[i])
                             {
-                                if (vd->init && !vd->init->isVoidInitializer())
+                                if (vd->_init && !vd->_init->isVoidInitializer())
                                 {
-                                    result = vd->init->toExpression();
+                                    result = vd->_init->toExpression();
                                     assert(result);
                                     result = doInline(result, ids);
                                 }
                                 else
-                                    result = new IntegerExp(vd->init->loc, 0, Type::tint32);
+                                    result = new IntegerExp(vd->_init->loc, 0, Type::tint32);
                                 return;
                             }
                         }
                     }
-                    VarDeclaration *vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
+                    VarDeclaration *vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->_init);
                     memcpy((void *)vto, (void *)vd, sizeof(VarDeclaration));
                     vto->parent = ids->parent;
                     vto->csym = NULL;
@@ -871,17 +871,17 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                     ids->from.push(vd);
                     ids->to.push(vto);
 
-                    if (vd->init)
+                    if (vd->_init)
                     {
-                        if (vd->init->isVoidInitializer())
+                        if (vd->_init->isVoidInitializer())
                         {
-                            vto->init = new VoidInitializer(vd->init->loc);
+                            vto->_init = new VoidInitializer(vd->_init->loc);
                         }
                         else
                         {
-                            Expression *ei = vd->init->toExpression();
+                            Expression *ei = vd->_init->toExpression();
                             assert(ei);
-                            vto->init = new ExpInitializer(ei->loc, doInline(ei, ids));
+                            vto->_init = new ExpInitializer(ei->loc, doInline(ei, ids));
                         }
                     }
                     DeclarationExp *de = (DeclarationExp *)e->copy();
@@ -1019,7 +1019,7 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                 //printf("lengthVar\n");
                 VarDeclaration *vd = e->lengthVar;
 
-                VarDeclaration *vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
+                VarDeclaration *vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->_init);
                 memcpy((void*)vto, (void*)vd, sizeof(VarDeclaration));
                 vto->parent = ids->parent;
                 vto->csym = NULL;
@@ -1028,11 +1028,11 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                 ids->from.push(vd);
                 ids->to.push(vto);
 
-                if (vd->init && !vd->init->isVoidInitializer())
+                if (vd->_init && !vd->_init->isVoidInitializer())
                 {
-                    ExpInitializer *ie = vd->init->isExpInitializer();
+                    ExpInitializer *ie = vd->_init->isExpInitializer();
                     assert(ie);
-                    vto->init = new ExpInitializer(ie->loc, doInline(ie->exp, ids));
+                    vto->_init = new ExpInitializer(ie->loc, doInline(ie->exp, ids));
                 }
 
                 are->lengthVar = vto;
@@ -1052,7 +1052,7 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                 //printf("lengthVar\n");
                 VarDeclaration *vd = e->lengthVar;
 
-                VarDeclaration *vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
+                VarDeclaration *vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->_init);
                 memcpy((void*)vto, (void*)vd, sizeof(VarDeclaration));
                 vto->parent = ids->parent;
                 vto->csym = NULL;
@@ -1061,11 +1061,11 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                 ids->from.push(vd);
                 ids->to.push(vto);
 
-                if (vd->init && !vd->init->isVoidInitializer())
+                if (vd->_init && !vd->_init->isVoidInitializer())
                 {
-                    ExpInitializer *ie = vd->init->isExpInitializer();
+                    ExpInitializer *ie = vd->_init->isExpInitializer();
                     assert(ie);
-                    vto->init = new ExpInitializer(ie->loc, doInline(ie->exp, ids));
+                    vto->_init = new ExpInitializer(ie->loc, doInline(ie->exp, ids));
                 }
 
                 are->lengthVar = vto;
@@ -1227,34 +1227,34 @@ public:
     void visit(WhileStatement *s)
     {
         inlineScan(&s->condition);
-        inlineScan(&s->body);
+        inlineScan(&s->_body);
     }
 
     void visit(DoStatement *s)
     {
-        inlineScan(&s->body);
+        inlineScan(&s->_body);
         inlineScan(&s->condition);
     }
 
     void visit(ForStatement *s)
     {
-        inlineScan(&s->init);
+        inlineScan(&s->_init);
         inlineScan(&s->condition);
         inlineScan(&s->increment);
-        inlineScan(&s->body);
+        inlineScan(&s->_body);
     }
 
     void visit(ForeachStatement *s)
     {
         inlineScan(&s->aggr);
-        inlineScan(&s->body);
+        inlineScan(&s->_body);
     }
 
     void visit(ForeachRangeStatement *s)
     {
         inlineScan(&s->lwr);
         inlineScan(&s->upr);
-        inlineScan(&s->body);
+        inlineScan(&s->_body);
     }
 
     void visit(IfStatement *s)
@@ -1268,7 +1268,7 @@ public:
     {
         //printf("SwitchStatement::inlineScan()\n");
         inlineScan(&s->condition);
-        inlineScan(&s->body);
+        inlineScan(&s->_body);
         Statement *sdefault = s->sdefault;
         inlineScan(&sdefault);
         s->sdefault = (DefaultStatement *)sdefault;
@@ -1304,18 +1304,18 @@ public:
     void visit(SynchronizedStatement *s)
     {
         inlineScan(&s->exp);
-        inlineScan(&s->body);
+        inlineScan(&s->_body);
     }
 
     void visit(WithStatement *s)
     {
         inlineScan(&s->exp);
-        inlineScan(&s->body);
+        inlineScan(&s->_body);
     }
 
     void visit(TryCatchStatement *s)
     {
-        inlineScan(&s->body);
+        inlineScan(&s->_body);
         if (s->catches)
         {
             for (size_t i = 0; i < s->catches->dim; i++)
@@ -1328,7 +1328,7 @@ public:
 
     void visit(TryFinallyStatement *s)
     {
-        inlineScan(&s->body);
+        inlineScan(&s->_body);
         inlineScan(&s->finalbody);
     }
 
@@ -1385,13 +1385,13 @@ public:
                     scanVar(se->s);    // TODO
                 }
             }
-            else if (vd->init)
+            else if (vd->_init)
             {
-                if (ExpInitializer *ie = vd->init->isExpInitializer())
+                if (ExpInitializer *ie = vd->_init->isExpInitializer())
                 {
                     Expression *e = ie->exp;
                     inlineScan(&e);
-                    if (vd->init != ie)     // DeclareExp with vd appears in e
+                    if (vd->_init != ie)     // DeclareExp with vd appears in e
                         return e;
                     ie->exp = e;
                 }

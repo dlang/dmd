@@ -198,7 +198,7 @@ class AliasDeclaration : public Declaration
 public:
     Dsymbol *aliassym;
     Dsymbol *overnext;          // next in overload list
-    Dsymbol *import;            // !=NULL if unresolved internal alias for selective import
+    Dsymbol *_import;           // !=NULL if unresolved internal alias for selective import
 
     AliasDeclaration(Loc loc, Identifier *ident, Type *type);
     AliasDeclaration(Loc loc, Identifier *ident, Dsymbol *s);
@@ -241,7 +241,7 @@ public:
 class VarDeclaration : public Declaration
 {
 public:
-    Initializer *init;
+    Initializer *_init;
     unsigned offset;
     bool noscope;                // no auto semantics
     FuncDeclarations nestedrefs; // referenced by these lexically nested functions

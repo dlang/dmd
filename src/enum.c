@@ -111,11 +111,11 @@ void EnumDeclaration::semantic(Scope *sc)
     unsigned dprogress_save = Module::dprogress;
 
     Scope *scx = NULL;
-    if (scope)
+    if (_scope)
     {
-        sc = scope;
-        scx = scope;            // save so we don't make redundant copies
-        scope = NULL;
+        sc = _scope;
+        scx = _scope;            // save so we don't make redundant copies
+        _scope = NULL;
     }
 
     parent = sc->parent;
@@ -155,12 +155,12 @@ void EnumDeclaration::semantic(Scope *sc)
         if (memtype->ty == Tenum)
         {
             EnumDeclaration *sym = (EnumDeclaration *)memtype->toDsymbol(sc);
-            if (!sym->memtype || !sym->members || !sym->symtab || sym->scope)
+            if (!sym->memtype || !sym->members || !sym->symtab || sym->_scope)
             {
                 // memtype is forward referenced, so try again later
-                scope = scx ? scx : sc->copy();
-                scope->setNoFree();
-                scope->module->addDeferredSemantic(this);
+                _scope = scx ? scx : sc->copy();
+                _scope->setNoFree();
+                _scope->module->addDeferredSemantic(this);
                 Module::dprogress = dprogress_save;
                 //printf("\tdeferring %s\n", toChars());
                 semanticRun = PASSinit;
@@ -219,7 +219,7 @@ void EnumDeclaration::semantic(Scope *sc)
     {
         EnumMember *em = (*members)[i]->isEnumMember();
         if (em)
-            em->scope = sce;
+            em->_scope = sce;
     }
 
     if (!added)
@@ -266,7 +266,7 @@ void EnumDeclaration::semantic(Scope *sc)
     {
         EnumMember *em = (*members)[i]->isEnumMember();
         if (em)
-            em->semantic(em->scope);
+            em->semantic(em->_scope);
     }
     //printf("defaultval = %lld\n", defaultval);
 
@@ -295,8 +295,8 @@ Expression *EnumDeclaration::getMaxMinValue(Loc loc, Identifier *id)
     if (*pval)
         goto Ldone;
 
-    if (scope)
-        semantic(scope);
+    if (_scope)
+        semantic(_scope);
     if (errors)
         goto Lerrors;
     if (semanticRun == PASSinit || !members)
@@ -340,7 +340,7 @@ Expression *EnumDeclaration::getMaxMinValue(Loc loc, Identifier *id)
              */
             Expression *ec = new CmpExp(id == Id::max ? TOKgt : TOKlt, em->loc, e, *pval);
             inuse++;
-            ec = ec->semantic(em->scope);
+            ec = ec->semantic(em->_scope);
             inuse--;
             ec = ec->ctfeInterpret();
             if (ec->toInteger())
@@ -369,8 +369,8 @@ Expression *EnumDeclaration::getDefaultValue(Loc loc)
     if (defaultval)
         return defaultval;
 
-    if (scope)
-        semantic(scope);
+    if (_scope)
+        semantic(_scope);
     if (errors)
         goto Lerrors;
     if (semanticRun == PASSinit || !members)
@@ -397,13 +397,13 @@ Type *EnumDeclaration::getMemtype(Loc loc)
 {
     if (loc.linnum == 0)
         loc = this->loc;
-    if (scope)
+    if (_scope)
     {
         /* Enum is forward referenced. We don't need to resolve the whole thing,
          * just the base type
          */
         if (memtype)
-            memtype = memtype->semantic(loc, scope);
+            memtype = memtype->semantic(loc, _scope);
         else
         {
             if (!isAnonymous() && members)
@@ -453,13 +453,13 @@ Prot EnumDeclaration::prot()
 Dsymbol *EnumDeclaration::search(Loc loc, Identifier *ident, int flags)
 {
     //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident->toChars());
-    if (scope)
+    if (_scope)
     {
         // Try one last time to resolve this enum
-        semantic(scope);
+        semantic(_scope);
     }
 
-    if (!members || !symtab || scope)
+    if (!members || !symtab || _scope)
     {
         error("is forward referenced when looking for '%s'", ident->toChars());
         //*(char*)0=0;
@@ -518,8 +518,8 @@ void EnumMember::semantic(Scope *sc)
         return;
 
     semanticRun = PASSsemantic;
-    if (scope)
-        sc = scope;
+    if (_scope)
+        sc = _scope;
 
     // The first enum member is special
     bool first = (this == (*ed->members)[0]);
@@ -638,7 +638,7 @@ void EnumMember::semantic(Scope *sc)
         }
         assert(emprev);
         if (emprev->semanticRun < PASSsemanticdone)    // if forward reference
-            emprev->semantic(emprev->scope);    // resolve it
+            emprev->semantic(emprev->_scope);    // resolve it
         if (emprev->errors)
             goto Lerrors;
 

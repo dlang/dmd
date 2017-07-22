@@ -237,7 +237,7 @@ void CtfeStack::popAll(size_t stackpointer)
 
 void CtfeStack::saveGlobalConstant(VarDeclaration *v, Expression *e)
 {
-     assert(v->init && (v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) && !v->isCTFE());
+     assert(v->_init && (v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) && !v->isCTFE());
      v->ctfeAdrOnStack = (int)globalValues.dim;
      globalValues.push(e);
 }
@@ -356,9 +356,9 @@ struct CompiledCtfeFunction
                 else if (!(v->isDataseg() || v->storage_class & STCmanifest) || v->isCTFE())
                     ccf->onDeclaration(v);
                 Dsymbol *s = v->toAlias();
-                if (s == v && !v->isStatic() && v->init)
+                if (s == v && !v->isStatic() && v->_init)
                 {
-                    ExpInitializer *ie = v->init->isExpInitializer();
+                    ExpInitializer *ie = v->_init->isExpInitializer();
                     if (ie)
                         ccf->onExpression(ie->exp);
                 }
@@ -472,8 +472,8 @@ public:
         printf("%s DoStatement::ctfeCompile\n", s->loc.toChars());
     #endif
         ccf->onExpression(s->condition);
-        if (s->body)
-            ctfeCompile(s->body);
+        if (s->_body)
+            ctfeCompile(s->_body);
     }
 
     void visit(WhileStatement *s)
@@ -491,14 +491,14 @@ public:
         printf("%s ForStatement::ctfeCompile\n", s->loc.toChars());
     #endif
 
-        if (s->init)
-            ctfeCompile(s->init);
+        if (s->_init)
+            ctfeCompile(s->_init);
         if (s->condition)
             ccf->onExpression(s->condition);
         if (s->increment)
             ccf->onExpression(s->increment);
-        if (s->body)
-            ctfeCompile(s->body);
+        if (s->_body)
+            ctfeCompile(s->_body);
     }
 
     void visit(ForeachStatement *s)
@@ -522,8 +522,8 @@ public:
         {
             ccf->onExpression((*s->cases)[i]->exp);
         }
-        if (s->body)
-            ctfeCompile(s->body);
+        if (s->_body)
+            ctfeCompile(s->_body);
     }
 
     void visit(CaseStatement *s)
@@ -602,8 +602,8 @@ public:
             ccf->onDeclaration(s->wthis);
             ccf->onExpression(s->exp);
         }
-        if (s->body)
-            ctfeCompile(s->body);
+        if (s->_body)
+            ctfeCompile(s->_body);
     }
 
     void visit(TryCatchStatement *s)
@@ -611,8 +611,8 @@ public:
     #if LOGCOMPILE
         printf("%s TryCatchStatement::ctfeCompile\n", s->loc.toChars());
     #endif
-        if (s->body)
-            ctfeCompile(s->body);
+        if (s->_body)
+            ctfeCompile(s->_body);
         for (size_t i = 0; i < s->catches->dim; i++)
         {
             Catch *ca = (*s->catches)[i];
@@ -628,8 +628,8 @@ public:
     #if LOGCOMPILE
         printf("%s TryFinallyStatement::ctfeCompile\n", s->loc.toChars());
     #endif
-        if (s->body)
-            ctfeCompile(s->body);
+        if (s->_body)
+            ctfeCompile(s->_body);
         if (s->finalbody)
             ctfeCompile(s->finalbody);
     }
@@ -1425,7 +1425,7 @@ public:
 
         while (1)
         {
-            Expression *e = interpret(s->body, istate);
+            Expression *e = interpret(s->_body, istate);
             if (!e && istate->start)    // goto target was not found
                 return;
             assert(!istate->start);
@@ -1481,7 +1481,7 @@ public:
         if (istate->start == s)
             istate->start = NULL;
 
-        Expression *ei = interpret(s->init, istate);
+        Expression *ei = interpret(s->_init, istate);
         if (exceptionOrCant(ei))
             return;
         assert(!ei); // s->init never returns from function, or jumps out from it
@@ -1498,7 +1498,7 @@ public:
                 assert(isTrueBool(e));
             }
 
-            Expression *e = interpret(s->body, istate);
+            Expression *e = interpret(s->_body, istate);
             if (!e && istate->start)    // goto target was not found
                 return;
             assert(!istate->start);
@@ -1557,7 +1557,7 @@ public:
             istate->start = NULL;
         if (istate->start)
         {
-            Expression *e = interpret(s->body, istate);
+            Expression *e = interpret(s->_body, istate);
             if (istate->start)      // goto target was not found
                 return;
             if (exceptionOrCant(e))
@@ -1606,7 +1606,7 @@ public:
         /* Jump to scase
          */
         istate->start = scase;
-        Expression *e = interpret(s->body, istate);
+        Expression *e = interpret(s->_body, istate);
         assert(!istate->start); // jump must not fail
         if (e && e->op == TOKbreak)
         {
@@ -1715,7 +1715,7 @@ public:
         if (istate->start)
         {
             Expression *e = NULL;
-            e = interpret(s->body, istate);
+            e = interpret(s->_body, istate);
             for (size_t i = 0; i < s->catches->dim; i++)
             {
                 if (e || !istate->start)    // goto target was found
@@ -1727,7 +1727,7 @@ public:
             return;
         }
 
-        Expression *e = interpret(s->body, istate);
+        Expression *e = interpret(s->_body, istate);
 
         // An exception was thrown
         if (e && e->op == TOKthrownexception)
@@ -1814,14 +1814,14 @@ public:
         if (istate->start)
         {
             Expression *e = NULL;
-            e = interpret(s->body, istate);
+            e = interpret(s->_body, istate);
             // Jump into/out from finalbody is disabled in semantic analysis.
             // and jump inside will be handled by the ScopeStatement == finalbody.
             result = e;
             return;
         }
 
-        Expression *ex = interpret(s->body, istate);
+        Expression *ex = interpret(s->_body, istate);
         if (CTFEExp::isCantExp(ex))
         {
             result = ex;
@@ -1834,7 +1834,7 @@ public:
             InterState istatex = *istate;
             istatex.start = istate->gotoTarget; // set starting statement
             istatex.gotoTarget = NULL;
-            Expression *bex = interpret(s->body, &istatex);
+            Expression *bex = interpret(s->_body, &istatex);
             if (istatex.start)
             {
               // The goto target is outside the current scope.
@@ -1900,14 +1900,14 @@ public:
             istate->start = NULL;
         if (istate->start)
         {
-            result = s->body ? interpret(s->body, istate) : NULL;
+            result = s->_body ? interpret(s->_body, istate) : NULL;
             return;
         }
 
         // If it is with(Enum) {...}, just execute the body.
         if (s->exp->op == TOKimport || s->exp->op == TOKtype)
         {
-            result = interpret(s->body, istate);
+            result = interpret(s->_body, istate);
             return;
         }
 
@@ -1922,7 +1922,7 @@ public:
         }
         ctfeStack.push(s->wthis);
         setValue(s->wthis, e);
-        e = interpret(s->body, istate);
+        e = interpret(s->_body, istate);
         if (CTFEExp::isGotoExp(e))
         {
             /* This is an optimization that relies on the locality of the jump target.
@@ -1934,7 +1934,7 @@ public:
             InterState istatex = *istate;
             istatex.start = istate->gotoTarget; // set starting statement
             istatex.gotoTarget = NULL;
-            Expression *ex = interpret(s->body, &istatex);
+            Expression *ex = interpret(s->_body, &istatex);
             if (!istatex.start)
             {
                 istate->gotoTarget = NULL;
@@ -2259,29 +2259,29 @@ public:
             if (v->ident == Id::ctfe)
                 return new IntegerExp(loc, 1, Type::tbool);
 
-            if (!v->originalType && v->scope)   // semantic() not yet run
+            if (!v->originalType && v->_scope)   // semantic() not yet run
             {
-                v->semantic (v->scope);
+                v->semantic (v->_scope);
                 if (v->type->ty == Terror)
                     return CTFEExp::cantexp;
             }
 
             if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) &&
                 !hasValue(v) &&
-                v->init && !v->isCTFE())
+                v->_init && !v->isCTFE())
             {
                 if (v->inuse)
                 {
                     error(loc, "circular initialization of %s", v->toChars());
                     return CTFEExp::cantexp;
                 }
-                if (v->scope)
+                if (v->_scope)
                 {
                     v->inuse++;
-                    v->init = v->init->semantic(v->scope, v->type, INITinterpret); // might not be run on aggregate members
+                    v->_init = v->_init->semantic(v->_scope, v->type, INITinterpret); // might not be run on aggregate members
                     v->inuse--;
                 }
-                e = v->init->toExpression(v->type);
+                e = v->_init->toExpression(v->type);
                 if (!e)
                     return CTFEExp::cantexp;
                 assert(e->type);
@@ -2317,16 +2317,16 @@ public:
             }
             else if (v->isCTFE() && !hasValue(v))
             {
-                if (v->init && v->type->size() != 0)
+                if (v->_init && v->type->size() != 0)
                 {
-                    if (v->init->isVoidInitializer())
+                    if (v->_init->isVoidInitializer())
                     {
                         // var should have been initialized when it was created
                         error(loc, "CTFE internal error: trying to access uninitialized var");
                         assert(0);
                         return CTFEExp::cantexp;
                     }
-                    e = v->init->toExpression();
+                    e = v->_init->toExpression();
                 }
                 else
                     e = v->type->defaultInitLiteral(e->loc);
@@ -2348,7 +2348,7 @@ public:
                 }
                 if (!e)
                 {
-                    assert(!(v->init && v->init->isVoidInitializer()));
+                    assert(!(v->_init && v->_init->isVoidInitializer()));
                     // CTFE initiated from inside a function
                     error(loc, "variable %s cannot be read at compile time", v->toChars());
                     return CTFEExp::cantexp;
@@ -2472,16 +2472,16 @@ public:
                         continue;
 
                     ctfeStack.push(v2);
-                    if (v2->init)
+                    if (v2->_init)
                     {
                         Expression *einit;
-                        if (ExpInitializer *ie = v2->init->isExpInitializer())
+                        if (ExpInitializer *ie = v2->_init->isExpInitializer())
                         {
                             einit = interpret(ie->exp, istate, goal);
                             if (exceptionOrCant(einit))
                                 return;
                         }
-                        else if (v2->init->isVoidInitializer())
+                        else if (v2->_init->isVoidInitializer())
                         {
                             einit = voidInitLiteral(v2->type, v2).copy();
                         }
@@ -2504,13 +2504,13 @@ public:
             }
             if (!(v->isDataseg() || v->storage_class & STCmanifest) || v->isCTFE())
                 ctfeStack.push(v);
-            if (v->init)
+            if (v->_init)
             {
-                if (ExpInitializer *ie = v->init->isExpInitializer())
+                if (ExpInitializer *ie = v->_init->isExpInitializer())
                 {
                     result = interpret(ie->exp, istate, goal);
                 }
-                else if (v->init->isVoidInitializer())
+                else if (v->_init->isVoidInitializer())
                 {
                     result = voidInitLiteral(v->type, v).copy();
                     // There is no AssignExp for void initializers,
@@ -3038,9 +3038,9 @@ public:
                         return;
                     }
                     Expression *m;
-                    if (v->init)
+                    if (v->_init)
                     {
-                        if (v->init->isVoidInitializer())
+                        if (v->_init->isVoidInitializer())
                             m = voidInitLiteral(v->type, v).copy();
                         else
                             m = v->getConstInitializer(true);
@@ -5007,13 +5007,13 @@ public:
             VarExp *ve = (VarExp *)e->e2;
             VarDeclaration *v = ve->var->isVarDeclaration();
             ctfeStack.push(v);
-            if (!v->init && !getValue(v))
+            if (!v->_init && !getValue(v))
             {
                 setValue(v, copyLiteral(v->type->defaultInitLiteral(e->loc)).copy());
             }
             if (!getValue(v))
             {
-                Expression *newval = v->init->toExpression();
+                Expression *newval = v->_init->toExpression();
                 // Bug 4027. Copy constructors are a weird case where the
                 // initializer is a void function (the variable is modified
                 // through a reference parameter instead).

@@ -1262,7 +1262,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                             for (size_t i = 0; i < cd->fields.dim; i++)
                             {
                                 VarDeclaration *v = cd->fields[i];
-                                Initializer *init = v->init;
+                                Initializer *init = v->_init;
                                 if (init)
                                 {
                                     if (init->isVoidInitializer())
@@ -3716,7 +3716,7 @@ IntRange getIntRange(Expression *e)
             VarDeclaration* vd = e->var->isVarDeclaration();
             if (vd && vd->range)
                 range = vd->range->cast(e->type);
-            else if (vd && vd->init && !vd->type->isMutable() &&
+            else if (vd && vd->_init && !vd->type->isMutable() &&
                 (ie = vd->getConstInitializer()) != NULL)
                 ie->accept(this);
             else

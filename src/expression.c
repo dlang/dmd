@@ -545,9 +545,9 @@ bool checkPropertyCall(Expression *e, Expression *emsg)
             tf = (TypeFunction *)ce->f->type;
             /* If a forward reference to ce->f, try to resolve it
              */
-            if (!tf->deco && ce->f->scope)
+            if (!tf->deco && ce->f->_scope)
             {
-                ce->f->semantic(ce->f->scope);
+                ce->f->semantic(ce->f->_scope);
                 tf = (TypeFunction *)ce->f->type;
             }
         }
@@ -609,7 +609,7 @@ Expression *resolvePropertiesOnly(Scope *sc, Expression *e1)
             {
                 if (((TypeFunction *)fd->type)->isproperty ||
                     (fd->storage_class2 & STCproperty) ||
-                    (td->scope->stc & STCproperty))
+                    (td->_scope->stc & STCproperty))
                 {
                     return resolveProperties(sc, e1);
                 }
@@ -650,7 +650,7 @@ Expression *resolvePropertiesOnly(Scope *sc, Expression *e1)
         {
             if (((TypeFunction *)fd->type)->isproperty ||
                 (fd->storage_class2 & STCproperty) ||
-                (td->scope->stc & STCproperty))
+                (td->_scope->stc & STCproperty))
             {
                 return resolveProperties(sc, e1);
             }
@@ -697,7 +697,7 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
             // selective/renamed imports also be picked up
             if (AliasDeclaration *ad = s->isAliasDeclaration())
             {
-                if (ad->import)
+                if (ad->_import)
                     break;
             }
             // See only module scope symbols for UFCS target.
@@ -3356,9 +3356,9 @@ Lagain:
         /* Bugzilla 12023: forward reference should be resolved
          * before 's->needThis()' is called.
          */
-        if ((!v->type || !v->type->deco) && v->scope)
+        if ((!v->type || !v->type->deco) && v->_scope)
         {
-            v->semantic(v->scope);
+            v->semantic(v->_scope);
             s = v->toAlias();   // Need this if 'v' is a tuple variable
         }
 
@@ -3394,7 +3394,7 @@ Lagain:
                 return new ErrorExp();
             }
         }
-        if ((v->storage_class & STCmanifest) && v->init)
+        if ((v->storage_class & STCmanifest) && v->_init)
         {
             // Detect recursive initializers.
             // BUG: The check for speculative gagging is not correct
@@ -3403,14 +3403,14 @@ Lagain:
                 error("circular initialization of %s", v->toChars());
                 return new ErrorExp();
             }
-            if (v->scope)
+            if (v->_scope)
             {
                 v->inuse++;
-                v->init = v->init->semantic(v->scope, v->type, INITinterpret);
-                v->scope = NULL;
+                v->_init = v->_init->semantic(v->_scope, v->type, INITinterpret);
+                v->_scope = NULL;
                 v->inuse--;
             }
-            e = v->init->toExpression(v->type);
+            e = v->_init->toExpression(v->type);
             if (!e)
             {
                 error("cannot make expression out of initializer for %s", v->toChars());
@@ -3514,7 +3514,7 @@ Lagain:
         FuncDeclaration *fdthis = hasThis(sc);
         AggregateDeclaration *ad = p ? p->isAggregateDeclaration() : NULL;
         if (fdthis && ad && isAggregate(fdthis->vthis->type) == ad &&
-            (td->scope->stc & STCstatic) == 0)
+            (td->_scope->stc & STCstatic) == 0)
         {
             e = new DotTemplateExp(loc, new ThisExp(loc), td);
         }
@@ -4003,8 +4003,8 @@ int StringExp::compare(RootObject *obj)
 
             case 2:
             {
-                d_wchar *s1 = (d_wchar *)string;
-                d_wchar *s2 = (d_wchar *)se2->string;
+                d_uns16 *s1 = (d_uns16 *)string;
+                d_uns16 *s2 = (d_uns16 *)se2->string;
 
                 for (size_t u = 0; u < len; u++)
                 {
@@ -4015,8 +4015,8 @@ int StringExp::compare(RootObject *obj)
 
             case 4:
             {
-                d_dchar *s1 = (d_dchar *)string;
-                d_dchar *s2 = (d_dchar *)se2->string;
+                d_uns32 *s1 = (d_uns32 *)string;
+                d_uns32 *s2 = (d_uns32 *)se2->string;
 
                 for (size_t u = 0; u < len; u++)
                 {
@@ -4644,7 +4644,7 @@ Lagain:
                 FuncDeclaration *fdthis = hasThis(sc);
                 AggregateDeclaration *ad = p ? p->isAggregateDeclaration() : NULL;
                 if (fdthis && ad && isAggregate(fdthis->vthis->type) == ad &&
-                    (td->scope->stc & STCstatic) == 0)
+                    (td->_scope->stc & STCstatic) == 0)
                 {
                     Expression *e = new DotTemplateInstanceExp(loc, new ThisExp(loc), ti->name, ti->tiargs);
                     return e->semantic(sc);
@@ -5744,7 +5744,7 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
         }
 
         // Parameter types inference from 'tof'
-        assert(td->scope);
+        assert(td->_scope);
         TypeFunction *tf = (TypeFunction *)fd->type;
         //printf("\ttof = %s\n", tof->toChars());
         //printf("\ttf  = %s\n", tf->toChars());
@@ -5783,7 +5783,7 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
             fd->treq = to;
 
         TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
-        Expression *ex = (new ScopeExp(loc, ti))->semantic(td->scope);
+        Expression *ex = (new ScopeExp(loc, ti))->semantic(td->_scope);
 
         // Reset inference target for the later re-semantic
         fd->treq = NULL;
@@ -6310,8 +6310,8 @@ Expression *IsExp::semantic(Scope *sc)
                     ClassDeclaration *cd = ((TypeClass *)targ)->sym;
                     Parameters *args = new Parameters;
                     args->reserve(cd->baseclasses->dim);
-                    if (cd->scope && !cd->symtab)
-                        cd->semantic(cd->scope);
+                    if (cd->_scope && !cd->symtab)
+                        cd->semantic(cd->_scope);
                     for (size_t i = 0; i < cd->baseclasses->dim; i++)
                     {
                         BaseClass *b = (*cd->baseclasses)[i];
@@ -13821,9 +13821,9 @@ void CondExp::hookDtors(Scope *sc)
             VarDeclaration *v = e->declaration->isVarDeclaration();
             if (v && !v->noscope && !v->isDataseg())
             {
-                if (v->init)
+                if (v->_init)
                 {
-                    ExpInitializer *ei = v->init->isExpInitializer();
+                    ExpInitializer *ei = v->_init->isExpInitializer();
                     if (ei)
                         ei->exp->accept(this);
                 }

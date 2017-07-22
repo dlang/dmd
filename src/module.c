@@ -673,7 +673,7 @@ void Module::importAll(Scope *prevsc)
 {
     //printf("+Module::importAll(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
 
-    if (scope)
+    if (_scope)
         return;                 // already done
 
     if (isDocFile)
@@ -752,7 +752,7 @@ void Module::semantic()
     // Note that modules get their own scope, from scratch.
     // This is so regardless of where in the syntax a module
     // gets imported, it is unaffected by context.
-    Scope *sc = scope;                  // see if already got one from importAll()
+    Scope *sc = _scope;                  // see if already got one from importAll()
     if (!sc)
     {
         Scope::createGlobal(this);      // create root scope
@@ -775,7 +775,7 @@ void Module::semantic()
         userAttribDecl->semantic(sc);
     }
 
-    if (!scope)
+    if (!_scope)
     {
         sc = sc->pop();
         sc->pop();              // 2 pops because Scope::createGlobal() created 2

@@ -273,11 +273,11 @@ void ClassDeclaration::semantic(Scope *sc)
     //printf("+ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
 
     Scope *scx = NULL;
-    if (scope)
+    if (_scope)
     {
-        sc = scope;
-        scx = scope;            // save so we don't make redundant copies
-        scope = NULL;
+        sc = _scope;
+        scx = _scope;            // save so we don't make redundant copies
+        _scope = NULL;
     }
 
     if (!parent)
@@ -339,15 +339,15 @@ void ClassDeclaration::semantic(Scope *sc)
         // Expand any tuples in baseclasses[]
         for (size_t i = 0; i < baseclasses->dim; )
         {
-            scope = scx ? scx : sc->copy();
-            scope->setNoFree();
+            _scope = scx ? scx : sc->copy();
+            _scope->setNoFree();
 
             BaseClass *b = (*baseclasses)[i];
             //printf("+ %s [%d] b->type = %s\n", toChars(), i, b->type->toChars());
             b->type = b->type->semantic(loc, sc);
             //printf("- %s [%d] b->type = %s\n", toChars(), i, b->type->toChars());
 
-            scope = NULL;
+            _scope = NULL;
 
             Type *tb = b->type->toBasetype();
             if (tb->ty == Ttuple)
@@ -421,13 +421,13 @@ void ClassDeclaration::semantic(Scope *sc)
             baseClass = tc->sym;
             b->sym = baseClass;
 
-            if (tc->sym->scope && tc->sym->baseok < BASEOKdone)
+            if (tc->sym->_scope && tc->sym->baseok < BASEOKdone)
                 tc->sym->semantic(NULL);    // Try to resolve forward reference
             if (tc->sym->baseok < BASEOKdone)
             {
                 //printf("\ttry later, forward reference of base class %s\n", tc->sym->toChars());
-                if (tc->sym->scope)
-                    tc->sym->scope->module->addDeferredSemantic(tc->sym);
+                if (tc->sym->_scope)
+                    tc->sym->_scope->module->addDeferredSemantic(tc->sym);
                 baseok = BASEOKnone;
             }
          L7: ;
@@ -473,13 +473,13 @@ void ClassDeclaration::semantic(Scope *sc)
 
             b->sym = tc->sym;
 
-            if (tc->sym->scope && tc->sym->baseok < BASEOKdone)
+            if (tc->sym->_scope && tc->sym->baseok < BASEOKdone)
                 tc->sym->semantic(NULL);    // Try to resolve forward reference
             if (tc->sym->baseok < BASEOKdone)
             {
                 //printf("\ttry later, forward reference of base %s\n", tc->sym->toChars());
-                if (tc->sym->scope)
-                    tc->sym->scope->module->addDeferredSemantic(tc->sym);
+                if (tc->sym->_scope)
+                    tc->sym->_scope->module->addDeferredSemantic(tc->sym);
                 baseok = BASEOKnone;
             }
             i++;
@@ -487,9 +487,9 @@ void ClassDeclaration::semantic(Scope *sc)
         if (baseok == BASEOKnone)
         {
             // Forward referencee of one or more bases, try again later
-            scope = scx ? scx : sc->copy();
-            scope->setNoFree();
-            scope->module->addDeferredSemantic(this);
+            _scope = scx ? scx : sc->copy();
+            _scope->setNoFree();
+            _scope->module->addDeferredSemantic(this);
             //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
             return;
         }
@@ -613,11 +613,11 @@ Lancestorsdone:
         if (tc->sym->semanticRun < PASSsemanticdone)
         {
             // Forward referencee of one or more bases, try again later
-            scope = scx ? scx : sc->copy();
-            scope->setNoFree();
-            if (tc->sym->scope)
-                tc->sym->scope->module->addDeferredSemantic(tc->sym);
-            scope->module->addDeferredSemantic(this);
+            _scope = scx ? scx : sc->copy();
+            _scope->setNoFree();
+            if (tc->sym->_scope)
+                tc->sym->_scope->module->addDeferredSemantic(tc->sym);
+            _scope->module->addDeferredSemantic(this);
             //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
             return;
         }
@@ -732,9 +732,9 @@ Lancestorsdone:
 
         sc2->pop();
 
-        scope = scx ? scx : sc->copy();
-        scope->setNoFree();
-        scope->module->addDeferredSemantic(this);
+        _scope = scx ? scx : sc->copy();
+        _scope->setNoFree();
+        _scope->module->addDeferredSemantic(this);
 
         Module::dprogress = dprogress_save;
         //printf("\tsemantic('%s') failed due to forward references\n", toChars());
@@ -764,9 +764,9 @@ LafterSizeok:
 
         sc2->pop();
 
-        scope = scx ? scx : sc->copy();
-        scope->setNoFree();
-        scope->module->addDeferredSemantic(this);
+        _scope = scx ? scx : sc->copy();
+        _scope->setNoFree();
+        _scope->module->addDeferredSemantic(this);
 
         //printf("\tdeferring %s\n", toChars());
         return;
@@ -894,10 +894,10 @@ bool ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
     {
         /* cd->baseClass might not be set if cd is forward referenced.
          */
-        if (!cd->baseClass && cd->scope && !cd->isInterfaceDeclaration())
+        if (!cd->baseClass && cd->_scope && !cd->isInterfaceDeclaration())
         {
             cd->semantic(NULL);
-            if (!cd->baseClass && cd->scope)
+            if (!cd->baseClass && cd->_scope)
                 cd->error("base class is forward referenced by %s", toChars());
         }
 
@@ -923,8 +923,8 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
 {
     //printf("%s.ClassDeclaration::search('%s')\n", toChars(), ident->toChars());
 
-    //if (scope) printf("%s baseok = %d\n", toChars(), baseok);
-    if (scope && baseok < BASEOKdone)
+    //if (_scope) printf("%s baseok = %d\n", toChars(), baseok);
+    if (_scope && baseok < BASEOKdone)
     {
         if (!inuse)
         {
@@ -1339,11 +1339,11 @@ void InterfaceDeclaration::semantic(Scope *sc)
     int errors = global.errors;
 
     Scope *scx = NULL;
-    if (scope)
+    if (_scope)
     {
-        sc = scope;
-        scx = scope;            // save so we don't make redundant copies
-        scope = NULL;
+        sc = _scope;
+        scx = _scope;            // save so we don't make redundant copies
+        _scope = NULL;
     }
 
     if (!parent)
@@ -1391,13 +1391,13 @@ void InterfaceDeclaration::semantic(Scope *sc)
         // Expand any tuples in baseclasses[]
         for (size_t i = 0; i < baseclasses->dim; )
         {
-            scope = scx ? scx : sc->copy();
-            scope->setNoFree();
+            _scope = scx ? scx : sc->copy();
+            _scope->setNoFree();
 
             BaseClass *b = (*baseclasses)[i];
             b->type = b->type->semantic(loc, sc);
 
-            scope = NULL;
+            _scope = NULL;
 
             Type *tb = b->type->toBasetype();
             if (tb->ty == Ttuple)
@@ -1475,13 +1475,13 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
             b->sym = tc->sym;
 
-            if (tc->sym->scope && tc->sym->baseok < BASEOKdone)
+            if (tc->sym->_scope && tc->sym->baseok < BASEOKdone)
                 tc->sym->semantic(NULL);    // Try to resolve forward reference
             if (tc->sym->baseok < BASEOKdone)
             {
                 //printf("\ttry later, forward reference of base %s\n", tc->sym->toChars());
-                if (tc->sym->scope)
-                    tc->sym->scope->module->addDeferredSemantic(tc->sym);
+                if (tc->sym->_scope)
+                    tc->sym->_scope->module->addDeferredSemantic(tc->sym);
                 baseok = BASEOKnone;
             }
             i++;
@@ -1489,9 +1489,9 @@ void InterfaceDeclaration::semantic(Scope *sc)
         if (baseok == BASEOKnone)
         {
             // Forward referencee of one or more bases, try again later
-            scope = scx ? scx : sc->copy();
-            scope->setNoFree();
-            scope->module->addDeferredSemantic(this);
+            _scope = scx ? scx : sc->copy();
+            _scope->setNoFree();
+            _scope->module->addDeferredSemantic(this);
             return;
         }
         baseok = BASEOKdone;
@@ -1532,11 +1532,11 @@ Lancestorsdone:
         if (tc->sym->semanticRun < PASSsemanticdone)
         {
             // Forward referencee of one or more bases, try again later
-            scope = scx ? scx : sc->copy();
-            scope->setNoFree();
-            if (tc->sym->scope)
-                tc->sym->scope->module->addDeferredSemantic(tc->sym);
-            scope->module->addDeferredSemantic(this);
+            _scope = scx ? scx : sc->copy();
+            _scope->setNoFree();
+            if (tc->sym->_scope)
+                tc->sym->_scope->module->addDeferredSemantic(tc->sym);
+            _scope->module->addDeferredSemantic(this);
             return;
         }
     }

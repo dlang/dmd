@@ -660,8 +660,8 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                 e->error("argument %s has no protection", o->toChars());
             goto Lfalse;
         }
-        if (s->scope)
-            s->semantic(s->scope);
+        if (s->_scope)
+            s->semantic(s->_scope);
 
         const char *protName = protectionToChars(s->prot().kind);   // TODO: How about package(names)
         assert(protName);
@@ -838,8 +838,8 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         }
         if (cd->sizeok == SIZEOKnone)
         {
-            if (cd->scope)
-                cd->semantic(cd->scope);
+            if (cd->_scope)
+                cd->semantic(cd->_scope);
         }
         if (cd->sizeok != SIZEOKdone)
         {
@@ -890,7 +890,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         {
             s = s->isImport()->mod;
         }
-        //printf("getAttributes %s, attrs = %p, scope = %p\n", s->toChars(), s->userAttribDecl, s->scope);
+        //printf("getAttributes %s, attrs = %p, scope = %p\n", s->toChars(), s->userAttribDecl, s->_scope);
         UserAttributeDeclaration *udad = s->userAttribDecl;
         TupleExp *tup = new TupleExp(e->loc, udad ? udad->getAttributes() : new Expressions());
         return tup->semantic(sc);
@@ -1024,7 +1024,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         ClassDeclaration *cd = sds->isClassDeclaration();
         if (cd && e->ident == Id::allMembers)
         {
-            if (cd->scope)
+            if (cd->_scope)
                 cd->semantic(NULL);    // Bugzilla 13668: Try to resolve forward reference
 
             struct PushBaseMembers

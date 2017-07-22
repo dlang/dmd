@@ -1583,7 +1583,7 @@ private:
         char sliceexp  [sizeof(SliceExp)];
 
         // Ensure that the union is suitably aligned.
-        longdouble for_alignment_only;
+        real_t for_alignment_only;
     } u;
 };
 

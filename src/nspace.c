@@ -41,10 +41,10 @@ void Nspace::semantic(Scope *sc)
 #if LOG
     printf("+Nspace::semantic('%s')\n", toChars());
 #endif
-    if (scope)
+    if (_scope)
     {
-        sc = scope;
-        scope = NULL;
+        sc = _scope;
+        _scope = NULL;
     }
     parent = sc->parent;
     if (members)
@@ -200,7 +200,7 @@ bool Nspace::hasPointers()
 void Nspace::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion)
 {
     //printf("Nspace::setFieldOffset() %s\n", toChars());
-    if (scope)                  // if fwd reference
+    if (_scope)                  // if fwd reference
         semantic(NULL);         // try to resolve it
     if (members)
     {

@@ -34,8 +34,8 @@ Expression *expandVar(int result, VarDeclaration *v)
     Expression *e = NULL;
     if (!v)
         return e;
-    if (!v->originalType && v->scope)   // semantic() not yet run
-        v->semantic (v->scope);
+    if (!v->originalType && v->_scope)   // semantic() not yet run
+        v->semantic (v->_scope);
 
     if (v->isConst() || v->isImmutable() || v->storage_class & STCmanifest)
     {
@@ -49,7 +49,7 @@ Expression *expandVar(int result, VarDeclaration *v)
             ((result & WANTexpand) && (tb->ty != Tsarray && tb->ty != Tstruct))
            )
         {
-            if (v->init)
+            if (v->_init)
             {
                 if (v->inuse)
                 {
@@ -65,7 +65,7 @@ Expression *expandVar(int result, VarDeclaration *v)
                 {
                     if (v->storage_class & STCmanifest)
                     {
-                        v->error("enum cannot be initialized with %s", v->init->toChars());
+                        v->error("enum cannot be initialized with %s", v->_init->toChars());
                         goto Lerror;
                     }
                     goto L1;
@@ -928,7 +928,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             if (e->e1->op == TOKvar)
             {
                 VarDeclaration *v = ((VarExp *)e->e1)->var->isVarDeclaration();
-                if (v && (v->storage_class & STCstatic) && (v->storage_class & STCimmutable) && v->init)
+                if (v && (v->storage_class & STCstatic) && (v->storage_class & STCimmutable) && v->_init)
                 {
                     if (Expression *ci = v->getConstInitializer())
                         e->e1 = ci;
@@ -991,7 +991,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         {
             if (!lengthVar)
                 return;
-            if (lengthVar->init && !lengthVar->init->isVoidInitializer())
+            if (lengthVar->_init && !lengthVar->_init->isVoidInitializer())
                 return; // we have previously calculated the length
             size_t len;
             if (arr->op == TOKstring)
@@ -1008,7 +1008,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             }
 
             Expression *dollar = new IntegerExp(Loc(), len, Type::tsize_t);
-            lengthVar->init = new ExpInitializer(Loc(), dollar);
+            lengthVar->_init = new ExpInitializer(Loc(), dollar);
             lengthVar->storage_class |= STCstatic | STCconst;
         }
 

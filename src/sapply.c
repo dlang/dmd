@@ -75,23 +75,23 @@ public:
     }
     void visit(WhileStatement *s)
     {
-        doCond(s->body) || applyTo(s);
+        doCond(s->_body) || applyTo(s);
     }
     void visit(DoStatement *s)
     {
-        doCond(s->body) || applyTo(s);
+        doCond(s->_body) || applyTo(s);
     }
     void visit(ForStatement *s)
     {
-        doCond(s->init) || doCond(s->body) || applyTo(s);
+        doCond(s->_init) || doCond(s->_body) || applyTo(s);
     }
     void visit(ForeachStatement *s)
     {
-        doCond(s->body) || applyTo(s);
+        doCond(s->_body) || applyTo(s);
     }
     void visit(ForeachRangeStatement *s)
     {
-        doCond(s->body) || applyTo(s);
+        doCond(s->_body) || applyTo(s);
     }
     void visit(IfStatement *s)
     {
@@ -99,11 +99,11 @@ public:
     }
     void visit(PragmaStatement *s)
     {
-        doCond(s->body) || applyTo(s);
+        doCond(s->_body) || applyTo(s);
     }
     void visit(SwitchStatement *s)
     {
-        doCond(s->body) || applyTo(s);
+        doCond(s->_body) || applyTo(s);
     }
     void visit(CaseStatement *s)
     {
@@ -115,15 +115,15 @@ public:
     }
     void visit(SynchronizedStatement *s)
     {
-        doCond(s->body) || applyTo(s);
+        doCond(s->_body) || applyTo(s);
     }
     void visit(WithStatement *s)
     {
-        doCond(s->body) || applyTo(s);
+        doCond(s->_body) || applyTo(s);
     }
     void visit(TryCatchStatement *s)
     {
-        if (doCond(s->body))
+        if (doCond(s->_body))
             return;
 
         for (size_t i = 0; i < s->catches->dim; i++)
@@ -133,7 +133,7 @@ public:
     }
     void visit(TryFinallyStatement *s)
     {
-        doCond(s->body) || doCond(s->finalbody) || applyTo(s);
+        doCond(s->_body) || doCond(s->finalbody) || applyTo(s);
     }
     void visit(OnScopeStatement *s)
     {

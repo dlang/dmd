@@ -294,10 +294,10 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag)
 
                 if (v->storage_class & STCref &&
                     v->storage_class & (STCforeach | STCtemp) &&
-                    v->init)
+                    v->_init)
                 {
                     // (ref v = ex; ex)
-                    if (ExpInitializer *ez = v->init->isExpInitializer())
+                    if (ExpInitializer *ez = v->_init->isExpInitializer())
                     {
                         assert(ez->exp && ez->exp->op == TOKconstruct);
                         Expression *ex = ((ConstructExp *)ez->exp)->e2;

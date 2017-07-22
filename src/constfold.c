@@ -312,7 +312,7 @@ UnionExp Mul(Type *type, Expression *e1, Expression *e2)
     if (type->isfloating())
     {
         complex_t c;
-        d_float80 r;
+        real_t r;
 
         if (e1->type->isreal())
         {
@@ -365,7 +365,7 @@ UnionExp Div(Type *type, Expression *e1, Expression *e2)
     if (type->isfloating())
     {
         complex_t c;
-        d_float80 r;
+        real_t r;
 
         //e1->type->print();
         //e2->type->print();

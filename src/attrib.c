@@ -47,7 +47,7 @@ Dsymbols *AttribDeclaration::include(Scope *sc, ScopeDsymbol *sds)
 
 int AttribDeclaration::apply(Dsymbol_apply_ft_t fp, void *param)
 {
-    Dsymbols *d = include(scope, NULL);
+    Dsymbols *d = include(_scope, NULL);
 
     if (d)
     {
@@ -1069,9 +1069,9 @@ bool ConditionalDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 
 Dsymbols *ConditionalDeclaration::include(Scope *sc, ScopeDsymbol *sds)
 {
-    //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, scope);
+    //printf("ConditionalDeclaration::include(sc = %p) _scope = %p\n", sc, _scope);
     assert(condition);
-    return condition->include(scope ? scope : sc, sds) ? decl : elsedecl;
+    return condition->include(_scope ? _scope : sc, sds) ? decl : elsedecl;
 }
 
 void ConditionalDeclaration::setScope(Scope *sc)
@@ -1125,7 +1125,7 @@ StaticIfDeclaration::StaticIfDeclaration(Condition *condition,
 {
     //printf("StaticIfDeclaration::StaticIfDeclaration()\n");
     scopesym = NULL;
-    addisdone = 0;
+    addisdone = false;
 }
 
 Dsymbol *StaticIfDeclaration::syntaxCopy(Dsymbol *s)
@@ -1142,14 +1142,14 @@ Dsymbol *StaticIfDeclaration::syntaxCopy(Dsymbol *s)
  */
 Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sds)
 {
-    //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, scope);
+    //printf("StaticIfDeclaration::include(sc = %p) _scope = %p\n", sc, _scope);
 
     if (condition->inc == 0)
     {
         assert(scopesym);   // addMember is already done
-        assert(scope);      // setScope is already done
+        assert(_scope);      // setScope is already done
 
-        Dsymbols *d = ConditionalDeclaration::include(scope, scopesym);
+        Dsymbols *d = ConditionalDeclaration::include(_scope, scopesym);
 
         if (d && !addisdone)
         {
@@ -1157,17 +1157,17 @@ Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sds)
             for (size_t i = 0; i < d->dim; i++)
             {
                 Dsymbol *s = (*d)[i];
-                s->addMember(scope, scopesym);
+                s->addMember(_scope, scopesym);
             }
 
             // Set the member scopes lazily.
             for (size_t i = 0; i < d->dim; i++)
             {
                 Dsymbol *s = (*d)[i];
-                s->setScope(scope);
+                s->setScope(_scope);
             }
 
-            addisdone = 1;
+            addisdone = true;
         }
         return d;
     }
@@ -1228,7 +1228,7 @@ CompileDeclaration::CompileDeclaration(Loc loc, Expression *exp)
     this->loc = loc;
     this->exp = exp;
     this->scopesym = NULL;
-    this->compiled = 0;
+    this->compiled = false;
 }
 
 Dsymbol *CompileDeclaration::syntaxCopy(Dsymbol *s)
@@ -1289,14 +1289,14 @@ void CompileDeclaration::semantic(Scope *sc)
     {
         compileIt(sc);
         AttribDeclaration::addMember(sc, scopesym);
-        compiled = 1;
+        compiled = true;
 
-        if (scope && decl)
+        if (_scope && decl)
         {
             for (size_t i = 0; i < decl->dim; i++)
             {
                 Dsymbol *s = (*decl)[i];
-                s->setScope(scope);
+                s->setScope(_scope);
             }
         }
     }
@@ -1350,7 +1350,7 @@ void UserAttributeDeclaration::setScope(Scope *sc)
 void UserAttributeDeclaration::semantic(Scope *sc)
 {
     //printf("UserAttributeDeclaration::semantic() %p\n", this);
-    if (decl && !scope)
+    if (decl && !_scope)
         Dsymbol::setScope(sc);  // for function local symbols
 
     return AttribDeclaration::semantic(sc);
@@ -1360,9 +1360,9 @@ void UserAttributeDeclaration::semantic2(Scope *sc)
 {
     if (decl && atts && atts->dim)
     {
-        if (atts && atts->dim && scope)
+        if (atts && atts->dim && _scope)
         {
-            scope = NULL;
+            _scope = NULL;
             arrayExpressionSemantic(atts, sc, true);  // run semantic
         }
     }
@@ -1391,10 +1391,10 @@ Expressions *UserAttributeDeclaration::concat(Expressions *udas1, Expressions *u
 
 Expressions *UserAttributeDeclaration::getAttributes()
 {
-    if (scope)
+    if (_scope)
     {
-        Scope *sc = scope;
-        scope = NULL;
+        Scope *sc = _scope;
+        _scope = NULL;
         arrayExpressionSemantic(atts, sc);
     }
 

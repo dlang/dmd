@@ -236,15 +236,15 @@ typedef uint32_t                d_uns32;
 typedef int64_t                 d_int64;
 typedef uint64_t                d_uns64;
 
-typedef float                   d_float32;
-typedef double                  d_float64;
-typedef longdouble              d_float80;
-
-typedef d_uns8                  d_char;
-typedef d_uns16                 d_wchar;
-typedef d_uns32                 d_dchar;
-
 typedef longdouble real_t;
+
+// Represents a D [ ] array
+template<typename T>
+struct DArray
+{
+    size_t length;
+    T *ptr;
+};
 
 // file location
 struct Loc

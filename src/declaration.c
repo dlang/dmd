@@ -175,7 +175,7 @@ Dsymbol *Declaration::search(Loc loc, Identifier *ident, int flags)
     Dsymbol *s = Dsymbol::search(loc, ident, flags);
     if (!s && type)
     {
-        s = type->toDsymbol(scope);
+        s = type->toDsymbol(_scope);
         if (s)
             s = s->search(loc, ident, flags);
     }
@@ -309,7 +309,7 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Type *type)
     this->loc = loc;
     this->type = type;
     this->aliassym = NULL;
-    this->import = NULL;
+    this->_import = NULL;
     this->overnext = NULL;
     assert(type);
 }
@@ -322,7 +322,7 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Dsymbol *s)
     this->loc = loc;
     this->type = NULL;
     this->aliassym = s;
-    this->import = NULL;
+    this->_import = NULL;
     this->overnext = NULL;
     assert(s);
 }
@@ -573,11 +573,11 @@ Dsymbol *AliasDeclaration::toAlias()
     //    loc.toChars(), toChars(), this, aliassym, aliassym ? aliassym->kind() : "", inuse);
     assert(this != aliassym);
     //static int count; if (++count == 10) *(char*)0=0;
-    if (inuse == 1 && type && scope)
+    if (inuse == 1 && type && _scope)
     {
         inuse = 2;
         unsigned olderrors = global.errors;
-        Dsymbol *s = type->toDsymbol(scope);
+        Dsymbol *s = type->toDsymbol(_scope);
         //printf("[%s] type = %s, s = %p, this = %p\n", loc.toChars(), type->toChars(), s, this);
         if (global.errors != olderrors)
             goto Lerr;
@@ -591,7 +591,7 @@ Dsymbol *AliasDeclaration::toAlias()
         }
         else
         {
-            Type *t = type->semantic(loc, scope);
+            Type *t = type->semantic(loc, _scope);
             if (t->ty == Terror)
                 goto Lerr;
             if (global.errors != olderrors)
@@ -616,15 +616,15 @@ Dsymbol *AliasDeclaration::toAlias()
 
     if (aliassym || type->deco)
         ;   // semantic is already done.
-    else if (import && import->scope)
+    else if (_import && _import->_scope)
     {
         /* If this is an internal alias for selective/renamed import,
          * resolve it under the correct scope.
          */
-        import->semantic(NULL);
+        _import->semantic(NULL);
     }
-    else if (scope)
-        semantic(scope);
+    else if (_scope)
+        semantic(_scope);
     inuse = 1;
     Dsymbol *s = aliassym ? aliassym->toAlias() : this;
     inuse = 0;
@@ -777,7 +777,7 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
 #endif
     assert(type || init);
     this->type = type;
-    this->init = init;
+    this->_init = init;
     this->loc = loc;
     offset = 0;
     noscope = 0;
@@ -802,7 +802,7 @@ Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
     VarDeclaration *v = new VarDeclaration(loc,
             type ? type->syntaxCopy() : NULL,
             ident,
-            init ? init->syntaxCopy() : NULL);
+            _init ? _init->syntaxCopy() : NULL);
     v->storage_class = storage_class;
     return v;
 }
@@ -827,18 +827,18 @@ void VarDeclaration::semantic(Scope *sc)
         return;
 
     Scope *scx = NULL;
-    if (scope)
+    if (_scope)
     {
-        sc = scope;
+        sc = _scope;
         scx = sc;
-        scope = NULL;
+        _scope = NULL;
     }
 
     /* Pick up storage classes from context, but except synchronized,
      * override, abstract, and final.
      */
     storage_class |= (sc->stc & ~(STCsynchronized | STCoverride | STCabstract | STCfinal));
-    if (storage_class & STCextern && init)
+    if (storage_class & STCextern && _init)
         error("extern symbols cannot have initializers");
 
     userAttribDecl = sc->userAttribDecl;
@@ -859,9 +859,9 @@ void VarDeclaration::semantic(Scope *sc)
         bool needctfe = (storage_class & (STCmanifest | STCstatic)) != 0;
         if (needctfe) sc = sc->startCTFE();
 
-        //printf("inferring type for %s with init %s\n", toChars(), init->toChars());
-        init = init->inferType(sc);
-        type = init->toExpression()->type;
+        //printf("inferring type for %s with init %s\n", toChars(), _init->toChars());
+        _init = _init->inferType(sc);
+        type = _init->toExpression()->type;
 
         if (needctfe) sc = sc->endCTFE();
 
@@ -920,7 +920,7 @@ void VarDeclaration::semantic(Scope *sc)
             if (sc->func->setUnsafe())
                 error("__gshared not allowed in safe functions; use shared");
         }
-        if (init && init->isVoidInitializer() &&
+        if (_init && _init->isVoidInitializer() &&
             type->hasPointers())    // get type size
         {
             if (sc->func->setUnsafe())
@@ -937,7 +937,7 @@ void VarDeclaration::semantic(Scope *sc)
         if (inferred)
         {
             error("type %s is inferred from initializer %s, and variables cannot be of type void",
-                type->toChars(), init->toChars());
+                type->toChars(), _init->toChars());
         }
         else
             error("variables cannot be of type void");
@@ -968,7 +968,7 @@ void VarDeclaration::semantic(Scope *sc)
          */
         TypeTuple *tt = (TypeTuple *)tb;
         size_t nelems = Parameter::dim(tt->arguments);
-        Expression *ie = (init && !init->isVoidInitializer()) ? init->toExpression() : NULL;
+        Expression *ie = (_init && !_init->isVoidInitializer()) ? _init->toExpression() : NULL;
         if (ie) ie = ie->semantic(sc);
 
         if (nelems > 0 && ie)
@@ -1055,7 +1055,7 @@ void VarDeclaration::semantic(Scope *sc)
             if (iexps->dim < nelems)
                 goto Lnomatch;
 
-            ie = new TupleExp(init->loc, iexps);
+            ie = new TupleExp(_init->loc, iexps);
         }
 Lnomatch:
 
@@ -1096,7 +1096,7 @@ Lnomatch:
                 ti = new ExpInitializer(einit->loc, einit);
             }
             else
-                ti = init ? init->syntaxCopy() : NULL;
+                ti = _init ? _init->syntaxCopy() : NULL;
 
             VarDeclaration *v = new VarDeclaration(loc, arg->type, id, ti);
             v->storage_class |= STCtemp | storage_class;
@@ -1164,7 +1164,7 @@ Lnomatch:
         if (aad)
         {
             if (global.params.vfield &&
-                storage_class & (STCconst | STCimmutable) && init && !init->isVoidInitializer())
+                storage_class & (STCconst | STCimmutable) && _init && !_init->isVoidInitializer())
             {
                 const char *p = loc.toChars();
                 const char *s = (storage_class & STCimmutable) ? "immutable" : "const";
@@ -1173,7 +1173,7 @@ Lnomatch:
             storage_class |= STCfield;
             if (tbn->ty == Tstruct && ((TypeStruct *)tbn)->sym->noDefaultCtor)
             {
-                if (!isThisDeclaration() && !init)
+                if (!isThisDeclaration() && !_init)
                     aad->noDefaultCtor = true;
             }
         }
@@ -1249,7 +1249,7 @@ Lnomatch:
     if (!(storage_class & (STCctfe | STCref | STCresult)) && tbn->ty == Tstruct &&
         ((TypeStruct *)tbn)->sym->noDefaultCtor)
     {
-        if (!init)
+        if (!_init)
         {
             if (isField())
             {
@@ -1279,19 +1279,19 @@ Lnomatch:
         }
     }
 
-    if (!init && !fd)
+    if (!_init && !fd)
     {
         // If not mutable, initializable by constructor only
         storage_class |= STCctorinit;
     }
 
-    if (init)
+    if (_init)
         storage_class |= STCinit;     // remember we had an explicit initializer
     else if (storage_class & STCmanifest)
         error("manifest constants must have initializers");
 
     bool isBlit = false;
-    if (!init && !sc->inunion && !(storage_class & (STCstatic | STCgshared | STCextern)) && fd &&
+    if (!_init && !sc->inunion && !(storage_class & (STCstatic | STCgshared | STCextern)) && fd &&
         (!(storage_class & (STCfield | STCin | STCforeach | STCparameter | STCresult))
          || (storage_class & STCout)) &&
         type->size() != 0)
@@ -1315,7 +1315,7 @@ Lnomatch:
             Expression *e1 = new VarExp(loc, this);
             e = new BlitExp(loc, e1, e);
             e = e->semantic(sc);
-            init = new ExpInitializer(loc, e);
+            _init = new ExpInitializer(loc, e);
             goto Ldtor;
         }
         else if (type->ty == Tstruct &&
@@ -1332,7 +1332,7 @@ Lnomatch:
             e1 = new VarExp(loc, this);
             e = new BlitExp(loc, e1, e);
             e->type = e1->type;         // don't type check this, it would fail
-            init = new ExpInitializer(loc, e);
+            _init = new ExpInitializer(loc, e);
             goto Ldtor;
         }
         else if (type->baseElemOf()->ty == Tvoid)
@@ -1341,18 +1341,18 @@ Lnomatch:
         }
         else
         {
-            init = getExpInitializer();
+            _init = getExpInitializer();
         }
         // Default initializer is always a blit
         isBlit = true;
     }
 
-    if (init)
+    if (_init)
     {
         sc = sc->push();
         sc->stc &= ~(STC_TYPECTOR | STCpure | STCnothrow | STCnogc | STCref | STCdisable);
 
-        ExpInitializer *ei = init->isExpInitializer();
+        ExpInitializer *ei = _init->isExpInitializer();
         if (ei)     // Bugzilla 13424: Preset the required type to fail in FuncLiteralDeclaration::semantic3
             ei->exp = inferType(ei->exp, type);
 
@@ -1363,30 +1363,30 @@ Lnomatch:
             // possibilities.
             if (fd &&
                 !(storage_class & (STCmanifest | STCstatic | STCtls | STCgshared | STCextern)) &&
-                !init->isVoidInitializer())
+                !_init->isVoidInitializer())
             {
                 //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
                 if (!ei)
                 {
-                    ArrayInitializer *ai = init->isArrayInitializer();
+                    ArrayInitializer *ai = _init->isArrayInitializer();
                     Expression *e;
                     if (ai && tb->ty == Taarray)
                         e = ai->toAssocArrayLiteral();
                     else
-                        e = init->toExpression();
+                        e = _init->toExpression();
                     if (!e)
                     {
                         // Run semantic, but don't need to interpret
-                        init = init->semantic(sc, type, INITnointerpret);
-                        e = init->toExpression();
+                        _init = _init->semantic(sc, type, INITnointerpret);
+                        e = _init->toExpression();
                         if (!e)
                         {
                             error("is not a static and cannot have static initializer");
                             return;
                         }
                     }
-                    ei = new ExpInitializer(init->loc, e);
-                    init = ei;
+                    ei = new ExpInitializer(_init->loc, e);
+                    _init = ei;
                 }
 
                 Expression *exp = ei->exp;
@@ -1402,7 +1402,7 @@ Lnomatch:
 
                 if (exp->op == TOKerror)
                 {
-                    init = new ErrorInitializer();
+                    _init = new ErrorInitializer();
                     ei = NULL;
                 }
                 else
@@ -1438,13 +1438,13 @@ Lnomatch:
             else
             {
                 // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
-                init = init->semantic(sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
+                _init = _init->semantic(sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
             }
         }
         else if (parent->isAggregateDeclaration())
         {
-            scope = scx ? scx : sc->copy();
-            scope->setNoFree();
+            _scope = scx ? scx : sc->copy();
+            _scope->setNoFree();
         }
         else if (storage_class & (STCconst | STCimmutable | STCmanifest) ||
                  type->isConst() || type->isImmutable())
@@ -1501,18 +1501,18 @@ Lnomatch:
                     }
                     ei->exp = exp;
                 }
-                init = init->semantic(sc, type, INITinterpret);
+                _init = _init->semantic(sc, type, INITinterpret);
                 inuse--;
                 if (global.errors > errors)
                 {
-                    init = new ErrorInitializer();
+                    _init = new ErrorInitializer();
                     type = Type::terror;
                 }
             }
             else
             {
-                scope = scx ? scx : sc->copy();
-                scope->setNoFree();
+                _scope = scx ? scx : sc->copy();
+                _scope->setNoFree();
             }
         }
         sc = sc->pop();
@@ -1525,7 +1525,7 @@ Ldtor:
     if (edtor)
     {
         if (sc->func && storage_class & (STCstatic | STCgshared))
-            edtor = edtor->semantic(sc->module->scope);
+            edtor = edtor->semantic(sc->module->_scope);
         else
             edtor = edtor->semantic(sc);
 
@@ -1548,7 +1548,7 @@ void VarDeclaration::semantic2(Scope *sc)
 
     //printf("VarDeclaration::semantic2('%s')\n", toChars());
         // Inside unions, default to void initializers
-    if (!init && sc->inunion && !toParent()->isFuncDeclaration())
+    if (!_init && sc->inunion && !toParent()->isFuncDeclaration())
     {
         AggregateDeclaration *aad = parent->isAggregateDeclaration();
         if (aad)
@@ -1558,25 +1558,25 @@ void VarDeclaration::semantic2(Scope *sc)
                 int hasinit = 0;
                 for (size_t i = 1; i < aad->fields.dim; i++)
                 {
-                    if (aad->fields[i]->init &&
-                        !aad->fields[i]->init->isVoidInitializer())
+                    if (aad->fields[i]->_init &&
+                        !aad->fields[i]->_init->isVoidInitializer())
                     {
                         hasinit = 1;
                         break;
                     }
                 }
                 if (!hasinit)
-                    init = new ExpInitializer(loc, type->defaultInitLiteral(loc));
+                    _init = new ExpInitializer(loc, type->defaultInitLiteral(loc));
             }
             else
-                init = new VoidInitializer(loc);
+                _init = new VoidInitializer(loc);
         }
     }
-    if (init && !toParent()->isFuncDeclaration())
+    if (_init && !toParent()->isFuncDeclaration())
     {
         inuse++;
 #if 0
-        ExpInitializer *ei = init->isExpInitializer();
+        ExpInitializer *ei = _init->isExpInitializer();
         if (ei)
         {
             ei->exp->print();
@@ -1584,7 +1584,7 @@ void VarDeclaration::semantic2(Scope *sc)
         }
 #endif
         // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
-        init = init->semantic(sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
+        _init = _init->semantic(sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
         inuse--;
     }
     if (storage_class & STCmanifest)
@@ -1596,22 +1596,22 @@ void VarDeclaration::semantic2(Scope *sc)
         }
         else if (type->ty == Tpointer && type->nextOf()->ty == Tstruct && type->nextOf()->isMutable())
         {
-            ExpInitializer *ei = init->isExpInitializer();
+            ExpInitializer *ei = _init->isExpInitializer();
             if (ei->exp->op == TOKaddress && ((AddrExp *)ei->exp)->e1->op == TOKstructliteral)
             {
                 error("is a pointer to mutable struct. Only pointers to const or immutable struct enum are allowed, not %s", type->toChars());
             }
         }
     #else
-        if (type->ty == Tclass && init)
+        if (type->ty == Tclass && _init)
         {
-            ExpInitializer *ei = init->isExpInitializer();
+            ExpInitializer *ei = _init->isExpInitializer();
             if (ei->exp->op == TOKclassreference)
                 error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
         }
         else if (type->ty == Tpointer && type->nextOf()->ty == Tstruct)
         {
-            ExpInitializer *ei = init->isExpInitializer();
+            ExpInitializer *ei = _init->isExpInitializer();
             if (ei && ei->exp->op == TOKaddress && ((AddrExp *)ei->exp)->e1->op == TOKstructliteral)
             {
                 error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
@@ -1619,17 +1619,17 @@ void VarDeclaration::semantic2(Scope *sc)
         }
     #endif
     }
-    else if (init && isThreadlocal())
+    else if (_init && isThreadlocal())
     {
         if ((type->ty == Tclass) && type->isMutable() && !type->isShared())
         {
-            ExpInitializer *ei = init->isExpInitializer();
+            ExpInitializer *ei = _init->isExpInitializer();
             if (ei && ei->exp->op == TOKclassreference)
                 error("is mutable. Only const or immutable class thread local variable are allowed, not %s", type->toChars());
         }
         else if (type->ty == Tpointer && type->nextOf()->ty == Tstruct && type->nextOf()->isMutable() &&!type->nextOf()->isShared())
         {
-            ExpInitializer *ei = init->isExpInitializer();
+            ExpInitializer *ei = _init->isExpInitializer();
             if (ei && ei->exp->op == TOKaddress && ((AddrExp *)ei->exp)->e1->op == TOKstructliteral)
             {
                 error("is a pointer to mutable struct. Only pointers to const, immutable or shared struct thread local variable are allowed, not %s", type->toChars());
@@ -1702,7 +1702,7 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
                 ad->error("cannot have field %s with %ssame struct type", toChars(), s);
                 return;
             }
-            if (ts->sym->sizeok != SIZEOKdone && ts->sym->scope)
+            if (ts->sym->sizeok != SIZEOKdone && ts->sym->_scope)
                 ts->sym->semantic(NULL);
             if (ts->sym->sizeok != SIZEOKdone)
             {
@@ -1779,7 +1779,7 @@ bool VarDeclaration::isExport()
 
 bool VarDeclaration::isImportedSymbol()
 {
-    if (protection.kind == PROTexport && !init &&
+    if (protection.kind == PROTexport && !_init &&
         (storage_class & STCstatic || parent->isModule()))
         return true;
     return false;
@@ -1896,7 +1896,7 @@ bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
 
                 if (ident == Id::withSym)       // Bugzilla 1759
                 {
-                    ExpInitializer *ez = init->isExpInitializer();
+                    ExpInitializer *ez = _init->isExpInitializer();
                     assert(ez);
                     Expression *e = ez->exp;
                     if (e->op == TOKconstruct || e->op == TOKblit)
@@ -1917,8 +1917,8 @@ ExpInitializer *VarDeclaration::getExpInitializer()
 {
     ExpInitializer *ei;
 
-    if (init)
-        ei = init->isExpInitializer();
+    if (_init)
+        ei = _init->isExpInitializer();
     else
     {
         Expression *e = type->defaultInit(loc);
@@ -1937,7 +1937,7 @@ ExpInitializer *VarDeclaration::getExpInitializer()
 
 Expression *VarDeclaration::getConstInitializer(bool needFullType)
 {
-    assert(type && init);
+    assert(type && _init);
 
     // Ungag errors when not speculative
     unsigned oldgag = global.gag;
@@ -1948,14 +1948,14 @@ Expression *VarDeclaration::getConstInitializer(bool needFullType)
             global.gag = 0;
     }
 
-    if (scope)
+    if (_scope)
     {
         inuse++;
-        init = init->semantic(scope, type, INITinterpret);
-        scope = NULL;
+        _init = _init->semantic(_scope, type, INITinterpret);
+        _scope = NULL;
         inuse--;
     }
-    Expression *e = init->toExpression(needFullType ? type : NULL);
+    Expression *e = _init->toExpression(needFullType ? type : NULL);
 
     global.gag = oldgag;
     return e;

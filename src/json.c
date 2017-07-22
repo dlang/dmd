@@ -850,8 +850,8 @@ public:
 
         jsonProperties(d);
 
-        if (d->init)
-            property("init", d->init->toChars());
+        if (d->_init)
+            property("init", d->_init->toChars());
 
         if (d->isField())
             property("offset", d->offset);

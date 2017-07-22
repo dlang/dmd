@@ -289,7 +289,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                 case Tfloat32:
                 case Timaginary32:
                 {
-                    d_float32 fvalue = e->value;
+                    float fvalue = e->value;
                     pdt = dtnbytes(pdt,4,(char *)&fvalue);
                     break;
                 }
@@ -297,7 +297,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                 case Tfloat64:
                 case Timaginary64:
                 {
-                    d_float64 dvalue = e->value;
+                    double dvalue = e->value;
                     pdt = dtnbytes(pdt,8,(char *)&dvalue);
                     break;
                 }
@@ -305,7 +305,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                 case Tfloat80:
                 case Timaginary80:
                 {
-                    d_float80 evalue = e->value;
+                    real_t evalue = e->value;
                     pdt = dtnbytes(pdt,Target::realsize - Target::realpad,(char *)&evalue);
                     pdt = dtnbytes(pdt,Target::realpad,zeropad);
                     assert(Target::realpad <= sizeof(zeropad));
@@ -328,7 +328,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
             {
                 case Tcomplex32:
                 {
-                    d_float32 fvalue = creall(e->value);
+                    float fvalue = creall(e->value);
                     pdt = dtnbytes(pdt,4,(char *)&fvalue);
                     fvalue = cimagl(e->value);
                     pdt = dtnbytes(pdt,4,(char *)&fvalue);
@@ -337,7 +337,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
 
                 case Tcomplex64:
                 {
-                    d_float64 dvalue = creall(e->value);
+                    double dvalue = creall(e->value);
                     pdt = dtnbytes(pdt,8,(char *)&dvalue);
                     dvalue = cimagl(e->value);
                     pdt = dtnbytes(pdt,8,(char *)&dvalue);
@@ -346,7 +346,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
 
                 case Tcomplex80:
                 {
-                    d_float80 evalue = creall(e->value);
+                    real_t evalue = creall(e->value);
                     pdt = dtnbytes(pdt,Target::realsize - Target::realpad,(char *)&evalue);
                     pdt = dtnbytes(pdt,Target::realpad,zeropad);
                     evalue = cimagl(e->value);
@@ -520,7 +520,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
 
             VarDeclaration *v = e->var->isVarDeclaration();
             if (v && (v->isConst() || v->isImmutable()) &&
-                e->type->toBasetype()->ty != Tsarray && v->init)
+                e->type->toBasetype()->ty != Tsarray && v->_init)
             {
                 if (v->inuse)
                 {
@@ -528,7 +528,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                     return;
                 }
                 v->inuse++;
-                *pdt = Initializer_toDt(v->init);
+                *pdt = Initializer_toDt(v->_init);
                 v->inuse--;
                 return;
             }
@@ -660,7 +660,7 @@ void membersToDt(ClassDeclaration *cd, dt_t **pdt, ClassDeclaration *concreteTyp
 
         //printf("\t\tv = '%s' v->offset = %2d, offset = %2d\n", v->toChars(), v->offset, offset);
         dt_t *dt = NULL;
-        Initializer *init = v->init;
+        Initializer *init = v->_init;
         if (init)
         {
             //printf("\t\t%s has initializer %s\n", v->toChars(), init->toChars());
@@ -881,7 +881,7 @@ dt_t **membersToDt(ClassReferenceExp *ce, dt_t **pdt, ClassDeclaration *cd, Dts 
         if (!d)
         {
             dt_t *dt = NULL;
-            Initializer *init = v->init;
+            Initializer *init = v->_init;
             if (init)
             {   //printf("\t\t%s has initializer %s\n", v->toChars(), init->toChars());
                 ExpInitializer *ei = init->isExpInitializer();
@@ -945,8 +945,8 @@ dt_t **membersToDt(ClassReferenceExp *ce, dt_t **pdt, ClassDeclaration *cd, Dts 
                         pdt = dtnzeros(pdt, voffset - offset);
                     if (!d)
                     {
-                        if (v->init)
-                            d = Initializer_toDt(v->init);
+                        if (v->_init)
+                            d = Initializer_toDt(v->_init);
                         else
                             Type_toDt(vt, &d);
                     }

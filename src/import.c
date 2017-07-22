@@ -218,10 +218,10 @@ void Import::semantic(Scope *sc)
 {
     //printf("Import::semantic('%s')\n", toPrettyChars());
 
-    if (scope)
+    if (_scope)
     {
-        sc = scope;
-        scope = NULL;
+        sc = _scope;
+        _scope = NULL;
     }
 
     // Load if not already done so
@@ -421,7 +421,7 @@ void Import::addMember(Scope *sc, ScopeDsymbol *sd)
 
         TypeIdentifier *tname = new TypeIdentifier(loc, name);
         AliasDeclaration *ad = new AliasDeclaration(loc, alias, tname);
-        ad->import = this;
+        ad->_import = this;
         ad->addMember(sc, sd);
 
         aliasdecls.push(ad);
