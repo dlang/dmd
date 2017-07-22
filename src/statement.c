@@ -811,20 +811,9 @@ Statement *ExpStatement::semantic(Scope *sc)
     {
         //printf("ExpStatement::semantic() %s\n", exp->toChars());
 
-#if 0   // Doesn't work because of difficulty dealing with things like a.b.c!(args).Foo!(args)
-        // See if this should be rewritten as a TemplateMixin
-        if (exp->op == TOKdeclaration)
-        {   DeclarationExp *de = (DeclarationExp *)exp;
-            Dsymbol *s = de->declaration;
-
-            printf("s: %s %s\n", s->kind(), s->toChars());
-            VarDeclaration *v = s->isVarDeclaration();
-            if (v)
-            {
-                printf("%s, %d\n", v->type->toChars(), v->type->ty);
-            }
-        }
-#endif
+        // Allow CommaExp in ExpStatement because return isn't used
+        if (exp->op == TOKcomma)
+            ((CommaExp *)exp)->allowCommaExp = true;
 
         exp = exp->semantic(sc);
         exp = resolveProperties(sc, exp);
@@ -1628,6 +1617,8 @@ Statement *ForStatement::semantic(Scope *sc)
     }
     if (increment)
     {
+        if (increment->op == TOKcomma)
+            ((CommaExp *)increment)->allowCommaExp = true;
         increment = increment->semantic(sc);
         increment = resolveProperties(sc, increment);
         increment = increment->optimize(WANTvalue);

@@ -1109,7 +1109,10 @@ public:
 class CommaExp : public BinExp
 {
 public:
-    CommaExp(Loc loc, Expression *e1, Expression *e2);
+    const bool isGenerated;
+    bool allowCommaExp;
+
+    CommaExp(Loc loc, Expression *e1, Expression *e2, bool generated = true);
     Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);
     bool isLvalue();

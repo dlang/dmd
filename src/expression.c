@@ -10619,9 +10619,10 @@ Expression *DotExp::semantic(Scope *sc)
 
 /************************* CommaExp ***********************************/
 
-CommaExp::CommaExp(Loc loc, Expression *e1, Expression *e2)
-        : BinExp(loc, TOKcomma, sizeof(CommaExp), e1, e2)
+CommaExp::CommaExp(Loc loc, Expression *e1, Expression *e2, bool generated)
+        : BinExp(loc, TOKcomma, sizeof(CommaExp), e1, e2), isGenerated(generated)
 {
+    allowCommaExp = generated;
 }
 
 Expression *CommaExp::semantic(Scope *sc)
@@ -10629,11 +10630,22 @@ Expression *CommaExp::semantic(Scope *sc)
     if (type)
         return this;
 
+    // Allow `((a,b),(x,y))`
+    if (allowCommaExp)
+    {
+        if (e1 && e1->op == TOKcomma)
+            ((CommaExp *)e1)->allowCommaExp = true;
+        if (e2 && e2->op == TOKcomma)
+            ((CommaExp *)e2)->allowCommaExp = true;
+    }
+
     if (Expression *ex = binSemanticProp(sc))
         return ex;
     e1 = e1->addDtorHook(sc);
 
     type = e2->type;
+    if (type != Type::tvoid && !allowCommaExp && !isGenerated)
+        deprecation("Using the result of a comma expression is deprecated");
     return this;
 }
 
@@ -11082,6 +11094,8 @@ Expression *AssignExp::semantic(Scope *sc)
     {
         /* Rewrite to get rid of the comma from rvalue
          */
+        if (!((CommaExp *)e2)->isGenerated)
+            deprecation("Using the result of a comma expression is deprecated");
         Expression *e0;
         e2 = Expression::extractLast(e2, &e0);
         Expression *e = Expression::combine(e0, this);
