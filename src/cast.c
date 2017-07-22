@@ -27,6 +27,7 @@
 #include "tokens.h"
 
 bool isCommutative(TOK op);
+MOD MODmerge(MOD mod1, MOD mod2);
 
 /* ==================== implicitCast ====================== */
 

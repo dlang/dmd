@@ -50,6 +50,7 @@
 #include "hdrgen.h"
 
 void linkageToBuffer(OutBuffer *buf, LINK linkage);
+void MODtoBuffer(OutBuffer *buf, MOD mod);
 
 void genhdrfile(Module *m)
 {

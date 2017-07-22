@@ -37,6 +37,8 @@
 #include "lexer.h"
 
 bool symbolIsVisible(Dsymbol *origin, Dsymbol *s);
+typedef int (*ForeachDg)(void *ctx, size_t idx, Dsymbol *s);
+int ScopeDsymbol_foreach(Scope *sc, Dsymbols *members, ForeachDg dg, void *ctx, size_t *pn = NULL);
 
 
 /****************************** Dsymbol ******************************/
@@ -1311,7 +1313,7 @@ static int dimDg(void *ctx, size_t n, Dsymbol *)
 size_t ScopeDsymbol::dim(Dsymbols *members)
 {
     size_t n = 0;
-    foreach(NULL, members, &dimDg, &n);
+    ScopeDsymbol_foreach(NULL, members, &dimDg, &n);
     return n;
 }
 
@@ -1342,7 +1344,7 @@ static int getNthSymbolDg(void *ctx, size_t n, Dsymbol *sym)
 Dsymbol *ScopeDsymbol::getNth(Dsymbols *members, size_t nth, size_t *pn)
 {
     GetNthSymbolCtx ctx = { nth, NULL };
-    int res = foreach(NULL, members, &getNthSymbolDg, &ctx);
+    int res = ScopeDsymbol_foreach(NULL, members, &getNthSymbolDg, &ctx);
     return res ? ctx.sym : NULL;
 }
 
@@ -1355,7 +1357,7 @@ Dsymbol *ScopeDsymbol::getNth(Dsymbols *members, size_t nth, size_t *pn)
  * calculating dim and calling N times getNth.
  */
 
-int ScopeDsymbol::foreach(Scope *sc, Dsymbols *members, ScopeDsymbol::ForeachDg dg, void *ctx, size_t *pn)
+int ScopeDsymbol_foreach(Scope *sc, Dsymbols *members, ForeachDg dg, void *ctx, size_t *pn)
 {
     assert(dg);
     if (!members)
@@ -1367,9 +1369,9 @@ int ScopeDsymbol::foreach(Scope *sc, Dsymbols *members, ScopeDsymbol::ForeachDg 
     {   Dsymbol *s = (*members)[i];
 
         if (AttribDeclaration *a = s->isAttribDeclaration())
-            result = foreach(sc, a->include(sc, NULL), dg, ctx, &n);
+            result = ScopeDsymbol_foreach(sc, a->include(sc, NULL), dg, ctx, &n);
         else if (TemplateMixin *tm = s->isTemplateMixin())
-            result = foreach(sc, tm->members, dg, ctx, &n);
+            result = ScopeDsymbol_foreach(sc, tm->members, dg, ctx, &n);
         else if (s->isTemplateInstance())
             ;
         else if (s->isUnitTestDeclaration())

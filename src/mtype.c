@@ -49,6 +49,8 @@
 #define LOGDEFAULTINIT  0       // log ::defaultInit()
 
 bool symbolIsVisible(Scope *sc, Dsymbol *s);
+typedef int (*ForeachDg)(void *ctx, size_t paramidx, Parameter *param);
+int Parameter_foreach(Parameters *parameters, ForeachDg dg, void *ctx, size_t *pn = NULL);
 
 int Tsize_t = Tuns32;
 int Tptrdiff_t = Tint32;
@@ -9169,12 +9171,6 @@ static int isTPLDg(void *ctx, size_t n, Parameter *p)
     return 0;
 }
 
-int Parameter::isTPL(Parameters *parameters)
-{
-    //printf("Parameter::isTPL()\n");
-    return foreach(parameters, &isTPLDg, NULL);
-}
-
 /****************************************************
  * Determine if parameter is a lazy array of delegates.
  * If so, return the return type of those delegates.
@@ -9218,7 +9214,7 @@ static int dimDg(void *ctx, size_t n, Parameter *)
 size_t Parameter::dim(Parameters *parameters)
 {
     size_t n = 0;
-    foreach(parameters, &dimDg, &n);
+    Parameter_foreach(parameters, &dimDg, &n);
     return n;
 }
 
@@ -9250,7 +9246,7 @@ static int getNthParamDg(void *ctx, size_t n, Parameter *p)
 Parameter *Parameter::getNth(Parameters *parameters, size_t nth, size_t *pn)
 {
     GetNthParamCtx ctx = { nth, NULL };
-    int res = foreach(parameters, &getNthParamDg, &ctx);
+    int res = Parameter_foreach(parameters, &getNthParamDg, &ctx);
     return res ? ctx.param : NULL;
 }
 
@@ -9262,7 +9258,7 @@ Parameter *Parameter::getNth(Parameters *parameters, size_t nth, size_t *pn)
  * calculating dim and calling N times getNth.
  */
 
-int Parameter::foreach(Parameters *parameters, Parameter::ForeachDg dg, void *ctx, size_t *pn)
+int Parameter_foreach(Parameters *parameters, ForeachDg dg, void *ctx, size_t *pn)
 {
     assert(dg);
     if (!parameters)
@@ -9278,7 +9274,7 @@ int Parameter::foreach(Parameters *parameters, Parameter::ForeachDg dg, void *ct
         if (t->ty == Ttuple)
         {
             TypeTuple *tu = (TypeTuple *)t;
-            result = foreach(tu->arguments, dg, ctx, &n);
+            result = Parameter_foreach(tu->arguments, dg, ctx, &n);
         }
         else
             result = dg(ctx, n++, p);

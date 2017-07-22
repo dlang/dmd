@@ -237,7 +237,7 @@ public:
     bool equals(RootObject *o);
     bool equivalent(Type *t);
     // kludge for template.isType()
-    int dyncast() { return DYNCAST_TYPE; }
+    int dyncast() const { return DYNCAST_TYPE; }
     int covariant(Type *t, StorageClass *pstc = NULL);
     const char *toChars();
     char *toPrettyChars(bool QualifyTypes = false);
@@ -924,24 +924,15 @@ public:
     Parameter *syntaxCopy();
     Type *isLazyArray();
     // kludge for template.isType()
-    int dyncast() { return DYNCAST_PARAMETER; }
+    int dyncast() const { return DYNCAST_PARAMETER; }
     virtual void accept(Visitor *v) { v->visit(this); }
 
     static Parameters *arraySyntaxCopy(Parameters *parameters);
-    static int isTPL(Parameters *parameters);
     static size_t dim(Parameters *parameters);
     static Parameter *getNth(Parameters *parameters, d_size_t nth, d_size_t *pn = NULL);
-
-    typedef int (*ForeachDg)(void *ctx, size_t paramidx, Parameter *param);
-    static int foreach(Parameters *parameters, ForeachDg dg, void *ctx, size_t *pn=NULL);
 };
 
 bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
 bool arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2);
-void MODtoBuffer(OutBuffer *buf, MOD mod);
-char *MODtoChars(MOD mod);
-bool MODimplicitConv(MOD modfrom, MOD modto);
-MATCH MODmethodConv(MOD modfrom, MOD modto);
-MOD MODmerge(MOD mod1, MOD mod2);
 
 #endif /* DMD_MTYPE_H */

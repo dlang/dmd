@@ -4004,14 +4004,6 @@ L2:
         else if (t->ty == Tfunction)
         {
             Expression *constraint = NULL;
-#if 0
-            TypeFunction *tf = (TypeFunction *)t;
-            if (Parameter::isTPL(tf->parameters))
-            {
-                if (!tpl)
-                    tpl = new TemplateParameters();
-            }
-#endif
 
             //printf("%s funcdecl t = %s, storage_class = x%lx\n", loc.toChars(), t->toChars(), storage_class);
             FuncDeclaration *f =

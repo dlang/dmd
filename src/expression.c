@@ -48,11 +48,14 @@ Expression *expandVar(int result, VarDeclaration *v);
 bool walkPostorder(Expression *e, StoppableVisitor *v);
 TypeTuple *toArgTypes(Type *t);
 bool checkAccess(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember);
-bool checkAccess(Loc loc, Scope *sc, Package *p);
 bool symbolIsVisible(Module *mod, Dsymbol *s);
 bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t istart = 0);
 bool checkNestedRef(Dsymbol *s, Dsymbol *p);
 Type *getTypeInfoType(Type *t, Scope *sc);
+void MODtoBuffer(OutBuffer *buf, MOD mod);
+char *MODtoChars(MOD mod);
+bool MODimplicitConv(MOD modfrom, MOD modto);
+MOD MODmerge(MOD mod1, MOD mod2);
 
 #define LOGSEMANTIC     0
 
@@ -10886,8 +10889,9 @@ Expression *DotExp::semantic(Scope *sc)
 /************************* CommaExp ***********************************/
 
 CommaExp::CommaExp(Loc loc, Expression *e1, Expression *e2, bool generated)
-        : BinExp(loc, TOKcomma, sizeof(CommaExp), e1, e2), isGenerated(generated)
+        : BinExp(loc, TOKcomma, sizeof(CommaExp), e1, e2)
 {
+    isGenerated = generated;
     allowCommaExp = generated;
 }
 

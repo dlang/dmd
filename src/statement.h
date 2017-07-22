@@ -96,6 +96,8 @@ public:
     virtual Statements *flatten(Scope *sc);
     virtual Statement *last();
 
+    int dyncast() const { return DYNCAST_STATEMENT; }
+
     // Avoid dynamic_cast
     virtual ErrorStatement *isErrorStatement() { return NULL; }
     virtual ScopeStatement *isScopeStatement() { return NULL; }

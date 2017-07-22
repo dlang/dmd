@@ -46,6 +46,9 @@ unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam);
 MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam);
 void mangleToBuffer(Expression *e, OutBuffer *buf);
 Type *rawTypeMerge(Type *t1, Type *t2);
+bool MODimplicitConv(MOD modfrom, MOD modto);
+MATCH MODmethodConv(MOD modfrom, MOD modto);
+MOD MODmerge(MOD mod1, MOD mod2);
 
 static Type *reliesOnTident(Type *t, TemplateParameters *tparams = NULL, size_t iStart = 0);
 

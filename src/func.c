@@ -41,6 +41,10 @@ void semantic(Catch *c, Scope *sc);
 
 void genCmain(Scope *sc);
 RET retStyle(TypeFunction *tf);
+void MODtoBuffer(OutBuffer *buf, MOD mod);
+char *MODtoChars(MOD mod);
+bool MODimplicitConv(MOD modfrom, MOD modto);
+MATCH MODmethodConv(MOD modfrom, MOD modto);
 
 /* A visitor to walk entire statements and provides ability to replace any sub-statements.
  */

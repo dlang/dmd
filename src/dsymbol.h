@@ -194,7 +194,7 @@ public:
     Ungag ungagSpeculative();
 
     // kludge for template.isSymbol()
-    int dyncast() { return DYNCAST_DSYMBOL; }
+    int dyncast() const { return DYNCAST_DSYMBOL; }
 
     static Dsymbols *arraySyntaxCopy(Dsymbols *a);
 
@@ -320,9 +320,6 @@ public:
 
     static size_t dim(Dsymbols *members);
     static Dsymbol *getNth(Dsymbols *members, size_t nth, size_t *pn = NULL);
-
-    typedef int (*ForeachDg)(void *ctx, size_t idx, Dsymbol *s);
-    static int foreach(Scope *sc, Dsymbols *members, ForeachDg dg, void *ctx, size_t *pn=NULL);
 
     ScopeDsymbol *isScopeDsymbol() { return this; }
     void accept(Visitor *v) { v->visit(this); }

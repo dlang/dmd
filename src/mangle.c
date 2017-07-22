@@ -30,6 +30,8 @@
 
 char *toCppMangle(Dsymbol *s);
 void mangleToBuffer(Type *t, OutBuffer *buf);
+typedef int (*ForeachDg)(void *ctx, size_t paramidx, Parameter *param);
+int Parameter_foreach(Parameters *parameters, ForeachDg dg, void *ctx, size_t *pn = NULL);
 
 static const char *mangleChar[TMAX];
 
@@ -818,7 +820,7 @@ public:
     void paramsToDecoBuffer(Parameters *parameters)
     {
         //printf("Parameter::paramsToDecoBuffer()\n");
-        Parameter::foreach(parameters, &paramsToDecoBufferDg, (void *)this);
+        Parameter_foreach(parameters, &paramsToDecoBufferDg, (void *)this);
     }
 
     static int paramsToDecoBufferDg(void *ctx, size_t n, Parameter *p)

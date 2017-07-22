@@ -126,7 +126,7 @@ struct Array
         dim++;
     }
 
-    void remove(size_t i)
+    void remove(d_size_t i)
     {
         if (dim - i - 1)
             memmove(data + i, data + i + 1, (dim - i - 1) * sizeof(data[0]));
@@ -174,7 +174,7 @@ struct Array
         return data[index];
     }
 
-    void insert(size_t index, TYPE v)
+    void insert(d_size_t index, TYPE v)
     {
         reserve(1);
         memmove(data + index + 1, data + index, (dim - index) * sizeof(*data));
@@ -182,11 +182,11 @@ struct Array
         dim++;
     }
 
-    void insert(size_t index, Array *a)
+    void insert(d_size_t index, Array *a)
     {
         if (a)
         {
-            size_t d = a->dim;
+            d_size_t d = a->dim;
             reserve(d);
             if (dim != index)
                 memmove(data + index + d, data + index, (dim - index) * sizeof(*data));
@@ -227,8 +227,8 @@ struct BitArray
         mem.xfree(ptr);
     }
 
-    size_t len;
-    size_t *ptr;
+    d_size_t len;
+    d_size_t *ptr;
 
 private:
     BitArray(const BitArray&);

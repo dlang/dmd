@@ -39,6 +39,9 @@
 
 #define LOGSEMANTIC     0
 
+typedef int (*ForeachDg)(void *ctx, size_t idx, Dsymbol *s);
+int ScopeDsymbol_foreach(Scope *sc, Dsymbols *members, ForeachDg dg, void *ctx, size_t *pn = NULL);
+
 
 /************************************************
  * Delegate to be passed to overloadApply() that looks
@@ -1020,7 +1023,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                     EnumDeclaration *ed = sm->isEnumDeclaration();
                     if (ed)
                     {
-                        ScopeDsymbol::foreach(NULL, ed->members, &PushIdentsDg::dg, (Identifiers *)ctx);
+                        ScopeDsymbol_foreach(NULL, ed->members, &PushIdentsDg::dg, (Identifiers *)ctx);
                     }
                 }
                 return 0;
@@ -1029,7 +1032,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
 
         Identifiers *idents = new Identifiers;
 
-        ScopeDsymbol::foreach(sc, sds->members, &PushIdentsDg::dg, idents);
+        ScopeDsymbol_foreach(sc, sds->members, &PushIdentsDg::dg, idents);
 
         ClassDeclaration *cd = sds->isClassDeclaration();
         if (cd && e->ident == Id::allMembers)
@@ -1045,7 +1048,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                     {
                         ClassDeclaration *cb = (*cd->baseclasses)[i]->sym;
                         assert(cb);
-                        ScopeDsymbol::foreach(NULL, cb->members, &PushIdentsDg::dg, idents);
+                        ScopeDsymbol_foreach(NULL, cb->members, &PushIdentsDg::dg, idents);
                         if (cb->baseclasses->dim)
                             dg(cb, idents);
                     }
