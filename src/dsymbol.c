@@ -122,6 +122,12 @@ bool Dsymbol::oneMember(Dsymbol **ps, Identifier *ident)
     return true;
 }
 
+static bool isOverloadableAlias(Dsymbol *s)
+{
+    AliasDeclaration *ad = s->isAliasDeclaration();
+    return ad && ad->aliassym && ad->aliassym->isOverloadable();
+}
+
 /*****************************************
  * Same as Dsymbol::oneMember(), but look at an array of Dsymbols.
  */
@@ -151,7 +157,8 @@ bool Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident)
                     continue;
                 if (!s)
                     s = *ps;
-                else if (s->isOverloadable() && (*ps)->isOverloadable())
+                else if ((s->isOverloadable() || isOverloadableAlias(s)) &&
+			 ((*ps)->isOverloadable() || isOverloadableAlias(*ps)))
                 {
                     // keep head of overload set
                     FuncDeclaration *f1 = s->isFuncDeclaration();
