@@ -1273,7 +1273,7 @@ Expression *valueNoDtor(Expression *e)
                         VarDeclaration *ctmp = ve->var->isVarDeclaration();
                         if (ctmp)
                         {
-                            ctmp->noscope = 1;
+                            ctmp->noscope = true;
                             assert(!ce->isLvalue());
                         }
                     }
@@ -1286,7 +1286,7 @@ Expression *valueNoDtor(Expression *e)
         VarDeclaration *vtmp = ((VarExp *)e)->var->isVarDeclaration();
         if (vtmp && vtmp->storage_class & STCrvalue)
         {
-            vtmp->noscope = 1;
+            vtmp->noscope = true;
         }
     }
     return e;
@@ -1337,7 +1337,7 @@ Expression *callCpCtor(Scope *sc, Expression *e)
             Identifier *idtmp = Identifier::generateId("__copytmp");
             VarDeclaration *tmp = new VarDeclaration(e->loc, e->type, idtmp, new ExpInitializer(e->loc, e));
             tmp->storage_class |= STCtemp | STCctfe;
-            tmp->noscope = 1;
+            tmp->noscope = true;
             tmp->semantic(sc);
             Expression *de = new DeclarationExp(e->loc, tmp);
             Expression *ve = new VarExp(e->loc, tmp);
@@ -13802,12 +13802,13 @@ void CondExp::hookDtors(Scope *sc)
                         ei->exp->accept(this);
                 }
 
-                if (v->edtor)
+                if (v->needsScopeDtor())
                 {
                     if (!vcond)
                     {
-                        vcond = new VarDeclaration(ce->econd->loc, ce->econd->type,
-                            Identifier::generateId("__cond"), new ExpInitializer(ce->econd->loc, ce->econd));
+                        ExpInitializer *ei = new ExpInitializer(ce->econd->loc, ce->econd);
+                        Identifier *id = Identifier::generateId("__cond");
+                        vcond = new VarDeclaration(ce->econd->loc, ce->econd->type, id, ei);
                         vcond->storage_class |= STCtemp | STCctfe | STCvolatile;
                         vcond->semantic(sc);
 

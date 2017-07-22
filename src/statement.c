@@ -852,35 +852,14 @@ Statement *ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **se
         {
             DeclarationExp *de = (DeclarationExp *)(exp);
             VarDeclaration *v = de->declaration->isVarDeclaration();
-            if (v && !v->noscope && !v->isDataseg())
+            if (v && !v->isDataseg())
             {
-                Expression *e = v->edtor;
-                if (e)
+                if (v->needsScopeDtor())
                 {
-                    //printf("dtor is: "); e->print();
-#if 0
-                    if (v->type->toBasetype()->ty == Tstruct)
-                    {   /* Need a 'gate' to turn on/off destruction,
-                         * in case v gets moved elsewhere.
-                         */
-                        Identifier *id = Identifier::generateId("__runDtor");
-                        ExpInitializer *ie = new ExpInitializer(loc, new IntegerExp(1));
-                        VarDeclaration *rd = new VarDeclaration(loc, Type::tint32, id, ie);
-                        rd->storage_class |= STCtemp;
-                        *sentry = new ExpStatement(loc, rd);
-                        v->rundtor = rd;
-
-                        /* Rewrite e as:
-                         *  rundtor && e
-                         */
-                        Expression *ve = new VarExp(loc, v->rundtor);
-                        e = new AndAndExp(loc, ve, e);
-                        e->type = Type::tbool;
-                    }
-#endif
-                    *sfinally = new DtorExpStatement(loc, e, v);
+                    //printf("dtor is: "); v->edtor->print();
+                    *sfinally = new DtorExpStatement(loc, v->edtor, v);
+                    v->noscope = true; // don't add in dtor again
                 }
-                v->noscope = 1;         // don't add in dtor again
             }
         }
     }
@@ -3017,7 +2996,7 @@ Statement *IfStatement::semantic(Scope *sc)
             Statement *sdtor = new ExpStatement(loc, match->edtor);
             sdtor = new OnScopeStatement(loc, TOKon_scope_exit, sdtor);
             ifbody = new CompoundStatement(loc, sdtor, ifbody);
-            match->noscope = 1;
+            match->noscope = true;
        }
     }
     else

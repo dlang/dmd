@@ -201,7 +201,7 @@ bool Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func, bool mustNotThrow)
                 if (ie && canThrow(ie->exp, func, mustNotThrow))
                     return true;
             }
-            if (vd->edtor && !vd->noscope)
+            if (vd->needsScopeDtor())
                 return canThrow(vd->edtor, func, mustNotThrow);
         }
     }

@@ -4973,7 +4973,7 @@ elem *toElem(Expression *e, IRState *irs)
 
                     /* Mark the point of construction of a variable that needs to be destructed.
                      */
-                    if (vd->edtor && !vd->noscope)
+                    if (vd->needsScopeDtor())
                     {
                         e = el_dctor(e, vd);
 

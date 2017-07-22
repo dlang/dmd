@@ -2096,13 +2096,9 @@ void FuncDeclaration::semantic3(Scope *sc)
                     if (v->storage_class & (STCref | STCout | STClazy))
                         continue;
 
-                    if (v->noscope)
-                        continue;
-
-                    Expression *e = v->edtor;
-                    if (e)
+                    if (v->needsScopeDtor())
                     {
-                        Statement *s = new ExpStatement(Loc(), e);
+                        Statement *s = new ExpStatement(Loc(), v->edtor);
                         s = s->semantic(sc2);
                         unsigned int nothrowErrors = global.errors;
                         bool isnothrow = f->isnothrow & !(flags & FUNCFLAGnothrowInprocess);
