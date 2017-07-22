@@ -720,9 +720,13 @@ void ctfeCompile(FuncDeclaration *fd)
 }
 
 /*************************************
- *
  * Entry point for CTFE.
- * A compile-time result is required. Give an error if not possible
+ * A compile-time result is required. Give an error if not possible.
+ *
+ * `e` must be semantically valid expression. In other words, it should not
+ * contain any `ErrorExp`s in it. But, CTFE interpretation will cross over
+ * functions and may invoke a function that contains `ErrorStatement` in its body.
+ * If that, the "CTFE failed because of previous errors" error is raised.
  */
 Expression *ctfeInterpret(Expression *e)
 {
@@ -732,8 +736,6 @@ Expression *ctfeInterpret(Expression *e)
     //assert(e->type->ty != Terror);    // FIXME
     if (e->type->ty == Terror)
         return new ErrorExp();
-
-    unsigned olderrors = global.errors;
 
     // This code is outside a function, but still needs to be compiled
     // (there are compiler-generated temporary variables such as __dollar).
@@ -746,10 +748,7 @@ Expression *ctfeInterpret(Expression *e)
     if (!CTFEExp::isCantExp(result))
         result = scrubReturnValue(e->loc, result);
     if (CTFEExp::isCantExp(result))
-    {
-        assert(global.errors != olderrors);
         result = new ErrorExp();
-    }
     return result;
 }
 
