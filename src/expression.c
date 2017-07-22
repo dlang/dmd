@@ -11886,11 +11886,19 @@ Expression *AssignExp::semantic(Scope *sc)
         //  d = d[], d = [1,2,3], etc
     }
 
-    if (e1->op == TOKvar &&
-        (((VarExp *)e1)->var->storage_class & STCscope) &&
-        op == TOKassign)
+    /* Don't allow assignment to classes that were allocated on the stack with:
+     *      scope Class c = new Class();
+     */
+
+    if (e1->op == TOKvar && op == TOKassign)
     {
-        error("cannot rebind scope variables");
+        VarExp *ve = (VarExp *)e1;
+        VarDeclaration *vd = ve->var->isVarDeclaration();
+        if (vd && (vd->onstack || vd->mynew))
+        {
+            assert(t1->ty == Tclass);
+            error("cannot rebind scope variables");
+        }
     }
     if (e1->op == TOKvar && ((VarExp *)e1)->var->ident == Id::ctfe)
     {

@@ -783,7 +783,8 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     alignment = 0;
     ctorinit = 0;
     aliassym = NULL;
-    onstack = 0;
+    onstack = false;
+    mynew = false;
     canassign = 0;
     overlapped = false;
     lastVar = NULL;
@@ -1418,12 +1419,17 @@ Lnomatch:
                     {
                         // See if initializer is a NewExp that can be allocated on the stack
                         NewExp *ne = (NewExp *)ex;
-                        if (!(ne->newargs && ne->newargs->dim > 1) && type->toBasetype()->ty == Tclass)
+                        if (type->toBasetype()->ty == Tclass)
                         {
-                            ne->onstack = 1;
-                            onstack = 1;
-                            if (type->isBaseOf(ne->newtype->semantic(loc, sc), NULL))
-                                onstack = 2;
+                            if (ne->newargs && ne->newargs->dim > 1)
+                            {
+                                mynew = true;
+                            }
+                            else
+                            {
+                                ne->onstack = true;
+                                onstack = true;
+                            }
                         }
                     }
                     else if (ex->op == TOKfunction)
@@ -2119,7 +2125,7 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
                 // Destructors are not supported on extern(C++) classes
                 break;
             }
-            if (1 || onstack || cd->dtors.dim)  // if any destructors
+            if (mynew || onstack || cd->dtors.dim) // if any destructors
             {
                 // delete this;
                 Expression *ec;
