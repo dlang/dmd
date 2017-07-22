@@ -458,7 +458,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->isstatic = true;
     this->previous = NULL;
     this->protection = Prot(PROTundefined);
-    this->numinstances = 0;
+    this->instances = NULL;
 
     // Compute in advance for Ddoc's use
     // Bugzilla 11153: ident could be NULL if parsing fails.
@@ -2816,34 +2816,19 @@ Prot TemplateDeclaration::prot()
 
 TemplateInstance *TemplateDeclaration::findExistingInstance(TemplateInstance *tithis, Expressions *fargs)
 {
+    //printf("findExistingInstance(%p)\n", tithis);
     tithis->fargs = fargs;
-    hash_t hash = tithis->toHash();
-
-    if (!buckets.dim)
+    TemplateInstances *tinstances = (TemplateInstances *)dmd_aaGetRvalue((AA *)instances, (void *)tithis->toHash());
+    if (tinstances)
     {
-        buckets.setDim(7);
-        buckets.zero();
-    }
-    size_t bi = hash % buckets.dim;
-    TemplateInstances *instances = buckets[bi];
-    if (instances)
-    {
-        for (size_t i = 0; i < instances->dim; i++)
+        for (size_t i = 0; i < tinstances->dim; i++)
         {
-            TemplateInstance *ti = (*instances)[i];
-#if LOG
-            printf("\t%s: checking for match with instance %d (%p): '%s'\n", tithis->toChars(), i, ti, ti->toChars());
-#endif
-            if (hash == ti->hash &&
-                tithis->compare(ti) == 0)
-            {
-                //printf("hash = %p yes %d n = %d\n", hash, instances->dim, numinstances);
+            TemplateInstance *ti = (*tinstances)[i];
+            if (tithis->compare(ti) == 0)
                 return ti;
-            }
         }
     }
-    //printf("hash = %p no\n", hash);
-    return NULL;        // didn't find a match
+    return NULL;
 }
 
 /********************************************
@@ -2853,44 +2838,11 @@ TemplateInstance *TemplateDeclaration::findExistingInstance(TemplateInstance *ti
 
 TemplateInstance *TemplateDeclaration::addInstance(TemplateInstance *ti)
 {
-    /* See if we need to rehash
-     */
-    if (numinstances > buckets.dim * 4)
-    {
-        // rehash
-        //printf("rehash\n");
-        size_t newdim = buckets.dim * 2 + 1;
-        TemplateInstances **newp = (TemplateInstances **)::calloc(newdim, sizeof(TemplateInstances *));
-        assert(newp);
-        for (size_t bi = 0; bi < buckets.dim; ++bi)
-        {
-            TemplateInstances *instances = buckets[bi];
-            if (instances)
-            {
-                for (size_t i = 0; i < instances->dim; i++)
-                {
-                    TemplateInstance *ti1 = (*instances)[i];
-                    size_t newbi = ti1->hash % newdim;
-                    TemplateInstances *newinstances = newp[newbi];
-                    if (!newinstances)
-                        newp[newbi] = newinstances = new TemplateInstances();
-                    newinstances->push(ti1);
-                }
-                delete instances;
-            }
-        }
-        buckets.setDim(newdim);
-        memcpy(buckets.tdata(), newp, newdim * sizeof(TemplateInstance *));
-        ::free(newp);
-    }
-
-    // Insert ti into hash table
-    size_t bi = ti->hash % buckets.dim;
-    TemplateInstances *instances = buckets[bi];
-    if (!instances)
-        buckets[bi] = instances = new TemplateInstances();
-    instances->push(ti);
-    ++numinstances;
+    //printf("addInstance() %p %p\n", instances, ti);
+    TemplateInstances **ptinstances = (TemplateInstances **)dmd_aaGet((AA **)&instances, (void *)ti->toHash());
+    if (!*ptinstances)
+        *ptinstances = new TemplateInstances();
+    (*ptinstances)->push(ti);
     return ti;
 }
 
@@ -2902,18 +2854,20 @@ TemplateInstance *TemplateDeclaration::addInstance(TemplateInstance *ti)
 
 void TemplateDeclaration::removeInstance(TemplateInstance *handle)
 {
-    size_t bi = handle->hash % buckets.dim;
-    TemplateInstances *instances = buckets[bi];
-    for (size_t i = 0; i < instances->dim; i++)
+    //printf("removeInstance()\n");
+    TemplateInstances *tinstances = (TemplateInstances *)dmd_aaGetRvalue((AA *)instances, (void *)handle->toHash());
+    if (tinstances)
     {
-        TemplateInstance *ti = (*instances)[i];
-        if (handle == ti)
+        for (size_t i = 0; i < tinstances->dim; i++)
         {
-            instances->remove(i);
-            break;
+            TemplateInstance *ti = (*tinstances)[i];
+            if (handle == ti)
+            {
+                tinstances->remove(i);
+                break;
+            }
         }
     }
-    --numinstances;
 }
 
 /* ======================== Type ============================================ */
@@ -6383,15 +6337,15 @@ Lerror:
          * On such case, the cached error instance needs to be overridden by the
          * succeeded instance.
          */
-        size_t bi = hash % tempdecl->buckets.dim;
-        TemplateInstances *instances = tempdecl->buckets[bi];
-        assert(instances);
-        for (size_t i = 0; i < instances->dim; i++)
+        //printf("replaceInstance()\n");
+        TemplateInstances *tinstances = (TemplateInstances *)dmd_aaGetRvalue((AA *)tempdecl->instances, (void *)hash);
+        assert(tinstances);
+        for (size_t i = 0; i < tinstances->dim; i++)
         {
-            TemplateInstance *ti = (*instances)[i];
+            TemplateInstance *ti = (*tinstances)[i];
             if (ti == errinst)
             {
-                (*instances)[i] = this;     // override
+                (*tinstances)[i] = this;     // override
                 break;
             }
         }
@@ -7877,6 +7831,15 @@ const char *TemplateInstance::toPrettyCharsHelper()
     return buf.extractString();
 }
 
+/*************************************
+ * Compare proposed template instantiation with existing template instantiation.
+ * Note that this is not commutative because of the auto ref check.
+ * Params:
+ *  this = proposed template instantiation
+ *  o = existing template instantiation
+ * Returns:
+ *  0 for match, 1 for no match
+ */
 int TemplateInstance::compare(RootObject *o)
 {
     TemplateInstance *ti = (TemplateInstance *)o;

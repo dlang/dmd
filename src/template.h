@@ -68,8 +68,7 @@ public:
     Expression *constraint;
 
     // Hash table to look up TemplateInstance's of this TemplateDeclaration
-    Array<TemplateInstances *> buckets;
-    size_t numinstances;                // number of instances in the hash table
+    void *instances;
 
     TemplateDeclaration *overnext;      // next overloaded TemplateDeclaration
     TemplateDeclaration *overroot;      // first in overnext list
