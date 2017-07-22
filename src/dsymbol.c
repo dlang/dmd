@@ -1098,7 +1098,12 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             if (!(flags & IgnoreErrors) && s->prot().kind == PROTprivate &&
                 !s->isOverloadable() && !s->parent->isTemplateMixin() && !s->parent->isNspace())
             {
-                if (!s->isImport())
+                AliasDeclaration *ad;
+                // accessing private selective and renamed imports is
+                // deprecated by restricting the symbol visibility
+                if (s->isImport() || (ad = s->isAliasDeclaration()) != NULL && ad->_import != NULL)
+                {}
+                else
                     error(loc, "%s %s is private", s->kind(), s->toPrettyChars());
             }
             //printf("\tfound in imports %s.%s\n", toChars(), s.toChars());
@@ -1200,8 +1205,8 @@ static bool bitArrayGet(BitArray *array, size_t idx)
 
 static void bitArrayLength(BitArray *array, size_t len)
 {
-    size_t obytes = (array->len + (sizeof(size_t) - 1)) / sizeof(size_t);
-    size_t nbytes = (len + (sizeof(size_t) - 1)) / sizeof(size_t);
+    size_t obytes = (array->len + CHAR_BIT - 1) / CHAR_BIT;
+    size_t nbytes = (len + CHAR_BIT - 1) / CHAR_BIT;
 
     if (obytes < nbytes)
     {

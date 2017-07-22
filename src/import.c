@@ -48,7 +48,7 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
     this->id = id;
     this->aliasId = aliasId;
     this->isstatic = isstatic;
-    this->protection = PROTprivate; // default to private
+    this->protection = Prot(PROTprivate); // default to private
     this->pkg = NULL;
     this->mod = NULL;
 
@@ -89,7 +89,7 @@ const char *Import::kind()
 
 Prot Import::prot()
 {
-    return Prot(protection);
+    return protection;
 }
 
 Dsymbol *Import::syntaxCopy(Dsymbol *s)
@@ -206,11 +206,11 @@ void Import::importAll(Scope *sc)
 
             mod->importAll(NULL);
 
+            if (sc->explicitProtection)
+                protection = sc->protection;
             if (!isstatic && !aliasId && !names.dim)
             {
-                if (sc->explicitProtection)
-                    protection = sc->protection.kind;
-                sc->scopesym->importScope(mod, Prot(protection));
+                sc->scopesym->importScope(mod, protection);
             }
         }
     }
@@ -240,6 +240,9 @@ void Import::semantic(Scope *sc)
         //printf("%s imports %s\n", sc->module->toChars(), mod->toChars());
         sc->module->aimports.push(mod);
 
+        if (sc->explicitProtection)
+            protection = sc->protection;
+
         if (!aliasId && !names.dim) // neither a selective nor a renamed import
         {
             ScopeDsymbol *scopesym = NULL;
@@ -255,9 +258,7 @@ void Import::semantic(Scope *sc)
 
             if (!isstatic)
             {
-                if (sc->explicitProtection)
-                    protection = sc->protection.kind;
-                scopesym->importScope(mod, Prot(protection));
+                scopesym->importScope(mod, protection);
             }
 
             // Mark the imported packages as accessible from the current
@@ -287,14 +288,7 @@ void Import::semantic(Scope *sc)
         }
 
         sc = sc->push(mod);
-        /* BUG: Protection checks can't be enabled yet. The issue is
-         * that Dsymbol::search errors before overload resolution.
-         */
-#if 0
         sc->protection = protection;
-#else
-        sc->protection = Prot(PROTpublic);
-#endif
         for (size_t i = 0; i < aliasdecls.dim; i++)
         {
             AliasDeclaration *ad = aliasdecls[i];
@@ -347,7 +341,7 @@ void Import::semantic(Scope *sc)
 
         // use protection instead of sc->protection because it couldn't be
         // resolved yet, see the comment above
-        protectionToBuffer(ob, Prot(protection));
+        protectionToBuffer(ob, protection);
         ob->writeByte(' ');
         if (isstatic)
         {
@@ -465,10 +459,7 @@ void Import::setScope(Scope *sc)
             importAll(sc);
 
         sc = sc->push(mod);
-        /* BUG: Protection checks can't be enabled yet. The issue is
-         * that Dsymbol::search errors before overload resolution.
-         */
-        sc->protection = Prot(PROTpublic);
+        sc->protection = protection;
         for (size_t i = 0; i < aliasdecls.dim; i++)
         {
             AliasDeclaration *ad = aliasdecls[i];
