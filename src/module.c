@@ -741,7 +741,7 @@ void Module::importAll(Scope *prevsc)
     sc->pop();          // 2 pops because Scope::createGlobal() created 2
 }
 
-void Module::semantic()
+void Module::semantic(Scope *)
 {
     if (semanticRun != PASSinit)
         return;
@@ -784,7 +784,7 @@ void Module::semantic()
     //printf("-Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
 }
 
-void Module::semantic2()
+void Module::semantic2(Scope*)
 {
     //printf("Module::semantic2('%s'): parent = %p\n", toChars(), parent);
     if (semanticRun != PASSsemanticdone)       // semantic() not completed yet - could be recursive call
@@ -815,7 +815,7 @@ void Module::semantic2()
     //printf("-Module::semantic2('%s'): parent = %p\n", toChars(), parent);
 }
 
-void Module::semantic3()
+void Module::semantic3(Scope*)
 {
     //printf("Module::semantic3('%s'): parent = %p\n", toChars(), parent);
     if (semanticRun != PASSsemantic2done)

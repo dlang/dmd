@@ -214,9 +214,9 @@ void genCmain(Scope *sc)
     global.params.verbose = false;
     m->importedFrom = m;
     m->importAll(NULL);
-    m->semantic();
-    m->semantic2();
-    m->semantic3();
+    m->semantic(NULL);
+    m->semantic2(NULL);
+    m->semantic3(NULL);
     global.params.verbose = v;
 
     entrypoint = m;
@@ -1470,7 +1470,7 @@ Language changes listed by -transition=id:\n\
         Module *m = modules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic  %s\n", m->toChars());
-        m->semantic();
+        m->semantic(NULL);
     }
     if (global.errors)
         fatal();
@@ -1493,7 +1493,7 @@ Language changes listed by -transition=id:\n\
         Module *m = modules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic2 %s\n", m->toChars());
-        m->semantic2();
+        m->semantic2(NULL);
     }
     if (global.errors)
         fatal();
@@ -1504,7 +1504,7 @@ Language changes listed by -transition=id:\n\
         Module *m = modules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic3 %s\n", m->toChars());
-        m->semantic3();
+        m->semantic3(NULL);
     }
     Module::runDeferredSemantic3();
     if (global.errors)

@@ -252,7 +252,7 @@ void Import::semantic(Scope *sc)
             }
         }
 
-        mod->semantic();
+        mod->semantic(NULL);
 
         if (mod->needmoduleinfo)
         {
@@ -380,7 +380,7 @@ void Import::semantic2(Scope *sc)
     //printf("Import::semantic2('%s')\n", toChars());
     if (mod)
     {
-        mod->semantic2();
+        mod->semantic2(NULL);
         if (mod->needmoduleinfo)
         {
             //printf("module5 %s because of %s\n", sc->module->toChars(), mod->toChars());
@@ -436,7 +436,7 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
     {
         load(NULL);
         mod->importAll(NULL);
-        mod->semantic();
+        mod->semantic(NULL);
     }
 
     // Forward it to the package/module
