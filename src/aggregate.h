@@ -124,7 +124,7 @@ public:
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     unsigned size(Loc loc);
-    virtual void finalizeSize(Scope *sc) = 0;
+    virtual void finalizeSize() = 0;
     bool checkOverlappedFields();
     bool fill(Loc loc, Expressions *elements, bool ctorinit);
     static void alignmember(structalign_t salign, unsigned size, unsigned *poffset);
@@ -193,7 +193,7 @@ public:
     void semanticTypeInfoMembers();
     Dsymbol *search(Loc, Identifier *ident, int flags = IgnoreNone);
     const char *kind();
-    void finalizeSize(Scope *sc);
+    void finalizeSize();
     bool fit(Loc loc, Scope *sc, Expressions *elements, Type *stype);
     bool isPOD();
 
@@ -295,12 +295,11 @@ public:
 
     bool isBaseInfoComplete();
     Dsymbol *search(Loc, Identifier *ident, int flags = IgnoreNone);
-    ClassDeclaration *searchBase(Loc, Identifier *ident);
-    void finalizeSize(Scope *sc);
+    ClassDeclaration *searchBase(Identifier *ident);
+    void finalizeSize();
     bool isFuncHidden(FuncDeclaration *fd);
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
     void interfaceSemantic(Scope *sc);
-    unsigned setBaseInterfaceOffsets(unsigned baseOffset);
     bool isCOMclass() const;
     virtual bool isCOMinterface() const;
     bool isCPPclass() const;
@@ -325,7 +324,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     void semantic(Scope *sc);
-    void finalizeSize(Scope *sc);
     bool isBaseOf(ClassDeclaration *cd, int *poffset);
     bool isBaseOf(BaseClass *bc, int *poffset);
     const char *kind();

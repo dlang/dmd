@@ -692,12 +692,13 @@ Lancestorsdone:
         s->importAll(sc2);
     }
 
+    // Note that members.dim can grow due to tuple expansion during semantic()
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
         s->semantic(sc2);
     }
-    finalizeSize(sc2);
+    finalizeSize();
 
     if (sizeok == SIZEOKfwd)
     {
@@ -763,7 +764,7 @@ LafterSizeok:
     aggNew    =    (NewDeclaration *)search(Loc(), Id::classNew);
     aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete);
 
-    // this->ctor is already set in finalizeSize()
+    // this->ctor is already set
 
     if (!ctor && noDefaultCtor)
     {
@@ -951,10 +952,17 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
     return s;
 }
 
-ClassDeclaration *ClassDeclaration::searchBase(Loc loc, Identifier *ident)
+/************************************
+ * Search base classes in depth-first, left-to-right order for
+ * a class or interface named 'ident'.
+ * Stops at first found. Does not look for additional matches.
+ * Params:
+ *  ident = identifier to search for
+ * Returns:
+ *  ClassDeclaration if found, null if not
+ */
+ClassDeclaration *ClassDeclaration::searchBase(Identifier *ident)
 {
-    // Search bases classes in depth-first, left to right order
-
     for (size_t i = 0; i < baseclasses->dim; i++)
     {
         BaseClass *b = (*baseclasses)[i];
@@ -963,14 +971,59 @@ ClassDeclaration *ClassDeclaration::searchBase(Loc loc, Identifier *ident)
             return NULL;
         if (cdb->ident->equals(ident))
             return cdb;
-        cdb = cdb->searchBase(loc, ident);
+        cdb = cdb->searchBase(ident);
         if (cdb)
             return cdb;
     }
     return NULL;
 }
 
-void ClassDeclaration::finalizeSize(Scope *sc)
+/****
+ * Runs through the inheritance graph to set the BaseClass.offset fields.
+ * Recursive in order to account for the size of the interface classes, if they are
+ * more than just interfaces.
+ * Params:
+ *      cd = interface to look at
+ *      baseOffset = offset of where cd will be placed
+ * Returns:
+ *      subset of instantiated size used by cd for interfaces
+ */
+static unsigned membersPlace(BaseClasses *vtblInterfaces, size_t &bi, ClassDeclaration *cd, unsigned baseOffset)
+{
+    //printf("    membersPlace(%s, %d)\n", cd->toChars(), baseOffset);
+    unsigned offset = baseOffset;
+
+    for (size_t i = 0; i < cd->interfaces_dim; i++)
+    {
+        BaseClass *b = cd->interfaces[i];
+        if (!b->sym->alignsize)
+            b->sym->alignsize = Target::ptrsize;
+        cd->alignmember(b->sym->alignsize, b->sym->alignsize, &offset);
+        assert(bi < vtblInterfaces->dim);
+        BaseClass *bv = (*vtblInterfaces)[bi];
+        if (b->sym->interfaces_dim == 0)
+        {
+            //printf("\tvtblInterfaces[%d] b=%p b->sym = %s, offset = %d\n", bi, bv, bv->sym->toChars(), offset);
+            bv->offset = offset;
+            ++bi;
+            // All the base interfaces down the left side share the same offset
+            for (BaseClass *b2 = bv; b2->baseInterfaces_dim; )
+            {
+                b2 = &b2->baseInterfaces[0];
+                b2->offset = offset;
+                //printf("\tvtblInterfaces[%d] b=%p   sym = %s, offset = %d\n", bi, b2, b2->sym->toChars(), b2->offset);
+            }
+        }
+        membersPlace(vtblInterfaces, bi, b->sym, offset);
+        //printf(" %s size = %d\n", b->sym->toChars(), b->sym->structsize);
+        offset += b->sym->structsize;
+        if (cd->alignsize < b->sym->alignsize)
+            cd->alignsize = b->sym->alignsize;
+    }
+    return offset - baseOffset;
+}
+
+void ClassDeclaration::finalizeSize()
 {
     if (sizeok != SIZEOKnone)
         return;
@@ -985,17 +1038,33 @@ void ClassDeclaration::finalizeSize(Scope *sc)
         if (cpp && global.params.isWindows)
             structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
     }
+    else if (isInterfaceDeclaration())
+    {
+        if (interfaces_dim == 0)
+        {
+            alignsize = Target::ptrsize;
+            structsize = Target::ptrsize;      // allow room for __vptr
+        }
+    }
     else
     {
         alignsize = Target::ptrsize;
-        if (cpp)
-            structsize = Target::ptrsize;       // allow room for __vptr
-        else
-            structsize = Target::ptrsize * 2;   // allow room for __vptr and __monitor
+        structsize = Target::ptrsize;      // allow room for __vptr
+        if (!cpp)
+            structsize += Target::ptrsize; // allow room for __monitor
     }
 
+    //printf("finalizeSize() %s\n", toChars());
+    size_t bi = 0;                  // index into vtblInterfaces[]
+
     // Add vptr's for any interfaces implemented by this class
-    structsize += setBaseInterfaceOffsets(structsize);
+    structsize += membersPlace(vtblInterfaces, bi, this, structsize);
+
+    if (isInterfaceDeclaration())
+    {
+        sizeok = SIZEOKdone;
+        return;
+    }
 
     unsigned offset = structsize;
     for (size_t i = 0; i < members->dim; i++)
@@ -1182,39 +1251,6 @@ void ClassDeclaration::interfaceSemantic(Scope *sc)
         vtblInterfaces->push(b);
         b->copyBaseInterfaces(vtblInterfaces);
     }
-}
-
-unsigned ClassDeclaration::setBaseInterfaceOffsets(unsigned baseOffset)
-{
-    assert(vtblInterfaces);     // Bugzilla 12984
-
-    // set the offset of base interfaces from this (most derived) class/interface.
-    unsigned offset = baseOffset;
-
-    //if (vtblInterfaces->dim) printf("\n%s->finalizeSize()\n", toChars());
-    for (size_t i = 0; i < vtblInterfaces->dim; i++)
-    {
-        BaseClass *b = (*vtblInterfaces)[i];
-        unsigned thissize = Target::ptrsize;
-
-        alignmember(STRUCTALIGN_DEFAULT, thissize, &offset);
-        b->offset = offset;
-        //printf("\tvtblInterfaces[%d] b->sym = %s, offset = %d\n", i, b->sym->toChars(), b->offset);
-
-        // Take care of single inheritance offsets
-        while (b->baseInterfaces_dim)
-        {
-            b = &b->baseInterfaces[0];
-            b->offset = offset;
-            //printf("\tvtblInterfaces[%d] +  sym = %s, offset = %d\n", i, b->sym->toChars(), b->offset);
-        }
-
-        offset += thissize;
-        if (alignsize < thissize)
-            alignsize = thissize;
-    }
-
-    return offset - baseOffset;
 }
 
 /****************************************
@@ -1620,8 +1656,6 @@ Lancestorsdone:
 
     Scope *sc2 = newScope(sc);
 
-    finalizeSize(sc2);
-
     /* Set scope so if there are forward references, we still might be able to
      * resolve individual members like enums.
      */
@@ -1644,6 +1678,8 @@ Lancestorsdone:
         s->semantic(sc2);
     }
 
+    finalizeSize();
+
     semanticRun = PASSsemanticdone;
 
     if (global.errors != errors)
@@ -1664,15 +1700,6 @@ Lancestorsdone:
       }
 #endif
     assert(type->ty != Tclass || ((TypeClass *)type)->sym == this);
-}
-
-void InterfaceDeclaration::finalizeSize(Scope *sc)
-{
-    structsize = Target::ptrsize * 2;
-    sizeok = SIZEOKdone;
-
-    // set the offset of base interfaces
-    setBaseInterfaceOffsets(0);
 }
 
 /*******************************************
