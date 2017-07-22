@@ -719,41 +719,29 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
 {
     //printf("searchUFCS(ident = %s)\n", ident->toChars());
     Loc loc = ue->loc;
+    int flags = 0;
     Dsymbol *s = NULL;
 
-    if (global.params.check10378)
+    Dsymbol *sold;
+    if (global.params.bug10378 || global.params.check10378)
     {
+        sold = searchScopes(sc, loc, ident, flags | IgnoreSymbolVisibility);
+        if (!global.params.check10378)
+        {
+            s = sold;
+            goto Lsearchdone;
+        }
+
         // Search both ways
-
-        Dsymbol *sold = searchScopes(sc, loc, ident, SearchCheckImports | IgnoreSymbolVisibility);
-
-        Dsymbol *snew = searchScopes(sc, loc, ident, SearchCheckImports | SearchLocalsOnly);
-        if (!snew)
-            snew = searchScopes(sc, loc, ident, SearchCheckImports | SearchImportsOnly);
-        if (!snew)
-        {
-            snew = searchScopes(sc, loc, ident, SearchCheckImports | SearchLocalsOnly | IgnoreSymbolVisibility);
-            if (!snew)
-                snew = searchScopes(sc, loc, ident, SearchCheckImports | SearchImportsOnly | IgnoreSymbolVisibility);
-            if (snew)
-                ::deprecation(loc, "%s is not visible from module %s", snew->toPrettyChars(), sc->module->toChars());
-        }
-
-        if (sold != snew)
-        {
-            deprecation(loc, "local import search method found %s %s instead of %s %s",
-                        sold ? sold->kind() : "nothing", sold ? sold->toPrettyChars() : NULL,
-                        snew ? snew->kind() : "nothing", snew ? snew->toPrettyChars() : NULL);
-        }
-        s = sold;
+        flags |= SearchCheckImports;
     }
-    else if (global.params.bug10378)
-        s = searchScopes(sc, loc, ident, 0 | IgnoreSymbolVisibility);
-    else
+
+    // First look in local scopes
+    s = searchScopes(sc, loc, ident, flags | SearchLocalsOnly);
+    if (!s)
     {
-        s = searchScopes(sc, loc, ident, SearchLocalsOnly);
-        if (!s)
-            s = searchScopes(sc, loc, ident, SearchImportsOnly);
+        // Second look in imported modules
+        s = searchScopes(sc, loc, ident, flags | SearchImportsOnly);
 
         /** Still find private symbols, so that symbols that weren't access
          * checked by the compiler remain usable.  Once the deprecation is over,
@@ -761,13 +749,26 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
          */
         if (!s)
         {
-            s = searchScopes(sc, loc, ident, SearchLocalsOnly | IgnoreSymbolVisibility);
+            s = searchScopes(sc, loc, ident, flags | SearchLocalsOnly | IgnoreSymbolVisibility);
             if (!s)
-                s = searchScopes(sc, loc, ident, SearchImportsOnly | IgnoreSymbolVisibility);
+                s = searchScopes(sc, loc, ident, flags | SearchImportsOnly | IgnoreSymbolVisibility);
             if (s)
                 ::deprecation(loc, "%s is not visible from module %s", s->toPrettyChars(), sc->module->toChars());
         }
     }
+    if (global.params.check10378)
+    {
+        Dsymbol *snew = s;
+        if (sold != snew)
+        {
+            deprecation(loc, "local import search method found %s %s instead of %s %s",
+                sold ? sold->kind() : "nothing", sold ? sold->toPrettyChars() : NULL,
+                snew ? snew->kind() : "nothing", snew ? snew->toPrettyChars() : NULL);
+        }
+        if (global.params.bug10378)
+            s = sold;
+    }
+Lsearchdone:
 
     if (!s)
         return ue->e1->type->Type::getProperty(loc, ident, 0);

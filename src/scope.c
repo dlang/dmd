@@ -476,73 +476,65 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flag
         return NULL;
     }
 
+    Dsymbol *sold;
+    if (global.params.bug10378 || global.params.check10378)
+    {
+        sold = searchScopes(this, loc, ident, pscopesym, flags | IgnoreSymbolVisibility);
+        if (!global.params.check10378)
+            return sold;
+
+        // Search both ways
+        flags |= SearchCheckImports;
+    }
+
+    // First look in local scopes
+    Dsymbol *s = searchScopes(this, loc, ident, pscopesym, flags | SearchLocalsOnly);
+#ifdef LOGSEARCH
+    if (s)
+        printf("\t-Scope::search() found local %s.%s, kind = '%s'\n",
+               s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
+#endif
+    if (!s)
+    {
+        // Second look in imported modules
+        s = searchScopes(this, loc, ident, pscopesym, flags | SearchImportsOnly);
+#ifdef LOGSEARCH
+        if (s)
+            printf("\t-Scope::search() found import %s.%s, kind = '%s'\n",
+                   s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
+#endif
+
+        /** Still find private symbols, so that symbols that weren't access
+         * checked by the compiler remain usable.  Once the deprecation is over,
+         * this should be moved to search_correct instead.
+         */
+        if (!s)
+        {
+            s = searchScopes(this, loc, ident, pscopesym, flags | SearchLocalsOnly | IgnoreSymbolVisibility);
+            if (!s)
+                s = searchScopes(this, loc, ident, pscopesym, flags | SearchImportsOnly | IgnoreSymbolVisibility);
+
+            if (s && !(flags & IgnoreErrors))
+                ::deprecation(loc, "%s is not visible from module %s", s->toPrettyChars(), module->toChars());
+#ifdef LOGSEARCH
+            if (s)
+                printf("\t-Scope::search() found imported private symbol%s.%s, kind = '%s'\n",
+                       s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
+#endif
+        }
+    }
+
     if (global.params.check10378)
     {
-        // Search both ways
-
-        Dsymbol *sold = searchScopes(this, loc, ident, pscopesym, flags | SearchCheckImports | IgnoreSymbolVisibility);
-
-        Dsymbol *snew = searchScopes(this, loc, ident, pscopesym, flags | SearchCheckImports | SearchLocalsOnly);
-        if (!snew)
-            snew = searchScopes(this, loc, ident, pscopesym, flags | SearchCheckImports | SearchImportsOnly);
-        if (!snew)
-        {
-            snew = searchScopes(this, loc, ident, pscopesym, flags | SearchCheckImports | SearchLocalsOnly | IgnoreSymbolVisibility);
-            if (!snew)
-                snew = searchScopes(this, loc, ident, pscopesym, flags | SearchCheckImports | SearchImportsOnly | IgnoreSymbolVisibility);
-            if (snew)
-                ::deprecation(loc, "%s is not visible from module %s", snew->toPrettyChars(), module->toChars());
-        }
-
+        Dsymbol *snew = s;
         if (sold != snew)
         {
             deprecation(loc, "local import search method found %s %s instead of %s %s",
                         sold ? sold->kind() : "nothing", sold ? sold->toPrettyChars() : NULL,
                         snew ? snew->kind() : "nothing", snew ? snew->toPrettyChars() : NULL);
         }
-        return sold;
-    }
-
-    if (global.params.bug10378)
-        return searchScopes(this, loc, ident, pscopesym, flags | IgnoreSymbolVisibility);
-
-    // First look in local scopes
-    Dsymbol *s = searchScopes(this, loc, ident, pscopesym, flags | SearchLocalsOnly);
-    if (s)
-    {
-#ifdef LOGSEARCH
-        printf("\t-Scope::search() found local %s.%s, kind = '%s'\n",
-               s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
-#endif
-        return s;
-    }
-
-    s = searchScopes(this, loc, ident, pscopesym, flags | SearchImportsOnly);     // look in imported modules
-    if (s)
-    {
-#ifdef LOGSEARCH
-        printf("\t-Scope::search() found import %s.%s, kind = '%s'\n",
-               s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
-#endif
-        return s;
-    }
-
-    /** Still find private symbols, so that symbols that weren't access
-     * checked by the compiler remain usable.  Once the deprecation is over,
-     * this should be moved to search_correct instead.
-     */
-    s = searchScopes(this, loc, ident, pscopesym, flags | SearchLocalsOnly | IgnoreSymbolVisibility);
-    if (!s)
-        s = searchScopes(this, loc, ident, pscopesym, flags | SearchImportsOnly | IgnoreSymbolVisibility);
-
-    if (s)
-    {
-#ifdef LOGSEARCH
-        printf("\t-Scope::search() found imported private symbol%s.%s, kind = '%s'\n",
-               s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
-#endif
-        if (!(flags & IgnoreErrors))
-            deprecation(loc, "%s is not visible from module %s", s->toPrettyChars(), module->toChars());
+        if (global.params.bug10378)
+            s = sold;
     }
     return s;
 }
