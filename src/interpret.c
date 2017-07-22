@@ -3784,6 +3784,28 @@ public:
             // Note that slice assignments don't support things like ++, so
             // we don't need to remember 'returnValue'.
             result = interpretAssignToSlice(e, e1, newval, isBlockAssignment);
+            if (exceptionOrCant(result))
+                return;
+            if (e->e1->op == TOKslice)
+            {
+                Expression *e1x = interpret(((SliceExp*)e->e1)->e1, istate, ctfeNeedLvalue);
+                if (e1x->op == TOKdotvar)
+                {
+                    DotVarExp *dve = (DotVarExp*)e1x;
+                    Expression *ex = dve->e1;
+                    StructLiteralExp *sle = ex->op == TOKstructliteral  ? ((StructLiteralExp  *)ex)
+                                          : ex->op == TOKclassreference ? ((ClassReferenceExp *)ex)->value
+                                          : NULL;
+                    VarDeclaration *v = dve->var->isVarDeclaration();
+                    if (!sle || !v)
+                    {
+                        e->error("CTFE internal error: dotvar slice assignment");
+                        result = CTFEExp::cantexp;
+                        return;
+                    }
+                    stompOverlappedFields(sle, v);
+                }
+            }
             return;
         }
 
@@ -3795,6 +3817,24 @@ public:
             result = ex;
 
         return;
+    }
+
+    /* Set all sibling fields which overlap with v to VoidExp.
+     */
+    void stompOverlappedFields(StructLiteralExp *sle, VarDeclaration *v)
+    {
+        if (!v->overlapped)
+            return;
+
+        for (size_t i = 0; i < sle->sd->fields.dim; i++)
+        {
+            VarDeclaration *v2 = sle->sd->fields[i];
+            if (v == v2 || !v->isOverlappedWith(v2))
+                continue;
+            Expression *e = (*sle->elements)[i];
+            if (e->op != TOKvoid)
+                (*sle->elements)[i] = voidInitLiteral(e->type, v).copy();
+        }
     }
 
     Expression *assignToLvalue(BinExp *e, Expression *e1, Expression *newval)
@@ -3816,7 +3856,8 @@ public:
             Expression *ex = ((DotVarExp *)e1)->e1;
             StructLiteralExp *sle =
                 ex->op == TOKstructliteral  ? ((StructLiteralExp  *)ex):
-                ex->op == TOKclassreference ? ((ClassReferenceExp *)ex)->value : NULL;
+                ex->op == TOKclassreference ? ((ClassReferenceExp *)ex)->value
+                : NULL;
             VarDeclaration *v = ((DotVarExp *)e1)->var->isVarDeclaration();
             if (!sle || !v)
             {
@@ -3840,20 +3881,7 @@ public:
             assert(0 <= fieldi && fieldi < sle->elements->dim);
 
             // If it's a union, set all other members of this union to void
-            if (ex->op == TOKstructliteral)
-            {
-                assert(sle->sd);
-                int unionStart = sle->sd->firstFieldInUnion(fieldi);
-                int unionSize = sle->sd->numFieldsInUnion(fieldi);
-                for (int i = unionStart; i < unionStart + unionSize; ++i)
-                {
-                    if (i == fieldi)
-                        continue;
-                    Expression **exp = &(*sle->elements)[i];
-                    if ((*exp)->op != TOKvoid)
-                        *exp = voidInitLiteral((*exp)->type, v).copy();
-                }
-            }
+            stompOverlappedFields(sle, v);
 
             payload = &(*sle->elements)[fieldi];
             oldval = *payload;
