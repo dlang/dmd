@@ -637,16 +637,18 @@ void FuncDeclaration::semantic(Scope *sc)
 
     if ((storage_class & STCauto) && !f->isref && !inferRetType)
         error("storage class 'auto' has no effect if return type is not inferred");
-    /* Functions can only be 'scope' if they have a 'this' that is a pointer, not a ref
+    /* Functions can only be 'scope' if they have a 'this'
      */
-    if (f->isscope && !isNested() &&
-        !(ad && ad->isClassDeclaration()))
+    if (f->isscope && !isNested() && !ad)
     {
         error("functions cannot be scope");
     }
 
-    if (f->isreturn && !needThis())
+    if (f->isreturn && !needThis() && !isNested())
     {
+        /* Non-static nested functions have a hidden 'this' pointer to which
+         * the 'return' applies
+         */
         error("static member has no 'this' to which 'return' can apply");
     }
 
@@ -1211,6 +1213,10 @@ Ldone:
 
         if (!isVirtual() || introducing)
             flags |= FUNCFLAGreturnInprocess;
+
+        // Initialize for inferring STCscope
+        if (global.params.vsafe)
+            flags |= FUNCFLAGinferScope;
     }
 
     Module::dprogress++;
@@ -1489,6 +1495,8 @@ void FuncDeclaration::semantic3(Scope *sc)
                 stc |= STCparameter;
                 if (f->varargs == 2 && i + 1 == nparams)
                     stc |= STCvariadic;
+                if (flags & FUNCFLAGinferScope)
+                    stc |= STCmaybescope;
                 stc |= fparam->storageClass & (STCin | STCout | STCref | STCreturn | STCscope | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
                 v->storage_class = stc;
                 v->semantic(sc2);
@@ -2157,7 +2165,38 @@ void FuncDeclaration::semantic3(Scope *sc)
         f->isnogc = true;
     }
 
-    flags &= ~FUNCFLAGreturnInprocess;
+    if (flags & FUNCFLAGreturnInprocess)
+    {
+        flags &= ~FUNCFLAGreturnInprocess;
+        if (storage_class & STCreturn)
+        {
+            if (type == f)
+                f = (TypeFunction *)f->copy();
+            f->isreturn = true;
+        }
+    }
+
+    flags &= ~FUNCFLAGinferScope;
+
+    // Infer STCscope
+    if (parameters)
+    {
+        size_t nfparams = Parameter::dim(f->parameters);
+        assert(nfparams == parameters->dim);
+        for (size_t u = 0; u < parameters->dim; u++)
+        {
+            VarDeclaration *v = (*parameters)[u];
+            if (v->storage_class & STCmaybescope)
+            {
+                //printf("Inferring scope for %s\n", v->toChars());
+                Parameter *p = Parameter::getNth(f->parameters, u);
+                v->storage_class &= ~STCmaybescope;
+                v->storage_class |= STCscope;
+                p->storageClass |= STCscope;
+                assert(!(p->storageClass & STCmaybescope));
+            }
+        }
+    }
 
     // reset deco to apply inference result to mangled name
     if (f != type)
@@ -2316,8 +2355,14 @@ VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad
                 if (type->ty == Tfunction && ((TypeFunction *)type)->iswild & 2)
                     v->storage_class |= STCreturn;
             }
-            if (type->ty == Tfunction && ((TypeFunction *)type)->isreturn)
-                v->storage_class |= STCreturn;
+            if (type->ty == Tfunction)
+            {
+                TypeFunction *tf = (TypeFunction *)type;
+                if (tf->isreturn)
+                    v->storage_class |= STCreturn;
+                if (tf->isscope)
+                    v->storage_class |= STCscope;
+            }
 
             v->semantic(sc);
             if (!sc->insert(v))

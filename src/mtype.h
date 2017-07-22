@@ -625,6 +625,7 @@ public:
     void purityLevel();
     bool hasLazyParameters();
     bool parameterEscapes(Parameter *p);
+    StorageClass parameterStorageClass(Parameter *p);
     Type *addStorageClass(StorageClass stc);
 
     /** For each active attribute (ref/const/nogc/etc) call fp with a void* for the
@@ -930,6 +931,8 @@ public:
     static Parameters *arraySyntaxCopy(Parameters *parameters);
     static size_t dim(Parameters *parameters);
     static Parameter *getNth(Parameters *parameters, d_size_t nth, d_size_t *pn = NULL);
+    const char *toChars();
+    bool isCovariant(const Parameter *p) const;
 };
 
 bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);

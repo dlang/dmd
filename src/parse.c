@@ -2018,8 +2018,8 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                     if (stc & (stc - 1) &&
                         !(stc == (STCin | STCref)))
                         error("incompatible parameter storage classes");
-                    if ((storageClass & STCscope) && (storageClass & (STCref | STCout)))
-                        error("scope cannot be ref or out");
+                    //if ((storageClass & STCscope) && (storageClass & (STCref | STCout)))
+                        //error("scope cannot be ref or out");
 
                     Token *t;
                     if (tpl && token.value == TOKidentifier &&

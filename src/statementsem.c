@@ -1408,6 +1408,9 @@ public:
                     }
                     else
                     {
+                        if (global.params.vsafe)
+                            fld->tookAddressOf = 1;  // allocate a closure unless the opApply() uses 'scope'
+
                         assert(tab->ty == Tstruct || tab->ty == Tclass);
                         assert(sapply);
                         /* Call:

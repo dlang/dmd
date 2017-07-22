@@ -4696,6 +4696,7 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
             sd->semantic(NULL);
 
         // duplicate a part of StructDeclaration::semanticTypeInfoMembers
+        //printf("AA = %s, key: xeq = %p, xerreq = %p xhash = %p\n", toChars(), sd->xeq, sd->xerreq, sd->xhash);
         if (sd->xeq &&
             sd->xeq->_scope &&
             sd->xeq->semanticRun < PASSsemantic3done)
@@ -4706,7 +4707,6 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
                 sd->xeq = sd->xerreq;
         }
 
-        //printf("AA = %s, key: xeq = %p, xhash = %p\n", toChars(), sd->xeq, sd->xhash);
         const char *s = (index->toBasetype()->ty != Tstruct) ? "bottom of " : "";
         if (!sd->xeq)
         {
@@ -5310,15 +5310,7 @@ int Type::covariant(Type *t, StorageClass *pstc)
             {
                 goto Ldistinct;
             }
-            const StorageClass sc = STCref | STCin | STCout | STClazy;
-            if ((fparam1->storageClass & sc) != (fparam2->storageClass & sc))
-                inoutmismatch = 1;
-            // We can add scope, but not subtract it
-            if (!(fparam1->storageClass & STCscope) && (fparam2->storageClass & STCscope))
-                inoutmismatch = 1;
-            // We can subtract return, but not add it
-            if ((fparam1->storageClass & STCreturn) && !(fparam2->storageClass & STCreturn))
-                inoutmismatch = 1;
+            inoutmismatch = !fparam1->isCovariant(fparam2);
         }
     }
     else if (t1->parameters != t2->parameters)
@@ -5617,9 +5609,6 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                     fparam->storageClass |= STCscope;        // 'return' implies 'scope'
                     if (tf->isref)
                     {
-                        error(loc, "parameter %s is 'return' but function returns 'ref'",
-                            fparam->ident ? fparam->ident->toChars() : "");
-                        errors = true;
                     }
                     else if (!tf->isref && tf->next && !tf->next->hasPointers())
                     {
@@ -5655,7 +5644,11 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             }
 
             if (fparam->storageClass & STCscope && !fparam->type->hasPointers())
-                fparam->storageClass &= ~(STCreturn | STCscope);
+            {
+                fparam->storageClass &= ~STCscope;
+                if (!(fparam->storageClass & STCref))
+                    fparam->storageClass &= ~STCreturn;
+            }
 
             if (t->hasWild())
             {
@@ -6194,47 +6187,92 @@ bool TypeFunction::hasLazyParameters()
 
 /***************************
  * Examine function signature for parameter p and see if
- * p can 'escape' the scope of the function.
+ * the value of p can 'escape' the scope of the function.
+ * This is useful to minimize the needed annotations for the parameters.
+ * Params:
+ *  p = parameter to this function
+ * Returns:
+ *  true if escapes via assignment to global or through a parameter
  */
 
 bool TypeFunction::parameterEscapes(Parameter *p)
 {
-    purityLevel();
-
     /* Scope parameters do not escape.
      * Allow 'lazy' to imply 'scope' -
      * lazy parameters can be passed along
      * as lazy parameters to the next function, but that isn't
      * escaping.
      */
-    if (p->storageClass & (STCscope | STClazy))
+    if (parameterStorageClass(p) & (STCscope | STClazy))
         return false;
-    if (p->storageClass & STCreturn)
-        return true;
+    return true;
+}
 
-    /* If haven't inferred the return type yet, assume it escapes
+/************************************
+ * Take the specified storage class for p,
+ * and use the function signature to infer whether
+ * STCscope and STCreturn should be OR'd in.
+ * (This will not affect the name mangling.)
+ * Params:
+ *  p = one of the parameters to 'this'
+ * Returns:
+ *  storage class with STCscope or STCreturn OR'd in
+ */
+StorageClass TypeFunction::parameterStorageClass(Parameter *p)
+{
+    StorageClass stc = p->storageClass;
+    if (!global.params.vsafe)
+        return stc;
+
+    if (stc & (STCscope | STCreturn | STClazy) || purity == PUREimpure)
+        return stc;
+
+    /* If haven't inferred the return type yet, can't infer storage classes
      */
     if (!nextOf())
-        return true;
+        return stc;
 
-    if (purity > PUREweak)
+    purityLevel();
+
+    // See if p can escape via any of the other parameters
+    if (purity == PUREweak)
     {
-        /* With pure functions, we need only be concerned if p escapes
-         * via any return statement.
-         */
-        Type* tret = nextOf()->toBasetype();
-        if (!isref && !tret->hasPointers())
+        const size_t dim = Parameter::dim(parameters);
+        for (size_t i = 0; i < dim; i++)
         {
-            /* The result has no references, so p could not be escaping
-             * that way.
-             */
-            return false;
+            Parameter *fparam = Parameter::getNth(parameters, i);
+            Type *t = fparam->type;
+            if (!t)
+                continue;
+            t = t->baseElemOf();
+            if (t->isMutable() && t->hasPointers())
+            {
+                if (fparam->storageClass & (STCref | STCout))
+                {
+                }
+                else if (t->ty == Tarray || t->ty == Tpointer)
+                {
+                    Type *tn = t->nextOf()->toBasetype();
+                    if (!(tn->isMutable() && tn->hasPointers()))
+                        continue;
+                }
+                return stc;
+            }
         }
     }
 
-    /* Assume it escapes in the absence of better information.
-     */
-    return true;
+    stc |= STCscope;
+
+    Type *tret = nextOf()->toBasetype();
+    if (isref || tret->hasPointers())
+    {
+        /* The result has references, so p could be escaping
+         * that way.
+         */
+        stc |= STCreturn;
+    }
+
+    return stc;
 }
 
 Expression *TypeFunction::defaultInit(Loc loc)
@@ -9373,4 +9411,31 @@ int Parameter_foreach(Parameters *parameters, ForeachDg dg, void *ctx, size_t *p
     if (pn)
         *pn = n; // update index
     return result;
+}
+
+
+const char *Parameter::toChars()
+{
+    return ident ? ident->toChars() : "__anonymous_param";
+}
+
+/*********************************
+ * Compute covariance of parameters `this` and `p`
+ * as determined by the storage classes of both.
+ * Params:
+ *  p = Parameter to compare with
+ * Returns:
+ *  true = `this` can be used in place of `p`
+ *  false = nope
+ */
+bool Parameter::isCovariant(const Parameter *p) const
+{
+    const StorageClass stc = STCref | STCin | STCout | STClazy;
+    return !((this->storageClass & stc) != (p->storageClass & stc) ||
+
+            // We can add scope, but not subtract it
+            (!(this->storageClass & STCscope) && (p->storageClass & STCscope)) ||
+
+            // We can subtract return, but not add it
+            ((this->storageClass & STCreturn) && !(p->storageClass & STCreturn)));
 }

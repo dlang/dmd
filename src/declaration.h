@@ -54,7 +54,7 @@ enum PINLINE;
 #define STCout          0x1000LL        // out parameter
 #define STClazy         0x2000LL        // lazy parameter
 #define STCforeach      0x4000LL        // variable for foreach loop
-#define STCvariadic     0x10000LL       // variadic function argument
+#define STCvariadic     0x10000LL       // the 'variadic' parameter in: T foo(T a, U b, V variadic...)
 #define STCctorinit     0x20000LL       // can only be set inside constructor
 #define STCtemplateparameter  0x40000LL // template parameter
 #define STCscope        0x80000LL
@@ -87,9 +87,10 @@ enum PINLINE;
 #define STCrvalue        0x20000000000LL // force rvalue for variables
 #define STCnogc          0x40000000000LL // @nogc
 #define STCvolatile      0x80000000000LL // destined for volatile in the back end
-#define STCreturn        0x100000000000LL // 'return ref' for function parameters
+#define STCreturn        0x100000000000LL // 'return ref' or 'return scope' for function parameters
 #define STCautoref       0x200000000000LL // Mark for the already deduced 'auto ref' parameter
 #define STCinference     0x400000000000LL // do attribute inference
+#define STCmaybescope    0x1000000000000LL // parameter might be 'scope'
 
 const StorageClass STCStorageClass = (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal |
     STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias |
@@ -238,6 +239,7 @@ class VarDeclaration : public Declaration
 public:
     Initializer *_init;
     unsigned offset;
+    unsigned sequenceNumber;     // order the variables are declared
     FuncDeclarations nestedrefs; // referenced by these lexically nested functions
     bool isargptr;              // if parameter that _argptr points to
     structalign_t alignment;
@@ -247,6 +249,7 @@ public:
     int canassign;              // it can be assigned to
     bool overlapped;            // if it is a field and has overlapping
     bool overlapUnsafe;         // if it is an overlapping field and the overlaps are unsafe
+    bool doNotInferScope;       // do not infer 'scope' for this variable
     unsigned char isdataseg;    // private data for isDataseg
     Dsymbol *aliassym;          // if redone as alias to another symbol
     VarDeclaration *lastVar;    // Linked list of variables for goto-skips-init detection
@@ -287,6 +290,7 @@ public:
     // Eliminate need for dynamic_cast
     VarDeclaration *isVarDeclaration() { return (VarDeclaration *)this; }
     void accept(Visitor *v) { v->visit(this); }
+    bool enclosesLifetimeOf(VarDeclaration *v) const;
 };
 
 /**************************************************************/
@@ -504,6 +508,7 @@ void builtin_init();
 #define FUNCFLAGnogcInprocess      8    // working on determining @nogc
 #define FUNCFLAGreturnInprocess 0x10    // working on inferring 'return' for parameters
 #define FUNCFLAGinlineScanned   0x20    // function has been scanned for inline possibilities
+#define FUNCFLAGinferScope      0x40    // infer 'scope' for parameters
 
 class FuncDeclaration : public Declaration
 {

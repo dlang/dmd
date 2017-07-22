@@ -814,10 +814,10 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             ex = ex->semantic(scx);
             if (errors < global.errors)
                 e->error("%s cannot be resolved", eorig->toChars());
+            //ex->print();
 
             /* Create tuple of functions of ex
              */
-            //ex->print();
             Expressions *exps = new Expressions();
             FuncDeclaration *f;
             if (ex->op == TOKvar)
