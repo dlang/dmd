@@ -24,10 +24,10 @@
 #include <malloc.h>
 #endif
 
+#include "checkedint.h"
 #include "rmem.h"
 #include "port.h"
 #include "target.h"
-#include "checkedint.h"
 
 #include "dsymbol.h"
 #include "mtype.h"

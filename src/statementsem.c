@@ -13,8 +13,8 @@
 #include <assert.h>
 
 #include "rmem.h"
-#include "target.h"
 #include "checkedint.h"
+#include "target.h"
 
 #include "statement.h"
 #include "expression.h"
