@@ -278,6 +278,7 @@ public:
     bool isDataseg();
     bool isThreadlocal();
     bool isCTFE();
+    bool isOverlappedWith(VarDeclaration *v);
     bool hasPointers();
     bool canTakeAddressOf();
     bool needsAutoDtor();

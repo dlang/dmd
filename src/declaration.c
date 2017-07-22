@@ -2022,6 +2022,12 @@ bool VarDeclaration::isCTFE()
     return (storage_class & STCctfe) != 0; // || !isDataseg();
 }
 
+bool VarDeclaration::isOverlappedWith(VarDeclaration *v)
+{
+  return (offset < v->offset + v->type->size() &&
+          v->offset < offset + type->size());
+}
+
 bool VarDeclaration::hasPointers()
 {
     //printf("VarDeclaration::hasPointers() %s, ty = %d\n", toChars(), type->ty);
