@@ -429,6 +429,78 @@ bool AggregateDeclaration::isExport()
     return protection.kind == PROTexport;
 }
 
+/***************************************
+ * Calculate field[i].overlapped, and check that all of explicit
+ * field initializers have unique memory space on instance.
+ * Returns:
+ *      true if any errors happen.
+ */
+
+bool AggregateDeclaration::checkOverlappedFields()
+{
+    //printf("AggregateDeclaration::checkOverlappedFields() %s\n", toChars());
+    assert(sizeok == SIZEOKdone);
+    size_t nfields = fields.dim;
+    if (isNested())
+    {
+        ClassDeclaration *cd = isClassDeclaration();
+        if (!cd || !cd->baseClass || !cd->baseClass->isNested())
+            nfields--;
+    }
+    bool errors = false;
+
+    // Fill in missing any elements with default initializers
+    for (size_t i = 0; i < nfields; i++)
+    {
+        VarDeclaration *vd = fields[i];
+        VarDeclaration *vx = vd;
+        if (vd->init && vd->init->isVoidInitializer())
+            vx = NULL;
+
+        // Find overlapped fields with the hole [vd->offset .. vd->offset->size()].
+        for (size_t j = 0; j < nfields; j++)
+        {
+            if (i == j)
+                continue;
+            VarDeclaration *v2 = fields[j];
+            if (!vd->isOverlappedWith(v2))
+                continue;
+
+            // vd and v2 are overlapping. If either has destructors, postblits, etc., then error
+            //printf("overlapping fields %s and %s\n", vd->toChars(), v2->toChars());
+            for (size_t k = 0; k < 2; k++)
+            {
+                VarDeclaration *v = k == 0 ? vd : v2;
+                Type *tv = v->type->baseElemOf();
+                Dsymbol *sv = tv->toDsymbol(NULL);
+                if (!sv || errors)
+                    continue;
+                StructDeclaration *sd = sv->isStructDeclaration();
+                if (sd && (sd->dtor || sd->inv || sd->postblit))
+                {
+                    error("destructors, postblits and invariants are not allowed in overlapping fields %s and %s",
+                          vd->toChars(), v2->toChars());
+                    errors = true;
+                    break;
+                }
+            }
+            vd->overlapped = true;
+
+            if (!vx)
+                continue;
+            if (v2->init && v2->init->isVoidInitializer())
+                continue;
+
+            if (vx->init && v2->init)
+            {
+                ::error(loc, "overlapping default initialization for field %s and %s", v2->toChars(), vd->toChars());
+                errors = true;
+            }
+        }
+    }
+    return errors;
+}
+
 /****************************
  * Do byte or word alignment as necessary.
  * Align sizes of 0, as we may not know array sizes yet.
@@ -994,7 +1066,7 @@ void StructDeclaration::finalizeSize(Scope *sc)
     sizeok = SIZEOKdone;
 
     // Calculate fields[i]->overlapped
-    fill(loc, NULL, true);
+    checkOverlappedFields();
 
     // Determine if struct is all zeros or not
     zeroInit = 1;
@@ -1146,26 +1218,26 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
 {
     //printf("StructDeclaration::fill() %s\n", toChars());
     assert(sizeok == SIZEOKdone);
+    assert(elements);
     size_t nfields = fields.dim - isNested();
     bool errors = false;
 
-    if (elements)
-    {
-        size_t dim = elements->dim;
-        elements->setDim(nfields);
-        for (size_t i = dim; i < nfields; i++)
-            (*elements)[i] = NULL;
-    }
+    size_t dim = elements->dim;
+    elements->setDim(nfields);
+    for (size_t i = dim; i < nfields; i++)
+        (*elements)[i] = NULL;
 
     // Fill in missing any elements with default initializers
     for (size_t i = 0; i < nfields; i++)
     {
-        if (elements && (*elements)[i])
+        if ((*elements)[i])
             continue;
+
         VarDeclaration *vd = fields[i];
         VarDeclaration *vx = vd;
         if (vd->init && vd->init->isVoidInitializer())
             vx = NULL;
+
         // Find overlapped fields with the hole [vd->offset .. vd->offset->size()].
         size_t fieldi = i;
         for (size_t j = 0; j < nfields; j++)
@@ -1173,58 +1245,32 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
             if (i == j)
                 continue;
             VarDeclaration *v2 = fields[j];
-            bool overlap = (vd->offset < v2->offset + v2->type->size() &&
-                            v2->offset < vd->offset + vd->type->size());
-            if (!overlap)
+            if (!vd->isOverlappedWith(v2))
                 continue;
 
-            // vd and v2 are overlapping. If either has destructors, postblits, etc., then error
-            //printf("overlapping fields %s and %s\n", vd->toChars(), v2->toChars());
-
-            VarDeclaration *v = vd;
-            for (int k = 0; k < 2; ++k, v = v2)
+            if ((*elements)[j])
             {
-                Type *tv = v->type->baseElemOf();
-                Dsymbol *sv = tv->toDsymbol(NULL);
-                if (sv && !errors)
-                {
-                    StructDeclaration *sd = sv->isStructDeclaration();
-                    if (sd && (sd->dtor || sd->inv || sd->postblit))
-                    {
-                        error("destructors, postblits and invariants are not allowed in overlapping fields %s and %s", vd->toChars(), v2->toChars());
-                        errors = true;
-                        break;
-                    }
-                }
-            }
-
-            if (elements)
-            {
-                if ((*elements)[j])
-                {
-                    vx = NULL;
-                    break;
-                }
-            }
-            else
-            {
-                vd->overlapped = true;
+                vx = NULL;
+                break;
             }
             if (v2->init && v2->init->isVoidInitializer())
                 continue;
 
-            if (elements)
+            if (1)
             {
                 /* Prefer first found non-void-initialized field
                  * union U { int a; int b = 2; }
                  * U u;    // Error: overlapping initialization for field a and b
                  */
                 if (!vx)
+                {
                     vx = v2, fieldi = j;
+                }
                 else if (v2->init)
                 {
                     ::error(loc, "overlapping initialization for field %s and %s",
                         v2->toChars(), vd->toChars());
+                    errors = true;
                 }
             }
             else
@@ -1236,10 +1282,10 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
                  * U u;    // OK (u.b == 2)
                  */
                 if (!vx || !vx->init && v2->init)
+                {
                     vx = v2, fieldi = j;
-                else if (vx != vd &&
-                    !(vx->offset < v2->offset + v2->type->size() &&
-                      v2->offset < vx->offset + vx->type->size()))
+                }
+                else if (vx != vd && !vx->isOverlappedWith(v2))
                 {
                     // Both vx and v2 fills vd, but vx and v2 does not overlap
                 }
@@ -1252,7 +1298,7 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
                     assert(vx->init || !vx->init && !v2->init);
             }
         }
-        if (elements && vx)
+        if (vx)
         {
             Expression *e;
             if (vx->type->size() == 0)
@@ -1297,15 +1343,13 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
         }
     }
 
-    if (elements)
+    for (size_t i = 0; i < elements->dim; i++)
     {
-        for (size_t i = 0; i < elements->dim; i++)
-        {
-            Expression *e = (*elements)[i];
-            if (e && e->op == TOKerror)
-                return false;
-        }
+        Expression *e = (*elements)[i];
+        if (e && e->op == TOKerror)
+            return false;
     }
+
     return !errors;
 }
 

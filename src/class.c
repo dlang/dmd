@@ -1025,6 +1025,9 @@ void ClassDeclaration::finalizeSize(Scope *sc)
     structsize += setBaseInterfaceOffsets(structsize);
     sizeok = SIZEOKdone;
 
+    // Calculate fields[i]->overlapped
+    checkOverlappedFields();
+
     // Look for the constructor
     ctor = searchCtor();
     if (ctor && ctor->toParent() != this)
