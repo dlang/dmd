@@ -1216,81 +1216,84 @@ bool isCtfeComparable(Expression *e)
     return true;
 }
 
-/// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
-int intUnsignedCmp(TOK op, dinteger_t n1, dinteger_t n2)
+/// Map TOK comparison ops
+template <typename N>
+static bool numCmp(TOK op, N n1, N n2)
 {
-    int n;
     switch (op)
     {
-        case TOKlt:     n = n1 <  n2;   break;
-        case TOKle:     n = n1 <= n2;   break;
-        case TOKgt:     n = n1 >  n2;   break;
-        case TOKge:     n = n1 >= n2;   break;
+        case TOKlt:
+            return n1 <  n2;
+        case TOKle:
+            return n1 <= n2;
+        case TOKgt:
+            return n1 >  n2;
+        case TOKge:
+            return n1 >= n2;
 
-        case TOKleg:    n = 1;          break;
-        case TOKlg:     n = n1 != n2;   break;
-        case TOKunord:  n = 0;          break;
-        case TOKue:     n = n1 == n2;   break;
-        case TOKug:     n = n1 >  n2;   break;
-        case TOKuge:    n = n1 >= n2;   break;
-        case TOKul:     n = n1 <  n2;   break;
-        case TOKule:    n = n1 <= n2;   break;
+        case TOKleg:
+            return true;
+        case TOKlg:
+            return n1 != n2;
+        case TOKunord:
+            return false;
+        case TOKue:
+            return n1 == n2;
+        case TOKug:
+            return n1 >  n2;
+        case TOKuge:
+            return n1 >= n2;
+        case TOKul:
+            return n1 <  n2;
+        case TOKule:
+            return n1 <= n2;
 
         default:
             assert(0);
     }
-    return n;
+}
+
+/// Returns cmp OP 0; where OP is ==, !=, <, >=, etc. Result is 0 or 1
+int specificCmp(TOK op, int rawCmp)
+{
+    return numCmp<int>(op, rawCmp, 0);
+}
+
+/// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
+int intUnsignedCmp(TOK op, dinteger_t n1, dinteger_t n2)
+{
+    return numCmp<dinteger_t>(op, n1, n2);
 }
 
 /// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
 int intSignedCmp(TOK op, sinteger_t n1, sinteger_t n2)
 {
-    int n;
-    switch (op)
-    {
-        case TOKlt:     n = n1 <  n2;   break;
-        case TOKle:     n = n1 <= n2;   break;
-        case TOKgt:     n = n1 >  n2;   break;
-        case TOKge:     n = n1 >= n2;   break;
-
-        case TOKleg:    n = 1;          break;
-        case TOKlg:     n = n1 != n2;   break;
-        case TOKunord:  n = 0;          break;
-        case TOKue:     n = n1 == n2;   break;
-        case TOKug:     n = n1 >  n2;   break;
-        case TOKuge:    n = n1 >= n2;   break;
-        case TOKul:     n = n1 <  n2;   break;
-        case TOKule:    n = n1 <= n2;   break;
-
-        default:
-            assert(0);
-    }
-    return n;
+    return numCmp<sinteger_t>(op, n1, n2);
 }
 
 /// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
 int realCmp(TOK op, real_t r1, real_t r2)
 {
-    int n;
-
     // Don't rely on compiler, handle NAN arguments separately
     if (Port::isNan(r1) || Port::isNan(r2)) // if unordered
     {
         switch (op)
         {
-            case TOKlt:     n = 0;  break;
-            case TOKle:     n = 0;  break;
-            case TOKgt:     n = 0;  break;
-            case TOKge:     n = 0;  break;
+            case TOKlt:
+            case TOKle:
+            case TOKgt:
+            case TOKge:
+            case TOKleg:
+            case TOKlg:
+                return 0;
 
-            case TOKleg:    n = 0;  break;
-            case TOKlg:     n = 0;  break;
-            case TOKunord:  n = 1;  break;
-            case TOKue:     n = 1;  break;
-            case TOKug:     n = 1;  break;
-            case TOKuge:    n = 1;  break;
-            case TOKul:     n = 1;  break;
-            case TOKule:    n = 1;  break;
+            case TOKunord:
+            case TOKue:
+            case TOKug:
+            case TOKuge:
+            case TOKul:
+            case TOKule:
+                return 1;
 
             default:
                 assert(0);
@@ -1298,27 +1301,8 @@ int realCmp(TOK op, real_t r1, real_t r2)
     }
     else
     {
-        switch (op)
-        {
-            case TOKlt:     n = r1 <  r2;   break;
-            case TOKle:     n = r1 <= r2;   break;
-            case TOKgt:     n = r1 >  r2;   break;
-            case TOKge:     n = r1 >= r2;   break;
-
-            case TOKleg:    n = 1;          break;
-            case TOKlg:     n = r1 != r2;   break;
-            case TOKunord:  n = 0;          break;
-            case TOKue:     n = r1 == r2;   break;
-            case TOKug:     n = r1 >  r2;   break;
-            case TOKuge:    n = r1 >= r2;   break;
-            case TOKul:     n = r1 <  r2;   break;
-            case TOKule:    n = r1 <= r2;   break;
-
-            default:
-                assert(0);
-        }
+        return numCmp<real_t>(op, r1, r2);
     }
-    return n;
 }
 
 int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2);
@@ -1653,49 +1637,19 @@ int ctfeIdentity(Loc loc, TOK op, Expression *e1, Expression *e2)
 /// Evaluate >,<=, etc. Resolves slices before comparing. Returns 0 or 1
 int ctfeCmp(Loc loc, TOK op, Expression *e1, Expression *e2)
 {
-    int n;
     Type *t1 = e1->type->toBasetype();
     Type *t2 = e2->type->toBasetype();
+
     if (t1->isString() && t2->isString())
-    {
-        int cmp = ctfeRawCmp(loc, e1, e2);
-        switch (op)
-        {
-            case TOKlt: n = cmp <  0;   break;
-            case TOKle: n = cmp <= 0;   break;
-            case TOKgt: n = cmp >  0;   break;
-            case TOKge: n = cmp >= 0;   break;
-
-            case TOKleg:   n = 1;               break;
-            case TOKlg:    n = cmp != 0;        break;
-            case TOKunord: n = 0;               break;
-            case TOKue:    n = cmp == 0;        break;
-            case TOKug:    n = cmp >  0;        break;
-            case TOKuge:   n = cmp >= 0;        break;
-            case TOKul:    n = cmp <  0;        break;
-            case TOKule:   n = cmp <= 0;        break;
-
-            default:
-                assert(0);
-        }
-    }
+        return specificCmp(op, ctfeRawCmp(loc, e1, e2));
     else if (t1->isreal())
-    {
-        n = realCmp(op, e1->toReal(), e2->toReal());
-    }
+        return realCmp(op, e1->toReal(), e2->toReal());
     else if (t1->isimaginary())
-    {
-        n = realCmp(op, e1->toImaginary(), e2->toImaginary());
-    }
+        return realCmp(op, e1->toImaginary(), e2->toImaginary());
     else if (t1->isunsigned() || t2->isunsigned())
-    {
-        n = intUnsignedCmp(op, e1->toInteger(), e2->toInteger());
-    }
+        return intUnsignedCmp(op, e1->toInteger(), e2->toInteger());
     else
-    {
-        n = intSignedCmp(op, e1->toInteger(), e2->toInteger());
-    }
-    return n;
+        return intSignedCmp(op, e1->toInteger(), e2->toInteger());
 }
 
 UnionExp ctfeCat(Type *type, Expression *e1, Expression *e2)
