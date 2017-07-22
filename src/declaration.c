@@ -1798,6 +1798,9 @@ const char *VarDeclaration::kind()
 Dsymbol *VarDeclaration::toAlias()
 {
     //printf("VarDeclaration::toAlias('%s', this = %p, aliassym = %p)\n", toChars(), this, aliassym);
+    if ((!type || !type->deco) && _scope)
+        semantic(_scope);
+
     assert(this != aliassym);
     Dsymbol *s = aliassym ? aliassym->toAlias() : this;
     return s;
@@ -1838,6 +1841,25 @@ bool VarDeclaration::isImportedSymbol()
         (storage_class & STCstatic || parent->isModule()))
         return true;
     return false;
+}
+
+/*******************************************
+ * Helper function for the expansion of manifest constant.
+ */
+Expression *VarDeclaration::expandInitializer(Loc loc)
+{
+    assert((storage_class & STCmanifest) && _init);
+
+    Expression *e = getConstInitializer();
+    if (!e)
+    {
+        ::error(loc, "cannot make expression out of initializer for %s", toChars());
+        return new ErrorExp();
+    }
+
+    e = e->copy();
+    e->loc = loc;    // for better error message
+    return e;
 }
 
 void VarDeclaration::checkCtorConstInit()

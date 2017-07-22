@@ -301,6 +301,7 @@ const char *Dsymbol::kind()
 /*********************************
  * If this symbol is really an alias for another,
  * return that other.
+ * If needed, semantic() is invoked due to resolve forward reference.
  */
 Dsymbol *Dsymbol::toAlias()
 {

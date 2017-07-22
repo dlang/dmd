@@ -284,6 +284,7 @@ public:
     bool needsScopeDtor();
     Expression *callScopeDtor(Scope *sc);
     Expression *getConstInitializer(bool needFullType = true);
+    Expression *expandInitializer(Loc loc);
     void checkCtorConstInit();
     bool checkNestedReference(Scope *sc, Loc loc);
     Dsymbol *toAlias();

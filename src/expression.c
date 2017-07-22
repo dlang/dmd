@@ -3544,38 +3544,13 @@ Lagain:
     {
         if (!s->isFuncDeclaration())        // functions are checked after overloading
             s->checkDeprecated(loc, sc);
+
+        // Bugzilla 12023: if 's' is a tuple variable, the tuple is returned.
         s = s->toAlias();
+
         //printf("s = '%s', s->kind = '%s', s->needThis() = %p\n", s->toChars(), s->kind(), s->needThis());
         if (s != olds && !s->isFuncDeclaration())
             s->checkDeprecated(loc, sc);
-    }
-
-
-    if (VarDeclaration *v = s->isVarDeclaration())
-    {
-        /* Bugzilla 12023: forward reference should be resolved
-         * before 's->needThis()' is called.
-         */
-        if ((!v->type || !v->type->deco) && v->_scope)
-        {
-            v->semantic(v->_scope);
-            s = v->toAlias();   // Need this if 'v' is a tuple variable
-        }
-
-        // Change the ancestor lambdas to delegate before hasThis(sc) call.
-        if (v->checkNestedReference(sc, loc))
-            return new ErrorExp();
-    }
-    if (s->needThis() && hasThis(sc))
-    {
-        // For functions, this should happen after overload resolution
-        if (!s->isFuncDeclaration())
-        {
-            // Supply an implicit 'this', as in
-            //    this.ident
-            DotVarExp *de = new DotVarExp(loc, new ThisExp(loc), s->isDeclaration());
-            return de->semantic(sc);
-        }
     }
 
     if (EnumMember *em = s->isEnumMember())
@@ -3597,32 +3572,24 @@ Lagain:
                 ::error(loc, "circular initialization of %s", v->toChars());
                 return new ErrorExp();
             }
-            if (v->_scope)
-            {
-                v->inuse++;
-                v->_init = v->_init->semantic(v->_scope, v->type, INITinterpret);
-                v->_scope = NULL;
-                v->inuse--;
-            }
-            e = v->_init->toExpression(v->type);
-            if (!e)
-            {
-                ::error(loc, "cannot make expression out of initializer for %s", v->toChars());
-                return new ErrorExp();
-            }
-            e = e->copy();
-            e->loc = loc;   // for better error message
 
+            e = v->expandInitializer(loc);
             v->inuse++;
             e = e->semantic(sc);
             v->inuse--;
             return e;
         }
 
-        e = new VarExp(loc, v);
-        e->type = v->type;
+        // Change the ancestor lambdas to delegate before hasThis(sc) call.
+        if (v->checkNestedReference(sc, loc))
+            return new ErrorExp();
+
+        if (v->needThis() && hasThis(sc))
+            e = new DotVarExp(loc, new ThisExp(loc), v);
+        else
+            e = new VarExp(loc, v);
         e = e->semantic(sc);
-        return e->deref();
+        return e;
     }
     if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
     {
@@ -3690,7 +3657,10 @@ Lagain:
 
     if (TupleDeclaration *tup = s->isTupleDeclaration())
     {
-        e = new TupleExp(loc, tup);
+        if (tup->needThis() && hasThis(sc))
+            e = new DotVarExp(loc, new ThisExp(loc), tup);
+        else
+            e = new TupleExp(loc, tup);
         e = e->semantic(sc);
         return e;
     }
@@ -5020,9 +4990,6 @@ Expression *ScopeExp::semantic(Scope *sc)
 
         if (VarDeclaration *v = s->isVarDeclaration())
         {
-            if ((!v->type || !v->type->deco) && v->_scope)
-                v->semantic(v->_scope);
-
             if (!v->type)
             {
                 error("forward reference of %s %s", v->kind(), v->toChars());
@@ -5049,28 +5016,8 @@ Expression *ScopeExp::semantic(Scope *sc)
                     error("recursive expansion of %s '%s'", ti->kind(), ti->toPrettyChars());
                     return new ErrorExp();
                 }
-                //if (v->inuse)  // This is the point.
-                //{
-                //    ::error(loc, "circular initialization of %s", v->toChars());
-                //    return new ErrorExp();
-                //}
-                if (v->_scope)
-                {
-                    v->inuse++;
-                    v->_init = v->_init->semantic(v->_scope, v->type, INITinterpret);
-                    v->_scope = NULL;
-                    v->inuse--;
-                }
 
-                Expression *e = v->_init->toExpression(v->type);
-                if (!e)
-                {
-                    error("cannot make expression out of initializer for %s", v->toChars());
-                    return new ErrorExp();
-                }
-                e = e->copy();
-                e->loc = loc; // for better error message
-
+                Expression *e = v->expandInitializer(loc);
                 ti->inuse++;
                 e = e->semantic(sc);
                 ti->inuse--;
@@ -7762,7 +7709,9 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             if (Package *p = s->isPackage())
                 checkAccess(loc, sc, p);
 
+            // if 's' is a tuple variable, the tuple is returned.
             s = s->toAlias();
+
             checkDeprecated(sc, s);
 
             EnumMember *em = s->isEnumMember();
@@ -7775,12 +7724,14 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             if (v)
             {
                 //printf("DotIdExp:: Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
-                if (v->inuse)
+                if (!v->type)
                 {
-                    error("circular reference to '%s'", v->toChars());
+                    if (v->inuse)
+                        error("circular reference to '%s'", v->toChars());
+                    else
+                        error("forward reference of %s %s", s->kind(), s->toChars());
                     return new ErrorExp();
                 }
-                type = v->type;
                 if (v->needThis())
                 {
                     if (!eleft)
@@ -7849,8 +7800,10 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             if (tup)
             {
                 if (eleft)
-                {   error("cannot have e.tuple");
-                    return new ErrorExp();
+                {
+                    e = new DotVarExp(loc, eleft, tup);
+                    e = e->semantic(sc);
+                    return e;
                 }
                 e = new TupleExp(loc, tup);
                 e = e->semantic(sc);
