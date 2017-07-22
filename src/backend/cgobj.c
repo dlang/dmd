@@ -47,7 +47,7 @@ struct Loc
 void error(Loc loc, const char *format, ...);
 #endif
 
-#if OMFOBJ
+#if TARGET_WINDOS
 
 static char __file__[] = __FILE__;      // for tassert.h
 #include        "tassert.h"
@@ -1130,13 +1130,16 @@ void Obj::dosseg()
 
 STATIC void obj_comment(unsigned char x, const char *string, size_t len)
 {
-    char __ss *library;
+    char buf[128];
 
-    library = (char __ss *) alloca(2 + len);
+    char *library = (2 + len <= sizeof(buf)) ? buf : (char *) malloc(2 + len);
+    assert(library);
     library[0] = 0;
     library[1] = x;
     memcpy(library + 2,string,len);
     objrecord(COMENT,library,len + 2);
+    if (library != buf)
+        free(library);
 }
 
 /*******************************
@@ -1862,7 +1865,7 @@ int Obj::comdatsize(Symbol *s, targ_size_t symsize)
 int Obj::comdat(Symbol *s)
 {   char lnames[IDMAX+IDOHD+1]; // +1 to allow room for strcpy() terminating 0
     char cextdef[2+2];
-    char __ss *p;
+    char *p;
     size_t lnamesize;
     unsigned ti;
     int isfunc;
@@ -2625,7 +2628,7 @@ void Obj::lidata(int seg,targ_size_t offset,targ_size_t count)
     unsigned reclen;
     static char zero[20];
     char data[20];
-    char __ss *di;
+    char *di;
 
     //printf("Obj::lidata(seg = %d, offset = x%x, count = %d)\n", seg, offset, count);
 

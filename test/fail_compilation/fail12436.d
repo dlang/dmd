@@ -62,3 +62,16 @@ void param12436f(ref Opaque);     // no error
 void param12436g(ref Opaque[1]);  // no error
 void param12436h(out Opaque);     // no error
 void param12436i(out Opaque[1]);  // no error
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail12436.d(75): Error: cannot have parameter of opaque type A14906 by value
+fail_compilation/fail12436.d(76): Error: cannot have parameter of opaque type A14906[3] by value
+fail_compilation/fail12436.d(77): Error: cannot have parameter of opaque type A14906[3][3] by value
+---
+*/
+enum A14906;
+void f14906a(A14906) {}
+void f14906b(A14906[3]) {}
+void f14906c(A14906[3][3]) {}

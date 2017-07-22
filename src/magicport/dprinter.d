@@ -153,7 +153,7 @@ class DPrinter : Visitor
         switch(s)
         {
         case "NULL": print("null"); return;
-        case "__IMPORT__": print("\"v\" ~ import(\"VERSION\")[0 .. $ - 1]"); return;
+        case "__VERSTR__": print("('v' ~ stripRight(import(\"verstr.h\"))[1 .. $-1] ~ '\\0').ptr"); return;
         case "operator ==": print("opEquals"); return;
         case "import", "module", "version", "ref", "scope",
             "body", "alias", "is",
@@ -300,7 +300,11 @@ class DPrinter : Visitor
     override void visit(VarDeclaration ast)
     {
         if (ast.stc & STCextern) return;
-        if (ast.id == "ASYNCREAD") return;
+        if (ast.id == "ASYNCREAD")
+        {
+            print("enum ASYNCREAD = false");
+            return;
+        }
         bool manifest;
         auto at = cast(ArrayType)ast.type;
         if (!D2)
@@ -1070,7 +1074,6 @@ class DPrinter : Visitor
 
     override void visit(DeleteExpr ast)
     {
-        print("/*delete*/");
     }
 
     override void visit(NotExpr ast)
@@ -1449,11 +1452,19 @@ class DPrinter : Visitor
         if (ast.e)
         {
             bool skipsemi;
+            bool skipnl;
             if (auto de = cast(DeclarationExpr)ast.e)
             {
                 if (cast(StructDeclaration)de.d ||
                     cast(MacroDeclaration)de.d)
                     skipsemi = true;
+                if (cast(MacroUnDeclaration)de.d)
+                    skipnl = true;
+            }
+            if (auto de = cast(DeleteExpr)ast.e)
+            {
+                skipsemi = true;
+                skipnl = true;
             }
             visitX(ast.e);
             if (ast.trailingcomment)
@@ -1461,6 +1472,9 @@ class DPrinter : Visitor
                 assert(!skipsemi);
                 print("; ");
                 println(ast.trailingcomment.strip);
+            }
+            else if (skipnl)
+            {
             }
             else if (skipsemi)
                 println("");

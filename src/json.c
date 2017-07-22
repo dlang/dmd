@@ -30,6 +30,7 @@
 #include "init.h"
 #include "import.h"
 #include "id.h"
+#include "hdrgen.h"
 
 class ToJsonVisitor : public Visitor
 {
@@ -343,21 +344,9 @@ public:
 
             while (stc)
             {
-                const size_t BUFFER_LEN = 20;
-                char tmp[BUFFER_LEN];
-                const char *p = StorageClassDeclaration::stcToChars(tmp, stc);
+                const char *p = stcToChars(stc);
                 assert(p);
-                assert(strlen(p) < BUFFER_LEN);
-                if (p[0] == '@')
-                {
-                    indent();
-                    stringStart();
-                    buf->writestring(p);
-                    stringEnd();
-                    comma();
-                }
-                else
-                    item(p);
+                item(p);
             }
 
             arrayEnd();
@@ -662,7 +651,7 @@ public:
                 for (size_t i = 0; i < cd->interfaces_dim; i++)
                 {
                     BaseClass *b = cd->interfaces[i];
-                    item(b->base->toPrettyChars(true));
+                    item(b->sym->toPrettyChars(true));
                 }
                 arrayEnd();
             }

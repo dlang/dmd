@@ -89,7 +89,7 @@ static Identifier *opId(Expression *e)
         void visit(UAddExp *e)       { id = Id::uadd; }
         void visit(NegExp *e)        { id = Id::neg; }
         void visit(ComExp *e)        { id = Id::com; }
-        void visit(CastExp *e)       { id = Id::cast; }
+        void visit(CastExp *e)       { id = Id::_cast; }
         void visit(InExp *e)         { id = Id::opIn; }
         void visit(PostExp *e)       { id = (e->op == TOKplusplus) ? Id::postinc : Id::postdec; }
         void visit(AddExp *e)        { id = Id::add; }
@@ -545,7 +545,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                 /* Rewrite as:
                  *      e1.opCast!(T)()
                  */
-                fd = search_function(ad, Id::cast);
+                fd = search_function(ad, Id::_cast);
                 if (fd)
                 {
         #if 1 // Backwards compatibility with D1 if opCast is a function, not a template
@@ -1442,23 +1442,15 @@ bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
     int sliced = 0;
     Type *tab;
     Type *att = NULL;
-    Expression *org_aggr = fes->aggr;
+    Expression *aggr = fes->aggr;
     AggregateDeclaration *ad;
 
     while (1)
     {
-        fes->aggr = fes->aggr->semantic(sc);
-        fes->aggr = resolveProperties(sc, fes->aggr);
-        fes->aggr = fes->aggr->optimize(WANTvalue);
-        if (!fes->aggr->type)
+        if (!aggr->type)
             goto Lerr;
 
-        tab = fes->aggr->type->toBasetype();
-        if (att == tab)
-        {
-            fes->aggr = org_aggr;
-            goto Lerr;
-        }
+        tab = aggr->type->toBasetype();
         switch (tab->ty)
         {
             case Tarray:
@@ -1487,11 +1479,11 @@ bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
 
                     if (fes->aggr->op != TOKtype)
                     {
-                        Expression *rinit = new ArrayExp(fes->aggr->loc, fes->aggr);
+                        Expression *rinit = new SliceExp(aggr->loc, aggr, NULL, NULL);
                         rinit = rinit->trySemantic(sc);
                         if (rinit)                  // if application of [] succeeded
                         {
-                            fes->aggr = rinit;
+                            aggr = rinit;
                             sliced = 1;
                             continue;
                         }
@@ -1506,18 +1498,19 @@ bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
 
                 if (ad->aliasthis)
                 {
+                    if (att == tab)
+                        goto Lerr;
                     if (!att && tab->checkAliasThisRec())
                         att = tab;
-                    fes->aggr = new DotIdExp(fes->aggr->loc, fes->aggr, ad->aliasthis->ident);
+                    aggr = resolveAliasThis(sc, aggr);
                     continue;
                 }
                 goto Lerr;
 
             case Tdelegate:
-                if (fes->aggr->op == TOKdelegate)
+                if (aggr->op == TOKdelegate)
                 {
-                    DelegateExp *de = (DelegateExp *)fes->aggr;
-                    sapply = de->func->isFuncDeclaration();
+                    sapply = ((DelegateExp *)aggr)->func;
                 }
                 break;
 
@@ -1529,6 +1522,7 @@ bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
         }
         break;
     }
+    fes->aggr = aggr;
     return true;
 
 Lerr:

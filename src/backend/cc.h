@@ -9,7 +9,7 @@
  * For any other uses, please contact Digital Mars.
  */
 
-#if __SC__
+#if __DMC__
 #pragma once
 #endif
 
@@ -210,9 +210,6 @@ typedef struct Srcpos
 #if M_UNIX
     short Sfilnum;              // file number
 #endif
-#if SOURCE_OFFSETS
-    unsigned long Sfiloff;      // byte offset
-#endif
 
     void print(const char *func);
 } Srcpos;
@@ -352,7 +349,7 @@ extern Cstate cstate;
 //  done on it, so it is stack and register variables.)
 #define symbol_isintab(s)       (sytab[(s)->Sclass] & SCSS)
 
-#if defined(__SC__) || defined(_MSC_VER)
+#if defined(__DMC__) || defined(_MSC_VER)
 typedef char enum_SC;
 #else
 typedef enum SC enum_SC;
@@ -1297,10 +1294,6 @@ struct Symbol
     }_SXR;
     regm_t      Sregsaved;      // mask of registers not affected by this func
 
-#if SOURCE_4SYMS
-    Srcpos Ssrcpos;             // file position for definition
-#endif
-
     char Sident[SYM_PREDEF_SZ]; // identifier string (dynamic array)
                                 // (the size is for static Symbols)
 
@@ -1387,9 +1380,6 @@ struct PARAM
     PARAM *Pnext;               // next in list
     unsigned Pflags;
     #define PFexplicit  1       // this template argument was explicit, i.e. in < >
-#if SOURCE_4PARAMS
-    Srcpos Psrcpos;             // parameter source definition
-#endif
 
     PARAM *createTal(PARAM *);  // create template-argument-list blank from
                                 // template-parameter-list
@@ -1407,6 +1397,7 @@ struct PARAM
 
 enum FL
 {
+        // Change this, update debug.c too
         FLunde,
         FLconst,        // numerical constant
         FLoper,         // operator node
@@ -1431,13 +1422,13 @@ enum FL
         FLdtor,         // destructed object
         FLregsave,      // ref to saved register on stack, int contains offset
         FLasm,          // (code) an ASM code
-#if TX86
+
         FLndp,          // saved 8087 register
-#endif
-#if TARGET_SEGMENTED
+
+        // Segmented systems
         FLfardata,      // ref to far data segment
         FLcsdata,       // ref to code segment variable
-#endif
+
         FLlocalsize,    // replaced with # of locals in the stack frame
         FLtlsdata,      // thread local storage
         FLbprel,        // ref to variable at fixed offset from frame pointer
@@ -1446,13 +1437,11 @@ enum FL
         FLallocatmp,    // temp for built-in alloca()
         FLstack,        // offset from ESP rather than EBP
         FLdsymbol,      // it's a Dsymbol
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        // Change this, update debug.c too
+
+        // Global Offset Table
         FLgot,          // global offset table entry outside this object file
         FLgotoff,       // global offset table entry inside this object file
-        //FLoncedata,   // link once data
-        //FLoncecode,   // link once code
-#endif
+
         FLMAX
 };
 

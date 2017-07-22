@@ -11,7 +11,7 @@
 
 /* Routines to handle elems.                            */
 
-#if __SC__
+#if __DMC__
 #pragma once
 #endif
 
@@ -203,7 +203,11 @@ void el_opArray(elem ***parray, elem *e, unsigned op);
 void el_opFree(elem *e, unsigned op);
 elem *el_opCombine(elem **args, size_t length, unsigned op, unsigned ty);
 
+#ifdef DEBUG
 void elem_print(elem *);
+#else
+#define elem_print(e)
+#endif
 void elem_print_const(elem *);
 void el_hydrate(elem **);
 void el_dehydrate(elem **);

@@ -1,13 +1,24 @@
 Ddoc
 
-$(COMMENT Pending changelog for 2.068.2.
+$(COMMENT Pending changelog for 2.069. This will get copied to dlang.org and
+    cleared when master gets merged into stable prior to 2.069.
 )
 
 $(BUGSTITLE Compiler Changes,
-$(LI The fix for $(BUGZILLA 14708) was reverted: destructor for temporary not called during stack unwinding, see $(DMDPR 5110).)
+$(LI $(RELATIVE_LINK2 objective-c-support, Basic support for Objective-C.))
 )
 
 $(BUGSTITLE Compiler Changes,
+
+$(LI $(RELATIVE_LINK2 objective-c-support, Basic support for Objective-C.)
+
+    $(P Basic support for Objective-C classes, interfaces and instance methods.
+        This is implemented by adding a new linkage attribute, Objective-C, and
+        a compiler recognized UDA, @selector. The linkage attribute is to be
+        used on a class or interface. The UDA is attached to a method.
+    )
+)
+
 )
 
 Macros:
@@ -18,8 +29,6 @@ Macros:
     RELATIVE_LINK2=<a href="#$1">$+</a>
     LNAME2=<a class="anchor" title="Permalink to this section" id="$1" href="#$1">$+</a>
 
-    BUGZILLA = <a href="https://issues.dlang.org/show_bug.cgi?id=$0">Bugzilla $0</a>
-    PULL_REQUEST = $(LINK2 https://github.com/D-Programming-Language/$1/pull/$2, $1#$2)
-    DMDPR = $(PULL_REQUEST dmd,$1)
-
-    BOOKTABLE = <table><caption>$1</caption>$+</table>
+    STDMODREF = <a href="phobos/std_$1.html">$2</a>
+    XREF = <a href="phobos/std_$1.html#$2">$2</a>
+    CXREF = <a href="phobos/core_$1.html#$2">$2</a>

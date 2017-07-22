@@ -801,34 +801,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
   c = CNIL;
   switch (fl)
   {
-#if 0 && TARGET_LINUX
-    case FLgot:
-    case FLgotoff:
-        gotref = 1;
-        pcs->IEVsym1 = s;
-        pcs->IEVoffset1 = e->EV.sp.Voffset;
-        if (e->Eoper == OPvar && fl == FLgot)
-        {
-            code *c1;
-            unsigned saveop = pcs->Iop;
-            idxregs = allregs & ~keepmsk;       // get a scratch register
-            c = allocreg(&idxregs,&reg,TYptr);
-            pcs->Irm = modregrm(2,reg,BX);      // BX has GOT
-            pcs->Isib = 0;
-            //pcs->Iflags |= CFvolatile;
-            pcs->Iop = 0x8B;
-            c = gen(c,pcs);                     // MOV reg,disp[EBX]
-            pcs->Irm = modregrm(0,0,reg);
-            pcs->IEVoffset1 = 0;
-            pcs->Iop = saveop;
-        }
-        else
-        {
-            pcs->Irm = modregrm(2,0,BX);        // disp[EBX] is addr
-            pcs->Isib = 0;
-        }
-        break;
-#endif
     case FLoper:
 #ifdef DEBUG
         if (debugw) printf("getlvalue(e = %p, keepmsk = %s)\n", e, regm_str(keepmsk));
@@ -852,9 +824,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 e1isadd = e1->Eoper == OPadd;
                 break;
             default:
-#ifdef DEBUG
                 elem_print(e);
-#endif
                 assert(0);
         }
         e1ty = tybasic(e1->Ety);
@@ -870,9 +840,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         f = FLconst;
         if (e1isadd &&
             ((e12->Eoper == OPrelconst
-#if TARGET_SEGMENTED
               && (f = el_fl(e12)) != FLfardata
-#endif
              ) ||
              (e12->Eoper == OPconst && !I16 && !e1->Ecount && (!I64 || el_signx32(e12)))) &&
             !(I64 && (config.flags3 & CFG3pic || config.exe == EX_WIN64)) &&
@@ -919,9 +887,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 {
                     regm_t scratchm;
 
-#if 0 && TARGET_LINUX
-                    assert(f != FLgot && f != FLgotoff);
-#endif
                     char ssflags = ssindex_array[ssi].ssflags;
                     if (ssflags & SSFLnobp && stackfl[f])
                         goto L6;
@@ -1000,21 +965,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                     /* Load index register with result of e11   */
                     c = scodelem(e11,&idxregs,keepmsk,TRUE);
                     setaddrmode(pcs, idxregs);
-#if 0 && TARGET_LINUX
-                    if (e12->EV.sp.Vsym->Sfl == FLgot || e12->EV.sp.Vsym->Sfl == FLgotoff)
-                    {
-                        gotref = 1;
-#if 1
-                        reg = findreg(idxregs & (ALLREGS | mBP));
-                        pcs->Irm = modregrm(2,0,4);
-                        pcs->Isib = modregrm(0,reg,BX);
-#else
-                        pcs->Isib = modregrm(0,pcs->Irm,BX);
-                        pcs->Irm = modregrm(2,0,4);
-#endif
-                    }
-                    else
-#endif
                     if (stackfl[f])             /* if we need [EBP] too */
                     {   unsigned idx = pcs->Irm & 7;
                         if (pcs->Irex & REX_B)
@@ -1028,9 +978,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             {
                 idxregs = IDXREGS & ~keepmsk;   /* only these can be index regs */
                 assert(idxregs);
-#if 0 && TARGET_LINUX
-                assert(f != FLgot && f != FLgotoff);
-#endif
                 if (stackfl[f])                 /* if stack data type   */
                 {   idxregs &= mSI | mDI;       /* BX can't index off stack */
                     if (!idxregs) goto L1;      /* index regs aren't avail */
@@ -1365,12 +1312,10 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         goto L3;
     case FLdata:
     case FLudata:
-#if TARGET_SEGMENTED
     case FLcsdata:
-#endif
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     case FLgot:
     case FLgotoff:
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     case FLtlsdata:
 #endif
     L3:
@@ -1418,14 +1363,12 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             pcs->Iflags |= CFcs | CFoff;
         }
 #endif
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         if (I64 && config.flags3 & CFG3pic &&
             (fl == FLtlsdata || s->ty() & mTYthread))
         {
             pcs->Iflags |= CFopsize;
             pcs->Irex = 0x48;
         }
-#endif
         pcs->IEVsym1 = s;
         pcs->IEVoffset1 = e->EV.sp.Voffset;
         if (sz == 1)
@@ -1455,9 +1398,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         break;
     }
 #endif
-#if TARGET_SEGMENTED
     case FLfardata:
-#endif
     case FLfunc:                                /* reading from code seg */
         if (config.exe & EX_flat)
             goto L3;
@@ -1483,8 +1424,8 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         break;
 
     default:
-#ifdef DEBUG
         WRFL((enum FL)fl);
+#ifdef DEBUG
         symbol_print(s);
 #endif
         assert(0);
@@ -3006,9 +2947,8 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
     {   /* Call function directly       */
         code *c1;
 
-#ifdef DEBUG
-        if (!tyfunc(tym1)) WRTYxx(tym1);
-#endif
+        if (!tyfunc(tym1))
+            WRTYxx(tym1);
         assert(tyfunc(tym1));
         s = e1->EV.sp.Vsym;
         if (s->Sflags & SFLexit)
@@ -3109,10 +3049,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
   else
   {     /* Call function via pointer    */
 
-#ifdef DEBUG
-        if (e1->Eoper != OPind
-                ) { WRFL((enum FL)el_fl(e1)); WROP(e1->Eoper); }
-#endif
+        if (e1->Eoper != OPind) { WRFL((enum FL)el_fl(e1)); WROP(e1->Eoper); }
         c = save87();                   // assume 8087 regs are all trashed
         assert(e1->Eoper == OPind);
         elem *e11 = e1->E1;
@@ -3305,9 +3242,7 @@ targ_size_t paramsize(elem *e,unsigned stackalign)
         szb = type_size(e->ET);
     else
     {
-#ifdef DEBUG
         WRTYxx(tym);
-#endif
         assert(0);
     }
     psize += align(stackalign,szb);     /* align on word stack boundary */
@@ -3358,9 +3293,7 @@ code *params(elem *e,unsigned stackalign)
         szb = type_size(e->ET);
   else
   {
-#ifdef DEBUG
         WRTYxx(tym);
-#endif
         assert(0);
   }
   sz = align(stackalign,szb);           /* align on word stack boundary */
@@ -3524,9 +3457,7 @@ code *params(elem *e,unsigned stackalign)
                         c1 = codelem(e1,&retregs,FALSE);
                         break;
                     default:
-#ifdef DEBUG
                         elem_print(e1);
-#endif
                         assert(0);
                 }
                 reg = findreglsw(retregs);
@@ -4138,9 +4069,7 @@ code *loaddata(elem *e,regm_t *pretregs)
             return load87(e,0,pretregs,NULL,-1);
         else
         {
-#ifdef DEBUG
             elem_print(e);
-#endif
             assert(0);
         }
         return c;
@@ -4275,11 +4204,11 @@ code *loaddata(elem *e,regm_t *pretregs)
     // See if we can use register that parameter was passed in
     if (regcon.params &&
         (e->EV.sp.Vsym->Sclass == SCfastpar || e->EV.sp.Vsym->Sclass == SCshadowreg) &&
-        regcon.params & mask[e->EV.sp.Vsym->Spreg] &&
-        !(e->Eoper == OPvar && e->EV.sp.Voffset > 0) && // Must be at the base of that variable
+        (regcon.params & mask[e->EV.sp.Vsym->Spreg] && e->EV.sp.Voffset == 0 ||
+         regcon.params & mask[e->EV.sp.Vsym->Spreg2] && e->EV.sp.Voffset == REGSIZE) &&
         sz <= REGSIZE)                  // make sure no 'paint' to a larger size happened
     {
-        reg = e->EV.sp.Vsym->Spreg;
+        reg = e->EV.sp.Voffset ? e->EV.sp.Vsym->Spreg2 : e->EV.sp.Vsym->Spreg;
         forregs = mask[reg];
 #ifdef DEBUG
         if (debugr)
