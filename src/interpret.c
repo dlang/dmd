@@ -30,7 +30,6 @@
 #include "attrib.h" // for AttribDeclaration
 
 #include "template.h"
-#include "port.h"
 #include "ctfe.h"
 
 /* Interpreter: what form of return value expression is required?

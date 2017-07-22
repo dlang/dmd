@@ -13,39 +13,10 @@
 #include <math.h>
 #include <float.h>
 #include <fp.h>
-#include <time.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 #include <errno.h>
-
-double Port::nan = NAN;
-longdouble Port::ldbl_nan = NAN;
-longdouble Port::snan;
-
-double Port::infinity = INFINITY;
-longdouble Port::ldbl_infinity = INFINITY;
-
-double Port::dbl_max = DBL_MAX;
-double Port::dbl_min = DBL_MIN;
-longdouble Port::ldbl_max = LDBL_MAX;
-
-struct PortInitializer
-{
-    PortInitializer();
-};
-
-static PortInitializer portinitializer;
-
-PortInitializer::PortInitializer()
-{
-    union
-    {   unsigned int ui[4];
-        longdouble     ld;
-    } snan = {{ 0, 0xA0000000, 0x7FFF, 0 }};
-
-    Port::snan = snan.ld;
-}
 
 char *Port::strupr(char *s)
 {
@@ -88,47 +59,11 @@ bool Port::isFloat64LiteralOutOfRange(const char *p)
 
 #include <math.h>
 #include <float.h>  // for _isnan
-#include <time.h>
 #include <errno.h>
 #include <string.h>
 #include <ctype.h>
 #include <wchar.h>
 #include <stdlib.h>
-#include <limits> // for std::numeric_limits
-
-double Port::nan;
-longdouble Port::ldbl_nan;
-longdouble Port::snan;
-
-double Port::infinity;
-longdouble Port::ldbl_infinity;
-
-double Port::dbl_max = DBL_MAX;
-double Port::dbl_min = DBL_MIN;
-longdouble Port::ldbl_max = LDBL_MAX;
-
-struct PortInitializer
-{
-    PortInitializer();
-};
-
-static PortInitializer portinitializer;
-
-PortInitializer::PortInitializer()
-{
-    union {
-        unsigned long ul[2];
-        double d;
-    } nan = {{ 0, 0x7FF80000 }};
-
-    Port::nan = nan.d;
-    Port::ldbl_nan = ld_qnan;
-    Port::snan = ld_snan;
-    Port::infinity = std::numeric_limits<double>::infinity();
-    Port::ldbl_infinity = ld_inf;
-
-    _set_abort_behavior(_WRITE_ABORT_MSG, _WRITE_ABORT_MSG | _CALL_REPORTFAULT); // disable crash report
-}
 
 char *Port::strupr(char *s)
 {
@@ -165,10 +100,6 @@ bool Port::isFloat64LiteralOutOfRange(const char *p)
 #if __MINGW32__
 
 #include <math.h>
-#include <time.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -176,51 +107,6 @@ bool Port::isFloat64LiteralOutOfRange(const char *p)
 #include <float.h>
 #include <assert.h>
 #include <errno.h>
-
-double Port::nan;
-longdouble Port::ldbl_nan;
-longdouble Port::snan;
-
-static double zero = 0;
-double Port::infinity = 1 / zero;
-longdouble Port::ldbl_infinity = 1 / zero;
-
-double Port::dbl_max = 1.7976931348623157e308;
-double Port::dbl_min = 5e-324;
-longdouble Port::ldbl_max = LDBL_MAX;
-
-struct PortInitializer
-{
-    PortInitializer();
-};
-
-static PortInitializer portinitializer;
-
-PortInitializer::PortInitializer()
-{
-    union
-    {   unsigned int ui[2];
-        double d;
-    } nan = {{ 0, 0x7FF80000 }};
-
-    Port::nan = nan.d;
-    assert(!signbit(Port::nan));
-
-    union
-    {   unsigned int ui[4];
-        longdouble ld;
-    } ldbl_nan = {{ 0, 0xC0000000, 0x7FFF, 0}};
-
-    Port::ldbl_nan = ldbl_nan.ld;
-    assert(!signbit(Port::ldbl_nan));
-
-    union
-    {   unsigned int ui[4];
-        longdouble     ld;
-    } snan = {{ 0, 0xA0000000, 0x7FFF, 0 }};
-
-    Port::snan = snan.ld;
-}
 
 char *Port::strupr(char *s)
 {
@@ -273,17 +159,6 @@ bool Port::isFloat64LiteralOutOfRange(const char *p)
 #if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__
 
 #include <math.h>
-#if __linux__
-#include <bits/nan.h>
-#include <bits/mathdef.h>
-#endif
-#if __FreeBSD__ && __i386__
-#include <ieeefp.h>
-#endif
-#include <time.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -291,60 +166,6 @@ bool Port::isFloat64LiteralOutOfRange(const char *p)
 #include <float.h>
 #include <assert.h>
 #include <errno.h>
-
-double Port::nan;
-longdouble Port::ldbl_nan;
-longdouble Port::snan;
-
-static double zero = 0;
-double Port::infinity = 1 / zero;
-longdouble Port::ldbl_infinity = 1 / zero;
-
-double Port::dbl_max = 1.7976931348623157e308;
-double Port::dbl_min = 5e-324;
-longdouble Port::ldbl_max = LDBL_MAX;
-
-struct PortInitializer
-{
-    PortInitializer();
-};
-
-static PortInitializer portinitializer;
-
-PortInitializer::PortInitializer()
-{
-    union
-    {   unsigned int ui[2];
-        double d;
-    } nan = {{ 0, 0x7FF80000 }};
-
-    Port::nan = nan.d;
-    assert(!signbit(Port::nan));
-
-    union
-    {   unsigned int ui[4];
-        longdouble ld;
-    } ldbl_nan = {{ 0, 0xC0000000, 0x7FFF, 0}};
-
-    Port::ldbl_nan = ldbl_nan.ld;
-    assert(!signbit(Port::ldbl_nan));
-
-    union
-    {   unsigned int ui[4];
-        longdouble     ld;
-    } snan = {{ 0, 0xA0000000, 0x7FFF, 0 }};
-
-    Port::snan = snan.ld;
-
-#if __FreeBSD__ && __i386__
-    // LDBL_MAX comes out as infinity. Fix.
-    static unsigned char x[sizeof(longdouble)] =
-        { 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFE,0x7F };
-    Port::ldbl_max = *(longdouble *)&x[0];
-    // FreeBSD defaults to double precision. Switch to extended precision.
-    fpsetprec(FP_PE);
-#endif
-}
 
 char *Port::strupr(char *s)
 {
@@ -398,10 +219,6 @@ bool Port::isFloat64LiteralOutOfRange(const char *p)
 
 #define __C99FEATURES__ 1       // Needed on Solaris for NaN and more
 #include <math.h>
-#include <time.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -410,51 +227,6 @@ bool Port::isFloat64LiteralOutOfRange(const char *p)
 #include <ieeefp.h>
 #include <assert.h>
 #include <errno.h>
-
-double Port::nan;
-longdouble Port::ldbl_nan;
-longdouble Port::snan;
-
-static double zero = 0;
-double Port::infinity = 1 / zero;
-longdouble Port::ldbl_infinity = 1 / zero;
-
-double Port::dbl_max = 1.7976931348623157e308;
-double Port::dbl_min = 5e-324;
-longdouble Port::ldbl_max = LDBL_MAX;
-
-struct PortInitializer
-{
-    PortInitializer();
-};
-
-static PortInitializer portinitializer;
-
-PortInitializer::PortInitializer()
-{
-    union
-    {   unsigned int ui[2];
-        double d;
-    } nan = {{ 0, 0x7FF80000 }};
-
-    Port::nan = nan.d;
-    assert(!signbit(Port::nan));
-
-    union
-    {   unsigned int ui[4];
-        longdouble ld;
-    } ldbl_nan = {{ 0, 0xC0000000, 0x7FFF, 0}};
-
-    Port::ldbl_nan = ldbl_nan.ld;
-    assert(!signbit(Port::ldbl_nan));
-
-    union
-    {   unsigned int ui[4];
-        longdouble     ld;
-    } snan = {{ 0, 0xA0000000, 0x7FFF, 0 }};
-
-    Port::snan = snan.ld;
-}
 
 char *Port::strupr(char *s)
 {

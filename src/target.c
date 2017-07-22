@@ -10,6 +10,7 @@
  */
 
 #include <assert.h>
+#include <limits> // for std::numeric_limits
 
 #include "target.h"
 #include "mars.h"
@@ -25,6 +26,45 @@ int Target::c_longsize;
 int Target::c_long_doublesize;
 int Target::classinfosize;
 
+/* Floating point constants for for .max, .min, and other properties.  */
+template <typename T> real_t Target::FPTypeProperties<T>::max;
+template <typename T> real_t Target::FPTypeProperties<T>::min_normal;
+template <typename T> real_t Target::FPTypeProperties<T>::nan;
+template <typename T> real_t Target::FPTypeProperties<T>::snan;
+template <typename T> real_t Target::FPTypeProperties<T>::infinity;
+template <typename T> real_t Target::FPTypeProperties<T>::epsilon;
+template <typename T> d_int64 Target::FPTypeProperties<T>::dig;
+template <typename T> d_int64 Target::FPTypeProperties<T>::mant_dig;
+template <typename T> d_int64 Target::FPTypeProperties<T>::max_exp;
+template <typename T> d_int64 Target::FPTypeProperties<T>::min_exp;
+template <typename T> d_int64 Target::FPTypeProperties<T>::max_10_exp;
+template <typename T> d_int64 Target::FPTypeProperties<T>::min_10_exp;
+
+/* Initialize the floating point constants for TYPE.  */
+
+template <typename T, typename V>
+static void initFloatConstants()
+{
+    T::max = std::numeric_limits<V>::max();
+    T::min_normal = std::numeric_limits<V>::min();
+
+    assert(std::numeric_limits<V>::has_quiet_NaN);
+    T::nan = std::numeric_limits<V>::quiet_NaN();
+
+    assert(std::numeric_limits<V>::has_signaling_NaN);
+    T::snan = std::numeric_limits<V>::signaling_NaN();
+
+    assert(std::numeric_limits<V>::has_infinity);
+    T::infinity = std::numeric_limits<V>::infinity();
+
+    T::epsilon = std::numeric_limits<V>::epsilon();
+    T::dig = std::numeric_limits<V>::digits10;
+    T::mant_dig = std::numeric_limits<V>::digits;
+    T::max_exp = std::numeric_limits<V>::max_exponent;
+    T::min_exp = std::numeric_limits<V>::min_exponent;
+    T::max_10_exp = std::numeric_limits<V>::max_exponent10;
+    T::min_10_exp = std::numeric_limits<V>::min_exponent10;
+}
 
 void Target::init()
 {
@@ -83,6 +123,11 @@ void Target::init()
     c_long_doublesize = realsize;
     if (global.params.is64bit && global.params.isWindows)
         c_long_doublesize = 8;
+
+    initFloatConstants<Target::FloatProperties, float>();
+    initFloatConstants<Target::DoubleProperties, double>();
+    initFloatConstants<Target::RealProperties, real_t>();
+
 }
 
 /******************************

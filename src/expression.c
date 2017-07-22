@@ -16,7 +16,6 @@
 #include <assert.h>
 
 #include "rmem.h"
-#include "port.h"
 #include "root.h"
 #include "target.h"
 

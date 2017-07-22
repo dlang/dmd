@@ -19,6 +19,7 @@
 #include "rmem.h"
 #include "root.h"
 #include "port.h"
+#include "target.h"
 
 #include "mtype.h"
 #include "expression.h"
@@ -614,7 +615,7 @@ UnionExp Pow(Type *type, Expression *e1, Expression *e2)
         // x ^^ y for x < 0 and y not an integer is not defined; so set result as NaN
         if (e1->toReal() < 0.0)
         {
-            new(&ue) RealExp(loc, Port::ldbl_nan, type);
+            new(&ue) RealExp(loc, Target::RealProperties::nan, type);
         }
         else
             new(&ue) CTFEExp(TOKcantexp);
