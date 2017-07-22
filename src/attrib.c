@@ -402,6 +402,7 @@ DeprecatedDeclaration::DeprecatedDeclaration(Expression *msg, Dsymbols *decl)
         : StorageClassDeclaration(STCdeprecated, decl)
 {
     this->msg = msg;
+    this->msgstr = NULL;
 }
 
 Dsymbol *DeprecatedDeclaration::syntaxCopy(Dsymbol *s)
@@ -410,20 +411,67 @@ Dsymbol *DeprecatedDeclaration::syntaxCopy(Dsymbol *s)
     return new DeprecatedDeclaration(msg->syntaxCopy(), Dsymbol::arraySyntaxCopy(decl));
 }
 
+/**
+ * Provides a new scope with `STCdeprecated` and `Scope.depdecl` set
+ *
+ * Calls `StorageClassDeclaration.newScope` (as it must be called or copied
+ * in any function overriding `newScope`), then set the `Scope`'s depdecl.
+ *
+ * Returns:
+ *   Always a new scope, to use for this `DeprecatedDeclaration`'s members.
+ */
+Scope *DeprecatedDeclaration::newScope(Scope *sc)
+{
+    Scope *scx = StorageClassDeclaration::newScope(sc);
+    // The enclosing scope is deprecated as well
+    if (scx == sc)
+        scx = sc->push();
+    scx->depdecl = this;
+    return scx;
+}
+
 void DeprecatedDeclaration::setScope(Scope *sc)
 {
-    assert(msg);
-    char *depmsg = NULL;
-    StringExp *se = msg->toStringExp();
-    if (se)
-        depmsg = (char *)se->string;
-    else
-        msg->error("string expected, not '%s'", msg->toChars());
+    //printf("DeprecatedDeclaration::setScope() %p\n", this);
+    if (decl)
+        Dsymbol::setScope(sc); // for forward reference
+    return AttribDeclaration::setScope(sc);
+}
 
-    Scope *scx = sc->push();
-    scx->depmsg = depmsg;
-    StorageClassDeclaration::setScope(scx);
-    scx->pop();
+/**
+ * Run the DeprecatedDeclaration's semantic2 phase then its members.
+ *
+ * The message set via a `DeprecatedDeclaration` can be either of:
+ * - a string literal
+ * - an enum
+ * - a static immutable
+ * So we need to call ctfe to resolve it.
+ * Afterward forwards to the members' semantic2.
+ */
+void DeprecatedDeclaration::semantic2(Scope *sc)
+{
+    getMessage();
+    StorageClassDeclaration::semantic2(sc);
+}
+
+const char *DeprecatedDeclaration::getMessage()
+{
+    if (Scope *sc = _scope)
+    {
+        _scope = NULL;
+
+        sc = sc->startCTFE();
+        msg = msg->semantic(sc);
+        msg = resolveProperties(sc, msg);
+        sc = sc->endCTFE();
+        msg = msg->ctfeInterpret();
+
+        if (StringExp *se = msg->toStringExp())
+            msgstr = (char *)se->string;
+        else
+            msg->error("compile time constant expected, not '%s'", msg->toChars());
+    }
+    return msgstr;
 }
 
 /********************************* LinkDeclaration ****************************/
@@ -1418,9 +1466,8 @@ Expressions *UserAttributeDeclaration::concat(Expressions *udas1, Expressions *u
 
 Expressions *UserAttributeDeclaration::getAttributes()
 {
-    if (_scope)
+    if (Scope *sc = _scope)
     {
-        Scope *sc = _scope;
         _scope = NULL;
         arrayExpressionSemantic(atts, sc);
     }

@@ -75,10 +75,14 @@ class DeprecatedDeclaration : public StorageClassDeclaration
 {
 public:
     Expression *msg;
+    const char *msgstr;
 
     DeprecatedDeclaration(Expression *msg, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
+    Scope *newScope(Scope *sc);
     void setScope(Scope *sc);
+    void semantic2(Scope *sc);
+    const char *getMessage();
     void accept(Visitor *v) { v->visit(this); }
 };
 

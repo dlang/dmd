@@ -75,7 +75,7 @@ Scope::Scope()
     this->protection = Prot(PROTpublic);
     this->explicitProtection = 0;
     this->stc = 0;
-    this->depmsg = NULL;
+    this->depdecl = NULL;
     this->inunion = 0;
     this->nofree = 0;
     this->noctor = 0;

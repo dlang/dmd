@@ -51,7 +51,7 @@ Dsymbol::Dsymbol()
     this->prettystring = NULL;
     this->semanticRun = PASSinit;
     this->errors = false;
-    this->depmsg = NULL;
+    this->depdecl = NULL;
     this->userAttribDecl = NULL;
     this->ddocUnittest = NULL;
 }
@@ -69,7 +69,7 @@ Dsymbol::Dsymbol(Identifier *ident)
     this->prettystring = NULL;
     this->semanticRun = PASSinit;
     this->errors = false;
-    this->depmsg = NULL;
+    this->depdecl = NULL;
     this->userAttribDecl = NULL;
     this->ddocUnittest = NULL;
 }
@@ -418,8 +418,8 @@ void Dsymbol::setScope(Scope *sc)
     if (!sc->nofree)
         sc->setNoFree();                // may need it even after semantic() finishes
     _scope = sc;
-    if (sc->depmsg)
-        depmsg = sc->depmsg;
+    if (sc->depdecl)
+        depdecl = sc->depdecl;
 
     if (!userAttribDecl)
         userAttribDecl = sc->userAttribDecl;
@@ -750,7 +750,7 @@ void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
         const char *message = NULL;
         for (Dsymbol *p = this; p; p = p->parent)
         {
-            message = p->depmsg;
+            message = p->depdecl ? p->depdecl->getMessage() : NULL;
             if (message)
                 break;
         }
