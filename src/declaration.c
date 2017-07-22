@@ -1338,9 +1338,9 @@ Lnomatch:
         {
             error("%s does not have a default initializer", type->toChars());
         }
-        else
+        else if (Expression *e = type->defaultInit(loc))
         {
-            _init = getExpInitializer();
+            _init = new ExpInitializer(loc, e);
         }
         // Default initializer is always a blit
         isBlit = true;
@@ -1913,27 +1913,6 @@ bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
         }
     }
     return false;
-}
-
-/****************************
- * Get ExpInitializer for a variable, if there is one.
- */
-
-ExpInitializer *VarDeclaration::getExpInitializer()
-{
-    ExpInitializer *ei;
-
-    if (_init)
-        ei = _init->isExpInitializer();
-    else
-    {
-        Expression *e = type->defaultInit(loc);
-        if (e)
-            ei = new ExpInitializer(loc, e);
-        else
-            ei = NULL;
-    }
-    return ei;
 }
 
 /*******************************************
