@@ -5479,12 +5479,18 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     if (sc->stc & STCscope)
         tf->isscope = true;
 
-    if (sc->stc & STCsafe)
-        tf->trust = TRUSTsafe;
-    if (sc->stc & STCsystem)
-        tf->trust = TRUSTsystem;
-    if (sc->stc & STCtrusted)
-        tf->trust = TRUSTtrusted;
+    if ((sc->stc & (STCreturn | STCref)) == STCreturn)
+        tf->isscope = true;                                 // return by itself means 'return scope'
+
+    if (tf->trust == TRUSTdefault)
+    {
+        if (sc->stc & STCsafe)
+            tf->trust = TRUSTsafe;
+        if (sc->stc & STCsystem)
+            tf->trust = TRUSTsystem;
+        if (sc->stc & STCtrusted)
+            tf->trust = TRUSTtrusted;
+    }
 
     if (sc->stc & STCproperty)
         tf->isproperty = true;
@@ -5522,6 +5528,11 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         }
         if (tf->next->hasWild())
             wildreturn = true;
+
+        if (tf->isreturn && !tf->isref && !tf->next->hasPointers())
+        {
+            error(loc, "function has 'return' but does not return any indirections");
+        }
     }
 
     unsigned char wildparams = 0;
@@ -5586,11 +5597,37 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 fparam->storageClass |= STCreturn;
             }
 
-            if (fparam->storageClass & STCreturn &&
-                !(fparam->storageClass & (STCref | STCout)))
+            if (fparam->storageClass & STCreturn)
             {
-                error(loc, "'return' can only be used with 'ref' or 'out'");
-                errors = true;
+                if (fparam->storageClass & (STCref | STCout))
+                {
+                    // Disabled for the moment awaiting improvement to allow return by ref
+                    // to be transformed into return by scope.
+                    if (0 && !tf->isref)
+                    {
+                        StorageClass stc = fparam->storageClass & (STCref | STCout);
+                        error(loc, "parameter %s is 'return %s' but function does not return by ref",
+                            fparam->ident ? fparam->ident->toChars() : "",
+                            stcToChars(stc));
+                        errors = true;
+                    }
+                }
+                else
+                {
+                    fparam->storageClass |= STCscope;        // 'return' implies 'scope'
+                    if (tf->isref)
+                    {
+                        error(loc, "parameter %s is 'return' but function returns 'ref'",
+                            fparam->ident ? fparam->ident->toChars() : "");
+                        errors = true;
+                    }
+                    else if (!tf->isref && tf->next && !tf->next->hasPointers())
+                    {
+                        error(loc, "parameter %s is 'return' but function does not return any indirections",
+                            fparam->ident ? fparam->ident->toChars() : "");
+                        errors = true;
+                    }
+                }
             }
 
             if (fparam->storageClass & (STCref | STClazy))
@@ -5616,6 +5653,9 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                     }
                 }
             }
+
+            if (fparam->storageClass & STCscope && !fparam->type->hasPointers())
+                fparam->storageClass &= ~(STCreturn | STCscope);
 
             if (t->hasWild())
             {

@@ -2106,7 +2106,7 @@ RootObject *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *
             if (!t->nextOf()) break;
             t = ((TypeNext *)t)->next;
         }
-        if (Dsymbol *s = t->toDsymbol(NULL))
+        if (Dsymbol *s = t->toDsymbol(sc))
         {
             if (s->isDeprecated())
                 d->storage_class |= STCdeprecated;

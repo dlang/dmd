@@ -9849,6 +9849,19 @@ Expression *AddrExp::semantic(Scope *sc)
                 return new ErrorExp();
         }
     }
+    else if (e1->op == TOKcall)
+    {
+        CallExp *ce = (CallExp *)e1;
+        if (ce->e1->type->ty == Tfunction)
+        {
+            TypeFunction *tf = (TypeFunction *)ce->e1->type;
+            if (tf->isref && sc->func && !sc->intypeof && sc->func->setUnsafe())
+            {
+                error("cannot take address of ref return of %s() in @safe function %s",
+                    ce->e1->toChars(), sc->func->toChars());
+            }
+        }
+    }
     else if (wasCond)
     {
         /* a ? b : c was transformed to *(a ? &b : &c), but we still

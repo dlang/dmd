@@ -1191,6 +1191,25 @@ Lnomatch:
         storage_class &= ~stc;  // strip off
     }
 
+    if (storage_class & STCscope)
+    {
+        StorageClass stc = storage_class & (STCstatic | STCextern | STCmanifest | STCtls | STCgshared);
+        if (stc)
+        {
+            OutBuffer buf;
+            stcToBuffer(&buf, stc);
+            error("cannot be 'scope' and '%s'", buf.peekString());
+        }
+        else if (isMember())
+        {
+            error("field cannot be 'scope'");
+        }
+        else if (!type->hasPointers())
+        {
+            storage_class &= ~STCscope;     // silently ignore; may occur in generic code
+        }
+    }
+
     if (storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe))
     {
     }
@@ -2116,7 +2135,7 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
     }
 
     // Destructors for classes
-    if (storage_class & (STCauto | STCscope))
+    if (storage_class & (STCauto | STCscope) && !(storage_class & STCparameter))
     {
         for (ClassDeclaration *cd = type->isClassHandle();
              cd;
