@@ -1079,11 +1079,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             if (a)
             {
                 if (!s->isOverloadSet())
-                {
                     a = mergeOverloadSet(ident, a, s);
-                    if (symtab)
-                        symtabInsert(a);    // Bugzilla 15857
-                }
                 s = a;
             }
 

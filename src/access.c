@@ -614,40 +614,46 @@ static Dsymbol *mostVisibleOverload(Dsymbol *s)
         // private void name(int) {}
         else if (AliasDeclaration *ad = s->isAliasDeclaration())
         {
-            /* This is a bit messy due to the complicated implementation of
-             * alias.  Aliases aren't overloadable themselves, but if their
-             * Aliasee is overloadable they can be converted to an overloadable
-             * alias.
-             *
-             * This is done by replacing the Aliasee w/ FuncAliasDeclaration
-             * (for functions) or OverDeclaration (for templates) which are
-             * simply overloadable aliases w/ weird names.
-             *
-             * Usually aliases should not be resolved for visibility checking
-             * b/c public aliases to private symbols are public. But for the
-             * overloadable alias situation, the Alias (_ad_) has been moved
-             * into it's own Aliasee, leaving a shell that we peel away here.
-             */
             if (!ad->isOverloadable())
             {
                 //printf("Non overloadable Aliasee in overload list\n");
                 assert(0);
             }
-            Dsymbol *aliasee = ad->toAlias();
-            if (aliasee->isFuncAliasDeclaration() || aliasee->isOverDeclaration())
-                next = aliasee;
+            // Yet unresolved aliases store overloads in overnext.
+            if (ad->semanticRun < PASSsemanticdone)
+                next = ad->overnext;
             else
             {
-                /* A simple alias can be at the end of a function or template overload chain.
-                 * It can't have further overloads b/c it would have been
-                 * converted to an overloadable alias.
+                /* This is a bit messy due to the complicated implementation of
+                 * alias.  Aliases aren't overloadable themselves, but if their
+                 * Aliasee is overloadable they can be converted to an overloadable
+                 * alias.
+                 *
+                 * This is done by replacing the Aliasee w/ FuncAliasDeclaration
+                 * (for functions) or OverDeclaration (for templates) which are
+                 * simply overloadable aliases w/ weird names.
+                 *
+                 * Usually aliases should not be resolved for visibility checking
+                 * b/c public aliases to private symbols are public. But for the
+                 * overloadable alias situation, the Alias (_ad_) has been moved
+                 * into it's own Aliasee, leaving a shell that we peel away here.
                  */
-                if (ad->overnext)
+                Dsymbol *aliasee = ad->toAlias();
+                if (aliasee->isFuncAliasDeclaration() || aliasee->isOverDeclaration())
+                    next = aliasee;
+                else
                 {
-                    //printf("Unresolved overload of alias\n");
-                    assert(0);
+                    /* A simple alias can be at the end of a function or template overload chain.
+                     * It can't have further overloads b/c it would have been
+                     * converted to an overloadable alias.
+                     */
+                    if (ad->overnext)
+                    {
+                        //printf("Unresolved overload of alias\n");
+                        assert(0);
+                    }
+                    break;
                 }
-                break;
             }
 
             // handled by overloadApply for unknown reason
