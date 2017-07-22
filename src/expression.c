@@ -4324,7 +4324,6 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
     this->stype = stype;
     this->useStaticInit = false;
     this->sym = NULL;
-    this->fillHoles = 1;
     this->ownedByCtfe = OWNEDcode;
     this->origin = this;
     this->stageflags = 0;
