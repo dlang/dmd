@@ -243,7 +243,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
     }
     else if (sd->dtor || sd->postblit)
     {
-        /* Do swap this and rhs
+        /* Do swap this and rhs.
          *    __swap = this; this = s; __swap.dtor();
          */
         //printf("\tswap copy\n");
@@ -272,7 +272,12 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
     }
     else
     {
-        /* Do memberwise copy
+        /* Do memberwise copy.
+         *
+         * If sd is a nested struct, its vthis field assignment is:
+         * 1. If it's nested in a class, it's a rebind of class reference.
+         * 2. If it's nested in a function or struct, it's an update of void*.
+         * In both cases, it will change the parent context.
          */
         //printf("\tmemberwise copy\n");
         for (size_t i = 0; i < sd->fields.dim; i++)
@@ -441,7 +446,7 @@ FuncDeclaration *hasIdentityOpEquals(AggregateDeclaration *ad,  Scope *sc)
  * By fixing bugzilla 3789, opEquals is changed to be never implicitly generated.
  * Now, struct objects comparison s1 == s2 is translated to:
  *      s1.tupleof == s2.tupleof
- * to calculate structural equality. See EqualExp::semantic.
+ * to calculate structural equality. See EqualExp::op_overload.
  */
 FuncDeclaration *buildOpEquals(StructDeclaration *sd, Scope *sc)
 {
@@ -749,6 +754,11 @@ FuncDeclaration *buildXtoHash(StructDeclaration *sd, Scope *sc)
     FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
     fop->generated = true;
 
+    /* Do memberwise hashing.
+     *
+     * If sd is a nested struct, and if it's nested in a class, the calculated
+     * hash value will also contain the result of parent class's toHash().
+     */
     const char *code =
         "size_t h = 0;"
         "foreach (i, T; typeof(p.tupleof))"

@@ -755,7 +755,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             e->error("string must be chars");
             goto Lfalse;
         }
-        Identifier *id = Identifier::idPool((char *)se->string);
+        Identifier *id = Identifier::idPool((char *)se->string, se->len);
 
         /* Prefer dsymbol, because it might need some runtime contexts.
          */

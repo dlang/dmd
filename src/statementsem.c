@@ -35,6 +35,7 @@ StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration *f);
 bool checkEscapeRef(Scope *sc, Expression *e, bool gag);
 LabelStatement *checkLabeledLoop(Scope *sc, Statement *statement);
 Identifier *fixupLabelName(Scope *sc, Identifier *ident);
+FuncDeclaration *isFuncAddress(Expression *e, bool *hasOverloads = NULL);
 
 Statement *semantic(Statement *s, Scope *sc);
 void semantic(Catch *c, Scope *sc);
@@ -91,6 +92,11 @@ public:
             s->exp = s->exp->semantic(sc);
             s->exp = resolveProperties(sc, s->exp);
             s->exp = s->exp->addDtorHook(sc);
+            if (FuncDeclaration *f = isFuncAddress(s->exp))
+            {
+                if (f->checkForwardRef(s->exp->loc))
+                    s->exp = new ErrorExp();
+            }
             discardValue(s->exp);
 
             s->exp = s->exp->optimize(WANTvalue);
@@ -483,6 +489,7 @@ public:
 
         Expression *oaggr = fs->aggr;
         if (fs->aggr->type && fs->aggr->type->toBasetype()->ty == Tstruct &&
+            ((TypeStruct *)(fs->aggr->type->toBasetype()))->sym->dtor &&
             fs->aggr->op != TOKtype && !fs->aggr->isLvalue())
         {
             // Bugzilla 14653: Extend the life of rvalue aggregate till the end of foreach.
@@ -1681,7 +1688,7 @@ public:
 
             if (ifs->match->edtor)
             {
-                Statement *sdtor = new ExpStatement(ifs->loc, ifs->match->edtor);
+                Statement *sdtor = new DtorExpStatement(ifs->loc, ifs->match->edtor, ifs->match);
                 sdtor = new OnScopeStatement(ifs->loc, TOKon_scope_exit, sdtor);
                 ifs->ifbody = new CompoundStatement(ifs->loc, sdtor, ifs->ifbody);
                 ifs->match->storage_class |= STCnodtor;
@@ -2426,6 +2433,11 @@ public:
             rs->exp = resolveProperties(sc, rs->exp);
             if (rs->exp->checkType())
                 rs->exp = new ErrorExp();
+            if (FuncDeclaration *f = isFuncAddress(rs->exp))
+            {
+                if (fd->inferRetType && f->checkForwardRef(rs->exp->loc))
+                    rs->exp = new ErrorExp();
+            }
             if (checkNonAssignmentArrayOp(rs->exp))
                 rs->exp = new ErrorExp();
 
@@ -3456,7 +3468,9 @@ Statement *semanticNoScope(Statement *s, Scope *sc)
 // Same as semanticNoScope(), but do create a new scope
 Statement *semanticScope(Statement *s, Scope *sc, Statement *sbreak, Statement *scontinue)
 {
-    Scope *scd = sc->push();
+    ScopeDsymbol *sym = new ScopeDsymbol();
+    sym->parent = sc->scopesym;
+    Scope *scd = sc->push(sym);
     if (sbreak)
         scd->sbreak = sbreak;
     if (scontinue)

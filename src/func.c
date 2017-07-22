@@ -800,6 +800,23 @@ void FuncDeclaration::semantic(Scope *sc)
                     }
                 }
 
+                /* These quirky conditions mimic what VC++ appears to do
+                 */
+                if (global.params.mscoff && cd->cpp &&
+                    cd->baseClass && cd->baseClass->vtbl.dim)
+                {
+                    /* if overriding an interface function, then this is not
+                     * introducing and don't put it in the class vtbl[]
+                     */
+                    interfaceVirtual = overrideInterface();
+                    if (interfaceVirtual)
+                    {
+                        //printf("\tinterface function %s\n", toChars());
+                        cd->vtblFinal.push(this);
+                        goto Linterfaces;
+                    }
+                }
+
                 if (isFinalFunc())
                 {
                     // Don't check here, as it may override an interface function
@@ -809,25 +826,6 @@ void FuncDeclaration::semantic(Scope *sc)
                 }
                 else
                 {
-                    if (global.params.mscoff && cd->cpp)
-                    {
-                        /* if overriding an interface function, then this is not
-                         * introducing and don't put it in the class vtbl[]
-                         */
-                        for (size_t i = 0; i < cd->interfaces.length; i++)
-                        {
-                            BaseClass* b = cd->interfaces.ptr[i];
-                            int v = findVtblIndex((Dsymbols*)&b->sym->vtbl, (int)b->sym->vtbl.dim);
-                            if (v >= 0)
-                            {
-                                //printf("\tinterface function %s\n", toChars());
-                                cd->vtblFinal.push(this);
-                                interfaceVirtual = b;
-                                goto Linterfaces;
-                            }
-                        }
-                    }
-
                     //printf("\tintroducing function %s\n", toChars());
                     introducing = 1;
                     if (cd->cpp && Target::reverseCppOverloads)
@@ -1345,7 +1343,15 @@ void FuncDeclaration::semantic3(Scope *sc)
 
         // Establish function scope
         ScopeDsymbol *ss = new ScopeDsymbol();
-        ss->parent = sc->scopesym;
+        // find enclosing scope symbol, might skip symbol-less CTFE and/or FuncExp scopes
+        for (Scope *scx = sc; ; scx = scx->enclosing)
+        {
+            if (scx->scopesym)
+            {
+                ss->parent = scx->scopesym;
+                break;
+            }
+        }
         ss->loc = loc;
         ss->endlinnum = endloc.linnum;
         Scope *sc2 = sc->push(ss);
@@ -2033,8 +2039,12 @@ void FuncDeclaration::semantic3(Scope *sc)
 
                     if (v->needsScopeDtor())
                     {
-                        Statement *s = new ExpStatement(Loc(), v->edtor);
+                        // same with ExpStatement.scopeCode()
+                        Statement *s = new DtorExpStatement(Loc(), v->edtor, v);
+                        v->storage_class |= STCnodtor;
+
                         s = ::semantic(s, sc2);
+
                         unsigned int nothrowErrors = global.errors;
                         bool isnothrow = f->isnothrow & !(flags & FUNCFLAGnothrowInprocess);
                         int blockexit = s->blockExit(this, isnothrow);
@@ -2256,6 +2266,29 @@ bool FuncDeclaration::functionSemantic3()
     }
 
     return !errors && !semantic3Errors;
+}
+
+/****************************************************
+ * Check that this function type is properly resolved.
+ * If not, report "forward reference error" and return true.
+ */
+bool FuncDeclaration::checkForwardRef(Loc loc)
+{
+    if (!functionSemantic())
+        return true;
+
+    /* No deco means the functionSemantic() call could not resolve
+     * forward referenes in the type of this function.
+     */
+    if (!type->deco)
+    {
+        bool inSemantic3 = (inferRetType && semanticRun >= PASSsemantic3);
+        ::error(loc, "forward reference to %s'%s'",
+            (inSemantic3 ? "inferred return type of function " : ""),
+            toChars());
+        return true;
+    }
+    return false;
 }
 
 VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad)
@@ -2634,6 +2667,27 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
     return bestvi;
 }
 
+/*********************************
+ * If function a function in a base class,
+ * return that base class.
+ * Params:
+ *  cd = class that function is in
+ * Returns:
+ *  base class if overriding, NULL if not
+ */
+BaseClass *FuncDeclaration::overrideInterface()
+{
+    ClassDeclaration *cd = parent->isClassDeclaration();
+    for (size_t i = 0; i < cd->interfaces.length; i++)
+    {
+        BaseClass *b = cd->interfaces.ptr[i];
+        int v = findVtblIndex((Dsymbols *)&b->sym->vtbl, (int)b->sym->vtbl.dim);
+        if (v >= 0)
+            return b;
+    }
+    return NULL;
+}
+
 /****************************************************
  * Overload this FuncDeclaration with the new one f.
  * Return true if successful; i.e. no conflict.
@@ -2967,7 +3021,7 @@ FuncDeclaration *FuncDeclaration::overloadModMatch(Loc loc, Type *tthis, bool &h
 
         LlastIsBetter:
             //printf("\tlastbetter\n");
-	    m->count++; // count up
+            m->count++; // count up
             return 0;
 
         LfIsBetter:
@@ -3243,10 +3297,7 @@ struct FuncCandidateWalker
  */
 
 FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
-        Objects *tiargs,
-        Type *tthis,
-        Expressions *fargs,
-        int flags)
+        Objects *tiargs, Type *tthis, Expressions *fargs, int flags)
 {
     if (!s)
         return NULL;                    // no match
@@ -3306,6 +3357,7 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
     }
 
     FuncDeclaration *fd = s->isFuncDeclaration();
+    OverDeclaration *od = s->isOverDeclaration();
     TemplateDeclaration *td = s->isTemplateDeclaration();
     if (td && td->funcroot)
         s = fd = td->funcroot;
@@ -3336,6 +3388,11 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
             tcw.numToDisplay = numOverloadsDisplay;
             overloadApply(td, &tcw, &TemplateCandidateWalker::fp);
         }
+        else if (od)
+        {
+            ::error(loc, "none of the overloads of '%s' are callable using argument types !(%s)%s",
+                od->ident->toChars(), tiargsBuf.peekString(), fargsBuf.peekString());
+        }
         else
         {
             assert(fd);
@@ -3348,7 +3405,7 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
                 MODMatchToBuffer(&thisBuf, tthis->mod, tf->mod);
                 MODMatchToBuffer(&funcBuf, tf->mod, tthis->mod);
                 if (hasOverloads)
-                    ::error(loc, "None of the overloads of '%s' are callable using a %sobject, candidates are:",
+                    ::error(loc, "none of the overloads of '%s' are callable using a %sobject, candidates are:",
                         fd->ident->toChars(), thisBuf.peekString());
                 else
                     ::error(loc, "%smethod %s is not callable using a %sobject",
@@ -3358,7 +3415,7 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
             {
                 //printf("tf = %s, args = %s\n", tf->deco, (*fargs)[0]->type->deco);
                 if (hasOverloads)
-                    ::error(loc, "None of the overloads of '%s' are callable using argument types %s, candidates are:",
+                    ::error(loc, "none of the overloads of '%s' are callable using argument types %s, candidates are:",
                             fd->ident->toChars(), fargsBuf.peekString());
                 else
                     fd->error(loc, "%s%s is not callable using argument types %s",
@@ -4112,45 +4169,41 @@ bool FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
     if (isNested())
     {
         // The function that this function is in
-        FuncDeclaration *fdv2 = p->isFuncDeclaration();
+        FuncDeclaration *fdv = p->isFuncDeclaration();
+        if (!fdv)
+            return false;
+        if (fdv == fdthis)
+            return false;
 
         //printf("this = %s in [%s]\n", this->toChars(), this->loc.toChars());
-        //printf("fdv2 = %s in [%s]\n", fdv2->toChars(), fdv2->loc.toChars());
+        //printf("fdv = %s in [%s]\n", fdv->toChars(), fdv->loc.toChars());
         //printf("fdthis = %s in [%s]\n", fdthis->toChars(), fdthis->loc.toChars());
 
-        if (fdv2 && fdv2 != fdthis)
+        // Add this function to the list of those which called us
+        if (fdthis != this)
         {
-            // Add this function to the list of those which called us
-            if (fdthis != this)
+            bool found = false;
+            for (size_t i = 0; i < siblingCallers.dim; ++i)
             {
-                bool found = false;
-                for (size_t i = 0; i < siblingCallers.dim; ++i)
-                {
-                    if (siblingCallers[i] == fdthis)
-                        found = true;
-                }
-                if (!found)
-                {
-                    //printf("\tadding sibling %s\n", fdthis->toPrettyChars());
-                    if (!sc->intypeof && !(sc->flags & SCOPEcompile))
-                        siblingCallers.push(fdthis);
-                }
+                if (siblingCallers[i] == fdthis)
+                    found = true;
+            }
+            if (!found)
+            {
+                //printf("\tadding sibling %s\n", fdthis->toPrettyChars());
+                if (!sc->intypeof && !(sc->flags & SCOPEcompile))
+                    siblingCallers.push(fdthis);
             }
         }
 
-        FuncDeclaration *fdv = p->isFuncDeclaration();
-        if (fdv && fdthis && fdv != fdthis)
-        {
-            int lv = fdthis->getLevel(loc, sc, fdv);
-            if (lv == -2)
-                return true;    // error
-            if (lv == -1)
-                return false;   // downlevel call
-            if (lv == 0)
-                return false;   // same level call
-
-            // Uplevel call
-        }
+        int lv = fdthis->getLevel(loc, sc, fdv);
+        if (lv == -2)
+            return true;    // error
+        if (lv == -1)
+            return false;   // downlevel call
+        if (lv == 0)
+            return false;   // same level call
+        // Uplevel call
     }
     return false;
 }

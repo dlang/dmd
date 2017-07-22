@@ -27,6 +27,8 @@
 #include "id.h"
 #include "tokens.h"
 
+FuncDeclaration *isFuncAddress(Expression *e, bool *hasOverloads = NULL);
+
 /********************************** Initializer *******************************/
 
 Initializer::Initializer(Loc loc)
@@ -839,21 +841,13 @@ Initializer *ExpInitializer::inferType(Scope *sc)
     }
 
     // Give error for overloaded function addresses
-    if (exp->op == TOKsymoff)
+    bool hasOverloads = false;
+    if (FuncDeclaration *f = isFuncAddress(exp, &hasOverloads))
     {
-        SymOffExp *se = (SymOffExp *)exp;
-        if (se->hasOverloads && !se->var->isFuncDeclaration()->isUnique())
-        {
-            exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
+        if (f->checkForwardRef(loc))
             return new ErrorInitializer();
-        }
-    }
-    if (exp->op == TOKdelegate)
-    {
-        DelegateExp *se = (DelegateExp *)exp;
-        if (se->hasOverloads &&
-            se->func->isFuncDeclaration() &&
-            !se->func->isFuncDeclaration()->isUnique())
+
+        if (hasOverloads && !f->isUnique())
         {
             exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
             return new ErrorInitializer();

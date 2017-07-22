@@ -1143,3 +1143,15 @@ unsigned Port::readwordBE(void *buffer)
     unsigned char *p = (unsigned char*)buffer;
     return (p[0] << 8) | p[1];
 }
+
+void Port::valcpy(void *dst, uint64_t val, size_t size)
+{
+    switch (size)
+    {
+        case 1: *(uint8_t *)dst = (uint8_t)val; break;
+        case 2: *(uint16_t *)dst = (uint16_t)val; break;
+        case 4: *(uint32_t *)dst = (uint32_t)val; break;
+        case 8: *(uint64_t *)dst = (uint64_t)val; break;
+        default: assert(0);
+    }
+}

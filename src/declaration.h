@@ -595,12 +595,14 @@ public:
     void semantic3(Scope *sc);
     bool functionSemantic();
     bool functionSemantic3();
+    bool checkForwardRef(Loc loc);
     // called from semantic3
     VarDeclaration *declareThis(Scope *sc, AggregateDeclaration *ad);
     bool equals(RootObject *o);
 
     int overrides(FuncDeclaration *fd);
     int findVtblIndex(Dsymbols *vtbl, int dim);
+    BaseClass *overrideInterface();
     bool overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
     FuncDeclaration *overloadModMatch(Loc loc, Type *tthis, bool &hasOverloads);

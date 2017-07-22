@@ -179,7 +179,7 @@ class CppMangleVisitor : public Visitor
                     else
                     {
                         s->error("Internal Compiler Error: C++ %s template value parameter is not supported", tv->valType->toChars());
-                        assert(0);
+                        fatal();
                     }
                 }
                 else if (!tp || tp->isTemplateTypeParameter())
@@ -195,7 +195,7 @@ class CppMangleVisitor : public Visitor
                     if (!d && !e)
                     {
                         s->error("Internal Compiler Error: %s is unsupported parameter for C++ template: (%s)", o->toChars());
-                        assert(0);
+                        fatal();
                     }
                     if (d && d->isFuncDeclaration())
                     {
@@ -223,14 +223,14 @@ class CppMangleVisitor : public Visitor
                     else
                     {
                         s->error("Internal Compiler Error: %s is unsupported parameter for C++ template", o->toChars());
-                        assert(0);
+                        fatal();
                     }
 
                 }
                 else
                 {
                     s->error("Internal Compiler Error: C++ templates support only integral value, type parameters, alias templates and alias function parameters");
-                    assert(0);
+                    fatal();
                 }
             }
             if (is_var_arg)
@@ -403,7 +403,7 @@ class CppMangleVisitor : public Visitor
         if (!(d->storage_class & (STCextern | STCgshared)))
         {
             d->error("Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
-            assert(0);
+            fatal();
         }
 
         Dsymbol *p = d->toParent();
@@ -512,7 +512,7 @@ class CppMangleVisitor : public Visitor
             // Mangle static arrays as pointers
             t->error(Loc(), "Internal Compiler Error: unable to pass static array to extern(C++) function.");
             t->error(Loc(), "Use pointer instead.");
-            assert(0);
+            fatal();
             //t = t->nextOf()->pointerTo();
         }
 
@@ -575,7 +575,7 @@ public:
         {
             t->error(Loc(), "Internal Compiler Error: unsupported type %s\n", t->toChars());
         }
-        assert(0); //Assert, because this error should be handled in frontend
+        fatal(); //Fatal, because this error should be handled in frontend
     }
 
     void visit(TypeBasic *t)
@@ -955,7 +955,7 @@ public:
         {
             type->error(Loc(), "Internal Compiler Error: unsupported type %s\n", type->toChars());
         }
-        assert(0); // Assert, because this error should be handled in frontend
+        fatal(); // Fatal, because this error should be handled in frontend
     }
 
     void visit(TypeBasic *type)
@@ -1319,7 +1319,9 @@ private:
         if (d->needThis()) // <flags> ::= <virtual/protection flag> <const/volatile flag> <calling convention flag>
         {
             // Pivate methods always non-virtual in D and it should be mangled as non-virtual in C++
-            if (d->isVirtual() && (d->vtblIndex != -1 || d.interfaceVirtual))
+            //printf("%s: isVirtualMethod = %d, isVirtual = %d, vtblIndex = %d, interfaceVirtual = %p\n",
+                //d->toChars(), d->isVirtualMethod(), d->isVirtual(), (int)d->vtblIndex, d->interfaceVirtual);
+            if (d->isVirtual() && (d->vtblIndex != -1 || d->interfaceVirtual || d->overrideInterface()))
             {
                 switch (d->protection.kind)
                 {
@@ -1391,7 +1393,7 @@ private:
         if (!(d->storage_class & (STCextern | STCgshared)))
         {
             d->error("Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
-            assert(0);
+            fatal();
         }
         buf.writeByte('?');
         mangleIdent(d);
@@ -1529,7 +1531,7 @@ private:
                     else
                     {
                         sym->error("Internal Compiler Error: C++ %s template value parameter is not supported", tv->valType->toChars());
-                        assert(0);
+                        fatal();
                     }
                 }
                 else if (!tp || tp->isTemplateTypeParameter())
@@ -1545,7 +1547,7 @@ private:
                     if (!d && !e)
                     {
                         sym->error("Internal Compiler Error: %s is unsupported parameter for C++ template", o->toChars());
-                        assert(0);
+                        fatal();
                     }
                     if (d && d->isFuncDeclaration())
                     {
@@ -1587,7 +1589,7 @@ private:
                             else
                             {
                                 sym->error("Internal Compiler Error: C++ templates support only integral value, type parameters, alias templates and alias function parameters");
-                                assert(0);
+                                fatal();
                             }
                         }
                         tmp.mangleIdent(d);
@@ -1595,14 +1597,14 @@ private:
                     else
                     {
                         sym->error("Internal Compiler Error: %s is unsupported parameter for C++ template: (%s)", o->toChars());
-                        assert(0);
+                        fatal();
                     }
 
                 }
                 else
                 {
                     sym->error("Internal Compiler Error: C++ templates support only integral value, type parameters, alias templates and alias function parameters");
-                    assert(0);
+                    fatal();
                 }
             }
             name = tmp.buf.extractString();
@@ -1822,7 +1824,7 @@ private:
         {
             t->error(Loc(), "Internal Compiler Error: unable to pass static array to extern(C++) function.");
             t->error(Loc(), "Use pointer instead.");
-            assert(0);
+            fatal();
         }
         mangler->flags &= ~IS_NOT_TOP_TYPE;
         mangler->flags &= ~IGNORE_CONST;

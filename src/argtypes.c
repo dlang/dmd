@@ -33,7 +33,11 @@
  * This breaks a type down into 'simpler' types that can be passed to a function
  * in registers, and returned in registers.
  * It's highly platform dependent.
- * Returning a tuple of zero length means the type cannot be passed/returned in registers.
+ * Params:
+ *      t = type to break down
+ * Returns:
+ *      tuple of types, each element can be passed in a register.
+ *      A tuple of zero length means the type cannot be passed/returned in registers.
  */
 
 TypeTuple *toArgTypes(Type *t)
@@ -205,6 +209,12 @@ TypeTuple *toArgTypes(Type *t)
 
         /*************************************
          * This merges two types into an 8byte type.
+         * Params:
+         *      t1 = first type (can be null)
+         *      t2 = second type (can be null)
+         *      offset2 = offset of t2 from start of t1
+         * Returns:
+         *      type that encompasses both t1 and t2, null if cannot be done
          */
 
         static Type *argtypemerge(Type *t1, Type *t2, unsigned offset2)
@@ -259,14 +269,9 @@ TypeTuple *toArgTypes(Type *t)
                     case 4:
                         t = Type::tint32;
                         break;
-                    case 5:
-                    case 6:
-                    case 7:
-                    case 8:
+                    default:
                         t = Type::tint64;
                         break;
-                    default:
-                        assert(0);
                 }
             }
             return t;
@@ -370,7 +375,7 @@ TypeTuple *toArgTypes(Type *t)
                 for (size_t i = 0; i < t->sym->fields.dim; i++)
                 {
                     VarDeclaration *f = t->sym->fields[i];
-                    //printf("f->type = %s\n", f->type->toChars());
+                    //printf("  [%d] %s f->type = %s\n", (int)i, f->toChars(), f->type->toChars());
 
                     TypeTuple *tup = toArgTypes(f->type);
                     if (!tup)
@@ -410,7 +415,8 @@ TypeTuple *toArgTypes(Type *t)
 
                     // First field in 8byte must be at start of 8byte
                     assert(t1 || f->offset == 0);
-
+                    //printf("ft1 = %s\n", ft1 ? ft1->toChars() : "null");
+                    //printf("ft2 = %s\n", ft2 ? ft2->toChars() : "null");
                     if (ft1)
                     {
                         t1 = argtypemerge(t1, ft1, f->offset);

@@ -278,6 +278,38 @@ Scope *ClassDeclaration::newScope(Scope *sc)
     return sc2;
 }
 
+/* Bugzilla 12078, 12143 and 15733:
+ * While resolving base classes and interfaces, a base may refer
+ * the member of this derived class. In that time, if all bases of
+ * this class can  be determined, we can go forward the semantc process
+ * beyond the Lancestorsdone. To do the recursive semantic analysis,
+ * temporarily set and unset `_scope` around exp().
+ */
+static Type *resolveBase(ClassDeclaration *cd, Scope *sc, Scope *&scx, Type *type)
+{
+    if (!scx)
+    {
+        scx = sc->copy();
+        scx->setNoFree();
+    }
+    cd->_scope = scx;
+    Type *t = type->semantic(cd->loc, sc);
+    cd->_scope = NULL;
+    return t;
+}
+
+static void resolveBase(ClassDeclaration *cd, Scope *sc, Scope *&scx, ClassDeclaration *sym)
+{
+    if (!scx)
+    {
+        scx = sc->copy();
+        scx->setNoFree();
+    }
+    cd->_scope = scx;
+    sym->semantic(NULL);
+    cd->_scope = NULL;
+}
+
 void ClassDeclaration::semantic(Scope *sc)
 {
     //printf("ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
@@ -362,15 +394,8 @@ void ClassDeclaration::semantic(Scope *sc)
         // Expand any tuples in baseclasses[]
         for (size_t i = 0; i < baseclasses->dim; )
         {
-            _scope = scx ? scx : sc->copy();
-            _scope->setNoFree();
-
             BaseClass *b = (*baseclasses)[i];
-            //printf("+ %s [%d] b->type = %s\n", toChars(), i, b->type->toChars());
-            b->type = b->type->semantic(loc, sc);
-            //printf("- %s [%d] b->type = %s\n", toChars(), i, b->type->toChars());
-
-            _scope = NULL;
+            b->type = resolveBase(this, sc, scx, b->type);
 
             Type *tb = b->type->toBasetype();
             if (tb->ty == Ttuple)
@@ -444,7 +469,7 @@ void ClassDeclaration::semantic(Scope *sc)
             b->sym = baseClass;
 
             if (tc->sym->_scope && tc->sym->baseok < BASEOKdone)
-                tc->sym->semantic(NULL);    // Try to resolve forward reference
+                resolveBase(this, sc, scx, tc->sym); // Try to resolve forward reference
             if (tc->sym->baseok < BASEOKdone)
             {
                 //printf("\ttry later, forward reference of base class %s\n", tc->sym->toChars());
@@ -496,7 +521,7 @@ void ClassDeclaration::semantic(Scope *sc)
             b->sym = tc->sym;
 
             if (tc->sym->_scope && tc->sym->baseok < BASEOKdone)
-                tc->sym->semantic(NULL);    // Try to resolve forward reference
+                resolveBase(this, sc, scx, tc->sym); // Try to resolve forward reference
             if (tc->sym->baseok < BASEOKdone)
             {
                 //printf("\ttry later, forward reference of base %s\n", tc->sym->toChars());
@@ -1447,13 +1472,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
         // Expand any tuples in baseclasses[]
         for (size_t i = 0; i < baseclasses->dim; )
         {
-            _scope = scx ? scx : sc->copy();
-            _scope->setNoFree();
-
             BaseClass *b = (*baseclasses)[i];
-            b->type = b->type->semantic(loc, sc);
-
-            _scope = NULL;
+            b->type = resolveBase(this, sc, scx, b->type);
 
             Type *tb = b->type->toBasetype();
             if (tb->ty == Ttuple)
@@ -1531,7 +1551,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
             b->sym = tc->sym;
 
             if (tc->sym->_scope && tc->sym->baseok < BASEOKdone)
-                tc->sym->semantic(NULL);    // Try to resolve forward reference
+                resolveBase(this, sc, scx, tc->sym); // Try to resolve forward reference
             if (tc->sym->baseok < BASEOKdone)
             {
                 //printf("\ttry later, forward reference of base %s\n", tc->sym->toChars());

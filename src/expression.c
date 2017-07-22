@@ -3560,12 +3560,9 @@ Lagain:
         if (!f->functionSemantic())
             return new ErrorExp();
 
-        if (!f->type->deco)
-        {
-            const char *trailMsg = f->inferRetType ? "inferred return type of function call " : "";
-            ::error(loc, "forward reference to %s'%s'", trailMsg, f->toChars());
+        if (!hasOverloads && f->checkForwardRef(loc))
             return new ErrorExp();
-        }
+
         FuncDeclaration *fd = s->isFuncDeclaration();
         fd->type = f->type;
         return new VarExp(loc, fd, hasOverloads);
@@ -7537,11 +7534,8 @@ Expression *DotIdExp::semanticX(Scope *sc)
                 assert(ds);
                 if (FuncDeclaration *f = ds->isFuncDeclaration())
                 {
-                    if (!f->type->deco)
-                    {
-                        error("forward reference to %s", f->toChars());
+                    if (f->checkForwardRef(loc))
                         return new ErrorExp();
-                    }
                 }
                 OutBuffer buf;
                 mangleToBuffer(ds, &buf);
@@ -9431,7 +9425,7 @@ Lagain:
     if (!type)
     {
         e1 = e1org;     // Bugzilla 10922, avoid recursive expression printing
-        error("forward reference to inferred return type of function call %s", toChars());
+        error("forward reference to inferred return type of function call '%s'", toChars());
         return new ErrorExp();
     }
 
@@ -9517,6 +9511,46 @@ Expression *CallExp::addDtorHook(Scope *sc)
     return this;
 }
 
+FuncDeclaration *isFuncAddress(Expression *e, bool *hasOverloads = NULL)
+{
+    if (e->op == TOKaddress)
+    {
+        Expression *ae1 = ((AddrExp *)e)->e1;
+        if (ae1->op == TOKvar)
+        {
+            VarExp *ve = (VarExp *)ae1;
+            if (hasOverloads)
+                *hasOverloads = ve->hasOverloads;
+            return ve->var->isFuncDeclaration();
+        }
+        if (ae1->op == TOKdotvar)
+        {
+            DotVarExp *dve = (DotVarExp *)ae1;
+            if (hasOverloads)
+                *hasOverloads = dve->hasOverloads;
+            return dve->var->isFuncDeclaration();
+        }
+    }
+    else
+    {
+        if (e->op == TOKsymoff)
+        {
+            SymOffExp *soe = (SymOffExp *)e;
+            if (hasOverloads)
+                *hasOverloads = soe->hasOverloads;
+            return soe->var->isFuncDeclaration();
+        }
+        if (e->op == TOKdelegate)
+        {
+            DelegateExp *dge = (DelegateExp *)e;
+            if (hasOverloads)
+                *hasOverloads = dge->hasOverloads;
+            return dge->func->isFuncDeclaration();
+        }
+    }
+    return NULL;
+}
+
 /************************************************************/
 
 AddrExp::AddrExp(Loc loc, Expression *e)
@@ -9579,15 +9613,15 @@ Expression *AddrExp::semantic(Scope *sc)
         error("cannot take address of %s", e1->toChars());
         return new ErrorExp();
     }
-    if (!e1->type->deco)
-    {
-        /* No deco means semantic() was not run on the type.
-         * We have to run semantic() on the symbol to get the right type:
-         *  auto x = &bar;
-         *  pure: int bar() { return 1;}
-         * otherwise the 'pure' is missing from the type assigned to x.
-         */
 
+    bool hasOverloads = false;
+    if (FuncDeclaration *f = isFuncAddress(this, &hasOverloads))
+    {
+        if (!hasOverloads && f->checkForwardRef(loc))
+            return new ErrorExp();
+    }
+    else if (!e1->type->deco)
+    {
         if (e1->op == TOKvar)
         {
             VarExp *ve = (VarExp *)e1;
@@ -12243,7 +12277,18 @@ Expression *AssignExp::semantic(Scope *sc)
                 e2x = e2x->castTo(sc, e1->type->constOf());
         }
         else
-            e2x = e2x->implicitCastTo(sc, e1->type);
+        {
+            /* Bugzilla 15778: A string literal has an array type of immutable
+             * elements by default, and normally it cannot be convertible to
+             * array type of mutable elements. But for element-wise assignment,
+             * elements need to be const at best. So we should give a chance
+             * to change code unit size for polysemous string literal.
+             */
+            if (e2x->op == TOKstring)
+                e2x = e2x->implicitCastTo(sc, e1->type->constOf());
+            else
+                e2x = e2x->implicitCastTo(sc, e1->type);
+        }
     }
     else
     {

@@ -51,6 +51,7 @@
 bool symbolIsVisible(Scope *sc, Dsymbol *s);
 typedef int (*ForeachDg)(void *ctx, size_t paramidx, Parameter *param);
 int Parameter_foreach(Parameters *parameters, ForeachDg dg, void *ctx, size_t *pn = NULL);
+FuncDeclaration *isFuncAddress(Expression *e, bool *hasOverloads = NULL);
 
 int Tsize_t = Tuns32;
 int Tptrdiff_t = Tint32;
@@ -7157,6 +7158,18 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
              * template functions.
              */
         }
+        if (FuncDeclaration *f = exp->op == TOKvar    ? ((   VarExp *)exp)->var->isFuncDeclaration()
+                               : exp->op == TOKdotvar ? ((DotVarExp *)exp)->var->isFuncDeclaration() : NULL)
+        {
+            if (f->checkForwardRef(loc))
+                goto Lerr;
+        }
+        if (FuncDeclaration *f = isFuncAddress(exp))
+        {
+            if (f->checkForwardRef(loc))
+                goto Lerr;
+        }
+
         t = exp->type;
         if (!t)
         {
@@ -8405,10 +8418,43 @@ L1:
             if (sym->vthis->_scope)
                 sym->vthis->semantic(NULL);
 
-            ClassDeclaration *cdp = sym->toParent2()->isClassDeclaration();
-            DotVarExp *de = new DotVarExp(e->loc, e, sym->vthis);
-            de->type = (cdp ? cdp->type : sym->vthis->type)->addMod(e->type->mod);
-            return de;
+            if (ClassDeclaration *cdp = sym->toParent2()->isClassDeclaration())
+            {
+                DotVarExp *dve = new DotVarExp(e->loc, e, sym->vthis);
+                dve->type = cdp->type->addMod(e->type->mod);
+                return dve;
+            }
+
+            /* Bugzilla 15839: Find closest parent class through nested functions.
+             */
+            for (Dsymbol *p = sym->toParent2(); p; p = p->toParent2())
+            {
+                FuncDeclaration *fd = p->isFuncDeclaration();
+                if (!fd)
+                    break;
+                if (fd->isNested())
+                    continue;
+                AggregateDeclaration *ad = fd->isThis();
+                if (!ad)
+                    break;
+                if (ClassDeclaration *cdp = ad->isClassDeclaration())
+                {
+                    ThisExp *ve = new ThisExp(e->loc);
+
+                    ve->var = fd->vthis;
+                    const bool nestedError = fd->vthis->checkNestedReference(sc, e->loc);
+                    assert(!nestedError);
+
+                    ve->type = fd->vthis->type->addMod(e->type->mod);
+                    return ve;
+                }
+                break;
+            }
+
+            // Continue to show enclosing function's frame (stack or closure).
+            DotVarExp *dve = new DotVarExp(e->loc, e, sym->vthis);
+            dve->type = sym->vthis->type->addMod(e->type->mod);
+            return dve;
         }
         else
         {

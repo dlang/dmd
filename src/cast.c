@@ -26,6 +26,7 @@
 #include "init.h"
 #include "tokens.h"
 
+FuncDeclaration *isFuncAddress(Expression *e, bool *hasOverloads = NULL);
 bool isCommutative(TOK op);
 MOD MODmerge(MOD mod1, MOD mod2);
 
@@ -2018,6 +2019,16 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                         }
                     }
                 }
+
+                if (FuncDeclaration *f = isFuncAddress(e))
+                {
+                    if (f->checkForwardRef(e->loc))
+                    {
+                        result = new ErrorExp();
+                        return;
+                    }
+                }
+
                 visit((Expression *)e);
             }
             result->type = t;
@@ -2241,6 +2252,16 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     return;
                 }
             }
+
+            if (FuncDeclaration *f = isFuncAddress(e))
+            {
+                if (f->checkForwardRef(e->loc))
+                {
+                    result = new ErrorExp();
+                    return;
+                }
+            }
+
             visit((Expression *)e);
         }
 
@@ -2277,6 +2298,16 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                             e->error("%s", msg);
                     }
                 }
+
+                if (FuncDeclaration *f = isFuncAddress(e))
+                {
+                    if (f->checkForwardRef(e->loc))
+                    {
+                        result = new ErrorExp();
+                        return;
+                    }
+                }
+
                 visit((Expression *)e);
             }
             else
@@ -2611,23 +2642,22 @@ bool isVoidArrayLiteral(Expression *e, Type *other)
 // used by deduceType()
 Type *rawTypeMerge(Type *t1, Type *t2)
 {
+    if (t1->equals(t2))
+        return t1;
+    if (t1->equivalent(t2))
+        return t1->castMod(MODmerge(t1->mod, t2->mod));
+
     Type *t1b = t1->toBasetype();
     Type *t2b = t2->toBasetype();
-
-    if (t1->equals(t2))
-    {
-        return t1;
-    }
-    else if (t1b->equals(t2b))
-    {
+    if (t1b->equals(t2b))
         return t1b;
-    }
-    else
-    {
-        TY ty = (TY)impcnvResult[t1b->ty][t2b->ty];
-        if (ty != Terror)
-            return Type::basic[ty];
-    }
+    if (t1b->equivalent(t2b))
+        return t1b->castMod(MODmerge(t1b->mod, t2b->mod));
+
+    TY ty = (TY)impcnvResult[t1b->ty][t2b->ty];
+    if (ty != Terror)
+        return Type::basic[ty];
+
     return NULL;
 }
 

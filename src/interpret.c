@@ -3534,7 +3534,11 @@ public:
                 }
 
                 if (fp)
+                {
                     oldval = findKeyInAA(e->loc, existingAA, lastIndex);
+                    if (!oldval)
+                        oldval = copyLiteral(e->e1->type->defaultInitLiteral(e->loc)).copy();
+                }
             }
             else
             {
