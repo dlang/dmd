@@ -5682,6 +5682,7 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
     this->tnext = NULL;
     this->minst = NULL;
     this->deferred = NULL;
+    this->memberOf = NULL;
     this->argsym = NULL;
     this->aliasdecl = NULL;
     this->semantictiargsdone = false;
@@ -6323,6 +6324,7 @@ Lerror:
                 // should be able to remove it without messing other indices up.
                 assert((*target_symbol_list)[target_symbol_list_idx] == this);
                 target_symbol_list->remove(target_symbol_list_idx);
+                memberOf = NULL;                    // no longer a member
             }
             semanticRun = PASSinit;
             inst = NULL;
@@ -7396,22 +7398,25 @@ Dsymbols *TemplateInstance::appendToModuleMember()
     }
     //printf("\t--> mi = %s\n", mi->toPrettyChars());
 
-    Dsymbols *a = mi->members;
-    for (size_t i = 0; 1; i++)
+    if (memberOf == mi)     // already a member
     {
-        if (i == a->dim)
+#ifdef DEBUG
+        Dsymbols *a = mi->members;
+        for (size_t i = 0; 1; i++)
         {
-            a->push(this);
-            if (mi->semanticRun >= PASSsemantic3done && mi->isRoot())
-                Module::addDeferredSemantic3(this);
-            break;
+            assert(i != a->dim);
+            if (this == (*a)[i])
+                break;
         }
-        if (this == (*a)[i])    // if already in Array
-        {
-            a = NULL;
-            break;
-        }
+#endif
+        return NULL;
     }
+
+    Dsymbols *a = mi->members;
+    a->push(this);
+    memberOf = mi;
+    if (mi->semanticRun >= PASSsemantic3done && mi->isRoot())
+        Module::addDeferredSemantic3(this);
     return a;
 }
 
