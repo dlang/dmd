@@ -32,9 +32,7 @@ struct complex_t
 
     complex_t operator / (complex_t y)
     {
-        real_t abs_y_re = y.re < 0 ? -y.re : y.re;
-        real_t abs_y_im = y.im < 0 ? -y.im : y.im;
-        if (abs_y_re < abs_y_im)
+        if (CTFloat::fabs(y.re) < CTFloat::fabs(y.im))
         {
             real_t r = y.re / y.im;
             real_t den = y.im + r * y.re;

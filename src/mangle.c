@@ -670,15 +670,15 @@ public:
          * 0X1.9P+2                 => 19P2
          */
 
-        if (Port::isNan(value))
+        if (CTFloat::isNaN(value))
             buf->writestring("NAN");        // no -NAN bugs
-        else if (Port::isInfinity(value))
+        else if (CTFloat::isInfinity(value))
             buf->writestring(value < 0 ? "NINF" : "INF");
         else
         {
             const size_t BUFFER_LEN = 36;
             char buffer[BUFFER_LEN];
-            size_t n = ld_sprint(buffer, 'A', value);
+            size_t n = CTFloat::sprint(buffer, 'A', value);
             assert(n < BUFFER_LEN);
             for (size_t i = 0; i < n; i++)
             {

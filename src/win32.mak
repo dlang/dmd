@@ -175,7 +175,7 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 ROOTOBJS= man.obj port.obj checkedint.obj \
 	stringtable.obj response.obj async.obj speller.obj aav.obj outbuffer.obj \
 	object.obj filename.obj file.obj \
-	rmem.obj newdelete.obj
+	rmem.obj newdelete.obj ctfloat.obj
 
 # D front end
 SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
@@ -677,6 +677,9 @@ filename.obj : $(ROOT)\filename.c
 
 file.obj : $(ROOT)\file.c
 	$(CC) -c $(CFLAGS) $(ROOT)\file.c
+
+ctfloat.obj : $(ROOT)\ctfloat.c
+	$(CC) -c $(CFLAGS) $(ROOT)\ctfloat.c
 
 # Root/GC -- Removed (look in history)
 #

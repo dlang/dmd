@@ -71,7 +71,7 @@ Expression *eval_sqrt(Loc loc, FuncDeclaration *fd, Expressions *arguments)
 {
     Expression *arg0 = (*arguments)[0];
     assert(arg0->op == TOKfloat64);
-    return new RealExp(loc, Port::sqrt(arg0->toReal()), arg0->type);
+    return new RealExp(loc, CTFloat::sqrt(arg0->toReal()), arg0->type);
 }
 
 Expression *eval_fabs(Loc loc, FuncDeclaration *fd, Expressions *arguments)
@@ -154,7 +154,7 @@ Expression *eval_yl2x(Loc loc, FuncDeclaration *fd, Expressions *arguments)
     longdouble x = arg0->toReal();
     longdouble y = arg1->toReal();
     longdouble result;
-    Port::yl2x_impl(&x, &y, &result);
+    CTFloat::yl2x(&x, &y, &result);
     return new RealExp(loc, result, arg0->type);
 }
 
@@ -167,7 +167,7 @@ Expression *eval_yl2xp1(Loc loc, FuncDeclaration *fd, Expressions *arguments)
     longdouble x = arg0->toReal();
     longdouble y = arg1->toReal();
     longdouble result;
-    Port::yl2xp1_impl(&x, &y, &result);
+    CTFloat::yl2xp1(&x, &y, &result);
     return new RealExp(loc, result, arg0->type);
 }
 
@@ -201,7 +201,7 @@ void builtin_init()
     // @safe @nogc pure nothrow real function(real, real)
     add_builtin("_D4core4math5atan2FNaNbNiNfeeZe", &eval_unimp);
 
-    if (Port::yl2x_supported)
+    if (CTFloat::yl2x_supported)
     {
         add_builtin("_D4core4math4yl2xFNaNbNiNfeeZe", &eval_yl2x);
     }
@@ -210,7 +210,7 @@ void builtin_init()
         add_builtin("_D4core4math4yl2xFNaNbNiNfeeZe", &eval_unimp);
     }
 
-    if (Port::yl2xp1_supported)
+    if (CTFloat::yl2xp1_supported)
     {
         add_builtin("_D4core4math6yl2xp1FNaNbNiNfeeZe", &eval_yl2xp1);
     }
@@ -248,7 +248,7 @@ void builtin_init()
     // @safe @nogc pure nothrow real function(real, real)
     add_builtin("_D3std4math5atan2FNaNbNiNfeeZe", &eval_unimp);
 
-    if (Port::yl2x_supported)
+    if (CTFloat::yl2x_supported)
     {
         add_builtin("_D3std4math4yl2xFNaNbNiNfeeZe", &eval_yl2x);
     }
@@ -257,7 +257,7 @@ void builtin_init()
         add_builtin("_D3std4math4yl2xFNaNbNiNfeeZe", &eval_unimp);
     }
 
-    if (Port::yl2xp1_supported)
+    if (CTFloat::yl2xp1_supported)
     {
         add_builtin("_D3std4math6yl2xp1FNaNbNiNfeeZe", &eval_yl2xp1);
     }

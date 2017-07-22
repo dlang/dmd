@@ -1076,7 +1076,7 @@ int intSignedCmp(TOK op, sinteger_t n1, sinteger_t n2)
 int realCmp(TOK op, real_t r1, real_t r2)
 {
     // Don't rely on compiler, handle NAN arguments separately
-    if (Port::isNan(r1) || Port::isNan(r2)) // if unordered
+    if (CTFloat::isNaN(r1) || CTFloat::isNaN(r2)) // if unordered
     {
         switch (op)
         {
@@ -1297,7 +1297,7 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
         r1 = e1->toImaginary();
         r2 = e2->toImaginary();
      L1:
-        if (Port::isNan(r1) || Port::isNan(r2)) // if unordered
+        if (CTFloat::isNaN(r1) || CTFloat::isNaN(r2)) // if unordered
         {
             return 1;
         }

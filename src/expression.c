@@ -3227,8 +3227,8 @@ complex_t RealExp::toComplex()
 
 int RealEquals(real_t x1, real_t x2)
 {
-    return (Port::isNan(x1) && Port::isNan(x2)) ||
-        Port::fequal(x1, x2);
+    return (CTFloat::isNaN(x1) && CTFloat::isNaN(x2)) ||
+        CTFloat::isIdentical(x1, x2);
 }
 
 bool RealExp::equals(RootObject *o)

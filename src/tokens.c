@@ -53,7 +53,7 @@ void Token::print()
 
 const char *Token::toChars() const
 {
-    static char buffer[3 + 3 * sizeof(float80value) + 1];
+    static char buffer[3 + 3 * sizeof(floatvalue) + 1];
 
     const char *p = &buffer[0];
     switch (value)
@@ -78,31 +78,31 @@ const char *Token::toChars() const
             break;
 
         case TOKfloat32v:
-            ld_sprint(&buffer[0], 'g', float80value);
+            CTFloat::sprint(&buffer[0], 'g', floatvalue);
             strcat(&buffer[0], "f");
             break;
 
         case TOKfloat64v:
-            ld_sprint(&buffer[0], 'g', float80value);
+            CTFloat::sprint(&buffer[0], 'g', floatvalue);
             break;
 
         case TOKfloat80v:
-            ld_sprint(&buffer[0], 'g', float80value);
+            CTFloat::sprint(&buffer[0], 'g', floatvalue);
             strcat(&buffer[0], "L");
             break;
 
         case TOKimaginary32v:
-            ld_sprint(&buffer[0], 'g', float80value);
+            CTFloat::sprint(&buffer[0], 'g', floatvalue);
             strcat(&buffer[0], "fi");
             break;
 
         case TOKimaginary64v:
-            ld_sprint(&buffer[0], 'g', float80value);
+            CTFloat::sprint(&buffer[0], 'g', floatvalue);
             strcat(&buffer[0], "i");
             break;
 
         case TOKimaginary80v:
-            ld_sprint(&buffer[0], 'g', float80value);
+            CTFloat::sprint(&buffer[0], 'g', floatvalue);
             strcat(&buffer[0], "Li");
             break;
 

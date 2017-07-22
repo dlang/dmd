@@ -2247,14 +2247,14 @@ public:
         Plus one for rounding. */
         const size_t BUFFER_LEN = sizeof(value) * 3 + 8 + 1 + 1;
         char buffer[BUFFER_LEN];
-        ld_sprint(buffer, 'g', value);
+        CTFloat::sprint(buffer, 'g', value);
         assert(strlen(buffer) < BUFFER_LEN);
 
         if (hgs->hdrgen)
         {
-            real_t r = Port::strtold(buffer, NULL);
+            real_t r = CTFloat::parse(buffer);
             if (r != value)                     // if exact duplication
-                ld_sprint(buffer, 'a', value);
+                CTFloat::sprint(buffer, 'a', value);
         }
         buf->writestring(buffer);
 

@@ -42,37 +42,18 @@ struct Port
     static double dbl_min;
     static longdouble ldbl_max;
 
-    static bool yl2x_supported;
-    static bool yl2xp1_supported;
-
-    static int isNan(double);
-    static int isNan(longdouble);
-
-    static int isSignallingNan(double);
-    static int isSignallingNan(longdouble);
-
-    static int isInfinity(double);
-
-    static longdouble fmodl(longdouble x, longdouble y);
-    static longdouble sqrt(longdouble x);
-    static int fequal(longdouble x, longdouble y);
-
-    static void yl2x_impl(longdouble* x, longdouble* y, longdouble* res);
-    static void yl2xp1_impl(longdouble* x, longdouble* y, longdouble* res);
-
     static int memicmp(const char *s1, const char *s2, int n);
-    static char *strupr(char *);
+    static char *strupr(char *s);
 
-    static float strtof(const char *p, char **endp);
-    static double strtod(const char *p, char **endp);
-    static longdouble strtold(const char *p, char **endp);
+    static bool isFloat32LiteralOutOfRange(const char *s);
+    static bool isFloat64LiteralOutOfRange(const char *s);
 
-    static void writelongLE(unsigned value, void* buffer);
-    static unsigned readlongLE(void* buffer);
-    static void writelongBE(unsigned value, void* buffer);
-    static unsigned readlongBE(void* buffer);
-    static unsigned readwordLE(void* buffer);
-    static unsigned readwordBE(void* buffer);
+    static void writelongLE(unsigned value, void *buffer);
+    static unsigned readlongLE(void *buffer);
+    static void writelongBE(unsigned value, void *buffer);
+    static unsigned readlongBE(void *buffer);
+    static unsigned readwordLE(void *buffer);
+    static unsigned readwordBE(void *buffer);
     static void valcpy(void *dst, uint64_t val, size_t size);
 };
 

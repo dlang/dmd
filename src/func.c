@@ -1088,7 +1088,7 @@ void FuncDeclaration::semantic(Scope *sc)
     }
 
     if (isMain())
-	checkDmain();       // Check main() parameters and return type
+        checkDmain();       // Check main() parameters and return type
 
     if (isVirtual() && semanticRun != PASSsemanticdone)
     {

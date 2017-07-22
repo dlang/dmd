@@ -183,7 +183,7 @@ ROOT_OBJS = \
 	rmem.o port.o man.o stringtable.o response.o \
 	aav.o speller.o outbuffer.o object.o \
 	filename.o file.o async.o checkedint.o \
-	newdelete.o
+	newdelete.o ctfloat.o
 
 GLUE_OBJS = \
 	glue.o msc.o s2ir.o todt.o e2ir.o tocsym.o \
@@ -261,7 +261,7 @@ ROOT_SRC = $(ROOT)/root.h \
 	$(ROOT)/object.h $(ROOT)/object.c \
 	$(ROOT)/filename.h $(ROOT)/filename.c \
 	$(ROOT)/file.h $(ROOT)/file.c \
-	$(ROOT)/ctfloat.h
+	$(ROOT)/ctfloat.h $(ROOT)/ctfloat.c
 
 GLUE_SRC = glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \
