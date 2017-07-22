@@ -15,7 +15,7 @@
 
 Global global;
 
-void Global::init()
+void Global::_init()
 {
     inifilename = NULL;
     mars_ext = "d";

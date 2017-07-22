@@ -2134,7 +2134,7 @@ Expression::Expression(Loc loc, TOK op, int size)
     type = NULL;
 }
 
-void Expression::init()
+void Expression::_init()
 {
     CTFEExp::cantexp = new CTFEExp(TOKcantexp);
     CTFEExp::voidexp = new CTFEExp(TOKvoidexp);

@@ -232,7 +232,7 @@ int tryMain(size_t argc, const char *argv[])
 #if TARGET_WINDOS
     bool setdefaultlib = false;
 #endif
-    global.init();
+    global._init();
 
 #ifdef DEBUG
     printf("DMD %s DEBUG\n", global.version);
@@ -1151,11 +1151,11 @@ Language changes listed by -transition=id:\n\
 
     // Initialization
     Lexer::initLexer();
-    Type::init();
+    Type::_init();
     Id::initialize();
-    Module::init();
-    Target::init();
-    Expression::init();
+    Module::_init();
+    Target::_init();
+    Expression::_init();
     objc_tryMain_init();
     initPrecedence();
     builtin_init();

@@ -47,7 +47,7 @@ unsigned Module::dprogress;
 
 const char *lookForSourceFile(const char **path, const char *filename);
 
-void Module::init()
+void Module::_init()
 {
     modules = new DsymbolTable();
 }

@@ -66,7 +66,7 @@ static void initFloatConstants()
     T::min_10_exp = std::numeric_limits<V>::min_exponent10;
 }
 
-void Target::init()
+void Target::_init()
 {
     // These have default values for 32 bit code, they get
     // adjusted for 64 bit code.

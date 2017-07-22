@@ -232,7 +232,7 @@ struct Global
      */
     void increaseErrorCount();
 
-    void init();
+    void _init();
 };
 
 extern Global global;

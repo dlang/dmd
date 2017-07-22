@@ -150,7 +150,7 @@ void objc_tryMain_dObjc()
 void objc_tryMain_init()
 {
     objc_initSymbols();
-    ObjcSelector::init();
+    ObjcSelector::_init();
 }
 
 // MARK: Selector
@@ -158,7 +158,7 @@ void objc_tryMain_init()
 StringTable ObjcSelector::stringtable;
 int ObjcSelector::incnum = 0;
 
-void ObjcSelector::init()
+void ObjcSelector::_init()
 {
     stringtable._init();
 }
