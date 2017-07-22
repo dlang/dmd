@@ -641,6 +641,7 @@ public:
     FuncDeclaration *isUnique();
     bool checkNestedReference(Scope *sc, Loc loc);
     bool needsClosure();
+    bool checkClosure();
     bool hasNestedFrameRefs();
     void buildResultVar(Scope *sc, Type *tret);
     Statement *mergeFrequire(Statement *);
