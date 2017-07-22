@@ -1960,21 +1960,25 @@ Lmatch:
                 }
             }
             oded = declareParameter(paramscope, tparam, oded);
-
-            /* Bugzilla 7469: Normalize ti->tiargs for the correct mangling of template instance.
-             */
-            Tuple *va = isTuple(oded);
-            if (va && va->objects.dim)
-            {
-                dedargs->setDim(parameters->dim - 1 + va->objects.dim);
-                for (size_t j = 0; j < va->objects.dim; j++)
-                    (*dedargs)[i + j] = va->objects[j];
-                i = dedargs->dim - 1;
-            }
-            else
-                (*dedargs)[i] = oded;
+            (*dedargs)[i] = oded;
         }
     }
+
+    /* Bugzilla 7469: As same as the code for 7469 in findBestMatch,
+     * expand a Tuple in dedargs to normalize template arguments.
+     */
+    if (size_t d = dedargs->dim)
+    {
+        if (Tuple *va = isTuple((*dedargs)[d - 1]))
+        {
+            if (va->objects.dim)
+            {
+                dedargs->setDim(d - 1);
+                dedargs->insert(d - 1, &va->objects);
+            }
+        }
+    }
+    ti->tiargs = dedargs; // update to the normalized template arguments.
 
     // Partially instantiate function for constraint and fd->leastAsSpecialized()
     {
@@ -1994,7 +1998,7 @@ Lmatch:
         if (!fd)
             goto Lnomatch;
     }
-    ti->tiargs = dedargs;   // update to the normalized template arguments.
+
     if (constraint)
     {
         if (!evaluateConstraint(ti, sc, paramscope, dedargs, fd))
