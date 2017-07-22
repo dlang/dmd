@@ -1114,6 +1114,7 @@ StorageClass Parser::parsePostfix(StorageClass storageClass, Expressions **pudas
             case TOKnothrow:    stc = STCnothrow;       break;
             case TOKpure:       stc = STCpure;          break;
             case TOKreturn:     stc = STCreturn;        break;
+            case TOKscope:      stc = STCscope;         break;
             case TOKat:
             {
                 Expressions *udas = NULL;
@@ -6189,6 +6190,7 @@ bool Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
                         case TOKpure:
                         case TOKnothrow:
                         case TOKreturn:
+                        case TOKscope:
                             t = peek(t);
                             continue;
                         case TOKat:
