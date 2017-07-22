@@ -15,8 +15,10 @@
 #include "declaration.h"
 #include "module.h"
 
-bool checkEscape(Scope *sc, Expression *e, bool gag);
-bool checkEscapeRef(Scope *sc, Expression *e, bool gag);
+static bool checkEscapeImpl(Scope *sc, Expression *e, bool refs, bool gag);
+static void inferReturn(FuncDeclaration *fd, VarDeclaration *v);
+static void escapeByValue(Expression *e, VarDeclarations *byref, VarDeclarations *byvalue, Expressions *byexp);
+static void escapeByRef(Expression *e, VarDeclarations *byref, VarDeclarations *byvalue, Expressions *byexp);
 
 /************************************
  * Detect cases where pointers to the stack can 'escape' the
@@ -31,37 +33,219 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag);
 
 bool checkEscape(Scope *sc, Expression *e, bool gag)
 {
+    return checkEscapeImpl(sc, e, false, gag);
+}
+
+/************************************
+ * Detect cases where returning 'e' by ref can result in a reference to the stack
+ * being returned.
+ * Print error messages when these are detected.
+ * Params:
+ *      sc = used to determine current function and module
+ *      e = expression to check
+ *      gag = do not print error messages
+ * Returns:
+ *      true if references to the stack can escape
+ */
+bool checkEscapeRef(Scope *sc, Expression *e, bool gag)
+{
+    //printf("[%s] checkEscapeRef, e = %s\n", e->loc.toChars(), e->toChars());
+    //printf("current function %s\n", sc->func->toChars());
+    //printf("parent2 function %s\n", sc->func->toParent2()->toChars());
+
+    return checkEscapeImpl(sc, e, true, gag);
+}
+
+static bool checkEscapeImpl(Scope *sc, Expression *e, bool refs, bool gag)
+{
+    VarDeclarations byref;
+    VarDeclarations byvalue;
+    Expressions byexp;
+
+    if (refs)
+        escapeByRef(e, &byref, &byvalue, &byexp);
+    else
+        escapeByValue(e, &byref, &byvalue, &byexp);
+
+    if (!byref.dim && !byvalue.dim && !byexp.dim)
+        return false;
+
+    bool result = false;
+    for (size_t i = 0; i < byvalue.dim; i++)
+    {
+        VarDeclaration *v = byvalue[i];
+        if (v->isDataseg())
+            continue;
+
+        if (v->toParent2() != sc->func)
+            continue;
+
+        if (v->isScope())
+        {
+            if (!gag)
+                error(e->loc, "scope variable %s may not be returned", v->toChars());
+            result = true;
+        }
+        else if (v->storage_class & STCvariadic)
+        {
+            Type *tb = v->type->toBasetype();
+            if (tb->ty == Tarray || tb->ty == Tsarray)
+            {
+                if (!gag)
+                    error(e->loc, "escaping reference to variadic parameter %s", v->toChars());
+                result = false;
+            }
+        }
+    }
+
+    for (size_t i = 0; i < byref.dim; i++)
+    {
+        VarDeclaration *v = byref[i];
+        if (v->isDataseg())
+            continue;
+
+        Dsymbol *p = v->toParent2();
+
+        if ((v->storage_class & (STCref | STCout)) == 0 && v->toParent2() == sc->func)
+        {
+            if (!gag)
+                error(e->loc, "escaping reference to local variable %s", v->toChars());
+            result = true;
+            continue;
+        }
+
+        /* Check for returning a ref variable by 'ref', but should be 'return ref'
+         * Infer the addition of 'return', or set result to be the offending expression.
+         */
+        if ( (v->storage_class & (STCref | STCout)) &&
+             !(v->storage_class & (STCreturn | STCforeach)))
+        {
+            if ((sc->func->flags & FUNCFLAGreturnInprocess) && v->toParent2() == sc->func)
+            {
+                inferReturn(sc->func, v);        // infer addition of 'return'
+            }
+            else if (global.params.useDIP25 &&
+                sc->module && sc->module->isRoot())
+            {
+                // Only look for errors if in module listed on command line
+
+                if (p == sc->func)
+                {
+                    //printf("escaping reference to local ref variable %s\n", v->toChars());
+                    //printf("storage class = x%llx\n", v->storage_class);
+                    if (!gag)
+                        error(e->loc, "escaping reference to local variable %s", v->toChars());
+                    result = true;
+                    continue;
+                }
+                // Don't need to be concerned if v's parent does not return a ref
+                FuncDeclaration *fd = p->isFuncDeclaration();
+                if (fd && fd->type && fd->type->ty == Tfunction)
+                {
+                    TypeFunction *tf = (TypeFunction *)fd->type;
+                    if (tf->isref)
+                    {
+                        if (!gag)
+                            error(e->loc, "escaping reference to outer local variable %s", v->toChars());
+                        result = true;
+                        continue;
+                    }
+                }
+            }
+        }
+    }
+
+    for (size_t i = 0; i < byexp.dim; i++)
+    {
+        Expression *er = byexp[i];
+        if (!gag)
+            error(er->loc, "escaping reference to stack allocated value returned by %s", er->toChars());
+        result = true;
+    }
+
+    return result;
+}
+
+
+/*************************************
+ * Variable v needs to have 'return' inferred for it.
+ * Params:
+ *      fd = function that v is a parameter to
+ *      v = parameter that needs to be STCreturn
+ */
+
+static void inferReturn(FuncDeclaration *fd, VarDeclaration *v)
+{
+    // v is a local in the current function
+
+    //printf("inferring 'return' for variable '%s'\n", v->toChars());
+    v->storage_class |= STCreturn;
+
+    TypeFunction *tf = (TypeFunction *)fd->type;
+    if (v == fd->vthis)
+    {
+        /* v is the 'this' reference, so mark the function
+         */
+        fd->storage_class |= STCreturn;
+        if (tf->ty == Tfunction)
+        {
+            //printf("'this' too %p %s\n", tf, sc->func->toChars());
+            tf->isreturn = true;
+        }
+    }
+    else
+    {
+        // Perform 'return' inference on parameter
+        if (tf->ty == Tfunction && tf->parameters)
+        {
+            const size_t dim = Parameter::dim(tf->parameters);
+            for (size_t i = 0; i < dim; i++)
+            {
+                Parameter *p = Parameter::getNth(tf->parameters, i);
+                if (p->ident == v->ident)
+                {
+                    p->storageClass |= STCreturn;
+                    break;              // there can be only one
+                }
+            }
+        }
+    }
+}
+
+
+/****************************************
+ * e is an expression to be returned by value, and that value contains pointers.
+ * Walk e to determine which variables are possibly being
+ * returned by value, such as:
+ *      int* function(int* p) { return p; }
+ * If e is a form of &p, determine which variables have content
+ * which is being returned as ref, such as:
+ *      int* function(int i) { return &i; }
+ * Multiple variables can be inserted, because of expressions like this:
+ *      int function(bool b, int i, int* p) { return b ? &i : p; }
+ *
+ * No side effects.
+ *
+ * Params:
+ *      e = expression to be returned by value
+ *      byref = array into which variables being returned by ref are inserted
+ *      byvalue = array into which variables with values containing pointers are inserted
+ *      byexp = array into which temporaries being returned by ref are inserted
+ */
+static void escapeByValue(Expression *e, VarDeclarations *byref, VarDeclarations *byvalue, Expressions *byexp)
+{
     //printf("[%s] checkEscape, e = %s\n", e->loc.toChars(), e->toChars());
 
     class EscapeVisitor : public Visitor
     {
     public:
-        Scope *sc;
-        bool gag;
-        bool result;
+        VarDeclarations *byref;
+        VarDeclarations *byvalue;
+        Expressions *byexp;
 
-        EscapeVisitor(Scope *sc, bool gag)
-            : sc(sc), gag(gag), result(false)
+        EscapeVisitor(VarDeclarations *byref, VarDeclarations *byvalue, Expressions *byexp)
+            : byref(byref), byvalue(byvalue), byexp(byexp)
         {
-        }
-
-        void error(Loc loc, const char *format, Dsymbol *s)
-        {
-            if (!gag)
-                ::error(loc, format, s->toChars());
-            result = true;
-        }
-
-        void check(Loc loc, Declaration *d)
-        {
-            VarDeclaration *v = d->isVarDeclaration();
-            if (v && v->toParent2() == sc->func)
-            {
-                if (v->isDataseg())
-                    return;
-                if ((v->storage_class & (STCref | STCout)) == 0)
-                    error(loc, "escaping reference to local %s", v);
-            }
         }
 
         void visit(Expression *e)
@@ -70,37 +254,28 @@ bool checkEscape(Scope *sc, Expression *e, bool gag)
 
         void visit(AddrExp *e)
         {
-            result |= checkEscapeRef(sc, e->e1, gag);
+            escapeByRef(e->e1, byref, byvalue, byexp);
         }
 
         void visit(SymOffExp *e)
         {
-            check(e->loc, e->var);
+            VarDeclaration *v = e->var->isVarDeclaration();
+            if (v)
+                byref->push(v);
         }
 
         void visit(VarExp *e)
         {
             VarDeclaration *v = e->var->isVarDeclaration();
             if (v)
-            {
-                Type *tb = v->type->toBasetype();
-                if (v->isScope())
-                {
-                    error(e->loc, "scope variable %s may not be returned", v);
-                }
-                else if (v->storage_class & STCvariadic)
-                {
-                    if (tb->ty == Tarray || tb->ty == Tsarray)
-                        error(e->loc, "escaping reference to variadic parameter %s", v);
-                }
-            }
+                byvalue->push(v);
         }
 
         void visit(TupleExp *e)
         {
-            for (size_t i = 0; i < e->exps->dim; i++)
+            if (e->exps->dim)
             {
-                (*e->exps)[i]->accept(this);
+                (*e->exps)[e->exps->dim - 1]->accept(this); // last one only
             }
         }
 
@@ -114,9 +289,8 @@ bool checkEscape(Scope *sc, Expression *e, bool gag)
                 for (size_t i = 0; i < e->elements->dim; i++)
                 {
                     Expression *el = (*e->elements)[i];
-                    if (!el)
-                        continue;
-                    el->accept(this);
+                    if (el)
+                        el->accept(this);
                 }
             }
         }
@@ -154,7 +328,7 @@ bool checkEscape(Scope *sc, Expression *e, bool gag)
             if (tb->ty == Tarray &&
                 e->e1->type->toBasetype()->ty == Tsarray)
             {
-                result |= checkEscapeRef(sc, e->e1, gag);
+                escapeByRef(e->e1, byref, byvalue, byexp);
             }
         }
 
@@ -170,14 +344,16 @@ bool checkEscape(Scope *sc, Expression *e, bool gag)
                         return;
                     if (v->storage_class & STCvariadic)
                     {
-                        error(e->loc, "escaping reference to the payload of variadic parameter %s", v);
+                        byvalue->push(v);
                         return;
                     }
                 }
             }
             Type *t1b = e->e1->type->toBasetype();
             if (t1b->ty == Tsarray)
-                result |= checkEscapeRef(sc, e->e1, gag);
+            {
+                escapeByRef(e->e1, byref, byvalue, byexp);
+            }
             else
                 e->e1->accept(this);
         }
@@ -214,131 +390,41 @@ bool checkEscape(Scope *sc, Expression *e, bool gag)
         }
     };
 
-    EscapeVisitor v(sc, gag);
+    EscapeVisitor v(byref, byvalue, byexp);
     e->accept(&v);
-    return v.result;
 }
 
-/************************************
- * Detect cases where returning 'e' by ref can result in a reference to the stack
- * being returned.
+/****************************************
+ * e is an expression to be returned by 'ref'.
+ * Walk e to determine which variables are possibly being
+ * returned by ref, such as:
+ *      ref int function(int i) { return i; }
+ * If e is a form of *p, determine which variables have content
+ * which is being returned as ref, such as:
+ *      ref int function(int* p) { return *p; }
+ * Multiple variables can be inserted, because of expressions like this:
+ *      ref int function(bool b, int i, int* p) { return b ? i : *p; }
+ *
+ * No side effects.
+ *
  * Params:
- *      gag     do not print error messages
- * Returns:
- *      true    errors occured
+ *      e = expression to be returned by 'ref'
+ *      byref = array into which variables being returned by ref are inserted
+ *      byvalue = array into which variables with values containing pointers are inserted
+ *      byexp = array into which temporaries being returned by ref are inserted
  */
-
-bool checkEscapeRef(Scope *sc, Expression *e, bool gag)
+static void escapeByRef(Expression *e, VarDeclarations *byref, VarDeclarations *byvalue, Expressions *byexp)
 {
-    //printf("[%s] checkEscapeRef, e = %s\n", e->loc.toChars(), e->toChars());
-    //printf("current function %s\n", sc->func->toChars());
-    //printf("parent2 function %s\n", sc->func->toParent2()->toChars());
-
     class EscapeRefVisitor : public Visitor
     {
     public:
-        Scope *sc;
-        bool gag;
-        bool result;
+        VarDeclarations *byref;
+        VarDeclarations *byvalue;
+        Expressions *byexp;
 
-        EscapeRefVisitor(Scope *sc, bool gag)
-            : sc(sc), gag(gag), result(false)
+        EscapeRefVisitor(VarDeclarations *byref, VarDeclarations *byvalue, Expressions *byexp)
+            : byref(byref), byvalue(byvalue), byexp(byexp)
         {
-        }
-
-        void error(Loc loc, const char *format, RootObject *o)
-        {
-            if (!gag)
-                ::error(loc, format, o->toChars());
-            result = true;
-        }
-
-        void check(Loc loc, Declaration *d)
-        {
-            assert(d);
-            VarDeclaration *v = d->isVarDeclaration();
-            if (!v)
-                return;
-
-            if (v->isDataseg())
-                return;
-
-            if ((v->storage_class & (STCref | STCout)) == 0 && v->toParent2() == sc->func)
-            {
-                error(loc, "escaping reference to local variable %s", v);
-                return;
-            }
-
-            if ( (v->storage_class & (STCref | STCout)) &&
-                !(v->storage_class & (STCreturn | STCforeach)))
-            {
-                if ((sc->func->flags & FUNCFLAGreturnInprocess) && v->toParent2() == sc->func)
-                {
-                    //printf("inferring 'return' for variable '%s'\n", v->toChars());
-                    v->storage_class |= STCreturn;
-                    if (v == sc->func->vthis)
-                    {
-                        sc->func->storage_class |= STCreturn;
-                        TypeFunction *tf = (TypeFunction *)sc->func->type;
-                        if (tf->ty == Tfunction)
-                        {
-                            //printf("'this' too %p %s\n", tf, sc->func->toChars());
-                            tf->isreturn = true;
-                        }
-                    }
-                    else
-                    {
-                        // Set STCreturn in the Parameter storage class corresponding to v
-                        TypeFunction *tf = (TypeFunction *)sc->func->type;
-                        if (tf->parameters)
-                        {
-                            const size_t dim = Parameter::dim(tf->parameters);
-                            for (size_t i = 0; i < dim; i++)
-                            {
-                                Parameter *p = Parameter::getNth(tf->parameters, i);
-                                if (p->ident == v->ident)
-                                {
-                                    p->storageClass |= STCreturn;
-                                }
-                            }
-                        }
-                    }
-                }
-                else if (global.params.useDIP25 &&
-                         sc->module && sc->module->isRoot())
-                {
-                    Dsymbol *p = v->toParent2();
-                    if (p == sc->func)
-                    {
-                        //printf("escaping reference to local ref variable %s\n", v->toChars());
-                        //printf("storage class = x%llx\n", v->storage_class);
-                        error(loc, "escaping reference to local ref variable %s", v);
-                        return;
-                    }
-
-                    // Don't need to be concerned if v's parent does not return a ref
-                    FuncDeclaration *fd = p->isFuncDeclaration();
-                    if (fd && fd->type && fd->type->ty == Tfunction)
-                    {
-                        TypeFunction *tf = (TypeFunction *)fd->type;
-                        if (tf->isref)
-                            error(loc, "escaping reference to outer local ref variable %s", v);
-                    }
-                }
-                return;
-            }
-
-            if (v->storage_class & STCref && v->storage_class & (STCforeach | STCtemp) && v->_init)
-            {
-                // (ref v = ex; ex)
-                if (ExpInitializer *ez = v->_init->isExpInitializer())
-                {
-                    assert(ez->exp && ez->exp->op == TOKconstruct);
-                    Expression *ex = ((ConstructExp *)ez->exp)->e2;
-                    ex->accept(this);
-                    return;
-                }
-            }
         }
 
         void visit(Expression *e)
@@ -347,43 +433,64 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag)
 
         void visit(VarExp *e)
         {
-            check(e->loc, e->var);
+            VarDeclaration *v = e->var->isVarDeclaration();
+            if (v)
+            {
+                if (v->storage_class & STCref && v->storage_class & (STCforeach | STCtemp) && v->_init)
+                {
+                    /* If compiler generated ref temporary
+                     *   (ref v = ex; ex)
+                     * look at the initializer instead
+                     */
+                    if (ExpInitializer *ez = v->_init->isExpInitializer())
+                    {
+                        assert(ez->exp && ez->exp->op == TOKconstruct);
+                        Expression *ex = ((ConstructExp *)ez->exp)->e2;
+                        ex->accept(this);
+                    }
+                }
+                else
+                    byref->push(v);
+            }
         }
 
         void visit(ThisExp *e)
         {
             if (e->var)
-                check(e->loc, e->var);
+            {
+                VarDeclaration *v = e->var->isVarDeclaration();
+                if (v)
+                    byref->push(v);
+            }
         }
 
         void visit(PtrExp *e)
         {
-            result |= checkEscape(sc, e->e1, gag);
+            escapeByValue(e->e1, byref, byvalue, byexp);
         }
 
         void visit(IndexExp *e)
         {
+            Type *tb = e->e1->type->toBasetype();
             if (e->e1->op == TOKvar)
             {
                 VarDeclaration *v = ((VarExp *)e->e1)->var->isVarDeclaration();
-                if (v && v->toParent2() == sc->func)
+                if (tb->ty == Tarray || tb->ty == Tsarray)
                 {
-                    Type *tb = v->type->toBasetype();
-                    if (tb->ty == Tarray || tb->ty == Tsarray)
+                    if (v->storage_class & STCvariadic)
                     {
-                        if (v->storage_class & STCvariadic)
-                        {
-                            error(e->loc, "escaping reference to the payload of variadic parameter %s", v);
-                            return;
-                        }
+                        byref->push(v);
+                        return;
                     }
                 }
             }
-
-            Type *tb = e->e1->type->toBasetype();
             if (tb->ty == Tsarray)
             {
                 e->e1->accept(this);
+            }
+            else if (tb->ty == Tarray)
+            {
+                escapeByValue(e->e1, byref, byvalue, byexp);
             }
         }
 
@@ -391,7 +498,9 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag)
         {
             Type *t1b = e->e1->type->toBasetype();
             if (t1b->ty == Tclass)
-                result |= checkEscape(sc, e->e1, gag);
+            {
+                escapeByValue(e->e1, byref, byvalue, byexp);
+            }
             else
                 e->e1->accept(this);
         }
@@ -461,13 +570,10 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag)
                 }
             }
             else
-            {
-                error(e->loc, "escaping reference to stack allocated value returned by %s", e);
-                return;
-            }
+                byexp->push(e);
         }
     };
-    EscapeRefVisitor v(sc, gag);
+
+    EscapeRefVisitor v(byref, byvalue, byexp);
     e->accept(&v);
-    return v.result;
 }
