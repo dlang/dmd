@@ -1925,7 +1925,8 @@ bool VarDeclaration::isDataseg()
 {
 #if 0
     printf("VarDeclaration::isDataseg(%p, '%s')\n", this, toChars());
-    printf("%llx, isModule: %p, isTemplateInstance: %p\n", storage_class & (STCstatic | STCconst), parent->isModule(), parent->isTemplateInstance());
+    printf("%llx, isModule: %p, isTemplateInstance: %p, isNspace: %p\n",
+           storage_class & (STCstatic | STCconst), parent->isModule(), parent->isTemplateInstance(), parent->isNspace());
     printf("parent = '%s'\n", parent->toChars());
 #endif
     if (isdataseg == 0) // the value is not cached
@@ -1944,7 +1945,7 @@ bool VarDeclaration::isDataseg()
             type = Type::terror;
         }
         else if (storage_class & (STCstatic | STCextern | STCtls | STCgshared) ||
-                 parent->isModule() || parent->isTemplateInstance())
+                 parent->isModule() || parent->isTemplateInstance() || parent->isNspace())
         {
             isdataseg = 1; // It is in the DataSegment
         }
