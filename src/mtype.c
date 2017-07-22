@@ -51,8 +51,6 @@
 int Tsize_t = Tuns32;
 int Tptrdiff_t = Tint32;
 
-Symbol *toInitializer(AggregateDeclaration *ad);
-
 /***************************** Type *****************************/
 
 ClassDeclaration *Type::dtypeinfo;
@@ -2094,7 +2092,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
         if (tb->ty == Tstruct && tb->needsNested())
         {
             StructLiteralExp *se = (StructLiteralExp *)e;
-            se->sinit = toInitializer(se->sd);
+            se->useStaticInit = true;
         }
     }
     else if (ident == Id::_mangleof)
@@ -2183,7 +2181,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
             if (tb->ty == Tstruct && tb->needsNested())
             {
                 StructLiteralExp *se = (StructLiteralExp *)e;
-                se->sinit = toInitializer(se->sd);
+                se->useStaticInit = true;
             }
             goto Lreturn;
         }
@@ -7959,7 +7957,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
      * otherwise the literals expressed as code get excessively large.
      */
     if (size(loc) > Target::ptrsize * 4 && !needsNested())
-        structinit->sinit = toInitializer(sym);
+        structinit->useStaticInit = true;
 
     structinit->type = this;
     return structinit;

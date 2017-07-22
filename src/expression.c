@@ -49,7 +49,6 @@ bool walkPostorder(Expression *e, StoppableVisitor *v);
 TypeTuple *toArgTypes(Type *t);
 bool checkAccess(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember);
 bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t istart = 0);
-Symbol *toInitializer(AggregateDeclaration *ad);
 Type *getTypeInfoType(Type *t, Scope *sc);
 
 #define LOGSEMANTIC     0
@@ -4323,9 +4322,8 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
         elements = new Expressions();
     this->elements = elements;
     this->stype = stype;
-    this->sinit = NULL;
+    this->useStaticInit = false;
     this->sym = NULL;
-    this->soffset = 0;
     this->fillHoles = 1;
     this->ownedByCtfe = OWNEDcode;
     this->origin = this;
@@ -4482,11 +4480,11 @@ Expression *StructLiteralExp::getField(Type *type, unsigned offset)
                 e = e->copy();
                 e->type = type;
             }
-            if (sinit && e->op == TOKstructliteral &&
+            if (useStaticInit && e->op == TOKstructliteral &&
                 e->type->needsNested())
             {
                 StructLiteralExp *se = (StructLiteralExp *)e;
-                se->sinit = toInitializer(se->sd);
+                se->useStaticInit = true;
             }
         }
     }
@@ -8471,11 +8469,10 @@ Lagain:
                 // Bugzilla 14556: Set concrete type to avoid further redundant semantic().
                 sle->type = e1->type;
 
-                /* Copy from the initializer symbol for larger symbols,
-                 * otherwise the literals expressed as code get excessively large.
+                /* Constructor takes a mutable object, so don't use
+                 * the immutable initializer symbol.
                  */
-                if (sd->size(loc) > Target::ptrsize * 4 && !t1->needsNested())
-                    sle->sinit = toInitializer(sd);
+                sle->useStaticInit = false;
 
                 Expression *e = sle;
                 if (CtorDeclaration *cf = sd->ctor->isCtorDeclaration())

@@ -882,11 +882,6 @@ UnionExp Equal(TOK op, Type *type, Expression *e1, Expression *e2)
                     break;
             }
         }
-        if (cmp && es1->type->needsNested())
-        {
-            if ((es1->sinit != NULL) != (es2->sinit != NULL))
-                cmp = 0;
-        }
     }
     else if (e1->isConst() != 1 || e2->isConst() != 1)
     {

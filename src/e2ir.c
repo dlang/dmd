@@ -1613,19 +1613,10 @@ elem *toElem(Expression *e, IRState *irs)
                 {
                     StructLiteralExp *se = StructLiteralExp::create(ne->loc, sd, ne->arguments, t);
 
-                    Symbol *symSave = se->sym;
-                    size_t soffsetSave = se->soffset;
-                    int fillHolesSave = se->fillHoles;
-
                     se->sym = ev->EV.sp.Vsym;
-                    se->soffset = 0;
                     se->fillHoles = 0;
 
                     ez = toElem(se, irs);
-
-                    se->sym = symSave;
-                    se->soffset = soffsetSave;
-                    se->fillHoles = fillHolesSave;
                 }
                 //elem_print(ex);
                 //elem_print(ey);
@@ -2808,20 +2799,11 @@ elem *toElem(Expression *e, IRState *irs)
                 {
                     StructLiteralExp *se = (StructLiteralExp *)ae->e2;
 
-                    Symbol *symSave = se->sym;
-                    size_t soffsetSave = se->soffset;
-                    int fillHolesSave = se->fillHoles;
-
                     se->sym = ex->EV.sp.Vsym;
-                    se->soffset = 0;
                     se->fillHoles = (ae->op == TOKconstruct || ae->op == TOKblit) ? 1 : 0;
 
                     el_free(e1);
                     e = toElem(ae->e2, irs);
-
-                    se->sym = symSave;
-                    se->soffset = soffsetSave;
-                    se->fillHoles = fillHolesSave;
                     goto Lret;
                 }
 
@@ -3539,7 +3521,7 @@ elem *toElem(Expression *e, IRState *irs)
                 if (dve->e1->op == TOKstructliteral)
                 {
                     StructLiteralExp *sle = (StructLiteralExp *)dve->e1;
-                    sle->sinit = NULL;          // don't modify initializer
+                    sle->useStaticInit = false;          // don't modify initializer
                 }
 
                 ec = toElem(dve->e1, irs);
@@ -5272,9 +5254,9 @@ elem *toElem(Expression *e, IRState *irs)
         {
             //printf("[%s] StructLiteralExp::toElem() %s\n", sle->loc.toChars(), sle->toChars());
 
-            if (sle->sinit)
+            if (sle->useStaticInit)
             {
-                elem *e = el_var(sle->sinit);
+                elem *e = el_var(toInitializer(sle->sd));
                 e->ET = Type_toCtype(sle->sd->type);
                 el_setLoc(e, sle->loc);
 
@@ -5405,13 +5387,10 @@ elem *toElem(Expression *e, IRState *irs)
                     if (tybasic(stmp->Stype->Tty) == TYnptr)
                     {
                         e1 = el_var(stmp);
-                        e1->EV.sp.Voffset = sle->soffset;
                     }
                     else
                     {
                         e1 = el_ptr(stmp);
-                        if (sle->soffset)
-                            e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, sle->soffset));
                     }
                     e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v->offset));
 
@@ -5459,13 +5438,10 @@ elem *toElem(Expression *e, IRState *irs)
                 if (tybasic(stmp->Stype->Tty) == TYnptr)
                 {
                     e1 = el_var(stmp);
-                    e1->EV.sp.Voffset = sle->soffset;
                 }
                 else
                 {
                     e1 = el_ptr(stmp);
-                    if (sle->soffset)
-                        e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, sle->soffset));
                 }
                 e1 = setEthis(sle->loc, irs, e1, sle->sd);
 
