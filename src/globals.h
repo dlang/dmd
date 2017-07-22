@@ -113,6 +113,7 @@ struct Param
     bool doHdrGeneration;  // process embedded documentation comments
     const char *hdrdir;    // write 'header' file to docdir directory
     const char *hdrname;   // write 'header' file to docname
+    bool hdrStripPlainFunctions; // strip the bodies of plain (non-template) functions
 
     bool doJsonGeneration;    // write JSON file
     const char *jsonfilename; // write JSON file to jsonfilename
