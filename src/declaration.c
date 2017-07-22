@@ -1983,18 +1983,29 @@ bool VarDeclaration::isDataseg()
     printf("%llx, isModule: %p, isTemplateInstance: %p\n", storage_class & (STCstatic | STCconst), parent->isModule(), parent->isTemplateInstance());
     printf("parent = '%s'\n", parent->toChars());
 #endif
-    if (!canTakeAddressOf())
-        return false;
-    Dsymbol *parent = toParent();
-    if (!parent && !(storage_class & STCstatic))
+    if (isdataseg == 0) // the value is not cached
     {
-        error("forward referenced");
-        type = Type::terror;
-        return false;
+        isdataseg = 2; // The Variables does not go into the datasegment
+
+        if (!canTakeAddressOf())
+        {
+            return false;
+        }
+
+        Dsymbol *parent = toParent();
+        if (!parent && !(storage_class & STCstatic))
+        {
+            error("forward referenced");
+            type = Type::terror;
+        }
+        else if (storage_class & (STCstatic | STCextern | STCtls | STCgshared) ||
+                 parent->isModule() || parent->isTemplateInstance())
+        {
+            isdataseg = 1; // It is in the DataSegment
+        }
     }
-    return (storage_class & (STCstatic | STCextern | STCtls | STCgshared) ||
-           parent->isModule() ||
-           parent->isTemplateInstance());
+
+    return (isdataseg == 1);
 }
 
 /************************************
