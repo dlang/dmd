@@ -979,8 +979,9 @@ public:
 
 class DeleteExp : public UnaExp
 {
+    bool isRAII;
 public:
-    DeleteExp(Loc loc, Expression *e);
+    DeleteExp(Loc loc, Expression *e, bool isRAII);
     Expression *semantic(Scope *sc);
     Expression *toBoolean(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }

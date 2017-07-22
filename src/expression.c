@@ -9681,9 +9681,10 @@ Expression *NotExp::semantic(Scope *sc)
 
 /************************************************************/
 
-DeleteExp::DeleteExp(Loc loc, Expression *e)
+DeleteExp::DeleteExp(Loc loc, Expression *e, bool isRAII)
         : UnaExp(loc, TOKdelete, sizeof(DeleteExp), e)
 {
+    this->isRAII = isRAII;
 }
 
 Expression *DeleteExp::semantic(Scope *sc)
@@ -9781,6 +9782,14 @@ Expression *DeleteExp::semantic(Scope *sc)
         default:
             error("cannot delete type %s", e1->type->toChars());
             goto Lerr;
+    }
+
+    if (!sc->intypeof && sc->func &&
+        !isRAII &&
+        sc->func->setUnsafe())
+    {
+        error("%s is not @safe but is used in @safe function %s", toChars(), sc->func->toChars());
+        goto Lerr;
     }
 
     return this;
