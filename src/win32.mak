@@ -143,7 +143,7 @@ FRONTOBJ= enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	module.obj scope.obj cond.obj inline.obj opover.obj \
 	entity.obj class.obj mangle.obj attrib.obj impcnvtab.obj \
 	link.obj access.obj doc.obj macro.obj hdrgen.obj delegatize.obj \
-	interpret.obj ctfeexpr.obj traits.obj aliasthis.obj \
+	interpret.obj ctfeexpr.obj traits.obj utils.obj aliasthis.obj \
 	builtin.obj clone.obj arrayop.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj apply.obj sapply.obj \
 	sideeffect.obj intrange.obj canthrow.obj target.obj nspace.obj \
@@ -188,7 +188,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h statement.h doc.h doc.c \
 	macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
-	delegatize.c interpret.c ctfeexpr.c traits.c builtin.c \
+	delegatize.c interpret.c ctfeexpr.c traits.c utils.c builtin.c \
 	clone.c lib.h arrayop.c nspace.h nspace.c errors.h errors.c escape.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c sapply.c sideeffect.c ctfe.h \
@@ -746,6 +746,7 @@ struct.obj : $(TOTALH) identifier.h enum.h struct.c
 target.obj : $(TOTALH) target.c target.h
 tokens.obj : $(TOTALH) tokens.h tokens.c
 traits.obj : $(TOTALH) traits.c
+utils.obj : $(TOTALH) utils.c
 dsymbol.obj : $(TOTALH) identifier.h dsymbol.h dsymbol.c
 mtype.obj : $(TOTALH) mtype.h mtype.c
 utf.obj : utf.h utf.c

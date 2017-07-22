@@ -71,54 +71,8 @@ void parseConfFile(StringTable *environment, const char *path, size_t len, unsig
 
 void genObjFile(Module *m, bool multiobj);
 
-/** Normalize path by turning forward slashes into backslashes */
-const char * toWinPath(const char *src)
-{
-    if (src == NULL)
-        return NULL;
-
-    char *result = strdup(src);
-    char *p = result;
-    while (*p != '\0')
-    {
-        if (*p == '/')
-            *p = '\\';
-        p++;
-    }
-    return result;
-}
-
-void readFile(Loc loc, File *f)
-{
-    if (f->read())
-    {
-        error(loc, "Error reading file '%s'", f->name->toChars());
-        fatal();
-    }
-}
-
-void writeFile(Loc loc, File *f)
-{
-    if (f->write())
-    {
-        error(loc, "Error writing file '%s'", f->name->toChars());
-        fatal();
-    }
-}
-
-void ensurePathToNameExists(Loc loc, const char *name)
-{
-    const char *pt = FileName::path(name);
-    if (*pt)
-    {
-        if (FileName::ensurePathExists(pt))
-        {
-            error(loc, "cannot create directory %s", pt);
-            fatal();
-        }
-    }
-    FileName::free(pt);
-}
+// utils.c
+const char * toWinPath(const char *src);
 
 extern void backend_init();
 extern void backend_term();
@@ -1835,27 +1789,6 @@ void getenv_setargv(const char *envvalue, Strings *args)
         }
     }
 }
-
-void escapePath(OutBuffer *buf, const char *fname)
-{
-    while (1)
-    {
-        switch (*fname)
-        {
-            case 0:
-                return;
-            case '(':
-            case ')':
-            case '\\':
-                buf->writeByte('\\');
-            default:
-                buf->writeByte(*fname);
-                break;
-        }
-        fname++;
-    }
-}
-
 
 /***********************************
  * Parse command line arguments for -m32 or -m64
