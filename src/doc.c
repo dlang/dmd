@@ -607,7 +607,7 @@ static void emitAnchor(OutBuffer *buf, Dsymbol *s, Scope *sc)
     sc->prevAnchor = ident;
 
     buf->writestring("$(DDOC_ANCHOR ");
-    buf->writestring(ident->string);
+    buf->writestring(ident->toChars());
     // only append count once there's a duplicate
     if (*count != 1)
         buf->printf(".%u", *count);

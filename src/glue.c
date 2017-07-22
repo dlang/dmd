@@ -134,7 +134,7 @@ void obj_write_deferred(Library *library)
         else
         {
             idbuf.data = NULL;
-            Identifier *id = Identifier::create(idstr, TOKidentifier);
+            Identifier *id = Identifier::create(idstr);
 
             Module *md = Module::create(mname, id, 0, 0);
             md->members = Dsymbols_create();

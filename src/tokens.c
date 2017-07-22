@@ -357,9 +357,9 @@ void Token::initTokens()
     {
         //printf("keyword[%d] = '%s'\n",u, keywords[u].name);
         const char *s = keywords[nkeywords].name;
+        size_t len = strlen(s);
         TOK v = keywords[nkeywords].value;
-        Identifier *id = Identifier::idPool(s);
-        id->value = v;
+        Identifier *id = Identifier::idPool(s, len, v);
 
         //printf("tochars[%d] = '%s'\n",v, s);
         Token::tochars[v] = s;

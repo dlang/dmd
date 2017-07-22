@@ -40,8 +40,9 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag);
 Identifier *fixupLabelName(Scope *sc, Identifier *ident)
 {
     unsigned flags = (sc->flags & SCOPEcontract);
+    const char *id = ident->toChars();
     if (flags && flags != SCOPEinvariant &&
-        !(ident->string[0] == '_' && ident->string[1] == '_'))
+        !(id[0] == '_' && id[1] == '_'))
     {
         /* CTFE requires FuncDeclaration::labtab for the interpretation.
          * So fixing the label name inside in/out contracts is necessary

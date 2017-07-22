@@ -6736,7 +6736,7 @@ L1:
             error(loc, "'%s' is not defined, perhaps you need to import %s; ?", p, n);
         else
         {
-            Identifier *id = new Identifier(p, TOKidentifier);
+            Identifier *id = new Identifier(p);
             s = sc->search_correct(id);
             if (s)
                 error(loc, "undefined identifier '%s', did you mean %s '%s'?", p, s->kind(), s->toChars());

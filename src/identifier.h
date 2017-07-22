@@ -21,17 +21,20 @@
 
 class Identifier : public RootObject
 {
-public:
+private:
     int value;
     const char *string;
     size_t len;
 
-    Identifier(const char *string, int value);
-    static Identifier* create(const char *string, int value);
+public:
+    Identifier(const char *string, size_t length, int value);
+    Identifier(const char *string);
+    static Identifier* create(const char *string);
     bool equals(RootObject *o);
     int compare(RootObject *o);
     void print();
     const char *toChars();
+    int getValue() const;
     const char *toHChars2();
     int dyncast();
 
@@ -40,6 +43,7 @@ public:
     static Identifier *generateId(const char *prefix, size_t i);
     static Identifier *idPool(const char *s);
     static Identifier *idPool(const char *s, size_t len);
+    static Identifier *idPool(const char *s, size_t len, int value);
     static bool isValidIdentifier(const char *p);
     static Identifier *lookup(const char *s, size_t len);
     static void initTable();

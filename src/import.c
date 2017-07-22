@@ -295,7 +295,7 @@ void Import::semantic(Scope *sc)
     if (global.params.moduleDeps != NULL &&
         !(id == Id::object && sc->module->ident == Id::object) &&
         sc->module->ident != Id::entrypoint &&
-        strcmp(sc->module->ident->string, "__main") != 0)
+        strcmp(sc->module->ident->toChars(), "__main") != 0)
     {
         /* The grammar of the file is:
          *      ImportDeclaration

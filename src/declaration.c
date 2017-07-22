@@ -222,8 +222,9 @@ Type *TupleDeclaration::getType()
             //printf("type = %s\n", t->toChars());
 #if 0
             buf.printf("_%s_%d", ident->toChars(), i);
-            char *name = (char *)buf.extractData();
-            Identifier *id = new Identifier(name, TOKidentifier);
+            size_t len = buf.offset;
+            const char *name = (char *)buf.extractData();
+            Identifier *id = new Identifier(name, len);
             Parameter *arg = new Parameter(STCin, t, id, NULL);
 #else
             Parameter *arg = new Parameter(0, t, NULL, NULL);

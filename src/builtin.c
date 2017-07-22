@@ -31,7 +31,7 @@ StringTable builtins;
 
 void add_builtin(const char *mangle, builtin_fp fp)
 {
-    builtins.insert(mangle, strlen(mangle))->ptrvalue = (void *)fp;
+    builtins.insert(mangle, strlen(mangle), (void *)fp);
 }
 
 builtin_fp builtin_lookup(const char *mangle)

@@ -378,7 +378,7 @@ void Lexer::scan(Token *t)
 
                 Identifier *id = Identifier::idPool((char *)t->ptr, p - t->ptr);
                 t->ident = id;
-                t->value = (TOK) id->value;
+                t->value = (TOK) id->getValue();
                 anyToken = 1;
                 if (*t->ptr == '_')     // if special identifier token
                 {

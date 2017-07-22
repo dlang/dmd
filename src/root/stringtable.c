@@ -80,7 +80,7 @@ struct StringEntry
     uint32_t vptr;
 };
 
-uint32_t StringTable::allocValue(const char *s, size_t length)
+uint32_t StringTable::allocValue(const char *s, size_t length, void *ptrvalue)
 {
     const size_t nbytes = sizeof(StringValue) + length + 1;
 
@@ -92,7 +92,7 @@ uint32_t StringTable::allocValue(const char *s, size_t length)
     }
 
     StringValue *sv = (StringValue *)&pools[npools - 1][nfill];
-    sv->ptrvalue = NULL;
+    sv->ptrvalue = ptrvalue;
     sv->length = length;
     ::memcpy(sv->lstring(), s, length);
     sv->lstring()[length] = 0;
@@ -191,13 +191,13 @@ StringValue *StringTable::update(const char *s, size_t length)
             i = findSlot(hash, s, length);
         }
         table[i].hash = hash;
-        table[i].vptr = allocValue(s, length);
+        table[i].vptr = allocValue(s, length, NULL);
     }
     // printf("update %.*s %p\n", (int)length, s, table[i].value ?: NULL);
     return getValue(table[i].vptr);
 }
 
-StringValue *StringTable::insert(const char *s, size_t length)
+StringValue *StringTable::insert(const char *s, size_t length, void *ptrvalue)
 {
     const hash_t hash = calcHash(s, length);
     size_t i = findSlot(hash, s, length);
@@ -209,7 +209,7 @@ StringValue *StringTable::insert(const char *s, size_t length)
         i = findSlot(hash, s, length);
     }
     table[i].hash = hash;
-    table[i].vptr = allocValue(s, length);
+    table[i].vptr = allocValue(s, length, ptrvalue);
     // printf("insert %.*s %p\n", (int)length, s, table[i].value ?: NULL);
     return getValue(table[i].vptr);
 }

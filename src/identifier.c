@@ -20,17 +20,25 @@
 #include "tokens.h"
 #include "utf.h"
 
-Identifier::Identifier(const char *string, int value)
+Identifier::Identifier(const char *string, size_t length, int value)
 {
     //printf("Identifier('%s', %d)\n", string, value);
     this->string = string;
     this->value = value;
+    this->len = length;
+}
+
+Identifier::Identifier(const char *string)
+{
+    //printf("Identifier('%s')\n", string);
+    this->string = string;
+    this->value = TOKidentifier;
     this->len = strlen(string);
 }
 
-Identifier *Identifier::create(const char *string, int value)
+Identifier *Identifier::create(const char *string)
 {
-    return new Identifier(string, value);
+    return new Identifier(string);
 }
 
 bool Identifier::equals(RootObject *o)
@@ -46,6 +54,11 @@ int Identifier::compare(RootObject *o)
 const char *Identifier::toChars()
 {
     return (char *)string;
+}
+
+int Identifier::getValue() const
+{
+    return value;
 }
 
 const char *Identifier::toHChars2()
@@ -119,9 +132,18 @@ Identifier *Identifier::idPool(const char *s, size_t len)
     Identifier *id = (Identifier *) sv->ptrvalue;
     if (!id)
     {
-        id = new Identifier(sv->toDchars(), TOKidentifier);
+        id = new Identifier(sv->toDchars(), len, TOKidentifier);
         sv->ptrvalue = (char *)id;
     }
+    return id;
+}
+
+Identifier *Identifier::idPool(const char *s, size_t len, int value)
+{
+    StringValue *sv = stringtable.insert(s, len, NULL);
+    assert(sv);
+    Identifier *id = new Identifier(sv->toDchars(), len, value);
+    sv->ptrvalue = (char *)id;
     return id;
 }
 
