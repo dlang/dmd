@@ -563,6 +563,9 @@ AnonDeclaration::AnonDeclaration(Loc loc, bool isunion, Dsymbols *decl)
     this->alignment = 0;
     this->isunion = isunion;
     this->sem = 0;
+    this->anonoffset = 0;
+    this->anonstructsize = 0;
+    this->anonalignsize = 0;
 }
 
 Dsymbol *AnonDeclaration::syntaxCopy(Dsymbol *s)
@@ -633,8 +636,8 @@ void AnonDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset
                 offset = 0;
         }
 
-        unsigned anonstructsize = ad->structsize;
-        unsigned anonalignsize  = ad->alignsize;
+        anonstructsize = ad->structsize;
+        anonalignsize  = ad->alignsize;
         ad->structsize = savestructsize;
         ad->alignsize  = savealignsize;
 
@@ -659,7 +662,7 @@ void AnonDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset
         /* Given the anon 'member's size and alignment,
          * go ahead and place it.
          */
-        unsigned anonoffset = AggregateDeclaration::placeField(
+        anonoffset = AggregateDeclaration::placeField(
                 poffset,
                 anonstructsize, anonalignsize, alignment,
                 &ad->structsize, &ad->alignsize,
