@@ -190,6 +190,24 @@ void AggregateDeclaration::setScope(Scope *sc)
     ScopeDsymbol::setScope(sc);
 }
 
+/***************************************
+ * Create a new scope from sc.
+ * semantic, semantic2 and semantic3 will use this for aggregate members.
+ */
+Scope *AggregateDeclaration::newScope(Scope *sc)
+{
+    Scope *sc2 = sc->push(this);
+    sc2->stc &= STCsafe | STCtrusted | STCsystem;
+    sc2->parent = this;
+    if (isUnionDeclaration())
+        sc2->inunion = 1;
+    sc2->protection = Prot(PROTpublic);
+    sc2->explicitProtection = 0;
+    sc2->aligndecl = NULL;
+    sc2->userAttribDecl = NULL;
+    return sc2;
+}
+
 void AggregateDeclaration::semantic2(Scope *sc)
 {
     //printf("AggregateDeclaration::semantic2(%s) type = %s, errors = %d\n", toChars(), type->toChars(), errors);
@@ -204,15 +222,7 @@ void AggregateDeclaration::semantic2(Scope *sc)
         return;
     }
 
-    Scope *sc2 = sc->push(this);
-    sc2->stc &= STCsafe | STCtrusted | STCsystem;
-    sc2->parent = this;
-    //if (isUnionDeclaration())     // TODO
-    //    sc2->inunion = 1;
-    sc2->protection = Prot(PROTpublic);
-    sc2->explicitProtection = 0;
-    sc2->aligndecl = NULL;
-    sc2->userAttribDecl = NULL;
+    Scope *sc2 = newScope(sc);
 
     for (size_t i = 0; i < members->dim; i++)
     {
@@ -238,15 +248,7 @@ void AggregateDeclaration::semantic3(Scope *sc)
         return;
     }
 
-    Scope *sc2 = sc->push(this);
-    sc2->stc &= STCsafe | STCtrusted | STCsystem;
-    sc2->parent = this;
-    if (isUnionDeclaration())
-        sc2->inunion = 1;
-    sc2->protection = Prot(PROTpublic);
-    sc2->explicitProtection = 0;
-    sc2->aligndecl = NULL;
-    sc2->userAttribDecl = NULL;
+    Scope *sc2 = newScope(sc);
 
     for (size_t i = 0; i < members->dim; i++)
     {
@@ -935,15 +937,7 @@ void StructDeclaration::semantic(Scope *sc)
         }
     }
 
-    Scope *sc2 = sc->push(this);
-    sc2->stc &= STCsafe | STCtrusted | STCsystem;
-    sc2->parent = this;
-    if (isUnionDeclaration())
-        sc2->inunion = 1;
-    sc2->protection = Prot(PROTpublic);
-    sc2->explicitProtection = 0;
-    sc2->aligndecl = NULL;
-    sc2->userAttribDecl = NULL;
+    Scope *sc2 = newScope(sc);
 
     if (sizeok == SIZEOKdone)
         goto LafterSizeok;

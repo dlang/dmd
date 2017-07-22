@@ -257,6 +257,24 @@ Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
     return ScopeDsymbol::syntaxCopy(cd);
 }
 
+Scope *ClassDeclaration::newScope(Scope *sc)
+{
+    Scope *sc2 = AggregateDeclaration::newScope(sc);
+    if (isCOMclass())
+    {
+        if (global.params.isWindows)
+            sc2->linkage = LINKwindows;
+        else
+        {
+            /* This enables us to use COM objects under Linux and
+             * work with things like XPCOM
+             */
+            sc2->linkage = LINKc;
+        }
+    }
+    return sc2;
+}
+
 void ClassDeclaration::semantic(Scope *sc)
 {
     //printf("ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
@@ -573,21 +591,7 @@ Lancestorsdone:
             s->addMember(sc, this);
         }
 
-        Scope *sc2 = sc->push(this);
-        sc2->stc &= STCsafe | STCtrusted | STCsystem;
-        sc2->parent = this;
-        sc2->inunion = 0;
-        if (isCOMclass())
-        {
-            if (global.params.isWindows)
-                sc2->linkage = LINKwindows;
-            else
-                sc2->linkage = LINKc;
-        }
-        sc2->protection = Prot(PROTpublic);
-        sc2->explicitProtection = 0;
-        sc2->aligndecl = NULL;
-        sc2->userAttribDecl = NULL;
+        Scope *sc2 = newScope(sc);
 
         /* Set scope so if there are forward references, we still might be able to
          * resolve individual members like enums.
@@ -680,28 +684,7 @@ Lancestorsdone:
     if (sizeok != SIZEOKdone)
         sizeok = SIZEOKnone;
 
-    Scope *sc2 = sc->push(this);
-    //sc2->stc &= ~(STCfinal | STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STC_TYPECTOR | STCtls | STCgshared);
-    //sc2->stc |= storage_class & STC_TYPECTOR;
-    sc2->stc &= STCsafe | STCtrusted | STCsystem;
-    sc2->parent = this;
-    sc2->inunion = 0;
-    if (isCOMclass())
-    {
-        if (global.params.isWindows)
-            sc2->linkage = LINKwindows;
-        else
-        {
-            /* This enables us to use COM objects under Linux and
-             * work with things like XPCOM
-             */
-            sc2->linkage = LINKc;
-        }
-    }
-    sc2->protection = Prot(PROTpublic);
-    sc2->explicitProtection = 0;
-    sc2->aligndecl = NULL;
-    sc2->userAttribDecl = NULL;
+    Scope *sc2 = newScope(sc);
 
     for (size_t i = 0; i < members->dim; i++)
     {
@@ -1366,6 +1349,18 @@ Dsymbol *InterfaceDeclaration::syntaxCopy(Dsymbol *s)
     return ClassDeclaration::syntaxCopy(id);
 }
 
+Scope *InterfaceDeclaration::newScope(Scope *sc)
+{
+    Scope *sc2 = ClassDeclaration::newScope(sc);
+    if (com)
+        sc2->linkage = LINKwindows;
+    else if (cpp)
+        sc2->linkage = LINKcpp;
+    else if (objc.isInterface())
+        sc2->linkage = LINKobjc;
+    return sc2;
+}
+
 void InterfaceDeclaration::semantic(Scope *sc)
 {
     //printf("InterfaceDeclaration::semantic(%s), type = %p\n", toChars(), type);
@@ -1622,20 +1617,7 @@ Lancestorsdone:
         s->addMember(sc, this);
     }
 
-    Scope *sc2 = sc->push(this);
-    sc2->stc &= STCsafe | STCtrusted | STCsystem;
-    sc2->parent = this;
-    sc2->inunion = 0;
-    if (com)
-        sc2->linkage = LINKwindows;
-    else if (cpp)
-        sc2->linkage = LINKcpp;
-    else if (this->objc.isInterface())
-        sc2->linkage = LINKobjc;
-    sc2->protection = Prot(PROTpublic);
-    sc2->explicitProtection = 0;
-    sc2->aligndecl = NULL;
-    sc2->userAttribDecl = NULL;
+    Scope *sc2 = newScope(sc);
 
     finalizeSize(sc2);
 
