@@ -268,15 +268,15 @@ void Import::semantic(Scope *sc)
             {
                 // import a.b.c.d;
                 Package *p = pkg; // a
-                scopesym->addAccessiblePackage(p);
+                scopesym->addAccessiblePackage(p, protection);
                 for (size_t i = 1; i < packages->dim; i++) // [b, c]
                 {
                     Identifier *id = (*packages)[i];
                     p = (Package *) p->symtab->lookup(id);
-                    scopesym->addAccessiblePackage(p);
+                    scopesym->addAccessiblePackage(p, protection);
                 }
             }
-            scopesym->addAccessiblePackage(mod); // d
+            scopesym->addAccessiblePackage(mod, protection); // d
         }
 
         mod->semantic(NULL);

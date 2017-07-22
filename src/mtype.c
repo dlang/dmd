@@ -7596,7 +7596,7 @@ Dsymbol *TypeStruct::toDsymbol(Scope *sc)
 static Dsymbol *searchSymStruct(Dsymbol *sym, Expression *e, Identifier *ident)
 {
     int flags = 0;
-    Dsymbol *sold;
+    Dsymbol *sold = NULL;
     if (global.params.bug10378 || global.params.check10378)
     {
         sold = sym->search(e->loc, ident, flags);
@@ -8192,7 +8192,7 @@ Dsymbol *TypeClass::toDsymbol(Scope *sc)
 static Dsymbol *searchSymClass(Dsymbol *sym, Expression *e, Identifier *ident)
 {
     int flags = 0;
-    Dsymbol *sold;
+    Dsymbol *sold = NULL;
     if (global.params.bug10378 || global.params.check10378)
     {
         sold = sym->search(e->loc, ident, flags | IgnoreSymbolVisibility);

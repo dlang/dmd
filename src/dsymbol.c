@@ -1214,18 +1214,30 @@ static void bitArrayLength(BitArray *array, size_t len)
     array->len = len;
 }
 
-void ScopeDsymbol::addAccessiblePackage(Package *p)
+void ScopeDsymbol::addAccessiblePackage(Package *p, Prot protection)
 {
-    BitArray *pary = &accessiblePackages;
+    BitArray *pary = protection.kind == PROTprivate ? &privateAccessiblePackages : &accessiblePackages;
     if (pary->len <= p->tag)
         bitArrayLength(pary, p->tag + 1);
     bitArraySet(pary, p->tag);
 }
 
-bool ScopeDsymbol::isPackageAccessible(Package *p)
+bool ScopeDsymbol::isPackageAccessible(Package *p, Prot protection, int flags)
 {
-    if (p->tag < accessiblePackages.len && bitArrayGet(&accessiblePackages, p->tag))
+    if ((p->tag < accessiblePackages.len && bitArrayGet(&accessiblePackages, p->tag)) ||
+        (protection.kind == PROTprivate && p->tag < privateAccessiblePackages.len && bitArrayGet(&privateAccessiblePackages, p->tag)))
         return true;
+    if (importedScopes)
+    {
+        for (size_t i = 0; i < importedScopes->dim; i++)
+        {
+            // only search visible scopes && imported modules should ignore private imports
+            Dsymbol *ss = (*importedScopes)[i];
+            if (protection.kind <= prots[i] &&
+                ss->isScopeDsymbol()->isPackageAccessible(p, protection, IgnorePrivateImports))
+                return true;
+        }
+    }
     return false;
 }
 

@@ -919,6 +919,18 @@ Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
     return s;
 }
 
+bool Module::isPackageAccessible(Package *p, Prot protection, int flags)
+{
+    if (insearch) // don't follow import cycles
+        return false;
+    if (flags & IgnorePrivateImports)
+        protection = Prot(PROTpublic); // only consider public imports
+    insearch = true;
+    bool r = ScopeDsymbol::isPackageAccessible(p, protection);
+    insearch = false;
+    return r;
+}
+
 Dsymbol *Module::symtabInsert(Dsymbol *s)
 {
     searchCacheIdent = NULL;       // symbol is inserted, so invalidate cache
