@@ -424,11 +424,13 @@ public:
     CaseStatements *cases;         // array of CaseStatement's
     int hasNoDefault;           // !=0 if no default statement
     int hasVars;                // !=0 if has variable case values
+    VarDeclaration *lastVar;
 
     SwitchStatement(Loc loc, Expression *c, Statement *b, bool isFinal);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     bool hasBreak();
+    bool checkLabel();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -440,6 +442,7 @@ public:
     Statement *statement;
 
     int index;          // which case it is (since we sort this)
+    VarDeclaration *lastVar;
 
     CaseStatement(Loc loc, Expression *exp, Statement *s);
     Statement *syntaxCopy();
@@ -469,6 +472,7 @@ class DefaultStatement : public Statement
 {
 public:
     Statement *statement;
+    VarDeclaration *lastVar;
 
     DefaultStatement(Loc loc, Statement *s);
     Statement *syntaxCopy();

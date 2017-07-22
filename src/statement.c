@@ -284,7 +284,7 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
 
         void visit(CompoundStatement *cs)
         {
-            //printf("CompoundStatement::blockExit(%p) %d\n", cs, cs->statements->dim);
+            //printf("CompoundStatement::blockExit(%p) %d result = x%X\n", cs, cs->statements->dim, result);
             result = BEfallthru;
             Statement *slast = NULL;
             for (size_t i = 0; i < cs->statements->dim; i++)
@@ -3350,6 +3350,8 @@ Statement *SwitchStatement::semantic(Scope *sc)
 
     bool needswitcherror = false;
 
+    lastVar = sc->lastVar;
+
     sc = sc->push();
     sc->sbreak = this;
     sc->sw = this;
@@ -3458,6 +3460,9 @@ Statement *SwitchStatement::semantic(Scope *sc)
         _body = cs;
     }
 
+    if (checkLabel())
+        goto Lerror;
+
     sc->pop();
     return this;
 
@@ -3469,6 +3474,46 @@ Statement *SwitchStatement::semantic(Scope *sc)
 bool SwitchStatement::hasBreak()
 {
     return true;
+}
+
+static bool checkVar(SwitchStatement *s, VarDeclaration *vd)
+{
+    if (!vd || vd->isDataseg() || (vd->storage_class & STCmanifest))
+        return false;
+
+    VarDeclaration *last = s->lastVar;
+    while (last && last != vd)
+        last = last->lastVar;
+    if (last == vd)
+    {
+        // All good, the label's scope has no variables
+    }
+    else if (vd->ident == Id::withSym)
+    {
+        s->error("'switch' skips declaration of 'with' temporary at %s", vd->loc.toChars());
+        return true;
+    }
+    else
+    {
+        s->error("'switch' skips declaration of variable %s at %s", vd->toPrettyChars(), vd->loc.toChars());
+        return true;
+    }
+
+    return false;
+}
+
+bool SwitchStatement::checkLabel()
+{
+    if (sdefault && checkVar(this, sdefault->lastVar))
+        return true;
+
+    for (size_t i = 0; i < cases->dim; i++)
+    {
+        CaseStatement *scase = (*cases)[i];
+        if (scase && checkVar(this, scase->lastVar))
+            return true;
+    }
+    return false;
 }
 
 /******************************** CaseStatement ***************************/
@@ -3581,6 +3626,8 @@ Statement *CaseStatement::semantic(Scope *sc)
         return statement;
     if (errors || exp->op == TOKerror)
         return new ErrorStatement();
+
+    lastVar = sc->lastVar;
     return this;
 }
 
@@ -3743,6 +3790,8 @@ Statement *DefaultStatement::semantic(Scope *sc)
     statement = statement->semantic(sc);
     if (errors || statement->isErrorStatement())
         return new ErrorStatement();
+
+    lastVar = sc->lastVar;
     return this;
 }
 
