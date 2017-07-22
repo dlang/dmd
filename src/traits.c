@@ -767,9 +767,10 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
 
             /* Take any errors as meaning it wasn't found
              */
-            Scope *sc2 = sc->push();
-            ex = ex->trySemantic(sc2);
-            sc2->pop();
+            Scope *scx = sc->push();
+            scx->flags |= SCOPEignoresymbolvisibility;
+            ex = ex->trySemantic(scx);
+            scx->pop();
             if (!ex)
                 goto Lfalse;
             else
@@ -777,7 +778,10 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         }
         else if (e->ident == Id::getMember)
         {
-            ex = ex->semantic(sc);
+            Scope *scx = sc->push();
+            scx->flags |= SCOPEignoresymbolvisibility;
+            ex = ex->semantic(scx);
+            scx->pop();
             return ex;
         }
         else if (e->ident == Id::getVirtualFunctions ||
@@ -786,7 +790,9 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         {
             unsigned errors = global.errors;
             Expression *eorig = ex;
-            ex = ex->semantic(sc);
+            Scope *scx = sc->push();
+            scx->flags |= SCOPEignoresymbolvisibility;
+            ex = ex->semantic(scx);
             if (errors < global.errors)
                 e->error("%s cannot be resolved", eorig->toChars());
 
@@ -818,8 +824,9 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             p.ident = e->ident;
             overloadApply(f, &p, &fptraits);
 
-            TupleExp *tup = new TupleExp(e->loc, exps);
-            return tup->semantic(sc);
+            ex = (new TupleExp(e->loc, exps))->semantic(scx);
+            scx->pop();
+            return ex;
         }
         else
             assert(0);

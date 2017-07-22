@@ -155,7 +155,8 @@ Scope *Scope::push()
     s->slabel = NULL;
     s->nofree = 0;
     s->fieldinit = saveFieldInit();
-    s->flags = (flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe | SCOPEcompile | SCOPEconstraint));
+    s->flags = (flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe | SCOPEcompile | SCOPEconstraint |
+                         SCOPEnoaccesscheck | SCOPEignoresymbolvisibility));
     s->lastdc = NULL;
 
     assert(this != s);
@@ -476,7 +477,10 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flag
         return NULL;
     }
 
-    Dsymbol *sold;
+    if (this->flags & SCOPEignoresymbolvisibility)
+        flags |= IgnoreSymbolVisibility;
+
+    Dsymbol *sold = NULL;
     if (global.params.bug10378 || global.params.check10378)
     {
         sold = searchScopes(this, loc, ident, pscopesym, flags | IgnoreSymbolVisibility);
@@ -510,7 +514,7 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flag
          * checked by the compiler remain usable.  Once the deprecation is over,
          * this should be moved to search_correct instead.
          */
-        if (!s)
+        if (!s && !(flags & IgnoreSymbolVisibility))
         {
             s = searchScopes(this, loc, ident, pscopesym, flags | SearchLocalsOnly | IgnoreSymbolVisibility);
             if (!s)

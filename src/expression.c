@@ -722,7 +722,10 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
     int flags = 0;
     Dsymbol *s = NULL;
 
-    Dsymbol *sold;
+    if (sc->flags & SCOPEignoresymbolvisibility)
+        flags |= IgnoreSymbolVisibility;
+
+    Dsymbol *sold = NULL;
     if (global.params.bug10378 || global.params.check10378)
     {
         sold = searchScopes(sc, loc, ident, flags | IgnoreSymbolVisibility);
@@ -744,7 +747,7 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
          * checked by the compiler remain usable.  Once the deprecation is over,
          * this should be moved to search_correct instead.
          */
-        if (!s)
+        if (!s && !(flags & IgnoreSymbolVisibility))
         {
             s = searchScopes(sc, loc, ident, flags | SearchLocalsOnly | IgnoreSymbolVisibility);
             if (!s)
@@ -7638,17 +7641,21 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
     if (eright->op == TOKscope)        // also used for template alias's
     {
         ScopeExp *ie = (ScopeExp *)eright;
+        int flags = SearchLocalsOnly;
 
         /* Disable access to another module's private imports.
          * The check for 'is sds our current module' is because
          * the current module should have access to its own imports.
          */
-        Dsymbol *s = ie->sds->search(loc, ident,
-            (ie->sds->isModule() && ie->sds != sc->module) ? IgnorePrivateImports | SearchLocalsOnly : SearchLocalsOnly);
+        if (ie->sds->isModule() && ie->sds != sc->module)
+            flags |= IgnorePrivateImports;
+        if (sc->flags & SCOPEignoresymbolvisibility)
+            flags |= IgnoreSymbolVisibility;
+        Dsymbol *s = ie->sds->search(loc, ident, flags);
         /* Check for visibility before resolving aliases because public
          * aliases to private symbols are public.
          */
-        if (s && !symbolIsVisible(sc->module, s))
+        if (s && !(sc->flags & SCOPEignoresymbolvisibility) && !symbolIsVisible(sc->module, s))
         {
             if (s->isDeclaration())
                 ::error(loc, "%s is not visible from module %s", s->toPrettyChars(), sc->module->toChars());
