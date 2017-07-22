@@ -161,6 +161,21 @@ bool Nspace::oneMember(Dsymbol **ps, Identifier *ident)
     return Dsymbol::oneMember(ps, ident);
 }
 
+Dsymbol *Nspace::search(Loc loc, Identifier *ident, int flags)
+{
+    //printf("%s::Nspace::search('%s')\n", toChars(), ident->toChars());
+    if (_scope && !symtab)
+        semantic(_scope);
+
+    if (!members || !symtab) // opaque or semantic() is not yet called
+    {
+        error("is forward referenced when looking for '%s'", ident->toChars());
+        return NULL;
+    }
+
+    return ScopeDsymbol::search(loc, ident, flags);
+}
+
 int Nspace::apply(Dsymbol_apply_ft_t fp, void *param)
 {
     if (members)
