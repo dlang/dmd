@@ -7124,9 +7124,18 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
          */
         Scope *sc2 = sc->push();
         sc2->intypeof = 1;
-        exp = exp->semantic(sc2);
-        exp = resolvePropertiesOnly(sc2, exp);
+        Expression *exp2 = exp->semantic(sc2);
+        exp2 = resolvePropertiesOnly(sc2, exp2);
         sc2->pop();
+
+        if (exp2->op == TOKerror)
+        {
+            if (!global.gag)
+                exp = exp2;
+            goto Lerr;
+        }
+        exp = exp2;
+
         if (exp->op == TOKtype ||
             exp->op == TOKscope)
         {
