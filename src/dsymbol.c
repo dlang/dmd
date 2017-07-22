@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <limits.h>
 
 #include "rmem.h"
 #include "speller.h"
@@ -1179,6 +1180,49 @@ void ScopeDsymbol::importScope(Dsymbol *s, Prot protection)
         prots = (PROTKIND *)mem.xrealloc(prots, importedScopes->dim * sizeof(prots[0]));
         prots[importedScopes->dim - 1] = protection.kind;
     }
+}
+
+static void bitArraySet(BitArray *array, size_t idx)
+{
+    array->ptr[idx / (sizeof(size_t) * CHAR_BIT)] |= 1 << (idx & (sizeof(size_t) * CHAR_BIT - 1));
+}
+
+static bool bitArrayGet(BitArray *array, size_t idx)
+{
+    return (array->ptr[idx / (sizeof(size_t) * CHAR_BIT)] & (1 << (idx & (sizeof(size_t) * CHAR_BIT - 1)))) != 0;
+}
+
+static void bitArrayLength(BitArray *array, size_t len)
+{
+    size_t obytes = (array->len + (sizeof(size_t) - 1)) / sizeof(size_t);
+    size_t nbytes = (len + (sizeof(size_t) - 1)) / sizeof(size_t);
+
+    if (obytes < nbytes)
+    {
+        if (!array->ptr)
+            array->ptr = (size_t *)mem.xmalloc(nbytes * sizeof(size_t));
+        else
+            array->ptr = (size_t *)mem.xrealloc(array->ptr, nbytes * sizeof(size_t));
+
+        for (size_t i = obytes; i < nbytes; i++)
+            array->ptr[i] = 0;
+    }
+    array->len = len;
+}
+
+void ScopeDsymbol::addAccessiblePackage(Package *p)
+{
+    BitArray *pary = &accessiblePackages;
+    if (pary->len <= p->tag)
+        bitArrayLength(pary, p->tag + 1);
+    bitArraySet(pary, p->tag);
+}
+
+bool ScopeDsymbol::isPackageAccessible(Package *p)
+{
+    if (p->tag < accessiblePackages.len && bitArrayGet(&accessiblePackages, p->tag))
+        return true;
+    return false;
 }
 
 bool ScopeDsymbol::isforwardRef()

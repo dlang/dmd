@@ -143,6 +143,8 @@ void Import::load(Scope *sc)
                     {
                         // mod is a package.d, or a normal module which conflicts with the package name.
                         assert(mod->isPackageFile == (p->isPkgMod == PKGmodule));
+                        if (mod->isPackageFile)
+                            mod->tag = p->tag; // reuse the same package tag
                     }
                 }
                 else
@@ -238,18 +240,42 @@ void Import::semantic(Scope *sc)
         //printf("%s imports %s\n", sc->module->toChars(), mod->toChars());
         sc->module->aimports.push(mod);
 
-        if (!isstatic && !aliasId && !names.dim)
+        if (!aliasId && !names.dim) // neither a selective nor a renamed import
         {
+            ScopeDsymbol *scopesym = NULL;
             if (sc->explicitProtection)
                 protection = sc->protection.kind;
             for (Scope *scd = sc; scd; scd = scd->enclosing)
             {
-                if (scd->scopesym)
+                if (!scd->scopesym)
+                    continue;
+                scopesym = scd->scopesym;
+                break;
+            }
+
+            if (!isstatic)
+            {
+                if (sc->explicitProtection)
+                    protection = sc->protection.kind;
+                scopesym->importScope(mod, Prot(protection));
+            }
+
+            // Mark the imported packages as accessible from the current
+            // scope. This access check is necessary when using FQN b/c
+            // we're using a single global package tree. See Bugzilla 313.
+            if (packages)
+            {
+                // import a.b.c.d;
+                Package *p = pkg; // a
+                scopesym->addAccessiblePackage(p);
+                for (size_t i = 1; i < packages->dim; i++) // [b, c]
                 {
-                    scd->scopesym->importScope(mod, Prot(protection));
-                    break;
+                    Identifier *id = (*packages)[i];
+                    p = (Package *) p->symtab->lookup(id);
+                    scopesym->addAccessiblePackage(p);
                 }
             }
+            scopesym->addAccessiblePackage(mod); // d
         }
 
         mod->semantic(NULL);

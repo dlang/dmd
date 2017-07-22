@@ -48,6 +48,7 @@ Expression *expandVar(int result, VarDeclaration *v);
 bool walkPostorder(Expression *e, StoppableVisitor *v);
 TypeTuple *toArgTypes(Type *t);
 bool checkAccess(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember);
+bool checkAccess(Loc loc, Scope *sc, Package *p);
 bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t istart = 0);
 bool checkNestedRef(Dsymbol *s, Dsymbol *p);
 Type *getTypeInfoType(Type *t, Scope *sc);
@@ -7634,6 +7635,8 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
              */
             if (Declaration *d = s->isDeclaration())
                 checkAccess(loc, sc, NULL, d);
+            if (Package *p = s->isPackage())
+                checkAccess(loc, sc, p);
 
             s = s->toAlias();
             checkDeprecated(sc, s);

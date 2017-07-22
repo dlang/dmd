@@ -300,6 +300,8 @@ private:
     Dsymbols *importedScopes;   // imported Dsymbol's
     PROTKIND *prots;            // array of PROTKIND, one for each import
 
+    BitArray accessiblePackages;
+
 public:
     ScopeDsymbol();
     ScopeDsymbol(Identifier *id);
@@ -307,6 +309,8 @@ public:
     Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
     OverloadSet *mergeOverloadSet(Identifier *ident, OverloadSet *os, Dsymbol *s);
     void importScope(Dsymbol *s, Prot protection);
+    void addAccessiblePackage(Package *p);
+    bool isPackageAccessible(Package *p);
     bool isforwardRef();
     static void multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2);
     const char *kind();

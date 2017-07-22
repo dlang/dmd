@@ -638,6 +638,7 @@ Module *Module::parse()
         p->parent = this->parent;
         p->isPkgMod = PKGmodule;
         p->mod = this;
+        p->tag = this->tag; // reuse the same package tag
         p->symtab = new DsymbolTable();
         s = p;
     }
@@ -672,6 +673,7 @@ Module *Module::parse()
                  */
                 pkg->isPkgMod = PKGmodule;
                 pkg->mod = this;
+                pkg->tag = this->tag; // reuse the same package tag
             }
             else
                 error(md ? md->loc : loc, "from file %s conflicts with package name %s",
@@ -1171,6 +1173,8 @@ Package::Package(Identifier *ident)
 {
     this->isPkgMod = PKGunknown;
     this->mod = NULL;
+    static unsigned packageTag = 0;
+    this->tag = packageTag++;
 }
 
 
