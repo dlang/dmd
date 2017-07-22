@@ -16,6 +16,8 @@
 #pragma once
 #endif
 
+#include <stdint.h>
+
 #include "longdouble.h"
 #include "outbuffer.h"
 #include "filename.h"
