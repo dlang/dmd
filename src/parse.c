@@ -1340,7 +1340,10 @@ LINK Parser::parseLinkage(Identifiers **pidents, CPPMANGLE *pcppmangle)
                                 }
                             }
                             else
+                            {
                                 error("identifier expected for C++ namespace");
+                                idents = NULL;  // error occurred, invalidate list of elements.
+                            }
                             break;
                         }
                     }
