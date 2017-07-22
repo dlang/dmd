@@ -36,6 +36,8 @@ Expression *addInvariant(Loc loc, Scope *sc, AggregateDeclaration *ad, VarDeclar
 bool checkEscape(Scope *sc, Expression *e, bool gag);
 bool checkEscapeRef(Scope *sc, Expression *e, bool gag);
 bool checkNestedRef(Dsymbol *s, Dsymbol *p);
+Statement *semantic(Statement *s, Scope *sc);
+void semantic(Catch *c, Scope *sc);
 
 void genCmain(Scope *sc);
 RET retStyle(TypeFunction *tf);
@@ -261,7 +263,7 @@ public:
             Catches *catches = new Catches();
             Catch *ctch = new Catch(Loc(), NULL, id, handler);
             ctch->internalCatch = true;
-            ctch->semantic(sc);     // Run semantic to resolve identifier '__o'
+            ::semantic(ctch, sc);     // Run semantic to resolve identifier '__o'
             catches->push(ctch);
 
             Statement *s2 = new TryCatchStatement(Loc(), s->_body, catches);
@@ -1602,7 +1604,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             bool inferRef = (f->isref && (storage_class & STCauto));
 
-            fbody = fbody->semantic(sc2);
+            fbody = ::semantic(fbody, sc2);
             if (!fbody)
                 fbody = new CompoundStatement(Loc(), new Statements());
 
@@ -1756,7 +1758,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 if (blockexit & BEfallthru)
                 {
                     Statement *s = new ReturnStatement(loc, NULL);
-                    s = s->semantic(sc2);
+                    s = ::semantic(s, sc2);
                     fbody = new CompoundStatement(loc, fbody, s);
                 }
             }
@@ -1904,7 +1906,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             // BUG: need to treat parameters as const
             // BUG: need to disallow returns and throws
             // BUG: verify that all in and ref parameters are read
-            freq = freq->semantic(sc2);
+            freq = ::semantic(freq, sc2);
 
             sc2 = sc2->pop();
 
@@ -1933,7 +1935,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 Parameter *p = (*((TypeFunction *)fdensure->type)->parameters)[0];
                 p->type = f->next;
             }
-            fens = fens->semantic(sc2);
+            fens = ::semantic(fens, sc2);
 
             sc2 = sc2->pop();
 
@@ -2048,7 +2050,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     if (v->needsScopeDtor())
                     {
                         Statement *s = new ExpStatement(Loc(), v->edtor);
-                        s = s->semantic(sc2);
+                        s = ::semantic(s, sc2);
                         unsigned int nothrowErrors = global.errors;
                         bool isnothrow = f->isnothrow & !(flags & FUNCFLAGnothrowInprocess);
                         int blockexit = s->blockExit(this, isnothrow);
@@ -2097,7 +2099,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         }
                         sbody = new PeelStatement(sbody);       // don't redo semantic()
                         sbody = new SynchronizedStatement(loc, vsync, sbody);
-                        sbody = sbody->semantic(sc2);
+                        sbody = ::semantic(sbody, sc2);
                     }
                 }
                 else

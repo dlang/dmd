@@ -164,7 +164,7 @@ DMD_OBJS = \
 	parse.o scope.o statement.o \
 	struct.o template.o \
 	version.o utf.o utils.o staticassert.o \
-	entity.o doc.o macro.o \
+	statementsem.o entity.o doc.o macro.o \
 	hdrgen.o delegatize.o interpret.o traits.o \
 	builtin.o ctfeexpr.o clone.o aliasthis.o \
 	arrayop.o json.o unittests.o \
@@ -234,7 +234,7 @@ SRC = win32.mak posix.mak osmodel.mak \
 	scope.h enum.h import.h mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h statement.h \
 	utf.h utf.c utils.c staticassert.h staticassert.c \
-	entity.c \
+	statementsem.c entity.c \
 	doc.h doc.c macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h arrayop.c \

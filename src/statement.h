@@ -85,9 +85,6 @@ public:
     void error(const char *format, ...);
     void warning(const char *format, ...);
     void deprecation(const char *format, ...);
-    virtual Statement *semantic(Scope *sc);
-    Statement *semanticScope(Scope *sc, Statement *sbreak, Statement *scontinue);
-    Statement *semanticNoScope(Scope *sc);
     virtual Statement *getRelatedLabeled() { return this; }
     virtual bool hasBreak();
     virtual bool hasContinue();
@@ -124,7 +121,6 @@ class ErrorStatement : public Statement
 public:
     ErrorStatement();
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
 
     ErrorStatement *isErrorStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -136,7 +132,6 @@ public:
     Statement *s;
 
     PeelStatement(Statement *s);
-    Statement *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -149,7 +144,6 @@ public:
     ExpStatement(Loc loc, Dsymbol *s);
     static ExpStatement *create(Loc loc, Expression *exp);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     Statements *flatten(Scope *sc);
 
@@ -180,7 +174,6 @@ public:
     CompileStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
     Statements *flatten(Scope *sc);
-    Statement *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -194,7 +187,6 @@ public:
     CompoundStatement(Loc loc, Statement *s1, Statement *s2);
     static CompoundStatement *create(Loc loc, Statement *s1, Statement *s2);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     Statements *flatten(Scope *sc);
     ReturnStatement *isReturnStatement();
     Statement *last();
@@ -221,7 +213,6 @@ public:
 
     UnrolledLoopStatement(Loc loc, Statements *statements);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     bool hasBreak();
     bool hasContinue();
 
@@ -238,7 +229,6 @@ public:
     Statement *syntaxCopy();
     ScopeStatement *isScopeStatement() { return this; }
     ReturnStatement *isReturnStatement();
-    Statement *semantic(Scope *sc);
     bool hasBreak();
     bool hasContinue();
 
@@ -254,7 +244,6 @@ public:
 
     WhileStatement(Loc loc, Expression *c, Statement *b, Loc endloc);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     bool hasBreak();
     bool hasContinue();
 
@@ -270,7 +259,6 @@ public:
 
     DoStatement(Loc loc, Statement *b, Expression *c, Loc endloc);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     bool hasBreak();
     bool hasContinue();
 
@@ -293,7 +281,6 @@ public:
 
     ForStatement(Loc loc, Statement *init, Expression *condition, Expression *increment, Statement *body, Loc endloc);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     Statement *getRelatedLabeled() { return relatedLabeled ? relatedLabeled : this; }
     bool hasBreak();
@@ -321,7 +308,6 @@ public:
 
     ForeachStatement(Loc loc, TOK op, Parameters *parameters, Expression *aggr, Statement *body, Loc endloc);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     bool checkForArgTypes();
     bool hasBreak();
     bool hasContinue();
@@ -344,7 +330,6 @@ public:
     ForeachRangeStatement(Loc loc, TOK op, Parameter *prm,
         Expression *lwr, Expression *upr, Statement *body, Loc endloc);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     bool hasBreak();
     bool hasContinue();
 
@@ -364,7 +349,6 @@ public:
 
     IfStatement(Loc loc, Parameter *prm, Expression *condition, Statement *ifbody, Statement *elsebody, Loc endloc);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     IfStatement *isIfStatement() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
@@ -379,7 +363,6 @@ public:
 
     ConditionalStatement(Loc loc, Condition *condition, Statement *ifbody, Statement *elsebody);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     Statements *flatten(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -394,7 +377,6 @@ public:
 
     PragmaStatement(Loc loc, Identifier *ident, Expressions *args, Statement *body);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -406,7 +388,6 @@ public:
 
     StaticAssertStatement(StaticAssert *sa);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -428,7 +409,6 @@ public:
 
     SwitchStatement(Loc loc, Expression *c, Statement *b, bool isFinal);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     bool hasBreak();
     bool checkLabel();
 
@@ -446,7 +426,6 @@ public:
 
     CaseStatement(Loc loc, Expression *exp, Statement *s);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     int compare(RootObject *obj);
     CaseStatement *isCaseStatement() { return this; }
 
@@ -463,7 +442,6 @@ public:
 
     CaseRangeStatement(Loc loc, Expression *first, Expression *last, Statement *s);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -476,7 +454,6 @@ public:
 
     DefaultStatement(Loc loc, Statement *s);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     DefaultStatement *isDefaultStatement() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
@@ -489,7 +466,6 @@ public:
 
     GotoDefaultStatement(Loc loc);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     GotoDefaultStatement *isGotoDefaultStatement() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
@@ -503,7 +479,6 @@ public:
 
     GotoCaseStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     GotoCaseStatement *isGotoCaseStatement() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
@@ -525,7 +500,6 @@ public:
 
     ReturnStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
 
     ReturnStatement *isReturnStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -538,7 +512,6 @@ public:
 
     BreakStatement(Loc loc, Identifier *ident);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
 
     BreakStatement *isBreakStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -551,7 +524,6 @@ public:
 
     ContinueStatement(Loc loc, Identifier *ident);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -564,7 +536,6 @@ public:
 
     SynchronizedStatement(Loc loc, Expression *exp, Statement *body);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     bool hasBreak();
     bool hasContinue();
 
@@ -581,7 +552,6 @@ public:
 
     WithStatement(Loc loc, Expression *exp, Statement *body, Loc endloc);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -594,7 +564,6 @@ public:
 
     TryCatchStatement(Loc loc, Statement *body, Catches *catches);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     bool hasBreak();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -614,7 +583,6 @@ public:
 
     Catch(Loc loc, Type *t, Identifier *id, Statement *handler);
     Catch *syntaxCopy();
-    void semantic(Scope *sc);
 };
 
 class TryFinallyStatement : public Statement
@@ -626,7 +594,6 @@ public:
     TryFinallyStatement(Loc loc, Statement *body, Statement *finalbody);
     static TryFinallyStatement *create(Loc loc, Statement *body, Statement *finalbody);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     bool hasBreak();
     bool hasContinue();
 
@@ -641,7 +608,6 @@ public:
 
     OnScopeStatement(Loc loc, TOK tok, Statement *statement);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -657,7 +623,6 @@ public:
 
     ThrowStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -669,7 +634,6 @@ public:
 
     DebugStatement(Loc loc, Statement *statement);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     Statements *flatten(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -685,7 +649,6 @@ public:
 
     GotoStatement(Loc loc, Identifier *ident);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     bool checkLabel();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -705,7 +668,6 @@ public:
 
     LabelStatement(Loc loc, Identifier *ident, Statement *statement);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     Statements *flatten(Scope *sc);
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
 
@@ -739,10 +701,6 @@ public:
 
     AsmStatement(Loc loc, Token *tokens);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc)
-    {
-        return asmSemantic(this, sc);
-    }
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -755,7 +713,6 @@ public:
 
     CompoundAsmStatement(Loc loc, Statements *s, StorageClass stc);
     CompoundAsmStatement *syntaxCopy();
-    CompoundAsmStatement *semantic(Scope *sc);
     Statements *flatten(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -768,7 +725,6 @@ public:
 
     ImportStatement(Loc loc, Dsymbols *imports);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
