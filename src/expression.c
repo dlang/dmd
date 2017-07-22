@@ -220,7 +220,6 @@ bool isNeedThisScope(Scope *sc, Declaration *d)
         //printf("\ts = %s %s, toParent2() = %p\n", s->kind(), s->toChars(), s->toParent2());
         if (AggregateDeclaration *ad2 = s->isAggregateDeclaration())
         {
-            //printf("\t    ad2 = %s\n", ad2->toChars());
             if (ad2 == ad)
                 return false;
             else if (ad2->isNested())
@@ -230,8 +229,6 @@ bool isNeedThisScope(Scope *sc, Declaration *d)
         }
         if (FuncDeclaration *f = s->isFuncDeclaration())
         {
-            if (f->isFuncLiteralDeclaration() && f->isNested())
-                continue;
             if (f->isMember2())
                 break;
         }

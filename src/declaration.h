@@ -693,6 +693,7 @@ public:
         ForeachStatement *fes, Identifier *id = NULL);
     Dsymbol *syntaxCopy(Dsymbol *);
     bool isNested();
+    AggregateDeclaration *isThis();
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();
