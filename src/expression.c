@@ -10916,7 +10916,7 @@ Expression *PreExp::semantic(Scope *sc)
 AssignExp::AssignExp(Loc loc, Expression *e1, Expression *e2)
         : BinExp(loc, TOKassign, sizeof(AssignExp), e1, e2)
 {
-    ismemset = 0;
+    memset = 0;
 }
 
 Expression *AssignExp::semantic(Scope *sc)
@@ -11235,7 +11235,7 @@ Expression *AssignExp::semantic(Scope *sc)
         {
             // Bugzilla 14944, even if e1 is a ref variable,
             // make an initialization of referenced memory.
-            ismemset |= 2;
+            memset |= referenceInit;
         }
 
         // Bugzilla 13515: set Index::modifiable flag for complex AA element initialization
@@ -11251,7 +11251,7 @@ Expression *AssignExp::semantic(Scope *sc)
      * check for operator overloading.
      */
     if (op == TOKconstruct && e1->op == TOKvar &&
-        ((VarExp *)e1)->var->storage_class & (STCout | STCref) && !(ismemset & 2))
+        ((VarExp *)e1)->var->storage_class & (STCout | STCref) && !(memset & referenceInit))
     {
         // If this is an initialization of a reference,
         // do nothing
@@ -11698,7 +11698,7 @@ Expression *AssignExp::semantic(Scope *sc)
         // Check for block assignment. If it is of type void[], void[][], etc,
         // '= null' is the only allowable block assignment (Bug 7493)
         // memset
-        ismemset |= 1;  // make it easy for back end to tell what this is
+        memset |= blockAssign;  // make it easy for back end to tell what this is
         e2x = e2x->implicitCastTo(sc, t1->nextOf());
         if (op != TOKblit && e2x->isLvalue() &&
             e1->checkPostblit(sc, t1->nextOf()))
@@ -11816,7 +11816,7 @@ Expression *AssignExp::semantic(Scope *sc)
     if ((t2->ty == Tarray || t2->ty == Tsarray) && isArrayOpValid(e2))
     {
         // Look for valid array operations
-        if (!(ismemset & 1) && e1->op == TOKslice &&
+        if (!(memset & blockAssign) && e1->op == TOKslice &&
             (isUnaArrayOp(e2->op) || isBinArrayOp(e2->op)))
         {
             type = e1->type;
@@ -11827,7 +11827,7 @@ Expression *AssignExp::semantic(Scope *sc)
 
         // Drop invalid array operations in e2
         //  d = a[] + b[], d = (a[] + b[])[0..2], etc
-        if (checkNonAssignmentArrayOp(e2, !(ismemset & 1) && op == TOKassign))
+        if (checkNonAssignmentArrayOp(e2, !(memset & blockAssign) && op == TOKassign))
             return new ErrorExp();
 
         // Remains valid array assignments
