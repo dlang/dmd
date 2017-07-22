@@ -45,6 +45,7 @@ int arrayObjectMatch(Objects *oa1, Objects *oa2);
 unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam);
 MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam);
 void mangleToBuffer(Expression *e, OutBuffer *buf);
+Type *rawTypeMerge(Type *t1, Type *t2);
 
 static Type *reliesOnTident(Type *t, TemplateParameters *tparams = NULL, size_t iStart = 0);
 
@@ -4343,9 +4344,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             }
 
             // From previous matched expressions to current deduced type
-            MATCH match1 = MATCHnomatch;
-            if (xt)
-                match1 = xt->matchAll(tt);
+            MATCH match1 = xt ? xt->matchAll(tt) : MATCHnomatch;
 
             // From current expresssion to previous deduced type
             Type *pt = at->addMod(tparam->mod);
@@ -4379,6 +4378,11 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     }
                     //printf("tt = %s, at = %s\n", tt->toChars(), at->toChars());
                 }
+                else
+                {
+                    match1 = MATCHnomatch;
+                    match2 = MATCHnomatch;
+                }
             }
             if (match1 > MATCHnomatch)
             {
@@ -4396,6 +4400,22 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 if (xt)
                     xt->update(e, tparam);
                 result = match2;
+                return;
+            }
+
+            /* Deduce common type
+             */
+            if (Type *t = rawTypeMerge(at, tt))
+            {
+                if (xt)
+                    xt->update(t, e, tparam);
+                else
+                    (*dedtypes)[i] = t;
+
+                pt = tt->addMod(tparam->mod);
+                if (*wm)
+                    pt = pt->substWildTo(*wm);
+                result = e->implicitConvTo(pt);
                 return;
             }
 

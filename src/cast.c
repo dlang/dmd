@@ -2607,6 +2607,28 @@ bool isVoidArrayLiteral(Expression *e, Type *other)
         ((ArrayLiteralExp *)e)->elements->dim == 0);
 }
 
+// used by deduceType()
+Type *rawTypeMerge(Type *t1, Type *t2)
+{
+    Type *t1b = t1->toBasetype();
+    Type *t2b = t2->toBasetype();
+
+    if (t1->equals(t2))
+    {
+        return t1;
+    }
+    else if (t1b->equals(t2b))
+    {
+        return t1b;
+    }
+    else
+    {
+        TY ty = (TY)impcnvResult[t1b->ty][t2b->ty];
+        if (ty != Terror)
+            return Type::basic[ty];
+    }
+    return NULL;
+}
 
 /**************************************
  * Combine types.
