@@ -10329,7 +10329,7 @@ Expression *VectorExp::semantic(Scope *sc)
             result |= checkVectorElem(this, ((ArrayLiteralExp *)e1)->getElement(i));
         }
     }
-    else
+    else if (e1->type->ty == Tvoid)
         result = checkVectorElem(this, e1);
 
     Expression *e = this;
