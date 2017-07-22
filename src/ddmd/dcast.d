@@ -3428,6 +3428,42 @@ extern (C++) Expression integralPromotions(Expression e, Scope* sc)
     return e;
 }
 
+/******************************************************
+ * This provides a transition from the non-promoting behavior
+ * of unary + - ~ to the C-like integral promotion behavior.
+ * Params:
+ *    sc = context
+ *    ue = NegExp, UAddExp, or ComExp which is revised per rules
+ * References:
+ *      https://issues.dlang.org/show_bug.cgi?id=16997
+ */
+
+void fix16997(Scope* sc, UnaExp ue)
+{
+    if (global.params.fix16997)
+        ue.e1 = integralPromotions(ue.e1, sc);          // desired C-like behavor
+    else
+    {
+        switch (ue.e1.type.toBasetype.ty)
+        {
+            case Tint8:
+            case Tuns8:
+            case Tint16:
+            case Tuns16:
+            //case Tbool:       // these operations aren't allowed on bool anyway
+            case Tchar:
+            case Twchar:
+            case Tdchar:
+                ue.deprecation("integral promotion not done for `%s`, use '-transition=intpromote' switch or `%scast(int)(%s)`",
+                    ue.toChars(), Token.toChars(ue.op), ue.e1.toChars());
+                break;
+
+            default:
+                break;
+        }
+    }
+}
+
 /***********************************
  * See if both types are arrays that can be compared
  * for equality. Return true if so.

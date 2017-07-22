@@ -128,6 +128,8 @@ struct Param
     bool allInst;           // generate code for all template instantiations
     bool check10378;        // check for issues transitioning to 10738
     bool bug10378;          // use pre- https://issues.dlang.org/show_bug.cgi?id=10378 search strategy
+    bool fix16997;          // fix integral promotions for unary + - ~ operators
+                            // https://issues.dlang.org/show_bug.cgi?id=16997
     bool vsafe;             // use enhanced @safe checking
     /** The --transition=safe switch should only be used to show code with
      * silent semantics changes related to @safe improvements.  It should not be

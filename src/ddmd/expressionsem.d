@@ -3901,6 +3901,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        fix16997(sc, exp);
         exp.type = exp.e1.type;
         Type tb = exp.type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
@@ -3941,6 +3942,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        fix16997(sc, exp);
         if (!Target.isVectorOpSupported(exp.e1.type.toBasetype(), exp.op))
         {
             result = exp.incompatibleTypes();
@@ -3969,6 +3971,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        fix16997(sc, exp);
         exp.type = exp.e1.type;
         Type tb = exp.type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
