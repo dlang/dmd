@@ -201,6 +201,7 @@ public:
     Type *getType();
     Dsymbol *toAlias();
     Dsymbol *toAlias2();
+    bool isOverloadable();
 
     AliasDeclaration *isAliasDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -223,6 +224,7 @@ public:
 
     Dsymbol *toAlias();
     Dsymbol *isUnique();
+    bool isOverloadable();
 
     OverDeclaration *isOverDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }

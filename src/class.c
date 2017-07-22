@@ -930,8 +930,9 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
 
     Dsymbol *s = ScopeDsymbol::search(loc, ident, flags);
 
-    if (!(flags & (SearchLocalsOnly | SearchImportsOnly)))
-        flags |= SearchLocalsOnly;
+    // don't search imports of base classes
+    if (flags & SearchImportsOnly)
+        return s;
 
     if (!s)
     {

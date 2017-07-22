@@ -26,6 +26,7 @@
 #include "aggregate.h"
 #include "expression.h"
 #include "module.h"
+#include "template.h"
 
 #define LOG 0
 
@@ -36,6 +37,7 @@ bool hasPackageAccess(Scope *sc, Dsymbol *s);
 bool hasPackageAccess(Module *mod, Dsymbol *s);
 bool hasPrivateAccess(AggregateDeclaration *ad, Dsymbol *smember);
 bool isFriendOf(AggregateDeclaration *ad, AggregateDeclaration *cd);
+static Dsymbol *mostVisibleOverload(Dsymbol *s);
 
 /****************************************
  * Return Prot access for Dsymbol smember in this declaration.
@@ -512,24 +514,8 @@ bool checkAccess(Loc loc, Scope *sc, Package *p)
  */
 bool symbolIsVisible(Module *mod, Dsymbol *s)
 {
-    struct OverloadVisible
-    {
-        static int fp(void *param, Dsymbol *s2)
-        {
-            Dsymbol **s = (Dsymbol **)param;
-            if ((*s)->prot().isMoreRestrictiveThan(s2->prot()))
-                *s = s2;
-            return 0;
-        }
-    };
-
     // should sort overloads by ascending protection instead of iterating here
-    if (s->isOverloadable())
-    {
-        // Use the least protected overload to determine visibility
-        // and perform an access check after overload resolution.
-        overloadApply(s, &s, &OverloadVisible::fp);
-    }
+    s = mostVisibleOverload(s);
 
     switch (s->prot().kind)
     {
@@ -570,24 +556,7 @@ bool symbolIsVisible(Dsymbol *origin, Dsymbol *s)
  */
 bool symbolIsVisible(Scope *sc, Dsymbol *s)
 {
-    struct OverloadVisible
-    {
-        static int fp(void *param, Dsymbol *s2)
-        {
-            Dsymbol **s = (Dsymbol **)param;
-            if ((*s)->prot().isMoreRestrictiveThan(s2->prot()))
-                *s = s2;
-            return 0;
-        }
-    };
-
-    // should sort overloads by ascending protection instead of iterating here
-    if (s->isOverloadable())
-    {
-        // Use the least protected overload to determine visibility
-        // and perform an access check after overload resolution.
-        overloadApply(s, &s, &OverloadVisible::fp);
-    }
+    s = mostVisibleOverload(s);
 
     switch (s->prot().kind)
     {
@@ -607,4 +576,89 @@ bool symbolIsVisible(Scope *sc, Dsymbol *s)
         default:
             assert(0);
     }
+}
+
+/**
+ * Use the most visible overload to check visibility. Later perform an access
+ * check on the resolved overload.  This function is similar to overloadApply,
+ * but doesn't recurse nor resolve aliases because protection/visibility is an
+ * attribute of the alias not the aliasee.
+ */
+static Dsymbol *mostVisibleOverload(Dsymbol *s)
+{
+    if (!s->isOverloadable())
+        return s;
+
+    Dsymbol *next = NULL;
+    Dsymbol *fstart = s;
+    Dsymbol *mostVisible = s;
+    for (; s; s = next)
+    {
+        // void func() {}
+        // private void func(int) {}
+        if (FuncDeclaration *fd = s->isFuncDeclaration())
+            next = fd->overnext;
+        // template temp(T) {}
+        // private template temp(T:int) {}
+        else if (TemplateDeclaration *td = s->isTemplateDeclaration())
+            next = td->overnext;
+        // alias common = mod1.func1;
+        // alias common = mod2.func2;
+        else if (FuncAliasDeclaration *fa = s->isFuncAliasDeclaration())
+            next = fa->overnext;
+        // alias common = mod1.templ1;
+        // alias common = mod2.templ2;
+        else if (OverDeclaration *od = s->isOverDeclaration())
+            next = od->overnext;
+        // alias name = sym;
+        // private void name(int) {}
+        else if (AliasDeclaration *ad = s->isAliasDeclaration())
+        {
+            /* This is a bit messy due to the complicated implementation of
+             * alias.  Aliases aren't overloadable themselves, but if their
+             * Aliasee is overloadable they can be converted to an overloadable
+             * alias.
+             *
+             * This is done by replacing the Aliasee w/ FuncAliasDeclaration
+             * (for functions) or OverDeclaration (for templates) which are
+             * simply overloadable aliases w/ weird names.
+             *
+             * Usually aliases should not be resolved for visibility checking
+             * b/c public aliases to private symbols are public. But for the
+             * overloadable alias situation, the Alias (_ad_) has been moved
+             * into it's own Aliasee, leaving a shell that we peel away here.
+             */
+            if (!ad->isOverloadable())
+            {
+                //printf("Non overloadable Aliasee in overload list\n");
+                assert(0);
+            }
+            Dsymbol *aliasee = ad->toAlias();
+            if (aliasee->isFuncAliasDeclaration() || aliasee->isOverDeclaration())
+                next = aliasee;
+            else
+            {
+                /* A simple alias can be at the end of a function or template overload chain.
+                 * It can't have further overloads b/c it would have been
+                 * converted to an overloadable alias.
+                 */
+                if (ad->overnext)
+                {
+                    //printf("Unresolved overload of alias\n");
+                    assert(0);
+                }
+                break;
+            }
+
+            // handled by overloadApply for unknown reason
+            assert(next != ad); // should not alias itself
+            assert(next != fstart); // should not alias the overload list itself
+        }
+        else
+            break;
+
+        if (next && mostVisible->prot().isMoreRestrictiveThan(next->prot()))
+            mostVisible = next;
+    }
+    return mostVisible;
 }
