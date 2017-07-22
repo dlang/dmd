@@ -7584,7 +7584,7 @@ Dsymbol *TypeStruct::toDsymbol(Scope *sc)
     return sym;
 }
 
-static Dsymbol *searchSym(Dsymbol *sym, Expression *e, Identifier *ident)
+static Dsymbol *searchSymStruct(Dsymbol *sym, Expression *e, Identifier *ident)
 {
     int flags = 0;
     Dsymbol *sold;
@@ -7683,14 +7683,14 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
         }
     }
 
-    s = searchSym(sym, e, ident);
+    s = searchSymStruct(sym, e, ident);
 L1:
     if (!s)
     {
         if (sym->_scope)                 // it's a fwd ref, maybe we can resolve it
         {
             sym->semantic(NULL);
-            s = searchSym(sym, e, ident);
+            s = searchSymStruct(sym, e, ident);
         }
         if (!s)
             return noMember(sc, e, ident, flag);
@@ -8180,6 +8180,35 @@ Dsymbol *TypeClass::toDsymbol(Scope *sc)
     return sym;
 }
 
+static Dsymbol *searchSymClass(Dsymbol *sym, Expression *e, Identifier *ident)
+{
+    int flags = 0;
+    Dsymbol *sold;
+    if (global.params.bug10378 || global.params.check10378)
+    {
+        sold = sym->search(e->loc, ident, flags | IgnoreSymbolVisibility);
+        if (!global.params.check10378)
+            return sold;
+    }
+
+    Dsymbol *s = sym->search(e->loc, ident, flags | SearchLocalsOnly);
+    if (!s)
+    {
+        s = sym->search(e->loc, ident, flags | SearchLocalsOnly | IgnoreSymbolVisibility);
+        if (s && !(flags & IgnoreErrors))
+            ::deprecation(e->loc, "%s is not visible from class %s", s->toPrettyChars(), sym->toChars());
+    }
+    if (global.params.check10378)
+    {
+        Dsymbol *snew = s;
+        if (sold != snew)
+            Scope::deprecation10378(e->loc, sold, snew);
+        if (global.params.bug10378)
+            s = sold;
+    }
+    return s;
+}
+
 Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
 {
     Dsymbol *s;
@@ -8262,7 +8291,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         return e;
     }
 
-    s = searchSym(sym, e, ident);
+    s = searchSymClass(sym, e, ident);
 L1:
     if (!s)
     {
