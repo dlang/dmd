@@ -32,6 +32,9 @@
 #include "template.h"
 #include "objc.h"
 
+bool symbolIsVisible(Dsymbol *origin, Dsymbol *s);
+
+
 /********************************* ClassDeclaration ****************************/
 
 ClassDeclaration *ClassDeclaration::object;
@@ -941,9 +944,13 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
                 else
                 {
                     s = b->sym->search(loc, ident, flags | SearchLocalsOnly);
-                    if (s == this)      // happens if s is nested in this and derives from this
+                    if (!s)
+                        continue;
+                    else if (s == this) // happens if s is nested in this and derives from this
                         s = NULL;
-                    else if (s)
+                    else if (!(flags & IgnoreSymbolVisibility) && !(s->prot().kind == PROTprotected) && !symbolIsVisible(this, s))
+                        s = NULL;
+                    else
                         break;
                 }
             }

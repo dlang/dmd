@@ -33,6 +33,7 @@
  */
 
 bool hasPackageAccess(Scope *sc, Dsymbol *s);
+bool hasPackageAccess(Module *mod, Dsymbol *s);
 bool hasPrivateAccess(AggregateDeclaration *ad, Dsymbol *smember);
 bool isFriendOf(AggregateDeclaration *ad, AggregateDeclaration *cd);
 
@@ -263,9 +264,14 @@ bool isFriendOf(AggregateDeclaration *ad, AggregateDeclaration *cd)
  */
 bool hasPackageAccess(Scope *sc, Dsymbol *s)
 {
+    return hasPackageAccess(sc->module, s);
+}
+
+bool hasPackageAccess(Module *mod, Dsymbol *s)
+{
 #if LOG
-    printf("hasPackageAccess(s = '%s', sc = '%p', s->protection.pkg = '%s')\n",
-            s->toChars(), sc,
+    printf("hasPackageAccess(s = '%s', mod = '%s', s->protection.pkg = '%s')\n",
+            s->toChars(), mod->toChars(),
             s->prot().pkg ? s->prot().pkg->toChars() : "NULL");
 #endif
 
@@ -302,21 +308,21 @@ bool hasPackageAccess(Scope *sc, Dsymbol *s)
 
     if (pkg)
     {
-        if (pkg == sc->module->parent)
+        if (pkg == mod->parent)
         {
 #if LOG
             printf("\tsc is in permitted package for s\n");
 #endif
             return true;
         }
-        if (pkg->isPackageMod() == sc->module)
+        if (pkg->isPackageMod() == mod)
         {
 #if LOG
             printf("\ts is in same package.d module as sc\n");
 #endif
             return true;
         }
-        Dsymbol* ancestor = sc->module->parent;
+        Dsymbol* ancestor = mod->parent;
         for (; ancestor; ancestor = ancestor->parent)
         {
             if (ancestor == pkg)
@@ -475,4 +481,62 @@ bool checkAccess(Loc loc, Scope *sc, Package *p)
     else
         deprecation(loc, "%s %s is not accessible here", p->kind(), name);
     return true;
+}
+
+/**
+ * Check whether symbols `s` is visible in `mod`.
+ *
+ * Params:
+ *  mod = lookup origin
+ *  s = symbol to check for visibility
+ * Returns: true if s is visible in mod
+ */
+bool symbolIsVisible(Module *mod, Dsymbol *s)
+{
+    /// Count function overloads.
+    struct OverloadVisible
+    {
+        static int fp(void *param, Dsymbol *s2)
+        {
+            Dsymbol **s = (Dsymbol **)param;
+            if ((*s)->prot().isMoreRestrictiveThan(s2->prot()))
+                *s = s2;
+            return 0;
+        }
+    };
+
+    // should sort overloads by ascending protection instead of iterating here
+    if (s->isOverloadable())
+    {
+        // Use the least protected overload to determine visibility
+        // and perform an access check after overload resolution.
+        overloadApply(s, &s, &OverloadVisible::fp);
+    }
+
+    switch (s->prot().kind)
+    {
+        case PROTundefined:
+            return true;
+        case PROTnone:
+            return false; // no access
+        case PROTprivate:
+            return s->getAccessModule() == mod;
+        case PROTpackage:
+            return hasPackageAccess(mod, s);
+        case PROTprotected:
+            return s->getAccessModule() == mod;
+        case PROTpublic:
+        case PROTexport:
+            return true;
+        default:
+            assert(0);
+    }
+}
+
+/**
+ * Same as above, but determines the lookup module from symbols `origin`.
+ */
+bool symbolIsVisible(Dsymbol *origin, Dsymbol *s)
+{
+    return symbolIsVisible(origin->getAccessModule(), s);
 }

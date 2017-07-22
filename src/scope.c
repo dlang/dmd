@@ -409,7 +409,9 @@ static Dsymbol *searchScopes(Scope *scope, Loc loc, Identifier *ident, Dsymbol *
             {
                 warning(s->loc, "array 'length' hides other 'length' name in outer scope");
             }
-            //printf("\tfound %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
+#ifdef LOGSEARCH
+            printf("\tfound %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
+#endif
             if (pscopesym)
                 *pscopesym = sc->scopesym;
             return s;
@@ -463,7 +465,9 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flag
 
             if (Dsymbol *s = sc->scopesym->isModule())
             {
-                //printf("\tfound %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
+#ifdef LOGSEARCH
+                printf("\tfound %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
+#endif
                 if (pscopesym)
                     *pscopesym = sc->scopesym;
                 return s;
@@ -475,11 +479,20 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flag
     if (global.params.check10378)
     {
         // Search both ways
-        Dsymbol *sold = searchScopes(this, loc, ident, pscopesym, flags | SearchCheckImports);
-        Dsymbol *snew = searchScopes(this, loc, ident, pscopesym, flags | SearchCheckImports | SearchLocalsOnly);
 
+        Dsymbol *sold = searchScopes(this, loc, ident, pscopesym, flags | SearchCheckImports | IgnoreSymbolVisibility);
+
+        Dsymbol *snew = searchScopes(this, loc, ident, pscopesym, flags | SearchCheckImports | SearchLocalsOnly);
         if (!snew)
             snew = searchScopes(this, loc, ident, pscopesym, flags | SearchCheckImports | SearchImportsOnly);
+        if (!snew)
+        {
+            snew = searchScopes(this, loc, ident, pscopesym, flags | SearchCheckImports | SearchLocalsOnly | IgnoreSymbolVisibility);
+            if (!snew)
+                snew = searchScopes(this, loc, ident, pscopesym, flags | SearchCheckImports | SearchImportsOnly | IgnoreSymbolVisibility);
+            if (snew)
+                ::deprecation(loc, "%s is not visible from module %s", snew->toPrettyChars(), module->toChars());
+        }
 
         if (sold != snew)
         {
@@ -491,25 +504,47 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flag
     }
 
     if (global.params.bug10378)
-        return searchScopes(this, loc, ident, pscopesym, flags);
+        return searchScopes(this, loc, ident, pscopesym, flags | IgnoreSymbolVisibility);
 
     // First look in local scopes
     Dsymbol *s = searchScopes(this, loc, ident, pscopesym, flags | SearchLocalsOnly);
     if (s)
     {
-        //printf("\t-Scope::search() found local %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
+#ifdef LOGSEARCH
+        printf("\t-Scope::search() found local %s.%s, kind = '%s'\n",
+               s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
+#endif
         return s;
     }
 
     s = searchScopes(this, loc, ident, pscopesym, flags | SearchImportsOnly);     // look in imported modules
     if (s)
     {
-        //printf("\t-Scope::search() found import %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
+#ifdef LOGSEARCH
+        printf("\t-Scope::search() found import %s.%s, kind = '%s'\n",
+               s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
+#endif
         return s;
     }
 
-    //printf("\t-Scope::search() not found\n");
-    return NULL;
+    /** Still find private symbols, so that symbols that weren't access
+     * checked by the compiler remain usable.  Once the deprecation is over,
+     * this should be moved to search_correct instead.
+     */
+    s = searchScopes(this, loc, ident, pscopesym, flags | SearchLocalsOnly | IgnoreSymbolVisibility);
+    if (!s)
+        s = searchScopes(this, loc, ident, pscopesym, flags | SearchImportsOnly | IgnoreSymbolVisibility);
+
+    if (s)
+    {
+#ifdef LOGSEARCH
+        printf("\t-Scope::search() found imported private symbol%s.%s, kind = '%s'\n",
+               s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
+#endif
+        if (!(flags & IgnoreErrors))
+            deprecation(loc, "%s is not visible from module %s", s->toPrettyChars(), module->toChars());
+    }
+    return s;
 }
 
 Dsymbol *Scope::insert(Dsymbol *s)

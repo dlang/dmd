@@ -36,6 +36,8 @@
 #include "enum.h"
 #include "lexer.h"
 
+bool symbolIsVisible(Dsymbol *origin, Dsymbol *s);
+
 
 /****************************** Dsymbol ******************************/
 
@@ -986,10 +988,10 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
         for (size_t i = 0; i < importedScopes->dim; i++)
         {
             // If private import, don't search it
-            if ((flags & IgnorePrivateMembers) && prots[i] == PROTprivate)
+            if ((flags & IgnorePrivateImports) && prots[i] == PROTprivate)
                 continue;
 
-            int sflags = flags & (IgnoreErrors | IgnoreAmbiguous); // remember these in recursive searches
+            int sflags = flags & (IgnoreErrors | IgnoreAmbiguous | IgnoreSymbolVisibility); // remember these in recursive searches
             Dsymbol *ss = (*importedScopes)[i];
 
             //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
@@ -1000,7 +1002,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                 {
                     if (global.params.check10378 && !(flags & SearchCheckImports))
                     {
-                        Dsymbol *s3 = ss->search(loc, ident, sflags | IgnorePrivateMembers);
+                        Dsymbol *s3 = ss->search(loc, ident, sflags | IgnorePrivateImports);
                         if (s3)
                             deprecation("%s %s found in local import", s3->kind(), s3->toPrettyChars());
                     }
@@ -1016,7 +1018,9 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
 
             /* Don't find private members if ss is a module
              */
-            Dsymbol *s2 = ss->search(loc, ident, sflags | (ss->isModule() ? IgnorePrivateMembers : IgnoreNone));
+            Dsymbol *s2 = ss->search(loc, ident, sflags | (ss->isModule() ? IgnorePrivateImports : IgnoreNone));
+            if (!s2 || !(flags & IgnoreSymbolVisibility) && !symbolIsVisible(this, s2))
+                continue;
             if (!s)
             {
                 s = s2;
@@ -1090,8 +1094,9 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                 s = a;
             }
 
+            // TODO: remove once private symbol visibility has been deprecated
             if (!(flags & IgnoreErrors) && s->prot().kind == PROTprivate &&
-                !s->parent->isTemplateMixin() && !s->parent->isNspace())
+                !s->isOverloadable() && !s->parent->isTemplateMixin() && !s->parent->isNspace())
             {
                 if (!s->isImport())
                     error(loc, "%s %s is private", s->kind(), s->toPrettyChars());
