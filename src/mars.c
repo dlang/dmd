@@ -594,7 +594,7 @@ Language changes listed by -transition=id:\n\
                                 goto Lerror;
                         }
                     }
-                    else if (Lexer::isValidIdentifier(p + 12))
+                    else if (Identifier::isValidIdentifier(p + 12))
                     {
                         const char *ident = p + 12;
                         switch (strlen(ident))
@@ -833,7 +833,7 @@ Language changes listed by -transition=id:\n\
                             goto Lerror;
                         DebugCondition::setGlobalLevel((int)level);
                     }
-                    else if (Lexer::isValidIdentifier(p + 7))
+                    else if (Identifier::isValidIdentifier(p + 7))
                         DebugCondition::addGlobalIdent(p + 7);
                     else
                         goto Lerror;
@@ -859,7 +859,7 @@ Language changes listed by -transition=id:\n\
                             goto Lerror;
                         VersionCondition::setGlobalLevel((int)level);
                     }
-                    else if (Lexer::isValidIdentifier(p + 9))
+                    else if (Identifier::isValidIdentifier(p + 9))
                         VersionCondition::addGlobalIdent(p + 9);
                     else
                         goto Lerror;

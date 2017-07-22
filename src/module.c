@@ -527,7 +527,7 @@ Module *Module::parse()
 
         /* Check to see if module name is a valid identifier
          */
-        if (!Lexer::isValidIdentifier(this->ident->toChars()))
+        if (!Identifier::isValidIdentifier(this->ident->toChars()))
             error("has non-identifier characters in filename, use module declaration instead");
     }
 

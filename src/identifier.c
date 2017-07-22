@@ -11,12 +11,14 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "root.h"
 #include "identifier.h"
 #include "mars.h"
 #include "id.h"
 #include "tokens.h"
+#include "utf.h"
 
 Identifier::Identifier(const char *string, int value)
 {
@@ -121,6 +123,41 @@ Identifier *Identifier::idPool(const char *s, size_t len)
         sv->ptrvalue = (char *)id;
     }
     return id;
+}
+
+/**********************************
+ * Determine if string is a valid Identifier.
+ * Returns:
+ *      0       invalid
+ */
+
+bool Identifier::isValidIdentifier(const char *p)
+{
+    size_t len;
+    size_t idx;
+
+    if (!p || !*p)
+        goto Linvalid;
+
+    if (*p >= '0' && *p <= '9')         // beware of isdigit() on signed chars
+        goto Linvalid;
+
+    len = strlen(p);
+    idx = 0;
+    while (p[idx])
+    {
+        dchar_t dc;
+        const char *q = utf_decodeChar((utf8_t *)p, len, &idx, &dc);
+        if (q)
+            goto Linvalid;
+
+        if (!((dc >= 0x80 && isUniAlpha(dc)) || isalnum(dc) || dc == '_'))
+            goto Linvalid;
+    }
+    return true;
+
+Linvalid:
+    return false;
 }
 
 Identifier *Identifier::lookup(const char *s, size_t len)

@@ -259,42 +259,6 @@ Token *Lexer::peekPastParen(Token *tk)
     }
 }
 
-/**********************************
- * Determine if string is a valid Identifier.
- * Placed here because of commonality with Lexer functionality.
- * Returns:
- *      0       invalid
- */
-
-bool Lexer::isValidIdentifier(const char *p)
-{
-    size_t len;
-    size_t idx;
-
-    if (!p || !*p)
-        goto Linvalid;
-
-    if (*p >= '0' && *p <= '9')         // beware of isdigit() on signed chars
-        goto Linvalid;
-
-    len = strlen(p);
-    idx = 0;
-    while (p[idx])
-    {   dchar_t dc;
-
-        const char *q = utf_decodeChar((utf8_t *)p, len, &idx, &dc);
-        if (q)
-            goto Linvalid;
-
-        if (!((dc >= 0x80 && isUniAlpha(dc)) || isalnum(dc) || dc == '_'))
-            goto Linvalid;
-    }
-    return true;
-
-Linvalid:
-    return false;
-}
-
 /****************************
  * Turn next token in buffer into a token.
  */
