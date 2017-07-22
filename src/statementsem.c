@@ -14,6 +14,7 @@
 
 #include "rmem.h"
 #include "target.h"
+#include "checkedint.h"
 
 #include "statement.h"
 #include "expression.h"

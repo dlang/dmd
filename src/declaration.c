@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include "checkedint.h"
+
 #include "init.h"
 #include "declaration.h"
 #include "attrib.h"

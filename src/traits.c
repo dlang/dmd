@@ -17,6 +17,7 @@
 
 #include "rmem.h"
 #include "aav.h"
+#include "checkedint.h"
 
 //#include "port.h"
 #include "mtype.h"

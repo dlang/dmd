@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include "checkedint.h"
+
 #include "mars.h"
 #include "dsymbol.h"
 #include "mtype.h"
