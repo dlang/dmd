@@ -36,8 +36,8 @@ public:
     virtual Dsymbols *include(Scope *sc, ScopeDsymbol *sds);
     int apply(Dsymbol_apply_ft_t fp, void *param);
     static Scope *createNewScope(Scope *sc,
-        StorageClass newstc, LINK linkage, Prot protection, int explictProtection,
-        structalign_t structalign, PINLINE inlining);
+        StorageClass newstc, LINK linkage, CPPMANGLE cppmangle, Prot protection,
+        int explictProtection, structalign_t structalign, PINLINE inlining);
     virtual Scope *newScope(Scope *sc);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void setScope(Scope *sc);
@@ -88,6 +88,18 @@ public:
     LINK linkage;
 
     LinkDeclaration(LINK p, Dsymbols *decl);
+    Dsymbol *syntaxCopy(Dsymbol *s);
+    Scope *newScope(Scope *sc);
+    const char *toChars();
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class CPPMangleDeclaration : public AttribDeclaration
+{
+public:
+    CPPMANGLE cppmangle;
+
+    CPPMangleDeclaration(CPPMANGLE p, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     const char *toChars();

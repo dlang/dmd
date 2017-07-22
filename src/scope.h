@@ -107,6 +107,7 @@ struct Scope
 
     structalign_t structalign;  // alignment for struct members
     LINK linkage;               // linkage for external functions
+    CPPMANGLE cppmangle;        // C++ mangle type
     PINLINE inlining;            // inlining strategy for functions
 
     Prot protection;            // protection for class members

@@ -71,12 +71,13 @@ int AttribDeclaration::apply(Dsymbol_apply_ft_t fp, void *param)
  * the scope after it used.
  */
 Scope *AttribDeclaration::createNewScope(Scope *sc,
-        StorageClass stc, LINK linkage, Prot protection, int explicitProtection,
-        structalign_t structalign, PINLINE inlining)
+        StorageClass stc, LINK linkage, CPPMANGLE cppmangle, Prot protection,
+        int explicitProtection, structalign_t structalign, PINLINE inlining)
 {
     Scope *sc2 = sc;
     if (stc != sc->stc ||
         linkage != sc->linkage ||
+        cppmangle != sc->cppmangle ||
         !protection.isSubsetOf(sc->protection) ||
         explicitProtection != sc->explicitProtection ||
         structalign != sc->structalign ||
@@ -86,6 +87,7 @@ Scope *AttribDeclaration::createNewScope(Scope *sc,
         sc2 = sc->copy();
         sc2->stc = stc;
         sc2->linkage = linkage;
+        sc2->cppmangle = cppmangle;
         sc2->protection = protection;
         sc2->explicitProtection = explicitProtection;
         sc2->structalign = structalign;
@@ -391,7 +393,7 @@ Scope *StorageClassDeclaration::newScope(Scope *sc)
     scstc |= stc;
     //printf("scstc = x%llx\n", scstc);
 
-    return createNewScope(sc, scstc, sc->linkage, sc->protection, sc->explicitProtection, sc->structalign, sc->inlining);
+    return createNewScope(sc, scstc, sc->linkage, sc->cppmangle, sc->protection, sc->explicitProtection, sc->structalign, sc->inlining);
 }
 
 /********************************* DeprecatedDeclaration ****************************/
@@ -441,10 +443,35 @@ Dsymbol *LinkDeclaration::syntaxCopy(Dsymbol *s)
 
 Scope *LinkDeclaration::newScope(Scope *sc)
 {
-    return createNewScope(sc, sc->stc, this->linkage, sc->protection, sc->explicitProtection, sc->structalign, sc->inlining);
+    return createNewScope(sc, sc->stc, this->linkage, sc->cppmangle, sc->protection, sc->explicitProtection, sc->structalign, sc->inlining);
 }
 
 const char *LinkDeclaration::toChars()
+{
+    return (char *)"extern ()";
+}
+
+/********************************* CPPMangleDeclaration ****************************/
+
+CPPMangleDeclaration::CPPMangleDeclaration(CPPMANGLE p, Dsymbols *decl)
+        : AttribDeclaration(decl)
+{
+    //printf("CPPMangleDeclaration(cppmangle = %d, decl = %p)\n", p, decl);
+    cppmangle = p;
+}
+
+Dsymbol *CPPMangleDeclaration::syntaxCopy(Dsymbol *s)
+{
+    assert(!s);
+    return new CPPMangleDeclaration(cppmangle, Dsymbol::arraySyntaxCopy(decl));
+}
+
+Scope *CPPMangleDeclaration::newScope(Scope *sc)
+{
+    return createNewScope(sc, sc->stc, LINKcpp, this->cppmangle, sc->protection, sc->explicitProtection, sc->structalign, sc->inlining);
+}
+
+const char *CPPMangleDeclaration::toChars()
 {
     return (char *)"extern ()";
 }
@@ -494,7 +521,7 @@ Scope *ProtDeclaration::newScope(Scope *sc)
 {
     if (pkg_identifiers)
         semantic(sc);
-    return createNewScope(sc, sc->stc, sc->linkage, this->protection, 1, sc->structalign, sc->inlining);
+    return createNewScope(sc, sc->stc, sc->linkage, sc->cppmangle, this->protection, 1, sc->structalign, sc->inlining);
 }
 
 void ProtDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
@@ -551,7 +578,7 @@ Dsymbol *AlignDeclaration::syntaxCopy(Dsymbol *s)
 
 Scope *AlignDeclaration::newScope(Scope *sc)
 {
-    return createNewScope(sc, sc->stc, sc->linkage, sc->protection, sc->explicitProtection, this->salign, sc->inlining);
+    return createNewScope(sc, sc->stc, sc->linkage, sc->cppmangle, sc->protection, sc->explicitProtection, this->salign, sc->inlining);
 }
 
 /********************************* AnonDeclaration ****************************/
@@ -736,7 +763,7 @@ Scope *PragmaDeclaration::newScope(Scope *sc)
                 inlining = PINLINEnever;
         }
 
-        return createNewScope(sc, sc->stc, sc->linkage, sc->protection, sc->explicitProtection, sc->structalign, inlining);
+        return createNewScope(sc, sc->stc, sc->linkage, sc->cppmangle, sc->protection, sc->explicitProtection, sc->structalign, inlining);
     }
     return sc;
 }

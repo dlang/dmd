@@ -70,6 +70,7 @@ Scope::Scope()
     this->func = NULL;
     this->slabel = NULL;
     this->linkage = LINKd;
+    this->cppmangle = CPPMANGLEdefault;
     this->inlining = PINLINEdefault;
     this->protection = Prot(PROTpublic);
     this->explicitProtection = 0;

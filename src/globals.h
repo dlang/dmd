@@ -279,6 +279,13 @@ enum LINK
     LINKobjc,
 };
 
+enum CPPMANGLE
+{
+    CPPMANGLEdefault,
+    CPPMANGLEstruct,
+    CPPMANGLEclass,
+};
+
 enum DYNCAST
 {
     DYNCAST_OBJECT,

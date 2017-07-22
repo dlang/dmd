@@ -68,6 +68,7 @@ public:
     Module *mod;
     ModuleDeclaration *md;
     LINK linkage;
+    CPPMANGLE cppmangle;
     Loc endloc;                 // set to location of last right curly
     int inBrackets;             // inside [] of array index or slice
     Loc lookingForElse;         // location of lonely if looking for an else
@@ -93,7 +94,7 @@ public:
     StaticAssert *parseStaticAssert();
     TypeQualified *parseTypeof();
     Type *parseVector();
-    LINK parseLinkage(Identifiers **);
+    LINK parseLinkage(Identifiers **, CPPMANGLE *);
     Identifiers *parseQualifiedIdentifier(const char *entity);
     Condition *parseDebugCondition();
     Condition *parseVersionCondition();

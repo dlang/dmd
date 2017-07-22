@@ -7562,6 +7562,7 @@ TypeStruct::TypeStruct(StructDeclaration *sym)
 {
     this->sym = sym;
     this->att = RECfwdref;
+    this->cppmangle = CPPMANGLEdefault;
 }
 
 const char *TypeStruct::kind()
@@ -7577,6 +7578,8 @@ Type *TypeStruct::syntaxCopy()
 Type *TypeStruct::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeStruct::semantic('%s')\n", sym->toChars());
+    if (deco)
+        return this;
 
     /* Don't semantic for sym because it should be deferred until
      * sizeof needed or its members accessed.
@@ -7586,6 +7589,7 @@ Type *TypeStruct::semantic(Loc loc, Scope *sc)
 
     if (sym->type->ty == Terror)
         return Type::terror;
+    this->cppmangle = sc->cppmangle;
     return merge();
 }
 
@@ -8115,6 +8119,7 @@ TypeClass::TypeClass(ClassDeclaration *sym)
 {
     this->sym = sym;
     this->att = RECfwdref;
+    this->cppmangle = CPPMANGLEdefault;
 }
 
 const char *TypeClass::kind()
@@ -8130,6 +8135,8 @@ Type *TypeClass::syntaxCopy()
 Type *TypeClass::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeClass::semantic(%s)\n", sym->toChars());
+    if (deco)
+        return this;
 
     /* Don't semantic for sym because it should be deferred until
      * sizeof needed or its members accessed.
@@ -8139,6 +8146,7 @@ Type *TypeClass::semantic(Loc loc, Scope *sc)
 
     if (sym->type->ty == Terror)
         return Type::terror;
+    this->cppmangle = sc->cppmangle;
     return merge();
 }
 

@@ -1224,6 +1224,24 @@ public:
         visit((AttribDeclaration *)d);
     }
 
+    void visit(CPPMangleDeclaration *d)
+    {
+        const char *p;
+
+        switch (d->cppmangle)
+        {
+            case CPPMANGLEclass:    p = "class";            break;
+            case CPPMANGLEstruct:   p = "struct";           break;
+            default:
+                assert(0);
+                break;
+        }
+        buf->writestring("extern (C++, ");
+        buf->writestring(p);
+        buf->writestring(") ");
+        visit((AttribDeclaration *)d);
+    }
+
     void visit(ProtDeclaration *d)
     {
         protectionToBuffer(buf, d->protection);

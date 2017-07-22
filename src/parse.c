@@ -681,7 +681,8 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
 
                 Loc linkLoc = token.loc;
                 Identifiers *idents = NULL;
-                LINK link = parseLinkage(&idents);
+                CPPMANGLE cppmangle = CPPMANGLEdefault;
+                LINK link = parseLinkage(&idents, &cppmangle);
                 if (pAttrs->link != LINKdefault)
                 {
                     if (pAttrs->link != link)
@@ -720,6 +721,11 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                 {
                     s = new LinkDeclaration(pAttrs->link, a);
                     pAttrs->link = LINKdefault;
+                }
+                else if (cppmangle != CPPMANGLEdefault)
+                {
+                    assert(link == LINKcpp);
+                    s = new CPPMangleDeclaration(cppmangle, a);
                 }
                 break;
             }
@@ -1284,9 +1290,10 @@ Type *Parser::parseVector()
  * The parser is on the 'extern' token.
  */
 
-LINK Parser::parseLinkage(Identifiers **pidents)
+LINK Parser::parseLinkage(Identifiers **pidents, CPPMANGLE *pcppmangle)
 {
     Identifiers *idents = NULL;
+    CPPMANGLE cppmangle = CPPMANGLEdefault;
     LINK link = LINKdefault;
     nextToken();
     assert(token.value == TOKlparen);
@@ -1308,26 +1315,34 @@ LINK Parser::parseLinkage(Identifiers **pidents)
             {
                 link = LINKcpp;
                 nextToken();
-                if (token.value == TOKcomma)    // , namespaces
+                if (token.value == TOKcomma)    // , namespaces or class or struct
                 {
-                    idents = new Identifiers();
                     nextToken();
-                    while (1)
+                    if (token.value == TOKclass || token.value == TOKstruct)
                     {
-                        if (token.value == TOKidentifier)
+                        cppmangle = token.value == TOKclass ? CPPMANGLEclass : CPPMANGLEstruct;
+                        nextToken();
+                    }
+                    else
+                    {
+                        idents = new Identifiers();
+                        while (1)
                         {
-                            Identifier *idn = token.ident;
-                            idents->push(idn);
-                            nextToken();
-                            if (token.value == TOKdot)
+                            if (token.value == TOKidentifier)
                             {
+                                Identifier *idn = token.ident;
+                                idents->push(idn);
                                 nextToken();
-                                continue;
+                                if (token.value == TOKdot)
+                                {
+                                    nextToken();
+                                    continue;
+                                }
                             }
+                            else
+                                error("identifier expected for C++ namespace");
+                            break;
                         }
-                        else
-                            error("identifier expected for C++ namespace");
-                        break;
                     }
                 }
             }
@@ -1365,6 +1380,7 @@ LINK Parser::parseLinkage(Identifiers **pidents)
     }
     check(TOKrparen);
     *pidents = idents;
+    *pcppmangle = cppmangle;
     return link;
 }
 
@@ -3630,11 +3646,16 @@ void Parser::parseStorageClasses(StorageClass &storage_class, LINK &link, unsign
                     error("redundant linkage declaration");
                 sawLinkage = true;
                 Identifiers *idents = NULL;
-                link = parseLinkage(&idents);
+                CPPMANGLE cppmangle = CPPMANGLEdefault;
+                link = parseLinkage(&idents, &cppmangle);
                 if (idents)
                 {
                     error("C++ name spaces not allowed here");
                     delete idents;
+                }
+                if (cppmangle != CPPMANGLEdefault)
+                {
+                     error("C++ mangle declaration not allowed here");
                 }
                 continue;
             }
