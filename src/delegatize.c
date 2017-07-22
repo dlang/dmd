@@ -182,3 +182,29 @@ bool lambdaCheckForNestedRef(Expression *e, Scope *sc)
     walkPostorder(e, &v);
     return v.result;
 }
+
+bool checkNestedRef(Dsymbol *s, Dsymbol *p)
+{
+    while (s)
+    {
+        if (s == p) // hit!
+            return false;
+
+        if (FuncDeclaration *fd = s->isFuncDeclaration())
+        {
+            if (!fd->isThis() && !fd->isNested())
+                break;
+
+            // Bugzilla 15332: change to delegate if fd is actually nested.
+            if (FuncLiteralDeclaration *fld = fd->isFuncLiteralDeclaration())
+                fld->tok = TOKdelegate;
+        }
+        if (AggregateDeclaration *ad = s->isAggregateDeclaration())
+        {
+            if (ad->storage_class & STCstatic)
+                break;
+        }
+        s = s->toParent2();
+    }
+    return true;
+}

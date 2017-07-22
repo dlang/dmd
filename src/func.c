@@ -35,6 +35,7 @@
 Expression *addInvariant(Loc loc, Scope *sc, AggregateDeclaration *ad, VarDeclaration *vthis, bool direct);
 bool checkEscape(Scope *sc, Expression *e, bool gag);
 bool checkEscapeRef(Scope *sc, Expression *e, bool gag);
+bool checkNestedRef(Dsymbol *s, Dsymbol *p);
 
 void genCmain(Scope *sc);
 RET retStyle(TypeFunction *tf);
@@ -4058,6 +4059,16 @@ const char *FuncDeclaration::kind()
 bool FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
 {
     //printf("FuncDeclaration::checkNestedReference() %s\n", toPrettyChars());
+
+    if (FuncLiteralDeclaration *fld = this->isFuncLiteralDeclaration())
+    {
+        if (fld->tok == TOKreserved)
+        {
+            fld->tok = TOKfunction;
+            fld->vthis = NULL;
+        }
+    }
+
     if (!parent || parent == sc->parent)
         return false;
     if (ident == Id::require || ident == Id::ensure)
@@ -4073,24 +4084,7 @@ bool FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
     Dsymbol *p = toParent2();
 
     // Function literals from fdthis to p must be delegates
-    // TODO: here is similar to checkFrameAccess.
-    for (Dsymbol *s = fdthis; s && s != p; s = s->toParent2())
-    {
-        // function literal has reference to enclosing scope is delegate
-        if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
-            fld->tok = TOKdelegate;
-
-        if (FuncDeclaration *fd = s->isFuncDeclaration())
-        {
-            if (!fd->isThis() && !fd->isNested())
-                break;
-        }
-        if (AggregateDeclaration *ad2 = s->isAggregateDeclaration())
-        {
-            if (ad2->storage_class & STCstatic)
-                break;
-        }
-    }
+    checkNestedRef(fdthis, p);
 
     if (isNested())
     {

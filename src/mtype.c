@@ -5542,9 +5542,18 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             if (fparam->defaultArg)
             {
                 Expression *e = fparam->defaultArg;
-                Initializer *init = new ExpInitializer(e->loc, e);
-                init = init->semantic(argsc, fparam->type, INITnointerpret);
-                e = init->toExpression();
+                if (fparam->storageClass & (STCref | STCout))
+                {
+                    e = e->semantic(argsc);
+                    e = resolveProperties(argsc, e);
+                }
+                else
+                {
+                    e = inferType(e, fparam->type);
+                    Initializer *iz = new ExpInitializer(e->loc, e);
+                    iz = iz->semantic(argsc, fparam->type, INITnointerpret);
+                    e = iz->toExpression();
+                }
                 if (e->op == TOKfunction)               // see Bugzilla 4820
                 {
                     FuncExp *fe = (FuncExp *)e;

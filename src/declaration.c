@@ -28,6 +28,8 @@
 #include "target.h"
 #include "hdrgen.h"
 
+bool checkNestedRef(Dsymbol *s, Dsymbol *p);
+
 /************************************
  * Check to see the aggregate type is nested and its context pointer is
  * accessible from the current scope.
@@ -41,27 +43,7 @@ bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t iStar
     {
         //printf("ad = %p %s [%s], parent:%p\n", ad, ad->toChars(), ad->loc.toChars(), ad->parent);
         //printf("sparent = %p %s [%s], parent: %s\n", sparent, sparent->toChars(), sparent->loc.toChars(), sparent->parent->toChars());
-
-        while (s)
-        {
-            if (s == sparent)   // hit!
-                break;
-
-            if (FuncDeclaration *fd = s->isFuncDeclaration())
-            {
-                if (!fd->isThis() && !fd->isNested())
-                    break;
-                if (FuncLiteralDeclaration *fld = fd->isFuncLiteralDeclaration())
-                    fld->tok = TOKdelegate;
-            }
-            if (AggregateDeclaration *ad2 = s->isAggregateDeclaration())
-            {
-                if (ad2->storage_class & STCstatic)
-                    break;
-            }
-            s = s->toParent2();
-        }
-        if (s != sparent)
+        if (checkNestedRef(s, sparent))
         {
             error(loc, "cannot access frame pointer of %s", ad->toPrettyChars());
             return true;
@@ -1842,24 +1824,7 @@ bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
     Dsymbol *p = toParent2();
 
     // Function literals from fdthis to p must be delegates
-    // TODO: here is similar to checkFrameAccess.
-    for (Dsymbol *s = fdthis; s && s != p; s = s->toParent2())
-    {
-        // function literal has reference to enclosing scope is delegate
-        if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
-            fld->tok = TOKdelegate;
-
-        if (FuncDeclaration *fd = s->isFuncDeclaration())
-        {
-            if (!fd->isThis() && !fd->isNested())
-                break;
-        }
-        if (AggregateDeclaration *ad2 = s->isAggregateDeclaration())
-        {
-            if (ad2->storage_class & STCstatic)
-                break;
-        }
-    }
+    checkNestedRef(fdthis, p);
 
     if (1)
     {

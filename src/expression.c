@@ -49,6 +49,7 @@ bool walkPostorder(Expression *e, StoppableVisitor *v);
 TypeTuple *toArgTypes(Type *t);
 bool checkAccess(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember);
 bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t istart = 0);
+bool checkNestedRef(Dsymbol *s, Dsymbol *p);
 Type *getTypeInfoType(Type *t, Scope *sc);
 
 #define LOGSEMANTIC     0
@@ -5063,20 +5064,11 @@ Lagain:
             else if (fdn)
             {
                 // make sure the parent context fdn of cd is reachable from sc
-                for (Dsymbol *sp = sc->parent; 1; sp = sp->parent)
+                if (checkNestedRef(sc->parent, fdn))
                 {
-                    if (fdn == sp)
-                        break;
-                    FuncDeclaration *fsp = sp ? sp->isFuncDeclaration() : NULL;
-                    if (!sp || (fsp && fsp->isStatic()))
-                    {
-                        error("outer function context of %s is needed to 'new' nested class %s", fdn->toPrettyChars(), cd->toPrettyChars());
-                        goto Lerr;
-                    }
-                    else if (FuncLiteralDeclaration *fld = sp->isFuncLiteralDeclaration())
-                    {
-                        fld->tok = TOKdelegate;
-                    }
+                    error("outer function context of %s is needed to 'new' nested class %s",
+                        fdn->toPrettyChars(), cd->toPrettyChars());
+                    goto Lerr;
                 }
             }
             else
