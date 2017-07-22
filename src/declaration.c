@@ -343,6 +343,28 @@ void AliasDeclaration::aliasSemantic(Scope *sc)
     //printf("AliasDeclaration::semantic() %s\n", toChars());
     if (aliassym)
     {
+        FuncDeclaration *fd = aliassym->isFuncLiteralDeclaration();
+        TemplateDeclaration *td = aliassym->isTemplateDeclaration();
+        if (fd || td && td->literal)
+        {
+            if (fd && fd->semanticRun >= PASSsemanticdone)
+                return;
+
+            Expression *e = new FuncExp(loc, aliassym);
+            e = e->semantic(sc);
+            if (e->op == TOKfunction)
+            {
+                FuncExp *fe = (FuncExp *)e;
+                aliassym = fe->td ? (Dsymbol *)fe->td : fe->fd;
+            }
+            else
+            {
+                aliassym = NULL;
+                type = Type::terror;
+            }
+            return;
+        }
+
         if (aliassym->isTemplateInstance())
             aliassym->semantic(sc);
         return;

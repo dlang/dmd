@@ -3753,18 +3753,43 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, con
                     tpl = parseTemplateParameterList();
                 check(TOKassign);
 
-                storage_class = STCundefined;
-                link = linkage;
-                setAlignment = false;
-                ealign = NULL;
-                udas = NULL;
-                parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
+                Declaration *v;
+                if (token.value == TOKfunction ||
+                    token.value == TOKdelegate ||
+                    token.value == TOKlparen &&
+                        skipAttributes(peekPastParen(&token), &tk) &&
+                        (tk->value == TOKgoesto || tk->value == TOKlcurly) ||
+                    token.value == TOKlcurly ||
+                    token.value == TOKidentifier && peekNext() == TOKgoesto
+                   )
+                {
+                    // function (parameters) { statements... }
+                    // delegate (parameters) { statements... }
+                    // (parameters) { statements... }
+                    // (parameters) => expression
+                    // { statements... }
+                    // identifier => expression
 
-                if (udas)
-                    error("user defined attributes not allowed for %s declarations", Token::toChars(tok));
+                    Dsymbol *s = parseFunctionLiteral();
+                    v = new AliasDeclaration(loc, ident, s);
+                }
+                else
+                {
+                    // StorageClasses type
 
-                t = parseType();
-                Declaration *v = new AliasDeclaration(loc, ident, t);
+                    storage_class = STCundefined;
+                    link = linkage;
+                    setAlignment = false;
+                    ealign = NULL;
+                    udas = NULL;
+                    parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
+
+                    if (udas)
+                        error("user defined attributes not allowed for %s declarations", Token::toChars(tok));
+
+                    t = parseType();
+                    v = new AliasDeclaration(loc, ident, t);
+                }
                 v->storage_class = storage_class;
 
                 Dsymbol *s = v;

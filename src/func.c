@@ -2152,6 +2152,8 @@ void FuncDeclaration::semantic3(Scope *sc)
     if (!f->deco && ident != Id::xopEquals && ident != Id::xopCmp)
     {
         sc = sc->push();
+        if (isCtorDeclaration()) // Bugzilla #15665
+            sc->flags |= SCOPEctor;
         sc->stc = 0;
         sc->linkage = linkage;  // Bugzilla 8496
         type = f->semantic(loc, sc);
@@ -2892,20 +2894,20 @@ static void MODMatchToBuffer(OutBuffer *buf, unsigned char lhsMod, unsigned char
  * There's four result types.
  *
  * 1. If the 'tthis' matches only one candidate, it's an "exact match".
- *    Returns the function and 't' is set to its type.
+ *    Returns the function and 'hasOverloads' is set to false.
  *      eg. If 'tthis" is mutable and there's only one mutable method.
  * 2. If there's two or more match candidates, but a candidate function will be
  *    a "better match".
- *    Returns NULL but 't' is set to the candidate type.
+ *    Returns the better match function but 'hasOverloads' is set to true.
  *      eg. If 'tthis' is mutable, and there's both mutable and const methods,
  *          the mutable method will be a better match.
  * 3. If there's two or more match candidates, but there's no better match,
- *    Returns NULL and 't' is set to NULL to represent "ambiguous match".
+ *    Returns NULL and 'hasOverloads' is set to true to represent "ambiguous match".
  *      eg. If 'tthis' is mutable, and there's two or more mutable methods.
  * 4. If there's no candidates, it's "no match" and returns NULL with error report.
  *      e.g. If 'tthis' is const but there's no const methods.
  */
-FuncDeclaration *FuncDeclaration::overloadModMatch(Loc loc, Type *tthis, Type *&t)
+FuncDeclaration *FuncDeclaration::overloadModMatch(Loc loc, Type *tthis, bool &hasOverloads)
 {
     //printf("FuncDeclaration::overloadModMatch('%s')\n", toChars());
     Match m;
@@ -2965,6 +2967,7 @@ FuncDeclaration *FuncDeclaration::overloadModMatch(Loc loc, Type *tthis, Type *&
 
         LlastIsBetter:
             //printf("\tlastbetter\n");
+	    m->count++; // count up
             return 0;
 
         LfIsBetter:
@@ -2990,19 +2993,15 @@ FuncDeclaration *FuncDeclaration::overloadModMatch(Loc loc, Type *tthis, Type *&
 
     if (m.count == 1)       // exact match
     {
-        t = m.lastf->type;
+        hasOverloads = false;
     }
-    else if (m.count > 1)
+    else if (m.count > 1)   // better or ambiguous match
     {
-        if (!m.nextf)       // better match
-            t = m.lastf->type;
-        else                // ambiguous match
-            t = NULL;
-        m.lastf = NULL;
+        hasOverloads = true;
     }
     else                    // no match
     {
-        t = NULL;
+        hasOverloads = true;
         TypeFunction *tf = (TypeFunction *)this->type;
         assert(tthis);
         assert(!MODimplicitConv(tthis->mod, tf->mod));  // modifier mismatch
@@ -4668,21 +4667,42 @@ void CtorDeclaration::semantic(Scope *sc)
     /* See if it's the default constructor
      * But, template constructor should not become a default constructor.
      */
-    if (ad && tf->varargs == 0 && Parameter::dim(tf->parameters) == 0 &&
-        (!parent->isTemplateInstance() || parent->isTemplateMixin()))
+    if (ad && (!parent->isTemplateInstance() || parent->isTemplateMixin()))
     {
-        StructDeclaration *sd = ad->isStructDeclaration();
-        if (sd)
+        const size_t dim = Parameter::dim(tf->parameters);
+
+        if (StructDeclaration *sd = ad->isStructDeclaration())
         {
-            if (fbody || !(storage_class & STCdisable))
+            if (dim == 0 && tf->varargs == 0) // empty default ctor w/o any varargs
             {
-                error("default constructor for structs only allowed with @disable and no body");
-                storage_class |= STCdisable;
-                fbody = NULL;
+                if (fbody || !(storage_class & STCdisable) || dim)
+                {
+                    error("default constructor for structs only allowed "
+                        "with @disable, no body, and no parameters");
+                    storage_class |= STCdisable;
+                    fbody = NULL;
+                }
+                sd->noDefaultCtor = true;
             }
-            sd->noDefaultCtor = true;
+            else if (dim == 0 && tf->varargs) // allow varargs only ctor
+            {
+            }
+            else if (dim && Parameter::getNth(tf->parameters, 0)->defaultArg)
+            {
+                // if the first parameter has a default argument, then the rest does as well
+                if (storage_class & STCdisable)
+                {
+                    deprecation("@disable'd constructor cannot have default "
+                                "arguments for all parameters.");
+                    deprecationSupplemental(loc, "Use @disable this(); if you want to disable default initialization.");
+                }
+                else
+                    deprecation("all parameters have default arguments, "
+                                "but structs cannot have default constructors.");
+            }
+
         }
-        else
+        else if (dim == 0 && tf->varargs == 0)
         {
             ad->defaultCtor = this;
         }

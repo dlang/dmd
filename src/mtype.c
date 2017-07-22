@@ -5975,89 +5975,83 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
             goto L1;        // try typesafe variadics
         }
         {
-        Expression *arg = (*args)[u];
-        assert(arg);
-        //printf("arg: %s, type: %s\n", arg->toChars(), arg->type->toChars());
+            Expression *arg = (*args)[u];
+            assert(arg);
+            //printf("arg: %s, type: %s\n", arg->toChars(), arg->type->toChars());
 
-        Type *targ = arg->type;
-        Type *tprm = wildmatch ? p->type->substWildTo(wildmatch) : p->type;
+            Type *targ = arg->type;
+            Type *tprm = wildmatch ? p->type->substWildTo(wildmatch) : p->type;
 
-        if (p->storageClass & STClazy && tprm->ty == Tvoid && targ->ty != Tvoid)
-            m = MATCHconvert;
-        else
-        {
-            //printf("%s of type %s implicitConvTo %s\n", arg->toChars(), targ->toChars(), tprm->toChars());
-            if (flag)
-            {
-                // for partial ordering, value is an irrelevant mockup, just look at the type
-                m = targ->implicitConvTo(tprm);
-            }
+            if (p->storageClass & STClazy && tprm->ty == Tvoid && targ->ty != Tvoid)
+                m = MATCHconvert;
             else
-                m = arg->implicitConvTo(tprm);
-            //printf("match %d\n", m);
-        }
-
-        // Non-lvalues do not match ref or out parameters
-        if (p->storageClass & STCref)
-        {
-            // Bugzilla 13783: Don't use toBasetype() to handle enum types.
-            Type *ta = targ;
-            Type *tp = tprm;
-            //printf("fparam[%d] ta = %s, tp = %s\n", u, ta->toChars(), tp->toChars());
-
-            if (m && !arg->isLvalue())
             {
-                if (arg->op == TOKstring && tp->ty == Tsarray)
+                //printf("%s of type %s implicitConvTo %s\n", arg->toChars(), targ->toChars(), tprm->toChars());
+                if (flag)
                 {
-                    if (ta->ty != Tsarray)
-                    {
-                        Type *tn = tp->nextOf()->castMod(ta->nextOf()->mod);
-                        dinteger_t dim = ((StringExp *)arg)->len;
-                        ta = tn->sarrayOf(dim);
-                    }
-                }
-                else if (arg->op == TOKslice && tp->ty == Tsarray)
-                {
-                    // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
-                    if (ta->ty != Tsarray)
-                    {
-                        Type *tn = ta->nextOf();
-                        dinteger_t dim = ((TypeSArray *)tp)->dim->toUInteger();
-                        ta = tn->sarrayOf(dim);
-                    }
+                    // for partial ordering, value is an irrelevant mockup, just look at the type
+                    m = targ->implicitConvTo(tprm);
                 }
                 else
+                    m = arg->implicitConvTo(tprm);
+                //printf("match %d\n", m);
+            }
+
+            // Non-lvalues do not match ref or out parameters
+            if (p->storageClass & (STCref | STCout))
+            {
+                // Bugzilla 13783: Don't use toBasetype() to handle enum types.
+                Type *ta = targ;
+                Type *tp = tprm;
+                //printf("fparam[%d] ta = %s, tp = %s\n", u, ta->toChars(), tp->toChars());
+
+                if (m && !arg->isLvalue())
+                {
+                    if (p->storageClass & STCout)
+                        goto Nomatch;
+
+                    if (arg->op == TOKstring && tp->ty == Tsarray)
+                    {
+                        if (ta->ty != Tsarray)
+                        {
+                            Type *tn = tp->nextOf()->castMod(ta->nextOf()->mod);
+                            dinteger_t dim = ((StringExp *)arg)->len;
+                            ta = tn->sarrayOf(dim);
+                        }
+                    }
+                    else if (arg->op == TOKslice && tp->ty == Tsarray)
+                    {
+                        // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
+                        if (ta->ty != Tsarray)
+                        {
+                            Type *tn = ta->nextOf();
+                            dinteger_t dim = ((TypeSArray *)tp)->dim->toUInteger();
+                            ta = tn->sarrayOf(dim);
+                        }
+                    }
+                    else
+                        goto Nomatch;
+                }
+
+                /* Find most derived alias this type being matched.
+                 * Bugzilla 15674: Allow on both ref and out parameters.
+                 */
+                while (1)
+                {
+                    Type *tat = ta->toBasetype()->aliasthisOf();
+                    if (!tat || !tat->implicitConvTo(tprm))
+                        break;
+                    ta = tat;
+                }
+
+                /* A ref variable should work like a head-const reference.
+                 * e.g. disallows:
+                 *  ref T      <- an lvalue of const(T) argument
+                 *  ref T[dim] <- an lvalue of const(T[dim]) argument
+                 */
+                if (!ta->constConv(tp))
                     goto Nomatch;
             }
-
-            /* find most derived alias this type being matched.
-             */
-            while (1)
-            {
-                Type *tat = ta->toBasetype()->aliasthisOf();
-                if (!tat || !tat->implicitConvTo(tprm))
-                    break;
-                ta = tat;
-            }
-
-            /* A ref variable should work like a head-const reference.
-             * e.g. disallows:
-             *  ref T      <- an lvalue of const(T) argument
-             *  ref T[dim] <- an lvalue of const(T[dim]) argument
-             */
-            if (!ta->constConv(tp))
-                goto Nomatch;
-        }
-        else if (p->storageClass & STCout)
-        {
-            if (m && !arg->isLvalue())
-                goto Nomatch;
-
-            Type *targb = targ->toBasetype();
-            Type *tprmb = tprm->toBasetype();
-            if (!targb->constConv(tprmb))
-                goto Nomatch;
-        }
         }
 
         /* prefer matching the element type rather than the array

@@ -38,14 +38,16 @@ Expression *resolveAliasThis(Scope *sc, Expression *e, bool gag)
         {
             if (e->op == TOKvar)
             {
-                if (FuncDeclaration *f = ((VarExp *)e)->var->isFuncDeclaration())
+                if (FuncDeclaration *fd = ((VarExp *)e)->var->isFuncDeclaration())
                 {
                     // Bugzilla 13009: Support better match for the overloaded alias this.
-                    Type *t;
-                    f = f->overloadModMatch(loc, tthis, t);
-                    if (f && t)
+                    bool hasOverloads = false;
+                    if (FuncDeclaration *f = fd->overloadModMatch(loc, tthis, hasOverloads))
                     {
-                        e = new VarExp(loc, f, 0);  // use better match
+                        if (!hasOverloads)
+                            fd = f;     // use exact match
+                        e = new VarExp(loc, fd, hasOverloads);
+                        e->type = f->type;
                         e = new CallExp(loc, e);
                         goto L1;
                     }

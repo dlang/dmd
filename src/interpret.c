@@ -2957,12 +2957,15 @@ public:
         assert(argnum == arguments->dim - 1);
         if (elemType->ty == Tchar || elemType->ty == Twchar || elemType->ty == Tdchar)
         {
-            return createBlockDuplicatedStringLiteral(loc, newtype,
-                (unsigned)(elemType->defaultInitLiteral(loc)->toInteger()),
-                len, (unsigned char)elemType->size());
+            const unsigned ch = (unsigned)elemType->defaultInitLiteral(loc)->toInteger();
+            const unsigned char sz = (unsigned char)elemType->size();
+            return createBlockDuplicatedStringLiteral(loc, newtype, ch, len, sz);
         }
-        return createBlockDuplicatedArrayLiteral(loc, newtype,
-            elemType->defaultInitLiteral(loc), len);
+        else
+        {
+            Expression *el = interpret(elemType->defaultInitLiteral(loc), istate);
+            return createBlockDuplicatedArrayLiteral(loc, newtype, el, len);
+        }
     }
 
     void visit(NewExp *e)

@@ -292,31 +292,40 @@ UnionExp copyLiteral(Expression *e)
          * case: block assignment is permitted inside struct literals, eg,
          * an int[4] array can be initialized with a single int.
          */
-        StructLiteralExp *se = (StructLiteralExp *)e;
-        Expressions *oldelems = se->elements;
+        StructLiteralExp *sle = (StructLiteralExp *)e;
+        Expressions *oldelems = sle->elements;
         Expressions * newelems = new Expressions();
         newelems->setDim(oldelems->dim);
         for (size_t i = 0; i < newelems->dim; i++)
         {
-            Expression *m = (*oldelems)[i];
             // We need the struct definition to detect block assignment
-            AggregateDeclaration *sd = se->sd;
-            VarDeclaration *v = sd->fields[i];
+            VarDeclaration *v = sle->sd->fields[i];
+            Expression *m = (*oldelems)[i];
+
             // If it is a void assignment, use the default initializer
             if (!m)
                 m = voidInitLiteral(v->type, v).copy();
-            if ((v->type->ty != m->type->ty) && v->type->ty == Tsarray)
+
+            if (v->type->ty == Tarray || v->type->ty == Taarray)
             {
-                // Block assignment from inside struct literals
-                TypeSArray *tsa = (TypeSArray *)v->type;
-                uinteger_t length = tsa->dim->toInteger();
-                m = createBlockDuplicatedArrayLiteral(e->loc, v->type, m, (size_t)length);
+                // Don't have to copy array references
             }
-            else if (v->type->ty != Tarray && v->type->ty!=Taarray) // NOTE: do not copy array references
+            else
+            {
+                // Buzilla 15681: Copy the source element always.
                 m = copyLiteral(m).copy();
+
+                // Block assignment from inside struct literals
+                if (v->type->ty != m->type->ty && v->type->ty == Tsarray)
+                {
+                    TypeSArray *tsa = (TypeSArray *)v->type;
+                    size_t len = (size_t)tsa->dim->toInteger();
+                    m = createBlockDuplicatedArrayLiteral(e->loc, v->type, m, len);
+                }
+            }
             (*newelems)[i] = m;
         }
-        new(&ue) StructLiteralExp(e->loc, se->sd, newelems, se->stype);
+        new(&ue) StructLiteralExp(e->loc, sle->sd, newelems, sle->stype);
         StructLiteralExp *r = (StructLiteralExp *)ue.exp();
         r->type = e->type;
         r->ownedByCtfe = OWNEDctfe;
@@ -521,21 +530,31 @@ uinteger_t resolveArrayLength(Expression *e)
 /******************************
  * Helper for NewExp
  * Create an array literal consisting of 'elem' duplicated 'dim' times.
+ * Params:
+ *      loc = source location where the interpretation occurs
+ *      type = target type of the result
+ *      elem = the source of array element, it will be owned by the result
+ *      dim = element number of the result
+ * Returns:
+ *      Constructed ArrayLiteralExp
  */
 ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Loc loc, Type *type,
         Expression *elem, size_t dim)
 {
-    Expressions *elements = new Expressions();
-    elements->setDim(dim);
-    bool mustCopy = needToCopyLiteral(elem);
-    if (type->ty == Tsarray && type->nextOf()->ty == Tsarray &&
-        elem->type->ty != Tsarray)
+    if (type->ty == Tsarray && type->nextOf()->ty == Tsarray && elem->type->ty != Tsarray)
     {
         // If it is a multidimensional array literal, do it recursively
-        elem = createBlockDuplicatedArrayLiteral(loc, type->nextOf(), elem,
-            (size_t)((TypeSArray *)type->nextOf())->dim->toInteger());
-        mustCopy = true;
+        TypeSArray *tsa = (TypeSArray *)type->nextOf();
+        size_t len = (size_t)tsa->dim->toInteger();
+        elem = createBlockDuplicatedArrayLiteral(loc, type->nextOf(), elem, len);
     }
+
+    // Buzilla 15681
+    Type *tb = elem->type->toBasetype();
+    const bool mustCopy = tb->ty == Tstruct || tb->ty == Tsarray;
+
+    Expressions *elements = new Expressions();
+    elements->setDim(dim);
     for (size_t i = 0; i < dim; i++)
     {
         (*elements)[i] = mustCopy ? copyLiteral(elem).copy() : elem;
