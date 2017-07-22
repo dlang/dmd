@@ -296,6 +296,9 @@ void Import::semantic(Scope *sc)
             if (mod->search(loc, names[i]))
             {
                 ad->semantic(sc);
+                // If the import declaration is in non-root module,
+                // analysis of the aliased symbol is deferred.
+                // Therefore, don't see the ad->aliassym or ad->type here.
             }
             else
             {
