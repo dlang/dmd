@@ -7169,6 +7169,20 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
              */
             dedtypes.setDim(td->parameters->dim);
             dedtypes.zero();
+            if (td->semanticRun == PASSinit)
+            {
+                if (td->_scope)
+                {
+                    // Try to fix forward reference. Ungag errors while doing so.
+                    Ungag ungag = td->ungagSpeculative();
+                    td->semantic(td->_scope);
+                }
+                if (td->semanticRun == PASSinit)
+                {
+                    ti->error("%s forward references template declaration %s", ti->toChars(), td->toChars());
+                    return 1;
+                }
+            }
             assert(td->semanticRun != PASSinit);
             MATCH m = td->matchWithInstance(sc, ti, &dedtypes, NULL, 0);
             if (m <= MATCHnomatch)
