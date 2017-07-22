@@ -1319,13 +1319,12 @@ Lnomatch:
             checkFrameAccess(loc, sc, ((TypeStruct *)tv->toBasetype())->sym);
 
             Expression *e = tv->defaultInitLiteral(loc);
-            Expression *e1 = new VarExp(loc, this);
-            e = new BlitExp(loc, e1, e);
+            e = new BlitExp(loc, new VarExp(loc, this), e);
             e = e->semantic(sc);
             _init = new ExpInitializer(loc, e);
             goto Ldtor;
         }
-        else if (type->ty == Tstruct &&
+        if (type->ty == Tstruct &&
             ((TypeStruct *)type)->sym->zeroInit == 1)
         {
             /* If a struct is all zeros, as a special case
@@ -1335,14 +1334,12 @@ Lnomatch:
              * Must do same check in interpreter.
              */
             Expression *e = new IntegerExp(loc, 0, Type::tint32);
-            Expression *e1;
-            e1 = new VarExp(loc, this);
-            e = new BlitExp(loc, e1, e);
-            e->type = e1->type;         // don't type check this, it would fail
+            e = new BlitExp(loc, new VarExp(loc, this), e);
+            e->type = type;         // don't type check this, it would fail
             _init = new ExpInitializer(loc, e);
             goto Ldtor;
         }
-        else if (type->baseElemOf()->ty == Tvoid)
+        if (type->baseElemOf()->ty == Tvoid)
         {
             error("%s does not have a default initializer", type->toChars());
         }

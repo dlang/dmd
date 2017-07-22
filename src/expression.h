@@ -1193,6 +1193,7 @@ class ConstructExp : public AssignExp
 {
 public:
     ConstructExp(Loc loc, Expression *e1, Expression *e2);
+    ConstructExp(Loc loc, VarDeclaration *v, Expression *e2);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1200,6 +1201,7 @@ class BlitExp : public AssignExp
 {
 public:
     BlitExp(Loc loc, Expression *e1, Expression *e2);
+    BlitExp(Loc loc, VarDeclaration *v, Expression *e2);
     void accept(Visitor *v) { v->visit(this); }
 };
 

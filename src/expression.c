@@ -1171,6 +1171,9 @@ bool arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
     for (size_t i = 0; i < exps->dim; i++)
     {
         Expression *e = (*exps)[i];
+        if (!e)
+            continue;
+
         e = resolveProperties(sc, e);
         if (!e->type)
         {
@@ -1224,6 +1227,9 @@ bool arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
         for (size_t i = 0; i < exps->dim; i++)
         {
             Expression *e = (*exps)[i];
+            if (!e)
+                continue;
+
             e = e->implicitCastTo(sc, t0);
             //assert(e->op != TOKerror);
             if (e->op == TOKerror)
@@ -4386,16 +4392,22 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
     /* Perhaps an empty array literal [ ] should be rewritten as null?
      */
 
-    if (arrayExpressionSemantic(elements, sc))  // run semantic() on each element
+    if (basis)
+        basis = basis->semantic(sc);
+    if (arrayExpressionSemantic(elements, sc) || (basis && basis->op == TOKerror))
         return new ErrorExp();
     expandTuples(elements);
 
     Type *t0;
-    if (arrayExpressionToCommonType(sc, elements, &t0))
+    if (basis)
+        elements->push(basis);
+    bool err = arrayExpressionToCommonType(sc, elements, &t0);
+    if (basis)
+        elements->pop();
+    if (err)
         return new ErrorExp();
 
     type = t0->arrayOf();
-    //type = new TypeSArray(t0, new IntegerExp(elements->dim));
     type = type->semantic(loc, sc);
 
     /* Disallow array literals of type void being used.
@@ -10094,10 +10106,13 @@ Expression *CastExp::semantic(Scope *sc)
         error("cannot cast %s to tuple type %s", e1->toChars(), to->toChars());
         return new ErrorExp();
     }
-    if (e1->op == TOKtemplate)
+    if (e1->type->ty != Tvoid ||
+        e1->op == TOKfunction && to->ty == Tvoid ||
+        e1->op == TOKtype ||
+        e1->op == TOKtemplate)
     {
-        error("cannot cast template %s to type %s", e1->toChars(), to->toChars());
-        return new ErrorExp();
+        if (e1->checkValue())
+            return new ErrorExp();
     }
 
     // cast(void) is used to mark e1 as unused, so it is safe
@@ -11642,13 +11657,6 @@ Expression *AssignExp::semantic(Scope *sc)
     {
         //printf("[%s] change to init - %s\n", loc.toChars(), toChars());
         op = TOKconstruct;
-        if (e1->op == TOKvar &&
-            ((VarExp *)e1)->var->storage_class & (STCout | STCref))
-        {
-            // Bugzilla 14944, even if e1 is a ref variable,
-            // make an initialization of referenced memory.
-            memset |= referenceInit;
-        }
 
         // Bugzilla 13515: set Index::modifiable flag for complex AA element initialization
         if (e1->op == TOKindex)
@@ -11658,12 +11666,16 @@ Expression *AssignExp::semantic(Scope *sc)
                 return e1x;
         }
     }
+    else if (op == TOKconstruct && e1->op == TOKvar &&
+             ((VarExp *)e1)->var->storage_class & (STCout | STCref))
+    {
+        memset |= referenceInit;
+    }
 
     /* If it is an assignment from a 'foreign' type,
      * check for operator overloading.
      */
-    if (op == TOKconstruct && e1->op == TOKvar &&
-        ((VarExp *)e1)->var->storage_class & (STCout | STCref) && !(memset & referenceInit))
+    if (memset & referenceInit)
     {
         // If this is an initialization of a reference,
         // do nothing
@@ -12315,12 +12327,32 @@ ConstructExp::ConstructExp(Loc loc, Expression *e1, Expression *e2)
     op = TOKconstruct;
 }
 
+ConstructExp::ConstructExp(Loc loc, VarDeclaration *v, Expression *e2)
+    : AssignExp(loc, new VarExp(loc, v), e2)
+{
+    assert(v->type && e1->type);
+    op = TOKconstruct;
+
+    if (v->storage_class & (STCref | STCout))
+        memset |= referenceInit;
+}
+
 /************************************************************/
 
 BlitExp::BlitExp(Loc loc, Expression *e1, Expression *e2)
     : AssignExp(loc, e1, e2)
 {
     op = TOKblit;
+}
+
+BlitExp::BlitExp(Loc loc, VarDeclaration *v, Expression *e2)
+    : AssignExp(loc, new VarExp(loc, v), e2)
+{
+    assert(v->type && e1->type);
+    op = TOKblit;
+
+    if (v->storage_class & (STCref | STCout))
+        memset |= referenceInit;
 }
 
 /************************************************************/
@@ -13878,42 +13910,14 @@ EqualExp::EqualExp(TOK op, Loc loc, Expression *e1, Expression *e2)
     assert(op == TOKequal || op == TOKnotequal);
 }
 
-bool needDirectEq(Scope *sc, Type *t1, Type *t2)
-{
-    assert(t1->ty == Tarray || t1->ty == Tsarray);
-    assert(t2->ty == Tarray || t2->ty == Tsarray);
-
-    Type *t1n = t1->nextOf()->toBasetype();
-    Type *t2n = t2->nextOf()->toBasetype();
-
-    if (((t1n->ty == Tchar || t1n->ty == Twchar || t1n->ty == Tdchar) &&
-         (t2n->ty == Tchar || t2n->ty == Twchar || t2n->ty == Tdchar)) ||
-        (t1n->ty == Tvoid || t2n->ty == Tvoid))
-    {
-        return false;
-    }
-
-    if (t1n->constOf() != t2n->constOf())
-        return true;
-
-    Type *t = t1n;
-    while (t->toBasetype()->nextOf())
-        t = t->nextOf()->toBasetype();
-    if (t->ty != Tstruct)
-        return false;
-
-    semanticTypeInfo(sc, t);
-    return ((TypeStruct *)t)->sym->hasIdentityEquals;
-}
-
 Expression *EqualExp::semantic(Scope *sc)
 {
     //printf("EqualExp::semantic('%s')\n", toChars());
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
+    if (Expression *e = binSemanticProp(sc))
+        return e;
     if (e1->op == TOKtype || e2->op == TOKtype)
         return incompatibleTypes();
 
@@ -13938,121 +13942,11 @@ Expression *EqualExp::semantic(Scope *sc)
         }
     }
 
-    Type *t1 = e1->type->toBasetype();
-    Type *t2 = e2->type->toBasetype();
-    if (t1->ty == Tclass && e2->op == TOKnull ||
-        t2->ty == Tclass && e1->op == TOKnull)
-    {
-        error("use '%s' instead of '%s' when comparing with null",
-                Token::toChars(op == TOKequal ? TOKidentity : TOKnotidentity),
-                Token::toChars(op));
-        return new ErrorExp();
-    }
-
-    if ((t1->ty == Tarray || t1->ty == Tsarray) &&
-        (t2->ty == Tarray || t2->ty == Tsarray))
-    {
-        if (needDirectEq(sc, t1, t2))
-        {
-            /* Rewrite as:
-             * _ArrayEq(e1, e2)
-             */
-            Expression *eq = new IdentifierExp(loc, Id::_ArrayEq);
-            Expression *e = new CallExp(loc, eq, e1, e2);
-            if (op == TOKnotequal)
-                e = new NotExp(loc, e);
-            e = e->trySemantic(sc); // for better error message
-            if (!e)
-            {
-                error("cannot compare %s and %s", t1->toChars(), t2->toChars());
-                return new ErrorExp();
-            }
-            return e;
-        }
-    }
-
-    Expression *e = op_overload(sc);
-    if (e)
-    {
-        if (e->op == TOKcall && op == TOKnotequal)
-        {
-            e = new NotExp(e->loc, e);
-            e = e->semantic(sc);
-        }
+    if (Expression *e = op_overload(sc))
         return e;
-    }
 
-    if (t1->ty == Tpointer || t2->ty == Tpointer)
-    {
-        /* Rewrite:
-         *      ptr1 == ptr2
-         * as:
-         *      ptr1 is ptr2
-         */
-        e = new IdentityExp(op == TOKequal ? TOKidentity : TOKnotidentity, loc, e1, e2);
-        e = e->semantic(sc);
+    if (Expression *e = typeCombine(this, sc))
         return e;
-    }
-
-    if (t1->ty == Tstruct && t2->ty == Tstruct)
-    {
-        StructDeclaration *sd = ((TypeStruct *)t1)->sym;
-        if (sd == ((TypeStruct *)t2)->sym)
-        {
-            if (needOpEquals(sd))
-            {
-                this->e1 = new DotIdExp(loc, e1, Id::_tupleof);
-                this->e2 = new DotIdExp(loc, e2, Id::_tupleof);
-                e = this;
-            }
-            else
-            {
-                e = new IdentityExp(op == TOKequal ? TOKidentity : TOKnotidentity, loc, e1, e2);
-            }
-            e = e->semantic(sc);
-            return e;
-        }
-    }
-
-    // check tuple equality before typeCombine
-    if (e1->op == TOKtuple && e2->op == TOKtuple)
-    {
-        TupleExp *tup1 = (TupleExp *)e1;
-        TupleExp *tup2 = (TupleExp *)e2;
-        size_t dim = tup1->exps->dim;
-        e = NULL;
-        if (dim != tup2->exps->dim)
-        {
-            error("mismatched tuple lengths, %d and %d", (int)dim, (int)tup2->exps->dim);
-            return new ErrorExp();
-        }
-        if (dim == 0)
-        {
-            // zero-length tuple comparison should always return true or false.
-            e = new IntegerExp(loc, (op == TOKequal), Type::tbool);
-        }
-        else
-        {
-            for (size_t i = 0; i < dim; i++)
-            {
-                Expression *ex1 = (*tup1->exps)[i];
-                Expression *ex2 = (*tup2->exps)[i];
-                Expression *eeq = new EqualExp(op, loc, ex1, ex2);
-                if (!e)
-                    e = eeq;
-                else if (op == TOKequal)
-                    e = new AndAndExp(loc, e, eeq);
-                else
-                    e = new OrOrExp(loc, e, eeq);
-            }
-        }
-        assert(e);
-        e = combine(combine(tup1->e0, tup2->e0), e);
-        return e->semantic(sc);
-    }
-
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
 
     type = Type::tbool;
 

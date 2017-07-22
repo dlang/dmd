@@ -994,6 +994,8 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                     {
                         return 0;
                     }
+                    if (sm->isTypeInfoDeclaration()) // Bugzilla 15177
+                        return 0;
 
                     //printf("\t%s\n", sm->ident->toChars());
                     Identifiers *idents = (Identifiers *)ctx;

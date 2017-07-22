@@ -900,12 +900,80 @@ Expression *op_overload(Expression *e, Scope *sc)
             return;
         }
 
+        static bool needsDirectEq(Type *t1, Type *t2, Scope *sc)
+        {
+            Type *t1n = t1->nextOf()->toBasetype();
+            Type *t2n = t2->nextOf()->toBasetype();
+            if (((t1n->ty == Tchar || t1n->ty == Twchar || t1n->ty == Tdchar) &&
+                 (t2n->ty == Tchar || t2n->ty == Twchar || t2n->ty == Tdchar)) ||
+                (t1n->ty == Tvoid || t2n->ty == Tvoid))
+            {
+                return false;
+            }
+            if (t1n->constOf() != t2n->constOf())
+                return true;
+
+            Type *t = t1n;
+            while (t->toBasetype()->nextOf())
+                t = t->nextOf()->toBasetype();
+            if (t->ty != Tstruct)
+                return false;
+
+            semanticTypeInfo(sc, t);
+            return ((TypeStruct *)t)->sym->hasIdentityEquals;
+        }
+
         void visit(EqualExp *e)
         {
             //printf("EqualExp::op_overload() (%s)\n", e->toChars());
 
             Type *t1 = e->e1->type->toBasetype();
             Type *t2 = e->e2->type->toBasetype();
+
+            /* Check for array equality.
+             */
+            if ((t1->ty == Tarray || t1->ty == Tsarray) &&
+                (t2->ty == Tarray || t2->ty == Tsarray))
+            {
+                if (needsDirectEq(t1, t2, sc))
+                {
+                    /* Rewrite as:
+                     *      _ArrayEq(e1, e2)
+                     */
+                    Expression *eeq = new IdentifierExp(e->loc, Id::_ArrayEq);
+                    result = new CallExp(e->loc, eeq, e->e1, e->e2);
+                    if (e->op == TOKnotequal)
+                        result = new NotExp(e->loc, result);
+                    result = result->trySemantic(sc); // for better error message
+                    if (!result)
+                    {
+                        e->error("cannot compare %s and %s", t1->toChars(), t2->toChars());
+                        result = new ErrorExp();
+                    }
+                    return;
+                }
+            }
+
+            /* Check for class equality with null literal or typeof(null).
+             */
+            if (t1->ty == Tclass && e->e2->op == TOKnull ||
+                t2->ty == Tclass && e->e1->op == TOKnull)
+            {
+                e->error("use '%s' instead of '%s' when comparing with null",
+                    Token::toChars(e->op == TOKequal ? TOKidentity : TOKnotidentity),
+                    Token::toChars(e->op));
+                result = new ErrorExp();
+                return;
+            }
+            if (t1->ty == Tclass && t2->ty == Tnull ||
+                t1->ty == Tnull && t2->ty == Tclass)
+            {
+                // Comparing a class with typeof(null) should not call opEquals
+                return;
+            }
+
+            /* Check for class equality.
+             */
             if (t1->ty == Tclass && t2->ty == Tclass)
             {
                 ClassDeclaration *cd1 = t1->isClassHandle();
@@ -919,9 +987,8 @@ Expression *op_overload(Expression *e, Scope *sc)
                     Expression *e1x = e->e1;
                     Expression *e2x = e->e2;
 
-                    /*
-                     * The explicit cast is necessary for interfaces,
-                     * see http://d.puremagic.com/issues/show_bug.cgi?id=4088
+                    /* The explicit cast is necessary for interfaces,
+                     * see Bugzilla 4088.
                      */
                     Type *to = ClassDeclaration::object->getType();
                     if (cd1->isInterfaceDeclaration())
@@ -933,19 +1000,133 @@ Expression *op_overload(Expression *e, Scope *sc)
                     result = new DotIdExp(e->loc, result, Id::object);
                     result = new DotIdExp(e->loc, result, Id::eq);
                     result = new CallExp(e->loc, result, e1x, e2x);
+                    if (e->op == TOKnotequal)
+                        result = new NotExp(e->loc, result);
                     result = result->semantic(sc);
                     return;
                 }
             }
 
-            // Comparing a class with typeof(null) should not call opEquals
-            if (t1->ty == Tclass && t2->ty == Tnull ||
-                t1->ty == Tnull && t2->ty == Tclass)
+            result = compare_overload(e, sc, Id::eq);
+            if (result)
             {
+                if (result->op == TOKcall && e->op == TOKnotequal)
+                {
+                    result = new NotExp(result->loc, result);
+                    result = result->semantic(sc);
+                }
+                return;
             }
-            else
+
+            /* Check for pointer equality.
+             */
+            if (t1->ty == Tpointer || t2->ty == Tpointer)
             {
-                result = compare_overload(e, sc, Id::eq);
+                /* Rewrite:
+                 *      ptr1 == ptr2
+                 * as:
+                 *      ptr1 is ptr2
+                 *
+                 * This is just a rewriting for deterministic AST representation
+                 * as the backend input.
+                 */
+                TOK op2 = e->op == TOKequal ? TOKidentity : TOKnotidentity;
+                result = new IdentityExp(op2, e->loc, e->e1, e->e2);
+                result = result->semantic(sc);
+                return;
+            }
+
+            /* Check for struct equality without opEquals.
+             */
+            if (t1->ty == Tstruct && t2->ty == Tstruct)
+            {
+                StructDeclaration *sd = ((TypeStruct *)t1)->sym;
+                if (sd != ((TypeStruct *)t2)->sym)
+                    return;
+
+                if (!needOpEquals(sd))
+                {
+                    // Use bitwise equality.
+                    TOK op2 = e->op == TOKequal ? TOKidentity : TOKnotidentity;
+                    result = new IdentityExp(op2, e->loc, e->e1, e->e2);
+                    result = result->semantic(sc);
+                    return;
+                }
+
+                /* Rewrite:
+                 *      e1 == e2
+                 * as:
+                 *      e1.tupleof == e2.tupleof
+                 */
+                if (e->att1 && t1 == e->att1)
+                    return;
+                if (e->att2 && t2 == e->att2)
+                    return;
+
+                e = (EqualExp *)e->copy();
+                if (!e->att1)
+                    e->att1 = t1;
+                if (!e->att2)
+                    e->att2 = t2;
+                e->e1 = new DotIdExp(e->loc, e->e1, Id::_tupleof);
+                e->e2 = new DotIdExp(e->loc, e->e2, Id::_tupleof);
+                result = e->semantic(sc);
+
+                /* Bugzilla 15292, if the rewrite result is same with the original,
+                 * the equality is unresolvable because it has recursive definition.
+                 */
+                if (result->op == e->op &&
+                    ((EqualExp *)result)->e1->type->toBasetype() == t1)
+                {
+                    e->error("cannot compare %s because its auto generated member-wise equality has recursive definition",
+                        t1->toChars());
+                    result = new ErrorExp();
+                }
+                return;
+            }
+
+            /* Check for tuple equality.
+             */
+            if (e->e1->op == TOKtuple && e->e2->op == TOKtuple)
+            {
+                TupleExp *tup1 = (TupleExp *)e->e1;
+                TupleExp *tup2 = (TupleExp *)e->e2;
+                size_t dim = tup1->exps->dim;
+                if (dim != tup2->exps->dim)
+                {
+                    e->error("mismatched tuple lengths, %d and %d",
+                        (int)dim, (int)tup2->exps->dim);
+                    result = new ErrorExp();
+                    return;
+                }
+
+                if (dim == 0)
+                {
+                    // zero-length tuple comparison should always return true or false.
+                    result = new IntegerExp(e->loc, (e->op == TOKequal), Type::tbool);
+                }
+                else
+                {
+                    for (size_t i = 0; i < dim; i++)
+                    {
+                        Expression *ex1 = (*tup1->exps)[i];
+                        Expression *ex2 = (*tup2->exps)[i];
+                        EqualExp *eeq = new EqualExp(e->op, e->loc, ex1, ex2);
+                        eeq->att1 = e->att1;
+                        eeq->att2 = e->att2;
+
+                        if (!result)
+                            result = eeq;
+                        else if (e->op == TOKequal)
+                            result = new AndAndExp(e->loc, result, eeq);
+                        else
+                            result = new OrOrExp(e->loc, result, eeq);
+                    }
+                    assert(result);
+                }
+                result = Expression::combine(Expression::combine(tup1->e0, tup2->e0), result);
+                result = result->semantic(sc);
+                return;
             }
         }
 

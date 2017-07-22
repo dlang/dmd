@@ -8084,9 +8084,17 @@ bool TemplateInstance::needsCodegen()
     if (enclosing && enclosing->inNonRoot())
     {
         if (tinst)
-            return tinst->needsCodegen();
+        {
+            bool r = tinst->needsCodegen();
+            minst = tinst->minst; // cache result
+            return r;
+        }
         if (tnext)
-            return tnext->needsCodegen();
+        {
+            bool r = tnext->needsCodegen();
+            minst = tnext->minst; // cache result
+            return r;
+        }
         return false;
     }
 

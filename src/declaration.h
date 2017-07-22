@@ -501,6 +501,7 @@ void builtin_init();
 #define FUNCFLAGnothrowInprocess   4    // working on determining nothrow
 #define FUNCFLAGnogcInprocess      8    // working on determining @nogc
 #define FUNCFLAGreturnInprocess 0x10    // working on inferring 'return' for parameters
+#define FUNCFLAGinlineScanned   0x20    // function has been scanned for inline possibilities
 
 class FuncDeclaration : public Declaration
 {
