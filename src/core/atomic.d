@@ -39,7 +39,7 @@ private
         alias S = shared T;
 
         static if (is(S U == shared U)) {}
-        else static assert(false);
+        else static assert(false, "S should be shared.");
 
         static if (is(S : U))
             alias TailShared = U;
