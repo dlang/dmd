@@ -1332,7 +1332,7 @@ bool StructDeclaration::fit(Loc loc, Scope *sc, Expressions *elements, Type *sty
             if (!se->committed &&
                 (typeb->ty == Tarray || typeb->ty == Tsarray) &&
                 (tynto == Tchar || tynto == Twchar || tynto == Tdchar) &&
-                se->length((int)tb->nextOf()->size()) < ((TypeSArray *)tb)->dim->toInteger())
+                se->numberOfCodeUnits(tynto) < ((TypeSArray *)tb)->dim->toInteger())
             {
                 e = se->castTo(sc, t);
                 goto L1;

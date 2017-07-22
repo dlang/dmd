@@ -372,7 +372,6 @@ public:
     static StringExp *create(Loc loc, char *s);
     bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
-    size_t length(int encSize = 4);
     StringExp *toStringExp();
     StringExp *toUTF8(Scope *sc);
     int compare(RootObject *obj);
@@ -382,6 +381,9 @@ public:
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     unsigned charAt(uinteger_t i) const;
     void accept(Visitor *v) { v->visit(this); }
+    size_t numberOfCodeUnits(int tynto = 0) const;
+    void writeTo(void* dest, bool zero, int tyto = 0) const;
+    char *toPtr();
 };
 
 // Tuple

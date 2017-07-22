@@ -3910,14 +3910,26 @@ Expression *StringExp::semantic(Scope *sc)
 }
 
 /**********************************
- * Return the code unit count of string.
- * Input:
- *      encSize     code unit size of the target encoding.
+ * Return the number of code units the string would be if it were re-encoded
+ * as tynto.
+ * Params:
+ *      tynto = code unit type of the target encoding
+ * Returns:
+ *      number of code units
  */
 
-size_t StringExp::length(int encSize)
+size_t StringExp::numberOfCodeUnits(int tynto) const
 {
-    assert(encSize == 1 || encSize == 2 || encSize == 4);
+    int encSize;
+    switch (tynto)
+    {
+        case 0:      return len;
+        case Tchar:  encSize = 1; break;
+        case Twchar: encSize = 2; break;
+        case Tdchar: encSize = 4; break;
+        default:
+            assert(0);
+    }
     if (sz == encSize)
         return len;
 
@@ -3963,6 +3975,48 @@ size_t StringExp::length(int encSize)
             assert(0);
     }
     return result;
+}
+
+/**********************************************
+ * Write the contents of the string to dest.
+ * Use numberOfCodeUnits() to determine size of result.
+ * Params:
+ *  dest = destination
+ *  tyto = encoding type of the result
+ *  zero = add terminating 0
+ */
+void StringExp::writeTo(void* dest, bool zero, int tyto) const
+{
+    int encSize;
+    switch (tyto)
+    {
+        case 0:      encSize = sz; break;
+        case Tchar:  encSize = 1; break;
+        case Twchar: encSize = 2; break;
+        case Tdchar: encSize = 4; break;
+        default:
+            assert(0);
+    }
+    if (sz == encSize)
+    {
+        memcpy(dest, string, len * sz);
+        if (zero)
+            memset((char *)dest + len * sz, 0, sz);
+    }
+    else
+        assert(0);
+}
+
+/**************************************************
+ * If the string data is UTF-8 and can be accessed directly,
+ * return a pointer to it.
+ * Do not assume a terminating 0.
+ * Returns:
+ *  pointer to string data if possible, null if not
+ */
+char *StringExp::toPtr()
+{
+    return (sz == 1) ? (char*)string : NULL;
 }
 
 StringExp *StringExp::toStringExp()
