@@ -2409,7 +2409,7 @@ void FuncDeclaration::buildResultVar(Scope *sc, Type *tret)
          * fbody->semantic() running, vresult->type might be modified.
          */
         vresult = new VarDeclaration(loc, tret, outId ? outId : Id::result, NULL);
-        vresult->noscope = true;
+        vresult->storage_class |= STCnodtor;
 
         if (outId == Id::result)
             vresult->storage_class |= STCtemp;

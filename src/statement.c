@@ -858,7 +858,7 @@ Statement *ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **se
                 {
                     //printf("dtor is: "); v->edtor->print();
                     *sfinally = new DtorExpStatement(loc, v->edtor, v);
-                    v->noscope = true; // don't add in dtor again
+                    v->storage_class |= STCnodtor; // don't add in dtor again
                 }
             }
         }
@@ -2996,7 +2996,7 @@ Statement *IfStatement::semantic(Scope *sc)
             Statement *sdtor = new ExpStatement(loc, match->edtor);
             sdtor = new OnScopeStatement(loc, TOKon_scope_exit, sdtor);
             ifbody = new CompoundStatement(loc, sdtor, ifbody);
-            match->noscope = true;
+            match->storage_class |= STCnodtor;
        }
     }
     else

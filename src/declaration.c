@@ -780,7 +780,6 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     this->_init = init;
     this->loc = loc;
     offset = 0;
-    noscope = false;
     isargptr = false;
     alignment = 0;
     ctorinit = 0;
@@ -1266,7 +1265,7 @@ Lnomatch:
     }
 
     FuncDeclaration *fd = parent->isFuncDeclaration();
-    if (type->isscope() && !noscope)
+    if (type->isscope() && !(storage_class & STCnodtor))
     {
         if (storage_class & (STCfield | STCout | STCref | STCstatic | STCmanifest | STCtls | STCgshared) || !fd)
         {
@@ -2060,7 +2059,7 @@ bool VarDeclaration::hasPointers()
 bool VarDeclaration::needsScopeDtor()
 {
     //printf("VarDeclaration::needsScopeDtor() %s\n", toChars());
-    return edtor && !noscope;
+    return edtor && !(storage_class & STCnodtor);
 }
 
 
@@ -2074,7 +2073,7 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
     //printf("VarDeclaration::callScopeDtor() %s\n", toChars());
 
     // Destruction of STCfield's is handled by buildDtor()
-    if (noscope || storage_class & (STCnodtor | STCref | STCout | STCfield))
+    if (storage_class & (STCnodtor | STCref | STCout | STCfield))
     {
         return NULL;
     }
@@ -2492,7 +2491,7 @@ TypeInfoTupleDeclaration *TypeInfoTupleDeclaration::create(Type *tinfo)
 ThisDeclaration::ThisDeclaration(Loc loc, Type *t)
    : VarDeclaration(loc, t, Id::This, NULL)
 {
-    noscope = true;
+    storage_class |= STCnodtor;
 }
 
 Dsymbol *ThisDeclaration::syntaxCopy(Dsymbol *s)
