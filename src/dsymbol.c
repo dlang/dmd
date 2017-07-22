@@ -204,12 +204,12 @@ Identifier *Dsymbol::getIdent()
     return ident;
 }
 
-char *Dsymbol::toChars()
+const char *Dsymbol::toChars()
 {
     return ident ? ident->toChars() : (char *)"__anonymous";
 }
 
-char *Dsymbol::toPrettyCharsHelper()
+const char *Dsymbol::toPrettyCharsHelper()
 {
     return toChars();
 }
@@ -233,7 +233,7 @@ const char *Dsymbol::toPrettyChars(bool QualifyTypes)
     *q = 0;
     for (p = this; p; p = p->parent)
     {
-        char *t = QualifyTypes ? p->toPrettyCharsHelper() : p->toChars();
+        const char *t = QualifyTypes ? p->toPrettyCharsHelper() : p->toChars();
         len = strlen(t);
         q -= len;
         memcpy(q, t, len);

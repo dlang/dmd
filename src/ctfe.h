@@ -74,7 +74,7 @@ public:
     VarDeclaration *var;
 
     VoidInitExp(VarDeclaration *var, Type *type);
-    char *toChars();
+    const char *toChars();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -89,7 +89,7 @@ class ThrownExceptionExp : public Expression
 public:
     ClassReferenceExp *thrown; // the thing being tossed
     ThrownExceptionExp(Loc loc, ClassReferenceExp *victim);
-    char *toChars();
+    const char *toChars();
     /// Generate an error message when this exception is not caught
     void generateUncaughtError();
     void accept(Visitor *v) { v->visit(this); }
@@ -104,7 +104,7 @@ class CTFEExp : public Expression
 public:
     CTFEExp(TOK tok);
 
-    char *toChars();
+    const char *toChars();
 
     // Handy instances to share
     static CTFEExp *cantexp;

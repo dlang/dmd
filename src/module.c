@@ -199,7 +199,7 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
     //  foo.bar.baz
     // into:
     //  foo\bar\baz
-    char *filename = ident->toChars();
+    const char *filename = ident->toChars();
     if (packages && packages->dim)
     {
         OutBuffer buf;
@@ -301,7 +301,7 @@ Module *Module::parse()
 {
     //printf("Module::parse(srcfile='%s') this=%p\n", srcfile->name->toChars(), this);
 
-    char *srcname = srcfile->name->toChars();
+    const char *srcname = srcfile->name->toChars();
     //printf("Module::parse(srcname = '%s')\n", srcname);
 
     isPackageFile = (strcmp(srcfile->name->name(), "package.d") == 0);
@@ -1104,7 +1104,7 @@ ModuleDeclaration::ModuleDeclaration(Loc loc, Identifiers *packages, Identifier 
     this->msg = NULL;
 }
 
-char *ModuleDeclaration::toChars()
+const char *ModuleDeclaration::toChars()
 {
     OutBuffer buf;
 

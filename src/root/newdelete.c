@@ -4,7 +4,7 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
- * https://github.com/D-Programming-Language/dmd/blob/master/src/root/rmem.c
+ * https://github.com/dlang/dmd/blob/master/src/root/rmem.c
  */
 
 #include <stdio.h>
@@ -23,7 +23,10 @@
 
 #if 1
 
-void *allocmemory(size_t m_size);
+extern "C"
+{
+    void *allocmemory(size_t m_size);
+}
 
 void * operator new(size_t m_size)
 {

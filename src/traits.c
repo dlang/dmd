@@ -636,7 +636,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             }
             id = s->ident;
         }
-        StringExp *se = new StringExp(e->loc, id->toChars());
+        StringExp *se = new StringExp(e->loc, (char *)id->toChars());
         return se->semantic(sc);
     }
     else if (e->ident == Id::getProtection)
@@ -863,7 +863,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
 
         Expressions *exps = new Expressions();
         if (ad->aliasthis)
-            exps->push(new StringExp(e->loc, ad->aliasthis->ident->toChars()));
+            exps->push(new StringExp(e->loc, (char *)ad->aliasthis->ident->toChars()));
 
         Expression *ex = new TupleExp(e->loc, exps);
         ex = ex->semantic(sc);
@@ -1050,7 +1050,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         for (size_t i = 0; i < idents->dim; i++)
         {
             Identifier *id = (*idents)[i];
-            StringExp *se = new StringExp(e->loc, id->toChars());
+            StringExp *se = new StringExp(e->loc, (char *)id->toChars());
             (*exps)[i] = se;
         }
 

@@ -2765,7 +2765,7 @@ bool TemplateDeclaration::hasStaticCtorOrDtor()
     return false;               // don't scan uninstantiated templates
 }
 
-char *TemplateDeclaration::toChars()
+const char *TemplateDeclaration::toChars()
 {
     if (literal)
         return Dsymbol::toChars();
@@ -7400,7 +7400,7 @@ Identifier *TemplateInstance::genIdent(Objects *args)
 
     //printf("TemplateInstance::genIdent('%s')\n", tempdecl->ident->toChars());
     OutBuffer buf;
-    char *id = tempdecl->ident->toChars();
+    const char *id = tempdecl->ident->toChars();
     if (!members)
     {
         // Use "__U" for the symbols declared inside template constraint.
@@ -7786,14 +7786,14 @@ bool TemplateInstance::oneMember(Dsymbol **ps, Identifier *ident)
     return true;
 }
 
-char *TemplateInstance::toChars()
+const char *TemplateInstance::toChars()
 {
     OutBuffer buf;
     toCBufferInstance(this, &buf);
     return buf.extractString();
 }
 
-char *TemplateInstance::toPrettyCharsHelper()
+const char *TemplateInstance::toPrettyCharsHelper()
 {
     OutBuffer buf;
     toCBufferInstance(this, &buf, true);
@@ -8549,7 +8549,7 @@ void TemplateMixin::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, 
     }
 }
 
-char *TemplateMixin::toChars()
+const char *TemplateMixin::toChars()
 {
     OutBuffer buf;
     toCBufferInstance(this, &buf);

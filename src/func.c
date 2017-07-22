@@ -4584,7 +4584,7 @@ const char *CtorDeclaration::kind()
     return "constructor";
 }
 
-char *CtorDeclaration::toChars()
+const char *CtorDeclaration::toChars()
 {
     return (char *)"this";
 }
@@ -4753,7 +4753,7 @@ const char *DtorDeclaration::kind()
     return "destructor";
 }
 
-char *DtorDeclaration::toChars()
+const char *DtorDeclaration::toChars()
 {
     return (char *)"~this";
 }

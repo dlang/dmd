@@ -34,7 +34,7 @@ void RootObject::print()
     printf("%s %p\n", toChars(), this);
 }
 
-char *RootObject::toChars()
+const char *RootObject::toChars()
 {
     return (char *)"Object";
 }

@@ -319,7 +319,7 @@ public:
     static TypeInfoDeclaration *create(Type *tinfo);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
-    char *toChars();
+    const char *toChars();
 
     TypeInfoDeclaration *isTypeInfoDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -714,7 +714,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     const char *kind();
-    char *toChars();
+    const char *toChars();
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();
@@ -746,7 +746,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     const char *kind();
-    char *toChars();
+    const char *toChars();
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();

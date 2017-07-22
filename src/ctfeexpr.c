@@ -109,7 +109,7 @@ VoidInitExp::VoidInitExp(VarDeclaration *var, Type *type)
     this->type = var->type;
 }
 
-char *VoidInitExp::toChars()
+const char *VoidInitExp::toChars()
 {
     return (char *)"void";
 }
@@ -134,7 +134,7 @@ ThrownExceptionExp::ThrownExceptionExp(Loc loc, ClassReferenceExp *victim) : Exp
     this->type = victim->type;
 }
 
-char *ThrownExceptionExp::toChars()
+const char *ThrownExceptionExp::toChars()
 {
     return (char *)"CTFE ThrownException";
 }
@@ -174,7 +174,7 @@ CTFEExp::CTFEExp(TOK tok)
     type = Type::tvoid;
 }
 
-char *CTFEExp::toChars()
+const char *CTFEExp::toChars()
 {
     switch (op)
     {

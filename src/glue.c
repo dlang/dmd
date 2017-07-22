@@ -99,7 +99,7 @@ void obj_write_deferred(Library *library)
         char *mname;
         if (m)
         {
-            mname = m->srcfile->toChars();
+            mname = (char*)m->srcfile->toChars();
             lastmname = mname;
         }
         else
@@ -153,7 +153,7 @@ void obj_write_deferred(Library *library)
         const char *fname = FileName::removeExt(mname);
         OutBuffer namebuf;
         unsigned hash = 0;
-        for (char *p = s->toChars(); *p; p++)
+        for (const char *p = s->toChars(); *p; p++)
             hash += *p;
         namebuf.printf("%s_%x_%x.%s", fname, count, hash, global.obj_ext);
         FileName::free((char *)fname);
@@ -321,7 +321,7 @@ void genObjFile(Module *m, bool multiobj)
         return;
     }
 
-    lastmname = m->srcfile->toChars();
+    lastmname = (char*)m->srcfile->toChars();
 
     objmod->initfile(lastmname, NULL, m->toPrettyChars());
 
@@ -720,7 +720,7 @@ bool isDruntimeArrayOp(Identifier *ident)
         "_arraySliceSliceMulass_u",
         "_arraySliceSliceMulass_w",
     };
-    char *name = ident->toChars();
+    const char *name = ident->toChars();
     int i = binary(name, libArrayopFuncs, sizeof(libArrayopFuncs) / sizeof(char *));
     if (i != -1)
         return true;

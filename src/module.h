@@ -179,7 +179,7 @@ struct ModuleDeclaration
 
     ModuleDeclaration(Loc loc, Identifiers *packages, Identifier *id);
 
-    char *toChars();
+    const char *toChars();
 };
 
 #endif /* DMD_MODULE_H */

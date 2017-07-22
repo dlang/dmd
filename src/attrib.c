@@ -444,7 +444,7 @@ Scope *LinkDeclaration::newScope(Scope *sc)
     return createNewScope(sc, sc->stc, this->linkage, sc->protection, sc->explicitProtection, sc->structalign, sc->inlining);
 }
 
-char *LinkDeclaration::toChars()
+const char *LinkDeclaration::toChars()
 {
     return (char *)"extern ()";
 }

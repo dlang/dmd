@@ -43,7 +43,7 @@ int Identifier::compare(RootObject *o)
     return strncmp(string, o->toChars(), len + 1);
 }
 
-char *Identifier::toChars()
+const char *Identifier::toChars()
 {
     return (char *)string;
 }

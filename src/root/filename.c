@@ -666,7 +666,7 @@ void FileName::free(const char *str)
     mem.xfree((void *)str);
 }
 
-char *FileName::toChars()
+const char *FileName::toChars() const
 {
-    return (char *)str;         // toChars() should really be const
+    return str;
 }

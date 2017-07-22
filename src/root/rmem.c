@@ -127,7 +127,7 @@ void Mem::error()
 static size_t heapleft = 0;
 static void *heapp;
 
-void *allocmemory(size_t m_size)
+extern "C" void *allocmemory(size_t m_size)
 {
     // 16 byte alignment is better (and sometimes needed) for doubles
     m_size = (m_size + 15) & ~15;

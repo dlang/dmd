@@ -31,7 +31,7 @@ public:
     bool equals(RootObject *o);
     int compare(RootObject *o);
     void print();
-    char *toChars();
+    const char *toChars();
     const char *toHChars2();
     int dyncast();
 

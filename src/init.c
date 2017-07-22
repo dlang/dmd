@@ -46,7 +46,7 @@ Initializers *Initializer::arraySyntaxCopy(Initializers *ai)
     return a;
 }
 
-char *Initializer::toChars()
+const char *Initializer::toChars()
 {
     OutBuffer buf;
     HdrGenState hgs;

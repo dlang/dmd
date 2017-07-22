@@ -1,10 +1,10 @@
 
-/* Copyright (c) 1999-2014 by Digital Mars
+/* Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved, written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
- * https://github.com/D-Programming-Language/dmd/blob/master/src/root/object.h
+ * https://github.com/dlang/dmd/blob/master/src/root/object.h
  */
 
 #ifndef OBJECT_H
@@ -43,7 +43,7 @@ public:
      */
     virtual void print();
 
-    virtual char *toChars();
+    virtual const char *toChars();
     virtual void toBuffer(OutBuffer *buf);
 
     /**

@@ -86,7 +86,7 @@ void Statement::print()
     fflush(stderr);
 }
 
-char *Statement::toChars()
+const char *Statement::toChars()
 {
     HdrGenState hgs;
 

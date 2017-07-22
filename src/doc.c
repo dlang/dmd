@@ -329,10 +329,10 @@ void gendocfile(Module *m)
         Macro::define(&m->macrotable, (utf8_t *)"YEAR", 4, (utf8_t *)p + 20, 4);
     }
 
-    char *srcfilename = m->srcfile->toChars();
+    const char *srcfilename = m->srcfile->toChars();
     Macro::define(&m->macrotable, (utf8_t *)"SRCFILENAME", 11, (utf8_t *)srcfilename, strlen(srcfilename));
 
-    char *docfilename = m->docfile->toChars();
+    const char *docfilename = m->docfile->toChars();
     Macro::define(&m->macrotable, (utf8_t *)"DOCFILENAME", 11, (utf8_t *)docfilename, strlen(docfilename));
 
     if (dc->copyright)
@@ -2518,7 +2518,7 @@ void highlightText(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset)
                     // leading '_' means no highlight unless it's a reserved symbol name
                     if (c == '_' &&
                         (i == 0 || !isdigit(*(start - 1))) &&
-                        (i == buf->size - 1 || !isReservedName(start, len)))
+                        (i == buf->offset - 1 || !isReservedName(start, len)))
                     {
                         buf->remove(i, 1);
                         i = j - 1;

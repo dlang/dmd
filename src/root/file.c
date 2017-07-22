@@ -86,7 +86,7 @@ bool File::read()
     struct stat buf;
     ssize_t numread;
 
-    char *name = this->name->toChars();
+    const char *name = this->name->toChars();
     //printf("File::read('%s')\n",name);
     int fd = open(name, O_RDONLY);
     if (fd == -1)
@@ -202,7 +202,7 @@ bool File::write()
 #if POSIX
     ssize_t numwritten;
 
-    char *name = this->name->toChars();
+    const char *name = this->name->toChars();
     int fd = open(name, O_CREAT | O_WRONLY | O_TRUNC, (6 << 6) | (4 << 3) | 4);
     if (fd == -1)
         goto err;
@@ -261,7 +261,7 @@ void File::remove()
 #endif
 }
 
-char *File::toChars()
+const char *File::toChars()
 {
     return name->toChars();
 }

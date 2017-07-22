@@ -40,7 +40,7 @@ DebugSymbol::DebugSymbol(Loc loc, unsigned level)
     this->loc = loc;
 }
 
-char *DebugSymbol::toChars()
+const char *DebugSymbol::toChars()
 {
     if (ident)
         return ident->toChars();
@@ -128,7 +128,7 @@ VersionSymbol::VersionSymbol(Loc loc, unsigned level)
     this->loc = loc;
 }
 
-char *VersionSymbol::toChars()
+const char *VersionSymbol::toChars()
 {
     if (ident)
         return ident->toChars();
