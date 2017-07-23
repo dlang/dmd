@@ -258,6 +258,7 @@ public:
     static ClassDeclaration *throwable;
     static ClassDeclaration *exception;
     static ClassDeclaration *errorException;
+    static ClassDeclaration *cpp_type_info_ptr;
 
     ClassDeclaration *baseClass;        // NULL only if this is Object
     FuncDeclaration *staticCtor;
@@ -282,6 +283,7 @@ public:
     int inuse;                          // to prevent recursive attempts
     Baseok baseok;                      // set the progress of base classes resolving
     Objc_ClassDeclaration objc;
+    Symbol *cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
 
     ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, bool inObject = false);
     Dsymbol *syntaxCopy(Dsymbol *s);

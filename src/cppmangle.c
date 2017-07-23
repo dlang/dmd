@@ -75,8 +75,10 @@ class CppMangleVisitor : public Visitor
         if (components_on)
             for (size_t i = 0; i < components.dim; i++)
             {
+                //printf("    component[%d] = %s\n", i, components[i] ? components[i]->toChars() : NULL);
                 if (p == components[i])
                 {
+                    //printf("\tmatch\n");
                     /* Sequence is S_, S0_, .., S9_, SA_, ..., SZ_, S10_, ...
                      */
                     buf.writeByte('S');
@@ -91,7 +93,7 @@ class CppMangleVisitor : public Visitor
 
     bool exist(RootObject *p)
     {
-        //printf("exist %s\n", p ? p->toChars() : NULL);
+        //printf("exist %s\n", p ? p->toChars() : "NULL");
         if (components_on)
             for (size_t i = 0; i < components.dim; i++)
             {
@@ -270,7 +272,8 @@ class CppMangleVisitor : public Visitor
             {
                 prefix_name(p);
             }
-            store(s);
+            if (!(s->ident == Id::std && is_initial_qualifier(s)))
+                store(s);
             source_name(s);
         }
     }
@@ -469,6 +472,11 @@ class CppMangleVisitor : public Visitor
             {
                 buf.remove(3, 4);
                 buf.insert(3, (const char *)"St", 2);
+            }
+            if (buf.offset >= 8 && memcmp(buf.data, "_ZNK3std", 8) == 0)
+            {
+                buf.remove(4, 4);
+                buf.insert(4, (const char *)"St", 2);
             }
 
             if (d->isDtorDeclaration())
@@ -885,6 +893,13 @@ public:
             store(NULL);
         store(t);
     }
+
+    const char *mangle_typeinfo(Dsymbol *s)
+    {
+        buf.writestring("_ZTI");
+        cpp_mangle_name(s, false);
+        return buf.extractString();
+    }
 };
 
 char *toCppMangle(Dsymbol *s)
@@ -892,6 +907,13 @@ char *toCppMangle(Dsymbol *s)
     //printf("toCppMangle(%s)\n", s->toChars());
     CppMangleVisitor v;
     return v.mangleOf(s);
+}
+
+const char *cppTypeInfoMangle(Dsymbol *s)
+{
+    //printf("cppTypeInfoMangle(%s)\n", s->toChars());
+    CppMangleVisitor v;
+    return v.mangle_typeinfo(s);
 }
 
 #elif TARGET_WINDOS
@@ -1924,6 +1946,12 @@ char *toCppMangle(Dsymbol *s)
 {
     VisualCPPMangler v(!global.params.mscoff);
     return v.mangleOf(s);
+}
+
+const char *cppTypeInfoMangle(Dsymbol *s)
+{
+    //printf("cppTypeInfoMangle(%s)\n", s->toChars());
+    assert(0);
 }
 
 #else

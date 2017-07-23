@@ -41,6 +41,7 @@ ClassDeclaration *ClassDeclaration::object;
 ClassDeclaration *ClassDeclaration::throwable;
 ClassDeclaration *ClassDeclaration::exception;
 ClassDeclaration *ClassDeclaration::errorException;
+ClassDeclaration *ClassDeclaration::cpp_type_info_ptr;
 
 ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, bool inObject)
     : AggregateDeclaration(loc, id)
@@ -229,6 +230,13 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
                 error("%s", msg);
             errorException = this;
         }
+
+        if (id == Id::cpp_type_info_ptr)
+        {
+            if (!inObject)
+                error("%s", msg);
+            cpp_type_info_ptr = this;
+        }
     }
 
     com = false;
@@ -238,6 +246,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     inuse = 0;
     baseok = BASEOKnone;
     objc.objc = false;
+    cpp_type_info_ptr_sym = NULL;
 }
 
 Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)

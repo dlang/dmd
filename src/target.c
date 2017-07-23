@@ -22,6 +22,7 @@ int Target::realsize;
 int Target::realpad;
 int Target::realalignsize;
 bool Target::reverseCppOverloads;
+bool Target::cppExceptions;
 int Target::c_longsize;
 int Target::c_long_doublesize;
 int Target::classinfosize;
@@ -123,6 +124,9 @@ void Target::_init()
     c_long_doublesize = realsize;
     if (global.params.is64bit && global.params.isWindows)
         c_long_doublesize = 8;
+
+    cppExceptions = global.params.isLinux || global.params.isFreeBSD ||
+        global.params.isOSX;
 
     initFloatConstants<Target::FloatProperties, float>();
     initFloatConstants<Target::DoubleProperties, double>();

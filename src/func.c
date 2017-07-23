@@ -4958,7 +4958,8 @@ void DtorDeclaration::semantic(Scope *sc)
 
     sc = sc->push();
     sc->stc &= ~STCstatic;              // not a static destructor
-    sc->linkage = LINKd;
+    if (sc->linkage != LINKcpp)
+        sc->linkage = LINKd;
 
     FuncDeclaration::semantic(sc);
 
