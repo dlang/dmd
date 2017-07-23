@@ -1,10 +1,8 @@
-dmd
+DMD
 ===
 
-dmd is the reference compiler for the D programming language.
+[![Build Status](https://travis-ci.org/dlang/dmd.svg?branch=dmd-cxx)](https://travis-ci.org/dlang/dmd)
 
-To report a problem or browse the list of open bugs, please visit the
-[bug tracker](http://issues.dlang.org/).
+DMD is the reference compiler for the D programming language.
 
-For more information, including instructions for compiling, installing, and
-hacking on DMD, visit the [D Wiki](http://wiki.dlang.org/DMD).
+This is the discontinued C++ implementation, for the most recent version in active development, see [master](https://github.com/dlang/dmd/tree/master).

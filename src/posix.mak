@@ -41,32 +41,6 @@ CC=$(HOST_CC)
 AR=ar
 GIT=git
 
-HOST_DC?=
-ifneq (,$(HOST_DC))
-  $(warning ========== Use HOST_DMD instead of HOST_DC ========== )
-  HOST_DMD=$(HOST_DC)
-endif
-
-# Host D compiler for bootstrapping
-ifeq (,$(AUTO_BOOTSTRAP))
-  # No bootstrap, a $(HOST_DC) installation must be available
-  HOST_DMD?=dmd
-  ifeq (,$(shell which $(HOST_DMD)))
-    $(error '$(HOST_DMD)' not found, get a D compiler or make AUTO_BOOTSTRAP=1)
-  endif
-  HOST_DMD_RUN:=$(HOST_DMD)
-else
-  # Auto-bootstrapping, will download dmd automatically
-  HOST_DMD_VER=2.067.1
-  HOST_DMD_ROOT=/tmp/.host_dmd-$(HOST_DMD_VER)
-  # dmd.2.067.1.osx.zip or dmd.2.067.1.freebsd-64.zip
-  HOST_DMD_ZIP=dmd.$(HOST_DMD_VER).$(OS)$(if $(filter $(OS),freebsd),-$(MODEL),).zip
-  # http://downloads.dlang.org/releases/2.x/2.067.1/dmd.2.067.1.osx.zip
-  HOST_DMD_URL=http://downloads.dlang.org/releases/2.x/$(HOST_DMD_VER)/$(HOST_DMD_ZIP)
-  HOST_DMD=$(HOST_DMD_ROOT)/dmd2/$(OS)/$(if $(filter $(OS),osx),bin,bin$(MODEL))/dmd
-  HOST_DMD_RUN=$(HOST_DMD) -conf=$(dir $(HOST_DMD))dmd.conf
-endif
-
 # Compiler Warnings
 ifdef ENABLE_WARNINGS
 WARNINGS := -Wall -Wextra \
@@ -249,7 +223,7 @@ else
 endif
 
 SRC = win32.mak posix.mak osmodel.mak \
-	mars.c enum.c struct.c dsymbol.c import.c idgen.d impcnvgen.c \
+	mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c \
 	identifier.c mtype.c expression.c optimize.c template.h \
 	template.c lexer.c declaration.c cast.c cond.h cond.c link.c \
 	aggregate.h parse.c statement.c constfold.c version.h version.c \
@@ -323,7 +297,7 @@ DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
 all: dmd
 
-auto-tester-build: dmd checkwhitespace ddmd
+auto-tester-build: dmd
 .PHONY: auto-tester-build
 
 frontend.a: $(DMD_OBJS)
@@ -351,20 +325,8 @@ clean:
 		impcnvtab.d id.d impcnvtab.c optabgen debtab.c optab.c cdxxx.c elxxx.c fltables.c \
 		tytab.c verstr.h core \
 		*.cov *.deps *.gcda *.gcno *.a \
-		$(GENSRC) $(MAGICPORT)
+		$(GENSRC)
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
-
-######## Download and install the last dmd buildable without dmd
-
-ifneq (,$(AUTO_BOOTSTRAP))
-.PHONY: host-dmd
-host-dmd: ${HOST_DMD}
-
-${HOST_DMD}:
-	mkdir -p ${HOST_DMD_ROOT}
-	TMPFILE=$$(mktemp deleteme.XXXXXXXX) && curl -fsSL ${HOST_DMD_URL} > $${TMPFILE}.zip && \
-		unzip -qd ${HOST_DMD_ROOT} $${TMPFILE}.zip && rm $${TMPFILE}.zip
-endif
 
 ######## generate a default dmd.conf
 
@@ -395,8 +357,8 @@ $(optabgen_output) : optabgen
 idgen_output = id.h id.c id.d
 $(idgen_output) : idgen
 
-idgen: idgen.d
-	CC=$(HOST_CC) $(HOST_DMD_RUN) idgen.d
+idgen : idgen.c
+	$(CC) idgen.c -o idgen
 	./idgen
 
 ######### impcnvgen generates some source
@@ -492,11 +454,6 @@ install: all
 
 ######################################################
 
-checkwhitespace:
-	CC=$(HOST_CC) $(HOST_DMD_RUN) -run checkwhitespace $(SRC) $(GLUE_SRC) $(ROOT_SRC)
-
-######################################################
-
 gcov:
 	gcov access.c
 	gcov aliasthis.c
@@ -584,92 +541,6 @@ endif
 zip:
 	-rm -f dmdsrc.zip
 	zip dmdsrc $(SRC) $(ROOT_SRC) $(GLUE_SRC) $(BACK_SRC) $(TK_SRC)
-
-######################################################
-
-../changelog.html: ../changelog.dd
-	$(HOST_DMD_RUN) -Df$@ $<
-
-############################# DDMD stuff ############################
-
-MAGICPORTDIR = magicport
-MAGICPORTSRC = \
-	$(MAGICPORTDIR)/magicport2.d $(MAGICPORTDIR)/ast.d \
-	$(MAGICPORTDIR)/scanner.d $(MAGICPORTDIR)/tokens.d \
-	$(MAGICPORTDIR)/parser.d $(MAGICPORTDIR)/dprinter.d \
-	$(MAGICPORTDIR)/typenames.d $(MAGICPORTDIR)/visitor.d \
-	$(MAGICPORTDIR)/namer.d
-
-MAGICPORT = $(MAGICPORTDIR)/magicport2
-
-$(MAGICPORT) : $(MAGICPORTSRC)
-	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$(MAGICPORT) $(MAGICPORTSRC)
-
-GENSRC=access.d aggregate.d aliasthis.d apply.d \
-	argtypes.d arrayop.d arraytypes.d \
-	attrib.d builtin.d canthrow.d dcast.d \
-	dclass.d clone.d cond.d constfold.d \
-	cppmangle.d ctfeexpr.d declaration.d \
-	delegatize.d doc.d dsymbol.d \
-	denum.d expression.d func.d \
-	hdrgen.d identifier.d imphint.d \
-	dimport.d dinifile.d inline.d init.d \
-	dinterpret.d json.d lexer.d link.d \
-	dmacro.d dmangle.d mars.d \
-	dmodule.d mtype.d opover.d optimize.d \
-	parse.d sapply.d dscope.d sideeffect.d \
-	statement.d staticassert.d dstruct.d \
-	target.d dtemplate.d traits.d dunittest.d \
-	utf.d dversion.d visitor.d lib.d \
-	nogc.d nspace.d errors.d tokens.d \
-	globals.d escape.d \
-	$(ROOT)/aav.d $(ROOT)/outbuffer.d $(ROOT)/stringtable.d \
-	$(ROOT)/file.d $(ROOT)/filename.d $(ROOT)/speller.d \
-	$(ROOT)/man.d $(ROOT)/response.d
-
-MANUALSRC= \
-	intrange.d complex.d \
-	entity.d backend.d \
-	$(ROOT)/array.d $(ROOT)/longdouble.d \
-	$(ROOT)/rootobject.d $(ROOT)/port.d \
-	$(ROOT)/rmem.d id.d impcnvtab.d
-
-ifeq ($(D_OBJC),1)
-	GENSRC += objc.d
-else
-	MANUALSRC += objc_stubs.d
-endif
-
-mars.d : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT)
-	$(MAGICPORT) . .
-
-DSRC= $(GENSRC) $(MANUALSRC)
-
-ddmd: mars.d $(MANUALSRC) newdelete.o glue.a backend.a verstr.h
-	CC=$(HOST_CC) $(HOST_DMD_RUN) $(MODEL_FLAG) $(DSRC) -ofddmd newdelete.o glue.a backend.a -vtls -J. -d $(DFLAGS)
-
-DELSRCS=access.c aliasthis.c apply.c argtypes.c arrayop.c attrib.c builtin.c	\
-	canthrow.c cast.c class.c clone.c cond.c constfold.c cppmangle.c	\
-	ctfeexpr.c declaration.c delegatize.c doc.c dsymbol.c entity.c enum.c	\
-	errors.c escape.c expression.c func.c globals.c hdrgen.c identifier.c	\
-	imphint.c import.c inifile.c init.c inline.c interpret.c intrange.c	\
-	json.c lexer.c link.c macro.c mangle.c mars.c module.c mtype.c nogc.c	\
-	nspace.c objc.c objc_stubs.c opover.c optimize.c parse.c sapply.c	\
-	scope.c sideeffect.c statement.c staticassert.c struct.c target.c	\
-	template.c tokens.c traits.c unittests.c utf.c version.c $(addprefix	\
-	$(ROOT)/,aav.c async.c async.h checkedint.c checkedint.h file.c		\
-	filename.c longdouble.c man.c object.c outbuffer.c port.c response.c	\
-	rmem.c speller.c stringtable.c)
-
-convert_tree : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT)
-	$(MAGICPORT) . .
-	rm $(DELSRCS)
-	rm $(MAGICPORT) $(MAGICPORTDIR)/*.o
-
-convert_index : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT)
-	$(MAGICPORT) . .
-	git add $(GENSRC) objc.d
-	git rm $(DELSRCS)
 
 #############################
 

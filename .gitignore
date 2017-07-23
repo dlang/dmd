@@ -8,10 +8,12 @@ src/dmd.conf
 src/elxxx.c
 src/fltables.c
 src/id.c
+src/id.d
 src/id.h
 src/idgen
 src/impcnvgen
 src/impcnvtab.c
+src/impcnvtab.d
 src/optab.c
 src/optabgen
 src/tytab.c
@@ -27,7 +29,6 @@ src/verstr.h
 trace.def
 trace.log
 Makefile
-src/magicport/magicport
 
 # Visual Studio files
 *.exe
