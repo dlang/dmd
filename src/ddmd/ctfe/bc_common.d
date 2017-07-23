@@ -713,8 +713,8 @@ template ensureIsBCGen(BCGenT)
             BCGenT.stringof ~ " is missing void Finalize()");
     static assert(is(typeof(BCGenT.genTemporary(BCType.init)) == BCValue),
             BCGenT.stringof ~ " is missing BCValue genTemporary(BCType bct)");
-    static assert(is(typeof(BCGenT.genParameter(BCType.init)) == BCValue),
-            BCGenT.stringof ~ " is missing BCValue genParameter(BCType bct)");
+    static assert(is(typeof(BCGenT.genParameter(BCType.init, string.init)) == BCValue),
+            BCGenT.stringof ~ " is missing BCValue genParameter(BCType bct, string name)");
     static assert(is(typeof(BCGenT.beginJmp()) == BCAddr),
             BCGenT.stringof ~ " is missing BCAddr beginJmp()");
     static assert(is(typeof(BCGenT.endJmp(BCAddr.init, BCLabel.init)) == void),
