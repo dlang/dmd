@@ -152,20 +152,20 @@ endif
 
 DMD_OBJS = \
 	access.o attrib.o \
-	cast.o \
-	class.o \
+	dcast.o \
+	dclass.o \
 	constfold.o cond.o \
 	declaration.o dsymbol.o \
-	enum.o expression.o func.o nogc.o \
+	denum.o expression.o func.o nogc.o \
 	id.o \
-	identifier.o impcnvtab.o import.o inifile.o init.o inline.o \
-	lexer.o link.o mangle.o mars.o module.o mtype.o \
+	identifier.o impcnvtab.o dimport.o inifile.o init.o inline.o \
+	lexer.o link.o dmangle.o mars.o dmodule.o mtype.o \
 	cppmangle.o opover.o optimize.o \
-	parse.o scope.o statement.o \
-	struct.o template.o \
-	version.o utf.o staticassert.o \
-	entity.o doc.o macro.o \
-	hdrgen.o delegatize.o interpret.o traits.o \
+	parse.o dscope.o statement.o \
+	dstruct.o dtemplate.o \
+	dversion.o utf.o staticassert.o \
+	entity.o doc.o dmacro.o \
+	hdrgen.o delegatize.o dinterpret.o traits.o \
 	builtin.o ctfeexpr.o clone.o aliasthis.o \
 	arrayop.o json.o unittests.o \
 	imphint.o argtypes.o apply.o sapply.o sideeffect.o \
@@ -224,20 +224,20 @@ else
 endif
 
 SRC = win32.mak posix.mak osmodel.mak \
-	mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c \
+	mars.c denum.c dstruct.c dsymbol.c dimport.c idgen.c impcnvgen.c \
 	identifier.c mtype.c expression.c optimize.c template.h \
-	template.c lexer.c declaration.c cast.c cond.h cond.c link.c \
-	aggregate.h parse.c statement.c constfold.c version.h version.c \
-	inifile.c module.c scope.c init.h init.c attrib.h \
-	attrib.c opover.c class.c mangle.c func.c nogc.c inline.c \
+	dtemplate.c lexer.c declaration.c dcast.c cond.h cond.c link.c \
+	aggregate.h parse.c statement.c constfold.c version.h dversion.c \
+	inifile.c dmodule.c dscope.c init.h init.c attrib.h \
+	attrib.c opover.c dclass.c dmangle.c func.c nogc.c inline.c \
 	access.c complex_t.h \
 	identifier.h parse.h \
 	scope.h enum.h import.h mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h statement.h \
 	utf.h utf.c staticassert.h staticassert.c \
 	entity.c \
-	doc.h doc.c macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
-	delegatize.c interpret.c traits.c cppmangle.c \
+	doc.h doc.c macro.h dmacro.c hdrgen.h hdrgen.c arraytypes.h \
+	delegatize.c dinterpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
 	argtypes.c apply.c sapply.c sideeffect.c \
@@ -465,8 +465,8 @@ gcov:
 	gcov attrib.c
 	gcov builtin.c
 	gcov canthrow.c
-	gcov cast.c
-	gcov class.c
+	gcov dcast.c
+	gcov dclass.c
 	gcov clone.c
 	gcov cond.c
 	gcov constfold.c
@@ -477,7 +477,7 @@ gcov:
 	gcov e2ir.c
 	gcov eh.c
 	gcov entity.c
-	gcov enum.c
+	gcov denum.c
 	gcov expression.c
 	gcov func.c
 	gcov nogc.c
@@ -485,11 +485,11 @@ gcov:
 	gcov iasm.c
 	gcov identifier.c
 	gcov imphint.c
-	gcov import.c
+	gcov dimport.c
 	gcov inifile.c
 	gcov init.c
 	gcov inline.c
-	gcov interpret.c
+	gcov dinterpret.c
 	gcov ctfeexpr.c
 	gcov irstate.c
 	gcov json.c
@@ -500,10 +500,10 @@ else
 	gcov libelf.c
 endif
 	gcov link.c
-	gcov macro.c
-	gcov mangle.c
+	gcov dmacro.c
+	gcov dmangle.c
 	gcov mars.c
-	gcov module.c
+	gcov dmodule.c
 	gcov msc.c
 	gcov mtype.c
 	gcov nspace.c
@@ -517,13 +517,13 @@ endif
 	gcov opover.c
 	gcov optimize.c
 	gcov parse.c
-	gcov scope.c
+	gcov dscope.c
 	gcov sideeffect.c
 	gcov statement.c
 	gcov staticassert.c
 	gcov s2ir.c
-	gcov struct.c
-	gcov template.c
+	gcov dstruct.c
+	gcov dtemplate.c
 	gcov tk.c
 	gcov tocsym.c
 	gcov todt.c
@@ -532,7 +532,7 @@ endif
 	gcov toelfdebug.c
 	gcov typinf.c
 	gcov utf.c
-	gcov version.c
+	gcov dversion.c
 	gcov intrange.c
 	gcov target.c
 
