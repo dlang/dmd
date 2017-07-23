@@ -402,8 +402,8 @@ class CppMangleVisitor : public Visitor
 
     void mangle_variable(VarDeclaration *d, bool is_temp_arg_ref)
     {
-
-        if (!(d->storage_class & (STCextern | STCgshared)))
+        // fake mangling for fields to fix https://issues.dlang.org/show_bug.cgi?id=16525
+        if (!(d->storage_class & (STCextern | STCfield | STCgshared)))
         {
             d->error("Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
             fatal();
@@ -1412,7 +1412,8 @@ private:
     {
         // <static variable mangle> ::= ? <qualified name> <protection flag> <const/volatile flag> <type>
         assert(d);
-        if (!(d->storage_class & (STCextern | STCgshared)))
+        // fake mangling for fields to fix https://issues.dlang.org/show_bug.cgi?id=16525
+        if (!(d->storage_class & (STCextern | STCfield | STCgshared)))
         {
             d->error("Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
             fatal();
@@ -1420,7 +1421,7 @@ private:
         buf.writeByte('?');
         mangleIdent(d);
 
-        assert(!d->needThis());
+        assert((d->storage_class & STCfield) || !d->needThis());
 
         if (d->parent && d->parent->isModule()) // static member
         {

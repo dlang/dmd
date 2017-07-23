@@ -1017,15 +1017,18 @@ void FuncDeclaration::semantic(Scope *sc)
 
         if (!doesoverride && isOverride() && (type->nextOf() || !may_override))
         {
+            BaseClass *bc = NULL;
             Dsymbol *s = NULL;
             for (size_t i = 0; i < cd->baseclasses->dim; i++)
             {
-                s = (*cd->baseclasses)[i]->sym->search_correct(ident);
+                bc = (*cd->baseclasses)[i];
+                s = bc->sym->search_correct(ident);
                 if (s) break;
             }
 
             if (s)
-                error("does not override any function, did you mean to override '%s'?", s->toPrettyChars());
+                error("does not override any function, did you mean to override '%s%s'?",
+                    bc->sym->isCPPclass() ? "extern (C++) " : "", s->toPrettyChars());
             else
                 error("does not override any function");
         }
@@ -1583,6 +1586,12 @@ void FuncDeclaration::semantic3(Scope *sc)
             fbody = ::semantic(fbody, sc2);
             if (!fbody)
                 fbody = new CompoundStatement(Loc(), new Statements());
+
+            if (naked)
+            {
+                fpreinv = NULL;         // can't accommodate with no stack frame
+                fpostinv = NULL;
+            }
 
             assert(type == f ||
                    (type->ty == Tfunction &&
