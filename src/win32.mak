@@ -174,7 +174,7 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 # Root package
 ROOTOBJS= man.obj port.obj checkedint.obj \
 	stringtable.obj response.obj async.obj speller.obj aav.obj outbuffer.obj \
-	object.obj filename.obj file.obj \
+	rootobject.obj filename.obj file.obj \
 	rmem.obj newdelete.obj ctfloat.obj
 
 # D front end
@@ -236,7 +236,7 @@ ROOTSRCC=$(ROOT)\rmem.c $(ROOT)\stringtable.c \
 	$(ROOT)\man.c $(ROOT)\port.c $(ROOT)\async.c $(ROOT)\response.c \
 	$(ROOT)\speller.c $(ROOT)\aav.c $(ROOT)\longdouble.c \
 	$(ROOT)\checkedint.c $(ROOT)\newdelete.c \
-	$(ROOT)\outbuffer.c $(ROOT)\object.c $(ROOT)\filename.c $(ROOT)\file.c
+	$(ROOT)\outbuffer.c $(ROOT)\rootobject.c $(ROOT)\filename.c $(ROOT)\file.c
 ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\rmem.h $(ROOT)\port.h \
 	$(ROOT)\stringtable.h \
@@ -669,8 +669,8 @@ stringtable.obj : $(ROOT)\stringtable.c
 outbuffer.obj : $(ROOT)\outbuffer.c
 	$(CC) -c $(CFLAGS) $(ROOT)\outbuffer.c
 
-object.obj : $(ROOT)\object.c
-	$(CC) -c $(CFLAGS) $(ROOT)\object.c
+rootobject.obj : $(ROOT)\rootobject.c
+	$(CC) -c $(CFLAGS) $(ROOT)\rootobject.c
 
 filename.obj : $(ROOT)\filename.c
 	$(CC) -c $(CFLAGS) $(ROOT)\filename.c

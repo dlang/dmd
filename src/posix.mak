@@ -181,7 +181,7 @@ endif
 
 ROOT_OBJS = \
 	rmem.o port.o man.o stringtable.o response.o \
-	aav.o speller.o outbuffer.o object.o \
+	aav.o speller.o outbuffer.o rootobject.o \
 	filename.o file.o async.o checkedint.o \
 	newdelete.o ctfloat.o
 
@@ -258,7 +258,7 @@ ROOT_SRC = $(ROOT)/root.h \
 	$(ROOT)/longdouble.h $(ROOT)/longdouble.c \
 	$(ROOT)/speller.h $(ROOT)/speller.c \
 	$(ROOT)/outbuffer.h $(ROOT)/outbuffer.c \
-	$(ROOT)/object.h $(ROOT)/object.c \
+	$(ROOT)/object.h $(ROOT)/rootobject.c \
 	$(ROOT)/filename.h $(ROOT)/filename.c \
 	$(ROOT)/file.h $(ROOT)/file.c \
 	$(ROOT)/ctfloat.h $(ROOT)/ctfloat.c
