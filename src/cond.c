@@ -208,7 +208,6 @@ static bool isReserved(const char *ident)
         "HPPA",
         "HPPA64",
         "SH",
-        "SH64",
         "Alpha",
         "Alpha_SoftFloat",
         "Alpha_HardFloat",
