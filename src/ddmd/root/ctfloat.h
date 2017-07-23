@@ -38,6 +38,8 @@ struct CTFloat
     static real_t parse(const char *literal, bool *isOutOfRange = NULL);
     static int sprint(char *str, char fmt, real_t x);
 
+    static size_t hash(real_t a);
+
     // Constant real values 0, 1, -1 and 0.5.
     static real_t zero;
     static real_t one;
