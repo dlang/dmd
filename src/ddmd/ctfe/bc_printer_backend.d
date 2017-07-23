@@ -167,7 +167,7 @@ struct Print_BCGen
             }
         case BCValueType.Parameter:
             {
-                return "p" ~ to!string(val.paramIndex) ~ functionSuffix;
+                return (val.name ? val.name : "p") ~ "_" ~ to!string(val.paramIndex) ~ functionSuffix;
             }
         case BCValueType.Error:
             {
@@ -260,7 +260,7 @@ struct Print_BCGen
         result ~= indent ~ "endFunction(" ~ ");\n\n";
     }
 
-    BCValue genParameter(BCType bct)
+    BCValue genParameter(BCType bct, string name = null)
     {
         //currentFunctionStateNumber++;
         if (!parameterCount)
@@ -268,11 +268,14 @@ struct Print_BCGen
             //write a newline when we effectivly begin a new function;
             result ~= "\n";
         }
-        result ~= indent ~ "auto p" ~ to!string(++parameterCount) ~ functionSuffix ~ " = genParameter(" ~ print(
+        name =  name ? name : "p";
+        result ~= indent ~ "auto " ~ name ~ "_" ~ to!string(++parameterCount) ~ functionSuffix ~ " = genParameter(" ~ print(
             bct) ~ ");//SP[" ~ to!string(sp) ~ "]\n";
         //currentFunctionStateNumber--;
         sp += 4;
-        return BCValue(BCParameter(parameterCount, bct));
+        auto p = BCValue(BCParameter(parameterCount, bct));
+        p.name = name;
+        return p;
     }
 
     BCValue genTemporary(BCType bct)

@@ -297,9 +297,10 @@ pure:
         }
     }
 
-    BCValue genParameter(BCType bct)
+    BCValue genParameter(BCType bct, string name = null)
     {
         auto p = BCValue(BCParameter(++parameterCount, bct, sp));
+        p.name = name;
         sp += 4;
         return p;
     }
