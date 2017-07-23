@@ -16,9 +16,9 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
  */
 
 import std.conv : to;
-debug = abi;
+
 enum perf = 1;
-enum bailoutMessages = 1;
+enum bailoutMessages = 0;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -795,7 +795,7 @@ struct SharedCtfeState(BCGenT)
         memset(&stack, 0, stack[0].sizeof * stack.length / 4);
     }
 
-    void initHeap(uint maxHeapSize = 2 ^^ 24)
+    void initHeap(uint maxHeapSize = 2 ^^ 26)
     {
         import ddmd.root.rmem;
 
@@ -1183,10 +1183,11 @@ Expression toExpression(const BCValue value, Type expressionType,
         debug (abi)
         {
             import std.stdio;
-            writefln("creating Array (%s[]) from {base: &%d = %d} {length: &%d = %d} Content: %s",
+            import std.range;
+            writefln("creating Array (%s[]) from {base: &%d = %d} {length: &%d = %d} Content: %s %s",
                 _sharedCtfeState.typeToString(_sharedCtfeState.btv.toBCType(arrayType)),
                 arr.heapAddr.addr + SliceDescriptor.BaseOffset, arrayBase, arr.heapAddr.addr + SliceDescriptor.LengthOffset, arrayLength,
-                heapPtr._heap[arrayBase .. arrayBase + arrayLength*7*4]);
+                heapPtr._heap[arrayBase .. arrayBase + arrayLength*7*4], iota(arrayBase, arrayBase + arrayLength*7*4, 4).array);
         }
 
         if (!arr.heapAddr || !arrayBase)
@@ -1228,9 +1229,10 @@ Expression toExpression(const BCValue value, Type expressionType,
         foreach (idx; 0 .. arrayLength)
         {
             {
-                elmExprs.insert(idx,
-                    toExpression(imm32(*(heapPtr._heap.ptr + arrayBase + offset)),
-                        elemType));
+                BCValue elmVal = baseType.type.anyOf([BCTypeEnum.Array, BCTypeEnum.Slice, BCTypeEnum.Struct])
+                    ? imm32(arrayBase + offset)
+                    : imm32(*(heapPtr._heap.ptr + arrayBase + offset));
+                elmExprs.insert(idx, toExpression(elmVal, elemType));
                 offset += elemSize;
             }
         }
@@ -3671,6 +3673,11 @@ static if (is(BCGen))
 
                     _sharedCtfeState.heap._heap[targetAddr .. targetAddr + heapAdd] =
                         _sharedCtfeState.heap._heap[sourceAddr .. sourceAddr + heapAdd];
+
+                    // after the copy we have to fixup the base
+                    _sharedCtfeState.heap._heap[targetAddr + SliceDescriptor.BaseOffset] =
+                        cast(uint)(targetAddr + SliceDescriptor.Size);
+                
                 }
                 else
                 {
@@ -4103,6 +4110,10 @@ static if (is(BCGen))
             Store64(BCValue(hrv.heapRef), hrv);
         else if (hrv.type.type == BCTypeEnum.i32)
             Store32(BCValue(hrv.heapRef), hrv);
+        else if (hrv.type.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.Slice, BCTypeEnum.Array]))
+        {
+            bailout(to!string(hrv.type.type) ~ " is not supported in StoreToHeapRef");
+        }
         else
             bailout(to!string(hrv.type.type) ~ " is not supported in StoreToHeapRef");
     }
@@ -4357,13 +4368,15 @@ static if (is(BCGen))
             {
                 Alloc(var.i32, imm32(SliceDescriptor.Size));
             }
-            else if (type.type == BCTypeEnum.Array)
-            {
-//                Alloc(var.i32, imm32(_sharedCtfeState.size(type)), type);
-//                assert(type.typeIndex);
-//                auto arrayType = _sharedCtfeState.arrayTypes[type.typeIndex - 1];
-//                setArraySliceDesc(var, arrayType);
+/+
+             else if (type.type == BCTypeEnum.Array)
+           {
+                Alloc(var.i32, imm32(_sharedCtfeState.size(type)), type);
+                assert(type.typeIndex);
+                auto arrayType = _sharedCtfeState.arrayTypes[type.typeIndex - 1];
+                setArraySliceDesc(var, arrayType);
             }
++/
         }
 
         setVariable(vd, var);
@@ -4408,7 +4421,7 @@ static if (is(BCGen))
         }
         else if (!canHandleBinExpTypes(lhs.type, rhs.type) && _sharedCtfeState.elementType(lhs.type) != _sharedCtfeState.elementType(rhs.type))
         {
-            bailout("Cannot use binExpTypes: " ~ to!string(lhs.type.type) ~ " " ~ to!string(rhs.type.type));
+            bailout("Cannot use binExpTypes: " ~ to!string(lhs.type.type) ~ " et: " ~ to!string(_sharedCtfeState.elementType(lhs.type))  ~ " -- " ~ "to!string(rhs.type.type)" ~ " et : " ~ to!string(_sharedCtfeState.elementType(rhs.type)));
             return;
         }
 

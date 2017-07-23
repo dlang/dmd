@@ -515,6 +515,26 @@ uint[3] testCommaExp(uint a)
 
 static assert(testCommaExp(2) == [4, 1, 2]);
 
+struct R
+{
+  int[] s1;
+  int[] s2;
+}
+
+
+R returnSlices(int[] s1, int[] s2)
+{
+    return R(s1[], s2[]);
+}
+static assert(returnSlices([1,2,3], [4,5,6,7]) == R([1,2,3], [4,5,6,7]));
+
+
+R returnSlicedSlices(int[] s1, int[] s2)
+{
+    return R(s1[], s2[1 .. $-1]);
+}
+static assert(returnSlicedSlices([1,2,3], [4,5,6,7]) == R([1,2,3],[5,6]));
+
 uint[] assignSlice(uint from, uint to, uint[] stuff)
 {
     uint[] slice;

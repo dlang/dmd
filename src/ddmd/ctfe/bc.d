@@ -7,7 +7,7 @@ import std.conv;
 /**
  * Written By Stefan Koch in 2016/17
  */
-debug = 1;
+debug = 0;
 enum InstKind
 {
     ShortInst,
@@ -649,6 +649,8 @@ pure:
 
     void Comment(string comment)
     {
+        debug
+        {
         uint alignedLength = align4(cast(uint) comment.length) / 4;
         uint commentLength = cast(uint) comment.length;
 
@@ -675,6 +677,7 @@ pure:
             case 0 :
             break;
             default : assert(0);
+        }
         }
     }
 
