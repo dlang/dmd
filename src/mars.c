@@ -287,9 +287,9 @@ int tryMain(size_t argc, const char *argv[])
 
     // Default to -m32 for 32 bit dmd, -m64 for 64 bit dmd
     global.params.is64bit = (sizeof(size_t) == 8);
+    global.params.mscoff = false;
 
 #if TARGET_WINDOS
-    global.params.mscoff = false;
     global.params.is64bit = false;
     global.params.defaultlibname = "phobos";
 #elif TARGET_LINUX
@@ -506,7 +506,9 @@ int tryMain(size_t argc, const char *argv[])
             else if (strcmp(p + 1, "m64") == 0)
             {
                 global.params.is64bit = true;
+            #if TARGET_WINDOS
                 global.params.mscoff = true;
+            #endif
             }
             else if (strcmp(p + 1, "m32mscoff") == 0)
             {
