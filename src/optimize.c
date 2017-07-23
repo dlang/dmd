@@ -625,7 +625,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 // https://issues.dlang.org/show_bug.cgi?id=16980
                 cdfrom->size(e->loc);
                 assert(cdfrom->sizeok == SIZEOKdone);
-                //assert(cdto->sizeok == SIZEOKdone || !cdto->isBaseOf(cdto, NULL));
+                assert(cdto->sizeok == SIZEOKdone || !cdto->isBaseOf(cdfrom, NULL));
                 int offset;
                 if (cdto->isBaseOf(cdfrom, &offset) && offset == 0)
                 {
