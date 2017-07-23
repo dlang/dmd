@@ -283,8 +283,8 @@ void unittest_speller()
     for (int i = 0; cases[i][0]; i++)
     {
         //printf("case [%d]\n", i);
-        void *p = speller(cases[i][0], &speller_test, (void *)cases[i][1], idchars);
-        if (p)
+        void *p2 = speller(cases[i][0], &speller_test, (void *)cases[i][1], idchars);
+        if (p2)
             assert(cases[i][2][0] == 'y');
         else
             assert(cases[i][2][0] == 'n');

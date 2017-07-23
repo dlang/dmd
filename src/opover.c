@@ -1671,7 +1671,7 @@ bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
 
                     if (fes->aggr->op != TOKtype)
                     {
-                        Expression *rinit = new SliceExp(aggr->loc, aggr, NULL, NULL);
+                        Expression *rinit = new ArrayExp(fes->aggr->loc, fes->aggr);
                         rinit = rinit->trySemantic(sc);
                         if (rinit)                  // if application of [] succeeded
                         {
