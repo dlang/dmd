@@ -890,6 +890,8 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
         {
             exp = exp->implicitCastTo(sc, t);
         }
+        if (!global.gag && olderrors != global.errors)
+            return this;
         exp = exp->ctfeInterpret();
     }
     else

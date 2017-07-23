@@ -450,7 +450,24 @@ UnionExp Div(Type *type, Expression *e1, Expression *e2)
         if (n2 == 0)
         {
             e2->error("divide by 0");
-            n2 = 1;
+            new(&ue) ErrorExp();
+            return ue;
+        }
+        if (n2 == -1 && !type->isunsigned())
+        {
+            // Check for int.min / -1
+            if (n1 == 0xFFFFFFFF80000000UL && type->toBasetype()->ty != Tint64)
+            {
+                e2->error("integer overflow: int.min / -1");
+                new(&ue) ErrorExp();
+                return ue;
+            }
+            else if (n1 == 0x8000000000000000L) // long.min / -1
+            {
+                e2->error("integer overflow: long.min / -1");
+                new(&ue) ErrorExp();
+                return ue;
+            }
         }
         if (e1->type->isunsigned() || e2->type->isunsigned())
             n = ((dinteger_t) n1) / ((dinteger_t) n2);
@@ -513,20 +530,23 @@ UnionExp Mod(Type *type, Expression *e1, Expression *e2)
         if (n2 == 0)
         {
             e2->error("divide by 0");
-            n2 = 1;
+            new(&ue) ErrorExp();
+            return ue;
         }
         if (n2 == -1 && !type->isunsigned())
         {
             // Check for int.min % -1
             if (n1 == 0xFFFFFFFF80000000ULL && type->toBasetype()->ty != Tint64)
             {
-                e2->error("integer overflow: int.min % -1");
-                n2 = 1;
+                e2->error("integer overflow: int.min %% -1");
+                new(&ue) ErrorExp();
+                return ue;
             }
             else if (n1 == 0x8000000000000000LL) // long.min % -1
             {
-                e2->error("integer overflow: long.min % -1");
-                n2 = 1;
+                e2->error("integer overflow: long.min %% -1");
+                new(&ue) ErrorExp();
+                return ue;
             }
         }
         if (e1->type->isunsigned() || e2->type->isunsigned())
