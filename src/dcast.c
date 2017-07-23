@@ -461,13 +461,13 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     if (e->type->isunsigned())
                     {
                         f = ldouble(value);
-                        if (f != value) // isn't this a noop, because the compiler prefers ld
+                        if ((dinteger_t)f != value) // isn't this a noop, because the compiler prefers ld
                             return;
                     }
                     else
                     {
                         f = ldouble((sinteger_t)value);
-                        if (f != (sinteger_t)value)
+                        if ((sinteger_t)f != (sinteger_t)value)
                             return;
                     }
                     break;

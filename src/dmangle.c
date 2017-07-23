@@ -673,7 +673,7 @@ public:
         if (CTFloat::isNaN(value))
             buf->writestring("NAN");        // no -NAN bugs
         else if (CTFloat::isInfinity(value))
-            buf->writestring(value < 0 ? "NINF" : "INF");
+            buf->writestring(value < CTFloat::zero ? "NINF" : "INF");
         else
         {
             const size_t BUFFER_LEN = 36;

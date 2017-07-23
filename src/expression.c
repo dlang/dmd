@@ -3257,8 +3257,7 @@ Expression *RealExp::semantic(Scope *sc)
 
 bool RealExp::isBool(bool result)
 {
-    return result ? (value != 0)
-                  : (value == 0);
+    return result ? (bool)value : !(bool)value;
 }
 
 /******************************** ComplexExp **************************/
@@ -13477,7 +13476,7 @@ Expression *PowExp::semantic(Scope *sc)
     sinteger_t intpow = 0;
     if (e2->op == TOKint64 && ((sinteger_t)e2->toInteger() == 2 || (sinteger_t)e2->toInteger() == 3))
         intpow = e2->toInteger();
-    else if (e2->op == TOKfloat64 && (e2->toReal() == (sinteger_t)(e2->toReal())))
+    else if (e2->op == TOKfloat64 && (e2->toReal() == ldouble((sinteger_t)e2->toReal())))
         intpow = (sinteger_t)(e2->toReal());
 
     // Deal with x^^2, x^^3 immediately, since they are of practical importance.
