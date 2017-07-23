@@ -40,16 +40,16 @@
 
 #define IDX_NOTFOUND (0x12345678)               // index is not found
 
-size_t templateParameterLookup(Type *tparam, TemplateParameters *parameters);
-int arrayObjectMatch(Objects *oa1, Objects *oa2);
-unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam);
-MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam);
 void mangleToBuffer(Expression *e, OutBuffer *buf);
 Type *rawTypeMerge(Type *t1, Type *t2);
 bool MODimplicitConv(MOD modfrom, MOD modto);
 MATCH MODmethodConv(MOD modfrom, MOD modto);
 MOD MODmerge(MOD mod1, MOD mod2);
 
+static size_t templateParameterLookup(Type *tparam, TemplateParameters *parameters);
+static int arrayObjectMatch(Objects *oa1, Objects *oa2);
+static unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam);
+static MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam);
 static Type *reliesOnTident(Type *t, TemplateParameters *tparams = NULL, size_t iStart = 0);
 
 /********************************************
@@ -186,7 +186,7 @@ Dsymbol *getDsymbol(RootObject *oarg)
  * Try to get value from manifest constant
  */
 
-Expression *getValue(Expression *e)
+static Expression *getValue(Expression *e)
 {
     if (e && e->op == TOKvar)
     {
@@ -198,7 +198,8 @@ Expression *getValue(Expression *e)
     }
     return e;
 }
-Expression *getValue(Dsymbol *&s)
+
+static Expression *getValue(Dsymbol *&s)
 {
     Expression *e = NULL;
     if (s)
@@ -279,7 +280,7 @@ static Expression *getExpression(RootObject *o)
  * Else, return false.
  */
 
-bool match(RootObject *o1, RootObject *o2)
+static bool match(RootObject *o1, RootObject *o2)
 {
     //printf("match() o1 = %p %s (%d), o2 = %p %s (%d)\n",
     //       o1, o1->toChars(), o1->dyncast(), o2, o2->toChars(), o2->dyncast());
@@ -382,7 +383,7 @@ int arrayObjectMatch(Objects *oa1, Objects *oa2)
 /************************************
  * Return hash of Objects.
  */
-hash_t arrayObjectHash(Objects *oa1)
+static hash_t arrayObjectHash(Objects *oa1)
 {
     hash_t hash = 0;
     for (size_t j = 0; j < oa1->dim; j++)
@@ -2889,7 +2890,7 @@ void TemplateDeclaration::removeInstance(TemplateInstance *handle)
  * Return IDX_NOTFOUND if not found.
  */
 
-size_t templateIdentifierLookup(Identifier *id, TemplateParameters *parameters)
+static size_t templateIdentifierLookup(Identifier *id, TemplateParameters *parameters)
 {
     for (size_t i = 0; i < parameters->dim; i++)
     {
@@ -5071,7 +5072,7 @@ bool TemplateAliasParameter::declareParameter(Scope *sc)
     return sc->insert(ad) != NULL;
 }
 
-RootObject *aliasParameterSemantic(Loc loc, Scope *sc, RootObject *o, TemplateParameters *parameters)
+static RootObject *aliasParameterSemantic(Loc loc, Scope *sc, RootObject *o, TemplateParameters *parameters)
 {
     if (o)
     {
