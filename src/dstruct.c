@@ -563,7 +563,10 @@ bool AggregateDeclaration::checkOverlappedFields()
     {
         VarDeclaration *vd = fields[i];
         if (vd->errors)
+        {
+            errors = true;
             continue;
+        }
 
         VarDeclaration *vx = vd;
         if (vd->_init && vd->_init->isVoidInitializer())
@@ -575,6 +578,11 @@ bool AggregateDeclaration::checkOverlappedFields()
             if (i == j)
                 continue;
             VarDeclaration *v2 = fields[j];
+            if (v2->errors)
+            {
+                errors = true;
+                continue;
+            }
             if (!vd->isOverlappedWith(v2))
                 continue;
 
@@ -693,6 +701,7 @@ bool AggregateDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
                 {
                     ::error(loc, "overlapping default initialization for field %s and %s",
                         v2->toChars(), vd->toChars());
+                    errors = true;
                 }
                 else
                     assert(vx->_init || !vx->_init && !v2->_init);
@@ -1264,8 +1273,15 @@ void StructDeclaration::finalizeSize()
 
     //printf("-StructDeclaration::finalizeSize() %s, fields.dim = %d, structsize = %d\n", toChars(), fields.dim, structsize);
 
+    if (errors)
+        return;
+
     // Calculate fields[i]->overlapped
-    checkOverlappedFields();
+    if (checkOverlappedFields())
+    {
+        errors = true;
+        return;
+    }
 
     // Determine if struct is all zeros or not
     zeroInit = 1;
