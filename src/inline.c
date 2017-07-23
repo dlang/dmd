@@ -1962,6 +1962,13 @@ static void expandInline(Loc callLoc, FuncDeclaration *fd, FuncDeclaration *pare
     ids.parent = parent;
     ids.fd = fd;
 
+    if (fd->isNested())
+    {
+        if (!parent->inlinedNestedCallees)
+            parent->inlinedNestedCallees = new FuncDeclarations();
+        parent->inlinedNestedCallees->push(fd);
+    }
+
     VarDeclaration *vret = NULL;    // will be set the function call result
     if (eret)
     {

@@ -342,6 +342,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     builtin = BUILTINunknown;
     tookAddressOf = 0;
     requiresClosure = false;
+    inlinedNestedCallees = NULL;
     flags = 0;
     returns = NULL;
     gotos = NULL;
