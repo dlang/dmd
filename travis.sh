@@ -16,7 +16,7 @@ make -j$N -C ../druntime -f posix.mak DMD=../dmd/src/dmd
 #make -j$N -C ../phobos -f posix.mak DMD=../dmd/src/dmd
 
 ## run unittest and testsuite.
-#make -j$N -C ../druntime -f posix.mak DMD=../dmd/src/dmd unittest
+make -j$N -C ../druntime -f posix.mak DMD=../dmd/src/dmd unittest
 #make -j$N -C ../phobos -f posix.mak DMD=../dmd/src/dmd unittest
 #make -j$N -C test DMD=../src/dmd MODEL=64
 
