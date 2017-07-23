@@ -350,7 +350,6 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 ae->type = e->type;
                 ret = new CommaExp(ce->loc, ce->e1, ae);
                 ret->type = e->type;
-                ret = ret->optimize(result);
                 return;
             }
 
@@ -836,15 +835,17 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 (e->e1->op == TOKfloat64 && e->e1->toReal() == CTFloat::one))
             {
                 ret = new CommaExp(e->loc, e->e2, e->e1);
+                ret->type = e->type;
                 return;
             }
 
             // Replace -1 ^^ x by (x&1) ? -1 : 1, where x is integral
             if (e->e2->type->isintegral() && e->e1->op == TOKint64 && (sinteger_t)e->e1->toInteger() == -1L)
             {
-                Type* resultType = e->type;
                 ret = new AndExp(e->loc, e->e2, new IntegerExp(e->loc, 1, e->e2->type));
-                ret = new CondExp(e->loc, ret, new IntegerExp(e->loc, -1L, resultType), new IntegerExp(e->loc, 1L, resultType));
+                ret->type = e->e2->type;
+                ret = new CondExp(e->loc, ret, new IntegerExp(e->loc, -1L, e->type), new IntegerExp(e->loc, 1L, e->type));
+                ret->type = e->type;
                 return;
             }
 
@@ -858,6 +859,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                     ret = new RealExp(e->loc, CTFloat::one, e->e1->type);
 
                 ret = new CommaExp(e->loc, e->e1, ret);
+                ret->type = e->type;
                 return;
             }
 
@@ -873,6 +875,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             if ((e->e2->op == TOKfloat64 && e->e2->toReal() == CTFloat::minusone))
             {
                 ret = new DivExp(e->loc, new RealExp(e->loc, CTFloat::one, e->e2->type), e->e1);
+                ret->type = e->type;
                 return;
             }
 
@@ -1114,7 +1117,6 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                     ret = new CastExp(e->loc, ret, Type::tvoid);
                     ret->type = e->type;
                 }
-                ret = ret->optimize(result);
                 return;
             }
 
@@ -1158,7 +1160,6 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                     ret = new CastExp(e->loc, ret, Type::tvoid);
                     ret->type = e->type;
                 }
-                ret = ret->optimize(result);
                 return;
             }
 
@@ -1257,7 +1258,14 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
     };
 
     OptimizeVisitor v(result, keepLvalue);
+    Expression *ex = NULL;
     v.ret = e;
-    e->accept(&v);
-    return v.ret;
+
+    // Optimize the expression until it can no longer be simplified.
+    while (ex != v.ret)
+    {
+        ex = v.ret;
+        ex->accept(&v);
+    }
+    return ex;
 }
