@@ -27,6 +27,7 @@
 #include "aggregate.h"
 #include "module.h"
 #include "parse.h"
+#include "target.h"
 #include "template.h"
 #include "utf.h"
 #include "mtype.h"
@@ -482,7 +483,7 @@ LinkDeclaration::LinkDeclaration(LINK p, Dsymbols *decl)
         : AttribDeclaration(decl)
 {
     //printf("LinkDeclaration(linkage = %d, decl = %p)\n", p, decl);
-    linkage = p;
+    linkage = (p == LINKsystem) ? Target::systemLinkage() : p;
 }
 
 Dsymbol *LinkDeclaration::syntaxCopy(Dsymbol *s)

@@ -1350,7 +1350,7 @@ LINK Parser::parseLinkage(Identifiers **pidents, CPPMANGLE *pcppmangle)
         }
         else if (id == Id::System)
         {
-            link = global.params.isWindows ? LINKwindows : LINKc;
+            link = LINKsystem;
         }
         else
         {

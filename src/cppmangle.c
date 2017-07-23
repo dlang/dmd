@@ -41,8 +41,6 @@ int Parameter_foreach(Parameters *parameters, ForeachDg dg, void *ctx, size_t *p
  * so nothing would be compatible anyway.
  */
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-
 /*
  * Follows Itanium C++ ABI 1.86
  */
@@ -581,7 +579,7 @@ public:
         }
         else
         {
-            t->error(Loc(), "Internal Compiler Error: unsupported type %s\n", t->toChars());
+            t->error(Loc(), "Internal Compiler Error: type %s can not be mapped to C++\n", t->toChars());
         }
         fatal(); //Fatal, because this error should be handled in frontend
     }
@@ -630,7 +628,7 @@ public:
             case Tint128:   c = 'n';        break;
             case Tuns128:   c = 'o';        break;
             case Tfloat64:  c = 'd';        break;
-            case Tfloat80:  c = (Target::realsize - Target::realpad == 16) ? 'g' : 'e'; break;
+            case Tfloat80:  c = 'e';        break;
             case Tbool:     c = 'b';        break;
             case Tchar:     c = 'c';        break;
             case Twchar:    c = 't';        break; // unsigned short
@@ -664,10 +662,17 @@ public:
         if (t->isConst())
             buf.writeByte('K');
 
-        if (p)
-            buf.writeByte(p);
-
-        buf.writeByte(c);
+        // Handle any target-specific basic types.
+        if (const char *tm = Target::cppTypeMangle(t))
+        {
+            buf.writestring(tm);
+        }
+        else
+        {
+            if (p)
+                buf.writeByte(p);
+            buf.writeByte(c);
+        }
     }
 
 
@@ -683,11 +688,20 @@ public:
         }
         if (t->isConst())
             buf.writeByte('K');
-        assert(t->basetype && t->basetype->ty == Tsarray);
-        assert(((TypeSArray *)t->basetype)->dim);
-        //buf.printf("Dv%llu_", ((TypeSArray *)t->basetype)->dim->toInteger());// -- Gnu ABI v.4
-        buf.writestring("U8__vector"); //-- Gnu ABI v.3
-        t->basetype->nextOf()->accept(this);
+
+        // Handle any target-specific vector types.
+        if (const char *tm = Target::cppTypeMangle(t))
+        {
+            buf.writestring(tm);
+        }
+        else
+        {
+            assert(t->basetype && t->basetype->ty == Tsarray);
+            assert(((TypeSArray *)t->basetype)->dim);
+            //buf.printf("Dv%llu_", ((TypeSArray *)t->basetype)->dim->toInteger());// -- Gnu ABI v.4
+            buf.writestring("U8__vector"); //-- Gnu ABI v.3
+            t->basetype->nextOf()->accept(this);
+        }
     }
 
     void visit(TypeSArray *t)
@@ -832,14 +846,22 @@ public:
         if (t->isConst())
             buf.writeByte('K');
 
-        if (!substitute(t->sym))
+        // Handle any target-specific struct types.
+        if (const char *tm = Target::cppTypeMangle(t))
         {
-            cpp_mangle_name(t->sym, t->isConst());
+            buf.writestring(tm);
         }
-
-        if (t->isImmutable() || t->isShared())
+        else
         {
-            visit((Type *)t);
+            if (!substitute(t->sym))
+            {
+                cpp_mangle_name(t->sym, t->isConst());
+            }
+
+            if (t->isImmutable() || t->isShared())
+            {
+                visit((Type *)t);
+            }
         }
 
         if (t->isConst())
@@ -902,21 +924,19 @@ public:
     }
 };
 
-char *toCppMangle(Dsymbol *s)
+const char *toCppMangleItanium(Dsymbol *s)
 {
-    //printf("toCppMangle(%s)\n", s->toChars());
+    //printf("toCppMangleItanium(%s)\n", s->toChars());
     CppMangleVisitor v;
     return v.mangleOf(s);
 }
 
-const char *cppTypeInfoMangle(Dsymbol *s)
+const char *cppTypeInfoMangleItanium(Dsymbol *s)
 {
-    //printf("cppTypeInfoMangle(%s)\n", s->toChars());
+    //printf("cppTypeInfoMangleItanium(%s)\n", s->toChars());
     CppMangleVisitor v;
     return v.mangle_typeinfo(s);
 }
-
-#elif TARGET_WINDOS
 
 // Windows DMC and Microsoft Visual C++ mangling
 #define VC_SAVED_TYPE_CNT 10
@@ -975,7 +995,7 @@ public:
         }
         else
         {
-            type->error(Loc(), "Internal Compiler Error: unsupported type %s\n", type->toChars());
+            type->error(Loc(), "Internal Compiler Error: type %s can not be mapped to C++\n", type->toChars());
         }
         fatal(); // Fatal, because this error should be handled in frontend
     }
@@ -1943,18 +1963,14 @@ private:
     }
 };
 
-char *toCppMangle(Dsymbol *s)
+const char *toCppMangleMSVC(Dsymbol *s)
 {
     VisualCPPMangler v(!global.params.mscoff);
     return v.mangleOf(s);
 }
 
-const char *cppTypeInfoMangle(Dsymbol *s)
+const char *cppTypeInfoMangleMSVC(Dsymbol *s)
 {
-    //printf("cppTypeInfoMangle(%s)\n", s->toChars());
+    //printf("cppTypeInfoMangleMSVC(%s)\n", s->toChars());
     assert(0);
 }
-
-#else
-#error "fix this"
-#endif

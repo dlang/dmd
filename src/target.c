@@ -13,9 +13,15 @@
 #include <limits> // for std::numeric_limits
 
 #include "target.h"
+#include "aggregate.h"
 #include "mars.h"
 #include "mtype.h"
 #include "outbuffer.h"
+
+const char *toCppMangleItanium(Dsymbol *);
+const char *cppTypeInfoMangleItanium(Dsymbol *);
+const char *toCppMangleMSVC(Dsymbol *);
+const char *cppTypeInfoMangleMSVC(Dsymbol *);
 
 int Target::ptrsize;
 int Target::realsize;
@@ -470,3 +476,41 @@ void Target::prefixName(OutBuffer *buf, LINK linkage)
     }
 }
 
+const char *Target::toCppMangle(Dsymbol *s)
+{
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    return toCppMangleItanium(s);
+#elif TARGET_WINDOS
+    return toCppMangleMSVC(s);
+#else
+#error "fix this"
+#endif
+}
+
+const char *Target::cppTypeInfoMangle(ClassDeclaration *cd)
+{
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    return cppTypeInfoMangleItanium(cd);
+#elif TARGET_WINDOS
+    return cppTypeInfoMangleMSVC(cd);
+#else
+#error "fix this"
+#endif
+}
+
+/******************************
+ * For a vendor-specific type, return a string containing the C++ mangling.
+ * In all other cases, return null.
+ */
+const char* Target::cppTypeMangle(Type *t)
+{
+    return NULL;
+}
+
+/******************************
+ * Return the default system linkage for the target.
+ */
+LINK Target::systemLinkage()
+{
+    return global.params.isWindows ? LINKwindows : LINKc;
+}

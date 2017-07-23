@@ -3289,6 +3289,7 @@ const char *linkageToChars(LINK linkage)
         case LINKwindows:   return "Windows";
         case LINKpascal:    return "Pascal";
         case LINKobjc:      return "Objective-C";
+        case LINKsystem:    return "System";
         default:            assert(0);
     }
     return NULL;    // never reached

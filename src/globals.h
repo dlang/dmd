@@ -301,6 +301,7 @@ enum LINK
     LINKwindows,
     LINKpascal,
     LINKobjc,
+    LINKsystem,
 };
 
 enum CPPMANGLE

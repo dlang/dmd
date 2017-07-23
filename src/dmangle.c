@@ -21,6 +21,7 @@
 #include "aggregate.h"
 #include "mtype.h"
 #include "attrib.h"
+#include "target.h"
 #include "template.h"
 #include "id.h"
 #include "module.h"
@@ -28,7 +29,6 @@
 #include "expression.h"
 #include "utf.h"
 
-char *toCppMangle(Dsymbol *s);
 void mangleToBuffer(Type *t, OutBuffer *buf);
 typedef int (*ForeachDg)(void *ctx, size_t paramidx, Parameter *param);
 int Parameter_foreach(Parameters *parameters, ForeachDg dg, void *ctx, size_t *pn = NULL);
@@ -424,7 +424,7 @@ public:
                     return;
 
                 case LINKcpp:
-                    buf->writestring(toCppMangle(d));
+                    buf->writestring(Target::toCppMangle(d));
                     return;
 
                 case LINKdefault:
