@@ -1915,6 +1915,7 @@ TOK Lexer::inreal(Token *t)
 #ifdef DEBUG
     assert(*p == '.' || isdigit(*p));
 #endif
+    bool isWellformedString = true;
     stringbuffer.reset();
     const utf8_t *pstart = p;
     char hex = 0;
@@ -1980,12 +1981,18 @@ TOK Lexer::inreal(Token *t)
                 continue;
             }
             if (!anyexp)
+            {
                 error("missing exponent");
+                isWellformedString = false;
+            }
             break;
         }
     }
     else if (hex)
+    {
         error("exponent required for hex float");
+        isWellformedString = false;
+    }
     --p;
     while (pstart < p)
     {
@@ -1998,19 +2005,21 @@ TOK Lexer::inreal(Token *t)
     const char *sbufptr = (char *)stringbuffer.data;
     TOK result;
     bool isOutOfRange = false;
-    t->floatvalue = CTFloat::parse(sbufptr, &isOutOfRange);
+    t->floatvalue = (isWellformedString ? CTFloat::parse(sbufptr, &isOutOfRange) : CTFloat::zero);
     errno = 0;
     switch (*p)
     {
         case 'F':
         case 'f':
-            isOutOfRange = (isOutOfRange || Port::isFloat32LiteralOutOfRange(sbufptr));
+            if (isWellformedString && !isOutOfRange)
+                isOutOfRange = Port::isFloat32LiteralOutOfRange(sbufptr);
             result = TOKfloat32v;
             p++;
             break;
 
         default:
-            isOutOfRange = (isOutOfRange || Port::isFloat64LiteralOutOfRange(sbufptr));
+            if (isWellformedString && !isOutOfRange)
+                isOutOfRange = Port::isFloat64LiteralOutOfRange(sbufptr);
             result = TOKfloat64v;
             break;
 

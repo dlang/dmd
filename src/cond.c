@@ -300,7 +300,7 @@ int VersionCondition::include(Scope *sc, ScopeDsymbol *sds)
         }
         else if (level <= global.params.versionlevel || level <= mod->versionlevel)
             inc = 1;
-        if (!definedInModule && (!ident || (!isReserved(ident->toChars()) && ident != Identifier::idPool(Token::toChars(TOKunittest)) && ident != Identifier::idPool(Token::toChars(TOKassert)))))
+        if (!definedInModule && (!ident || (!isReserved(ident->toChars()) && ident != Id::_unittest && ident != Id::_assert)))
             printDepsConditional(sc, this, "depsVersion ");
     }
     return (inc == 1);

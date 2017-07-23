@@ -4231,8 +4231,8 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
         if (d1 != d2)
         {
         Loverflow:
-            error(loc, "%s size %llu * %llu exceeds 16MiB size limit for static array",
-                toChars(), (unsigned long long)tbn->size(loc), (unsigned long long)d1);
+            error(loc, "%s size %llu * %llu exceeds 0x%llx size limit for static array",
+                toChars(), (unsigned long long)tbn->size(loc), (unsigned long long)d1, Target::maxStaticDataSize);
             goto Lerror;
         }
 
@@ -4240,7 +4240,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
         if (tbx->ty == Tstruct && !((TypeStruct *)tbx)->sym->members ||
             tbx->ty == Tenum && !((TypeEnum *)tbx)->sym->members)
         {
-            /* To avoid meaningess error message, skip the total size limit check
+            /* To avoid meaningless error message, skip the total size limit check
              * when the bottom of element type is opaque.
              */
         }
@@ -4257,7 +4257,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
              * run on them for the size, since they may be forward referenced.
              */
             bool overflow = false;
-            if (mulu(tbn->size(loc), d2, overflow) >= 0x1000000 || overflow) // put a 'reasonable' limit on it
+            if (mulu(tbn->size(loc), d2, overflow) >= Target::maxStaticDataSize || overflow)
                 goto Loverflow;
         }
     }

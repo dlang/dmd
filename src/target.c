@@ -26,6 +26,7 @@ bool Target::cppExceptions;
 int Target::c_longsize;
 int Target::c_long_doublesize;
 int Target::classinfosize;
+unsigned long long Target::maxStaticDataSize;
 
 /* Floating point constants for for .max, .min, and other properties.  */
 template <typename T> real_t Target::FPTypeProperties<T>::max;
@@ -74,6 +75,14 @@ void Target::_init()
     ptrsize = 4;
     classinfosize = 0x4C;   // 76
 
+    /* gcc uses int.max for 32 bit compilations, and long.max for 64 bit ones.
+     * Set to int.max for both, because the rest of the compiler cannot handle
+     * 2^64-1 without some pervasive rework. The trouble is that much of the
+     * front and back end uses 32 bit ints for sizes and offsets. Since C++
+     * silently truncates 64 bit ints to 32, finding all these dependencies will be a problem.
+     */
+    maxStaticDataSize = 0x7FFFFFFF;
+
     if (global.params.isLP64)
     {
         ptrsize = 8;
@@ -102,6 +111,13 @@ void Target::_init()
         realalignsize = 2;
         reverseCppOverloads = !global.params.is64bit;
         c_longsize = 4;
+        if (ptrsize == 4)
+        {
+            /* Optlink cannot deal with individual data chunks
+             * larger than 16Mb
+             */
+            maxStaticDataSize = 0x1000000;  // 16Mb
+        }
     }
     else
         assert(0);
