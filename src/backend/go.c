@@ -32,12 +32,12 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 void go_term()
 {
-    vec_free(defkill);
-    vec_free(starkill);
-    vec_free(vptrkill);
-    util_free(expnod);
-    util_free(expblk);
-    util_free(defnod);
+    vec_free(go.defkill);
+    vec_free(go.starkill);
+    vec_free(go.vptrkill);
+    util_free(go.expnod);
+    util_free(go.expblk);
+    util_free(go.defnod);
 }
 
 #if DEBUG
@@ -87,8 +87,8 @@ int go_flag(char *cp)
 
     //printf("go_flag('%s')\n", cp);
     flag = binary(cp + 1,flagtab,GLMAX);
-    if (mfoptim == 0 && flag != -1)
-        mfoptim = MFall & ~MFvbe;
+    if (go.mfoptim == 0 && flag != -1)
+        go.mfoptim = MFall & ~MFvbe;
 
     if (*cp == '-')                     /* a regular -whatever flag     */
     {                                   /* cp -> flag string            */
@@ -110,15 +110,15 @@ int go_flag(char *cp)
             case GLtime:
             case GLtree:
             case GLvbe:
-                mfoptim &= ~flagmftab[flag];    /* clear bits   */
+                go.mfoptim &= ~flagmftab[flag];    /* clear bits   */
                 break;
             case GLo:
             case GLO:
             case GLnone:
-                mfoptim |= MFall & ~MFvbe;      // inverse of -all
+                go.mfoptim |= MFall & ~MFvbe;      // inverse of -all
                 break;
             case GLspace:
-                mfoptim |= MFtime;      /* inverse of -time     */
+                go.mfoptim |= MFtime;      /* inverse of -time     */
                 break;
             case -1:                    /* not in flagtab[]     */
                 goto badflag;
@@ -146,13 +146,13 @@ int go_flag(char *cp)
             case GLtime:
             case GLtree:
             case GLvbe:
-                mfoptim |= flagmftab[flag];     /* set bits     */
+                go.mfoptim |= flagmftab[flag];     /* set bits     */
                 break;
             case GLnone:
-                mfoptim &= ~MFall;      /* inverse of +all      */
+                go.mfoptim &= ~MFall;      /* inverse of +all      */
                 break;
             case GLspace:
-                mfoptim &= ~MFtime;     /* inverse of +time     */
+                go.mfoptim &= ~MFtime;     /* inverse of +time     */
                 break;
             case -1:                    /* not in flagtab[]     */
                 goto badflag;
@@ -160,10 +160,10 @@ int go_flag(char *cp)
                 assert(0);
         }
     }
-    if (mfoptim)
+    if (go.mfoptim)
     {
-        mfoptim |= MFtree | MFdc;       // always do at least this much
-        config.flags4 |= (mfoptim & MFtime) ? CFG4speed : CFG4space;
+        go.mfoptim |= MFtree | MFdc;       // always do at least this much
+        config.flags4 |= (go.mfoptim & MFtime) ? CFG4speed : CFG4space;
     }
     else
     {
@@ -271,13 +271,13 @@ void optfunc()
 #endif
             }
         //printf("blockopt\n");
-        if (mfoptim & MFdc)
+        if (go.mfoptim & MFdc)
             blockopt(0);                // do block optimization
         out_regcand(&globsym);          // recompute register candidates
-        changes = 0;                    /* no changes yet                */
-        if (mfoptim & MFcnp)
+        go.changes = 0;                 // no changes yet
+        if (go.mfoptim & MFcnp)
             constprop();                /* make relationals unsigned     */
-        if (mfoptim & (MFli | MFliv))
+        if (go.mfoptim & (MFli | MFliv))
             loopopt();                  /* remove loop invariants and    */
                                         /* induction vars                */
                                         /* do loop rotation              */
@@ -286,14 +286,14 @@ void optfunc()
                 b->Bweight = 1;
         dbg_optprint("boolopt\n");
 
-        if (mfoptim & MFcnp)
+        if (go.mfoptim & MFcnp)
             boolopt();                  // optimize boolean values
-        if (changes && mfoptim & MFloop && (clock() - starttime) < 30 * CLOCKS_PER_SEC)
+        if (go.changes && go.mfoptim & MFloop && (clock() - starttime) < 30 * CLOCKS_PER_SEC)
             continue;
 
-        if (mfoptim & MFcnp)
+        if (go.mfoptim & MFcnp)
             constprop();                /* constant propagation          */
-        if (mfoptim & MFcp)
+        if (go.mfoptim & MFcp)
             copyprop();                 /* do copy propagation           */
 
         /* Floating point constants and string literals need to be
@@ -324,17 +324,17 @@ void optfunc()
          * more than one OPgot in a function, which mucks up OSX
          * code generation which assumes at most one (localgotoffset).
          */
-        if (mfoptim & MFlocal)
+        if (go.mfoptim & MFlocal)
             localize();                 // improve expression locality
-        if (mfoptim & MFda)
+        if (go.mfoptim & MFda)
             rmdeadass();                /* remove dead assignments       */
 
-        cmes2 ("changes = %d\n", changes);
-        if (!(changes && mfoptim & MFloop && (clock() - starttime) < 30 * CLOCKS_PER_SEC))
+        cmes2 ("changes = %d\n", go.changes);
+        if (!(go.changes && go.mfoptim & MFloop && (clock() - starttime) < 30 * CLOCKS_PER_SEC))
             break;
     } while (1);
     cmes2("%d iterations\n",iter);
-    if (mfoptim & MFdc)
+    if (go.mfoptim & MFdc)
         blockopt(1);                    // do block optimization
 
     for (b = startblock; b; b = b->Bnext)
@@ -342,11 +342,11 @@ void optfunc()
         if (b->Belem)
             postoptelem(b->Belem);
     }
-    if (mfoptim & MFvbe)
+    if (go.mfoptim & MFvbe)
         verybusyexp();              /* very busy expressions         */
-    if (mfoptim & MFcse)
+    if (go.mfoptim & MFcse)
         builddags();                /* common subexpressions         */
-    if (mfoptim & MFdv)
+    if (go.mfoptim & MFdv)
         deadvar();                  /* eliminate dead variables      */
 
 #ifdef DEBUG

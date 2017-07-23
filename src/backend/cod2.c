@@ -234,14 +234,9 @@ code *cdorth(elem *e,regm_t *pretregs)
   else
   {     /* If ty is a TYfptr, but both operands are long, treat the     */
         /* operation as a long.                                         */
-#if TARGET_SEGMENTED
         if ((tylong(ty1) || ty1 == TYhptr) &&
             (tylong(ty2) || ty2 == TYhptr))
             numwords++;
-#else
-        if (tylong(ty1) && tylong(ty2))
-            numwords++;
-#endif
   }
 
   // Special cases where only flags are set
@@ -496,7 +491,6 @@ code *cdorth(elem *e,regm_t *pretregs)
 #endif
         assert(tysize[ty2] == REGSIZE);
 
-#if TARGET_SEGMENTED
         /* Watch out for the case here where you are going to OP reg,EA */
         /* and both the reg and EA use ES! Prevent this by forcing      */
         /* reg into the regular registers.                              */
@@ -506,12 +500,10 @@ code *cdorth(elem *e,regm_t *pretregs)
         {
             retregs = ALLREGS;
         }
-#endif
 
         cl = codelem(e1,&retregs,test);
         reg = findreglsw(retregs);      /* reg is the register with the offset*/
   }
-#if TARGET_SEGMENTED
   else if (ty1 == TYhptr || ty2 == TYhptr)
   {     /* Generate code for add/subtract of huge pointers.
            No attempt is made to generate very good code.
@@ -562,7 +554,6 @@ code *cdorth(elem *e,regm_t *pretregs)
         genregs(c,0x03,mreg,lrreg);             // ADD mreg,MSREG(h)
         goto L5;
   }
-#endif
   else
   {     regm_t regm;
 
@@ -1664,6 +1655,8 @@ code *cdnot(elem *e,regm_t *pretregs)
                 cs.IFL2 = FLconst;
                 cs.IEV2.Vint = 0;
             }
+            if (I64 && (sz == 1) && reg >= 4)
+                cs.Irex |= REX;
             cs.Iop ^= (sz == 1);
             code_newreg(&cs,reg);
             c = gen(c,&cs);                             // CMP e1,0
@@ -1698,6 +1691,8 @@ code *cdnot(elem *e,regm_t *pretregs)
             cs.IFL2 = FLconst;
             cs.IEV2.Vint = 1;
         }
+        if (I64 && (sz == 1) && reg >= 4)
+            cs.Irex |= REX;
         cs.Iop ^= (sz == 1);
         code_newreg(&cs,reg);
         c = gen(c,&cs);                         // CMP e1,1
@@ -2786,10 +2781,8 @@ code *cdind(elem *e,regm_t *pretregs)
         case TYarray:
             // This case should never happen, why is it here?
             tym = TYnptr;               // don't confuse allocreg()
-#if TARGET_SEGMENTED
             if (*pretregs & (mES | mCX) || e->Ety & mTYfar)
                     tym = TYfptr;
-#endif
 
 #if 0
   c = getlvalue(&cs,e,RMload);          // get addressing mode
@@ -2921,19 +2914,24 @@ code *cdind(elem *e,regm_t *pretregs)
         }
         else if (sz <= REGSIZE)
         {
-                cs.Iop = 0x8B ^ byte;
+                cs.Iop = 0x8B;                                  // MOV
+                if (sz <= 2 && !I16 &&
+                    config.target_cpu >= TARGET_PentiumPro && config.flags4 & CFG4speed)
+                {
+                    cs.Iop = tyuns(tym) ? 0x0FB7 : 0x0FBF;      // MOVZX/MOVSX
+                    cs.Iflags &= ~CFopsize;
+                }
+                cs.Iop ^= byte;
         L2:     code_newreg(&cs,reg);
                 ce = gen(CNIL,&cs);     /* MOV reg,[idx]                */
                 if (byte && reg >= 4)
                     code_orrex(ce, REX);
         }
-#if TARGET_SEGMENTED
         else if ((tym == TYfptr || tym == TYhptr) && retregs & mES)
         {
                 cs.Iop = 0xC4;          /* LES reg,[idx]                */
                 goto L2;
         }
-#endif
         else if (sz <= 2 * REGSIZE)
         {   unsigned lsreg;
 
@@ -3171,7 +3169,6 @@ code *cdstrcmp( elem *e, regm_t *pretregs)
         case TYnptr:
             need_DS = FALSE;
             break;
-#if TARGET_SEGMENTED
         case TYsptr:
             if (config.wflags & WFssneds)       /* if sptr can't use DS segment */
                 segreg = SEG_SS;
@@ -3193,7 +3190,6 @@ code *cdstrcmp( elem *e, regm_t *pretregs)
             gen2(c3,0x8E,modregrm(3,SEG_DS,CX));        /* MOV DS,CX    */
             need_DS = TRUE;
             break;
-#endif
         default:
             assert(0);
     }
@@ -3282,7 +3278,6 @@ code *cdmemcmp(elem *e,regm_t *pretregs)
         case TYnptr:
             need_DS = FALSE;
             break;
-#if TARGET_SEGMENTED
         case TYsptr:
             if (config.wflags & WFssneds)       /* if sptr can't use DS segment */
                 segreg = SEG_SS;
@@ -3304,7 +3299,6 @@ code *cdmemcmp(elem *e,regm_t *pretregs)
             gen2(c3,0x8E,modregrm(3,SEG_DS,DX));        /* MOV DS,DX    */
             need_DS = TRUE;
             break;
-#endif
         default:
             assert(0);
     }
@@ -3393,7 +3387,6 @@ code *cdstrcpy(elem *e,regm_t *pretregs)
         case TYnptr:
             need_DS = FALSE;
             break;
-#if TARGET_SEGMENTED
         case TYsptr:
             if (config.wflags & WFssneds)       /* if sptr can't use DS segment */
                 segreg = SEG_SS;
@@ -3414,7 +3407,6 @@ code *cdstrcpy(elem *e,regm_t *pretregs)
             segreg = SEG_ES;
             goto L1;
             break;
-#endif
         default:
             assert(0);
     }
@@ -3511,7 +3503,6 @@ code *cdmemcpy(elem *e,regm_t *pretregs)
         case TYnptr:
             need_DS = FALSE;
             break;
-#if TARGET_SEGMENTED
         case TYsptr:
             if (config.wflags & WFssneds)       /* if sptr can't use DS segment */
                 segreg = SEG_SS;
@@ -3533,7 +3524,6 @@ code *cdmemcpy(elem *e,regm_t *pretregs)
             gen2(c3,0x8E,modregrm(3,SEG_DS,DX));        /* MOV DS,DX    */
             need_DS = TRUE;
             break;
-#endif
         default:
             assert(0);
     }
@@ -3902,7 +3892,6 @@ code *cdstreq(elem *e,regm_t *pretregs)
     {   elem *e21 = e2->E1;
 
         segreg = SEG_DS;
-#if TARGET_SEGMENTED
         switch (tybasic(e21->Ety))
         {
             case TYsptr:
@@ -3920,7 +3909,6 @@ code *cdstreq(elem *e,regm_t *pretregs)
                 need_DS = TRUE;
                 break;
         }
-#endif
         c1a = codelem(e21,&srcregs,FALSE);
         freenode(e2);
         if (segreg != SEG_DS)           /* if not DS                    */
@@ -3931,14 +3919,12 @@ code *cdstreq(elem *e,regm_t *pretregs)
     }
     else if (e2->Eoper == OPvar)
     {
-#if TARGET_SEGMENTED
         if (e2->EV.sp.Vsym->ty() & mTYfar) // if e2 is in a far segment
         {   srcregs |= mCX;             /* get segment also             */
             need_DS = TRUE;
             c1a = cdrelconst(e2,&srcregs);
         }
         else
-#endif
         {
             c1a = cdrelconst(e2,&srcregs);
             segreg = segfl[el_fl(e2)];
@@ -4087,26 +4073,18 @@ code *cdrelconst(elem *e,regm_t *pretregs)
         case TYildouble:
         case TYcldouble:
             tym = TYnptr;               // don't confuse allocreg()
-#if TARGET_SEGMENTED
             if (*pretregs & (mES | mCX) || e->Ety & mTYfar)
             {
                     tym = TYfptr;
             }
-#endif
             break;
         case TYifunc:
-#if TARGET_SEGMENTED
             tym = TYfptr;
-#else
-            assert(0); // what's the right thing to do here?  TYptr?
-#endif
             break;
         default:
             if (tyfunc(tym))
                 tym =
-#if TARGET_SEGMENTED
                     tyfarfunc(tym) ? TYfptr :
-#endif
                     TYnptr;
             break;
   }
@@ -4116,9 +4094,6 @@ code *cdrelconst(elem *e,regm_t *pretregs)
   if (tysize[tym] > REGSIZE)            /* fptr could've been cast to long */
   {     tym_t ety;
         symbol *s;
-
-        //elem_print(e);
-        assert(TARGET_SEGMENTED);
 
         if (*pretregs & mES)
         {       regm_t scratch = (mAX|mBX|mDX|mDI) & ~mask[lreg];
@@ -4143,26 +4118,21 @@ code *cdrelconst(elem *e,regm_t *pretregs)
         ety = tybasic(s->ty());
         if ((tyfarfunc(ety) || ety == TYifunc) &&
             (sclass == SCextern || ClassInline(sclass) || config.wflags & WFthunk)
-#if TARGET_SEGMENTED
             || s->Sfl == FLfardata
             || (s->ty() & mTYcs && s->Sseg != cseg && (LARGECODE || s->Sclass == SCcomdat))
-#endif
            )
         {       /* MOV mreg,seg of symbol       */
                 c1 = gencs(CNIL,0xB8 + mreg,0,FLextern,s);
                 c1->Iflags = CFseg;
                 c = cat(c,c1);
-                assert(TARGET_SEGMENTED);
         }
         else
         {   int fl;
 
         loadreg:
             fl = s->Sfl;
-#if TARGET_SEGMENTED
             if (s->ty() & mTYcs)
                 fl = FLcsdata;
-#endif
             c = gen2(c,0x8C,            /* MOV mreg,SEG REGISTER        */
                 modregrm(3,segfl[fl],mreg));
         }
@@ -4193,10 +4163,8 @@ code *getoffset(elem *e,unsigned reg)
         cs.IEV2._EP.Vpointer = e->EV.Vpointer;
         goto L3;
 
-#if TARGET_SEGMENTED
     case FLfardata:
         goto L4;
-#endif
 
     case FLtlsdata:
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
@@ -4486,6 +4454,7 @@ code *cdneg(elem *e,regm_t *pretregs)
         c = gen2(CNIL,0xF7,modregrm(3,3,msreg)); /* NEG msreg           */
         lsreg = findreglsw(retregs);
         gen2(c,0xF7,modregrm(3,3,lsreg));       /* NEG lsreg            */
+        code_orflag(c, CFpsw);                  // need flag result of previous NEG
         genc2(c,0x81,modregrm(3,3,msreg),0);    /* SBB msreg,0          */
   }
   else
@@ -4557,7 +4526,7 @@ code *cdabs( elem *e, regm_t *pretregs)
         if (!I16 && sz == REGSIZE)
         {   regm_t scratch = allregs & ~retregs;
             reg = findreg(retregs);
-            cg = allocreg(&scratch,&r,TYint);
+            cg = cat(cg, allocreg(&scratch,&r,TYint));
             cg = cat(cg,getregs(retregs));
             cg = genmovreg(cg,r,reg);                                   // MOV r,reg
             cg = genc2(cg,0xC1,modregrmx(3,7,r),REGSIZE * 8 - 1);       // SAR r,31/63
@@ -4886,7 +4855,6 @@ code *cdpost(elem *e,regm_t *pretregs)
         }
         return cat4(c1,c2,c3,fixresult(e,retregs,pretregs));
   }
-#if TARGET_SEGMENTED
   else if (tyml == TYhptr)
   {
         unsigned long rvalue;
@@ -4947,7 +4915,6 @@ code *cdpost(elem *e,regm_t *pretregs)
         gen(c3,&cs);
         return cat4(c1,c2,c3,fixresult(e,retregs,pretregs));
   }
-#endif
   else if (sz == 2 * REGSIZE)
   {     unsigned sreg;
 
@@ -5030,13 +4997,13 @@ code *cdinfo(elem *e,regm_t *pretregs)
             c = cat(c,codelem(e->E1,&retregs,FALSE));
             break;
         case OPmark:
-            if (0 && config.exe == EX_NT)
+            if (0 && config.exe == EX_WIN32)
             {   unsigned idx;
 
                 idx = except_index_get();
                 except_mark();
                 c = codelem(e->E2,pretregs,FALSE);
-                if (config.exe == EX_NT && idx != except_index_get())
+                if (config.exe == EX_WIN32 && idx != except_index_get())
                 {   usednteh |= NTEHcleanup;
                     c = cat(c,nteh_gensindex(idx - 1));
                 }
@@ -5068,19 +5035,18 @@ code *cdinfo(elem *e,regm_t *pretregs)
 
 code *cddctor(elem *e,regm_t *pretregs)
 {
-#if MARS
     /* Generate:
         ESCAPE | ESCdctor
         MOV     sindex[BP],index
      */
     usednteh |= EHcleanup;
-    if (config.exe == EX_NT)
+    if (config.ehmethod == EH_WIN32)
     {   usednteh |= NTEHcleanup | NTEH_try;
         nteh_usevars();
     }
     assert(*pretregs == 0);
     code cs;
-    cs.Iop = ESCAPE | ESCdctor;
+    cs.Iop = ESCAPE | ESCdctor;         // mark start of EH range
     cs.Iflags = 0;
     cs.Irex = 0;
     cs.IFL1 = FLctor;
@@ -5089,9 +5055,6 @@ code *cddctor(elem *e,regm_t *pretregs)
     c = cat(c, nteh_gensindex(0));      // the actual index will be patched in later
                                         // by except_fillInEHTable()
     return c;
-#else
-    return NULL;
-#endif
 }
 
 /*******************************************
@@ -5100,69 +5063,86 @@ code *cddctor(elem *e,regm_t *pretregs)
 
 code *cdddtor(elem *e,regm_t *pretregs)
 {
-#if MARS
-    /* Generate:
-        ESCAPE | ESCddtor
-        MOV     sindex[BP],index
-        CALL    dtor
-        JMP     L1
-    Ldtor:
-        ... e->E1 ...
-        RET
-    L1: NOP
-    */
-    usednteh |= EHcleanup;
-    if (config.exe == EX_NT)
-    {   usednteh |= NTEHcleanup | NTEH_try;
-        nteh_usevars();
-    }
-
-    code cs;
-    cs.Iop = ESCAPE | ESCddtor;
-    cs.Iflags = 0;
-    cs.Irex = 0;
-    cs.IFL1 = FLdtor;
-    cs.IEV1.Vtor = e;
-    code *cd = gen(CNIL,&cs);
-
-    cd = cat(cd, nteh_gensindex(0));    // the actual index will be patched in later
-                                        // by except_fillInEHTable()
-
-    // Mark all registers as destroyed
+    if (config.ehmethod == EH_DWARF)
     {
+        usednteh |= EHcleanup;
+
+        code cs;
+        cs.Iop = ESCAPE | ESCddtor;     // mark end of EH range and where landing pad is
+        cs.Iflags = 0;
+        cs.Irex = 0;
+        cs.IFL1 = FLdtor;
+        cs.IEV1.Vtor = e;
+        code *cd = gen(CNIL,&cs);
+
+        // Mark all registers as destroyed
         code *cy = getregs(allregs);
         assert(!cy);
-    }
 
-    assert(*pretregs == 0);
-    code *c = codelem(e->E1,pretregs,FALSE);
-    gen1(c,0xC3);               // RET
-
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    if (config.flags3 & CFG3pic)
-    {
-        int nalign = 0;
-        if (STACKALIGN == 16)
-        {   nalign = STACKALIGN - REGSIZE;
-            cd = cod3_stackadj(cd, nalign);
-        }
-        calledafunc = 1;
-        genjmp(cd,0xE8,FLcode,(block *)c);                  // CALL Ldtor
-        if (nalign)
-            cd = cod3_stackadj(cd, -nalign);
+        assert(*pretregs == 0);
+        code *c = codelem(e->E1,pretregs,FALSE);
+        return cat(cd, c);
     }
     else
-#endif
-        genjmp(cd,0xE8,FLcode,(block *)c);                  // CALL Ldtor
+    {
+        /* Generate:
+            ESCAPE | ESCddtor
+            MOV     sindex[BP],index
+            CALL    dtor
+            JMP     L1
+        Ldtor:
+            ... e->E1 ...
+            RET
+        L1: NOP
+        */
+        usednteh |= EHcleanup;
+        if (config.ehmethod == EH_WIN32)
+        {   usednteh |= NTEHcleanup | NTEH_try;
+            nteh_usevars();
+        }
 
-    code *cnop = gennop(CNIL);
+        code cs;
+        cs.Iop = ESCAPE | ESCddtor;
+        cs.Iflags = 0;
+        cs.Irex = 0;
+        cs.IFL1 = FLdtor;
+        cs.IEV1.Vtor = e;
+        code *cd = gen(CNIL,&cs);
 
-    genjmp(cd,JMP,FLcode,(block *)cnop);
+        cd = cat(cd, nteh_gensindex(0));    // the actual index will be patched in later
+                                            // by except_fillInEHTable()
 
-    return cat4(cd, c, cnop, NULL);
-#else
-    return NULL;
-#endif
+        // Mark all registers as destroyed
+        {
+            code *cy = getregs(allregs);
+            assert(!cy);
+        }
+
+        assert(*pretregs == 0);
+        code *c = codelem(e->E1,pretregs,FALSE);
+        gen1(c,0xC3);                      // RET
+
+        if (config.flags3 & CFG3pic)
+        {
+            int nalign = 0;
+            if (STACKALIGN == 16)
+            {   nalign = STACKALIGN - REGSIZE;
+                cd = cod3_stackadj(cd, nalign);
+            }
+            calledafunc = 1;
+            genjmp(cd,0xE8,FLcode,(block *)c);                  // CALL Ldtor
+            if (nalign)
+                cd = cod3_stackadj(cd, -nalign);
+        }
+        else
+            genjmp(cd,0xE8,FLcode,(block *)c);                  // CALL Ldtor
+
+        code *cnop = gennop(CNIL);
+
+        genjmp(cd,JMP,FLcode,(block *)cnop);
+
+        return cat4(cd, c, cnop, NULL);
+    }
 }
 
 
@@ -5177,7 +5157,7 @@ code *cdctor(elem *e,regm_t *pretregs)
     code *c;
 
     usednteh |= EHcleanup;
-    if (config.exe == EX_NT)
+    if (config.exe == EX_WIN32)
         usednteh |= NTEHcleanup;
     assert(*pretregs == 0);
     cs.Iop = ESCAPE | ESCctor;
@@ -5199,7 +5179,7 @@ code *cddtor(elem *e,regm_t *pretregs)
     code *c;
 
     usednteh |= EHcleanup;
-    if (config.exe == EX_NT)
+    if (config.exe == EX_WIN32)
         usednteh |= NTEHcleanup;
     assert(*pretregs == 0);
     cs.Iop = ESCAPE | ESCdtor;
@@ -5243,29 +5223,6 @@ code *cdhalt(elem *e,regm_t *pretregs)
 {
     assert(*pretregs == 0);
     return gen1(NULL, 0xF4);            // HLT
-}
-
-/****************************************
- * Check to see if pointer is NULL.
- */
-
-code *cdnullcheck(elem *e,regm_t *pretregs)
-{   regm_t retregs;
-    regm_t scratch;
-    unsigned reg;
-    code *c;
-    code *cs;
-
-    assert(!I16);
-    retregs = *pretregs;
-    if ((retregs & allregs) == 0)
-        retregs |= allregs;
-    c = codelem(e->E1,&retregs,FALSE);
-    scratch = allregs & ~retregs;
-    cs = allocreg(&scratch,&reg,TYint);
-    unsigned rex = I64 ? REX_W : 0;
-    cs = genc1(cs,0x8B,(rex << 16) | buildModregrm(2,reg,findreg(retregs)),FLconst,0); // MOV reg,0[e]
-    return cat3(c,cs,fixresult(e,retregs,pretregs));
 }
 
 #endif // !SPP

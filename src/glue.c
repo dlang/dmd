@@ -41,9 +41,11 @@
 #include "irstate.h"
 
 void clearStringTab();
+RET retStyle(TypeFunction *tf);
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 void Statement_toIR(Statement *s, IRState *irs);
+void insertFinallyBlockCalls(block *startblock);
 elem *toEfilename(Module *m);
 Symbol *toSymbol(Dsymbol *s);
 void buildClosure(FuncDeclaration *fd, IRState *irs);
@@ -61,8 +63,6 @@ Symbol *toModuleUnittest(Module *m);
 Symbol *toModuleArray(Module *m);
 Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const char *suffix);
 static void genhelpers(Module *m);
-
-RET retStyle(TypeFunction *tf);
 
 elem *eictor;
 symbol *ictorlocalgot;
@@ -237,7 +237,6 @@ void obj_start(char *srcfile)
     //printf("obj_start()\n");
 
     rtlsym_reset();
-    slist_reset();
     clearStringTab();
 
 #if TARGET_WINDOS
@@ -250,9 +249,7 @@ void obj_start(char *srcfile)
 #endif
 
     el_reset();
-#if TX86
     cg87_reset();
-#endif
     out_reset();
 }
 
@@ -377,7 +374,6 @@ void genObjFile(Module *m, bool multiobj)
         m->cov->Sfl = FLdata;
         dtnzeros(&m->cov->Sdt, 4 * m->numlines);
         outdata(m->cov);
-        slist_add(m->cov);
 
         m->covb = (unsigned *)calloc((m->numlines + 32) / 32, sizeof(*m->covb));
     }
@@ -392,7 +388,7 @@ void genObjFile(Module *m, bool multiobj)
     if (global.params.cov)
     {
         /* Generate
-         *      bit[numlines] __bcoverage;
+         *  private bit[numlines] __bcoverage;
          */
         Symbol *bcov = symbol_calloc("__bcoverage");
         bcov->Stype = type_fake(TYuint);
@@ -439,7 +435,7 @@ void genObjFile(Module *m, bool multiobj)
                       ebcov,
                       efilename,
                       NULL);
-        e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DCOVER2]), e);
+        e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DCOVER2)), e);
         eictor = el_combine(e, eictor);
         ictorlocalgot = localgot;
     }
@@ -536,7 +532,7 @@ static void genhelpers(Module *m)
         if (config.exe == EX_WIN64)
             efilename = addressElem(efilename, Type::tstring, true);
 
-        elem *e = el_var(rtlsym[rt]);
+        elem *e = el_var(getRtlsym(rt));
         e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
 
         block *b = block_calloc();
@@ -546,7 +542,7 @@ static void genhelpers(Module *m)
         ma->Sfunc->Fstartblock = b;
         ma->Sclass = SCglobal;
         ma->Sfl = 0;
-        ma->Sflags |= rtlsym[rt]->Sflags & SFLexit;
+        ma->Sflags |= getRtlsym(rt)->Sflags & SFLexit;
         writefunc(ma);
     }
 }
@@ -858,7 +854,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
         f->Fclass = (Classsym *)t;
     }
 
-#if TARGET_WINDOS
     /* This is done so that the 'this' pointer on the stack is the same
      * distance away from the function parameters, so that an overriding
      * function can call the nested fdensure or fdrequire of its overridden function
@@ -866,7 +861,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
      */
     if (fd->isVirtual() && (fd->fensure || fd->frequire))
         f->Fflags3 |= Ffakeeh;
-#endif
 
 #if TARGET_OSX
     s->Sclass = SCcomdat;
@@ -915,35 +909,31 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
             objmod->external_def("_main");
             objmod->ehsections();   // initialize exception handling sections
 #endif
-#if TARGET_WINDOS
             if (global.params.mscoff)
             {
                 objmod->external_def("main");
                 objmod->ehsections();   // initialize exception handling sections
             }
-            else
+            else if (config.exe == EX_WIN32)
             {
                 objmod->external_def("_main");
                 objmod->external_def("__acrtused_con");
             }
-#endif
             objmod->includelib(libname);
             s->Sclass = SCglobal;
         }
         else if (strcmp(s->Sident, "main") == 0 && fd->linkage == LINKc)
         {
-#if TARGET_WINDOS
             if (global.params.mscoff)
             {
                 objmod->includelib("LIBCMT");
                 objmod->includelib("OLDNAMES");
             }
-            else
+            else if (config.exe == EX_WIN32)
             {
                 objmod->external_def("__acrtused_con");        // bring in C startup code
                 objmod->includelib("snn.lib");          // bring in C runtime library
             }
-#endif
             s->Sclass = SCglobal;
         }
 #if TARGET_WINDOS
@@ -999,7 +989,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
     IRState irs(m, fd);
     Dsymbols deferToObj;                   // write these to OBJ file later
     irs.deferToObj = &deferToObj;
-    AA *labels = NULL;
+    void *labels = NULL;
     irs.labels = &labels;
 
     symbol *shidden = NULL;
@@ -1172,26 +1162,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
         bx.module = fd->getModule();
         irs.blx = &bx;
 
-        // Initialize argptr
-        if (fd->v_argptr)
-        {
-            // Declare va_argsave
-            if (global.params.is64bit &&
-                !global.params.isWindows)
-            {
-                type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3, NULL, NULL, false, false, true);
-                // The backend will pick this up by name
-                Symbol *s = symbol_name("__va_argsave", SCauto, t);
-                s->Stype->Tty |= mTYvolatile;
-                symbol_add(s);
-            }
-
-            Symbol *s = toSymbol(fd->v_argptr);
-            symbol_add(s);
-            elem *e = el_una(OPva_start, TYnptr, el_ptr(s));
-            block_appendexp(irs.blx->curblock, e);
-        }
-
         /* Doing this in semantic3() caused all kinds of problems:
          * 1. couldn't reliably get the final mangling of the function name due to fwd refs
          * 2. impact on function inlining
@@ -1234,10 +1204,18 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
             sbody = CompoundStatement::create(Loc(), sp, stf);
         }
 
+        if (fd->interfaceVirtual)
+        {
+            // Adjust the 'this' pointer instead of using a thunk
+            assert(irs.sthis);
+            elem *ethis = el_var(irs.sthis);
+            elem *e = el_bin(OPminass, TYnptr, ethis, el_long(TYsize_t, fd->interfaceVirtual->offset));
+            block_appendexp(irs.blx->curblock, e);
+        }
+
         buildClosure(fd, &irs);
 
-#if TARGET_WINDOS
-        if (fd->isSynchronized() && cd && config.flags2 & CFG2seh &&
+        if (config.ehmethod == EH_WIN32 && fd->isSynchronized() && cd &&
             !fd->isStatic() && !sbody->usesEH() && !global.params.trace)
         {
             /* The "jmonitor" hack uses an optimized exception handling frame
@@ -1245,7 +1223,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
              */
             s->Sfunc->Fflags3 |= Fjmonitor;
         }
-#endif
 
         Statement_toIR(sbody, &irs);
         bx.curblock->BC = BCret;
@@ -1265,6 +1242,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
                 }
             }
         }
+        insertFinallyBlockCalls(f->Fstartblock);
     }
 
     // If static constructor
@@ -1358,14 +1336,13 @@ bool onlyOneMain(Loc loc)
     static bool hasMain = false;
     if (hasMain)
     {
-        const char *msg = NULL;
+        const char *msg = "";
         if (global.params.addMain)
             msg = ", -main switch added another main()";
-#if TARGET_WINDOS
-        error(lastLoc, "only one main/WinMain/DllMain allowed%s", msg ? msg : "");
-#else
-        error(lastLoc, "only one main allowed%s", msg ? msg : "");
-#endif
+        const char *othermain = "";
+        if (config.exe == EX_WIN32 || config.exe == EX_WIN64)
+            othermain = "/WinMain/DllMain";
+        error(lastLoc, "only one main%s allowed%s", othermain, msg);
         return false;
     }
     lastLoc = loc;

@@ -250,7 +250,6 @@ void outdata(symbol *s)
         seg = objmod->comdatsize(s, datasize);
         switch (ty & mTYLINK)
         {
-#if TARGET_SEGMENTED
             case mTYfar:                // if far data
                 s->Sfl = FLfardata;
                 break;
@@ -258,7 +257,7 @@ void outdata(symbol *s)
             case mTYcs:
                 s->Sfl = FLcsdata;
                 break;
-#endif
+
             case mTYnear:
             case 0:
                 s->Sfl = FLdata;        // initialized data
@@ -341,11 +340,9 @@ void outdata(symbol *s)
                     flags = CFoff | CFseg;
                 if (I64)
                     flags |= CFoffset64;
-#if TARGET_SEGMENTED
                 if (tybasic(dt->Dty) == TYcptr)
                     objmod->reftocodeseg(seg,offset,dt->DTabytes);
                 else
-#endif
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                     objmod->reftodatseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
 #else
@@ -426,7 +423,6 @@ void outcommon(symbol *s,targ_size_t n)
     if (n != 0)
     {
         assert(s->Sclass == SCglobal);
-#if TARGET_SEGMENTED
         if (s->ty() & mTYcs) // if store in code segment
         {
             /* COMDEFs not supported in code segment
@@ -438,9 +434,7 @@ void outcommon(symbol *s,targ_size_t n)
             out_extdef(s);
 #endif
         }
-        else
-#endif
-        if (s->ty() & mTYthread) // if store in thread local segment
+        else if (s->ty() & mTYthread) // if store in thread local segment
         {
             if (config.objfmt == OBJ_ELF)
             {
@@ -466,16 +460,11 @@ void outcommon(symbol *s,targ_size_t n)
             s->Sclass = SCcomdef;
             if (config.objfmt == OBJ_OMF)
             {
-#if TARGET_SEGMENTED
                 s->Sxtrnnum = objmod->common_block(s,(s->ty() & mTYfar) == 0,n,1);
                 if (s->ty() & mTYfar)
                     s->Sfl = FLfardata;
                 else
                     s->Sfl = FLextern;
-#else
-                s->Sxtrnnum = objmod->common_block(s,true,n,1);
-                s->Sfl = FLextern;
-#endif
                 s->Sseg = UNKNOWN;
                 pstate.STflags |= PFLcomdef;
 #if SCPP
@@ -635,9 +624,7 @@ again:
             case SCglobal:
             case SCcomdat:
             case SCcomdef:
-#if PSEUDO_REGS
             case SCpseudo:
-#endif
             case SCinline:
             case SCsinline:
             case SCeinline:
@@ -651,10 +638,8 @@ again:
                 {
                     s->Sflags &= ~(SFLunambig | GTregcand);
                 }
-#if TARGET_SEGMENTED
                 else if (s->ty() & mTYfar)
                     e->Ety |= mTYfar;
-#endif
                 break;
 #if SCPP
             case SCmember:
@@ -676,10 +661,8 @@ again:
                 cpperr(EM_no_template_instance, s->Sident);
                 break;
             default:
-#ifdef DEBUG
                 symbol_print(s);
                 WRclass((enum SC) s->Sclass);
-#endif
                 assert(0);
 #endif
         }
@@ -913,9 +896,7 @@ STATIC void writefunc2(symbol *sfunc)
 
             scvtbl = (enum SC) ((config.flags2 & CFG2comdat) ? SCcomdat : SCglobal);
             n2_genvtbl(stag,scvtbl,1);
-#if VBTABLES
             n2_genvbtbl(stag,scvtbl,1);
-#endif
 #if SYMDEB_CODEVIEW
             if (config.fulltypes == CV4)
                 cv4_struct(stag,2);
@@ -983,11 +964,7 @@ STATIC void writefunc2(symbol *sfunc)
 
 #if SCPP
     /* If function is _STIxxxx, add in the auto destructors             */
-#if NEWSTATICDTOR
     if (cpp_stidtors && memcmp("__SI",sfunc->Sident,4) == 0)
-#else
-    if (cpp_stidtors && memcmp("_STI",sfunc->Sident,4) == 0)
-#endif
     {   list_t el;
 
         assert(startblock->Bnext == NULL);
@@ -1065,20 +1042,16 @@ STATIC void writefunc2(symbol *sfunc)
                 if (!(s->ty() & mTYvolatile))
                     s->Sflags |= GTregcand | SFLunambig; // assume register candidate   */
                 break;
-#if PSEUDO_REGS
             case SCpseudo:
                 s->Sfl = FLpseudo;
                 break;
-#endif
             case SCstatic:
                 break;                  // already taken care of by datadef()
             case SCstack:
                 s->Sfl = FLstack;
                 break;
             default:
-#ifdef DEBUG
                 symbol_print(s);
-#endif
                 assert(0);
         }
     }
@@ -1135,7 +1108,7 @@ STATIC void writefunc2(symbol *sfunc)
 
     block_pred();                       // compute predecessors to blocks
     block_compbcount();                 // eliminate unreachable blocks
-    if (mfoptim)
+    if (go.mfoptim)
     {   OPTIMIZER = 1;
         optfunc();                      /* optimize function            */
         assert(dfo);
@@ -1233,7 +1206,7 @@ STATIC void writefunc2(symbol *sfunc)
             {
                 case 'D': if (strcmp(id,"DllMain"))
                                 break;
-                          if (config.exe == EX_NT)
+                          if (config.exe == EX_WIN32)
                           {     i = 2;
                                 goto L2;
                           }
@@ -1241,7 +1214,7 @@ STATIC void writefunc2(symbol *sfunc)
 
                 case 'm': if (strcmp(id,"main"))
                                 break;
-                          if (config.exe == EX_NT)
+                          if (config.exe == EX_WIN32)
                                 i = 3;
                           else if (config.wflags & WFwindows)
                                 i = 1;
@@ -1251,7 +1224,7 @@ STATIC void writefunc2(symbol *sfunc)
 
                 case 'w': if (strcmp(id,"wmain") == 0)
                           {
-                                if (config.exe == EX_NT)
+                                if (config.exe == EX_WIN32)
                                 {   i = 5;
                                     goto L2;
                                 }
@@ -1264,7 +1237,7 @@ STATIC void writefunc2(symbol *sfunc)
                           }
                           if (stricmp(id,"wWinMain") == 0)
                           {
-                                if (config.exe == EX_NT)
+                                if (config.exe == EX_WIN32)
                                 {   i = 4;
                                     goto L2;
                                 }
@@ -1274,7 +1247,7 @@ STATIC void writefunc2(symbol *sfunc)
                 case 'L':
                 case 'l': if (stricmp(id,"LibMain"))
                                 break;
-                          if (config.exe != EX_NT && config.wflags & WFwindows)
+                          if (config.exe != EX_WIN32 && config.wflags & WFwindows)
                           {     i = 2;
                                 goto L2;
                           }

@@ -101,7 +101,6 @@ extern con_t regcon;
  *      CSEpe           pointer to saved elem
  *      CSEregm         mask of register that was saved (so for multi-
  *                      register variables we know which part we have)
- *      cstop =         # of entries in table
  */
 
 struct CSE
@@ -165,9 +164,9 @@ extern unsigned usednteh;
 #define NTEHcleanup     8       // destructors need to be called
 #define NTEHtry         0x10    // had C++ try statement
 #define NTEHcpp         (NTEHexcspec | NTEHcleanup | NTEHtry)
-#define EHcleanup       0x20
-#define EHtry           0x40
-#define NTEHjmonitor    0x80    // uses Jupiter monitor
+#define EHcleanup       0x20    // has destructors in the 'code' instructions
+#define EHtry           0x40    // has BCtry or BC_try blocks
+#define NTEHjmonitor    0x80    // uses Mars monitor
 #define NTEHpassthru    0x100
 
 /********************** Code Generator State ***************/
@@ -175,6 +174,13 @@ extern unsigned usednteh;
 typedef struct CGstate
 {
     int stackclean;     // if != 0, then clean the stack after function call
+
+    LocalSection funcarg;       // where function arguments are placed
+    targ_size_t funcargtos;     // current high water level of arguments being moved onto
+                                // the funcarg section. It is filled from top to bottom,
+                                // as if they were 'pushed' on the stack.
+                                // Special case: if funcargtos==~0, then no
+                                // arguments are there.
 } CGstate;
 
 extern CGstate cgstate;
@@ -190,7 +196,7 @@ extern  regm_t FLOATREGS;
 extern  regm_t FLOATREGS2;
 extern  regm_t DOUBLEREGS;
 extern  const char datafl[],stackfl[],segfl[],flinsymtab[];
-extern  char needframe,usedalloca,gotref;
+extern  char needframe,gotref;
 extern  targ_size_t localsize,
         funcoffset,
         framehandleroffset;
@@ -200,6 +206,7 @@ extern  LocalSection Para;
 extern  LocalSection Fast;
 extern  LocalSection Auto;
 extern  LocalSection EEStack;
+extern  LocalSection Alloca;
 #if TARGET_OSX
 extern  targ_size_t localgotoffset;
 #endif
@@ -212,7 +219,6 @@ extern int pass;
 
 extern  int dfoidx;
 extern  struct CSE *csextab;
-extern  unsigned cstop;
 #if TX86
 extern  bool floatreg;
 #endif
@@ -246,6 +252,7 @@ code *allocreg (regm_t *pretregs , unsigned *preg , tym_t tym , int line , const
 #else
 code *allocreg (regm_t *pretregs , unsigned *preg , tym_t tym );
 #endif
+regm_t lpadregs();
 void useregs (regm_t regm );
 code *getregs (regm_t r );
 code *getregs_imm (regm_t r );
@@ -283,7 +290,7 @@ code *fixresult (elem *e , regm_t retregs , regm_t *pretregs );
 code *callclib (elem *e , unsigned clib , regm_t *pretregs , regm_t keepmask );
 cd_t cdfunc;
 cd_t cdstrthis;
-code *params(elem *, unsigned);
+code *pushParams(elem *, unsigned);
 code *offsetinreg (elem *e , regm_t *pretregs );
 code *loaddata (elem *e , regm_t *pretregs );
 
@@ -329,7 +336,6 @@ cd_t cdddtor;
 cd_t cdctor;
 cd_t cddtor;
 cd_t cdmark;
-cd_t cdnullcheck;
 cd_t cdclassinit;
 
 /* cod3.c */
@@ -396,18 +402,20 @@ extern targ_size_t spoff;
 extern targ_size_t Foff;        // BP offset of floating register
 extern targ_size_t CSoff;       // offset of common sub expressions
 extern targ_size_t NDPoff;      // offset of saved 8087 registers
-extern int BPoff;                      // offset from BP
+extern targ_size_t pushoff;     // offset of saved registers
+extern bool pushoffuse;         // using pushoff
+extern int BPoff;               // offset from BP
 extern int EBPtoESP;            // add to EBP offset to get ESP offset
-extern int AllocaOff;               // offset of alloca temporary
 
 code* prolog_ifunc(tym_t* tyf);
 code* prolog_ifunc2(tym_t tyf, tym_t tym, bool pushds);
 code* prolog_16bit_windows_farfunc(tym_t* tyf, bool* pushds);
-code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter);
+code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter, int* cfa_offset);
 code* prolog_frameadj(tym_t tyf, unsigned xlocalsize, bool enter, bool* pushalloc);
 code* prolog_frameadj2(tym_t tyf, unsigned xlocalsize, bool* pushalloc);
 code* prolog_setupalloca();
-code* prolog_saveregs(code *c, regm_t topush);
+code* prolog_saveregs(code *c, regm_t topush, int cfa_offset);
+code* epilog_restoreregs(code *c, regm_t topop);
 code* prolog_trace(bool farfunc, unsigned* regsaved);
 code* prolog_gen_win64_varargs();
 code* prolog_genvarargs(symbol* sv, regm_t* namedargs);

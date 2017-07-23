@@ -109,26 +109,26 @@ STATIC code *getlvalue87(code *pcs,elem *e,regm_t keepmsk)
  */
 
 code *ndp_fstp(code *c, int i, tym_t ty)
-{   unsigned grex = I64 ? (REX_W << 16) : 0;
+{
     switch (tybasic(ty))
     {
         case TYfloat:
         case TYifloat:
         case TYcfloat:
-            c = genc1(c,0xD9,grex | modregrm(2,3,BPRM),FLndp,i); // FSTP m32real i[BP]
+            c = genc1(c,0xD9,modregrm(2,3,BPRM),FLndp,i); // FSTP m32real i[BP]
             break;
 
         case TYdouble:
         case TYdouble_alias:
         case TYidouble:
         case TYcdouble:
-            c = genc1(c,0xDD,grex | modregrm(2,3,BPRM),FLndp,i); // FSTP m64real i[BP]
+            c = genc1(c,0xDD,modregrm(2,3,BPRM),FLndp,i); // FSTP m64real i[BP]
             break;
 
         case TYldouble:
         case TYildouble:
         case TYcldouble:
-            c = genc1(c,0xDB,grex | modregrm(2,7,BPRM),FLndp,i); // FSTP m80real i[BP]
+            c = genc1(c,0xDB,modregrm(2,7,BPRM),FLndp,i); // FSTP m80real i[BP]
             break;
 
         default:
@@ -138,26 +138,26 @@ code *ndp_fstp(code *c, int i, tym_t ty)
 }
 
 code *ndp_fld(code *c, int i, tym_t ty)
-{   unsigned grex = I64 ? (REX_W << 16) : 0;
+{
     switch (tybasic(ty))
     {
         case TYfloat:
         case TYifloat:
         case TYcfloat:
-            c = genc1(c,0xD9,grex | modregrm(2,0,BPRM),FLndp,i);
+            c = genc1(c,0xD9,modregrm(2,0,BPRM),FLndp,i);
             break;
 
         case TYdouble:
         case TYdouble_alias:
         case TYidouble:
         case TYcdouble:
-            c = genc1(c,0xDD,grex | modregrm(2,0,BPRM),FLndp,i);
+            c = genc1(c,0xDD,modregrm(2,0,BPRM),FLndp,i);
             break;
 
         case TYldouble:
         case TYildouble:
         case TYcldouble:
-            c = genc1(c,0xDB,grex | modregrm(2,5,BPRM),FLndp,i); // FLD m80real i[BP]
+            c = genc1(c,0xDB,modregrm(2,5,BPRM),FLndp,i); // FLD m80real i[BP]
             break;
 
         default:
@@ -2047,7 +2047,6 @@ code *eq87(elem *e,regm_t *pretregs)
         }
         cs.Irm |= modregrm(0,op2,0);            // OR in reg field
         c2 = gen(c2, &cs);
-#if LNGDBLSIZE == 12
         if (tysize[TYldouble] == 12)
         {
         /* This deals with the fact that 10 byte reals really
@@ -2064,8 +2063,7 @@ code *eq87(elem *e,regm_t *pretregs)
             c2 = gen(c2, &cs);
         }
         }
-#endif
-        if (tysize[TYldouble] == 16)
+        else if (tysize[TYldouble] == 16)
         {
         /* This deals with the fact that 10 byte reals really
          * occupy 16 bytes by zeroing the extra 6 bytes.
@@ -2807,13 +2805,16 @@ code *cdnegass87(elem *e,regm_t *pretregs)
     cr = modEA(&cs);
     cs.Irm |= modregrm(0,6,0);
     cs.Iop = 0x80;
-#if LNGDBLSIZE > 10
-    if (tyml == TYldouble || tyml == TYildouble)
-        cs.IEVoffset1 += 10 - 1;
-    else if (tyml == TYcldouble)
-        cs.IEVoffset1 += tysize[TYldouble] + 10 - 1;
+    if (tysize[TYldouble] > 10)
+    {
+        if (tyml == TYldouble || tyml == TYildouble)
+            cs.IEVoffset1 += 10 - 1;
+        else if (tyml == TYcldouble)
+            cs.IEVoffset1 += tysize[TYldouble] + 10 - 1;
+        else
+            cs.IEVoffset1 += sz - 1;
+    }
     else
-#endif
         cs.IEVoffset1 += sz - 1;
     cs.IFL2 = FLconst;
     cs.IEV2.Vuns = 0x80;

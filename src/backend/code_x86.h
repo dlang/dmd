@@ -318,18 +318,13 @@ enum CLIB
         CLIBuldiv,
         CLIBulmod,
 
-#if TARGET_WINDOS
         CLIBdmul,CLIBddiv,CLIBdtst0,CLIBdtst0exc,CLIBdcmp,CLIBdcmpexc,CLIBdneg,CLIBdadd,CLIBdsub,
         CLIBfmul,CLIBfdiv,CLIBftst0,CLIBftst0exc,CLIBfcmp,CLIBfcmpexc,CLIBfneg,CLIBfadd,CLIBfsub,
-#endif
 
         CLIBdbllng,CLIBlngdbl,CLIBdblint,CLIBintdbl,
         CLIBdbluns,CLIBunsdbl,
         CLIBdblulng,
-#if TARGET_WINDOS
-        // used the GNU way of converting unsigned long long to signed
         CLIBulngdbl,
-#endif
         CLIBdblflt,CLIBfltdbl,
         CLIBdblllng,
         CLIBllngdbl,
@@ -352,13 +347,6 @@ enum CLIB
 
         CLIBu64_ldbl,
         CLIBld_u64,
-
-#if TARGET_WINDOS
-        // Win64 versions
-        CLIBdblullng_win64,
-        CLIBullngdbl_win64,
-#endif
-
         CLIBMAX
 };
 
@@ -395,6 +383,8 @@ struct code
 
 #define CFjmp5      0x400000    // always a 5 byte jmp
 #define CFswitch    0x800000    // kludge for switch table fixups
+
+#define CFindirect  0x1000000   // OSX32: indirect fixups
 
 /* These are for CFpc32 fixups, they're the negative of the offset of the fixup
  * from the program counter

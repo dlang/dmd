@@ -11,8 +11,8 @@ void dt_free(dt_t *);
 void dt_term();
 
 dt_t **dtnbytes(dt_t **,unsigned,const char *);
-dt_t **dtabytes(dt_t **pdtend,tym_t ty, unsigned offset, unsigned size, const char *ptr);
-dt_t **dtabytes(dt_t **pdtend, unsigned offset, unsigned size, const char *ptr);
+dt_t **dtabytes(dt_t **pdtend,tym_t ty, unsigned offset, unsigned size, const char *ptr, unsigned nzeros);
+dt_t **dtabytes(dt_t **pdtend, unsigned offset, unsigned size, const char *ptr, unsigned nzeros);
 dt_t **dtdword(dt_t **, int value);
 dt_t **dtsize_t(dt_t **, unsigned long long value);
 dt_t **dtnzeros(dt_t **pdtend,unsigned size);

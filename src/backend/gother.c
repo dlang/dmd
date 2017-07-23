@@ -86,13 +86,9 @@ STATIC void elemdatafree(Elemdata **plist)
     *plist = NULL;
 }
 
-static Elemdata *arraylist = NULL;      // list of Elemdata's of OParray elems
 static Elemdata *eqeqlist = NULL;       // list of Elemdata's of OPeqeq & OPne elems
 static Elemdata *rellist = NULL;        // list of Elemdata's of relop elems
 static Elemdata *inclist = NULL;        // list of Elemdata's of increment elems
-
-enum Rdtype { RDarraybounds, RDconstprop };
-static Rdtype rdtype;
 
 /*************************** Constant Propagation ***************************/
 
@@ -104,12 +100,9 @@ static Rdtype rdtype;
 
 void constprop()
 {
-    rdtype = RDconstprop;
     rd_compute();
     intranges();                // compute integer ranges
-#if 0
-    eqeqranges();               // see if we can eliminate some relationals
-#endif
+    //eqeqranges();               // see if we can eliminate some relationals
     elemdatafree(&eqeqlist);
     elemdatafree(&rellist);
     elemdatafree(&inclist);
@@ -128,19 +121,18 @@ STATIC void rd_compute()
         cmes("constprop()\n");
         assert(dfo);
         flowrd();               /* compute reaching definitions (rd)    */
-        if (deftop == 0)        /* if no reaching defs                  */
+        if (go.deftop == 0)        /* if no reaching defs                  */
                 return;
-        assert(rellist == NULL && inclist == NULL && eqeqlist == NULL && arraylist == NULL);
+        assert(rellist == NULL && inclist == NULL && eqeqlist == NULL);
         block_clearvisit();
         for (i = 0; i < dfotop; i++)    /* for each block               */
         {   block *b = dfo[i];
 
             switch (b->BC)
             {
-#if MARS
                 case BCjcatch:
-#endif
                 case BC_finally:
+                case BC_lpad:
                 case BCasm:
                 case BCcatch:
                     block_visit(b);
@@ -172,7 +164,7 @@ STATIC void rd_compute()
                                 dbg_printf("\n");
                                 vec_xorass(b->Binrd,b->Boutrd);
                                 j = vec_index(0,b->Binrd);
-                                WReqn(defnod[j].DNelem);
+                                WReqn(go.defnod[j].DNelem);
                                 dbg_printf("\n");
                         }
 #endif
@@ -202,7 +194,7 @@ STATIC void conpropwalk(elem *n,vec_t IN)
         elem *t;
 
         assert(n && IN);
-        /*chkvecdim(deftop,0);*/
+        /*chkvecdim(go.deftop,0);*/
         //printf("conpropwalk()\n"),elem_print(n);
         op = n->Eoper;
         if (op == OPcolon || op == OPcolon2)
@@ -230,8 +222,7 @@ STATIC void conpropwalk(elem *n,vec_t IN)
                     if (t->Eoper == OPvar)
                     {
                         // Note that the following ignores OPnegass
-                        if (rdtype == RDconstprop &&
-                            OTopeq(op) && sytab[t->EV.sp.Vsym->Sclass] & SCRD)
+                        if (OTopeq(op) && sytab[t->EV.sp.Vsym->Sclass] & SCRD)
                         {   elem *e;
                             list_t rdl;
 
@@ -278,8 +269,7 @@ STATIC void conpropwalk(elem *n,vec_t IN)
                 case OPle:
                 case OPge:
                     // Collect compare elems and their rd's in the rellist list
-                    if (rdtype == RDconstprop &&
-                        tyintegral(n->E1->Ety) &&
+                    if (tyintegral(n->E1->Ety) &&
                         tyintegral(n->E2->Ety)
                        )
                     {
@@ -295,8 +285,7 @@ STATIC void conpropwalk(elem *n,vec_t IN)
                 case OPpostinc:
                 case OPpostdec:
                     // Collect increment elems and their rd's in the inclist list
-                    if (rdtype == RDconstprop &&
-                        tyintegral(n->E1->Ety))
+                    if (tyintegral(n->E1->Ety))
                     {
                         //dbg_printf("appending to inclist\n"); elem_print(n);
                         pdata = Elemdata::ctor(n,thisblock,listrds(IN,n->E1,NULL));
@@ -308,8 +297,7 @@ STATIC void conpropwalk(elem *n,vec_t IN)
                 case OPne:
                 case OPeqeq:
                     // Collect compare elems and their rd's in the rellist list
-                    if (rdtype == RDconstprop &&
-                        tyintegral(n->E1->Ety))
+                    if (tyintegral(n->E1->Ety))
                     {   //dbg_printf("appending to eqeqlist\n"); elem_print(n);
                         pdata = Elemdata::ctor(n,thisblock,listrds(IN,n->E1,NULL));
                         pdata->next = eqeqlist;
@@ -330,21 +318,18 @@ STATIC void conpropwalk(elem *n,vec_t IN)
 
             //printf("const prop: %s\n", n->EV.sp.Vsym->Sident);
             rdl = listrds(IN,n,NULL);
-            if (rdtype == RDconstprop)
-            {   elem *e;
 
-                if (!(config.flags & CFGnowarning))     // if warnings are enabled
-                    chkrd(n,rdl);
-                e = chkprop(n,rdl);
-                if (e)
-                {   tym_t nty;
+            if (!(config.flags & CFGnowarning))     // if warnings are enabled
+                chkrd(n,rdl);
+            elem *e = chkprop(n,rdl);
+            if (e)
+            {   tym_t nty;
 
-                    nty = n->Ety;
-                    el_copy(n,e);
-                    n->Ety = nty;                       // retain original type
-                }
-                list_free(&rdl);
+                nty = n->Ety;
+                el_copy(n,e);
+                n->Ety = nty;                       // retain original type
             }
+            list_free(&rdl);
         }
 }
 
@@ -435,9 +420,7 @@ STATIC void chkrd(elem *n,list_t rdlist)
 #endif
 
     sv->Sflags |= SFLnord;              // no redundant messages
-#ifdef DEBUG
     //elem_print(n);
-#endif
 }
 
 /**********************************
@@ -551,7 +534,7 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
                 dbg_printf("), %p to %p\n",foundelem,n);
         }
 #endif
-        changes++;
+        go.changes++;
         return foundelem;
     }
 noprop:
@@ -585,9 +568,9 @@ list_t listrds(vec_t IN,elem *e,vec_t f)
     unambig = s->Sflags & SFLunambig;
     if (f)
         vec_clear(f);
-    foreach (i, deftop, IN)
+    foreach (i, go.deftop, IN)
     {
-        elem *d = defnod[i].DNelem;
+        elem *d = go.defnod[i].DNelem;
         //dbg_printf("\tlooking at "); WReqn(d); dbg_printf("\n");
         unsigned op = d->Eoper;
         if (op == OPasm)                // assume ASM elems define everything
@@ -807,7 +790,7 @@ STATIC void intranges()
  final = %ld\n",(long int)initial,(long int)increment,(long int)final);
                         }
 #endif
-                        changes++;
+                        go.changes++;
                     }
 #if 0
                     // Eliminate loop if it is empty
@@ -830,7 +813,7 @@ STATIC void intranges()
                             dbg_printf(" eliminated loop\n");
                         }
 #endif
-                        changes++;
+                        go.changes++;
                      }
 #endif
                 }
@@ -865,7 +848,7 @@ STATIC int loopcheck(block *start,block *inc,block *rel)
 /****************************
  * Do copy propagation.
  * Copy propagation elems are of the form OPvar=OPvar, and they are
- * in expnod[].
+ * in go.expnod[].
  */
 
 static int recalc;
@@ -878,12 +861,12 @@ void copyprop()
         assert(dfo);
 Lagain:
         flowcp();               /* compute available copy statements    */
-        if (exptop <= 1)
+        if (go.exptop <= 1)
                 return;                 /* none available               */
 #if 0
-        for (i = 1; i < exptop; i++)
-        {       dbg_printf("expnod[%d] = (",i);
-                WReqn(expnod[i]);
+        for (i = 1; i < go.exptop; i++)
+        {       dbg_printf("go.expnod[%d] = (",i);
+                WReqn(go.expnod[i]);
                 dbg_printf(");\n");
         }
 #endif
@@ -934,7 +917,7 @@ STATIC void cpwalk(elem *n,vec_t IN)
         static int nocp;
 
         assert(n && IN);
-        /*chkvecdim(exptop,0);*/
+        /*chkvecdim(go.exptop,0);*/
         if (recalc)
             return;
         op = n->Eoper;
@@ -1002,7 +985,7 @@ STATIC void cpwalk(elem *n,vec_t IN)
         {       int ambig;              /* TRUE if ambiguous def        */
 
                 ambig = !OTassign(op) || t->Eoper == OPind;
-                foreach (i,exptop,IN)           /* for each active copy elem */
+                foreach (i,go.exptop,IN)           /* for each active copy elem */
                 {       symbol *v;
 
                         if (op == OPasm)
@@ -1010,7 +993,7 @@ STATIC void cpwalk(elem *n,vec_t IN)
 
                         /* If this elem could kill the lvalue or the rvalue, */
                         /*      Clear bit in IN.                        */
-                        v = expnod[i]->E1->EV.sp.Vsym;
+                        v = go.expnod[i]->E1->EV.sp.Vsym;
                         if (ambig)
                         {       if (!(v->Sflags & SFLunambig))
                                         goto clr;
@@ -1019,7 +1002,7 @@ STATIC void cpwalk(elem *n,vec_t IN)
                         {       if (v == t->EV.sp.Vsym)
                                         goto clr;
                         }
-                        v = expnod[i]->E2->EV.sp.Vsym;
+                        v = go.expnod[i]->E2->EV.sp.Vsym;
                         if (ambig)
                         {       if (!(v->Sflags & SFLunambig))
                                         goto clr;
@@ -1034,7 +1017,7 @@ STATIC void cpwalk(elem *n,vec_t IN)
                         vec_clearbit(i,IN);     /* so remove it from the vector */
                 } /* foreach */
 
-                /* If this is a copy elem in expnod[]   */
+                /* If this is a copy elem in go.expnod[]   */
                 /*      Set bit in IN.                  */
                 if ((op == OPeq || op == OPstreq) && n->E1->Eoper == OPvar &&
                     n->E2->Eoper == OPvar && n->Eexp)
@@ -1053,10 +1036,10 @@ STATIC void cpwalk(elem *n,vec_t IN)
                 if (sz == -1 && !tyfunc(n->Ety))
                     sz = type_size(v->Stype);
 
-                foreach(i,exptop,IN)    /* for all active copy elems    */
+                foreach(i,go.exptop,IN)    /* for all active copy elems    */
                 {       elem *c;
 
-                        c = expnod[i];
+                        c = go.expnod[i];
                         assert(c);
 
                         unsigned csz = tysize(c->E1->Ety);
@@ -1103,19 +1086,19 @@ STATIC void cpwalk(elem *n,vec_t IN)
                          *  g = v   => g = f
                          *  f = x
                          *  d = g   => d = f !!error
-                         * Therefore, if n appears as an rvalue in expnod[], then recalc
+                         * Therefore, if n appears as an rvalue in go.expnod[], then recalc
                          */
-                        for (size_t i = 1; i < exptop; ++i)
+                        for (size_t i = 1; i < go.exptop; ++i)
                         {
-                            //printf("expnod[%d]: ", i); elem_print(expnod[i]);
-                            if (expnod[i]->E2 == n)
+                            //printf("go.expnod[%d]: ", i); elem_print(go.expnod[i]);
+                            if (go.expnod[i]->E2 == n)
                             {
                                 ++recalc;
                                 break;
                             }
                         }
 
-                        changes++;
+                        go.changes++;
                 }
                 //else dbg_printf("not found\n");
             noprop:
@@ -1196,7 +1179,7 @@ void rmdeadass()
                         }
 #endif
                         elimass(n);
-                        changes++;
+                        go.changes++;
                 } /* foreach */
                 vec_free(DEAD);
                 vec_free(POSS);
@@ -1224,9 +1207,7 @@ void elimass(elem *n)
             /* Don't screw up assnod[]. */
             n->Eoper = OPcomma;
             n->Ety |= n->E2->Ety & (mTYconst | mTYvolatile | mTYimmutable | mTYshared
-#if TARGET_SEGMENTED
                  | mTYfar
-#endif
                 );
             n->E1->Eoper = OPconst;
             break;
@@ -1377,9 +1358,7 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
             case OPind:
             case OPucall:
             case OPucallns:
-#if TARGET_SEGMENTED
             case OPvp_fp:
-#endif
                 accumda(n->E1,DEAD,POSS);
                 vec_subass(POSS,ambigref);      // remove possibly refed
                                                 // assignments from list
@@ -1402,10 +1381,6 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
                                                 // of possibly dead ones
                 break;
 
-            case OPnewarray:
-            case OPmultinewarray:
-            case OParray:
-            case OPfield:
             case OPstrcat:
             case OPstrcmp:
             case OPmemcmp:
@@ -1604,15 +1579,15 @@ void verybusyexp()
 
         cmes("verybusyexp()\n");
         flowvbe();                      /* compute VBEs                 */
-        if (exptop <= 1) return;        /* if no VBEs                   */
-        assert(expblk);
+        if (go.exptop <= 1) return;        /* if no VBEs                   */
+        assert(go.expblk);
         if (blockinit())
             return;                     // can't handle ASM blocks
         compdom();                      /* compute dominators           */
-        /*setvecdim(exptop);*/
+        /*setvecdim(go.exptop);*/
         genkillae();                    /* compute Bgen and Bkill for   */
                                         /* AEs                          */
-        /*chkvecdim(exptop,0);*/
+        /*chkvecdim(go.exptop,0);*/
         blockseen = vec_calloc(dfotop);
 
         /* Go backwards through dfo so that VBEs are evaluated as       */
@@ -1651,7 +1626,7 @@ void verybusyexp()
                 }
 
                 /* Eliminate all elems that have already been           */
-                /* hoisted (indicated by expnod[] == 0).                */
+                /* hoisted (indicated by go.expnod[] == 0).                */
                 /* Constants are not useful as VBEs.                    */
                 /* Eliminate all elems from Bout that are not in blocks */
                 /* that are dominated by b.                             */
@@ -1660,10 +1635,10 @@ void verybusyexp()
                 vec_println(b->Bout);
 #endif
                 done = TRUE;
-                foreach (j,exptop,b->Bout)
-                {       if (expnod[j] == 0 ||
-                            !!OTleaf(expnod[j]->Eoper) ||
-                            !dom(b,expblk[j]))
+                foreach (j,go.exptop,b->Bout)
+                {       if (go.expnod[j] == 0 ||
+                            !!OTleaf(go.expnod[j]->Eoper) ||
+                            !dom(b,go.expblk[j]))
                                 vec_clearbit(j,b->Bout);
                         else
                                 done = FALSE;
@@ -1677,11 +1652,11 @@ void verybusyexp()
                 vec_println(b->Bout);
 #endif
 
-                foreach (j,exptop,b->Bout)
+                foreach (j,go.exptop,b->Bout)
                 {       list_t bl;
 
                         vec_clear(blockseen);
-                        for (bl = expblk[j]->Bpred; bl; bl = list_next(bl))
+                        for (bl = go.expblk[j]->Bpred; bl; bl = list_next(bl))
                         {       if (killed(j,list_block(bl),b))
                                 {       vec_clearbit(j,b->Bout);
                                         break;
@@ -1698,11 +1673,11 @@ void verybusyexp()
                 vec_println(b->Bout);
 #endif
 
-                foreach (j,exptop,b->Bout)
+                foreach (j,go.exptop,b->Bout)
                 {       list_t bl;
 
                         vec_clear(blockseen);
-                        for (bl = expblk[j]->Bpred; bl; bl = list_next(bl))
+                        for (bl = go.expblk[j]->Bpred; bl; bl = list_next(bl))
                         {       if (ispath(j,list_block(bl),b))
                                         goto L2;
                         }
@@ -1718,11 +1693,11 @@ void verybusyexp()
                 vec_println(b->Bout);
 #endif
 
-                foreach (j,exptop,b->Bout)
+                foreach (j,go.exptop,b->Bout)
                 {
-                        for (k = j + 1; k < exptop; k++)
+                        for (k = j + 1; k < go.exptop; k++)
                         {       if (vec_testbit(k,b->Bout) &&
-                                    el_match(expnod[j],expnod[k]))
+                                    el_match(go.expnod[j],go.expnod[k]))
                                         goto foundvbe;
                         }
                         continue;               /* no VBE here          */
@@ -1731,31 +1706,31 @@ void verybusyexp()
 #ifdef DEBUG
                         if (debugc)
                         {   dbg_printf("VBE %d,%d, block %d (",j,k,i);
-                            WReqn(expnod[j]);
+                            WReqn(go.expnod[j]);
                             dbg_printf(");\n");
                         }
 #endif
                         *pn = el_bin(OPcomma,(*pn)->Ety,
-                                el_copytree(expnod[j]),*pn);
+                                el_copytree(go.expnod[j]),*pn);
 
                         /* Mark all the vbe elems found but one (the    */
-                        /* expnod[j] one) so that the expression will   */
+                        /* go.expnod[j] one) so that the expression will   */
                         /* only be hoisted again if other occurrances   */
                         /* of the expression are found later. This      */
                         /* will substitute for the fact that the        */
-                        /* el_copytree() expression does not appear in expnod[]. */
+                        /* el_copytree() expression does not appear in go.expnod[]. */
                         l = k;
                         do
                         {       if ( k == l || (vec_testbit(k,b->Bout) &&
-                                    el_match(expnod[j],expnod[k])))
+                                    el_match(go.expnod[j],go.expnod[k])))
                                 {
                                         /* Fix so nobody else will      */
                                         /* vbe this elem                */
-                                        expnod[k] = NULL;
+                                        go.expnod[k] = NULL;
                                         vec_clearbit(k,b->Bout);
                                 }
-                        } while (++k < exptop);
-                        changes++;
+                        } while (++k < go.exptop);
+                        go.changes++;
                 } /* foreach */
         } /* for */
         vec_free(blockseen);
@@ -1786,14 +1761,14 @@ STATIC int killed(unsigned j,block *bp,block *b)
  * Input:
  *      b ->    block where we want to put the VBE
  *      bp ->   block somewhere between b and block containing j
- *      j =     VBE expression elem candidate (index into expnod[])
+ *      j =     VBE expression elem candidate (index into go.expnod[])
  */
 
 STATIC int ispath(unsigned j,block *bp,block *b)
 {       list_t bl;
         unsigned i;
 
-        /*chkvecdim(exptop,0);*/
+        /*chkvecdim(go.exptop,0);*/
         if (bp == b) return TRUE;       /* the trivial case             */
         if (vec_testbit(bp->Bdfoidx,blockseen))
                 return FALSE;           /* already seen this block      */
@@ -1801,8 +1776,8 @@ STATIC int ispath(unsigned j,block *bp,block *b)
 
         /* FALSE if elem j is used in block bp (and reaches the end     */
         /* of bp, indicated by it being an AE in Bgen)                  */
-        foreach (i,exptop,bp->Bgen)     /* look thru used expressions   */
-        {       if (i != j && expnod[i] && el_match(expnod[i],expnod[j]))
+        foreach (i,go.exptop,bp->Bgen)     /* look thru used expressions   */
+        {       if (i != j && go.expnod[i] && el_match(go.expnod[i],go.expnod[j]))
                         return FALSE;
         }
 

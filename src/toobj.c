@@ -46,11 +46,11 @@ extern bool obj_includelib(const char *name);
 void obj_startaddress(Symbol *s);
 void obj_lzext(Symbol *s1,Symbol *s2);
 
-void TypeInfo_toDt(dt_t **pdt, TypeInfoDeclaration *d);
-dt_t *Initializer_toDt(Initializer *init);
+dt_t **TypeInfo_toDt(dt_t **pdt, TypeInfoDeclaration *d);
+dt_t **Initializer_toDt(Initializer *init, dt_t **pdt);
 dt_t **Type_toDt(Type *t, dt_t **pdt);
-void ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt);
-void StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt);
+dt_t **ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt);
+dt_t **StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt);
 Symbol *toSymbol(Dsymbol *s);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj);
@@ -270,9 +270,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
             assert(!cd->_scope);     // semantic() should have been run to completion
 
-            enum_SC scclass = SCglobal;
-            if (cd->isInstantiated())
-                scclass = SCcomdat;
+            enum_SC scclass = SCcomdat;
 
             // Put out the members
             for (size_t i = 0; i < cd->members->dim; i++)
@@ -368,7 +366,10 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
             // vtbl[]
             dtsize_t(&dt, cd->vtbl.dim);
-            dtxoff(&dt, cd->vtblsym, 0, TYnptr);
+            if (cd->vtbl.dim)
+                dtxoff(&dt, cd->vtblsym, 0, TYnptr);
+            else
+                dtsize_t(&dt, 0);
 
             // interfaces[]
             dtsize_t(&dt, cd->vtblInterfaces->dim);
@@ -411,7 +412,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                     break;
                 }
             }
-            if (cd->isabstract)
+            if (cd->isAbstract())
                 flags |= ClassFlags::isAbstract;
             for (ClassDeclaration *pc = cd; pc; pc = pc->baseClass)
             {
@@ -526,7 +527,14 @@ void toObjFile(Dsymbol *ds, bool multiobj)
         #endif
                     FuncDeclaration *fd = b->vtbl[j];
                     if (fd)
-                        dtxoff(&dt, toThunkSymbol(fd, b->offset), 0, TYnptr);
+                    {
+                        int offset = b->offset;
+                        if (fd->interfaceVirtual)
+                        {
+                            offset -= fd->interfaceVirtual->offset;
+                        }
+                        dtxoff(&dt, toThunkSymbol(fd, offset), 0, TYnptr);
+                    }
                     else
                         dtsize_t(&dt, 0);
                 }
@@ -564,7 +572,14 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                             assert(j < bvtbl.dim);
                             FuncDeclaration *fd = bvtbl[j];
                             if (fd)
-                                dtxoff(&dt, toThunkSymbol(fd, bs->offset), 0, TYnptr);
+                            {
+                                int offset = bs->offset;
+                                if (fd->interfaceVirtual)
+                                {
+                                    offset -= fd->interfaceVirtual->offset;
+                                }
+                                dtxoff(&dt, toThunkSymbol(fd, offset), 0, TYnptr);
+                            }
                             else
                                 dtsize_t(&dt, 0);
                             offset += Target::ptrsize;
@@ -643,6 +658,14 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 else
                     dtsize_t(&dt, 0);
             }
+            if (!dt)
+            {
+                /* Someone made an 'extern (C++) class C { }' with no virtual functions.
+                 * But making an empty vtbl[] causes linking problems, so make a dummy
+                 * entry.
+                 */
+                dtsize_t(&dt, 0);
+            }
             cd->vtblsym->Sdt = dt;
             cd->vtblsym->Sclass = scclass;
             cd->vtblsym->Sfl = FLdata;
@@ -668,9 +691,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             if (global.params.symdebug)
                 toDebug(id);
 
-            enum_SC scclass = SCglobal;
-            if (id->isInstantiated())
-                scclass = SCcomdat;
+            enum_SC scclass = SCcomdat;
 
             // Put out the members
             for (size_t i = 0; i < id->members->dim; i++)
@@ -941,7 +962,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
             if (vd->_init)
             {
-                s->Sdt = Initializer_toDt(vd->_init);
+                Initializer_toDt(vd->_init, &s->Sdt);
 
                 // Look for static array that is block initialized
                 ExpInitializer *ie = vd->_init->isExpInitializer();
@@ -1091,9 +1112,8 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 assert(e->op == TOKstring);
 
                 StringExp *se = (StringExp *)e;
-                char *name = (char *)mem.xmalloc(se->len + 1);
-                memcpy(name, se->string, se->len);
-                name[se->len] = 0;
+                char *name = (char *)mem.xmalloc(se->numberOfCodeUnits() + 1);
+                se->writeTo(name, true);
 
                 /* Embed the library names into the object file.
                  * The linker will then automatically

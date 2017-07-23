@@ -1,6 +1,7 @@
 /* Microsoft COFF object file format */
 
 #include <time.h>
+#include <stdint.h>
 
 #ifdef _MSC_VER
 #pragma pack(push,1)
@@ -10,20 +11,20 @@
 
 /***********************************************/
 
-struct filehdr
+struct BIGOBJ_HEADER
 {
-        unsigned short f_sig1;      // IMAGE_FILE_MACHINE_UNKNOWN
-        unsigned short f_sig2;      // 0xFFFF
-        unsigned short f_minver;    // 2
-        unsigned short f_magic;     // identifies type of target machine
-        unsigned long f_timdat;     // creation date, number of seconds since 1970
-        unsigned char f_uuid[16];   //  { '\xc7', '\xa1', '\xba', '\xd1', '\xee', '\xba', '\xa9', '\x4b',
-                                    //    '\xaf', '\x20', '\xfa', '\xf6', '\x6a', '\xa4', '\xdc', '\xb8' };
-        unsigned long f_unused[4];  // { 0, 0, 0, 0 }
-        unsigned long f_nscns;      // number of sections
-        unsigned long f_symptr;     // file offset of symbol table
-        unsigned long f_nsyms;      // number of entries in the symbol table
-
+    uint16_t Sig1;                 // IMAGE_FILE_MACHINE_UNKNOWN
+    uint16_t Sig2;                 // 0xFFFF
+    uint16_t Version;              // 2
+    uint16_t Machine;              // identifies type of target machine
+    uint32_t TimeDateStamp;        // creation date, number of seconds since 1970
+    uint8_t  UUID[16];             //  { '\xc7', '\xa1', '\xba', '\xd1', '\xee', '\xba', '\xa9', '\x4b',
+                                   //    '\xaf', '\x20', '\xfa', '\xf6', '\x6a', '\xa4', '\xdc', '\xb8' };
+    uint32_t unused[4];            // { 0, 0, 0, 0 }
+    uint32_t NumberOfSections;     // number of sections
+    uint32_t PointerToSymbolTable; // file offset of symbol table
+    uint32_t NumberOfSymbols;      // number of entries in the symbol table
+};
 
 #define IMAGE_FILE_MACHINE_UNKNOWN 0            // applies to any machine type
 #define IMAGE_FILE_MACHINE_I386    0x14C        // x86
@@ -44,34 +45,36 @@ struct filehdr
 #define IMAGE_FILE_DLL                          0x2000
 #define IMAGE_FILE_UP_SYSTEM_ONLY               0x4000
 #define IMAGE_FILE_BYTES_REVERSED_HI            0x8000
-};
 
-struct filehdr_old
+struct IMAGE_FILE_HEADER
 {
-        unsigned short f_magic; // identifies type of target machine
-        unsigned short f_nscns; // number of sections (96 is max)
-        long f_timdat;        // creation date, number of seconds since 1970
-        long f_symptr;          // file offset of symbol table
-        long f_nsyms;           // number of entried in the symbol table
-        unsigned short f_opthdr; // optional header size (0)
-        unsigned short f_flags;
+    uint16_t Machine;
+    uint16_t NumberOfSections;
+    uint32_t TimeDateStamp;
+    uint32_t PointerToSymbolTable;
+    uint32_t NumberOfSymbols;
+    uint16_t SizeOfOptionalHeader;
+    uint16_t Characteristics;
 };
 
 /***********************************************/
 
-// size should be 40 bytes
-struct scnhdr
+#define IMAGE_SIZEOF_SHORT_NAME 8
+
+struct IMAGE_SECTION_HEADER
 {
-        char s_name[8];         // name or /nnnn, where nnnn is offset in string table
-        long s_paddr;           // virtual size, 0 for obj files
-        long s_vaddr;           // virtual address, 0 for obj files
-        long s_size;            // size of raw data on disk
-        long s_scnptr;          // file offset of raw data on disk, should be aligned by 4
-        long s_relptr;          // file offset of relocation data
-        long s_lnnoptr;         // file offset of line numbers, should be 0
-        unsigned short s_nreloc;        // number of relocations
-        unsigned short s_nlnno;         // number of line number entries, should be 0
-        unsigned long s_flags;
+    uint8_t Name[IMAGE_SIZEOF_SHORT_NAME];
+    uint32_t VirtualSize;
+    uint32_t VirtualAddress;
+    uint32_t SizeOfRawData;
+    uint32_t PointerToRawData;
+    uint32_t PointerToRelocations;
+    uint32_t PointerToLinenumbers;
+    uint16_t NumberOfRelocations;
+    uint16_t NumberOfLinenumbers;
+    uint32_t Characteristics;
+};
+
 #define IMAGE_SCN_TYPE_NO_PAD           8       // obsolete
 #define IMAGE_SCN_CNT_CODE              0x20    // code section
 #define IMAGE_SCN_CNT_INITIALIZED_DATA  0x40
@@ -107,36 +110,15 @@ struct scnhdr
 #define IMAGE_SCN_MEM_EXECUTE           0x20000000      // executable code
 #define IMAGE_SCN_MEM_READ              0x40000000      // readable
 #define IMAGE_SCN_MEM_WRITE             0x80000000      // writeable
-};
 
 /***********************************************/
 
-struct syment
-{
-    union
-    {
 #define SYMNMLEN        8
-        char _n_name[SYMNMLEN];
-        struct
-        {   long _n_zeroes;
-            long _n_offset;
-        } _n_n;
-        //char *_n_nptr[2]; // Breaks struct on x64
-    } _n;
-#define n_name          _n._n_name
-#define n_zeroes        _n._n_n._n_zeroes
-#define n_offset        _n._n_n._n_offset
-#define n_nptr          _n._n_nptr[1]
 
-    unsigned n_value;
-    long n_scnum;
 #define IMAGE_SYM_DEBUG                 -2
 #define IMAGE_SYM_ABSOLUTE              -1
 #define IMAGE_SYM_UNDEFINED             0
 
-    unsigned short n_type;      // 0x20 function; 0x00 not a function
-
-    unsigned char n_sclass;
 /* Values for n_sclass  */
 #define IMAGE_SYM_CLASS_EXTERNAL        2
 #define IMAGE_SYM_CLASS_STATIC          3
@@ -144,25 +126,32 @@ struct syment
 #define IMAGE_SYM_CLASS_FUNCTION        101
 #define IMAGE_SYM_CLASS_FILE            103
 
-    unsigned char n_numaux;
-};
-
-
-struct syment_old
+struct SymbolTable32
 {
     union
     {
-        char _n_name[SYMNMLEN];
+        uint8_t Name[SYMNMLEN];
         struct
-        {   long _n_zeroes;
-            long _n_offset;
-        } _n_n;
-    } _n;
-    unsigned n_value;
-    short n_scnum;
-    unsigned short n_type;      // 0x20 function; 0x00 not a function
-    unsigned char n_sclass;
-    unsigned char n_numaux;
+        {
+            uint32_t Zeros;
+            uint32_t Offset;
+        };
+    };
+    uint32_t Value;
+    int32_t SectionNumber;
+    uint16_t Type;
+    uint8_t StorageClass;
+    uint8_t NumberOfAuxSymbols;
+};
+
+struct SymbolTable
+{
+    uint8_t Name[SYMNMLEN];
+    uint32_t Value;
+    int16_t SectionNumber;
+    uint16_t Type;
+    uint8_t StorageClass;
+    uint8_t NumberOfAuxSymbols;
 };
 
 /***********************************************/

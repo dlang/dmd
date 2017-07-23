@@ -381,9 +381,7 @@ code *cdeq(elem *e,regm_t *pretregs)
              !(I64 && (config.flags3 & CFG3pic || config.exe == EX_WIN64)) &&
              ((fl = el_fl(e2)) == FLdata ||
               fl==FLudata || fl == FLextern)
-#if TARGET_SEGMENTED
               && !(e2->EV.sp.Vsym->ty() & mTYcs)
-#endif
             ) &&
             !(evalinregister(e2) && plenty) &&
             !e1->Ecount)        /* and no CSE headaches */
@@ -607,13 +605,11 @@ code *cdeq(elem *e,regm_t *pretregs)
                 retregs = BYTEREGS;
   }
   else if (retregs & mES
-#if TARGET_SEGMENTED
            && (
              (e1->Eoper == OPind &&
                 ((tymll = tybasic(e1->E1->Ety)) == TYfptr || tymll == TYhptr)) ||
              (e1->Eoper == OPvar && e1->EV.sp.Vsym->Sfl == FLfardata)
             )
-#endif
           )
         // getlvalue() needs ES, so we can't return it
         retregs = allregs;              /* no conflicts with ES         */
@@ -679,10 +675,9 @@ code *cdeq(elem *e,regm_t *pretregs)
 
     c = getregs(varregm);
 
-  assert(!(retregs & mES && (cs.Iflags & CFSEG) == CFes));
-#if TARGET_SEGMENTED
-  if ((tyml == TYfptr || tyml == TYhptr) && retregs & mES)
-  {
+    assert(!(retregs & mES && (cs.Iflags & CFSEG) == CFes));
+    if ((tyml == TYfptr || tyml == TYhptr) && retregs & mES)
+    {
         reg = findreglsw(retregs);
         cs.Irm |= modregrm(0,reg,0);
         c = gen(c,&cs);                 /* MOV EA,reg                   */
@@ -690,10 +685,9 @@ code *cdeq(elem *e,regm_t *pretregs)
         cs.Iop = 0x8C;
         NEWREG(cs.Irm,0);
         gen(c,&cs);                     /* MOV EA+2,ES                  */
-  }
-  else
-#endif
-  {
+    }
+    else
+    {
         if (!I16)
         {
             reg = findreg(retregs &
@@ -926,9 +920,7 @@ code *cdaddass(elem *e,regm_t *pretregs)
         (el_allbits(e2, 1) || el_allbits(e2, -1))
        ) ||
        (!evalinregister(e2)
-#if TARGET_SEGMENTED
         && tyml != TYhptr
-#endif
         )
       )
      )
@@ -1146,10 +1138,8 @@ code *cdaddass(elem *e,regm_t *pretregs)
   else // evaluate e2 into register
   {
         retregs = (byte) ? BYTEREGS : ALLREGS;  // pick working reg
-#if TARGET_SEGMENTED
         if (tyml == TYhptr)
             retregs &= ~mCX;                    // need CX for shift count
-#endif
         cr = scodelem(e->E2,&retregs,0,TRUE);   // get rvalue
         cl = getlvalue(&cs,e1,retregs);         // get lvalue
         cl = cat(cl,modEA(&cs));
@@ -1159,8 +1149,9 @@ code *cdaddass(elem *e,regm_t *pretregs)
             code_newreg(&cs, reg);              // OP1 EA,reg
             if (sz == 1 && reg >= 4 && I64)
                 cs.Irex |= REX;
+            if (forccs)
+                cs.Iflags |= CFpsw;
         }
-#if TARGET_SEGMENTED
         else if (tyml == TYhptr)
         {   unsigned mreg,lreg;
 
@@ -1186,7 +1177,6 @@ code *cdaddass(elem *e,regm_t *pretregs)
             NEWREG(cs.Irm,mreg);                        // ADD EA+2,mreg
             getlvalue_msw(&cs);
         }
-#endif
         else if (sz == 2 * REGSIZE)
         {
             cs.Irm |= modregrm(0,findreglsw(retregs),0);
@@ -1246,7 +1236,6 @@ code *cdaddass(elem *e,regm_t *pretregs)
                 ce = gen(ce,&cs);               // MOV reg,EA
             }
         }
-#if TARGET_SEGMENTED
         else if (tyfv(tyml) || tyml == TYhptr)
         {       regm_t idxregs;
 
@@ -1274,7 +1263,6 @@ code *cdaddass(elem *e,regm_t *pretregs)
                     gen(ce,&cs);                /* MOV mreg,EA+2        */
                 }
         }
-#endif
         else if (sz == 2 * REGSIZE)
         {       regm_t idx;
                 code *cm,*cl;
@@ -2020,10 +2008,8 @@ code *cdcmp(elem *e,regm_t *pretregs)
                 if (sz > REGSIZE)       // compare against DS, not DGROUP
                     goto L2;
                 break;
-#if TARGET_SEGMENTED
             case FLfardata:
                 break;
-#endif
             default:
                 goto L2;
         }
@@ -2178,10 +2164,8 @@ code *cdcmp(elem *e,regm_t *pretregs)
                     cs.Irm |= modregrm(0,7,0);
                     if (sz > REGSIZE)
                     {
-#if !TARGET_SEGMENTED
                         if (sz == 6)
                             assert(0);
-#endif
                         if (e2->Eoper == OPrelconst)
                         {   cs.Iflags = (cs.Iflags & ~(CFoff | CFseg)) | CFseg;
                             cs.IEVoffset2 = 0;
@@ -2616,10 +2600,8 @@ code *cdcnvt(elem *e, regm_t *pretregs)
         OPu64_d,        CLIBullngdbl,
         OPd_f,          CLIBdblflt,
         OPf_d,          CLIBfltdbl,
-#if TARGET_SEGMENTED
         OPvp_fp,        CLIBvptrfptr,
         OPcvp_fp,       CLIBcvptrfptr,
-#endif
   };
 
 //printf("cdcnvt: *pretregs = %s\n", regm_str(*pretregs));
@@ -2780,9 +2762,7 @@ code *cdshtlng(elem *e,regm_t *pretregs)
     c = codelem(e->E1,pretregs,FALSE);  /* then conversion isn't necessary */
 
   else if (
-#if TARGET_SEGMENTED
            op == OPnp_fp ||
-#endif
            (I16 && op == OPu16_32) ||
            (I32 && op == OPu32_64)
           )
@@ -2802,7 +2782,6 @@ code *cdshtlng(elem *e,regm_t *pretregs)
         ce = allocreg(&regm,&reg,TYint);
         if (e1comsub)
             ce = cat(ce,getregs(retregs));
-#if TARGET_SEGMENTED
         if (op == OPnp_fp)
         {   int segreg;
 
@@ -2817,7 +2796,6 @@ code *cdshtlng(elem *e,regm_t *pretregs)
             ce = gen2(ce,0x8C,modregrm(3,segreg,reg));  /* MOV reg,segreg */
         }
         else
-#endif
             ce = movregconst(ce,reg,0,0);               /* 0 extend     */
 
         c = cat3(c,ce,fixresult(e,retregs | regm,pretregs));
@@ -3144,9 +3122,7 @@ code *cdlngsht(elem *e,regm_t *pretregs)
     switch (e->Eoper)
     {
         case OP32_16:
-#if TARGET_SEGMENTED
         case OPoffset:
-#endif
         case OP16_8:
         case OP64_32:
         case OP128_64:
@@ -3167,11 +3143,7 @@ code *cdlngsht(elem *e,regm_t *pretregs)
         else
         {   retregs = *pretregs ? ALLREGS : 0;
             c = codelem(e->E1,&retregs,FALSE);
-#if TARGET_SEGMENTED
             bool isOff = e->Eoper == OPoffset;
-#else
-            bool isOff = false;
-#endif
             if (I16 ||
                 I32 && (isOff || e->Eoper == OP64_32) ||
                 I64 && (isOff || e->Eoper == OP128_64))
@@ -3306,7 +3278,6 @@ code *cdasm(elem *e,regm_t *pretregs)
     return cat(c,fixresult(e,(I16 ? mDX | mAX : mAX),pretregs));
 }
 
-#if TARGET_SEGMENTED
 /************************
  * Generate code for OPnp_f16p and OPf16p_np.
  */
@@ -3386,7 +3357,6 @@ code *cdfar16( elem *e, regm_t *pretregs)
     }
     return cat4(c,c1,c3,cnop);
 }
-#endif
 
 /*************************
  * Generate code for OPbtst
@@ -3777,12 +3747,12 @@ code *cdpair(elem *e, regm_t *pretregs)
     retregs = *pretregs & allregs;
     if  (!retregs)
         retregs = allregs;
-    regs1 = retregs & (mLSW | mBP);
+    regs1 = retregs & mLSW;
     regs2 = retregs & mMSW;
     if (e->Eoper == OPrpair)
     {
         regs1 = regs2;
-        regs2 = retregs & (mLSW | mBP);
+        regs2 = retregs & mLSW;
     }
     //printf("1: regs1 = %s, regs2 = %s\n", regm_str(regs1), regm_str(regs2));
     c1 = codelem(e->E1, &regs1, FALSE);

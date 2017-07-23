@@ -175,23 +175,25 @@ dt_t ** dtnbytes(dt_t **pdtend,unsigned size,const char *ptr)
  * Construct a DTabytes record, and return it.
  */
 
-dt_t **dtabytes(dt_t **pdtend, unsigned offset, unsigned size, const char *ptr)
+dt_t **dtabytes(dt_t **pdtend, unsigned offset, unsigned size, const char *ptr, unsigned nzeros)
 {
-    return dtabytes(pdtend, TYnptr, offset, size, ptr);
+    return dtabytes(pdtend, TYnptr, offset, size, ptr, nzeros);
 }
 
-dt_t **dtabytes(dt_t **pdtend,tym_t ty, unsigned offset, unsigned size, const char *ptr)
+dt_t **dtabytes(dt_t **pdtend, tym_t ty, unsigned offset, unsigned size, const char *ptr, unsigned nzeros)
 {   dt_t *dt;
 
     while (*pdtend)
         pdtend = &((*pdtend)->DTnext);
 
     dt = dt_calloc(DT_abytes);
-    dt->DTnbytes = size;
-    dt->DTpbytes = (char *) MEM_PH_MALLOC(size);
+    dt->DTnbytes = size + nzeros;
+    dt->DTpbytes = (char *) MEM_PH_MALLOC(size + nzeros);
     dt->Dty = ty;
     dt->DTabytes = offset;
     memcpy(dt->DTpbytes,ptr,size);
+    if (nzeros)
+        memset(dt->DTpbytes + size, 0, nzeros);
 
     *pdtend = dt;
     pdtend = &dt->DTnext;
@@ -316,7 +318,6 @@ dt_t **dtdtoff(dt_t **pdtend, dt_t *dt, unsigned offset)
     s->Sflags |= SFLnodebug;
     s->Stype = t;
     s->Sdt = dt;
-    slist_add(s);
     outdata(s);
     return dtxoff(pdtend, s, offset);
 }
