@@ -1748,6 +1748,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     Statement *s = new ReturnStatement(loc, NULL);
                     s = ::semantic(s, sc2);
                     fbody = new CompoundStatement(loc, fbody, s);
+                    hasReturnExp |= 1;
                 }
             }
             else if (fes)
@@ -1758,6 +1759,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     Expression *e = new IntegerExp(0);
                     Statement *s = new ReturnStatement(Loc(), e);
                     fbody = new CompoundStatement(Loc(), fbody, s);
+                    hasReturnExp |= 1;
                 }
                 assert(!returnLabel);
             }
