@@ -261,7 +261,8 @@ ROOT_SRC = $(ROOT)/root.h \
 	$(ROOT)/object.h $(ROOT)/rootobject.c \
 	$(ROOT)/filename.h $(ROOT)/filename.c \
 	$(ROOT)/file.h $(ROOT)/file.c \
-	$(ROOT)/ctfloat.h $(ROOT)/ctfloat.c
+	$(ROOT)/ctfloat.h $(ROOT)/ctfloat.c \
+	$(ROOT)/hash.h
 
 GLUE_SRC = glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \

@@ -9,6 +9,7 @@
  */
 
 #include "ctfloat.h"
+#include "hash.h"
 
 #if __DMC__
 #include <math.h>
@@ -16,6 +17,7 @@
 #include <fp.h>
 #include <string.h>
 #include <errno.h>
+#include <limits> // for std::numeric_limits
 
 real_t CTFloat::zero = real_t(0);
 real_t CTFloat::one = real_t(1);
@@ -100,6 +102,14 @@ int CTFloat::sprint(char* str, char fmt, real_t x)
         sfmt[2] = fmt;
         return sprintf(str, sfmt, x);
     }
+}
+
+size_t CTFloat::hash(real_t a)
+{
+    if (isNaN(a))
+        a = std::numeric_limits<real_t>::quiet_NaN();
+    size_t sz = (std::numeric_limits<real_t>::digits == 64) ? 10 : sizeof(real_t);
+    return calcHash((uint8_t *) &a, sz);
 }
 
 #endif
@@ -242,6 +252,14 @@ int CTFloat::sprint(char* str, int fmt, real_t x)
   return ld_sprint(str, fmt, real_t(x));
 }
 
+size_t CTFloat::hash(real_t a)
+{
+    if (isNaN(a))
+        a = std::numeric_limits<real_t>::quiet_NaN();
+    size_t sz = (std::numeric_limits<real_t>::digits == 64) ? 10 : sizeof(real_t);
+    return calcHash((uint8_t *) &a, sz);
+}
+
 #endif
 
 #if __MINGW32__
@@ -251,6 +269,7 @@ int CTFloat::sprint(char* str, int fmt, real_t x)
 #include <float.h>
 #include <assert.h>
 #include <errno.h>
+#include <limits> // for std::numeric_limits
 
 real_t CTFloat::zero = real_t(0);
 real_t CTFloat::one = real_t(1);
@@ -355,6 +374,14 @@ int CTFloat::sprint(char* str, char fmt, real_t x)
 #undef sprintf
 }
 
+size_t CTFloat::hash(real_t a)
+{
+    if (isNaN(a))
+        a = std::numeric_limits<real_t>::quiet_NaN();
+    size_t sz = (std::numeric_limits<real_t>::digits == 64) ? 10 : sizeof(real_t);
+    return calcHash((uint8_t *) &a, sz);
+}
+
 #endif
 
 #if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__
@@ -371,6 +398,7 @@ int CTFloat::sprint(char* str, char fmt, real_t x)
 #include <float.h>
 #include <assert.h>
 #include <errno.h>
+#include <limits> // for std::numeric_limits
 
 real_t CTFloat::zero = real_t(0);
 real_t CTFloat::one = real_t(1);
@@ -487,6 +515,14 @@ int CTFloat::sprint(char* str, char fmt, real_t x)
     }
 }
 
+size_t CTFloat::hash(real_t a)
+{
+    if (isNaN(a))
+        a = std::numeric_limits<real_t>::quiet_NaN();
+    size_t sz = (std::numeric_limits<real_t>::digits == 64) ? 10 : sizeof(real_t);
+    return calcHash((uint8_t *) &a, sz);
+}
+
 #endif
 
 #if __sun
@@ -498,6 +534,7 @@ int CTFloat::sprint(char* str, char fmt, real_t x)
 #include <ieeefp.h>
 #include <assert.h>
 #include <errno.h>
+#include <limits> // for std::numeric_limits
 
 real_t CTFloat::zero = real_t(0);
 real_t CTFloat::one = real_t(1);
@@ -641,6 +678,14 @@ int CTFloat::sprint(char* str, char fmt, real_t x)
         sfmt[2] = fmt;
         return sprintf(str, sfmt, x);
     }
+}
+
+size_t CTFloat::hash(real_t a)
+{
+    if (isNaN(a))
+        a = std::numeric_limits<real_t>::quiet_NaN();
+    size_t sz = (std::numeric_limits<real_t>::digits == 64) ? 10 : sizeof(real_t);
+    return calcHash((uint8_t *) &a, sz);
 }
 
 #endif

@@ -18,6 +18,7 @@
 #include "aav.h"
 #include "rmem.h"
 #include "stringtable.h"
+#include "hash.h"
 
 #include "mtype.h"
 #include "template.h"
@@ -381,6 +382,97 @@ int arrayObjectMatch(Objects *oa1, Objects *oa2)
 
 
 /************************************
+ * Computes hash of expression.
+ * Handles all Expression classes and MUST match their equals method,
+ * i.e. e1->equals(e2) implies expressionHash(e1) == expressionHash(e2).
+ */
+static hash_t expressionHash(Expression *e)
+{
+    switch (e->op)
+    {
+    case TOKint64:
+        return (size_t) ((IntegerExp *)e)->getInteger();
+
+    case TOKfloat64:
+        return CTFloat::hash(((RealExp *)e)->value);
+
+    case TOKcomplex80:
+    {
+        ComplexExp *ce = (ComplexExp *)e;
+        return mixHash(CTFloat::hash(ce->toReal()), CTFloat::hash(ce->toImaginary()));
+    }
+
+    case TOKidentifier:
+        return (size_t)(void *) ((IdentifierExp *)e)->ident;
+
+    case TOKnull:
+        return (size_t)(void *) ((NullExp *)e)->type;
+
+    case TOKstring:
+    {
+        StringExp *se = (StringExp *)e;
+        return calcHash((const char *)se->string, se->len * se->sz);
+    }
+
+    case TOKtuple:
+    {
+        TupleExp *te = (TupleExp *)e;
+        size_t hash = 0;
+        hash += te->e0 ? expressionHash(te->e0) : 0;
+        for (size_t i = 0; i < te->exps->dim; i++)
+        {
+            Expression *elem = (*te->exps)[i];
+            hash = mixHash(hash, expressionHash(elem));
+        }
+        return hash;
+    }
+
+    case TOKarrayliteral:
+    {
+        ArrayLiteralExp *ae = (ArrayLiteralExp *)e;
+        size_t hash = 0;
+        for (size_t i = 0; i < ae->elements->dim; i++)
+            hash = mixHash(hash, expressionHash(ae->getElement(i)));
+        return hash;
+    }
+
+    case TOKassocarrayliteral:
+    {
+        AssocArrayLiteralExp *ae = (AssocArrayLiteralExp *)e;
+        size_t hash = 0;
+        for (size_t i = 0; i < ae->keys->dim; i++)
+            // reduction needs associative op as keys are unsorted (use XOR)
+            hash ^= mixHash(expressionHash((*ae->keys)[i]), expressionHash((*ae->values)[i]));
+        return hash;
+    }
+
+    case TOKstructliteral:
+    {
+        StructLiteralExp *se = (StructLiteralExp *)e;
+        size_t hash = 0;
+        for (size_t i = 0; i < se->elements->dim; i++)
+        {
+            Expression *elem = (*se->elements)[i];
+            hash = mixHash(hash, elem ? expressionHash(elem) : 0);
+        }
+        return hash;
+    }
+
+    case TOKvar:
+        return (size_t)(void *) ((VarExp *)e)->var;
+
+    case TOKfunction:
+        return (size_t)(void *) ((FuncExp *)e)->fd;
+
+    default:
+        // no custom equals for this expression
+        // equals based on identity
+        return (size_t)(void *) e;
+    }
+}
+
+
+/************************************
  * Return hash of Objects.
  */
 static hash_t arrayObjectHash(Objects *oa1)
@@ -392,29 +484,18 @@ static hash_t arrayObjectHash(Objects *oa1)
          */
         RootObject *o1 = (*oa1)[j];
         if (Type *t1 = isType(o1))
-            hash += (size_t)t1->deco;
-        else
+            hash = mixHash(hash, (size_t)t1->deco);
+        else if (Expression *e1 = getExpression(o1))
+            hash = mixHash(hash, expressionHash(e1));
+        else if (Dsymbol *s1 = isDsymbol(o1))
         {
-            Dsymbol *s1 = isDsymbol(o1);
-            Expression *e1 = s1 ? getValue(s1) : getValue(isExpression(o1));
-            if (e1)
-            {
-                if (e1->op == TOKint64)
-                {
-                    IntegerExp *ne = (IntegerExp *)e1;
-                    hash += (size_t)ne->getInteger();
-                }
-            }
-            else if (s1)
-            {
-                FuncAliasDeclaration *fa1 = s1->isFuncAliasDeclaration();
-                if (fa1)
-                    s1 = fa1->toAliasFunc();
-                hash += (size_t)(void *)s1->getIdent() + (size_t)(void *)s1->parent;
-            }
-            else if (Tuple *u1 = isTuple(o1))
-                hash += arrayObjectHash(&u1->objects);
+            FuncAliasDeclaration *fa1 = s1->isFuncAliasDeclaration();
+            if (fa1)
+                s1 = fa1->toAliasFunc();
+            hash = mixHash(hash, mixHash((size_t)(void *)s1->getIdent(), (size_t)(void *)s1->parent));
         }
+        else if (Tuple *u1 = isTuple(o1))
+            hash = mixHash(hash, arrayObjectHash(&u1->objects));
     }
     return hash;
 }

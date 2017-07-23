@@ -15,64 +15,10 @@
 #include "root.h"
 #include "rmem.h"                       // mem
 #include "stringtable.h"
+#include "hash.h"
 
 #define POOL_BITS 12
 #define POOL_SIZE (1U << POOL_BITS)
-
-// TODO: Merge with root.String
-// MurmurHash2 was written by Austin Appleby, and is placed in the public
-// domain. The author hereby disclaims copyright to this source code.
-// https://sites.google.com/site/murmurhash/
-static uint32_t calcHash(const char *key, size_t len)
-{
-    // 'm' and 'r' are mixing constants generated offline.
-    // They're not really 'magic', they just happen to work well.
-
-    const uint32_t m = 0x5bd1e995;
-    const int r = 24;
-
-    // Initialize the hash to a 'random' value
-
-    uint32_t h = (uint32_t)len;
-
-    // Mix 4 bytes at a time into the hash
-
-    const uint8_t *data = (const uint8_t *)key;
-
-    while(len >= 4)
-    {
-        uint32_t k = data[3] << 24 | data[2] << 16 | data[1] << 8 | data[0];
-
-        k *= m;
-        k ^= k >> r;
-        k *= m;
-
-        h *= m;
-        h ^= k;
-
-        data += 4;
-        len -= 4;
-    }
-
-    // Handle the last few bytes of the input array
-
-    switch(len & 3)
-    {
-    case 3: h ^= data[2] << 16;
-    case 2: h ^= data[1] << 8;
-    case 1: h ^= data[0];
-        h *= m;
-    }
-
-    // Do a few final mixes of the hash to ensure the last few
-    // bytes are well-incorporated.
-
-    h ^= h >> 13;
-    h *= m;
-    h ^= h >> 15;
-
-    return h;
-}
 
 struct StringEntry
 {
