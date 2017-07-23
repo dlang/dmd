@@ -701,11 +701,7 @@ static void escapeByValue(Expression *e, EscapeByResults *er)
         void visit(ThisExp *e)
         {
             if (e->var)
-            {
-                VarDeclaration *v = e->var->isVarDeclaration();
-                if (v)
-                    er->byvalue.push(v);
-            }
+                er->byvalue.push(e->var);
         }
 
         void visit(DotVarExp *e)
@@ -985,11 +981,7 @@ static void escapeByRef(Expression *e, EscapeByResults *er)
         void visit(ThisExp *e)
         {
             if (e->var)
-            {
-                VarDeclaration *v = e->var->isVarDeclaration();
-                if (v)
-                    er->byref.push(v);
-            }
+                er->byref.push(e->var);
         }
 
         void visit(PtrExp *e)
