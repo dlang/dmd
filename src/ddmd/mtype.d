@@ -7875,7 +7875,7 @@ extern (C++) final class TypeInstance : TypeQualified
         *ps = null;
 
         //printf("TypeInstance::resolve(sc = %p, tempinst = '%s')\n", sc, tempinst.toChars());
-        tempinst.semantic(sc);
+        tempinst.importAll(sc);
         if (!global.gag && tempinst.errors)
         {
             *pt = terror;
@@ -8505,7 +8505,7 @@ extern (C++) final class TypeStruct : Type
                     return e;
                 }
             }
-            if (d.semanticRun == PASSinit)
+            if (d.semanticRun < PASSsemantic) // FWDREF hmm?
                 d.semantic(null);
             checkAccess(e.loc, sc, e, d);
             auto ve = new VarExp(e.loc, d);
@@ -9533,7 +9533,7 @@ extern (C++) final class TypeClass : Type
                 }
             }
             //printf("e = %s, d = %s\n", e.toChars(), d.toChars());
-            if (d.semanticRun == PASSinit)
+            if (d.semanticRun == PASSinit) // FWDREF hmm
                 d.semantic(null);
             checkAccess(e.loc, sc, e, d);
             auto ve = new VarExp(e.loc, d);

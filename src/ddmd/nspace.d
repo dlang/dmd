@@ -90,7 +90,7 @@ extern (C++) final class Nspace : ScopeDsymbol
 
     override void semantic(Scope* sc)
     {
-        if (semanticRun != PASSinit)
+        if (semanticRun != PASSinit) // FWDREF FIXME
             return;
         static if (LOG)
         {

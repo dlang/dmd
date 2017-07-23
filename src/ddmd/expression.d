@@ -5878,7 +5878,7 @@ extern (C++) final class ScopeExp : Expression
             //assert(ti.needsTypeInference(sc));
             if (ti.tempdecl &&
                 ti.semantictiargsdone &&
-                ti.semanticRun == PASSinit)
+                ti.semanticRun < PASSsemantic)
             {
                 error("partial %s %s has no type", sds.kind(), toChars());
                 return true;

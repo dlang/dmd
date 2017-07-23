@@ -229,7 +229,7 @@ extern (C++) final class Import : Dsymbol
     override void semantic(Scope* sc)
     {
         //printf("Import::semantic('%s') %s\n", toPrettyChars(), id.toChars());
-        if (semanticRun > PASSinit)
+        if (semanticRun >= PASSsemantic)
             return;
 
         if (_scope)

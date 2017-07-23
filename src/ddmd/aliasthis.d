@@ -44,21 +44,20 @@ extern (C++) final class AliasThis : Dsymbol
         return new AliasThis(loc, ident);
     }
 
-    override void semantic(Scope* sc)
+    override void importAll(Scope* sc)
     {
+        // FWDREF TODO (DMD BUG?): alias this has been and still is depending upon the order of declarations, if the aggregate contains static if/foreach or mixins
+
         if (semanticRun != PASSinit)
             return;
 
         if (_scope)
-        {
             sc = _scope;
-            _scope = null;
-        }
 
         if (!sc)
             return;
 
-        semanticRun = PASSsemantic;
+        semanticRun = PASSmembers;
 
         Dsymbol p = sc.parent.pastMixin();
         AggregateDeclaration ad = p.isAggregateDeclaration();
@@ -85,12 +84,39 @@ extern (C++) final class AliasThis : Dsymbol
             return;
         }
 
+        ad.aliasthis = s;
+        semanticRun = PASSmembersdone;
+    }
+
+    override void semantic(Scope* sc)
+    {
+        if (semanticRun >= PASSsemantic)
+            return;
+
+        importAll(sc);
+        if (semanticRun < PASSmembersdone)
+            return; // there was an error
+
+        if (_scope)
+        {
+            sc = _scope;
+            _scope = null;
+        }
+
+        if (!sc)
+            return;
+
+        semanticRun = PASSsemantic;
+
+        Dsymbol p = sc.parent.pastMixin();
+        AggregateDeclaration ad = p.isAggregateDeclaration();
+        assert(ad);
+
         /* disable the alias this conversion so the implicit conversion check
          * doesn't use it.
          */
+        Dsymbol sx = ad.aliasthis;
         ad.aliasthis = null;
-
-        Dsymbol sx = s;
         if (sx.isAliasDeclaration())
             sx = sx.toAlias();
         Declaration d = sx.isDeclaration();
@@ -104,7 +130,7 @@ extern (C++) final class AliasThis : Dsymbol
             }
         }
 
-        ad.aliasthis = s;
+        ad.aliasthis = sx;
         semanticRun = PASSsemanticdone;
     }
 

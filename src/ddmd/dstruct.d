@@ -269,48 +269,25 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         return ScopeDsymbol.syntaxCopy(sd);
     }
 
-    override final void semantic(Scope* sc)
+    override void importAll(Scope* sc)
     {
-        //printf("StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", this, toPrettyChars(), sizeok);
-
-        //static int count; if (++count == 20) assert(0);
-
-        if (semanticRun >= PASSsemanticdone)
+        if (semanticRun >= PASSmembersdone)
             return;
-        int errors = global.errors;
 
-        //printf("+StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", this, toPrettyChars(), sizeok);
-        Scope* scx = null;
         if (_scope)
-        {
             sc = _scope;
-            scx = _scope; // save so we don't make redundant copies
-            _scope = null;
-        }
+        assert(sc);
 
-        if (!parent)
+        auto sc2 = newScope(sc);
+
+        if (!parent) // FWDREF WARNING: shouldn't this be done once?
         {
             assert(sc.parent && sc.func);
             parent = sc.parent;
         }
         assert(parent && !isAnonymous());
 
-        if (this.errors)
-            type = Type.terror;
-        if (semanticRun == PASSinit)
-            type = type.addSTC(sc.stc | storage_class);
-        type = type.semantic(loc, sc);
-        if (type.ty == Tstruct && (cast(TypeStruct)type).sym != this)
-        {
-            auto ti = (cast(TypeStruct)type).sym.isInstantiated();
-            if (ti && isError(ti))
-                (cast(TypeStruct)type).sym = this;
-        }
-
-        // Ungag errors when not speculative
-        Ungag ungag = ungagSpeculative();
-
-        if (semanticRun == PASSinit)
+        if (semanticRun < PASSmembers)
         {
             protection = sc.protection;
 
@@ -323,8 +300,81 @@ extern (C++) class StructDeclaration : AggregateDeclaration
                 error("structs, unions cannot be abstract");
 
             userAttribDecl = sc.userAttribDecl;
+
+            if (!members) // if opaque declaration
+            {
+                semanticRun = PASSmembersdone;
+                return;
+            }
+            if (!symtab)
+            {
+                symtab = new DsymbolTable();
+
+                for (size_t i = 0; i < members.dim; i++)
+                {
+                    auto s = (*members)[i];
+                    //printf("adding member '%s' to '%s'\n", s.toChars(), this.toChars());
+                    s.addMember(sc, this);
+                }
+            }
+
+            /* Set scope so if there are forward references, we still might be able to
+            * resolve individual members like enums.
+            */
+            for (size_t i = 0; i < members.dim; i++)
+            {
+                auto s = (*members)[i];
+                //printf("struct: setScope %s %s\n", s.kind(), s.toChars());
+                s.setScope(sc2);
+            }
         }
-        else if (symtab && !scx)
+
+        ScopeDsymbol.importAll(sc2);
+        sc2.pop();
+    }
+
+    override final void semantic(Scope* sc)
+    {
+        //printf("StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", this, toPrettyChars(), sizeok);
+
+        //static int count; if (++count == 20) assert(0);
+
+        if (semanticRun >= PASSsemanticdone)
+            return;
+
+        importAll(sc);
+        if (semanticRun < PASSmembersdone)
+        {
+            error("struct forward ref");
+            return;
+        }
+
+        int errors = global.errors;
+        //printf("+StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", this, toPrettyChars(), sizeok);
+        Scope* scx = null;
+        if (_scope)
+        {
+            sc = _scope;
+            scx = _scope; // save so we don't make redundant copies
+            _scope = null;
+        }
+
+        if (this.errors)
+            type = Type.terror;
+        if (semanticRun < PASSsemantic)
+            type = type.addSTC(sc.stc | storage_class);
+        type = type.semantic(loc, sc);
+        if (type.ty == Tstruct && (cast(TypeStruct)type).sym != this)
+        {
+            auto ti = (cast(TypeStruct)type).sym.isInstantiated();
+            if (ti && isError(ti))
+                (cast(TypeStruct)type).sym = this;
+        }
+
+        // Ungag errors when not speculative
+        Ungag ungag = ungagSpeculative();
+
+        if (semanticRun >= PASSsemantic/+symtab && !scx+/) // FWDREF FIXME: we should probably error ref here
             return;
 
         semanticRun = PASSsemantic;
@@ -334,35 +384,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             semanticRun = PASSsemanticdone;
             return;
         }
-        if (!symtab)
-        {
-            symtab = new DsymbolTable();
-
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                auto s = (*members)[i];
-                //printf("adding member '%s' to '%s'\n", s.toChars(), this.toChars());
-                s.addMember(sc, this);
-            }
-        }
 
         auto sc2 = newScope(sc);
-
-        /* Set scope so if there are forward references, we still might be able to
-         * resolve individual members like enums.
-         */
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            auto s = (*members)[i];
-            //printf("struct: setScope %s %s\n", s.kind(), s.toChars());
-            s.setScope(sc2);
-        }
-
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            auto s = (*members)[i];
-            s.importAll(sc2);
-        }
 
         for (size_t i = 0; i < members.dim; i++)
         {
@@ -376,7 +399,6 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         if (!determineFields())
         {
             assert(type.ty == Terror);
-            sc2.pop();
             semanticRun = PASSsemanticdone;
             return;
         }
@@ -393,8 +415,6 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             auto sd = (cast(TypeStruct)tb).sym;
             if (sd.semanticRun >= PASSsemanticdone)
                 continue;
-
-            sc2.pop();
 
             _scope = scx ? scx : sc.copy();
             _scope.setNoFree();

@@ -167,7 +167,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override void semantic(Scope* sc)
     {
-        if (semanticRun != PASSinit)
+        if (semanticRun >= PASSsemantic)
             return;
         semanticRun = PASSsemantic;
         Dsymbols* d = include(sc, null);
@@ -1364,7 +1364,7 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
 
     override void importAll(Scope* sc)
     {
-        // do not evaluate condition before semantic pass
+        AttribDeclaration.importAll(sc);
     }
 
     override void semantic(Scope* sc)
@@ -1477,7 +1477,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 
     override void importAll(Scope* sc)
     {
-        // do not evaluate aggregate before semantic pass
+        AttribDeclaration.importAll(sc);
     }
 
     override void semantic(Scope* sc)
@@ -1601,6 +1601,26 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
             assert(global.errors != errors);
             decl = null;
         }
+    }
+
+    override void importAll(Scope* sc)
+    {
+        if (!compiled)
+        {
+            compileIt(sc);
+            AttribDeclaration.addMember(sc, scopesym);
+            compiled = true;
+
+            if (_scope && decl)
+            {
+                for (size_t i = 0; i < decl.dim; i++)
+                {
+                    Dsymbol s = (*decl)[i];
+                    s.setScope(_scope);
+                }
+            }
+        }
+        AttribDeclaration.importAll(sc);
     }
 
     override void semantic(Scope* sc)

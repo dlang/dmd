@@ -109,116 +109,24 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         ScopeDsymbol.setScope(sc);
     }
 
-    override void semantic(Scope* sc)
+    override void importAll(Scope* sc)
     {
-        //printf("EnumDeclaration::semantic(sd = %p, '%s') %s\n", sc.scopesym, sc.scopesym.toChars(), toChars());
-        //printf("EnumDeclaration::semantic() %p %s\n", this, toChars());
-        if (semanticRun >= PASSsemanticdone)
-            return; // semantic() already completed
-        if (semanticRun == PASSsemantic)
-        {
-            assert(memtype);
-            .error(loc, "circular reference to enum base type `%s`", memtype.toChars());
-            errors = true;
-            semanticRun = PASSsemanticdone;
+        if (semanticRun >= PASSmembersdone)
             return;
-        }
-        uint dprogress_save = Module.dprogress;
+        semanticRun = PASSmembers;
 
-        Scope* scx = null;
         if (_scope)
-        {
             sc = _scope;
-            scx = _scope; // save so we don't make redundant copies
-            _scope = null;
-        }
-
-        if (!sc)
-            return;
-
+        assert(sc);
         parent = sc.parent;
-        type = type.semantic(loc, sc);
 
         protection = sc.protection;
         if (sc.stc & STCdeprecated)
             isdeprecated = true;
         userAttribDecl = sc.userAttribDecl;
 
-        semanticRun = PASSsemantic;
-
-        if (!members && !memtype) // enum ident;
-        {
-            semanticRun = PASSsemanticdone;
-            return;
-        }
-
         if (!symtab)
             symtab = new DsymbolTable();
-
-        /* The separate, and distinct, cases are:
-         *  1. enum { ... }
-         *  2. enum : memtype { ... }
-         *  3. enum ident { ... }
-         *  4. enum ident : memtype { ... }
-         *  5. enum ident : memtype;
-         *  6. enum ident;
-         */
-
-        if (memtype)
-        {
-            memtype = memtype.semantic(loc, sc);
-
-            /* Check to see if memtype is forward referenced
-             */
-            if (memtype.ty == Tenum)
-            {
-                EnumDeclaration sym = cast(EnumDeclaration)memtype.toDsymbol(sc);
-                if (!sym.memtype || !sym.members || !sym.symtab || sym._scope)
-                {
-                    // memtype is forward referenced, so try again later
-                    _scope = scx ? scx : sc.copy();
-                    _scope.setNoFree();
-                    _scope._module.addDeferredSemantic(this);
-                    Module.dprogress = dprogress_save;
-                    //printf("\tdeferring %s\n", toChars());
-                    semanticRun = PASSinit;
-                    return;
-                }
-            }
-            if (memtype.ty == Tvoid)
-            {
-                error("base type must not be void");
-                memtype = Type.terror;
-            }
-            if (memtype.ty == Terror)
-            {
-                errors = true;
-                if (members)
-                {
-                    for (size_t i = 0; i < members.dim; i++)
-                    {
-                        Dsymbol s = (*members)[i];
-                        s.errors = true; // poison all the members
-                    }
-                }
-                semanticRun = PASSsemanticdone;
-                return;
-            }
-        }
-
-        semanticRun = PASSsemanticdone;
-
-        if (!members) // enum ident : memtype;
-            return;
-
-        if (members.dim == 0)
-        {
-            error("enum `%s` must have at least one member", toChars());
-            errors = true;
-            return;
-        }
-
-        Module.dprogress++;
 
         Scope* sce;
         if (isAnonymous())
@@ -237,7 +145,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         {
             EnumMember em = (*members)[i].isEnumMember();
             if (em)
-                em._scope = sce;
+                em._scope = sce; // FWDREF WARNING: can't enum contain more than just EnumMembers at this point?
         }
 
         if (!added)
@@ -280,6 +188,123 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             }
         }
 
+//         ScopeDsymbol.importAll(sc);
+        semanticRun = PASSmembersdone;
+    }
+
+    override void semantic(Scope* sc)
+    {
+        //printf("EnumDeclaration::semantic(sd = %p, '%s') %s\n", sc.scopesym, sc.scopesym.toChars(), toChars());
+        //printf("EnumDeclaration::semantic() %p %s\n", this, toChars());
+        if (semanticRun >= PASSsemanticdone)
+            return; // semantic() already completed
+
+        importAll(sc);
+        if (semanticRun < PASSmembersdone)
+        {
+            error("enum members forward ref");
+            return;
+        }
+
+        if (semanticRun == PASSsemantic)
+        {
+            assert(memtype);
+            .error(loc, "circular reference to enum base type `%s`", memtype.toChars());
+            errors = true;
+            semanticRun = PASSsemanticdone;
+            return;
+        }
+        uint dprogress_save = Module.dprogress;
+
+        Scope* scx = null;
+        if (_scope)
+        {
+            sc = _scope;
+            scx = _scope; // save so we don't make redundant copies
+            _scope = null;
+        }
+
+        assert(sc);
+//         if (!sc) // FWDREF when does that happen?
+//             return;
+
+        assert(semanticRun >= PASSmembersdone);
+
+        type = type.semantic(loc, sc);
+
+        semanticRun = PASSsemantic;
+
+        if (!members && !memtype) // enum ident;
+        {
+            semanticRun = PASSsemanticdone;
+            return;
+        }
+
+        /* The separate, and distinct, cases are:
+         *  1. enum { ... }
+         *  2. enum : memtype { ... }
+         *  3. enum ident { ... }
+         *  4. enum ident : memtype { ... }
+         *  5. enum ident : memtype;
+         *  6. enum ident;
+         */
+
+        if (memtype)
+        {
+            memtype = memtype.semantic(loc, sc);
+
+            /* Check to see if memtype is forward referenced
+             */
+            if (memtype.ty == Tenum)
+            {
+                EnumDeclaration sym = cast(EnumDeclaration)memtype.toDsymbol(sc);
+                if (!sym.memtype || !sym.members || !sym.symtab || sym._scope)
+                {
+                    // memtype is forward referenced, so try again later
+                    _scope = scx ? scx : sc.copy();
+                    _scope.setNoFree();
+                    _scope._module.addDeferredSemantic(this);
+                    Module.dprogress = dprogress_save;
+                    //printf("\tdeferring %s\n", toChars());
+                    semanticRun = PASSmembersdone;
+                    return;
+                }
+            }
+            if (memtype.ty == Tvoid)
+            {
+                error("base type must not be void");
+                memtype = Type.terror;
+            }
+            if (memtype.ty == Terror)
+            {
+                errors = true;
+                if (members)
+                {
+                    for (size_t i = 0; i < members.dim; i++)
+                    {
+                        Dsymbol s = (*members)[i];
+                        s.errors = true; // poison all the members
+                    }
+                }
+                semanticRun = PASSsemanticdone;
+                return;
+            }
+        }
+
+        semanticRun = PASSsemanticdone;
+
+        if (!members) // enum ident : memtype;
+            return;
+
+        if (members.dim == 0)
+        {
+            error("enum `%s` must have at least one member", toChars());
+            errors = true;
+            return;
+        }
+
+        Module.dprogress++;
+
         for (size_t i = 0; i < members.dim; i++)
         {
             EnumMember em = (*members)[i].isEnumMember();
@@ -312,11 +337,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident.toChars());
-        if (_scope)
-        {
-            // Try one last time to resolve this enum
-            semantic(_scope);
-        }
+        importAll(_scope);
 
         if (!members || !symtab || _scope)
         {
@@ -375,7 +396,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             semantic(_scope);
         if (errors)
             return errorReturn();
-        if (semanticRun == PASSinit || !members)
+        if (semanticRun < PASSsemanticdone || !members)
         {
             error("is forward referenced looking for `.%s`", id.toChars());
             return errorReturn();
@@ -441,7 +462,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             semantic(_scope);
         if (errors)
             goto Lerrors;
-        if (semanticRun == PASSinit || !members)
+        if (semanticRun < PASSsemanticdone || !members)
         {
             error(loc, "forward reference of `%s.init`", toChars());
             goto Lerrors;

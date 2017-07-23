@@ -146,6 +146,8 @@ struct Prot
 enum PASS : int
 {
     PASSinit,           // initial state
+    PASSmembers,       // importAll() i.e determineMembers() started
+    PASSmembersdone,   // importAll() i.e determineMembers() done
     PASSsemantic,       // semantic() started
     PASSsemanticdone,   // semantic() done
     PASSsemantic2,      // semantic2() started
@@ -158,6 +160,8 @@ enum PASS : int
 }
 
 alias PASSinit = PASS.PASSinit;
+alias PASSmembers = PASS.PASSmembers;
+alias PASSmembersdone = PASS.PASSmembersdone;
 alias PASSsemantic = PASS.PASSsemantic;
 alias PASSsemanticdone = PASS.PASSsemanticdone;
 alias PASSsemantic2 = PASS.PASSsemantic2;
@@ -1311,6 +1315,9 @@ public:
         //printf("%s.ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident.toChars(), flags);
         //if (strcmp(ident.toChars(),"c") == 0) *(char*)0=0;
 
+        if (_scope)
+            importAll(_scope);
+
         // Look in symbols declared in this module
         if (symtab && !(flags & SearchImportsOnly))
         {
@@ -1713,6 +1720,24 @@ public:
         return this;
     }
 
+    size_t nextMember;
+    override void importAll(Scope* sc)
+    {
+        if (!members)
+        {
+            semanticRun = PASSmembersdone;
+            return;
+        }
+
+        semanticRun = PASSmembers;
+        while (nextMember < members.dim)
+        {
+            auto s = (*members)[nextMember++];
+            s.importAll(sc);
+        }
+        semanticRun = PASSmembersdone;
+    }
+
     override void semantic(Scope* sc) { }
 
     override void accept(Visitor v)
@@ -1724,7 +1749,7 @@ public:
 /***********************************************************
  * With statement scope
  */
-extern (C++) final class WithScopeSymbol : ScopeDsymbol
+extern (C++) final class WithScopeSymbol : ScopeDsymbol // FWDREF?
 {
     WithStatement withstate;
 

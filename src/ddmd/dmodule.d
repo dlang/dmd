@@ -996,8 +996,12 @@ extern (C++) final class Module : Package
     override void importAll(Scope* prevsc)
     {
         //printf("+Module::importAll(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
-        if (_scope)
-            return; // already done
+        if (semanticRun >= PASSmembers)
+        {
+            if (semanticRun < PASSmembersdone)
+                ScopeDsymbol.importAll(_scope);
+            return;
+        }
         if (isDocFile)
         {
             error("is a Ddoc file, cannot import it");
@@ -1047,11 +1051,7 @@ extern (C++) final class Module : Package
             Dsymbol s = (*members)[i];
             s.setScope(sc);
         }
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            s.importAll(sc);
-        }
+        ScopeDsymbol.importAll(sc);
         sc = sc.pop();
         sc.pop(); // 2 pops because Scope::createGlobal() created 2
     }
@@ -1059,7 +1059,7 @@ extern (C++) final class Module : Package
     // semantic analysis
     override void semantic(Scope*)
     {
-        if (semanticRun != PASSinit)
+        if (semanticRun >= PASSsemantic)
             return;
         //printf("+Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
         semanticRun = PASSsemantic;
@@ -1108,6 +1108,8 @@ extern (C++) final class Module : Package
         // Pass 2 semantic routines: do initializers and function bodies
         for (size_t i = 0; i < members.dim; i++)
         {
+            runDeferredSemantic2();
+
             Dsymbol s = (*members)[i];
             s.semantic2(sc);
         }
@@ -1136,11 +1138,11 @@ extern (C++) final class Module : Package
         // Pass 3 semantic routines: do initializers and function bodies
         for (size_t i = 0; i < members.dim; i++)
         {
+            runDeferredSemantic2();
+
             Dsymbol s = (*members)[i];
             //printf("Module %s: %s.semantic3()\n", toChars(), s.toChars());
             s.semantic3(sc);
-
-            runDeferredSemantic2();
         }
         if (userAttribDecl)
         {
@@ -1170,6 +1172,8 @@ extern (C++) final class Module : Package
         //printf("%s Module.search('%s', flags = x%x) insearch = %d\n", toChars(), ident.toChars(), flags, insearch);
         if (insearch)
             return null;
+
+        importAll(_scope);
 
         /* Qualified module searches always search their imports,
          * even if SearchLocalsOnly
@@ -1300,6 +1304,9 @@ extern (C++) final class Module : Package
         while (deferred.dim < len || dprogress); // while making progress
         nested--;
         //printf("-Module::runDeferredSemantic(), len = %d\n", deferred.dim);
+
+        if (!deferred.dim)
+            dprogress = 1;
     }
 
     static void runDeferredSemantic2()

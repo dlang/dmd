@@ -255,7 +255,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             if (v.aliassym)
                 return 0;   // If this variable was really a tuple, skip it.
 
-            if (v.storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCctfe | STCtemplateparameter))
+            if (v.storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCctfe | STCtemplateparameter)) // FWDREF FIXME: we should skip static variables, but part of semantic should have run to know that
                 return 0;
             if (!v.isField() || v.semanticRun < PASSsemanticdone)
                 return 1;   // unresolvable forward reference
@@ -320,7 +320,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         }
 
         if (_scope)
-            semantic(null);
+            importAll(_scope);
 
         // Determine the instance size of base class first.
         if (auto cd = isClassDeclaration())

@@ -431,49 +431,23 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return sc2;
     }
 
-    override void semantic(Scope* sc)
+    override void importAll(Scope* sc)
     {
-        //printf("ClassDeclaration.semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
-        //printf("\tparent = %p, '%s'\n", sc.parent, sc.parent ? sc.parent.toChars() : "");
-        //printf("sc.stc = %x\n", sc.stc);
-
-        //{ static int n;  if (++n == 20) *(char*)0=0; }
-
-        if (semanticRun >= PASSsemanticdone)
+        if (semanticRun >= PASSmembersdone)
             return;
-        int errors = global.errors;
 
-        //printf("+ClassDeclaration.semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
-
-        Scope* scx = null;
         if (_scope)
-        {
             sc = _scope;
-            scx = _scope; // save so we don't make redundant copies
-            _scope = null;
-        }
+        assert(sc);
 
-        if (!parent)
+        if (semanticRun < PASSmembers)
         {
-            assert(sc.parent);
-            parent = sc.parent;
-        }
+            if (!parent)
+            {
+                assert(sc.parent);
+                parent = sc.parent;
+            }
 
-        if (this.errors)
-            type = Type.terror;
-        type = type.semantic(loc, sc);
-        if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
-        {
-            auto ti = (cast(TypeClass)type).sym.isInstantiated();
-            if (ti && isError(ti))
-                (cast(TypeClass)type).sym = this;
-        }
-
-        // Ungag errors when not speculative
-        Ungag ungag = ungagSpeculative();
-
-        if (semanticRun == PASSinit)
-        {
             protection = sc.protection;
 
             storage_class |= sc.stc;
@@ -493,12 +467,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             if (sc.linkage == LINKobjc)
                 objc.setObjc(this);
         }
-        else if (symtab && !scx)
-        {
-            semanticRun = PASSsemanticdone;
-            return;
-        }
-        semanticRun = PASSsemantic;
 
         if (baseok < BASEOKdone)
         {
@@ -513,23 +481,14 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
              */
             T resolveBase(T)(lazy T exp)
             {
-                if (!scx)
-                {
-                    scx = sc.copy();
-                    scx.setNoFree();
-                }
                 static if (!is(T == void))
                 {
-                    _scope = scx;
                     auto r = exp();
-                    _scope = null;
                     return r;
                 }
                 else
                 {
-                    _scope = scx;
                     exp();
-                    _scope = null;
                 }
             }
 
@@ -611,14 +570,15 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 b.sym = baseClass;
 
                 if (tc.sym.baseok < BASEOKdone)
-                    resolveBase(tc.sym.semantic(null)); // Try to resolve forward reference
-                if (tc.sym.baseok < BASEOKdone)
-                {
-                    //printf("\ttry later, forward reference of base class %s\n", tc.sym.toChars());
-                    if (tc.sym._scope)
-                        tc.sym._scope._module.addDeferredSemantic(tc.sym);
-                    baseok = BASEOKnone;
-                }
+                    resolveBase(tc.sym.importAll(null)); // Try to resolve forward reference
+         // FWDREF?       assert(tc.sym.baseok == BASEOKdone);
+//                 if (tc.sym.baseok < BASEOKdone) // FWDREF: disabled, this shouldn't be needed
+//                 {
+//                     //printf("\ttry later, forward reference of base class %s\n", tc.sym.toChars());
+//                     if (tc.sym._scope)
+//                         tc.sym._scope._module.addDeferredSemantic(tc.sym);
+//                     baseok = BASEOKnone;
+//                 }
             L7:
             }
 
@@ -661,25 +621,26 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 b.sym = tc.sym;
 
                 if (tc.sym.baseok < BASEOKdone)
-                    resolveBase(tc.sym.semantic(null)); // Try to resolve forward reference
-                if (tc.sym.baseok < BASEOKdone)
-                {
-                    //printf("\ttry later, forward reference of base %s\n", tc.sym.toChars());
-                    if (tc.sym._scope)
-                        tc.sym._scope._module.addDeferredSemantic(tc.sym);
-                    baseok = BASEOKnone;
-                }
+                    resolveBase(tc.sym.importAll(null)); // Try to resolve forward reference
+//                 if (tc.sym.baseok < BASEOKdone) // FWDREF disabled
+//                 {
+//                     //printf("\ttry later, forward reference of base %s\n", tc.sym.toChars());
+//                     if (tc.sym._scope)
+//                         tc.sym._scope._module.addDeferredSemantic(tc.sym);
+//                     baseok = BASEOKnone;
+//                 }
                 i++;
             }
-            if (baseok == BASEOKnone)
-            {
-                // Forward referencee of one or more bases, try again later
-                _scope = scx ? scx : sc.copy();
-                _scope.setNoFree();
-                _scope._module.addDeferredSemantic(this);
-                //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
-                return;
-            }
+            assert(baseok != BASEOKnone); // FWDREF temporary
+//             if (baseok == BASEOKnone) // FWDREF disabled
+//             {
+//                 // Forward referencee of one or more bases, try again later
+//                 _scope = scx ? scx : sc.copy();
+//                 _scope.setNoFree();
+//                 _scope._module.addDeferredSemantic(this);
+//                 //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
+//                 return;
+//             }
             baseok = BASEOKdone;
 
             // If no base class, and this is not an Object, use Object as base class
@@ -739,14 +700,16 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             }
             interfaceSemantic(sc);
         }
-    Lancestorsdone:
-        //printf("\tClassDeclaration.semantic(%s) baseok = %d\n", toChars(), baseok);
 
+    Lancestorsdone:
         if (!members) // if opaque declaration
         {
-            semanticRun = PASSsemanticdone;
+            semanticRun = PASSmembersdone;
             return;
         }
+
+        auto sc2 = newScope(sc);
+
         if (!symtab)
         {
             symtab = new DsymbolTable();
@@ -764,8 +727,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 s.addMember(sc, this);
             }
 
-            auto sc2 = newScope(sc);
-
             /* Set scope so if there are forward references, we still might be able to
              * resolve individual members like enums.
              */
@@ -775,8 +736,64 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 //printf("[%d] setScope %s %s, sc2 = %p\n", i, s.kind(), s.toChars(), sc2);
                 s.setScope(sc2);
             }
+        }
 
-            sc2.pop();
+        ScopeDsymbol.importAll(sc2);
+        sc2.pop();
+    }
+
+    override void semantic(Scope* sc)
+    {
+        //printf("ClassDeclaration.semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
+        //printf("\tparent = %p, '%s'\n", sc.parent, sc.parent ? sc.parent.toChars() : "");
+        //printf("sc.stc = %x\n", sc.stc);
+
+        //{ static int n;  if (++n == 20) *(char*)0=0; }
+
+        if (semanticRun >= PASSsemanticdone)
+            return;
+
+        importAll(sc);
+        if (semanticRun < PASSmembersdone)
+        {
+            error("class forward ref");
+            return;
+        }
+
+        int errors = global.errors;
+        //printf("+ClassDeclaration.semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
+
+        Scope* scx = null;
+        if (_scope)
+        {
+            sc = _scope;
+            scx = _scope; // save so we don't make redundant copies
+            _scope = null;
+        }
+
+        if (this.errors)
+            type = Type.terror;
+        type = type.semantic(loc, sc);
+        if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
+        {
+            auto ti = (cast(TypeClass)type).sym.isInstantiated();
+            if (ti && isError(ti))
+                (cast(TypeClass)type).sym = this;
+        }
+
+        // Ungag errors when not speculative
+        Ungag ungag = ungagSpeculative();
+
+        if (semanticRun >= PASSsemantic/+symtab && !scx+/) // FWDREF FIXME: we should probably error ref here
+            return;
+        semanticRun = PASSsemantic;
+
+       //printf("\tClassDeclaration.semantic(%s) baseok = %d\n", toChars(), baseok);
+
+        if (!members) // if opaque declaration
+        {
+            semanticRun = PASSsemanticdone;
+            return;
         }
 
         for (size_t i = 0; i < baseclasses.dim; i++)
@@ -785,6 +802,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             Type tb = b.type.toBasetype();
             assert(tb.ty == Tclass);
             TypeClass tc = cast(TypeClass)tb;
+            tc.sym.semantic(null); // FWDREF also, shouldn't the next lines only happen in case of an actual circular/fwd ref error?
             if (tc.sym.semanticRun < PASSsemanticdone)
             {
                 // Forward referencee of one or more bases, try again later
@@ -859,12 +877,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         auto sc2 = newScope(sc);
 
-        for (size_t i = 0; i < members.dim; ++i)
-        {
-            auto s = (*members)[i];
-            s.importAll(sc2);
-        }
-
         // Note that members.dim can grow due to tuple expansion during semantic()
         for (size_t i = 0; i < members.dim; ++i)
         {
@@ -876,6 +888,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         {
             assert(type == Type.terror);
             sc2.pop();
+            semanticRun = PASSsemanticdone;
             return;
         }
         /* Following special member functions creation needs semantic analysis
@@ -890,7 +903,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             if (sd.semanticRun >= PASSsemanticdone)
                 continue;
 
-            sc2.pop();
+                sc2.pop();
 
             _scope = scx ? scx : sc.copy();
             _scope.setNoFree();
@@ -965,12 +978,12 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         inv = buildInv(this, sc2);
 
+        sc2.pop();
+
         Module.dprogress++;
         semanticRun = PASSsemanticdone;
         //printf("-ClassDeclaration.semantic(%s), type = %p\n", toChars(), type);
         //members.print();
-
-        sc2.pop();
 
         if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
         {
@@ -1550,45 +1563,25 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
         return sc2;
     }
 
-    override void semantic(Scope* sc)
+    override void importAll(Scope* sc)
     {
-        //printf("InterfaceDeclaration.semantic(%s), type = %p\n", toChars(), type);
-        if (semanticRun >= PASSsemanticdone)
+        if (semanticRun >= PASSmembersdone)
             return;
-        int errors = global.errors;
 
-        //printf("+InterfaceDeclaration.semantic(%s), type = %p\n", toChars(), type);
-
-        Scope* scx = null;
         if (_scope)
-        {
             sc = _scope;
-            scx = _scope; // save so we don't make redundant copies
-            _scope = null;
-        }
+        assert(sc);
 
-        if (!parent)
+        if (semanticRun < PASSmembers)
         {
-            assert(sc.parent && sc.func);
-            parent = sc.parent;
-        }
-        assert(parent && !isAnonymous());
+            if (!parent)
+            {
+                assert(sc.parent && sc.func);
+                parent = sc.parent;
+            }
 
-        if (this.errors)
-            type = Type.terror;
-        type = type.semantic(loc, sc);
-        if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
-        {
-            auto ti = (cast(TypeClass)type).sym.isInstantiated();
-            if (ti && isError(ti))
-                (cast(TypeClass)type).sym = this;
-        }
+            assert(parent && !isAnonymous());
 
-        // Ungag errors when not speculative
-        Ungag ungag = ungagSpeculative();
-
-        if (semanticRun == PASSinit)
-        {
             protection = sc.protection;
 
             storage_class |= sc.stc;
@@ -1597,37 +1590,19 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
 
             userAttribDecl = sc.userAttribDecl;
         }
-        else if (symtab)
-        {
-            if (sizeok == SIZEOKdone || !scx)
-            {
-                semanticRun = PASSsemanticdone;
-                return;
-            }
-        }
-        semanticRun = PASSsemantic;
 
         if (baseok < BASEOKdone)
         {
             T resolveBase(T)(lazy T exp)
             {
-                if (!scx)
-                {
-                    scx = sc.copy();
-                    scx.setNoFree();
-                }
                 static if (!is(T == void))
                 {
-                    _scope = scx;
                     auto r = exp();
-                    _scope = null;
                     return r;
                 }
                 else
                 {
-                    _scope = scx;
                     exp();
-                    _scope = null;
                 }
             }
 
@@ -1714,24 +1689,25 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
                 b.sym = tc.sym;
 
                 if (tc.sym.baseok < BASEOKdone)
-                    resolveBase(tc.sym.semantic(null)); // Try to resolve forward reference
-                if (tc.sym.baseok < BASEOKdone)
-                {
-                    //printf("\ttry later, forward reference of base %s\n", tc.sym.toChars());
-                    if (tc.sym._scope)
-                        tc.sym._scope._module.addDeferredSemantic(tc.sym);
-                    baseok = BASEOKnone;
-                }
+                    resolveBase(tc.sym.importAll(null)); // Try to resolve forward reference
+//                 if (tc.sym.baseok < BASEOKdone) // FWDREF
+//                 {
+//                     //printf("\ttry later, forward reference of base %s\n", tc.sym.toChars());
+//                     if (tc.sym._scope)
+//                         tc.sym._scope._module.addDeferredSemantic(tc.sym);
+//                     baseok = BASEOKnone;
+//                 }
                 i++;
             }
-            if (baseok == BASEOKnone)
-            {
-                // Forward referencee of one or more bases, try again later
-                _scope = scx ? scx : sc.copy();
-                _scope.setNoFree();
-                _scope._module.addDeferredSemantic(this);
-                return;
-            }
+            assert(baseok != BASEOKnone); // FWDREF temporary
+//             if (baseok == BASEOKnone)
+//             {
+//                 // Forward referencee of one or more bases, try again later
+//                 _scope = scx ? scx : sc.copy();
+//                 _scope.setNoFree();
+//                 _scope._module.addDeferredSemantic(this);
+//                 return;
+//             }
             baseok = BASEOKdone;
 
             interfaces = baseclasses.tdata()[0 .. baseclasses.dim];
@@ -1751,11 +1727,80 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
 
         if (!members) // if opaque declaration
         {
-            semanticRun = PASSsemanticdone;
+            semanticRun = PASSmembersdone;
             return;
         }
         if (!symtab)
             symtab = new DsymbolTable();
+
+        for (size_t i = 0; i < members.dim; i++)
+        {
+            Dsymbol s = (*members)[i];
+            s.addMember(sc, this);
+        }
+
+        auto sc2 = newScope(sc);
+
+        /* Set scope so if there are forward references, we still might be able to
+         * resolve individual members like enums.
+         */
+        for (size_t i = 0; i < members.dim; i++)
+        {
+            Dsymbol s = (*members)[i];
+            //printf("setScope %s %s\n", s.kind(), s.toChars());
+            s.setScope(sc2);
+        }
+
+        ScopeDsymbol.importAll(sc2);
+        sc2.pop();
+    }
+
+    override void semantic(Scope* sc)
+    {
+        //printf("InterfaceDeclaration.semantic(%s), type = %p\n", toChars(), type);
+        if (semanticRun >= PASSsemanticdone)
+            return;
+
+        importAll(sc);
+        if (semanticRun < PASSmembersdone)
+        {
+            error("interface forward ref");
+            return;
+        }
+
+        int errors = global.errors;
+        //printf("+InterfaceDeclaration.semantic(%s), type = %p\n", toChars(), type);
+
+        Scope* scx = null;
+        if (_scope)
+        {
+            sc = _scope;
+            scx = _scope; // save so we don't make redundant copies
+            _scope = null;
+        }
+
+        if (this.errors)
+            type = Type.terror;
+        type = type.semantic(loc, sc);
+        if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
+        {
+            auto ti = (cast(TypeClass)type).sym.isInstantiated();
+            if (ti && isError(ti))
+                (cast(TypeClass)type).sym = this;
+        }
+
+        // Ungag errors when not speculative
+        Ungag ungag = ungagSpeculative();
+
+        if (semanticRun >= PASSsemantic/+symtab && !scx+/) // FWDREF FIXME: we should probably error ref here
+            return;
+        semanticRun = PASSsemantic;
+
+        if (!members) // if opaque declaration
+        {
+            semanticRun = PASSsemanticdone;
+            return;
+        }
 
         for (size_t i = 0; i < baseclasses.dim; i++)
         {
@@ -1763,6 +1808,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
             Type tb = b.type.toBasetype();
             assert(tb.ty == Tclass);
             TypeClass tc = cast(TypeClass)tb;
+            tc.sym.semantic(null); // FWDREF also, shouldn't the next lines only happen in case of an actual circular/fwd ref error?
             if (tc.sym.semanticRun < PASSsemanticdone)
             {
                 // Forward referencee of one or more bases, try again later
@@ -1813,29 +1859,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
             }
         }
 
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            s.addMember(sc, this);
-        }
-
         auto sc2 = newScope(sc);
-
-        /* Set scope so if there are forward references, we still might be able to
-         * resolve individual members like enums.
-         */
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            //printf("setScope %s %s\n", s.kind(), s.toChars());
-            s.setScope(sc2);
-        }
-
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            s.importAll(sc2);
-        }
 
         for (size_t i = 0; i < members.dim; i++)
         {
