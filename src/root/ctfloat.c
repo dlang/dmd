@@ -17,6 +17,11 @@
 #include <string.h>
 #include <errno.h>
 
+real_t CTFloat::zero = real_t(0);
+real_t CTFloat::one = real_t(1);
+real_t CTFloat::minusone = real_t(-1);
+real_t CTFloat::half = real_t(0.5);
+
 bool CTFloat::yl2x_supported = true;
 bool CTFloat::yl2xp1_supported = true;
 
@@ -109,6 +114,11 @@ int CTFloat::sprint(char* str, char fmt, real_t x)
 #include <errno.h>
 #include <string.h>
 #include <limits> // for std::numeric_limits
+
+real_t CTFloat::zero = real_t(0);
+real_t CTFloat::one = real_t(1);
+real_t CTFloat::minusone = real_t(-1);
+real_t CTFloat::half = real_t(0.5);
 
 #if _M_IX86 || _M_X64
 bool CTFloat::yl2x_supported = true;
@@ -242,6 +252,11 @@ int CTFloat::sprint(char* str, int fmt, real_t x)
 #include <assert.h>
 #include <errno.h>
 
+real_t CTFloat::zero = real_t(0);
+real_t CTFloat::one = real_t(1);
+real_t CTFloat::minusone = real_t(-1);
+real_t CTFloat::half = real_t(0.5);
+
 #if _X86_ || __x86_64__
 bool CTFloat::yl2x_supported = true;
 bool CTFloat::yl2xp1_supported = true;
@@ -356,6 +371,11 @@ int CTFloat::sprint(char* str, char fmt, real_t x)
 #include <float.h>
 #include <assert.h>
 #include <errno.h>
+
+real_t CTFloat::zero = real_t(0);
+real_t CTFloat::one = real_t(1);
+real_t CTFloat::minusone = real_t(-1);
+real_t CTFloat::half = real_t(0.5);
 
 #if __i386 || __x86_64__
 bool CTFloat::yl2x_supported = true;
@@ -478,6 +498,11 @@ int CTFloat::sprint(char* str, char fmt, real_t x)
 #include <ieeefp.h>
 #include <assert.h>
 #include <errno.h>
+
+real_t CTFloat::zero = real_t(0);
+real_t CTFloat::one = real_t(1);
+real_t CTFloat::minusone = real_t(-1);
+real_t CTFloat::half = real_t(0.5);
 
 #if __i386 || __x86_64__
 bool CTFloat::yl2x_supported = true;

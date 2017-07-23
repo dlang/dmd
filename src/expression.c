@@ -2336,19 +2336,19 @@ uinteger_t Expression::toUInteger()
 real_t Expression::toReal()
 {
     error("floating point constant expression expected instead of %s", toChars());
-    return ldouble(0);
+    return CTFloat::zero;
 }
 
 real_t Expression::toImaginary()
 {
     error("floating point constant expression expected instead of %s", toChars());
-    return ldouble(0);
+    return CTFloat::zero;
 }
 
 complex_t Expression::toComplex()
 {
     error("floating point constant expression expected instead of %s", toChars());
-    return complex_t(ldouble(0));
+    return complex_t(CTFloat::zero);
 }
 
 StringExp *Expression::toStringExp()
@@ -3132,7 +3132,7 @@ real_t IntegerExp::toReal()
 
 real_t IntegerExp::toImaginary()
 {
-    return ldouble(0);
+    return CTFloat::zero;
 }
 
 complex_t IntegerExp::toComplex()
@@ -3205,12 +3205,12 @@ uinteger_t RealExp::toUInteger()
 
 real_t RealExp::toReal()
 {
-    return type->isreal() ? value : ldouble(0);
+    return type->isreal() ? value : CTFloat::zero;
 }
 
 real_t RealExp::toImaginary()
 {
-    return type->isreal() ? ldouble(0) : value;
+    return type->isreal() ? CTFloat::zero : value;
 }
 
 complex_t RealExp::toComplex()
@@ -7093,7 +7093,7 @@ Expression *BinExp::checkOpAssignTypes(Scope *sc)
             {
                 // x/iv = i(-x/v)
                 // Therefore, the result is 0
-                e2 = new CommaExp(loc, e2, new RealExp(loc, ldouble(0.0), t1));
+                e2 = new CommaExp(loc, e2, new RealExp(loc, CTFloat::zero, t1));
                 e2->type = t1;
                 Expression *e = new AssignExp(loc, e1, e2);
                 e->type = t1;
@@ -13512,7 +13512,7 @@ Expression *PowExp::semantic(Scope *sc)
     }
     e = new ScopeExp(loc, mmath);
 
-    if (e2->op == TOKfloat64 && e2->toReal() == 0.5)
+    if (e2->op == TOKfloat64 && e2->toReal() == CTFloat::half)
     {
         // Replace e1 ^^ 0.5 with .std.math.sqrt(x)
         e = new CallExp(loc, new DotIdExp(loc, e, Id::_sqrt), e1);
