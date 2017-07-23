@@ -20,29 +20,36 @@
 
 bool isConsoleColorSupported();
 
-void warning(const Loc& loc, const char *format, ...);
-void warningSupplemental(const Loc& loc, const char *format, ...);
-void deprecation(const Loc& loc, const char *format, ...);
-void deprecationSupplemental(const Loc& loc, const char *format, ...);
-void error(const Loc& loc, const char *format, ...);
-void errorSupplemental(const Loc& loc, const char *format, ...);
-void verror(const Loc& loc, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL, const char *header = "Error: ");
-void verrorSupplemental(const Loc& loc, const char *format, va_list ap);
-void vwarning(const Loc& loc, const char *format, va_list);
-void vwarningSupplemental(const Loc& loc, const char *format, va_list ap);
-void vdeprecation(const Loc& loc, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL);
-void vdeprecationSupplemental(const Loc& loc, const char *format, va_list ap);
-
-#if defined(__GNUC__) || defined(__clang__)
-__attribute__((noreturn))
-void fatal();
-#elif _MSC_VER
-__declspec(noreturn)
-void fatal();
+#if defined(__GNUC__)
+#define D_ATTRIBUTE_FORMAT(m, n) __attribute__((format(printf, m, n))) __attribute__((nonnull (m)))
 #else
-void fatal();
+#define D_ATTRIBUTE_FORMAT(m, n)
 #endif
 
-void halt();
+// Print a warning, deprecation, or error, accepts printf-like format specifiers.
+D_ATTRIBUTE_FORMAT(2, 3) void warning(const Loc& loc, const char *format, ...);
+D_ATTRIBUTE_FORMAT(2, 3) void warningSupplemental(const Loc& loc, const char *format, ...);
+D_ATTRIBUTE_FORMAT(2, 3) void deprecation(const Loc& loc, const char *format, ...);
+D_ATTRIBUTE_FORMAT(2, 3) void deprecationSupplemental(const Loc& loc, const char *format, ...);
+D_ATTRIBUTE_FORMAT(2, 3) void error(const Loc& loc, const char *format, ...);
+D_ATTRIBUTE_FORMAT(2, 3) void errorSupplemental(const Loc& loc, const char *format, ...);
+D_ATTRIBUTE_FORMAT(2, 0) void verror(const Loc& loc, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL, const char *header = "Error: ");
+D_ATTRIBUTE_FORMAT(2, 0) void verrorSupplemental(const Loc& loc, const char *format, va_list ap);
+D_ATTRIBUTE_FORMAT(2, 0) void vwarning(const Loc& loc, const char *format, va_list);
+D_ATTRIBUTE_FORMAT(2, 0) void vwarningSupplemental(const Loc& loc, const char *format, va_list ap);
+D_ATTRIBUTE_FORMAT(2, 0) void vdeprecation(const Loc& loc, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL);
+D_ATTRIBUTE_FORMAT(2, 0) void vdeprecationSupplemental(const Loc& loc, const char *format, va_list ap);
+
+#if defined(__GNUC__) || defined(__clang__)
+#define D_ATTRIBUTE_NORETURN __attribute__((noreturn))
+#elif _MSC_VER
+#define D_ATTRIBUTE_NORETURN __declspec(noreturn)
+#else
+#define D_ATTRIBUTE_NORETURN
+#endif
+
+// Called after printing out fatal error messages.
+D_ATTRIBUTE_NORETURN void fatal();
+D_ATTRIBUTE_NORETURN void halt();
 
 #endif /* DMD_ERRORS_H */
