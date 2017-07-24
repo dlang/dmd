@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 1;
-enum bailoutMessages = 0;
+enum bailoutMessages = 1;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -182,6 +182,8 @@ struct SliceDescriptor
     enum ExtraFlagsOffset = 12;
     enum Size = 16;
 }
+
+static immutable smallIntegers = [BCTypeEnum.i8, BCTypeEnum.i16, BCTypeEnum.u8, BCTypeEnum.u16];
 
 static if (UseLLVMBackend)
 {
@@ -1099,7 +1101,7 @@ Expression toExpression(const BCValue value, Type expressionType,
     const BCValue[4]* errorValues = null, const RetainedError* errors = null)
 {
     import ddmd.parse : Loc;
-    static if (bailoutMessages)
+    static if (printResult)
     {
         import std.stdio;
         writeln("Calling toExpression with Type: ", (cast(ENUMTY)(expressionType.ty)).to!string, " Value:", value);
@@ -1410,6 +1412,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             {
                 static if (bailoutMessages)
                 {
+                    import std.stdio;
                     writeln("trying to build void ptr ... we cannot really do this");
                 }
                 return null;
@@ -2014,6 +2017,19 @@ extern (C++) final class BCV(BCGenT) : Visitor
         {
             bailout(message, line, pfn);
         }
+    }
+
+    extern (D) void excused_bailout(const(char)[] message, size_t line = __LINE__, string pfn = __PRETTY_FUNCTION__)
+    {
+
+        const fnIdx = _sharedCtfeState.getFunctionIndex(me);
+        IGaveUp = true;
+        if (fnIdx)
+            static if (is(BCFunction))
+            {
+                _sharedCtfeState.functions[fnIdx - 1] = BCFunction(null);
+            }
+
     }
 
     extern (D) void bailout(const(char)[] message, size_t line = __LINE__, string pfn = __PRETTY_FUNCTION__)
@@ -4942,7 +4958,7 @@ static if (is(BCGen))
             auto fieldType = bcStructType.memberTypes[fIndex];
             // import std.stdio; writeln("got fieldType: ", fieldType); //DEBUGLINE
 
-            if (fieldType.type != BCTypeEnum.i32 && fieldType.type != BCTypeEnum.i64)
+            if (!fieldType.type.anyOf(smallIntegers) && fieldType.type != BCTypeEnum.i32 && fieldType.type != BCTypeEnum.i64)
             {
                 bailout("only i32 structMembers are supported for now ... not : " ~ to!string(bcStructType.memberTypes[fIndex].type));
                 return;
@@ -4964,7 +4980,7 @@ static if (is(BCGen))
             () {
                 with(BCTypeEnum)
                 {
-                    return [i32, i64, f23, f52];
+                    return [i8, i32, i64, f23, f52];
                 }
             } ();
 
@@ -5894,7 +5910,7 @@ static if (is(BCGen))
             () {
                 with (BCTypeEnum)
                 {
-                    return [c8, c32, i32, i64, f23, f52, Slice, Array, Struct, string8];
+                    return [c8, i8, c32, i32, i64, f23, f52, Slice, Array, Struct, string8];
                 }
             } ();
 
