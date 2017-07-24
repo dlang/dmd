@@ -592,4 +592,45 @@ static assert(makeSMin.l == long.min);
 
 static assert(() { return ulong(ushort.max | ulong(ushort.max) << 32); }() == 281470681808895LU);
 
+
+int[] fold (int[4][3] a)
+{
+  int[] result;
+  result.length = 4 * 3;
+  int pos;
+  foreach (i; 0 .. 3)
+  {
+    foreach (j; 0 .. 4)
+    {
+      result[pos++] = a[i][j];
+    }
+  }
+  return result;
+}
+
+static assert (fold ([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]) ==
+              [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+
+
+struct NA
+{
+    string name;
+    uint age;
+}
+
+NA[] make5(string name)
+{
+    NA[] result;
+
+    foreach(i; 1 .. 6)
+    {
+        string nameN = name ~ [cast(immutable char)('0' + (i % 10))];
+        result ~= [NA(nameN , i-1)];
+    }
+    return result;
+}
+
+static assert (make5("Tony") == [NA("Tony1", 0u), NA("Tony2", 1u), NA("Tony3", 2u), NA("Tony4", 3u), NA("Tony5", 4u)]);
+
+
 static assert(!__traits(newCTFEGaveUp));
