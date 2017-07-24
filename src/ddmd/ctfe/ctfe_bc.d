@@ -22,7 +22,7 @@ enum bailoutMessages = 0;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 1;
+enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
 enum abortOnCritical = 1;
 
@@ -1186,10 +1186,11 @@ Expression toExpression(const BCValue value, Type expressionType,
         {
             import std.stdio;
             import std.range;
-            writefln("creating Array (%s[]) from {base: &%d = %d} {length: &%d = %d} Content: %s %s",
+            import std.algorithm;
+            writefln("creating Array (%s[]) from {base: &%d = %d} {length: &%d = %d} Content: %s",
                 _sharedCtfeState.typeToString(_sharedCtfeState.btv.toBCType(arrayType)),
                 arr.heapAddr.addr + SliceDescriptor.BaseOffset, arrayBase, arr.heapAddr.addr + SliceDescriptor.LengthOffset, arrayLength,
-                heapPtr._heap[arrayBase .. arrayBase + arrayLength*7*4], iota(arrayBase, arrayBase + arrayLength*7*4, 4).array);
+                zip(heapPtr._heap[arrayBase .. arrayBase + arrayLength*16*4], iota(arrayBase, arrayBase + arrayLength*16, 1)).map!(e => e[1].to!string ~ ":" ~ e[0].to!string));
         }
 
         if (!arr.heapAddr || !arrayBase)
@@ -1231,9 +1232,15 @@ Expression toExpression(const BCValue value, Type expressionType,
         foreach (idx; 0 .. arrayLength)
         {
             {
-                BCValue elmVal = baseType.type.anyOf([BCTypeEnum.Array, BCTypeEnum.Slice, BCTypeEnum.Struct])
-                    ? imm32(arrayBase + offset)
-                    : imm32(*(heapPtr._heap.ptr + arrayBase + offset));
+                BCValue elmVal;
+                if (baseType.type.anyOf([BCTypeEnum.Array, BCTypeEnum.Slice, BCTypeEnum.Struct]))
+                {
+                    elmVal = imm32(arrayBase + offset);
+                }
+                else
+                {
+                    elmVal = imm32(*(heapPtr._heap.ptr + arrayBase + offset));
+                }
                 elmExprs.insert(idx, toExpression(elmVal, elemType));
                 offset += elemSize;
             }
@@ -3670,16 +3677,8 @@ static if (is(BCGen))
 
                 if (elexpr.vType == BCValueType.Immediate)
                 {
-                    immutable size_t sourceAddr = elexpr.heapAddr.addr;
-                    immutable size_t targetAddr = _sharedCtfeState.heap.heapSize;
 
-                    _sharedCtfeState.heap._heap[targetAddr .. targetAddr + heapAdd] =
-                        _sharedCtfeState.heap._heap[sourceAddr .. sourceAddr + heapAdd];
-
-                    // after the copy we have to fixup the base
-                    _sharedCtfeState.heap._heap[targetAddr + SliceDescriptor.BaseOffset] =
-                        cast(uint)(targetAddr + SliceDescriptor.Size);
-                
+                    _sharedCtfeState.heap.heapSize -= heapAdd;
                 }
                 else
                 {
