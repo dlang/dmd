@@ -3601,6 +3601,7 @@ static if (is(BCGen))
         insideArrayLiteralExp = true;
 
         auto elemType = toBCType(ale.type.nextOf);
+/*
         if (!isBasicBCType(elemType)  && elemType.type != BCTypeEnum.c8 && elemType.type != BCTypeEnum.Struct && elemType.type != BCTypeEnum.Array)
         {
             bailout(
@@ -3608,6 +3609,7 @@ static if (is(BCGen))
                 elemType.type));
             return;
         }
+*/
         auto arrayLength = cast(uint) ale.elements.dim;
         //_sharedCtfeState.getArrayIndex(ale.type);
         auto arrayType = BCArray(elemType, arrayLength);
@@ -4752,7 +4754,7 @@ static if (is(BCGen))
         {
             bailout(
                 "CmpExp: cannot work with thoose types lhs: " ~ to!string(lhs.type.type) ~ " rhs: " ~ to!string(
-                rhs.type.type) ~ " result: " ~ to!string(oldAssignTo.type.type) );
+                rhs.type.type) ~ " result: " ~ to!string(oldAssignTo.type.type) ~ " -- " ~  ce.toString);
         }
     }
 
