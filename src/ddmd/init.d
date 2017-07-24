@@ -13,25 +13,18 @@ module ddmd.init;
 import core.stdc.stdio;
 import core.checkedint;
 
-import ddmd.aggregate;
 import ddmd.arraytypes;
-import ddmd.dcast;
-import ddmd.declaration;
 import ddmd.dscope;
-import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
-import ddmd.func;
 import ddmd.globals;
 import ddmd.hdrgen;
-import ddmd.id;
 import ddmd.identifier;
 import ddmd.mtype;
 import ddmd.root.outbuffer;
 import ddmd.root.rootobject;
-import ddmd.statement;
 import ddmd.tokens;
 import ddmd.visitor;
 
@@ -74,9 +67,6 @@ extern (C++) class Initializer : RootObject
      * Returns ExpInitializer or ErrorInitializer.
      */
     abstract Initializer inferType(Scope* sc);
-
-    // needInterpret is INITinterpret if must be a manifest constant, 0 if not.
-    abstract Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret);
 
     abstract Expression toExpression(Type t = null);
 
@@ -141,13 +131,6 @@ extern (C++) final class VoidInitializer : Initializer
         return new ErrorInitializer();
     }
 
-    override Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
-    {
-        //printf("VoidInitializer::semantic(t = %p)\n", t);
-        type = t;
-        return this;
-    }
-
     override Expression toExpression(Type t = null)
     {
         return null;
@@ -180,12 +163,6 @@ extern (C++) final class ErrorInitializer : Initializer
 
     override Initializer inferType(Scope* sc)
     {
-        return this;
-    }
-
-    override Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
-    {
-        //printf("ErrorInitializer::semantic(t = %p)\n", t);
         return this;
     }
 
@@ -241,121 +218,6 @@ extern (C++) final class StructInitializer : Initializer
     override Initializer inferType(Scope* sc)
     {
         error(loc, "cannot infer type from struct initializer");
-        return new ErrorInitializer();
-    }
-
-    override Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
-    {
-        //printf("StructInitializer::semantic(t = %s) %s\n", t.toChars(), toChars());
-        t = t.toBasetype();
-        if (t.ty == Tsarray && t.nextOf().toBasetype().ty == Tstruct)
-            t = t.nextOf().toBasetype();
-        if (t.ty == Tstruct)
-        {
-            StructDeclaration sd = (cast(TypeStruct)t).sym;
-            if (sd.ctor)
-            {
-                error(loc, "%s %s has constructors, cannot use { initializers }, use %s( initializers ) instead", sd.kind(), sd.toChars(), sd.toChars());
-                return new ErrorInitializer();
-            }
-            sd.size(loc);
-            if (sd.sizeok != SIZEOKdone)
-                return new ErrorInitializer();
-            size_t nfields = sd.fields.dim - sd.isNested();
-            //expandTuples for non-identity arguments?
-            auto elements = new Expressions();
-            elements.setDim(nfields);
-            for (size_t i = 0; i < elements.dim; i++)
-                (*elements)[i] = null;
-            // Run semantic for explicitly given initializers
-            // TODO: this part is slightly different from StructLiteralExp::semantic.
-            bool errors = false;
-            for (size_t fieldi = 0, i = 0; i < field.dim; i++)
-            {
-                if (Identifier id = field[i])
-                {
-                    Dsymbol s = sd.search(loc, id);
-                    if (!s)
-                    {
-                        s = sd.search_correct(id);
-                        if (s)
-                            error(loc, "'%s' is not a member of '%s', did you mean %s '%s'?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
-                        else
-                            error(loc, "'%s' is not a member of '%s'", id.toChars(), sd.toChars());
-                        return new ErrorInitializer();
-                    }
-                    s = s.toAlias();
-                    // Find out which field index it is
-                    for (fieldi = 0; 1; fieldi++)
-                    {
-                        if (fieldi >= nfields)
-                        {
-                            error(loc, "%s.%s is not a per-instance initializable field", sd.toChars(), s.toChars());
-                            return new ErrorInitializer();
-                        }
-                        if (s == sd.fields[fieldi])
-                            break;
-                    }
-                }
-                else if (fieldi >= nfields)
-                {
-                    error(loc, "too many initializers for %s", sd.toChars());
-                    return new ErrorInitializer();
-                }
-                VarDeclaration vd = sd.fields[fieldi];
-                if ((*elements)[fieldi])
-                {
-                    error(loc, "duplicate initializer for field '%s'", vd.toChars());
-                    errors = true;
-                    continue;
-                }
-                for (size_t j = 0; j < nfields; j++)
-                {
-                    VarDeclaration v2 = sd.fields[j];
-                    if (vd.isOverlappedWith(v2) && (*elements)[j])
-                    {
-                        error(loc, "overlapping initialization for field %s and %s", v2.toChars(), vd.toChars());
-                        errors = true;
-                        continue;
-                    }
-                }
-                assert(sc);
-                Initializer iz = value[i];
-                iz = iz.semantic(sc, vd.type.addMod(t.mod), needInterpret);
-                Expression ex = iz.toExpression();
-                if (ex.op == TOKerror)
-                {
-                    errors = true;
-                    continue;
-                }
-                value[i] = iz;
-                (*elements)[fieldi] = doCopyOrMove(sc, ex);
-                ++fieldi;
-            }
-            if (errors)
-                return new ErrorInitializer();
-            auto sle = new StructLiteralExp(loc, sd, elements, t);
-            if (!sd.fill(loc, elements, false))
-                return new ErrorInitializer();
-            sle.type = t;
-            auto ie = new ExpInitializer(loc, sle);
-            return ie.semantic(sc, t, needInterpret);
-        }
-        else if ((t.ty == Tdelegate || t.ty == Tpointer && t.nextOf().ty == Tfunction) && value.dim == 0)
-        {
-            TOK tok = (t.ty == Tdelegate) ? TOKdelegate : TOKfunction;
-            /* Rewrite as empty delegate literal { }
-             */
-            auto parameters = new Parameters();
-            Type tf = new TypeFunction(parameters, null, 0, LINKd);
-            auto fd = new FuncLiteralDeclaration(loc, Loc(), tf, tok, null);
-            fd.fbody = new CompoundStatement(loc, new Statements());
-            fd.endloc = loc;
-            Expression e = new FuncExp(loc, fd);
-            auto ie = new ExpInitializer(loc, e);
-            return ie.semantic(sc, t, needInterpret);
-        }
-        error(loc, "a struct is not a valid initializer for a %s", t.toChars());
         return new ErrorInitializer();
     }
 
@@ -491,133 +353,6 @@ extern (C++) final class ArrayInitializer : Initializer
         {
             error(loc, "cannot infer type from array initializer");
         }
-        return new ErrorInitializer();
-    }
-
-    override Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
-    {
-        uint length;
-        const(uint) amax = 0x80000000;
-        bool errors = false;
-        //printf("ArrayInitializer::semantic(%s)\n", t.toChars());
-        if (sem) // if semantic() already run
-            return this;
-        sem = true;
-        t = t.toBasetype();
-        switch (t.ty)
-        {
-        case Tsarray:
-        case Tarray:
-            break;
-        case Tvector:
-            t = (cast(TypeVector)t).basetype;
-            break;
-        case Taarray:
-        case Tstruct: // consider implicit constructor call
-            {
-                Expression e;
-                // note: MyStruct foo = [1:2, 3:4] is correct code if MyStruct has a this(int[int])
-                if (t.ty == Taarray || isAssociativeArray())
-                    e = toAssocArrayLiteral();
-                else
-                    e = toExpression();
-                if (!e) // https://issues.dlang.org/show_bug.cgi?id=13987
-                {
-                    error(loc, "cannot use array to initialize %s", t.toChars());
-                    goto Lerr;
-                }
-                auto ei = new ExpInitializer(e.loc, e);
-                return ei.semantic(sc, t, needInterpret);
-            }
-        case Tpointer:
-            if (t.nextOf().ty != Tfunction)
-                break;
-            goto default;
-        default:
-            error(loc, "cannot use array to initialize %s", t.toChars());
-            goto Lerr;
-        }
-        type = t;
-        length = 0;
-        for (size_t i = 0; i < index.dim; i++)
-        {
-            Expression idx = index[i];
-            if (idx)
-            {
-                sc = sc.startCTFE();
-                idx = idx.semantic(sc);
-                sc = sc.endCTFE();
-                idx = idx.ctfeInterpret();
-                index[i] = idx;
-                const uinteger_t idxvalue = idx.toInteger();
-                if (idxvalue >= amax)
-                {
-                    error(loc, "array index %llu overflow", ulong(idxvalue));
-                    errors = true;
-                }
-                length = cast(uint)idxvalue;
-                if (idx.op == TOKerror)
-                    errors = true;
-            }
-            Initializer val = value[i];
-            ExpInitializer ei = val.isExpInitializer();
-            if (ei && !idx)
-                ei.expandTuples = true;
-            val = val.semantic(sc, t.nextOf(), needInterpret);
-            if (val.isErrorInitializer())
-                errors = true;
-            ei = val.isExpInitializer();
-            // found a tuple, expand it
-            if (ei && ei.exp.op == TOKtuple)
-            {
-                TupleExp te = cast(TupleExp)ei.exp;
-                index.remove(i);
-                value.remove(i);
-                for (size_t j = 0; j < te.exps.dim; ++j)
-                {
-                    Expression e = (*te.exps)[j];
-                    index.insert(i + j, cast(Expression)null);
-                    value.insert(i + j, new ExpInitializer(e.loc, e));
-                }
-                i--;
-                continue;
-            }
-            else
-            {
-                value[i] = val;
-            }
-            length++;
-            if (length == 0)
-            {
-                error(loc, "array dimension overflow");
-                goto Lerr;
-            }
-            if (length > dim)
-                dim = length;
-        }
-        if (t.ty == Tsarray)
-        {
-            uinteger_t edim = (cast(TypeSArray)t).dim.toInteger();
-            if (dim > edim)
-            {
-                error(loc, "array initializer has %u elements, but array length is %llu", dim, edim);
-                goto Lerr;
-            }
-        }
-        if (errors)
-            goto Lerr;
-        {
-            const sz = t.nextOf().size();
-            bool overflow;
-            const max = mulu(dim, sz, overflow);
-            if (overflow || max >= amax)
-            {
-                error(loc, "array dimension %llu exceeds max of %llu", ulong(dim), ulong(amax / sz));
-                goto Lerr;
-            }
-            return this;
-        }
-    Lerr:
         return new ErrorInitializer();
     }
 
@@ -860,147 +595,6 @@ extern (C++) final class ExpInitializer : Initializer
             return new ErrorInitializer();
         if (!exp.type)
             return new ErrorInitializer();
-        return this;
-    }
-
-    override Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
-    {
-        //printf("ExpInitializer::semantic(%s), type = %s\n", exp.toChars(), t.toChars());
-        if (needInterpret)
-            sc = sc.startCTFE();
-        exp = exp.semantic(sc);
-        exp = resolveProperties(sc, exp);
-        if (needInterpret)
-            sc = sc.endCTFE();
-        if (exp.op == TOKerror)
-            return new ErrorInitializer();
-        uint olderrors = global.errors;
-        if (needInterpret)
-        {
-            // If the result will be implicitly cast, move the cast into CTFE
-            // to avoid premature truncation of polysemous types.
-            // eg real [] x = [1.1, 2.2]; should use real precision.
-            if (exp.implicitConvTo(t))
-            {
-                exp = exp.implicitCastTo(sc, t);
-            }
-            if (!global.gag && olderrors != global.errors)
-                return this;
-            exp = exp.ctfeInterpret();
-        }
-        else
-        {
-            exp = exp.optimize(WANTvalue);
-        }
-        if (!global.gag && olderrors != global.errors)
-            return this; // Failed, suppress duplicate error messages
-        if (exp.type.ty == Ttuple && (cast(TypeTuple)exp.type).arguments.dim == 0)
-        {
-            Type et = exp.type;
-            exp = new TupleExp(exp.loc, new Expressions());
-            exp.type = et;
-        }
-        if (exp.op == TOKtype)
-        {
-            exp.error("initializer must be an expression, not '%s'", exp.toChars());
-            return new ErrorInitializer();
-        }
-        // Make sure all pointers are constants
-        if (needInterpret && hasNonConstPointers(exp))
-        {
-            exp.error("cannot use non-constant CTFE pointer in an initializer '%s'", exp.toChars());
-            return new ErrorInitializer();
-        }
-        Type tb = t.toBasetype();
-        Type ti = exp.type.toBasetype();
-        if (exp.op == TOKtuple && expandTuples && !exp.implicitConvTo(t))
-            return new ExpInitializer(loc, exp);
-        /* Look for case of initializing a static array with a too-short
-         * string literal, such as:
-         *  char[5] foo = "abc";
-         * Allow this by doing an explicit cast, which will lengthen the string
-         * literal.
-         */
-        if (exp.op == TOKstring && tb.ty == Tsarray)
-        {
-            StringExp se = cast(StringExp)exp;
-            Type typeb = se.type.toBasetype();
-            TY tynto = tb.nextOf().ty;
-            if (!se.committed &&
-                (typeb.ty == Tarray || typeb.ty == Tsarray) &&
-                (tynto == Tchar || tynto == Twchar || tynto == Tdchar) &&
-                se.numberOfCodeUnits(tynto) < (cast(TypeSArray)tb).dim.toInteger())
-            {
-                exp = se.castTo(sc, t);
-                goto L1;
-            }
-        }
-        // Look for implicit constructor call
-        if (tb.ty == Tstruct && !(ti.ty == Tstruct && tb.toDsymbol(sc) == ti.toDsymbol(sc)) && !exp.implicitConvTo(t))
-        {
-            StructDeclaration sd = (cast(TypeStruct)tb).sym;
-            if (sd.ctor)
-            {
-                // Rewrite as S().ctor(exp)
-                Expression e;
-                e = new StructLiteralExp(loc, sd, null);
-                e = new DotIdExp(loc, e, Id.ctor);
-                e = new CallExp(loc, e, exp);
-                e = e.semantic(sc);
-                if (needInterpret)
-                    exp = e.ctfeInterpret();
-                else
-                    exp = e.optimize(WANTvalue);
-            }
-        }
-        // Look for the case of statically initializing an array
-        // with a single member.
-        if (tb.ty == Tsarray && !tb.nextOf().equals(ti.toBasetype().nextOf()) && exp.implicitConvTo(tb.nextOf()))
-        {
-            /* If the variable is not actually used in compile time, array creation is
-             * redundant. So delay it until invocation of toExpression() or toDt().
-             */
-            t = tb.nextOf();
-        }
-        if (exp.implicitConvTo(t))
-        {
-            exp = exp.implicitCastTo(sc, t);
-        }
-        else
-        {
-            // Look for mismatch of compile-time known length to emit
-            // better diagnostic message, as same as AssignExp::semantic.
-            if (tb.ty == Tsarray && exp.implicitConvTo(tb.nextOf().arrayOf()) > MATCHnomatch)
-            {
-                uinteger_t dim1 = (cast(TypeSArray)tb).dim.toInteger();
-                uinteger_t dim2 = dim1;
-                if (exp.op == TOKarrayliteral)
-                {
-                    ArrayLiteralExp ale = cast(ArrayLiteralExp)exp;
-                    dim2 = ale.elements ? ale.elements.dim : 0;
-                }
-                else if (exp.op == TOKslice)
-                {
-                    Type tx = toStaticArrayType(cast(SliceExp)exp);
-                    if (tx)
-                        dim2 = (cast(TypeSArray)tx).dim.toInteger();
-                }
-                if (dim1 != dim2)
-                {
-                    exp.error("mismatched array lengths, %d and %d", cast(int)dim1, cast(int)dim2);
-                    exp = new ErrorExp();
-                }
-            }
-            exp = exp.implicitCastTo(sc, t);
-        }
-    L1:
-        if (exp.op == TOKerror)
-            return this;
-        if (needInterpret)
-            exp = exp.ctfeInterpret();
-        else
-            exp = exp.optimize(WANTvalue);
-        //printf("-ExpInitializer::semantic(): "); exp.print();
         return this;
     }
 

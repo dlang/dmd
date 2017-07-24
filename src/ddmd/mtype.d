@@ -42,6 +42,7 @@ import ddmd.id;
 import ddmd.identifier;
 import ddmd.imphint;
 import ddmd.init;
+import ddmd.initsem;
 import ddmd.opover;
 import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;

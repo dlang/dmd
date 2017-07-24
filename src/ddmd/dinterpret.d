@@ -30,6 +30,7 @@ import ddmd.globals;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.init;
+import ddmd.initsem;
 import ddmd.mtype;
 import ddmd.root.array;
 import ddmd.root.rootobject;

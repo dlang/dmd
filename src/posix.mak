@@ -228,7 +228,7 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	cppmangle ctfeexpr dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol	\
 	dtemplate dversion escape expression func			\
-	hdrgen id impcnvtab imphint init inline inlinecost intrange	\
+	hdrgen id impcnvtab imphint init initsem inline inlinecost intrange	\
 	json lib link mars mtype nogc nspace objc opover optimize parse sapply	\
 	sideeffect statement staticassert target traits visitor	\
 	typinf utils statement_rewrite_walker statementsem staticcond safe blockexit asttypename printast))

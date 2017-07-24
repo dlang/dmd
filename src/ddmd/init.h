@@ -44,8 +44,6 @@ public:
      */
     virtual Initializer *inferType(Scope *sc) = 0;
 
-    // needInterpret is INITinterpret if must be a manifest constant, 0 if not.
-    virtual Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret) = 0;
     virtual Expression *toExpression(Type *t = NULL) = 0;
     const char *toChars();
 
@@ -64,7 +62,6 @@ public:
 
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     Expression *toExpression(Type *t = NULL);
 
     virtual VoidInitializer *isVoidInitializer() { return this; }
@@ -76,7 +73,6 @@ class ErrorInitializer : public Initializer
 public:
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     Expression *toExpression(Type *t = NULL);
 
     virtual ErrorInitializer *isErrorInitializer() { return this; }
@@ -92,7 +88,6 @@ public:
     Initializer *syntaxCopy();
     void addInit(Identifier *field, Initializer *value);
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     Expression *toExpression(Type *t = NULL);
 
     StructInitializer *isStructInitializer() { return this; }
@@ -112,7 +107,6 @@ public:
     void addInit(Expression *index, Initializer *value);
     bool isAssociativeArray();
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     Expression *toExpression(Type *t = NULL);
     Expression *toAssocArrayLiteral();
 
@@ -128,7 +122,6 @@ public:
 
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     Expression *toExpression(Type *t = NULL);
 
     virtual ExpInitializer *isExpInitializer() { return this; }
