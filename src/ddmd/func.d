@@ -628,6 +628,8 @@ extern (C++) class FuncDeclaration : Declaration
             if (type.nextOf() == Type.terror)
                 goto Ldone;
 
+            cd.initVtbl(null);
+
             bool may_override = false;
             for (size_t i = 0; i < cd.baseclasses.dim; i++)
             {

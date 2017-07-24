@@ -742,6 +742,73 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         sc2.pop();
     }
 
+    // Initialize the vtbl before running any FuncDeclaration.semantic() on virtual methods
+    final void initVtbl(Scope *sc)
+    {
+        if (vtbl.dim)
+            return;
+
+        if (_scope)
+            sc = _scope;
+        assert(sc);
+
+        assert(semanticRun == PASSmembersdone || semanticRun == PASSsemantic);
+
+        for (size_t i = 0; i < baseclasses.dim; i++)
+        {
+            BaseClass* b = (*baseclasses)[i];
+            Type tb = b.type.toBasetype();
+            assert(tb.ty == Tclass);
+            TypeClass tc = cast(TypeClass)tb;
+//             tc.sym.determineVtbl(null);
+//             if (!tc.sym.vtbl.dim)
+//             {
+//                 error("can't determine bases vtbl");
+//                 return;
+//             }
+            // FWDREF NOTE: top is the ideal option to reduce the semantic dependencies to the strict minimum, but it would require to go through members again
+            // TODO: unless we do it in importAll?
+            tc.sym.semantic(null); // FWDREF also, shouldn't the next lines only happen in case of an actual circular/fwd ref error?
+            if (tc.sym.semanticRun < PASSsemanticdone)
+            {
+//                 // Forward referencee of one or more bases, try again later
+//                 _scope = scx ? scx : sc.copy();
+//                 _scope.setNoFree();
+//                 if (tc.sym._scope)
+//                     tc.sym._scope._module.addDeferredSemantic(tc.sym);
+//                 _scope._module.addDeferredSemantic(this);
+                //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
+                error("can't determine bases vtbl");
+                return;
+            }
+        }
+
+        assert(baseok == BASEOKdone);
+        baseok = BASEOKsemanticdone;
+
+        // initialize vtbl
+        if (baseClass)
+        {
+            if (cpp && baseClass.vtbl.dim == 0)
+            {
+                error("C++ base class %s needs at least one virtual function", baseClass.toChars());
+            }
+
+            // Copy vtbl[] from base class
+            vtbl.setDim(baseClass.vtbl.dim);
+            memcpy(vtbl.tdata(), baseClass.vtbl.tdata(), (void*).sizeof * vtbl.dim);
+
+            vthis = baseClass.vthis;
+        }
+        else
+        {
+            // No base class, so this is the root of the class hierarchy
+            vtbl.setDim(0);
+            if (vtblOffset())
+                vtbl.push(this); // leave room for classinfo as first member
+        }
+    }
+
     override void semantic(Scope* sc)
     {
         //printf("ClassDeclaration.semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
@@ -796,84 +863,39 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             return;
         }
 
-        for (size_t i = 0; i < baseclasses.dim; i++)
+        initVtbl(sc);
+
+        /* If this is a nested class, add the hidden 'this'
+            * member which is a pointer to the enclosing scope.
+            */
+        if (vthis) // if inheriting from nested class
         {
-            BaseClass* b = (*baseclasses)[i];
-            Type tb = b.type.toBasetype();
-            assert(tb.ty == Tclass);
-            TypeClass tc = cast(TypeClass)tb;
-            tc.sym.semantic(null); // FWDREF also, shouldn't the next lines only happen in case of an actual circular/fwd ref error?
-            if (tc.sym.semanticRun < PASSsemanticdone)
+            // Use the base class's 'this' member
+            if (storage_class & STCstatic)
+                error("static class cannot inherit from nested class %s", baseClass.toChars());
+            if (toParent2() != baseClass.toParent2() &&
+                (!toParent2() ||
+                    !baseClass.toParent2().getType() ||
+                    !baseClass.toParent2().getType().isBaseOf(toParent2().getType(), null)))
             {
-                // Forward referencee of one or more bases, try again later
-                _scope = scx ? scx : sc.copy();
-                _scope.setNoFree();
-                if (tc.sym._scope)
-                    tc.sym._scope._module.addDeferredSemantic(tc.sym);
-                _scope._module.addDeferredSemantic(this);
-                //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
-                return;
+                if (toParent2())
+                {
+                    error("is nested within %s, but super class %s is nested within %s",
+                        toParent2().toChars(),
+                        baseClass.toChars(),
+                        baseClass.toParent2().toChars());
+                }
+                else
+                {
+                    error("is not nested, but super class %s is nested within %s",
+                        baseClass.toChars(),
+                        baseClass.toParent2().toChars());
+                }
+                enclosing = null;
             }
         }
-
-        if (baseok == BASEOKdone)
-        {
-            baseok = BASEOKsemanticdone;
-
-            // initialize vtbl
-            if (baseClass)
-            {
-                if (cpp && baseClass.vtbl.dim == 0)
-                {
-                    error("C++ base class %s needs at least one virtual function", baseClass.toChars());
-                }
-
-                // Copy vtbl[] from base class
-                vtbl.setDim(baseClass.vtbl.dim);
-                memcpy(vtbl.tdata(), baseClass.vtbl.tdata(), (void*).sizeof * vtbl.dim);
-
-                vthis = baseClass.vthis;
-            }
-            else
-            {
-                // No base class, so this is the root of the class hierarchy
-                vtbl.setDim(0);
-                if (vtblOffset())
-                    vtbl.push(this); // leave room for classinfo as first member
-            }
-
-            /* If this is a nested class, add the hidden 'this'
-             * member which is a pointer to the enclosing scope.
-             */
-            if (vthis) // if inheriting from nested class
-            {
-                // Use the base class's 'this' member
-                if (storage_class & STCstatic)
-                    error("static class cannot inherit from nested class %s", baseClass.toChars());
-                if (toParent2() != baseClass.toParent2() &&
-                    (!toParent2() ||
-                     !baseClass.toParent2().getType() ||
-                     !baseClass.toParent2().getType().isBaseOf(toParent2().getType(), null)))
-                {
-                    if (toParent2())
-                    {
-                        error("is nested within %s, but super class %s is nested within %s",
-                            toParent2().toChars(),
-                            baseClass.toChars(),
-                            baseClass.toParent2().toChars());
-                    }
-                    else
-                    {
-                        error("is not nested, but super class %s is nested within %s",
-                            baseClass.toChars(),
-                            baseClass.toParent2().toChars());
-                    }
-                    enclosing = null;
-                }
-            }
-            else
-                makeNested();
-        }
+        else
+            makeNested();
 
         auto sc2 = newScope(sc);
 
