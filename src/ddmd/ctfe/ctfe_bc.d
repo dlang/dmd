@@ -3675,6 +3675,11 @@ static if (is(BCGen))
 
                 if (elexpr.vType == BCValueType.Immediate)
                 {
+                    // THIS IS A HORRID HACK!!!
+                    // Probably the right thing to do is to
+                    // have a flag which tells us if we have to
+                    // allocate ourselfs or wether we write in
+                    // preallocated space
 
                     _sharedCtfeState.heap.heapSize -= heapAdd;
                 }
@@ -3684,6 +3689,7 @@ static if (is(BCGen))
                     elexpr_sv.vType = BCValueType.StackValue;
 
                     MemCpy(imm32(_sharedCtfeState.heap.heapSize), elexpr_sv, imm32(heapAdd));
+                    Comment("Runtime Array of Array");
                 }
             }
             else
@@ -4367,7 +4373,7 @@ static if (is(BCGen))
             {
                 Alloc(var.i32, imm32(SliceDescriptor.Size));
             }
-/+
+
              else if (type.type == BCTypeEnum.Array)
            {
                 Alloc(var.i32, imm32(_sharedCtfeState.size(type)), type);
@@ -4375,7 +4381,7 @@ static if (is(BCGen))
                 auto arrayType = _sharedCtfeState.arrayTypes[type.typeIndex - 1];
                 setArraySliceDesc(var, arrayType);
             }
-+/
+
         }
 
         setVariable(vd, var);
