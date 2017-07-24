@@ -39,7 +39,10 @@ private
         alias S = shared T;
 
         static if (is(S U == shared U)) {}
-        else static assert(false, "S should be shared.");
+        else static assert(false, "Should never be triggered. The `static " ~
+            "if` declares `U` as the unshared version of the shared type " ~
+            "`S`. `S` is explicitly declared as shared, so getting `U` " ~
+            "should always work.");
 
         static if (is(S : U))
             alias TailShared = U;
