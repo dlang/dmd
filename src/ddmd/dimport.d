@@ -224,6 +224,15 @@ extern (C++) final class Import : Dsymbol
                 }
             }
         }
+
+        if (aliasdecls.dim)
+        {
+            sc = sc.push(mod);
+            sc.protection = protection;
+            foreach (ad; aliasdecls)
+                ad.setScope(sc);
+            sc = sc.pop();
+        }
     }
 
     override void semantic(Scope* sc)
@@ -450,22 +459,6 @@ extern (C++) final class Import : Dsymbol
             ad._import = this;
             ad.addMember(sc, sd);
             aliasdecls.push(ad);
-        }
-    }
-
-    override void setScope(Scope* sc)
-    {
-        Dsymbol.setScope(sc);
-        if (aliasdecls.dim)
-        {
-            if (!mod)
-                importAll(sc);
-
-            sc = sc.push(mod);
-            sc.protection = protection;
-            foreach (ad; aliasdecls)
-                ad.setScope(sc);
-            sc = sc.pop();
         }
     }
 
