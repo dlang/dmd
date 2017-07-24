@@ -53,45 +53,22 @@ private:
 
 // SIMD helpers
 
-version (GNU)
-    import gcc.builtins;
-else version (LDC)
+version (DigitalMars)
 {
-    import ldc.simd;
-    import ldc.gccbuiltins_x86;
-}
-else version (DigitalMars)
     import core.simd;
-else
-    static assert(0, "unimplemented");
 
-template vec(T)
-{
-    enum regsz = 16; // SSE2
-    enum N = regsz / T.sizeof;
-    alias vec = __vector(T[N]);
-}
-
-void store(T, size_t N)(T* p, in __vector(T[N]) val)
-{
-    pragma(inline, true);
-    alias vec = __vector(T[N]);
-
-    version (LDC)
+    template vec(T)
     {
-        storeUnaligned!vec(val, p);
+        enum regsz = 16; // SSE2
+        enum N = regsz / T.sizeof;
+        alias vec = __vector(T[N]);
     }
-    else version (GNU)
+
+    void store(T, size_t N)(T* p, in __vector(T[N]) val)
     {
-        static if (is(T == float))
-            __builtin_ia32_storeups(p, val);
-        else static if (is(T == double))
-            __builtin_ia32_storeupd(p, val);
-        else
-            __builtin_ia32_storedqu(cast(char*) p, val);
-    }
-    else version (DigitalMars)
-    {
+        pragma(inline, true);
+        alias vec = __vector(T[N]);
+
         static if (is(T == float))
             cast(void) __simd_sto(XMM.STOUPS, *cast(vec*) p, val);
         else static if (is(T == double))
@@ -99,28 +76,14 @@ void store(T, size_t N)(T* p, in __vector(T[N]) val)
         else
             cast(void) __simd_sto(XMM.STODQU, *cast(vec*) p, val);
     }
-}
 
-const(__vector(T[N])) load(T, size_t N)(in T* p)
-{
-    pragma(inline, true);
-    alias vec = __vector(T[N]);
+    const(__vector(T[N])) load(T, size_t N)(in T* p)
+    {
+        import core.simd;
 
-    version (LDC)
-    {
-        return loadUnaligned!vec(cast(T*) p);
-    }
-    else version (GNU)
-    {
-        static if (is(T == float))
-            return __builtin_ia32_loadups(p);
-        else static if (is(T == double))
-            return __builtin_ia32_loadupd(p);
-        else
-            return __builtin_ia32_loaddqu(cast(const char*) p);
-    }
-    else version (DigitalMars)
-    {
+        pragma(inline, true);
+        alias vec = __vector(T[N]);
+
         static if (is(T == float))
             return __simd(XMM.LODUPS, *cast(const vec*) p);
         else static if (is(T == double))
@@ -128,18 +91,19 @@ const(__vector(T[N])) load(T, size_t N)(in T* p)
         else
             return __simd(XMM.LODDQU, *cast(const vec*) p);
     }
-}
 
-__vector(T[N]) binop(string op, T, size_t N)(in __vector(T[N]) a, in __vector(T[N]) b)
-{
-    pragma(inline, true);
-    return mixin("a " ~ op ~ " b");
-}
+    __vector(T[N]) binop(string op, T, size_t N)(in __vector(T[N]) a, in __vector(T[N]) b)
+    {
+        pragma(inline, true);
+        return mixin("a " ~ op ~ " b");
+    }
 
-__vector(T[N]) unaop(string op, T, size_t N)(in __vector(T[N]) a) if (op[0] == 'u')
-{
-    pragma(inline, true);
-    return mixin(op[1 .. $] ~ "a");
+    __vector(T[N]) unaop(string op, T, size_t N)(in __vector(T[N]) a)
+            if (op[0] == 'u')
+    {
+        pragma(inline, true);
+        return mixin(op[1 .. $] ~ "a");
+    }
 }
 
 // mixin gen
@@ -173,19 +137,27 @@ enum compatibleVecTypes(E, T) = is(T : E); // scalar must be convertible to targ
 enum compatibleVecTypes(E, Types...) = compatibleVecTypes!(E, Types[0 .. $ / 2])
         && compatibleVecTypes!(E, Types[$ / 2 .. $]);
 
-template vectorizeable(E : E[], Args...)
+version (GNU_OR_LDC)
 {
-    static if (is(vec!E))
-        enum vectorizeable = opsSupported!(false, vec!E, Filter!(not!isType, Args))
-                && compatibleVecTypes!(E, Filter!(isType, Args));
-    else
-        enum vectorizeable = false;
+    // leave it to the auto-vectorizer
+    enum vectorizeable(E : E[], Args...) = false;
 }
-
-version (X86_64) unittest
+else
 {
-    static assert(vectorizeable!(double[], const(double)[], double[], "+", "="));
-    static assert(!vectorizeable!(double[], const(ulong)[], double[], "+", "="));
+    template vectorizeable(E : E[], Args...)
+    {
+        static if (is(vec!E))
+            enum vectorizeable = opsSupported!(false, vec!E, Filter!(not!isType, Args))
+                    && compatibleVecTypes!(E, Filter!(isType, Args));
+        else
+            enum vectorizeable = false;
+    }
+
+    version (X86_64) unittest
+    {
+        static assert(vectorizeable!(double[], const(double)[], double[], "+", "="));
+        static assert(!vectorizeable!(double[], const(ulong)[], double[], "+", "="));
+    }
 }
 
 bool isUnaryOp(string op)
