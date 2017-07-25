@@ -1103,6 +1103,16 @@ L1:
         return e;
     }
 
+    // Replace (-1 - e2) with (~e2)
+    if (e1->Eoper == OPconst && tyintegral(tym) && el_tolong(e1) == -1)
+    {
+        el_free(e1);
+        e->E1 = e->E2;
+        e->E2 = NULL;
+        e->Eoper = OPcom;
+        e = optelem(e, goal);
+        return e;
+    }
   }
 
     if (I16 && tybasic(e2->Ety) == TYhptr && tybasic(e->E1->Ety) == TYhptr)
