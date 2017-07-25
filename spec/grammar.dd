@@ -1269,6 +1269,7 @@ $(GNAME OutStatement):
 
 $(GNAME BodyStatement):
     $(D body) $(GLINK BlockStatement)
+    $(D do) $(GLINK BlockStatement)
 )
 
 $(GRAMMAR
