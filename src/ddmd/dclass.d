@@ -682,6 +682,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 if (baseClass.isscope)
                     isscope = true;
                 enclosing = baseClass.enclosing;
+                vthis = baseClass.vthis;
                 storage_class |= baseClass.storage_class & STC_TYPECTOR;
             }
 
@@ -713,6 +714,38 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         if (!symtab)
         {
             symtab = new DsymbolTable();
+
+            /* If this is a nested class, add the hidden 'this'
+                * member which is a pointer to the enclosing scope.
+                */
+            if (vthis) // if inheriting from nested class
+            {
+                // Use the base class's 'this' member
+                if (storage_class & STCstatic)
+                    error("static class cannot inherit from nested class %s", baseClass.toChars());
+                if (toParent2() != baseClass.toParent2() &&
+                    (!toParent2() ||
+                        !baseClass.toParent2().getType() ||
+                        !baseClass.toParent2().getType().isBaseOf(toParent2().getType(), null)))
+                {
+                    if (toParent2())
+                    {
+                        error("is nested within %s, but super class %s is nested within %s",
+                            toParent2().toChars(),
+                            baseClass.toChars(),
+                            baseClass.toParent2().toChars());
+                    }
+                    else
+                    {
+                        error("is not nested, but super class %s is nested within %s",
+                            baseClass.toChars(),
+                            baseClass.toParent2().toChars());
+                    }
+                    enclosing = null;
+                }
+            }
+            else
+                makeNested();
 
             /* https://issues.dlang.org/show_bug.cgi?id=12152
              * The semantic analysis of base classes should be finished
@@ -797,8 +830,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             // Copy vtbl[] from base class
             vtbl.setDim(baseClass.vtbl.dim);
             memcpy(vtbl.tdata(), baseClass.vtbl.tdata(), (void*).sizeof * vtbl.dim);
-
-            vthis = baseClass.vthis;
         }
         else
         {
@@ -864,38 +895,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         }
 
         initVtbl(sc);
-
-        /* If this is a nested class, add the hidden 'this'
-            * member which is a pointer to the enclosing scope.
-            */
-        if (vthis) // if inheriting from nested class
-        {
-            // Use the base class's 'this' member
-            if (storage_class & STCstatic)
-                error("static class cannot inherit from nested class %s", baseClass.toChars());
-            if (toParent2() != baseClass.toParent2() &&
-                (!toParent2() ||
-                    !baseClass.toParent2().getType() ||
-                    !baseClass.toParent2().getType().isBaseOf(toParent2().getType(), null)))
-            {
-                if (toParent2())
-                {
-                    error("is nested within %s, but super class %s is nested within %s",
-                        toParent2().toChars(),
-                        baseClass.toChars(),
-                        baseClass.toParent2().toChars());
-                }
-                else
-                {
-                    error("is not nested, but super class %s is nested within %s",
-                        baseClass.toChars(),
-                        baseClass.toParent2().toChars());
-                }
-                enclosing = null;
-            }
-        }
-        else
-            makeNested();
 
         auto sc2 = newScope(sc);
 

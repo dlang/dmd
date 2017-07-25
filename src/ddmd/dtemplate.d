@@ -574,18 +574,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     override void importAll(Scope* sc)
     {
         // FWDREF FIXME: ScopeDsymbol.importAll is here as a safety net, but it should eventually be turned into a helper method?
-    }
 
-    override void semantic(Scope* sc)
-    {
-        static if (LOG)
-        {
-            printf("TemplateDeclaration.semantic(this = %p, id = '%s')\n", this, ident.toChars());
-            printf("sc.stc = %llx\n", sc.stc);
-            printf("sc.module = %s\n", sc._module.toChars());
-        }
-        if (semanticRun >= PASSsemantic)
-            return; // semantic() already run
+        if (semanticRun >= PASSmembersdone)
+            return;
 
         // Remember templates defined in module object that we need to know about
         if (sc._module && sc._module.ident == Id.object)
@@ -603,8 +594,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             this._scope.setNoFree();
         }
 
-        semanticRun = PASSsemantic;
-
         parent = sc.parent;
         protection = sc.protection;
         isstatic = toParent().isModule() || (_scope.stc & STCstatic);
@@ -614,6 +603,24 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             if (auto ad = parent.pastMixin().isAggregateDeclaration())
                 ad.makeNested();
         }
+
+        semanticRun = PASSmembersdone;
+    }
+
+    override void semantic(Scope* sc)
+    {
+        static if (LOG)
+        {
+            printf("TemplateDeclaration.semantic(this = %p, id = '%s')\n", this, ident.toChars());
+            printf("sc.stc = %llx\n", sc.stc);
+            printf("sc.module = %s\n", sc._module.toChars());
+        }
+        if (semanticRun >= PASSsemantic)
+            return; // semantic() already run
+
+        importAll(sc);
+
+        semanticRun = PASSsemantic;
 
         // Set up scope for parameters
         auto paramsym = new ScopeDsymbol();
@@ -6188,7 +6195,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             {
                 printf("-TemplateInstance.semantic('%s', this=%p) already run\n", inst.toChars(), inst);
             }
-            if (semanticRun < PASSmembersdone)
+            if (argsym && semanticRun < PASSmembersdone)
             {
                 sc = tempdecl._scope; // FWDREF TODO: this is purposedly ugly, since ideally it's shouldn't be needed after setScope, neither here nor in semantic2/3
                 sc = sc.push(argsym);
@@ -8632,11 +8639,19 @@ extern (C++) final class TemplateMixin : TemplateInstance
 
     override void importAll(Scope* sc)
     {
+        if (semanticRun >= PASSmembersdone)
+            return;
+
+        if (!argsym && semanticRun >= PASSmembers)
+            return;
+
         if (_scope)
             sc = _scope;
 
         if (semanticRun < PASSmembers)
         {
+            semanticRun = PASSmembers;
+
             /* Run semantic on each argument, place results in tiargs[],
             * then find best match template with tiargs
             */
@@ -8747,8 +8762,6 @@ extern (C++) final class TemplateMixin : TemplateInstance
                 return;
             }
 
-            symtab = new DsymbolTable();
-
             for (Scope* sce = sc; 1; sce = sce.enclosing)
             {
                 ScopeDsymbol sds = sce.scopesym;
@@ -8776,8 +8789,10 @@ extern (C++) final class TemplateMixin : TemplateInstance
 
         uint errorsave = global.errors;
 
-        if (semanticRun < PASSmembers)
+        if (!symtab)
         {
+            symtab = new DsymbolTable();
+
             // Declare each template parameter as an alias for the argument type
             declareParameters(argscope);
 
@@ -9099,7 +9114,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
                 if (!td)
                     return 0;
 
-                if (td.semanticRun == PASSinit)
+                if (td.semanticRun < PASSsemantic)
                 {
                     if (td._scope)
                         td.semantic(td._scope);
