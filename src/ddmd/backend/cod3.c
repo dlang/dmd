@@ -4060,12 +4060,10 @@ targ_size_t cod3_spoff()
     return spoff + localsize;
 }
 
-code* gen_spill_reg(Symbol* s, bool toreg)
+void gen_spill_reg(CodeBuilder& cdb, Symbol* s, bool toreg)
 {
-    CodeBuilder cdb;
     code cs;
-    regm_t keepmsk = toreg ? RMload : RMstore;
-    int sz = type_size(s->Stype);
+    const regm_t keepmsk = toreg ? RMload : RMstore;
 
     elem* e = el_var(s); // so we can trick getlvalue() into working for us
 
@@ -4081,6 +4079,7 @@ code* gen_spill_reg(Symbol* s, bool toreg)
     }
     else
     {
+        const int sz = type_size(s->Stype);
         cs.Iop = toreg ? 0x8B : 0x89; // MOV reg,mem[ESP] : MOV mem[ESP],reg
         cs.Iop ^= (sz == 1);
         getlvalue(cdb,&cs,e,keepmsk);
@@ -4107,7 +4106,6 @@ code* gen_spill_reg(Symbol* s, bool toreg)
     }
 
     el_free(e);
-    return cdb.finish();
 }
 
 /****************************
