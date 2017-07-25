@@ -240,7 +240,8 @@ public:
     override void visit(ReturnStatement s)
     {
         // Can't handle return statements nested in if's
-        if (nested)
+        // Or if it's not the last statement in the function
+        if (fd.fbody.last() !is s || nested)
         {
             cost = COST_MAX;
         }
