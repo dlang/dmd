@@ -408,7 +408,7 @@ void genjmp(CodeBuilder& cdb, unsigned op, unsigned fltarg, block *targ);
 void prolog(CodeBuilder& cdb);
 void epilog (block *b);
 void gen_spill_reg(CodeBuilder& cdb, Symbol *s, bool toreg);
-code *load_localgot();
+void load_localgot(CodeBuilder& cdb);
 targ_size_t cod3_spoff();
 code *cod3_load_got();
 void makeitextern (symbol *s );

@@ -1579,7 +1579,7 @@ void doswitch(CodeBuilder& cdb, block *b)
                  */
 
                 // Load GOT in EBX
-                cdb.append(load_localgot());
+                load_localgot(cdb);
 
                 // Allocate scratch register r1
                 regm_t scratchm = ALLREGS & ~(mask[reg] | mBX);
@@ -2365,7 +2365,7 @@ void cdgot(CodeBuilder& cdb, elem *e, regm_t *pretregs)
  * Load contents of localgot into EBX.
  */
 
-code *load_localgot()
+void load_localgot(CodeBuilder& cdb)
 {
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     if (config.flags3 & CFG3pic && I32)
@@ -2375,24 +2375,19 @@ code *load_localgot()
             localgot->Sflags &= ~GTregcand;     // because this hack doesn't work with reg allocator
             elem *e = el_var(localgot);
             regm_t retregs = mBX;
-            CodeBuilder cdb;
             codelem(cdb,e,&retregs,FALSE);
             el_free(e);
-            return cdb.finish();
         }
         else
         {
             elem *e = el_long(TYnptr, 0);
             e->Eoper = OPgot;
             regm_t retregs = mBX;
-            CodeBuilder cdb;
             codelem(cdb,e,&retregs,FALSE);
             el_free(e);
-            return cdb.finish();
         }
     }
 #endif
-    return NULL;
 }
 
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS

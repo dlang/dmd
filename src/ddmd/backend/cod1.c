@@ -2531,19 +2531,6 @@ void callclib(CodeBuilder& cdb,elem *e,unsigned clib,regm_t *pretregs,regm_t kee
   }
   else
   {
-        code *cgot = NULL;
-        if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS))
-        {
-            // Note: not for OSX
-            /* Pass EBX on the stack instead, this is because EBX is used
-             * for shared library function calls
-             */
-            if (config.flags3 & CFG3pic)
-            {
-                cgot = load_localgot();     // EBX gets set to this value
-            }
-        }
-
         makeitextern(s);
         int nalign = 0;
         int pushebx = (cinfo->flags & INFpushebx) != 0;
@@ -2571,7 +2558,18 @@ void callclib(CodeBuilder& cdb,elem *e,unsigned clib,regm_t *pretregs,regm_t kee
                 nalign += REGSIZE;
             }
         }
-        cdb.append(cgot);                                        // EBX = localgot
+        if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS))
+        {
+            // Note: not for OSX
+            /* Pass EBX on the stack instead, this is because EBX is used
+             * for shared library function calls
+             */
+            if (config.flags3 & CFG3pic)
+            {
+                load_localgot(cdb);     // EBX gets set to this value
+            }
+        }
+
         cdb.append(gencs(CNIL,LARGECODE ? 0x9A : 0xE8,0,FLfunc,s));  // CALL s
         if (nalign)
             cod3_stackadj(cdb, -nalign);
@@ -3380,7 +3378,7 @@ static void funccall(CodeBuilder& cdb,elem *e,unsigned numpara,unsigned numalign
             if (s != tls_get_addr_sym)
             {
                 //printf("call %s\n", s->Sident);
-                cdbe.append(load_localgot());
+                load_localgot(cdb);
                 cdbe.gencs(0xE8,0,fl,s);    // CALL extern
             }
             else if (I64)
@@ -3413,7 +3411,7 @@ static void funccall(CodeBuilder& cdb,elem *e,unsigned numpara,unsigned numalign
         elem *e11 = e1->E1;
         tym_t e11ty = tybasic(e11->Ety);
         assert(!I16 || (e11ty == (farfunc ? TYfptr : TYnptr)));
-        cdb.append(load_localgot());
+        load_localgot(cdb);
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         if (config.flags3 & CFG3pic && I32)
             keepmsk |= mBX;
