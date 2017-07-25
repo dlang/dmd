@@ -175,7 +175,8 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier par, Ex
  */
 bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 {
-    //printf("checkAssignEscape(e: %s)\n", e.toChars());
+    enum log = false;
+    if (log) printf("checkAssignEscape(e: %s)\n", e.toChars());
     if (e.op != TOKassign && e.op != TOKblit && e.op != TOKconstruct)
         return false;
     auto ae = cast(AssignExp)e;
@@ -219,7 +220,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
     bool result = false;
     foreach (VarDeclaration v; er.byvalue)
     {
-        //printf("byvalue: %s\n", v.toChars());
+        if (log) printf("byvalue: %s\n", v.toChars());
         if (v.isDataseg())
             continue;
 
@@ -304,7 +305,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
     foreach (VarDeclaration v; er.byref)
     {
-        //printf("byref: %s\n", v.toChars());
+        if (log) printf("byref: %s\n", v.toChars());
         if (v.isDataseg())
             continue;
 
@@ -312,7 +313,9 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
         // If va's lifetime encloses v's, then error
         if (va &&
-            (va.enclosesLifetimeOf(v) && !(v.storage_class & STCparameter) || va.storage_class & STCref) &&
+            (va.enclosesLifetimeOf(v) && !(v.storage_class & STCparameter) ||
+             va.storage_class & STCref ||
+             va.isDataseg()) &&
             sc.func.setUnsafe())
         {
             if (!gag)
@@ -346,7 +349,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
     foreach (FuncDeclaration fd; er.byfunc)
     {
-        //printf("fd = %s, %d\n", fd.toChars(), fd.tookAddressOf);
+        if (log) printf("byfunc: %s, %d\n", fd.toChars(), fd.tookAddressOf);
         VarDeclarations vars;
         findAllOuterAccessedVariables(fd, &vars);
 
@@ -384,6 +387,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
     foreach (Expression ee; er.byexp)
     {
+        if (log) printf("byexp: %s\n", ee.toChars());
         if (va && !va.isDataseg() && !va.doNotInferScope)
         {
             if (!va.isScope() && inferScope)
