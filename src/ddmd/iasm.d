@@ -7,7 +7,7 @@
  *              All Rights Reserved
  * Authors:     Mike Cote, John Micco and $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/_iasm.d
+ * Source:      $(DMDSRC _iasm.d)
  */
 
 /* Inline assembler for the D programming language compiler

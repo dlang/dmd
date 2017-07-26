@@ -5,7 +5,7 @@
  * Copyright:   Copyright (c) 2011-2017 by Digital Mars, All Rights Reserved
  * Authors:     Brad Roberts
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/platform_stub.c
+ * Source:      $(DMDSRC backend/platform_stub.c)
  */
 
 // this file stubs out all the apis that are platform specific

@@ -5,7 +5,7 @@
  * Copyright:   Copyright (c) 2015-2017 by Digital Mars, All Rights Reserved
  * Authors:     Rainer Schuetze
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/varstats.c
+ * Source:      $(DMDSRC backend/varstats.c)
  */
 
 /******************************************

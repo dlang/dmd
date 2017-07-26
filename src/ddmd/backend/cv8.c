@@ -5,7 +5,7 @@
  * Copyright:    Copyright (c) 2012-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/code.c
+ * Source:      $(DMDSRC backend/code.c)
  */
 
 // This module generates the .debug$S and .debug$T sections for Win64,
