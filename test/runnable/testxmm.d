@@ -1884,6 +1884,15 @@ void test17356()
 
 /*****************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=17695
+
+void test17695(__vector(ubyte[16]) a)
+{
+    auto b = -a;
+}
+
+/*****************************************/
+
 int main()
 {
     test1();

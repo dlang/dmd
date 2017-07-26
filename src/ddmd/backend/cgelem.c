@@ -1104,7 +1104,7 @@ L1:
     }
 
     // Replace (-1 - e2) with (~e2)
-    if (e1->Eoper == OPconst && tyintegral(tym) && el_tolong(e1) == -1)
+    if (e1->Eoper == OPconst && tyintegral(tym) && !tyvector(tym) && el_tolong(e1) == -1)
     {
         el_free(e1);
         e->E1 = e->E2;
