@@ -356,10 +356,13 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         result = ss;
     }
 
-    override void visit(ForwardingStatement ss)
-    {
+    override void visit(ForwardingStatement ss){
         assert(ss.sym);
-        ss.sym.forward = sc.scopesym;
+        for (Scope* csc = sc; !ss.sym.forward; csc = csc.enclosing)
+        {
+            assert(csc);
+            ss.sym.forward = csc.scopesym;
+        }
         sc = sc.push(ss.sym);
         sc.sbreak = ss;
         sc.scontinue = ss;
