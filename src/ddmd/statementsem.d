@@ -2505,7 +2505,7 @@ else
         }
         else if (rs.exp)
         {
-            fd.hasReturnExp |= 1;
+            fd.hasReturnExp |= (fd.hasReturnExp & 1 ? 16 : 1);
 
             FuncLiteralDeclaration fld = fd.isFuncLiteralDeclaration();
             if (tret)

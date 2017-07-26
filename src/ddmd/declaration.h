@@ -543,6 +543,7 @@ public:
     // 2 if there's a throw statement
     // 4 if there's an assert(0)
     // 8 if there's inline asm
+    // 16 if there are multiple return statements
     int hasReturnExp;
 
     // Support for NRVO (named return value optimization)
