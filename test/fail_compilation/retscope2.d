@@ -162,3 +162,67 @@ void foo800()
     scope Exception e;
     throw e;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope2.d(1107): Error: scope variable `dg` may not be returned
+---
+*/
+
+#line 1100
+
+struct S17430 { void foo() {} }
+
+void delegate() test17430() @safe
+{
+    S17430 s;
+    auto dg = &s.foo; // infer dg as scope
+    return dg;
+}
+
+
