@@ -5845,7 +5845,7 @@ final class Parser(AST) : Lexer
                 if (token.value == TOKfinally)
                 {
                     nextToken();
-                    finalbody = parseStatement(0);
+                    finalbody = parseStatement(PSscope);
                 }
 
                 s = _body;
