@@ -1,4 +1,6 @@
 // REQUIRED_ARGS: -gf
+// PERMUTE_ARGS:
+
 import core.time;
 
 void main(string[] args)
@@ -21,7 +23,7 @@ void main(string[] args)
         }
 
         // dumpSymbols(globals, SymTagEnum.SymTagNull, null, 0);
-        
+
         IDiaSymbol objsym = searchSymbol(globals, "object.Object");
         testSymbolHasChildren(objsym, "object.Object");
         objsym.Release();
@@ -34,11 +36,24 @@ void main(string[] args)
         testSymbolHasChildren(ctsym, "core.time.ClockType");
         ctsym.Release();
 
+        testLineNumbers(session, globals);
+
         source.Release();
         session.Release();
         globals.Release();
     }
 }
+
+///////////////////////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=15432
+void call15432(string col) {}
+
+int test15432() // line 8
+{
+    call15432(null);
+    return 0;
+}
+enum lineAfterTest15432 = __LINE__;
 
 version(CRuntime_Microsoft):
 
@@ -54,6 +69,21 @@ void testSymbolHasChildren(IDiaSymbol sym, string name)
     count > 0  || assert(false, "incomplete debug info for " ~ name);
 
     enumSymbols.Release();
+}
+
+void testLineNumbers(IDiaSession session, IDiaSymbol globals)
+{
+    IDiaSymbol funcsym = searchSymbol(globals, test15432.mangleof);
+    assert(funcsym, "symbol test15432 not found");
+    ubyte[] funcRange;
+    Line[] lines = findSymbolLineNumbers(session, funcsym, &funcRange);
+    assert(lines, "no line number info for test15432");
+
+    //dumpLineNumbers(lines, funcRange);
+
+    assert (lines[$-1].line == lineAfterTest15432 - 1);
+    ubyte codeByte = lines[$-1].addr[0];
+    assert(codeByte == 0x48 || codeByte == 0x5d || codeByte == 0xc3); // should be one of "mov rsp,rbp", "pop rbp" or "ret"
 }
 
 import core.stdc.stdio;
@@ -470,6 +500,13 @@ interface IDiaEnumSymbolsByAddr : IUnknown
 
 interface IDiaEnumLineNumbers : IUnknown
 {
+    HRESULT get__NewEnum(IUnknown *pRetVal);
+    HRESULT get_Count(LONG *pRetVal);
+    HRESULT Item(DWORD index, IDiaLineNumber *lineNumber);
+    HRESULT Next(ULONG celt, IDiaLineNumber *rgelt, ULONG *pceltFetched);
+    HRESULT Skip(ULONG celt);
+    HRESULT Reset();
+    HRESULT Clone(IDiaEnumLineNumbers *ppenum);
 }
 
 interface IDiaSourceFile : IUnknown
@@ -478,6 +515,20 @@ interface IDiaSourceFile : IUnknown
 
 interface IDiaLineNumber : IUnknown
 {
+    HRESULT get_compiland(IDiaSymbol *pRetVal);
+    HRESULT get_sourceFile(IDiaSourceFile *pRetVal);
+    HRESULT get_lineNumber(DWORD *pRetVal);
+    HRESULT get_lineNumberEnd(DWORD *pRetVal);
+    HRESULT get_columnNumber(DWORD *pRetVal);
+    HRESULT get_columnNumberEnd(DWORD *pRetVal);
+    HRESULT get_addressSection(DWORD *pRetVal);
+    HRESULT get_addressOffset(DWORD *pRetVal);
+    HRESULT get_relativeVirtualAddress(DWORD *pRetVal);
+    HRESULT get_virtualAddress(ULONGLONG *pRetVal);
+    HRESULT get_length(DWORD *pRetVal);
+    HRESULT get_sourceFileId(DWORD *pRetVal);
+    HRESULT get_statement(BOOL *pRetVal);
+    HRESULT get_compilandId(DWORD *pRetVal);
 }
 
 interface IDiaEnumSourceFiles : IUnknown
@@ -650,7 +701,7 @@ bool openDebugInfo(IDiaDataSource* source, IDiaSession* session, IDiaSymbol* glo
     // Retrieve a reference to the global scope
     hr = session.get_globalScope(globals);
     hr == S_OK || assert(false, "get_globalScope failed");
-    
+
     return true;
 }
 
@@ -711,4 +762,64 @@ IDiaSymbol searchSymbol(IDiaSymbol parent, const(wchar)* name, SymTagEnum tag = 
     }
     enumSymbols.Release();
     return sym;
+}
+
+struct Line
+{
+    DWORD line;
+    ubyte* addr;
+}
+
+// linker generated symbol
+__gshared extern(C) extern ubyte __ImageBase;
+
+Line[] findSymbolLineNumbers(IDiaSession session, IDiaSymbol sym, ubyte[]* funcRange)
+{
+    DWORD rva;
+    HRESULT hr = sym.get_relativeVirtualAddress(&rva);
+    if (hr != S_OK)
+        return null;
+
+    ULONGLONG length;
+    hr = sym.get_length(&length);
+    if (hr != S_OK)
+        return null;
+
+    IDiaEnumLineNumbers dialines;
+    hr = session.findLinesByRVA(rva, cast(DWORD)length, &dialines);
+    if (hr != S_OK)
+        return null;
+    scope(exit) dialines.Release();
+
+    ubyte* rvabase = &__ImageBase;
+    *funcRange = rvabase[rva .. rva+length];
+
+    Line[] lines;
+    IDiaLineNumber line;
+    ULONG fetched;
+    while(dialines.Next(1, &line, &fetched) == S_OK)
+    {
+        DWORD lno, lrva;
+        if (line.get_lineNumber(&lno) == S_OK && line.get_relativeVirtualAddress(&lrva) == S_OK)
+            lines ~= Line(lno, rvabase + lrva);
+        line.Release();
+    }
+    return lines;
+}
+
+void dumpLineNumbers(Line[] lines, ubyte[] funcRange)
+{
+    import core.stdc.stdio;
+    void dumpLine(int lno, ubyte* beg, ubyte* end)
+    {
+        printf("%8d:", lno);
+        while (beg < end)
+            printf(" %02x", *beg++);
+        printf("\n");
+    }
+    if (lines[0].addr != funcRange.ptr)
+        dumpLine(0, funcRange.ptr, lines[0].addr);
+    for (int i = 1; i < lines.length; i++)
+        dumpLine(lines[i-1].line, lines[i-1].addr, lines[i].addr);
+    dumpLine(lines[$-1].line, lines[$-1].addr, funcRange.ptr + funcRange.length);
 }
