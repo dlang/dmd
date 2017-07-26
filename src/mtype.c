@@ -5336,7 +5336,7 @@ int Type::covariant(Type *t, StorageClass *pstc, bool fix17349)
 
         // If t1n is forward referenced:
         ClassDeclaration *cd = ((TypeClass *)t1n)->sym;
-        if (cd->semanticRun < PASSsemanticdone)
+        if (cd->semanticRun < PASSsemanticdone && !cd->isBaseInfoComplete())
             cd->semantic(NULL);
         if (!cd->isBaseInfoComplete())
         {
