@@ -22,6 +22,7 @@ import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.id;
@@ -204,7 +205,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             ti.semantic(sc3);
             ti.semantic2(sc3);
             ti.semantic3(sc3);
-            auto e = DsymbolExp.resolve(Loc(), sc3, ti.toAlias(), false);
+            auto e = resolve(Loc(), sc3, ti.toAlias(), false);
 
             sc3.endCTFE();
 

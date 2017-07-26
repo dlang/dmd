@@ -19,6 +19,7 @@ import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.globals;
 import ddmd.hdrgen;
 import ddmd.identifier;

@@ -1938,7 +1938,7 @@ extern (C++) class FuncDeclaration : Declaration
                             if (isStatic())
                             {
                                 // The monitor is in the ClassInfo
-                                vsync = new DotIdExp(loc, DsymbolExp.resolve(loc, sc2, cd, false), Id.classinfo);
+                                vsync = new DotIdExp(loc, resolve(loc, sc2, cd, false), Id.classinfo);
                             }
                             else
                             {

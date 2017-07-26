@@ -27,6 +27,7 @@ import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.errors;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.id;
