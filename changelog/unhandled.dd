@@ -1,4 +1,4 @@
-Print unhandled exception's trace and abort if rt_trapExceptions is set
+Print unhandled exception's trace and abort if rt_trapExceptions is false
 
 D exception handling was assuming the top level exception handler,
 so all exceptions would be handled somewhere. In case rt_trapExceptions
