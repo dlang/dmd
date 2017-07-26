@@ -459,17 +459,7 @@ optabgen.out : $G/optabgen
 
 ######## VERSION
 
-VERSION := $(shell cat ../VERSION) # default to checked-in VERSION file
-ifneq (1,$(RELEASE)) # unless building a release
-	VERSION := $(shell printf "`$(GIT) describe --dirty || cat ../VERSION`") # use git describe
-endif
-
-# only update $G/VERSION when it differs to avoid unnecessary rebuilds
-$(shell test $(VERSION) != "`cat $G/VERSION 2> /dev/null`" \
-		&& printf $(VERSION) > $G/VERSION )
-
-$(shell test $(SYSCONFDIR) != "`cat $G/SYSCONFDIR.imp 2> /dev/null`" \
-		&& printf '$(SYSCONFDIR)' > $G/SYSCONFDIR.imp )
+$(shell ../config.sh "$G" ../VERSION $(SYSCONFDIR))
 
 #########
 # Specific dependencies other than the source file for all objects
