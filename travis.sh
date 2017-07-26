@@ -64,6 +64,7 @@ test() {
 
 # test dmd
 test_dmd() {
+    nm ../phobos/generated/$TRAVIS_OS_NAME/release/$MODEL/libphobos2.so | grep -F _D3std6format64__T14formattedWriteTS3std5array17__T8AppenderTAyaZ8Appender
     # test fewer compiler argument permutations for PRs to reduce CI load
     if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_OS_NAME" == "linux"  ]; then
         make -j$N -C test MODEL=$MODEL # all ARGS by default
