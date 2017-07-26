@@ -297,19 +297,19 @@ a[] = b[] + 4;
 ---
 
         $(P A vector operation is indicated by the slice operator appearing
-        as the left-hand side of an =, +=, -=, *=, /=, %=, ^=, $(AMP)= or |=
-        operator.
+        as the left-hand side of an assignment or an op-assignment expression.
         The right-hand side can be an expression consisting either of an array
-        slice of the same length and type as the left-hand side or an expression
+        slice of the same length and type as the left-hand side or a scalar expression
         of the element type of the left-hand side, in any combination.
-        The operators supported for vector operations are the binary
-        operators +, -, *, /, %, ^, $(AMP) and |, and the unary operators
-        - and ~.
         )
 
+---
+T[] a, b, c;
+...
+a[] -= (b[] + 4) * c[];
+---
+
         $(P The slice on the left and any slices on the right must not overlap.
-        The vector assignment operators are evaluated right to left,
-        and the other binary operators are evaluated left to right.
         All operands are evaluated exactly once, even if the array slice
         has zero elements in it.
         )
@@ -319,9 +319,9 @@ a[] = b[] + 4;
         An application must not depend on this order.
         )
 
-        $(P Implementation note: many of the more common vector
-        operations are expected to take advantage of any vector
-        math instructions available on the target computer.
+        $(P Implementation note: Many vector operations are expected
+        to take advantage of any vector math instructions available on
+        the target computer.
         )
 
 $(H2 $(LNAME2 pointer-arithmetic, Pointer Arithmetic))
