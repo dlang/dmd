@@ -775,7 +775,7 @@ extern (C++) abstract class Type : RootObject
 
                 // If t1n is forward referenced:
                 ClassDeclaration cd = (cast(TypeClass)t1n).sym;
-                if (cd.semanticRun < PASSsemanticdone)
+                if (cd.semanticRun < PASSsemanticdone && !cd.isBaseInfoComplete())
                     cd.semantic(null);
                 if (!cd.isBaseInfoComplete())
                 {
