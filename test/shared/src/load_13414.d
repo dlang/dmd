@@ -1,4 +1,7 @@
-import core.runtime, core.atomic, core.sys.posix.dlfcn;
+import core.runtime;
+import core.atomic;
+import core.stdc.string;
+import core.sys.posix.dlfcn;
 
 shared uint tlsDtor, dtor;
 void staticDtorHook() { atomicOp!"+="(tlsDtor, 1); }
@@ -19,9 +22,9 @@ void runTest(string name)
 
 void main(string[] args)
 {
-    auto name = args[0];
-    assert(name[$-"load_13414".length-1 .. $] == "/load_13414");
-    name = name[0 .. $-"load_13414".length] ~ "lib_13414.so";
+    auto name = args[0] ~ '\0';
+    const pathlen = strrchr(name.ptr, '/') - name.ptr + 1;
+    name = name[0 .. pathlen] ~ "lib_13414.so";
 
     runTest(name);
 }

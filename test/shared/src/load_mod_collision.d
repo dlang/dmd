@@ -1,11 +1,14 @@
 module lib; // module collides with lib.so
 
-import core.runtime, core.stdc.stdio, core.sys.posix.dlfcn;
+import core.runtime;
+import core.stdc.stdio;
+import core.stdc.string;
+import core.sys.posix.dlfcn;
 
 void main(string[] args)
 {
-    auto name = args[0];
-    assert(name[$-19 .. $] == "/load_mod_collision");
-    name = name[0 .. $-18] ~ "lib.so";
+    auto name = args[0] ~ '\0';
+    const pathlen = strrchr(name.ptr, '/') - name.ptr + 1;
+    name = name[0 .. pathlen] ~ "lib.so";
     auto lib = Runtime.loadLibrary(name);
 }
