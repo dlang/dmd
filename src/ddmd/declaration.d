@@ -1086,36 +1086,17 @@ extern (C++) class VarDeclaration : Declaration
         return v;
     }
 
-    override void semantic(Scope* sc)
+    bool inferred;
+
+    override void importAll(Scope* sc)
     {
-        version (none)
-        {
-            printf("VarDeclaration::semantic('%s', parent = '%s') sem = %d\n", toChars(), sc.parent ? sc.parent.toChars() : null, sem);
-            printf(" type = %s\n", type ? type.toChars() : "null");
-            printf(" stc = x%x\n", sc.stc);
-            printf(" storage_class = x%llx\n", storage_class);
-            printf("linkage = %d\n", sc.linkage);
-            //if (strcmp(toChars(), "mul") == 0) assert(0);
-        }
-        //if (semanticRun > PASSinit)
-        //    return;
-        //semanticRun = PSSsemantic;
-
-        if (semanticRun >= PASSsemanticdone)
+        if (semanticRun >= PASSmembersdone)
             return;
 
-        Scope* scx = null;
         if (_scope)
-        {
             sc = _scope;
-            scx = sc;
-            _scope = null;
-        }
 
-        if (!sc)
-            return;
-
-        semanticRun = PASSsemantic;
+        assert(sc);
 
         /* Pick up storage classes from context, but except synchronized,
          * override, abstract, and final.
@@ -1132,7 +1113,6 @@ extern (C++) class VarDeclaration : Declaration
 
         /* If auto type inference, do the inference
          */
-        int inferred = 0;
         if (!type)
         {
             inuse++;
@@ -1150,7 +1130,7 @@ extern (C++) class VarDeclaration : Declaration
                 sc = sc.endCTFE();
 
             inuse--;
-            inferred = 1;
+            inferred = true;
 
             /* This is a kludge to support the existing syntax for RAII
              * declarations.
@@ -1195,50 +1175,10 @@ extern (C++) class VarDeclaration : Declaration
         //printf("sc.stc = %x\n", sc.stc);
         //printf("storage_class = x%x\n", storage_class);
 
-        if (global.params.vcomplex)
-            type.checkComplexTransition(loc);
-
-        // Calculate type size + safety checks
-        if (sc.func && !sc.intypeof)
-        {
-            if (storage_class & STCgshared && !isMember())
-            {
-                if (sc.func.setUnsafe())
-                    error("__gshared not allowed in safe functions; use shared");
-            }
-        }
-
         Dsymbol parent = toParent();
 
         Type tb = type.toBasetype();
         Type tbn = tb.baseElemOf();
-        if (tb.ty == Tvoid && !(storage_class & STClazy))
-        {
-            if (inferred)
-            {
-                error("type %s is inferred from initializer %s, and variables cannot be of type void", type.toChars(), _init.toChars());
-            }
-            else
-                error("variables cannot be of type void");
-            type = Type.terror;
-            tb = type;
-        }
-        if (tb.ty == Tfunction)
-        {
-            error("cannot be declared to be a function");
-            type = Type.terror;
-            tb = type;
-        }
-        if (tb.ty == Tstruct)
-        {
-            TypeStruct ts = cast(TypeStruct)tb;
-            if (!ts.sym.members)
-            {
-                error("no definition of struct %s", ts.toChars());
-            }
-        }
-        if ((storage_class & STCauto) && !inferred)
-            error("storage class 'auto' has no effect if type is not inferred, did you mean 'scope'?");
 
         if (tb.ty == Ttuple)
         {
@@ -1398,6 +1338,106 @@ extern (C++) class VarDeclaration : Declaration
             return;
         }
 
+        if (storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe))
+        {
+        }
+        else
+        {
+            AggregateDeclaration aad = parent.isAggregateDeclaration();
+            if (aad)
+            {
+                storage_class |= STCfield;
+                if (tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
+                {
+                    if (!isThisDeclaration() && !_init)
+                        aad.noDefaultCtor = true;
+                }
+            }
+        }
+
+        semanticRun = PASSmembersdone;
+    }
+
+    override void semantic(Scope* sc)
+    {
+        version (none)
+        {
+            printf("VarDeclaration::semantic('%s', parent = '%s') sem = %d\n", toChars(), sc.parent ? sc.parent.toChars() : null, sem);
+            printf(" type = %s\n", type ? type.toChars() : "null");
+            printf(" stc = x%x\n", sc.stc);
+            printf(" storage_class = x%llx\n", storage_class);
+            printf("linkage = %d\n", sc.linkage);
+            //if (strcmp(toChars(), "mul") == 0) assert(0);
+        }
+        //if (semanticRun > PASSinit)
+        //    return;
+        //semanticRun = PSSsemantic;
+
+        if (semanticRun >= PASSsemanticdone)
+            return;
+
+        importAll(sc);
+
+        Scope* scx = null;
+        if (_scope)
+        {
+            sc = _scope;
+            scx = sc;
+            _scope = null;
+        }
+
+        if (!sc)
+            return;
+
+        semanticRun = PASSsemantic;
+
+        AggregateDeclaration ad = isThis();
+
+        if (global.params.vcomplex)
+            type.checkComplexTransition(loc);
+
+        // Calculate type size + safety checks
+        if (sc.func && !sc.intypeof)
+        {
+            if (storage_class & STCgshared && !isMember())
+            {
+                if (sc.func.setUnsafe())
+                    error("__gshared not allowed in safe functions; use shared");
+            }
+        }
+
+        Dsymbol parent = toParent();
+
+        Type tb = type.toBasetype();
+        Type tbn = tb.baseElemOf();
+        if (tb.ty == Tvoid && !(storage_class & STClazy))
+        {
+            if (inferred)
+            {
+                error("type %s is inferred from initializer %s, and variables cannot be of type void", type.toChars(), _init.toChars());
+            }
+            else
+                error("variables cannot be of type void");
+            type = Type.terror;
+            tb = type;
+        }
+        if (tb.ty == Tfunction)
+        {
+            error("cannot be declared to be a function");
+            type = Type.terror;
+            tb = type;
+        }
+        if (tb.ty == Tstruct)
+        {
+            TypeStruct ts = cast(TypeStruct)tb;
+            if (!ts.sym.members)
+            {
+                error("no definition of struct %s", ts.toChars());
+            }
+        }
+        if ((storage_class & STCauto) && !inferred)
+            error("storage class 'auto' has no effect if type is not inferred, did you mean 'scope'?");
+
         /* Storage class can modify the type
          */
         type = type.addStorageClass(storage_class);
@@ -1462,12 +1502,6 @@ extern (C++) class VarDeclaration : Declaration
                     const(char)* p = loc.toChars();
                     const(char)* s = (storage_class & STCimmutable) ? "immutable" : "const";
                     fprintf(global.stdmsg, "%s: %s.%s is %s field\n", p ? p : "", ad.toPrettyChars(), toChars(), s);
-                }
-                storage_class |= STCfield;
-                if (tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
-                {
-                    if (!isThisDeclaration() && !_init)
-                        aad.noDefaultCtor = true;
                 }
             }
 
