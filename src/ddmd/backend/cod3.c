@@ -2501,46 +2501,46 @@ code *genmovreg(code *c,unsigned to,unsigned from)
  * Optimize it into LEA's if we can.
  */
 
-code *genmulimm(code *c,unsigned r1,unsigned r2,targ_int imm)
-{   code cs;
-
+void genmulimm(CodeBuilder& cdb,unsigned r1,unsigned r2,targ_int imm)
+{
     // These optimizations should probably be put into pinholeopt()
     switch (imm)
-    {   case 1:
-            c = genmovreg(c,r1,r2);
+    {
+        case 1:
+            cdb.append(genmovreg(CNIL,r1,r2));
             break;
+
         case 5:
+        {
+            code cs;
             cs.Iop = LEA;
             cs.Iflags = 0;
             cs.Irex = 0;
             buildEA(&cs,r2,r2,4,0);
             cs.orReg(r1);
-            c = gen(c,&cs);
+            cdb.gen(&cs);
             break;
+        }
+
         default:
-            c = genc2(c,0x69,modregxrmx(3,r1,r2),imm);    // IMUL r1,r2,imm
+            cdb.genc2(0x69,modregxrmx(3,r1,r2),imm);    // IMUL r1,r2,imm
             break;
     }
-    return c;
 }
 
 /******************************
  * Load CX with the value of _AHSHIFT.
  */
 
-code *genshift(code *c)
+void genshift(CodeBuilder& cdb)
 {
 #if SCPP && TX86
-    code *c1;
-
     // Set up ahshift to trick ourselves into giving the right fixup,
     // which must be seg-relative, external frame, external target.
-    c1 = gencs(CNIL,0xC7,modregrm(3,0,CX),FLfunc,getRtlsym(RTLSYM_AHSHIFT));
-    c1->Iflags |= CFoff;
-    return cat(c,c1);
+    cdb.gencs(0xC7,modregrm(3,0,CX),FLfunc,getRtlsym(RTLSYM_AHSHIFT));
+    cdb.last()->Iflags |= CFoff;
 #else
     assert(0);
-    return 0;
 #endif
 }
 
