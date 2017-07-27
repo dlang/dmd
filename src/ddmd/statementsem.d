@@ -357,6 +357,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         assert(!!ss.sym);
         ss.sym.forward = sc.scopesym;
         sc = sc.push(ss.sym);
+        sc.sbreak = ss;
+        sc.scontinue = ss;
         ss.statement = ss.statement.semantic(sc);
         sc = sc.pop();
         result = ss.statement ? ss : null;
@@ -3044,6 +3046,10 @@ else
                 bs.error("break is not inside a loop or switch");
             return setError();
         }
+        else if (sc.sbreak.isForwardingStatement())
+        {
+            bs.error("must use labeled `break` within `static foreach`");
+        }
         result = bs;
     }
 
@@ -3123,6 +3129,10 @@ else
             else
                 cs.error("continue is not inside a loop");
             return setError();
+        }
+        else if (sc.scontinue.isForwardingStatement())
+        {
+            cs.error("must use labeled `continue` within `static foreach`");
         }
         result = cs;
     }
