@@ -5,7 +5,7 @@
  * Copyright:   Copyright (c) 2016-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC backend/gslice.c)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/gslice.c, backend/gslice.c)
  */
 
 

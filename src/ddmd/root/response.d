@@ -7,7 +7,7 @@
  *              Some portions copyright (c) 1994-1995 by Symantec
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC root/_response.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/root/_response.d, root/_response.d)
  */
 
 module ddmd.root.response;

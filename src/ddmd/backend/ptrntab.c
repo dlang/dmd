@@ -5,7 +5,7 @@
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC backend/ptrntab.c)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/ptrntab.c, backend/ptrntab.c)
  */
 
 #if !DEMO && !SPP
