@@ -1176,7 +1176,7 @@ void cdaddass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             cdb.gen(&cs);                               // ADD EA,lreg
             code_orflag(cdb.last(),CFpsw);
             cdb.genc2(0x81,modregrm(3,2,mreg),0);       // ADC mreg,0
-            cdb.append(genshift(CNIL));                               // MOV CX,offset __AHSHIFT
+            genshift(cdb);                              // MOV CX,offset __AHSHIFT
             cdb.gen2(0xD3,modregrm(3,4,mreg));          // SHL mreg,CL
             NEWREG(cs.Irm,mreg);                        // ADD EA+2,mreg
             getlvalue_msw(&cs);

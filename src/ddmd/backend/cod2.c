@@ -563,7 +563,7 @@ void cdorth(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         code_orflag(cdb.last(),CFpsw);
         cdb.append(genmovreg(CNIL,lrreg,CX));      // MOV lrreg,CX
         cdb.genc2(0x81,modregrm(3,2,mreg),0);      // ADC mreg,0
-        cdb.append(genshift(CNIL));                // MOV CX,offset __AHSHIFT
+        genshift(cdb);                             // MOV CX,offset __AHSHIFT
         cdb.gen2(0xD3,modregrm(3,4,mreg));         // SHL mreg,CL
         cdb.append(genregs(CNIL,0x03,mreg,lrreg)); // ADD mreg,MSREG(h)
         fixresult(cdb,e,retregs,pretregs);
@@ -1045,12 +1045,12 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
             if (msw)
             {
-                cdb.append(genmulimm(CNIL,DX,DX,lsw));
-                cdb.append(genmulimm(CNIL,reg,AX,msw));
+                genmulimm(cdb,DX,DX,lsw);
+                genmulimm(cdb,reg,AX,msw);
                 cdb.gen2(0x03,modregrm(3,reg,DX));
             }
             else
-                cdb.append(genmulimm(CNIL,reg,DX,lsw));
+                genmulimm(cdb,reg,DX,lsw);
 
             movregconst(cdb,DX,lsw,0);     // MOV EDX,lsw
             getregs(cdb,mDX);
@@ -4902,7 +4902,7 @@ void cdpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         cdb.gen(&cs);                           // ADD EA,e2
         code_orflag(cdb.last(),CFpsw);
         cdb.genc2(0x81,modregrm(3,2,rtmp),0);   // ADC rtmp,0
-        cdb.append(genshift(CNIL));             // MOV CX,offset __AHSHIFT
+        genshift(cdb);                          // MOV CX,offset __AHSHIFT
         cdb.gen2(0xD3,modregrm(3,4,rtmp));      // SHL rtmp,CL
         cs.Iop = 0x01;
         NEWREG(cs.Irm,rtmp);                    // ADD EA+2,rtmp
