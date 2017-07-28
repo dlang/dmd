@@ -5930,7 +5930,7 @@ struct ASTBase
         final extern (D) this(Loc loc, ForeachStatement aggrfe, ForeachRangeStatement rangefe)
         in
         {
-            assert(!!aggrfe^!!rangefe);
+            assert(!!aggrfe ^ !!rangefe);
         }
         body
         {

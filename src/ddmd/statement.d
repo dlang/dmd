@@ -1003,19 +1003,24 @@ extern (C++) class ScopeStatement : Statement
 }
 
 /***********************************************************
- * Scope that contains foreach index variables in a local scope and forwards other members.
- * Also see: ddmd.attrib.ForwardingAttribDeclaration
+ * Statement whose symbol table contains foreach index variables in a
+ * local scope and forwards other members to the parent scope.  This
+ * wraps a statement.
+ *
+ * Also see: `ddmd.attrib.ForwardingAttribDeclaration`
  */
 extern (C++) final class ForwardingStatement : Statement
 {
+    /// The symbol containing the `static foreach` variables.
     ForwardingScopeDsymbol sym = null;
+    /// The wrapped statement.
     Statement statement;
 
     extern (D) this(Loc loc, ForwardingScopeDsymbol sym, Statement s)
     {
         super(loc);
         this.sym = sym;
-        assert(!!s);
+        assert(s);
         statement = s;
     }
 
@@ -1079,6 +1084,18 @@ extern (C++) final class ForwardingStatement : Statement
         return statement.last();
     }
 
+    /***********************
+     * ForwardingStatements are distributed over the flattened
+     * sequence of statements. This prevents flattening to be
+     * "blocked" by a ForwardingStatement and is necessary, for
+     * example, to support generating scope guards with `static
+     * foreach`:
+     *
+     *     static foreach(i; 0 .. 10) scope(exit) writeln(i);
+     *     writeln("this is printed first");
+     *     // then, it prints 10, 9, 8, 7, ...
+     */
+    
     override Statements* flatten(Scope* sc)
     {
         if (!statement)
@@ -1106,7 +1123,8 @@ extern (C++) final class ForwardingStatement : Statement
         return this;
     }
 
-    override void accept(Visitor v){
+    override void accept(Visitor v)
+    {
         v.visit(this);
     }
 }
@@ -1461,7 +1479,8 @@ extern (C++) final class ConditionalStatement : Statement
 
 /***********************************************************
  * Static foreach statements, like:
- *      void main(){
+ *      void main()
+ *      {
  *           static foreach(i; 0 .. 10)
  *           {
  *               pragma(msg, i);
@@ -1471,9 +1490,6 @@ extern (C++) final class ConditionalStatement : Statement
 extern (C++) final class StaticForeachStatement : Statement
 {
     StaticForeach sfe;
-
-    bool cached = false;
-    Statements* cache = null;
 
     extern (D) this(Loc loc, StaticForeach sfe)
     {
@@ -1488,28 +1504,25 @@ extern (C++) final class StaticForeachStatement : Statement
 
     override Statements* flatten(Scope* sc)
     {
-        if (cached)
-        {
-            return cache;
-        }
         sfe.prepare(sc);
         if (sfe.ready())
         {
             import ddmd.statementsem;
             auto s = makeTupleForeach!(true,false)(sc, sfe.aggrfe,sfe.needExpansion);
-            cached = true;
-            cache = s.flatten(sc);
-            if(cache) return cache;
-            cache = new Statements();
-            cache.push(s);
-            return cache;
+            auto result = s.flatten(sc);
+            if (result)
+            {
+                return result;
+            }
+            result = new Statements();
+            result.push(s);
+            return result;
         }
         else
         {
-            cached = true;
-            cache = new Statements();
-            cache.push(new ErrorStatement());
-            return cache;
+            auto result = new Statements();
+            result.push(new ErrorStatement());
+            return result;
         }
     }
 

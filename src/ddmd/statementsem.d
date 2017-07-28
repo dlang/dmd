@@ -353,8 +353,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         result = ss;
     }
 
-    override void visit(ForwardingStatement ss){
-        assert(!!ss.sym);
+    override void visit(ForwardingStatement ss)
+    {
+        assert(ss.sym);
         ss.sym.forward = sc.scopesym;
         sc = sc.push(ss.sym);
         sc.sbreak = ss;
@@ -492,7 +493,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         result = fs;
     }
 
-    private static template MakeTupleForeachRet(bool isDecl){
+    /*******************
+     * Determines the return type of makeTupleForeach.
+     */
+    private static template MakeTupleForeachRet(bool isDecl)
+    {
         static if(isDecl)
         {
             alias MakeTupleForeachRet = Dsymbols*;
@@ -503,9 +508,42 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         }
     }
 
+    /*******************
+     * Tpe check and unroll `foreach` over an expression tuple as well
+     * as `static foreach` statements and `static foreach`
+     * declarations. For `static foreach` statements and `static
+     * foreach` declarations, the visitor interface is used (and the
+     * result is written into the `result` field.) For `static
+     * foreach` declarations, the resulting Dsymbols* are returned
+     * directly.
+     *
+     * The unrolled body is wrapped into a
+     *  - UnrolledLoopStatement, for `foreach` over an expression tuple.
+     *  - ForwardingStatement, for `static foreach` statements.
+     *  - ForwardingAttribDeclaration, for `static foreach` declarations.
+     *
+     * `static foreach` variables are declared as `STClocal`, such
+     * that they are inserted into the local symbol tables of the
+     * forwarding constructs instead of forwarded. For `static
+     * foreach` with multiple foreach loop variables whose aggregate
+     * has been lowered into a sequence of tuples, this function
+     * expands the tuples into multiple `STClocal` `static foreach`
+     * variables.
+     */
     MakeTupleForeachRet!isDecl makeTupleForeach(bool isStatic, bool isDecl)(ForeachStatement fs, TupleForeachArgs!(isStatic, isDecl) args)
     {
-        enum returnEarly = isDecl ? q{ return null; } : q{ result = new ErrorStatement(); return; };
+        auto returnEarly()
+        {
+            static if (isDecl)
+            {
+                return null;
+            }
+            else
+            {
+                result = new ErrorStatement();
+                return;
+            }
+        }
         static if(isDecl)
         {
             static assert(isStatic);
@@ -514,10 +552,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         static if(isStatic)
         {
             auto needExpansion = args[$-1];
-            assert(!!sc);
+            assert(sc);
             auto previous = sc.scopesym;
         }
-        alias s = fs; // TODO: ???
+        alias s = fs;
 
         auto loc = fs.loc;
         size_t dim = fs.parameters.dim;
@@ -527,16 +565,17 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         {
             fs.error("only one (value) or two (key,value) arguments for tuple foreach");
             setError();
-            mixin(returnEarly);
+            return returnEarly();
         }
 
         Type paramtype = (*fs.parameters)[dim - 1].type;
         if (paramtype)
         {
             paramtype = paramtype.semantic(loc, sc);
-            if (paramtype.ty == Terror){
+            if (paramtype.ty == Terror)
+            {
                 setError();
-                mixin(returnEarly);
+                return returnEarly();
             }
         }
 
@@ -592,7 +631,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     fs.error("no storage class for key `%s`", p.ident.toChars());
                     setError();
-                    mixin(returnEarly);
+                    return returnEarly();
                 }
                 static if(isStatic)
                 {
@@ -611,14 +650,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         {
                             fs.error("foreach: key type must be int or uint, long or ulong, not `%s`", p.type.toChars());
                             setError();
-                            mixin(returnEarly);
+                            return returnEarly();
                         }
                     }
                     else
                     {
                         fs.error("foreach: key type must be int or uint, not `%s`", p.type.toChars());
                         setError();
-                        mixin(returnEarly);
+                        return returnEarly();
                     }
                 }
                 Initializer ie = new ExpInitializer(Loc(), new IntegerExp(k));
@@ -635,15 +674,26 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
                 p = (*fs.parameters)[1]; // value
             }
+            /***********************
+             * Declares a unrolled `foreach` loop variable or a `static foreach` variable.
+             *
+             * Params:
+             *     storageClass = The storage class of the variable.
+             *     type = The declared type of the variable.
+             *     ident = The name of the variable.
+             *     e = The initializer of the variable (i.e. the current element of the looped over aggregate).
+             *     t = The type of the initializer.
+             * Returns:
+             *     `true` iff the declaration was successful.
+             */
             bool declareVariable(StorageClass storageClass, Type type, Identifier ident, Expression e, Type t)
             {
-                enum returnEarly = q{ return false; };
                 if (storageClass & (STCout | STClazy) ||
                     storageClass & STCref && !te)
                 {
                     fs.error("no storage class for value `%s`", ident.toChars());
                     setError();
-                    mixin(returnEarly);
+                    return false;
                 }
                 Declaration var;
                 if (e)
@@ -668,7 +718,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     {
                         fs.error("foreach loop variable cannot be both enum and alias");
                         setError();
-                        mixin(returnEarly);
+                        return false;
                     }
 
                     if (ds)
@@ -678,13 +728,13 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         {
                             fs.error("symbol `%s` cannot be ref", ds.toChars());
                             setError();
-                            mixin(returnEarly);
+                            return false;
                         }
                         if (paramtype)
                         {
                             fs.error("cannot specify element type for symbol `%s`", ds.toChars());
                             setError();
-                            mixin(returnEarly);
+                            return false;
                         }
                     }
                     else if (e.op == TOKtype)
@@ -694,7 +744,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         {
                             fs.error("cannot specify element type for type `%s`", e.type.toChars());
                             setError();
-                            mixin(returnEarly);
+                            return false;
                         }
                     }
                     else
@@ -714,7 +764,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         {
                             if (v.storage_class & STCref)
                             {
-                                static if(!isStatic)
+                                static if (!isStatic)
                                 {
                                     fs.error("constant value `%s` cannot be ref", ie.toChars());
                                 }
@@ -730,7 +780,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                                     }
                                 }
                                 setError();
-                                mixin(returnEarly);
+                                return false;
                             }
                             else
                                 v.storage_class |= STCmanifest;
@@ -745,11 +795,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     {
                         fs.error("cannot specify element type for symbol `%s`", s.toChars());
                         setError();
-                        mixin(returnEarly);
+                        return false;
                     }
                 }
-                static if(isStatic) var.storage_class |= STClocal;
-                static if(!isDecl)
+                static if (isStatic)
+                {
+                    var.storage_class |= STClocal;
+                }
+                static if (!isDecl)
                 {
                     st.push(new ExpStatement(loc, var));
                 }
@@ -759,40 +812,45 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
                 return true;
             }
-            static if(!isStatic){
+            static if (!isStatic)
+            {
                 // Declare value
-                if(!declareVariable(p.storageClass, p.type, p.ident, e, t))
+                if (!declareVariable(p.storageClass, p.type, p.ident, e, t))
                 {
-                    mixin(returnEarly);
+                    return returnEarly();
                 }
-            }else if(!needExpansion){
+            }
+            else if (!needExpansion)
+            {
                 // Declare value
-                if(!declareVariable(p.storageClass, p.type, p.ident, e, t))
+                if (!declareVariable(p.storageClass, p.type, p.ident, e, t))
                 {
-                    mixin(returnEarly);
+                    return returnEarly();
                 }
-            }else{
+            }
+            else
+            { // expand tuples into multiple `static foreach` variables.
                 assert(e && !t);
                 auto ident = Identifier.generateId("__value");
                 declareVariable(0, e.type, ident, e, null);
                 import ddmd.cond: StaticForeach;
-                auto field = Identifier.idPool(StaticForeach_tupleFieldName.ptr,StaticForeach_tupleFieldName.length);
+                auto field = Identifier.idPool(StaticForeach.tupleFieldName.ptr,StaticForeach.tupleFieldName.length);
                 Expression access = new DotIdExp(loc, e, field);
                 access = access.semantic(sc);
                 auto types = access.type.isTuple();
-                if (!tuple) mixin(returnEarly);
+                if (!tuple) return returnEarly();
                 //printf("%s\n",tuple.toChars());
                 foreach (l; 0 .. dim)
                 {
                     auto cp = (*fs.parameters)[l];
                     Expression init_ = new IndexExp(loc, access, new IntegerExp(loc, l, Type.tsize_t));
                     init_ = init_.semantic(sc);
-                    assert(!!init_.type);
+                    assert(init_.type);
                     declareVariable(p.storageClass, init_.type, cp.ident, init_, null);
                 }
             }
 
-            static if(!isDecl)
+            static if (!isDecl)
             {
                 st.push(fs._body.syntaxCopy());
                 Statement res = new CompoundStatement(loc, st);
@@ -801,11 +859,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             {
                 st.append(Dsymbol.arraySyntaxCopy(dbody));
             }
-            static if(!isStatic)
+            static if (!isStatic)
             {
                 res = new ScopeStatement(loc, res, fs.endloc);
             }
-            else static if(!isDecl)
+            else static if (!isDecl)
             {
                 auto fwd = new ForwardingStatement(loc, res);
                 previous = fwd.sym;
@@ -817,7 +875,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 auto res = new ForwardingAttribDeclaration(st);
                 previous = res.sym;
             }
-            static if(!isDecl)
+            static if (!isDecl)
             {
                 statements.push(res);
             }
@@ -827,14 +885,15 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
         }
 
-        static if(!isStatic){
+        static if (!isStatic)
+        {
             Statement res = new UnrolledLoopStatement(loc, statements);
             if (LabelStatement ls = checkLabeledLoop(sc, fs))
                 ls.gotoTarget = res;
             if (te && te.e0)
                 res = new CompoundStatement(loc, new ExpStatement(te.e0.loc, te.e0), res);
         }
-        else static if(!isDecl)
+        else static if (!isDecl)
         {
             Statement res = new CompoundStatement(loc, statements);
         }
@@ -842,7 +901,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         {
             auto res = declarations;
         }
-        static if(!isDecl)
+        static if (!isDecl)
         {
             result = res;
         }
@@ -3810,7 +3869,12 @@ Statement semanticScope(Statement s, Scope* sc, Statement sbreak, Statement scon
     return s;
 }
 
-static template TupleForeachArgs(bool isStatic, bool isDecl){
+
+/*******************
+ * Determines additional argument types for makeTupleForeach.
+ */
+static template TupleForeachArgs(bool isStatic, bool isDecl)
+{
     alias Seq(T...)=T;
     static if(isStatic) alias T = Seq!(bool);
     else alias T = Seq!();
@@ -3818,13 +3882,23 @@ static template TupleForeachArgs(bool isStatic, bool isDecl){
     else alias TupleForeachArgs = Seq!(Dsymbols*,T);
 }
 
-static template TupleForeachRet(bool isStatic, bool isDecl){
+/*******************
+ * Determines the return type of makeTupleForeach.
+ */
+static template TupleForeachRet(bool isStatic, bool isDecl)
+{
     alias Seq(T...)=T;
     static if(!isDecl) alias TupleForeachRet = Statement;
     else alias TupleForeachRet = Dsymbols*;
 }
 
-TupleForeachRet!(isStatic, isDecl) makeTupleForeach(bool isStatic, bool isDecl)(Scope* sc, ForeachStatement fs, TupleForeachArgs!(isStatic, isDecl) args){
+
+/*******************
+ * See StatementSemanticVisitor.makeTupleForeach.  This is a simple
+ * wrapper that returns the generated statements/declarations.
+ */
+TupleForeachRet!(isStatic, isDecl) makeTupleForeach(bool isStatic, bool isDecl)(Scope* sc, ForeachStatement fs, TupleForeachArgs!(isStatic, isDecl) args)
+{
     scope v = new StatementSemanticVisitor(sc);
     static if(!isDecl)
     {
