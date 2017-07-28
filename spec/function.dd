@@ -5,7 +5,7 @@ $(SPEC_S Functions,
 $(NOT_EBOOK
 $(DIVC page-contents quickindex,
     $(DIVC page-contents-header,
-        $(H3 Contents)
+        $(B Contents)
     )
     $(OL
         $(LI $(RELATIVE_LINK2 grammar, Grammar))
@@ -21,7 +21,9 @@ $(DIVC page-contents quickindex,
         $(LI $(RELATIVE_LINK2 optional-parenthesis, Optional Parentheses))
         $(LI $(RELATIVE_LINK2 property-functions, Property Functions))
         $(LI $(RELATIVE_LINK2 virtual-functions, Virtual Functions))
+        $(OL
         $(LI $(RELATIVE_LINK2 function-inheritance, Function Inheritance and Overriding))
+        )
         $(LI $(RELATIVE_LINK2 inline-functions, Inline Functions))
         $(LI $(RELATIVE_LINK2 function-overloading, Function Overloading)$(OL
             $(LI $(RELATIVE_LINK2 overload-sets, Overload Sets))
@@ -31,10 +33,11 @@ $(DIVC page-contents quickindex,
             $(LI $(RELATIVE_LINK2 return-ref-parameters, Return Ref Parameters))
             $(LI $(RELATIVE_LINK2 variadic, Variadic Functions))
         ))
-        $(LI $(RELATIVE_LINK2 nested, Nested Functions)$(OL
-            $(LI $(RELATIVE_LINK2 closures, Delegates, Function Pointers, and  Closures))
-            $(LI $(RELATIVE_LINK2 anonymous, Anonymous Functions and Anonymous Delegates))
-        ))
+        $(LI $(RELATIVE_LINK2 local-variables, Local Variables))
+            $(OL $(LI $(RELATIVE_LINK2 local-static-variables, Local Static Variables)))
+        $(LI $(RELATIVE_LINK2 nested, Nested Functions))
+        $(LI $(RELATIVE_LINK2 closures, Delegates, Function Pointers, and  Closures))
+            $(OL $(LI $(RELATIVE_LINK2 anonymous, Anonymous Functions and Anonymous Delegates)))
         $(LI $(RELATIVE_LINK2 main, main() Function))
         $(LI $(RELATIVE_LINK2 function-templates, Function Templates))
         $(LI $(RELATIVE_LINK2 interpretation, Compile Time Function Execution (CTFE))$(OL
