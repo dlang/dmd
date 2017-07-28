@@ -1097,7 +1097,7 @@ extern (C++) final class ForwardingStatement : Statement
      *     writeln("this is printed first");
      *     // then, it prints 10, 9, 8, 7, ...
      */
-    
+
     override Statements* flatten(Scope* sc)
     {
         if (!statement)

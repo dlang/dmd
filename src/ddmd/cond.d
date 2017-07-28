@@ -76,7 +76,7 @@ extern (C++) abstract class Condition : RootObject
 extern (C++) final class StaticForeach : RootObject
 {
     extern(D) static immutable tupleFieldName = "tuple"; // used in lowering
-    
+
     Loc loc;
 
     /***************
@@ -236,7 +236,7 @@ extern (C++) final class StaticForeach : RootObject
 
     /*****************************************
      * Create the AST for an instantiation of a suitable tuple type.
-     * 
+     *
      * Params:
      *     loc = The source location.
      *     type = A Tuple type, created with createTupleType.
@@ -260,7 +260,7 @@ extern (C++) final class StaticForeach : RootObject
      * need to expand the tuples into multiple variables.
      *
      * For example, `static foreach (x; range) { ... }` is lowered to:
-     * 
+     *
      *     static foreach (x; {
      *         typeof({
      *             foreach (x; range) return x;
@@ -268,14 +268,14 @@ extern (C++) final class StaticForeach : RootObject
      *         foreach (x; range) __res ~= x;
      *         return __res;
      *     }()) { ... }
-     * 
+     *
      * Finally, call `lowerArrayAggregate` to turn the produced
      * array into an expression tuple.
      *
      * Params:
      *     sc = The current scope.
      */
-    
+
     private void lowerNonArrayAggregate(Scope* sc)
     {
         auto nvars = aggrfe ? aggrfe.parameters.dim : 1;
