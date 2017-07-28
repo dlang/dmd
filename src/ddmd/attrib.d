@@ -1508,8 +1508,9 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 }
 
 /***********************************************************
- * Collection of declarations that stores foreach index variables in a local symbol table.
- * Other symbols declared within are forwarded to another scope, like:
+ * Collection of declarations that stores foreach index variables in a
+ * local symbol table.  Other symbols declared within are forwarded to
+ * another scope, like:
  *
  *      static foreach (i; 0 .. 10) // loop variables for different indices do not conflict.
  *      { // this body is expanded into 10 ForwardingAttribDeclarations, where `i` has storage class STClocal
@@ -1523,8 +1524,13 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
  *
  *      static assert (!is(typeof(i))); // loop index variable is not visible outside of the static foreach loop
  *
- * A StaticForeachDeclaration generates one ForwardingAttribDeclaration for each expansion of its body.
- * The functionality is achieved by using a ForwardingScopeDsymbol as the parent symbol for the generated declarations.
+ * A StaticForeachDeclaration generates one
+ * ForwardingAttribDeclaration for each expansion of its body.  The
+ * AST of the ForwardingAttribDeclaration contains both the `static
+ * foreach` variables and the respective copy of the `static foreach`
+ * body.  The functionality is achieved by using a
+ * ForwardingScopeDsymbol as the parent symbol for the generated
+ * declarations.
  */
 
 extern(C++) final class ForwardingAttribDeclaration: AttribDeclaration
