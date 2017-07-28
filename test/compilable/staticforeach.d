@@ -671,3 +671,17 @@ int breakContinueBan(){
     return 1;
 }
 static assert(breakContinueBan()==1);
+
+mixin template MixinTemplate(){
+    static foreach(i;0..2){
+        mixin(`enum x`~cast(char)('0'+i)~"=i;");
+    }
+    static foreach(i;[0,1]){
+        mixin(`enum y`~cast(char)('0'+i)~"=i;");
+    }
+}
+void testToStatement(){
+    mixin MixinTemplate;
+    static assert(x0==0 && x1==1);
+    static assert(y0==0 && y1==1);
+}

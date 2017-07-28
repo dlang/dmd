@@ -581,7 +581,9 @@ extern (C++) Statement toStatement(Dsymbol s)
 
         override void visit(StaticForeachDeclaration d)
         {
-            assert(0,"TODO");
+            assert(d.sfe && !!d.sfe.aggrfe ^ !!d.sfe.rangefe);
+            (d.sfe.aggrfe ? d.sfe.aggrfe._body : d.sfe.rangefe._body) = visitMembers(d.loc, d.decl);
+            result = new StaticForeachStatement(d.loc, d.sfe);
         }
 
         override void visit(CompileDeclaration d)
