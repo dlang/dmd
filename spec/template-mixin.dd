@@ -2,9 +2,9 @@ Ddoc
 
 $(SPEC_S Template Mixins,
 
-        A $(I TemplateMixin) takes an arbitrary set of declarations from
+        $(P A $(I TemplateMixin) takes an arbitrary set of declarations from
         the body of a $(I TemplateDeclaration) and inserts them
-        into the current context.
+        into the current context.)
 
 $(GRAMMAR
 $(GNAME TemplateMixinDeclaration):
@@ -76,7 +76,7 @@ void test()
 }
 ------
 
-        Mixins can be parameterized:
+        $(P Mixins can be parameterized:)
 
 ------
 mixin template Foo(T)
@@ -87,7 +87,7 @@ mixin template Foo(T)
 $(CODE_HIGHLIGHT mixin Foo!(int);)           // create x of type int
 ------
 
-        Mixins can add virtual functions to a class:
+        $(P Mixins can add virtual functions to a class:)
 
 ------
 mixin template Foo()
@@ -115,8 +115,8 @@ void test()
 }
 ------
 
-        Mixins are evaluated in the scope of where they appear, not the scope
-        of the template declaration:
+        $(P Mixins are evaluated in the scope of where they appear, not the scope
+        of the template declaration:)
 
 ------
 int y = 3;
@@ -134,7 +134,7 @@ void test()
 }
 ------
 
-        Mixins can parameterize symbols using alias parameters:
+        $(P Mixins can parameterize symbols using alias parameters:)
 
 ------
 mixin template Foo(alias b)
@@ -150,10 +150,10 @@ void test()
 }
 ------
 
-        This example uses a mixin to implement a generic Duff's device
+        $(P This example uses a mixin to implement a generic Duff's device
         for an arbitrary statement (in this case, the arbitrary statement
         is in bold). A nested function is generated as well as a
-        delegate literal, these can be inlined by the compiler:
+        delegate literal, these can be inlined by the compiler:)
 
 ------
 mixin template duffs_device(alias id1, alias id2, alias s)
@@ -194,11 +194,11 @@ void test()
 
 $(H2 $(LNAME2 mixin_scope, Mixin Scope))
 
-        The declarations in a mixin are placed in a nested scope and then
+        $(P The declarations in a mixin are placed in a nested scope and then
 	$(SINGLEQUOTE imported) into the surrounding
         scope. If the name of a declaration in a mixin is the same
         as a declaration in the surrounding scope, the surrounding declaration
-        overrides the mixin one:
+        overrides the mixin one:)
 
 ------
 int x = 3;
@@ -219,9 +219,9 @@ void test()
 }
 ------
 
-        If two different mixins are put in the same scope, and each
+        $(P If two different mixins are put in the same scope, and each
         define a declaration with the same name, there is an ambiguity
-        error when the declaration is referenced:
+        error when the declaration is referenced:)
 
 ------
 mixin template Foo()
@@ -335,6 +335,7 @@ $(SPEC_SUBNAV_PREV_NEXT template, Templates, contracts, Contract Programming)
 )
 
 Macros:
+        CHAPTER=22
         TITLE=Template Mixins
         TEMPLATEPARAMETERS=$(GLINK2 template, TemplateParameters)
         TEMPLATEARGUMENTS=$(GLINK2 template, TemplateArguments)
