@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/parseStc.d(11): Error: found ';' when expecting ')'
-fail_compilation/parseStc.d(11): Error: found ')' when expecting ';' following statement
+fail_compilation/parseStc.d(11): Error: found `;` when expecting `)`
+fail_compilation/parseStc.d(11): Error: found `)` when expecting `;` following statement
 fail_compilation/parseStc.d(12): Error: redundant attribute `const`
 ---
 */

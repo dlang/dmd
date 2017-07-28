@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/parse14745.d(11): Error: function literal cannot be immutable
-fail_compilation/parse14745.d(12): Error: function literal cannot be const
+fail_compilation/parse14745.d(11): Error: function literal cannot be `immutable`
+fail_compilation/parse14745.d(12): Error: function literal cannot be `const`
 ---
 */
 
