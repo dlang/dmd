@@ -314,7 +314,7 @@ class TypeInfo
     @property immutable(void)* rtInfo() nothrow pure const @safe @nogc { return null; }
 }
 
-class TypeInfo_Typedef : TypeInfo
+class TypeInfo_Enum : TypeInfo
 {
     override string toString() const { return name; }
 
@@ -322,7 +322,7 @@ class TypeInfo_Typedef : TypeInfo
     {
         if (this is o)
             return true;
-        auto c = cast(const TypeInfo_Typedef)o;
+        auto c = cast(const TypeInfo_Enum)o;
         return c && this.name == c.name &&
                     this.base == c.base;
     }
@@ -361,10 +361,6 @@ unittest // issue 12233
     assert(TypeInfo.init is null);
 }
 
-class TypeInfo_Enum : TypeInfo_Typedef
-{
-
-}
 
 // Please make sure to keep this in sync with TypeInfo_P (src/rt/typeinfo/ti_ptr.d)
 class TypeInfo_Pointer : TypeInfo
@@ -3643,7 +3639,7 @@ private inout(TypeInfo) getElement(inout TypeInfo value) @trusted pure nothrow
     {
         if(auto qualified = cast(TypeInfo_Const) element)
             element = qualified.base;
-        else if(auto redefined = cast(TypeInfo_Typedef) element) // typedef & enum
+        else if(auto redefined = cast(TypeInfo_Enum) element)
             element = redefined.base;
         else if(auto staticArray = cast(TypeInfo_StaticArray) element)
             element = staticArray.value;
