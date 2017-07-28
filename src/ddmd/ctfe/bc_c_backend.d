@@ -40,6 +40,7 @@ struct C_BCGen
         uint jmpCount;
         ubyte parameterCount;
         ushort temporaryCount;
+        ushort localCount;
         uint labelCount;
         bool sameLabel;
         StackAddr sp = StackAddr(4);
@@ -219,6 +220,10 @@ pure:
         {
             return "stack[stackOffset+" ~ to!string(v.stackAddr) ~ "]";
         }
+        else if (v.vType == BCValueType.Local)
+        {
+            return "stack[stackOffset+" ~ to!string(v.stackAddr) ~ "]";
+        }
         else if (v.vType == BCValueType.Immediate)
         {
             return to!string(v.imm32.imm32);
@@ -304,6 +309,14 @@ pure:
         sp += 4;
         return p;
     }
+
+    BCValue genLocal(BCType bct, string name = null)
+    {
+        auto l = BCValue(StackAddr(sp), bct, localCount, name);
+        sp += 4;
+        return l;
+    }
+
 
     void emitArithInstruction(CInst inst, BCValue lhs, BCValue rhs)
     {
@@ -392,6 +405,15 @@ pure:
         },
             toCode(size), toCode(heapPtr), toCode(size));
     }
+
+    void MemCpy(BCValue target, BCValue source, BCValue size)
+    {
+        code ~= "assert(" ~ toCode(target) ~ ");\n";
+        code ~= "assert(" ~ toCode(source) ~ ");\n";
+        code ~= "if (" ~ toCode(source) ~  " != " ~ toCode(target) ~ ")\n";
+        code ~= "\theapPtr._heap[" ~ toCode(target) ~ " .. " ~ toCode(target) ~ " + " ~ toCode(size) ~
+            "] = heapPtr._heap[" ~ toCode(source) ~ " .. " ~ toCode(source) ~ " + " ~ toCode(size) ~"];\n\n";
+    }
     void Assert(BCValue val, BCValue error)
     {
         sameLabel = false;
@@ -408,8 +430,24 @@ pure:
     void Store32(BCValue to, BCValue from)
     {
         sameLabel = false;
-        code ~= "\theapPtr._heap[" ~ toCode(to) ~ "] = " ~ toCode(from) ~ ";\n";
+        code ~= "\theapPtr._heap[" ~ toCode(to) ~ "] = (" ~ toCode(from) ~ " & uint.max);\n";
     }
+
+    void Load64(BCValue to, BCValue from)
+    {
+        sameLabel = false;
+        //assert(to.vType == BCValueType.StackValue);
+        code ~= "\t" ~ toCode(to) ~ " |= heapPtr._heap[" ~ toCode(from) ~ "];\n";
+        code ~= "\t" ~ toCode(to) ~ " |= (heapPtr._heap[" ~ toCode(from) ~ " + 4] >> 32);\n";
+    }
+    
+    void Store64(BCValue to, BCValue from)
+    {
+        sameLabel = false;
+        code ~= "\theapPtr._heap[" ~ toCode(to) ~ "] = (" ~ toCode(from) ~ " & uint.max);\n";
+        code ~= "\theapPtr._heap[" ~ toCode(to) ~ " + 4] = (" ~ toCode(from) ~ " >> 32);\n";
+    }
+
 
     void emitFlg(BCValue result)
     {
@@ -667,9 +705,25 @@ pure:
             a => "imm32(" ~ toCode(a) ~ ")").join(", ") ~ "], heapPtr).imm32;\n";
     }
 
+    void IToF32(BCValue target, BCValue source)
+    {
+        assert(0);
+    }
+
+
+    void IToF64(BCValue target, BCValue source)
+    {
+        assert(0);
+    }
+
     void Comment(string comment)
     {
         code ~= "// " ~ comment ~ "\n";
+    }
+
+    void Line(uint line)
+    {
+        code ~= "/***** Line (" ~ to!string(line) ~ ") *****/\n";
     }
 
    /* void CallBuiltin(BCValue result, BCBuiltin fn, BCValue[] args)
@@ -688,9 +742,8 @@ pure:
         //emitLongInst(LongInst64(LongInst.BuiltinCall, StackAddr(cast(short)fn), StackAddr(cast(short)args.length)));
     } */
 
-    void Cat(BCValue result, BCValue lhs, BCValue rhs, const uint size)
-    {
-    }
+
+
 }
 static assert(ensureIsBCGen!C_BCGen);
 int interpret(const C_BCGen gen)(BCValue[] args)
