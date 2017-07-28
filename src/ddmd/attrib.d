@@ -399,14 +399,15 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
     override void addMember(Scope* sc, ScopeDsymbol sds)
     {
         Dsymbols* d = include(sc, sds);
-        if (d)
+        if (d && stc & STClocal)
         {
             Scope* sc2 = newScope(sc);
             for (size_t i = 0; i < d.dim; i++)
             {
                 Dsymbol s = (*d)[i];
                 //printf("\taddMember %s to %s\n", s.toChars(), sds.toChars());
-                // STClocal needs to be attached before the member is added to the scope (because it influences the parent symbol)
+                // STClocal needs to be attached before the member is added to
+                // the scope (because it influences the parent symbol)
                 if (auto decl = s.isDeclaration())
                 {
                     decl.storage_class |= stc & STClocal;
