@@ -51,7 +51,7 @@ $(DIVC page-contents quickindex,
 )
 )
 
-$(H4 $(LNAME2 grammar, Grammar))
+$(H2 $(LNAME2 grammar, Grammar))
 
 $(GRAMMAR
 $(GNAME FuncDeclaration):
@@ -143,7 +143,7 @@ $(GNAME BodyStatement):
     $(D body) $(GLINK2 statement, BlockStatement)
 )
 
-$(H4 $(LNAME2 contracts, Contracts))
+$(H2 $(LNAME2 contracts, Contracts))
 
     $(P The $(D in) and $(D out) blocks of a function declaration specify
     the pre- and post-conditions of the function. They are used in
@@ -153,13 +153,13 @@ $(H4 $(LNAME2 contracts, Contracts))
     and/or return values.
     )
 
-$(H4 $(LNAME2 function-return-values, Function Return Values))
+$(H2 $(LNAME2 function-return-values, Function Return Values))
 
         $(P Function return values are considered to be rvalues.
         This means they cannot be passed by reference to other functions.
         )
 
-$(H4 $(LNAME2 function-declarations, Functions Without Bodies))
+$(H2 $(LNAME2 function-declarations, Functions Without Bodies))
 
     $(P Functions without bodies:)
 
@@ -173,7 +173,7 @@ int foo();
     of it, and the implementation may be in another language such as C, assembler, etc.
     )
 
-$(H4 $(LNAME2 pure-functions, Pure Functions))
+$(H2 $(LNAME2 pure-functions, Pure Functions))
 
         $(P Pure functions are functions that cannot access global/static
         mutable state, except if their arguments contain pointers to such. This
@@ -277,7 +277,7 @@ pure List* make(int a, int b)
 
     $(P Pure destructors do not benefit of special elision.)
 
-$(H4 $(LNAME2 nothrow-functions, Nothrow Functions))
+$(H2 $(LNAME2 nothrow-functions, Nothrow Functions))
 
         $(P Nothrow functions can only throw exceptions derived
         from class $(I Error).
@@ -285,7 +285,7 @@ $(H4 $(LNAME2 nothrow-functions, Nothrow Functions))
 
         $(P Nothrow functions are covariant with throwing ones.)
 
-$(H4 $(LNAME2 ref-functions, Ref Functions))
+$(H2 $(LNAME2 ref-functions, Ref Functions))
 
         $(P Ref functions allow functions to return by reference.
         This is analogous to ref function parameters.
@@ -301,7 +301,7 @@ ref int foo()
 foo() = 3;  // reference returns can be lvalues
 ---
 
-$(H4 $(LNAME2 auto-functions, Auto Functions))
+$(H2 $(LNAME2 auto-functions, Auto Functions))
 
     $(P Auto functions have their return type inferred from any
         $(GLINK2 statement, ReturnStatement)s in the function body.
@@ -322,7 +322,7 @@ $(H4 $(LNAME2 auto-functions, Auto Functions))
         auto foo(int x) { return x; return 2.5; }  // inferred to be double
         ---
 
-$(H4 $(LNAME2 auto-ref-functions, Auto Ref Functions))
+$(H2 $(LNAME2 auto-ref-functions, Auto Ref Functions))
 
     $(P Auto ref functions infer their return type just as
         $(RELATIVE_LINK2 auto-functions, auto functions) do.
@@ -359,7 +359,7 @@ $(H4 $(LNAME2 auto-ref-functions, Auto Ref Functions))
         auto ref int foo(double x) { return x; }   // error, cannot convert double to int
         ---
 
-$(H4 $(LNAME2 inout-functions, Inout Functions))
+$(H2 $(LNAME2 inout-functions, Inout Functions))
 
     $(P Functions that deal with mutable, const, or immutable types with
         equanimity often need to transmit their type to the return value:)
@@ -461,7 +461,7 @@ $(H4 $(LNAME2 inout-functions, Inout Functions))
     )
 
 
-$(H4 $(LNAME2 optional-parenthesis, Optional Parentheses))
+$(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
 
     $(P If a function call passes no explicit argument, i.e. it would syntactically use $(D ()), then these parentheses
     may be omitted, similar to a getter invocation of a
@@ -540,7 +540,7 @@ $(H4 $(LNAME2 optional-parenthesis, Optional Parentheses))
     }
     ---
 
-$(H4 $(LNAME2 property-functions, Property Functions))
+$(H2 $(LNAME2 property-functions, Property Functions))
 
     $(P Properties are functions that can be syntactically treated
     as if they were fields or variables. Properties can be read from or written to.
@@ -614,7 +614,7 @@ $(H4 $(LNAME2 property-functions, Property Functions))
         )
 
 
-$(H4 $(LNAME2 virtual-functions, Virtual Functions))
+$(H2 $(LNAME2 virtual-functions, Virtual Functions))
 
         $(P Virtual functions are functions that are called indirectly through a
         function pointer table, called a vtbl[], rather than directly. All
@@ -736,7 +736,7 @@ void main()
 }
 ------
 
-$(H4 $(LNAME2 function-inheritance, Function Inheritance and Overriding))
+$(H3 $(LNAME2 function-inheritance, Function Inheritance and Overriding))
 
         $(P A function in a derived class with the same name and parameter
         types as a function in a base class overrides that function:)
@@ -939,7 +939,7 @@ void main()
 }
 ------
 
-$(H4 $(LNAME2 inline-functions, Inline Functions))
+$(H2 $(LNAME2 inline-functions, Inline Functions))
 
         $(P The compiler makes the decision whether to inline a function or not.
         This decision may be controlled by $(LINK2 pragma.html#inline, `pragma(inline)`),
@@ -949,7 +949,7 @@ $(H4 $(LNAME2 inline-functions, Inline Functions))
         when used in its declaration scope.
         )
 
-$(H3 $(LNAME2 function-overloading, Function Overloading))
+$(H2 $(LNAME2 function-overloading, Function Overloading))
 
         $(P Functions are overloaded based on how well the arguments
         to a function can match up with the parameters.
@@ -1087,7 +1087,7 @@ void bar(C c)
 }
 ---
 
-$(H4 $(LNAME2 parameters, Function Parameters))
+$(H2 $(LNAME2 parameters, Function Parameters))
 
         $(P Parameter storage classes are $(D in), $(D out),
         $(D ref), $(D lazy), $(D const), $(D immutable), $(D shared),
@@ -1195,7 +1195,7 @@ $(CONSOLE
         $(P A $(D lazy) parameter of type $(D void) can accept an argument
         of any type.)
 
-$(H4 $(LNAME2 function-default-args, Function Default Arguments))
+$(H3 $(LNAME2 function-default-args, Function Default Arguments))
 
         $(P Function parameter declarations can have default values:)
 
@@ -1214,7 +1214,7 @@ foo(4);   // same as foo(4, 3);
         parameters must also have default values.
         )
 
-$(H4 $(LNAME2 return-ref-parameters, Return Ref Parameters))
+$(H3 $(LNAME2 return-ref-parameters, Return Ref Parameters))
 
         $(P Note: The `return` attribute is currently only enforced by `dmd`
         when the `-dip25` switch is passed.
@@ -1584,7 +1584,7 @@ foo(1, 3+x, dg, cast(int delegate())null);
 foo( { return 1; }, { return 3+x; }, dg, null );
 ---
 
-$(H3 $(LEGACY_LNAME2 Local Variables, local-variables, Local Variables))
+$(H2 $(LEGACY_LNAME2 Local Variables, local-variables, Local Variables))
 
         $(P It is an error to use a local variable without first assigning it a
         value. The implementation may not always be able to detect these
@@ -1663,7 +1663,7 @@ void main()
 }
 ---
 
-$(H3 $(LNAME2 nested, Nested Functions))
+$(H2 $(LNAME2 nested, Nested Functions))
 
         $(P Functions may be nested within other functions:)
 
@@ -1896,7 +1896,7 @@ void test()
 
     $(P Nested functions cannot be overloaded.)
 
-$(H4 $(LNAME2 closures, Delegates, Function Pointers, and  Closures))
+$(H2 $(LNAME2 closures, Delegates, Function Pointers, and  Closures))
 
         $(P A function pointer can point to a static nested function:)
 
@@ -2017,12 +2017,12 @@ void test()
         into a common syntax and be interchangeable with each other.
         )
 
-$(H4 $(LNAME2 anonymous, Anonymous Functions and Anonymous Delegates))
+$(H3 $(LNAME2 anonymous, Anonymous Functions and Anonymous Delegates))
 
         $(P See $(GLINK2 expression, FunctionLiteral)s.
         )
 
-$(H3 $(LNAME2 main, $(D main()) Function))
+$(H2 $(LNAME2 main, $(D main()) Function))
 
         $(P For console programs, $(D main()) serves as the entry point.
         It gets called after all the module initializers are run, and
@@ -2038,7 +2038,7 @@ int main() { ... }
 int main(string[] args) { ... }
 ----
 
-$(H3 $(LNAME2 function-templates, Function Templates))
+$(H2 $(LNAME2 function-templates, Function Templates))
 
     $(P Template functions are useful for avoiding code duplication -
     instead of writing several copies of a function, each with a
@@ -2075,7 +2075,7 @@ void main()
     $(P For more information, see
     $(DDSUBLINK spec/template, function-templates, function templates).)
 
-$(H3 $(LNAME2 interpretation, Compile Time Function Execution (CTFE)))
+$(H2 $(LNAME2 interpretation, Compile Time Function Execution (CTFE)))
 
     $(P Functions which are both portable and free of side-effects can be
     executed at compile time. This is useful when constant folding
@@ -2232,7 +2232,7 @@ void foo()
     $(P These are the same kinds of scenarios where different
     optimization settings affect the results.)
 
-$(H4 $(LNAME2 string-mixins, String Mixins and Compile Time Function Execution))
+$(H3 $(LNAME2 string-mixins, String Mixins and Compile Time Function Execution))
 
         $(P Any functions that execute at compile time must also
         be executable at run time. The compile time evaluation of
@@ -2253,7 +2253,7 @@ const int x = foo("1");
         generated. A function template would be the appropriate
         method to implement this sort of thing.)
 
-$(H3 $(LNAME2 function-safety, Function Safety))
+$(H2 $(LNAME2 function-safety, Function Safety))
 
         $(P $(I Safe functions) are functions that are statically checked
         to exhibit no possibility of
@@ -2262,7 +2262,7 @@ $(H3 $(LNAME2 function-safety, Function Safety))
         attacks.
         )
 
-$(H4 $(LNAME2 safe-functions, Safe Functions))
+$(H3 $(LNAME2 safe-functions, Safe Functions))
 
         $(P Safe functions are marked with the $(CODE @safe) attribute.)
 
@@ -2297,7 +2297,7 @@ $(H4 $(LNAME2 safe-functions, Safe Functions))
         so they can be corrected.
         )
 
-$(H4 $(LNAME2 trusted-functions, Trusted Functions))
+$(H3 $(LNAME2 trusted-functions, Trusted Functions))
 
         $(P Trusted functions are marked with the $(CODE @trusted) attribute.)
 
@@ -2312,7 +2312,7 @@ $(H4 $(LNAME2 trusted-functions, Trusted Functions))
 
         $(P Trusted functions are covariant with safe or system functions.)
 
-$(H4 $(LNAME2 system-functions, System Functions))
+$(H3 $(LNAME2 system-functions, System Functions))
 
         $(P System functions are functions not marked with $(CODE @safe) or
         $(CODE @trusted)
@@ -2327,7 +2327,7 @@ $(H4 $(LNAME2 system-functions, System Functions))
         )
 
 
-$(H3 $(LNAME2 function-attribute-inference, Function Attribute Inference))
+$(H2 $(LNAME2 function-attribute-inference, Function Attribute Inference))
 
         $(P $(GLINK2 expression, FunctionLiteral)s and
         $(DDSUBLINK spec/template, function-templates, function template)s, since their function bodies
@@ -2355,7 +2355,7 @@ $(H3 $(LNAME2 function-attribute-inference, Function Attribute Inference))
         the function is inferred as not having those attributes.
         )
 
-$(H3 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
+$(H2 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
 
         $(P A free function can be called with a syntax that looks as if the function
         were a member function of its first parameter type.
@@ -2467,5 +2467,6 @@ $(SPEC_SUBNAV_PREV_NEXT const3, Type Qualifiers, operatoroverloading, Operator O
 )
 
 Macros:
+        CHAPTER=19
         TITLE=Functions
         ASSIGNEXPRESSION=$(GLINK2 expression, AssignExpression)
