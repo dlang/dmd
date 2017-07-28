@@ -6089,7 +6089,7 @@ final class Parser(AST) : Lexer
                     break;
 
                 case TOKeof:
-                    error("found EOF instead of initializer");
+                    error("found end of file instead of initializer");
                     break;
 
                 default:
