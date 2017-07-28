@@ -751,10 +751,17 @@ pure:
         }
         else if (rhs.vType == BCValueType.Immediate)
         {
-            //Change the instruction into the corrosponding Imm Instruction;
-            inst += (LongInst.ImmAdd - LongInst.Add);
-            emitLongInst(inst, lhs.stackAddr, rhs.imm32);
-            return ;
+            if  (basicTypeSize(rhs.type) <= 4)
+            {
+                //Change the instruction into the corrosponding Imm Instruction;
+                inst += (LongInst.ImmAdd - LongInst.Add);
+                emitLongInst(inst, lhs.stackAddr, rhs.imm32);
+                return ;
+            }
+            else
+            {
+                rhs = pushOntoStack(rhs);
+            }
         }
 
         if (isStackValueOrParameter(rhs))
@@ -1782,7 +1789,7 @@ __gshared int[ushort.max * 2] byteCodeCache;
 
 __gshared int byteCodeCacheTop = 4;
 
-enum DebugCmd
+enum DebugCmdEnum
 {
     Invalid,
     Nothing,
@@ -1801,7 +1808,7 @@ enum DebugCmd
 
 struct DebugCommand
 {
-    DebugCmd order;
+    DebugCmdEnum order;
     uint v1;
 }
 
@@ -1811,7 +1818,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
     BCValue* ev1 = null, BCValue* ev2 = null, BCValue* ev3 = null,
     BCValue* ev4 = null, const RE* errors = null,
     long[] stackPtr = null, const string[ushort] stackMap = null,
-/+    DebugCommand function() reciveCommand = {return DebugCommand(DebugCmd.Nothing);},
+/+    DebugCommand function() reciveCommand = {return DebugCommand(DebugCmdEnum.Nothing);},
     BCValue* debugOutput = null,+/ uint stackOffset = 0)  @trusted
 {
     __gshared static uint callDepth;
@@ -1905,9 +1912,9 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 if (!__ctfe) writeln("Order: ", to!string(command.order));
             }
 
-            Switch : final switch(command.order) with(DebugCmd)
+            Switch : final switch(command.order) with(DebugCmdEnum)
             {
-                case Invalid : {assert(0, "Invalid DebugCmd");} break;
+                case Invalid : {assert(0, "Invalid DebugCmdEnum");} break;
                 case SetBreakpoint :
                 {
                     auto bl = command.v1;
@@ -1944,7 +1951,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 } break;
             }
 
-        } while (paused || command.order != DebugCmd.Nothing);
+        } while (paused || command.order != DebugCmdEnum.Nothing);
 +/
         import std.range;
 
