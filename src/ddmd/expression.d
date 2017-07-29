@@ -4073,6 +4073,9 @@ extern (C++) final class DsymbolExp : Expression
         }
         if (auto v = s.isVarDeclaration())
         {
+            if (v._scope)
+                v.semantic(null);
+
             //printf("Identifier '%s' is a variable, type '%s'\n", s.toChars(), v.type.toChars());
             if (!v.type ||                  // during variable type inference
                 !v.type.deco && v.inuse)    // during variable type semantic

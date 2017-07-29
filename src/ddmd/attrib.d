@@ -148,21 +148,29 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         }
     }
 
+    bool ininc;
+    size_t nextMember;
     override void importAll(Scope* sc)
     {
+        if (semanticRun >= PASSmembersdone || ininc)
+            return;
+        ininc = true;
         Dsymbols* d = include(sc, null);
+        ininc = false;
         //printf("\tAttribDeclaration::importAll '%s', d = %p\n", toChars(), d);
         if (d)
         {
             Scope* sc2 = newScope(sc);
-            for (size_t i = 0; i < d.dim; i++)
+            while (nextMember < d.dim)
             {
-                Dsymbol s = (*d)[i];
+                auto s = (*d)[nextMember];
                 s.importAll(sc2);
+                ++nextMember;
             }
             if (sc2 != sc)
                 sc2.pop();
         }
+        semanticRun = PASSmembersdone;
     }
 
     override void semantic(Scope* sc)

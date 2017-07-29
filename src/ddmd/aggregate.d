@@ -246,8 +246,8 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
             auto ad = cast(AggregateDeclaration)param;
 
-            if (v.semanticRun < PASSsemanticdone)
-                v.semantic(null);
+            if (v.semanticRun < PASSmembersdone)
+                v.importAll(null);
             // Return in case a recursive determineFields triggered by v.semantic already finished
             if (ad.sizeok != SIZEOKnone)
                 return 1;
@@ -257,7 +257,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
             if (v.storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCctfe | STCtemplateparameter)) // FWDREF FIXME: we should skip static variables, but part of semantic should have run to know that
                 return 0;
-            if (!v.isField() || v.semanticRun < PASSsemanticdone)
+            if (!v.isField() || v.semanticRun < PASSmembersdone)
                 return 1;   // unresolvable forward reference
 
             ad.fields.push(v);

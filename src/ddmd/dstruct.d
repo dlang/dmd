@@ -278,17 +278,20 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             sc = _scope;
         assert(sc);
 
+        assert(symtab || semanticRun < PASSmembers);
+        semanticRun = PASSmembers;
+
         auto sc2 = newScope(sc);
 
-        if (!parent) // FWDREF WARNING: shouldn't this be done once?
+        if (!symtab)
         {
-            assert(sc.parent && sc.func);
-            parent = sc.parent;
-        }
-        assert(parent && !isAnonymous());
+            if (!parent)
+            {
+                assert(sc.parent && sc.func);
+                parent = sc.parent;
+            }
+            assert(parent && !isAnonymous());
 
-        if (semanticRun < PASSmembers)
-        {
             protection = sc.protection;
 
             alignment = sc.alignment();
@@ -306,16 +309,14 @@ extern (C++) class StructDeclaration : AggregateDeclaration
                 semanticRun = PASSmembersdone;
                 return;
             }
-            if (!symtab)
-            {
-                symtab = new DsymbolTable();
 
-                for (size_t i = 0; i < members.dim; i++)
-                {
-                    auto s = (*members)[i];
-                    //printf("adding member '%s' to '%s'\n", s.toChars(), this.toChars());
-                    s.addMember(sc, this);
-                }
+            symtab = new DsymbolTable();
+
+            for (size_t i = 0; i < members.dim; i++)
+            {
+                auto s = (*members)[i];
+                //printf("adding member '%s' to '%s'\n", s.toChars(), this.toChars());
+                s.addMember(sc, this);
             }
 
             /* Set scope so if there are forward references, we still might be able to

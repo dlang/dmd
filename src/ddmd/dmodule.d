@@ -1165,15 +1165,15 @@ extern (C++) final class Module : Package
 
     override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
+        importAll(_scope);
+
         /* Since modules can be circularly referenced,
          * need to stop infinite recursive searches.
          * This is done with the cache.
          */
         //printf("%s Module.search('%s', flags = x%x) insearch = %d\n", toChars(), ident.toChars(), flags, insearch);
-        if (insearch)
+        if (insearch) // FWDREF FIXME!: this should go
             return null;
-
-        importAll(_scope);
 
         /* Qualified module searches always search their imports,
          * even if SearchLocalsOnly

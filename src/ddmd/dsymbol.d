@@ -1315,7 +1315,11 @@ public:
         //printf("%s.ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident.toChars(), flags);
         //if (strcmp(ident.toChars(),"c") == 0) *(char*)0=0;
 
-        if (_scope)
+//         if (!(flags & 0x100))
+//             if (auto result = search(loc, ident, flags | 0x100))
+//                 return result;
+
+        if (_scope && !(flags & 0x100))
             importAll(_scope);
 
         // Look in symbols declared in this module
@@ -1732,8 +1736,9 @@ public:
         semanticRun = PASSmembers;
         while (nextMember < members.dim)
         {
-            auto s = (*members)[nextMember++];
+            auto s = (*members)[nextMember];
             s.importAll(sc);
+            ++nextMember;
         }
         semanticRun = PASSmembersdone;
     }

@@ -1090,13 +1090,15 @@ extern (C++) class VarDeclaration : Declaration
 
     override void importAll(Scope* sc)
     {
-        if (semanticRun >= PASSmembersdone)
+        if (semanticRun >= PASSmembers)
             return;
 
         if (_scope)
             sc = _scope;
 
         assert(sc);
+
+        semanticRun = PASSmembers;
 
         /* Pick up storage classes from context, but except synchronized,
          * override, abstract, and final.
@@ -1111,6 +1113,144 @@ extern (C++) class VarDeclaration : Declaration
         if (ad)
             storage_class |= ad.storage_class & STC_TYPECTOR;
 
+        linkage = sc.linkage;
+        this.parent = sc.parent;
+        //printf("this = %p, parent = %p, '%s'\n", this, parent, parent.toChars());
+        protection = sc.protection;
+
+        /* If scope's alignment is the default, use the type's alignment,
+         * otherwise the scope overrrides.
+         */
+        alignment = sc.alignment();
+
+        //printf("sc.stc = %x\n", sc.stc);
+        //printf("storage_class = x%x\n", storage_class);
+
+        Dsymbol parent = toParent();
+
+        if (storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe))
+        {
+        }
+        else
+        {
+            AggregateDeclaration aad = parent.isAggregateDeclaration();
+            if (aad)
+            {
+                storage_class |= STCfield;
+// // // // // // //
+        if (!type)
+        {
+            inuse++;
+
+            // Infering the type requires running semantic,
+            // so mark the scope as ctfe if required
+            bool needctfe = (storage_class & (STCmanifest | STCstatic)) != 0;
+            if (needctfe)
+                sc = sc.startCTFE();
+
+            //printf("inferring type for %s with init %s\n", toChars(), _init.toChars());
+            _init = _init.inferType(sc);
+            type = _init.toExpression().type;
+            if (needctfe)
+                sc = sc.endCTFE();
+
+            inuse--;
+            inferred = true;
+
+            /* This is a kludge to support the existing syntax for RAII
+             * declarations.
+             */
+            storage_class &= ~STCauto;
+            originalType = type.syntaxCopy();
+        }
+        else
+        {
+            if (!originalType)
+                originalType = type.syntaxCopy();
+
+            /* Prefix function attributes of variable declaration can affect
+             * its type:
+             *      pure nothrow void function() fp;
+             *      static assert(is(typeof(fp) == void function() pure nothrow));
+             */
+            Scope* sc2 = sc.push();
+            sc2.stc |= (storage_class & STC_FUNCATTR);
+            inuse++;
+            type = type.semantic(loc, sc2);
+            inuse--;
+            sc2.pop();
+        }
+        if (alignment == STRUCTALIGN_DEFAULT)
+            alignment = type.alignment(); // use type's alignment
+        Type tb = type.toBasetype();
+        Type tbn = tb.baseElemOf();
+// // // // // // // // // //
+                if (tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
+                {
+                    if (!isThisDeclaration() && !_init)
+                        aad.noDefaultCtor = true;
+                }
+            }
+        }
+
+        semanticRun = PASSmembersdone;
+    }
+
+    override void semantic(Scope* sc)
+    {
+        version (none)
+        {
+            printf("VarDeclaration::semantic('%s', parent = '%s') sem = %d\n", toChars(), sc.parent ? sc.parent.toChars() : null, sem);
+            printf(" type = %s\n", type ? type.toChars() : "null");
+            printf(" stc = x%x\n", sc.stc);
+            printf(" storage_class = x%llx\n", storage_class);
+            printf("linkage = %d\n", sc.linkage);
+            //if (strcmp(toChars(), "mul") == 0) assert(0);
+        }
+        //if (semanticRun > PASSinit)
+        //    return;
+        //semanticRun = PSSsemantic;
+
+        importAll(sc);
+
+        if (semanticRun >= PASSsemanticdone)
+            return;
+
+        if (semanticRun < PASSmembersdone)
+        {
+            error("circular referencing"); // FWDREF
+            return;
+        }
+
+        Scope* scx = null;
+        if (_scope)
+        {
+            sc = _scope;
+            scx = sc;
+            _scope = null;
+        }
+
+        if (!sc)
+            return;
+
+        semanticRun = PASSsemantic;
+
+        AggregateDeclaration ad = isThis();
+
+        if (global.params.vcomplex)
+            type.checkComplexTransition(loc);
+
+        // Calculate type size + safety checks
+        if (sc.func && !sc.intypeof)
+        {
+            if (storage_class & STCgshared && !isMember())
+            {
+                if (sc.func.setUnsafe())
+                    error("__gshared not allowed in safe functions; use shared");
+            }
+        }
+
+        // FWDREF ===== importAll?
         /* If auto type inference, do the inference
          */
         if (!type)
@@ -1159,19 +1299,10 @@ extern (C++) class VarDeclaration : Declaration
         if (type.ty == Terror)
             errors = true;
 
-        type.checkDeprecated(loc, sc);
-        linkage = sc.linkage;
-        this.parent = sc.parent;
-        //printf("this = %p, parent = %p, '%s'\n", this, parent, parent.toChars());
-        protection = sc.protection;
-
-        /* If scope's alignment is the default, use the type's alignment,
-         * otherwise the scope overrrides.
-         */
-        alignment = sc.alignment();
         if (alignment == STRUCTALIGN_DEFAULT)
             alignment = type.alignment(); // use type's alignment
 
+        type.checkDeprecated(loc, sc);
         //printf("sc.stc = %x\n", sc.stc);
         //printf("storage_class = x%x\n", storage_class);
 
@@ -1317,7 +1448,7 @@ extern (C++) class VarDeclaration : Declaration
                     storage_class |= arg.storageClass;
                 auto v = new VarDeclaration(loc, arg.type, id, ti, storage_class);
                 //printf("declaring field %s of type %s\n", v.toChars(), v.type.toChars());
-                v.semantic(sc);
+                v.importAll(sc);
 
                 if (sc.scopesym)
                 {
@@ -1337,79 +1468,12 @@ extern (C++) class VarDeclaration : Declaration
             semanticRun = PASSsemanticdone;
             return;
         }
+        // FWDREF ===== importAll?
 
-        if (storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe))
-        {
-        }
-        else
-        {
-            AggregateDeclaration aad = parent.isAggregateDeclaration();
-            if (aad)
-            {
-                storage_class |= STCfield;
-                if (tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
-                {
-                    if (!isThisDeclaration() && !_init)
-                        aad.noDefaultCtor = true;
-                }
-            }
-        }
-
-        semanticRun = PASSmembersdone;
-    }
-
-    override void semantic(Scope* sc)
-    {
-        version (none)
-        {
-            printf("VarDeclaration::semantic('%s', parent = '%s') sem = %d\n", toChars(), sc.parent ? sc.parent.toChars() : null, sem);
-            printf(" type = %s\n", type ? type.toChars() : "null");
-            printf(" stc = x%x\n", sc.stc);
-            printf(" storage_class = x%llx\n", storage_class);
-            printf("linkage = %d\n", sc.linkage);
-            //if (strcmp(toChars(), "mul") == 0) assert(0);
-        }
-        //if (semanticRun > PASSinit)
-        //    return;
-        //semanticRun = PSSsemantic;
-
-        if (semanticRun >= PASSsemanticdone)
-            return;
-
-        importAll(sc);
-
-        Scope* scx = null;
-        if (_scope)
-        {
-            sc = _scope;
-            scx = sc;
-            _scope = null;
-        }
-
-        if (!sc)
-            return;
-
-        semanticRun = PASSsemantic;
-
-        AggregateDeclaration ad = isThis();
-
-        if (global.params.vcomplex)
-            type.checkComplexTransition(loc);
-
-        // Calculate type size + safety checks
-        if (sc.func && !sc.intypeof)
-        {
-            if (storage_class & STCgshared && !isMember())
-            {
-                if (sc.func.setUnsafe())
-                    error("__gshared not allowed in safe functions; use shared");
-            }
-        }
-
-        Dsymbol parent = toParent();
-
-        Type tb = type.toBasetype();
-        Type tbn = tb.baseElemOf();
+// // // //         Dsymbol parent = toParent();
+// // // //
+// // // //         Type tb = type.toBasetype();
+// // // //         Type tbn = tb.baseElemOf();
         if (tb.ty == Tvoid && !(storage_class & STClazy))
         {
             if (inferred)
@@ -2452,7 +2516,7 @@ extern (C++) class VarDeclaration : Declaration
     {
         //printf("VarDeclaration::toAlias('%s', this = %p, aliassym = %p)\n", toChars(), this, aliassym);
         if ((!type || !type.deco) && _scope)
-            semantic(_scope);
+            importAll(_scope);
 
         assert(this != aliassym);
         Dsymbol s = aliassym ? aliassym.toAlias() : this;

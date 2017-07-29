@@ -431,6 +431,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return sc2;
     }
 
+    uint nextBase;
     override void importAll(Scope* sc)
     {
         if (semanticRun >= PASSmembersdone)
@@ -440,8 +441,32 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             sc = _scope;
         assert(sc);
 
+        /* https://issues.dlang.org/show_bug.cgi?id=12078
+         * https://issues.dlang.org/show_bug.cgi?id=12143
+         * https://issues.dlang.org/show_bug.cgi?id=15733
+         * While resolving base classes and interfaces, a base may refer
+         * the member of this derived class. In that time, if all bases of
+         * this class can  be determined, we can go forward the semantc process
+         * beyond the Lancestorsdone. To do the recursive semantic analysis,
+         * temporarily set and unset `_scope` around exp().
+         */
+        T resolveBase(T)(lazy T exp)
+        {
+            static if (!is(T == void))
+            {
+                auto r = exp();
+                return r;
+            }
+            else
+            {
+                exp();
+            }
+        }
+
         if (semanticRun < PASSmembers)
         {
+            semanticRun = PASSmembers;
+
             if (!parent)
             {
                 assert(sc.parent);
@@ -466,33 +491,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 cpp = true;
             if (sc.linkage == LINKobjc)
                 objc.setObjc(this);
-        }
-
-        if (baseok < BASEOKdone)
-        {
-            /* https://issues.dlang.org/show_bug.cgi?id=12078
-             * https://issues.dlang.org/show_bug.cgi?id=12143
-             * https://issues.dlang.org/show_bug.cgi?id=15733
-             * While resolving base classes and interfaces, a base may refer
-             * the member of this derived class. In that time, if all bases of
-             * this class can  be determined, we can go forward the semantc process
-             * beyond the Lancestorsdone. To do the recursive semantic analysis,
-             * temporarily set and unset `_scope` around exp().
-             */
-            T resolveBase(T)(lazy T exp)
-            {
-                static if (!is(T == void))
-                {
-                    auto r = exp();
-                    return r;
-                }
-                else
-                {
-                    exp();
-                }
-            }
-
-            baseok = BASEOKin;
 
             // Expand any tuples in baseclasses[]
             for (size_t i = 0; i < baseclasses.dim;)
@@ -525,17 +523,28 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 goto Lancestorsdone;
             }
 
+            baseok = BASEOKin;
+        }
+
+        if (baseok == BASEOKin)
+        {
             // See if there's a base class as first in baseclasses[]
-            if (baseclasses.dim)
+            while (nextBase < baseclasses.dim)
             {
-                BaseClass* b = (*baseclasses)[0];
+                BaseClass* b = (*baseclasses)[nextBase];
                 Type tb = b.type.toBasetype();
                 TypeClass tc = (tb.ty == Tclass) ? cast(TypeClass)tb : null;
-                if (!tc)
+                if (nextBase >= 1 && (!tc || !tc.sym.isInterfaceDeclaration()))
+                {
+                    if (b.type != Type.terror)
+                        error("base type must be interface, not %s", b.type.toChars());
+                    goto L7;
+                }
+                else if (!tc)
                 {
                     if (b.type != Type.terror)
                         error("base type must be class or interface, not %s", b.type.toChars());
-                    baseclasses.remove(0);
+//                     baseclasses.remove(0); // FWDREF why remove? FIXME disabled for now
                     goto L7;
                 }
                 if (tc.sym.isDeprecated())
@@ -547,27 +556,42 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                         tc.checkDeprecated(loc, sc);
                     }
                 }
-                if (tc.sym.isInterfaceDeclaration())
-                    goto L7;
 
-                for (ClassDeclaration cdb = tc.sym; cdb; cdb = cdb.baseClass)
+                if (nextBase == 0)
                 {
-                    if (cdb == this)
+                    for (ClassDeclaration cdb = tc.sym; cdb; cdb = cdb.baseClass)
                     {
-                        error("circular inheritance");
-                        baseclasses.remove(0);
-                        goto L7;
+                        if (cdb == this)
+                        {
+                            error("circular inheritance");
+    //                         baseclasses.remove(0); // FWDREF
+                            goto L7;
+                        }
+                    }
+
+                    /* https://issues.dlang.org/show_bug.cgi?id=11034
+                    * Class inheritance hierarchy
+                    * and instance size of each classes are orthogonal information.
+                    * Therefore, even if tc.sym.sizeof == SIZEOKnone,
+                    * we need to set baseClass field for class covariance check.
+                    */
+                    baseClass = tc.sym;
+                    b.sym = baseClass;
+                }
+                else
+                {
+                    // Check for duplicate interfaces
+                    for (size_t j = (baseClass ? 1 : 0); j < nextBase; j++)
+                    {
+                        BaseClass* b2 = (*baseclasses)[j];
+                        if (b2.sym == tc.sym)
+                        {
+                            error("inherits from duplicate interface %s", b2.sym.toChars());
+//                             baseclasses.remove(i);
+                            continue;
+                        }
                     }
                 }
-
-                /* https://issues.dlang.org/show_bug.cgi?id=11034
-                 * Class inheritance hierarchy
-                 * and instance size of each classes are orthogonal information.
-                 * Therefore, even if tc.sym.sizeof == SIZEOKnone,
-                 * we need to set baseClass field for class covariance check.
-                 */
-                baseClass = tc.sym;
-                b.sym = baseClass;
 
                 if (tc.sym.baseok < BASEOKdone)
                     resolveBase(tc.sym.importAll(null)); // Try to resolve forward reference
@@ -580,56 +604,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 //                     baseok = BASEOKnone;
 //                 }
             L7:
-            }
-
-            // Treat the remaining entries in baseclasses as interfaces
-            // Check for errors, handle forward references
-            for (size_t i = (baseClass ? 1 : 0); i < baseclasses.dim;)
-            {
-                BaseClass* b = (*baseclasses)[i];
-                Type tb = b.type.toBasetype();
-                TypeClass tc = (tb.ty == Tclass) ? cast(TypeClass)tb : null;
-                if (!tc || !tc.sym.isInterfaceDeclaration())
-                {
-                    if (b.type != Type.terror)
-                        error("base type must be interface, not %s", b.type.toChars());
-                    baseclasses.remove(i);
-                    continue;
-                }
-
-                // Check for duplicate interfaces
-                for (size_t j = (baseClass ? 1 : 0); j < i; j++)
-                {
-                    BaseClass* b2 = (*baseclasses)[j];
-                    if (b2.sym == tc.sym)
-                    {
-                        error("inherits from duplicate interface %s", b2.sym.toChars());
-                        baseclasses.remove(i);
-                        continue;
-                    }
-                }
-                if (tc.sym.isDeprecated())
-                {
-                    if (!isDeprecated())
-                    {
-                        // Deriving from deprecated class makes this one deprecated too
-                        isdeprecated = true;
-                        tc.checkDeprecated(loc, sc);
-                    }
-                }
-
-                b.sym = tc.sym;
-
-                if (tc.sym.baseok < BASEOKdone)
-                    resolveBase(tc.sym.importAll(null)); // Try to resolve forward reference
-//                 if (tc.sym.baseok < BASEOKdone) // FWDREF disabled
-//                 {
-//                     //printf("\ttry later, forward reference of base %s\n", tc.sym.toChars());
-//                     if (tc.sym._scope)
-//                         tc.sym._scope._module.addDeferredSemantic(tc.sym);
-//                     baseok = BASEOKnone;
-//                 }
-                i++;
+                ++nextBase;
             }
             assert(baseok != BASEOKnone); // FWDREF temporary
 //             if (baseok == BASEOKnone) // FWDREF disabled
@@ -1110,20 +1085,21 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     {
         //printf("%s.ClassDeclaration.search('%s', flags=x%x)\n", toChars(), ident.toChars(), flags);
         //if (_scope) printf("%s baseok = %d\n", toChars(), baseok);
-        if (_scope && baseok < BASEOKdone)
+        if (_scope/+ && baseok < BASEOKdone+/)
         {
-            if (!inuse)
-            {
+//             if (!inuse) // FWDREF FIXME: this should go
+//             {
                 // must semantic on base class/interfaces
-                ++inuse;
-                semantic(null);
-                --inuse;
-            }
+//                 ++inuse;
+                importAll(_scope);
+//                 --inuse;
+//             }
         }
 
-        if (!members || !symtab) // opaque or addMember is not yet done
+//         if (!members || !symtab) // opaque or addMember is not yet done
+        if (!symtab)
         {
-            error("is forward referenced when looking for '%s'", ident.toChars());
+//             error("is forward referenced when looking for '%s'", ident.toChars()); // FWDREF this is a bogus error, the class is simply not yet available for searching and should be skipped
             //*(char*)0=0;
             return null;
         }
@@ -1595,6 +1571,8 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
 
         if (semanticRun < PASSmembers)
         {
+            semanticRun = PASSmembers;
+
             if (!parent)
             {
                 assert(sc.parent && sc.func);
@@ -1611,6 +1589,8 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
 
             userAttribDecl = sc.userAttribDecl;
         }
+        else if (!symtab)
+            return;
 
         if (baseok < BASEOKdone)
         {

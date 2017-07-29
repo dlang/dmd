@@ -111,7 +111,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
 
     override void importAll(Scope* sc)
     {
-        if (semanticRun >= PASSmembersdone)
+        if (semanticRun >= PASSmembers) // since there's no members.importAll calls (which is strange, can't enums contain static if?), no need to support recursive calls
             return;
         semanticRun = PASSmembers;
 
@@ -145,7 +145,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         {
             EnumMember em = (*members)[i].isEnumMember();
             if (em)
-                em._scope = sce; // FWDREF WARNING: can't enum contain more than just EnumMembers at this point?
+                em._scope = sce; // FWDREF WARNING: can't enum contain more than just EnumMembers at this point e.g attributes?
         }
 
         if (!added)
