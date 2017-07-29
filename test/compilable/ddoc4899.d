@@ -11,7 +11,7 @@ compilable/ddoc4899.d(16): Warning: Ddoc: Stray ')'. This may cause incorrect Dd
 
 /++
        (See accompanying file LICENSE_1_0.txt or copy at
-        http://www.boost.org/LICENSE_1_0.txt)
+        foo:)
 +/
 module d;
 

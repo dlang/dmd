@@ -1643,7 +1643,13 @@ struct DocComment
                     const(char)* q = p + utfStride(p);
                     while (isIdTail(q))
                         q += utfStride(q);
-                    if (*q == ':') // identifier: ends it
+                    if (*q == ':' &&            // 'identifier:' ends it
+                                                // but not 'http://' or 'https://'
+                        !(q[1] == '/' && q[2] == '/' &&
+                          (q - p == 4 && Port.memicmp(p, "http".ptr, 4) == 0 ||
+                           q - p == 5 && Port.memicmp(p, "https".ptr, 5) == 0)
+                         )
+                       )
                     {
                         idlen = q - p;
                         idstart = p;
@@ -2151,6 +2157,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     int inCode = 0;
     int inBacktick = 0;
     //int inComment = 0;                  // in <!-- ... --> comment
+    int inMacro = 0;
     size_t iCodeStart = 0; // start of code section
     size_t codeIndent = 0;
     size_t iLineStart = offset;
@@ -2405,6 +2412,32 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
             }
             break;
+
+        case '$':
+        {
+            /* Look for the start of a macro, '$(Identifier'
+             */
+            leadingBlank = 0;
+            if (inCode || inBacktick)
+                break;
+            const slice = buf.peekSlice();
+            auto p = &slice[i];
+            if (p[1] == '(' && isIdStart(&p[2]))
+                ++inMacro;
+            break;
+        }
+
+        case ')':
+        {   /* End of macro
+             */
+            leadingBlank = 0;
+            if (inCode || inBacktick)
+                break;
+            if (inMacro)
+                --inMacro;
+            break;
+        }
+
         default:
             leadingBlank = 0;
             if (sc._module.isDocFile || inCode)
@@ -2418,7 +2451,18 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     size_t k = skippastURL(buf, i);
                     if (i < k)
                     {
-                        i = k - 1;
+                        /* The URL is buf[i..k]
+                         */
+                        if (inMacro)
+                            /* Leave alone if already in a macro
+                             */
+                            i = k - 1;
+                        else
+                        {
+                            /* Replace URL with '$(LINK URL)'
+                             */
+                            i = buf.bracket(i, "$(LINK ", k, ")") - 1;
+                        }
                         break;
                     }
                 }
