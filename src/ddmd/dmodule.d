@@ -705,7 +705,7 @@ extern (C++) final class Module : Package
                                 uint u2;
                                 if (++pu > pumax)
                                 {
-                                    error("surrogate UTF-16 high value %04x at EOF", u);
+                                    error("surrogate UTF-16 high value %04x at end of file", u);
                                     fatal();
                                 }
                                 u2 = le ? Port.readwordLE(pu) : Port.readwordBE(pu);
