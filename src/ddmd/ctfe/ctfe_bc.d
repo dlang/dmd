@@ -18,11 +18,11 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 1;
-enum bailoutMessages = 1;
+enum bailoutMessages = 0;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 0;
+enum UsePrinterBackend = 1;
 enum UseCBackend = 0;
 enum abortOnCritical = 1;
 
@@ -600,7 +600,7 @@ struct BCStruct
 
     BCType[96] memberTypes;
     bool[96] voidInit;
-    uint[96] initializers;
+    uint[][96] initializers;
 
     string toString() const
     {
@@ -620,10 +620,11 @@ struct BCStruct
         return result;
     }
 
-    void addField(const BCType bct, bool isVoid, uint initValue)
+    void addField(const BCType bct, bool isVoid, uint[] initValue)
     {
         memberTypes[memberTypeCount] = bct;
-        initializers[memberTypeCount] = initValue;
+        initializers[memberTypeCount].length = initValue.length;
+        initializers[memberTypeCount][0 .. initValue.length] = initValue[0 .. initValue.length];
         voidInit[memberTypeCount++] = isVoid;
 
         size += _sharedCtfeState.size(bct, true);
@@ -721,16 +722,21 @@ struct SharedCtfeState(BCGenT)
             return BCType.init;
     }
 
-    uint[] initializer(const BCType type) pure const
+    uint[] initializer(const BCType type) const
     {
         assert(type.type == BCTypeEnum.Struct, "only structs can have initializers ... type passed: " ~ type.type.to!string);
         assert(type.typeIndex && type.typeIndex <= structCount, "invalid structTypeIndex passed: " ~ type.typeIndex.to!string);
         auto structType = structTypes[type.typeIndex - 1];
         uint[] result;
+        uint offset;
         result.length = structType.size;
+
         foreach(i, init;structType.initializers[0 .. structType.memberTypeCount])
         {
-            result[i] = init;
+            auto _size = _sharedCtfeState.size(structType.memberTypes[i]);
+            auto endOffset = offset + _size;
+            if (init.length == _size) result[offset .. endOffset] = init[0 .. _size];
+            offset = endOffset;
         }
 
         return result;
@@ -1011,7 +1017,7 @@ struct SharedCtfeState(BCGenT)
                     // I have no idea why this even happens
                     return 0;
                 }
-                BCStruct _struct = structTypes[type.typeIndex - 1];
+                const (BCStruct) _struct = structTypes[type.typeIndex - 1];
 
                 return _struct.size;
 
@@ -1628,32 +1634,37 @@ extern (C++) final class BCTypeVisitor : Visitor
             else if (sMember._init)
             {
                 if (sMember._init.isVoidInitializer)
-                    st.addField(bcType, true, 0);
+                    st.addField(bcType, true, []);
                 else
                 {
-                    uint value;
+                    uint[] initializer;
                     if(auto initExp = sMember._init.toExpression)
                     {
-                        if (initExp.type && (initExp.type.ty == Tint32 || initExp.type.ty == Tuns32))
+                        scope bcv = new BCV!BCGenT;
+                        auto initBCValue = bcv.genExpr(initExp);
+                        if (initBCValue)
                         {
-                            auto initExpr = cast(IntegerExp) initExp;
-                            value = cast (uint) initExpr.value;
+                            if (initExp.type.ty == Tint32 || initExp.type.ty == Tuns32)
+                            {
+                                initializer = [initBCValue.imm32, 0, 0, 0];
+                            }
+                            else if (initExp.type.ty == Tint64 || initExp.type.ty == Tuns64)
+                            {
+                                initializer = [initBCValue.imm64 & uint.max, 0, 0, 0,
+                                    initBCValue.imm64 >> uint.sizeof*8, 0, 0, 0];
+                            }
                         }
                     }
                     else
                         assert(0, "We cannot deal with non-int initializers");
                         //FIXME change the above assert to something we can bailout on
-/*
-                    bailout(initExpr.vType != BCValueType.Immediate || initExpr.type.type != BCTypeEnum.i32,
-                        "Cannot deal with non-int initalizer"
-                    );
-*/
-                    st.addField(bcType, false, value);
+
+                    st.addField(bcType, false, initializer);
                 }
 
             }
             else
-                st.addField(bcType, false, 0);
+                st.addField(bcType, false, []);
 
         }
 
@@ -2661,6 +2672,11 @@ static if (is(BCGen))
                 {
                     Add3(expr, expr, imm32(1));
                 }
+
+                if (expr.heapRef)
+                {
+                    StoreToHeapRef(expr);
+                }
             }
             break;
         case TOK.TOKminusminus:
@@ -2690,6 +2706,11 @@ static if (is(BCGen))
                 else
                 {
                     Sub3(expr, expr, imm32(1));
+                }
+
+                if (expr.heapRef)
+                {
+                    StoreToHeapRef(expr);
                 }
             }
             break;
@@ -3714,7 +3735,7 @@ static if (is(BCGen))
             }
             else
             {
-                bailout("ArrayElement is not an i32, i64, f23, f52 or Struct - but a " ~ elexpr.type.toString ~ " -- " ~ _sharedCtfeState.typeToString(elexpr.type));
+                bailout("ArrayElement is not an i32, i64, f23, f52 or Struct - but a " ~ _sharedCtfeState.typeToString(elexpr.type) ~ " -- " ~ ale.toString);
                 return;
             }
 
@@ -4555,8 +4576,15 @@ static if (is(BCGen))
             }
         }
 
-        if (lhs.heapRef != BCHeapRef.init)
+        if (lhs.heapRef)
             StoreToHeapRef(lhs);
+
+        if (oldAssignTo)
+        {
+            Set(oldAssignTo, retval);
+            if (oldAssignTo.heapRef)
+                StoreToHeapRef(oldAssignTo);
+        }
 
        //assert(discardValue);
 
@@ -4577,13 +4605,12 @@ static if (is(BCGen))
 
         auto bct = toBCType(ie.type);
         if (bct.type != BCTypeEnum.i32 && bct.type != BCTypeEnum.i64 && bct.type != BCTypeEnum.c8 &&
-            bct.type != BCTypeEnum.c32)
+            bct.type != BCTypeEnum.c32 && bct.type != BCTypeEnum.i8)
         {
             //NOTE this can happen with cast(char*)size_t.max for example
             bailout("We don't support IntegerExpressions with non-integer types: " ~ to!string(bct.type));
         }
 
-        // HACK regardless of the literal type we register it as 32bit if it's smaller then int.max;
         if (bct.type == BCTypeEnum.i64)
         {
             retval = BCValue(Imm64(ie.value));
@@ -5104,7 +5131,7 @@ static if (is(BCGen))
             {
                 MemCpy(lhs.i32, rhs.i32, imm32(sharedCtfeState.size(rhs.type)));
             }
-            else if (elemSize <= 4)
+            else if (elemSize && elemSize <= 4)
                 Store32(effectiveAddr, rhs.i32);
             else if (elemSize == 8)
                 Store64(effectiveAddr, rhs);
@@ -5676,17 +5703,27 @@ static if (is(BCGen))
         bool isFunctionPtr;
 
         //NOTE is could also be Tdelegate
-        if(ce.e1.type.ty != Tfunction)
+
+
+        TypeFunction tf;
+        if(ce.e1.type.ty == Tfunction)
+        {
+            tf = cast (TypeFunction) ce.e1.type;
+        }
+        else if (ce.e1.type.ty == Tdelegate)
+        {
+            tf = cast (TypeFunction) ((cast(TypeDelegate) ce.e1.type).nextOf);
+        }
+        else
         {
             bailout("CallExp.e1.type.ty expected to be Tfunction, but got: " ~ to!string(cast(ENUMTY) ce.e1.type.ty));
             return ;
         }
-        TypeFunction tf = cast (TypeFunction) ce.e1.type;
+        TypeDelegate td = cast (TypeDelegate) ce.e1.type;
         import ddmd.asttypename;
 
         if (ce.e1.op == TOKvar)
         {
-
             auto ve = (cast(VarExp) ce.e1);
             fd = ve.var.isFuncDeclaration();
             // TODO FIXME be aware we can set isFunctionPtr here as well,
@@ -5718,17 +5755,24 @@ static if (is(BCGen))
             */
             thisPtr = genExpr(dve.e1);
         }
+        // functionPtr
         else if (ce.e1.op == TOKstar)
         {
             isFunctionPtr = true;
             fnValue = genExpr(ce.e1);
+        }
+        // functionLiteral
+        else if (ce.e1.op == TOKfunction)
+        {
+            //auto fnValue = genExpr(ce.e1);
+            fd = (cast(FuncExp)ce.e1).fd;
         }
 
         if (!isFunctionPtr)
         {
             if (!fd)
             {
-                bailout("could not get funcDecl" ~ astTypeName(ce.e1));
+                bailout("could not get funcDecl -- " ~ astTypeName(ce.e1) ~ " -- toK :" ~ to!string(ce.e1.op) );
                 return;
             }
 
