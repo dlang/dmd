@@ -1,4 +1,7 @@
-import core.runtime, core.stdc.stdio, core.thread;
+import core.runtime;
+import core.stdc.stdio;
+import core.stdc.string;
+import core.thread;
 
 version (linux) import core.sys.linux.dlfcn;
 else version (FreeBSD) import core.sys.freebsd.dlfcn;
@@ -127,9 +130,9 @@ void runTests(string libName)
 
 void main(string[] args)
 {
-    auto name = args[0];
-    assert(name[$-5 .. $] == "/load");
-    name = name[0 .. $-4] ~ "lib.so";
+    auto name = args[0] ~ '\0';
+    const pathlen = strrchr(name.ptr, '/') - name.ptr + 1;
+    name = name[0 .. pathlen] ~ "lib.so";
 
     runTests(name);
 
