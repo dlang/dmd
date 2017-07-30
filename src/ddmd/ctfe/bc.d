@@ -2839,7 +2839,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 if (cpySrc != cpyDst)
                 {
 
-                    assert(cpySize, "cpySize == 0");
+                    // assert(cpySize, "cpySize == 0");
                     assert(cpySrc, "cpySrc == 0");
                     assert(cpyDst, "cpyDst == 0");
 
