@@ -1046,7 +1046,7 @@ struct SharedCtfeState(BCGenT)
             }
         case BCTypeEnum.Ptr:
             {
-                return 4; // 4 for pointer;
+                return SliceDescriptor.Size;
             }
         default:
             {
@@ -3856,7 +3856,7 @@ static if (is(BCGen))
                 else
                     Set(fieldAddr, retval.i32);
                 // abi hack for slices slice;
-                if (elexpr.type.type.anyOf([BCTypeEnum.Slice, BCTypeEnum.Array, BCTypeEnum.Struct]))
+                if (elexpr.type.type.anyOf([BCTypeEnum.Slice, BCTypeEnum.Array, BCTypeEnum.Struct, BCTypeEnum.String]))
                 {
                     // copy Member
                     MemCpy(fieldAddr, elexpr, imm32(_sharedCtfeState.size(elexpr.type, true)));
@@ -3869,7 +3869,7 @@ static if (is(BCGen))
             else
             {
                 bailout(elexpr.vType != BCValueType.Immediate, "When struct-literals are used as arguments all initializers, have to be immediates");
-                if (elexpr.type.type.anyOf([BCTypeEnum.Slice, BCTypeEnum.Array, BCTypeEnum.Struct]))
+                if (elexpr.type.type.anyOf([BCTypeEnum.Slice, BCTypeEnum.Array, BCTypeEnum.Struct, BCTypeEnum.String]))
                 {
                     immutable size_t targetAddr = retval.heapAddr + offset;
                     immutable size_t sourceAddr = elexpr.heapAddr;
@@ -6018,7 +6018,18 @@ static if (is(BCGen))
         }
         else if (toType.type == BCTypeEnum.Ptr)
         {
-            bailout("We cannot cast pointers");
+            if (fromType.type == BCTypeEnum.Slice &&
+                _sharedCtfeState.elementType(fromType) == _sharedCtfeState.elementType(toType))
+            {
+                assert(0, "remove when slices and pointers actually have the same abi");
+                // do nothing pointer have the same abi as slices :)
+            }
+            else
+            {
+                bailout("We cannot cast pointers");
+            }
+
+
             return ;
         }
         else if (fromType.basicTypeSize && fromType.basicTypeSize == toType.basicTypeSize)
