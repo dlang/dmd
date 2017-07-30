@@ -9367,6 +9367,9 @@ extern (C++) final class TypeClass : Type
         }
         if (auto v = s.isVarDeclaration())
         {
+            if (v._scope)
+                v.semantic(null);
+
             if (!v.type ||
                 !v.type.deco && v.inuse)
             {

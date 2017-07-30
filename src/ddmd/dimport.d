@@ -202,6 +202,9 @@ extern (C++) final class Import : Dsymbol
 
     override void importAll(Scope* sc)
     {
+        if (_scope)
+            sc = _scope;
+
         if (!mod)
         {
             load(sc);

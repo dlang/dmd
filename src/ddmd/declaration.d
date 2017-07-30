@@ -857,7 +857,7 @@ extern (C++) final class AliasDeclaration : Declaration
                 /* If this is an internal alias for selective/renamed import,
                  * load the module first.
                  */
-                _import.semantic(null);
+                _import.importAll(null);
             }
             if (_scope)
             {

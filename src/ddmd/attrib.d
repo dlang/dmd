@@ -1614,9 +1614,13 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
 
     override void importAll(Scope* sc)
     {
+        if (semanticRun >= PASSmembersdone || ininc)
+            return;
         if (!compiled)
         {
+            ininc = true;
             compileIt(sc);
+            ininc = false;
             AttribDeclaration.addMember(sc, scopesym);
             compiled = true;
 
