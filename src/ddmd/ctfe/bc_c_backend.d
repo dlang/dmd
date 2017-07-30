@@ -97,7 +97,7 @@ struct C_BCGen
         return (
             (
             (fname is null) ? "((BCValue[] args, BCHeap* heapPtr) @safe {\n"
-            : "BCValue " ~ fname ~ "(BCValue[] args) {\n") ~ (requireIntrinsics ? intrinsicFunctions : "") ~ "\n\tint stackOffset;\n\tBCValue retval;\n\tint[" ~ to!string(
+            : "BCValue " ~ fname ~ "(BCValue[] args) {\n") ~ "\n\tint stackOffset;\n\tBCValue retval;\n\nint[" ~ to!string(
             align4(sp + 400)) ~ "] stack;\n\tint cond;\n\n" ~ q{
         foreach(i, arg;args)
         {
@@ -109,25 +109,6 @@ struct C_BCGen
             string) code ~ q{return fn0(args);} ~ ((fname is null) ? "\n})" : "\n}"));
     }
 
-
-    enum intrinsicFunctions = q{static if (!is(C_BCGen_Intrinsics)) {
-    alias C_BCGen_Intrinsics = void;
-
-    uint intrin_Byte3(int word, int idx) {
-        switch(idx) {
-            case 0 :
-                return word & 0xFF;
-            case 1 :
-                return (word & 0xFF00) >> 8;
-            case 2 :
-                return (word & 0xFF0000) >> 16;
-            case 3 :
-                return (word & 0xFF000000) >> 24;
-
-            default : assert(0, "index must go from 0 to 3");
-        }
-    }
-}};
 
     char[] code;
 
@@ -424,7 +405,7 @@ pure:
     {
         sameLabel = false;
         //assert(to.vType == BCValueType.StackValue);
-        code ~= "\t" ~ toCode(to) ~ " = heapPtr._heap[" ~ toCode(from) ~ "];\n";
+        code ~= "\t" ~ toCode(to) ~ " = heapPtr._heap[cast(uint)" ~ toCode(from) ~ "];\n";
     }
 
     void Store32(BCValue to, BCValue from)
