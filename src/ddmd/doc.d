@@ -1647,13 +1647,22 @@ struct DocComment
                     {
                         idlen = q - p;
                         idstart = p;
-                        for (pend = p; pend > pstart; pend--)
+                        if ((idlen > 3 && idstart[0..4] == "http") ||
+                            (idlen > 4 && idstart[0..5] == "https") ||
+                            (idlen > 2 && idstart[0..3] == "ftp"))
                         {
-                            if (pend[-1] == '\n')
-                                break;
+                            pstart = pend;
                         }
-                        p = q + 1;
-                        break;
+                        else
+                        {
+                            for (pend = p; pend > pstart; pend--)
+                            {
+                                if (pend[-1] == '\n')
+                                    break;
+                            }
+                            p = q + 1;
+                            break;
+                        }
                     }
                 }
                 while (1)
