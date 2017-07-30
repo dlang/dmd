@@ -18,11 +18,11 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 1;
-enum bailoutMessages = 0;
+enum bailoutMessages = 1;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 1;
+enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
 enum abortOnCritical = 1;
 
@@ -803,7 +803,7 @@ struct SharedCtfeState(BCGenT)
         memset(&stack, 0, stack[0].sizeof * stack.length / 4);
     }
 
-    void initHeap(uint maxHeapSize = 2 ^^ 26)
+    void initHeap(uint maxHeapSize = 2 ^^ 25)
     {
         import ddmd.root.rmem;
 
@@ -3331,9 +3331,18 @@ static if (is(BCGen))
             writefln("ForStatement %s", fs.toString);
         }
 
+
+        BCValue initRetval;
+
         if (fs._init)
         {
-            (fs._init.accept(this));
+            assert(0, "A forStatement should never have an initializer after sema3 ?");
+/*
+            auto oldRetval = retval;
+            fs._init.accept(this);
+            initRetval = retval;
+            retval = oldRetval;
+*/
         }
 
         if (fs.condition !is null && fs._body !is null)
@@ -3353,7 +3362,7 @@ static if (is(BCGen))
                 return;
             }
 
-            auto condJmp = beginCndJmp(cond);
+            auto condJmp = beginCndJmp(cond.i32);
             const oldContinueFixupCount = continueFixupCount;
             const oldBreakFixupCount = breakFixupCount;
             auto _body = genBlock(fs._body, true, true);
@@ -3370,8 +3379,13 @@ static if (is(BCGen))
         else if (fs.condition !is null  /* && fs._body is null*/ )
         {
             BCLabel condEval = genLabel();
-            BCValue condExpr = genExpr(fs.condition);
-            auto condJmp = beginCndJmp(condExpr);
+            BCValue cond = genExpr(fs.condition);
+            if (!cond)
+            {
+                bailout("No cond generated for: " ~ fs.toString);
+                return ;
+            }
+            auto condJmp = beginCndJmp(cond.i32);
             if (fs.increment)
             {
                 fs.increment.accept(this);
