@@ -3355,7 +3355,7 @@ static if (is(BCGen))
 
             BCLabel condEval = genLabel();
 
-            BCValue cond = genExpr(fs.condition, "IfStatement.condition");
+            BCValue cond = genExpr(fs.condition, "ForStatement.condition");
             if (!cond)
             {
                 bailout("For: No cond generated");
@@ -6239,7 +6239,7 @@ static if (is(BCGen))
 
         if (!boolExp)
         {
-            cj = beginCndJmp(cond);
+            cj = beginCndJmp(cond.i32);
         }
 
         BCBlock ifbody = fs.ifbody ? genBlock(fs.ifbody) : BCBlock.init;
