@@ -613,6 +613,7 @@ public:
     TemplateDeclaration *td;
     TOK tok;
 
+    bool equals(RootObject *o);
     void genIdent(Scope *sc);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
