@@ -92,7 +92,7 @@ extern (C++) FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope*
         el.type = ad.type;
         Expressions a;
         a.setDim(1);
-        const errors = global.startGagging(); // Do not report errors, even if the
+        const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
         sc = sc.push();
         sc.tinst = null;
         sc.minst = null;
@@ -307,7 +307,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     sd.members.push(fop);
     fop.addMember(sc, sd);
     sd.hasIdentityAssign = true; // temporary mark identity assignable
-    uint errors = global.startGagging(); // Do not report errors, even if the
+    uint errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINKd;
@@ -410,7 +410,7 @@ extern (C++) FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope*
                 case 4:  tthis = ad.type.sharedConstOf(); break;
             }
             FuncDeclaration f = null;
-            const errors = global.startGagging(); // Do not report errors, even if the
+            const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
             sc = sc.push();
             sc.tinst = null;
             sc.minst = null;
