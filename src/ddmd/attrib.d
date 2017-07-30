@@ -1207,10 +1207,11 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
     Condition condition;
     Dsymbols* elsedecl;     // array of Dsymbol's for else block
 
-    final extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
+    final extern (D) this(Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
     {
         super(decl);
         //printf("ConditionalDeclaration::ConditionalDeclaration()\n");
+        this.loc = loc;
         this.condition = condition;
         this.elsedecl = elsedecl;
     }
@@ -1218,7 +1219,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new ConditionalDeclaration(condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
+        return new ConditionalDeclaration(loc, condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
     }
 
     override final bool oneMember(Dsymbol* ps, Identifier ident)
@@ -1298,16 +1299,16 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
     ScopeDsymbol scopesym;
     bool addisdone;
 
-    extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
+    extern (D) this(Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
     {
-        super(condition, decl, elsedecl);
+        super(loc, condition, decl, elsedecl);
         //printf("StaticIfDeclaration::StaticIfDeclaration()\n");
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new StaticIfDeclaration(condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
+        return new StaticIfDeclaration(loc, condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
     }
 
     /****************************************
