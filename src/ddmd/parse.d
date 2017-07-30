@@ -655,7 +655,8 @@ final class Parser(AST) : Lexer
                         a = parseImport();
                         // keep pLastDecl
                     }
-                    else if (next == TOKforeach || next == TOKforeach_reverse){
+                    else if (next == TOKforeach || next == TOKforeach_reverse)
+                    {
                         s = parseForeach!(true,true)(loc, pLastDecl);
                     }
                     else
@@ -4798,7 +4799,10 @@ final class Parser(AST) : Lexer
            ddmd.errors.deprecation(loc, "instead of C-style syntax, use D-style syntax `%s%s%s`", t.toChars(), sp, s);
     }
 
-    private static template ParseForeachArgs(bool isStatic, bool isDecl)
+    /*****************************************
+     * Determines additional argument types for parseForeach.
+     */
+    private template ParseForeachArgs(bool isStatic, bool isDecl)
     {
         static alias Seq(T...) = T;
         static if(isDecl)
@@ -4810,7 +4814,10 @@ final class Parser(AST) : Lexer
             alias ParseForeachArgs = Seq!();
         }
     }
-    static template ParseForeachRet(bool isStatic, bool isDecl)
+    /*****************************************
+     * Determines the result type for parseForeach.
+     */
+    private template ParseForeachRet(bool isStatic, bool isDecl)
     {
         static if(!isStatic)
         {
@@ -4825,6 +4832,13 @@ final class Parser(AST) : Lexer
             alias ParseForeachRet = AST.StaticForeachStatement;
         }
     }
+    /*****************************************
+     * Parses `foreach` statements, `static foreach` statements and
+     * `static foreach` declarations.  The template parameter
+     * `isStatic` is true, iff a `static foreach` should be parsed.
+     * If `isStatic` is true, `isDecl` can be true to indicate that a
+     * `static foreach` declaration should be parsed.
+     */
     ParseForeachRet!(isStatic, isDecl) parseForeach(bool isStatic, bool isDecl)(Loc loc, ParseForeachArgs!(isStatic, isDecl) args)
     {
         static if(isDecl)
@@ -4933,7 +4947,8 @@ final class Parser(AST) : Lexer
         check(TOKsemicolon);
 
         AST.Expression aggr = parseExpression();
-        static if(isStatic){
+        static if(isStatic)
+        {
             bool isRange = false;
         }
         if (token.value == TOKslice && parameters.dim == 1)
@@ -4958,11 +4973,11 @@ final class Parser(AST) : Lexer
             }
             else static if(isDecl)
             {
-                return new AST.StaticForeachDeclaration(new AST.StaticForeach(loc,null,rangefe),parseBlock(pLastDecl));
+                return new AST.StaticForeachDeclaration(new AST.StaticForeach(loc, null, rangefe), parseBlock(pLastDecl));
             }
             else
             {
-                return new AST.StaticForeachStatement(loc,new AST.StaticForeach(loc,null,rangefe));
+                return new AST.StaticForeachStatement(loc, new AST.StaticForeach(loc, null, rangefe));
             }
         }
         else
@@ -4984,11 +4999,11 @@ final class Parser(AST) : Lexer
             }
             else static if(isDecl)
             {
-                return new AST.StaticForeachDeclaration(new AST.StaticForeach(loc,aggrfe,null), parseBlock(pLastDecl));
+                return new AST.StaticForeachDeclaration(new AST.StaticForeach(loc, aggrfe, null), parseBlock(pLastDecl));
             }
             else
             {
-                return new AST.StaticForeachStatement(loc,new AST.StaticForeach(loc,aggrfe,null));
+                return new AST.StaticForeachStatement(loc, new AST.StaticForeach(loc, aggrfe, null));
             }
         }
 

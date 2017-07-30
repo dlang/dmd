@@ -1385,16 +1385,21 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
 
 /***********************************************************
  * Static foreach at declaration scope, like:
- *     static foreach(i; [0, 1, 2]){ }
+ *     static foreach (i; [0, 1, 2]){ }
  */
 
 extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 {
-    StaticForeach sfe;
+    StaticForeach sfe; /// contains `static foreach` expansion logic
 
-    ScopeDsymbol scopesym;
-    bool addisdone;
+    ScopeDsymbol scopesym; /// cached enclosing scope (mimics `static if` declaration)
 
+    /++
+     `include` can be called multiple times, but a `static foreach`
+     should be expanded at most once.  Achieved by caching the result
+     of the first call.  We need both `cached` and `cache`, because
+     `null` is a valid value for `cache`.
+     +/
     bool cached = false;
     Dsymbols* cache = null;
 
@@ -1414,11 +1419,16 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 
     override final bool oneMember(Dsymbol* ps, Identifier ident)
     {
+        // Required to support IFTI on a template that contains a
+        // `static foreach` declaration.  `super.oneMember` calls
+        // include with a `null` scope.  As `static foreach` requires
+        // the scope for expansion, `oneMember` can only return a
+        // precise result once `static foreach` has been expanded.
         if (cached)
         {
             return super.oneMember(ps, ident);
         }
-        *ps = null;
+        *ps = null; // a `static foreach` declaration may in general expand to multiple symbols
         return false;
     }
 
@@ -1428,15 +1438,16 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
         {
             return cache;
         }
-        sfe.prepare(_scope);
+        sfe.prepare(_scope); // lower static foreach aggregate
         if (!sfe.ready())
         {
             return null; // TODO: ok?
         }
 
+        // expand static foreach
         import ddmd.statementsem: makeTupleForeach;
         Dsymbols* d = makeTupleForeach!(true,true)(_scope, sfe.aggrfe, decl, sfe.needExpansion);
-        if (d && !addisdone)
+        if (d) // process generated declarations
         {
             // Add members lazily.
             for (size_t i = 0; i < d.dim; i++)
@@ -1450,7 +1461,6 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
                 Dsymbol s = (*d)[i];
                 s.setScope(_scope);
             }
-            addisdone = true;
         }
         cached = true;
         cache = d;
@@ -1459,13 +1469,14 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
     {
+        // used only for caching the enclosing symbol
         this.scopesym = sds;
     }
 
     override final void addComment(const(char)* comment)
     {
         // do nothing
-        // change this to give a semantics to documentation comments on static foreach declarations
+        // change this to give semantics to documentation comments on static foreach declarations
     }
 
     override void setScope(Scope* sc)
@@ -1497,20 +1508,29 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 }
 
 /***********************************************************
- * Collection of declarations that stores foreach index variables in a local scope.
- * Symbols declared within are inserted into another scope, like:
+ * Collection of declarations that stores foreach index variables in a
+ * local symbol table.  Other symbols declared within are forwarded to
+ * another scope, like:
  *
  *      static foreach (i; 0 .. 10) // loop variables for different indices do not conflict.
- *      { // this body is expanded into 10 ForwardingAttribDeclarations, where i has storage class STClocal
+ *      { // this body is expanded into 10 ForwardingAttribDeclarations, where `i` has storage class STClocal
  *          mixin("enum x" ~ to!string(i) ~ " = i"); // ok, can access current loop variable
  *      }
  *
  *      static foreach (i; 0.. 10)
  *      {
- *          pragma(msg, mixin("x" ~ to!string(i))); // ok, all 10 symbols are visible
+ *          pragma(msg, mixin("x" ~ to!string(i))); // ok, all 10 symbols are visible as they were forwarded to the global scope
  *      }
  *
  *      static assert (!is(typeof(i))); // loop index variable is not visible outside of the static foreach loop
+ *
+ * A StaticForeachDeclaration generates one
+ * ForwardingAttribDeclaration for each expansion of its body.  The
+ * AST of the ForwardingAttribDeclaration contains both the `static
+ * foreach` variables and the respective copy of the `static foreach`
+ * body.  The functionality is achieved by using a
+ * ForwardingScopeDsymbol as the parent symbol for the generated
+ * declarations.
  */
 
 extern(C++) final class ForwardingAttribDeclaration: AttribDeclaration
@@ -1524,18 +1544,20 @@ extern(C++) final class ForwardingAttribDeclaration: AttribDeclaration
         sym.symtab = new DsymbolTable();
     }
 
+    /**************************************
+     * Use the ForwardingScopeDsymbol as the parent symbol for members.
+     */
     override Scope* newScope(Scope* sc)
     {
         return sc.push(sym);
     }
 
+    /***************************************
+     * Lazily initializes the scope to forward to.
+     */
     override void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        parent = sym.parent = sym.forward = sds; // TODO: merge parent and forward?
-        if (!sym.forward.symtab)
-        {
-            sym.forward.symtab = new DsymbolTable();
-        }
+        parent = sym.parent = sym.forward = sds;
         return super.addMember(sc, sym);
     }
 

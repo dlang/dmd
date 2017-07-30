@@ -1602,7 +1602,11 @@ public:
         return symtab.insert(s);
     }
 
-    Dsymbol symtabLookup(Dsymbol s,Identifier id)
+    /****************************************
+     * Look up identifier in symbol table.
+     */
+
+    Dsymbol symtabLookup(Dsymbol s, Identifier id)
     {
         return symtab.lookup(id);
     }
@@ -2029,12 +2033,17 @@ extern (C++) final class OverloadSet : Dsymbol
 }
 
 /***********************************************************
- * Forwarding ScopeDsymbol.
- * This is used by ForwardingAttribDeclaration and ForwardingScopeDeclaration
- * to forward symbol insertions to another scope.
+ * Forwarding ScopeDsymbol.  Used by ForwardingAttribDeclaration and
+ * ForwardingScopeDeclaration to forward symbol insertions to another
+ * scope.  See `ddmd.attrib.ForwardingAttribDeclaration` for more
+ * details.
  */
 extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
 {
+    /*************************
+     * Symbol to forward insertions to.
+     * Can be `null` before being lazily initialized.
+     */
     ScopeDsymbol forward;
     extern (D) this(ScopeDsymbol forward)
     {
@@ -2043,28 +2052,39 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
     }
     override Dsymbol symtabInsert(Dsymbol s)
     {
-        assert(!!forward);
+        assert(forward);
         if (auto d = s.isDeclaration())
         {
             if (d.storage_class & STClocal)
             {
+                // Symbols with storage class STClocal are not
+                // forwarded, but stored in the local symbol
+                // table. (Those are the `static foreach` variables.)
                 if (!symtab)
                 {
                     symtab = new DsymbolTable();
                 }
-                return super.symtabInsert(s);
+                return super.symtabInsert(s); // insert locally
             }
         }
         if (!forward.symtab)
         {
             forward.symtab = new DsymbolTable();
         }
+        // Non-STClocal symbols are forwarded to `forward`.
         return forward.symtabInsert(s);
     }
 
-    override Dsymbol symtabLookup(Dsymbol s,Identifier id)
+    /************************
+     * This override handles the following two cases:
+     *     static foreach (i, i; [0]) { ... }
+     * and
+     *     static foreach (i; [0]) { enum i = 2; }
+     */
+    override Dsymbol symtabLookup(Dsymbol s, Identifier id)
     {
-        assert(!!forward);
+        assert(forward);
+        // correctly diagnose clashing foreach loop variables.
         if (auto d = s.isDeclaration())
         {
             if (d.storage_class & STClocal)
@@ -2076,6 +2096,8 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
                 return super.symtabLookup(s,id);
             }
         }
+        // Declarations within `static foreach` do not clash with
+        // `static foreach` loop variables.
         if (!forward.symtab)
         {
             forward.symtab = new DsymbolTable();

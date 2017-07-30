@@ -307,7 +307,7 @@ public:
         }
         else
         {
-            assert(!!s.sfe.rangefe);
+            assert(s.sfe.rangefe);
             visit(s.sfe.rangefe);
         }
     }

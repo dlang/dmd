@@ -131,7 +131,7 @@ enum STCexptemp             = (1L << 47);   // temporary variable that has lifet
 enum STCmaybescope          = (1L << 48);   // parameter might be 'scope'
 enum STCscopeinferred       = (1L << 49);   // 'scope' has been inferred and should not be part of mangling
 enum STCfuture              = (1L << 50);   // introducing new base class function
-enum STClocal               = (1L << 51);   // do not forward
+enum STClocal               = (1L << 51);   // do not forward (see ddmd.dsymbol.ForwardingScopeDsymbol).
 
 enum STC_TYPECTOR = (STCconst | STCimmutable | STCshared | STCwild);
 enum STC_FUNCATTR = (STCref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem);
