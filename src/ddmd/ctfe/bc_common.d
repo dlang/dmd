@@ -56,15 +56,15 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
             return 16;
         }
 
-    case Function, Ptr, Null:
+    case Function, Null :
         {
             return 4;
         }
-
+    case Ptr :
     case string8, string16, string32:
         {
             //FIXME actually strings don't have a basicTypeSize as is
-            return 4;
+            return 16;
         }
 
 
@@ -378,7 +378,7 @@ struct BCBranch
 struct BCHeapRef
 {
     BCValueType vType;
-    union 
+    union
     {
         ushort tmpIndex;
         ushort localIndex;
@@ -461,7 +461,7 @@ struct BCValue
 
     //TOTO PERF minor: use a 32bit value for heapRef;
     BCHeapRef heapRef;
-    string name; 
+    string name;
 
     uint toUint() const pure
     {
@@ -796,9 +796,9 @@ static immutable smallIntegerTypes = [BCTypeEnum.i32, BCTypeEnum.i16, BCTypeEnum
 BCTypeEnum commonTypeEnum(BCTypeEnum lhs, BCTypeEnum rhs) pure @safe
 {
     // HACK
-    
+
     BCTypeEnum commonType;
-    
+
     if (lhs == BCTypeEnum.f52 || rhs == BCTypeEnum.f52)
     {
         commonType = BCTypeEnum.f52;
@@ -813,6 +813,6 @@ BCTypeEnum commonTypeEnum(BCTypeEnum lhs, BCTypeEnum rhs) pure @safe
     }
     else if (lhs.anyOf(smallIntegerTypes) || rhs.anyOf(smallIntegerTypes))
         commonType = BCTypeEnum.i32;
-    
+
     return commonType;
 }
