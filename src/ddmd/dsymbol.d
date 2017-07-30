@@ -146,8 +146,9 @@ struct Prot
 enum PASS : int
 {
     PASSinit,           // initial state
-    PASSmembers,       // importAll() i.e determineMembers() started
-    PASSmembersdone,   // importAll() i.e determineMembers() done
+    PASSmembers,        // importAll() i.e determineMembers() started
+    PASSmembersdeferred, // importAll() deferred because of unreliable lookup
+    PASSmembersdone,    // importAll() i.e determineMembers() done
     PASSsemantic,       // semantic() started
     PASSsemanticdone,   // semantic() done
     PASSsemantic2,      // semantic2() started
@@ -161,6 +162,7 @@ enum PASS : int
 
 alias PASSinit = PASS.PASSinit;
 alias PASSmembers = PASS.PASSmembers;
+alias PASSmembersdeferred = PASS.PASSmembersdeferred;
 alias PASSmembersdone = PASS.PASSmembersdone;
 alias PASSsemantic = PASS.PASSsemantic;
 alias PASSsemanticdone = PASS.PASSsemanticdone;
@@ -651,6 +653,26 @@ extern (C++) class Dsymbol : RootObject
             depdecl = sc.depdecl;
         if (!userAttribDecl)
             userAttribDecl = sc.userAttribDecl;
+    }
+
+    final void deferMembers()
+    {
+        auto s = this;
+        for (auto s2 = s; s2 && s2.semanticRun < PASSmembersdone; s2 = s2.parent)
+        {
+            if (s2.semanticRun == PASSinit)
+            {
+                assert(s2.isPackage());
+                break;
+            }
+
+            s = s2;
+            if (s.semanticRun == PASSmembersdeferred)
+                return; // already deferred
+            s.semanticRun = PASSmembersdeferred;
+        }
+        assert(_scope);
+        _scope._module.addDeferredMembers(s);
     }
 
     void importAll(Scope* sc)
@@ -1725,6 +1747,7 @@ public:
     }
 
     size_t nextMember;
+    uint membersNest;
     override void importAll(Scope* sc)
     {
         if (!members)
@@ -1733,14 +1756,23 @@ public:
             return;
         }
 
-        semanticRun = PASSmembers;
+        if (semanticRun == PASSinit)
+            semanticRun = PASSmembers;
+
+        ++membersNest;
         while (nextMember < members.dim)
         {
             auto s = (*members)[nextMember];
             s.importAll(sc);
             ++nextMember;
         }
-        semanticRun = PASSmembersdone;
+        --membersNest;
+
+        if (!membersNest && isModule())
+            Module.runDeferredMembers(); // TODO move
+
+        if (!membersNest && semanticRun != PASSmembersdeferred)
+            semanticRun = PASSmembersdone;
     }
 
     override void semantic(Scope* sc) { }

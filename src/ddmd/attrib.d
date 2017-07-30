@@ -150,6 +150,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     bool ininc;
     size_t nextMember;
+    uint membersNest;
     override void importAll(Scope* sc)
     {
         if (semanticRun >= PASSmembersdone || ininc)
@@ -158,19 +159,26 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         Dsymbols* d = include(sc, null);
         ininc = false;
         //printf("\tAttribDeclaration::importAll '%s', d = %p\n", toChars(), d);
+        if (semanticRun == PASSinit)
+            semanticRun = PASSmembers;
         if (d)
         {
             Scope* sc2 = newScope(sc);
+            ++membersNest;
             while (nextMember < d.dim)
             {
                 auto s = (*d)[nextMember];
                 s.importAll(sc2);
+//                 if (s.semanticRun == PASSmembersdeferred)
+//                     semanticRun = PASSmembersdeferred;
                 ++nextMember;
             }
+            --membersNest;
             if (sc2 != sc)
                 sc2.pop();
         }
-        semanticRun = PASSmembersdone;
+        if (membersNest == 0 && semanticRun != PASSmembersdeferred)
+            semanticRun = PASSmembersdone;
     }
 
     override void semantic(Scope* sc)

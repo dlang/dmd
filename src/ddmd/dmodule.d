@@ -298,6 +298,7 @@ extern (C++) final class Module : Package
     extern (C++) static __gshared Module rootModule;
     extern (C++) static __gshared DsymbolTable modules; // symbol table of all modules
     extern (C++) static __gshared Modules amodules;     // array of all modules
+    extern (C++) static __gshared Dsymbols deferredM;    // deferred Dsymbol's needing importAll() run on them
     extern (C++) static __gshared Dsymbols deferred;    // deferred Dsymbol's needing semantic() run on them
     extern (C++) static __gshared Dsymbols deferred2;   // deferred Dsymbol's needing semantic2() run on them
     extern (C++) static __gshared Dsymbols deferred3;   // deferred Dsymbol's needing semantic3() run on them
@@ -1235,6 +1236,12 @@ extern (C++) final class Module : Package
     /*******************************************
      * Can't run semantic on s now, try again later.
      */
+    static void addDeferredMembers(Dsymbol s)
+    {
+        //printf("Module::addDeferredSemantic('%s')\n", s.toChars());
+        deferredM.push(s);
+    }
+
     static void addDeferredSemantic(Dsymbol s)
     {
         //printf("Module::addDeferredSemantic('%s')\n", s.toChars());
@@ -1254,10 +1261,69 @@ extern (C++) final class Module : Package
     }
 
     /******************************************
+     * Run importAll() on deferred symbols.
+     */
+    static void runDeferredMembers()
+    {
+//         if (dprogress == 0)
+//             return;
+
+        static __gshared int nested;
+        if (nested)
+            return;
+        nested++;
+
+        size_t len;
+        do
+        {
+//             dprogress = 0;
+            len = deferredM.dim;
+            if (!len)
+                break;
+
+            Dsymbol* todo;
+            Dsymbol* todoalloc = null;
+            Dsymbol tmp;
+            if (len == 1)
+            {
+                todo = &tmp;
+            }
+            else
+            {
+                todo = cast(Dsymbol*)malloc(len * Dsymbol.sizeof);
+                assert(todo);
+                todoalloc = todo;
+            }
+            memcpy(todo, deferredM.tdata(), len * Dsymbol.sizeof);
+            deferredM.setDim(0);
+
+            for (size_t i = 0; i < len; i++)
+            {
+                Dsymbol s = todo[i];
+                assert(s.semanticRun == PASSmembersdeferred);
+                s.semanticRun = PASSmembers;
+                s.importAll(null);
+                //printf("deferredM: %s, parent = %s\n", s.toChars(), s.parent.toChars());
+            }
+            //printf("\tdeferred.dim = %d, len = %d, dprogress = %d\n", deferredM.dim, len, dprogress);
+            if (todoalloc)
+                free(todoalloc);
+        }
+        while (deferredM.dim < len/+ || dprogress+/); // while making progress
+        nested--;
+        //printf("-Module::runDeferredSemantic(), len = %d\n", deferredM.dim);
+/+
+        if (!deferredM.dim)
+            dprogress = 1;+/
+    }
+
+    /******************************************
      * Run semantic() on deferred symbols.
      */
     static void runDeferredSemantic()
     {
+        Module.runDeferredMembers();
+
         if (dprogress == 0)
             return;
 

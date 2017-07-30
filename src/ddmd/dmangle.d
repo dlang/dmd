@@ -93,6 +93,7 @@ private immutable char[TMAX] mangleChar =
     // '@' shouldn't appear anywhere in the deco'd names
     Tinstance    : '@',
     Terror       : '@',
+    Tdefer       : '@',
     Ttypeof      : '@',
     Tslice       : '@',
     Treturn      : '@',

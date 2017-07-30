@@ -396,6 +396,7 @@ enum ENUMTY : int
     Twchar,
     Tdchar,
     Terror,
+    Tdefer,
     Tinstance,
     Ttypeof,
     Ttuple,
@@ -444,6 +445,7 @@ alias Tchar = ENUMTY.Tchar;
 alias Twchar = ENUMTY.Twchar;
 alias Tdchar = ENUMTY.Tdchar;
 alias Terror = ENUMTY.Terror;
+alias Tdefer = ENUMTY.Tdefer;
 alias Tinstance = ENUMTY.Tinstance;
 alias Ttypeof = ENUMTY.Ttypeof;
 alias Ttuple = ENUMTY.Ttuple;
@@ -540,6 +542,7 @@ extern (C++) abstract class Type : RootObject
     extern (C++) static __gshared Type tdstring;    // immutable(dchar)[]
     extern (C++) static __gshared Type tvalist;     // va_list alias
     extern (C++) static __gshared Type terror;      // for error recovery
+    extern (C++) static __gshared Type tdefer;      // for deferring
     extern (C++) static __gshared Type tnull;       // for null type
 
     extern (C++) static __gshared Type tsize_t;     // matches size_t alias
@@ -976,6 +979,7 @@ extern (C++) abstract class Type : RootObject
 
         tshiftcnt = tint32;
         terror = basic[Terror];
+        tdefer = new TypeDefer();
         tnull = basic[Tnull];
         tnull = new TypeNull();
         tnull.deco = tnull.merge().deco;
@@ -3143,11 +3147,11 @@ extern (C++) abstract class Type : RootObject
 
 /***********************************************************
  */
-extern (C++) final class TypeError : Type
+extern (C++) class TypeError : Type
 {
-    extern (D) this()
+    extern (D) this(TY ty = Terror)
     {
-        super(Terror);
+        super(ty);
     }
 
     override Type syntaxCopy()
@@ -3184,6 +3188,14 @@ extern (C++) final class TypeError : Type
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+}
+
+extern (C++) final class TypeDefer : TypeError
+{
+    extern (D) this()
+    {
+        super(Tdefer);
     }
 }
 
@@ -5344,7 +5356,11 @@ extern (C++) final class TypeAArray : TypeArray
                 return tsa.semantic(loc, sc);
             }
             else if (t)
+            {
+                if (t.ty == Tdefer)
+                    return t;
                 index = t.semantic(loc, sc);
+            }
             else
             {
                 index.error(loc, "index is not a type or an expression");
@@ -7466,7 +7482,7 @@ extern (C++) abstract class TypeQualified : Type
      *      if type, *pt is set
      */
     final void resolveHelper(Loc loc, Scope* sc, Dsymbol s, Dsymbol scopesym,
-        Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+        Expression* pe, Type* pt, Dsymbol* ps, ref bool confident, bool intypeid = false)
     {
         version (none)
         {
@@ -7682,6 +7698,14 @@ extern (C++) abstract class TypeQualified : Type
         }
         if (!s)
         {
+            if (confident)
+                *pt = Type.terror;
+            else
+            {
+                *pt = Type.tdefer;
+                return;
+            }
+
             const(char)* p = mutableOf().unSharedOf().toChars();
             const(char)* n = importHint(p);
             if (n)
@@ -7695,7 +7719,6 @@ extern (C++) abstract class TypeQualified : Type
                 else
                     error(loc, "undefined identifier `%s`", p);
             }
-            *pt = Type.terror;
         }
     }
 
@@ -7774,8 +7797,9 @@ extern (C++) final class TypeIdentifier : TypeQualified
         }
 
         Dsymbol scopesym;
-        Dsymbol s = sc.search(loc, ident, &scopesym);
-        resolveHelper(loc, sc, s, scopesym, pe, pt, ps, intypeid);
+        bool confident;
+        Dsymbol s = sc.search(loc, ident, &scopesym, 0, &confident);
+        resolveHelper(loc, sc, s, scopesym, pe, pt, ps, confident, intypeid);
         if (*pt)
             (*pt) = (*pt).addMod(mod);
     }
