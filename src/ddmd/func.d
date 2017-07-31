@@ -278,6 +278,31 @@ extern (C++) class FuncDeclaration : Declaration
         return f;
     }
 
+    override void importAll(Scope* sc)
+    {
+        if (semanticRun >= PASSmembersdone)
+            return;
+
+        if (_scope)
+            sc = _scope;
+
+        if (!sc)
+            return;
+
+        parent = sc.parent;
+
+        AggregateDeclaration ad = isThis();
+        // Don't nest structs b/c of generated methods which should not access the outer scopes.
+        // https://issues.dlang.org/show_bug.cgi?id=16627
+        if (ad && !generated)
+        {
+            storage_class |= ad.storage_class & (STC_TYPECTOR | STCsynchronized);
+            ad.makeNested();
+        }
+
+        semanticRun = PASSmembersdone;
+    }
+
     /// Do the semantic analysis on the external interface to the function.
     override void semantic(Scope* sc)
     {
@@ -294,7 +319,7 @@ extern (C++) class FuncDeclaration : Declaration
             printf("type: %p, %s\n", type, type.toChars());
         }
 
-        if (semanticRun != PASSinit && isFuncLiteralDeclaration())
+        if (semanticRun >= PASSsemantic && isFuncLiteralDeclaration())
         {
             /* Member functions that have return types that are
              * forward references can have semantic() run more than
@@ -306,6 +331,7 @@ extern (C++) class FuncDeclaration : Declaration
 
         if (semanticRun >= PASSsemanticdone)
             return;
+        importAll(sc);
         assert(semanticRun <= PASSsemantic);
         semanticRun = PASSsemantic;
 
@@ -318,20 +344,12 @@ extern (C++) class FuncDeclaration : Declaration
         if (!sc || errors)
             return;
 
-        parent = sc.parent;
         Dsymbol parent = toParent();
 
         foverrides.setDim(0); // reset in case semantic() is being retried for this function
 
         storage_class |= sc.stc & ~STCref;
         ad = isThis();
-        // Don't nest structs b/c of generated methods which should not access the outer scopes.
-        // https://issues.dlang.org/show_bug.cgi?id=16627
-        if (ad && !generated)
-        {
-            storage_class |= ad.storage_class & (STC_TYPECTOR | STCsynchronized);
-            ad.makeNested();
-        }
         if (sc.func)
             storage_class |= sc.func.storage_class & STCdisable;
         // Remove prefix storage classes silently.
@@ -627,6 +645,8 @@ extern (C++) class FuncDeclaration : Declaration
             // Suppress further errors if the return type is an error
             if (type.nextOf() == Type.terror)
                 goto Ldone;
+
+            cd.initVtbl(null);
 
             bool may_override = false;
             for (size_t i = 0; i < cd.baseclasses.dim; i++)

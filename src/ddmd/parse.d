@@ -429,6 +429,7 @@ final class Parser(AST) : Lexer
             AST.Condition condition;
 
             linkage = linksave;
+                const loc2 = token.loc;
 
             switch (token.value)
             {
@@ -629,6 +630,7 @@ final class Parser(AST) : Lexer
                         s = parseStaticAssert();
                     else if (next == TOKif)
                     {
+                        const loc = token.loc;
                         condition = parseStaticIfCondition();
                         AST.Dsymbols* athen;
                         if (token.value == TOKcolon)
@@ -648,7 +650,7 @@ final class Parser(AST) : Lexer
                             aelse = parseBlock(pLastDecl);
                             checkDanglingElse(elseloc);
                         }
-                        s = new AST.StaticIfDeclaration(condition, athen, aelse);
+                        s = new AST.StaticIfDeclaration(loc2, condition, athen, aelse);
                     }
                     else if (next == TOKimport)
                     {
@@ -1118,7 +1120,7 @@ final class Parser(AST) : Lexer
                         aelse = parseBlock(pLastDecl);
                         checkDanglingElse(elseloc);
                     }
-                    s = new AST.ConditionalDeclaration(condition, athen, aelse);
+                    s = new AST.ConditionalDeclaration(loc, condition, athen, aelse);
                     break;
                 }
             case TOKsemicolon:

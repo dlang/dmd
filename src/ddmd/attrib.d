@@ -148,26 +148,46 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         }
     }
 
+    bool ininc;
+    size_t nextMember;
+    uint membersNest;
     override void importAll(Scope* sc)
     {
+        if (semanticRun >= PASSmembersdone || ininc)
+            return;
+        if (semanticRun == PASSinit)
+            semanticRun = PASSmembers;
+        ininc = true;
         Dsymbols* d = include(sc, null);
+        ininc = false;
+        if (!d && semanticRun == PASSmembersdeferred)
+            return; // might be too soon for the static if cond
         //printf("\tAttribDeclaration::importAll '%s', d = %p\n", toChars(), d);
         if (d)
         {
             Scope* sc2 = newScope(sc);
-            for (size_t i = 0; i < d.dim; i++)
+            auto oldnextMember = nextMember;
+            ++membersNest;
+            while (nextMember < d.dim)
             {
-                Dsymbol s = (*d)[i];
+                auto s = (*d)[nextMember];
                 s.importAll(sc2);
+                if (s.semanticRun == PASSmembersdeferred)
+                    semanticRun = PASSmembersdeferred;
+                ++nextMember;
             }
+            --membersNest;
+            nextMember = oldnextMember;
             if (sc2 != sc)
                 sc2.pop();
         }
+        if (!membersNest && semanticRun != PASSmembersdeferred)
+            semanticRun = PASSmembersdone;
     }
 
     override void semantic(Scope* sc)
     {
-        if (semanticRun != PASSinit)
+        if (semanticRun >= PASSsemantic)
             return;
         semanticRun = PASSsemantic;
         Dsymbols* d = include(sc, null);
@@ -1199,10 +1219,11 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
     Condition condition;
     Dsymbols* elsedecl;     // array of Dsymbol's for else block
 
-    final extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
+    final extern (D) this(Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
     {
         super(decl);
         //printf("ConditionalDeclaration::ConditionalDeclaration()\n");
+        this.loc = loc;
         this.condition = condition;
         this.elsedecl = elsedecl;
     }
@@ -1210,7 +1231,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new ConditionalDeclaration(condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
+        return new ConditionalDeclaration(loc, condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
     }
 
     override final bool oneMember(Dsymbol* ps, Identifier ident)
@@ -1290,16 +1311,16 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
     ScopeDsymbol scopesym;
     bool addisdone;
 
-    extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
+    extern (D) this(Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
     {
-        super(condition, decl, elsedecl);
+        super(loc, condition, decl, elsedecl);
         //printf("StaticIfDeclaration::StaticIfDeclaration()\n");
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new StaticIfDeclaration(condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
+        return new StaticIfDeclaration(loc, condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
     }
 
     /****************************************
@@ -1314,6 +1335,11 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
             assert(scopesym); // addMember is already done
             assert(_scope); // setScope is already done
             Dsymbols* d = ConditionalDeclaration.include(_scope, scopesym);
+            if (condition.inc == 0)
+            {
+                defer();
+                return null;
+            }
             if (d && !addisdone)
             {
                 // Add members lazily.
@@ -1364,7 +1390,7 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
 
     override void importAll(Scope* sc)
     {
-        // do not evaluate condition before semantic pass
+        AttribDeclaration.importAll(sc);
     }
 
     override void semantic(Scope* sc)
@@ -1488,7 +1514,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 
     override void importAll(Scope* sc)
     {
-        // do not evaluate aggregate before semantic pass
+        AttribDeclaration.importAll(sc);
     }
 
     override void semantic(Scope* sc)
@@ -1623,6 +1649,30 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
             assert(global.errors != errors);
             decl = null;
         }
+    }
+
+    override void importAll(Scope* sc)
+    {
+        if (semanticRun >= PASSmembersdone || ininc)
+            return;
+        if (!compiled)
+        {
+            ininc = true;
+            compileIt(sc);
+            ininc = false;
+            AttribDeclaration.addMember(sc, scopesym);
+            compiled = true;
+
+            if (_scope && decl)
+            {
+                for (size_t i = 0; i < decl.dim; i++)
+                {
+                    Dsymbol s = (*decl)[i];
+                    s.setScope(_scope);
+                }
+            }
+        }
+        AttribDeclaration.importAll(sc);
     }
 
     override void semantic(Scope* sc)

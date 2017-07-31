@@ -441,7 +441,7 @@ struct Scope
      * Returns:
      *  symbol if found, null if not
      */
-    extern (C++) Dsymbol search(Loc loc, Identifier ident, Dsymbol* pscopesym, int flags = IgnoreNone)
+    extern (C++) Dsymbol search(Loc loc, Identifier ident, Dsymbol* pscopesym, int flags = IgnoreNone, bool* confident = null)
     {
         version (LOGSEARCH)
         {
@@ -487,6 +487,9 @@ struct Scope
 
         Dsymbol searchScopes(int flags)
         {
+            if (confident)
+                *confident = true;
+
             for (Scope* sc = &this; sc; sc = sc.enclosing)
             {
                 assert(sc != sc.enclosing);
@@ -510,6 +513,9 @@ struct Scope
                         *pscopesym = sc.scopesym;
                     return s;
                 }
+                else if (confident && (sc.scopesym.semanticRun == PASSmembersdeferred || sc.scopesym.membersNest >= 2))
+                    *confident = false;
+
                 // Stop when we hit a module, but keep going if that is not just under the global scope
                 if (sc.scopesym.isModule() && !(sc.enclosing && !sc.enclosing.enclosing))
                     break;

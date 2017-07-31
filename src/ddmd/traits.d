@@ -617,7 +617,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             return new ErrorExp();
         }
         if (s.semanticRun == PASSinit)
-            s.semantic(null);
+            s.semantic(null); // FWDREF FIXME: so it would probably be better to set the protection in importAll/determineMembers for all Dsymbols, not just ScopeDsymbol
 
         auto protName = protectionToChars(s.prot().kind); // TODO: How about package(names)
         assert(protName);

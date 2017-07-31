@@ -269,6 +269,70 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         return ScopeDsymbol.syntaxCopy(sd);
     }
 
+    override void importAll(Scope* sc)
+    {
+        if (semanticRun >= PASSmembersdone)
+            return;
+
+        if (_scope)
+            sc = _scope;
+        assert(sc);
+
+        assert(symtab || semanticRun < PASSmembers);
+
+        auto sc2 = newScope(sc);
+
+        if (!symtab)
+        {
+            if (!parent)
+            {
+                assert(sc.parent && sc.func);
+                parent = sc.parent;
+            }
+            assert(parent && !isAnonymous());
+
+            protection = sc.protection;
+
+            alignment = sc.alignment();
+
+            storage_class |= sc.stc;
+            if (storage_class & STCdeprecated)
+                isdeprecated = true;
+            if (storage_class & STCabstract)
+                error("structs, unions cannot be abstract");
+
+            userAttribDecl = sc.userAttribDecl;
+
+            if (!members) // if opaque declaration
+            {
+                semanticRun = PASSmembersdone;
+                return;
+            }
+
+            symtab = new DsymbolTable();
+
+            for (size_t i = 0; i < members.dim; i++)
+            {
+                auto s = (*members)[i];
+                //printf("adding member '%s' to '%s'\n", s.toChars(), this.toChars());
+                s.addMember(sc, this);
+            }
+
+            /* Set scope so if there are forward references, we still might be able to
+            * resolve individual members like enums.
+            */
+            for (size_t i = 0; i < members.dim; i++)
+            {
+                auto s = (*members)[i];
+                //printf("struct: setScope %s %s\n", s.kind(), s.toChars());
+                s.setScope(sc2);
+            }
+        }
+
+        ScopeDsymbol.importAll(sc2);
+        sc2.pop();
+    }
+
     override final void semantic(Scope* sc)
     {
         //printf("StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", this, toPrettyChars(), sizeok);
@@ -277,8 +341,15 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         if (semanticRun >= PASSsemanticdone)
             return;
-        int errors = global.errors;
 
+        importAll(sc);
+        if (semanticRun < PASSmembersdone)
+        {
+            error("struct forward ref");
+            return;
+        }
+
+        int errors = global.errors;
         //printf("+StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", this, toPrettyChars(), sizeok);
         Scope* scx = null;
         if (_scope)
@@ -288,16 +359,9 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             _scope = null;
         }
 
-        if (!parent)
-        {
-            assert(sc.parent && sc.func);
-            parent = sc.parent;
-        }
-        assert(parent && !isAnonymous());
-
         if (this.errors)
             type = Type.terror;
-        if (semanticRun == PASSinit)
+        if (semanticRun < PASSsemantic)
             type = type.addSTC(sc.stc | storage_class);
         type = type.semantic(loc, sc);
         if (type.ty == Tstruct && (cast(TypeStruct)type).sym != this)
@@ -310,21 +374,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         // Ungag errors when not speculative
         Ungag ungag = ungagSpeculative();
 
-        if (semanticRun == PASSinit)
-        {
-            protection = sc.protection;
-
-            alignment = sc.alignment();
-
-            storage_class |= sc.stc;
-            if (storage_class & STCdeprecated)
-                isdeprecated = true;
-            if (storage_class & STCabstract)
-                error("structs, unions cannot be abstract");
-
-            userAttribDecl = sc.userAttribDecl;
-        }
-        else if (symtab && !scx)
+        if (semanticRun >= PASSsemantic/+symtab && !scx+/) // FWDREF FIXME: we should probably error ref here
             return;
 
         semanticRun = PASSsemantic;
@@ -334,35 +384,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             semanticRun = PASSsemanticdone;
             return;
         }
-        if (!symtab)
-        {
-            symtab = new DsymbolTable();
-
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                auto s = (*members)[i];
-                //printf("adding member '%s' to '%s'\n", s.toChars(), this.toChars());
-                s.addMember(sc, this);
-            }
-        }
 
         auto sc2 = newScope(sc);
-
-        /* Set scope so if there are forward references, we still might be able to
-         * resolve individual members like enums.
-         */
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            auto s = (*members)[i];
-            //printf("struct: setScope %s %s\n", s.kind(), s.toChars());
-            s.setScope(sc2);
-        }
-
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            auto s = (*members)[i];
-            s.importAll(sc2);
-        }
 
         for (size_t i = 0; i < members.dim; i++)
         {
@@ -376,7 +399,6 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         if (!determineFields())
         {
             assert(type.ty == Terror);
-            sc2.pop();
             semanticRun = PASSsemanticdone;
             return;
         }
@@ -393,8 +415,6 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             auto sd = (cast(TypeStruct)tb).sym;
             if (sd.semanticRun >= PASSsemanticdone)
                 continue;
-
-            sc2.pop();
 
             _scope = scx ? scx : sc.copy();
             _scope.setNoFree();
@@ -528,20 +548,20 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         }
     }
 
-    override final Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
-    {
-        //printf("%s.StructDeclaration::search('%s', flags = x%x)\n", toChars(), ident.toChars(), flags);
-        if (_scope && !symtab)
-            semantic(_scope);
-
-        if (!members || !symtab) // opaque or semantic() is not yet called
-        {
-            error("is forward referenced when looking for '%s'", ident.toChars());
-            return null;
-        }
-
-        return ScopeDsymbol.search(loc, ident, flags);
-    }
+//     override final Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
+//     {
+//         //printf("%s.StructDeclaration::search('%s', flags = x%x)\n", toChars(), ident.toChars(), flags);
+//         if (_scope && !symtab)
+//             semantic(_scope);
+//
+//         if (!members || !symtab) // opaque or semantic() is not yet called
+//         {
+//             error("is forward referenced when looking for '%s'", ident.toChars());
+//             return null;
+//         }
+//
+//         return ScopeDsymbol.search(loc, ident, flags);
+//     }
 
     override const(char)* kind() const
     {

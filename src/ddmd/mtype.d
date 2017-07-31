@@ -61,6 +61,7 @@ extern (C++) __gshared int Tsize_t = Tuns32;
 extern (C++) __gshared int Tptrdiff_t = Tint32;
 
 enum SIZE_INVALID = (~cast(d_uns64)0);   // error return from size() functions
+enum SIZE_DEFER = (~cast(d_uns64)1);   // size not yet available
 
 
 /***************************
@@ -397,6 +398,7 @@ enum ENUMTY : int
     Twchar,
     Tdchar,
     Terror,
+    Tdefer,
     Tinstance,
     Ttypeof,
     Ttuple,
@@ -445,6 +447,7 @@ alias Tchar = ENUMTY.Tchar;
 alias Twchar = ENUMTY.Twchar;
 alias Tdchar = ENUMTY.Tdchar;
 alias Terror = ENUMTY.Terror;
+alias Tdefer = ENUMTY.Tdefer;
 alias Tinstance = ENUMTY.Tinstance;
 alias Ttypeof = ENUMTY.Ttypeof;
 alias Ttuple = ENUMTY.Ttuple;
@@ -541,6 +544,7 @@ extern (C++) abstract class Type : RootObject
     extern (C++) static __gshared Type tdstring;    // immutable(dchar)[]
     extern (C++) static __gshared Type tvalist;     // va_list alias
     extern (C++) static __gshared Type terror;      // for error recovery
+    extern (C++) static __gshared Type tdefer;      // for deferring
     extern (C++) static __gshared Type tnull;       // for null type
 
     extern (C++) static __gshared Type tsize_t;     // matches size_t alias
@@ -977,6 +981,7 @@ extern (C++) abstract class Type : RootObject
 
         tshiftcnt = tint32;
         terror = basic[Terror];
+        tdefer = new TypeDefer();
         tnull = basic[Tnull];
         tnull = new TypeNull();
         tnull.deco = tnull.merge().deco;
@@ -2562,6 +2567,8 @@ extern (C++) abstract class Type : RootObject
             d_uns64 sz = size(loc);
             if (sz == SIZE_INVALID)
                 return new ErrorExp();
+            else if (sz == SIZE_DEFER)
+                return new DeferExp();
             e = new IntegerExp(loc, sz, Type.tsize_t);
         }
         else if (ident == Id.__xalignof)
@@ -3144,11 +3151,11 @@ extern (C++) abstract class Type : RootObject
 
 /***********************************************************
  */
-extern (C++) final class TypeError : Type
+extern (C++) class TypeError : Type
 {
-    extern (D) this()
+    extern (D) this(TY ty = Terror)
     {
-        super(Terror);
+        super(ty);
     }
 
     override Type syntaxCopy()
@@ -3185,6 +3192,14 @@ extern (C++) final class TypeError : Type
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+}
+
+extern (C++) final class TypeDefer : TypeError
+{
+    extern (D) this()
+    {
+        super(Tdefer);
     }
 }
 
@@ -4707,6 +4722,8 @@ extern (C++) final class TypeSArray : TypeArray
             dim = semanticLength(sc, tbn, dim);
             if (errors != global.errors)
                 return errorReturn();
+            if (dim.op == TOKfinally)
+                return Type.tdefer;
 
             dim = dim.optimize(WANTvalue);
             dim = dim.ctfeInterpret();
@@ -5345,7 +5362,11 @@ extern (C++) final class TypeAArray : TypeArray
                 return tsa.semantic(loc, sc);
             }
             else if (t)
+            {
+                if (t.ty == Tdefer)
+                    return t;
                 index = t.semantic(loc, sc);
+            }
             else
             {
                 index.error(loc, "index is not a type or an expression");
@@ -7467,7 +7488,7 @@ extern (C++) abstract class TypeQualified : Type
      *      if type, *pt is set
      */
     final void resolveHelper(Loc loc, Scope* sc, Dsymbol s, Dsymbol scopesym,
-        Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+        Expression* pe, Type* pt, Dsymbol* ps, ref bool confident, bool intypeid = false)
     {
         version (none)
         {
@@ -7621,17 +7642,17 @@ extern (C++) abstract class TypeQualified : Type
                  *      // TypeIdentifier 'a', 'e', and 'v' should be TOKvar,
                  *      // because getDsymbol() need to work in AliasDeclaration::semantic().
                  */
-                if (!v.type ||
-                    !v.type.deco && v.inuse)
+                if (/+!v.type ||
+                    !v.type.deco && +/v.inuse)
                 {
                     if (v.inuse) // https://issues.dlang.org/show_bug.cgi?id=9494
                         error(loc, "circular reference to %s '%s'", v.kind(), v.toPrettyChars());
-                    else
-                        error(loc, "forward reference to %s '%s'", v.kind(), v.toPrettyChars());
+//                     else
+//                         error(loc, "forward reference to %s '%s'", v.kind(), v.toPrettyChars());
                     *pt = Type.terror;
                     return;
                 }
-                if (v.type.ty == Terror)
+                if (v.type && v.type.ty == Terror)
                     *pt = Type.terror;
                 else
                     *pe = new VarExp(loc, v);
@@ -7683,6 +7704,14 @@ extern (C++) abstract class TypeQualified : Type
         }
         if (!s)
         {
+            if (confident)
+                *pt = Type.terror;
+            else
+            {
+                *pt = Type.tdefer;
+                return;
+            }
+
             const(char)* p = mutableOf().unSharedOf().toChars();
             const(char)* n = importHint(p);
             if (n)
@@ -7696,7 +7725,6 @@ extern (C++) abstract class TypeQualified : Type
                 else
                     error(loc, "undefined identifier `%s`", p);
             }
-            *pt = Type.terror;
         }
     }
 
@@ -7775,8 +7803,9 @@ extern (C++) final class TypeIdentifier : TypeQualified
         }
 
         Dsymbol scopesym;
-        Dsymbol s = sc.search(loc, ident, &scopesym);
-        resolveHelper(loc, sc, s, scopesym, pe, pt, ps, intypeid);
+        bool confident;
+        Dsymbol s = sc.search(loc, ident, &scopesym, 0, &confident);
+        resolveHelper(loc, sc, s, scopesym, pe, pt, ps, confident, intypeid);
         if (*pt)
             (*pt) = (*pt).addMod(mod);
     }
@@ -7876,7 +7905,7 @@ extern (C++) final class TypeInstance : TypeQualified
         *ps = null;
 
         //printf("TypeInstance::resolve(sc = %p, tempinst = '%s')\n", sc, tempinst.toChars());
-        tempinst.semantic(sc);
+        tempinst.importAll(sc);
         if (!global.gag && tempinst.errors)
         {
             *pt = terror;
@@ -8506,7 +8535,7 @@ extern (C++) final class TypeStruct : Type
                     return e;
                 }
             }
-            if (d.semanticRun == PASSinit)
+            if (d.semanticRun < PASSsemantic) // FWDREF hmm?
                 d.semantic(null);
             checkAccess(e.loc, sc, e, d);
             auto ve = new VarExp(e.loc, d);
@@ -9368,6 +9397,9 @@ extern (C++) final class TypeClass : Type
         }
         if (auto v = s.isVarDeclaration())
         {
+            if (v._scope)
+                v.semantic(null);
+
             if (!v.type ||
                 !v.type.deco && v.inuse)
             {
@@ -9534,7 +9566,7 @@ extern (C++) final class TypeClass : Type
                 }
             }
             //printf("e = %s, d = %s\n", e.toChars(), d.toChars());
-            if (d.semanticRun == PASSinit)
+            if (d.semanticRun == PASSinit) // FWDREF hmm
                 d.semantic(null);
             checkAccess(e.loc, sc, e, d);
             auto ve = new VarExp(e.loc, d);

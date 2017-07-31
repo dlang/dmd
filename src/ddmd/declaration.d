@@ -858,7 +858,7 @@ extern (C++) final class AliasDeclaration : Declaration
                 /* If this is an internal alias for selective/renamed import,
                  * load the module first.
                  */
-                _import.semantic(null);
+                _import.importAll(null);
             }
             if (_scope)
             {
@@ -1087,6 +1087,139 @@ extern (C++) class VarDeclaration : Declaration
         return v;
     }
 
+    bool inferred;
+
+    override void importAll(Scope* sc)
+    {
+        if (semanticRun >= PASSmembersdone || inuse)
+            return;
+
+        if (_scope)
+            sc = _scope;
+        assert(sc);
+
+        if (semanticRun == PASSinit)
+        {
+            /* Pick up storage classes from context, but except synchronized,
+            * override, abstract, and final.
+            */
+            storage_class |= (sc.stc & ~(STCsynchronized | STCoverride | STCabstract | STCfinal));
+            if (storage_class & STCextern && _init)
+                error("extern symbols cannot have initializers");
+
+            userAttribDecl = sc.userAttribDecl;
+
+            AggregateDeclaration ad = isThis();
+            if (ad)
+                storage_class |= ad.storage_class & STC_TYPECTOR;
+
+            linkage = sc.linkage;
+            this.parent = sc.parent;
+            //printf("this = %p, parent = %p, '%s'\n", this, parent, parent.toChars());
+            protection = sc.protection;
+
+            /* If scope's alignment is the default, use the type's alignment,
+            * otherwise the scope overrrides.
+            */
+            alignment = sc.alignment();
+
+            //printf("sc.stc = %x\n", sc.stc);
+            //printf("storage_class = x%x\n", storage_class);
+
+            Dsymbol parent = toParent();
+
+            if (storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe))
+            {
+            }
+            else
+            {
+                if (parent.isAggregateDeclaration())
+                    storage_class |= STCfield;
+            }
+        }
+
+        semanticRun = PASSmembers;
+
+        if (isField())
+        {
+// // // // // // // // // // // // // // FIXME
+            if (!type)
+            {
+                inuse++;
+
+                // Infering the type requires running semantic,
+                // so mark the scope as ctfe if required
+                bool needctfe = (storage_class & (STCmanifest | STCstatic)) != 0;
+                if (needctfe)
+                    sc = sc.startCTFE();
+
+                //printf("inferring type for %s with init %s\n", toChars(), _init.toChars());
+                auto vinit = _init.inferType(sc);
+                if (vinit && !vinit.isDeferInitializer())
+                {
+                    _init = vinit;
+                    type = _init.toExpression().type;
+                }
+                if (needctfe)
+                    sc = sc.endCTFE();
+
+                inuse--;
+
+                if (vinit.isDeferInitializer())
+                {
+                    deferMembers();
+                    return;
+                }
+
+                inuse--;
+                inferred = true;
+
+                /* This is a kludge to support the existing syntax for RAII
+                * declarations.
+                */
+                storage_class &= ~STCauto;
+                originalType = type.syntaxCopy();
+            }
+            else
+            {
+                if (!originalType)
+                    originalType = type.syntaxCopy();
+
+                /* Prefix function attributes of variable declaration can affect
+                * its type:
+                *      pure nothrow void function() fp;
+                *      static assert(is(typeof(fp) == void function() pure nothrow));
+                */
+                Scope* sc2 = sc.push();
+                sc2.stc |= (storage_class & STC_FUNCATTR);
+                inuse++;
+                type = type.semantic(loc, sc2);
+                inuse--;
+                sc2.pop();
+
+                if (type.ty == Tdefer)
+                {
+                    type = originalType;
+                    deferMembers();
+                    return;
+                }
+            }
+            if (alignment == STRUCTALIGN_DEFAULT)
+                alignment = type.alignment(); // use type's alignment
+            Type tb = type.toBasetype();
+            Type tbn = tb.baseElemOf();
+// // // // // // // // // // // // // // FIXME
+            AggregateDeclaration aad = parent.isAggregateDeclaration();
+            if (tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor) // FWDREF FIXME too soon?
+            {
+                if (!isThisDeclaration() && !_init)
+                    aad.noDefaultCtor = true;
+            }
+        }
+
+        semanticRun = PASSmembersdone;
+    }
+
     override void semantic(Scope* sc)
     {
         version (none)
@@ -1102,7 +1235,18 @@ extern (C++) class VarDeclaration : Declaration
         //    return;
         //semanticRun = PSSsemantic;
 
+        importAll(sc);
+
         if (semanticRun >= PASSsemanticdone)
+            return;
+
+        if (semanticRun < PASSmembersdone)
+        {
+            error("circular referencing"); // FWDREF
+            return;
+        }
+
+        if (semanticRun == PASSsemantic)
             return;
 
         Scope* scx = null;
@@ -1110,30 +1254,33 @@ extern (C++) class VarDeclaration : Declaration
         {
             sc = _scope;
             scx = sc;
-            _scope = null;
+//             _scope = null;
         }
+        assert(sc);
 
-        if (!sc)
-            return;
+//         if (!sc)
+//             return;
 
         semanticRun = PASSsemantic;
 
-        /* Pick up storage classes from context, but except synchronized,
-         * override, abstract, and final.
-         */
-        storage_class |= (sc.stc & ~(STCsynchronized | STCoverride | STCabstract | STCfinal));
-        if (storage_class & STCextern && _init)
-            error("extern symbols cannot have initializers");
-
-        userAttribDecl = sc.userAttribDecl;
-
         AggregateDeclaration ad = isThis();
-        if (ad)
-            storage_class |= ad.storage_class & STC_TYPECTOR;
 
+        if (global.params.vcomplex)
+            type.checkComplexTransition(loc);
+
+        // Calculate type size + safety checks
+        if (sc.func && !sc.intypeof)
+        {
+            if (storage_class & STCgshared && !isMember())
+            {
+                if (sc.func.setUnsafe())
+                    error("__gshared not allowed in safe functions; use shared");
+            }
+        }
+
+        // FWDREF ===== importAll?
         /* If auto type inference, do the inference
          */
-        int inferred = 0;
         if (!type)
         {
             inuse++;
@@ -1145,13 +1292,24 @@ extern (C++) class VarDeclaration : Declaration
                 sc = sc.startCTFE();
 
             //printf("inferring type for %s with init %s\n", toChars(), _init.toChars());
-            _init = _init.inferType(sc);
-            type = _init.toExpression().type;
+            auto vinit = _init.inferType(sc);
+            if (vinit && !vinit.isDeferInitializer())
+            {
+                _init = vinit;
+                type = _init.toExpression().type;
+            }
             if (needctfe)
                 sc = sc.endCTFE();
 
             inuse--;
-            inferred = 1;
+
+            if (vinit.isDeferInitializer())
+            {
+                deferSemantic();
+                return;
+            }
+
+            inferred = true;
 
             /* This is a kludge to support the existing syntax for RAII
              * declarations.
@@ -1180,66 +1338,17 @@ extern (C++) class VarDeclaration : Declaration
         if (type.ty == Terror)
             errors = true;
 
-        type.checkDeprecated(loc, sc);
-        linkage = sc.linkage;
-        this.parent = sc.parent;
-        //printf("this = %p, parent = %p, '%s'\n", this, parent, parent.toChars());
-        protection = sc.protection;
-
-        /* If scope's alignment is the default, use the type's alignment,
-         * otherwise the scope overrrides.
-         */
-        alignment = sc.alignment();
         if (alignment == STRUCTALIGN_DEFAULT)
             alignment = type.alignment(); // use type's alignment
 
+        type.checkDeprecated(loc, sc);
         //printf("sc.stc = %x\n", sc.stc);
         //printf("storage_class = x%x\n", storage_class);
-
-        if (global.params.vcomplex)
-            type.checkComplexTransition(loc);
-
-        // Calculate type size + safety checks
-        if (sc.func && !sc.intypeof)
-        {
-            if (storage_class & STCgshared && !isMember())
-            {
-                if (sc.func.setUnsafe())
-                    error("__gshared not allowed in safe functions; use shared");
-            }
-        }
 
         Dsymbol parent = toParent();
 
         Type tb = type.toBasetype();
         Type tbn = tb.baseElemOf();
-        if (tb.ty == Tvoid && !(storage_class & STClazy))
-        {
-            if (inferred)
-            {
-                error("type %s is inferred from initializer %s, and variables cannot be of type void", type.toChars(), _init.toChars());
-            }
-            else
-                error("variables cannot be of type void");
-            type = Type.terror;
-            tb = type;
-        }
-        if (tb.ty == Tfunction)
-        {
-            error("cannot be declared to be a function");
-            type = Type.terror;
-            tb = type;
-        }
-        if (tb.ty == Tstruct)
-        {
-            TypeStruct ts = cast(TypeStruct)tb;
-            if (!ts.sym.members)
-            {
-                error("no definition of struct %s", ts.toChars());
-            }
-        }
-        if ((storage_class & STCauto) && !inferred)
-            error("storage class 'auto' has no effect if type is not inferred, did you mean 'scope'?");
 
         if (tb.ty == Ttuple)
         {
@@ -1378,7 +1487,7 @@ extern (C++) class VarDeclaration : Declaration
                     storage_class |= arg.storageClass;
                 auto v = new VarDeclaration(loc, arg.type, id, ti, storage_class);
                 //printf("declaring field %s of type %s\n", v.toChars(), v.type.toChars());
-                v.semantic(sc);
+                v.importAll(sc);
 
                 if (sc.scopesym)
                 {
@@ -1398,6 +1507,39 @@ extern (C++) class VarDeclaration : Declaration
             semanticRun = PASSsemanticdone;
             return;
         }
+        // FWDREF ===== importAll?
+
+// // // //         Dsymbol parent = toParent();
+// // // //
+// // // //         Type tb = type.toBasetype();
+// // // //         Type tbn = tb.baseElemOf();
+        if (tb.ty == Tvoid && !(storage_class & STClazy))
+        {
+            if (inferred)
+            {
+                error("type %s is inferred from initializer %s, and variables cannot be of type void", type.toChars(), _init.toChars());
+            }
+            else
+                error("variables cannot be of type void");
+            type = Type.terror;
+            tb = type;
+        }
+        if (tb.ty == Tfunction)
+        {
+            error("cannot be declared to be a function");
+            type = Type.terror;
+            tb = type;
+        }
+        if (tb.ty == Tstruct)
+        {
+            TypeStruct ts = cast(TypeStruct)tb;
+            if (!ts.sym.members)
+            {
+                error("no definition of struct %s", ts.toChars());
+            }
+        }
+        if ((storage_class & STCauto) && !inferred)
+            error("storage class 'auto' has no effect if type is not inferred, did you mean 'scope'?");
 
         /* Storage class can modify the type
          */
@@ -1463,12 +1605,6 @@ extern (C++) class VarDeclaration : Declaration
                     const(char)* p = loc.toChars();
                     const(char)* s = (storage_class & STCimmutable) ? "immutable" : "const";
                     fprintf(global.stdmsg, "%s: %s.%s is %s field\n", p ? p : "", ad.toPrettyChars(), toChars(), s);
-                }
-                storage_class |= STCfield;
-                if (tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
-                {
-                    if (!isThisDeclaration() && !_init)
-                        aad.noDefaultCtor = true;
                 }
             }
 
@@ -2419,7 +2555,7 @@ extern (C++) class VarDeclaration : Declaration
     {
         //printf("VarDeclaration::toAlias('%s', this = %p, aliassym = %p)\n", toChars(), this, aliassym);
         if ((!type || !type.deco) && _scope)
-            semantic(_scope);
+            importAll(_scope);
 
         assert(this != aliassym);
         Dsymbol s = aliassym ? aliassym.toAlias() : this;

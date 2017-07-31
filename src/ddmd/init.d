@@ -83,6 +83,11 @@ extern (C++) class Initializer : RootObject
         return null;
     }
 
+    DeferInitializer isDeferInitializer()
+    {
+        return null;
+    }
+
     VoidInitializer isVoidInitializer()
     {
         return null;
@@ -172,6 +177,47 @@ extern (C++) final class ErrorInitializer : Initializer
     }
 
     override ErrorInitializer isErrorInitializer()
+    {
+        return this;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ */
+extern (C++) final class DeferInitializer : Initializer
+{
+    extern (D) this()
+    {
+        super(Loc());
+    }
+
+    override Initializer syntaxCopy()
+    {
+        return this;
+    }
+
+    override Initializer inferType(Scope* sc)
+    {
+        return this;
+    }
+
+    override Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
+    {
+        //printf("DeferInitializer::semantic(t = %p)\n", t);
+        return this;
+    }
+
+    override Expression toExpression(Type t = null)
+    {
+        return new ErrorExp();
+    }
+
+    override DeferInitializer isDeferInitializer()
     {
         return this;
     }
@@ -595,6 +641,8 @@ extern (C++) final class ExpInitializer : Initializer
             return new ErrorInitializer();
         if (!exp.type)
             return new ErrorInitializer();
+        if (exp.op == TOKfinally)
+            return new DeferInitializer();
         return this;
     }
 
