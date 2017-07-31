@@ -1566,6 +1566,7 @@ class Lexer
                 }
                 continue;
             case TOKeof:
+            case TOKerror:
                 error("unterminated token string constant starting at %s", start.toChars());
                 t.setString();
                 return TOKstring;
