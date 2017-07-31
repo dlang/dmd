@@ -6038,22 +6038,6 @@ static if (is(BCGen))
 
             return ;
         }
-        else if (fromType.basicTypeSize && fromType.basicTypeSize == toType.basicTypeSize)
-        {
-            retval.type = toType;
-        }
-        else if (toType.type.anyOf([BCTypeEnum.c8, BCTypeEnum.i8]))
-        {
-            // truncate (& 0xff)
-            retval.type = toType;
-            if (fromType.type.anyOf([BCTypeEnum.i32, BCTypeEnum.i64]))
-                And3(retval.i32, retval.i32, imm32(0xff));
-        }
-        else if (fromType.type.anyOf([BCTypeEnum.c8, BCTypeEnum.i8]))
-        {
-            // basically a no-op;
-            retval.type = toType;
-        }
         else if (fromType.type == BCTypeEnum.c32)
         {
             if (toType.type != BCTypeEnum.i32 && toType.type != BCTypeEnum.i64)
@@ -6075,7 +6059,8 @@ static if (is(BCGen))
             }
             else if (toType == BCTypeEnum.i32) {} // nop
             else if (toType == BCTypeEnum.i64) {} // nop
-            else if (toType == BCTypeEnum.c8) {} //FIXME should not be a nop but for now it is :)
+            else if (toType.type.anyOf([BCTypeEnum.c8, BCTypeEnum.i8]))
+                And3(retval.i32, retval.i32, imm32(0xff));
             else
             {
                 bailout("Cast not implemented: " ~ ce.toString);
