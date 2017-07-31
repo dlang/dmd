@@ -150,6 +150,7 @@ enum PASS : int
     PASSmembersdeferred, // importAll() deferred because of unreliable lookup
     PASSmembersdone,    // importAll() i.e determineMembers() done
     PASSsemantic,       // semantic() started
+    PASSsemanticdeferred,       // semantic() fsdf
     PASSsemanticdone,   // semantic() done
     PASSsemantic2,      // semantic2() started
     PASSsemantic2done,  // semantic2() done
@@ -165,6 +166,7 @@ alias PASSmembers = PASS.PASSmembers;
 alias PASSmembersdeferred = PASS.PASSmembersdeferred;
 alias PASSmembersdone = PASS.PASSmembersdone;
 alias PASSsemantic = PASS.PASSsemantic;
+alias PASSsemanticdeferred = PASS.PASSsemanticdeferred;
 alias PASSsemanticdone = PASS.PASSsemanticdone;
 alias PASSsemantic2 = PASS.PASSsemantic2;
 alias PASSsemantic2done = PASS.PASSsemantic2done;
@@ -655,6 +657,33 @@ extern (C++) class Dsymbol : RootObject
             userAttribDecl = sc.userAttribDecl;
     }
 
+    final bool isDeferred()
+    {
+        switch (semanticRun)
+        {
+            case PASSmembersdeferred:
+            case PASSsemanticdeferred:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    final void defer()
+    {
+        switch (semanticRun)
+        {
+            case PASSmembers:
+                deferMembers();
+                break;
+            case PASSsemantic:
+                deferSemantic();
+                break;
+            default:
+                assert(0);
+        }
+    }
+
     final void deferMembers()
     {
         auto s = this;
@@ -673,6 +702,26 @@ extern (C++) class Dsymbol : RootObject
         }
         assert(_scope);
         _scope._module.addDeferredMembers(s);
+    }
+
+    final void deferSemantic()
+    {
+        auto s = this;
+        for (auto s2 = s; s2 && s2.semanticRun < PASSsemanticdone; s2 = s2.parent)
+        {
+            if (s2.semanticRun == PASSinit)
+            {
+                assert(s2.isPackage());
+                break;
+            }
+
+            s = s2;
+            if (s.semanticRun < PASSsemantic || s.semanticRun == PASSsemanticdeferred)
+                return; // already deferred or semantic() hasn't been run yet
+            s.semanticRun = PASSsemanticdeferred;
+        }
+        assert(_scope);
+        _scope._module.addDeferredSemantic(s);
     }
 
     void importAll(Scope* sc)
@@ -1759,6 +1808,7 @@ public:
         if (semanticRun == PASSinit)
             semanticRun = PASSmembers;
 
+        auto oldnextMember = nextMember;
         ++membersNest;
         while (nextMember < members.dim)
         {
@@ -1767,12 +1817,16 @@ public:
             ++nextMember;
         }
         --membersNest;
-
-        if (!membersNest && isModule())
-            Module.runDeferredMembers(); // TODO move
+        nextMember = oldnextMember;
 
         if (!membersNest && semanticRun != PASSmembersdeferred)
             semanticRun = PASSmembersdone;
+
+        if (!membersNest && isModule())
+        {
+            Module.runDeferredMembers(); // TODO move to dmodule
+            assert(semanticRun >= PASSmembersdone);
+        }
     }
 
     override void semantic(Scope* sc) { }

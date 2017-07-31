@@ -1309,7 +1309,8 @@ extern (C++) final class Module : Package
             if (todoalloc)
                 free(todoalloc);
         }
-        while (deferredM.dim < len/+ || dprogress+/); // while making progress
+        while (true);
+//         while (deferredM.dim < len || dprogress); // while making progress
         nested--;
         //printf("-Module::runDeferredSemantic(), len = %d\n", deferredM.dim);
 /+
@@ -1361,6 +1362,8 @@ extern (C++) final class Module : Package
             {
                 Dsymbol s = todo[i];
                 s.semantic(null);
+                if (s.semanticRun == PASSsemanticdeferred) // FWDREF FIXME? most is still not PASSsemanticdeferred
+                    s.semanticRun = PASSmembersdone;
                 //printf("deferred: %s, parent = %s\n", s.toChars(), s.parent.toChars());
             }
             //printf("\tdeferred.dim = %d, len = %d, dprogress = %d\n", deferred.dim, len, dprogress);

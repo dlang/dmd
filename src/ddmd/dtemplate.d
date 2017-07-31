@@ -900,8 +900,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         assert(ti.inst is null);
         ti.inst = ti; // temporary instantiation to enable genIdent()
         scx.flags |= SCOPEconstraint;
-        bool errors;
-        bool result = evalStaticCondition(scx, constraint, e, errors);
+        bool errors, defer;
+        bool result = evalStaticCondition(scx, constraint, e, errors, defer);
         ti.inst = null;
         ti.symtab = null;
         scx = scx.pop();

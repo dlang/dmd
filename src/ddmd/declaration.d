@@ -1153,10 +1153,22 @@ extern (C++) class VarDeclaration : Declaration
                     sc = sc.startCTFE();
 
                 //printf("inferring type for %s with init %s\n", toChars(), _init.toChars());
-                _init = _init.inferType(sc);
-                type = _init.toExpression().type;
+                auto vinit = _init.inferType(sc);
+                if (vinit && !vinit.isDeferInitializer())
+                {
+                    _init = vinit;
+                    type = _init.toExpression().type;
+                }
                 if (needctfe)
                     sc = sc.endCTFE();
+
+                inuse--;
+
+                if (vinit.isDeferInitializer())
+                {
+                    deferMembers();
+                    return;
+                }
 
                 inuse--;
                 inferred = true;
@@ -1233,16 +1245,20 @@ extern (C++) class VarDeclaration : Declaration
             return;
         }
 
+        if (semanticRun == PASSsemantic)
+            return;
+
         Scope* scx = null;
         if (_scope)
         {
             sc = _scope;
             scx = sc;
-            _scope = null;
+//             _scope = null;
         }
+        assert(sc);
 
-        if (!sc)
-            return;
+//         if (!sc)
+//             return;
 
         semanticRun = PASSsemantic;
 
@@ -1275,12 +1291,23 @@ extern (C++) class VarDeclaration : Declaration
                 sc = sc.startCTFE();
 
             //printf("inferring type for %s with init %s\n", toChars(), _init.toChars());
-            _init = _init.inferType(sc);
-            type = _init.toExpression().type;
+            auto vinit = _init.inferType(sc);
+            if (vinit && !vinit.isDeferInitializer())
+            {
+                _init = vinit;
+                type = _init.toExpression().type;
+            }
             if (needctfe)
                 sc = sc.endCTFE();
 
             inuse--;
+
+            if (vinit.isDeferInitializer())
+            {
+                deferSemantic();
+                return;
+            }
+
             inferred = true;
 
             /* This is a kludge to support the existing syntax for RAII

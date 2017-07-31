@@ -760,8 +760,8 @@ extern (C++) final class StaticIfCondition : Condition
             sc.sds = sds; // sds gets any addMember()
 
             import ddmd.staticcond;
-            bool errors;
-            bool result = evalStaticCondition(sc, exp, exp, errors);
+            bool errors, defer;
+            bool result = evalStaticCondition(sc, exp, exp, errors, defer);
             sc.pop();
             --nest;
             // Prevent repeated condition evaluation.
@@ -770,6 +770,11 @@ extern (C++) final class StaticIfCondition : Condition
                 return (inc == 1);
             if (errors)
                 return errorReturn();
+            if (defer)
+            {
+                assert(inc == 0); // FWDREF TODO check fail7815?
+                return 0;
+            }
             if (result)
                 inc = 1;
             else

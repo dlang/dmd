@@ -61,8 +61,8 @@ extern (C++) final class StaticAssert : Dsymbol
         sc.minst = null;
 
         import ddmd.staticcond;
-        bool errors;
-        bool result = evalStaticCondition(sc, exp, exp, errors);
+        bool errors, defer;
+        bool result = evalStaticCondition(sc, exp, exp, errors, defer);
         sc = sc.pop();
         if (errors)
         {

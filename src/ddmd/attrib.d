@@ -155,29 +155,33 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
     {
         if (semanticRun >= PASSmembersdone || ininc)
             return;
+        if (semanticRun == PASSinit)
+            semanticRun = PASSmembers;
         ininc = true;
         Dsymbols* d = include(sc, null);
         ininc = false;
+        if (!d && semanticRun == PASSmembersdeferred)
+            return; // might be too soon for the static if cond
         //printf("\tAttribDeclaration::importAll '%s', d = %p\n", toChars(), d);
-        if (semanticRun == PASSinit)
-            semanticRun = PASSmembers;
         if (d)
         {
             Scope* sc2 = newScope(sc);
+            auto oldnextMember = nextMember;
             ++membersNest;
             while (nextMember < d.dim)
             {
                 auto s = (*d)[nextMember];
                 s.importAll(sc2);
-//                 if (s.semanticRun == PASSmembersdeferred)
-//                     semanticRun = PASSmembersdeferred;
+                if (s.semanticRun == PASSmembersdeferred)
+                    semanticRun = PASSmembersdeferred;
                 ++nextMember;
             }
             --membersNest;
+            nextMember = oldnextMember;
             if (sc2 != sc)
                 sc2.pop();
         }
-        if (membersNest == 0 && semanticRun != PASSmembersdeferred)
+        if (!membersNest && semanticRun != PASSmembersdeferred)
             semanticRun = PASSmembersdone;
     }
 
@@ -1331,6 +1335,11 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
             assert(scopesym); // addMember is already done
             assert(_scope); // setScope is already done
             Dsymbols* d = ConditionalDeclaration.include(_scope, scopesym);
+            if (condition.inc == 0)
+            {
+                defer();
+                return null;
+            }
             if (d && !addisdone)
             {
                 // Add members lazily.

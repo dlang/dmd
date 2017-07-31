@@ -246,8 +246,9 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
             auto ad = cast(AggregateDeclaration)param;
 
-            if (v.semanticRun < PASSmembersdone)
-                v.importAll(null);
+            assert(v.semanticRun >= PASSmembersdone);
+//             if (v.semanticRun < PASSmembersdone)
+//                 v.importAll(null);
             // Return in case a recursive determineFields triggered by v.semantic already finished
             if (ad.sizeok != SIZEOKnone)
                 return 1;
@@ -320,7 +321,10 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         }
 
         if (_scope)
-            importAll(_scope);
+            importAll(null);
+
+        if (semanticRun < PASSmembersdone)
+            return false; // FWDREF FIXME: could be a real error
 
         // Determine the instance size of base class first.
         if (auto cd = isClassDeclaration())
@@ -361,9 +365,10 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     override final d_uns64 size(Loc loc)
     {
         //printf("+AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
-        bool ok = determineSize(loc);
+        if (determineSize(loc))
+            return structsize;
         //printf("-AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
-        return ok ? structsize : SIZE_INVALID;
+        return (semanticRun < PASSmembersdone) ? SIZE_DEFER : SIZE_INVALID;
     }
 
     /***************************************

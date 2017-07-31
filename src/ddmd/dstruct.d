@@ -279,7 +279,6 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         assert(sc);
 
         assert(symtab || semanticRun < PASSmembers);
-        semanticRun = PASSmembers;
 
         auto sc2 = newScope(sc);
 
@@ -549,20 +548,20 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         }
     }
 
-    override final Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
-    {
-        //printf("%s.StructDeclaration::search('%s', flags = x%x)\n", toChars(), ident.toChars(), flags);
-        if (_scope && !symtab)
-            semantic(_scope);
-
-        if (!members || !symtab) // opaque or semantic() is not yet called
-        {
-            error("is forward referenced when looking for '%s'", ident.toChars());
-            return null;
-        }
-
-        return ScopeDsymbol.search(loc, ident, flags);
-    }
+//     override final Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
+//     {
+//         //printf("%s.StructDeclaration::search('%s', flags = x%x)\n", toChars(), ident.toChars(), flags);
+//         if (_scope && !symtab)
+//             semantic(_scope);
+//
+//         if (!members || !symtab) // opaque or semantic() is not yet called
+//         {
+//             error("is forward referenced when looking for '%s'", ident.toChars());
+//             return null;
+//         }
+//
+//         return ScopeDsymbol.search(loc, ident, flags);
+//     }
 
     override const(char)* kind() const
     {

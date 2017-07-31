@@ -60,6 +60,7 @@ extern (C++) __gshared int Tsize_t = Tuns32;
 extern (C++) __gshared int Tptrdiff_t = Tint32;
 
 enum SIZE_INVALID = (~cast(d_uns64)0);   // error return from size() functions
+enum SIZE_DEFER = (~cast(d_uns64)1);   // size not yet available
 
 
 /***************************
@@ -2565,6 +2566,8 @@ extern (C++) abstract class Type : RootObject
             d_uns64 sz = size(loc);
             if (sz == SIZE_INVALID)
                 return new ErrorExp();
+            else if (sz == SIZE_DEFER)
+                return new DeferExp();
             e = new IntegerExp(loc, sz, Type.tsize_t);
         }
         else if (ident == Id.__xalignof)
@@ -4718,6 +4721,8 @@ extern (C++) final class TypeSArray : TypeArray
             dim = semanticLength(sc, tbn, dim);
             if (errors != global.errors)
                 return errorReturn();
+            if (dim.op == TOKfinally)
+                return Type.tdefer;
 
             dim = dim.optimize(WANTvalue);
             dim = dim.ctfeInterpret();
@@ -7636,17 +7641,17 @@ extern (C++) abstract class TypeQualified : Type
                  *      // TypeIdentifier 'a', 'e', and 'v' should be TOKvar,
                  *      // because getDsymbol() need to work in AliasDeclaration::semantic().
                  */
-                if (!v.type ||
-                    !v.type.deco && v.inuse)
+                if (/+!v.type ||
+                    !v.type.deco && +/v.inuse)
                 {
                     if (v.inuse) // https://issues.dlang.org/show_bug.cgi?id=9494
                         error(loc, "circular reference to %s '%s'", v.kind(), v.toPrettyChars());
-                    else
-                        error(loc, "forward reference to %s '%s'", v.kind(), v.toPrettyChars());
+//                     else
+//                         error(loc, "forward reference to %s '%s'", v.kind(), v.toPrettyChars());
                     *pt = Type.terror;
                     return;
                 }
-                if (v.type.ty == Terror)
+                if (v.type && v.type.ty == Terror)
                     *pt = Type.terror;
                 else
                     *pe = new VarExp(loc, v);

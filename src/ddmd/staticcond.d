@@ -35,38 +35,38 @@ import ddmd.utils;
  *      true if evaluates to true
  */
 
-bool evalStaticCondition(Scope* sc, Expression exp, Expression e, ref bool errors)
+bool evalStaticCondition(Scope* sc, Expression exp, Expression e, ref bool errors, ref bool defer)
 {
     if (e.op == TOKandand)
     {
         AndAndExp aae = cast(AndAndExp)e;
-        bool result = evalStaticCondition(sc, exp, aae.e1, errors);
+        bool result = evalStaticCondition(sc, exp, aae.e1, errors, defer);
         if (errors || !result)
             return false;
-        result = evalStaticCondition(sc, exp, aae.e2, errors);
+        result = evalStaticCondition(sc, exp, aae.e2, errors, defer);
         return !errors && result;
     }
 
     if (e.op == TOKoror)
     {
         OrOrExp ooe = cast(OrOrExp)e;
-        bool result = evalStaticCondition(sc, exp, ooe.e1, errors);
+        bool result = evalStaticCondition(sc, exp, ooe.e1, errors, defer);
         if (errors)
             return false;
         if (result)
             return true;
-        result = evalStaticCondition(sc, exp, ooe.e2, errors);
+        result = evalStaticCondition(sc, exp, ooe.e2, errors, defer);
         return !errors && result;
     }
 
     if (e.op == TOKquestion)
     {
         CondExp ce = cast(CondExp)e;
-        bool result = evalStaticCondition(sc, exp, ce.econd, errors);
+        bool result = evalStaticCondition(sc, exp, ce.econd, errors, defer);
         if (errors)
             return false;
         Expression leg = result ? ce.e1 : ce.e2;
-        result = evalStaticCondition(sc, exp, leg, errors);
+        result = evalStaticCondition(sc, exp, leg, errors, defer);
         return !errors && result;
     }
 
@@ -80,6 +80,12 @@ bool evalStaticCondition(Scope* sc, Expression exp, Expression e, ref bool error
 
     sc = sc.endCTFE();
     e = e.optimize(WANTvalue);
+
+    if (e.op == TOKfinally)
+    {
+        defer = true;
+        return false;
+    }
 
     if (nerrors != global.errors ||
         e.op == TOKerror ||

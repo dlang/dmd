@@ -3657,6 +3657,29 @@ extern (C++) final class ErrorExp : Expression
 
 /***********************************************************
  */
+extern (C++) final class DeferExp : Expression
+{
+    extern (D) this()
+    {
+        super(Loc(), TOKfinally, __traits(classInstanceSize, DeferExp));
+        type = Type.tdefer;
+    }
+
+    override Expression toLvalue(Scope* sc, Expression e)
+    {
+        return this;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+
+    extern (C++) static __gshared DeferExp deferexp; // handy shared value
+}
+
+/***********************************************************
+ */
 extern (C++) final class RealExp : Expression
 {
     real_t value;
@@ -4075,6 +4098,9 @@ extern (C++) final class DsymbolExp : Expression
         {
             if (v._scope)
                 v.semantic(null);
+
+            if (v.isDeferred())
+                return new DeferExp();
 
             //printf("Identifier '%s' is a variable, type '%s'\n", s.toChars(), v.type.toChars());
             if (!v.type ||                  // during variable type inference
@@ -6586,6 +6612,13 @@ extern (C++) final class VarExp : SymbolExp
             if (!fd.functionSemantic())
                 return new ErrorExp();
         }
+        if (auto vd = var.isVarDeclaration())
+        {
+            if (vd._scope)
+                vd.semantic(null);
+            if (vd.isDeferred())
+                return new DeferExp();
+        }
 
         if (!type)
             type = var.type;
@@ -7932,9 +7965,9 @@ extern (C++) abstract class BinExp : Expression
         }
         Expression e1x = e1.semantic(sc);
         Expression e2x = e2.semantic(sc);
-        if (e1x.op == TOKerror)
+        if (e1x.op == TOKerror || e1x.op == TOKfinally)
             return e1x;
-        if (e2x.op == TOKerror)
+        if (e2x.op == TOKerror || e1x.op == TOKfinally)
             return e2x;
         e1 = e1x;
         e2 = e2x;
@@ -7947,9 +7980,9 @@ extern (C++) abstract class BinExp : Expression
             return ex;
         Expression e1x = resolveProperties(sc, e1);
         Expression e2x = resolveProperties(sc, e2);
-        if (e1x.op == TOKerror)
+        if (e1x.op == TOKerror || e1x.op == TOKfinally)
             return e1x;
-        if (e2x.op == TOKerror)
+        if (e2x.op == TOKerror || e1x.op == TOKfinally)
             return e2x;
         e1 = e1x;
         e2 = e2x;
