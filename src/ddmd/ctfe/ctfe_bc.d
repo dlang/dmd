@@ -5248,12 +5248,13 @@ static if (is(BCGen))
                     auto ptrType = _sharedCtfeState.pointerTypes[lhs.type.typeIndex - 1];
                     if (rhs.type.type == BCTypeEnum.Ptr)
                     {
-                        Set(lhs.i32, rhs.i32);
+                        MemCpy(lhs.i32, rhs.i32, imm32(SliceDescriptor.Size));
                     }
                     else
                     {
                         bailout(ptrType.elementType != rhs.type, "unequal types for *lhs and rhs: " ~ _sharedCtfeState.typeToString(lhs.type) ~" -- " ~ _sharedCtfeState.typeToString(rhs.type));
-                        Store32(lhs, rhs);
+                        if (basicTypeSize(rhs.type.type) && basicTypeSize(rhs.type.type) <= 4) Store32(lhs, rhs);
+                        else bailout("Storing to ptr which is not i8 or i32 is unsupported for now");
                      }
                 }
                 else if (lhs.type.type == BCTypeEnum.Struct && lhs.type == rhs.type)
@@ -6071,10 +6072,10 @@ static if (is(BCGen))
         else if (fromType.type == BCTypeEnum.i8 || fromType.type == BCTypeEnum.c8)
         {
             // a "bitcast" is enough all implentation are assumed to use 32/64bit registers
-            if (toType.type.anyOf([BCTypeEnum.i32, BCTypeEnum.i16]))
+            if (toType.type.anyOf([BCTypeEnum.i8, BCTypeEnum.c8, BCTypeEnum.i32, BCTypeEnum.i16, BCTypeEnum.i64]))
                 retval.type = toType;
             else
-                bailout("Cannot do cast: " ~ ce.toString);
+                bailout("Cannot do cast toType:" ~ to!string(toType.type) ~ " -- "~ ce.toString);
         }
         else if (fromType.type == BCTypeEnum.i32 || fromType.type == BCTypeEnum.i64)
         {
