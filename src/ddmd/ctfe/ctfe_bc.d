@@ -694,6 +694,17 @@ struct SharedCtfeState(BCGenT)
                 result = type.toString;
         }
 
+        else if (type.type == BCTypeEnum.Ptr)
+        {
+            if (type.typeIndex)
+            {
+                auto elemType = elementType(type);
+                result = type.toString ~ "{ElementType: " ~ typeToString(elemType) ~ "} ";
+            }
+            else
+                result = type.toString;
+        }
+
         else if (type.type == BCTypeEnum.Struct)
         {
             if (type.typeIndex)
@@ -2278,7 +2289,8 @@ public:
             import std.stdio;
         }
         auto oldRetval = retval;
-        // import std.stdio; writeln("Calling genExpr from: ", line, debugMessage ? " \"" ~ debugMessage ~ "\"" : ""); //DEBUGLINE
+        import ddmd.asttypename;
+        // import std.stdio; writeln("Calling genExpr(" ~ expr.astTypeName ~ ") from: ", line, debugMessage ? " \"" ~ debugMessage ~ "\"" : ""); //DEBUGLINE
 
         if (processingArguments)
         {
@@ -3086,7 +3098,13 @@ static if (is(BCGen))
 
             if (v)
             {
+                // Everything in here is highly suspicious!
+                // FIXME Desgin!
+                // Things which are already heapValues
+                // don't need to stored ((or do they ??) ... do we need to copy) ?
+
                 retval.type = _sharedCtfeState.pointerOf(v.type);
+                bailout(v.type.anyOf([BCTypeEnum.Array, BCTypeEnum.Struct, BCTypeEnum.Slice]), "HeapValues are currently unspported for SymOffExps -- " ~ se.toString);
 
                 bailout(_sharedCtfeState.size(v.type) < 4, "only addresses of 32bit values or less are supported for now: " ~ se.toString);
                 auto addr = genTemporary(i32Type);
@@ -4165,6 +4183,9 @@ static if (is(BCGen))
             Load64(hrv, BCValue(hrv.heapRef));
         else if (hrv.type.type == BCTypeEnum.i32)
             Load32(hrv, BCValue(hrv.heapRef));
+        // since the stuff below are heapValues we may not want to do this ??
+        // else if (hrv.type.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.Slice, BCTypeEnum.Array]))
+        //    MemCpy(hrv.i32, BCValue(hrv.heapRef).i32, imm32(_sharedCtfeState.size(hrv.type)));
         else
             bailout(to!string(hrv.type.type) ~ " is not supported in LoadFromHeapRef");
 
@@ -4176,10 +4197,9 @@ static if (is(BCGen))
             Store64(BCValue(hrv.heapRef), hrv);
         else if (hrv.type.type == BCTypeEnum.i32)
             Store32(BCValue(hrv.heapRef), hrv);
-        else if (hrv.type.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.Slice, BCTypeEnum.Array]))
-        {
-            bailout(to!string(hrv.type.type) ~ " is not supported in StoreToHeapRef");
-        }
+        // since the stuff below are heapValues we may not want to do this ??
+        // else if (hrv.type.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.Slice, BCTypeEnum.Array]))
+        //    MemCpy(BCValue(hrv.heapRef).i32, hrv.i32, imm32(_sharedCtfeState.size(hrv.type)));
         else
             bailout(to!string(hrv.type.type) ~ " is not supported in StoreToHeapRef");
     }
@@ -4388,9 +4408,14 @@ static if (is(BCGen))
                 {
                     Set(var.i32, _init.i32);
                 }
+                else if (_init.type.type == BCTypeEnum.Ptr && var.type.type == BCTypeEnum.Ptr)
+                {
+                    MemCpy(var.i32, _init.i32, imm32(SliceDescriptor.Size));
+                    //Set(var.i32, _init.i32);
+                }
                 else
                 {
-                    bailout("We don't know howto deal with this initializer: " ~ _init.toString);
+                    bailout("We don't know howto deal with this initializer: " ~ _init.toString ~ " -- " ~ de.toString);
                 }
 
             }
@@ -5227,7 +5252,7 @@ static if (is(BCGen))
                     }
                     else
                     {
-                        bailout(ptrType.elementType != rhs.type, "unequal types for *lhs and rhs");
+                        bailout(ptrType.elementType != rhs.type, "unequal types for *lhs and rhs: " ~ _sharedCtfeState.typeToString(lhs.type) ~" -- " ~ _sharedCtfeState.typeToString(rhs.type));
                         Store32(lhs, rhs);
                      }
                 }
