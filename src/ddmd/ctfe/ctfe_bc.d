@@ -2229,7 +2229,7 @@ public:
         auto elemSize = _sharedCtfeState.size(lhsBaseType);
         if (!elemSize)
         {
-            bailout("Type has no Size" ~ lhsBaseType.to!string);
+            bailout("Type has no Size " ~ lhsBaseType.to!string);
             result = BCValue.init;
             return ;
         }
@@ -2917,11 +2917,14 @@ static if (is(BCGen))
                     {
                         auto maxShift = imm32(basicTypeSize(lhs.type) * 8 - 1);
                         auto v = genTemporary(i32Type);
-                        Le3(v, rhs, maxShift);
-                        Assert(v,
-                            addError(e.loc,
-                            "shift by %d is outside the range 0..%d", rhs, maxShift));
-
+                        if (rhs.vType != BCValueType.Immediate || rhs.imm32 > maxShift.imm32)
+                        {
+                            Le3(v, rhs, maxShift);
+                            Assert(v,
+                                addError(e.loc,
+                                "shift by %d is outside the range 0..%d", rhs, maxShift)
+                            );
+                        }
                         Rsh3(retval, lhs, rhs);
                     }
                     break;
@@ -2929,12 +2932,15 @@ static if (is(BCGen))
                 case TOK.TOKshl:
                     {
                         auto maxShift = imm32(basicTypeSize(lhs.type) * 8 - 1);
-                        auto v = genTemporary(i32Type);
-                        Le3(v, rhs, maxShift);
-                        Assert(v,
-                            addError(e.loc,
-                            "shift by %d is outside the range 0..%d", rhs, maxShift));
-
+                        if (rhs.vType != BCValueType.Immediate || rhs.imm32 > maxShift.imm32)
+                        {
+                            auto v = genTemporary(i32Type);
+                            Le3(v, rhs, maxShift);
+                            Assert(v,
+                                addError(e.loc,
+                                "shift by %d is outside the range 0..%d", rhs, maxShift)
+                            );
+                        }
                         Lsh3(retval, lhs, rhs);
                     }
                     break;
