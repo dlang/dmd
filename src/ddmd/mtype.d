@@ -7376,8 +7376,8 @@ extern (C++) abstract class TypeQualified : Type
             if (tindex)
                 eindex = new TypeExp(loc, tindex);
             else if (sindex)
-                eindex = DsymbolExp.resolve(loc, sc, sindex, false);
-            Expression e = new IndexExp(loc, DsymbolExp.resolve(loc, sc, s, false), eindex);
+                eindex = .resolve(loc, sc, sindex, false);
+            Expression e = new IndexExp(loc, .resolve(loc, sc, s, false), eindex);
             e = e.semantic(sc);
             resolveExp(e, pt, pe, ps);
             return;
@@ -7387,7 +7387,7 @@ extern (C++) abstract class TypeQualified : Type
         if (tindex)
             tindex.resolve(loc, sc, &eindex, &tindex, &sindex);
         if (sindex)
-            eindex = DsymbolExp.resolve(loc, sc, sindex, false);
+            eindex = .resolve(loc, sc, sindex, false);
         if (!eindex)
         {
             .error(loc, "index is %s not an expression", oindex.toChars());
@@ -7570,7 +7570,7 @@ extern (C++) abstract class TypeQualified : Type
                         VarDeclaration v = s.isVarDeclaration();
                         FuncDeclaration f = s.isFuncDeclaration();
                         if (intypeid || !v && !f)
-                            e = DsymbolExp.resolve(loc, sc, s, true);
+                            e = .resolve(loc, sc, s, true);
                         else
                             e = new VarExp(loc, s.isDeclaration(), true);
 
@@ -8463,7 +8463,7 @@ extern (C++) final class TypeStruct : Type
 
         if (s.isImport() || s.isModule() || s.isPackage())
         {
-            e = DsymbolExp.resolve(e.loc, sc, s, false);
+            e = .resolve(e.loc, sc, s, false);
             return e;
         }
 
@@ -9439,7 +9439,7 @@ extern (C++) final class TypeClass : Type
 
         if (s.isImport() || s.isModule() || s.isPackage())
         {
-            e = DsymbolExp.resolve(e.loc, sc, s, false);
+            e = .resolve(e.loc, sc, s, false);
             return e;
         }
 

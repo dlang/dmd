@@ -31,6 +31,9 @@ import ddmd.statement;
 import ddmd.tokens;
 import ddmd.visitor;
 
+alias semantic = ddmd.expressionsem.semantic;
+alias semanticY = ddmd.expressionsem.semanticY;
+
 private extern(C++) final class InitializerSemanticVisitor : Visitor
 {
     alias visit = super.visit;

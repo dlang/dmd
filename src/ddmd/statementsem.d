@@ -32,6 +32,7 @@ import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.escape;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.gluelayer;
@@ -47,6 +48,8 @@ import ddmd.statement;
 import ddmd.target;
 import ddmd.tokens;
 import ddmd.visitor;
+
+alias semantic = ddmd.expressionsem.semantic;
 
 private extern (C++) final class StatementSemanticVisitor : Visitor
 {
@@ -836,7 +839,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 import ddmd.cond: StaticForeach;
                 auto field = Identifier.idPool(StaticForeach.tupleFieldName.ptr,StaticForeach.tupleFieldName.length);
                 Expression access = new DotIdExp(loc, e, field);
-                access = access.semantic(sc);
+                access = semantic(access, sc);
                 auto types = access.type.isTuple();
                 if (!tuple) return returnEarly();
                 //printf("%s\n",tuple.toChars());

@@ -14,6 +14,7 @@ import ddmd.apply;
 import ddmd.declaration;
 import ddmd.dscope;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.identifier;

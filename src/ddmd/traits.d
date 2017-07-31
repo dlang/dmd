@@ -22,6 +22,7 @@ import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.hdrgen;
@@ -661,7 +662,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 return ex.semantic(sc);
             }
         }
-        return DsymbolExp.resolve(e.loc, sc, s, false);
+        return resolve(e.loc, sc, s, false);
     }
     if (e.ident == Id.hasMember ||
         e.ident == Id.getMember ||
