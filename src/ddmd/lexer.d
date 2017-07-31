@@ -129,8 +129,8 @@ unittest
     //printf("lexer.unittest\n");
     /* Not much here, just trying things out.
      */
-    string text = "int";
-    scope Lexer lex1 = new Lexer(null, text.ptr, 0, text.length, 0, 0);
+    string text = "int"; // the test relies on this string begin null-terminated
+    scope Lexer lex1 = new Lexer(null, text.ptr, 0, text.length+1, 0, 0);
     TOK tok;
     tok = lex1.nextToken();
     //printf("tok == %s, %d, %d\n", Token::toChars(tok), tok, TOKint32);
@@ -139,6 +139,22 @@ unittest
     assert(tok == TOKeof);
     tok = lex1.nextToken();
     assert(tok == TOKeof);
+    tok = lex1.nextToken();
+    assert(tok == TOKeof);
+}
+
+unittest
+{
+    // Test malformed input
+    char[2] text = ['\'', 0];
+    scope Lexer lex2 = new Lexer(null, text.ptr, 0, text.length, 0, 0);
+    TOK tok;
+    tok = lex2.nextToken();
+    assert(tok == TOKcharv);
+    tok = lex2.nextToken();
+    assert(tok == TOKerror);
+    tok = lex2.nextToken();
+    assert(tok == TOKerror);
 }
 
 /***********************************************************
@@ -161,12 +177,13 @@ class Lexer
     bool errors;            // errors occurred during lexing or parsing
 
     /*********************
-     * Creates a Lexer.
+     * Creates a Lexer for the (null- or EOF-terminated) source code base[begoffset..endoffset].
+     *
      * Params:
      *  filename = used for error messages
-     *  base = source code, ending in a 0 byte
+     *  base = source code, ending in a null- or EOF-byte
      *  begoffset = starting offset into base[]
-     *  endoffset = last offset into base[]
+     *  endoffset = one past the last offset to read into base[]
      *  doDocComment = handle documentation comments
      *  commentToken = comments become TOKcomment's
      */
@@ -253,6 +270,12 @@ class Lexer
         t.lineComment = null;
         while (1)
         {
+            // Return error token when end of buffer is reached unexpectedly.
+            if (p >= end) {
+                t.value = TOKerror;
+                return;
+            }
+
             t.ptr = p;
             //printf("p = %p, *p = '%c'\n",p,*p);
             t.loc = loc();
