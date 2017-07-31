@@ -52,6 +52,7 @@ import ddmd.root.stringtable;
 import ddmd.sideeffect;
 import ddmd.target;
 import ddmd.tokens;
+import ddmd.typesem;
 import ddmd.visitor;
 
 enum LOGDOTEXP = 0;         // log ::dotExp()
@@ -2956,16 +2957,6 @@ extern (C++) abstract class Type : RootObject
         return mod & MODwild;
     }
 
-    /********************************
-     * We've mistakenly parsed this as a type.
-     * Redo it as an Expression.
-     * NULL if cannot.
-     */
-    Expression toExpression()
-    {
-        return null;
-    }
-
     /***************************************
      * Return !=0 if type has pointers that need to
      * be scanned by the GC during a collection cycle.
@@ -5020,14 +5011,6 @@ extern (C++) final class TypeSArray : TypeArray
         return ae;
     }
 
-    override Expression toExpression()
-    {
-        Expression e = next.toExpression();
-        if (e)
-            e = new ArrayExp(dim.loc, e, dim);
-        return e;
-    }
-
     override bool hasPointers()
     {
         /* Don't want to do this, because:
@@ -5585,18 +5568,6 @@ extern (C++) final class TypeAArray : TypeArray
     override bool isBoolean() const
     {
         return true;
-    }
-
-    override Expression toExpression()
-    {
-        Expression e = next.toExpression();
-        if (e)
-        {
-            Expression ei = index.toExpression();
-            if (ei)
-                return new ArrayExp(loc, e, ei);
-        }
-        return null;
     }
 
     override bool hasPointers() const
@@ -7420,45 +7391,6 @@ extern (C++) abstract class TypeQualified : Type
             resolveExp(*pe, pt, pe, ps);
     }
 
-    final Expression toExpressionHelper(Expression e, size_t i = 0)
-    {
-        //printf("toExpressionHelper(e = %s %s)\n", Token.toChars(e.op), e.toChars());
-        for (; i < idents.dim; i++)
-        {
-            RootObject id = idents[i];
-            //printf("\t[%d] e: '%s', id: '%s'\n", i, e.toChars(), id.toChars());
-
-            switch (id.dyncast())
-            {
-                // ... '. ident'
-                case DYNCAST.identifier:
-                    e = new DotIdExp(e.loc, e, cast(Identifier)id);
-                    break;
-
-                // ... '. name!(tiargs)'
-                case DYNCAST.dsymbol:
-                    auto ti = (cast(Dsymbol)id).isTemplateInstance();
-                    assert(ti);
-                    e = new DotTemplateInstanceExp(e.loc, e, ti.name, ti.tiargs);
-                    break;
-
-                // ... '[type]'
-                case DYNCAST.type:          // https://issues.dlang.org/show_bug.cgi?id=1215
-                    e = new ArrayExp(loc, e, new TypeExp(loc, cast(Type)id));
-                    break;
-
-                // ... '[expr]'
-                case DYNCAST.expression:    // https://issues.dlang.org/show_bug.cgi?id=1215
-                    e = new ArrayExp(loc, e, cast(Expression)id);
-                    break;
-
-                default:
-                    assert(0);
-            }
-        }
-        return e;
-    }
-
     /*************************************
      * Takes an array of Identifiers and figures out if
      * it represents a Type or an Expression.
@@ -7507,7 +7439,7 @@ extern (C++) abstract class TypeQualified : Type
                         ex = new TypeExp(loc, tx);
                     assert(ex);
 
-                    ex = toExpressionHelper(ex, i + 1);
+                    ex = toExpressionHelper(this, ex, i + 1);
                     ex = ex.semantic(sc);
                     resolveExp(ex, pt, pe, ps);
                     return;
@@ -7574,7 +7506,7 @@ extern (C++) abstract class TypeQualified : Type
                         else
                             e = new VarExp(loc, s.isDeclaration(), true);
 
-                        e = toExpressionHelper(e, i);
+                        e = toExpressionHelper(this, e, i);
                         e = e.semantic(sc);
                         resolveExp(e, pt, pe, ps);
                         return;
@@ -7830,11 +7762,6 @@ extern (C++) final class TypeIdentifier : TypeQualified
         return t;
     }
 
-    override Expression toExpression()
-    {
-        return toExpressionHelper(new IdentifierExp(loc, ident));
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -7929,11 +7856,6 @@ extern (C++) final class TypeInstance : TypeQualified
         if (t && t.ty != Tinstance)
             s = t.toDsymbol(sc);
         return s;
-    }
-
-    override Expression toExpression()
-    {
-        return toExpressionHelper(new ScopeExp(loc, tempinst));
     }
 
     override void accept(Visitor v)
@@ -8067,7 +7989,7 @@ extern (C++) final class TypeTypeof : TypeQualified
                 resolveHelper(loc, sc, s, null, pe, pt, ps, intypeid);
             else
             {
-                auto e = toExpressionHelper(new TypeExp(loc, t));
+                auto e = toExpressionHelper(this, new TypeExp(loc, t));
                 e = e.semantic(sc);
                 resolveExp(e, pt, pe, ps);
             }
@@ -8172,7 +8094,7 @@ extern (C++) final class TypeReturn : TypeQualified
                 resolveHelper(loc, sc, s, null, pe, pt, ps, intypeid);
             else
             {
-                auto e = toExpressionHelper(new TypeExp(loc, t));
+                auto e = toExpressionHelper(this, new TypeExp(loc, t));
                 e = e.semantic(sc);
                 resolveExp(e, pt, pe, ps);
             }

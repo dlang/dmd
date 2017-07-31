@@ -29,6 +29,7 @@ import ddmd.globals;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.init;
+import ddmd.initsem;
 import ddmd.mtype;
 import ddmd.opover;
 import ddmd.statement;

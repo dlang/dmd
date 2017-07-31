@@ -23,13 +23,12 @@ import ddmd.expressionsem;
 import ddmd.globals;
 import ddmd.hdrgen;
 import ddmd.identifier;
+import ddmd.initsem;
 import ddmd.mtype;
 import ddmd.root.outbuffer;
 import ddmd.root.rootobject;
 import ddmd.tokens;
 import ddmd.visitor;
-
-import ddmd.initsem;
 
 enum NeedInterpret : int
 {
@@ -65,8 +64,6 @@ extern (C++) class Initializer : RootObject
         }
         return a;
     }
-
-    abstract Expression toExpression(Type t = null);
 
     override final const(char)* toChars()
     {
@@ -123,11 +120,6 @@ extern (C++) final class VoidInitializer : Initializer
         return new VoidInitializer(loc);
     }
 
-    override Expression toExpression(Type t = null)
-    {
-        return null;
-    }
-
     override VoidInitializer isVoidInitializer()
     {
         return this;
@@ -151,11 +143,6 @@ extern (C++) final class ErrorInitializer : Initializer
     override Initializer syntaxCopy()
     {
         return this;
-    }
-
-    override Expression toExpression(Type t = null)
-    {
-        return new ErrorExp();
     }
 
     override ErrorInitializer isErrorInitializer()
@@ -200,17 +187,6 @@ extern (C++) final class StructInitializer : Initializer
         //printf("StructInitializer::addInit(field = %p, value = %p)\n", field, value);
         this.field.push(field);
         this.value.push(value);
-    }
-
-    /***************************************
-     * This works by transforming a struct initializer into
-     * a struct literal. In the future, the two should be the
-     * same thing.
-     */
-    override Expression toExpression(Type t = null)
-    {
-        // cannot convert to an expression without target 'ad'
-        return null;
     }
 
     override StructInitializer isStructInitializer()
@@ -273,142 +249,6 @@ extern (C++) final class ArrayInitializer : Initializer
     }
 
     /********************************
-     * If possible, convert array initializer to array literal.
-     * Otherwise return NULL.
-     */
-    override Expression toExpression(Type tx = null)
-    {
-        //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
-        //static int i; if (++i == 2) assert(0);
-        Expressions* elements;
-        uint edim;
-        const(uint) amax = 0x80000000;
-        Type t = null;
-        if (type)
-        {
-            if (type == Type.terror)
-                return new ErrorExp();
-            t = type.toBasetype();
-            switch (t.ty)
-            {
-            case Tvector:
-                t = (cast(TypeVector)t).basetype;
-                goto case Tsarray;
-
-            case Tsarray:
-                uinteger_t adim = (cast(TypeSArray)t).dim.toInteger();
-                if (adim >= amax)
-                    goto Lno;
-                edim = cast(uint)adim;
-                break;
-
-            case Tpointer:
-            case Tarray:
-                edim = dim;
-                break;
-
-            default:
-                assert(0);
-            }
-        }
-        else
-        {
-            edim = cast(uint)value.dim;
-            for (size_t i = 0, j = 0; i < value.dim; i++, j++)
-            {
-                if (index[i])
-                {
-                    if (index[i].op == TOKint64)
-                    {
-                        const uinteger_t idxval = index[i].toInteger();
-                        if (idxval >= amax)
-                            goto Lno;
-                        j = cast(size_t)idxval;
-                    }
-                    else
-                        goto Lno;
-                }
-                if (j >= edim)
-                    edim = cast(uint)(j + 1);
-            }
-        }
-        elements = new Expressions();
-        elements.setDim(edim);
-        elements.zero();
-        for (size_t i = 0, j = 0; i < value.dim; i++, j++)
-        {
-            if (index[i])
-                j = cast(size_t)index[i].toInteger();
-            assert(j < edim);
-            Initializer iz = value[i];
-            if (!iz)
-                goto Lno;
-            Expression ex = iz.toExpression();
-            if (!ex)
-            {
-                goto Lno;
-            }
-            (*elements)[j] = ex;
-        }
-        {
-            /* Fill in any missing elements with the default initializer
-             */
-            Expression _init = null;
-            for (size_t i = 0; i < edim; i++)
-            {
-                if (!(*elements)[i])
-                {
-                    if (!type)
-                        goto Lno;
-                    if (!_init)
-                        _init = (cast(TypeNext)t).next.defaultInit();
-                    (*elements)[i] = _init;
-                }
-            }
-
-            /* Expand any static array initializers that are a single expression
-             * into an array of them
-             */
-            if (t)
-            {
-                Type tn = t.nextOf().toBasetype();
-                if (tn.ty == Tsarray)
-                {
-                    const dim = cast(size_t)(cast(TypeSArray)tn).dim.toInteger();
-                    Type te = tn.nextOf().toBasetype();
-                    foreach (ref e; *elements)
-                    {
-                        if (te.equals(e.type))
-                        {
-                            auto elements2 = new Expressions();
-                            elements2.setDim(dim);
-                            foreach (ref e2; *elements2)
-                                e2 = e;
-                            e = new ArrayLiteralExp(e.loc, elements2);
-                            e.type = tn;
-                        }
-                    }
-                }
-            }
-
-            /* If any elements are errors, then the whole thing is an error
-             */
-            for (size_t i = 0; i < edim; i++)
-            {
-                Expression e = (*elements)[i];
-                if (e.op == TOKerror)
-                    return e;
-            }
-
-            Expression e = new ArrayLiteralExp(loc, elements);
-            e.type = type;
-            return e;
-        }
-    Lno:
-        return null;
-    }
-
-    /********************************
      * If possible, convert array initializer to associative array initializer.
      */
     Expression toAssocArrayLiteral()
@@ -468,29 +308,6 @@ extern (C++) final class ExpInitializer : Initializer
     override Initializer syntaxCopy()
     {
         return new ExpInitializer(loc, exp.syntaxCopy());
-    }
-
-    override Expression toExpression(Type t = null)
-    {
-        if (t)
-        {
-            //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", t.toChars(), exp.toChars());
-            Type tb = t.toBasetype();
-            Expression e = (exp.op == TOKconstruct || exp.op == TOKblit) ? (cast(AssignExp)exp).e2 : exp;
-            if (tb.ty == Tsarray && e.implicitConvTo(tb.nextOf()))
-            {
-                TypeSArray tsa = cast(TypeSArray)tb;
-                size_t d = cast(size_t)tsa.dim.toInteger();
-                auto elements = new Expressions();
-                elements.setDim(d);
-                for (size_t i = 0; i < d; i++)
-                    (*elements)[i] = e;
-                auto ae = new ArrayLiteralExp(e.loc, elements);
-                ae.type = t;
-                return ae;
-            }
-        }
-        return exp;
     }
 
     override ExpInitializer isExpInitializer()

@@ -6246,6 +6246,16 @@ struct ASTBase
         return result;
     }
 
+    static extern (C++) Expression toExpression(Initializer i)
+    {
+        return i.toExpression;
+    }
+
+    static extern (C++) Expression toExpression(Type t)
+    {
+        return t.toExpression;
+    }
+
     extern (C++) static const(char)* stcToChars(ref StorageClass stc)
     {
         struct SCstring

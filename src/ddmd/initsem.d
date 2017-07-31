@@ -22,6 +22,7 @@ import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.id;
@@ -661,3 +662,213 @@ extern (C++) Initializer inferType(Initializer init, Scope* sc)
     init.accept(v);
     return v.result;
 }
+
+private extern(C++) final class InitToExpressionVisitor : Visitor
+{
+    alias visit = super.visit;
+
+    Expression result;
+    Type itype;
+
+    this(Type itype)
+    {
+        this.itype = itype;
+    }
+
+    override void visit(VoidInitializer)
+    {
+        result = null;
+    }
+
+    override void visit(ErrorInitializer)
+    {
+        result = new ErrorExp();
+    }
+
+    /***************************************
+     * This works by transforming a struct initializer into
+     * a struct literal. In the future, the two should be the
+     * same thing.
+     */
+    override void visit(StructInitializer)
+    {
+        // cannot convert to an expression without target 'ad'
+        result = null;
+    }
+
+    /********************************
+     * If possible, convert array initializer to array literal.
+     * Otherwise return NULL.
+     */
+    override void visit(ArrayInitializer init)
+    {
+        //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
+        //static int i; if (++i == 2) assert(0);
+        Expressions* elements;
+        uint edim;
+        const(uint) amax = 0x80000000;
+        Type t = null;
+        if (init.type)
+        {
+            if (init.type == Type.terror)
+            {
+                result = new ErrorExp();
+                return;
+            }
+            t = init.type.toBasetype();
+            switch (t.ty)
+            {
+            case Tvector:
+                t = (cast(TypeVector)t).basetype;
+                goto case Tsarray;
+
+            case Tsarray:
+                uinteger_t adim = (cast(TypeSArray)t).dim.toInteger();
+                if (adim >= amax)
+                    goto Lno;
+                edim = cast(uint)adim;
+                break;
+
+            case Tpointer:
+            case Tarray:
+                edim = init.dim;
+                break;
+
+            default:
+                assert(0);
+            }
+        }
+        else
+        {
+            edim = cast(uint)init.value.dim;
+            for (size_t i = 0, j = 0; i < init.value.dim; i++, j++)
+            {
+                if (init.index[i])
+                {
+                    if (init.index[i].op == TOKint64)
+                    {
+                        const uinteger_t idxval = init.index[i].toInteger();
+                        if (idxval >= amax)
+                            goto Lno;
+                        j = cast(size_t)idxval;
+                    }
+                    else
+                        goto Lno;
+                }
+                if (j >= edim)
+                    edim = cast(uint)(j + 1);
+            }
+        }
+        elements = new Expressions();
+        elements.setDim(edim);
+        elements.zero();
+        for (size_t i = 0, j = 0; i < init.value.dim; i++, j++)
+        {
+            if (init.index[i])
+                j = cast(size_t)init.index[i].toInteger();
+            assert(j < edim);
+            Initializer iz = init.value[i];
+            if (!iz)
+                goto Lno;
+            Expression ex = iz.toExpression();
+            if (!ex)
+            {
+                goto Lno;
+            }
+            (*elements)[j] = ex;
+        }
+        {
+            /* Fill in any missing elements with the default initializer
+             */
+            Expression _init = null;
+            for (size_t i = 0; i < edim; i++)
+            {
+                if (!(*elements)[i])
+                {
+                    if (!init.type)
+                        goto Lno;
+                    if (!_init)
+                        _init = (cast(TypeNext)t).next.defaultInit();
+                    (*elements)[i] = _init;
+                }
+            }
+
+            /* Expand any static array initializers that are a single expression
+             * into an array of them
+             */
+            if (t)
+            {
+                Type tn = t.nextOf().toBasetype();
+                if (tn.ty == Tsarray)
+                {
+                    const dim = cast(size_t)(cast(TypeSArray)tn).dim.toInteger();
+                    Type te = tn.nextOf().toBasetype();
+                    foreach (ref e; *elements)
+                    {
+                        if (te.equals(e.type))
+                        {
+                            auto elements2 = new Expressions();
+                            elements2.setDim(dim);
+                            foreach (ref e2; *elements2)
+                                e2 = e;
+                            e = new ArrayLiteralExp(e.loc, elements2);
+                            e.type = tn;
+                        }
+                    }
+                }
+            }
+
+            /* If any elements are errors, then the whole thing is an error
+             */
+            for (size_t i = 0; i < edim; i++)
+            {
+                Expression e = (*elements)[i];
+                if (e.op == TOKerror)
+                {
+                    result = e;
+                    return;
+                }
+            }
+
+            Expression e = new ArrayLiteralExp(init.loc, elements);
+            e.type = init.type;
+            result = e;
+            return;
+        }
+    Lno:
+        result = null;
+    }
+
+    override void visit(ExpInitializer i)
+    {
+        if (itype)
+        {
+            //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", t.toChars(), exp.toChars());
+            Type tb = itype.toBasetype();
+            Expression e = (i.exp.op == TOKconstruct || i.exp.op == TOKblit) ? (cast(AssignExp)i.exp).e2 : i.exp;
+            if (tb.ty == Tsarray && e.implicitConvTo(tb.nextOf()))
+            {
+                TypeSArray tsa = cast(TypeSArray)tb;
+                size_t d = cast(size_t)tsa.dim.toInteger();
+                auto elements = new Expressions();
+                elements.setDim(d);
+                for (size_t j = 0; j < d; j++)
+                    (*elements)[j] = e;
+                auto ae = new ArrayLiteralExp(e.loc, elements);
+                ae.type = itype;
+                result = ae;
+                return;
+            }
+        }
+        result = i.exp;
+    }
+}
+
+public extern (C++) Expression initializerToExpression(Initializer i, Type t = null)
+{
+    scope v = new InitToExpressionVisitor(t);
+    i.accept(v);
+    return v.result;
+}
+
+alias toExpression = initializerToExpression;
