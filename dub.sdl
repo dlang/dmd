@@ -29,9 +29,8 @@ subPackage {
     "src/ddmd/tokens.d" \
     "src/ddmd/utf.d"
 
-  // stringImportPaths cannot be used because it will make Dub extremely slow
-  // https://github.com/dlang/dub/issues/1199
-  dflags "-J$PACKAGE_DIR"
+  preGenerateCommands `cd "$${DUB_PACKAGE_DIR}" && ./config.sh generated/dub VERSION /etc`
+  stringImportPaths "generated/dub"
 
   dependency "dmd:root" version="*"
 }
