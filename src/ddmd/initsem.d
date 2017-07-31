@@ -19,6 +19,7 @@ import ddmd.declaration;
 import ddmd.dscope;
 import ddmd.dstruct;
 import ddmd.dsymbol;
+import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
@@ -481,9 +482,179 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
     }
 }
 
-Initializer semantic(Initializer init, Scope* sc, Type t, NeedInterpret needInterpret)
+// Performs semantic analisys on Initializer AST nodes
+extern (C++) Initializer semantic(Initializer init, Scope* sc, Type t, NeedInterpret needInterpret)
 {
     scope v = new InitializerSemanticVisitor(sc, t, needInterpret);
+    init.accept(v);
+    return v.result;
+}
+
+private extern(C++) final class InferTypeVisitor : Visitor
+{
+    alias visit = super.visit;
+
+    Initializer result;
+    Scope* sc;
+
+    this(Scope* sc)
+    {
+        this.sc = sc;
+    }
+
+    override void visit(VoidInitializer i)
+    {
+        error(i.loc, "cannot infer type from void initializer");
+        result = new ErrorInitializer();
+    }
+
+    override void visit(ErrorInitializer i)
+    {
+        result = i;
+    }
+
+    override void visit(StructInitializer i)
+    {
+        error(i.loc, "cannot infer type from struct initializer");
+        result = new ErrorInitializer();
+    }
+
+    override void visit(ArrayInitializer init)
+    {
+        //printf("ArrayInitializer::inferType() %s\n", toChars());
+        Expressions* keys = null;
+        Expressions* values;
+        if (init.isAssociativeArray())
+        {
+            keys = new Expressions();
+            keys.setDim(init.value.dim);
+            values = new Expressions();
+            values.setDim(init.value.dim);
+            for (size_t i = 0; i < init.value.dim; i++)
+            {
+                Expression e = init.index[i];
+                if (!e)
+                    goto Lno;
+                (*keys)[i] = e;
+                Initializer iz = init.value[i];
+                if (!iz)
+                    goto Lno;
+                iz = iz.inferType(sc);
+                if (iz.isErrorInitializer())
+                {
+                    result = iz;
+                    return;
+                }
+                assert(iz.isExpInitializer());
+                (*values)[i] = (cast(ExpInitializer)iz).exp;
+                assert((*values)[i].op != TOKerror);
+            }
+            Expression e = new AssocArrayLiteralExp(init.loc, keys, values);
+            auto ei = new ExpInitializer(init.loc, e);
+            result = ei.inferType(sc);
+            return;
+        }
+        else
+        {
+            auto elements = new Expressions();
+            elements.setDim(init.value.dim);
+            elements.zero();
+            for (size_t i = 0; i < init.value.dim; i++)
+            {
+                assert(!init.index[i]); // already asserted by isAssociativeArray()
+                Initializer iz = init.value[i];
+                if (!iz)
+                    goto Lno;
+                iz = iz.inferType(sc);
+                if (iz.isErrorInitializer())
+                {
+                    result = iz;
+                    return;
+                }
+                assert(iz.isExpInitializer());
+                (*elements)[i] = (cast(ExpInitializer)iz).exp;
+                assert((*elements)[i].op != TOKerror);
+            }
+            Expression e = new ArrayLiteralExp(init.loc, elements);
+            auto ei = new ExpInitializer(init.loc, e);
+            result = ei.inferType(sc);
+            return;
+        }
+    Lno:
+        if (keys)
+        {
+            error(init.loc, "not an associative array initializer");
+        }
+        else
+        {
+            error(init.loc, "cannot infer type from array initializer");
+        }
+        result = new ErrorInitializer();
+    }
+
+    override void visit(ExpInitializer init)
+    {
+        //printf("ExpInitializer::inferType() %s\n", toChars());
+        init.exp = init.exp.semantic(sc);
+        init.exp = resolveProperties(sc, init.exp);
+        if (init.exp.op == TOKscope)
+        {
+            ScopeExp se = cast(ScopeExp)init.exp;
+            TemplateInstance ti = se.sds.isTemplateInstance();
+            if (ti && ti.semanticRun == PASSsemantic && !ti.aliasdecl)
+                se.error("cannot infer type from %s %s, possible circular dependency", se.sds.kind(), se.toChars());
+            else
+                se.error("cannot infer type from %s %s", se.sds.kind(), se.toChars());
+            result = new ErrorInitializer();
+            return;
+        }
+
+        // Give error for overloaded function addresses
+        bool hasOverloads;
+        if (auto f = isFuncAddress(init.exp, &hasOverloads))
+        {
+            if (f.checkForwardRef(init.loc))
+            {
+                result = new ErrorInitializer();
+                return;
+            }
+            if (hasOverloads && !f.isUnique())
+            {
+                init.exp.error("cannot infer type from overloaded function symbol %s", init.exp.toChars());
+                result = new ErrorInitializer();
+                return;
+            }
+        }
+        if (init.exp.op == TOKaddress)
+        {
+            AddrExp ae = cast(AddrExp)init.exp;
+            if (ae.e1.op == TOKoverloadset)
+            {
+                init.exp.error("cannot infer type from overloaded function symbol %s", init.exp.toChars());
+                result = new ErrorInitializer();
+                return;
+            }
+        }
+        if (init.exp.op == TOKerror)
+        {
+            result = new ErrorInitializer();
+            return;
+        }
+        if (!init.exp.type)
+        {
+            result = new ErrorInitializer();
+            return;
+        }
+        result = init;
+    }
+}
+
+/* Translates to an expression to infer type.
+ * Returns ExpInitializer or ErrorInitializer.
+ */
+extern (C++) Initializer inferType(Initializer init, Scope* sc)
+{
+    scope v = new InferTypeVisitor(sc);
     init.accept(v);
     return v.result;
 }

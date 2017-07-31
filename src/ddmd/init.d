@@ -28,6 +28,8 @@ import ddmd.root.rootobject;
 import ddmd.tokens;
 import ddmd.visitor;
 
+import ddmd.initsem;
+
 enum NeedInterpret : int
 {
     INITnointerpret,
@@ -62,11 +64,6 @@ extern (C++) class Initializer : RootObject
         }
         return a;
     }
-
-    /* Translates to an expression to infer type.
-     * Returns ExpInitializer or ErrorInitializer.
-     */
-    abstract Initializer inferType(Scope* sc);
 
     abstract Expression toExpression(Type t = null);
 
@@ -125,12 +122,6 @@ extern (C++) final class VoidInitializer : Initializer
         return new VoidInitializer(loc);
     }
 
-    override Initializer inferType(Scope* sc)
-    {
-        error(loc, "cannot infer type from void initializer");
-        return new ErrorInitializer();
-    }
-
     override Expression toExpression(Type t = null)
     {
         return null;
@@ -157,11 +148,6 @@ extern (C++) final class ErrorInitializer : Initializer
     }
 
     override Initializer syntaxCopy()
-    {
-        return this;
-    }
-
-    override Initializer inferType(Scope* sc)
     {
         return this;
     }
@@ -213,12 +199,6 @@ extern (C++) final class StructInitializer : Initializer
         //printf("StructInitializer::addInit(field = %p, value = %p)\n", field, value);
         this.field.push(field);
         this.value.push(value);
-    }
-
-    override Initializer inferType(Scope* sc)
-    {
-        error(loc, "cannot infer type from struct initializer");
-        return new ErrorInitializer();
     }
 
     /***************************************
@@ -289,71 +269,6 @@ extern (C++) final class ArrayInitializer : Initializer
                 return true;
         }
         return false;
-    }
-
-    override Initializer inferType(Scope* sc)
-    {
-        //printf("ArrayInitializer::inferType() %s\n", toChars());
-        Expressions* keys = null;
-        Expressions* values;
-        if (isAssociativeArray())
-        {
-            keys = new Expressions();
-            keys.setDim(value.dim);
-            values = new Expressions();
-            values.setDim(value.dim);
-            for (size_t i = 0; i < value.dim; i++)
-            {
-                Expression e = index[i];
-                if (!e)
-                    goto Lno;
-                (*keys)[i] = e;
-                Initializer iz = value[i];
-                if (!iz)
-                    goto Lno;
-                iz = iz.inferType(sc);
-                if (iz.isErrorInitializer())
-                    return iz;
-                assert(iz.isExpInitializer());
-                (*values)[i] = (cast(ExpInitializer)iz).exp;
-                assert((*values)[i].op != TOKerror);
-            }
-            Expression e = new AssocArrayLiteralExp(loc, keys, values);
-            auto ei = new ExpInitializer(loc, e);
-            return ei.inferType(sc);
-        }
-        else
-        {
-            auto elements = new Expressions();
-            elements.setDim(value.dim);
-            elements.zero();
-            for (size_t i = 0; i < value.dim; i++)
-            {
-                assert(!index[i]); // already asserted by isAssociativeArray()
-                Initializer iz = value[i];
-                if (!iz)
-                    goto Lno;
-                iz = iz.inferType(sc);
-                if (iz.isErrorInitializer())
-                    return iz;
-                assert(iz.isExpInitializer());
-                (*elements)[i] = (cast(ExpInitializer)iz).exp;
-                assert((*elements)[i].op != TOKerror);
-            }
-            Expression e = new ArrayLiteralExp(loc, elements);
-            auto ei = new ExpInitializer(loc, e);
-            return ei.inferType(sc);
-        }
-    Lno:
-        if (keys)
-        {
-            error(loc, "not an associative array initializer");
-        }
-        else
-        {
-            error(loc, "cannot infer type from array initializer");
-        }
-        return new ErrorInitializer();
     }
 
     /********************************
@@ -552,50 +467,6 @@ extern (C++) final class ExpInitializer : Initializer
     override Initializer syntaxCopy()
     {
         return new ExpInitializer(loc, exp.syntaxCopy());
-    }
-
-    override Initializer inferType(Scope* sc)
-    {
-        //printf("ExpInitializer::inferType() %s\n", toChars());
-        exp = exp.semantic(sc);
-        exp = resolveProperties(sc, exp);
-        if (exp.op == TOKscope)
-        {
-            ScopeExp se = cast(ScopeExp)exp;
-            TemplateInstance ti = se.sds.isTemplateInstance();
-            if (ti && ti.semanticRun == PASSsemantic && !ti.aliasdecl)
-                se.error("cannot infer type from %s %s, possible circular dependency", se.sds.kind(), se.toChars());
-            else
-                se.error("cannot infer type from %s %s", se.sds.kind(), se.toChars());
-            return new ErrorInitializer();
-        }
-
-        // Give error for overloaded function addresses
-        bool hasOverloads;
-        if (auto f = isFuncAddress(exp, &hasOverloads))
-        {
-            if (f.checkForwardRef(loc))
-                return new ErrorInitializer();
-            if (hasOverloads && !f.isUnique())
-            {
-                exp.error("cannot infer type from overloaded function symbol %s", exp.toChars());
-                return new ErrorInitializer();
-            }
-        }
-        if (exp.op == TOKaddress)
-        {
-            AddrExp ae = cast(AddrExp)exp;
-            if (ae.e1.op == TOKoverloadset)
-            {
-                exp.error("cannot infer type from overloaded function symbol %s", exp.toChars());
-                return new ErrorInitializer();
-            }
-        }
-        if (exp.op == TOKerror)
-            return new ErrorInitializer();
-        if (!exp.type)
-            return new ErrorInitializer();
-        return this;
     }
 
     override Expression toExpression(Type t = null)
