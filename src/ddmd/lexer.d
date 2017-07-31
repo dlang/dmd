@@ -129,8 +129,8 @@ unittest
     //printf("lexer.unittest\n");
     /* Not much here, just trying things out.
      */
-    string text = "int"; // the test relies on this string begin null-terminated
-    scope Lexer lex1 = new Lexer(null, text.ptr, 0, text.length+1, 0, 0);
+    string text = "int";
+    scope Lexer lex1 = new Lexer(null, text.ptr, 0, text.length, 0, 0);
     TOK tok;
     tok = lex1.nextToken();
     //printf("tok == %s, %d, %d\n", Token::toChars(tok), tok, TOKint32);
@@ -152,9 +152,9 @@ unittest
     tok = lex2.nextToken();
     assert(tok == TOKcharv);
     tok = lex2.nextToken();
-    assert(tok == TOKerror);
+    assert(tok == TOKeof);
     tok = lex2.nextToken();
-    assert(tok == TOKerror);
+    assert(tok == TOKeof);
 }
 
 /***********************************************************
@@ -177,11 +177,11 @@ class Lexer
     bool errors;            // errors occurred during lexing or parsing
 
     /*********************
-     * Creates a Lexer for the (null- or EOF-terminated) source code base[begoffset..endoffset].
+     * Creates a Lexer for the source code base[begoffset..endoffset].
      *
      * Params:
      *  filename = used for error messages
-     *  base = source code, ending in a null- or EOF-byte
+     *  base = source code
      *  begoffset = starting offset into base[]
      *  endoffset = one past the last offset to read into base[]
      *  doDocComment = handle documentation comments
@@ -272,7 +272,7 @@ class Lexer
         {
             // Return error token when end of buffer is reached unexpectedly.
             if (p >= end) {
-                t.value = TOKerror;
+                t.value = TOKeof;
                 return;
             }
 
@@ -1566,7 +1566,6 @@ class Lexer
                 }
                 continue;
             case TOKeof:
-            case TOKerror:
                 error("unterminated token string constant starting at %s", start.toChars());
                 t.setString();
                 return TOKstring;
