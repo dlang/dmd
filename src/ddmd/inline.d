@@ -504,7 +504,7 @@ public:
                             continue;
                         if (vd._init && !vd._init.isVoidInitializer())
                         {
-                            result = vd._init.toExpression();
+                            result = vd._init.initializerToExpression();
                             assert(result);
                             result = doInlineAs!Expression(result, ids);
                         }
@@ -531,7 +531,7 @@ public:
                     }
                     else
                     {
-                        auto ei = vd._init.toExpression();
+                        auto ei = vd._init.initializerToExpression();
                         assert(ei);
                         vto._init = new ExpInitializer(ei.loc, doInlineAs!Expression(ei, ids));
                     }

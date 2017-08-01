@@ -1258,7 +1258,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             bool err = false;
 
             auto t = isType(o);
-            auto ex = t ? t.toExpression() : isExpression(o);
+            auto ex = t ? t.typeToExpression() : isExpression(o);
             if (!ex && t)
             {
                 Dsymbol s;

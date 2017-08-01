@@ -2204,7 +2204,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         /* So the caller's o gets updated with the result of semantic() being run on o
          */
         if (v)
-            o = v._init.toExpression();
+            o = v._init.initializerToExpression();
         return o;
     }
 

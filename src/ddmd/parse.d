@@ -6193,7 +6193,7 @@ final class Parser(AST) : Lexer
                     if (token.value == TOKcolon)
                     {
                         nextToken();
-                        e = AST.toExpression(value);
+                        e = AST.initializerToExpression(value);
                         value = parseInitializer();
                     }
                     else
@@ -8532,7 +8532,7 @@ final class Parser(AST) : Lexer
         {
             AST.TypeAArray taa = cast(AST.TypeAArray)t;
             AST.Type index = taa.index;
-            auto edim = AST.toExpression(index);
+            auto edim = AST.typeToExpression(index);
             if (!edim)
             {
                 error("need size of rightmost array, not type `%s`", index.toChars());

@@ -148,7 +148,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                 assert(sc);
                 Initializer iz = i.value[j];
                 iz = iz.semantic(sc, vd.type.addMod(t.mod), needInterpret);
-                Expression ex = iz.toExpression();
+                Expression ex = iz.initializerToExpression();
                 if (ex.op == TOKerror)
                 {
                     errors = true;
@@ -223,7 +223,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                 if (t.ty == Taarray || i.isAssociativeArray())
                     e = i.toAssocArrayLiteral();
                 else
-                    e = i.toExpression();
+                    e = i.initializerToExpression();
                 // Bugzilla 13987
                 if (!e)
                 {
@@ -770,7 +770,7 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
             Initializer iz = init.value[i];
             if (!iz)
                 goto Lno;
-            Expression ex = iz.toExpression();
+            Expression ex = iz.initializerToExpression();
             if (!ex)
             {
                 goto Lno;
@@ -864,11 +864,10 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
     }
 }
 
+// Converts an initializer to an expression.
 public extern (C++) Expression initializerToExpression(Initializer i, Type t = null)
 {
     scope v = new InitToExpressionVisitor(t);
     i.accept(v);
     return v.result;
 }
-
-alias toExpression = initializerToExpression;

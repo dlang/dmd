@@ -27,8 +27,8 @@ struct ASTCodegen
     import ddmd.staticassert;
     import ddmd.typesem;
 
-//    alias toExpression              = ddmd.initsem.initializerToExpression;
-//    alias toExpression              = ddmd.typesem.typeToExpression;
+    alias initializerToExpression   = ddmd.initsem.initializerToExpression;
+    alias typeToExpression          = ddmd.typesem.typeToExpression;
     alias UserAttributeDeclaration  = ddmd.attrib.UserAttributeDeclaration;
 
     alias MODconst                  = ddmd.mtype.MODconst;

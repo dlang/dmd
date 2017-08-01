@@ -35,11 +35,6 @@ private extern (C++) final class TypeToExpressionVisitor : Visitor
         this.itype = itype;
     }
 
-    /********************************
-     * We've mistakenly parsed this as a type.
-     * Redo it as an Expression.
-     * NULL if cannot.
-     */
     override void visit(Type t)
     {
         result = null;
@@ -47,7 +42,7 @@ private extern (C++) final class TypeToExpressionVisitor : Visitor
 
     override void visit(TypeSArray t)
     {
-        Expression e = t.next.toExpression();
+        Expression e = t.next.typeToExpression();
         if (e)
             e = new ArrayExp(t.dim.loc, e, t.dim);
         result = e;
@@ -55,10 +50,10 @@ private extern (C++) final class TypeToExpressionVisitor : Visitor
 
     override void visit(TypeAArray t)
     {
-        Expression e = t.next.toExpression();
+        Expression e = t.next.typeToExpression();
         if (e)
         {
-            Expression ei = t.index.toExpression();
+            Expression ei = t.index.typeToExpression();
             if (ei)
             {
                 result = new ArrayExp(t.loc, e, ei);
@@ -70,15 +65,19 @@ private extern (C++) final class TypeToExpressionVisitor : Visitor
 
     override void visit(TypeIdentifier t)
     {
-        result = toExpressionHelper(t, new IdentifierExp(t.loc, t.ident));
+        result = typeToExpressionHelper(t, new IdentifierExp(t.loc, t.ident));
     }
 
     override void visit(TypeInstance t)
     {
-        result = toExpressionHelper(t, new ScopeExp(t.loc, t.tempinst));
+        result = typeToExpressionHelper(t, new ScopeExp(t.loc, t.tempinst));
     }
 }
 
+/* We've mistakenly parsed this as a type.
+ * Redo it as an Expression.
+ * NULL if cannot.
+ */
 extern (C++) Expression typeToExpression(Type t)
 {
     scope v = new TypeToExpressionVisitor();
@@ -86,6 +85,9 @@ extern (C++) Expression typeToExpression(Type t)
     return v.result;
 }
 
+/* Helper function for `typeToExpression`. Contains common code
+ * for TypeQualified derived classes.
+ */
 extern (C++) Expression typeToExpressionHelper(TypeQualified t, Expression e, size_t i = 0)
 {
     //printf("toExpressionHelper(e = %s %s)\n", Token.toChars(e.op), e.toChars());
@@ -124,6 +126,3 @@ extern (C++) Expression typeToExpressionHelper(TypeQualified t, Expression e, si
     }
     return e;
 }
-
-alias toExpression = typeToExpression;
-alias toExpressionHelper = typeToExpressionHelper;

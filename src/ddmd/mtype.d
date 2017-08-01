@@ -6258,7 +6258,7 @@ extern (C++) final class TypeFunction : TypeNext
                         e = inferType(e, fparam.type);
                         Initializer iz = new ExpInitializer(e.loc, e);
                         iz = iz.semantic(argsc, fparam.type, INITnointerpret);
-                        e = iz.toExpression();
+                        e = iz.initializerToExpression();
                     }
                     if (e.op == TOKfunction) // https://issues.dlang.org/show_bug.cgi?id=4820
                     {
@@ -7439,7 +7439,7 @@ extern (C++) abstract class TypeQualified : Type
                         ex = new TypeExp(loc, tx);
                     assert(ex);
 
-                    ex = toExpressionHelper(this, ex, i + 1);
+                    ex = typeToExpressionHelper(this, ex, i + 1);
                     ex = ex.semantic(sc);
                     resolveExp(ex, pt, pe, ps);
                     return;
@@ -7506,7 +7506,7 @@ extern (C++) abstract class TypeQualified : Type
                         else
                             e = new VarExp(loc, s.isDeclaration(), true);
 
-                        e = toExpressionHelper(this, e, i);
+                        e = typeToExpressionHelper(this, e, i);
                         e = e.semantic(sc);
                         resolveExp(e, pt, pe, ps);
                         return;
@@ -7989,7 +7989,7 @@ extern (C++) final class TypeTypeof : TypeQualified
                 resolveHelper(loc, sc, s, null, pe, pt, ps, intypeid);
             else
             {
-                auto e = toExpressionHelper(this, new TypeExp(loc, t));
+                auto e = typeToExpressionHelper(this, new TypeExp(loc, t));
                 e = e.semantic(sc);
                 resolveExp(e, pt, pe, ps);
             }
@@ -8094,7 +8094,7 @@ extern (C++) final class TypeReturn : TypeQualified
                 resolveHelper(loc, sc, s, null, pe, pt, ps, intypeid);
             else
             {
-                auto e = toExpressionHelper(this, new TypeExp(loc, t));
+                auto e = typeToExpressionHelper(this, new TypeExp(loc, t));
                 e = e.semantic(sc);
                 resolveExp(e, pt, pe, ps);
             }

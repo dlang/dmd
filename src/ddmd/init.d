@@ -269,7 +269,7 @@ extern (C++) final class ArrayInitializer : Initializer
             Initializer iz = value[i];
             if (!iz)
                 goto Lno;
-            e = iz.toExpression();
+            e = iz.initializerToExpression();
             if (!e)
                 goto Lno;
             (*values)[i] = e;

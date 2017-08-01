@@ -159,7 +159,7 @@ extern (C++) bool lambdaCheckForNestedRef(Expression e, Scope* sc)
                  */
                 if (v._init && v._init.isExpInitializer())
                 {
-                    Expression ie = v._init.toExpression();
+                    Expression ie = v._init.initializerToExpression();
                     result = lambdaCheckForNestedRef(ie, sc);
                 }
             }
