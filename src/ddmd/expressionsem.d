@@ -5530,8 +5530,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             printf("AssignExp::semantic('%s')\n", exp.toChars());
         }
-        //printf("e1.op = %d, '%s'\n", e1.op, Token::toChars(e1.op));
-        //printf("e2.op = %d, '%s'\n", e2.op, Token::toChars(e2.op));
+        //printf("exp.e1.op = %d, '%s'\n", exp.e1.op, Token.toChars(exp.e1.op));
+        //printf("exp.e2.op = %d, '%s'\n", exp.e2.op, Token.toChars(exp.e2.op));
         if (exp.type)
         {
             result = exp;
