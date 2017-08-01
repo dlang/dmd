@@ -1855,7 +1855,7 @@ $(GNAME TypeSpecialization):
         used for checking for valid types, comparing types for equivalence,
         determining if one type can be implicitly converted to another,
         and deducing the subtypes of a type.
-        The result of an $(I IsExpression) is an int of type 0
+        The result of an $(I IsExpression) is an int of value 0
         if the condition is not satisified, 1 if it is.
     )
 
@@ -1906,10 +1906,10 @@ void foo()
         $(I TypeSpecialization) is only allowed to be a $(I Type).
 
 -------------
-alias bar = short;
-void foo(bar x)
+alias Bar = short;
+void foo()
 {
-    if (is(bar : int))   // satisfied because short can be
+    if (is(Bar : int))   // satisfied because short can be
                          // implicitly converted to int
         writeln("satisfied");
     else
@@ -1939,11 +1939,10 @@ void foo(bar x)
         then the condition is satisfied if $(I Type) is one of those.
 
 -------------
-alias bar = short;
-
-void test(bar x)
+alias Bar = short;
+void foo()
 {
-    if (is(bar == int))   // not satisfied because short is not
+    if (is(Bar == int))   // not satisfied because short is not
                           // the same type as int
         writeln("satisfied");
     else
@@ -1958,16 +1957,16 @@ void test(bar x)
         is declared to be an alias of $(I Type).
 
 -------------
-alias bar = short;
-void foo(bar x)
+alias Bar = short;
+void foo()
 {
-    static if (is(bar T))
+    static if (is(Bar T))
         alias S = T;
     else
         alias S = long;
 
     writeln(typeid(S)); // prints "short"
-    if (is(bar T))      // error, Identifier T form can
+    if (is(Bar T))      // error, Identifier T form can
                         // only be in StaticIfConditions
         ...
 }
@@ -1987,18 +1986,18 @@ void foo(bar x)
         )
 
 -------------
-alias bar = int;
-alias abc = long*;
-void foo(bar x, abc a)
+alias Bar = int;
+alias Abc = long*;
+void foo()
 {
-    static if (is(bar T : int))
+    static if (is(Bar T : int))
         alias S = T;
     else
         alias S = long;
 
     writeln(typeid(S));  // prints "int"
 
-    static if (is(abc U : U*))
+    static if (is(Abc U : U*))
     {
         U u;
         writeln(typeid(typeof(u)));  // prints "long"
@@ -2068,11 +2067,11 @@ void foo(bar x, abc a)
         )
 
 -------------
-alias bar = short;
+alias Bar = short;
 enum E : byte { Emember }
-void foo(bar x)
+void foo()
 {
-    static if (is(bar T == int))   // not satisfied, short is not int
+    static if (is(Bar T == int))   // not satisfied, short is not int
         alias S = T;
     alias U = T;                   // error, T is not defined
 
@@ -2102,11 +2101,12 @@ void main()
     alias Tup = Tuple!(int, string);
     alias AA = long[char[]];
 
-    static if (is(Tup : TX!TL, alias TX, TL...))
+    static if (is(Tup : Template!Args, alias Template, Args...))
     {
-        writeln(is(TX!(int, long) == Tuple!(int, long)));  // true
-        writeln(typeid(TL[0]));  // int
-        writeln(typeid(TL[1]));  // immutable(char)[]
+        writeln(__traits(isSame, Template, Tuple)); // true
+        writeln(is(Template!(int, long) == Tup));  // true
+        writeln(typeid(Args[0]));  // int
+        writeln(typeid(Args[1]));  // immutable(char)[]
     }
 
     static if (is(AA T : T[U], U : const char[]))
@@ -2120,15 +2120,15 @@ void main()
         assert(0);  // should not match, as B is not an int
     }
 
-    static if (is(int[10] W : W[V], int V))
+    static if (is(int[10] W : W[len], int len))
     {
         writeln(typeid(W));  // int
-        writeln(V);          // 10
+        writeln(len);        // 10
     }
 
-    static if (is(int[10] X : X[Y], int Y : 5))
+    static if (is(int[10] X : X[len], int len : 5))
     {
-        assert(0);  // should not match, Y should be 10
+        assert(0);  // should not match, len should be 10
     }
 }
 ---
