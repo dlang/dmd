@@ -448,7 +448,7 @@ $(DD The syntax is $(B /c/string/), where $(B c)
 
 $(H2 $(LNAME2 highlighting, Highlighting))
 
-$(H4 $(LNAME2 embedded_comments, Embedded Comments))
+$(H3 $(LNAME2 embedded_comments, Embedded Comments))
 
 $(P
     The documentation comments can themselves be commented using
@@ -456,7 +456,7 @@ $(P
     nest.
 )
 
-$(H4 $(LNAME2 embedded_code, Embedded Code))
+$(H3 $(LNAME2 embedded_code, Embedded Code))
 
 $(P
     D code can be embedded using lines beginning with at least three
@@ -485,7 +485,7 @@ $(P
     so that $(D_COMMENT /* ... */) can be used inside the code section.
 )
 
-$(H4 $(LNAME2 inline_code, Inline Code))
+$(H3 $(LNAME2 inline_code, Inline Code))
 
 $(P
     Inline code can be written between backtick characters ($(BACKTICK)), similarly
@@ -514,7 +514,7 @@ $(P
  void bar() {}
 ---
 
-$(H4 $(LNAME2 embedded_html, Embedded HTML))
+$(H3 $(LNAME2 embedded_html, Embedded HTML))
 
 $(P
 HTML can be embedded into the documentation comments, and it will
@@ -535,7 +535,7 @@ best to avoid using it where practical.
  */
 ------------------------------------
 
-$(H4 $(LNAME2 emphasis, Emphasis))
+$(H3 $(LNAME2 emphasis, Emphasis))
 
 $(P
 Identifiers in documentation comments that are function parameters or are
@@ -548,7 +548,7 @@ To prevent unintended emphasis of an identifier, it can be preceded by
 an underscore ($(UNDERSCORE)). The underscore will be stripped from the output.
 )
 
-$(H4 $(LNAME2 character_entities, Character Entities))
+$(H3 $(LNAME2 character_entities, Character Entities))
 
 $(P
     Some characters have special meaning
@@ -567,7 +567,7 @@ $(P
     special character is not immediately followed by a $(HASH) or a letter.
 )
 
-$(H4 $(LNAME2 no_documentation, No Documentation))
+$(H3 $(LNAME2 no_documentation, No Documentation))
 
 $(P
     No documentation is generated for the following constructs,
