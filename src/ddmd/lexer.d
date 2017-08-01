@@ -129,8 +129,8 @@ unittest
     //printf("lexer.unittest\n");
     /* Not much here, just trying things out.
      */
-    string text = "int";
-    scope Lexer lex1 = new Lexer(null, text.ptr, 0, text.length, 0, 0);
+    string text = "int"; // We rely on the implicit null-terminator
+    scope Lexer lex1 = new Lexer(null, text.ptr, 0, text.length+1, 0, 0);
     TOK tok;
     tok = lex1.nextToken();
     //printf("tok == %s, %d, %d\n", Token::toChars(tok), tok, TOKint32);
@@ -178,10 +178,11 @@ class Lexer
 
     /*********************
      * Creates a Lexer for the source code base[begoffset..endoffset].
+     * The last character, base[endoffset-1], must be null (0) or EOF (0x1A).
      *
      * Params:
      *  filename = used for error messages
-     *  base = source code
+     *  base = source code, must be terminated by a null (0) or EOF (0x1A) character
      *  begoffset = starting offset into base[]
      *  endoffset = one past the last offset to read into base[]
      *  doDocComment = handle documentation comments
@@ -268,14 +269,16 @@ class Lexer
         Loc startLoc;
         t.blockComment = null;
         t.lineComment = null;
+
+        // Return EOF token when end of buffer is already reached
+        if (p >= end) {
+            t.value = TOKeof;
+            t.loc = loc();
+            return;
+        }
+
         while (1)
         {
-            // Return error token when end of buffer is reached unexpectedly.
-            if (p >= end) {
-                t.value = TOKeof;
-                return;
-            }
-
             t.ptr = p;
             //printf("p = %p, *p = '%c'\n",p,*p);
             t.loc = loc();
