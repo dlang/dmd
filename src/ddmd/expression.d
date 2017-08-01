@@ -2466,12 +2466,19 @@ extern (C++) Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, 
  * Returns:
  *  String literal, or `null` if error happens.
  */
-StringExp semanticString(Scope *sc, Expression exp, const char* s)
+StringExp semanticString(Scope *sc, Expression exp, const char* s, bool* defer = null)
 {
     sc = sc.startCTFE();
     exp = exp.semantic(sc);
     exp = resolveProperties(sc, exp);
     sc = sc.endCTFE();
+
+    if (exp.op == TOKfinally)
+    {
+        if (defer)
+            *defer = true;
+        return null;
+    }
 
     if (exp.op == TOKerror)
         return null;
@@ -3856,7 +3863,8 @@ extern (C++) class IdentifierExp : Expression
             return this;
 
         Dsymbol scopesym;
-        Dsymbol s = sc.search(loc, ident, &scopesym);
+        bool confident;
+        Dsymbol s = sc.search(loc, ident, &scopesym, 0, &confident);
         if (s)
         {
             if (s.errors)
@@ -3984,6 +3992,9 @@ extern (C++) class IdentifierExp : Expression
                 break;
             }
         }
+
+        if (!confident)
+            return new DeferExp();
 
         const(char)* n = importHint(ident.toChars());
         if (n)
@@ -7970,7 +7981,7 @@ extern (C++) abstract class BinExp : Expression
         Expression e2x = e2.semantic(sc);
         if (e1x.op == TOKerror || e1x.op == TOKfinally)
             return e1x;
-        if (e2x.op == TOKerror || e1x.op == TOKfinally)
+        if (e2x.op == TOKerror || e2x.op == TOKfinally)
             return e2x;
         e1 = e1x;
         e2 = e2x;
@@ -7985,7 +7996,7 @@ extern (C++) abstract class BinExp : Expression
         Expression e2x = resolveProperties(sc, e2);
         if (e1x.op == TOKerror || e1x.op == TOKfinally)
             return e1x;
-        if (e2x.op == TOKerror || e1x.op == TOKfinally)
+        if (e2x.op == TOKerror || e2x.op == TOKfinally)
             return e2x;
         e1 = e1x;
         e2 = e2x;

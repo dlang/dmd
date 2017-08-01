@@ -676,9 +676,13 @@ extern (C++) class Dsymbol : RootObject
             case PASSmembers:
                 deferMembers();
                 break;
+            case PASSmembersdone:
             case PASSsemantic:
                 deferSemantic();
                 break;
+            case PASSmembersdeferred:
+            case PASSsemanticdeferred:
+                return;
             default:
                 assert(0);
         }

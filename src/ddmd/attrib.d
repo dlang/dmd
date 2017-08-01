@@ -1613,8 +1613,15 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
 
     void compileIt(Scope* sc)
     {
+        if (_scope)
+            sc = _scope; // FWDREF FIXME!: this isn't consistent to do it here only, every AttribDeclaration should be re-using its own _scope
+        assert(sc);
+
         //printf("CompileDeclaration::compileIt(loc = %d) %s\n", loc.linnum, exp.toChars());
-        auto se = semanticString(sc, exp, "argument to mixin");
+        bool needsDefer;
+        auto se = semanticString(sc, exp, "argument to mixin", &needsDefer);
+        if (needsDefer)
+            defer();
         if (!se)
             return;
         se = se.toUTF8(sc);
@@ -1637,11 +1644,18 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
     {
         if (semanticRun >= PASSmembersdone || ininc)
             return;
+
+        if (semanticRun == PASSinit ||
+                (semanticRun == PASSmembersdeferred && !membersNest))
+            semanticRun = PASSmembers;
+
         if (!compiled)
         {
             ininc = true;
             compileIt(sc);
             ininc = false;
+            if (isDeferred())
+                return;
             AttribDeclaration.addMember(sc, scopesym);
             compiled = true;
 
@@ -1660,9 +1674,12 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
     override void semantic(Scope* sc)
     {
         //printf("CompileDeclaration::semantic()\n");
+        importAll(sc); // FWDREF FIXME: the following feels awefully redundant
         if (!compiled)
         {
             compileIt(sc);
+            if (isDeferred())
+                return;
             AttribDeclaration.addMember(sc, scopesym);
             compiled = true;
 
