@@ -2054,14 +2054,12 @@ void func(T)(T x)
 {
     writeln(x);
 }
-
 void main()
 {
     func!(int)(1); // pass an int
     func(1);    // pass an int, inferring T = int
     func("x");  // pass a string
     func(1.0);  // pass a float
-
     struct S {}
     S s;
     func(s);    // pass a struct
