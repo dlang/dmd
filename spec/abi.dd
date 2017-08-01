@@ -635,7 +635,7 @@ $(H2 $(LNAME2 function_calling_conventions, Function Calling Conventions))
 	Except that the extern (D) calling convention for Windows x86 is described here.
 	)
 
-$(H4 $(LNAME2 register_conventions, Register Conventions))
+$(H3 $(LNAME2 register_conventions, Register Conventions))
 
 	$(UL
 
@@ -656,7 +656,7 @@ $(H4 $(LNAME2 register_conventions, Register Conventions))
 
 	)
 
-$(H4 $(LNAME2 return_value, Return Value))
+$(H3 $(LNAME2 return_value, Return Value))
 
 	$(UL
 
@@ -697,7 +697,7 @@ $(H4 $(LNAME2 return_value, Return Value))
 
 	)
 
-$(H4 $(LNAME2 parameters, Parameters))
+$(H3 $(LNAME2 parameters, Parameters))
 
 	$(P The parameters to the non-variadic function:)
 
@@ -791,13 +791,13 @@ foo(a1, a2, a3, ..., an);
 
 $(H2 $(LNAME2 exception_handling, Exception Handling))
 
-    $(H4 $(LNAME2 windows_eh, Windows))
+    $(H3 $(LNAME2 windows_eh, Windows))
 
 	$(P Conforms to the Microsoft Windows Structured Exception Handling
 	conventions.
 	)
 
-    $(H4 $(LNAME2 ninux_fbsd_osx_eh, Linux$(COMMA) FreeBSD and OS X))
+    $(H3 $(LNAME2 ninux_fbsd_osx_eh, Linux$(COMMA) FreeBSD and OS X))
 
 	$(P Uses static address range/handler tables.
 	It is not compatible with the ELF/Mach-O exception handling tables.
