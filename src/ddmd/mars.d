@@ -1455,6 +1455,7 @@ Language changes listed by -transition=id:
             fprintf(global.stdmsg, "importall %s\n", m.toChars());
         m.importAll(null);
     }
+    Module.runDeferredMembers();
     if (global.errors)
         fatal();
 

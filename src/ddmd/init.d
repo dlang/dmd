@@ -237,7 +237,7 @@ extern (C++) final class DeferInitializer : Initializer
 
     override Expression toExpression(Type t = null)
     {
-        return new ErrorExp();
+        return new DeferExp();
     }
 
     override DeferInitializer isDeferInitializer()
@@ -868,8 +868,11 @@ extern (C++) final class ExpInitializer : Initializer
     override Initializer inferType(Scope* sc)
     {
         //printf("ExpInitializer::inferType() %s\n", toChars());
-        exp = exp.semantic(sc);
-        exp = resolveProperties(sc, exp);
+        auto ex = exp.semantic(sc);
+        ex = resolveProperties(sc, ex);
+        if (ex.op == TOKfinally)
+            return new DeferInitializer();
+        exp = ex;
         if (exp.op == TOKscope)
         {
             ScopeExp se = cast(ScopeExp)exp;
@@ -906,8 +909,6 @@ extern (C++) final class ExpInitializer : Initializer
             return new ErrorInitializer();
         if (!exp.type)
             return new ErrorInitializer();
-        if (exp.op == TOKfinally)
-            return new DeferInitializer();
         return this;
     }
 
@@ -916,10 +917,13 @@ extern (C++) final class ExpInitializer : Initializer
         //printf("ExpInitializer::semantic(%s), type = %s\n", exp.toChars(), t.toChars());
         if (needInterpret)
             sc = sc.startCTFE();
-        exp = exp.semantic(sc);
-        exp = resolveProperties(sc, exp);
+        auto ex = exp.semantic(sc);
+        ex = resolveProperties(sc, ex);
         if (needInterpret)
             sc = sc.endCTFE();
+        if (ex.op == TOKfinally)
+            return new DeferInitializer();
+        exp = ex;
         if (exp.op == TOKerror)
             return new ErrorInitializer();
         uint olderrors = global.errors;

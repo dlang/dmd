@@ -2416,15 +2416,19 @@ extern (C++) class VarDeclaration : Declaration
                 global.gag = 0;
         }
 
+        auto vinit = _init;
+
         if (_scope)
         {
             inuse++;
-            _init = _init.semantic(_scope, type, INITinterpret);
-            _scope = null;
+            vinit = _init.semantic(_scope, type, INITinterpret);
+            if (!vinit.isDeferInitializer())
+                _init = vinit;
+//             _scope = null; // FWDREF FIXME?: this whole parallel initializer affair doesn't seem right to me, what's wrong with semantic()?
             inuse--;
         }
 
-        Expression e = _init.toExpression(needFullType ? type : null);
+        Expression e = vinit.toExpression(needFullType ? type : null);
         global.gag = oldgag;
         return e;
     }

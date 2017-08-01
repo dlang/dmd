@@ -155,18 +155,22 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
     {
         if (semanticRun >= PASSmembersdone || ininc)
             return;
-        if (semanticRun == PASSinit)
+
+        if (semanticRun == PASSinit ||
+                (semanticRun == PASSmembersdeferred && !membersNest))
             semanticRun = PASSmembers;
+
         ininc = true;
         Dsymbols* d = include(sc, null);
         ininc = false;
-        if (!d && semanticRun == PASSmembersdeferred)
-            return; // might be too soon for the static if cond
         //printf("\tAttribDeclaration::importAll '%s', d = %p\n", toChars(), d);
+
         if (d)
         {
+            if (!membersNest)
+                nextMember = 0;
+
             Scope* sc2 = newScope(sc);
-            auto oldnextMember = nextMember;
             ++membersNest;
             while (nextMember < d.dim)
             {
@@ -177,7 +181,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
                 ++nextMember;
             }
             --membersNest;
-            nextMember = oldnextMember;
+
             if (sc2 != sc)
                 sc2.pop();
         }

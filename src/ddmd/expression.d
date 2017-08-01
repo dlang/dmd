@@ -6535,7 +6535,10 @@ extern (C++) final class SymOffExp : SymbolExp
         {
             printf("SymOffExp::semantic('%s')\n", toChars());
         }
-        //var.semantic(sc);
+//         if (auto v = var.isVarDeclaration())
+//             if (v._scope)
+//                 v.semantic(null);
+
         if (!type)
             type = var.type.pointerTo();
 
@@ -9117,6 +9120,14 @@ extern (C++) final class DotVarExp : UnaExp
         e1 = e1.addDtorHook(sc);
 
         Type t1 = e1.type;
+
+        if (auto vd = var.isVarDeclaration())
+        {
+            if (vd._scope)
+                vd.semantic(null);
+            if (vd.isDeferred())
+                return new DeferExp();
+        }
 
         if (FuncDeclaration fd = var.isFuncDeclaration())
         {

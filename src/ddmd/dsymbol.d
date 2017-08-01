@@ -1799,16 +1799,22 @@ public:
     uint membersNest;
     override void importAll(Scope* sc)
     {
+        if (semanticRun >= PASSmembersdone)
+            return;
+
         if (!members)
         {
             semanticRun = PASSmembersdone;
             return;
         }
 
-        if (semanticRun == PASSinit)
+        if (semanticRun == PASSinit ||
+                (semanticRun == PASSmembersdeferred && !membersNest))
             semanticRun = PASSmembers;
 
-        auto oldnextMember = nextMember;
+        if (!membersNest)
+            nextMember = 0;
+
         ++membersNest;
         while (nextMember < members.dim)
         {
@@ -1817,16 +1823,9 @@ public:
             ++nextMember;
         }
         --membersNest;
-        nextMember = oldnextMember;
 
         if (!membersNest && semanticRun != PASSmembersdeferred)
             semanticRun = PASSmembersdone;
-
-        if (!membersNest && isModule())
-        {
-            Module.runDeferredMembers(); // TODO move to dmodule
-            assert(semanticRun >= PASSmembersdone);
-        }
     }
 
     override void semantic(Scope* sc) { }

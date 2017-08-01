@@ -1300,8 +1300,7 @@ extern (C++) final class Module : Package
             for (size_t i = 0; i < len; i++)
             {
                 Dsymbol s = todo[i];
-                assert(s.semanticRun == PASSmembersdeferred);
-                s.semanticRun = PASSmembers;
+                assert(s.semanticRun >= PASSmembersdeferred);
                 s.importAll(null);
                 //printf("deferredM: %s, parent = %s\n", s.toChars(), s.parent.toChars());
             }
@@ -1361,9 +1360,9 @@ extern (C++) final class Module : Package
             for (size_t i = 0; i < len; i++)
             {
                 Dsymbol s = todo[i];
-                s.semantic(null);
                 if (s.semanticRun == PASSsemanticdeferred) // FWDREF FIXME? most is still not PASSsemanticdeferred
                     s.semanticRun = PASSmembersdone;
+                s.semantic(null);
                 //printf("deferred: %s, parent = %s\n", s.toChars(), s.parent.toChars());
             }
             //printf("\tdeferred.dim = %d, len = %d, dprogress = %d\n", deferred.dim, len, dprogress);
