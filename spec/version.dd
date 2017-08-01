@@ -54,7 +54,7 @@ $(GNAME Condition):
     $(GLINK StaticIfCondition)
 )
 
-$(H3 $(LNAME2 version, Version Condition))
+$(H2 $(LNAME2 version, Version Condition))
 
 $(GRAMMAR
 $(GNAME VersionCondition):
@@ -113,7 +113,7 @@ $(P The $(D version(unittest)) is satisfied if and only if the code is
 	)
 
 
-$(H3 $(LEGACY_LNAME2 VersionSpecification, version-specification, Version Specification))
+$(H2 $(LEGACY_LNAME2 VersionSpecification, version-specification, Version Specification))
 
 $(GRAMMAR
 $(GNAME VersionSpecification):
