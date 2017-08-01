@@ -1553,7 +1553,7 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
         }
 
         /* Don't inline a function that returns non-void, but has
-         * no return expression.
+         * no or multiple return expression.
          * When inlining as a statement:
          * 1. don't inline array operations, because the order the arguments
          *    get evaluated gets reversed. This is the same issue that e2ir.callfunc()
@@ -1601,6 +1601,17 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
         static if (CANINLINE_LOG)
         {
             printf("\t4: no %s\n", fd.toChars());
+        }
+        goto Lno;
+    }
+
+    // cannot inline functions as statement if they have multiple
+    //  return statements
+    if ((fd.hasReturnExp & 16) && statementsToo)
+    {
+        static if (CANINLINE_LOG)
+        {
+            printf("\t5: no %s\n", fd.toChars());
         }
         goto Lno;
     }

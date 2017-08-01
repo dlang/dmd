@@ -592,6 +592,7 @@ public:
     TemplateDeclaration *td;
     TOK tok;
 
+    bool equals(RootObject *o);
     void genIdent(Scope *sc);
     Expression *syntaxCopy();
     MATCH matchType(Type *to, Scope *sc, FuncExp **pfe, int flag = 0);

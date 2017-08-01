@@ -217,6 +217,7 @@ extern (C++) class FuncDeclaration : Declaration
     /// 2 if there's a throw statement
     /// 4 if there's an assert(0)
     /// 8 if there's inline asm
+    /// 16 if there are multiple return statements
     int hasReturnExp;
 
     // Support for NRVO (named return value optimization)
@@ -1613,7 +1614,7 @@ extern (C++) class FuncDeclaration : Declaration
                         Statement s = new ReturnStatement(loc, null);
                         s = s.semantic(sc2);
                         fbody = new CompoundStatement(loc, fbody, s);
-                        hasReturnExp |= 1;
+                        hasReturnExp |= (hasReturnExp & 1 ? 16 : 1);
                     }
                 }
                 else if (fes)
@@ -1624,7 +1625,7 @@ extern (C++) class FuncDeclaration : Declaration
                         Expression e = new IntegerExp(0);
                         Statement s = new ReturnStatement(Loc(), e);
                         fbody = new CompoundStatement(Loc(), fbody, s);
-                        hasReturnExp |= 1;
+                        hasReturnExp |= (hasReturnExp & 1 ? 16 : 1);
                     }
                     assert(!returnLabel);
                 }

@@ -1065,6 +1065,37 @@ void test15296c()
 }
 
 /**********************************/
+// https://issues.dlang.org/show_bug.cgi?id=17676
+__gshared bool bgEnable = 1;
+
+void test17676() nothrow
+{
+    fullcollect();
+}
+
+size_t fullcollect() nothrow
+{
+    if(bgEnable)
+       return fullcollectTrigger();
+
+    return fullcollectNow();
+}
+
+size_t fullcollectNow() nothrow
+{
+    if (bgEnable)
+        assert(0);
+    pragma(inline, false);
+    return 1;
+}
+
+size_t fullcollectTrigger() nothrow
+{
+    pragma(inline, false);
+    return 0;
+}
+
+/**********************************/
 
 int main()
 {
@@ -1100,7 +1131,8 @@ int main()
     test15296();
     test15296b();
     test15296c();
-
+    test17676();
+    
     printf("Success\n");
     return 0;
 }
