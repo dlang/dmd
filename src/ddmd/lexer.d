@@ -130,7 +130,7 @@ unittest
     /* Not much here, just trying things out.
      */
     string text = "int"; // We rely on the implicit null-terminator
-    scope Lexer lex1 = new Lexer(null, text.ptr, 0, text.length+1, 0, 0);
+    scope Lexer lex1 = new Lexer(null, text.ptr, 0, text.length, 0, 0);
     TOK tok;
     tok = lex1.nextToken();
     //printf("tok == %s, %d, %d\n", Token::toChars(tok), tok, TOKint32);
@@ -147,7 +147,7 @@ unittest
 {
     // Test malformed input
     char[2] text = ['\'', 0];
-    scope Lexer lex2 = new Lexer(null, text.ptr, 0, text.length, 0, 0);
+    scope Lexer lex2 = new Lexer(null, text.ptr, 0, text.length-1, 0, 0);
     TOK tok;
     tok = lex2.nextToken();
     assert(tok == TOKcharv);
@@ -166,7 +166,7 @@ class Lexer
     Loc scanloc;            // for error messages
 
     const(char)* base;      // pointer to start of buffer
-    const(char)* end;       // past end of buffer
+    const(char)* end;       // pointer to last element of buffer
     const(char)* p;         // current character
     const(char)* line;      // start of current line
     Token token;
@@ -177,14 +177,14 @@ class Lexer
     bool errors;            // errors occurred during lexing or parsing
 
     /*********************
-     * Creates a Lexer for the source code base[begoffset..endoffset].
-     * The last character, base[endoffset-1], must be null (0) or EOF (0x1A).
+     * Creates a Lexer for the source code base[begoffset..endoffset+1].
+     * The last character, base[endoffset], must be null (0) or EOF (0x1A).
      *
      * Params:
      *  filename = used for error messages
      *  base = source code, must be terminated by a null (0) or EOF (0x1A) character
      *  begoffset = starting offset into base[]
-     *  endoffset = one past the last offset to read into base[]
+     *  endoffset = the last offset to read into base[]
      *  doDocComment = handle documentation comments
      *  commentToken = comments become TOKcomment's
      */
@@ -270,13 +270,6 @@ class Lexer
         t.blockComment = null;
         t.lineComment = null;
 
-        // Return EOF token when end of buffer is already reached
-        if (p >= end) {
-            t.value = TOKeof;
-            t.loc = loc();
-            return;
-        }
-
         while (1)
         {
             t.ptr = p;
@@ -287,6 +280,7 @@ class Lexer
             case 0:
             case 0x1A:
                 t.value = TOKeof; // end of file
+                // Intentionally not advancing `p`, such that subsequent calls keep returning TOKeof.
                 return;
             case ' ':
             case '\t':
@@ -1278,6 +1272,8 @@ class Lexer
             case 0x1A:
                 error("unterminated string constant starting at %s", start.toChars());
                 t.setString();
+                // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOKeof token).
+                p--;
                 return TOKstring;
             case '"':
             case '`':
@@ -1338,6 +1334,8 @@ class Lexer
             case 0x1A:
                 error("unterminated string constant starting at %s", start.toChars());
                 t.setString();
+                // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOKeof token).
+                p--;
                 return TOKxstring;
             case '"':
                 if (n & 1)
@@ -1434,6 +1432,8 @@ class Lexer
             case 0x1A:
                 error("unterminated delimited string constant starting at %s", start.toChars());
                 t.setString();
+                // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOKeof token).
+                p--;
                 return TOKstring;
             default:
                 if (c & 0x80)
@@ -1619,6 +1619,7 @@ class Lexer
                 return TOKstring;
             case 0:
             case 0x1A:
+                // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOKeof token).
                 p--;
                 error("unterminated string constant starting at %s", start.toChars());
                 t.setString();
@@ -1675,8 +1676,12 @@ class Lexer
             endOfLine();
             goto case;
         case '\r':
+            goto case '\'';
         case 0:
         case 0x1A:
+            // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOKeof token).
+            p--;
+            goto case;
         case '\'':
             error("unterminated character constant");
             t.uns64value = '?';
