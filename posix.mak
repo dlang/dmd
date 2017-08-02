@@ -29,7 +29,12 @@ INSTALL_DIR=../install
 DOCDIR=doc
 IMPDIR=import
 
-OPTIONAL_PIC:=$(if $(PIC),-fPIC,)
+# -fPIC is enabled by default and can be disabled with DISABLE_PIC=1
+ifeq (,$(DISABLE_PIC))
+    PIC_FLAG:=-fPIC
+else
+    PIC_FLAG:=
+endif
 OPTIONAL_COVERAGE:=$(if $(TEST_COVERAGE),-cov,)
 
 ifeq (osx,$(OS))
@@ -55,7 +60,7 @@ ifeq (solaris,$(OS))
 endif
 
 # Set DFLAGS
-UDFLAGS:=-conf= -Isrc -Iimport -w -dip1000 $(MODEL_FLAG) $(OPTIONAL_PIC) $(OPTIONAL_COVERAGE)
+UDFLAGS:=-conf= -Isrc -Iimport -w -dip1000 $(MODEL_FLAG) $(PIC_FLAG) $(OPTIONAL_COVERAGE)
 ifeq ($(BUILD),debug)
 	UDFLAGS += -g -debug
 	DFLAGS:=$(UDFLAGS)
@@ -181,7 +186,7 @@ $(ROOT)/threadasm.o : src/core/threadasm.S
 
 ######################## Create a shared library ##############################
 
-$(DRUNTIMESO) $(DRUNTIMESOLIB) dll: DFLAGS+=-version=Shared -fPIC
+$(DRUNTIMESO) $(DRUNTIMESOLIB) dll: DFLAGS+=-version=Shared
 dll: $(DRUNTIMESOLIB)
 
 $(DRUNTIMESO): $(OBJS) $(SRCS)
