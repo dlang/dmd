@@ -1349,7 +1349,7 @@ Expression toExpression(const BCValue value, Type expressionType,
                     imm64.imm64 |= ulong(*(heapPtr._heap.ptr + value.heapAddr.addr + offset + 4)) << 32;
                     elm = toExpression(imm64, type);
                 }
-                else if (memberType.type.anyOf([BCTypeEnum.Slice, BCTypeEnum.Array, BCTypeEnum.Struct]))
+                else if (memberType.type.anyOf([BCTypeEnum.Slice, BCTypeEnum.Array, BCTypeEnum.Struct, BCTypeEnum.String]))
                 {
                     elm = toExpression(imm32(value.heapAddr.addr + offset), type);
                 }
@@ -3823,7 +3823,7 @@ static if (is(BCGen))
             }
 
             auto ty = _struct.memberTypes[i];
-            if (ty.type.basicTypeSize > 4)
+            if (ty.type.basicTypeSize > 4 && !ty.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.String]))
             {
                 bailout( "can only deal with ints and uints atm. not: (" ~ to!string(ty.type) ~ ", " ~ to!string(
                         ty.typeIndex) ~ ")");
