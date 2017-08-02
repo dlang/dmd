@@ -1855,8 +1855,9 @@ $(GNAME TypeSpecialization):
         used for checking for valid types, comparing types for equivalence,
         determining if one type can be implicitly converted to another,
         and deducing the subtypes of a type.
-        The result of an $(I IsExpression) is an int of value 0
-        if the condition is not satisified, 1 if it is.
+        The result of an $(I IsExpression) is a boolean of value `true`
+        if the condition is satisfied. If the condition is not satisfied,
+        the result is a boolean of value `false`.
     )
 
     $(P $(I Type) is the type being tested. It must be syntactically
