@@ -6286,6 +6286,7 @@ struct ASTBase
             SCstring(STCtrusted, TOKat, "@trusted"),
             SCstring(STCsystem, TOKat, "@system"),
             SCstring(STCdisable, TOKat, "@disable"),
+            SCstring(STCfuture, TOKat, "@__future"),
             SCstring(0, TOKreserved)
         ];
         for (int i = 0; table[i].stc; i++)
