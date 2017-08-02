@@ -5769,10 +5769,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 result = e2x;
                 return;
             }
-            if (e2x.checkValue())
+            if (e2x.op != TOKtype) // https://issues.dlang.org/show_bug.cgi?id=17684
             {
-                result = new ErrorExp();
-                return;
+                if (e2x.checkValue())
+                {
+                    result = new ErrorExp();
+                    return;
+                }
             }
             exp.e2 = e2x;
         }
