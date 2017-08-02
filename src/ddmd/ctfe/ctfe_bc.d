@@ -575,13 +575,7 @@ struct BCPointer
 struct BCArray
 {
     BCType elementType;
-
     uint length;
-
-    const(uint) arraySize(const SharedCtfeState!BCGenT* sharedState) const
-    {
-        return sharedState.size(elementType) * length;
-    }
 }
 
 struct BeginStructResult
@@ -4135,7 +4129,6 @@ static if (is(BCGen))
         {
             baseAddrPtr = arr.i32;
         }
-        Comment("setBase");
         Store32(baseAddrPtr, newBase.i32);
     }
 
@@ -4173,6 +4166,17 @@ static if (is(BCGen))
             return BCValue.init;
         }
     }
+
+	void setVoidMember(BCValue structPtr, uint memberIndex, bool _void)
+	{
+		
+	}
+
+	BCValue getVoidMember(BCValue structPtr, uint memberIndex)
+	{
+		
+	}
+
 
     void LoadFromHeapRef(BCValue hrv, uint line = __LINE__)
     {
