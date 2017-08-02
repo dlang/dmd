@@ -1062,7 +1062,21 @@ else version( AsmX86_64 )
                     pop RBX;
                     pop RDI;
                 }
-                return cast(typeof(return)) retVal;
+
+                static if (is(T:U[], U))
+                {
+                    pragma(inline, true)
+                    static typeof(return) toTrusted(size_t[2] retVal) @trusted
+                    {
+                        return *(cast(typeof(return)*) retVal.ptr);
+                    }
+
+                    return toTrusted(retVal);
+                }
+                else
+                {
+                    return cast(typeof(return)) retVal;
+                }
             }else{
                 asm pure nothrow @nogc @trusted
                 {
