@@ -50,6 +50,7 @@
 #include "hdrgen.h"
 
 void linkageToBuffer(OutBuffer *buf, LINK linkage);
+void MODtoBuffer(OutBuffer *buf, MOD mod);
 
 void genhdrfile(Module *m)
 {
@@ -66,7 +67,7 @@ void genhdrfile(Module *m)
 
     // Transfer image to file
     m->hdrfile->setbuffer(buf.data, buf.offset);
-    buf.data = NULL;
+    buf.extractData();
 
     ensurePathToNameExists(Loc(), m->hdrfile->toChars());
     writeFile(m->loc, m->hdrfile);
@@ -78,9 +79,10 @@ public:
     OutBuffer *buf;
     HdrGenState *hgs;
     bool declstring; // set while declaring alias for string,wstring or dstring
+    EnumDeclaration *inEnumDecl;
 
     PrettyPrintVisitor(OutBuffer *buf, HdrGenState *hgs)
-        : buf(buf), hgs(hgs), declstring(false)
+        : buf(buf), hgs(hgs), declstring(false), inEnumDecl(NULL)
     {
     }
 
@@ -99,22 +101,17 @@ public:
 
     void visit(ExpStatement *s)
     {
+        if (s->exp && s->exp->op == TOKdeclaration)
+        {
+            // bypass visit(DeclarationExp)
+            ((DeclarationExp *)s->exp)->declaration->accept(this);
+            return;
+        }
         if (s->exp)
-        {
             s->exp->accept(this);
-            if (s->exp->op != TOKdeclaration)
-            {
-                buf->writeByte(';');
-                if (!hgs->forStmtInit)
-                    buf->writenl();
-            }
-        }
-        else
-        {
-            buf->writeByte(';');
-            if (!hgs->forStmtInit)
-                buf->writenl();
-        }
+        buf->writeByte(';');
+        if (!hgs->forStmtInit)
+            buf->writenl();
     }
 
     void visit(CompileStatement *s)
@@ -197,16 +194,16 @@ public:
         s->condition->accept(this);
         buf->writeByte(')');
         buf->writenl();
-        if (s->body)
-            s->body->accept(this);
+        if (s->_body)
+            s->_body->accept(this);
     }
 
     void visit(DoStatement *s)
     {
         buf->writestring("do");
         buf->writenl();
-        if (s->body)
-            s->body->accept(this);
+        if (s->_body)
+            s->_body->accept(this);
         buf->writestring("while (");
         s->condition->accept(this);
         buf->writestring(");");
@@ -216,10 +213,10 @@ public:
     void visit(ForStatement *s)
     {
         buf->writestring("for (");
-        if (s->init)
+        if (s->_init)
         {
             hgs->forStmtInit++;
-            s->init->accept(this);
+            s->_init->accept(this);
             hgs->forStmtInit--;
         }
         else
@@ -240,7 +237,8 @@ public:
         buf->writeByte('{');
         buf->writenl();
         buf->level++;
-        s->body->accept(this);
+        if (s->_body)
+            s->_body->accept(this);
         buf->level--;
         buf->writeByte('}');
         buf->writenl();
@@ -269,8 +267,8 @@ public:
         buf->writeByte('{');
         buf->writenl();
         buf->level++;
-        if (s->body)
-            s->body->accept(this);
+        if (s->_body)
+            s->_body->accept(this);
         buf->level--;
         buf->writeByte('}');
         buf->writenl();
@@ -295,8 +293,8 @@ public:
         buf->writeByte('{');
         buf->writenl();
         buf->level++;
-        if (s->body)
-            s->body->accept(this);
+        if (s->_body)
+            s->_body->accept(this);
         buf->level--;
         buf->writeByte('}');
         buf->writenl();
@@ -329,11 +327,18 @@ public:
         if (s->elsebody)
         {
             buf->writestring("else");
-            buf->writenl();
-            if (!s->elsebody->isScopeStatement())
+            if (!s->elsebody->isIfStatement())
+            {
+                buf->writenl();
+            }
+            else
+            {
+                buf->writeByte(' ');
+            }
+            if (!s->elsebody->isScopeStatement() && !s->elsebody->isIfStatement())
                 buf->level++;
             s->elsebody->accept(this);
-            if (!s->elsebody->isScopeStatement())
+            if (!s->elsebody->isScopeStatement() && !s->elsebody->isIfStatement())
                 buf->level--;
         }
     }
@@ -374,14 +379,14 @@ public:
             argsToBuffer(s->args);
         }
         buf->writeByte(')');
-        if (s->body)
+        if (s->_body)
         {
             buf->writenl();
             buf->writeByte('{');
             buf->writenl();
             buf->level++;
 
-            s->body->accept(this);
+            s->_body->accept(this);
 
             buf->level--;
             buf->writeByte('}');
@@ -405,21 +410,21 @@ public:
         s->condition->accept(this);
         buf->writeByte(')');
         buf->writenl();
-        if (s->body)
+        if (s->_body)
         {
-            if (!s->body->isScopeStatement())
+            if (!s->_body->isScopeStatement())
             {
                 buf->writeByte('{');
                 buf->writenl();
                 buf->level++;
-                s->body->accept(this);
+                s->_body->accept(this);
                 buf->level--;
                 buf->writeByte('}');
                 buf->writenl();
             }
             else
             {
-                s->body->accept(this);
+                s->_body->accept(this);
             }
         }
     }
@@ -517,10 +522,10 @@ public:
             s->exp->accept(this);
             buf->writeByte(')');
         }
-        if (s->body)
+        if (s->_body)
         {
             buf->writeByte(' ');
-            s->body->accept(this);
+            s->_body->accept(this);
         }
     }
 
@@ -530,16 +535,16 @@ public:
         s->exp->accept(this);
         buf->writestring(")");
         buf->writenl();
-        if (s->body)
-            s->body->accept(this);
+        if (s->_body)
+            s->_body->accept(this);
     }
 
     void visit(TryCatchStatement *s)
     {
         buf->writestring("try");
         buf->writenl();
-        if (s->body)
-            s->body->accept(this);
+        if (s->_body)
+            s->_body->accept(this);
         for (size_t i = 0; i < s->catches->dim; i++)
         {
             Catch *c = (*s->catches)[i];
@@ -554,7 +559,7 @@ public:
         buf->writeByte('{');
         buf->writenl();
         buf->level++;
-        s->body->accept(this);
+        s->_body->accept(this);
         buf->level--;
         buf->writeByte('}');
         buf->writenl();
@@ -617,18 +622,14 @@ public:
         while (t)
         {
             buf->writestring(t->toChars());
-            if (t->next                         &&
-                t->value != TOKmin              &&
-                t->value != TOKcomma            &&
-                t->next->value != TOKcomma      &&
-                t->value != TOKlbracket         &&
-                t->next->value != TOKlbracket   &&
-                t->next->value != TOKrbracket   &&
-                t->value != TOKlparen           &&
-                t->next->value != TOKlparen     &&
-                t->next->value != TOKrparen     &&
-                t->value != TOKdot              &&
-                t->next->value != TOKdot)
+            if (t->next &&
+                t->value != TOKmin      &&
+                t->value != TOKcomma    && t->next->value != TOKcomma    &&
+                t->value != TOKlbracket && t->next->value != TOKlbracket &&
+                                           t->next->value != TOKrbracket &&
+                t->value != TOKlparen   && t->next->value != TOKlparen   &&
+                                           t->next->value != TOKrparen   &&
+                t->value != TOKdot      && t->next->value != TOKdot)
             {
                 buf->writeByte(' ');
             }
@@ -930,9 +931,10 @@ public:
             buf->writeByte('(');
             for (size_t i = 0; i < td->origParameters->dim; i++)
             {
+                TemplateParameter *p = (*td->origParameters)[i];
                 if (i)
                     buf->writestring(", ");
-                (*td->origParameters)[i]->accept(this);
+                p->accept(this);
             }
             buf->writeByte(')');
         }
@@ -1013,7 +1015,7 @@ public:
     {
         // Bugzilla 13776: Don't use ti->toAlias() to avoid forward reference error
         // while printing messages.
-        TemplateInstance *ti = t->sym->parent->isTemplateInstance();
+        TemplateInstance *ti = t->sym->parent ? t->sym->parent->isTemplateInstance() : NULL;
         if (ti && ti->aliasdecl == t->sym)
             buf->writestring(hgs->fullQual ? ti->toPrettyChars() : ti->toChars());
         else
@@ -1101,10 +1103,10 @@ public:
             typeToBuffer(em->type, em->ident);
         else
             buf->writestring(em->ident->toChars());
-        if (em->value)
+        if (em->value())
         {
             buf->writestring(" = ");
-            em->value->accept(this);
+            em->value()->accept(this);
         }
     }
 
@@ -1184,7 +1186,10 @@ public:
             buf->writenl();
             buf->level++;
             for (size_t i = 0; i < d->decl->dim; i++)
-                (*d->decl)[i]->accept(this);
+            {
+                Dsymbol *de = (*d->decl)[i];
+                de->accept(this);
+            }
             buf->level--;
             buf->writeByte('}');
         }
@@ -1228,6 +1233,24 @@ public:
         visit((AttribDeclaration *)d);
     }
 
+    void visit(CPPMangleDeclaration *d)
+    {
+        const char *p;
+
+        switch (d->cppmangle)
+        {
+            case CPPMANGLEclass:    p = "class";            break;
+            case CPPMANGLEstruct:   p = "struct";           break;
+            default:
+                assert(0);
+                break;
+        }
+        buf->writestring("extern (C++, ");
+        buf->writestring(p);
+        buf->writestring(") ");
+        visit((AttribDeclaration *)d);
+    }
+
     void visit(ProtDeclaration *d)
     {
         protectionToBuffer(buf, d->protection);
@@ -1237,10 +1260,10 @@ public:
 
     void visit(AlignDeclaration *d)
     {
-        if (d->salign == STRUCTALIGN_DEFAULT)
-            buf->printf("align");
+        if (!d->ealign)
+            buf->printf("align ");
         else
-            buf->printf("align (%d)", d->salign);
+            buf->printf("align (%s)", d->ealign->toChars());
         visit((AttribDeclaration *)d);
     }
 
@@ -1254,7 +1277,10 @@ public:
         if (d->decl)
         {
             for (size_t i = 0; i < d->decl->dim; i++)
-                (*d->decl)[i]->accept(this);
+            {
+                Dsymbol *de = (*d->decl)[i];
+                de->accept(this);
+            }
         }
         buf->level--;
         buf->writestring("}");
@@ -1285,7 +1311,10 @@ public:
             if (d->decl)
             {
                 for (size_t i = 0; i < d->decl->dim; i++)
-                    (*d->decl)[i]->accept(this);
+                {
+                    Dsymbol *de = (*d->decl)[i];
+                    de->accept(this);
+                }
             }
             buf->level--;
             buf->writeByte('}');
@@ -1298,7 +1327,10 @@ public:
                 buf->writenl();
                 buf->level++;
                 for (size_t i = 0; i < d->elsedecl->dim; i++)
-                    (*d->elsedecl)[i]->accept(this);
+                {
+                    Dsymbol *de = (*d->elsedecl)[i];
+                    de->accept(this);
+                }
                 buf->level--;
                 buf->writeByte('}');
             }
@@ -1330,7 +1362,7 @@ public:
         if (onemember && onemember->isFuncDeclaration())
             buf->writestring("foo ");
     #endif
-        if (hgs->hdrgen && visitEponymousMember(d))
+        if ((hgs->hdrgen || hgs->fullDump) && visitEponymousMember(d))
             return;
 
         if (hgs->ddoc)
@@ -1344,7 +1376,7 @@ public:
         buf->writeByte(')');
         visitTemplateConstraint(d->constraint);
 
-        if (hgs->hdrgen)
+        if (hgs->hdrgen || hgs->fullDump)
         {
             hgs->tpltMember++;
             buf->writenl();
@@ -1352,7 +1384,10 @@ public:
             buf->writenl();
             buf->level++;
             for (size_t i = 0; i < d->members->dim; i++)
-                (*d->members)[i]->accept(this);
+            {
+                Dsymbol *s = (*d->members)[i];
+                s->accept(this);
+            }
             buf->level--;
             buf->writeByte('}');
             buf->writenl();
@@ -1401,7 +1436,10 @@ public:
                 buf->writenl();
                 buf->level++;
                 for (size_t i = 0; i < ad->members->dim; i++)
-                    (*ad->members)[i]->accept(this);
+                {
+                    Dsymbol *s = (*ad->members)[i];
+                    s->accept(this);
+                }
                 buf->level--;
                 buf->writeByte('}');
             }
@@ -1427,14 +1465,14 @@ public:
             visitTemplateParameters(hgs->ddoc ? d->origParameters : d->parameters);
             buf->writeByte(')');
 
-            if (vd->init)
+            if (vd->_init)
             {
                 buf->writestring(" = ");
-                ExpInitializer *ie = vd->init->isExpInitializer();
+                ExpInitializer *ie = vd->_init->isExpInitializer();
                 if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
                     ((AssignExp *)ie->exp)->e2->accept(this);
                 else
-                    vd->init->accept(this);
+                    vd->_init->accept(this);
             }
             buf->writeByte(';');
             buf->writenl();
@@ -1449,9 +1487,10 @@ public:
             return;
         for (size_t i = 0; i < parameters->dim; i++)
         {
+            TemplateParameter *p = (*parameters)[i];
             if (i)
                 buf->writestring(", ");
-            (*parameters)[i]->accept(this);
+            p->accept(this);
         }
     }
     void visitTemplateConstraint(Expression *constraint)
@@ -1467,6 +1506,17 @@ public:
     {
         buf->writestring(ti->name->toChars());
         tiargsToBuffer(ti);
+
+        if (hgs->fullDump)
+        {
+            buf->writenl();
+            if (ti->aliasdecl)
+            {
+                // the ti.aliasDecl is the instantiated body
+                // if we have it, print it.
+                ti->aliasdecl->accept(this);
+            }
+        }
     }
 
     void visit(TemplateMixin *tm)
@@ -1476,7 +1526,7 @@ public:
         typeToBuffer(tm->tqual, NULL);
         tiargsToBuffer(tm);
 
-        if (tm->ident && memcmp(tm->ident->string, "__mixin", 7) != 0)
+        if (tm->ident && memcmp(tm->ident->toChars(), "__mixin", 7) != 0)
         {
             buf->writeByte(' ');
             buf->writestring(tm->ident->toChars());
@@ -1532,9 +1582,10 @@ public:
         ti->nest++;
         for (size_t i = 0; i < ti->tiargs->dim; i++)
         {
+            RootObject *arg = (*ti->tiargs)[i];
             if (i)
                 buf->writestring(", ");
-            objectToBuffer((*ti->tiargs)[i]);
+            objectToBuffer(arg);
         }
         ti->nest--;
         buf->writeByte(')');
@@ -1574,9 +1625,10 @@ public:
             Objects *args = &v->objects;
             for (size_t i = 0; i < args->dim; i++)
             {
+                RootObject *arg = (*args)[i];
                 if (i)
                     buf->writestring(", ");
-                objectToBuffer((*args)[i]);
+                objectToBuffer(arg);
             }
         }
         else if (!oarg)
@@ -1594,6 +1646,8 @@ public:
 
     void visit(EnumDeclaration *d)
     {
+        EnumDeclaration *oldInEnumDecl = inEnumDecl;
+        inEnumDecl = d;
         buf->writestring("enum ");
         if (d->ident)
         {
@@ -1609,6 +1663,7 @@ public:
         {
             buf->writeByte(';');
             buf->writenl();
+            inEnumDecl = oldInEnumDecl;
             return;
         }
         buf->writenl();
@@ -1627,19 +1682,23 @@ public:
         buf->level--;
         buf->writeByte('}');
         buf->writenl();
+        inEnumDecl = oldInEnumDecl;
     }
 
     void visit(Nspace *d)
     {
         buf->writestring("extern (C++, ");
-        buf->writestring(d->ident->string);
+        buf->writestring(d->ident->toChars());
         buf->writeByte(')');
         buf->writenl();
         buf->writeByte('{');
         buf->writenl();
         buf->level++;
         for (size_t i = 0; i < d->members->dim; i++)
-            (*d->members)[i]->accept(this);
+        {
+            Dsymbol *s = (*d->members)[i];
+            s->accept(this);
+        }
         buf->level--;
         buf->writeByte('}');
         buf->writenl();
@@ -1661,7 +1720,10 @@ public:
         buf->writenl();
         buf->level++;
         for (size_t i = 0; i < d->members->dim; i++)
-            (*d->members)[i]->accept(this);
+        {
+            Dsymbol *s = (*d->members)[i];
+            s->accept(this);
+        }
         buf->level--;
         buf->writeByte('}');
         buf->writenl();
@@ -1683,7 +1745,10 @@ public:
             buf->writenl();
             buf->level++;
             for (size_t i = 0; i < d->members->dim; i++)
-                (*d->members)[i]->accept(this);
+            {
+                Dsymbol *s = (*d->members)[i];
+                s->accept(this);
+            }
             buf->level--;
             buf->writeByte('}');
         }
@@ -1760,14 +1825,14 @@ public:
             else
                 buf->writestring(v->ident->toChars());
         }
-        if (v->init)
+        if (v->_init)
         {
             buf->writestring(" = ");
-            ExpInitializer *ie = v->init->isExpInitializer();
+            ExpInitializer *ie = v->_init->isExpInitializer();
             if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
                 ((AssignExp *)ie->exp)->e2->accept(this);
             else
-                v->init->accept(this);
+                v->_init->accept(this);
         }
     }
 
@@ -1777,16 +1842,18 @@ public:
 
         if (stcToBuffer(buf, f->storage_class))
             buf->writeByte(' ');
-        typeToBuffer(f->type, f->ident);
-        if (hgs->hdrgen == 1)
+        TypeFunction *tf = (TypeFunction *)f->type;
+        typeToBuffer(tf, f->ident);
+        if (hgs->hdrgen)
         {
-            if (f->storage_class & STCauto)
+            // if the return type is missing (e.g. ref functions or auto)
+            if (!tf->next || f->storage_class & STCauto)
             {
                 hgs->autoMember++;
                 bodyToBuffer(f);
                 hgs->autoMember--;
             }
-            else if (hgs->tpltMember == 0 && !global.params.useInline)
+            else if (hgs->tpltMember == 0 && global.params.hdrStripPlainFunctions)
             {
                 buf->writeByte(';');
                 buf->writenl();
@@ -1800,7 +1867,7 @@ public:
 
     void bodyToBuffer(FuncDeclaration *f)
     {
-        if (!f->fbody || (hgs->hdrgen && !global.params.useInline && !hgs->autoMember && !hgs->tpltMember))
+        if (!f->fbody || (hgs->hdrgen && global.params.hdrStripPlainFunctions && !hgs->autoMember && !hgs->tpltMember))
         {
             buf->writeByte(';');
             buf->writenl();
@@ -1898,12 +1965,23 @@ public:
 
     void visit(PostBlitDeclaration *d)
     {
+        if (stcToBuffer(buf, d->storage_class))
+             buf->writeByte(' ');
         buf->writestring("this(this)");
         bodyToBuffer(d);
     }
 
     void visit(DtorDeclaration *d)
     {
+        if (d->storage_class & STCtrusted)
+            buf->writestring("@trusted ");
+        if (d->storage_class & STCsafe)
+            buf->writestring("@safe ");
+        if (d->storage_class & STCnogc)
+            buf->writestring("@nogc ");
+        if (d->storage_class & STCdisable)
+            buf->writestring("@disable ");
+
         buf->writestring("~this()");
         bodyToBuffer(d);
     }
@@ -2033,17 +2111,20 @@ public:
     /**************************************************
      * Write out argument list to buf.
      */
-    void argsToBuffer(Expressions *expressions)
+    void argsToBuffer(Expressions *expressions, Expression *basis = NULL)
     {
         if (!expressions || !expressions->dim)
             return;
 
         for (size_t i = 0; i < expressions->dim; i++)
         {
+            Expression *el = (*expressions)[i];
             if (i)
                 buf->writestring(", ");
-            if (Expression *e = (*expressions)[i])
-                expToBuffer(e, PREC_assign);
+            if (!el)
+                el = basis;
+            if (el)
+                expToBuffer(el, PREC_assign);
         }
     }
 
@@ -2120,6 +2201,22 @@ public:
                 case Tenum:
                 {
                     TypeEnum *te = (TypeEnum *)t;
+                    if (hgs->fullDump)
+                    {
+                        EnumDeclaration *sym = te->sym;
+                        if (inEnumDecl != sym)
+                        {
+                            for (size_t i = 0; i < sym->members->dim; i++)
+                            {
+                                EnumMember *em = (EnumMember *)(*sym->members)[i];
+                                if (em->value()->toInteger() == v)
+                                {
+                                    buf->printf("%s.%s", sym->toChars(), em->ident->toChars());
+                                    return;
+                                }
+                            }
+                        }
+                    }
                     buf->printf("cast(%s)", te->sym->toChars());
                     t = te->sym->memtype;
                     goto L1;
@@ -2229,14 +2326,14 @@ public:
         Plus one for rounding. */
         const size_t BUFFER_LEN = sizeof(value) * 3 + 8 + 1 + 1;
         char buffer[BUFFER_LEN];
-        ld_sprint(buffer, 'g', value);
+        CTFloat::sprint(buffer, 'g', value);
         assert(strlen(buffer) < BUFFER_LEN);
 
         if (hgs->hdrgen)
         {
-            real_t r = Port::strtold(buffer, NULL);
+            real_t r = CTFloat::parse(buffer);
             if (r != value)                     // if exact duplication
-                ld_sprint(buffer, 'a', value);
+                CTFloat::sprint(buffer, 'a', value);
         }
         buf->writestring(buffer);
 
@@ -2348,7 +2445,7 @@ public:
     void visit(ArrayLiteralExp *e)
     {
         buf->writeByte('[');
-        argsToBuffer(e->elements);
+        argsToBuffer(e->elements, e->basis);
         buf->writeByte(']');
     }
 
@@ -2518,7 +2615,23 @@ public:
 
     void visit(DeclarationExp *e)
     {
-        e->declaration->accept(this);
+        /* Normal dmd execution won't reach here - regular variable declarations
+         * are handled in visit(ExpStatement), so here would be used only when
+         * we'll directly call Expression::toChars() for debugging.
+         */
+        if (VarDeclaration *v = e->declaration->isVarDeclaration())
+        {
+            // For debugging use:
+            // - Avoid printing newline.
+            // - Intentionally use the format (Type var;)
+            //   which isn't correct as regular D code.
+            buf->writeByte('(');
+            visitVarDecl(v, false);
+            buf->writeByte(';');
+            buf->writeByte(')');
+        }
+        else
+            e->declaration->accept(this);
     }
 
     void visit(TypeidExp *e)
@@ -2536,8 +2649,9 @@ public:
         {
             for (size_t i = 0; i < e->args->dim; i++)
             {
+                RootObject *arg = (*e->args)[i];
                 buf->writestring(", ");
-                objectToBuffer((*e->args)[i]);
+                objectToBuffer(arg);
             }
         }
         buf->writeByte(')');
@@ -2594,7 +2708,7 @@ public:
         buf->writeByte(')');
     }
 
-    void visit(FileExp *e)
+    void visit(ImportExp *e)
     {
         buf->writestring("import(");
         expToBuffer(e->e1, PREC_assign);
@@ -2938,8 +3052,8 @@ public:
                 buf->writestring(p->ident->toChars());
         }
         else if (p->type->ty == Tident &&
-                 ((TypeIdentifier *)p->type)->ident->len > 3 &&
-                 strncmp(((TypeIdentifier *)p->type)->ident->string, "__T", 3) == 0)
+                 strlen(((TypeIdentifier *)p->type)->ident->toChars()) > 3 &&
+                 strncmp(((TypeIdentifier *)p->type)->ident->toChars(), "__T", 3) == 0)
         {
             // print parameter name, instead of undetermined type parameter
             buf->writestring(p->ident->toChars());
@@ -3048,15 +3162,17 @@ void toCBuffer(Initializer *iz, OutBuffer *buf, HdrGenState *hgs)
 bool stcToBuffer(OutBuffer *buf, StorageClass stc)
 {
     bool result = false;
+    if ((stc & (STCreturn | STCscope)) == (STCreturn | STCscope))
+        stc &= ~STCscope;
     while (stc)
     {
+        const char *p = stcToChars(stc);
+        if (!p)
+            break;
         if (!result)
             result = true;
         else
             buf->writeByte(' ');
-        const char *p = stcToChars(stc);
-        if (!p)
-            break;
         buf->writestring(p);
     }
     return result;
@@ -3173,6 +3289,7 @@ const char *linkageToChars(LINK linkage)
         case LINKwindows:   return "Windows";
         case LINKpascal:    return "Pascal";
         case LINKobjc:      return "Objective-C";
+        case LINKsystem:    return "System";
         default:            assert(0);
     }
     return NULL;    // never reached
@@ -3243,9 +3360,10 @@ void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments)
     PrettyPrintVisitor v(buf, &hgs);
     for (size_t i = 0; i < arguments->dim; i++)
     {
+        Expression *arg = (*arguments)[i];
         if (i)
             buf->writestring(", ");
-        v.typeToBuffer((*arguments)[i]->type, NULL);
+        v.typeToBuffer(arg->type, NULL);
     }
 }
 
@@ -3264,9 +3382,10 @@ void arrayObjectsToBuffer(OutBuffer *buf, Objects *objects)
     PrettyPrintVisitor v(buf, &hgs);
     for (size_t i = 0; i < objects->dim; i++)
     {
+        RootObject *o = (*objects)[i];
         if (i)
             buf->writestring(", ");
-        v.objectToBuffer((*objects)[i]);
+        v.objectToBuffer(o);
     }
 }
 

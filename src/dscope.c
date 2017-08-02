@@ -52,7 +52,7 @@ Scope::Scope()
     // Create root scope
 
     //printf("Scope::Scope() %p\n", this);
-    this->module = NULL;
+    this->_module = NULL;
     this->scopesym = NULL;
     this->sds = NULL;
     this->enclosing = NULL;
@@ -66,15 +66,16 @@ Scope::Scope()
     this->scontinue = NULL;
     this->fes = NULL;
     this->callsc = NULL;
-    this->structalign = STRUCTALIGN_DEFAULT;
+    this->aligndecl = NULL;
     this->func = NULL;
     this->slabel = NULL;
     this->linkage = LINKd;
+    this->cppmangle = CPPMANGLEdefault;
     this->inlining = PINLINEdefault;
     this->protection = Prot(PROTpublic);
     this->explicitProtection = 0;
     this->stc = 0;
-    this->depmsg = NULL;
+    this->depdecl = NULL;
     this->inunion = 0;
     this->nofree = 0;
     this->noctor = 0;
@@ -102,34 +103,34 @@ Scope *Scope::copy()
     return sc;
 }
 
-Scope *Scope::createGlobal(Module *module)
+Scope *Scope::createGlobal(Module *_module)
 {
     Scope *sc = Scope::alloc();
     memset(sc, 0, sizeof(Scope));
 
-    sc->structalign = STRUCTALIGN_DEFAULT;
+    sc->aligndecl = NULL;
     sc->linkage = LINKd;
     sc->inlining = PINLINEdefault;
     sc->protection = Prot(PROTpublic);
 
-    sc->module = module;
+    sc->_module = _module;
 
     sc->tinst = NULL;
-    sc->minst = module;
+    sc->minst = _module;
 
     sc->scopesym = new ScopeDsymbol();
     sc->scopesym->symtab = new DsymbolTable();
 
     // Add top level package as member of this global scope
-    Dsymbol *m = module;
+    Dsymbol *m = _module;
     while (m->parent)
         m = m->parent;
     m->addMember(NULL, sc->scopesym);
     m->parent = NULL;                   // got changed by addMember()
 
     // Create the module scope underneath the global scope
-    sc = sc->push(module);
-    sc->parent = module;
+    sc = sc->push(_module);
+    sc->parent = _module;
     return sc;
 }
 
@@ -154,7 +155,8 @@ Scope *Scope::push()
     s->slabel = NULL;
     s->nofree = 0;
     s->fieldinit = saveFieldInit();
-    s->flags = (flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe | SCOPEcompile | SCOPEconstraint));
+    s->flags = (flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe | SCOPEcompile | SCOPEconstraint |
+                         SCOPEnoaccesscheck | SCOPEignoresymbolvisibility));
     s->lastdc = NULL;
 
     assert(this != s);
@@ -365,7 +367,7 @@ void Scope::mergeFieldInit(Loc loc, unsigned *fies)
     {
         FuncDeclaration *f = func;
         if (fes) f = fes->func;
-        AggregateDeclaration *ad = f->isAggregateMember2();
+        AggregateDeclaration *ad = f->isMember2();
         assert(ad);
 
         for (size_t i = 0; i < ad->fields.dim; i++)
@@ -385,12 +387,74 @@ void Scope::mergeFieldInit(Loc loc, unsigned *fies)
 Module *Scope::instantiatingModule()
 {
     // TODO: in speculative context, returning 'module' is correct?
-    return minst ? minst : module;
+    return minst ? minst : _module;
 }
 
+static Dsymbol *searchScopes(Scope *scope, Loc loc, Identifier *ident, Dsymbol **pscopesym, int flags)
+{
+    for (Scope *sc = scope; sc; sc = sc->enclosing)
+    {
+        assert(sc != sc->enclosing);
+        if (!sc->scopesym)
+            continue;
+        //printf("\tlooking in scopesym '%s', kind = '%s', flags = x%x\n", sc->scopesym->toChars(), sc->scopesym->kind(), flags);
+
+        if (sc->scopesym->isModule())
+            flags |= SearchUnqualifiedModule;        // tell Module.search() that SearchLocalsOnly is to be obeyed
+
+        if (Dsymbol *s = sc->scopesym->search(loc, ident, flags))
+        {
+            if (!(flags & (SearchImportsOnly | IgnoreErrors)) &&
+                ident == Id::length && sc->scopesym->isArrayScopeSymbol() &&
+                sc->enclosing && sc->enclosing->search(loc, ident, NULL, flags))
+            {
+                warning(s->loc, "array 'length' hides other 'length' name in outer scope");
+            }
+#ifdef LOGSEARCH
+            printf("\tfound %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
+#endif
+            if (pscopesym)
+                *pscopesym = sc->scopesym;
+            return s;
+        }
+        // Stop when we hit a module, but keep going if that is not just under the global scope
+        if (sc->scopesym->isModule() && !(sc->enclosing && !sc->enclosing->enclosing))
+            break;
+    }
+    return NULL;
+}
+
+/************************************
+ * Perform unqualified name lookup by following the chain of scopes up
+ * until found.
+ *
+ * Params:
+ *  loc = location to use for error messages
+ *  ident = name to look up
+ *  pscopesym = if supplied and name is found, set to scope that ident was found in
+ *  flags = modify search based on flags
+ *
+ * Returns:
+ *  symbol if found, null if not
+ */
 Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flags)
 {
-    //printf("Scope::search(%p, '%s')\n", this, ident->toChars());
+#ifdef LOGSEARCH
+    printf("Scope::search(%p, '%s' flags=x%x)\n", this, ident->toChars(), flags);
+    // Print scope chain
+    for (Scope *sc = this; sc; sc = sc->enclosing)
+    {
+        if (!sc->scopesym)
+            continue;
+        printf("\tscope %s\n", sc->scopesym->toChars());
+    }
+#endif
+
+    // This function is called only for unqualified lookup
+    assert(!(flags & (SearchLocalsOnly | SearchImportsOnly)));
+
+    /* If ident is "start at module scope", only look at module scope
+     */
     if (ident == Id::empty)
     {
         // Look for module scope
@@ -402,7 +466,9 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flag
 
             if (Dsymbol *s = sc->scopesym->isModule())
             {
-                //printf("\tfound %s.%s\n", s->parent ? s->parent->toChars() : "", s->toChars());
+#ifdef LOGSEARCH
+                printf("\tfound %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
+#endif
                 if (pscopesym)
                     *pscopesym = sc->scopesym;
                 return s;
@@ -411,31 +477,68 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flag
         return NULL;
     }
 
-    for (Scope *sc = this; sc; sc = sc->enclosing)
+    if (this->flags & SCOPEignoresymbolvisibility)
+        flags |= IgnoreSymbolVisibility;
+
+    Dsymbol *sold = NULL;
+    if (global.params.bug10378 || global.params.check10378)
     {
-        assert(sc != sc->enclosing);
-        if (!sc->scopesym)
-            continue;
+        sold = searchScopes(this, loc, ident, pscopesym, flags | IgnoreSymbolVisibility);
+        if (!global.params.check10378)
+            return sold;
 
-        //printf("\tlooking in scopesym '%s', kind = '%s'\n", sc->scopesym->toChars(), sc->scopesym->kind());
-        if (Dsymbol *s = sc->scopesym->search(loc, ident, flags))
+        if (ident == Id::dollar) // Bugzilla 15825
+            return sold;
+
+        // Search both ways
+    }
+
+    // First look in local scopes
+    Dsymbol *s = searchScopes(this, loc, ident, pscopesym, flags | SearchLocalsOnly);
+#ifdef LOGSEARCH
+    if (s)
+        printf("\t-Scope::search() found local %s.%s, kind = '%s'\n",
+               s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
+#endif
+    if (!s)
+    {
+        // Second look in imported modules
+        s = searchScopes(this, loc, ident, pscopesym, flags | SearchImportsOnly);
+#ifdef LOGSEARCH
+        if (s)
+            printf("\t-Scope::search() found import %s.%s, kind = '%s'\n",
+                   s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
+#endif
+
+        /** Still find private symbols, so that symbols that weren't access
+         * checked by the compiler remain usable.  Once the deprecation is over,
+         * this should be moved to search_correct instead.
+         */
+        if (!s && !(flags & IgnoreSymbolVisibility))
         {
-            if (ident == Id::length &&
-                sc->scopesym->isArrayScopeSymbol() &&
-                sc->enclosing &&
-                sc->enclosing->search(loc, ident, NULL, flags))
-            {
-                warning(s->loc, "array 'length' hides other 'length' name in outer scope");
-            }
+            s = searchScopes(this, loc, ident, pscopesym, flags | SearchLocalsOnly | IgnoreSymbolVisibility);
+            if (!s)
+                s = searchScopes(this, loc, ident, pscopesym, flags | SearchImportsOnly | IgnoreSymbolVisibility);
 
-            //printf("\tfound %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
-            if (pscopesym)
-                *pscopesym = sc->scopesym;
-            return s;
+            if (s && !(flags & IgnoreErrors))
+                ::deprecation(loc, "%s is not visible from module %s", s->toPrettyChars(), _module->toChars());
+#ifdef LOGSEARCH
+            if (s)
+                printf("\t-Scope::search() found imported private symbol%s.%s, kind = '%s'\n",
+                       s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
+#endif
         }
     }
 
-    return NULL;
+    if (global.params.check10378)
+    {
+        Dsymbol *snew = s;
+        if (sold != snew)
+            deprecation10378(loc, sold, snew);
+        if (global.params.bug10378)
+            s = sold;
+    }
+    return s;
 }
 
 Dsymbol *Scope::insert(Dsymbol *s)
@@ -534,6 +637,14 @@ void Scope::setNoFree()
     }
 }
 
+structalign_t Scope::alignment()
+{
+    if (aligndecl)
+        return aligndecl->getAlignment();
+    else
+        return STRUCTALIGN_DEFAULT;
+}
+
 /************************************************
  * Given the failed search attempt, try to find
  * one with a close spelling.
@@ -570,6 +681,40 @@ void *scope_search_fp(void *arg, const char *seed, int* cost)
         }
     }
     return (void*)s;
+}
+
+void Scope::deprecation10378(Loc loc, Dsymbol *sold, Dsymbol *snew)
+{
+    // Bugzilla 15857
+    //
+    // The overloadset found via the new lookup rules is either
+    // equal or a subset of the overloadset found via the old
+    // lookup rules, so it suffices to compare the dimension to
+    // check for equality.
+    OverloadSet *osold = NULL;
+    OverloadSet *osnew = NULL;
+    if (sold && (osold = sold->isOverloadSet()) != NULL &&
+        snew && (osnew = snew->isOverloadSet()) != NULL &&
+        osold->a.dim == osnew->a.dim)
+        return;
+
+    OutBuffer buf;
+    buf.writestring("local import search method found ");
+    if (osold)
+        buf.printf("%s %s (%d overloads)", sold->kind(), sold->toPrettyChars(), (int)osold->a.dim);
+    else if (sold)
+        buf.printf("%s %s", sold->kind(), sold->toPrettyChars());
+    else
+        buf.writestring("nothing");
+    buf.writestring(" instead of ");
+    if (osnew)
+        buf.printf("%s %s (%d overloads)", snew->kind(), snew->toPrettyChars(), (int)osnew->a.dim);
+    else if (snew)
+        buf.printf("%s %s", snew->kind(), snew->toPrettyChars());
+    else
+        buf.writestring("nothing");
+
+    deprecation(loc, buf.peekString());
 }
 
 Dsymbol *Scope::search_correct(Identifier *ident)

@@ -152,25 +152,26 @@ endif
 
 DMD_OBJS = \
 	access.o attrib.o \
-	cast.o \
-	class.o \
+	dcast.o \
+	dclass.o \
 	constfold.o cond.o \
 	declaration.o dsymbol.o \
-	enum.o expression.o func.o nogc.o \
+	denum.o expression.o func.o nogc.o \
 	id.o \
-	identifier.o impcnvtab.o import.o inifile.o init.o inline.o \
-	lexer.o link.o mangle.o mars.o module.o mtype.o \
+	identifier.o impcnvtab.o dimport.o inifile.o init.o inline.o \
+	lexer.o link.o dmangle.o mars.o dmodule.o mtype.o \
 	cppmangle.o opover.o optimize.o \
-	parse.o scope.o statement.o \
-	struct.o template.o \
-	version.o utf.o staticassert.o \
-	entity.o doc.o macro.o \
-	hdrgen.o delegatize.o interpret.o traits.o \
+	parse.o dscope.o statement.o \
+	dstruct.o dtemplate.o \
+	dversion.o utf.o staticassert.o \
+	entity.o doc.o dmacro.o \
+	hdrgen.o delegatize.o dinterpret.o traits.o \
 	builtin.o ctfeexpr.o clone.o aliasthis.o \
 	arrayop.o json.o unittests.o \
 	imphint.o argtypes.o apply.o sapply.o sideeffect.o \
 	intrange.o canthrow.o target.o nspace.o errors.o \
-	escape.o tokens.o globals.o
+	escape.o tokens.o globals.o \
+	utils.o statementsem.o
 
 ifeq ($(D_OBJC),1)
 	DMD_OBJS += objc.o
@@ -180,9 +181,9 @@ endif
 
 ROOT_OBJS = \
 	rmem.o port.o man.o stringtable.o response.o \
-	aav.o speller.o outbuffer.o object.o \
+	aav.o speller.o outbuffer.o rootobject.o \
 	filename.o file.o async.o checkedint.o \
-	newdelete.o
+	newdelete.o ctfloat.o
 
 GLUE_OBJS = \
 	glue.o msc.o s2ir.o todt.o e2ir.o tocsym.o \
@@ -212,7 +213,7 @@ BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o var.o el.o \
 	cgcod.o cod5.o outbuf.o \
 	bcomplex.o aa.o ti_achar.o \
 	ti_pvoid.o pdata.o cv8.o backconfig.o \
-	divcoeff.o dwarf.o \
+	divcoeff.o dwarf.o dwarfeh.o \
 	ph2.o util2.o eh.o tk.o strtold.o \
 	$(TARGET_OBJS)
 
@@ -223,27 +224,28 @@ else
 endif
 
 SRC = win32.mak posix.mak osmodel.mak \
-	mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c \
+	mars.c denum.c dstruct.c dsymbol.c dimport.c idgen.c impcnvgen.c \
 	identifier.c mtype.c expression.c optimize.c template.h \
-	template.c lexer.c declaration.c cast.c cond.h cond.c link.c \
-	aggregate.h parse.c statement.c constfold.c version.h version.c \
-	inifile.c module.c scope.c init.h init.c attrib.h \
-	attrib.c opover.c class.c mangle.c func.c nogc.c inline.c \
+	dtemplate.c lexer.c declaration.c dcast.c cond.h cond.c link.c \
+	aggregate.h parse.c statement.c constfold.c version.h dversion.c \
+	inifile.c dmodule.c dscope.c init.h init.c attrib.h \
+	attrib.c opover.c dclass.c dmangle.c func.c nogc.c inline.c \
 	access.c complex_t.h \
 	identifier.h parse.h \
 	scope.h enum.h import.h mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h statement.h \
 	utf.h utf.c staticassert.h staticassert.c \
 	entity.c \
-	doc.h doc.c macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
-	delegatize.c interpret.c traits.c cppmangle.c \
+	doc.h doc.c macro.h dmacro.c hdrgen.h hdrgen.c arraytypes.h \
+	delegatize.c dinterpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
 	argtypes.c apply.c sapply.c sideeffect.c \
 	intrange.h intrange.c canthrow.c target.c target.h \
 	scanmscoff.c scanomf.c ctfe.h ctfeexpr.c \
 	ctfe.h ctfeexpr.c visitor.h nspace.h nspace.c errors.h errors.c \
-	escape.c tokens.h tokens.c globals.h globals.c objc.c objc.h objc_stubs.c
+	escape.c tokens.h tokens.c globals.h globals.c objc.c objc.h objc_stubs.c \
+	utils.c statementsem.c
 
 ROOT_SRC = $(ROOT)/root.h \
 	$(ROOT)/array.h \
@@ -256,9 +258,11 @@ ROOT_SRC = $(ROOT)/root.h \
 	$(ROOT)/longdouble.h $(ROOT)/longdouble.c \
 	$(ROOT)/speller.h $(ROOT)/speller.c \
 	$(ROOT)/outbuffer.h $(ROOT)/outbuffer.c \
-	$(ROOT)/object.h $(ROOT)/object.c \
+	$(ROOT)/object.h $(ROOT)/rootobject.c \
 	$(ROOT)/filename.h $(ROOT)/filename.c \
-	$(ROOT)/file.h $(ROOT)/file.c
+	$(ROOT)/file.h $(ROOT)/file.c \
+	$(ROOT)/ctfloat.h $(ROOT)/ctfloat.c \
+	$(ROOT)/hash.h
 
 GLUE_SRC = glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \
@@ -279,14 +283,14 @@ BACK_SRC = \
 	$C/gother.c $C/glocal.c $C/gloop.c $C/newman.c \
 	$C/nteh.c $C/os.c $C/out.c $C/outbuf.c $C/ptrntab.c $C/rtlsym.c \
 	$C/type.c $C/melf.h $C/mach.h $C/mscoff.h $C/bcomplex.h \
-	$C/cdeflnx.h $C/outbuf.h $C/token.h $C/tassert.h \
+	$C/outbuf.h $C/token.h $C/tassert.h \
 	$C/elfobj.c $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
 	$C/ti_pvoid.c $C/platform_stub.c $C/code_x86.h $C/code_stub.h \
 	$C/machobj.c $C/mscoffobj.c \
 	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c $C/backconfig.c $C/divcoeff.c \
 	$C/md5.c $C/md5.h \
-	$C/ph2.c $C/util2.c \
+	$C/ph2.c $C/util2.c $C/dwarfeh.c \
 	$(TARGET_CH)
 
 TK_SRC = \
@@ -462,8 +466,8 @@ gcov:
 	gcov attrib.c
 	gcov builtin.c
 	gcov canthrow.c
-	gcov cast.c
-	gcov class.c
+	gcov dcast.c
+	gcov dclass.c
 	gcov clone.c
 	gcov cond.c
 	gcov constfold.c
@@ -474,7 +478,7 @@ gcov:
 	gcov e2ir.c
 	gcov eh.c
 	gcov entity.c
-	gcov enum.c
+	gcov denum.c
 	gcov expression.c
 	gcov func.c
 	gcov nogc.c
@@ -482,11 +486,11 @@ gcov:
 	gcov iasm.c
 	gcov identifier.c
 	gcov imphint.c
-	gcov import.c
+	gcov dimport.c
 	gcov inifile.c
 	gcov init.c
 	gcov inline.c
-	gcov interpret.c
+	gcov dinterpret.c
 	gcov ctfeexpr.c
 	gcov irstate.c
 	gcov json.c
@@ -497,10 +501,10 @@ else
 	gcov libelf.c
 endif
 	gcov link.c
-	gcov macro.c
-	gcov mangle.c
+	gcov dmacro.c
+	gcov dmangle.c
 	gcov mars.c
-	gcov module.c
+	gcov dmodule.c
 	gcov msc.c
 	gcov mtype.c
 	gcov nspace.c
@@ -514,13 +518,13 @@ endif
 	gcov opover.c
 	gcov optimize.c
 	gcov parse.c
-	gcov scope.c
+	gcov dscope.c
 	gcov sideeffect.c
 	gcov statement.c
 	gcov staticassert.c
 	gcov s2ir.c
-	gcov struct.c
-	gcov template.c
+	gcov dstruct.c
+	gcov dtemplate.c
 	gcov tk.c
 	gcov tocsym.c
 	gcov todt.c
@@ -529,7 +533,7 @@ endif
 	gcov toelfdebug.c
 	gcov typinf.c
 	gcov utf.c
-	gcov version.c
+	gcov dversion.c
 	gcov intrange.c
 	gcov target.c
 

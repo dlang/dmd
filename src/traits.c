@@ -17,8 +17,8 @@
 
 #include "rmem.h"
 #include "aav.h"
+#include "checkedint.h"
 
-//#include "port.h"
 #include "mtype.h"
 #include "init.h"
 #include "expression.h"
@@ -38,6 +38,9 @@
 #include "speller.h"
 
 #define LOGSEMANTIC     0
+
+typedef int (*ForeachDg)(void *ctx, size_t idx, Dsymbol *s);
+int ScopeDsymbol_foreach(Scope *sc, Dsymbols *members, ForeachDg dg, void *ctx, size_t *pn = NULL);
 
 
 /************************************************
@@ -66,12 +69,12 @@ static int fptraits(void *param, Dsymbol *s)
         return 0;
 
     Expression *e;
-    FuncAliasDeclaration* alias = new FuncAliasDeclaration(f, 0);
-    alias->protection = f->protection;
+    FuncAliasDeclaration* ad = new FuncAliasDeclaration(f->ident, f, false);
+    ad->protection = f->protection;
     if (p->e1)
-        e = new DotVarExp(Loc(), p->e1, alias);
+        e = new DotVarExp(Loc(), p->e1, ad, false);
     else
-        e = new DsymbolExp(Loc(), alias);
+        e = new DsymbolExp(Loc(), ad, false);
     p->exps->push(e);
     return 0;
 }
@@ -103,9 +106,9 @@ static void collectUnitTests(Dsymbols *symbols, AA *uniqueUnitTests, Expressions
         {
             if (!dmd_aaGetRvalue(uniqueUnitTests, (void *)unitTest))
             {
-                FuncAliasDeclaration* alias = new FuncAliasDeclaration(unitTest, 0);
-                alias->protection = unitTest->protection;
-                Expression* e = new DsymbolExp(Loc(), alias);
+                FuncAliasDeclaration* ad = new FuncAliasDeclaration(unitTest->ident, unitTest, false);
+                ad->protection = unitTest->protection;
+                Expression* e = new DsymbolExp(Loc(), ad, false);
                 unitTests->push(e);
                 bool* value = (bool*) dmd_aaGet(&uniqueUnitTests, (void *)unitTest);
                 *value = true;
@@ -268,8 +271,8 @@ void initTraitsStringTable()
     {
         const char *s = traits[idx];
         if (!s) break;
-        StringValue *sv = traitsStringTable.insert(s, strlen(s));
-        sv->ptrvalue = (void *)traits[idx];
+        StringValue *sv = traitsStringTable.insert(s, strlen(s), (void *)s);
+        assert(sv);
     }
 }
 
@@ -340,11 +343,21 @@ Expression *pointerBitmap(TraitsExp *e)
         error(e->loc, "%s is not a type", (*e->args)[0]->toChars());
         return new ErrorExp();
     }
-    d_uns64 sz = t->size(e->loc);
+    d_uns64 sz;
     if (t->ty == Tclass && !((TypeClass*)t)->sym->isInterfaceDeclaration())
         sz = ((TypeClass*)t)->sym->AggregateDeclaration::size(e->loc);
+    else
+        sz = t->size(e->loc);
+    if (sz == SIZE_INVALID)
+        return new ErrorExp();
 
-    d_uns64 sz_size_t = Type::tsize_t->size(e->loc);
+    const d_uns64 sz_size_t = Type::tsize_t->size(e->loc);
+    if (sz > UINT64_MAX - sz_size_t)
+    {
+        error(e->loc, "size overflow for type %s", t->toChars());
+        return new ErrorExp();
+    }
+
     d_uns64 bitsPerWord = sz_size_t * 8;
     d_uns64 cntptr = (sz + sz_size_t - 1) / sz_size_t;
     d_uns64 cntdata = (cntptr + bitsPerWord - 1) / bitsPerWord;
@@ -356,7 +369,7 @@ Expression *pointerBitmap(TraitsExp *e)
     {
     public:
         PointerBitmapVisitor(Array<d_uns64>* _data, d_uns64 _sz_size_t)
-            : data(_data), offset(0), sz_size_t(_sz_size_t)
+            : data(_data), offset(0), sz_size_t(_sz_size_t), error(false)
         {}
 
         void setpointer(d_uns64 off)
@@ -383,6 +396,8 @@ Expression *pointerBitmap(TraitsExp *e)
         {
             d_uns64 arrayoff = offset;
             d_uns64 nextsize = t->next->size();
+            if (nextsize == SIZE_INVALID)
+                error = true;
             d_uns64 dim = t->dim->toInteger();
             for (d_uns64 i = 0; i < dim; i++)
             {
@@ -448,6 +463,7 @@ Expression *pointerBitmap(TraitsExp *e)
         Array<d_uns64>* data;
         d_uns64 offset;
         d_uns64 sz_size_t;
+        bool error;
     };
 
     PointerBitmapVisitor pbv(&data, sz_size_t);
@@ -455,6 +471,8 @@ Expression *pointerBitmap(TraitsExp *e)
         pbv.visitClass((TypeClass*)t);
     else
         t->accept(&pbv);
+    if (pbv.error)
+        return new ErrorExp();
 
     Expressions* exps = new Expressions;
     exps->push(new IntegerExp(e->loc, sz, Type::tsize_t));
@@ -636,7 +654,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             }
             id = s->ident;
         }
-        StringExp *se = new StringExp(e->loc, id->toChars());
+        StringExp *se = new StringExp(e->loc, (char *)id->toChars());
         return se->semantic(sc);
     }
     else if (e->ident == Id::getProtection)
@@ -660,8 +678,8 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                 e->error("argument %s has no protection", o->toChars());
             goto Lfalse;
         }
-        if (s->scope)
-            s->semantic(s->scope);
+        if (s->_scope)
+            s->semantic(s->_scope);
 
         const char *protName = protectionToChars(s->prot().kind);   // TODO: How about package(names)
         assert(protName);
@@ -701,12 +719,12 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             if (FuncLiteralDeclaration *fld = f->isFuncLiteralDeclaration())
             {
                 // Directly translate to VarExp instead of FuncExp
-                Expression *ex = new VarExp(e->loc, fld, 1);
+                Expression *ex = new VarExp(e->loc, fld, true);
                 return ex->semantic(sc);
             }
         }
 
-        return (new DsymbolExp(e->loc, s))->semantic(sc);
+        return DsymbolExp::resolve(e->loc, sc, s, false);
     }
     else if (e->ident == Id::hasMember ||
              e->ident == Id::getMember ||
@@ -725,7 +743,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         }
         ex = ex->ctfeInterpret();
         StringExp *se = ex->toStringExp();
-        if (!se || se->length() == 0)
+        if (!se || se->len == 0)
         {
             e->error("string expected as second argument of __traits %s instead of %s", e->ident->toChars(), ex->toChars());
             goto Lfalse;
@@ -736,7 +754,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             e->error("string must be chars");
             goto Lfalse;
         }
-        Identifier *id = Identifier::idPool((char *)se->string);
+        Identifier *id = Identifier::idPool((char *)se->string, se->len);
 
         /* Prefer dsymbol, because it might need some runtime contexts.
          */
@@ -767,9 +785,10 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
 
             /* Take any errors as meaning it wasn't found
              */
-            Scope *sc2 = sc->push();
-            ex = ex->trySemantic(sc2);
-            sc2->pop();
+            Scope *scx = sc->push();
+            scx->flags |= SCOPEignoresymbolvisibility;
+            ex = ex->trySemantic(scx);
+            scx->pop();
             if (!ex)
                 goto Lfalse;
             else
@@ -777,7 +796,10 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         }
         else if (e->ident == Id::getMember)
         {
-            ex = ex->semantic(sc);
+            Scope *scx = sc->push();
+            scx->flags |= SCOPEignoresymbolvisibility;
+            ex = ex->semantic(scx);
+            scx->pop();
             return ex;
         }
         else if (e->ident == Id::getVirtualFunctions ||
@@ -786,13 +808,15 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         {
             unsigned errors = global.errors;
             Expression *eorig = ex;
-            ex = ex->semantic(sc);
+            Scope *scx = sc->push();
+            scx->flags |= SCOPEignoresymbolvisibility;
+            ex = ex->semantic(scx);
             if (errors < global.errors)
                 e->error("%s cannot be resolved", eorig->toChars());
+            //ex->print();
 
             /* Create tuple of functions of ex
              */
-            //ex->print();
             Expressions *exps = new Expressions();
             FuncDeclaration *f;
             if (ex->op == TOKvar)
@@ -818,8 +842,9 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             p.ident = e->ident;
             overloadApply(f, &p, &fptraits);
 
-            TupleExp *tup = new TupleExp(e->loc, exps);
-            return tup->semantic(sc);
+            ex = (new TupleExp(e->loc, exps))->semantic(scx);
+            scx->pop();
+            return ex;
         }
         else
             assert(0);
@@ -836,10 +861,9 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             e->error("first argument is not a class");
             goto Lfalse;
         }
-        if (cd->sizeok == SIZEOKnone)
+        if (cd->sizeok != SIZEOKdone)
         {
-            if (cd->scope)
-                cd->semantic(cd->scope);
+            cd->size(cd->loc);
         }
         if (cd->sizeok != SIZEOKdone)
         {
@@ -863,7 +887,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
 
         Expressions *exps = new Expressions();
         if (ad->aliasthis)
-            exps->push(new StringExp(e->loc, ad->aliasthis->ident->toChars()));
+            exps->push(new StringExp(e->loc, (char *)ad->aliasthis->ident->toChars()));
 
         Expression *ex = new TupleExp(e->loc, exps);
         ex = ex->semantic(sc);
@@ -890,7 +914,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         {
             s = s->isImport()->mod;
         }
-        //printf("getAttributes %s, attrs = %p, scope = %p\n", s->toChars(), s->userAttribDecl, s->scope);
+        //printf("getAttributes %s, attrs = %p, scope = %p\n", s->toChars(), s->userAttribDecl, s->_scope);
         UserAttributeDeclaration *udad = s->userAttribDecl;
         TupleExp *tup = new TupleExp(e->loc, udad ? udad->getAttributes() : new Expressions());
         return tup->semantic(sc);
@@ -972,7 +996,8 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                 //printf("\t[%i] %s %s\n", i, sm->kind(), sm->toChars());
                 if (sm->ident)
                 {
-                    if (sm->ident->string[0] == '_' && sm->ident->string[1] == '_' &&
+                    const char *idx = sm->ident->toChars();
+                    if (idx[0] == '_' && idx[1] == '_' &&
                         sm->ident != Id::ctor &&
                         sm->ident != Id::dtor &&
                         sm->ident != Id::__xdtor &&
@@ -986,6 +1011,8 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                     {
                         return 0;
                     }
+                    if (sm->isTypeInfoDeclaration()) // Bugzilla 15177
+                        return 0;
 
                     //printf("\t%s\n", sm->ident->toChars());
                     Identifiers *idents = (Identifiers *)ctx;
@@ -1010,7 +1037,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                     EnumDeclaration *ed = sm->isEnumDeclaration();
                     if (ed)
                     {
-                        ScopeDsymbol::foreach(NULL, ed->members, &PushIdentsDg::dg, (Identifiers *)ctx);
+                        ScopeDsymbol_foreach(NULL, ed->members, &PushIdentsDg::dg, (Identifiers *)ctx);
                     }
                 }
                 return 0;
@@ -1019,12 +1046,12 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
 
         Identifiers *idents = new Identifiers;
 
-        ScopeDsymbol::foreach(sc, sds->members, &PushIdentsDg::dg, idents);
+        ScopeDsymbol_foreach(sc, sds->members, &PushIdentsDg::dg, idents);
 
         ClassDeclaration *cd = sds->isClassDeclaration();
         if (cd && e->ident == Id::allMembers)
         {
-            if (cd->scope)
+            if (cd->_scope)
                 cd->semantic(NULL);    // Bugzilla 13668: Try to resolve forward reference
 
             struct PushBaseMembers
@@ -1035,7 +1062,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                     {
                         ClassDeclaration *cb = (*cd->baseclasses)[i]->sym;
                         assert(cb);
-                        ScopeDsymbol::foreach(NULL, cb->members, &PushIdentsDg::dg, idents);
+                        ScopeDsymbol_foreach(NULL, cb->members, &PushIdentsDg::dg, idents);
                         if (cb->baseclasses->dim)
                             dg(cb, idents);
                     }
@@ -1050,7 +1077,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         for (size_t i = 0; i < idents->dim; i++)
         {
             Identifier *id = (*idents)[i];
-            StringExp *se = new StringExp(e->loc, id->toChars());
+            StringExp *se = new StringExp(e->loc, (char *)id->toChars());
             (*exps)[i] = se;
         }
 

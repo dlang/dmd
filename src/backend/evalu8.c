@@ -188,13 +188,11 @@ int boolres(elem *e)
                 case TYdchar:
                 case TYllong:
                 case TYullong:
-#if TARGET_SEGMENTED
                 case TYsptr:
                 case TYcptr:
                 case TYhptr:
                 case TYfptr:
                 case TYvptr:
-#endif
                 case TYnptr:
                     b = el_tolong(e) != 0;
                     break;
@@ -457,7 +455,6 @@ elem *poptelem(elem *e)
                 e->Eoper = OPvar;
             }
             break;
-#if TARGET_SEGMENTED
         case OPnp_fp:
             e->E1 = e1 = poptelem(e->E1);
             // If casting a non-NULL constant pointer
@@ -469,7 +466,6 @@ elem *poptelem(elem *e)
             if (e1->Eoper == OPnp_fp)
                 goto L6;
             goto L5;
-#endif
         case OP32_16:
             e->E1 = e1 = poptelem(e->E1);
         L5:
@@ -546,7 +542,7 @@ elem *poptelem(elem *e)
                 if (e2->Eoper == OPconst)
                 {   targ_int i = e2->EV.Vint;
 
-                    if (i && e1->EV.sp.Vsym->Sfl == FLgot)
+                    if (i && e1->Eoper == OPrelconst && e1->EV.sp.Vsym->Sfl == FLgot)
                         break;
                     if (e->Eoper == OPmin)
                         i = -i;
@@ -642,11 +638,10 @@ elem * evalu8(elem *e, goal_t goal)
         d1 = el_toldouble(e1);
         tym = tybasic(typemask(e1));    /* type of op is type of left child */
 
-#if TARGET_SEGMENTED && SCPP
         // Huge pointers are always evaluated at runtime
         if (tym == TYhptr && (l1 != 0 || l2 != 0))
             return e;
-#endif
+
         esave = *e;
         clearFE();
     }
@@ -844,7 +839,6 @@ elem * evalu8(elem *e, goal_t goal)
                 break;
 
             default:
-#if TARGET_SEGMENTED
                 if (intsize == 2)
                 {   if (tyfv(tym))
                         e->EV.Vlong = (l1 & 0xFFFF0000) |
@@ -857,9 +851,7 @@ elem * evalu8(elem *e, goal_t goal)
                     else
                         assert(0);
                 }
-                else
-#endif
-                if (tyintegral(tym) || typtr(tym))
+                else if (tyintegral(tym) || typtr(tym))
                     e->EV.Vllong = l1 + l2;
                 else
                     assert(0);
@@ -1039,14 +1031,11 @@ elem * evalu8(elem *e, goal_t goal)
                 break;
 
             default:
-#if TARGET_SEGMENTED
                 if (intsize == 2 &&
                     tyfv(tym) && tysize[tym2] == 2)
                     e->EV.Vllong = (l1 & 0xFFFF0000) |
                         (targ_ushort) ((targ_ushort) l1 - i2);
-                else
-#endif
-                if (tyintegral(tym) || typtr(tym))
+                else if (tyintegral(tym) || typtr(tym))
                     e->EV.Vllong = l1 - l2;
                 else
                     assert(0);
@@ -1841,9 +1830,7 @@ elem * evalu8(elem *e, goal_t goal)
     case OPs16_32:
         e->EV.Vlong = (targ_short) i1;
         break;
-#if TARGET_SEGMENTED
     case OPnp_fp:
-#endif
     case OPu16_32:
         e->EV.Vulong = (targ_ushort) i1;
         break;
@@ -1939,9 +1926,7 @@ elem * evalu8(elem *e, goal_t goal)
         e->EV.Vint = boolres(e1);
         break;
     case OP32_16:
-#if TARGET_SEGMENTED
     case OPoffset:
-#endif
         e->EV.Vint = l1;
         break;
 

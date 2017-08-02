@@ -11,24 +11,34 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "root.h"
 #include "identifier.h"
 #include "mars.h"
 #include "id.h"
 #include "tokens.h"
+#include "utf.h"
 
-Identifier::Identifier(const char *string, int value)
+Identifier::Identifier(const char *string, size_t length, int value)
 {
     //printf("Identifier('%s', %d)\n", string, value);
     this->string = string;
     this->value = value;
+    this->len = length;
+}
+
+Identifier::Identifier(const char *string)
+{
+    //printf("Identifier('%s')\n", string);
+    this->string = string;
+    this->value = TOKidentifier;
     this->len = strlen(string);
 }
 
-Identifier *Identifier::create(const char *string, int value)
+Identifier *Identifier::create(const char *string)
 {
-    return new Identifier(string, value);
+    return new Identifier(string);
 }
 
 bool Identifier::equals(RootObject *o)
@@ -41,9 +51,14 @@ int Identifier::compare(RootObject *o)
     return strncmp(string, o->toChars(), len + 1);
 }
 
-char *Identifier::toChars()
+const char *Identifier::toChars()
 {
     return (char *)string;
+}
+
+int Identifier::getValue() const
+{
+    return value;
 }
 
 const char *Identifier::toHChars2()
@@ -78,7 +93,7 @@ void Identifier::print()
     fprintf(stderr, "%s",string);
 }
 
-int Identifier::dyncast()
+int Identifier::dyncast() const
 {
     return DYNCAST_IDENTIFIER;
 }
@@ -117,10 +132,54 @@ Identifier *Identifier::idPool(const char *s, size_t len)
     Identifier *id = (Identifier *) sv->ptrvalue;
     if (!id)
     {
-        id = new Identifier(sv->toDchars(), TOKidentifier);
+        id = new Identifier(sv->toDchars(), len, TOKidentifier);
         sv->ptrvalue = (char *)id;
     }
     return id;
+}
+
+Identifier *Identifier::idPool(const char *s, size_t len, int value)
+{
+    StringValue *sv = stringtable.insert(s, len, NULL);
+    assert(sv);
+    Identifier *id = new Identifier(sv->toDchars(), len, value);
+    sv->ptrvalue = (char *)id;
+    return id;
+}
+
+/**********************************
+ * Determine if string is a valid Identifier.
+ * Returns:
+ *      0       invalid
+ */
+
+bool Identifier::isValidIdentifier(const char *p)
+{
+    size_t len;
+    size_t idx;
+
+    if (!p || !*p)
+        goto Linvalid;
+
+    if (*p >= '0' && *p <= '9')         // beware of isdigit() on signed chars
+        goto Linvalid;
+
+    len = strlen(p);
+    idx = 0;
+    while (p[idx])
+    {
+        dchar_t dc;
+        const char *q = utf_decodeChar((utf8_t *)p, len, &idx, &dc);
+        if (q)
+            goto Linvalid;
+
+        if (!((dc >= 0x80 && isUniAlpha(dc)) || isalnum(dc) || dc == '_'))
+            goto Linvalid;
+    }
+    return true;
+
+Linvalid:
+    return false;
 }
 
 Identifier *Identifier::lookup(const char *s, size_t len)

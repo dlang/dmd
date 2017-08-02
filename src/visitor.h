@@ -5,7 +5,7 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/D-Programming-Language/dmd/blob/master/src/visitor.h
+ * https://github.com/dlang/dmd/blob/master/src/visitor.h
  */
 
 #ifndef DMD_VISITOR_H
@@ -95,6 +95,7 @@ class AttribDeclaration;
 class StorageClassDeclaration;
 class DeprecatedDeclaration;
 class LinkDeclaration;
+class CPPMangleDeclaration;
 class ProtDeclaration;
 class AlignDeclaration;
 class AnonDeclaration;
@@ -204,7 +205,7 @@ class UnaExp;
 class BinExp;
 class BinAssignExp;
 class CompileExp;
-class FileExp;
+class ImportExp;
 class AssertExp;
 class DotIdExp;
 class DotTemplateExp;
@@ -219,7 +220,6 @@ class NegExp;
 class UAddExp;
 class ComExp;
 class NotExp;
-class BoolExp;
 class DeleteExp;
 class CastExp;
 class VectorExp;
@@ -371,7 +371,7 @@ public:
     virtual void visit(StaticAssert *s) { visit((Dsymbol *)s); }
     virtual void visit(DebugSymbol *s) { visit((Dsymbol *)s); }
     virtual void visit(VersionSymbol *s) { visit((Dsymbol *)s); }
-    virtual void visit(EnumMember *s) { visit((Dsymbol *)s); }
+    virtual void visit(EnumMember *s) { visit((VarDeclaration *)s); }
     virtual void visit(Import *s) { visit((Dsymbol *)s); }
     virtual void visit(OverloadSet *s) { visit((Dsymbol *)s); }
     virtual void visit(LabelDsymbol *s) { visit((Dsymbol *)s); }
@@ -381,6 +381,7 @@ public:
     virtual void visit(StorageClassDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(DeprecatedDeclaration *s) { visit((StorageClassDeclaration *)s); }
     virtual void visit(LinkDeclaration *s) { visit((AttribDeclaration *)s); }
+    virtual void visit(CPPMangleDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(ProtDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(AlignDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(AnonDeclaration *s) { visit((AttribDeclaration *)s); }
@@ -490,7 +491,7 @@ public:
     virtual void visit(BinExp *e) { visit((Expression *)e); }
     virtual void visit(BinAssignExp *e) { visit((BinExp *)e); }
     virtual void visit(CompileExp *e) { visit((UnaExp *)e); }
-    virtual void visit(FileExp *e) { visit((UnaExp *)e); }
+    virtual void visit(ImportExp *e) { visit((UnaExp *)e); }
     virtual void visit(AssertExp *e) { visit((UnaExp *)e); }
     virtual void visit(DotIdExp *e) { visit((UnaExp *)e); }
     virtual void visit(DotTemplateExp *e) { visit((UnaExp *)e); }
@@ -505,7 +506,6 @@ public:
     virtual void visit(UAddExp *e) { visit((UnaExp *)e); }
     virtual void visit(ComExp *e) { visit((UnaExp *)e); }
     virtual void visit(NotExp *e) { visit((UnaExp *)e); }
-    virtual void visit(BoolExp *e) { visit((UnaExp *)e); }
     virtual void visit(DeleteExp *e) { visit((UnaExp *)e); }
     virtual void visit(CastExp *e) { visit((UnaExp *)e); }
     virtual void visit(VectorExp *e) { visit((UnaExp *)e); }

@@ -21,6 +21,7 @@
 #include "aggregate.h"
 #include "mtype.h"
 #include "attrib.h"
+#include "target.h"
 #include "template.h"
 #include "id.h"
 #include "module.h"
@@ -28,8 +29,9 @@
 #include "expression.h"
 #include "utf.h"
 
-char *toCppMangle(Dsymbol *s);
 void mangleToBuffer(Type *t, OutBuffer *buf);
+typedef int (*ForeachDg)(void *ctx, size_t paramidx, Parameter *param);
+int Parameter_foreach(Parameters *parameters, ForeachDg dg, void *ctx, size_t *pn = NULL);
 
 static const char *mangleChar[TMAX];
 
@@ -233,7 +235,7 @@ public:
         }
         buf->writeByte(mc);
 
-        if (ta->purity || ta->isnothrow || ta->isnogc || ta->isproperty || ta->isref || ta->trust || ta->isreturn)
+        if (ta->purity || ta->isnothrow || ta->isnogc || ta->isproperty || ta->isref || ta->trust || ta->isreturn || ta->isscope)
         {
             if (ta->purity)
                 buf->writestring("Na");
@@ -247,6 +249,8 @@ public:
                 buf->writestring("Ni");
             if (ta->isreturn)
                 buf->writestring("Nj");
+            if (ta->isscope && !ta->isreturn)
+                buf->writestring("Nl");
             switch (ta->trust)
             {
                 case TRUSTtrusted:
@@ -368,7 +372,7 @@ public:
         //printf("deco = '%s'\n", fd->type->deco ? fd->type->deco : "null");
         //printf("fd->type = %s\n", fd->type->toChars());
         if (fd->needThis() || fd->isNested())
-            buf->writeByte(Type::needThisPrefix());
+            buf->writeByte('M');
         if (inParent)
         {
             TypeFunction *tf = (TypeFunction *)fd->type;
@@ -420,7 +424,7 @@ public:
                     return;
 
                 case LINKcpp:
-                    buf->writestring(toCppMangle(d));
+                    buf->writestring(Target::toCppMangle(d));
                     return;
 
                 case LINKdefault:
@@ -626,7 +630,7 @@ public:
 
         mangleParent(s);
 
-        char *id = s->ident ? s->ident->toChars() : s->toChars();
+        const char *id = s->ident ? s->ident->toChars() : s->toChars();
         toBuffer(id, s);
 
         //printf("Dsymbol::mangle() %s = %s\n", s->toChars(), id);
@@ -666,15 +670,15 @@ public:
          * 0X1.9P+2                 => 19P2
          */
 
-        if (Port::isNan(value))
+        if (CTFloat::isNaN(value))
             buf->writestring("NAN");        // no -NAN bugs
-        else if (Port::isInfinity(value))
-            buf->writestring(value < 0 ? "NINF" : "INF");
+        else if (CTFloat::isInfinity(value))
+            buf->writestring(value < CTFloat::zero ? "NINF" : "INF");
         else
         {
             const size_t BUFFER_LEN = 36;
             char buffer[BUFFER_LEN];
-            size_t n = ld_sprint(buffer, 'A', value);
+            size_t n = CTFloat::sprint(buffer, 'A', value);
             assert(n < BUFFER_LEN);
             for (size_t i = 0; i < n; i++)
             {
@@ -784,7 +788,7 @@ public:
         buf->printf("A%u", dim);
         for (size_t i = 0; i < dim; i++)
         {
-            (*e->elements)[i]->accept(this);
+            e->getElement(i)->accept(this);
         }
     }
 
@@ -818,7 +822,7 @@ public:
     void paramsToDecoBuffer(Parameters *parameters)
     {
         //printf("Parameter::paramsToDecoBuffer()\n");
-        Parameter::foreach(parameters, &paramsToDecoBufferDg, (void *)this);
+        Parameter_foreach(parameters, &paramsToDecoBufferDg, (void *)this);
     }
 
     static int paramsToDecoBufferDg(void *ctx, size_t n, Parameter *p)
@@ -859,14 +863,6 @@ public:
     }
 };
 
-const char *mangle(Dsymbol *s)
-{
-    OutBuffer buf;
-    Mangler v(&buf);
-    s->accept(&v);
-    return buf.extractString();
-}
-
 /******************************************************************************
  * Returns exact mangled name of function.
  */
@@ -888,22 +884,14 @@ void mangleToBuffer(Type *t, OutBuffer *buf)
     v.visitWithMask(t, 0);
 }
 
-void mangleToBuffer(Type *t, OutBuffer *buf, bool internal)
-{
-    if (internal)
-    {
-        buf->writestring(mangleChar[t->ty]);
-        if (t->ty == Tarray)
-            buf->writestring(mangleChar[((TypeArray *)t)->next->ty]);
-    }
-    else if (t->deco)
-        buf->writestring(t->deco);
-    else
-        mangleToBuffer(t, buf);
-}
-
 void mangleToBuffer(Expression *e, OutBuffer *buf)
 {
     Mangler v(buf);
     e->accept(&v);
+}
+
+void mangleToBuffer(Dsymbol *s, OutBuffer *buf)
+{
+    Mangler v(buf);
+    s->accept(&v);
 }

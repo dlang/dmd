@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2012 by Digital Mars
+// Copyright (C) 2000-2016 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -9,7 +9,6 @@
  * For any other uses, please contact Digital Mars.
  */
 
-#ifdef DEBUG
 #if !SPP
 
 #include        <stdio.h>
@@ -29,7 +28,7 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
-#define ferr(p) dbg_printf("%s",(p))
+#define ferr(p) printf("%s",(p))
 
 /*******************************
  * Write out storage class.
@@ -54,7 +53,7 @@ char *str_class(enum SC c)
 
 void WRclass(enum SC c)
 {
-    dbg_printf("%11s ",str_class(c));
+    printf("%11s ",str_class(c));
 }
 
 /***************************
@@ -64,7 +63,7 @@ void WRclass(enum SC c)
 void WROP(unsigned oper)
 {
   if (oper >= OPMAX)
-  {     dbg_printf("op = x%x, OPMAX = %d\n",oper,OPMAX);
+  {     printf("op = x%x, OPMAX = %d\n",oper,OPMAX);
         assert(0);
   }
   ferr(debtab[oper]);
@@ -77,30 +76,26 @@ void WROP(unsigned oper)
 
 void WRTYxx(tym_t t)
 {
-#if TX86
     if (t & mTYnear)
-        dbg_printf("mTYnear|");
-#if TARGET_SEGMENTED
+        printf("mTYnear|");
     if (t & mTYfar)
-        dbg_printf("mTYfar|");
+        printf("mTYfar|");
     if (t & mTYcs)
-        dbg_printf("mTYcs|");
-#endif
-#endif
+        printf("mTYcs|");
     if (t & mTYconst)
-        dbg_printf("mTYconst|");
+        printf("mTYconst|");
     if (t & mTYvolatile)
-        dbg_printf("mTYvolatile|");
+        printf("mTYvolatile|");
 #if !MARS && (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
     if (t & mTYtransu)
-        dbg_printf("mTYtransu|");
+        printf("mTYtransu|");
 #endif
     t = tybasic(t);
     if (t >= TYMAX)
-    {   dbg_printf("TY %lx\n",(long)t);
+    {   printf("TY %lx\n",(long)t);
         assert(0);
     }
-    dbg_printf("TY%s ",tystring[tybasic(t)]);
+    printf("TY%s ",tystring[tybasic(t)]);
 }
 
 void WRBC(unsigned bc)
@@ -109,13 +104,12 @@ void WRBC(unsigned bc)
          "exit  ","asm   ","switch","ifthen","jmptab",
          "try   ","catch ","jump  ",
          "_try  ","_filte","_final","_ret  ","_excep",
-         "jcatch",
-         "jplace",
+         "jcatch","_lpad ",
         };
 
     assert(sizeof(bcs) / sizeof(bcs[0]) == BCMAX);
     assert(bc < BCMAX);
-    dbg_printf("BC%s",bcs[bc]);
+    printf("BC%s",bcs[bc]);
 }
 
 /************************
@@ -125,10 +119,10 @@ void WRBC(unsigned bc)
 void WRarglst(list_t a)
 { int n = 1;
 
-  if (!a) dbg_printf("0 args\n");
+  if (!a) printf("0 args\n");
   while (a)
   {     const char* c = (const char*)list_ptr(a);
-        dbg_printf("arg %d: '%s'\n", n, c ? c : "NULL");
+        printf("arg %d: '%s'\n", n, c ? c : "NULL");
         a = a->next;
         n++;
   }
@@ -158,7 +152,7 @@ void WReqn(elem *e)
   }
   else if (e->Eoper == OPcomma && !nest)
   {     WReqn(e->E1);
-        dbg_printf(";\n\t");
+        printf(";\n\t");
         WReqn(e->E2);
   }
   else if (OTbinary(e->Eoper))
@@ -175,7 +169,7 @@ void WReqn(elem *e)
         ferr(" ");
         WROP(e->Eoper);
         if (e->Eoper == OPstreq)
-            dbg_printf("%ld",(long)type_size(e->ET));
+            printf("%ld",(long)type_size(e->ET));
         ferr(" ");
         if (OTbinary(e->E2->Eoper))
         {       nest++;
@@ -197,27 +191,29 @@ void WReqn(elem *e)
                 ferr("#");
                 /* FALL-THROUGH */
             case OPvar:
-                dbg_printf("%s",e->EV.sp.Vsym->Sident);
+                printf("%s",e->EV.sp.Vsym->Sident);
                 if (e->EV.sp.Vsym->Ssymnum != -1)
-                    dbg_printf("(%d)",e->EV.sp.Vsym->Ssymnum);
+                    printf("(%d)",e->EV.sp.Vsym->Ssymnum);
                 if (e->Eoffset != 0)
                 {
                     if (sizeof(e->Eoffset) == 8)
-                        dbg_printf(".x%llx", e->Eoffset);
+                        printf(".x%llx", e->Eoffset);
                     else
-                        dbg_printf(".%ld",(long)e->Eoffset);
+                        printf(".%ld",(long)e->Eoffset);
                 }
                 break;
             case OPasm:
             case OPstring:
-                dbg_printf("\"%s\"",e->EV.ss.Vstring);
+                printf("\"%s\"",e->EV.ss.Vstring);
                 if (e->EV.ss.Voffset)
-                    dbg_printf("+%ld",(long)e->EV.ss.Voffset);
+                    printf("+%ld",(long)e->EV.ss.Voffset);
                 break;
             case OPmark:
             case OPgot:
             case OPframeptr:
             case OPhalt:
+            case OPdctor:
+            case OPddtor:
                 WROP(e->Eoper);
                 break;
             case OPstrthis:
@@ -235,9 +231,9 @@ void WRblocklist(list_t bl)
         {       register block *b = list_block(bl);
 
                 if (b && b->Bweight)
-                        dbg_printf("B%d (%p) ",b->Bdfoidx,b);
+                        printf("B%d (%p) ",b->Bdfoidx,b);
                 else
-                        dbg_printf("%p ",b);
+                        printf("%p ",b);
         }
         ferr("\n");
 }
@@ -245,10 +241,10 @@ void WRblocklist(list_t bl)
 void WRdefnod()
 { register int i;
 
-  for (i = 0; i < deftop; i++)
-  {     dbg_printf("defnod[%d] in B%d = (",defnod[i].DNblock->Bdfoidx,i);
-        WReqn(defnod[i].DNelem);
-        dbg_printf(");\n");
+  for (i = 0; i < go.deftop; i++)
+  {     printf("defnod[%d] in B%d = (", go.defnod[i].DNblock->Bdfoidx, i);
+        WReqn(go.defnod[i].DNelem);
+        printf(");\n");
   }
 }
 
@@ -268,12 +264,13 @@ void WRFL(enum FL fl)
          "bprel ","frameh","blocko","alloca",
          "stack ","dsym  ",
          "got   ","gotoff",
+         "funcar",
     };
 
     if ((unsigned)fl >= (unsigned)FLMAX)
-        dbg_printf("FL%d",fl);
+        printf("FL%d",fl);
     else
-      dbg_printf("FL%s",fls[fl]);
+      printf("FL%s",fls[fl]);
 }
 
 /***********************
@@ -285,34 +282,30 @@ void WRblock(block *b)
     if (OPTIMIZER)
     {
         if (b && b->Bweight)
-                dbg_printf("B%d: (%p), weight=%d",b->Bdfoidx,b,b->Bweight);
+                printf("B%d: (%p), weight=%d",b->Bdfoidx,b,b->Bweight);
         else
-                dbg_printf("block %p",b);
+                printf("block %p",b);
         if (!b)
         {       ferr("\n");
                 return;
         }
-        dbg_printf(" flags=x%x weight=%d",b->Bflags,b->Bweight);
-#if 0
-        dbg_printf("\tfile %p, line %d",b->Bfilptr,b->Blinnum);
-#endif
-        dbg_printf(" ");
+        printf(" flags=x%x weight=%d",b->Bflags,b->Bweight);
+        //printf("\tfile %p, line %d",b->Bfilptr,b->Blinnum);
+        printf(" ");
         WRBC(b->BC);
-        dbg_printf(" Btry=%p Bindex=%d",b->Btry,b->Bindex);
-#if SCPP
+        printf(" Btry=%p Bindex=%d",b->Btry,b->Bindex);
         if (b->BC == BCtry)
-            dbg_printf(" catchvar = %p",b->catchvar);
-#endif
-        dbg_printf("\n");
-        dbg_printf("\tBpred: "); WRblocklist(b->Bpred);
-        dbg_printf("\tBsucc: "); WRblocklist(b->Bsucc);
+            printf(" catchvar = %p",b->catchvar);
+        printf("\n");
+        printf("\tBpred: "); WRblocklist(b->Bpred);
+        printf("\tBsucc: "); WRblocklist(b->Bsucc);
         if (b->Belem)
         {       if (debugf)                     /* if full output       */
                         elem_print(b->Belem);
                 else
                 {       ferr("\t");
                         WReqn(b->Belem);
-                        dbg_printf(";\n");
+                        printf(";\n");
                 }
         }
         if (b->Bcode)
@@ -323,55 +316,64 @@ void WRblock(block *b)
     {
         targ_llong *pu;
         int ncases;
-        list_t bl;
 
         assert(b);
-        dbg_printf("********* Basic Block %p ************\n",b);
-        if (b->Belem) elem_print(b->Belem);
-        dbg_printf("block: ");
-printf("%p %d ", b, b->BC);
+        printf("***** block %p ", b);
         WRBC(b->BC);
-        dbg_printf(" Btry=%p Bindex=%d",b->Btry,b->Bindex);
+        if (b->Btry)
+            printf(" Btry=%p",b->Btry);
+        if (b->Bindex)
+            printf(" Bindex=%d",b->Bindex);
+        if (b->BC == BC_finally)
+            printf(" b_ret=%p", b->BS.BI_FINALLY.b_ret);
 #if MARS
         if (b->Bsrcpos.Sfilename)
-            dbg_printf(" %s(%u)", b->Bsrcpos.Sfilename, b->Bsrcpos.Slinnum);
+            printf(" %s(%u)", b->Bsrcpos.Sfilename, b->Bsrcpos.Slinnum);
 #endif
-        dbg_printf("\n");
-        dbg_printf("\tBpred:\n");
-        for (bl = b->Bpred; bl; bl = list_next(bl))
-            dbg_printf("\t%p\n",list_block(bl));
-        bl = b->Bsucc;
+        printf("\n");
+        if (b->Belem) elem_print(b->Belem);
+        if (b->Bpred)
+        {
+            printf("\tBpred:");
+            for (list_t bl = b->Bpred; bl; bl = list_next(bl))
+                printf(" %p",list_block(bl));
+            printf("\n");
+        }
+        list_t bl = b->Bsucc;
         switch (b->BC)
         {
             case BCswitch:
                 pu = b->BS.Bswitch;
                 assert(pu);
                 ncases = *pu;
-                dbg_printf("\tncases = %d\n",ncases);
-                dbg_printf("\tdefault: %p\n",list_block(bl));
+                printf("\tncases = %d\n",ncases);
+                printf("\tdefault: %p\n",list_block(bl));
                 while (ncases--)
                 {   bl = list_next(bl);
-                    dbg_printf("\tcase %lld: %p\n",*++pu,list_block(bl));
+                    printf("\tcase %lld: %p\n",*++pu,list_block(bl));
                 }
                 break;
             case BCiftrue:
             case BCgoto:
             case BCasm:
-#if SCPP
             case BCtry:
             case BCcatch:
-#endif
             case BCjcatch:
             case BC_try:
             case BC_filter:
             case BC_finally:
+            case BC_lpad:
             case BC_ret:
             case BC_except:
 
             Lsucc:
-                dbg_printf("\tBsucc:\n");
-                for ( ; bl; bl = list_next(bl))
-                    dbg_printf("\t%p\n",list_block(bl));
+                if (bl)
+                {
+                    printf("\tBsucc:");
+                    for ( ; bl; bl = list_next(bl))
+                        printf(" %p",list_block(bl));
+                    printf("\n");
+                }
                 break;
             case BCret:
             case BCretexp:
@@ -387,10 +389,9 @@ void WRfunc()
 {
         block *b;
 
-        dbg_printf("func: '%s'\n",funcsym_p->Sident);
+        printf("func: '%s'\n",funcsym_p->Sident);
         for (b = startblock; b; b = b->Bnext)
                 WRblock(b);
 }
 
 #endif /* DEBUG */
-#endif /* !SPP */

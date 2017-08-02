@@ -35,7 +35,6 @@
 
 #include "filename.h"
 #include "array.h"
-#include "port.h"
 #include "rmem.h"
 
 /****************************** File ********************************/
@@ -86,7 +85,7 @@ bool File::read()
     struct stat buf;
     ssize_t numread;
 
-    char *name = this->name->toChars();
+    const char *name = this->name->toChars();
     //printf("File::read('%s')\n",name);
     int fd = open(name, O_RDONLY);
     if (fd == -1)
@@ -146,7 +145,7 @@ err1:
     DWORD size;
     DWORD numread;
 
-    char *name = this->name->toChars();
+    const char *name = this->name->toChars();
     HANDLE h = CreateFileA(name,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,
         FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
     if (h == INVALID_HANDLE_VALUE)
@@ -202,7 +201,7 @@ bool File::write()
 #if POSIX
     ssize_t numwritten;
 
-    char *name = this->name->toChars();
+    const char *name = this->name->toChars();
     int fd = open(name, O_CREAT | O_WRONLY | O_TRUNC, (6 << 6) | (4 << 3) | 4);
     if (fd == -1)
         goto err;
@@ -224,7 +223,7 @@ err:
 #elif _WIN32
     DWORD numwritten;
 
-    char *name = this->name->toChars();
+    const char *name = this->name->toChars();
     HANDLE h = CreateFileA(name,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,
         FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
     if (h == INVALID_HANDLE_VALUE)
@@ -261,7 +260,7 @@ void File::remove()
 #endif
 }
 
-char *File::toChars()
+const char *File::toChars()
 {
     return name->toChars();
 }

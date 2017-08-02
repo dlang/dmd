@@ -51,7 +51,7 @@ struct Outbuffer
     void *writezeros(size_t n);
 
     // Position buffer to accept the specified number of bytes at offset
-    size_t position(size_t offset, size_t nbytes);
+    void position(size_t offset, size_t nbytes);
 
     // Write an array to the buffer, no reserve check
     void writen(const void *b, size_t len)

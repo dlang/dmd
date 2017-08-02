@@ -644,13 +644,13 @@ public:
             {
                 property("base", cd->baseClass->toPrettyChars(true));
             }
-            if (cd->interfaces_dim)
+            if (cd->interfaces.length)
             {
                 propertyStart("interfaces");
                 arrayStart();
-                for (size_t i = 0; i < cd->interfaces_dim; i++)
+                for (size_t i = 0; i < cd->interfaces.length; i++)
                 {
-                    BaseClass *b = cd->interfaces[i];
+                    BaseClass *b = cd->interfaces.ptr[i];
                     item(b->sym->toPrettyChars(true));
                 }
                 arrayEnd();
@@ -837,9 +837,9 @@ public:
     {
         objectStart();
 
-        jsonProperties(s);
+        jsonProperties((Dsymbol*)s);
 
-        property("type", "deco", s->type);
+        property("type", "deco", s->origType);
 
         objectEnd();
     }
@@ -850,8 +850,8 @@ public:
 
         jsonProperties(d);
 
-        if (d->init)
-            property("init", d->init->toChars());
+        if (d->_init)
+            property("init", d->_init->toChars());
 
         if (d->isField())
             property("offset", d->offset);

@@ -44,18 +44,6 @@ ClassDeclaration *ClassReferenceExp::originalClass()
     return value->sd->isClassDeclaration();
 }
 
-VarDeclaration *ClassReferenceExp::getFieldAt(unsigned index)
-{
-    ClassDeclaration *cd = originalClass();
-    unsigned fieldsSoFar = 0;
-    while (index - fieldsSoFar >= cd->fields.dim)
-    {
-        fieldsSoFar += cd->fields.dim;
-        cd = cd->baseClass;
-    }
-    return cd->fields[index - fieldsSoFar];
-}
-
 // Return index of the field, or -1 if not found
 int ClassReferenceExp::getFieldIndex(Type *fieldtype, unsigned fieldoffset)
 {
@@ -109,7 +97,7 @@ VoidInitExp::VoidInitExp(VarDeclaration *var, Type *type)
     this->type = var->type;
 }
 
-char *VoidInitExp::toChars()
+const char *VoidInitExp::toChars()
 {
     return (char *)"void";
 }
@@ -134,7 +122,7 @@ ThrownExceptionExp::ThrownExceptionExp(Loc loc, ClassReferenceExp *victim) : Exp
     this->type = victim->type;
 }
 
-char *ThrownExceptionExp::toChars()
+const char *ThrownExceptionExp::toChars()
 {
     return (char *)"CTFE ThrownException";
 }
@@ -174,7 +162,7 @@ CTFEExp::CTFEExp(TOK tok)
     type = Type::tvoid;
 }
 
-char *CTFEExp::toChars()
+const char *CTFEExp::toChars()
 {
     switch (op)
     {
@@ -240,7 +228,7 @@ bool needToCopyLiteral(Expression *expr)
     }
 }
 
-Expressions *copyLiteralArray(Expressions *oldelems)
+Expressions *copyLiteralArray(Expressions *oldelems, Expression *basis = NULL)
 {
     if (!oldelems)
         return oldelems;
@@ -248,7 +236,12 @@ Expressions *copyLiteralArray(Expressions *oldelems)
     Expressions *newelems = new Expressions();
     newelems->setDim(oldelems->dim);
     for (size_t i = 0; i < oldelems->dim; i++)
-        (*newelems)[i] = copyLiteral((*oldelems)[i]).copy();
+    {
+        Expression *el = (*oldelems)[i];
+        if (!el)
+            el = basis;
+        (*newelems)[i] = copyLiteral(el).copy();
+    }
     return newelems;
 }
 
@@ -273,8 +266,12 @@ UnionExp copyLiteral(Expression *e)
     }
     if (e->op == TOKarrayliteral)
     {
-        ArrayLiteralExp *ae = (ArrayLiteralExp *)e;
-        new(&ue) ArrayLiteralExp(e->loc, copyLiteralArray(ae->elements));
+        ArrayLiteralExp *ale = (ArrayLiteralExp *)e;
+        Expression *basis = ale->basis ? copyLiteral(ale->basis).copy() : NULL;
+        Expressions *elements = copyLiteralArray(ale->elements, ale->basis);
+
+        new(&ue) ArrayLiteralExp(e->loc, elements);
+
         ArrayLiteralExp *r = (ArrayLiteralExp *)ue.exp();
         r->type = e->type;
         r->ownedByCtfe = OWNEDctfe;
@@ -295,31 +292,40 @@ UnionExp copyLiteral(Expression *e)
          * case: block assignment is permitted inside struct literals, eg,
          * an int[4] array can be initialized with a single int.
          */
-        StructLiteralExp *se = (StructLiteralExp *)e;
-        Expressions *oldelems = se->elements;
+        StructLiteralExp *sle = (StructLiteralExp *)e;
+        Expressions *oldelems = sle->elements;
         Expressions * newelems = new Expressions();
         newelems->setDim(oldelems->dim);
         for (size_t i = 0; i < newelems->dim; i++)
         {
-            Expression *m = (*oldelems)[i];
             // We need the struct definition to detect block assignment
-            AggregateDeclaration *sd = se->sd;
-            VarDeclaration *v = sd->fields[i];
+            VarDeclaration *v = sle->sd->fields[i];
+            Expression *m = (*oldelems)[i];
+
             // If it is a void assignment, use the default initializer
             if (!m)
                 m = voidInitLiteral(v->type, v).copy();
-            if ((v->type->ty != m->type->ty) && v->type->ty == Tsarray)
+
+            if (v->type->ty == Tarray || v->type->ty == Taarray)
             {
-                // Block assignment from inside struct literals
-                TypeSArray *tsa = (TypeSArray *)v->type;
-                uinteger_t length = tsa->dim->toInteger();
-                m = createBlockDuplicatedArrayLiteral(e->loc, v->type, m, (size_t)length);
+                // Don't have to copy array references
             }
-            else if (v->type->ty != Tarray && v->type->ty!=Taarray) // NOTE: do not copy array references
+            else
+            {
+                // Buzilla 15681: Copy the source element always.
                 m = copyLiteral(m).copy();
+
+                // Block assignment from inside struct literals
+                if (v->type->ty != m->type->ty && v->type->ty == Tsarray)
+                {
+                    TypeSArray *tsa = (TypeSArray *)v->type;
+                    size_t len = (size_t)tsa->dim->toInteger();
+                    m = createBlockDuplicatedArrayLiteral(e->loc, v->type, m, len);
+                }
+            }
             (*newelems)[i] = m;
         }
-        new(&ue) StructLiteralExp(e->loc, se->sd, newelems, se->stype);
+        new(&ue) StructLiteralExp(e->loc, sle->sd, newelems, sle->stype);
         StructLiteralExp *r = (StructLiteralExp *)ue.exp();
         r->type = e->type;
         r->ownedByCtfe = OWNEDctfe;
@@ -524,21 +530,31 @@ uinteger_t resolveArrayLength(Expression *e)
 /******************************
  * Helper for NewExp
  * Create an array literal consisting of 'elem' duplicated 'dim' times.
+ * Params:
+ *      loc = source location where the interpretation occurs
+ *      type = target type of the result
+ *      elem = the source of array element, it will be owned by the result
+ *      dim = element number of the result
+ * Returns:
+ *      Constructed ArrayLiteralExp
  */
 ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Loc loc, Type *type,
         Expression *elem, size_t dim)
 {
-    Expressions *elements = new Expressions();
-    elements->setDim(dim);
-    bool mustCopy = needToCopyLiteral(elem);
-    if (type->ty == Tsarray && type->nextOf()->ty == Tsarray &&
-        elem->type->ty != Tsarray)
+    if (type->ty == Tsarray && type->nextOf()->ty == Tsarray && elem->type->ty != Tsarray)
     {
         // If it is a multidimensional array literal, do it recursively
-        elem = createBlockDuplicatedArrayLiteral(loc, type->nextOf(), elem,
-            (size_t)((TypeSArray *)type->nextOf())->dim->toInteger());
-        mustCopy = true;
+        TypeSArray *tsa = (TypeSArray *)type->nextOf();
+        size_t len = (size_t)tsa->dim->toInteger();
+        elem = createBlockDuplicatedArrayLiteral(loc, type->nextOf(), elem, len);
     }
+
+    // Buzilla 15681
+    Type *tb = elem->type->toBasetype();
+    const bool mustCopy = tb->ty == Tstruct || tb->ty == Tsarray;
+
+    Expressions *elements = new Expressions();
+    elements->setDim(dim);
     for (size_t i = 0; i < dim; i++)
     {
         (*elements)[i] = mustCopy ? copyLiteral(elem).copy() : elem;
@@ -970,221 +986,6 @@ Expression *paintFloatInt(Expression *fromVal, Type *to)
     return Target::paintAsType(fromVal, to);
 }
 
-/***********************************************
-      Primitive integer operations
-***********************************************/
-
-/**   e = OP e
-*/
-void intUnary(TOK op, IntegerExp *e)
-{
-    switch (op)
-    {
-    case TOKneg:
-        e->setInteger(-e->getInteger());
-        break;
-    case TOKtilde:
-        e->setInteger(~e->getInteger());
-        break;
-    default:
-        assert(0);
-        break;
-    }
-}
-
-/** dest = e1 OP e2;
-*/
-void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp *e2)
-{
-    dinteger_t result;
-    switch (op)
-    {
-    case TOKand:
-        result = e1->getInteger() & e2->getInteger();
-        break;
-    case TOKor:
-        result = e1->getInteger() | e2->getInteger();
-        break;
-    case TOKxor:
-        result = e1->getInteger() ^ e2->getInteger();
-        break;
-    case TOKadd:
-        result = e1->getInteger() + e2->getInteger();
-        break;
-    case TOKmin:
-        result = e1->getInteger() - e2->getInteger();
-        break;
-    case TOKmul:
-        result = e1->getInteger() * e2->getInteger();
-        break;
-    case TOKdiv:
-    {
-        sinteger_t n1 = e1->getInteger();
-        sinteger_t n2 = e2->getInteger();
-
-        if (n2 == 0)
-        {
-            e2->error("divide by 0");
-            result = 1;
-        }
-        else if (e1->type->isunsigned() || e2->type->isunsigned())
-            result = ((dinteger_t) n1) / ((dinteger_t) n2);
-        else
-            result = n1 / n2;
-        break;
-    }
-    case TOKmod:
-    {
-        sinteger_t n1 = e1->getInteger();
-        sinteger_t n2 = e2->getInteger();
-
-        if (n2 == 0)
-        {
-            e2->error("divide by 0");
-            n2 = 1;
-        }
-        if (n2 == -1 && !type->isunsigned())
-        {
-            // Check for int.min % -1
-            if (n1 == 0xFFFFFFFF80000000ULL && type->toBasetype()->ty != Tint64)
-            {
-                e2->error("integer overflow: int.min % -1");
-                n2 = 1;
-            }
-            else if (n1 == 0x8000000000000000LL) // long.min % -1
-            {
-                e2->error("integer overflow: long.min % -1");
-                n2 = 1;
-            }
-        }
-        if (e1->type->isunsigned() || e2->type->isunsigned())
-            result = ((dinteger_t) n1) % ((dinteger_t) n2);
-        else
-            result = n1 % n2;
-        break;
-    }
-    case TOKpow:
-    {
-        dinteger_t n = e2->getInteger();
-        if (!e2->type->isunsigned() && (sinteger_t)n < 0)
-        {
-            e2->error("integer ^^ -integer: total loss of precision");
-            n = 1;
-        }
-        uinteger_t r = e1->getInteger();
-        result = 1;
-        while (n != 0)
-        {
-            if (n & 1)
-                result = result * r;
-            n >>= 1;
-            r = r * r;
-        }
-        break;
-    }
-    case TOKshl:
-        result = e1->getInteger() << e2->getInteger();
-        break;
-    case TOKshr:
-    {
-        dinteger_t value = e1->getInteger();
-        dinteger_t dcount = e2->getInteger();
-        assert(dcount <= 0xFFFFFFFF);
-        unsigned count = (unsigned)dcount;
-        switch (e1->type->toBasetype()->ty)
-        {
-            case Tint8:
-                result = (d_int8)(value) >> count;
-                break;
-
-            case Tuns8:
-            case Tchar:
-                result = (d_uns8)(value) >> count;
-                break;
-
-            case Tint16:
-                result = (d_int16)(value) >> count;
-                break;
-
-            case Tuns16:
-            case Twchar:
-                result = (d_uns16)(value) >> count;
-                break;
-
-            case Tint32:
-                result = (d_int32)(value) >> count;
-                break;
-
-            case Tuns32:
-            case Tdchar:
-                result = (d_uns32)(value) >> count;
-                break;
-
-            case Tint64:
-                result = (d_int64)(value) >> count;
-                break;
-
-            case Tuns64:
-                result = (d_uns64)(value) >> count;
-                break;
-            default:
-                assert(0);
-        }
-        break;
-    }
-    case TOKushr:
-    {
-        dinteger_t value = e1->getInteger();
-        dinteger_t dcount = e2->getInteger();
-        assert(dcount <= 0xFFFFFFFF);
-        unsigned count = (unsigned)dcount;
-        switch (e1->type->toBasetype()->ty)
-        {
-            case Tint8:
-            case Tuns8:
-            case Tchar:
-                // Possible only with >>>=. >>> always gets promoted to int.
-                result = (value & 0xFF) >> count;
-                break;
-
-            case Tint16:
-            case Tuns16:
-            case Twchar:
-                // Possible only with >>>=. >>> always gets promoted to int.
-                result = (value & 0xFFFF) >> count;
-                break;
-
-            case Tint32:
-            case Tuns32:
-            case Tdchar:
-                result = (value & 0xFFFFFFFF) >> count;
-                break;
-
-            case Tint64:
-            case Tuns64:
-                result = (d_uns64)(value) >> count;
-                break;
-
-            default:
-                assert(0);
-        }
-        break;
-    }
-    case TOKequal:
-    case TOKidentity:
-        result = (e1->getInteger() == e2->getInteger());
-        break;
-    case TOKnotequal:
-    case TOKnotidentity:
-        result = (e1->getInteger() != e2->getInteger());
-        break;
-    default:
-        assert(0);
-    }
-    dest->setInteger(result);
-    dest->type = type;
-}
-
 /******** Constant folding, with support for CTFE ***************************/
 
 /// Return true if non-pointer expression e can be compared
@@ -1216,81 +1017,84 @@ bool isCtfeComparable(Expression *e)
     return true;
 }
 
-/// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
-int intUnsignedCmp(TOK op, dinteger_t n1, dinteger_t n2)
+/// Map TOK comparison ops
+template <typename N>
+static bool numCmp(TOK op, N n1, N n2)
 {
-    int n;
     switch (op)
     {
-        case TOKlt:     n = n1 <  n2;   break;
-        case TOKle:     n = n1 <= n2;   break;
-        case TOKgt:     n = n1 >  n2;   break;
-        case TOKge:     n = n1 >= n2;   break;
+        case TOKlt:
+            return n1 <  n2;
+        case TOKle:
+            return n1 <= n2;
+        case TOKgt:
+            return n1 >  n2;
+        case TOKge:
+            return n1 >= n2;
 
-        case TOKleg:    n = 1;          break;
-        case TOKlg:     n = n1 != n2;   break;
-        case TOKunord:  n = 0;          break;
-        case TOKue:     n = n1 == n2;   break;
-        case TOKug:     n = n1 >  n2;   break;
-        case TOKuge:    n = n1 >= n2;   break;
-        case TOKul:     n = n1 <  n2;   break;
-        case TOKule:    n = n1 <= n2;   break;
+        case TOKleg:
+            return true;
+        case TOKlg:
+            return n1 != n2;
+        case TOKunord:
+            return false;
+        case TOKue:
+            return n1 == n2;
+        case TOKug:
+            return n1 >  n2;
+        case TOKuge:
+            return n1 >= n2;
+        case TOKul:
+            return n1 <  n2;
+        case TOKule:
+            return n1 <= n2;
 
         default:
             assert(0);
     }
-    return n;
+}
+
+/// Returns cmp OP 0; where OP is ==, !=, <, >=, etc. Result is 0 or 1
+int specificCmp(TOK op, int rawCmp)
+{
+    return numCmp<int>(op, rawCmp, 0);
+}
+
+/// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
+int intUnsignedCmp(TOK op, dinteger_t n1, dinteger_t n2)
+{
+    return numCmp<dinteger_t>(op, n1, n2);
 }
 
 /// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
 int intSignedCmp(TOK op, sinteger_t n1, sinteger_t n2)
 {
-    int n;
-    switch (op)
-    {
-        case TOKlt:     n = n1 <  n2;   break;
-        case TOKle:     n = n1 <= n2;   break;
-        case TOKgt:     n = n1 >  n2;   break;
-        case TOKge:     n = n1 >= n2;   break;
-
-        case TOKleg:    n = 1;          break;
-        case TOKlg:     n = n1 != n2;   break;
-        case TOKunord:  n = 0;          break;
-        case TOKue:     n = n1 == n2;   break;
-        case TOKug:     n = n1 >  n2;   break;
-        case TOKuge:    n = n1 >= n2;   break;
-        case TOKul:     n = n1 <  n2;   break;
-        case TOKule:    n = n1 <= n2;   break;
-
-        default:
-            assert(0);
-    }
-    return n;
+    return numCmp<sinteger_t>(op, n1, n2);
 }
 
 /// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
 int realCmp(TOK op, real_t r1, real_t r2)
 {
-    int n;
-
     // Don't rely on compiler, handle NAN arguments separately
-    if (Port::isNan(r1) || Port::isNan(r2)) // if unordered
+    if (CTFloat::isNaN(r1) || CTFloat::isNaN(r2)) // if unordered
     {
         switch (op)
         {
-            case TOKlt:     n = 0;  break;
-            case TOKle:     n = 0;  break;
-            case TOKgt:     n = 0;  break;
-            case TOKge:     n = 0;  break;
+            case TOKlt:
+            case TOKle:
+            case TOKgt:
+            case TOKge:
+            case TOKleg:
+            case TOKlg:
+                return 0;
 
-            case TOKleg:    n = 0;  break;
-            case TOKlg:     n = 0;  break;
-            case TOKunord:  n = 1;  break;
-            case TOKue:     n = 1;  break;
-            case TOKug:     n = 1;  break;
-            case TOKuge:    n = 1;  break;
-            case TOKul:     n = 1;  break;
-            case TOKule:    n = 1;  break;
+            case TOKunord:
+            case TOKue:
+            case TOKug:
+            case TOKuge:
+            case TOKul:
+            case TOKule:
+                return 1;
 
             default:
                 assert(0);
@@ -1298,27 +1102,8 @@ int realCmp(TOK op, real_t r1, real_t r2)
     }
     else
     {
-        switch (op)
-        {
-            case TOKlt:     n = r1 <  r2;   break;
-            case TOKle:     n = r1 <= r2;   break;
-            case TOKgt:     n = r1 >  r2;   break;
-            case TOKge:     n = r1 >= r2;   break;
-
-            case TOKleg:    n = 1;          break;
-            case TOKlg:     n = r1 != r2;   break;
-            case TOKunord:  n = 0;          break;
-            case TOKue:     n = r1 == r2;   break;
-            case TOKug:     n = r1 >  r2;   break;
-            case TOKuge:    n = r1 >= r2;   break;
-            case TOKul:     n = r1 <  r2;   break;
-            case TOKule:    n = r1 <= r2;   break;
-
-            default:
-                assert(0);
-        }
+        return numCmp<real_t>(op, r1, r2);
     }
-    return n;
 }
 
 int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2);
@@ -1512,7 +1297,7 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
         r1 = e1->toImaginary();
         r2 = e2->toImaginary();
      L1:
-        if (Port::isNan(r1) || Port::isNan(r2)) // if unordered
+        if (CTFloat::isNaN(r1) || CTFloat::isNaN(r2)) // if unordered
         {
             return 1;
         }
@@ -1653,49 +1438,19 @@ int ctfeIdentity(Loc loc, TOK op, Expression *e1, Expression *e2)
 /// Evaluate >,<=, etc. Resolves slices before comparing. Returns 0 or 1
 int ctfeCmp(Loc loc, TOK op, Expression *e1, Expression *e2)
 {
-    int n;
     Type *t1 = e1->type->toBasetype();
     Type *t2 = e2->type->toBasetype();
+
     if (t1->isString() && t2->isString())
-    {
-        int cmp = ctfeRawCmp(loc, e1, e2);
-        switch (op)
-        {
-            case TOKlt: n = cmp <  0;   break;
-            case TOKle: n = cmp <= 0;   break;
-            case TOKgt: n = cmp >  0;   break;
-            case TOKge: n = cmp >= 0;   break;
-
-            case TOKleg:   n = 1;               break;
-            case TOKlg:    n = cmp != 0;        break;
-            case TOKunord: n = 0;               break;
-            case TOKue:    n = cmp == 0;        break;
-            case TOKug:    n = cmp >  0;        break;
-            case TOKuge:   n = cmp >= 0;        break;
-            case TOKul:    n = cmp <  0;        break;
-            case TOKule:   n = cmp <= 0;        break;
-
-            default:
-                assert(0);
-        }
-    }
+        return specificCmp(op, ctfeRawCmp(loc, e1, e2));
     else if (t1->isreal())
-    {
-        n = realCmp(op, e1->toReal(), e2->toReal());
-    }
+        return realCmp(op, e1->toReal(), e2->toReal());
     else if (t1->isimaginary())
-    {
-        n = realCmp(op, e1->toImaginary(), e2->toImaginary());
-    }
+        return realCmp(op, e1->toImaginary(), e2->toImaginary());
     else if (t1->isunsigned() || t2->isunsigned())
-    {
-        n = intUnsignedCmp(op, e1->toInteger(), e2->toInteger());
-    }
+        return intUnsignedCmp(op, e1->toInteger(), e2->toInteger());
     else
-    {
-        n = intSignedCmp(op, e1->toInteger(), e2->toInteger());
-    }
-    return n;
+        return intSignedCmp(op, e1->toInteger(), e2->toInteger());
 }
 
 UnionExp ctfeCat(Type *type, Expression *e1, Expression *e2)
@@ -1724,7 +1479,7 @@ UnionExp ctfeCat(Type *type, Expression *e1, Expression *e2)
                 return ue;
             }
             dinteger_t v = es2e->toInteger();
-            memcpy((utf8_t *)s + i * sz, &v, sz);
+            Port::valcpy((utf8_t *)s + i * sz, v, sz);
         }
 
         // Add terminating 0
@@ -1758,7 +1513,7 @@ UnionExp ctfeCat(Type *type, Expression *e1, Expression *e2)
                 return ue;
             }
             dinteger_t v = es2e->toInteger();
-            memcpy((utf8_t *)s + (es1->len + i) * sz, &v, sz);
+            Port::valcpy((utf8_t *)s + (es1->len + i) * sz, v, sz);
         }
 
         // Add terminating 0
@@ -1788,14 +1543,14 @@ UnionExp ctfeCat(Type *type, Expression *e1, Expression *e2)
         t1->nextOf()->equals(t2->nextOf()))
     {
         //  [ e1 ] ~ null ----> [ e1 ].dup
-        ue = paintTypeOntoLiteralCopy(type, copyLiteral(e1).exp());
+        ue = paintTypeOntoLiteralCopy(type, copyLiteral(e1).copy());
         return ue;
     }
     if (e1->op == TOKnull && e2->op == TOKarrayliteral &&
         t1->nextOf()->equals(t2->nextOf()))
     {
         //  null ~ [ e2 ] ----> [ e2 ].dup
-        ue = paintTypeOntoLiteralCopy(type, copyLiteral(e2).exp());
+        ue = paintTypeOntoLiteralCopy(type, copyLiteral(e2).copy());
         return ue;
     }
     ue = Cat(type, e1, e2);

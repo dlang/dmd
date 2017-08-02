@@ -68,6 +68,7 @@ public:
     Module *mod;
     ModuleDeclaration *md;
     LINK linkage;
+    CPPMANGLE cppmangle;
     Loc endloc;                 // set to location of last right curly
     int inBrackets;             // inside [] of array index or slice
     Loc lookingForElse;         // location of lonely if looking for an else
@@ -93,7 +94,7 @@ public:
     StaticAssert *parseStaticAssert();
     TypeQualified *parseTypeof();
     Type *parseVector();
-    LINK parseLinkage(Identifiers **);
+    LINK parseLinkage(Identifiers **, CPPMANGLE *);
     Identifiers *parseQualifiedIdentifier(const char *entity);
     Condition *parseDebugCondition();
     Condition *parseVersionCondition();
@@ -119,7 +120,7 @@ public:
     Type *parseBasicType2(Type *t);
     Type *parseDeclarator(Type *t, int *alt, Identifier **pident,
         TemplateParameters **tpl = NULL, StorageClass storage_class = 0, int *pdisable = NULL, Expressions **pudas = NULL);
-    void parseStorageClasses(StorageClass &storage_class, LINK &link, unsigned &structalign, Expressions *&udas);
+    void parseStorageClasses(StorageClass &storage_class, LINK &link, bool &setAlignment, Expression *&ealign, Expressions *&udas);
     Dsymbols *parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, const utf8_t *comment);
     Dsymbol *parseFunctionLiteral();
     FuncDeclaration *parseContracts(FuncDeclaration *f);

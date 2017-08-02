@@ -79,7 +79,7 @@ struct elem
                 #define NFLdelcse 0x40  // this is not the generating CSE
                 #define NFLtouns 0x80   // relational operator was changed from signed to unsigned
 #if MARS
-            unsigned char Ejty_;                // original Jupiter/Mars type
+            unsigned char Ejty_;                // original Mars type
             #define Ejty _EU._EO.Ejty_
 #endif
         }_EO;
@@ -149,6 +149,7 @@ int el_signx32(elem_p);
 targ_ldouble el_toldouble(elem_p);
 void el_toconst(elem_p);
 elem_p el_same(elem_p *);
+elem_p el_copytotmp(elem_p *);
 int el_match(elem_p ,elem_p);
 int el_match2(elem_p ,elem_p);
 int el_match3(elem_p ,elem_p);
@@ -177,8 +178,9 @@ elem_p el_long(tym_t,targ_llong);
 
 int ERTOL(elem_p);
 int el_noreturn(elem_p);
-elem *el_dctor(elem *e,void *decl);
-elem *el_ddtor(elem *e,void *decl);
+//elem *el_dctor(elem *e,void *decl);
+//elem *el_ddtor(elem *e,void *decl);
+elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor);
 elem *el_ctor(elem *ector,elem *e,symbol *sdtor);
 elem *el_dtor(elem *edtor,elem *e);
 elem *el_zero(type *t);
@@ -203,11 +205,7 @@ void el_opArray(elem ***parray, elem *e, unsigned op);
 void el_opFree(elem *e, unsigned op);
 elem *el_opCombine(elem **args, size_t length, unsigned op, unsigned ty);
 
-#ifdef DEBUG
 void elem_print(elem *);
-#else
-#define elem_print(e)
-#endif
 void elem_print_const(elem *);
 void el_hydrate(elem **);
 void el_dehydrate(elem **);

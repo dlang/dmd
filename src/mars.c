@@ -71,54 +71,8 @@ void parseConfFile(StringTable *environment, const char *path, size_t len, unsig
 
 void genObjFile(Module *m, bool multiobj);
 
-/** Normalize path by turning forward slashes into backslashes */
-const char * toWinPath(const char *src)
-{
-    if (src == NULL)
-        return NULL;
-
-    char *result = strdup(src);
-    char *p = result;
-    while (*p != '\0')
-    {
-        if (*p == '/')
-            *p = '\\';
-        p++;
-    }
-    return result;
-}
-
-void readFile(Loc loc, File *f)
-{
-    if (f->read())
-    {
-        error(loc, "Error reading file '%s'", f->name->toChars());
-        fatal();
-    }
-}
-
-void writeFile(Loc loc, File *f)
-{
-    if (f->write())
-    {
-        error(loc, "Error writing file '%s'", f->name->toChars());
-        fatal();
-    }
-}
-
-void ensurePathToNameExists(Loc loc, const char *name)
-{
-    const char *pt = FileName::path(name);
-    if (*pt)
-    {
-        if (FileName::ensurePathExists(pt))
-        {
-            error(loc, "cannot create directory %s", pt);
-            fatal();
-        }
-    }
-    FileName::free(pt);
-}
+// utils.c
+const char * toWinPath(const char *src);
 
 extern void backend_init();
 extern void backend_term();
@@ -260,13 +214,13 @@ void genCmain(Scope *sc)
     global.params.verbose = false;
     m->importedFrom = m;
     m->importAll(NULL);
-    m->semantic();
-    m->semantic2();
-    m->semantic3();
+    m->semantic(NULL);
+    m->semantic2(NULL);
+    m->semantic3(NULL);
     global.params.verbose = v;
 
     entrypoint = m;
-    rootHasMain = sc->module;
+    rootHasMain = sc->_module;
 }
 
 int tryMain(size_t argc, const char *argv[])
@@ -278,7 +232,7 @@ int tryMain(size_t argc, const char *argv[])
 #if TARGET_WINDOS
     bool setdefaultlib = false;
 #endif
-    global.init();
+    global._init();
 
 #ifdef DEBUG
     printf("DMD %s DEBUG\n", global.version);
@@ -333,9 +287,9 @@ int tryMain(size_t argc, const char *argv[])
 
     // Default to -m32 for 32 bit dmd, -m64 for 64 bit dmd
     global.params.is64bit = (sizeof(size_t) == 8);
+    global.params.mscoff = false;
 
 #if TARGET_WINDOS
-    global.params.mscoff = false;
     global.params.is64bit = false;
     global.params.defaultlibname = "phobos";
 #elif TARGET_LINUX
@@ -552,7 +506,9 @@ int tryMain(size_t argc, const char *argv[])
             else if (strcmp(p + 1, "m64") == 0)
             {
                 global.params.is64bit = true;
+            #if TARGET_WINDOS
                 global.params.mscoff = true;
+            #endif
             }
             else if (strcmp(p + 1, "m32mscoff") == 0)
             {
@@ -640,7 +596,7 @@ Language changes listed by -transition=id:\n\
                                 goto Lerror;
                         }
                     }
-                    else if (Lexer::isValidIdentifier(p + 12))
+                    else if (Identifier::isValidIdentifier(p + 12))
                     {
                         const char *ident = p + 12;
                         switch (strlen(ident))
@@ -879,7 +835,7 @@ Language changes listed by -transition=id:\n\
                             goto Lerror;
                         DebugCondition::setGlobalLevel((int)level);
                     }
-                    else if (Lexer::isValidIdentifier(p + 7))
+                    else if (Identifier::isValidIdentifier(p + 7))
                         DebugCondition::addGlobalIdent(p + 7);
                     else
                         goto Lerror;
@@ -905,7 +861,7 @@ Language changes listed by -transition=id:\n\
                             goto Lerror;
                         VersionCondition::setGlobalLevel((int)level);
                     }
-                    else if (Lexer::isValidIdentifier(p + 9))
+                    else if (Identifier::isValidIdentifier(p + 9))
                         VersionCondition::addGlobalIdent(p + 9);
                     else
                         goto Lerror;
@@ -1197,11 +1153,11 @@ Language changes listed by -transition=id:\n\
 
     // Initialization
     Lexer::initLexer();
-    Type::init();
+    Type::_init();
     Id::initialize();
-    Module::init();
-    Target::init();
-    Expression::init();
+    Module::_init();
+    Target::_init();
+    Expression::_init();
     objc_tryMain_init();
     initPrecedence();
     builtin_init();
@@ -1516,7 +1472,7 @@ Language changes listed by -transition=id:\n\
         Module *m = modules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic  %s\n", m->toChars());
-        m->semantic();
+        m->semantic(NULL);
     }
     if (global.errors)
         fatal();
@@ -1539,7 +1495,7 @@ Language changes listed by -transition=id:\n\
         Module *m = modules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic2 %s\n", m->toChars());
-        m->semantic2();
+        m->semantic2(NULL);
     }
     if (global.errors)
         fatal();
@@ -1550,7 +1506,7 @@ Language changes listed by -transition=id:\n\
         Module *m = modules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic3 %s\n", m->toChars());
-        m->semantic3();
+        m->semantic3(NULL);
     }
     Module::runDeferredSemantic3();
     if (global.errors)
@@ -1666,7 +1622,7 @@ Language changes listed by -transition=id:\n\
     else if (global.params.oneobj)
     {
         if (modules.dim)
-            obj_start(modules[0]->srcfile->toChars());
+            obj_start((char*)modules[0]->srcfile->toChars());
         for (size_t i = 0; i < modules.dim; i++)
         {
             Module *m = modules[i];
@@ -1689,7 +1645,7 @@ Language changes listed by -transition=id:\n\
             if (global.params.verbose)
                 fprintf(global.stdmsg, "code      %s\n", m->toChars());
 
-            obj_start(m->srcfile->toChars());
+            obj_start((char*)m->srcfile->toChars());
             genObjFile(m, global.params.multiobj);
             if (entrypoint && m == rootHasMain)
                 genObjFile(entrypoint, global.params.multiobj);
@@ -1835,27 +1791,6 @@ void getenv_setargv(const char *envvalue, Strings *args)
         }
     }
 }
-
-void escapePath(OutBuffer *buf, const char *fname)
-{
-    while (1)
-    {
-        switch (*fname)
-        {
-            case 0:
-                return;
-            case '(':
-            case ')':
-            case '\\':
-                buf->writeByte('\\');
-            default:
-                buf->writeByte(*fname);
-                break;
-        }
-        fname++;
-    }
-}
-
 
 /***********************************
  * Parse command line arguments for -m32 or -m64

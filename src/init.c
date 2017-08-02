@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include "checkedint.h"
 #include "mars.h"
 #include "init.h"
 #include "expression.h"
@@ -25,6 +26,8 @@
 #include "template.h"
 #include "id.h"
 #include "tokens.h"
+
+FuncDeclaration *isFuncAddress(Expression *e, bool *hasOverloads = NULL);
 
 /********************************** Initializer *******************************/
 
@@ -46,7 +49,7 @@ Initializers *Initializer::arraySyntaxCopy(Initializers *ai)
     return a;
 }
 
-char *Initializer::toChars()
+const char *Initializer::toChars()
 {
     OutBuffer buf;
     HdrGenState hgs;
@@ -406,7 +409,7 @@ Lno:
 
 Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
 {
-    size_t length;
+    unsigned length;
     const unsigned amax = 0x80000000;
     bool errors = false;
 
@@ -464,7 +467,13 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
             sc = sc->endCTFE();
             idx = idx->ctfeInterpret();
             index[i] = idx;
-            length = (size_t)idx->toInteger();
+            const uinteger_t idxvalue = idx->toInteger();
+            if (idxvalue >= amax)
+            {
+                error(loc, "array index %llu overflow", idxvalue);
+                errors = true;
+            }
+            length = (unsigned)idx->toInteger();
             if (idx->op == TOKerror)
                 errors = true;
         }
@@ -510,22 +519,27 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
     }
     if (t->ty == Tsarray)
     {
-        dinteger_t edim = ((TypeSArray *)t)->dim->toInteger();
+        uinteger_t edim = ((TypeSArray *)t)->dim->toInteger();
         if (dim > edim)
         {
-            error(loc, "array initializer has %u elements, but array length is %lld", dim, edim);
+            error(loc, "array initializer has %u elements, but array length is %llu", dim, edim);
             goto Lerr;
         }
     }
     if (errors)
         goto Lerr;
-
-    if ((uinteger_t) dim * t->nextOf()->size() >= amax)
+    else
     {
-        error(loc, "array dimension %u exceeds max of %u", (unsigned) dim, (unsigned)(amax / t->nextOf()->size()));
-        goto Lerr;
+        d_uns64 sz = t->nextOf()->size();
+        bool overflow = false;
+        const d_uns64 max = mulu((d_uns64)dim, sz, overflow);
+        if (overflow || max > amax)
+        {
+            error(loc, "array dimension %llu exceeds max of %llu", dim, (amax / sz));
+            goto Lerr;
+        }
+        return this;
     }
-    return this;
 
 Lerr:
     return new ErrorInitializer();
@@ -542,7 +556,8 @@ Expression *ArrayInitializer::toExpression(Type *tx)
     //static int i; if (++i == 2) halt();
 
     Expressions *elements;
-    size_t edim;
+    unsigned edim;
+    const unsigned amax = 0x80000000;
     Type *t = NULL;
     if (type)
     {
@@ -552,38 +567,47 @@ Expression *ArrayInitializer::toExpression(Type *tx)
         t = type->toBasetype();
         switch (t->ty)
         {
-           case Tsarray:
-               edim = (size_t)((TypeSArray *)t)->dim->toInteger();
-               break;
+            case Tvector:
+                t = ((TypeVector *)t)->basetype;
+                /* fall through */
 
-           case Tvector:
-               t = ((TypeVector *)t)->basetype;
-               edim = (size_t)((TypeSArray *)t)->dim->toInteger();
-               break;
+            case Tsarray:
+            {
+                uinteger_t adim = ((TypeSArray *)t)->dim->toInteger();
+                if (adim >= amax)
+                    goto Lno;
+                edim = (unsigned)adim;
+                break;
+            }
 
-           case Tpointer:
-           case Tarray:
-               edim = dim;
-               break;
+            case Tpointer:
+            case Tarray:
+                edim = dim;
+                break;
 
-           default:
-               assert(0);
+            default:
+                assert(0);
         }
     }
     else
     {
-        edim = value.dim;
+        edim = (unsigned)value.dim;
         for (size_t i = 0, j = 0; i < value.dim; i++, j++)
         {
             if (index[i])
             {
                 if (index[i]->op == TOKint64)
-                    j = (size_t)index[i]->toInteger();
+                {
+                    const uinteger_t idxval = index[i]->toInteger();
+                    if (idxval >= amax)
+                        goto Lno;
+                    j = (size_t)idxval;
+                }
                 else
                     goto Lno;
             }
             if (j >= edim)
-                edim = j + 1;
+                edim = (unsigned)(j + 1);
         }
     }
 
@@ -622,6 +646,35 @@ Expression *ArrayInitializer::toExpression(Type *tx)
         }
     }
 
+    /* Expand any static array initializers that are a single expression
+     * into an array of them
+     */
+    if (t)
+    {
+        Type *tn = t->nextOf()->toBasetype();
+        if (tn->ty == Tsarray)
+        {
+            size_t dim = ((TypeSArray *)tn)->dim->toInteger();
+            Type *te = tn->nextOf()->toBasetype();
+            for (size_t i = 0; i < elements->dim; i++)
+            {
+                Expression *e = (*elements)[i];
+                if (te->equals(e->type))
+                {
+                    Expressions *elements2 = new Expressions();
+                    elements2->setDim(dim);
+                    for (size_t j = 0; j < dim; j++)
+                        (*elements2)[j] = e;
+                    e = new ArrayLiteralExp(e->loc, elements2);
+                    e->type = tn;
+                    (*elements)[i] = e;
+                }
+            }
+        }
+    }
+
+    /* If any elements are errors, then the whole thing is an error
+     */
     for (size_t i = 0; i < edim; i++)
     {
         Expression *e = (*elements)[i];
@@ -776,7 +829,7 @@ Initializer *ExpInitializer::inferType(Scope *sc)
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
 
-    if (exp->op == TOKimport)
+    if (exp->op == TOKscope)
     {
         ScopeExp *se = (ScopeExp *)exp;
         TemplateInstance *ti = se->sds->isTemplateInstance();
@@ -788,21 +841,13 @@ Initializer *ExpInitializer::inferType(Scope *sc)
     }
 
     // Give error for overloaded function addresses
-    if (exp->op == TOKsymoff)
+    bool hasOverloads = false;
+    if (FuncDeclaration *f = isFuncAddress(exp, &hasOverloads))
     {
-        SymOffExp *se = (SymOffExp *)exp;
-        if (se->hasOverloads && !se->var->isFuncDeclaration()->isUnique())
-        {
-            exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
+        if (f->checkForwardRef(loc))
             return new ErrorInitializer();
-        }
-    }
-    if (exp->op == TOKdelegate)
-    {
-        DelegateExp *se = (DelegateExp *)exp;
-        if (se->hasOverloads &&
-            se->func->isFuncDeclaration() &&
-            !se->func->isFuncDeclaration()->isUnique())
+
+        if (hasOverloads && !f->isUnique())
         {
             exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
             return new ErrorInitializer();
@@ -845,6 +890,8 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
         {
             exp = exp->implicitCastTo(sc, t);
         }
+        if (!global.gag && olderrors != global.errors)
+            return this;
         exp = exp->ctfeInterpret();
     }
     else
@@ -893,7 +940,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
         if (!se->committed &&
             (typeb->ty == Tarray || typeb->ty == Tsarray) &&
             (tynto == Tchar || tynto == Twchar || tynto == Tdchar) &&
-            se->length((int)tb->nextOf()->size()) < ((TypeSArray *)tb)->dim->toInteger())
+            se->numberOfCodeUnits(tynto) < ((TypeSArray *)tb)->dim->toInteger())
         {
             exp = se->castTo(sc, t);
             goto L1;

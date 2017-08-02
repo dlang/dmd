@@ -73,6 +73,9 @@ char *obj_mangle2(Symbol *s,char *dest);
 #define cpp_mangle(s) ((s)->Sident)
 #endif
 
+extern int except_table_seg;        // segment of __gcc_except_tab
+extern int eh_frame_seg;            // segment of __eh_frame
+
 
 /******************************************
  */
@@ -125,6 +128,14 @@ static int section_cnt;         // Number of sections in table
 static Outbuffer *local_symbuf;
 static Outbuffer *public_symbuf;
 static Outbuffer *extern_symbuf;
+
+static void reset_symbols(Outbuffer *buf)
+{
+    symbol **p = (symbol **)buf->buf;
+    const size_t n = buf->size() / sizeof(symbol *);
+    for (size_t i = 0; i < n; ++i)
+        symbol_reset(p[i]);
+}
 
 struct Comdef { symbol *sym; targ_size_t size; int count; };
 static Outbuffer *comdef_symbuf;        // Comdef's are stored here
@@ -205,6 +216,7 @@ struct Relocation
     unsigned char rtype;   // RELxxxx
 #define RELaddr 0       // straight address
 #define RELrel  1       // relative to location to be fixed up
+    unsigned char flag; // 1: emit SUBTRACTOR/UNSIGNED pair
     short val;          // 0, -1, -2, -4
 };
 
@@ -436,13 +448,21 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
         local_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
     local_symbuf->setsize(0);
 
-    if (!public_symbuf)
+    if (public_symbuf)
+    {
+        reset_symbols(public_symbuf);
+        public_symbuf->setsize(0);
+    }
+    else
         public_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
-    public_symbuf->setsize(0);
 
-    if (!extern_symbuf)
+    if (extern_symbuf)
+    {
+        reset_symbols(extern_symbuf);
+        extern_symbuf->setsize(0);
+    }
+    else
         extern_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
-    extern_symbuf->setsize(0);
 
     if (!comdef_symbuf)
         comdef_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
@@ -481,9 +501,7 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
     MachObj::getsegment("__bss",   "__DATA", 4, S_ZEROFILL);        // UDATA
     MachObj::getsegment("__const", "__DATA", align, S_REGULAR);     // CDATAREL
 
-    if (config.fulltypes)
-        dwarf_initfile(filename);
-
+    dwarf_initfile(filename);
     return obj;
 }
 
@@ -922,7 +940,60 @@ void Obj::term(const char *objfilename)
                 {
                     //printf("Relocation\n");
                     //symbol_print(s);
-                    if (pseg->isCode())
+                    if (r->flag == 1)
+                    {
+                        if (I64)
+                        {
+                            rel.r_type = X86_64_RELOC_SUBTRACTOR;
+                            rel.r_address = r->offset;
+                            rel.r_symbolnum = r->funcsym->Sxtrnnum;
+                            rel.r_pcrel = 0;
+                            rel.r_length = 3;
+                            rel.r_extern = 1;
+                            fobjbuf->write(&rel, sizeof(rel));
+                            foffset += sizeof(rel);
+                            ++nreloc;
+
+                            rel.r_type = X86_64_RELOC_UNSIGNED;
+                            rel.r_symbolnum = s->Sxtrnnum;
+                            fobjbuf->write(&rel, sizeof(rel));
+                            foffset += sizeof(rel);
+                            ++nreloc;
+
+                            // patch with fdesym->Soffset - offset
+                            int64_t *p = (int64_t *)patchAddr64(seg, r->offset);
+                            *p += r->funcsym->Soffset - r->offset;
+                            continue;
+                        }
+                        else
+                        {
+                            // address = segment + offset
+                            int targ_address = SecHdrTab[SegData[s->Sseg]->SDshtidx].addr + s->Soffset;
+                            int fixup_address = psechdr->addr + r->offset;
+
+                            int32_t *p = patchAddr(seg, r->offset);
+                            srel.r_scattered = 1;
+                            srel.r_type = GENERIC_RELOC_LOCAL_SECTDIFF;
+                            srel.r_address = r->offset;
+                            srel.r_pcrel = 0;
+                            srel.r_length = 2;
+                            srel.r_value = targ_address;
+                            fobjbuf->write(&srel, sizeof(srel));
+                            foffset += sizeof(srel);
+                            ++nreloc;
+
+                            srel.r_type = GENERIC_RELOC_PAIR;
+                            srel.r_address = 0;
+                            srel.r_value = fixup_address;
+                            fobjbuf->write(&srel, sizeof(srel));
+                            foffset += sizeof(srel);
+                            ++nreloc;
+
+                            *p += targ_address - fixup_address;
+                            continue;
+                        }
+                    }
+                    else if (pseg->isCode())
                     {
                         if (I64)
                         {
@@ -942,7 +1013,12 @@ void Obj::term(const char *objfilename)
                                 s->Sclass == SCglobal)
                             {
                                 if ((s->Sfl == FLfunc || s->Sfl == FLextern || s->Sclass == SCglobal || s->Sclass == SCcomdat || s->Sclass == SCcomdef) && r->rtype == RELaddr)
+                                {
                                     rel.r_type = X86_64_RELOC_GOT_LOAD;
+                                    if (seg == eh_frame_seg ||
+                                        seg == except_table_seg)
+                                        rel.r_type = X86_64_RELOC_GOT;
+                                }
                                 rel.r_address = r->offset;
                                 rel.r_symbolnum = s->Sxtrnnum;
                                 rel.r_pcrel = 1;
@@ -1065,14 +1141,24 @@ void Obj::term(const char *objfilename)
                     nreloc++;
 
                     srel.r_address = 0;
-                    srel.r_type = GENERIC_RELOC_PAIR;
                     srel.r_length = 2;
                     if (I64)
+                    {
+                        srel.r_type = X86_64_RELOC_SIGNED;
                         srel.r_value = SecHdrTab64[pseg->SDshtidx].addr +
                                 r->funcsym->Slocalgotoffset + NPTRSIZE;
+                    }
                     else
-                        srel.r_value = SecHdrTab[pseg->SDshtidx].addr +
-                                r->funcsym->Slocalgotoffset + NPTRSIZE;
+                    {
+                        srel.r_type = GENERIC_RELOC_PAIR;
+                        if (r->funcsym)
+                            srel.r_value = SecHdrTab[pseg->SDshtidx].addr +
+                                    r->funcsym->Slocalgotoffset + NPTRSIZE;
+                        else
+                            srel.r_value = psechdr->addr + r->offset;
+                        //printf("srel.r_value = x%x, psechdr->addr = x%x, r->offset = x%x\n",
+                            //(int)srel.r_value, (int)psechdr->addr, (int)r->offset);
+                    }
                     srel.r_pcrel = 0;
                     fobjbuf->write(&srel, sizeof(srel));
                     foffset += sizeof(srel);
@@ -1090,8 +1176,13 @@ void Obj::term(const char *objfilename)
                     {
                         p = patchAddr(seg, r->offset);
                         //printf("address = x%x, p = %p *p = x%x\n", r->offset, p, *p);
-                        *p += SecHdrTab[SegData[r->targseg]->SDshtidx].addr -
-                              (SecHdrTab[pseg->SDshtidx].addr + r->funcsym->Slocalgotoffset + NPTRSIZE);
+                        if (r->funcsym)
+                            *p += SecHdrTab[SegData[r->targseg]->SDshtidx].addr -
+                                  (SecHdrTab[pseg->SDshtidx].addr + r->funcsym->Slocalgotoffset + NPTRSIZE);
+                        else
+                            // targ_address - fixup_address
+                            *p += SecHdrTab[SegData[r->targseg]->SDshtidx].addr -
+                                  (psechdr->addr + r->offset);
                     }
                     continue;
                 }
@@ -1515,7 +1606,6 @@ void Obj::compiler()
     //dbg_printf("Obj::compiler\n");
 }
 
-//#if NEWSTATICDTOR
 
 /**************************************
  * Symbol is the function that calls the static constructors.
@@ -1576,7 +1666,6 @@ void Obj::staticdtor(Symbol *s)
 #endif
 }
 
-//#else
 
 /***************************************
  * Stuff pointer to function in its own segment.
@@ -1588,7 +1677,6 @@ void Obj::funcptr(Symbol *s)
     //dbg_printf("Obj::funcptr(%s) \n",s->Sident);
 }
 
-//#endif
 
 /***************************************
  * Stuff the following data (instance of struct FuncTable) in a separate segment:
@@ -1938,7 +2026,7 @@ char *obj_mangle2(Symbol *s,char *dest)
             if (tyfunc(s->ty()) && !variadic(s->Stype))
 #else
             if (!(config.flags4 & CFG4oldstdmangle) &&
-                config.exe == EX_NT && tyfunc(s->ty()) &&
+                config.exe == EX_WIN32 && tyfunc(s->ty()) &&
                 !variadic(s->Stype))
 #endif
             {
@@ -2051,8 +2139,7 @@ void Obj::func_start(Symbol *sfunc)
     Obj::pubdef(cseg, sfunc, Coffset);
     sfunc->Soffset = Coffset;
 
-    if (config.fulltypes)
-        dwarf_func_start(sfunc);
+    dwarf_func_start(sfunc);
 }
 
 /*******************************
@@ -2071,8 +2158,7 @@ void Obj::func_term(Symbol *sfunc)
     else
         SymbolTable[sfunc->Sxtrnnum].st_size = Coffset - sfunc->Soffset;
 #endif
-    if (config.fulltypes)
-        dwarf_func_term(sfunc);
+    dwarf_func_term(sfunc);
 }
 
 /********************************
@@ -2171,11 +2257,7 @@ int Obj::common_block(Symbol *s,targ_size_t size,targ_size_t count)
     symbol_debug(s);
 
     // can't have code or thread local comdef's
-    assert(!(s->ty() & (
-#if TARGET_SEGMENTED
-                    mTYcs |
-#endif
-                    mTYthread)));
+    assert(!(s->ty() & (mTYcs | mTYthread)));
 
     struct Comdef comdef;
     comdef.sym = s;
@@ -2285,8 +2367,7 @@ if (!buf) halt();
     int save = buf->size();
     //dbg_printf("Obj::bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n",
             //seg,offset,nbytes,p);
-    buf->setsize(offset);
-    buf->reserve(nbytes);
+    buf->position(offset, nbytes);
     if (p)
     {
         buf->writen(p,nbytes);
@@ -2314,6 +2395,7 @@ void MachObj::addrel(int seg, targ_size_t offset, symbol *targsym,
     rel.targsym = targsym;
     rel.targseg = targseg;
     rel.rtype = rtype;
+    rel.flag = 0;
     rel.funcsym = funcsym_p;
     rel.val = val;
     seg_data *pseg = SegData[seg];
@@ -2527,12 +2609,14 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                 MachObj::addrel(seg, offset, NULL, jumpTableSeg, RELrel);
             }
             else if (SegData[seg]->isCode() &&
+                     !(flags & CFindirect) &&
                     ((s->Sclass != SCextern && SegData[s->Sseg]->isCode()) || s->Sclass == SClocstat || s->Sclass == SCstatic))
             {
                 val += s->Soffset;
                 MachObj::addrel(seg, offset, NULL, s->Sseg, RELaddr);
             }
-            else if (SegData[seg]->isCode() && !tyfunc(s->ty()))
+            else if ((flags & CFindirect) ||
+                     SegData[seg]->isCode() && !tyfunc(s->ty()))
             {
                 if (!pointersSeg)
                 {
@@ -2563,8 +2647,24 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                 indirectsymbuf2->write(&s, sizeof(Symbol *));
 
              L2:
-                //printf("Obj::reftoident: seg = %d, offset = x%x, s = %s, val = x%x, pointersSeg = %d\n", seg, offset, s->Sident, val, pointersSeg);
-                MachObj::addrel(seg, offset, NULL, pointersSeg, RELaddr);
+                //printf("Obj::reftoident: seg = %d, offset = x%x, s = %s, val = x%x, pointersSeg = %d\n", seg, (int)offset, s->Sident, (int)val, pointersSeg);
+                if (flags & CFindirect)
+                {
+                    Relocation rel;
+                    rel.offset = offset;
+                    rel.targsym = NULL;
+                    rel.targseg = pointersSeg;
+                    rel.rtype = RELaddr;
+                    rel.flag = 0;
+                    rel.funcsym = NULL;
+                    rel.val = 0;
+                    seg_data *pseg = SegData[seg];
+                    if (!pseg->SDrel)
+                        pseg->SDrel = new Outbuffer();
+                    pseg->SDrel->write(&rel, sizeof(rel));
+                }
+                else
+                    MachObj::addrel(seg, offset, NULL, pointersSeg, RELaddr);
             }
             else
             {   //val -= s->Soffset;
@@ -2574,7 +2674,7 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
 
         Outbuffer *buf = SegData[seg]->SDbuf;
         int save = buf->size();
-        buf->setsize(offset);
+        buf->position(offset, retsize);
         //printf("offset = x%llx, val = x%llx\n", offset, val);
         if (retsize == 8)
             buf->write64(val);
@@ -2700,6 +2800,78 @@ void Obj::gotref(symbol *s)
         default:
             break;
     }
+}
+
+/******************************************
+ * Generate fixup specific to .eh_frame and .gcc_except_table sections.
+ * Params:
+ *      seg = segment of where to write fixup
+ *      offset = offset of where to write fixup
+ *      s = fixup is a reference to this Symbol
+ *      val = displacement from s
+ * Returns:
+ *      number of bytes written at seg:offset
+ */
+int dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val)
+{
+    //printf("dwarf_reftoident(seg=%d offset=x%x s=%s val=x%x\n", seg, (int)offset, s->Sident, (int)val);
+    MachObj::reftoident(seg, offset, s, val + 4, I64 ? CFoff : CFindirect);
+    return 4;
+}
+
+/*****************************************
+ * Generate LSDA and PC_Begin fixups in the __eh_frame segment encoded as DW_EH_PE_pcrel|ptr.
+ * 64 bits
+ *   LSDA
+ *      [0] address x0071 symbolnum 6 pcrel 0 length 3 extern 1 type 5 RELOC_SUBTRACTOR __Z3foov.eh
+ *      [1] address x0071 symbolnum 1 pcrel 0 length 3 extern 1 type 0 RELOC_UNSIGNED   GCC_except_table2
+ *   PC_Begin:
+ *      [2] address x0060 symbolnum 6 pcrel 0 length 3 extern 1 type 5 RELOC_SUBTRACTOR __Z3foov.eh
+ *      [3] address x0060 symbolnum 5 pcrel 0 length 3 extern 1 type 0 RELOC_UNSIGNED   __Z3foov
+ *      Want the result to be  &s - pc
+ *      The fixup yields       &s - &fdesym + value
+ *      Therefore              value = &fdesym - pc
+ *      which is the same as   fdesym->Soffset - offset
+ * 32 bits
+ *   LSDA
+ *      [6] address x0028 pcrel 0 length 2 value x0 type 4 RELOC_LOCAL_SECTDIFF
+ *      [7] address x0000 pcrel 0 length 2 value x1dc type 1 RELOC_PAIR
+ *   PC_Begin
+ *      [8] address x0013 pcrel 0 length 2 value x228 type 4 RELOC_LOCAL_SECTDIFF
+ *      [9] address x0000 pcrel 0 length 2 value x1c7 type 1 RELOC_PAIR
+ * Params:
+ *      dfseg = segment of where to write fixup (eh_frame segment)
+ *      offset = offset of where to write fixup (eh_frame offset)
+ *      s = fixup is a reference to this Symbol (GCC_except_table%d or function_name)
+ *      val = displacement from s
+ *      fdesym = function_name.eh
+ * Returns:
+ *      number of bytes written at seg:offset
+ */
+int dwarf_eh_frame_fixup(int dfseg, targ_size_t offset, Symbol *s, targ_size_t val, Symbol *fdesym)
+{
+    Outbuffer *buf = SegData[dfseg]->SDbuf;
+    assert(offset == buf->size());
+    assert(fdesym->Sseg == dfseg);
+    if (I64)
+        buf->write64(val);  // add in 'value' later
+    else
+        buf->write32(val);
+
+    Relocation rel;
+    rel.offset = offset;
+    rel.targsym = s;
+    rel.targseg = 0;
+    rel.rtype = RELaddr;
+    rel.flag = 1;
+    rel.funcsym = fdesym;
+    rel.val = 0;
+    seg_data *pseg = SegData[dfseg];
+    if (!pseg->SDrel)
+        pseg->SDrel = new Outbuffer();
+    pseg->SDrel->write(&rel, sizeof(rel));
+
+    return I64 ? 8 : 4;
 }
 
 #endif

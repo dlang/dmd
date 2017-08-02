@@ -26,19 +26,28 @@
 #include "attrib.h"
 #include "target.h"
 
+// For getcwd()
+#if _WIN32
+#include <direct.h>
+#endif
+#if POSIX
+#include <unistd.h>
+#endif
+
 AggregateDeclaration *Module::moduleinfo;
 
 Module *Module::rootModule;
 DsymbolTable *Module::modules;
 Modules Module::amodules;
 
-Dsymbols Module::deferred; // deferred Dsymbol's needing semantic() run on them
-Dsymbols Module::deferred3;
+Dsymbols Module::deferred;  // deferred Dsymbol's needing semantic() run on them
+Dsymbols Module::deferred2; // deferred Dsymbol's needing semantic2() run on them
+Dsymbols Module::deferred3; // deferred Dsymbol's needing semantic3() run on them
 unsigned Module::dprogress;
 
-const char *lookForSourceFile(const char *filename);
+const char *lookForSourceFile(const char **path, const char *filename);
 
-void Module::init()
+void Module::_init()
 {
     modules = new DsymbolTable();
 }
@@ -76,6 +85,7 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
     sfilename = NULL;
     importedFrom = NULL;
     srcfile = NULL;
+    srcfilePath = NULL;
     docfile = NULL;
 
     debuglevel = 0;
@@ -112,6 +122,8 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
         fatal();
     }
     srcfile = new File(srcfilename);
+    if (!FileName::absolute(srcfilename))
+        srcfilePath = getcwd(NULL, 0);
 
     objfile = setOutfile(global.params.objname, global.params.objdir, filename, global.obj_ext);
 
@@ -191,6 +203,31 @@ const char *Module::kind()
     return "module";
 }
 
+static void checkModFileAlias(OutBuffer *buf, OutBuffer *dotmods,
+                              Array<const char *> *ms, size_t msdim, const char *p)
+{
+    /* Check and replace the contents of buf[] with
+     * an alias string from global.params.modFileAliasStrings[]
+     */
+    dotmods->writestring(p);
+    for (size_t j = msdim; j--;)
+    {
+        const char *m = (*ms)[j];
+        const char *q = strchr(m, '=');
+        assert(q);
+        if (dotmods->offset <= q - m && memcmp(dotmods->peekString(), m, q - m) == 0)
+        {
+            buf->reset();
+            size_t qlen = strlen(q + 1);
+            if (qlen && (q[qlen] == '/' || q[qlen] == '\\'))
+                --qlen;             // remove trailing separator
+            buf->write(q + 1, qlen);
+            break;                  // last matching entry in ms[] wins
+        }
+    }
+    dotmods->writeByte('.');
+}
+
 Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 {
     //printf("Module::load(ident = '%s')\n", ident->toChars());
@@ -199,15 +236,21 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
     //  foo.bar.baz
     // into:
     //  foo\bar\baz
-    char *filename = ident->toChars();
+    const char *filename = ident->toChars();
     if (packages && packages->dim)
     {
         OutBuffer buf;
+        OutBuffer dotmods;
+        Array<const char *> *ms = global.params.modFileAliasStrings;
+        const size_t msdim = ms ? ms->dim : 0;
 
         for (size_t i = 0; i < packages->dim; i++)
-        {   Identifier *pid = (*packages)[i];
-
-            buf.writestring(pid->toChars());
+        {
+            Identifier *pid = (*packages)[i];
+            const char *p = pid->toChars();
+            buf.writestring(p);
+            if (msdim)
+                checkModFileAlias(&buf, &dotmods, ms, msdim, p);
 #if _WIN32
             buf.writeByte('\\');
 #else
@@ -215,6 +258,8 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 #endif
         }
         buf.writestring(filename);
+        if (msdim)
+            checkModFileAlias(&buf, &dotmods, ms, msdim, filename);
         buf.writeByte(0);
         filename = (char *)buf.extractData();
     }
@@ -224,9 +269,16 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 
     /* Look for the source file
      */
-    const char *result = lookForSourceFile(filename);
+    const char *path;
+    const char *result = lookForSourceFile(&path, filename);
     if (result)
+    {
         m->srcfile = new File(result);
+        if (path)
+            m->srcfilePath = path;
+        else if (!FileName::absolute(result))
+            m->srcfilePath = getcwd(NULL, 0);
+    }
 
     if (!m->read(loc))
         return NULL;
@@ -301,7 +353,7 @@ Module *Module::parse()
 {
     //printf("Module::parse(srcfile='%s') this=%p\n", srcfile->name->toChars(), this);
 
-    char *srcname = srcfile->name->toChars();
+    const char *srcname = srcfile->name->toChars();
     //printf("Module::parse(srcname = '%s')\n", srcname);
 
     isPackageFile = (strcmp(srcfile->name->name(), "package.d") == 0);
@@ -527,7 +579,7 @@ Module *Module::parse()
 
         /* Check to see if module name is a valid identifier
          */
-        if (!Lexer::isValidIdentifier(this->ident->toChars()))
+        if (!Identifier::isValidIdentifier(this->ident->toChars()))
             error("has non-identifier characters in filename, use module declaration instead");
     }
 
@@ -619,6 +671,7 @@ Module *Module::parse()
         p->parent = this->parent;
         p->isPkgMod = PKGmodule;
         p->mod = this;
+        p->tag = this->tag; // reuse the same package tag
         p->symtab = new DsymbolTable();
         s = p;
     }
@@ -653,6 +706,7 @@ Module *Module::parse()
                  */
                 pkg->isPkgMod = PKGmodule;
                 pkg->mod = this;
+                pkg->tag = this->tag; // reuse the same package tag
             }
             else
                 error(md ? md->loc : loc, "from file %s conflicts with package name %s",
@@ -673,7 +727,7 @@ void Module::importAll(Scope *prevsc)
 {
     //printf("+Module::importAll(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
 
-    if (scope)
+    if (_scope)
         return;                 // already done
 
     if (isDocFile)
@@ -741,7 +795,7 @@ void Module::importAll(Scope *prevsc)
     sc->pop();          // 2 pops because Scope::createGlobal() created 2
 }
 
-void Module::semantic()
+void Module::semantic(Scope *)
 {
     if (semanticRun != PASSinit)
         return;
@@ -752,7 +806,7 @@ void Module::semantic()
     // Note that modules get their own scope, from scratch.
     // This is so regardless of where in the syntax a module
     // gets imported, it is unaffected by context.
-    Scope *sc = scope;                  // see if already got one from importAll()
+    Scope *sc = _scope;                  // see if already got one from importAll()
     if (!sc)
     {
         Scope::createGlobal(this);      // create root scope
@@ -775,7 +829,7 @@ void Module::semantic()
         userAttribDecl->semantic(sc);
     }
 
-    if (!scope)
+    if (!_scope)
     {
         sc = sc->pop();
         sc->pop();              // 2 pops because Scope::createGlobal() created 2
@@ -784,7 +838,7 @@ void Module::semantic()
     //printf("-Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
 }
 
-void Module::semantic2()
+void Module::semantic2(Scope*)
 {
     //printf("Module::semantic2('%s'): parent = %p\n", toChars(), parent);
     if (semanticRun != PASSsemanticdone)       // semantic() not completed yet - could be recursive call
@@ -815,7 +869,7 @@ void Module::semantic2()
     //printf("-Module::semantic2('%s'): parent = %p\n", toChars(), parent);
 }
 
-void Module::semantic3()
+void Module::semantic3(Scope*)
 {
     //printf("Module::semantic3('%s'): parent = %p\n", toChars(), parent);
     if (semanticRun != PASSsemantic2done)
@@ -864,9 +918,16 @@ Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
      * This is done with the cache.
      */
 
-    //printf("%s Module::search('%s', flags = %d) insearch = %d\n", toChars(), ident->toChars(), flags, insearch);
+    //printf("%s Module::search('%s', flags = x%x) insearch = %d\n", toChars(), ident->toChars(), flags, insearch);
     if (insearch)
         return NULL;
+
+    /* Qualified module searches always search their imports,
+     * even if SearchLocalsOnly
+     */
+    if (!(flags & SearchUnqualifiedModule))
+        flags &= ~(SearchUnqualifiedModule | SearchLocalsOnly);
+
     if (searchCacheIdent == ident && searchCacheFlags == flags)
     {
         //printf("%s Module::search('%s', flags = %d) insearch = %d searchCacheSymbol = %s\n",
@@ -889,6 +950,18 @@ Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
         searchCacheFlags = flags;
     }
     return s;
+}
+
+bool Module::isPackageAccessible(Package *p, Prot protection, int flags)
+{
+    if (insearch) // don't follow import cycles
+        return false;
+    if (flags & IgnorePrivateImports)
+        protection = Prot(PROTpublic); // only consider public imports
+    insearch = true;
+    bool r = ScopeDsymbol::isPackageAccessible(p, protection);
+    insearch = false;
+    return r;
 }
 
 Dsymbol *Module::symtabInsert(Dsymbol *s)
@@ -925,6 +998,17 @@ void Module::addDeferredSemantic(Dsymbol *s)
     deferred.push(s);
 }
 
+void Module::addDeferredSemantic2(Dsymbol *s)
+{
+    //printf("Module::addDeferredSemantic2('%s')\n", s->toChars());
+    deferred2.push(s);
+}
+
+void Module::addDeferredSemantic3(Dsymbol *s)
+{
+    //printf("Module::addDeferredSemantic3('%s')\n", s->toChars());
+    deferred3.push(s);
+}
 
 /******************************************
  * Run semantic() on deferred symbols.
@@ -980,20 +1064,26 @@ void Module::runDeferredSemantic()
     //printf("-Module::runDeferredSemantic(), len = %d\n", deferred.dim);
 }
 
-void Module::addDeferredSemantic3(Dsymbol *s)
+void Module::runDeferredSemantic2()
 {
-    // Don't add it if it is already there
-    for (size_t i = 0; i < deferred3.dim; i++)
+    Module::runDeferredSemantic();
+
+    Dsymbols *a = &Module::deferred2;
+    for (size_t i = 0; i < a->dim; i++)
     {
-        Dsymbol *sd = deferred3[i];
-        if (sd == s)
-            return;
+        Dsymbol *s = (*a)[i];
+        //printf("[%d] %s semantic2a\n", i, s->toPrettyChars());
+        s->semantic2(NULL);
+
+        if (global.errors)
+            break;
     }
-    deferred3.push(s);
 }
 
 void Module::runDeferredSemantic3()
 {
+    Module::runDeferredSemantic2();
+
     Dsymbols *a = &Module::deferred3;
     for (size_t i = 0; i < a->dim; i++)
     {
@@ -1104,7 +1194,7 @@ ModuleDeclaration::ModuleDeclaration(Loc loc, Identifiers *packages, Identifier 
     this->msg = NULL;
 }
 
-char *ModuleDeclaration::toChars()
+const char *ModuleDeclaration::toChars()
 {
     OutBuffer buf;
 
@@ -1128,6 +1218,8 @@ Package::Package(Identifier *ident)
 {
     this->isPkgMod = PKGunknown;
     this->mod = NULL;
+    static unsigned packageTag = 0;
+    this->tag = packageTag++;
 }
 
 
@@ -1158,20 +1250,13 @@ Module *Package::isPackageMod()
  * Returns:
  *  see description
  */
-bool Package::isAncestorPackageOf(Package* pkg)
+bool Package::isAncestorPackageOf(const Package * const pkg) const
 {
-    while (pkg)
-    {
-        if (this == pkg)
-            return true;
-
-        if (!pkg->parent)
-            break;
-
-        pkg = pkg->parent->isPackage();
-    }
-
-    return false;
+    if (this == pkg)
+        return true;
+    if (!pkg || !pkg->parent)
+        return false;
+    return isAncestorPackageOf(pkg->parent->isPackage());
 }
 
 /****************************************************
@@ -1240,6 +1325,8 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
 
 Dsymbol *Package::search(Loc loc, Identifier *ident, int flags)
 {
+    //printf("%s Package::search('%s', flags = x%x)\n", toChars(), ident->toChars(), flags);
+    flags &= ~SearchLocalsOnly;  // searching an import is always transitive
     if (!isModule() && mod)
     {
         // Prefer full package name.
@@ -1259,6 +1346,8 @@ Dsymbol *Package::search(Loc loc, Identifier *ident, int flags)
  * Look for the source file if it's different from filename.
  * Look for .di, .d, directory, and along global.path.
  * Does not open the file.
+ * Output:
+ *      path            the path where the file was found if it was not the current directory
  * Input:
  *      filename        as supplied by the user
  *      global.path
@@ -1266,11 +1355,11 @@ Dsymbol *Package::search(Loc loc, Identifier *ident, int flags)
  *      NULL if it's not different from filename.
  */
 
-const char *lookForSourceFile(const char *filename)
+const char *lookForSourceFile(const char **path, const char *filename)
 {
-
     /* Search along global.path for .di file, then .d file.
      */
+    *path = NULL;
 
     const char *sdi = FileName::forceExt(filename, global.hdr_ext);
     if (FileName::exists(sdi) == 1)
@@ -1304,12 +1393,18 @@ const char *lookForSourceFile(const char *filename)
 
         const char *n = FileName::combine(p, sdi);
         if (FileName::exists(n) == 1)
+        {
+            *path = p;
             return n;
+        }
         FileName::free(n);
 
         n = FileName::combine(p, sd);
         if (FileName::exists(n) == 1)
+        {
+            *path = p;
             return n;
+        }
         FileName::free(n);
 
         const char *b = FileName::removeExt(filename);
@@ -1319,7 +1414,10 @@ const char *lookForSourceFile(const char *filename)
         {
             const char *n2 = FileName::combine(n, "package.d");
             if (FileName::exists(n2) == 1)
+            {
+                *path = p;
                 return n2;
+            }
             FileName::free(n2);
         }
         FileName::free(n);

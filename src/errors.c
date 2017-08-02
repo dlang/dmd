@@ -108,7 +108,7 @@ void resetConsoleColor()
  * Print error message
  */
 
-void error(Loc loc, const char *format, ...)
+void error(const Loc& loc, const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -128,7 +128,7 @@ void error(const char *filename, unsigned linnum, unsigned charnum, const char *
     va_end( ap );
 }
 
-void errorSupplemental(Loc loc, const char *format, ...)
+void errorSupplemental(const Loc& loc, const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -136,7 +136,7 @@ void errorSupplemental(Loc loc, const char *format, ...)
     va_end( ap );
 }
 
-void warning(Loc loc, const char *format, ...)
+void warning(const Loc& loc, const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -144,7 +144,7 @@ void warning(Loc loc, const char *format, ...)
     va_end( ap );
 }
 
-void warningSupplemental(Loc loc, const char *format, ...)
+void warningSupplemental(const Loc& loc, const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -152,7 +152,7 @@ void warningSupplemental(Loc loc, const char *format, ...)
     va_end( ap );
 }
 
-void deprecation(Loc loc, const char *format, ...)
+void deprecation(const Loc& loc, const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -160,7 +160,7 @@ void deprecation(Loc loc, const char *format, ...)
     va_end( ap );
 }
 
-void deprecationSupplemental(Loc loc, const char *format, ...)
+void deprecationSupplemental(const Loc& loc, const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -169,16 +169,16 @@ void deprecationSupplemental(Loc loc, const char *format, ...)
 }
 
 // Just print, doesn't care about gagging
-void verrorPrint(Loc loc, COLOR headerColor, const char *header, const char *format, va_list ap,
+void verrorPrint(const Loc& loc, COLOR headerColor, const char *header, const char *format, va_list ap,
                 const char *p1 = NULL, const char *p2 = NULL)
 {
-    char *p = loc.toChars();
+    const char *p = loc.toChars();
 
     if (global.params.color)
         setConsoleColorBright(true);
     if (*p)
         fprintf(stderr, "%s: ", p);
-    mem.xfree(p);
+    mem.xfree((void*)p);
 
     if (global.params.color)
         setConsoleColor(headerColor, true);
@@ -196,7 +196,7 @@ void verrorPrint(Loc loc, COLOR headerColor, const char *header, const char *for
 }
 
 // header is "Error: " by default (see errors.h)
-void verror(Loc loc, const char *format, va_list ap,
+void verror(const Loc& loc, const char *format, va_list ap,
                 const char *p1, const char *p2, const char *header)
 {
     global.errors++;
@@ -215,13 +215,13 @@ void verror(Loc loc, const char *format, va_list ap,
 }
 
 // Doesn't increase error count, doesn't print "Error:".
-void verrorSupplemental(Loc loc, const char *format, va_list ap)
+void verrorSupplemental(const Loc& loc, const char *format, va_list ap)
 {
     if (!global.gag)
         verrorPrint(loc, COLOR_RED, "       ", format, ap);
 }
 
-void vwarning(Loc loc, const char *format, va_list ap)
+void vwarning(const Loc& loc, const char *format, va_list ap)
 {
     if (global.params.warnings && !global.gag)
     {
@@ -232,13 +232,13 @@ void vwarning(Loc loc, const char *format, va_list ap)
     }
 }
 
-void vwarningSupplemental(Loc loc, const char *format, va_list ap)
+void vwarningSupplemental(const Loc& loc, const char *format, va_list ap)
 {
     if (global.params.warnings && !global.gag)
         verrorPrint(loc, COLOR_YELLOW, "       ", format, ap);
 }
 
-void vdeprecation(Loc loc, const char *format, va_list ap,
+void vdeprecation(const Loc& loc, const char *format, va_list ap,
                 const char *p1, const char *p2)
 {
     static const char *header = "Deprecation: ";
@@ -248,7 +248,7 @@ void vdeprecation(Loc loc, const char *format, va_list ap,
         verrorPrint(loc, COLOR_BLUE, header, format, ap, p1, p2);
 }
 
-void vdeprecationSupplemental(Loc loc, const char *format, va_list ap)
+void vdeprecationSupplemental(const Loc& loc, const char *format, va_list ap)
 {
     if (global.params.useDeprecated == 0)
         verrorSupplemental(loc, format, ap);

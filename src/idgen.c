@@ -88,6 +88,9 @@ Msgtable msgtable[] =
     { "__c_long" },
     { "__c_ulong" },
     { "__c_long_double" },
+    { "cpp_type_info_ptr", "__cpp_type_info_ptr" },
+    { "_assert", "assert" },
+    { "_unittest", "unittest" },
 
     { "TypeInfo" },
     { "TypeInfo_Class" },
@@ -291,8 +294,6 @@ Msgtable msgtable[] =
     { "entrypoint", "__entrypoint" },
 
     // varargs implementation
-    { "va_argsave_t", "__va_argsave_t" },
-    { "va_argsave", "__va_argsave" },
     { "va_start" },
 
     // Builtin functions

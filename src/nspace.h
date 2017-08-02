@@ -3,7 +3,7 @@
 // Copyright: Copyright (c) 2014 by Digital Mars, All Rights Reserved
 // Authors: Walter Bright, http://www.digitalmars.com
 // License: http://boost.org/LICENSE_1_0.txt
-// Source: https://github.com/D-Programming-Language/dmd/blob/master/src/nspace.h
+// Source: https://github.com/dlang/dmd/blob/master/src/nspace.h
 
 
 #ifndef DMD_NSPACE_H
@@ -27,6 +27,7 @@ class Nspace : public ScopeDsymbol
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
+    Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
     int apply(Dsymbol_apply_ft_t fp, void *param);
     bool hasPointers();
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);

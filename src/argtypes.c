@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include "checkedint.h"
+
 #include "mars.h"
 #include "dsymbol.h"
 #include "mtype.h"
@@ -31,7 +33,11 @@
  * This breaks a type down into 'simpler' types that can be passed to a function
  * in registers, and returned in registers.
  * It's highly platform dependent.
- * Returning a tuple of zero length means the type cannot be passed/returned in registers.
+ * Params:
+ *      t = type to break down
+ * Returns:
+ *      tuple of types, each element can be passed in a register.
+ *      A tuple of zero length means the type cannot be passed/returned in registers.
  */
 
 TypeTuple *toArgTypes(Type *t)
@@ -203,6 +209,12 @@ TypeTuple *toArgTypes(Type *t)
 
         /*************************************
          * This merges two types into an 8byte type.
+         * Params:
+         *      t1 = first type (can be null)
+         *      t2 = second type (can be null)
+         *      offset2 = offset of t2 from start of t1
+         * Returns:
+         *      type that encompasses both t1 and t2, null if cannot be done
          */
 
         static Type *argtypemerge(Type *t1, Type *t2, unsigned offset2)
@@ -215,8 +227,9 @@ TypeTuple *toArgTypes(Type *t)
             if (!t2)
                 return t1;
 
-            unsigned sz1 = (unsigned)t1->size(Loc());
-            unsigned sz2 = (unsigned)t2->size(Loc());
+            const d_uns64 sz1 = t1->size(Loc());
+            const d_uns64 sz2 = t2->size(Loc());
+            assert(sz1 != SIZE_INVALID && sz2 != SIZE_INVALID);
 
             if (t1->ty != t2->ty &&
                 (t1->ty == Tfloat80 || t2->ty == Tfloat80))
@@ -244,6 +257,7 @@ TypeTuple *toArgTypes(Type *t)
                 t = t1;
 
             // If t2 does not lie within t1, need to increase the size of t to enclose both
+            assert(sz2 < UINT64_MAX - UINT32_MAX);
             if (offset2 && sz1 < offset2 + sz2)
             {
                 switch (offset2 + sz2)
@@ -255,14 +269,9 @@ TypeTuple *toArgTypes(Type *t)
                     case 4:
                         t = Type::tint32;
                         break;
-                    case 5:
-                    case 6:
-                    case 7:
-                    case 8:
+                    default:
                         t = Type::tint64;
                         break;
-                    default:
-                        assert(0);
                 }
             }
             return t;
@@ -318,7 +327,7 @@ TypeTuple *toArgTypes(Type *t)
             }
             Type *t1 = NULL;
             Type *t2 = NULL;
-            d_uns64 sz = t->size(Loc());
+            const d_uns64 sz = t->size(Loc());
             assert(sz < 0xFFFFFFFF);
             switch ((unsigned)sz)
             {
@@ -366,7 +375,7 @@ TypeTuple *toArgTypes(Type *t)
                 for (size_t i = 0; i < t->sym->fields.dim; i++)
                 {
                     VarDeclaration *f = t->sym->fields[i];
-                    //printf("f->type = %s\n", f->type->toChars());
+                    //printf("  [%d] %s f->type = %s\n", (int)i, f->toChars(), f->type->toChars());
 
                     TypeTuple *tup = toArgTypes(f->type);
                     if (!tup)
@@ -398,14 +407,16 @@ TypeTuple *toArgTypes(Type *t)
                             goto Lmemory;
 
                         // Fields that overlap the 8byte boundary goto Lmemory
-                        d_uns64 fieldsz = f->type->size(Loc());
+                        const d_uns64 fieldsz = f->type->size(Loc());
+                        assert(fieldsz != SIZE_INVALID && fieldsz < UINT64_MAX - UINT32_MAX);
                         if (f->offset < 8 && (f->offset + fieldsz) > 8)
                             goto Lmemory;
                     }
 
                     // First field in 8byte must be at start of 8byte
                     assert(t1 || f->offset == 0);
-
+                    //printf("ft1 = %s\n", ft1 ? ft1->toChars() : "null");
+                    //printf("ft2 = %s\n", ft2 ? ft2->toChars() : "null");
                     if (ft1)
                     {
                         t1 = argtypemerge(t1, ft1, f->offset);

@@ -51,9 +51,9 @@ void Token::print()
 }
 #endif
 
-const char *Token::toChars()
+const char *Token::toChars() const
 {
-    static char buffer[3 + 3 * sizeof(float80value) + 1];
+    static char buffer[3 + 3 * sizeof(floatvalue) + 1];
 
     const char *p = &buffer[0];
     switch (value)
@@ -78,31 +78,31 @@ const char *Token::toChars()
             break;
 
         case TOKfloat32v:
-            ld_sprint(&buffer[0], 'g', float80value);
+            CTFloat::sprint(&buffer[0], 'g', floatvalue);
             strcat(&buffer[0], "f");
             break;
 
         case TOKfloat64v:
-            ld_sprint(&buffer[0], 'g', float80value);
+            CTFloat::sprint(&buffer[0], 'g', floatvalue);
             break;
 
         case TOKfloat80v:
-            ld_sprint(&buffer[0], 'g', float80value);
+            CTFloat::sprint(&buffer[0], 'g', floatvalue);
             strcat(&buffer[0], "L");
             break;
 
         case TOKimaginary32v:
-            ld_sprint(&buffer[0], 'g', float80value);
+            CTFloat::sprint(&buffer[0], 'g', floatvalue);
             strcat(&buffer[0], "fi");
             break;
 
         case TOKimaginary64v:
-            ld_sprint(&buffer[0], 'g', float80value);
+            CTFloat::sprint(&buffer[0], 'g', floatvalue);
             strcat(&buffer[0], "i");
             break;
 
         case TOKimaginary80v:
-            ld_sprint(&buffer[0], 'g', float80value);
+            CTFloat::sprint(&buffer[0], 'g', floatvalue);
             strcat(&buffer[0], "Li");
             break;
 
@@ -295,11 +295,9 @@ static Keyword keywords[] =
     {   "static",       TOKstatic       },
     {   "final",        TOKfinal        },
     {   "const",        TOKconst        },
-    {   "typedef",      TOKtypedef      },
     {   "alias",        TOKalias        },
     {   "override",     TOKoverride     },
     {   "abstract",     TOKabstract     },
-    {   "volatile",     TOKvolatile     },
     {   "debug",        TOKdebug        },
     {   "deprecated",   TOKdeprecated   },
     {   "in",           TOKin           },
@@ -333,6 +331,7 @@ static Keyword keywords[] =
     {   "__vector",     TOKvector       },
     {   "__overloadset", TOKoverloadset },
     {   "__FILE__",     TOKfile         },
+    {   "__FILE_FULL_PATH__", TOKfilefullpath  },
     {   "__LINE__",     TOKline         },
     {   "__MODULE__",   TOKmodulestring },
     {   "__FUNCTION__", TOKfuncstring   },
@@ -358,9 +357,9 @@ void Token::initTokens()
     {
         //printf("keyword[%d] = '%s'\n",u, keywords[u].name);
         const char *s = keywords[nkeywords].name;
+        size_t len = strlen(s);
         TOK v = keywords[nkeywords].value;
-        Identifier *id = Identifier::idPool(s);
-        id->value = v;
+        Identifier *id = Identifier::idPool(s, len, v);
 
         //printf("tochars[%d] = '%s'\n",v, s);
         Token::tochars[v] = s;
@@ -389,7 +388,6 @@ void Token::initTokens()
     Token::tochars[TOKequal]            = "==";
     Token::tochars[TOKnotequal]         = "!=";
     Token::tochars[TOKnotidentity]      = "!is";
-    Token::tochars[TOKtobool]           = "!!";
 
     Token::tochars[TOKunord]            = "!<>=";
     Token::tochars[TOKue]               = "!<>";
@@ -401,7 +399,6 @@ void Token::initTokens()
     Token::tochars[TOKug]               = "!<=";
 
     Token::tochars[TOKnot]              = "!";
-    Token::tochars[TOKtobool]           = "!!";
     Token::tochars[TOKshl]              = "<<";
     Token::tochars[TOKshr]              = ">>";
     Token::tochars[TOKushr]             = ">>>";
@@ -458,7 +455,8 @@ void Token::initTokens()
 
      // For debugging
     Token::tochars[TOKerror]            = "error";
-    Token::tochars[TOKdotexp]           = "dotexp";
+    Token::tochars[TOKdotid]            = "dotid";
+    Token::tochars[TOKdottd]            = "dottd";
     Token::tochars[TOKdotti]            = "dotti";
     Token::tochars[TOKdotvar]           = "dotvar";
     Token::tochars[TOKdottype]          = "dottype";
@@ -471,8 +469,8 @@ void Token::initTokens()
     Token::tochars[TOKdsymbol]          = "symbol";
     Token::tochars[TOKtuple]            = "tuple";
     Token::tochars[TOKdeclaration]      = "declaration";
-    Token::tochars[TOKdottd]            = "dottd";
     Token::tochars[TOKon_scope_exit]    = "scope(exit)";
     Token::tochars[TOKon_scope_success] = "scope(success)";
     Token::tochars[TOKon_scope_failure] = "scope(failure)";
+    Token::tochars[TOKdelegateptr]      = "delegateptr";
 }

@@ -28,6 +28,9 @@
 #include "aggregate.h"
 #include "target.h"
 
+typedef int (*ForeachDg)(void *ctx, size_t paramidx, Parameter *param);
+int Parameter_foreach(Parameters *parameters, ForeachDg dg, void *ctx, size_t *pn = NULL);
+
 /* Do mangling for C++ linkage.
  * No attempt is made to support mangling of templates, operator
  * overloading, or special functions.
@@ -37,8 +40,6 @@
  * ABI has no concept of. These affect every D mangled name,
  * so nothing would be compatible anyway.
  */
-
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 
 /*
  * Follows Itanium C++ ABI 1.86
@@ -72,8 +73,10 @@ class CppMangleVisitor : public Visitor
         if (components_on)
             for (size_t i = 0; i < components.dim; i++)
             {
+                //printf("    component[%d] = %s\n", i, components[i] ? components[i]->toChars() : NULL);
                 if (p == components[i])
                 {
+                    //printf("\tmatch\n");
                     /* Sequence is S_, S0_, .., S9_, SA_, ..., SZ_, S10_, ...
                      */
                     buf.writeByte('S');
@@ -88,7 +91,7 @@ class CppMangleVisitor : public Visitor
 
     bool exist(RootObject *p)
     {
-        //printf("exist %s\n", p ? p->toChars() : NULL);
+        //printf("exist %s\n", p ? p->toChars() : "NULL");
         if (components_on)
             for (size_t i = 0; i < components.dim; i++)
             {
@@ -176,7 +179,7 @@ class CppMangleVisitor : public Visitor
                     else
                     {
                         s->error("Internal Compiler Error: C++ %s template value parameter is not supported", tv->valType->toChars());
-                        assert(0);
+                        fatal();
                     }
                 }
                 else if (!tp || tp->isTemplateTypeParameter())
@@ -192,7 +195,7 @@ class CppMangleVisitor : public Visitor
                     if (!d && !e)
                     {
                         s->error("Internal Compiler Error: %s is unsupported parameter for C++ template: (%s)", o->toChars());
-                        assert(0);
+                        fatal();
                     }
                     if (d && d->isFuncDeclaration())
                     {
@@ -220,14 +223,14 @@ class CppMangleVisitor : public Visitor
                     else
                     {
                         s->error("Internal Compiler Error: %s is unsupported parameter for C++ template", o->toChars());
-                        assert(0);
+                        fatal();
                     }
 
                 }
                 else
                 {
                     s->error("Internal Compiler Error: C++ templates support only integral value, type parameters, alias templates and alias function parameters");
-                    assert(0);
+                    fatal();
                 }
             }
             if (is_var_arg)
@@ -267,7 +270,8 @@ class CppMangleVisitor : public Visitor
             {
                 prefix_name(p);
             }
-            store(s);
+            if (!(s->ident == Id::std && is_initial_qualifier(s)))
+                store(s);
             source_name(s);
         }
     }
@@ -396,11 +400,11 @@ class CppMangleVisitor : public Visitor
 
     void mangle_variable(VarDeclaration *d, bool is_temp_arg_ref)
     {
-
-        if (!(d->storage_class & (STCextern | STCgshared)))
+        // fake mangling for fields to fix https://issues.dlang.org/show_bug.cgi?id=16525
+        if (!(d->storage_class & (STCextern | STCfield | STCgshared)))
         {
             d->error("Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
-            assert(0);
+            fatal();
         }
 
         Dsymbol *p = d->toParent();
@@ -467,6 +471,11 @@ class CppMangleVisitor : public Visitor
                 buf.remove(3, 4);
                 buf.insert(3, (const char *)"St", 2);
             }
+            if (buf.offset >= 8 && memcmp(buf.data, "_ZNK3std", 8) == 0)
+            {
+                buf.remove(4, 4);
+                buf.insert(4, (const char *)"St", 2);
+            }
 
             if (d->isDtorDeclaration())
             {
@@ -509,7 +518,7 @@ class CppMangleVisitor : public Visitor
             // Mangle static arrays as pointers
             t->error(Loc(), "Internal Compiler Error: unable to pass static array to extern(C++) function.");
             t->error(Loc(), "Use pointer instead.");
-            assert(0);
+            fatal();
             //t = t->nextOf()->pointerTo();
         }
 
@@ -528,7 +537,7 @@ class CppMangleVisitor : public Visitor
     void argsCppMangle(Parameters *parameters, int varargs)
     {
         if (parameters)
-            Parameter::foreach(parameters, &paramsCppMangleDg, (void*)this);
+            Parameter_foreach(parameters, &paramsCppMangleDg, (void*)this);
 
         if (varargs)
             buf.writestring("z");
@@ -570,9 +579,9 @@ public:
         }
         else
         {
-            t->error(Loc(), "Internal Compiler Error: unsupported type %s\n", t->toChars());
+            t->error(Loc(), "Internal Compiler Error: type %s can not be mapped to C++\n", t->toChars());
         }
-        assert(0); //Assert, because this error should be handled in frontend
+        fatal(); //Fatal, because this error should be handled in frontend
     }
 
     void visit(TypeBasic *t)
@@ -619,7 +628,7 @@ public:
             case Tint128:   c = 'n';        break;
             case Tuns128:   c = 'o';        break;
             case Tfloat64:  c = 'd';        break;
-            case Tfloat80:  c = (Target::realsize - Target::realpad == 16) ? 'g' : 'e'; break;
+            case Tfloat80:  c = 'e';        break;
             case Tbool:     c = 'b';        break;
             case Tchar:     c = 'c';        break;
             case Twchar:    c = 't';        break; // unsigned short
@@ -653,10 +662,17 @@ public:
         if (t->isConst())
             buf.writeByte('K');
 
-        if (p)
-            buf.writeByte(p);
-
-        buf.writeByte(c);
+        // Handle any target-specific basic types.
+        if (const char *tm = Target::cppTypeMangle(t))
+        {
+            buf.writestring(tm);
+        }
+        else
+        {
+            if (p)
+                buf.writeByte(p);
+            buf.writeByte(c);
+        }
     }
 
 
@@ -672,11 +688,20 @@ public:
         }
         if (t->isConst())
             buf.writeByte('K');
-        assert(t->basetype && t->basetype->ty == Tsarray);
-        assert(((TypeSArray *)t->basetype)->dim);
-        //buf.printf("Dv%llu_", ((TypeSArray *)t->basetype)->dim->toInteger());// -- Gnu ABI v.4
-        buf.writestring("U8__vector"); //-- Gnu ABI v.3
-        t->basetype->nextOf()->accept(this);
+
+        // Handle any target-specific vector types.
+        if (const char *tm = Target::cppTypeMangle(t))
+        {
+            buf.writestring(tm);
+        }
+        else
+        {
+            assert(t->basetype && t->basetype->ty == Tsarray);
+            assert(((TypeSArray *)t->basetype)->dim);
+            //buf.printf("Dv%llu_", ((TypeSArray *)t->basetype)->dim->toInteger());// -- Gnu ABI v.4
+            buf.writestring("U8__vector"); //-- Gnu ABI v.3
+            t->basetype->nextOf()->accept(this);
+        }
     }
 
     void visit(TypeSArray *t)
@@ -821,14 +846,22 @@ public:
         if (t->isConst())
             buf.writeByte('K');
 
-        if (!substitute(t->sym))
+        // Handle any target-specific struct types.
+        if (const char *tm = Target::cppTypeMangle(t))
         {
-            cpp_mangle_name(t->sym, t->isConst());
+            buf.writestring(tm);
         }
-
-        if (t->isImmutable() || t->isShared())
+        else
         {
-            visit((Type *)t);
+            if (!substitute(t->sym))
+            {
+                cpp_mangle_name(t->sym, t->isConst());
+            }
+
+            if (t->isImmutable() || t->isShared())
+            {
+                visit((Type *)t);
+            }
         }
 
         if (t->isConst())
@@ -882,16 +915,28 @@ public:
             store(NULL);
         store(t);
     }
+
+    const char *mangle_typeinfo(Dsymbol *s)
+    {
+        buf.writestring("_ZTI");
+        cpp_mangle_name(s, false);
+        return buf.extractString();
+    }
 };
 
-char *toCppMangle(Dsymbol *s)
+const char *toCppMangleItanium(Dsymbol *s)
 {
-    //printf("toCppMangle(%s)\n", s->toChars());
+    //printf("toCppMangleItanium(%s)\n", s->toChars());
     CppMangleVisitor v;
     return v.mangleOf(s);
 }
 
-#elif TARGET_WINDOS
+const char *cppTypeInfoMangleItanium(Dsymbol *s)
+{
+    //printf("cppTypeInfoMangleItanium(%s)\n", s->toChars());
+    CppMangleVisitor v;
+    return v.mangle_typeinfo(s);
+}
 
 // Windows DMC and Microsoft Visual C++ mangling
 #define VC_SAVED_TYPE_CNT 10
@@ -950,9 +995,9 @@ public:
         }
         else
         {
-            type->error(Loc(), "Internal Compiler Error: unsupported type %s\n", type->toChars());
+            type->error(Loc(), "Internal Compiler Error: type %s can not be mapped to C++\n", type->toChars());
         }
-        assert(0); // Assert, because this error should be handled in frontend
+        fatal(); // Fatal, because this error should be handled in frontend
     }
 
     void visit(TypeBasic *type)
@@ -1206,7 +1251,7 @@ public:
             if (type->sym->isUnionDeclaration())
                 buf.writeByte('T');
             else
-                buf.writeByte('U');
+                buf.writeByte(type->cppmangle == CPPMANGLEclass ? 'V' : 'U');
             mangleIdent(type->sym);
         }
         flags &= ~IS_NOT_TOP_TYPE;
@@ -1279,7 +1324,7 @@ public:
         flags |= IS_NOT_TOP_TYPE;
         mangleModifier(type);
 
-        buf.writeByte('V');
+        buf.writeByte(type->cppmangle == CPPMANGLEstruct ? 'U' : 'V');
 
         mangleIdent(type->sym);
         flags &= ~IS_NOT_TOP_TYPE;
@@ -1316,7 +1361,9 @@ private:
         if (d->needThis()) // <flags> ::= <virtual/protection flag> <const/volatile flag> <calling convention flag>
         {
             // Pivate methods always non-virtual in D and it should be mangled as non-virtual in C++
-            if (d->isVirtual() && d->vtblIndex != -1)
+            //printf("%s: isVirtualMethod = %d, isVirtual = %d, vtblIndex = %d, interfaceVirtual = %p\n",
+                //d->toChars(), d->isVirtualMethod(), d->isVirtual(), (int)d->vtblIndex, d->interfaceVirtual);
+            if (d->isVirtual() && (d->vtblIndex != -1 || d->interfaceVirtual || d->overrideInterface()))
             {
                 switch (d->protection.kind)
                 {
@@ -1385,15 +1432,16 @@ private:
     {
         // <static variable mangle> ::= ? <qualified name> <protection flag> <const/volatile flag> <type>
         assert(d);
-        if (!(d->storage_class & (STCextern | STCgshared)))
+        // fake mangling for fields to fix https://issues.dlang.org/show_bug.cgi?id=16525
+        if (!(d->storage_class & (STCextern | STCfield | STCgshared)))
         {
             d->error("Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
-            assert(0);
+            fatal();
         }
         buf.writeByte('?');
         mangleIdent(d);
 
-        assert(!d->needThis());
+        assert((d->storage_class & STCfield) || !d->needThis());
 
         if (d->parent && d->parent->isModule()) // static member
         {
@@ -1526,7 +1574,7 @@ private:
                     else
                     {
                         sym->error("Internal Compiler Error: C++ %s template value parameter is not supported", tv->valType->toChars());
-                        assert(0);
+                        fatal();
                     }
                 }
                 else if (!tp || tp->isTemplateTypeParameter())
@@ -1542,7 +1590,7 @@ private:
                     if (!d && !e)
                     {
                         sym->error("Internal Compiler Error: %s is unsupported parameter for C++ template", o->toChars());
-                        assert(0);
+                        fatal();
                     }
                     if (d && d->isFuncDeclaration())
                     {
@@ -1584,7 +1632,7 @@ private:
                             else
                             {
                                 sym->error("Internal Compiler Error: C++ templates support only integral value, type parameters, alias templates and alias function parameters");
-                                assert(0);
+                                fatal();
                             }
                         }
                         tmp.mangleIdent(d);
@@ -1592,14 +1640,14 @@ private:
                     else
                     {
                         sym->error("Internal Compiler Error: %s is unsupported parameter for C++ template: (%s)", o->toChars());
-                        assert(0);
+                        fatal();
                     }
 
                 }
                 else
                 {
                     sym->error("Internal Compiler Error: C++ templates support only integral value, type parameters, alias templates and alias function parameters");
-                    assert(0);
+                    fatal();
                 }
             }
             name = tmp.buf.extractString();
@@ -1609,7 +1657,12 @@ private:
             name = sym->ident->toChars();
         }
         assert(name);
-        if (!is_dmc_template)
+        if (is_dmc_template)
+        {
+            if (checkAndSaveIdent(name))
+                return;
+        }
+        else
         {
             if (dont_use_back_reference)
             {
@@ -1814,7 +1867,7 @@ private:
         {
             t->error(Loc(), "Internal Compiler Error: unable to pass static array to extern(C++) function.");
             t->error(Loc(), "Use pointer instead.");
-            assert(0);
+            fatal();
         }
         mangler->flags &= ~IS_NOT_TOP_TYPE;
         mangler->flags &= ~IGNORE_CONST;
@@ -1891,7 +1944,7 @@ private:
         }
         else
         {
-            Parameter::foreach(type->parameters, &mangleParameterDg, (void*)&tmp);
+            Parameter_foreach(type->parameters, &mangleParameterDg, (void*)&tmp);
             if (type->varargs == 1)
             {
                 tmp.buf.writeByte('Z');
@@ -1910,12 +1963,14 @@ private:
     }
 };
 
-char *toCppMangle(Dsymbol *s)
+const char *toCppMangleMSVC(Dsymbol *s)
 {
     VisualCPPMangler v(!global.params.mscoff);
     return v.mangleOf(s);
 }
 
-#else
-#error "fix this"
-#endif
+const char *cppTypeInfoMangleMSVC(Dsymbol *s)
+{
+    //printf("cppTypeInfoMangleMSVC(%s)\n", s->toChars());
+    assert(0);
+}

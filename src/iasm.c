@@ -49,8 +49,6 @@
 #include        "iasm.h"
 #include        "xmm.h"
 
-#if TX86
-
 //#define EXTRA_DEBUG 1
 
 #undef ADDFWAIT
@@ -2088,7 +2086,7 @@ static bool asm_isNonZeroInt(OPND *o)
 /*******************************
  */
 
-static bool asm_is_fpreg(char *szReg)
+static bool asm_is_fpreg(const char *szReg)
 {
 #if 1
     return(szReg[0] == 'S' &&
@@ -2320,9 +2318,9 @@ static void asm_merge_symbol(OPND *o1, Dsymbol *s)
             goto L2;
         }
         if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) &&
-            !v->type->isfloating() && v->init)
+            !v->type->isfloating() && v->_init)
         {
-            ExpInitializer *ei = v->init->isExpInitializer();
+            ExpInitializer *ei = v->_init->isExpInitializer();
             if (ei)
             {
                 o1->disp = ei->exp->toInteger();
@@ -2337,7 +2335,7 @@ static void asm_merge_symbol(OPND *o1, Dsymbol *s)
     em = s->isEnumMember();
     if (em)
     {
-        o1->disp = em->value->toInteger();
+        o1->disp = em->value()->toInteger();
         return;
     }
     o1->s = s;  // a C identifier
@@ -3300,7 +3298,7 @@ static void asm_output_popnd(OPND *popnd)
 /*******************************
  */
 
-static REG *asm_reg_lookup(char *s)
+static REG *asm_reg_lookup(const char *s)
 {
     int i;
 
@@ -3349,7 +3347,7 @@ static void asm_token_trans(Token *tok)
         if (tok_value == TOKidentifier)
         {
             size_t len;
-            char *id;
+            const char *id;
 
             id = tok->ident->toChars();
             len = strlen(id);
@@ -3472,6 +3470,7 @@ static code *asm_db_parse(OP *pop)
     {
         size_t len;
         unsigned char *q;
+        unsigned char *qstart = NULL;
 
         if (usBytes+usSize > usMaxbytes)
         {
@@ -3511,13 +3510,13 @@ static code *asm_db_parse(OP *pop)
                 switch (op)
                 {
                     case OPdf:
-                        dt.f = asmtok->float80value;
+                        dt.f = asmtok->floatvalue;
                         break;
                     case OPdd:
-                        dt.d = asmtok->float80value;
+                        dt.d = asmtok->floatvalue;
                         break;
                     case OPde:
-                        dt.ld = asmtok->float80value;
+                        dt.ld = asmtok->floatvalue;
                         break;
                     default:
                         asmerr("integer expected");
@@ -3573,6 +3572,11 @@ static code *asm_db_parse(OP *pop)
 
                     usBytes += len * usSize;
                 }
+                if (qstart)
+                {
+                    mem_free(qstart);
+                    qstart = NULL;
+                }
                 break;
 
             case TOKidentifier:
@@ -3608,8 +3612,14 @@ static code *asm_db_parse(OP *pop)
                 else if (e->op == TOKstring)
                 {
                     StringExp *se = (StringExp *)e;
-                    q = (unsigned char *)se->string;
-                    len = se->len;
+                    len = se->numberOfCodeUnits();
+                    q = (unsigned char *)se->toPtr();
+                    if (!q)
+                    {
+                        qstart = (unsigned char *)mem_malloc(len * se->sz);
+                        se->writeTo(qstart, false);
+                        q = qstart;
+                    }
                     goto L3;
                 }
                 goto Ldefault;
@@ -4442,21 +4452,21 @@ static OPND *asm_primary_exp()
 
         case TOKfloat32v:
             o1 = new OPND();
-            o1->real = asmtok->float80value;
+            o1->real = asmtok->floatvalue;
             o1->ptype = Type::tfloat32;
             asm_token();
             break;
 
         case TOKfloat64v:
             o1 = new OPND();
-            o1->real = asmtok->float80value;
+            o1->real = asmtok->floatvalue;
             o1->ptype = Type::tfloat64;
             asm_token();
             break;
 
         case TOKfloat80v:
             o1 = new OPND();
-            o1->real = asmtok->float80value;
+            o1->real = asmtok->floatvalue;
             o1->ptype = Type::tfloat80;
             asm_token();
             break;
@@ -4686,13 +4696,3 @@ AFTER_EMIT:
     //return asmstate.bReturnax;
     return s;
 }
-
-#else
-
-Statement* asmSemantic(AsmStatement *s, Scope *sc)
-{
-    assert(0);
-    return NULL;
-}
-
-#endif

@@ -16,102 +16,33 @@
 #include "declaration.h"
 #include "irstate.h"
 #include "statement.h"
+#include "aav.h"
 
-IRState::IRState(IRState *irs, Statement *s)
+/****
+ * Access labels AA from C++ code.
+ * Params:
+ *  s = key
+ * Returns:
+ *  pointer to value if it's there, null if not
+ */
+Label **IRState::lookupLabel(Statement *s)
 {
-    prev = irs;
-    statement = s;
-    symbol = NULL;
-    breakBlock = NULL;
-    contBlock = NULL;
-    switchBlock = NULL;
-    defaultBlock = NULL;
-    finallyBlock = NULL;
-    ident = NULL;
-    ehidden = NULL;
-    startaddress = NULL;
-    if (irs)
-    {
-        m = irs->m;
-        shidden = irs->shidden;
-        sclosure = irs->sclosure;
-        sthis = irs->sthis;
-        blx = irs->blx;
-        deferToObj = irs->deferToObj;
-        varsInScope = irs->varsInScope;
-        labels = irs->labels;
-    }
-    else
-    {
-        m = NULL;
-        shidden = NULL;
-        sclosure = NULL;
-        sthis = NULL;
-        blx = NULL;
-        deferToObj = NULL;
-        varsInScope = NULL;
-        labels = NULL;
-    }
+    Label **slot = (Label **)dmd_aaGet((AA **)labels, (void *)s);
+    if (*slot)
+        return slot;
+    return NULL;
 }
 
-IRState::IRState(IRState *irs, Dsymbol *s)
+/****
+ * Access labels AA from C++ code.
+ * Params:
+ *  s = key
+ *  label = value
+ */
+void IRState::insertLabel(Statement *s, Label *label)
 {
-    prev = irs;
-    statement = NULL;
-    symbol = s;
-    breakBlock = NULL;
-    contBlock = NULL;
-    switchBlock = NULL;
-    defaultBlock = NULL;
-    finallyBlock = NULL;
-    ident = NULL;
-    ehidden = NULL;
-    startaddress = NULL;
-    if (irs)
-    {
-        m = irs->m;
-        shidden = irs->shidden;
-        sclosure = irs->sclosure;
-        sthis = irs->sthis;
-        blx = irs->blx;
-        deferToObj = irs->deferToObj;
-        varsInScope = irs->varsInScope;
-        labels = irs->labels;
-    }
-    else
-    {
-        m = NULL;
-        shidden = NULL;
-        sclosure = NULL;
-        sthis = NULL;
-        blx = NULL;
-        deferToObj = NULL;
-        varsInScope = NULL;
-        labels = NULL;
-    }
-}
-
-IRState::IRState(Module *m, Dsymbol *s)
-{
-    prev = NULL;
-    statement = NULL;
-    this->m = m;
-    symbol = s;
-    breakBlock = NULL;
-    contBlock = NULL;
-    switchBlock = NULL;
-    defaultBlock = NULL;
-    finallyBlock = NULL;
-    ident = NULL;
-    ehidden = NULL;
-    shidden = NULL;
-    sclosure = NULL;
-    sthis = NULL;
-    blx = NULL;
-    deferToObj = NULL;
-    startaddress = NULL;
-    varsInScope = NULL;
-    labels = NULL;
+    Label **slot = (Label **)dmd_aaGet((AA **)labels, (void *)s);
+    *slot = label;
 }
 
 block *IRState::getBreakBlock(Identifier *ident)

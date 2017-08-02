@@ -34,14 +34,14 @@ void RootObject::print()
     printf("%s %p\n", toChars(), this);
 }
 
-char *RootObject::toChars()
+const char *RootObject::toChars()
 {
     return (char *)"Object";
 }
 
-int RootObject::dyncast()
+int RootObject::dyncast() const
 {
-    return 0;
+    return DYNCAST_OBJECT;
 }
 
 void RootObject::toBuffer(OutBuffer *b)

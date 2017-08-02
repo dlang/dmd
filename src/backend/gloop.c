@@ -28,8 +28,6 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 /*#define vec_copy(t,f) (dbg_printf("line %d\n",__LINE__),vec_copy((t),(f)))*/
 
-extern mftype mfoptim;
-
 struct Iv;
 
 /*********************************
@@ -569,17 +567,15 @@ STATIC int looprotate(loop *l)
         if (b == head)                  // if loop already rotated
             goto Lret;
 
-#if SCPP
     if (head->BC == BCtry)
          goto Lret;
-#endif
     if (head->BC == BC_try)
          goto Lret;
 #ifdef DEBUG
     //if (debugc) { dbg_printf("looprotate: "); l->print(); }
 #endif
 
-    if ((mfoptim & MFtime) && head->BC != BCswitch && head->BC != BCasm)
+    if ((go.mfoptim & MFtime) && head->BC != BCswitch && head->BC != BCasm)
     {   // Duplicate the header past the tail (but doing
         // switches would be too expensive in terms of code
         // generated).
@@ -632,7 +628,7 @@ STATIC int looprotate(loop *l)
             list_append(&(head2->Bsucc),list_block(bl));
             list_append(&(list_block(bl)->Bpred),head2);
         }
-        changes++;
+        go.changes++;
         return TRUE;
     }
     else if (startblock != head
@@ -665,7 +661,7 @@ STATIC int looprotate(loop *l)
         head->Bnext = tail->Bnext;
         tail->Bnext = head;
         cmes2( "Rotated loop %p\n", l);
-        changes++;
+        go.changes++;
     }
 Lret:
     return FALSE;
@@ -813,7 +809,7 @@ restart:
                 flowlv();               /* compute live variables        */
                 flowae();               // compute available expressions
                 doflow = FALSE;         /* no need to redo it           */
-                if (deftop == 0)        /* if no definition elems       */
+                if (go.deftop == 0)        /* if no definition elems       */
                         break;          /* no need to optimize          */
         }
         lv = l->Lloop;
@@ -826,7 +822,7 @@ restart:
 
         /* Find & mark all LIs   */
         gin = vec_clone(l->Lpreheader->Bout);
-        rd = vec_calloc(deftop);        /* allocate our running RD vector */
+        rd = vec_calloc(go.deftop);        /* allocate our running RD vector */
         foreach (i,dfotop,lv)           /* for each block in loop       */
         {   block *b = dfo[i];
 
@@ -837,8 +833,8 @@ restart:
 #if 0
                 dbg_printf("i = %d\n",i);
                 {   int j;
-                    for (j = 0; j < deftop; j++)
-                        elem_print(defnod[j].DNelem);
+                    for (j = 0; j < go.deftop; j++)
+                        elem_print(go.defnod[j].DNelem);
                 }
                 dbg_printf("rd    : "); vec_println(rd);
 #endif
@@ -848,10 +844,14 @@ restart:
                     gref = 1;
                 markinvar(b->Belem, rd);
 #if 0
-                dbg_printf("i = %d\n",i);
-                {   int j;
-                    for (j = 0; j < deftop; j++)
-                        elem_print(defnod[j].DNelem);
+                dbg_printf("B%d\n", i);
+                {
+                    for (int j = 0; j < go.deftop; j++)
+                    {
+                        printf("  [%2d] ", j);
+                        WReqn(go.defnod[j].DNelem);
+                        printf("\n");
+                    }
                 }
                 dbg_printf("rd    : "); vec_println(rd);
                 dbg_printf("Boutrd: "); vec_println(b->Boutrd);
@@ -892,7 +892,7 @@ restart:
         //list_free(&l->Llis,FPNULL);
         cmes2("...Loop %p done...\n",l);
 
-        if (mfoptim & MFliv)
+        if (go.mfoptim & MFliv)
         {       loopiv(l);              /* induction variables          */
                 if (addblk)             /* if we added a block          */
                 {       compdfo();
@@ -920,7 +920,7 @@ STATIC void markinvar(elem *n,vec_t rd)
   elem *n1;
 
   assert(n && rd);
-  assert(vec_numbits(rd) == deftop);
+  assert(vec_numbits(rd) == go.deftop);
   switch (n->Eoper)
   {
         case OPaddass:  case OPminass:  case OPmulass:  case OPandass:
@@ -985,9 +985,8 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPvector:
         case OPvoid:
         case OPstrlen:
-#if TX86
+        case OPddtor:
         case OPinp:
-#endif
                 markinvar(n->E1,rd);
                 break;
         case OPcond:
@@ -995,9 +994,7 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPstrcmp:
         case OPmemcmp:
         case OPbt:                      // OPbt is like OPind, assume not LI
-#if TX86
         case OPoutp:
-#endif
                 markinvar(n->E1,rd);
                 markinvar(n->E2,rd);
                 break;
@@ -1030,8 +1027,6 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPld_d:    case OPd_ld:
         case OPld_u64:
         case OPc_r:     case OPc_i:
-        case OParraylength:
-        case OPnullcheck:
         case OPu16_32:
         case OPu16_d:   case OPd_u16:
         case OPs8_16:   case OP16_8:
@@ -1054,16 +1049,12 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPbsr:
         case OPbswap:
         case OPpopcnt:
-#if TX86
         case OPsqrt:
         case OPsin:
         case OPcos:
-#endif
-#if TARGET_SEGMENTED
         case OPvp_fp: /* BUG for MacHandles */
         case OPnp_f16p: case OPf16p_np: case OPoffset: case OPnp_fp:
         case OPcvp_fp:
-#endif
                 markinvar(n->E1,rd);
                 if (isLI(n->E1))        /* if child is LI               */
                         makeLI(n);
@@ -1084,12 +1075,12 @@ STATIC void markinvar(elem *n,vec_t rd)
                 {   v = n1->EV.sp.Vsym;
                     if (v->Sflags & SFLunambig)
                     {
-                        tmp = vec_calloc(deftop);
+                        tmp = vec_calloc(go.deftop);
                         //filterrd(tmp,rd,v);
                         listrds(rd,n1,tmp);
-                        foreach (i,deftop,tmp)
-                            if (defnod[i].DNelem != n &&
-                                vec_testbit(defnod[i].DNblock->Bdfoidx,lv))
+                        foreach (i,go.deftop,tmp)
+                            if (go.defnod[i].DNelem != n &&
+                                vec_testbit(go.defnod[i].DNblock->Bdfoidx,lv))
                                     goto L3;
                         makeLI(n);      // then the def is LI
                     L3: vec_free(tmp);
@@ -1111,18 +1102,13 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPord:     case OPnlg:     case OPnleg:    case OPnule:
         case OPnul:     case OPnuge:    case OPnug:     case OPnue:
 
-        case OPinstanceof:
-        case OPfinalinstanceof:
-        case OPcheckcast:
         case OPcomma:
         case OPpair:
         case OPrpair:
         case OPremquo:
-#if TX86
         case OPscale:
         case OPyl2x:
         case OPyl2xp1:
-#endif
                 markinvar(n->E1,rd);
                 markinvar(n->E2,rd);
                 if (isLI(n->E2) && isLI(n->E1))
@@ -1148,14 +1134,14 @@ STATIC void markinvar(elem *n,vec_t rd)
                     // check for the a[j].length was skipped.
                     else if (n->Ejty)
                     {
-                        tmp = vec_calloc(deftop);
+                        tmp = vec_calloc(go.deftop);
                         filterrdind(tmp,rd,n);  // only the RDs pertaining to n
 
                         // if (no RDs within loop)
                         //      then it's loop invariant
 
-                        foreach (i,deftop,tmp)          // for each RD
-                            if (vec_testbit(defnod[i].DNblock->Bdfoidx,lv))
+                        foreach (i,go.deftop,tmp)          // for each RD
+                            if (vec_testbit(go.defnod[i].DNblock->Bdfoidx,lv))
                                 goto L10;       // found a RD in the loop
 
                         // If gref has occurred, this can still be LI
@@ -1167,10 +1153,10 @@ STATIC void markinvar(elem *n,vec_t rd)
                         {   int j;
 
                             //printf("\tn is: "); WReqn(n); printf("\n");
-                            foreach (j,exptop,gin)
-                            {   elem *e = expnod[j];
+                            foreach (j,go.exptop,gin)
+                            {   elem *e = go.expnod[j];
 
-                                //printf("\t\texpnod[%d] = %p\n",j,e);
+                                //printf("\t\tgo.expnod[%d] = %p\n",j,e);
                                 //printf("\t\tAE is: "); WReqn(e); printf("\n");
                                 if (el_match2(n,e))
                                 {
@@ -1192,15 +1178,15 @@ STATIC void markinvar(elem *n,vec_t rd)
                 v = n->EV.sp.Vsym;
                 if (v->Sflags & SFLunambig)     // must be unambiguous to be LI
                 {
-                    tmp = vec_calloc(deftop);
+                    tmp = vec_calloc(go.deftop);
                     //filterrd(tmp,rd,v);       // only the RDs pertaining to v
                     listrds(rd,n,tmp);  // only the RDs pertaining to v
 
                     // if (no RDs within loop)
                     //  then it's loop invariant
 
-                    foreach (i,deftop,tmp)              // for each RD
-                        if (vec_testbit(defnod[i].DNblock->Bdfoidx,lv))
+                    foreach (i,go.deftop,tmp)              // for each RD
+                        if (vec_testbit(go.defnod[i].DNblock->Bdfoidx,lv))
                             goto L1;    // found a RD in the loop
                     makeLI(n);
 
@@ -1210,7 +1196,6 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPstring:
         case OPrelconst:
         case OPconst:                   /* constants are always LI      */
-        case OPhstring:
         case OPframeptr:
                 makeLI(n);
                 break;
@@ -1223,7 +1208,6 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPctor:
         case OPdtor:
         case OPdctor:
-        case OPddtor:
         case OPhalt:
         case OPgot:                     // shouldn't OPgot be makeLI ?
                 break;
@@ -1249,7 +1233,7 @@ STATIC void markinvar(elem *n,vec_t rd)
  *      rd      reaching def vector to update
  *              (clear bits for defs we kill, set bit for n (which is the
  *               def we are genning))
- *      vecdim  deftop
+ *      vecdim  go.deftop
  */
 
 void updaterd(elem *n,vec_t GEN,vec_t KILL)
@@ -1276,9 +1260,9 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
 
         ni = (unsigned)-1;
 
-        /* for all unambig defs in defnod[] */
-        for (i = 0; i < deftop; i++)
-        {   elem *tn = defnod[i].DNelem;
+        /* for all unambig defs in go.defnod[] */
+        for (i = 0; i < go.deftop; i++)
+        {   elem *tn = go.defnod[i].DNelem;
             elem *tn1;
             targ_size_t tn1size;
 
@@ -1311,9 +1295,9 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
     {
         ni = -1;
 
-        // for all unambig defs in defnod[]
-        for (i = 0; i < deftop; i++)
-        {   elem *tn = defnod[i].DNelem;
+        // for all unambig defs in go.defnod[]
+        for (i = 0; i < go.deftop; i++)
+        {   elem *tn = go.defnod[i].DNelem;
             elem *tn1;
 
             if (tn == n)
@@ -1338,8 +1322,8 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
     {
         /* Set bit in GEN for this def */
         for (i = 0; 1; i++)
-        {   assert(i < deftop);         // should find n in defnod[]
-            if (defnod[i].DNelem == n)
+        {   assert(i < go.deftop);         // should find n in go.defnod[]
+            if (go.defnod[i].DNelem == n)
             {   ni = i;
                 break;
             }
@@ -1526,7 +1510,7 @@ Lnextlis:
                     }
                 }
 
-                tmp = vec_calloc(deftop);
+                tmp = vec_calloc(go.deftop);
                 foreach (i,dfotop,l->Lloop)     // for each block in loop
                 {
                         if (dfo[i] == b)        // except this one
@@ -1538,8 +1522,8 @@ Lnextlis:
 
                         //filterrd(tmp,dfo[i]->Binrd,v);
                         listrds(dfo[i]->Binrd,n->E1,tmp);
-                        foreach (j,deftop,tmp)  // for each RD of v in Binrd
-                        {   if (defnod[j].DNelem == n)
+                        foreach (j,go.deftop,tmp)  // for each RD of v in Binrd
+                        {   if (go.defnod[j].DNelem == n)
                                         continue;
                                 refstop = -1;
                                 if (dfo[i]->Belem &&
@@ -1558,8 +1542,8 @@ Lnextlis:
 
                 //filterrd(tmp,b->Binrd,v);
                 listrds(b->Binrd,n->E1,tmp);
-                foreach (j,deftop,tmp)          // for each RD of v in Binrd
-                {   if (defnod[j].DNelem == n)
+                foreach (j,go.deftop,tmp)          // for each RD of v in Binrd
+                {   if (go.defnod[j].DNelem == n)
                             continue;
                         refstop = -1;
                         if (b->Belem && refs(v,b->Belem,n))
@@ -1581,7 +1565,7 @@ Lnextlis:
                         el_copy(n->E2,list_elem(nl)->E1);
                         cmes("LI assignment rvalue was replaced\n");
                         doflow = TRUE;
-                        changes++;
+                        go.changes++;
                         break;
                     }
                 }
@@ -1594,7 +1578,7 @@ Lnextlis:
                         dbg_printf(";\n");
                 }
         #endif
-                changes++;
+                go.changes++;
                 doflow = TRUE;                  // redo flow analysis
                 ne = el_calloc();
                 el_copy(ne,n);                  // create assignment elem
@@ -1761,7 +1745,7 @@ L3:
                     dbg_printf("\n");
                 }
 #endif
-                changes++;
+                go.changes++;
                 doflow = TRUE;                  // redo flow analysis
                 goto Lret;
             }
@@ -1777,7 +1761,7 @@ L3:
   if (tyaggregate(n->Ety))
         goto Lret;
 
-  changes++;
+  go.changes++;
   doflow = TRUE;                                // redo flow analysis
 
   t = el_alloctmp(n->Ety);                      /* allocate temporary t */
@@ -1934,12 +1918,10 @@ STATIC famlist * newfamlist(tym_t ty)
                 c.Vshort = 1;
                 break;
 
-#if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:
             case TYfptr:
             case TYvptr:
-#endif
             case TYnptr:
             case TYnullptr:
                 ty = TYint;
@@ -1950,10 +1932,9 @@ STATIC famlist * newfamlist(tym_t ty)
             case TYuint:
                 c.Vint = 1;
                 break;
-#if TARGET_SEGMENTED
+
             case TYhptr:
                 ty = TYlong;
-#endif
             case TYlong:
             case TYulong:
             case TYdchar:
@@ -1966,10 +1947,8 @@ STATIC famlist * newfamlist(tym_t ty)
         if (typtr(ty))
         {
             ty = TYint;
-#if TARGET_SEGMENTED
             if (tybasic(ty) == TYhptr)
                 ty = TYlong;
-#endif
             if (I64)
                 ty = TYllong;
         }
@@ -2018,7 +1997,7 @@ STATIC void loopiv(loop *l)
  * x += c or x -= c, where c is either a constant
  * or a LI.
  * Input:
- *      defnod[] loaded with all the definition elems of the loop
+ *      go.defnod[] loaded with all the definition elems of the loop
  */
 
 STATIC void findbasivs(loop *l)
@@ -2033,13 +2012,13 @@ STATIC void findbasivs(loop *l)
   notposs = vec_calloc(globsym.top);            /* vector of all variables      */
                                         /* (initially all unmarked)     */
 
-  /* for each def in defnod[] that is within loop l     */
+  /* for each def in go.defnod[] that is within loop l     */
 
-  for (i = 0; i < deftop; i++)
-  {     if (!vec_testbit(defnod[i].DNblock->Bdfoidx,l->Lloop))
+  for (i = 0; i < go.deftop; i++)
+  {     if (!vec_testbit(go.defnod[i].DNblock->Bdfoidx,l->Lloop))
                 continue;               /* def is not in the loop       */
 
-        n = defnod[i].DNelem;
+        n = go.defnod[i].DNelem;
         elem_debug(n);
         if (OTassign(n->Eoper) && n->E1->Eoper == OPvar)
         {   symbol *s;                  /* if unambiguous def           */
@@ -2120,18 +2099,18 @@ STATIC void findbasivs(loop *l)
         /* We have the sym idx of the basic IV. We need to find         */
         /* the parent of the increment elem for it.                     */
 
-        /* First find the defnod[]      */
-        for (j = 0; j < deftop; j++)
-        {       /* If defnod is a def of i and it is in the loop        */
-                if (defnod[j].DNelem->E1 &&     /* OPasm are def nodes  */
-                    defnod[j].DNelem->E1->EV.sp.Vsym == s &&
-                    vec_testbit(defnod[j].DNblock->Bdfoidx,l->Lloop))
+        /* First find the go.defnod[]      */
+        for (j = 0; j < go.deftop; j++)
+        {       /* If go.defnod is a def of i and it is in the loop        */
+                if (go.defnod[j].DNelem->E1 &&     /* OPasm are def nodes  */
+                    go.defnod[j].DNelem->E1->EV.sp.Vsym == s &&
+                    vec_testbit(go.defnod[j].DNblock->Bdfoidx,l->Lloop))
                         goto L1;
         }
         assert(0);                      /* should have found it         */
         /* NOTREACHED */
 
-    L1: biv->IVincr = el_parent(defnod[j].DNelem,&(defnod[j].DNblock->Belem));
+    L1: biv->IVincr = el_parent(go.defnod[j].DNelem,&(go.defnod[j].DNblock->Belem));
         assert(s == (*biv->IVincr)->E1->EV.sp.Vsym);
 #ifdef DEBUG
         if (debugc)
@@ -2148,7 +2127,7 @@ STATIC void findbasivs(loop *l)
  * Analogous to findbasivs().
  * Used to eliminate useless loop code normally found in benchmark programs.
  * Input:
- *      defnod[] loaded with all the definition elems of the loop
+ *      go.defnod[] loaded with all the definition elems of the loop
  */
 
 STATIC void findopeqs(loop *l)
@@ -2163,13 +2142,13 @@ STATIC void findopeqs(loop *l)
     notposs = vec_calloc(globsym.top);  // vector of all variables
                                         // (initially all unmarked)
 
-    // for each def in defnod[] that is within loop l
+    // for each def in go.defnod[] that is within loop l
 
-    for (i = 0; i < deftop; i++)
-    {   if (!vec_testbit(defnod[i].DNblock->Bdfoidx,l->Lloop))
+    for (i = 0; i < go.deftop; i++)
+    {   if (!vec_testbit(go.defnod[i].DNblock->Bdfoidx,l->Lloop))
                 continue;               // def is not in the loop
 
-        n = defnod[i].DNelem;
+        n = go.defnod[i].DNelem;
         elem_debug(n);
         if (OTopeq(n->Eoper) && n->E1->Eoper == OPvar)
         {   symbol *s;                  // if unambiguous def
@@ -2247,18 +2226,18 @@ STATIC void findopeqs(loop *l)
         // We have the sym idx of the basic IV. We need to find
         // the parent of the increment elem for it.
 
-        // First find the defnod[]
-        for (j = 0; j < deftop; j++)
-        {       // If defnod is a def of i and it is in the loop
-                if (defnod[j].DNelem->E1 &&     // OPasm are def nodes
-                    defnod[j].DNelem->E1->EV.sp.Vsym == s &&
-                    vec_testbit(defnod[j].DNblock->Bdfoidx,l->Lloop))
+        // First find the go.defnod[]
+        for (j = 0; j < go.deftop; j++)
+        {       // If go.defnod is a def of i and it is in the loop
+                if (go.defnod[j].DNelem->E1 &&     // OPasm are def nodes
+                    go.defnod[j].DNelem->E1->EV.sp.Vsym == s &&
+                    vec_testbit(go.defnod[j].DNblock->Bdfoidx,l->Lloop))
                         goto L1;
         }
         assert(0);                      // should have found it
         // NOTREACHED
 
-    L1: biv->IVincr = el_parent(defnod[j].DNelem,&(defnod[j].DNblock->Belem));
+    L1: biv->IVincr = el_parent(go.defnod[j].DNelem,&(go.defnod[j].DNblock->Belem));
         assert(s == (*biv->IVincr)->E1->EV.sp.Vsym);
 #ifdef DEBUG
         if (debugc)
@@ -2354,7 +2333,6 @@ STATIC void ivfamelems(Iv *biv,elem **pn)
                 n1 = n->E1;
         }
 
-#if TARGET_SEGMENTED
         // Get rid of case where we painted a far pointer to a long
         if (op == OPadd || op == OPmin)
         {   int sz;
@@ -2364,7 +2342,6 @@ STATIC void ivfamelems(Iv *biv,elem **pn)
                 (sz != tysize(n1->Ety) || sz != tysize(n2->Ety)))
                 return;
         }
-#endif
 
         /* Look for function of basic IV (-biv or biv op const)         */
         if (n1->Eoper == OPvar && n1->EV.sp.Vsym == biv->IVbasic)
@@ -2410,11 +2387,9 @@ STATIC void ivfamelems(Iv *biv,elem **pn)
                                 /* Check for subtracting two pointers */
                                 if (typtr(c2ty) && typtr(n2->Ety))
                                 {
-#if TARGET_SEGMENTED
                                     if (tybasic(c2ty) == TYhptr)
                                         c2ty = TYlong;
                                     else
-#endif
                                         c2ty = I64 ? TYllong : TYint;
                                 }
                           L1:
@@ -2606,7 +2581,7 @@ STATIC void intronvars(loop *l)
             el_free(*fl->FLpelem);
             *fl->FLpelem = T;           /* replace elem n with ref to T  */
             doflow = TRUE;              /* redo flow analysis           */
-            changes++;
+            go.changes++;
         } /* for */
     } /* for */
 }
@@ -2683,15 +2658,12 @@ STATIC bool funcprev(Iv *biv,famlist *fl)
                     else                        /* can't subtract fptr  */
                         goto L1;
                 }
-#if TARGET_SEGMENTED
                 if (tybasic(fls->c2->Ety) == TYhptr)
                     tymin = TYlong;
                 else
-#endif
                     tymin = I64 ? TYllong : TYint;         /* type of (ptr - ptr) */
         }
 
-#if TARGET_SEGMENTED
         /* If e1 and fls->c2 are fptrs, and are not from the same       */
         /* segment, we cannot subtract them.                            */
         if (tyfv(e1->Ety) && tyfv(fls->c2->Ety))
@@ -2703,12 +2675,7 @@ STATIC bool funcprev(Iv *biv,famlist *fl)
                     continue;
                 }
         }
-#else
-L1:
-        el_free(flse1);
-        continue;
 
-#endif
         /* Some more type checking...   */
         sz = tysize(fl->FLty);
         if (sz != tysize(e1->Ety) &&
@@ -2726,11 +2693,8 @@ L1:
                                     el_copytree(fls->c2)));
         if (sz < tysize(tymin) && sz == tysize(e1->Ety))
         {
-#if TARGET_SEGMENTED
+            assert(I16);
             flse1->E2 = el_una(OPoffset,fl->FLty,flse1->E2);
-#else
-            assert(0);
-#endif
         }
 
         flse1 = doptelem(flse1,GOALvalue | GOALagain);
@@ -2754,7 +2718,7 @@ L1:
         fls->FLtemp->Sflags |= SFLnotbasiciv;
 
         fl->FLtemp = FLELIM;            /* mark iv as being gone        */
-        changes++;
+        go.changes++;
         doflow = TRUE;
         return TRUE;                    /* it was replaced              */
     }
@@ -2954,7 +2918,6 @@ STATIC void elimbasivs(loop *l)
                     }
                 }
 
-#if TARGET_SEGMENTED
                 /* Fix if leaves of compare are TYfptrs and the compare */
                 /* operator is < <= > >=.                               */
                 if (ref->Eoper >= OPle && ref->Eoper <= OPge && tyfv(ref->E1->Ety))
@@ -2962,7 +2925,6 @@ STATIC void elimbasivs(loop *l)
                         ref->E1 = el_una(OPoffset,TYuint,ref->E1);
                         ref->E2 = el_una(OPoffset,TYuint,fofe);
                 }
-#endif
 #ifdef DEBUG
                 if (debugc)
                 {   WReqn(ref);
@@ -2970,7 +2932,7 @@ STATIC void elimbasivs(loop *l)
                 }
 #endif
 
-                changes++;
+                go.changes++;
                 doflow = TRUE;                  /* redo flow analysis   */
 
                 /* if X is live on entry to any successor S outside loop */
@@ -2993,14 +2955,12 @@ STATIC void elimbasivs(loop *l)
                                 ne = el_bin(OPmin,ty,
                                         el_var(fl->FLtemp),
                                         C2);
-#if TARGET_SEGMENTED
                                 if (tybasic(ne->E1->Ety) == TYfptr &&
                                     tybasic(ne->E2->Ety) == TYfptr)
                                 {   ne->Ety = I64 ? TYllong : TYint;
                                     if (tylong(ty) && intsize == 2)
                                         ne = el_una(OPs16_32,ty,ne);
                                 }
-#endif
 
                                 ne = el_bin(OPeq,X->ty(),
                                         el_var(X),
@@ -3049,7 +3009,7 @@ STATIC void elimbasivs(loop *l)
                                             ne,b->Belem);
                                 else
                                     b->Belem = ne;
-                                changes++;
+                                go.changes++;
                                 doflow = TRUE;  /* redo flow analysis   */
                         } /* for each successor */
                 } /* foreach exit block */
@@ -3080,7 +3040,7 @@ STATIC void elimbasivs(loop *l)
                 /* placeholder in the tree)                             */
                 *(biv->IVincr) = el_selecte2(*(biv->IVincr));
 
-                changes++;
+                go.changes++;
                 doflow = TRUE;                  /* redo flow analysis   */
             L1: ;
         }
@@ -3141,7 +3101,7 @@ STATIC void elimopeqs(loop *l)
             // placeholder in the tree)
             *(biv->IVincr) = el_selecte2(*(biv->IVincr));
 
-            changes++;
+            go.changes++;
             doflow = TRUE;                      // redo flow analysis
         L1:     ;
         }
@@ -3218,10 +3178,8 @@ STATIC famlist * flcmp(famlist *f1,famlist *f2)
                         goto Lf2;
                 break;
 
-#if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:
-#endif
             case TYnptr:        // BUG: 64 bit pointers?
             case TYnullptr:
             case TYint:
@@ -3233,11 +3191,9 @@ STATIC famlist * flcmp(famlist *f1,famlist *f2)
             case TYlong:
             case TYulong:
             case TYdchar:
-#if TARGET_SEGMENTED
             case TYfptr:
             case TYvptr:
             case TYhptr:
-#endif
             case_long:
                 if (t2->Vlong == 1 ||
                     t1->Vlong != 1 && f2->c2->EV.Vlong == 0)
@@ -3442,7 +3398,7 @@ STATIC void elimspecwalk(elem **pn)
                         n->E2->Ety = n->Ety;
                         n->Eoper = OPcomma;
 
-                        changes++;
+                        go.changes++;
                         doflow = TRUE;
 
                         elimspecwalk(&n->E1);
@@ -3484,7 +3440,7 @@ STATIC void elimspecwalk(elem **pn)
                         /* increment node is now guaranteed to have no goal */
                         e1->Nflags |= NFLnogoal;
                         n->Eoper = OPcomma;
-                        //changes++;
+                        //go.changes++;
                         doflow = TRUE;
 
                         elimspecwalk(&n->E1);

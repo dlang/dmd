@@ -1,12 +1,12 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
+ * Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/D-Programming-Language/dmd/blob/master/src/attrib.h
+ * https://github.com/dlang/dmd/blob/master/src/attrib.h
  */
 
 #ifndef DMD_ATTRIB_H
@@ -36,8 +36,8 @@ public:
     virtual Dsymbols *include(Scope *sc, ScopeDsymbol *sds);
     int apply(Dsymbol_apply_ft_t fp, void *param);
     static Scope *createNewScope(Scope *sc,
-        StorageClass newstc, LINK linkage, Prot protection, int explictProtection,
-        structalign_t structalign, PINLINE inlining);
+        StorageClass newstc, LINK linkage, CPPMANGLE cppmangle, Prot protection,
+        int explictProtection, AlignDeclaration *aligndecl, PINLINE inlining);
     virtual Scope *newScope(Scope *sc);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void setScope(Scope *sc);
@@ -46,7 +46,7 @@ public:
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     void addComment(const utf8_t *comment);
-    const char *kind();
+    const char *kind() const;
     bool oneMember(Dsymbol **ps, Identifier *ident);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     bool hasPointers();
@@ -75,10 +75,14 @@ class DeprecatedDeclaration : public StorageClassDeclaration
 {
 public:
     Expression *msg;
+    const char *msgstr;
 
     DeprecatedDeclaration(Expression *msg, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
+    Scope *newScope(Scope *sc);
     void setScope(Scope *sc);
+    void semantic2(Scope *sc);
+    const char *getMessage();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -90,7 +94,19 @@ public:
     LinkDeclaration(LINK p, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
-    char *toChars();
+    const char *toChars();
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class CPPMangleDeclaration : public AttribDeclaration
+{
+public:
+    CPPMANGLE cppmangle;
+
+    CPPMangleDeclaration(CPPMANGLE p, Dsymbols *decl);
+    Dsymbol *syntaxCopy(Dsymbol *s);
+    Scope *newScope(Scope *sc);
+    const char *toChars();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -106,7 +122,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     void addMember(Scope *sc, ScopeDsymbol *sds);
-    const char *kind();
+    const char *kind() const;
     const char *toPrettyChars(bool unused);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -114,11 +130,15 @@ public:
 class AlignDeclaration : public AttribDeclaration
 {
 public:
-    unsigned salign;
+    Expression *ealign;
+    structalign_t salign;
 
-    AlignDeclaration(unsigned sa, Dsymbols *decl);
+    AlignDeclaration(Loc loc, Expression *ealign, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
+    void setScope(Scope *sc);
+    void semantic2(Scope *sc);
+    structalign_t getAlignment();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -126,14 +146,18 @@ class AnonDeclaration : public AttribDeclaration
 {
 public:
     bool isunion;
-    structalign_t alignment;
     int sem;                    // 1 if successful semantic()
+    unsigned anonoffset;        // offset of anonymous struct
+    unsigned anonstructsize;    // size of anonymous struct
+    unsigned anonalignsize;     // size of anonymous struct for alignment purposes
 
     AnonDeclaration(Loc loc, bool isunion, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
+    void setScope(Scope *sc);
     void semantic(Scope *sc);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
-    const char *kind();
+    const char *kind() const;
+    AnonDeclaration *isAnonDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -144,9 +168,9 @@ public:
 
     PragmaDeclaration(Loc loc, Identifier *ident, Expressions *args, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    void semantic(Scope *sc);
     Scope *newScope(Scope *sc);
-    const char *kind();
+    void semantic(Scope *sc);
+    const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -169,16 +193,16 @@ class StaticIfDeclaration : public ConditionalDeclaration
 {
 public:
     ScopeDsymbol *scopesym;
-    int addisdone;
+    bool addisdone;
 
     StaticIfDeclaration(Condition *condition, Dsymbols *decl, Dsymbols *elsedecl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Dsymbols *include(Scope *sc, ScopeDsymbol *sds);
     void addMember(Scope *sc, ScopeDsymbol *sds);
-    void semantic(Scope *sc);
-    void importAll(Scope *sc);
     void setScope(Scope *sc);
-    const char *kind();
+    void importAll(Scope *sc);
+    void semantic(Scope *sc);
+    const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -190,7 +214,7 @@ public:
     Expression *exp;
 
     ScopeDsymbol *scopesym;
-    int compiled;
+    bool compiled;
 
     CompileDeclaration(Loc loc, Expression *exp);
     Dsymbol *syntaxCopy(Dsymbol *s);
@@ -198,7 +222,7 @@ public:
     void setScope(Scope *sc);
     void compileIt(Scope *sc);
     void semantic(Scope *sc);
-    const char *kind();
+    const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -214,12 +238,12 @@ public:
     UserAttributeDeclaration(Expressions *atts, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
+    void setScope(Scope *sc);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
-    void setScope(Scope *sc);
     static Expressions *concat(Expressions *udas1, Expressions *udas2);
     Expressions *getAttributes();
-    const char *kind();
+    const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }
 };
 

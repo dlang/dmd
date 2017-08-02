@@ -26,7 +26,9 @@
 #include "init.h"
 #include "tokens.h"
 
+FuncDeclaration *isFuncAddress(Expression *e, bool *hasOverloads = NULL);
 bool isCommutative(TOK op);
+MOD MODmerge(MOD mod1, MOD mod2);
 
 /* ==================== implicitCast ====================== */
 
@@ -84,24 +86,16 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
             {
                 if (!t->deco)
                 {
-                    /* Can happen with:
-                     *    enum E { One }
-                     *    class A
-                     *    { static void fork(EDG dg) { dg(E.One); }
-                     *      alias void delegate(E) EDG;
-                     *    }
-                     * Should eventually make it work.
-                     */
                     e->error("forward reference to type %s", t->toChars());
                 }
-                else if (Type *tx = reliesOnTident(t))
-                    e->error("forward reference to type %s", tx->toChars());
-
-                //printf("type %p ty %d deco %p\n", type, type->ty, type->deco);
-                //type = type->semantic(loc, sc);
-                //printf("type %s t %s\n", type->deco, t->deco);
-                e->error("cannot implicitly convert expression (%s) of type %s to %s",
-                    e->toChars(), e->type->toChars(), t->toChars());
+                else
+                {
+                    //printf("type %p ty %d deco %p\n", type, type->ty, type->deco);
+                    //type = type->semantic(loc, sc);
+                    //printf("type %s t %s\n", type->deco, t->deco);
+                    e->error("cannot implicitly convert expression (%s) of type %s to %s",
+                        e->toChars(), e->type->toChars(), t->toChars());
+                }
             }
             result = new ErrorExp();
         }
@@ -467,13 +461,13 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     if (e->type->isunsigned())
                     {
                         f = ldouble(value);
-                        if (f != value) // isn't this a noop, because the compiler prefers ld
+                        if ((dinteger_t)f != value) // isn't this a noop, because the compiler prefers ld
                             return;
                     }
                     else
                     {
                         f = ldouble((sinteger_t)value);
-                        if (f != (sinteger_t)value)
+                        if ((sinteger_t)f != (sinteger_t)value)
                             return;
                     }
                     break;
@@ -588,12 +582,11 @@ MATCH implicitConvTo(Expression *e, Type *t)
                                     }
                                     return;
                                 }
-                                int szto = (int)t->nextOf()->size();
                                 if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
                                 {
                                     if (e->committed && tynto != tyn)
                                         return;
-                                    size_t fromlen = e->length(szto);
+                                    size_t fromlen = e->numberOfCodeUnits(tynto);
                                     size_t tolen = (size_t)((TypeSArray *)t)->dim->toInteger();
                                     if (tolen < fromlen)
                                         return;
@@ -613,12 +606,11 @@ MATCH implicitConvTo(Expression *e, Type *t)
                             else if (e->type->ty == Tarray)
                             {
                                 TY tynto = t->nextOf()->ty;
-                                int sznto = (int)t->nextOf()->size();
                                 if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
                                 {
                                     if (e->committed && tynto != tyn)
                                         return;
-                                    size_t fromlen = e->length(sznto);
+                                    size_t fromlen = e->numberOfCodeUnits(tynto);
                                     size_t tolen = (size_t)((TypeSArray *)t)->dim->toInteger();
                                     if (tolen < fromlen)
                                         return;
@@ -709,11 +701,19 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 }
                 else
                 {
+                    if (e->basis)
+                    {
+                        MATCH m = e->basis->implicitConvTo(telement);
+                        if (m < result)
+                            result = m;
+                    }
                     for (size_t i = 0; i < e->elements->dim; i++)
                     {
                         Expression *el = (*e->elements)[i];
                         if (result == MATCHnomatch)
-                            break;                          // no need to check for worse
+                            break;
+                        if (!el)
+                            continue;
                         MATCH m = el->implicitConvTo(telement);
                         if (m < result)
                             result = m;                     // remember worst match
@@ -733,14 +733,23 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 TypeVector *tv = (TypeVector *)tb;
                 TypeSArray *tbase = (TypeSArray *)tv->basetype;
                 assert(tbase->ty == Tsarray);
-                if (e->elements->dim != tbase->dim->toInteger())
+                const size_t edim = e->elements->dim;
+                const size_t tbasedim = tbase->dim->toInteger();
+                if (edim > tbasedim)
                 {
                     result = MATCHnomatch;
                     return;
                 }
 
                 Type *telement = tv->elementType();
-                for (size_t i = 0; i < e->elements->dim; i++)
+                if (edim < tbasedim)
+                {
+                    Expression *el = typeb->nextOf()->defaultInitLiteral(e->loc);
+                    MATCH m = el->implicitConvTo(telement);
+                    if (m < result)
+                        result = m; // remember worst match
+                }
+                for (size_t i = 0; i < edim; i++)
                 {
                     Expression *el = (*e->elements)[i];
                     MATCH m = el->implicitConvTo(telement);
@@ -1262,7 +1271,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                             for (size_t i = 0; i < cd->fields.dim; i++)
                             {
                                 VarDeclaration *v = cd->fields[i];
-                                Initializer *init = v->init;
+                                Initializer *init = v->_init;
                                 if (init)
                                 {
                                     if (init->isVoidInitializer())
@@ -1991,7 +2000,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     if (f)
                     {
                         f->tookAddressOf++;
-                        SymOffExp *se = new SymOffExp(e->loc, f, 0, 0);
+                        SymOffExp *se = new SymOffExp(e->loc, f, 0, false);
                         se->semantic(sc);
                         // Let SymOffExp::castTo() do the heavy lifting
                         visit(se);
@@ -2011,7 +2020,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                         f = f->overloadExactMatch(tb->nextOf());
                         if (f)
                         {
-                            result = new VarExp(e->loc, f);
+                            result = new VarExp(e->loc, f, false);
                             result->type = f->type;
                             result = new AddrExp(e->loc, result);
                             result->type = t;
@@ -2019,6 +2028,16 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                         }
                     }
                 }
+
+                if (FuncDeclaration *f = isFuncAddress(e))
+                {
+                    if (f->checkForwardRef(e->loc))
+                    {
+                        result = new ErrorExp();
+                        return;
+                    }
+                }
+
                 visit((Expression *)e);
             }
             result->type = t;
@@ -2090,10 +2109,14 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     }
 
                     ae = (ArrayLiteralExp *)e->copy();
+                    if (e->basis)
+                        ae->basis = e->basis->castTo(sc, tb->nextOf());
                     ae->elements = e->elements->copy();
                     for (size_t i = 0; i < e->elements->dim; i++)
                     {
                         Expression *ex = (*e->elements)[i];
+                        if (!ex)
+                            continue;
                         ex = ex->castTo(sc, tb->nextOf());
                         (*ae->elements)[i] = ex;
                     }
@@ -2118,16 +2141,26 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 TypeVector *tv = (TypeVector *)tb;
                 TypeSArray *tbase = (TypeSArray *)tv->basetype;
                 assert(tbase->ty == Tsarray);
-                if (e->elements->dim != tbase->dim->toInteger())
+                const size_t edim = e->elements->dim;
+                const size_t tbasedim = tbase->dim->toInteger();
+                if (edim > tbasedim)
                     goto L1;
 
                 ae = (ArrayLiteralExp *)e->copy();
                 ae->type = tbase;   // Bugzilla 12642
                 ae->elements = e->elements->copy();
                 Type *telement = tv->elementType();
-                for (size_t i = 0; i < e->elements->dim; i++)
+                for (size_t i = 0; i < edim; i++)
                 {
                     Expression *ex = (*e->elements)[i];
+                    ex = ex->castTo(sc, telement);
+                    (*ae->elements)[i] = ex;
+                }
+                // Fill in the rest with the default initializer
+                ae->elements->setDim(tbasedim);
+                for (size_t i = edim; i < tbasedim; i++)
+                {
+                    Expression *ex = typeb->nextOf()->defaultInitLiteral(e->loc);
                     ex = ex->castTo(sc, telement);
                     (*ae->elements)[i] = ex;
                 }
@@ -2208,12 +2241,12 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     {
                         if (f->needThis() && hasThis(sc))
                         {
-                            result = new DelegateExp(e->loc, new ThisExp(e->loc), f);
+                            result = new DelegateExp(e->loc, new ThisExp(e->loc), f, false);
                             result = result->semantic(sc);
                         }
                         else if (f->isNested())
                         {
-                            result = new DelegateExp(e->loc, new IntegerExp(0), f);
+                            result = new DelegateExp(e->loc, new IntegerExp(0), f, false);
                             result = result->semantic(sc);
                         }
                         else if (f->needThis())
@@ -2231,13 +2264,23 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     }
                     else
                     {
-                        result = new SymOffExp(e->loc, f, 0);
+                        result = new SymOffExp(e->loc, f, 0, false);
                         result->type = t;
                     }
                     f->tookAddressOf++;
                     return;
                 }
             }
+
+            if (FuncDeclaration *f = isFuncAddress(e))
+            {
+                if (f->checkForwardRef(e->loc))
+                {
+                    result = new ErrorExp();
+                    return;
+                }
+            }
+
             visit((Expression *)e);
         }
 
@@ -2266,7 +2309,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                             if (f->tintro && f->tintro->nextOf()->isBaseOf(f->type->nextOf(), &offset) && offset)
                                 e->error("%s", msg);
                             f->tookAddressOf++;
-                            result = new DelegateExp(e->loc, e->e1, f);
+                            result = new DelegateExp(e->loc, e->e1, f, false);
                             result->type = t;
                             return;
                         }
@@ -2274,6 +2317,16 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                             e->error("%s", msg);
                     }
                 }
+
+                if (FuncDeclaration *f = isFuncAddress(e))
+                {
+                    if (f->checkForwardRef(e->loc))
+                    {
+                        result = new ErrorExp();
+                        return;
+                    }
+                }
+
                 visit((Expression *)e);
             }
             else
@@ -2442,6 +2495,8 @@ Expression *inferType(Expression *e, Type *t, int flag)
             if (tb->ty == Tarray || tb->ty == Tsarray)
             {
                 Type *tn = tb->nextOf();
+                if (ale->basis)
+                    ale->basis = inferType(ale->basis, tn, flag);
                 for (size_t i = 0; i < ale->elements->dim; i++)
                 {
                     Expression *e = (*ale->elements)[i];
@@ -2588,7 +2643,8 @@ bool isVoidArrayLiteral(Expression *e, Type *other)
     while (e->op == TOKarrayliteral && e->type->ty == Tarray
         && (((ArrayLiteralExp *)e)->elements->dim == 1))
     {
-        e = (*((ArrayLiteralExp *)e)->elements)[0];
+        ArrayLiteralExp *ale = (ArrayLiteralExp *)e;
+        e = ale->getElement(0);
         if (other->ty == Tsarray || other->ty == Tarray)
             other = other->nextOf();
         else
@@ -2602,6 +2658,27 @@ bool isVoidArrayLiteral(Expression *e, Type *other)
         ((ArrayLiteralExp *)e)->elements->dim == 0);
 }
 
+// used by deduceType()
+Type *rawTypeMerge(Type *t1, Type *t2)
+{
+    if (t1->equals(t2))
+        return t1;
+    if (t1->equivalent(t2))
+        return t1->castMod(MODmerge(t1->mod, t2->mod));
+
+    Type *t1b = t1->toBasetype();
+    Type *t2b = t2->toBasetype();
+    if (t1b->equals(t2b))
+        return t1b;
+    if (t1b->equivalent(t2b))
+        return t1b->castMod(MODmerge(t1b->mod, t2b->mod));
+
+    TY ty = (TY)impcnvResult[t1b->ty][t2b->ty];
+    if (ty != Terror)
+        return Type::basic[ty];
+
+    return NULL;
+}
 
 /**************************************
  * Combine types.
@@ -3114,7 +3191,12 @@ Lcc:
     {
         // Bugzilla 13841, all vector types should have no common types between
         // different vectors, even though their sizes are same.
-        goto Lincompatible;
+        TypeVector *tv1 = (TypeVector *)t1;
+        TypeVector *tv2 = (TypeVector *)t2;
+        if (!tv1->basetype->equals(tv2->basetype))
+            goto Lincompatible;
+
+        goto LmodCompare;
     }
     else if (t1->ty == Tvector && t2->ty != Tvector &&
              e2->implicitConvTo(t1))
@@ -3136,6 +3218,8 @@ Lcc:
     {
         if (t1->ty != t2->ty)
         {
+            if (t1->ty == Tvector || t2->ty == Tvector)
+                goto Lincompatible;
             e1 = integralPromotions(e1, sc);
             e2 = integralPromotions(e2, sc);
             t1 = e1->type;
@@ -3143,6 +3227,7 @@ Lcc:
             goto Lagain;
         }
         assert(t1->ty == t2->ty);
+LmodCompare:
         if (!t1->isImmutable() && !t2->isImmutable() && t1->isShared() != t2->isShared())
             goto Lincompatible;
         unsigned char mod = MODmerge(t1->mod, t2->mod);
@@ -3714,7 +3799,7 @@ IntRange getIntRange(Expression *e)
             VarDeclaration* vd = e->var->isVarDeclaration();
             if (vd && vd->range)
                 range = vd->range->cast(e->type);
-            else if (vd && vd->init && !vd->type->isMutable() &&
+            else if (vd && vd->_init && !vd->type->isMutable() &&
                 (ie = vd->getConstInitializer()) != NULL)
                 ie->accept(this);
             else

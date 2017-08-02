@@ -1,12 +1,12 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
+ * Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/D-Programming-Language/dmd/blob/master/src/scope.h
+ * https://github.com/dlang/dmd/blob/master/src/scope.h
  */
 
 #ifndef DMD_SCOPE_H
@@ -54,11 +54,11 @@ enum PINLINE;
 
 // Flags that would not be inherited beyond scope nesting
 #define SCOPEctor           0x0001  // constructor type
-#define SCOPEnoaccesscheck  0x0002  // don't do access checks
 #define SCOPEcondition      0x0004  // inside static if/assert condition
 #define SCOPEdebug          0x0008  // inside debug conditional
 
 // Flags that would be inherited beyond scope nesting
+#define SCOPEnoaccesscheck  0x0002  // don't do access checks
 #define SCOPEconstraint     0x0010  // inside template constraint
 #define SCOPEinvariant      0x0020  // inside invariant code
 #define SCOPErequire        0x0040  // inside in contract code
@@ -66,6 +66,7 @@ enum PINLINE;
 #define SCOPEcontract       0x0060  // [mask] we're inside contract code
 #define SCOPEctfe           0x0080  // inside a ctfe-only expression
 #define SCOPEcompile        0x0100  // inside __traits(compile)
+#define SCOPEignoresymbolvisibility 0x0200  // ignore symbol visibility (Bugzilla 15907)
 
 #define SCOPEfree           0x8000  // is on free list
 
@@ -73,7 +74,7 @@ struct Scope
 {
     Scope *enclosing;           // enclosing Scope
 
-    Module *module;             // Root module
+    Module *_module;            // Root module
     ScopeDsymbol *scopesym;     // current symbol
     ScopeDsymbol *sds;          // if in static if, and declaring new symbols,
                                 // sds gets the addMember()
@@ -105,15 +106,18 @@ struct Scope
     unsigned *fieldinit;
     size_t fieldinit_dim;
 
-    structalign_t structalign;  // alignment for struct members
+    AlignDeclaration *aligndecl;    // alignment for struct members
+
     LINK linkage;               // linkage for external functions
+    CPPMANGLE cppmangle;        // C++ mangle type
     PINLINE inlining;            // inlining strategy for functions
 
     Prot protection;            // protection for class members
     int explicitProtection;     // set if in an explicit protection attribute
 
     StorageClass stc;           // storage class
-    char *depmsg;               // customized deprecation message
+
+    DeprecatedDeclaration *depdecl; // customized deprecation message
 
     unsigned flags;
 
@@ -146,12 +150,15 @@ struct Scope
     Module *instantiatingModule();
 
     Dsymbol *search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flags = IgnoreNone);
+    static void deprecation10378(Loc loc, Dsymbol *sold, Dsymbol *snew);
     Dsymbol *search_correct(Identifier *ident);
     Dsymbol *insert(Dsymbol *s);
 
     ClassDeclaration *getClassScope();
     AggregateDeclaration *getStructClassScope();
     void setNoFree();
+
+    structalign_t alignment();
 };
 
 #endif /* DMD_SCOPE_H */

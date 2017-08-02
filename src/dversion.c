@@ -20,6 +20,8 @@
 #include "version.h"
 #include "module.h"
 
+void checkReserved(Loc loc, const char *ident);
+
 /* ================================================== */
 
 /* DebugSymbol's happen for statements like:
@@ -40,7 +42,7 @@ DebugSymbol::DebugSymbol(Loc loc, unsigned level)
     this->loc = loc;
 }
 
-char *DebugSymbol::toChars()
+const char *DebugSymbol::toChars()
 {
     if (ident)
         return ident->toChars();
@@ -128,7 +130,7 @@ VersionSymbol::VersionSymbol(Loc loc, unsigned level)
     this->loc = loc;
 }
 
-char *VersionSymbol::toChars()
+const char *VersionSymbol::toChars()
 {
     if (ident)
         return ident->toChars();
@@ -157,7 +159,7 @@ void VersionSymbol::addMember(Scope *sc, ScopeDsymbol *sds)
     // just make sure subsequent debug declarations work.
     if (ident)
     {
-        VersionCondition::checkPredefined(loc, ident->toChars());
+        checkReserved(loc, ident->toChars());
         if (!m)
         {
             error("declaration must be at module level");

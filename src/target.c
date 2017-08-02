@@ -10,28 +10,84 @@
  */
 
 #include <assert.h>
+#include <limits> // for std::numeric_limits
 
 #include "target.h"
+#include "aggregate.h"
 #include "mars.h"
 #include "mtype.h"
 #include "outbuffer.h"
+
+const char *toCppMangleItanium(Dsymbol *);
+const char *cppTypeInfoMangleItanium(Dsymbol *);
+const char *toCppMangleMSVC(Dsymbol *);
+const char *cppTypeInfoMangleMSVC(Dsymbol *);
 
 int Target::ptrsize;
 int Target::realsize;
 int Target::realpad;
 int Target::realalignsize;
 bool Target::reverseCppOverloads;
+bool Target::cppExceptions;
 int Target::c_longsize;
 int Target::c_long_doublesize;
 int Target::classinfosize;
+unsigned long long Target::maxStaticDataSize;
 
+/* Floating point constants for for .max, .min, and other properties.  */
+template <typename T> real_t Target::FPTypeProperties<T>::max;
+template <typename T> real_t Target::FPTypeProperties<T>::min_normal;
+template <typename T> real_t Target::FPTypeProperties<T>::nan;
+template <typename T> real_t Target::FPTypeProperties<T>::snan;
+template <typename T> real_t Target::FPTypeProperties<T>::infinity;
+template <typename T> real_t Target::FPTypeProperties<T>::epsilon;
+template <typename T> d_int64 Target::FPTypeProperties<T>::dig;
+template <typename T> d_int64 Target::FPTypeProperties<T>::mant_dig;
+template <typename T> d_int64 Target::FPTypeProperties<T>::max_exp;
+template <typename T> d_int64 Target::FPTypeProperties<T>::min_exp;
+template <typename T> d_int64 Target::FPTypeProperties<T>::max_10_exp;
+template <typename T> d_int64 Target::FPTypeProperties<T>::min_10_exp;
 
-void Target::init()
+/* Initialize the floating point constants for TYPE.  */
+
+template <typename T, typename V>
+static void initFloatConstants()
+{
+    T::max = std::numeric_limits<V>::max();
+    T::min_normal = std::numeric_limits<V>::min();
+
+    assert(std::numeric_limits<V>::has_quiet_NaN);
+    T::nan = std::numeric_limits<V>::quiet_NaN();
+
+    assert(std::numeric_limits<V>::has_signaling_NaN);
+    T::snan = std::numeric_limits<V>::signaling_NaN();
+
+    assert(std::numeric_limits<V>::has_infinity);
+    T::infinity = std::numeric_limits<V>::infinity();
+
+    T::epsilon = std::numeric_limits<V>::epsilon();
+    T::dig = std::numeric_limits<V>::digits10;
+    T::mant_dig = std::numeric_limits<V>::digits;
+    T::max_exp = std::numeric_limits<V>::max_exponent;
+    T::min_exp = std::numeric_limits<V>::min_exponent;
+    T::max_10_exp = std::numeric_limits<V>::max_exponent10;
+    T::min_10_exp = std::numeric_limits<V>::min_exponent10;
+}
+
+void Target::_init()
 {
     // These have default values for 32 bit code, they get
     // adjusted for 64 bit code.
     ptrsize = 4;
     classinfosize = 0x4C;   // 76
+
+    /* gcc uses int.max for 32 bit compilations, and long.max for 64 bit ones.
+     * Set to int.max for both, because the rest of the compiler cannot handle
+     * 2^64-1 without some pervasive rework. The trouble is that much of the
+     * front and back end uses 32 bit ints for sizes and offsets. Since C++
+     * silently truncates 64 bit ints to 32, finding all these dependencies will be a problem.
+     */
+    maxStaticDataSize = 0x7FFFFFFF;
 
     if (global.params.isLP64)
     {
@@ -61,6 +117,13 @@ void Target::init()
         realalignsize = 2;
         reverseCppOverloads = !global.params.is64bit;
         c_longsize = 4;
+        if (ptrsize == 4)
+        {
+            /* Optlink cannot deal with individual data chunks
+             * larger than 16Mb
+             */
+            maxStaticDataSize = 0x1000000;  // 16Mb
+        }
     }
     else
         assert(0);
@@ -83,6 +146,14 @@ void Target::init()
     c_long_doublesize = realsize;
     if (global.params.is64bit && global.params.isWindows)
         c_long_doublesize = 8;
+
+    cppExceptions = global.params.isLinux || global.params.isFreeBSD ||
+        global.params.isOSX;
+
+    initFloatConstants<Target::FloatProperties, float>();
+    initFloatConstants<Target::DoubleProperties, double>();
+    initFloatConstants<Target::RealProperties, real_t>();
+
 }
 
 /******************************
@@ -405,3 +476,41 @@ void Target::prefixName(OutBuffer *buf, LINK linkage)
     }
 }
 
+const char *Target::toCppMangle(Dsymbol *s)
+{
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    return toCppMangleItanium(s);
+#elif TARGET_WINDOS
+    return toCppMangleMSVC(s);
+#else
+#error "fix this"
+#endif
+}
+
+const char *Target::cppTypeInfoMangle(ClassDeclaration *cd)
+{
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    return cppTypeInfoMangleItanium(cd);
+#elif TARGET_WINDOS
+    return cppTypeInfoMangleMSVC(cd);
+#else
+#error "fix this"
+#endif
+}
+
+/******************************
+ * For a vendor-specific type, return a string containing the C++ mangling.
+ * In all other cases, return null.
+ */
+const char* Target::cppTypeMangle(Type *t)
+{
+    return NULL;
+}
+
+/******************************
+ * Return the default system linkage for the target.
+ */
+LINK Target::systemLinkage()
+{
+    return global.params.isWindows ? LINKwindows : LINKc;
+}

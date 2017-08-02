@@ -457,6 +457,7 @@ void *mem_calloc_debug(size_t n, const char *fil, int lin)
 void mem_free_debug(void *ptr, const char *fil, int lin)
 {
         struct mem_debug *dl;
+        int error;
 
         if (ptr == NULL)
                 return;
@@ -472,10 +473,11 @@ void mem_free_debug(void *ptr, const char *fil, int lin)
                 goto err2;
         }
 #if SUN || SUN386 /* Bus error if we read a long from an odd address    */
-        if (memcmp(&dl->data[dl->Mnbytes],&afterval,sizeof(AFTERVAL)) != 0)
+        error = (memcmp(&dl->data[dl->Mnbytes],&afterval,sizeof(AFTERVAL)) != 0);
 #else
-        if (*(long *) &dl->data[dl->Mnbytes] != AFTERVAL)
+        error = (*(long *) &dl->data[dl->Mnbytes] != AFTERVAL);
 #endif
+        if (error)
         {
                 PRINT "Pointer x%lx overrun\n",(long)ptr);
                 goto err2;
@@ -545,7 +547,8 @@ static void mem_checkdl(struct mem_debug *dl)
 {   void *p;
 #if (__SC__ || __DMC__) && !_WIN32
     unsigned u;
-
+    int error;
+    
     /* Take advantage of fact that SC's allocator stores the size of the
      * alloc in the unsigned immediately preceding the allocation.
      */
@@ -559,10 +562,11 @@ static void mem_checkdl(struct mem_debug *dl)
             goto err2;
     }
 #if SUN || SUN386 /* Bus error if we read a long from an odd address    */
-    if (memcmp(&dl->data[dl->Mnbytes],&afterval,sizeof(AFTERVAL)) != 0)
+    error = memcmp(&dl->data[dl->Mnbytes],&afterval,sizeof(AFTERVAL)) != 0;
 #else
-    if (*(long *) &dl->data[dl->Mnbytes] != AFTERVAL)
+    error = *(long *) &dl->data[dl->Mnbytes] != AFTERVAL;
 #endif
+    if (error)
     {
             PRINT "Pointer x%lx overrun\n",(long)p);
             goto err2;
@@ -751,8 +755,8 @@ void *mem_fmalloc(size_t numbytes)
 {   void *p;
 
     //printf("fmalloc(%d)\n",numbytes);
-#if defined(__llvm__) && (defined(__GNUC__) || defined(__clang__))
-    // LLVM-GCC and Clang assume some types, notably elem (see DMD issue 6215),
+#if defined(__GNUC__) || defined(__clang__)
+    // GCC and Clang assume some types, notably elem (see DMD issue 6215),
     // to be 16-byte aligned. Because we do not have any type information
     // available here, we have to 16 byte-align everything.
     numbytes = (numbytes + 0xF) & ~0xF;

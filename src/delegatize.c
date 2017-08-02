@@ -147,9 +147,8 @@ bool lambdaCheckForNestedRef(Expression *e, Scope *sc)
 
         void visit(ThisExp *e)
         {
-            VarDeclaration *v = e->var->isVarDeclaration();
-            if (v)
-                result = v->checkNestedReference(sc, Loc());
+            if (e->var)
+                result = e->var->checkNestedReference(sc, Loc());
         }
 
         void visit(DeclarationExp *e)
@@ -170,9 +169,9 @@ bool lambdaCheckForNestedRef(Expression *e, Scope *sc)
                  * expression e does not have any nested references by
                  * checking the declaration initializer too.
                  */
-                if (v->init && v->init->isExpInitializer())
+                if (v->_init && v->_init->isExpInitializer())
                 {
-                    Expression *ie = v->init->toExpression();
+                    Expression *ie = v->_init->toExpression();
                     result = lambdaCheckForNestedRef(ie, sc);
                 }
             }
@@ -182,4 +181,30 @@ bool lambdaCheckForNestedRef(Expression *e, Scope *sc)
     LambdaCheckForNestedRef v(sc);
     walkPostorder(e, &v);
     return v.result;
+}
+
+bool checkNestedRef(Dsymbol *s, Dsymbol *p)
+{
+    while (s)
+    {
+        if (s == p) // hit!
+            return false;
+
+        if (FuncDeclaration *fd = s->isFuncDeclaration())
+        {
+            if (!fd->isThis() && !fd->isNested())
+                break;
+
+            // Bugzilla 15332: change to delegate if fd is actually nested.
+            if (FuncLiteralDeclaration *fld = fd->isFuncLiteralDeclaration())
+                fld->tok = TOKdelegate;
+        }
+        if (AggregateDeclaration *ad = s->isAggregateDeclaration())
+        {
+            if (ad->storage_class & STCstatic)
+                break;
+        }
+        s = s->toParent2();
+    }
+    return true;
 }

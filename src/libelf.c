@@ -208,7 +208,7 @@ void LibElf::addSymbol(ObjModule *om, char *name, int pickAny)
 #if LOG
     printf("LibElf::addSymbol(%s, %s, %d)\n", om->name, name, pickAny);
 #endif
-    StringValue *s = tab.insert(name, strlen(name));
+    StringValue *s = tab.insert(name, strlen(name), NULL);
     if (!s)
     {   // already in table
         if (!pickAny)

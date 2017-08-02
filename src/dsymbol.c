@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <limits.h>
 
 #include "rmem.h"
 #include "speller.h"
@@ -35,6 +36,10 @@
 #include "enum.h"
 #include "lexer.h"
 
+bool symbolIsVisible(Dsymbol *origin, Dsymbol *s);
+typedef int (*ForeachDg)(void *ctx, size_t idx, Dsymbol *s);
+int ScopeDsymbol_foreach(Scope *sc, Dsymbols *members, ForeachDg dg, void *ctx, size_t *pn = NULL);
+
 
 /****************************** Dsymbol ******************************/
 
@@ -47,10 +52,11 @@ Dsymbol::Dsymbol()
     this->isym = NULL;
     this->loc = Loc();
     this->comment = NULL;
-    this->scope = NULL;
+    this->_scope = NULL;
+    this->prettystring = NULL;
     this->semanticRun = PASSinit;
     this->errors = false;
-    this->depmsg = NULL;
+    this->depdecl = NULL;
     this->userAttribDecl = NULL;
     this->ddocUnittest = NULL;
 }
@@ -64,10 +70,11 @@ Dsymbol::Dsymbol(Identifier *ident)
     this->isym = NULL;
     this->loc = Loc();
     this->comment = NULL;
-    this->scope = NULL;
+    this->_scope = NULL;
+    this->prettystring = NULL;
     this->semanticRun = PASSinit;
     this->errors = false;
-    this->depmsg = NULL;
+    this->depdecl = NULL;
     this->userAttribDecl = NULL;
     this->ddocUnittest = NULL;
 }
@@ -204,44 +211,68 @@ Identifier *Dsymbol::getIdent()
     return ident;
 }
 
-char *Dsymbol::toChars()
+const char *Dsymbol::toChars()
 {
     return ident ? ident->toChars() : (char *)"__anonymous";
 }
 
-char *Dsymbol::toPrettyCharsHelper()
+const char *Dsymbol::toPrettyCharsHelper()
 {
     return toChars();
 }
 
 const char *Dsymbol::toPrettyChars(bool QualifyTypes)
-{   Dsymbol *p;
-    char *s;
-    char *q;
-    size_t len;
+{
+    if (prettystring && !QualifyTypes)
+        return (char *)prettystring;
 
     //printf("Dsymbol::toPrettyChars() '%s'\n", toChars());
     if (!parent)
-        return toChars();
-
-    len = 0;
-    for (p = this; p; p = p->parent)
-        len += strlen(QualifyTypes ? p->toPrettyCharsHelper() : p->toChars()) + 1;
-
-    s = (char *)mem.xmalloc(len);
-    q = s + len - 1;
-    *q = 0;
-    for (p = this; p; p = p->parent)
     {
-        char *t = QualifyTypes ? p->toPrettyCharsHelper() : p->toChars();
-        len = strlen(t);
+        const char *s = toChars();
+        if (!QualifyTypes)
+            prettystring = (utf8_t *)s;
+        return s;
+    }
+
+    // Computer number of components
+    size_t complength = 0;
+    for (Dsymbol *p = this; p; p = p->parent)
+        ++complength;
+
+    // Allocate temporary array comp[]
+    const char **comp = (const char **)malloc(complength * sizeof(char**));
+    if (!comp)
+        Mem::error();
+
+    // Fill in comp[] and compute length of final result
+    size_t length = 0;
+    int i = 0;
+    for (Dsymbol *p = this; p; p = p->parent)
+    {
+        const char *s = QualifyTypes ? p->toPrettyCharsHelper() : p->toChars();
+        const size_t len = strlen(s);
+        comp[i] = s;
+        ++i;
+        length += len + 1;
+    }
+
+    char *s = (char *)mem.xmalloc(length);
+    char *q = s + length - 1;
+    *q = 0;
+    for (size_t j = 0; j < complength; j++)
+    {
+        const char *t = comp[j];
+        const size_t len = strlen(t);
         q -= len;
         memcpy(q, t, len);
         if (q == s)
             break;
-        q--;
-        *q = '.';
+        *--q = '.';
     }
+    free(comp);
+    if (!QualifyTypes)
+        prettystring = (utf8_t *)s;
     return s;
 }
 
@@ -257,7 +288,7 @@ Loc& Dsymbol::getLoc()
     return loc;
 }
 
-char *Dsymbol::locToChars()
+const char *Dsymbol::locToChars()
 {
     return getLoc().toChars();
 }
@@ -270,6 +301,7 @@ const char *Dsymbol::kind()
 /*********************************
  * If this symbol is really an alias for another,
  * return that other.
+ * If needed, semantic() is invoked due to resolve forward reference.
  */
 Dsymbol *Dsymbol::toAlias()
 {
@@ -284,11 +316,6 @@ Dsymbol *Dsymbol::toAlias2()
     return toAlias();
 }
 
-Dsymbol *Dsymbol::toParent()
-{
-    return parent ? parent->pastMixin() : NULL;
-}
-
 Dsymbol *Dsymbol::pastMixin()
 {
     Dsymbol *s = this;
@@ -300,11 +327,41 @@ Dsymbol *Dsymbol::pastMixin()
 }
 
 /**********************************
- * Use this instead of toParent() when looking for the
- * 'this' pointer of the enclosing function/class.
- * This skips over both TemplateInstance's and TemplateMixin's.
+ * `parent` field returns a lexically enclosing scope symbol this is a member of.
+ *
+ * `toParent()` returns a logically enclosing scope symbol this is a member of.
+ * It skips over TemplateMixin's.
+ *
+ * `toParent2()` returns an enclosing scope symbol this is living at runtime.
+ * It skips over both TemplateInstance's and TemplateMixin's.
+ * It's used when looking for the 'this' pointer of the enclosing function/class.
+ *
+ * Examples:
+ *  module mod;
+ *  template Foo(alias a) { mixin Bar!(); }
+ *  mixin template Bar() {
+ *    public {  // ProtDeclaration
+ *      void baz() { a = 2; }
+ *    }
+ *  }
+ *  void test() {
+ *    int v = 1;
+ *    alias foo = Foo!(v);
+ *    foo.baz();
+ *    assert(v == 2);
+ *  }
+ *
+ *  // s == FuncDeclaration('mod.test.Foo!().Bar!().baz()')
+ *  // s.parent == TemplateMixin('mod.test.Foo!().Bar!()')
+ *  // s.toParent() == TemplateInstance('mod.test.Foo!()')
+ *  // s.toParent2() == FuncDeclaration('mod.test')
  */
+Dsymbol *Dsymbol::toParent()
+{
+    return parent ? parent->pastMixin() : NULL;
+}
 
+/// ditto
 Dsymbol *Dsymbol::toParent2()
 {
     Dsymbol *s = parent;
@@ -366,9 +423,9 @@ void Dsymbol::setScope(Scope *sc)
     //printf("Dsymbol::setScope() %p %s, %p stc = %llx\n", this, toChars(), sc, sc->stc);
     if (!sc->nofree)
         sc->setNoFree();                // may need it even after semantic() finishes
-    scope = sc;
-    if (sc->depmsg)
-        depmsg = sc->depmsg;
+    _scope = sc;
+    if (sc->depdecl)
+        depdecl = sc->depdecl;
 
     if (!userAttribDecl)
         userAttribDecl = sc->userAttribDecl;
@@ -407,10 +464,12 @@ void Dsymbol::semantic3(Scope *sc)
 
 /*********************************************
  * Search for ident as member of s.
- * Input:
- *      flags:  (see IgnoreXXX declared in dsymbol.h)
+ * Params:
+ *  loc = location to print for error messages
+ *  ident = identifier to search for
+ *  flags = IgnoreXXXX
  * Returns:
- *      NULL if not found
+ *  NULL if not found
  */
 
 Dsymbol *Dsymbol::search(Loc loc, Identifier *ident, int flags)
@@ -522,10 +581,10 @@ bool Dsymbol::overloadInsert(Dsymbol *s)
     return false;
 }
 
-unsigned Dsymbol::size(Loc loc)
+d_uns64 Dsymbol::size(Loc loc)
 {
     error("Dsymbol '%s' has no size", toChars());
-    return 0;
+    return SIZE_INVALID;
 }
 
 bool Dsymbol::isforwardRef()
@@ -536,28 +595,6 @@ bool Dsymbol::isforwardRef()
 AggregateDeclaration *Dsymbol::isThis()
 {
     return NULL;
-}
-
-AggregateDeclaration *Dsymbol::isAggregateMember()      // are we a member of an aggregate?
-{
-    Dsymbol *parent = toParent();
-    if (parent && parent->isAggregateDeclaration())
-        return (AggregateDeclaration *)parent;
-    return NULL;
-}
-
-AggregateDeclaration *Dsymbol::isAggregateMember2()     // are we a member of an aggregate?
-{
-    Dsymbol *parent = toParent2();
-    if (parent && parent->isAggregateDeclaration())
-        return (AggregateDeclaration *)parent;
-    return NULL;
-}
-
-ClassDeclaration *Dsymbol::isClassMember()      // are we a member of a class?
-{
-    AggregateDeclaration *ad = isAggregateMember();
-    return ad ? ad->isClassDeclaration() : NULL;
 }
 
 bool Dsymbol::isExport()
@@ -580,22 +617,34 @@ bool Dsymbol::isOverloadable()
     return false;
 }
 
-bool Dsymbol::hasOverloads()
-{
-    return false;
-}
-
 LabelDsymbol *Dsymbol::isLabel()                // is this a LabelDsymbol()?
 {
     return NULL;
 }
 
-AggregateDeclaration *Dsymbol::isMember()       // is this a member of an AggregateDeclaration?
+/// Returns an AggregateDeclaration when toParent() is that.
+AggregateDeclaration *Dsymbol::isMember()
 {
     //printf("Dsymbol::isMember() %s\n", toChars());
     Dsymbol *parent = toParent();
     //printf("parent is %s %s\n", parent->kind(), parent->toChars());
     return parent ? parent->isAggregateDeclaration() : NULL;
+}
+
+/// Returns an AggregateDeclaration when toParent2() is that.
+AggregateDeclaration *Dsymbol::isMember2()
+{
+    //printf("Dsymbol::isMember2() %s\n", toChars());
+    Dsymbol *parent = toParent2();
+    //printf("parent is %s %s\n", parent->kind(), parent->toChars());
+    return parent ? parent->isAggregateDeclaration() : NULL;
+}
+
+// is this a member of a ClassDeclaration?
+ClassDeclaration *Dsymbol::isClassMember()
+{
+    AggregateDeclaration *ad = isMember();
+    return ad ? ad->isClassDeclaration() : NULL;
 }
 
 Type *Dsymbol::getType()
@@ -608,6 +657,17 @@ bool Dsymbol::needThis()
     return false;
 }
 
+/*********************************
+ * Iterate this dsymbol or members of this scoped dsymbol, then
+ * call `fp` with the found symbol and `param`.
+ * Params:
+ *  fp = function pointer to process the iterated symbol.
+ *       If it returns nonzero, the iteration will be aborted.
+ *  param = a parameter passed to fp.
+ * Returns:
+ *  nonzero if the iteration is aborted by the return value of fp,
+ *  or 0 if it's completed.
+ */
 int Dsymbol::apply(Dsymbol_apply_ft_t fp, void *param)
 {
     return (*fp)(this, param);
@@ -627,12 +687,16 @@ void Dsymbol::addMember(Scope *sc, ScopeDsymbol *sds)
             if (!s2->overloadInsert(this))
             {
                 sds->multiplyDefined(Loc(), this, s2);
+                errors = true;
             }
         }
         if (sds->isAggregateDeclaration() || sds->isEnumDeclaration())
         {
             if (ident == Id::__sizeof || ident == Id::__xalignof || ident == Id::_mangleof)
+            {
                 error(".%s property cannot be redefined", ident->toChars());
+                errors = true;
+            }
         }
     }
 }
@@ -693,7 +757,7 @@ void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
         const char *message = NULL;
         for (Dsymbol *p = this; p; p = p->parent)
         {
-            message = p->depmsg;
+            message = p->depdecl ? p->depdecl->getMessage() : NULL;
             if (message)
                 break;
         }
@@ -840,9 +904,16 @@ bool Dsymbol::inNonRoot()
 
 /********************************* OverloadSet ****************************/
 
-OverloadSet::OverloadSet(Identifier *ident)
+OverloadSet::OverloadSet(Identifier *ident, OverloadSet *os)
     : Dsymbol(ident)
 {
+    if (os)
+    {
+        for (size_t i = 0; i < os->a.dim; i++)
+        {
+            a.push(os->a[i]);
+        }
+    }
 }
 
 void OverloadSet::push(Dsymbol *s)
@@ -863,7 +934,8 @@ ScopeDsymbol::ScopeDsymbol()
 {
     members = NULL;
     symtab = NULL;
-    imports = NULL;
+    endlinnum = 0;
+    importedScopes = NULL;
     prots = NULL;
 }
 
@@ -872,7 +944,8 @@ ScopeDsymbol::ScopeDsymbol(Identifier *id)
 {
     members = NULL;
     symtab = NULL;
-    imports = NULL;
+    endlinnum = 0;
+    importedScopes = NULL;
     prots = NULL;
 }
 
@@ -881,6 +954,7 @@ Dsymbol *ScopeDsymbol::syntaxCopy(Dsymbol *s)
     //printf("ScopeDsymbol::syntaxCopy('%s')\n", toChars());
     ScopeDsymbol *sds = s ? (ScopeDsymbol *)s : new ScopeDsymbol(ident);
     sds->members = arraySyntaxCopy(members);
+    sds->endlinnum = endlinnum;
     return sds;
 }
 
@@ -895,38 +969,61 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     //if (strcmp(ident->toChars(),"c") == 0) *(char*)0=0;
 
     // Look in symbols declared in this module
-    Dsymbol *s1 = symtab ? symtab->lookup(ident) : NULL;
-    //printf("\ts1 = %p, imports = %p, %d\n", s1, imports, imports ? imports->dim : 0);
-    if (s1)
+    if (symtab && !(flags & SearchImportsOnly))
     {
-        //printf("\ts = '%s.%s'\n",toChars(),s1->toChars());
-        return s1;
+        //printf(" look in locals\n");
+        Dsymbol *s1 = symtab->lookup(ident);
+        if (s1)
+        {
+            //printf("\tfound in locals = '%s.%s'\n",toChars(),s1->toChars());
+            return s1;
+        }
     }
+    //printf(" not found in locals\n");
 
-    if (imports)
+    // Look in imported scopes
+    if (importedScopes)
     {
+        //printf(" look in imports\n");
         Dsymbol *s = NULL;
         OverloadSet *a = NULL;
-        int sflags = flags & (IgnoreErrors | IgnoreAmbiguous); // remember these in recursive searches
 
         // Look in imported modules
-        for (size_t i = 0; i < imports->dim; i++)
+        for (size_t i = 0; i < importedScopes->dim; i++)
         {
             // If private import, don't search it
-            if ((flags & IgnorePrivateMembers) && prots[i] == PROTprivate)
+            if ((flags & IgnorePrivateImports) && prots[i] == PROTprivate)
                 continue;
 
-            Dsymbol *ss = (*imports)[i];
+            int sflags = flags & (IgnoreErrors | IgnoreAmbiguous | IgnoreSymbolVisibility); // remember these in recursive searches
+            Dsymbol *ss = (*importedScopes)[i];
 
             //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
+
+            if (ss->isModule())
+            {
+                if (flags & SearchLocalsOnly)
+                    continue;
+            }
+            else // mixin template
+            {
+                if (flags & SearchImportsOnly)
+                    continue;
+                // compatibility with -transition=import (Bugzilla 15925)
+                // SearchLocalsOnly should always get set for new lookup rules
+                sflags |= (flags & SearchLocalsOnly);
+            }
+
             /* Don't find private members if ss is a module
              */
-            Dsymbol *s2 = ss->search(loc, ident, sflags | (ss->isModule() ? IgnorePrivateMembers : IgnoreNone));
+            Dsymbol *s2 = ss->search(loc, ident, sflags | (ss->isModule() ? IgnorePrivateImports : IgnoreNone));
+            if (!s2 || !(flags & IgnoreSymbolVisibility) && !symbolIsVisible(this, s2))
+                continue;
             if (!s)
             {
                 s = s2;
                 if (s && s->isOverloadSet())
-                    a = mergeOverloadSet(a, s);
+                    a = mergeOverloadSet(ident, a, s);
             }
             else if (s2 && s != s2)
             {
@@ -971,7 +1068,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                         if ((s2->isOverloadSet() || s2->isOverloadable()) &&
                             (a || s->isOverloadable()))
                         {
-                            a = mergeOverloadSet(a, s2);
+                            a = mergeOverloadSet(ident, a, s2);
                             continue;
                         }
                         if (flags & IgnoreAmbiguous)    // if return NULL on ambiguity
@@ -991,27 +1088,36 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             if (a)
             {
                 if (!s->isOverloadSet())
-                    a = mergeOverloadSet(a, s);
+                    a = mergeOverloadSet(ident, a, s);
                 s = a;
             }
 
-            if (!(flags & IgnoreErrors) && s->prot().kind == PROTprivate && !s->parent->isTemplateMixin())
+            // TODO: remove once private symbol visibility has been deprecated
+            if (!(flags & IgnoreErrors) && s->prot().kind == PROTprivate &&
+                !s->isOverloadable() && !s->parent->isTemplateMixin() && !s->parent->isNspace())
             {
-                if (!s->isImport())
+                AliasDeclaration *ad;
+                // accessing private selective and renamed imports is
+                // deprecated by restricting the symbol visibility
+                if (s->isImport() || (ad = s->isAliasDeclaration()) != NULL && ad->_import != NULL)
+                {}
+                else
                     error(loc, "%s %s is private", s->kind(), s->toPrettyChars());
             }
+            //printf("\tfound in imports %s.%s\n", toChars(), s.toChars());
             return s;
         }
+        //printf(" not found in imports\n");
     }
 
-    return s1;
+    return NULL;
 }
 
-OverloadSet *ScopeDsymbol::mergeOverloadSet(OverloadSet *os, Dsymbol *s)
+OverloadSet *ScopeDsymbol::mergeOverloadSet(Identifier *ident, OverloadSet *os, Dsymbol *s)
 {
     if (!os)
     {
-        os = new OverloadSet(s->ident);
+        os = new OverloadSet(ident);
         os->parent = this;
     }
     if (OverloadSet *os2 = s->isOverloadSet())
@@ -1026,7 +1132,7 @@ OverloadSet *ScopeDsymbol::mergeOverloadSet(OverloadSet *os, Dsymbol *s)
         {
             for (size_t i = 0; i < os2->a.dim; i++)
             {
-                os = mergeOverloadSet(os, os2->a[i]);
+                os = mergeOverloadSet(ident, os, os2->a[i]);
             }
         }
     }
@@ -1064,13 +1170,13 @@ void ScopeDsymbol::importScope(Dsymbol *s, Prot protection)
     // No circular or redundant import's
     if (s != this)
     {
-        if (!imports)
-            imports = new Dsymbols();
+        if (!importedScopes)
+            importedScopes = new Dsymbols();
         else
         {
-            for (size_t i = 0; i < imports->dim; i++)
+            for (size_t i = 0; i < importedScopes->dim; i++)
             {
-                Dsymbol *ss = (*imports)[i];
+                Dsymbol *ss = (*importedScopes)[i];
                 if (ss == s)                    // if already imported
                 {
                     if (protection.kind > prots[i])
@@ -1079,10 +1185,65 @@ void ScopeDsymbol::importScope(Dsymbol *s, Prot protection)
                 }
             }
         }
-        imports->push(s);
-        prots = (PROTKIND *)mem.xrealloc(prots, imports->dim * sizeof(prots[0]));
-        prots[imports->dim - 1] = protection.kind;
+        importedScopes->push(s);
+        prots = (PROTKIND *)mem.xrealloc(prots, importedScopes->dim * sizeof(prots[0]));
+        prots[importedScopes->dim - 1] = protection.kind;
     }
+}
+
+static void bitArraySet(BitArray *array, size_t idx)
+{
+    array->ptr[idx / (sizeof(size_t) * CHAR_BIT)] |= 1 << (idx & (sizeof(size_t) * CHAR_BIT - 1));
+}
+
+static bool bitArrayGet(BitArray *array, size_t idx)
+{
+    return (array->ptr[idx / (sizeof(size_t) * CHAR_BIT)] & (1 << (idx & (sizeof(size_t) * CHAR_BIT - 1)))) != 0;
+}
+
+static void bitArrayLength(BitArray *array, size_t len)
+{
+    size_t obytes = (array->len + CHAR_BIT - 1) / CHAR_BIT;
+    size_t nbytes = (len + CHAR_BIT - 1) / CHAR_BIT;
+
+    if (obytes < nbytes)
+    {
+        if (!array->ptr)
+            array->ptr = (size_t *)mem.xmalloc(nbytes * sizeof(size_t));
+        else
+            array->ptr = (size_t *)mem.xrealloc(array->ptr, nbytes * sizeof(size_t));
+
+        for (size_t i = obytes; i < nbytes; i++)
+            array->ptr[i] = 0;
+    }
+    array->len = len;
+}
+
+void ScopeDsymbol::addAccessiblePackage(Package *p, Prot protection)
+{
+    BitArray *pary = protection.kind == PROTprivate ? &privateAccessiblePackages : &accessiblePackages;
+    if (pary->len <= p->tag)
+        bitArrayLength(pary, p->tag + 1);
+    bitArraySet(pary, p->tag);
+}
+
+bool ScopeDsymbol::isPackageAccessible(Package *p, Prot protection, int flags)
+{
+    if ((p->tag < accessiblePackages.len && bitArrayGet(&accessiblePackages, p->tag)) ||
+        (protection.kind == PROTprivate && p->tag < privateAccessiblePackages.len && bitArrayGet(&privateAccessiblePackages, p->tag)))
+        return true;
+    if (importedScopes)
+    {
+        for (size_t i = 0; i < importedScopes->dim; i++)
+        {
+            // only search visible scopes && imported modules should ignore private imports
+            Dsymbol *ss = (*importedScopes)[i];
+            if (protection.kind <= prots[i] &&
+                ss->isScopeDsymbol()->isPackageAccessible(p, protection, IgnorePrivateImports))
+                return true;
+        }
+    }
+    return false;
 }
 
 bool ScopeDsymbol::isforwardRef()
@@ -1155,7 +1316,7 @@ static int dimDg(void *ctx, size_t n, Dsymbol *)
 size_t ScopeDsymbol::dim(Dsymbols *members)
 {
     size_t n = 0;
-    foreach(NULL, members, &dimDg, &n);
+    ScopeDsymbol_foreach(NULL, members, &dimDg, &n);
     return n;
 }
 
@@ -1186,7 +1347,7 @@ static int getNthSymbolDg(void *ctx, size_t n, Dsymbol *sym)
 Dsymbol *ScopeDsymbol::getNth(Dsymbols *members, size_t nth, size_t *pn)
 {
     GetNthSymbolCtx ctx = { nth, NULL };
-    int res = foreach(NULL, members, &getNthSymbolDg, &ctx);
+    int res = ScopeDsymbol_foreach(NULL, members, &getNthSymbolDg, &ctx);
     return res ? ctx.sym : NULL;
 }
 
@@ -1199,7 +1360,7 @@ Dsymbol *ScopeDsymbol::getNth(Dsymbols *members, size_t nth, size_t *pn)
  * calculating dim and calling N times getNth.
  */
 
-int ScopeDsymbol::foreach(Scope *sc, Dsymbols *members, ScopeDsymbol::ForeachDg dg, void *ctx, size_t *pn)
+int ScopeDsymbol_foreach(Scope *sc, Dsymbols *members, ForeachDg dg, void *ctx, size_t *pn)
 {
     assert(dg);
     if (!members)
@@ -1211,9 +1372,9 @@ int ScopeDsymbol::foreach(Scope *sc, Dsymbols *members, ScopeDsymbol::ForeachDg 
     {   Dsymbol *s = (*members)[i];
 
         if (AttribDeclaration *a = s->isAttribDeclaration())
-            result = foreach(sc, a->include(sc, NULL), dg, ctx, &n);
+            result = ScopeDsymbol_foreach(sc, a->include(sc, NULL), dg, ctx, &n);
         else if (TemplateMixin *tm = s->isTemplateMixin())
-            result = foreach(sc, tm->members, dg, ctx, &n);
+            result = ScopeDsymbol_foreach(sc, tm->members, dg, ctx, &n);
         else if (s->isTemplateInstance())
             ;
         else if (s->isUnitTestDeclaration())
@@ -1275,12 +1436,16 @@ WithScopeSymbol::WithScopeSymbol(WithStatement *withstate)
 
 Dsymbol *WithScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 {
+    //printf("WithScopeSymbol::search(%s)\n", ident->toChars());
+    if (flags & SearchImportsOnly)
+        return NULL;
+
     // Acts as proxy to the with class declaration
     Dsymbol *s = NULL;
     Expression *eold = NULL;
-    for (Expression *e = withstate->exp; e != eold; e = resolveAliasThis(scope, e))
+    for (Expression *e = withstate->exp; e != eold; e = resolveAliasThis(_scope, e))
     {
-        if (e->op == TOKimport)
+        if (e->op == TOKscope)
         {
             s = ((ScopeExp *)e)->sds;
         }
@@ -1295,7 +1460,7 @@ Dsymbol *WithScopeSymbol::search(Loc loc, Identifier *ident, int flags)
         }
         if (s)
         {
-            s = s->search(loc, ident);
+            s = s->search(loc, ident, flags);
             if (s)
                 return s;
         }
@@ -1349,7 +1514,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
              */
             VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
             Expression *e = new IntegerExp(Loc(), td->objects->dim, Type::tsize_t);
-            v->init = new ExpInitializer(Loc(), e);
+            v->_init = new ExpInitializer(Loc(), e);
             v->storage_class |= STCtemp | STCstatic | STCconst;
             v->semantic(sc);
             return v;
@@ -1361,7 +1526,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
              */
             VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
             Expression *e = new IntegerExp(Loc(), type->arguments->dim, Type::tsize_t);
-            v->init = new ExpInitializer(Loc(), e);
+            v->_init = new ExpInitializer(Loc(), e);
             v->storage_class |= STCtemp | STCstatic | STCconst;
             v->semantic(sc);
             return v;
@@ -1524,7 +1689,7 @@ DsymbolTable::DsymbolTable()
     tab = NULL;
 }
 
-Dsymbol *DsymbolTable::lookup(Identifier *ident)
+Dsymbol *DsymbolTable::lookup(Identifier const * const ident)
 {
     //printf("DsymbolTable::lookup(%s)\n", (char*)ident->string);
     return (Dsymbol *)dmd_aaGetRvalue(tab, (void *)ident);
@@ -1541,7 +1706,7 @@ Dsymbol *DsymbolTable::insert(Dsymbol *s)
     return s;
 }
 
-Dsymbol *DsymbolTable::insert(Identifier *ident, Dsymbol *s)
+Dsymbol *DsymbolTable::insert(Identifier const * const ident, Dsymbol *s)
 {
     //printf("DsymbolTable::insert()\n");
     Dsymbol **ps = (Dsymbol **)dmd_aaGet(&tab, (void *)ident);
@@ -1577,7 +1742,7 @@ Prot::Prot(PROTKIND kind)
  * Checks if `this` is superset of `other` restrictions.
  * For example, "protected" is more restrictive than "public".
  */
-bool Prot::isMoreRestrictiveThan(Prot other)
+bool Prot::isMoreRestrictiveThan(const Prot other) const
 {
     return this->kind < other.kind;
 }
@@ -1585,7 +1750,7 @@ bool Prot::isMoreRestrictiveThan(Prot other)
 /**
  * Checks if `this` is absolutely identical protection attribute to `other`
  */
-bool Prot::operator==(Prot other)
+bool Prot::operator==(const Prot& other) const
 {
     if (this->kind == other.kind)
     {
@@ -1606,7 +1771,7 @@ bool Prot::operator==(Prot other)
  *  'true' if parent is already more restrictive than this one and thus
  *  no differentiation is needed.
  */
-bool Prot::isSubsetOf(Prot parent)
+bool Prot::isSubsetOf(const Prot& parent) const
 {
     if (this->kind != parent.kind)
         return false;

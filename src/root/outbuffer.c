@@ -387,7 +387,10 @@ void OutBuffer::remove(size_t offset, size_t nbytes)
 char *OutBuffer::peekString()
 {
     if (!offset || data[offset-1] != '\0')
+    {
         writeByte(0);
+        offset--; // allow appending more
+    }
     return (char *)data;
 }
 

@@ -135,19 +135,20 @@ DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT)
 
 # D front end
 # mars.obj
-FRONTOBJ= enum.obj struct.obj dsymbol.obj import.obj id.obj \
+FRONTOBJ= denum.obj dstruct.obj dsymbol.obj dimport.obj id.obj \
 	staticassert.obj identifier.obj mtype.obj expression.obj \
-	optimize.obj template.obj lexer.obj declaration.obj cast.obj \
+	optimize.obj dtemplate.obj lexer.obj declaration.obj dcast.obj \
 	init.obj func.obj nogc.obj utf.obj parse.obj statement.obj \
-	constfold.obj version.obj inifile.obj cppmangle.obj \
-	module.obj scope.obj cond.obj inline.obj opover.obj \
-	entity.obj class.obj mangle.obj attrib.obj impcnvtab.obj \
-	link.obj access.obj doc.obj macro.obj hdrgen.obj delegatize.obj \
-	interpret.obj ctfeexpr.obj traits.obj aliasthis.obj \
+	constfold.obj dversion.obj inifile.obj cppmangle.obj \
+	dmodule.obj dscope.obj cond.obj inline.obj opover.obj \
+	entity.obj dclass.obj dmangle.obj attrib.obj impcnvtab.obj \
+	link.obj access.obj doc.obj dmacro.obj hdrgen.obj delegatize.obj \
+	dinterpret.obj ctfeexpr.obj traits.obj aliasthis.obj \
 	builtin.obj clone.obj arrayop.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj apply.obj sapply.obj \
 	sideeffect.obj intrange.obj canthrow.obj target.obj nspace.obj \
-	errors.obj escape.obj tokens.obj globals.obj objc_stubs.obj
+	errors.obj escape.obj tokens.obj globals.obj objc_stubs.obj \
+	utils.obj statementsem.obj
 
 # Glue layer
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
@@ -173,27 +174,28 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 # Root package
 ROOTOBJS= man.obj port.obj checkedint.obj \
 	stringtable.obj response.obj async.obj speller.obj aav.obj outbuffer.obj \
-	object.obj filename.obj file.obj \
-	rmem.obj newdelete.obj
+	rootobject.obj filename.obj file.obj \
+	rmem.obj newdelete.obj ctfloat.obj
 
 # D front end
-SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
+SRCS= mars.c denum.c dstruct.c dsymbol.c dimport.c idgen.c impcnvgen.c utf.h \
 	utf.c entity.c identifier.c mtype.c expression.c optimize.c \
-	template.h template.c lexer.c declaration.c cast.c \
+	template.h dtemplate.c lexer.c declaration.c dcast.c \
 	cond.h cond.c link.c aggregate.h staticassert.h parse.c statement.c \
-	constfold.c version.h version.c inifile.c staticassert.c \
-	module.c scope.c init.h init.c attrib.h attrib.c opover.c \
-	class.c mangle.c func.c nogc.c inline.c access.c complex_t.h cppmangle.c \
+	constfold.c version.h dversion.c inifile.c staticassert.c \
+	dmodule.c dscope.c init.h init.c attrib.h attrib.c opover.c \
+	dclass.c dmangle.c func.c nogc.c inline.c access.c complex_t.h cppmangle.c \
 	identifier.h parse.h scope.h enum.h import.h \
 	mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h statement.h doc.h doc.c \
-	macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
-	delegatize.c interpret.c ctfeexpr.c traits.c builtin.c \
+	macro.h dmacro.c hdrgen.h hdrgen.c arraytypes.h \
+	delegatize.c dinterpret.c ctfeexpr.c traits.c builtin.c \
 	clone.c lib.h arrayop.c nspace.h nspace.c errors.h errors.c escape.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c sapply.c sideeffect.c ctfe.h \
 	intrange.h intrange.c canthrow.c target.c target.h visitor.h \
-	tokens.h tokens.c globals.h globals.c objc.h objc_stubs.c objc.c
+	tokens.h tokens.c globals.h globals.c objc.h objc_stubs.c objc.c \
+	utils.c statementsem.c
 
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
@@ -216,13 +218,13 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\gother.c $C\glocal.c $C\gloop.c $C\newman.c \
 	$C\nteh.c $C\os.c $C\out.c $C\outbuf.c $C\ptrntab.c $C\rtlsym.c \
 	$C\type.c $C\melf.h $C\mach.h $C\mscoff.h $C\bcomplex.h \
-	$C\cdeflnx.h $C\outbuf.h $C\token.h $C\tassert.h \
+	$C\outbuf.h $C\token.h $C\tassert.h \
 	$C\elfobj.c $C\cv4.h $C\dwarf2.h $C\exh.h $C\go.h \
-	$C\dwarf.c $C\dwarf.h $C\cppman.c $C\machobj.c \
+	$C\dwarf.c $C\dwarf.h $C\machobj.c \
 	$C\strtold.c $C\aa.h $C\aa.c $C\tinfo.h $C\ti_achar.c \
 	$C\md5.h $C\md5.c $C\ti_pvoid.c $C\xmm.h $C\ph2.c $C\util2.c \
 	$C\mscoffobj.c $C\obj.h $C\pdata.c $C\cv8.c $C\backconfig.c \
-	$C\divcoeff.c \
+	$C\divcoeff.c $C\dwarfeh.c \
 	$C\backend.txt
 
 # Toolkit
@@ -234,7 +236,7 @@ ROOTSRCC=$(ROOT)\rmem.c $(ROOT)\stringtable.c \
 	$(ROOT)\man.c $(ROOT)\port.c $(ROOT)\async.c $(ROOT)\response.c \
 	$(ROOT)\speller.c $(ROOT)\aav.c $(ROOT)\longdouble.c \
 	$(ROOT)\checkedint.c $(ROOT)\newdelete.c \
-	$(ROOT)\outbuffer.c $(ROOT)\object.c $(ROOT)\filename.c $(ROOT)\file.c
+	$(ROOT)\outbuffer.c $(ROOT)\rootobject.c $(ROOT)\filename.c $(ROOT)\file.c
 ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\rmem.h $(ROOT)\port.h \
 	$(ROOT)\stringtable.h \
@@ -248,6 +250,8 @@ ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\filename.h \
 	$(ROOT)\file.h \
 	$(ROOT)\array.h \
+	$(ROOT)\ctfloat.h \
+	$(ROOT)\hash.h \
 	$(ROOTSRCC)
 # Removed garbage collector bits (look in history)
 #	$(ROOT)\gc\bits.c $(ROOT)\gc\gc.c $(ROOT)\gc\gc.h $(ROOT)\gc\mscbitops.h \
@@ -541,8 +545,8 @@ mars.obj : $(TOTALH) module.h mars.h mars.c verstr.h
 md5.obj : $C\md5.h $C\md5.c
 	$(CC) -c $(MFLAGS) $C\md5
 
-module.obj : $(TOTALH) module.c
-	$(CC) -c $(CFLAGS) -I$C module.c
+dmodule.obj : $(TOTALH) dmodule.c
+	$(CC) -c $(CFLAGS) -I$C dmodule.c
 
 msc.obj : $(CH) mars.h msc.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) msc
@@ -666,14 +670,17 @@ stringtable.obj : $(ROOT)\stringtable.c
 outbuffer.obj : $(ROOT)\outbuffer.c
 	$(CC) -c $(CFLAGS) $(ROOT)\outbuffer.c
 
-object.obj : $(ROOT)\object.c
-	$(CC) -c $(CFLAGS) $(ROOT)\object.c
+rootobject.obj : $(ROOT)\rootobject.c
+	$(CC) -c $(CFLAGS) $(ROOT)\rootobject.c
 
 filename.obj : $(ROOT)\filename.c
 	$(CC) -c $(CFLAGS) $(ROOT)\filename.c
 
 file.obj : $(ROOT)\file.c
 	$(CC) -c $(CFLAGS) $(ROOT)\file.c
+
+ctfloat.obj : $(ROOT)\ctfloat.c
+	$(CC) -c $(CFLAGS) $(ROOT)\ctfloat.c
 
 # Root/GC -- Removed (look in history)
 #
@@ -698,8 +705,8 @@ arrayop.obj : $(TOTALH) identifier.h declaration.h arrayop.c
 attrib.obj : $(TOTALH) dsymbol.h identifier.h declaration.h attrib.h attrib.c
 builtin.obj : $(TOTALH) builtin.c
 canthrow.obj : $(TOTALH) canthrow.c
-cast.obj : $(TOTALH) expression.h mtype.h cast.c
-class.obj : $(TOTALH) enum.h class.c
+dcast.obj : $(TOTALH) expression.h mtype.h dcast.c
+dclass.obj : $(TOTALH) enum.h dclass.c
 clone.obj : $(TOTALH) clone.c
 constfold.obj : $(TOTALH) expression.h constfold.c
 cond.obj : $(TOTALH) identifier.h declaration.h cond.h cond.c
@@ -707,7 +714,7 @@ cppmangle.obj : $(TOTALH) mtype.h declaration.h mars.h
 declaration.obj : $(TOTALH) identifier.h attrib.h declaration.h declaration.c expression.h
 delegatize.obj : $(TOTALH) delegatize.c
 doc.obj : $(TOTALH) doc.h doc.c
-enum.obj : $(TOTALH) dsymbol.h identifier.h enum.h enum.c
+denum.obj : $(TOTALH) dsymbol.h identifier.h enum.h denum.c
 errors.obj : $(TOTALH) errors.h errors.c
 escape.obj : $(TOTALH) escape.c
 expression.obj : $(TOTALH) expression.h expression.c
@@ -716,11 +723,11 @@ globals.obj : $(TOTALH) globals.h globals.c
 hdrgen.obj : $(TOTALH) hdrgen.h hdrgen.c
 id.obj : $(TOTALH) id.h id.c
 identifier.obj : $(TOTALH) identifier.h identifier.c
-import.obj : $(TOTALH) dsymbol.h import.h import.c
+dimport.obj : $(TOTALH) dsymbol.h import.h dimport.c
 inifile.obj : $(TOTALH) inifile.c
 init.obj : $(TOTALH) init.h init.c
 inline.obj : $(TOTALH) inline.c
-interpret.obj : $(TOTALH) interpret.c declaration.h expression.h ctfe.h
+dinterpret.obj : $(TOTALH) dinterpret.c declaration.h expression.h ctfe.h
 ctfexpr.obj : $(TOTALH) ctfeexpr.c ctfe.h
 intrange.obj : $(TOTALH) intrange.h intrange.c
 json.obj : $(TOTALH) json.h json.c
@@ -728,8 +735,8 @@ lexer.obj : $(TOTALH) lexer.c
 libmscoff.obj : $(TOTALH) lib.h libmscoff.c
 libomf.obj : $(TOTALH) lib.h libomf.c
 link.obj : $(TOTALH) link.c
-macro.obj : $(TOTALH) macro.h macro.c
-mangle.obj : $(TOTALH) dsymbol.h declaration.h mangle.c
+dmacro.obj : $(TOTALH) macro.h dmacro.c
+dmangle.obj : $(TOTALH) dsymbol.h declaration.h dmangle.c
 nspace.obj : $(TOTALH) nspace.c
 objc_stubs.obj : $(TOTALH) objc.h objc_stubs.c
 objc_glue_stubs.obj : $(TOTALH) objc.h objc_glue_stubs.c
@@ -738,16 +745,18 @@ optimize.obj : $(TOTALH) expression.h optimize.c
 parse.obj : $(TOTALH) attrib.h lexer.h parse.h parse.c
 sapply.obj : $(TOTALH) sapply.c
 scanomf.obj : $(TOTALH) lib.h scanomf.c
-scope.obj : $(TOTALH) scope.h scope.c
+dscope.obj : $(TOTALH) scope.h dscope.c
 sideeffect.obj : $(TOTALH) sideeffect.c
 statement.obj : $(TOTALH) statement.h statement.c expression.h
 staticassert.obj : $(TOTALH) staticassert.h staticassert.c
-struct.obj : $(TOTALH) identifier.h enum.h struct.c
+dstruct.obj : $(TOTALH) identifier.h enum.h dstruct.c
 target.obj : $(TOTALH) target.c target.h
 tokens.obj : $(TOTALH) tokens.h tokens.c
 traits.obj : $(TOTALH) traits.c
 dsymbol.obj : $(TOTALH) identifier.h dsymbol.h dsymbol.c
 mtype.obj : $(TOTALH) mtype.h mtype.c
 utf.obj : utf.h utf.c
-template.obj : $(TOTALH) template.h template.c
-version.obj : $(TOTALH) identifier.h dsymbol.h cond.h version.h version.c
+dtemplate.obj : $(TOTALH) template.h dtemplate.c
+dversion.obj : $(TOTALH) identifier.h dsymbol.h cond.h version.h dversion.c
+utils.obj : $(TOTALH) utils.c
+statementsem.obj : $(TOTALH) statementsem.c

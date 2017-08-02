@@ -481,7 +481,7 @@ code *regwithvalue(code *c,regm_t regm,targ_size_t value,unsigned *preg,regm_t f
  */
 
 struct fixlist
-{   //symbol      *Lsymbol;       // symbol we don't know about
+{
     int         Lseg;           // where the fixup is going (CODE or DATA, never UDATA)
     int         Lflags;         // CFxxxx
     targ_size_t Loffset;        // addr of reference to symbol
@@ -491,11 +491,9 @@ struct fixlist
 #endif
     fixlist *Lnext;             // next in threaded list
 
-    static AArray *start;
     static int nodel;           // don't delete from within searchfixlist
 };
 
-AArray *fixlist::start = NULL;
 int fixlist::nodel = 0;
 
 /* The AArray, being hashed on the pointer value of the symbol s, is in a different
@@ -504,16 +502,130 @@ int fixlist::nodel = 0;
  * simple (and very slow) linear array. Handy for tracking down compiler issues, though.
  */
 #define FLARRAY 0
-#if FLARRAY
 struct Flarray
 {
+#if FLARRAY
     symbol *s;
     fixlist *fl;
+
+    static Flarray *flarray;
+    static size_t flarray_dim;
+    static size_t flarray_max;
+
+    static fixlist **add(symbol *s)
+    {
+        //printf("add %s\n", s->Sident);
+        fixlist **pv;
+        for (size_t i = 0; 1; i++)
+        {
+            assert(i <= flarray_dim);
+            if (i == flarray_dim)
+            {
+                if (flarray_dim == flarray_max)
+                {
+                    flarray_max = flarray_max * 2 + 1000;
+                    flarray = (Flarray *)mem_realloc(flarray, flarray_max * sizeof(flarray[0]));
+                }
+                flarray_dim += 1;
+                flarray[i].s = s;
+                flarray[i].fl = NULL;
+                pv = &flarray[i].fl;
+                break;
+            }
+            if (flarray[i].s == s)
+            {
+                pv = &flarray[i].fl;
+                break;
+            }
+        }
+        return pv;
+    }
+
+    static fixlist **search(symbol *s)
+    {
+        //printf("search %s\n", s->Sident);
+        fixlist **lp = NULL;
+        for (size_t i = 0; i < flarray_dim; i++)
+        {
+            if (flarray[i].s == s)
+            {
+                lp = &flarray[i].fl;
+                break;
+            }
+        }
+        return lp;
+    }
+
+    static void del(symbol *s)
+    {
+        //printf("del %s\n", s->Sident);
+        for (size_t i = 0; 1; i++)
+        {
+            assert(i < flarray_dim);
+            if (flarray[i].s == s)
+            {
+                if (i + 1 == flarray_dim)
+                    --flarray_dim;
+                else
+                    flarray[i].s = NULL;
+                break;
+            }
+        }
+    }
+
+    static void apply(int (*dg)(void *parameter, void *pkey, void *pvalue))
+    {
+        //printf("apply\n");
+        for (size_t i = 0; i < flarray_dim; i++)
+        {
+            fixlist::nodel++;
+            if (flarray[i].s)
+                (*dg)(NULL, &flarray[i].s, &flarray[i].fl);
+            fixlist::nodel--;
+        }
+    }
+#else
+    static AArray *start;
+
+    static fixlist **add(symbol *s)
+    {
+        if (!start)
+            start = new AArray(&ti_pvoid, sizeof(fixlist *));
+        return (fixlist **)start->get(&s);
+    }
+
+    static fixlist **search(symbol *s)
+    {
+        return (fixlist **)(start ? start->in(&s) : NULL);
+    }
+
+    static void del(symbol *s)
+    {
+        start->del(&s);
+    }
+
+    static void apply(int (*dg)(void *parameter, void *pkey, void *pvalue))
+    {
+        if (start)
+        {
+            fixlist::nodel++;
+            start->apply(NULL, dg);
+            fixlist::nodel--;
+#if TERMCODE
+            delete start;
+#endif
+            start = NULL;
+        }
+    }
+#endif
 };
 
-Flarray *flarray;
-size_t flarray_dim;
-size_t flarray_max;
+#if FLARRAY
+Flarray *Flarray::flarray;
+size_t Flarray::flarray_dim;
+size_t Flarray::flarray_max;
+#else
+AArray *Flarray::start = NULL;
 #endif
 
 /****************************
@@ -536,34 +648,7 @@ size_t addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int fl
         ln->Lfuncsym = funcsym_p;
 #endif
 
-#if FLARRAY
-        fixlist **pv;
-        for (size_t i = 0; 1; i++)
-        {
-            if (i == flarray_dim)
-            {
-                if (flarray_dim == flarray_max)
-                {
-                    flarray_max = flarray_max * 2 + 1000;
-                    flarray = (Flarray *)mem_realloc(flarray, flarray_max * sizeof(flarray[0]));
-                }
-                flarray_dim += 1;
-                flarray[i].s = s;
-                flarray[i].fl = NULL;
-                pv = &flarray[i].fl;
-                break;
-            }
-            if (flarray[i].s == s)
-            {
-                pv = &flarray[i].fl;
-                break;
-            }
-        }
-#else
-        if (!fixlist::start)
-            fixlist::start = new AArray(&ti_pvoid, sizeof(fixlist *));
-        fixlist **pv = (fixlist **)fixlist::start->get(&s);
-#endif
+        fixlist **pv = Flarray::add(s);
         ln->Lnext = *pv;
         *pv = ln;
 
@@ -605,21 +690,7 @@ size_t addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int fl
 void searchfixlist(symbol *s)
 {
     //printf("searchfixlist(%s)\n",s->Sident);
-    if (fixlist::start)
-    {
-#if FLARRAY
-        fixlist **lp = NULL;
-        size_t i;
-        for (i = 0; i < flarray_dim; i++)
-        {
-            if (flarray[i].s == s)
-            {   lp = &flarray[i].fl;
-                break;
-            }
-        }
-#else
-        fixlist **lp = (fixlist **)fixlist::start->in(&s);
-#endif
+        fixlist **lp = Flarray::search(s);
         if (lp)
         {   fixlist *p;
             while ((p = *lp) != NULL)
@@ -658,16 +729,9 @@ void searchfixlist(symbol *s)
             }
             if (!fixlist::nodel)
             {
-#if FLARRAY
-                flarray[i].s = NULL;
-                if (i + 1 == flarray_dim)
-                    flarray_dim -= 1;
-#else
-                fixlist::start->del(&s);
-#endif
+                Flarray::del(s);
             }
         }
-    }
 }
 
 /****************************
@@ -753,25 +817,7 @@ STATIC int outfixlist_dg(void *parameter, void *pkey, void *pvalue)
 void outfixlist()
 {
     //printf("outfixlist()\n");
-#if FLARRAY
-    for (size_t i = 0; i < flarray_dim; i++)
-    {
-        fixlist::nodel++;
-        outfixlist_dg(NULL, &flarray[i].s, &flarray[i].fl);
-        fixlist::nodel--;
-    }
-#else
-    if (fixlist::start)
-    {
-        fixlist::nodel++;
-        fixlist::start->apply(NULL, &outfixlist_dg);
-        fixlist::nodel--;
-#if TERMCODE
-        delete fixlist::start;
-#endif
-        fixlist::start = NULL;
-    }
-#endif
+    Flarray::apply(&outfixlist_dg);
 }
 
 #endif // !SPP

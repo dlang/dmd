@@ -24,6 +24,8 @@
 #if DEBUG
 static char __file__[] = __FILE__;      // for tassert.h
 #include        "tassert.h"
+#else
+#include        <assert.h>
 #endif
 
 Outbuffer::Outbuffer()
@@ -107,23 +109,25 @@ void Outbuffer::enlarge(size_t nbytes)
     p = buf + used;
 }
 
-// Position buffer for output at a specified location and size.
-//      If data will extend buffer size, reserve space
-//      If data will rewrite existing data
-//              position for write and return previous buffer size
-//
-//      If data will append to buffer
-//              position for write and return new size
-size_t Outbuffer::position(size_t pos, size_t nbytes)
+/*****************************************
+ * Position buffer for output at a specified location and size.
+ * Params:
+ *      offset = specified location
+ *      nbytes = number of bytes to be written at offset
+ */
+void Outbuffer::position(size_t offset, size_t nbytes)
 {
-    size_t current_sz = size();
-    unsigned char *fend = buf+pos+nbytes;       // future end of buffer
-    if (fend >= pend)
+    if (offset + nbytes > len)
     {
-        reserve (fend - pend);
+        enlarge(offset + nbytes - (p - buf));
     }
-    setsize(pos);
-    return pos+nbytes > current_sz ? pos+nbytes : current_sz;
+    p = buf + offset;
+#if DEBUG
+    assert(buf <= p);
+    assert(p <= pend);
+    assert(len == pend - buf);
+    assert(p + nbytes <= pend);
+#endif
 }
 
 // Write an array to the buffer.
@@ -264,6 +268,11 @@ char *Outbuffer::toString()
 void Outbuffer::setsize(size_t size)
 {
     p = buf + size;
+#if DEBUG
+    assert(buf <= p);
+    assert(p <= pend);
+    assert(len == pend - buf);
+#endif
 }
 
 void Outbuffer::writesLEB128(int value)

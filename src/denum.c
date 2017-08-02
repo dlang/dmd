@@ -87,7 +87,7 @@ void EnumDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
             EnumMember *em = (*members)[i]->isEnumMember();
             em->ed = this;
             //printf("add %s to scope %s\n", em->toChars(), scopesym->toChars());
-            em->addMember(sc, scopesym);
+            em->addMember(sc, isAnonymous() ? scopesym : this);
         }
     }
     added = true;
@@ -111,11 +111,11 @@ void EnumDeclaration::semantic(Scope *sc)
     unsigned dprogress_save = Module::dprogress;
 
     Scope *scx = NULL;
-    if (scope)
+    if (_scope)
     {
-        sc = scope;
-        scx = scope;            // save so we don't make redundant copies
-        scope = NULL;
+        sc = _scope;
+        scx = _scope;            // save so we don't make redundant copies
+        _scope = NULL;
     }
 
     parent = sc->parent;
@@ -155,12 +155,12 @@ void EnumDeclaration::semantic(Scope *sc)
         if (memtype->ty == Tenum)
         {
             EnumDeclaration *sym = (EnumDeclaration *)memtype->toDsymbol(sc);
-            if (!sym->memtype || !sym->members || !sym->symtab || sym->scope)
+            if (!sym->memtype || !sym->members || !sym->symtab || sym->_scope)
             {
                 // memtype is forward referenced, so try again later
-                scope = scx ? scx : sc->copy();
-                scope->setNoFree();
-                scope->module->addDeferredSemantic(this);
+                _scope = scx ? scx : sc->copy();
+                _scope->setNoFree();
+                _scope->_module->addDeferredSemantic(this);
                 Module::dprogress = dprogress_save;
                 //printf("\tdeferring %s\n", toChars());
                 semanticRun = PASSinit;
@@ -219,7 +219,7 @@ void EnumDeclaration::semantic(Scope *sc)
     {
         EnumMember *em = (*members)[i]->isEnumMember();
         if (em)
-            em->scope = sce;
+            em->_scope = sce;
     }
 
     if (!added)
@@ -266,7 +266,7 @@ void EnumDeclaration::semantic(Scope *sc)
     {
         EnumMember *em = (*members)[i]->isEnumMember();
         if (em)
-            em->semantic(em->scope);
+            em->semantic(em->_scope);
     }
     //printf("defaultval = %lld\n", defaultval);
 
@@ -295,8 +295,8 @@ Expression *EnumDeclaration::getMaxMinValue(Loc loc, Identifier *id)
     if (*pval)
         goto Ldone;
 
-    if (scope)
-        semantic(scope);
+    if (_scope)
+        semantic(_scope);
     if (errors)
         goto Lerrors;
     if (semanticRun == PASSinit || !members)
@@ -320,7 +320,7 @@ Expression *EnumDeclaration::getMaxMinValue(Loc loc, Identifier *id)
         if (em->errors)
             goto Lerrors;
 
-        Expression *e = em->value;
+        Expression *e = em->value();
         if (first)
         {
             *pval = e;
@@ -340,7 +340,7 @@ Expression *EnumDeclaration::getMaxMinValue(Loc loc, Identifier *id)
              */
             Expression *ec = new CmpExp(id == Id::max ? TOKgt : TOKlt, em->loc, e, *pval);
             inuse++;
-            ec = ec->semantic(em->scope);
+            ec = ec->semantic(em->_scope);
             inuse--;
             ec = ec->ctfeInterpret();
             if (ec->toInteger())
@@ -369,8 +369,8 @@ Expression *EnumDeclaration::getDefaultValue(Loc loc)
     if (defaultval)
         return defaultval;
 
-    if (scope)
-        semantic(scope);
+    if (_scope)
+        semantic(_scope);
     if (errors)
         goto Lerrors;
     if (semanticRun == PASSinit || !members)
@@ -384,7 +384,7 @@ Expression *EnumDeclaration::getDefaultValue(Loc loc)
         EnumMember *em = (*members)[i]->isEnumMember();
         if (!em)
             continue;
-        defaultval = em->value;
+        defaultval = em->value();
         return defaultval;
     }
 
@@ -397,13 +397,13 @@ Type *EnumDeclaration::getMemtype(Loc loc)
 {
     if (loc.linnum == 0)
         loc = this->loc;
-    if (scope)
+    if (_scope)
     {
         /* Enum is forward referenced. We don't need to resolve the whole thing,
          * just the base type
          */
         if (memtype)
-            memtype = memtype->semantic(loc, scope);
+            memtype = memtype->semantic(loc, _scope);
         else
         {
             if (!isAnonymous() && members)
@@ -453,13 +453,13 @@ Prot EnumDeclaration::prot()
 Dsymbol *EnumDeclaration::search(Loc loc, Identifier *ident, int flags)
 {
     //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident->toChars());
-    if (scope)
+    if (_scope)
     {
         // Try one last time to resolve this enum
-        semantic(scope);
+        semantic(_scope);
     }
 
-    if (!members || !symtab || scope)
+    if (!members || !symtab || _scope)
     {
         error("is forward referenced when looking for '%s'", ident->toChars());
         //*(char*)0=0;
@@ -472,23 +472,25 @@ Dsymbol *EnumDeclaration::search(Loc loc, Identifier *ident, int flags)
 
 /********************************* EnumMember ****************************/
 
-EnumMember::EnumMember(Loc loc, Identifier *id, Expression *value, Type *type)
-    : Dsymbol(id)
+EnumMember::EnumMember(Loc loc, Identifier *id, Expression *value, Type *origType)
+    : VarDeclaration(loc, NULL, id ? id : Id::empty, new ExpInitializer(loc, value))
 {
     this->ed = NULL;
-    this->value = value;
     this->origValue = value;
-    this->type = type;
-    this->loc = loc;
-    this->vd = NULL;
+    this->origType = origType;
+}
+
+Expression *&EnumMember::value()
+{
+    return ((ExpInitializer*)_init)->exp;
 }
 
 Dsymbol *EnumMember::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
     return new EnumMember(loc, ident,
-        value ? value->syntaxCopy() : NULL,
-        type ? type->syntaxCopy() : NULL);
+        value() ? value()->syntaxCopy() : NULL,
+        origType ? origType->syntaxCopy() : NULL);
 }
 
 const char *EnumMember::kind()
@@ -517,22 +519,29 @@ void EnumMember::semantic(Scope *sc)
     if (errors || semanticRun >= PASSsemanticdone)
         return;
 
+    if (_scope)
+        sc = _scope;
+
+    protection = ed->isAnonymous() ? ed->protection : Prot(PROTpublic);
+    linkage = LINKd;
+    storage_class = STCmanifest;
+    userAttribDecl = ed->isAnonymous() ? ed->userAttribDecl : NULL;
+
     semanticRun = PASSsemantic;
-    if (scope)
-        sc = scope;
 
     // The first enum member is special
     bool first = (this == (*ed->members)[0]);
 
-    if (type)
+    if (origType)
     {
-        type = type->semantic(loc, sc);
-        assert(value);          // "type id;" is not a valid enum member declaration
+        origType = origType->semantic(loc, sc);
+        type = origType;
+        assert(value());          // "type id;" is not a valid enum member declaration
     }
 
-    if (value)
+    if (value())
     {
-        Expression *e = value;
+        Expression *e = value();
         assert(e->dyncast() == DYNCAST_EXPRESSION);
         e = e->semantic(sc);
         e = resolveProperties(sc, e);
@@ -556,17 +565,17 @@ void EnumMember::semantic(Scope *sc)
                 for (size_t i = 0; i < ed->members->dim; i++)
                 {
                     EnumMember *em = (*ed->members)[i]->isEnumMember();
-                    if (!em || em == this || em->semanticRun < PASSsemanticdone || em->type)
+                    if (!em || em == this || em->semanticRun < PASSsemanticdone || em->origType)
                         continue;
 
                     //printf("[%d] em = %s, em->semanticRun = %d\n", i, toChars(), em->semanticRun);
-                    Expression *ev = em->value;
+                    Expression *ev = em->value();
                     ev = ev->implicitCastTo(sc, ed->memtype);
                     ev = ev->ctfeInterpret();
                     ev = ev->castTo(sc, ed->type);
                     if (ev->op == TOKerror)
                         ed->errors = true;
-                    em->value = ev;
+                    em->value() = ev;
                 }
                 if (ed->errors)
                 {
@@ -576,7 +585,7 @@ void EnumMember::semantic(Scope *sc)
             }
         }
 
-        if (ed->memtype && !type)
+        if (ed->memtype && !origType)
         {
             e = e->implicitCastTo(sc, ed->memtype);
             e = e->ctfeInterpret();
@@ -587,16 +596,16 @@ void EnumMember::semantic(Scope *sc)
             if (!ed->isAnonymous())
                 e = e->castTo(sc, ed->type);
         }
-        else if (type)
+        else if (origType)
         {
-            e = e->implicitCastTo(sc, type);
+            e = e->implicitCastTo(sc, origType);
             e = e->ctfeInterpret();
             assert(ed->isAnonymous());
 
             // save origValue for better json output
             origValue = e;
         }
-        value = e;
+        value() = e;
     }
     else if (first)
     {
@@ -618,7 +627,7 @@ void EnumMember::semantic(Scope *sc)
 
         if (!ed->isAnonymous())
             e = e->castTo(sc, ed->type);
-        value = e;
+        value() = e;
     }
     else
     {
@@ -638,11 +647,11 @@ void EnumMember::semantic(Scope *sc)
         }
         assert(emprev);
         if (emprev->semanticRun < PASSsemanticdone)    // if forward reference
-            emprev->semantic(emprev->scope);    // resolve it
+            emprev->semantic(emprev->_scope);    // resolve it
         if (emprev->errors)
             goto Lerrors;
 
-        Expression *eprev = emprev->value;
+        Expression *eprev = emprev->value();
         Type *tprev = eprev->type->equals(ed->type) ? ed->memtype : eprev->type;
 
         Expression *emax = tprev->getProperty(ed->loc, Id::max, 0);
@@ -690,8 +699,10 @@ void EnumMember::semantic(Scope *sc)
                 goto Lerrors;
             }
         }
-        value = e;
+        value() = e;
     }
+    if (!origType)
+        type = value()->type;
 
     assert(origValue);
     semanticRun = PASSsemanticdone;
@@ -702,19 +713,6 @@ Expression *EnumMember::getVarExp(Loc loc, Scope *sc)
     semantic(sc);
     if (errors)
         return new ErrorExp();
-    if (!vd)
-    {
-        assert(value);
-        vd = new VarDeclaration(loc, type, ident, new ExpInitializer(loc, value->copy()));
-
-        vd->storage_class = STCmanifest;
-        vd->semantic(sc);
-
-        vd->protection = ed->isAnonymous() ? ed->protection : Prot(PROTpublic);
-        vd->parent = ed->isAnonymous() ? ed->parent : ed;
-        vd->userAttribDecl = ed->isAnonymous() ? ed->userAttribDecl : NULL;
-    }
-    checkAccess(loc, sc, NULL, vd);
-    Expression *e = new VarExp(loc, vd);
+    Expression *e = new VarExp(loc, this);
     return e->semantic(sc);
 }

@@ -15,7 +15,7 @@
 
 Global global;
 
-void Global::init()
+void Global::_init()
 {
     inifilename = NULL;
     mars_ext = "d";
@@ -101,7 +101,7 @@ void Global::increaseErrorCount()
 }
 
 
-char *Loc::toChars()
+const char *Loc::toChars() const
 {
     OutBuffer buf;
 

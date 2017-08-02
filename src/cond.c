@@ -143,7 +143,7 @@ void VersionCondition::setGlobalLevel(unsigned level)
     global.params.versionlevel = level;
 }
 
-bool VersionCondition::isPredefined(const char *ident)
+static bool isReserved(const char *ident)
 {
     static const char* reserved[] =
     {
@@ -208,7 +208,6 @@ bool VersionCondition::isPredefined(const char *ident)
         "HPPA",
         "HPPA64",
         "SH",
-        "SH64",
         "Alpha",
         "Alpha_SoftFloat",
         "Alpha_HardFloat",
@@ -249,9 +248,15 @@ bool VersionCondition::isPredefined(const char *ident)
     return false;
 }
 
+void checkReserved(Loc loc, const char *ident)
+{
+    if (isReserved(ident))
+        error(loc, "version identifier '%s' is reserved and cannot be set", ident);
+}
+
 void VersionCondition::addGlobalIdent(const char *ident)
 {
-    checkPredefined(Loc(), ident);
+    checkReserved(Loc(), ident);
     addPredefinedGlobalIdent(ident);
 }
 
@@ -294,7 +299,7 @@ int VersionCondition::include(Scope *sc, ScopeDsymbol *sds)
         }
         else if (level <= global.params.versionlevel || level <= mod->versionlevel)
             inc = 1;
-        if (!definedInModule && (!ident || (!isPredefined(ident->toChars()) && ident != Identifier::idPool(Token::toChars(TOKunittest)) && ident != Identifier::idPool(Token::toChars(TOKassert)))))
+        if (!definedInModule && (!ident || (!isReserved(ident->toChars()) && ident != Id::_unittest && ident != Id::_assert)))
             printDepsConditional(sc, this, "depsVersion ");
     }
     return (inc == 1);

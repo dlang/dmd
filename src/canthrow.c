@@ -195,13 +195,13 @@ bool Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func, bool mustNotThrow)
             ;
         else
         {
-            if (vd->init)
+            if (vd->_init)
             {
-                ExpInitializer *ie = vd->init->isExpInitializer();
+                ExpInitializer *ie = vd->_init->isExpInitializer();
                 if (ie && canThrow(ie->exp, func, mustNotThrow))
                     return true;
             }
-            if (vd->edtor && !vd->noscope)
+            if (vd->needsScopeDtor())
                 return canThrow(vd->edtor, func, mustNotThrow);
         }
     }

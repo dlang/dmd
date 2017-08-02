@@ -27,6 +27,7 @@
 #include "aggregate.h"
 #include "module.h"
 #include "parse.h"
+#include "target.h"
 #include "template.h"
 #include "utf.h"
 #include "mtype.h"
@@ -47,7 +48,7 @@ Dsymbols *AttribDeclaration::include(Scope *sc, ScopeDsymbol *sds)
 
 int AttribDeclaration::apply(Dsymbol_apply_ft_t fp, void *param)
 {
-    Dsymbols *d = include(scope, NULL);
+    Dsymbols *d = include(_scope, NULL);
 
     if (d)
     {
@@ -71,24 +72,26 @@ int AttribDeclaration::apply(Dsymbol_apply_ft_t fp, void *param)
  * the scope after it used.
  */
 Scope *AttribDeclaration::createNewScope(Scope *sc,
-        StorageClass stc, LINK linkage, Prot protection, int explicitProtection,
-        structalign_t structalign, PINLINE inlining)
+        StorageClass stc, LINK linkage, CPPMANGLE cppmangle, Prot protection,
+        int explicitProtection, AlignDeclaration *aligndecl, PINLINE inlining)
 {
     Scope *sc2 = sc;
     if (stc != sc->stc ||
         linkage != sc->linkage ||
+        cppmangle != sc->cppmangle ||
         !protection.isSubsetOf(sc->protection) ||
         explicitProtection != sc->explicitProtection ||
-        structalign != sc->structalign ||
+        aligndecl != sc->aligndecl ||
         inlining != sc->inlining)
     {
         // create new one for changes
         sc2 = sc->copy();
         sc2->stc = stc;
         sc2->linkage = linkage;
+        sc2->cppmangle = cppmangle;
         sc2->protection = protection;
         sc2->explicitProtection = explicitProtection;
-        sc2->structalign = structalign;
+        sc2->aligndecl = aligndecl;
         sc2->inlining = inlining;
     }
     return sc2;
@@ -286,7 +289,7 @@ bool AttribDeclaration::hasStaticCtorOrDtor()
     return false;
 }
 
-const char *AttribDeclaration::kind()
+const char *AttribDeclaration::kind() const
 {
     return "attribute";
 }
@@ -391,7 +394,9 @@ Scope *StorageClassDeclaration::newScope(Scope *sc)
     scstc |= stc;
     //printf("scstc = x%llx\n", scstc);
 
-    return createNewScope(sc, scstc, sc->linkage, sc->protection, sc->explicitProtection, sc->structalign, sc->inlining);
+    return createNewScope(sc, scstc, sc->linkage, sc->cppmangle,
+        sc->protection, sc->explicitProtection, sc->aligndecl,
+        sc->inlining);
 }
 
 /********************************* DeprecatedDeclaration ****************************/
@@ -400,6 +405,7 @@ DeprecatedDeclaration::DeprecatedDeclaration(Expression *msg, Dsymbols *decl)
         : StorageClassDeclaration(STCdeprecated, decl)
 {
     this->msg = msg;
+    this->msgstr = NULL;
 }
 
 Dsymbol *DeprecatedDeclaration::syntaxCopy(Dsymbol *s)
@@ -408,20 +414,67 @@ Dsymbol *DeprecatedDeclaration::syntaxCopy(Dsymbol *s)
     return new DeprecatedDeclaration(msg->syntaxCopy(), Dsymbol::arraySyntaxCopy(decl));
 }
 
+/**
+ * Provides a new scope with `STCdeprecated` and `Scope.depdecl` set
+ *
+ * Calls `StorageClassDeclaration.newScope` (as it must be called or copied
+ * in any function overriding `newScope`), then set the `Scope`'s depdecl.
+ *
+ * Returns:
+ *   Always a new scope, to use for this `DeprecatedDeclaration`'s members.
+ */
+Scope *DeprecatedDeclaration::newScope(Scope *sc)
+{
+    Scope *scx = StorageClassDeclaration::newScope(sc);
+    // The enclosing scope is deprecated as well
+    if (scx == sc)
+        scx = sc->push();
+    scx->depdecl = this;
+    return scx;
+}
+
 void DeprecatedDeclaration::setScope(Scope *sc)
 {
-    assert(msg);
-    char *depmsg = NULL;
-    StringExp *se = msg->toStringExp();
-    if (se)
-        depmsg = (char *)se->string;
-    else
-        msg->error("string expected, not '%s'", msg->toChars());
+    //printf("DeprecatedDeclaration::setScope() %p\n", this);
+    if (decl)
+        Dsymbol::setScope(sc); // for forward reference
+    return AttribDeclaration::setScope(sc);
+}
 
-    Scope *scx = sc->push();
-    scx->depmsg = depmsg;
-    StorageClassDeclaration::setScope(scx);
-    scx->pop();
+/**
+ * Run the DeprecatedDeclaration's semantic2 phase then its members.
+ *
+ * The message set via a `DeprecatedDeclaration` can be either of:
+ * - a string literal
+ * - an enum
+ * - a static immutable
+ * So we need to call ctfe to resolve it.
+ * Afterward forwards to the members' semantic2.
+ */
+void DeprecatedDeclaration::semantic2(Scope *sc)
+{
+    getMessage();
+    StorageClassDeclaration::semantic2(sc);
+}
+
+const char *DeprecatedDeclaration::getMessage()
+{
+    if (Scope *sc = _scope)
+    {
+        _scope = NULL;
+
+        sc = sc->startCTFE();
+        msg = msg->semantic(sc);
+        msg = resolveProperties(sc, msg);
+        sc = sc->endCTFE();
+        msg = msg->ctfeInterpret();
+
+        if (StringExp *se = msg->toStringExp())
+            msgstr = (char *)se->string;
+        else
+            msg->error("compile time constant expected, not '%s'", msg->toChars());
+    }
+    return msgstr;
 }
 
 /********************************* LinkDeclaration ****************************/
@@ -430,7 +483,7 @@ LinkDeclaration::LinkDeclaration(LINK p, Dsymbols *decl)
         : AttribDeclaration(decl)
 {
     //printf("LinkDeclaration(linkage = %d, decl = %p)\n", p, decl);
-    linkage = p;
+    linkage = (p == LINKsystem) ? Target::systemLinkage() : p;
 }
 
 Dsymbol *LinkDeclaration::syntaxCopy(Dsymbol *s)
@@ -441,10 +494,39 @@ Dsymbol *LinkDeclaration::syntaxCopy(Dsymbol *s)
 
 Scope *LinkDeclaration::newScope(Scope *sc)
 {
-    return createNewScope(sc, sc->stc, this->linkage, sc->protection, sc->explicitProtection, sc->structalign, sc->inlining);
+    return createNewScope(sc, sc->stc, this->linkage, sc->cppmangle,
+        sc->protection, sc->explicitProtection, sc->aligndecl,
+        sc->inlining);
 }
 
-char *LinkDeclaration::toChars()
+const char *LinkDeclaration::toChars()
+{
+    return (char *)"extern ()";
+}
+
+/********************************* CPPMangleDeclaration ****************************/
+
+CPPMangleDeclaration::CPPMangleDeclaration(CPPMANGLE p, Dsymbols *decl)
+        : AttribDeclaration(decl)
+{
+    //printf("CPPMangleDeclaration(cppmangle = %d, decl = %p)\n", p, decl);
+    cppmangle = p;
+}
+
+Dsymbol *CPPMangleDeclaration::syntaxCopy(Dsymbol *s)
+{
+    assert(!s);
+    return new CPPMangleDeclaration(cppmangle, Dsymbol::arraySyntaxCopy(decl));
+}
+
+Scope *CPPMangleDeclaration::newScope(Scope *sc)
+{
+    return createNewScope(sc, sc->stc, LINKcpp, this->cppmangle,
+        sc->protection, sc->explicitProtection, sc->aligndecl,
+        sc->inlining);
+}
+
+const char *CPPMangleDeclaration::toChars()
 {
     return (char *)"extern ()";
 }
@@ -494,7 +576,9 @@ Scope *ProtDeclaration::newScope(Scope *sc)
 {
     if (pkg_identifiers)
         semantic(sc);
-    return createNewScope(sc, sc->stc, sc->linkage, this->protection, 1, sc->structalign, sc->inlining);
+    return createNewScope(sc, sc->stc, sc->linkage, sc->cppmangle,
+        this->protection, 1, sc->aligndecl,
+        sc->inlining);
 }
 
 void ProtDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
@@ -507,9 +591,9 @@ void ProtDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
         pkg_identifiers = NULL;
     }
 
-    if (protection.kind == PROTpackage && protection.pkg && sc->module)
+    if (protection.kind == PROTpackage && protection.pkg && sc->_module)
     {
-        Module *m = sc->module;
+        Module *m = sc->_module;
         Package* pkg = m->parent ? m->parent->isPackage() : NULL;
         if (!pkg || !protection.pkg->isAncestorPackageOf(pkg))
             error("does not bind to one of ancestor packages of module '%s'",
@@ -519,7 +603,7 @@ void ProtDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
     return AttribDeclaration::addMember(sc, sds);
 }
 
-const char *ProtDeclaration::kind()
+const char *ProtDeclaration::kind() const
 {
     return "protection attribute";
 }
@@ -537,21 +621,89 @@ const char *ProtDeclaration::toPrettyChars(bool)
 
 /********************************* AlignDeclaration ****************************/
 
-AlignDeclaration::AlignDeclaration(unsigned sa, Dsymbols *decl)
+AlignDeclaration::AlignDeclaration(Loc loc, Expression *ealign, Dsymbols *decl)
         : AttribDeclaration(decl)
 {
-    salign = sa;
+    this->loc = loc;
+    this->ealign = ealign;
+    this->salign = STRUCTALIGN_DEFAULT;
 }
 
 Dsymbol *AlignDeclaration::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
-    return new AlignDeclaration(salign, Dsymbol::arraySyntaxCopy(decl));
+    return new AlignDeclaration(loc,
+        ealign->syntaxCopy(), Dsymbol::arraySyntaxCopy(decl));
 }
 
 Scope *AlignDeclaration::newScope(Scope *sc)
 {
-    return createNewScope(sc, sc->stc, sc->linkage, sc->protection, sc->explicitProtection, this->salign, sc->inlining);
+    return createNewScope(sc, sc->stc, sc->linkage, sc->cppmangle,
+        sc->protection, sc->explicitProtection, this,
+        sc->inlining);
+}
+
+void AlignDeclaration::setScope(Scope *sc)
+{
+    //printf("AlignDeclaration::setScope() %p\n", this);
+    if (ealign && decl)
+        Dsymbol::setScope(sc); // for forward reference
+    return AttribDeclaration::setScope(sc);
+}
+
+void AlignDeclaration::semantic2(Scope *sc)
+{
+    getAlignment();
+    AttribDeclaration::semantic2(sc);
+}
+
+static structalign_t errorPositiveInteger(Loc loc, Expression *ealign)
+{
+    error(loc, "positive integer expected, not %s", ealign->toChars());
+    return STRUCTALIGN_DEFAULT;
+}
+
+structalign_t AlignDeclaration::getAlignment()
+{
+    if (!ealign)
+        return STRUCTALIGN_DEFAULT;
+
+    if (Scope *sc = _scope)
+    {
+        _scope = NULL;
+
+        sc = sc->startCTFE();
+        ealign = ealign->semantic(sc);
+        ealign = resolveProperties(sc, ealign);
+        sc = sc->endCTFE();
+
+        if (ealign->op == TOKerror)
+            return STRUCTALIGN_DEFAULT;
+        if (!ealign->type)
+            return errorPositiveInteger(loc, ealign);
+        Type *tb = ealign->type->toBasetype();
+        if (!tb->isintegral())
+            return errorPositiveInteger(loc, ealign);
+        if (tb->ty == Tchar || tb->ty == Twchar || tb->ty == Tdchar || tb->ty == Tbool)
+            return errorPositiveInteger(loc, ealign);
+
+        ealign = ealign->ctfeInterpret();
+        if (ealign->op == TOKerror)
+            return STRUCTALIGN_DEFAULT;
+
+        sinteger_t n = ealign->toInteger();
+        if (n < 1 || STRUCTALIGN_DEFAULT < n)
+            return errorPositiveInteger(loc, ealign);
+
+        if (n & (n - 1))
+        {
+            ::error(loc, "alignment must be a power of 2, not %u", (structalign_t)n);
+            return STRUCTALIGN_DEFAULT;
+        }
+
+        salign = (structalign_t)n;
+    }
+    return salign;
 }
 
 /********************************* AnonDeclaration ****************************/
@@ -560,15 +712,25 @@ AnonDeclaration::AnonDeclaration(Loc loc, bool isunion, Dsymbols *decl)
         : AttribDeclaration(decl)
 {
     this->loc = loc;
-    this->alignment = 0;
     this->isunion = isunion;
     this->sem = 0;
+    this->anonoffset = 0;
+    this->anonstructsize = 0;
+    this->anonalignsize = 0;
 }
 
 Dsymbol *AnonDeclaration::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
     return new AnonDeclaration(loc, isunion, Dsymbol::arraySyntaxCopy(decl));
+}
+
+void AnonDeclaration::setScope(Scope *sc)
+{
+    //printf("AnonDeclaration::setScope() %p\n", this);
+    if (decl)
+        Dsymbol::setScope(sc);
+    AttribDeclaration::setScope(sc);
 }
 
 void AnonDeclaration::semantic(Scope *sc)
@@ -586,7 +748,6 @@ void AnonDeclaration::semantic(Scope *sc)
         return;
     }
 
-    alignment = sc->structalign;
     if (decl)
     {
         sc = sc->push();
@@ -633,20 +794,22 @@ void AnonDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset
                 offset = 0;
         }
 
-        unsigned anonstructsize = ad->structsize;
-        unsigned anonalignsize  = ad->alignsize;
-        ad->structsize = savestructsize;
-        ad->alignsize  = savealignsize;
-
+        /* Bugzilla 13613: If the fields in this->members had been already
+         * added in ad->fields, just update *poffset for the subsequent
+         * field offset calculation.
+         */
         if (fieldstart == ad->fields.dim)
         {
-            /* Bugzilla 13613: If the fields in this->members had been already
-             * added in ad->fields, just update *poffset for the subsequent
-             * field offset calculation.
-             */
+            ad->structsize = savestructsize;
+            ad->alignsize  = savealignsize;
             *poffset = ad->structsize;
             return;
         }
+
+        anonstructsize = ad->structsize;
+        anonalignsize  = ad->alignsize;
+        ad->structsize = savestructsize;
+        ad->alignsize  = savealignsize;
 
         // 0 sized structs are set to 1 byte
         // TODO: is this corect hebavior?
@@ -656,10 +819,13 @@ void AnonDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset
             anonalignsize = 1;
         }
 
+        assert(_scope);
+        structalign_t alignment = _scope->alignment();
+
         /* Given the anon 'member's size and alignment,
          * go ahead and place it.
          */
-        unsigned anonoffset = AggregateDeclaration::placeField(
+        anonoffset = AggregateDeclaration::placeField(
                 poffset,
                 anonstructsize, anonalignsize, alignment,
                 &ad->structsize, &ad->alignsize,
@@ -676,7 +842,7 @@ void AnonDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset
     }
 }
 
-const char *AnonDeclaration::kind()
+const char *AnonDeclaration::kind() const
 {
     return (isunion ? "anonymous union" : "anonymous struct");
 }
@@ -731,7 +897,9 @@ Scope *PragmaDeclaration::newScope(Scope *sc)
                 inlining = PINLINEnever;
         }
 
-        return createNewScope(sc, sc->stc, sc->linkage, sc->protection, sc->explicitProtection, sc->structalign, inlining);
+        return createNewScope(sc, sc->stc, sc->linkage, sc->cppmangle,
+            sc->protection, sc->explicitProtection, sc->aligndecl,
+            inlining);
     }
     return sc;
 }
@@ -1020,7 +1188,7 @@ Lnodecl:
     }
 }
 
-const char *PragmaDeclaration::kind()
+const char *PragmaDeclaration::kind() const
 {
     return "pragma";
 }
@@ -1064,9 +1232,9 @@ bool ConditionalDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 
 Dsymbols *ConditionalDeclaration::include(Scope *sc, ScopeDsymbol *sds)
 {
-    //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, scope);
+    //printf("ConditionalDeclaration::include(sc = %p) _scope = %p\n", sc, _scope);
     assert(condition);
-    return condition->include(scope ? scope : sc, sds) ? decl : elsedecl;
+    return condition->include(_scope ? _scope : sc, sds) ? decl : elsedecl;
 }
 
 void ConditionalDeclaration::setScope(Scope *sc)
@@ -1120,7 +1288,7 @@ StaticIfDeclaration::StaticIfDeclaration(Condition *condition,
 {
     //printf("StaticIfDeclaration::StaticIfDeclaration()\n");
     scopesym = NULL;
-    addisdone = 0;
+    addisdone = false;
 }
 
 Dsymbol *StaticIfDeclaration::syntaxCopy(Dsymbol *s)
@@ -1137,14 +1305,14 @@ Dsymbol *StaticIfDeclaration::syntaxCopy(Dsymbol *s)
  */
 Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sds)
 {
-    //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, scope);
+    //printf("StaticIfDeclaration::include(sc = %p) _scope = %p\n", sc, _scope);
 
     if (condition->inc == 0)
     {
         assert(scopesym);   // addMember is already done
-        assert(scope);      // setScope is already done
+        assert(_scope);      // setScope is already done
 
-        Dsymbols *d = ConditionalDeclaration::include(scope, scopesym);
+        Dsymbols *d = ConditionalDeclaration::include(_scope, scopesym);
 
         if (d && !addisdone)
         {
@@ -1152,17 +1320,17 @@ Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sds)
             for (size_t i = 0; i < d->dim; i++)
             {
                 Dsymbol *s = (*d)[i];
-                s->addMember(scope, scopesym);
+                s->addMember(_scope, scopesym);
             }
 
             // Set the member scopes lazily.
             for (size_t i = 0; i < d->dim; i++)
             {
                 Dsymbol *s = (*d)[i];
-                s->setScope(scope);
+                s->setScope(_scope);
             }
 
-            addisdone = 1;
+            addisdone = true;
         }
         return d;
     }
@@ -1207,7 +1375,7 @@ void StaticIfDeclaration::semantic(Scope *sc)
     AttribDeclaration::semantic(sc);
 }
 
-const char *StaticIfDeclaration::kind()
+const char *StaticIfDeclaration::kind() const
 {
     return "static if";
 }
@@ -1223,7 +1391,7 @@ CompileDeclaration::CompileDeclaration(Loc loc, Expression *exp)
     this->loc = loc;
     this->exp = exp;
     this->scopesym = NULL;
-    this->compiled = 0;
+    this->compiled = false;
 }
 
 Dsymbol *CompileDeclaration::syntaxCopy(Dsymbol *s)
@@ -1261,7 +1429,7 @@ void CompileDeclaration::compileIt(Scope *sc)
         {
             se = se->toUTF8(sc);
             unsigned errors = global.errors;
-            Parser p(loc, sc->module, (utf8_t *)se->string, se->len, 0);
+            Parser p(loc, sc->_module, (utf8_t *)se->string, se->len, 0);
             p.nextToken();
 
             decl = p.parseDeclDefs(0);
@@ -1284,21 +1452,21 @@ void CompileDeclaration::semantic(Scope *sc)
     {
         compileIt(sc);
         AttribDeclaration::addMember(sc, scopesym);
-        compiled = 1;
+        compiled = true;
 
-        if (scope && decl)
+        if (_scope && decl)
         {
             for (size_t i = 0; i < decl->dim; i++)
             {
                 Dsymbol *s = (*decl)[i];
-                s->setScope(scope);
+                s->setScope(_scope);
             }
         }
     }
     AttribDeclaration::semantic(sc);
 }
 
-const char *CompileDeclaration::kind()
+const char *CompileDeclaration::kind() const
 {
     return "mixin";
 }
@@ -1345,7 +1513,7 @@ void UserAttributeDeclaration::setScope(Scope *sc)
 void UserAttributeDeclaration::semantic(Scope *sc)
 {
     //printf("UserAttributeDeclaration::semantic() %p\n", this);
-    if (decl && !scope)
+    if (decl && !_scope)
         Dsymbol::setScope(sc);  // for function local symbols
 
     return AttribDeclaration::semantic(sc);
@@ -1355,9 +1523,9 @@ void UserAttributeDeclaration::semantic2(Scope *sc)
 {
     if (decl && atts && atts->dim)
     {
-        if (atts && atts->dim && scope)
+        if (atts && atts->dim && _scope)
         {
-            scope = NULL;
+            _scope = NULL;
             arrayExpressionSemantic(atts, sc, true);  // run semantic
         }
     }
@@ -1386,10 +1554,9 @@ Expressions *UserAttributeDeclaration::concat(Expressions *udas1, Expressions *u
 
 Expressions *UserAttributeDeclaration::getAttributes()
 {
-    if (scope)
+    if (Scope *sc = _scope)
     {
-        Scope *sc = scope;
-        scope = NULL;
+        _scope = NULL;
         arrayExpressionSemantic(atts, sc);
     }
 
@@ -1402,7 +1569,7 @@ Expressions *UserAttributeDeclaration::getAttributes()
     return exps;
 }
 
-const char *UserAttributeDeclaration::kind()
+const char *UserAttributeDeclaration::kind() const
 {
     return "UserAttribute";
 }

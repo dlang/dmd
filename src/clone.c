@@ -137,6 +137,8 @@ FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc)
 bool needOpAssign(StructDeclaration *sd)
 {
     //printf("StructDeclaration::needOpAssign() %s\n", sd->toChars());
+    if (sd->isUnionDeclaration())
+        return false;
 
     if (sd->hasIdentityAssign)
         goto Lneed;         // because has identity==elaborate opAssign
@@ -152,10 +154,14 @@ bool needOpAssign(StructDeclaration *sd)
         VarDeclaration *v = sd->fields[i];
         if (v->storage_class & STCref)
             continue;
+        if (v->overlapped)              // if field of a union
+            continue;                   // user must handle it themselves
         Type *tv = v->type->baseElemOf();
         if (tv->ty == Tstruct)
         {
             TypeStruct *ts = (TypeStruct *)tv;
+            if (ts->sym->isUnionDeclaration())
+                continue;
             if (needOpAssign(ts->sym))
                 goto Lneed;
         }
@@ -221,6 +227,8 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
             VarDeclaration *v = sd->fields[i];
             if (v->storage_class & STCref)
                 continue;
+            if (v->overlapped)
+                continue;
             Type *tv = v->type->baseElemOf();
             if (tv->ty != Tstruct)
                 continue;
@@ -236,14 +244,14 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
 
     FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), Id::assign, stc, tf);
     fop->storage_class |= STCinference;
-
+    fop->generated = true;
     Expression *e = NULL;
     if (stc & STCdisable)
     {
     }
     else if (sd->dtor || sd->postblit)
     {
-        /* Do swap this and rhs
+        /* Do swap this and rhs.
          *    __swap = this; this = s; __swap.dtor();
          */
         //printf("\tswap copy\n");
@@ -253,8 +261,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
         if (sd->dtor)
         {
             tmp = new VarDeclaration(loc, sd->type, idtmp, new VoidInitializer(loc));
-            tmp->noscope = 1;
-            tmp->storage_class |= STCtemp | STCctfe;
+            tmp->storage_class |= STCnodtor | STCtemp | STCctfe;
             e = new DeclarationExp(loc, tmp);
             ec = new BlitExp(loc, new VarExp(loc, tmp), new ThisExp(loc));
             e = Expression::combine(e, ec);
@@ -266,14 +273,19 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
             /* Instead of running the destructor on s, run it
              * on tmp. This avoids needing to copy tmp back in to s.
              */
-            Expression *ec2 = new DotVarExp(loc, new VarExp(loc, tmp), sd->dtor, 0);
+            Expression *ec2 = new DotVarExp(loc, new VarExp(loc, tmp), sd->dtor, false);
             ec2 = new CallExp(loc, ec2);
             e = Expression::combine(e, ec2);
         }
     }
     else
     {
-        /* Do memberwise copy
+        /* Do memberwise copy.
+         *
+         * If sd is a nested struct, its vthis field assignment is:
+         * 1. If it's nested in a class, it's a rebind of class reference.
+         * 2. If it's nested in a function or struct, it's an update of void*.
+         * In both cases, it will change the parent context.
          */
         //printf("\tmemberwise copy\n");
         for (size_t i = 0; i < sd->fields.dim; i++)
@@ -281,8 +293,8 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
             VarDeclaration *v = sd->fields[i];
             // this.v = s.v;
             AssignExp *ec = new AssignExp(loc,
-                new DotVarExp(loc, new ThisExp(loc), v, 0),
-                new DotVarExp(loc, new IdentifierExp(loc, Id::p), v, 0));
+                new DotVarExp(loc, new ThisExp(loc), v),
+                new DotVarExp(loc, new IdentifierExp(loc, Id::p), v));
             e = Expression::combine(e, ec);
         }
     }
@@ -334,12 +346,11 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
 bool needOpEquals(StructDeclaration *sd)
 {
     //printf("StructDeclaration::needOpEquals() %s\n", sd->toChars());
+    if (sd->isUnionDeclaration())
+        goto Ldontneed;
 
     if (sd->hasIdentityEquals)
         goto Lneed;
-
-    if (sd->isUnionDeclaration())
-        goto Ldontneed;
 
     /* If any of the fields has an opEquals, then we
      * need it too.
@@ -349,7 +360,20 @@ bool needOpEquals(StructDeclaration *sd)
         VarDeclaration *v = sd->fields[i];
         if (v->storage_class & STCref)
             continue;
+        if (v->overlapped)
+            continue;
         Type *tv = v->type->toBasetype();
+        Type *tvbase = tv->baseElemOf();
+        if (tvbase->ty == Tstruct)
+        {
+            TypeStruct *ts = (TypeStruct *)tvbase;
+            if (ts->sym->isUnionDeclaration())
+                continue;
+            if (needOpEquals(ts->sym))
+                goto Lneed;
+            if (ts->sym->aliasthis)     // Bugzilla 14806
+                goto Lneed;
+        }
         if (tv->isfloating())
         {
             // This is necessray for:
@@ -363,15 +387,6 @@ bool needOpEquals(StructDeclaration *sd)
             goto Lneed;
         if (tv->ty == Tclass)
             goto Lneed;
-        tv = tv->baseElemOf();
-        if (tv->ty == Tstruct)
-        {
-            TypeStruct *ts = (TypeStruct *)tv;
-            if (needOpEquals(ts->sym))
-                goto Lneed;
-            if (ts->sym->aliasthis)     // Bugzilla 14806
-                goto Lneed;
-        }
     }
 Ldontneed:
     //printf("\tdontneed\n");
@@ -442,7 +457,7 @@ FuncDeclaration *hasIdentityOpEquals(AggregateDeclaration *ad,  Scope *sc)
  * By fixing bugzilla 3789, opEquals is changed to be never implicitly generated.
  * Now, struct objects comparison s1 == s2 is translated to:
  *      s1.tupleof == s2.tupleof
- * to calculate structural equality. See EqualExp::semantic.
+ * to calculate structural equality. See EqualExp::op_overload.
  */
 FuncDeclaration *buildOpEquals(StructDeclaration *sd, Scope *sc)
 {
@@ -514,7 +529,7 @@ FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc)
 
     Identifier *id = Id::xopEquals;
     FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
-
+    fop->generated = true;
     Expression *e1 = new IdentifierExp(loc, Id::p);
     Expression *e2 = new IdentifierExp(loc, Id::q);
     Expression *e = new EqualExp(TOKequal, loc, e1, e2);
@@ -587,7 +602,7 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
             switch (e->op)
             {
                 case TOKoverloadset:    s = ((OverExp *)e)->vars;       break;
-                case TOKimport:         s = ((ScopeExp *)e)->sds;       break;
+                case TOKscope:          s = ((ScopeExp *)e)->sds;       break;
                 case TOKvar:            s = ((VarExp *)e)->var;         break;
                 default:                break;
             }
@@ -634,7 +649,7 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
 
     Identifier *id = Id::xopCmp;
     FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
-
+    fop->generated = true;
     Expression *e1 = new IdentifierExp(loc, Id::p);
     Expression *e2 = new IdentifierExp(loc, Id::q);
     Expression *e = new CallExp(loc, new DotIdExp(loc, e2, Id::cmp), e1);
@@ -664,12 +679,11 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
 bool needToHash(StructDeclaration *sd)
 {
     //printf("StructDeclaration::needToHash() %s\n", sd->toChars());
+    if (sd->isUnionDeclaration())
+        goto Ldontneed;
 
     if (sd->xhash)
         goto Lneed;
-
-    if (sd->isUnionDeclaration())
-        goto Ldontneed;
 
     /* If any of the fields has an opEquals, then we
      * need it too.
@@ -679,7 +693,20 @@ bool needToHash(StructDeclaration *sd)
         VarDeclaration *v = sd->fields[i];
         if (v->storage_class & STCref)
             continue;
+        if (v->overlapped)
+            continue;
         Type *tv = v->type->toBasetype();
+        Type *tvbase = tv->baseElemOf();
+        if (tvbase->ty == Tstruct)
+        {
+            TypeStruct *ts = (TypeStruct *)tvbase;
+            if (ts->sym->isUnionDeclaration())
+                continue;
+            if (needToHash(ts->sym))
+                goto Lneed;
+            if (ts->sym->aliasthis)     // Bugzilla 14948
+                goto Lneed;
+        }
         if (tv->isfloating())
         {
             // This is necessray for:
@@ -692,15 +719,6 @@ bool needToHash(StructDeclaration *sd)
             goto Lneed;
         if (tv->ty == Tclass)
             goto Lneed;
-        tv = tv->baseElemOf();
-        if (tv->ty == Tstruct)
-        {
-            TypeStruct *ts = (TypeStruct *)tv;
-            if (needToHash(ts->sym))
-                goto Lneed;
-            if (ts->sym->aliasthis)     // Bugzilla 14948
-                goto Lneed;
-        }
     }
 Ldontneed:
     //printf("\tdontneed\n");
@@ -748,7 +766,13 @@ FuncDeclaration *buildXtoHash(StructDeclaration *sd, Scope *sc)
 
     Identifier *id = Id::xtoHash;
     FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
+    fop->generated = true;
 
+    /* Do memberwise hashing.
+     *
+     * If sd is a nested struct, and if it's nested in a class, the calculated
+     * hash value will also contain the result of parent class's toHash().
+     */
     const char *code =
         "size_t h = 0;"
         "foreach (i, T; typeof(p.tupleof))"
@@ -779,6 +803,9 @@ FuncDeclaration *buildXtoHash(StructDeclaration *sd, Scope *sc)
 FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
 {
     //printf("StructDeclaration::buildPostBlit() %s\n", sd->toChars());
+    if (sd->isUnionDeclaration())
+        return NULL;
+
     StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = sd->postblits.dim ? sd->postblits[0]->loc : sd->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
@@ -794,12 +821,15 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
         VarDeclaration *v = sd->fields[i];
         if (v->storage_class & STCref)
             continue;
+        if (v->overlapped)
+            continue;
         Type *tv = v->type->baseElemOf();
-        if (tv->ty != Tstruct || !v->type->size())
+        if (tv->ty != Tstruct)
             continue;
         StructDeclaration *sdv = ((TypeStruct *)tv)->sym;
         if (!sdv->postblit)
             continue;
+        assert(!sdv->isUnionDeclaration());
         sdv->postblit->functionSemantic();
 
         stc = mergeFuncAttrs(stc, sdv->postblit);
@@ -812,11 +842,14 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
         if (!a)
             a = new Statements();
 
-        Expression *ex = new ThisExp(loc);
-        ex = new DotVarExp(loc, ex, v, 0);
-        if (v->type->toBasetype()->ty == Tstruct)
+        Expression *ex = NULL;
+        tv = v->type->toBasetype();
+        if (tv->ty == Tstruct)
         {
             // this.v.__xpostblit()
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, v);
 
             // This is a hack so we can call postblits on const/immutable objects.
             ex = new AddrExp(loc, ex);
@@ -825,12 +858,24 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
 
-            ex = new DotVarExp(loc, ex, sdv->postblit, 0);
+            ex = new DotVarExp(loc, ex, sdv->postblit, false);
             ex = new CallExp(loc, ex);
         }
         else
         {
             // _ArrayPostblit((cast(S*)this.v.ptr)[0 .. n])
+
+            uinteger_t n = 1;
+            while (tv->ty == Tsarray)
+            {
+                n *= ((TypeSArray *)tv)->dim->toUInteger();
+                tv = tv->nextOf()->toBasetype();
+            }
+            if (n == 0)
+                continue;
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, v);
 
             // This is a hack so we can call postblits on const/immutable objects.
             ex = new DotIdExp(loc, ex, Id::ptr);
@@ -838,7 +883,6 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
 
-            uinteger_t n = v->type->size() / sdv->type->size();
             ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type::tsize_t),
                                        new IntegerExp(loc, n, Type::tsize_t));
             // Prevent redundant bounds check
@@ -856,11 +900,13 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
             continue;
         sdv->dtor->functionSemantic();
 
-        ex = new ThisExp(loc);
-        ex = new DotVarExp(loc, ex, v, 0);
+        tv = v->type->toBasetype();
         if (v->type->toBasetype()->ty == Tstruct)
         {
             // this.v.__xdtor()
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, v);
 
             // This is a hack so we can call destructors on const/immutable objects.
             ex = new AddrExp(loc, ex);
@@ -869,12 +915,24 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
 
-            ex = new DotVarExp(loc, ex, sdv->dtor, 0);
+            ex = new DotVarExp(loc, ex, sdv->dtor, false);
             ex = new CallExp(loc, ex);
         }
         else
         {
             // _ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
+
+            uinteger_t n = 1;
+            while (tv->ty == Tsarray)
+            {
+                n *= ((TypeSArray *)tv)->dim->toUInteger();
+                tv = tv->nextOf()->toBasetype();
+            }
+            //if (n == 0)
+            //    continue;
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, v);
 
             // This is a hack so we can call destructors on const/immutable objects.
             ex = new DotIdExp(loc, ex, Id::ptr);
@@ -882,7 +940,6 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
 
-            uinteger_t n = v->type->size() / sdv->type->size();
             ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type::tsize_t),
                                        new IntegerExp(loc, n, Type::tsize_t));
             // Prevent redundant bounds check
@@ -901,6 +958,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
         //printf("Building __fieldPostBlit()\n");
         PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Id::__fieldPostblit);
         dd->storage_class |= STCinference;
+        dd->generated = true;
         dd->fbody = a ? new CompoundStatement(loc, a) : NULL;
         sd->postblits.shift(dd);
         sd->members->push(dd);
@@ -930,7 +988,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
                     break;
                 }
                 Expression *ex = new ThisExp(loc);
-                ex = new DotVarExp(loc, ex, fd, 0);
+                ex = new DotVarExp(loc, ex, fd, false);
                 ex = new CallExp(loc, ex);
                 e = Expression::combine(e, ex);
             }
@@ -963,6 +1021,9 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
 FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
 {
     //printf("AggregateDeclaration::buildDtor() %s\n", ad->toChars());
+    if (ad->isUnionDeclaration())
+        return NULL;
+
     StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = ad->dtors.dim ? ad->dtors[0]->loc : ad->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
@@ -973,8 +1034,10 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
         VarDeclaration *v = ad->fields[i];
         if (v->storage_class & STCref)
             continue;
+        if (v->overlapped)
+            continue;
         Type *tv = v->type->baseElemOf();
-        if (tv->ty != Tstruct || !v->type->size())
+        if (tv->ty != Tstruct)
             continue;
         StructDeclaration *sdv = ((TypeStruct *)tv)->sym;
         if (!sdv->dtor)
@@ -988,11 +1051,14 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
             break;
         }
 
-        Expression *ex = new ThisExp(loc);
-        ex = new DotVarExp(loc, ex, v, 0);
-        if (v->type->toBasetype()->ty == Tstruct)
+        Expression *ex = NULL;
+        tv = v->type->toBasetype();
+        if (tv->ty == Tstruct)
         {
             // this.v.__xdtor()
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, v);
 
             // This is a hack so we can call destructors on const/immutable objects.
             ex = new AddrExp(loc, ex);
@@ -1001,12 +1067,24 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
 
-            ex = new DotVarExp(loc, ex, sdv->dtor, 0);
+            ex = new DotVarExp(loc, ex, sdv->dtor, false);
             ex = new CallExp(loc, ex);
         }
         else
         {
             // _ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
+
+            uinteger_t n = 1;
+            while (tv->ty == Tsarray)
+            {
+                n *= ((TypeSArray *)tv)->dim->toUInteger();
+                tv = tv->nextOf()->toBasetype();
+            }
+            if (n == 0)
+                continue;
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, v);
 
             // This is a hack so we can call destructors on const/immutable objects.
             ex = new DotIdExp(loc, ex, Id::ptr);
@@ -1014,7 +1092,6 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
 
-            uinteger_t n = v->type->size() / sdv->type->size();
             ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type::tsize_t),
                                        new IntegerExp(loc, n, Type::tsize_t));
             // Prevent redundant bounds check
@@ -1062,7 +1139,7 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
                     break;
                 }
                 Expression *ex = new ThisExp(loc);
-                ex = new DotVarExp(loc, ex, fd, 0);
+                ex = new DotVarExp(loc, ex, fd, false);
                 ex = new CallExp(loc, ex);
                 e = Expression::combine(ex, e);
             }
@@ -1130,7 +1207,7 @@ FuncDeclaration *buildInv(AggregateDeclaration *ad, Scope *sc)
                     break;
             #endif
                 }
-                e = Expression::combine(e, new CallExp(loc, new VarExp(loc, ad->invs[i])));
+                e = Expression::combine(e, new CallExp(loc, new VarExp(loc, ad->invs[i], false)));
             }
             InvariantDeclaration *inv;
             inv = new InvariantDeclaration(declLoc, Loc(), stc | stcx, Id::classInvariant);

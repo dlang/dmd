@@ -1,12 +1,12 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
+ * Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/D-Programming-Language/dmd/blob/master/src/import.h
+ * https://github.com/dlang/dmd/blob/master/src/import.h
  */
 
 #ifndef DMD_IMPORT_H
@@ -35,7 +35,7 @@ public:
     Identifier *id;             // module Identifier
     Identifier *aliasId;
     int isstatic;               // !=0 if static import
-    PROTKIND protection;
+    Prot protection;
 
     // Pairs of alias=name to bind into current namespace
     Identifiers names;
@@ -58,7 +58,8 @@ public:
     void semantic2(Scope *sc);
     Dsymbol *toAlias();
     void addMember(Scope *sc, ScopeDsymbol *sds);
-    Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
+    void setScope(Scope* sc);
+    Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
     bool overloadInsert(Dsymbol *s);
 
     Import *isImport() { return this; }
