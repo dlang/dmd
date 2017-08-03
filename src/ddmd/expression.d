@@ -12921,6 +12921,8 @@ extern (C++) class AssignExp : BinExp
             Expression e2x = inferType(e2, t1.baseElemOf());
             e2x = e2x.semantic(sc);
             e2x = resolveProperties(sc, e2x);
+            if (e2x.op == TOKtype)
+                e2x = resolveAliasThis(sc, e2x); //https://issues.dlang.org/show_bug.cgi?id=17684
             if (e2x.op == TOKerror)
                 return e2x;
             if (e2x.checkValue())
