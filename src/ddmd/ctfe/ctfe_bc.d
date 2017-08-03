@@ -16,7 +16,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
  */
 
 import std.conv : to;
-
+debug = abi;
 enum perf = 1;
 enum bailoutMessages = 1;
 enum printResult = 0;
@@ -181,6 +181,13 @@ struct SliceDescriptor
     enum CapcityOffset = 8;
     enum ExtraFlagsOffset = 12;
     enum Size = 16;
+}
+/// appended to a struct
+/// so it's behind the last member
+struct StructMetaData
+{
+    enum VoidInitBitfieldOffset = 0;
+    enum Size = 4;
 }
 
 static immutable smallIntegers = [BCTypeEnum.i8, BCTypeEnum.i16, BCTypeEnum.u8, BCTypeEnum.u16];
@@ -590,7 +597,7 @@ struct BeginStructResult
 struct BCStruct
 {
     uint memberTypeCount;
-    uint size;
+    uint size = StructMetaData.Size;
 
     BCType[96] memberTypes;
     bool[96] voidInit;
@@ -621,7 +628,7 @@ struct BCStruct
         initializers[memberTypeCount][0 .. initValue.length] = initValue[0 .. initValue.length];
         voidInit[memberTypeCount++] = isVoid;
 
-        size += _sharedCtfeState.size(bct, true);
+        size += align4(_sharedCtfeState.size(bct, true));
     }
 
     const int offset(const int idx)
@@ -641,6 +648,24 @@ struct BCStruct
         }
 
         return _offset;
+    }
+
+    const uint voidInitBitfieldIndex(const int idx)
+    {
+        if (idx == -1)
+            return -1;
+
+        assert(voidInit[idx], "voidInitBitfieldIndex is only supposed to be called on kown voidInit fields");
+
+        uint bitFieldIndex;
+
+        foreach (isVoidInit; voidInit[0 .. idx])
+        {
+            if (isVoidInit)
+                bitFieldIndex++;
+        }
+
+        return bitFieldIndex;
     }
 
 }
@@ -1013,6 +1038,11 @@ struct SharedCtfeState(BCGenT)
 
         switch (type.type)
         {
+        case BCTypeEnum.String:
+            {
+                return SliceDescriptor.Size;
+            }
+
         case BCTypeEnum.Struct:
             {
                 uint _size;
@@ -1274,8 +1304,8 @@ Expression toExpression(const BCValue value, Type expressionType,
            return new NullExp(Loc(), expressionType);
         }
 
-        auto length = heapPtr._heap[value.heapAddr + SliceDescriptor.LengthOffset];
-        auto base = heapPtr._heap[value.heapAddr + SliceDescriptor.BaseOffset];
+        auto length = heapPtr._heap[value.imm32 + SliceDescriptor.LengthOffset];
+        auto base = heapPtr._heap[value.imm32 + SliceDescriptor.BaseOffset];
         uint sz = cast (uint) expressionType.nextOf().size;
 
         debug (abi)
@@ -2234,12 +2264,14 @@ public:
         auto newLength = genTemporary(i32Type);
         auto newBase = genTemporary(i32Type);
         auto elemSize = _sharedCtfeState.size(lhsBaseType);
+
         if (!elemSize)
         {
             bailout("Type has no Size " ~ lhsBaseType.to!string);
             result = BCValue.init;
             return ;
         }
+
         Add3(newLength, lhsLength, rhsLength);
         Mul3(effectiveSize, newLength, imm32(elemSize));
         Add3(effectiveSize, effectiveSize, imm32(SliceDescriptor.Size));
@@ -2255,6 +2287,7 @@ public:
             copyArray(&newBase, &lhsBase, lhsLength, elemSize);
             endCndJmp(CJlhsIsNull, genLabel());
         }
+
         {
             auto CJrhsIsNull = beginCndJmp(rhsBase);
             copyArray(&newBase, &rhsBase, rhsLength, elemSize);
@@ -3827,26 +3860,26 @@ static if (is(BCGen))
             }
         }
         auto heap = _sharedCtfeState.heap;
-        auto size = align4(_struct.size);
+        auto struct_size = align4(_struct.size);
 
-        retval = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.i32));
-        if (!size)
+        BCValue structVal;
+        if (!struct_size)
         {
             bailout("invalid struct size! (someone really messed up here!!)");
             return ;
         }
         if (!insideArgumentProcessing)
         {
-            Alloc(retval, imm32(size), BCType(BCTypeEnum.Struct, idx));
+            structVal = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.Struct, idx));
+            Alloc(structVal.i32, imm32(struct_size), BCType(BCTypeEnum.Struct, idx));
         }
         else
         {
-            retval = BCValue(HeapAddr(heap.heapSize));
-            heap.heapSize += size;
+            structVal = BCValue(HeapAddr(heap.heapSize));
+            heap.heapSize += struct_size;
         }
-        retval.type = BCType(BCTypeEnum.Struct, idx);
 
-        auto rv_stackValue = retval.i32;
+        auto rv_stackValue = structVal.i32;
         rv_stackValue.vType = BCValueType.StackValue;
         MemCpyConst(rv_stackValue, _sharedCtfeState.initializer(BCType(BCTypeEnum.Struct, idx)));
 
@@ -3856,6 +3889,8 @@ static if (is(BCGen))
         {
             Comment("StructLiteralExp element: " ~ elem.toString);
             auto elexpr = genExpr(elem, "StructLiteralExp element");
+            immutable _size = _sharedCtfeState.size(elexpr.type, true);
+
             debug (ctfe)
             {
                 writeln("elExpr: ", elexpr.toString, " elem ", elem.toString);
@@ -3870,39 +3905,44 @@ static if (is(BCGen))
             if (!insideArgumentProcessing)
             {
                 if (offset)
-                    Add3(fieldAddr, retval.i32, imm32(offset));
+                    Add3(fieldAddr, rv_stackValue, imm32(offset));
                 else
-                    Set(fieldAddr, retval.i32);
+                    Set(fieldAddr, rv_stackValue);
                 // abi hack for slices slice;
                 if (elexpr.type.type.anyOf([BCTypeEnum.Slice, BCTypeEnum.Array, BCTypeEnum.Struct, BCTypeEnum.String]))
                 {
                     // copy Member
-                    MemCpy(fieldAddr, elexpr, imm32(_sharedCtfeState.size(elexpr.type, true)));
+                    MemCpy(fieldAddr, elexpr, imm32(_size));
                 }
                 else if (basicTypeSize(elexpr.type.type) == 8)
                     Store64(fieldAddr, elexpr);
-                else
+                else if (basicTypeSize(elexpr.type.type) && basicTypeSize(elexpr.type.type) <= 4)
                     Store32(fieldAddr, elexpr);
+                else
+                    bailout("Invalid type for StructLiteralExp: " ~ sle.toString);
             }
             else
             {
                 bailout(elexpr.vType != BCValueType.Immediate, "When struct-literals are used as arguments all initializers, have to be immediates");
                 if (elexpr.type.type.anyOf([BCTypeEnum.Slice, BCTypeEnum.Array, BCTypeEnum.Struct, BCTypeEnum.String]))
                 {
-                    immutable size_t targetAddr = retval.heapAddr + offset;
+                    immutable size_t targetAddr = structVal.heapAddr + offset;
                     immutable size_t sourceAddr = elexpr.heapAddr;
-                    immutable size_t _size = _sharedCtfeState.size(elexpr.type, true);
-
-                    heap._heap[targetAddr .. targetAddr + _size] = heap._heap[sourceAddr  .. sourceAddr + _size];
+                    import std.stdio; writefln("coping type %s with from %d to %d for structLiteral", _sharedCtfeState.typeToString(elexpr.type), sourceAddr, targetAddr);
+                    if (targetAddr != sourceAddr)
+                        heap._heap[targetAddr .. targetAddr + _size] = heap._heap[sourceAddr .. sourceAddr + _size];
                 }
                 else if (basicTypeSize(elexpr.type.type) == 8)
                 {
                     heap._heap[retval.heapAddr + offset] = elexpr.imm64 & uint.max;
                     heap._heap[retval.heapAddr + offset + 4] = elexpr.imm64 >> 32;
                 }
-                else
+                else if (basicTypeSize(elexpr.type.type) && basicTypeSize(elexpr.type.type) <= 4)
                     heap._heap[retval.heapAddr + offset] = elexpr.imm32;
+                else
+                    bailout("Invalid type for StructLiteralExp: " ~ sle.toString);
             }
+
             offset += align4(_sharedCtfeState.size(elexpr.type, true));
 
         }
@@ -4087,7 +4127,10 @@ static if (is(BCGen))
                 if (insideArgumentProcessing)
                 {
                     assert(arr.vType == BCValueType.Immediate);
-                    length = imm32(_sharedCtfeState.heap._heap[arr.imm32 + SliceDescriptor.LengthOffset]);
+                    if (arr.imm32)
+                        length = imm32(_sharedCtfeState.heap._heap[arr.imm32 + SliceDescriptor.LengthOffset]);
+                    else
+                        length = imm32(0);
                 }
                 else
                 {
@@ -4152,7 +4195,7 @@ static if (is(BCGen))
                 if (SliceDescriptor.BaseOffset)
                 {
                     baseAddrPtr = genTemporary(i32Type);
-                    Add3(baseAddrPtr,  arr.i32, imm32(SliceDescriptor.BaseOffset));
+                    Add3(baseAddrPtr, arr.i32, imm32(SliceDescriptor.BaseOffset));
                 }
                 else
                 {
@@ -4169,15 +4212,52 @@ static if (is(BCGen))
         }
     }
 
-	void setVoidMember(BCValue structPtr, uint memberIndex, bool _void)
-	{
-		
-	}
 
-	BCValue getVoidMember(BCValue structPtr, uint memberIndex)
-	{
-		
-	}
+    /// Params fIndex => fieldIndex of the field to be set to void/nonVoid
+    /// Params nonVoid => true if seting to nonVoid false if setting to Void
+    void setMemberVoidInit(BCValue structPtr, int fIndex, bool nonVoid)
+    {
+        assert(structPtr.type.type == BCTypeEnum.Struct, "setMemberVoidInit may only be called on structs for now");
+        assert(structPtr.type.typeIndex, "StructPtr typeIndex invalid");
+        auto structType = _sharedCtfeState.structTypes[structPtr.type.typeIndex - 1];
+
+        auto bitfieldIndex = structType.voidInitBitfieldIndex(fIndex);
+
+        BCValue bitFieldAddr  = genTemporary(i32Type);
+        BCValue bitFieldValue = genTemporary(i32Type);
+        Add3(bitFieldAddr, structPtr.i32, imm32(align4(structType.size) + StructMetaData.VoidInitBitfieldOffset));
+        Load32(bitFieldValue, bitFieldAddr);
+        uint bitFieldIndexBit = 1 << bitfieldIndex;
+        if (nonVoid)
+        {
+            // set the bitfieldIndex Bit
+            Or3(bitFieldValue, bitFieldValue, imm32(bitFieldIndexBit));
+        }
+        else
+        {
+            //unset the bitFieldIndex Bit
+            And3(bitFieldValue, bitFieldValue, imm32(~bitFieldIndexBit));
+        }
+
+        Store32(bitFieldAddr, bitFieldValue);
+    }
+
+    BCValue getMemberVoidInit(BCValue structPtr, int fIndex)
+    {
+        assert(structPtr.type.type == BCTypeEnum.Struct, "setMemberVoidInit may only be called on structs for now");
+        assert(structPtr.type.typeIndex, "StructPtr typeIndex invalid");
+        auto structType = _sharedCtfeState.structTypes[structPtr.type.typeIndex - 1];
+
+        auto bitfieldIndex = structType.voidInitBitfieldIndex(fIndex);
+
+        BCValue bitFieldAddr  = genTemporary(i32Type);
+        BCValue bitFieldValue = genTemporary(i32Type);
+        Add3(bitFieldAddr, structPtr.i32, imm32(align4(structType.size) + StructMetaData.VoidInitBitfieldOffset));
+        Load32(bitFieldValue, bitFieldAddr);
+
+        And3(bitFieldValue, bitFieldValue, imm32(1 << bitfieldIndex));
+        return bitFieldValue;
+    }
 
 
     void LoadFromHeapRef(BCValue hrv, uint line = __LINE__)
@@ -4734,7 +4814,6 @@ static if (is(BCGen))
 
         auto heap = _sharedCtfeState.heap;
         BCValue stringAddr = imm32(heap.heapSize);
-        stringAddr.type = BCType(BCTypeEnum.string8);
         uint heapAdd = SliceDescriptor.Size;
 
         // always reserve space for the slice;
@@ -4768,7 +4847,7 @@ static if (is(BCGen))
 
         if (insideArgumentProcessing)
         {
-            retval = stringAddr.i32;
+            retval = stringAddr;
         }
         else
         {
@@ -5036,24 +5115,6 @@ static if (is(BCGen))
             auto fieldType = bcStructType.memberTypes[fIndex];
             // import std.stdio; writeln("got fieldType: ", fieldType); //DEBUGLINE
 
-            if (!fieldType.type.anyOf(smallIntegers) && fieldType.type != BCTypeEnum.i32 && fieldType.type != BCTypeEnum.i64)
-            {
-                bailout("only i32 structMembers are supported for now ... not : " ~ to!string(bcStructType.memberTypes[fIndex].type));
-                return;
-            }
-
-            if (bcStructType.voidInit[fIndex])
-            {
-                bailout("We don't handle void initialized struct fields");
-                return ;
-            }
-            auto rhs = genExpr(ae.e2);
-            if (!rhs)
-            {
-                //Not sure if this is really correct :)
-                rhs = bcNull;
-            }
-
             static immutable supportedStructTypes =
             () {
                 with(BCTypeEnum)
@@ -5062,9 +5123,10 @@ static if (is(BCGen))
                 }
             } ();
 
-            if (!rhs.type.type.anyOf(supportedStructTypes))
+
+            if (!fieldType.type.anyOf(supportedStructTypes))
             {
-                bailout("only " ~ to!string(supportedStructTypes) ~ " are supported for now. not:" ~ rhs.type.type.to!string);
+                bailout("only " ~ to!string(supportedStructTypes) ~ " are supported for structs (for now) ... not : " ~ to!string(bcStructType.memberTypes[fIndex].type));
                 return;
             }
 
@@ -5074,6 +5136,29 @@ static if (is(BCGen))
                 bailout("could not gen: " ~ _struct.toString);
                 return ;
             }
+
+            auto rhs = genExpr(ae.e2);
+            if (!rhs)
+            {
+                //Not sure if this is really correct :)
+                rhs = bcNull;
+            }
+            else
+            {
+                if (bcStructType.voidInit[fIndex])
+                {
+                    // set member to be inited.
+                    setMemberVoidInit(lhs, fIndex, true);
+                }
+            }
+
+
+            if (!rhs.type.type.anyOf(supportedStructTypes))
+            {
+                bailout("only " ~ to!string(supportedStructTypes) ~ " are supported for now. not:" ~ rhs.type.type.to!string);
+                return;
+            }
+
 
             auto ptr = genTemporary(BCType(BCTypeEnum.i32));
 

@@ -61,6 +61,8 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
             return 4;
         }
     case Ptr :
+            assert(0, "Ptr is not suppsed to be a basicType anymore");
+
     case string8, string16, string32:
         {
             //FIXME actually strings don't have a basicTypeSize as is
