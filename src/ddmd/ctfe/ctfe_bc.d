@@ -5143,7 +5143,7 @@ static if (is(BCGen))
                 //Not sure if this is really correct :)
                 rhs = bcNull;
             }
-            else
+
             {
                 if (bcStructType.voidInit[fIndex])
                 {
@@ -5151,7 +5151,6 @@ static if (is(BCGen))
                     setMemberVoidInit(lhs, fIndex, true);
                 }
             }
-
 
             if (!rhs.type.type.anyOf(supportedStructTypes))
             {
@@ -5257,7 +5256,10 @@ static if (is(BCGen))
             auto elemType = toBCType(ie1.e1.type.nextOf);
             auto elemSize = _sharedCtfeState.size(elemType);
 
+            ignoreVoid = true;
             auto lhs = genExpr(ie1);
+            ignoreVoid = false;
+
             auto rhs = genExpr(ae.e2);
             auto effectiveAddr = BCValue(lhs.heapRef);
 
