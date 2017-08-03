@@ -1349,8 +1349,8 @@ Language changes listed by -transition=id:
             Module m = modules[i];
             if (strcmp(m.srcfile.name.str, global.main_d) == 0)
             {
-                static __gshared const(char)* buf = "int main(){return 0;}";
-                m.srcfile.setbuffer(cast(void*)buf, buf.sizeof);
+                string buf = "int main(){return 0;}";
+                m.srcfile.setbuffer(cast(void*)buf.ptr, buf.length);
                 m.srcfile._ref = 1;
                 break;
             }
