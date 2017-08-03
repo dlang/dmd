@@ -1,6 +1,7 @@
 include ../common.mak
 
-TESTS:=stderr_msg unittest_assert invalid_memory_operation unknown_gc static_dtor chain
+TESTS:=stderr_msg unittest_assert invalid_memory_operation unknown_gc static_dtor future_message
+
 ifeq ($(OS)-$(BUILD),linux-debug)
 	TESTS:=$(TESTS) line_trace rt_trap_exceptions
 endif
@@ -33,6 +34,7 @@ $(ROOT)/unittest_assert.done: STDERR_EXP="unittest_assert msg"
 $(ROOT)/invalid_memory_operation.done: STDERR_EXP="InvalidMemoryOperationError"
 $(ROOT)/unknown_gc.done: STDERR_EXP="'unknowngc'"
 $(ROOT)/static_dtor.done: STDERR_EXP="dtor_called_more_than_once"
+$(ROOT)/future_message.done: STDERR_EXP="exception I have a custom message. exception exception "
 $(ROOT)/static_dtor.done: NEGATE=!
 $(ROOT)/rt_trap_exceptions.done: STDERR_EXP="uncaught exception\nobject.Exception@rt_trap_exceptions.d(11): exception"
 $(ROOT)/rt_trap_exceptions.done: NEGATE=!
