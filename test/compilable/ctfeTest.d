@@ -4,6 +4,7 @@ struct V3 {
         int z;
         int w = 30;
 }
+
 int fn(V3 v3) {
         return v3.y;
 }

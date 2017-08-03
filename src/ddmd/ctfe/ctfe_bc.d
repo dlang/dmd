@@ -16,7 +16,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
  */
 
 import std.conv : to;
-debug = abi;
+
 enum perf = 1;
 enum bailoutMessages = 1;
 enum printResult = 0;
@@ -3868,7 +3868,7 @@ static if (is(BCGen))
         }
         if (!insideArgumentProcessing)
         {
-            structVal = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.Struct, idx));
+            structVal = assignTo ? assignTo : genTemporary(BCType(BCTypeEnum.Struct, idx));
             Alloc(structVal.i32, imm32(struct_size), BCType(BCTypeEnum.Struct, idx));
         }
         else
@@ -3932,11 +3932,11 @@ static if (is(BCGen))
                 }
                 else if (basicTypeSize(elexpr.type.type) == 8)
                 {
-                    heap._heap[retval.heapAddr + offset] = elexpr.imm64 & uint.max;
-                    heap._heap[retval.heapAddr + offset + 4] = elexpr.imm64 >> 32;
+                    heap._heap[structVal.heapAddr + offset] = elexpr.imm64 & uint.max;
+                    heap._heap[structVal.heapAddr + offset + 4] = elexpr.imm64 >> 32;
                 }
                 else if (basicTypeSize(elexpr.type.type) && basicTypeSize(elexpr.type.type) <= 4)
-                    heap._heap[retval.heapAddr + offset] = elexpr.imm32;
+                    heap._heap[structVal.heapAddr + offset] = elexpr.imm32;
                 else
                     bailout("Invalid type for StructLiteralExp: " ~ sle.toString);
             }
@@ -3944,6 +3944,8 @@ static if (is(BCGen))
             offset += align4(_sharedCtfeState.size(elexpr.type, true));
 
         }
+
+        retval = structVal;
     }
 
     override void visit(DollarExp de)
