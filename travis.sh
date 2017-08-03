@@ -2,10 +2,6 @@
 
 set -uexo pipefail
 
-# add missing cc link in gdc-4.9.3 download
-if [ $DC = gdc ] && [ ! -f $(dirname $(which gdc))/cc ]; then
-    ln -s gcc $(dirname $(which gdc))/cc
-fi
 N=2
 
 # use faster ld.gold linker on linux
@@ -34,9 +30,11 @@ clone() {
 
 # build dmd, druntime, phobos
 build() {
+    source ~/dlang/*/activate # activate host compiler
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD ENABLE_RELEASE=1 all
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL
+    deactivate # deactivate host compiler
 }
 
 # self-compile dmd
