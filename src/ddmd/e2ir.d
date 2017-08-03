@@ -2903,7 +2903,8 @@ elem *toElem(Expression e, IRState *irs)
                  * and have the structliteral write into v, rather than create a temporary
                  * and copy the temporary into v
                  */
-                if (ae.e1.op == TOKvar && ce.e1.op == TOKdotvar)
+                if (e1.Eoper == OPvar && // no closure variables https://issues.dlang.org/show_bug.cgi?id=17622
+                    ae.e1.op == TOKvar && ce.e1.op == TOKdotvar)
                 {
                     auto dve = cast(DotVarExp)ce.e1;
                     auto fd = dve.var.isFuncDeclaration();
