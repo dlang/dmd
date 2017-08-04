@@ -52,8 +52,19 @@ SRCS=\
 	src\core\sync\rwmutex.d \
 	src\core\sync\semaphore.d \
 	\
+	src\core\sys\freebsd\dlfcn.d \
 	src\core\sys\freebsd\execinfo.d \
+	src\core\sys\freebsd\sys\_bitset.d \
+	src\core\sys\freebsd\sys\_cpuset.d \
+	src\core\sys\freebsd\sys\cdefs.d \
+	src\core\sys\freebsd\sys\elf_common.d \
+	src\core\sys\freebsd\sys\elf.d \
+	src\core\sys\freebsd\sys\elf32.d \
+	src\core\sys\freebsd\sys\elf64.d \
 	src\core\sys\freebsd\sys\event.d \
+	src\core\sys\freebsd\sys\link_elf.d \
+	src\core\sys\freebsd\sys\mman.d \
+	src\core\sys\freebsd\time.d \
 	\
 	src\core\sys\linux\stdio.d \
 	src\core\sys\linux\tipc.d \
