@@ -55,11 +55,11 @@ assert(expression);
 
 $(H2 $(LNAME2 pre_post_contracts, Pre and Post Contracts))
 
-	The pre contracts specify the preconditions before a statement is executed. The most
+	$(P The pre contracts specify the preconditions before a statement is executed. The most
 	typical use of this would be in validating the parameters to a function. The post
 	contracts validate the result of the statement. The most typical use of this
 	would be in validating the return value of a function and of any side effects it has.
-	The syntax is:
+	The syntax is:)
 
 ------
 in
@@ -122,8 +122,8 @@ do
     ...
 }
 ------
-	In an out statement, $(I result) is initialized and set to the
-	return value of the function.
+	$(P In an out statement, $(I result) is initialized and set to the
+	return value of the function.)
 
 $(H2 $(LNAME2 in_out_inheritance, In, Out and Inheritance))
 
@@ -222,7 +222,7 @@ class Foo
 }
 ------
 
-	The invariant can be checked with an $(CODE assert()) expression:
+	$(P The invariant can be checked with an $(CODE assert()) expression:)
 
 	$(OL
 	$(LI classes need to pass a class object)
@@ -260,5 +260,5 @@ $(SPEC_SUBNAV_PREV_NEXT template-mixin, Template Mixins, version, Conditional Co
 )
 
 Macros:
+	CHAPTER=23
 	TITLE=Contract Programming
-

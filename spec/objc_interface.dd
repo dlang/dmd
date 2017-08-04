@@ -90,7 +90,6 @@ $(SPEC_S Interfacing to Objective-C,
         $(LINK2 ../phobos/object.html, `object`), meaning it will be implicitly
         imported. The attribute is only defined when the version identifier
         $(LINK2 #objc-version-identifier, `D_ObjectiveC`) is enabled.
-
     )
 
     $(SECTION3 $(LNAME2 compiler-checks, Compiler Checks))
@@ -186,13 +185,11 @@ $(SPEC_S Interfacing to Objective-C,
     -L-framework -L<Framework>
     ---
 
-    $(P
-        Where `<Framework>` is the name of the framework to link with, without
+        where `<Framework>` is the name of the framework to link with, without
         the `.framework` extension. The two `-L` flags are required because the
         linker expects a space between the `-framework` flag and the name of
         the framework. DMD cannot handle this and will instead interpet the
         name of the framework as a separate flag.
-    )
 
     $(SECTION3 $(LNAME2 framework-paths, Framework Paths))
 
@@ -218,7 +215,6 @@ $(SPEC_S Interfacing to Objective-C,
     $(P
         For more information see the $(LINK2 https://developer.apple.com/library/mac/documentation/MacOSX/Conceptual/BPFrameworks/Tasks/IncludingFrameworks.html, reference documentation)
         and the `ld` man page.
-
     )
 
     $(SECTION2 $(LNAME2 usage-example, Full Usage Example))
@@ -367,4 +363,5 @@ $(SPEC_SUBNAV_PREV_NEXT cpp_interface, Interfacing to C++, portability, Portabil
 )
 
 Macros:
+    CHAPTER=34
 	TITLE=Interfacing to Objective-C

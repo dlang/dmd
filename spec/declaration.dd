@@ -211,7 +211,7 @@ $(GNAME StructMemberInitializer):
     $(I Identifier) $(D :) $(GLINK NonVoidInitializer)
 )
 
-$(H3 $(LNAME2 declaration_syntax, Declaration Syntax))
+$(H2 $(LNAME2 declaration_syntax, Declaration Syntax))
 
 $(P Declaration syntax generally reads right to left:)
 
@@ -273,7 +273,7 @@ int[] x,y; // x and y are arrays of ints
 int x[],y; // error, multiple types
 --------------------
 
-$(H3 $(LEGACY_LNAME2 AutoDeclaration, auto-declaration, Implicit Type Inference))
+$(H2 $(LEGACY_LNAME2 AutoDeclaration, auto-declaration, Implicit Type Inference))
 
 $(GRAMMAR
 $(GNAME AutoDeclaration):
@@ -320,7 +320,7 @@ auto v = ["hello", "world"]; // type is string[], not string[2]
 
 
 
-$(H3 $(LNAME2 alias, Alias Declarations))
+$(H2 $(LNAME2 alias, Alias Declarations))
 
 $(GRAMMAR
 $(GNAME AliasDeclaration):
@@ -473,18 +473,16 @@ alias b = S.i; // ok
 b = 4;         // sets S.i to 4
 -----------
 
-$(H3 $(LNAME2 extern, Extern Declarations))
+$(H2 $(LNAME2 extern, Extern Declarations))
 
-        Variable declarations with the storage class $(D extern) are
-        not allocated storage within the module.
-        They must be defined in some other object file with a matching
-        name which is then linked in.
-        The primary usefulness of this is to connect with global
-        variable declarations in C files.
+$(P Variable declarations with the storage class $(D extern) are not allocated
+storage within the module. They must be defined in some other object file with a
+matching name which is then linked in. The primary usefulness of this is to
+connect with global variable declarations in C files.)
 
-        $(P An $(D extern) declaration can optionally be followed by an
-        $(D extern) $(LINK2 attribute.html$(HASH)linkage, linkage attribute).
-        If there is no linkage attribute it defaults to $(D extern(D)):)
+$(P An $(D extern) declaration can optionally be followed by an $(D extern)
+$(LINK2 attribute.html$(HASH)linkage, linkage attribute). If there is no linkage
+attribute it defaults to $(D extern(D)):)
 
 ---------------
 extern(C) int foo;        // variable allocated and initialized in this module with C linkage
@@ -492,8 +490,7 @@ extern extern(C) int bar; // variable allocated outside this module with C linka
                           // (e.g. in a statically linked C library or another module)
 ---------------
 
-
-$(H3 $(LNAME2 typeof, $(D typeof)))
+$(H2 $(LNAME2 typeof, $(D typeof)))
 
 $(GRAMMAR
 $(GNAME Typeof):
@@ -583,7 +580,7 @@ $(GNAME Typeof):
         template code.
         )
 
-$(H3 $(LNAME2 void_init, Void Initializations))
+$(H2 $(LNAME2 void_init, Void Initializations))
 
 $(GRAMMAR
 $(GNAME VoidInitializer):
@@ -609,7 +606,7 @@ void foo()
         last resort when optimizing critical code.
 	)
 
-$(H3 $(LNAME2 global_static_init, Global and Static Initializers))
+$(H2 $(LNAME2 global_static_init, Global and Static Initializers))
 
 	$(P The $(GLINK Initializer) for a global or static variable must be
 	evaluatable at compile time.
@@ -618,7 +615,7 @@ $(H3 $(LNAME2 global_static_init, Global and Static Initializers))
 	Runtime initialization can be done with static constructors.
 	)
 
-$(H3 $(LNAME2 typequal_vs_storageclass, Type Qualifiers vs. Storage Classes))
+$(H2 $(LNAME2 typequal_vs_storageclass, Type Qualifiers vs. Storage Classes))
 
 	$(P D draws a distinction between a type qualifer and a storage class.)
 
@@ -742,6 +739,7 @@ $(SPEC_SUBNAV_PREV_NEXT module, Modules, type, Types)
 
 
 Macros:
+        CHAPTER=5
         TITLE=Declarations
         ASSIGNEXPRESSION=$(GLINK2 expression, AssignExpression)
         EXPRESSION=$(GLINK2 expression, Expression)

@@ -69,7 +69,7 @@ attribute {    // affects all declarations in the block
 }
 ---
 
-$(H3 $(LNAME2 linkage, Linkage Attribute))
+$(H2 $(LNAME2 linkage, Linkage Attribute))
 
 $(GRAMMAR
 $(GNAME LinkageAttribute):
@@ -136,7 +136,7 @@ extern (Windows):
         $(P Note that a lone $(D extern) declaration is used as a
         $(DDSUBLINK spec/declaration, extern, storage class).)
 
-$(H4 C++ $(LNAME2 namespace, Namespaces))
+$(H3 C++ $(LNAME2 namespace, Namespaces))
 
         $(P The linkage form $(D extern $(LPAREN)C++, )$(I IdentifierList)$(D $(RPAREN))
         creates C++ declarations that reside in C++ namespaces. The $(I IdentifierList)
@@ -181,7 +181,7 @@ $(H4 C++ $(LNAME2 namespace, Namespaces))
         $(CPPCODE namespace N { namespace M { namespace R { void foo(); } } })
 
 
-$(H3 $(LNAME2 align, $(D align) Attribute))
+$(H2 $(LNAME2 align, $(D align) Attribute))
 
 $(GRAMMAR
 $(GNAME AlignAttribute):
@@ -285,7 +285,7 @@ auto sz = S.sizeof;  // 12
 
 
 
-$(H3 $(LNAME2 deprecated, $(D deprecated) Attribute))
+$(H2 $(LNAME2 deprecated, $(D deprecated) Attribute))
 
 $(GRAMMAR
 $(GNAME DeprecatedAttribute):
@@ -335,7 +335,7 @@ $(GNAME DeprecatedAttribute):
         )
 
 
-$(H3 $(LNAME2 visibility_attributes, Visibility Attribute))
+$(H2 $(LNAME2 visibility_attributes, Visibility Attribute))
 
 $(GRAMMAR
 $(GNAME VisibilityAttribute):
@@ -347,13 +347,9 @@ $(GNAME VisibilityAttribute):
     $(D export)
 )
 
-        $(P Visibility is an attribute that is one of
-        $(D private), $(D package), $(D protected),
-        $(D public) or $(D export).
-        )
-
-        $(P They may be referred to as protection attributes in documents written
-        before $(LINK2 http://wiki.dlang.org/DIP22, DIP22) was implemented.)
+$(P Visibility is an attribute that is one of $(D private), $(D package), $(D
+protected), $(D public), or $(D export). They may be referred to as protection
+attributes in documents predating $(LINK2 http://wiki.dlang.org/DIP22, DIP22).)
 
         $(P Symbols with $(D private) visibility can only be accessed from
         within the same module.
@@ -393,7 +389,7 @@ $(GNAME VisibilityAttribute):
         )
 
 
-$(H3 $(LNAME2 const, $(D const) Attribute))
+$(H2 $(LNAME2 const, $(D const) Attribute))
 
         $(P The $(D const) attribute changes the type of the declared symbol from $(D T) to $(D const(T)),
         where $(D T) is the type specified (or inferred) for the introduced symbol in the absence of $(D const).
@@ -425,25 +421,25 @@ $(H3 $(LNAME2 const, $(D const) Attribute))
                       is(typeof(C.bar) == typeof(C.baz)));
         ---------------
 
-$(H3 $(LNAME2 immutable, $(D immutable) Attribute))
+$(H2 $(LNAME2 immutable, $(D immutable) Attribute))
 
         $(P The $(D immutable) attribute modifies the type from $(D T) to $(D immutable(T)),
         the same way as $(D const) does.
         )
 
-$(H3 $(LNAME2 inout, $(D inout) Attribute))
+$(H2 $(LNAME2 inout, $(D inout) Attribute))
 
         $(P The $(D inout) attribute modifies the type from $(D T) to $(D inout(T)),
         the same way as $(D const) does.
         )
 
-$(H3 $(LNAME2 shared, $(D shared) Attribute))
+$(H2 $(LNAME2 shared, $(D shared) Attribute))
 
         $(P The $(D shared) attribute modifies the type from $(D T) to $(D shared(T)),
         the same way as $(D const) does.
         )
 
-$(H3 $(LNAME2 gshared, $(D __gshared) Attribute))
+$(H2 $(LNAME2 gshared, $(D __gshared) Attribute))
 
         $(P By default, non-immutable global declarations reside in thread local
         storage. When a global variable is marked with the $(D __gshared)
@@ -479,22 +475,19 @@ $(H3 $(LNAME2 gshared, $(D __gshared) Attribute))
 
         $(P $(D __gshared) is disallowed in safe mode.)
 
-$(H3 $(LNAME2 disable, $(D @disable) Attribute))
+$(H2 $(LNAME2 disable, $(D @disable) Attribute))
 
-        $(P A reference to a declaration marked with the $(CODE @disable) attribute causes
-        a compile time error.
-        This can be used to explicitly disallow certain operations or overloads
-        at compile time rather than relying on generating a runtime error.
-        )
+$(P A reference to a declaration marked with the $(CODE @disable) attribute
+causes a compile time error. This can be used to explicitly disallow certain
+operations or overloads at compile time rather than relying on generating a
+runtime error.)
 
-        ---
-        @disable void foo() { }
-
-        void main()
-        {
-            foo();   // error, foo is disabled
-        }
-        ---
+---
+@disable void foo() { }
+---
+---
+void main() { foo(); /* error, foo is disabled */ }
+---
 
         $(P $(DDSUBLINK spec/struct, Struct-Constructor, Disabling struct no-arg constructor)
         disallows default construction of the struct.
@@ -504,7 +497,7 @@ $(H3 $(LNAME2 disable, $(D @disable) Attribute))
         makes the struct not copyable.
         )
 
-$(H3 $(LNAME2 nogc, $(D @nogc) Attribute))
+$(H2 $(LNAME2 nogc, $(D @nogc) Attribute))
 
         $(P $(D @nogc) applies to functions, and means that that function does not
         allocate memory on the GC heap, either directly such as with
@@ -544,27 +537,27 @@ $(H3 $(LNAME2 nogc, $(D @nogc) Attribute))
         }
         ---
 
-$(H3 $(LNAME2 property, $(D @property) Attribute))
+$(H2 $(LNAME2 property, $(D @property) Attribute))
 
     $(P See $(DDSUBLINK spec/function, property-functions, Property Functions).)
 
-$(H3 $(LNAME2 nothrow, $(D nothrow) Attribute))
+$(H2 $(LNAME2 nothrow, $(D nothrow) Attribute))
 
     $(P See $(DDSUBLINK spec/function, nothrow-functions, Nothrow Functions).)
 
-$(H3 $(LNAME2 pure, $(D pure) Attribute))
+$(H2 $(LNAME2 pure, $(D pure) Attribute))
 
     $(P See $(DDSUBLINK spec/function, pure-functions, Pure Functions).)
 
-$(H3 $(LNAME2 ref, $(D ref) Attribute))
+$(H2 $(LNAME2 ref, $(D ref) Attribute))
 
     $(P See $(DDSUBLINK spec/function, ref-functions, Ref Functions).)
 
-$(H3 $(LNAME2 return, $(D return) Attribute))
+$(H2 $(LNAME2 return, $(D return) Attribute))
 
     $(P See $(DDSUBLINK spec/function, return-ref-parameters, Return Ref Parameters).)
 
-$(H3 $(LNAME2 override, $(D override) Attribute))
+$(H2 $(LNAME2 override, $(D override) Attribute))
 
         $(P The $(D override) attribute applies to virtual functions.
         It means that the function must override a function with the
@@ -591,7 +584,7 @@ class Foo2 : Foo
 }
 ---------------
 
-$(H3 $(LNAME2 static, $(D static) Attribute))
+$(H2 $(LNAME2 static, $(D static) Attribute))
 
         $(P The $(D static) attribute applies to functions and data.
         It means that the declaration does not apply to a particular
@@ -635,7 +628,7 @@ private int y = 4; // y is local to module foo
 ---------------
 
 
-$(H3 $(LNAME2 auto, $(D auto) Attribute))
+$(H2 $(LNAME2 auto, $(D auto) Attribute))
 
         $(P The $(D auto) attribute is used when there are no other attributes
         and type inference is desired.
@@ -645,7 +638,7 @@ $(H3 $(LNAME2 auto, $(D auto) Attribute))
 auto i = 6.8;   // declare i as a double
 ---
 
-$(H3 $(LNAME2 scope, $(D scope) Attribute))
+$(H2 $(LNAME2 scope, $(D scope) Attribute))
 
 $(P
         The $(D scope) attribute is used for local variables and for class
@@ -672,7 +665,7 @@ $(P
         if a compelling reason to appears.
 )
 
-$(H3 $(LNAME2 abstract, $(D abstract) Attribute))
+$(H2 $(LNAME2 abstract, $(D abstract) Attribute))
 
 $(P
         An abstract member function must be overridden by a derived class.
@@ -703,7 +696,7 @@ $(P
         Note that the class is still abstract and cannot be instantiated directly.
 )
 
-$(SECTION3 $(LNAME2 uda, User Defined Attributes),
+$(H2 $(LNAME2 uda, User Defined Attributes))
 
         $(P
             User Defined Attributes (UDA) are compile time expressions that can be attached
@@ -723,12 +716,13 @@ $(GNAME UserDefinedAttribute):
     $(D @) $(GLINK2 template, TemplateInstance)
     $(D @) $(GLINK2 template, TemplateInstance) $(D $(LPAREN)) $(GLINK2 expression, ArgumentList)$(OPT) $(D $(RPAREN))
 )
-        $(P
-            And looks like:
-        )
+
+And looks like:
 
 ---
 @(3) int a;
+---
+---
 @("string", 7) int b;
 
 enum Foo;
@@ -762,7 +756,6 @@ struct Bar
 @('c') string s;
 pragma(msg, __traits(getAttributes, s)); // prints tuple('c')
 ---
-)
 
         $(P
             If there are no user defined attributes for the symbol, an empty tuple is returned.
@@ -817,4 +810,5 @@ $(SPEC_SUBNAV_PREV_NEXT property, Properties, pragma, Pragmas)
 )
 
 Macros:
+        CHAPTER=8
         TITLE=Attributes

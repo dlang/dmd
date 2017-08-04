@@ -3,6 +3,36 @@ ROOT = ..
 SEARCHDEFAULT_SPEC = selected
 DDOC_BLANKLINE = $(DIVC blankline)
 
+BODY_PREFIX =
+$(T style,
+    body { counter-reset: h1 $(CHAPTER); counter-increment: h1 -1; }
+    h1 { counter-reset: h2 h3 p; }
+    h2 { counter-reset: h3 h4 p; }
+    h3 { counter-reset: h4 p; }
+    h4 { counter-reset: p; }
+    h1::before {
+        counter-increment: h1;
+        content: counter(h1) ". ";
+    }
+    h2::before {
+        counter-increment: h2;
+        content: counter(h1) "." counter(h2) " ";
+    }
+    h3::before {
+        counter-increment: h3;
+        content: counter(h1) "." counter(h2) "." counter(h3) " ";
+    }
+    h4::before {
+        counter-increment: h4;
+        content: counter(h1) "." counter(h2) "." counter(h3) "." counter(h4) " ";
+    }
+    p::before {
+        counter-increment: p;
+        content: counter(p) ". ";
+    }
+)
+
+SUBNAV_HEAD = $(DIVC head, $(H5 $1) $(TC p, $4, $(LINK2 $2, $3)))
 SUBNAV=$(SUBNAV_SPEC)
 SUBNAV_SPEC=
 $(SUBNAV_TEMPLATE

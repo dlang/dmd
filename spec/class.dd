@@ -45,7 +45,7 @@ $(GNAME Interface):
     $(GLINK2 declaration, BasicType)
 )
 
-Classes consist of:
+$(P Classes consist of:)
 
 $(UL
         $(LI a super class)
@@ -73,7 +73,7 @@ $(UL
         )
 )
 
-        A class is defined:
+$(P A class is defined:)
 
 ------
 class Foo
@@ -97,14 +97,14 @@ class Foo { }
 Foo var;
 ------
 
-$(H3 $(LNAME2 access_control, Access Control))
+$(H2 $(LNAME2 access_control, Access Control))
 
 	$(P Access to class members is controlled using $(GLINK2 attribute, ProtectionAttribute)s.
 	The default protection attribute is $(D public).
 	Access control does not affect visibility.
 	)
 
-$(H3 $(LNAME2 fields, Fields))
+$(H2 $(LNAME2 fields, Fields))
 
         $(P Class members are always accessed with the . operator.
         )
@@ -139,7 +139,7 @@ void foo(B b)
         types, not classes.
         )
 
-$(H3 $(LNAME2 field_properties, Field Properties))
+$(H2 $(LNAME2 field_properties, Field Properties))
 
         $(P The $(D .offsetof) property gives the offset in bytes of the field
         from the beginning of the class instantiation.
@@ -163,7 +163,7 @@ void test(Foo foo)
 }
 ------
 
-$(H3 $(LNAME2 class_properties, Class Properties))
+$(H2 $(LNAME2 class_properties, Class Properties))
 
         $(P The $(D .tupleof) property returns an $(I ExpressionTuple)
         of all the fields
@@ -186,13 +186,13 @@ void test(Foo foo)
         should not be used in user code.
         )
 
-$(H3 $(LNAME2 super_class, Super Class))
+$(H2 $(LNAME2 super_class, Super Class))
 
         All classes inherit from a super class. If one is not specified,
         it inherits from Object. Object forms the root of the D class
         inheritance hierarchy.
 
-$(H3 $(LNAME2 member-functions, Member Functions))
+$(H2 $(LNAME2 member-functions, Member Functions))
 
         $(P Non-static member functions have an extra hidden parameter
         called $(I this) through which the class object's other members
@@ -220,7 +220,7 @@ class C
 ---
 
 
-$(H3 $(LNAME2 synchronized-classes, Synchronized Classes))
+$(H2 $(LNAME2 synchronized-classes, Synchronized Classes))
 
         $(P All member functions of synchronized classes are synchronized.
         A static member function is synchronized on the $(I classinfo)
@@ -284,7 +284,7 @@ $(H3 $(LNAME2 synchronized-classes, Synchronized Classes))
         $(P The $(D synchronized) attribute can only be applied to classes,
         structs cannot be marked to be synchronized.)
 
-$(H3 $(LNAME2 constructors, Constructors))
+$(H2 $(LNAME2 constructors, Constructors))
 
 $(GRAMMAR
 $(GNAME Constructor):
@@ -313,8 +313,8 @@ $(GNAME Constructor):
         }
         ------
 
-        This static initialization is done before any constructors are
-        called.
+        $(P This static initialization is done before any constructors are
+        called.)
 
         $(P Constructors are defined with a function name of $(D this)
         and having no return value:)
@@ -331,8 +331,8 @@ $(GNAME Constructor):
         }
         ------
 
-        Base class construction is done by calling the base class
-        constructor by the name $(D super):
+        $(P Base class construction is done by calling the base class
+        constructor by the name $(D super):)
 
         ------
         class A { this(int y) { } }
@@ -370,18 +370,17 @@ $(GNAME Constructor):
         }
         ------
 
-        If no call to constructors via $(D this) or $(D super) appear
-        in a constructor, and the base class has a constructor, a call
-        to $(D super)() is inserted at the beginning of the constructor.
+        $(P If no call to constructors via $(D this) or $(D super) appear in a
+        constructor, and the base class has a constructor, a call to $(D
+        super)() is inserted at the beginning of the constructor.)
 
         $(P If there is no constructor for a class, but there is a constructor
-        for the base class, a default constructor of the form:)
+        for the base class, a default constructor is implicitly generated with
+        the form:)
 
         ------
         this() { }
         ------
-
-        $(P is implicitly generated.)
 
         $(P Class object construction is very flexible, but some restrictions
         apply:)
@@ -523,7 +522,7 @@ $(GNAME Constructor):
         C m = new C([1,2,3]);       // this(int[]) immutable pure is called
         ------
 
-$(H3 $(LNAME2 field-init, Field initialization inside constructor))
+$(H2 $(LNAME2 field-init, Field initialization inside constructor))
 
     $(P Inside constructor, the first instance field assignment is specially
         handled for its initialization.
@@ -598,7 +597,7 @@ $(H3 $(LNAME2 field-init, Field initialization inside constructor))
         }
         ------
 
-$(H3 $(LNAME2 destructors, Destructors))
+$(H2 $(LNAME2 destructors, Destructors))
 
 $(GRAMMAR
 $(GNAME Destructor):
@@ -606,9 +605,8 @@ $(GNAME Destructor):
     $(D ~ this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
 )
 
-        The garbage collector calls the destructor function when the object
-        is deleted. The syntax
-        is:
+        $(P The garbage collector calls the destructor function when the object
+        is deleted. The syntax is:)
 
         ------
         class Foo
@@ -659,7 +657,7 @@ $(GNAME Destructor):
         by the gc.
         )
 
-$(H3 $(LNAME2 static-constructor, Static Constructors))
+$(H2 $(LNAME2 static-constructor, Static Constructors))
 
 $(GRAMMAR
 $(GNAME StaticConstructor):
@@ -667,17 +665,12 @@ $(GNAME StaticConstructor):
     $(D static this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
 )
 
-	$(P
+	$(P A static constructor is a function that performs initializations of
+	thread local data before the $(D main()) function gets control for the main
+	thread, and upon thread startup.)
 
-
-        A static constructor is a function that performs
-        initializations of thread local data before the $(D main()) function gets control for
-	the main thread, and upon thread startup.
-
-	Static constructors are used to initialize
-        static class members
-        with values that cannot be computed at compile time.
-        )
+	$(P Static constructors are used to initialize static class members with
+	values that cannot be computed at compile time.)
 
         $(P Static constructors in other languages are built implicitly by using
         member
@@ -726,15 +719,11 @@ class Foo
 }
 ------
 
-	$(P
+$(P If $(D main()) or the thread returns normally, (does not throw an
+exception), the static destructor is added to the list of functions to be called
+on thread termination.)
 
-		If $(D main()) or the thread returns normally,
-        (does not throw an exception), the static destructor is added
-        to the list of functions to be
-        called on thread termination.
-
-        Static constructors have empty parameter lists.
-        )
+$(P Static constructors have empty parameter lists.)
 
 	$(P
         Static constructors within a module are executed in the lexical
@@ -763,7 +752,7 @@ class Foo
 }
 ------
 
-$(H3 $(LNAME2 static-destructor, Static Destructors))
+$(H2 $(LNAME2 static-destructor, Static Destructors))
 
 $(GRAMMAR
 $(GNAME StaticDestructor):
@@ -811,7 +800,7 @@ class Foo
 }
 ------
 
-$(H3 $(LNAME2 shared_static_constructors, Shared Static Constructors))
+$(H2 $(LNAME2 shared_static_constructors, Shared Static Constructors))
 
 $(GRAMMAR
 $(GNAME SharedStaticConstructor):
@@ -823,7 +812,7 @@ $(GNAME SharedStaticConstructor):
         and are intended for initializing any shared global data.
         )
 
-$(H3 $(LNAME2 shared_static_destructors, Shared Static Destructors))
+$(H2 $(LNAME2 shared_static_destructors, Shared Static Destructors))
 
 $(GRAMMAR
 $(GNAME SharedStaticDestructor):
@@ -837,7 +826,7 @@ $(GNAME SharedStaticDestructor):
         )
 
 
-$(H3 $(LNAME2 invariants, Class Invariants))
+$(H2 $(LNAME2 invariants, Class Invariants))
 
 $(GRAMMAR
 $(GNAME Invariant):
@@ -845,11 +834,11 @@ $(GNAME Invariant):
     $(D invariant) $(GLINK2 statement, BlockStatement)
 )
 
-    Class invariants are used to specify characteristics of a class that always
-    must be true (except while executing a member function).
-    They are described in $(GLINK2 contracts, Invariants).
+$(P Class invariants are used to specify characteristics of a class that always
+must be true (except while executing a member function). They are described in
+$(GLINK2 contracts, Invariants).)
 
-$(H3 $(LNAME2 allocators, Class Allocators))
+$(H2 $(LNAME2 allocators, Class Allocators))
 $(B Note): Class allocators are deprecated in D2.
 $(GRAMMAR
 $(GNAME Allocator):
@@ -857,7 +846,7 @@ $(GNAME Allocator):
     $(D new) $(GLINK2 function, Parameters) $(GLINK2 function, FunctionBody)
 )
 
-        A class member function of the form:
+$(P A class member function of the form:)
 
 ------
 new(uint size)
@@ -918,7 +907,7 @@ new(1,2) Foo(a);        // calls new(Foo.sizeof,1,2)
         Explicit Class Instance Allocation).
         )
 
-$(H3 $(LNAME2 deallocators, Class Deallocators))
+$(H2 $(LNAME2 deallocators, Class Deallocators))
 $(B Note): Class deallocators and the delete operator are deprecated in D2.
 Use the $(D destroy) function to finalize an object by calling its destructor.
 The memory of the object is $(B not) immediately deallocated, instead the GC
@@ -937,7 +926,7 @@ $(GNAME Deallocator):
     $(D delete) $(GLINK2 function, Parameters) $(GLINK2 function, FunctionBody)
 )
 
-        A class member function of the form:
+$(P A class member function of the form:)
 
 ------
 delete(void *p)
@@ -955,12 +944,10 @@ delete(void *p)
 delete f;
 ------
 
-        $(P is executed, and f is a reference to a class instance that has
-        a deallocator, the deallocator is called with a pointer to the
-        class instance after the destructor (if any) for the class is
-        called. It is the responsibility of the deallocator to free
-        the memory.
-        )
+is executed, and f is a reference to a class instance that has a deallocator,
+the deallocator is called with a pointer to the class instance after the
+destructor (if any) for the class is called. It is the responsibility of the
+deallocator to free the memory.
 
         $(P Derived classes inherit any deallocator from their base class,
         if one is not specified.
@@ -975,7 +962,7 @@ delete f;
         Explicit Class Instance Allocation).
         )
 
-$(H3 $(LEGACY_LNAME2 AliasThis, alias-this, Alias This))
+$(H2 $(LEGACY_LNAME2 AliasThis, alias-this, Alias This))
 
 $(GRAMMAR
 $(GNAME AliasThis):
@@ -1068,7 +1055,7 @@ void test()
         )
 
 
-$(H3 $(LNAME2 auto, Scope Classes))
+$(H2 $(LNAME2 auto, Scope Classes))
 $(B Note): Scope classes have been $(DDSUBLINK deprecate, scope for allocating classes on the stack, recommended for deprecation).
 
         $(P A scope class is a class with the $(D scope) attribute, as in:)
@@ -1077,8 +1064,8 @@ $(B Note): Scope classes have been $(DDSUBLINK deprecate, scope for allocating c
 scope class Foo { ... }
 ------
 
-        The scope characteristic is inherited, so any classes derived
-        from a scope class are also scope.
+$(P The scope characteristic is inherited, so any classes derived from a scope
+class are also scope.)
 
         $(P A scope class reference can only appear as a function local variable.
         It must be declared as being $(D scope):)
@@ -1093,11 +1080,11 @@ void func()
 }
 ------
 
-        When a scope class reference goes out of scope, the destructor
-        (if any) for it is automatically called. This holds true even if
-        the scope was exited via a thrown exception.
+$(P When a scope class reference goes out of scope, the destructor (if any) for
+it is automatically called. This holds true even if the scope was exited via a
+thrown exception.)
 
-$(H3 $(LNAME2 final, Final Classes))
+$(H2 $(LNAME2 final, Final Classes))
 
         $(P Final classes cannot be subclassed:)
 
@@ -1108,10 +1095,9 @@ class B : A { }  // error, class A is final
 
 $(H2 $(LNAME2 nested, Nested Classes))
 
-        A $(I nested class) is a class that is declared inside the scope
-        of a function or another class.
-        A nested class has access to the variables and other symbols
-        of the classes and functions it is nested inside:
+$(P A $(I nested class) is a class that is declared inside the scope of a
+function or another class. A nested class has access to the variables and other
+symbols of the classes and functions it is nested inside:)
 
 ------
 class Outer
@@ -1141,9 +1127,9 @@ void func()
 }
 ------
 
-        If a nested class has the $(D static) attribute, then it can
-        not access variables of the enclosing scope that are local to the
-        stack or need a $(D this):
+$(P If a nested class has the $(D static) attribute, then it can not access
+variables of the enclosing scope that are local to the stack or need a $(D
+this):)
 
 ------
 class Outer
@@ -1177,11 +1163,10 @@ void func()
 }
 ------
 
-        Non-static nested classes work by containing an extra hidden member
-        (called the context pointer)
-        that is the frame pointer of the enclosing function if it is nested
-        inside a function, or the $(D this) of the enclosing class's instance
-        if it is nested inside a class.
+$(P Non-static nested classes work by containing an extra hidden member (called
+the context pointer) that is the frame pointer of the enclosing function if it
+is nested inside a function, or the $(D this) of the enclosing class's instance
+if it is nested inside a class.)
 
         $(P When a non-static nested class is instantiated, the context pointer
         is assigned before the class's constructor is called, therefore
@@ -1309,7 +1294,7 @@ class Outer
 }
 ----
 
-$(H3 $(LNAME2 anonymous, Anonymous Nested Classes))
+$(H2 $(LNAME2 anonymous, Anonymous Nested Classes))
 
         $(P An anonymous nested class is both defined and instantiated with
         a $(I NewAnonClassExpression):
@@ -1323,8 +1308,7 @@ $(GNAME ClassArguments):
     $(D $(LPAREN)) $(GLINK2 expression, ArgumentList)$(OPT) $(D $(RPAREN))
 )
 
-        $(P which is equivalent to:
-        )
+which is equivalent to:
 
 ----
 $(D class) $(I Identifier) $(D :) $(I SuperClass) $(I Interfaces) $(I AggregateBody)
@@ -1332,9 +1316,7 @@ $(D class) $(I Identifier) $(D :) $(I SuperClass) $(I Interfaces) $(I AggregateB
 $(D new) $(D $(LPAREN))$(I ArgumentList)$(D $(RPAREN)) $(I Identifier) $(D $(LPAREN))$(I ArgumentList)$(D $(RPAREN));
 ----
 
-        $(P where $(I Identifier) is the name generated for the anonymous
-        nested class.
-        )
+where $(I Identifier) is the name generated for the anonymous nested class.
 
 $(SECTION3 $(LEGACY_LNAME2 ConstClass, const-class, Const, Immutable and Shared Classes),
 
@@ -1349,6 +1331,6 @@ $(SPEC_SUBNAV_PREV_NEXT struct, Structs and Unions, interface, Interfaces)
 )
 
 Macros:
+        CHAPTER=15
         TITLE=Classes
         _=
-

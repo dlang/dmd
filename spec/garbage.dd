@@ -388,13 +388,13 @@ $(H2 $(LNAME2 gc_config, Configuring the Garbage Collector))
     )
 
     $(P By default, GC options can only be passed on the command line of the program
-        to run, e.g.
+        to run, e.g.)
 
         ---------
         app "--DRT-gcopt=profile:1 minPoolSize:16" arguments to app
         ---------
-    )
-    $(P Available GC options are:
+
+    $(P Available GC options are:)
         $(UL
         $(LI disable:0|1    - start disabled)
         $(LI profile:0|1    - enable profiling with summary when terminating program)
@@ -405,30 +405,30 @@ $(H2 $(LNAME2 gc_config, Configuring the Garbage Collector))
         $(LI incPoolSize:N  - pool size increment MB)
         $(LI heapSizeFactor:N - targeted heap size to used memory ratio)
         )
-    )
+
     $(P In addition, --DRT-gcopt=help will show the list of options and their current settings.
     )
     $(P Command line options starting with "--DRT-" are filtered out before calling main,
         so the program will not see them. They are still available via `rt_args`.
     )
     $(P Configuration via the command line can be disabled by declaring a variable for the
-        linker to pick up before using it's default from the runtime:
+        linker to pick up before using it's default from the runtime:)
         ---------
         extern(C) __gshared bool rt_cmdline_enabled = false;
         ---------
-    )
+
     $(P Likewise, declare a boolean `rt_envvars_enabled` to enable configuration via the
-        environment variable `DRT_GCOPT`:
+        environment variable `DRT_GCOPT`:)
         ---------
         extern(C) __gshared bool rt_envvars_enabled = true;
         ---------
-     )
+
     $(P Setting default configuration properties in the executable can be done by specifying an
-        array of options named `rt_options`:
+        array of options named `rt_options`:)
         ---------
         extern(C) __gshared string[] rt_options = [ "gcopt=initReserve:100 profile:1" ];
         ---------
-    )
+
     $(P Evaluation order of options is `rt_options`, then environment variables, then command
         line arguments, i.e. if command line arguments are not disabled, they can override
         options specified through the environment or embedded in the executable.
@@ -448,11 +448,11 @@ $(H2 $(LNAME2 precise_dataseg, Precise Scanning of the DATA and TLS segment))
 
     $(P Precise scanning can be enabled with the D runtime option "scanDataSeg". Possible option
         values are "conservative" (default) and "precise". As with the GC options, it can be
-        specified on the command line, in the environment or embedded into the executable, e.g.
+        specified on the command line, in the environment or embedded into the executable, e.g.)
         ---------
         extern(C) __gshared string[] rt_options = [ "scanDataSeg=precise" ];
         ---------
-    )
+
 
     $(P $(RED Attention:) Enabling precise scanning needs slightly more caution typing
         global memory. For example, if you pre-allocate memory in the DATA/TLS segment and later
@@ -460,7 +460,7 @@ $(H2 $(LNAME2 precise_dataseg, Precise Scanning of the DATA and TLS segment))
         you must not use basic integer types to reserve the space. Doing so will cause the
         garbage collector not to detect the references. Instead, use an array type that
         will scan this area conservatively. Using `void*` is usually the best option as it also
-        ensures proper alignment for pointers being scanned by the GC.
+        ensures proper alignment for pointers being scanned by the GC.)
         ---------
         class Singleton { void[] mem; }
         void*[(__traits(classInstanceSize, Singleton) - 1) / (void*).sizeof + 1] singleton_store;
@@ -475,7 +475,6 @@ $(H2 $(LNAME2 precise_dataseg, Precise Scanning of the DATA and TLS segment))
         shared static this() { singleton.mem = allocateSharedMem(); }
         ---------
         This doesn't work for TLS memory, though.
-    )
 
 $(H2 $(LNAME2 references, References))
 
@@ -490,4 +489,5 @@ $(SPEC_SUBNAV_PREV_NEXT unittest, Unit Tests, float, Floating Point)
 )
 
 Macros:
+	CHAPTER=28
 	TITLE=Garbage Collection

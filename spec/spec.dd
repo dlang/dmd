@@ -54,3 +54,4 @@ $(TOC Table of Contents,
 
 Macros:
         TITLE=Table of Contents
+		BODY_PREFIX=$(COMMENT Suppress numbering in this page)
