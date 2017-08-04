@@ -54,6 +54,7 @@ SRCS=\
 	\
 	src\core\sys\freebsd\dlfcn.d \
 	src\core\sys\freebsd\execinfo.d \
+	src\core\sys\freebsd\netinet\in_.d \
 	src\core\sys\freebsd\sys\_bitset.d \
 	src\core\sys\freebsd\sys\_cpuset.d \
 	src\core\sys\freebsd\sys\cdefs.d \
