@@ -24,7 +24,6 @@ class Nspace : public ScopeDsymbol
 {
   public:
     Dsymbol *syntaxCopy(Dsymbol *s);
-    void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);

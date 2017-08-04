@@ -55,6 +55,7 @@ import ddmd.root.outbuffer;
 import ddmd.root.response;
 import ddmd.root.rmem;
 import ddmd.root.stringtable;
+import ddmd.semantic;
 import ddmd.target;
 import ddmd.tokens;
 import ddmd.utils;

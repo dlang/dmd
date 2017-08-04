@@ -43,6 +43,7 @@ import ddmd.root.filename;
 import ddmd.root.outbuffer;
 import ddmd.root.port;
 import ddmd.root.rmem;
+import ddmd.semantic;
 import ddmd.tokens;
 import ddmd.utf;
 import ddmd.utils;

@@ -55,6 +55,7 @@ import ddmd.root.outbuffer;
 import ddmd.root.rootobject;
 import ddmd.sideeffect;
 import ddmd.safe;
+import ddmd.semantic;
 import ddmd.target;
 import ddmd.tokens;
 import ddmd.traits;
@@ -65,7 +66,7 @@ import ddmd.visitor;
 
 enum LOGSEMANTIC = false;
 
-private extern (C++) final class ExpressionSemanticVisitor : Visitor
+extern (C++) final class ExpressionSemanticVisitor : Visitor
 {
     alias visit = super.visit;
 
@@ -8788,14 +8789,6 @@ Expression binSemanticProp(BinExp e, Scope* sc)
     e.e1 = e1x;
     e.e2 = e2x;
     return null;
-}
-
-// entrypoint for semantic ExpressionSemanticVisitor
-extern (C++) Expression semantic(Expression e, Scope* sc)
-{
-    scope v = new ExpressionSemanticVisitor(sc);
-    e.accept(v);
-    return v.result;
 }
 
 Expression semanticX(DotIdExp exp, Scope* sc)

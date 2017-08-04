@@ -30,6 +30,7 @@ import ddmd.globals;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.mtype;
+import ddmd.semantic;
 import ddmd.statement;
 import ddmd.tokens;
 import ddmd.visitor;

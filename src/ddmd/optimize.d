@@ -20,12 +20,12 @@ import ddmd.dclass;
 import ddmd.declaration;
 import ddmd.dsymbol;
 import ddmd.expression;
-import ddmd.expressionsem;
 import ddmd.globals;
 import ddmd.init;
 import ddmd.mtype;
 import ddmd.root.ctfloat;
 import ddmd.sideeffect;
+import ddmd.semantic;
 import ddmd.tokens;
 import ddmd.visitor;
 

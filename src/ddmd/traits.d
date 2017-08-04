@@ -35,6 +35,7 @@ import ddmd.nogc;
 import ddmd.root.array;
 import ddmd.root.speller;
 import ddmd.root.stringtable;
+import ddmd.semantic;
 import ddmd.tokens;
 import ddmd.typesem;
 import ddmd.visitor;

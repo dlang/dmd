@@ -48,7 +48,6 @@ public:
 
     bool isAncestorPackageOf(const Package * const pkg) const;
 
-    void semantic(Scope *) { }
     Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
     void accept(Visitor *v) { v->visit(this); }
 
@@ -127,7 +126,6 @@ public:
     bool read(Loc loc); // read file, returns 'true' if succeed, 'false' otherwise.
     Module *parse();    // syntactic parse
     void importAll(Scope *sc);
-    void semantic(Scope *);    // semantic analysis
     void semantic2(Scope *);   // pass 2 semantic analysis
     void semantic3(Scope *);   // pass 3 semantic analysis
     int needModuleInfo();
