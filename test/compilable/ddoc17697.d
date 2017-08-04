@@ -11,6 +11,19 @@
  *    $(LINK2 http://www.food.com/test1, test1)
  */
 
+/**
+Also piggyback a few tests for https://github.com/dlang/dmd/pull/6989
+
+not_a_tag_because_it_does_not_start_with_uppercase:
+
+not_a_tag_because_no_whitespace_after_colon:x
+
+TagGalore: yes this is a tag
+
+MoreTag:
+yes the above is also a tag
+*/
+
 module test1;
 
 int a;
