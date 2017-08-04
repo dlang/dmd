@@ -34,6 +34,7 @@ import ddmd.root.array;
 import ddmd.root.speller;
 import ddmd.root.stringtable;
 import ddmd.tokens;
+import ddmd.typesem;
 import ddmd.visitor;
 
 enum LOGSEMANTIC = false;
@@ -1257,7 +1258,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             bool err = false;
 
             auto t = isType(o);
-            auto ex = t ? t.toExpression() : isExpression(o);
+            auto ex = t ? t.typeToExpression() : isExpression(o);
             if (!ex && t)
             {
                 Dsymbol s;

@@ -16,9 +16,9 @@ import ddmd.declaration;
 import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.expression;
-import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
+import ddmd.initsem;
 import ddmd.mtype;
 import ddmd.statement;
 import ddmd.tokens;
@@ -159,7 +159,7 @@ extern (C++) bool lambdaCheckForNestedRef(Expression e, Scope* sc)
                  */
                 if (v._init && v._init.isExpInitializer())
                 {
-                    Expression ie = v._init.toExpression();
+                    Expression ie = v._init.initializerToExpression();
                     result = lambdaCheckForNestedRef(ie, sc);
                 }
             }

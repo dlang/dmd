@@ -20,11 +20,15 @@ struct ASTCodegen
     import ddmd.func;
     import ddmd.hdrgen;
     import ddmd.init;
+    import ddmd.initsem;
     import ddmd.mtype;
     import ddmd.nspace;
     import ddmd.statement;
     import ddmd.staticassert;
+    import ddmd.typesem;
 
+    alias initializerToExpression   = ddmd.initsem.initializerToExpression;
+    alias typeToExpression          = ddmd.typesem.typeToExpression;
     alias UserAttributeDeclaration  = ddmd.attrib.UserAttributeDeclaration;
 
     alias MODconst                  = ddmd.mtype.MODconst;

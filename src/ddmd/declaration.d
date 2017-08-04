@@ -1146,7 +1146,7 @@ extern (C++) class VarDeclaration : Declaration
 
             //printf("inferring type for %s with init %s\n", toChars(), _init.toChars());
             _init = _init.inferType(sc);
-            type = _init.toExpression().type;
+            type = _init.initializerToExpression().type;
             if (needctfe)
                 sc = sc.endCTFE();
 
@@ -1248,7 +1248,7 @@ extern (C++) class VarDeclaration : Declaration
              */
             TypeTuple tt = cast(TypeTuple)tb;
             size_t nelems = Parameter.dim(tt.arguments);
-            Expression ie = (_init && !_init.isVoidInitializer()) ? _init.toExpression() : null;
+            Expression ie = (_init && !_init.isVoidInitializer()) ? _init.initializerToExpression() : null;
             if (ie)
                 ie = ie.semantic(sc);
             if (nelems > 0 && ie)
@@ -1680,12 +1680,12 @@ extern (C++) class VarDeclaration : Declaration
                         if (ai && tb.ty == Taarray)
                             e = ai.toAssocArrayLiteral();
                         else
-                            e = _init.toExpression();
+                            e = _init.initializerToExpression();
                         if (!e)
                         {
                             // Run semantic, but don't need to interpret
                             _init = _init.semantic(sc, type, INITnointerpret);
-                            e = _init.toExpression();
+                            e = _init.initializerToExpression();
                             if (!e)
                             {
                                 error("is not a static and cannot have static initializer");
@@ -2289,7 +2289,7 @@ extern (C++) class VarDeclaration : Declaration
             inuse--;
         }
 
-        Expression e = _init.toExpression(needFullType ? type : null);
+        Expression e = _init.initializerToExpression(needFullType ? type : null);
         global.gag = oldgag;
         return e;
     }

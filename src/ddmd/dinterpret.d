@@ -2321,7 +2321,7 @@ public:
                     v._init = v._init.semantic(v._scope, v.type, INITinterpret); // might not be run on aggregate members
                     v.inuse--;
                 }
-                e = v._init.toExpression(v.type);
+                e = v._init.initializerToExpression(v.type);
                 if (!e)
                     return CTFEExp.cantexp;
                 assert(e.type);
@@ -2366,7 +2366,7 @@ public:
                         error(loc, "CTFE internal error: trying to access uninitialized var");
                         assert(0);
                     }
-                    e = v._init.toExpression();
+                    e = v._init.initializerToExpression();
                 }
                 else
                     e = v.type.defaultInitLiteral(e.loc);
@@ -5099,7 +5099,7 @@ public:
             }
             if (!getValue(v))
             {
-                Expression newval = v._init.toExpression();
+                Expression newval = v._init.initializerToExpression();
                 // Bug 4027. Copy constructors are a weird case where the
                 // initializer is a void function (the variable is modified
                 // through a reference parameter instead).

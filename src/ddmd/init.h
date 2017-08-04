@@ -39,7 +39,6 @@ public:
     virtual Initializer *syntaxCopy() = 0;
     static Initializers *arraySyntaxCopy(Initializers *ai);
 
-    virtual Expression *toExpression(Type *t = NULL) = 0;
     const char *toChars();
 
     virtual ErrorInitializer   *isErrorInitializer() { return NULL; }
@@ -56,7 +55,6 @@ public:
     Type *type;         // type that this will initialize to
 
     Initializer *syntaxCopy();
-    Expression *toExpression(Type *t = NULL);
 
     virtual VoidInitializer *isVoidInitializer() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -66,7 +64,6 @@ class ErrorInitializer : public Initializer
 {
 public:
     Initializer *syntaxCopy();
-    Expression *toExpression(Type *t = NULL);
 
     virtual ErrorInitializer *isErrorInitializer() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -80,7 +77,6 @@ public:
 
     Initializer *syntaxCopy();
     void addInit(Identifier *field, Initializer *value);
-    Expression *toExpression(Type *t = NULL);
 
     StructInitializer *isStructInitializer() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -98,7 +94,6 @@ public:
     Initializer *syntaxCopy();
     void addInit(Expression *index, Initializer *value);
     bool isAssociativeArray();
-    Expression *toExpression(Type *t = NULL);
     Expression *toAssocArrayLiteral();
 
     ArrayInitializer *isArrayInitializer() { return this; }
@@ -112,7 +107,6 @@ public:
     bool expandTuples;
 
     Initializer *syntaxCopy();
-    Expression *toExpression(Type *t = NULL);
 
     virtual ExpInitializer *isExpInitializer() { return this; }
     void accept(Visitor *v) { v->visit(this); }

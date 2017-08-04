@@ -27,13 +27,13 @@ import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.errors;
 import ddmd.expression;
-import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.init;
+import ddmd.initsem;
 import ddmd.mtype;
 import ddmd.opover;
 import ddmd.root.aav;
@@ -2204,7 +2204,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         /* So the caller's o gets updated with the result of semantic() being run on o
          */
         if (v)
-            o = v._init.toExpression();
+            o = v._init.initializerToExpression();
         return o;
     }
 
