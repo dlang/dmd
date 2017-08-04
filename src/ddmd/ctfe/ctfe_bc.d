@@ -3044,6 +3044,8 @@ static if (is(BCGen))
                     }
                     inOrOr = false;
                 }
+                else
+                    bailout("|| is not supported: " ~ e.toString);
             }
             break;
 
