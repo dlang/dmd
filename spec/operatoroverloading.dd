@@ -308,9 +308,9 @@ $(H2 $(LNAME2 eqcmp, Overloading the Comparison Operators))
 	inequality operators $(D <), $(D <=), $(D >=), and $(D >). The equality
 	operators $(D ==) and $(D !=) always employ $(D opEquals) instead.)
 
-	$(P Therefore, it is the programmer's responsibility to ensure that $(D
-	opCmp) and $(D opEquals) are consistent with each other. If $(D
-	opEquals) is not specified, the compiler provides a default version
+	$(P Therefore, it is the programmer's responsibility to ensure that
+	`opCmp` and $(D opEquals) are consistent with each other. If
+	`opEquals` is not specified, the compiler provides a default version
 	that does member-wise comparison. If this suffices, one may define only
 	$(D opCmp) to customize the behaviour of the inequality operators.  But
 	if not, then a custom version of $(D opEquals) should be defined as
@@ -431,8 +431,8 @@ struct S
 	expressions like $(D a == b) always uses $(D opEquals). If $(D opCmp)
 	is defined but $(D opEquals) isn't, the compiler will supply a default
 	version of $(D opEquals) that performs member-wise comparison. If this
-	member-wise comparison is not consistent with the user-defined $(D
-	opCmp), then it is up to the programmer to supply an appropriate
+	member-wise comparison is not consistent with the user-defined
+	`opCmp`, then it is up to the programmer to supply an appropriate
 	version of $(D opEquals).  Otherwise, inequalities like $(D a <= b)
 	will behave inconsistently with equalities like $(D a == b).)
 
@@ -594,9 +594,9 @@ void test()
 $(H3 $(LNAME2 slice_assignment_operator, Slice Assignment Operator Overloading))
 
 	$(P If the left hand side of an assignment is a slice operation on a
-	struct or class instance, it can be overloaded by implementing an $(D
-	opIndexAssign) member function that takes the return value of the $(D
-	opSlice) function as parameter(s).
+	struct or class instance, it can be overloaded by implementing an
+	`opIndexAssign` member function that takes the return value of the
+	`opSlice` function as parameter(s).
 	Expressions of the form $(CODE a[)$(SLICE)$(D ] = c) are rewritten as
 	$(CODE a.opIndexAssign$(LPAREN)c,) $(D a.opSlice$(LPAREN))$(SLICE2)$(D $(RPAREN)$(RPAREN)),
 	and $(CODE a[] = c) as $(CODE a.opIndexAssign(c)).
@@ -693,8 +693,8 @@ a[] $(METACODE op)= c
 a.opIndexOpAssign!($(DOUBLEQUOTE $(METACODE op)))(c)
 ---
 
-	$(P For backward compatibility, if the above rewrites fail and $(D
-	opSliceOpAssign) is defined, then the rewrites
+	$(P For backward compatibility, if the above rewrites fail and
+	`opSliceOpAssign` is defined, then the rewrites
 	$(D a.opSliceOpAssign(c, i, j)) and $(D a.opSliceOpAssign(c)) are
 	tried, respectively.
 	)
@@ -996,8 +996,8 @@ void test()
 
 	$(P As the above example shows, a different compile-time argument is
 	passed to $(D opDollar) depending on which argument it appears in. A
-	$(D $) appearing in the first argument gets translated to $(D
-	opDollar!0), a $(D $) appearing in the second argument gets translated
+	$(D $) appearing in the first argument gets translated to `opDollar!0`,
+    a $(D $) appearing in the second argument gets translated
 	to $(D opDollar!1), and so on. Thus, the appropriate value for $(D $)
 	can be returned to implement multidimensional arrays.
 	)

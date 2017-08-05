@@ -371,8 +371,8 @@ $(GNAME Constructor):
         ------
 
         $(P If no call to constructors via $(D this) or $(D super) appear in a
-        constructor, and the base class has a constructor, a call to $(D
-        super)() is inserted at the beginning of the constructor.)
+        constructor, and the base class has a constructor, a call to
+        `super()` is inserted at the beginning of the constructor.)
 
         $(P If there is no constructor for a class, but there is a constructor
         for the base class, a default constructor is implicitly generated with
@@ -1128,8 +1128,8 @@ void func()
 ------
 
 $(P If a nested class has the $(D static) attribute, then it can not access
-variables of the enclosing scope that are local to the stack or need a $(D
-this):)
+variables of the enclosing scope that are local to the stack or need a
+`this`:)
 
 ------
 class Outer

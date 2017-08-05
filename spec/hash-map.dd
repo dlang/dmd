@@ -97,8 +97,8 @@ $(H2 $(LNAME2 using_classes_as_key, Using Classes as the KeyType))
         that are considered equal should always have the same hash value. If
         this is not the case, the associative array will not function properly.
         Also note that $(D opCmp) is not used to check for equality by the
-        associative array. However, since the actual $(D opEquals) or $(D
-        opCmp) called is not decided until runtime, the compiler cannot always
+        associative array. However, since the actual $(D opEquals) or
+        `opCmp` called is not decided until runtime, the compiler cannot always
         detect mismatched functions. Because of legacy issues, the compiler may
         reject an associative array key type that overrides $(D opCmp) but not
         $(D opEquals). This restriction may be removed in future versions of
@@ -149,8 +149,8 @@ $(H2 $(LNAME2 using_struct_as_key, Using Structs or Unions as the KeyType))
         $(P If necessary the functions can use $(D @trusted) instead of $(D @safe).)
         $(P Also note that $(D opCmp) is not used to check for equality by the
         associative array.  For this reason, and for legacy reasons, an
-        associative array key is not allowed to define a specialized $(D
-        opCmp), but omit a specialized $(D opEquals). This restriction may be
+        associative array key is not allowed to define a specialized `opCmp`,
+        but omit a specialized $(D opEquals). This restriction may be
         removed in future versions of D.)
 
 $(H2 $(LNAME2 construction_assignement_entries, Construction or Assignment on Setting AA Entries))

@@ -588,8 +588,8 @@ $(H3 $(LNAME2 foreach_over_struct_and_classes, Foreach over Structs and Classes 
 
     $(P If the aggregate expression is a struct or class object,
         the $(D foreach) is defined by the
-        special $(LEGACY_LNAME2 opApply, op-apply, $(D opApply)) member function, and the $(D
-        foreach_reverse) behavior is defined by the special
+        special $(LEGACY_LNAME2 opApply, op-apply, $(D opApply)) member function, and the
+        `foreach_reverse` behavior is defined by the special
         $(LEGACY_LNAME2 opApplyReverse, op-apply-reverse, $(D opApplyReverse)) member function.
         These functions have the type:
     )
@@ -1667,8 +1667,8 @@ $(P The $(I ScopeGuardStatement) executes $(PSCURLYSCOPE) at the close of the
 current scope, rather than at the point where the $(I ScopeGuardStatement)
 appears. $(D scope(exit)) executes $(PSCURLYSCOPE) when the scope exits normally
 or when it exits due to exception unwinding. $(D scope(failure)) executes
-$(PSCURLYSCOPE) when the scope exits due to exception unwinding. $(D
-scope(success)) executes $(PSCURLYSCOPE) when the scope exits normally.)
+$(PSCURLYSCOPE) when the scope exits due to exception unwinding.
+`scope(success)` executes $(PSCURLYSCOPE) when the scope exits normally.)
 
         $(P If there are multiple $(I ScopeGuardStatement)s in a scope, they
         will be executed in the reverse lexical order in which they appear.

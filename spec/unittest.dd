@@ -79,8 +79,8 @@ void myFunc(T)(T[] data)
 }
 ------
 
-$(P This unittest verifies that $(D myFunc) contains only $(D @safe), $(D
-nothrow) code. Although this can also be accomplished by attaching these
+$(P This unittest verifies that $(D myFunc) contains only $(D @safe),
+`nothrow` code. Although this can also be accomplished by attaching these
 attributes to $(D myFunc) itself, that would prevent $(D myFunc) from being
 instantiated with types $(D T) that have $(D @system) or throwing code in their
 $(D opAssign) method, or other methods that $(D myFunc) may call. The above

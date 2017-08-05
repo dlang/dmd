@@ -410,8 +410,8 @@ has no effect, e.g. given an unqualified type `T`, $(D shared(const shared T))
 yields the type $(D const shared T).)
 
 $(P Applying the `immutable` qualifier to any type (qualified or not) results in
-$(D immutable T). Applying any qualifier to $(D immutable T) results in $(D
-immutable T). This makes `immutable` a fixed point of qualifier combinations and
+$(D immutable T). Applying any qualifier to $(D immutable T) results in
+`immutable T`. This makes `immutable` a fixed point of qualifier combinations and
 makes types such as $(D const(immutable(shared T))) impossible to create.)
 
 $(P Assuming `T` is an unqualified type, the graph below illustrates how
@@ -435,8 +435,8 @@ $(H2 $(LNAME2 implicit_qualifier_conversions, Implicit Qualifier Conversions))
 
 $(P Values that have no mutable indirections (including structs that don't
 contain any field with mutable indirections) can be implicitly converted across
-$(I mutable), $(D const), $(D immutable), $(D const shared), $(D inout) and $(D
-inout shared).)
+$(I mutable), $(D const), $(D immutable), $(D const shared), $(D inout) and
+$(D inout shared).)
 
 $(P References to qualified objects can be implicitly converted according to the
 following rules:)
