@@ -182,6 +182,7 @@ struct SliceDescriptor
     enum ExtraFlagsOffset = 12;
     enum Size = 16;
 }
+
 /// appended to a struct
 /// so it's behind the last member
 struct StructMetaData
@@ -376,13 +377,12 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         }
         else
         {
-            debug (ctfe)
+            debug (output_bc)
             {
                 import std.stdio;
 
                 writeln("I have ", _sharedCtfeState.functionCount, " functions!");
-                bcv.gen.byteCodeArray[0 .. bcv.ip].printInstructions.writeln();
-
+                printInstructions(bcv.gen.byteCodeArray[0 .. bcv.ip], bcv.stackMap).writeln();
             }
 
             auto retval = interpret_(bcv.byteCodeArray[0 .. bcv.ip], bc_args,
@@ -3229,7 +3229,7 @@ static if (is(BCGen))
         }
 
         auto indexed = genExpr(ie.e1, "IndexExp.e1 e1[x]");
-        if (!indexed || indexed.vType == BCValueType.VoidValue)
+        if (!indexed || (indexed.vType == BCValueType.VoidValue && !ignoreVoid))
         {
             bailout("could not create indexed variable from: " ~ ie.e1.toString);
             return ;
@@ -3243,8 +3243,7 @@ static if (is(BCGen))
 
             writeln("IndexedType", indexed.type.type.to!string);
         }
-        if (!(indexed.type.type == BCTypeEnum.String
-                || indexed.type.type == BCTypeEnum.Array || indexed.type.type == BCTypeEnum.Slice))
+        if (!indexed.type.type.anyOf([BCTypeEnum.String, BCTypeEnum.Array, BCTypeEnum.Slice, BCTypeEnum.Ptr]))
         {
             bailout("Unexpected IndexedType: " ~ to!string(indexed.type.type) ~ " ie: " ~ ie
                 .toString);
@@ -3268,7 +3267,7 @@ static if (is(BCGen))
         auto elemType = _sharedCtfeState.elementType(indexed.type);
         if (!elemType)
         {
-            bailout("could nit get elementType for: " ~ ie.toString);
+            bailout("could not get elementType for: " ~ ie.toString);
             return ;
         }
 
@@ -3310,7 +3309,7 @@ static if (is(BCGen))
             {
                 // on structs we return the ptr!
                 Set(retval.i32, ptr);
-                retval.heapRef = BCHeapRef(basePtr);
+                retval.heapRef = BCHeapRef(ptr);
             }
             else if (elemSize <= 4)
                 Load32(retval.i32, ptr);
@@ -3971,7 +3970,10 @@ static if (is(BCGen))
     {
         Line(ae.loc.linnum);
         //bailout("We don't handle AddrExp");
-        retval = genExpr(ae.e1, "AddrExp");
+        auto e1 = genExpr(ae.e1, "AddrExp");
+        assert(e1.heapRef, "AddrExp needs to be on the heap, otherwise is has no address");
+        retval = BCValue(e1.heapRef).i32; // hack this is a ptr not an i32;
+        import std.stdio; writeln(ae.toString ~ " --  " ~ "retval: " ~ retval.toString); //debugline
         //Alloc()
         //assert(0, "Dieng on Addr ?");
     }
@@ -6146,8 +6148,9 @@ static if (is(BCGen))
             if (fromType.type == BCTypeEnum.Slice &&
                 _sharedCtfeState.elementType(fromType) == _sharedCtfeState.elementType(toType))
             {
-                assert(0, "remove when slices and pointers actually have the same abi");
                 // do nothing pointer have the same abi as slices :)
+                // HACK FIXME this might not be actaully the case
+                retval.type = toType;
             }
             else
             {
