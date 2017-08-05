@@ -92,6 +92,15 @@ extern (C++) Expression eval_fabs(Loc loc, FuncDeclaration fd, Expressions* argu
     return new RealExp(loc, CTFloat.fabs(arg0.toReal()), arg0.type);
 }
 
+extern (C++) Expression eval_ldexp(Loc loc, FuncDeclaration fd, Expressions* arguments)
+{
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    Expression arg1 = (*arguments)[1];
+    assert(arg1.op == TOKint64);
+    return new RealExp(loc, CTFloat.ldexp(arg0.toReal(), cast(int) arg1.toInteger()), arg0.type);
+}
+
 extern (C++) Expression eval_bsf(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
@@ -266,6 +275,13 @@ public extern (C++) void builtin_init()
     }
     // @safe @nogc pure nothrow long function(real)
     add_builtin("_D3std4math6rndtolFNaNbNiNfeZl", &eval_unimp);
+
+    // @safe @nogc pure nothrow T function(T, int)
+    add_builtin("_D4core4math5ldexpFNaNbNiNfeiZe", &eval_ldexp);
+    add_builtin("_D3std4math5ldexpFNaNbNiNfeiZe", &eval_ldexp);
+    add_builtin("_D3std4math5ldexpFNaNbNiNfdiZd", &eval_ldexp);
+    add_builtin("_D3std4math5ldexpFNaNbNiNffiZf", &eval_ldexp);
+
     // @safe @nogc pure nothrow int function(uint)
     add_builtin("_D4core5bitop3bsfFNaNbNiNfkZi", &eval_bsf);
     add_builtin("_D4core5bitop3bsrFNaNbNiNfkZi", &eval_bsr);

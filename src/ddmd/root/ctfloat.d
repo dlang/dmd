@@ -66,6 +66,7 @@ extern (C++) struct CTFloat
     static real_t tan(real_t x) { return core.stdc.math.tanl(x); }
     static real_t sqrt(real_t x) { return core.math.sqrt(x); }
     static real_t fabs(real_t x) { return core.math.fabs(x); }
+    static real_t ldexp(real_t n, int exp) { return core.math.ldexp(n, exp); }
 
     static bool isIdentical(real_t a, real_t b)
     {
