@@ -765,24 +765,20 @@ $(GNAME HexLetter):
     $(TROW_EXPLANATORY $(I Explicit suffixes))
 	$(TROW $(D 0L .. 9_223_372_036_854_775_807L), $(D long))
 	$(TROW $(D 0U .. 4_294_967_295U), $(D uint))
-	$(TROW $(D 4_294_967_296U .. 18_446_744_073_709_551_615U), $(D
-	ulong))
+	$(TROW $(D 4_294_967_296U .. 18_446_744_073_709_551_615U), `ulong`)
 	$(TROW $(D 0UL .. 18_446_744_073_709_551_615UL), $(D ulong))
     $(MIDRULE)
     $(TROW_EXPLANATORY $(I Hexadecimal notation))
 	$(TROW $(D 0x0 .. 0x7FFF_FFFF), $(D int))
 	$(TROW $(D 0x8000_0000 .. 0xFFFF_FFFF), $(D uint))
 	$(TROW $(D 0x1_0000_0000 .. 0x7FFF_FFFF_FFFF_FFFF), $(D long))
-	$(TROW $(D 0x8000_0000_0000_0000 .. 0xFFFF_FFFF_FFFF_FFFF), $(D
-	ulong))
+	$(TROW $(D 0x8000_0000_0000_0000 .. 0xFFFF_FFFF_FFFF_FFFF), `ulong`)
     $(MIDRULE)
     $(TROW_EXPLANATORY $(I Hexadecimal notation with explicit suffixes))
 	$(TROW $(D 0x0L .. 0x7FFF_FFFF_FFFF_FFFFL), $(D long))
-	$(TROW $(D 0x8000_0000_0000_0000L .. 0xFFFF_FFFF_FFFF_FFFFL), $(D
-	ulong))
+	$(TROW $(D 0x8000_0000_0000_0000L .. 0xFFFF_FFFF_FFFF_FFFFL), `ulong`)
 	$(TROW $(D 0x0U .. 0xFFFF_FFFFU), $(D uint))
-	$(TROW $(D 0x1_0000_0000U .. 0xFFFF_FFFF_FFFF_FFFFU), $(D
-	ulong))
+	$(TROW $(D 0x1_0000_0000U .. 0xFFFF_FFFF_FFFF_FFFFU), `ulong`)
 	$(TROW $(D 0x0UL .. 0xFFFF_FFFF_FFFF_FFFFUL), $(D ulong))
 	)
 
