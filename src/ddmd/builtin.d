@@ -101,6 +101,28 @@ extern (C++) Expression eval_ldexp(Loc loc, FuncDeclaration fd, Expressions* arg
     return new RealExp(loc, CTFloat.ldexp(arg0.toReal(), cast(int) arg1.toInteger()), arg0.type);
 }
 
+extern (C++) Expression eval_isnan(Loc loc, FuncDeclaration fd, Expressions* arguments)
+{
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    return new IntegerExp(loc, CTFloat.isNaN(arg0.toReal()), Type.tbool);
+}
+
+extern (C++) Expression eval_isinfinity(Loc loc, FuncDeclaration fd, Expressions* arguments)
+{
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    return new IntegerExp(loc, CTFloat.isInfinity(arg0.toReal()), Type.tbool);
+}
+
+extern (C++) Expression eval_isfinite(Loc loc, FuncDeclaration fd, Expressions* arguments)
+{
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    const value = !CTFloat.isNaN(arg0.toReal()) && !CTFloat.isInfinity(arg0.toReal());
+    return new IntegerExp(loc, value, Type.tbool);
+}
+
 extern (C++) Expression eval_bsf(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
@@ -281,6 +303,17 @@ public extern (C++) void builtin_init()
     add_builtin("_D3std4math5ldexpFNaNbNiNfeiZe", &eval_ldexp);
     add_builtin("_D3std4math5ldexpFNaNbNiNfdiZd", &eval_ldexp);
     add_builtin("_D3std4math5ldexpFNaNbNiNffiZf", &eval_ldexp);
+
+    // @trusted @nogc pure nothrow bool function(T)
+    add_builtin("_D3std4math12__T5isNaNTeZ5isNaNFNaNbNiNeeZb", &eval_isnan);
+    add_builtin("_D3std4math12__T5isNaNTdZ5isNaNFNaNbNiNedZb", &eval_isnan);
+    add_builtin("_D3std4math12__T5isNaNTfZ5isNaNFNaNbNiNefZb", &eval_isnan);
+    add_builtin("_D3std4math18__T10isInfinityTeZ10isInfinityFNaNbNiNeeZb", &eval_isinfinity);
+    add_builtin("_D3std4math18__T10isInfinityTdZ10isInfinityFNaNbNiNedZb", &eval_isinfinity);
+    add_builtin("_D3std4math18__T10isInfinityTfZ10isInfinityFNaNbNiNefZb", &eval_isinfinity);
+    add_builtin("_D3std4math15__T8isFiniteTeZ8isFiniteFNaNbNiNeeZb", &eval_isfinite);
+    add_builtin("_D3std4math15__T8isFiniteTdZ8isFiniteFNaNbNiNedZb", &eval_isfinite);
+    add_builtin("_D3std4math15__T8isFiniteTfZ8isFiniteFNaNbNiNefZb", &eval_isfinite);
 
     // @safe @nogc pure nothrow int function(uint)
     add_builtin("_D4core5bitop3bsfFNaNbNiNfkZi", &eval_bsf);
