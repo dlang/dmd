@@ -498,6 +498,7 @@
    <File path="..\ddmd\errors.d" />
    <File path="..\ddmd\escape.d" />
    <File path="..\ddmd\expression.d" />
+   <File path="..\ddmd\expressionsem.d" />
    <File path="..\ddmd\func.d" />
    <File path="..\ddmd\globals.d" />
    <File path="..\ddmd\glue.d" />
@@ -509,6 +510,7 @@
    <File path="..\ddmd\impcnvtab.d" />
    <File path="..\ddmd\imphint.d" />
    <File path="..\ddmd\init.d" />
+   <File path="..\ddmd\initsem.d" />
    <File path="..\ddmd\inline.d" />
    <File path="..\ddmd\inlinecost.d" />
    <File path="..\ddmd\intrange.d" />
@@ -552,6 +554,7 @@
    <File path="..\ddmd\toobj.d" />
    <File path="..\ddmd\traits.d" />
    <File path="..\ddmd\typinf.d" />
+   <File path="..\ddmd\typesem.d" />
    <File path="..\ddmd\utf.d" />
    <File path="..\ddmd\utils.d" />
    <File path="..\ddmd\visitor.d" />
