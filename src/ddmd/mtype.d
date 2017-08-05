@@ -5476,8 +5476,8 @@ extern (C++) final class TypeAArray : TypeArray
         else if (tbase.ty == Tclass && !(cast(TypeClass)tbase).sym.isInterfaceDeclaration())
         {
             ClassDeclaration cd = (cast(TypeClass)tbase).sym;
-            if (cd.semanticRun < PASSsemanticdone)
-                cd.semantic(null);
+            if (cd.semanticRun < PASSmembersdone)
+                cd.importAll(null);
 
             if (!ClassDeclaration.object)
             {

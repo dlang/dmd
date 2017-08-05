@@ -1385,6 +1385,7 @@ extern (C++) class VarDeclaration : Declaration
                     storage_class |= arg.storageClass;
                 auto v = new VarDeclaration(loc, arg.type, id, ti, storage_class);
                 //printf("declaring field %s of type %s\n", v.toChars(), v.type.toChars());
+                v.setScope(sc);
                 v.importAll(sc);
 
                 if (sc.scopesym)
@@ -2050,6 +2051,10 @@ extern (C++) class VarDeclaration : Declaration
 
         //printf("VarDeclaration::semantic2('%s')\n", toChars());
 
+        if (_scope)
+            sc = _scope;
+        assert(sc);
+
         if (_init && !toParent().isFuncDeclaration())
         {
             inuse++;
@@ -2376,9 +2381,15 @@ extern (C++) class VarDeclaration : Declaration
                 global.gag = 0;
         }
 
+        if (_scope && semanticRun < PASSsemantic2done)
+        {
+            semantic(null);
+            semantic2(null);
+        }
+
         auto vinit = _init;
 
-        if (_scope)
+        if (_scope && semanticRun < PASSsemantic2done)
         {
             inuse++;
             vinit = _init.semantic(_scope, type, INITinterpret);

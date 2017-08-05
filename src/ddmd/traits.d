@@ -518,7 +518,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         else if (auto ad = s.isAggregateDeclaration())
         {
             if (auto cd = ad.isClassDeclaration())
-                assert(cd.baseok == BASEOKdone); // FIXME, shouldn't really be needed
+                assert(cd.baseok >= BASEOKdone); // FIXME, shouldn't really be needed
             return ad.isNested() ? True() : False();
         }
         else if (auto fd = s.isFuncDeclaration())

@@ -202,29 +202,36 @@ extern (C++) final class Import : Dsymbol
 
     override void importAll(Scope* sc)
     {
+        if (semanticRun >= PASSmembersdone)
+            return;
+
         if (_scope)
             sc = _scope;
 
         if (!mod)
         {
             load(sc);
-            if (mod) // if successfully loaded module
+
+            if (!mod)
             {
-                if (mod.md && mod.md.isdeprecated)
-                {
-                    Expression msg = mod.md.msg;
-                    if (StringExp se = msg ? msg.toStringExp() : null)
-                        mod.deprecation(loc, "is deprecated - %s", se.string);
-                    else
-                        mod.deprecation(loc, "is deprecated");
-                }
-                mod.importAll(null);
-                if (sc.explicitProtection)
-                    protection = sc.protection;
-                if (!isstatic && !aliasId && !names.dim)
-                {
-                    sc.scopesym.importScope(mod, protection);
-                }
+                semanticRun = PASSmembersdone; // parsing failed
+                return;
+            }
+
+            if (mod.md && mod.md.isdeprecated)
+            {
+                Expression msg = mod.md.msg;
+                if (StringExp se = msg ? msg.toStringExp() : null)
+                    mod.deprecation(loc, "is deprecated - %s", se.string);
+                else
+                    mod.deprecation(loc, "is deprecated");
+            }
+            mod.importAll(null);
+            if (sc.explicitProtection)
+                protection = sc.protection;
+            if (!isstatic && !aliasId && !names.dim)
+            {
+                sc.scopesym.importScope(mod, protection);
             }
         }
 
@@ -236,6 +243,8 @@ extern (C++) final class Import : Dsymbol
                 ad.setScope(sc);
             sc = sc.pop();
         }
+
+        semanticRun = PASSmembersdone;
     }
 
     override void semantic(Scope* sc)

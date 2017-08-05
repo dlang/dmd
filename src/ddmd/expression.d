@@ -7278,7 +7278,7 @@ extern (C++) final class DeclarationExp : Expression
             // Do semantic() on initializer first, so:
             //      int a = a;
             // will be illegal.
-//             declaration.setScope(sc);
+            declaration.setScope(sc);
             declaration.semantic(sc);
             s.parent = sc.parent;
         }
@@ -7332,7 +7332,7 @@ extern (C++) final class DeclarationExp : Expression
             if (sc2.stc & (STCpure | STCnothrow | STCnogc))
                 sc2 = sc.push();
             sc2.stc &= ~(STCpure | STCnothrow | STCnogc);
-//             declaration.setScope(sc2);
+            declaration.setScope(sc2);
             declaration.semantic(sc2);
             if (sc2 != sc)
                 sc2.pop();

@@ -2300,12 +2300,9 @@ public:
             if (v.ident == Id.ctfe)
                 return new IntegerExp(loc, 1, Type.tbool);
 
-            if (!v.originalType && v.semanticRun < PASSsemanticdone) // semantic() not yet run
-            {
-                v.semantic(null);
-                if (v.type.ty == Terror)
-                    return CTFEExp.cantexp;
-            }
+            v.semantic(null);
+            if (v.type.ty == Terror)
+                return CTFEExp.cantexp;
 
             if ((v.isConst() || v.isImmutable() || v.storage_class & STCmanifest) && !hasValue(v) && v._init && !v.isCTFE())
             {
@@ -2315,12 +2312,15 @@ public:
                     return CTFEExp.cantexp;
                 }
                 if (v._scope)
+                    v.semantic2(null);
+                auto vinit = v._init;
+                if (v._scope && v.semanticRun < PASSsemantic2done)
                 {
                     v.inuse++;
-                    v._init = v._init.semantic(v._scope, v.type, INITinterpret); // might not be run on aggregate members
+                    vinit = vinit.semantic(v._scope, v.type, INITinterpret); // might not be run on aggregate members
                     v.inuse--;
                 }
-                e = v._init.toExpression(v.type);
+                e = vinit.toExpression(v.type);
                 if (!e)
                     return CTFEExp.cantexp;
                 assert(e.type);
