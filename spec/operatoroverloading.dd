@@ -344,10 +344,8 @@ $(OL
     }
     ---
 	)
-	$(LI Otherwise the expressions $(CODE a.opEquals(b)) and
-	$(CODE b.opEquals(a)) are tried. If both resolve to the same $(D
-	opEquals) function, then the expression is rewritten to be $(CODE
-	a.opEquals(b)).
+	$(LI Otherwise the expressions `a.opEquals(b)` and
+	`b.opEquals(a)` are tried. If both resolve to the same `opEquals` function, then the expression is rewritten to be `a.opEquals(b)`.
 	)
 	$(LI If one is a better match than the other, or one compiles and the other
 	does not, the first is selected.)
