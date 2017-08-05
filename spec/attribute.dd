@@ -328,9 +328,11 @@ $(GNAME DeprecatedAttribute):
         import std.format;
         enum Message = format("%s and all its members are obsolete", Foobar.stringof);
         deprecated(Message) class Foobar {}
-        auto f = new Foobar();   // Deprecated: class test.Foobar is deprecated - Foobar and all its members are obsolete
+        auto f = new Foobar();   // Deprecated: class test.Foobar is deprecated - Foobar
+             // and all its members are obsolete
         deprecated(format("%s is also obsolete", "This class")) class BarFoo {}
-        auto bf = new BarFoo();  // Deprecated: class test.BarFoo is deprecated - This class is also obsolete
+        auto bf = new BarFoo();  // Deprecated: class test.BarFoo is deprecated - This
+             // class is also obsolete
         ---------------
 
         $(P $(D Implementation Note:) The compiler should have a switch

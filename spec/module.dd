@@ -420,7 +420,8 @@ void main()
     foo("bar");               // ok, foo is bound into current namespace,
                               // FQN not required
     io.writeln("bar");        // ok, io=std.stdio bound the name io in
-                              // the current namespace to refer to the entire module
+                              // the current namespace to refer to the entire
+                              //   module
     io.foo("bar");            // error, foo is bound into current namespace,
                               // foo is not a member of io
 }

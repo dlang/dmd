@@ -488,9 +488,11 @@ $(LINK2 attribute.html$(HASH)linkage, linkage attribute). If there is no linkage
 attribute it defaults to $(D extern(D)):)
 
 ---------------
-extern(C) int foo;        // variable allocated and initialized in this module with C linkage
-extern extern(C) int bar; // variable allocated outside this module with C linkage
-                          // (e.g. in a statically linked C library or another module)
+// variable allocated and initialized in this module with C linkage
+extern(C) int foo;
+// variable allocated outside this module with C linkage
+// (e.g. in a statically linked C library or another module)
+extern extern(C) int bar;
 ---------------
 
 $(H2 $(LNAME2 typeof, $(D typeof)))
