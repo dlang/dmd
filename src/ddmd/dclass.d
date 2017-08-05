@@ -575,8 +575,8 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                     * Therefore, even if tc.sym.sizeof == SIZEOKnone,
                     * we need to set baseClass field for class covariance check.
                     */
-                    baseClass = tc.sym;
-                    b.sym = baseClass;
+                    if (!tc.sym.isInterfaceDeclaration())
+                        baseClass = tc.sym;
                 }
                 else
                 {
@@ -592,6 +592,8 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                         }
                     }
                 }
+
+                b.sym =  tc.sym;
 
                 if (tc.sym.baseok < BASEOKdone)
                     resolveBase(tc.sym.importAll(null)); // Try to resolve forward reference
@@ -675,20 +677,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 }
             }
             interfaceSemantic(sc);
-        }
-
-    Lancestorsdone:
-        if (!members) // if opaque declaration
-        {
-            semanticRun = PASSmembersdone;
-            return;
-        }
-
-        auto sc2 = newScope(sc);
-
-        if (!symtab)
-        {
-            symtab = new DsymbolTable();
 
             /* If this is a nested class, add the hidden 'this'
                 * member which is a pointer to the enclosing scope.
@@ -721,6 +709,20 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             }
             else
                 makeNested();
+        }
+
+    Lancestorsdone:
+        if (!members) // if opaque declaration
+        {
+            semanticRun = PASSmembersdone;
+            return;
+        }
+
+        auto sc2 = newScope(sc);
+
+        if (!symtab)
+        {
+            symtab = new DsymbolTable();
 
             /* https://issues.dlang.org/show_bug.cgi?id=12152
              * The semantic analysis of base classes should be finished
@@ -748,6 +750,9 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         ScopeDsymbol.importAll(sc2);
         sc2.pop();
+
+        if (semanticRun == PASSmembersdone && baseok < BASEOKdone)
+            semanticRun = PASSmembers;
     }
 
     // Initialize the vtbl before running any FuncDeclaration.semantic() on virtual methods

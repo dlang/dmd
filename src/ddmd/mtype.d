@@ -5707,6 +5707,8 @@ extern (C++) final class TypePointer : TypeNext
         case Ttuple:
             error(loc, "can't have pointer to %s", n.toChars());
             goto case Terror;
+        case Tdefer:
+            return Type.tdefer;
         case Terror:
             return Type.terror;
         default:
@@ -6150,6 +6152,8 @@ extern (C++) final class TypeFunction : TypeNext
             sc.stc &= ~(STC_TYPECTOR | STC_FUNCATTR);
             tf.next = tf.next.semantic(loc, sc);
             sc = sc.pop();
+            if (tf.next.ty == Tdefer)
+                return Type.tdefer;
             errors |= tf.checkRetType(loc);
             if (tf.next.isscope() && !(sc.flags & SCOPEctor))
             {
@@ -6175,6 +6179,8 @@ extern (C++) final class TypeFunction : TypeNext
             argsc.protection = Prot(PROTpublic);
             argsc.func = null;
 
+            bool defer = false;
+
             size_t dim = Parameter.dim(tf.parameters);
             for (size_t i = 0; i < dim; i++)
             {
@@ -6183,6 +6189,11 @@ extern (C++) final class TypeFunction : TypeNext
                 fparam.type = fparam.type.semantic(loc, argsc);
                 if (tf.inuse == 1)
                     tf.inuse--;
+                if (fparam.type.ty == Tdefer)
+                {
+                    defer = true;
+                    break;
+                }
                 if (fparam.type.ty == Terror)
                 {
                     errors = true;
@@ -6414,6 +6425,9 @@ extern (C++) final class TypeFunction : TypeNext
                 fparam.storageClass &= ~(STC_TYPECTOR | STCin);
             }
             argsc.pop();
+
+            if (defer)
+                return Type.tdefer;
         }
         if (tf.isWild())
             wildparams |= 2;

@@ -2941,6 +2941,8 @@ extern (C++) abstract class Expression : RootObject
 
     final void checkDeprecated(Scope* sc, Dsymbol s)
     {
+        if (auto fd = s.isFuncDeclaration())
+            fd.inferAttributes();
         s.checkDeprecated(loc, sc);
     }
 
@@ -2960,6 +2962,8 @@ extern (C++) abstract class Expression : RootObject
             return false;
         if (sc.flags & (SCOPEctfe | SCOPEdebug))
             return false;
+
+        f.inferAttributes();
 
         /* Given:
          * void f() {
@@ -3190,6 +3194,8 @@ extern (C++) abstract class Expression : RootObject
         if (sc.flags & SCOPEctfe)
             return false;
 
+        f.inferAttributes();
+
         if (!f.isSafe() && !f.isTrusted())
         {
             if (sc.flags & SCOPEcompile ? sc.func.isSafeBypassingInference() : sc.func.setUnsafe())
@@ -3220,6 +3226,8 @@ extern (C++) abstract class Expression : RootObject
             return false;
         if (sc.flags & SCOPEctfe)
             return false;
+
+        f.inferAttributes();
 
         if (!f.isNogc())
         {
@@ -7270,6 +7278,7 @@ extern (C++) final class DeclarationExp : Expression
             // Do semantic() on initializer first, so:
             //      int a = a;
             // will be illegal.
+//             declaration.setScope(sc);
             declaration.semantic(sc);
             s.parent = sc.parent;
         }
@@ -7323,6 +7332,7 @@ extern (C++) final class DeclarationExp : Expression
             if (sc2.stc & (STCpure | STCnothrow | STCnogc))
                 sc2 = sc.push();
             sc2.stc &= ~(STCpure | STCnothrow | STCnogc);
+//             declaration.setScope(sc2);
             declaration.semantic(sc2);
             if (sc2 != sc)
                 sc2.pop();

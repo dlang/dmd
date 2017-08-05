@@ -1141,143 +1141,37 @@ extern (C++) class VarDeclaration : Declaration
 
         if (isField())
         {
-// // // // // // // // // // // // // // FIXME
-            if (!type)
-            {
-                inuse++;
+            semanticType(sc);
+            if (semanticRun == PASSmembersdeferred || semanticRun >= PASSsemanticdone)
+                return; // we're done if it was deferred, or if it's a tuple
 
-                // Infering the type requires running semantic,
-                // so mark the scope as ctfe if required
-                bool needctfe = (storage_class & (STCmanifest | STCstatic)) != 0;
-                if (needctfe)
-                    sc = sc.startCTFE();
-
-                //printf("inferring type for %s with init %s\n", toChars(), _init.toChars());
-                auto vinit = _init.inferType(sc);
-                if (vinit && !vinit.isDeferInitializer())
-                {
-                    _init = vinit;
-                    type = _init.toExpression().type;
-                }
-                if (needctfe)
-                    sc = sc.endCTFE();
-
-                inuse--;
-
-                if (vinit.isDeferInitializer())
-                {
-                    deferMembers();
-                    return;
-                }
-
-                inuse--;
-                inferred = true;
-
-                /* This is a kludge to support the existing syntax for RAII
-                * declarations.
-                */
-                storage_class &= ~STCauto;
-                originalType = type.syntaxCopy();
-            }
-            else
-            {
-                if (!originalType)
-                    originalType = type.syntaxCopy();
-
-                /* Prefix function attributes of variable declaration can affect
-                * its type:
-                *      pure nothrow void function() fp;
-                *      static assert(is(typeof(fp) == void function() pure nothrow));
-                */
-                Scope* sc2 = sc.push();
-                sc2.stc |= (storage_class & STC_FUNCATTR);
-                inuse++;
-                type = type.semantic(loc, sc2);
-                inuse--;
-                sc2.pop();
-
-                if (type.ty == Tdefer)
-                {
-                    type = originalType;
-                    deferMembers();
-                    return;
-                }
-            }
-            if (alignment == STRUCTALIGN_DEFAULT)
-                alignment = type.alignment(); // use type's alignment
+            Dsymbol parent = toParent();
             Type tb = type.toBasetype();
             Type tbn = tb.baseElemOf();
-// // // // // // // // // // // // // // FIXME
+
             AggregateDeclaration aad = parent.isAggregateDeclaration();
             if (tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor) // FWDREF FIXME too soon?
             {
                 if (!isThisDeclaration() && !_init)
                     aad.noDefaultCtor = true;
             }
+
+            InterfaceDeclaration id = parent.isInterfaceDeclaration();
+            if (id)
+            {
+                error("field not allowed in interface");
+            }
+            else if (aad && aad.sizeok == SIZEOKdone)
+            {
+                error("cannot be further field because it will change the determined %s size", aad.toChars());
+            }
         }
 
         semanticRun = PASSmembersdone;
     }
 
-    override void semantic(Scope* sc)
+    final void semanticType(Scope *sc)
     {
-        version (none)
-        {
-            printf("VarDeclaration::semantic('%s', parent = '%s') sem = %d\n", toChars(), sc.parent ? sc.parent.toChars() : null, sem);
-            printf(" type = %s\n", type ? type.toChars() : "null");
-            printf(" stc = x%x\n", sc.stc);
-            printf(" storage_class = x%llx\n", storage_class);
-            printf("linkage = %d\n", sc.linkage);
-            //if (strcmp(toChars(), "mul") == 0) assert(0);
-        }
-        //if (semanticRun > PASSinit)
-        //    return;
-        //semanticRun = PSSsemantic;
-
-        importAll(sc);
-
-        if (semanticRun >= PASSsemanticdone)
-            return;
-
-        if (semanticRun < PASSmembersdone)
-        {
-            error("circular referencing"); // FWDREF
-            return;
-        }
-
-        if (semanticRun == PASSsemantic)
-            return;
-
-        Scope* scx = null;
-        if (_scope)
-        {
-            sc = _scope;
-            scx = sc;
-//             _scope = null;
-        }
-        assert(sc);
-
-//         if (!sc)
-//             return;
-
-        semanticRun = PASSsemantic;
-
-        AggregateDeclaration ad = isThis();
-
-        if (global.params.vcomplex)
-            type.checkComplexTransition(loc);
-
-        // Calculate type size + safety checks
-        if (sc.func && !sc.intypeof)
-        {
-            if (storage_class & STCgshared && !isMember())
-            {
-                if (sc.func.setUnsafe())
-                    error("__gshared not allowed in safe functions; use shared");
-            }
-        }
-
-        // FWDREF ===== importAll?
         /* If auto type inference, do the inference
          */
         if (!type)
@@ -1332,6 +1226,13 @@ extern (C++) class VarDeclaration : Declaration
             type = type.semantic(loc, sc2);
             inuse--;
             sc2.pop();
+
+            if (type.ty == Tdefer)
+            {
+                type = originalType;
+                defer();
+                return;
+            }
         }
         //printf(" semantic type = %s\n", type ? type.toChars() : "null");
         if (type.ty == Terror)
@@ -1343,8 +1244,6 @@ extern (C++) class VarDeclaration : Declaration
         type.checkDeprecated(loc, sc);
         //printf("sc.stc = %x\n", sc.stc);
         //printf("storage_class = x%x\n", storage_class);
-
-        Dsymbol parent = toParent();
 
         Type tb = type.toBasetype();
         Type tbn = tb.baseElemOf();
@@ -1506,12 +1405,83 @@ extern (C++) class VarDeclaration : Declaration
             semanticRun = PASSsemanticdone;
             return;
         }
-        // FWDREF ===== importAll?
+    }
 
-// // // //         Dsymbol parent = toParent();
-// // // //
-// // // //         Type tb = type.toBasetype();
-// // // //         Type tbn = tb.baseElemOf();
+    override void semantic(Scope* sc)
+    {
+        version (none)
+        {
+            printf("VarDeclaration::semantic('%s', parent = '%s') sem = %d\n", toChars(), sc.parent ? sc.parent.toChars() : null, sem);
+            printf(" type = %s\n", type ? type.toChars() : "null");
+            printf(" stc = x%x\n", sc.stc);
+            printf(" storage_class = x%llx\n", storage_class);
+            printf("linkage = %d\n", sc.linkage);
+            //if (strcmp(toChars(), "mul") == 0) assert(0);
+        }
+        //if (semanticRun > PASSinit)
+        //    return;
+        //semanticRun = PSSsemantic;
+
+        importAll(sc);
+
+        if (semanticRun >= PASSsemanticdone)
+            return;
+
+        if (semanticRun < PASSmembersdone)
+        {
+            error("circular referencing"); // FWDREF
+            return;
+        }
+
+        if (semanticRun == PASSsemantic)
+            return;
+
+        Scope* scx = null;
+        if (_scope)
+        {
+            sc = _scope;
+            scx = sc;
+//             _scope = null;
+        }
+        assert(sc);
+
+//         if (!sc)
+//             return;
+
+        semanticRun = PASSsemantic;
+
+        AggregateDeclaration ad = isThis();
+
+        if (global.params.vcomplex)
+            type.checkComplexTransition(loc);
+
+        // Calculate type size + safety checks
+        if (sc.func && !sc.intypeof)
+        {
+            if (storage_class & STCgshared && !isMember())
+            {
+                if (sc.func.setUnsafe())
+                    error("__gshared not allowed in safe functions; use shared");
+            }
+        }
+
+        /* If auto type inference, do the inference
+         */
+        if (!isField())
+        {
+            semanticType(sc);
+
+            if (semanticRun == PASSsemanticdeferred || semanticRun >= PASSsemanticdone)
+                return; // we're done if it was deferred, or if it's a tuple
+        }
+        //printf(" semantic type =
+        //printf("storage_class = x%x\n", storage_class);
+
+        Dsymbol parent = toParent();
+
+        Type tb = type.toBasetype();
+        Type tbn = tb.baseElemOf();
+
         if (tb.ty == Tvoid && !(storage_class & STClazy))
         {
             if (inferred)
@@ -1607,17 +1577,7 @@ extern (C++) class VarDeclaration : Declaration
                 }
             }
 
-            InterfaceDeclaration id = parent.isInterfaceDeclaration();
-            if (id)
-            {
-                error("field not allowed in interface");
-            }
-            else if (aad && aad.sizeok == SIZEOKdone)
-            {
-                error("cannot be further field because it will change the determined %s size", aad.toChars());
-            }
-
-            /* Templates cannot add fields to aggregates
+            /* Templates cannot add fields to aggregates // FWDREF FIXME: What? How is that supposed to happen?
              */
             TemplateInstance ti = parent.isTemplateInstance();
             if (ti)

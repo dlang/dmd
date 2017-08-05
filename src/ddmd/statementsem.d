@@ -3666,8 +3666,8 @@ else
                 s.aliasdecls.push(ad);
             }
 
-            s.semantic(sc);
-            Module.addDeferredSemantic2(s);     // https://issues.dlang.org/show_bug.cgi?id=14666
+            s.importAll(sc);
+//             Module.addDeferredSemantic2(s);     // https://issues.dlang.org/show_bug.cgi?id=14666
             sc.insert(s);
 
             foreach (aliasdecl; s.aliasdecls)

@@ -334,21 +334,21 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         return "enum";
     }
 
-    override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
-    {
-        //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident.toChars());
-        importAll(_scope);
-
-        if (!members || !symtab || _scope)
-        {
-            error("is forward referenced when looking for `%s`", ident.toChars());
-            //*(char*)0=0;
-            return null;
-        }
-
-        Dsymbol s = ScopeDsymbol.search(loc, ident, flags);
-        return s;
-    }
+//     override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
+//     {
+//         //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident.toChars());
+//         importAll(_scope);
+//
+//         if (!members || !symtab || _scope)
+//         {
+//             error("is forward referenced when looking for `%s`", ident.toChars());
+//             //*(char*)0=0;
+//             return null;
+//         }
+//
+//         Dsymbol s = ScopeDsymbol.search(loc, ident, flags);
+//         return s;
+//     }
 
     // is Dsymbol deprecated?
     override bool isDeprecated()

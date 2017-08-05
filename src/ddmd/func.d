@@ -319,26 +319,25 @@ extern (C++) class FuncDeclaration : Declaration
             printf("type: %p, %s\n", type, type.toChars());
         }
 
-        if (semanticRun >= PASSsemantic && isFuncLiteralDeclaration())
-        {
-            /* Member functions that have return types that are
-             * forward references can have semantic() run more than
-             * once on them.
-             * See test\interface2.d, test20
-             */
-            return;
-        }
+//         if (semanticRun >= PASSsemantic && isFuncLiteralDeclaration())
+//         {
+//             /* Member functions that have return types that are
+//              * forward references can have semantic() run more than
+//              * once on them.
+//              * See test\interface2.d, test20
+//              */
+//             return;
+//         }
 
         if (semanticRun >= PASSsemanticdone)
             return;
         importAll(sc);
-        assert(semanticRun <= PASSsemantic);
         semanticRun = PASSsemantic;
 
         if (_scope)
         {
             sc = _scope;
-            _scope = null;
+//             _scope = null;
         }
 
         if (!sc || errors)
@@ -504,8 +503,15 @@ extern (C++) class FuncDeclaration : Declaration
                 stc |= STCwild;
             type = type.addSTC(stc);
 
-            type = type.semantic(loc, sc);
+            auto t = type.semantic(loc, sc);
             sc = sc.pop();
+
+            if (t.ty == Tdefer)
+            {
+                deferSemantic();
+                return;
+            }
+            type = t;
         }
         if (type.ty != Tfunction)
         {
@@ -2923,6 +2929,16 @@ extern (C++) class FuncDeclaration : Declaration
     override final bool isOverloadable()
     {
         return true; // functions can be overloaded
+    }
+
+    final void inferAttributes()
+    {
+        if (!parent)
+            return;
+
+        TemplateInstance ti = parent.isTemplateInstance();
+        if (ti && ti.tempdecl)
+            functionSemantic3();
     }
 
     /**********************************

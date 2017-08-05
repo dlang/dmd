@@ -6578,137 +6578,137 @@ extern (C++) class TemplateInstance : ScopeDsymbol
          * on them due to forward references, we cannot run semantic2()
          * or semantic3() yet.
          */
-        {
-            bool found_deferred_ad = false;
-            for (size_t i = 0; i < Module.deferred.dim; i++)
-            {
-                Dsymbol sd = Module.deferred[i];
-                AggregateDeclaration ad = sd.isAggregateDeclaration();
-                if (ad && ad.parent && ad.parent.isTemplateInstance())
-                {
-                    //printf("deferred template aggregate: %s %s\n",
-                    //        sd.parent.toChars(), sd.toChars());
-                    found_deferred_ad = true;
-                    if (ad.parent == this)
-                    {
-                        ad.deferred = this;
-                        break;
-                    }
-                }
-            }
-            if (found_deferred_ad || Module.deferred.dim)
-                goto Laftersemantic;
-        }
+//         {
+//             bool found_deferred_ad = false;
+//             for (size_t i = 0; i < Module.deferred.dim; i++)
+//             {
+//                 Dsymbol sd = Module.deferred[i];
+//                 AggregateDeclaration ad = sd.isAggregateDeclaration();
+//                 if (ad && ad.parent && ad.parent.isTemplateInstance())
+//                 {
+//                     //printf("deferred template aggregate: %s %s\n",
+//                     //        sd.parent.toChars(), sd.toChars());
+//                     found_deferred_ad = true;
+//                     if (ad.parent == this)
+//                     {
+//                         ad.deferred = this;
+//                         break;
+//                     }
+//                 }
+//             }
+//             if (found_deferred_ad || Module.deferred.dim)
+//                 goto Laftersemantic;
+//         }
 
         /* The problem is when to parse the initializer for a variable.
          * Perhaps VarDeclaration.semantic() should do it like it does
          * for initializers inside a function.
          */
         //if (sc.parent.isFuncDeclaration())
-        {
+//         {
             /* https://issues.dlang.org/show_bug.cgi?id=782
              * this has problems if the classes this depends on
              * are forward referenced. Find a way to defer semantic()
              * on this template.
              */
-            semantic2(sc2);
-        }
-        if (global.errors != errorsave)
-            goto Laftersemantic;
+//             semantic2(sc2);
+//         }
+//         if (global.errors != errorsave)
+//             goto Laftersemantic;
 
-        if ((inFunc || requiresFullInst) && !tinst)
-        {
-            /* If a template is instantiated inside function, the whole instantiation
-             * should be done at that position. But, immediate running semantic3 of
-             * dependent templates may cause unresolved forward reference.
-             * https://issues.dlang.org/show_bug.cgi?id=9050
-             * To avoid the issue, don't run semantic3 until semantic and semantic2 done.
-             */
-            TemplateInstances deferred;
-            this.deferred = &deferred;
+//         if ((inFunc || requiresFullInst) && !tinst)
+//         {
+//             /* If a template is instantiated inside function, the whole instantiation
+//              * should be done at that position. But, immediate running semantic3 of
+//              * dependent templates may cause unresolved forward reference.
+//              * https://issues.dlang.org/show_bug.cgi?id=9050
+//              * To avoid the issue, don't run semantic3 until semantic and semantic2 done.
+//              */
+//             TemplateInstances deferred;
+//             this.deferred = &deferred;
+//
+//             //printf("Run semantic3 on %s\n", toChars());
+//             trySemantic3(sc2);
+//
+//             for (size_t i = 0; i < deferred.dim; i++)
+//             {
+//                 //printf("+ run deferred semantic3 on %s\n", deferred[i].toChars());
+//                 deferred[i].semantic3(null);
+//             }
+//
+//             this.deferred = null;
+//         }
+//         else if (tinst)
+//         {
+//             bool doSemantic3 = false;
+//             if (inFunc && aliasdecl && aliasdecl.toAlias().isFuncDeclaration())
+//             {
+//                 /* Template function instantiation should run semantic3 immediately
+//                  * for attribute inference.
+//                  */
+//                 doSemantic3 = true;
+//             }
+//             else if (inFunc)
+//             {
+//                 /* A lambda function in template arguments might capture the
+//                  * instantiated scope context. For the correct context inference,
+//                  * all instantiated functions should run the semantic3 immediately.
+//                  * See also compilable/test14973.d
+//                  */
+//                 foreach (oarg; tdtypes)
+//                 {
+//                     auto s = getDsymbol(oarg);
+//                     if (!s)
+//                         continue;
+//
+//                     if (auto td = s.isTemplateDeclaration())
+//                     {
+//                         if (!td.literal)
+//                             continue;
+//                         assert(td.members && td.members.dim == 1);
+//                         s = (*td.members)[0];
+//                     }
+//                     if (auto fld = s.isFuncLiteralDeclaration())
+//                     {
+//                         if (fld.tok == TOKreserved)
+//                         {
+//                             doSemantic3 = true;
+//                             break;
+//                         }
+//                     }
+//                 }
+//                 //printf("[%s] %s doSemantic3 = %d\n", loc.toChars(), toChars(), doSemantic3);
+//             }
+//             if (doSemantic3)
+//                 trySemantic3(sc2);
 
-            //printf("Run semantic3 on %s\n", toChars());
-            trySemantic3(sc2);
-
-            for (size_t i = 0; i < deferred.dim; i++)
-            {
-                //printf("+ run deferred semantic3 on %s\n", deferred[i].toChars());
-                deferred[i].semantic3(null);
-            }
-
-            this.deferred = null;
-        }
-        else if (tinst)
-        {
-            bool doSemantic3 = false;
-            if (inFunc && aliasdecl && aliasdecl.toAlias().isFuncDeclaration())
-            {
-                /* Template function instantiation should run semantic3 immediately
-                 * for attribute inference.
-                 */
-                doSemantic3 = true;
-            }
-            else if (inFunc)
-            {
-                /* A lambda function in template arguments might capture the
-                 * instantiated scope context. For the correct context inference,
-                 * all instantiated functions should run the semantic3 immediately.
-                 * See also compilable/test14973.d
-                 */
-                foreach (oarg; tdtypes)
-                {
-                    auto s = getDsymbol(oarg);
-                    if (!s)
-                        continue;
-
-                    if (auto td = s.isTemplateDeclaration())
-                    {
-                        if (!td.literal)
-                            continue;
-                        assert(td.members && td.members.dim == 1);
-                        s = (*td.members)[0];
-                    }
-                    if (auto fld = s.isFuncLiteralDeclaration())
-                    {
-                        if (fld.tok == TOKreserved)
-                        {
-                            doSemantic3 = true;
-                            break;
-                        }
-                    }
-                }
-                //printf("[%s] %s doSemantic3 = %d\n", loc.toChars(), toChars(), doSemantic3);
-            }
-            if (doSemantic3)
-                trySemantic3(sc2);
-
-            TemplateInstance ti = tinst;
-            int nest = 0;
-            while (ti && !ti.deferred && ti.tinst)
-            {
-                ti = ti.tinst;
-                if (++nest > 500)
-                {
-                    global.gag = 0; // ensure error message gets printed
-                    error("recursive expansion");
-                    fatal();
-                }
-            }
-            if (ti && ti.deferred)
-            {
-                //printf("deferred semantic3 of %p %s, ti = %s, ti.deferred = %p\n", this, toChars(), ti.toChars());
-                for (size_t i = 0;; i++)
-                {
-                    if (i == ti.deferred.dim)
-                    {
-                        ti.deferred.push(this);
-                        break;
-                    }
-                    if ((*ti.deferred)[i] == this)
-                        break;
-                }
-            }
-        }
+//             TemplateInstance ti = tinst;
+//             int nest = 0;
+//             while (ti && !ti.deferred && ti.tinst)
+//             {
+//                 ti = ti.tinst;
+//                 if (++nest > 500)
+//                 {
+//                     global.gag = 0; // ensure error message gets printed
+//                     error("recursive expansion");
+//                     fatal();
+//                 }
+//             }
+//             if (ti && ti.deferred)
+//             {
+//                 //printf("deferred semantic3 of %p %s, ti = %s, ti.deferred = %p\n", this, toChars(), ti.toChars());
+//                 for (size_t i = 0;; i++)
+//                 {
+//                     if (i == ti.deferred.dim)
+//                     {
+//                         ti.deferred.push(this);
+//                         break;
+//                     }
+//                     if ((*ti.deferred)[i] == this)
+//                         break;
+//                 }
+//             }
+//         }
 
         if (aliasdecl)
         {

@@ -513,7 +513,7 @@ struct Scope
                         *pscopesym = sc.scopesym;
                     return s;
                 }
-                else if (confident && (sc.scopesym.semanticRun == PASSmembersdeferred || sc.scopesym.membersNest >= 2))
+                else if (confident && (sc.scopesym.semanticRun == PASSmembersdeferred || sc.scopesym.membersNest >= 1))
                     *confident = false;
 
                 // Stop when we hit a module, but keep going if that is not just under the global scope
