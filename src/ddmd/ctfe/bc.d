@@ -782,7 +782,8 @@ pure:
         if (rhs.vType == BCValueType.Immediate && (rhs.type.type == BCTypeEnum.i64 || rhs.type.type == BCTypeEnum.f52))
         {
             emitLongInst(LongInst.ImmSet, lhs.stackAddr, rhs.imm32);
-            emitLongInst(LongInst.SetHighImm, lhs.stackAddr, Imm32(rhs.imm64 >> 32));
+            if (rhs.type.type == BCTypeEnum.i64 && rhs.imm64 & ~uint.max) // if there are high bits
+				emitLongInst(LongInst.SetHighImm, lhs.stackAddr, Imm32(rhs.imm64 >> 32));
         }
 
         else if (lhs != rhs) // do not emit self asignments;
