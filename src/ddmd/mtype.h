@@ -637,6 +637,7 @@ public:
     const char *kind();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
+    Type *addStorageClass(StorageClass stc);
     d_uns64 size(Loc loc) /*const*/;
     unsigned alignsize() /*const*/;
     MATCH implicitConvTo(Type *to);
@@ -904,7 +905,8 @@ public:
     static size_t dim(Parameters *parameters);
     static Parameter *getNth(Parameters *parameters, d_size_t nth, d_size_t *pn = NULL);
     const char *toChars();
-    bool isCovariant(const Parameter *p) const;
+    bool isCovariant(bool returnByRef, const Parameter *p) const;
+    static bool isCovariantScope(bool returnByRef, StorageClass from, StorageClass to);
 };
 
 bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
