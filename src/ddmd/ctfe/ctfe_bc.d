@@ -1673,7 +1673,8 @@ extern (C++) final class BCTypeVisitor : Visitor
                 else
                 {
                     uint[] initializer;
-                    if(auto initExp = sMember._init.toExpression)
+                    import ddmd.initsem;
+                    if(auto initExp = sMember._init.initializerToExpression)
                     {
                         scope bcv = new BCV!BCGenT;
                         auto initBCValue = bcv.genExpr(initExp);
