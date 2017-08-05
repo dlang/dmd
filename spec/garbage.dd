@@ -463,8 +463,12 @@ $(H2 $(LNAME2 precise_dataseg, Precise Scanning of the DATA and TLS segment))
         ensures proper alignment for pointers being scanned by the GC.)
         ---------
         class Singleton { void[] mem; }
-        void*[(__traits(classInstanceSize, Singleton) - 1) / (void*).sizeof + 1] singleton_store;
-        static this() { emplace!Singleton(singleton_store).mem = allocateMem(); }
+        void*[(__traits(classInstanceSize, Singleton) - 1) / (void*).sizeof + 1]
+            singleton_store;
+        static this()
+        {
+            emplace!Singleton(singleton_store).mem = allocateMem();
+        }
         Singleton singleton() { return cast(Singleton)singleton_store.ptr; }
         ---------
         For precise typing of that area, you can also let the compiler generate the class
