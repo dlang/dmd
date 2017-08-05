@@ -81,14 +81,14 @@ enum X { A, B, C }  // named enum
 
 	$(P The value of an $(I EnumMember) is given by its $(ASSIGNEXPRESSION).
 	If there is no $(ASSIGNEXPRESSION) and it is the first $(I EnumMember),
-	its value is $(CODE $(GLINK EnumBaseType).init).
+	its value is $(GLINK EnumBaseType)`.init`.
 	)
 
 	$(P If there is no $(ASSIGNEXPRESSION) and it is not the first $(I EnumMember),
-	it is given the value of the previous $(CODE $(I EnumMember)+1).
-	If the value of the previous $(I EnumMember) is $(CODE $(GLINK EnumBaseType).max),
+	it is given the value of the previous $(I EnumMember)`+1`.
+	If the value of the previous $(I EnumMember) is $(GLINK EnumBaseType)`.max`,
 	it is an error.
-	If the value of the previous $(CODE $(I EnumMember)+1) is the same as the
+	If the value of the previous $(I EnumMember)`+1` is the same as the
 	value of the previous $(I EnumMember), it is an error. (This can happen
 	with floating point types.)
 	)
@@ -196,11 +196,11 @@ enum { A, B, C }  // anonymous enum
 	)
 
 	$(P If there is no $(ASSIGNEXPRESSION) and it is not the first $(I EnumMember),
-	it is given the value of the previous $(CODE $(I EnumMember)+1).
-	If the value of the previous $(I EnumMember) is the $(CODE .max) property
+	it is given the value of the previous $(I EnumMember)`+1`.
+	If the value of the previous $(I EnumMember) is the `.max` property
 	if the previous $(I EnumMember)'s type,
 	it is an error.
-	If the value of the previous $(CODE $(I EnumMember)+1) is the same as the
+	If the value of the previous $(I EnumMember)`+1` is the same as the
 	value of the previous $(I EnumMember), it is an error. (This can happen
 	with floating point types.)
 	)
