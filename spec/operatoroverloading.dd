@@ -106,27 +106,27 @@ $(H3 $(LNAME2 index_unary_operators, Overloading Index Unary Operators))
 	$(TABLE2 Overloadable Index Unary Operators,
 	$(THEAD $(I op), $(I rewrite))
 	$(TROW
-	$(D -)$(I a)$(D [$(ARGUMENTS)]),
-	$(ARGS $(I a)$(D .opIndexUnary!("-")$(LPAREN)$(ARGUMENTS)$(RPAREN))))
+	$(D -)$(I a)`[`$(ARGUMENTS)`]`,
+	$(ARGS $(I a)`.opIndexUnary!("-")$(LPAREN)`$(ARGUMENTS)`$(RPAREN)`))
 	$(TROW
-	$(D +)$(I a)$(D [$(ARGUMENTS)]),
-	$(I a)$(D .opIndexUnary!("+")$(LPAREN)$(ARGUMENTS)$(RPAREN))
+	$(D +)$(I a)`[`$(ARGUMENTS)`]`,
+	$(I a)$(D .opIndexUnary!("+")$(LPAREN))$(ARGUMENTS)`$(RPAREN)`
 	)
 	$(TROW
-	$(D ~)$(I a)$(D [$(ARGUMENTS)]),
-	$(I a)$(D .opIndexUnary!("~")$(LPAREN)$(ARGUMENTS)$(RPAREN))
+	`~`$(I a)`[`$(ARGUMENTS)`]`,
+	$(I a)$(D .opIndexUnary!("~")$(LPAREN))$(ARGUMENTS)`$(RPAREN)`
 	)
 	$(TROW
-	$(D *)$(I a)$(D [$(ARGUMENTS)]),
-	$(I a)$(D .opIndexUnary!("*")$(LPAREN)$(ARGUMENTS)$(RPAREN))
+	`*`$(I a)`[`$(ARGUMENTS)`]`,
+	$(I a)$(D .opIndexUnary!("*")$(LPAREN))$(ARGUMENTS)`$(RPAREN)`
 	)
 	$(TROW
-	$(D ++)$(I a)$(D [$(ARGUMENTS)]),
-	$(I a)$(D .opIndexUnary!("++")$(LPAREN)$(ARGUMENTS)$(RPAREN))
+	`++`$(I a)`[`$(ARGUMENTS)`]`,
+	$(I a)`.opIndexUnary!("++")$(LPAREN)`$(ARGUMENTS)`$(RPAREN)`
 	)
 	$(TROW
-	$(D --)$(I a)$(D [$(ARGUMENTS)]),
-	$(I a)$(D .opIndexUnary!("--")$(LPAREN)$(ARGUMENTS)$(RPAREN))
+	`--`$(I a)`[`$(ARGUMENTS)`]`,
+	$(I a)`.opIndexUnary!("--")$(LPAREN)`$(ARGUMENTS)`$(RPAREN)`
 	)
 	)
 
