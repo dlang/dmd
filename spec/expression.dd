@@ -98,8 +98,8 @@ $(H3 $(LNAME2 assignment_operator_expressions, Assignment Operator Expressions))
         $(LI overloading $(I op) uses a different function than overloading $(I op)= does, and)
         $(LI the left operand of $(D >>>=) does not undergo integral promotions before shifting.)
     )
-    
-    $(P For user-defined types, assignment operator expressions can be overloaded separately from
+
+    $(P For user-defined types, assignment operator expressions are overloaded separately from
         the binary operator. Still the left operand must be an lvalue.
     )
 
