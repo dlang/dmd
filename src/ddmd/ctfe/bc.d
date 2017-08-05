@@ -345,7 +345,7 @@ struct BCFunction
 
 struct BCGen
 {
-    int[ushort.max / 4] byteCodeArray;
+    int[ushort.max] byteCodeArray;
 
     /// ip starts at 4 because 0 should be an invalid address;
     BCAddr ip = BCAddr(4);
