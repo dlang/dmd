@@ -540,8 +540,8 @@ $(H3 $(LNAME2 escape_sequences, Escape Sequences))
     $(P The following table explains the meaning of the escape sequences listed
     in $(GLINK EscapeSequence):)
 
-    $(TABLE2 Escape Sequences,
-    $(THEAD Sequence, Meaning)
+    $(LONGTABLE_2COLS 0.8, Escape Sequences,
+    $(THEAD Sequence, Meaning),
     $(TROW $(D \'), Literal single-quote: $(D '))
     $(TROW $(D \"), Literal double-quote: $(D "))
     $(TROW $(D \?), Literal question mark: $(D ?))
