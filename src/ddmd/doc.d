@@ -440,7 +440,7 @@ extern (C++) void gendocfile(Module m)
     OutBuffer buf2;
     buf2.writestring("$(DDOC)");
     size_t end = buf2.offset;
-    m.macrotable.expand(&buf2, 0, &end, null, 0);
+    m.macrotable.expand(&buf2, 0, &end, null);
     version (all)
     {
         /* Remove all the escape sequences from buf2,
