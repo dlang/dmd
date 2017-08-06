@@ -3232,9 +3232,14 @@ static if (is(BCGen))
         }
 
         auto indexed = genExpr(ie.e1, "IndexExp.e1 e1[x]");
-        if (!indexed || (indexed.vType == BCValueType.VoidValue && !ignoreVoid))
+        if(indexed.vType == BCValueType.VoidValue && ignoreVoid)
         {
-            bailout("could not create indexed variable from: " ~ ie.e1.toString);
+            indexed.vType = BCValueType.StackValue;
+        }
+
+        if (!indexed)
+        {
+            bailout("could not create indexed variable from: " ~ ie.e1.toString ~ " -- !indexed: " ~ (!indexed).to!string ~ " *  ignoreVoid: " ~ ignoreVoid.to!string);
             return ;
         }
         auto length = getLength(indexed);
@@ -6418,7 +6423,7 @@ static if (is(BCGen))
         }
         if (cs.statements !is null)
         {
-            foreach (stmt; *(cs.statements))
+            foreach (stmt; (*cs.statements))
             {
                 if (stmt !is null)
                 {
