@@ -5837,7 +5837,7 @@ extern (C++) final class ScopeExp : Expression
                 type = Type.tvoid;
                 return this;
             }
-            ti.semantic(sc);
+            ti.importAll(sc);
             if (!ti.inst || ti.errors)
                 return new ErrorExp();
 
@@ -5858,7 +5858,7 @@ extern (C++) final class ScopeExp : Expression
 
             if (auto v = s.isVarDeclaration())
             {
-                if (!v.type)
+                if (v.semanticRun == PASSinit)
                 {
                     error("forward reference of %s %s", v.kind(), v.toChars());
                     return new ErrorExp();
@@ -8834,16 +8834,15 @@ extern (C++) final class DotIdExp : UnaExp
                 if (v)
                 {
                     //printf("DotIdExp:: Identifier '%s' is a variable, type '%s'\n", toChars(), v.type.toChars());
-                    if (!v.type ||
-                        !v.type.deco && v.inuse)
+                    if (v.inuse)
                     {
-                        if (v.inuse)
+//                         if (v.inuse)
                             error("circular reference to %s '%s'", v.kind(), v.toPrettyChars());
-                        else
-                            error("forward reference to %s '%s'", v.kind(), v.toPrettyChars());
+//                         else // FWDREF FIXME?
+//                             error("forward reference to %s '%s'", v.kind(), v.toPrettyChars());
                         return new ErrorExp();
                     }
-                    if (v.type.ty == Terror)
+                    if (v.type && v.type.ty == Terror)
                         return new ErrorExp();
 
                     if ((v.storage_class & STCmanifest) && v._init && !wantsym)

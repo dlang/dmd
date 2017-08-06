@@ -2048,6 +2048,7 @@ extern (C++) class VarDeclaration : Declaration
     {
         if (semanticRun < PASSsemanticdone && inuse)
             return;
+        assert(semanticRun >= PASSsemanticdone);
 
         //printf("VarDeclaration::semantic2('%s')\n", toChars());
 
@@ -2370,8 +2371,6 @@ extern (C++) class VarDeclaration : Declaration
      */
     final Expression getConstInitializer(bool needFullType = true)
     {
-        assert(type && _init);
-
         // Ungag errors when not speculative
         uint oldgag = global.gag;
         if (global.gag)
@@ -2386,6 +2385,7 @@ extern (C++) class VarDeclaration : Declaration
             semantic(null);
             semantic2(null);
         }
+        assert(type && _init);
 
         auto vinit = _init;
 
@@ -2602,6 +2602,7 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
         protection = Prot(PROTpublic);
         linkage = LINKc;
         alignment = Target.ptrsize;
+        semanticRun = PASSsemanticdone;
     }
 
     static TypeInfoDeclaration create(Type tinfo)

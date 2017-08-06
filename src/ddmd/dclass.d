@@ -757,14 +757,13 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     // Initialize the vtbl before running any FuncDeclaration.semantic() on virtual methods
     final void initVtbl(Scope *sc)
     {
-        if (vtbl.dim)
+        if (baseok >= BASEOKsemanticdone)
             return;
+        assert(baseok == BASEOKdone);
 
         if (_scope)
             sc = _scope;
         assert(sc);
-
-        assert(semanticRun == PASSmembersdone || semanticRun == PASSsemantic);
 
         for (size_t i = 0; i < baseclasses.dim; i++)
         {
