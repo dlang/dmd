@@ -3329,7 +3329,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         if (shift)
         {
-            exp.e2 = exp.e2.castTo(sc, Type.tshiftcnt);
+            if (exp.e2.type.toBasetype().ty != Tvector)
+                exp.e2 = exp.e2.castTo(sc, Type.tshiftcnt);
         }
 
         if (!Target.isVectorOpSupported(exp.type.toBasetype(), exp.op, exp.e2.type.toBasetype()))
@@ -7659,7 +7660,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
         exp.e1 = integralPromotions(exp.e1, sc);
-        exp.e2 = exp.e2.castTo(sc, Type.tshiftcnt);
+        if (exp.e2.type.toBasetype().ty != Tvector)
+            exp.e2 = exp.e2.castTo(sc, Type.tshiftcnt);
 
         exp.type = exp.e1.type;
         result = exp;
@@ -7696,7 +7698,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
         exp.e1 = integralPromotions(exp.e1, sc);
-        exp.e2 = exp.e2.castTo(sc, Type.tshiftcnt);
+        if (exp.e2.type.toBasetype().ty != Tvector)
+            exp.e2 = exp.e2.castTo(sc, Type.tshiftcnt);
 
         exp.type = exp.e1.type;
         result = exp;
@@ -7733,7 +7736,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
         exp.e1 = integralPromotions(exp.e1, sc);
-        exp.e2 = exp.e2.castTo(sc, Type.tshiftcnt);
+        if (exp.e2.type.toBasetype().ty != Tvector)
+            exp.e2 = exp.e2.castTo(sc, Type.tshiftcnt);
 
         exp.type = exp.e1.type;
         result = exp;
