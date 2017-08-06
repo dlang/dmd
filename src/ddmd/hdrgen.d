@@ -574,13 +574,11 @@ public:
         buf.writenl();
         buf.writestring("finally");
         buf.writenl();
-        buf.writeByte('{');
-        buf.writenl();
-        buf.level++;
+        if (!s.finalbody.isScopeStatement())
+            buf.level++;
         s.finalbody.accept(this);
-        buf.level--;
-        buf.writeByte('}');
-        buf.writenl();
+        if (!s.finalbody.isScopeStatement())
+            buf.level--;
     }
 
     override void visit(OnScopeStatement s)
