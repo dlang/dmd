@@ -5400,7 +5400,7 @@ static if (is(BCGen))
                 {
                     Alloc(lhs.i32, imm32(SliceDescriptor.Size));
                 }
-                else if ((lhs.type.type == BCTypeEnum.Array) && (rhs == imm32(0) || rhs == BCValue(Imm64(0))))
+                else if (lhs.type.type == BCTypeEnum.Array && rhs.type.type.anyOf([BCTypeEnum.i32, BCTypeEnum.i64]) && rhs.imm32 == 0)
                 {
                     auto arrayType = _sharedCtfeState.arrayTypes[lhs.type.typeIndex - 1];
                     Alloc(lhs.i32, imm32(_sharedCtfeState.size(lhs.type)), lhs.type);
