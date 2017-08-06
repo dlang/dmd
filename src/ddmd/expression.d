@@ -5891,6 +5891,8 @@ extern (C++) final class ScopeExp : Expression
                     return e;
                 }
             }
+            else if (s.isFuncLiteralDeclaration())
+                ti.semantic3(sc); // FWDREF FIXME: this needs more investigation, this is currently required for test7713 in runnable/funclit.d to prevent FuncExp.semantic() from setting the return type to T, which isn't in _scope
 
             //printf("s = %s, '%s'\n", s.kind(), s.toChars());
             auto e = DsymbolExp.resolve(loc, sc, s, true);
