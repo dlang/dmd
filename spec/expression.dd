@@ -79,7 +79,7 @@ $(GNAME AssignExpression):
 
 $(H3 $(LNAME2 assignment_operator_expressions, Assignment Operator Expressions))
 
-    $(P For argumets of built-in types, assignment operator expressions such as)
+    $(P For arguments of built-in types, assignment operator expressions such as)
 
         --------------
         a op= b
