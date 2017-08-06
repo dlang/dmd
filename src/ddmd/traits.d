@@ -393,6 +393,11 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         return new ErrorExp();
     }
 
+    Expression Defer()
+    {
+        return new DeferExp();
+    }
+
     Expression True()
     {
         return new IntegerExp(e.loc, true, Type.tbool);
@@ -1256,6 +1261,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             sc2.flags = (sc.flags & ~(SCOPEctfe | SCOPEcondition)) | SCOPEcompile | SCOPEfullinst;
 
             bool err = false;
+            bool defer = false;
 
             auto t = isType(o);
             auto ex = t ? t.toExpression() : isExpression(o);
@@ -1285,6 +1291,8 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 ex = checkGC(sc2, ex);
                 if (ex.op == TOKerror)
                     err = true;
+                else if (ex.op == TOKfinally)
+                    defer = true;
             }
 
             // Carefully detach the scope from the parent and throw it away as
@@ -1294,7 +1302,11 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             sc2.enclosing = null;
             sc2.pop();
 
-            if (global.endGagging(errors) || err)
+            if (defer)
+            {
+                return Defer();
+            }
+            else if (global.endGagging(errors) || err)
             {
                 return False();
             }
