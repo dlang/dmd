@@ -291,6 +291,18 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             }
             assert(parent && !isAnonymous());
 
+            if (this.errors)
+                type = Type.terror;
+            if (semanticRun < PASSsemantic)
+                type = type.addSTC(sc.stc | storage_class);
+            type = type.semantic(loc, sc);
+            if (type.ty == Tstruct && (cast(TypeStruct)type).sym != this)
+            {
+                auto ti = (cast(TypeStruct)type).sym.isInstantiated();
+                if (ti && isError(ti))
+                    (cast(TypeStruct)type).sym = this;
+            }
+
             protection = sc.protection;
 
             alignment = sc.alignment();
@@ -357,18 +369,6 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             sc = _scope;
             scx = _scope; // save so we don't make redundant copies
             _scope = null;
-        }
-
-        if (this.errors)
-            type = Type.terror;
-        if (semanticRun < PASSsemantic)
-            type = type.addSTC(sc.stc | storage_class);
-        type = type.semantic(loc, sc);
-        if (type.ty == Tstruct && (cast(TypeStruct)type).sym != this)
-        {
-            auto ti = (cast(TypeStruct)type).sym.isInstantiated();
-            if (ti && isError(ti))
-                (cast(TypeStruct)type).sym = this;
         }
 
         // Ungag errors when not speculative

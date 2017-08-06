@@ -473,6 +473,16 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 parent = sc.parent;
             }
 
+            if (this.errors)
+                type = Type.terror;
+            type = type.semantic(loc, sc);
+            if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
+            {
+                auto ti = (cast(TypeClass)type).sym.isInstantiated();
+                if (ti && isError(ti))
+                    (cast(TypeClass)type).sym = this;
+            }
+
             protection = sc.protection;
 
             storage_class |= sc.stc;
@@ -845,16 +855,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             sc = _scope;
             scx = _scope; // save so we don't make redundant copies
             _scope = null;
-        }
-
-        if (this.errors)
-            type = Type.terror;
-        type = type.semantic(loc, sc);
-        if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
-        {
-            auto ti = (cast(TypeClass)type).sym.isInstantiated();
-            if (ti && isError(ti))
-                (cast(TypeClass)type).sym = this;
         }
 
         // Ungag errors when not speculative
