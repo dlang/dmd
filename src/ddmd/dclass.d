@@ -518,7 +518,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             if (baseok >= BASEOKdone)
             {
                 //printf("%s already semantic analyzed, semanticRun = %d\n", toChars(), semanticRun);
-                if (semanticRun >= PASSsemanticdone)
+                if (semanticRun >= PASSmembersdone)
                     return;
                 goto Lancestorsdone;
             }
@@ -597,7 +597,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
                 if (tc.sym.baseok < BASEOKdone)
                     resolveBase(tc.sym.importAll(null)); // Try to resolve forward reference
-         // FWDREF?       assert(tc.sym.baseok == BASEOKdone);
+//                 assert(tc.sym.baseok == BASEOKdone);
 //                 if (tc.sym.baseok < BASEOKdone) // FWDREF: disabled, this shouldn't be needed
 //                 {
 //                     //printf("\ttry later, forward reference of base class %s\n", tc.sym.toChars());
@@ -676,7 +676,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                         toPrettyChars(), b.sym.toPrettyChars());
                 }
             }
-            interfaceSemantic(sc);
 
             /* If this is a nested class, add the hidden 'this'
                 * member which is a pointer to the enclosing scope.
@@ -865,6 +864,8 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         if (semanticRun >= PASSsemantic/+symtab && !scx+/) // FWDREF FIXME: we should probably error ref here
             return;
         semanticRun = PASSsemantic;
+
+        interfaceSemantic(sc);
 
        //printf("\tClassDeclaration.semantic(%s) baseok = %d\n", toChars(), baseok);
 
@@ -1406,6 +1407,8 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         vtblInterfaces.reserve(interfaces.length);
         foreach (b; interfaces)
         {
+            b.sym.semantic(null);
+            assert(b.sym.semanticRun >= PASSsemanticdone);
             vtblInterfaces.push(b);
             b.copyBaseInterfaces(vtblInterfaces);
         }
@@ -1574,6 +1577,19 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
             sc = _scope;
         assert(sc);
 
+        T resolveBase(T)(lazy T exp)
+        {
+            static if (!is(T == void))
+            {
+                auto r = exp();
+                return r;
+            }
+            else
+            {
+                exp();
+            }
+        }
+
         if (semanticRun < PASSmembers)
         {
             semanticRun = PASSmembers;
@@ -1593,26 +1609,6 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
                 isdeprecated = true;
 
             userAttribDecl = sc.userAttribDecl;
-        }
-        else if (!symtab)
-            return;
-
-        if (baseok < BASEOKdone)
-        {
-            T resolveBase(T)(lazy T exp)
-            {
-                static if (!is(T == void))
-                {
-                    auto r = exp();
-                    return r;
-                }
-                else
-                {
-                    exp();
-                }
-            }
-
-            baseok = BASEOKin;
 
             // Expand any tuples in baseclasses[]
             for (size_t i = 0; i < baseclasses.dim;)
@@ -1640,11 +1636,16 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
             if (baseok >= BASEOKdone)
             {
                 //printf("%s already semantic analyzed, semanticRun = %d\n", toChars(), semanticRun);
-                if (semanticRun >= PASSsemanticdone)
+                if (semanticRun >= PASSmembersdone)
                     return;
                 goto Lancestorsdone;
             }
 
+            baseok = BASEOKin;
+        }
+
+        if (baseok == BASEOKin)
+        {
             if (!baseclasses.dim && sc.linkage == LINKcpp)
                 cpp = true;
 
@@ -1661,7 +1662,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
                 {
                     if (b.type != Type.terror)
                         error("base type must be interface, not %s", b.type.toChars());
-                    baseclasses.remove(i);
+//                     baseclasses.remove(i);
                     continue;
                 }
 
@@ -1672,14 +1673,14 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
                     if (b2.sym == tc.sym)
                     {
                         error("inherits from duplicate interface %s", b2.sym.toChars());
-                        baseclasses.remove(i);
+//                         baseclasses.remove(i);
                         continue;
                     }
                 }
                 if (tc.sym == this || isBaseOf2(tc.sym))
                 {
                     error("circular inheritance of interface");
-                    baseclasses.remove(i);
+//                     baseclasses.remove(i);
                     continue;
                 }
                 if (tc.sym.isDeprecated())
@@ -1696,6 +1697,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
 
                 if (tc.sym.baseok < BASEOKdone)
                     resolveBase(tc.sym.importAll(null)); // Try to resolve forward reference
+//                 assert(tc.sym.baseok == BASEOKdone);
 //                 if (tc.sym.baseok < BASEOKdone) // FWDREF
 //                 {
 //                     //printf("\ttry later, forward reference of base %s\n", tc.sym.toChars());
@@ -1726,8 +1728,6 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
                 if (b.sym.isCPPinterface())
                     cpp = true;
             }
-
-            interfaceSemantic(sc);
         }
     Lancestorsdone:
 
@@ -1736,29 +1736,35 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
             semanticRun = PASSmembersdone;
             return;
         }
-        if (!symtab)
-            symtab = new DsymbolTable();
-
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            s.addMember(sc, this);
-        }
 
         auto sc2 = newScope(sc);
 
-        /* Set scope so if there are forward references, we still might be able to
-         * resolve individual members like enums.
-         */
-        for (size_t i = 0; i < members.dim; i++)
+        if (!symtab)
         {
-            Dsymbol s = (*members)[i];
-            //printf("setScope %s %s\n", s.kind(), s.toChars());
-            s.setScope(sc2);
+            symtab = new DsymbolTable();
+
+            for (size_t i = 0; i < members.dim; i++)
+            {
+                Dsymbol s = (*members)[i];
+                s.addMember(sc, this);
+            }
+
+            /* Set scope so if there are forward references, we still might be able to
+            * resolve individual members like enums.
+            */
+            for (size_t i = 0; i < members.dim; i++)
+            {
+                Dsymbol s = (*members)[i];
+                //printf("setScope %s %s\n", s.kind(), s.toChars());
+                s.setScope(sc2);
+            }
         }
 
         ScopeDsymbol.importAll(sc2);
         sc2.pop();
+
+        if (semanticRun == PASSmembersdone && baseok < BASEOKdone)
+            semanticRun = PASSmembers;
     }
 
     override void semantic(Scope* sc)
@@ -1802,6 +1808,8 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
             return;
         semanticRun = PASSsemantic;
 
+        interfaceSemantic(sc);
+
         if (!members) // if opaque declaration
         {
             semanticRun = PASSsemanticdone;
@@ -1827,42 +1835,40 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
             }
         }
 
-        if (baseok == BASEOKdone)
+        assert(baseok == BASEOKdone);
+        baseok = BASEOKsemanticdone;
+
+        // initialize vtbl
+        if (vtblOffset())
+            vtbl.push(this); // leave room at vtbl[0] for classinfo
+
+        // Cat together the vtbl[]'s from base interfaces
+        foreach (i, b; interfaces)
         {
-            baseok = BASEOKsemanticdone;
-
-            // initialize vtbl
-            if (vtblOffset())
-                vtbl.push(this); // leave room at vtbl[0] for classinfo
-
-            // Cat together the vtbl[]'s from base interfaces
-            foreach (i, b; interfaces)
+            // Skip if b has already appeared
+            for (size_t k = 0; k < i; k++)
             {
-                // Skip if b has already appeared
-                for (size_t k = 0; k < i; k++)
-                {
-                    if (b == interfaces[k])
-                        goto Lcontinue;
-                }
-
-                // Copy vtbl[] from base class
-                if (b.sym.vtblOffset())
-                {
-                    size_t d = b.sym.vtbl.dim;
-                    if (d > 1)
-                    {
-                        vtbl.reserve(d - 1);
-                        for (size_t j = 1; j < d; j++)
-                            vtbl.push(b.sym.vtbl[j]);
-                    }
-                }
-                else
-                {
-                    vtbl.append(&b.sym.vtbl);
-                }
-
-            Lcontinue:
+                if (b == interfaces[k])
+                    goto Lcontinue;
             }
+
+            // Copy vtbl[] from base class
+            if (b.sym.vtblOffset())
+            {
+                size_t d = b.sym.vtbl.dim;
+                if (d > 1)
+                {
+                    vtbl.reserve(d - 1);
+                    for (size_t j = 1; j < d; j++)
+                        vtbl.push(b.sym.vtbl[j]);
+                }
+            }
+            else
+            {
+                vtbl.append(&b.sym.vtbl);
+            }
+
+        Lcontinue:
         }
 
         auto sc2 = newScope(sc);
@@ -1910,6 +1916,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
     override bool isBaseOf(ClassDeclaration cd, int* poffset)
     {
         //printf("%s.InterfaceDeclaration.isBaseOf(cd = '%s')\n", toChars(), cd.toChars());
+        assert(semanticRun >= PASSsemanticdone);
         assert(!baseClass);
         foreach (j, b; cd.interfaces)
         {
@@ -1939,6 +1946,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
 
     bool isBaseOf(BaseClass* bc, int* poffset)
     {
+        assert(semanticRun >= PASSsemanticdone);
         //printf("%s.InterfaceDeclaration.isBaseOf(bc = '%s')\n", toChars(), bc.sym.toChars());
         for (size_t j = 0; j < bc.baseInterfaces.length; j++)
         {
