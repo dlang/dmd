@@ -183,6 +183,7 @@ void cdorth(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         if (tyvector(ty1) ||
             config.fpxmmregs && tyxmmreg(ty1) &&
             !(*pretregs & mST0) &&
+            !(*pretregs & mST01) &&
             !(ty == TYldouble || ty == TYildouble)  // watch out for shrinkLongDoubleConstantIfPossible()
            )
         {
