@@ -1471,6 +1471,8 @@ extern (C++) final class BCTypeVisitor : Visitor
 
     override void visit(StructDeclaration sd)
     {
+        import ddmd.initsem : initializerToExpression;
+
         auto st = sharedCtfeState.beginStruct(sd);
 
         foreach (sMember; sd.fields)
@@ -1486,7 +1488,7 @@ extern (C++) final class BCTypeVisitor : Visitor
                 else
                 {
                     uint value;
-                    if(auto initExp = sMember._init.toExpression)
+                    if(auto initExp = sMember._init.initializerToExpression)
                     {
                         if (initExp.type && (initExp.type.ty == Tint32 || initExp.type.ty == Tuns32))
                         {
