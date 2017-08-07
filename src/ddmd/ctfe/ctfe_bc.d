@@ -1,4 +1,4 @@
-module ddmd.ctfe.ctfe_bc;
+wmodule ddmd.ctfe.ctfe_bc;
 import ddmd.ctfe.bc_limits;
 import ddmd.expression;
 import ddmd.declaration : FuncDeclaration, VarDeclaration, Declaration,
@@ -4730,6 +4730,7 @@ static if (is(BCGen))
         default:
             {
                 bailout("BinAssignExp Unsupported for now" ~ e.toString);
+                return ;
             }
         }
 

@@ -168,7 +168,7 @@ CXXFLAGS += \
     -std=gnu++98
 endif
 # Default D compiler flags for all source files
-DFLAGS= -version=MARS -g
+DFLAGS= -version=MARS -g -profile
 # Enable D warnings
 DFLAGS += -wi
 
