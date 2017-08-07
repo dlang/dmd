@@ -563,7 +563,8 @@ public:
     {
         buf.writestring("try");
         buf.writenl();
-        if (s._body){
+        if (s._body)
+        {
             if (s._body.isScopeStatement())
             {
                 s._body.accept(this);
