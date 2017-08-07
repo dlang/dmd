@@ -1249,12 +1249,7 @@ extern (C++) class Visitor
         visit(cast(BinExp)e);
     }
 
-    void visit(OrOrExp e)
-    {
-        visit(cast(BinExp)e);
-    }
-
-    void visit(AndAndExp e)
+    void visit(LogicalExp e)
     {
         visit(cast(BinExp)e);
     }

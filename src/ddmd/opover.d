@@ -1286,9 +1286,9 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         if (!result)
                             result = eeq;
                         else if (e.op == TOKequal)
-                            result = new AndAndExp(e.loc, result, eeq);
+                            result = new LogicalExp(e.loc, TOKandand, result, eeq);
                         else
-                            result = new OrOrExp(e.loc, result, eeq);
+                            result = new LogicalExp(e.loc, TOKoror, result, eeq);
                     }
                     assert(result);
                 }

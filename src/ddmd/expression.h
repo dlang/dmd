@@ -1211,14 +1211,7 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-class OrOrExp : public BinExp
-{
-public:
-    Expression *toBoolean(Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
-};
-
-class AndAndExp : public BinExp
+class LogicalExp : public BinExp
 {
 public:
     Expression *toBoolean(Scope *sc);

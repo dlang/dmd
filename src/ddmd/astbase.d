@@ -5562,24 +5562,11 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class AndAndExp : BinExp
+    extern (C++) final class LogicalExp : BinExp
     {
-        extern (D) this(Loc loc, Expression e1, Expression e2)
+        extern (D) this(Loc loc, TOK op, Expression e1, Expression e2)
         {
-            super(loc, TOKandand, __traits(classInstanceSize, AndAndExp), e1, e2);
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
-
-    extern (C++) final class OrOrExp : BinExp
-    {
-        extern (D) this(Loc loc, Expression e1, Expression e2)
-        {
-            super(loc, TOKoror, __traits(classInstanceSize, OrOrExp), e1, e2);
+            super(loc, op, __traits(classInstanceSize, LogicalExp), e1, e2);
         }
 
         override void accept(Visitor v)
