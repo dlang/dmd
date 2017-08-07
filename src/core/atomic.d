@@ -36,8 +36,9 @@ private
     head. */
     template TailShared(T)
     {
+        /* Get the shared and unshared variants of T. T may be shared or not.
+        S is always shared. U is always unshared. */
         alias S = shared T;
-
         static if (is(S U == shared U)) {}
         else static assert(false, "Should never be triggered. The `static " ~
             "if` declares `U` as the unshared version of the shared type " ~
