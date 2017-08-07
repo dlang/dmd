@@ -3857,7 +3857,7 @@ static if (is(BCGen))
             }
 
             auto ty = _struct.memberTypes[i];
-            if (ty.type.basicTypeSize > 4 && !ty.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.String]))
+            if (!ty.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.String, BCTypeEnum.Slice, BCTypeEnum.Array, BCTypeEnum.i32, BCTypeEnum.i64]))
             {
                 bailout( "can only deal with ints and uints atm. not: (" ~ to!string(ty.type) ~ ", " ~ to!string(
                         ty.typeIndex) ~ ")");
@@ -3914,7 +3914,7 @@ static if (is(BCGen))
                 else
                     Set(fieldAddr, rv_stackValue);
                 // abi hack for slices slice;
-                if (elexpr.type.type.anyOf([BCTypeEnum.Slice, BCTypeEnum.Array, BCTypeEnum.Struct, BCTypeEnum.String]))
+                if (elexpr.type.type.anyOf([BCTypeEnum.Slice, BCTypeEnum.Array, BCTypeEnum.Struct, BCTypeEnum.String, BCTypeEnum.Ptr]))
                 {
                     // copy Member
                     MemCpy(fieldAddr, elexpr, imm32(_size));
@@ -3977,10 +3977,28 @@ static if (is(BCGen))
         Line(ae.loc.linnum);
         //bailout("We don't handle AddrExp");
         auto e1 = genExpr(ae.e1, "AddrExp");
+        // import std.stdio; writeln(ae.toString ~ " --  " ~ "e1: " ~ e1.toString); //debugline
+
+        if (e1.type.type.anyOf([BCTypeEnum.i8, BCTypeEnum.i32, BCTypeEnum.i64]))
+        {
+            BCValue heapPtr = genTemporary(i32Type);
+            Alloc(heapPtr, imm32(_sharedCtfeState.size(e1.type)));
+            e1.heapRef = BCHeapRef(heapPtr);
+            StoreToHeapRef(e1);
+        }
+        else if (e1.type.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.Array]))
+        {
+            // these are passed by pointer therefore their valuef is their heapRef
+            e1.heapRef = BCHeapRef(e1);
+        }
+        else
+        {
+            bailout("We currently don't support taking the address of " ~ e1.type.toString ~ " -- " ~ ae.toString);
+        }
+
         assert(e1.heapRef, "AddrExp needs to be on the heap, otherwise is has no address");
         retval = BCValue(e1.heapRef).i32; // hack this is a ptr not an i32;
         import std.stdio; writeln(ae.toString ~ " --  " ~ "retval: " ~ retval.toString); //debugline
-        //Alloc()
         //assert(0, "Dieng on Addr ?");
     }
 
@@ -5423,7 +5441,7 @@ static if (is(BCGen))
                     // HACK allocate space for struct if structPtr is zero
                     auto structZeroJmp = beginCndJmp(lhs.i32, true);
                     auto structSize = _sharedCtfeState.size(lhs.type);
-                    Alloc(lhs.i32, imm32(structSize));
+                    Alloc(lhs.i32, imm32(structSize), lhs.type);
                     MemCpyConst(lhs.i32, _sharedCtfeState.initializer(lhs.type));
                     endCndJmp(structZeroJmp, genLabel());
                 }
