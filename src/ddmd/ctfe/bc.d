@@ -782,7 +782,7 @@ pure:
         if (rhs.vType == BCValueType.Immediate && (rhs.type.type == BCTypeEnum.i64 || rhs.type.type == BCTypeEnum.f52))
         {
             emitLongInst(LongInst.ImmSet, lhs.stackAddr, rhs.imm32);
-            if (rhs.type.type == BCTypeEnum.i64 && rhs.imm64 & ~uint.max) // if there are high bits
+            if (rhs.type.type != BCTypeEnum.i64 || rhs.imm64 > uint.max) // if there are high bits
 				emitLongInst(LongInst.SetHighImm, lhs.stackAddr, Imm32(rhs.imm64 >> 32));
         }
 
@@ -1684,7 +1684,7 @@ string printInstructions(const int* startInstructions, uint length, const string
 
         case LongInst.HeapStore64:
             {
-                result ~= "HeapStore64 HEAP[ " ~ (stackMap ? localName(stackMap, hi & 0xFFFF) : "SP[" ~ to!string(hi & 0xFFFF)~"]" ) ~ "], " ~ localName(stackMap, hi >> 16) ~ "\n";
+                result ~= "HeapStore64 HEAP[" ~ (stackMap ? localName(stackMap, hi & 0xFFFF) : "SP[" ~ to!string(hi & 0xFFFF)~"]" ) ~ "], " ~ localName(stackMap, hi >> 16) ~ "\n";
             }
             break;
 /*
