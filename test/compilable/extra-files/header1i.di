@@ -153,6 +153,17 @@ template Foo(T, int V)
 		{
 			x--;
 		}
+		try
+		{
+			try
+			bar(1, 2);
+			catch(Object o)
+			{
+				x++;
+			}
+		}
+		finally
+			x--;
 		Object o;
 		synchronized(o) {
 			x = ~x;
