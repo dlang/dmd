@@ -1,4 +1,4 @@
-wmodule ddmd.ctfe.ctfe_bc;
+module ddmd.ctfe.ctfe_bc;
 import ddmd.ctfe.bc_limits;
 import ddmd.expression;
 import ddmd.declaration : FuncDeclaration, VarDeclaration, Declaration,
@@ -5419,12 +5419,23 @@ static if (is(BCGen))
                 {
                     Alloc(lhs.i32, imm32(SliceDescriptor.Size));
                 }
-                else if (lhs.type.type == BCTypeEnum.Array && rhs.type.type.anyOf([BCTypeEnum.i32, BCTypeEnum.i64]) && rhs.imm32 == 0)
+                else if (lhs.type.type == BCTypeEnum.Array)
                 {
-                    auto arrayType = _sharedCtfeState.arrayTypes[lhs.type.typeIndex - 1];
+                    assert(lhs.type.typeIndex, "Invalid arrayTypes as lhs of: " ~ ae.toString);
+                    immutable arrayType = _sharedCtfeState.arrayTypes[lhs.type.typeIndex - 1];
                     Alloc(lhs.i32, imm32(_sharedCtfeState.size(lhs.type)), lhs.type);
                     setArraySliceDesc(lhs, arrayType);
                     setLength(lhs.i32, imm32(arrayType.length));
+                    auto base = getBase(lhs);
+                    if (rhs.type.type.anyOf([BCTypeEnum.i32, BCTypeEnum.i64]) && rhs.imm32 == 0)
+                    {
+                        // no need to do anything ... the heap is supposed to be zero
+                    }
+                    else if (rhs.type == arrayType.elementType)
+                    {
+                        bailout("broadcast assignment no supported for now -- " ~ ae.toString);
+                        return ;
+                    }
                 }
                 else if (lhs.type.type == BCTypeEnum.Struct && rhs.type.type == BCTypeEnum.i32)
                 {
