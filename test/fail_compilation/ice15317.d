@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice15317.d(11): Error: undefined identifier 'fun'
+fail_compilation/ice15317.d(11): Error: undefined identifier `fun`
 ---
 */
 

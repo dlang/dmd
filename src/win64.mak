@@ -6,17 +6,22 @@
 
 MAKE=make
 HOST_DC=dmd
-DMODEL=-m64
+MODEL=64
+BUILD=release
+OS=windows
 
 ################################### Rules ####################################
 
 .d.exe:
 	$(HOST_DC) -of$@ $<
 
-OBJ_MSVC=strtold.obj longdouble.obj ldfpu.obj
+D=ddmd
+GEN = ..\generated
+G = $(GEN)\$(OS)\$(BUILD)\$(MODEL)
+OBJ_MSVC=$G/strtold.obj $G\longdouble.obj $G\ldfpu.obj
 DEPENDENCIES=vcbuild\msvc-dmc.exe vcbuild\msvc-lib.exe
 
-MAKE_WIN32=$(MAKE) -f win32.mak MAKE="$(MAKE)" DMODEL=$(DMODEL) HOST_DC=$(HOST_DC) OBJ_MSVC="$(OBJ_MSVC)" CC=vcbuild\msvc-dmc LIB=vcbuild\msvc-lib
+MAKE_WIN32=$(MAKE) -f win32.mak MAKE="$(MAKE)" BUILD=$(BUILD) MODEL=$(MODEL) HOST_DC=$(HOST_DC) GEN="$(GEN)" G="$G" OBJ_MSVC="$(OBJ_MSVC)" CC=vcbuild\msvc-dmc LIB=vcbuild\msvc-lib
 
 ################################## Targets ###################################
 

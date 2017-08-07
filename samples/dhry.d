@@ -357,9 +357,9 @@ alias int  One_Thirty;
 alias int  One_Fifty;
 alias char Capital_Letter;
 alias bool Boolean;
-alias char Str_30 [StrLen];
-alias int  Arr_1_Dim [50];
-alias int  Arr_2_Dim [50] [50];
+alias char[StrLen] Str_30;
+alias int[50]  Arr_1_Dim;
+alias int[50][50]  Arr_2_Dim;
 
 struct record
 {
@@ -371,13 +371,13 @@ struct record
         {
             Enumeration Enum_Comp;
             int Int_Comp;
-            char Str_Comp [StrLen];
+            char[StrLen] Str_Comp;
         }
         V1 var_1;
         struct V2
         {
             Enumeration E_Comp_2;
-            char Str_2_Comp [StrLen];
+            char[StrLen] Str_2_Comp;
         }
         V2 var_2;
         struct V3
@@ -401,8 +401,8 @@ int Int_Glob;
 Boolean Bool_Glob;
 char Ch_1_Glob,
      Ch_2_Glob;
-int Arr_1_Glob [50];
-int Arr_2_Glob [50] [50];
+int[50] Arr_1_Glob;
+int[50][50] Arr_2_Glob;
 
 char[StrLen] Reg_Define = "Register option selected.";
 
@@ -579,7 +579,8 @@ void main()
     printf ("        should be:   %d\n", 2);
     printf ("  Int_Comp:          %d\n", Ptr_Glob.variant.var_1.Int_Comp);
     printf ("        should be:   %d\n", 17);
-    printf ("  Str_Comp:          %.*s\n", Ptr_Glob.variant.var_1.Str_Comp.ptr);
+    printf ("  Str_Comp:          %.*s\n", Ptr_Glob.variant.var_1.Str_Comp.length,
+                                           Ptr_Glob.variant.var_1.Str_Comp.ptr);
     printf ("        should be:   DHRYSTONE PROGRAM, SOME STRING\n");
     printf ("Next_Ptr_Glob.\n");
     printf ("  Ptr_Comp:          %d\n", cast(int) Next_Ptr_Glob.Ptr_Comp);
@@ -590,7 +591,8 @@ void main()
     printf ("        should be:   %d\n", 1);
     printf ("  Int_Comp:          %d\n", Next_Ptr_Glob.variant.var_1.Int_Comp);
     printf ("        should be:   %d\n", 18);
-    printf ("  Str_Comp:          %.*s\n", Next_Ptr_Glob.variant.var_1.Str_Comp.ptr);
+    printf ("  Str_Comp:          %.*s\n", Next_Ptr_Glob.variant.var_1.Str_Comp.length,
+                                           Next_Ptr_Glob.variant.var_1.Str_Comp.ptr);
     printf ("        should be:   DHRYSTONE PROGRAM, SOME STRING\n");
     printf ("Int_1_Loc:           %d\n", Int_1_Loc);
     printf ("        should be:   %d\n", 5);
@@ -600,9 +602,9 @@ void main()
     printf ("        should be:   %d\n", 7);
     printf ("Enum_Loc:            %d\n", Enum_Loc);
     printf ("        should be:   %d\n", 1);
-    printf ("Str_1_Loc:           %.*s\n", Str_1_Loc.ptr);
+    printf ("Str_1_Loc:           %.*s\n", Str_1_Loc.length, Str_1_Loc.ptr);
     printf ("        should be:   DHRYSTONE PROGRAM, 1'ST STRING\n");
-    printf ("Str_2_Loc:           %.*s\n", Str_2_Loc.ptr);
+    printf ("Str_2_Loc:           %.*s\n", Str_2_Loc.length, Str_2_Loc.ptr);
     printf ("        should be:   DHRYSTONE PROGRAM, 2'ND STRING\n");
     printf ("\n");
 
@@ -763,7 +765,7 @@ void Proc_6(Enumeration Enum_Val_Par, Enumeration *Enum_Ref_Par)
         case Ident_5:
             *Enum_Ref_Par = Ident_3;
             break;
-        
+
         default:
     } /* switch */
 
@@ -892,7 +894,7 @@ Boolean Func_3(Enumeration Enum_Par_Val)
         return (false);
 } /* Func_3 */
 
-version (Win32)
+version (Windows)
 {
     import core.sys.windows.windows;
 

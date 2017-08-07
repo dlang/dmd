@@ -2,7 +2,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/diag10783.d(14): Error: no property 'type' for type 'Event'
-fail_compilation/diag10783.d(14): Error: undefined identifier 'En'
+fail_compilation/diag10783.d(14): Error: undefined identifier `En`
 ---
 */
 

@@ -63,7 +63,7 @@ int main (string[] args)
 
     writefln("--------------------------------------");
 
-    foreach (word1; dictionary.keys.sort)
+    foreach (word1; dictionary.keys)
     {
         writefln("%3s %s", dictionary[word1], word1);
     }

@@ -1,5 +1,4 @@
 // REQUIRED_ARGS:
-// DISABLED: win64
 // PERMUTE_ARGS: -mcpu=native
 
 version (D_SIMD)
@@ -373,7 +372,10 @@ void test2e()
     v1 = v2;
     v1 = v2 + v3;
     v1 = v2 - v3;
-    static assert(!__traits(compiles, v1 * v2));
+    version (D_AVX) // SSE4.1
+        v1 = v2 * v3;
+    else
+        static assert(!__traits(compiles, v1 * v2));
     static assert(!__traits(compiles, v1 / v2));
     static assert(!__traits(compiles, v1 % v2));
     v1 = v2 & v3;
@@ -401,7 +403,10 @@ void test2e()
 
     v1 += v2;
     v1 -= v2;
-    static assert(!__traits(compiles, v1 *= v2));
+    version (D_AVX) // SSE4.1
+        v1 *= v2;
+    else
+        static assert(!__traits(compiles, v1 *= v2));
     static assert(!__traits(compiles, v1 /= v2));
     static assert(!__traits(compiles, v1 %= v2));
     v1 &= v2;
@@ -433,7 +438,10 @@ void test2f()
     v1 = v2;
     v1 = v2 + v3;
     v1 = v2 - v3;
-    static assert(!__traits(compiles, v1 * v2));
+    version (D_AVX) // SSE4.1
+        v1 = v2 * v3;
+    else
+        static assert(!__traits(compiles, v1 * v2));
     static assert(!__traits(compiles, v1 / v2));
     static assert(!__traits(compiles, v1 % v2));
     v1 = v2 & v3;
@@ -461,7 +469,10 @@ void test2f()
 
     v1 += v2;
     v1 -= v2;
-    static assert(!__traits(compiles, v1 *= v2));
+    version (D_AVX) // SSE4.1
+        v1 *= v2;
+    else
+        static assert(!__traits(compiles, v1 *= v2));
     static assert(!__traits(compiles, v1 /= v2));
     static assert(!__traits(compiles, v1 %= v2));
     v1 &= v2;
@@ -1834,6 +1845,53 @@ void test10447()
 }
 
 /*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17237
+
+struct S17237
+{
+    bool a;
+    struct
+    {
+        bool b;
+        int8 c;
+    }
+}
+
+static assert(S17237.a.offsetof == 0);
+static assert(S17237.b.offsetof == 32);
+static assert(S17237.c.offsetof == 64);
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17344
+
+void test17344()
+{
+    __vector(int[4]) vec1 = 2, vec2 = vec1++;
+    assert(cast(int[4])vec1 == [3, 3, 3, 3]);
+    assert(cast(int[4])vec2 == [2, 2, 2, 2]);
+}
+
+/*****************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=17356
+
+void test17356()
+{
+    float4 a = 13, b = 0;
+    __simd_sto(XMM.STOUPS, b, a);
+    assert(b.array == [13, 13, 13, 13]);
+}
+
+/*****************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=17695
+
+void test17695(__vector(ubyte[16]) a)
+{
+    auto b = -a;
+}
+
+/*****************************************/
 
 int main()
 {
@@ -1872,6 +1930,8 @@ int main()
     test16703();
     testOPvecunsto();
     test10447();
+    test17344();
+    test17356();
 
     return 0;
 }
@@ -1883,4 +1943,3 @@ else
 int main() { return 0; }
 
 }
-

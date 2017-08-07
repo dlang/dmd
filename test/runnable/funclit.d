@@ -74,7 +74,7 @@ void test2()
     int delegate(int) dg5 = delegate    (int a){ return a*2; };     assert(dg5(2) == 4);
     int delegate(int) dg6 = delegate int(int a){ return a*2; };     assert(dg6(2) == 4);
 
-    // funciton/delegate mismatching always raises an error
+    // function/delegate mismatching always raises an error
     static assert(!__traits(compiles, { int function(int) xfg3 = delegate    (    a){ return a*2; }; }));
     static assert(!__traits(compiles, { int function(int) xfg4 = delegate int(    a){ return a*2; }; }));
     static assert(!__traits(compiles, { int function(int) xfg5 = delegate    (int a){ return a*2; }; }));
@@ -1125,7 +1125,7 @@ void test12421()
     // This is problematic case, and should be disallowed in the future.
     alias f = x => y;
     int y = 10;
-    assert(f(1) == 10);;
+    assert(f(1) == 10);
 }
 
 /***************************************************/

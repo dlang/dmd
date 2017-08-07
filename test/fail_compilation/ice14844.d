@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice14844.d(20): Error: template opDispatch(string name) has no members
+fail_compilation/ice14844.d(20): Error: template `opDispatch(string name)` has no members
 ---
 */
 

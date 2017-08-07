@@ -57,12 +57,12 @@ protected:
 
     ~this()
     {
-        MessageBoxA(null, "CHello.~this()", null, MB_OK);
+        printf("CHello.~this()\n");
     }
 
     extern (Windows) :
     /*
-     *  Performs any intialization of a CHello that's prone to failure
+     *  Performs any initialization of a CHello that's prone to failure
      *  that we also use internally before exposing the object outside.
      * Return Value:
      *  BOOL            true if the function is successful,
@@ -72,14 +72,14 @@ protected:
 public:
     BOOL Init()
     {
-        MessageBoxA(null, "CHello.Init()", null, MB_OK);
+        printf("CHello.Init()\n");
         return true;
     }
 
 public:
     override HRESULT QueryInterface(const (IID)*riid, LPVOID *ppv)
     {
-        MessageBoxA(null, "CHello.QueryInterface()", null, MB_OK);
+        printf("CHello.QueryInterface()\n");
 
         if (IID_IUnknown == *riid)
             *ppv = cast(void*) cast(IUnknown) this;
@@ -97,7 +97,7 @@ public:
 
     override ULONG Release()
     {
-        MessageBoxA(null, "CHello.Release()", null, MB_OK);
+        printf("CHello.Release()\n");
 
         if (0 != --count)
             return count;
@@ -106,7 +106,7 @@ public:
          * Tell the housing that an object is going away so it can
          * shut down if appropriate.
          */
-        MessageBoxA(null, "CHello Destroy()", null, MB_OK);
+        printf("CHello Destroy()\n");
 
         if (m_pfnDestroy)
             (*m_pfnDestroy)();
@@ -118,7 +118,7 @@ public:
     // IHello members
     override HRESULT Print()
     {
-        MessageBoxA(null, "CHello.Print()", null, MB_OK);
+        printf("CHello.Print()\n");
         return NOERROR;
     }
 }

@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail2456.d(14): Error: cannot put scope(success) statement inside finally block
+fail_compilation/fail2456.d(14): Error: cannot put `scope(success)` statement inside finally block
 ---
 */
 void test_success()
@@ -18,7 +18,7 @@ void test_success()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail2456.d(31): Error: cannot put scope(failure) statement inside finally block
+fail_compilation/fail2456.d(31): Error: cannot put `scope(failure)` statement inside finally block
 ---
 */
 void test_failure()
@@ -51,10 +51,10 @@ void test_exit()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail2456.d(64): Error: cannot put scope(success) statement inside scope(success)
-fail_compilation/fail2456.d(65): Error: cannot put scope(failure) statement inside scope(success)
-fail_compilation/fail2456.d(78): Error: cannot put scope(success) statement inside scope(exit)
-fail_compilation/fail2456.d(79): Error: cannot put scope(failure) statement inside scope(exit)
+fail_compilation/fail2456.d(64): Error: cannot put `scope(success)` statement inside `scope(success)`
+fail_compilation/fail2456.d(65): Error: cannot put `scope(failure)` statement inside `scope(success)`
+fail_compilation/fail2456.d(78): Error: cannot put `scope(success)` statement inside `scope(exit)`
+fail_compilation/fail2456.d(79): Error: cannot put `scope(failure)` statement inside `scope(exit)`
 ---
 */
 void test2456a()
@@ -84,8 +84,8 @@ void test2456a()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail2456.d(96): Error: cannot put catch statement inside scope(success)
-fail_compilation/fail2456.d(108): Error: cannot put catch statement inside scope(exit)
+fail_compilation/fail2456.d(96): Error: cannot put catch statement inside `scope(success)`
+fail_compilation/fail2456.d(108): Error: cannot put catch statement inside `scope(exit)`
 ---
 */
 void test2456b()

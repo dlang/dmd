@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice12581.d(21): Error: undefined identifier 'undef'
+fail_compilation/ice12581.d(21): Error: undefined identifier `undef`
 ---
 */
 

@@ -1452,14 +1452,7 @@ void test60()
         printf("thing1.sizeof: %u\n", thing1.sizeof);
         printf("thing2.sizeof: %u\n", thing2.sizeof);
 
-        version (Win32)
-            assert(thing1.sizeof == 16);
-        else version (X86_64)
-            assert(thing1.sizeof == 16);
-        else version(ARM)
-            assert(thing1.sizeof == 16);
-        else
-            assert(thing1.sizeof == 12);
+        assert(thing1.sizeof == long.alignof + long.sizeof);
         assert(thing2.sizeof == 8);
 
         C60!(int /*,A60*/ )     container1;

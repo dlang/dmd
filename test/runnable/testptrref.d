@@ -53,6 +53,12 @@ class Class
     void* ptr;
 }
 
+struct Struc(T)
+{
+	static T vtls;
+	static __gshared T vgshared;
+}
+
 __gshared Struct* gsharedStrctPtr2 = new Struct(7, new Struct(8, null));
 
 int tlsInt;
@@ -154,4 +160,9 @@ void testRefPtr()
     assert(findDataPtr(&gsharedStrctPtr));
     assert(findDataPtr(&gsharedStrctPtr.next));
     assert(findDataPtr(&gsharedStrctPtr.next.next));
+
+    assert(findDataPtr(&(Struc!(int*).vgshared)));
+    assert(!findDataPtr(&(Struc!(int).vgshared)));
+    assert(findTlsPtr(&(Struc!(int*).vtls)));
+    assert(!findTlsPtr(&(Struc!(int).vtls)));
 }

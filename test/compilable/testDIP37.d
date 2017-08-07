@@ -25,7 +25,6 @@ void test4()
     static assert(!__traits(compiles, pkgDIP37.datetime.common.def()));
 }
 
-
 void test7()
 {
     static import pkgDIP37.datetime;
@@ -34,3 +33,9 @@ void test7()
     pkgDIP37.datetime.common.def();
 }
 
+// https://issues.dlang.org/show_bug.cgi?id=17629
+void test17629()
+{
+    import pkgDIP37.test17629;
+    foo17629();
+}

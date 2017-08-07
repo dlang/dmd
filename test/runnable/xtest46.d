@@ -710,7 +710,7 @@ void test36()
 
 void test6685()
 {
-    struct S { int x; };
+    struct S { int x; }
     with({ return S(); }())
     {
         x++;
@@ -2736,7 +2736,7 @@ void test129()
 /***************************************************/
 // 6169
 
-auto ctfefunc6169() { return ";"; }
+auto ctfefunc6169() { return "{}"; }
 enum ctfefptr6169 = &ctfefunc6169;
 int ctfefunc6169a() { return 1; }
 template x6169(string c) { alias int x6169; }
@@ -4126,7 +4126,7 @@ void test4963()
 {
     struct Value {
         byte a;
-    };
+    }
     Value single()
     {
         return Value();
@@ -4430,7 +4430,7 @@ void test4392()
 // 6220
 
 void test6220() {
-    struct Foobar { real x; real y; real z;};
+    struct Foobar { real x; real y; real z;}
     switch("x") {
         foreach(i,member; __traits(allMembers, Foobar)) {
             case member : break;
@@ -7891,6 +7891,59 @@ void test16466()
 
 /***************************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=16408
+
+char[1] SDL_GetKeyName_buffer;
+
+const(char)[] SDL_GetKeyName(char k)
+{
+    pragma(inline, false);
+    SDL_GetKeyName_buffer[0] = k;
+    return SDL_GetKeyName_buffer[];
+}
+
+void formattedWrite(const(char)[] strW, const(char)[] strA, const(char)[] strC)
+{
+    pragma(inline, false);
+
+    assert(strW == "W");
+    assert(strA == "A");
+    assert(strC == "C");
+}
+
+void test16408()
+{
+    pragma(inline, false);
+    formattedWrite(
+        SDL_GetKeyName('W').idup,
+        SDL_GetKeyName('A').idup,
+        SDL_GetKeyName('C').idup
+    );
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17349
+
+void test17349()
+{
+    static struct S
+    {
+        int bar(void delegate(ref int*)) { return 1; }
+        int bar(void delegate(ref const int*)) const { return 2; }
+    }
+
+    void dg1(ref int*) { }
+    void dg2(ref const int*) { }
+    S s;
+    int i;
+    i = s.bar(&dg1);
+    assert(i == 1);
+    i = s.bar(&dg2);
+    assert(i == 2);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -8207,6 +8260,8 @@ int main()
     test15638();
     test16233();
     test16466();
+    test16408();
+    test17349();
 
     printf("Success\n");
     return 0;

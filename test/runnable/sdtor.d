@@ -2816,6 +2816,33 @@ void test9985()
 }
 
 /**********************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=17457
+
+void delegate() dg17457;
+
+struct S17457 {
+    ulong[10] data;
+
+    this(int seconds) {
+        dg17457 = &mfunc;
+    }
+    void mfunc() {}
+}
+
+auto foo17457() {
+    pragma(inline, false);
+    return S17457(18);
+}
+
+void test17457()
+{
+    auto x = foo17457();
+    //printf("%p vs %p\n", &x, dg17457.ptr);
+    assert(&x == dg17457.ptr);
+}
+
+/**********************************/
 // 9994
 
 void test9994()
@@ -4154,6 +4181,25 @@ int test14815()
 static assert(test14815());
 
 /**********************************/
+// https://issues.dlang.org/show_bug.cgi?id=16197
+
+struct Elem {
+    static string r;
+    int x = -1;
+    this(this) { r ~= 'p'; printf("POSTBLIT %d\n", x++); }
+    ~this()    { r ~= 'd'; printf("DTOR %d\n"    , x++); }
+}
+
+struct Ctr {
+    Elem[3] arr;
+}
+
+void test16197() {
+    { auto p = Ctr(); }
+    assert(Elem.r == "ddd");
+}
+
+/**********************************/
 // 14860
 
 int test14860()
@@ -4394,6 +4440,44 @@ void test64()
 }
 
 /**********************************/
+
+struct S65
+{
+    static string t;
+
+    void bar(int a, int b)
+    {
+        t ~= "d";
+    }
+}
+
+S65 foo65a()
+{
+    S65.t ~= "a";
+    return S65();
+}
+
+int foo65b()
+{
+    S65.t ~= "b";
+    return 1;
+}
+
+int foo65c()
+{
+    S65.t ~= "c";
+    return 2;
+}
+
+void test65()
+{
+    import core.stdc.stdio;
+    foo65a().bar(foo65b(), foo65c());
+    printf("'%.*s'\n", cast(int)S65.t.length, S65.t.ptr);
+    assert(S65.t == "abcd");
+}
+
+/**********************************/
 // 15661
 
 struct X15661
@@ -4527,6 +4611,7 @@ int main()
     test9899();
     test9907();
     test9985();
+    test17457();
     test9994();
     test10094();
     test10244();
@@ -4556,11 +4641,13 @@ int main()
     test14264();
     test14686();
     test14815();
+    test16197();
     test14860();
     test14696();
     test14838();
     test63();
     test64();
+    test65();
     test15661();
 
     printf("Success\n");

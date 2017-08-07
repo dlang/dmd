@@ -941,27 +941,28 @@ void test44()
 
 /**************************************/
 
-import std.algorithm;
-
 struct Shell
 {
     string str;
 
     const int opCmp(ref const Shell s)
     {
+        import std.algorithm;
         return std.algorithm.cmp(this.str, s.str);
     }
 }
 
 void test45()
 {
+    import std.algorithm;
+
     Shell[3] a;
 
     a[0].str = "hello";
     a[1].str = "betty";
     a[2].str = "fred";
 
-    a.sort;
+    a[].sort;
 
     foreach (Shell s; a)
     {
@@ -1151,50 +1152,6 @@ void writefln(string s)
     printf("%.*s\n", s.length, s.ptr);
 }
 
-void test56()
-{
-    string a = "abcd";
-    string r;
-
-    r = a.dup.reverse.idup;
-    writefln(r);
-    assert(r == "dcba");
-
-    a = "a\u1235\u1234c";
-    writefln(a);
-    r = a.dup.reverse.idup;
-    writefln(r);
-    assert(r == "c\u1234\u1235a");
-
-    a = "ab\u1234c";
-    writefln(a);
-    r = a.dup.reverse.idup;
-    writefln(r);
-    assert(r == "c\u1234ba");
-}
-
-/**************************************/
-
-// DMD 0.114: Fixed .reverse bug of char[] and wchar[] with multibyte encodings.
-void test57()
-{
-    wstring a = "abcd";
-    wchar[] r;
-
-    r = a.dup.reverse;
-    assert(r == "dcba");
-
-    a = "a\U00012356\U00012346c";
-    r = a.dup.reverse;
-    assert(r == "c\U00012346\U00012356a");
-
-    a = "ab\U00012345c";
-    r = a.dup.reverse;
-    assert(r == "c\U00012345ba");
-}
-
-/**************************************/
-
 void test58()
 {
         int label=1;
@@ -1283,8 +1240,6 @@ int main(string[] argv)
     test53();
     test54();
     test55();
-    test56();
-    test57();
     test58();
     test59();
 

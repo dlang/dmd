@@ -772,7 +772,7 @@ int getRefNonref(T)(    T s){ return 2; }
 
 int getAutoRef(T)(auto ref T s){ return __traits(isRef, s) ? 1 : 2; }
 
-void getOut(T)(out T s){ ; }
+void getOut(T)(out T s){ {} }
 
 void getLazy1(T=int)(lazy void s){ s(), s(); }
 void getLazy2(T)(lazy T s){  s(), s(); }
@@ -1161,7 +1161,7 @@ static assert(pow10_2550!(0) == 1);
 void foo10a(T   )(T)            { static assert(is(T    == const(int)[])); }
 void foo10b(T...)(T)            { static assert(is(T[0] == const(int)[])); }
 
-// ref paramter doesn't remove top const
+// ref parameter doesn't remove top const
 void boo10a(T   )(ref T)        { static assert(is(T    == const(int[]))); }
 void boo10b(T...)(ref T)        { static assert(is(T[0] == const(int[]))); }
 
@@ -1507,7 +1507,7 @@ void test7684()
 
 void match7694(alias m)()
 {
-    m.foo();    //removing this line supresses ice in both cases
+    m.foo();    //removing this line suppresses ice in both cases
 }
 
 struct T7694
@@ -1545,7 +1545,7 @@ struct Bar7755
 {
     void qux()
     {
-        if (is(typeof(to7755!string(Foo7755!int)))){};
+        if (is(typeof(to7755!string(Foo7755!int)))){}
     }
 }
 

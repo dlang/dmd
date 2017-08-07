@@ -326,53 +326,6 @@ void test17()
 
 /***********************************/
 
-void test18()
-{
-    string[] str;
-
-    str.length = 2;
-
-    version (none)
-    {
-        str[1] = "cba";
-        str[0] = "zyx";
-    }
-    else
-    {
-        str[1] = (cast(string)"cba").idup;
-        str[0] = (cast(string)"zyx").idup;
-    }
-
-    // This sorts the strs
-    str.sort;
-
-    // This will crash the compiler
-    str[0] = str[0].dup.sort.idup;
-
-    // This will give sintax error
-    //str[0].sort();
-
-    printf("%.*s", str[0].length, str[0].ptr);
-    printf("%.*s", str[1].length, str[1].ptr);
-    printf("\n");
-
-    string s = str[0] ~ str[1];
-    assert(s == "abczyx");
-}
-
-/***********************************/
-
-void test19()
-{
-    string array = "foobar";
-
-    array = array.idup;
-    array = array.dup.sort.idup;
-    assert(array == "abfoor");
-}
-
-/***********************************/
-
 
 
 class A20
@@ -970,18 +923,6 @@ void test51()
 
 /***********************************/
 
-// Bug 391
-void test52()
-{
-    char[] a;
-    a = "\u3026\u2021\u3061\n".dup;
-    assert(a =="\u3026\u2021\u3061\n");
-    assert(a.sort == "\n\u2021\u3026\u3061");
-    assert(a.reverse =="\u3061\u3026\u2021\n");
-}
-
-/***********************************/
-
 int main()
 {
     test1();
@@ -1001,8 +942,6 @@ int main()
     test15();
     test16();
     test17();
-    test18();
-    test19();
     test20();
     test21();
     test22();
@@ -1032,7 +971,6 @@ int main()
     test49();
     test50();
     test51();
-    test52();
 
     printf("Success\n");
     return 0;

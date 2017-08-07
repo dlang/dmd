@@ -1515,7 +1515,7 @@ alias void delegate() dg_t;
 
 void Y(dg_t delegate (dg_t) y)
 {
-    struct F { void delegate(F) f; };
+    struct F { void delegate(F) f; }
 
   version (all)
   { // generates error

@@ -107,7 +107,7 @@ void testda()
     static assert(!is(typeof(fpda[0]() == 1)));     // cannot call with using defArgs
     static assert(!is(typeof(fpda[1]() == 2)));     // cannot call with using defArgs
     static assert(typeof(fpda).stringof == "int function(int)[]");
-    static assert(typeof(fpda).stringof != "int funciton(int n = 1)[]");
+    static assert(typeof(fpda).stringof != "int function(int n = 1)[]");
 
     int delegate(int n = 1)[] dgda = [n => n + 1, n => n+2];
     assert(dgda[0](1) == 2);
@@ -120,7 +120,7 @@ void testda()
 
 template StringOf(T)
 {
-    // template type parameter cannot have redundant informations
+    // template type parameter cannot have redundant information
     enum StringOf = T.stringof;
 }
 

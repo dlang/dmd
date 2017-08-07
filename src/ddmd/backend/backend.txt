@@ -1,0 +1,79 @@
+Files in the Back End
+=====================
+
+aa.c            simple hash table
+aa.h            header for simple hash table
+bcomplex.c      our own complex number implementation because we can't rely on host C compiler
+bcomplex.h      header for our own complex numbers
+blockopt.c      manage and simple optimizations on graphs of basic blocks
+cc.h            main header file for back end
+cdef.h          configuration
+cg.c            global variables for code generator
+cg87.c          x87 FPU code generation
+cgcod.c         main loop for code generator
+cgcs.c          compute common subexpressions for non-optimized code generation
+cgcv.c          CodeView symbol debug info generation
+cgcv.h          header for cgcv.c
+cgelem.c        local optimizations of elem trees
+cgen.c          generate/manage linked list of code instructions
+cgobj.c         generate OMF object files
+cgreg.c         register allocator
+cgsched.c       instruction scheduler
+cod1.c          code gen
+cod2.c          code gen
+cod3.c          code gen
+cod4.c          code gen
+cod5.c          code gen
+code.c          memory management for code instructions
+code.h          define registers, register masks, and the CPU instruction linked list
+cppman.c        C++ name mangling
+cv4.h           CodeView symbolic debug info declarations
+debug.c         pretty printing for debug builds
+dt.c            static data for later output to object file
+dt.h            API for dt.c
+dwarf.c         generate DWARF symbolic debug info
+dwarf.h         API for dwarf.c
+dwarf2.h        Dwarf 3 spec declarations
+ee.c            handle IDDE debugger expression evaluation
+el.c            expression trees (intermediate code)
+el.h            header for el.c
+elfobj.c        generate ELF object files
+evalu8.c        constant folding
+exh.h           exception handling support
+gdag.c          Directed acyclic graphs and global optimizer common subexpressions
+gflow.c         global data flow analysis
+global.h        declarations for back end
+glocal.c        global optimizations
+gloop.c         global loop optimizations
+go.c            global optimizer main loop
+go.h            global optimizer declarations
+gother.c        other global optimizations
+html.c          support for embedding source code in html
+html.h          header for html.c
+iasm.h          declarations for inline assembler
+mach.h          declarations for Mach-O object file format
+machobj.c       generate Mach-O object files
+md5.c           implementation of MD5 message digest
+md5.h           API for md5.c
+melf.h          declarations for ELF file format
+newman.c        "new" C++ name mangling scheme
+nteh.c          Windows structured exception handling support
+oper.h          operators for expression tree
+optabgen.c      generate tables for back end
+os.c            some operating system specific support
+out.c           write data definitions to object file
+outbuf.c        resizable buffer
+outbuf.h        API for resizable buffer
+ptrntab.c       instruction tables for inline assembler
+rtlsym.c        initialize for compiler 'helper' runtime functions
+rtlsym.h        compiler 'helper' runtime functions
+strtold.c       our own version of strtold() because we cannot rely on C's
+symbol.c        symbols for the back end
+tassert.h       our own assert macro (to reduce code size)
+tinfo.h         specialization of hash table aa.c
+ti_achar.c      specialization of hash tables for array of chars
+token.h         C/C++ tokens
+ty.h            type masks
+type.c          back end type
+type.h          header for type.c
+var.c           global variables

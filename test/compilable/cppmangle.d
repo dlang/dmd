@@ -2,7 +2,6 @@
 // Test C++ name mangling.
 // See Bugs 4059, 5148, 7024, 10058
 
-version(linux):
 
 import core.stdc.stdio;
 
@@ -44,9 +43,24 @@ void test1()
     c.bar(4, 5, 6);
 }
 
-static assert(foo.mangleof == "_Z3fooiii");
-static assert(foob.mangleof == "_Z4foobiii");
-static assert(C.bar.mangleof == "_ZN1C3barEiii");
+version (linux)
+{
+    static assert(foo.mangleof == "_Z3fooiii");
+    static assert(foob.mangleof == "_Z4foobiii");
+    static assert(C.bar.mangleof == "_ZN1C3barEiii");
+}
+version (Win32)
+{
+    static assert(foo.mangleof == "?foo@@YAHHHH@Z");
+    static assert(foob.mangleof == "?foob@@YAHHHH@Z");
+    static assert(C.bar.mangleof == "?bar@C@@UAEHHHH@Z");
+}
+version (Win64)
+{
+    static assert(foo.mangleof == "?foo@@YAHHHH@Z");
+    static assert(foob.mangleof == "?foob@@YAHHHH@Z");
+    static assert(C.bar.mangleof == "?bar@C@@UEAAHHHH@Z");
+}
 
 /****************************************/
 
@@ -65,8 +79,11 @@ void test2()
     assert(i == 8);
 }
 
-static assert (getD.mangleof == "_Z4getDv");
-static assert (D.bar.mangleof == "_ZN1D3barEiii");
+version (linux)
+{
+    static assert (getD.mangleof == "_Z4getDv");
+    static assert (D.bar.mangleof == "_ZN1D3barEiii");
+}
 
 /****************************************/
 
@@ -99,9 +116,12 @@ void test3()
     assert(i == 8);
 }
 
-static assert (callE.mangleof == "_Z5callEP1E");
-static assert (E.bar.mangleof == "_ZN1E3barEiii");
-static assert (F.bar.mangleof == "_ZN1F3barEiii");
+version (linux)
+{
+    static assert (callE.mangleof == "_Z5callEP1E");
+    static assert (E.bar.mangleof == "_ZN1E3barEiii");
+    static assert (F.bar.mangleof == "_ZN1F3barEiii");
+}
 
 /****************************************/
 
@@ -112,7 +132,10 @@ void test4()
     foo4(null);
 }
 
-static assert(foo4.mangleof == "_Z4foo4Pc");
+version (linux)
+{
+    static assert(foo4.mangleof == "_Z4foo4Pc");
+}
 
 /****************************************/
 
@@ -135,8 +158,11 @@ void test5()
   assert(f.p == cast(void*)b);
 }
 
-static assert(bar5.getFoo.mangleof == "_ZN4bar56getFooEi");
-static assert (newBar.mangleof == "_Z6newBarv");
+version (linux)
+{
+    static assert(bar5.getFoo.mangleof == "_ZN4bar56getFooEi");
+    static assert (newBar.mangleof == "_Z6newBarv");
+}
 
 /****************************************/
 
@@ -162,7 +188,10 @@ void test6()
     assert(f.d == 2.5);
 }
 
-static assert (foo6.mangleof == "_Z4foo6v");
+version (linux)
+{
+    static assert (foo6.mangleof == "_Z4foo6v");
+}
 
 /****************************************/
 
@@ -190,7 +219,10 @@ void test8()
     foo8(&c);
 }
 
-static assert(foo8.mangleof == "_Z4foo8PKc");
+version (linux)
+{
+    static assert(foo8.mangleof == "_Z4foo8PKc");
+}
 
 /****************************************/
 // 4059
@@ -205,7 +237,10 @@ void test9()
     foobar9(a, a);
 }
 
-static assert(foobar9.mangleof == "_Z7foobar9P5elem9S0_");
+version (linux)
+{
+    static assert(foobar9.mangleof == "_Z7foobar9P5elem9S0_");
+}
 
 /****************************************/
 // 5148
@@ -254,18 +289,21 @@ extern (C++)
     void test10058l(void* function(void*), void* function(const (void)*), const(void)* function(void*)) { }
 }
 
-static assert(test10058a.mangleof == "_Z10test10058aPv");
-static assert(test10058b.mangleof == "_Z10test10058bPFvPvE");
-static assert(test10058c.mangleof == "_Z10test10058cPFPvS_E");
-static assert(test10058d.mangleof == "_Z10test10058dPFvPvES_");
-static assert(test10058e.mangleof == "_Z10test10058ePFPvS_ES_");
-static assert(test10058f.mangleof == "_Z10test10058fPFPvS_ES1_");
-static assert(test10058g.mangleof == "_Z10test10058gPFvPvES_S_");
-static assert(test10058h.mangleof == "_Z10test10058hPFPvS_ES_S_");
-static assert(test10058i.mangleof == "_Z10test10058iPFPvS_ES1_S_");
-static assert(test10058j.mangleof == "_Z10test10058jPFPvS_ES1_S1_");
-static assert(test10058k.mangleof == "_Z10test10058kPFPvS_EPFS_PKvE");
-static assert(test10058l.mangleof == "_Z10test10058lPFPvS_EPFS_PKvEPFS3_S_E");
+version (linux)
+{
+    static assert(test10058a.mangleof == "_Z10test10058aPv");
+    static assert(test10058b.mangleof == "_Z10test10058bPFvPvE");
+    static assert(test10058c.mangleof == "_Z10test10058cPFPvS_E");
+    static assert(test10058d.mangleof == "_Z10test10058dPFvPvES_");
+    static assert(test10058e.mangleof == "_Z10test10058ePFPvS_ES_");
+    static assert(test10058f.mangleof == "_Z10test10058fPFPvS_ES1_");
+    static assert(test10058g.mangleof == "_Z10test10058gPFvPvES_S_");
+    static assert(test10058h.mangleof == "_Z10test10058hPFPvS_ES_S_");
+    static assert(test10058i.mangleof == "_Z10test10058iPFPvS_ES1_S_");
+    static assert(test10058j.mangleof == "_Z10test10058jPFPvS_ES1_S1_");
+    static assert(test10058k.mangleof == "_Z10test10058kPFPvS_EPFS_PKvE");
+    static assert(test10058l.mangleof == "_Z10test10058lPFPvS_EPFS_PKvEPFS3_S_E");
+}
 
 /**************************************/
 // 11696
@@ -282,10 +320,13 @@ class CallExp
     static void test11696d(Loc, Expression*, Expression*);
 }
 
-static assert(CallExp.test11696a.mangleof == "_ZN7CallExp10test11696aE3LocP10ExpressionS2_");
-static assert(CallExp.test11696b.mangleof == "_ZN7CallExp10test11696bE3LocP10ExpressionPS2_");
-static assert(CallExp.test11696c.mangleof == "_ZN7CallExp10test11696cE3LocPP10ExpressionS2_");
-static assert(CallExp.test11696d.mangleof == "_ZN7CallExp10test11696dE3LocPP10ExpressionS3_");
+version (linux)
+{
+    static assert(CallExp.test11696a.mangleof == "_ZN7CallExp10test11696aE3LocP10ExpressionS2_");
+    static assert(CallExp.test11696b.mangleof == "_ZN7CallExp10test11696bE3LocP10ExpressionPS2_");
+    static assert(CallExp.test11696c.mangleof == "_ZN7CallExp10test11696cE3LocPP10ExpressionS2_");
+    static assert(CallExp.test11696d.mangleof == "_ZN7CallExp10test11696dE3LocPP10ExpressionS3_");
+}
 
 /**************************************/
 // 13337
@@ -296,7 +337,10 @@ extern(C++, N13337a.N13337b.N13337c)
   void foo13337(S13337 s);
 }
 
-static assert(foo13337.mangleof == "_ZN7N13337a7N13337b7N13337c8foo13337ENS1_6S13337E");
+version (linux)
+{
+    static assert(foo13337.mangleof == "_ZN7N13337a7N13337b7N13337c8foo13337ENS1_6S13337E");
+}
 
 /**************************************/
 // 15789
@@ -307,3 +351,30 @@ void test15789()
 {
     test15789a(0);
 }
+
+/**************************************/
+// 7030
+
+extern(C++)
+{
+    struct T
+    {
+        void foo(int) const;
+        void bar(int);
+        static __gshared int boo;
+    }
+}
+
+version (OSX)
+{
+    static assert(T.foo.mangleof == "__ZNK1T3fooEi");
+    static assert(T.bar.mangleof == "__ZN1T3barEi");
+    static assert(T.boo.mangleof == "__ZN1T3booE");
+}
+else version (Posix)
+{
+    static assert(T.foo.mangleof == "_ZNK1T3fooEi");
+    static assert(T.bar.mangleof == "_ZN1T3barEi");
+    static assert(T.boo.mangleof == "_ZN1T3booE");
+}
+

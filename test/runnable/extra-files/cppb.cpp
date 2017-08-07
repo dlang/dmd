@@ -404,7 +404,7 @@ wchar_t f13289_cpp_wchar_t(wchar_t ch)
     }
 }
 
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun || __NetBSD__
 unsigned short f13289_d_wchar(unsigned short ch);
 wchar_t f13289_d_dchar(wchar_t ch);
 #elif _WIN32
@@ -414,7 +414,7 @@ unsigned int f13289_d_dchar(unsigned int ch);
 
 bool f13289_cpp_test()
 {
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun || __NetBSD__
     if (!(f13289_d_wchar((unsigned short)'c') == (unsigned short)'C')) return false;
     if (!(f13289_d_wchar((unsigned short)'D') == (unsigned short)'D')) return false;
     if (!(f13289_d_dchar(L'e') == L'E')) return false;
@@ -585,7 +585,7 @@ void fuzz2_cppvararg(unsigned longlong arg10, unsigned longlong arg11, bool arg1
     fuzz2_checkValues(arg10, arg11, arg12);
 }
 
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun || __NetBSD__
 #define wchar unsigned short
 #elif _WIN32
 #define wchar wchar_t

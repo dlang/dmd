@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail290.d(15): Error: no 'this' to create delegate for foo
+fail_compilation/fail290.d(15): Error: no `this` to create delegate for `foo`
 ---
 */
 

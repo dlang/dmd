@@ -1884,7 +1884,7 @@ char[] func95(immutable char[] s)
 
 void test95()
 {
-    mixin(func95(";"));
+    mixin(func95("{}"));
 }
 
 /************************************************/
@@ -1899,7 +1899,7 @@ char[] func96(string s)
 
 void test96()
 {
-    mixin(func96(";"));
+    mixin(func96("{}"));
 }
 
 /************************************************/
@@ -2524,7 +2524,6 @@ int bugzilla1790(Types...)()
 {
     foreach (T; Types)
     {
-        ;
     }
     return 0;
 }

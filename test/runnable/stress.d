@@ -213,20 +213,6 @@ void BYTE()
             break;
         }
     }
-    a.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[a.length - idx - 1] != idx) {
-            printf("a Reverse Error: %d\n",a[idx]);
-            break;
-        }
-    }
-    a.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[idx] != idx) {
-            printf("a Sort Error: %d\n",a[idx]);
-            break;
-        }
-    }
 
 
     typ[] b = a[];
@@ -239,21 +225,6 @@ void BYTE()
             break;
         }
     }
-    b.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[b.length - idx - 1] != idx) {
-            printf("b Reverse Error: %d\n",b[idx]);
-            break;
-        }
-    }
-    b.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[idx] != idx) {
-            printf("b Sort Error: %d\n",b[idx]);
-            break;
-        }
-    }
-
     typ[] c;
     c = a[0..ITERS/2] ~ b[ITERS/2..$];
 
@@ -263,20 +234,6 @@ void BYTE()
     for(int idx = 0; idx < ITERS; idx++) {
         if(c[idx] != idx) {
             printf("c Data Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[c.length - idx - 1] != idx) {
-            printf("c Reverse Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[idx] != idx) {
-            printf("c Sort Error: %d\n",c[idx]);
             break;
         }
     }
@@ -300,20 +257,6 @@ void UBYTE()
             break;
         }
     }
-    a.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[a.length - idx - 1] != idx) {
-            printf("a Reverse Error: %d\n",a[idx]);
-            break;
-        }
-    }
-    a.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[idx] != idx) {
-            printf("a Sort Error: %d\n",a[idx]);
-            break;
-        }
-    }
 
 
     typ[] b = a[];
@@ -323,20 +266,6 @@ void UBYTE()
     for(int idx = 0; idx < ITERS; idx++) {
         if(b[idx] != idx) {
             printf("b Data Error: %d\n",b[idx]);
-            break;
-        }
-    }
-    b.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[b.length - idx - 1] != idx) {
-            printf("b Reverse Error: %d\n",b[idx]);
-            break;
-        }
-    }
-    b.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[idx] != idx) {
-            printf("b Sort Error: %d\n",b[idx]);
             break;
         }
     }
@@ -350,20 +279,6 @@ void UBYTE()
     for(int idx = 0; idx < ITERS; idx++) {
         if(c[idx] != idx) {
             printf("c Data Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[c.length - idx - 1] != idx) {
-            printf("c Reverse Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[idx] != idx) {
-            printf("c Sort Error: %d\n",c[idx]);
             break;
         }
     }
@@ -387,21 +302,6 @@ void SHORT()
             break;
         }
     }
-    a.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[a.length - idx - 1] != idx) {
-            printf("a Reverse Error: %d\n",a[idx]);
-            break;
-        }
-    }
-    a.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[idx] != idx) {
-            printf("a Sort Error: %d\n",a[idx]);
-            break;
-        }
-    }
-
 
     typ[] b = a[];
 
@@ -410,20 +310,6 @@ void SHORT()
     for(int idx = 0; idx < ITERS; idx++) {
         if(b[idx] != idx) {
             printf("b Data Error: %d\n",b[idx]);
-            break;
-        }
-    }
-    b.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[b.length - idx - 1] != idx) {
-            printf("b Reverse Error: %d\n",b[idx]);
-            break;
-        }
-    }
-    b.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[idx] != idx) {
-            printf("b Sort Error: %d\n",b[idx]);
             break;
         }
     }
@@ -437,20 +323,6 @@ void SHORT()
     for(int idx = 0; idx < ITERS; idx++) {
         if(c[idx] != idx) {
             printf("c Data Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[c.length - idx - 1] != idx) {
-            printf("c Reverse Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[idx] != idx) {
-            printf("c Sort Error: %d\n",c[idx]);
             break;
         }
     }
@@ -474,21 +346,6 @@ void USHORT()
             break;
         }
     }
-    a.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[a.length - idx - 1] != idx) {
-            printf("a Reverse Error: %d\n",a[idx]);
-            break;
-        }
-    }
-    a.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[idx] != idx) {
-            printf("a Sort Error: %d\n",a[idx]);
-            break;
-        }
-    }
-
 
     typ[] b = a[];
 
@@ -497,20 +354,6 @@ void USHORT()
     for(int idx = 0; idx < ITERS; idx++) {
         if(b[idx] != idx) {
             printf("b Data Error: %d\n",b[idx]);
-            break;
-        }
-    }
-    b.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[b.length - idx - 1] != idx) {
-            printf("b Reverse Error: %d\n",b[idx]);
-            break;
-        }
-    }
-    b.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[idx] != idx) {
-            printf("b Sort Error: %d\n",b[idx]);
             break;
         }
     }
@@ -524,20 +367,6 @@ void USHORT()
     for(int idx = 0; idx < ITERS; idx++) {
         if(c[idx] != idx) {
             printf("c Data Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[c.length - idx - 1] != idx) {
-            printf("c Reverse Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[idx] != idx) {
-            printf("c Sort Error: %d\n",c[idx]);
             break;
         }
     }
@@ -561,20 +390,6 @@ void INT()
             break;
         }
     }
-    a.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[a.length - idx - 1] != idx) {
-            printf("a Reverse Error: %d\n",a[idx]);
-            break;
-        }
-    }
-    a.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[idx] != idx) {
-            printf("a Sort Error: %d\n",a[idx]);
-            break;
-        }
-    }
 
 
     typ[] b = a[];
@@ -584,20 +399,6 @@ void INT()
     for(int idx = 0; idx < ITERS; idx++) {
         if(b[idx] != idx) {
             printf("b Data Error: %d\n",b[idx]);
-            break;
-        }
-    }
-    b.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[b.length - idx - 1] != idx) {
-            printf("b Reverse Error: %d\n",b[idx]);
-            break;
-        }
-    }
-    b.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[idx] != idx) {
-            printf("b Sort Error: %d\n",b[idx]);
             break;
         }
     }
@@ -611,20 +412,6 @@ void INT()
     for(int idx = 0; idx < ITERS; idx++) {
         if(c[idx] != idx) {
             printf("c Data Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[c.length - idx - 1] != idx) {
-            printf("c Reverse Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[idx] != idx) {
-            printf("c Sort Error: %d\n",c[idx]);
             break;
         }
     }
@@ -648,20 +435,6 @@ void UINT()
             break;
         }
     }
-    a.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[a.length - idx - 1] != idx) {
-            printf("a Reverse Error: %d\n",a[idx]);
-            break;
-        }
-    }
-    a.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[idx] != idx) {
-            printf("a Sort Error: %d\n",a[idx]);
-            break;
-        }
-    }
 
 
     typ[] b = a[];
@@ -671,20 +444,6 @@ void UINT()
     for(int idx = 0; idx < ITERS; idx++) {
         if(b[idx] != idx) {
             printf("b Data Error: %d\n",b[idx]);
-            break;
-        }
-    }
-    b.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[b.length - idx - 1] != idx) {
-            printf("b Reverse Error: %d\n",b[idx]);
-            break;
-        }
-    }
-    b.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[idx] != idx) {
-            printf("b Sort Error: %d\n",b[idx]);
             break;
         }
     }
@@ -698,20 +457,6 @@ void UINT()
     for(int idx = 0; idx < ITERS; idx++) {
         if(c[idx] != idx) {
             printf("c Data Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[c.length - idx - 1] != idx) {
-            printf("c Reverse Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[idx] != idx) {
-            printf("c Sort Error: %d\n",c[idx]);
             break;
         }
     }
@@ -735,21 +480,6 @@ void LONG()
             break;
         }
     }
-    a.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[a.length - idx - 1] != idx) {
-            printf("a Reverse Error: %d\n",a[idx]);
-            break;
-        }
-    }
-    a.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[idx] != idx) {
-            printf("a Sort Error: %d\n",a[idx]);
-            break;
-        }
-    }
-
 
     typ[] b = a[];
 
@@ -758,20 +488,6 @@ void LONG()
     for(int idx = 0; idx < ITERS; idx++) {
         if(b[idx] != idx) {
             printf("b Data Error: %d\n",b[idx]);
-            break;
-        }
-    }
-    b.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[b.length - idx - 1] != idx) {
-            printf("b Reverse Error: %d\n",b[idx]);
-            break;
-        }
-    }
-    b.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[idx] != idx) {
-            printf("b Sort Error: %d\n",b[idx]);
             break;
         }
     }
@@ -785,20 +501,6 @@ void LONG()
     for(int idx = 0; idx < ITERS; idx++) {
         if(c[idx] != idx) {
             printf("c Data Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[c.length - idx - 1] != idx) {
-            printf("c Reverse Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[idx] != idx) {
-            printf("c Sort Error: %d\n",c[idx]);
             break;
         }
     }
@@ -822,21 +524,6 @@ void ULONG()
             break;
         }
     }
-    a.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[a.length - idx - 1] != idx) {
-            printf("a Reverse Error: %d\n",a[idx]);
-            break;
-        }
-    }
-    a.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[idx] != idx) {
-            printf("a Sort Error: %d\n",a[idx]);
-            break;
-        }
-    }
-
 
     typ[] b = a[];
 
@@ -845,20 +532,6 @@ void ULONG()
     for(int idx = 0; idx < ITERS; idx++) {
         if(b[idx] != idx) {
             printf("b Data Error: %d\n",b[idx]);
-            break;
-        }
-    }
-    b.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[b.length - idx - 1] != idx) {
-            printf("b Reverse Error: %d\n",b[idx]);
-            break;
-        }
-    }
-    b.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[idx] != idx) {
-            printf("b Sort Error: %d\n",b[idx]);
             break;
         }
     }
@@ -872,20 +545,6 @@ void ULONG()
     for(int idx = 0; idx < ITERS; idx++) {
         if(c[idx] != idx) {
             printf("c Data Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[c.length - idx - 1] != idx) {
-            printf("c Reverse Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[idx] != idx) {
-            printf("c Sort Error: %d\n",c[idx]);
             break;
         }
     }
@@ -909,21 +568,6 @@ void FLOAT()
             break;
         }
     }
-    a.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[a.length - idx - 1] != idx) {
-            printf("a Reverse Error: %d\n",a[idx]);
-            break;
-        }
-    }
-    a.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[idx] != idx) {
-            printf("a Sort Error: %d\n",a[idx]);
-            break;
-        }
-    }
-
 
     typ[] b = a[];
 
@@ -932,20 +576,6 @@ void FLOAT()
     for(int idx = 0; idx < ITERS; idx++) {
         if(b[idx] != idx) {
             printf("b Data Error: %d\n",b[idx]);
-            break;
-        }
-    }
-    b.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[b.length - idx - 1] != idx) {
-            printf("b Reverse Error: %d\n",b[idx]);
-            break;
-        }
-    }
-    b.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[idx] != idx) {
-            printf("b Sort Error: %d\n",b[idx]);
             break;
         }
     }
@@ -959,20 +589,6 @@ void FLOAT()
     for(int idx = 0; idx < ITERS; idx++) {
         if(c[idx] != idx) {
             printf("c Data Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[c.length - idx - 1] != idx) {
-            printf("c Reverse Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[idx] != idx) {
-            printf("c Sort Error: %d\n",c[idx]);
             break;
         }
     }
@@ -996,21 +612,6 @@ void DOUBLE()
             break;
         }
     }
-    a.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[a.length - idx - 1] != idx) {
-            printf("a Reverse Error: %d\n",a[idx]);
-            break;
-        }
-    }
-    a.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[idx] != idx) {
-            printf("a Sort Error: %d\n",a[idx]);
-            break;
-        }
-    }
-
 
     typ[] b = a[];
 
@@ -1019,20 +620,6 @@ void DOUBLE()
     for(int idx = 0; idx < ITERS; idx++) {
         if(b[idx] != idx) {
             printf("b Data Error: %d\n",b[idx]);
-            break;
-        }
-    }
-    b.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[b.length - idx - 1] != idx) {
-            printf("b Reverse Error: %d\n",b[idx]);
-            break;
-        }
-    }
-    b.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[idx] != idx) {
-            printf("b Sort Error: %d\n",b[idx]);
             break;
         }
     }
@@ -1046,20 +633,6 @@ void DOUBLE()
     for(int idx = 0; idx < ITERS; idx++) {
         if(c[idx] != idx) {
             printf("c Data Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[c.length - idx - 1] != idx) {
-            printf("c Reverse Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[idx] != idx) {
-            printf("c Sort Error: %d\n",c[idx]);
             break;
         }
     }
@@ -1083,21 +656,6 @@ void REAL()
             break;
         }
     }
-    a.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[a.length - idx - 1] != idx) {
-            printf("a Reverse Error: %d\n",a[idx]);
-            break;
-        }
-    }
-    a.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(a[idx] != idx) {
-            printf("a Sort Error: %d\n",a[idx]);
-            break;
-        }
-    }
-
 
     typ[] b = a[];
 
@@ -1106,20 +664,6 @@ void REAL()
     for(int idx = 0; idx < ITERS; idx++) {
         if(b[idx] != idx) {
             printf("b Data Error: %d\n",b[idx]);
-            break;
-        }
-    }
-    b.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[b.length - idx - 1] != idx) {
-            printf("b Reverse Error: %d\n",b[idx]);
-            break;
-        }
-    }
-    b.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(b[idx] != idx) {
-            printf("b Sort Error: %d\n",b[idx]);
             break;
         }
     }
@@ -1133,20 +677,6 @@ void REAL()
     for(int idx = 0; idx < ITERS; idx++) {
         if(c[idx] != idx) {
             printf("c Data Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.reverse;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[c.length - idx - 1] != idx) {
-            printf("c Reverse Error: %d\n",c[idx]);
-            break;
-        }
-    }
-    c.sort;
-    for(int idx = 0; idx < ITERS; idx++) {
-        if(c[idx] != idx) {
-            printf("c Sort Error: %d\n",c[idx]);
             break;
         }
     }

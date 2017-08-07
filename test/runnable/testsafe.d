@@ -367,8 +367,8 @@ extern(C++) interface F : E {}
 @safe
 void classcast()
 {
-    class A {};
-    class B : A {};
+    class A {}
+    class B : A {}
 
     A a;
     B b;
@@ -391,8 +391,8 @@ void classcast()
     static assert(!__traits(compiles, cast(A)cb));
     static assert(!__traits(compiles, cast(B)cb));
 
-    interface C {};
-    interface D : C {};
+    interface C {}
+    interface D : C {}
 
     C c;
     D d;

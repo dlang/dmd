@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail98.d(17): Error: cannot implicitly convert expression (256) of type int to E
+fail_compilation/fail98.d(17): Error: cannot implicitly convert expression `256` of type `int` to `E`
 ---
 */
 

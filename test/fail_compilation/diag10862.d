@@ -1,24 +1,24 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag10862.d(28): Error: assignment cannot be used as a condition, perhaps == was meant?
-fail_compilation/diag10862.d(29): Error: assignment cannot be used as a condition, perhaps == was meant?
-fail_compilation/diag10862.d(30): Error: assignment cannot be used as a condition, perhaps == was meant?
-fail_compilation/diag10862.d(31): Error: assignment cannot be used as a condition, perhaps == was meant?
-fail_compilation/diag10862.d(32): Error: assignment cannot be used as a condition, perhaps == was meant?
-fail_compilation/diag10862.d(34): Error: assignment cannot be used as a condition, perhaps == was meant?
-fail_compilation/diag10862.d(35): Error: assignment cannot be used as a condition, perhaps == was meant?
-fail_compilation/diag10862.d(36): Error: assignment cannot be used as a condition, perhaps == was meant?
-fail_compilation/diag10862.d(37): Error: assignment cannot be used as a condition, perhaps == was meant?
-fail_compilation/diag10862.d(39): Error: assignment cannot be used as a condition, perhaps == was meant?
-fail_compilation/diag10862.d(40): Error: assignment cannot be used as a condition, perhaps == was meant?
-fail_compilation/diag10862.d(41): Error: assignment cannot be used as a condition, perhaps == was meant?
-fail_compilation/diag10862.d(42): Error: assignment cannot be used as a condition, perhaps == was meant?
-fail_compilation/diag10862.d(44): Error: assignment cannot be used as a condition, perhaps == was meant?
-fail_compilation/diag10862.d(45): Error: assignment cannot be used as a condition, perhaps == was meant?
-fail_compilation/diag10862.d(46): Error: assignment cannot be used as a condition, perhaps == was meant?
-fail_compilation/diag10862.d(47): Error: assignment cannot be used as a condition, perhaps == was meant?
-fail_compilation/diag10862.d(49): Error: undefined identifier 'semanticError'
+fail_compilation/diag10862.d(28): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d(29): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d(30): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d(31): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d(32): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d(34): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d(35): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d(36): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d(37): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d(39): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d(40): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d(41): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d(42): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d(44): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d(45): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d(46): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d(47): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d(49): Error: undefined identifier `semanticError`
 ---
 */
 void test1()
@@ -52,16 +52,16 @@ void test1()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag10862.d(74): Error: assignment cannot be used as a condition, perhaps == was meant?
-fail_compilation/diag10862.d(77): Error: assignment cannot be used as a condition, perhaps == was meant?
+fail_compilation/diag10862.d(74): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d(77): Error: assignment cannot be used as a condition, perhaps `==` was meant?
 fail_compilation/diag10862.d-mixin-80(80): Error: assignment cannot be used as a condition, perhaps == was meant?
 fail_compilation/diag10862.d-mixin-81(81): Error: assignment cannot be used as a condition, perhaps == was meant?
 fail_compilation/diag10862.d-mixin-82(82): Error: assignment cannot be used as a condition, perhaps == was meant?
 fail_compilation/diag10862.d-mixin-83(83): Deprecation: Using the result of a comma expression is deprecated
 fail_compilation/diag10862.d-mixin-83(83): Error: assignment cannot be used as a condition, perhaps == was meant?
 fail_compilation/diag10862.d-mixin-86(86): Error: a + b is not an lvalue
-fail_compilation/diag10862.d-mixin-87(87): Error: undefined identifier 'c'
-fail_compilation/diag10862.d(89): Error: undefined identifier 'semanticError'
+fail_compilation/diag10862.d-mixin-87(87): Error: undefined identifier `c`
+fail_compilation/diag10862.d(89): Error: undefined identifier `semanticError`
 ---
 */
 void test2()

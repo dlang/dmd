@@ -4,7 +4,9 @@ codecov:
   # CodeCov should only wait for CI's that run coverage tests
   # DAutoTester and auto-tester are not in the default list
   ci:
-    - !travis
+    - "circleci.com"
+  notify:
+    after_n_builds: 1  # send notifications after the first upload
   bot: dlang-bot
 
 coverage:

@@ -15,7 +15,7 @@ OLD:
 NEW:
         }else if (e1->isConst() && e2->isConst()) {
         // Comparing a SymExp with a literal, eg typeid(int) is 7.1;
-           cmp=0; // An error has already occured. Prevent an ICE.
+           cmp=0; // An error has already occurred. Prevent an ICE.
         }else
         assert(0);
 */
