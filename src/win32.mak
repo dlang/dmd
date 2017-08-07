@@ -158,7 +158,6 @@ DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$
 FRONT_SRCS=$D/access.d $D/aggregate.d $D/aliasthis.d $D/apply.d $D/argtypes.d $D/arrayop.d	\
 	$D/arraytypes.d $D/astcodegen.d $D/attrib.d $D/builtin.d $D/canthrow.d $D/clone.d $D/complex.d		\
 	$D/cond.d $D/constfold.d $D/cppmangle.d $D/ctfeexpr.d $D/dcast.d $D/dclass.d		\
-	$D/ctfe/bc_common.d $D/ctfe/bc_macro.d $D/ctfe/ctfe_bc.d $D/ctfe/bc.d $D/ctfe/bc_printer_backend.d $D/ctfe/bc_c_backend.d	\
 	$D/declaration.d $D/delegatize.d $D/denum.d $D/dimport.d $D/dinifile.d $D/dinterpret.d	\
 	$D/dmacro.d $D/dmangle.d $D/dmodule.d $D/doc.d $D/dscope.d $D/dstruct.d $D/dsymbol.d		\
 	$D/dtemplate.d $D/dversion.d $D/escape.d			\
@@ -174,10 +173,6 @@ CTFE_SRCS=$D/ctfe/bc.d $D/ctfe/bc_common.d $D/ctfe/bc_c_backend.d		\
 	$D/ctfe/bc_limits.d $D/ctfe/bc_llvm_backend.d $D/ctfe/bc_macro.d	\
 	$D/ctfe/bc_printer_backend.d $D/ctfe/bc_recorder.d $D/ctfe/bc_test.d	\
 	$D/ctfe/ctfe_bc.d
-
-CTFE_SRCS=$D/ctfe/bc_c_backend.d $D/ctfe/bc.d $D/ctfe/bc_printer_backend.d	\
-	$D/ctfe/bc_test.d $D/ctfe/bc_common.d $D/ctfe/bc_limits.d		\
-	$D/ctfe/bc_macro.d $D/ctfe/ctfe_bc.d
 
 LEXER_SRCS=$D/console.d $D/entity.d $D/errors.d $D/globals.d $D/id.d $D/identifier.d \
 	$D/lexer.d $D/tokens.d $D/utf.d
