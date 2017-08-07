@@ -331,15 +331,20 @@ public:
         s.condition.accept(this);
         buf.writeByte(')');
         buf.writenl();
-        if (!s.ifbody.isScopeStatement())
+        if (s.ifbody.isScopeStatement())
+        {
+            s.ifbody.accept(this);
+        }
+        else
+        {
             buf.level++;
-        s.ifbody.accept(this);
-        if (!s.ifbody.isScopeStatement())
+            s.ifbody.accept(this);
             buf.level--;
+        }
         if (s.elsebody)
         {
             buf.writestring("else");
-            if (!s.elsebody.isIfStatement)
+            if (!s.elsebody.isIfStatement())
             {
                 buf.writenl();
             }
@@ -347,11 +352,16 @@ public:
             {
                 buf.writeByte(' ');
             }
-            if (!s.elsebody.isScopeStatement() && !s.elsebody.isIfStatement)
+            if (s.elsebody.isScopeStatement() || s.elsebody.isIfStatement())
+            {
+                s.elsebody.accept(this);
+            }
+            else
+            {
                 buf.level++;
-            s.elsebody.accept(this);
-            if (!s.elsebody.isScopeStatement() && !s.elsebody.isIfStatement)
+                s.elsebody.accept(this);
                 buf.level--;
+            }
         }
     }
 
@@ -574,11 +584,16 @@ public:
         buf.writenl();
         buf.writestring("finally");
         buf.writenl();
-        if (!s.finalbody.isScopeStatement())
+        if (s.finalbody.isScopeStatement())
+        {
+            s.finalbody.accept(this);
+        }
+        else
+        {
             buf.level++;
-        s.finalbody.accept(this);
-        if (!s.finalbody.isScopeStatement())
+            s.finalbody.accept(this);
             buf.level--;
+        }
     }
 
     override void visit(OnScopeStatement s)
