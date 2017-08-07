@@ -111,6 +111,7 @@ struct Param
     bool ignoreUnsupportedPragmas;      // rather than error on them
     bool enforcePropertySyntax;
     bool betterC;       // be a "better C" compiler; no dependency on D runtime
+    bool bc_ctfe;       // use the experimental bytecode ctfe
     bool addMain;       // add a default main() function
     bool allInst;       // generate code for all template instantiations
     bool check10378;    // check for issues transitioning to 10738
@@ -208,6 +209,8 @@ struct Global
     Array<const char *> *filePath;    // Array of char*'s which form the file import lookup path
 
     const char *version;
+
+    bool newCTFEGaveUp;
 
     Compiler compiler;
     Param params;

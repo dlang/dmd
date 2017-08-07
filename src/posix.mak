@@ -168,7 +168,7 @@ CXXFLAGS += \
     -std=gnu++98
 endif
 # Default D compiler flags for all source files
-DFLAGS= -version=MARS
+DFLAGS= -version=MARS -g
 # Enable D warnings
 DFLAGS += -wi
 
@@ -225,6 +225,7 @@ endif
 
 FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argtypes arrayop	\
 	arraytypes astcodegen attrib builtin canthrow clone complex cond constfold		\
+	ctfe/bc ctfe/bc_common ctfe/bc_macro ctfe/bc_printer_backend ctfe/bc_c_backend ctfe/ctfe_bc ctfe/bc_test	\
 	cppmangle ctfeexpr dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol	\
 	dtemplate dversion escape expression expressionsem func			\
@@ -251,6 +252,8 @@ ifeq (osx,$(OS))
 else
     FRONT_SRCS += $D/libelf.d $D/scanelf.d
 endif
+
+GLUE_OBJS = 
 
 G_GLUE_OBJS = $(addprefix $G/, $(GLUE_OBJS))
 

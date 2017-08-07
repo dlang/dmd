@@ -290,7 +290,13 @@ public:
              * Already disallowed this if `exp` produces an object that needs destruction -
              * an enhancement would be to do the destruction here.
              */
-            result = new ExpStatement(s.loc, exp);
+
+            // is seems the above assumtion is not quite true ... see Issue 17676
+            // Therefore we check
+            if (ids.fd.fbody.last is s)
+                result = new ExpStatement(s.loc, exp);
+            else
+                result = new ReturnStatement(s.loc, exp); // cannot be inlined
         }
         else
             result = exp;
