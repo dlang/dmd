@@ -80,7 +80,7 @@ $(GNAME AssignExpression):
 
 $(H3 $(LNAME2 assignment_operator_expressions, Assignment Operator Expressions))
 
-    $(P Assignment operator expressions, such as:)
+    $(P For arguments of built-in types, assignment operator expressions such as)
 
         --------------
         a op= b
@@ -92,12 +92,16 @@ $(H3 $(LNAME2 assignment_operator_expressions, Assignment Operator Expressions))
         a = cast(typeof(a))(a op b)
         --------------
 
-    except that:
+    except that
 
     $(UL
-        $(LI operand $(D a) is only evaluated once)
-        $(LI overloading $(I op) uses a different function than overloading $(I op)= does)
-        $(LI the left operand of $(D >>>=) does not undergo integral promotions before shifting)
+        $(LI operand $(D a) is only evaluated once,)
+        $(LI overloading $(I op) uses a different function than overloading $(I op)= does, and)
+        $(LI the left operand of $(D >>>=) does not undergo integral promotions before shifting.)
+    )
+
+    $(P For user-defined types, assignment operator expressions are overloaded separately from
+        the binary operator. Still the left operand must be an lvalue.
     )
 
 $(H2 $(LNAME2 conditional_expressions, Conditional Expressions))
