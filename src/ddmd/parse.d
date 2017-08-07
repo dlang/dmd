@@ -5538,7 +5538,7 @@ final class Parser(AST) : Lexer
                     error("valid scope identifiers are `exit`, `failure`, or `success`, not `%s`", id.toChars());
                 nextToken();
                 check(TOKrparen);
-                AST.Statement st = parseStatement(PScurlyscope);
+                AST.Statement st = parseStatement(PSscope);
                 s = new AST.OnScopeStatement(loc, t, st);
                 break;
             }
