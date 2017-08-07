@@ -121,7 +121,7 @@ template Foo(T, int V)
 		try
 		{
 			try
-			bar(1, 2);
+				bar(1, 2);
 			catch(Object o)
 			{
 				x++;

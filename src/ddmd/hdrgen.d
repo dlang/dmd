@@ -563,8 +563,18 @@ public:
     {
         buf.writestring("try");
         buf.writenl();
-        if (s._body)
-            s._body.accept(this);
+        if (s._body){
+            if (s._body.isScopeStatement())
+            {
+                s._body.accept(this);
+            }
+            else
+            {
+                buf.level++;
+                s._body.accept(this);
+                buf.level--;
+            }
+        }
         foreach (c; *s.catches)
         {
             visit(c);
