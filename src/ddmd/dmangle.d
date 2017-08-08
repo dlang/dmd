@@ -4,7 +4,7 @@
  * Copyright: Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/_dmangle.d, _dmangle.d)
+ * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/dmangle.d, _dmangle.d)
  */
 
 module ddmd.dmangle;

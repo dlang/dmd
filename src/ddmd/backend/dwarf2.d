@@ -2,7 +2,7 @@
 /* Reflects declarations from the Dwarf 3 spec, not the Digital Mars
  * dwarf implementation
  *
- * Source: $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/_dwarf2.d, backend/_dwarf2.d)
+ * Source: $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/dwarf2.d, backend/_dwarf2.d)
  */
 
 module ddmd.backend.dwarf2;

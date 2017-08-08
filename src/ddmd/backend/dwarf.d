@@ -1,6 +1,6 @@
 /** Dwarf debug
  *
- * Source: $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/_dwarf.d, backend/_dwarf.d)
+ * Source: $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/dwarf.d, backend/_dwarf.d)
  */
 
 module ddmd.backend.dwarf;

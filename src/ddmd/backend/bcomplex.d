@@ -4,7 +4,7 @@
  *
  * Copyright:   public domain
  * License:     public domain
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/_bcomplex.d, backend/_bcomplex.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/bcomplex.d, backend/_bcomplex.d)
  */
 
 module ddmd.backend.bcomplex;

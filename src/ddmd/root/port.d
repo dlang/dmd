@@ -5,7 +5,7 @@
  * Copyright: Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/root/_port.d, root/_port.d)
+ * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/root/port.d, root/_port.d)
  */
 
 module ddmd.root.port;

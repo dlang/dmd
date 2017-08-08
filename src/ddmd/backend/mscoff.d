@@ -1,6 +1,6 @@
 /** Microsoft COFF object file format
  *
- * Source: $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/_mscoff.d, backend/_mscoff.d)
+ * Source: $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/mscoff.d, backend/_mscoff.d)
  */
 
 module ddmd.backend.mscoff;

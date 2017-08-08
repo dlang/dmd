@@ -1,5 +1,5 @@
 /**
- * Source: $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/_md5.d, backend/_md5.d)
+ * Source: $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/md5.d, backend/_md5.d)
  */
 
 module ddmd.backend.md5;
