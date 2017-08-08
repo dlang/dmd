@@ -685,3 +685,8 @@ void testToStatement(){
     static assert(x0==0 && x1==1);
     static assert(y0==0 && y1==1);
 }
+
+void bug17688(){
+    final switch(1) static foreach(x;0..1){ int y=3; case 1: return; }
+    static assert(!is(typeof(y)));
+}

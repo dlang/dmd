@@ -5147,6 +5147,8 @@ final class Parser(AST) : Lexer
                 else if(t.value == TOKforeach || t.value == TOKforeach_reverse)
                 {
                     s = parseForeach!(true,false)(loc);
+                    if (flags & PSscope)
+                        s = new AST.ScopeStatement(loc, s, token.loc);
                     break;
                 }
                 if (t.value == TOKimport)
