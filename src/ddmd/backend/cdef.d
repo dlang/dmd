@@ -14,7 +14,7 @@ module ddmd.backend.cdef;
 import ddmd.backend.cc: Classsym, Symbol;
 import ddmd.backend.el;
 
-import tk.dlist;
+import ddmd.tk.dlist;
 
 extern (C++):
 @nogc:

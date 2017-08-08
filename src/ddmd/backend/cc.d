@@ -11,7 +11,7 @@
 
 module ddmd.backend.cc;
 
-import tk.dlist;
+import ddmd.tk.dlist;
 import ddmd.backend.cdef;        // host and target compiler definition
 import ddmd.backend.code_x86;
 import ddmd.backend.type;

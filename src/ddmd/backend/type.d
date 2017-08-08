@@ -17,7 +17,7 @@ import ddmd.backend.code;
 import ddmd.backend.el : elem;
 import ddmd.backend.ty;
 
-import tk.dlist;
+import ddmd.tk.dlist;
 
 extern (C++):
 @nogc:

@@ -16,7 +16,7 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/tk/dlist.d, backend/tk/_dlist.d)
  */
 
-module tk.dlist;
+module ddmd.tk.dlist;
 
 extern (C++):
 nothrow:
