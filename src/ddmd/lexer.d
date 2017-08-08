@@ -145,16 +145,33 @@ unittest
 
 unittest
 {
-    // Test malformed input
-    char[2] text = ['\'', 0];
-    scope Lexer lex2 = new Lexer(null, text.ptr, 0, text.length-1, 0, 0);
-    TOK tok;
-    tok = lex2.nextToken();
-    assert(tok == TOKcharv);
-    tok = lex2.nextToken();
-    assert(tok == TOKeof);
-    tok = lex2.nextToken();
-    assert(tok == TOKeof);
+    // Test malformed input: even malformed input should end in a TOKeof.
+    static immutable char[][] testcases =
+    [   // Testcase must end with 0 or 0x1A.
+        [0], // not malformed, but pathological
+        ['\'', 0],
+        ['\'', 0x1A],
+        ['{', '{', 'q', '{', 0],
+        [0xFF, 0],
+        [0xFF, 0x80, 0],
+        [0xFF, 0xFF, 0],
+        [0xFF, 0xFF, 0],
+        ['x', '"', 0x1A],
+    ];
+
+    foreach (i, testcase; testcases)
+    {
+        scope Lexer lex2 = new Lexer(null, testcase.ptr, 0, testcase.length-1, 0, 0);
+        TOK tok = lex2.nextToken();
+        size_t iterations = 1;
+        while ((tok != TOKeof) && (iterations++ < testcase.length))
+        {
+            tok = lex2.nextToken();
+        }
+        assert(tok == TOKeof);
+        tok = lex2.nextToken();
+        assert(tok == TOKeof);
+    }
 }
 
 /***********************************************************
