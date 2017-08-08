@@ -2689,9 +2689,19 @@ static if (is(BCGen))
                 auto expr = genExpr(e.e1);
                 if (!canWorkWithType(expr.type) || !canWorkWithType(retval.type))
                 {
-                    bailout("++ only i32 is supported not " ~ to!string(expr.type.type) ~ " -- " ~ e.toString);
+
+                    import std.stdio; writeln("canWorkWithType(expr.type) :", canWorkWithType(expr.type));
+                    import std.stdio; writeln("canWorkWithType(retval.type) :", canWorkWithType(retval.type));
+                    bailout("++ only i32 is supported not expr: " ~ to!string(expr.type.type) ~ "retval: " ~ to!string(retval.type.type) ~ " -- " ~ e.toString);
                     return;
                 }
+
+                if (expr.type.type != BCTypeEnum.i64)
+                {
+                     expr = expr.i32;
+                     retval = retval.i32;
+                }
+
                 assert(expr.vType != BCValueType.Immediate,
                     "++ does not make sense as on an Immediate Value");
 
@@ -2743,6 +2753,9 @@ static if (is(BCGen))
                 }
                 else
                 {
+                    if (expr.type.type == BCTypeEnum.Ptr)
+                        expr = expr.i32;
+
                     Sub3(expr, expr, imm32(1));
                 }
 
@@ -2875,6 +2888,17 @@ static if (is(BCGen))
                 bailout("could not gen lhs or rhs for " ~ e.toString);
                 return ;
             }
+
+            // FIXME HACK HACK This casts rhs and lhs to i32 if a pointer is involved
+            // while this should work with 32bit pointer we should do something more
+            // correct here in the long run
+            if (lhs.type.type == BCTypeEnum.Ptr || rhs.type.type == BCTypeEnum.Ptr || retval.type.type == BCTypeEnum.Ptr)
+            {
+                lhs = lhs.i32;
+                rhs = rhs.i32;
+                retval = retval.i32;
+            }
+
 
             if (wasAssignTo && rhs == retval)
             {
@@ -3521,6 +3545,11 @@ static if (is(BCGen))
             }
 
             auto origSlice = genExpr(se.e1, "SliceExp origSlice");
+            if (origSlice.type.type != BCTypeEnum.Slice)
+            {
+                assert(origSlice.type.type.anyOf([BCTypeEnum.Array, BCTypeEnum.Ptr]));
+                origSlice.type = _sharedCtfeState.sliceOf(_sharedCtfeState.elementType(origSlice.type));
+            }
             currentIndexed = origSlice;
             bailout(!origSlice, "could not get slice expr in " ~ se.toString);
             auto elemType = _sharedCtfeState.elementType(origSlice.type);
@@ -3857,7 +3886,7 @@ static if (is(BCGen))
             }
 
             auto ty = _struct.memberTypes[i];
-            if (!ty.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.String, BCTypeEnum.Slice, BCTypeEnum.Array, BCTypeEnum.i32, BCTypeEnum.i64]))
+            if (!ty.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.String, BCTypeEnum.Slice, BCTypeEnum.Array, BCTypeEnum.i8, BCTypeEnum.i32, BCTypeEnum.i64]))
             {
                 bailout( "can only deal with ints and uints atm. not: (" ~ to!string(ty.type) ~ ", " ~ to!string(
                         ty.typeIndex) ~ ")");
@@ -4293,11 +4322,11 @@ static if (is(BCGen))
         // import std.stdio; writeln("Calling LoadHeapRef from: ", line); //DEBUGLINE
         if(hrv.type.type == BCTypeEnum.i64)
             Load64(hrv, BCValue(hrv.heapRef));
-        else if (hrv.type.type == BCTypeEnum.i32)
+        else if (hrv.type.type.anyOf([BCTypeEnum.i8, BCTypeEnum.i32]))
             Load32(hrv, BCValue(hrv.heapRef));
         // since the stuff below are heapValues we may not want to do this ??
-        // else if (hrv.type.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.Slice, BCTypeEnum.Array]))
-        //    MemCpy(hrv.i32, BCValue(hrv.heapRef).i32, imm32(_sharedCtfeState.size(hrv.type)));
+        else if (hrv.type.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.Slice, BCTypeEnum.Array]))
+            MemCpy(hrv.i32, BCValue(hrv.heapRef).i32, imm32(_sharedCtfeState.size(hrv.type)));
         else
             bailout(to!string(hrv.type.type) ~ " is not supported in LoadFromHeapRef");
 
@@ -4307,11 +4336,11 @@ static if (is(BCGen))
     {
         if(hrv.type.type == BCTypeEnum.i64)
             Store64(BCValue(hrv.heapRef), hrv);
-        else if (hrv.type.type == BCTypeEnum.i32)
+        else if (hrv.type.type.anyOf([BCTypeEnum.i8, BCTypeEnum.i32]))
             Store32(BCValue(hrv.heapRef), hrv);
         // since the stuff below are heapValues we may not want to do this ??
-        // else if (hrv.type.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.Slice, BCTypeEnum.Array]))
-        //    MemCpy(BCValue(hrv.heapRef).i32, hrv.i32, imm32(_sharedCtfeState.size(hrv.type)));
+        else if (hrv.type.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.Slice, BCTypeEnum.Array]))
+            MemCpy(BCValue(hrv.heapRef).i32, hrv.i32, imm32(_sharedCtfeState.size(hrv.type)));
         else
             bailout(to!string(hrv.type.type) ~ " is not supported in StoreToHeapRef");
     }
@@ -4944,7 +4973,7 @@ static if (is(BCGen))
 
     static bool canWorkWithType(const BCType bct) pure
     {
-        return (bct.type == BCTypeEnum.i32 || bct.type == BCTypeEnum.i64 || bct.type == BCTypeEnum.f23 || bct.type == BCTypeEnum.f52);
+        return (bct.type.anyOf([BCTypeEnum.i8, BCTypeEnum.i32, BCTypeEnum.i64, BCTypeEnum.f23, BCTypeEnum.f52]));
     }
 /+
     override void visit(ConstructExp ce)
@@ -5063,45 +5092,28 @@ static if (is(BCGen))
             {
                 auto overlapError = addError(ae.loc, "overlapping slice assignment [%d..%d] = [%d..%d]", lhs_lwr, lhs_upr, rhs_lwr, rhs_upr);
 
-                auto test1 = genTemporary(i32Type);
-
-                Lt3(test1, lhs_base, rhs_base);
-                auto cndJmp1 = beginCndJmp(test1);
+                // const diff = ptr1 > ptr2 ? ptr1 - ptr2 : ptr2 - ptr1;
+                auto diff = genTemporary(i32Type); 
                 {
-                    auto test2 = genTemporary(i32Type);
-                    auto lhs_base_plus_length = genTemporary(i32Type);
-                    Add3(lhs_base_plus_length, lhs_base, lhs_length);
+                    auto lhs_gt_rhs = genTemporary(i32Type);
+                    Gt3(lhs_gt_rhs, lhs_base, rhs_base);
 
-                    Le3(test2, lhs_base_plus_length, rhs_base);
-                    auto cndJmp2 = beginCndJmp(test2);
-                    {
-                        Assert(imm32(0), overlapError);
-                    }
-                    endCndJmp(cndJmp2, genLabel());
+                    auto cndJmp1 = beginCndJmp(lhs_gt_rhs);// ---\
+                        Sub3(diff, lhs_base, rhs_base);//        |
+                        auto to_end = beginJmp();// ------\      |
+                    endCndJmp(cndJmp1, genLabel());// <---+------/
+                        Sub3(diff, rhs_base, lhs_base);// |
+                    endJmp(to_end, genLabel());//  <------/
                 }
 
-                auto to_end_jmp = beginJmp();
-                endCndJmp(cndJmp1, genLabel());
-
-                auto test3 = genTemporary(i32Type);
-
-                Gt3(test3, lhs_base, rhs_base);
-                auto cndJmp3 = beginCndJmp(test3);
+                // if(d < length) assert(0, overlapError);
                 {
-                    auto test4 = genTemporary(i32Type);
-                    auto rhs_base_plus_length = genTemporary(i32Type);
-                    Add3(rhs_base_plus_length, rhs_base, rhs_length);
-
-                    Le3(test4, lhs_base, rhs_base_plus_length);
-                    auto cndJmp4 = beginCndJmp(test4);
-                    {
+                    auto diff_lt_length = genTemporary(i32Type);
+                    Lt3(diff_lt_length, diff, lhs_length);
+                    auto cndJmp1 = beginCndJmp(diff_lt_length);
                         Assert(imm32(0), overlapError);
-                    }
-                    endCndJmp(cndJmp4, genLabel());
+                    endCndJmp(cndJmp1, genLabel());   
                 }
-                endCndJmp(cndJmp3, genLabel());
-
-                endJmp(to_end_jmp, genLabel());
             }
 
             auto elemSize = sharedCtfeState.size(sharedCtfeState.elementType(lhs.type));
