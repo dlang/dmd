@@ -3777,6 +3777,12 @@ static if (is(BCGen))
 
         foreach (elem; *ale.elements)
         {
+            if (!elem)
+            {
+                bailout("Null Element in ArrayLiteral-Expression: " ~ ale.toString);
+                return ;
+            }
+
             auto elexpr = genExpr(elem, "ArrayLiteralElement");
             if (elexpr.type.type.anyOf([BCTypeEnum.i32, BCTypeEnum.c8, BCTypeEnum.i8, BCTypeEnum.f23]))
             {

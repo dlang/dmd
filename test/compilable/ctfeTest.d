@@ -68,7 +68,7 @@ static assert((int b){int a = b; if(a==2) a++; b += a++; return a + b;}(2) == 9)
 static assert((int a){int a4 = a*4; int result; while(a4--) { result++; } return result;}(4) == 16);
 
 
-uint Sum3Arrays (uint[] a1, uint[] a2, uint[] a3)
+uint Sum3Arrays (int[] a1, uint[] a2, uint[] a3)
 {
   uint result;
   for(int i; i != cast(int) a1.length; i++)
