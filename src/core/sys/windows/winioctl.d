@@ -687,26 +687,26 @@ alias NTFS_VOLUME_DATA_BUFFER* PNTFS_VOLUME_DATA_BUFFER;
 
 bool IsRecognizedPartition(BYTE t) {
     return ((t & PARTITION_NTFT)
-      && ((t & ~VALID_NTFT) == PARTITION_FAT_12
-        || (t & ~VALID_NTFT) == PARTITION_FAT_16
-        || (t & ~VALID_NTFT) == PARTITION_IFS
-        || (t & ~VALID_NTFT) == PARTITION_HUGE
-        || (t & ~VALID_NTFT) == PARTITION_FAT32
-        || (t & ~VALID_NTFT) == PARTITION_FAT32_XINT13
-        || (t & ~VALID_NTFT) == PARTITION_XINT13))
-      || (t & ~PARTITION_NTFT) == PARTITION_FAT_12
-      || (t & ~PARTITION_NTFT) == PARTITION_FAT_16
-      || (t & ~PARTITION_NTFT) == PARTITION_IFS
-      || (t & ~PARTITION_NTFT) == PARTITION_HUGE
-      || (t & ~PARTITION_NTFT) == PARTITION_FAT32
-      || (t & ~PARTITION_NTFT) == PARTITION_FAT32_XINT13
-      || (t & ~PARTITION_NTFT) == PARTITION_XINT13;
+      && ((t & (-1 - VALID_NTFT)) == PARTITION_FAT_12
+        || (t & (-1 - VALID_NTFT)) == PARTITION_FAT_16
+        || (t & (-1 - VALID_NTFT)) == PARTITION_IFS
+        || (t & (-1 - VALID_NTFT)) == PARTITION_HUGE
+        || (t & (-1 - VALID_NTFT)) == PARTITION_FAT32
+        || (t & (-1 - VALID_NTFT)) == PARTITION_FAT32_XINT13
+        || (t & (-1 - VALID_NTFT)) == PARTITION_XINT13))
+      || (t & (-1 - PARTITION_NTFT)) == PARTITION_FAT_12
+      || (t & (-1 - PARTITION_NTFT)) == PARTITION_FAT_16
+      || (t & (-1 - PARTITION_NTFT)) == PARTITION_IFS
+      || (t & (-1 - PARTITION_NTFT)) == PARTITION_HUGE
+      || (t & (-1 - PARTITION_NTFT)) == PARTITION_FAT32
+      || (t & (-1 - PARTITION_NTFT)) == PARTITION_FAT32_XINT13
+      || (t & (-1 - PARTITION_NTFT)) == PARTITION_XINT13;
 }
 
 bool IsContainerPartition(BYTE t) {
     return ((t & PARTITION_NTFT)
-      && ((t & ~VALID_NTFT) == PARTITION_EXTENDED
-        || (t & ~VALID_NTFT) == PARTITION_XINT13_EXTENDED))
-      || (t & ~PARTITION_NTFT) == PARTITION_EXTENDED
-      || (t & ~PARTITION_NTFT) == PARTITION_XINT13_EXTENDED;
+      && ((t & (-1 - VALID_NTFT)) == PARTITION_EXTENDED
+        || (t & (-1 - VALID_NTFT)) == PARTITION_XINT13_EXTENDED))
+      || (t & (-1 - PARTITION_NTFT)) == PARTITION_EXTENDED
+      || (t & (-1 - PARTITION_NTFT)) == PARTITION_XINT13_EXTENDED;
 }
