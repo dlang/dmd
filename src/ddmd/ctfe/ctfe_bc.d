@@ -4050,7 +4050,7 @@ static if (is(BCGen))
 
         assert(e1.heapRef, "AddrExp needs to be on the heap, otherwise is has no address");
         retval = BCValue(e1.heapRef).i32; // hack this is a ptr not an i32;
-        import std.stdio; writeln(ae.toString ~ " --  " ~ "retval: " ~ retval.toString); //debugline
+        // import std.stdio; writeln(ae.toString ~ " --  " ~ "retval: " ~ retval.toString); //debugline
         //assert(0, "Dieng on Addr ?");
     }
 
