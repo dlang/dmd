@@ -7924,59 +7924,64 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.setNoderefOperands();
 
         // same as for AndAnd
-        exp.e1 = exp.e1.semantic(sc);
-        exp.e1 = resolveProperties(sc, exp.e1);
-        exp.e1 = exp.e1.toBoolean(sc);
+        Expression e1x = exp.e1.semantic(sc);
+        e1x = resolveProperties(sc, e1x);
+        e1x = e1x.toBoolean(sc);
         uint cs1 = sc.callSuper;
 
         if (sc.flags & SCOPEcondition)
         {
             /* If in static if, don't evaluate e2 if we don't have to.
              */
-            exp.e1 = exp.e1.optimize(WANTvalue);
-            if (exp.e1.isBool(true))
+            e1x = e1x.optimize(WANTvalue);
+            if (e1x.isBool(true))
             {
                 result = new IntegerExp(exp.loc, 1, Type.tbool);
                 return;
             }
         }
 
-        exp.e2 = exp.e2.semantic(sc);
+        Expression e2x = exp.e2.semantic(sc);
         sc.mergeCallSuper(exp.loc, cs1);
-        exp.e2 = resolveProperties(sc, exp.e2);
+        e2x = resolveProperties(sc, e2x);
 
-        auto f1 = checkNonAssignmentArrayOp(exp.e1);
-        auto f2 = checkNonAssignmentArrayOp(exp.e2);
+        auto f1 = checkNonAssignmentArrayOp(e1x);
+        auto f2 = checkNonAssignmentArrayOp(e2x);
         if (f1 || f2)
         {
             result = new ErrorExp();
             return;
         }
 
-        if (exp.e2.type.ty == Tvoid)
-            exp.type = Type.tvoid;
-        else
-        {
-            exp.e2 = exp.e2.toBoolean(sc);
-            exp.type = Type.tbool;
-        }
-        if (exp.e2.op == TOKtype || exp.e2.op == TOKscope)
+        // Unless the right operand is 'void', the expression is converted to 'bool'.
+        if (e2x.type.ty != Tvoid)
+            e2x = e2x.toBoolean(sc);
+
+        if (e2x.op == TOKtype || e2x.op == TOKscope)
         {
             exp.error("%s is not an expression", exp.e2.toChars());
             result = new ErrorExp();
             return;
         }
-        if (exp.e1.op == TOKerror)
+        if (e1x.op == TOKerror)
         {
-            result = exp.e1;
+            result = e1x;
             return;
         }
-        if (exp.e2.op == TOKerror)
+        if (e2x.op == TOKerror)
         {
-            result = exp.e2;
+            result = e2x;
             return;
         }
 
+        // The result type is 'bool', unless the right operand has type 'void'.
+        if (e2x.type.ty == Tvoid)
+            exp.type = Type.tvoid;
+        else
+            exp.type = Type.tbool;
+
+        exp.e1 = e1x;
+        exp.e2 = e2x;
         result = exp;
     }
 
@@ -7991,59 +7996,64 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.setNoderefOperands();
 
         // same as for OrOr
-        exp.e1 = exp.e1.semantic(sc);
-        exp.e1 = resolveProperties(sc, exp.e1);
-        exp.e1 = exp.e1.toBoolean(sc);
+        Expression e1x = exp.e1.semantic(sc);
+        e1x = resolveProperties(sc, e1x);
+        e1x = e1x.toBoolean(sc);
         uint cs1 = sc.callSuper;
 
         if (sc.flags & SCOPEcondition)
         {
             /* If in static if, don't evaluate e2 if we don't have to.
              */
-            exp.e1 = exp.e1.optimize(WANTvalue);
-            if (exp.e1.isBool(false))
+            e1x = e1x.optimize(WANTvalue);
+            if (e1x.isBool(false))
             {
                 result = new IntegerExp(exp.loc, 0, Type.tbool);
                 return;
             }
         }
 
-        exp.e2 = exp.e2.semantic(sc);
+        Expression e2x = exp.e2.semantic(sc);
         sc.mergeCallSuper(exp.loc, cs1);
-        exp.e2 = resolveProperties(sc, exp.e2);
+        e2x = resolveProperties(sc, e2x);
 
-        auto f1 = checkNonAssignmentArrayOp(exp.e1);
-        auto f2 = checkNonAssignmentArrayOp(exp.e2);
+        auto f1 = checkNonAssignmentArrayOp(e1x);
+        auto f2 = checkNonAssignmentArrayOp(e2x);
         if (f1 || f2)
         {
             result = new ErrorExp();
             return;
         }
 
-        if (exp.e2.type.ty == Tvoid)
-            exp.type = Type.tvoid;
-        else
-        {
-            exp.e2 = exp.e2.toBoolean(sc);
-            exp.type = Type.tbool;
-        }
-        if (exp.e2.op == TOKtype || exp.e2.op == TOKscope)
+        // Unless the right operand is 'void', the expression is converted to 'bool'.
+        if (e2x.type.ty != Tvoid)
+            e2x = e2x.toBoolean(sc);
+
+        if (e2x.op == TOKtype || e2x.op == TOKscope)
         {
             exp.error("%s is not an expression", exp.e2.toChars());
             result = new ErrorExp();
             return;
         }
-        if (exp.e1.op == TOKerror)
+        if (e1x.op == TOKerror)
         {
-            result = exp.e1;
+            result = e1x;
             return;
         }
-        if (exp.e2.op == TOKerror)
+        if (e2x.op == TOKerror)
         {
-            result = exp.e2;
+            result = e2x;
             return;
         }
 
+        // The result type is 'bool', unless the right operand has type 'void'.
+        if (e2x.type.ty == Tvoid)
+            exp.type = Type.tvoid;
+        else
+            exp.type = Type.tbool;
+
+        exp.e1 = e1x;
+        exp.e2 = e2x;
         result = exp;
     }
 
