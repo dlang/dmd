@@ -2,6 +2,8 @@
 /*
 TEST_OUTPUT:
 ---
+fail_compilation/reserved_version.d(105): Error: version identifier `MSP430` is reserved and cannot be set
+fail_compilation/reserved_version.d(106): Error: version identifier `D_P16` is reserved and cannot be set
 fail_compilation/reserved_version.d(107): Error: version identifier `DigitalMars` is reserved and cannot be set
 fail_compilation/reserved_version.d(108): Error: version identifier `GNU` is reserved and cannot be set
 fail_compilation/reserved_version.d(109): Error: version identifier `LDC` is reserved and cannot be set
@@ -100,10 +102,8 @@ fail_compilation/reserved_version.d(201): Error: version identifier `none` is re
 
 // Some extra empty lines to help fixup the manual line numbering after adding new version identifiers
 
-
-
-
-
+version = MSP430;
+version = D_P16;
 version = DigitalMars;
 version = GNU;
 version = LDC;
@@ -294,3 +294,5 @@ debug = D_NoBoundsChecks;
 //debug = assert;
 debug = all;
 debug = none;
+debug = D_P16;
+debug = MSP430;
