@@ -1668,7 +1668,7 @@ private:
         return cast(Mutex)_locks[1].ptr;
     }
 
-    __gshared void[__traits(classInstanceSize, Mutex)][2] _locks;
+    __gshared align(Mutex.alignof) void[__traits(classInstanceSize, Mutex)][2] _locks;
 
     static void initLocks()
     {
