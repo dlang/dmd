@@ -163,6 +163,7 @@ void foo800()
     throw e;
 }
 
+/*************************************************/
 
 
 
@@ -183,25 +184,43 @@ void foo800()
 
 
 
+/*************************************************/
 
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope2.d(1005): Error: scope variable `p` assigned to `this` with longer lifetime
+fail_compilation/retscope2.d(1024): Error: scope variable `p` assigned to `d` with longer lifetime
+---
+*/
 
+#line 1000
 
+class C17428
+{
+    void set(scope int* p) @safe
+    {
+        _p = p;
+    }
 
+    int* _p;
+}
 
+class C17428b
+{
+    int* _p;
+}
 
+void test17428() @safe
+{
+        int x;
+        int* p = &x;
+        scope C17428b c;
+        c._p = p;   // ok
 
-
-
-
-
-
-
-
-
-
-
-
-
+        C17428b d;
+        d._p = p;   // bad
+}
 
 
 

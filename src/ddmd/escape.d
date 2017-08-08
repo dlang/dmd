@@ -242,7 +242,10 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
             // If va's lifetime encloses v's, then error
             if (va &&
-                (va.enclosesLifetimeOf(v) && !(v.storage_class & STCparameter) || va.storage_class & STCref) &&
+                (va.enclosesLifetimeOf(v) && !(v.storage_class & STCparameter) ||
+                 // va is class reference
+                 ae.e1.op == TOKdotvar && va.type.toBasetype().ty == Tclass && (va.enclosesLifetimeOf(v) || !va.isScope) ||
+                 va.storage_class & STCref) &&
                 sc.func.setUnsafe())
             {
                 if (!gag)
