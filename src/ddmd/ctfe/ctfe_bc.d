@@ -17,8 +17,8 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 
 import std.conv : to;
 
-enum perf = 1;
-enum bailoutMessages = 1;
+enum perf = 0;
+enum bailoutMessages = 0;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -2019,6 +2019,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         if(!elementType)
         {
             bailout("we could not get the elementType of " ~ slice.type.to!string);
+            return ;
         }
         auto elementSize = _sharedCtfeState.size(elementType);
 
@@ -3156,9 +3157,13 @@ static if (is(BCGen))
                 // don't need to stored ((or do they ??) ... do we need to copy) ?
 
                 retval.type = _sharedCtfeState.pointerOf(v.type);
-                bailout(v.type.anyOf([BCTypeEnum.Array, BCTypeEnum.Struct, BCTypeEnum.Slice]), "HeapValues are currently unspported for SymOffExps -- " ~ se.toString);
+                if (v.type.anyOf([BCTypeEnum.Array, BCTypeEnum.Struct, BCTypeEnum.Slice]))
+                {
+                    bailout("HeapValues are currently unspported for SymOffExps -- " ~ se.toString);
+                    return ;
+                }
 
-                bailout(_sharedCtfeState.size(v.type) < 4, "only addresses of 32bit values or less are supported for now: " ~ se.toString);
+                bailout(v && _sharedCtfeState.size(v.type) < 4, "only addresses of 32bit values or less are supported for now: " ~ se.toString);
                 auto addr = genTemporary(i32Type);
                 Alloc(addr, imm32(_sharedCtfeState.size(v.type)));
                 Store32(addr, v);
@@ -3332,7 +3337,11 @@ static if (is(BCGen))
             auto basePtr = getBase(indexed);
             Mul3(offset, idx, imm32(elemSize));
             Add3(ptr, offset, basePtr);
-
+            if (!retval || !ptr)
+            {
+                bailout("cannot gen: " ~ ie.toString);
+                return ;
+            }
             retval.heapRef = BCHeapRef(ptr);
 
             if (elemType.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.Array]))
@@ -3545,9 +3554,12 @@ static if (is(BCGen))
             }
 
             auto origSlice = genExpr(se.e1, "SliceExp origSlice");
-            if (origSlice.type.type != BCTypeEnum.Slice)
+            if (origSlice && origSlice.type.type != BCTypeEnum.Slice)
             {
-                assert(origSlice.type.type.anyOf([BCTypeEnum.Array, BCTypeEnum.Ptr]));
+                bailout(!origSlice.type.type.anyOf([BCTypeEnum.Array, BCTypeEnum.Ptr]),
+                    "SliceExp: Slice Ptr or Array expected but got: " ~
+                     origSlice.type.type.to!string
+                );
                 origSlice.type = _sharedCtfeState.sliceOf(_sharedCtfeState.elementType(origSlice.type));
             }
             currentIndexed = origSlice;
@@ -3687,7 +3699,11 @@ static if (is(BCGen))
                     Set(retval.i32, ptr);
                 else
                     Load32(retval.i32, ptr);
-
+                if (!ptr)
+                {
+                    bailout("could not gen :" ~ dve.toString);
+                    return ;
+                }
                 retval.heapRef = BCHeapRef(ptr);
 
                 debug (ctfe)
@@ -4023,6 +4039,7 @@ static if (is(BCGen))
         else
         {
             bailout("We currently don't support taking the address of " ~ e1.type.toString ~ " -- " ~ ae.toString);
+            return ;
         }
 
         assert(e1.heapRef, "AddrExp needs to be on the heap, otherwise is has no address");
@@ -5093,7 +5110,7 @@ static if (is(BCGen))
                 auto overlapError = addError(ae.loc, "overlapping slice assignment [%d..%d] = [%d..%d]", lhs_lwr, lhs_upr, rhs_lwr, rhs_upr);
 
                 // const diff = ptr1 > ptr2 ? ptr1 - ptr2 : ptr2 - ptr1;
-                auto diff = genTemporary(i32Type); 
+                auto diff = genTemporary(i32Type);
                 {
                     auto lhs_gt_rhs = genTemporary(i32Type);
                     Gt3(lhs_gt_rhs, lhs_base, rhs_base);
@@ -5112,11 +5129,16 @@ static if (is(BCGen))
                     Lt3(diff_lt_length, diff, lhs_length);
                     auto cndJmp1 = beginCndJmp(diff_lt_length);
                         Assert(imm32(0), overlapError);
-                    endCndJmp(cndJmp1, genLabel());   
+                    endCndJmp(cndJmp1, genLabel());
                 }
             }
 
             auto elemSize = sharedCtfeState.size(sharedCtfeState.elementType(lhs.type));
+            if (!elemSize)
+            {
+                bailout("could not get elementSize of : " ~ _sharedCtfeState.typeToString(lhs.type));
+                return ;
+            }
             copyArray(&lhs_base, &rhs_base, lhs_length, elemSize);
         }
 
@@ -5302,6 +5324,16 @@ static if (is(BCGen))
             ignoreVoid = false;
 
             auto rhs = genExpr(ae.e2);
+            if (!lhs || !rhs)
+            {
+                bailout("could not gen lhs or rhs of AssignExp: " ~ ae.toString);
+                return ;
+            }
+            if (!lhs.heapRef)
+            {
+                bailout("lhs for Assign-IndexExp needs to have a heapRef: " ~ ae.toString);
+                return ;
+            }
             auto effectiveAddr = BCValue(lhs.heapRef);
 
             if (rhs.type.type.anyOf([BCTypeEnum.Array, BCTypeEnum.Struct]))
@@ -6095,6 +6127,11 @@ static if (is(BCGen))
                         return ;
                     }
                     auto origArg = genExpr(ce_arg);
+                    if (!origArg)
+                    {
+                        bailout("could not generate origArg[" ~ to!string(i) ~ "] for ref in: " ~ ce.toString);
+                        return ;
+                    }
                     origArg.heapRef = BCHeapRef(arg);
                     LoadFromHeapRef(origArg);
               }
@@ -6219,7 +6256,10 @@ static if (is(BCGen))
             if (toType.type.anyOf([BCTypeEnum.i8, BCTypeEnum.c8, BCTypeEnum.i32, BCTypeEnum.i16, BCTypeEnum.i64]))
                 retval.type = toType;
             else
+            {
                 bailout("Cannot do cast toType:" ~ to!string(toType.type) ~ " -- "~ ce.toString);
+                return ;
+            }
         }
         else if (fromType.type == BCTypeEnum.i32 || fromType.type == BCTypeEnum.i64)
         {
