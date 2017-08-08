@@ -159,7 +159,7 @@ unittest
         ['x', '"', 0x1A],
     ];
 
-    foreach (i, testcase; testcases)
+    foreach (testcase; testcases)
     {
         scope Lexer lex2 = new Lexer(null, testcase.ptr, 0, testcase.length-1, 0, 0);
         TOK tok = lex2.nextToken();
