@@ -2311,13 +2311,19 @@ public:
     extern (D) BCValue genExpr(Expression expr, bool costumBoolFixup,  string debugMessage = null, uint line = __LINE__)
     {
 
+        if (!expr)
+        {
+            import std.stdio; writeln("Calling genExpr(null) from: " ~ to!string(line)); //DEBUGLINE
+            return BCValue.init;
+        }
+
         debug (ctfe)
         {
             import std.stdio;
         }
         auto oldRetval = retval;
         import ddmd.asttypename;
-        // import std.stdio; writeln("Calling genExpr(" ~ expr.astTypeName ~ ") from: ", line, debugMessage ? " \"" ~ debugMessage ~ "\"" : ""); //DEBUGLINE
+        // import std.stdio; writeln("Calling genExpr(" ~ expr.astTypeName ~ ") from: ", line, (debugMessage ? " \"" ~ debugMessage ~ "\" -- " : " -- ") ~ expr.toString); //DEBUGLINE
 
         if (processingArguments)
         {
@@ -4668,11 +4674,35 @@ static if (is(BCGen))
             bailout("We could not gen lhs or rhs");
             return;
         }
-        else if (!canHandleBinExpTypes(lhs.type, rhs.type) && _sharedCtfeState.elementType(lhs.type) != _sharedCtfeState.elementType(rhs.type))
+
+        if (e.op == TOKcatass && _sharedCtfeState.elementType(lhs.type) == _sharedCtfeState.elementType(rhs.type))
+        {
+            {
+                if ((lhs.type.type == BCTypeEnum.Slice && lhs.type.typeIndex < _sharedCtfeState.sliceTypes.length) || lhs.type.type == BCTypeEnum.string8)
+                {
+                    if(!lhs.type.typeIndex && lhs.type.type != BCTypeEnum.string8)
+                    {
+                        bailout("lhs for ~= is no valid slice" ~ e.toString);
+                        return ;
+                    }
+                    auto elementType = _sharedCtfeState.elementType(lhs.type);
+                    retval = lhs;
+                    doCat(lhs, lhs, rhs);
+                }
+                else
+                {
+                    bailout("Can only concat on slices or strings");
+                    return;
+                }
+            }
+        }
+        else if (!canHandleBinExpTypes(lhs.type, rhs.type))
         {
             bailout("Cannot use binExpTypes: " ~ to!string(lhs.type.type) ~ " et: " ~ to!string(_sharedCtfeState.elementType(lhs.type))  ~ " -- " ~ "to!string(rhs.type.type)" ~ " et : " ~ to!string(_sharedCtfeState.elementType(rhs.type)));
             return;
         }
+
+        //import std.stdio; writeln("BinAssignExp: " ~ )
 
         switch (e.op)
         {
@@ -4750,29 +4780,6 @@ static if (is(BCGen))
             }
             break;
 
-        case TOK.TOKcatass:
-            {
-                {
-                    if ((lhs.type.type == BCTypeEnum.Slice && lhs.type.typeIndex < _sharedCtfeState.sliceTypes.length) || lhs.type.type == BCTypeEnum.string8)
-                    {
-                        if(!lhs.type.typeIndex && lhs.type.type != BCTypeEnum.string8)
-                        {
-                            bailout("lhs for ~= is no valid slice" ~ e.toString);
-                            return ;
-                        }
-                        bailout(_sharedCtfeState.elementType(lhs.type) != _sharedCtfeState.elementType(rhs.type), "rhs and lhs for ~= are not compatible");
-                        auto elementType = _sharedCtfeState.elementType(lhs.type);
-                        retval = lhs;
-                        doCat(lhs, lhs, rhs);
-                    }
-                    else
-                    {
-                        bailout("Can only concat on slices or strings");
-                        return;
-                    }
-                }
-            }
-            break;
         default:
             {
                 bailout("BinAssignExp Unsupported for now" ~ e.toString);
@@ -4785,7 +4792,7 @@ static if (is(BCGen))
 
         if (oldAssignTo)
         {
-            Set(oldAssignTo, retval);
+            Set(oldAssignTo.i32, retval.i32);
             if (oldAssignTo.heapRef)
                 StoreToHeapRef(oldAssignTo);
         }
