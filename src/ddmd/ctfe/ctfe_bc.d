@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 0;
+enum bailoutMessages = 1;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -3560,7 +3560,7 @@ static if (is(BCGen))
             }
 
             auto origSlice = genExpr(se.e1, "SliceExp origSlice");
-            if (origSlice && origSlice.type.type != BCTypeEnum.Slice)
+            if (origSlice && origSlice.type.type != BCTypeEnum.Slice && origSlice.type.type != BCTypeEnum.string8)
             {
                 bailout(!origSlice.type.type.anyOf([BCTypeEnum.Array, BCTypeEnum.Ptr]),
                     "SliceExp: Slice Ptr or Array expected but got: " ~
@@ -4701,10 +4701,7 @@ static if (is(BCGen))
             bailout("Cannot use binExpTypes: " ~ to!string(lhs.type.type) ~ " et: " ~ to!string(_sharedCtfeState.elementType(lhs.type))  ~ " -- " ~ "to!string(rhs.type.type)" ~ " et : " ~ to!string(_sharedCtfeState.elementType(rhs.type)));
             return;
         }
-
-        //import std.stdio; writeln("BinAssignExp: " ~ )
-
-        switch (e.op)
+        else switch (e.op)
         {
         case TOK.TOKaddass:
             {
@@ -5269,14 +5266,14 @@ static if (is(BCGen))
         else if (ae.e1.op == TOKindex)
         {
             auto ie1 = cast(IndexExp) ae.e1;
-/*
-            auto indexed = genExpr(ie.e1, "AssignExp.e1(indexExp).e1 (e1[x])");
+
+            auto indexed = genExpr(ie1, "AssignExp.e1(indexExp).e1 (e1[x])");
             if (!indexed)
             {
                 bailout("could not fetch indexed_var in " ~ ae.toString);
                 return;
             }
-            auto index = genExpr(ie.e2, "AssignExp.e1(indexExp).e2: (x[e2])");
+            auto index = genExpr(ie1.e2, "AssignExp.e1(indexExp).e2: (x[e2])");
             if (!index)
             {
                 bailout("could not fetch index in " ~ ae.toString);
@@ -5306,7 +5303,7 @@ static if (is(BCGen))
                     "ArrayIndex %d out of bounds %d", index, length));
             }
             auto effectiveAddr = genTemporary(i32Type);
-            auto elemType = toBCType(ie.e1.type.nextOf);
+            auto elemType = toBCType(ie1.e1.type.nextOf);
             auto elemSize = _sharedCtfeState.size(elemType);
 
             Mul3(effectiveAddr, index, imm32(elemSize));
@@ -5315,13 +5312,14 @@ static if (is(BCGen))
             {
                 bailout("only 32/64 bit array loads are supported right now");
             }
+
             auto rhs = genExpr(ae.e2);
             if (!rhs)
             {
                 bailout("we could not gen AssignExp[].rhs: " ~ ae.e2.toString);
                 return ;
             }
-*/
+/*
 
             auto elemType = toBCType(ie1.e1.type.nextOf);
             auto elemSize = _sharedCtfeState.size(elemType);
@@ -5342,10 +5340,10 @@ static if (is(BCGen))
                 return ;
             }
             auto effectiveAddr = BCValue(lhs.heapRef);
-
+*/
             if (rhs.type.type.anyOf([BCTypeEnum.Array, BCTypeEnum.Struct]))
             {
-                MemCpy(lhs.i32, rhs.i32, imm32(sharedCtfeState.size(rhs.type)));
+                MemCpy(effectiveAddr.i32, rhs.i32, imm32(sharedCtfeState.size(rhs.type)));
             }
             else if (elemSize && elemSize <= 4)
                 Store32(effectiveAddr, rhs.i32);
@@ -5478,13 +5476,18 @@ static if (is(BCGen))
                     setArraySliceDesc(lhs, arrayType);
                     setLength(lhs.i32, imm32(arrayType.length));
                     auto base = getBase(lhs);
-                    if (rhs.type.type.anyOf([BCTypeEnum.i32, BCTypeEnum.i64]) && rhs.imm32 == 0)
+                    if (rhs.type.type.anyOf([BCTypeEnum.i32, BCTypeEnum.i64]) && rhs.vType == BCValueType.Immediate && rhs.imm32 == 0)
                     {
                         // no need to do anything ... the heap is supposed to be zero
                     }
                     else if (rhs.type == arrayType.elementType)
                     {
-                        bailout("broadcast assignment no supported for now -- " ~ ae.toString);
+                        bailout("broadcast assignment not supported for now -- " ~ ae.toString);
+                        return ;
+                    }
+                    else
+                    {
+                        bailout("ArrayAssignment unhandled: " ~ ae.toString);
                         return ;
                     }
                 }
