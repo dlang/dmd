@@ -5273,7 +5273,7 @@ static if (is(BCGen))
         {
             auto ie1 = cast(IndexExp) ae.e1;
 
-            auto indexed = genExpr(ie1, "AssignExp.e1(indexExp).e1 (e1[x])");
+            auto indexed = genExpr(ie1.e1, "AssignExp.e1(indexExp).e1 (e1[x])");
             if (!indexed)
             {
                 bailout("could not fetch indexed_var in " ~ ae.toString);
