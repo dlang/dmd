@@ -10,6 +10,8 @@
 
 module ddmd.toctype;
 
+// Online documentation: https://dlang.org/phobos/ddmd_toctype.html
+
 import core.stdc.stdlib;
 
 import ddmd.backend.cc : Classsym, Symbol;

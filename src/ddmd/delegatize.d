@@ -10,6 +10,8 @@
 
 module ddmd.delegatize;
 
+// Online documentation: https://dlang.org/phobos/ddmd_delegatize.html
+
 import core.stdc.stdio;
 import ddmd.apply;
 import ddmd.declaration;

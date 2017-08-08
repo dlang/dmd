@@ -10,6 +10,8 @@
 
 module ddmd.staticcond;
 
+// Online documentation: https://dlang.org/phobos/ddmd_staticcond.html
+
 import ddmd.arraytypes;
 import ddmd.dmodule;
 import ddmd.dscope;

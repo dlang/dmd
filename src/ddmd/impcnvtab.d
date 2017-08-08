@@ -10,6 +10,8 @@
 
 module ddmd.impcnvtab;
 
+// Online documentation: https://dlang.org/phobos/ddmd_impcnvtab.html
+
 import ddmd.mtype;
 
 immutable ENUMTY[TMAX][TMAX] impcnvResult = impCnvTab.impcnvResultTab;

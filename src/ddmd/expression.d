@@ -10,6 +10,8 @@
 
 module ddmd.expression;
 
+// Online documentation: https://dlang.org/phobos/ddmd_expression.html
+
 import core.stdc.stdarg;
 import core.stdc.stdio;
 import core.stdc.string;

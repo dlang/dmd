@@ -10,6 +10,8 @@
 
 module ddmd.libmscoff;
 
+// Online documentation: https://dlang.org/phobos/ddmd_libmscoff.html
+
 import core.stdc.stdlib;
 import core.stdc.string;
 import core.stdc.time;

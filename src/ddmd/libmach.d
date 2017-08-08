@@ -10,6 +10,8 @@
 
 module ddmd.libmach;
 
+// Online documentation: https://dlang.org/phobos/ddmd_libmach.html
+
 import core.stdc.time;
 import core.stdc.string;
 import core.stdc.stdlib;

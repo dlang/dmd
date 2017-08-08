@@ -10,6 +10,8 @@
 
 module ddmd.dinterpret;
 
+// Online documentation: https://dlang.org/phobos/ddmd_dinterpret.html
+
 import core.stdc.stdio;
 import core.stdc.string;
 import ddmd.apply;

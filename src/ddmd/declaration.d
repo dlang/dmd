@@ -10,6 +10,8 @@
 
 module ddmd.declaration;
 
+// Online documentation: https://dlang.org/phobos/ddmd_declaration.html
+
 import core.stdc.stdio;
 import ddmd.aggregate;
 import ddmd.arraytypes;

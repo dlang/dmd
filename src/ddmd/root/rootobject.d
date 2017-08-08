@@ -10,6 +10,8 @@
 
 module ddmd.root.rootobject;
 
+// Online documentation: https://dlang.org/phobos/ddmd_root_rootobject.html
+
 import core.stdc.stdio;
 
 import ddmd.root.outbuffer;

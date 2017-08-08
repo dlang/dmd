@@ -10,6 +10,8 @@
 
 module ddmd.opover;
 
+// Online documentation: https://dlang.org/phobos/ddmd_opover.html
+
 import core.stdc.stdio;
 import ddmd.aggregate;
 import ddmd.aliasthis;

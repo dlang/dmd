@@ -15,6 +15,8 @@
 
 module ddmd.mars;
 
+// Online documentation: https://dlang.org/phobos/ddmd_mars.html
+
 import core.stdc.ctype;
 import core.stdc.errno;
 import core.stdc.limits;

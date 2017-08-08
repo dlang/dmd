@@ -10,6 +10,8 @@
 
 module ddmd.toir;
 
+// Online documentation: https://dlang.org/phobos/ddmd_toir.html
+
 import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stdlib;

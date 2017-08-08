@@ -10,6 +10,8 @@
 
 module ddmd.objc;
 
+// Online documentation: https://dlang.org/phobos/ddmd_objc.html
+
 import ddmd.arraytypes;
 import ddmd.cond;
 import ddmd.dclass;

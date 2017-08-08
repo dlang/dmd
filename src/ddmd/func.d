@@ -10,6 +10,8 @@
 
 module ddmd.func;
 
+// Online documentation: https://dlang.org/phobos/ddmd_func.html
+
 import core.stdc.stdio;
 import core.stdc.string;
 import ddmd.aggregate;

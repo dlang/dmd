@@ -10,6 +10,8 @@
 
 module ddmd.errors;
 
+// Online documentation: https://dlang.org/phobos/ddmd_errors.html
+
 import core.stdc.stdarg;
 import core.stdc.stdio;
 import core.stdc.stdlib;

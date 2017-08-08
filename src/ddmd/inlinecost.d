@@ -10,6 +10,8 @@
 
 module ddmd.inlinecost;
 
+// Online documentation: https://dlang.org/phobos/ddmd_inlinecost.html
+
 import core.stdc.stdio;
 import core.stdc.string;
 

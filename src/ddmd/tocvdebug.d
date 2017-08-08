@@ -10,6 +10,8 @@
 
 module ddmd.tocvdebug;
 
+// Online documentation: https://dlang.org/phobos/ddmd_tocvdebug.html
+
 version (Windows)
 {
 

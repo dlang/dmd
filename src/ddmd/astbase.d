@@ -1,5 +1,7 @@
 module ddmd.astbase;
 
+// Online documentation: https://dlang.org/phobos/ddmd_astbase.html
+
 import ddmd.astbasevisitor;
 
 /** The ASTBase  family defines a family of AST nodes appropriate for parsing with

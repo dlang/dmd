@@ -10,6 +10,8 @@
 
 module ddmd.denum;
 
+// Online documentation: https://dlang.org/phobos/ddmd_denum.html
+
 import core.stdc.stdio;
 import ddmd.root.rootobject;
 import ddmd.gluelayer;

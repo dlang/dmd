@@ -10,6 +10,8 @@
 
 module ddmd.mtype;
 
+// Online documentation: https://dlang.org/phobos/ddmd_mtype.html
+
 import core.checkedint;
 import core.stdc.stdarg;
 import core.stdc.stdio;

@@ -1,5 +1,7 @@
 module ddmd.transitivevisitor;
 
+// Online documentation: https://dlang.org/phobos/ddmd_transitivevisitor.html
+
 import ddmd.astbase;
 import ddmd.permissivevisitor;
 import ddmd.tokens;

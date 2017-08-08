@@ -10,6 +10,8 @@
 
 module ddmd.root.rmem;
 
+// Online documentation: https://dlang.org/phobos/ddmd_root_rmem.html
+
 import core.stdc.string;
 
 version (GC)

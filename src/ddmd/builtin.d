@@ -10,6 +10,8 @@
 
 module ddmd.builtin;
 
+// Online documentation: https://dlang.org/phobos/ddmd_builtin.html
+
 import core.stdc.math;
 import core.stdc.string;
 import ddmd.arraytypes;

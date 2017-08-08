@@ -10,6 +10,8 @@
 
 module ddmd.backend.xmm;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_xmm.html
+
 // XMM opcodes
 
 enum

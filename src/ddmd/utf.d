@@ -10,6 +10,8 @@
 
 module ddmd.utf;
 
+// Online documentation: https://dlang.org/phobos/ddmd_utf.html
+
 nothrow pure @nogc:
 
 /// The Unicode code space is the range of code points [0x000000,0x10FFFF]

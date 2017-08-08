@@ -13,6 +13,8 @@
 
 module ddmd.backend.cgcv;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_cgcv.html
+
 import ddmd.backend.cc : Classsym, Symbol;
 import ddmd.backend.type;
 import ddmd.tk.dlist;

@@ -11,6 +11,8 @@
 
 module ddmd.backend.obj;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_obj.html
+
 /* Interface to object file format
  */
 

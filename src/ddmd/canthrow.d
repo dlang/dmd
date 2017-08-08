@@ -10,6 +10,8 @@
 
 module ddmd.canthrow;
 
+// Online documentation: https://dlang.org/phobos/ddmd_canthrow.html
+
 import ddmd.aggregate;
 import ddmd.apply;
 import ddmd.arraytypes;

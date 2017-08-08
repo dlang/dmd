@@ -5,6 +5,8 @@
 
 module ddmd.backend.dwarf;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_dwarf.html
+
 import ddmd.backend.cc;
 import ddmd.backend.cdef;
 import ddmd.backend.outbuf;

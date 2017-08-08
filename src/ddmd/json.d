@@ -10,6 +10,8 @@
 
 module ddmd.json;
 
+// Online documentation: https://dlang.org/phobos/ddmd_json.html
+
 import core.stdc.stdio;
 import core.stdc.string;
 import ddmd.aggregate;

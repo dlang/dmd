@@ -11,6 +11,8 @@
 
 module ddmd.backend.exh;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_exh.html
+
 import ddmd.backend.cc;
 import ddmd.backend.cdef;
 import ddmd.backend.el;

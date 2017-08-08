@@ -10,6 +10,8 @@
 
 module ddmd.dmacro;
 
+// Online documentation: https://dlang.org/phobos/ddmd_dmacro.html
+
 import core.stdc.ctype;
 import core.stdc.string;
 import ddmd.doc;

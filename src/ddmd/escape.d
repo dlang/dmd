@@ -10,6 +10,8 @@
 
 module ddmd.escape;
 
+// Online documentation: https://dlang.org/phobos/ddmd_escape.html
+
 import core.stdc.stdio : printf;
 
 import ddmd.aggregate;

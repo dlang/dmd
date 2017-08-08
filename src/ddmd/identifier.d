@@ -10,6 +10,8 @@
 
 module ddmd.identifier;
 
+// Online documentation: https://dlang.org/phobos/ddmd_identifier.html
+
 import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.string;

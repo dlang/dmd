@@ -11,6 +11,8 @@
 
 module ddmd.backend.oper;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_oper.html
+
 extern (C++):
 @nogc:
 nothrow:

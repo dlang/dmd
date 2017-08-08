@@ -9,6 +9,8 @@
 
 module ddmd.backend.bcomplex;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_bcomplex.html
+
 extern (C++):
 @nogc:
 nothrow:

@@ -10,6 +10,8 @@
 
 module ddmd.tokens;
 
+// Online documentation: https://dlang.org/phobos/ddmd_tokens.html
+
 import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.string;

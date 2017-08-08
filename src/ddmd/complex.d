@@ -10,6 +10,8 @@
 
 module ddmd.complex;
 
+// Online documentation: https://dlang.org/phobos/ddmd_complex.html
+
 import ddmd.root.ctfloat;
 
 struct complex_t

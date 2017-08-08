@@ -11,6 +11,8 @@
 
 module ddmd.backend.cdef;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_cdef.html
+
 import ddmd.backend.cc: Classsym, Symbol;
 import ddmd.backend.el;
 

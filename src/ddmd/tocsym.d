@@ -10,6 +10,8 @@
 
 module ddmd.tocsym;
 
+// Online documentation: https://dlang.org/phobos/ddmd_tocsym.html
+
 import core.stdc.stdio;
 import core.stdc.string;
 

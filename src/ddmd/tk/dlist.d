@@ -18,6 +18,8 @@
 
 module ddmd.tk.dlist;
 
+// Online documentation: https://dlang.org/phobos/ddmd_tk_dlist.html
+
 extern (C++):
 nothrow:
 @nogc:

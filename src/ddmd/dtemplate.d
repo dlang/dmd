@@ -12,6 +12,8 @@
 
 module ddmd.dtemplate;
 
+// Online documentation: https://dlang.org/phobos/ddmd_dtemplate.html
+
 import core.stdc.stdio;
 import core.stdc.string;
 import ddmd.aggregate;

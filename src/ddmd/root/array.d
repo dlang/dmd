@@ -10,6 +10,8 @@
 
 module ddmd.root.array;
 
+// Online documentation: https://dlang.org/phobos/ddmd_root_array.html
+
 import core.stdc.string;
 
 import ddmd.root.rmem;

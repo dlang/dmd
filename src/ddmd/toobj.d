@@ -10,6 +10,8 @@
 
 module ddmd.toobj;
 
+// Online documentation: https://dlang.org/phobos/ddmd_toobj.html
+
 import core.stdc.stdio;
 import core.stdc.stddef;
 import core.stdc.string;

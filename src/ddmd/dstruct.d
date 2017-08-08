@@ -10,6 +10,8 @@
 
 module ddmd.dstruct;
 
+// Online documentation: https://dlang.org/phobos/ddmd_dstruct.html
+
 import core.stdc.stdio;
 import ddmd.aggregate;
 import ddmd.argtypes;

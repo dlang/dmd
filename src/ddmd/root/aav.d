@@ -10,6 +10,8 @@
 
 module ddmd.root.aav;
 
+// Online documentation: https://dlang.org/phobos/ddmd_root_aav.html
+
 import core.stdc.string;
 import ddmd.root.rmem;
 

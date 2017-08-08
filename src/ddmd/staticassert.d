@@ -10,6 +10,8 @@
 
 module ddmd.staticassert;
 
+// Online documentation: https://dlang.org/phobos/ddmd_staticassert.html
+
 import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.errors;

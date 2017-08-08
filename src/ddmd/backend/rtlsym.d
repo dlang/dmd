@@ -11,6 +11,8 @@
 
 module ddmd.backend.rtlsym;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_rtlsym.html
+
 import ddmd.backend.cc : Symbol;
 
 enum

@@ -10,6 +10,8 @@
 
 module ddmd.intrange;
 
+// Online documentation: https://dlang.org/phobos/ddmd_intrange.html
+
 import core.stdc.stdio;
 
 import ddmd.mtype;

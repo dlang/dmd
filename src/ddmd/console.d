@@ -15,6 +15,8 @@
 
 module ddmd.console;
 
+// Online documentation: https://dlang.org/phobos/ddmd_console.html
+
 import core.stdc.stdio;
 extern (C) int isatty(int);
 

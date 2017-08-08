@@ -10,6 +10,8 @@
 
 module ddmd.typinf;
 
+// Online documentation: https://dlang.org/phobos/ddmd_typinf.html
+
 import ddmd.declaration;
 import ddmd.dmodule;
 import ddmd.dscope;

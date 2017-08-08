@@ -10,6 +10,8 @@
 
 module ddmd.traits;
 
+// Online documentation: https://dlang.org/phobos/ddmd_traits.html
+
 import core.stdc.stdio;
 import core.stdc.string;
 import ddmd.aggregate;

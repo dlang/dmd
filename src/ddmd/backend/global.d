@@ -10,6 +10,8 @@
  */
 module ddmd.backend.global;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_global.html
+
 extern (C++):
 @nogc:
 nothrow:

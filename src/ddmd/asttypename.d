@@ -8,6 +8,8 @@
 
 module ddmd.asttypename;
 
+// Online documentation: https://dlang.org/phobos/ddmd_asttypename.html
+
 import ddmd.attrib;
 import ddmd.aliasthis;
 import ddmd.aggregate;

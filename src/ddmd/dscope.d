@@ -10,6 +10,8 @@
 
 module ddmd.dscope;
 
+// Online documentation: https://dlang.org/phobos/ddmd_dscope.html
+
 import core.stdc.stdio;
 import core.stdc.string;
 import ddmd.aggregate;

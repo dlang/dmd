@@ -10,6 +10,8 @@
 
 module ddmd.nspace;
 
+// Online documentation: https://dlang.org/phobos/ddmd_nspace.html
+
 import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.dscope;

@@ -10,6 +10,8 @@
 
 module ddmd.printast;
 
+// Online documentation: https://dlang.org/phobos/ddmd_printast.html
+
 import core.stdc.stdio;
 
 import ddmd.expression;

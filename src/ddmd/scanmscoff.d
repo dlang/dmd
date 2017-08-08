@@ -10,6 +10,8 @@
 
 module ddmd.scanmscoff;
 
+// Online documentation: https://dlang.org/phobos/ddmd_scanmscoff.html
+
 import core.stdc.string, core.stdc.stdlib, core.sys.windows.windows;
 import ddmd.globals, ddmd.errors;
 

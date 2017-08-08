@@ -10,6 +10,8 @@
 
 module ddmd.root.man;
 
+// Online documentation: https://dlang.org/phobos/ddmd_root_man.html
+
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;

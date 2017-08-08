@@ -10,6 +10,8 @@
 
 module ddmd.blockexit;
 
+// Online documentation: https://dlang.org/phobos/ddmd_blockexit.html
+
 import core.stdc.stdio;
 
 import ddmd.arraytypes;

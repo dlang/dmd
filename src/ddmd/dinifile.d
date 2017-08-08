@@ -11,6 +11,8 @@
 
 module ddmd.dinifile;
 
+// Online documentation: https://dlang.org/phobos/ddmd_dinifile.html
+
 import core.stdc.ctype;
 import core.stdc.string;
 import core.sys.posix.stdlib;

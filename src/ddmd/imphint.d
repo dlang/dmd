@@ -10,6 +10,8 @@
 
 module ddmd.imphint;
 
+// Online documentation: https://dlang.org/phobos/ddmd_imphint.html
+
 import core.stdc.string;
 
 /******************************************

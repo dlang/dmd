@@ -10,6 +10,8 @@
 
 module ddmd.parse;
 
+// Online documentation: https://dlang.org/phobos/ddmd_parse.html
+
 import core.stdc.stdio;
 import core.stdc.string;
 import ddmd.globals;

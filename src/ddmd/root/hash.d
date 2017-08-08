@@ -10,6 +10,8 @@
 
 module ddmd.root.hash;
 
+// Online documentation: https://dlang.org/phobos/ddmd_root_hash.html
+
 // MurmurHash2 was written by Austin Appleby, and is placed in the public
 // domain. The author hereby disclaims copyright to this source code.
 // https://sites.google.com/site/murmurhash/

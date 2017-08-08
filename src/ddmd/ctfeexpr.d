@@ -10,6 +10,8 @@
 
 module ddmd.ctfeexpr;
 
+// Online documentation: https://dlang.org/phobos/ddmd_ctfeexpr.html
+
 import core.stdc.stdio;
 import core.stdc.string;
 import ddmd.arraytypes;

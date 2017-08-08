@@ -10,6 +10,8 @@
 
 module ddmd.e2ir;
 
+// Online documentation: https://dlang.org/phobos/ddmd_e2ir.html
+
 import core.stdc.stdio;
 import core.stdc.stddef;
 import core.stdc.string;

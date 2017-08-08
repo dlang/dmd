@@ -10,6 +10,8 @@
 
 module ddmd.scanelf;
 
+// Online documentation: https://dlang.org/phobos/ddmd_scanelf.html
+
 version (linux)
     import core.sys.linux.elf;
 else version (FreeBSD)

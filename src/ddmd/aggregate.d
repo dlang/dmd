@@ -10,6 +10,8 @@
 
 module ddmd.aggregate;
 
+// Online documentation: https://dlang.org/phobos/ddmd_aggregate.html
+
 import core.stdc.stdio;
 import core.checkedint;
 

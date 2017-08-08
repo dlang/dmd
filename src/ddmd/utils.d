@@ -13,6 +13,8 @@
 
 module ddmd.utils;
 
+// Online documentation: https://dlang.org/phobos/ddmd_utils.html
+
 import core.stdc.string;
 import ddmd.errors;
 import ddmd.globals;

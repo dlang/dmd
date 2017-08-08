@@ -11,6 +11,8 @@
 
 module ddmd.backend.outbuf;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_outbuf.html
+
 import core.stdc.string;
 
 // Output buffer

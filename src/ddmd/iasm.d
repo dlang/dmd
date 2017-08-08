@@ -15,6 +15,8 @@
 
 module ddmd.iasm;
 
+// Online documentation: https://dlang.org/phobos/ddmd_iasm.html
+
 import core.stdc.stdio;
 import core.stdc.stdarg;
 import core.stdc.stdlib;

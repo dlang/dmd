@@ -10,6 +10,8 @@
 
 module ddmd.target;
 
+// Online documentation: https://dlang.org/phobos/ddmd_target.html
+
 import ddmd.cppmangle;
 import ddmd.dclass;
 import ddmd.dmodule;

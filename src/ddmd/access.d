@@ -10,6 +10,8 @@
 
 module ddmd.access;
 
+// Online documentation: https://dlang.org/phobos/ddmd_access.html
+
 import ddmd.aggregate;
 import ddmd.dclass;
 import ddmd.declaration;

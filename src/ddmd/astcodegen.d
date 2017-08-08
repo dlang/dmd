@@ -1,5 +1,7 @@
 module ddmd.astcodegen;
 
+// Online documentation: https://dlang.org/phobos/ddmd_astcodegen.html
+
 struct ASTCodegen
 {
     import ddmd.aggregate;

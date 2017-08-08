@@ -11,6 +11,8 @@
 
 module ddmd.backend.type;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_type.html
+
 import ddmd.backend.cdef;
 import ddmd.backend.cc : block, Blockx, Classsym, Symbol;
 import ddmd.backend.code;

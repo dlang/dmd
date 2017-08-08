@@ -10,6 +10,8 @@
 
 module ddmd.root.ctfloat;
 
+// Online documentation: https://dlang.org/phobos/ddmd_root_ctfloat.html
+
 static import core.math, core.stdc.math;
 import core.stdc.errno;
 import core.stdc.stdio;

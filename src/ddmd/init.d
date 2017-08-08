@@ -10,6 +10,8 @@
 
 module ddmd.init;
 
+// Online documentation: https://dlang.org/phobos/ddmd_init.html
+
 import core.stdc.stdio;
 import core.checkedint;
 

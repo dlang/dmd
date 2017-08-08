@@ -10,6 +10,8 @@
 
 module ddmd.sideeffect;
 
+// Online documentation: https://dlang.org/phobos/ddmd_sideeffect.html
+
 import ddmd.apply;
 import ddmd.declaration;
 import ddmd.dscope;

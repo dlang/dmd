@@ -4,6 +4,8 @@
 
 module ddmd.backend.md5;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_md5.html
+
 /*
  **********************************************************************
  ** md5.h -- Header file for implementation of MD5                   **

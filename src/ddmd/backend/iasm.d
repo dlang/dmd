@@ -11,6 +11,8 @@
 
 module ddmd.backend.iasm;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_iasm.html
+
 import ddmd.backend.cc : block;
 
 extern (C++):

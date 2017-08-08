@@ -10,6 +10,8 @@
 
 module ddmd.dclass;
 
+// Online documentation: https://dlang.org/phobos/ddmd_dclass.html
+
 import core.stdc.stdio;
 import core.stdc.string;
 

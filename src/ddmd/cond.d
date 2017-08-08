@@ -10,6 +10,8 @@
 
 module ddmd.cond;
 
+// Online documentation: https://dlang.org/phobos/ddmd_cond.html
+
 import core.stdc.string;
 import ddmd.arraytypes;
 import ddmd.dmodule;

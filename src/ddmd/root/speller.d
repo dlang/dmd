@@ -10,6 +10,8 @@
 
 module ddmd.root.speller;
 
+// Online documentation: https://dlang.org/phobos/ddmd_root_speller.html
+
 import core.stdc.limits;
 import core.stdc.stdlib;
 import core.stdc.string;

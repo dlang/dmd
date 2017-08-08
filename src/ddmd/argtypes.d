@@ -10,6 +10,8 @@
 
 module ddmd.argtypes;
 
+// Online documentation: https://dlang.org/phobos/ddmd_argtypes.html
+
 import core.stdc.stdio;
 import ddmd.declaration;
 import ddmd.globals;

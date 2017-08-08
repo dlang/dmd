@@ -10,6 +10,8 @@
 
 module ddmd.apply;
 
+// Online documentation: https://dlang.org/phobos/ddmd_apply.html
+
 import ddmd.arraytypes;
 import ddmd.dtemplate;
 import ddmd.expression;

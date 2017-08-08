@@ -11,6 +11,8 @@
 
 module ddmd.backend.ty;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_ty.html
+
 extern (C++):
 @nogc:
 nothrow:

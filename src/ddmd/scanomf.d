@@ -10,6 +10,8 @@
 
 module ddmd.scanomf;
 
+// Online documentation: https://dlang.org/phobos/ddmd_scanomf.html
+
 import core.stdc.string;
 import core.stdc.stdlib;
 import ddmd.globals;

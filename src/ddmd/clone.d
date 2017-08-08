@@ -10,6 +10,8 @@
 
 module ddmd.clone;
 
+// Online documentation: https://dlang.org/phobos/ddmd_clone.html
+
 import core.stdc.stdio;
 import ddmd.aggregate;
 import ddmd.arraytypes;

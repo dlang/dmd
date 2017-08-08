@@ -9,6 +9,8 @@
 
 module ddmd.cppmangle;
 
+// Online documentation: https://dlang.org/phobos/ddmd_cppmangle.html
+
 import core.stdc.string;
 import core.stdc.stdio;
 

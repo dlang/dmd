@@ -10,6 +10,8 @@
 
 module ddmd.arraytypes;
 
+// Online documentation: https://dlang.org/phobos/ddmd_arraytypes.html
+
 import ddmd.dclass;
 import ddmd.declaration;
 import ddmd.dmodule;

@@ -10,6 +10,8 @@
 
 module ddmd.statement_rewrite_walker;
 
+// Online documentation: https://dlang.org/phobos/ddmd_statement_rewrite_walker.html
+
 import core.stdc.stdio;
 
 import ddmd.statement;

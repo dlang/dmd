@@ -10,6 +10,8 @@
 
 module ddmd.root.file;
 
+// Online documentation: https://dlang.org/phobos/ddmd_root_file.html
+
 import core.stdc.errno;
 import core.stdc.stdio;
 import core.stdc.stdlib;

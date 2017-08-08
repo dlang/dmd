@@ -10,6 +10,8 @@
 
 module ddmd.optimize;
 
+// Online documentation: https://dlang.org/phobos/ddmd_optimize.html
+
 import core.stdc.stdio;
 
 import ddmd.constfold;

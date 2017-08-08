@@ -10,6 +10,8 @@
 
 module ddmd.libelf;
 
+// Online documentation: https://dlang.org/phobos/ddmd_libelf.html
+
 import core.stdc.time;
 import core.stdc.string;
 import core.stdc.stdlib;

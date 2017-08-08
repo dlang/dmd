@@ -11,6 +11,8 @@
 
 module ddmd.eh;
 
+// Online documentation: https://dlang.org/phobos/ddmd_eh.html
+
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;

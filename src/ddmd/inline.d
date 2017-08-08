@@ -10,6 +10,8 @@
 
 module ddmd.inline;
 
+// Online documentation: https://dlang.org/phobos/ddmd_inline.html
+
 import core.stdc.stdio;
 import core.stdc.string;
 

@@ -10,6 +10,8 @@
 
 module ddmd.statementsem;
 
+// Online documentation: https://dlang.org/phobos/ddmd_statementsem.html
+
 import core.stdc.stdio;
 
 import ddmd.aggregate;

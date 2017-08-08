@@ -10,6 +10,8 @@
 
 module ddmd.safe;
 
+// Online documentation: https://dlang.org/phobos/ddmd_safe.html
+
 import core.stdc.stdio;
 
 import ddmd.aggregate;

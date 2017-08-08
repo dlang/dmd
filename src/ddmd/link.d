@@ -10,6 +10,8 @@
 
 module ddmd.link;
 
+// Online documentation: https://dlang.org/phobos/ddmd_link.html
+
 import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.string;

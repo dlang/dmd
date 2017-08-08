@@ -10,6 +10,8 @@
 
 module ddmd.lexer;
 
+// Online documentation: https://dlang.org/phobos/ddmd_lexer.html
+
 import core.stdc.ctype;
 import core.stdc.errno;
 import core.stdc.stdarg;

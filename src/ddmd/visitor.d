@@ -10,6 +10,8 @@
 
 module ddmd.visitor;
 
+// Online documentation: https://dlang.org/phobos/ddmd_visitor.html
+
 import ddmd.aggregate;
 import ddmd.aliasthis;
 import ddmd.attrib;

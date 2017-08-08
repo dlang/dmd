@@ -10,6 +10,8 @@
 
 module ddmd.root.filename;
 
+// Online documentation: https://dlang.org/phobos/ddmd_root_filename.html
+
 import core.stdc.ctype;
 import core.stdc.errno;
 import core.stdc.string;

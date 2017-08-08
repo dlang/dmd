@@ -1,5 +1,7 @@
 module ddmd.astbasevisitor;
 
+// Online documentation: https://dlang.org/phobos/ddmd_astbasevisitor.html
+
 import ddmd.astbase;
 
 /** Basic and dumm visitor which implements a visit method for each AST node

@@ -12,6 +12,8 @@
 
 module ddmd.root.response;
 
+// Online documentation: https://dlang.org/phobos/ddmd_root_response.html
+
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;

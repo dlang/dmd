@@ -10,6 +10,8 @@
 
 module ddmd.lib;
 
+// Online documentation: https://dlang.org/phobos/ddmd_lib.html
+
 import core.stdc.stdio;
 import core.stdc.stdarg;
 

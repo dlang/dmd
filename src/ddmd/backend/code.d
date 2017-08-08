@@ -11,6 +11,8 @@
 
 module ddmd.backend.code;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_code.html
+
 import ddmd.backend.cc;
 import ddmd.backend.cdef;
 import ddmd.backend.code_x86;

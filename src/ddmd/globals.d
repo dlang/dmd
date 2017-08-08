@@ -10,6 +10,8 @@
 
 module ddmd.globals;
 
+// Online documentation: https://dlang.org/phobos/ddmd_globals.html
+
 import core.stdc.stdint;
 import core.stdc.stdio;
 import ddmd.root.array;

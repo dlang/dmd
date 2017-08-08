@@ -11,6 +11,8 @@
 
 module ddmd.backend.cc;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_cc.html
+
 import ddmd.tk.dlist;
 import ddmd.backend.cdef;        // host and target compiler definition
 import ddmd.backend.code_x86;

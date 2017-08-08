@@ -10,6 +10,8 @@
 
 module ddmd.backend.dt;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_dt.html
+
 import ddmd.backend.cc;
 import ddmd.backend.ty;
 import ddmd.backend.type;

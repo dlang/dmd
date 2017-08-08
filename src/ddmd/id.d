@@ -12,6 +12,8 @@
  */
 module ddmd.id;
 
+// Online documentation: https://dlang.org/phobos/ddmd_id.html
+
 import ddmd.identifier;
 import ddmd.tokens;
 

@@ -10,6 +10,8 @@
 
 module ddmd.irstate;
 
+// Online documentation: https://dlang.org/phobos/ddmd_irstate.html
+
 import ddmd.root.array;
 
 import ddmd.arraytypes;

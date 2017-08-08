@@ -10,6 +10,8 @@
 
 module ddmd.backend.cv4;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_cv4.html
+
 enum OEM = 0x42;        // Digital Mars OEM number (picked at random)
 
 // Symbol Indices

@@ -10,6 +10,8 @@
 
 module ddmd.sapply;
 
+// Online documentation: https://dlang.org/phobos/ddmd_sapply.html
+
 import ddmd.statement;
 import ddmd.visitor;
 

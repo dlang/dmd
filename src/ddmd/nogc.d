@@ -10,6 +10,8 @@
 
 module ddmd.nogc;
 
+// Online documentation: https://dlang.org/phobos/ddmd_nogc.html
+
 import ddmd.aggregate;
 import ddmd.apply;
 import ddmd.declaration;

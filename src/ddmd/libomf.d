@@ -10,6 +10,8 @@
 
 module ddmd.libomf;
 
+// Online documentation: https://dlang.org/phobos/ddmd_libomf.html
+
 import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stdlib;

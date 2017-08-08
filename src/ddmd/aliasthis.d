@@ -10,6 +10,8 @@
 
 module ddmd.aliasthis;
 
+// Online documentation: https://dlang.org/phobos/ddmd_aliasthis.html
+
 import core.stdc.stdio;
 import ddmd.aggregate;
 import ddmd.declaration;

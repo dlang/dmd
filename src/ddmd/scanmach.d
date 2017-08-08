@@ -10,6 +10,8 @@
 
 module ddmd.scanmach;
 
+// Online documentation: https://dlang.org/phobos/ddmd_scanmach.html
+
 import core.stdc.string;
 import core.stdc.stdint;
 import core.sys.osx.mach.loader;

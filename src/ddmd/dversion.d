@@ -10,6 +10,8 @@
 
 module ddmd.dversion;
 
+// Online documentation: https://dlang.org/phobos/ddmd_dversion.html
+
 import ddmd.arraytypes;
 import ddmd.cond;
 import ddmd.dmodule;

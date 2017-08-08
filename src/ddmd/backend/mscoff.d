@@ -5,6 +5,8 @@
 
 module ddmd.backend.mscoff;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_mscoff.html
+
 align (1):
 
 /***********************************************/

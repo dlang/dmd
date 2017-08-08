@@ -10,6 +10,8 @@
 
 module ddmd.hdrgen;
 
+// Online documentation: https://dlang.org/phobos/ddmd_hdrgen.html
+
 import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.string;

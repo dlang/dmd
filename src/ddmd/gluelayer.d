@@ -10,6 +10,8 @@
 
 module ddmd.gluelayer;
 
+// Online documentation: https://dlang.org/phobos/ddmd_gluelayer.html
+
 import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dsymbol;

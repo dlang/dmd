@@ -10,6 +10,8 @@
 
 module ddmd.arrayop;
 
+// Online documentation: https://dlang.org/phobos/ddmd_arrayop.html
+
 import core.stdc.stdio;
 import ddmd.arraytypes;
 import ddmd.declaration;

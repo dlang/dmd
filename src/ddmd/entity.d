@@ -10,6 +10,8 @@
 
 module ddmd.entity;
 
+// Online documentation: https://dlang.org/phobos/ddmd_entity.html
+
 import core.stdc.ctype;
 
 private:

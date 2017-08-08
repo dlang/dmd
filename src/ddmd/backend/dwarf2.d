@@ -7,6 +7,8 @@
 
 module ddmd.backend.dwarf2;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_dwarf2.html
+
 
 enum
 {
