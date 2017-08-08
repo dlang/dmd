@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _statementsem.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/statementsem.d, _statementsem.d)
  */
 
 module ddmd.statementsem;
+
+// Online documentation: https://dlang.org/phobos/ddmd_statementsem.html
 
 import core.stdc.stdio;
 

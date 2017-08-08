@@ -5,10 +5,12 @@
  * Copyright: Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:    $(DMDSRC root/_stringtable.d)
+ * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/root/stringtable.d, root/_stringtable.d)
  */
 
 module ddmd.root.stringtable;
+
+// Online documentation: https://dlang.org/phobos/ddmd_root_stringtable.html
 
 import core.stdc.string;
 import ddmd.root.rmem, ddmd.root.hash;

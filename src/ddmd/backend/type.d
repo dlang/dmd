@@ -5,12 +5,13 @@
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/_type.d
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/type.d, backend/_type.d)
  */
 
 module ddmd.backend.type;
+
+// Online documentation: https://dlang.org/phobos/ddmd_backend_type.html
 
 import ddmd.backend.cdef;
 import ddmd.backend.cc : block, Blockx, Classsym, Symbol;
@@ -18,7 +19,7 @@ import ddmd.backend.code;
 import ddmd.backend.el : elem;
 import ddmd.backend.ty;
 
-import tk.dlist;
+import ddmd.tk.dlist;
 
 extern (C++):
 @nogc:

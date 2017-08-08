@@ -5,10 +5,12 @@
  * Copyright: Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:    $(DMDSRC root/_rmem.d)
+ * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/root/rmem.d, root/_rmem.d)
  */
 
 module ddmd.root.rmem;
+
+// Online documentation: https://dlang.org/phobos/ddmd_root_rmem.html
 
 import core.stdc.string;
 

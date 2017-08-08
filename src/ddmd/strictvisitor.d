@@ -1,5 +1,7 @@
 module ddmd.strictvisitor;
 
+// Online documentation: https://dlang.org/phobos/ddmd_strictvisitor.html
+
 import ddmd.astbase;
 import ddmd.astbasevisitor;
 

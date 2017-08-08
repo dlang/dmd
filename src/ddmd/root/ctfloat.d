@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC root/_ctfloat.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/root/ctfloat.d, root/_ctfloat.d)
  */
 
 module ddmd.root.ctfloat;
+
+// Online documentation: https://dlang.org/phobos/ddmd_root_ctfloat.html
 
 static import core.math, core.stdc.math;
 import core.stdc.errno;

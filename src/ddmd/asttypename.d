@@ -3,10 +3,12 @@
  * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
  * Authors:     Stefan Koch
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _asttypename.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/asttypename.d, _asttypename.d)
  */
 
 module ddmd.asttypename;
+
+// Online documentation: https://dlang.org/phobos/ddmd_asttypename.html
 
 import ddmd.attrib;
 import ddmd.aliasthis;

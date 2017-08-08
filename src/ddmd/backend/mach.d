@@ -5,6 +5,8 @@
 
 module ddmd.backend.mach;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_mach.html
+
 alias cpu_type_t = int;
 alias cpu_subtype_t = int;
 alias vm_prot_t = int;

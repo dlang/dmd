@@ -5,12 +5,13 @@
  * Copyright:   Copyright (C) 1994-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/_dinifile.d
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/dinifile.d, _dinifile.d)
  */
 
 module ddmd.dinifile;
+
+// Online documentation: https://dlang.org/phobos/ddmd_dinifile.html
 
 import core.stdc.ctype;
 import core.stdc.string;

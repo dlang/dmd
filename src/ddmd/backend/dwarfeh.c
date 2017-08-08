@@ -6,7 +6,7 @@
  * Copyright: Copyright (c) 2015 by Digital Mars, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:    $(DMDSRC backend/dwarfeh.c)
+ * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/dwarfeh.c, backend/dwarfeh.c)
  */
 
 #include        <stdio.h>

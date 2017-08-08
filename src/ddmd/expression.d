@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _expression.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/expression.d, _expression.d)
  */
 
 module ddmd.expression;
+
+// Online documentation: https://dlang.org/phobos/ddmd_expression.html
 
 import core.stdc.stdarg;
 import core.stdc.stdio;
