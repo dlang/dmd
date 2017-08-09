@@ -1143,6 +1143,15 @@ Expression toExpression(const BCValue value, Type expressionType,
     const BCHeap* heapPtr = &_sharedCtfeState.heap,
     const BCValue[4]* errorValues = null, const RetainedError* errors = null)
 {
+    debug (abi)
+    {
+            import std.stdio;
+            import std.range;
+            import std.algorithm;
+            writefln("HeapDump: %s",
+                zip(heapPtr._heap[0 .. heapPtr.heapSize], iota(0, heapPtr.heapSize, 1)).map!(e => e[1].to!string ~ ":" ~ e[0].to!string));
+    }
+
     import ddmd.parse : Loc;
     static if (printResult)
     {
@@ -3712,7 +3721,7 @@ static if (is(BCGen))
                 //FIXME horrible hack to make slice members work
                 // Systematize somehow!
 
-                if (ptr.type.type == BCTypeEnum.Slice)
+                if (ptr.type.type.anyOf([BCTypeEnum.Array, BCTypeEnum.Ptr, BCTypeEnum.Slice, BCTypeEnum.Struct, BCTypeEnum.String]))
                     Set(retval.i32, ptr);
                 else
                     Load32(retval.i32, ptr);
@@ -4919,13 +4928,13 @@ static if (is(BCGen))
         bailout(heap.heapSize + heapAdd > heap.heapMax, "heapMax exceeded while pushing: " ~ se.toString);
         _sharedCtfeState.heap.heapSize += heapAdd;
 
-        auto baseAddr = stringAddr.heapAddr.addr + SliceDescriptor.Size;
+        auto baseAddr = stringAddr.imm32 + SliceDescriptor.Size;
         // first set length
         if (length)
         {
-            heap._heap[stringAddr.heapAddr.addr + SliceDescriptor.LengthOffset] = length;
+            heap._heap[stringAddr.imm32 + SliceDescriptor.LengthOffset] = length;
             // then set base
-            heap._heap[stringAddr.heapAddr.addr + SliceDescriptor.BaseOffset] = baseAddr;
+            heap._heap[stringAddr.imm32 + SliceDescriptor.BaseOffset] = baseAddr;
         }
 
         uint offset = baseAddr;
@@ -4948,7 +4957,7 @@ static if (is(BCGen))
         else
         {
             retval = assignTo ? assignTo : genTemporary(BCType(BCTypeEnum.String));
-            Set(retval.i32, imm32(stringAddr.heapAddr));
+            Set(retval.i32, stringAddr.i32);
         }
     }
 
@@ -6172,8 +6181,7 @@ static if (is(BCGen))
 
             import ddmd.identifier;
             /*if (fd.ident == Identifier.idPool("isGraphical"))
-            {
-                import std.stdio;
+            {                import std.stdio;
                 writeln("igArgs :", bc_args);
             }*/
         }
