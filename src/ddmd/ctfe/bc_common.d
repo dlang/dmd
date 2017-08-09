@@ -168,7 +168,7 @@ struct BCType
     // additional information
     BCTypeFlags flags;
 
-    string toString() const pure
+    string toString() const pure @safe
     {
         import std.conv;
 
@@ -488,14 +488,14 @@ struct BCValue
 
     }
 
-    string toString() const pure
+    string toString() const pure @safe
     {
         import std.format;
 
         return format("\nvType: %s\tType: %s\tvalue:%s\n", vType, type.toString(), valueToString);
     }
 
-    string valueToString() const pure
+    string valueToString() const pure @safe
     {
         import std.conv;
 
