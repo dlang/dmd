@@ -147,8 +147,9 @@ struct BlackList
     {
         initialize([
                 "modify14304", //because of fail_compilation/fail14304.d; We should not be required to check for this.
-                "bug2931", //use temporarily to pass a test for multi-dimensional arrays
-                "bug2931_2", //use temporarily to pass a test for multi-dimensional arrays
+                "bug2931", //temporarily to pass a test for multi-dimensional arrays
+                "bug2931_2", //temporarily to pass a test for multi-dimensional arrays
+                "wrongcode3139", //temporarily to pass nested-swtich test
         ]);
     }
 
