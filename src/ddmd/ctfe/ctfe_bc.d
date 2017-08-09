@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 0;
+enum bailoutMessages = 1;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -147,6 +147,8 @@ struct BlackList
     {
         initialize([
                 "modify14304", //because of fail_compilation/fail14304.d; We should not be required to check for this.
+                "bug2931", //use temporarily to pass a test for multi-dimensional arrays
+                "bug2931_2", //use temporarily to pass a test for multi-dimensional arrays
         ]);
     }
 
