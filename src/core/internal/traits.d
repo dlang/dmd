@@ -187,3 +187,26 @@ template hasElaborateCopyConstructor(T...)
     else
         enum bool hasElaborateCopyConstructor = false;
 }
+
+// std.meta.Filter
+template Filter(alias pred, TList...)
+{
+    static if (TList.length == 0)
+    {
+        alias Filter = TypeTuple!();
+    }
+    else static if (TList.length == 1)
+    {
+        static if (pred!(TList[0]))
+            alias Filter = TypeTuple!(TList[0]);
+        else
+            alias Filter = TypeTuple!();
+    }
+    else
+    {
+        alias Filter =
+            TypeTuple!(
+                Filter!(pred, TList[ 0  .. $/2]),
+                Filter!(pred, TList[$/2 ..  $ ]));
+    }
+}
