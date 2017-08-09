@@ -1678,6 +1678,13 @@ extern (C++) final class BCTypeVisitor : Visitor
                     import ddmd.initsem;
                     if(auto initExp = sMember._init.initializerToExpression)
                     {
+                        if (!initExp.type)
+                        {
+                            //("initExp.type is null:  " ~ initExp.toString);
+                            died = true;
+                            break;//BCValue.init;
+                        }
+
                         scope bcv = new BCV!BCGenT;
                         auto initBCValue = bcv.genExpr(initExp);
                         if (initBCValue)
@@ -5945,6 +5952,12 @@ static if (is(BCGen))
 
         //NOTE is could also be Tdelegate
 
+
+        if (!ce.e1 || !ce.e1.type)
+        {
+            bailout("either ce.e1 or ce.e1.type is null: " ~ ce.toString);
+            return ;
+        }
 
         TypeFunction tf;
         if(ce.e1.type.ty == Tfunction)
