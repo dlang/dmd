@@ -3630,6 +3630,13 @@ if (!__traits(isScalar, T1))
     assert(__cmp([c2, c2], [c1, c1]) > 0);
 }
 
+// Compiler hook into the runtime implementation of array (vector) operations.
+template _arrayOp(Args...)
+{
+    import core.internal.arrayop;
+    alias _arrayOp = arrayOp!Args;
+}
+
 // Helper functions
 
 private inout(TypeInfo) getElement(inout TypeInfo value) @trusted pure nothrow
