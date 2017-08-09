@@ -147,6 +147,10 @@ unittest
 
 unittest
 {
+    // We don't want to see Lexer error output during these tests.
+    uint errors = global.startGagging();
+    scope(exit) global.endGagging(errors);
+
     // Test malformed input: even malformed input should end in a TOKeof.
     static immutable char[][] testcases =
     [   // Testcase must end with 0 or 0x1A.
