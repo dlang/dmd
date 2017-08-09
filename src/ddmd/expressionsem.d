@@ -6340,6 +6340,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return;
             }
 
+            if (exp.op == TOKassign && !tn.baseElemOf().isAssignable())
+            {
+                exp.error("slice %s is not mutable, struct %s has immutable members",
+                    exp.e1.toChars(), tn.baseElemOf().toChars());
+                result = new ErrorExp();
+                return;
+            }
+
             // For conditional operator, both branches need conversion.
             SliceExp se = cast(SliceExp)exp.e1;
             while (se.e1.op == TOKslice)
@@ -6356,6 +6364,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else
         {
+            if (t1.ty == Tsarray && exp.op == TOKassign)
+            {
+                Type tn = exp.e1.type.nextOf();
+                if (tn && !tn.baseElemOf().isAssignable())
+                {
+                    exp.error("array %s is not mutable, struct %s has immutable members",
+                        exp.e1.toChars(), tn.baseElemOf().toChars());
+                    result = new ErrorExp();
+                    return;
+                }
+            }
+
             Expression e1x = exp.e1;
 
             // Try to do a decent error message with the expression
