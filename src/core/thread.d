@@ -909,39 +909,172 @@ class Thread
     // Thread Priority Actions
     ///////////////////////////////////////////////////////////////////////////
 
+    version( Windows )
+    {
+        @property static int PRIORITY_MIN() @nogc nothrow pure @safe
+        {
+            return THREAD_PRIORITY_IDLE;
+        }
 
-    /**
-     * The minimum scheduling priority that may be set for a thread.  On
-     * systems where multiple scheduling policies are defined, this value
-     * represents the minimum valid priority for the scheduling policy of
-     * the process.
-     */
-    __gshared const int PRIORITY_MIN;
+        @property static const(int) PRIORITY_MAX() @nogc nothrow pure @safe
+        {
+            return THREAD_PRIORITY_TIME_CRITICAL;
+        }
 
+        @property static int PRIORITY_DEFAULT() @nogc nothrow pure @safe
+        {
+            return THREAD_PRIORITY_NORMAL;
+        }
+    }
+    else
+    {
+        private struct Priority
+        {
+            int PRIORITY_MIN = int.min;
+            int PRIORITY_DEFAULT = int.min;
+            int PRIORITY_MAX = int.min;
+        }
 
-    /**
-     * The maximum scheduling priority that may be set for a thread.  On
-     * systems where multiple scheduling policies are defined, this value
-     * represents the maximum valid priority for the scheduling policy of
-     * the process.
-     */
-    __gshared const int PRIORITY_MAX;
+        /*
+        Lazily loads one of the members stored in a hidden global variable of
+        type `Priority`. Upon the first access of either member, the entire
+        `Priority` structure is initialized. Multiple initializations from
+        different threads calling this function are tolerated.
 
+        `which` must be one of `PRIORITY_MIN`, `PRIORITY_DEFAULT`,
+        `PRIORITY_MAX`.
+        */
+        private static int loadGlobal(string which)()
+        {
+            static shared Priority cache;
+            auto local = atomicLoad(mixin("cache." ~ which));
+            if (local != local.min) return local;
+            // There will be benign races
+            cache = loadPriorities;
+            return atomicLoad(mixin("cache." ~ which));
+        }
 
-    /**
-     * The default scheduling priority that is set for a thread.  On
-     * systems where multiple scheduling policies are defined, this value
-     * represents the default priority for the scheduling policy of
-     * the process.
-     */
-    __gshared const int PRIORITY_DEFAULT;
+        /*
+        Loads all priorities and returns them as a `Priority` structure. This
+        function is thread-neutral.
+        */
+        private static Priority loadPriorities() @nogc nothrow @trusted
+        {
+            Priority result;
+            version( Solaris )
+            {
+                pcparms_t pcParms;
+                pcinfo_t pcInfo;
 
-     version(NetBSD)
-     {
+                pcParms.pc_cid = PC_CLNULL;
+                if (priocntl(idtype_t.P_PID, P_MYID, PC_GETPARMS, &pcParms) == -1)
+                    assert( 0, "Unable to get scheduling class" );
+
+                pcInfo.pc_cid = pcParms.pc_cid;
+                // PC_GETCLINFO ignores the first two args, use dummy values
+                if (priocntl(idtype_t.P_PID, 0, PC_GETCLINFO, &pcInfo) == -1)
+                    assert( 0, "Unable to get scheduling class info" );
+
+                pri_t* clparms = cast(pri_t*)&pcParms.pc_clparms;
+                pri_t* clinfo = cast(pri_t*)&pcInfo.pc_clinfo;
+
+                result.PRIORITY_MAX = clparms[0];
+
+                if (pcInfo.pc_clname == "RT")
+                {
+                    m_isRTClass = true;
+
+                    // For RT class, just assume it can't be changed
+                    result.PRIORITY_MIN = clparms[0];
+                    result.PRIORITY_DEFAULT = clparms[0];
+                }
+                else
+                {
+                    m_isRTClass = false;
+
+                    // For all other scheduling classes, there are
+                    // two key values -- uprilim and maxupri.
+                    // maxupri is the maximum possible priority defined
+                    // for the scheduling class, and valid priorities
+                    // range are in [-maxupri, maxupri].
+                    //
+                    // However, uprilim is an upper limit that the
+                    // current thread can set for the current scheduling
+                    // class, which can be less than maxupri.  As such,
+                    // use this value for priorityMax since this is
+                    // the effective maximum.
+
+                    // maxupri
+                    result.PRIORITY_MIN = -clinfo[0];
+                    // by definition
+                    result.PRIORITY_DEFAULT = 0;
+                }
+            }
+            else version( Posix )
+            {
+                int         policy;
+                sched_param param;
+                pthread_getschedparam( pthread_self(), &policy, &param ) == 0
+                    || assert(0, "Internal error in pthread_getschedparam");
+
+                result.PRIORITY_MIN = sched_get_priority_min( policy );
+                result.PRIORITY_MIN != -1
+                    || assert(0, "Internal error in sched_get_priority_min");
+                result.PRIORITY_DEFAULT = param.sched_priority;
+                result.PRIORITY_MAX = sched_get_priority_max( policy );
+                result.PRIORITY_MAX != -1 ||
+                    assert(0, "Internal error in sched_get_priority_max");
+            }
+            else
+            {
+                static assert(0, "Your code here.");
+            }
+            return result;
+        }
+
+        /**
+         * The minimum scheduling priority that may be set for a thread.  On
+         * systems where multiple scheduling policies are defined, this value
+         * represents the minimum valid priority for the scheduling policy of
+         * the process.
+         */
+        @property static int PRIORITY_MIN() @nogc nothrow pure @trusted
+        {
+            return (cast(int function() @nogc nothrow pure @safe)
+                &loadGlobal!"PRIORITY_MIN")();
+        }
+
+        /**
+         * The maximum scheduling priority that may be set for a thread.  On
+         * systems where multiple scheduling policies are defined, this value
+         * represents the maximum valid priority for the scheduling policy of
+         * the process.
+         */
+        @property static const(int) PRIORITY_MAX() @nogc nothrow pure @trusted
+        {
+            return (cast(int function() @nogc nothrow pure @safe)
+                &loadGlobal!"PRIORITY_MAX")();
+        }
+
+        /**
+         * The default scheduling priority that is set for a thread.  On
+         * systems where multiple scheduling policies are defined, this value
+         * represents the default priority for the scheduling policy of
+         * the process.
+         */
+        @property static int PRIORITY_DEFAULT() @nogc nothrow pure @trusted
+        {
+            return (cast(int function() @nogc nothrow pure @safe)
+                &loadGlobal!"PRIORITY_DEFAULT")();
+        }
+    }
+
+    version(NetBSD)
+    {
         //NetBSD does not support priority for default policy
         // and it is not possible change policy without root access
         int fakePriority = int.max;
-     }
+    }
 
     /**
      * Gets the scheduling priority for the associated thread.
@@ -1286,95 +1419,6 @@ class Thread
             }
         }
     }
-
-    ///////////////////////////////////////////////////////////////////////////
-    // Static Initalizer
-    ///////////////////////////////////////////////////////////////////////////
-
-
-    /**
-     * This initializer is used to set thread constants.  All functional
-     * initialization occurs within thread_init().
-     */
-    shared static this()
-    {
-        version( Windows )
-        {
-            PRIORITY_MIN = THREAD_PRIORITY_IDLE;
-            PRIORITY_DEFAULT = THREAD_PRIORITY_NORMAL;
-            PRIORITY_MAX = THREAD_PRIORITY_TIME_CRITICAL;
-        }
-        else version( Solaris )
-        {
-            pcparms_t pcParms;
-            pcinfo_t pcInfo;
-
-            pcParms.pc_cid = PC_CLNULL;
-            if (priocntl(idtype_t.P_PID, P_MYID, PC_GETPARMS, &pcParms) == -1)
-                throw new ThreadException( "Unable to get scheduling class" );
-
-            pcInfo.pc_cid = pcParms.pc_cid;
-            // PC_GETCLINFO ignores the first two args, use dummy values
-            if (priocntl(idtype_t.P_PID, 0, PC_GETCLINFO, &pcInfo) == -1)
-                throw new ThreadException( "Unable to get scheduling class info" );
-
-            pri_t* clparms = cast(pri_t*)&pcParms.pc_clparms;
-            pri_t* clinfo = cast(pri_t*)&pcInfo.pc_clinfo;
-
-            if (pcInfo.pc_clname == "RT")
-            {
-                m_isRTClass = true;
-
-                // For RT class, just assume it can't be changed
-                PRIORITY_MAX = clparms[0];
-                PRIORITY_MIN = clparms[0];
-                PRIORITY_DEFAULT = clparms[0];
-            }
-            else
-            {
-                m_isRTClass = false;
-
-                // For all other scheduling classes, there are
-                // two key values -- uprilim and maxupri.
-                // maxupri is the maximum possible priority defined
-                // for the scheduling class, and valid priorities
-                // range are in [-maxupri, maxupri].
-                //
-                // However, uprilim is an upper limit that the
-                // current thread can set for the current scheduling
-                // class, which can be less than maxupri.  As such,
-                // use this value for PRIORITY_MAX since this is
-                // the effective maximum.
-
-                // uprilim
-                PRIORITY_MAX = clparms[0];
-
-                // maxupri
-                PRIORITY_MIN = -clinfo[0];
-
-                // by definition
-                PRIORITY_DEFAULT = 0;
-            }
-        }
-        else version( Posix )
-        {
-            int         policy;
-            sched_param param;
-            pthread_t   self = pthread_self();
-
-            int status = pthread_getschedparam( self, &policy, &param );
-            assert( status == 0 );
-
-            PRIORITY_MIN = sched_get_priority_min( policy );
-            assert( PRIORITY_MIN != -1 );
-
-            PRIORITY_DEFAULT = param.sched_priority;
-
-            PRIORITY_MAX = sched_get_priority_max( policy );
-            assert( PRIORITY_MAX != -1 );
-        }
-    }
-
 
     ///////////////////////////////////////////////////////////////////////////
     // Stuff That Should Go Away
