@@ -174,10 +174,6 @@ CTFE_SRCS=$D/ctfe/bc.d $D/ctfe/bc_common.d $D/ctfe/bc_c_backend.d		\
 	$D/ctfe/bc_printer_backend.d $D/ctfe/bc_recorder.d $D/ctfe/bc_test.d	\
 	$D/ctfe/ctfe_bc.d
 
-CTFE_SRCS=$D/ctfe/bc_c_backend.d $D/ctfe/bc.d $D/ctfe/bc_printer_backend.d	\
-	$D/ctfe/bc_test.d $D/ctfe/bc_common.d $D/ctfe/bc_limits.d		\
-	$D/ctfe/bc_macro.d $D/ctfe/ctfe_bc.d
-
 LEXER_SRCS=$D/console.d $D/entity.d $D/errors.d $D/globals.d $D/id.d $D/identifier.d \
 	$D/lexer.d $D/tokens.d $D/utf.d
 

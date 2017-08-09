@@ -40,6 +40,7 @@ struct C_BCGen
         uint jmpCount;
         ubyte parameterCount;
         ushort temporaryCount;
+        ushort localCount;
         uint labelCount;
         bool sameLabel;
         StackAddr sp = StackAddr(4);
@@ -96,7 +97,7 @@ struct C_BCGen
         return (
             (
             (fname is null) ? "((BCValue[] args, BCHeap* heapPtr) @safe {\n"
-            : "BCValue " ~ fname ~ "(BCValue[] args) {\n") ~ (requireIntrinsics ? intrinsicFunctions : "") ~ "\n\tint stackOffset;\n\tBCValue retval;\n\tint[" ~ to!string(
+            : "BCValue " ~ fname ~ "(BCValue[] args) {\n") ~ "\n\tint stackOffset;\n\tBCValue retval;\n\nint[" ~ to!string(
             align4(sp + 400)) ~ "] stack;\n\tint cond;\n\n" ~ q{
         foreach(i, arg;args)
         {
@@ -108,25 +109,6 @@ struct C_BCGen
             string) code ~ q{return fn0(args);} ~ ((fname is null) ? "\n})" : "\n}"));
     }
 
-
-    enum intrinsicFunctions = q{static if (!is(C_BCGen_Intrinsics)) {
-    alias C_BCGen_Intrinsics = void;
-
-    uint intrin_Byte3(int word, int idx) {
-        switch(idx) {
-            case 0 :
-                return word & 0xFF;
-            case 1 :
-                return (word & 0xFF00) >> 8;
-            case 2 :
-                return (word & 0xFF0000) >> 16;
-            case 3 :
-                return (word & 0xFF000000) >> 24;
-
-            default : assert(0, "index must go from 0 to 3");
-        }
-    }
-}};
 
     char[] code;
 
@@ -180,7 +162,7 @@ pure:
     BCValue genTemporary(BCType bct)
     {
         auto tmp = BCValue(sp, bct, temporaryCount++);
-        currentFunctionState.sp += align4(basicTypeSize(bct)); //sharedState.size(bct.type, typeIndex));
+        currentFunctionState.sp += align4(basicTypeSize(bct.type)); //sharedState.size(bct.type, typeIndex));
 
         return tmp;
     }
@@ -216,6 +198,10 @@ pure:
             return "stack[stackOffset+" ~ to!string(v.stackAddr) ~ "]";
         }
         else if (v.vType == BCValueType.Parameter)
+        {
+            return "stack[stackOffset+" ~ to!string(v.stackAddr) ~ "]";
+        }
+        else if (v.vType == BCValueType.Local)
         {
             return "stack[stackOffset+" ~ to!string(v.stackAddr) ~ "]";
         }
@@ -262,7 +248,7 @@ pure:
     {
         sameLabel = false;
         string prefix = ifTrue ? "" : "!";
-        if ((cond.vType == BCValueType.StackValue || cond.vType == BCValueType.Parameter) && cond.type == BCType.i32)
+        if ((cond.vType == BCValueType.StackValue || cond.vType == BCValueType.Parameter) && cond.type.type == BCTypeEnum.i32)
         {
             code ~= "\tif (" ~ prefix ~ "(" ~ toCode(cond) ~ "))\n\t";
         }
@@ -297,12 +283,21 @@ pure:
         }
     }
 
-    BCValue genParameter(BCType bct)
+    BCValue genParameter(BCType bct, string name = null)
     {
         auto p = BCValue(BCParameter(++parameterCount, bct, sp));
+        p.name = name;
         sp += 4;
         return p;
     }
+
+    BCValue genLocal(BCType bct, string name = null)
+    {
+        auto l = BCValue(StackAddr(sp), bct, localCount, name);
+        sp += 4;
+        return l;
+    }
+
 
     void emitArithInstruction(CInst inst, BCValue lhs, BCValue rhs)
     {
@@ -391,6 +386,15 @@ pure:
         },
             toCode(size), toCode(heapPtr), toCode(size));
     }
+
+    void MemCpy(BCValue target, BCValue source, BCValue size)
+    {
+        code ~= "assert(" ~ toCode(target) ~ ");\n";
+        code ~= "assert(" ~ toCode(source) ~ ");\n";
+        code ~= "if (" ~ toCode(source) ~  " != " ~ toCode(target) ~ ")\n";
+        code ~= "\theapPtr._heap[" ~ toCode(target) ~ " .. " ~ toCode(target) ~ " + " ~ toCode(size) ~
+            "] = heapPtr._heap[" ~ toCode(source) ~ " .. " ~ toCode(source) ~ " + " ~ toCode(size) ~"];\n\n";
+    }
     void Assert(BCValue val, BCValue error)
     {
         sameLabel = false;
@@ -401,14 +405,30 @@ pure:
     {
         sameLabel = false;
         //assert(to.vType == BCValueType.StackValue);
-        code ~= "\t" ~ toCode(to) ~ " = heapPtr._heap[" ~ toCode(from) ~ "];\n";
+        code ~= "\t" ~ toCode(to) ~ " = heapPtr._heap[cast(uint)" ~ toCode(from) ~ "];\n";
     }
 
     void Store32(BCValue to, BCValue from)
     {
         sameLabel = false;
-        code ~= "\theapPtr._heap[" ~ toCode(to) ~ "] = " ~ toCode(from) ~ ";\n";
+        code ~= "\theapPtr._heap[" ~ toCode(to) ~ "] = (" ~ toCode(from) ~ " & uint.max);\n";
     }
+
+    void Load64(BCValue to, BCValue from)
+    {
+        sameLabel = false;
+        //assert(to.vType == BCValueType.StackValue);
+        code ~= "\t" ~ toCode(to) ~ " |= heapPtr._heap[" ~ toCode(from) ~ "];\n";
+        code ~= "\t" ~ toCode(to) ~ " |= (heapPtr._heap[" ~ toCode(from) ~ " + 4] >> 32);\n";
+    }
+    
+    void Store64(BCValue to, BCValue from)
+    {
+        sameLabel = false;
+        code ~= "\theapPtr._heap[" ~ toCode(to) ~ "] = (" ~ toCode(from) ~ " & uint.max);\n";
+        code ~= "\theapPtr._heap[" ~ toCode(to) ~ " + 4] = (" ~ toCode(from) ~ " >> 32);\n";
+    }
+
 
     void emitFlg(BCValue result)
     {
@@ -646,6 +666,7 @@ pure:
 
     void Byte3(BCValue result, BCValue word, BCValue idx)
     {
+        sameLabel = false;
         requireIntrinsics = true;
         code ~= "\t" ~ toCode(result) ~ " = intrin_Byte3(" ~ toCode(word) ~ ", " ~ toCode(idx) ~ ");\n";
     }
@@ -655,7 +676,7 @@ pure:
     {
         sameLabel = false;
         assert(result.vType == BCValueType.StackValue);
-        string resultString = (result && result.stackAddr != 0 ? toCode(result) ~ " = " : "");
+        string resultString = ((result && result.stackAddr != 0) ? toCode(result) ~ " = " : "");
         string functionString =  (fn.vType == BCValueType.Immediate ? "fn" ~ toCode(fn)~ "(" : "fn(" ~ toCode(fn) ~ ", ");
 
         import std.algorithm : map;
@@ -663,6 +684,27 @@ pure:
 
         code ~= "\t" ~ resultString ~ functionString ~ "[" ~ args.map!(
             a => "imm32(" ~ toCode(a) ~ ")").join(", ") ~ "], heapPtr).imm32;\n";
+    }
+
+    void IToF32(BCValue target, BCValue source)
+    {
+        assert(0);
+    }
+
+
+    void IToF64(BCValue target, BCValue source)
+    {
+        assert(0);
+    }
+
+    void Comment(string comment)
+    {
+        code ~= "// " ~ comment ~ "\n";
+    }
+
+    void Line(uint line)
+    {
+        code ~= "/***** Line (" ~ to!string(line) ~ ") *****/\n";
     }
 
    /* void CallBuiltin(BCValue result, BCBuiltin fn, BCValue[] args)
@@ -681,9 +723,8 @@ pure:
         //emitLongInst(LongInst64(LongInst.BuiltinCall, StackAddr(cast(short)fn), StackAddr(cast(short)args.length)));
     } */
 
-    void Cat(BCValue result, BCValue lhs, BCValue rhs, const uint size)
-    {
-    }
+
+
 }
 static assert(ensureIsBCGen!C_BCGen);
 int interpret(const C_BCGen gen)(BCValue[] args)
@@ -692,6 +733,6 @@ int interpret(const C_BCGen gen)(BCValue[] args)
     return fn(args);
 }
 
-import bc_test;
+import ddmd.ctfe.bc_test;
 
-static assert(bc_test.test!C_BCGen);
+static assert(test!C_BCGen);

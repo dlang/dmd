@@ -168,7 +168,7 @@ CXXFLAGS += \
     -std=gnu++98
 endif
 # Default D compiler flags for all source files
-DFLAGS= -version=MARS
+DFLAGS= -version=MARS -g
 # Enable D warnings
 DFLAGS += -wi
 
@@ -255,6 +255,8 @@ ifeq (osx,$(OS))
 else
     FRONT_SRCS += $D/libelf.d $D/scanelf.d
 endif
+
+GLUE_OBJS = 
 
 G_GLUE_OBJS = $(addprefix $G/, $(GLUE_OBJS))
 

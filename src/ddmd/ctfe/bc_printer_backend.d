@@ -9,20 +9,28 @@ enum BCFunctionTypeEnum : byte
     Bytecode,
     Compiled,
 }
+enum withMemCpy = 1;
 
-//static if (is(typeof(() { import ddmd.declaration : FuncDeclaration; })))
-//{
-//    import ddmd.declaration : FuncDeclaration;
-//    alias FT = FuncDeclaration;
-//}
-//else
-//{
-//    alias FT = void*;
-//}
+static if (is(typeof(() { import ddmd.declaration : FuncDeclaration; })))
+{
+    import ddmd.declaration : FuncDeclaration;
+    alias FT = FuncDeclaration;
+}
+else
+{
+   alias FT = void*;
+}
 
 struct BCFunction
 {
     void* funcDecl;
+}
+
+struct ErrorInfo
+{
+    string msg;
+    BCValue[4] values;
+    uint valueCount;
 }
 
 struct Print_BCGen
@@ -34,6 +42,7 @@ struct Print_BCGen
         uint cndJumpCount;
         uint jmpCount;
         ubyte parameterCount;
+        ushort localCount;
         ushort temporaryCount;
         uint labelCount;
         bool sameLabel;
@@ -41,11 +50,23 @@ struct Print_BCGen
     }
 
     bool insideFunction = false;
-    string[102_000] errorMessages;
-    uint errorMessageCount;
+    ErrorInfo[102_000/4] errorInfos;
+    uint errorInfoCount;
     FunctionState[ubyte.max * 8] functionStates;
     uint functionStateCount;
     uint currentFunctionStateNumber;
+    uint indentLevel;
+    string indent = "    ";
+
+    void incIndent()
+    {
+        indent ~= "    ";
+    }
+
+    void decIndent()
+    {
+        indent = indent[0 .. $-4];
+    }
 
     @property FunctionState* currentFunctionState()
     {
@@ -63,10 +84,23 @@ struct Print_BCGen
 
     uint addErrorMessage(string msg)
     {
-        if (errorMessageCount < errorMessages.length)
+        if (errorInfoCount < errorInfos.length)
         {
-            errorMessages[errorMessageCount++] = msg;
-            return errorMessageCount;
+            errorInfos[errorInfoCount++].msg = msg;
+            return errorInfoCount;
+        }
+
+        return 0;
+    }
+
+    uint addErrorValue(BCValue v)
+    {
+        if (errorInfoCount < errorInfos.length)
+        {
+            auto eInfo = &errorInfos[errorInfoCount - 1];
+
+            eInfo.values[eInfo.valueCount++] = v;
+            return eInfo.valueCount;
         }
 
         return 0;
@@ -123,17 +157,32 @@ struct Print_BCGen
                 result ~= "StackAddr(" ~ to!string(val.stackAddr.addr) ~ "), " ~ print(val.type);
             }
             break;
+        case BCValueType.Local :
+            auto name = val.name ? val.name ~ "_" ~ to!string(val.localIndex) : "local" ~ to!string(val.localIndex);
+            return name ~ functionSuffix;
+
         case BCValueType.Temporary:
             {
                 return "tmp" ~ to!string(val.tmpIndex) ~ functionSuffix;
             }
         case BCValueType.Parameter:
             {
-                return "p" ~ to!string(val.param) ~ functionSuffix;
+                return (val.name ? val.name : "p") ~ "_" ~ to!string(val.paramIndex) ~ functionSuffix;
             }
         case BCValueType.Error:
             {
-                return "Imm32(" ~ to!string(val.imm32) ~ ")/*"~ errorMessages[val.imm32 - 1]  ~"*/";
+                string _result = "Imm32(" ~ to!string(val.imm32) ~ ") /*";
+                if (val.imm32)
+                {
+                    auto eInfo = errorInfos[val.imm32 - 1];
+                    _result ~= `"` ~ eInfo.msg ~ `", `;
+
+                    foreach(i;0 .. eInfo.valueCount)
+                        _result ~= print(eInfo.values[i]) ~ ", ";
+
+                    _result = _result[0 .. $-2] ~ "*/;";
+                }
+                return _result;
             }
         case BCValueType.Unknown:
             {
@@ -153,12 +202,12 @@ struct Print_BCGen
         if (!sameLabel)
         {
             ++labelCount;
-            result ~= "    ";
+            result ~= indent;
             sameLabel = true;
         }
         else
         {
-            result ~= "    //";
+            result ~= indent ~ "//";
         }
         result ~= "auto label" ~ to!string(labelCount) ~ " = genLabel();\n";
         return BCLabel(BCAddr(labelCount));
@@ -168,23 +217,26 @@ struct Print_BCGen
     {
         sameLabel = false;
         sp += 4;
-        result ~= "    incSp();\n";
+        result ~= indent ~ "incSp();\n";
     }
 
     StackAddr currSp()
     {
-        result ~= "//currSp();//SP[" ~ to!string(sp.addr) ~ "]\n";
+        result ~= indent ~ "//currSp();//SP[" ~ to!string(sp.addr) ~ "]\n";
         return sp;
     }
 
     void Initialize()
     {
-        result ~= "    Initialize(" ~ ");\n";
+        result = result[0 .. 0];
+        result ~= indent ~ "Initialize(" ~ ");\n";
+        incIndent();
     }
 
     void Finalize()
     {
-        result ~= "    Finalize(" ~ ");\n";
+        decIndent();
+        result ~= indent ~ "Finalize(" ~ ");\n";
     }
 
     void beginFunction(uint f = 0, void* fnDecl = null)
@@ -192,21 +244,23 @@ struct Print_BCGen
         sameLabel = false;
         import ddmd.declaration : FuncDeclaration;
         import std.string;
-        assert(!insideFunction);
+//        assert(!insideFunction);
         insideFunction = true;
-        auto fd = cast(FuncDeclaration) fnDecl;
-        result ~= "    beginFunction(" ~ to!string(f) ~ ");//" ~ fd.toChars.fromStringz ~ "\n";
+        auto fd = *(cast(FuncDeclaration*) &fnDecl);
+        result ~= indent ~ "beginFunction(" ~ to!string(f) ~ ");//" ~ (fd && fd.ident ? fd.toChars.fromStringz : "(nameless)") ~ "\n";
+        incIndent();
     }
 
     void endFunction()
     {
+        decIndent();
         currentFunctionStateNumber++;
         assert(insideFunction);
         insideFunction = false;
-        result ~= "    endFunction(" ~ ");\n\n";
+        result ~= indent ~ "endFunction(" ~ ");\n\n";
     }
 
-    BCValue genParameter(BCType bct)
+    BCValue genParameter(BCType bct, string name = null)
     {
         //currentFunctionStateNumber++;
         if (!parameterCount)
@@ -214,47 +268,64 @@ struct Print_BCGen
             //write a newline when we effectivly begin a new function;
             result ~= "\n";
         }
-        result ~= "    auto p" ~ to!string(++parameterCount) ~ functionSuffix ~ " = genParameter(" ~ print(
+        name =  name ? name : "p";
+        result ~= indent ~ "auto " ~ name ~ "_" ~ to!string(++parameterCount) ~ functionSuffix ~ " = genParameter(" ~ print(
             bct) ~ ");//SP[" ~ to!string(sp) ~ "]\n";
         //currentFunctionStateNumber--;
         sp += 4;
-        return BCValue(BCParameter(parameterCount, bct));
+        auto p = BCValue(BCParameter(parameterCount, bct));
+        p.name = name;
+        return p;
     }
 
     BCValue genTemporary(BCType bct)
     {
         sameLabel = false;
         auto tmpAddr = sp.addr;
-        sp += align4(basicTypeSize(bct));
+        sp += isBasicBCType(bct) ? align4(basicTypeSize(bct)) : 4;
 
-        result ~= "    auto tmp" ~ to!string(++temporaryCount) ~ functionSuffix ~ " = genTemporary(" ~ print(
+        result ~= indent ~ "auto tmp" ~ to!string(++temporaryCount) ~ functionSuffix ~ " = genTemporary(" ~ print(
             bct) ~ ");//SP[" ~ to!string(tmpAddr) ~ "]\n";
         return BCValue(StackAddr(tmpAddr), bct, temporaryCount);
     }
 
+    BCValue genLocal(BCType bct, string name)
+    {
+        sameLabel = false;
+        auto localAddr = sp.addr;
+        sp += isBasicBCType(bct) ? align4(basicTypeSize(bct)) : 4;
+
+        auto localName = name ? name ~ "_" ~ to!string(++localCount) : "local" ~ to!string(++localCount);
+
+        result ~= indent ~ "auto " ~ localName ~ functionSuffix ~ " = genLocal(" ~ print(
+            bct) ~ ", \"" ~ (name ? name : "") ~ "\");//SP[" ~ to!string(localAddr) ~ "]\n";
+        return BCValue(StackAddr(localAddr), bct, localCount, name);
+    }
+
+
     BCAddr beginJmp()
     {
         sameLabel = false;
-        result ~= "    auto jmp" ~ to!string(++jmpCount) ~ functionSuffix ~ " = beginJmp();\n";
+        result ~= indent ~ "auto jmp" ~ to!string(++jmpCount) ~ functionSuffix ~ " = beginJmp();\n";
         return BCAddr(jmpCount);
     }
 
     void endJmp(BCAddr atIp, BCLabel target)
     {
         sameLabel = false;
-        result ~= "    endJmp(jmp" ~ to!string(atIp.addr) ~ functionSuffix ~ ", " ~ print(target) ~ functionSuffix ~ ");\n";
+        result ~= indent ~ "endJmp(jmp" ~ to!string(atIp.addr) ~ functionSuffix ~ ", " ~ print(target) ~ functionSuffix ~ ");\n";
     }
 
     void genJump(BCLabel target)
     {
         sameLabel = false;
-        result ~= "    genJump(" ~ print(target) ~ ");\n";
+        result ~= indent ~ "genJump(" ~ print(target) ~ ");\n";
     }
 
     CndJmpBegin beginCndJmp(BCValue cond = BCValue.init, bool ifTrue = false)
     {
         sameLabel = false;
-        result ~= "    auto cndJmp" ~ to!string(++cndJumpCount) ~ functionSuffix ~ " = beginCndJmp(" ~ (
+        result ~= indent ~ "auto cndJmp" ~ to!string(++cndJumpCount) ~ functionSuffix ~ " = beginCndJmp(" ~ (
             cond ? (print(cond) ~ (ifTrue ? ", true" : "")) : "") ~ ");\n";
         return CndJmpBegin(BCAddr(cndJumpCount), cond, ifTrue);
     }
@@ -262,13 +333,13 @@ struct Print_BCGen
     void endCndJmp(CndJmpBegin jmp, BCLabel target)
     {
         sameLabel = false;
-        result ~= "    endCndJmp(cndJmp" ~ to!string(jmp.at.addr) ~ ", " ~ print(target) ~ ");\n";
+        result ~= indent ~ "endCndJmp(cndJmp" ~ to!string(jmp.at.addr) ~ ", " ~ print(target) ~ ");\n";
     }
 
     void emitFlg(BCValue lhs)
     {
         sameLabel = false;
-        result ~= "    emitFlg(" ~ print(lhs) ~ ");\n";
+        result ~= indent ~ "emitFlg(" ~ print(lhs) ~ ");\n";
     }
 
     void Set(BCValue lhs, BCValue rhs)
@@ -276,109 +347,109 @@ struct Print_BCGen
         if (lhs == rhs)
             return;
         sameLabel = false;
-        result ~= "    Set(" ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
+        result ~= indent ~ "Set(" ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
     }
 
     void Lt3(BCValue _result, BCValue lhs, BCValue rhs)
     {
         sameLabel = false;
-        result ~= "    Lt3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
+        result ~= indent ~ "Lt3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
     }
 
     void Gt3(BCValue _result, BCValue lhs, BCValue rhs)
     {
         sameLabel = false;
-        result ~= "    Gt3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
+        result ~= indent ~ "Gt3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
     }
 
     void Le3(BCValue _result, BCValue lhs, BCValue rhs)
     {
         sameLabel = false;
-        result ~= "    Le3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
+        result ~= indent ~ "Le3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
     }
 
     void Ge3(BCValue _result, BCValue lhs, BCValue rhs)
     {
         sameLabel = false;
-        result ~= "    Ge3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
+        result ~= indent ~ "Ge3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
     }
 
     void Eq3(BCValue _result, BCValue lhs, BCValue rhs)
     {
         sameLabel = false;
-        result ~= "    Eq3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
+        result ~= indent ~ "Eq3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
     }
 
     void Neq3(BCValue _result, BCValue lhs, BCValue rhs)
     {
         sameLabel = false;
-        result ~= "    Neq3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
+        result ~= indent ~ "Neq3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
     }
 
     void Add3(BCValue _result, BCValue lhs, BCValue rhs)
     {
         sameLabel = false;
-        result ~= "    Add3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
+        result ~= indent ~ "Add3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
     }
 
     void Sub3(BCValue _result, BCValue lhs, BCValue rhs)
     {
         sameLabel = false;
-        result ~= "    Sub3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
+        result ~= indent ~ "Sub3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
     }
 
     void Mul3(BCValue _result, BCValue lhs, BCValue rhs)
     {
         sameLabel = false;
-        result ~= "    Mul3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
+        result ~= indent ~ "Mul3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
     }
 
     void Div3(BCValue _result, BCValue lhs, BCValue rhs)
     {
         sameLabel = false;
-        result ~= "    Div3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
+        result ~= indent ~ "Div3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
     }
 
     void And3(BCValue _result, BCValue lhs, BCValue rhs)
     {
         sameLabel = false;
-        result ~= "    And3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
+        result ~= indent ~ "And3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
     }
 
     void Or3(BCValue _result, BCValue lhs, BCValue rhs)
     {
         sameLabel = false;
-        result ~= "    Or3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
+        result ~= indent ~ "Or3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
     }
 
     void Xor3(BCValue _result, BCValue lhs, BCValue rhs)
     {
         sameLabel = false;
-        result ~= "    Xor3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
+        result ~= indent ~ "Xor3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
     }
 
     void Lsh3(BCValue _result, BCValue lhs, BCValue rhs)
     {
         sameLabel = false;
-        result ~= "    Lsh3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
+        result ~= indent ~ "Lsh3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
     }
 
     void Rsh3(BCValue _result, BCValue lhs, BCValue rhs)
     {
         sameLabel = false;
-        result ~= "    Rsh3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
+        result ~= indent ~ "Rsh3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
     }
 
     void Mod3(BCValue _result, BCValue lhs, BCValue rhs)
     {
         sameLabel = false;
-        result ~= "    Mod3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
+        result ~= indent ~ "Mod3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
     }
 
     void Byte3(BCValue _result, BCValue word, BCValue idx)
     {
         sameLabel = false;
-        result ~= "    Byte3(" ~ print(_result) ~ ", " ~ print(word) ~ ", " ~ print(idx) ~ ");\n";
+        result ~= indent ~ "Byte3(" ~ print(_result) ~ ", " ~ print(word) ~ ", " ~ print(idx) ~ ");\n";
     }
     import ddmd.globals : Loc;
     void Call(BCValue _result, BCValue fn, BCValue[] args, Loc l = Loc.init)
@@ -388,52 +459,92 @@ struct Print_BCGen
 
         sameLabel = false;
 
-        result ~= "    Call(" ~ print(_result) ~ ", " ~ print(fn) ~ ", [" ~ args.map!(
+        result ~= indent ~ "Call(" ~ print(_result) ~ ", " ~ print(fn) ~ ", [" ~ args.map!(
             a => print(a)).join(", ") ~ "]);\n";
     }
 
     void Load32(BCValue to, BCValue from)
     {
         sameLabel = false;
-        result ~= "    Load32(" ~ print(to) ~ ", " ~ print(from) ~ ");\n";
+        result ~= indent ~ "Load32(" ~ print(to) ~ ", " ~ print(from) ~ ");\n";
     }
 
     void Store32(BCValue to, BCValue from)
     {
         sameLabel = false;
-        result ~= "    Store32(" ~ print(to) ~ ", " ~ print(from) ~ ");\n";
+        result ~= indent ~ "Store32(" ~ print(to) ~ ", " ~ print(from) ~ ");\n";
+    }
+
+    void Load64(BCValue to, BCValue from)
+    {
+        sameLabel = false;
+        result ~= indent ~ "Load64(" ~ print(to) ~ ", " ~ print(from) ~ ");\n";
+    }
+
+    void Store64(BCValue to, BCValue from)
+    {
+        sameLabel = false;
+        result ~= indent ~ "Store64(" ~ print(to) ~ ", " ~ print(from) ~ ");\n";
     }
 
     void Alloc(BCValue heapPtr, BCValue size)
     {
         sameLabel = false;
-        result ~= "    Alloc(" ~ print(heapPtr) ~ ", " ~ print(size) ~ ");\n";
+        result ~= indent ~ "Alloc(" ~ print(heapPtr) ~ ", " ~ print(size) ~ ");\n";
     }
 
     void Not(BCValue _result, BCValue val)
     {
         sameLabel = false;
-        result ~= "    Not(" ~ print(_result) ~ ", " ~ print(val) ~ ");\n";
+        result ~= indent ~ "Not(" ~ print(_result) ~ ", " ~ print(val) ~ ");\n";
     }
 
     void Ret(BCValue val)
     {
         sameLabel = false;
-        result ~= "    Ret(" ~ print(val) ~ ");\n";
+        result ~= indent ~ "Ret(" ~ print(val) ~ ");\n";
     }
 
     void Cat(BCValue _result, BCValue lhs, BCValue rhs, const uint elmSize)
     {
         sameLabel = false;
-        result ~= "    Cat(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ", " ~ to!string(
+        result ~= indent ~ "Cat(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ", " ~ to!string(
             elmSize) ~ ");\n";
     }
 
     void Assert(BCValue value, BCValue err)
     {
         sameLabel = false;
-        result ~= "    Assert(" ~ print(value) ~ ", " ~ print(err) ~ ");\n";
+        result ~= indent ~ "Assert(" ~ print(value) ~ ", " ~ print(err) ~ ");\n";
     }
+
+    static if (withMemCpy)
+        void MemCpy(BCValue dst, BCValue src, BCValue size)
+    {
+        sameLabel = false;
+        result ~= indent ~ "MemCpy(" ~ print(dst) ~ ", " ~ print(src) ~ ", " ~ print(size) ~ ");\n";
+    }
+
+    void Comment(string comment)
+    {
+        result ~= indent ~ "Comment(\"" ~ comment ~ "\");\n";
+    }
+
+    void Line(uint line)
+    {
+        result ~= indent ~ "Line(" ~ to!string(line) ~ ");\n";
+    }
+
+    void IToF32(BCValue _result, BCValue value)
+    {
+        result ~= indent ~ "IToF32(" ~ print(_result) ~ ", " ~ print(value) ~ ");\n";
+    }
+
+    void IToF64(BCValue _result, BCValue value)
+    {
+        result ~= indent ~ "IToF64(" ~ print(_result) ~ ", " ~ print(value) ~ ");\n";
+    }
+
 }
 
 enum genString = q{
