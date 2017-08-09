@@ -5,15 +5,24 @@ version (GNU) version = GNU_OR_LDC;
 version (LDC) version = GNU_OR_LDC;
 
 /**
- * Perform array (vector) operations and store the result in `res`.
- * Operand types and operations are passed as template arguments in Reverse
- * Polish Notation (RPN).
+ * Perform array (vector) operations and store the result in `res`.  Operand
+ * types and operations are passed as template arguments in Reverse Polish
+ * Notation (RPN).
+
+ * Operands can be slices or scalar types. The unqualified element types of all
+ * slices must be `T`, scalar types must be implicitly convertible to `T`.
+ *
+ * Operations are encoded as strings, e.g. `"+"`, `"%"`, `"*="`. Unary
+ * operations are prefixed with "u", e.g. `"u-"`, `"u~"`. Only the last
+ * operation can and must be an assignment (`"="`) or op-assignment (`"op="`).
+ *
  * All slice operands must have the same length as the result slice.
  *
- * Params: res = the slice in which to store the results
- *        args = all other operands
+ * Params: T[] = type of result slice
  *        Args = operand types and operations in RPN
- *         T[] = type of result slice
+ *         res = the slice in which to store the results
+ *        args = operand values
+ *
  * Returns: the slice containing the result
  */
 T[] arrayOp(T : T[], Args...)(T[] res, Filter!(isType, Args) args) @trusted @nogc pure nothrow
@@ -108,7 +117,7 @@ version (DigitalMars)
 
 // mixin gen
 
-// filter out ops without matching SSE/SIMD instructions (could be composed of several instructions though)
+// Check whether operations `ops` are supported for type `T`. Fails with a human-friendly static assert message, if `fail` is true.
 template opsSupported(bool fail, T, ops...) if (ops.length > 1)
 {
     enum opsSupported = opsSupported!(fail, T, ops[0 .. $ / 2])
@@ -131,7 +140,8 @@ template opsSupported(bool fail, T, string op)
     }
 }
 
-// filter out things like float[] = float[] / size_t[]
+// check whether slices have the unqualified element type `E` and scalars are implicitly convertible to `E`
+// i.e. filter out things like float[] = float[] / size_t[]
 enum compatibleVecTypes(E, T : T[]) = is(Unqual!T == Unqual!E); // array elem types must be same (maybe add cvtpi2ps)
 enum compatibleVecTypes(E, T) = is(T : E); // scalar must be convertible to target elem type
 enum compatibleVecTypes(E, Types...) = compatibleVecTypes!(E, Types[0 .. $ / 2])
@@ -144,6 +154,7 @@ version (GNU_OR_LDC)
 }
 else
 {
+    // check whether arrayOp is vectorizable
     template vectorizeable(E : E[], Args...)
     {
         static if (is(vec!E))
@@ -183,6 +194,9 @@ bool isBinaryAssignOp(string op)
     return op.length == 2 && op[1] == '=' && isBinaryOp(op[0 .. 1]);
 }
 
+// Generate mixin expression to perform scalar arrayOp loop expression, assumes
+// `pos` to be the current slice index, `args` to contain operand values, and
+// `res` the target slice.
 string scalarExp(Args...)()
 {
     string[] stack;
@@ -218,6 +232,8 @@ string scalarExp(Args...)()
     return stack[0];
 }
 
+// Generate mixin statement to perform vector loop initialization, assumes
+// `args` to contain operand values.
 string initScalarVecs(Args...)()
 {
     size_t scalarsIdx;
@@ -234,6 +250,9 @@ string initScalarVecs(Args...)()
     return res;
 }
 
+// Generate mixin expression to perform vector arrayOp loop expression, assumes
+// `pos` to be the current slice index, `args` to contain operand values, and
+// `res` the target slice.
 string vectorExp(Args...)()
 {
     size_t scalarsIdx, argsIdx;
