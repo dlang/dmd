@@ -1040,10 +1040,6 @@ struct SharedCtfeState(BCGenT)
 
         switch (type.type)
         {
-        case BCTypeEnum.String:
-            {
-                return SliceDescriptor.Size;
-            }
 
         case BCTypeEnum.Struct:
             {
@@ -1077,11 +1073,9 @@ struct SharedCtfeState(BCGenT)
                 }
                 return size(_array.elementType) * _array.length + SliceDescriptor.Size;
             }
-        case BCTypeEnum.Slice:
-            {
-                return SliceDescriptor.Size;
-            }
+        case BCTypeEnum.String:
         case BCTypeEnum.Ptr:
+        case BCTypeEnum.Slice:
             {
                 return SliceDescriptor.Size;
             }
