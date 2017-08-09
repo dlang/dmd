@@ -311,6 +311,10 @@ struct Target
             supported = false;
             break;
 
+        case TOKunord, TOKlg, TOKleg, TOKule, TOKul, TOKuge, TOKug, TOKue:
+            supported = false;
+            break;
+
         case TOKshl, TOKshlass, TOKshr, TOKshrass, TOKushr, TOKushrass:
             supported = false;
             break;
