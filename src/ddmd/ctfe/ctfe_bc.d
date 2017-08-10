@@ -1659,6 +1659,7 @@ extern (C++) final class BCTypeVisitor : Visitor
     {
         auto st = sharedCtfeState.beginStruct(sd);
         bool died;
+        __gshared static bcv = new BCV!BCGenT; // TODO don't do this.
 
         foreach (sMember; sd.fields)
         {
@@ -1689,8 +1690,7 @@ extern (C++) final class BCTypeVisitor : Visitor
                             break;//BCValue.init;
                         }
 
-                        auto bcv = new BCV!BCGenT;
-                        scope (exit) delete bcv;
+
                         auto initBCValue = bcv.genExpr(initExp);
                         if (initBCValue)
                         {
@@ -1717,9 +1717,9 @@ extern (C++) final class BCTypeVisitor : Visitor
                 st.addField(bcType, false, []);
 
         }
-
+        
         _sharedCtfeState.endStruct(&st, died);
-
+        scope(exit) bcv.clear();
     }
 
 }
