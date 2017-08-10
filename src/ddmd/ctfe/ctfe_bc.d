@@ -837,7 +837,7 @@ struct SharedCtfeState(BCGenT)
         memset(&stack, 0, stack[0].sizeof * stack.length / 4);
     }
 
-    void initHeap(uint maxHeapSize = 2 ^^ 25)
+    void initHeap(uint maxHeapSize = 2 ^^ 30)
     {
         import ddmd.root.rmem;
 
