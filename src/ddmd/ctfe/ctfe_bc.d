@@ -3965,6 +3965,11 @@ static if (is(BCGen))
         foreach (elem; *sle.elements)
         {
             Comment("StructLiteralExp element: " ~ elem.toString);
+            if (!elem)
+            {
+                bailout("NullElement encountered in: " ~ sle.toString);
+                return ;
+            }
             auto elexpr = genExpr(elem, "StructLiteralExp element");
             immutable _size = _sharedCtfeState.size(elexpr.type, true);
 
