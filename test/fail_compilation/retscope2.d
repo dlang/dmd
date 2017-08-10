@@ -164,26 +164,26 @@ void foo800()
 }
 
 /*************************************************/
+/+
+/*
+XEST_OUTPUT:
 
+fail_compilation/retscope2.d(907): Error: address of variable `this` assigned to `p17568` with longer lifetime
 
+*/
 
+#line 900
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+int* p17568;
+struct T17568
+{
+    int a;
+    void escape() @safe scope
+    {
+        p17568 = &a;
+    }
+}
++/
 /*************************************************/
 
 /*
@@ -243,5 +243,53 @@ void delegate() test17430() @safe
     auto dg = &s.foo; // infer dg as scope
     return dg;
 }
+
+/****************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope2.d(1216): Error: returning `s.foo()` escapes a reference to local variable `s`
+fail_compilation/retscope2.d(1233): Error: returning `t.foo()` escapes a reference to local variable `t`
+---
+*/
+
+#line 1200
+// https://issues.dlang.org/show_bug.cgi?id=17388
+
+struct S17388
+{
+    //int*
+    auto
+        foo() return @safe
+    {
+        return &x;
+    }
+    int x;
+}
+
+@safe int* f17388()
+{
+    S17388 s;
+    return s.foo();
+}
+
+struct T17388
+{
+    //int[]
+    auto
+        foo() return @safe
+    {
+        return x[];
+    }
+    int[4] x;
+}
+
+@safe int[] g17388()
+{
+    T17388 t;
+    return t.foo();
+}
+
 
 
