@@ -67,6 +67,7 @@ SRCS=\
 	src\core\sys\freebsd\sys\mman.d \
 	src\core\sys\freebsd\time.d \
 	\
+	src\core\sys\linux\netinet\in_.d \
 	src\core\sys\linux\stdio.d \
 	src\core\sys\linux\tipc.d \
 	src\core\sys\linux\sys\inotify.d \
