@@ -115,7 +115,7 @@ $(H2 $(LNAME2 using_struct_as_key, Using Structs or Unions as the KeyType))
 
         ---------
         size_t $(CODE_HIGHLIGHT toHash)() const @safe pure nothrow;
-        bool $(CODE_HIGHLIGHT opEquals)(ref const typeof(this) s) @safe pure nothrow;
+        bool $(CODE_HIGHLIGHT opEquals)(ref const typeof(this) s) const @safe pure nothrow;
         ---------
 
         $(P For example:)
