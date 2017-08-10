@@ -3936,8 +3936,11 @@ static if (is(BCGen))
                     // have a flag which tells us if we have to
                     // allocate ourselfs or wether we write in
                     // preallocated space
+                    // HACK HACK HACK HACK HACK HACK
 
                     _sharedCtfeState.heap.heapSize -= heapAdd;
+
+                    // FIXME FIXME FIXME FIXME FIXME FIXME
                 }
                 else
                 {
