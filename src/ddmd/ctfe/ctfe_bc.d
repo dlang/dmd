@@ -1040,10 +1040,6 @@ struct SharedCtfeState(BCGenT)
 
         switch (type.type)
         {
-        case BCTypeEnum.String:
-            {
-                return SliceDescriptor.Size;
-            }
 
         case BCTypeEnum.Struct:
             {
@@ -1077,11 +1073,9 @@ struct SharedCtfeState(BCGenT)
                 }
                 return size(_array.elementType) * _array.length + SliceDescriptor.Size;
             }
-        case BCTypeEnum.Slice:
-            {
-                return SliceDescriptor.Size;
-            }
+        case BCTypeEnum.String:
         case BCTypeEnum.Ptr:
+        case BCTypeEnum.Slice:
             {
                 return SliceDescriptor.Size;
             }
@@ -1685,6 +1679,7 @@ extern (C++) final class BCTypeVisitor : Visitor
                 {
                     uint[] initializer;
                     import ddmd.initsem;
+
                     if(auto initExp = sMember._init.initializerToExpression)
                     {
                         if (!initExp.type)
@@ -1694,7 +1689,8 @@ extern (C++) final class BCTypeVisitor : Visitor
                             break;//BCValue.init;
                         }
 
-                        scope bcv = new BCV!BCGenT;
+                        auto bcv = new BCV!BCGenT;
+                        scope (exit) delete bcv;
                         auto initBCValue = bcv.genExpr(initExp);
                         if (initBCValue)
                         {
@@ -2343,8 +2339,7 @@ public:
         }
         auto oldRetval = retval;
         import ddmd.asttypename;
-        // import std.stdio; writeln("Calling genExpr(" ~ expr.astTypeName ~ ") from: ", line, (debugMessage ? " \"" ~ debugMessage ~ "\" -- " : " -- ") ~ expr.toString); //DEBUGLINE
-
+        // import std.stdio; static string currentIndent = ""; writeln(currentIndent, "genExpr(" ~ expr.astTypeName ~ ") from: ", line, (debugMessage ? " \"" ~ debugMessage ~ "\" -- " : " -- ") ~ expr.toString); currentIndent ~= "\t"; scope (exit) currentIndent = currentIndent[0 .. $-1]; //DEBUGLINE
         if (processingArguments)
         {
             debug (ctfe)
