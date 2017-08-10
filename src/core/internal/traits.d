@@ -210,3 +210,23 @@ template Filter(alias pred, TList...)
                 Filter!(pred, TList[$/2 ..  $ ]));
     }
 }
+
+// std.meta.staticMap
+template staticMap(alias F, T...)
+{
+    static if (T.length == 0)
+    {
+        alias staticMap = TypeTuple!();
+    }
+    else static if (T.length == 1)
+    {
+        alias staticMap = TypeTuple!(F!(T[0]));
+    }
+    else
+    {
+        alias staticMap =
+            TypeTuple!(
+                staticMap!(F, T[ 0  .. $/2]),
+                staticMap!(F, T[$/2 ..  $ ]));
+    }
+}
