@@ -178,6 +178,8 @@ bool isUnaryOp(string op)
 
 bool isBinaryOp(string op)
 {
+    if (op == "^^")
+        return true;
     if (op.length != 1)
         return false;
     switch (op[0])
@@ -191,7 +193,7 @@ bool isBinaryOp(string op)
 
 bool isBinaryAssignOp(string op)
 {
-    return op.length == 2 && op[1] == '=' && isBinaryOp(op[0 .. 1]);
+    return op.length >= 2 && op[$ - 1] == '=' && isBinaryOp(op[0 .. $ - 1]);
 }
 
 // Generate mixin expression to perform scalar arrayOp loop expression, assumes
@@ -374,6 +376,8 @@ unittest
     {
         test!(T, "+")(1, 2, 3);
         test!(T, "-")(3, 2, 1);
+        static if (__traits(compiles, { import std.math; }))
+            test!(T, "^^")(2, 3, 8);
 
         test2!(T, "u-", "+")(3, 2, 1);
     }
@@ -402,13 +406,19 @@ unittest
     }
 }
 
-// test rewrite of v op= exp to v = v op exp
+// test handling of v op= exp
 unittest
 {
-    byte[32] c;
-    arrayOp!(byte[], byte, "+=")(c[], cast(byte) 6);
+    uint[32] c;
+    arrayOp!(uint[], uint, "+=")(c[], 2);
     foreach (v; c)
-        assert(v == 6);
+        assert(v == 2);
+    static if (__traits(compiles, { import std.math; }))
+    {
+        arrayOp!(uint[], uint, "^^=")(c[], 3);
+        foreach (v; c)
+            assert(v == 8);
+    }
 }
 
 // proper error message for UDT lacking certain ops
