@@ -6851,9 +6851,11 @@ extern (C++) final class SliceExp : UnaExp
 {
     Expression upr;             // null if implicit 0
     Expression lwr;             // null if implicit [length - 1]
+
     VarDeclaration lengthVar;
     bool upperIsInBounds;       // true if upr <= e1.length
     bool lowerIsLessThanUpper;  // true if lwr <= upr
+    bool arrayop;               // an array operation, rather than a slice
 
     /************************************************************/
     extern (D) this(Loc loc, Expression e1, IntervalExp ie)

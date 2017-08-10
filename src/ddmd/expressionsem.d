@@ -3267,6 +3267,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         if (exp.e1.op == TOKslice || exp.e1.type.ty == Tarray || exp.e1.type.ty == Tsarray)
         {
+            if (exp.e1.op == TOKslice)
+                (cast(SliceExp)exp.e1).arrayop = true;
+
             // T[] op= ...
             if (exp.e2.implicitConvTo(exp.e1.type.nextOf()))
             {
@@ -3916,39 +3919,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         exp.type = exp.e1.type.pointerTo();
 
-        bool checkAddressVar(VarDeclaration v)
-        {
-            if (v)
-            {
-                if (!v.canTakeAddressOf())
-                {
-                    exp.error("cannot take address of %s", exp.e1.toChars());
-                    return false;
-                }
-                if (sc.func && !sc.intypeof && !v.isDataseg())
-                {
-                    const(char)* p = v.isParameter() ? "parameter" : "local";
-                    if (global.params.vsafe)
-                    {
-                        // Taking the address of v means it cannot be set to 'scope' later
-                        v.storage_class &= ~STCmaybescope;
-                        v.doNotInferScope = true;
-                        if (v.storage_class & STCscope && sc.func.setUnsafe())
-                        {
-                            exp.error("cannot take address of scope %s %s in @safe function %s", p, v.toChars(), sc.func.toChars());
-                            return false;
-                        }
-                    }
-                    else if (sc.func.setUnsafe())
-                    {
-                        exp.error("cannot take address of %s %s in @safe function %s", p, v.toChars(), sc.func.toChars());
-                        return false;
-                    }
-                }
-            }
-            return true;
-        }
-
         // See if this should really be a delegate
         if (exp.e1.op == TOKdotvar)
         {
@@ -3984,7 +3954,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 VarDeclaration v = ve.var.isVarDeclaration();
                 if (v)
                 {
-                    if (!checkAddressVar(v))
+                    if (!checkAddressVar(sc, exp, v))
                     {
                         result = new ErrorExp();
                         return;
@@ -3997,7 +3967,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 VarDeclaration v = ve.var.isVarDeclaration();
                 if (v && v.storage_class & STCref)
                 {
-                    if (!checkAddressVar(v))
+                    if (!checkAddressVar(sc, exp, v))
                     {
                         result = new ErrorExp();
                         return;
@@ -4011,7 +3981,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             VarDeclaration v = ve.var.isVarDeclaration();
             if (v)
             {
-                if (!checkAddressVar(v))
+                if (!checkAddressVar(sc, exp, v))
                 {
                     result = new ErrorExp();
                     return;
@@ -4076,7 +4046,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             VarDeclaration v = ve.var.isVarDeclaration();
             if (v)
             {
-                if (!checkAddressVar(v))
+                if (!checkAddressVar(sc, exp, v))
                 {
                     result = new ErrorExp();
                     return;
@@ -4111,7 +4081,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 VarDeclaration v = ve.var.isVarDeclaration();
                 if (v)
                 {
-                    if (!checkAddressVar(v))
+                    if (!checkAddressVar(sc, exp, v))
                     {
                         result = new ErrorExp();
                         return;
@@ -4804,6 +4774,48 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else if (t1b.ty == Tsarray)
         {
+            if (!exp.arrayop && global.params.vsafe)
+            {
+                /* Slicing a static array is like taking the address of it.
+                 * Perform checks as if e[] was &e
+                 */
+                VarDeclaration v;
+                if (exp.e1.op == TOKdotvar)
+                {
+                    DotVarExp dve = cast(DotVarExp)exp.e1;
+                    if (dve.e1.op == TOKvar)
+                    {
+                        VarExp ve = cast(VarExp)dve.e1;
+                        v = ve.var.isVarDeclaration();
+                    }
+                    else if (dve.e1.op == TOKthis || dve.e1.op == TOKsuper)
+                    {
+                        ThisExp ve = cast(ThisExp)dve.e1;
+                        v = ve.var.isVarDeclaration();
+                        if (v && !(v.storage_class & STCref))
+                            v = null;
+                    }
+                }
+                else if (exp.e1.op == TOKvar)
+                {
+                    VarExp ve = cast(VarExp)exp.e1;
+                    v = ve.var.isVarDeclaration();
+                }
+                else if (exp.e1.op == TOKthis || exp.e1.op == TOKsuper)
+                {
+                    ThisExp ve = cast(ThisExp)exp.e1;
+                    v = ve.var.isVarDeclaration();
+                }
+
+                if (v)
+                {
+                    if (!checkAddressVar(sc, exp, v))
+                    {
+                        result = new ErrorExp();
+                        return;
+                    }
+                }
+            }
         }
         else if (t1b.ty == Ttuple)
         {
@@ -5733,7 +5745,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 e1x = e;
             }
             else
+            {
+                if (e1x.op == TOKslice)
+                    (cast(SliceExp)e1x).arrayop = true;
+
                 e1x = e1x.semantic(sc);
+            }
 
             /* We have f = value.
              * Could mean:
@@ -6242,8 +6259,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     // convert e1 to e1[]
                     // e.g. e1[] = a[] + b[];
-                    e1x = new SliceExp(e1x.loc, e1x, null, null);
-                    e1x = e1x.semantic(sc);
+                    auto sle = new SliceExp(e1x.loc, e1x, null, null);
+                    sle.arrayop = true;
+                    e1x = sle.semantic(sc);
                 }
                 else
                 {
@@ -6292,8 +6310,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         e1x.type = t.nextOf().sarrayOf(dim);
                     }
                 }
-                e1x = new SliceExp(e1x.loc, e1x, null, null);
-                e1x = e1x.semantic(sc);
+                auto sle = new SliceExp(e1x.loc, e1x, null, null);
+                sle.arrayop = true;
+                e1x = sle.semantic(sc);
             }
             if (e1x.op == TOKerror)
             {
@@ -9330,3 +9349,48 @@ Lerr:
     exp.error("%s isn't a template", e.toChars());
     return new ErrorExp();
 }
+
+
+/****************************************************
+ * Determine if `exp`, which takes the address of `v`, can do so safely.
+ * Params:
+ *      sc = context
+ *      exp = expression that takes the address of `v`
+ *      v = the variable getting its address taken
+ * Returns:
+ *      `true` if ok, `false` for error
+ */
+private bool checkAddressVar(Scope* sc, UnaExp exp, VarDeclaration v)
+{
+    if (v)
+    {
+        if (!v.canTakeAddressOf())
+        {
+            exp.error("cannot take address of %s", exp.e1.toChars());
+            return false;
+        }
+        if (sc.func && !sc.intypeof && !v.isDataseg())
+        {
+            const(char)* p = v.isParameter() ? "parameter" : "local";
+            if (global.params.vsafe)
+            {
+                // Taking the address of v means it cannot be set to 'scope' later
+                v.storage_class &= ~STCmaybescope;
+                v.doNotInferScope = true;
+                if (v.storage_class & STCscope && sc.func.setUnsafe())
+                {
+                    exp.error("cannot take address of scope %s %s in @safe function %s", p, v.toChars(), sc.func.toChars());
+                    return false;
+                }
+            }
+            else if (sc.func.setUnsafe())
+            {
+                exp.error("cannot take address of %s %s in @safe function %s", p, v.toChars(), sc.func.toChars());
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+
