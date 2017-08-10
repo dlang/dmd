@@ -433,7 +433,7 @@ pure:
     void emitFlg(BCValue result)
     {
         sameLabel = false;
-        assert(result.vType == BCValueType.StackValue);
+        assert(isStackValueOrParameter(result));
         code ~= ("\t" ~ toCode(result.i32) ~ " = cond;\n");
     }
 
@@ -448,10 +448,10 @@ pure:
     void Lt3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(result.vType == BCValueType.Unknown
-            || result.vType == BCValueType.StackValue,
+            || isStackValueOrParameter(result),
             "The result for this must be Empty or a StackValue");
         emitArithInstruction(CInst.Lt, lhs, rhs);
-        if (result.vType == BCValueType.StackValue)
+        if (isStackValueOrParameter(result))
         {
             emitFlg(result);
         }
@@ -461,10 +461,10 @@ pure:
     void Gt3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(result.vType == BCValueType.Unknown
-            || result.vType == BCValueType.StackValue,
+            || isStackValueOrParameter(result),
             "The result for this must be Empty or a StackValue");
         emitArithInstruction(CInst.Gt, lhs, rhs);
-        if (result.vType == BCValueType.StackValue)
+        if (isStackValueOrParameter(result))
         {
             emitFlg(result);
         }
@@ -474,10 +474,10 @@ pure:
     void Le3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(result.vType == BCValueType.Unknown
-            || result.vType == BCValueType.StackValue,
+            || isStackValueOrParameter(result),
             "The result for this must be Empty or a StackValue");
         emitArithInstruction(CInst.Le, lhs, rhs);
-        if (result.vType == BCValueType.StackValue)
+        if (isStackValueOrParameter(result))
         {
             emitFlg(result);
         }
@@ -487,10 +487,10 @@ pure:
     void Ge3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(result.vType == BCValueType.Unknown
-            || result.vType == BCValueType.StackValue,
+            || isStackValueOrParameter(result),
             "The result for this must be Empty or a StackValue");
         emitArithInstruction(CInst.Ge, lhs, rhs);
-        if (result.vType == BCValueType.StackValue)
+        if (isStackValueOrParameter(result))
         {
             emitFlg(result);
         }
@@ -500,10 +500,10 @@ pure:
     void Eq3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(result.vType == BCValueType.Unknown
-            || result.vType == BCValueType.StackValue,
+            || isStackValueOrParameter(result),
             "The result for this must be Empty or a StackValue");
         emitArithInstruction(CInst.Eq, lhs, rhs);
-        if (result.vType == BCValueType.StackValue)
+        if (isStackValueOrParameter(result))
         {
             emitFlg(result);
         }
@@ -513,10 +513,10 @@ pure:
     void Neq3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(result.vType == BCValueType.Unknown
-            || result.vType == BCValueType.StackValue,
+            || isStackValueOrParameter(result),
             "The result for this must be Empty or a StackValue");
         emitArithInstruction(CInst.Neq, lhs, rhs);
-        if (result.vType == BCValueType.StackValue)
+        if (isStackValueOrParameter(result))
         {
             emitFlg(result);
         }
@@ -675,7 +675,7 @@ pure:
     void Call(BCValue result, BCValue fn, BCValue[] args, Loc l = Loc.init)
     {
         sameLabel = false;
-        assert(result.vType == BCValueType.StackValue);
+        assert(isStackValueOrParameter(result));
         string resultString = ((result && result.stackAddr != 0) ? toCode(result) ~ " = " : "");
         string functionString =  (fn.vType == BCValueType.Immediate ? "fn" ~ toCode(fn)~ "(" : "fn(" ~ toCode(fn) ~ ", ");
 
@@ -709,7 +709,7 @@ pure:
 
    /* void CallBuiltin(BCValue result, BCBuiltin fn, BCValue[] args)
     {
-        assert(result.vType == BCValueType.StackValue);
+        assert(isStackValueOrParameter(result));
         string resultString = (result ? toCode(result) ~ " = " : "");
         switch (fn)
         {

@@ -17,6 +17,15 @@ int fn2(V3 v3) {
 static assert(fn(V3(1,20,3)) == 20);
 static assert(fn2(V3()) == 60);
 
+bool testCmpAssignment()
+{
+  uint v = 4;
+  bool result = v == 4;
+  return result;
+}
+
+static assert(testCmpAssignment);
+
 int fun(string s1, string s2, string s3) {
         return cast(int)s2[2];
 }

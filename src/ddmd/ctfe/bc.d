@@ -811,7 +811,7 @@ pure:
             "The result for this must be Empty or a StackValue");
         emitArithInstruction(LongInst.Lt, lhs, rhs);
 
-        if (result.vType == BCValueType.StackValue)
+        if (isStackValueOrParameter(result))
         {
             emitFlg(result);
         }
@@ -824,7 +824,7 @@ pure:
             "The result for this must be Empty or a StackValue");
         emitArithInstruction(LongInst.Le, lhs, rhs);
 
-        if (result.vType == BCValueType.StackValue)
+        if (isStackValueOrParameter(result))
         {
             emitFlg(result);
         }
@@ -836,7 +836,7 @@ pure:
             || isStackValueOrParameter(result),
             "The result for this must be Empty or a StackValue");
         emitArithInstruction(LongInst.Gt, lhs, rhs);
-        if (result.vType == BCValueType.StackValue)
+        if (isStackValueOrParameter(result))
         {
             emitFlg(result);
         }
@@ -848,7 +848,7 @@ pure:
             || isStackValueOrParameter(result),
             "The result for this must be Empty or a StackValue");
         emitArithInstruction(LongInst.Ge, lhs, rhs);
-        if (result.vType == BCValueType.StackValue)
+        if (isStackValueOrParameter(result))
         {
             emitFlg(result);
         }
@@ -861,7 +861,7 @@ pure:
             "The result for this must be Empty or a StackValue not " ~ to!string(result.vType) );
         emitArithInstruction(LongInst.Eq, lhs, rhs);
 
-        if (result.vType == BCValueType.StackValue)
+        if (isStackValueOrParameter(result))
         {
             emitFlg(result);
         }
@@ -874,7 +874,7 @@ pure:
             "The result for this must be Empty or a StackValue");
         emitArithInstruction(LongInst.Neq, lhs, rhs);
 
-        if (result.vType == BCValueType.StackValue)
+        if (isStackValueOrParameter(result))
         {
             emitFlg(result);
         }
@@ -1195,7 +1195,7 @@ pure:
 
         emitLongInst(LongInst.StrEq, lhs.stackAddr, rhs.stackAddr);
 
-        if (result.vType == BCValueType.StackValue)
+        if (isStackValueOrParameter(result))
         {
             emitFlg(result);
         }

@@ -328,5 +328,28 @@ bool test(BCGenT)()
 
     static assert(testEcho([imm32(20)], null) == BCValue(Imm32(20)));
 
+    static immutable testCmpInst = BCGenFunction!(BCGenT, () {
+        BCGenT gen;
+        with (gen)
+        {
+            Initialize();
+
+            beginFunction(0);//testCmpAssignment
+                //auto v_1_fn_2 = genLocal(BCType(BCTypeEnum.i32), "v");//SP[12]
+                auto v_1_fn_2 = genTemporary(BCType(BCTypeEnum.i32));//SP[12]
+                Set(v_1_fn_2, BCValue(Imm32(4)));
+                auto result_2_fn_2 = genLocal(BCType(BCTypeEnum.i32), "result");//SP[16]
+                Eq3(result_2_fn_2, v_1_fn_2, BCValue(Imm32(4)));
+                Ret(result_2_fn_2);
+            endFunction();
+
+            Finalize();
+        }
+        return gen;
+    });
+
+    static assert(testCmpInst([], null) == BCValue(Imm32(1)));
+
+
     return true;
 }

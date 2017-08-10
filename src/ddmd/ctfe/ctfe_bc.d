@@ -1717,7 +1717,7 @@ extern (C++) final class BCTypeVisitor : Visitor
                 st.addField(bcType, false, []);
 
         }
-        
+
         _sharedCtfeState.endStruct(&st, died);
         scope(exit) bcv.clear();
     }
