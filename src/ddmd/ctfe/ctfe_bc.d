@@ -5136,6 +5136,15 @@ static if (is(BCGen))
                 endCndJmp(CJLengthUnequal, genLabel());
             }
 
+            auto elemSize = sharedCtfeState.size(sharedCtfeState.elementType(lhs.type));
+
+            if (!elemSize)
+            {
+                bailout("could not get elementSize of : " ~ _sharedCtfeState.typeToString(lhs.type));
+                return ;
+            }
+
+
             {
                 auto overlapError = addError(ae.loc, "overlapping slice assignment [%d..%d] = [%d..%d]", lhs_lwr, lhs_upr, rhs_lwr, rhs_upr);
 
@@ -5155,20 +5164,16 @@ static if (is(BCGen))
 
                 // if(d < length) assert(0, overlapError);
                 {
-                    auto diff_lt_length = genTemporary(i32Type);
-                    Lt3(diff_lt_length, diff, lhs_length);
-                    auto cndJmp1 = beginCndJmp(diff_lt_length);
+                    auto scaled_length = genTemporary(i32Type);
+                    auto diff_lt_scaled = genTemporary(i32Type);
+                    Mul3(scaled_length, lhs_length, imm32(elemSize));
+                    Lt3(diff_lt_scaled, diff, scaled_length);
+                    auto cndJmp1 = beginCndJmp(diff_lt_scaled);
                         Assert(imm32(0), overlapError);
                     endCndJmp(cndJmp1, genLabel());
                 }
             }
 
-            auto elemSize = sharedCtfeState.size(sharedCtfeState.elementType(lhs.type));
-            if (!elemSize)
-            {
-                bailout("could not get elementSize of : " ~ _sharedCtfeState.typeToString(lhs.type));
-                return ;
-            }
             copyArray(&lhs_base, &rhs_base, lhs_length, elemSize);
         }
 
