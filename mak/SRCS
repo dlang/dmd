@@ -52,6 +52,8 @@ SRCS=\
 	src\core\sync\rwmutex.d \
 	src\core\sync\semaphore.d \
 	\
+	src\core\sys\darwin\netinet\in_.d \
+	\
 	src\core\sys\freebsd\dlfcn.d \
 	src\core\sys\freebsd\execinfo.d \
 	src\core\sys\freebsd\netinet\in_.d \
