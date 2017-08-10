@@ -2337,8 +2337,7 @@ public:
         }
         auto oldRetval = retval;
         import ddmd.asttypename;
-        // import std.stdio; writeln("Calling genExpr(" ~ expr.astTypeName ~ ") from: ", line, (debugMessage ? " \"" ~ debugMessage ~ "\" -- " : " -- ") ~ expr.toString); //DEBUGLINE
-
+        // import std.stdio; static string currentIndent = ""; writeln(currentIndent, "genExpr(" ~ expr.astTypeName ~ ") from: ", line, (debugMessage ? " \"" ~ debugMessage ~ "\" -- " : " -- ") ~ expr.toString); currentIndent ~= "\t"; scope (exit) currentIndent = currentIndent[0 .. $-1]; //DEBUGLINE
         if (processingArguments)
         {
             debug (ctfe)
