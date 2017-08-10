@@ -12,7 +12,7 @@ import ddmd.sideeffect;
 import ddmd.visitor;
 import ddmd.arraytypes : Expressions, VarDeclarations;
 /**
- * Written By Stefan Koch in 2016/17
+ * Written By Stefan Koch in 2016-17
  */
 
 import std.conv : to;
