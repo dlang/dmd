@@ -414,7 +414,8 @@ STATIC void ecom(elem **pe)
             dbg_printf("i: %2d Hhash: %6d Helem: %p\n",
                 i,hcstab[i].Hhash,hcstab[i].Helem);
 #endif
-        if (hash == hcstab[i].Hhash && (ehash = hcstab[i].Helem) != NULL)
+        HCS entry = hcstab[i];
+        if (hash == entry.Hhash && (ehash = entry.Helem) != NULL)
         {
             /* if elems are the same and we still have room for more    */
             if (el_match(e,ehash) && ehash->Ecount < 0xFF)
