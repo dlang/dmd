@@ -1734,7 +1734,8 @@ struct BCScope
 debug = nullPtrCheck;
 debug = nullAllocCheck;
 //debug = ctfe;
-//debug = andand;
+debug = andand;
+//debug = oror;
 //debug = SetLocation;
 //debug = LabelLocation;
 
@@ -2789,7 +2790,6 @@ static if (is(BCGen))
             break;
         case TOK.TOKequal, TOK.TOKnotequal:
             {
-
                 if (e.e1.type.isString && e.e2.type.isString)
                 {
                     auto lhs = genExpr(e.e1);
@@ -2800,6 +2800,8 @@ static if (is(BCGen))
                         return ;
                     }
                     StringEq(retval, lhs, rhs);
+                    if (e.op == TOK.TOKnotequal)
+                        Not(retval, retval);
                 }
                 else if (canHandleBinExpTypes(toBCType(e.e1.type), toBCType(e.e2.type)))
                 {
@@ -3056,7 +3058,7 @@ static if (is(BCGen))
                     inOrOr = true;
                     const oldFixupTableCount = fixupTableCount;
                         {
-                            Comment("|| beforeLhs");
+                            Comment("|| before lhs");
                             auto lhs = genExpr(e.e1);
                             if (!lhs || !canWorkWithType(lhs.type))
                             {
@@ -3068,13 +3070,13 @@ static if (is(BCGen))
                             doFixup(oldFixupTableCount, null, &afterLhs);
                             fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(lhs,
                                     true));
-                            Comment("|| afterLhs");
+                            Comment("|| after lhs");
                         }
 
 
 
-                    if(e.e1.op != TOK.TOKoror)
                     {
+                        Comment("|| before rhs");
                         auto rhs = genExpr(e.e2);
 
                         if (!rhs || !canWorkWithType(rhs.type))
@@ -3085,7 +3087,7 @@ static if (is(BCGen))
 
                         fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(rhs,
                                 true));
-                        Comment("|| afterRhs");
+                        Comment("|| after rhs");
                     }
                     inOrOr = false;
                 }
@@ -3125,8 +3127,8 @@ static if (is(BCGen))
 
 
 
-                    if(e.e1.op != TOK.TOKandand)
                     {
+                        Comment("&& before rhs");
                         auto rhs = genExpr(e.e2);
 
                         if (!rhs || !canWorkWithType(rhs.type))
@@ -4433,7 +4435,7 @@ static if (is(BCGen))
         {
             Assert(arr.i32, addError(Loc(), "trying to set sliceDesc null Array"));
         }
-        
+
         auto offset = genTemporary(i32Type);
         Add3(offset, arr.i32, imm32(SliceDescriptor.Size));
 
@@ -5567,7 +5569,7 @@ static if (is(BCGen))
                     // HACK allocate space for struct if structPtr is zero
                     auto structZeroJmp = beginCndJmp(lhs.i32, true);
                     auto structSize = _sharedCtfeState.size(lhs.type);
-                    Alloc(lhs.i32, imm32(structSize), lhs.type);
+                    Alloc(lhs.i32, imm32(structType.size), lhs.type);
 
                     initStruct(lhs, structType);
 
