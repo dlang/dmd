@@ -24,6 +24,43 @@ const(uint) align16(const uint val) pure
     return ((val + 15) & ~15);
 }
 
+string enumToString(E)(E v)
+{
+    static assert(is(E == enum),
+        "emumToString is only meant for enums");
+    string result;
+
+    Switch : switch(v)
+    {
+        foreach(m;__traits(allMembers, E))
+        {
+            case mixin("E." ~ m) :
+                result = m;
+            break Switch;
+        }
+
+        default :
+        {
+            result = "cast(" ~ E.stringof ~ ")";
+            uint val = v;
+            enum headLength = cast(uint)(E.stringof.length + "cast()".length);
+            uint log10Val = (val < 10) ? 0 : (val < 100) ? 1 : (val < 1000) ? 2 :
+                (val < 10000) ? 3 : (val < 100000) ? 4 : (val < 1000000) ? 5 :
+                (val < 10000000) ? 6 : (val < 100000000) ? 7 : (val < 1000000000) ? 8 : 9;
+            result.length += log10Val + 1;
+            for(uint i;i != log10Val + 1;i++)
+            {
+                cast(char)result[headLength + log10Val - i] = cast(char) ('0' + (val % 10));
+                val /= 10;
+            }
+
+        }
+    }
+
+    return result;
+}
+
+
 const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
 {
     final switch (bct) with (BCTypeEnum)
@@ -490,9 +527,16 @@ struct BCValue
 
     string toString() const pure @safe
     {
-        import std.format;
 
-        return format("\nvType: %s\tType: %s\tvalue:%s\n", vType, type.toString(), valueToString);
+        string result = "vType: ";
+        result ~= enumToString(vType);
+        result ~= "\tType: "; 
+        result ~= type.toString;
+        result ~= "\tValue: ";
+        result ~= valueToString;
+        result ~= "\n";
+
+        return result;
     }
 
     string valueToString() const pure @safe

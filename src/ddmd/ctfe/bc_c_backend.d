@@ -175,6 +175,8 @@ pure:
             v = v.i32;
         else if (v.type.type == BCTypeEnum.Ptr)
             v = v.i32;
+        else if (v.type.type == BCTypeEnum.Array)
+            v = v.i32;
         else if (v.type.type == BCTypeEnum.Slice)
             v = v.i32;
         else if (v.type.type == BCTypeEnum.Struct)

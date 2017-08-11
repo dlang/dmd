@@ -892,7 +892,7 @@ struct SharedCtfeState(BCGenT)
         memset(&stack, 0, stack[0].sizeof * stack.length / 4);
     }
 
-    void initHeap(uint maxHeapSize = 2 ^^ 30)
+    void initHeap(uint maxHeapSize = 2 ^^ 27)
     {
         import ddmd.root.rmem;
 
@@ -1400,6 +1400,13 @@ Expression toExpression(const BCValue value, Type expressionType,
     else
         switch (expressionType.ty)
     {
+/*
+    case Tenum:
+        {
+            result = toExpression(value, (cast(TypeEnum)expressionType).toBasetype);
+        }
+        break;
+*/
     case Tstruct:
         {
             auto sd = (cast(TypeStruct) expressionType).sym;
@@ -1453,7 +1460,7 @@ Expression toExpression(const BCValue value, Type expressionType,
                     static if (bailoutMessages)
                     {
                         import std.stdio;
-                        writeln("We could not covert the sub-expression of a struct of type ", type.toString);
+                        writeln("We could not convert the sub-expression of a struct of type ", type.toString);
                     }
                     return null;
                 }
@@ -1803,7 +1810,7 @@ debug = nullPtrCheck;
 debug = nullAllocCheck;
 //debug = ctfe;
 debug = andand;
-//debug = oror;
+debug = oror;
 //debug = SetLocation;
 //debug = LabelLocation;
 
@@ -2137,9 +2144,9 @@ extern (C++) final class BCV(BCGenT) : Visitor
             {
                 endCndJmp(fixup.conditional, ifFalse ? *ifFalse : genLabel());
             }
-
-            --fixupTableCount;
         }
+
+        fixupTableCount = oldFixupTableCount;
     }
 
     extern (D) void bailout(bool value, const(char)[] message, size_t line = __LINE__, string pfn = __PRETTY_FUNCTION__)
@@ -3134,8 +3141,8 @@ static if (is(BCGen))
                                 return ;
                             }
 
-                            auto afterLhs = genLabel();
-                            doFixup(oldFixupTableCount, null, &afterLhs);
+                            //auto afterLhs = genLabel();
+                            //doFixup(oldFixupTableCount, null, &afterLhs);
                             fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(lhs,
                                     true));
                             Comment("|| after lhs");

@@ -642,5 +642,25 @@ NA[] make5(string name)
 
 static assert (make5("Tony") == [NA("Tony1", 0u), NA("Tony2", 1u), NA("Tony3", 2u), NA("Tony4", 3u), NA("Tony5", 4u)]);
 
+int[2] aaa2(bool b1, bool b2, bool b3, bool b4)
+{
+  int x = 0;
+  if (b1 && ++x && b2 && x++ && b3 && (b4 || x++))
+  {
+    return [x, 1];
+  }
+  else
+  {
+    return [x, 0];
+  }
+}
+
+static assert(aaa2(0, 0, 0, 0) == [0, 0]);
+static assert(aaa2(0, 1, 0, 0) == [0, 0]);
+static assert(aaa2(0, 0, 1, 0) == [0, 0]);
+static assert(aaa2(1, 0, 1, 0) == [1, 0]);
+static assert(aaa2(1, 1, 1, 0) == [3, 1]);
+static assert(aaa2(1, 1, 1, 1) == [2, 1]);
+
 
 static assert(!__traits(newCTFEGaveUp));
