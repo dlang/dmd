@@ -1058,7 +1058,6 @@ struct SharedCtfeState(BCGenT)
     {
         if (died)
         {
-            //structDeclpointerTypes[s.structCount] = null;
             return BCType.init;
         }
         else
@@ -1635,6 +1634,7 @@ extern (C++) final class BCTypeVisitor : Visitor
             uint structIndex = _sharedCtfeState.getStructIndex(sd);
             topLevelType = typeof(topLevelType).init;
             return structIndex ? BCType(BCTypeEnum.Struct, structIndex) : BCType.init;
+
         }
         else if (t.ty == Tarray)
         {
@@ -1716,16 +1716,29 @@ extern (C++) final class BCTypeVisitor : Visitor
         bool died;
         __gshared static bcv = new BCV!BCGenT; // TODO don't do this.
 
-        foreach (sMember; sd.fields)
+        addFieldLoop : foreach (mi, sMember; sd.fields)
         {
             if (sMember.type.ty == Tstruct && (cast(TypeStruct) sMember.type).sym == sd)
                 assert(0, "recursive struct definition this should never happen");
+
+            // look for previous field with the same offset
+            // since we do not handle those current
+            foreach(f;sd.fields[0 .. mi])
+            {
+                if (sMember.offset == f.offset)
+                {
+                    died = true;
+                    break addFieldLoop;
+                }
+            }
+
 
             auto bcType = toBCType(sMember.type);
             if (!bcType)
             {
                 // if the memberType is invalid we abort!
                 died = true;
+                break;
             }
             else if (sMember._init)
             {
