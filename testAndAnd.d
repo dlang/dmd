@@ -46,6 +46,9 @@ int[2] aaa2(bool b1, bool b2, bool b3, bool b4)
 static assert(aaa2(0, 0, 0, 0) == [0, 0]);
 static assert(aaa2(0, 1, 0, 0) == [0, 0]);
 static assert(aaa2(0, 0, 1, 0) == [0, 0]);
+static assert(aaa2(0, 0, 0, 1) == [0, 0]);
+static assert(aaa2(1, 0, 0, 1) == [1, 0]);
+static assert(aaa2(1, 1, 0, 1) == [2, 0]);
 static assert(aaa2(1, 0, 1, 0) == [1, 0]);
 static assert(aaa2(1, 1, 1, 0) == [3, 1]);
 static assert(aaa2(1, 1, 1, 1) == [2, 1]);
