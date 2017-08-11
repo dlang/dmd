@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 0;
+enum bailoutMessages = 1;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -1143,7 +1143,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             import std.range;
             import std.algorithm;
             writefln("HeapDump: %s",
-                zip(heapPtr._heap[0 .. heapPtr.heapSize], iota(0, heapPtr.heapSize, 1)).map!(e => e[1].to!string ~ ":" ~ e[0].to!string));
+                zip(heapPtr._heap[100 .. heapPtr.heapSize], iota(100, heapPtr.heapSize, 1)).map!(e => e[1].to!string ~ ":" ~ e[0].to!string));
     }
 
     import ddmd.parse : Loc;
@@ -3754,9 +3754,6 @@ static if (is(BCGen))
                 ale.toString, insideArrayLiteralExp);
         }
 
-        auto oldInsideArrayLiteralExp = insideArrayLiteralExp;
-        insideArrayLiteralExp = true;
-
         auto elemType = toBCType(ale.type.nextOf);
 /*
         if (!isBasicBCType(elemType)  && elemType.type != BCTypeEnum.c8 && elemType.type != BCTypeEnum.Struct && elemType.type != BCTypeEnum.Array)
@@ -3784,11 +3781,17 @@ static if (is(BCGen))
         uint allocSize = uint(SliceDescriptor.Size) + //ptr and length
             arrayLength * heapAdd;
 
-        HeapAddr arrayAddr = HeapAddr(_sharedCtfeState.heap.heapSize);
+        BCValue arrayAddr = imm32(_sharedCtfeState.heap.heapSize);
         bailout(_sharedCtfeState.heap.heapSize + allocSize > _sharedCtfeState.heap.heapMax, "heap overflow");
+
         _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize + SliceDescriptor.LengthOffset] = arrayLength;
-        _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize + SliceDescriptor.BaseOffset] = arrayAddr + SliceDescriptor.Size; // point to the begining of the array;
+        _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize + SliceDescriptor.BaseOffset] = arrayAddr.imm32 + SliceDescriptor.Size; // point to the begining of the array;
         _sharedCtfeState.heap.heapSize += SliceDescriptor.Size;
+
+        auto oldInsideArrayLiteralExp = insideArrayLiteralExp;
+        scope(exit) insideArrayLiteralExp = oldInsideArrayLiteralExp;
+        insideArrayLiteralExp = true;
+
 
         foreach (elem; *ale.elements)
         {
@@ -3884,7 +3887,7 @@ static if (is(BCGen))
             _sharedCtfeState.heap.heapSize += heapAdd;
         }
         //        if (!oldInsideArrayLiteralExp)
-        retval = imm32(arrayAddr.addr);
+        retval = arrayAddr;
         retval.type = BCType(BCTypeEnum.Array, _sharedCtfeState.arrayCount);
         if (!insideArgumentProcessing)
         {
@@ -3896,7 +3899,6 @@ static if (is(BCGen))
 
             writeln("ArrayLiteralRetVal = ", retval.imm32);
         }
-        auto insideArrayLiteralExp = oldInsideArrayLiteralExp;
     }
 
     override void visit(StructLiteralExp sle)
@@ -4431,6 +4433,7 @@ static if (is(BCGen))
         {
             Assert(arr.i32, addError(Loc(), "trying to set sliceDesc null Array"));
         }
+        
         auto offset = genTemporary(i32Type);
         Add3(offset, arr.i32, imm32(SliceDescriptor.Size));
 
@@ -4446,6 +4449,29 @@ static if (is(BCGen))
             {
                 setArraySliceDesc(offset, at);
                 Add3(offset, offset, imm32(_sharedCtfeState.size(et)));
+            }
+        }
+    }
+
+    /// Params: structPtr = assumed to point to already allocated Memory
+    ///         type = a pointer to the BCStruct
+    void initStruct(BCValue structPtr, const (BCStruct)* type)
+    {
+        /// TODO FIXME this has to copy the struct Intializers if there is one
+        uint memberTypeCount = type.memberTypeCount;
+        foreach(int i, mt; type.memberTypes[0 .. memberTypeCount])
+        {
+            if (mt.type == BCTypeEnum.Array)
+            {
+                auto offset = genTemporary(mt);
+                Add3(offset.i32, structPtr.i32, imm32(type.offset(i)));
+                setArraySliceDesc(offset, _sharedCtfeState.arrayTypes[mt.typeIndex - 1]);
+            }
+            if (mt.type == BCTypeEnum.Struct)
+            {
+                auto offset = genTemporary(mt);
+                Add3(offset.i32, structPtr.i32, imm32(type.offset(i)));
+                initStruct(offset, &_sharedCtfeState.structTypes[mt.typeIndex - 1]);
             }
         }
     }
@@ -4650,7 +4676,7 @@ static if (is(BCGen))
                 Alloc(var.i32, imm32(SliceDescriptor.Size));
             }
 
-             else if (type.type == BCTypeEnum.Array)
+           else if (type.type == BCTypeEnum.Array)
            {
                 Alloc(var.i32, imm32(_sharedCtfeState.size(type)), type);
                 assert(type.typeIndex);
@@ -5504,6 +5530,7 @@ static if (is(BCGen))
                     assert(lhs.type.typeIndex, "Invalid arrayTypes as lhs of: " ~ ae.toString);
                     immutable arrayType = _sharedCtfeState.arrayTypes[lhs.type.typeIndex - 1];
                     Alloc(lhs.i32, imm32(_sharedCtfeState.size(lhs.type)), lhs.type);
+                    Comment("setArraySliceDesc for: " ~ _sharedCtfeState.typeToString(lhs.type));
                     setArraySliceDesc(lhs, arrayType);
                     setLength(lhs.i32, imm32(arrayType.length));
                     auto base = getBase(lhs);
@@ -5535,11 +5562,15 @@ static if (is(BCGen))
                         bailout("StructType has invalidSize (this is really bad): " ~ ae.e1.toString);
                         return ;
                     }
+                    const structType = &_sharedCtfeState.structTypes[lhs.type.typeIndex - 1];
+
                     // HACK allocate space for struct if structPtr is zero
                     auto structZeroJmp = beginCndJmp(lhs.i32, true);
                     auto structSize = _sharedCtfeState.size(lhs.type);
                     Alloc(lhs.i32, imm32(structSize), lhs.type);
-                    MemCpyConst(lhs.i32, _sharedCtfeState.initializer(lhs.type));
+
+                    initStruct(lhs, structType);
+
                     endCndJmp(structZeroJmp, genLabel());
                 }
                 else
