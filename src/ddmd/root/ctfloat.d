@@ -106,7 +106,7 @@ extern (C++) struct CTFloat
 
     static bool isInfinity(real_t r)
     {
-        return r is real_t.infinity || r is -real_t.infinity;
+        return isIdentical(fabs(r), real_t.infinity);
     }
 
     static real_t parse(const(char)* literal, bool* isOutOfRange = null)
