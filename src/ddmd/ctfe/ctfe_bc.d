@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 1;
+enum bailoutMessages = 0;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -194,6 +194,14 @@ struct StructMetaData
     enum VoidInitBitfieldOffset = 0;
     enum Size = 4;
 }
+/// appended to union
+/// behind the biggest Member
+struct UnionMetaData
+{
+    enum VoidInitBitfieldOffset = 0;
+    enum Size = bc_max_members/8;
+}
+
 
 static immutable smallIntegers = [BCTypeEnum.i8, BCTypeEnum.i16, BCTypeEnum.u8, BCTypeEnum.u16];
 
@@ -228,6 +236,11 @@ __gshared BlackList _blacklist;
 ulong evaluateUlong(Expression e)
 {
     return e.toUInteger;
+}
+
+uint max (uint a, uint b)
+{
+    return a < b ? b : a;
 }
 
 Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _this = null)
@@ -601,9 +614,9 @@ struct BCStruct
     uint memberTypeCount;
     uint size = StructMetaData.Size;
 
-    BCType[96] memberTypes;
-    bool[96] voidInit;
-    uint[][96] initializers;
+    BCType[bc_max_members] memberTypes;
+    bool[bc_max_members] voidInit;
+    uint[][bc_max_members] initializers;
 
     string toString() const
     {
@@ -668,6 +681,48 @@ struct BCStruct
         }
 
         return bitFieldIndex;
+    }
+
+}
+
+struct BCUnion
+{
+    uint memberTypeCount;
+    uint size = UnionMetaData.Size;
+
+    BCType[bc_max_members] memberTypes;
+    bool[bc_max_members] voidInit;
+    uint[] initializer;
+
+    string toString() const
+    {
+        string result;
+        result ~= " Size: " ~ to!string(size);
+        result ~= " MemberCount: " ~ to!string(memberTypeCount);
+        result ~= " [";
+
+        foreach(i; 0 .. memberTypeCount)
+        {
+            result ~= memberTypes[i].toString;
+        }
+
+        result ~= "]\n";
+
+        return result;
+    }
+
+    void addField(const BCType bct, bool isVoid, uint[] initValue)
+    {
+        if (!memberTypeCount) // if we are on the first field set the initalizer
+        {
+            initializer.length = initValue.length;
+            initializer[0 .. initValue.length] = initValue[0 .. initValue.length];
+        }
+
+        memberTypes[memberTypeCount] = bct;
+        voidInit[memberTypeCount++] = isVoid;
+
+        size = max(align4(_sharedCtfeState.size(bct, true)) + UnionMetaData.Size, size);
     }
 
 }
