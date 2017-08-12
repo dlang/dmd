@@ -68,6 +68,7 @@ extern (C++) struct CTFloat
     static real_t tan(real_t x) { return core.stdc.math.tanl(x); }
     static real_t sqrt(real_t x) { return core.math.sqrt(x); }
     static real_t fabs(real_t x) { return core.math.fabs(x); }
+    static real_t ldexp(real_t n, int exp) { return core.math.ldexp(n, exp); }
 
     static bool isIdentical(real_t a, real_t b)
     {
@@ -107,7 +108,7 @@ extern (C++) struct CTFloat
 
     static bool isInfinity(real_t r)
     {
-        return r is real_t.infinity || r is -real_t.infinity;
+        return isIdentical(fabs(r), real_t.infinity);
     }
 
     static real_t parse(const(char)* literal, bool* isOutOfRange = null)
