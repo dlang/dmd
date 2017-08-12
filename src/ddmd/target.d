@@ -256,15 +256,13 @@ struct Target
      * (in bytes) and element type `type`.
      *
      * Returns: 0 if the type is supported, or else: 1 if vector types are not
-     *     supported on the target at all, 2 if the given size isn't, or 3 if
-     *     the element type isn't.
+     *     supported on the target at all, 2 if the element type isn't, or 3 if
+     *     the given size isn't.
      */
     extern (C++) static int isVectorTypeSupported(int sz, Type type)
     {
         if (!global.params.is64bit && !global.params.isOSX)
             return 1; // not supported
-        if (sz != 16 && sz != 32)
-            return 2; // wrong size
         switch (type.ty)
         {
         case Tvoid:
@@ -280,8 +278,10 @@ struct Target
         case Tfloat64:
             break;
         default:
-            return 3; // wrong base type
+            return 2; // wrong base type
         }
+        if (sz != 16 && !(global.params.cpu >= CPU.avx && sz == 32))
+            return 3; // wrong size
         return 0;
     }
 

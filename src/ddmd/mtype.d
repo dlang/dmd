@@ -4426,12 +4426,18 @@ extern (C++) final class TypeVector : Type
             error(loc, "SIMD vector types not supported on this platform");
             return terror;
         case 2:
-            // invalid size
-            error(loc, "%d byte vector type %s is not supported on this platform", sz, toChars());
-            return terror;
-        case 3:
             // invalid base type
             error(loc, "vector type %s is not supported on this platform", toChars());
+            return terror;
+        case 3:
+            // invalid size
+            if (sz == 32)
+            {
+                deprecation(loc, "%d byte vector types are only supported with -mcpu=avx", sz, toChars());
+                return merge();
+            }
+            else
+                error(loc, "%d byte vector type %s is not supported on this platform", sz, toChars());
             return terror;
         default:
             assert(0);
