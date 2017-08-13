@@ -3857,9 +3857,9 @@ static if (is(BCGen))
 
         auto elemType = toBCType(ale.type.nextOf);
 
-        if (!elemType)
+        if (!elemType || !_sharedCtfeState.size(elemType))
         {
-            bailout("could not gen elemType for: " ~ ale.toString);
+            bailout("elemType type is invalid or has invalid size -- " ~ ale.toString);
             return ;
         }
 /*
