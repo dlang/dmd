@@ -2337,7 +2337,7 @@ public:
     {
         static if (is(typeof(Cat3) == function)
                 && is(typeof(Cat3(BCValue.init, BCValue.init, BCValue.init, uint.init)) == void))
-        {
+        {{
             auto lhsBaseType = _sharedCtfeState.elementType(lhs.type);
             const elemSize = _sharedCtfeState.size(lhsBaseType);
             if (!elemSize)
@@ -2347,10 +2347,17 @@ public:
                 return ;
             }
 
+            // due to limitations of the opcode-format we can only issue this
+            // if the elemSize fits in one byte ...
+ 
+            if (!is(BCgen) || elemSize < 255)
+            {
+                Cat3(result, lhs, rhs, elemSize);
+                return ;
+            }
+        }}
 
-            Cat3(result, lhs, rhs, elemSize);
-        }
-        else
+        // we go here if the concat could not be done by a cat3 instruction 
         {
             auto lhsOrRhs = genTemporary(i32Type);
             Or3(lhsOrRhs, lhs.i32, rhs.i32);
