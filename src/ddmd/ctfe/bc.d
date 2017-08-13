@@ -2807,9 +2807,22 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                         const resultBase = resultPtr + SliceDescriptor.Size;
 
                         const allocSize = (newLength * elemSize) + SliceDescriptor.Size;
+                        const heapSize = heapPtr.heapSize;
 
-                        if(heapPtr.heapSize + allocSize  >= heapPtr.heapMax)
-                            assert(0, "!!! HEAP OVERFLOW !!!");
+                        if(heapSize + allocSize  >= heapPtr.heapMax)
+                        {
+                            if (heapPtr.heapMax >= 2 ^^ 30)
+                                assert(0, "!!! HEAP OVERFLOW !!!");
+                            else
+                            {
+                                // we will now resize the heap to 8 times of it's former size
+                                auto newHeap = new uint[](heapPtr.heapMax * 8);
+                                newHeap[0 .. heapSize] = heapPtr._heap[0 .. heapSize];
+                                heapPtr._heap = newHeap;
+                                heapPtr.heapMax *= 8;
+                            }
+                        }
+
                         heapPtr.heapSize += allocSize;
 
                         const scaledLhsLength = (lhsLength * elemSize);
