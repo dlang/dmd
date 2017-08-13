@@ -2783,15 +2783,6 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                     const lhsLength = *lhsRef ? heapPtr._heap[*lhsRef + SliceDescriptor.LengthOffset] : 0;
                     const rhsLength = *rhs ? heapPtr._heap[*rhs + SliceDescriptor.LengthOffset] : 0;
 
-                    if (lhsLength && !rhsLength)
-                    {
-                        *lhsStackRef = *lhsRef;
-                    }
-                    else if (rhsLength && !lhsLength)
-                    {
-                        *lhsStackRef = *rhs;
-                    }
-                    else
                     {
                         // TODO if lhs.capacity bla bla
                         const newLength = rhsLength + lhsLength;
