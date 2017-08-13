@@ -744,7 +744,14 @@ pure:
         }
         else if (lhs.type.type == BCTypeEnum.f52)
         {
-            assert(rhs.type.type == BCTypeEnum.f52);
+            if(rhs.type.type != BCTypeEnum.f52)
+            {
+                // TOOD there was
+                // assert (rhs.type.type == BCTypeEnum.f52)
+                // here before .... check of this is an invariant
+                rhs = castTo(rhs, BCTypeEnum.f52);
+            }
+
             rhs = pushOntoStack(rhs);
 
             if (inst != LongInst.Set)

@@ -3856,6 +3856,12 @@ static if (is(BCGen))
         }
 
         auto elemType = toBCType(ale.type.nextOf);
+
+        if (!elemType)
+        {
+            bailout("could not gen elemType for: " ~ ale.toString);
+            return ;
+        }
 /*
         if (!isBasicBCType(elemType)  && elemType.type != BCTypeEnum.c8 && elemType.type != BCTypeEnum.Struct && elemType.type != BCTypeEnum.Array)
         {
