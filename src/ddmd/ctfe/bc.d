@@ -2787,15 +2787,18 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                     import ddmd.ctfe.ctfe_bc : SliceDescriptor;
 
                     const elemSize = (lw >> 8) & 255;
-                    const lhsLength = *lhsRef ? heapPtr._heap[*lhsRef + SliceDescriptor.LengthOffset] : 0;
-                    const rhsLength = *rhs ? heapPtr._heap[*rhs + SliceDescriptor.LengthOffset] : 0;
+                    const uint _lhs =  *lhsRef & uint.max;
+                    const uint _rhs =  *rhs & uint.max;
+
+                    const lhsLength = _lhs ? heapPtr._heap[_lhs + SliceDescriptor.LengthOffset] : 0;
+                    const rhsLength = _rhs ? heapPtr._heap[_rhs + SliceDescriptor.LengthOffset] : 0;
 
                     {
                         // TODO if lhs.capacity bla bla
                         const newLength = rhsLength + lhsLength;
 
-                        const lhsBase = heapPtr._heap[*lhsRef + SliceDescriptor.BaseOffset];
-                        const rhsBase = heapPtr._heap[*rhs + SliceDescriptor.BaseOffset];
+                        const lhsBase = heapPtr._heap[_lhs + SliceDescriptor.BaseOffset];
+                        const rhsBase = heapPtr._heap[_rhs + SliceDescriptor.BaseOffset];
 
                         const resultPtr = heapPtr.heapSize;
 
