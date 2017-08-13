@@ -170,6 +170,7 @@ enum LongInst : ushort
     MemCpy,
 
     BuiltinCall, // call a builtin.
+    Cat,
     Comment,
     Line,
 
@@ -255,8 +256,8 @@ struct LongInst64
         hi = rhs.imm32;
     }
 
-    this(const LongInst i, const StackAddr stackAddrLhs,
-        const StackAddr stackAddrRhs, StackAddr stackAddrOp)
+    this(const LongInst i, const StackAddr stackAddrOp,
+        const StackAddr stackAddrLhs, const StackAddr stackAddrRhs)
     {
         lw = i | stackAddrOp.addr << 16;
         hi = stackAddrLhs.addr | stackAddrRhs.addr << 16;
@@ -421,8 +422,8 @@ pure:
         ip += 2;
     }
 
-    void emitLongInst(const LongInst i, const StackAddr stackAddrLhs,
-        const StackAddr stackAddrRhs, StackAddr stackAddrOp)
+    void emitLongInst(const LongInst i, const StackAddr stackAddrOp,
+        const StackAddr stackAddrLhs, const StackAddr stackAddrRhs)
     {
         byteCodeArray[ip] = i | stackAddrOp.addr << 16;
         byteCodeArray[ip + 1] = stackAddrLhs.addr | stackAddrRhs.addr << 16;
@@ -640,7 +641,7 @@ pure:
         src = pushOntoStack(src);
         dst = pushOntoStack(dst);
 
-        emitLongInst(LongInst.MemCpy, dst.stackAddr, src.stackAddr, size.stackAddr);
+        emitLongInst(LongInst.MemCpy, size.stackAddr, dst.stackAddr, src.stackAddr);
     }
 
     void Line(uint line)
@@ -783,7 +784,7 @@ pure:
         {
             emitLongInst(LongInst.ImmSet, lhs.stackAddr, rhs.imm32);
             if (rhs.type.type != BCTypeEnum.i64 || rhs.imm64 > uint.max) // if there are high bits
-				emitLongInst(LongInst.SetHighImm, lhs.stackAddr, Imm32(rhs.imm64 >> 32));
+                emitLongInst(LongInst.SetHighImm, lhs.stackAddr, Imm32(rhs.imm64 >> 32));
         }
 
         else if (lhs != rhs) // do not emit self asignments;
@@ -1203,7 +1204,19 @@ pure:
 
     void Cat3(BCValue result, BCValue lhs, BCValue rhs, const uint size)
     {
-        assert(0, "not implemented");
+
+        assert(size <= 255);
+
+        assert(isStackValueOrParameter(result));
+
+        lhs = pushOntoStack(lhs);
+        rhs = pushOntoStack(rhs);
+        emitLongInst(LongInst.Cat, result.stackAddr, lhs.stackAddr, rhs.stackAddr);
+        // Hack! we have no overload to store additional information in the 8 bit
+        // after the inst so just dump it in there let's hope we don't overwrite
+        // anything important
+        byteCodeArray[ip-2] |= (size & 255) << 8;
+
     }
 
 }
@@ -1728,6 +1741,11 @@ string printInstructions(const int* startInstructions, uint length, const string
         case LongInst.Call:
             {
                 result ~= "Call " ~ (stackMap ? localName(stackMap, hi & 0xFFFF) : "SP[" ~ to!string(hi & 0xFFFF)~"]" ) ~ ", " ~ (stackMap ? localName(stackMap, hi >> 16) : "SP[" ~ to!string(hi >> 16)~"]" ) ~ "\n";
+            }
+            break;
+        case LongInst.Cat:
+            {
+                result ~= "Cat " ~ localName(stackMap, lw >> 16) ~ ", " ~ (stackMap ? localName(stackMap, hi & 0xFFFF) : "SP[" ~ to!string(hi & 0xFFFF)~"]" ) ~ ", " ~ (stackMap ? localName(stackMap, hi >> 16) : "SP[" ~ to!string(hi >> 16)~"]" ) ~ "\n";
             }
             break;
         case LongInst.BuiltinCall:
@@ -2751,6 +2769,67 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
             {
                 assert(0, "Unsupported right now: BCBuiltin");
             }
+        case LongInst.Cat:
+            {
+                if (*rhs == 0 && *lhsRef == 0)
+                {
+                    *lhsStackRef = 0;
+                }
+                else
+                {
+                    import ddmd.ctfe.ctfe_bc : SliceDescriptor;
+
+                    const elemSize = (lw >> 8) & 255;
+                    const lhsLength = *lhsRef ? heapPtr._heap[*lhsRef + SliceDescriptor.LengthOffset] : 0;
+                    const rhsLength = *rhs ? heapPtr._heap[*rhs + SliceDescriptor.LengthOffset] : 0;
+
+                    if (lhsLength && !rhsLength)
+                    {
+                        *lhsStackRef = *lhsRef;
+                    }
+                    else if (rhsLength && !lhsLength)
+                    {
+                        *lhsStackRef = *rhs;
+                    }
+                    else
+                    {
+                        // TODO if lhs.capacity bla bla
+                        const newLength = rhsLength + lhsLength;
+
+                        const lhsBase = heapPtr._heap[*lhsRef + SliceDescriptor.BaseOffset];
+                        const rhsBase = heapPtr._heap[*rhs + SliceDescriptor.BaseOffset];
+
+                        const resultPtr = heapPtr.heapSize;
+
+                        const resultLength = resultPtr + SliceDescriptor.LengthOffset;
+                        const resultBaseP = resultPtr + SliceDescriptor.BaseOffset;
+                        const resultBase = resultPtr + SliceDescriptor.Size;
+
+                        const allocSize = (newLength * elemSize) + SliceDescriptor.Size;
+
+                        if(heapPtr.heapSize + allocSize  >= heapPtr.heapMax)
+                            assert(0, "!!! HEAP OVERFLOW !!!");
+                        heapPtr.heapSize += allocSize;
+
+                        const scaledLhsLength = (lhsLength * elemSize);
+                        const scaledRhsLength = (rhsLength * elemSize);
+                        const resultLhsEnd = resultBase + scaledLhsLength;
+
+                        heapPtr._heap[resultLength] = newLength;
+                        heapPtr._heap[resultBaseP] = resultBase;
+
+                        heapPtr._heap[resultBase .. resultLhsEnd] =
+                            heapPtr._heap[lhsBase .. lhsBase + scaledLhsLength];
+
+                        heapPtr._heap[resultLhsEnd ..  resultLhsEnd + scaledRhsLength] =
+                            heapPtr._heap[rhsBase .. rhsBase + scaledRhsLength];
+
+                        *lhsStackRef = resultPtr;
+                    }
+                }
+            }
+            break;
+
         case LongInst.Call:
             {
                 assert(functions, "When calling functions you need functions to call");
