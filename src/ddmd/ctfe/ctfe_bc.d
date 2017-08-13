@@ -17,7 +17,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 
 import std.conv : to;
 
-enum perf = 0;
+enum perf = 1;
 enum bailoutMessages = 0;
 enum printResult = 0;
 enum cacheBC = 1;
@@ -2335,13 +2335,11 @@ public:
 
     void doCat(ref BCValue result, BCValue lhs, BCValue rhs)
     {
-/+
         static if (is(typeof(Cat3) == function)
                 && is(typeof(Cat3(BCValue.init, BCValue.init, BCValue.init, uint.init)) == void))
         {
             auto lhsBaseType = _sharedCtfeState.elementType(lhs.type);
             const elemSize = _sharedCtfeState.size(lhsBaseType);
-
             if (!elemSize)
             {
                 bailout("Type has no Size " ~ lhsBaseType.to!string);
@@ -2352,9 +2350,7 @@ public:
 
             Cat3(result, lhs, rhs, elemSize);
         }
-
         else
-+/
         {
             auto lhsOrRhs = genTemporary(i32Type);
             Or3(lhsOrRhs, lhs.i32, rhs.i32);
@@ -3284,7 +3280,7 @@ static if (is(BCGen))
 
                 bailout(v && _sharedCtfeState.size(v.type) < 4, "only addresses of 32bit values or less are supported for now: " ~ se.toString);
                 auto addr = genTemporary(i32Type);
-                Alloc(addr, imm32(_sharedCtfeState.size(v.type)));
+                Alloc(addr, imm32(align4(_sharedCtfeState.size(v.type))));
                 Store32(addr, v);
                 v.heapRef = BCHeapRef(addr);
 
@@ -3884,7 +3880,7 @@ static if (is(BCGen))
 
         _sharedCtfeState.heap._heap[arrayAddr.imm32 + SliceDescriptor.LengthOffset] = arrayLength;
         _sharedCtfeState.heap._heap[arrayAddr.imm32 + SliceDescriptor.BaseOffset] = arrayAddr.imm32 + SliceDescriptor.Size; // point to the begining of the array;
-        _sharedCtfeState.heap.heapSize += allocSize;
+        _sharedCtfeState.heap.heapSize += align4(allocSize);
 
         auto oldInsideArrayLiteralExp = insideArrayLiteralExp;
         scope(exit) insideArrayLiteralExp = oldInsideArrayLiteralExp;
@@ -4057,7 +4053,7 @@ static if (is(BCGen))
         else
         {
             structVal = imm32(_sharedCtfeState.heap.heapSize);
-            sharedCtfeState.heap.heapSize += struct_size;
+            sharedCtfeState.heap.heapSize += align4(struct_size);
         }
 
         structVal.type = BCType(BCTypeEnum.Struct, idx);
