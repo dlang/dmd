@@ -358,7 +358,7 @@ struct BCGen
     void* fd;
     bool insideFunction;
 
-    BCLocal[256] locals;
+    BCLocal[bc_max_locals] locals;
 
     RetainedCall[ubyte.max * 6] calls;
     uint callCount;

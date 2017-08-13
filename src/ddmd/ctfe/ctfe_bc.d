@@ -17,7 +17,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 
 import std.conv : to;
 
-enum perf = 1;
+enum perf = 0;
 enum bailoutMessages = 0;
 enum printResult = 0;
 enum cacheBC = 1;
