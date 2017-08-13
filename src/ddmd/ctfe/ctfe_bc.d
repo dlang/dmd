@@ -2335,58 +2335,80 @@ public:
 
     void doCat(ref BCValue result, BCValue lhs, BCValue rhs)
     {
-        auto lhsOrRhs = genTemporary(i32Type);
-        Or3(lhsOrRhs, lhs.i32, rhs.i32);
-
-        // lhs == result happens when doing e = e ~ x;
-        // in that case we must not the result to zero
-        if (lhs != result)
-            Set(result.i32, imm32(0));
-
-        auto CJisNull = beginCndJmp(lhsOrRhs);
-
-        auto lhsLength = getLength(lhs);
-        auto rhsLength = getLength(rhs);
-        auto lhsBase = getBase(lhs);
-        auto rhsBase = getBase(rhs);
-        auto lhsBaseType = _sharedCtfeState.elementType(lhs.type);
-
-        auto effectiveSize = genTemporary(i32Type);
-        auto newLength = genTemporary(i32Type);
-        auto newBase = genTemporary(i32Type);
-        auto elemSize = _sharedCtfeState.size(lhsBaseType);
-
-        if (!elemSize)
+/+
+        static if (is(typeof(Cat3) == function)
+                && is(typeof(Cat3(BCValue.init, BCValue.init, BCValue.init, uint.init)) == void))
         {
-            bailout("Type has no Size " ~ lhsBaseType.to!string);
-            result = BCValue.init;
-            return ;
+            auto lhsBaseType = _sharedCtfeState.elementType(lhs.type);
+            const elemSize = _sharedCtfeState.size(lhsBaseType);
+
+            if (!elemSize)
+            {
+                bailout("Type has no Size " ~ lhsBaseType.to!string);
+                result = BCValue.init;
+                return ;
+            }
+
+
+            Cat3(result, lhs, rhs, elemSize);
         }
 
-        Add3(newLength, lhsLength, rhsLength);
-        Mul3(effectiveSize, newLength, imm32(elemSize));
-        Add3(effectiveSize, effectiveSize, imm32(SliceDescriptor.Size));
-
-        Alloc(result, effectiveSize);
-        Add3(newBase, result, imm32(SliceDescriptor.Size));
-
-        setBase(result, newBase);
-        setLength(result, newLength);
-
+        else
++/
         {
-            auto CJlhsIsNull = beginCndJmp(lhsBase);
-            copyArray(&newBase, &lhsBase, lhsLength, elemSize);
-            endCndJmp(CJlhsIsNull, genLabel());
-        }
+            auto lhsOrRhs = genTemporary(i32Type);
+            Or3(lhsOrRhs, lhs.i32, rhs.i32);
 
-        {
-            auto CJrhsIsNull = beginCndJmp(rhsBase);
-            copyArray(&newBase, &rhsBase, rhsLength, elemSize);
-            endCndJmp(CJrhsIsNull, genLabel());
-        }
+            // lhs == result happens when doing e = e ~ x;
+            // in that case we must not the result to zero
+            if (lhs != result)
+                Set(result.i32, imm32(0));
 
-        auto LafterCopy = genLabel();
-        endCndJmp(CJisNull, LafterCopy);
+            auto CJisNull = beginCndJmp(lhsOrRhs);
+
+            auto lhsLength = getLength(lhs);
+            auto rhsLength = getLength(rhs);
+            auto lhsBase = getBase(lhs);
+            auto rhsBase = getBase(rhs);
+            auto lhsBaseType = _sharedCtfeState.elementType(lhs.type);
+
+            auto effectiveSize = genTemporary(i32Type);
+            auto newLength = genTemporary(i32Type);
+            auto newBase = genTemporary(i32Type);
+            auto elemSize = _sharedCtfeState.size(lhsBaseType);
+
+            if (!elemSize)
+            {
+                bailout("Type has no Size " ~ lhsBaseType.to!string);
+                result = BCValue.init;
+                return ;
+            }
+
+            Add3(newLength, lhsLength, rhsLength);
+            Mul3(effectiveSize, newLength, imm32(elemSize));
+            Add3(effectiveSize, effectiveSize, imm32(SliceDescriptor.Size));
+
+            Alloc(result, effectiveSize);
+            Add3(newBase, result, imm32(SliceDescriptor.Size));
+
+            setBase(result, newBase);
+            setLength(result, newLength);
+
+            {
+                auto CJlhsIsNull = beginCndJmp(lhsBase);
+                copyArray(&newBase, &lhsBase, lhsLength, elemSize);
+                endCndJmp(CJlhsIsNull, genLabel());
+            }
+
+            {
+                auto CJrhsIsNull = beginCndJmp(rhsBase);
+                copyArray(&newBase, &rhsBase, rhsLength, elemSize);
+                endCndJmp(CJrhsIsNull, genLabel());
+            }
+
+            auto LafterCopy = genLabel();
+            endCndJmp(CJisNull, LafterCopy);
+        }
     }
 
     bool isBoolExp(Expression e)

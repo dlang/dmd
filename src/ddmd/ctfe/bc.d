@@ -1201,7 +1201,7 @@ pure:
         }
     }
 
-    void Cat(BCValue result, BCValue lhs, BCValue rhs, const uint size)
+    void Cat3(BCValue result, BCValue lhs, BCValue rhs, const uint size)
     {
         assert(0, "not implemented");
     }
@@ -1963,7 +1963,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                     printf("HeapIndex %d, Content %x\n".ptr, si, heapPtr._heap[cast(uint) si]);
                 }
             }
-
+        debug if (!__ctfe) writeln("ip: ", ip);
         const lw = byteCode[ip];
         const hi = byteCode[ip + 1];
         ip += 2;
