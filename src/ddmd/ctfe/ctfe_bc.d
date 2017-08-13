@@ -446,7 +446,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                 }
                 static if (printResult)
                 {
-                    writeln("Evaluated function:" ~ fd.toString ~ " => " ~ exp.toString);
+                    writeln("Evaluated function:", fd.toString,  "(", args.map!(a => a.toString), ") => ",  exp.toString);
                 }
                 return exp;
             }
