@@ -1776,8 +1776,6 @@ struct BCScope
 debug = nullPtrCheck;
 debug = nullAllocCheck;
 //debug = ctfe;
-debug = andand;
-debug = oror;
 //debug = SetLocation;
 //debug = LabelLocation;
 
@@ -1808,8 +1806,6 @@ extern (C++) final class BCV(BCGenT) : Visitor
     bool insideArgumentProcessing;
     bool processingParameters;
     bool insideArrayLiteralExp;
-    bool inOrOr;
-    bool inAndAnd;
 
     bool IGaveUp;
 
@@ -1832,8 +1828,6 @@ extern (C++) final class BCV(BCGenT) : Visitor
         insideArgumentProcessing = false;
         processingParameters = false;
         insideArrayLiteralExp = false;
-        inOrOr = false;
-        inAndAnd = false;
         IGaveUp = false;
         discardValue = false;
         ignoreVoid = false;
@@ -3137,11 +3131,6 @@ static if (is(BCGen))
 
         case TOK.TOKoror:
             {
-                 debug(oror) {
-                    if (inAndAnd)
-                        bailout("Cannot deal with intermixed && and ||");
-
-                    inOrOr = true;
                     const oldFixupTableCount = fixupTableCount;
                         {
                             Comment("|| before lhs");
@@ -3179,20 +3168,11 @@ static if (is(BCGen))
                             Comment("fallout ?");
                         }
                     }
-                    inOrOr = false;
-                }
-                else
-                    bailout("|| is not supported: " ~ e.toString);
             }
             break;
 
-            debug (andand)
-            {
         case TOK.TOKandand:
                 {
-                    if (inOrOr)
-                        bailout("Cannot deal with intermixed && and ||");
-                   inAndAnd = true;
                    // noRetval = true;
                    //     import std.stdio;
                    //     writefln("andandExp: %s -- e1.op: %s -- e2.op: %s", e.toString, e.e1.op.to!string, e.e2.op.to!string);
@@ -3231,10 +3211,7 @@ static if (is(BCGen))
                                 false));
                         Comment("&& afterRhs");
                     }
-                    inAndAnd = false;
 
-
-                    }
                 break;
             }
         case TOK.TOKcomma:
