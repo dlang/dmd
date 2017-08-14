@@ -2439,7 +2439,14 @@ public:
                 expr.accept(this);
             if (isBoolExp(expr) && !costumBoolFixup)
             {
-                retval = assignTo ? assignTo.i32 :  boolres;
+                if (assignTo)
+                {
+                    retval = assignTo.i32;
+                }
+                else
+                {
+                    retval = boolres = boolres ? boolres : genTemporary(i32Type);                    
+                }
 
                 if (expr.op == TOKandand)
                 {
