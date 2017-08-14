@@ -2685,6 +2685,7 @@ enum WANTvalue  = 0;    // default
 enum WANTexpand = 1;    // expand const/immutable variables if possible
 
 /***********************************************************
+ * http://dlang.org/spec/expression.html#expression
  */
 extern (C++) abstract class Expression : RootObject
 {
@@ -3999,6 +4000,7 @@ extern (C++) final class DsymbolExp : Expression
 }
 
 /***********************************************************
+ * http://dlang.org/spec/expression.html#this
  */
 extern (C++) class ThisExp : Expression
 {
@@ -4038,6 +4040,7 @@ extern (C++) class ThisExp : Expression
 }
 
 /***********************************************************
+ * http://dlang.org/spec/expression.html#super
  */
 extern (C++) final class SuperExp : ThisExp
 {
@@ -4054,6 +4057,7 @@ extern (C++) final class SuperExp : ThisExp
 }
 
 /***********************************************************
+ * http://dlang.org/spec/expression.html#null
  */
 extern (C++) final class NullExp : Expression
 {
@@ -4101,6 +4105,7 @@ extern (C++) final class NullExp : Expression
 }
 
 /***********************************************************
+ * http://dlang.org/spec/expression.html#string_literals
  */
 extern (C++) final class StringExp : Expression
 {
@@ -4562,6 +4567,8 @@ extern (C++) final class TupleExp : Expression
 
 /***********************************************************
  * [ e1, e2, e3, ... ]
+ *
+ * http://dlang.org/spec/expression.html#array_literals
  */
 extern (C++) final class ArrayLiteralExp : Expression
 {
@@ -4748,11 +4755,14 @@ extern (C++) final class ArrayLiteralExp : Expression
 
 /***********************************************************
  * [ key0 : value0, key1 : value1, ... ]
+ *
+ * http://dlang.org/spec/expression.html#associative_array_literals
  */
 extern (C++) final class AssocArrayLiteralExp : Expression
 {
     Expressions* keys;
     Expressions* values;
+
     OwnedBy ownedByCtfe = OWNEDcode;
 
     extern (D) this(Loc loc, Expressions* keys, Expressions* values)
@@ -6846,6 +6856,9 @@ extern (C++) final class VectorExp : UnaExp
 }
 
 /***********************************************************
+ * e1 [lwr .. upr]
+ *
+ * http://dlang.org/spec/expression.html#slice_expressions
  */
 extern (C++) final class SliceExp : UnaExp
 {
@@ -6973,10 +6986,13 @@ extern (C++) final class ArrayLengthExp : UnaExp
 
 /***********************************************************
  * e1 [ a0, a1, a2, a3 ,... ]
+ *
+ * http://dlang.org/spec/expression.html#index_expressions
  */
 extern (C++) final class ArrayExp : UnaExp
 {
-    Expressions* arguments;     // Array of Expression's
+    Expressions* arguments;     // Array of Expression's a0..an
+
     size_t currentDimension;    // for opDollar
     VarDeclaration lengthVar;
 
@@ -7649,6 +7665,7 @@ extern (C++) final class CatAssignExp : BinAssignExp
 }
 
 /***********************************************************
+ * http://dlang.org/spec/expression.html#add_expressions
  */
 extern (C++) final class AddExp : BinExp
 {
@@ -7679,6 +7696,7 @@ extern (C++) final class MinExp : BinExp
 }
 
 /***********************************************************
+ * http://dlang.org/spec/expression.html#cat_expressions
  */
 extern (C++) final class CatExp : BinExp
 {
@@ -7694,6 +7712,7 @@ extern (C++) final class CatExp : BinExp
 }
 
 /***********************************************************
+ * http://dlang.org/spec/expression.html#mul_expressions
  */
 extern (C++) final class MulExp : BinExp
 {
@@ -7709,6 +7728,7 @@ extern (C++) final class MulExp : BinExp
 }
 
 /***********************************************************
+ * http://dlang.org/spec/expression.html#mul_expressions
  */
 extern (C++) final class DivExp : BinExp
 {
@@ -7724,6 +7744,7 @@ extern (C++) final class DivExp : BinExp
 }
 
 /***********************************************************
+ * http://dlang.org/spec/expression.html#mul_expressions
  */
 extern (C++) final class ModExp : BinExp
 {
@@ -7739,6 +7760,7 @@ extern (C++) final class ModExp : BinExp
 }
 
 /***********************************************************
+ * http://dlang.org/spec/expression.html#pow_expressions
  */
 extern (C++) final class PowExp : BinExp
 {
@@ -7863,6 +7885,7 @@ extern (C++) final class XorExp : BinExp
 }
 
 /***********************************************************
+ * http://dlang.org/spec/expression.html#oror_expressions
  */
 extern (C++) final class OrOrExp : BinExp
 {
@@ -7887,6 +7910,7 @@ extern (C++) final class OrOrExp : BinExp
 }
 
 /***********************************************************
+ * http://dlang.org/spec/expression.html#andand_expressions
  */
 extern (C++) final class AndAndExp : BinExp
 {
@@ -7911,6 +7935,11 @@ extern (C++) final class AndAndExp : BinExp
 }
 
 /***********************************************************
+ * `op` is one of:
+ *      TOKlt, TOKle, TOKgt, TOKge,
+ *      TOKunord, TOKlg, TOKleg, TOKule, TOKul, TOKuge, TOKug, TOKue
+ *
+ * http://dlang.org/spec/expression.html#relation_expressions
  */
 extern (C++) final class CmpExp : BinExp
 {
@@ -7958,7 +7987,11 @@ extern (C++) final class RemoveExp : BinExp
 }
 
 /***********************************************************
- * == and !=
+ * `==` and `!=`
+ *
+ * TOKequal and TOKnotequal
+ *
+ * http://dlang.org/spec/expression.html#equality_expressions
  */
 extern (C++) final class EqualExp : BinExp
 {
@@ -7975,7 +8008,11 @@ extern (C++) final class EqualExp : BinExp
 }
 
 /***********************************************************
- * is and !is
+ * `is` and `!is`
+ *
+ * TOKidentity and TOKnotidentity
+ *
+ *  http://dlang.org/spec/expression.html#identity_expressions
  */
 extern (C++) final class IdentityExp : BinExp
 {
@@ -7991,6 +8028,9 @@ extern (C++) final class IdentityExp : BinExp
 }
 
 /***********************************************************
+ * `econd ? e1 : e2`
+ *
+ * http://dlang.org/spec/expression.html#conditional_expressions
  */
 extern (C++) final class CondExp : BinExp
 {
