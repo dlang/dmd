@@ -2473,14 +2473,26 @@ public:
             {
                 if (!retval || retval.type.type != BCTypeEnum.i32)
                     retval = genTemporary(i32Type);
-
-                auto Ltrue = genLabel();
-                Set(retval, imm32(1));
-                auto JtoEnd = beginJmp();
-                auto Lfalse = genLabel();
-                Set(retval, imm32(0));
-                endJmp(JtoEnd, genLabel());
-                doFixup(oldFixupTableCount, &Ltrue, &Lfalse);
+                if (expr.op == TOKandand)
+                {
+                    auto Ltrue = genLabel();
+                    Set(retval, imm32(1));
+                    auto JtoEnd = beginJmp();
+                    auto Lfalse = genLabel();
+                    Set(retval, imm32(0));
+                    endJmp(JtoEnd, genLabel());
+                    doFixup(oldFixupTableCount, &Ltrue, &Lfalse);
+                }
+                else
+                {
+                    auto Lfalse = genLabel();
+                    Set(retval, imm32(0));
+                    auto JtoEnd = beginJmp();
+                    auto Ltrue = genLabel();
+                    Set(retval, imm32(1));
+                    endJmp(JtoEnd, genLabel());
+                    doFixup(oldFixupTableCount, &Ltrue, &Lfalse);
+                }
             }
         }
         debug (ctfe)
