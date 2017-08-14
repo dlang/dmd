@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 0;
+enum bailoutMessages = 1;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -4981,7 +4981,14 @@ static if (is(BCGen))
         }
         else
         {
-            retval = imm32(cast(uint) ie.value);
+            if (ie.type.ty == Tint32 && (cast(int) ie.value) < 0)
+            {
+                retval = BCValue(Imm64(cast(int)ie.value));
+            }
+            else
+            {
+                retval = imm32(cast(uint) ie.value);
+            }
         }
         //auto value = evaluateUlong(ie);
         //retval = value <= int.max ? imm32(cast(uint) value) : BCValue(Imm64(value));
@@ -5777,6 +5784,13 @@ static if (is(BCGen))
     override void visit(AssertExp ae)
     {
         Line(ae.loc.linnum);
+
+        if (isBoolExp(ae.e1))
+        {
+            bailout("asserts on boolean expression currently unsupported");
+            return ;
+        }
+
         auto lhs = genExpr(ae.e1, "AssertExp.e1");
         if (lhs.type.type == BCTypeEnum.i32 || lhs.type.type == BCTypeEnum.Ptr || lhs.type.type == BCTypeEnum.Struct)
         {

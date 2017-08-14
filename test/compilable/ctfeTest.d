@@ -662,5 +662,12 @@ static assert(aaa2(1, 0, 1, 0) == [1, 0]);
 static assert(aaa2(1, 1, 1, 0) == [3, 1]);
 static assert(aaa2(1, 1, 1, 1) == [2, 1]);
 
+bool alwaysFalse(int v = -4)
+{
+  bool b1 = v > int(1073741823);
+  return b1;
+}
+
+static assert(!alwaysFalse());
 
 static assert(!__traits(newCTFEGaveUp));
