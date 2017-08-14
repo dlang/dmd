@@ -3011,7 +3011,7 @@ static if (is(BCGen))
                 retval.heapRef = retvalHeapRef;
             }
 
-            if ((isFloat(lhs.type) && isFloat(rhs.type) && lhs.type.type == rhs.type.type) || (canHandleBinExpTypes(retval.type.type, lhs.type.type) && canHandleBinExpTypes(retval.type.type, rhs.type.type)) || (e.op == TOKmod && canHandleBinExpTypes(rhs.type.type, retval.type.type)))
+            if ((isFloat(lhs.type) && isFloat(rhs.type) && lhs.type.type == rhs.type.type) || (canHandleBinExpTypes(retval.type.type, lhs.type.type) && canHandleBinExpTypes(retval.type.type, rhs.type.type)) || (e.op == TOKmod && canHandleBinExpTypes(rhs.type.type, retval.type.type)) || ((e.op == TOKequal || e.op == TOKnotequal) && canHandleBinExpTypes(lhs.type.type, rhs.type.type)))
             {
                 const oldDiscardValue = discardValue;
                 discardValue = false;
