@@ -1443,6 +1443,38 @@ void test14556()
 }
 
 /********************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17622
+
+struct S17622
+{
+    int i;
+
+    this(ubyte)
+    {
+        return;
+    }
+
+    void fun()
+    {
+        assert(i == 0);
+    }
+}
+
+S17622 make()
+{
+    return S17622(0);
+}
+
+void test17622()
+{
+    S17622 s = make();
+
+    auto rdg = (){ s.fun(); };
+
+    s.fun();
+}
+
+/********************************************/
 
 int main()
 {
@@ -1489,6 +1521,7 @@ int main()
     test11256();
     test13021();
     test14556();
+    test17622();
 
     printf("Success\n");
     return 0;

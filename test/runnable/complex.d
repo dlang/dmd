@@ -415,6 +415,17 @@ void test17087()
 }
 
 /***************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17677
+
+void test17677()
+{
+    cfloat v2 = 0.0f + 0.0fi;
+    ulong v1 = 1;
+    auto z = v2 + v1;
+    assert(z == 1.0f);
+}
+
+/***************************************/
 
 int main(char[][] args)
 {
@@ -443,6 +454,7 @@ int main(char[][] args)
     test7976();
     test15();
     test17087();
+    test17677();
 
     printf("Success!\n");
     return 0;

@@ -860,7 +860,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
             static if (!isDecl)
             {
-                st.push(fs._body.syntaxCopy());
+                if (fs._body) // https://issues.dlang.org/show_bug.cgi?id=17646
+                    st.push(fs._body.syntaxCopy());
                 Statement res = new CompoundStatement(loc, st);
             }
             else
