@@ -523,38 +523,6 @@ switch_head:
     }
 }
 
-Expression getBoolExprLhs(Expression be)
-{
-    import ddmd.tokens;
-
-    if (be.op == TOKandand)
-    {
-        return (cast(AndAndExp) be).e1;
-    }
-    if (be.op == TOKoror)
-    {
-        return (cast(OrOrExp) be).e1;
-    }
-
-    return null;
-}
-
-Expression getBoolExprRhs(Expression be)
-{
-    import ddmd.tokens;
-
-    if (be.op == TOKandand)
-    {
-        return (cast(AndAndExp) be).e2;
-    }
-    if (be.op == TOKoror)
-    {
-        return (cast(OrOrExp) be).e2;
-    }
-
-    return null;
-}
-
 string toString(T)(T value) if (is(T : Statement) || is(T : Declaration)
         || is(T : Expression) || is(T : Dsymbol) || is(T : Type) || is(T : Initializer)
         || is(T : StructDeclaration))
@@ -2432,7 +2400,7 @@ public:
             import std.stdio; writeln("Calling genExpr(null) from: " ~ to!string(line)); //DEBUGLINE
             return BCValue.init;
         }
-
+        
         debug (ctfe)
         {
             import std.stdio;
@@ -2471,8 +2439,8 @@ public:
                 expr.accept(this);
             if (isBoolExp(expr) && !costumBoolFixup)
             {
-                if (!retval || retval.type.type != BCTypeEnum.i32)
-                    retval = genTemporary(i32Type);
+                retval = assignTo ? assignTo.i32 :  boolres;
+
                 if (expr.op == TOKandand)
                 {
                     auto Ltrue = genLabel();
@@ -3185,7 +3153,7 @@ static if (is(BCGen))
                         }
 
 
-
+                    
                     {
                         Comment("|| before rhs");
                         auto rhs = genExpr(e.e2);
@@ -3199,6 +3167,10 @@ static if (is(BCGen))
                         fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(rhs,
                                 true));
                         Comment("|| after rhs");
+                        if (isBoolExp(e.e1) && !isBoolExp(e.e2))
+                        {
+                            Comment("fallout ?");
+                        }
                     }
                     inOrOr = false;
                 }
@@ -6651,7 +6623,7 @@ static if (is(BCGen))
             boolres = genTemporary(i32Type);
         }
 
-        auto cond = genExpr(fs.condition, true);
+        auto cond = genExpr(fs.condition, false);
 
         if (!cond)
         {
@@ -6660,11 +6632,12 @@ static if (is(BCGen))
         }
 
         typeof(beginCndJmp(cond)) cj;
+        typeof(beginJmp()) j;
 
         if (!boolExp)
-        {
             cj = beginCndJmp(cond.i32);
-        }
+        else
+            cj = beginCndJmp(boolres);
 
         BCBlock ifbody = fs.ifbody ? genBlock(fs.ifbody) : BCBlock.init;
         auto to_end = beginJmp();
@@ -6672,8 +6645,7 @@ static if (is(BCGen))
         BCBlock elsebody = fs.elsebody ? genBlock(fs.elsebody) : BCBlock.init;
         endJmp(to_end, genLabel());
 
-        if (!boolExp)
-            endCndJmp(cj, elseLabel);
+        endCndJmp(cj, elseLabel);
 
         doFixup(oldFixupTableCount, ifbody ? &ifbody.begin : null,
             elsebody ? &elsebody.begin : null);
