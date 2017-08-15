@@ -23,6 +23,8 @@ alias jrvalue = gcc_jit_rvalue*;
 
 struct BCFunction
 {
+    void* fd;
+
     jfunc func;
     alias func this;
     jparam[64] parameters;
@@ -36,7 +38,6 @@ struct BCFunction
 
 void bc_jit_main()
 {
-    import std.stdio;
     GccJitGen gen;
     with (gen)
     {
@@ -50,6 +51,7 @@ void bc_jit_main()
 
                 Add3(p1, p1, imm32('a'));
                 Sub3(p2, p2, p1);
+                Not(p1, p1);
                 Ret(p1);
         
             endFunction();
@@ -318,15 +320,64 @@ struct GccJitGen
             lvalue(result), _result);
     }
 
-    void Mul3(BCValue result, BCValue lhs, BCValue rhs);
-    void Div3(BCValue result, BCValue lhs, BCValue rhs);
-    void And3(BCValue result, BCValue lhs, BCValue rhs);
+    void Mul3(BCValue result, BCValue lhs, BCValue rhs)
+    {
+        assert(lhs.type == i32Type && rhs.type == i32Type);
+        assert(lhs.isStackValueOrParameter);
+        assert(rhs.isStackValueOrParameter || rhs.vType == BCValueType.Immediate);
+
+
+        auto _result = gcc_jit_context_new_binary_op (
+            ctx, null,
+            GCC_JIT_BINARY_OP_MULT, i64type,
+            rvalue(lhs),
+            rvalue(rhs)
+        );
+        gcc_jit_block_add_assignment(block, null,
+            lvalue(result), _result);
+    }
+
+    void Div3(BCValue result, BCValue lhs, BCValue rhs)
+    {
+        assert(lhs.type == i32Type && rhs.type == i32Type);
+        assert(lhs.isStackValueOrParameter);
+        assert(rhs.isStackValueOrParameter || rhs.vType == BCValueType.Immediate);
+
+
+        auto _result = gcc_jit_context_new_binary_op (
+            ctx, null,
+            GCC_JIT_BINARY_OP_DIVIDE, i64type,
+            rvalue(lhs),
+            rvalue(rhs)
+        );
+        gcc_jit_block_add_assignment(block, null,
+            lvalue(result), _result);
+
+    }
+
+    void And3(BCValue result, BCValue lhs, BCValue rhs)
+    {
+        assert(lhs.type == i32Type && rhs.type == i32Type);
+        assert(lhs.isStackValueOrParameter);
+        assert(rhs.isStackValueOrParameter || rhs.vType == BCValueType.Immediate);
+
+
+        auto _result = gcc_jit_context_new_binary_op (
+            ctx, null,
+            GCC_JIT_BINARY_OP_AND, i64type,
+            rvalue(lhs),
+            rvalue(rhs)
+        );
+        gcc_jit_block_add_assignment(block, null,
+            lvalue(result), _result);
+
+    }
+
     void Or3(BCValue result, BCValue lhs, BCValue rhs);
     void Xor3(BCValue result, BCValue lhs, BCValue rhs);
     void Lsh3(BCValue result, BCValue lhs, BCValue rhs);
     void Rsh3(BCValue result, BCValue lhs, BCValue rhs);
     void Mod3(BCValue result, BCValue lhs, BCValue rhs);
-//    import ddmd.globals : Loc;
 
     void Call(BCValue result, BCValue fn, BCValue[] args);
     void Load32(BCValue _to, BCValue from);

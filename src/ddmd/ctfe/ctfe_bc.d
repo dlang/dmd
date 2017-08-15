@@ -2391,7 +2391,7 @@ public:
 
         if (!expr)
         {
-            import std.stdio; writeln("Calling genExpr(null) from: " ~ to!string(line)); //DEBUGLINE
+            import core.stdc.stdio; printf("%s\n", ("Calling genExpr(null) from: " ~ to!string(line) ~ "\0").ptr); //DEBUGLINE
             return BCValue.init;
         }
         
