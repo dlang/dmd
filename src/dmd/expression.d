@@ -5545,6 +5545,15 @@ extern (C++) final class SliceExp : UnaExp
         return e1.isBool(result);
     }
 
+    override StringExp toStringExp()
+    {
+        if (e1.op == TOK.string_)
+        {
+            return e1.toStringExp();
+        }
+        return null;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);

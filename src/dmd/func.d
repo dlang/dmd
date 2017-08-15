@@ -102,7 +102,8 @@ enum BUILTIN : ubyte
     yl2xp1,
     toPrecFloat,
     toPrecDouble,
-    toPrecReal
+    toPrecReal,
+    ctfeWrite
 }
 
 /* Tweak all return statements and dtor call for nrvo_var, for correct NRVO.

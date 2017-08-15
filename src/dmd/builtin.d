@@ -87,9 +87,9 @@ BUILTIN determine_builtin(FuncDeclaration func)
         return BUILTIN.unimp;
     const md = m.md;
 
-    // Look for core.math, core.bitop, std.math, and std.math.<package>
+    // Look for core.math, core.bitop, core.builtins, std.math, and std.math.<package>
     const id2 = (md.packages.length == 2) ? md.packages[1] : md.id;
-    if (id2 != Id.math && id2 != Id.bitop)
+    if (id2 != Id.math && id2 != Id.bitop && id2 != Id.builtins)
         return BUILTIN.unimp;
 
     if (md.packages.length != 1 && !(md.packages.length == 2 && id2 == Id.math))
@@ -100,13 +100,22 @@ BUILTIN determine_builtin(FuncDeclaration func)
         return BUILTIN.unimp;
     const id3 = fd.ident;
 
-    if (id1 == Id.core && id2 == Id.bitop)
+    if (id1 == Id.core)
     {
-        if (id3 == Id.bsf)     return BUILTIN.bsf;
-        if (id3 == Id.bsr)     return BUILTIN.bsr;
-        if (id3 == Id.bswap)   return BUILTIN.bswap;
-        if (id3 == Id._popcnt) return BUILTIN.popcnt;
-        return BUILTIN.unimp;
+        if (id2 == Id.bitop) // core.bitop
+        {
+            if (id3 == Id.bsf)     return BUILTIN.bsf;
+            if (id3 == Id.bsr)     return BUILTIN.bsr;
+            if (id3 == Id.bswap)   return BUILTIN.bswap;
+            if (id3 == Id._popcnt) return BUILTIN.popcnt;
+            return BUILTIN.unimp;
+        }
+
+        if (id2 == Id.builtins) // core.builtins
+        {
+            if (id3 == Id.__ctfeWrite)  return BUILTIN.ctfeWrite;
+            return BUILTIN.unimp;
+        }
     }
 
     // Math
@@ -435,6 +444,24 @@ Expression eval_toPrecReal(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     return new RealExp(loc, arg0.toReal(), Type.tfloat80);
+}
+
+/// Writes a StringExp from arguments to stderr
+Expression eval_ctfeWrite(Loc loc, FuncDeclaration fd, Expressions* arguments)
+{
+    import core.stdc.stdio : fprintf, stderr;
+
+    assert(arguments.length == 1);
+
+    Expression arg0 = (*arguments)[0];
+
+    if (StringExp se = arg0.toStringExp())
+    {
+        auto str = se.peekString();
+        fprintf(stderr, "%.*s".ptr, cast(int) str.length, str.ptr);
+    }
+
+    return arg0;
 }
 
 // These built-ins are reserved for GDC and LDC.

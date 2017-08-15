@@ -358,6 +358,7 @@ immutable Msgtable[] msgtable =
     { "core" },
     { "etc" },
     { "attribute" },
+    { "builtins" },
     { "math" },
     { "sin" },
     { "cos" },
@@ -411,6 +412,7 @@ immutable Msgtable[] msgtable =
     { "outp"},
     { "outpl"},
     { "outpw"},
+    { "__ctfeWrite" },
 
     // Traits
     { "isAbstractClass" },
