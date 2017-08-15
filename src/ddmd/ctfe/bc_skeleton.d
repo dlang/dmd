@@ -1,6 +1,13 @@
 module ddmd.ctfe.bc_skeleton;
 import ddmd.ctfe.bc_common;
 
+struct BCFunction
+{
+    void* fd; // set to the function descriptor of the frontend
+
+    // all the other state you need to represent a callable function
+}
+
 struct Skeleton_Gen
 {
     void Initialize();
