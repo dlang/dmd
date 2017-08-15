@@ -234,7 +234,7 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	typinf utils statement_rewrite_walker statementsem staticcond safe blockexit asttypename printast))
 
 CTFE_SRCS=$(addsuffix .d, $(addprefix $D/ctfe/,bc bc_common bc_c_backend	\
-	bc_limits bc_llvm_backend bc_macro bc_printer_backend bc_recorder	\
+	bc_limits bc_llvm_backend bc_macro bc_printer_backend bc_gccjit_backend	\
 	bc_test ctfe_bc))
 
 LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, console entity errors globals id identifier lexer tokens utf))
