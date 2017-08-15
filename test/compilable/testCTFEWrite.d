@@ -1,0 +1,36 @@
+/*
+TEST OUTPUT:
+0^^2 == 1
+1^^2 == 1
+2^^2 == 4
+3^^2 == 9
+4^^2 == 16
+5^^2 == 25
+6^^2 == 36
+result == 91
+*/
+int sum_of_sq(int x) pure nothrow @safe
+{
+    import std.conv;
+
+    string newline;
+    newline = "\n";
+
+    int result = 0;
+    foreach (i; 0 .. x)
+    {
+        __ctfeWrite(to!string(i));
+        __ctfeWrite("^^2 == ");
+        int power = i ^^ 2;
+        __ctfeWrite(power.to!string);
+        __ctfeWrite(newline);
+        result += power;
+    }
+    __ctfeWrite("result == ");
+    __ctfeWrite(to!string(result));
+    __ctfeWrite(newline);
+    return result;
+
+}
+
+static assert(sum_of_sq(7) == 91);
