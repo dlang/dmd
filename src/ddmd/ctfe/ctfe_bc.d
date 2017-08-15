@@ -17,7 +17,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 
 import std.conv : to;
 
-enum perf = 0;
+enum perf = 1;
 enum bailoutMessages = 0;
 enum printResult = 0;
 enum cacheBC = 1;
@@ -3434,7 +3434,7 @@ static if (is(BCGen))
             }
             retval.heapRef = BCHeapRef(ptr);
 
-            if (elemType.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.Array]))
+            if (elemType.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.Array, BCTypeEnum.String]))
             {
                 // on structs we return the ptr!
                 Set(retval.i32, ptr);
@@ -3929,7 +3929,7 @@ static if (is(BCGen))
                     MemCpy(imm32(arrayAddr.imm32 + offset), elexpr_sv, imm32(heapAdd));
                 }
             }
-            else if (elexpr.type.type == BCTypeEnum.Array)
+            else if (elexpr.type.type.anyOf([BCTypeEnum.Array, BCTypeEnum.Slice, BCTypeEnum.String]))
             {
                 if (!elexpr.type.typeIndex || elexpr.type.type >= _sharedCtfeState.arrayTypes.length)
                 {
@@ -3954,7 +3954,7 @@ static if (is(BCGen))
                     elexpr_sv.vType = BCValueType.StackValue;
 
                     MemCpy(imm32(arrayAddr.imm32 + offset), elexpr_sv, imm32(heapAdd));
-                    Comment("Runtime Array of Array");
+                    Comment("Runtime Array of Array/Slice");
                 }
             }
             else
@@ -4831,7 +4831,7 @@ static if (is(BCGen))
         }
         else if (!canHandleBinExpTypes(lhs.type, rhs.type))
         {
-            bailout("Cannot use binExpTypes: " ~ to!string(lhs.type.type) ~ " et: " ~ to!string(_sharedCtfeState.elementType(lhs.type))  ~ " -- " ~ "to!string(rhs.type.type)" ~ " et : " ~ to!string(_sharedCtfeState.elementType(rhs.type)));
+            bailout("Cannot use binExpTypes: " ~ to!string(lhs.type.type) ~ " et: " ~ to!string(_sharedCtfeState.elementType(lhs.type))  ~ " -- " ~ "to!string(rhs.type.type)" ~ " et : " ~ to!string(_sharedCtfeState.elementType(rhs.type)) ~ " -- " ~ e.toString);
             return;
         }
         else switch (e.op)
@@ -5088,7 +5088,7 @@ static if (is(BCGen))
         assignTo = BCValue.init;
         auto lhs = genExpr(ce.e1);
         auto rhs = genExpr(ce.e2);
-        if (canWorkWithType(lhs.type) && canWorkWithType(rhs.type) && (!oldAssignTo || canWorkWithType(oldAssignTo.type)))
+        if (canWorkWithType(lhs.type) && canWorkWithType(rhs.type) && (!oldAssignTo || canWorkWithType(oldAssignTo.type)) || true)
         {
             switch (ce.op)
             {
@@ -5486,7 +5486,7 @@ static if (is(BCGen))
             }
             auto effectiveAddr = BCValue(lhs.heapRef);
 */
-            if (rhs.type.type.anyOf([BCTypeEnum.Array, BCTypeEnum.Struct]))
+            if (rhs.type.type.anyOf([BCTypeEnum.Array, BCTypeEnum.Struct, BCTypeEnum.Slice]))
             {
                 MemCpy(effectiveAddr.i32, rhs.i32, imm32(sharedCtfeState.size(rhs.type)));
             }
@@ -6673,18 +6673,17 @@ static if (is(BCGen))
 
             writefln("CompundStatement %s", cs.toString);
         }
+
         if (cs.statements !is null)
         {
             foreach (stmt; (*cs.statements))
             {
+                // null statements can happen in here
+                // but it seems there is no harm in ignoring them
+
                 if (stmt !is null)
                 {
                     stmt.accept(this);
-                }
-                else
-                {
-                    bailout("Encounterd null Statement");
-                    return;
                 }
             }
         }
