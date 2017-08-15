@@ -216,6 +216,37 @@ extern (C++) Expression eval_yl2xp1(Loc loc, FuncDeclaration fd, Expressions* ar
     return new RealExp(loc, result, arg0.type);
 }
 
+extern (C++) Expression builtin_ctfeWrite(Loc loc, FuncDeclaration fd, Expressions* arguments)
+{
+    import core.stdc.stdio : fprintf;
+    import ddmd.ctfeexpr : resolveSlice;
+
+    Expression arg0 = (*arguments)[0];
+    StringExp se;
+
+    switch (arg0.op)
+    {
+        case TOKstring:
+            se = cast(StringExp) arg0;
+            break;
+        case TOKslice:
+            se = resolveSlice(arg0).toStringExp();
+            break;
+        case TOKarrayliteral:
+            se = arg0.toStringExp();
+            break;
+        default:
+            break;
+    }
+
+    if (se)
+    {
+        fprintf(global.stdmsg, "%.*s".ptr, se.len, se.string);
+    }
+
+    return arg0;
+}
+
 public extern (C++) void builtin_init()
 {
     builtins._init(47);
@@ -332,6 +363,8 @@ public extern (C++) void builtin_init()
     // @safe @nogc pure nothrow int function(ulong)
     if (global.params.is64bit)
         add_builtin("_D4core5bitop7_popcntFNaNbNiNfmZi", &eval_popcnt);
+    // @safe @nogc pure nothrow void function(const string)
+    add_builtin("_D6object11__ctfeWriteFNaNbNiNfxAyaZv", &builtin_ctfeWrite);
 }
 
 /**********************************
