@@ -370,702 +370,8 @@ private int tryMain(size_t argc, const(char)** argv)
     getenv_setargv(readFromEnv(&environment, "DFLAGS"), &arguments);
     updateRealEnvironment(&environment);
     environment.reset(1); // don't need environment cache any more
-    version (none)
-    {
-        for (size_t i = 0; i < arguments.dim; i++)
-        {
-            printf("arguments[%d] = '%s'\n", i, arguments[i]);
-        }
-    }
-    for (size_t i = 1; i < arguments.dim; i++)
-    {
-        const(char)* p = arguments[i];
-        if (*p == '-')
-        {
-            if (strcmp(p + 1, "allinst") == 0)
-                global.params.allInst = true;
-            else if (strcmp(p + 1, "de") == 0)
-                global.params.useDeprecated = 0;
-            else if (strcmp(p + 1, "d") == 0)
-                global.params.useDeprecated = 1;
-            else if (strcmp(p + 1, "dw") == 0)
-                global.params.useDeprecated = 2;
-            else if (strcmp(p + 1, "c") == 0)
-                global.params.link = false;
-            else if (memcmp(p + 1, cast(char*)"color", 5) == 0)
-            {
-                global.params.color = true;
-                // Parse:
-                //      -color
-                //      -color=on|off
-                if (p[6] == '=')
-                {
-                    if (strcmp(p + 7, "off") == 0)
-                        global.params.color = false;
-                    else if (strcmp(p + 7, "on") != 0)
-                        goto Lerror;
-                }
-                else if (p[6])
-                    goto Lerror;
-            }
-            else if (memcmp(p + 1, cast(char*)"conf=", 5) == 0)
-            {
-                // ignore, already handled above
-            }
-            else if (memcmp(p + 1, cast(char*)"cov", 3) == 0)
-            {
-                global.params.cov = true;
-                // Parse:
-                //      -cov
-                //      -cov=nnn
-                if (p[4] == '=')
-                {
-                    if (isdigit(cast(char)p[5]))
-                    {
-                        long percent;
-                        errno = 0;
-                        percent = strtol(p + 5, &p, 10);
-                        if (*p || errno || percent > 100)
-                            goto Lerror;
-                        global.params.covPercent = cast(ubyte)percent;
-                    }
-                    else
-                        goto Lerror;
-                }
-                else if (p[4])
-                    goto Lerror;
-            }
-            else if (strcmp(p + 1, "shared") == 0)
-                global.params.dll = true;
-            else if (strcmp(p + 1, "dylib") == 0)
-            {
-                static if (TARGET_OSX)
-                {
-                    Loc loc;
-                    deprecation(loc, "use -shared instead of -dylib");
-                    global.params.dll = true;
-                }
-                else
-                {
-                    goto Lerror;
-                }
-            }
-            else if (strcmp(p + 1, "fPIC") == 0)
-            {
-                static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-                {
-                    global.params.pic = 1;
-                }
-                else
-                {
-                    goto Lerror;
-                }
-            }
-            else if (strcmp(p + 1, "map") == 0)
-                global.params.map = true;
-            else if (strcmp(p + 1, "multiobj") == 0)
-                global.params.multiobj = true;
-            else if (strcmp(p + 1, "g") == 0)
-                global.params.symdebug = 1;
-            else if (strcmp(p + 1, "gc") == 0)
-            {
-                Loc loc;
-                deprecation(loc, "use -g instead of -gc");
-                global.params.symdebug = 2;
-            }
-            else if (strcmp(p + 1, "gf") == 0)
-            {
-                if (!global.params.symdebug)
-                    global.params.symdebug = 1;
-                global.params.symdebugref = true;
-            }
-            else if (strcmp(p + 1, "gs") == 0)
-                global.params.alwaysframe = true;
-            else if (strcmp(p + 1, "gx") == 0)
-                global.params.stackstomp = true;
-            else if (strcmp(p + 1, "gt") == 0)
-            {
-                error(Loc(), "use -profile instead of -gt");
-                global.params.trace = true;
-            }
-            else if (strcmp(p + 1, "m32") == 0)
-            {
-                global.params.is64bit = false;
-                global.params.mscoff = false;
-            }
-            else if (strcmp(p + 1, "m64") == 0)
-            {
-                global.params.is64bit = true;
-                static if (TARGET_WINDOS)
-                {
-                    global.params.mscoff = true;
-                }
-            }
-            else if (strcmp(p + 1, "m32mscoff") == 0)
-            {
-                static if (TARGET_WINDOS)
-                {
-                    global.params.is64bit = 0;
-                    global.params.mscoff = true;
-                }
-                else
-                {
-                    error(Loc(), "-m32mscoff can only be used on windows");
-                }
-            }
-            else if (strncmp(p + 1, "mscrtlib=", 9) == 0)
-            {
-                static if (TARGET_WINDOS)
-                {
-                    global.params.mscrtlib = p + 10;
-                }
-                else
-                {
-                    error(Loc(), "-mscrtlib");
-                }
-            }
-            else if (memcmp(p + 1, cast(char*)"profile", 7) == 0)
-            {
-                // Parse:
-                //      -profile
-                //      -profile=gc
-                if (p[8] == '=')
-                {
-                    if (strcmp(p + 9, "gc") == 0)
-                        global.params.tracegc = true;
-                    else
-                        goto Lerror;
-                }
-                else if (p[8])
-                    goto Lerror;
-                else
-                    global.params.trace = true;
-            }
-            else if (strcmp(p + 1, "v") == 0)
-                global.params.verbose = true;
-            else if (strcmp(p + 1, "vcg-ast") == 0)
-                global.params.vcg_ast = true;
-            else if (strcmp(p + 1, "vtls") == 0)
-                global.params.vtls = true;
-            else if (strcmp(p + 1, "vcolumns") == 0)
-                global.params.showColumns = true;
-            else if (strcmp(p + 1, "vgc") == 0)
-                global.params.vgc = true;
-            else if (memcmp(p + 1, cast(char*)"verrors", 7) == 0)
-            {
-                if (p[8] == '=' && isdigit(cast(char)p[9]))
-                {
-                    long num;
-                    errno = 0;
-                    num = strtol(p + 9, &p, 10);
-                    if (*p || errno || num > INT_MAX)
-                        goto Lerror;
-                    global.errorLimit = cast(uint)num;
-                }
-                else if (memcmp(p + 9, cast(char*)"spec", 4) == 0)
-                {
-                    global.params.showGaggedErrors = true;
-                }
-                else
-                    goto Lerror;
-            }
-            else if (memcmp(p + 1, "mcpu".ptr, 4) == 0)
-            {
-                // Parse:
-                //      -mcpu=identifier
-                if (p[5] == '=')
-                {
-                    if (strcmp(p + 6, "?") == 0)
-                    {
-                        printf("
-CPU architectures supported by -mcpu=id:
-  =?             list information on all architecture choices
-  =baseline      use default architecture as determined by target
-  =avx           use AVX 1 instructions
-  =avx2          use AVX 2 instructions
-  =native        use CPU architecture that this compiler is running on
-");
-                        exit(EXIT_SUCCESS);
-                    }
-                    else if (Identifier.isValidIdentifier(p + 6))
-                    {
-                        const ident = p + 6;
-                        switch (ident[0 .. strlen(ident)])
-                        {
-                        case "baseline":
-                            global.params.cpu = CPU.baseline;
-                            break;
-                        case "avx":
-                            global.params.cpu = CPU.avx;
-                            break;
-                        case "avx2":
-                            global.params.cpu = CPU.avx2;
-                            break;
-                        case "native":
-                            global.params.cpu = CPU.native;
-                            break;
-                        default:
-                            goto Lerror;
-                        }
-                    }
-                    else
-                        goto Lerror;
-                }
-                else
-                    goto Lerror;
-            }
-            else if (memcmp(p + 1, cast(char*)"transition", 10) == 0)
-            {
-                // Parse:
-                //      -transition=number
-                if (p[11] == '=')
-                {
-                    if (strcmp(p + 12, "?") == 0)
-                    {
-                        printf("
-Language changes listed by -transition=id:
-  =all           list information on all language changes
-  =checkimports  give deprecation messages about 10378 anomalies
-  =complex,14488 list all usages of complex or imaginary types
-  =field,3449    list all non-mutable fields which occupy an object instance
-  =import,10378  revert to single phase name lookup
-  =tls           list all variables going into thread local storage
-");
-                        exit(EXIT_SUCCESS);
-                    }
-                    if (isdigit(cast(char)p[12]))
-                    {
-                        long num;
-                        errno = 0;
-                        num = strtol(p + 12, &p, 10);
-                        if (*p || errno || num > INT_MAX)
-                            goto Lerror;
-                        // Bugzilla issue number
-                        switch (num)
-                        {
-                        case 3449:
-                            global.params.vfield = true;
-                            break;
-                        case 10378:
-                            global.params.bug10378 = true;
-                            break;
-                        case 14488:
-                            global.params.vcomplex = true;
-                            break;
-                        default:
-                            goto Lerror;
-                        }
-                    }
-                    else if (Identifier.isValidIdentifier(p + 12))
-                    {
-                        const ident = p + 12;
-                        switch (ident[0 .. strlen(ident)])
-                        {
-                        case "all":
-                            global.params.vtls = true;
-                            global.params.vfield = true;
-                            global.params.vcomplex = true;
-                            break;
-                        case "checkimports":
-                            global.params.check10378 = true;
-                            break;
-                        case "complex":
-                            global.params.vcomplex = true;
-                            break;
-                        case "field":
-                            global.params.vfield = true;
-                            break;
-                        case "import":
-                            global.params.bug10378 = true;
-                            break;
-                        case "tls":
-                            global.params.vtls = true;
-                            break;
-                        default:
-                            goto Lerror;
-                        }
-                    }
-                    else
-                        goto Lerror;
-                }
-                else
-                    goto Lerror;
-            }
-            else if (strcmp(p + 1, "w") == 0)
-                global.params.warnings = 1;
-            else if (strcmp(p + 1, "wi") == 0)
-                global.params.warnings = 2;
-            else if (strcmp(p + 1, "O") == 0)
-                global.params.optimize = true;
-            else if (p[1] == 'o')
-            {
-                const(char)* path;
-                switch (p[2])
-                {
-                case '-':
-                    global.params.obj = false;
-                    break;
-                case 'd':
-                    if (!p[3])
-                        goto Lnoarg;
-                    path = p + 3 + (p[3] == '=');
-                    version (Windows)
-                    {
-                        path = toWinPath(path);
-                    }
-                    global.params.objdir = path;
-                    break;
-                case 'f':
-                    if (!p[3])
-                        goto Lnoarg;
-                    path = p + 3 + (p[3] == '=');
-                    version (Windows)
-                    {
-                        path = toWinPath(path);
-                    }
-                    global.params.objname = path;
-                    break;
-                case 'p':
-                    if (p[3])
-                        goto Lerror;
-                    global.params.preservePaths = true;
-                    break;
-                case 0:
-                    error(Loc(), "-o no longer supported, use -of or -od");
-                    break;
-                default:
-                    goto Lerror;
-                }
-            }
-            else if (p[1] == 'D')
-            {
-                global.params.doDocComments = true;
-                switch (p[2])
-                {
-                case 'd':
-                    if (!p[3])
-                        goto Lnoarg;
-                    global.params.docdir = p + 3 + (p[3] == '=');
-                    break;
-                case 'f':
-                    if (!p[3])
-                        goto Lnoarg;
-                    global.params.docname = p + 3 + (p[3] == '=');
-                    break;
-                case 0:
-                    break;
-                default:
-                    goto Lerror;
-                }
-            }
-            else if (p[1] == 'H')
-            {
-                global.params.doHdrGeneration = true;
-                switch (p[2])
-                {
-                case 'd':
-                    if (!p[3])
-                        goto Lnoarg;
-                    global.params.hdrdir = p + 3 + (p[3] == '=');
-                    break;
-                case 'f':
-                    if (!p[3])
-                        goto Lnoarg;
-                    global.params.hdrname = p + 3 + (p[3] == '=');
-                    break;
-                case 0:
-                    break;
-                default:
-                    goto Lerror;
-                }
-            }
-            else if (p[1] == 'X')
-            {
-                global.params.doJsonGeneration = true;
-                switch (p[2])
-                {
-                case 'f':
-                    if (!p[3])
-                        goto Lnoarg;
-                    global.params.jsonfilename = p + 3 + (p[3] == '=');
-                    break;
-                case 0:
-                    break;
-                default:
-                    goto Lerror;
-                }
-            }
-            else if (strcmp(p + 1, "ignore") == 0)
-                global.params.ignoreUnsupportedPragmas = true;
-            else if (strcmp(p + 1, "property") == 0)
-                global.params.enforcePropertySyntax = true;
-            else if (strcmp(p + 1, "inline") == 0)
-            {
-                global.params.useInline = true;
-                global.params.hdrStripPlainFunctions = false;
-            }
-            else if (strcmp(p + 1, "dip25") == 0)
-                global.params.useDIP25 = true;
-            else if (strcmp(p + 1, "dip1000") == 0)
-            {
-                global.params.useDIP25 = true;
-                global.params.vsafe = true;
-            }
-            else if (strcmp(p + 1, "lib") == 0)
-                global.params.lib = true;
-            else if (strcmp(p + 1, "nofloat") == 0)
-                global.params.nofloat = true;
-            else if (strcmp(p + 1, "quiet") == 0)
-            {
-                // Ignore
-            }
-            else if (strcmp(p + 1, "release") == 0)
-                global.params.release = true;
-            else if (strcmp(p + 1, "betterC") == 0)
-                global.params.betterC = true;
-            else if (strcmp(p + 1, "noboundscheck") == 0)
-            {
-                global.params.useArrayBounds = BOUNDSCHECKoff;
-            }
-            else if (memcmp(p + 1, cast(char*)"boundscheck", 11) == 0)
-            {
-                // Parse:
-                //      -boundscheck=[on|safeonly|off]
-                if (p[12] == '=')
-                {
-                    if (strcmp(p + 13, "on") == 0)
-                    {
-                        global.params.useArrayBounds = BOUNDSCHECKon;
-                    }
-                    else if (strcmp(p + 13, "safeonly") == 0)
-                    {
-                        global.params.useArrayBounds = BOUNDSCHECKsafeonly;
-                    }
-                    else if (strcmp(p + 13, "off") == 0)
-                    {
-                        global.params.useArrayBounds = BOUNDSCHECKoff;
-                    }
-                    else
-                        goto Lerror;
-                }
-                else
-                    goto Lerror;
-            }
-            else if (strcmp(p + 1, "unittest") == 0)
-                global.params.useUnitTests = true;
-            else if (p[1] == 'I')
-            {
-                if (!global.params.imppath)
-                    global.params.imppath = new Strings();
-                global.params.imppath.push(p + 2 + (p[2] == '='));
-            }
-            else if (p[1] == 'm' && p[2] == 'v' && p[3] == '=')
-            {
-                if (p[4] && strchr(p + 5, '='))
-                {
-                    if (!global.params.modFileAliasStrings)
-                        global.params.modFileAliasStrings = new Strings();
-                    global.params.modFileAliasStrings.push(p + 4);
-                }
-                else
-                    goto Lerror;
-            }
-            else if (p[1] == 'J')
-            {
-                if (!global.params.fileImppath)
-                    global.params.fileImppath = new Strings();
-                global.params.fileImppath.push(p + 2 + (p[2] == '='));
-            }
-            else if (memcmp(p + 1, cast(char*)"debug", 5) == 0 && p[6] != 'l')
-            {
-                // Parse:
-                //      -debug
-                //      -debug=number
-                //      -debug=identifier
-                if (p[6] == '=')
-                {
-                    if (isdigit(cast(char)p[7]))
-                    {
-                        long level;
-                        errno = 0;
-                        level = strtol(p + 7, &p, 10);
-                        if (*p || errno || level > INT_MAX)
-                            goto Lerror;
-                        DebugCondition.setGlobalLevel(cast(int)level);
-                    }
-                    else if (Identifier.isValidIdentifier(p + 7))
-                        DebugCondition.addGlobalIdent(p[7 .. p.strlen]);
-                    else
-                        goto Lerror;
-                }
-                else if (p[6])
-                    goto Lerror;
-                else
-                    DebugCondition.setGlobalLevel(1);
-            }
-            else if (memcmp(p + 1, cast(char*)"version", 7) == 0)
-            {
-                // Parse:
-                //      -version=number
-                //      -version=identifier
-                if (p[8] == '=')
-                {
-                    if (isdigit(cast(char)p[9]))
-                    {
-                        long level;
-                        errno = 0;
-                        level = strtol(p + 9, &p, 10);
-                        if (*p || errno || level > INT_MAX)
-                            goto Lerror;
-                        VersionCondition.setGlobalLevel(cast(int)level);
-                    }
-                    else if (Identifier.isValidIdentifier(p + 9))
-                        VersionCondition.addGlobalIdent(p[9 .. p.strlen]);
-                    else
-                        goto Lerror;
-                }
-                else
-                    goto Lerror;
-            }
-            else if (strcmp(p + 1, "-b") == 0)
-                global.params.debugb = true;
-            else if (strcmp(p + 1, "-c") == 0)
-                global.params.debugc = true;
-            else if (strcmp(p + 1, "-f") == 0)
-                global.params.debugf = true;
-            else if (strcmp(p + 1, "-help") == 0 || strcmp(p + 1, "h") == 0)
-            {
-                usage();
-                exit(EXIT_SUCCESS);
-            }
-            else if (strcmp(p + 1, "-r") == 0)
-                global.params.debugr = true;
-            else if (strcmp(p + 1, "-version") == 0)
-            {
-                logo();
-                exit(EXIT_SUCCESS);
-            }
-            else if (strcmp(p + 1, "-x") == 0)
-                global.params.debugx = true;
-            else if (strcmp(p + 1, "-y") == 0)
-                global.params.debugy = true;
-            else if (p[1] == 'L')
-            {
-                global.params.linkswitches.push(p + 2 + (p[2] == '='));
-            }
-            else if (memcmp(p + 1, cast(char*)"defaultlib=", 11) == 0)
-            {
-                global.params.defaultlibname = p + 1 + 11;
-            }
-            else if (memcmp(p + 1, cast(char*)"debuglib=", 9) == 0)
-            {
-                global.params.debuglibname = p + 1 + 9;
-            }
-            else if (memcmp(p + 1, cast(char*)"deps", 4) == 0)
-            {
-                if (global.params.moduleDeps)
-                {
-                    error(Loc(), "-deps[=file] can only be provided once!");
-                    break;
-                }
-                if (p[5] == '=')
-                {
-                    global.params.moduleDepsFile = p + 1 + 5;
-                    if (!global.params.moduleDepsFile[0])
-                        goto Lnoarg;
-                }
-                else if (p[5] != '\0')
-                {
-                    // Else output to stdout.
-                    goto Lerror;
-                }
-                global.params.moduleDeps = new OutBuffer();
-            }
-            else if (strcmp(p + 1, "main") == 0)
-            {
-                global.params.addMain = true;
-            }
-            else if (memcmp(p + 1, cast(char*)"man", 3) == 0)
-            {
-                version (Windows)
-                {
-                    browse("http://dlang.org/dmd-windows.html");
-                }
-                version (linux)
-                {
-                    browse("http://dlang.org/dmd-linux.html");
-                }
-                version (OSX)
-                {
-                    browse("http://dlang.org/dmd-osx.html");
-                }
-                version (FreeBSD)
-                {
-                    browse("http://dlang.org/dmd-freebsd.html");
-                }
-                version (OpenBSD)
-                {
-                    browse("http://dlang.org/dmd-openbsd.html");
-                }
-                exit(EXIT_SUCCESS);
-            }
-            else if (strcmp(p + 1, "run") == 0)
-            {
-                global.params.run = true;
-                size_t length = argc - i - 1;
-                if (length)
-                {
-                    const(char)* ext = FileName.ext(arguments[i + 1]);
-                    if (ext && FileName.equals(ext, "d") == 0 && FileName.equals(ext, "di") == 0)
-                    {
-                        error(Loc(), "-run must be followed by a source file, not '%s'", arguments[i + 1]);
-                        break;
-                    }
-                    files.push(arguments[i + 1]);
-                    global.params.runargs.setDim(length - 1);
-                    for (size_t j = 0; j < length - 1; ++j)
-                    {
-                        global.params.runargs[j] = arguments[i + 2 + j];
-                    }
-                    i += length;
-                }
-                else
-                {
-                    global.params.run = false;
-                    goto Lnoarg;
-                }
-            }
-            else if (p[1] == '\0')
-                files.push("__stdin.d");
-            else
-            {
-            Lerror:
-                error(Loc(), "unrecognized switch '%s'", arguments[i]);
-                continue;
-            Lnoarg:
-                error(Loc(), "argument expected for switch '%s'", arguments[i]);
-                continue;
-            }
-        }
-        else
-        {
-            static if (TARGET_WINDOS)
-            {
-                const(char)* ext = FileName.ext(p);
-                if (ext && FileName.compare(ext, "exe") == 0)
-                {
-                    global.params.objname = p;
-                    continue;
-                }
-                if (strcmp(p, `/?`) == 0)
-                {
-                    usage();
-                    exit(EXIT_SUCCESS);
-                }
-            }
-            files.push(p);
-        }
-    }
+
+    parseCommandLine(arguments, argc, global.params, files);
 
     if (global.params.color)
         global.console = Console.create(core.stdc.stdio.stderr);
@@ -2101,3 +1407,717 @@ private CPU setTargetCPU(CPU cpu)
     }
     return cpu;
 }
+
+
+/****************************************************
+ * Parse command line arguments.
+ *
+ * Prints message and exits if there are errors.
+ *
+ * Params:
+ *      arguments = command line arguments
+ *      argc = argument count
+ *      params = set to result of parsing `arguments`
+ *      files = set to files pulled from `arguments`
+ */
+
+private void parseCommandLine(const ref Strings arguments, const size_t argc, ref Param params, ref Strings files)
+{
+    version (none)
+    {
+        for (size_t i = 0; i < arguments.dim; i++)
+        {
+            printf("arguments[%d] = '%s'\n", i, arguments[i]);
+        }
+    }
+    for (size_t i = 1; i < arguments.dim; i++)
+    {
+        const(char)* p = arguments[i];
+        if (*p == '-')
+        {
+            if (strcmp(p + 1, "allinst") == 0)
+                params.allInst = true;
+            else if (strcmp(p + 1, "de") == 0)
+                params.useDeprecated = 0;
+            else if (strcmp(p + 1, "d") == 0)
+                params.useDeprecated = 1;
+            else if (strcmp(p + 1, "dw") == 0)
+                params.useDeprecated = 2;
+            else if (strcmp(p + 1, "c") == 0)
+                params.link = false;
+            else if (memcmp(p + 1, cast(char*)"color", 5) == 0)
+            {
+                params.color = true;
+                // Parse:
+                //      -color
+                //      -color=on|off
+                if (p[6] == '=')
+                {
+                    if (strcmp(p + 7, "off") == 0)
+                        params.color = false;
+                    else if (strcmp(p + 7, "on") != 0)
+                        goto Lerror;
+                }
+                else if (p[6])
+                    goto Lerror;
+            }
+            else if (memcmp(p + 1, cast(char*)"conf=", 5) == 0)
+            {
+                // ignore, already handled above
+            }
+            else if (memcmp(p + 1, cast(char*)"cov", 3) == 0)
+            {
+                params.cov = true;
+                // Parse:
+                //      -cov
+                //      -cov=nnn
+                if (p[4] == '=')
+                {
+                    if (isdigit(cast(char)p[5]))
+                    {
+                        long percent;
+                        errno = 0;
+                        percent = strtol(p + 5, &p, 10);
+                        if (*p || errno || percent > 100)
+                            goto Lerror;
+                        params.covPercent = cast(ubyte)percent;
+                    }
+                    else
+                        goto Lerror;
+                }
+                else if (p[4])
+                    goto Lerror;
+            }
+            else if (strcmp(p + 1, "shared") == 0)
+                params.dll = true;
+            else if (strcmp(p + 1, "dylib") == 0)
+            {
+                static if (TARGET_OSX)
+                {
+                    Loc loc;
+                    deprecation(loc, "use -shared instead of -dylib");
+                    params.dll = true;
+                }
+                else
+                {
+                    goto Lerror;
+                }
+            }
+            else if (strcmp(p + 1, "fPIC") == 0)
+            {
+                static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+                {
+                    params.pic = 1;
+                }
+                else
+                {
+                    goto Lerror;
+                }
+            }
+            else if (strcmp(p + 1, "map") == 0)
+                params.map = true;
+            else if (strcmp(p + 1, "multiobj") == 0)
+                params.multiobj = true;
+            else if (strcmp(p + 1, "g") == 0)
+                params.symdebug = 1;
+            else if (strcmp(p + 1, "gc") == 0)
+            {
+                Loc loc;
+                deprecation(loc, "use -g instead of -gc");
+                params.symdebug = 2;
+            }
+            else if (strcmp(p + 1, "gf") == 0)
+            {
+                if (!params.symdebug)
+                    params.symdebug = 1;
+                params.symdebugref = true;
+            }
+            else if (strcmp(p + 1, "gs") == 0)
+                params.alwaysframe = true;
+            else if (strcmp(p + 1, "gx") == 0)
+                params.stackstomp = true;
+            else if (strcmp(p + 1, "gt") == 0)
+            {
+                error(Loc(), "use -profile instead of -gt");
+                params.trace = true;
+            }
+            else if (strcmp(p + 1, "m32") == 0)
+            {
+                params.is64bit = false;
+                params.mscoff = false;
+            }
+            else if (strcmp(p + 1, "m64") == 0)
+            {
+                params.is64bit = true;
+                static if (TARGET_WINDOS)
+                {
+                    params.mscoff = true;
+                }
+            }
+            else if (strcmp(p + 1, "m32mscoff") == 0)
+            {
+                static if (TARGET_WINDOS)
+                {
+                    params.is64bit = 0;
+                    params.mscoff = true;
+                }
+                else
+                {
+                    error(Loc(), "-m32mscoff can only be used on windows");
+                }
+            }
+            else if (strncmp(p + 1, "mscrtlib=", 9) == 0)
+            {
+                static if (TARGET_WINDOS)
+                {
+                    params.mscrtlib = p + 10;
+                }
+                else
+                {
+                    error(Loc(), "-mscrtlib");
+                }
+            }
+            else if (memcmp(p + 1, cast(char*)"profile", 7) == 0)
+            {
+                // Parse:
+                //      -profile
+                //      -profile=gc
+                if (p[8] == '=')
+                {
+                    if (strcmp(p + 9, "gc") == 0)
+                        params.tracegc = true;
+                    else
+                        goto Lerror;
+                }
+                else if (p[8])
+                    goto Lerror;
+                else
+                    params.trace = true;
+            }
+            else if (strcmp(p + 1, "v") == 0)
+                params.verbose = true;
+            else if (strcmp(p + 1, "vcg-ast") == 0)
+                params.vcg_ast = true;
+            else if (strcmp(p + 1, "vtls") == 0)
+                params.vtls = true;
+            else if (strcmp(p + 1, "vcolumns") == 0)
+                params.showColumns = true;
+            else if (strcmp(p + 1, "vgc") == 0)
+                params.vgc = true;
+            else if (memcmp(p + 1, cast(char*)"verrors", 7) == 0)
+            {
+                if (p[8] == '=' && isdigit(cast(char)p[9]))
+                {
+                    long num;
+                    errno = 0;
+                    num = strtol(p + 9, &p, 10);
+                    if (*p || errno || num > INT_MAX)
+                        goto Lerror;
+                    global.errorLimit = cast(uint)num;
+                }
+                else if (memcmp(p + 9, cast(char*)"spec", 4) == 0)
+                {
+                    params.showGaggedErrors = true;
+                }
+                else
+                    goto Lerror;
+            }
+            else if (memcmp(p + 1, "mcpu".ptr, 4) == 0)
+            {
+                // Parse:
+                //      -mcpu=identifier
+                if (p[5] == '=')
+                {
+                    if (strcmp(p + 6, "?") == 0)
+                    {
+                        printf("
+CPU architectures supported by -mcpu=id:
+  =?             list information on all architecture choices
+  =baseline      use default architecture as determined by target
+  =avx           use AVX 1 instructions
+  =avx2          use AVX 2 instructions
+  =native        use CPU architecture that this compiler is running on
+");
+                        exit(EXIT_SUCCESS);
+                    }
+                    else if (Identifier.isValidIdentifier(p + 6))
+                    {
+                        const ident = p + 6;
+                        switch (ident[0 .. strlen(ident)])
+                        {
+                        case "baseline":
+                            params.cpu = CPU.baseline;
+                            break;
+                        case "avx":
+                            params.cpu = CPU.avx;
+                            break;
+                        case "avx2":
+                            params.cpu = CPU.avx2;
+                            break;
+                        case "native":
+                            params.cpu = CPU.native;
+                            break;
+                        default:
+                            goto Lerror;
+                        }
+                    }
+                    else
+                        goto Lerror;
+                }
+                else
+                    goto Lerror;
+            }
+            else if (memcmp(p + 1, cast(char*)"transition", 10) == 0)
+            {
+                // Parse:
+                //      -transition=number
+                if (p[11] == '=')
+                {
+                    if (strcmp(p + 12, "?") == 0)
+                    {
+                        printf("
+Language changes listed by -transition=id:
+  =all           list information on all language changes
+  =checkimports  give deprecation messages about 10378 anomalies
+  =complex,14488 list all usages of complex or imaginary types
+  =field,3449    list all non-mutable fields which occupy an object instance
+  =import,10378  revert to single phase name lookup
+  =tls           list all variables going into thread local storage
+");
+                        exit(EXIT_SUCCESS);
+                    }
+                    if (isdigit(cast(char)p[12]))
+                    {
+                        long num;
+                        errno = 0;
+                        num = strtol(p + 12, &p, 10);
+                        if (*p || errno || num > INT_MAX)
+                            goto Lerror;
+                        // Bugzilla issue number
+                        switch (num)
+                        {
+                        case 3449:
+                            params.vfield = true;
+                            break;
+                        case 10378:
+                            params.bug10378 = true;
+                            break;
+                        case 14488:
+                            params.vcomplex = true;
+                            break;
+                        default:
+                            goto Lerror;
+                        }
+                    }
+                    else if (Identifier.isValidIdentifier(p + 12))
+                    {
+                        const ident = p + 12;
+                        switch (ident[0 .. strlen(ident)])
+                        {
+                        case "all":
+                            params.vtls = true;
+                            params.vfield = true;
+                            params.vcomplex = true;
+                            break;
+                        case "checkimports":
+                            params.check10378 = true;
+                            break;
+                        case "complex":
+                            params.vcomplex = true;
+                            break;
+                        case "field":
+                            params.vfield = true;
+                            break;
+                        case "import":
+                            params.bug10378 = true;
+                            break;
+                        case "tls":
+                            params.vtls = true;
+                            break;
+                        default:
+                            goto Lerror;
+                        }
+                    }
+                    else
+                        goto Lerror;
+                }
+                else
+                    goto Lerror;
+            }
+            else if (strcmp(p + 1, "w") == 0)
+                params.warnings = 1;
+            else if (strcmp(p + 1, "wi") == 0)
+                params.warnings = 2;
+            else if (strcmp(p + 1, "O") == 0)
+                params.optimize = true;
+            else if (p[1] == 'o')
+            {
+                const(char)* path;
+                switch (p[2])
+                {
+                case '-':
+                    params.obj = false;
+                    break;
+                case 'd':
+                    if (!p[3])
+                        goto Lnoarg;
+                    path = p + 3 + (p[3] == '=');
+                    version (Windows)
+                    {
+                        path = toWinPath(path);
+                    }
+                    params.objdir = path;
+                    break;
+                case 'f':
+                    if (!p[3])
+                        goto Lnoarg;
+                    path = p + 3 + (p[3] == '=');
+                    version (Windows)
+                    {
+                        path = toWinPath(path);
+                    }
+                    params.objname = path;
+                    break;
+                case 'p':
+                    if (p[3])
+                        goto Lerror;
+                    params.preservePaths = true;
+                    break;
+                case 0:
+                    error(Loc(), "-o no longer supported, use -of or -od");
+                    break;
+                default:
+                    goto Lerror;
+                }
+            }
+            else if (p[1] == 'D')
+            {
+                params.doDocComments = true;
+                switch (p[2])
+                {
+                case 'd':
+                    if (!p[3])
+                        goto Lnoarg;
+                    params.docdir = p + 3 + (p[3] == '=');
+                    break;
+                case 'f':
+                    if (!p[3])
+                        goto Lnoarg;
+                    params.docname = p + 3 + (p[3] == '=');
+                    break;
+                case 0:
+                    break;
+                default:
+                    goto Lerror;
+                }
+            }
+            else if (p[1] == 'H')
+            {
+                params.doHdrGeneration = true;
+                switch (p[2])
+                {
+                case 'd':
+                    if (!p[3])
+                        goto Lnoarg;
+                    params.hdrdir = p + 3 + (p[3] == '=');
+                    break;
+                case 'f':
+                    if (!p[3])
+                        goto Lnoarg;
+                    params.hdrname = p + 3 + (p[3] == '=');
+                    break;
+                case 0:
+                    break;
+                default:
+                    goto Lerror;
+                }
+            }
+            else if (p[1] == 'X')
+            {
+                params.doJsonGeneration = true;
+                switch (p[2])
+                {
+                case 'f':
+                    if (!p[3])
+                        goto Lnoarg;
+                    params.jsonfilename = p + 3 + (p[3] == '=');
+                    break;
+                case 0:
+                    break;
+                default:
+                    goto Lerror;
+                }
+            }
+            else if (strcmp(p + 1, "ignore") == 0)
+                params.ignoreUnsupportedPragmas = true;
+            else if (strcmp(p + 1, "property") == 0)
+                params.enforcePropertySyntax = true;
+            else if (strcmp(p + 1, "inline") == 0)
+            {
+                params.useInline = true;
+                params.hdrStripPlainFunctions = false;
+            }
+            else if (strcmp(p + 1, "dip25") == 0)
+                params.useDIP25 = true;
+            else if (strcmp(p + 1, "dip1000") == 0)
+            {
+                params.useDIP25 = true;
+                params.vsafe = true;
+            }
+            else if (strcmp(p + 1, "lib") == 0)
+                params.lib = true;
+            else if (strcmp(p + 1, "nofloat") == 0)
+                params.nofloat = true;
+            else if (strcmp(p + 1, "quiet") == 0)
+            {
+                // Ignore
+            }
+            else if (strcmp(p + 1, "release") == 0)
+                params.release = true;
+            else if (strcmp(p + 1, "betterC") == 0)
+                params.betterC = true;
+            else if (strcmp(p + 1, "noboundscheck") == 0)
+            {
+                params.useArrayBounds = BOUNDSCHECKoff;
+            }
+            else if (memcmp(p + 1, cast(char*)"boundscheck", 11) == 0)
+            {
+                // Parse:
+                //      -boundscheck=[on|safeonly|off]
+                if (p[12] == '=')
+                {
+                    if (strcmp(p + 13, "on") == 0)
+                    {
+                        params.useArrayBounds = BOUNDSCHECKon;
+                    }
+                    else if (strcmp(p + 13, "safeonly") == 0)
+                    {
+                        params.useArrayBounds = BOUNDSCHECKsafeonly;
+                    }
+                    else if (strcmp(p + 13, "off") == 0)
+                    {
+                        params.useArrayBounds = BOUNDSCHECKoff;
+                    }
+                    else
+                        goto Lerror;
+                }
+                else
+                    goto Lerror;
+            }
+            else if (strcmp(p + 1, "unittest") == 0)
+                params.useUnitTests = true;
+            else if (p[1] == 'I')
+            {
+                if (!params.imppath)
+                    params.imppath = new Strings();
+                params.imppath.push(p + 2 + (p[2] == '='));
+            }
+            else if (p[1] == 'm' && p[2] == 'v' && p[3] == '=')
+            {
+                if (p[4] && strchr(p + 5, '='))
+                {
+                    if (!params.modFileAliasStrings)
+                        params.modFileAliasStrings = new Strings();
+                    params.modFileAliasStrings.push(p + 4);
+                }
+                else
+                    goto Lerror;
+            }
+            else if (p[1] == 'J')
+            {
+                if (!params.fileImppath)
+                    params.fileImppath = new Strings();
+                params.fileImppath.push(p + 2 + (p[2] == '='));
+            }
+            else if (memcmp(p + 1, cast(char*)"debug", 5) == 0 && p[6] != 'l')
+            {
+                // Parse:
+                //      -debug
+                //      -debug=number
+                //      -debug=identifier
+                if (p[6] == '=')
+                {
+                    if (isdigit(cast(char)p[7]))
+                    {
+                        long level;
+                        errno = 0;
+                        level = strtol(p + 7, &p, 10);
+                        if (*p || errno || level > INT_MAX)
+                            goto Lerror;
+                        DebugCondition.setGlobalLevel(cast(int)level);
+                    }
+                    else if (Identifier.isValidIdentifier(p + 7))
+                        DebugCondition.addGlobalIdent(p[7 .. p.strlen]);
+                    else
+                        goto Lerror;
+                }
+                else if (p[6])
+                    goto Lerror;
+                else
+                    DebugCondition.setGlobalLevel(1);
+            }
+            else if (memcmp(p + 1, cast(char*)"version", 7) == 0)
+            {
+                // Parse:
+                //      -version=number
+                //      -version=identifier
+                if (p[8] == '=')
+                {
+                    if (isdigit(cast(char)p[9]))
+                    {
+                        long level;
+                        errno = 0;
+                        level = strtol(p + 9, &p, 10);
+                        if (*p || errno || level > INT_MAX)
+                            goto Lerror;
+                        VersionCondition.setGlobalLevel(cast(int)level);
+                    }
+                    else if (Identifier.isValidIdentifier(p + 9))
+                        VersionCondition.addGlobalIdent(p[9 .. p.strlen]);
+                    else
+                        goto Lerror;
+                }
+                else
+                    goto Lerror;
+            }
+            else if (strcmp(p + 1, "-b") == 0)
+                params.debugb = true;
+            else if (strcmp(p + 1, "-c") == 0)
+                params.debugc = true;
+            else if (strcmp(p + 1, "-f") == 0)
+                params.debugf = true;
+            else if (strcmp(p + 1, "-help") == 0 || strcmp(p + 1, "h") == 0)
+            {
+                usage();
+                exit(EXIT_SUCCESS);
+            }
+            else if (strcmp(p + 1, "-r") == 0)
+                params.debugr = true;
+            else if (strcmp(p + 1, "-version") == 0)
+            {
+                logo();
+                exit(EXIT_SUCCESS);
+            }
+            else if (strcmp(p + 1, "-x") == 0)
+                params.debugx = true;
+            else if (strcmp(p + 1, "-y") == 0)
+                params.debugy = true;
+            else if (p[1] == 'L')
+            {
+                params.linkswitches.push(p + 2 + (p[2] == '='));
+            }
+            else if (memcmp(p + 1, cast(char*)"defaultlib=", 11) == 0)
+            {
+                params.defaultlibname = p + 1 + 11;
+            }
+            else if (memcmp(p + 1, cast(char*)"debuglib=", 9) == 0)
+            {
+                params.debuglibname = p + 1 + 9;
+            }
+            else if (memcmp(p + 1, cast(char*)"deps", 4) == 0)
+            {
+                if (params.moduleDeps)
+                {
+                    error(Loc(), "-deps[=file] can only be provided once!");
+                    break;
+                }
+                if (p[5] == '=')
+                {
+                    params.moduleDepsFile = p + 1 + 5;
+                    if (!params.moduleDepsFile[0])
+                        goto Lnoarg;
+                }
+                else if (p[5] != '\0')
+                {
+                    // Else output to stdout.
+                    goto Lerror;
+                }
+                params.moduleDeps = new OutBuffer();
+            }
+            else if (strcmp(p + 1, "main") == 0)
+            {
+                params.addMain = true;
+            }
+            else if (memcmp(p + 1, cast(char*)"man", 3) == 0)
+            {
+                version (Windows)
+                {
+                    browse("http://dlang.org/dmd-windows.html");
+                }
+                version (linux)
+                {
+                    browse("http://dlang.org/dmd-linux.html");
+                }
+                version (OSX)
+                {
+                    browse("http://dlang.org/dmd-osx.html");
+                }
+                version (FreeBSD)
+                {
+                    browse("http://dlang.org/dmd-freebsd.html");
+                }
+                version (OpenBSD)
+                {
+                    browse("http://dlang.org/dmd-openbsd.html");
+                }
+                exit(EXIT_SUCCESS);
+            }
+            else if (strcmp(p + 1, "run") == 0)
+            {
+                params.run = true;
+                size_t length = argc - i - 1;
+                if (length)
+                {
+                    const(char)* ext = FileName.ext(arguments[i + 1]);
+                    if (ext && FileName.equals(ext, "d") == 0 && FileName.equals(ext, "di") == 0)
+                    {
+                        error(Loc(), "-run must be followed by a source file, not '%s'", arguments[i + 1]);
+                        break;
+                    }
+                    files.push(arguments[i + 1]);
+                    params.runargs.setDim(length - 1);
+                    for (size_t j = 0; j < length - 1; ++j)
+                    {
+                        params.runargs[j] = arguments[i + 2 + j];
+                    }
+                    i += length;
+                }
+                else
+                {
+                    params.run = false;
+                    goto Lnoarg;
+                }
+            }
+            else if (p[1] == '\0')
+                files.push("__stdin.d");
+            else
+            {
+            Lerror:
+                error(Loc(), "unrecognized switch '%s'", arguments[i]);
+                continue;
+            Lnoarg:
+                error(Loc(), "argument expected for switch '%s'", arguments[i]);
+                continue;
+            }
+        }
+        else
+        {
+            static if (TARGET_WINDOS)
+            {
+                const(char)* ext = FileName.ext(p);
+                if (ext && FileName.compare(ext, "exe") == 0)
+                {
+                    params.objname = p;
+                    continue;
+                }
+                if (strcmp(p, `/?`) == 0)
+                {
+                    usage();
+                    exit(EXIT_SUCCESS);
+                }
+            }
+            files.push(p);
+        }
+    }
+}
+
