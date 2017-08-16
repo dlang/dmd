@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 0;
+enum bailoutMessages = 1;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -2511,6 +2511,11 @@ public:
 
             if (fd.hasNestedFrameRefs /*|| fd.isNested*/)
             {
+                import std.stdio; writeln("fd has closureVars:  ", fd.toString);  //DEBUGLINE
+                foreach(v;fd.closureVars)
+                {
+                   import std.stdio; writeln("closure-var: ", v.toString);  //DEBUGLINE
+                }
                 bailout("cannot deal with closures of any kind: " ~ fd.toString);
                 return ;
             }
