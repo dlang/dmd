@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _attrib.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/attrib.d, _attrib.d)
  */
 
 module ddmd.attrib;
+
+// Online documentation: https://dlang.org/phobos/ddmd_attrib.html
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -24,6 +26,7 @@ import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.hdrgen;
@@ -396,6 +399,38 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
         return t;
     }
 
+    override void addMember(Scope* sc, ScopeDsymbol sds)
+    {
+        Dsymbols* d = include(sc, sds);
+        if (d)
+        {
+            Scope* sc2 = newScope(sc);
+            for (size_t i = 0; i < d.dim; i++)
+            {
+                Dsymbol s = (*d)[i];
+                //printf("\taddMember %s to %s\n", s.toChars(), sds.toChars());
+                // STClocal needs to be attached before the member is added to the scope (because it influences the parent symbol)
+                if (auto decl = s.isDeclaration())
+                {
+                    decl.storage_class |= stc & STClocal;
+                    if (auto sdecl = s.isStorageClassDeclaration()) // TODO: why is this not enough to deal with the nested case?
+                    {
+                        sdecl.stc |= stc & STClocal;
+                    }
+                }
+                s.addMember(sc2, sds);
+            }
+            if (sc2 != sc)
+                sc2.pop();
+        }
+
+    }
+
+    override inout(StorageClassDeclaration) isStorageClassDeclaration() inout
+    {
+        return this;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -479,7 +514,7 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
             if (auto se = msg.toStringExp())
                 msgstr = se.toStringz().ptr;
             else
-                msg.error("compile time constant expected, not '%s'", msg.toChars());
+                msg.error("compile time constant expected, not `%s`", msg.toChars());
         }
         return msgstr;
     }
@@ -628,7 +663,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
             Module m = sc._module;
             Package pkg = m.parent ? m.parent.isPackage() : null;
             if (!pkg || !protection.pkg.isAncestorPackageOf(pkg))
-                error("does not bind to one of ancestor packages of module '%s'", m.toPrettyChars(true));
+                error("does not bind to one of ancestor packages of module `%s`", m.toPrettyChars(true));
         }
         return AttribDeclaration.addMember(sc, sds);
     }
@@ -761,7 +796,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
         auto ad = p.isAggregateDeclaration();
         if (!ad)
         {
-            .error(loc, "%s can only be a part of an aggregate, not %s %s", kind(), p.kind(), p.toChars());
+            .error(loc, "%s can only be a part of an aggregate, not %s `%s`", kind(), p.kind(), p.toChars());
             return;
         }
 
@@ -902,7 +937,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
                 inlining = PINLINEdefault;
             else if (args.dim != 1)
             {
-                error("one boolean expression expected for pragma(inline), not %d", args.dim);
+                error("one boolean expression expected for `pragma(inline)`, not %d", args.dim);
                 args.setDim(1);
                 (*args)[0] = new ErrorExp();
             }
@@ -913,7 +948,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
                 {
                     if (e.op != TOKerror)
                     {
-                        error("pragma(inline, true or false) expected, not %s", e.toChars());
+                        error("pragma(`inline`, `true` or `false`) expected, not `%s`", e.toChars());
                         (*args)[0] = new ErrorExp();
                     }
                 }
@@ -1010,7 +1045,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
                 (*args)[0] = e;
                 Dsymbol sa = getDsymbol(e);
                 if (!sa || !sa.isFuncDeclaration())
-                    error("function name expected for start address, not '%s'", e.toChars());
+                    error("function name expected for start address, not `%s`", e.toChars());
             }
             goto Lnodecl;
         }
@@ -1076,7 +1111,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
                     }
                     if (!isUniAlpha(c))
                     {
-                        error("char 0x%04x not allowed in mangled name", c);
+                        error("char `0x%04x` not allowed in mangled name", c);
                         break;
                     }
                 }
@@ -1113,7 +1148,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
             goto Lnodecl;
         }
         else
-            error("unrecognized pragma(%s)", ident.toChars());
+            error("unrecognized `pragma(%s)`", ident.toChars());
     Ldecl:
         if (decl)
         {
@@ -1143,7 +1178,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
     Lnodecl:
         if (decl)
         {
-            error("pragma is missing closing ';'");
+            error("pragma is missing closing `;`");
             goto Ldecl;
             // do them anyway, to avoid segfaults.
         }
@@ -1352,6 +1387,191 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
 }
 
 /***********************************************************
+ * Static foreach at declaration scope, like:
+ *     static foreach (i; [0, 1, 2]){ }
+ */
+
+extern (C++) final class StaticForeachDeclaration : AttribDeclaration
+{
+    StaticForeach sfe; /// contains `static foreach` expansion logic
+
+    ScopeDsymbol scopesym; /// cached enclosing scope (mimics `static if` declaration)
+
+    /++
+     `include` can be called multiple times, but a `static foreach`
+     should be expanded at most once.  Achieved by caching the result
+     of the first call.  We need both `cached` and `cache`, because
+     `null` is a valid value for `cache`.
+     +/
+    bool cached = false;
+    Dsymbols* cache = null;
+
+    extern (D) this(StaticForeach sfe, Dsymbols* decl)
+    {
+        super(decl);
+        this.sfe = sfe;
+    }
+
+    override Dsymbol syntaxCopy(Dsymbol s)
+    {
+        assert(!s);
+        return new StaticForeachDeclaration(
+            sfe.syntaxCopy(),
+            Dsymbol.arraySyntaxCopy(decl));
+    }
+
+    override final bool oneMember(Dsymbol* ps, Identifier ident)
+    {
+        // Required to support IFTI on a template that contains a
+        // `static foreach` declaration.  `super.oneMember` calls
+        // include with a `null` scope.  As `static foreach` requires
+        // the scope for expansion, `oneMember` can only return a
+        // precise result once `static foreach` has been expanded.
+        if (cached)
+        {
+            return super.oneMember(ps, ident);
+        }
+        *ps = null; // a `static foreach` declaration may in general expand to multiple symbols
+        return false;
+    }
+
+    override Dsymbols* include(Scope* sc, ScopeDsymbol sds)
+    {
+        if (cached)
+        {
+            return cache;
+        }
+        sfe.prepare(_scope); // lower static foreach aggregate
+        if (!sfe.ready())
+        {
+            return null; // TODO: ok?
+        }
+
+        // expand static foreach
+        import ddmd.statementsem: makeTupleForeach;
+        Dsymbols* d = makeTupleForeach!(true,true)(_scope, sfe.aggrfe, decl, sfe.needExpansion);
+        if (d) // process generated declarations
+        {
+            // Add members lazily.
+            for (size_t i = 0; i < d.dim; i++)
+            {
+                Dsymbol s = (*d)[i];
+                s.addMember(_scope, scopesym);
+            }
+            // Set the member scopes lazily.
+            for (size_t i = 0; i < d.dim; i++)
+            {
+                Dsymbol s = (*d)[i];
+                s.setScope(_scope);
+            }
+        }
+        cached = true;
+        cache = d;
+        return d;
+    }
+
+    override void addMember(Scope* sc, ScopeDsymbol sds)
+    {
+        // used only for caching the enclosing symbol
+        this.scopesym = sds;
+    }
+
+    override final void addComment(const(char)* comment)
+    {
+        // do nothing
+        // change this to give semantics to documentation comments on static foreach declarations
+    }
+
+    override void setScope(Scope* sc)
+    {
+        // do not evaluate condition before semantic pass
+        // But do set the scope, in case we need it for forward referencing
+        Dsymbol.setScope(sc);
+    }
+
+    override void importAll(Scope* sc)
+    {
+        // do not evaluate aggregate before semantic pass
+    }
+
+    override void semantic(Scope* sc)
+    {
+        AttribDeclaration.semantic(sc);
+    }
+
+    override const(char)* kind() const
+    {
+        return "static foreach";
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ * Collection of declarations that stores foreach index variables in a
+ * local symbol table.  Other symbols declared within are forwarded to
+ * another scope, like:
+ *
+ *      static foreach (i; 0 .. 10) // loop variables for different indices do not conflict.
+ *      { // this body is expanded into 10 ForwardingAttribDeclarations, where `i` has storage class STClocal
+ *          mixin("enum x" ~ to!string(i) ~ " = i"); // ok, can access current loop variable
+ *      }
+ *
+ *      static foreach (i; 0.. 10)
+ *      {
+ *          pragma(msg, mixin("x" ~ to!string(i))); // ok, all 10 symbols are visible as they were forwarded to the global scope
+ *      }
+ *
+ *      static assert (!is(typeof(i))); // loop index variable is not visible outside of the static foreach loop
+ *
+ * A StaticForeachDeclaration generates one
+ * ForwardingAttribDeclaration for each expansion of its body.  The
+ * AST of the ForwardingAttribDeclaration contains both the `static
+ * foreach` variables and the respective copy of the `static foreach`
+ * body.  The functionality is achieved by using a
+ * ForwardingScopeDsymbol as the parent symbol for the generated
+ * declarations.
+ */
+
+extern(C++) final class ForwardingAttribDeclaration: AttribDeclaration
+{
+    ForwardingScopeDsymbol sym = null;
+
+    this(Dsymbols* decl)
+    {
+        super(decl);
+        sym = new ForwardingScopeDsymbol(null);
+        sym.symtab = new DsymbolTable();
+    }
+
+    /**************************************
+     * Use the ForwardingScopeDsymbol as the parent symbol for members.
+     */
+    override Scope* newScope(Scope* sc)
+    {
+        return sc.push(sym);
+    }
+
+    /***************************************
+     * Lazily initializes the scope to forward to.
+     */
+    override void addMember(Scope* sc, ScopeDsymbol sds)
+    {
+        parent = sym.parent = sym.forward = sds;
+        return super.addMember(sc, sym);
+    }
+
+    override inout(ForwardingAttribDeclaration) isForwardingAttribDeclaration() inout
+    {
+        return this;
+    }
+}
+
+
+/***********************************************************
  * Mixin declarations, like:
  *      mixin("int x");
  */
@@ -1400,7 +1620,7 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
 
         decl = p.parseDeclDefs(0);
         if (p.token.value != TOKeof)
-            exp.error("incomplete mixin declaration (%s)", se.toChars());
+            exp.error("incomplete mixin declaration `%s`", se.toChars());
         if (p.errors)
         {
             assert(global.errors != errors);

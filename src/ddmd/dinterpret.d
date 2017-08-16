@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _dinterpret.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/dinterpret.d, _dinterpret.d)
  */
 
 module ddmd.dinterpret;
+
+// Online documentation: https://dlang.org/phobos/ddmd_dinterpret.html
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -30,6 +32,7 @@ import ddmd.globals;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.init;
+import ddmd.initsem;
 import ddmd.mtype;
 import ddmd.root.array;
 import ddmd.root.rootobject;
@@ -2320,7 +2323,7 @@ public:
                     v._init = v._init.semantic(v._scope, v.type, INITinterpret); // might not be run on aggregate members
                     v.inuse--;
                 }
-                e = v._init.toExpression(v.type);
+                e = v._init.initializerToExpression(v.type);
                 if (!e)
                     return CTFEExp.cantexp;
                 assert(e.type);
@@ -2365,7 +2368,7 @@ public:
                         error(loc, "CTFE internal error: trying to access uninitialized var");
                         assert(0);
                     }
-                    e = v._init.toExpression();
+                    e = v._init.initializerToExpression();
                 }
                 else
                     e = v.type.defaultInitLiteral(e.loc);
@@ -5098,7 +5101,7 @@ public:
             }
             if (!getValue(v))
             {
-                Expression newval = v._init.toExpression();
+                Expression newval = v._init.initializerToExpression();
                 // Bug 4027. Copy constructors are a weird case where the
                 // initializer is a void function (the variable is modified
                 // through a reference parameter instead).
@@ -5317,7 +5320,7 @@ public:
             *pidx = e2.toInteger();
             if (len <= *pidx)
             {
-                e.error("array index %lld is out of bounds [0..%lld]", *pidx, len);
+                e.error("array index %lld is out of bounds `[0..%lld]`", *pidx, len);
                 return false;
             }
         }
@@ -5566,7 +5569,7 @@ public:
                 result = e1;
                 return;
             }
-            e1.error("slice [%llu..%llu] is out of bounds", ilwr, iupr);
+            e1.error("slice `[%llu..%llu]` is out of bounds", ilwr, iupr);
             result = CTFEExp.cantexp;
             return;
         }

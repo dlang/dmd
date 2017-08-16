@@ -5,9 +5,8 @@
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/gflow.c
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/gflow.c, backend/gflow.c)
  */
 
 #if (SCPP || MARS) && !HTOD
@@ -324,18 +323,45 @@ STATIC void accumrd(vec_t GEN,vec_t KILL,elem *n)
                 rdelem(&Gl,&Kl,n->E1);
                 rdelem(&Gr,&Kr,n->E2);
 
-                /* GEN = (GEN - Kl) | Gl |      */
-                /*      (GEN - Kr) | Gr         */
-                /* KILL |= Kl & Kr              */
+                switch (el_returns(n->E1) * 2 | el_returns(n->E2))
+                {
+                    case 3: // E1 and E2 return
+                        /* GEN = (GEN - Kl) | Gl |
+                         *       (GEN - Kr) | Gr
+                         * KILL |= Kl & Kr
+                         * This simplifies to:
+                         * GEN = GEN | (Gl | Gr) | (GEN - (Kl & Kr)
+                         * KILL |= Kl & Kr
+                         */
+                        vec_andass(Kl,Kr);
+                        vec_orass(KILL,Kl);
 
-                vec_orass(Gl,Gr);
-                vec_sub(Gr,GEN,Kl);
-                vec_orass(Gl,Gr);
-                vec_sub(Gr,GEN,Kr);
-                vec_or(GEN,Gl,Gr);
+                        vec_orass(Gl,Gr);
+                        vec_sub(Gr,GEN,Kl);  // (GEN - (Kl & Kr)
+                        vec_or(GEN,Gl,Gr);
+                        break;
 
-                vec_andass(Kl,Kr);
-                vec_orass(KILL,Kl);
+                    case 2: // E1 returns
+                        /* GEN = (GEN - Kl) | Gl
+                         * KILL |= Kl
+                         */
+                        vec_subass(GEN,Kl);
+                        vec_orass(GEN,Gl);
+                        vec_orass(KILL,Kl);
+                        break;
+
+                    case 1: // E2 returns
+                        /* GEN = (GEN - Kr) | Gr
+                         * KILL |= Kr
+                         */
+                        vec_subass(GEN,Kr);
+                        vec_orass(GEN,Gr);
+                        vec_orass(KILL,Kr);
+                        break;
+
+                    case 0: // neither returns
+                        break;
+                }
 
                 vec_free(Gl);
                 vec_free(Kl);
@@ -346,7 +372,8 @@ STATIC void accumrd(vec_t GEN,vec_t KILL,elem *n)
             {
                 accumrd(GEN,KILL,n->E1);
                 rdelem(&Gr,&Kr,n->E2);
-                vec_orass(GEN,Gr);      /* GEN |= Gr                    */
+                if (el_returns(n->E2))
+                    vec_orass(GEN,Gr);      // GEN |= Gr
 
                 vec_free(Gr);
                 vec_free(Kr);
@@ -1014,7 +1041,7 @@ STATIC void accumaecpx(elem *n)
             accumaecpx(n->E1);
             aecpelem(&Gr,&Kr,n->E2);
 
-            if (!el_noreturn(n->E2))
+            if (el_returns(n->E2))
             {
                 // KILL |= Kr
                 // GEN &= (GEN - Kr) | Gr

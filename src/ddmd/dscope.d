@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _dscope.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/dscope.d, _dscope.d)
  */
 
 module ddmd.dscope;
+
+// Online documentation: https://dlang.org/phobos/ddmd_dscope.html
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -29,6 +31,7 @@ import ddmd.root.outbuffer;
 import ddmd.root.rmem;
 import ddmd.root.speller;
 import ddmd.statement;
+import ddmd.tokens;
 
 //version=LOGSEARCH;
 
@@ -644,6 +647,30 @@ struct Scope
         }
 
         return cast(Dsymbol)speller(ident.toChars(), &scope_search_fp, idchars);
+    }
+
+    /************************************
+     * Maybe `ident` was a C or C++ name. Check for that,
+     * and suggest the D equivalent.
+     * Params:
+     *  ident = unknown identifier
+     * Returns:
+     *  D identifier string if found, null if not
+     */
+    extern (C++) static const(char)* search_correct_C(Identifier ident)
+    {
+        TOK tok;
+        if (ident == Id.NULL)
+            tok = TOKnull;
+        else if (ident == Id.TRUE)
+            tok = TOKtrue;
+        else if (ident == Id.FALSE)
+            tok = TOKfalse;
+        else if (ident == Id.unsigned)
+            tok = TOKuns32;
+        else
+            return null;
+        return Token.toChars(tok);
     }
 
     extern (C++) Dsymbol insert(Dsymbol s)

@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _link.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/link.d, _link.d)
  */
 
 module ddmd.link;
+
+// Online documentation: https://dlang.org/phobos/ddmd_link.html
 
 import core.stdc.ctype;
 import core.stdc.stdio;
@@ -660,12 +662,12 @@ public int runLINK()
             const(char)* p = (*global.params.dllfiles)[i];
             argv.push(p);
         }
-        /* Standard libraries must go after user specified libraries
+        /* D runtime libraries must go after user specified libraries
          * passed with -l.
          */
         const(char)* libname = global.params.symdebug ? global.params.debuglibname : global.params.defaultlibname;
         size_t slen = strlen(libname);
-        if (slen)
+        if (!global.params.betterC && slen)
         {
             char* buf = cast(char*)malloc(3 + slen + 1);
             strcpy(buf, "-l");

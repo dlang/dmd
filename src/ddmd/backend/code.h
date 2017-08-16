@@ -5,9 +5,8 @@
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/code.h
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/code.h, backend/code.h)
  */
 
 #include <stddef.h>
@@ -386,11 +385,11 @@ void cod3_set64 (void );
 void cod3_align_bytes(int seg, size_t nbytes);
 void cod3_align(int seg);
 void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset);
-code* cod3_stackadj(code* c, int nbytes);
+void cod3_stackadj(CodeBuilder& cdb, int nbytes);
 regm_t regmask(tym_t tym, tym_t tyf);
 void cgreg_dst_regs(unsigned *dst_integer_reg, unsigned *dst_float_reg);
 void cgreg_set_priorities(tym_t ty, unsigned char **pseq, unsigned char **pseqmsw);
-void outblkexitcode(block *bl, code* c, int& anyspill, const char* sflsave, symbol** retsym, const regm_t mfuncregsave );
+void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sflsave, symbol** retsym, const regm_t mfuncregsave );
 void outjmptab (block *b );
 void outswitab (block *b );
 int jmpopcode (elem *e );
@@ -401,16 +400,15 @@ code *genpush (code *c , unsigned reg );
 code *genpop (code *c , unsigned reg );
 code* gensavereg(unsigned& reg, targ_uns slot);
 code *genmovreg (code *c , unsigned to , unsigned from );
-code *genmulimm(code *c,unsigned r1,unsigned r2,targ_int imm);
-code *genshift(code *);
+void genmulimm(CodeBuilder& cdb,unsigned r1,unsigned r2,targ_int imm);
+void genshift(CodeBuilder& cdb);
 void movregconst(CodeBuilder& cdb,unsigned reg,targ_size_t value,regm_t flags);
-code *genjmp (code *c , unsigned op , unsigned fltarg , block *targ );
-code *prolog (void );
+void genjmp(CodeBuilder& cdb, unsigned op, unsigned fltarg, block *targ);
+void prolog(CodeBuilder& cdb);
 void epilog (block *b);
-code *gen_spill_reg(Symbol *s, bool toreg);
+void gen_spill_reg(CodeBuilder& cdb, Symbol *s, bool toreg);
 code *load_localgot();
 targ_size_t cod3_spoff();
-code *cod3_load_got();
 void makeitextern (symbol *s );
 void fltused(void);
 int branch(block *bl, int flag);
@@ -441,27 +439,26 @@ extern bool pushoffuse;         // using pushoff
 extern int BPoff;               // offset from BP
 extern int EBPtoESP;            // add to EBP offset to get ESP offset
 
-code* prolog_ifunc(tym_t* tyf);
-code* prolog_ifunc2(tym_t tyf, tym_t tym, bool pushds);
-code* prolog_16bit_windows_farfunc(tym_t* tyf, bool* pushds);
-code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter, int* cfa_offset);
-code* prolog_frameadj(tym_t tyf, unsigned xlocalsize, bool enter, bool* pushalloc);
-code* prolog_frameadj2(tym_t tyf, unsigned xlocalsize, bool* pushalloc);
-code* prolog_setupalloca();
-code* prolog_saveregs(code *c, regm_t topush, int cfa_offset);
-code* epilog_restoreregs(code *c, regm_t topop);
-code* prolog_trace(bool farfunc, unsigned* regsaved);
-code* prolog_gen_win64_varargs();
-code* prolog_genvarargs(symbol* sv, regm_t* namedargs);
-code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs);
+void prolog_ifunc(CodeBuilder& cdb, tym_t* tyf);
+void prolog_ifunc2(CodeBuilder& cdb, tym_t tyf, tym_t tym, bool pushds);
+void prolog_16bit_windows_farfunc(CodeBuilder& cdb, tym_t* tyf, bool* pushds);
+void prolog_frame(CodeBuilder& cdb, unsigned farfunc, unsigned* xlocalsize, bool* enter, int* cfa_offset);
+void prolog_frameadj(CodeBuilder& cdb, tym_t tyf, unsigned xlocalsize, bool enter, bool* pushalloc);
+void prolog_frameadj2(CodeBuilder& cdb, tym_t tyf, unsigned xlocalsize, bool* pushalloc);
+void prolog_setupalloca(CodeBuilder& cdb);
+void prolog_saveregs(CodeBuilder& cdb, regm_t topush, int cfa_offset);
+void prolog_trace(CodeBuilder& cdb, bool farfunc, unsigned* regsaved);
+void prolog_gen_win64_varargs(CodeBuilder& cdb);
+void prolog_genvarargs(CodeBuilder& cdb, symbol* sv, regm_t* namedargs);
+void prolog_loadparams(CodeBuilder& cdb, tym_t tyf, bool pushalloc, regm_t* namedargs);
 
 /* cod4.c */
 extern  const unsigned dblreg[];
 extern int cdcmp_flag;
 
 int doinreg(symbol *s, elem *e);
-code *modEA(code *c);
-code *longcmp (elem *,bool,unsigned,code *);
+void modEA(CodeBuilder& cdb, code *c);
+void longcmp(CodeBuilder&,elem *,bool,unsigned,code *);
 
 /* cod5.c */
 void cod5_prol_epi();
@@ -494,7 +491,7 @@ void save87regs(CodeBuilder& cdb, unsigned n);
 void gensaverestore87(regm_t, code **, code **);
 code *genfltreg(code *c,unsigned opcode,unsigned reg,targ_size_t offset);
 code *genxmmreg(code *c,unsigned opcode,unsigned xreg,targ_size_t offset, tym_t tym);
-code *genfwait(code *c);
+void genfwait(CodeBuilder& cdb);
 void comsub87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
 void fixresult87(CodeBuilder& cdb, elem *e, regm_t retregs, regm_t *pretregs);
 void fixresult_complex87(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretregs);
@@ -547,10 +544,7 @@ code *code_last(code *c);
 void code_orflag(code *c,unsigned flag);
 void code_orrex(code *c,unsigned rex);
 code *setOpcode(code *c, code *cs, unsigned op);
-code * __pascal cat (code *c1 , code *c2 );
-code * cat3 (code *c1 , code *c2 , code *c3 );
-code * cat4 (code *c1 , code *c2 , code *c3 , code *c4 );
-code * cat6 (code *c1 , code *c2 , code *c3 , code *c4 , code *c5 , code *c6 );
+code *cat(code *c1, code *c2);
 code *gen (code *c , code *cs );
 code *gen1 (code *c , unsigned op );
 code *gen2 (code *c , unsigned op , unsigned rm );
@@ -568,7 +562,7 @@ code *genadjfpu(code *c, int offset);
 code *gennop(code *);
 void gencodelem(CodeBuilder& cdb,elem *e,regm_t *pretregs,bool constflag);
 bool reghasvalue (regm_t regm , targ_size_t value , unsigned *preg );
-code *regwithvalue (code *c , regm_t regm , targ_size_t value , unsigned *preg , regm_t flags );
+void regwithvalue(CodeBuilder& cdb, regm_t regm, targ_size_t value, unsigned *preg, regm_t flags);
 
 // cgreg.c
 void cgreg_init();
@@ -713,6 +707,8 @@ struct CodeBuilder
     CodeBuilder() { head = NULL; pTail = &head; }
     CodeBuilder(code *c);
     code *finish() { return head; }
+    code *peek() { return head; }       // non-destructively look at the list
+    void reset() { head = NULL; pTail = &head; }
 
     void append(CodeBuilder& cdb);
     void append(CodeBuilder& cdb1, CodeBuilder& cdb2);

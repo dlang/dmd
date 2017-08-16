@@ -5,15 +5,18 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _sideeffect.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/sideeffect.d, _sideeffect.d)
  */
 
 module ddmd.sideeffect;
+
+// Online documentation: https://dlang.org/phobos/ddmd_sideeffect.html
 
 import ddmd.apply;
 import ddmd.declaration;
 import ddmd.dscope;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.identifier;
@@ -281,7 +284,7 @@ extern (C++) bool discardValue(Expression e)
         }
         return false;
     case TOKscope:
-        e.error("%s has no effect", e.toChars());
+        e.error("`%s` has no effect", e.toChars());
         return true;
     case TOKandand:
         {

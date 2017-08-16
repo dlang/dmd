@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/_tocsym.d, _s2ir.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _s2ir.d)
  */
 
 module ddmd.s2ir;
+
+// Online documentation: https://dlang.org/phobos/ddmd_s2ir.html
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -761,10 +763,17 @@ extern (C++) class S2irVisitor : Visitor
         Blockx *blx = irs.blx;
 
         //printf("SwitchErrorStatement.toIR()\n");
-
-        elem *efilename = el_ptr(toSymbol(cast(Dsymbol)blx._module));
-        elem *elinnum = el_long(TYint, s.loc.linnum);
-        elem *e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DSWITCHERR)), el_param(elinnum, efilename));
+        elem *e;
+        if (global.params.betterC)
+        {
+            e = callCAssert(irs, s.loc, null, null, "no switch default");
+        }
+        else
+        {
+            auto efilename = el_ptr(toSymbol(cast(Dsymbol)blx._module));
+            auto elinnum = el_long(TYint, s.loc.linnum);
+            e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DSWITCHERR)), el_param(elinnum, efilename));
+        }
         block_appendexp(blx.curblock, e);
     }
 

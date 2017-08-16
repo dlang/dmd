@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _hdrgen.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/hdrgen.d, _hdrgen.d)
  */
 
 module ddmd.hdrgen;
+
+// Online documentation: https://dlang.org/phobos/ddmd_hdrgen.html
 
 import core.stdc.ctype;
 import core.stdc.stdio;
@@ -298,6 +300,20 @@ public:
         buf.writenl();
     }
 
+    override void visit(StaticForeachStatement s)
+    {
+        buf.writestring("static ");
+        if (s.sfe.aggrfe)
+        {
+            visit(s.sfe.aggrfe);
+        }
+        else
+        {
+            assert(s.sfe.rangefe);
+            visit(s.sfe.rangefe);
+        }
+    }
+
     override void visit(IfStatement s)
     {
         buf.writestring("if (");
@@ -317,15 +333,20 @@ public:
         s.condition.accept(this);
         buf.writeByte(')');
         buf.writenl();
-        if (!s.ifbody.isScopeStatement())
+        if (s.ifbody.isScopeStatement())
+        {
+            s.ifbody.accept(this);
+        }
+        else
+        {
             buf.level++;
-        s.ifbody.accept(this);
-        if (!s.ifbody.isScopeStatement())
+            s.ifbody.accept(this);
             buf.level--;
+        }
         if (s.elsebody)
         {
             buf.writestring("else");
-            if (!s.elsebody.isIfStatement)
+            if (!s.elsebody.isIfStatement())
             {
                 buf.writenl();
             }
@@ -333,11 +354,16 @@ public:
             {
                 buf.writeByte(' ');
             }
-            if (!s.elsebody.isScopeStatement() && !s.elsebody.isIfStatement)
+            if (s.elsebody.isScopeStatement() || s.elsebody.isIfStatement())
+            {
+                s.elsebody.accept(this);
+            }
+            else
+            {
                 buf.level++;
-            s.elsebody.accept(this);
-            if (!s.elsebody.isScopeStatement() && !s.elsebody.isIfStatement)
+                s.elsebody.accept(this);
                 buf.level--;
+            }
         }
     }
 
@@ -540,7 +566,18 @@ public:
         buf.writestring("try");
         buf.writenl();
         if (s._body)
-            s._body.accept(this);
+        {
+            if (s._body.isScopeStatement())
+            {
+                s._body.accept(this);
+            }
+            else
+            {
+                buf.level++;
+                s._body.accept(this);
+                buf.level--;
+            }
+        }
         foreach (c; *s.catches)
         {
             visit(c);
@@ -560,13 +597,16 @@ public:
         buf.writenl();
         buf.writestring("finally");
         buf.writenl();
-        buf.writeByte('{');
-        buf.writenl();
-        buf.level++;
-        s.finalbody.accept(this);
-        buf.level--;
-        buf.writeByte('}');
-        buf.writenl();
+        if (s.finalbody.isScopeStatement())
+        {
+            s.finalbody.accept(this);
+        }
+        else
+        {
+            buf.level++;
+            s.finalbody.accept(this);
+            buf.level--;
+        }
     }
 
     override void visit(OnScopeStatement s)
@@ -3151,6 +3191,7 @@ extern (C++) const(char)* stcToChars(ref StorageClass stc)
         SCstring(STCtrusted, TOKat, "@trusted"),
         SCstring(STCsystem, TOKat, "@system"),
         SCstring(STCdisable, TOKat, "@disable"),
+        SCstring(STCfuture, TOKat, "@__future"),
         SCstring(0, TOKreserved)
     ];
     for (int i = 0; table[i].stc; i++)

@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _toctype.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/toctype.d, _toctype.d)
  */
 
 module ddmd.toctype;
+
+// Online documentation: https://dlang.org/phobos/ddmd_toctype.html
 
 import core.stdc.stdlib;
 
@@ -22,6 +24,7 @@ import ddmd.globals;
 import ddmd.glue;
 import ddmd.id;
 import ddmd.mtype;
+import ddmd.tocvdebug;
 import ddmd.visitor;
 
 extern (C++) final class ToCtypeVisitor : Visitor
@@ -143,6 +146,10 @@ public:
                     symbol_struct_addField(cast(Symbol*)t.ctype.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
                 }
             }
+
+            if (global.params.symdebugref)
+                toDebug(sym);
+
             return;
         }
 
@@ -176,6 +183,10 @@ public:
             {
                 t.ctype = Type_toCtype(t.sym.memtype);
             }
+
+            if (global.params.symdebugref)
+                toDebug(t.sym);
+
             return;
         }
 
@@ -194,25 +205,39 @@ public:
         }
         else
             t.ctype = mctype;
+
         //printf("t = %p, Tflags = x%x\n", t, t.Tflags);
     }
 
     override void visit(TypeClass t)
     {
-        //printf("TypeClass::toCtype() %s\n", toChars());
-        type* tc = type_struct_class(t.sym.toPrettyChars(true), t.sym.alignsize, t.sym.structsize, null, null, false, true, true);
-        t.ctype = type_pointer(tc);
-        /* Add in fields of the class
-         * (after setting ctype to avoid infinite recursion)
-         */
-        if (global.params.symdebug)
+        if (t.mod == 0)
         {
-            for (size_t i = 0; i < t.sym.fields.dim; i++)
+            //printf("TypeClass::toCtype() %s\n", toChars());
+            type* tc = type_struct_class(t.sym.toPrettyChars(true), t.sym.alignsize, t.sym.structsize, null, null, false, true, true);
+            t.ctype = type_pointer(tc);
+            /* Add in fields of the class
+             * (after setting ctype to avoid infinite recursion)
+             */
+            if (global.params.symdebug)
             {
-                VarDeclaration v = t.sym.fields[i];
-                symbol_struct_addField(cast(Symbol*)tc.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
+                for (size_t i = 0; i < t.sym.fields.dim; i++)
+                {
+                    VarDeclaration v = t.sym.fields[i];
+                    symbol_struct_addField(cast(Symbol*)tc.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
+                }
             }
+
+            if (global.params.symdebugref)
+                toDebug(t.sym);
+            return;
         }
+
+        // Copy mutable version of backend type and add modifiers
+        type* mctype = Type_toCtype(t.castMod(0));
+        t.ctype = type_alloc(tybasic(mctype.Tty)); // pointer to class instance
+        t.ctype.Tcount++;
+        addMod(t);
     }
 }
 

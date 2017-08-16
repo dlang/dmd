@@ -5,9 +5,8 @@
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cc.h
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cc.h, backend/cc.h)
  */
 
 #if __DMC__
@@ -430,6 +429,7 @@ enum
     BFLoutsideprolog = 0x800,   // outside function prolog/epilog
     BFLlabel         = 0x2000,  // block preceded by label
     BFLvolatile      = 0x4000,  // block is volatile
+    BFLnounroll      = 0x8000,  // do not unroll loop
 };
 
 struct block

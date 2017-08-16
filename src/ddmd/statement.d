@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _statement.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/statement.d, _statement.d)
  */
 
 module ddmd.statement;
+
+// Online documentation: https://dlang.org/phobos/ddmd_statement.html
 
 import core.stdc.stdarg;
 import core.stdc.stdio;
@@ -29,6 +31,7 @@ import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.hdrgen;
@@ -389,6 +392,11 @@ extern (C++) abstract class Statement : RootObject
         return null;
     }
 
+    ForwardingStatement isForwardingStatement()
+    {
+        return null;
+    }
+
     void accept(Visitor v)
     {
         v.visit(this);
@@ -572,6 +580,13 @@ extern (C++) Statement toStatement(Dsymbol s)
         override void visit(ConditionalDeclaration d)
         {
             result = visitMembers(d.loc, d.include(null, null));
+        }
+
+        override void visit(StaticForeachDeclaration d)
+        {
+            assert(d.sfe && !!d.sfe.aggrfe ^ !!d.sfe.rangefe);
+            (d.sfe.aggrfe ? d.sfe.aggrfe._body : d.sfe.rangefe._body) = visitMembers(d.loc, d.decl);
+            result = new StaticForeachStatement(d.loc, d.sfe);
         }
 
         override void visit(CompileDeclaration d)
@@ -947,7 +962,7 @@ extern (C++) final class UnrolledLoopStatement : Statement
 
 /***********************************************************
  */
-extern (C++) final class ScopeStatement : Statement
+extern (C++) class ScopeStatement : Statement
 {
     Statement statement;
     Loc endloc;                 // location of closing curly bracket
@@ -958,7 +973,6 @@ extern (C++) final class ScopeStatement : Statement
         this.statement = s;
         this.endloc = endloc;
     }
-
     override Statement syntaxCopy()
     {
         return new ScopeStatement(loc, statement ? statement.syntaxCopy() : null, endloc);
@@ -992,6 +1006,134 @@ extern (C++) final class ScopeStatement : Statement
         v.visit(this);
     }
 }
+
+/***********************************************************
+ * Statement whose symbol table contains foreach index variables in a
+ * local scope and forwards other members to the parent scope.  This
+ * wraps a statement.
+ *
+ * Also see: `ddmd.attrib.ForwardingAttribDeclaration`
+ */
+extern (C++) final class ForwardingStatement : Statement
+{
+    /// The symbol containing the `static foreach` variables.
+    ForwardingScopeDsymbol sym = null;
+    /// The wrapped statement.
+    Statement statement;
+
+    extern (D) this(Loc loc, ForwardingScopeDsymbol sym, Statement s)
+    {
+        super(loc);
+        this.sym = sym;
+        assert(s);
+        statement = s;
+    }
+
+    extern (D) this(Loc loc, Statement s)
+    {
+        auto sym = new ForwardingScopeDsymbol(null);
+        sym.symtab = new DsymbolTable();
+        this(loc, sym, s);
+    }
+
+    override Statement syntaxCopy()
+    {
+        return new ForwardingStatement(loc, statement.syntaxCopy());
+    }
+
+    override Statement getRelatedLabeled()
+    {
+        if (!statement)
+        {
+            return null;
+        }
+        return statement.getRelatedLabeled();
+    }
+
+    override bool hasBreak()
+    {
+        if (!statement)
+        {
+            return false;
+        }
+        return statement.hasBreak();
+    }
+
+    override bool hasContinue()
+    {
+        if (!statement)
+        {
+            return false;
+        }
+        return statement.hasContinue();
+    }
+
+    override Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
+    {
+        if (!statement)
+        {
+            return this;
+        }
+        sc = sc.push(sym);
+        statement = statement.scopeCode(sc, sentry, sexception, sfinally);
+        sc = sc.pop();
+        return statement ? this : null;
+    }
+
+    override inout(Statement) last() inout nothrow pure
+    {
+        if (!statement)
+        {
+            return null;
+        }
+        return statement.last();
+    }
+
+    /***********************
+     * ForwardingStatements are distributed over the flattened
+     * sequence of statements. This prevents flattening to be
+     * "blocked" by a ForwardingStatement and is necessary, for
+     * example, to support generating scope guards with `static
+     * foreach`:
+     *
+     *     static foreach(i; 0 .. 10) scope(exit) writeln(i);
+     *     writeln("this is printed first");
+     *     // then, it prints 10, 9, 8, 7, ...
+     */
+
+    override Statements* flatten(Scope* sc)
+    {
+        if (!statement)
+        {
+            return null;
+        }
+        sc = sc.push(sym);
+        auto a = statement.flatten(sc);
+        sc = sc.pop();
+        if (!a)
+        {
+            return a;
+        }
+        auto b = new Statements();
+        b.setDim(a.dim);
+        foreach (i, s; *a)
+        {
+            (*b)[i] = s ? new ForwardingStatement(s.loc, sym, s) : null;
+        }
+        return b;
+    }
+
+    override ForwardingStatement isForwardingStatement()
+    {
+        return this;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
 
 /***********************************************************
  */
@@ -1332,6 +1474,61 @@ extern (C++) final class ConditionalStatement : Statement
         auto a = new Statements();
         a.push(s);
         return a;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ * Static foreach statements, like:
+ *      void main()
+ *      {
+ *           static foreach(i; 0 .. 10)
+ *           {
+ *               pragma(msg, i);
+ *           }
+ *      }
+ */
+extern (C++) final class StaticForeachStatement : Statement
+{
+    StaticForeach sfe;
+
+    extern (D) this(Loc loc, StaticForeach sfe)
+    {
+        super(loc);
+        this.sfe = sfe;
+    }
+
+    override Statement syntaxCopy()
+    {
+        return new StaticForeachStatement(loc,sfe.syntaxCopy());
+    }
+
+    override Statements* flatten(Scope* sc)
+    {
+        sfe.prepare(sc);
+        if (sfe.ready())
+        {
+            import ddmd.statementsem;
+            auto s = makeTupleForeach!(true,false)(sc, sfe.aggrfe,sfe.needExpansion);
+            auto result = s.flatten(sc);
+            if (result)
+            {
+                return result;
+            }
+            result = new Statements();
+            result.push(s);
+            return result;
+        }
+        else
+        {
+            auto result = new Statements();
+            result.push(new ErrorStatement());
+            return result;
+        }
     }
 
     override void accept(Visitor v)

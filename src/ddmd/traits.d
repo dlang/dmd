@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _traits.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/traits.d, _traits.d)
  */
 
 module ddmd.traits;
+
+// Online documentation: https://dlang.org/phobos/ddmd_traits.html
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -22,6 +24,7 @@ import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.hdrgen;
@@ -33,6 +36,7 @@ import ddmd.root.array;
 import ddmd.root.speller;
 import ddmd.root.stringtable;
 import ddmd.tokens;
+import ddmd.typesem;
 import ddmd.visitor;
 
 enum LOGSEMANTIC = false;
@@ -661,7 +665,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 return ex.semantic(sc);
             }
         }
-        return DsymbolExp.resolve(e.loc, sc, s, false);
+        return resolve(e.loc, sc, s, false);
     }
     if (e.ident == Id.hasMember ||
         e.ident == Id.getMember ||
@@ -1143,6 +1147,16 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             if (!sm)
                 return 1;
+
+            // skip local symbols, such as static foreach loop variables
+            if (auto decl = sm.isDeclaration())
+            {
+                if (decl.storage_class & STClocal)
+                {
+                    return 0;
+                }
+            }
+
             //printf("\t[%i] %s %s\n", i, sm.kind(), sm.toChars());
             if (sm.ident)
             {
@@ -1246,7 +1260,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             bool err = false;
 
             auto t = isType(o);
-            auto ex = t ? t.toExpression() : isExpression(o);
+            auto ex = t ? t.typeToExpression() : isExpression(o);
             if (!ex && t)
             {
                 Dsymbol s;

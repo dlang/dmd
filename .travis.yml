@@ -4,7 +4,9 @@ d:
   - gdc
   - ldc
 
-script: ./travis.sh
+script:
+  - deactivate # deactivate d compiler
+  - ./travis.sh
 
 sudo: false
 addons:

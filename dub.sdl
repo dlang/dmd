@@ -1,0 +1,49 @@
+name "dmd"
+description "The DMD compiler"
+authors "Walter Bright"
+copyright "Copyright © 1999-2017, Digital Mars"
+license "BSL-1.0"
+
+targetType "none"
+dependency ":parser" version="*"
+
+subPackage {
+  name "root"
+  targetType "library"
+  sourcePaths "src/ddmd/root"
+}
+
+subPackage {
+  name "lexer"
+  targetType "library"
+  sourcePaths
+
+  sourceFiles \
+    "src/ddmd/console.d" \
+    "src/ddmd/entity.d" \
+    "src/ddmd/errors.d" \
+    "src/ddmd/globals.d" \
+    "src/ddmd/id.d" \
+    "src/ddmd/identifier.d" \
+    "src/ddmd/lexer.d" \
+    "src/ddmd/tokens.d" \
+    "src/ddmd/utf.d"
+
+  preGenerateCommands `cd "$${DUB_PACKAGE_DIR}" && ./config.sh generated/dub VERSION /etc`
+  stringImportPaths "generated/dub"
+
+  dependency "dmd:root" version="*"
+}
+
+subPackage {
+  name "parser"
+  targetType "library"
+  sourcePaths
+
+  sourceFiles \
+    "src/ddmd/astbase.d" \
+    "src/ddmd/astbasevisitor.d" \
+    "src/ddmd/parse.d"
+
+  dependency "dmd:lexer" version="*"
+}

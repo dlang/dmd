@@ -5,9 +5,8 @@
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cgcod.c
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cgcod.c, backend/cgcod.c)
  */
 
 #if !SPP
@@ -301,7 +300,9 @@ tryagain:
     // Otherwise, jmp's to startblock will execute the prolog again
     assert(!startblock->Bpred);
 
-    code* cprolog = prolog();                 // gen function start code
+    CodeBuilder cdbprolog;
+    prolog(cdbprolog);           // gen function start code
+    code *cprolog = cdbprolog.finish();
     if (cprolog)
         pinholeopt(cprolog,NULL);       // optimize
 
@@ -637,7 +638,7 @@ targ_size_t alignsection(targ_size_t base, unsigned alignment, int bias)
  *      BPoff
  */
 
-code *prolog()
+void prolog(CodeBuilder& cdb)
 {
     bool enter;
     regm_t namedargs = 0;
@@ -686,8 +687,7 @@ code *prolog()
        )
         needframe = 1;
 
-    CodeBuilder cdb;
-    CodeBuilder cdb2;
+    CodeBuilder cdbx;
 
 Lagain:
     spoff = 0;
@@ -858,14 +858,14 @@ Lagain:
     if (tyf & mTYnaked)                 // if no prolog/epilog for function
     {
         hasframe = 1;
-        return NULL;
+        return;
     }
 
     if (tym == TYifunc)
     {
-        cdb.append(prolog_ifunc(&tyf));
+        prolog_ifunc(cdbx,&tyf);
         hasframe = 1;
-        cdb2.append(cdb);
+        cdb.append(cdbx);
         goto Lcont;
     }
 
@@ -901,13 +901,13 @@ Lagain:
 
     if (I16 && config.wflags & WFwindows && farfunc)
     {
-        cdb.append(prolog_16bit_windows_farfunc(&tyf, &pushds));
-        enter = false;                  /* don't use ENTER instruction  */
-        hasframe = 1;                   /* we have a stack frame        */
+        prolog_16bit_windows_farfunc(cdbx, &tyf, &pushds);
+        enter = false;                  // don't use ENTER instruction
+        hasframe = 1;                   // we have a stack frame
     }
     else if (needframe)                 // if variables or parameters
     {
-        cdb.append(prolog_frame(farfunc, &xlocalsize, &enter, &cfa_offset));
+        prolog_frame(cdbx, farfunc, &xlocalsize, &enter, &cfa_offset);
         hasframe = 1;
     }
 
@@ -915,17 +915,17 @@ Lagain:
      */
     if (config.flags & CFGstack)        // if stack overflow check
     {
-        cdb.append(prolog_frameadj(tyf, xlocalsize, enter, &pushalloc));
+        prolog_frameadj(cdbx, tyf, xlocalsize, enter, &pushalloc);
         if (Alloca.size)
-            cdb.append(prolog_setupalloca());
+            prolog_setupalloca(cdbx);
     }
     else if (needframe)                      /* if variables or parameters   */
     {
         if (xlocalsize)                 /* if any stack offset          */
         {
-            cdb.append(prolog_frameadj(tyf, xlocalsize, enter, &pushalloc));
+            prolog_frameadj(cdbx, tyf, xlocalsize, enter, &pushalloc);
             if (Alloca.size)
-                cdb.append(prolog_setupalloca());
+                prolog_setupalloca(cdbx);
         }
         else
             assert(Alloca.size == 0);
@@ -933,7 +933,7 @@ Lagain:
     else if (xlocalsize)
     {
         assert(I32 || I64);
-        cdb.append(prolog_frameadj2(tyf, xlocalsize, &pushalloc));
+        prolog_frameadj2(cdbx, tyf, xlocalsize, &pushalloc);
         BPoff += REGSIZE;
     }
     else
@@ -944,7 +944,7 @@ Lagain:
      */
     if (config.exe == EX_WIN64)
     {
-        code *c = cdb.finish(); // cdb.peek()
+        code *c = cdbx.peek();
         pinholeopt(c, NULL);
         prolog_allocoffset = calcblksize(c);
     }
@@ -973,14 +973,14 @@ Lagain:
              * registers are saved. But I don't remember why the call is here
              * and not there.
              */
-            cdb.append(cod3_stackadj(CNIL, spalign));
+            cod3_stackadj(cdbx, spalign);
         }
 
         unsigned regsaved;
-        cdb.append(prolog_trace(farfunc, &regsaved));
+        prolog_trace(cdbx, farfunc, &regsaved);
 
         if (spalign)
-            cdb.append(cod3_stackadj(CNIL, -spalign));
+            cod3_stackadj(cdbx, -spalign);
         useregs((ALLREGS | mBP | mES) & ~regsaved);
     }
 #endif
@@ -995,44 +995,43 @@ Lagain:
             if (strcmp(sthis->Sident,"this") == 0)
                 break;
         }
-        nteh_monitor_prolog(cdb,sthis);
+        nteh_monitor_prolog(cdbx,sthis);
         EBPtoESP += 3 * 4;
     }
 #endif
 
-    cdb2.append(prolog_saveregs(cdb.finish(), topush, cfa_offset));
+    cdb.append(cdbx);
+    prolog_saveregs(cdb, topush, cfa_offset);
 
 Lcont:
 
     if (config.exe == EX_WIN64)
     {
         if (variadic(funcsym_p->Stype))
-            cdb2.append(prolog_gen_win64_varargs());
-        cdb2.append(prolog_loadparams(tyf, pushalloc, &namedargs));
-        return cdb2.finish();
+            prolog_gen_win64_varargs(cdb);
+        prolog_loadparams(cdb, tyf, pushalloc, &namedargs);
+        return;
     }
 
-    cdb2.append(prolog_ifunc2(tyf, tym, pushds));
+    prolog_ifunc2(cdb, tyf, tym, pushds);
 
 #if NTEXCEPTIONS == 2
     if (usednteh & NTEH_except)
-        nteh_setsp(cdb2, 0x89);            // MOV __context[EBP].esp,ESP
+        nteh_setsp(cdb, 0x89);            // MOV __context[EBP].esp,ESP
 #endif
 
     // Load register parameters off of the stack. Do not use
     // assignaddr(), as it will replace the stack reference with
     // the register!
-    cdb2.append(prolog_loadparams(tyf, pushalloc, &namedargs));
+    prolog_loadparams(cdb, tyf, pushalloc, &namedargs);
 
     if (sv64)
-        cdb2.append(prolog_genvarargs(sv64, &namedargs));
+        prolog_genvarargs(cdb, sv64, &namedargs);
 
     /* Alignment checks
      */
     //assert(Auto.alignment <= STACKALIGN);
     //assert(((Auto.size + Para.size + BPoff) & (Auto.alignment - 1)) == 0);
-
-    return cdb2.finish();
 }
 
 /************************************
@@ -1304,7 +1303,6 @@ void stackoffsets(int flags)
 STATIC void blcodgen(block *bl)
 {
     regm_t mfuncregsave = mfuncreg;
-    char *sflsave = NULL;
 
     //dbg_printf("blcodgen(%p)\n",bl);
 
@@ -1338,18 +1336,19 @@ STATIC void blcodgen(block *bl)
     regcon.cse.mops &= regcon.cse.mval;
 
     // Set regcon.mvar according to what variables are in registers for this block
-    code* c = NULL;
+    CodeBuilder cdb;
     regcon.mvar = 0;
     regcon.mpvar = 0;
     regcon.indexregs = 1;
     int anyspill = 0;
+    char *sflsave = NULL;
     if (config.flags4 & CFG4optimized)
-    {   SYMIDX i;
+    {
         code *cload = NULL;
         code *cstore = NULL;
 
         sflsave = (char *) alloca(globsym.top * sizeof(char));
-        for (i = 0; i < globsym.top; i++)
+        for (SYMIDX i = 0; i < globsym.top; i++)
         {   symbol *s = globsym.tab[i];
 
             sflsave[i] = s->Sfl;
@@ -1386,11 +1385,12 @@ STATIC void blcodgen(block *bl)
         }
         if ((regcon.cse.mops & regcon.cse.mval) != regcon.cse.mops)
         {
-            CodeBuilder cdb;
-            cse_save(cdb,regcon.cse.mops & ~regcon.cse.mval);
-            cstore = cat(cdb.finish(), cstore);
+            CodeBuilder cdb2;
+            cse_save(cdb2,regcon.cse.mops & ~regcon.cse.mval);
+            cstore = cat(cdb2.finish(), cstore);
         }
-        c = cat(cstore,cload);
+        cdb.append(cstore);
+        cdb.append(cload);
         mfuncreg &= ~regcon.mvar;               // use these registers
         regcon.used |= regcon.mvar;
 
@@ -1409,7 +1409,8 @@ STATIC void blcodgen(block *bl)
     refparam = 0;
     assert((regcon.cse.mops & regcon.cse.mval) == regcon.cse.mops);
 
-    outblkexitcode(bl, c, anyspill, sflsave, &retsym, mfuncregsave);
+    outblkexitcode(cdb, bl, anyspill, sflsave, &retsym, mfuncregsave);
+    bl->Bcode = cdb.finish();
 
     for (int i = 0; i < anyspill; i++)
     {   symbol *s = globsym.tab[i];
@@ -1438,34 +1439,27 @@ STATIC void blcodgen(block *bl)
 #if SCPP
 
 STATIC void cgcod_eh()
-{   block *btry;
-    code *c;
-    code *c1;
+{
     list_t stack;
-    list_t list;
-    block *b;
     int idx;
-    int lastidx;
     int tryidx;
-    int i;
 
     if (!(usednteh & (EHtry | EHcleanup)))
         return;
 
     // Compute Bindex for each block
-    for (b = startblock; b; b = b->Bnext)
+    for (block *b = startblock; b; b = b->Bnext)
     {   b->Bindex = -1;
         b->Bflags &= ~BFLvisited;               /* mark as unvisited    */
     }
-    btry = NULL;
-    lastidx = 0;
+    block *btry = NULL;
+    int lastidx = 0;
     startblock->Bindex = 0;
-    for (b = startblock; b; b = b->Bnext)
+    for (block *b = startblock; b; b = b->Bnext)
     {
         if (btry == b->Btry && b->BC == BCcatch)  // if don't need to pop try block
-        {   block *br;
-
-            br = list_block(b->Bpred);          // find corresponding try block
+        {
+            block *br = list_block(b->Bpred);          // find corresponding try block
             assert(br->BC == BCtry);
             b->Bindex = br->Bindex;
         }
@@ -1498,11 +1492,11 @@ STATIC void cgcod_eh()
         }
 
         stack = NULL;
-        for (c = b->Bcode; c; c = code_next(c))
+        for (code *c = b->Bcode; c; c = code_next(c))
         {
             if ((c->Iop & ESCAPEmask) == ESCAPE)
             {
-                c1 = NULL;
+                code *c1 = NULL;
                 switch (c->Iop & 0xFFFF00)
                 {
                     case ESCctor:
@@ -1567,8 +1561,8 @@ STATIC void cgcod_eh()
             lastidx = b->Bendindex;
 
         // Set starting index for each of the successors
-        i = 0;
-        for (list = b->Bsucc; list; list = list_next(list))
+        int i = 0;
+        for (list_t list = b->Bsucc; list; list = list_next(list))
         {   block *bs = list_block(list);
 
             if (b->BC == BCtry)
@@ -1606,14 +1600,13 @@ STATIC void cgcod_eh()
     }
 
     if (config.exe == EX_WIN32)
-        for (b = startblock; b; b = b->Bnext)
+        for (block *b = startblock; b; b = b->Bnext)
         {
             if (/*!b->Bcount ||*/ b->BC == BCtry)
                 continue;
-            for (list = b->Bpred; list; list = list_next(list))
-            {   int pi;
-
-                pi = list_block(list)->Bendindex;
+            for (list_t list = b->Bpred; list; list = list_next(list))
+            {
+                int pi = list_block(list)->Bendindex;
                 if (b->Bindex != pi)
                 {
                     CodeBuilder cdb;
@@ -2860,6 +2853,9 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
             tosave &= ~mi;
         }
   }
+  CodeBuilder cdbs1;
+  cdbs1.append(cs1);
+  CodeBuilder cdbs2;
   if (adjesp)
   {
         // If this is done an odd number of times, it
@@ -2876,18 +2872,21 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
             regm_t mval_save = regcon.immed.mval;
             regcon.immed.mval = 0;      // prevent reghasvalue() optimizations
                                         // because c hasn't been executed yet
-            cs1 = cod3_stackadj(cs1, sz);
+            cod3_stackadj(cdbs1, sz);
             regcon.immed.mval = mval_save;
-            cs1 = genadjesp(cs1, sz);
+            cdbs1.append(genadjesp(CNIL, sz));
 
-            code *cx = cod3_stackadj(NULL, -sz);
-            cx = genadjesp(cx, -sz);
-            cs2 = cat(cx, cs2);
+            cod3_stackadj(cdbs2, -sz);
+            cdbs2.append(genadjesp(CNIL, -sz));
         }
+        cdbs2.append(cs2);
 
-        cs1 = genadjesp(cs1,adjesp);
-        cs2 = genadjesp(cs2,-adjesp);
+
+        cdbs1.append(genadjesp(CNIL,adjesp));
+        cdbs2.append(genadjesp(CNIL,-adjesp));
   }
+  else
+        cdbs2.append(cs2);
 
   calledafunc |= calledafuncsave;
   msavereg &= ~keepmsk | overlap; /* remove from mask of regs to save   */
@@ -2897,9 +2896,9 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
         printf("-scodelem(e=%p *pretregs=%s keepmsk=%s constflag=%d\n",
                 e,regm_str(*pretregs),regm_str(keepmsk),constflag);
 #endif
-    cdb.append(cs1);
+    cdb.append(cdbs1);
     cdb.append(cdbx);
-    cdb.append(cs2);
+    cdb.append(cdbs2);
     return;
 }
 

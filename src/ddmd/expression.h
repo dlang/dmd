@@ -136,8 +136,6 @@ public:
     static void _init();
     Expression *copy();
     virtual Expression *syntaxCopy();
-    virtual Expression *semantic(Scope *sc);
-    Expression *trySemantic(Scope *sc);
 
     // kludge for template.isExpression()
     int dyncast() const { return DYNCAST_EXPRESSION; }
@@ -225,7 +223,6 @@ public:
     dinteger_t value;
 
     bool equals(RootObject *o);
-    Expression *semantic(Scope *sc);
     dinteger_t toInteger();
     real_t toReal();
     real_t toImaginary();
@@ -255,7 +252,6 @@ public:
     real_t value;
 
     bool equals(RootObject *o);
-    Expression *semantic(Scope *sc);
     dinteger_t toInteger();
     uinteger_t toUInteger();
     real_t toReal();
@@ -271,7 +267,6 @@ public:
     complex_t value;
 
     bool equals(RootObject *o);
-    Expression *semantic(Scope *sc);
     dinteger_t toInteger();
     uinteger_t toUInteger();
     real_t toReal();
@@ -287,7 +282,6 @@ public:
     Identifier *ident;
 
     static IdentifierExp *create(Loc loc, Identifier *ident);
-    Expression *semantic(Scope *sc);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
@@ -305,7 +299,6 @@ public:
     Dsymbol *s;
     bool hasOverloads;
 
-    Expression *semantic(Scope *sc);
     static Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -317,7 +310,6 @@ class ThisExp : public Expression
 public:
     VarDeclaration *var;
 
-    Expression *semantic(Scope *sc);
     bool isBool(bool result);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -328,7 +320,6 @@ public:
 class SuperExp : public ThisExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -339,7 +330,6 @@ public:
     unsigned char committed;    // !=0 if type is committed
 
     bool equals(RootObject *o);
-    Expression *semantic(Scope *sc);
     bool isBool(bool result);
     StringExp *toStringExp();
     void accept(Visitor *v) { v->visit(this); }
@@ -357,7 +347,6 @@ public:
 
     static StringExp *create(Loc loc, char *s);
     bool equals(RootObject *o);
-    Expression *semantic(Scope *sc);
     StringExp *toStringExp();
     StringExp *toUTF8(Scope *sc);
     int compare(RootObject *obj);
@@ -389,7 +378,6 @@ public:
 
     Expression *syntaxCopy();
     bool equals(RootObject *o);
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -405,7 +393,6 @@ public:
     bool equals(RootObject *o);
     Expression *getElement(d_size_t i);
     static Expressions* copyElements(Expression *e1, Expression *e2 = NULL);
-    Expression *semantic(Scope *sc);
     bool isBool(bool result);
     StringExp *toStringExp();
 
@@ -421,7 +408,6 @@ public:
 
     bool equals(RootObject *o);
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc);
     bool isBool(bool result);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -470,7 +456,6 @@ public:
     static StructLiteralExp *create(Loc loc, StructDeclaration *sd, void *elements, Type *stype = NULL);
     bool equals(RootObject *o);
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc);
     Expression *getField(Type *type, unsigned offset);
     int getFieldIndex(Type *type, unsigned offset);
     Expression *addDtorHook(Scope *sc);
@@ -485,7 +470,6 @@ class TypeExp : public Expression
 {
 public:
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc);
     bool checkType();
     bool checkValue();
     void accept(Visitor *v) { v->visit(this); }
@@ -497,7 +481,6 @@ public:
     ScopeDsymbol *sds;
 
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc);
     bool checkType();
     bool checkValue();
     void accept(Visitor *v) { v->visit(this); }
@@ -533,7 +516,6 @@ public:
     int onstack;                // allocate on stack
 
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -549,7 +531,6 @@ public:
     Expressions *arguments;     // Array of Expression's to call class constructor
 
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -569,7 +550,6 @@ class SymOffExp : public SymbolExp
 public:
     dinteger_t offset;
 
-    Expression *semantic(Scope *sc);
     bool isBool(bool result);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -582,7 +562,6 @@ class VarExp : public SymbolExp
 public:
     static VarExp *create(Loc loc, Declaration *var, bool hasOverloads = true);
     bool equals(RootObject *o);
-    Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);
     bool checkReadModifyWrite();
     bool isLvalue();
@@ -616,8 +595,6 @@ public:
     bool equals(RootObject *o);
     void genIdent(Scope *sc);
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc);
-    Expression *semantic(Scope *sc, Expressions *arguments);
     MATCH matchType(Type *to, Scope *sc, FuncExp **pfe, int flag = 0);
     const char *toChars();
     bool checkType();
@@ -637,7 +614,6 @@ public:
     Dsymbol *declaration;
 
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -648,7 +624,6 @@ public:
     RootObject *obj;
 
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -659,14 +634,12 @@ public:
     Objects *args;
 
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class HaltExp : public Expression
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -685,7 +658,6 @@ public:
     TemplateParameters *parameters;
 
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -698,8 +670,6 @@ public:
     Type *att1; // Save alias this type to detect recursion
 
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc) = 0;
-    Expression *unaSemantic(Scope *sc);
     Expression *incompatibleTypes();
     Expression *resolveLoc(Loc loc, Scope *sc);
 
@@ -719,7 +689,6 @@ public:
     Type *att2; // Save alias this type to detect recursion
 
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc) = 0;
     Expression *binSemantic(Scope *sc);
     Expression *binSemanticProp(Scope *sc);
     Expression *incompatibleTypes();
@@ -735,7 +704,6 @@ public:
 class BinAssignExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *ex);
@@ -748,14 +716,12 @@ public:
 class CompileExp : public UnaExp
 {
 public:
-    Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class ImportExp : public UnaExp
 {
 public:
-    Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -765,7 +731,6 @@ public:
     Expression *msg;
 
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -778,9 +743,6 @@ public:
     bool wantsym;       // do not replace Symbol with its initializer during semantic()
 
     static DotIdExp *create(Loc loc, Expression *e, Identifier *ident);
-    Expression *semantic(Scope *sc);
-    Expression *semanticX(Scope *sc);
-    Expression *semanticY(Scope *sc, int flag);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -789,7 +751,6 @@ class DotTemplateExp : public UnaExp
 public:
     TemplateDeclaration *td;
 
-    Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -799,7 +760,6 @@ public:
     Declaration *var;
     bool hasOverloads;
 
-    Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);
     bool checkReadModifyWrite();
     bool isLvalue();
@@ -815,8 +775,6 @@ public:
 
     Expression *syntaxCopy();
     bool findTempDecl(Scope *sc);
-    Expression *semantic(Scope *sc);
-    Expression *semanticY(Scope *sc, int flag);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -826,7 +784,6 @@ public:
     FuncDeclaration *func;
     bool hasOverloads;
 
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -836,7 +793,6 @@ class DotTypeExp : public UnaExp
 public:
     Dsymbol *sym;               // symbol that represents a type
 
-    Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -852,7 +808,6 @@ public:
     static CallExp *create(Loc loc, Expression *e, Expression *earg1);
 
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *addDtorHook(Scope *sc);
@@ -863,7 +818,6 @@ public:
 class AddrExp : public UnaExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -871,7 +825,6 @@ public:
 class PtrExp : public UnaExp
 {
 public:
-    Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -883,7 +836,6 @@ public:
 class NegExp : public UnaExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -891,7 +843,6 @@ public:
 class UAddExp : public UnaExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -899,7 +850,6 @@ public:
 class ComExp : public UnaExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -907,7 +857,6 @@ public:
 class NotExp : public UnaExp
 {
 public:
-    Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -915,7 +864,6 @@ class DeleteExp : public UnaExp
 {
     bool isRAII;
 public:
-    Expression *semantic(Scope *sc);
     Expression *toBoolean(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -928,7 +876,6 @@ public:
     unsigned char mod;          // MODxxxxx
 
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -940,7 +887,6 @@ public:
     unsigned dim;               // number of elements in the vector
 
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -954,7 +900,6 @@ public:
     bool lowerIsLessThanUpper;  // true if lwr <= upr
 
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -967,7 +912,6 @@ public:
 class ArrayLengthExp : public UnaExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     static Expression *rewriteOpAssign(BinExp *exp);
     void accept(Visitor *v) { v->visit(this); }
@@ -980,14 +924,12 @@ public:
     Expression *upr;
 
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class DelegatePtrExp : public UnaExp
 {
 public:
-    Expression *semantic(Scope *sc);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -997,7 +939,6 @@ public:
 class DelegateFuncptrExp : public UnaExp
 {
 public:
-    Expression *semantic(Scope *sc);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -1014,7 +955,6 @@ public:
     VarDeclaration *lengthVar;
 
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
 
@@ -1026,7 +966,6 @@ public:
 class DotExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1035,7 +974,6 @@ class CommaExp : public BinExp
 public:
     bool isGenerated;
     bool allowCommaExp;
-    Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -1053,7 +991,6 @@ public:
     bool indexIsInBounds;       // true if 0 <= e2 && e2 <= e1.length - 1
 
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -1069,7 +1006,6 @@ public:
 class PostExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1078,7 +1014,6 @@ public:
 class PreExp : public UnaExp
 {
 public:
-    Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1093,7 +1028,6 @@ class AssignExp : public BinExp
 public:
     int memset;         // combination of MemorySet flags
 
-    Expression *semantic(Scope *sc);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *ex);
     Expression *toBoolean(Scope *sc);
@@ -1164,7 +1098,6 @@ public:
 class PowAssignExp : public BinAssignExp
 {
 public:
-    Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1189,14 +1122,12 @@ public:
 class CatAssignExp : public BinAssignExp
 {
 public:
-    Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class AddExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1204,7 +1135,6 @@ public:
 class MinExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1212,7 +1142,6 @@ public:
 class CatExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1220,7 +1149,6 @@ public:
 class MulExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1228,7 +1156,6 @@ public:
 class DivExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1236,7 +1163,6 @@ public:
 class ModExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1244,7 +1170,6 @@ public:
 class PowExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1252,7 +1177,6 @@ public:
 class ShlExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1260,7 +1184,6 @@ public:
 class ShrExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1268,7 +1191,6 @@ public:
 class UshrExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1276,7 +1198,6 @@ public:
 class AndExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1284,7 +1205,6 @@ public:
 class OrExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1292,7 +1212,6 @@ public:
 class XorExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1300,7 +1219,6 @@ public:
 class OrOrExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
     Expression *toBoolean(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1308,7 +1226,6 @@ public:
 class AndAndExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
     Expression *toBoolean(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1316,7 +1233,6 @@ public:
 class CmpExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1324,7 +1240,6 @@ public:
 class InExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1332,7 +1247,6 @@ public:
 class RemoveExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1341,7 +1255,6 @@ public:
 class EqualExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1351,7 +1264,6 @@ public:
 class IdentityExp : public BinExp
 {
 public:
-    Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1363,7 +1275,6 @@ public:
     Expression *econd;
 
     Expression *syntaxCopy();
-    Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -1387,7 +1298,6 @@ public:
 class FileInitExp : public DefaultInitExp
 {
 public:
-    Expression *semantic(Scope *sc);
     Expression *resolveLoc(Loc loc, Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1395,7 +1305,6 @@ public:
 class LineInitExp : public DefaultInitExp
 {
 public:
-    Expression *semantic(Scope *sc);
     Expression *resolveLoc(Loc loc, Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1403,7 +1312,6 @@ public:
 class ModuleInitExp : public DefaultInitExp
 {
 public:
-    Expression *semantic(Scope *sc);
     Expression *resolveLoc(Loc loc, Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1411,7 +1319,6 @@ public:
 class FuncInitExp : public DefaultInitExp
 {
 public:
-    Expression *semantic(Scope *sc);
     Expression *resolveLoc(Loc loc, Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1419,7 +1326,6 @@ public:
 class PrettyFuncInitExp : public DefaultInitExp
 {
 public:
-    Expression *semantic(Scope *sc);
     Expression *resolveLoc(Loc loc, Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };

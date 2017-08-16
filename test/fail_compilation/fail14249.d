@@ -14,7 +14,7 @@ fail_compilation/fail14249.d(31): Error: deallocator can only be a member of agg
 fail_compilation/fail14249.d(32): Error: constructor can only be a member of aggregate, not function main
 fail_compilation/fail14249.d(33): Error: destructor can only be a member of aggregate, not function main
 fail_compilation/fail14249.d(34): Error: postblit can only be a member of struct/union, not function main
-fail_compilation/fail14249.d(35): Error: anonymous union can only be a part of an aggregate, not function main
+fail_compilation/fail14249.d(35): Error: anonymous union can only be a part of an aggregate, not function `main`
 fail_compilation/fail14249.d(39): Error: mixin fail14249.main.Mix!() error instantiating
 ---
 */

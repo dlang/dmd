@@ -2,10 +2,6 @@
 
 set -uexo pipefail
 
-# add missing cc link in gdc-4.9.3 download
-if [ $DC = gdc ] && [ ! -f $(dirname $(which gdc))/cc ]; then
-    ln -s gcc $(dirname $(which gdc))/cc
-fi
 N=2
 
 # use faster ld.gold linker on linux
@@ -34,9 +30,11 @@ clone() {
 
 # build dmd, druntime, phobos
 build() {
+    source ~/dlang/*/activate # activate host compiler
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD ENABLE_RELEASE=1 all
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL
+    deactivate # deactivate host compiler
 }
 
 # self-compile dmd
@@ -54,6 +52,9 @@ rebuild() {
 
 # test druntime, phobos, dmd
 test() {
+    # Temporarily skip testing the DUB package
+    #See also: https://github.com/dlang/dmd/pull/6999
+    #test_dub_package
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL unittest
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL unittest
     test_dmd
@@ -67,6 +68,13 @@ test_dmd() {
     else
         make -j$N -C test MODEL=$MODEL ARGS="-O -inline -release"
     fi
+}
+
+# test dub package
+test_dub_package() {
+    pushd test/dub_package
+    dub test
+    popd
 }
 
 for proj in druntime phobos; do

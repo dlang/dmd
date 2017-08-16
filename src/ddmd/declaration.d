@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _declaration.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/declaration.d, _declaration.d)
  */
 
 module ddmd.declaration;
+
+// Online documentation: https://dlang.org/phobos/ddmd_declaration.html
 
 import core.stdc.stdio;
 import ddmd.aggregate;
@@ -28,6 +30,7 @@ import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.init;
+import ddmd.initsem;
 import ddmd.intrange;
 import ddmd.mtype;
 import ddmd.root.outbuffer;
@@ -129,12 +132,17 @@ enum STCinference           = (1L << 46);   // do attribute inference
 enum STCexptemp             = (1L << 47);   // temporary variable that has lifetime restricted to an expression
 enum STCmaybescope          = (1L << 48);   // parameter might be 'scope'
 enum STCscopeinferred       = (1L << 49);   // 'scope' has been inferred and should not be part of mangling
+enum STCfuture              = (1L << 50);   // introducing new base class function
+enum STClocal               = (1L << 51);   // do not forward (see ddmd.dsymbol.ForwardingScopeDsymbol).
 
 enum STC_TYPECTOR = (STCconst | STCimmutable | STCshared | STCwild);
 enum STC_FUNCATTR = (STCref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem);
 
 extern (C++) __gshared const(StorageClass) STCStorageClass =
-    (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal | STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias | STCout | STCin | STCmanifest | STCimmutable | STCshared | STCwild | STCnothrow | STCnogc | STCpure | STCref | STCtls | STCgshared | STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable);
+    (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal | STCabstract | STCsynchronized |
+     STCdeprecated | STCfuture | STCoverride | STClazy | STCalias | STCout | STCin | STCmanifest |
+     STCimmutable | STCshared | STCwild | STCnothrow | STCnogc | STCpure | STCref | STCtls | STCgshared |
+     STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable | STClocal);
 
 struct Match
 {
@@ -336,6 +344,11 @@ extern (C++) abstract class Declaration : Dsymbol
     final bool isRef()
     {
         return (storage_class & STCref) != 0;
+    }
+
+    final bool isFuture()
+    {
+        return (storage_class & STCfuture) != 0;
     }
 
     override final Prot prot()
@@ -1135,7 +1148,7 @@ extern (C++) class VarDeclaration : Declaration
 
             //printf("inferring type for %s with init %s\n", toChars(), _init.toChars());
             _init = _init.inferType(sc);
-            type = _init.toExpression().type;
+            type = _init.initializerToExpression().type;
             if (needctfe)
                 sc = sc.endCTFE();
 
@@ -1237,7 +1250,7 @@ extern (C++) class VarDeclaration : Declaration
              */
             TypeTuple tt = cast(TypeTuple)tb;
             size_t nelems = Parameter.dim(tt.arguments);
-            Expression ie = (_init && !_init.isVoidInitializer()) ? _init.toExpression() : null;
+            Expression ie = (_init && !_init.isVoidInitializer()) ? _init.initializerToExpression() : null;
             if (ie)
                 ie = ie.semantic(sc);
             if (nelems > 0 && ie)
@@ -1669,12 +1682,12 @@ extern (C++) class VarDeclaration : Declaration
                         if (ai && tb.ty == Taarray)
                             e = ai.toAssocArrayLiteral();
                         else
-                            e = _init.toExpression();
+                            e = _init.initializerToExpression();
                         if (!e)
                         {
                             // Run semantic, but don't need to interpret
                             _init = _init.semantic(sc, type, INITnointerpret);
-                            e = _init.toExpression();
+                            e = _init.initializerToExpression();
                             if (!e)
                             {
                                 error("is not a static and cannot have static initializer");
@@ -2278,7 +2291,7 @@ extern (C++) class VarDeclaration : Declaration
             inuse--;
         }
 
-        Expression e = _init.toExpression(needFullType ? type : null);
+        Expression e = _init.initializerToExpression(needFullType ? type : null);
         global.gag = oldgag;
         return e;
     }

@@ -6,15 +6,16 @@
  *              Copyright (c) 1999-2017 by Digital Mars
  *              All Rights Reserved
  * Authors:     Mike Cote, John Micco and $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/_iasm.d
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/iasm.d, _iasm.d)
  */
 
 /* Inline assembler for the D programming language compiler
  */
 
 module ddmd.iasm;
+
+// Online documentation: https://dlang.org/phobos/ddmd_iasm.html
 
 import core.stdc.stdio;
 import core.stdc.stdarg;
@@ -27,6 +28,7 @@ import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.errors;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.id;

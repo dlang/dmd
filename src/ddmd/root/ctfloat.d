@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC root/_ctfloat.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/root/ctfloat.d, root/_ctfloat.d)
  */
 
 module ddmd.root.ctfloat;
+
+// Online documentation: https://dlang.org/phobos/ddmd_root_ctfloat.html
 
 static import core.math, core.stdc.math;
 import core.stdc.errno;
@@ -66,6 +68,7 @@ extern (C++) struct CTFloat
     static real_t tan(real_t x) { return core.stdc.math.tanl(x); }
     static real_t sqrt(real_t x) { return core.math.sqrt(x); }
     static real_t fabs(real_t x) { return core.math.fabs(x); }
+    static real_t ldexp(real_t n, int exp) { return core.math.ldexp(n, exp); }
 
     static bool isIdentical(real_t a, real_t b)
     {
@@ -105,7 +108,7 @@ extern (C++) struct CTFloat
 
     static bool isInfinity(real_t r)
     {
-        return r is real_t.infinity || r is -real_t.infinity;
+        return isIdentical(fabs(r), real_t.infinity);
     }
 
     static real_t parse(const(char)* literal, bool* isOutOfRange = null)

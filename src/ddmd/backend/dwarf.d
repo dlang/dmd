@@ -1,9 +1,11 @@
 /** Dwarf debug
  *
- * Source: $(DMDSRC backend/_dwarf.d)
+ * Source: $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/dwarf.d, backend/_dwarf.d)
  */
 
 module ddmd.backend.dwarf;
+
+// Online documentation: https://dlang.org/phobos/ddmd_backend_dwarf.html
 
 import ddmd.backend.cc;
 import ddmd.backend.cdef;

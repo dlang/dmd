@@ -1,3 +1,31 @@
+################################################################################
+# Important variables:
+# --------------------
+#
+# HOST_CSS:				Host C++ compiler to use (g++,clang++)
+# HOST_DMD: 			Host D compiler to use for bootstrapping
+# AUTO_BOOTSTRAP:		Enable auto-boostrapping by download a stable DMD binary
+# INSTALL_DIR:			Installation folder to use
+#
+################################################################################
+# Build modes:
+# ------------
+# BUILD: release (default) | debug (enabled a build with debug symbols)
+#
+# Opt-in build features:
+#
+# ENABLE_RELEASE:		Optimized release built (set by BUILD=release)
+# ENABLE_DEBUG:			Add debug instructions and symbols (set by BUILD=debug)
+# ENABLE_WARNINGS: 		Enable C++ build warnings
+# ENABLE_PROFILING:		Build dmd with a profiling recorder (C++)
+# ENABLE_PGO_USE:		Build dmd with existing profiling information (C++)
+# 	PGO_DIR:			Directory for profile-guided optimization (PGO) logs
+# ENABLE_LTO:			Enable link-time optimizations
+# ENABLE_UNITTEST:		Build dmd with unittests (sets ENABLE_COVERAGE=1)
+# ENABLE_PROFILE:		Build dmd with a profiling recorder (D)
+# ENABLE_COVERAGE		Build dmd with coverage counting
+################################################################################
+
 # get OS and MODEL
 include osmodel.mak
 
@@ -27,6 +55,7 @@ ifneq ($(BUILD),release)
     ifneq ($(BUILD),debug)
         $(error Unrecognized BUILD=$(BUILD), must be 'debug' or 'release')
     endif
+    ENABLE_DEBUG := 1
 endif
 
 GIT_HOME=https://github.com/dlang
@@ -227,10 +256,10 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	arraytypes astcodegen attrib builtin canthrow clone complex cond constfold		\
 	cppmangle ctfeexpr dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol	\
-	dtemplate dversion escape expression func			\
-	hdrgen impcnvtab imphint init inline inlinecost intrange	\
+	dtemplate dversion escape expression expressionsem func			\
+	hdrgen id impcnvtab imphint init initsem inline inlinecost intrange	\
 	json lib link mars mtype nogc nspace objc opover optimize parse sapply	\
-	sideeffect statement staticassert target traits visitor	\
+	sideeffect statement staticassert target typesem traits visitor	\
 	typinf utils statement_rewrite_walker statementsem staticcond safe blockexit asttypename printast))
 
 LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, console entity errors globals id identifier lexer tokens utf))
@@ -288,7 +317,7 @@ endif
 
 SRC = $(addprefix $D/, win32.mak posix.mak osmodel.mak aggregate.h aliasthis.h arraytypes.h	\
 	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
-	enum.h errors.h expression.h globals.h hdrgen.h identifier.h idgen.d	\
+	enum.h errors.h expression.h globals.h hdrgen.h identifier.h \
 	import.h init.h intrange.h json.h lexer.h \
 	mars.h module.h mtype.h nspace.h objc.h                         \
 	scope.h statement.h staticassert.h target.h template.h tokens.h	\
@@ -366,16 +395,16 @@ $G/glue.a: $(G_GLUE_OBJS)
 $G/backend.a: $(G_OBJS)
 	$(AR) rcs $@ $(G_OBJS)
 
-$G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT)
+$G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -J$G -L-lstdc++ $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
 
-$G/parser.a: $(PARSER_SRCS) $G/lexer.a $(ROOT_SRCS)
+$G/parser.a: $(PARSER_SRCS) $G/lexer.a $(ROOT_SRCS) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $(PARSER_SRCS) $G/lexer.a $(ROOT_SRCS)
 
-parser_test: $G/parser.a $(EX)/test_parser.d
+parser_test: $G/parser.a $(EX)/test_parser.d $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $G/parser.a $(EX)/test_parser.d $(EX)/impvisitor.d
 
-example_avg: $G/parser.a $(EX)/avg.d
+example_avg: $G/parser.a $(EX)/avg.d $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $G/parser.a $(EX)/avg.d
 
 $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
@@ -396,7 +425,7 @@ endif
 clean:
 	rm -R $(GENERATED)
 	rm -f parser_test parser_test.o example_avg example_avg.o
-	rm -f dmd $(idgen_output)
+	rm -f dmd
 	rm -f $(addprefix $D/backend/, $(optabgen_output))
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
@@ -457,28 +486,9 @@ $(optabgen_files): optabgen.out
 .INTERMEDIATE: optabgen.out
 optabgen.out : $G/optabgen
 
-######## idgen generates some source
-
-idgen_output = $D/id.h $D/id.d
-$(idgen_output) : $G/idgen
-
-$G/idgen: $D/idgen.d $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $<
-	$G/idgen
-
 ######## VERSION
 
-VERSION := $(shell cat ../VERSION) # default to checked-in VERSION file
-ifneq (1,$(RELEASE)) # unless building a release
-	VERSION := $(shell printf "`$(GIT) describe --dirty || cat ../VERSION`") # use git describe
-endif
-
-# only update $G/VERSION when it differs to avoid unnecessary rebuilds
-$(shell test $(VERSION) != "`cat $G/VERSION 2> /dev/null`" \
-		&& printf $(VERSION) > $G/VERSION )
-
-$(shell test $(SYSCONFDIR) != "`cat $G/SYSCONFDIR.imp 2> /dev/null`" \
-		&& printf '$(SYSCONFDIR)' > $G/SYSCONFDIR.imp )
+$(shell ../config.sh "$G" ../VERSION $(SYSCONFDIR))
 
 #########
 # Specific dependencies other than the source file for all objects

@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/_tocsym.d, _tocvdebug.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _tocvdebug.d)
  */
 
 module ddmd.tocvdebug;
+
+// Online documentation: https://dlang.org/phobos/ddmd_tocvdebug.html
 
 version (Windows)
 {
@@ -35,6 +37,7 @@ import ddmd.globals;
 import ddmd.id;
 import ddmd.mtype;
 import ddmd.target;
+import ddmd.toctype;
 import ddmd.visitor;
 
 import ddmd.backend.cc;
@@ -50,10 +53,6 @@ import ddmd.backend.ty;
 import ddmd.backend.type;
 
 extern (C++):
-
-
-type *Type_toCtype(Type t);
-int cvMember(Dsymbol s, ubyte *p);
 
 /* The CV4 debug format is defined in:
  *      "CV4 Symbolic Debug Information Specification"
@@ -855,8 +854,10 @@ int cvMember(Dsymbol s, ubyte *p)
         {
             //printf("FuncDeclaration.cvMember() '%s'\n", fd.toChars());
 
-            if (!fd.type)                  // if not compiled in,
-                return;               // skip it
+            if (!fd.type)               // if not compiled in,
+                return;                 // skip it
+            if (!fd.type.nextOf())      // if not fully analyzed (e.g. auto return type)
+                return;                 // skip it
 
             const id = fd.toChars();
 

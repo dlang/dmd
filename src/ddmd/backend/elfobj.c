@@ -5,9 +5,8 @@
  * Copyright:   Copyright (C) ?-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/elfobj.c
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/elfobj.c, backend/elfobj.c)
  */
 
 
@@ -1127,7 +1126,8 @@ void Obj::term(const char *objfilename)
     }
 
 #if MARS
-    obj_rtinit();
+    if (!config.betterC)
+        obj_rtinit();
 #endif
 
 #if SCPP
@@ -1638,9 +1638,9 @@ void Obj::staticdtor(Symbol *s)
  * Used for static ctor and dtor lists.
  */
 
-void Obj::funcptr(Symbol *s)
+void Obj::setModuleCtorDtor(Symbol *s, bool isCtor)
 {
-    //dbg_printf("Obj::funcptr(%s) \n",s->Sident);
+    //dbg_printf("Obj::setModuleCtorDtor(%s) \n",s->Sident);
 }
 
 

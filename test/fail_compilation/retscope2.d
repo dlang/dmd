@@ -3,8 +3,8 @@ REQUIRED_ARGS: -dip1000
 PERMUTE_ARGS:
 TEST_OUTPUT:
 ---
-fail_compilation/retscope2.d(102): Error: scope variable s assigned to p with longer lifetime
-fail_compilation/retscope2.d(107): Error: address of variable s assigned to p with longer lifetime
+fail_compilation/retscope2.d(102): Error: scope variable `s` assigned to `p` with longer lifetime
+fail_compilation/retscope2.d(107): Error: address of variable `s` assigned to `p` with longer lifetime
 ---
 */
 
@@ -37,7 +37,7 @@ void test200()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope2.d(302): Error: scope variable a assigned to return scope b
+fail_compilation/retscope2.d(302): Error: scope variable `a` assigned to return scope `b`
 ---
 */
 
@@ -53,7 +53,7 @@ fail_compilation/retscope2.d(302): Error: scope variable a assigned to return sc
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope2.d(403): Error: scope variable a assigned to return scope c
+fail_compilation/retscope2.d(403): Error: scope variable `a` assigned to return scope `c`
 ---
 */
 
@@ -70,7 +70,7 @@ fail_compilation/retscope2.d(403): Error: scope variable a assigned to return sc
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope2.d(504): Error: scope variable c may not be returned
+fail_compilation/retscope2.d(504): Error: scope variable `c` may not be returned
 ---
 */
 
@@ -87,8 +87,8 @@ fail_compilation/retscope2.d(504): Error: scope variable c may not be returned
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope2.d(604): Error: scope variable _param_0 assigned to non-scope parameter unnamed calling retscope2.foo600
-fail_compilation/retscope2.d(604): Error: scope variable _param_1 assigned to non-scope parameter unnamed calling retscope2.foo600
+fail_compilation/retscope2.d(604): Error: scope variable `_param_0` assigned to non-scope parameter `unnamed` calling retscope2.foo600
+fail_compilation/retscope2.d(604): Error: scope variable `_param_1` assigned to non-scope parameter `unnamed` calling retscope2.foo600
 fail_compilation/retscope2.d(614): Error: template instance retscope2.test600!(int*, int*) error instantiating
 ---
 */
@@ -151,7 +151,7 @@ S700* escape700(int i) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope2.d(804): Error: scope variable e may not be thrown
+fail_compilation/retscope2.d(804): Error: scope variable `e` may not be thrown
 ---
 */
 
@@ -162,3 +162,134 @@ void foo800()
     scope Exception e;
     throw e;
 }
+
+/*************************************************/
+/+
+/*
+XEST_OUTPUT:
+
+fail_compilation/retscope2.d(907): Error: address of variable `this` assigned to `p17568` with longer lifetime
+
+*/
+
+#line 900
+
+int* p17568;
+struct T17568
+{
+    int a;
+    void escape() @safe scope
+    {
+        p17568 = &a;
+    }
+}
++/
+/*************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope2.d(1005): Error: scope variable `p` assigned to `this` with longer lifetime
+fail_compilation/retscope2.d(1024): Error: scope variable `p` assigned to `d` with longer lifetime
+---
+*/
+
+#line 1000
+
+class C17428
+{
+    void set(scope int* p) @safe
+    {
+        _p = p;
+    }
+
+    int* _p;
+}
+
+class C17428b
+{
+    int* _p;
+}
+
+void test17428() @safe
+{
+        int x;
+        int* p = &x;
+        scope C17428b c;
+        c._p = p;   // ok
+
+        C17428b d;
+        d._p = p;   // bad
+}
+
+
+
+/*************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope2.d(1107): Error: scope variable `dg` may not be returned
+---
+*/
+
+#line 1100
+
+struct S17430 { void foo() {} }
+
+void delegate() test17430() @safe
+{
+    S17430 s;
+    auto dg = &s.foo; // infer dg as scope
+    return dg;
+}
+
+/****************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope2.d(1216): Error: returning `s.foo()` escapes a reference to local variable `s`
+fail_compilation/retscope2.d(1233): Error: returning `t.foo()` escapes a reference to local variable `t`
+---
+*/
+
+#line 1200
+// https://issues.dlang.org/show_bug.cgi?id=17388
+
+struct S17388
+{
+    //int*
+    auto
+        foo() return @safe
+    {
+        return &x;
+    }
+    int x;
+}
+
+@safe int* f17388()
+{
+    S17388 s;
+    return s.foo();
+}
+
+struct T17388
+{
+    //int[]
+    auto
+        foo() return @safe
+    {
+        return x[];
+    }
+    int[4] x;
+}
+
+@safe int[] g17388()
+{
+    T17388 t;
+    return t.foo();
+}
+
+
+

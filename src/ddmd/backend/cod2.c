@@ -5,9 +5,8 @@
  * Copyright:   Copyright (C) 1984-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cod2.c
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cod2.c, backend/cod2.c)
  */
 
 #if !SPP
@@ -564,7 +563,7 @@ void cdorth(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         code_orflag(cdb.last(),CFpsw);
         cdb.append(genmovreg(CNIL,lrreg,CX));      // MOV lrreg,CX
         cdb.genc2(0x81,modregrm(3,2,mreg),0);      // ADC mreg,0
-        cdb.append(genshift(CNIL));                // MOV CX,offset __AHSHIFT
+        genshift(cdb);                             // MOV CX,offset __AHSHIFT
         cdb.gen2(0xD3,modregrm(3,4,mreg));         // SHL mreg,CL
         cdb.append(genregs(CNIL,0x03,mreg,lrreg)); // ADD mreg,MSREG(h)
         fixresult(cdb,e,retregs,pretregs);
@@ -1046,12 +1045,12 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
             if (msw)
             {
-                cdb.append(genmulimm(CNIL,DX,DX,lsw));
-                cdb.append(genmulimm(CNIL,reg,AX,msw));
+                genmulimm(cdb,DX,DX,lsw);
+                genmulimm(cdb,reg,AX,msw);
                 cdb.gen2(0x03,modregrm(3,reg,DX));
             }
             else
-                cdb.append(genmulimm(CNIL,reg,DX,lsw));
+                genmulimm(cdb,reg,DX,lsw);
 
             movregconst(cdb,DX,lsw,0);     // MOV EDX,lsw
             getregs(cdb,mDX);
@@ -1491,7 +1490,7 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 cdb.append(gentstreg(CNIL,reg));            // TEST reg,reg
                 code_orrex(cdb.last(), rex);
                 code *cnop = gennop(CNIL);
-                cdb.append(genjmp(CNIL,JNS,FLcode,(block *)cnop));  // JNS cnop
+                genjmp(cdb,JNS,FLcode,(block *)cnop);  // JNS cnop
                 if (I64)
                 {
                     cdb.gen2(0xFF,modregrmx(3,0,reg));      // INC reg
@@ -1844,7 +1843,7 @@ void cdnot(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     regcon.immed.mval &= ~mask[reg];                          // mark reg as unavail
     movregconst(cdbtrue,reg,1,forflags);                      // mov 1 into reg
     regcon.immed.mval &= ~mask[reg];                          // mark reg as unavail
-    cdbfalse2.append(genjmp(CNIL,JMP,FLcode,(block *) cnop)); // skip over ctrue
+    genjmp(cdbfalse2,JMP,FLcode,(block *) cnop);              // skip over ctrue
     cdb.append(cfalse);
     cdb.append(cdbfalse2);
     cdb.append(cdbtrue);
@@ -1966,7 +1965,7 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         codelem(cdb,e1,&retregs,FALSE);
 
         cse_flush(cdb,1);                // flush CSEs to memory
-        cdb.append(genjmp(CNIL,jop,FLcode,(block *)cnop1));
+        genjmp(cdb,jop,FLcode,(block *)cnop1);
         freenode(e21);
 
         regconsave = regcon;
@@ -2088,11 +2087,11 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             retregs &= ~regcon.mvar;    // don't disturb register variables
         // NOTE: see my email (sign extension bug? possible fix, some questions
         unsigned reg;
-        cdb.append(regwithvalue(CNIL,retregs,e21->EV.Vllong,&reg,tysize(e21->Ety) == 8 ? 64|8 : 8));
+        regwithvalue(cdb,retregs,e21->EV.Vllong,&reg,tysize(e21->Ety) == 8 ? 64|8 : 8);
         retregs = mask[reg];
 
         cse_flush(cdb,1);                // flush CSE's to memory
-        cdb.append(genjmp(CNIL,jop,FLcode,(block *)cnop1));
+        genjmp(cdb,jop,FLcode,(block *)cnop1);
         freenode(e21);
 
         regconsave = regcon;
@@ -2179,7 +2178,7 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
   assert(stackpush == stackpushsave);
   memcpy(_8087elems,_8087save,sizeof(_8087elems));
   freenode(e2);
-  cdb.append(genjmp(CNIL,JMP,FLcode,(block *) cnop2));
+  genjmp(cdb,JMP,FLcode,(block *) cnop2);
   cdb.append(cnop1);
   cdb.append(cdb2);
   cdb.append(cnop2);
@@ -2243,7 +2242,7 @@ void cdloglog(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     unsigned stackpushsave = stackpush;
     if (*pretregs == 0)                 // if don't want result
     {
-        int noreturn = el_noreturn(e2);
+        int noreturn = !el_returns(e2);
         codelem(cdb,e2,pretregs,FALSE);
         if (noreturn)
         {
@@ -2282,13 +2281,13 @@ void cdloglog(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         if (e->Eoper == OPoror)
         {
             cdb.append(cnop3);
-            cdb.append(genjmp(NULL,JMP,FLcode,(block *) cnop2));    // JMP cnop2
+            genjmp(cdb,JMP,FLcode,(block *) cnop2);    // JMP cnop2
             cdb.append(cdb1);
             cdb.append(cnop2);
         }
         else
         {
-            cdb.append(genjmp(NULL,JMP,FLcode,(block *) cnop2));    // JMP cnop2
+            genjmp(cdb,JMP,FLcode,(block *) cnop2);    // JMP cnop2
             cdb.append(cnop3);
             cdb.append(cdb1);
             cdb.append(cnop2);
@@ -2315,7 +2314,7 @@ void cdloglog(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     CodeBuilder cdbcg2;
     movregconst(cdbcg2,reg,0,*pretregs & mPSW);              // MOV reg,0
     regcon.immed.mval &= ~mask[reg];                         // mark reg as unavail
-    cdbcg2.append(genjmp(CNIL, JMP,FLcode,(block *) cnop2)); // JMP cnop2
+    genjmp(cdbcg2, JMP,FLcode,(block *) cnop2);              // JMP cnop2
     movregconst(cdb1,reg,1,*pretregs & mPSW);                // reg = 1
     regcon.immed.mval &= ~mask[reg];                         // mark reg as unavail
     *pretregs = retregs;
@@ -2429,7 +2428,7 @@ void cdshift(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 {   // Handle (shtlng)s << 16
                     regm_t r = retregs & mMSW;
                     codelem(cdb,e1->E1,&r,FALSE);      // eval left leaf
-                    cdb.append(regwithvalue(CNIL,retregs & mLSW,0,&resreg,0));
+                    regwithvalue(cdb,retregs & mLSW,0,&resreg,0);
                     getregs(cdb,r);
                     retregs = r | mask[resreg];
                     if (forccs)
@@ -2739,7 +2738,7 @@ void cdshift(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                     cdb1.append(genmovreg(CNIL,hreg,lreg));
                     cdb1.append(genregs(CNIL,0x31,lreg,lreg));
 
-                    cdb.append(genjmp(CNIL,JNE,FLcode,(block *)cl1));
+                    genjmp(cdb,JNE,FLcode,(block *)cl1);
                     cdb.gen2(0x0FA5,modregrm(3,lreg,hreg));
                     cdb.gen2(0xD3,modregrm(3,4,lreg));
                 }
@@ -2784,12 +2783,12 @@ void cdshift(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                         cdb1.append(genmovreg(CNIL,lreg,hreg));
                         cdb1.append(genregs(CNIL,0x31,hreg,hreg));
                     }
-                    cdb.append(genjmp(CNIL,JNE,FLcode,(block *)cl1));
+                    genjmp(cdb,JNE,FLcode,(block *)cl1);
                     cdb.gen2(0x0FAD,modregrm(3,hreg,lreg));
                     cdb.gen2(0xD3,modregrm(3,s1,hreg));
                 }
                 cl2 = gennop(NULL);
-                cdb.append(genjmp(CNIL,JMPS,FLcode,(block *)cl2));
+                genjmp(cdb,JMPS,FLcode,(block *)cl2);
                 cdb.append(cdb1);
                 cdb.append(cl2);
             }
@@ -2980,9 +2979,10 @@ void cdind(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         {
             assert(sz == 4 || sz == 8 || sz == 16 || sz == 32); // float, double or vector
             cs.Iop = xmmload(tym);
+            cs.Irex &= ~REX_W;
             code_newreg(&cs,reg - XMM0);
+            checkSetVex(&cs,tym);
             cdb.gen(&cs);     // MOV reg,[idx]
-            checkSetVex(cdb.last(),tym);
         }
         else if (sz <= REGSIZE)
         {
@@ -3279,7 +3279,7 @@ void cdstrcmp(CodeBuilder& cdb, elem *e, regm_t *pretregs)
     code *c4 = gennop(CNIL);
     if (*pretregs != mPSW)                       // if not flags only
     {
-        cdb.append(genjmp(CNIL,JE,FLcode,(block *) c4));      // JE L1
+        genjmp(cdb,JE,FLcode,(block *) c4);      // JE L1
         getregs(cdb,mAX);
         cdb.append(genregs(CNIL,0x1B,AX,AX));                 // SBB AX,AX
         code_orrex(cdb.last(),rex);
@@ -3378,7 +3378,7 @@ void cdmemcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     code_orflag(cdb.last(), CFpsw);             // keep flags
 #else
     if (*pretregs != mPSW)                      // if not flags only
-        cdb.append(regwithvalue(CNIL,mAX,0,NULL,0));  // put 0 in AX
+        regwithvalue(cdb,mAX,0,NULL,0);         // put 0 in AX
 #endif
 
     getregs(cdb,mCX | mSI | mDI);
@@ -3389,7 +3389,7 @@ void cdmemcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     if (*pretregs != mPSW)                      // if not flags only
     {
         code *c4 = gennop(CNIL);
-        cdb.append(genjmp(CNIL,JE,FLcode,(block *) c4));  // JE L1
+        genjmp(cdb,JE,FLcode,(block *) c4);  // JE L1
         getregs(cdb,mAX);
         cdb.append(genregs(CNIL,0x1B,AX,AX));             // SBB AX,AX
         cdb.genc2(0x81,modregrm(3,3,AX),(targ_uns)-1);    // SBB AX,-1
@@ -3614,14 +3614,14 @@ void cdmemcpy(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         cdb.append(genmovreg(CNIL,DX,CX));                  // MOV EDX,ECX
         cdb.genc2(0xC1,modregrm(3,5,CX),2);                 // SHR ECX,2
         code *cx = gennop(CNIL);
-        cdb.append(genjmp(CNIL, JE, FLcode, (block *)cx));  // JZ L1
+        genjmp(cdb, JE, FLcode, (block *)cx);  // JZ L1
         cdb.gen1(0xF3);                                     // REPE
         cdb.gen1(0xA5);                                     // MOVSW
         cdb.append(cx);
         cdb.genc2(0x81, modregrm(3,4,DX),3);                // AND EDX,3
 
         code *cnop = gennop(CNIL);
-        cdb.append(genjmp(CNIL, JE, FLcode, (block *)cnop));  // JZ L2
+        genjmp(cdb, JE, FLcode, (block *)cnop);  // JZ L2
         cdb.append(genmovreg(CNIL,CX,DX));                    // MOV ECX,EDX
         cdb.gen1(0xF3);                          // REPE
         cdb.gen1(0xA4);                          // MOVSB
@@ -3712,7 +3712,7 @@ void cdmemset(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 }
             }
 
-            cdb.append(regwithvalue(CNIL, BYTEREGS & ~retregs1, value, &vreg, I64 ? 64 : 0));
+            regwithvalue(cdb, BYTEREGS & ~retregs1, value, &vreg, I64 ? 64 : 0);
             freenode(e2->E2);
             freenode(e2);
 
@@ -3777,7 +3777,7 @@ fixres:
     retregs3 = mAX;
     if (!I16 && e2->E2->Eoper == OPconst)
     {
-        cdb.append(regwithvalue(CNIL, mAX, value, NULL, I64?64:0));
+        regwithvalue(cdb, mAX, value, NULL, I64?64:0);
         freenode(e2->E2);
     }
     else
@@ -4548,7 +4548,7 @@ void cdabs(CodeBuilder& cdb,elem *e, regm_t *pretregs)
         unsigned msreg = findregmsw(retregs);
         unsigned lsreg = findreglsw(retregs);
         cdb.append(genorreg(CNIL,msreg,msreg));
-        cdb.append(genjmp(CNIL,JNS,FLcode,(block *)cnop));
+        genjmp(cdb,JNS,FLcode,(block *)cnop);
         cdb.gen2(0xF7,modregrm(3,3,msreg));       // NEG msreg
         cdb.gen2(0xF7,modregrm(3,3,lsreg));       // NEG lsreg+1
         cdb.genc2(0x81,modregrm(3,3,msreg),0);    // SBB msreg,0
@@ -4718,7 +4718,7 @@ void cdpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         cdb.gen(&cs);             // TEST reg,reg
 
         // If lvalue is a register variable, we must mark it as modified
-        cdb.append(modEA(&cs));
+        modEA(cdb,&cs);
 
         targ_int n = e2->EV.Vint;
         if (op == OPpostdec)
@@ -4756,7 +4756,7 @@ void cdpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         cs2 = cs;
 
         /* If lvalue is a register variable, we must mark it as modified */
-        cdb.append(modEA(&cs));
+        modEA(cdb,&cs);
 
         cs.Iop = 0x81 ^ byte;
         cs.Irm &= ~modregrm(0,7,0);             /* reg field = 0        */
@@ -4902,7 +4902,7 @@ void cdpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         cdb.gen(&cs);                           // ADD EA,e2
         code_orflag(cdb.last(),CFpsw);
         cdb.genc2(0x81,modregrm(3,2,rtmp),0);   // ADC rtmp,0
-        cdb.append(genshift(CNIL));             // MOV CX,offset __AHSHIFT
+        genshift(cdb);                          // MOV CX,offset __AHSHIFT
         cdb.gen2(0xD3,modregrm(3,4,rtmp));      // SHL rtmp,CL
         cs.Iop = 0x01;
         NEWREG(cs.Irm,rtmp);                    // ADD EA+2,rtmp
@@ -5116,19 +5116,19 @@ void cdddtor(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             int nalign = 0;
             if (STACKALIGN == 16)
             {   nalign = STACKALIGN - REGSIZE;
-                cdb.append(cod3_stackadj(CNIL, nalign));
+                cod3_stackadj(cdb, nalign);
             }
             calledafunc = 1;
-            cdb.append(genjmp(CNIL,0xE8,FLcode,(block *)c));   // CALL Ldtor
+            genjmp(cdb,0xE8,FLcode,(block *)c);   // CALL Ldtor
             if (nalign)
-                cdb.append(cod3_stackadj(CNIL, -nalign));
+                cod3_stackadj(cdb, -nalign);
         }
         else
-            cdb.append(genjmp(CNIL,0xE8,FLcode,(block *)c));   // CALL Ldtor
+            genjmp(cdb,0xE8,FLcode,(block *)c);   // CALL Ldtor
 
         code *cnop = gennop(CNIL);
 
-        cdb.append(genjmp(CNIL,JMP,FLcode,(block *)cnop));
+        genjmp(cdb,JMP,FLcode,(block *)cnop);
         cdb.append(cdbx);
         cdb.append(cnop);
         return;

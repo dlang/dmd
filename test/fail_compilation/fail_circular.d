@@ -71,41 +71,51 @@ enum int e2b = .e2a;    // CTFE error
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_circular.d(84): Error: circular reference to variable 'fail_circular.S.a1'
-fail_compilation/fail_circular.d(86): Error: circular reference to variable 'fail_circular.S.b1'
-fail_compilation/fail_circular.d(88): Error: circular reference to variable 'fail_circular.S.c1'
-fail_compilation/fail_circular.d(91): Error: circular reference to variable 'fail_circular.S.a1a'
-fail_compilation/fail_circular.d(94): Error: circular reference to variable 'fail_circular.S.b1a'
-fail_compilation/fail_circular.d(97): Error: circular reference to variable 'fail_circular.S.c1a'
+fail_compilation/fail_circular.d(84): Error: circular reference to variable 'fail_circular.S1.a1'
+fail_compilation/fail_circular.d(88): Error: circular reference to variable 'fail_circular.S2.b1'
+fail_compilation/fail_circular.d(92): Error: circular reference to variable 'fail_circular.S3.c1'
+fail_compilation/fail_circular.d(97): Error: circular reference to variable 'fail_circular.S4.a1a'
+fail_compilation/fail_circular.d(102): Error: circular reference to variable 'fail_circular.S5.b1a'
+fail_compilation/fail_circular.d(107): Error: circular reference to variable 'fail_circular.S6.c1a'
 ---
 */
-struct S
+struct S1
 {
-    static a1 = S.a1;           // semantic error
-
-    static const b1 = S.b1;     // semantic error
-
-    enum c1 = S.c1;             // semantic error
-
-    static a1a = S.a1b;
-    static a1b = S.a1a;         // semantic error
-
-    static const b1a = S.b1b;
-    static const b1b = S.b1a;   // semantic error
-
-    enum c1a = S.c1b;
-    enum c1b = S.c1a;           // semantic error
+    static a1 = S1.a1;          // semantic error
+}
+struct S2
+{
+    static const b1 = S2.b1;     // semantic error
+}
+struct S3
+{
+    enum c1 = S3.c1;             // semantic error
+}
+struct S4
+{
+    static a1a = S4.a1b;
+    static a1b = S4.a1a;         // semantic error
+}
+struct S5
+{
+    static const b1a = S5.b1b;
+    static const b1b = S5.b1a;   // semantic error
+}
+struct S6
+{
+    enum c1a = S6.c1b;
+    enum c1b = S6.c1a;           // semantic error
 }
 
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_circular.d(113): Error: circular reference to variable 'fail_circular.C.a1'
-fail_compilation/fail_circular.d(115): Error: circular reference to variable 'fail_circular.C.b1'
-fail_compilation/fail_circular.d(117): Error: circular reference to variable 'fail_circular.C.c1'
-fail_compilation/fail_circular.d(120): Error: circular reference to variable 'fail_circular.C.a1a'
-fail_compilation/fail_circular.d(123): Error: circular reference to variable 'fail_circular.C.b1a'
-fail_compilation/fail_circular.d(126): Error: circular reference to variable 'fail_circular.C.c1a'
+fail_compilation/fail_circular.d(123): Error: circular reference to variable 'fail_circular.C.a1'
+fail_compilation/fail_circular.d(125): Error: circular reference to variable 'fail_circular.C.b1'
+fail_compilation/fail_circular.d(127): Error: circular reference to variable 'fail_circular.C.c1'
+fail_compilation/fail_circular.d(130): Error: circular reference to variable 'fail_circular.C.a1a'
+fail_compilation/fail_circular.d(133): Error: circular reference to variable 'fail_circular.C.b1a'
+fail_compilation/fail_circular.d(136): Error: circular reference to variable 'fail_circular.C.c1a'
 ---
 */
 class C

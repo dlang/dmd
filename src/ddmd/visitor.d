@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _visitor.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/visitor.d, _visitor.d)
  */
 
 module ddmd.visitor;
+
+// Online documentation: https://dlang.org/phobos/ddmd_visitor.html
 
 import ddmd.aggregate;
 import ddmd.aliasthis;
@@ -84,6 +86,14 @@ extern (C++) class Visitor
         visit(cast(Statement)s);
     }
 
+    void visit(ForwardingStatement s)
+    {
+        if (s.statement)
+        {
+            s.statement.accept(this);
+        }
+    }
+
     void visit(WhileStatement s)
     {
         visit(cast(Statement)s);
@@ -105,6 +115,11 @@ extern (C++) class Visitor
     }
 
     void visit(ForeachRangeStatement s)
+    {
+        visit(cast(Statement)s);
+    }
+
+    void visit(StaticForeachStatement s)
     {
         visit(cast(Statement)s);
     }
@@ -457,6 +472,11 @@ extern (C++) class Visitor
     void visit(StaticIfDeclaration s)
     {
         visit(cast(ConditionalDeclaration)s);
+    }
+
+    void visit(StaticForeachDeclaration s)
+    {
+        visit(cast(AttribDeclaration)s);
     }
 
     void visit(CompileDeclaration s)

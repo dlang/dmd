@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _dstruct.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/dstruct.d, _dstruct.d)
  */
 
 module ddmd.dstruct;
+
+// Online documentation: https://dlang.org/phobos/ddmd_dstruct.html
 
 import core.stdc.stdio;
 import ddmd.aggregate;
@@ -297,6 +299,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         if (this.errors)
             type = Type.terror;
+        if (semanticRun == PASSinit)
+            type = type.addSTC(sc.stc | storage_class);
         type = type.semantic(loc, sc);
         if (type.ty == Tstruct && (cast(TypeStruct)type).sym != this)
         {
@@ -366,7 +370,10 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         {
             auto s = (*members)[i];
             s.semantic(sc2);
+            this.errors |= s.errors;
         }
+        if (this.errors)
+            type = Type.terror;
 
         if (!determineFields())
         {

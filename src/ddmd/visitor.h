@@ -309,11 +309,13 @@ public:
     virtual void visit(CompoundDeclarationStatement *s) { visit((CompoundStatement *)s); }
     virtual void visit(UnrolledLoopStatement *s) { visit((Statement *)s); }
     virtual void visit(ScopeStatement *s) { visit((Statement *)s); }
+    virtual void visit(ForwardingStatement *s) { visit((Statement *)s); }
     virtual void visit(WhileStatement *s) { visit((Statement *)s); }
     virtual void visit(DoStatement *s) { visit((Statement *)s); }
     virtual void visit(ForStatement *s) { visit((Statement *)s); }
     virtual void visit(ForeachStatement *s) { visit((Statement *)s); }
     virtual void visit(ForeachRangeStatement *s) { visit((Statement *)s); }
+    virtual void visit(StaticForeachStatement *s) { visit((Statement *)s); }
     virtual void visit(IfStatement *s) { visit((Statement *)s); }
     virtual void visit(ConditionalStatement *s) { visit((Statement *)s); }
     virtual void visit(PragmaStatement *s) { visit((Statement *)s); }
@@ -389,6 +391,7 @@ public:
     virtual void visit(ConditionalDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(StaticIfDeclaration *s) { visit((ConditionalDeclaration *)s); }
     virtual void visit(CompileDeclaration *s) { visit((AttribDeclaration *)s); }
+    virtual void visit(StaticForeachDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(UserAttributeDeclaration *s) { visit((AttribDeclaration *)s); }
 
     virtual void visit(ScopeDsymbol *s) { visit((Dsymbol *)s); }

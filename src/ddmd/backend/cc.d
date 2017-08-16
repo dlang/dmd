@@ -5,19 +5,20 @@
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (c) 2000-2012 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/_cc.d
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cc.d, backend/_cc.d)
  */
 
 module ddmd.backend.cc;
 
-import tk.dlist;
+// Online documentation: https://dlang.org/phobos/ddmd_backend_cc.html
+
+import ddmd.tk.dlist;
 import ddmd.backend.cdef;        // host and target compiler definition
 import ddmd.backend.code_x86;
-import ddmd.backend.type;
-import ddmd.backend.el;
 import ddmd.backend.dt;
+import ddmd.backend.el;
+import ddmd.backend.type;
 
 extern (C++):
 @nogc:
@@ -418,6 +419,7 @@ enum
     BFLoutsideprolog = 0x800,   // outside function prolog/epilog
     BFLlabel         = 0x2000,  // block preceded by label
     BFLvolatile      = 0x4000,  // block is volatile
+    BFLnounroll      = 0x8000,  // do not unroll loop
 }
 
 struct block

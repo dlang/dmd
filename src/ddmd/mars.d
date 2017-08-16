@@ -10,10 +10,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _mars.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/mars.d, _mars.d)
  */
 
 module ddmd.mars;
+
+// Online documentation: https://dlang.org/phobos/ddmd_mars.html
 
 import core.stdc.ctype;
 import core.stdc.errno;
@@ -134,6 +136,7 @@ Where:
   -dip25           implement http://wiki.dlang.org/DIP25 (experimental)
   -dip1000         implement http://wiki.dlang.org/DIP1000 (experimental)
   -g               add symbolic debug info
+  -gf              emit debug info for all referenced types
   -gs              always emit stack frame
   -gx              add stack stomp code
   -H               generate 'header' file
@@ -470,6 +473,12 @@ private int tryMain(size_t argc, const(char)** argv)
                 deprecation(loc, "use -g instead of -gc");
                 global.params.symdebug = 2;
             }
+            else if (strcmp(p + 1, "gf") == 0)
+            {
+                if (!global.params.symdebug)
+                    global.params.symdebug = 1;
+                global.params.symdebugref = true;
+            }
             else if (strcmp(p + 1, "gs") == 0)
                 global.params.alwaysframe = true;
             else if (strcmp(p + 1, "gx") == 0)
@@ -573,6 +582,7 @@ CPU architectures supported by -mcpu=id:
   =?             list information on all architecture choices
   =baseline      use default architecture as determined by target
   =avx           use AVX 1 instructions
+  =avx2          use AVX 2 instructions
   =native        use CPU architecture that this compiler is running on
 ");
                         exit(EXIT_SUCCESS);
@@ -587,6 +597,9 @@ CPU architectures supported by -mcpu=id:
                             break;
                         case "avx":
                             global.params.cpu = CPU.avx;
+                            break;
+                        case "avx2":
+                            global.params.cpu = CPU.avx2;
                             break;
                         case "native":
                             global.params.cpu = CPU.native;
@@ -1022,6 +1035,8 @@ Language changes listed by -transition=id:
                     goto Lnoarg;
                 }
             }
+            else if (p[1] == '\0')
+                files.push("__stdin.d");
             else
             {
             Lerror:
@@ -1336,8 +1351,8 @@ Language changes listed by -transition=id:
             Module m = modules[i];
             if (strcmp(m.srcfile.name.str, global.main_d) == 0)
             {
-                static __gshared const(char)* buf = "int main(){return 0;}";
-                m.srcfile.setbuffer(cast(void*)buf, buf.sizeof);
+                string buf = "int main(){return 0;}";
+                m.srcfile.setbuffer(cast(void*)buf.ptr, buf.length);
                 m.srcfile._ref = 1;
                 break;
             }
@@ -1972,9 +1987,9 @@ private void addDefaultVersionIdentifiers()
     {
         VersionCondition.addPredefinedGlobalIdent("D_SIMD");
         if (global.params.cpu >= CPU.avx)
-        {
             VersionCondition.addPredefinedGlobalIdent("D_AVX");
-        }
+        if (global.params.cpu >= CPU.avx2)
+            VersionCondition.addPredefinedGlobalIdent("D_AVX2");
     }
 
     if (global.params.is64bit)
@@ -2074,7 +2089,9 @@ private CPU setTargetCPU(CPU cpu)
         {
             import core.cpuid;
             cpu = baseline;
-            if (core.cpuid.avx)
+            if (core.cpuid.avx2)
+                cpu = CPU.avx2;
+            else if (core.cpuid.avx)
                 cpu = CPU.avx;
             break;
         }

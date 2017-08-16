@@ -1,0 +1,32 @@
+Fix Issue 17697 - Ddoc: automatically highlight URLs outside of macro arguments
+
+URLs which appear in Ddoc text:
+
+---
+/****
+ * http://www.fooa.com/test1
+ */
+---
+
+will be treated as if they were written:
+
+---
+/****
+ * $(LINK http://www.fooa.com/test1)
+ */
+---
+
+and a clickable hyperlink will be emitted to the resulting .html file.
+
+This detection does not happen if the URL is part of a macro argument:
+
+---
+/****
+ * $(DOLLAR)$(LPAREN)ABC http://www.fooa.com/test1$(RPAREN)
+ */
+---
+
+The behavior of that is unchanged. URLs can start with `http://` or `https://`
+
+`http:` and `https:` at the beginning of the line are no longer treated
+as section headings.

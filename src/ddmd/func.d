@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _func.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/func.d, _func.d)
  */
 
 module ddmd.func;
+
+// Online documentation: https://dlang.org/phobos/ddmd_func.html
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -782,14 +784,22 @@ extern (C++) class FuncDeclaration : Declaration
 
                     if (!isOverride())
                     {
+                        if (fdv.isFuture())
+                        {
+                            .deprecation(loc, "@future base class method %s is being overridden by %s; rename the latter", fdv.toPrettyChars(), toPrettyChars());
+                            // Treat 'this' as an introducing function, giving it a separate hierarchy in the vtbl[]
+                            goto Lintro;
+                        }
+                        else
+                        {
                             int vi2 = findVtblIndex(&cd.baseClass.vtbl, cast(int)cd.baseClass.vtbl.dim, false);
                             if (vi2 < 0)
                                 // https://issues.dlang.org/show_bug.cgi?id=17349
                                 .deprecation(loc, "cannot implicitly override base class method `%s` with `%s`; add `override` attribute", fdv.toPrettyChars(), toPrettyChars());
                             else
                                 .error(loc, "cannot implicitly override base class method %s with %s; add 'override' attribute", fdv.toPrettyChars(), toPrettyChars());
+                        }
                     }
-
                     doesoverride = true;
                     if (fdc.toParent() == parent)
                     {
@@ -1240,13 +1250,12 @@ extern (C++) class FuncDeclaration : Declaration
              *      class C { int x; void delegate() dg = (){ this.x = 1; }; }
              *
              * However, lambdas could be used inside typeof, in order to check
-             * some expressions varidity at compile time. For such case the lambda
+             * some expressions validity at compile time. For such case the lambda
              * body can access aggregate instance members.
              * e.g.
              *      class C { int x; static assert(is(typeof({ this.x = 1; }))); }
              *
-             * To properly accept it, mark these lambdas as member functions -
-             * isThis() returns true and isNested() returns false.
+             * To properly accept it, mark these lambdas as member functions.
              */
             if (auto fld = isFuncLiteralDeclaration())
             {
@@ -1264,7 +1273,6 @@ extern (C++) class FuncDeclaration : Declaration
                         if (fld.tok != TOKfunction)
                             fld.tok = TOKdelegate;
                     }
-                    assert(!isNested());
                 }
             }
 
@@ -1585,7 +1593,7 @@ extern (C++) class FuncDeclaration : Declaration
                     uint nothrowErrors = global.errors;
                     blockexit = fbody.blockExit(this, f.isnothrow);
                     if (f.isnothrow && (global.errors != nothrowErrors))
-                        .error(loc, "nothrow %s '%s' may throw", kind(), toPrettyChars());
+                        .error(loc, "nothrow %s `%s` may throw", kind(), toPrettyChars());
                     if (flags & FUNCFLAGnothrowInprocess)
                     {
                         if (type == f)
@@ -1900,7 +1908,7 @@ extern (C++) class FuncDeclaration : Declaration
                             bool isnothrow = f.isnothrow & !(flags & FUNCFLAGnothrowInprocess);
                             int blockexit = s.blockExit(this, isnothrow);
                             if (f.isnothrow && isnothrow && blockexit & BEthrow)
-                                .error(loc, "nothrow %s '%s' may throw", kind(), toPrettyChars());
+                                .error(loc, "nothrow %s `%s` may throw", kind(), toPrettyChars());
                             if (flags & FUNCFLAGnothrowInprocess && blockexit & BEthrow)
                                 f.isnothrow = false;
 
@@ -1933,7 +1941,7 @@ extern (C++) class FuncDeclaration : Declaration
                             if (isStatic())
                             {
                                 // The monitor is in the ClassInfo
-                                vsync = new DotIdExp(loc, DsymbolExp.resolve(loc, sc2, cd, false), Id.classinfo);
+                                vsync = new DotIdExp(loc, resolve(loc, sc2, cd, false), Id.classinfo);
                             }
                             else
                             {
@@ -2325,7 +2333,14 @@ extern (C++) class FuncDeclaration : Declaration
                 if (type.equals(fdv.type)) // if exact match
                 {
                     if (fdv.parent.isClassDeclaration())
+                    {
+                        if (fdv.isFuture())
+                        {
+                            bestvi = vi;
+                            continue;           // keep looking
+                        }
                         return vi; // no need to look further
+                    }
 
                     if (exactvi >= 0)
                     {
@@ -3376,13 +3391,15 @@ extern (C++) class FuncDeclaration : Declaration
          * 2) has its address taken
          * 3) has a parent that escapes
          * 4) calls another nested function that needs a closure
-         * -or-
-         * 5) this function returns a local struct/class
          *
          * Note that since a non-virtual function can be called by
          * a virtual one, if that non-virtual function accesses a closure
          * var, the closure still has to be taken. Hence, we check for isThis()
          * instead of isVirtual(). (thanks to David Friedman)
+         *
+         * When the function returns a local struct or class, `requiresClosure`
+         * is already set to `true` upon entering this function when the
+         * struct/class refers to a local variable and a closure is needed.
          */
 
         //printf("FuncDeclaration::needsClosure() %s\n", toChars());
@@ -3439,30 +3456,6 @@ extern (C++) class FuncDeclaration : Declaration
         }
         if (requiresClosure)
             goto Lyes;
-
-        /* Look for case (5)
-         */
-        if (closureVars.dim)
-        {
-            Type tret = type.toTypeFunction().next;
-            assert(tret);
-            tret = tret.toBasetype();
-            //printf("\t\treturning %s\n", tret.toChars());
-            if (tret.ty == Tclass || tret.ty == Tstruct)
-            {
-                Dsymbol st = tret.toDsymbol(null);
-                //printf("\t\treturning class/struct %s\n", tret.toChars());
-                for (Dsymbol s = st.parent; s; s = s.parent)
-                {
-                    //printf("\t\t\tparent = %s %s\n", s.kind(), s.toChars());
-                    if (s == this)
-                    {
-                        //printf("\t\treturning local %s\n", st.toChars());
-                        goto Lyes;
-                    }
-                }
-            }
-        }
 
         return false;
 

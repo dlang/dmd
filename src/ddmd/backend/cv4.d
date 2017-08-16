@@ -5,10 +5,12 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Source:      $(DMDSRC backend/_cv4.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cv4.d, backend/_cv4.d)
  */
 
 module ddmd.backend.cv4;
+
+// Online documentation: https://dlang.org/phobos/ddmd_backend_cv4.html
 
 enum OEM = 0x42;        // Digital Mars OEM number (picked at random)
 

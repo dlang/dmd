@@ -5,10 +5,12 @@
  * Copyright: Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:    $(DMDSRC root/_man.d)
+ * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/root/man.d, root/_man.d)
  */
 
 module ddmd.root.man;
+
+// Online documentation: https://dlang.org/phobos/ddmd_root_man.html
 
 import core.stdc.stdio;
 import core.stdc.stdlib;

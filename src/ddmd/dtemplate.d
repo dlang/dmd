@@ -7,10 +7,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _dtemplate.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/dtemplate.d, _dtemplate.d)
  */
 
 module ddmd.dtemplate;
+
+// Online documentation: https://dlang.org/phobos/ddmd_dtemplate.html
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -33,6 +35,7 @@ import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.init;
+import ddmd.initsem;
 import ddmd.mtype;
 import ddmd.opover;
 import ddmd.root.aav;
@@ -2203,7 +2206,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         /* So the caller's o gets updated with the result of semantic() being run on o
          */
         if (v)
-            o = v._init.toExpression();
+            o = v._init.initializerToExpression();
         return o;
     }
 

@@ -1,5 +1,7 @@
 module ddmd.astbase;
 
+// Online documentation: https://dlang.org/phobos/ddmd_astbase.html
+
 import ddmd.astbasevisitor;
 
 /** The ASTBase  family defines a family of AST nodes appropriate for parsing with
@@ -152,6 +154,7 @@ struct ASTBase
     enum STCinference           = (1L << 46);   // do attribute inference
     enum STCexptemp             = (1L << 47);   // temporary variable that has lifetime restricted to an expression
     enum STCmaybescope          = (1L << 48);   // parameter might be 'scope'
+    enum STCfuture              = (1L << 49);   // introducing new base class function
 
     enum STC_TYPECTOR = (STCconst | STCimmutable | STCshared | STCwild);
 
@@ -1431,6 +1434,22 @@ struct ASTBase
         }
     }
 
+    extern (C++) final class StaticForeachDeclaration : AttribDeclaration
+    {
+        StaticForeach sfe;
+
+        extern (D) this(StaticForeach sfe, Dsymbols* decl)
+        {
+            super(decl);
+            this.sfe = sfe;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
     extern (C++) final class EnumMember : VarDeclaration
     {
         Expression origValue;
@@ -2147,6 +2166,22 @@ struct ASTBase
             this.condition = condition;
             this.ifbody = ifbody;
             this.elsebody = elsebody;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class StaticForeachStatement : Statement
+    {
+        StaticForeach sfe;
+
+        extern (D) this(Loc loc, StaticForeach sfe)
+        {
+            super(loc);
+            this.sfe = sfe;
         }
 
         override void accept(Visitor v)
@@ -5887,6 +5922,31 @@ struct ASTBase
         }
     }
 
+    extern (C++) final class StaticForeach : RootObject
+    {
+        Loc loc;
+
+        ForeachStatement aggrfe;
+        ForeachRangeStatement rangefe;
+
+        final extern (D) this(Loc loc, ForeachStatement aggrfe, ForeachRangeStatement rangefe)
+        in
+        {
+            assert(!!aggrfe ^ !!rangefe);
+        }
+        body
+        {
+            this.loc = loc;
+            this.aggrfe = aggrfe;
+            this.rangefe = rangefe;
+        }
+
+        void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
     extern (C++) final class StaticIfCondition : Condition
     {
         Expression exp;
@@ -6188,6 +6248,16 @@ struct ASTBase
         return result;
     }
 
+    static extern (C++) Expression initializerToExpression(Initializer i)
+    {
+        return i.toExpression;
+    }
+
+    static extern (C++) Expression typeToExpression(Type t)
+    {
+        return t.toExpression;
+    }
+
     extern (C++) static const(char)* stcToChars(ref StorageClass stc)
     {
         struct SCstring
@@ -6228,6 +6298,7 @@ struct ASTBase
             SCstring(STCtrusted, TOKat, "@trusted"),
             SCstring(STCsystem, TOKat, "@system"),
             SCstring(STCdisable, TOKat, "@disable"),
+            SCstring(STCfuture, TOKat, "@__future"),
             SCstring(0, TOKreserved)
         ];
         for (int i = 0; table[i].stc; i++)

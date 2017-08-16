@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _arrayop.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/arrayop.d, _arrayop.d)
  */
 
 module ddmd.arrayop;
+
+// Online documentation: https://dlang.org/phobos/ddmd_arrayop.html
 
 import core.stdc.stdio;
 import ddmd.arraytypes;
@@ -16,6 +18,7 @@ import ddmd.declaration;
 import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.id;
@@ -157,7 +160,7 @@ extern (C++) bool checkNonAssignmentArrayOp(Expression e, bool suggestion = fals
         const(char)* s = "";
         if (suggestion)
             s = " (possible missing [])";
-        e.error("array operation %s without destination memory not allowed%s", e.toChars(), s);
+        e.error("array operation `%s` without destination memory not allowed%s", e.toChars(), s);
         return true;
     }
     return false;
@@ -174,14 +177,11 @@ extern (C++) Expression arrayOp(BinExp e, Scope* sc)
     Type tbn = tb.nextOf().toBasetype();
     if (tbn.ty == Tvoid)
     {
-        e.error("cannot perform array operations on void[] arrays");
+        e.error("cannot perform array operations on `void[]` arrays");
         return new ErrorExp();
     }
     if (!isArrayOpValid(e))
-    {
-        e.error("invalid array operation %s (possible missing [])", e.toChars());
-        return new ErrorExp();
-    }
+        return arrayOpInvalidError(e);
 
     auto arguments = new Expressions();
 
@@ -211,11 +211,11 @@ extern (C++) Expression arrayOp(BinExp e, Scope* sc)
     {
         const(char)* fmt;
         if (tbn.ty == Tstruct || tbn.ty == Tclass)
-            fmt = "invalid array operation '%s' because %s doesn't support necessary arithmetic operations";
+            fmt = "invalid array operation `%s` because `%s` doesn't support necessary arithmetic operations";
         else if (!tbn.isscalar())
-            fmt = "invalid array operation '%s' because %s is not a scalar type";
+            fmt = "invalid array operation `%s` because `%s` is not a scalar type";
         else
-            fmt = "invalid array operation '%s' for element type %s";
+            fmt = "invalid array operation `%s` for element type `%s`";
         e.error(fmt, e.toChars(), tbn.toChars());
         return new ErrorExp();
     }
@@ -238,7 +238,7 @@ extern (C++) Expression arrayOp(BinAssignExp e, Scope* sc)
 
     if (tn && (!tn.isMutable() || !tn.isAssignable()))
     {
-        e.error("slice %s is not mutable", e.e1.toChars());
+        e.error("slice `%s` is not mutable", e.e1.toChars());
         return new ErrorExp();
     }
     if (e.e1.op == TOKarrayliteral)
@@ -628,4 +628,19 @@ extern (C++) bool isArrayOpOperand(Expression e)
                 e.op == TOKassign);
     }
     return false;
+}
+
+
+/***************************************************
+ * Print error message about invalid array operation.
+ * Params:
+ *      e = expression with the invalid array operation
+ * Returns:
+ *      instance of ErrorExp
+ */
+
+ErrorExp arrayOpInvalidError(Expression e)
+{
+    e.error("invalid array operation `%s` (possible missing [])", e.toChars());
+    return new ErrorExp();
 }

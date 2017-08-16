@@ -5,9 +5,8 @@
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/el.h
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/el.h, backend/el.h)
  */
 
 /* Routines to handle elems.                            */
@@ -202,7 +201,7 @@ elem *el_long(tym_t,targ_llong);
 }
 
 int ERTOL(elem *);
-int el_noreturn(elem *);
+bool el_returns(elem *);
 //elem *el_dctor(elem *e,void *decl);
 //elem *el_ddtor(elem *e,void *decl);
 elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor);

@@ -4,9 +4,8 @@
  *
  * Copyright:   Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/backconfig.c
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/backconfig.c, backend/backconfig.c)
  */
 
 // Configure the back end (optimizer and code generator)
@@ -51,7 +50,8 @@ void out_config_init(
                         // 2: fake it with C symbolic debug info
         bool alwaysframe,       // always create standard function frame
         bool stackstomp,        // add stack stomping code
-        bool avx                // use AVX instruction set
+        unsigned char avx,      // use AVX instruction set (0, 1, 2)
+        bool betterC            // implement "Better C"
         )
 {
 #if MARS
@@ -252,6 +252,8 @@ void out_config_init(
         config.flags |= CFGalwaysframe;
     if (stackstomp)
         config.flags2 |= CFG2stomp;
+
+    config.betterC = betterC;
 
     ph_init();
     block_init();
@@ -475,4 +477,3 @@ unsigned eve::sizeCheck() { return sizeof(eve); }
 
 // type.d
 unsigned TYPE::sizeCheck() { return sizeof(type); }
-

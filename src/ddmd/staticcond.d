@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _staticcond.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/staticcond.d, _staticcond.d)
  */
 
 module ddmd.staticcond;
+
+// Online documentation: https://dlang.org/phobos/ddmd_staticcond.html
 
 import ddmd.arraytypes;
 import ddmd.dmodule;
@@ -16,6 +18,7 @@ import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.errors;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.globals;
 import ddmd.identifier;
 import ddmd.mtype;

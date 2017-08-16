@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _optimize.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/optimize.d, _optimize.d)
  */
 
 module ddmd.optimize;
+
+// Online documentation: https://dlang.org/phobos/ddmd_optimize.html
 
 import core.stdc.stdio;
 
@@ -18,6 +20,7 @@ import ddmd.dclass;
 import ddmd.declaration;
 import ddmd.dsymbol;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.globals;
 import ddmd.init;
 import ddmd.mtype;
@@ -393,7 +396,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                         sinteger_t dim = ts.dim.toInteger();
                         if (index < 0 || index >= dim)
                         {
-                            e.error("array index %lld is out of bounds [0..%lld]", index, dim);
+                            e.error("array index %lld is out of bounds `[0..%lld]`", index, dim);
                             return error();
                         }
 

@@ -5,9 +5,8 @@
  * Copyright:   Copyright (C) 1986-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/gother.c
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/gother.c, backend/gother.c)
  */
 
 #if (SCPP || MARS) && !HTOD
@@ -58,6 +57,7 @@ struct Elemdata
         list_t  rdlist;         // list of definition elems for *pelem
 
         static Elemdata *ctor(elem *e,block *b,list_t rd);
+        Elemdata* find(elem *e);
 };
 
 Elemdata *Elemdata::ctor(elem *e,block *b,list_t rd)
@@ -70,6 +70,24 @@ Elemdata *Elemdata::ctor(elem *e,block *b,list_t rd)
     return ed;
 }
 
+/********************************
+ * Find `e` in Elemdata list.
+ * Params:
+ *      e = elem to find
+ * Returns:
+ *      Elemdata entry if found,
+ *      null if not
+ */
+Elemdata* Elemdata::find(elem *e)
+{
+    Elemdata* edl = this;
+    for (; edl; edl = edl->next)
+    {
+        if (edl->pelem == e)
+            break;
+    }
+    return edl;
+}
 
 /*****************
  * Free list of Elemdata's.
@@ -103,7 +121,7 @@ void constprop()
 {
     rd_compute();
     intranges();                // compute integer ranges
-    //eqeqranges();               // see if we can eliminate some relationals
+    eqeqranges();               // see if we can eliminate some relationals
     elemdatafree(&eqeqlist);
     elemdatafree(&rellist);
     elemdatafree(&inclist);
@@ -199,17 +217,37 @@ STATIC void conpropwalk(elem *n,vec_t IN)
         //printf("conpropwalk()\n"),elem_print(n);
         op = n->Eoper;
         if (op == OPcolon || op == OPcolon2)
-        {       L = vec_clone(IN);
-                conpropwalk(n->E1,L);
-                conpropwalk(n->E2,IN);
-                vec_orass(IN,L);                /* IN = L | R           */
+        {
+                L = vec_clone(IN);
+                switch (el_returns(n->E1) * 2 | el_returns(n->E2))
+                {
+                    case 3: // E1 and E2 return
+                        conpropwalk(n->E1,L);
+                        conpropwalk(n->E2,IN);
+                        vec_orass(IN,L);                // IN = L | R
+                        break;
+                    case 2: // E1 returns
+                        conpropwalk(n->E1,IN);
+                        conpropwalk(n->E2,L);
+                        break;
+                    case 1: // E2 returns
+                        conpropwalk(n->E1,L);
+                        conpropwalk(n->E2,IN);
+                        break;
+                    case 0: // neither returns
+                        conpropwalk(n->E1,L);
+                        vec_copy(L,IN);
+                        conpropwalk(n->E2,L);
+                        break;
+                }
                 vec_free(L);
         }
         else if (op == OPandand || op == OPoror)
         {       conpropwalk(n->E1,IN);
                 R = vec_clone(IN);
                 conpropwalk(n->E2,R);
-                vec_orass(IN,R);                /* IN |= R              */
+                if (el_returns(n->E2))
+                    vec_orass(IN,R);                // IN |= R
                 vec_free(R);
         }
         else if (OTunary(op))
@@ -274,7 +312,8 @@ STATIC void conpropwalk(elem *n,vec_t IN)
                         tyintegral(n->E2->Ety)
                        )
                     {
-                        //dbg_printf("appending to rellist\n"); elem_print(n);
+                        //printf("appending to rellist\n"); elem_print(n);
+                        //printf("\trellist IN: "); vec_print(IN); printf("\n");
                         pdata = Elemdata::ctor(n,thisblock,listrds(IN,n->E1,NULL));
                         pdata->next = rellist;
                         rellist = pdata;
@@ -289,6 +328,7 @@ STATIC void conpropwalk(elem *n,vec_t IN)
                     if (tyintegral(n->E1->Ety))
                     {
                         //dbg_printf("appending to inclist\n"); elem_print(n);
+                        //printf("\tinclist IN: "); vec_print(IN); printf("\n");
                         pdata = Elemdata::ctor(n,thisblock,listrds(IN,n->E1,NULL));
                         pdata->next = inclist;
                         inclist = pdata;
@@ -681,7 +721,7 @@ STATIC void intranges()
     symbol *v;
     elem *rdeq,*rdinc;
     unsigned incop,relatop;
-    targ_int initial,increment,final;
+    targ_llong initial,increment,final;
 
     cmes("intranges()\n");
     for (rel = rellist; rel; rel = rel->next)
@@ -824,6 +864,133 @@ STATIC void intranges()
       nextrel:
         ;
     }
+}
+
+/******************************
+ * Look for initialization and increment expressions in loop.
+ * Very similar to intranges().
+ * Params:
+ *   rellist = list of relationals in function
+ *   inclist = list of increment elems in function.
+ *   erel = loop compare expression of the form (v < c)
+ *   rdeq = set to loop initialization of v
+ *   rdinc = set to loop increment of v
+ * Returns:
+ *   false if cannot find rdeq or rdinc
+ */
+
+static bool returnResult(bool result)
+{
+    elemdatafree(&eqeqlist);
+    elemdatafree(&rellist);
+    elemdatafree(&inclist);
+    return result;
+}
+
+bool findloopparameters(elem* erel, elem*& rdeq, elem*& rdinc)
+{
+    cmes("findloopparameters()\n");
+    const bool log = false;
+
+    assert(erel->E1->Eoper == OPvar);
+    Symbol* v = erel->E1->EV.sp.Vsym;
+
+    // RD info is only reliable for registers and autos
+    if (!(sytab[v->Sclass] & SCRD))
+        return false;
+
+    rd_compute();       // compute rellist, inclist, eqeqlist
+
+    /* Find `erel` in `rellist`
+     */
+    Elemdata* rel = rellist->find(erel);
+    if (!rel)
+    {
+        if (log) printf("\trel not found\n");
+        return returnResult(false);
+    }
+
+    block* rb = rel->pblock;
+    //dbg_printf("rel->pelem: "); WReqn(rel->pelem); dbg_printf("\n");
+
+
+    // Look for one reaching definition: an increment
+    if (list_nitems(rel->rdlist) != 1)
+    {
+        if (log) printf("\tnitems = %d\n", list_nitems(rel->rdlist));
+        return returnResult(false);
+    }
+
+    rdinc = list_elem(rel->rdlist);
+
+#if 0
+    printf("\neq:  "); WReqn(rdeq); printf("\n");
+    printf("rel: "); WReqn(rel->pelem); printf("\n");
+    printf("inc: "); WReqn(rdinc); printf("\n");
+#endif
+    unsigned incop = rdinc->Eoper;
+    if (!OTpost(incop) && incop != OPaddass && incop != OPminass)
+    {
+        if (log) printf("\tnot += or -=\n");
+        return returnResult(false);
+    }
+
+    Elemdata* iel = inclist->find(rdinc);
+    if (!iel)
+    {
+        if (log) printf("\trdinc not found\n");
+        return returnResult(false);
+    }
+
+    /* The increment should have two reaching definitions:
+     *   the initialization
+     *   the increment itself
+     * We already have the increment (as rdinc), but need the initialization (rdeq)
+     */
+    if (list_nitems(iel->rdlist) != 2)
+    {
+        if (log) printf("nitems != 2\n");
+        return returnResult(false);
+    }
+    elem *rd1 = list_elem(iel->rdlist);
+    elem *rd2 = list_elem(list_next(iel->rdlist));
+    if (rd1 == rdinc)
+        rdeq = rd2;
+    else if (rd2 == rdinc)
+        rdeq = rd1;
+    else
+    {
+        if (log) printf("\tnot (rdeq,rdinc)\n");
+        return returnResult(false);
+    }
+
+    // lvalues should be unambiguous defs
+    if (rdeq->Eoper != OPeq || rdeq->E1->Eoper != OPvar || rdinc->E1->Eoper != OPvar)
+    {
+        if (log) printf("\tnot OPvar\n");
+        return returnResult(false);
+    }
+
+    // rvalues should be constants
+    if (rdeq->E2->Eoper != OPconst || rdinc->E2->Eoper != OPconst)
+    {
+        if (log) printf("\tnot OPconst\n");
+        return returnResult(false);
+    }
+
+    /* Check that all paths from rdinc to rdinc must pass through rdrel
+     * iel->pblock = block of increment
+     * rel->pblock = block of relational
+     */
+    int i = loopcheck(iel->pblock,iel->pblock,rel->pblock);
+    block_clearvisit();
+    if (i)
+    {
+        if (log) printf("\tnot loopcheck()\n");
+        return returnResult(false);
+    }
+
+    return returnResult(true);
 }
 
 /***********************

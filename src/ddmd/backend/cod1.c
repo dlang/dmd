@@ -5,9 +5,8 @@
  * Copyright:   Copyright (C) 1984-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cod1.c
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cod1.c, backend/cod1.c)
  */
 
 #if !SPP
@@ -41,7 +40,6 @@ enum MF
         MFdouble        = 2,
         MFword          = 3
 };
-code * genf2(code *c,unsigned op,unsigned rm);
 
 targ_size_t paramsize(elem *e);
 static void funccall(CodeBuilder& cdb,elem *,unsigned,unsigned,regm_t *,regm_t,bool);
@@ -282,7 +280,7 @@ void genEEcode()
     regcon.immed.mval = 0;
     regm_t retregs = 0;    //regmask(eecontext.EEelem->Ety);
     assert(EEStack.offset >= REGSIZE);
-    cdb.append(cod3_stackadj(NULL, EEStack.offset - REGSIZE));
+    cod3_stackadj(cdb, EEStack.offset - REGSIZE);
     cdb.gen1(0x50 + SI);                      // PUSH ESI
     cdb.append(genadjesp(CNIL,EEStack.offset));
     gencodelem(cdb,eecontext.EEelem,&retregs, FALSE);
@@ -391,7 +389,7 @@ void genstackclean(CodeBuilder& cdb,unsigned numpara,regm_t keepmsk)
                 cdb.gen1(0x58 + r);           // POP r
             }
             else
-                cdb.append(cod3_stackadj(CNIL, -numpara));
+                cod3_stackadj(cdb, -numpara);
         }
         stackpush -= numpara;
         cdb.append(genadjesp(CNIL,-numpara));
@@ -492,7 +490,7 @@ void logexp(CodeBuilder& cdb,elem *e,int jcond,unsigned fltarg,code *targ)
                 logexp(cdb,e->E1,FALSE,FLcode,cnop2);   // eval condition
                 con_t regconold = regcon;
                 logexp(cdb,e->E2->E1,jcond,fltarg,targ);
-                cdb.append(genjmp(CNIL,JMP,FLcode,(block *) cnop)); // skip second leaf
+                genjmp(cdb,JMP,FLcode,(block *) cnop); // skip second leaf
 
                 con_t regconsave = regcon;
                 regcon = regconold;
@@ -519,7 +517,7 @@ void logexp(CodeBuilder& cdb,elem *e,int jcond,unsigned fltarg,code *targ)
           (I32 && tybasic(e->E1->Ety) == TYllong && tybasic(e->E2->Ety) == TYllong))
        )
     {
-        cdb.append(longcmp(e,jcond,fltarg,targ));
+        longcmp(cdb,e,jcond,fltarg,targ);
         cgstate.stackclean--;
         return;
     }
@@ -531,7 +529,7 @@ void logexp(CodeBuilder& cdb,elem *e,int jcond,unsigned fltarg,code *targ)
     codelem(cdb,e,&retregs,TRUE);         // evaluate elem
     if (no87)
         cse_flush(cdb,no87);              // flush CSE's to memory
-    cdb.append(genjmp(CNIL,op,fltarg,(block *) targ)); // generate jmp instruction
+    genjmp(cdb,op,fltarg,(block *) targ); // generate jmp instruction
     cgstate.stackclean--;
 }
 
@@ -1539,8 +1537,8 @@ void tstresult(CodeBuilder& cdb,regm_t regm,tym_t tym,unsigned saveflag)
         cdb.gen2(op | 0x0F2E,modregrm(3,xreg-XMM0,reg-XMM0));    // UCOMISS xreg,reg
         if (tym == TYcfloat || tym == TYcdouble)
         {   code *cnop = gennop(CNIL);
-            cdb.append(genjmp(CNIL,JNE,FLcode,(block *) cnop)); // JNE     L1
-            cdb.append(genjmp(CNIL,JP, FLcode,(block *) cnop)); // JP      L1
+            genjmp(cdb,JNE,FLcode,(block *) cnop); // JNE     L1
+            genjmp(cdb,JP, FLcode,(block *) cnop); // JP      L1
             reg = findreg(regm & ~mask[reg]);
             cdb.gen2(op | 0x0F2E,modregrm(3,xreg-XMM0,reg-XMM0));        // UCOMISS xreg,reg
             cdb.append(cnop);
@@ -1758,20 +1756,29 @@ void fixresult(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretregs)
             else if (forregs & XMMREGS)
             {
                 reg = findreg(retregs & (mBP | ALLREGS));
-                // MOV floatreg,reg
-                cdb.genfltreg(0x89,reg,0);
-                if (sz == 8)
+                switch (sz)
                 {
+                case 4:
+                    cdb.gen2(LODD, modregxrmx(3,rreg - XMM0,reg)); // MOVD xmm,reg
+                    break;
+                case 8:
                     if (I32)
                     {
+                        cdb.genfltreg(0x89,reg,0);
                         reg = findregmsw(retregs);
                         cdb.genfltreg(0x89,reg,4);
+                        cdb.append(genxmmreg(CNIL,xmmload(tym),rreg,0,tym)); // MOVQ xmm,mem
                     }
                     else
-                        code_orrex(cdb.last(),REX_W);
+                    {
+                        cdb.gen2(LODD /* [sic!] */, modregxrmx(3,rreg - XMM0,reg));
+                        code_orrex(cdb.last(),REX_W); // MOVQ xmm,reg
+                    }
+                    break;
+                default:
+                    assert(false);
                 }
-                // MOVSS/MOVSD XMMreg,floatreg
-                cdb.append(genxmmreg(CNIL,xmmload(tym),rreg,0,tym));
+                checkSetVex(cdb.last(), tym);
             }
             else if (sz > REGSIZE)
             {
@@ -2544,7 +2551,7 @@ void callclib(CodeBuilder& cdb,elem *e,unsigned clib,regm_t *pretregs,regm_t kee
             int npush = (npushed + pushebx) * REGSIZE + stackpush;
             if (npush & (STACKALIGN - 1))
             {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
-                cdb.append(cod3_stackadj(CNIL, nalign));
+                cod3_stackadj(cdb, nalign);
             }
         }
         if (pushebx)
@@ -2566,7 +2573,7 @@ void callclib(CodeBuilder& cdb,elem *e,unsigned clib,regm_t *pretregs,regm_t kee
         cdb.append(cgot);                                        // EBX = localgot
         cdb.append(gencs(CNIL,LARGECODE ? 0x9A : 0xE8,0,FLfunc,s));  // CALL s
         if (nalign)
-            cdb.append(cod3_stackadj(CNIL, -nalign));
+            cod3_stackadj(cdb, -nalign);
         calledafunc = 1;
 
 #if SCPP & TX86
@@ -2970,7 +2977,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     if (!usefuncarg && STACKALIGN == 16 && (numpara + stackpush) & (STACKALIGN - 1))
     {
         numalign = STACKALIGN - ((numpara + stackpush) & (STACKALIGN - 1));
-        cdb.append(cod3_stackadj(CNIL, numalign));
+        cod3_stackadj(cdb, numalign);
         cdb.append(genadjesp(CNIL, numalign));
         stackpush += numalign;
         stackpushsave += numalign;
@@ -3046,7 +3053,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             }
             else if (numalign)
             {
-                cdb.append(cod3_stackadj(CNIL, numalign));
+                cod3_stackadj(cdb, numalign);
                 cdb.append(genadjesp(CNIL, numalign));
                 stackpush += numalign;
             }
@@ -3182,7 +3189,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             }
             else
             {
-                cdb.append(cod3_stackadj(CNIL, sz));
+                cod3_stackadj(cdb, sz);
                 cdb.append(genadjesp(CNIL, sz));
                 stackpush += sz;
             }
@@ -3827,7 +3834,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
         elem *e1 = e->E1;
         docommas(cdb,&e1);              // skip over any comma expressions
 
-        cdb.append(cod3_stackadj(CNIL, sz));
+        cod3_stackadj(cdb, sz);
         stackpush += sz;
         cdb.append(genadjesp(CNIL,sz));
 
@@ -4001,7 +4008,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
                     cdb.last()->Iflags |= seg | CFtarg2;
                     code *c3 = cdb.last();
                     cdb.genc2(0x81,grex | buildModregrm(3,5,reg),pushsize);  // SUB reg,2
-                    cdb.append(genjmp(CNIL,0xE2,FLcode,(block *)c3));        // LOOP c3
+                    genjmp(cdb,0xE2,FLcode,(block *)c3);        // LOOP c3
                     regimmed_set(CX,0);
                     cdb.append(genadjesp(CNIL,sz));
                 }
@@ -4285,7 +4292,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             {
                 if (I64 && regsize == 8 && value != (int)value)
                 {
-                    cdb.append(regwithvalue(CNIL,allregs,value,&reg,64));
+                    regwithvalue(cdb,allregs,value,&reg,64);
                     goto Preg;          // cannot push imm64 unless it is sign extended 32 bit value
                 }
                 if (regsize == REGSIZE && reghasvalue(allregs,value,&reg))
@@ -4294,7 +4301,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             }
             else
             {
-                cdb.append(regwithvalue(CNIL,allregs,value,&reg,0));
+                regwithvalue(cdb,allregs,value,&reg,0);
             Preg:
                 cdb.append(genpush(CNIL,reg));         // PUSH reg
             }
@@ -4314,7 +4321,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
         codelem(cdb,e,&retregs,FALSE);
         stackpush += sz;
         cdb.append(genadjesp(CNIL,sz));
-        cdb.append(cod3_stackadj(CNIL, sz));
+        cod3_stackadj(cdb, sz);
         unsigned op = xmmstore(tym);
         unsigned r = findreg(retregs);
         cdb.gen2sib(op,modregxrm(0,r - XMM0,4),modregrm(0,4,SP));   // MOV [ESP],r
@@ -4329,7 +4336,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             codelem(cdb,e,&retregs,FALSE);
             stackpush += sz;
             cdb.append(genadjesp(CNIL,sz));
-            cdb.append(cod3_stackadj(CNIL, sz));
+            cod3_stackadj(cdb, sz);
             unsigned op;
             unsigned r;
             switch (tym)
@@ -4381,7 +4388,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             }
             if (LARGEDATA)
                 cdb.last()->Iflags |= CFss;     // want to store into stack
-            cdb.append(genfwait(CNIL));         // FWAIT
+            genfwait(cdb);         // FWAIT
             return;
         }
         else if (I16 && (tym == TYdouble || tym == TYdouble_alias))
@@ -4621,7 +4628,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 targ_size_t value = e->EV.Vuns;
                 if (sz == 8)
                     value = e->EV.Vullong;
-                cdb.append(regwithvalue(CNIL,ALLREGS, value,&r,flags));
+                regwithvalue(cdb,ALLREGS, value,&r,flags);
                 flags = 0;                          // flags are already set
                 cdb.genfltreg(0x89,r,0);            // MOV floatreg,r
                 if (sz == 8)

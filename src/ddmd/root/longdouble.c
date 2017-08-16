@@ -567,12 +567,15 @@ size_t ld_sprint(char* str, int fmt, longdouble x)
     unsigned long long mantissa = x.mantissa;
 
     if(ld_type(x) == LD_TYPE_ZERO)
-        return sprintf(str, "0x0.0L");
+        return sprintf(str, fmt == 'a' ? "0x0.0L" : "0X0.0L");
 
     size_t len = 0;
     if(x.sign)
         str[len++] = '-';
-    len += sprintf(str + len, mantissa & (1LL << 63) ? "0x1." : "0x0.");
+    str[len++] = '0';
+    str[len++] = 'X' + fmt - 'A';
+    str[len++] = mantissa & (1LL << 63) ? '1' : '0';
+    str[len++] = '.';
     mantissa = mantissa << 1;
     while(mantissa)
     {
@@ -581,7 +584,7 @@ size_t ld_sprint(char* str, int fmt, longdouble x)
         str[len++] = dig;
         mantissa = mantissa << 4;
     }
-    str[len++] = 'p';
+    str[len++] = 'P' + fmt - 'A';
     if(exp < 0x3fff)
     {
         str[len++] = '-';

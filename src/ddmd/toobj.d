@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/_tocsym.d, _toobj.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _toobj.d)
  */
 
 module ddmd.toobj;
+
+// Online documentation: https://dlang.org/phobos/ddmd_toobj.html
 
 import core.stdc.stdio;
 import core.stdc.stddef;
@@ -46,6 +48,7 @@ import ddmd.statement;
 import ddmd.staticassert;
 import ddmd.target;
 import ddmd.tocsym;
+import ddmd.toctype;
 import ddmd.tocvdebug;
 import ddmd.todt;
 import ddmd.tokens;
@@ -327,7 +330,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
             }
 
-            if (global.params.symdebug)
+            if (global.params.symdebugref)
+                Type_toCtype(cd.type); // calls toDebug() only once
+            else if (global.params.symdebug)
                 toDebug(cd);
 
             assert(cd.semanticRun >= PASSsemantic3done);     // semantic() should have been run to completion
@@ -646,7 +651,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (!id.members)
                 return;
 
-            if (global.params.symdebug)
+            if (global.params.symdebugref)
+                Type_toCtype(id.type); // calls toDebug() only once
+            else if (global.params.symdebug)
                 toDebug(id);
 
             enum_SC scclass = SCcomdat;
@@ -828,10 +835,13 @@ void toObjFile(Dsymbol ds, bool multiobj)
             // do not output forward referenced structs's
             if (!sd.isAnonymous() && sd.members)
             {
-                if (global.params.symdebug)
+                if (global.params.symdebugref)
+                    Type_toCtype(sd.type); // calls toDebug() only once
+                else if (global.params.symdebug)
                     toDebug(sd);
 
-                genTypeInfo(sd.type, null);
+                if (!global.params.betterC)
+                    genTypeInfo(sd.type, null);
 
                 // Generate static initializer
                 toInitializer(sd);
@@ -987,10 +997,13 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (ed.isAnonymous())
                 return;
 
-            if (global.params.symdebug)
+            if (global.params.symdebugref)
+                Type_toCtype(ed.type); // calls toDebug() only once
+            else if (global.params.symdebug)
                 toDebug(ed);
 
-            genTypeInfo(ed.type, null);
+            if (!global.params.betterC)
+                genTypeInfo(ed.type, null);
 
             TypeEnum tc = cast(TypeEnum)ed.type;
             if (!tc.sym.members || ed.type.isZeroInit())
@@ -1339,7 +1352,7 @@ private void finishVtbl(ClassDeclaration cd)
         // https://issues.dlang.org/show_bug.cgi?id=4869
         fd.functionSemantic();
 
-        if (!cd.isFuncHidden(fd))
+        if (!cd.isFuncHidden(fd) || fd.isFuture())
         {
             // All good, no name hiding to check for
             continue;
@@ -1355,6 +1368,8 @@ private void finishVtbl(ClassDeclaration cd)
                 continue;
             FuncDeclaration fd2 = cd.vtbl[j].isFuncDeclaration();
             if (!fd2.ident.equals(fd.ident))
+                continue;
+            if (fd2.isFuture())
                 continue;
             if (!fd.leastAsSpecialized(fd2) && !fd2.leastAsSpecialized(fd))
                 continue;

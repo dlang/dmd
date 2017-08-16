@@ -2,11 +2,11 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/parseStc4.d(14): Deprecation: redundant attribute 'pure'
-fail_compilation/parseStc4.d(14): Deprecation: redundant attribute 'nothrow'
-fail_compilation/parseStc4.d(14): Error: conflicting attribute '@system'
-fail_compilation/parseStc4.d(14): Deprecation: redundant attribute '@nogc'
-fail_compilation/parseStc4.d(14): Deprecation: redundant attribute '@property'
+fail_compilation/parseStc4.d(14): Deprecation: redundant attribute `pure`
+fail_compilation/parseStc4.d(14): Deprecation: redundant attribute `nothrow`
+fail_compilation/parseStc4.d(14): Error: conflicting attribute `@system`
+fail_compilation/parseStc4.d(14): Deprecation: redundant attribute `@nogc`
+fail_compilation/parseStc4.d(14): Deprecation: redundant attribute `@property`
 ---
 */
 pure nothrow @safe   @nogc @property
@@ -19,13 +19,13 @@ pure nothrow @system @nogc @property
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/parseStc4.d(34): Deprecation: redundant attribute 'const'
-fail_compilation/parseStc4.d(35): Deprecation: redundant attribute 'const'
-fail_compilation/parseStc4.d(36): Deprecation: redundant attribute 'const'
-fail_compilation/parseStc4.d(38): Deprecation: redundant attribute 'pure'
-fail_compilation/parseStc4.d(39): Deprecation: redundant attribute '@safe'
-fail_compilation/parseStc4.d(40): Deprecation: redundant attribute 'nothrow'
-fail_compilation/parseStc4.d(41): Error: conflicting attribute '@trusted'
+fail_compilation/parseStc4.d(34): Deprecation: redundant attribute `const`
+fail_compilation/parseStc4.d(35): Deprecation: redundant attribute `const`
+fail_compilation/parseStc4.d(36): Deprecation: redundant attribute `const`
+fail_compilation/parseStc4.d(38): Deprecation: redundant attribute `pure`
+fail_compilation/parseStc4.d(39): Deprecation: redundant attribute `@safe`
+fail_compilation/parseStc4.d(40): Deprecation: redundant attribute `nothrow`
+fail_compilation/parseStc4.d(41): Error: conflicting attribute `@trusted`
 ---
 */
 

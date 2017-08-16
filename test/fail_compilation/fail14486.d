@@ -51,10 +51,10 @@ void test1a() @nogc pure @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail14486.d(63): Error: destructor 'fail14486.C1b.~this' is not nothrow
-fail_compilation/fail14486.d(64): Error: destructor 'fail14486.C2b.~this' is not nothrow
-fail_compilation/fail14486.d(65): Error: deallocator 'fail14486.C3b.delete' is not nothrow
-fail_compilation/fail14486.d(60): Error: nothrow function 'fail14486.test1b' may throw
+fail_compilation/fail14486.d(63): Error: destructor `fail14486.C1b.~this` is not nothrow
+fail_compilation/fail14486.d(64): Error: destructor `fail14486.C2b.~this` is not nothrow
+fail_compilation/fail14486.d(65): Error: deallocator `fail14486.C3b.delete` is not nothrow
+fail_compilation/fail14486.d(60): Error: nothrow function `fail14486.test1b` may throw
 ---
 */
 void test1b() nothrow
@@ -93,10 +93,10 @@ void test2a() @nogc pure @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail14486.d(105): Error: destructor 'fail14486.S1b.~this' is not nothrow
-fail_compilation/fail14486.d(106): Error: destructor 'fail14486.S2b.~this' is not nothrow
-fail_compilation/fail14486.d(107): Error: deallocator 'fail14486.S3b.delete' is not nothrow
-fail_compilation/fail14486.d(102): Error: nothrow function 'fail14486.test2b' may throw
+fail_compilation/fail14486.d(105): Error: destructor `fail14486.S1b.~this` is not nothrow
+fail_compilation/fail14486.d(106): Error: destructor `fail14486.S2b.~this` is not nothrow
+fail_compilation/fail14486.d(107): Error: deallocator `fail14486.S3b.delete` is not nothrow
+fail_compilation/fail14486.d(102): Error: nothrow function `fail14486.test2b` may throw
 ---
 */
 void test2b() nothrow
@@ -134,9 +134,9 @@ void test3a() @nogc pure @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail14486.d(145): Error: destructor 'fail14486.S1b.~this' is not nothrow
-fail_compilation/fail14486.d(146): Error: destructor 'fail14486.S2b.~this' is not nothrow
-fail_compilation/fail14486.d(142): Error: nothrow function 'fail14486.test3b' may throw
+fail_compilation/fail14486.d(145): Error: destructor `fail14486.S1b.~this` is not nothrow
+fail_compilation/fail14486.d(146): Error: destructor `fail14486.S2b.~this` is not nothrow
+fail_compilation/fail14486.d(142): Error: nothrow function `fail14486.test3b` may throw
 ---
 */
 void test3b() nothrow

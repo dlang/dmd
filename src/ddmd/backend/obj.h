@@ -4,9 +4,8 @@
  *
  * Copyright:   Copyright (c) 2012-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/obj.h
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/obj.h, backend/obj.h)
  */
 
 /* Interface to object file format
@@ -50,7 +49,7 @@ class Obj
     VIRTUAL void segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
     VIRTUAL void staticctor(Symbol *s,int dtor,int seg);
     VIRTUAL void staticdtor(Symbol *s);
-    VIRTUAL void funcptr(Symbol *s);
+    VIRTUAL void setModuleCtorDtor(Symbol *s, bool isCtor);
     VIRTUAL void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
     VIRTUAL void ehsections();
     VIRTUAL void moduleinfo(Symbol *scc);
@@ -161,7 +160,7 @@ class MsCoffObj : public Obj
 //    VIRTUAL void segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
     VIRTUAL void staticctor(Symbol *s,int dtor,int seg);
     VIRTUAL void staticdtor(Symbol *s);
-    VIRTUAL void funcptr(Symbol *s);
+    VIRTUAL void setModuleCtorDtor(Symbol *s, bool isCtor);
     VIRTUAL void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
     VIRTUAL void ehsections();
     VIRTUAL void moduleinfo(Symbol *scc);

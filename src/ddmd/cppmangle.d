@@ -4,10 +4,12 @@
  * Copyright: Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:    $(DMDSRC _cppmangle.d)
+ * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/cppmangle.d, _cppmangle.d)
  */
 
 module ddmd.cppmangle;
+
+// Online documentation: https://dlang.org/phobos/ddmd_cppmangle.html
 
 import core.stdc.string;
 import core.stdc.stdio;

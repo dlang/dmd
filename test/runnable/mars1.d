@@ -1546,6 +1546,35 @@ void test16102()
 
 ////////////////////////////////////////////////////////////////////////
 
+
+/* Test the pattern:
+ *   replace ((i / C1) / C2) with (i / (C1 * C2))
+ * when e1 is 0 or 1 and (i2-i1) is a power of 2.
+ */
+
+void divdiv(T, T C1, T C2)(T i)
+{
+    auto a = (i / C1) / C2;
+    auto b = i / (C1 * C2);
+    if (a != b) assert(0);
+}
+
+void testdivdiv()
+{
+    divdiv!(int,10,20)(30);
+    divdiv!(uint,10,20)(30);
+    divdiv!(long,10,20)(30);
+    divdiv!(ulong,10,20)(30);
+
+    divdiv!(int,-10,20)(30);
+    divdiv!(long,-10,20)(30);
+
+    divdiv!(int,-10,-20)(-30);
+    divdiv!(long,-10,-20)(-30);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 void test5a(ulong x, ulong y)
 {
     int a;
@@ -1565,6 +1594,70 @@ void test5a(ulong x, ulong y)
 void test5()
 {
     test5a(uint.max + 1L, uint.max);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+/* Test the pattern:
+ *   replace (e ? i1 : i2) with (i1 + e * (i2 - i1))
+ * when e1 is 0 or 1 and (i2-i1) is a power of 2.
+ */
+
+int foo61(int i)
+{
+    return (i % 2 != 0) ? 4 : 2;
+}
+
+int foo62(int i)
+{
+    return (i % 2 != 0) ? 2 : 4;
+}
+
+bool bar6(bool b) { return b; }
+
+int foo63(bool b)
+{
+    return bar6(b) ? 16 : 8;
+}
+
+int foo64(bool b)
+{
+    return bar6(b) ? 8 : 16;
+}
+
+void test6()
+{
+    if (foo61(0) != 2) assert(0);
+    if (foo61(1) != 4) assert(0);
+    if (foo62(0) != 4) assert(0);
+    if (foo62(1) != 2) assert(0);
+    if (foo63(0) != 8) assert(0);
+    if (foo63(1) != 16) assert(0);
+    if (foo64(0) != 16) assert(0);
+    if (foo64(1) != 8) assert(0);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+int dataflow(int b) {
+  int ret;
+
+  if (b==4)
+    ret = 3;
+  else
+    ret = 5;
+
+  if (ret == 4)
+    return 0;
+  else
+    return 1;
+}
+
+void testeqeqranges()
+{
+    int i = dataflow(4);
+    if (i != 1)
+        assert(0);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1623,7 +1716,10 @@ int main()
     test13474();
     test16699();
     test16102();
+    testdivdiv();
     test5();
+    test6();
+    testeqeqranges();
     printf("Success\n");
     return 0;
 }

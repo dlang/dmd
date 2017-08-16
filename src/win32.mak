@@ -61,6 +61,7 @@
 # fixed model for win32.mak, overridden by win64.mak
 MODEL=32
 BUILD=release
+OS=windows
 
 ##### Directories
 
@@ -160,11 +161,11 @@ FRONT_SRCS=$D/access.d $D/aggregate.d $D/aliasthis.d $D/apply.d $D/argtypes.d $D
 	$D/declaration.d $D/delegatize.d $D/denum.d $D/dimport.d $D/dinifile.d $D/dinterpret.d	\
 	$D/dmacro.d $D/dmangle.d $D/dmodule.d $D/doc.d $D/dscope.d $D/dstruct.d $D/dsymbol.d		\
 	$D/dtemplate.d $D/dversion.d $D/escape.d			\
-	$D/expression.d $D/func.d $D/hdrgen.d $D/imphint.d	\
-	$D/impcnvtab.d $D/init.d $D/inline.d $D/inlinecost.d $D/intrange.d $D/json.d $D/lib.d $D/link.d	\
+	$D/expression.d $D/expressionsem.d $D/func.d $D/hdrgen.d $D/id.d $D/imphint.d	\
+	$D/impcnvtab.d $D/init.d $D/initsem.d $D/inline.d $D/inlinecost.d $D/intrange.d $D/json.d $D/lib.d $D/link.d	\
 	$D/mars.d $D/mtype.d $D/nogc.d $D/nspace.d $D/objc.d $D/opover.d $D/optimize.d $D/parse.d	\
 	$D/sapply.d $D/sideeffect.d $D/statement.d $D/staticassert.d $D/target.d	\
-	$D/safe.d $D/blockexit.d $D/asttypename.d $D/printast.d \
+	$D/safe.d $D/blockexit.d $D/asttypename.d $D/printast.d $D/typesem.d \
 	$D/traits.d $D/utils.d $D/visitor.d $D/libomf.d $D/scanomf.d $D/typinf.d \
 	$D/libmscoff.d $D/scanmscoff.d $D/statement_rewrite_walker.d $D/statementsem.d $D/staticcond.d
 
@@ -346,7 +347,7 @@ clean:
 	$(RD) /s /q $(GEN)
 	$(DEL) $D\msgs.h $D\msgs.c
 	$(DEL) optabgen.exe parser_test.exe example_avg.exe
-	$(DEL) $(TARGETEXE) $(DMDFRONTENDEXE) $(IDGENOUTPUT) *.map *.obj
+	$(DEL) $(TARGETEXE) $(DMDFRONTENDEXE) *.map *.obj
 
 install: detab install-copy
 
@@ -416,7 +417,6 @@ $(TOOLS_DIR)\checkwhitespace.d:
 
 ############################## Generated Source ##############################
 OPTABGENOUTPUT = $G\elxxx.c $G\cdxxx.c $G\optab.c $G\debtab.c $G\fltables.c $G\tytab.c
-IDGENOUTPUT    = $D/id.d $D/id.h
 
 $(OPTABGENOUTPUT) : \
 	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c
@@ -424,10 +424,6 @@ $(OPTABGENOUTPUT) : \
 	$G\optabgen.exe
 	copy *.c "$G\"
 	$(DEL) *.c
-
-$(IDGENOUTPUT) : $D\idgen.d
-	$(HOST_DC) -of$G\idgen $D\idgen.d
-	$G/idgen
 
 $G\VERSION : ..\VERSION $G
 	copy ..\VERSION $@

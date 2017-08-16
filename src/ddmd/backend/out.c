@@ -5,9 +5,8 @@
  * Copyright:   Copyright (C) 1984-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/out.c
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/out.c, backend/out.c)
  */
 
 
@@ -1181,7 +1180,7 @@ STATIC void writefunc2(symbol *sfunc)
         if (b->Belem)
         {   outelem(b->Belem);
 #if SCPP
-            if (el_noreturn(b->Belem) && !(config.flags3 & CFG3eh))
+            if (!el_returns(b->Belem) && !(config.flags3 & CFG3eh))
             {   b->BC = BCexit;
                 list_free(&b->Bsucc,FPNULL);
             }
@@ -1426,7 +1425,7 @@ STATIC void writefunc2(symbol *sfunc)
         if (p[0] == '_' && p[1] == 'S' && p[2] == 'T' &&
             (p[3] == 'I' || p[3] == 'D'))
 #endif
-            objmod->funcptr(sfunc);
+            objmod->setModuleCtorDtor(sfunc, sfunc->Sident[3] == 'I');
     }
 
 Ldone:

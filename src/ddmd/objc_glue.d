@@ -11,6 +11,8 @@
 
 module ddmd.objc_glue;
 
+// Online documentation: https://dlang.org/phobos/ddmd_objc_glue.html
+
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;

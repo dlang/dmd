@@ -412,28 +412,6 @@
   <Folder name="gen">
    <File tool="Custom" path="..\..\VERSION" customcmd="copy ..\..\VERSION $(OutDir)\VERSION" uptodateWithSameTime="true" outfile="$(OutDir)\VERSION" />
   </Folder>
-  <Folder name="generated">
-   <Folder name="Debug_Win32">
-    <File tool="None" path="..\..\generated\Windows\Debug\Win32\generated\ddmd\id.d" perConfig="true">
-     <Config name="Debug|Win32" />
-    </File>
-   </Folder>
-   <Folder name="Debug_x64">
-    <File tool="None" path="..\..\generated\Windows\Debug\x64\generated\ddmd\id.d" perConfig="true">
-     <Config name="Debug|x64" />
-    </File>
-   </Folder>
-   <Folder name="Release_Win32">
-    <File tool="None" path="..\..\generated\Windows\Release\Win32\generated\ddmd\id.d" perConfig="true">
-     <Config name="Release|Win32" />
-    </File>
-   </Folder>
-   <Folder name="Release_x64">
-    <File tool="None" path="..\..\generated\Windows\Release\x64\generated\ddmd\id.d" perConfig="true">
-     <Config name="Release|x64" />
-    </File>
-   </Folder>
-  </Folder>
   <Folder name="ddmd">
    <Folder name="backend">
     <File path="..\ddmd\backend\bcomplex.d" />
@@ -520,16 +498,19 @@
    <File path="..\ddmd\errors.d" />
    <File path="..\ddmd\escape.d" />
    <File path="..\ddmd\expression.d" />
+   <File path="..\ddmd\expressionsem.d" />
    <File path="..\ddmd\func.d" />
    <File path="..\ddmd\globals.d" />
    <File path="..\ddmd\glue.d" />
    <File path="..\ddmd\gluelayer.d" />
    <File path="..\ddmd\hdrgen.d" />
    <File path="..\ddmd\iasm.d" />
+   <File path="..\ddmd\id.d" />
    <File path="..\ddmd\identifier.d" />
    <File path="..\ddmd\impcnvtab.d" />
    <File path="..\ddmd\imphint.d" />
    <File path="..\ddmd\init.d" />
+   <File path="..\ddmd\initsem.d" />
    <File path="..\ddmd\inline.d" />
    <File path="..\ddmd\inlinecost.d" />
    <File path="..\ddmd\intrange.d" />
@@ -573,6 +554,7 @@
    <File path="..\ddmd\toobj.d" />
    <File path="..\ddmd\traits.d" />
    <File path="..\ddmd\typinf.d" />
+   <File path="..\ddmd\typesem.d" />
    <File path="..\ddmd\utf.d" />
    <File path="..\ddmd\utils.d" />
    <File path="..\ddmd\visitor.d" />

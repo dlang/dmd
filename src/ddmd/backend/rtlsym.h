@@ -5,9 +5,8 @@
  * Copyright:   Copyright (C) 1994-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/rtlsym.h
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/rtlsym.h, backend/rtlsym.h)
  */
 
 
@@ -193,6 +192,9 @@ SYMBOL_MARS(TRACEARRAYAPPENDWD,   FLfunc,FREGSAVED,"_d_arrayappendwdTrace", 0, t
 SYMBOL_MARS(TRACEARRAYSETLENGTHT, FLfunc,FREGSAVED,"_d_arraysetlengthTTrace", 0, t) \
 SYMBOL_MARS(TRACEARRAYSETLENGTHIT,FLfunc,FREGSAVED,"_d_arraysetlengthiTTrace", 0, t) \
 SYMBOL_MARS(TRACEALLOCMEMORY,     FLfunc,FREGSAVED,"_d_allocmemoryTrace", 0, t) \
+SYMBOL_MARS(C_ASSERT,             FLfunc,FREGSAVED,"_assert", SFLexit, t) \
+SYMBOL_MARS(C__ASSERT,            FLfunc,FREGSAVED,"__assert", SFLexit, t) \
+SYMBOL_MARS(C__ASSERT_RTN,        FLfunc,FREGSAVED,"__assert_rtn", SFLexit, t) \
 
 
 // Migrate to function interface to rtl symbols

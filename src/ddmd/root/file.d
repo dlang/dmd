@@ -5,10 +5,12 @@
  * Copyright: Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:    $(DMDSRC root/_file.d)
+ * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/root/file.d, root/_file.d)
  */
 
 module ddmd.root.file;
+
+// Online documentation: https://dlang.org/phobos/ddmd_root_file.html
 
 import core.stdc.errno;
 import core.stdc.stdio;
@@ -77,12 +79,65 @@ nothrow:
     {
         if (len)
             return false; // already read the file
+
+        import core.stdc.string : strcmp;
+        const(char)* name = this.name.toChars();
+        if (strcmp(name, "__stdin.d") == 0)
+        {
+            /* Read from stdin */
+            enum bufIncrement = 128 * 1024;
+            size_t pos = 0;
+            size_t sz = bufIncrement;
+
+            if (!_ref)
+                .free(buffer);
+
+            buffer = null;
+            L1: for (;;)
+            {
+                buffer = cast(ubyte*).realloc(buffer, sz + 2); // +2 for sentinel
+                if (!buffer)
+                {
+                    printf("\tmalloc error, errno = %d\n", errno);
+                    break L1;
+                }
+
+                // Fill up buffer
+                do
+                {
+                    assert(sz > pos);
+                    size_t rlen = fread(buffer + pos, 1, sz - pos, stdin);
+                    pos += rlen;
+                    if (ferror(stdin))
+                    {
+                        printf("\tread error, errno = %d\n", errno);
+                        break L1;
+                    }
+                    if (feof(stdin))
+                    {
+                        // We're done
+                        assert(pos < sz + 2);
+                        len = pos;
+                        buffer[pos] = '\0';
+                        buffer[pos + 1] = '\0';
+                        return false;
+                    }
+                } while (pos < sz);
+
+                // Buffer full, expand
+                sz += bufIncrement;
+            }
+            .free(buffer);
+            buffer = null;
+            len = 0;
+            return true;
+        }
+
         version (Posix)
         {
             size_t size;
             stat_t buf;
             ssize_t numread;
-            const(char)* name = this.name.toChars();
             //printf("File::read('%s')\n",name);
             int fd = open(name, O_RDONLY);
             if (fd == -1)
@@ -135,7 +190,6 @@ nothrow:
         {
             DWORD size;
             DWORD numread;
-            const(char)* name = this.name.toChars();
             HANDLE h = CreateFileA(name, GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, null);
             if (h == INVALID_HANDLE_VALUE)
                 goto err1;

@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _doc.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/doc.d, _doc.d)
  */
 
 module ddmd.doc;
+
+// Online documentation: https://dlang.org/phobos/ddmd_doc.html
 
 import core.stdc.ctype;
 import core.stdc.stdlib;
@@ -134,7 +136,7 @@ extern (C++) class Section
                 buf.writeByte((c == '_') ? ' ' : c);
             }
             escapeStrayParenthesis(loc, buf, o);
-            buf.writestring(":)\n");
+            buf.writestring(")");
         }
         else
         {
@@ -145,7 +147,7 @@ extern (C++) class Section
         buf.write(_body, bodylen);
         escapeStrayParenthesis(loc, buf, o);
         highlightText(sc, a, buf, o);
-        buf.writestring(")\n");
+        buf.writestring(")");
     }
 }
 
@@ -252,7 +254,7 @@ extern (C++) final class ParamSection : Section
                         escapeStrayParenthesis(loc, buf, o);
                         highlightCode(sc, a, buf, o);
                     }
-                    buf.writestring(")\n");
+                    buf.writestring(")");
                     buf.writestring("$(DDOC_PARAM_DESC ");
                     {
                         size_t o = buf.offset;
@@ -262,7 +264,7 @@ extern (C++) final class ParamSection : Section
                     }
                     buf.writestring(")");
                 }
-                buf.writestring(")\n");
+                buf.writestring(")");
                 namelen = 0;
                 if (p >= pend)
                     break;
@@ -288,7 +290,7 @@ extern (C++) final class ParamSection : Section
         if (namelen)
             goto L1;
         // write out last one
-        buf.writestring(")\n");
+        buf.writestring(")");
         TypeFunction tf = a.dim == 1 ? isTypeFunction(s) : null;
         if (tf)
         {
@@ -438,9 +440,9 @@ extern (C++) void gendocfile(Module m)
     //printf("BODY= '%.*s'\n", buf.offset, buf.data);
     Macro.define(&m.macrotable, "BODY", buf.peekSlice());
     OutBuffer buf2;
-    buf2.writestring("$(DDOC)\n");
+    buf2.writestring("$(DDOC)");
     size_t end = buf2.offset;
-    m.macrotable.expand(&buf2, 0, &end, null, 0);
+    m.macrotable.expand(&buf2, 0, &end, null);
     version (all)
     {
         /* Remove all the escape sequences from buf2,
@@ -801,7 +803,7 @@ extern (C++) void emitMemberComments(ScopeDsymbol sds, OutBuffer* buf, Scope* sc
         buf.offset = offset1;
     }
     else
-        buf.writestring(")\n");
+        buf.writestring(")");
 }
 
 extern (C++) void emitProtection(OutBuffer* buf, Prot prot)
@@ -1643,7 +1645,10 @@ struct DocComment
                     const(char)* q = p + utfStride(p);
                     while (isIdTail(q))
                         q += utfStride(q);
-                    if (*q == ':') // identifier: ends it
+
+                    // Detected tag ends it
+                    if (*q == ':' && isupper(*p)
+                            && (isspace(q[1]) || q[1] == 0))
                     {
                         idlen = q - p;
                         idstart = p;
@@ -1737,7 +1742,7 @@ struct DocComment
                 buf.write(sec._body, sec.bodylen);
                 escapeStrayParenthesis(loc, buf, o);
                 highlightText(sc, a, buf, o);
-                buf.writestring(")\n");
+                buf.writestring(")");
             }
             else
                 sec.write(loc, &this, sc, a, buf);
@@ -1780,7 +1785,7 @@ struct DocComment
             buf.writestring("\n");
         }
         else
-            buf.writestring(")\n");
+            buf.writestring(")");
     }
 }
 
@@ -2151,6 +2156,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     int inCode = 0;
     int inBacktick = 0;
     //int inComment = 0;                  // in <!-- ... --> comment
+    int inMacro = 0;
     size_t iCodeStart = 0; // start of code section
     size_t codeIndent = 0;
     size_t iLineStart = offset;
@@ -2177,10 +2183,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 // inserted lazily at the close quote, meaning the rest of the
                 // text is already OK.
             }
-            if (!sc._module.isDocFile && !inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
+            if (!inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
-                immutable blankline = "$(DDOC_BLANKLINE)\n";
-                i = buf.insert(i, blankline);
+                i = buf.insert(i, "$(DDOC_BLANKLINE)");
             }
             leadingBlank = 1;
             iLineStart = i + 1;
@@ -2406,6 +2411,32 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
             }
             break;
+
+        case '$':
+        {
+            /* Look for the start of a macro, '$(Identifier'
+             */
+            leadingBlank = 0;
+            if (inCode || inBacktick)
+                break;
+            const slice = buf.peekSlice();
+            auto p = &slice[i];
+            if (p[1] == '(' && isIdStart(&p[2]))
+                ++inMacro;
+            break;
+        }
+
+        case ')':
+        {   /* End of macro
+             */
+            leadingBlank = 0;
+            if (inCode || inBacktick)
+                break;
+            if (inMacro)
+                --inMacro;
+            break;
+        }
+
         default:
             leadingBlank = 0;
             if (sc._module.isDocFile || inCode)
@@ -2419,7 +2450,18 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     size_t k = skippastURL(buf, i);
                     if (i < k)
                     {
-                        i = k - 1;
+                        /* The URL is buf[i..k]
+                         */
+                        if (inMacro)
+                            /* Leave alone if already in a macro
+                             */
+                            i = k - 1;
+                        else
+                        {
+                            /* Replace URL with '$(LINK URL)'
+                             */
+                            i = buf.bracket(i, "$(LINK ", k, ")") - 1;
+                        }
                         break;
                     }
                 }

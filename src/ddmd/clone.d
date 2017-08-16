@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _clone.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/clone.d, _clone.d)
  */
 
 module ddmd.clone;
+
+// Online documentation: https://dlang.org/phobos/ddmd_clone.html
 
 import core.stdc.stdio;
 import ddmd.aggregate;
@@ -19,6 +21,7 @@ import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.id;
@@ -92,7 +95,7 @@ extern (C++) FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope*
         el.type = ad.type;
         Expressions a;
         a.setDim(1);
-        const errors = global.startGagging(); // Do not report errors, even if the
+        const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
         sc = sc.push();
         sc.tinst = null;
         sc.minst = null;
@@ -307,7 +310,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     sd.members.push(fop);
     fop.addMember(sc, sd);
     sd.hasIdentityAssign = true; // temporary mark identity assignable
-    uint errors = global.startGagging(); // Do not report errors, even if the
+    uint errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINKd;
@@ -410,7 +413,7 @@ extern (C++) FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope*
                 case 4:  tthis = ad.type.sharedConstOf(); break;
             }
             FuncDeclaration f = null;
-            const errors = global.startGagging(); // Do not report errors, even if the
+            const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
             sc = sc.push();
             sc.tinst = null;
             sc.minst = null;

@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _ctfeexpr.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/ctfeexpr.d, _ctfeexpr.d)
  */
 
 module ddmd.ctfeexpr;
+
+// Online documentation: https://dlang.org/phobos/ddmd_ctfeexpr.html
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -1529,7 +1531,7 @@ extern (C++) Expression ctfeIndex(Loc loc, Type type, Expression e1, uinteger_t 
         StringExp es1 = cast(StringExp)e1;
         if (indx >= es1.len)
         {
-            error(loc, "string index %llu is out of bounds [0 .. %llu]", indx, cast(ulong)es1.len);
+            error(loc, "string index %llu is out of bounds `[0 .. %llu]`", indx, cast(ulong)es1.len);
             return CTFEExp.cantexp;
         }
         return new IntegerExp(loc, es1.charAt(indx), type);
@@ -1539,7 +1541,7 @@ extern (C++) Expression ctfeIndex(Loc loc, Type type, Expression e1, uinteger_t 
         ArrayLiteralExp ale = cast(ArrayLiteralExp)e1;
         if (indx >= ale.elements.dim)
         {
-            error(loc, "array index %llu is out of bounds %s[0 .. %llu]", indx, e1.toChars(), cast(ulong)ale.elements.dim);
+            error(loc, "array index %llu is out of bounds `%s[0 .. %llu]`", indx, e1.toChars(), cast(ulong)ale.elements.dim);
             return CTFEExp.cantexp;
         }
         Expression e = (*ale.elements)[cast(size_t)indx];

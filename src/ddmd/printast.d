@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _printast.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/printast.d, _printast.d)
  */
 
 module ddmd.printast;
+
+// Online documentation: https://dlang.org/phobos/ddmd_printast.html
 
 import core.stdc.stdio;
 
@@ -58,6 +60,21 @@ extern (C++) final class PrintASTVisitor : Visitor
         visit(cast(Expression)e);
         printIndent(indent + 2);
         printf(".var: %s\n", e.var ? e.var.toChars() : "");
+    }
+
+    override void visit(DsymbolExp e)
+    {
+        visit(cast(Expression)e);
+        printIndent(indent + 2);
+        printf(".s: %s\n", e.s ? e.s.toChars() : "");
+    }
+
+    override void visit(DotIdExp e)
+    {
+        visit(cast(Expression)e);
+        printIndent(indent + 2);
+        printf(".ident: %s\n", e.ident.toChars());
+        printAST(e.e1, indent + 2);
     }
 
     override void visit(UnaExp e)

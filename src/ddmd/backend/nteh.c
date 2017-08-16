@@ -5,9 +5,8 @@
  * Copyright:   Copyright (C) 1994-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/nteh.c
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/nteh.c, backend/nteh.c)
  */
 
 // Support for NT exception handling
@@ -400,7 +399,7 @@ void nteh_prolog(CodeBuilder& cdb)
     }
 
     cdb.append(cdb2);
-    cdb.append(cod3_stackadj(NULL, 8));
+    cod3_stackadj(cdb, 8);
 }
 
 /*********************************
@@ -674,7 +673,7 @@ void cdsetjmp(CodeBuilder& cdb, elem *e,regm_t *pretregs)
     getregs(cdb,~getRtlsym(RTLSYM_SETJMP3)->Sregsaved & (ALLREGS | mES));
     cdb.gencs(0xE8,0,FLfunc,getRtlsym(RTLSYM_SETJMP3));      // CALL __setjmp3
 
-    cdb.append(cod3_stackadj(NULL, -(stackpush - stackpushsave)));
+    cod3_stackadj(cdb, -(stackpush - stackpushsave));
     cdb.genadjesp(-(stackpush - stackpushsave));
 
     stackpush = stackpushsave;
@@ -731,10 +730,10 @@ void nteh_unwind(CodeBuilder& cdb,regm_t retregs,unsigned index)
     cdbx.gencs(0x68,0,FLextern,nteh_scopetable());         // PUSH &scope_table
 
     cdbx.gencs(0xE8,0,FLfunc,getRtlsym(local_unwind));        // CALL __d_local_unwind2()
-    cdbx.append(cod3_stackadj(NULL, -12));
+    cod3_stackadj(cdbx, -12);
 #else
     cdbx.gencs(0xE8,0,FLfunc,getRtlsym(local_unwind));        // CALL __local_unwind2()
-    cdbx.append(cod3_stackadj(NULL, -8));
+    cod3_stackadj(cdbx, -8);
 #endif
 
     cdb.append(cs1);
@@ -781,10 +780,10 @@ code *linux_unwind(regm_t retregs,unsigned index)
 //    cdb.gencs(0x68,0,FLextern,nteh_scopetable());               // PUSH &scope_table
 
     cdb.gencs(0xE8,0,FLfunc,getRtlsym(local_unwind));        // CALL __d_local_unwind2()
-    cdb.append(cod3_stackadj(NULL, -4));
+    cod3_stackadj(cdb, -4);
 #else
     cdb.gencs(0xE8,0,FLfunc,getRtlsym(local_unwind));        // CALL __local_unwind2()
-    cdb.append(cod3_stackadj(NULL, -8));
+    cod3_stackadj(cdb, -8);
 #endif
 
     CodeBuilder cdb1(cs1);

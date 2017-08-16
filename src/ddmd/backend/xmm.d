@@ -4,12 +4,13 @@
  *
  * Copyright:   Copyright (c) ?-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/_xmm.d
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/xmm.d, backend/_xmm.d)
  */
 
 module ddmd.backend.xmm;
+
+// Online documentation: https://dlang.org/phobos/ddmd_backend_xmm.html
 
 // XMM opcodes
 
@@ -340,6 +341,14 @@ enum
     VBROADCASTSD   = 0x660F3819,
     VBROADCASTF128 = 0x660F381A,
     VINSERTF128    = 0x660F3A18,
+
+// AVX2
+    VPBROADCASTB   = 0x660F3878,
+    VPBROADCASTW   = 0x660F3879,
+    VPBROADCASTD   = 0x660F3858,
+    VPBROADCASTQ   = 0x660F3859,
+    VBROADCASTI128 = 0x660F385A,
+    VINSERTI128    = 0x660F3A38,
 
 // AES
     AESENC     = 0x660F38DC,

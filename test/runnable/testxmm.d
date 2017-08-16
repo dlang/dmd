@@ -37,29 +37,32 @@ static assert(uint4.sizeof == 16);
 static assert(long2.sizeof == 16);
 static assert(ulong2.sizeof == 16);
 
-static assert(void32.alignof == 32);
-static assert(double4.alignof == 32);
-static assert(float8.alignof == 32);
-static assert(byte32.alignof == 32);
-static assert(ubyte32.alignof == 32);
-static assert(short16.alignof == 32);
-static assert(ushort16.alignof == 32);
-static assert(int8.alignof == 32);
-static assert(uint8.alignof == 32);
-static assert(long4.alignof == 32);
-static assert(ulong4.alignof == 32);
+version (D_AVX)
+{
+    static assert(void32.alignof == 32);
+    static assert(double4.alignof == 32);
+    static assert(float8.alignof == 32);
+    static assert(byte32.alignof == 32);
+    static assert(ubyte32.alignof == 32);
+    static assert(short16.alignof == 32);
+    static assert(ushort16.alignof == 32);
+    static assert(int8.alignof == 32);
+    static assert(uint8.alignof == 32);
+    static assert(long4.alignof == 32);
+    static assert(ulong4.alignof == 32);
 
-static assert(void32.sizeof == 32);
-static assert(double4.sizeof == 32);
-static assert(float8.sizeof == 32);
-static assert(byte32.sizeof == 32);
-static assert(ubyte32.sizeof == 32);
-static assert(short16.sizeof == 32);
-static assert(ushort16.sizeof == 32);
-static assert(int8.sizeof == 32);
-static assert(uint8.sizeof == 32);
-static assert(long4.sizeof == 32);
-static assert(ulong4.sizeof == 32);
+    static assert(void32.sizeof == 32);
+    static assert(double4.sizeof == 32);
+    static assert(float8.sizeof == 32);
+    static assert(byte32.sizeof == 32);
+    static assert(ubyte32.sizeof == 32);
+    static assert(short16.sizeof == 32);
+    static assert(ushort16.sizeof == 32);
+    static assert(int8.sizeof == 32);
+    static assert(uint8.sizeof == 32);
+    static assert(long4.sizeof == 32);
+    static assert(ulong4.sizeof == 32);
+}
 
 /*****************************************/
 
@@ -87,6 +90,14 @@ void test1()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -147,6 +158,14 @@ void test2()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -207,6 +226,14 @@ void test2b()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -267,6 +294,14 @@ void test2c()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -328,6 +363,14 @@ void test2d()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -391,6 +434,14 @@ void test2e()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -457,6 +508,14 @@ void test2f()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -520,6 +579,14 @@ void test2g()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -580,6 +647,14 @@ void test2h()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -640,6 +715,14 @@ void test2i()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -700,6 +783,14 @@ void test2j()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -1666,108 +1757,112 @@ void test16448()
 
 /*****************************************/
 
-void foo_byte32(byte t, byte s)
+version (D_AVX)
 {
-    byte32 f = s;
-    auto p = cast(byte*)&f;
-    foreach (i; 0 .. 32)
-        assert(p[i] == s);
-}
+    void foo_byte32(byte t, byte s)
+    {
+        byte32 f = s;
+        auto p = cast(byte*)&f;
+        foreach (i; 0 .. 32)
+            assert(p[i] == s);
+    }
 
-void foo_ubyte32(ubyte t, ubyte s)
+    void foo_ubyte32(ubyte t, ubyte s)
+    {
+        ubyte32 f = s;
+        auto p = cast(ubyte*)&f;
+        foreach (i; 0 .. 32)
+            assert(p[i] == s);
+    }
+
+    void foo_short16(short t, short s)
+    {
+        short16 f = s;
+        auto p = cast(short*)&f;
+        foreach (i; 0 .. 16)
+            assert(p[i] == s);
+    }
+
+    void foo_ushort16(ushort t, ushort s)
+    {
+        ushort16 f = s;
+        auto p = cast(ushort*)&f;
+        foreach (i; 0 .. 16)
+            assert(p[i] == s);
+    }
+
+    void foo_int8(int t, int s)
+    {
+        int8 f = s;
+        auto p = cast(int*)&f;
+        foreach (i; 0 .. 8)
+            assert(p[i] == s);
+    }
+
+    void foo_uint8(uint t, uint s, uint u)
+    {
+        uint8 f = s;
+        auto p = cast(uint*)&f;
+        foreach (i; 0 .. 8)
+            assert(p[i] == s);
+    }
+
+    void foo_long4(long t, long s, long u)
+    {
+        long4 f = s;
+        auto p = cast(long*)&f;
+        foreach (i; 0 .. 4)
+            assert(p[i] == s);
+    }
+
+    void foo_ulong4(ulong t, ulong s)
+    {
+        ulong4 f = s;
+        auto p = cast(ulong*)&f;
+        foreach (i; 0 .. 4)
+            assert(p[i] == s);
+    }
+
+    void foo_float8(float t, float s)
+    {
+        float8 f = s;
+        auto p = cast(float*)&f;
+        foreach (i; 0 .. 8)
+            assert(p[i] == s);
+    }
+
+    void foo_double4(double t, double s, double u)
+    {
+        double4 f = s;
+        auto p = cast(double*)&f;
+        foreach (i; 0 .. 4)
+            assert(p[i] == s);
+    }
+
+    void test16448_32()
+    {
+        foo_byte32(5, -10);
+        foo_ubyte32(5, 11);
+
+        foo_short16(5, -6);
+        foo_short16(5, 7);
+
+        foo_int8(5, -6);
+        foo_uint8(5, 0x12345678, 22);
+
+        foo_long4(5, -6, 1);
+        foo_ulong4(5, 0x12345678_87654321L);
+
+        foo_float8(5, -6);
+        foo_double4(5, -6, 2);
+    }
+}
+else
 {
-    ubyte32 f = s;
-    auto p = cast(ubyte*)&f;
-    foreach (i; 0 .. 32)
-        assert(p[i] == s);
+    void test16448_32()
+    {
+    }
 }
-
-void foo_short16(short t, short s)
-{
-    short16 f = s;
-    auto p = cast(short*)&f;
-    foreach (i; 0 .. 16)
-        assert(p[i] == s);
-}
-
-void foo_ushort16(ushort t, ushort s)
-{
-    ushort16 f = s;
-    auto p = cast(ushort*)&f;
-    foreach (i; 0 .. 16)
-        assert(p[i] == s);
-}
-
-void foo_int8(int t, int s)
-{
-    int8 f = s;
-    auto p = cast(int*)&f;
-    foreach (i; 0 .. 8)
-        assert(p[i] == s);
-}
-
-void foo_uint8(uint t, uint s, uint u)
-{
-    uint8 f = s;
-    auto p = cast(uint*)&f;
-    foreach (i; 0 .. 8)
-        assert(p[i] == s);
-}
-
-void foo_long4(long t, long s, long u)
-{
-    long4 f = s;
-    auto p = cast(long*)&f;
-    foreach (i; 0 .. 4)
-        assert(p[i] == s);
-}
-
-void foo_ulong4(ulong t, ulong s)
-{
-    ulong4 f = s;
-    auto p = cast(ulong*)&f;
-    foreach (i; 0 .. 4)
-        assert(p[i] == s);
-}
-
-void foo_float8(float t, float s)
-{
-    float8 f = s;
-    auto p = cast(float*)&f;
-    foreach (i; 0 .. 8)
-        assert(p[i] == s);
-}
-
-void foo_double4(double t, double s, double u)
-{
-    double4 f = s;
-    auto p = cast(double*)&f;
-    foreach (i; 0 .. 4)
-        assert(p[i] == s);
-}
-
-void test16448_32()
-{
-    import core.cpuid;
-    if (!core.cpuid.avx)
-        return;
-
-    foo_byte32(5, -10);
-    foo_ubyte32(5, 11);
-
-    foo_short16(5, -6);
-    foo_short16(5, 7);
-
-    foo_int8(5, -6);
-    foo_uint8(5, 0x12345678, 22);
-
-    foo_long4(5, -6, 1);
-    foo_ulong4(5, 0x12345678_87654321L);
-
-    foo_float8(5, -6);
-    foo_double4(5, -6, 2);
-}
-
 
 /*****************************************/
 // https://issues.dlang.org/show_bug.cgi?id=16703
@@ -1847,19 +1942,22 @@ void test10447()
 /*****************************************/
 // https://issues.dlang.org/show_bug.cgi?id=17237
 
-struct S17237
+version (D_AVX)
 {
-    bool a;
-    struct
+    struct S17237
     {
-        bool b;
-        int8 c;
+        bool a;
+        struct
+        {
+            bool b;
+            int8 c;
+        }
     }
-}
 
-static assert(S17237.a.offsetof == 0);
-static assert(S17237.b.offsetof == 32);
-static assert(S17237.c.offsetof == 64);
+    static assert(S17237.a.offsetof == 0);
+    static assert(S17237.b.offsetof == 32);
+    static assert(S17237.c.offsetof == 64);
+}
 
 /*****************************************/
 // https://issues.dlang.org/show_bug.cgi?id=17344
@@ -1880,6 +1978,15 @@ void test17356()
     float4 a = 13, b = 0;
     __simd_sto(XMM.STOUPS, b, a);
     assert(b.array == [13, 13, 13, 13]);
+}
+
+/*****************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=17695
+
+void test17695(__vector(ubyte[16]) a)
+{
+    auto b = -a;
 }
 
 /*****************************************/

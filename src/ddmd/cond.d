@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _cond.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/cond.d, _cond.d)
  */
 
 module ddmd.cond;
+
+// Online documentation: https://dlang.org/phobos/ddmd_cond.html
 
 import core.stdc.string;
 import ddmd.arraytypes;
@@ -17,6 +19,7 @@ import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.errors;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.globals;
 import ddmd.identifier;
 import ddmd.mtype;
@@ -26,7 +29,10 @@ import ddmd.tokens;
 import ddmd.utils;
 import ddmd.visitor;
 import ddmd.id;
-
+import ddmd.statement;
+import ddmd.declaration;
+import ddmd.dstruct;
+import ddmd.func;
 
 /***********************************************************
  */
@@ -60,6 +66,344 @@ extern (C++) abstract class Condition : RootObject
     void accept(Visitor v)
     {
         v.visit(this);
+    }
+}
+
+/***********************************************************
+ * Implements common functionality for StaticForeachDeclaration and
+ * StaticForeachStatement This performs the necessary lowerings before
+ * ddmd.statementsem.makeTupleForeach can be used to expand the
+ * corresponding `static foreach` declaration or statement.
+ */
+
+extern (C++) final class StaticForeach : RootObject
+{
+    extern(D) static immutable tupleFieldName = "tuple"; // used in lowering
+
+    Loc loc;
+
+    /***************
+     * Not `null` iff the `static foreach` is over an aggregate. In
+     * this case, it contains the corresponding ForeachStatement. For
+     * StaticForeachDeclaration, the body is `null`.
+    */
+    ForeachStatement aggrfe;
+    /***************
+     * Not `null` iff the `static foreach` is over a range. Exactly
+     * one of the `aggrefe` and `rangefe` fields is not null. See
+     * `aggrfe` field for more details.
+     */
+    ForeachRangeStatement rangefe;
+
+    /***************
+     * true if it is necessary to expand a tuple into multiple
+     * variables (see lowerNonArrayAggregate).
+     */
+    bool needExpansion = false;
+
+    final extern (D) this(Loc loc,ForeachStatement aggrfe,ForeachRangeStatement rangefe)
+    in
+    {
+        assert(!!aggrfe ^ !!rangefe);
+    }
+    body
+    {
+        this.loc = loc;
+        this.aggrfe = aggrfe;
+        this.rangefe = rangefe;
+    }
+
+    StaticForeach syntaxCopy()
+    {
+        return new StaticForeach(
+            loc,
+            aggrfe ? cast(ForeachStatement)aggrfe.syntaxCopy() : null,
+            rangefe ? cast(ForeachRangeStatement)rangefe.syntaxCopy() : null
+        );
+    }
+
+    /*****************************************
+     * Turn an aggregate which is an array into an expression tuple
+     * of its elements. I.e., lower
+     *     static foreach (x; [1, 2, 3, 4]) { ... }
+     * to
+     *     static foreach (x; AliasSeq!(1, 2, 3, 4)) { ... }
+     */
+    private extern(D) void lowerArrayAggregate(Scope* sc)
+    {
+        auto aggr = aggrfe.aggr;
+        Expression el = new ArrayLengthExp(aggr.loc, aggr);
+        sc = sc.startCTFE();
+        el = el.semantic(sc);
+        sc = sc.endCTFE();
+        el = el.optimize(WANTvalue);
+        el = el.ctfeInterpret();
+        if (el.op == TOKint64)
+        {
+            dinteger_t length = el.toInteger();
+            auto es = new Expressions();
+            foreach (i; 0 .. length)
+            {
+                auto index = new IntegerExp(loc, i, Type.tsize_t);
+                auto value = new IndexExp(aggr.loc, aggr, index);
+                es.push(value);
+            }
+            aggrfe.aggr = new TupleExp(aggr.loc, es);
+            aggrfe.aggr = aggrfe.aggr.semantic(sc);
+            aggrfe.aggr = aggrfe.aggr.optimize(WANTvalue);
+        }
+        else
+        {
+            aggrfe.aggr = new ErrorExp();
+        }
+    }
+
+    /*****************************************
+     * Wrap a statement into a function literal and call it.
+     *
+     * Params:
+     *     loc = The source location.
+     *     s  = The statement.
+     * Returns:
+     *     AST of the expression `(){ s; }()` with location loc.
+     */
+    private extern(D) Expression wrapAndCall(Loc loc, Statement s)
+    {
+        auto tf = new TypeFunction(new Parameters(), null, 0, LINK.def, 0);
+        auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOKreserved, null);
+        fd.fbody = s;
+        auto fe = new FuncExp(loc, fd);
+        auto ce = new CallExp(loc, fe, new Expressions());
+        return ce;
+    }
+
+    /*****************************************
+     * Create a `foreach` statement from `aggrefe/rangefe` with given
+     * `foreach` variables and body `s`.
+     *
+     * Params:
+     *     loc = The source location.
+     *     parameters = The foreach variables.
+     *     s = The `foreach` body.
+     * Returns:
+     *     `foreach (parameters; aggregate) s;` or
+     *     `foreach (parameters; lower .. upper) s;`
+     *     Where aggregate/lower, upper are as for the current StaticForeach.
+     */
+    private extern(D) Statement createForeach(Loc loc, Parameters* parameters, Statement s)
+    {
+        if (aggrfe)
+        {
+            return new ForeachStatement(loc, aggrfe.op, parameters, aggrfe.aggr.syntaxCopy(), s, loc);
+        }
+        else
+        {
+            assert(rangefe && parameters.dim == 1);
+            return new ForeachRangeStatement(loc, rangefe.op, (*parameters)[0], rangefe.lwr.syntaxCopy(), rangefe.upr.syntaxCopy(), s, loc);
+        }
+    }
+
+    /*****************************************
+     * For a `static foreach` with multiple loop variables, the
+     * aggregate is lowered to an array of tuples. As D does not have
+     * built-in tuples, we need a suitable tuple type. This generates
+     * a `struct` that serves as the tuple type. This type is only
+     * used during CTFE and hence its typeinfo will not go to the
+     * object file.
+     *
+     * Params:
+     *     loc = The source location.
+     *     e = The expressions we wish to store in the tuple.
+     *     sc  = The current scope.
+     * Returns:
+     *     A struct type of the form
+     *         struct Tuple
+     *         {
+     *             typeof(AliasSeq!(e)) tuple;
+     *         }
+     */
+
+    private extern(D) TypeStruct createTupleType(Loc loc, Expressions* e, Scope* sc)
+    {   // TODO: move to druntime?
+        auto sid = Identifier.generateId("Tuple");
+        auto sdecl = new StructDeclaration(loc, sid);
+        sdecl.storage_class |= STCstatic;
+        sdecl.members = new Dsymbols();
+        auto fid = Identifier.idPool(tupleFieldName.ptr, tupleFieldName.length);
+        auto ty = new TypeTypeof(loc, new TupleExp(loc, e));
+        sdecl.members.push(new VarDeclaration(loc, ty, fid, null, 0));
+        auto r = cast(TypeStruct)sdecl.type;
+        r.vtinfo = TypeInfoStructDeclaration.create(r); // prevent typeinfo from going to object file
+        return r;
+    }
+
+    /*****************************************
+     * Create the AST for an instantiation of a suitable tuple type.
+     *
+     * Params:
+     *     loc = The source location.
+     *     type = A Tuple type, created with createTupleType.
+     *     e = The expressions we wish to store in the tuple.
+     * Returns:
+     *     An AST for the expression `Tuple(e)`.
+     */
+
+    private extern(D) Expression createTuple(Loc loc, TypeStruct type, Expressions* e)
+    {   // TODO: move to druntime?
+        return new CallExp(loc, new TypeExp(loc, type), e);
+    }
+
+
+    /*****************************************
+     * Lower any aggregate that is not an array to an array using a
+     * regular foreach loop within CTFE.  If there are multiple
+     * `static foreach` loop variables, an array of tuples is
+     * generated. In thise case, the field `needExpansion` is set to
+     * true to indicate that the static foreach loop expansion will
+     * need to expand the tuples into multiple variables.
+     *
+     * For example, `static foreach (x; range) { ... }` is lowered to:
+     *
+     *     static foreach (x; {
+     *         typeof({
+     *             foreach (x; range) return x;
+     *         }())[] __res;
+     *         foreach (x; range) __res ~= x;
+     *         return __res;
+     *     }()) { ... }
+     *
+     * Finally, call `lowerArrayAggregate` to turn the produced
+     * array into an expression tuple.
+     *
+     * Params:
+     *     sc = The current scope.
+     */
+
+    private void lowerNonArrayAggregate(Scope* sc)
+    {
+        auto nvars = aggrfe ? aggrfe.parameters.dim : 1;
+        auto aloc = aggrfe ? aggrfe.aggr.loc : rangefe.lwr.loc;
+        // We need three sets of foreach loop variables because the
+        // lowering contains three foreach loops.
+        Parameters*[3] pparams = [new Parameters(), new Parameters(), new Parameters()];
+        foreach (i; 0 .. nvars)
+        {
+            foreach (params; pparams)
+            {
+                auto p = aggrfe ? (*aggrfe.parameters)[i] : rangefe.prm;
+                params.push(new Parameter(p.storageClass, p.type, p.ident, null));
+            }
+        }
+        Expression[2] res;
+        TypeStruct tplty = null;
+        if (nvars == 1) // only one `static foreach` variable, generate identifiers.
+        {
+            foreach (i; 0 .. 2)
+            {
+                res[i] = new IdentifierExp(aloc, (*pparams[i])[0].ident);
+            }
+        }
+        else // multiple `static foreach` variables, generate tuples.
+        {
+            foreach (i; 0 .. 2)
+            {
+                auto e = new Expressions();
+                foreach (j; 0 .. pparams[0].dim)
+                {
+                    auto p = (*pparams[i])[j];
+                    e.push(new IdentifierExp(aloc, p.ident));
+                }
+                if (!tplty)
+                {
+                    tplty = createTupleType(aloc, e, sc);
+                }
+                res[i] = createTuple(aloc, tplty, e);
+            }
+            needExpansion = true; // need to expand the tuples later
+        }
+        // generate remaining code for the new aggregate which is an
+        // array (see documentation comment).
+        auto s1 = new Statements();
+        auto sfe = new Statements();
+        if (tplty) sfe.push(new ExpStatement(loc, tplty.sym));
+        sfe.push(new ReturnStatement(aloc, res[0]));
+        s1.push(createForeach(aloc, pparams[0], new CompoundStatement(aloc, sfe)));
+        s1.push(new ExpStatement(aloc, new AssertExp(aloc, new IntegerExp(aloc, 0, Type.tint32))));
+        auto ety = new TypeTypeof(aloc, wrapAndCall(aloc, new CompoundStatement(aloc, s1)));
+        auto aty = ety.arrayOf();
+        auto idres = Identifier.generateId("__res");
+        auto vard = new VarDeclaration(aloc, aty, idres, null);
+        auto s2 = new Statements();
+        s2.push(new ExpStatement(aloc, vard));
+        auto catass = new CatAssignExp(aloc, new IdentifierExp(aloc, idres), res[1]);
+        s2.push(createForeach(aloc, pparams[1], new ExpStatement(aloc, catass)));
+        s2.push(new ReturnStatement(aloc, new IdentifierExp(aloc, idres)));
+        auto aggr = wrapAndCall(aloc, new CompoundStatement(aloc, s2));
+        sc = sc.startCTFE();
+        aggr = aggr.semantic(sc);
+        aggr = resolveProperties(sc, aggr);
+        sc = sc.endCTFE();
+        aggr = aggr.optimize(WANTvalue);
+        aggr = aggr.ctfeInterpret();
+
+        assert(!!aggrfe ^ !!rangefe);
+        aggrfe = new ForeachStatement(loc, TOKforeach, pparams[2], aggr,
+                                      aggrfe ? aggrfe._body : rangefe._body,
+                                      aggrfe ? aggrfe.endloc : rangefe.endloc);
+        rangefe = null;
+        lowerArrayAggregate(sc); // finally, turn generated array into expression tuple
+    }
+
+    /*****************************************
+     * Perform `static foreach` lowerings that are necessary in order
+     * to finally expand the `static foreach` using
+     * `ddmd.statementsem.makeTupleForeach`.
+     */
+    final extern(D) void prepare(Scope* sc)
+    in
+    {
+        assert(sc);
+    }
+    body
+    {
+        if (aggrfe)
+        {
+            sc = sc.startCTFE();
+            aggrfe.aggr = aggrfe.aggr.semantic(sc);
+            sc = sc.endCTFE();
+            aggrfe.aggr = aggrfe.aggr.optimize(WANTvalue);
+            auto tab = aggrfe.aggr.type.toBasetype();
+            if (tab.ty != Ttuple)
+            {
+                aggrfe.aggr = aggrfe.aggr.ctfeInterpret();
+            }
+        }
+
+        if (aggrfe && aggrfe.aggr.type.toBasetype().ty == Terror)
+        {
+            return;
+        }
+
+        if (!ready())
+        {
+            if (aggrfe && aggrfe.aggr.type.toBasetype().ty == Tarray)
+            {
+                lowerArrayAggregate(sc);
+            }
+            else
+            {
+                lowerNonArrayAggregate(sc);
+            }
+        }
+    }
+
+    /*****************************************
+     * Returns:
+     *     `true` iff ready to call `ddmd.statementsem.makeTupleForeach`.
+     */
+    final extern(D) bool ready()
+    {
+        return aggrfe && aggrfe.aggr && aggrfe.aggr.type.toBasetype().ty == Ttuple;
     }
 }
 
@@ -300,6 +644,7 @@ extern (C++) final class VersionCondition : DVCondition
             "MIPS_EABI",
             "MIPS_SoftFloat",
             "MIPS_HardFloat",
+            "MSP430",
             "NVPTX",
             "NVPTX64",
             "RISCV32",
@@ -354,7 +699,7 @@ extern (C++) final class VersionCondition : DVCondition
     extern(D) static void checkReserved(Loc loc, const(char)[] ident)
     {
         if (isReserved(ident))
-            error(loc, "version identifier '%s' is reserved and cannot be set",
+            error(loc, "version identifier `%s` is reserved and cannot be set",
                   ident.ptr);
     }
 

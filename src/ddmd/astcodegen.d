@@ -1,5 +1,7 @@
 module ddmd.astcodegen;
 
+// Online documentation: https://dlang.org/phobos/ddmd_astcodegen.html
+
 struct ASTCodegen
 {
     import ddmd.aggregate;
@@ -20,11 +22,15 @@ struct ASTCodegen
     import ddmd.func;
     import ddmd.hdrgen;
     import ddmd.init;
+    import ddmd.initsem;
     import ddmd.mtype;
     import ddmd.nspace;
     import ddmd.statement;
     import ddmd.staticassert;
+    import ddmd.typesem;
 
+    alias initializerToExpression   = ddmd.initsem.initializerToExpression;
+    alias typeToExpression          = ddmd.typesem.typeToExpression;
     alias UserAttributeDeclaration  = ddmd.attrib.UserAttributeDeclaration;
 
     alias MODconst                  = ddmd.mtype.MODconst;
@@ -69,6 +75,9 @@ struct ASTCodegen
     alias STCdeprecated             = ddmd.declaration.STCdeprecated;
     alias STCstatic                 = ddmd.declaration.STCstatic;
     alias STCextern                 = ddmd.declaration.STCextern;
+    alias STCfuture                 = ddmd.declaration.STCfuture;
+    alias STCalias                  = ddmd.declaration.STCalias;
+    alias STClocal                  = ddmd.declaration.STClocal;
 
     alias Dsymbol                   = ddmd.dsymbol.Dsymbol;
     alias Dsymbols                  = ddmd.dsymbol.Dsymbols;

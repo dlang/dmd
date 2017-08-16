@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _libmach.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/libmach.d, _libmach.d)
  */
 
 module ddmd.libmach;
+
+// Online documentation: https://dlang.org/phobos/ddmd_libmach.html
 
 import core.stdc.time;
 import core.stdc.string;

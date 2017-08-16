@@ -37,6 +37,19 @@ public:
     virtual void accept(Visitor *v) { v->visit(this); }
 };
 
+class StaticForeach
+{
+public:
+    Loc loc;
+
+    ForeachStatement *aggrfe;
+    ForeachRangeStatement *rangefe;
+
+    bool needExpansion;
+
+    Condition *syntaxCopy();
+};
+
 class DVCondition : public Condition
 {
 public:

@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _delegatize.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/delegatize.d, _delegatize.d)
  */
 
 module ddmd.delegatize;
+
+// Online documentation: https://dlang.org/phobos/ddmd_delegatize.html
 
 import core.stdc.stdio;
 import ddmd.apply;
@@ -18,6 +20,7 @@ import ddmd.dsymbol;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
+import ddmd.initsem;
 import ddmd.mtype;
 import ddmd.statement;
 import ddmd.tokens;
@@ -158,7 +161,7 @@ extern (C++) bool lambdaCheckForNestedRef(Expression e, Scope* sc)
                  */
                 if (v._init && v._init.isExpInitializer())
                 {
-                    Expression ie = v._init.toExpression();
+                    Expression ie = v._init.initializerToExpression();
                     result = lambdaCheckForNestedRef(ie, sc);
                 }
             }

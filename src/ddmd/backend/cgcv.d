@@ -5,18 +5,19 @@
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cgcv.c
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cgcv.c, backend/cgcv.c)
  */
 
 /* Header for cgcv.c    */
 
 module ddmd.backend.cgcv;
 
+// Online documentation: https://dlang.org/phobos/ddmd_backend_cgcv.html
+
 import ddmd.backend.cc : Classsym, Symbol;
 import ddmd.backend.type;
-import tk.dlist;
+import ddmd.tk.dlist;
 
 extern (C++):
 @nogc:

@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _lexer.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/lexer.d, _lexer.d)
  */
 
 module ddmd.lexer;
+
+// Online documentation: https://dlang.org/phobos/ddmd_lexer.html
 
 import core.stdc.ctype;
 import core.stdc.errno;
@@ -129,7 +131,7 @@ unittest
     //printf("lexer.unittest\n");
     /* Not much here, just trying things out.
      */
-    string text = "int";
+    string text = "int"; // We rely on the implicit null-terminator
     scope Lexer lex1 = new Lexer(null, text.ptr, 0, text.length, 0, 0);
     TOK tok;
     tok = lex1.nextToken();
@@ -139,6 +141,43 @@ unittest
     assert(tok == TOKeof);
     tok = lex1.nextToken();
     assert(tok == TOKeof);
+    tok = lex1.nextToken();
+    assert(tok == TOKeof);
+}
+
+unittest
+{
+    // We don't want to see Lexer error output during these tests.
+    uint errors = global.startGagging();
+    scope(exit) global.endGagging(errors);
+
+    // Test malformed input: even malformed input should end in a TOKeof.
+    static immutable char[][] testcases =
+    [   // Testcase must end with 0 or 0x1A.
+        [0], // not malformed, but pathological
+        ['\'', 0],
+        ['\'', 0x1A],
+        ['{', '{', 'q', '{', 0],
+        [0xFF, 0],
+        [0xFF, 0x80, 0],
+        [0xFF, 0xFF, 0],
+        [0xFF, 0xFF, 0],
+        ['x', '"', 0x1A],
+    ];
+
+    foreach (testcase; testcases)
+    {
+        scope Lexer lex2 = new Lexer(null, testcase.ptr, 0, testcase.length-1, 0, 0);
+        TOK tok = lex2.nextToken();
+        size_t iterations = 1;
+        while ((tok != TOKeof) && (iterations++ < testcase.length))
+        {
+            tok = lex2.nextToken();
+        }
+        assert(tok == TOKeof);
+        tok = lex2.nextToken();
+        assert(tok == TOKeof);
+    }
 }
 
 /***********************************************************
@@ -150,7 +189,7 @@ class Lexer
     Loc scanloc;            // for error messages
 
     const(char)* base;      // pointer to start of buffer
-    const(char)* end;       // past end of buffer
+    const(char)* end;       // pointer to last element of buffer
     const(char)* p;         // current character
     const(char)* line;      // start of current line
     Token token;
@@ -161,12 +200,14 @@ class Lexer
     bool errors;            // errors occurred during lexing or parsing
 
     /*********************
-     * Creates a Lexer.
+     * Creates a Lexer for the source code base[begoffset..endoffset+1].
+     * The last character, base[endoffset], must be null (0) or EOF (0x1A).
+     *
      * Params:
      *  filename = used for error messages
-     *  base = source code, ending in a 0 byte
+     *  base = source code, must be terminated by a null (0) or EOF (0x1A) character
      *  begoffset = starting offset into base[]
-     *  endoffset = last offset into base[]
+     *  endoffset = the last offset to read into base[]
      *  doDocComment = handle documentation comments
      *  commentToken = comments become TOKcomment's
      */
@@ -191,28 +232,16 @@ class Lexer
             p += 2;
             while (1)
             {
-                char c = *p;
+                char c = *p++;
                 switch (c)
                 {
-                case '\n':
-                    p++;
-                    break;
-                case '\r':
-                    p++;
-                    if (*p == '\n')
-                        p++;
-                    break;
                 case 0:
                 case 0x1A:
+                    p--;
+                    goto case;
+                case '\n':
                     break;
                 default:
-                    if (c & 0x80)
-                    {
-                        uint u = decodeUTF();
-                        if (u == PS || u == LS)
-                            break;
-                    }
-                    p++;
                     continue;
                 }
                 break;
@@ -263,6 +292,7 @@ class Lexer
         Loc startLoc;
         t.blockComment = null;
         t.lineComment = null;
+
         while (1)
         {
             t.ptr = p;
@@ -273,6 +303,7 @@ class Lexer
             case 0:
             case 0x1A:
                 t.value = TOKeof; // end of file
+                // Intentionally not advancing `p`, such that subsequent calls keep returning TOKeof.
                 return;
             case ' ':
             case '\t':
@@ -1264,6 +1295,8 @@ class Lexer
             case 0x1A:
                 error("unterminated string constant starting at %s", start.toChars());
                 t.setString();
+                // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOKeof token).
+                p--;
                 return TOKstring;
             case '"':
             case '`':
@@ -1324,6 +1357,8 @@ class Lexer
             case 0x1A:
                 error("unterminated string constant starting at %s", start.toChars());
                 t.setString();
+                // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOKeof token).
+                p--;
                 return TOKxstring;
             case '"':
                 if (n & 1)
@@ -1420,6 +1455,8 @@ class Lexer
             case 0x1A:
                 error("unterminated delimited string constant starting at %s", start.toChars());
                 t.setString();
+                // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOKeof token).
+                p--;
                 return TOKstring;
             default:
                 if (c & 0x80)
@@ -1605,6 +1642,7 @@ class Lexer
                 return TOKstring;
             case 0:
             case 0x1A:
+                // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOKeof token).
                 p--;
                 error("unterminated string constant starting at %s", start.toChars());
                 t.setString();
@@ -1661,8 +1699,12 @@ class Lexer
             endOfLine();
             goto case;
         case '\r':
+            goto case '\'';
         case 0:
         case 0x1A:
+            // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOKeof token).
+            p--;
+            goto case;
         case '\'':
             error("unterminated character constant");
             t.uns64value = '?';

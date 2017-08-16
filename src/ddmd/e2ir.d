@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/_tocsym.d, _e2ir.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _e2ir.d)
  */
 
 module ddmd.e2ir;
+
+// Online documentation: https://dlang.org/phobos/ddmd_e2ir.html
 
 import core.stdc.stdio;
 import core.stdc.stddef;
@@ -1960,6 +1962,16 @@ elem *toElem(Expression e, IRState *irs)
             elem *e;
             if (global.params.useAssert)
             {
+                if (global.params.betterC)
+                {
+                    auto econd = toElem(ae.e1, irs);
+                    auto ea = callCAssert(irs, ae.e1.loc, ae.e1, ae.msg, null);
+                    auto eo = el_bin(OPoror, TYvoid, econd, ea);
+                    elem_setLoc(eo, ae.loc);
+                    result = eo;
+                    return;
+                }
+
                 e = toElem(ae.e1, irs);
                 Symbol *ts = null;
                 elem *einv = null;
@@ -5931,6 +5943,10 @@ elem *filelinefunction(IRState *irs, Loc *loc)
  */
 elem *buildArrayBoundsError(IRState *irs, const ref Loc loc)
 {
+    if (global.params.betterC)
+    {
+        return callCAssert(irs, loc, null, null, "array overflow");
+    }
     auto eassert = el_var(getRtlsym(RTLSYM_DARRAYP));
     auto efile = toEfilenamePtr(cast(Module)irs.blx._module);
     auto eline = el_long(TYint, loc.linnum);
@@ -5999,3 +6015,92 @@ void toTraceGC(IRState *irs, elem *e, Loc *loc)
         e.EV.E2 = el_param(e.EV.E2, filelinefunction(irs, loc));
     }
 }
+
+
+/****************************************
+ * Generate call to C's assert failure function.
+ * One of exp, emsg, or str must not be null.
+ * Params:
+ *      irs = context
+ *      loc = location to use for assert message
+ *      exp = if not null expression to test (not evaluated, but converted to a string)
+ *      emsg = if not null then informative message to be computed at run time
+ *      str = if not null then informative message string
+ * Returns:
+ *      generated call
+ */
+elem *callCAssert(IRState *irs, Loc loc, Expression exp, Expression emsg, const(char)* str)
+{
+    //printf("callCAssert.toElem() %s\n", e.toChars());
+    Module m = cast(Module)irs.blx._module;
+    const(char)* mname = m.srcfile.toChars();
+
+    //printf("filename = '%s'\n", loc.filename);
+    //printf("module = '%s'\n", mname);
+
+    /* If the source file name has changed, probably due
+     * to a #line directive.
+     */
+    elem *efilename;
+    if (loc.filename && strcmp(loc.filename, mname) != 0)
+    {
+        const(char)* id = loc.filename;
+        size_t len = strlen(id);
+        Symbol *si = toStringSymbol(id, len, 1);
+        efilename = el_ptr(si);
+    }
+    else
+    {
+        efilename = toEfilenamePtr(m);
+    }
+
+    elem *elmsg;
+    if (emsg)
+    {
+        // Assuming here that emsg generates a 0 terminated string
+        auto e = toElemDtor(emsg, irs);
+        elmsg = array_toPtr(Type.tvoid.arrayOf(), e);
+    }
+    else if (exp)
+    {
+        // Generate a message out of the assert expression
+        const(char)* id = exp.toChars();
+        const len = strlen(id);
+        Symbol *si = toStringSymbol(id, len, 1);
+        elmsg = el_ptr(si);
+    }
+    else
+    {
+        assert(str);
+        const len = strlen(str);
+        Symbol *si = toStringSymbol(str, len, 1);
+        elmsg = el_ptr(si);
+    }
+
+    auto eline = el_long(TYint, loc.linnum);
+
+    elem *ea;
+    if (global.params.isOSX)
+    {
+        // __assert_rtn(func, file, line, msg);
+        const(char)* id = "";
+        FuncDeclaration fd = irs.getFunc();
+        if (fd)
+            id = fd.toPrettyChars();
+        const len = strlen(id);
+        Symbol *si = toStringSymbol(id, len, 1);
+        elem *efunc = el_ptr(si);
+
+        auto eassert = el_var(getRtlsym(RTLSYM_C__ASSERT_RTN));
+        ea = el_bin(OPcall, TYvoid, eassert, el_params(elmsg, eline, efilename, efunc, null));
+    }
+    else
+    {
+        // [_]_assert(msg, file, line);
+        const rtlsym = (global.params.isWindows) ? RTLSYM_C_ASSERT : RTLSYM_C__ASSERT;
+        auto eassert = el_var(getRtlsym(rtlsym));
+        ea = el_bin(OPcall, TYvoid, eassert, el_params(eline, efilename, elmsg, null));
+    }
+    return ea;
+}
+

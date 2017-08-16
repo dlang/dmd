@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:    $(DMDSRC _inline.d)
+ * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/inline.d, _inline.d)
  */
 
 module ddmd.inline;
+
+// Online documentation: https://dlang.org/phobos/ddmd_inline.html
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -29,6 +31,7 @@ import ddmd.globals;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.init;
+import ddmd.initsem;
 import ddmd.mtype;
 import ddmd.opover;
 import ddmd.statement;
@@ -455,7 +458,7 @@ public:
         override void visit(ThisExp e)
         {
             //if (!ids.vthis)
-            //    e.error("no 'this' when inlining %s", ids.parent.toChars());
+            //    e.error("no `this` when inlining `%s`", ids.parent.toChars());
             if (!ids.vthis)
             {
                 result = e;
@@ -503,7 +506,7 @@ public:
                             continue;
                         if (vd._init && !vd._init.isVoidInitializer())
                         {
-                            result = vd._init.toExpression();
+                            result = vd._init.initializerToExpression();
                             assert(result);
                             result = doInlineAs!Expression(result, ids);
                         }
@@ -530,7 +533,7 @@ public:
                     }
                     else
                     {
-                        auto ei = vd._init.toExpression();
+                        auto ei = vd._init.initializerToExpression();
                         assert(ei);
                         vto._init = new ExpInitializer(ei.loc, doInlineAs!Expression(ei, ids));
                     }
@@ -2097,7 +2100,7 @@ public Expression inlineCopy(Expression e, Scope* sc)
     int cost = inlineCostExpression(e);
     if (cost >= COST_MAX)
     {
-        e.error("cannot inline default argument %s", e.toChars());
+        e.error("cannot inline default argument `%s`", e.toChars());
         return new ErrorExp();
     }
     scope ids = new InlineDoState(sc.parent, null);

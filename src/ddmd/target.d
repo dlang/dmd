@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _target.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/target.d, _target.d)
  */
 
 module ddmd.target;
+
+// Online documentation: https://dlang.org/phobos/ddmd_target.html
 
 import ddmd.cppmangle;
 import ddmd.dclass;
@@ -254,15 +256,13 @@ struct Target
      * (in bytes) and element type `type`.
      *
      * Returns: 0 if the type is supported, or else: 1 if vector types are not
-     *     supported on the target at all, 2 if the given size isn't, or 3 if
-     *     the element type isn't.
+     *     supported on the target at all, 2 if the element type isn't, or 3 if
+     *     the given size isn't.
      */
     extern (C++) static int isVectorTypeSupported(int sz, Type type)
     {
         if (!global.params.is64bit && !global.params.isOSX)
             return 1; // not supported
-        if (sz != 16 && sz != 32)
-            return 2; // wrong size
         switch (type.ty)
         {
         case Tvoid:
@@ -278,8 +278,10 @@ struct Target
         case Tfloat64:
             break;
         default:
-            return 3; // wrong base type
+            return 2; // wrong base type
         }
+        if (sz != 16 && !(global.params.cpu >= CPU.avx && sz == 32))
+            return 3; // wrong size
         return 0;
     }
 
@@ -306,6 +308,10 @@ struct Target
             break;
 
         case TOKlt, TOKgt, TOKle, TOKge, TOKequal, TOKnotequal, TOKidentity, TOKnotidentity:
+            supported = false;
+            break;
+
+        case TOKunord, TOKlg, TOKleg, TOKule, TOKul, TOKuge, TOKug, TOKue:
             supported = false;
             break;
 

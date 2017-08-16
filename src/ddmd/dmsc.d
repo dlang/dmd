@@ -5,10 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _dmsc.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/dmsc.d, _dmsc.d)
  */
 
 module ddmd.dmsc;
+
+// Online documentation: https://dlang.org/phobos/ddmd_dmsc.html
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -55,7 +57,8 @@ void out_config_init(
                         // 2: fake it with C symbolic debug info
         bool alwaysframe,       // always create standard function frame
         bool stackstomp,        // add stack stomping code
-        bool avx                // use AVX instruction set
+        ubyte avx,              // use AVX instruction set (0, 1, 2)
+        bool betterC            // implement "Better C"
         );
 
 void out_config_debug(
@@ -113,7 +116,8 @@ void backend_init()
         params.symdebug,
         params.alwaysframe,
         params.stackstomp,
-        params.cpu >= CPU.avx
+        params.cpu >= CPU.avx2 ? 2 : params.cpu >= CPU.avx ? 1 : 0,
+        params.betterC
     );
 
     debug
