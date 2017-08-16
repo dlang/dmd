@@ -219,27 +219,10 @@ extern (C++) Expression eval_yl2xp1(Loc loc, FuncDeclaration fd, Expressions* ar
 extern (C++) Expression builtin_ctfeWrite(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     import core.stdc.stdio : fprintf;
-    import ddmd.ctfeexpr : resolveSlice;
 
     Expression arg0 = (*arguments)[0];
-    StringExp se;
 
-    switch (arg0.op)
-    {
-        case TOKstring:
-            se = cast(StringExp) arg0;
-            break;
-        case TOKslice:
-            se = resolveSlice(arg0).toStringExp();
-            break;
-        case TOKarrayliteral:
-            se = arg0.toStringExp();
-            break;
-        default:
-            break;
-    }
-
-    if (se)
+    if (StringExp se = arg0.toStringExp)
     {
         fprintf(global.stdmsg, "%.*s".ptr, se.len, se.string);
     }
