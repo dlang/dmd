@@ -7,6 +7,7 @@ static if (!is(typeof ({ import gccjit.c;  })))
 else
     struct GCCJIT_Gen
 {
+    enum max_params = 64;
     import gccjit.c;
     import ddmd.ctfe.bc_common;
     import std.stdio;
@@ -24,56 +25,92 @@ else
 
     static void bc_jit_main()
     {
-        GCCJIT_Gen gen;
+
+        BCHeap heap;
+        heap.heapSize = 100;
+        writeln(heap.heapSize);
+
+        GCCJIT_Gen *gen = new GCCJIT_Gen();
         with (gen)
         {
             Initialize();
             gcc_jit_context_set_bool_option(ctx, GCC_JIT_BOOL_OPTION_DUMP_EVERYTHING, 0);
             scope (exit) Finalize();
             {
+
                 auto p1 = genParameter(i32Type, "p1");
                 auto p2 = genParameter(i32Type, "p2");
                 auto p3 = genParameter(i32Type, "p3");
 
                 beginFunction(0);
-
-                Add3(p1, p1, imm32('a'));
-                auto j = beginCndJmp(p3.i32, true);
-                Sub3(p2, p2, p1);
+                auto tmp1 = genTemporary(i32Type);
+                Set(tmp1, imm32(3));
+                Add3(tmp1, tmp1, imm32('a'));
+                auto j = beginCndJmp(imm32(3), true);
+                Not(tmp1, tmp1);
                 endCndJmp(j, genLabel());
-                Not(p1, p1);
-                Ret(p1);
+                auto arrayPtr = genTemporary(i32Type);
+                Alloc(arrayPtr, imm32(67));
+                Ret(arrayPtr);
 
                 endFunction();
             }
         }
+
+        auto rv = gen.run(0, [imm32(64),imm32(32),imm32(32)], &heap);
+
+        writeln(heap.heapSize, " rv: ", rv);
     }
 
+    BCValue run(uint fnId, BCValue[] args, BCHeap *heapPtr)
+    {
+        assert(result, "No result did you try to run before calling Finalize");
+
+        alias fType = extern (C) int function(long[max_params] args, uint* heapSize, uint* heap);
+
+        auto func = cast(fType)
+            gcc_jit_result_get_code(result, functions[fnId].fname);
+
+        long[max_params] fnArgs;
+        foreach(i, arg;args)
+        {
+            fnArgs[i] = arg.imm64.imm64;
+        }
+
+        return BCValue(Imm64(func(fnArgs, &heapPtr.heapSize, &heapPtr._heap[0])));
+
+
+    }
 
     struct BCFunction
     {
         void* fd;
 
         jfunc func;
+        char* fname;
         alias func this;
-        jparam[64] parameters;
+        jlvalue[64] parameters;
         ubyte parameterCount;
         jblock[512] blocks;
         uint blockCount;
-        jlvalue flag;
         jlvalue[1024] locals;
-        uint localCount;
-        jlvalue[4096] temporaries;
-        uint temporaryCount;
+        ushort localCount;
+        jlvalue[2096] temporaries;
+        ushort temporaryCount;
         jlvalue[temporaries.length + locals.length] stackValues;
-
-        uint cellCount;
+        ushort stackValueCount;
     }
 
     jctx ctx;
     jresult result;
+    jlvalue flag;
+    jlvalue heapSize;
 
-    BCFunction[265] functions;
+
+    void* heapSizePtrPtr;
+    void* heapArrayPtrPtr;
+
+    BCFunction[128] functions;
     uint functionCount;
 
     BCFunction* currentFunc()
@@ -96,7 +133,7 @@ else
         blocks[blockCount++] = gcc_jit_function_new_block(func, name);
     }
 
-    private jparam param(ubyte paramIndex)
+    private jlvalue param(ubyte paramIndex)
     {
         return parameters[paramIndex];
         //return gcc_jit_function_get_param(func, paramIndex);
@@ -113,7 +150,11 @@ else
         assert(val.vType != BCValueType.Immediate);
         if (val.vType == BCValueType.Parameter)
         {
-            return gcc_jit_param_as_lvalue(param(val.paramIndex));
+            return param(val.paramIndex);
+        }
+        else if (val.vType == BCValueType.StackValue)
+        {
+            return stackValues[val.stackAddr];
         }
         else
             assert(0, "vType: " ~ enumToString(val.vType) ~ " is current not supported");
@@ -125,12 +166,16 @@ else
         //assert(val.isStackValueOrParameter);
         if (val.vType == BCValueType.Parameter)
         {
-            return gcc_jit_param_as_rvalue(param(val.paramIndex));
+            return rvalue(param(val.paramIndex));
         }
         else if (val.vType == BCValueType.Immediate)
         {
             assert(val.type == i32Type);
             return gcc_jit_context_new_rvalue_from_int(ctx, i64type, val.imm32.imm32);
+        }
+        else if (val.vType == BCValueType.StackValue)
+        {
+            return rvalue(stackValues[val.stackAddr]);
         }
         else
             assert(0, "vType: " ~ enumToString(val.vType) ~ " is current not supported");
@@ -141,13 +186,32 @@ else
             return gcc_jit_lvalue_as_rvalue(val);
     }
 
+    private jrvalue rvalue(long v)
+    {
+        return gcc_jit_context_new_rvalue_from_long(ctx, i64type, v);
+    }
+
+    private StackAddr addStackValue(jlvalue val)
+    {
+        stackValues[stackValueCount] = val;
+        return StackAddr(stackValueCount++);
+    }
+
 
     void Initialize()
     {
         ctx = gcc_jit_context_acquire();
-
         i32type = ctx.gcc_jit_context_get_type(GCC_JIT_TYPE_INT);
         i64type = ctx.gcc_jit_context_get_type(GCC_JIT_TYPE_LONG_LONG);
+
+
+        auto heapType =
+            gcc_jit_context_new_array_type(ctx, null,
+                i32type, int(2 ^^ 26));
+
+
+
+
 
         // debug stuff
         ctx.gcc_jit_context_set_bool_option(
@@ -159,18 +223,38 @@ else
     void Finalize()
     {
         gcc_jit_context_dump_to_file(ctx, "ctx.c", 0);
-        result = ctx.gcc_jit_context_compile();
+        result = gcc_jit_context_compile(ctx);
     }
 
     void beginFunction(uint fnId, string name = null)
     {
         writeln("parameterCount: ", parameterCount);
         writeln ("functionIndex: ", (&functions[0])  - currentFunc);
+        jparam[3] p;
+        p[0] = gcc_jit_context_new_param(ctx, null, gcc_jit_context_new_array_type(ctx, null, i64type, max_params), "paramArray");// long[64] args;
+        p[1] = gcc_jit_context_new_param(ctx, null, gcc_jit_type_get_pointer(i32type), "heapSize"); //uint* heapSize
+        p[2] = gcc_jit_context_new_param(ctx, null, gcc_jit_context_new_array_type(ctx, null, i32type, 2 ^^ 26), "heap"); //uint[2^^26] heap
+        fname = cast(char*) (name ? name.toStringz : ("f" ~ to!string(fnId)).toStringz);
         func = gcc_jit_context_new_function(ctx,
             null, GCC_JIT_FUNCTION_EXPORTED, i64type,
-            name ? name.toStringz : ("f" ~ to!string(fnId)).toStringz ,
-            parameterCount, &parameters[0], 0);
-        newBlock("functionBegin");
+            cast(const) fname,
+            cast(int)p.length, cast(jparam*)&p, 0
+        );
+
+        newBlock("prologue");
+
+        foreach(uint _p;0 .. parameterCount)
+        {
+            parameters[_p] = gcc_jit_context_new_array_access(ctx, null,
+                gcc_jit_param_as_rvalue(p[0]), rvalue(_p)
+            );
+        }
+
+        heapSize = gcc_jit_param_as_lvalue(p[1]);
+
+        newBlock("body");
+
+        gcc_jit_block_end_with_jump(blocks[blockCount - 2], null, block);
     }
 
     BCFunction endFunction()
@@ -182,10 +266,11 @@ else
     {
         //TODO replace i64Type maybe depding on bct
         auto type = i64type;
+        char[20] name = "tmp";
+        sprintf(&name[3], "%d", temporaryCount);
         temporaries[temporaryCount++] = gcc_jit_function_new_local(func, null, type, &name[0]);
-        auto addr = addStackValue(locals[temporaryCount - 1]);
-
-
+        auto addr = addStackValue(temporaries[temporaryCount - 1]);
+        return BCValue(addr, bct, temporaryCount);
     }
 
     BCValue genLocal(BCType bct, string name)
@@ -195,7 +280,7 @@ else
         auto type = i64type;
         locals[localCount++] = gcc_jit_function_new_local(func, null, type, &name[0]);
         auto addr = addStackValue(locals[localCount -1 ]);
-        return BCLocal(localCount, bct, addr, name);
+        return BCValue(addr, bct, localCount, name);
     }
 
     BCValue genParameter(BCType bct, string name)
@@ -203,7 +288,7 @@ else
         import std.string;
         if (bct != i32Type)
             assert(0, "can currently only create params of i32Type");
-        parameters[parameterCount] = gcc_jit_context_new_param(ctx, null, i64type, name.toStringz);
+        //parameters[parameterCount] =
         auto r = BCValue(BCParameter(parameterCount++, bct, StackAddr(0)));
         writeln("pCount: ",  parameterCount);
         writeln("funcIdx: ", (&functions[0])  - currentFunc);
@@ -275,7 +360,32 @@ else
         gcc_jit_block_add_assignment(block, null, lvalue(lhs), rvalue(flag));
     }
 
-    void Alloc(BCValue heapPtr, BCValue size);
+    void Alloc(BCValue heapPtr, BCValue size)
+    {
+        auto _size = rvalue(size);
+        _size = gcc_jit_context_new_cast(ctx, null,
+            _size, i32type
+        );
+
+        auto _heapSize = gcc_jit_rvalue_dereference(rvalue(heapSize), null);
+
+        auto rheapSize = gcc_jit_context_new_cast(ctx, null,
+            rvalue(_heapSize), i64type
+        );
+
+        auto lheapSize = _heapSize;
+
+        auto result = lvalue(heapPtr);
+
+        gcc_jit_block_add_assignment(block, null,
+            result, rheapSize,
+        );
+
+        gcc_jit_block_add_assignment_op(block, null,
+            lheapSize, GCC_JIT_BINARY_OP_PLUS, _size
+        );
+    }
+
     void Assert(BCValue value, BCValue err);
 
     void Not(BCValue result, BCValue val)
