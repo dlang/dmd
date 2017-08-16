@@ -1,12 +1,14 @@
-import core.runtime, core.sys.posix.dlfcn;
+import core.runtime;
+import core.stdc.string;
+import core.sys.posix.dlfcn;
 
 extern(C) alias RunDepTests = int function();
 
 void main(string[] args)
 {
-    auto name = args[0];
-    assert(name[$-13 .. $] == "/load_linkdep");
-    name = name[0 .. $-12] ~ "liblinkdep.so";
+    auto name = args[0] ~ '\0';
+    const pathlen = strrchr(name.ptr, '/') - name.ptr + 1;
+    name = name[0 .. pathlen] ~ "liblinkdep.so";
 
     auto h = Runtime.loadLibrary(name);
     assert(h);

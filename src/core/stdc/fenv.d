@@ -321,20 +321,253 @@ version( CRuntime_Microsoft )
 }
 else
 {
-    enum
+    version (X86)
     {
-        FE_INVALID      = 1, ///
-        FE_DENORMAL     = 2, /// non-standard
-        FE_DIVBYZERO    = 4, ///
-        FE_OVERFLOW     = 8, ///
-        FE_UNDERFLOW    = 0x10, ///
-        FE_INEXACT      = 0x20, ///
-        FE_ALL_EXCEPT   = 0x3F, ///
-        FE_TONEAREST    = 0, ///
-        FE_UPWARD       = 0x800, ///
-        FE_DOWNWARD     = 0x400, ///
-        FE_TOWARDZERO   = 0xC00, ///
+        // Define bits representing the exception.
+        enum
+        {
+            FE_INVALID      = 0x01, ///
+            FE_DENORMAL     = 0x02, /// non-standard
+            FE_DIVBYZERO    = 0x04, ///
+            FE_OVERFLOW     = 0x08, ///
+            FE_UNDERFLOW    = 0x10, ///
+            FE_INEXACT      = 0x20, ///
+            FE_ALL_EXCEPT   = 0x3F, ///
+        }
+
+        // The ix87 FPU supports all of the four defined rounding modes.
+        enum
+        {
+            FE_TONEAREST    = 0, ///
+            FE_DOWNWARD     = 0x400, ///
+            FE_UPWARD       = 0x800, ///
+            FE_TOWARDZERO   = 0xC00, ///
+        }
     }
+    else version (X86_64)
+    {
+        // Define bits representing the exception.
+        enum
+        {
+            FE_INVALID      = 0x01, ///
+            FE_DENORMAL     = 0x02, /// non-standard
+            FE_DIVBYZERO    = 0x04, ///
+            FE_OVERFLOW     = 0x08, ///
+            FE_UNDERFLOW    = 0x10, ///
+            FE_INEXACT      = 0x20, ///
+            FE_ALL_EXCEPT   = 0x3F, ///
+        }
+
+        // The ix87 FPU supports all of the four defined rounding modes.
+        enum
+        {
+            FE_TONEAREST    = 0, ///
+            FE_DOWNWARD     = 0x400, ///
+            FE_UPWARD       = 0x800, ///
+            FE_TOWARDZERO   = 0xC00, ///
+        }
+    }
+    else version (ARM)
+    {
+        // Define bits representing exceptions in the FPU status word.
+        enum
+        {
+            FE_INVALID      = 1,  ///
+            FE_DIVBYZERO    = 2,  ///
+            FE_OVERFLOW     = 4,  ///
+            FE_UNDERFLOW    = 8,  ///
+            FE_INEXACT      = 16, ///
+            FE_ALL_EXCEPT   = 31, ///
+        }
+
+        // VFP supports all of the four defined rounding modes.
+        enum
+        {
+            FE_TONEAREST    = 0,        ///
+            FE_UPWARD       = 0x400000, ///
+            FE_DOWNWARD     = 0x800000, ///
+            FE_TOWARDZERO   = 0xC00000, ///
+        }
+    }
+    else version (AArch64)
+    {
+        // Define bits representing exceptions in the FPSR status word.
+        enum
+        {
+            FE_INVALID      = 1,  ///
+            FE_DIVBYZERO    = 2,  ///
+            FE_OVERFLOW     = 4,  ///
+            FE_UNDERFLOW    = 8,  ///
+            FE_INEXACT      = 16, ///
+            FE_ALL_EXCEPT   = 31, ///
+        }
+
+        // Define bits representing rounding modes in the FPCR Rmode field.
+        enum
+        {
+            FE_TONEAREST    = 0x000000, ///
+            FE_UPWARD       = 0x400000, ///
+            FE_DOWNWARD     = 0x800000, ///
+            FE_TOWARDZERO   = 0xC00000, ///
+        }
+    }
+    else version(MIPS32)
+    {
+        // Define bits representing the exception.
+        enum
+        {
+            FE_INEXACT      = 0x04, ///
+            FE_UNDERFLOW    = 0x08, ///
+            FE_OVERFLOW     = 0x10, ///
+            FE_DIVBYZERO    = 0x20, ///
+            FE_INVALID      = 0x40, ///
+            FE_ALL_EXCEPT   = 0x7C, ///
+        }
+
+        // The MIPS FPU supports all of the four defined rounding modes.
+        enum
+        {
+            FE_TONEAREST    = 0x0, ///
+            FE_TOWARDZERO   = 0x1, ///
+            FE_UPWARD       = 0x2, ///
+            FE_DOWNWARD     = 0x3, ///
+        }
+    }
+    else version(MIPS64)
+    {
+        // Define bits representing the exception.
+        enum
+        {
+            FE_INEXACT      = 0x04, ///
+            FE_UNDERFLOW    = 0x08, ///
+            FE_OVERFLOW     = 0x10, ///
+            FE_DIVBYZERO    = 0x20, ///
+            FE_INVALID      = 0x40, ///
+            FE_ALL_EXCEPT   = 0x7C, ///
+        }
+
+        // The MIPS FPU supports all of the four defined rounding modes.
+        enum
+        {
+            FE_TONEAREST    = 0x0, ///
+            FE_TOWARDZERO   = 0x1, ///
+            FE_UPWARD       = 0x2, ///
+            FE_DOWNWARD     = 0x3, ///
+        }
+    }
+    else version (PPC)
+    {
+        // Define bits representing the exception.
+        enum
+        {
+            FE_INEXACT                    = 0x2000000,  ///
+            FE_DIVBYZERO                  = 0x4000000,  ///
+            FE_UNDERFLOW                  = 0x8000000,  ///
+            FE_OVERFLOW                   = 0x10000000, ///
+            FE_INVALID                    = 0x20000000, ///
+            FE_INVALID_SNAN               = 0x1000000,  /// non-standard
+            FE_INVALID_ISI                = 0x800000,   /// non-standard
+            FE_INVALID_IDI                = 0x400000,   /// non-standard
+            FE_INVALID_ZDZ                = 0x200000,   /// non-standard
+            FE_INVALID_IMZ                = 0x100000,   /// non-standard
+            FE_INVALID_COMPARE            = 0x80000,    /// non-standard
+            FE_INVALID_SOFTWARE           = 0x400,      /// non-standard
+            FE_INVALID_SQRT               = 0x200,      /// non-standard
+            FE_INVALID_INTEGER_CONVERSION = 0x100,      /// non-standard
+            FE_ALL_INVALID                = 0x1F80700,  /// non-standard
+            FE_ALL_EXCEPT                 = 0x3E000000, ///
+        }
+
+        // PowerPC chips support all of the four defined rounding modes.
+        enum
+        {
+            FE_TONEAREST    = 0, ///
+            FE_TOWARDZERO   = 1, ///
+            FE_UPWARD       = 2, ///
+            FE_DOWNWARD     = 3, ///
+        }
+    }
+    else version (PPC64)
+    {
+        // Define bits representing the exception.
+        enum
+        {
+            FE_INEXACT                    = 0x2000000,  ///
+            FE_DIVBYZERO                  = 0x4000000,  ///
+            FE_UNDERFLOW                  = 0x8000000,  ///
+            FE_OVERFLOW                   = 0x10000000, ///
+            FE_INVALID                    = 0x20000000, ///
+            FE_INVALID_SNAN               = 0x1000000,  /// non-standard
+            FE_INVALID_ISI                = 0x800000,   /// non-standard
+            FE_INVALID_IDI                = 0x400000,   /// non-standard
+            FE_INVALID_ZDZ                = 0x200000,   /// non-standard
+            FE_INVALID_IMZ                = 0x100000,   /// non-standard
+            FE_INVALID_COMPARE            = 0x80000,    /// non-standard
+            FE_INVALID_SOFTWARE           = 0x400,      /// non-standard
+            FE_INVALID_SQRT               = 0x200,      /// non-standard
+            FE_INVALID_INTEGER_CONVERSION = 0x100,      /// non-standard
+            FE_ALL_INVALID                = 0x1F80700,  /// non-standard
+            FE_ALL_EXCEPT                 = 0x3E000000, ///
+        }
+
+        // PowerPC chips support all of the four defined rounding modes.
+        enum
+        {
+            FE_TONEAREST    = 0, ///
+            FE_TOWARDZERO   = 1, ///
+            FE_UPWARD       = 2, ///
+            FE_DOWNWARD     = 3, ///
+        }
+    }
+    else version(SPARC64)
+    {
+        // Define bits representing the exception.
+        enum
+        {
+            FE_INVALID      = 0x200, ///
+            FE_OVERFLOW     = 0x100, ///
+            FE_UNDERFLOW    = 0x80,  ///
+            FE_DIVBYZERO    = 0x40,  ///
+            FE_INEXACT      = 0x20,  ///
+            FE_ALL_EXCEPT   = 0x3E0, ///
+        }
+
+        // The Sparc FPU supports all of the four defined rounding modes.
+        enum
+        {
+            FE_TONEAREST    = 0x0,        ///
+            FE_TOWARDZERO   = 0x40000000, ///
+            FE_UPWARD       = 0x80000000, ///
+            FE_DOWNWARD     = 0xc0000000, ///
+        }
+    }
+    else version(SystemZ)
+    {
+        // Define bits representing the exception.
+        enum
+        {
+            FE_INVALID      = 0x80, ///
+            FE_DIVBYZERO    = 0x40, ///
+            FE_OVERFLOW     = 0x20, ///
+            FE_UNDERFLOW    = 0x10, ///
+            FE_INEXACT      = 0x08, ///
+            FE_ALL_EXCEPT   = 0xF8, ///
+        }
+
+        // SystemZ supports all of the four defined rounding modes.
+        enum
+        {
+            FE_TONEAREST    = 0x0, ///
+            FE_DOWNWARD     = 0x3, ///
+            FE_UPWARD       = 0x2, ///
+            FE_TOWARDZERO   = 0x1, ///
+        }
+    }
+    else
+    {
+        static assert(0, "Unimplemented architecture");
+    }
+
 }
 
 version( GNUFP )

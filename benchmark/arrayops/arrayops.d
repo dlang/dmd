@@ -21,13 +21,16 @@ float[6] getLatencies(T, string op)()
             a[] = 24;
             b[] = 4;
             c[] = 2;
+            __gshared T s = 2; // scalar, use __gshared to avoid const-folding
             auto sw = StopWatch(AutoStart.yes);
             foreach (off; size_t(0) .. size_t(64))
             {
                 off = off * len + off;
-                enum op = op.replace("const", "2").replace("a",
-                        "a[off .. off + len]").replace("b",
-                        "b[off .. off + len]").replace("c", "c[off .. off + len]");
+                enum op = op
+                    .replace("scalar", "s")
+                    .replace("a", "a[off .. off + len]")
+                    .replace("b", "b[off .. off + len]")
+                    .replace("c", "c[off .. off + len]");
                 mixin(op ~ ";");
             }
             latency = min(latency, sw.peek.nsecs);
@@ -54,13 +57,16 @@ float[4] getThroughput(T, string op)()
             a[] = 24;
             b[] = 4;
             c[] = 2;
+            __gshared T s = 2; // scalar, use __gshared to avoid const-folding
             auto sw = StopWatch(AutoStart.yes);
             foreach (off; size_t(0) .. size_t(64))
             {
                 off = off * len + off;
-                enum op = op.replace("const", "2").replace("a",
-                        "a[off .. off + len]").replace("b",
-                        "b[off .. off + len]").replace("c", "c[off .. off + len]");
+                enum op = op
+                    .replace("scalar", "s")
+                    .replace("a", "a[off .. off + len]")
+                    .replace("b", "b[off .. off + len]")
+                    .replace("c", "c[off .. off + len]");
                 mixin(op ~ ";");
             }
             immutable nsecs = sw.peek.nsecs;
@@ -78,11 +84,11 @@ string[] genOps()
     foreach (op1; ["+", "-", "*", "/"])
     {
         ops ~= "a " ~ op1 ~ "= b";
-        ops ~= "a " ~ op1 ~ "= const";
+        ops ~= "a " ~ op1 ~ "= scalar";
         foreach (op2; ["+", "-", "*", "/"])
         {
             ops ~= "a " ~ op1 ~ "= b " ~ op2 ~ " c";
-            ops ~= "a " ~ op1 ~ "= b " ~ op2 ~ " const";
+            ops ~= "a " ~ op1 ~ "= b " ~ op2 ~ " scalar";
         }
     }
     return ops;
@@ -180,7 +186,7 @@ void main()
     unmaskFPUExceptions;
 
     writefln("type, op, %(latency%s, %), %-(throughput%s, %)", iota(6)
-        .map!(i => 1 << i), ["8KB", "32KB", "512KB", "32MB"]);
+        .map!(i => 1 << i), ["8KB", "32KB", "512KB", "32768KB"]);
     foreach (op; mixin("AliasSeq!(%(%s, %))".format(genOps)))
         runOp!op;
     maskFPUExceptions;

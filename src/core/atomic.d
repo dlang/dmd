@@ -1062,7 +1062,21 @@ else version( AsmX86_64 )
                     pop RBX;
                     pop RDI;
                 }
-                return cast(typeof(return)) retVal;
+
+                static if (is(T:U[], U))
+                {
+                    pragma(inline, true)
+                    static typeof(return) toTrusted(size_t[2] retVal) @trusted
+                    {
+                        return *(cast(typeof(return)*) retVal.ptr);
+                    }
+
+                    return toTrusted(retVal);
+                }
+                else
+                {
+                    return cast(typeof(return)) retVal;
+                }
             }else{
                 asm pure nothrow @nogc @trusted
                 {
@@ -1304,8 +1318,8 @@ version( unittest )
     }
     body
     {
-        T         base;
-        shared(T) atom;
+        T         base = cast(T)null;
+        shared(T) atom = cast(shared(T))null;
 
         assert( base !is val, T.stringof );
         assert( atom is base, T.stringof );
@@ -1357,10 +1371,10 @@ version( unittest )
         testCAS!(shared Klass)( new shared(Klass) );
 
         testType!(float)(1.0f);
-        testType!(double)(1.0);
 
         static if( has64BitCAS )
         {
+            testType!(double)(1.0);
             testType!(long)();
             testType!(ulong)();
         }
@@ -1377,9 +1391,12 @@ version( unittest )
         atomicOp!"+="( f, 1 );
         assert( f == 1 );
 
-        shared double d = 0;
-        atomicOp!"+="( d, 1 );
-        assert( d == 1 );
+        static if( has64BitCAS )
+        {
+            shared double d = 0;
+            atomicOp!"+="( d, 1 );
+            assert( d == 1 );
+        }
     }
 
     pure nothrow unittest

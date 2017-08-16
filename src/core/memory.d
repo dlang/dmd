@@ -233,8 +233,8 @@ struct GC
 
         This can be used to manually allocate arrays. Initial slice size is 0.
 
-        Note: The slice's useable size will not match the block size. Use
-        $(LREF capacity) to retrieve actual useable capacity.
+        Note: The slice's usable size will not match the block size. Use
+        $(LREF capacity) to retrieve actual usable capacity.
 
         Example:
         ----
@@ -272,7 +272,7 @@ struct GC
      * size = The size of the block, calculated from base.
      * attr = Attribute bits set on the memory block.
      */
-    alias BlkInfo_ BlkInfo;
+    alias BlkInfo = BlkInfo_;
 
 
     /**
@@ -510,7 +510,7 @@ struct GC
      *  Extend may also be used to extend slices (or memory blocks with
      *  $(LREF APPENDABLE) info). However, use the return value only
      *  as an indicator of success. $(LREF capacity) should be used to
-     *  retrieve actual useable slice capacity.
+     *  retrieve actual usable slice capacity.
      */
     static size_t extend( void* p, size_t mx, size_t sz, const TypeInfo ti = null ) pure nothrow
     {
@@ -811,9 +811,11 @@ struct GC
 }
 
 /**
- * Pure variants of C's memory allocation functions `malloc`, `calloc` and
- * `realloc`. Purity is achieved via resetting the `errno` to it's value prior
- * to being called, removing the function's global state mutation.
+ * Pure variants of C's memory allocation functions `malloc`, `calloc`, and
+ * `realloc` and deallocation function `free`.
+ *
+ * Purity is achieved by saving and restoring the value of `errno`, thus
+ * behaving as if it were never changed.
  *
  * See_Also:
  *     $(LINK2 https://dlang.org/spec/function.html#pure-functions, D's rules for purity),
@@ -841,7 +843,7 @@ void* pureCalloc(size_t nmemb, size_t size) @trusted pure @nogc nothrow
     return ret;
 }
 /// ditto
-void* pureRealloc(void* ptr, size_t size) pure @nogc nothrow
+void* pureRealloc(void* ptr, size_t size) @system pure @nogc nothrow
 {
     const errno = fakePureGetErrno();
     void* ret = fakePureRealloc(ptr, size);
@@ -851,12 +853,17 @@ void* pureRealloc(void* ptr, size_t size) pure @nogc nothrow
     }
     return ret;
 }
+/// ditto
+void pureFree(void* ptr) @system pure @nogc nothrow
+{
+    const errno = fakePureGetErrno();
+    fakePureFree(ptr);
+    cast(void)fakePureSetErrno(errno);
+}
 
 ///
-nothrow @nogc unittest
+@system pure nothrow @nogc unittest
 {
-    import core.stdc.stdlib : free;
-
     ubyte[] fun(size_t n) pure
     {
         void* p = pureMalloc(n);
@@ -869,10 +876,10 @@ nothrow @nogc unittest
 
     auto buf = fun(100);
     assert(buf.length == 200);
-    free(buf.ptr);
+    pureFree(buf.ptr);
 }
 
-pure @nogc nothrow unittest
+@system pure nothrow @nogc unittest
 {
     const int errno = fakePureGetErrno();
 
@@ -909,5 +916,5 @@ extern (C) private pure @system @nogc nothrow
     pragma(mangle, "calloc") void* fakePureCalloc(size_t nmemb, size_t size);
     pragma(mangle, "realloc") void* fakePureRealloc(void* ptr, size_t size);
 
-    pragma(mangle, "free") void fakePureFree(void* ptr); // needed by unittests
+    pragma(mangle, "free") void fakePureFree(void* ptr);
 }

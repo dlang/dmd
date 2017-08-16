@@ -2,7 +2,7 @@ include ../common.mak
 
 DFLAGS+=-cov
 
-NORMAL_TESTS:=$(addprefix $(ROOT)/,$(addsuffix .done,basic no_code))
+NORMAL_TESTS:=$(addprefix $(ROOT)/,$(addsuffix .done,basic))
 MERGE_TESTS:=$(addprefix $(ROOT)/,$(addsuffix .done,merge merge_true))
 
 DIFF:=diff

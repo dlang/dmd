@@ -1,33 +1,35 @@
-# Use `R --vanilla < plot.R` to run this script.
-# It will read all *.csv files from the current folder and create a comparison plot for them.
+# Use `Rscript --vanilla plot.R old.csv new.csv` to run this script.
+# It will read old.csv and new.csv files and create a comparison plot for them.
 library(ggplot2)
 library(dplyr)
 library(tidyr)
 
 dat <- NULL
-files <- list.files(pattern='*.csv')
-for (file in files)
-{
-  datFile <- read.csv(file) %>% tbl_df() %>%
-    mutate(file=file)
-  if (is.null(dat))
-     dat = datFile
-  else
-     dat = bind_rows(dat, datFile)
-}
+args <- commandArgs(trailingOnly=T)
+old <- read.csv(args[1]) %>% tbl_df()
+new <- read.csv(args[2]) %>% tbl_df()
 
-latencies <- gather(dat %>% select(-starts_with('throughput')), num_elems, latency, starts_with('latency'))
-throughputs <- gather(dat %>% select(-starts_with('latency')), array_size, throughput, starts_with('throughput'))
+col.indices <- which(!colnames(new) %in% c("type", "op"))
 
-levels(latencies$num_elems) <- sub("latency(\\d+)", "\\1", levels(latencies$num_elems))
-levels(throughputs$array_size) <- sub("throughput(.+)", "\\1", levels(throughputs$array_size))
+# relative values
+new[,col.indices] <- 100 * new[,col.indices] / old[,col.indices]
 
-img <- qplot(num_elems, latency, group=type, data=latencies, geom="line", color=type) +
-  facet_grid(op ~ file, scales="free_y") +
-  labs(x="num elements", y="latency / ns")
-ggsave('array_ops_latency.svg', plot = img, width = 2 + 3 * length(files), height = 40)
+# arrange type factor levels
+new$type <- factor(new$type, levels = c('byte', 'ubyte', 'short', 'ushort', 'int', 'uint', 'long', 'ulong', 'float', 'double'))
 
-img <- qplot(array_size, throughput, group=type, data=throughputs, geom="line", color=type) +
-  facet_grid(op ~ file, scales="free_y") +
-  labs(x="array size", y="throughput / (ops / ns)")
-ggsave('array_ops_throughput.svg', plot = img, width = 2 + 3 * length(files), height = 40)
+latencies <- gather(new %>% select(-starts_with('throughput')), num_elems, latency, starts_with('latency')) %>%
+    mutate(num_elems = factor(as.integer(sub("latency(\\d+)", "\\1", num_elems))))
+throughputs <- gather(new %>% select(-starts_with('latency')), array_size, throughput, starts_with('throughput')) %>%
+    mutate(array_size = factor(as.integer(sub("throughput(\\d+)KB", "\\1", array_size))))
+
+img <- ggplot(latencies, aes(x=num_elems, y=latency, fill=type)) +
+  geom_bar(position="dodge", stat="identity") +
+  facet_grid(op ~ ., scales="free_y") +
+  labs(x="num elements", y="relative latency / %")
+ggsave('array_ops_latency.png', plot = img, width = 8, height = 40)
+
+img <- ggplot(throughputs, aes(x=array_size, y=throughput, fill=type)) +
+  geom_bar(position="dodge", stat="identity") +
+  facet_grid(op ~ ., scales="free_y") +
+  labs(x="array size / KB", y="relative throughput / %")
+ggsave('array_ops_throughput.png', plot = img, width = 8, height = 40)

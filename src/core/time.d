@@ -1510,27 +1510,91 @@ public:
     }
 
 
-    /+
-        Converts this $(D Duration) to a $(D string).
+    /++
+        Converts this `Duration` to a `string`.
+
+        The string is meant to be human readable, not machine parseable (e.g.
+        whether there is an `'s'` on the end of the unit name usually depends on
+        whether it's plural or not, and empty units are not included unless the
+        Duration is `zero`). Any code needing a specific string format should
+        use `total` or `split` to get the units needed to create the desired
+        string format and create the string itself.
+
+        The format returned by toString may or may not change in the future.
       +/
-    //Due to bug http://d.puremagic.com/issues/show_bug.cgi?id=3715 , we can't
-    //have versions of toString() with extra modifiers, so we define one version
-    //with modifiers and one without.
-    string toString()
+    string toString() const nothrow pure @safe
     {
-        return _toStringImpl();
+        static void appListSep(ref string res, uint pos, bool last)
+        {
+            if (pos == 0)
+                return;
+            if (!last)
+                res ~= ", ";
+            else
+                res ~= pos == 1 ? " and " : ", and ";
+        }
+
+        static void appUnitVal(string units)(ref string res, long val)
+        {
+            immutable plural = val != 1;
+            string unit;
+            static if (units == "seconds")
+                unit = plural ? "secs" : "sec";
+            else static if (units == "msecs")
+                unit = "ms";
+            else static if (units == "usecs")
+                unit = "μs";
+            else
+                unit = plural ? units : units[0 .. $-1];
+            res ~= signedToTempString(val, 10);
+            res ~= " ";
+            res ~= unit;
+        }
+
+        if (_hnsecs == 0)
+            return "0 hnsecs";
+
+        template TT(T...) { alias T TT; }
+        alias units = TT!("weeks", "days", "hours", "minutes", "seconds", "msecs", "usecs");
+
+        long hnsecs = _hnsecs; string res; uint pos;
+        foreach (unit; units)
+        {
+            if (auto val = splitUnitsFromHNSecs!unit(hnsecs))
+            {
+                appListSep(res, pos++, hnsecs == 0);
+                appUnitVal!unit(res, val);
+            }
+            if (hnsecs == 0)
+                break;
+        }
+        if (hnsecs != 0)
+        {
+            appListSep(res, pos++, true);
+            appUnitVal!"hnsecs"(res, hnsecs);
+        }
+        return res;
     }
 
-
-    /++
-        Converts this $(D Duration) to a $(D string).
-      +/
-    //Due to bug http://d.puremagic.com/issues/show_bug.cgi?id=3715 , we can't
-    //have versions of toString() with extra modifiers, so we define one version
-    //with modifiers and one without.
-    string toString() const nothrow
+    ///
+    unittest
     {
-        return _toStringImpl();
+        assert(Duration.zero.toString() == "0 hnsecs");
+        assert(weeks(5).toString() == "5 weeks");
+        assert(days(2).toString() == "2 days");
+        assert(hours(1).toString() == "1 hour");
+        assert(minutes(19).toString() == "19 minutes");
+        assert(seconds(42).toString() == "42 secs");
+        assert(msecs(42).toString() == "42 ms");
+        assert(usecs(27).toString() == "27 μs");
+        assert(hnsecs(5).toString() == "5 hnsecs");
+
+        assert(seconds(121).toString() == "2 minutes and 1 sec");
+        assert((minutes(5) + seconds(3) + usecs(4)).toString() ==
+               "5 minutes, 3 secs, and 4 μs");
+
+        assert(seconds(-42).toString() == "-42 secs");
+        assert(usecs(-5239492).toString() == "-5 secs, -239 ms, and -492 μs");
     }
 
     unittest
@@ -1605,63 +1669,6 @@ public:
 
 
 private:
-
-    /+
-        Since we have two versions of toString, we have _toStringImpl
-        so that they can share implementations.
-      +/
-    string _toStringImpl() const nothrow
-    {
-        static void appListSep(ref string res, uint pos, bool last) nothrow
-        {
-            if (pos == 0)
-                return;
-            if (!last)
-                res ~= ", ";
-            else
-                res ~= pos == 1 ? " and " : ", and ";
-        }
-
-        static void appUnitVal(string units)(ref string res, long val) nothrow
-        {
-            immutable plural = val != 1;
-            string unit;
-            static if (units == "seconds")
-                unit = plural ? "secs" : "sec";
-            else static if (units == "msecs")
-                unit = "ms";
-            else static if (units == "usecs")
-                unit = "μs";
-            else
-                unit = plural ? units : units[0 .. $-1];
-            res ~= signedToTempString(val, 10);
-            res ~= " ";
-            res ~= unit;
-        }
-
-        if (_hnsecs == 0) return "0 hnsecs";
-
-        template TT(T...) { alias T TT; }
-        alias units = TT!("weeks", "days", "hours", "minutes", "seconds", "msecs", "usecs");
-
-        long hnsecs = _hnsecs; string res; uint pos;
-        foreach (unit; units)
-        {
-            if (auto val = splitUnitsFromHNSecs!unit(hnsecs))
-            {
-                appListSep(res, pos++, hnsecs == 0);
-                appUnitVal!unit(res, val);
-            }
-            if (hnsecs == 0) break;
-        }
-        if (hnsecs != 0)
-        {
-            appListSep(res, pos++, true);
-            appUnitVal!"hnsecs"(res, hnsecs);
-        }
-        return res;
-    }
-
 
     /+
         Params:

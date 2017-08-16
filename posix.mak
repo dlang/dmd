@@ -5,7 +5,9 @@
 
 QUIET:=
 
-include osmodel.mak
+DMD_DIR=../dmd
+
+include $(DMD_DIR)/src/osmodel.mak
 
 # Default to a release built, override with BUILD=debug
 ifeq (,$(BUILD))
@@ -21,13 +23,18 @@ ifneq ($(BUILD),release)
     endif
 endif
 
-DMD=../dmd/generated/$(OS)/release/$(MODEL)/dmd
+DMD=$(DMD_DIR)/generated/$(OS)/release/$(MODEL)/dmd
 INSTALL_DIR=../install
 
 DOCDIR=doc
 IMPDIR=import
 
-OPTIONAL_PIC:=$(if $(PIC),-fPIC,)
+# -fPIC is enabled by default and can be disabled with DISABLE_PIC=1
+ifeq (,$(DISABLE_PIC))
+    PIC_FLAG:=-fPIC
+else
+    PIC_FLAG:=
+endif
 OPTIONAL_COVERAGE:=$(if $(TEST_COVERAGE),-cov,)
 
 ifeq (osx,$(OS))
@@ -53,7 +60,7 @@ ifeq (solaris,$(OS))
 endif
 
 # Set DFLAGS
-UDFLAGS:=-conf= -Isrc -Iimport -w -dip1000 $(MODEL_FLAG) $(OPTIONAL_PIC) $(OPTIONAL_COVERAGE)
+UDFLAGS:=-conf= -Isrc -Iimport -w -dip1000 $(MODEL_FLAG) $(PIC_FLAG) $(OPTIONAL_COVERAGE)
 ifeq ($(BUILD),debug)
 	UDFLAGS += -g -debug
 	DFLAGS:=$(UDFLAGS)
@@ -179,7 +186,7 @@ $(ROOT)/threadasm.o : src/core/threadasm.S
 
 ######################## Create a shared library ##############################
 
-$(DRUNTIMESO) $(DRUNTIMESOLIB) dll: DFLAGS+=-version=Shared -fPIC
+$(DRUNTIMESO) $(DRUNTIMESOLIB) dll: DFLAGS+=-version=Shared
 dll: $(DRUNTIMESOLIB)
 
 $(DRUNTIMESO): $(OBJS) $(SRCS)
@@ -263,7 +270,7 @@ test/shared/.run: $(DRUNTIMESO)
 test/%/.run: test/%/Makefile
 	$(QUIET)$(MAKE) -C test/$* MODEL=$(MODEL) OS=$(OS) DMD=$(abspath $(DMD)) BUILD=$(BUILD) \
 		DRUNTIME=$(abspath $(DRUNTIME)) DRUNTIMESO=$(abspath $(DRUNTIMESO)) LINKDL=$(LINKDL) \
-		QUIET=$(QUIET) TIMELIMIT='$(TIMELIMIT)'
+		QUIET=$(QUIET) TIMELIMIT='$(TIMELIMIT)' PIC=$(PIC)
 
 #################### test for undesired white spaces ##########################
 MANIFEST = $(shell git ls-tree --name-only -r HEAD)

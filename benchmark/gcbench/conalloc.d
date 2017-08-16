@@ -11,8 +11,8 @@ import std.conv;
 import std.file;
 import std.digest.sha;
 
-auto N = 50;
-auto NT = 4;
+__gshared int N = 2500;
+__gshared int NT = 4;
 
 __gshared ubyte[] BYTES;
 shared(int) running; // Atomic
