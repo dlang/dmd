@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 1;
-enum bailoutMessages = 0;
+enum bailoutMessages = 1;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -6469,7 +6469,17 @@ static if (is(BCGen))
         else if (fromType.type == BCTypeEnum.string8
                 && toType.type == BCTypeEnum.Slice && toType.typeIndex
                 && _sharedCtfeState.sliceTypes[toType.typeIndex - 1].elementType.type
-                == BCTypeEnum.i32)
+                == BCTypeEnum.i8)
+        {
+            // for the cast(ubyte[])string case
+            // for now make an i8 slice
+            _sharedCtfeState.sliceTypes[_sharedCtfeState.sliceCount++] = BCSlice(BCType(BCTypeEnum.i8));
+            retval.type = toType;
+        }
+        else if (toType.type == BCTypeEnum.string8
+                && fromType.type == BCTypeEnum.Slice && fromType.typeIndex
+                && _sharedCtfeState.sliceTypes[fromType.typeIndex - 1].elementType.type
+                == BCTypeEnum.i8)
         {
             // for the cast(ubyte[])string case
             // for now make an i8 slice
@@ -6479,7 +6489,7 @@ static if (is(BCGen))
         }
         else
         {
-            bailout("CastExp unsupported: " ~ ce.toString);
+            bailout("CastExp unsupported:  " ~ ce.toString ~ " toType: " ~ _sharedCtfeState.typeToString(toType) ~ " fromType: " ~ _sharedCtfeState.typeToString(fromType)) ;
         }
     }
 
