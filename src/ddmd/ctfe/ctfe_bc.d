@@ -3934,8 +3934,8 @@ static if (is(BCGen))
                 if (!elexpr.type.typeIndex || elexpr.type.type >= _sharedCtfeState.arrayTypes.length)
                 {
                     // this can actually never be hit because no invalid types can have a valid size
-                    // bailout("We have an invalid structType in: " ~ ale.toString);
-                    assert(0);
+                    bailout("We have an invalid structType in: " ~ ale.toString);
+                    //assert(0);
                 }
 
                 if (elexpr.vType == BCValueType.Immediate)
