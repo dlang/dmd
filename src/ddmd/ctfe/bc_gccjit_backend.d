@@ -30,6 +30,8 @@ else
         heap.heapSize = 100;
         writeln(heap.heapSize);
 
+        auto hello_world = heap.pushString("Hello World");
+
         GCCJIT_Gen *gen = new GCCJIT_Gen();
         with (gen)
         {
@@ -46,11 +48,15 @@ else
                 auto tmp1 = genTemporary(i32Type);
                 Set(tmp1, imm32(3));
                 Add3(tmp1, tmp1, imm32('a'));
+
                 auto j = beginCndJmp(imm32(3), true);
                 Not(tmp1, tmp1);
                 endCndJmp(j, genLabel());
                 auto arrayPtr = genTemporary(i32Type);
                 Alloc(arrayPtr, imm32(67));
+                Sub3(genTemporary(i32Type), imm32(32), imm32(64));
+                printHeapString(hello_world.imm32);
+                Sub3(genTemporary(i32Type), imm32(32), imm32(64));
                 Ret(arrayPtr);
 
                 endFunction();
@@ -64,9 +70,15 @@ else
 
     BCValue run(uint fnId, BCValue[] args, BCHeap *heapPtr)
     {
+        extern (C) struct ReturnType
+        {
+            ulong imm64;
+            uint flags;
+        }
+
         assert(result, "No result did you try to run before calling Finalize");
 
-        alias fType = extern (C) int function(long[max_params] args, uint* heapSize, uint* heap);
+        alias fType = extern (C) ReturnType function(long[max_params] args, uint* heapSize, uint* heap);
 
         auto func = cast(fType)
             gcc_jit_result_get_code(result, functions[fnId].fname);
@@ -76,8 +88,9 @@ else
         {
             fnArgs[i] = arg.imm64.imm64;
         }
+         auto ret = func(fnArgs, &heapPtr.heapSize, &heapPtr._heap[0]);
 
-        return BCValue(Imm64(func(fnArgs, &heapPtr.heapSize, &heapPtr._heap[0])));
+        return BCValue(Imm64(ret.imm64));
 
 
     }
@@ -105,7 +118,7 @@ else
     jresult result;
     jlvalue flag;
     jlvalue heapSize;
-
+    jlvalue _heap;
 
     void* heapSizePtrPtr;
     void* heapArrayPtrPtr;
@@ -122,6 +135,79 @@ else
 
     jtype i32type;
     jtype i64type;
+    jtype u32type;
+    jtype u64type;
+
+    private void print_int(jrvalue val)
+    {
+        jrvalue[2] args;
+        args[0] = gcc_jit_context_new_rvalue_from_ptr(ctx, gcc_jit_context_get_type(ctx, GCC_JIT_TYPE_CONST_CHAR_PTR),  cast(void*)"%d\n".ptr);
+        args[1] = val;
+        auto printf = gcc_jit_context_get_builtin_function(ctx, "printf");
+        auto call = gcc_jit_context_new_call(ctx, null, printf, 2, &args[0]);
+        gcc_jit_block_add_eval(block, null, call);
+    }
+
+    private void print_ptr(jrvalue val)
+    {
+        jrvalue[2] args;
+        args[0] = gcc_jit_context_new_rvalue_from_ptr(ctx, gcc_jit_context_get_type(ctx, GCC_JIT_TYPE_CONST_CHAR_PTR),  cast(void*)"%p\n".ptr);
+        args[1] = val;
+        auto printf = gcc_jit_context_get_builtin_function(ctx, "printf");
+        auto call = gcc_jit_context_new_call(ctx, null, printf, 2, &args[0]);
+        gcc_jit_block_add_eval(block, null, call);
+    }
+
+    private void print_string(jrvalue base, jrvalue length)
+    {
+        jrvalue[3] args;
+        auto c_char_p = gcc_jit_context_get_type(ctx, GCC_JIT_TYPE_CONST_CHAR_PTR);
+        auto void_p = gcc_jit_context_get_type(ctx, GCC_JIT_TYPE_VOID_PTR);
+        args[0] = gcc_jit_context_new_rvalue_from_ptr(ctx, c_char_p,  cast(void*)"\"%.*s\"\n".ptr);
+        args[1] = rvalue(11*4);
+
+        jlvalue ptr = gcc_jit_function_new_local(func, null, void_p, "ptr");
+        gcc_jit_block_add_assignment(block, null, ptr, gcc_jit_context_null(ctx, void_p));
+        print_ptr(rvalue(_heap));
+
+        auto addr = gcc_jit_lvalue_get_address(gcc_jit_context_new_array_access(ctx, null, rvalue(_heap), base), null);
+        gcc_jit_block_add_assignment(block, null,
+            ptr, addr);
+
+
+        args[2] = rvalue(ptr);
+        print_ptr(rvalue(ptr));
+        auto printf = gcc_jit_context_get_builtin_function(ctx, "printf");
+        auto call = gcc_jit_context_new_call(ctx, null, printf, 3, &args[0]);
+        gcc_jit_block_add_eval(block, null, call);
+    }
+
+
+    private void call_puts(jrvalue arg)
+    {
+        auto puts = gcc_jit_context_get_builtin_function(ctx, "puts");
+        auto call = gcc_jit_context_new_call(ctx, null, puts, 1, &arg);
+        gcc_jit_block_add_eval(block, null, call);
+    }
+
+    private void printHeapString(uint addr)
+    {
+        jlvalue base = gcc_jit_context_new_array_access(ctx, null,
+            rvalue(_heap), rvalue(addr)
+        );
+
+        jlvalue length = gcc_jit_context_new_array_access(ctx, null,
+            rvalue(_heap), rvalue(addr + 4)
+        );
+
+        auto heapBase = gcc_jit_lvalue_get_address(_heap, null);
+
+
+
+        print_int(rvalue(base));
+
+        print_string(rvalue(base), rvalue(length));
+    }
 
     private jblock block()
     {
@@ -186,6 +272,12 @@ else
             return gcc_jit_lvalue_as_rvalue(val);
     }
 
+    private jrvalue rvalue(jrvalue val)
+    {
+            return val;
+    }
+
+
     private jrvalue rvalue(long v)
     {
         return gcc_jit_context_new_rvalue_from_long(ctx, i64type, v);
@@ -197,21 +289,21 @@ else
         return StackAddr(stackValueCount++);
     }
 
+    jtype heapType;
+    jfunc memcpy;
 
     void Initialize()
     {
         ctx = gcc_jit_context_acquire();
-        i32type = ctx.gcc_jit_context_get_type(GCC_JIT_TYPE_INT);
-        i64type = ctx.gcc_jit_context_get_type(GCC_JIT_TYPE_LONG_LONG);
+      //  u32type = gcc_jit_context_get_int_type(ctx, 32, 0);
+      //  u64type = gcc_jit_context_get_int_type(ctx, 64, 0);
+        i32type =  gcc_jit_context_get_type(ctx,GCC_JIT_TYPE_INT);//gcc_jit_context_get_int_type(ctx, 32, 1);
+        i64type = gcc_jit_context_get_type(ctx, GCC_JIT_TYPE_LONG_LONG);//gcc_jit_context_get_int_type(ctx, 64, 1);
 
+    //    memcpy = gcc_jit_context_get_builtin_function(ctx, "memcpy");
 
-        auto heapType =
-            gcc_jit_context_new_array_type(ctx, null,
-                i32type, int(2 ^^ 26));
-
-
-
-
+        heapType =
+            gcc_jit_type_get_pointer(i32type);
 
         // debug stuff
         ctx.gcc_jit_context_set_bool_option(
@@ -233,7 +325,7 @@ else
         jparam[3] p;
         p[0] = gcc_jit_context_new_param(ctx, null, gcc_jit_context_new_array_type(ctx, null, i64type, max_params), "paramArray");// long[64] args;
         p[1] = gcc_jit_context_new_param(ctx, null, gcc_jit_type_get_pointer(i32type), "heapSize"); //uint* heapSize
-        p[2] = gcc_jit_context_new_param(ctx, null, gcc_jit_context_new_array_type(ctx, null, i32type, 2 ^^ 26), "heap"); //uint[2^^26] heap
+        p[2] = gcc_jit_context_new_param(ctx, null, heapType, "heap"); //uint[2^^26] heap
         fname = cast(char*) (name ? name.toStringz : ("f" ~ to!string(fnId)).toStringz);
         func = gcc_jit_context_new_function(ctx,
             null, GCC_JIT_FUNCTION_EXPORTED, i64type,
@@ -251,6 +343,7 @@ else
         }
 
         heapSize = gcc_jit_param_as_lvalue(p[1]);
+        _heap = gcc_jit_param_as_lvalue(p[2]);
 
         newBlock("body");
 
@@ -451,7 +544,7 @@ else
     void Add3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(lhs.type == i32Type && rhs.type == i32Type);
-        assert(lhs.isStackValueOrParameter);
+        assert(lhs.isStackValueOrParameter || lhs.vType == BCValueType.Immediate || lhs.vType == BCValueType.Immediate);
         assert(rhs.isStackValueOrParameter || rhs.vType == BCValueType.Immediate);
 
 
@@ -469,7 +562,7 @@ else
     void Sub3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(lhs.type == i32Type && rhs.type == i32Type);
-        assert(lhs.isStackValueOrParameter);
+        assert(lhs.isStackValueOrParameter || lhs.vType == BCValueType.Immediate);
         assert(rhs.isStackValueOrParameter || rhs.vType == BCValueType.Immediate);
 
 
@@ -487,7 +580,7 @@ else
     void Mul3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(lhs.type == i32Type && rhs.type == i32Type);
-        assert(lhs.isStackValueOrParameter);
+        assert(lhs.isStackValueOrParameter || lhs.vType == BCValueType.Immediate);
         assert(rhs.isStackValueOrParameter || rhs.vType == BCValueType.Immediate);
 
 
@@ -505,7 +598,7 @@ else
     void Div3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(lhs.type == i32Type && rhs.type == i32Type);
-        assert(lhs.isStackValueOrParameter);
+        assert(lhs.isStackValueOrParameter || lhs.vType == BCValueType.Immediate);
         assert(rhs.isStackValueOrParameter || rhs.vType == BCValueType.Immediate);
 
 
@@ -524,7 +617,7 @@ else
     void And3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(lhs.type == i32Type && rhs.type == i32Type);
-        assert(lhs.isStackValueOrParameter);
+        assert(lhs.isStackValueOrParameter || lhs.vType == BCValueType.Immediate);
         assert(rhs.isStackValueOrParameter || rhs.vType == BCValueType.Immediate);
 
 
@@ -544,7 +637,7 @@ else
     void Or3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(lhs.type == i32Type && rhs.type == i32Type);
-        assert(lhs.isStackValueOrParameter);
+        assert(lhs.isStackValueOrParameter || lhs.vType == BCValueType.Immediate);
         assert(rhs.isStackValueOrParameter || rhs.vType == BCValueType.Immediate);
 
 
@@ -564,7 +657,7 @@ else
     void Xor3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(lhs.type == i32Type && rhs.type == i32Type);
-        assert(lhs.isStackValueOrParameter);
+        assert(lhs.isStackValueOrParameter || lhs.vType == BCValueType.Immediate);
         assert(rhs.isStackValueOrParameter || rhs.vType == BCValueType.Immediate);
 
 
@@ -584,7 +677,7 @@ else
     void Lsh3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(lhs.type == i32Type && rhs.type == i32Type);
-        assert(lhs.isStackValueOrParameter);
+        assert(lhs.isStackValueOrParameter || lhs.vType == BCValueType.Immediate);
         assert(rhs.isStackValueOrParameter || rhs.vType == BCValueType.Immediate);
 
 
@@ -603,7 +696,7 @@ else
     void Rsh3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(lhs.type == i32Type && rhs.type == i32Type);
-        assert(lhs.isStackValueOrParameter);
+        assert(lhs.isStackValueOrParameter || lhs.vType == BCValueType.Immediate);
         assert(rhs.isStackValueOrParameter || rhs.vType == BCValueType.Immediate);
 
 
@@ -622,7 +715,7 @@ else
     void Mod3(BCValue result, BCValue lhs, BCValue rhs)
     {
         assert(lhs.type == i32Type && rhs.type == i32Type);
-        assert(lhs.isStackValueOrParameter);
+        assert(lhs.isStackValueOrParameter || lhs.vType == BCValueType.Immediate);
         assert(rhs.isStackValueOrParameter || rhs.vType == BCValueType.Immediate);
 
 
