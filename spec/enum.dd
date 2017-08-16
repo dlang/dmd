@@ -261,9 +261,10 @@ enum size = __traits(classInstanceSize, Foo);  // evaluated at compile-time
 	to force compile-time evaluation of an expression.)
 
 
+$(SPEC_SUBNAV_PREV_NEXT interface, Interfaces, const3, Type Qualifiers)
 )
 
 Macros:
+    CHAPTER=17
 	TITLE=Enums
 	CATEGORY_SPEC=$0
-

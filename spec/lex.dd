@@ -2,17 +2,17 @@ Ddoc
 
 $(SPEC_S Lexical,
 
-	The lexical analysis is independent of the syntax parsing and the
-	semantic analysis. The lexical analyzer splits the source text up into
-	tokens. The lexical grammar describes the syntax of those tokens. The
-	grammar is designed to be suitable for high speed scanning and to make it
-	easy to write a correct scanner for it. It has a minimum of special case
-	rules and there is only one phase of translation. The tokens are readily
-	recognizable by those familiar with C and C++.
+$(P The lexical analysis is independent of the syntax parsing and the semantic
+analysis. The lexical analyzer splits the source text up into tokens. The
+lexical grammar describes the syntax of those tokens. The grammar is designed to
+be suitable for high speed scanning and to make it easy to write a correct
+scanner for it. It has a minimum of special case rules and there is only one
+phase of translation. The tokens are readily recognizable by those familiar with
+C and C++.)
 
-$(H3 $(LNAME2 source_text, Source Text))
+$(H2 $(LNAME2 source_text, Source Text))
 
-	D source text can be in one of the following formats:
+$(P Source text can be in one of the following formats:)
 
 	$(LIST
 	ASCII,
@@ -23,13 +23,10 @@ $(H3 $(LNAME2 source_text, Source Text))
 	UTF-32LE
 	)
 
-	UTF-8 is a superset of traditional 7-bit ASCII.
-	One of the
-	following UTF BOMs (Byte Order Marks) can be present at the beginning
-	of the source text:
-    $(P )
+$(P UTF-8 is a superset of traditional 7-bit ASCII. One of the following UTF
+BOMs (Byte Order Marks) can be present at the beginning of the source text:)
 
-    $(TABLE2 UTF Byte Order Marks,
+$(TABLE2 UTF Byte Order Marks,
     $(THEAD Format, BOM)
 	$(TROW UTF-8, EF BB BF)
 	$(TROW UTF-16BE, FE FF)
@@ -37,46 +34,38 @@ $(H3 $(LNAME2 source_text, Source Text))
     $(TROW UTF-32BE, 00 00 FE FF)
 	$(TROW UTF-32LE, FF FE 00 00)
 	$(TROW ASCII, no BOM)
-    )
+)
 
-	$(P If the source file does not start with a BOM, then the first
-	character must be less than or equal to U+0000007F.)
+$(P If the source file does not start with a BOM, then the first character must
+be less than or equal to U+0000007F.)
 
-	$(P There are no digraphs or trigraphs in D.)
+$(P There are no digraphs or trigraphs in D.)
 
-	$(P The source text is decoded from its source representation
-	into Unicode $(GLINK Character)s.
-	The $(GLINK Character)s are further divided into:
-	$(GLINK WhiteSpace),
-	$(GLINK EndOfLine),
-	$(GLINK Comment)s,
-	$(GLINK SpecialTokenSequence)s,
-	$(GLINK Token)s,
-	all followed by $(GLINK EndOfFile).
-	)
+$(P The source text is decoded from its source representation into Unicode
+$(GLINK Character)s. The $(GLINK Character)s are further divided into: $(GLINK
+WhiteSpace), $(GLINK EndOfLine), $(GLINK Comment)s, $(GLINK
+SpecialTokenSequence)s, $(GLINK Token)s, all followed by $(GLINK EndOfFile).)
 
-	$(P The source text is split into tokens using the maximal munch
-	technique, i.e., the
-	lexical analyzer tries to make the longest token it can. For example
-	$(D >>) is a right shift token,
-	not two greater than tokens. There are two exceptions to this rule:
-	$(UL
-		$(LI A $(D ..) embedded inside what looks like two floating point
+$(P The source text is split into tokens using the maximal munch technique,
+i.e., the lexical analyzer tries to make the longest token it can. For example
+$(D >>) is a right shift token, not two greater than tokens. There are two
+exceptions to this rule:)
+
+$(UL
+	$(LI A $(D ..) embedded inside what looks like two floating point
 		literals, as in $(D 1..2), is interpreted as if the $(D ..) was
 		separated by a space from the first integer.)
-		$(LI A $(D 1.a) is interpreted as the three tokens $(D 1), $(D .), and $(D a),
-		while $(D 1. a) is interpreted as the two tokens $(D 1.) and $(D a))
-	)
-	)
+	$(LI A `1.a` is interpreted as the three tokens `1`, `.`, and `a`, whereas `1. a` is interpreted as the two tokens `1.` and `a`.)
+)
 
-$(H3 $(LNAME2 character_set, Character Set))
+$(H2 $(LNAME2 character_set, Character Set))
 
 $(GRAMMAR
 $(GNAME Character):
     $(I any Unicode character)
 )
 
-$(H3 $(LNAME2 end_of_file, End of File))
+$(H2 $(LNAME2 end_of_file, End of File))
 
 $(GRAMMAR
 $(GNAME EndOfFile):
@@ -84,9 +73,9 @@ $(GNAME EndOfFile):
     $(D \u0000)
     $(D \u001A))
 
-The source text is terminated by whichever comes first.
+$(P The source text is terminated by whichever comes first.)
 
-$(H3 $(LNAME2 end_of_line, End of Line))
+$(H2 $(LNAME2 end_of_line, End of Line))
 
 $(GRAMMAR
 $(GNAME EndOfLine):
@@ -97,10 +86,10 @@ $(GNAME EndOfLine):
     $(D \u2029)
     $(GLINK EndOfFile))
 
-	There is no backslash line splicing, nor are there any limits
-	on the length of a line.
+$(P There is no backslash line splicing, nor are there any limits on the length
+of a line.)
 
-$(H3 $(LNAME2 white_space, White Space))
+$(H2 $(LNAME2 white_space, White Space))
 
 $(GRAMMAR
 $(GNAME WhiteSpace):
@@ -115,7 +104,7 @@ $(GNAME Space):
 )
 
 
-$(H3 $(LNAME2 comment, Comments))
+$(H2 $(LNAME2 comment, Comments))
 
 $(GRAMMAR
 $(GNAME Comment):
@@ -167,11 +156,10 @@ a = /+ "+/" +/ 1"; // parses as if 'a = " +/ 1";'
 a = /+ /* +/ */ 3; // parses as if 'a = */ 3;'
 -------------
 
-	Comments cannot be used as token concatenators, for example,
-	$(D abc/**/def) is two tokens, $(D abc) and $(D def),
-	not one $(D abcdef) token.
+$(P Comments cannot be used as token concatenators, for example, $(D abc/**/def)
+is two tokens, $(D abc) and $(D def), not one $(D abcdef) token.)
 
-$(H3 $(LNAME2 tokens, Tokens))
+$(H2 $(LNAME2 tokens, Tokens))
 
 $(GRAMMAR
 $(GNAME Token):
@@ -247,7 +235,7 @@ $(MULTICOLS 4,     $(GLINK Identifier)
 )
 )
 
-$(H3 $(LNAME2 identifiers, Identifiers))
+$(H2 $(LNAME2 identifiers, Identifiers))
 
 $(GRAMMAR
 $(GNAME Identifier):
@@ -270,15 +258,13 @@ $(GNAME IdentifierChar):
 )
 
 
-	Identifiers start with a letter, $(D _), or universal alpha,
-	and are followed by any number
-	of letters, $(D _), digits, or universal alphas.
-	Universal alphas are as defined in ISO/IEC 9899:1999(E) Appendix D.
-	(This is the C99 Standard.)
-	Identifiers can be arbitrarily long, and are case sensitive.
-	Identifiers starting with $(D __) (two underscores) are reserved.
+$(P Identifiers start with a letter, $(D _), or universal alpha, and are
+followed by any number of letters, $(D _), digits, or universal alphas.
+Universal alphas are as defined in ISO/IEC 9899:1999(E) Appendix D. (This is the
+C99 Standard.) Identifiers can be arbitrarily long, and are case sensitive.
+Identifiers starting with $(D __) (two underscores) are reserved.)
 
-$(H3 $(LNAME2 string_literals, String Literals))
+$(H2 $(LNAME2 string_literals, String Literals))
 
 $(GRAMMAR
 $(GNAME StringLiteral):
@@ -370,7 +356,7 @@ $(GNAME TokenString):
 	$(P In all string literal forms, an $(GLINK EndOfLine) is regarded as a single
 	$(D \n) character.)
 
-$(H4 Wysiwyg Strings)
+$(H3 $(LNAME2 wysiwyg, Wysiwyg Strings))
 
 	$(P
 	Wysiwyg ("what you see is what you get") quoted strings are enclosed by r" and ".
@@ -402,7 +388,7 @@ r"ab\n" // string is 4 characters,
         // 'a', '"', 'b', '\', 'n'
 ---------------
 
-$(H4 Double Quoted Strings)
+$(H3 $(LNAME2 double_quoted_strings, Double Quoted Strings))
 
 	$(P Double quoted strings are enclosed by "". Escape sequences can be
 	embedded into them with the typical $(D \) notation.)
@@ -419,7 +405,7 @@ $(H4 Double Quoted Strings)
 
 
 
-$(H4 Hex Strings)
+$(H3 $(LNAME2 hex_strings, Hex Strings))
 
 	$(P Hex strings allow string literals to be created using hex data.
 	The hex data need not form valid UTF characters.
@@ -431,12 +417,10 @@ x"00 FBCD 32FD 0A" // same as
                    // "\x00\xFB\xCD\x32\xFD\x0A"
 --------------
 
-	Whitespace and newlines are ignored, so the hex data can be
-	easily formatted.
-	The number of hex characters must be a multiple of 2.
-	$(P )
+$(P Whitespace and newlines are ignored, so the hex data can be easily
+formatted. The number of hex characters must be a multiple of 2.)
 
-	Adjacent strings are concatenated with the ~ operator:
+$(P Adjacent strings are concatenated with the ~ operator:)
 
 --------------
 "hello " ~ "world" ~ "\n" // forms the string
@@ -444,7 +428,7 @@ x"00 FBCD 32FD 0A" // same as
        // 'w','o','r','l','d',linefeed
 --------------
 
-	The following are all equivalent:
+$(P The following are all equivalent:)
 
 -----------------
 "ab" ~ "c"
@@ -481,7 +465,7 @@ r"a" ~ "bc"
 	$(P String literals are read only. Writes to string literals
 	cannot always be detected, but cause undefined behavior.)
 
-$(H4 Delimited Strings)
+$(H3 $(LNAME2 delimited_strings, Delimited Strings))
 
 	$(P Delimited strings use various forms of delimiters.
 	The delimiter, whether a character or identifer,
@@ -532,7 +516,7 @@ q"/foo]/"          // "foo]"
 // q"/abc/def/"    // error
 ---
 
-$(H4 Token Strings)
+$(H3 $(LNAME2 token_strings, Token Strings))
 
 	$(P Token strings open with the characters $(D q)$(CODE_LCURL) and close with
 	the token $(CODE_RCURL). In between must be valid D tokens.
@@ -551,7 +535,7 @@ q{ __TIME__ }       // " __TIME__ "
     // __EOF__ is not a token, it's end of file
 ---
 
-$(H4 Escape Sequences)
+$(H3 $(LNAME2 escape_sequences, Escape Sequences))
 
     $(P The following table explains the meaning of the escape sequences listed
     in $(GLINK EscapeSequence):)
@@ -574,8 +558,10 @@ $(H4 Escape Sequences)
         specified as two hexadecimal digits.$(BR)For example: $(D \xFF)
         represents the character with the value 255.)
     $(TROW $(D \)$(I n)$(BR)$(D \)$(I nn)$(BR)$(D \)$(I nnn), Byte value in
-        octal.$(BR)For example: $(D \775) represents the character with the
-        value 509.)
+        octal.$(BR)For example: $(D \101) represents the character with the
+        value 65 ($(D 'A')). Analogous to hexadecimal characters$(COMMA)
+        the largest byte value is $(D \377) (= $(D \xFF) in hexadecimal
+        or $(D 255) in decimal))
     $(TROW $(D \u)$(I nnnn), Unicode character U+$(I nnnn)$(COMMA) where
         $(I nnnn) are four hexadecimal digits.$(BR)For example$(COMMA)
         $(D \u042F) represents the Unicode character Я (U+42F).)
@@ -588,8 +574,7 @@ $(H4 Escape Sequences)
         details.)
     )
 
-
-$(H3 $(LNAME2 characterliteral, Character Literals))
+$(H2 $(LNAME2 characterliteral, Character Literals))
 
 $(GRAMMAR
 $(GNAME CharacterLiteral):
@@ -600,10 +585,10 @@ $(GNAME SingleQuotedCharacter):
     $(GLINK EscapeSequence)
 )
 
-	Character literals are a single character or escape sequence
-	enclosed by single quotes, $(D ' ').
+$(P Character literals are a single character or escape sequence enclosed by
+single quotes, $(D ' ').)
 
-$(H3 $(LNAME2 integerliteral, Integer Literals))
+$(H2 $(LNAME2 integerliteral, Integer Literals))
 
 $(GRAMMAR
 $(GNAME IntegerLiteral):
@@ -802,7 +787,7 @@ $(GNAME HexLetter):
 	)
 
 
-$(H3 $(LNAME2 floatliteral, Floating Point Literals))
+$(H2 $(LNAME2 floatliteral, Floating Point Literals))
 
 $(GRAMMAR
 $(GNAME FloatLiteral):
@@ -942,7 +927,7 @@ $(GNAME LeadingDecimal):
 4.5 + 6.2i  // complex number (phased out)
 ---------
 
-$(H3 $(LNAME2 keywords Keywords))
+$(H2 $(LNAME2 keywords, Keywords))
 
 	Keywords are reserved identifiers.
 
@@ -1085,7 +1070,7 @@ $(MULTICOLS 4,
     $(LINK2 expression.html#IsExpression, $(D __parameters))
 ))
 
-$(H3 $(LNAME2 global_symbols, Globally Defined Symbols))
+$(H2 $(LNAME2 global_symbols, Globally Defined Symbols))
 
 	These are defined in object$(UNDERSCORE).d, which is automatically imported by the default implementation.
 
@@ -1100,7 +1085,7 @@ $(MULTICOLS 4,
     $(D $(LINK2 type.html#ptrdiff_t, ptrdiff_t))
 ))
 
-$(H3 $(LNAME2 specialtokens, Special Tokens))
+$(H2 $(LNAME2 specialtokens, Special Tokens))
 
 	$(P
 	These tokens are replaced with other tokens according to the following
@@ -1119,7 +1104,7 @@ $(H3 $(LNAME2 specialtokens, Special Tokens))
 	$(TROW $(D __VERSION__), $(ARGS Compiler version as an integer, such as 2001))
 	)
 
-$(H3 $(LEGACY_LNAME2 Special Token Sequence, special-token-sequence, Special Token Sequences))
+$(H2 $(LEGACY_LNAME2 Special Token Sequence, special-token-sequence, Special Token Sequences))
 
 $(GRAMMAR
 $(GNAME SpecialTokenSequence):
@@ -1157,7 +1142,9 @@ x;  // this is now line 6 of file foo\bar
 	$(P Note that the backslash character is not treated specially inside
 	$(GLINK Filespec) strings.
 	)
+$(SPEC_SUBNAV_PREV_NEXT intro, Introduction, grammar, Grammar)
 )
 
 Macros:
-	TITLE=Lexical
+CHAPTER = 2
+TITLE = Lexical

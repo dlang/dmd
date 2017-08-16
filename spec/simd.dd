@@ -72,10 +72,9 @@ import core.simd;
 $(GRAMMAR
 $(I typeNN)
 )
-	$(P where $(I type) is the vector element type and $(I NN) is the number
+	where $(I type) is the vector element type and $(I NN) is the number
 	of those elements in the vector type.
 	The type names will not be keywords.
-	)
 
 $(H3 $(LNAME2 properties, Properties))
 
@@ -247,9 +246,11 @@ $(H2 $(LNAME2 x86_64_vec, X86 And X86$(UNDERSCORE)64 Vector Extension Implementa
 $(H3 $(LNAME2 vector_op_intrinsics, Vector Operation Intrinsics))
 
 	$(P See $(CORE_SIMD) for the supported intrinsics.)
+$(SPEC_SUBNAV_PREV abi, Application Binary Interface)
 )
 
 Macros:
+	CHAPTER=39
 	TITLE=Vector Extensions
 	Y=$(TIMES)
 	N=$(NDASH)

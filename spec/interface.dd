@@ -42,8 +42,7 @@ class A : D, D  // error, duplicate interface
 }
 ------
 
-    An instance of an interface cannot be created.
-
+$(P An instance of an interface cannot be created.)
 
 ------
 interface D
@@ -110,7 +109,7 @@ class B : D
 }
 ------
 
-    Interfaces can be inherited and functions overridden:
+$(P Interfaces can be inherited and functions overridden:)
 
 ------
 interface D
@@ -300,7 +299,7 @@ extern (C++) interface Ifoo
 }
 ---
 
-    $(P which is meant to correspond with the following C++ declaration:)
+which is meant to correspond with the following C++ declaration:
 
 $(CPPLISTING
 class Ifoo
@@ -327,8 +326,9 @@ class Ifoo
 )
 
 
+$(SPEC_SUBNAV_PREV_NEXT class, Classes, enum, Enums)
 )
 
 Macros:
+    CHAPTER=16
     TITLE=Interfaces
-

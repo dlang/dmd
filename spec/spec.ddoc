@@ -1,7 +1,38 @@
 ROOT_DIR = ../
 ROOT = ..
 SEARCHDEFAULT_SPEC = selected
+DDOC_BLANKLINE = $(DIVC blankline)
 
+BODY_PREFIX =
+$(T style,
+    body { counter-reset: h1 $(CHAPTER); counter-increment: h1 -1; }
+    h1 { counter-reset: h2 h3 p; }
+    h2 { counter-reset: h3 h4 p; }
+    h3 { counter-reset: h4 p; }
+    h4 { counter-reset: p; }
+    h1::before {
+        counter-increment: h1;
+        content: counter(h1) ". ";
+    }
+    h2::before {
+        counter-increment: h2;
+        content: counter(h1) "." counter(h2) " ";
+    }
+    h3::before {
+        counter-increment: h3;
+        content: counter(h1) "." counter(h2) "." counter(h3) " ";
+    }
+    h4::before {
+        counter-increment: h4;
+        content: counter(h1) "." counter(h2) "." counter(h3) "." counter(h4) " ";
+    }
+    p::before {
+        counter-increment: p;
+        content: counter(p) ". ";
+    }
+)
+
+SUBNAV_HEAD = $(DIVC head, $(H5 $1) $(TC p, $4, $(LINK2 $2, $3)))
 SUBNAV=$(SUBNAV_SPEC)
 SUBNAV_SPEC=
 $(SUBNAV_TEMPLATE
@@ -50,3 +81,21 @@ $(SUBNAV_TEMPLATE
         )
     )
 )
+SPEC_SUBNAV_NEXT=
+$(SPEC_NEXT $(LINK2 $(ROOT_DIR)spec/$1.html, $2))
+$(CLEAR)
+
+SPEC_SUBNAV_PREV_NEXT=
+$(SPEC_PREV $(LINK2 $(ROOT_DIR)spec/$1.html, $2))
+$(SPEC_NEXT $(LINK2 $(ROOT_DIR)spec/$3.html, $4))
+$(CLEAR)
+
+SPEC_SUBNAV_PREV=
+$(SPEC_PREV $(LINK2 $(ROOT_DIR)spec/$1.html, $2))
+$(CLEAR)
+
+SPEC_NEXT=<div style="float: right">$1 $(FA_ICON angle-right)</div>
+SPEC_PREV=<div style="float: left">$(FA_ICON angle-left) $1</div>
+
+CLEAR=<div style="clear:both"></div>
+_=

@@ -118,7 +118,7 @@ $(H2 $(LNAME2 raw_data, db, ds, di, dl, df, dd, de))
         If an operand is a string literal, it is as if there were $(I length)
         operands, where $(I length) is the number of characters in the string.
         One character is used per operand.
-        For example:
+        For example:)
 
         --------------
         asm
@@ -134,7 +134,6 @@ $(H2 $(LNAME2 raw_data, db, ds, di, dl, df, dd, de))
             ds "abc";      // insert bytes 0x61, 0x00, 0x62, 0x00, 0x63, 0x00
         }
         --------------
-    )
 
 $(H2 $(LNAME2 opcodes, Opcodes))
 
@@ -193,7 +192,7 @@ $(DL
     $(DT $(D lock), $(D rep), $(D repe), $(D repne), $(D repnz), $(D repz))
     $(DD These prefix instructions do not appear in the same statement
         as the instructions they prefix; they appear in their own statement.
-        For example:
+        For example:)
 
         --------------
         asm
@@ -202,7 +201,6 @@ $(DL
             movsb ;
         }
         --------------
-    )
 
     $(DT $(D pause))
     $(DD This opcode is not supported by the assembler, instead use
@@ -357,13 +355,12 @@ $(GNAME AsmTypePrefix):
 add [EAX],3     ;
 --------------
 
-    $(P it can be disambiguated by using an $(I AsmTypePrefix):
+    it can be disambiguated by using an $(I AsmTypePrefix):
 
         --------------
         add  byte ptr [EAX],3 ;
         add  int ptr [EAX],7  ;
         --------------
-    )
 
     $(P $(D far ptr) is not relevant for flat model code.
     )
@@ -372,7 +369,7 @@ $(H3 $(LNAME2 agregate_member_offsets, Struct/Union/Class Member Offsets))
 
     $(P To access members of an aggregate, given a pointer to the aggregate
         is in a register, use the $(D .offsetof) property of the qualified name
-        of the member:
+        of the member:)
 
         --------------
         struct Foo { int a,b,c; }
@@ -390,9 +387,8 @@ $(H3 $(LNAME2 agregate_member_offsets, Struct/Union/Class Member Offsets))
             assert(bar(&f) == 2);
         }
         --------------
-    )
 
-    $(P Alternatively, inside the scope of an aggregate, only the member name is needed:
+    $(P Alternatively, inside the scope of an aggregate, only the member name is needed:)
 
         --------------
         struct Foo   // or class
@@ -413,13 +409,12 @@ $(H3 $(LNAME2 agregate_member_offsets, Struct/Union/Class Member Offsets))
             assert(f.bar() == 2);
         }
         --------------
-    )
 
 $(H3 $(LNAME2 stack_variables, Stack Variables))
 
     $(P Stack variables (variables local to a function and allocated
         on the stack) are accessed via the name of the variable indexed
-        by EBP:
+        by EBP:)
 
         ---
         int foo(int x)
@@ -431,7 +426,6 @@ $(H3 $(LNAME2 stack_variables, Stack Variables))
             }
         }
         ---
-    )
 
     $(P If the [EBP] is omitted, it is assumed for local variables.
         If $(D naked) is used, this no longer holds.
@@ -1159,8 +1153,9 @@ SMX
 getsec
 )
 
+$(SPEC_SUBNAV_PREV_NEXT float, Floating Point, ddoc, Embedded Documentation)
 )
 
 Macros:
+        CHAPTER=30
         TITLE=Inline Assembler
-

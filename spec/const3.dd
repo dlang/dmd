@@ -397,27 +397,78 @@ $(H2 $(LNAME2 const_member_functions, Const Member Functions))
 	this reference.
 	)
 
+$(H2 $(LNAME2 combining_qualifiers, Combining Qualifiers))
 
-$(H2 $(LNAME2 implicit_conversions, Implicit Conversions))
+$(P More than one qualifier may apply to a type. The order of application is
+irrelevant, for example given an unqualified type `T`, $(D const shared T) and
+$(D shared const T) are the same type. For that reason, this document depicts
+qualifier combinations without parentheses unless necessary and in alphabetic
+order.)
 
-	$(P Values can be implicitly converted between $(I mutable), $(D const), $(D immutable),
-	$(D shared const), $(D inout) and $(D inout shared).
-	)
+$(P Applying a qualifier to a type that already has that qualifier is legal but
+has no effect, e.g. given an unqualified type `T`, $(D shared(const shared T))
+yields the type $(D const shared T).)
 
-	$(P References can be converted according to the following rules:
-	)
+$(P Applying the `immutable` qualifier to any type (qualified or not) results in
+$(D immutable T). Applying any qualifier to $(D immutable T) results in $(D
+immutable T). This makes `immutable` a fixed point of qualifier combinations and
+makes types such as $(D const(immutable(shared T))) impossible to create.)
+
+$(P Assuming `T` is an unqualified type, the graph below illustrates how
+qualifiers combine (combinations with `immutable` are omitted). For each node,
+applying the qualifier labeling the edge leads to the resulting type.)
+
+$(COMMENT To generate images/qualifier-combinations.{svg,eps} refer to
+images/qualifier-combinations.dot.)
+
+$(HTMLTAG3 center, ,
+  <img id="conversions" alt="Qualifier combination rules"
+    src="$(STATIC images/qualifier-combinations.svg)">
+)
+$(LATEX
+{\centering
+\includegraphics{images/qualifier-combinations.eps}
+}
+)
+
+$(H2 $(LNAME2 implicit_qualifier_conversions, Implicit Qualifier Conversions))
+
+$(P Values that have no mutable indirections (including structs that don't
+contain any field with mutable indirections) can be implicitly converted across
+$(I mutable), $(D const), $(D immutable), $(D const shared), $(D inout) and $(D
+inout shared).)
+
+$(P References to qualified objects can be implicitly converted according to the
+following rules:)
+
+$(COMMENT To generate images/qualifier-conversions.{svg,eps} refer to
+images/qualifier-conversions.dot.)
+
+$(HTMLTAG3 center, ,
+  <img id="conversions" alt="Qualifier conversion rules"
+    src="$(STATIC images/qualifier-conversions.svg)">
+)
+$(LATEX
+{\centering
+\includegraphics{images/qualifier-conversions.eps}
+}
+)
+
+$(P In the graph above, any directed path is a legal implicit conversion. No
+other qualifier combinations than the ones shown is valid. The same information
+is shown below in tabular format:)
 
     $(TABLE_10 $(ARGS Implicit Conversion of Reference Types),
-    $(VERTROW from/to, $(I mutable), $(D const), $(D shared), $(D shared const), $(D inout), $(D inout const), $(D inout shared), $(D inout shared const), $(D immutable)),
+    $(VERTROW from/to, $(I mutable), $(D const), $(D shared), $(D const shared), $(D inout), $(D const inout), $(D inout shared), $(D const inout shared), $(D immutable)),
     $(TROW $(I mutable),            $(YES), $(YES), $(NO),  $(NO),  $(NO),  $(NO),  $(NO),  $(NO),  $(NO) )
     $(TROW $(D const),              $(NO),  $(YES), $(NO),  $(NO),  $(NO),  $(NO),  $(NO),  $(NO),  $(NO) )
-    $(TROW $(D shared),             $(NO),  $(NO),  $(YES), $(YES), $(NO),  $(NO),  $(NO),  $(NO),  $(NO) )
-    $(TROW $(D shared const),       $(NO),  $(NO),  $(NO),  $(YES), $(NO),  $(NO),  $(NO),  $(NO),  $(NO) )
-    $(TROW $(D inout),              $(NO),  $(YES), $(NO),  $(NO),  $(YES), $(YES), $(NO),  $(NO),  $(NO) )
-    $(TROW $(D inout const),        $(NO),  $(YES), $(NO),  $(NO),  $(NO),  $(YES), $(NO),  $(NO),  $(NO) )
-    $(TROW $(D inout shared),       $(NO),  $(NO),  $(NO),  $(YES), $(NO),  $(NO),  $(YES), $(YES), $(NO) )
-    $(TROW $(D inout shared const), $(NO),  $(NO),  $(NO),  $(YES), $(NO),  $(NO),  $(NO),  $(YES), $(NO) )
+    $(TROW $(D const inout),        $(NO),  $(YES), $(NO),  $(NO),  $(NO),  $(YES), $(NO),  $(NO),  $(NO) )
+    $(TROW $(D const shared),       $(NO),  $(NO),  $(NO),  $(YES), $(NO),  $(NO),  $(NO),  $(NO),  $(NO) )
+    $(TROW $(D const inout shared), $(NO),  $(NO),  $(NO),  $(YES), $(NO),  $(NO),  $(NO),  $(YES), $(NO) )
     $(TROW $(D immutable),          $(NO),  $(YES), $(NO),  $(YES), $(NO),  $(YES), $(NO),  $(YES), $(YES))
+    $(TROW $(D inout),              $(NO),  $(YES), $(NO),  $(NO),  $(YES), $(YES), $(NO),  $(NO),  $(NO) )
+    $(TROW $(D shared),             $(NO),  $(NO),  $(YES), $(YES), $(NO),  $(NO),  $(NO),  $(NO),  $(NO) )
+    $(TROW $(D inout shared),       $(NO),  $(NO),  $(NO),  $(YES), $(NO),  $(NO),  $(YES), $(YES), $(NO) )
     )
 
 	$(P If an implicit conversion is disallowed by the table, an $(GLINK2 expression, Expression)
@@ -443,7 +494,7 @@ $(H2 $(LNAME2 implicit_conversions, Implicit Conversions))
 
 	$(P A $(I Unique Expression) is one for which there are no other references to the
 	value of the expression and all expressions it transitively refers to are either
-	also unique or are immutable. For example:
+	also unique or are immutable. For example:)
 ---
 void main()
 {
@@ -456,17 +507,17 @@ void main()
     immutable int** r = new immutable(int)*(&y); // ok, y is immutable
 }
 ---
-	)
 
 	$(P Otherwise, a $(GLINK2 expression, CastExpression) can be used to force a conversion
 	when an implicit version is disallowed, but this cannot be done in $(D @safe) code,
 	and the correctness of it must be verified by the user.
 	)
 
-
+$(SPEC_SUBNAV_PREV_NEXT enum, Enums, function, Functions)
 )
 
 Macros:
+	CHAPTER=18
 	TH1=<th class="nobr">$(CODE $0)</th>
 	TD1=<td class="nobr">$(CODE $0)</td>
 	TDE=<td class="nobr">$(GREEN $(CODE $0))</td>

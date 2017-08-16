@@ -102,7 +102,7 @@ void main()
 }
 ---
 
-	$(P Prints:)
+	Prints:
 
 $(CONSOLE
 true
@@ -164,7 +164,7 @@ void main()
 }
 ---
 
-	$(P Prints:)
+	Prints:
 
 $(CONSOLE
 true
@@ -434,9 +434,7 @@ pragma(msg, __traits(getAttributes, b));
 pragma(msg, __traits(getAttributes, c));
 ---
 
-    $(P
         Prints:
-    )
 
 $(CONSOLE
 tuple(3)
@@ -449,7 +447,6 @@ $(SECTION2 $(GNAME getFunctionVariadicStyle),
     $(P
         Takes one argument which must either be a function symbol, or a type
 	that is a function, delegate or a function pointer.
-
         It returns a string identifying the kind of
         $(LINK2 function.html#variadic, variadic arguments) that are supported.
     )
@@ -492,23 +489,19 @@ $(SECTION2 $(GNAME getFunctionAttributes),
     )
 
 
-    $(P
         $(B Note:) The order of the attributes in the returned tuple is
         implementation-defined and should not be relied upon.
-    )
 
         $(P
-            A list of currently supported attributes are:
+            A list of currently supported attributes are:)
             $(UL $(LI $(D pure), $(D nothrow), $(D @nogc), $(D @property), $(D @system), $(D @trusted), $(D @safe), and $(D ref)))
             $(B Note:) $(D ref) is a function attribute even though it applies to the return type.
-        )
 
         $(P
-            Additionally the following attributes are only valid for non-static member functions:
+            Additionally the following attributes are only valid for non-static member functions:)
             $(UL $(LI $(D const), $(D immutable), $(D inout), $(D shared)))
-        )
 
-    $(P For example:)
+    For example:
 
 ---
 int sum(int x, int y) pure nothrow { return x + y; }
@@ -624,7 +617,7 @@ void main()
 }
 ---
 
-	$(P Prints:)
+	Prints:
 
 $(CONSOLE
 void()
@@ -720,7 +713,7 @@ void main()
 }
 ---
 
-	$(P Prints:)
+	Prints:
 
 $(CONSOLE
 export
@@ -771,7 +764,7 @@ void main()
 }
 ---
 
-	$(P Prints:)
+	Prints:
 
 $(CONSOLE
 void()
@@ -791,7 +784,7 @@ $(H2 $(GNAME getUnitTests))
 		$(DDSUBLINK spec/attribute, uda, UDA's) will be accessible.
 	)
 
-	$(H4 Note:)
+	$(H3 Note:)
 
 	$(P
 		The -unittest flag needs to be passed to the compiler. If the flag
@@ -1071,8 +1064,10 @@ function: 'test.main', pretty function: 'int test.main(string[] args)',
 file full path: '/example/test.d'
 )
 
+$(SPEC_SUBNAV_PREV_NEXT version, Conditional Compilation, errors, Error Handling)
 )
 
 Macros:
+	CHAPTER=25
 	TITLE=Traits
 	GBLINK=$(RELATIVE_LINK2 $0, $(D $0))

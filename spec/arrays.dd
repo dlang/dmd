@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Arrays,
 
+$(H2 $(LNAME2 array-kinds, Kinds))
+
     $(P There are four kinds of arrays:)
 
     $(TABLE2 Kinds of Arrays,
@@ -12,7 +14,7 @@ $(SPEC_S Arrays,
         $(TROW $(ARGS $(I type)[$(I type)]), $(ARGS $(DDLINK spec/hash-map, Associative Arrays, Associative arrays)))
     )
 
-$(H4 $(LNAME2 pointers, Pointers))
+$(H3 $(LNAME2 pointers, Pointers))
 
 ---------
 int* p;
@@ -29,7 +31,7 @@ int* p;
         and reference types.
         )
 
-$(H4 $(LNAME2 static-arrays, Static Arrays))
+$(H3 $(LNAME2 static-arrays, Static Arrays))
 
 ---------
 int[3] s;
@@ -56,7 +58,7 @@ int[3] s;
         )
 
 
-$(H4 $(LNAME2 dynamic-arrays, Dynamic Arrays))
+$(H3 $(LNAME2 dynamic-arrays, Dynamic Arrays))
 
 ---------
 int[] a;
@@ -297,19 +299,19 @@ a[] = b[] + 4;
 ---
 
         $(P A vector operation is indicated by the slice operator appearing
-        as the left-hand side of an =, +=, -=, *=, /=, %=, ^=, $(AMP)= or |=
-        operator.
+        as the left-hand side of an assignment or an op-assignment expression.
         The right-hand side can be an expression consisting either of an array
-        slice of the same length and type as the left-hand side or an expression
+        slice of the same length and type as the left-hand side or a scalar expression
         of the element type of the left-hand side, in any combination.
-        The operators supported for vector operations are the binary
-        operators +, -, *, /, %, ^, $(AMP) and |, and the unary operators
-        - and ~.
         )
 
+---
+T[] a, b, c;
+...
+a[] -= (b[] + 4) * c[];
+---
+
         $(P The slice on the left and any slices on the right must not overlap.
-        The vector assignment operators are evaluated right to left,
-        and the other binary operators are evaluated left to right.
         All operands are evaluated exactly once, even if the array slice
         has zero elements in it.
         )
@@ -319,9 +321,9 @@ a[] = b[] + 4;
         An application must not depend on this order.
         )
 
-        $(P Implementation note: many of the more common vector
-        operations are expected to take advantage of any vector
-        math instructions available on the target computer.
+        $(P Implementation note: Many vector operations are expected
+        to take advantage of any vector math instructions available on
+        the target computer.
         )
 
 $(H2 $(LNAME2 pointer-arithmetic, Pointer Arithmetic))
@@ -452,13 +454,12 @@ Returns an array literal with each element of the literal being the $(D .init) p
 
         $(P For the $(D .sort) property to work on arrays of
         structs or unions, the struct or union definition must
-        define the function:
+        define the function:)
 
         $(D int opCmp(ref const S) const).
 
         The type $(D S) is the type of the struct or union.
         This function will determine the sort ordering.
-        )
 
     $(P Examples:)
 
@@ -501,17 +502,10 @@ array = array[0..7];
         default initializer.
         )
 
-        $(P To maximize efficiency, the runtime always tries to resize the
-        array in place to avoid extra copying.
-
-        It will always do a copy if the new size is larger and the array
-        was not allocated via the new operator or resizing in place would
-        overwrite valid data in the array.
-        )
-
-
-
-        For example:
+        $(P To maximize efficiency, the runtime always tries to resize the array
+        in place to avoid extra copying. It will always do a copy if the new
+        size is larger and the array was not allocated via the new operator or
+        resizing in place would overwrite valid data in the array. For example:)
 
 ---------
 char[] a = new char[20];
@@ -567,9 +561,8 @@ while (1)
 }
 ---------
 
-        $(P will work, it will be inefficient. A more practical
+        will work, it will be inefficient. A more practical
         approach would be to minimize the number of resizes:
-        )
 
 ---------
 int[] array;
@@ -782,7 +775,7 @@ char* p = str;     // pointer to 1st element
 str ~= "\0";
 ---------
 
-        $(P or use the function $(D std.string.toStringz).)
+        or use the function $(D std.string.toStringz).
 
         $(P The type of a string is determined by the semantic phase of
         compilation. The type is
@@ -852,7 +845,7 @@ str ~= "\0";
 printf("the string is '%s'\n", cast(char*)str);
 ---------
 
-        $(P or:)
+        or:
 
 ---------
 import std.string;
@@ -971,20 +964,19 @@ $(H2 $(LNAME2 implicit-conversions, Implicit Conversions))
         $(LI $(D void[]))
         )
 
-        $(P A dynamic array $(D T[]) can be implicitly converted to
-        one of the following:
-        )
+        $(P A dynamic array $(D T[]) can be implicitly converted to one of the
+        following ($(D U) is a base class of $(D T)):)
 
         $(UL
-
         $(LI $(D const(U)[]))
         $(LI $(D const(U[])))
         $(LI $(D void[]))
         )
 
-        $(P Where $(D U) is a base class of $(D T).)
+$(SPEC_SUBNAV_PREV_NEXT statement, Statements, hash-map, Associative Arrays)
 )
 
 Macros:
+        CHAPTER=12
         TITLE=Arrays
         _=

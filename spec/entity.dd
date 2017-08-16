@@ -284,7 +284,9 @@ $(BR)
    $(TROW $(D lang), $(ARGS 10216), $(LANG))
    $(TROW $(D rang), $(ARGS 10217), $(RANG))
    )
+$(SPEC_SUBNAV_PREV_NEXT portability, Portability Guide, memory-safe-d, Memory Safety)
 )
 
 Macros:
+    CHAPTER=36
 	TITLE=Named Character Entities

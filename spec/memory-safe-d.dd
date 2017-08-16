@@ -13,15 +13,14 @@ $(SPEC_S Memory Safety,
 	)
 
 	$(P Memory-safe code $(DDSUBLINK spec/function, function-safety, cannot
-	use certain language features), such as:
+	use certain language features), such as:)
 		$(UL
 			$(LI Casts that break the type system.)
 			$(LI Modification of pointer values.)
 			$(LI Taking the address of a local variable or function parameter.)
 		)
-	)
 
-$(H3 $(LNAME2 usage, Usage))
+$(H2 $(LNAME2 usage, Usage))
 
 	$(P Memory safety can be enabled on a per-function basis using
 	the $(DDSUBLINK spec/function, safe-functions, $(D @safe) attribute).
@@ -36,7 +35,7 @@ $(H3 $(LNAME2 usage, Usage))
 	-release) mode.
 	)
 
-$(H3 $(LNAME2 limitations, Limitations))
+$(H2 $(LNAME2 limitations, Limitations))
 
 	$(P Memory safety does not imply that code is portable, uses only
 	sound programming practices, is free of byte order dependencies,
@@ -44,7 +43,9 @@ $(H3 $(LNAME2 limitations, Limitations))
 	possibilities.
 	)
 
+$(SPEC_SUBNAV_PREV_NEXT entity, Named Character Entities, abi, Application Binary Interface)
 )
 
 Macros:
+    CHAPTER=37
 	TITLE=Memory-Safe-D-Spec

@@ -23,7 +23,7 @@ $(SPEC_S Associative Arrays,
         of the keys inserted into the array. In particular, in a $(D foreach) loop the
         order in which the elements are iterated is unspecified.)
 
-$(H3 $(LNAME2 removing_keys, Removing Keys))
+$(H2 $(LNAME2 removing_keys, Removing Keys))
 
         $(P Particular keys in an associative array can be removed with the
         $(D remove) function:
@@ -40,7 +40,7 @@ $(H3 $(LNAME2 removing_keys, Removing Keys))
 
         $(P All keys can be removed by using the method `clear`.)
 
-$(H3 $(LNAME2 testing_membership, Testing Membership))
+$(H2 $(LNAME2 testing_membership, Testing Membership))
 
         $(P The $(GLINK2 expression, InExpression) yields a pointer to the value
         if the key is in the associative array, or $(D null) if not:
@@ -61,7 +61,7 @@ $(H3 $(LNAME2 testing_membership, Testing Membership))
         array can be function types or $(D void).
         )
 
-$(H3 $(LNAME2 using_classes_as_key, Using Classes as the KeyType))
+$(H2 $(LNAME2 using_classes_as_key, Using Classes as the KeyType))
 
         $(P Classes can be used as the $(I KeyType). For this to work,
         the class definition must override the following member functions
@@ -104,7 +104,7 @@ $(H3 $(LNAME2 using_classes_as_key, Using Classes as the KeyType))
         $(D opEquals). This restriction may be removed in future versions of
         D.)
 
-$(H3 $(LNAME2 using_struct_as_key, Using Structs or Unions as the KeyType))
+$(H2 $(LNAME2 using_struct_as_key, Using Structs or Unions as the KeyType))
 
         $(P If the $(I KeyType) is a struct or union type,
         a default mechanism is used
@@ -115,7 +115,7 @@ $(H3 $(LNAME2 using_struct_as_key, Using Structs or Unions as the KeyType))
 
         ---------
         size_t $(CODE_HIGHLIGHT toHash)() const @safe pure nothrow;
-        bool $(CODE_HIGHLIGHT opEquals)(ref const typeof(this) s) @safe pure nothrow;
+        bool $(CODE_HIGHLIGHT opEquals)(ref const typeof(this) s) const @safe pure nothrow;
         ---------
 
         $(P For example:)
@@ -153,10 +153,11 @@ $(H3 $(LNAME2 using_struct_as_key, Using Structs or Unions as the KeyType))
         opCmp), but omit a specialized $(D opEquals). This restriction may be
         removed in future versions of D.)
 
-$(H3 $(LNAME2 construction_assignement_entries, Construction or Assignment on Setting AA Entries))
+$(H2 $(LNAME2 construction_assignement_entries, Construction or Assignment on Setting AA Entries))
 
-    $(P When an AA indexing access appears on the left side of an assignment operator,
-        it is specially handled for setting an AA entry associated with the key.
+    $(P When an AA indexing access appears on the left side of an assignment
+    operator, it is specially handled for setting an AA entry associated with
+    the key.)
 
         ---------
         string[int] aa;
@@ -166,9 +167,8 @@ $(H3 $(LNAME2 construction_assignement_entries, Construction or Assignment on Se
         s = aa[1];          // succeeds to lookup
         assert(s == "hello");
         ---------
-    )
 
-    $(P If the assigned value type is equivalent with the AA element type:
+    $(P If the assigned value type is equivalent with the AA element type:)
 
       $(OL
         $(LI If the indexing key does not yet exist in AA, a new AA entry will be
@@ -190,10 +190,10 @@ $(H3 $(LNAME2 construction_assignement_entries, Construction or Assignment on Se
                         // operator-overloading rewrites it to member opAssign function.
         assert(aa[1].val == 20);
         ---------
-    )
 
-    $(P If the assigned value type is $(B not) equivalent with the AA element type,
-        the expression could invoke operator overloading with normal indexing access:
+    $(P If the assigned value type is $(B not) equivalent with the AA element
+    type, the expression could invoke operator overloading with normal indexing
+    access:)
 
         ---------
         struct S
@@ -206,9 +206,9 @@ $(H3 $(LNAME2 construction_assignement_entries, Construction or Assignment on Se
                         // throws RangeError before opAssign is called
         ---------
 
-        However, if the AA element type is a struct which supports an implicit constructor
-        call from the assigned value, implicit construction is used for setting the
-        AA entry:
+        $(P However, if the AA element type is a struct which supports an
+        implicit constructor call from the assigned value, implicit construction
+        is used for setting the AA entry:)
 
         ---------
         struct S
@@ -236,9 +236,8 @@ $(H3 $(LNAME2 construction_assignement_entries, Construction or Assignment on Se
         aa["a"] = 10;   // construct BigInt(10) and move it in AA
         aa["a"] = 20;   // call aa["a"].opAssign(20)
         ---------
-    )
 
-$(H3 $(LNAME2 static_initialization, Static Initialization of AAs))
+$(H2 $(LNAME2 static_initialization, Static Initialization of AAs))
 
         ---------
         immutable long[string] aa = [
@@ -255,7 +254,7 @@ $(H3 $(LNAME2 static_initialization, Static Initialization of AAs))
         }
         ---------
 
-$(H3 $(LNAME2 runtime_initialization, Runtime Initialization of Immutable AAs))
+$(H2 $(LNAME2 runtime_initialization, Runtime Initialization of Immutable AAs))
 
     $(P Immutable associative arrays are often desirable, but sometimes
         initialization must be done at runtime. This can be achieved with
@@ -288,7 +287,7 @@ $(H3 $(LNAME2 runtime_initialization, Runtime Initialization of Immutable AAs))
         }
         ---------
 
-$(H3 $(LNAME2 construction_and_ref_semantic, Construction and Reference Semantics))
+$(H2 $(LNAME2 construction_and_ref_semantic, Construction and Reference Semantics))
 
     $(P An Associative Array defaults to `null`, and is constructed upon assigning the first key/value
         pair. However, once constructed, an associative array has $(I reference semantics), meaning that
@@ -306,9 +305,9 @@ $(H3 $(LNAME2 construction_and_ref_semantic, Construction and Reference Semantic
         ------
 
 
-$(H3 $(LNAME2 properties, Properties))
+$(H2 $(LNAME2 properties, Properties))
 
-Properties for associative arrays are:
+$(P Properties for associative arrays are:)
 
     $(TABLE_2COLS Associative Array Properties,
         $(THEAD Property, Description)
@@ -352,7 +351,7 @@ Properties for associative arrays are:
     )
 
 $(HR)
-$(H3 $(LNAME2 aa_example, Associative Array Example: word count))
+$(H2 $(LNAME2 aa_example, Associative Array Example: word count))
 
         $(P Let's consider the file is ASCII encoded with LF EOL.
         In general case we should use $(I dchar c) for iteration
@@ -433,7 +432,9 @@ $(H3 $(LNAME2 aa_example, Associative Array Example: word count))
         }
         ---------
 
+$(SPEC_SUBNAV_PREV_NEXT arrays, Arrays, struct, Structs and Unions)
 )
 
 Macros:
+        CHAPTER=13
         TITLE=Associative Arrays

@@ -892,9 +892,9 @@ foo(cast(immutable)&i, &i);
 )
 )
 
+$(SPEC_SUBNAV_PREV_NEXT interfaceToC, Interfacing to C, objc_interface, Interfacing to Objective-C)
 )
 
 Macros:
+    CHAPTER=33
     TITLE=Interfacing to C++
-
-

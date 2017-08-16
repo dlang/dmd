@@ -20,7 +20,7 @@ $(SPEC_S Contract Programming,
 	$(LI handling of contract inheritance)
 	)
 
-<img src="../images/d4.gif" style="max-width:100%" alt="Contracts make D bug resistant" border="0">
+$(HTMLTAG3V img, src="../images/d4.gif" style="max-width:100%" alt="Contracts make D bug resistant" border="0")
 
 	$(P The idea of a contract is simple - it's just an expression that must evaluate to true.
 	If it does not, the contract is broken, and by definition, the program has a bug in it.
@@ -55,11 +55,11 @@ assert(expression);
 
 $(H2 $(LNAME2 pre_post_contracts, Pre and Post Contracts))
 
-	The pre contracts specify the preconditions before a statement is executed. The most
+	$(P The pre contracts specify the preconditions before a statement is executed. The most
 	typical use of this would be in validating the parameters to a function. The post
 	contracts validate the result of the statement. The most typical use of this
 	would be in validating the return value of a function and of any side effects it has.
-	The syntax is:
+	The syntax is:)
 
 ------
 in
@@ -70,15 +70,15 @@ out (result)
 {
     ...contract postconditions...
 }
-body
+do
 {
     ...code...
 }
 ------
-	$(P By definition, if a pre contract fails, then the body received bad
+	$(P By definition, if a pre contract fails, then the function received bad
 	parameters.
 	An AssertError is thrown. If a post contract fails,
-	then there is a bug in the body. An AssertError is thrown.)
+	then there is a bug in the function. An AssertError is thrown.)
 
 	$(P Either the <code>in</code> or the <code>out</code> clause can be omitted.
 	If the <code>out</code> clause is for a function
@@ -94,7 +94,7 @@ out (result)
 {
     assert((result * result) <= x && (result+1) * (result+1) > x);
 }
-body
+do
 {
     return cast(long)std.math.sqrt(cast(real)x);
 }
@@ -117,13 +117,13 @@ out
 {
     ...contracts...
 }
-body
+do
 {
     ...
 }
 ------
-	In an out statement, $(I result) is initialized and set to the
-	return value of the function.
+	$(P In an out statement, $(I result) is initialized and set to the
+	return value of the function.)
 
 $(H2 $(LNAME2 in_out_inheritance, In, Out and Inheritance))
 
@@ -186,7 +186,7 @@ class Date
 	$(OL
 	$(LI preconditions)
 	$(LI invariant)
-	$(LI body)
+	$(LI function body)
 	$(LI invariant)
 	$(LI postconditions)
 	)
@@ -222,7 +222,7 @@ class Foo
 }
 ------
 
-	The invariant can be checked with an $(CODE assert()) expression:
+	$(P The invariant can be checked with an $(CODE assert()) expression:)
 
 	$(OL
 	$(LI classes need to pass a class object)
@@ -256,8 +256,9 @@ $(H2 $(LNAME2 references, References))
 	$(LINK2 http://jan.newmarch.name/java/contracts/paper-long.html, Adding Contracts to Java)
 	)
 
+$(SPEC_SUBNAV_PREV_NEXT template-mixin, Template Mixins, version, Conditional Compilation)
 )
 
 Macros:
+	CHAPTER=23
 	TITLE=Contract Programming
-

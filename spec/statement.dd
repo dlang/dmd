@@ -68,7 +68,7 @@ $(GNAME NonEmptyStatementNoCaseNoDefault):
         disambiguate it in favor of being a $(I Statement).
         )
 
-$(H3 $(LEGACY_LNAME2 ScopeStatement, scope-statement, Scope Statements))
+$(H2 $(LEGACY_LNAME2 ScopeStatement, scope-statement, Scope Statements))
 
 $(GRAMMAR
 $(GNAME ScopeStatement):
@@ -118,7 +118,7 @@ $(P
 )
 
 
-$(H3 $(LEGACY_LNAME2 ScopeBlockStatement, scope-block-statement, Scope Block Statements))
+$(H2 $(LEGACY_LNAME2 ScopeBlockStatement, scope-block-statement, Scope Block Statements))
 
 $(GRAMMAR
 $(GNAME ScopeBlockStatement):
@@ -129,7 +129,7 @@ $(GNAME ScopeBlockStatement):
         $(GLINK BlockStatement).
         )
 
-$(H3 $(LEGACY_LNAME2 LabeledStatement, labeled-statement, Labeled Statements))
+$(H2 $(LEGACY_LNAME2 LabeledStatement, labeled-statement, Labeled Statements))
 
 $(P     Statements can be labeled. A label is an identifier that
         precedes a statement.
@@ -161,7 +161,7 @@ $(P
         inside a block statement is accessible from outside that block.
 )
 
-$(H3 $(LEGACY_LNAME2 BlockStatement, block-statement, Block Statement))
+$(H2 $(LEGACY_LNAME2 BlockStatement, block-statement, Block Statement))
 
 $(GRAMMAR
 $(GNAME BlockStatement):
@@ -177,7 +177,7 @@ $(P
         A block statement is a sequence of statements enclosed
         by { }. The statements are executed in lexical order.
 )
-$(H3 $(LEGACY_LNAME2 ExpressionStatement, expression-statement, Expression Statement))
+$(H2 $(LEGACY_LNAME2 ExpressionStatement, expression-statement, Expression Statement))
 
 $(GRAMMAR
 $(GNAME ExpressionStatement):
@@ -200,7 +200,7 @@ $(GNAME ExpressionStatement):
         cast(void)(x + x); // ok
         ----
 
-$(H3 $(LEGACY_LNAME2 DeclarationStatement, declaration-statement, Declaration Statement))
+$(H2 $(LEGACY_LNAME2 DeclarationStatement, declaration-statement, Declaration Statement))
 
         Declaration statements declare variables and types.
 
@@ -217,9 +217,9 @@ struct S { }  // declare struct s
 alias myint = int;
 ----
 
-$(H3 $(LEGACY_LNAME2 IfStatement, if-statement, If Statement))
+$(H2 $(LEGACY_LNAME2 IfStatement, if-statement, If Statement))
 
-        If statements provide simple conditional execution of statements.
+$(P If statements provide simple conditional execution of statements.)
 
 $(GRAMMAR
 $(GNAME IfStatement):
@@ -276,21 +276,19 @@ else
 writeln(m.pre);      // Error: undefined identifier 'm'
 ---
 
-$(H3 $(LEGACY_LNAME2 WhileStatement, while-statement, While Statement))
+$(H2 $(LEGACY_LNAME2 WhileStatement, while-statement, While Statement))
 
 $(GRAMMAR
 $(GNAME WhileStatement):
     $(D while $(LPAREN)) $(EXPRESSION) $(D $(RPAREN)) $(PSSCOPE)
 )
 
-        While statements implement simple loops.
+$(P While statements implement simple loops.)
 
-        $(EXPRESSION) is evaluated and must have a type that
-        can be converted to a boolean. If it's true the
-        $(PSSCOPE) is executed. After the $(PSSCOPE) is executed,
-        the $(EXPRESSION) is evaluated again, and if true the
-        $(PSSCOPE) is executed again. This continues until the
-        $(EXPRESSION) evaluates to false.
+$(P $(EXPRESSION) is evaluated and must have a type that can be converted to a
+boolean. If it's true the $(PSSCOPE) is executed. After the $(PSSCOPE) is
+executed, the $(EXPRESSION) is evaluated again, and if true the $(PSSCOPE) is
+executed again. This continues until the $(EXPRESSION) evaluates to false.)
 
 ---
 int i = 0;
@@ -301,12 +299,10 @@ while (i < 10)
 }
 ---
 
-        A $(GLINK BreakStatement) will exit the loop.
-        A $(GLINK ContinueStatement)
-        will transfer directly to evaluating $(EXPRESSION) again.
+$(P A $(GLINK BreakStatement) will exit the loop. A $(GLINK ContinueStatement)
+will transfer directly to evaluating $(EXPRESSION) again.)
 
-$(H3 $(LEGACY_LNAME2 DoStatement, do-statement, Do Statement))
-
+$(H2 $(LEGACY_LNAME2 DoStatement, do-statement, Do Statement))
 
 $(GRAMMAR
 $(GNAME DoStatement):
@@ -314,14 +310,11 @@ $(GNAME DoStatement):
 )
 
 
-        Do while statements implement simple loops.
+$(P Do while statements implement simple loops.)
 
-        $(PSSCOPE) is executed. Then
-        $(EXPRESSION) is evaluated and must have a type that
-        can be converted to a boolean. If it's true the
-        loop is iterated again.
-        This continues until the
-        $(EXPRESSION) evaluates to false.
+$(P $(PSSCOPE) is executed. Then $(EXPRESSION) is evaluated and must have a
+type that can be converted to a boolean. If it's true the loop is iterated
+again. This continues until the $(EXPRESSION) evaluates to false.)
 
 ---
 int i = 0;
@@ -331,14 +324,13 @@ do
 } while (++i < 10);
 ---
 
-        A $(GLINK BreakStatement) will exit the loop.
-        A $(GLINK ContinueStatement)
-        will transfer directly to evaluating $(EXPRESSION) again.
+$(P A $(GLINK BreakStatement) will exit the loop. A $(GLINK ContinueStatement)
+will transfer directly to evaluating $(EXPRESSION) again.)
 
-$(H3 $(LEGACY_LNAME2 ForStatement, for-statement, For Statement))
+$(H2 $(LEGACY_LNAME2 ForStatement, for-statement, For Statement))
 
-        For statements implement loops with initialization,
-        test, and increment clauses.
+$(P For statements implement loops with initialization, test, and increment
+clauses.)
 
 $(GRAMMAR
 $(GNAME ForStatement):
@@ -390,7 +382,7 @@ for (int i = 0; i < 10; i++)
 }
 --------------
 
-        Function bodies cannot be empty:
+$(P Function bodies cannot be empty:)
 
 --------------
 for (int i = 0; i < 10; i++)
@@ -405,12 +397,12 @@ for (int i = 0; i < 10; i++)
 }
 --------------
 
-        The $(I Initialize) may be omitted. $(I Test) may also be
-        omitted, and if so, it is treated as if it evaluated to true.
+$(P The $(I Initialize) may be omitted. $(I Test) may also be omitted, and if
+so, it is treated as if it evaluated to true.)
 
-$(H3 $(LEGACY_LNAME2 ForeachStatement, foreach-statement, Foreach Statement))
+$(H2 $(LEGACY_LNAME2 ForeachStatement, foreach-statement, Foreach Statement))
 
-        A foreach statement loops over the contents of an aggregate.
+$(P A `foreach` statement loops over the contents of an aggregate.)
 
 $(GRAMMAR
 $(GNAME ForeachStatement):
@@ -458,7 +450,7 @@ $(P
         in the $(PS0).
 )
 
-$(H4 $(LNAME2 foreach_over_arrays, Foreach over Arrays))
+$(H3 $(LNAME2 foreach_over_arrays, Foreach over Arrays))
 
 $(P
         If the aggregate is a static or dynamic array, there
@@ -505,7 +497,7 @@ foreach (auto n; arr) // error, auto is redundant
     writeln(n);
 --------------
 
-$(H4 $(LNAME2 foreach_over_arrays_of_characters, Foreach over Arrays of Characters))
+$(H3 $(LNAME2 foreach_over_arrays_of_characters, Foreach over Arrays of Characters))
 
         $(P If the aggregate expression is a static or dynamic array of
         $(D char)s, $(D wchar)s, or $(D dchar)s, then the $(I Type) of
@@ -560,7 +552,7 @@ $(CONSOLE
 'y'
 )
 
-$(H4 $(LNAME2 foreach_over_associative_arrays, Foreach over Associative Arrays))
+$(H3 $(LNAME2 foreach_over_associative_arrays, Foreach over Associative Arrays))
 
         $(P If the aggregate expression is an associative array, there
         can be one or two variables declared. If one, then the variable
@@ -586,7 +578,7 @@ foreach (string s, double d; a)
 }
 --------------
 
-$(H4 $(LNAME2 foreach_over_struct_and_classes, Foreach over Structs and Classes with opApply))
+$(H3 $(LNAME2 foreach_over_struct_and_classes, Foreach over Structs and Classes with opApply))
 
     $(P If the aggregate expression is a struct or class object,
         the $(D foreach) is defined by the
@@ -708,7 +700,7 @@ $(CONSOLE
         the `foreach` body.
      )
 
-$(H4 $(LEGACY_LNAME2 foreach_with_ranges, foreach-with-ranges, Foreach over Structs and Classes with Ranges))
+$(H3 $(LEGACY_LNAME2 foreach_with_ranges, foreach-with-ranges, Foreach over Structs and Classes with Ranges))
 
     $(P If the aggregate expression is a struct or class object, but the
         $(D opApply) for $(D foreach), or $(D opApplyReverse) $(D foreach_reverse) do not exist,
@@ -777,7 +769,7 @@ $(H4 $(LEGACY_LNAME2 foreach_with_ranges, foreach-with-ranges, Foreach over Stru
         }
         ---
 
-$(H4 $(LNAME2 foreach_over_delegates, Foreach over Delegates))
+$(H3 $(LNAME2 foreach_over_delegates, Foreach over Delegates))
 
         $(P If $(I ForeachAggregate) is a delegate, the type signature of
         the delegate is of the same as for $(D opApply). This enables
@@ -820,7 +812,7 @@ void main()
 	that is confusing to read. Therefore, using $(D foreach_reverse) with a
 	delegate is now deprecated, and will be rejected in the future.)
 
-$(H4 $(LNAME2 foreach_over_tuples, Foreach over Tuples))
+$(H3 $(LNAME2 foreach_over_tuples, Foreach over Tuples))
 
 $(P
         If the aggregate expression is a tuple, there
@@ -845,11 +837,11 @@ $(P
 
 -----
 import std.stdio;
-import std.typetuple; // for TypeTuple
+import std.meta : AliasSeq;
 
 void main()
 {
-    alias TL = TypeTuple!(int, long, double);
+    alias TL = AliasSeq!(int, long, double);
 
     foreach (T; TL)
     {
@@ -866,7 +858,7 @@ long
 double
 )
 
-$(H4 $(LNAME2 foreach_ref_parameters, Foreach Ref Parameters))
+$(H3 $(LNAME2 foreach_ref_parameters, Foreach Ref Parameters))
 
         $(P $(D ref) can be used to update the original elements:
         )
@@ -900,7 +892,7 @@ $(CONSOLE
         the type of the $(I ForeachAggregate).
         )
 
-$(H4 $(LNAME2 foreach_restrictions, Foreach Restrictions))
+$(H3 $(LNAME2 foreach_restrictions, Foreach Restrictions))
 
         $(P The aggregate itself must not be resized, reallocated, free'd,
         reassigned or destructed
@@ -919,9 +911,9 @@ foreach (int i; a)
 a = null;         // ok
 --------------
 
-$(H3 $(LEGACY_LNAME2 ForeachRangeStatement, foreach-range-statement, Foreach Range Statement))
+$(H2 $(LEGACY_LNAME2 ForeachRangeStatement, foreach-range-statement, Foreach Range Statement))
 
-        A foreach range statement loops over the specified range.
+$(P A foreach range statement loops over the specified range.)
 
 $(GRAMMAR
 $(GNAME ForeachRangeStatement):
@@ -968,14 +960,14 @@ void main()
 }
 ---
 
-        $(P Prints:)
+prints:
 
 $(CONSOLE
 foo0123456789
 )
 
 
-$(H4 $(LNAME2 break_and_continue_out_of_foreach, Break and Continue out of Foreach))
+$(H3 $(LNAME2 break_and_continue_out_of_foreach, Break and Continue out of Foreach))
 
 
         $(P A $(GLINK BreakStatement) in the body of the foreach will exit the
@@ -983,7 +975,7 @@ $(H4 $(LNAME2 break_and_continue_out_of_foreach, Break and Continue out of Forea
         next iteration.
         )
 
-$(H3 $(LEGACY_LNAME2 SwitchStatement, switch-statement, Switch Statement))
+$(H2 $(LEGACY_LNAME2 SwitchStatement, switch-statement, Switch Statement))
 
         A switch statement goes to one of a collection of case
         statements depending on the value of the switch
@@ -1045,24 +1037,15 @@ $(GNAME StatementNoCaseNoDefault):
         $(P A switch statement must have a default statement.)
 
 
-        $(P
+        $(P The case expressions must all evaluate to a constant value or array,
+        or a runtime initialized const or immutable variable of integral type.
+        They must be implicitly convertible to the type of the switch
+        $(EXPRESSION). )
 
-        The case expressions must all evaluate to a constant value
-        or array, or a runtime initialized const or immutable variable of
-        integral type.
-
-        They must be implicitly convertible to the type of the
-        switch $(EXPRESSION).
-        )
-
-        $(P Case expressions must all evaluate to distinct values.
-        Const or immutable variables must all have different names.
-        If they share a value, the first case statement with that value
-        gets control.
-        There must be exactly one default statement.
-
-
-        )
+        $(P Case expressions must all evaluate to distinct values. Const or
+        immutable variables must all have different names. If they share a
+        value, the first case statement with that value gets control. There must
+        be exactly one default statement.)
 
         $(P The $(GLINK ScopeStatementList) introduces a new scope.
         )
@@ -1153,7 +1136,7 @@ switch (name)
         performance interest.
         )
 
-$(H3 $(LEGACY_LNAME2 FinalSwitchStatement, final-switch-statement, Final Switch Statement))
+$(H2 $(LEGACY_LNAME2 FinalSwitchStatement, final-switch-statement, Final Switch Statement))
 
 $(GRAMMAR
 $(GNAME FinalSwitchStatement):
@@ -1174,15 +1157,15 @@ $(GNAME FinalSwitchStatement):
 
 
 
-$(H3 $(LEGACY_LNAME2 ContinueStatement, continue-statement, Continue Statement))
+$(H2 $(LEGACY_LNAME2 ContinueStatement, continue-statement, Continue Statement))
 
 $(GRAMMAR
 $(GNAME ContinueStatement):
     $(D continue) $(I Identifier)$(OPT) $(D ;)
 )
 
-        A continue aborts the current iteration of its enclosing loop
-        statement, and starts the next iteration.
+$(P `continue` aborts the current iteration of its enclosing loop statement, and
+starts the next iteration.)
 
         $(P continue executes the next iteration of its innermost enclosing
         while, for, foreach, or do loop. The increment clause is executed.)
@@ -1208,17 +1191,15 @@ for (i = 0; i < 10; i++)
 }
 ---
 
-$(H3 $(LEGACY_LNAME2 BreakStatement, break-statement, Break Statement))
+$(H2 $(LEGACY_LNAME2 BreakStatement, break-statement, Break Statement))
 
 $(GRAMMAR
 $(GNAME BreakStatement):
     $(D break) $(I Identifier)$(OPT) $(D ;)
 )
 
-        A break exits the enclosing statement.
-
-        break exits the innermost enclosing while, for, foreach, do, or switch
-        statement, resuming execution at the statement following it.
+$(P `break` exits the innermost enclosing while, for, foreach, do, or switch
+statement, resuming execution at the statement following it.)
 
         $(P If break is followed by $(I Identifier), the $(I Identifier)
         must be the label of an enclosing while, for, do or switch
@@ -1239,20 +1220,18 @@ for (i = 0; i < 10; i++)
 }
 ---
 
-$(H3 $(LEGACY_LNAME2 ReturnStatement, return-statement, Return Statement))
+$(H2 $(LEGACY_LNAME2 ReturnStatement, return-statement, Return Statement))
 
 $(GRAMMAR
 $(GNAME ReturnStatement):
     $(D return) $(EXPRESSION)$(OPT) $(D ;)
 )
 
-        A return exits the current function and supplies its return
-        value.
+$(P `return` exits the current function and supplies its return value.)
 
-        $(EXPRESSION) is required if the function specifies
-        a return type that is not void.
-        The $(EXPRESSION) is implicitly converted to the
-        function return type.
+$(P $(EXPRESSION) is required if the function specifies a return type that is
+not void. The $(EXPRESSION) is implicitly converted to the function return
+type.)
 
         $(P At least one return statement, throw statement, or assert(0) expression
         is required if the function specifies a return type that is not void,
@@ -1289,7 +1268,7 @@ int foo(int x)
 }
 ---
 
-$(H3 $(LEGACY_LNAME2 GotoStatement, goto-statement, Goto Statement))
+$(H2 $(LEGACY_LNAME2 GotoStatement, goto-statement, Goto Statement))
 
 $(GRAMMAR
 $(GNAME GotoStatement):
@@ -1299,8 +1278,7 @@ $(GNAME GotoStatement):
     $(D goto) $(D case) $(EXPRESSION) $(D ;)
 )
 
-        A goto transfers to the statement labeled with
-        $(I Identifier).
+$(P `goto` transfers to the statement labeled with $(I Identifier).)
 
 ---
     if (foo)
@@ -1310,9 +1288,8 @@ L1:
     x++;
 ---
 
-        The second form, $(CODE goto default;), transfers to the
-        innermost $(GLINK DefaultStatement) of an enclosing
-        $(GLINK SwitchStatement).
+$(P The second form, $(CODE goto default;), transfers to the innermost $(GLINK
+DefaultStatement) of an enclosing $(GLINK SwitchStatement).)
 
         $(P The third form, $(CODE goto case;), transfers to the
         next $(GLINK CaseStatement) of the innermost enclosing
@@ -1337,16 +1314,17 @@ switch (x)
         break;
 }
 ---
-        Any intervening finally clauses are executed, along with
-        releasing any intervening synchronization mutexes.
+
+$(P Any intervening finally clauses are executed, along with releasing any
+intervening synchronization mutexes.)
 
         $(P It is illegal for a $(I GotoStatement) to be used to skip
         initializations.)
 
-$(H3 $(LEGACY_LNAME2 WithStatement, with-statement, With Statement))
+$(H2 $(LEGACY_LNAME2 WithStatement, with-statement, With Statement))
 
-        The with statement is a way to simplify repeated references
-        to the same object.
+$(P The `with` statement is a way to simplify repeated references to the same
+object.)
 
 $(GRAMMAR
 $(GNAME WithStatement):
@@ -1358,7 +1336,9 @@ $(GNAME WithStatement):
         where $(EXPRESSION) evaluates to a class reference or struct
         instance.
         Within the with body the referenced object is searched first for
-        identifier symbols. The $(I WithStatement)
+        identifier symbols.
+
+$(P The $(I WithStatement))
 
 --------------
 with (expression)
@@ -1425,7 +1405,7 @@ void main()
 ---
 
 
-$(H3 $(LEGACY_LNAME2 SynchronizedStatement, synchronized-statement, Synchronized Statement))
+$(H2 $(LEGACY_LNAME2 SynchronizedStatement, synchronized-statement, Synchronized Statement))
 
         $(P The synchronized statement wraps a statement with
         a mutex to synchronize access among multiple threads.
@@ -1474,9 +1454,9 @@ synchronized { ... }
         locked and unlocked as many times as there is recursion.
         )
 
-$(H3 $(LEGACY_LNAME2 TryStatement, try-statement, Try Statement))
+$(H2 $(LEGACY_LNAME2 TryStatement, try-statement, Try Statement))
 
-        Exception handling is done with the try-catch-finally statement.
+$(P Exception handling is done with the try-catch-finally statement.)
 
 $(GRAMMAR
 $(GNAME TryStatement):
@@ -1503,12 +1483,10 @@ $(GNAME FinallyStatement):
 )
 
         $(P $(I CatchParameter) declares a variable v of type T, where T is
-
-        Throwable or derived from Throwable.
-        v is initialized by the throw expression if T is of the same type or a
-        base class of the throw expression. The catch clause will be executed
-        if the exception object is of type T or derived from T.
-        )
+        Throwable or derived from Throwable. v is initialized by the throw
+        expression if T is of the same type or a base class of the throw
+        expression. The catch clause will be executed if the exception object is
+        of type T or derived from T.)
 
         $(P If just type T is given and no variable v, then the catch clause
         is still executed.
@@ -1542,8 +1520,7 @@ $(GNAME FinallyStatement):
         caught by catching the first $(I Error). In addition to the list of
         subsequent exceptions, $(I Error) also contains a pointer that points
         to the original exception (the head of the chain) if a bypass occurred,
-        so that the entire exception history is retained.
-    )
+        so that the entire exception history is retained.)
 
 --------------
 import std.stdio;
@@ -1588,23 +1565,23 @@ done
         This restriction may be relaxed in future versions.
         )
 
-$(H3 $(LEGACY_LNAME2 ThrowStatement, throw-statement, Throw Statement))
+$(H2 $(LEGACY_LNAME2 ThrowStatement, throw-statement, Throw Statement))
 
-        Throw an exception.
+$(P Throws an exception.)
 
 $(GRAMMAR
 $(GNAME ThrowStatement):
     $(D throw) $(EXPRESSION) $(D ;)
 )
 
-        $(EXPRESSION) is evaluated and must be  a Throwable reference.
-        The  Throwable reference is thrown as an exception.
+$(P $(EXPRESSION) is evaluated and must be  a `Throwable` reference. The
+`Throwable` reference is thrown as an exception.)
 
 ---
 throw new Exception("message");
 ---
 
-$(H3 $(LEGACY_LNAME2 ScopeGuardStatement, scope-guard-statement, Scope Guard Statement))
+$(H2 $(LEGACY_LNAME2 ScopeGuardStatement, scope-guard-statement, Scope Guard Statement))
 
 $(GRAMMAR
 $(GNAME ScopeGuardStatement):
@@ -1613,15 +1590,12 @@ $(GNAME ScopeGuardStatement):
     $(D scope(failure)) $(PSCURLYSCOPE)
 )
 
-        The $(I ScopeGuardStatement) executes $(PSCURLYSCOPE) at the close
-        of the current scope, rather than at the point where the
-        $(I ScopeGuardStatement) appears.
-        $(D scope(exit)) executes $(PSCURLYSCOPE) when the scope
-        exits normally or when it exits due to exception unwinding.
-        $(D scope(failure)) executes $(PSCURLYSCOPE) when the scope
-        exits due to exception unwinding.
-        $(D scope(success)) executes $(PSCURLYSCOPE) when the scope
-        exits normally.
+$(P The $(I ScopeGuardStatement) executes $(PSCURLYSCOPE) at the close of the
+current scope, rather than at the point where the $(I ScopeGuardStatement)
+appears. $(D scope(exit)) executes $(PSCURLYSCOPE) when the scope exits normally
+or when it exits due to exception unwinding. $(D scope(failure)) executes
+$(PSCURLYSCOPE) when the scope exits due to exception unwinding. $(D
+scope(success)) executes $(PSCURLYSCOPE) when the scope exits normally.)
 
         $(P If there are multiple $(I ScopeGuardStatement)s in a scope, they
         will be executed in the reverse lexical order in which they appear.
@@ -1699,7 +1673,7 @@ $(CONSOLE
         may not exit with a throw, goto, break, continue, or
         return; nor may it be entered with a goto.
 
-$(H4 $(LNAME2 catching_cpp_class_objects, Catching C++ Class Objects))
+$(H3 $(LNAME2 catching_cpp_class_objects, Catching C++ Class Objects))
 
         $(P
         On many platforms, catching C++ class objects is supported.
@@ -1710,9 +1684,9 @@ $(H4 $(LNAME2 catching_cpp_class_objects, Catching C++ Class Objects))
         C++ objects cannot be caught in $(D @safe) code.
         )
 
-$(H3 $(LNAME2 asm, Asm Statement))
+$(H2 $(LNAME2 asm, Asm Statement))
 
-        Inline assembler is supported with the asm statement:
+$(P Inline assembler is supported with the asm statement:)
 
 $(GRAMMAR
 $(GNAME AsmStatement):
@@ -1723,11 +1697,10 @@ $(GNAME AsmInstructionList):
     $(GLINK2 iasm, AsmInstruction) $(D ;) $(I AsmInstructionList)
 )
 
-        An asm statement enables the direct use of assembly language
-        instructions. This makes it easy to obtain direct access to special
-        CPU features without resorting to an external assembler. The
-        D compiler will take care of the function calling conventions,
-        stack setup, etc.
+$(P An asm statement enables the direct use of assembly language instructions.
+This makes it easy to obtain direct access to special CPU features without
+resorting to an external assembler. The D compiler will take care of the
+function calling conventions, stack setup, etc.)
 
         $(P The format of the instructions is, of course, highly dependent
         on the native instruction set of the target CPU, and so is
@@ -1755,7 +1728,7 @@ asm
 }
 --------------
 
-        Inline assembler can be used to access hardware directly:
+$(P Inline assembler can be used to access hardware directly:)
 
 --------------
 int gethardware()
@@ -1767,9 +1740,9 @@ int gethardware()
 }
 --------------
 
-        For some D implementations, such as a translator from D to C, an
-        inline assembler makes no sense, and need not be implemented.
-        The version statement can be used to account for this:
+$(P For some D implementations, such as a translator from D to C, an inline
+assembler makes no sense, and need not be implemented. The version statement can
+be used to account for this:)
 
 --------------
 version (D_InlineAsm_X86)
@@ -1790,14 +1763,14 @@ else
         between them by the compiler.
         )
 
-$(H3 $(LEGACY_LNAME2 PragmaStatement, pragma-statement, Pragma Statement))
+$(H2 $(LEGACY_LNAME2 PragmaStatement, pragma-statement, Pragma Statement))
 
 $(GRAMMAR
 $(GNAME PragmaStatement):
     $(GLINK2 pragma, Pragma) $(PSSEMI)
 )
 
-$(H3 $(LEGACY_LNAME2 MixinStatement, mixin-statement, Mixin Statement))
+$(H2 $(LEGACY_LNAME2 MixinStatement, mixin-statement, Mixin Statement))
 
 $(GRAMMAR
 $(GNAME MixinStatement):
@@ -1835,9 +1808,11 @@ void main()
 }
 ---
 
+$(SPEC_SUBNAV_PREV_NEXT expression, Expressions, arrays, Arrays)
 )
 
 Macros:
+        CHAPTER=11
         TITLE=Statements
         EXPRESSION=$(GLINK2 expression, Expression)
         PSSEMI_PSCURLYSCOPE=$(GLINK Statement)

@@ -132,7 +132,7 @@ ABC x;
 )
 
 
-$(H3 $(LNAME2 opaque_struct_unions, Opaque Structs and Unions))
+$(H2 $(LNAME2 opaque_struct_unions, Opaque Structs and Unions))
 
     $(P Opaque struct and union declarations do not have a $(GLINK AggregateBody):)
 
@@ -156,16 +156,15 @@ S* p;     // ok, knowledge of members is not necessary
         $(LINK2 https://en.wikipedia.org/wiki/Opaque_pointer, PIMPL idiom).)
 
 
-$(H3 $(LNAME2 static_struct_init, Static Initialization of Structs))
+$(H2 $(LNAME2 static_struct_init, Static Initialization of Structs))
 
-        Static struct members are by default initialized to whatever the
-        default initializer for the member is, and if none supplied, to
-        the default initializer for the member's type.
-        If a static initializer is supplied, the
-        members are initialized by the member name,
-        colon, expression syntax. The members may be initialized in any order.
-        Initializers for statics must be evaluatable at compile time.
-        Members not specified in the initializer list are default initialized.
+$(P Static struct members are by default initialized to whatever the default
+initializer for the member is, and if none supplied, to the default initializer
+for the member's type. If a static initializer is supplied, the members are
+initialized by the member name, colon, expression syntax. The members may be
+initialized in any order. Initializers for statics must be evaluatable at
+compile time. Members not specified in the initializer list are default
+initialized.)
 
 ------
 struct S { int a; int b; int c; int d = 7;}
@@ -173,8 +172,8 @@ static S x = { a:1, b:2};            // c is set to 0, d to 7
 static S z = { c:4, b:5, a:2 , d:5}; // z.a = 2, z.b = 5, z.c = 4, z.d = 5
 ------
 
-        C-style initialization, based on the order of the members in the
-        struct declaration, is also supported:
+$(P C-style initialization, based on the order of the members in the struct
+declaration, is also supported:)
 
 ------
 static S q = { 1, 2 }; // q.a = 1, q.b = 2, q.c = 0, q.d = 7
@@ -199,20 +198,19 @@ void test(int i)
 ----
 
 
-$(H3 $(LNAME2 static_union_init, Static Initialization of Unions))
+$(H2 $(LNAME2 static_union_init, Static Initialization of Unions))
 
-        Unions are initialized explicitly.
+$(P Unions are initialized explicitly.)
 
 ------
 union U { int a; double b; }
 static U u = { b : 5.0 }; // u.b = 5.0
 ------
 
-        Other members of the union that overlay the initializer,
-        but occupy more storage, have
-        the extra storage initialized to zero.
+$(P Other members of the union that overlay the initializer, but occupy more
+storage, have the extra storage initialized to zero.)
 
-$(H3 $(LNAME2 dynamic_struct_init, Dynamic Initialization of Structs))
+$(H2 $(LNAME2 dynamic_struct_init, Dynamic Initialization of Structs))
 
         $(P Structs can be dynamically initialized from another
         value of the same type:)
@@ -252,7 +250,7 @@ S s = 3; // sets s.a to 3
 S t = s; // sets t.a to 3, S.opCall(s) is not called
 ----
 
-$(H3 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
+$(H2 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
 
         $(P Struct literals consist of the name of the struct followed
         by a parenthesized argument list:)
@@ -281,7 +279,7 @@ $(H3 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
         initialized.
         )
 
-$(H3 $(LNAME2 struct_properties, Struct Properties))
+$(H2 $(LNAME2 struct_properties, Struct Properties))
 
 $(TABLE2 Struct Properties,
 $(THEAD Name, Description)
@@ -289,13 +287,13 @@ $(TROW $(D .sizeof), Size in bytes of struct)
 $(TROW $(D .alignof), Size boundary struct needs to be aligned on)
 $(TROW $(D .tupleof), Gets type tuple of fields))
 
-$(H3 $(LNAME2 struct_field_properties, Struct Field Properties))
+$(H2 $(LNAME2 struct_field_properties, Struct Field Properties))
 
 $(TABLE2 Struct Field Properties,
 $(THEAD Name, Description)
 $(TROW $(D .offsetof), Offset in bytes of field from beginning of struct))
 
-$(SECTION3 $(LEGACY_LNAME2 ConstStruct, const-struct, Const, Immutable and Shared Structs),
+$(H2 $(LEGACY_LNAME2 ConstStruct, const-struct, Const, Immutable and Shared Structs))
 
         $(P A struct declaration can have a storage class of
         $(CODE const), $(CODE immutable) or $(CODE shared). It has an equivalent
@@ -314,9 +312,8 @@ $(SECTION3 $(LEGACY_LNAME2 ConstStruct, const-struct, Const, Immutable and Share
             t.a = 4;    // error, t.a is const
         }
         ----
-)
 
-$(SECTION3 $(LEGACY_LNAME2 Struct-Constructor, struct-constructor, Struct Constructors),
+$(H2 $(LEGACY_LNAME2 Struct-Constructor, struct-constructor, Struct Constructors))
 
         $(P Struct constructors are used to initialize an instance
         of a struct.
@@ -504,9 +501,8 @@ constructor will have their `.init` values upon destruction.)
             S s = S(1);   // construction with calling constructor
         }
         ------
-)
 
-$(SECTION3 $(LEGACY_LNAME2 StructPostblit, struct-postblit, Struct Postblits),
+$(H2 $(LEGACY_LNAME2 StructPostblit, struct-postblit, Struct Postblits))
 
 $(GRAMMAR
 $(GNAME Postblit):
@@ -565,9 +561,8 @@ $(GNAME Postblit):
         ---
 
         $(P Unions may not have fields that have postblits.)
-)
 
-$(SECTION3 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructors),
+$(H2 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructors))
 
         $(P Destructors are called when an object goes out of scope.
         Their purpose is to free up resources owned by the struct
@@ -575,9 +570,8 @@ $(SECTION3 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructo
         )
 
         $(P Unions may not have fields that have destructors.)
-)
 
-$(SECTION3 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment Overload),
+$(H2 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment Overload))
 
         $(P While copy construction takes care of initializing
         an object from another object of the same type,
@@ -659,9 +653,6 @@ $(SECTION3 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment 
         will reuse the existing storage.
         )
 
-)
-
-
 $(H2 $(LNAME2 nested, Nested Structs))
 
     $(P A $(I nested struct) is a struct that is declared inside the scope
@@ -669,7 +660,7 @@ $(H2 $(LNAME2 nested, Nested Structs))
         functions as a template argument.
         Nested structs have member functions.
         It has access to the context of its enclosing scope
-        (via an added hidden field).
+        (via an added hidden field).)
 
         ---
         void foo()
@@ -685,12 +676,11 @@ $(H2 $(LNAME2 nested, Nested Structs))
             s.bar(); // returns 11
         }
         ---
-    )
 
     $(P A struct can be prevented from being nested by
         using the static attribute, but then of course it
         will not be able to access variables from its enclosing
-        scope.
+        scope.)
 
         ---
         void foo()
@@ -706,15 +696,16 @@ $(H2 $(LNAME2 nested, Nested Structs))
             }
         }
         ---
-    )
 
 $(H2 $(LNAME2 unions_and_special_memb_funct, Unions and Special Member Functions))
 
     $(P Unions may not have postblits, destructors, or invariants.)
 
+$(SPEC_SUBNAV_PREV_NEXT hash-map, Associative Arrays, class, Classes)
 )
 
 Macros:
+        CHAPTER=14
         TITLE=Structs, Unions
         UNCHECK=
         CHECK=$(CHECKMARK)

@@ -54,7 +54,7 @@ $(GNAME Condition):
     $(GLINK StaticIfCondition)
 )
 
-$(H3 $(LNAME2 version, Version Condition))
+$(H2 $(LNAME2 version, Version Condition))
 
 $(GRAMMAR
 $(GNAME VersionCondition):
@@ -113,7 +113,7 @@ $(P The $(D version(unittest)) is satisfied if and only if the code is
 	)
 
 
-$(H3 $(LEGACY_LNAME2 VersionSpecification, version-specification, Version Specification))
+$(H2 $(LEGACY_LNAME2 VersionSpecification, version-specification, Version Specification))
 
 $(GRAMMAR
 $(GNAME VersionSpecification):
@@ -314,6 +314,8 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
 	$(TROW $(ARGS $(D D_PIC)) , $(ARGS Position Independent Code
 		(command line switch $(DDSUBLINK dmd-linux, switch-fPIC, $(TT -fPIC))) is being generated))
 	$(TROW $(ARGS $(D D_SIMD)) , $(ARGS $(DDLINK spec/simd, simd, Vector extensions) (via $(D __simd)) are supported))
+	$(TROW $(ARGS $(D D_AVX)) , $(ARGS AVX Vector instructions are supported))
+	$(TROW $(ARGS $(D D_AVX2)) , $(ARGS AVX2 Vector instructions are supported))
 	$(TROW $(ARGS $(D D_Version2)) , $(ARGS This is a D version 2 compiler))
 	$(TROW $(ARGS $(D D_NoBoundsChecks)) , $(ARGS Array bounds checks are disabled
 		(command line switch $(DDSUBLINK dmd, switch-boundscheck, $(TT -boundscheck=off)))))
@@ -581,8 +583,9 @@ void foo()
 	additional information, such as a text string, that will be
 	printed out along with the error diagnostic.
 	)
+$(SPEC_SUBNAV_PREV_NEXT contracts, Contract Programming, traits, Traits)
 )
 
 Macros:
+	CHAPTER=24
 	TITLE=Conditional Compilation
-

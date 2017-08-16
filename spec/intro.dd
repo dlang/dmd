@@ -8,15 +8,13 @@ $(SPEC_S Introduction,
 	native executable.
 	)
 
-$(H3 Phases of Compilation)
+$(H2 Phases of Compilation)
 
-	The process of compiling is divided into multiple phases. Each phase
-	has no dependence on subsequent phases. For example, the scanner is
-	not perturbed by the semantic analyzer. This separation of the passes
-	makes language tools like syntax
-	directed editors relatively easy to produce.
-	It also is possible to compress D source by storing it in
-	$(SINGLEQUOTE tokenized) form.
+$(P The process of compiling is divided into multiple phases. Each phase has no
+dependence on subsequent phases. For example, the scanner is not perturbed by
+the semantic analyzer. This separation of the passes makes language tools like
+syntax directed editors relatively easy to produce. It also is possible to
+compress D source by storing it in $(SINGLEQUOTE tokenized) form.)
 
 $(OL
 	$(LI $(B source character set)$(BR)
@@ -68,8 +66,9 @@ $(OL
 
 
 
+$(SPEC_SUBNAV_NEXT lex, Lexical)
 )
 
 Macros:
-	TITLE=Introduction
-
+TITLE = Introduction
+CHAPTER = 1

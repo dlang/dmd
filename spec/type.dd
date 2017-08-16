@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Types,
 
-$(SECTION3 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types),
+$(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
 
     $(TABLE_3COLS Basic Data Types,
     $(THEAD Keyword, Default Initializer ($(D .init)), Description)
@@ -32,10 +32,8 @@ $(SECTION3 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types)
     $(TROW $(D wchar), $(D 0xFFFF), unsigned 16 bit (UTF-16 code unit))
     $(TROW $(D dchar), $(D 0x0000FFFF), unsigned 32 bit (UTF-32 code unit))
     )
-)
 
-
-$(SECTION3 $(LEGACY_LNAME2 Derived Data Types, derived-data-types, Derived Data Types),
+$(H2 $(LEGACY_LNAME2 Derived Data Types, derived-data-types, Derived Data Types))
 
     $(UL
     $(LI pointer)
@@ -46,9 +44,8 @@ $(SECTION3 $(LEGACY_LNAME2 Derived Data Types, derived-data-types, Derived Data 
     )
 
     $(P $(DDSUBLINK spec/arrays, strings, $(I Strings)) are a special case of arrays.)
-)
 
-$(SECTION3 $(LEGACY_LNAME2 User Defined Types, user-defined-types, User Defined Types),
+$(H2 $(LEGACY_LNAME2 User Defined Types, user-defined-types, User Defined Types))
 
     $(UL
     $(LI alias)
@@ -58,10 +55,8 @@ $(SECTION3 $(LEGACY_LNAME2 User Defined Types, user-defined-types, User Defined 
     $(LI class)
 
     )
-)
 
-
-$(SECTION3 $(LEGACY_LNAME2 Base Types, base-types, Base Types),
+$(H2 $(LEGACY_LNAME2 Base Types, base-types, Base Types))
 
     $(P The $(I base type) of an enum is the type it is based on:)
 
@@ -69,30 +64,22 @@ $(SECTION3 $(LEGACY_LNAME2 Base Types, base-types, Base Types),
 enum E : T { ... }  // T is the base type of E
 ---
 
-
-)
-
-
-$(SECTION3 $(LEGACY_LNAME2 Pointer Conversions, pointer-conversions, Pointer Conversions),
+$(H2 $(LEGACY_LNAME2 Pointer Conversions, pointer-conversions, Pointer Conversions))
 
     $(P Casting pointers to non-pointers and vice versa is allowed in D,
     however, do not do this for any pointers that point to data
     allocated by the garbage collector.
     )
-)
 
-$(SECTION3 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit Conversions),
+$(H2 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit Conversions))
 
     $(P Implicit conversions are used to automatically convert
     types as required.
     )
 
-    $(P A  enum can be implicitly converted to its base
+    $(P An enum can be implicitly converted to its base
     type, but going the other way requires an explicit
-    conversion.
-
-    For example:
-    )
+    conversion. For example:)
 
 -------------------
 int i;
@@ -105,10 +92,8 @@ f = cast(Foo)i;  // OK
 f = 0;           // error
 f = Foo.E;       // OK
 -------------------
-)
 
-
-$(SECTION3 $(LEGACY_LNAME2 Integer Promotions, integer-promotions, Integer Promotions),
+$(H2 $(LEGACY_LNAME2 Integer Promotions, integer-promotions, Integer Promotions))
 
     $(P Integer Promotions are conversions of the following types:
     )
@@ -149,14 +134,12 @@ $(SECTION3 $(LEGACY_LNAME2 Integer Promotions, integer-promotions, Integer Promo
     )
     )
 
-    $(P If a  enum has as a base type one of the types
+    $(P If an enum has as a base type one of the types
     in the left column, it is converted to the type in the right
     column.
     )
-)
 
-
-$(SECTION3 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions, Usual Arithmetic Conversions),
+$(H2 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions, Usual Arithmetic Conversions))
 
     $(P The usual arithmetic conversions convert operands of binary
     operators to a common type. The operands must already be
@@ -230,53 +213,42 @@ ulong  u4 = cast(long)-1; // ok, -1 can be represented in a ulong
     cannot be implicitly converted to imaginary floating
     point types.
     )
-)
 
+$(H2 $(LNAME2 bool, $(D bool)))
 
-$(SECTION3 $(LNAME2 bool, $(D bool)),
+$(P The bool type is a byte-size type that can only hold the value `true` or
+`false`.)
 
-    $(P The bool type is a 1 byte size type that can only hold the
-    value $(D_KEYWORD true) or $(D_KEYWORD false).
-    The only operators that can accept operands of type bool are:
-    $(CODE_AMP) $(CODE_PIPE) $(D ^) $(CODE_AMP)$(D =) $(CODE_PIPE)$(D =)
-    $(D ^=) ! $(CODE_AMP)$(CODE_AMP) $(CODE_PIPE)$(CODE_PIPE) $(D ?:).
-    A $(D bool) value can be implicitly converted to any integral type,
-    with $(D_KEYWORD false) becoming 0 and $(D_KEYWORD true) becoming 1.
-    The numeric literals 0 and 1 can be implicitly
-    converted to the bool values $(D_KEYWORD false) and $(D_KEYWORD true),
-    respectively.
-    Casting an expression to bool means testing for 0 or !=0 for
-    arithmetic types, and $(D_KEYWORD null) or !=$(D_KEYWORD null)
-    for pointers or references.
-    )
-)
+$(P The only operators that can accept operands of type bool are: $(CODE_AMP)
+$(CODE_PIPE) $(D ^) $(CODE_AMP)$(D =) $(CODE_PIPE)$(D =) $(D ^=) !
+$(CODE_AMP)$(CODE_AMP) $(CODE_PIPE)$(CODE_PIPE) $(D ?:).)
 
+$(P A `bool` value can be implicitly converted to any integral type, with
+`false` becoming 0 and `true` becoming 1.)
 
-$(SECTION3 $(LNAME2 delegates, Delegates),
+$(P The numeric literals `0` and `1` can be implicitly converted to the `bool`
+values `false` and `true`, respectively. Casting an expression to `bool` means
+testing for `0` or `!=0` for arithmetic types, and `null` or `!=null` for
+pointers or references.)
 
-    $(P There are no pointers-to-members in D, but a more useful
-    concept called $(I delegates) are supported.
-    Delegates are an aggregate of two pieces of data: an
-    object reference and a pointer to a non-static member function,
-    or a pointer to a closure and a pointer to a nested function.
-    The object reference
-    forms the $(I this) pointer when the function is called.
-    )
+$(H2 $(LNAME2 delegates, Delegates))
 
-    $(P Delegates are declared similarly to function pointers,
-    except that the keyword $(D delegate) takes the place
-    of (*), and the identifier occurs afterwards:
-    )
+$(P There are no pointers-to-members in D, but a more useful concept called $(I
+delegates) is supported. Delegates are an aggregate of two pieces of data: an
+object reference and a pointer to a non-static member function, or a pointer to
+a closure and a pointer to a nested function. The object reference forms the
+`this` pointer when the function is called.)
+
+$(P Delegates are declared similarly to function pointers, except that the
+keyword $(D delegate) takes the place of (*), and the identifier occurs
+afterwards:)
 
 -------------------
 int function(int) fp; // fp is pointer to a function
 int delegate(int) dg; // dg is a delegate to a function
 -------------------
 
-    $(P The C style syntax for declaring pointers to functions is
-
-deprecated:
-    )
+$(P The C style syntax for declaring pointers to functions is deprecated:)
 
 -------------------
 int (*fp)(int);  // fp is pointer to a function
@@ -325,21 +297,19 @@ auto mfp = function(C self, int i) { return self.foo(i); };
 auto c = new C();  // create an instance of C
 mfp(c, 1);  // and call c.foo(1)
 ---
-)
 
-$(SECTION3 $(LNAME2 size_t, $(D size_t)),
+$(H2 $(LNAME2 size_t, $(D size_t)))
 
     $(P $(D size_t) is an alias to one of the unsigned integral basic types,
     and represents a type that is large enough to represent an offset into
     all addressible memory.)
-)
 
-$(SECTION3 $(LNAME2 ptrdiff_t, $(D ptrdiff_t)),
+$(H2 $(LNAME2 ptrdiff_t, $(D ptrdiff_t)))
     $(P $(D ptrdiff_t) is an alias to the signed basic type the same size as $(D size_t).)
-)
 
+$(SPEC_SUBNAV_PREV_NEXT declaration, Declarations, property, Properties)
 )
 
 Macros:
+    CHAPTER=6
     TITLE=Types
-

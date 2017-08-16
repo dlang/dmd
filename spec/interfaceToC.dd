@@ -28,7 +28,7 @@ $(H2 $(LNAME2 calling_c_functions, Calling C Functions))
 extern (C) int strcmp(const char* string1, const char* string2);
 ------
 
-	$(P and then it can be called within D code in the obvious way:)
+	and then it can be called within D code in the obvious way:
 
 ------
 import std.string;
@@ -355,9 +355,11 @@ $(H2 $(LEGACY_LNAME2 C Globals, c-globals, Accessing C Globals))
 extern (C) extern __gshared int x;
 ---
 
+$(SPEC_SUBNAV_PREV_NEXT ddoc, Embedded Documentation, cpp_interface, Interfacing to C++)
 )
 
 Macros:
+	CHAPTER=32
     TROW2=$(TR2 $(TD $(D $1)), $(TD2 $(D $2) $(TAIL $+)))
     TROW3=$(TR3 $(TD $(D $1)), $(TD $(D $2)), $(TD $(D $3)))
     TROW3PLUS=$(TR3 $(TD $(D $1)), $(TD $(D $2)), $(TD $(D $3) $4))
