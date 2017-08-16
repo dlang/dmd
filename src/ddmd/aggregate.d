@@ -64,8 +64,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     uint structsize;        // size of struct
     uint alignsize;         // size of struct for alignment purposes
     VarDeclarations fields; // VarDeclaration fields
-    Sizeok sizeok;          // set when structsize contains valid data
-    Dsymbol deferred;       // any deferred semantic2() or semantic3() symbol
     bool isdeprecated;      // true if deprecated
 
     /* !=null if is nested
@@ -112,7 +110,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      * Create a new scope from sc.
      * semantic, semantic2 and semantic3 will use this for aggregate members.
      */
-    Scope* newScope(Scope* sc)
+    override Scope* newScope(Scope* sc)
     {
         auto sc2 = sc.push(this);
         sc2.stc &= STCsafe | STCtrusted | STCsystem;
@@ -124,16 +122,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         sc2.aligndecl = null;
         sc2.userAttribDecl = null;
         return sc2;
-    }
-
-    override final void setScope(Scope* sc)
-    {
-        // Might need a scope to resolve forward references. The check for
-        // semanticRun prevents unnecessary setting of _scope during deferred
-        // setScope phases for aggregates which already finished semantic().
-        // See https://issues.dlang.org/show_bug.cgi?id=16607
-        if (semanticRun < PASSsemanticdone)
-            ScopeDsymbol.setScope(sc);
     }
 
     override final void semantic2(Scope* sc)
@@ -229,11 +217,15 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      */
     final bool determineFields()
     {
-        if (sizeok != SIZEOKnone)
+        if (fieldsState == SemState.Done)
             return true;
+        assert(fieldsState != SemState.In);
+        fieldsState = SemState.In;
+
+        assert(membersState == SemState.Done);
 
         //printf("determineFields() %s, fields.dim = %d\n", toChars(), fields.dim);
-        // determineFields can be called recursively from one of the fields's v.semantic
+        // determineFields can be called recursively from one of the fields's v.semantic // FWDREF FIXME nah
         fields.setDim(0);
 
         extern (C++) static int func(Dsymbol s, void* param)
@@ -246,21 +238,20 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
             auto ad = cast(AggregateDeclaration)param;
 
-            assert(v.semanticRun >= PASSmembersdone);
-//             if (v.semanticRun < PASSmembersdone)
-//                 v.importAll(null);
-            // Return in case a recursive determineFields triggered by v.semantic already finished
-            if (ad.sizeok != SIZEOKnone)
-                return 1;
-
             if (v.aliassym)
                 return 0;   // If this variable was really a tuple, skip it.
 
-            if (v.storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCctfe | STCtemplateparameter)) // FWDREF FIXME: we should skip static variables, but part of semantic should have run to know that
+            if (v.storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCctfe | STCtemplateparameter))
                 return 0;
-            if (!v.isField() || v.semanticRun < PASSmembersdone)
-                return 1;   // unresolvable forward reference
 
+            v.semanticType();
+            if (v.typeState != SemState.Done)
+            {
+                ad.fieldsState = SemState.Defer;
+                return 1;
+            }
+
+            assert(v.isField);
             ad.fields.push(v);
 
             if (v.storage_class & STCref)
@@ -279,23 +270,11 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             return 0;
         }
 
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            auto s = (*members)[i];
+        foreach (s; *members)
             if (s.apply(&func, cast(void*)this))
-            {
-                if (sizeok != SIZEOKnone)
-                {
-                    // recursive determineFields already finished
-                    return true;
-                }
                 return false;
-            }
-        }
 
-        if (sizeok != SIZEOKdone)
-            sizeok = SIZEOKfwd;
-
+        fieldsState = SemState.Done;
         return true;
     }
 
@@ -311,8 +290,13 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         // The previous instance size finalizing had:
         if (type.ty == Terror)
             return false;   // failed already
-        if (sizeok == SIZEOKdone)
+
+        if (sizeState == SemState.Done)
             return true;    // succeeded
+        assert(sizeState != SemState.In);
+
+        sizeState = SemState.In;
+        bool defer() { sizeState = SemState.Defer; return false; }
 
         if (!members)
         {
@@ -320,31 +304,38 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             return false;
         }
 
-        if (_scope)
-            importAll(null);
-
-        if (semanticRun < PASSmembersdone)
-            return false; // FWDREF FIXME: could be a real error
-
         // Determine the instance size of base class first.
         if (auto cd = isClassDeclaration())
         {
+            cd.determineBaseClasses();
+            if (cd.baseClassState != SemState.Done)
+                return defer();
+
             cd = cd.baseClass;
             if (cd && !cd.determineSize(loc))
+            {
+                if (cd.sizeState == SemState.Defer)
+                    return defer();
                 goto Lfail;
+            }
         }
 
         // Determine instance fields when sizeok == SIZEOKnone
         if (!determineFields())
+        {
+            if (fieldsState == SemState.Defer)
+                return defer();
             goto Lfail;
-        if (sizeok != SIZEOKdone)
-            finalizeSize();
+        }
+
+        finalizeSize();
+        sizeState = SemState.Done;
 
         // this aggregate type has:
         if (type.ty == Terror)
             return false;   // marked as invalid during the finalizing.
-        if (sizeok == SIZEOKdone)
-            return true;    // succeeded to calculate instance size.
+
+        return true;    // succeeded to calculate instance size.
 
     Lfail:
         // There's unresolvable forward reference.
@@ -357,6 +348,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             type = Type.terror;
             errors = true;
         }
+        sizeState = SemState.Done;
         return false;
     }
 
@@ -368,7 +360,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         if (determineSize(loc))
             return structsize;
         //printf("-AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
-        return (semanticRun < PASSmembersdone) ? SIZE_DEFER : SIZE_INVALID;
+        return sizeState == SemState.Defer ? SIZE_DEFER : SIZE_INVALID;
     }
 
     /***************************************
@@ -685,11 +677,9 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
     /* Append vthis field (this.tupleof[$-1]) to make this aggregate type nested.
      */
-    final void makeNested()
+    void makeNested()
     {
         if (enclosing) // if already nested
-            return;
-        if (sizeok == SIZEOKdone)
             return;
         if (isUnionDeclaration() || isInterfaceDeclaration())
             return;
@@ -737,7 +727,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             vthis = new ThisDeclaration(loc, t);
             //vthis.storage_class |= STCref;
 
-            // Emulate vthis.addMember()
+            assert(membersState != SemState.Done);
             members.push(vthis);
 
             // Emulate vthis.semantic()
@@ -747,7 +737,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             vthis.alignment = t.alignment();
             vthis.semanticRun = PASSsemanticdone;
 
-            if (sizeok == SIZEOKfwd)
+            if (fieldsState == SemState.Done)
                 fields.push(vthis);
         }
     }

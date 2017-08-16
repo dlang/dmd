@@ -2943,6 +2943,8 @@ extern (C++) abstract class Expression : RootObject
     {
         if (auto fd = s.isFuncDeclaration())
             fd.inferAttributes();
+        if (s.isDeferred())
+            return;
         s.checkDeprecated(loc, sc);
     }
 
@@ -5801,6 +5803,8 @@ extern (C++) final class ScopeExp : Expression
             WithScopeSymbol withsym;
             if (!ti.findTempDecl(sc, &withsym) || !ti.semanticTiargs(sc))
             {
+                if (ti.semtiargsdefer)
+                    return new DeferExp();
                 return new ErrorExp();
             }
             if (withsym && withsym.withstate.wthis)
@@ -7569,6 +7573,8 @@ extern (C++) final class IsExp : Expression
         sc2.pop();
         if (!t)
             goto Lno;
+        if (t.ty == Tdefer)
+            return new DeferExp();
         // errors, so condition is false
         targ = t;
         if (tok2 != TOKreserved)
@@ -10377,7 +10383,13 @@ extern (C++) final class CallExp : UnaExp
             {
                 s = (cast(TemplateExp)e1).td;
             L2:
-                f = resolveFuncCall(loc, sc, s, tiargs, null, arguments);
+                bool defer;
+                f = resolveFuncCall(loc, sc, s, tiargs, null, arguments, 0, &defer);
+                if (defer)
+                {
+//                     assert(!f); // FWDREF or else FIXME
+                    return new DeferExp();
+                }
                 if (!f || f.errors)
                     return new ErrorExp();
                 if (f.needThis())
@@ -10514,6 +10526,8 @@ extern (C++) final class CallExp : UnaExp
             }
 
             checkDeprecated(sc, f);
+            if (f.isDeferred())
+                return new DeferExp();
             checkPurity(sc, f);
             checkSafety(sc, f);
             checkNogc(sc, f);
@@ -10699,7 +10713,7 @@ extern (C++) final class AddrExp : UnaExp
             TemplateInstance ti = dti.ti;
             {
                 //assert(ti.needsTypeInference(sc));
-                ti.semantic(sc);
+                ti.importAll(sc);
                 if (!ti.inst || ti.errors) // if template failed to expand
                     return new ErrorExp();
                 Dsymbol s = ti.toAlias();
@@ -10717,7 +10731,7 @@ extern (C++) final class AddrExp : UnaExp
             if (ti)
             {
                 //assert(ti.needsTypeInference(sc));
-                ti.semantic(sc);
+                ti.importAll(sc);
                 if (!ti.inst || ti.errors) // if template failed to expand
                     return new ErrorExp();
                 Dsymbol s = ti.toAlias();
@@ -15261,8 +15275,10 @@ extern (C++) final class OrOrExp : BinExp
         setNoderefOperands();
 
         // same as for AndAnd
-        e1 = e1.semantic(sc);
-        e1 = resolveProperties(sc, e1);
+        auto e1x = e1.semantic(sc);
+        if (e1x.op == TOKfinally)
+            return e1x;
+        e1 = resolveProperties(sc, e1x);
         e1 = e1.toBoolean(sc);
         uint cs1 = sc.callSuper;
 
@@ -15277,9 +15293,11 @@ extern (C++) final class OrOrExp : BinExp
             }
         }
 
-        e2 = e2.semantic(sc);
+        auto e2x = e2.semantic(sc);
+        if (e2x.op == TOKfinally)
+            return e2x;
         sc.mergeCallSuper(loc, cs1);
-        e2 = resolveProperties(sc, e2);
+        e2 = resolveProperties(sc, e2x);
 
         auto f1 = checkNonAssignmentArrayOp(e1);
         auto f2 = checkNonAssignmentArrayOp(e2);
@@ -15338,8 +15356,10 @@ extern (C++) final class AndAndExp : BinExp
         setNoderefOperands();
 
         // same as for OrOr
-        e1 = e1.semantic(sc);
-        e1 = resolveProperties(sc, e1);
+        auto e1x = e1.semantic(sc);
+        if (e1x.op == TOKfinally)
+            return e1x;
+        e1 = resolveProperties(sc, e1x);
         e1 = e1.toBoolean(sc);
         uint cs1 = sc.callSuper;
 
@@ -15354,9 +15374,11 @@ extern (C++) final class AndAndExp : BinExp
             }
         }
 
-        e2 = e2.semantic(sc);
+        auto e2x = e2.semantic(sc);
+        if (e2x.op == TOKfinally)
+            return e2x;
         sc.mergeCallSuper(loc, cs1);
-        e2 = resolveProperties(sc, e2);
+        e2 = resolveProperties(sc, e2x);
 
         auto f1 = checkNonAssignmentArrayOp(e1);
         auto f2 = checkNonAssignmentArrayOp(e2);

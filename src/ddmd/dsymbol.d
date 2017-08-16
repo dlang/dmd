@@ -143,38 +143,13 @@ struct Prot
     }
 }
 
-enum PASS : int
+enum SemState : uint
 {
-    PASSinit,           // initial state
-    PASSmembers,        // importAll() i.e determineMembers() started
-    PASSmembersdeferred, // importAll() deferred because of unreliable lookup
-    PASSmembersdone,    // importAll() i.e determineMembers() done
-    PASSsemantic,       // semantic() started
-    PASSsemanticdeferred,       // semantic() fsdf
-    PASSsemanticdone,   // semantic() done
-    PASSsemantic2,      // semantic2() started
-    PASSsemantic2done,  // semantic2() done
-    PASSsemantic3,      // semantic3() started
-    PASSsemantic3done,  // semantic3() done
-    PASSinline,         // inline started
-    PASSinlinedone,     // inline done
-    PASSobj,            // toObjFile() run
+    Init,
+    In,
+    Defer,
+    Done,
 }
-
-alias PASSinit = PASS.PASSinit;
-alias PASSmembers = PASS.PASSmembers;
-alias PASSmembersdeferred = PASS.PASSmembersdeferred;
-alias PASSmembersdone = PASS.PASSmembersdone;
-alias PASSsemantic = PASS.PASSsemantic;
-alias PASSsemanticdeferred = PASS.PASSsemanticdeferred;
-alias PASSsemanticdone = PASS.PASSsemanticdone;
-alias PASSsemantic2 = PASS.PASSsemantic2;
-alias PASSsemantic2done = PASS.PASSsemantic2done;
-alias PASSsemantic3 = PASS.PASSsemantic3;
-alias PASSsemantic3done = PASS.PASSsemantic3done;
-alias PASSinline = PASS.PASSinline;
-alias PASSinlinedone = PASS.PASSinlinedone;
-alias PASSobj = PASS.PASSobj;
 
 // Search options
 enum : int
@@ -207,7 +182,7 @@ extern (C++) class Dsymbol : RootObject
     Scope* _scope;          // !=null means context to use for semantic()
     const(char)* prettystring;  // cached value of toPrettyChars()
     bool errors;            // this symbol failed to pass semantic()
-    PASS semanticRun;
+    uint semanticRun;
 
     DeprecatedDeclaration depdecl;           // customized deprecation message
     UserAttributeDeclaration userAttribDecl;    // user defined attributes
@@ -215,6 +190,57 @@ extern (C++) class Dsymbol : RootObject
     // !=null means there's a ddoc unittest associated with this symbol
     // (only use this with ddoc)
     UnitTestDeclaration ddocUnittest;
+
+    version(StringSupported)
+    {
+        static string semStates(string[] names)
+        {
+            string result;
+            uint offset;
+            foreach(name; names)
+            {
+                uint stateOffset = offset;
+                uint mask = 0x3 << offset;
+                offset += 2;
+
+                OutBuffer buf;
+                buf.printf("%u", stateOffset);
+                char[] s_stateOffset = buf.peekSlice();
+                buf.reset();
+                buf.printf("%u", stateOffset);
+                char[] s_mask = buf.peekSlice();
+
+                result ~= "    @property SemState " ~ name ~ "state() { return semanticRun & mask; }\n";
+                result ~="    @property SemState " ~ name ~ "state(SemState value)" ~
+                    " { return semanticRun = (semanticRun & ~" ~ mask ~ ") | (value << " ~ stateOffset ~ "); }\n";
+            }
+            return result;
+        }
+        mixin(semStates(["members"]));
+    }
+    else
+    {
+        @property SemState membersState() { return semanticRun & 0x3; }
+        @property SemState membersState(SemState value) { return semanticRun = (semanticRun & ~0x3) | value; }
+
+        @property SemState typeState() { return (semanticRun & (0x3<<2)) >> 2; }
+        @property SemState typeState(SemState value) { return semanticRun = (semanticRun & ~(0x3<<2)) | (value << 2); }
+
+        @property SemState initializerState() { return (semanticRun & (0x3<<4)) >> 4; }
+        @property SemState initializerState(SemState value) { return semanticRun = (semanticRun & ~(0x3<<4)) | (value << 4); }
+        alias bodyState = initializerState;
+
+        @property SemState sizeState() { return (semanticRun & (0x3<<6)) >> 6; }
+        @property SemState sizeState(SemState value) { return semanticRun = (semanticRun & ~(0x3<<6)) | (value << 6); }
+
+        @property SemState baseClassState() { return (semanticRun & (0x3<<8)) >> 8; }
+        @property SemState baseClassState(SemState value) { return semanticRun = (semanticRun & ~(0x3<<8)) | (value << 8); }
+
+        @property SemState tiargsState() { return (semanticRun & (0x3<<10)) >> 10; }
+        @property SemState tiargsState(SemState value) { return semanticRun = (semanticRun & ~(0x3<<10)) | (value << 10); }
+
+        // vtbl?
+    }
 
     final extern (D) this()
     {
@@ -615,10 +641,15 @@ extern (C++) class Dsymbol : RootObject
 
     void addMember(Scope* sc, ScopeDsymbol sds)
     {
+        if (addMemberState == SemState.Done)
+            return;
+
+        setScope(sc);
+
         //printf("Dsymbol::addMember('%s')\n", toChars());
         //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sds.toChars());
         //printf("Dsymbol::addMember(this = %p, '%s' sds = %p, sds.symtab = %p)\n", this, toChars(), sds, sds.symtab);
-        parent = sds;
+        parent = sds; // FWDREF FIXME: the parent = sc.parent; in semantic overrides shoudl go
         if (!isAnonymous()) // no name, so can't add it to symbol table
         {
             if (!sds.symtabInsert(this)) // if name is already defined
@@ -639,6 +670,7 @@ extern (C++) class Dsymbol : RootObject
                 }
             }
         }
+        addMemberState = SemState.Done;
     }
 
     /*************************************
@@ -657,78 +689,7 @@ extern (C++) class Dsymbol : RootObject
             userAttribDecl = sc.userAttribDecl;
     }
 
-    final bool isDeferred()
-    {
-        switch (semanticRun)
-        {
-            case PASSmembersdeferred:
-            case PASSsemanticdeferred:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    final void defer()
-    {
-        switch (semanticRun)
-        {
-            case PASSmembers:
-                deferMembers();
-                break;
-            case PASSmembersdone:
-            case PASSsemantic:
-                deferSemantic();
-                break;
-            case PASSmembersdeferred:
-            case PASSsemanticdeferred:
-                return;
-            default:
-                assert(0);
-        }
-    }
-
-    final void deferMembers()
-    {
-        auto s = this;
-        for (auto s2 = s; s2 && s2.semanticRun < PASSmembersdone; s2 = s2.parent)
-        {
-            if (s2.semanticRun == PASSinit)
-            {
-                assert(s2.isPackage());
-                break;
-            }
-
-            s = s2;
-            if (s.semanticRun == PASSmembersdeferred)
-                return; // already deferred
-            s.semanticRun = PASSmembersdeferred;
-        }
-        assert(_scope);
-        _scope._module.addDeferredMembers(s);
-    }
-
-    final void deferSemantic()
-    {
-        auto s = this;
-        for (auto s2 = s; s2 && s2.semanticRun < PASSsemanticdone; s2 = s2.parent)
-        {
-            if (s2.semanticRun == PASSinit)
-            {
-                assert(s2.isPackage());
-                break;
-            }
-
-            s = s2;
-            if (s.semanticRun < PASSsemantic || s.semanticRun == PASSsemanticdeferred)
-                return; // already deferred or semantic() hasn't been run yet
-            s.semanticRun = PASSsemanticdeferred;
-        }
-        assert(_scope);
-        _scope._module.addDeferredSemantic(s);
-    }
-
-    void importAll(Scope* sc)
+    void determineMembers(Scope* sc)
     {
     }
 
@@ -1395,7 +1356,7 @@ public:
 //                 return result;
 
         if (_scope && !(flags & 0x100))
-            importAll(_scope);
+            determineMembers(_scope);
 
         // Look in symbols declared in this module
         if (symtab && !(flags & SearchImportsOnly))
@@ -1799,40 +1760,102 @@ public:
         return this;
     }
 
-    size_t nextMember;
-    uint membersNest;
-    override void importAll(Scope* sc)
+    Scope* newScope()
     {
-        if (semanticRun >= PASSmembersdone)
-            return;
-
-        if (!members)
-        {
-            semanticRun = PASSmembersdone;
-            return;
-        }
-
-        if (semanticRun == PASSinit ||
-                (semanticRun == PASSmembersdeferred && !membersNest))
-            semanticRun = PASSmembers;
-
-        if (!membersNest)
-            nextMember = 0;
-
-        ++membersNest;
-        while (nextMember < members.dim)
-        {
-            auto s = (*members)[nextMember];
-            s.importAll(sc);
-            ++nextMember;
-        }
-        --membersNest;
-
-        if (!membersNest && semanticRun != PASSmembersdeferred)
-            semanticRun = PASSmembersdone;
+        // always push a new scope
+        sc = _scope.push(this);
+        return sc;
     }
 
-    override void semantic(Scope* sc) { }
+    uint nextMember;
+    uint membersNest;
+
+    override void determineMembers()
+    {
+        switch (membersState)
+        {
+            default:
+                return; // done (or error'ed)
+
+            case SemState.Defer:
+                if (!membersNest)
+                    membersState = SemState.In;
+                goto case SemState.In;
+
+            case SemState.Init:
+                membersState = SemState.In;
+                goto case;
+
+            case SemState.In:
+            {
+                if (!membersNest)
+                    nextMember = 0;
+
+                if (!members) // if opaque declaration
+                {
+                    membersState = SemState.Done;
+                    return;
+                }
+
+                if (!symtab)
+                    symtab = new DsymbolTable();
+
+                sc = newScope();
+                scope(exit) if (sc != _scope)
+                    sc.pop();
+
+                ++membersNest;
+                for (;nextMember < members.dim; ++nextMember)
+                {
+                    auto s = (*members)[nextMember];
+                    s.addMember(sc, sc.scopesym);
+                    if (s.addMemberState == SemState.Defer)
+                        membersState = SemState.Defer;
+                }
+                --membersNest;
+
+                if (membersState == SemState.In && !membersNest)
+                    membersState = SemState.Done;
+            }
+        }
+    }
+
+    override void semantic()
+    {
+        if (semanticState == SemState.Done)
+            return;
+        semanticState = SemState.In;
+
+        void defer()
+        {
+            semanticState = SemState.Defer;
+            _scope._module.addDeferredSemantic(s);
+        }
+
+        // Ungag errors when not speculative
+        Ungag ungag = ungagSpeculative();
+
+        determineMembers();
+        if (membersState == SemState.Defer)
+            return defer();
+        if (membersState != SemState.Done)
+        {
+            error("member expansion failed");
+            return;
+        }
+
+        if (members)
+            foreach (s; *members)
+            {
+                s.semantic();
+                errors |= s.errors;
+                if (s.semanticState == SemState.Defer)
+                    return defer();
+            }
+
+       semanticState = SemState.Done;
+       Module.dprogress++;
+    }
 
     override void accept(Visitor v)
     {

@@ -610,7 +610,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 
         Scope* sc2 = sc.push();
         sc2.flags = sc.flags | SCOPEnoaccesscheck;
-        bool ok = TemplateInstance.semanticTiargs(e.loc, sc2, e.args, 1);
+        bool ok = TemplateInstance.semanticTiargs(e.loc, sc2, e.args, 1) == SemResult.Done;
         sc2.pop();
         if (!ok)
             return new ErrorExp();

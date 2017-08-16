@@ -65,6 +65,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         result = new ErrorStatement();
     }
 
+    private void setDefer()
+    {
+        result = new DeferStatement();
+    }
+
     override void visit(Statement s)
     {
         result = s;
@@ -92,8 +97,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             // Allow CommaExp in ExpStatement because return isn't used
             CommaExp.allow(s.exp);
 
-            s.exp = s.exp.semantic(sc);
-            s.exp = resolveProperties(sc, s.exp);
+            auto e = s.exp.semantic(sc);
+            if (e.op == TOKfinally)
+                return setDefer();
+            s.exp = resolveProperties(sc, e);
             s.exp = s.exp.addDtorHook(sc);
             if (checkNonAssignmentArrayOp(s.exp))
                 s.exp = new ErrorExp();
@@ -148,6 +155,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     continue;
                 }
                 s = s.semantic(sc);
+                if (s && s.isDeferStatement())
+                {
+                    result = s;
+                    return;
+                }
                 (*cs.statements)[i] = s;
                 if (s)
                 {
@@ -293,19 +305,30 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         scd.scontinue = uls;
 
         Statement serror = null;
+        Statement sdefer = null;
         foreach (i, ref s; *uls.statements)
         {
             if (s)
             {
                 //printf("[%d]: %s\n", i, s.toChars());
-                s = s.semantic(scd);
-                if (s && !serror)
+                auto s2 = s.semantic(scd);
+                if (!s2)
+                    continue;
+
+                if (s2.isDeferStatement())
+                {
+                    sdefer = s2;
+                    break;
+                }
+
+                s2 = s;
+                if (!serror)
                     serror = s.isErrorStatement();
             }
         }
 
         scd.pop();
-        result = serror ? serror : uls;
+        result = sdefer ? sdefer : serror ? serror : uls;
     }
 
     override void visit(ScopeStatement ss)
@@ -327,7 +350,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             ss.statement = ss.statement.semantic(sc);
             if (ss.statement)
             {
-                if (ss.statement.isErrorStatement())
+                if (ss.statement.isDeferStatement() || ss.statement.isErrorStatement())
                 {
                     sc.pop();
                     result = ss.statement;

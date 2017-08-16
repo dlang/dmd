@@ -431,15 +431,62 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return sc2;
     }
 
-    uint nextBase;
-    override void importAll(Scope* sc)
+    override void setScope(Scope* sc)
     {
-        if (semanticRun >= PASSmembersdone)
-            return;
+        super.setScope(sc);
 
-        if (_scope)
-            sc = _scope;
-        assert(sc);
+        if (!parent)
+        {
+            assert(sc.parent);
+            parent = sc.parent;
+        }
+
+        protection = sc.protection;
+
+        storage_class |= sc.stc;
+        if (storage_class & STCdeprecated)
+            isdeprecated = true;
+        if (storage_class & STCauto)
+            error("storage class 'auto' is invalid when declaring a class, did you mean to use 'scope'?");
+        if (storage_class & STCscope)
+            isscope = true;
+        if (storage_class & STCabstract)
+            isabstract = ABSyes;
+
+        assert(userAttribDecl == sc.userAttribDecl); // FWDREF TODO remove
+//         userAttribDecl = sc.userAttribDecl;
+
+        if (sc.linkage == LINKcpp)
+            cpp = true;
+        if (sc.linkage == LINKobjc)
+            objc.setObjc(this);
+    }
+
+    override void semanticType()
+    {
+        if (this.errors)
+            type = Type.terror;
+
+//         type = type.addSTC(sc.stc | storage_class); // FWDREF NOTE: this is line is present in dstruct.d but not in dclass.d?
+        type = type.semantic(loc, sc);
+
+        if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
+        {
+            auto ti = (cast(TypeClass)type).sym.isInstantiated();
+            if (ti && isError(ti)) // FWDREF FIXME hmm, how could we possibly have an invalid class that becomes valid? This was possible before with forward referencing errors when the order of declarations and calls mattered, but not anymore
+                (cast(TypeClass)type).sym = this;
+        }
+    }
+
+    uint nextBase;
+    final void determineBaseClasses()
+    {
+        if (baseClassState == SemState.Done)
+            return;
+        assert(baseClassState != SemState.In);
+
+        baseClassState = SemState.In;
+        void defer() { baseClassState = SemState.Defer; }
 
         /* https://issues.dlang.org/show_bug.cgi?id=12078
          * https://issues.dlang.org/show_bug.cgi?id=12143
@@ -463,357 +510,245 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             }
         }
 
-        if (semanticRun < PASSmembers)
+        // Expand any tuples in baseclasses[]
+        for (size_t i = 0; i < baseclasses.dim;)
         {
-            semanticRun = PASSmembers;
+            auto b = (*baseclasses)[i];
+            auto t = resolveBase(b.type.semantic(loc, sc));
+            if (t.ty == Tdefer)
+                return defer();
+            b.type = t;
 
-            if (!parent)
+            Type tb = b.type.toBasetype();
+            if (tb.ty == Ttuple)
             {
-                assert(sc.parent);
-                parent = sc.parent;
-            }
-
-            if (this.errors)
-                type = Type.terror;
-            type = type.semantic(loc, sc);
-            if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
-            {
-                auto ti = (cast(TypeClass)type).sym.isInstantiated();
-                if (ti && isError(ti))
-                    (cast(TypeClass)type).sym = this;
-            }
-
-            protection = sc.protection;
-
-            storage_class |= sc.stc;
-            if (storage_class & STCdeprecated)
-                isdeprecated = true;
-            if (storage_class & STCauto)
-                error("storage class 'auto' is invalid when declaring a class, did you mean to use 'scope'?");
-            if (storage_class & STCscope)
-                isscope = true;
-            if (storage_class & STCabstract)
-                isabstract = ABSyes;
-
-            userAttribDecl = sc.userAttribDecl;
-
-            if (sc.linkage == LINKcpp)
-                cpp = true;
-            if (sc.linkage == LINKobjc)
-                objc.setObjc(this);
-
-            // Expand any tuples in baseclasses[]
-            for (size_t i = 0; i < baseclasses.dim;)
-            {
-                auto b = (*baseclasses)[i];
-                b.type = resolveBase(b.type.semantic(loc, sc));
-
-                Type tb = b.type.toBasetype();
-                if (tb.ty == Ttuple)
+                TypeTuple tup = cast(TypeTuple)tb;
+                baseclasses.remove(i);
+                size_t dim = Parameter.dim(tup.arguments);
+                for (size_t j = 0; j < dim; j++)
                 {
-                    TypeTuple tup = cast(TypeTuple)tb;
-                    baseclasses.remove(i);
-                    size_t dim = Parameter.dim(tup.arguments);
-                    for (size_t j = 0; j < dim; j++)
-                    {
-                        Parameter arg = Parameter.getNth(tup.arguments, j);
-                        b = new BaseClass(arg.type);
-                        baseclasses.insert(i + j, b);
-                    }
-                }
-                else
-                    i++;
-            }
-
-            if (baseok >= BASEOKdone)
-            {
-                //printf("%s already semantic analyzed, semanticRun = %d\n", toChars(), semanticRun);
-                if (semanticRun >= PASSmembersdone)
-                    return;
-                goto Lancestorsdone;
-            }
-
-            baseok = BASEOKin;
-        }
-
-        if (baseok == BASEOKin)
-        {
-            // See if there's a base class as first in baseclasses[]
-            while (nextBase < baseclasses.dim)
-            {
-                BaseClass* b = (*baseclasses)[nextBase];
-                Type tb = b.type.toBasetype();
-                TypeClass tc = (tb.ty == Tclass) ? cast(TypeClass)tb : null;
-                if (nextBase >= 1 && (!tc || !tc.sym.isInterfaceDeclaration()))
-                {
-                    if (b.type != Type.terror)
-                        error("base type must be interface, not %s", b.type.toChars());
-                    goto L7;
-                }
-                else if (!tc)
-                {
-                    if (b.type != Type.terror)
-                        error("base type must be class or interface, not %s", b.type.toChars());
-//                     baseclasses.remove(0); // FWDREF why remove? FIXME disabled for now
-                    goto L7;
-                }
-                if (tc.sym.isDeprecated())
-                {
-                    if (!isDeprecated())
-                    {
-                        // Deriving from deprecated class makes this one deprecated too
-                        isdeprecated = true;
-                        tc.checkDeprecated(loc, sc);
-                    }
-                }
-
-                if (nextBase == 0)
-                {
-                    for (ClassDeclaration cdb = tc.sym; cdb; cdb = cdb.baseClass)
-                    {
-                        if (cdb == this)
-                        {
-                            error("circular inheritance");
-    //                         baseclasses.remove(0); // FWDREF
-                            goto L7;
-                        }
-                    }
-
-                    /* https://issues.dlang.org/show_bug.cgi?id=11034
-                    * Class inheritance hierarchy
-                    * and instance size of each classes are orthogonal information.
-                    * Therefore, even if tc.sym.sizeof == SIZEOKnone,
-                    * we need to set baseClass field for class covariance check.
-                    */
-                    if (!tc.sym.isInterfaceDeclaration())
-                        baseClass = tc.sym;
-                }
-                else
-                {
-                    // Check for duplicate interfaces
-                    for (size_t j = (baseClass ? 1 : 0); j < nextBase; j++)
-                    {
-                        BaseClass* b2 = (*baseclasses)[j];
-                        if (b2.sym == tc.sym)
-                        {
-                            error("inherits from duplicate interface %s", b2.sym.toChars());
-//                             baseclasses.remove(i);
-                            continue;
-                        }
-                    }
-                }
-
-                b.sym =  tc.sym;
-
-                if (tc.sym.baseok < BASEOKdone)
-                    resolveBase(tc.sym.importAll(null)); // Try to resolve forward reference
-//                 assert(tc.sym.baseok == BASEOKdone);
-//                 if (tc.sym.baseok < BASEOKdone) // FWDREF: disabled, this shouldn't be needed
-//                 {
-//                     //printf("\ttry later, forward reference of base class %s\n", tc.sym.toChars());
-//                     if (tc.sym._scope)
-//                         tc.sym._scope._module.addDeferredSemantic(tc.sym);
-//                     baseok = BASEOKnone;
-//                 }
-            L7:
-                ++nextBase;
-            }
-            assert(baseok != BASEOKnone); // FWDREF temporary
-//             if (baseok == BASEOKnone) // FWDREF disabled
-//             {
-//                 // Forward referencee of one or more bases, try again later
-//                 _scope = scx ? scx : sc.copy();
-//                 _scope.setNoFree();
-//                 _scope._module.addDeferredSemantic(this);
-//                 //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
-//                 return;
-//             }
-            baseok = BASEOKdone;
-
-            // If no base class, and this is not an Object, use Object as base class
-            if (!baseClass && ident != Id.Object && !cpp)
-            {
-                void badObjectDotD()
-                {
-                    error("missing or corrupt object.d");
-                    fatal();
-                }
-
-                if (!object || object.errors)
-                    badObjectDotD();
-
-                Type t = object.type;
-                t = t.semantic(loc, sc).toBasetype();
-                if (t.ty == Terror)
-                    badObjectDotD();
-                assert(t.ty == Tclass);
-                TypeClass tc = cast(TypeClass)t;
-
-                auto b = new BaseClass(tc);
-                baseclasses.shift(b);
-
-                baseClass = tc.sym;
-                assert(!baseClass.isInterfaceDeclaration());
-                b.sym = baseClass;
-            }
-            if (baseClass)
-            {
-                if (baseClass.storage_class & STCfinal)
-                    error("cannot inherit from final class %s", baseClass.toChars());
-
-                // Inherit properties from base class
-                if (baseClass.isCOMclass())
-                    com = true;
-                if (baseClass.isCPPclass())
-                    cpp = true;
-                if (baseClass.isscope)
-                    isscope = true;
-                enclosing = baseClass.enclosing;
-                vthis = baseClass.vthis;
-                storage_class |= baseClass.storage_class & STC_TYPECTOR;
-            }
-
-            interfaces = baseclasses.tdata()[(baseClass ? 1 : 0) .. baseclasses.dim];
-            foreach (b; interfaces)
-            {
-                // If this is an interface, and it derives from a COM interface,
-                // then this is a COM interface too.
-                if (b.sym.isCOMinterface())
-                    com = true;
-                if (cpp && !b.sym.isCPPinterface())
-                {
-                    .error(loc, "C++ class '%s' cannot implement D interface '%s'",
-                        toPrettyChars(), b.sym.toPrettyChars());
-                }
-            }
-
-            /* If this is a nested class, add the hidden 'this'
-                * member which is a pointer to the enclosing scope.
-                */
-            if (vthis) // if inheriting from nested class
-            {
-                // Use the base class's 'this' member
-                if (storage_class & STCstatic)
-                    error("static class cannot inherit from nested class %s", baseClass.toChars());
-                if (toParent2() != baseClass.toParent2() &&
-                    (!toParent2() ||
-                        !baseClass.toParent2().getType() ||
-                        !baseClass.toParent2().getType().isBaseOf(toParent2().getType(), null)))
-                {
-                    if (toParent2())
-                    {
-                        error("is nested within %s, but super class %s is nested within %s",
-                            toParent2().toChars(),
-                            baseClass.toChars(),
-                            baseClass.toParent2().toChars());
-                    }
-                    else
-                    {
-                        error("is not nested, but super class %s is nested within %s",
-                            baseClass.toChars(),
-                            baseClass.toParent2().toChars());
-                    }
-                    enclosing = null;
+                    Parameter arg = Parameter.getNth(tup.arguments, j);
+                    b = new BaseClass(arg.type);
+                    baseclasses.insert(i + j, b);
                 }
             }
             else
-                makeNested();
+                i++;
         }
 
-    Lancestorsdone:
-        if (!members) // if opaque declaration
+        // See if there's a base class as first in baseclasses[]
+        while (nextBase < baseclasses.dim)
         {
-            semanticRun = PASSmembersdone;
-            return;
-        }
-
-        auto sc2 = newScope(sc);
-
-        if (!symtab)
-        {
-            symtab = new DsymbolTable();
-
-            /* https://issues.dlang.org/show_bug.cgi?id=12152
-             * The semantic analysis of base classes should be finished
-             * before the members semantic analysis of this class, in order to determine
-             * vtbl in this class. However if a base class refers the member of this class,
-             * it can be resolved as a normal forward reference.
-             * Call addMember() and setScope() to make this class members visible from the base classes.
-             */
-            for (size_t i = 0; i < members.dim; i++)
+            BaseClass* b = (*baseclasses)[nextBase];
+            Type tb = b.type.toBasetype();
+            TypeClass tc = (tb.ty == Tclass) ? cast(TypeClass)tb : null;
+            if (!tc || (nextBase >= 1 && !tc.sym.isInterfaceDeclaration()))
             {
-                auto s = (*members)[i];
-                s.addMember(sc, this);
+                if (b.type != Type.terror)
+                {
+                    if (!tc)
+                        error("base type must be class or interface, not %s", b.type.toChars());
+                    else
+                        error("base type must be interface, not %s", b.type.toChars());
+                }
+                goto L7;
+            }
+            if (tc.sym.isDeprecated())
+            {
+                if (!isDeprecated())
+                {
+                    // Deriving from deprecated class makes this one deprecated too
+                    isdeprecated = true;
+                    tc.checkDeprecated(loc, sc);
+                }
             }
 
-            /* Set scope so if there are forward references, we still might be able to
-             * resolve individual members like enums.
-             */
-            for (size_t i = 0; i < members.dim; i++)
+            if (nextBase == 0)
             {
-                auto s = (*members)[i];
-                //printf("[%d] setScope %s %s, sc2 = %p\n", i, s.kind(), s.toChars(), sc2);
-                s.setScope(sc2);
+                for (ClassDeclaration cdb = tc.sym; cdb; cdb = cdb.baseClass)
+                {
+                    if (cdb == this)
+                    {
+                        error("circular inheritance");
+                        goto L7;
+                    }
+                }
+
+                /* https://issues.dlang.org/show_bug.cgi?id=11034
+                * Class inheritance hierarchy
+                * and instance size of each classes are orthogonal information.
+                * Therefore, even if tc.sym.sizeof == SIZEOKnone,
+                * we need to set baseClass field for class covariance check.
+                */
+                if (!tc.sym.isInterfaceDeclaration())
+                    baseClass = tc.sym;
+            }
+            else
+            {
+                // Check for duplicate interfaces
+                for (size_t j = (baseClass ? 1 : 0); j < nextBase; j++)
+                {
+                    BaseClass* b2 = (*baseclasses)[j];
+                    if (b2.sym == tc.sym)
+                    {
+                        error("inherits from duplicate interface %s", b2.sym.toChars());
+                        continue;
+                    }
+                }
+            }
+
+            b.sym =  tc.sym;
+
+        L7:
+            ++nextBase;
+        }
+
+        // If no base class, and this is not an Object, use Object as base class
+        if (!baseClass && ident != Id.Object && !cpp)
+        {
+            void badObjectDotD()
+            {
+                error("missing or corrupt object.d");
+                fatal();
+            }
+
+            if (!object || object.errors)
+                badObjectDotD();
+
+            Type t = object.type;
+            t = t.semantic(loc, sc).toBasetype();
+            if (t.ty == Terror)
+                badObjectDotD();
+            assert(t.ty == Tclass);
+            TypeClass tc = cast(TypeClass)t;
+
+            auto b = new BaseClass(tc);
+            baseclasses.shift(b);
+
+            baseClass = tc.sym;
+            assert(!baseClass.isInterfaceDeclaration());
+            b.sym = baseClass;
+        }
+
+        if (baseClass)
+        {
+            if (baseClass.storage_class & STCfinal)
+                error("cannot inherit from final class %s", baseClass.toChars());
+
+            // Inherit properties from base class
+            if (baseClass.isCOMclass())
+                com = true;
+            if (baseClass.isCPPclass())
+                cpp = true;
+            if (baseClass.isscope)
+                isscope = true;
+            storage_class |= baseClass.storage_class & STC_TYPECTOR;
+        }
+
+        interfaces = baseclasses.tdata()[(baseClass ? 1 : 0) .. baseclasses.dim];
+        foreach (b; interfaces)
+        {
+            // If this is an interface, and it derives from a COM interface,
+            // then this is a COM interface too.
+            if (b.sym.isCOMinterface())
+                com = true;
+            if (cpp && !b.sym.isCPPinterface())
+            {
+                .error(loc, "C++ class '%s' cannot implement D interface '%s'",
+                    toPrettyChars(), b.sym.toPrettyChars());
             }
         }
 
-        ScopeDsymbol.importAll(sc2);
-        sc2.pop();
-
-        if (semanticRun == PASSmembersdone && baseok < BASEOKdone)
-            semanticRun = PASSmembers;
+        baseClassState = SemState.Done;
     }
 
-    // Initialize the vtbl before running any FuncDeclaration.semantic() on virtual methods
-    final void initVtbl(Scope *sc)
+    override void determineMembers()
     {
-        if (baseok >= BASEOKsemanticdone)
+        if (membersState == SemState.Done)
             return;
-        assert(baseok == BASEOKdone);
 
-        if (_scope)
-            sc = _scope;
-        assert(sc);
+        determineBaseClasses();
+        super.determineMembers();
 
-        for (size_t i = 0; i < baseclasses.dim; i++)
-        {
-            BaseClass* b = (*baseclasses)[i];
-            Type tb = b.type.toBasetype();
-            assert(tb.ty == Tclass);
-            TypeClass tc = cast(TypeClass)tb;
-//             tc.sym.determineVtbl(null);
-//             if (!tc.sym.vtbl.dim)
-//             {
-//                 error("can't determine bases vtbl");
-//                 return;
-//             }
-            // FWDREF NOTE: top is the ideal option to reduce the semantic dependencies to the strict minimum, but it would require to go through members again
-            // TODO: unless we do it in importAll?
-            tc.sym.semantic(null); // FWDREF also, shouldn't the next lines only happen in case of an actual circular/fwd ref error?
-            if (tc.sym.semanticRun < PASSsemanticdone)
+        if (baseClassState != SemState.Done)
+            membersState = SemState.Defer;
+
+        foreach (b; *baseclasses)
+            if (b.sym)
             {
-//                 // Forward referencee of one or more bases, try again later
-//                 _scope = scx ? scx : sc.copy();
-//                 _scope.setNoFree();
-//                 if (tc.sym._scope)
-//                     tc.sym._scope._module.addDeferredSemantic(tc.sym);
-//                 _scope._module.addDeferredSemantic(this);
-                //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
-                error("can't determine bases vtbl");
-                return;
+                b.sym.determineMembers();
+                if (b.sym.membersState != SemState.Done)
+                    membersState = SemState.Defer;
             }
+    }
+
+    final override void makeNested()
+    {
+        determineBaseClasses();
+        if (baseClassState != SemState.Done)
+            return;
+
+        if (baseClass)
+        {
+            enclosing = baseClass.enclosing;
+            vthis = baseClass.vthis;
         }
 
-        assert(baseok == BASEOKdone);
-        baseok = BASEOKsemanticdone;
+        /* If this is a nested class, add the hidden 'this'
+            * member which is a pointer to the enclosing scope.
+            */
+        if (vthis) // if inheriting from nested class
+        {
+            // Use the base class's 'this' member
+            if (storage_class & STCstatic)
+                error("static class cannot inherit from nested class %s", baseClass.toChars());
+            if (toParent2() != baseClass.toParent2() &&
+                (!toParent2() ||
+                    !baseClass.toParent2().getType() ||
+                    !baseClass.toParent2().getType().isBaseOf(toParent2().getType(), null)))
+            {
+                if (toParent2())
+                {
+                    error("is nested within %s, but super class %s is nested within %s",
+                        toParent2().toChars(),
+                        baseClass.toChars(),
+                        baseClass.toParent2().toChars());
+                }
+                else
+                {
+                    error("is not nested, but super class %s is nested within %s",
+                        baseClass.toChars(),
+                        baseClass.toParent2().toChars());
+                }
+            }
+        }
+        else
+            makeNested();
+    }
 
-        // initialize vtbl
+    // Fill the vtbl and determine .isabstract
+    final void determineVtbl()
+    {
+        if (vtblState == SemState.Done)
+            return;
+        assert(vtblState != SemState.In);
+        void defer() { vtblState = SemState.Defer; }
+
+        assert(baseClassState == SemState.Done &&
+                membersState == SemState.Done);
+
+        foreach (b; *baseclasses)
+        {
+            b.sym.determineVtbl();
+            if (b.sym.vtblState != SemState.Done)
+                return defer();
+        }
+
+        // Initialize or reset the vtbl
         if (baseClass)
         {
             if (cpp && baseClass.vtbl.dim == 0)
-            {
                 error("C++ base class %s needs at least one virtual function", baseClass.toChars());
-            }
 
             // Copy vtbl[] from base class
             vtbl.setDim(baseClass.vtbl.dim);
@@ -826,6 +761,28 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             if (vtblOffset())
                 vtbl.push(this); // leave room for classinfo as first member
         }
+
+        extern (C++) static int func(Dsymbol s, void* param)
+        {
+            auto cd = cast(ClassDeclaration)param;
+            auto f = s.isFuncDeclaration();
+            if (!f)
+                return 0;
+
+            if (!f.addVtblEntry())
+            {
+                cd.vtblState = SemState.Defer;
+                return 1;
+            }
+
+            return 0;
+        }
+
+        foreach (s; *members)
+            if (s.apply(&func, cast(void*)this))
+                return false;
+
+        vtblState = SemState.Done;
     }
 
     override void semantic(Scope* sc)
@@ -833,8 +790,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         //printf("ClassDeclaration.semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
         //printf("\tparent = %p, '%s'\n", sc.parent, sc.parent ? sc.parent.toChars() : "");
         //printf("sc.stc = %x\n", sc.stc);
-
-        //{ static int n;  if (++n == 20) *(char*)0=0; }
 
         if (semanticRun >= PASSsemanticdone)
             return;
@@ -847,26 +802,11 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         }
 
         int errors = global.errors;
-        //printf("+ClassDeclaration.semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
-
-        Scope* scx = null;
-        if (_scope)
-        {
-            sc = _scope;
-            scx = _scope; // save so we don't make redundant copies
-            _scope = null;
-        }
 
         // Ungag errors when not speculative
         Ungag ungag = ungagSpeculative();
 
-        if (semanticRun >= PASSsemantic/+symtab && !scx+/) // FWDREF FIXME: we should probably error ref here
-            return;
-        semanticRun = PASSsemantic;
-
         interfaceSemantic(sc);
-
-       //printf("\tClassDeclaration.semantic(%s) baseok = %d\n", toChars(), baseok);
 
         if (!members) // if opaque declaration
         {

@@ -329,6 +329,11 @@ extern (C++) abstract class Statement : RootObject
         return null;
     }
 
+    DeferStatement isDeferStatement()
+    {
+        return null;
+    }
+
     inout(ScopeStatement) isScopeStatement() inout nothrow pure
     {
         return null;
@@ -413,6 +418,32 @@ extern (C++) final class ErrorStatement : Statement
     }
 
     override ErrorStatement isErrorStatement()
+    {
+        return this;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ */
+extern (C++) final class DeferStatement : Statement
+{
+    extern (D) this()
+    {
+        super(Loc());
+        assert(global.gaggedErrors || global.errors);
+    }
+
+    override Statement syntaxCopy()
+    {
+        return this;
+    }
+
+    override DeferStatement isDeferStatement()
     {
         return this;
     }

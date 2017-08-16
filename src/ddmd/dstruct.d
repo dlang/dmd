@@ -269,139 +269,65 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         return ScopeDsymbol.syntaxCopy(sd);
     }
 
-    override void importAll(Scope* sc)
+    override void setScope(Scope* sc)
     {
-        if (semanticRun >= PASSmembersdone)
-            return;
+        super.setScope(sc);
 
-        if (_scope)
-            sc = _scope;
-        assert(sc);
-
-        assert(symtab || semanticRun < PASSmembers);
-
-        auto sc2 = newScope(sc);
-
-        if (!symtab)
+        if (!parent)
         {
-            if (!parent)
-            {
-                assert(sc.parent && sc.func);
-                parent = sc.parent;
-            }
-            assert(parent && !isAnonymous());
-
-            if (this.errors)
-                type = Type.terror;
-            if (semanticRun < PASSsemantic)
-                type = type.addSTC(sc.stc | storage_class);
-            type = type.semantic(loc, sc);
-            if (type.ty == Tstruct && (cast(TypeStruct)type).sym != this)
-            {
-                auto ti = (cast(TypeStruct)type).sym.isInstantiated();
-                if (ti && isError(ti))
-                    (cast(TypeStruct)type).sym = this;
-            }
-
-            protection = sc.protection;
-
-            alignment = sc.alignment();
-
-            storage_class |= sc.stc;
-            if (storage_class & STCdeprecated)
-                isdeprecated = true;
-            if (storage_class & STCabstract)
-                error("structs, unions cannot be abstract");
-
-            userAttribDecl = sc.userAttribDecl;
-
-            if (!members) // if opaque declaration
-            {
-                semanticRun = PASSmembersdone;
-                return;
-            }
-
-            symtab = new DsymbolTable();
-
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                auto s = (*members)[i];
-                //printf("adding member '%s' to '%s'\n", s.toChars(), this.toChars());
-                s.addMember(sc, this);
-            }
-
-            /* Set scope so if there are forward references, we still might be able to
-            * resolve individual members like enums.
-            */
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                auto s = (*members)[i];
-                //printf("struct: setScope %s %s\n", s.kind(), s.toChars());
-                s.setScope(sc2);
-            }
+            assert(sc.parent && sc.func);
+            parent = sc.parent;
         }
+        assert(parent && !isAnonymous());
 
-        ScopeDsymbol.importAll(sc2);
-        sc2.pop();
+        protection = sc.protection;
+
+        alignment = sc.alignment();
+
+        storage_class |= sc.stc;
+        if (storage_class & STCdeprecated)
+            isdeprecated = true;
+        if (storage_class & STCabstract)
+            error("structs, unions cannot be abstract");
     }
 
-    override final void semantic(Scope* sc)
+    override void semanticType()
     {
-        //printf("StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", this, toPrettyChars(), sizeok);
-
-        //static int count; if (++count == 20) assert(0);
-
-        if (semanticRun >= PASSsemanticdone)
-            return;
-
-        importAll(sc);
-        if (semanticRun < PASSmembersdone)
-        {
-            error("struct forward ref");
-            return;
-        }
-
-        int errors = global.errors;
-        //printf("+StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", this, toPrettyChars(), sizeok);
-        Scope* scx = null;
-        if (_scope)
-        {
-            sc = _scope;
-            scx = _scope; // save so we don't make redundant copies
-            _scope = null;
-        }
-
-        // Ungag errors when not speculative
-        Ungag ungag = ungagSpeculative();
-
-        if (semanticRun >= PASSsemantic/+symtab && !scx+/) // FWDREF FIXME: we should probably error ref here
-            return;
-
-        semanticRun = PASSsemantic;
-
-        if (!members) // if opaque declaration
-        {
-            semanticRun = PASSsemanticdone;
-            return;
-        }
-
-        auto sc2 = newScope(sc);
-
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            auto s = (*members)[i];
-            s.semantic(sc2);
-            this.errors |= s.errors;
-        }
         if (this.errors)
             type = Type.terror;
 
-        if (!determineFields())
+        type = type.addSTC(sc.stc | storage_class);
+        type = type.semantic(loc, sc);
+
+        if (type.ty == Tstruct && (cast(TypeStruct)type).sym != this)
         {
-            assert(type.ty == Terror);
-            semanticRun = PASSsemanticdone;
+            auto ti = (cast(TypeStruct)type).sym.isInstantiated();
+            if (ti && isError(ti)) // FWDREF FIXME hmm, how could we possibly have an invalid struct that becomes valid? This was possible before with forward referencing errors when the order of declarations and calls mattered, but not anymore
+                (cast(TypeStruct)type).sym = this;
+        }
+    }
+
+    override void determineMembers()
+    {
+        if (membersState == SemState.Done)
+            return;
+
+        super.determineMembers();
+        if (membersState != SemState.Done)
+            return;
+
+        membersState = SemState.In;
+        // we still have to generate the special methods (which depend upon the field types) and push them to .members
+
+        determineFields();
+        if (type.ty == Terror)
+            return;
+        if (fieldsState != SemState.Done)
+        {
+            membersState = SemState.Defer;
             return;
         }
+
         /* Following special member functions creation needs semantic analysis
          * completion of sub-structs in each field types. For example, buildDtor
          * needs to check existence of elaborate dtor in type of each fields.
@@ -413,12 +339,11 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             if (tb.ty != Tstruct)
                 continue;
             auto sd = (cast(TypeStruct)tb).sym;
-            if (sd.semanticRun >= PASSsemanticdone)
+            sd.determineMembers();
+            if (sd.membersState == SemState.Done)
                 continue;
 
-            _scope = scx ? scx : sc.copy();
-            _scope.setNoFree();
-            _scope._module.addDeferredSemantic(this);
+            membersState = SemState.Defer;
             //printf("\tdeferring %s\n", toChars());
             return;
         }
@@ -443,11 +368,35 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         inv = buildInv(this, sc2);
 
-        Module.dprogress++;
-        semanticRun = PASSsemanticdone;
-        //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
+        membersState = SemState.Done;
+    }
 
-        sc2.pop();
+    override final void semantic()
+    {
+        //printf("StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", this, toPrettyChars(), sizeok);
+
+        if (semanticState == SemState.Done)
+            return;
+
+        int errors = global.errors;
+        bool checkErrors()
+        {
+            if (global.errors != errors || this.errors)
+            {
+                type = Type.terror;
+                this.errors = true;
+                semanticState = SemState.Done;
+                return true;
+            }
+            return false;
+        }
+
+        super.semantic();
+
+        if (checkErrors())
+            return;
+        if (semanticState != SemState.Done)
+            return;
 
         if (ctor)
         {
@@ -470,20 +419,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             }
         }
 
-        if (global.errors != errors)
-        {
-            // The type is no good.
-            type = Type.terror;
-            this.errors = true;
-            if (deferred)
-                deferred.errors = true;
-        }
-
-        if (deferred && !global.gag)
-        {
-            deferred.semantic2(sc);
-            deferred.semantic3(sc);
-        }
+        checkErrors();
 
         version (none)
         {
@@ -548,21 +484,6 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         }
     }
 
-//     override final Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
-//     {
-//         //printf("%s.StructDeclaration::search('%s', flags = x%x)\n", toChars(), ident.toChars(), flags);
-//         if (_scope && !symtab)
-//             semantic(_scope);
-//
-//         if (!members || !symtab) // opaque or semantic() is not yet called
-//         {
-//             error("is forward referenced when looking for '%s'", ident.toChars());
-//             return null;
-//         }
-//
-//         return ScopeDsymbol.search(loc, ident, flags);
-//     }
-
     override const(char)* kind() const
     {
         return "struct";
@@ -571,20 +492,14 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     override final void finalizeSize()
     {
         //printf("StructDeclaration::finalizeSize() %s, sizeok = %d\n", toChars(), sizeok);
-        assert(sizeok != SIZEOKdone);
-
-        //printf("+StructDeclaration::finalizeSize() %s, fields.dim = %d, sizeok = %d\n", toChars(), fields.dim, sizeok);
-
-        fields.setDim(0);   // workaround
+        assert(sizeState != SemState.Done);
+        assert(fieldsState == SemState.Done);
 
         // Set the offsets of the fields and determine the size of the struct
         uint offset = 0;
         bool isunion = isUnionDeclaration() !is null;
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
+        foreach (s; fields)
             s.setFieldOffset(this, &offset, isunion);
-        }
         if (type.ty == Terror)
             return;
 
@@ -602,8 +517,6 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
         else
             structsize = (structsize + alignment - 1) & ~(alignment - 1);
-
-        sizeok = SIZEOKdone;
 
         //printf("-StructDeclaration::finalizeSize() %s, fields.dim = %d, structsize = %d\n", toChars(), fields.dim, structsize);
 

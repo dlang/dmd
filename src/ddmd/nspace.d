@@ -237,21 +237,6 @@ extern (C++) final class Nspace : ScopeDsymbol
         return false;
     }
 
-    override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
-    {
-        //printf("Nspace::setFieldOffset() %s\n", toChars());
-        if (_scope) // if fwd reference
-            semantic(null); // try to resolve it
-        if (members)
-        {
-            foreach (s; *members)
-            {
-                //printf("\t%s\n", s.toChars());
-                s.setFieldOffset(ad, poffset, isunion);
-            }
-        }
-    }
-
     override const(char)* kind() const
     {
         return "namespace";

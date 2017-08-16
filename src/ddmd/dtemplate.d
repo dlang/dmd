@@ -573,8 +573,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
     override void importAll(Scope* sc)
     {
-        // FWDREF FIXME: ScopeDsymbol.importAll is here as a safety net, but it should eventually be turned into a helper method?
-
         if (semanticRun >= PASSmembersdone)
             return;
 
@@ -586,7 +584,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         }
 
         /* Remember Scope for later instantiations, but make
-         * a copy since attributes can change.
+         * a copy since attributes can change. // FWDREF NOTE: wat? they can change?
          */
         if (!this._scope)
         {
@@ -804,7 +802,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     /****************************
      * Check to see if constraint is satisfied.
      */
-    bool evaluateConstraint(TemplateInstance ti, Scope* sc, Scope* paramscope, Objects* dedargs, FuncDeclaration fd)
+    bool evaluateConstraint(TemplateInstance ti, Scope* sc, Scope* paramscope, Objects* dedargs, FuncDeclaration fd, bool* defer = null)
     {
         /* Detect recursive attempts to instantiate this template declaration,
          * https://issues.dlang.org/show_bug.cgi?id=4072
@@ -900,8 +898,10 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         assert(ti.inst is null);
         ti.inst = ti; // temporary instantiation to enable genIdent()
         scx.flags |= SCOPEconstraint;
-        bool errors, defer;
-        bool result = evalStaticCondition(scx, constraint, e, errors, defer);
+        bool errors, _defer;
+        bool result = evalStaticCondition(scx, constraint, e, errors, _defer);
+        if (_defer && defer)
+            *defer = _defer;
         ti.inst = null;
         ti.symtab = null;
         scx = scx.pop();
@@ -1195,7 +1195,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      *          bit 0-3     Match template parameters by inferred template arguments
      *          bit 4-7     Match template parameters by initial template arguments
      */
-    MATCH deduceFunctionTemplateMatch(TemplateInstance ti, Scope* sc, ref FuncDeclaration fd, Type tthis, Expressions* fargs)
+    MATCH deduceFunctionTemplateMatch(TemplateInstance ti, Scope* sc, ref FuncDeclaration fd, Type tthis, Expressions* fargs, bool* defer = null)
     {
         size_t nfparams;
         size_t nfargs;
@@ -2095,7 +2095,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         if (constraint)
         {
-            if (!evaluateConstraint(ti, sc, paramscope, dedargs, fd))
+            if (!evaluateConstraint(ti, sc, paramscope, dedargs, fd, defer))
                 goto Lnomatch;
         }
 
@@ -2455,7 +2455,7 @@ extern (C++) final class TypeDeduced : Type
  *      tthis           if !NULL, the 'this' pointer argument
  *      fargs           arguments to function
  */
-void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiargs, Type tthis, Expressions* fargs)
+void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiargs, Type tthis, Expressions* fargs, bool* defer = null)
 {
     version (none)
     {
@@ -2778,7 +2778,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             ti.parent = td.parent;  // Maybe calculating valid 'enclosing' is unnecessary.
 
             auto fd = f;
-            int x = td.deduceFunctionTemplateMatch(ti, sc, fd, tthis, fargs);
+            int x = td.deduceFunctionTemplateMatch(ti, sc, fd, tthis, fargs, defer);
             MATCH mta = cast(MATCH)(x >> 4);
             MATCH mfa = cast(MATCH)(x & 0xF);
             //printf("match:t/f = %d/%d\n", mta, mfa);
@@ -2892,6 +2892,8 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
     //printf("td_best = %p, m.lastf = %p\n", td_best, m.lastf);
     if (td_best && ti_best && m.count == 1)
     {
+//         assert(!defer); // FWDREF or else FIXME
+
         // Matches to template function
         assert(td_best.onemember && td_best.onemember.isFuncDeclaration());
         /* The best match is td_best with arguments tdargs.
@@ -6210,7 +6212,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             }
             return;
         }
-        if (semanticRun != PASSinit)
+        if (semanticRun != PASSinit && semanticRun != PASSmembersdeferred)
         {
             static if (LOG)
             {
@@ -6227,6 +6229,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             errors = true;
             return;
         }
+
+        if (_scope)
+            sc = _scope;
 
         // Get the enclosing template instance from the scope tinst
         tinst = sc.tinst;
@@ -6255,6 +6260,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
          */
         if (!findTempDecl(sc, null) || !semanticTiargs(sc) || !findBestMatch(sc, fargs))
         {
+            if (isDeferred())
+                return;
         Lerror:
             if (gagged)
             {
@@ -7520,14 +7527,17 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      *      flags   1: replace const variables with their initializers
      *              2: don't devolve Parameter to Type
      * Returns:
-     *      false if one or more arguments have errors.
+     *      0 if one or more arguments have errors.
+     *      1 if done.
+     *      2 if needs deferring.
      */
-    static bool semanticTiargs(Loc loc, Scope* sc, Objects* tiargs, int flags)
+    static SemState semanticTiargs(Loc loc, Scope* sc, Objects* tiargs, int flags)
     {
         // Run semantic on each argument, place results in tiargs[]
         //printf("+TemplateInstance.semanticTiargs()\n");
+        SemState result = SemState.Done;
         if (!tiargs)
-            return true;
+            return result;
         bool err = false;
         for (size_t j = 0; j < tiargs.dim; j++)
         {
@@ -7577,6 +7587,11 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 if (ta.ty == Terror)
                 {
                     err = true;
+                    continue;
+                }
+                if (ta.ty == Tdefer)
+                {
+                    result = SemState.Defer;
                     continue;
                 }
                 (*tiargs)[j] = ta.merge2();
@@ -7633,6 +7648,11 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                             tiargs.insert(j + i, (*te.exps)[i]);
                     }
                     j--;
+                    continue;
+                }
+                if (ea.op == TOKfinally)
+                {
+                    result = SemState.Defer;
                     continue;
                 }
                 if (ea.op == TOKerror)
@@ -7753,7 +7773,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 printf("\ttiargs[%d] = ta %p, ea %p, sa %p, va %p\n", j, ta, ea, sa, va);
             }
         }
-        return !err;
+        return result;
     }
 
     /**********************************
@@ -7766,13 +7786,21 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      *      This function is reentrant against error occurrence. If returns false,
      *      all elements of tiargs won't be modified.
      */
+    bool semtiargsdefer; // FWDREF FIXME temporary, tired of this mess, a full frontend rewrite sounds more and more appealing
     final bool semanticTiargs(Scope* sc)
     {
         //printf("+TemplateInstance.semanticTiargs() %s\n", toChars());
         if (semantictiargsdone)
             return true;
-        if (semanticTiargs(loc, sc, tiargs, 0))
+        semtiargsdefer = false;
+        if (auto result = semanticTiargs(loc, sc, tiargs, 0))
         {
+            if (result == SemState.Defer)
+            {
+                defer();
+                semtiargsdefer = true;
+                return false;
+            }
             // cache the result iff semantic analysis succeeded entirely
             semantictiargsdone = 1;
             return true;
@@ -8450,7 +8478,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             //printf("test3: enclosing = %d, s.parent = %s\n", enclosing, s.parent.toChars());
             s.semantic(sc);
             //printf("test4: enclosing = %d, s.parent = %s\n", enclosing, s.parent.toChars());
-            Module.runDeferredSemantic();
+//             Module.runDeferredSemantic();
         }
     }
 
@@ -9033,22 +9061,6 @@ extern (C++) final class TemplateMixin : TemplateInstance
             }
         }
         return false;
-    }
-
-    override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
-    {
-        //printf("TemplateMixin.setFieldOffset() %s\n", toChars());
-        if (_scope) // if fwd reference
-            semantic(null); // try to resolve it
-        if (members)
-        {
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                Dsymbol s = (*members)[i];
-                //printf("\t%s\n", s.toChars());
-                s.setFieldOffset(ad, poffset, isunion);
-            }
-        }
     }
 
     override const(char)* toChars()

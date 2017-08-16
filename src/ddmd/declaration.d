@@ -1086,164 +1086,61 @@ extern (C++) class VarDeclaration : Declaration
         return v;
     }
 
-    bool inferred;
-
-    override void importAll(Scope* sc)
+    override void setScope(Scope* sc)
     {
-        if (semanticRun >= PASSmembersdone || inuse)
-            return;
+        super.setScope(sc);
 
-        if (_scope)
-            sc = _scope;
-        assert(sc);
+        /* Pick up storage classes from context, but except synchronized,
+        * override, abstract, and final.
+        */
+        storage_class |= (sc.stc & ~(STCsynchronized | STCoverride | STCabstract | STCfinal));
+        if (storage_class & STCextern && _init)
+            error("extern symbols cannot have initializers");
 
-        if (semanticRun == PASSinit)
-        {
-            /* Pick up storage classes from context, but except synchronized,
-            * override, abstract, and final.
-            */
-            storage_class |= (sc.stc & ~(STCsynchronized | STCoverride | STCabstract | STCfinal));
-            if (storage_class & STCextern && _init)
-                error("extern symbols cannot have initializers");
+        assert(userAttribDecl == sc.userAttribDecl); // FWDREF TODO remove: that seems pretty obvious, but semantic() was re-assigning userAttribDecl in case setScope wasn't called
+//         userAttribDecl = sc.userAttribDecl;
 
-            userAttribDecl = sc.userAttribDecl;
+        linkage = sc.linkage;
+        this.parent = sc.parent;
+        //printf("this = %p, parent = %p, '%s'\n", this, parent, parent.toChars());
+        protection = sc.protection;
 
-            AggregateDeclaration ad = isThis();
-            if (ad)
-                storage_class |= ad.storage_class & STC_TYPECTOR;
+        /* If scope's alignment is the default, use the type's alignment,
+        * otherwise the scope overrrides.
+        */
+        alignment = sc.alignment();
 
-            linkage = sc.linkage;
-            this.parent = sc.parent;
-            //printf("this = %p, parent = %p, '%s'\n", this, parent, parent.toChars());
-            protection = sc.protection;
-
-            /* If scope's alignment is the default, use the type's alignment,
-            * otherwise the scope overrrides.
-            */
-            alignment = sc.alignment();
-
-            //printf("sc.stc = %x\n", sc.stc);
-            //printf("storage_class = x%x\n", storage_class);
-
-            Dsymbol parent = toParent();
-
-            if (storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe))
-            {
-            }
-            else
-            {
-                if (parent.isAggregateDeclaration())
-                    storage_class |= STCfield;
-            }
-        }
-
-        semanticRun = PASSmembers;
-
-        if (isField())
-        {
-            semanticType(sc);
-            if (semanticRun == PASSmembersdeferred || semanticRun >= PASSsemanticdone)
-                return; // we're done if it was deferred, or if it's a tuple
-
-            Dsymbol parent = toParent();
-            Type tb = type.toBasetype();
-            Type tbn = tb.baseElemOf();
-
-            AggregateDeclaration aad = parent.isAggregateDeclaration();
-            if (tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor) // FWDREF FIXME too soon?
-            {
-                if (!isThisDeclaration() && !_init)
-                    aad.noDefaultCtor = true;
-            }
-
-            InterfaceDeclaration id = parent.isInterfaceDeclaration();
-            if (id)
-            {
-                error("field not allowed in interface");
-            }
-            else if (aad && aad.sizeok == SIZEOKdone)
-            {
-                error("cannot be further field because it will change the determined %s size", aad.toChars());
-            }
-        }
-
-        semanticRun = PASSmembersdone;
-    }
-
-    final void semanticType(Scope *sc)
-    {
-        /* If auto type inference, do the inference
-         */
-        if (!type)
-        {
-            inuse++;
-
-            // Infering the type requires running semantic,
-            // so mark the scope as ctfe if required
-            bool needctfe = (storage_class & (STCmanifest | STCstatic)) != 0;
-            if (needctfe)
-                sc = sc.startCTFE();
-
-            //printf("inferring type for %s with init %s\n", toChars(), _init.toChars());
-            auto vinit = _init.inferType(sc);
-            if (vinit && !vinit.isDeferInitializer())
-            {
-                _init = vinit;
-                type = _init.toExpression().type;
-            }
-            if (needctfe)
-                sc = sc.endCTFE();
-
-            inuse--;
-
-            if (vinit.isDeferInitializer())
-            {
-                deferSemantic();
-                return;
-            }
-
-            inferred = true;
-
-            /* This is a kludge to support the existing syntax for RAII
-             * declarations.
-             */
-            storage_class &= ~STCauto;
-            originalType = type.syntaxCopy();
-        }
-        else
-        {
-            if (!originalType)
-                originalType = type.syntaxCopy();
-
-            /* Prefix function attributes of variable declaration can affect
-             * its type:
-             *      pure nothrow void function() fp;
-             *      static assert(is(typeof(fp) == void function() pure nothrow));
-             */
-            Scope* sc2 = sc.push();
-            sc2.stc |= (storage_class & STC_FUNCATTR);
-            inuse++;
-            type = type.semantic(loc, sc2);
-            inuse--;
-            sc2.pop();
-
-            if (type.ty == Tdefer)
-            {
-                type = originalType;
-                defer();
-                return;
-            }
-        }
-        //printf(" semantic type = %s\n", type ? type.toChars() : "null");
-        if (type.ty == Terror)
-            errors = true;
-
-        if (alignment == STRUCTALIGN_DEFAULT)
-            alignment = type.alignment(); // use type's alignment
-
-        type.checkDeprecated(loc, sc);
         //printf("sc.stc = %x\n", sc.stc);
         //printf("storage_class = x%x\n", storage_class);
+    }
+
+    override void addMember(Scope* sc, ScopeDsymbol sds)
+    {
+        if (addMemberState == SemState.Done)
+            return;
+
+        auto nextMemberIndex = sds.nextMember + 1; // if this is a tuple to be expanded, new members need to be inserted right after this one
+
+        if (addMemberState == SemState.Init)
+            super.addMember(sc, sds);
+        addMemberState = SemState.In;
+
+        AggregateDeclaration ad = isThis();
+        if (ad)
+            storage_class |= ad.storage_class & STC_TYPECTOR;
+
+        Dsymbol parent = toParent();
+
+        if (!(storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe)))
+            if (parent.isAggregateDeclaration())
+                storage_class |= STCfield;
+
+        semanticType();
+        if (typeState == SemState.Defer)
+        {
+            addMemberState = SemState.Defer;
+            return;
+        }
 
         Type tb = type.toBasetype();
         Type tbn = tb.baseElemOf();
@@ -1385,73 +1282,129 @@ extern (C++) class VarDeclaration : Declaration
                     storage_class |= arg.storageClass;
                 auto v = new VarDeclaration(loc, arg.type, id, ti, storage_class);
                 //printf("declaring field %s of type %s\n", v.toChars(), v.type.toChars());
-                v.setScope(sc);
-                v.importAll(sc);
 
-                if (sc.scopesym)
-                {
-                    //printf("adding %s to %s\n", v.toChars(), sc.scopesym.toChars());
-                    if (sc.scopesym.members)
-                        // Note this prevents using foreach() over members, because the limits can change
-                        sc.scopesym.members.push(v);
-                }
+                assert(sds.members);
+                sds.members.insert(nextMemberIndex++, v);
 
                 Expression e = new DsymbolExp(loc, v);
                 (*exps)[i] = e;
             }
+            sds.nextMember = 0;
+
             auto v2 = new TupleDeclaration(loc, ident, exps);
             v2.parent = this.parent;
             v2.isexp = true;
             aliassym = v2;
-            semanticRun = PASSsemanticdone;
-            return;
+        }
+
+        addMemberState = SemState.Done;
+    }
+
+    override void determineMembers()
+    {
+        if (isField())
+        {
+            semanticType(sc);
+            if (semanticRun == PASSmembersdeferred || semanticRun >= PASSsemanticdone)
+                return; // we're done if it was deferred, or if it's a tuple
+
+            Dsymbol parent = toParent();
+            Type tb = type.toBasetype();
+            Type tbn = tb.baseElemOf();
+
+            AggregateDeclaration aad = parent.isAggregateDeclaration();
+            if (tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor) // FWDREF FIXME move to just before noDefaultCtor is used?
+            {
+                if (!isThisDeclaration() && !_init)
+                    aad.noDefaultCtor = true;
+            }
+
+            InterfaceDeclaration id = parent.isInterfaceDeclaration();
+            if (id)
+            {
+                error("field not allowed in interface");
+            }
+            else if (aad && aad.sizeok == SIZEOKdone)
+            {
+                error("cannot be further field because it will change the determined %s size", aad.toChars());
+            }
         }
     }
 
-    override void semantic(Scope* sc)
+    final void semanticType()
     {
-        version (none)
-        {
-            printf("VarDeclaration::semantic('%s', parent = '%s') sem = %d\n", toChars(), sc.parent ? sc.parent.toChars() : null, sem);
-            printf(" type = %s\n", type ? type.toChars() : "null");
-            printf(" stc = x%x\n", sc.stc);
-            printf(" storage_class = x%llx\n", storage_class);
-            printf("linkage = %d\n", sc.linkage);
-            //if (strcmp(toChars(), "mul") == 0) assert(0);
-        }
-        //if (semanticRun > PASSinit)
-        //    return;
-        //semanticRun = PSSsemantic;
-
-        importAll(sc);
-
-        if (semanticRun >= PASSsemanticdone)
+        if (typeState == SemState.Done)
             return;
+        typeState = SemState.In;
 
-        if (semanticRun < PASSmembersdone)
+        void defer() { typeState = SemState.Defer; }
+
+        assert(!inuse); // FWDREF FIXME: this is to study when this occurs, inuse should get removed
+
+        auto sc = _scope;
+        bool inferred;
+
+        /* If auto type inference, do the inference
+         */
+        if (!type)
         {
-            error("circular referencing"); // FWDREF
-            return;
+            inuse++;
+            scope(exit) inuse--;
+
+            // Infering the type requires running semantic,
+            // so mark the scope as ctfe if required
+            bool needctfe = (storage_class & (STCmanifest | STCstatic)) != 0;
+            if (needctfe)
+                sc = sc.startCTFE();
+            scope(exit) if (needctfe)
+                sc = sc.endCTFE();
+
+            //printf("inferring type for %s with init %s\n", toChars(), _init.toChars());
+            auto vinit = _init.inferType(sc);
+            if (vinit.isDeferInitializer())
+                return defer();
+            _init = vinit;
+
+            type = _init.toExpression().type;
+            inferred = true;
+
+            /* This is a kludge to support the existing syntax for RAII
+             * declarations.
+             */
+            storage_class &= ~STCauto;
+            originalType = type.syntaxCopy();
         }
-
-        if (semanticRun == PASSsemantic)
-            return;
-
-        Scope* scx = null;
-        if (_scope)
+        else
         {
-            sc = _scope;
-            scx = sc;
-//             _scope = null;
+            if (!originalType)
+                originalType = type.syntaxCopy();
+
+            /* Prefix function attributes of variable declaration can affect
+             * its type:
+             *      pure nothrow void function() fp;
+             *      static assert(is(typeof(fp) == void function() pure nothrow));
+             */
+            Scope* sc2 = sc.push();
+            sc2.stc |= (storage_class & STC_FUNCATTR);
+            inuse++;
+            auto t = type.semantic(loc, sc2);
+            inuse--;
+            sc2.pop();
+
+            if (t.ty == Tdefer)
+                return defer();
+            type = t;
         }
-        assert(sc);
+        //printf(" semantic type = %s\n", type ? type.toChars() : "null");
+        if (type.ty == Terror)
+            errors = true;
 
-//         if (!sc)
-//             return;
+        if (alignment == STRUCTALIGN_DEFAULT)
+            alignment = type.alignment(); // use type's alignment
 
-        semanticRun = PASSsemantic;
-
-        AggregateDeclaration ad = isThis();
+        type.checkDeprecated(loc, sc);
+        //printf("sc.stc = %x\n", sc.stc);
+        //printf("storage_class = x%x\n", storage_class);
 
         if (global.params.vcomplex)
             type.checkComplexTransition(loc);
@@ -1466,18 +1419,6 @@ extern (C++) class VarDeclaration : Declaration
             }
         }
 
-        /* If auto type inference, do the inference
-         */
-        if (!isField())
-        {
-            semanticType(sc);
-
-            if (semanticRun == PASSsemanticdeferred || semanticRun >= PASSsemanticdone)
-                return; // we're done if it was deferred, or if it's a tuple
-        }
-        //printf(" semantic type =
-        //printf("storage_class = x%x\n", storage_class);
-
         Dsymbol parent = toParent();
 
         Type tb = type.toBasetype();
@@ -1486,9 +1427,7 @@ extern (C++) class VarDeclaration : Declaration
         if (tb.ty == Tvoid && !(storage_class & STClazy))
         {
             if (inferred)
-            {
                 error("type %s is inferred from initializer %s, and variables cannot be of type void", type.toChars(), _init.toChars());
-            }
             else
                 error("variables cannot be of type void");
             type = Type.terror;
@@ -1504,9 +1443,7 @@ extern (C++) class VarDeclaration : Declaration
         {
             TypeStruct ts = cast(TypeStruct)tb;
             if (!ts.sym.members)
-            {
                 error("no definition of struct %s", ts.toChars());
-            }
         }
         if ((storage_class & STCauto) && !inferred)
             error("storage class 'auto' has no effect if type is not inferred, did you mean 'scope'?");
@@ -1556,47 +1493,9 @@ extern (C++) class VarDeclaration : Declaration
             {
                 error("field cannot be 'scope'");
             }
-            else if (!type.hasPointers())
+            else if (!type.hasPointers()) // FWDREF FIXME: may defer
             {
                 storage_class &= ~STCscope;     // silently ignore; may occur in generic code
-            }
-        }
-
-        if (storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe))
-        {
-        }
-        else
-        {
-            AggregateDeclaration aad = parent.isAggregateDeclaration();
-            if (aad)
-            {
-                if (global.params.vfield && storage_class & (STCconst | STCimmutable) && _init && !_init.isVoidInitializer())
-                {
-                    const(char)* p = loc.toChars();
-                    const(char)* s = (storage_class & STCimmutable) ? "immutable" : "const";
-                    fprintf(global.stdmsg, "%s: %s.%s is %s field\n", p ? p : "", ad.toPrettyChars(), toChars(), s);
-                }
-            }
-
-            /* Templates cannot add fields to aggregates // FWDREF FIXME: What? How is that supposed to happen?
-             */
-            TemplateInstance ti = parent.isTemplateInstance();
-            if (ti)
-            {
-                // Take care of nested templates
-                while (1)
-                {
-                    TemplateInstance ti2 = ti.tempdecl.parent.isTemplateInstance();
-                    if (!ti2)
-                        break;
-                    ti = ti2;
-                }
-                // If it's a member template
-                AggregateDeclaration ad2 = ti.tempdecl.isMember();
-                if (ad2 && storage_class != STCundefined)
-                {
-                    error("cannot use template to add field to aggregate '%s'", ad2.toChars());
-                }
             }
         }
 
@@ -1632,24 +1531,6 @@ extern (C++) class VarDeclaration : Declaration
             }
         }
 
-        if (!(storage_class & (STCctfe | STCref | STCresult)) && tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
-        {
-            if (!_init)
-            {
-                if (isField())
-                {
-                    /* For fields, we'll check the constructor later to make sure it is initialized
-                     */
-                    storage_class |= STCnodefaultctor;
-                }
-                else if (storage_class & STCparameter)
-                {
-                }
-                else
-                    error("default construction is disabled for type %s", type.toChars());
-            }
-        }
-
         FuncDeclaration fd = parent.isFuncDeclaration();
         if (type.isscope() && !(storage_class & STCnodtor))
         {
@@ -1664,22 +1545,19 @@ extern (C++) class VarDeclaration : Declaration
             }
         }
 
-        // Calculate type size + safety checks
-        if (sc.func && !sc.intypeof)
-        {
-            if (_init && _init.isVoidInitializer() && type.hasPointers()) // get type size
-            {
-                if (sc.func.setUnsafe())
-                    error("void initializers for pointers not allowed in safe functions");
-            }
-            else if (!_init &&
-                     !(storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCfield | STCparameter)) &&
-                     type.hasVoidInitPointers())
-            {
-                if (sc.func.setUnsafe())
-                    error("void initializers for pointers not allowed in safe functions");
-            }
-        }
+        typeState = SemState.Done;
+    }
+
+    final void semanticInit()
+    {
+        if (initializerState == SemState.Done)
+            return;
+        initializerState = SemState.In;
+
+        void defer() { initializerState = SemState.Defer; }
+
+        Dsymbol parent = toParent();
+        FuncDeclaration fd = parent.isFuncDeclaration();
 
         if (!_init && !fd)
         {
@@ -1723,7 +1601,7 @@ extern (C++) class VarDeclaration : Declaration
                 e = new BlitExp(loc, new VarExp(loc, this), e);
                 e = e.semantic(sc);
                 _init = new ExpInitializer(loc, e);
-                goto Ldtor;
+                goto Ldone;
             }
             if (tv.ty == Tstruct && (cast(TypeStruct)tv).sym.zeroInit == 1)
             {
@@ -1737,7 +1615,7 @@ extern (C++) class VarDeclaration : Declaration
                 e = new BlitExp(loc, new VarExp(loc, this), e);
                 e.type = type;      // don't type check this, it would fail
                 _init = new ExpInitializer(loc, e);
-                goto Ldtor;
+                goto Ldone;
             }
             if (type.baseElemOf().ty == Tvoid)
             {
@@ -1751,9 +1629,11 @@ extern (C++) class VarDeclaration : Declaration
             // Default initializer is always a blit
             isBlit = true;
         }
+
         if (_init)
         {
             sc = sc.push();
+            scope(exit) sc = sc.pop();
             sc.stc &= ~(STC_TYPECTOR | STCpure | STCnothrow | STCnogc | STCref | STCdisable);
 
             ExpInitializer ei = _init.isExpInitializer();
@@ -1849,12 +1729,8 @@ extern (C++) class VarDeclaration : Declaration
                     _init = _init.semantic(sc, type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
                 }
             }
-            else if (parent.isAggregateDeclaration())
-            {
-                _scope = scx ? scx : sc.copy();
-                _scope.setNoFree();
-            }
-            else if (storage_class & (STCconst | STCimmutable | STCmanifest) || type.isConst() || type.isImmutable())
+            else if (!parent.isAggregateDeclaration() &&
+                storage_class & (STCconst | STCimmutable | STCmanifest) || type.isConst() || type.isImmutable())
             {
                 /* Because we may need the results of a const declaration in a
                  * subsequent type, such as an array dimension, before semantic2()
@@ -1872,10 +1748,14 @@ extern (C++) class VarDeclaration : Declaration
                         bool needctfe = isDataseg() || (storage_class & STCmanifest);
                         if (needctfe)
                             sc = sc.startCTFE();
-                        exp = exp.semantic(sc);
-                        exp = resolveProperties(sc, exp);
-                        if (needctfe)
-                            sc = sc.endCTFE();
+                        {
+                            scope(exit) if (needctfe)
+                                sc = sc.endCTFE();
+                            exp = exp.semantic(sc);
+                            if (exp.op == TOKfinally)
+                                return defer();
+                            exp = resolveProperties(sc, exp);
+                        }
 
                         Type tb2 = type.toBasetype();
                         Type ti = exp.type.toBasetype();
@@ -1916,16 +1796,105 @@ extern (C++) class VarDeclaration : Declaration
                         type = Type.terror;
                     }
                 }
-                else
-                {
-                    _scope = scx ? scx : sc.copy();
-                    _scope.setNoFree();
-                }
             }
-            sc = sc.pop();
         }
 
-    Ldtor:
+    Ldone:
+        initializerState = SemState.Done;
+    }
+
+    override void semantic()
+    {
+        version (none)
+        {
+            printf("VarDeclaration::semantic('%s', parent = '%s') sem = %d\n", toChars(), sc.parent ? sc.parent.toChars() : null, sem);
+            printf(" type = %s\n", type ? type.toChars() : "null");
+            printf(" stc = x%x\n", sc.stc);
+            printf(" storage_class = x%llx\n", storage_class);
+            printf("linkage = %d\n", sc.linkage);
+            //if (strcmp(toChars(), "mul") == 0) assert(0);
+        }
+
+        AggregateDeclaration ad = isThis();
+
+        if (storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe))
+        {
+        }
+        else
+        {
+            AggregateDeclaration aad = parent.isAggregateDeclaration();
+            if (aad)
+            {
+                if (global.params.vfield && storage_class & (STCconst | STCimmutable) && _init && !_init.isVoidInitializer())
+                {
+                    const(char)* p = loc.toChars();
+                    const(char)* s = (storage_class & STCimmutable) ? "immutable" : "const";
+                    fprintf(global.stdmsg, "%s: %s.%s is %s field\n", p ? p : "", ad.toPrettyChars(), toChars(), s);
+                }
+            }
+
+            /* Templates cannot add fields to aggregates // FWDREF FIXME: What??? How is that even supposed to happen?
+             */
+            TemplateInstance ti = parent.isTemplateInstance();
+            if (ti)
+            {
+                // Take care of nested templates
+                while (1)
+                {
+                    TemplateInstance ti2 = ti.tempdecl.parent.isTemplateInstance();
+                    if (!ti2)
+                        break;
+                    ti = ti2;
+                }
+                // If it's a member template
+                AggregateDeclaration ad2 = ti.tempdecl.isMember();
+                if (ad2 && storage_class != STCundefined)
+                {
+                    error("cannot use template to add field to aggregate '%s'", ad2.toChars());
+                }
+            }
+        }
+
+        if (!(storage_class & (STCctfe | STCref | STCresult)) && tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor) // FWDREF FIXME should be moved
+        {
+            if (!_init)
+            {
+                if (isField())
+                {
+                    /* For fields, we'll check the constructor later to make sure it is initialized
+                     */
+                    storage_class |= STCnodefaultctor;
+                }
+                else if (storage_class & STCparameter)
+                {
+                }
+                else
+                    error("default construction is disabled for type %s", type.toChars());
+            }
+        }
+
+        semanticInit();
+        if (initializerState == SemState.Defer)
+            return defer();
+        assert(initializerState == SemState.Done);
+
+        // Safety checks
+        if (sc.func && !sc.intypeof)
+        {
+            if ((storage_class & STCinit) && _init.isVoidInitializer() && type.hasPointers()) // get type size // FWDREF FIXME may defer
+            {
+                if (sc.func.setUnsafe())
+                    error("void initializers for pointers not allowed in safe functions");
+            }
+            else if (!(storage_class & STCinit) &&
+                     !(storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCfield | STCparameter)) &&
+                     type.hasVoidInitPointers())
+            {
+                if (sc.func.setUnsafe())
+                    error("void initializers for pointers not allowed in safe functions");
+            }
+        }
+
         /* Build code to execute destruction, if necessary
          */
         edtor = callScopeDtor(sc);
@@ -1944,39 +1913,22 @@ extern (C++) class VarDeclaration : Declaration
             }
         }
 
-        semanticRun = PASSsemanticdone;
-
         if (type.toBasetype().ty == Terror)
             errors = true;
 
-        if(sc.scopesym && !sc.scopesym.isAggregateDeclaration())
+        if (sc.scopesym && !sc.scopesym.isAggregateDeclaration())
         {
             for (ScopeDsymbol sym = sc.scopesym; sym && endlinnum == 0;
                  sym = sym.parent ? sym.parent.isScopeDsymbol() : null)
                 endlinnum = sym.endlinnum;
         }
+
+        semanticState = SemState.Done;
     }
 
     override final void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
     {
         //printf("VarDeclaration::setFieldOffset(ad = %s) %s\n", ad.toChars(), toChars());
-
-        if (aliassym)
-        {
-            // If this variable was really a tuple, set the offsets for the tuple fields
-            TupleDeclaration v2 = aliassym.isTupleDeclaration();
-            assert(v2);
-            for (size_t i = 0; i < v2.objects.dim; i++)
-            {
-                RootObject o = (*v2.objects)[i];
-                assert(o.dyncast() == DYNCAST.expression);
-                Expression e = cast(Expression)o;
-                assert(e.op == TOKdsymbol);
-                DsymbolExp se = cast(DsymbolExp)e;
-                se.s.setFieldOffset(ad, poffset, isunion);
-            }
-            return;
-        }
 
         if (!isField())
             return;
@@ -1984,12 +1936,10 @@ extern (C++) class VarDeclaration : Declaration
 
         //printf("+VarDeclaration::setFieldOffset(ad = %s) %s\n", ad.toChars(), toChars());
 
-        /* Fields that are tuples appear both as part of TupleDeclarations and
-         * as members. That means ignore them if they are already a field.
-         */
         if (offset)
         {
             // already a field
+            assert(false); // FWDREF
             *poffset = ad.structsize; // https://issues.dlang.org/show_bug.cgi?id=13613
             return;
         }
@@ -1997,6 +1947,7 @@ extern (C++) class VarDeclaration : Declaration
         {
             if (ad.fields[i] == this)
             {
+                assert(false); // FWDREF
                 // already a field
                 *poffset = ad.structsize; // https://issues.dlang.org/show_bug.cgi?id=13613
                 return;
@@ -2022,10 +1973,6 @@ extern (C++) class VarDeclaration : Declaration
                 return;
             }
         }
-
-        // List in ad.fields. Even if the type is error, it's necessary to avoid
-        // pointless error diagnostic "more initializers than fields" on struct literal.
-        ad.fields.push(this);
 
         if (t.ty == Terror)
             return;
@@ -2143,7 +2090,7 @@ extern (C++) class VarDeclaration : Declaration
         AggregateDeclaration ad = null;
         if (!(storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe)))
         {
-            for (Dsymbol s = this; s; s = s.parent)
+            for (Dsymbol s = this; s; s = s.parent) // FWDREF NOTE: shouldn't this be replaced by toParent()?
             {
                 ad = s.isMember();
                 if (ad)
@@ -2373,6 +2320,7 @@ extern (C++) class VarDeclaration : Declaration
     {
         // Ungag errors when not speculative
         uint oldgag = global.gag;
+        scope(exit) global.gag = oldgag;
         if (global.gag)
         {
             Dsymbol sym = toParent().isAggregateDeclaration();
@@ -2383,6 +2331,8 @@ extern (C++) class VarDeclaration : Declaration
         if (_scope && semanticRun < PASSsemantic2done)
         {
             semantic(null);
+            if (isDeferred())
+                return new DeferExp();
             semantic2(null);
         }
         assert(type && _init);
@@ -2400,7 +2350,6 @@ extern (C++) class VarDeclaration : Declaration
         }
 
         Expression e = vinit.toExpression(needFullType ? type : null);
-        global.gag = oldgag;
         return e;
     }
 

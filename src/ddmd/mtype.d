@@ -7918,7 +7918,13 @@ extern (C++) final class TypeInstance : TypeQualified
         *ps = null;
 
         //printf("TypeInstance::resolve(sc = %p, tempinst = '%s')\n", sc, tempinst.toChars());
+        tempinst.setScope(sc);
         tempinst.importAll(sc);
+        if (tempinst.isDeferred())
+        {
+            *pt = tdefer;
+            return;
+        }
         if (!global.gag && tempinst.errors)
         {
             *pt = terror;

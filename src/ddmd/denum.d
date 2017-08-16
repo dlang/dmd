@@ -46,8 +46,6 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     Expression minval;
     Expression defaultval;  // default initializer
     bool isdeprecated;
-    bool added;
-    int inuse;
 
     extern (D) this(Loc loc, Identifier id, Type memtype)
     {
@@ -66,6 +64,24 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         return ScopeDsymbol.syntaxCopy(ed);
     }
 
+    // Anonymous enums -> add members to the enclosing scope during addMember()
+    // Named enums -> add members during determineMembers()
+    final void addEnumMembers(ScopeDsymbol sds)
+    {
+        /* Anonymous enum members get added to enclosing scope.
+         */
+        if (members)
+        {
+            for (size_t i = 0; i < members.dim; i++)
+            {
+                EnumMember em = (*members)[i].isEnumMember(); // FWDREF NOTE: why can't we have others Dsymbol (e.g attribs) in enums?
+                em.ed = this;
+                //printf("add %s to scope %s\n", em.toChars(), scopesym.toChars());
+                em.addMember(sc, sds);
+            }
+        }
+    }
+
     override void addMember(Scope* sc, ScopeDsymbol sds)
     {
         version (none)
@@ -78,167 +94,133 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             }
         }
 
-        /* Anonymous enum members get added to enclosing scope.
-         */
-        ScopeDsymbol scopesym = isAnonymous() ? sds : this;
+        if (addMemberState == SemState.Done)
+            return;
+        addMemberState = SemState.In;
+
 
         if (!isAnonymous())
+            super.addMember(sc, sds);
+        else
         {
-            ScopeDsymbol.addMember(sc, sds);
-            if (!symtab)
-                symtab = new DsymbolTable();
+            setScope(sc);
+            addEnumMembers(sds);
         }
 
-        if (members)
-        {
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                EnumMember em = (*members)[i].isEnumMember();
-                em.ed = this;
-                //printf("add %s to scope %s\n", em.toChars(), scopesym.toChars());
-                em.addMember(sc, isAnonymous() ? scopesym : this);
-            }
-        }
-        added = true;
+        addMemberState = SemState.Done;
     }
 
     override void setScope(Scope* sc)
     {
-        if (semanticRun > PASSinit)
-            return;
-        ScopeDsymbol.setScope(sc);
-    }
+        super.setScope(sc);
 
-    override void importAll(Scope* sc)
-    {
-        if (semanticRun >= PASSmembers) // since there's no members.importAll calls (which is strange, can't enums contain static if?), no need to support recursive calls
-            return;
-        semanticRun = PASSmembers;
-
-        if (_scope)
-            sc = _scope;
-        assert(sc);
         parent = sc.parent;
 
         protection = sc.protection;
         if (sc.stc & STCdeprecated)
             isdeprecated = true;
         userAttribDecl = sc.userAttribDecl;
-
-        if (!symtab)
-            symtab = new DsymbolTable();
-
-        Scope* sce;
-        if (isAnonymous())
-            sce = sc;
-        else
-        {
-            sce = sc.push(this);
-            sce.parent = this;
-        }
-        sce = sce.startCTFE();
-        sce.setNoFree(); // needed for getMaxMinValue()
-
-        /* Each enum member gets the sce scope
-         */
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            EnumMember em = (*members)[i].isEnumMember();
-            if (em)
-                em._scope = sce; // FWDREF WARNING: can't enum contain more than just EnumMembers at this point e.g attributes?
-        }
-
-        if (!added)
-        {
-            /* addMember() is not called when the EnumDeclaration appears as a function statement,
-             * so we have to do what addMember() does and install the enum members in the right symbol
-             * table
-             */
-            ScopeDsymbol scopesym = null;
-            if (isAnonymous())
-            {
-                /* Anonymous enum members get added to enclosing scope.
-                 */
-                for (Scope* sct = sce; 1; sct = sct.enclosing)
-                {
-                    assert(sct);
-                    if (sct.scopesym)
-                    {
-                        scopesym = sct.scopesym;
-                        if (!sct.scopesym.symtab)
-                            sct.scopesym.symtab = new DsymbolTable();
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                // Otherwise enum members are in the EnumDeclaration's symbol table
-                scopesym = this;
-            }
-
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                EnumMember em = (*members)[i].isEnumMember();
-                if (em)
-                {
-                    em.ed = this;
-                    em.addMember(sc, scopesym);
-                }
-            }
-        }
-
-//         ScopeDsymbol.importAll(sc);
-        semanticRun = PASSmembersdone;
     }
 
-    override void semantic(Scope* sc)
+    override Scope* newScope()
     {
-        //printf("EnumDeclaration::semantic(sd = %p, '%s') %s\n", sc.scopesym, sc.scopesym.toChars(), toChars());
-        //printf("EnumDeclaration::semantic() %p %s\n", this, toChars());
-        if (semanticRun >= PASSsemanticdone)
-            return; // semantic() already completed
+        Scope* sce = sc.push(this);
+        sce.parent = this;
+        sce = sce.startCTFE();
+        sce.setNoFree(); // needed for getMaxMinValue()
+        return sce;
+    }
 
-        importAll(sc);
-        if (semanticRun < PASSmembersdone)
+    override void determineMembers()
+    {
+        if (isAnonymous())
         {
-            error("enum members forward ref");
+            // already added during addMember
+            membersState = SemState.Done;
             return;
         }
+        super.determineMembers();
+    }
 
-        if (semanticRun == PASSsemantic)
-        {
-            assert(memtype);
-            .error(loc, "circular reference to enum base type `%s`", memtype.toChars());
-            errors = true;
-            semanticRun = PASSsemanticdone;
+    override void semanticType()
+    {
+        if (typeState == SemState.Done)
             return;
-        }
-        uint dprogress_save = Module.dprogress;
-
-        Scope* scx = null;
-        if (_scope)
-        {
-            sc = _scope;
-            scx = _scope; // save so we don't make redundant copies
-            _scope = null;
-        }
-
-        assert(sc);
-//         if (!sc) // FWDREF when does that happen?
-//             return;
-
-        assert(semanticRun >= PASSmembersdone);
+        typeState = SemState.In;
+        void defer() { typeState = SemState.Defer; }
+        void errorReturn() { errors = true; typeState = SemState.Done; }
 
         type = type.semantic(loc, sc);
 
-        semanticRun = PASSsemantic;
-
-        if (!members && !memtype) // enum ident;
+        if (!memtype)
         {
-            semanticRun = PASSsemanticdone;
-            return;
+            if (!members) // enum ident;
+            {
+                typeState = SemState.Done;
+                return;
+            }
+
+            // FIXME BUG: this is incorrect if the first member has a small value but there's another member that doesn't fit in the first inferred type (the bug existed before FWDREF)
+            if (members.dim)
+            {
+                auto s = (*members)[0];
+                s.semanticType();
+                if (s.typeState != SemState.Done)
+                    return defer(); // memtype is forward referenced, so try again later
+                memtype = s.type;
+            }
+            else
+                memtype = Type.tint32;
         }
+
+        memtype = memtype.semantic(loc, sc);
+
+        /* Check to see if memtype is forward referenced
+            */
+        if (memtype.ty == Tenum)
+        {
+            EnumDeclaration sym = cast(EnumDeclaration)memtype.toDsymbol(sc);
+            sym.semanticType();
+            if (sym.typeState != SemState.Done)
+                return defer(); // memtype is forward referenced, so try again later
+        }
+        if (memtype.ty == Tvoid)
+        {
+            error("base type must not be void");
+            memtype = Type.terror;
+        }
+        if (memtype.ty == Terror)
+        {
+            if (members)
+            {
+                for (size_t i = 0; i < members.dim; i++)
+                {
+                    Dsymbol s = (*members)[i];
+                    s.errors = true; // poison all the members
+                }
+            }
+            return errorReturn();
+        }
+
+        typeState = SemState.Done;
+    }
+
+    override void semantic()
+    {
+        //printf("EnumDeclaration::semantic(sd = %p, '%s') %s\n", sc.scopesym, sc.scopesym.toChars(), toChars());
+        //printf("EnumDeclaration::semantic() %p %s\n", this, toChars());
+        uint dprogress_save = Module.dprogress;
+
+        if (semanticState == SemState.Done)
+            return;
+        semanticState = SemState.In;
+        void defer() { semanticState = SemState.Defer; }
+        void errorReturn() { errors = true; semanticState = SemState.Done; }
+
+        semanticType();
+        determineMembers();
+        if (membersState != SemState.Done)
+            return defer();
 
         /* The separate, and distinct, cases are:
          *  1. enum { ... }
@@ -249,68 +231,21 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
          *  6. enum ident;
          */
 
-        if (memtype)
-        {
-            memtype = memtype.semantic(loc, sc);
-
-            /* Check to see if memtype is forward referenced
-             */
-            if (memtype.ty == Tenum)
-            {
-                EnumDeclaration sym = cast(EnumDeclaration)memtype.toDsymbol(sc);
-                if (!sym.memtype || !sym.members || !sym.symtab || sym._scope)
-                {
-                    // memtype is forward referenced, so try again later
-                    _scope = scx ? scx : sc.copy();
-                    _scope.setNoFree();
-                    _scope._module.addDeferredSemantic(this);
-                    Module.dprogress = dprogress_save;
-                    //printf("\tdeferring %s\n", toChars());
-                    semanticRun = PASSmembersdone;
-                    return;
-                }
-            }
-            if (memtype.ty == Tvoid)
-            {
-                error("base type must not be void");
-                memtype = Type.terror;
-            }
-            if (memtype.ty == Terror)
-            {
-                errors = true;
-                if (members)
-                {
-                    for (size_t i = 0; i < members.dim; i++)
-                    {
-                        Dsymbol s = (*members)[i];
-                        s.errors = true; // poison all the members
-                    }
-                }
-                semanticRun = PASSsemanticdone;
-                return;
-            }
-        }
-
-        semanticRun = PASSsemanticdone;
-
         if (!members) // enum ident : memtype;
+        {
+            semanticState = SemState.Done;
             return;
+        }
 
         if (members.dim == 0)
         {
             error("enum `%s` must have at least one member", toChars());
-            errors = true;
-            return;
+            return errorReturn();
         }
 
         Module.dprogress++;
 
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            EnumMember em = (*members)[i].isEnumMember();
-            if (em)
-                em.semantic(em._scope);
-        }
+        super.semantic();
         //printf("defaultval = %lld\n", defaultval);
 
         //if (defaultval) printf("defaultval: %s %s\n", defaultval.toChars(), defaultval.type.toChars());
@@ -333,22 +268,6 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     {
         return "enum";
     }
-
-//     override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
-//     {
-//         //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident.toChars());
-//         importAll(_scope);
-//
-//         if (!members || !symtab || _scope)
-//         {
-//             error("is forward referenced when looking for `%s`", ident.toChars());
-//             //*(char*)0=0;
-//             return null;
-//         }
-//
-//         Dsymbol s = ScopeDsymbol.search(loc, ident, flags);
-//         return s;
-//     }
 
     // is Dsymbol deprecated?
     override bool isDeprecated()
@@ -392,11 +311,12 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         if (*pval)
             goto Ldone;
 
-        if (_scope)
-            semantic(_scope);
+        semantic();
+        if (semanticState == SemState.Defer)
+            return new DeferExp();
         if (errors)
             return errorReturn();
-        if (semanticRun < PASSsemanticdone || !members)
+        if (semanticState != SemState.Done)
         {
             error("is forward referenced looking for `.%s`", id.toChars());
             return errorReturn();
@@ -458,11 +378,12 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         if (defaultval)
             return defaultval;
 
-        if (_scope)
-            semantic(_scope);
+        semantic();
+        if (semanticState == SemState.Defer)
+            return new DeferExp();
         if (errors)
             goto Lerrors;
-        if (semanticRun < PASSsemanticdone || !members)
+        if (semanticState != SemState.Done)
         {
             error(loc, "forward reference of `%s.init`", toChars());
             goto Lerrors;
@@ -481,36 +402,6 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     Lerrors:
         defaultval = new ErrorExp();
         return defaultval;
-    }
-
-    Type getMemtype(Loc loc)
-    {
-        if (loc.linnum == 0)
-            loc = this.loc;
-        if (_scope)
-        {
-            /* Enum is forward referenced. We don't need to resolve the whole thing,
-             * just the base type
-             */
-            if (memtype)
-                memtype = memtype.semantic(loc, _scope);
-            else
-            {
-                if (!isAnonymous() && members)
-                    memtype = Type.tint32;
-            }
-        }
-        if (!memtype)
-        {
-            if (!isAnonymous() && members)
-                memtype = Type.tint32;
-            else
-            {
-                error(loc, "is forward referenced looking for base type");
-                return Type.terror;
-            }
-        }
-        return memtype;
     }
 
     override inout(EnumDeclaration) isEnumDeclaration() inout
@@ -562,6 +453,13 @@ extern (C++) final class EnumMember : VarDeclaration
     override const(char)* kind() const
     {
         return "enum member";
+    }
+
+    override void setScope(Scope* sc)
+    {
+        super.setScope(sc);
+        if (!ed)
+            ed = sc.parent;
     }
 
     override void semantic(Scope* sc)
