@@ -5938,11 +5938,11 @@ extern (C++) final class SliceExp : UnaExp
 
     override StringExp toStringExp()
     {
-    	if (e1.op == TOKstring)
-    	{
+        if (e1.op == TOKstring)
+        {
             return e1.toStringExp;
-    	}
-    	return null;
+        }
+        return null;
     }
 
     override void accept(Visitor v)
