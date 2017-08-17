@@ -347,7 +347,7 @@ public extern (C++) void builtin_init()
     if (global.params.is64bit)
         add_builtin("_D4core5bitop7_popcntFNaNbNiNfmZi", &eval_popcnt);
     // @safe @nogc pure nothrow void function(const string)
-    add_builtin("_D6object11__ctfeWriteFNaNbNiNfxAyaZv", &builtin_ctfeWrite);
+    add_builtin("_D6object11__ctfeWriteFNaNbNiNfMAxaZv", &builtin_ctfeWrite);
 }
 
 /**********************************
