@@ -297,16 +297,17 @@ string scalarExp(Args...)()
 // `args` to contain operand values.
 string initScalarVecs(Args...)()
 {
-    size_t scalarsIdx;
+    size_t scalarsIdx, argsIdx;
     string res;
-    foreach (aidx, arg; Args)
+    foreach (arg; Args)
     {
         static if (is(arg == T[], T))
         {
+            ++argsIdx;
         }
         else static if (is(arg))
             res ~= "immutable vec scalar" ~ scalarsIdx++.toString ~ " = args["
-                ~ aidx.toString ~ "];\n";
+                ~ argsIdx++.toString ~ "];\n";
     }
     return res;
 }
@@ -318,7 +319,7 @@ string vectorExp(Args...)()
 {
     size_t scalarsIdx, argsIdx;
     string[] stack;
-    foreach (i, arg; Args)
+    foreach (arg; Args)
     {
         static if (is(arg == T[], T))
             stack ~= "load(&args[" ~ argsIdx++.toString ~ "][pos])";
@@ -562,4 +563,14 @@ unittest
     arrayOp!(float[], const(S)[], const(S)[], "+", "/=")(res[], s[], s[]);
     foreach (v; res[])
         assert(v == 12.0f);
+}
+
+// test scalar after operation argument
+unittest
+{
+    float[32] res, a = 2, b = 3;
+    float c = 4;
+    arrayOp!(float[], const(float)[], const(float)[], "*", float, "+", "=")(res[], a[], b[], c);
+    foreach (v; res[])
+        assert(v == 2 * 3 + 4);
 }
