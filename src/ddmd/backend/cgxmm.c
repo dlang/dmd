@@ -404,7 +404,7 @@ void xmmcnvt(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     else if (zx)
     {   assert(I64);
         getregs(cdb,regs);
-        cdb.append(genregs(CNIL,STO,reg,reg)); // MOV reg,reg to zero upper 32-bit
+        genregs(cdb,STO,reg,reg); // MOV reg,reg to zero upper 32-bit
         code_orflag(cdb.last(),CFvolatile);
     }
 
