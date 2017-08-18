@@ -1991,6 +1991,32 @@ void test17695(__vector(ubyte[16]) a)
 
 /*****************************************/
 
+void refIntrinsics()
+{
+    // never called, but check for link errors
+    void16 v;
+    void16 a;
+    float f = 1;
+    double d = 1;
+
+    a = __simd(XMM.ADDPD, a, v);
+    a = __simd(XMM.CMPSS, a, v, cast(ubyte)0x7A);
+
+    a = __simd(XMM.LODSS, v);
+    a = __simd(XMM.LODSS, f);
+    a = __simd(XMM.LODSS, d);
+
+    __simd_sto(XMM.STOUPS, v, a);
+    __simd_sto(XMM.STOUPS, f, a);
+    __simd_sto(XMM.STOUPS, d, a);
+
+    a = __simd_ib(XMM.PSLLW, a, cast(ubyte)0x7A);
+
+    prefetch!(false, 0)(&a);
+}
+
+/*****************************************/
+
 int main()
 {
     test1();

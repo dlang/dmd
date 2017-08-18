@@ -307,15 +307,15 @@ public extern (C++) void builtin_init()
     add_builtin("_D3std4math5ldexpFNaNbNiNffiZf", &eval_ldexp);
 
     // @trusted @nogc pure nothrow bool function(T)
-    add_builtin("_D3std4math12__T5isNaNTeZ5isNaNFNaNbNiNeeZb", &eval_isnan);
-    add_builtin("_D3std4math12__T5isNaNTdZ5isNaNFNaNbNiNedZb", &eval_isnan);
-    add_builtin("_D3std4math12__T5isNaNTfZ5isNaNFNaNbNiNefZb", &eval_isnan);
-    add_builtin("_D3std4math18__T10isInfinityTeZ10isInfinityFNaNbNiNeeZb", &eval_isinfinity);
-    add_builtin("_D3std4math18__T10isInfinityTdZ10isInfinityFNaNbNiNedZb", &eval_isinfinity);
-    add_builtin("_D3std4math18__T10isInfinityTfZ10isInfinityFNaNbNiNefZb", &eval_isinfinity);
-    add_builtin("_D3std4math15__T8isFiniteTeZ8isFiniteFNaNbNiNeeZb", &eval_isfinite);
-    add_builtin("_D3std4math15__T8isFiniteTdZ8isFiniteFNaNbNiNedZb", &eval_isfinite);
-    add_builtin("_D3std4math15__T8isFiniteTfZ8isFiniteFNaNbNiNefZb", &eval_isfinite);
+    add_builtin("_D3std4math__T5isNaNTeZQjFNaNbNiNeeZb", &eval_isnan);
+    add_builtin("_D3std4math__T5isNaNTdZQjFNaNbNiNedZb", &eval_isnan);
+    add_builtin("_D3std4math__T5isNaNTfZQjFNaNbNiNefZb", &eval_isnan);
+    add_builtin("_D3std4math__T10isInfinityTeZQpFNaNbNiNeeZb", &eval_isinfinity);
+    add_builtin("_D3std4math__T10isInfinityTdZQpFNaNbNiNedZb", &eval_isinfinity);
+    add_builtin("_D3std4math__T10isInfinityTfZQpFNaNbNiNefZb", &eval_isinfinity);
+    add_builtin("_D3std4math__T8isFiniteTeZQmFNaNbNiNeeZb", &eval_isfinite);
+    add_builtin("_D3std4math__T8isFiniteTdZQmFNaNbNiNedZb", &eval_isfinite);
+    add_builtin("_D3std4math__T8isFiniteTfZQmFNaNbNiNefZb", &eval_isfinite);
 
     // @safe @nogc pure nothrow int function(uint)
     add_builtin("_D4core5bitop3bsfFNaNbNiNfkZi", &eval_bsf);
