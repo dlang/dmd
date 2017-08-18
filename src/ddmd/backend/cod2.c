@@ -4171,7 +4171,7 @@ void getoffset(CodeBuilder& cdb,elem *e,unsigned reg)
                  *   LEA EAX,s@TLSGD[1*EBX+0]
                  */
                 assert(reg == AX);
-                cdb.append(load_localgot());
+                load_localgot(cdb);
                 code css;
                 css.Iop = LEA;             // LEA
                 css.Irm = modregrm(0,AX,4);
