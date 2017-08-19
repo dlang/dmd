@@ -56,4 +56,5 @@ $(SPEC_SUBNAV_PREV simd, Vector Extensions)
 )
 
 Macros:
+    CHAPTER=40
     TITLE=Better C
