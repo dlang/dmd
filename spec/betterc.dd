@@ -1,0 +1,59 @@
+Ddoc
+
+$(SPEC_S Better C,
+
+`-betterC` is a command-line flag for `dmd`,
+which restricts the compiler's support of certain runtime features.
+Notably, D programs or libraries compiled with `betterC` aren't linked with Druntime.
+The use of compile-time features is not restricted in any way.
+
+Limiting a program or library to this subset of runtime features is useful
+when targeting constrained environments where the use of such features is not practical or possible.
+Additionally, this also makes embedding D libraries in larger projects easier by:
+
+$(OL
+    $(LI Simplifying the process of integration at the build-system level)
+    $(LI Removing the need to ensure that Druntime is properly initialized on calls to the library, when an initialization step is not performed before the library is used.)
+    $(LI Mixing memory management strategies (GC + manual memory management) can sometimes be tricky, hence removing D's GC from the equation may be a good solution)
+)
+
+---
+extern(C) void main()
+{
+    import core.stdc.stdio : printf;
+    printf("Hello betterC\n");
+}
+---
+
+$(CONSOLE
+> dmd -betterC hello.d $(AMP)$(AMP) ./hello
+Hello betterC
+)
+
+$(H2 $(LNAME2 consequences, Consequences))
+
+As no Druntime is available, many D features won't work.
+For example:
+
+$(OL
+    $(LI Garbage Collection)
+    $(LI Thread-local storage)
+    $(LI TypeInfo and ModuleInfo)
+    $(LI Classes)
+    $(LI Built-in threading (e.g. $(MREF core, thread)))
+    $(LI Dynamic arrays (but not slices) and associative arrays)
+    $(LI Exceptions)
+    $(LI `switch` with strings)
+    $(LI `final switch`)
+    $(LI `synchronized` and $(MREF core, sync))
+    $(LI Static module constructors or deconstructors)
+    $(LI Struct deconstructors)
+    $(LI `unittest` (testing can be as usual with the `-betterC` flag))
+)
+
+$(SPEC_SUBNAV_PREV simd, Vector Extensions)
+
+)
+
+Macros:
+    TITLE=Better C

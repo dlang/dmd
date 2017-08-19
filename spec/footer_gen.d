@@ -49,7 +49,7 @@ void main()
             navString ~= text("PREV_NEXT ", entries[i - 1].name.stripExtension, ", ", entries[i - 1].title, ", ",
                 entries[i + 1].name.stripExtension, ", ", entries[i + 1].title);
         else
-            navString ~= text("PREV_NEXT ", entries[i - 1].name.stripExtension, ", ", entries[i - 1].title);
+            navString ~= text("PREV ", entries[i - 1].name.stripExtension, ", ", entries[i - 1].title);
 
         navString ~= ")";
         writefln("%s: %s", entry.name, navString);
