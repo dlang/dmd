@@ -65,7 +65,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
-    StorageClassDeclaration *isStorageClassDeclaration();
+    StorageClassDeclaration *isStorageClassDeclaration() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -218,7 +218,7 @@ public:
 
         Scope* newScope(Scope *sc);
         void addMember(Scope *sc, ScopeDsymbol *sds);
-        ForwardingAttribDeclaration *isForwardingAttribDeclaration();
+        ForwardingAttribDeclaration *isForwardingAttribDeclaration() { return this; }
 };
 
 // Mixin declarations

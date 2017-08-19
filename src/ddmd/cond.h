@@ -19,6 +19,8 @@ class Module;
 struct Scope;
 class ScopeDsymbol;
 class DebugCondition;
+class ForeachStatement;
+class ForeachRangeStatement;
 
 int findCondition(Strings *ids, Identifier *ident);
 
