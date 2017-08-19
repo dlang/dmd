@@ -11,6 +11,8 @@
 
 #include <string.h>                     // memset()
 
+#include "dsymbol.h"
+
 void genhdrfile(Module *m);
 
 struct HdrGenState
