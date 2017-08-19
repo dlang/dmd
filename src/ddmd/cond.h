@@ -12,6 +12,9 @@
 #ifndef DMD_DEBCOND_H
 #define DMD_DEBCOND_H
 
+#include "globals.h"
+#include "visitor.h"
+
 class Expression;
 class Identifier;
 struct OutBuffer;

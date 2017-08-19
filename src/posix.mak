@@ -373,7 +373,7 @@ DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
 all: dmd
 
-auto-tester-build: dmd checkwhitespace $G/dmd_frontend
+auto-tester-build: dmd checkwhitespace checkcxxheaders $G/dmd_frontend
 .PHONY: auto-tester-build
 
 toolchain-info:
@@ -545,6 +545,12 @@ checkwhitespace: $(HOST_DMD_PATH) $(TOOLS_DIR)/checkwhitespace.d
 
 $(TOOLS_DIR)/checkwhitespace.d:
 	git clone --depth=1 ${GIT_HOME}/tools $(TOOLS_DIR)
+
+######################################################
+
+checkcxxheaders:
+	$(HOST_CXX) -fsyntax-only $(ROOT_FLAGS) $(filter %.h,$(ROOT_SRC))
+	$(HOST_CXX) -fsyntax-only $(DMD_FLAGS) $(filter %.h,$(SRC))
 
 ######################################################
 
