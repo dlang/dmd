@@ -691,4 +691,13 @@ bool alwaysFalse(int v = -4)
 
 static assert(!alwaysFalse());
 
+bool alwaysTrue()
+{
+        bool f = false;
+        return (f || true);
+}
+
+static assert(alwaysTrue);
+
+
 static assert(!__traits(newCTFEGaveUp));

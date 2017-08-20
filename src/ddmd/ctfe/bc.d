@@ -558,6 +558,11 @@ pure:
 
     CndJmpBegin beginCndJmp(BCValue cond = BCValue.init, bool ifTrue = false)
     {
+        if (cond.vType == BCValueType.Immediate)
+        {
+            cond = pushOntoStack(cond);
+        }
+
         auto result = CndJmpBegin(ip, cond, ifTrue);
         ip += 2;
         return result;
@@ -570,12 +575,13 @@ pure:
         auto ifTrue = jmp.ifTrue;
 
         LongInst64 lj;
-        if (isStackValueOrParameter(cond) && cond.type.type == BCTypeEnum.i32)
+
+        if (isStackValueOrParameter(cond))
         {
             lj = (ifTrue ? LongInst64(LongInst.JmpNZ, cond.stackAddr,
                 target.addr) : LongInst64(LongInst.JmpZ, cond.stackAddr, target.addr));
         }
-        else
+        else // if (cond == bcLastCond)
         {
             lj = (ifTrue ? LongInst64(LongInst.JmpTrue,
                 target.addr) : LongInst64(LongInst.JmpFalse, target.addr));
