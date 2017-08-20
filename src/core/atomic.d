@@ -1680,8 +1680,7 @@ version( unittest )
 
         static struct S3 { size_t head; int* tail; }
         shared S3 s3;
-        static if (S3.sizeof == 8 && has64BitCAS ||
-            S3.sizeof == 16 && has128BitCAS)
+        static if (__traits(compiles, atomicLoad(s3)))
         {
             static assert(is(typeof(atomicLoad(s3).head) == size_t));
             static assert(is(typeof(atomicLoad(s3).tail) == shared(int)*));
