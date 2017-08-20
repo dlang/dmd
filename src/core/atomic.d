@@ -1605,7 +1605,6 @@ version( unittest )
 
     pure nothrow @safe unittest // issue 16230
     {
-        static struct S { int* p; }
         shared int i;
         static assert(is(typeof(atomicLoad(i)) == int));
 
@@ -1615,6 +1614,7 @@ version( unittest )
         shared int[] a;
         static assert(is(typeof(atomicLoad(a)) == shared(int)[]));
 
+        static struct S { int* p; }
         shared S s;
         static assert(is(typeof(atomicLoad(s)) == shared S));
 
