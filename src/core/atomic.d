@@ -34,11 +34,13 @@ private
 {
     /* Construct a type with a shared tail, and if possible with an unshared
     head. */
-    template TailShared(T)
+    template TailShared(U) if (!is(U == shared))
     {
-        /* Get the shared and unshared variants of T. T may be shared or not.
-        S is always shared. U is always unshared. */
-        alias S = shared T;
+        alias TailShared = .TailShared!(shared U);
+    }
+    template TailShared(S) if (is(S == shared))
+    {
+        // Get the unshared variant of S.
         static if (is(S U == shared U)) {}
         else static assert(false, "Should never be triggered. The `static " ~
             "if` declares `U` as the unshared version of the shared type " ~
@@ -47,6 +49,43 @@ private
 
         static if (is(S : U))
             alias TailShared = U;
+        else static if (is(S == struct))
+        {
+            enum implName = () {
+                /* Start with "_impl". If S has a field with that name, append
+                underscores until the clash is resolved. */
+                import std.algorithm.searching : canFind;
+                string name = "_impl";
+                string[] fieldNames;
+                static foreach (alias field; S.tupleof)
+                {
+                    fieldNames ~= __traits(identifier, field);
+                }
+                while (fieldNames.canFind(name)) name ~= "_";
+                return name;
+            } ();
+            struct TailShared
+            {
+                static foreach (i, alias field; S.tupleof)
+                {
+                    /* On @trusted: This is casting the field from shared(Foo)
+                    to TailShared!Foo. The cast is safe because the field has
+                    been loaded and is not shared anymore. */
+                    mixin("
+                        @trusted @property
+                        ref " ~ __traits(identifier, field) ~ "()
+                        {
+                            alias R = TailShared!(typeof(field));
+                            return * cast(R*) &" ~ implName ~ ".tupleof[i];
+                        }
+                    ");
+                }
+                mixin("
+                    S " ~ implName ~ ";
+                    alias " ~ implName ~ " this;
+                ");
+            }
+        }
         else
             alias TailShared = S;
     }
@@ -81,17 +120,22 @@ private
 
         // Tail follows shared-ness of head -> fully shared.
 
-        static struct S3 { int* p; }
-        static assert(is(TailShared!S3 == shared S3));
-        static assert(is(TailShared!(shared S3) == shared S3));
-
-        static struct S4 { shared(int)** p; }
-        static assert(is(TailShared!S4 == shared S4));
-        static assert(is(TailShared!(shared S4) == shared S4));
-
         static class C { int i; }
         static assert(is(TailShared!C == shared C));
         static assert(is(TailShared!(shared C) == shared C));
+
+        /* However, structs get a wrapper that has getters which cast to
+        TailShared. */
+
+        static struct S3 { int* p; int _impl; int _impl_; int _impl__; }
+        static assert(!is(TailShared!S3 : S3));
+        static assert(is(TailShared!S3 : shared S3));
+        static assert(is(TailShared!(shared S3) == TailShared!S3));
+
+        static struct S4 { shared(int)** p; }
+        static assert(!is(TailShared!S4 : S4));
+        static assert(is(TailShared!S4 : shared S4));
+        static assert(is(TailShared!(shared S4) == TailShared!S4));
     }
 }
 
@@ -1614,9 +1658,27 @@ version( unittest )
         shared int[] a;
         static assert(is(typeof(atomicLoad(a)) == shared(int)[]));
 
-        static struct S { int* p; }
+        static struct S { int* _impl; }
         shared S s;
-        static assert(is(typeof(atomicLoad(s)) == shared S));
+        static assert(is(typeof(atomicLoad(s)) : shared S));
+        static assert(is(typeof(atomicLoad(s)._impl) == shared(int)*));
+        auto u = atomicLoad(s);
+        assert(u._impl is null);
+        u._impl = new shared int(42);
+        assert(atomicLoad(*u._impl) == 42);
+
+        static struct S2 { S s; }
+        shared S2 s2;
+        static assert(is(typeof(atomicLoad(s2).s) == TailShared!S));
+
+        static struct S3 { size_t head; int* tail; }
+        shared S3 s3;
+        static if (S3.sizeof == 8 && has64BitCAS ||
+            S3.sizeof == 16 && has128BitCAS)
+        {
+            static assert(is(typeof(atomicLoad(s3).head) == size_t));
+            static assert(is(typeof(atomicLoad(s3).tail) == shared(int)*));
+        }
 
         static class C { int i; }
         shared C c;
