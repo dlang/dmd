@@ -50,7 +50,7 @@ private
         else
             alias TailShared = S;
     }
-    unittest
+    @safe unittest
     {
         // No tail (no indirections) -> fully unshared.
 
