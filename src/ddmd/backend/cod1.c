@@ -282,7 +282,7 @@ void genEEcode()
     assert(EEStack.offset >= REGSIZE);
     cod3_stackadj(cdb, EEStack.offset - REGSIZE);
     cdb.gen1(0x50 + SI);                      // PUSH ESI
-    cdb.append(genadjesp(CNIL,EEStack.offset));
+    cdb.genadjesp(EEStack.offset);
     gencodelem(cdb,eecontext.EEelem,&retregs, FALSE);
     code *c = cdb.finish();
     assignaddrc(c);
@@ -392,7 +392,7 @@ void genstackclean(CodeBuilder& cdb,unsigned numpara,regm_t keepmsk)
                 cod3_stackadj(cdb, -numpara);
         }
         stackpush -= numpara;
-        cdb.append(genadjesp(CNIL,-numpara));
+        cdb.genadjesp(-numpara);
     }
 }
 
@@ -2976,7 +2976,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     {
         numalign = STACKALIGN - ((numpara + stackpush) & (STACKALIGN - 1));
         cod3_stackadj(cdb, numalign);
-        cdb.append(genadjesp(CNIL, numalign));
+        cdb.genadjesp(numalign);
         stackpush += numalign;
         stackpushsave += numalign;
     }
@@ -3052,7 +3052,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             else if (numalign)
             {
                 cod3_stackadj(cdb, numalign);
-                cdb.append(genadjesp(CNIL, numalign));
+                cdb.genadjesp(numalign);
                 stackpush += numalign;
             }
         }
@@ -3188,7 +3188,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             else
             {
                 cod3_stackadj(cdb, sz);
-                cdb.append(genadjesp(CNIL, sz));
+                cdb.genadjesp(sz);
                 stackpush += sz;
             }
         }
@@ -3834,7 +3834,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
 
         cod3_stackadj(cdb, sz);
         stackpush += sz;
-        cdb.append(genadjesp(CNIL,sz));
+        cdb.genadjesp(sz);
 
         // Find OPstrthis and set it to stackpush
         exp2_setstrthis(e1,NULL,stackpush,NULL);
@@ -3866,7 +3866,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
         if (reg & 8)
             code_orrex(cdb.last(), REX_B);
         stackpush += REGSIZE;
-        cdb.append(genadjesp(CNIL,sz));
+        cdb.genadjesp(sz);
         freenode(e);
         return;
     }
@@ -3984,11 +3984,11 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
                     {
                         cdb.genc1(0xFF,buildModregrm(2,6,rm),FLconst,pushsize * (npushes - 1));  // PUSH [reg]
                         code_orflag(cdb.last(),seg);
-                        cdb.append(genadjesp(CNIL,pushsize));
+                        cdb.genadjesp(pushsize);
                     }
                     cdb.gen2(0xFF,buildModregrm(0,6,rm));     // PUSH [reg]
                     cdb.last()->Iflags |= seg;
-                    cdb.append(genadjesp(CNIL,pushsize));
+                    cdb.genadjesp(pushsize);
                 }
                 else if (sz)
                 {
@@ -4008,7 +4008,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
                     cdb.genc2(0x81,grex | buildModregrm(3,5,reg),pushsize);  // SUB reg,2
                     genjmp(cdb,0xE2,FLcode,(block *)c3);        // LOOP c3
                     regimmed_set(CX,0);
-                    cdb.append(genadjesp(CNIL,sz));
+                    cdb.genadjesp(sz);
                 }
                 stackpush += sz;
                 freenode(e);
@@ -4043,7 +4043,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             {
                 assert(sz >= REGSIZE * 2);
                 loadea(cdb,e,&cs,0xFF,6,sz - REGSIZE,0,0); // PUSH EA+4
-                cdb.append(genadjesp(CNIL,REGSIZE));
+                cdb.genadjesp(REGSIZE);
                 stackpush += REGSIZE;
                 sz -= REGSIZE;
 
@@ -4053,7 +4053,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
                     {
                         cs.IEVoffset1 -= REGSIZE;
                         cdb.gen(&cs);                    // PUSH EA+...
-                        cdb.append(genadjesp(CNIL,REGSIZE));
+                        cdb.genadjesp(REGSIZE);
                         stackpush += REGSIZE;
                         sz -= REGSIZE;
                     }
@@ -4068,18 +4068,18 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
                     loadea(cdb,e,&cs,0xFF,6,DOUBLESIZE - REGSIZE,0,0); // PUSH EA+6
                     cs.IEVoffset1 -= REGSIZE;
                     cdb.gen(&cs);                    // PUSH EA+4
-                    cdb.append(genadjesp(CNIL,REGSIZE));
+                    cdb.genadjesp(REGSIZE);
                     getlvalue_lsw(&cs);
                     cdb.gen(&cs);                    // PUSH EA+2
                 }
                 else /* TYlong */
                     loadea(cdb,e,&cs,0xFF,6,REGSIZE,0,0); // PUSH EA+2
-                cdb.append(genadjesp(CNIL,REGSIZE));
+                cdb.genadjesp(REGSIZE);
             }
             stackpush += sz;
             getlvalue_lsw(&cs);
             cdb.gen(&cs);                            // PUSH EA
-            cdb.append(genadjesp(CNIL,REGSIZE));
+            cdb.genadjesp(REGSIZE);
             freenode(e);
             return;
         }
@@ -4103,7 +4103,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             cdb.gen1(0x06 + segreg);            // PUSH SEGREG
             if (I32 && stackalign == 2)
                 code_orflag(cdb.last(),CFopsize);        // push a word
-            cdb.append(genadjesp(CNIL,stackalign));
+            cdb.genadjesp(stackalign);
             stackpush += stackalign;
             pushParams(cdb,e1,stackalign);
             freenode(e);
@@ -4131,7 +4131,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             stackpush += sz;
             cdb.gen1(0x06 +           // PUSH SEGREG
                     (((fl == FLfunc || s->ty() & mTYcs) ? 1 : segfl[fl]) << 3));
-            cdb.append(genadjesp(CNIL,REGSIZE));
+            cdb.genadjesp(REGSIZE);
 
             if (config.target_cpu >= TARGET_80286 && !e->Ecount)
             {
@@ -4145,7 +4145,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
                 offsetinreg(cdb,e,&retregs);
                 unsigned reg = findreg(retregs);
                 genpush(cdb,reg);                    // PUSH reg
-                cdb.append(genadjesp(CNIL,REGSIZE));
+                cdb.genadjesp(REGSIZE);
             }
             return;
         }
@@ -4157,7 +4157,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
                 // PUSH SEG e
                 cdb.gencs(0x68,0,FLextern,s);
                 cdb.last()->Iflags = CFseg;
-                cdb.append(genadjesp(CNIL,REGSIZE));
+                cdb.genadjesp(REGSIZE);
             }
             getoffset(cdb,e,STACK);
             freenode(e);
@@ -4191,13 +4191,13 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             cs.Irex = 0;
             loadea(cdb,e,&cs,0xFF,6,sz - regsize,RMload,0);    // PUSH EA+sz-2
             code_orflag(cdb.last(),flag);
-            cdb.append(genadjesp(CNIL,REGSIZE));
+            cdb.genadjesp(REGSIZE);
             stackpush += sz;
             while ((targ_int)(sz -= regsize) > 0)
             {
                 loadea(cdb,e,&cs,0xFF,6,sz - regsize,RMload,0);
                 code_orflag(cdb.last(),flag);
-                cdb.append(genadjesp(CNIL,REGSIZE));
+                cdb.genadjesp(REGSIZE);
             }
             freenode(e);
             return;
@@ -4220,7 +4220,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             assert(sz == 12);
             targ_int value = ((unsigned short *)&e->EV.Vldouble)[4];
             stackpush += sz;
-            cdb.append(genadjesp(NULL,sz));
+            cdb.genadjesp(sz);
             for (int i = 2; i >= 0; i--)
             {
                 unsigned reg;
@@ -4251,7 +4251,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             break;
 
         stackpush += sz;
-        cdb.append(genadjesp(NULL,sz));
+        cdb.genadjesp(sz);
         targ_uns *pi = (targ_uns *) &e->EV.Vdouble;
         targ_ushort *ps = (targ_ushort *) pi;
         targ_ullong *pl = (targ_ullong *)pi;
@@ -4318,7 +4318,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
         regm_t retregs = XMMREGS;
         codelem(cdb,e,&retregs,FALSE);
         stackpush += sz;
-        cdb.append(genadjesp(CNIL,sz));
+        cdb.genadjesp(sz);
         cod3_stackadj(cdb, sz);
         unsigned op = xmmstore(tym);
         unsigned r = findreg(retregs);
@@ -4333,7 +4333,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             retregs = tycomplex(tym) ? mST01 : mST0;
             codelem(cdb,e,&retregs,FALSE);
             stackpush += sz;
-            cdb.append(genadjesp(CNIL,sz));
+            cdb.genadjesp(sz);
             cod3_stackadj(cdb, sz);
             unsigned op;
             unsigned r;
@@ -4401,13 +4401,13 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
     if (sz <= REGSIZE)
     {
         genpush(cdb,findreg(retregs));        // PUSH reg
-        cdb.append(genadjesp(CNIL,REGSIZE));
+        cdb.genadjesp(REGSIZE);
     }
     else if (sz == REGSIZE * 2)
     {
         genpush(cdb,findregmsw(retregs));     // PUSH msreg
         genpush(cdb,findreglsw(retregs));     // PUSH lsreg
-        cdb.append(genadjesp(CNIL,sz));
+        cdb.genadjesp(sz);
     }
 }
 
@@ -4824,7 +4824,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             do
             {
                 loadea(cdb,e,&cs,0xFF,6,i,0,0); // PUSH EA+i
-                cdb.append(genadjesp(CNIL,REGSIZE));
+                cdb.genadjesp(REGSIZE);
                 stackpush += REGSIZE;
                 i -= REGSIZE;
             }
@@ -4850,7 +4850,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             do
             {
                 loadea(cdb,e,&cs,0xFF,6,i,0,0); // PUSH EA+i
-                cdb.append(genadjesp(CNIL,REGSIZE));
+                cdb.genadjesp(REGSIZE);
                 stackpush += REGSIZE;
                 i -= REGSIZE;
             }

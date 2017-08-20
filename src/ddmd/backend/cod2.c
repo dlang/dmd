@@ -2955,7 +2955,7 @@ void cdind(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             do
             {
                 cdb.gen(&cs);                         // PUSH EA+i
-                cdb.append(genadjesp(CNIL,REGSIZE));
+                cdb.genadjesp(REGSIZE);
                 cs.IEVoffset1 -= REGSIZE;
                 stackpush += REGSIZE;
                 i -= REGSIZE;
@@ -3465,7 +3465,7 @@ void cdstrcpy(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         L1:
             cdb.gen1(0x1E);                     // PUSH DS
             cdb.gen1(0x06 + (segreg << 3));     // PUSH segreg
-            cdb.append(genadjesp(CNIL,REGSIZE * 2));
+            cdb.genadjesp(REGSIZE * 2);
             need_DS = TRUE;
             break;
         case TYfptr:
@@ -3500,7 +3500,7 @@ void cdstrcpy(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
     if (need_DS)
     {   cdb.gen1(0x1F);                          // POP DS
-        cdb.append(genadjesp(CNIL,-(REGSIZE * 2)));
+        cdb.genadjesp(-(REGSIZE * 2));
     }
     fixresult(cdb,e,mAX | mES,pretregs);
 }
@@ -4240,7 +4240,7 @@ void getoffset(CodeBuilder& cdb,elem *e,unsigned reg)
             cdb.gen1(0x50 + (reg & 7));      // PUSH reg
             if (reg & 8)
                 code_orrex(cdb.last(), REX_B);
-            cdb.append(genadjesp(CNIL,REGSIZE));
+            cdb.genadjesp(REGSIZE);
             stackchanged = 1;
         }
         break;
@@ -4290,7 +4290,7 @@ void getoffset(CodeBuilder& cdb,elem *e,unsigned reg)
         if (reg == STACK)
         {   stackchanged = 1;
             cs.Iop = 0x68;              /* PUSH immed16                 */
-            cdb.append(genadjesp(NULL,REGSIZE));
+            cdb.genadjesp(REGSIZE);
         }
         else
         {   cs.Iop = 0xB8 + (reg & 7);  // MOV reg,immed16
@@ -4339,7 +4339,7 @@ void getoffset(CodeBuilder& cdb,elem *e,unsigned reg)
             cdb.gen1(0x50 + (reg & 7));               // PUSH reg
             if (reg & 8)
                 code_orrex(cdb.last(), REX_B);
-            cdb.append(genadjesp(CNIL,REGSIZE));
+            cdb.genadjesp(REGSIZE);
             stackchanged = 1;
         }
         else
@@ -4635,7 +4635,7 @@ void cdpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             cdb.gen1(0x50 + AX);
             retregs = FLOATREGS2;
         }
-        cdb.append(genadjesp(CNIL,stackpush - stackpushsave));
+        cdb.genadjesp(stackpush - stackpushsave);
 
         cgstate.stackclean++;
         scodelem(cdb,e2,&retregs,idxregs,FALSE);
@@ -4685,7 +4685,7 @@ void cdpost(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             stackpush -= FLOATSIZE;
             retregs = FLOATREGS;
         }
-        cdb.append(genadjesp(CNIL,stackpush - stackpushsave));
+        cdb.genadjesp(stackpush - stackpushsave);
         fixresult(cdb,e,retregs,pretregs);
         return;
 #endif
