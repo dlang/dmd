@@ -54,14 +54,21 @@ private
             enum implName = () {
                 /* Start with "_impl". If S has a field with that name, append
                 underscores until the clash is resolved. */
-                import std.algorithm.searching : canFind;
                 string name = "_impl";
                 string[] fieldNames;
                 static foreach (alias field; S.tupleof)
                 {
                     fieldNames ~= __traits(identifier, field);
                 }
-                while (fieldNames.canFind(name)) name ~= "_";
+                static bool canFind(string[] haystack, string needle)
+                {
+                    foreach (candidate; haystack)
+                    {
+                        if (candidate == needle) return true;
+                    }
+                    return false;
+                }
+                while (canFind(fieldNames, name)) name ~= "_";
                 return name;
             } ();
             struct TailShared
