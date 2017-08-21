@@ -3364,8 +3364,8 @@ Statement *Parser::parseStatement(int flags)
         case TOKfinal:
             nextToken();
             if (token.value != TOKswitch)
-                error("found '%s' when expecting 'switch' following final", token.toChars());
-            // Implicit fallthrough on purpose
+                goto Ldeclaration;
+            // else fallthrough
 
         case TOKswitch:
         {
