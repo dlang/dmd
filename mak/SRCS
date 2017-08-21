@@ -289,14 +289,8 @@ SRCS=\
 	src\rt\adi.d \
 	src\rt\alloca.d \
 	src\rt\arrayassign.d \
-	src\rt\arraybyte.d \
 	src\rt\arraycast.d \
 	src\rt\arraycat.d \
-	src\rt\arraydouble.d \
-	src\rt\arrayfloat.d \
-	src\rt\arrayint.d \
-	src\rt\arrayreal.d \
-	src\rt\arrayshort.d \
 	src\rt\cast_.d \
 	src\rt\cmath2.d \
 	src\rt\config.d \
