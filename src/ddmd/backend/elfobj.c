@@ -339,8 +339,9 @@ int seg_max;
 int seg_tlsseg = UNKNOWN;
 int seg_tlsseg_bss = UNKNOWN;
 
-int elf_getsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx);
-
+static int elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx);
+static int elf_addsegment(IDXSTR namidx, int type, int flags, int align);
+static int elf_getsegment(IDXSTR namidx);
 
 /*******************************
  * Output a string into a string table
@@ -609,12 +610,18 @@ static IDXSEC elf_newsection2(
     return section_cnt++;
 }
 
-static IDXSEC elf_newsection(const char *name, const char *suffix,
-        Elf32_Word type, Elf32_Word flags)
-{
-    // dbg_printf("elf_newsection(%s,%s,type %d, flags x%x)\n",
-    //        name?name:"",suffix?suffix:"",type,flags);
+/**
+Add a new section name or get the string table index of an existing entry.
 
+Params:
+    name = name of section
+    suffix = append to name
+    padded = set to true when entry was newly added
+Returns:
+    String index of new or existing section name.
+ */
+static IDXSTR elf_addsectionname(const char *name, const char *suffix = NULL, bool *padded = NULL)
+{
     IDXSTR namidx = section_names->size();
     section_names->writeString(name);
     if (suffix)
@@ -623,8 +630,25 @@ static IDXSEC elf_newsection(const char *name, const char *suffix,
         section_names->writeString(suffix);
     }
     IDXSTR *pidx = (IDXSTR *)section_names_hashtable->get(&namidx);
-    assert(!*pidx);             // must not already exist
-    *pidx = namidx;
+    if (*pidx)
+    {
+        // this section name already exists, remove addition
+        section_names->setsize(namidx);
+        return *pidx;
+    }
+    if (padded)
+        *padded = true;
+    return *pidx = namidx;
+}
+
+static IDXSEC elf_newsection(const char *name, const char *suffix,
+        Elf32_Word type, Elf32_Word flags)
+{
+    // dbg_printf("elf_newsection(%s,%s,type %d, flags x%x)\n",
+    //        name?name:"",suffix?suffix:"",type,flags);
+    bool added = false;
+    IDXSTR namidx = elf_addsectionname(name, suffix, &added);
+    assert(added);
 
     return elf_newsection2(namidx,type,flags,0,0,0,0,0,0,0);
 }
@@ -892,22 +916,22 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
 
     seg_count = 0;
 
-    elf_getsegment2(SHN_TEXT, STI_TEXT, SHN_RELTEXT);
+    elf_addsegment2(SHN_TEXT, STI_TEXT, SHN_RELTEXT);
     assert(SegData[CODE]->SDseg == CODE);
 
-    elf_getsegment2(SHN_DATA, STI_DATA, SHN_RELDATA);
+    elf_addsegment2(SHN_DATA, STI_DATA, SHN_RELDATA);
     assert(SegData[DATA]->SDseg == DATA);
 
-    elf_getsegment2(SHN_RODAT, STI_RODAT, 0);
+    elf_addsegment2(SHN_RODAT, STI_RODAT, 0);
     assert(SegData[CDATA]->SDseg == CDATA);
 
-    elf_getsegment2(SHN_BSS, STI_BSS, 0);
+    elf_addsegment2(SHN_BSS, STI_BSS, 0);
     assert(SegData[UDATA]->SDseg == UDATA);
 
-    elf_getsegment2(SHN_CDATAREL, STI_CDATAREL, 0);
+    elf_addsegment2(SHN_CDATAREL, STI_CDATAREL, 0);
     assert(SegData[CDATAREL]->SDseg == CDATAREL);
 
-    elf_getsegment2(SHN_COM, STI_COM, 0);
+    elf_addsegment2(SHN_COM, STI_COM, 0);
     assert(SegData[COMD]->SDseg == COMD);
 
     dwarf_initfile(filename);
@@ -1903,17 +1927,7 @@ void addSegmentToComdat(segidx_t seg, segidx_t comdatseg)
     addSectionToComdat(SegData[seg]->SDshtidx, comdatseg);
 }
 
-/********************************
- * Get a segment for a segment name.
- * Input:
- *      name            name of segment, if NULL then revert to default name
- *      suffix          append to name
- *      align           alignment
- * Returns:
- *      segment index of found or newly created segment
- */
-
-int elf_getsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
+static int elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
 {
     //printf("SegData = %p\n", SegData);
     int seg = ++seg_count;
@@ -1955,43 +1969,74 @@ int elf_getsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
     return seg;
 }
 
-int ElfObj::getsegment(const char *name, const char *suffix, int type, int flags,
-        int align)
+/********************************
+ * Add a new section and get corresponding seg_data entry.
+ *
+ * Input:
+ *     nameidx = string index of section name
+ *        type = section header type, e.g. SHT_PROGBITS
+ *       flags = section header flags, e.g. SHF_ALLOC
+ *       align = section alignment
+ * Returns:
+ *      SegData index of newly created section.
+ */
+static int elf_addsegment(IDXSTR namidx, int type, int flags, int align)
 {
-    //printf("ElfObj::getsegment(%s,%s,flags %x, align %d)\n",name,suffix,flags,align);
-
-    // Add name~suffix to the section_names table
-    IDXSTR namidx = section_names->size();
-    section_names->writeString(name);
-    if (suffix)
-    {   // Append suffix string
-        section_names->setsize(section_names->size() - 1);  // back up over terminating 0
-        section_names->writeString(suffix);
-    }
-    IDXSTR *pidx = (IDXSTR *)section_names_hashtable->get(&namidx);
-    if (*pidx)
-    {   // this section name already exists
-        section_names->setsize(namidx);                 // remove addition
-        namidx = *pidx;
-        for (int seg = CODE; seg <= seg_count; seg++)
-        {                               // should be in segment table
-            if (MAP_SEG2SEC(seg)->sh_name == namidx)
-            {
-                return seg;             // found section for segment
-            }
-        }
-        assert(0);      // but it's not a segment
-        // FIX - should be an error message conflict with section names
-    }
-    *pidx = namidx;
-
     //dbg_printf("\tNew segment - %d size %d\n", seg,SegData[seg]->SDbuf);
     IDXSEC shtidx = elf_newsection2(namidx,type,flags,0,0,0,0,0,0,0);
     SecHdrTab[shtidx].sh_addralign = align;
     IDXSYM symidx = elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, shtidx);
-    int seg = elf_getsegment2(shtidx, symidx, 0);
+    int seg = elf_addsegment2(shtidx, symidx, 0);
     //printf("-ElfObj::getsegment() = %d\n", seg);
     return seg;
+}
+
+/********************************
+ * Find corresponding seg_data entry for existing section.
+ *
+ * Input:
+ *     nameidx = string index of section name
+ * Returns:
+ *      SegData index of found section or 0 if none was found.
+ */
+static int elf_getsegment(IDXSTR namidx)
+{
+    // find existing section
+    for (int seg = CODE; seg <= seg_count; seg++)
+    {                               // should be in segment table
+        if (MAP_SEG2SEC(seg)->sh_name == namidx)
+        {
+            return seg;             // found section for segment
+        }
+    }
+    return 0;
+}
+
+/********************************
+ * Get corresponding seg_data entry for an existing or newly added section.
+ *
+ * Input:
+ *        name = name of section
+ *      suffix = append to name
+ *        type = section header type, e.g. SHT_PROGBITS
+ *       flags = section header flags, e.g. SHF_ALLOC
+ *       align = section alignment
+ * Returns:
+ *      SegData index of found or newly created section.
+ */
+int ElfObj::getsegment(const char *name, const char *suffix, int type, int flags,
+        int align)
+{
+    //printf("ElfObj::getsegment(%s,%s,flags %x, align %d)\n",name,suffix,flags,align);
+    bool added = false;
+    IDXSEC namidx = elf_addsectionname(name, suffix, &added);
+    if (!added)
+    {
+        int seg = elf_getsegment(namidx);
+        assert(seg);
+        return seg;
+    }
+    return elf_addsegment(namidx, type, flags, align);
 }
 
 /**********************************
