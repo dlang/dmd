@@ -1742,60 +1742,61 @@ STATIC void setup_comdat(Symbol *s)
 #else
         reset_symbuf->write(&s, sizeof(s));
 
-        // Create a COMDAT section group
-        IDXSTR groupnamidx = section_names->size();
-        section_names->writeString(".group");
-        IDXSTR *pidx = (IDXSTR *)section_names_hashtable->get(&groupnamidx);
-        if (*pidx)
-        {
-            section_names->setsize(groupnamidx);
-            groupnamidx = *pidx;
-        }
-        else
-            *pidx = groupnamidx;
-        const IDXSEC groupsecidx = elf_newsection2(groupnamidx, SHT_GROUP, 0, 0, 0, 0, SHN_SYMTAB, 0, sizeof(IDXSYM), sizeof(IDXSYM));
-        const int groupseg = elf_getsegment2(groupsecidx, 0, 0);
-        SegData[groupseg]->SDbuf->write32(GRP_COMDAT);
-
         const char *p = cpp_mangle(s);
-        // Create a section for the comdat symbol with the SHF_GROUP bit set
-        s->Sseg = ElfObj::getsegment(".text.", p, SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR|SHF_GROUP, align);
-        /* If that text section already existed, we've hit one of the few occurences of different
-         * symbols with identical mangling. This should not happen, but as a workaround we leave the
-         * just created section group empty and reuse the existing one.  Also see
-         * https://issues.dlang.org/show_bug.cgi?id=17352,
-         * https://issues.dlang.org/show_bug.cgi?id=14831, and
-         * https://issues.dlang.org/show_bug.cgi?id=17339.
-        */
-        const bool collidingSection = MAP_SEG2SECIDX(s->Sseg) < groupsecidx;
-        // add to section group
-        if (!collidingSection)
+
+        bool added = false;
+        IDXSTR namidx = elf_addsectionname(".text.", p, &added);
+        int groupseg;
+        if (added)
+        {
+            // Create a new COMDAT section group
+            const IDXSTR grpnamidx = elf_addsectionname(".group");
+            groupseg = elf_addsegment(grpnamidx, SHT_GROUP, 0, sizeof(IDXSYM));
+            MAP_SEG2SEC(groupseg)->sh_link = SHN_SYMTAB;
+            MAP_SEG2SEC(groupseg)->sh_entsize = sizeof(IDXSYM);
+            // Create a new TEXT section for the comdat symbol with the SHF_GROUP bit set
+            s->Sseg = elf_addsegment(namidx, SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR|SHF_GROUP, align);
+            // add TEXT section to COMDAT section group
+            SegData[groupseg]->SDbuf->write32(GRP_COMDAT);
             SegData[groupseg]->SDbuf->write32(MAP_SEG2SECIDX(s->Sseg));
-
-        // Create a weak symbol for the comdat
-        IDXSTR namidx = Obj::addstr(symtab_strings, p);
-        s->Sxtrnnum = elf_addsym(namidx, 0, 0, STT_FUNC, STB_WEAK, MAP_SEG2SECIDX(s->Sseg));
-
-        /* Set the weak symbol as comdat group symbol. This symbol determines
-         * whether all or none of the sections in the group get linked. It's
-         * also the only symbol in all group sections that might be referenced
-         * from outside of the group.
-        */
-        SecHdrTab[groupsecidx].sh_info = s->Sxtrnnum;
-
-        if (s->Salignment > align)
-            SegData[s->Sseg]->SDalignment = s->Salignment;
-        if (collidingSection)
-        {
-            // existing section symbol and associated group
-            assert(SegData[s->Sseg]->SDsym);
-            assert(SegData[s->Sseg]->SDassocseg);
-        }
-        else
-        {
-            SegData[s->Sseg]->SDsym = s;
             SegData[s->Sseg]->SDassocseg = groupseg;
         }
+        else
+        {
+            /* If the section already existed, we've hit one of the few
+             * occurences of different symbols with identical mangling. This should
+             * not happen, but as a workaround we just use the existing sections.
+             * Also see https://issues.dlang.org/show_bug.cgi?id=17352,
+             * https://issues.dlang.org/show_bug.cgi?id=14831, and
+             * https://issues.dlang.org/show_bug.cgi?id=17339.
+             */
+            s->Sseg = elf_getsegment(namidx);
+            groupseg = SegData[s->Sseg]->SDassocseg;
+            assert(groupseg);
+        }
+
+        // Create a weak symbol for the comdat
+        namidx = Obj::addstr(symtab_strings, p);
+        s->Sxtrnnum = elf_addsym(namidx, 0, 0, STT_FUNC, STB_WEAK, MAP_SEG2SECIDX(s->Sseg));
+
+        if (added)
+        {
+            /* Set the weak symbol as comdat group symbol. This symbol determines
+             * whether all or none of the sections in the group get linked. It's
+             * also the only symbol in all group sections that might be referenced
+             * from outside of the group.
+             */
+            MAP_SEG2SEC(groupseg)->sh_info = s->Sxtrnnum;
+            SegData[s->Sseg]->SDsym = s;
+        }
+        else
+        {
+            // existing group symbol, and section symbol
+            assert(MAP_SEG2SEC(groupseg)->sh_info);
+            assert(MAP_SEG2SEC(groupseg)->sh_info == SegData[s->Sseg]->SDsym->Sxtrnnum);
+        }
+        if (s->Salignment > align)
+            SegData[s->Sseg]->SDalignment = s->Salignment;
         return;
 #endif
     }
