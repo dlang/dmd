@@ -1415,12 +1415,7 @@ class TypeInfo_Inout : TypeInfo_Const
     }
 }
 
-
-///////////////////////////////////////////////////////////////////////////////
-// ModuleInfo
-///////////////////////////////////////////////////////////////////////////////
-
-
+// Contents of Moduleinfo._flags
 enum
 {
     MIctorstart  = 0x1,   // we've started constructing it
@@ -1439,10 +1434,15 @@ enum
     MIname       = 0x1000,
 }
 
-
+/*****************************************
+ * An instance of ModuleInfo is generated into the object file for each compiled module.
+ *
+ * It provides access to various aspects of the module.
+ * It is not generated for betterC.
+ */
 struct ModuleInfo
 {
-    uint _flags;
+    uint _flags; // MIxxxx
     uint _index; // index into _moduleinfo_array[]
 
     version (all)
@@ -1526,41 +1526,73 @@ const:
 
     @property uint flags() nothrow pure @nogc { return _flags; }
 
+    /************************
+     * Returns:
+     *  module constructor for thread locals, `null` if there isn't one
+     */
     @property void function() tlsctor() nothrow pure @nogc
     {
         return flags & MItlsctor ? *cast(typeof(return)*)addrOf(MItlsctor) : null;
     }
 
+    /************************
+     * Returns:
+     *  module destructor for thread locals, `null` if there isn't one
+     */
     @property void function() tlsdtor() nothrow pure @nogc
     {
         return flags & MItlsdtor ? *cast(typeof(return)*)addrOf(MItlsdtor) : null;
     }
 
+    /*****************************
+     * Returns:
+     *  address of a module's `const(MemberInfo)[] getMembers(string)` function, `null` if there isn't one
+     */
     @property void* xgetMembers() nothrow pure @nogc
     {
         return flags & MIxgetMembers ? *cast(typeof(return)*)addrOf(MIxgetMembers) : null;
     }
 
+    /************************
+     * Returns:
+     *  module constructor, `null` if there isn't one
+     */
     @property void function() ctor() nothrow pure @nogc
     {
         return flags & MIctor ? *cast(typeof(return)*)addrOf(MIctor) : null;
     }
 
+    /************************
+     * Returns:
+     *  module destructor, `null` if there isn't one
+     */
     @property void function() dtor() nothrow pure @nogc
     {
         return flags & MIdtor ? *cast(typeof(return)*)addrOf(MIdtor) : null;
     }
 
+    /************************
+     * Returns:
+     *  module order independent constructor, `null` if there isn't one
+     */
     @property void function() ictor() nothrow pure @nogc
     {
         return flags & MIictor ? *cast(typeof(return)*)addrOf(MIictor) : null;
     }
 
+    /*************
+     * Returns:
+     *  address of function that runs the module's unittests, `null` if there isn't one
+     */
     @property void function() unitTest() nothrow pure @nogc
     {
         return flags & MIunitTest ? *cast(typeof(return)*)addrOf(MIunitTest) : null;
     }
 
+    /****************
+     * Returns:
+     *  array of pointers to the ModuleInfo's of modules imported by this one
+     */
     @property immutable(ModuleInfo*)[] importedModules() nothrow pure @nogc
     {
         if (flags & MIimportedModules)
@@ -1571,6 +1603,10 @@ const:
         return null;
     }
 
+    /****************
+     * Returns:
+     *  array of TypeInfo_Class references for classes defined in this module
+     */
     @property TypeInfo_Class[] localClasses() nothrow pure @nogc
     {
         if (flags & MIlocalClasses)
@@ -1581,6 +1617,10 @@ const:
         return null;
     }
 
+    /********************
+     * Returns:
+     *  name of module, `null` if no name
+     */
     @property string name() nothrow pure @nogc
     {
         if (true || flags & MIname) // always available for now
