@@ -571,41 +571,39 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         return new TemplateDeclaration(loc, ident, p, constraint ? constraint.syntaxCopy() : null, Dsymbol.arraySyntaxCopy(members), ismixin, literal);
     }
 
-    override void importAll(Scope* sc)
+    override void setScope(Scope* sc)
     {
-        if (semanticRun >= PASSmembersdone)
-            return;
+        super.setScope(sc);
 
         // Remember templates defined in module object that we need to know about
         if (sc._module && sc._module.ident == Id.object)
-        {
             if (ident == Id.RTInfo)
                 Type.rtinfo = this;
-        }
 
         /* Remember Scope for later instantiations, but make
-         * a copy since attributes can change. // FWDREF NOTE: wat? they can change?
-         */
-        if (!this._scope)
-        {
-            this._scope = sc.copy();
-            this._scope.setNoFree();
-        }
+         * a copy since attributes can change.
+         */ // FWDREF NOTE: wat? they can change? Also, why was this in semantic()? (BUG) The setScope() path wasn't calling Scope.copy() but the semantic() path did?
+//         if (!this._scope)
+//         {
+//             this._scope = sc.copy();
+//             this._scope.setNoFree();
+//         }
 
         parent = sc.parent;
         protection = sc.protection;
         isstatic = toParent().isModule() || (_scope.stc & STCstatic);
 
         if (!isstatic)
-        {
             if (auto ad = parent.pastMixin().isAggregateDeclaration())
                 ad.makeNested();
-        }
-
-        semanticRun = PASSmembersdone;
     }
 
-    override void semantic(Scope* sc)
+    override void determineMembers()
+    {
+        membersState = SemState.Done;
+    }
+
+    override void semantic()
     {
         static if (LOG)
         {
@@ -613,12 +611,11 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             printf("sc.stc = %llx\n", sc.stc);
             printf("sc.module = %s\n", sc._module.toChars());
         }
-        if (semanticRun >= PASSsemantic)
+        if (semanticState == SemState.Done)
             return; // semantic() already run
+        semanticState = SemState.In;
 
-        importAll(sc);
-
-        semanticRun = PASSsemantic;
+        void defer() { semanticState = SemState.Defer; }
 
         // Set up scope for parameters
         auto paramsym = new ScopeDsymbol();
@@ -705,7 +702,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
          *  o no virtual functions or non-static data members of classes
          */
 
-        semanticRun = PASSsemanticdone;
+        semanticState = SemState.Done;
     }
 
     /**********************************
@@ -802,8 +799,14 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     /****************************
      * Check to see if constraint is satisfied.
      */
-    bool evaluateConstraint(TemplateInstance ti, Scope* sc, Scope* paramscope, Objects* dedargs, FuncDeclaration fd, bool* defer = null)
+    bool evaluateConstraint(TemplateInstance ti, Scope* sc, Scope* paramscope, Objects* dedargs, FuncDeclaration fd)
     {
+//         if (ti.constraintState == SemState.Done)
+//             return;
+        ti.constraintState = SemState.In;
+
+        bool defer() { ti.constraintState = SemState.Defer; return false; }
+
         /* Detect recursive attempts to instantiate this template declaration,
          * https://issues.dlang.org/show_bug.cgi?id=4072
          *  void foo(T)(T x) if (is(typeof(foo(x)))) { }
@@ -900,12 +903,13 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         scx.flags |= SCOPEconstraint;
         bool errors, _defer;
         bool result = evalStaticCondition(scx, constraint, e, errors, _defer);
-        if (_defer && defer)
-            *defer = _defer;
+        if (_defer)
+            return defer();
         ti.inst = null;
         ti.symtab = null;
         scx = scx.pop();
         previous = pr.prev; // unlink from threaded list
+        ti.constraintState = SemState.In;
         if (errors)
             return false;
         return result;
@@ -6082,13 +6086,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     ScopeDsymbol argsym;        // argument symbol table
     int inuse;                  // for recursive expansion detection
     int nest;                   // for recursive pretty printing detection
-    bool semantictiargsdone;    // has semanticTiargs() been done?
     bool havetempdecl;          // if used second constructor
     bool gagged;                // if the instantiation is done with error gagging
     hash_t hash;                // cached result of toHash()
     Expressions* fargs;         // for function template, these are the function arguments
-
-    TemplateInstances* deferred;
 
     Module memberOf;            // if !null, then this TemplateInstance appears in memberOf.members[]
 
@@ -6125,7 +6126,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         this.name = td.ident;
         this.tiargs = tiargs;
         this.tempdecl = td;
-        this.semantictiargsdone = true;
+        this.tiargsState = SemState.Done;
         this.havetempdecl = true;
         assert(tempdecl._scope);
     }
@@ -6155,83 +6156,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         return ti;
     }
 
-    final void updateAliasDecl()
+    override void setScope(Scope* sc)
     {
-        if (members.dim)
-        {
-            Dsymbol s;
-            if (Dsymbol.oneMembers(members, &s, tempdecl.ident) && s)
-            {
-                if (!aliasdecl || aliasdecl != s)
-                {
-                    //printf("tempdecl.ident = %s, s = '%s'\n", tempdecl.ident.toChars(), s.kind(), s.toPrettyChars());
-                    //printf("setting aliasdecl 2\n");
-                    aliasdecl = s;
-                }
-            }
-        }
-    }
-
-    void importAll(Scope* sc, Expressions* fargs)
-    {
-        version (none)
-        {
-            for (Dsymbol s = this; s; s = s.parent)
-            {
-                printf("\t%s\n", s.toChars());
-            }
-            printf("Scope\n");
-            for (Scope* scx = sc; scx; scx = scx.enclosing)
-            {
-                printf("\t%s parent %s\n", scx._module ? scx._module.toChars() : "null", scx.parent ? scx.parent.toChars() : "null");
-            }
-        }
-
-        static if (LOG)
-        {
-            printf("\n+TemplateInstance.semantic('%s', this=%p)\n", toChars(), this);
-        }
-        if (inst) // if semantic() was already run
-        {
-            static if (LOG)
-            {
-                printf("-TemplateInstance.semantic('%s', this=%p) already run\n", inst.toChars(), inst);
-            }
-            if (argsym && semanticRun < PASSmembersdone)
-            {
-                sc = tempdecl._scope; // FWDREF TODO: this is purposedly ugly, since ideally it's shouldn't be needed after setScope, neither here nor in semantic2/3
-                sc = sc.push(argsym);
-                sc = sc.push(this);
-                sc.parent = this;
-                sc.tinst = this;
-                sc.minst = minst;
-                ScopeDsymbol.importAll(sc);
-                sc = sc.pop();
-                sc.pop();
-                updateAliasDecl();
-            }
-            return;
-        }
-        if (semanticRun != PASSinit && semanticRun != PASSmembersdeferred)
-        {
-            static if (LOG)
-            {
-                printf("Recursive template expansion\n");
-            }
-            auto ungag = Ungag(global.gag);
-            if (!gagged)
-                global.gag = 0;
-            error(loc, "recursive template expansion");
-            if (gagged)
-                semanticRun = PASSinit;
-            else
-                inst = this;
-            errors = true;
-            return;
-        }
-
-        if (_scope)
-            sc = _scope;
+        super.setScope(sc);
 
         // Get the enclosing template instance from the scope tinst
         tinst = sc.tinst;
@@ -6242,37 +6169,95 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         // If the enclosing function is non-root symbol,
         // this instance should be speculative.
         if (!tinst && sc.func && sc.func.inNonRoot())
-        {
             minst = null;
-        }
+    }
 
-        gagged = (global.gag > 0);
+    override Scope* newScope()
+    {
+        assert(tempdecl && tempdecl.isTemplateDeclaration());
+        assert(tempdecl.semanticState == SemState.Done);
 
-        semanticRun = PASSmembers;
+//         if (tempdecl.semanticState < PASSsemantic) // FWDREF TODO remove
+//         {
+//             error("template instantiation %s forward references template declaration %s", toChars(), tempdecl.toChars());
+//             return;
+//         }
 
         static if (LOG)
         {
-            printf("\tdo semantic\n");
+            printf("\tcreate scope for template parameters '%s'\n", toChars());
         }
+
+        // Create our own scope for the template parameters
+        Scope* sc = tempdecl._scope;
+        bool declareParams = argsym is null;
+
+        if (declareParams)
+        {
+            argsym = new ScopeDsymbol();
+            argsym.parent = sc.parent;
+        }
+
+        sc = sc.push(argsym);
+        sc.tinst = this;
+        sc.minst = minst;
+        //sc.stc = 0;
+
+        if (declareParams)
+        {
+            // Declare each template parameter as an alias for the argument type
+            Scope* paramscope = sc.push();
+            paramscope.stc = 0;
+            paramscope.protection = Prot(PROTpublic); // https://issues.dlang.org/show_bug.cgi?id=14169
+                                                    // template parameters should be public
+            declareParameters(paramscope);
+            paramscope.pop();
+        }
+
+        Scope* sc2 = _scope.push(this);
+        //printf("enclosing = %d, sc.parent = %s\n", enclosing, sc.parent.toChars());
+        sc2.parent = this;
+        sc2.tinst = this;
+        sc2.minst = minst;
+
+        return sc2;
+    }
+
+    final void determineTempdecl()
+    {
+        if (tempdeclState == SemState.Done)
+            return;
+
+        void defer() { tempdeclState = SemState.Defer; }
+        void errorReturn() {
+            tempdeclState = SemState.Done;
+            inst = this;
+            errors = true;
+        }
+
+        if (tempdeclState == SemState.In)
+        {
+            static if (LOG)
+            {
+                printf("Recursive template expansion\n");
+            }
+            auto ungag = Ungag(global.gag);
+            if (!gagged)
+                global.gag = 0;
+            error(loc, "recursive template expansion");
+            return errorReturn();
+        }
+        tempdeclState = SemState.In;
+
         /* Find template declaration first,
          * then run semantic on each argument (place results in tiargs[]),
          * last find most specialized template from overload list/set.
          */
-        if (!findTempDecl(sc, null) || !semanticTiargs(sc) || !findBestMatch(sc, fargs))
+        if (!findTempDecl(null) || !semanticTiargs() || !findBestMatch(fargs))
         {
-            if (isDeferred())
-                return;
-        Lerror:
-            if (gagged)
-            {
-                // https://issues.dlang.org/show_bug.cgi?id=13220
-                // Roll back status for later semantic re-running
-                semanticRun = PASSinit;
-            }
-            else
-                inst = this;
-            errors = true;
-            return;
+            if (tiargsState == SemState.Defer || tempdeclState == SemState.Defer)
+                return defer();
+            return errorReturn();
         }
         TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
         assert(tempdecl);
@@ -6281,12 +6266,12 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         if (tempdecl.ismixin)
         {
             error("mixin templates are not regular templates");
-            goto Lerror;
+            return errorReturn();
         }
 
         hasNestedArgs(tiargs, tempdecl.isstatic);
         if (errors)
-            goto Lerror;
+            return errorReturn();
 
         /* See if there is an existing TemplateInstantiation that already
          * implements the typeargs. If so, just refer to that one instead.
@@ -6382,9 +6367,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             {
                 printf("\tit's a match with instance %p, %d\n", inst, inst.semanticRun);
             }
-            semanticRun = PASSmembersdone;
+            tempdeclState = SemState.Done;
             return;
         }
+
         static if (LOG)
         {
             printf("\timplement template instance %s '%s'\n", tempdecl.parent.toChars(), toChars());
@@ -6404,74 +6390,68 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         target_symbol_list = appendToModuleMember();
         target_symbol_list_idx = target_symbol_list ? target_symbol_list.dim - 1 : 0;
 
-        inFunc = sc.func !is null; // FWDREF UGLY
-        requiresFullInst = (sc.flags & SCOPEfullinst) != 0;
+        tempdeclState = SemState.Done;
+    }
 
-        // Copy the syntax trees from the TemplateDeclaration
-        members = Dsymbol.arraySyntaxCopy(tempdecl.members);
+    final void determineMembers(Expressions* fargs)
+    {
+        version (none)
+        {
+            for (Dsymbol s = this; s; s = s.parent)
+            {
+                printf("\t%s\n", s.toChars());
+            }
+            printf("Scope\n");
+            for (Scope* scx = sc; scx; scx = scx.enclosing)
+            {
+                printf("\t%s parent %s\n", scx._module ? scx._module.toChars() : "null", scx.parent ? scx.parent.toChars() : "null");
+            }
+        }
+
+        if (membersState == SemState.Done)
+            return;
+        void defer() { membersState = SemState.Defer; }
+        void errorReturn() { membersState = SemState.Done; }
+
+        static if (LOG)
+        {
+            printf("\n+TemplateInstance.determineMembers('%s', this=%p)\n", toChars(), this);
+        }
+
+        gagged = (global.gag > 0); // FWDREF hmm FIXME?
+
+        determineTempdecl();
+        if (tempdeclState == SemState.Defer)
+            return defer();
+        if (errors)
+            return errorReturn();
 
         uint errorsave = global.errors;
 
-        // resolve TemplateThisParameter
-        for (size_t i = 0; i < tempdecl.parameters.dim; i++)
+        if !(members)
         {
-            if ((*tempdecl.parameters)[i].isTemplateThisParameter() is null)
-                continue;
-            Type t = isType((*tiargs)[i]);
-            assert(t);
-            if (StorageClass stc = ModToStc(t.mod))
+            // Copy the syntax trees from the TemplateDeclaration
+            members = Dsymbol.arraySyntaxCopy(tempdecl.members);
+
+            // resolve TemplateThisParameter
+            for (size_t i = 0; i < tempdecl.parameters.dim; i++)
             {
-                //printf("t = %s, stc = x%llx\n", t.toChars(), stc);
-                auto s = new Dsymbols();
-                s.push(new StorageClassDeclaration(stc, members));
-                members = s;
+                if ((*tempdecl.parameters)[i].isTemplateThisParameter() is null)
+                    continue;
+                Type t = isType((*tiargs)[i]);
+                assert(t);
+                if (StorageClass stc = ModToStc(t.mod))
+                {
+                    //printf("t = %s, stc = x%llx\n", t.toChars(), stc);
+                    auto s = new Dsymbols();
+                    s.push(new StorageClassDeclaration(stc, members));
+                    members = s;
+                }
+                break;
             }
-            break;
         }
 
-        // Create our own scope for the template parameters
-        Scope* _scope = tempdecl._scope;
-        if (tempdecl.semanticRun < PASSsemantic)
-        {
-            error("template instantiation %s forward references template declaration %s", toChars(), tempdecl.toChars());
-            return;
-        }
-
-        static if (LOG)
-        {
-            printf("\tcreate scope for template parameters '%s'\n", toChars());
-        }
-        argsym = new ScopeDsymbol();
-        argsym.parent = _scope.parent;
-        _scope = _scope.push(argsym);
-        _scope.tinst = this;
-        _scope.minst = minst;
-        //scope.stc = 0;
-
-        // Declare each template parameter as an alias for the argument type
-        Scope* paramscope = _scope.push();
-        paramscope.stc = 0;
-        paramscope.protection = Prot(PROTpublic); // https://issues.dlang.org/show_bug.cgi?id=14169
-                                                  // template parameters should be public
-        declareParameters(paramscope);
-        paramscope.pop();
-
-        // Add members of template instance to template instance symbol table
-        //parent = scope.scopesym;
-        symtab = new DsymbolTable();
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            static if (LOG)
-            {
-                printf("\t[%d] adding member '%s' %p kind %s to '%s'\n", i, s.toChars(), s, s.kind(), this.toChars());
-            }
-            s.addMember(_scope, this);
-        }
-        static if (LOG)
-        {
-            printf("adding members done\n");
-        }
+        super.determineMembers();
 
         /* See if there is only one member of template instance, and that
          * member has the same name as the template instance.
@@ -6496,252 +6476,16 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             }
         }
 
-        // Do semantic() analysis on template instance members
-        static if (LOG)
-        {
-            printf("\tdo semantic() on template instance members '%s'\n", toChars());
-        }
-        Scope* sc2;
-        sc2 = _scope.push(this);
-        //printf("enclosing = %d, sc.parent = %s\n", enclosing, sc.parent.toChars());
-        sc2.parent = this;
-        sc2.tinst = this;
-        sc2.minst = minst;
-
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            s.setScope(sc2);
-        }
-
-        ScopeDsymbol.importAll(sc2);
-
-        sc2.pop();
-
-        /* ConditionalDeclaration may introduce eponymous declaration,
-         * so we should find it once again after semantic.
-         */
-        updateAliasDecl();
-
         checkErrorCount(errorsave);
     }
 
-    override void importAll(Scope* sc)
+    override void determineMembers()
     {
-        importAll(sc, null);
+        determineMembers(null);
     }
 
     Dsymbols* target_symbol_list; // FWDREF temporary, this is non-ideal
     size_t target_symbol_list_idx;
-
-    bool inFunc; // FWDREF FIXME ugly, but TemplateInstance.semantic may be deferred and called with sc=null
-    bool requiresFullInst;
-
-    void semantic(Scope* sc, Expressions* fargs)
-    {
-        //printf("[%s] TemplateInstance.semantic('%s', this=%p, gag = %d, sc = %p)\n", loc.toChars(), toChars(), this, global.gag, sc);
-
-        if (semanticRun >= PASSsemantic)
-            return;
-
-        importAll(sc, fargs);
-
-        if (semanticRun < PASSmembersdone)
-        {
-            error("template instance fwd ref");
-            return;
-        }
-
-        if (inst != this)
-        {
-            Module.dprogress++;
-            semanticRun = PASSsemanticdone;
-            return;
-        }
-
-        uint errorsave = global.errors;
-
-        semanticRun = PASSsemantic;
-
-        Scope* _scope = tempdecl._scope; // FWDREF TODO members should already have their _scope set, this shouldn't be needed
-        _scope = _scope.push(argsym);
-
-        Scope* sc2;
-        sc2 = _scope.push(this);
-        //printf("enclosing = %d, sc.parent = %s\n", enclosing, sc.parent.toChars());
-        sc2.parent = this;
-        sc2.tinst = this;
-        sc2.minst = minst;
-
-        trySemanticMembers(sc2);
-
-        Module.dprogress++;
-        semanticRun = PASSsemanticdone;
-
-        if (errors || global.errors != errorsave)
-            goto Laftersemantic;
-
-        /* If any of the instantiation members didn't get semantic() run
-         * on them due to forward references, we cannot run semantic2()
-         * or semantic3() yet.
-         */
-//         {
-//             bool found_deferred_ad = false;
-//             for (size_t i = 0; i < Module.deferred.dim; i++)
-//             {
-//                 Dsymbol sd = Module.deferred[i];
-//                 AggregateDeclaration ad = sd.isAggregateDeclaration();
-//                 if (ad && ad.parent && ad.parent.isTemplateInstance())
-//                 {
-//                     //printf("deferred template aggregate: %s %s\n",
-//                     //        sd.parent.toChars(), sd.toChars());
-//                     found_deferred_ad = true;
-//                     if (ad.parent == this)
-//                     {
-//                         ad.deferred = this;
-//                         break;
-//                     }
-//                 }
-//             }
-//             if (found_deferred_ad || Module.deferred.dim)
-//                 goto Laftersemantic;
-//         }
-
-        /* The problem is when to parse the initializer for a variable.
-         * Perhaps VarDeclaration.semantic() should do it like it does
-         * for initializers inside a function.
-         */
-        //if (sc.parent.isFuncDeclaration())
-//         {
-            /* https://issues.dlang.org/show_bug.cgi?id=782
-             * this has problems if the classes this depends on
-             * are forward referenced. Find a way to defer semantic()
-             * on this template.
-             */
-//             semantic2(sc2);
-//         }
-//         if (global.errors != errorsave)
-//             goto Laftersemantic;
-
-//         if ((inFunc || requiresFullInst) && !tinst)
-//         {
-//             /* If a template is instantiated inside function, the whole instantiation
-//              * should be done at that position. But, immediate running semantic3 of
-//              * dependent templates may cause unresolved forward reference.
-//              * https://issues.dlang.org/show_bug.cgi?id=9050
-//              * To avoid the issue, don't run semantic3 until semantic and semantic2 done.
-//              */
-//             TemplateInstances deferred;
-//             this.deferred = &deferred;
-//
-//             //printf("Run semantic3 on %s\n", toChars());
-//             trySemantic3(sc2);
-//
-//             for (size_t i = 0; i < deferred.dim; i++)
-//             {
-//                 //printf("+ run deferred semantic3 on %s\n", deferred[i].toChars());
-//                 deferred[i].semantic3(null);
-//             }
-//
-//             this.deferred = null;
-//         }
-//         else if (tinst)
-//         {
-//             bool doSemantic3 = false;
-//             if (inFunc && aliasdecl && aliasdecl.toAlias().isFuncDeclaration())
-//             {
-//                 /* Template function instantiation should run semantic3 immediately
-//                  * for attribute inference.
-//                  */
-//                 doSemantic3 = true;
-//             }
-//             else if (inFunc)
-//             {
-//                 /* A lambda function in template arguments might capture the
-//                  * instantiated scope context. For the correct context inference,
-//                  * all instantiated functions should run the semantic3 immediately.
-//                  * See also compilable/test14973.d
-//                  */
-//                 foreach (oarg; tdtypes)
-//                 {
-//                     auto s = getDsymbol(oarg);
-//                     if (!s)
-//                         continue;
-//
-//                     if (auto td = s.isTemplateDeclaration())
-//                     {
-//                         if (!td.literal)
-//                             continue;
-//                         assert(td.members && td.members.dim == 1);
-//                         s = (*td.members)[0];
-//                     }
-//                     if (auto fld = s.isFuncLiteralDeclaration())
-//                     {
-//                         if (fld.tok == TOKreserved)
-//                         {
-//                             doSemantic3 = true;
-//                             break;
-//                         }
-//                     }
-//                 }
-//                 //printf("[%s] %s doSemantic3 = %d\n", loc.toChars(), toChars(), doSemantic3);
-//             }
-//             if (doSemantic3)
-//                 trySemantic3(sc2);
-
-//             TemplateInstance ti = tinst;
-//             int nest = 0;
-//             while (ti && !ti.deferred && ti.tinst)
-//             {
-//                 ti = ti.tinst;
-//                 if (++nest > 500)
-//                 {
-//                     global.gag = 0; // ensure error message gets printed
-//                     error("recursive expansion");
-//                     fatal();
-//                 }
-//             }
-//             if (ti && ti.deferred)
-//             {
-//                 //printf("deferred semantic3 of %p %s, ti = %s, ti.deferred = %p\n", this, toChars(), ti.toChars());
-//                 for (size_t i = 0;; i++)
-//                 {
-//                     if (i == ti.deferred.dim)
-//                     {
-//                         ti.deferred.push(this);
-//                         break;
-//                     }
-//                     if ((*ti.deferred)[i] == this)
-//                         break;
-//                 }
-//             }
-//         }
-
-        if (aliasdecl)
-        {
-            /* https://issues.dlang.org/show_bug.cgi?id=13816
-             * AliasDeclaration tries to resolve forward reference
-             * twice (See inuse check in AliasDeclaration.toAlias()). It's
-             * necessary to resolve mutual references of instantiated symbols, but
-             * it will left a true recursive alias in tuple declaration - an
-             * AliasDeclaration A refers TupleDeclaration B, and B contains A
-             * in its elements.  To correctly make it an error, we strictly need to
-             * resolve the alias of eponymous member.
-             */
-            aliasdecl = aliasdecl.toAlias2();
-        }
-
-    Laftersemantic:
-        sc2.pop();
-        _scope.pop();
-
-        checkErrorCount(errorsave);
-
-        static if (LOG)
-        {
-            printf("-TemplateInstance.semantic('%s', this=%p)\n", toChars(), this);
-        }
-    }
 
     final void checkErrorCount(uint errorsave)
     {
@@ -6781,136 +6525,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         }
     }
 
-    override void semantic(Scope* sc)
-    {
-        semantic(sc, null);
-    }
-
-    override void semantic2(Scope* sc)
-    {
-        if (!errors && semanticRun < PASSsemanticdone)
-            semantic(sc);
-        if (semanticRun >= PASSsemantic2)
-            return;
-        semanticRun = PASSsemantic2;
-        static if (LOG)
-        {
-            printf("+TemplateInstance.semantic2('%s')\n", toChars());
-        }
-        if (!errors && members)
-        {
-            TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
-            assert(tempdecl);
-
-            sc = tempdecl._scope;
-            assert(sc);
-            sc = sc.push(argsym);
-            sc = sc.push(this);
-            sc.tinst = this;
-            sc.minst = minst;
-
-            int needGagging = (gagged && !global.gag);
-            uint olderrors = global.errors;
-            int oldGaggedErrors = -1; // dead-store to prevent spurious warning
-            if (needGagging)
-                oldGaggedErrors = global.startGagging();
-
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                Dsymbol s = (*members)[i];
-                static if (LOG)
-                {
-                    printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
-                }
-                s.semantic2(sc);
-                if (gagged && global.errors != olderrors)
-                    break;
-            }
-
-            if (global.errors != olderrors)
-            {
-                if (!errors)
-                {
-                    if (!tempdecl.literal)
-                        error(loc, "error instantiating");
-                    if (tinst)
-                        tinst.printInstantiationTrace();
-                }
-                errors = true;
-            }
-            if (needGagging)
-                global.endGagging(oldGaggedErrors);
-
-            sc = sc.pop();
-            sc.pop();
-        }
-        static if (LOG)
-        {
-            printf("-TemplateInstance.semantic2('%s')\n", toChars());
-        }
-    }
-
-    override void semantic3(Scope* sc)
-    {
-        static if (LOG)
-        {
-            printf("TemplateInstance.semantic3('%s'), semanticRun = %d\n", toChars(), semanticRun);
-        }
-        //if (toChars()[0] == 'D') *(char*)0=0;
-        if (semanticRun < PASSsemantic2done)
-            semantic2(sc);
-        if (semanticRun >= PASSsemantic3)
-            return;
-        semanticRun = PASSsemantic3;
-        if (!errors && members)
-        {
-            TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
-            assert(tempdecl);
-
-            sc = tempdecl._scope;
-            sc = sc.push(argsym);
-            sc = sc.push(this);
-            sc.tinst = this;
-            sc.minst = minst;
-
-            int needGagging = (gagged && !global.gag);
-            uint olderrors = global.errors;
-            int oldGaggedErrors = -1; // dead-store to prevent spurious warning
-            /* If this is a gagged instantiation, gag errors.
-             * Future optimisation: If the results are actually needed, errors
-             * would already be gagged, so we don't really need to run semantic
-             * on the members.
-             */
-            if (needGagging)
-                oldGaggedErrors = global.startGagging();
-
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                Dsymbol s = (*members)[i];
-                s.semantic3(sc);
-                if (gagged && global.errors != olderrors)
-                    break;
-            }
-
-            if (global.errors != olderrors)
-            {
-                if (!errors)
-                {
-                    if (!tempdecl.literal)
-                        error(loc, "error instantiating");
-                    if (tinst)
-                        tinst.printInstantiationTrace();
-                }
-                errors = true;
-            }
-            if (needGagging)
-                global.endGagging(oldGaggedErrors);
-
-            sc = sc.pop();
-            sc.pop();
-        }
-    }
-
     // resolve real symbol
     override final Dsymbol toAlias()
     {
@@ -6918,28 +6532,46 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         {
             printf("TemplateInstance.toAlias()\n");
         }
-        if (!inst)
+        if (!aliasdecl)
         {
-            // Maybe we can resolve it
-            if (_scope)
+            determineMembers();
+            if (membersState != SemState.Done)
+                assert(false, "FIXME defer");
+
+            if (members.dim)
             {
-                semantic(_scope);
+                Dsymbol s;
+                if (Dsymbol.oneMembers(members, &s, tempdecl.ident) && s)
+                {
+                    if (!aliasdecl || aliasdecl != s)
+                    {
+                        //printf("tempdecl.ident = %s, s = '%s'\n", tempdecl.ident.toChars(), s.kind(), s.toPrettyChars());
+                        //printf("setting aliasdecl 2\n");
+                        aliasdecl = s;
+                    }
+                }
             }
-            if (!inst)
-            {
-                error("cannot resolve forward reference");
-                errors = true;
-                return this;
-            }
+
+//             if (aliasdecl) // FWDREF studying by breaking, let's see what breaks
+//             {
+//                 /* https://issues.dlang.org/show_bug.cgi?id=13816
+//                 * AliasDeclaration tries to resolve forward reference
+//                 * twice (See inuse check in AliasDeclaration.toAlias()). It's
+//                 * necessary to resolve mutual references of instantiated symbols, but
+//                 * it will left a true recursive alias in tuple declaration - an
+//                 * AliasDeclaration A refers TupleDeclaration B, and B contains A
+//                 * in its elements.  To correctly make it an error, we strictly need to
+//                 * resolve the alias of eponymous member.
+//                 */
+//                 aliasdecl = aliasdecl.toAlias2();
+//             }
         }
 
         if (inst != this)
             return inst.toAlias();
 
         if (aliasdecl)
-        {
             return aliasdecl.toAlias();
-        }
 
         return inst;
     }
@@ -7786,26 +7418,12 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      *      This function is reentrant against error occurrence. If returns false,
      *      all elements of tiargs won't be modified.
      */
-    bool semtiargsdefer; // FWDREF FIXME temporary, tired of this mess, a full frontend rewrite sounds more and more appealing
     final bool semanticTiargs(Scope* sc)
     {
         //printf("+TemplateInstance.semanticTiargs() %s\n", toChars());
-        if (semantictiargsdone)
-            return true;
-        semtiargsdefer = false;
-        if (auto result = semanticTiargs(loc, sc, tiargs, 0))
-        {
-            if (result == SemState.Defer)
-            {
-                defer();
-                semtiargsdefer = true;
-                return false;
-            }
-            // cache the result iff semantic analysis succeeded entirely
-            semantictiargsdone = 1;
-            return true;
-        }
-        return false;
+        if (tiargsState != SemState.Done)
+            tiargsState = semanticTiargs(loc, sc, tiargs, 0);
+        return tiargsState == SemState.Done;
     }
 
     final bool findBestMatch(Scope* sc, Expressions* fargs)
@@ -8466,56 +8084,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         return Identifier.idPool(buf.peekSlice());
     }
 
-    final void semanticMembers(Scope *sc)
-    {
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            //printf("\t[%d] semantic on '%s' %p kind %s in '%s'\n", i, s.toChars(), s, s.kind(), this.toChars());
-            //printf("test: enclosing = %d, sc2.parent = %s\n", enclosing, sc2.parent.toChars());
-            //if (enclosing)
-            //    s.parent = sc.parent;
-            //printf("test3: enclosing = %d, s.parent = %s\n", enclosing, s.parent.toChars());
-            s.semantic(sc);
-            //printf("test4: enclosing = %d, s.parent = %s\n", enclosing, s.parent.toChars());
-//             Module.runDeferredSemantic();
-        }
-    }
-
-    final void trySemanticMembers(Scope *sc)
-    {
-        static __gshared int nest;
-        // extracted to a function to allow windows SEH to work without destructors in the same function
-        //printf("%d\n", nest);
-        if (++nest > 500)
-        {
-            global.gag = 0; // ensure error message gets printed
-            error("recursive expansion");
-            fatal();
-        }
-
-        semanticMembers(sc);
-
-        nest--;
-    }
-
-    final void trySemantic3(Scope* sc2)
-    {
-        // extracted to a function to allow windows SEH to work without destructors in the same function
-        static __gshared int nest;
-        //printf("%d\n", nest);
-        if (++nest > 300)
-        {
-            global.gag = 0; // ensure error message gets printed
-            error("recursive expansion");
-            fatal();
-        }
-
-        semantic3(sc2);
-
-        --nest;
-    }
-
     override final inout(TemplateInstance) isTemplateInstance() inout
     {
         return this;
@@ -8665,71 +8233,98 @@ extern (C++) final class TemplateMixin : TemplateInstance
         return TemplateInstance.syntaxCopy(tm);
     }
 
-    override void importAll(Scope* sc)
+    override void setScope(Scope* sc)
     {
-        if (semanticRun >= PASSmembersdone)
-            return;
+        super.setScope(sc);
 
-        if (!argsym && semanticRun >= PASSmembers)
-            return;
+        inst = this;
+        parent = sc.parent;
 
-        if (_scope)
-            sc = _scope;
-
-        if (semanticRun < PASSmembers)
+        for (Scope* sce = sc; 1; sce = sce.enclosing)
         {
-            semanticRun = PASSmembers;
+            ScopeDsymbol sds = sce.scopesym;
+            if (sds)
+            {
+                sds.importScope(this, Prot(PROTpublic));
+                break;
+            }
+        }
+    }
 
-            /* Run semantic on each argument, place results in tiargs[],
-            * then find best match template with tiargs
+    override void addMember(Scope* sc, ScopeDsymbol sds)
+    {
+        if (addMemberState == SemState.Done)
+            return;
+        void defer() { addMemberState = SemState.Defer; }
+
+        super.addMember(sc, sds);
+
+        if (!ident)
+        {
+            /* Assign scope local unique identifier, as same as lambdas.
             */
-            if (!findTempDecl(sc) || !semanticTiargs(sc) || !findBestMatch(sc, null))
+            const(char)* s = "__mixin";
+
+            DsymbolTable symtab;
+            if (FuncDeclaration func = sc.parent.isFuncDeclaration())
             {
-                if (semanticRun == PASSinit) // forward reference had occurred
+                symtab = func.localsymtab;
+                if (symtab)
                 {
-                    //printf("forward reference - deferring\n");
-                    _scope.setNoFree();
-                    _scope._module.addDeferredSemantic(this);
-                    return;
-                }
-
-                inst = this;
-                errors = true;
-                semanticRun = PASSmembersdone;
-                return; // error recovery
-            }
-
-            if (!ident)
-            {
-                /* Assign scope local unique identifier, as same as lambdas.
-                */
-                const(char)* s = "__mixin";
-
-                DsymbolTable symtab;
-                if (FuncDeclaration func = sc.parent.isFuncDeclaration())
-                {
-                    symtab = func.localsymtab;
-                    if (symtab)
-                    {
-                        // Inside template constraint, symtab is not set yet.
-                        goto L1;
-                    }
-                }
-                else
-                {
-                    symtab = sc.parent.isScopeDsymbol().symtab;
-                L1:
-                    assert(symtab);
-                    ident = Identifier.generateId(s, symtab.len + 1);
-                    symtab.insert(this);
+                    // Inside template constraint, symtab is not set yet. // FWDREF NOTE: hmm, why not initialize it lazily like in FuncExp.semantic?
+                    goto L1;
                 }
             }
+            else
+            {
+                symtab = sc.parent.isScopeDsymbol().symtab;
+            L1:
+                assert(symtab);
+                ident = Identifier.generateId(s, symtab.len + 1);
+                symtab.insert(this);
+            }
+        }
+    }
 
-            inst = this;
-            parent = sc.parent;
+    override Scope* newScope()
+    {
+        bool declareParams = argsym is null;
 
-            auto tempdecl = this.tempdecl.isTemplateDeclaration();
-            assert(tempdecl);
+        if (declareParams)
+        {
+            static if (LOG)
+            {
+                printf("\tcreate scope for template parameters '%s'\n", toChars());
+            }
+            argsym = new ScopeDsymbol();
+            argsym.parent = this;
+        }
+
+        Scope* scy = _scope.push(this);
+        scy.parent = this;
+
+        Scope* argscope = scy.push(argsym);
+        Scope* sc2 = argscope.push(this);
+
+        if (declareParams)
+            // Declare each template parameter as an alias for the argument type
+            declareParameters(argscope);
+
+        return sc2;
+    }
+
+    override void determineMembers()
+    {
+        if (membersState == SemState.Done)
+            return;
+
+        void defer() { membersState = SemState.Defer; }
+
+        if (tempdeclState != SemState.Done)
+        {
+            determineTempdecl();
+            if (tempdeclState == SemState.Defer)
+                return defer();
 
             /* Detect recursive mixin instantiations.
             */
@@ -8781,238 +8376,30 @@ extern (C++) final class TemplateMixin : TemplateInstance
             Lcontinue:
                 continue;
             }
-
-            // Copy the syntax trees from the TemplateDeclaration
-            members = Dsymbol.arraySyntaxCopy(tempdecl.members);
-            if (!members)
-            {
-                semanticRun = PASSmembersdone;
-                return;
-            }
-
-            for (Scope* sce = sc; 1; sce = sce.enclosing)
-            {
-                ScopeDsymbol sds = sce.scopesym;
-                if (sds)
-                {
-                    sds.importScope(this, Prot(PROTpublic));
-                    break;
-                }
-            }
-
-            static if (LOG)
-            {
-                printf("\tcreate scope for template parameters '%s'\n", toChars());
-            }
-
-            argsym = new ScopeDsymbol();
-            argsym.parent = this;
         }
 
-        Scope* scy = sc.push(this);
-        scy.parent = this;
+        auto tempdecl = this.tempdecl.isTemplateDeclaration();
+        assert(tempdecl);
 
-        Scope* argscope = scy.push(argsym);
-        Scope* sc2 = argscope.push(this);
+        // Copy the syntax trees from the TemplateDeclaration
+        if (!members)
+            members = Dsymbol.arraySyntaxCopy(tempdecl.members);
 
         uint errorsave = global.errors;
 
-        if (!symtab)
-        {
-            symtab = new DsymbolTable();
-
-            // Declare each template parameter as an alias for the argument type
-            declareParameters(argscope);
-
-            // Add members to enclosing scope, as well as this scope
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                Dsymbol s = (*members)[i];
-                s.addMember(argscope, this);
-                //printf("sc.parent = %p, sc.scopesym = %p\n", sc.parent, sc.scopesym);
-                //printf("s.parent = %s\n", s.parent.toChars());
-            }
-
-            // Do semantic() analysis on template instance members
-            static if (LOG)
-            {
-                printf("\tdo semantic() on template instance members '%s'\n", toChars());
-            }
-
-            //size_t deferred_dim = Module.deferred.dim;
-
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                Dsymbol s = (*members)[i];
-                s.setScope(sc2);
-            }
-        }
-
-        static __gshared int nest;
-        //printf("%d\n", nest);
-        if (++nest > 500)
+        if (membersNest > 500) // FWDREF TODO move to ScopeDsymbol.determineMembers?
         {
             global.gag = 0; // ensure error message gets printed
             error("recursive expansion");
             fatal();
         }
-        ScopeDsymbol.importAll(sc2);
-        nest--;
+        super.determineMembers();
 
         // Give additional context info if error occurred during instantiation
         if (global.errors != errorsave)
         {
             error("error instantiating");
             errors = true;
-        }
-
-        sc2.pop();
-        argscope.pop();
-        scy.pop();
-    }
-
-    override void semantic(Scope* sc)
-    {
-        static if (LOG)
-        {
-            printf("+TemplateMixin.semantic('%s', this=%p)\n", toChars(), this);
-            fflush(stdout);
-        }
-        if (semanticRun >= PASSsemantic)
-        {
-            // When a class/struct contains mixin members, and is done over
-            // because of forward references, never reach here so semanticRun
-            // has been reset to PASSinit.
-            static if (LOG)
-            {
-                printf("\tsemantic done\n");
-            }
-            return;
-        }
-
-        importAll(sc);
-        if (semanticRun < PASSmembersdone)
-        {
-            error("template mixin forward ref");
-            return;
-        }
-
-        if (errors)
-        {
-            semanticRun = PASSsemanticdone;
-            return;
-        }
-
-        semanticRun = PASSsemantic;
-        static if (LOG)
-        {
-            printf("\tdo semantic\n");
-        }
-
-        Scope* scx = null;
-        if (_scope)
-        {
-            sc = _scope;
-            scx = _scope; // save so we don't make redundant copies
-            _scope = null;
-        }
-
-        Scope* scy = sc.push(this); // FWDREF TODO: passing sc2 to members.semanticN() should ideally not be needed after setScope
-        scy.parent = this;
-
-        Scope* argscope = scy.push(argsym);
-        Scope* sc2 = argscope.push(this);
-
-        uint errorsave = global.errors;
-
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            s.semantic(sc2);
-        }
-
-        /* In DeclDefs scope, TemplateMixin does not have to handle deferred symbols.
-         * Because the members would already call Module.addDeferredSemantic() for themselves.
-         * See Struct, Class, Interface, and EnumDeclaration.semantic().
-         */
-        //if (!sc.func && Module.deferred.dim > deferred_dim) {}
-
-        AggregateDeclaration ad = toParent().isAggregateDeclaration();
-        if (sc.func && !ad)
-        {
-            semantic2(sc2);
-            semantic3(sc2);
-        }
-
-        // Give additional context info if error occurred during instantiation
-        if (global.errors != errorsave)
-        {
-            error("error instantiating");
-            errors = true;
-        }
-
-        sc2.pop();
-        argscope.pop();
-        scy.pop();
-
-        static if (LOG)
-        {
-            printf("-TemplateMixin.semantic('%s', this=%p)\n", toChars(), this);
-        }
-    }
-
-    override void semantic2(Scope* sc)
-    {
-        if (semanticRun >= PASSsemantic2)
-            return;
-        semanticRun = PASSsemantic2;
-        static if (LOG)
-        {
-            printf("+TemplateMixin.semantic2('%s')\n", toChars());
-        }
-        if (members)
-        {
-            assert(sc);
-            sc = sc.push(argsym);
-            sc = sc.push(this);
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                Dsymbol s = (*members)[i];
-                static if (LOG)
-                {
-                    printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
-                }
-                s.semantic2(sc);
-            }
-            sc = sc.pop();
-            sc.pop();
-        }
-        static if (LOG)
-        {
-            printf("-TemplateMixin.semantic2('%s')\n", toChars());
-        }
-    }
-
-    override void semantic3(Scope* sc)
-    {
-        if (semanticRun >= PASSsemantic3)
-            return;
-        semanticRun = PASSsemantic3;
-        static if (LOG)
-        {
-            printf("TemplateMixin.semantic3('%s')\n", toChars());
-        }
-        if (members)
-        {
-            sc = sc.push(argsym);
-            sc = sc.push(this);
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                Dsymbol s = (*members)[i];
-                s.semantic3(sc);
-            }
-            sc = sc.pop();
-            sc.pop();
         }
     }
 

@@ -458,55 +458,59 @@ extern (C++) final class EnumMember : VarDeclaration
     override void setScope(Scope* sc)
     {
         super.setScope(sc);
+
         if (!ed)
             ed = sc.parent;
-    }
-
-    override void semantic(Scope* sc)
-    {
-        //printf("EnumMember::semantic() %s\n", toChars());
-
-        void errorReturn()
-        {
-            errors = true;
-            semanticRun = PASSsemanticdone;
-        }
-
-        if (errors || semanticRun >= PASSsemanticdone)
-            return;
-        if (semanticRun == PASSsemantic)
-        {
-            error("circular reference to enum member");
-            return errorReturn();
-        }
-        assert(ed);
-        ed.semantic(sc);
-        if (ed.errors)
-            return errorReturn();
-        if (errors || semanticRun >= PASSsemanticdone)
-            return;
-
-        if (_scope)
-            sc = _scope;
-        if (!sc)
-            return;
-
-        semanticRun = PASSsemantic;
 
         protection = ed.isAnonymous() ? ed.protection : Prot(PROTpublic);
         linkage = LINKd;
         storage_class = STCmanifest;
         userAttribDecl = ed.isAnonymous() ? ed.userAttribDecl : null;
+    }
 
-        // The first enum member is special
-        bool first = (this == (*ed.members)[0]);
+    override void semanticType()
+    {
+        if (typeState == SemState.Done)
+            return;
+        typeState = SemState.In;
+
+        void defer() { typeState = SemState.Defer; }
 
         if (origType)
         {
             origType = origType.semantic(loc, sc);
+                if (origType.ty == Tdefer)
+                    return defer();
             type = origType;
             assert(value); // "type id;" is not a valid enum member declaration
         }
+        else
+        {
+            semanticInitializer();
+            if (initializerState == SemState.Defer)
+                return defer();
+            type = value.type;
+        }
+
+        typeState = SemState.Done;
+    }
+
+    override void semanticInitializer()
+    {
+        if (initializerState == SemState.Done)
+            return;
+        initializerState = SemState.In;
+
+        void defer() { initializerState = SemState.Defer; }
+        void errorReturn() { errors = true;  initializerState = SemState.Done; }
+
+        assert(ed);
+        if (ed.errors)
+            return errorReturn();
+
+
+        // The first enum member is special
+        bool first = (this == (*ed.members)[0]);
 
         if (value)
         {
@@ -515,6 +519,8 @@ extern (C++) final class EnumMember : VarDeclaration
             e = e.semantic(sc);
             e = resolveProperties(sc, e);
             e = e.ctfeInterpret();
+            if (e.op == TOKdefer)
+                return defer();
             if (e.op == TOKerror)
                 return errorReturn();
             if (first && !ed.memtype && !ed.isAnonymous())
@@ -622,10 +628,12 @@ extern (C++) final class EnumMember : VarDeclaration
                 }
             }
             assert(emprev);
-            if (emprev.semanticRun < PASSsemanticdone) // if forward reference
-                emprev.semantic(emprev._scope); // resolve it
+            if (emprev.initializerState != SemState.Done) // if forward reference
+                emprev.semanticInitializer(); // resolve it
             if (emprev.errors)
                 return errorReturn();
+            if (emprev.initializerState != SemState.Done)
+                return defer();
 
             Expression eprev = emprev.value;
             Type tprev = eprev.type.equals(ed.type) ? ed.memtype : eprev.type;
@@ -678,18 +686,27 @@ extern (C++) final class EnumMember : VarDeclaration
             }
             value = e;
         }
-        if (!origType)
-            type = value.type;
 
         assert(origValue);
-        semanticRun = PASSsemanticdone;
+
+        initializerState = SemState.Done;
+    }
+
+    override void semantic()
+    {
+        //printf("EnumMember::semantic() %s\n", toChars());
+
+        semanticType();
+        semanticInitializer();
     }
 
     Expression getVarExp(Loc loc, Scope* sc)
     {
-        semantic(sc);
+        semantic();
         if (errors)
             return new ErrorExp();
+        if (initializerState != SemState.Done)
+            return new DeferExp();
         Expression e = new VarExp(loc, this);
         return e.semantic(sc);
     }

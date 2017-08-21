@@ -1331,7 +1331,7 @@ extern (C++) class VarDeclaration : Declaration
         }
     }
 
-    final void semanticType()
+    override void semanticType()
     {
         if (typeState == SemState.Done)
             return;

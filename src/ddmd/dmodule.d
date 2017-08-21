@@ -298,10 +298,7 @@ extern (C++) final class Module : Package
     extern (C++) static __gshared Module rootModule;
     extern (C++) static __gshared DsymbolTable modules; // symbol table of all modules
     extern (C++) static __gshared Modules amodules;     // array of all modules
-    extern (C++) static __gshared Dsymbols deferredM;    // deferred Dsymbol's needing importAll() run on them
     extern (C++) static __gshared Dsymbols deferred;    // deferred Dsymbol's needing semantic() run on them
-    extern (C++) static __gshared Dsymbols deferred2;   // deferred Dsymbol's needing semantic2() run on them
-    extern (C++) static __gshared Dsymbols deferred3;   // deferred Dsymbol's needing semantic3() run on them
     extern (C++) static __gshared uint dprogress;       // progress resolving the deferred list
 
     static void _init()
@@ -994,15 +991,23 @@ extern (C++) final class Module : Package
         return this;
     }
 
-    override void importAll(Scope* prevsc)
+    override Scope* newScope()
     {
-        //printf("+Module::importAll(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
-        if (semanticRun >= PASSmembers)
-        {
-            if (semanticRun < PASSmembersdone)
-                ScopeDsymbol.importAll(_scope);
+        /* Note that modules get their own scope, from scratch.
+         * This is so regardless of where in the syntax a module
+         * gets imported, it is unaffected by context.
+         */
+        if (!_scope)
+           setScope(Scope.createGlobal(this)); // create root scope
+        return _scope;
+    }
+
+    override void detemineMembers()
+    {
+        //printf("+Module::detemineMembers(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
+        if (membersState == SemState.Done)
             return;
-        }
+
         if (isDocFile)
         {
             error("is a Ddoc file, cannot import it");
@@ -1015,12 +1020,6 @@ extern (C++) final class Module : Package
             else
                 md.msg.error("string expected, not '%s'", md.msg.toChars());
         }
-        /* Note that modules get their own scope, from scratch.
-         * This is so regardless of where in the syntax a module
-         * gets imported, it is unaffected by context.
-         * Ignore prevsc.
-         */
-        Scope* sc = Scope.createGlobal(this); // create root scope
         // Add import of "object", even for the "object" module.
         // If it isn't there, some compiler rewrites, like
         //    classinst == classinst -> .object.opEquals(classinst, classinst)
@@ -1030,128 +1029,17 @@ extern (C++) final class Module : Package
             auto im = new Import(Loc(), null, Id.object, null, 0);
             members.shift(im);
         }
-        if (!symtab)
-        {
-            // Add all symbols into module's symbol table
-            symtab = new DsymbolTable();
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                Dsymbol s = (*members)[i];
-                s.addMember(sc, sc.scopesym);
-            }
-        }
-        // anything else should be run after addMember, so version/debug symbols are defined
-        /* Set scope for the symbols so that if we forward reference
-         * a symbol, it can possibly be resolved on the spot.
-         * If this works out well, it can be extended to all modules
-         * before any semantic() on any of them.
-         */
-        setScope(sc); // remember module scope for semantic
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            s.setScope(sc);
-        }
-        ScopeDsymbol.importAll(sc);
-        sc = sc.pop();
-        sc.pop(); // 2 pops because Scope::createGlobal() created 2
+
+        super.determineMembers();
     }
 
     // semantic analysis
-    override void semantic(Scope*)
+    override void semantic()
     {
-        if (semanticRun >= PASSsemantic)
-            return;
         //printf("+Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
-        semanticRun = PASSsemantic;
-        // Note that modules get their own scope, from scratch.
-        // This is so regardless of where in the syntax a module
-        // gets imported, it is unaffected by context.
-        Scope* sc = _scope; // see if already got one from importAll()
-        if (!sc)
-        {
-            Scope.createGlobal(this); // create root scope
-        }
-        //printf("Module = %p, linkage = %d\n", sc.scopesym, sc.linkage);
-        // Pass 1 semantic routines: do public side of the definition
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            //printf("\tModule('%s'): '%s'.semantic()\n", toChars(), s.toChars());
-            s.semantic(sc);
-            runDeferredSemantic();
-        }
+        super.semantic();
         if (userAttribDecl)
-        {
-            userAttribDecl.semantic(sc);
-        }
-        if (!_scope)
-        {
-            sc = sc.pop();
-            sc.pop(); // 2 pops because Scope::createGlobal() created 2
-        }
-        semanticRun = PASSsemanticdone;
-        //printf("-Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
-    }
-
-    // pass 2 semantic analysis
-    override void semantic2(Scope*)
-    {
-        //printf("Module::semantic2('%s'): parent = %p\n", toChars(), parent);
-        if (semanticRun != PASSsemanticdone) // semantic() not completed yet - could be recursive call
-            return;
-        semanticRun = PASSsemantic2;
-        // Note that modules get their own scope, from scratch.
-        // This is so regardless of where in the syntax a module
-        // gets imported, it is unaffected by context.
-        Scope* sc = Scope.createGlobal(this); // create root scope
-        //printf("Module = %p\n", sc.scopesym);
-        // Pass 2 semantic routines: do initializers and function bodies
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            runDeferredSemantic2();
-
-            Dsymbol s = (*members)[i];
-            s.semantic2(sc);
-        }
-        if (userAttribDecl)
-        {
-            userAttribDecl.semantic2(sc);
-        }
-        sc = sc.pop();
-        sc.pop();
-        semanticRun = PASSsemantic2done;
-        //printf("-Module::semantic2('%s'): parent = %p\n", toChars(), parent);
-    }
-
-    // pass 3 semantic analysis
-    override void semantic3(Scope*)
-    {
-        //printf("Module::semantic3('%s'): parent = %p\n", toChars(), parent);
-        if (semanticRun != PASSsemantic2done)
-            return;
-        semanticRun = PASSsemantic3;
-        // Note that modules get their own scope, from scratch.
-        // This is so regardless of where in the syntax a module
-        // gets imported, it is unaffected by context.
-        Scope* sc = Scope.createGlobal(this); // create root scope
-        //printf("Module = %p\n", sc.scopesym);
-        // Pass 3 semantic routines: do initializers and function bodies
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            runDeferredSemantic2();
-
-            Dsymbol s = (*members)[i];
-            //printf("Module %s: %s.semantic3()\n", toChars(), s.toChars());
-            s.semantic3(sc);
-        }
-        if (userAttribDecl)
-        {
-            userAttribDecl.semantic3(sc);
-        }
-        sc = sc.pop();
-        sc.pop();
-        semanticRun = PASSsemantic3done;
+            userAttribDecl.semantic();
     }
 
     /**********************************
@@ -1166,14 +1054,14 @@ extern (C++) final class Module : Package
 
     override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
-        importAll(_scope);
+        determineMembers();
 
         /* Since modules can be circularly referenced,
          * need to stop infinite recursive searches.
          * This is done with the cache.
          */
         //printf("%s Module.search('%s', flags = x%x) insearch = %d\n", toChars(), ident.toChars(), flags, insearch);
-        if (insearch) // FWDREF FIXME!: this should go
+        if (insearch) // FWDREF FIXME!: this should go, but study it before
             return null;
 
         /* Qualified module searches always search their imports,
@@ -1236,85 +1124,10 @@ extern (C++) final class Module : Package
     /*******************************************
      * Can't run semantic on s now, try again later.
      */
-    static void addDeferredMembers(Dsymbol s)
-    {
-        //printf("Module::addDeferredSemantic('%s')\n", s.toChars());
-        deferredM.push(s);
-    }
-
     static void addDeferredSemantic(Dsymbol s)
     {
         //printf("Module::addDeferredSemantic('%s')\n", s.toChars());
         deferred.push(s);
-    }
-
-    static void addDeferredSemantic2(Dsymbol s)
-    {
-        //printf("Module::addDeferredSemantic2('%s')\n", s.toChars());
-        deferred2.push(s);
-    }
-
-    static void addDeferredSemantic3(Dsymbol s)
-    {
-        //printf("Module::addDeferredSemantic3('%s')\n", s.toChars());
-        deferred3.push(s);
-    }
-
-    /******************************************
-     * Run importAll() on deferred symbols.
-     */
-    static void runDeferredMembers()
-    {
-//         if (dprogress == 0)
-//             return;
-
-        static __gshared int nested;
-        if (nested)
-            return;
-        nested++;
-
-        size_t len;
-        do
-        {
-//             dprogress = 0;
-            len = deferredM.dim;
-            if (!len)
-                break;
-
-            Dsymbol* todo;
-            Dsymbol* todoalloc = null;
-            Dsymbol tmp;
-            if (len == 1)
-            {
-                todo = &tmp;
-            }
-            else
-            {
-                todo = cast(Dsymbol*)malloc(len * Dsymbol.sizeof);
-                assert(todo);
-                todoalloc = todo;
-            }
-            memcpy(todo, deferredM.tdata(), len * Dsymbol.sizeof);
-            deferredM.setDim(0);
-
-            for (size_t i = 0; i < len; i++)
-            {
-                Dsymbol s = todo[i];
-                assert(s.semanticRun >= PASSmembersdeferred);
-                s.importAll(null);
-                //printf("deferredM: %s, parent = %s\n", s.toChars(), s.parent.toChars());
-            }
-            //printf("\tdeferred.dim = %d, len = %d, dprogress = %d\n", deferredM.dim, len, dprogress);
-            if (todoalloc)
-                free(todoalloc);
-        }
-        while (true);
-//         while (deferredM.dim < len || dprogress); // while making progress
-        nested--;
-        //printf("-Module::runDeferredSemantic(), len = %d\n", deferredM.dim);
-/+
-        if (!deferredM.dim)
-            dprogress = 1;+/
     }
 
     /******************************************
@@ -1375,40 +1188,6 @@ extern (C++) final class Module : Package
 
         if (!deferred.dim)
             dprogress = 1;
-    }
-
-    static void runDeferredSemantic2()
-    {
-        Module.runDeferredSemantic();
-
-        Dsymbols* a = &Module.deferred2;
-        for (size_t i = 0; i < a.dim; i++)
-        {
-            Dsymbol s = (*a)[i];
-            //printf("[%d] %s semantic2a\n", i, s.toPrettyChars());
-            s.semantic2(null);
-
-            if (global.errors)
-                break;
-        }
-        a.setDim(0);
-    }
-
-    static void runDeferredSemantic3()
-    {
-        Module.runDeferredSemantic2();
-
-        Dsymbols* a = &Module.deferred3;
-        for (size_t i = 0; i < a.dim; i++)
-        {
-            Dsymbol s = (*a)[i];
-            //printf("[%d] %s semantic3a\n", i, s.toPrettyChars());
-            s.semantic3(null);
-
-            if (global.errors)
-                break;
-        }
-        a.setDim(0);
     }
 
     static void clearCache()

@@ -641,7 +641,7 @@ extern (C++) class Dsymbol : RootObject
 
     void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        if (addMemberState == SemState.Done)
+        if (addMemberState != SemState.Init)
             return;
 
         setScope(sc);
@@ -699,22 +699,6 @@ extern (C++) class Dsymbol : RootObject
     void semantic(Scope* sc)
     {
         error("%p has no semantic routine", this);
-    }
-
-    /*************************************
-     * Does semantic analysis on initializers and members of aggregates.
-     */
-    void semantic2(Scope* sc)
-    {
-        // Most Dsymbols have no further semantic analysis needed
-    }
-
-    /*************************************
-     * Does semantic analysis on function bodies.
-     */
-    void semantic3(Scope* sc)
-    {
-        // Most Dsymbols have no further semantic analysis needed
     }
 
     /*********************************************
@@ -1351,12 +1335,7 @@ public:
         //printf("%s.ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident.toChars(), flags);
         //if (strcmp(ident.toChars(),"c") == 0) *(char*)0=0;
 
-//         if (!(flags & 0x100))
-//             if (auto result = search(loc, ident, flags | 0x100))
-//                 return result;
-
-        if (_scope && !(flags & 0x100))
-            determineMembers(_scope);
+        determineMembers();
 
         // Look in symbols declared in this module
         if (symtab && !(flags & SearchImportsOnly))
@@ -1801,8 +1780,8 @@ public:
                     symtab = new DsymbolTable();
 
                 sc = newScope();
-                scope(exit) if (sc != _scope)
-                    sc.pop();
+                scope(exit) while (sc != _scope)
+                    sc = sc.pop();
 
                 ++membersNest;
                 for (;nextMember < members.dim; ++nextMember)

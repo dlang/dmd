@@ -41,167 +41,33 @@ extern (C++) final class Nspace : ScopeDsymbol
         return ScopeDsymbol.syntaxCopy(ns);
     }
 
-    override void addMember(Scope* sc, ScopeDsymbol sds)
-    {
-        ScopeDsymbol.addMember(sc, sds);
-        if (members)
-        {
-            if (!symtab)
-                symtab = new DsymbolTable();
-            // The namespace becomes 'imported' into the enclosing scope
-            for (Scope* sce = sc; 1; sce = sce.enclosing)
-            {
-                ScopeDsymbol sds2 = sce.scopesym;
-                if (sds2)
-                {
-                    sds2.importScope(this, Prot(PROTpublic));
-                    break;
-                }
-            }
-            assert(sc);
-            sc = sc.push(this);
-            sc.linkage = LINKcpp; // namespaces default to C++ linkage
-            sc.parent = this;
-            foreach (s; *members)
-            {
-                //printf("add %s to scope %s\n", s.toChars(), toChars());
-                s.addMember(sc, this);
-            }
-            sc.pop();
-        }
-    }
-
     override void setScope(Scope* sc)
     {
-        ScopeDsymbol.setScope(sc);
-        if (members)
+        super.setScope(sc);
+
+        // The namespace becomes 'imported' into the enclosing scope
+        for (Scope* sce = sc; 1; sce = sce.enclosing)
         {
-            assert(sc);
-            sc = sc.push(this);
-            sc.linkage = LINKcpp; // namespaces default to C++ linkage
-            sc.parent = this;
-            foreach (s; *members)
+            ScopeDsymbol sds2 = sce.scopesym;
+            if (sds2)
             {
-                s.setScope(sc);
+                sds2.importScope(this, Prot(PROTpublic));
+                break;
             }
-            sc.pop();
         }
     }
 
-    override void semantic(Scope* sc)
+    override Scope* newScope()
     {
-        if (semanticRun != PASSinit) // FWDREF FIXME
-            return;
-        static if (LOG)
-        {
-            printf("+Nspace::semantic('%s')\n", toChars());
-        }
-        if (_scope)
-        {
-            sc = _scope;
-            _scope = null;
-        }
-        if (!sc)
-            return;
-
-        semanticRun = PASSsemantic;
-        parent = sc.parent;
-        if (members)
-        {
-            assert(sc);
-            sc = sc.push(this);
-            sc.linkage = LINKcpp; // note that namespaces imply C++ linkage
-            sc.parent = this;
-            foreach (s; *members)
-            {
-                s.importAll(sc);
-            }
-            foreach (s; *members)
-            {
-                static if (LOG)
-                {
-                    printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
-                }
-                s.semantic(sc);
-            }
-            sc.pop();
-        }
-        semanticRun = PASSsemanticdone;
-        static if (LOG)
-        {
-            printf("-Nspace::semantic('%s')\n", toChars());
-        }
-    }
-
-    override void semantic2(Scope* sc)
-    {
-        if (semanticRun >= PASSsemantic2)
-            return;
-        semanticRun = PASSsemantic2;
-        static if (LOG)
-        {
-            printf("+Nspace::semantic2('%s')\n", toChars());
-        }
-        if (members)
-        {
-            assert(sc);
-            sc = sc.push(this);
-            sc.linkage = LINKcpp;
-            foreach (s; *members)
-            {
-                static if (LOG)
-                {
-                    printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
-                }
-                s.semantic2(sc);
-            }
-            sc.pop();
-        }
-        static if (LOG)
-        {
-            printf("-Nspace::semantic2('%s')\n", toChars());
-        }
-    }
-
-    override void semantic3(Scope* sc)
-    {
-        if (semanticRun >= PASSsemantic3)
-            return;
-        semanticRun = PASSsemantic3;
-        static if (LOG)
-        {
-            printf("Nspace::semantic3('%s')\n", toChars());
-        }
-        if (members)
-        {
-            sc = sc.push(this);
-            sc.linkage = LINKcpp;
-            foreach (s; *members)
-            {
-                s.semantic3(sc);
-            }
-            sc.pop();
-        }
+        auto sc = super.newScope();
+        sc.linkage = LINKcpp; // namespaces default to C++ linkage
+        sc.parent = this;
+        return sc;
     }
 
     override bool oneMember(Dsymbol* ps, Identifier ident)
     {
         return Dsymbol.oneMember(ps, ident);
-    }
-
-    override final Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
-    {
-        //printf("%s.Nspace.search('%s')\n", toChars(), ident.toChars());
-        if (_scope && !symtab)
-            semantic(_scope);
-
-        if (!members || !symtab) // opaque or semantic() is not yet called
-        {
-            error("is forward referenced when looking for '%s'", ident.toChars());
-            return null;
-        }
-
-        return ScopeDsymbol.search(loc, ident, flags);
     }
 
     override int apply(Dsymbol_apply_ft_t fp, void* param)
