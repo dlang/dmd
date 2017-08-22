@@ -200,39 +200,32 @@ extern (C++) final class Import : Dsymbol
         //printf("-Import::load('%s'), pkg = %p\n", toChars(), pkg);
     }
 
-    override void importAll(Scope* sc)
+    override void determineMembers()
     {
-        if (semanticRun >= PASSmembersdone)
+        if (membersState == SemState.Done)
             return;
+        membersState = SemState.In;
 
-        if (_scope)
-            sc = _scope;
+        if (!mod)
+            load(sc);
 
         if (!mod)
         {
-            load(sc);
+            membersState = SemState.Done; // parsing failed
+            return;
+        }
 
-            if (!mod)
-            {
-                semanticRun = PASSmembersdone; // parsing failed
-                return;
-            }
-
-            if (mod.md && mod.md.isdeprecated)
-            {
-                Expression msg = mod.md.msg;
-                if (StringExp se = msg ? msg.toStringExp() : null)
-                    mod.deprecation(loc, "is deprecated - %s", se.string);
-                else
-                    mod.deprecation(loc, "is deprecated");
-            }
-            mod.importAll(null);
-            if (sc.explicitProtection)
-                protection = sc.protection;
-            if (!isstatic && !aliasId && !names.dim)
-            {
-                sc.scopesym.importScope(mod, protection);
-            }
+        if (mod.md && mod.md.isdeprecated)
+        {
+            Expression msg = mod.md.msg;
+            if (StringExp se = msg ? msg.toStringExp() : null)
+                mod.deprecation(loc, "is deprecated - %s", se.string);
+            else
+                mod.deprecation(loc, "is deprecated");
+        }
+        if (!isstatic && !aliasId && !names.dim)
+        {
+            sc.scopesym.importScope(mod, protection);
         }
 
         if (aliasdecls.dim)
@@ -244,81 +237,50 @@ extern (C++) final class Import : Dsymbol
             sc = sc.pop();
         }
 
-        semanticRun = PASSmembersdone;
+        // Modules need a list of each imported module
+        //printf("%s imports %s\n", sc.module.toChars(), mod.toChars());
+        sc._module.aimports.push(mod);
+
+        if (!aliasId && !names.dim) // neither a selective nor a renamed import
+        {
+            // Mark the imported packages as accessible from the current
+            // scope. This access check is necessary when using FQN b/c
+            // we're using a single global package tree.
+            // https://issues.dlang.org/show_bug.cgi?id=313
+            if (packages)
+            {
+                // import a.b.c.d;
+                auto p = pkg; // a
+                scopesym.addAccessiblePackage(p, protection);
+                foreach (id; (*packages)[1 .. packages.dim]) // [b, c]
+                {
+                    p = cast(Package) p.symtab.lookup(id);
+                    scopesym.addAccessiblePackage(p, protection);
+                }
+            }
+            scopesym.addAccessiblePackage(mod, protection); // d
+        }
+
+        membersState = SemState.Done;
     }
 
-    override void semantic(Scope* sc)
+    override void setScope(Scope* sc)
+    {
+        super.setScope(sc);
+
+        if (sc.explicitProtection)
+            protection = sc.protection;
+    }
+
+    override void semantic()
     {
         //printf("Import::semantic('%s') %s\n", toPrettyChars(), id.toChars());
-        if (semanticRun >= PASSsemantic)
-            return;
 
-        if (_scope)
-        {
-            sc = _scope;
-            _scope = null;
-        }
-        if (!sc)
-            return;
+        auto sc = _scope;
 
-        semanticRun = PASSsemantic;
-
-        // Load if not already done so
-        if (!mod)
-        {
-            load(sc);
-            if (mod)
-                mod.importAll(null);
-        }
+        determineMembers();
         if (mod)
         {
-            // Modules need a list of each imported module
-            //printf("%s imports %s\n", sc.module.toChars(), mod.toChars());
-            sc._module.aimports.push(mod);
-
-            if (sc.explicitProtection)
-                protection = sc.protection;
-
-            if (!aliasId && !names.dim) // neither a selective nor a renamed import
-            {
-                ScopeDsymbol scopesym;
-                for (Scope* scd = sc; scd; scd = scd.enclosing)
-                {
-                    if (!scd.scopesym)
-                        continue;
-                    scopesym = scd.scopesym;
-                    break;
-                }
-
-                if (!isstatic)
-                {
-                    scopesym.importScope(mod, protection);
-                }
-
-                // Mark the imported packages as accessible from the current
-                // scope. This access check is necessary when using FQN b/c
-                // we're using a single global package tree.
-                // https://issues.dlang.org/show_bug.cgi?id=313
-                if (packages)
-                {
-                    // import a.b.c.d;
-                    auto p = pkg; // a
-                    scopesym.addAccessiblePackage(p, protection);
-                    foreach (id; (*packages)[1 .. packages.dim]) // [b, c]
-                    {
-                        p = cast(Package) p.symtab.lookup(id);
-                        scopesym.addAccessiblePackage(p, protection);
-                    }
-                }
-                scopesym.addAccessiblePackage(mod, protection); // d
-            }
-
-            mod.semantic(null);
-            if (mod.needmoduleinfo)
-            {
-                //printf("module4 %s because of %s\n", sc.module.toChars(), mod.toChars());
-                sc._module.needmoduleinfo = 1;
-            }
 
             sc = sc.push(mod);
             sc.protection = protection;
@@ -480,8 +442,7 @@ extern (C++) final class Import : Dsymbol
         if (!pkg)
         {
             load(null);
-            mod.importAll(null);
-            mod.semantic(null);
+            mod.determineMembers();
         }
         // Forward it to the package/module
         return pkg.search(loc, ident, flags);

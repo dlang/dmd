@@ -715,7 +715,7 @@ extern (C++) class FuncDeclaration : Declaration
         if (!type.deco)
         {
             sc = sc.push();
-            scope(exit) sc.pop();
+            scope(exit) sc = sc.pop();
             sc.stc |= storage_class & (STCdisable | STCdeprecated); // forward to function type
 
             TypeFunction tf = type.toTypeFunction();
@@ -987,7 +987,7 @@ extern (C++) class FuncDeclaration : Declaration
         f = type.toTypeFunction();
 
         /* Do not allow template instances to add virtual functions
-         * to a class. // FWDREF FIXME; how is this supposed to happen?
+         * to a class.
          */
         if (isVirtual())
         {
@@ -1086,14 +1086,17 @@ extern (C++) class FuncDeclaration : Declaration
         if (canInferAttributes(sc))
             initInferAttributes();
 
-        Module.dprogress++;
-        semanticRun = PASSsemanticdone;
+            //* semantic2
+        objc.setSelector(this, sc);
+        objc.validateSelector(this);
+        if (ClassDeclaration cd = parent.isClassDeclaration())
+        {
+            objc.checkLinkage(this);
+        }
+            //* semantic2 end
 
-        /* Save scope for possible later use (if we need the
-         * function internals)
-         */
-        _scope = sc.copy();
-        _scope.setNoFree();
+        Module.dprogress++;
+        semanticState = SemState.Done;
 
         static __gshared bool printedMain = false; // semantic might run more than once
         if (global.params.verbose && !printedMain)
@@ -1113,22 +1116,6 @@ extern (C++) class FuncDeclaration : Declaration
             genCmain(sc);
 
         assert(type.ty != Terror || errors);
-    }
-
-    override final void semantic2(Scope* sc)
-    {
-        if (semanticRun >= PASSsemantic2done)
-            return;
-        assert(semanticRun <= PASSsemantic2);
-
-        semanticRun = PASSsemantic2;
-
-        objc.setSelector(this, sc);
-        objc.validateSelector(this);
-        if (ClassDeclaration cd = parent.isClassDeclaration())
-        {
-            objc.checkLinkage(this);
-        }
     }
 
     // Do the semantic analysis on the internals of the function.
@@ -2112,9 +2099,6 @@ extern (C++) class FuncDeclaration : Declaration
      */
     final bool determineAttributes()
     {
-        if (!_scope)
-            return !errors;
-
         if (!originalType) // semantic not yet run
         {
             TemplateInstance spec = isSpeculative();
@@ -4681,18 +4665,21 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
         return FuncDeclaration.syntaxCopy(f);
     }
 
-    override void semantic(Scope* sc)
+    override final Scope* getScope()
     {
-        //printf("CtorDeclaration::semantic() %s\n", toChars());
-        if (semanticRun >= PASSsemanticdone)
-            return;
-        if (_scope)
-        {
-            sc = _scope;
-            _scope = null;
-        }
+        auto sc = _scope.push();
+        sc.stc &= ~STCstatic; // not a static constructor
+        sc.flags |= SCOPEctor;
+        return sc;
+    }
 
-        parent = sc.parent;
+    override final void addMember(Scope* sc, ScopeDsymbol sds)
+    {
+        if (addMemberState == SemState.Done)
+            return;
+
+        super.addMember(sc, sds);
+
         Dsymbol p = toParent2();
         AggregateDeclaration ad = p.isAggregateDeclaration();
         if (!ad)
@@ -4702,21 +4689,21 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
             errors = true;
             return;
         }
+    }
 
-        sc = sc.push();
-        sc.stc &= ~STCstatic; // not a static constructor
-        sc.flags |= SCOPEctor;
+    override final void semanticType()
+    {
+        if (typeState == SemState.Done)
+            return;
 
-        FuncDeclaration.semantic(sc);
+        super.semanticType();
 
-        sc.pop();
-
-        if (errors)
+        if (errors || typeState != SemState.Done)
             return;
 
         TypeFunction tf = type.toTypeFunction();
 
-        /* See if it's the default constructor
+        /* See if it's the default constructor // FWDREF FIXME: defaultCtor should be a property that lazily run all CtorDeclaration.semanticType if there's no defaultCtor yet
          * But, template constructor should not become a default constructor.
          */
         if (ad && (!parent.isTemplateInstance() || parent.isTemplateMixin()))
@@ -4812,20 +4799,21 @@ extern (C++) final class PostBlitDeclaration : FuncDeclaration
         return FuncDeclaration.syntaxCopy(dd);
     }
 
-    override void semantic(Scope* sc)
+    override final Scope* getScope()
     {
-        //printf("PostBlitDeclaration::semantic() %s\n", toChars());
-        //printf("ident: %s, %s, %p, %p\n", ident.toChars(), Id::dtor.toChars(), ident, Id::dtor);
-        //printf("stc = x%llx\n", sc.stc);
-        if (semanticRun >= PASSsemanticdone)
-            return;
-        if (_scope)
-        {
-            sc = _scope;
-            _scope = null;
-        }
+        auto sc = _scope.push();
+        sc.stc &= ~STCstatic; // not static
+        sc.linkage = LINKd;
+        return sc;
+    }
 
-        parent = sc.parent;
+    override final void addMember(Scope* sc, ScopeDsymbol sds)
+    {
+        if (addMemberState == SemState.Done)
+            return;
+
+        super.addMember(sc, sds);
+
         Dsymbol p = toParent2();
         StructDeclaration ad = p.isStructDeclaration();
         if (!ad)
@@ -4835,18 +4823,16 @@ extern (C++) final class PostBlitDeclaration : FuncDeclaration
             errors = true;
             return;
         }
-        if (ident == Id.postblit && semanticRun < PASSsemantic)
+        if (ident == Id.postblit)
             ad.postblits.push(this);
+    }
+
+    override final void semanticType()
+    {
         if (!type)
             type = new TypeFunction(null, Type.tvoid, false, LINKd, storage_class);
 
-        sc = sc.push();
-        sc.stc &= ~STCstatic; // not static
-        sc.linkage = LINKd;
-
-        FuncDeclaration.semantic(sc);
-
-        sc.pop();
+        super.semanticType();
     }
 
     override bool isVirtual()
@@ -4901,19 +4887,22 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
         return FuncDeclaration.syntaxCopy(dd);
     }
 
-    override void semantic(Scope* sc)
+    override final Scope* getScope()
     {
-        //printf("DtorDeclaration::semantic() %s\n", toChars());
-        //printf("ident: %s, %s, %p, %p\n", ident.toChars(), Id::dtor.toChars(), ident, Id::dtor);
-        if (semanticRun >= PASSsemanticdone)
-            return;
-        if (_scope)
-        {
-            sc = _scope;
-            _scope = null;
-        }
+        auto sc = _scope.push();
+        sc.stc &= ~STCstatic; // not a static destructor
+        if (sc.linkage != LINKcpp)
+            sc.linkage = LINKd;
+        return sc;
+    }
 
-        parent = sc.parent;
+    override final void addMember(Scope* sc, ScopeDsymbol sds)
+    {
+        if (addMemberState == SemState.Done)
+            return;
+
+        super.addMember(sc, sds);
+
         Dsymbol p = toParent2();
         AggregateDeclaration ad = p.isAggregateDeclaration();
         if (!ad)
@@ -4923,19 +4912,16 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
             errors = true;
             return;
         }
-        if (ident == Id.dtor && semanticRun < PASSsemantic)
+        if (ident == Id.dtor)
             ad.dtors.push(this);
+    }
+
+    override final void semanticType()
+    {
         if (!type)
             type = new TypeFunction(null, Type.tvoid, false, LINKd, storage_class);
 
-        sc = sc.push();
-        sc.stc &= ~STCstatic; // not a static destructor
-        if (sc.linkage != LINKcpp)
-            sc.linkage = LINKd;
-
-        FuncDeclaration.semantic(sc);
-
-        sc.pop();
+        super.semanticType();
     }
 
     override const(char)* kind() const
@@ -5001,35 +4987,58 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
         return FuncDeclaration.syntaxCopy(scd);
     }
 
-    override final void semantic(Scope* sc)
+    override final void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        //printf("StaticCtorDeclaration::semantic()\n");
-        if (semanticRun >= PASSsemanticdone)
+        if (membersState == SemState.Done)
             return;
-        if (_scope)
+
+        super.addMember(sc, sds);
+
+        // We're going to need ModuleInfo // FWDREF FIXME: so what if we have a static ctor/dtor inside a scope that never gets determinedMembers()?
+        Module m = getModule();
+        if (!m)
+            m = sc._module;
+        if (m)
         {
-            sc = _scope;
-            _scope = null;
+            m.needmoduleinfo = 1;
+            //printf("module1 %s needs moduleinfo\n", m.toChars());
+        }
+    }
+
+    override final void semanticType()
+    {
+        if (typeState == SemState.Done)
+            return;
+
+        void errorReturn() {
+            type = Type.terror;
+            errors = true;
+            typeState = SemState.Done;
         }
 
-        parent = sc.parent;
         Dsymbol p = parent.pastMixin();
         if (!p.isScopeDsymbol())
         {
             const(char)* s = (isSharedStaticCtorDeclaration() ? "shared " : "");
             .error(loc, "%sstatic constructor can only be member of module/aggregate/template, not %s %s", s, p.kind(), p.toChars());
-            type = Type.terror;
-            errors = true;
-            return;
+            return errorReturn();
         }
+
         if (!type)
             type = new TypeFunction(null, Type.tvoid, false, LINKd, storage_class);
 
+        super.semanticType();
+
+        typeState = SemState.Done;
+    }
+
+    override final void semanticBody()
+    {
         /* If the static ctor appears within a template instantiation,
          * it could get called multiple times by the module constructors
          * for different modules. Thus, protect it with a gate.
          */
-        if (isInstantiated() && semanticRun < PASSsemantic)
+        if (isInstantiated() && bodyState == SemState.Init)
         {
             /* Add this prefix to the function:
              *      static int gate;
@@ -5056,17 +5065,7 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
             fbody = new CompoundStatement(Loc(), sa);
         }
 
-        FuncDeclaration.semantic(sc);
-
-        // We're going to need ModuleInfo
-        Module m = getModule();
-        if (!m)
-            m = sc._module;
-        if (m)
-        {
-            m.needmoduleinfo = 1;
-            //printf("module1 %s needs moduleinfo\n", m.toChars());
-        }
+        super.semanticBody();
     }
 
     override final AggregateDeclaration isThis()
@@ -5155,52 +5154,75 @@ extern (C++) class StaticDtorDeclaration : FuncDeclaration
         return FuncDeclaration.syntaxCopy(sdd);
     }
 
-    override final void semantic(Scope* sc)
+    override final void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        if (semanticRun >= PASSsemanticdone)
+        if (membersState == SemState.Done)
             return;
-        if (_scope)
+
+        super.addMember(sc, sds);
+
+        // We're going to need ModuleInfo // FWDREF FIXME: so what if we have a static ctor/dtor inside a scope that never gets determinedMembers()?
+        Module m = getModule();
+        if (!m)
+            m = sc._module;
+        if (m)
         {
-            sc = _scope;
-            _scope = null;
+            m.needmoduleinfo = 1;
+            //printf("module1 %s needs moduleinfo\n", m.toChars());
+        }
+    }
+
+    override final void semanticType()
+    {
+        if (typeState == SemState.Done)
+            return;
+
+        void errorReturn() {
+            type = Type.terror;
+            errors = true;
+            typeState = SemState.Done;
         }
 
-        parent = sc.parent;
         Dsymbol p = parent.pastMixin();
         if (!p.isScopeDsymbol())
         {
             const(char)* s = (isSharedStaticDtorDeclaration() ? "shared " : "");
             .error(loc, "%sstatic destructor can only be member of module/aggregate/template, not %s %s", s, p.kind(), p.toChars());
-            type = Type.terror;
-            errors = true;
-            return;
+            return errorReturn();
         }
+
         if (!type)
             type = new TypeFunction(null, Type.tvoid, false, LINKd, storage_class);
 
-        /* If the static ctor appears within a template instantiation,
+        super.semanticType();
+
+        typeState = SemState.Done;
+    }
+
+    override final void semanticBody()
+    {
+        /* If the static dtor appears within a template instantiation,
          * it could get called multiple times by the module constructors
          * for different modules. Thus, protect it with a gate.
          */
-        if (isInstantiated() && semanticRun < PASSsemantic)
+        if (isInstantiated() && bodyState == SemState.Init)
         {
             /* Add this prefix to the function:
              *      static int gate;
-             *      if (--gate != 0) return;
-             * Increment gate during constructor execution.
+             *      if (++gate != 1) return;
              * Note that this is not thread safe; should not have threads
-             * during static destruction.
+             * during static construction.
              */
             auto v = new VarDeclaration(Loc(), Type.tint32, Id.gate, null);
-            v.storage_class = STCtemp | (isSharedStaticDtorDeclaration() ? STCstatic : STCtls);
+            v.storage_class = STCtemp | (isSharedStaticCtorDeclaration() ? STCstatic : STCtls);
 
             auto sa = new Statements();
             Statement s = new ExpStatement(Loc(), v);
             sa.push(s);
 
             Expression e = new IdentifierExp(Loc(), v.ident);
-            e = new AddAssignExp(Loc(), e, new IntegerExp(-1));
-            e = new EqualExp(TOKnotequal, Loc(), e, new IntegerExp(0));
+            e = new AddAssignExp(Loc(), e, new IntegerExp(1));
+            e = new EqualExp(TOKnotequal, Loc(), e, new IntegerExp(1));
             s = new IfStatement(Loc(), null, e, new ReturnStatement(Loc(), null), null, Loc());
 
             sa.push(s);
@@ -5208,21 +5230,9 @@ extern (C++) class StaticDtorDeclaration : FuncDeclaration
                 sa.push(fbody);
 
             fbody = new CompoundStatement(Loc(), sa);
-
-            vgate = v;
         }
 
-        FuncDeclaration.semantic(sc);
-
-        // We're going to need ModuleInfo
-        Module m = getModule();
-        if (!m)
-            m = sc._module;
-        if (m)
-        {
-            m.needmoduleinfo = 1;
-            //printf("module2 %s needs moduleinfo\n", m.toChars());
-        }
+        super.semanticBody();
     }
 
     override final AggregateDeclaration isThis()
@@ -5305,17 +5315,20 @@ extern (C++) final class InvariantDeclaration : FuncDeclaration
         return FuncDeclaration.syntaxCopy(id);
     }
 
-    override void semantic(Scope* sc)
+    override final Scope* getScope()
     {
-        if (semanticRun >= PASSsemanticdone)
-            return;
-        if (_scope)
-        {
-            sc = _scope;
-            _scope = null;
-        }
+        auto sc = _scope.push();
+        sc.stc &= ~STCstatic; // not a static invariant
+        sc.stc |= STCconst; // invariant() is always const
+        sc.flags = (sc.flags & ~SCOPEcontract) | SCOPEinvariant;
+        sc.linkage = LINKd;
+        return sc;
+    }
 
-        parent = sc.parent;
+    override final void addMember(Scope* sc, ScopeDsymbol sds)
+    {
+        super.addMember(sc, sds);
+
         Dsymbol p = parent.pastMixin();
         AggregateDeclaration ad = p.isAggregateDeclaration();
         if (!ad)
@@ -5325,23 +5338,20 @@ extern (C++) final class InvariantDeclaration : FuncDeclaration
             errors = true;
             return;
         }
+
         if (ident != Id.classInvariant &&
              semanticRun < PASSsemantic &&
              !ad.isUnionDeclaration()           // users are on their own with union fields
            )
             ad.invs.push(this);
+    }
+
+    override final void semanticType()
+    {
         if (!type)
             type = new TypeFunction(null, Type.tvoid, false, LINKd, storage_class);
 
-        sc = sc.push();
-        sc.stc &= ~STCstatic; // not a static invariant
-        sc.stc |= STCconst; // invariant() is always const
-        sc.flags = (sc.flags & ~SCOPEcontract) | SCOPEinvariant;
-        sc.linkage = LINKd;
-
-        FuncDeclaration.semantic(sc);
-
-        sc.pop();
+        super.semanticType();
     }
 
     override bool isVirtual()
@@ -5403,19 +5413,17 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
         return FuncDeclaration.syntaxCopy(utd);
     }
 
-    override void semantic(Scope* sc)
+    override final Scope* getScope()
     {
-        if (semanticRun >= PASSsemanticdone)
-            return;
-        if (_scope)
-        {
-            sc = _scope;
-            _scope = null;
-        }
+        auto sc = _scope.push();
+        sc.linkage = LINKd;
+        return sc;
+    }
 
-        protection = sc.protection;
+    override final void addMember(Scope* sc, ScopeDsymbol sds)
+    {
+        super.addMember(sc, sds);
 
-        parent = sc.parent;
         Dsymbol p = parent.pastMixin();
         if (!p.isScopeDsymbol())
         {
@@ -5425,15 +5433,8 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
             return;
         }
 
-        if (global.params.useUnitTests)
-        {
-            if (!type)
-                type = new TypeFunction(null, Type.tvoid, false, LINKd, storage_class);
-            Scope* sc2 = sc.push();
-            sc2.linkage = LINKd;
-            FuncDeclaration.semantic(sc2);
-            sc2.pop();
-        }
+        if (!global.params.useUnitTests)
+            typeState = bodyState = semanticState = SemState.Done;
 
         version (none)
         {
@@ -5450,6 +5451,17 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
                 m.needmoduleinfo = 1;
             }
         }
+    }
+
+    override void semanticType()
+    {
+        if (typeState == SemState.Done)
+            return;
+
+        if (!type)
+            type = new TypeFunction(null, Type.tvoid, false, LINKd, storage_class);
+
+        super.semanticType();
     }
 
     override AggregateDeclaration isThis()
@@ -5504,18 +5516,10 @@ extern (C++) final class NewDeclaration : FuncDeclaration
         return FuncDeclaration.syntaxCopy(f);
     }
 
-    override void semantic(Scope* sc)
+    override final void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        //printf("NewDeclaration::semantic()\n");
-        if (semanticRun >= PASSsemanticdone)
-            return;
-        if (_scope)
-        {
-            sc = _scope;
-            _scope = null;
-        }
+        super.addMember(sc, sds);
 
-        parent = sc.parent;
         Dsymbol p = parent.pastMixin();
         if (!p.isAggregateDeclaration())
         {
@@ -5524,26 +5528,34 @@ extern (C++) final class NewDeclaration : FuncDeclaration
             errors = true;
             return;
         }
+    }
+
+    override void semanticType()
+    {
+        if (typeState == SemState.Done)
+            return;
+
         Type tret = Type.tvoid.pointerTo();
         if (!type)
             type = new TypeFunction(parameters, tret, varargs, LINKd, storage_class);
 
-        type = type.semantic(loc, sc);
+        super.semanticType();
 
-        // Check that there is at least one argument of type size_t
-        TypeFunction tf = type.toTypeFunction();
-        if (Parameter.dim(tf.parameters) < 1)
+        if (typeState == SemState.Done)
         {
-            error("at least one argument of type size_t expected");
+            // Check that there is at least one argument of type size_t
+            TypeFunction tf = type.toTypeFunction();
+            if (Parameter.dim(tf.parameters) < 1)
+            {
+                error("at least one argument of type size_t expected");
+            }
+            else
+            {
+                Parameter fparam = Parameter.getNth(tf.parameters, 0);
+                if (!fparam.type.equals(Type.tsize_t))
+                    error("first argument must be type size_t, not %s", fparam.type.toChars());
+            }
         }
-        else
-        {
-            Parameter fparam = Parameter.getNth(tf.parameters, 0);
-            if (!fparam.type.equals(Type.tsize_t))
-                error("first argument must be type size_t, not %s", fparam.type.toChars());
-        }
-
-        FuncDeclaration.semantic(sc);
     }
 
     override const(char)* kind() const
@@ -5596,18 +5608,10 @@ extern (C++) final class DeleteDeclaration : FuncDeclaration
         return FuncDeclaration.syntaxCopy(f);
     }
 
-    override void semantic(Scope* sc)
+    override final void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        //printf("DeleteDeclaration::semantic()\n");
-        if (semanticRun >= PASSsemanticdone)
-            return;
-        if (_scope)
-        {
-            sc = _scope;
-            _scope = null;
-        }
+        super.addMember(sc, sds);
 
-        parent = sc.parent;
         Dsymbol p = parent.pastMixin();
         if (!p.isAggregateDeclaration())
         {
@@ -5616,25 +5620,33 @@ extern (C++) final class DeleteDeclaration : FuncDeclaration
             errors = true;
             return;
         }
+    }
+
+    override void semanticType()
+    {
+        if (typeState == SemState.Done)
+            return;
+
         if (!type)
             type = new TypeFunction(parameters, Type.tvoid, 0, LINKd, storage_class);
 
-        type = type.semantic(loc, sc);
+        super.semanticType();
 
-        // Check that there is only one argument of type void*
-        TypeFunction tf = type.toTypeFunction();
-        if (Parameter.dim(tf.parameters) != 1)
+        if (typeState == SemState.Done)
         {
-            error("one argument of type void* expected");
+            // Check that there is only one argument of type void*
+            TypeFunction tf = type.toTypeFunction();
+            if (Parameter.dim(tf.parameters) != 1)
+            {
+                error("one argument of type void* expected");
+            }
+            else
+            {
+                Parameter fparam = Parameter.getNth(tf.parameters, 0);
+                if (!fparam.type.equals(Type.tvoid.pointerTo()))
+                    error("one argument of type void* expected, not %s", fparam.type.toChars());
+            }
         }
-        else
-        {
-            Parameter fparam = Parameter.getNth(tf.parameters, 0);
-            if (!fparam.type.equals(Type.tvoid.pointerTo()))
-                error("one argument of type void* expected, not %s", fparam.type.toChars());
-        }
-
-        FuncDeclaration.semantic(sc);
     }
 
     override const(char)* kind() const

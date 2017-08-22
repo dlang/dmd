@@ -1329,13 +1329,12 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
             return;
         includeState = SemState.In;
 
+        void defer() { includeState = SemState.Defer; }
+
         auto e = semanticString(_scope, exp, "argument to mixin");
         if (e.op == TOKdefer)
-        {
-            includeState = SemState.Defer;
-            return:
-        }
-        assert(e.op == TOKstring)
+            return defer();
+        assert(e.op == TOKstring);
         auto se = cast(StringExp) e;
         if (!se)
             return;

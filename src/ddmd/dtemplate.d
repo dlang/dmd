@@ -933,6 +933,11 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         {
             printf("\n+TemplateDeclaration.matchWithInstance(this = %s, ti = %s, flag = %d)\n", toChars(), ti.toChars(), flag);
         }
+
+        semantic();
+        if (semanticState != SemState.Done)
+            return MATCHnomatch; // FWDREF FIXME
+
         version (none)
         {
             printf("dedtypes.dim = %d, parameters.dim = %d\n", dedtypes.dim, parameters.dim);
@@ -2503,12 +2508,11 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
         if (tiargs && tiargs.dim > 0)
             return 0;
 
-        if (fd.semanticRun < PASSsemanticdone)
         {
             Ungag ungag = fd.ungagSpeculative();
-            fd.semantic(null);
+            fd.semanticType();
         }
-        if (fd.semanticRun == PASSinit)
+        if (fd.typeState != SemState.Done)
         {
             .error(loc, "forward reference to template %s", fd.toChars());
             return 1;
@@ -2640,13 +2644,12 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
         if (!sc)
             sc = td._scope; // workaround for Type.aliasthisOf
 
-        if (td.semanticRun < PASSsemantic && td._scope)
         {
             // Try to fix forward reference. Ungag errors while doing so.
             Ungag ungag = td.ungagSpeculative();
-            td.semantic(td._scope);
+            td.semantic();
         }
-        if (td.semanticRun < PASSsemantic)
+        if (td.semanticState != SemState.Done)
         {
             .error(loc, "forward reference to template %s", td.toChars());
         Lerror:
@@ -2671,7 +2674,8 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             if (mta <= MATCHnomatch || mta < ta_last)   // no match or less match
                 return 0;
 
-            ti.semantic(sc, fargs);
+            ti.setScope(sc);
+            ti.semantic(fargs);
             if (!ti.inst)               // if template failed to expand
                 return 0;
 
@@ -6428,7 +6432,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
         uint errorsave = global.errors;
 
-        if !(members)
+        if (!members)
         {
             // Copy the syntax trees from the TemplateDeclaration
             members = Dsymbol.arraySyntaxCopy(tempdecl.members);
@@ -8501,33 +8505,6 @@ extern (C++) final class TemplateMixin : TemplateInstance
             }
         }
         assert(tempdecl);
-
-        // Look for forward references
-        auto tovers = tempdecl.isOverloadSet();
-        foreach (size_t oi; 0 .. tovers ? tovers.a.dim : 1)
-        {
-            Dsymbol dstart = tovers ? tovers.a[oi] : tempdecl;
-            int r = overloadApply(dstart, (Dsymbol s)
-            {
-                auto td = s.isTemplateDeclaration();
-                if (!td)
-                    return 0;
-
-                if (td.semanticRun < PASSsemantic)
-                {
-                    if (td._scope)
-                        td.semantic(td._scope);
-                    else
-                    {
-                        semanticRun = PASSinit;
-                        return 1;
-                    }
-                }
-                return 0;
-            });
-            if (r)
-                return false;
-        }
         return true;
     }
 

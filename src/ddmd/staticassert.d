@@ -43,19 +43,21 @@ extern (C++) final class StaticAssert : Dsymbol
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
     {
+        setScope(sc);
         // we didn't add anything
     }
 
-    override void semantic(Scope* sc)
+    override void semantic()
     {
-        if (semanticRun < PASSsemanticdone)
-            semanticRun = PASSsemanticdone;
-    }
+        if (semanticState == SemState.Done)
+            return;
+        semanticState = SemState.In;
 
-    override void semantic2(Scope* sc)
-    {
+        void deferReturn() { semanticState = SemState.Defer; }
+
         //printf("StaticAssert::semantic2() %s\n", toChars());
         auto sds = new ScopeDsymbol();
+        auto sc = _scope;
         sc = sc.push(sds);
         sc.tinst = null;
         sc.minst = null;
@@ -64,6 +66,8 @@ extern (C++) final class StaticAssert : Dsymbol
         bool errors, defer;
         bool result = evalStaticCondition(sc, exp, exp, errors, defer);
         sc = sc.pop();
+        if (defer)
+            return deferReturn();
         if (errors)
         {
             errorSupplemental(loc, "while evaluating: `static assert(%s)`", exp.toChars());
@@ -93,6 +97,8 @@ extern (C++) final class StaticAssert : Dsymbol
             if (!global.gag)
                 fatal();
         }
+
+        semanticState = SemState.Done;
     }
 
     override bool oneMember(Dsymbol* ps, Identifier ident)

@@ -689,14 +689,14 @@ extern (C++) class Dsymbol : RootObject
             userAttribDecl = sc.userAttribDecl;
     }
 
-    void determineMembers(Scope* sc)
+    void determineMembers()
     {
     }
 
     /*************************************
      * Does semantic analysis on the public face of declarations.
      */
-    void semantic(Scope* sc)
+    void semantic()
     {
         error("%p has no semantic routine", this);
     }
