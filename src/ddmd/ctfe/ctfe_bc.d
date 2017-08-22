@@ -2312,7 +2312,7 @@ public:
 
             // due to limitations of the opcode-format we can only issue this
             // if the elemSize fits in one byte ...
- 
+
             if (!is(BCgen) || elemSize < 255)
             {
                 Cat3(result, lhs, rhs, elemSize);
@@ -2320,7 +2320,7 @@ public:
             }
         }}
 
-        // we go here if the concat could not be done by a cat3 instruction 
+        // we go here if the concat could not be done by a cat3 instruction
         {
             auto lhsOrRhs = genTemporary(i32Type);
             Or3(lhsOrRhs, lhs.i32, rhs.i32);
@@ -2395,7 +2395,7 @@ public:
             import core.stdc.stdio; printf("%s\n", ("Calling genExpr(null) from: " ~ to!string(line) ~ "\0").ptr); //DEBUGLINE
             return BCValue.init;
         }
-        
+
         debug (ctfe)
         {
             import std.stdio;
@@ -2440,7 +2440,7 @@ public:
                 }
                 else
                 {
-                    retval = boolres = boolres ? boolres : genTemporary(i32Type);                    
+                    retval = boolres = boolres ? boolres : genTemporary(i32Type);
                 }
 
                 if (expr.op == TOKandand)
@@ -2887,7 +2887,7 @@ static if (is(BCGen))
                     }
                     StringEq(retval, lhs, rhs);
                     if (e.op == TOK.TOKnotequal)
-                        Not(retval, retval);
+                        Eq3(retval.i32, retval.i32, imm32(0));
                 }
                 else if (canHandleBinExpTypes(toBCType(e.e1.type), toBCType(e.e2.type)))
                 {
@@ -3155,7 +3155,7 @@ static if (is(BCGen))
                         }
 
 
-                    
+
                     {
                         Comment("|| before rhs");
                         auto rhs = genExpr(e.e2);
@@ -5744,9 +5744,8 @@ static if (is(BCGen))
 
         foreach (stmt; *uls.statements)
         {
-            auto block = genBlock(stmt, false, true);
+            auto block = genBlock(stmt, true, true);
 
-            if (end--)
             {
                 foreach (fixup; _uls.continueFixups[0 .. _uls.continueFixupCount])
                 {
@@ -5757,21 +5756,26 @@ static if (is(BCGen))
                 }
                 _uls.continueFixupCount = 0;
             }
-            else
-            {
-                //FIXME Be aware that a break fixup has to be checked aginst the ip
-                //If there if an unrolledLoopStatement that has no statemetns in it,
-                // we end up fixing the jump up to ourselfs.
-                foreach (fixup; _uls.breakFixups[0 .. _uls.breakFixupCount])
-                {
-                    //HACK the will leave a nop in the bcgen
-                    //but it will break llvm or other potential backends;
-                    if (fixup.addr != block.begin.addr)
-                        endJmp(fixup, block.end);
-                }
-                _uls.breakFixupCount = 0;
-            }
+
         }
+
+        auto afterUnrolledLoop = genLabel();
+        {
+            //FIXME Be aware that a break fixup has to be checked aginst the ip
+            //If there if an unrolledLoopStatement that has no statemetns in it,
+            // we end up fixing the jump up to ourselfs.
+            foreach (fixup; _uls.breakFixups[0 .. _uls.breakFixupCount])
+            {
+                //HACK the will leave a nop in the bcgen
+                //but it will break llvm or other potential backends;
+                Comment("Putting unrolled_loopStatement-breakFixup");
+                if (fixup.addr != afterUnrolledLoop.addr)
+                    endJmp(fixup, afterUnrolledLoop);
+
+            }
+            _uls.breakFixupCount = 0;
+        }
+
 
         unrolledLoopState = null;
     }

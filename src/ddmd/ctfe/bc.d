@@ -1994,7 +1994,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                     printf("HeapIndex %d, Content %x\n".ptr, si, heapPtr._heap[cast(uint) si]);
                 }
             }
-        debug if (!__ctfe) writeln("ip: ", ip);
+        // debug if (!__ctfe) writeln("ip: ", ip);
         const lw = byteCode[ip];
         const hi = byteCode[ip + 1];
         ip += 2;
@@ -2979,14 +2979,14 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                 else
                 {
                     import ddmd.ctfe.ctfe_bc : SliceDescriptor;
-                    auto lhsLength = heapPtr._heap[_lhs + SliceDescriptor.LengthOffset];
-                    auto rhsLength = heapPtr._heap[_rhs + SliceDescriptor.LengthOffset];
+                    immutable lhsLength = heapPtr._heap[_lhs + SliceDescriptor.LengthOffset];
+                    immutable rhsLength = heapPtr._heap[_rhs + SliceDescriptor.LengthOffset];
                     if (lhsLength == rhsLength)
                     {
-                        auto lhsBase = heapPtr._heap[_lhs + SliceDescriptor.BaseOffset];
-                        auto rhsBase = heapPtr._heap[_rhs + SliceDescriptor.BaseOffset];
+                        immutable lhsBase = heapPtr._heap[_lhs + SliceDescriptor.BaseOffset];
+                        immutable rhsBase = heapPtr._heap[_rhs + SliceDescriptor.BaseOffset];
                         cond = true;
-                        foreach (i; 0 .. align4(lhsLength) / 4)
+                        foreach (i; 0 .. lhsLength)
                         {
                             if (heapPtr._heap[rhsBase + i] != heapPtr._heap[lhsBase + i])
                             {
