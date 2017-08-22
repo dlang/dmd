@@ -1353,6 +1353,17 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (auto fa2 = s2.isFuncAliasDeclaration())
             s2 = fa2.toAliasFunc();
 
+        // https://issues.dlang.org/show_bug.cgi?id=11259
+        // compare import symbol to a package symbol
+        static bool cmp(Dsymbol s1, Dsymbol s2)
+        {
+            auto imp = s1.isImport();
+            return imp && imp.pkg && imp.pkg == s2.isPackage();
+        }
+
+        if (cmp(s1,s2) || cmp(s2,s1))
+            return True();
+
         return (s1 == s2) ? True() : False();
     }
     if (e.ident == Id.getUnitTests)
