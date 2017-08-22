@@ -31,6 +31,7 @@ int fun(string s1, string s2, string s3) {
 }
 static assert( fun("_funny_","funny_","funny") ==  'n');
 
+// String Equals tests
 
 bool fn(string s1, string s2)
 {
@@ -39,6 +40,37 @@ bool fn(string s1, string s2)
 
 static assert(!fn("LLVM","HHVM"));
 static assert(fn("LLVM","LLVM"));
+
+string first_1 = "first";
+string second_1 = "second";
+string first_2 = "first";
+string second_2 = "second";
+
+uint alwaysFalse_1()
+{
+    return first_1 != first_2;
+}
+
+uint alwaysFalse_2()
+{
+    return second_1 == first_2;
+}
+
+uint alwaysTrue_1()
+{
+    return first_1 == first_2;
+}
+
+uint alwaysTrue_2()
+{
+    return second_1 != first_2;
+}
+
+static assert(alwaysTrue_1);
+static assert(alwaysTrue_2);
+
+static assert(!alwaysFalse_1);
+static assert(!alwaysFalse_2);
 
 
 int func(char _c) {
