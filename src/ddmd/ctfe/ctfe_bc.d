@@ -5736,7 +5736,7 @@ static if (is(BCGen))
         {
         //TODO this triggers in vibe.d however it still passes the tests ...
         //We need to fix this properly at some point!
-        //    assert(0, "unrolled loops may not be nested");
+            bailout("unrolled loops may not be nested");
         }
         auto _uls = UnrolledLoopState();
         unrolledLoopState = &_uls;
@@ -5744,7 +5744,7 @@ static if (is(BCGen))
 
         foreach (stmt; *uls.statements)
         {
-            auto block = genBlock(stmt);
+            auto block = genBlock(stmt, false, true);
 
             if (end--)
             {
@@ -5767,7 +5767,7 @@ static if (is(BCGen))
                     //HACK the will leave a nop in the bcgen
                     //but it will break llvm or other potential backends;
                     if (fixup.addr != block.begin.addr)
-                        endJmp(fixup, block.begin);
+                        endJmp(fixup, block.end);
                 }
                 _uls.breakFixupCount = 0;
             }
