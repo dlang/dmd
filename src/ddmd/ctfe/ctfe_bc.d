@@ -3461,7 +3461,6 @@ static if (is(BCGen))
                 return ;
             }
 
-
         }
     }
 
@@ -5714,6 +5713,7 @@ static if (is(BCGen))
     override void visit(NegExp ne)
     {
         Line(ne.loc.linnum);
+        retval = assignTo ? assignTo : genTemporary(toBCType(ne.type));
         Sub3(retval, imm32(0), genExpr(ne.e1));
     }
 
