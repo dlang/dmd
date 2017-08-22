@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 0;
+enum bailoutMessages = 1;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -3937,7 +3937,7 @@ static if (is(BCGen))
             }
             else if (elexpr.type.type.anyOf([BCTypeEnum.Array, BCTypeEnum.Slice, BCTypeEnum.String]))
             {
-                if (elexpr.type.type == BCTypeEnum.Array && (!elexpr.type.typeIndex || elexpr.type.typeIndex >= _sharedCtfeState.arrayCount))
+                if (elexpr.type.type == BCTypeEnum.Array && (!elexpr.type.typeIndex || elexpr.type.typeIndex > _sharedCtfeState.arrayCount))
                 {
                     // this can actually never be hit because no invalid types can have a valid size
                     bailout("We have an invalid ArrayType in: " ~ ale.toString);
@@ -3945,7 +3945,7 @@ static if (is(BCGen))
                     //assert(0);
                 }
 
-                if (elexpr.type.type == BCTypeEnum.Slice && (!elexpr.type.typeIndex || elexpr.type.typeIndex >= _sharedCtfeState.sliceCount))
+                if (elexpr.type.type == BCTypeEnum.Slice && (!elexpr.type.typeIndex || elexpr.type.typeIndex > _sharedCtfeState.sliceCount))
                 {
                     // this can actually never be hit because no invalid types can have a valid size
                     bailout("We have an invalid SliceType in: " ~ ale.toString);
