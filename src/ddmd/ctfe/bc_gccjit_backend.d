@@ -30,7 +30,7 @@ else
         heap.heapSize = 100;
         writeln(heap.heapSize);
 
-        auto hello_world = heap.pushString("Hello World");
+        auto hello_world = heap.pushString("Hello World.\nI've been missing you.");
 
         GCCJIT_Gen *gen = new GCCJIT_Gen();
         with (gen)
@@ -88,7 +88,8 @@ else
         {
             fnArgs[i] = arg.imm64.imm64;
         }
-         auto ret = func(fnArgs, &heapPtr.heapSize, &heapPtr._heap[0]);
+
+        auto ret = func(fnArgs, &heapPtr.heapSize, &heapPtr._heap[0]);
 
         return BCValue(Imm64(ret.imm64));
 
@@ -138,6 +139,11 @@ else
     jtype u32type;
     jtype u64type;
 
+    private void print_int(BCValue v)
+    {
+        print_int(rvalue(v));
+    }
+
     private void print_int(jrvalue val)
     {
         jrvalue[2] args;
@@ -164,7 +170,15 @@ else
         auto c_char_p = gcc_jit_context_get_type(ctx, GCC_JIT_TYPE_CONST_CHAR_PTR);
         auto void_p = gcc_jit_context_get_type(ctx, GCC_JIT_TYPE_VOID_PTR);
         args[0] = gcc_jit_context_new_rvalue_from_ptr(ctx, c_char_p,  cast(void*)"\"%.*s\"\n".ptr);
-        args[1] = rvalue(11*4);
+
+        jrvalue length_times_four = gcc_jit_context_new_binary_op (
+            ctx, null,
+            GCC_JIT_BINARY_OP_MULT, i32type,
+            length,
+            rvalue_int(4)
+        );
+
+        args[1] = length_times_four;
 
         jlvalue ptr = gcc_jit_function_new_local(func, null, void_p, "ptr");
         gcc_jit_block_add_assignment(block, null, ptr, gcc_jit_context_null(ctx, void_p));
@@ -283,6 +297,11 @@ else
         return gcc_jit_context_new_rvalue_from_long(ctx, i64type, v);
     }
 
+    private jrvalue rvalue_int(int v)
+    {
+        return gcc_jit_context_new_rvalue_from_int(ctx, i32type, v);
+    }
+
     private StackAddr addStackValue(jlvalue val)
     {
         stackValues[stackValueCount] = val;
@@ -326,6 +345,7 @@ else
         p[0] = gcc_jit_context_new_param(ctx, null, gcc_jit_context_new_array_type(ctx, null, i64type, max_params), "paramArray");// long[64] args;
         p[1] = gcc_jit_context_new_param(ctx, null, gcc_jit_type_get_pointer(i32type), "heapSize"); //uint* heapSize
         p[2] = gcc_jit_context_new_param(ctx, null, heapType, "heap"); //uint[2^^26] heap
+
         fname = cast(char*) (name ? name.toStringz : ("f" ~ to!string(fnId)).toStringz);
         func = gcc_jit_context_new_function(ctx,
             null, GCC_JIT_FUNCTION_EXPORTED, i64type,
@@ -372,7 +392,7 @@ else
         //TODO replace i64Type maybe depding on bct
         auto type = i64type;
         locals[localCount++] = gcc_jit_function_new_local(func, null, type, &name[0]);
-        auto addr = addStackValue(locals[localCount -1 ]);
+        auto addr = addStackValue(locals[localCount - 1]);
         return BCValue(addr, bct, localCount, name);
     }
 
@@ -414,6 +434,7 @@ else
 
         return cjb;
     }
+
     void endCndJmp(CndJmpBegin jmp, BCLabel target)
     {
         //newBlock("endCndJmp");
@@ -554,6 +575,7 @@ else
             rvalue(lhs),
             rvalue(rhs)
         );
+
         gcc_jit_block_add_assignment(block, null,
             lvalue(result), _result
         );
@@ -572,6 +594,7 @@ else
             rvalue(lhs),
             rvalue(rhs)
         );
+
         gcc_jit_block_add_assignment(block, null,
             lvalue(result), _result
         );
@@ -590,6 +613,7 @@ else
             rvalue(lhs),
             rvalue(rhs)
         );
+
         gcc_jit_block_add_assignment(block, null,
             lvalue(result), _result
         );
@@ -742,4 +766,3 @@ else
         gcc_jit_block_end_with_return(block, null, rvalue(val));
     }
 }
-
