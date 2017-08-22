@@ -2912,19 +2912,31 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
             break;
         case LongInst.Alloc:
             {
-                if (heapPtr.heapSize + *rhs < heapPtr.heapMax)
+                const allocSize = *rhs;
+                const heapSize = heapPtr.heapSize;
+
+                if(heapSize + allocSize  >= heapPtr.heapMax)
                 {
-                    *lhsRef = heapPtr.heapSize;
-                    heapPtr.heapSize += *rhs;
-                    debug
+                    if (heapPtr.heapMax >= 2 ^^ 30)
+                        assert(0, "!!! HEAP OVERFLOW !!!");
+                    else
                     {
-                        writefln("Alloc(#%d) = &%d", *rhs, *lhsRef);
+                        // we will now resize the heap to 8 times of it's former size
+                        auto newHeap = new uint[](heapPtr.heapMax * 8);
+                        newHeap[0 .. heapSize] = heapPtr._heap[0 .. heapSize];
+                        heapPtr._heap = newHeap;
+                        heapPtr.heapMax *= 8;
                     }
                 }
-                else
+
+                *lhsRef = heapSize;
+                heapPtr.heapSize += allocSize;
+
+                debug
                 {
-                    assert(0, "HEAP OVERFLOW!");
+                    writefln("Alloc(#%d) = &%d", allocSize, *lhsRef);
                 }
+
             }
             break;
         case LongInst.MemCpy:
