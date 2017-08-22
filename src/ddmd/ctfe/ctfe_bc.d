@@ -1302,7 +1302,8 @@ Expression toExpression(const BCValue value, Type expressionType,
         {
             {
                 BCValue elmVal;
-                if (baseType.type.anyOf([BCTypeEnum.Array, BCTypeEnum.Slice, BCTypeEnum.Struct]))
+                // FIXME: TODO: add the other string types here as well
+                if (baseType.type.anyOf([BCTypeEnum.Array, BCTypeEnum.Slice, BCTypeEnum.Struct, BCTypeEnum.String]))
                 {
                     elmVal = imm32(arrayBase + offset);
                 }
@@ -3936,10 +3937,19 @@ static if (is(BCGen))
             }
             else if (elexpr.type.type.anyOf([BCTypeEnum.Array, BCTypeEnum.Slice, BCTypeEnum.String]))
             {
-                if (!elexpr.type.typeIndex || elexpr.type.type >= _sharedCtfeState.arrayTypes.length)
+                if (elexpr.type.type == BCTypeEnum.Array && (!elexpr.type.typeIndex || elexpr.type.typeIndex >= _sharedCtfeState.arrayCount))
                 {
                     // this can actually never be hit because no invalid types can have a valid size
-                    bailout("We have an invalid structType in: " ~ ale.toString);
+                    bailout("We have an invalid ArrayType in: " ~ ale.toString);
+                    return ;
+                    //assert(0);
+                }
+
+                if (elexpr.type.type == BCTypeEnum.Slice && (!elexpr.type.typeIndex || elexpr.type.typeIndex >= _sharedCtfeState.sliceCount))
+                {
+                    // this can actually never be hit because no invalid types can have a valid size
+                    bailout("We have an invalid SliceType in: " ~ ale.toString);
+                    return ;
                     //assert(0);
                 }
 
