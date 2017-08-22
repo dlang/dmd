@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 1;
+enum bailoutMessages = 0;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -3317,7 +3317,11 @@ static if (is(BCGen))
         Line(ie.loc.linnum);
         auto oldIndexed = currentIndexed;
         scope(exit) currentIndexed = oldIndexed;
-
+/+
+        auto oldAssignTo = assignTo;
+        assignTo = BCValue.init;
+        scope(exit) assigTo = oldAssignTo;
++/
         debug (ctfe)
         {
             import std.stdio;
@@ -3411,7 +3415,8 @@ static if (is(BCGen))
         auto offset = genTemporary(i32Type);
 
         auto oldRetval = retval;
-        retval = assignTo ? assignTo : genTemporary(elemType);
+        //retval = assignTo ? assignTo : genTemporary(elemType);
+        retval = genTemporary(elemType);
         {
             debug (ctfe)
             {
@@ -5103,6 +5108,11 @@ static if (is(BCGen))
         assignTo = BCValue.init;
         auto lhs = genExpr(ce.e1);
         auto rhs = genExpr(ce.e2);
+        if (lhs.type.type == BCTypeEnum.Ptr || rhs.type.type == BCTypeEnum.Ptr)
+        {
+            bailout("Currently we don't support < or > for pointers.");
+            return ;
+        }
         if (canWorkWithType(lhs.type) && canWorkWithType(rhs.type) && (!oldAssignTo || canWorkWithType(oldAssignTo.type)) || true)
         {
             switch (ce.op)
