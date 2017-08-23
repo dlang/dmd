@@ -5597,7 +5597,13 @@ static if (is(BCGen))
                 }
                 else if (lhs.type.type == BCTypeEnum.Struct && lhs.type == rhs.type)
                 {
-                    MemCpy(lhs.i32, rhs.i32, imm32(_sharedCtfeState.size(lhs.type).align4));
+                    auto size = _sharedCtfeState.size(lhs.type).align4;
+                    auto sizeImm32 = imm32(size);
+                    if (ae.op == TOKconstruct)
+                    {
+                        Alloc(lhs.i32, sizeImm32);
+                    }
+                    MemCpy(lhs.i32, rhs.i32, sizeImm32);
                 }
                 else if (lhs.type.type.anyOf([BCTypeEnum.i8, BCTypeEnum.c8]) && rhs.type.type.anyOf([BCTypeEnum.i8, BCTypeEnum.c8]))
                 {
