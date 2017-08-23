@@ -24,6 +24,7 @@ enum cacheBC = 1;
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
+enum UseGCCJITBackend = 0;
 enum abortOnCritical = 1;
 
 private static void clearArray(T)(auto ref T array, uint count)
@@ -222,6 +223,12 @@ else static if (UsePrinterBackend)
 
     alias BCGenT = Print_BCGen;
 }
+else static if (UseGCCJITBackend)
+{
+    import ddmd.ctfe.bc_gccjit_backend;
+
+    alias BCGenT = GCCJIT_BCGen;
+}
 else
 {
     import ddmd.ctfe.bc;
@@ -390,6 +397,10 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             auto retval = BCValue.init;
             writeln(bcv.result);
             return null;
+        }
+        else static if (UseGCCJITBackend)
+        {
+            assert(0, "binding to gccjit's run has still to be implemented");
         }
         else
         {
@@ -2578,7 +2589,11 @@ public:
             Line(uf.fd.loc.linnum);
             beginFunction(fnIdx - 1, cast(void*)uf.fd);
             uf.fd.fbody.accept(this);
-            auto osp = sp;
+
+            static if (is(BCGen))
+            {
+                auto osp = sp;
+            }
 
             if (uf.fd.type.nextOf.ty == Tvoid)
             {
@@ -2687,7 +2702,12 @@ public:
                 // insert a dummy return after void functions because they can omit a returnStatement
                 Ret(bcNull);
             }
-            auto osp2 = sp.addr;
+
+            static if (is(BCGen))
+            {
+                auto osp2 = sp.addr;
+            }
+
             Line(fd.endloc.linnum);
             endFunction();
             if (IGaveUp)
