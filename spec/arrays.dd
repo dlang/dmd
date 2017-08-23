@@ -423,10 +423,6 @@ Returns an array literal with each element of the literal being the $(D .init) p
         $(TROW $(D .ptr), Returns a pointer to the first element of the array.)
         $(TROW $(D .dup), Create a dynamic array of the same size and copy the contents of the array into it. The copy will have any immutability or const stripped. If this conversion is invalid the call will not compile.)
         $(TROW $(D .idup), Create a dynamic array of the same size and copy the contents of the array into it. The copy is typed as being immutable. If this conversion is invalid the call will not compile.)
-        $(TROW $(D .reverse), Reverses in place the order of the elements in the array.
-        Returns the array.)
-        $(TROW $(D .sort), Sorts in place the order of the elements in
-        the array. Returns the array.)
         )
 
         $(P Dynamic array properties are:)
@@ -441,25 +437,7 @@ Returns an array literal with each element of the literal being the $(D .init) p
         $(TROW $(D .ptr), Returns a pointer to the first element of the array.)
         $(TROW $(D .dup), Create a dynamic array of the same size and copy the contents of the array into it. The copy will have any immutability or const stripped. If this conversion is invalid the call will not compile.)
         $(TROW $(D .idup), Create a dynamic array of the same size and copy the contents of the array into it. The copy is typed as being immutable. If this conversion is invalid the call will not compile.)
-        $(TROW $(D .reverse), Reverses in place the order of the
-        elements in the array. Returns the array.)
-        $(TROW $(D .sort), Sorts in place the order of the elements in
-        the array. Returns the array.))
-
-        $(P For the $(D .sort) property to work on arrays of class
-        objects, the class definition must define the function:
-        $(D int opCmp(Object)). This is used to determine the
-        ordering of the class objects. Note that the parameter
-        is of type $(D Object), not the type of the class.)
-
-        $(P For the $(D .sort) property to work on arrays of
-        structs or unions, the struct or union definition must
-        define the function:)
-
-        $(D int opCmp(ref const S) const).
-
-        The type $(D S) is the type of the struct or union.
-        This function will determine the sort ordering.
+		)
 
     $(P Examples:)
 
