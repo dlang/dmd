@@ -39,6 +39,7 @@ import ddmd.target;
 import ddmd.tokens;
 import ddmd.tocsym;
 import ddmd.toobj;
+import ddmd.typesem;
 import ddmd.typinf;
 import ddmd.visitor;
 
