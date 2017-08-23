@@ -5411,7 +5411,6 @@ static if (is(BCGen))
         }
         else if (ae.e1.op == TOKarraylength)
         {
-            Comment(ae.toString);
             auto ale = cast(ArrayLengthExp) ae.e1;
 
             // We are assigning to an arrayLength
@@ -5599,22 +5598,31 @@ static if (is(BCGen))
                 {
                     auto size = _sharedCtfeState.size(lhs.type).align4;
                     auto sizeImm32 = imm32(size);
+
                     if (ae.op == TOKconstruct)
                     {
+                        auto CJLhsIsNull = beginCndJmp(lhs.i32, true);
                         Alloc(lhs.i32, sizeImm32);
+                        endCndJmp(CJLhsIsNull, genLabel());
                     }
+
                     MemCpy(lhs.i32, rhs.i32, sizeImm32);
                 }
                 else if (lhs.type.type.anyOf([BCTypeEnum.i8, BCTypeEnum.c8]) && rhs.type.type.anyOf([BCTypeEnum.i8, BCTypeEnum.c8]))
                 {
                     Set(lhs.i32, rhs.i32);
                 }
-                else if (lhs.type.type == BCTypeEnum.String && rhs.type.type == BCTypeEnum.String)
+                else if ((lhs.type.type == BCTypeEnum.String && rhs.type.type == BCTypeEnum.String) ||
+                    (lhs.type.type == BCTypeEnum.Slice && rhs.type.type == BCTypeEnum.Array) ||
+                    (lhs.type.type == BCTypeEnum.Slice && rhs.type.type == BCTypeEnum.Slice))
                 {
-                    MemCpy(lhs.i32, rhs.i32, imm32(SliceDescriptor.Size));
-                }
-                else if (lhs.type.type == BCTypeEnum.Slice && rhs.type.type == BCTypeEnum.Slice)
-                {
+                    if (ae.op == TOKconstruct)
+                    {
+                        auto CJLhsIsNull = beginCndJmp(lhs.i32, true);
+                        Alloc(lhs.i32, imm32(SliceDescriptor.Size));
+                        endCndJmp(CJLhsIsNull, genLabel());
+                    }
+
                     MemCpy(lhs.i32, rhs.i32, imm32(SliceDescriptor.Size));
                 }
                 else if (lhs.type.type == BCTypeEnum.Array && rhs.type.type == BCTypeEnum.Array)
@@ -5630,14 +5638,6 @@ static if (is(BCGen))
                     Assert(sameLength, addError(ae.loc, "%d != %d", rhsLength, lhsLength));
 
                     copyArray(&lhsBase, &rhsBase, lhsLength, _sharedCtfeState.size(lhsBaseType));
-                }
-                else if (lhs.type.type == BCTypeEnum.Slice && rhs.type.type == BCTypeEnum.Array)
-                {
-                    if (ae.op == TOKconstruct)
-                        Alloc(lhs.i32, imm32(SliceDescriptor.Size));
-
-                    MemCpy(lhs.i32, rhs.i32, imm32(SliceDescriptor.Size));
-                    //bailout("Slice = Array -- don't know what to do");
                 }
                 else if ((lhs.type.type == BCTypeEnum.Slice || lhs.type.type == BCTypeEnum.String) && rhs.type.type == BCTypeEnum.Null)
                 {
