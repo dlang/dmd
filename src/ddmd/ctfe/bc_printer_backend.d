@@ -10,6 +10,7 @@ enum BCFunctionTypeEnum : byte
     Compiled,
 }
 enum withMemCpy = 1;
+enum withStrEq3 = 1;
 
 static if (is(typeof(() { import ddmd.declaration : FuncDeclaration; })))
 {
@@ -523,6 +524,13 @@ struct Print_BCGen
     {
         sameLabel = false;
         result ~= indent ~ "MemCpy(" ~ print(dst) ~ ", " ~ print(src) ~ ", " ~ print(size) ~ ");\n";
+    }
+
+    static if (withStrEq3)
+        void StrEq3(BCValue _result, BCValue lhs, BCValue rhs)
+    {
+        sameLabel = false;
+        result ~= indent ~ "StrEq3(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
     }
 
     void Comment(string comment)

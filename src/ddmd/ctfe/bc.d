@@ -2968,6 +2968,8 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
             break;
         case LongInst.StrEq:
             {
+                cond = false;
+
                 auto _lhs = cast(uint)*lhsRef;
                 auto _rhs = cast(uint)*rhs;
 
