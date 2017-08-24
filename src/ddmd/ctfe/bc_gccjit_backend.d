@@ -36,11 +36,7 @@ else
     }
 }
 
-static if (!is(typeof ({ import gccjit.c;  })))
-{
-    pragma(msg, "gccjit header not there ... not compiling bc_gccjit backend");
-}
-else
+version (Have_libgccjit)
     struct GCCJIT_BCGen
 {
     enum max_params = 64;
