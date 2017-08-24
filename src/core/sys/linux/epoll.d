@@ -12,6 +12,7 @@ version (linux):
 
 extern (C):
 @system:
+@nogc:
 nothrow:
 
 enum
