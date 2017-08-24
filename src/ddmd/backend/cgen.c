@@ -556,19 +556,6 @@ void cgen_prelinnum(code **pc,Srcpos srcpos)
  * changed.
  */
 
-code *genadjesp(code *c, int offset)
-{   code cs;
-
-    if (!I16 && offset)
-    {
-        cs.Iop = ESCAPE | ESCadjesp;
-        cs.IEV1.Vint = offset;
-        return gen(c,&cs);
-    }
-    else
-        return c;
-}
-
 void CodeBuilder::genadjesp(int offset)
 {
     if (!I16 && offset)

@@ -2874,16 +2874,16 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
                                         // because c hasn't been executed yet
             cod3_stackadj(cdbs1, sz);
             regcon.immed.mval = mval_save;
-            cdbs1.append(genadjesp(CNIL, sz));
+            cdbs1.genadjesp(sz);
 
             cod3_stackadj(cdbs2, -sz);
-            cdbs2.append(genadjesp(CNIL, -sz));
+            cdbs2.genadjesp(-sz);
         }
         cdbs2.append(cs2);
 
 
-        cdbs1.append(genadjesp(CNIL,adjesp));
-        cdbs2.append(genadjesp(CNIL,-adjesp));
+        cdbs1.genadjesp(adjesp);
+        cdbs2.genadjesp(-adjesp);
   }
   else
         cdbs2.append(cs2);

@@ -558,7 +558,6 @@ code *genc1 (code *c , unsigned op , unsigned rm , unsigned FL1 , targ_size_t EV
 code *genc (code *c , unsigned op , unsigned rm , unsigned FL1 , targ_size_t EV1 , unsigned FL2 , targ_size_t EV2 );
 code *genlinnum(code *,Srcpos);
 void cgen_prelinnum(code **pc,Srcpos srcpos);
-code *genadjesp(code *c, int offset);
 code *genadjfpu(code *c, int offset);
 code *gennop(code *);
 void gencodelem(CodeBuilder& cdb,elem *e,regm_t *pretregs,bool constflag);
