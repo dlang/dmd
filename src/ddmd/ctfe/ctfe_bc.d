@@ -4623,10 +4623,8 @@ static if (is(BCGen))
             return;
         }
 
-
         if (vd)
         {
-
             auto sv = getVariable(vd);
             debug (ctfe)
             {
@@ -4655,16 +4653,16 @@ static if (is(BCGen))
         }
         else if (symd)
         {
-            auto sds = cast(SymbolDeclaration) symd;
-            assert(sds);
-            auto sd = sds.dsym;
+            auto sd = symd.dsym;
+            // import std.stdio; import ddmd.asttypename; writeln("Symbol variable exp: ", sd.astTypeName());//DEBUGLINE
+
             Expressions iexps;
 
             foreach (ie; *sd.members)
             {
                 //iexps.push(new Expression();
             }
-            auto sl = new StructLiteralExp(sds.loc, sd, &iexps);
+            auto sl = new StructLiteralExp(symd.loc, sd, &iexps);
             retval = genExpr(sl);
             //assert(0, "SymbolDeclarations are not supported for now" ~ .type.size.to!string);
             //auto vs = symd in syms;
@@ -5127,6 +5125,12 @@ static if (is(BCGen))
         assignTo = BCValue.init;
         auto lhs = genExpr(ce.e1);
         auto rhs = genExpr(ce.e2);
+        if (!lhs || !rhs)
+        {
+            bailout("could not gen lhs or rhs in: " ~ ce.toString);
+            return ;
+        }
+
         if (lhs.type.type == BCTypeEnum.Ptr || rhs.type.type == BCTypeEnum.Ptr)
         {
             bailout("Currently we don't support < or > for pointers.");
