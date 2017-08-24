@@ -2513,17 +2513,17 @@ public:
                 return ;
             }
 
-            if ((cast(TypeFunction)fd.type).parameters)
-                foreach(p;*(cast(TypeFunction)fd.type).parameters)
-                {
- //                  if (p.defaultArg)
- //                       bailout("default args unsupported");
-                }
+//            if ((cast(TypeFunction)fd.type).parameters)
+//                foreach(p;*(cast(TypeFunction)fd.type).parameters)
+//                {
+//                  if (p.defaultArg)
+//                       bailout("default args unsupported");
+//                }
 
 
             if (fd.hasNestedFrameRefs /*|| fd.isNested*/)
             {
-                import std.stdio; writeln("fd has closureVars:  ", fd.toString);  //DEBUGLINE
+                // import std.stdio; writeln("fd has closureVars:  ", fd.toString);  //DEBUGLINE
                 foreach(v;fd.closureVars)
                 {
                    import std.stdio; writeln("closure-var: ", v.toString);  //DEBUGLINE
