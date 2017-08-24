@@ -710,11 +710,13 @@ pure:
             "Instruction is not in Range for Arith Instructions");
         assert(lhs.vType.StackValue, "only StackValues are supported as lhs");
 
+        BCTypeEnum commonType = commonTypeEnum(lhs.type.type, rhs.type.type);
+
         // FIXME remove the lhs.type == BCTypeEnum.Char as soon as we convert correctly.
-        assert(lhs.type.type == BCTypeEnum.i32 || lhs.type.type == BCTypeEnum.i64
-            || lhs.type.type == BCTypeEnum.f23 || lhs.type.type == BCTypeEnum.Char
-            || lhs.type.type == BCTypeEnum.c8  || lhs.type.type == BCTypeEnum.f52,
-            "only i32, i64, f23, f52, is supported for now not: " ~ to!string(lhs.type.type));
+        assert(commonType == BCTypeEnum.i32 || commonType == BCTypeEnum.i64
+            || commonType == BCTypeEnum.f23 || commonType == BCTypeEnum.Char
+            || commonType == BCTypeEnum.c8  || commonType == BCTypeEnum.f52,
+            "only i32, i64, f23, f52, is supported for now not: " ~ to!string(commonType));
         //assert(lhs.type.type == rhs.type.type, lhs.type.type.to!string ~ " != " ~ rhs.type.type.to!string);
 
         if (lhs.vType == BCValueType.Immediate)
@@ -722,7 +724,6 @@ pure:
             lhs = pushOntoStack(lhs);
         }
 
-        BCTypeEnum commonType = commonTypeEnum(lhs.type.type, rhs.type.type);
         if (resultTypeEnum !is null)
             *resultTypeEnum = commonType;
 
