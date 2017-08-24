@@ -2524,10 +2524,10 @@ public:
             if (fd.hasNestedFrameRefs /*|| fd.isNested*/)
             {
                 // import std.stdio; writeln("fd has closureVars:  ", fd.toString);  //DEBUGLINE
-                foreach(v;fd.closureVars)
-                {
-                   import std.stdio; writeln("closure-var: ", v.toString);  //DEBUGLINE
-                }
+                // foreach(v;fd.closureVars)
+                // {
+                   // import std.stdio; writeln("closure-var: ", v.toString);  //DEBUGLINE
+                // }
                 bailout("cannot deal with closures of any kind: " ~ fd.toString);
                 return ;
             }
