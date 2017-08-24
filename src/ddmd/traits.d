@@ -637,6 +637,13 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto s = getDsymbol(o);
         if (s)
         {
+            // https://issues.dlang.org/show_bug.cgi?id=12496
+            if (auto _t = o.isType())
+            {
+                auto p = s.toParent();
+                if (p && p.isTemplateInstance())
+                    s = p;
+            }
             if (auto fd = s.isFuncDeclaration()) // https://issues.dlang.org/show_bug.cgi?id=8943
                 s = fd.toAliasFunc();
             if (!s.isImport()) // https://issues.dlang.org/show_bug.cgi?id=8922
