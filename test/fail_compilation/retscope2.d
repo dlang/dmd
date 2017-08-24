@@ -164,12 +164,12 @@ void foo800()
 }
 
 /*************************************************/
-/+
+
 /*
-XEST_OUTPUT:
-
+TEST_OUTPUT:
+---
 fail_compilation/retscope2.d(907): Error: address of variable `this` assigned to `p17568` with longer lifetime
-
+---
 */
 
 #line 900
@@ -183,7 +183,7 @@ struct T17568
         p17568 = &a;
     }
 }
-+/
+
 /*************************************************/
 
 /*
