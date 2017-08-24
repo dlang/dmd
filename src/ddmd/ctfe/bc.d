@@ -197,7 +197,7 @@ static immutable bc_order_errors = () {
     return result;
 } ();
 
-static assert(!bc_order_errors, bc_order_errors);
+static assert(!bc_order_errors.length, bc_order_errors);
 
 
 pragma(msg, 2 ^^ 7 - LongInst.max, " opcodes remaining");
