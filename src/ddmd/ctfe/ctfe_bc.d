@@ -5617,16 +5617,22 @@ static if (is(BCGen))
                 else if (lhs.type.type == BCTypeEnum.Struct && lhs.type == rhs.type)
                 {
                     auto size = _sharedCtfeState.size(lhs.type).align4;
-                    auto sizeImm32 = imm32(size);
-
-                    if (ae.op == TOKconstruct)
+                    if (size)
                     {
-                        auto CJLhsIsNull = beginCndJmp(lhs.i32, true);
-                        Alloc(lhs.i32, sizeImm32);
-                        endCndJmp(CJLhsIsNull, genLabel());
-                    }
+                        auto sizeImm32 = imm32(size);
 
-                    MemCpy(lhs.i32, rhs.i32, sizeImm32);
+                        if (ae.op == TOKconstruct)
+                        {
+                            auto CJLhsIsNull = beginCndJmp(lhs.i32, true);
+                            Alloc(lhs.i32, sizeImm32);
+                            endCndJmp(CJLhsIsNull, genLabel());
+                        }
+                    
+
+                        MemCpy(lhs.i32, rhs.i32, sizeImm32);
+                    }
+                    else
+                        bailout("0-sized allocation in: " ~ ae.toString);
                 }
                 else if (lhs.type.type.anyOf([BCTypeEnum.i8, BCTypeEnum.c8]) && rhs.type.type.anyOf([BCTypeEnum.i8, BCTypeEnum.c8]))
                 {
