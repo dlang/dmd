@@ -170,7 +170,7 @@ L1:
  *          true:  it's overloaded and will be resolved later.
  *          false: it's exact function symbol.
  */
-static Expression resolve(Loc loc, Scope *sc, Dsymbol s, bool hasOverloads)
+Expression resolve(Loc loc, Scope *sc, Dsymbol s, bool hasOverloads)
 {
     static if (LOGSEMANTIC)
     {

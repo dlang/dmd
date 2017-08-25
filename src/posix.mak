@@ -318,7 +318,7 @@ endif
 SRC = $(addprefix $D/, win32.mak posix.mak osmodel.mak aggregate.h aliasthis.h arraytypes.h	\
 	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
 	enum.h errors.h expression.h globals.h hdrgen.h identifier.h \
-	import.h init.h intrange.h json.h lexer.h \
+	import.h init.h intrange.h json.h \
 	mars.h module.h mtype.h nspace.h objc.h                         \
 	scope.h statement.h staticassert.h target.h template.h tokens.h	\
 	version.h visitor.h libomf.d scanomf.d libmscoff.d scanmscoff.d)         \
@@ -373,7 +373,7 @@ DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
 all: dmd
 
-auto-tester-build: dmd checkwhitespace $G/dmd_frontend
+auto-tester-build: dmd checkwhitespace checkcxxheaders $G/dmd_frontend
 .PHONY: auto-tester-build
 
 toolchain-info:
@@ -545,6 +545,12 @@ checkwhitespace: $(HOST_DMD_PATH) $(TOOLS_DIR)/checkwhitespace.d
 
 $(TOOLS_DIR)/checkwhitespace.d:
 	git clone --depth=1 ${GIT_HOME}/tools $(TOOLS_DIR)
+
+######################################################
+
+checkcxxheaders:
+	$(HOST_CXX) -fsyntax-only $(ROOT_FLAGS) $(filter %.h,$(ROOT_SRC))
+	$(HOST_CXX) -fsyntax-only $(DMD_FLAGS) $(filter %.h,$(SRC))
 
 ######################################################
 

@@ -48,6 +48,7 @@ class TryFinallyStatement;
 class CaseStatement;
 class DefaultStatement;
 class LabelStatement;
+class StaticForeach;
 
 // Back end
 struct code;
