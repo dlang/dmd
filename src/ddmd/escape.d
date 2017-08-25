@@ -37,6 +37,7 @@ import ddmd.arraytypes;
  * Print error messages when these are detected.
  * Params:
  *      sc = used to determine current function and module
+ *      fdc = function being called, `null` if called indirectly
  *      par = identifier of function parameter
  *      arg = initializer for param
  *      gag = do not print error messages
@@ -211,6 +212,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         if (ie.e1.op == TOKvar && ie.e1.type.toBasetype().ty == Tsarray)
             va = (cast(VarExp)ie.e1).var.isVarDeclaration();
     }
+
+    if (log && va) printf("va: %s\n", va.toChars());
 
     // Try to infer 'scope' for va if in a function not marked @system
     bool inferScope = false;
