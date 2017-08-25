@@ -561,7 +561,7 @@ void cdorth(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         lrreg = findreglsw(rretregs);
         genregs(cdb,0x03,lreg,lrreg);              // ADD lreg,lrreg
         code_orflag(cdb.last(),CFpsw);
-        cdb.append(genmovreg(CNIL,lrreg,CX));      // MOV lrreg,CX
+        genmovreg(cdb,lrreg,CX);      // MOV lrreg,CX
         cdb.genc2(0x81,modregrm(3,2,mreg),0);      // ADC mreg,0
         genshift(cdb);                             // MOV CX,offset __AHSHIFT
         cdb.gen2(0xD3,modregrm(3,4,mreg));         // SHL mreg,CL
@@ -1113,7 +1113,7 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             if (mgt)
                 cdb.gen2(0x03,grex | modregrmx(3,DX,reg));          // ADD EDX,R1
             getregsNoSave(mAX);                                     // EAX no longer contains 'm'
-            cdb.append(genmovreg(CNIL, AX, reg));                   // MOV EAX,R1
+            genmovreg(cdb, AX, reg);                   // MOV EAX,R1
             cdb.genc2(0xC1,grex | modregrm(3,7,AX),sz * 8 - 1);     // SAR EAX,31
             if (shpost)
                 cdb.genc2(0xC1,grex | modregrm(3,7,DX),shpost);     // SAR EDX,shpost
@@ -1162,10 +1162,10 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                         cdb.gen2(0x0FAF,grex | modregrmx(3,AX,DX));     // IMUL EAX,EDX
                     }
                     cdb.gen2(0x2B,grex | modregxrm(3,reg,AX));          // SUB R1,EAX
-                    cdb.append(genmovreg(CNIL, AX, r3));                // MOV EAX,r3
+                    genmovreg(cdb, AX, r3);                // MOV EAX,r3
                     if (neg)
                         cdb.gen2(0xF7,grex | modregrm(3,3,AX));         // NEG EAX
-                    cdb.append(genmovreg(CNIL, DX, reg));               // MOV EDX,R1
+                    genmovreg(cdb, DX, reg);               // MOV EDX,R1
                     resreg = mDX | mAX;
                     break;
 
@@ -1212,11 +1212,11 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 codelem(cdb,e1,&regm,FALSE);       // eval left leaf
                 reg = findreg(regm);
                 getregs(cdb,mAX | mDX);
-                cdb.append(genmovreg(CNIL,AX,reg));                   // MOV EAX,reg
+                genmovreg(cdb,AX,reg);                   // MOV EAX,reg
                 movregconst(cdb, DX, m, (sz == 8) ? 0x40 : 0);  // MOV EDX,m
                 getregs(cdb,regm | mDX | mAX);
                 cdb.gen2(0xF7,grex | modregrmx(3,4,DX));              // MUL EDX
-                cdb.append(genmovreg(CNIL,AX,reg));                   // MOV EAX,reg
+                genmovreg(cdb,AX,reg);                   // MOV EAX,reg
                 cdb.gen2(0x2B,grex | modregrm(3,AX,DX));              // SUB EAX,EDX
                 cdb.genc2(0xC1,grex | modregrm(3,5,AX),1);            // SHR EAX,1
                 unsigned regm3 = allregs;
@@ -1248,7 +1248,7 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 if (reg != AX)
                 {
                     getregs(cdb,mAX);
-                    cdb.append(genmovreg(CNIL,AX,reg));                 // MOV EAX,reg
+                    genmovreg(cdb,AX,reg);                 // MOV EAX,reg
                 }
                 if (shpre)
                 {
@@ -1309,8 +1309,8 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                     }
                     getregs(cdb,regm);
                     cdb.gen2(0x2B,grex | modregxrm(3,reg,AX));        // SUB reg,EAX
-                    cdb.append(genmovreg(CNIL, AX, r3));              // MOV EAX,r3
-                    cdb.append(genmovreg(CNIL, DX, reg));             // MOV EDX,reg
+                    genmovreg(cdb, AX, r3);              // MOV EAX,r3
+                    genmovreg(cdb, DX, reg);             // MOV EDX,reg
                     resreg = mDX | mAX;
                     break;
 
@@ -1633,7 +1633,7 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 codelem(cdb,e1->E1,&retregs,FALSE);    // eval left leaf
                 reg = findreg(retregs);
                 getregs(cdb,mAX);
-                cdb.append(genmovreg(CNIL,AX,reg));            // MOV AX,reg
+                genmovreg(cdb,AX,reg);            // MOV AX,reg
                 loadea(cdb,e2,&cs,0xF7,4,REGSIZE,mAX | mDX | mskl(reg),mAX | mDX);  // MUL EA+2
                 getregs(cdb,retregs);
                 cdb.gen1(0x90 + reg);                          // XCHG AX,reg
@@ -2547,7 +2547,7 @@ void cdshift(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                     {
                         if (oper == OPshl)
                             swap((int *) &resreg,(int *) &sreg);
-                        cdb.append(genmovreg(CNIL,sreg,resreg));  // MOV sreg,resreg
+                        genmovreg(cdb,sreg,resreg);  // MOV sreg,resreg
                         if (oper == OPashr)
                             cdb.gen1(0x99);                       // CWD
                         else
@@ -2642,14 +2642,14 @@ void cdshift(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                         //      MOV lreg,hreg
                         //      XOR hreg,hreg
                         cdb.genc2(0xC1,rex | modregrm(3,s1,hreg),shiftcnt - (REGSIZE * 8));
-                        cdb.append(genmovreg(CNIL,lreg,hreg));
+                        genmovreg(cdb,lreg,hreg);
                         movregconst(cdb,hreg,0,0);
                     }
                     else if (oper == OPashr)
                     {   //      MOV     lreg,hreg
                         //      SAR     hreg,31
                         //      SHRD    lreg,hreg,shiftcnt
-                        cdb.append(genmovreg(NULL,lreg,hreg));
+                        genmovreg(cdb,lreg,hreg);
                         cdb.genc2(0xC1,rex | modregrm(3,s1,hreg),(REGSIZE * 8) - 1);
                         cdb.genc2(0x0FAC,rex | modregrm(3,hreg,lreg),shiftcnt - (REGSIZE * 8));
                     }
@@ -2658,7 +2658,7 @@ void cdshift(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                         //      MOV hreg,lreg
                         //      XOR lreg,lreg
                         cdb.genc2(0xC1,rex | modregrm(3,s1,lreg),shiftcnt - (REGSIZE * 8));
-                        cdb.append(genmovreg(CNIL,hreg,lreg));
+                        genmovreg(cdb,hreg,lreg);
                         movregconst(cdb,lreg,0,0);
                     }
                 }
@@ -2735,7 +2735,7 @@ void cdshift(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                     if (REGSIZE == 2)
                         cdb1.genc2(0x80,modregrm(3,4,CX),REGSIZE * 8 - 1);
                     cdb1.gen2(0xD3,modregrm(3,4,lreg));
-                    cdb1.append(genmovreg(CNIL,hreg,lreg));
+                    genmovreg(cdb1,hreg,lreg);
                     genregs(cdb1,0x31,lreg,lreg);
 
                     genjmp(cdb,JNE,FLcode,(block *)cl1);
@@ -2759,7 +2759,7 @@ void cdshift(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
                         if (REGSIZE == 2)
                             cdb1.genc2(0x80,modregrm(3,4,CX),REGSIZE * 8 - 1);
-                        cdb1.append(genmovreg(CNIL,lreg,hreg));
+                        genmovreg(cdb1,lreg,hreg);
                         cdb1.genc2(0xC1,modregrm(3,s1,hreg),31);
                         cdb1.gen2(0x0FAD,modregrm(3,hreg,lreg));
                     }
@@ -2780,7 +2780,7 @@ void cdshift(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                         if (REGSIZE == 2)
                             cdb1.genc2(0x80,modregrm(3,4,CX),REGSIZE * 8 - 1);
                         cdb1.gen2(0xD3,modregrm(3,5,hreg));
-                        cdb1.append(genmovreg(CNIL,lreg,hreg));
+                        genmovreg(cdb1,lreg,hreg);
                         genregs(cdb1,0x31,hreg,hreg);
                     }
                     genjmp(cdb,JNE,FLcode,(block *)cl1);
@@ -3446,7 +3446,7 @@ void cdstrcpy(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     code_orrex(cdb.last(),rex);
     genregs(cdb,0x2B,DI,CX);                    // SUB DI,CX
     code_orrex(cdb.last(),rex);
-    cdb.append(genmovreg(CNIL,SI,DI));          // MOV SI,DI
+    genmovreg(cdb,SI,DI);          // MOV SI,DI
 
     // Load DS with right value
     switch (ty2)
@@ -3494,7 +3494,7 @@ void cdstrcpy(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     if (need_DS)
         cdb.gen1(0x1F);                     // POP DS
     if (*pretregs)
-        cdb.append(genmovreg(CNIL,AX,DI));               // MOV AX,DI
+        genmovreg(cdb,AX,DI);               // MOV AX,DI
     cdb.gen1(0xF3);                         // REP
     cdb.gen1(0xA4);                              // MOVSB
 
@@ -3591,7 +3591,7 @@ void cdmemcpy(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
     if (*pretregs)                              // if need return value
     {   getregs(cdb,mAX);
-        cdb.append(genmovreg(CNIL,AX,DI));
+        genmovreg(cdb,AX,DI);
     }
 
     if (0 && I32 && config.flags4 & CFG4speed)
@@ -3611,7 +3611,7 @@ void cdmemcpy(CodeBuilder& cdb,elem *e,regm_t *pretregs)
          * L2:  nop
          */
         getregs(cdb,mSI | mDI | mCX | mDX);
-        cdb.append(genmovreg(CNIL,DX,CX));                  // MOV EDX,ECX
+        genmovreg(cdb,DX,CX);                  // MOV EDX,ECX
         cdb.genc2(0xC1,modregrm(3,5,CX),2);                 // SHR ECX,2
         code *cx = gennop(CNIL);
         genjmp(cdb, JE, FLcode, (block *)cx);  // JZ L1
@@ -3622,7 +3622,7 @@ void cdmemcpy(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
         code *cnop = gennop(CNIL);
         genjmp(cdb, JE, FLcode, (block *)cnop);  // JZ L2
-        cdb.append(genmovreg(CNIL,CX,DX));                    // MOV ECX,EDX
+        genmovreg(cdb,CX,DX);                    // MOV ECX,EDX
         cdb.gen1(0xF3);                          // REPE
         cdb.gen1(0xA4);                          // MOVSB
         cdb.append(cnop);
@@ -3810,7 +3810,7 @@ fixres:
     if (*pretregs)                              // if need return value
     {
         getregs(cdb,mBX);
-        cdb.append(genmovreg(CNIL,BX,DI));
+        genmovreg(cdb,BX,DI);
     }
 
     getregs(cdb,mDI | mCX);
@@ -4512,7 +4512,7 @@ void cdabs(CodeBuilder& cdb,elem *e, regm_t *pretregs)
             reg = findreg(retregs);
             allocreg(cdb,&scratch,&r,TYint);
             getregs(cdb,retregs);
-            cdb.append(genmovreg(CNIL,r,reg));                     // MOV r,reg
+            genmovreg(cdb,r,reg);                     // MOV r,reg
             cdb.genc2(0xC1,modregrmx(3,7,r),REGSIZE * 8 - 1);      // SAR r,31/63
             code_orrex(cdb.last(), rex);
         }

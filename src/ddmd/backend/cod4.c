@@ -2564,7 +2564,7 @@ void longcmp(CodeBuilder& cdb,elem *e,bool jcond,unsigned fltarg,code *targ)
             reg = findreg(retregs);
             retregs = allregs & ~retregs;
             allocreg(cdb,&retregs,&msreg,TYint);
-            cdb.append(genmovreg(CNIL,msreg,reg));                  // MOV msreg,reg
+            genmovreg(cdb,msreg,reg);                  // MOV msreg,reg
             cdb.genc2(0xC1,modregrm(3,7,msreg),REGSIZE * 8 - 1);    // SAR msreg,31
             cse_flush(cdb,1);
             loadea(cdb,e2,&cs,0x3B,msreg,REGSIZE,mask[reg],0);
@@ -3021,7 +3021,7 @@ void cdshtlng(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     allocreg(cdb,&retregs,&reg,e->Ety);
     msreg = findregmsw(retregs);
     lsreg = findreglsw(retregs);
-    cdb.append(genmovreg(NULL,msreg,lsreg));                // MOV msreg,lsreg
+    genmovreg(cdb,msreg,lsreg);                // MOV msreg,lsreg
     assert(config.target_cpu >= TARGET_80286);              // 8088 can't handle SAR reg,imm8
     cdb.genc2(0xC1,modregrm(3,7,msreg),REGSIZE * 8 - 1);    // SAR msreg,31
     fixresult(cdb,e,retregs,pretregs);

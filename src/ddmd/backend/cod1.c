@@ -1554,7 +1554,7 @@ void tstresult(CodeBuilder& cdb,regm_t regm,tym_t tym,unsigned saveflag)
             {
                 scrregm = allregs & ~regm;              // possible scratch regs
                 allocreg(cdb,&scrregm,&scrreg,TYoffset); // allocate scratch reg
-                cdb.append(genmovreg(CNIL,scrreg,reg));  // MOV scrreg,msreg
+                genmovreg(cdb,scrreg,reg);  // MOV scrreg,msreg
                 reg = scrreg;
             }
             getregs(cdb,mask[reg]);
@@ -1586,14 +1586,14 @@ void tstresult(CodeBuilder& cdb,regm_t regm,tym_t tym,unsigned saveflag)
                 if (tyfv(tym))
                     genregs(cdb,0x0FB7,scrreg,reg); // MOVZX scrreg,msreg
                 else
-                {   cdb.append(genmovreg(CNIL,scrreg,reg));      // MOV scrreg,msreg
+                {   genmovreg(cdb,scrreg,reg);      // MOV scrreg,msreg
                     if (tym == TYdouble || tym == TYdouble_alias)
                         cdb.gen2(0xD1,modregrm(3,4,scrreg)); // SHL scrreg,1
                 }
             }
             else
             {
-                cdb.append(genmovreg(CNIL,scrreg,reg));  // MOV scrreg,msreg
+                genmovreg(cdb,scrreg,reg);  // MOV scrreg,msreg
                 if (tym == TYfloat)
                     cdb.gen2(0xD1,modregrm(3,4,scrreg)); // SHL scrreg,1
             }
@@ -1603,7 +1603,7 @@ void tstresult(CodeBuilder& cdb,regm_t regm,tym_t tym,unsigned saveflag)
         else if (sz == 8)
         {
             // !I32
-            cdb.append(genmovreg(CNIL,scrreg,AX));           // MOV scrreg,AX
+            genmovreg(cdb,scrreg,AX);           // MOV scrreg,AX
             if (tym == TYdouble || tym == TYdouble_alias)
                 cdb.gen2(0xD1,modregrm(3,4,scrreg));         // SHL scrreg,1
             genorreg(cdb,scrreg,BX);            // OR scrreg,BX
@@ -1787,15 +1787,15 @@ void fixresult(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretregs)
                 unsigned msrreg = findregmsw(*pretregs);
                 unsigned lsrreg = findreglsw(*pretregs);
 
-                cdb.append(genmovreg(CNIL,msrreg,msreg)); // MOV msrreg,msreg
-                cdb.append(genmovreg(CNIL,lsrreg,lsreg)); // MOV lsrreg,lsreg
+                genmovreg(cdb,msrreg,msreg); // MOV msrreg,msreg
+                genmovreg(cdb,lsrreg,lsreg); // MOV lsrreg,lsreg
             }
             else
             {
                 assert(!(retregs & XMMREGS));
                 assert(!(forregs & XMMREGS));
                 reg = findreg(retregs & (mBP | ALLREGS));
-                cdb.append(genmovreg(CNIL,rreg,reg));    // MOV rreg,reg
+                genmovreg(cdb,rreg,reg);    // MOV rreg,reg
             }
         }
         cssave(e,retregs | *pretregs,opsflag);
@@ -3135,7 +3135,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                                 checkSetVex(cdb.last(),ty1);
                             }
                             else
-                                cdb.append(genmovreg(CNIL, preg, lreg));
+                                genmovreg(cdb, preg, lreg);
                         }
                     }
                     else
@@ -3148,7 +3148,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                                 checkSetVex(cdb.last(),ty2);
                             }
                             else
-                                cdb.append(genmovreg(CNIL, preg2, mreg));
+                                genmovreg(cdb, preg2, mreg);
                         }
                     }
                 }
@@ -4774,7 +4774,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             loadea(cdb,e,&cs,op,nreg,0,0,0);    // MOV nregL,data
             if (reg != nreg)
             {
-                cdb.append(genmovreg(CNIL,reg,nreg));   // MOV reg,nreg
+                genmovreg(cdb,reg,nreg);   // MOV reg,nreg
                 cssave(e,mask[nreg],FALSE);
             }
         }
