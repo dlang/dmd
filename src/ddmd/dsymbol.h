@@ -61,9 +61,11 @@ class TypeTuple;
 class WithStatement;
 class LabelDsymbol;
 class ScopeDsymbol;
+class ForwardingScopeDsymbol;
 class TemplateDeclaration;
 class TemplateInstance;
 class TemplateMixin;
+class ForwardingAttribDeclaration;
 class Nspace;
 class EnumMember;
 class WithScopeSymbol;
@@ -246,6 +248,7 @@ public:
     virtual TemplateDeclaration *isTemplateDeclaration() { return NULL; }
     virtual TemplateInstance *isTemplateInstance() { return NULL; }
     virtual TemplateMixin *isTemplateMixin() { return NULL; }
+    virtual ForwardingAttribDeclaration *isForwardingAttribDeclaration() { return NULL; }
     virtual Nspace *isNspace() { return NULL; }
     virtual Declaration *isDeclaration() { return NULL; }
     virtual StorageClassDeclaration *isStorageClassDeclaration(){ return NULL; }
@@ -274,7 +277,7 @@ public:
     virtual UnionDeclaration *isUnionDeclaration() { return NULL; }
     virtual InterfaceDeclaration *isInterfaceDeclaration() { return NULL; }
     virtual ScopeDsymbol *isScopeDsymbol() { return NULL; }
-    virtual ForwardingScopeDSymbol *isForwardingScopeDsymbol) { return NULL; }
+    virtual ForwardingScopeDsymbol *isForwardingScopeDsymbol() { return NULL; }
     virtual WithScopeSymbol *isWithScopeSymbol() { return NULL; }
     virtual ArrayScopeSymbol *isArrayScopeSymbol() { return NULL; }
     virtual Import *isImport() { return NULL; }
@@ -363,6 +366,21 @@ public:
     OverloadSet *isOverloadSet() { return this; }
     const char *kind();
     void accept(Visitor *v) { v->visit(this); }
+};
+
+// Forwarding ScopeDsymbol
+
+class ForwardingScopeDsymbol : public ScopeDsymbol
+{
+    ScopeDsymbol *forward;
+
+    Dsymbol *symtabInsert(Dsymbol *s);
+    Dsymbol *symtabLookup(Dsymbol *s, Identifier *id);
+    void importScope(Dsymbol *s, Prot protection);
+    void semantic(Scope *sc);
+    const char *kind();
+
+    ForwardingScopeDsymbol *isForwardingScopeDsymbol() { return this; }
 };
 
 // Table of Dsymbol's

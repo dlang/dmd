@@ -16,6 +16,7 @@
 // At present it is incomplete, but in future it should grow to contain
 // most or all target machine and target O/S specific information.
 #include "globals.h"
+#include "tokens.h"
 
 class ClassDeclaration;
 class Dsymbol;

@@ -232,8 +232,6 @@ public:
     void accept(Visitor *v) { v->visit(this); }
     dinteger_t getInteger() { return value; }
     void setInteger(dinteger_t value);
-
-private:
     void normalize();
 };
 
@@ -299,7 +297,6 @@ public:
     Dsymbol *s;
     bool hasOverloads;
 
-    static Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
@@ -689,8 +686,6 @@ public:
     Type *att2; // Save alias this type to detect recursion
 
     Expression *syntaxCopy();
-    Expression *binSemantic(Scope *sc);
-    Expression *binSemanticProp(Scope *sc);
     Expression *incompatibleTypes();
     Expression *checkOpAssignTypes(Scope *sc);
     bool checkIntegralBin();
@@ -862,8 +857,8 @@ public:
 
 class DeleteExp : public UnaExp
 {
-    bool isRAII;
 public:
+    bool isRAII;
     Expression *toBoolean(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };

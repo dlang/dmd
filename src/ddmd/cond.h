@@ -12,6 +12,9 @@
 #ifndef DMD_DEBCOND_H
 #define DMD_DEBCOND_H
 
+#include "globals.h"
+#include "visitor.h"
+
 class Expression;
 class Identifier;
 struct OutBuffer;
@@ -19,6 +22,8 @@ class Module;
 struct Scope;
 class ScopeDsymbol;
 class DebugCondition;
+class ForeachStatement;
+class ForeachRangeStatement;
 
 int findCondition(Strings *ids, Identifier *ident);
 
