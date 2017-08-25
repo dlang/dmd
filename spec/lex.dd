@@ -793,6 +793,7 @@ $(GRAMMAR
 $(GNAME FloatLiteral):
     $(GLINK Float)
     $(GLINK Float) $(GLINK Suffix)
+    $(GLINK Integer) $(GLINK FloatSuffix)
     $(GLINK Integer) $(GLINK ImaginarySuffix)
     $(GLINK Integer) $(GLINK FloatSuffix) $(GLINK ImaginarySuffix)
     $(GLINK Integer) $(GLINK RealSuffix) $(GLINK ImaginarySuffix)
