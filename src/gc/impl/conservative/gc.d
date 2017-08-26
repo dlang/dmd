@@ -3236,7 +3236,7 @@ unittest // bugzilla 15822
 {
     import core.memory : GC;
 
-    ubyte[16] buf;
+    __gshared ubyte[16] buf;
     static struct Foo
     {
         ~this()
