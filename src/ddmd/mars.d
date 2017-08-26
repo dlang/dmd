@@ -371,7 +371,76 @@ private int tryMain(size_t argc, const(char)** argv)
     updateRealEnvironment(&environment);
     environment.reset(1); // don't need environment cache any more
 
-    parseCommandLine(arguments, argc, global.params, files);
+    if (parseCommandLine(arguments, argc, global.params, files))
+    {
+        Loc loc;
+        errorSupplemental(loc, "run 'dmd -man' to open browser on manual");
+        return EXIT_FAILURE;
+    }
+
+    if (global.params.usage)
+    {
+        usage();
+        return EXIT_SUCCESS;
+    }
+
+    if (global.params.logo)
+    {
+        logo();
+        return EXIT_SUCCESS;
+    }
+
+    if (global.params.mcpuUsage)
+    {
+        printf("
+CPU architectures supported by -mcpu=id:
+  =?             list information on all architecture choices
+  =baseline      use default architecture as determined by target
+  =avx           use AVX 1 instructions
+  =avx2          use AVX 2 instructions
+  =native        use CPU architecture that this compiler is running on
+");
+        return EXIT_SUCCESS;
+    }
+
+    if (global.params.transitionUsage)
+    {
+         printf("
+Language changes listed by -transition=id:
+  =all           list information on all language changes
+  =checkimports  give deprecation messages about 10378 anomalies
+  =complex,14488 list all usages of complex or imaginary types
+  =field,3449    list all non-mutable fields which occupy an object instance
+  =import,10378  revert to single phase name lookup
+  =tls           list all variables going into thread local storage
+");
+        return EXIT_SUCCESS;
+    }
+
+    if (global.params.manual)
+    {
+        version (Windows)
+        {
+            browse("http://dlang.org/dmd-windows.html");
+        }
+        version (linux)
+        {
+            browse("http://dlang.org/dmd-linux.html");
+        }
+        version (OSX)
+        {
+            browse("http://dlang.org/dmd-osx.html");
+        }
+        version (FreeBSD)
+        {
+            browse("http://dlang.org/dmd-freebsd.html");
+        }
+        version (OpenBSD)
+        {
+            browse("http://dlang.org/dmd-openbsd.html");
+        }
+        return EXIT_SUCCESS;
+    }
 
     if (global.params.color)
         global.console = Console.create(core.stdc.stdio.stderr);
@@ -1412,17 +1481,27 @@ private CPU setTargetCPU(CPU cpu)
 /****************************************************
  * Parse command line arguments.
  *
- * Prints message and exits if there are errors.
+ * Prints message(s) if there are errors.
  *
  * Params:
  *      arguments = command line arguments
  *      argc = argument count
  *      params = set to result of parsing `arguments`
  *      files = set to files pulled from `arguments`
+ * Returns:
+ *      true if errors in command line
  */
 
-private void parseCommandLine(const ref Strings arguments, const size_t argc, ref Param params, ref Strings files)
+private bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param params, ref Strings files)
 {
+    bool errors;
+
+    void error(const(char)* format, const(char*) arg = null)
+    {
+        ddmd.errors.error(Loc(), format, arg);
+        errors = true;
+    }
+
     version (none)
     {
         for (size_t i = 0; i < arguments.dim; i++)
@@ -1538,7 +1617,7 @@ private void parseCommandLine(const ref Strings arguments, const size_t argc, re
                 params.stackstomp = true;
             else if (strcmp(p + 1, "gt") == 0)
             {
-                error(Loc(), "use -profile instead of -gt");
+                error("use -profile instead of -gt");
                 params.trace = true;
             }
             else if (strcmp(p + 1, "m32") == 0)
@@ -1563,7 +1642,7 @@ private void parseCommandLine(const ref Strings arguments, const size_t argc, re
                 }
                 else
                 {
-                    error(Loc(), "-m32mscoff can only be used on windows");
+                    error("-m32mscoff can only be used on windows");
                 }
             }
             else if (strncmp(p + 1, "mscrtlib=", 9) == 0)
@@ -1574,7 +1653,7 @@ private void parseCommandLine(const ref Strings arguments, const size_t argc, re
                 }
                 else
                 {
-                    error(Loc(), "-mscrtlib");
+                    error("-mscrtlib");
                 }
             }
             else if (memcmp(p + 1, cast(char*)"profile", 7) == 0)
@@ -1630,15 +1709,8 @@ private void parseCommandLine(const ref Strings arguments, const size_t argc, re
                 {
                     if (strcmp(p + 6, "?") == 0)
                     {
-                        printf("
-CPU architectures supported by -mcpu=id:
-  =?             list information on all architecture choices
-  =baseline      use default architecture as determined by target
-  =avx           use AVX 1 instructions
-  =avx2          use AVX 2 instructions
-  =native        use CPU architecture that this compiler is running on
-");
-                        exit(EXIT_SUCCESS);
+                        params.mcpuUsage = true;
+                        return false;
                     }
                     else if (Identifier.isValidIdentifier(p + 6))
                     {
@@ -1675,16 +1747,8 @@ CPU architectures supported by -mcpu=id:
                 {
                     if (strcmp(p + 12, "?") == 0)
                     {
-                        printf("
-Language changes listed by -transition=id:
-  =all           list information on all language changes
-  =checkimports  give deprecation messages about 10378 anomalies
-  =complex,14488 list all usages of complex or imaginary types
-  =field,3449    list all non-mutable fields which occupy an object instance
-  =import,10378  revert to single phase name lookup
-  =tls           list all variables going into thread local storage
-");
-                        exit(EXIT_SUCCESS);
+                        params.transitionUsage = true;
+                        return false;
                     }
                     if (isdigit(cast(char)p[12]))
                     {
@@ -1784,7 +1848,7 @@ Language changes listed by -transition=id:
                     params.preservePaths = true;
                     break;
                 case 0:
-                    error(Loc(), "-o no longer supported, use -of or -od");
+                    error("-o no longer supported, use -of or -od");
                     break;
                 default:
                     goto Lerror;
@@ -1988,15 +2052,15 @@ Language changes listed by -transition=id:
                 params.debugf = true;
             else if (strcmp(p + 1, "-help") == 0 || strcmp(p + 1, "h") == 0)
             {
-                usage();
-                exit(EXIT_SUCCESS);
+                params.usage = true;
+                return false;
             }
             else if (strcmp(p + 1, "-r") == 0)
                 params.debugr = true;
             else if (strcmp(p + 1, "-version") == 0)
             {
-                logo();
-                exit(EXIT_SUCCESS);
+                params.logo = true;
+                return false;
             }
             else if (strcmp(p + 1, "-x") == 0)
                 params.debugx = true;
@@ -2018,7 +2082,7 @@ Language changes listed by -transition=id:
             {
                 if (params.moduleDeps)
                 {
-                    error(Loc(), "-deps[=file] can only be provided once!");
+                    error("-deps[=file] can only be provided once!");
                     break;
                 }
                 if (p[5] == '=')
@@ -2040,27 +2104,8 @@ Language changes listed by -transition=id:
             }
             else if (memcmp(p + 1, cast(char*)"man", 3) == 0)
             {
-                version (Windows)
-                {
-                    browse("http://dlang.org/dmd-windows.html");
-                }
-                version (linux)
-                {
-                    browse("http://dlang.org/dmd-linux.html");
-                }
-                version (OSX)
-                {
-                    browse("http://dlang.org/dmd-osx.html");
-                }
-                version (FreeBSD)
-                {
-                    browse("http://dlang.org/dmd-freebsd.html");
-                }
-                version (OpenBSD)
-                {
-                    browse("http://dlang.org/dmd-openbsd.html");
-                }
-                exit(EXIT_SUCCESS);
+                params.manual = true;
+                return false;
             }
             else if (strcmp(p + 1, "run") == 0)
             {
@@ -2071,7 +2116,7 @@ Language changes listed by -transition=id:
                     const(char)* ext = FileName.ext(arguments[i + 1]);
                     if (ext && FileName.equals(ext, "d") == 0 && FileName.equals(ext, "di") == 0)
                     {
-                        error(Loc(), "-run must be followed by a source file, not '%s'", arguments[i + 1]);
+                        error("-run must be followed by a source file, not '%s'", arguments[i + 1]);
                         break;
                     }
                     files.push(arguments[i + 1]);
@@ -2093,10 +2138,10 @@ Language changes listed by -transition=id:
             else
             {
             Lerror:
-                error(Loc(), "unrecognized switch '%s'", arguments[i]);
+                error("unrecognized switch '%s'", arguments[i]);
                 continue;
             Lnoarg:
-                error(Loc(), "argument expected for switch '%s'", arguments[i]);
+                error("argument expected for switch '%s'", arguments[i]);
                 continue;
             }
         }
@@ -2112,12 +2157,13 @@ Language changes listed by -transition=id:
                 }
                 if (strcmp(p, `/?`) == 0)
                 {
-                    usage();
-                    exit(EXIT_SUCCESS);
+                    params.usage = true;
+                    return false;
                 }
             }
             files.push(p);
         }
     }
+    return errors;
 }
 
