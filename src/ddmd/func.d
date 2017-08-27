@@ -1399,7 +1399,7 @@ extern (C++) class FuncDeclaration : Declaration
             Statement fpreinv = null;
             if (addPreInvariant())
             {
-                Expression e = addInvariant(loc, sc, ad, vthis, isDtorDeclaration() !is null);
+                Expression e = addInvariant(loc, sc, ad, vthis);
                 if (e)
                     fpreinv = new ExpStatement(Loc(), e);
             }
@@ -1408,7 +1408,7 @@ extern (C++) class FuncDeclaration : Declaration
             Statement fpostinv = null;
             if (addPostInvariant())
             {
-                Expression e = addInvariant(loc, sc, ad, vthis, isCtorDeclaration() !is null);
+                Expression e = addInvariant(loc, sc, ad, vthis);
                 if (e)
                     fpostinv = new ExpStatement(Loc(), e);
             }
@@ -3858,71 +3858,48 @@ extern (C++) class FuncDeclaration : Declaration
  * Input:
  *      ad      aggregate with the invariant
  *      vthis   variable with 'this'
- *      direct  call invariant directly
  * Returns:
  *      void expression that calls the invariant
  */
-extern (C++) Expression addInvariant(Loc loc, Scope* sc, AggregateDeclaration ad, VarDeclaration vthis, bool direct)
+extern (C++) Expression addInvariant(Loc loc, Scope* sc, AggregateDeclaration ad, VarDeclaration vthis)
 {
     Expression e = null;
-    if (direct)
+    // Call invariant directly only if it exists
+    FuncDeclaration inv = ad.inv;
+    ClassDeclaration cd = ad.isClassDeclaration();
+
+    while (!inv && cd)
     {
-        // Call invariant directly only if it exists
-        FuncDeclaration inv = ad.inv;
-        ClassDeclaration cd = ad.isClassDeclaration();
-
-        while (!inv && cd)
-        {
-            cd = cd.baseClass;
-            if (!cd)
-                break;
-            inv = cd.inv;
-        }
-        if (inv)
-        {
-            version (all)
-            {
-                // Workaround for https://issues.dlang.org/show_bug.cgi?id=13394
-                // For the correct mangling,
-                // run attribute inference on inv if needed.
-                inv.functionSemantic();
-            }
-
-            //e = new DsymbolExp(Loc(), inv);
-            //e = new CallExp(Loc(), e);
-            //e = e.semantic(sc2);
-
-            /* https://issues.dlang.org/show_bug.cgi?id=13113
-             * Currently virtual invariant calls completely
-             * bypass attribute enforcement.
-             * Change the behavior of pre-invariant call by following it.
-             */
-            e = new ThisExp(Loc());
-            e.type = vthis.type;
-            e = new DotVarExp(Loc(), e, inv, false);
-            e.type = inv.type;
-            e = new CallExp(Loc(), e);
-            e.type = Type.tvoid;
-        }
+        cd = cd.baseClass;
+        if (!cd)
+            break;
+        inv = cd.inv;
     }
-    else
+    if (inv)
     {
         version (all)
         {
             // Workaround for https://issues.dlang.org/show_bug.cgi?id=13394
             // For the correct mangling,
             // run attribute inference on inv if needed.
-            if (ad.isStructDeclaration() && ad.inv)
-                ad.inv.functionSemantic();
+            inv.functionSemantic();
         }
-        // Call invariant virtually
-        Expression v = new ThisExp(Loc());
-        v.type = vthis.type;
-        if (ad.isStructDeclaration())
-            v = v.addressOf();
-        e = new StringExp(Loc(), cast(char*)"null this");
-        e = new AssertExp(loc, v, e);
-        e = e.semantic(sc);
+
+        //e = new DsymbolExp(Loc(), inv);
+        //e = new CallExp(Loc(), e);
+        //e = e.semantic(sc2);
+
+        /* https://issues.dlang.org/show_bug.cgi?id=13113
+         * Currently virtual invariant calls completely
+         * bypass attribute enforcement.
+         * Change the behavior of pre-invariant call by following it.
+         */
+        e = new ThisExp(Loc());
+        e.type = vthis.type;
+        e = new DotVarExp(Loc(), e, inv, false);
+        e.type = inv.type;
+        e = new CallExp(Loc(), e);
+        e.type = Type.tvoid;
     }
     return e;
 }
