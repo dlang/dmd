@@ -1474,7 +1474,7 @@ void cdmulass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                     code_orrex(cdb.last(),rex);
                 }
                 getregs(cdb,mDX | mAX); // DX and AX will be destroyed
-                cdb.append(genregs(CNIL,0xF7,opr,reg));   // OPR reg
+                genregs(cdb,0xF7,opr,reg);   // OPR reg
                 code_orrex(cdb.last(),rex);
             }
         }
@@ -1914,11 +1914,11 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
              * C1:
              */
              getregs(cdb,mDX);
-             cdb.append(genregs(CNIL,0x39,CX,DX));             // CMP EDX,ECX
+             genregs(cdb,0x39,CX,DX);             // CMP EDX,ECX
              code *c1 = gennop(CNIL);
              genjmp(cdb,JNE,FLcode,(block *)c1);  // JNE C1
              movregconst(cdb,DX,0,0);             // XOR EDX,EDX
-             cdb.append(genregs(CNIL,0x39,BX,AX));             // CMP EAX,EBX
+             genregs(cdb,0x39,BX,AX);             // CMP EAX,EBX
              genjmp(cdb,JE,FLcode,(block *)c1);   // JZ C1
              code *c3 = gen1(CNIL,0x40 + DX);                  // INC EDX
              genjmp(cdb,JA,FLcode,(block *)c3);   // JA C3
@@ -1974,7 +1974,7 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         if (sz <= REGSIZE)                              // CMP reg,rreg
         {   reg = findreg(retregs);             // get reg that e1 is in
             rreg = findreg(rretregs);
-            cdb.append(genregs(CNIL,0x3B ^ byte ^ reverse,reg,rreg));
+            genregs(cdb,0x3B ^ byte ^ reverse,reg,rreg);
             code_orrex(cdb.last(), rex);
             if (!I16 && sz == SHORTSIZE)
                 cdb.last()->Iflags |= CFopsize;          // compare only 16 bits
@@ -1987,7 +1987,7 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             // Compare MSW, if they're equal then compare the LSW
             reg = findregmsw(retregs);
             rreg = findregmsw(rretregs);
-            cdb.append(genregs(CNIL,0x3B ^ reverse,reg,rreg));  // CMP reg,rreg
+            genregs(cdb,0x3B ^ reverse,reg,rreg);  // CMP reg,rreg
             if (I32 && sz == 6)
                 cdb.last()->Iflags |= CFopsize;         // seg is only 16 bits
             else if (I64)
@@ -1996,7 +1996,7 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
             reg = findreglsw(retregs);
             rreg = findreglsw(rretregs);
-            cdb.append(genregs(CNIL,0x3B ^ reverse,reg,rreg));  // CMP reg,rreg
+            genregs(cdb,0x3B ^ reverse,reg,rreg);  // CMP reg,rreg
             if (I64)
                 code_orrex(cdb.last(), REX_W);
         }
@@ -2038,7 +2038,7 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             isregvar(e1,&retregs,&reg)
            )
         {   // Just do a TEST instruction
-            cdb.append(genregs(NULL,0x85 ^ byte,reg,reg));      // TEST reg,reg
+            genregs(cdb,0x85 ^ byte,reg,reg);      // TEST reg,reg
             cdb.last()->Iflags |= (cs.Iflags & CFopsize) | CFpsw;
             code_orrex(cdb.last(), rex);
             if (I64 && byte && reg >= 4)
@@ -2080,19 +2080,19 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                     {   /* 8088-286 do not have a barrel shifter, so use this
                            faster sequence
                          */
-                        cdb.append(genregs(CNIL,0xD1,0,reg));   // ROL reg,1
+                        genregs(cdb,0xD1,0,reg);   // ROL reg,1
                         unsigned regi;
                         if (reghasvalue(allregs,1,&regi))
-                            cdb.append(genregs(CNIL,0x23,reg,regi));  // AND reg,regi
+                            genregs(cdb,0x23,reg,regi);  // AND reg,regi
                         else
                             cdb.genc2(0x81,modregrm(3,4,reg),1); // AND reg,1
                     }
                     break;
                 case OPge:
-                    cdb.append(genregs(CNIL,0xD1,4,reg));        // SHL reg,1
+                    genregs(cdb,0xD1,4,reg);        // SHL reg,1
                     code_orrex(cdb.last(),rex);
                     code_orflag(cdb.last(), CFpsw);
-                    cdb.append(genregs(CNIL,0x19,reg,reg));      // SBB reg,reg
+                    genregs(cdb,0x19,reg,reg);      // SBB reg,reg
                     code_orrex(cdb.last(),rex);
                     if (I64)
                     {
@@ -2245,7 +2245,7 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             rretregs = allregs & ~retregs;
             if (cs.IFL2 == FLconst && reghasvalue(rretregs,cs.IEV2.Vint,&rreg))
             {
-                cdb.append(genregs(CNIL,0x3B,reg,rreg));
+                genregs(cdb,0x3B,reg,rreg);
                 code_orrex(cdb.last(), rex);
                 if (!I16)
                     cdb.last()->Iflags |= cs.Iflags & CFopsize;
@@ -2366,7 +2366,7 @@ L3:
                 code_orrex(cdb.last(),REX);
             if (tysize(e->Ety) > 1)
             {
-                cdb.append(genregs(CNIL,0x0FB6,reg,reg));       // MOVZX reg,reg
+                genregs(cdb,0x0FB6,reg,reg);       // MOVZX reg,reg
                 if (I64 && sz == 8)
                     code_orrex(cdb.last(),REX_W);
                 if (I64 && reg >= 4)
@@ -2385,7 +2385,7 @@ L3:
                 (jop == JC || jop == JNC))
             {
                 getregs(cdb,retregs);
-                cdb.append(genregs(CNIL,0x19,reg,reg));     // SBB reg,reg
+                genregs(cdb,0x19,reg,reg);     // SBB reg,reg
                 if (rex)
                     code_orrex(cdb.last(), rex);
                 if (flag)
@@ -2485,12 +2485,12 @@ void longcmp(CodeBuilder& cdb,elem *e,bool jcond,unsigned fltarg,code *targ)
         // Compare MSW, if they're equal then compare the LSW
         reg = findregmsw(retregs);
         rreg = findregmsw(rretregs);
-        cdb.append(genregs(CNIL,0x3B,reg,rreg));        // CMP reg,rreg
+        genregs(cdb,0x3B,reg,rreg);        // CMP reg,rreg
         cdb.append(cdbjmp);
 
         reg = findreglsw(retregs);
         rreg = findreglsw(rretregs);
-        cdb.append(genregs(CNIL,0x3B,reg,rreg));        // CMP reg,rreg
+        genregs(cdb,0x3B,reg,rreg);        // CMP reg,rreg
         break;
       case OPconst:
         cs.IEV2.Vint = MSREG(e2->EV.Vllong);            // MSW first
@@ -2884,7 +2884,7 @@ void cdshtlng(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 // Zero high 32 bits
                 getregs(cdb,retregs);
                 reg = findreg(retregs);
-                cdb.append(genregs(NULL,0x89,reg,reg));  // MOV Ereg,Ereg
+                genregs(cdb,0x89,reg,reg);  // MOV Ereg,Ereg
             }
         }
         fixresult(cdb,e,retregs,pretregs);
@@ -2984,7 +2984,7 @@ void cdshtlng(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             else
             {
                 unsigned iop = (op == OPu16_32) ? 0x0FB7 : 0x0FBF; // MOVZX/MOVSX reg,reg
-                cdb.append(genregs(CNIL,iop,reg,reg));
+                genregs(cdb,iop,reg,reg);
             }
         }
      L1:
@@ -3140,7 +3140,7 @@ void cdbyteint(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 else
                 {
                     unsigned iop = (op == OPu8_16) ? 0x0FB6 : 0x0FBE; // MOVZX/MOVSX reg,reg
-                    cdb.append(genregs(CNIL,iop,reg,reg));
+                    genregs(cdb,iop,reg,reg);
                     if (I64 && reg >= 4)
                         code_orrex(cdb.last(), REX);
                 }
@@ -3149,7 +3149,7 @@ void cdbyteint(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         else
         {
             if (op == OPu8_16)
-                cdb.append(genregs(CNIL,0x30,reg+4,reg+4));  // XOR regH,regH
+                genregs(cdb,0x30,reg+4,reg+4);  // XOR regH,regH
             else
             {
                 cdb.gen1(0x98);                 // CBW
@@ -3376,17 +3376,17 @@ void cdfar16(CodeBuilder& cdb, elem *e, regm_t *pretregs)
         int jop = JCXZ;
         if (reg != CX)
         {
-            cdb.append(gentstreg(CNIL,reg));
+            gentstreg(cdb,reg);
             jop = JE;
         }
         genjmp(cdb,jop,FLcode,(block *)cnop);  // Jop L1
         NEWREG(cs.Irm,4);
         cdb.gen(&cs);                                   // SHL reg,3
-        cdb.append(genregs(CNIL,0x8C,2,rx));            // MOV rx,SS
+        genregs(cdb,0x8C,2,rx);            // MOV rx,SS
         int byte = (mask[reg] & BYTEREGS) == 0;
         cdb.genc2(0x80 | byte,modregrm(3,4,rx),3);      // AND rl,3
         cdb.genc2(0x80,modregrm(3,1,rx),4);             // OR  rl,4
-        cdb.append(genregs(CNIL,0x0A | byte,reg,rx));   // OR  regl,rl
+        genregs(cdb,0x0A | byte,reg,rx);   // OR  regl,rl
     }
     else // OPf16p_np
     {
@@ -3507,7 +3507,7 @@ void cdbtst(CodeBuilder& cdb, elem *e, regm_t *pretregs)
             if ((*pretregs & mPSW) == 0)
             {
                 getregs(cdb,retregs);
-                cdb.append(genregs(CNIL,0x19,reg,reg));     // SBB reg,reg
+                genregs(cdb,0x19,reg,reg);     // SBB reg,reg
                 cdb.gen2(0xF7,modregrmx(3,3,reg));          // NEG reg
             }
             else
@@ -3622,7 +3622,7 @@ void cdbt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
             if ((*pretregs & mPSW) == 0)
             {
                 getregs(cdb,retregs);
-                cdb.append(genregs(CNIL,0x19,reg,reg));     // SBB reg,reg
+                genregs(cdb,0x19,reg,reg);                  // SBB reg,reg
                 cdb.gen2(0xF7,modregrmx(3,3,reg));          // NEG reg
             }
             else

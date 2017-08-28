@@ -212,12 +212,12 @@ fail_compilation/fail_arrayop2.d(280): Error: [1] * 6 is not an lvalue
 fail_compilation/fail_arrayop2.d(283): Error: array operation `da[] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(286): Error: array operation `da[] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(289): Error: [1] * 6 is not an lvalue
-fail_compilation/fail_arrayop2.d(290): Error: invalid array operation `[1] * 6 -= 1` for element type `int`
+fail_compilation/fail_arrayop2.d(290): Error: array operation `[1] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(293): Error: [1] * 6 is not an lvalue
 fail_compilation/fail_arrayop2.d(294): Error: ([1] * 6)[] is not an lvalue
-fail_compilation/fail_arrayop2.d(297): Error: invalid array operation `[1] * 6 += 1` for element type `int`
-fail_compilation/fail_arrayop2.d(298): Error: invalid array operation `[1] * 6 *= 2` for element type `int`
-fail_compilation/fail_arrayop2.d(299): Error: invalid array operation `[1] * 6 ^^= 3` for element type `int`
+fail_compilation/fail_arrayop2.d(297): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(298): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(299): Error: array operation `[1] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(302): Error: [1] * 6 is not an lvalue
 fail_compilation/fail_arrayop2.d(303): Error: [1] * 6 is not an lvalue
 fail_compilation/fail_arrayop2.d(306): Error: '[1] * 6' is not of integral type, it is a int[]

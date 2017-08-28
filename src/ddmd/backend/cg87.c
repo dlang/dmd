@@ -3220,10 +3220,10 @@ void cnvt87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
             if (szoff > REGSIZE)
             {   szpush -= REGSIZE;
-                cdb.append(genpop(CNIL,findreglsw(retregs)));       // POP lsw
+                genpop(cdb,findreglsw(retregs));       // POP lsw
             }
             szpush -= REGSIZE;
-            cdb.append(genpop(CNIL,reg));                           // POP reg
+            genpop(cdb,reg);                           // POP reg
 
             if (szpush)
                 cod3_stackadj(cdb, -szpush);

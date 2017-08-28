@@ -2141,7 +2141,7 @@ static void cse_save(CodeBuilder& cdb, regm_t ms)
                 csextab[i].flags |= CSEsimple;
             else
             {
-                cdb.append(gensavereg(reg, i));
+                gensavereg(cdb, reg, i);
                 reflocal = TRUE;
             }
         }
@@ -2830,7 +2830,7 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
                 {   regm_t mj = mask[j];
 
                     if (touse & mj)
-                    {   cs1 = genmovreg(cs1,j,i);
+                    {   cs1 = cat(cs1,genmovreg(CNIL,j,i));
                         cs2 = cat(genmovreg(CNIL,i,j),cs2);
                         touse &= ~mj;
                         mfuncreg &= ~mj;
