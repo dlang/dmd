@@ -112,7 +112,12 @@ void[] initTLSRanges() nothrow @nogc
 {
     void* pbeg;
     void* pend;
-    version(Win32)
+    // with VS2017 15.3.1, the linker no longer puts TLS segments into a
+    //  separate image section. That way _tls_start and _tls_end no
+    //  longer generate offsets into .tls, but DATA.
+    // Use the TEB entry to find the start of TLS instead and read the
+    //  length from the TLS directory
+    version(D_InlineAsm_X86)
     {
         asm @nogc nothrow
         {
@@ -125,14 +130,14 @@ void[] initTLSRanges() nothrow @nogc
             mov pend, EAX;
         }
     }
-    else
+    else version(D_InlineAsm_X86_64)
     {
         asm @nogc nothrow
         {
             xor RAX, RAX;
             mov EAX, _tls_index;
             mov RCX, 0x58;
-            mov RCX, GS:[RCX]; // _tls_array (immediate value causes fixup)
+            mov RCX, GS:[RCX];      // _tls_array (immediate value causes fixup)
             mov RAX, [RCX+8*RAX];
             mov pbeg, RAX;
             add RAX, [_tls_used+8]; // end
@@ -140,6 +145,9 @@ void[] initTLSRanges() nothrow @nogc
             mov pend, RAX;
         }
     }
+    else
+        static assert(false, "Architecture not supported.");
+
     return pbeg[0 .. pend - pbeg];
 }
 
