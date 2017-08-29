@@ -519,7 +519,7 @@ version (Have_libgccjit)
     void Not(BCValue result, BCValue val)
     {
         gcc_jit_block_add_assignment(block, currentLoc, lvalue(result),
-            gcc_jit_context_new_unary_op(ctx, currentLoc, GCC_JIT_UNARY_OP_LOGICAL_NEGATE, i64type, rvalue(val))
+            gcc_jit_context_new_unary_op(ctx, currentLoc, GCC_JIT_UNARY_OP_BINARY_NEGATE, i64type, rvalue(val))
         );
     }
 
