@@ -1,19 +1,19 @@
-struct IntFieldTest
+struct StructField(T)
 {
-    static int Field;	
+    static T Field;
     static alias Field this;
 }
 
-struct IntPropertyTest
+struct StructProperty(T)
 {
-    static int Field;
+    static T Field;
 	
-	static @property int property()
+	static @property T property()
 	{
 		return Field;	
 	}
 	
-	static @property void property(int value)
+	static @property void property(T value)
 	{
 		Field = value;	
 	}
@@ -21,97 +21,112 @@ struct IntPropertyTest
     static alias property this;
 }
 
-struct BoolFieldTest
+class ClassField(T)
 {
-    static bool Field;	
+    static T Field;
     static alias Field this;
 }
 
-struct BoolPropertyTest
+class ClassProperty(T)
 {
-    static bool Field;
+    static T Field;
 	
-	static @property bool property()
+	static @property T property()
 	{
 		return Field;	
 	}
 	
-	static @property void property(bool value)
+	static @property void property(T value)
 	{
 		Field = value;	
 	}
 	
     static alias property this;
+}
+
+bool boolTest(T)()
+{
+    alias t = T;
+
+    t = false;                    // tests AssignExp
+    assert(t == false);
+
+    bool boolValue = t;           // tests AssignExp
+    assert(boolValue == false);
+
+    t = !t;                       // tests NotExp
+    assert(t == true);
+
+    boolValue = t;
+    assert(boolValue == true);
+
+    assert(boolValue && t);       // tests AndAndExp
+    assert(t && boolValue);
+
+    boolValue = false;
+    assert(boolValue || t);       // tests OrOrExp
+    assert(t || boolValue);
+
+    assert(t != boolValue);       // tests CmpExp
+    assert(boolValue != t);
+
+    boolValue = true;
+    assert(t == boolValue);
+    assert(boolValue == t);
+
+    t = true;
+    return t;                     // tests ReturnStatement
+}
+
+int intTest(T)()
+{
+    alias t = T;
+
+    t = 42;                       // tests AssignExp
+    assert(t == 42);
+
+    int intValue = t;
+    assert(intValue == 42);
+
+    assert(t == 42);              // tests CmpExp
+    assert(42 == t);
+    assert(t != 43);
+    assert(43 != t);
+    assert(t < 43);
+    assert(43 > t);
+    assert(t <= 42);
+    assert(42 >= t);
+
+    // These currently don't work for properties due to https://issues.dlang.org/show_bug.cgi?id=8006
+    static if (!(typeid(T) is typeid(StructProperty!int)) && !(typeid(T) is typeid(ClassProperty!int)))
+    {
+        t++;              // test a few unary and binary operators
+        assert(t == 43);
+
+        t += 1;
+        assert(t == 44);
+
+        t--;
+        assert(t == 43);
+
+        t -= 1;
+        assert(t == 42);
+    }
+
+    assert(~t == ~42);            // tests ComExp
+
+    return t;                     // tests ReturnStatement
 }
 
 void main()
 {
-    // Test `static alias this` to a field of boolean type
-    BoolFieldTest = false;
-    assert(BoolFieldTest == false);
+    assert(boolTest!(StructField!(bool))());
+    assert(boolTest!(StructProperty!(bool))());
+    assert(boolTest!(ClassField!(bool))());
+    assert(boolTest!(ClassProperty!(bool))());
 
-    bool boolValue = BoolFieldTest;
-    assert(boolValue == false);
-
-    BoolFieldTest = !BoolFieldTest;
-    assert(BoolFieldTest == true);
-
-    boolValue = BoolFieldTest;
-    assert(boolValue == true);
-
-    // Test `static alias this` to a property of boolean type
-    BoolPropertyTest = false;
-    assert(BoolPropertyTest == false);
-
-    boolValue = BoolPropertyTest;
-    assert(boolValue == false);
-
-    BoolPropertyTest = !BoolPropertyTest;
-    assert(BoolPropertyTest == true);
-
-    boolValue = BoolPropertyTest;
-    assert(boolValue == true);
-
-    // Test `static alias this` to a field of int type
-    IntFieldTest = 42;           // test assignment
-    assert(IntFieldTest == 42);
-
-    int intValue = IntFieldTest;
-    assert(intValue == 42);
-
-    IntFieldTest++;              // test a few unary and binary operators
-    assert(IntFieldTest == 43);
-
-    IntFieldTest += 1;
-    assert(IntFieldTest == 44);
-
-    IntFieldTest--;
-    assert(IntFieldTest == 43);
-
-    IntFieldTest -= 1;
-    assert(IntFieldTest == 42);
-
-    assert(~IntFieldTest == ~42);
-
-    // Test `static alias this` to a property of int type
-    IntPropertyTest = 42;           // test assignment
-    assert(IntPropertyTest == 42);
-
-    intValue = IntPropertyTest;
-    assert(intValue == 42);
-
-    // These currently don't work due to https://issues.dlang.org/show_bug.cgi?id=8006
-    // IntPropertyTest++;
-    // assert(IntPropertyTest == 43);
-
-    // IntPropertyTest += 1;
-    // assert(IntPropertyTest == 44);
-
-    // IntPropertyTest--;
-    // assert(IntPropertyTest == 43);
-
-    // IntPropertyTest -= 1;
-    // assert(IntPropertyTest == 42);
-
-    assert(~IntPropertyTest == ~42);
+    assert(intTest!(StructField!(int))() == 42);
+    assert(intTest!(StructProperty!(int))() == 42);
+    assert(intTest!(ClassField!(int))() == 42);
+    assert(intTest!(ClassProperty!(int))() == 42);
 }
