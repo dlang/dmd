@@ -36,6 +36,7 @@ import ddmd.initsem;
 import ddmd.mtype;
 import ddmd.root.array;
 import ddmd.root.rootobject;
+import ddmd.semantic;
 import ddmd.statement;
 import ddmd.tokens;
 import ddmd.utf;

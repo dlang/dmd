@@ -14,13 +14,14 @@ module ddmd.staticassert;
 
 import ddmd.dscope;
 import ddmd.dsymbol;
+import ddmd.dsymbolsem;
 import ddmd.errors;
 import ddmd.expression;
-import ddmd.expressionsem;
 import ddmd.globals;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.mtype;
+import ddmd.semantic;
 import ddmd.visitor;
 
 /***********************************************************
@@ -47,12 +48,6 @@ extern (C++) final class StaticAssert : Dsymbol
     override void addMember(Scope* sc, ScopeDsymbol sds)
     {
         // we didn't add anything
-    }
-
-    override void semantic(Scope* sc)
-    {
-        if (semanticRun < PASSsemanticdone)
-            semanticRun = PASSsemanticdone;
     }
 
     override void semantic2(Scope* sc)

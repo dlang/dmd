@@ -22,6 +22,7 @@ import ddmd.func;
 import ddmd.globals;
 import ddmd.initsem;
 import ddmd.mtype;
+import ddmd.semantic;
 import ddmd.statement;
 import ddmd.tokens;
 import ddmd.visitor;

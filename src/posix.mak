@@ -255,11 +255,11 @@ endif
 FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argtypes arrayop	\
 	arraytypes astcodegen attrib builtin canthrow clone complex cond constfold		\
 	cppmangle ctfeexpr dcast dclass declaration delegatize denum dimport	\
-	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol	\
+	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol dsymbolsem	\
 	dtemplate dversion escape expression expressionsem func			\
 	hdrgen id impcnvtab imphint init initsem inline inlinecost intrange	\
 	json lib link mars mtype nogc nspace objc opover optimize parse sapply	\
-	sideeffect statement staticassert target typesem traits visitor	\
+	semantic sideeffect statement staticassert target typesem traits visitor	\
 	typinf utils statement_rewrite_walker statementsem staticcond safe blockexit asttypename printast))
 
 LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, console entity errors globals id identifier lexer tokens utf))

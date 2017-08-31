@@ -31,28 +31,10 @@ import ddmd.id;
 import ddmd.identifier;
 import ddmd.init;
 import ddmd.mtype;
+import ddmd.semantic;
 import ddmd.statement;
 import ddmd.tokens;
 import ddmd.visitor;
-
-/******************************************
- * Perform semantic analysis on init.
- * Params:
- *      init = Initializer AST node
- *      sc = context
- *      t = type that the initializer needs to become
- *      needInterpret = if CTFE needs to be run on this,
- *                      such as if it is the initializer for a const declaration
- * Returns:
- *      `Initializer` with completed semantic analysis, `ErrorInitializer` if errors
- *      were encountered
- */
-extern (C++) Initializer semantic(Initializer init, Scope* sc, Type t, NeedInterpret needInterpret)
-{
-    scope v = new InitializerSemanticVisitor(sc, t, needInterpret);
-    init.accept(v);
-    return v.result;
-}
 
 /***********************
  * Translate init to an `Expression` in order to infer the type.
@@ -85,16 +67,10 @@ extern (C++) Expression initializerToExpression(Initializer init, Type t = null)
 }
 
 
-alias semanticY = ddmd.expressionsem.semanticY;
-
-
 /* ****************************** Implementation ************************ */
 
-private:
 
-alias semantic = ddmd.expressionsem.semantic;
-
-private extern(C++) final class InitializerSemanticVisitor : Visitor
+extern(C++) final class InitializerSemanticVisitor : Visitor
 {
     alias visit = super.visit;
 

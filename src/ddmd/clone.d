@@ -21,7 +21,6 @@ import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.expression;
-import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.id;
@@ -29,6 +28,7 @@ import ddmd.identifier;
 import ddmd.init;
 import ddmd.mtype;
 import ddmd.opover;
+import ddmd.semantic;
 import ddmd.statement;
 import ddmd.tokens;
 

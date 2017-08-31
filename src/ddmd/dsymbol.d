@@ -32,7 +32,6 @@ import ddmd.dstruct;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
-import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.id;
@@ -46,6 +45,7 @@ import ddmd.root.aav;
 import ddmd.root.rmem;
 import ddmd.root.rootobject;
 import ddmd.root.speller;
+import ddmd.semantic;
 import ddmd.statement;
 import ddmd.tokens;
 import ddmd.visitor;
@@ -654,14 +654,6 @@ extern (C++) class Dsymbol : RootObject
 
     void importAll(Scope* sc)
     {
-    }
-
-    /*************************************
-     * Does semantic analysis on the public face of declarations.
-     */
-    void semantic(Scope* sc)
-    {
-        error("%p has no semantic routine", this);
     }
 
     /*************************************
@@ -1720,8 +1712,6 @@ public:
         return this;
     }
 
-    override void semantic(Scope* sc) { }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -2112,8 +2102,6 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
     {
         forward.importScope(s, protection);
     }
-
-    override void semantic(Scope* sc){ }
 
     override const(char)* kind()const{ return "local scope"; }
 

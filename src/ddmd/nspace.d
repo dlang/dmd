@@ -18,6 +18,7 @@ import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.globals;
 import ddmd.identifier;
+import ddmd.semantic;
 import ddmd.visitor;
 import core.stdc.stdio;
 
@@ -90,51 +91,6 @@ extern (C++) final class Nspace : ScopeDsymbol
         }
     }
 
-    override void semantic(Scope* sc)
-    {
-        if (semanticRun != PASSinit)
-            return;
-        static if (LOG)
-        {
-            printf("+Nspace::semantic('%s')\n", toChars());
-        }
-        if (_scope)
-        {
-            sc = _scope;
-            _scope = null;
-        }
-        if (!sc)
-            return;
-
-        semanticRun = PASSsemantic;
-        parent = sc.parent;
-        if (members)
-        {
-            assert(sc);
-            sc = sc.push(this);
-            sc.linkage = LINKcpp; // note that namespaces imply C++ linkage
-            sc.parent = this;
-            foreach (s; *members)
-            {
-                s.importAll(sc);
-            }
-            foreach (s; *members)
-            {
-                static if (LOG)
-                {
-                    printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
-                }
-                s.semantic(sc);
-            }
-            sc.pop();
-        }
-        semanticRun = PASSsemanticdone;
-        static if (LOG)
-        {
-            printf("-Nspace::semantic('%s')\n", toChars());
-        }
-    }
-
     override void semantic2(Scope* sc)
     {
         if (semanticRun >= PASSsemantic2)
@@ -195,7 +151,7 @@ extern (C++) final class Nspace : ScopeDsymbol
     {
         //printf("%s.Nspace.search('%s')\n", toChars(), ident.toChars());
         if (_scope && !symtab)
-            semantic(_scope);
+            semantic(this, _scope);
 
         if (!members || !symtab) // opaque or semantic() is not yet called
         {
@@ -243,7 +199,7 @@ extern (C++) final class Nspace : ScopeDsymbol
     {
         //printf("Nspace::setFieldOffset() %s\n", toChars());
         if (_scope) // if fwd reference
-            semantic(null); // try to resolve it
+            semantic(this, null); // try to resolve it
         if (members)
         {
             foreach (s; *members)

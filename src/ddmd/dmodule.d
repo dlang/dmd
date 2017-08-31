@@ -34,6 +34,7 @@ import ddmd.root.file;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
 import ddmd.root.port;
+import ddmd.semantic;
 import ddmd.target;
 import ddmd.visitor;
 
@@ -254,12 +255,6 @@ extern (C++) class Package : ScopeDsymbol
         if (!pkg || !pkg.parent)
             return false;
         return isAncestorPackageOf(pkg.parent.isPackage());
-    }
-
-    override void semantic(Scope* sc)
-    {
-        if (semanticRun < PASSsemanticdone)
-            semanticRun = PASSsemanticdone;
     }
 
     override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
@@ -1056,43 +1051,6 @@ extern (C++) final class Module : Package
         }
         sc = sc.pop();
         sc.pop(); // 2 pops because Scope::createGlobal() created 2
-    }
-
-    // semantic analysis
-    override void semantic(Scope*)
-    {
-        if (semanticRun != PASSinit)
-            return;
-        //printf("+Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
-        semanticRun = PASSsemantic;
-        // Note that modules get their own scope, from scratch.
-        // This is so regardless of where in the syntax a module
-        // gets imported, it is unaffected by context.
-        Scope* sc = _scope; // see if already got one from importAll()
-        if (!sc)
-        {
-            Scope.createGlobal(this); // create root scope
-        }
-        //printf("Module = %p, linkage = %d\n", sc.scopesym, sc.linkage);
-        // Pass 1 semantic routines: do public side of the definition
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            //printf("\tModule('%s'): '%s'.semantic()\n", toChars(), s.toChars());
-            s.semantic(sc);
-            runDeferredSemantic();
-        }
-        if (userAttribDecl)
-        {
-            userAttribDecl.semantic(sc);
-        }
-        if (!_scope)
-        {
-            sc = sc.pop();
-            sc.pop(); // 2 pops because Scope::createGlobal() created 2
-        }
-        semanticRun = PASSsemanticdone;
-        //printf("-Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
     }
 
     // pass 2 semantic analysis

@@ -16,12 +16,12 @@ import ddmd.apply;
 import ddmd.declaration;
 import ddmd.dscope;
 import ddmd.expression;
-import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.identifier;
 import ddmd.init;
 import ddmd.mtype;
+import ddmd.semantic;
 import ddmd.tokens;
 import ddmd.visitor;
 

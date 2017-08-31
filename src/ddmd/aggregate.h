@@ -297,7 +297,6 @@ public:
     void finalizeSize();
     bool isFuncHidden(FuncDeclaration *fd);
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
-    void interfaceSemantic(Scope *sc);
     bool isCOMclass() const;
     virtual bool isCOMinterface() const;
     bool isCPPclass() const;

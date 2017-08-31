@@ -84,7 +84,6 @@ public:
     TemplatePrevious *previous;         // threaded list of previous instantiation attempts on stack
 
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
     bool overloadInsert(Dsymbol *s);
     bool hasStaticCtorOrDtor();
     const char *kind();
@@ -313,8 +312,6 @@ public:
 
     static Objects *arraySyntaxCopy(Objects *objs);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc, Expressions *fargs);
-    void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     Dsymbol *toAlias();                 // resolve real symbol
@@ -354,7 +351,6 @@ public:
     TypeQualified *tqual;
 
     Dsymbol *syntaxCopy(Dsymbol *s);
-    void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     const char *kind();

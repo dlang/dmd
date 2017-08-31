@@ -36,6 +36,7 @@ import ddmd.opover;
 import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;
 import ddmd.root.rmem;
+import ddmd.semantic;
 import ddmd.tokens;
 import ddmd.utf;
 import ddmd.visitor;

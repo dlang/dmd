@@ -24,13 +24,13 @@ import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
-import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.mtype;
 import ddmd.tokens;
+import ddmd.semantic;
 import ddmd.visitor;
 
 enum Sizeok : int
@@ -323,7 +323,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         }
 
         if (_scope)
-            semantic(null);
+            semantic(this, null);
 
         // Determine the instance size of base class first.
         if (auto cd = isClassDeclaration())

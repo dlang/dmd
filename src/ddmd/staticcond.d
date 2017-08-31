@@ -18,10 +18,10 @@ import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.errors;
 import ddmd.expression;
-import ddmd.expressionsem;
 import ddmd.globals;
 import ddmd.identifier;
 import ddmd.mtype;
+import ddmd.semantic;
 import ddmd.tokens;
 import ddmd.utils;
 

@@ -34,7 +34,6 @@ import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.escape;
 import ddmd.expression;
-import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.gluelayer;
@@ -49,11 +48,10 @@ import ddmd.sideeffect;
 import ddmd.statement;
 import ddmd.target;
 import ddmd.tokens;
+import ddmd.semantic;
 import ddmd.visitor;
 
-alias semantic = ddmd.expressionsem.semantic;
-
-private extern (C++) final class StatementSemanticVisitor : Visitor
+extern (C++) final class StatementSemanticVisitor : Visitor
 {
     alias visit = super.visit;
 
@@ -3757,14 +3755,7 @@ else
     }
 }
 
-Statement semantic(Statement s, Scope* sc)
-{
-    scope v = new StatementSemanticVisitor(sc);
-    s.accept(v);
-    return v.result;
-}
-
-void semantic(Catch c, Scope* sc)
+void semanticWrapper(Catch c, Scope* sc)
 {
     //printf("Catch::semantic(%s)\n", ident.toChars());
 
