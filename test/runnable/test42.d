@@ -5824,10 +5824,15 @@ void test4414() {
     assert(x == 7);
   }
   {
-    auto x = bytes4414()[0..4];
+    auto u = bytes4414();
+    auto x = u[0..4];
     if (x[0] != 7 || x[1] != 8 || x[2] != 9 || x[3] != 10)
         assert(0);
   }
+  assert(bytes4414()[0] == 7);
+  assert(bytes4414()[1] == 8);
+  assert(bytes4414()[2] == 9);
+  assert(bytes4414()[3] == 10);
 }
 
 /***************************************************/

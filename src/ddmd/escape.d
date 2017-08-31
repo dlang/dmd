@@ -413,6 +413,19 @@ ByRef:
     foreach (Expression ee; er.byexp)
     {
         if (log) printf("byexp: %s\n", ee.toChars());
+
+        /* Do not allow slicing of a static array returned by a function
+         */
+        if (va && ee.op == TOKcall && ee.type.toBasetype().ty == Tsarray && va.type.toBasetype().ty == Tarray &&
+            !(va.storage_class & STCtemp))
+        {
+            if (!gag)
+                deprecation(ee.loc, "slice of static array temporary returned by `%s` assigned to longer lived variable `%s`",
+                    ee.toChars(), va.toChars());
+            //result = true;
+            continue;
+        }
+
         if (va && !va.isDataseg() && !va.doNotInferScope)
         {
             if (!va.isScope() && inferScope)
@@ -421,6 +434,7 @@ ByRef:
             }
             continue;
         }
+
         if (sc.func.setUnsafe())
         {
             if (!gag)
