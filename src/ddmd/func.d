@@ -35,7 +35,7 @@ import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.init;
-import ddmd.mars;
+import ddmd.gencmain;
 import ddmd.mtype;
 import ddmd.nogc;
 import ddmd.objc;

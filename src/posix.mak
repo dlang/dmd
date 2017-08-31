@@ -256,7 +256,7 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	arraytypes astcodegen attrib builtin canthrow clone complex cond constfold		\
 	cppmangle ctfeexpr dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol	\
-	dtemplate dversion escape expression expressionsem func			\
+	dtemplate dversion escape expression expressionsem func gencmain			\
 	hdrgen id impcnvtab imphint init initsem inline inlinecost intrange	\
 	json lib link mars mtype nogc nspace objc opover optimize parse sapply	\
 	sideeffect statement staticassert target typesem traits visitor	\
@@ -417,8 +417,11 @@ ifdef ENABLE_LTO
 $G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_GLUE_OBJS) $(G_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 else
-$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/backend.a $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT),$^)
+$G/dmd: $G/dmd.a $D/mars.d $(STRING_IMPORT_FILES)
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -I$D -L-lstdc++ -J$G -J../res $(DFLAGS) $G/dmd.a $D/mars.d
+
+$G/dmd.a: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/backend.a $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT) $D/mars.d,$^)
 endif
 
 
