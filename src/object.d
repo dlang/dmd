@@ -1771,6 +1771,19 @@ class Throwable : Object
             }
         }
     }
+
+    /**
+     * Get the message describing the error.
+     * Base behavior is to return the `Throwable.msg` field.
+     * Override to return some other error message.
+     *
+     * Returns:
+     *  Error message
+     */
+    @__future const(char)[] message() const
+    {
+        return this.msg;
+    }
 }
 
 
@@ -1826,6 +1839,11 @@ unittest
         assert(e.line == 42);
         assert(e.next !is null);
         assert(e.msg == "msg");
+    }
+
+    {
+        auto e = new Exception("message");
+        assert(e.message == "message");
     }
 }
 
