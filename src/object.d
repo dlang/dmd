@@ -1840,6 +1840,11 @@ unittest
         assert(e.next !is null);
         assert(e.msg == "msg");
     }
+
+    {
+        auto e = new Exception("message");
+        assert(e.message == "message");
+    }
 }
 
 
