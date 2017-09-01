@@ -162,62 +162,62 @@ version(CRuntime_Glibc)
         {
             return group_filter.sizeof - sockaddr_storage.sizeof + numsrc * sockaddr_storage.sizeof;
         }
+    }
 
-        extern(D) bool IN6_ARE_ADDR_EQUAL(in6_addr* a, in6_addr* b) pure @safe { return *a == *b; }
+    extern(D) bool IN6_ARE_ADDR_EQUAL(in6_addr* a, in6_addr* b) pure @safe { return *a == *b; }
 
-        static if (__USE_MISC)
+    static if (__USE_MISC)
+    {
+        int bindresvport(int __sockfd, sockaddr_in* __sock_in);
+        int bindresvport6(int __sockfd, sockaddr_in6* _);
+    }
+
+    static if (__USE_GNU)
+    {
+        struct in6_pktinfo
         {
-            int bindresvport(int __sockfd, sockaddr_in* __sock_in);
-            int bindresvport6(int __sockfd, sockaddr_in6* _);
-        }
+            in6_addr ipi6_addr;
+            uint ipi6_ifindex;
+        };
 
-        static if (__USE_GNU)
+        struct ip6_mtuinfo
         {
-            struct in6_pktinfo
-            {
-                in6_addr ipi6_addr;
-                uint ipi6_ifindex;
-            };
+            sockaddr_in6 ip6m_addr;
+            uint ip6m_mtu;
+        };
 
-            struct ip6_mtuinfo
-            {
-                sockaddr_in6 ip6m_addr;
-                uint ip6m_mtu;
-            };
+        int inet6_opt_init(void* __extbuf, socklen_t __extlen);
+        int inet6_opt_append(void* __extbuf, socklen_t __extlen, int __offset,
+                             ubyte __type, socklen_t __len, ubyte __align, void** __databufp);
+        int inet6_opt_finish(void* __extbuf, socklen_t __extlen, int __offset);
+        int inet6_opt_set_val(void* __databuf, int __offset, void* __val, socklen_t __vallen);
+        int inet6_opt_next(void* __extbuf, socklen_t __extlen, int __offset,
+                           ubyte* __typep, socklen_t* __lenp, void** __databufp);
+        int inet6_opt_find(void* __extbuf, socklen_t __extlen, int __offset,
+                           ubyte __type, socklen_t* __lenp, void** __databufp);
+        int inet6_opt_get_val(void* __databuf, int __offset, void* __val, socklen_t __vallen);
 
-            int inet6_opt_init(void* __extbuf, socklen_t __extlen);
-            int inet6_opt_append(void* __extbuf, socklen_t __extlen, int __offset,
-                                 ubyte __type, socklen_t __len, ubyte __align, void** __databufp);
-            int inet6_opt_finish(void* __extbuf, socklen_t __extlen, int __offset);
-            int inet6_opt_set_val(void* __databuf, int __offset, void* __val, socklen_t __vallen);
-            int inet6_opt_next(void* __extbuf, socklen_t __extlen, int __offset,
-                               ubyte* __typep, socklen_t* __lenp, void** __databufp);
-            int inet6_opt_find(void* __extbuf, socklen_t __extlen, int __offset,
-                               ubyte __type, socklen_t* __lenp, void** __databufp);
-            int inet6_opt_get_val(void* __databuf, int __offset, void* __val, socklen_t __vallen);
+        socklen_t inet6_rth_space(int __type, int __segments);
+        void* inet6_rth_init(void* __bp, socklen_t __bp_len, int __type, int __segments);
+        int inet6_rth_add(void* __bp, const in6_addr* __addr);
+        int inet6_rth_reverse(const void* __in, void* __out);
+        int inet6_rth_segments(const void* __bp);
+        in6_addr* inet6_rth_getaddr(const void* __bp, int __index);
 
-            socklen_t inet6_rth_space(int __type, int __segments);
-            void* inet6_rth_init(void* __bp, socklen_t __bp_len, int __type, int __segments);
-            int inet6_rth_add(void* __bp, const in6_addr* __addr);
-            int inet6_rth_reverse(const void* __in, void* __out);
-            int inet6_rth_segments(const void* __bp);
-            in6_addr* inet6_rth_getaddr(const void* __bp, int __index);
+        int getipv4sourcefilter(int __s, in_addr __interface_addr, in_addr __group,
+                                uint* __fmode, uint* __numsrc, in_addr* __slist);
 
-            int getipv4sourcefilter(int __s, in_addr __interface_addr, in_addr __group,
-                                    uint* __fmode, uint* __numsrc, in_addr* __slist);
-
-            int setipv4sourcefilter(int __s, in_addr __interface_addr, in_addr __group,
-                                    uint __fmode, uint __numsrc, const in_addr* __slist);
+        int setipv4sourcefilter(int __s, in_addr __interface_addr, in_addr __group,
+                                uint __fmode, uint __numsrc, const in_addr* __slist);
 
 
-            int getsourcefilter(int __s, uint __interface_addr, const sockaddr* __group,
-                                socklen_t __grouplen, uint* __fmode, uint* __numsrc,
-                                sockaddr_storage* __slist);
+        int getsourcefilter(int __s, uint __interface_addr, const sockaddr* __group,
+                            socklen_t __grouplen, uint* __fmode, uint* __numsrc,
+                            sockaddr_storage* __slist);
 
-            int setsourcefilter(int __s, uint __interface_addr, const sockaddr* __group,
-                                socklen_t __grouplen, uint __fmode, uint __numsrc,
-                                const sockaddr_storage* __slist);
-        }
+        int setsourcefilter(int __s, uint __interface_addr, const sockaddr* __group,
+                            socklen_t __grouplen, uint __fmode, uint __numsrc,
+                            const sockaddr_storage* __slist);
     }
 
     // =============================================================================
