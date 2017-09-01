@@ -32,12 +32,117 @@ else
 
 private
 {
-    template HeadUnshared(T)
+    /* Construct a type with a shared tail, and if possible with an unshared
+    head. */
+    template TailShared(U) if (!is(U == shared))
     {
-        static if( is( T U : shared(U*) ) )
-            alias shared(U)* HeadUnshared;
+        alias TailShared = .TailShared!(shared U);
+    }
+    template TailShared(S) if (is(S == shared))
+    {
+        // Get the unshared variant of S.
+        static if (is(S U == shared U)) {}
+        else static assert(false, "Should never be triggered. The `static " ~
+            "if` declares `U` as the unshared version of the shared type " ~
+            "`S`. `S` is explicitly declared as shared, so getting `U` " ~
+            "should always work.");
+
+        static if (is(S : U))
+            alias TailShared = U;
+        else static if (is(S == struct))
+        {
+            enum implName = () {
+                /* Start with "_impl". If S has a field with that name, append
+                underscores until the clash is resolved. */
+                string name = "_impl";
+                string[] fieldNames;
+                static foreach (alias field; S.tupleof)
+                {
+                    fieldNames ~= __traits(identifier, field);
+                }
+                static bool canFind(string[] haystack, string needle)
+                {
+                    foreach (candidate; haystack)
+                    {
+                        if (candidate == needle) return true;
+                    }
+                    return false;
+                }
+                while (canFind(fieldNames, name)) name ~= "_";
+                return name;
+            } ();
+            struct TailShared
+            {
+                static foreach (i, alias field; S.tupleof)
+                {
+                    /* On @trusted: This is casting the field from shared(Foo)
+                    to TailShared!Foo. The cast is safe because the field has
+                    been loaded and is not shared anymore. */
+                    mixin("
+                        @trusted @property
+                        ref " ~ __traits(identifier, field) ~ "()
+                        {
+                            alias R = TailShared!(typeof(field));
+                            return * cast(R*) &" ~ implName ~ ".tupleof[i];
+                        }
+                    ");
+                }
+                mixin("
+                    S " ~ implName ~ ";
+                    alias " ~ implName ~ " this;
+                ");
+            }
+        }
         else
-            alias T HeadUnshared;
+            alias TailShared = S;
+    }
+    @safe unittest
+    {
+        // No tail (no indirections) -> fully unshared.
+
+        static assert(is(TailShared!int == int));
+        static assert(is(TailShared!(shared int) == int));
+
+        static struct NoIndir { int i; }
+        static assert(is(TailShared!NoIndir == NoIndir));
+        static assert(is(TailShared!(shared NoIndir) == NoIndir));
+
+        // Tail can be independently shared or is already -> tail-shared.
+
+        static assert(is(TailShared!(int*) == shared(int)*));
+        static assert(is(TailShared!(shared int*) == shared(int)*));
+        static assert(is(TailShared!(shared(int)*) == shared(int)*));
+
+        static assert(is(TailShared!(int[]) == shared(int)[]));
+        static assert(is(TailShared!(shared int[]) == shared(int)[]));
+        static assert(is(TailShared!(shared(int)[]) == shared(int)[]));
+
+        static struct S1 { shared int* p; }
+        static assert(is(TailShared!S1 == S1));
+        static assert(is(TailShared!(shared S1) == S1));
+
+        static struct S2 { shared(int)* p; }
+        static assert(is(TailShared!S2 == S2));
+        static assert(is(TailShared!(shared S2) == S2));
+
+        // Tail follows shared-ness of head -> fully shared.
+
+        static class C { int i; }
+        static assert(is(TailShared!C == shared C));
+        static assert(is(TailShared!(shared C) == shared C));
+
+        /* However, structs get a wrapper that has getters which cast to
+        TailShared. */
+
+        static struct S3 { int* p; int _impl; int _impl_; int _impl__; }
+        static assert(!is(TailShared!S3 : S3));
+        static assert(is(TailShared!S3 : shared S3));
+        static assert(is(TailShared!(shared S3) == TailShared!S3));
+
+        static struct S4 { shared(int)** p; }
+        static assert(!is(TailShared!S4 : S4));
+        static assert(is(TailShared!S4 : shared S4));
+        static assert(is(TailShared!(shared S4) == TailShared!S4));
     }
 }
 
@@ -76,10 +181,10 @@ version( CoreDdoc )
      * Returns:
      *  The result of the operation.
      */
-    HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc @safe
+    TailShared!T atomicOp(string op, T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc @safe
         if( __traits( compiles, mixin( "*cast(T*)&val" ~ op ~ "mod" ) ) )
     {
-        return HeadUnshared!(T).init;
+        return TailShared!T.init;
     }
 
 
@@ -119,9 +224,9 @@ version( CoreDdoc )
      * Returns:
      *  The value of 'val'.
      */
-    HeadUnshared!(T) atomicLoad(MemoryOrder ms = MemoryOrder.seq,T)( ref const shared T val ) pure nothrow @nogc @safe
+    TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq,T)( ref const shared T val ) pure nothrow @nogc @safe
     {
-        return HeadUnshared!(T).init;
+        return TailShared!T.init;
     }
 
 
@@ -166,7 +271,7 @@ version( CoreDdoc )
 else version( AsmX86_32 )
 {
     // Uses specialized asm for fast fetch and add operations
-    private HeadUnshared!(T) atomicFetchAdd(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe
+    private TailShared!(T) atomicFetchAdd(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe
         if( T.sizeof <= 4 )
     {
         size_t tmp = mod;
@@ -187,13 +292,13 @@ else version( AsmX86_32 )
         return cast(T)tmp;
     }
 
-    private HeadUnshared!(T) atomicFetchSub(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe
+    private TailShared!(T) atomicFetchSub(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe
         if( T.sizeof <= 4)
     {
         return atomicFetchAdd(val, -mod);
     }
 
-    HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc
+    TailShared!T atomicOp(string op, T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc
         if( __traits( compiles, mixin( "*cast(T*)&val" ~ op ~ "mod" ) ) )
     in
     {
@@ -213,7 +318,7 @@ else version( AsmX86_32 )
                    op == "==" || op == "!=" || op == "<"  || op == "<="  ||
                    op == ">"  || op == ">=" )
         {
-            HeadUnshared!(T) get = atomicLoad!(MemoryOrder.raw)( val );
+            TailShared!T get = atomicLoad!(MemoryOrder.raw)( val );
             mixin( "return get " ~ op ~ " mod;" );
         }
         else
@@ -233,7 +338,7 @@ else version( AsmX86_32 )
                    op == "%=" || op == "^^=" || op == "&="  || op == "|=" ||
                    op == "^=" || op == "<<=" || op == ">>=" || op == ">>>=" ) // skip "~="
         {
-            HeadUnshared!(T) get, set;
+            TailShared!T get, set;
 
             do
             {
@@ -391,7 +496,7 @@ else version( AsmX86_32 )
     }
 
 
-    HeadUnshared!(T) atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) pure nothrow @nogc @safe
+    TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) pure nothrow @nogc @safe
     if(!__traits(isFloating, T))
     {
         static assert( ms != MemoryOrder.rel, "invalid MemoryOrder for atomicLoad()" );
@@ -654,7 +759,7 @@ else version( AsmX86_32 )
 else version( AsmX86_64 )
 {
     // Uses specialized asm for fast fetch and add operations
-    private HeadUnshared!(T) atomicFetchAdd(T)( ref shared T val, size_t mod ) pure nothrow @nogc @trusted
+    private TailShared!(T) atomicFetchAdd(T)( ref shared T val, size_t mod ) pure nothrow @nogc @trusted
         if( __traits(isIntegral, T) )
     in
     {
@@ -681,13 +786,13 @@ else version( AsmX86_64 )
         return cast(T)tmp;
     }
 
-    private HeadUnshared!(T) atomicFetchSub(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe
+    private TailShared!(T) atomicFetchSub(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe
         if( __traits(isIntegral, T) )
     {
         return atomicFetchAdd(val, -mod);
     }
 
-    HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc
+    TailShared!T atomicOp(string op, T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc
         if( __traits( compiles, mixin( "*cast(T*)&val" ~ op ~ "mod" ) ) )
     in
     {
@@ -707,7 +812,7 @@ else version( AsmX86_64 )
                    op == "==" || op == "!=" || op == "<"  || op == "<="  ||
                    op == ">"  || op == ">=" )
         {
-            HeadUnshared!(T) get = atomicLoad!(MemoryOrder.raw)( val );
+            TailShared!T get = atomicLoad!(MemoryOrder.raw)( val );
             mixin( "return get " ~ op ~ " mod;" );
         }
         else
@@ -727,7 +832,7 @@ else version( AsmX86_64 )
                    op == "%=" || op == "^^=" || op == "&="  || op == "|=" ||
                    op == "^=" || op == "<<=" || op == ">>=" || op == ">>>=" ) // skip "~="
         {
-            HeadUnshared!(T) get, set;
+            TailShared!T get, set;
 
             do
             {
@@ -928,7 +1033,7 @@ else version( AsmX86_64 )
     }
 
 
-    HeadUnshared!(T) atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) pure nothrow @nogc @safe
+    TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) pure nothrow @nogc @safe
     if(!__traits(isFloating, T))
     {
         static assert( ms != MemoryOrder.rel, "invalid MemoryOrder for atomicLoad()" );
@@ -1281,7 +1386,7 @@ else version( AsmX86_64 )
 // floats and doubles to ints and longs, atomically loads them, then puns
 // them back.  This is necessary so that they get returned in floating
 // point instead of integer registers.
-HeadUnshared!(T) atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) pure nothrow @nogc @trusted
+TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) pure nothrow @nogc @trusted
 if(__traits(isFloating, T))
 {
     static if(T.sizeof == int.sizeof)
@@ -1561,5 +1666,46 @@ version( unittest )
         ubyte d = 1;
         atomicOp!"-="( c, d );
         assert(c == 1);
+    }
+
+    pure nothrow @safe unittest // issue 16230
+    {
+        shared int i;
+        static assert(is(typeof(atomicLoad(i)) == int));
+
+        shared int* p;
+        static assert(is(typeof(atomicLoad(p)) == shared(int)*));
+
+        shared int[] a;
+        static assert(is(typeof(atomicLoad(a)) == shared(int)[]));
+
+        static struct S { int* _impl; }
+        shared S s;
+        static assert(is(typeof(atomicLoad(s)) : shared S));
+        static assert(is(typeof(atomicLoad(s)._impl) == shared(int)*));
+        auto u = atomicLoad(s);
+        assert(u._impl is null);
+        u._impl = new shared int(42);
+        assert(atomicLoad(*u._impl) == 42);
+
+        static struct S2 { S s; }
+        shared S2 s2;
+        static assert(is(typeof(atomicLoad(s2).s) == TailShared!S));
+
+        static struct S3 { size_t head; int* tail; }
+        shared S3 s3;
+        static if (__traits(compiles, atomicLoad(s3)))
+        {
+            static assert(is(typeof(atomicLoad(s3).head) == size_t));
+            static assert(is(typeof(atomicLoad(s3).tail) == shared(int)*));
+        }
+
+        static class C { int i; }
+        shared C c;
+        static assert(is(typeof(atomicLoad(c)) == shared C));
+
+        static struct NoIndirections { int i; }
+        shared NoIndirections n;
+        static assert(is(typeof(atomicLoad(n)) == NoIndirections));
     }
 }
