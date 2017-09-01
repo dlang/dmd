@@ -19,7 +19,6 @@ import core.stdc.string;
 import ddmd.aggregate;
 import ddmd.aliasthis;
 import ddmd.arraytypes;
-import ddmd.attrib;
 import ddmd.dcast;
 import ddmd.dclass;
 import ddmd.declaration;
@@ -45,6 +44,8 @@ import ddmd.root.rootobject;
 import ddmd.semantic;
 import ddmd.tokens;
 import ddmd.visitor;
+
+import ddmd.templateparamsem;
 
 //debug = FindExistingInstance; // print debug stats of findExistingInstance
 private enum LOG = false;
@@ -4994,8 +4995,6 @@ extern (C++) class TemplateParameter
 
     abstract bool declareParameter(Scope* sc);
 
-    abstract bool semantic(Scope* sc, TemplateParameters* parameters);
-
     abstract void print(RootObject oarg, RootObject oded);
 
     abstract RootObject specialization();
@@ -5088,24 +5087,6 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
         auto ti = new TypeIdentifier(loc, ident);
         Declaration ad = new AliasDeclaration(loc, ident, ti);
         return sc.insert(ad) !is null;
-    }
-
-    override final bool semantic(Scope* sc, TemplateParameters* parameters)
-    {
-        //printf("TemplateTypeParameter.semantic('%s')\n", ident.toChars());
-        if (specType && !reliesOnTident(specType, parameters))
-        {
-            specType = specType.semantic(loc, sc);
-        }
-        version (none)
-        {
-            // Don't do semantic() until instantiation
-            if (defaultType)
-            {
-                defaultType = defaultType.semantic(loc, sc);
-            }
-        }
-        return !(specType && isError(specType));
     }
 
     override final void print(RootObject oarg, RootObject oded)
@@ -5308,40 +5289,6 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         return sc.insert(v) !is null;
     }
 
-    override bool semantic(Scope* sc, TemplateParameters* parameters)
-    {
-        valType = valType.semantic(loc, sc);
-        version (none)
-        {
-            // defer semantic analysis to arg match
-            if (specValue)
-            {
-                Expression e = specValue;
-                sc = sc.startCTFE();
-                e = e.semantic(sc);
-                sc = sc.endCTFE();
-                e = e.implicitCastTo(sc, valType);
-                e = e.ctfeInterpret();
-                if (e.op == TOKint64 || e.op == TOKfloat64 ||
-                    e.op == TOKcomplex80 || e.op == TOKnull || e.op == TOKstring)
-                    specValue = e;
-            }
-
-            if (defaultValue)
-            {
-                Expression e = defaultValue;
-                sc = sc.startCTFE();
-                e = e.semantic(sc);
-                sc = sc.endCTFE();
-                e = e.implicitCastTo(sc, valType);
-                e = e.ctfeInterpret();
-                if (e.op == TOKint64)
-                    defaultValue = e;
-            }
-        }
-        return !isError(valType);
-    }
-
     override void print(RootObject oarg, RootObject oded)
     {
         printf(" %s\n", ident.toChars());
@@ -5522,31 +5469,6 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
     }
 }
 
-private RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o, TemplateParameters* parameters)
-{
-    if (o)
-    {
-        Expression ea = isExpression(o);
-        Type ta = isType(o);
-        if (ta && (!parameters || !reliesOnTident(ta, parameters)))
-        {
-            Dsymbol s = ta.toDsymbol(sc);
-            if (s)
-                o = s;
-            else
-                o = ta.semantic(loc, sc);
-        }
-        else if (ea)
-        {
-            sc = sc.startCTFE();
-            ea = ea.semantic(sc);
-            sc = sc.endCTFE();
-            o = ea.ctfeInterpret();
-        }
-    }
-    return o;
-}
-
 /***********************************************************
  * Syntax:
  *  specType ident : specAlias = defaultAlias
@@ -5583,22 +5505,6 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
         auto ti = new TypeIdentifier(loc, ident);
         Declaration ad = new AliasDeclaration(loc, ident, ti);
         return sc.insert(ad) !is null;
-    }
-
-    override bool semantic(Scope* sc, TemplateParameters* parameters)
-    {
-        if (specType && !reliesOnTident(specType, parameters))
-        {
-            specType = specType.semantic(loc, sc);
-        }
-        specAlias = aliasParameterSemantic(loc, sc, specAlias, parameters);
-        version (none)
-        {
-            // Don't do semantic() until instantiation
-            if (defaultAlias)
-                defaultAlias = defaultAlias.semantic(loc, sc);
-        }
-        return !(specType && isError(specType)) && !(specAlias && isError(specAlias));
     }
 
     override void print(RootObject oarg, RootObject oded)
@@ -5808,11 +5714,6 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
         auto ti = new TypeIdentifier(loc, ident);
         Declaration ad = new AliasDeclaration(loc, ident, ti);
         return sc.insert(ad) !is null;
-    }
-
-    override bool semantic(Scope* sc, TemplateParameters* parameters)
-    {
-        return true;
     }
 
     override void print(RootObject oarg, RootObject oded)

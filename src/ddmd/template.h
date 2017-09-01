@@ -146,7 +146,6 @@ public:
 
     virtual TemplateParameter *syntaxCopy() = 0;
     virtual bool declareParameter(Scope *sc) = 0;
-    virtual bool semantic(Scope *sc, TemplateParameters *parameters) = 0;
     virtual void print(RootObject *oarg, RootObject *oded) = 0;
     virtual RootObject *specialization() = 0;
     virtual RootObject *defaultArg(Loc instLoc, Scope *sc) = 0;
@@ -177,7 +176,6 @@ public:
     TemplateTypeParameter *isTemplateTypeParameter();
     TemplateParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
-    bool semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
     RootObject *defaultArg(Loc instLoc, Scope *sc);
@@ -213,7 +211,6 @@ public:
     TemplateValueParameter *isTemplateValueParameter();
     TemplateParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
-    bool semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
     RootObject *defaultArg(Loc instLoc, Scope *sc);
@@ -238,7 +235,6 @@ public:
     TemplateAliasParameter *isTemplateAliasParameter();
     TemplateParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
-    bool semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
     RootObject *defaultArg(Loc instLoc, Scope *sc);
@@ -257,7 +253,6 @@ public:
     TemplateTupleParameter *isTemplateTupleParameter();
     TemplateParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
-    bool semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
     RootObject *defaultArg(Loc instLoc, Scope *sc);
