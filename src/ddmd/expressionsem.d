@@ -1378,6 +1378,20 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
                     result = new ErrorExp();
                     return;
                 }
+
+                /* Since a `new` allocation may escape, check each of the arguments for escaping
+                 */
+                if (global.params.vsafe)
+                {
+                    foreach (arg; *exp.arguments)
+                    {
+                        if (checkReturnEscape(sc, arg, false))
+                        {
+                            result = new ErrorExp();
+                            return;
+                        }
+                    }
+                }
             }
 
             exp.type = exp.type.pointerTo();
