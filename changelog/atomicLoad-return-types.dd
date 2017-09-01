@@ -12,8 +12,6 @@ wrapper that provides getters which return properly typed values.
 When loading a class reference, `atomicLoad` now leaves the `shared` qualifier
 on.
 
----
-
 Example:
 ----
 class C { int value; }
