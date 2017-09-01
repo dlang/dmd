@@ -1,8 +1,0 @@
-$(TT -betterC) enhancements
-
-Many improvements were added to the dmd's $(TT -betterC) implementation, most
-notably programs compiled with $(TT -betterC) will no longer reference unused
-druntime symbols, asserts are implemented as C `<assert.h>` calls, and phobos is
-not linked by default.
-
-See the $(LINK2 $(ROOT_DIR)spec/betterc.html, Better C) specs for more details.
