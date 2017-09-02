@@ -705,15 +705,15 @@ version( CRuntime_DigitalMars )
     private extern shared FILE[_NFILE] _iob;
 
     ///
-    shared stdin  = &_iob[0];
+    enum stdin  = &_iob[0];
     ///
-    shared stdout = &_iob[1];
+    enum stdout = &_iob[1];
     ///
-    shared stderr = &_iob[2];
+    enum stderr = &_iob[2];
     ///
-    shared stdaux = &_iob[3];
+    enum stdaux = &_iob[3];
     ///
-    shared stdprn = &_iob[4];
+    enum stdprn = &_iob[4];
 }
 else version( CRuntime_Microsoft )
 {
