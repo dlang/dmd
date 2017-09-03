@@ -4332,6 +4332,11 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = ex;
             return;
         }
+
+        // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
+        if (e.e1.op == TOKtype)
+            e.e1 = resolveAliasThis(sc, e.e1);
+
         e.e1 = resolveProperties(sc, e.e1);
         e.e1 = e.e1.toBoolean(sc);
         if (e.e1.type == Type.terror)
@@ -7975,6 +7980,11 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         // same as for AndAnd
         Expression e1x = exp.e1.semantic(sc);
+
+        // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
+        if (e1x.op == TOKtype)
+            e1x = resolveAliasThis(sc, e1x);
+
         e1x = resolveProperties(sc, e1x);
         e1x = e1x.toBoolean(sc);
         uint cs1 = sc.callSuper;
@@ -7993,6 +8003,11 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         Expression e2x = exp.e2.semantic(sc);
         sc.mergeCallSuper(exp.loc, cs1);
+
+        // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
+        if (e2x.op == TOKtype)
+            e2x = resolveAliasThis(sc, e2x);
+
         e2x = resolveProperties(sc, e2x);
 
         auto f1 = checkNonAssignmentArrayOp(e1x);
@@ -8047,6 +8062,11 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         // same as for OrOr
         Expression e1x = exp.e1.semantic(sc);
+
+        // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
+        if (e1x.op == TOKtype)
+            e1x = resolveAliasThis(sc, e1x);
+
         e1x = resolveProperties(sc, e1x);
         e1x = e1x.toBoolean(sc);
         uint cs1 = sc.callSuper;
@@ -8065,6 +8085,11 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         Expression e2x = exp.e2.semantic(sc);
         sc.mergeCallSuper(exp.loc, cs1);
+
+        // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
+        if (e2x.op == TOKtype)
+            e2x = resolveAliasThis(sc, e2x);
+
         e2x = resolveProperties(sc, e2x);
 
         auto f1 = checkNonAssignmentArrayOp(e1x);
