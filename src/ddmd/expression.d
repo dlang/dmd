@@ -3594,6 +3594,11 @@ extern (C++) abstract class Expression : RootObject
         return .op_overload(this, sc);
     }
 
+    bool hasCode()
+    {
+        return true;
+    }
+
     void accept(Visitor v)
     {
         v.visit(this);
@@ -5711,6 +5716,15 @@ extern (C++) final class DeclarationExp : Expression
     override Expression syntaxCopy()
     {
         return new DeclarationExp(loc, declaration.syntaxCopy(null));
+    }
+
+    override bool hasCode()
+    {
+        if (auto vd = declaration.isVarDeclaration())
+        {
+            return !(vd.storage_class & (STCmanifest | STCstatic));
+        }
+        return false;
     }
 
     override void accept(Visitor v)
