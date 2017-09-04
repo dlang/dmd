@@ -124,56 +124,8 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         return sc2;
     }
 
-    override final void semantic2(Scope* sc)
+    final void genRTInfo()
     {
-        //printf("AggregateDeclaration::semantic2(%s) type = %s, errors = %d\n", toChars(), type.toChars(), errors);
-        if (!members)
-            return;
-
-        if (_scope)
-        {
-            error("has forward references");
-            return;
-        }
-
-        auto sc2 = newScope(sc);
-
-        determineSize(loc);
-
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            //printf("\t[%d] %s\n", i, s.toChars());
-            s.semantic2(sc2);
-        }
-
-        sc2.pop();
-    }
-
-    override final void semantic3(Scope* sc)
-    {
-        //printf("AggregateDeclaration::semantic3(sc=%p, %s) type = %s, errors = %d\n", sc, toChars(), type.toChars(), errors);
-        if (!members)
-            return;
-
-        StructDeclaration sd = isStructDeclaration();
-        if (!sc) // from runDeferredSemantic3 for TypeInfo generation
-        {
-            assert(sd);
-            sd.semanticTypeInfoMembers();
-            return;
-        }
-
-        auto sc2 = newScope(sc);
-
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            s.semantic3(sc2);
-        }
-
-        sc2.pop();
-
         // don't do it for unused deprecated types
         // or error types
         if (!getRTInfo && Type.rtinfo && (!isDeprecated() || global.params.useDeprecated) && (type && type.ty != Terror))
@@ -184,8 +136,8 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             auto ti = new TemplateInstance(loc, Type.rtinfo, tiargs);
 
             Scope* sc3 = ti.tempdecl._scope.startCTFE();
-            sc3.tinst = sc.tinst;
-            sc3.minst = sc.minst;
+            sc3.tinst = _scope.tinst;
+            sc3.minst = _scope.minst;
             if (isDeprecated())
                 sc3.stc |= STCdeprecated;
 
@@ -199,9 +151,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             e = e.ctfeInterpret();
             getRTInfo = e;
         }
-        if (sd)
-            sd.semanticTypeInfoMembers();
-        semanticRun = PASSsemantic3done;
     }
 
     /***************************************

@@ -473,8 +473,19 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
         {
             auto ti = (cast(TypeClass)type).sym.isInstantiated();
-            if (ti && isError(ti)) // FWDREF FIXME hmm, how could we possibly have an invalid class that becomes valid? This was possible before with forward referencing errors when the order of declarations and calls mattered, but not anymore
+            if (ti && isError(ti)) // FWDREF FIXME hmm, how could we possibly have an invalid class that becomes valid in a different context? This was possible before with forward referencing errors when the order of declarations and calls mattered, but not anymore
                 (cast(TypeClass)type).sym = this;
+            else
+            {
+                // https://issues.dlang.org/show_bug.cgi?id=17492
+                ClassDeclaration cd = (cast(TypeClass)type).sym;
+                version (none)
+                {
+                    printf("this = %p %s\n", this, this.toPrettyChars());
+                    printf("type = %d sym = %p, %s\n", type.ty, cd, cd.toPrettyChars());
+                }
+                error("already exists at %s. Perhaps in another function with the same name?", cd.loc.toChars());
+            }
         }
     }
 
@@ -667,6 +678,14 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         if (membersState == SemState.Done)
             return;
 
+        void defer() { membersState = SemState.Defer; }
+        void errorReturn()
+        {
+            type = Type.terror;
+            this.errors = true;
+            membersState = SemState.Done;
+        }
+
         determineBaseClasses();
         super.determineMembers();
 
@@ -680,6 +699,66 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 if (b.sym.membersState != SemState.Done)
                     membersState = SemState.Defer;
             }
+
+        if (membersState != SemState.Done)
+            return;
+
+        /* Look for special member functions.
+        * They must be in this class, not in a base class.
+        */
+        // Can be in base class
+        aggNew = cast(NewDeclaration)search(Loc(), Id.classNew);
+        aggDelete = cast(DeleteDeclaration)search(Loc(), Id.classDelete);
+
+        // Look for the constructor
+        ctor = searchCtor();
+
+        auto sc2 = newScope();
+        scope(exit) sc2.pop();
+
+        // If this class has no constructor, but base class has a default
+        // ctor, create a constructor:
+        //    this() { }
+        if (!ctor && baseClass && baseClass.ctor)
+        {
+            auto fd = resolveFuncCall(loc, sc2, baseClass.ctor, null, type, null, 1);
+            if (!fd) // try shared base ctor instead
+                fd = resolveFuncCall(loc, sc2, baseClass.ctor, null, type.sharedOf, null, 1);
+            if (fd && !fd.errors)
+            {
+                //printf("Creating default this(){} for class %s\n", toChars());
+                auto btf = fd.type.toTypeFunction();
+                auto tf = new TypeFunction(null, null, 0, LINKd, fd.storage_class);
+                tf.mod       = btf.mod;
+                tf.purity    = btf.purity;
+                tf.isnothrow = btf.isnothrow;
+                tf.isnogc    = btf.isnogc;
+                tf.trust     = btf.trust;
+
+                auto ctor = new CtorDeclaration(loc, Loc(), 0, tf);
+                ctor.fbody = new CompoundStatement(Loc(), new Statements());
+
+                members.push(ctor);
+                ctor.addMember(_scope, this);
+
+                this.ctor = ctor;
+                defaultCtor = ctor;
+            }
+            else
+            {
+                error("cannot implicitly generate a default ctor when base class %s is missing a default ctor",
+                    baseClass.toPrettyChars());
+            }
+        }
+
+        determineFields();
+        if (type.ty == Terror)
+            return errorReturn();
+        if (fieldsState != SemState.Done)
+            return defer();
+
+        dtor = buildDtor(this, sc2);
+        inv = buildInv(this, sc2);
     }
 
     final override void makeNested()
@@ -734,8 +813,9 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         assert(vtblState != SemState.In);
         void defer() { vtblState = SemState.Defer; }
 
-        assert(baseClassState == SemState.Done &&
-                membersState == SemState.Done);
+        determineMembers(); // also calls determineBaseClasses()
+        if (membersState != SemState.Done)
+            return defer();
 
         foreach (b; *baseclasses)
         {
@@ -785,23 +865,25 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         vtblState = SemState.Done;
     }
 
-    override void semantic(Scope* sc)
+    override void semantic()
     {
         //printf("ClassDeclaration.semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
-        //printf("\tparent = %p, '%s'\n", sc.parent, sc.parent ? sc.parent.toChars() : "");
-        //printf("sc.stc = %x\n", sc.stc);
 
-        if (semanticRun >= PASSsemanticdone)
+        if (semanticState == SemState.Done)
             return;
+        semanticState = SemState.In;
 
-        importAll(sc);
-        if (semanticRun < PASSmembersdone)
+        void defer() { semanticState = SemState.Defer; }
+        void errorReturn()
         {
-            error("class forward ref");
-            return;
+            type = Type.terror;
+            this.errors = true;
+            semanticState = SemState.Done;
         }
 
         int errors = global.errors;
+        scope(exit) if (global.errors != errors)
+            errorReturn();
 
         // Ungag errors when not speculative
         Ungag ungag = ungagSpeculative();
@@ -810,60 +892,25 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         if (!members) // if opaque declaration
         {
-            semanticRun = PASSsemanticdone;
+            semanticState = SemState.Done;
             return;
         }
 
-        initVtbl(sc);
-
-        auto sc2 = newScope(sc);
-
-        // Note that members.dim can grow due to tuple expansion during semantic()
-        for (size_t i = 0; i < members.dim; ++i)
-        {
-            auto s = (*members)[i];
-            s.semantic(sc2);
-        }
-
-        if (!determineFields())
-        {
-            assert(type == Type.terror);
-            sc2.pop();
-            semanticRun = PASSsemanticdone;
+        super.semantic();
+        if (semanticState != SemState.Done)
             return;
-        }
-        /* Following special member functions creation needs semantic analysis
-         * completion of sub-structs in each field types.
-         */
-        foreach (v; fields)
-        {
-            Type tb = v.type.baseElemOf();
-            if (tb.ty != Tstruct)
-                continue;
-            auto sd = (cast(TypeStruct)tb).sym;
-            if (sd.semanticRun >= PASSsemanticdone)
-                continue;
 
-                sc2.pop();
+        semanticState = SemState.In;
 
-            _scope = scx ? scx : sc.copy();
-            _scope.setNoFree();
-            _scope._module.addDeferredSemantic(this);
-            //printf("\tdeferring %s\n", toChars());
-            return;
-        }
+        determineVtbl();
+        if (vtblState != SemState.Done)
+            return defer();
 
-        /* Look for special member functions.
-         * They must be in this class, not in a base class.
-         */
-        // Can be in base class
-        aggNew = cast(NewDeclaration)search(Loc(), Id.classNew);
-        aggDelete = cast(DeleteDeclaration)search(Loc(), Id.classDelete);
+        determineSize(loc);
+        if (sizeState == SemState.Defer)
+            return defer();
 
-        // Look for the constructor
-        ctor = searchCtor();
-
-        if (!ctor && noDefaultCtor)
+        if (ctor.generated && noDefaultCtor)
         {
             // A class object is always created by constructor, so this check is legitimate.
             foreach (v; fields)
@@ -873,79 +920,14 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             }
         }
 
-        // If this class has no constructor, but base class has a default
-        // ctor, create a constructor:
-        //    this() { }
-        if (!ctor && baseClass && baseClass.ctor)
-        {
-            auto fd = resolveFuncCall(loc, sc2, baseClass.ctor, null, type, null, 1);
-            if (!fd) // try shared base ctor instead
-                fd = resolveFuncCall(loc, sc2, baseClass.ctor, null, type.sharedOf, null, 1);
-            if (fd && !fd.errors)
-            {
-                //printf("Creating default this(){} for class %s\n", toChars());
-                auto btf = fd.type.toTypeFunction();
-                auto tf = new TypeFunction(null, null, 0, LINKd, fd.storage_class);
-                tf.mod       = btf.mod;
-                tf.purity    = btf.purity;
-                tf.isnothrow = btf.isnothrow;
-                tf.isnogc    = btf.isnogc;
-                tf.trust     = btf.trust;
-
-                auto ctor = new CtorDeclaration(loc, Loc(), 0, tf);
-                ctor.fbody = new CompoundStatement(Loc(), new Statements());
-
-                members.push(ctor);
-                ctor.addMember(sc, this);
-                ctor.semantic(sc2);
-
-                this.ctor = ctor;
-                defaultCtor = ctor;
-            }
-            else
-            {
-                error("cannot implicitly generate a default ctor when base class %s is missing a default ctor",
-                    baseClass.toPrettyChars());
-            }
-        }
-
-        dtor = buildDtor(this, sc2);
-
         if (auto f = hasIdentityOpAssign(this, sc2))
         {
             if (!(f.storage_class & STCdisable))
                 error(f.loc, "identity assignment operator overload is illegal");
         }
 
-        inv = buildInv(this, sc2);
-
-        sc2.pop();
-
-        Module.dprogress++;
-        semanticRun = PASSsemanticdone;
         //printf("-ClassDeclaration.semantic(%s), type = %p\n", toChars(), type);
         //members.print();
-
-        if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
-        {
-            // https://issues.dlang.org/show_bug.cgi?id=17492
-            ClassDeclaration cd = (cast(TypeClass)type).sym;
-            version (none)
-            {
-                printf("this = %p %s\n", this, this.toPrettyChars());
-                printf("type = %d sym = %p, %s\n", type.ty, cd, cd.toPrettyChars());
-            }
-            error("already exists at %s. Perhaps in another function with the same name?", cd.loc.toChars());
-        }
-
-        if (global.errors != errors)
-        {
-            // The type is no good.
-            type = Type.terror;
-            this.errors = true;
-            if (deferred)
-                deferred.errors = true;
-        }
 
         // Verify fields of a synchronized class are not public
         if (storage_class & STCsynchronized)
@@ -961,12 +943,10 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             }
         }
 
-        if (deferred && !global.gag)
-        {
-            deferred.semantic2(sc);
-            deferred.semantic3(sc);
-        }
-        //printf("-ClassDeclaration.semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
+        genRTInfo();
+
+        semanticState = SemState.Done;
+        Module.dprogress++;
     }
 
     /*********************************************

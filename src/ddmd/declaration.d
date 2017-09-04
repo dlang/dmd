@@ -172,7 +172,7 @@ extern (C++) abstract class Declaration : Dsymbol
         linkage = LINKdefault;
     }
 
-    override void semantic(Scope* sc)
+    override void semantic()
     {
     }
 

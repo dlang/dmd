@@ -305,6 +305,16 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             if (ti && isError(ti)) // FWDREF FIXME hmm, how could we possibly have an invalid struct that becomes valid? This was possible before with forward referencing errors when the order of declarations and calls mattered, but not anymore
                 (cast(TypeStruct)type).sym = this;
         }
+
+        version (none)
+        {
+            if (type.ty == Tstruct && (cast(TypeStruct)type).sym != this)
+            {
+                printf("this = %p %s\n", this, this.toChars());
+                printf("type = %d sym = %p\n", type.ty, (cast(TypeStruct)type).sym);
+            }
+        }
+        assert(type.ty != Tstruct || (cast(TypeStruct)type).sym == this);
     }
 
     override void determineMembers()
@@ -393,9 +403,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         super.semantic();
 
-        if (checkErrors())
-            return;
-        if (semanticState != SemState.Done)
+        if (checkErrors() || semanticState != SemState.Done)
             return;
 
         if (ctor)
@@ -421,15 +429,17 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         checkErrors();
 
-        version (none)
-        {
-            if (type.ty == Tstruct && (cast(TypeStruct)type).sym != this)
-            {
-                printf("this = %p %s\n", this, this.toChars());
-                printf("type = %d sym = %p\n", type.ty, (cast(TypeStruct)type).sym);
-            }
-        }
-        assert(type.ty != Tstruct || (cast(TypeStruct)type).sym == this);
+        void defer() { semanticState = SemState.Defer; }
+        semanticState = SemState.In;
+
+        determineSize(loc);
+        if (sizeState == SemState.Defer)
+            return defer();
+
+        semanticTypeInfoMembers();
+        genRTInfo();
+
+        semanticState = SemState.Done;
     }
 
     final void semanticTypeInfoMembers()

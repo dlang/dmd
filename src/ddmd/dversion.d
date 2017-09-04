@@ -98,11 +98,11 @@ extern (C++) final class DebugSymbol : Dsymbol
         }
     }
 
-    override void semantic(Scope* sc)
+
+    override void semantic()
     {
         //printf("DebugSymbol::semantic() %s\n", toChars());
-        if (semanticRun < PASSsemanticdone)
-            semanticRun = PASSsemanticdone;
+        semanticState = SemState.Done;
     }
 
     override const(char)* kind() const
@@ -195,10 +195,9 @@ extern (C++) final class VersionSymbol : Dsymbol
         }
     }
 
-    override void semantic(Scope* sc)
+    override void semantic()
     {
-        if (semanticRun < PASSsemanticdone)
-            semanticRun = PASSsemanticdone;
+        semanticState = SemState.Done;
     }
 
     override const(char)* kind() const

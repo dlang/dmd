@@ -693,6 +693,10 @@ extern (C++) class Dsymbol : RootObject
     {
     }
 
+    void semanticType()
+    {
+    }
+
     /*************************************
      * Does semantic analysis on the public face of declarations.
      */

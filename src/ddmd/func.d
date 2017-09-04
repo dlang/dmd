@@ -678,7 +678,7 @@ extern (C++) class FuncDeclaration : Declaration
         }
     }
 
-    final void semanticType()
+    final override void semanticType()
     {
         if (typeState == SemState.Done)
             return;
@@ -1118,30 +1118,18 @@ extern (C++) class FuncDeclaration : Declaration
         assert(type.ty != Terror || errors);
     }
 
-    // Do the semantic analysis on the internals of the function.
-    override final void semantic3(Scope* sc)
+    void semanticBody()
     {
-        VarDeclaration _arguments = null;
-
-        if (!parent)
-        {
-            if (global.errors)
-                return;
-            //printf("FuncDeclaration::semantic3(%s '%s', sc = %p)\n", kind(), toChars(), sc);
-            assert(0);
-        }
-        if (errors || isError(parent))
-        {
-            errors = true;
+        if (bodyState == SemState.Done)
             return;
-        }
+
         //printf("FuncDeclaration::semantic3('%s.%s', %p, sc = %p, loc = %s)\n", parent.toChars(), toChars(), this, sc, loc.toChars());
         //fflush(stdout);
         //printf("storage class = x%x %x\n", sc.stc, storage_class);
         //{ static int x; if (++x == 2) *(char*)0=0; }
         //printf("\tlinkage = %d\n", sc.linkage);
 
-        if (ident == Id.assign && !inuse)
+        if (ident == Id.assign && bodyState == SemState.Init)
         {
             if (storage_class & STCinference)
             {
@@ -1150,9 +1138,8 @@ extern (C++) class FuncDeclaration : Declaration
                  * from its body need to be gagged.
                  */
                 uint oldErrors = global.startGagging();
-                ++inuse;
-                semantic3(sc);
-                --inuse;
+                bodyState = SemState.In;
+                semanticBody();
                 if (global.endGagging(oldErrors))   // if errors happened
                 {
                     // Disable generated opAssign, because some members forbid identity assignment.
@@ -1165,9 +1152,17 @@ extern (C++) class FuncDeclaration : Declaration
         }
 
         //printf(" sc.incontract = %d\n", (sc.flags & SCOPEcontract));
-        if (semanticRun == PASSsemantic3 || semanticRun >= PASSsemantic3done)
-            return;
-        semanticRun = PASSsemantic3;
+
+        bodyState = SemState.In;
+
+        void defer() { bodyState = SemState.Defer; }
+        void errorReturn()
+        {
+            type = Type.terror;
+            this.errors = true;
+            bodyState = SemState.Done;
+        }
+
         semantic3Errors = false;
 
         if (!type || type.ty != Tfunction)
@@ -1204,6 +1199,7 @@ extern (C++) class FuncDeclaration : Declaration
 
         frequire = mergeFrequire(frequire);
         fensure = mergeFensure(fensure, outId);
+
         if (fbody || frequire || fensure)
         {
             /* Symbol table into which we place parameters and nested functions,
@@ -1287,6 +1283,8 @@ extern (C++) class FuncDeclaration : Declaration
             vthis = declareThis(sc2, ad);
             //printf("[%s] ad = %p vthis = %p\n", loc.toChars(), ad, vthis);
             //if (vthis) printf("\tvthis.type = %s\n", vthis.type.toChars());
+
+            VarDeclaration _arguments;
 
             // Declare hidden variable _arguments[] and _argptr
             if (f.varargs == 1)
@@ -1450,6 +1448,9 @@ extern (C++) class FuncDeclaration : Declaration
                  */
                 if (ad2 && isCtorDeclaration())
                 {
+                    ad2.determineFields();
+                    assert(ad2.fieldState == SemState.Done); // FIXME
+
                     sc2.allocFieldinit(ad2.fields.dim);
                     foreach (v; ad2.fields)
                     {
@@ -1464,11 +1465,9 @@ extern (C++) class FuncDeclaration : Declaration
 
                 auto _body = fbody.semantic(sc2);
                 if (_body.isDeferStatement())
-                {
-                    deferSemantic3();
-                    return;
-                }
+                    return defer();
                 fbody = _body;
+
                 if (!fbody)
                     fbody = new CompoundStatement(Loc(), new Statements());
 
@@ -2084,13 +2083,31 @@ extern (C++) class FuncDeclaration : Declaration
          * done by TemplateInstance::semantic.
          * Otherwise, error gagging should be temporarily ungagged by functionSemantic3.
          */
-        semanticRun = PASSsemantic3done;
         semantic3Errors = (global.errors != oldErrors) || (fbody && fbody.isErrorStatement());
         if (type.ty == Terror)
             errors = true;
         //printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent.toChars(), toChars(), sc, loc.toChars());
         //fflush(stdout);
+
+        bodyState = SemState.Done;
     }
+
+//     // Do the semantic analysis on the internals of the function.
+//     override final void semantic3(Scope* sc)
+//     {
+//         if (!parent)
+//         {
+//             if (global.errors)
+//                 return;
+//             //printf("FuncDeclaration::semantic3(%s '%s', sc = %p)\n", kind(), toChars(), sc);
+//             assert(0);
+//         }
+//         if (errors || isError(parent))
+//         {
+//             errors = true;
+//             return;
+//         }
+//     }
 
     /****************************************************
      * Resolve forward reference of function signature -
@@ -4998,11 +5015,12 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
         Module m = getModule();
         if (!m)
             m = sc._module;
-        if (m)
-        {
+    assert(m); // FWDREF when does !m happen?
+//         if (m)
+//         {
             m.needmoduleinfo = 1;
             //printf("module1 %s needs moduleinfo\n", m.toChars());
-        }
+//         }
     }
 
     override final void semanticType()

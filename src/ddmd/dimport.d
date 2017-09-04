@@ -200,14 +200,62 @@ extern (C++) final class Import : Dsymbol
         //printf("-Import::load('%s'), pkg = %p\n", toChars(), pkg);
     }
 
+
+    /*****************************
+     * Add import to sd's symbol table.
+     */
+    override void addMember(Scope* sc, ScopeDsymbol sds)
+    {
+        if (addMemberState == SemState.Done)
+            return;
+
+        //printf("Import.addMember(this=%s, sd=%s, sc=%p)\n", toChars(), sd.toChars(), sc);
+
+        if (names.dim == 0 || aliasId)
+            super.addMember(sc, sds);
+        else
+            setScope(sc);
+
+        /* Instead of adding the import to sds' symbol table,
+         * add each of the alias=name pairs
+         */
+        for (size_t i = 0; i < names.dim; i++)
+        {
+            Identifier name = names[i];
+            Identifier _alias = aliases[i];
+            if (!_alias)
+                _alias = name;
+            auto tname = new TypeIdentifier(loc, name);
+            auto ad = new AliasDeclaration(loc, _alias, tname);
+            ad._import = this;
+            ad.addMember(sc, sds);
+            aliasdecls.push(ad);
+        }
+
+        // parsing the module this early is necessary to determine needmoduleinfo
+        // in case this import is only there to call static ctors/dtors
+        load(sc);
+
+        if (mod && mod.needmoduleinfo)
+        {
+            //printf("module5 %s because of %s\n", sc.module.toChars(), mod.toChars());
+            sc._module.needmoduleinfo = 1;
+        }
+    }
+
+    override void setScope(Scope* sc)
+    {
+        super.setScope(sc);
+
+        if (sc.explicitProtection)
+            protection = sc.protection;
+    }
+
     override void determineMembers()
     {
         if (membersState == SemState.Done)
             return;
         membersState = SemState.In;
-
-        if (!mod)
-            load(sc);
 
         if (!mod)
         {
@@ -264,14 +312,6 @@ extern (C++) final class Import : Dsymbol
         membersState = SemState.Done;
     }
 
-    override void setScope(Scope* sc)
-    {
-        super.setScope(sc);
-
-        if (sc.explicitProtection)
-            protection = sc.protection;
-    }
-
     override void semantic()
     {
         //printf("Import::semantic('%s') %s\n", toPrettyChars(), id.toChars());
@@ -281,16 +321,13 @@ extern (C++) final class Import : Dsymbol
         determineMembers();
         if (mod)
         {
-
-            sc = sc.push(mod);
-            sc.protection = protection;
             for (size_t i = 0; i < aliasdecls.dim; i++)
             {
                 AliasDeclaration ad = aliasdecls[i];
                 //printf("\tImport %s alias %s = %s, scope = %p\n", toPrettyChars(), aliases[i].toChars(), names[i].toChars(), ad._scope);
                 if (mod.search(loc, names[i]))
                 {
-                    ad.semantic(sc);
+                    ad.semantic();
                     // If the import declaration is in non-root module,
                     // analysis of the aliased symbol is deferred.
                     // Therefore, don't see the ad.aliassym or ad.type here.
@@ -305,10 +342,9 @@ extern (C++) final class Import : Dsymbol
                     ad.type = Type.terror;
                 }
             }
-            sc = sc.pop();
         }
 
-        semanticRun = PASSsemanticdone;
+        semanticState = SemState.Done;
 
         // object self-imports itself, so skip that
         // https://issues.dlang.org/show_bug.cgi?id=7547
@@ -387,21 +423,6 @@ extern (C++) final class Import : Dsymbol
         //printf("-Import::semantic('%s'), pkg = %p\n", toChars(), pkg);
     }
 
-    override void semantic2(Scope* sc)
-    {
-        //printf("Import::semantic2('%s')\n", toChars());
-        if (mod)
-        {
-            mod.semantic2(null);
-            if (mod.needmoduleinfo)
-            {
-                //printf("module5 %s because of %s\n", sc.module.toChars(), mod.toChars());
-                if (sc)
-                    sc._module.needmoduleinfo = 1;
-            }
-        }
-    }
-
     override Dsymbol toAlias()
     {
         if (aliasId)
@@ -409,41 +430,9 @@ extern (C++) final class Import : Dsymbol
         return this;
     }
 
-    /*****************************
-     * Add import to sd's symbol table.
-     */
-    override void addMember(Scope* sc, ScopeDsymbol sd)
-    {
-        //printf("Import.addMember(this=%s, sd=%s, sc=%p)\n", toChars(), sd.toChars(), sc);
-        if (names.dim == 0)
-            return Dsymbol.addMember(sc, sd);
-        if (aliasId)
-            Dsymbol.addMember(sc, sd);
-        /* Instead of adding the import to sd's symbol table,
-         * add each of the alias=name pairs
-         */
-        for (size_t i = 0; i < names.dim; i++)
-        {
-            Identifier name = names[i];
-            Identifier _alias = aliases[i];
-            if (!_alias)
-                _alias = name;
-            auto tname = new TypeIdentifier(loc, name);
-            auto ad = new AliasDeclaration(loc, _alias, tname);
-            ad._import = this;
-            ad.addMember(sc, sd);
-            aliasdecls.push(ad);
-        }
-    }
-
     override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         //printf("%s.Import.search(ident = '%s', flags = x%x)\n", toChars(), ident.toChars(), flags);
-        if (!pkg)
-        {
-            load(null);
-            mod.determineMembers();
-        }
         // Forward it to the package/module
         return pkg.search(loc, ident, flags);
     }
