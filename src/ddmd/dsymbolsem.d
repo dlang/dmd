@@ -334,6 +334,21 @@ extern(C++) final class Semantic2Visitor : Visitor
             objc.checkLinkage(fd);
         }
     }
+
+    override void visit(Import i)
+    {
+        //printf("Import::semantic2('%s')\n", toChars());
+        if (i.mod)
+        {
+            i.mod.semantic2(null);
+            if (i.mod.needmoduleinfo)
+            {
+                //printf("module5 %s because of %s\n", sc.module.toChars(), mod.toChars());
+                if (sc)
+                    sc._module.needmoduleinfo = 1;
+            }
+        }
+    }
 }
 
 extern(C++) final class DsymbolSemanticVisitor : Visitor
