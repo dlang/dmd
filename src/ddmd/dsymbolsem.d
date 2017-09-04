@@ -113,6 +113,100 @@ extern(C++) final class Semantic2Visitor : Visitor
                 fatal();
         }
     }
+
+    override void visit(TemplateInstance tempinst)
+    {
+        if (tempinst.semanticRun >= PASSsemantic2)
+            return;
+        tempinst.semanticRun = PASSsemantic2;
+        static if (LOG)
+        {
+            printf("+TemplateInstance.semantic2('%s')\n", tempinst.toChars());
+        }
+        if (!tempinst.errors && tempinst.members)
+        {
+            TemplateDeclaration tempdecl = tempinst.tempdecl.isTemplateDeclaration();
+            assert(tempdecl);
+
+            sc = tempdecl._scope;
+            assert(sc);
+            sc = sc.push(tempinst.argsym);
+            sc = sc.push(tempinst);
+            sc.tinst = tempinst;
+            sc.minst = tempinst.minst;
+
+            int needGagging = (tempinst.gagged && !global.gag);
+            uint olderrors = global.errors;
+            int oldGaggedErrors = -1; // dead-store to prevent spurious warning
+            if (needGagging)
+                oldGaggedErrors = global.startGagging();
+
+            for (size_t i = 0; i < tempinst.members.dim; i++)
+            {
+                Dsymbol s = (*tempinst.members)[i];
+                static if (LOG)
+                {
+                    printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
+                }
+                s.semantic2(sc);
+                if (tempinst.gagged && global.errors != olderrors)
+                    break;
+            }
+
+            if (global.errors != olderrors)
+            {
+                if (!tempinst.errors)
+                {
+                    if (!tempdecl.literal)
+                        tempinst.error(tempinst.loc, "error instantiating");
+                    if (tempinst.tinst)
+                        tempinst.tinst.printInstantiationTrace();
+                }
+                tempinst.errors = true;
+            }
+            if (needGagging)
+                global.endGagging(oldGaggedErrors);
+
+            sc = sc.pop();
+            sc.pop();
+        }
+        static if (LOG)
+        {
+            printf("-TemplateInstance.semantic2('%s')\n", tempinst.toChars());
+        }
+    }
+
+    override void visit(TemplateMixin tmix)
+    {
+        if (tmix.semanticRun >= PASSsemantic2)
+            return;
+        tmix.semanticRun = PASSsemantic2;
+        static if (LOG)
+        {
+            printf("+TemplateMixin.semantic2('%s')\n", tmix.toChars());
+        }
+        if (tmix.members)
+        {
+            assert(sc);
+            sc = sc.push(tmix.argsym);
+            sc = sc.push(tmix);
+            for (size_t i = 0; i < tmix.members.dim; i++)
+            {
+                Dsymbol s = (*tmix.members)[i];
+                static if (LOG)
+                {
+                    printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
+                }
+                s.semantic2(sc);
+            }
+            sc = sc.pop();
+            sc.pop();
+        }
+        static if (LOG)
+        {
+            printf("-TemplateMixin.semantic2('%s')\n", tmix.toChars());
+        }
+    }
 }
 
 extern(C++) final class DsymbolSemanticVisitor : Visitor
