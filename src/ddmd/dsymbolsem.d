@@ -349,6 +349,36 @@ extern(C++) final class Semantic2Visitor : Visitor
             }
         }
     }
+
+    override void visit(Nspace ns)
+    {
+        if (ns.semanticRun >= PASSsemantic2)
+            return;
+        ns.semanticRun = PASSsemantic2;
+        static if (LOG)
+        {
+            printf("+Nspace::semantic2('%s')\n", ns.toChars());
+        }
+        if (ns.members)
+        {
+            assert(sc);
+            sc = sc.push(ns);
+            sc.linkage = LINKcpp;
+            foreach (s; *ns.members)
+            {
+                static if (LOG)
+                {
+                    printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
+                }
+                s.semantic2(sc);
+            }
+            sc.pop();
+        }
+        static if (LOG)
+        {
+            printf("-Nspace::semantic2('%s')\n", ns.toChars());
+        }
+    }
 }
 
 extern(C++) final class DsymbolSemanticVisitor : Visitor
