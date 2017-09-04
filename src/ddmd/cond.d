@@ -323,6 +323,19 @@ extern (C++) final class StaticForeach : RootObject
         }
         // generate remaining code for the new aggregate which is an
         // array (see documentation comment).
+        if (rangefe)
+        {
+            sc = sc.startCTFE();
+            rangefe.lwr = rangefe.lwr.semantic(sc);
+            rangefe.lwr = resolveProperties(sc, rangefe.lwr);
+            rangefe.upr = rangefe.upr.semantic(sc);
+            rangefe.upr = resolveProperties(sc, rangefe.upr);
+            sc = sc.endCTFE();
+            rangefe.lwr = rangefe.lwr.optimize(WANTvalue);
+            rangefe.lwr = rangefe.lwr.ctfeInterpret();
+            rangefe.upr = rangefe.upr.optimize(WANTvalue);
+            rangefe.upr = rangefe.upr.ctfeInterpret();
+        }
         auto s1 = new Statements();
         auto sfe = new Statements();
         if (tplty) sfe.push(new ExpStatement(loc, tplty.sym));

@@ -690,3 +690,13 @@ void bug17688(){
     final switch(1) static foreach(x;0..1){ int y=3; case 1: return; }
     static assert(!is(typeof(y)));
 }
+
+struct T{ enum n = 1; }
+T foo(T v)@nogc{
+    static foreach(x;0..v.n){ }
+    return T.init;
+}
+T foo(T v)@nogc{
+    static foreach(_;0..typeof(return).n){ }
+    return T.init;
+}
