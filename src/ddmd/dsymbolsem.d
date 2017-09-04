@@ -379,6 +379,121 @@ extern(C++) final class Semantic2Visitor : Visitor
             printf("-Nspace::semantic2('%s')\n", ns.toChars());
         }
     }
+
+    override void visit(AttribDeclaration ad)
+    {
+        Dsymbols* d = ad.include(sc, null);
+        if (d)
+        {
+            Scope* sc2 = ad.newScope(sc);
+            for (size_t i = 0; i < d.dim; i++)
+            {
+                Dsymbol s = (*d)[i];
+                s.semantic2(sc2);
+            }
+            if (sc2 != sc)
+                sc2.pop();
+        }
+    }
+
+    /**
+     * Run the DeprecatedDeclaration's semantic2 phase then its members.
+     *
+     * The message set via a `DeprecatedDeclaration` can be either of:
+     * - a string literal
+     * - an enum
+     * - a static immutable
+     * So we need to call ctfe to resolve it.
+     * Afterward forwards to the members' semantic2.
+     */
+    override void visit(DeprecatedDeclaration dd)
+    {
+        getMessage(dd);
+        visit(cast(AttribDeclaration)dd);
+    }
+
+    override void visit(AlignDeclaration ad)
+    {
+        ad.getAlignment(sc);
+        visit(cast(AttribDeclaration)ad);
+    }
+
+    override void visit(UserAttributeDeclaration uad)
+    {
+        if (uad.decl && uad.atts && uad.atts.dim && uad._scope)
+        {
+            static void eval(Scope* sc, Expressions* exps)
+            {
+                foreach (ref Expression e; *exps)
+                {
+                    if (e)
+                    {
+                        e = e.semantic(sc);
+                        if (definitelyValueParameter(e))
+                            e = e.ctfeInterpret();
+                        if (e.op == TOKtuple)
+                        {
+                            TupleExp te = cast(TupleExp)e;
+                            eval(sc, te.exps);
+                        }
+                    }
+                }
+            }
+
+            uad._scope = null;
+            eval(sc, uad.atts);
+        }
+        visit(cast(AttribDeclaration)uad);
+    }
+}
+
+structalign_t getAlignment(AlignDeclaration ad, Scope* sc)
+{
+    if (ad.salign != ad.UNKNOWN)
+        return ad.salign;
+
+    if (!ad.ealign)
+        return ad.salign = STRUCTALIGN_DEFAULT;
+
+    sc = sc.startCTFE();
+    ad.ealign = ad.ealign.semantic(sc);
+    ad.ealign = resolveProperties(sc, ad.ealign);
+    sc = sc.endCTFE();
+    ad.ealign = ad.ealign.ctfeInterpret();
+
+    if (ad.ealign.op == TOKerror)
+        return ad.salign = STRUCTALIGN_DEFAULT;
+
+    Type tb = ad.ealign.type.toBasetype();
+    auto n = ad.ealign.toInteger();
+
+    if (n < 1 || n & (n - 1) || structalign_t.max < n || !tb.isintegral())
+    {
+        error(ad.loc, "alignment must be an integer positive power of 2, not %s", ad.ealign.toChars());
+        return ad.salign = STRUCTALIGN_DEFAULT;
+    }
+
+    return ad.salign = cast(structalign_t)n;
+}
+
+const(char)* getMessage(DeprecatedDeclaration dd)
+{
+    if (auto sc = dd._scope)
+    {
+        dd._scope = null;
+
+        sc = sc.startCTFE();
+        dd.msg = dd.msg.semantic(sc);
+        dd.msg = resolveProperties(sc, dd.msg);
+        sc = sc.endCTFE();
+        dd.msg = dd.msg.ctfeInterpret();
+
+        if (auto se = dd.msg.toStringExp())
+            dd.msgstr = se.toStringz().ptr;
+        else
+            dd.msg.error("compile time constant expected, not `%s`", dd.msg.toChars());
+    }
+    return dd.msgstr;
 }
 
 extern(C++) final class DsymbolSemanticVisitor : Visitor

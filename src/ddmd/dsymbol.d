@@ -29,6 +29,7 @@ import ddmd.dimport;
 import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dstruct;
+import ddmd.dsymbolsem;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
