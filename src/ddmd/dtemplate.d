@@ -19,7 +19,6 @@ import core.stdc.string;
 import ddmd.aggregate;
 import ddmd.aliasthis;
 import ddmd.arraytypes;
-import ddmd.attrib;
 import ddmd.dcast;
 import ddmd.dclass;
 import ddmd.declaration;

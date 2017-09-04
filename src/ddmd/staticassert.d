@@ -14,14 +14,10 @@ module ddmd.staticassert;
 
 import ddmd.dscope;
 import ddmd.dsymbol;
-import ddmd.dsymbolsem;
-import ddmd.errors;
 import ddmd.expression;
 import ddmd.globals;
 import ddmd.id;
 import ddmd.identifier;
-import ddmd.mtype;
-import ddmd.semantic;
 import ddmd.visitor;
 
 /***********************************************************
