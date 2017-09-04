@@ -318,6 +318,22 @@ extern(C++) final class Semantic2Visitor : Visitor
         mod.semanticRun = PASSsemantic2done;
         //printf("-Module::semantic2('%s'): parent = %p\n", toChars(), parent);
     }
+
+    override void visit(FuncDeclaration fd)
+    {
+        if (fd.semanticRun >= PASSsemantic2done)
+            return;
+        assert(fd.semanticRun <= PASSsemantic2);
+
+        fd.semanticRun = PASSsemantic2;
+
+        objc.setSelector(fd, sc);
+        objc.validateSelector(fd);
+        if (ClassDeclaration cd = fd.parent.isClassDeclaration())
+        {
+            objc.checkLinkage(fd);
+        }
+    }
 }
 
 extern(C++) final class DsymbolSemanticVisitor : Visitor

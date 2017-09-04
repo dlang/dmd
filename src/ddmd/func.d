@@ -278,20 +278,10 @@ extern (C++) class FuncDeclaration : Declaration
         return f;
     }
 
+    // deleteme
     override final void semantic2(Scope* sc)
     {
-        if (semanticRun >= PASSsemantic2done)
-            return;
-        assert(semanticRun <= PASSsemantic2);
-
-        semanticRun = PASSsemantic2;
-
-        objc.setSelector(this, sc);
-        objc.validateSelector(this);
-        if (ClassDeclaration cd = parent.isClassDeclaration())
-        {
-            objc.checkLinkage(this);
-        }
+        trysemantic2(this, sc);
     }
 
     // Do the semantic analysis on the internals of the function.
