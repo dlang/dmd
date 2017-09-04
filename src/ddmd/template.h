@@ -312,7 +312,6 @@ public:
 
     static Objects *arraySyntaxCopy(Objects *objs);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     Dsymbol *toAlias();                 // resolve real symbol
     const char *kind();
@@ -351,7 +350,6 @@ public:
     TypeQualified *tqual;
 
     Dsymbol *syntaxCopy(Dsymbol *s);
-    void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     const char *kind();
     bool oneMember(Dsymbol **ps, Identifier *ident);

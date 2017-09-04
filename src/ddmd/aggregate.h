@@ -120,7 +120,6 @@ public:
 
     virtual Scope *newScope(Scope *sc);
     void setScope(Scope *sc);
-    void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     bool determineFields();
     bool determineSize(Loc loc);
