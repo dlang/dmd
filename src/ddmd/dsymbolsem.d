@@ -62,6 +62,17 @@ import ddmd.visitor;
 
 enum LOG = false;
 
+extern(C++) final class Semantic3Visitor : Visitor
+{
+    alias visit = super.visit;
+
+    Scope* sc;
+    this(Scope* sc)
+    {
+        this.sc = sc;
+    }
+}
+
 extern(C++) final class DsymbolSemanticVisitor : Visitor
 {
     alias visit = super.visit;
