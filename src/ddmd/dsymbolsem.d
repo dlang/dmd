@@ -153,6 +153,35 @@ extern(C++) final class Semantic3Visitor : Visitor
             sc.pop();
         }
     }
+
+    override void visit(Module mod)
+    {
+        //printf("Module::semantic3('%s'): parent = %p\n", toChars(), parent);
+        if (mod.semanticRun != PASSsemantic2done)
+            return;
+        mod.semanticRun = PASSsemantic3;
+        // Note that modules get their own scope, from scratch.
+        // This is so regardless of where in the syntax a module
+        // gets imported, it is unaffected by context.
+        Scope* sc = Scope.createGlobal(mod); // create root scope
+        //printf("Module = %p\n", sc.scopesym);
+        // Pass 3 semantic routines: do initializers and function bodies
+        for (size_t i = 0; i < mod.members.dim; i++)
+        {
+            Dsymbol s = (*mod.members)[i];
+            //printf("Module %s: %s.semantic3()\n", toChars(), s.toChars());
+            s.semantic3(sc);
+
+            mod.runDeferredSemantic2();
+        }
+        if (mod.userAttribDecl)
+        {
+            mod.userAttribDecl.semantic3(sc);
+        }
+        sc = sc.pop();
+        sc.pop();
+        mod.semanticRun = PASSsemantic3done;
+    }
 }
 
 extern(C++) final class DsymbolSemanticVisitor : Visitor
