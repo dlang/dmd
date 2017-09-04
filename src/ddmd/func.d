@@ -278,12 +278,6 @@ extern (C++) class FuncDeclaration : Declaration
         return f;
     }
 
-    // deleteme
-    override final void semantic2(Scope* sc)
-    {
-        trysemantic2(this, sc);
-    }
-
     // Do the semantic analysis on the internals of the function.
     override final void semantic3(Scope* sc)
     {

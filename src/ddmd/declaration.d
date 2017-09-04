@@ -1016,12 +1016,6 @@ extern (C++) class VarDeclaration : Declaration
         //printf(" addField '%s' to '%s' at offset %d, size = %d\n", toChars(), ad.toChars(), offset, memsize);
     }
 
-    // deleteme
-    override final void semantic2(Scope* sc)
-    {
-        trysemantic2(this, sc);
-    }
-
     override const(char)* kind() const
     {
         return "variable";

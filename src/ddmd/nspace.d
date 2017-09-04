@@ -91,12 +91,6 @@ extern (C++) final class Nspace : ScopeDsymbol
         }
     }
 
-    // deleteme
-    override void semantic2(Scope* sc)
-    {
-        trysemantic2(this, sc);
-    }
-
     override void semantic3(Scope* sc)
     {
         if (semanticRun >= PASSsemantic3)

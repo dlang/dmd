@@ -222,12 +222,6 @@ extern (C++) final class Import : Dsymbol
         }
     }
 
-    // deleteme
-    override void semantic2(Scope* sc)
-    {
-        trysemantic2(this, sc);
-    }
-
     override Dsymbol toAlias()
     {
         if (aliasId)

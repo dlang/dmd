@@ -658,14 +658,6 @@ extern (C++) class Dsymbol : RootObject
     }
 
     /*************************************
-     * Does semantic analysis on initializers and members of aggregates.
-     */
-    void semantic2(Scope* sc)
-    {
-        // Most Dsymbols have no further semantic analysis needed
-    }
-
-    /*************************************
      * Does semantic analysis on function bodies.
      */
     void semantic3(Scope* sc)

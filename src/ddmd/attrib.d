@@ -160,12 +160,6 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         }
     }
 
-    // deleteme
-    override void semantic2(Scope* sc)
-    {
-        trysemantic2(this, sc);
-    }
-
     override void semantic3(Scope* sc)
     {
         Dsymbols* d = include(sc, null);
@@ -444,12 +438,6 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
         return AttribDeclaration.setScope(sc);
     }
 
-    // deleteme
-    override void semantic2(Scope* sc)
-    {
-        trysemantic2(this, sc);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -646,12 +634,6 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
     override Scope* newScope(Scope* sc)
     {
         return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.protection, sc.explicitProtection, this, sc.inlining);
-    }
-
-    // deleteme
-    override void semantic2(Scope* sc)
-    {
-        trysemantic2(this, sc);
     }
 
     override void accept(Visitor v)
@@ -1300,12 +1282,6 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         if (decl)
             Dsymbol.setScope(sc); // for forward reference of UDAs
         return AttribDeclaration.setScope(sc);
-    }
-
-    // deleteme
-    override void semantic2(Scope* sc)
-    {
-        trysemantic2(this, sc);
     }
 
     static Expressions* concat(Expressions* udas1, Expressions* udas2)

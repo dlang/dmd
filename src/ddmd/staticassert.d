@@ -50,12 +50,6 @@ extern (C++) final class StaticAssert : Dsymbol
         // we didn't add anything
     }
 
-    // deleteme
-    override void semantic2(Scope* sc)
-    {
-        trysemantic2(this, sc);
-    }
-
     override bool oneMember(Dsymbol* ps, Identifier ident)
     {
         //printf("StaticAssert::oneMember())\n");

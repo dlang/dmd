@@ -6019,12 +6019,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         return ti;
     }
 
-    // deleteme
-    override void semantic2(Scope* sc)
-    {
-        trysemantic2(this, sc);
-    }
-
     override void semantic3(Scope* sc)
     {
         static if (LOG)
@@ -7712,12 +7706,6 @@ extern (C++) final class TemplateMixin : TemplateInstance
     {
         auto tm = new TemplateMixin(loc, ident, cast(TypeQualified)tqual.syntaxCopy(), tiargs);
         return TemplateInstance.syntaxCopy(tm);
-    }
-
-    // deleteme
-    override void semantic2(Scope* sc)
-    {
-        trysemantic2(this, sc);
     }
 
     override void semantic3(Scope* sc)

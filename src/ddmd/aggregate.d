@@ -139,12 +139,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             ScopeDsymbol.setScope(sc);
     }
 
-    // deleteme
-    override final void semantic2(Scope* sc)
-    {
-        trysemantic2(this, sc);
-    }
-
     override final void semantic3(Scope* sc)
     {
         //printf("AggregateDeclaration::semantic3(sc=%p, %s) type = %s, errors = %d\n", sc, toChars(), type.toChars(), errors);

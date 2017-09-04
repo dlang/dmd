@@ -60,7 +60,10 @@ void semantic(Catch c, Scope* sc)
     semanticWrapper(c, sc);
 }
 
-void trysemantic2(Dsymbol dsym, Scope* sc)
+/*************************************
+ * Does semantic analysis on initializers and members of aggregates.
+ */
+void semantic2(Dsymbol dsym, Scope* sc)
 {
     scope v = new Semantic2Visitor(sc);
     dsym.accept(v);

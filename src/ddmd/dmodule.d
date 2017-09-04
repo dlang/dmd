@@ -1053,12 +1053,6 @@ extern (C++) final class Module : Package
         sc.pop(); // 2 pops because Scope::createGlobal() created 2
     }
 
-    // deleteme
-    override void semantic2(Scope* sc)
-    {
-        trysemantic2(this, sc);
-    }
-
     // pass 3 semantic analysis
     override void semantic3(Scope*)
     {
