@@ -139,30 +139,10 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             ScopeDsymbol.setScope(sc);
     }
 
+    // deleteme
     override final void semantic2(Scope* sc)
     {
-        //printf("AggregateDeclaration::semantic2(%s) type = %s, errors = %d\n", toChars(), type.toChars(), errors);
-        if (!members)
-            return;
-
-        if (_scope)
-        {
-            error("has forward references");
-            return;
-        }
-
-        auto sc2 = newScope(sc);
-
-        determineSize(loc);
-
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            //printf("\t[%d] %s\n", i, s.toChars());
-            s.semantic2(sc2);
-        }
-
-        sc2.pop();
+        trysemantic2(this, sc);
     }
 
     override final void semantic3(Scope* sc)

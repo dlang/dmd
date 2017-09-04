@@ -445,6 +445,32 @@ extern(C++) final class Semantic2Visitor : Visitor
         }
         visit(cast(AttribDeclaration)uad);
     }
+
+    override void visit(AggregateDeclaration ad)
+    {
+        //printf("AggregateDeclaration::semantic2(%s) type = %s, errors = %d\n", toChars(), type.toChars(), errors);
+        if (!ad.members)
+            return;
+
+        if (ad._scope)
+        {
+            ad.error("has forward references");
+            return;
+        }
+
+        auto sc2 = ad.newScope(sc);
+
+        ad.determineSize(ad.loc);
+
+        for (size_t i = 0; i < ad.members.dim; i++)
+        {
+            Dsymbol s = (*ad.members)[i];
+            //printf("\t[%d] %s\n", i, s.toChars());
+            s.semantic2(sc2);
+        }
+
+        sc2.pop();
+    }
 }
 
 structalign_t getAlignment(AlignDeclaration ad, Scope* sc)
