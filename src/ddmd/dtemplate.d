@@ -6081,12 +6081,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         }
     }
 
-    // deleteme
-    override void semantic3(Scope* sc)
-    {
-        trysemantic3(this, sc);
-    }
-
     // resolve real symbol
     override final Dsymbol toAlias()
     {
@@ -7747,12 +7741,6 @@ extern (C++) final class TemplateMixin : TemplateInstance
         {
             printf("-TemplateMixin.semantic2('%s')\n", toChars());
         }
-    }
-
-    // deleteme
-    override void semantic3(Scope* sc)
-    {
-        trysemantic3(this, sc);
     }
 
     override const(char)* kind() const

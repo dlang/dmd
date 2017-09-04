@@ -165,12 +165,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         sc2.pop();
     }
 
-    // deleteme
-    override final void semantic3(Scope* sc)
-    {
-        trysemantic3(this, sc);
-    }
-
     /***************************************
      * Find all instance fields, then push them into `fields`.
      *

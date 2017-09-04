@@ -121,12 +121,6 @@ extern (C++) final class Nspace : ScopeDsymbol
         }
     }
 
-    // deleteme
-    override void semantic3(Scope* sc)
-    {
-        trysemantic3(this, sc);
-    }
-
     override bool oneMember(Dsymbol* ps, Identifier ident)
     {
         return Dsymbol.oneMember(ps, ident);

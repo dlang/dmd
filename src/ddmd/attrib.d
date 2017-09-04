@@ -176,12 +176,6 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         }
     }
 
-    // deleteme
-    override void semantic3(Scope* sc)
-    {
-        trysemantic3(this, sc);
-    }
-
     override void addComment(const(char)* comment)
     {
         //printf("AttribDeclaration::addComment %s\n", comment);

@@ -294,12 +294,6 @@ extern (C++) class FuncDeclaration : Declaration
         }
     }
 
-    // deleteme
-    override final void semantic3(Scope* sc)
-    {
-        trysemantic3(this, sc);
-    }
-
     /****************************************************
      * Resolve forward reference of function signature -
      * parameter types, return type, and attributes.

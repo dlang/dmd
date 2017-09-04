@@ -1081,12 +1081,6 @@ extern (C++) final class Module : Package
         //printf("-Module::semantic2('%s'): parent = %p\n", toChars(), parent);
     }
 
-    // deleteme
-    override void semantic3(Scope* sc)
-    {
-        trysemantic3(this, sc);
-    }
-
     /**********************************
      * Determine if we need to generate an instance of ModuleInfo
      * for this Module.

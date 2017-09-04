@@ -60,7 +60,10 @@ void semantic(Catch c, Scope* sc)
     semanticWrapper(c, sc);
 }
 
-extern(C++) void trysemantic3(Dsymbol dsym, Scope* sc)
+/*************************************
+ * Does semantic analysis on function bodies.
+ */
+extern(C++) void semantic3(Dsymbol dsym, Scope* sc)
 {
     scope v = new Semantic3Visitor(sc);
     dsym.accept(v);
