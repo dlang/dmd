@@ -71,6 +71,88 @@ extern(C++) final class Semantic3Visitor : Visitor
     {
         this.sc = sc;
     }
+
+    override void visit(TemplateInstance tempinst)
+    {
+        static if (LOG)
+        {
+            printf("TemplateInstance.semantic3('%s'), semanticRun = %d\n", tempinst.toChars(), tempinst.semanticRun);
+        }
+        //if (toChars()[0] == 'D') *(char*)0=0;
+        if (tempinst.semanticRun >= PASSsemantic3)
+            return;
+        tempinst.semanticRun = PASSsemantic3;
+        if (!tempinst.errors && tempinst.members)
+        {
+            TemplateDeclaration tempdecl = tempinst.tempdecl.isTemplateDeclaration();
+            assert(tempdecl);
+
+            sc = tempdecl._scope;
+            sc = sc.push(tempinst.argsym);
+            sc = sc.push(tempinst);
+            sc.tinst = tempinst;
+            sc.minst = tempinst.minst;
+
+            int needGagging = (tempinst.gagged && !global.gag);
+            uint olderrors = global.errors;
+            int oldGaggedErrors = -1; // dead-store to prevent spurious warning
+            /* If this is a gagged instantiation, gag errors.
+             * Future optimisation: If the results are actually needed, errors
+             * would already be gagged, so we don't really need to run semantic
+             * on the members.
+             */
+            if (needGagging)
+                oldGaggedErrors = global.startGagging();
+
+            for (size_t i = 0; i < tempinst.members.dim; i++)
+            {
+                Dsymbol s = (*tempinst.members)[i];
+                s.semantic3(sc);
+                if (tempinst.gagged && global.errors != olderrors)
+                    break;
+            }
+
+            if (global.errors != olderrors)
+            {
+                if (!tempinst.errors)
+                {
+                    if (!tempdecl.literal)
+                        error(tempinst.loc, "error instantiating");
+                    if (tempinst.tinst)
+                        tempinst.tinst.printInstantiationTrace();
+                }
+                tempinst.errors = true;
+            }
+            if (needGagging)
+                global.endGagging(oldGaggedErrors);
+
+            sc = sc.pop();
+            sc.pop();
+        }
+    }
+
+    override void visit(TemplateMixin tmix)
+    {
+        if (tmix.semanticRun >= PASSsemantic3)
+            return;
+        tmix.semanticRun = PASSsemantic3;
+        static if (LOG)
+        {
+            printf("TemplateMixin.semantic3('%s')\n", tmix.toChars());
+        }
+        if (tmix.members)
+        {
+            sc = sc.push(tmix.argsym);
+            sc = sc.push(tmix);
+            for (size_t i = 0; i < tmix.members.dim; i++)
+            {
+                Dsymbol s = (*tmix.members)[i];
+                s.semantic3(sc);
+            }
+            sc = sc.pop();
+            sc.pop();
+        }
+    }
 }
 
 extern(C++) final class DsymbolSemanticVisitor : Visitor
