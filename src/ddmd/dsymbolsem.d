@@ -76,6 +76,8 @@ extern(C++) final class Semantic3Visitor : Visitor
         this.sc = sc;
     }
 
+    override void visit(Dsymbol) {}
+
     override void visit(TemplateInstance tempinst)
     {
         static if (LOG)
@@ -1153,6 +1155,97 @@ extern(C++) final class Semantic3Visitor : Visitor
             funcdecl.errors = true;
         //printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent.toChars(), toChars(), sc, loc.toChars());
         //fflush(stdout);
+    }
+
+    override void visit(Nspace ns)
+    {
+        if (ns.semanticRun >= PASSsemantic3)
+            return;
+        ns.semanticRun = PASSsemantic3;
+        static if (LOG)
+        {
+            printf("Nspace::semantic3('%s')\n", ns.toChars());
+        }
+        if (ns.members)
+        {
+            sc = sc.push(ns);
+            sc.linkage = LINKcpp;
+            foreach (s; *ns.members)
+            {
+                s.semantic3(sc);
+            }
+            sc.pop();
+        }
+    }
+
+    override void visit(AttribDeclaration ad)
+    {
+        Dsymbols* d = ad.include(sc, null);
+        if (d)
+        {
+            Scope* sc2 = ad.newScope(sc);
+            for (size_t i = 0; i < d.dim; i++)
+            {
+                Dsymbol s = (*d)[i];
+                s.semantic3(sc2);
+            }
+            if (sc2 != sc)
+                sc2.pop();
+        }
+    }
+
+    override void visit(AggregateDeclaration ad)
+    {
+        //printf("AggregateDeclaration::semantic3(sc=%p, %s) type = %s, errors = %d\n", sc, toChars(), type.toChars(), errors);
+        if (!ad.members)
+            return;
+
+        StructDeclaration sd = ad.isStructDeclaration();
+        if (!sc) // from runDeferredSemantic3 for TypeInfo generation
+        {
+            assert(sd);
+            sd.semanticTypeInfoMembers();
+            return;
+        }
+
+        auto sc2 = ad.newScope(sc);
+
+        for (size_t i = 0; i < ad.members.dim; i++)
+        {
+            Dsymbol s = (*ad.members)[i];
+            s.semantic3(sc2);
+        }
+
+        sc2.pop();
+
+        // don't do it for unused deprecated types
+        // or error ypes
+        if (!ad.getRTInfo && Type.rtinfo && (!ad.isDeprecated() || global.params.useDeprecated) && (ad.type && ad.type.ty != Terror))
+        {
+            // Evaluate: RTinfo!type
+            auto tiargs = new Objects();
+            tiargs.push(ad.type);
+            auto ti = new TemplateInstance(ad.loc, Type.rtinfo, tiargs);
+
+            Scope* sc3 = ti.tempdecl._scope.startCTFE();
+            sc3.tinst = sc.tinst;
+            sc3.minst = sc.minst;
+            if (ad.isDeprecated())
+                sc3.stc |= STCdeprecated;
+
+            ti.semantic(sc3);
+            ti.semantic2(sc3);
+            ti.semantic3(sc3);
+            auto e = resolve(Loc(), sc3, ti.toAlias(), false);
+
+            sc3.endCTFE();
+
+            e = e.ctfeInterpret();
+            ad.getRTInfo = e;
+        }
+        if (sd)
+            sd.semanticTypeInfoMembers();
+        ad.semanticRun = PASSsemantic3done;
     }
 }
 

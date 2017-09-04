@@ -176,20 +176,10 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         }
     }
 
+    // deleteme
     override void semantic3(Scope* sc)
     {
-        Dsymbols* d = include(sc, null);
-        if (d)
-        {
-            Scope* sc2 = newScope(sc);
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                s.semantic3(sc2);
-            }
-            if (sc2 != sc)
-                sc2.pop();
-        }
+        trysemantic3(this, sc);
     }
 
     override void addComment(const(char)* comment)

@@ -165,58 +165,10 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         sc2.pop();
     }
 
+    // deleteme
     override final void semantic3(Scope* sc)
     {
-        //printf("AggregateDeclaration::semantic3(sc=%p, %s) type = %s, errors = %d\n", sc, toChars(), type.toChars(), errors);
-        if (!members)
-            return;
-
-        StructDeclaration sd = isStructDeclaration();
-        if (!sc) // from runDeferredSemantic3 for TypeInfo generation
-        {
-            assert(sd);
-            sd.semanticTypeInfoMembers();
-            return;
-        }
-
-        auto sc2 = newScope(sc);
-
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            s.semantic3(sc2);
-        }
-
-        sc2.pop();
-
-        // don't do it for unused deprecated types
-        // or error types
-        if (!getRTInfo && Type.rtinfo && (!isDeprecated() || global.params.useDeprecated) && (type && type.ty != Terror))
-        {
-            // Evaluate: RTinfo!type
-            auto tiargs = new Objects();
-            tiargs.push(type);
-            auto ti = new TemplateInstance(loc, Type.rtinfo, tiargs);
-
-            Scope* sc3 = ti.tempdecl._scope.startCTFE();
-            sc3.tinst = sc.tinst;
-            sc3.minst = sc.minst;
-            if (isDeprecated())
-                sc3.stc |= STCdeprecated;
-
-            ti.semantic(sc3);
-            ti.semantic2(sc3);
-            ti.semantic3(sc3);
-            auto e = resolve(Loc(), sc3, ti.toAlias(), false);
-
-            sc3.endCTFE();
-
-            e = e.ctfeInterpret();
-            getRTInfo = e;
-        }
-        if (sd)
-            sd.semanticTypeInfoMembers();
-        semanticRun = PASSsemantic3done;
+        trysemantic3(this, sc);
     }
 
     /***************************************
