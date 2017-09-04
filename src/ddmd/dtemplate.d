@@ -7557,7 +7557,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             fatal();
         }
 
-        semantic3(sc2);
+        semantic3(this, sc2);
 
         --nest;
     }

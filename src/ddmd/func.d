@@ -366,7 +366,7 @@ extern (C++) class FuncDeclaration : Declaration
             uint oldgag = global.gag;
             if (global.gag && !spec)
                 global.gag = 0;
-            semantic3(_scope);
+            semantic3(this, _scope);
             global.gag = oldgag;
 
             // If it is a speculatively-instantiated template, and errors occur,
