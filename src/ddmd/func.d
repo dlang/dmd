@@ -36,14 +36,12 @@ import ddmd.id;
 import ddmd.identifier;
 import ddmd.init;
 import ddmd.mtype;
-import ddmd.nogc;
 import ddmd.objc;
 import ddmd.root.outbuffer;
 import ddmd.root.rootobject;
 import ddmd.semantic;
 import ddmd.statement_rewrite_walker;
 import ddmd.statement;
-import ddmd.target;
 import ddmd.tokens;
 import ddmd.visitor;
 
