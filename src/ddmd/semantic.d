@@ -59,3 +59,9 @@ void semantic(Catch c, Scope* sc)
 {
     semanticWrapper(c, sc);
 }
+
+void trysemantic2(Dsymbol dsym, Scope* sc)
+{
+    scope v = new Semantic2Visitor(sc);
+    dsym.accept(v);
+}

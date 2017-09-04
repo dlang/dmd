@@ -62,6 +62,59 @@ import ddmd.visitor;
 
 enum LOG = false;
 
+extern(C++) final class Semantic2Visitor : Visitor
+{
+    alias visit = super.visit;
+    Scope* sc;
+    this(Scope* sc)
+    {
+        this.sc = sc;
+    }
+
+    override void visit(StaticAssert sa)
+    {
+        //printf("StaticAssert::semantic2() %s\n", toChars());
+        auto sds = new ScopeDsymbol();
+        sc = sc.push(sds);
+        sc.tinst = null;
+        sc.minst = null;
+
+        import ddmd.staticcond;
+        bool errors;
+        bool result = evalStaticCondition(sc, sa.exp, sa.exp, errors);
+        sc = sc.pop();
+        if (errors)
+        {
+            errorSupplemental(sa.loc, "while evaluating: `static assert(%s)`", sa.exp.toChars());
+        }
+        else if (!result)
+        {
+            if (sa.msg)
+            {
+                sc = sc.startCTFE();
+                sa.msg = sa.msg.semantic(sc);
+                sa.msg = resolveProperties(sc, sa.msg);
+                sc = sc.endCTFE();
+                sa.msg = sa.msg.ctfeInterpret();
+                if (StringExp se = sa.msg.toStringExp())
+                {
+                    // same with pragma(msg)
+                    se = se.toUTF8(sc);
+                    sa.error("\"%.*s\"", cast(int)se.len, se.string);
+                }
+                else
+                    sa.error("%s", sa.msg.toChars());
+            }
+            else
+                sa.error("`%s` is false", sa.exp.toChars());
+            if (sc.tinst)
+                sc.tinst.printInstantiationTrace();
+            if (!global.gag)
+                fatal();
+        }
+    }
+}
+
 extern(C++) final class DsymbolSemanticVisitor : Visitor
 {
     alias visit = super.visit;
