@@ -568,7 +568,6 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic2(Scope *sc);
-    void semantic3(Scope *sc);
     bool functionSemantic();
     bool functionSemantic3();
     bool checkForwardRef(Loc loc);

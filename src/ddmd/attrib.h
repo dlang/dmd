@@ -42,7 +42,6 @@ public:
     void setScope(Scope *sc);
     void importAll(Scope *sc);
     void semantic2(Scope *sc);
-    void semantic3(Scope *sc);
     void addComment(const utf8_t *comment);
     const char *kind() const;
     bool oneMember(Dsymbol **ps, Identifier *ident);
