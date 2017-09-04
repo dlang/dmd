@@ -108,7 +108,7 @@ else
 }
 ------
 
-$(P The $(D version(unittest)) is satisfied if and only if the code is
+	$(P The $(D version(unittest)) is satisfied if and only if the code is
 	compiled with unit tests enabled (the $(DDSUBLINK dmd, switch-unittest, $(TT -unittest)) option on $(TT dmd)).
 	)
 
@@ -189,8 +189,9 @@ class Foo
 }
 ------
 
-	Various different version builds can be built with a parameter
+	$(P Various different version builds can be built with a parameter
 	to version:
+	)
 
 ------
 version($(CODE_HIGHLIGHT n)) // add in version code if version level is >= n
@@ -538,6 +539,129 @@ INT!(17) c;  // error, static assert trips
 	$(LI It must be evaluatable at compile time.
 	)
 	)
+
+$(H2 $(LNAME2 staticforeach, Static Foreach))
+
+$(GRAMMAR
+$(GNAME StaticForeach):
+    $(D static) $(GLINK2 statement, AggregateForeach)
+    $(D static) $(GLINK2 statement, RangeForeach)
+
+$(GNAME StaticForeachDeclaration):
+    $(GLINK StaticForeach) $(GLINK2 attribute, DeclarationBlock)
+    $(GLINK StaticForeach) $(D :) $(GLINK2 module, DeclDefs)$(OPT)
+
+$(GNAME StaticForeachStatement):
+    $(GLINK StaticForeach) $(GLINK2 statement, NoScopeNonEmptyStatement)
+)
+
+	$(P The aggregate/range bounds are evaluated at compile time and
+	turned into a sequence of compile-time entities by evaluating
+	corresponding code with a $(GLINK2 statement, ForeachStatement)/$(GLINK2 statement, ForeachRangeStatement)
+	at compile time. The body of the $(D static foreach) is then copied a
+	number of times that corresponds to the number of elements of the
+	sequence. Within the i-th copy, the name of the $(D static forecah)
+	variable is bound to the i-th entry of the sequence, either as an $(D enum)
+	variable declaration (for constants) or an $(D alias)
+	declaration (for symbols). (In particular, $(D static foreach)
+	variables are never runtime variables.)
+	)
+
+------
+static foreach(i; [0, 1, 2, 3])
+{
+    pragma(msg, i);
+}
+------
+
+	$(P $(D static foreach) supports multiple variables in cases where the
+	corresponding $(D foreach) statement supports them. (In this case,
+	$(D static foreach) generates a compile-time sequence of tuples, and the
+	tuples are subsequently unpacked during iteration.)
+	)
+
+------
+static foreach(i, v; ['a', 'b', 'c', 'd'])
+{
+    static assert(i + 'a' == v);
+}
+------
+
+	$(P Like bodies of $(GLINK ConditionalDeclaration)s, a $(D static foreach)
+	body does not introduce a new scope. Therefore, it can be
+	used to generate declarations:
+	)
+
+------
+import std.range : iota;
+import std.algorithm : map;
+import std.conv : text;
+static foreach(i; iota(0, 3).map!text)
+{
+    mixin(`enum x` ~ i ~ ` = i;`);
+}
+
+pragma(msg, x0, " ", x1," ", x2); // 0 1 2
+------
+
+	$(P As $(D static foreach) is a code generation construct and not a
+	loop, $(D break) and $(D continue) cannot be used to change control
+	flow within it. Instead of breaking or continuing a suitable enclosing
+	statement, such an usage yields an error (this is to prevent
+	misunderstandings).
+	)
+
+-------
+int test(int x)
+{
+    int r = -1;
+    switch(x)
+    {
+        static foreach(i; 0 .. 100)
+        {
+            case i:
+                r = i;
+                break; // error
+        }
+        default: break;
+    }
+    return r;
+}
+
+static foreach(i; 0 .. 200)
+{
+    static assert(test(i) == (i<100 ? i : -1));
+}
+-------
+
+	$(P An explicit $(D break)/$(D continue) label can be used to
+	avoid this limitation. (Note that $(D static foreach) itself
+	cannot be broken nor continued even if it is explicitly
+	labeled.)
+	)
+
+-------
+int test(int x)
+{
+    int r = -1;
+    Lswitch: switch(x)
+    {
+        static foreach(i; 0 .. 100)
+        {
+            case i:
+                r = i;
+                break Lswitch;
+        }
+        default: break;
+    }
+    return r;
+}
+
+static foreach(i; 0 .. 200)
+{
+    static assert(test(i) == (i<100 ? i : -1));
+}
+-------
 
 
 $(H2 $(LEGACY_LNAME2 StaticAssert, static-assert, Static Assert))

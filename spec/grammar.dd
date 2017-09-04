@@ -579,6 +579,7 @@ $(GNAME NonEmptyStatementNoCaseNoDefault):
     $(GLINK MixinStatement)
     $(GLINK ForeachRangeStatement)
     $(GLINK ConditionalStatement)
+    $(GLINK StaticForeachStatement)
     $(GLINK StaticAssert)
     $(GLINK TemplateMixin)
     $(GLINK ImportDeclaration)
@@ -666,8 +667,11 @@ $(GNAME Increment):
 )
 
 $(GRAMMAR
+$(GNAME AggregateForeach):
+    $(I Foreach) $(D $(LPAREN)) $(GLINK ForeachTypeList) $(D ;) $(GLINK ForeachAggregate) $(D $(RPAREN))
+
 $(GNAME ForeachStatement):
-    $(I Foreach) $(D $(LPAREN)) $(GLINK ForeachTypeList) $(D ;) $(GLINK ForeachAggregate) $(D $(RPAREN)) $(PS0)
+    $(GLINK AggregateForeach) $(PS0)
 
 $(GNAME Foreach):
     $(D foreach)
@@ -680,6 +684,7 @@ $(GNAME ForeachTypeList):
 $(GNAME ForeachType):
     $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator)
     $(GLINK ForeachTypeAttributes)$(OPT) $(I Identifier)
+    $(GLINK ForeachTypeAttributes)$(OPT) $(D alias) $(I Identifier)
 
 $(GNAME ForeachTypeAttributes)
     $(GLINK ForeachTypeAttribute)
@@ -688,20 +693,24 @@ $(GNAME ForeachTypeAttributes)
 $(GNAME ForeachTypeAttribute):
     $(D ref)
     $(GLINK2 declaration, TypeCtor)
+    $(D enum)
 
 $(GNAME ForeachAggregate):
     $(EXPRESSION)
 )
 
 $(GRAMMAR
-$(GNAME ForeachRangeStatement):
-    $(GLINK Foreach) $(D $(LPAREN)) $(GLINK ForeachType) $(D ;) $(GLINK LwrExpression) $(D ..) $(GLINK UprExpression) $(D $(RPAREN)) $(PSSCOPE)
+$(GNAME RangeForeach):
+    $(GLINK Foreach) $(D $(LPAREN)) $(GLINK ForeachType) $(D ;) $(GLINK LwrExpression) $(D ..) $(GLINK UprExpression) $(D $(RPAREN))
 
 $(GNAME LwrExpression):
     $(EXPRESSION)
 
 $(GNAME UprExpression):
     $(EXPRESSION)
+
+$(GNAME ForeachRangeStatement):
+    $(GLINK RangeForeach) $(PSSCOPE)
 )
 
 $(GRAMMAR
@@ -1016,6 +1025,9 @@ $(GNAME Declaration):
     $(GLINK AggregateDeclaration)
     $(GLINK EnumDeclaration)
     $(GLINK ImportDeclaration)
+    $(GLINK2 version, ConditionalDeclaration)
+    $(GLINK2 version, StaticForeachDeclaration)
+    $(GLINK2 version, StaticAssert)
 )
 
 $(GRAMMAR
@@ -1729,6 +1741,19 @@ $(GNAME VersionSpecification):
 $(GNAME DebugSpecification):
     $(D debug =) $(I Identifier) $(D ;)
     $(D debug =) $(GLINK_LEX IntegerLiteral) $(D ;)
+)
+
+$(GRAMMAR
+$(GNAME StaticForeach):
+    $(D static) $(GLINK2 statement, AggregateForeach)
+    $(D static) $(GLINK2 statement, RangeForeach)
+
+$(GNAME StaticForeachDeclaration):
+    $(GLINK StaticForeach) $(GLINK2 attribute, DeclarationBlock)
+    $(GLINK StaticForeach) $(D :) $(GLINK2 module, DeclDefs)$(OPT)
+
+$(GNAME StaticForeachStatement):
+    $(GLINK StaticForeach) $(GLINK2 statement, NoScopeNonEmptyStatement)
 )
 
 $(GRAMMAR

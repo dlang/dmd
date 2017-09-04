@@ -55,6 +55,7 @@ $(GNAME NonEmptyStatementNoCaseNoDefault):
     $(GLINK MixinStatement)
     $(GLINK ForeachRangeStatement)
     $(GLINK2 version, ConditionalStatement)
+    $(GLINK2 version, StaticForeachStatement)
     $(GLINK2 version, StaticAssert)
     $(GLINK2 template-mixin, TemplateMixin)
     $(GLINK2 module, ImportDeclaration)
@@ -405,8 +406,11 @@ $(H2 $(LEGACY_LNAME2 ForeachStatement, foreach-statement, Foreach Statement))
 $(P A `foreach` statement loops over the contents of an aggregate.)
 
 $(GRAMMAR
+$(GNAME AggregateForeach):
+    $(I Foreach) $(D $(LPAREN)) $(GLINK ForeachTypeList) $(D ;) $(GLINK ForeachAggregate) $(D $(RPAREN))
+
 $(GNAME ForeachStatement):
-    $(I Foreach) $(D $(LPAREN)) $(GLINK ForeachTypeList) $(D ;) $(GLINK ForeachAggregate) $(D $(RPAREN)) $(PS0)
+    $(GLINK AggregateForeach) $(PS0)
 
 $(GNAME Foreach):
     $(D foreach)
@@ -419,6 +423,7 @@ $(GNAME ForeachTypeList):
 $(GNAME ForeachType):
     $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator)
     $(GLINK ForeachTypeAttributes)$(OPT) $(I Identifier)
+    $(GLINK ForeachTypeAttributes)$(OPT) $(D alias) $(I Identifier)
 
 $(GNAME ForeachTypeAttributes)
     $(GLINK ForeachTypeAttribute)
@@ -427,6 +432,7 @@ $(GNAME ForeachTypeAttributes)
 $(GNAME ForeachTypeAttribute):
     $(D ref)
     $(GLINK2 declaration, TypeCtor)
+    $(D enum)
 
 $(GNAME ForeachAggregate):
     $(EXPRESSION)
@@ -916,14 +922,17 @@ $(H2 $(LEGACY_LNAME2 ForeachRangeStatement, foreach-range-statement, Foreach Ran
 $(P A foreach range statement loops over the specified range.)
 
 $(GRAMMAR
-$(GNAME ForeachRangeStatement):
-    $(GLINK Foreach) $(D $(LPAREN)) $(GLINK ForeachType) $(D ;) $(GLINK LwrExpression) $(D ..) $(GLINK UprExpression) $(D $(RPAREN)) $(PSSCOPE)
+$(GNAME RangeForeach):
+    $(GLINK Foreach) $(D $(LPAREN)) $(GLINK ForeachType) $(D ;) $(GLINK LwrExpression) $(D ..) $(GLINK UprExpression) $(D $(RPAREN))
 
 $(GNAME LwrExpression):
     $(EXPRESSION)
 
 $(GNAME UprExpression):
     $(EXPRESSION)
+
+$(GNAME ForeachRangeStatement):
+    $(GLINK RangeForeach) $(PSSCOPE)
 )
 
         $(P
