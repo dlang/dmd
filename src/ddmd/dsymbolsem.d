@@ -71,6 +71,8 @@ extern(C++) final class Semantic2Visitor : Visitor
         this.sc = sc;
     }
 
+    override void visit(Dsymbol) {}
+
     override void visit(StaticAssert sa)
     {
         //printf("StaticAssert::semantic2() %s\n", toChars());
