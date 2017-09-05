@@ -1,15 +1,19 @@
 module ddmd.semantic;
 
+import ddmd.arraytypes;
 import ddmd.dsymbol;
-import ddmd.dsymbolsem;
 import ddmd.dscope;
+import ddmd.dtemplate;
 import ddmd.expression;
-import ddmd.expressionsem;
 import ddmd.init;
-import ddmd.initsem;
 import ddmd.mtype;
 import ddmd.statement;
+
+import ddmd.initsem;
+import ddmd.dsymbolsem;
+import ddmd.expressionsem;
 import ddmd.statementsem;
+import ddmd.templateparamsem;
 
 /*************************************
  * Does semantic analysis on the public face of declarations.
@@ -52,6 +56,14 @@ extern (C++) Statement semantic(Statement s, Scope* sc)
 {
     scope v = new StatementSemanticVisitor(sc);
     s.accept(v);
+    return v.result;
+}
+
+// Performs semantic on TemplateParamter AST nodes
+extern (C++) bool semantic(TemplateParameter tp, Scope* sc, TemplateParameters* parameters)
+{
+    scope v = new TemplateParameterSemanticVisitor(sc, parameters);
+    tp.accept(v);
     return v.result;
 }
 
