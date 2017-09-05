@@ -1081,36 +1081,6 @@ extern (C++) final class Module : Package
         //printf("-Module::semantic2('%s'): parent = %p\n", toChars(), parent);
     }
 
-    // pass 3 semantic analysis
-    override void semantic3(Scope*)
-    {
-        //printf("Module::semantic3('%s'): parent = %p\n", toChars(), parent);
-        if (semanticRun != PASSsemantic2done)
-            return;
-        semanticRun = PASSsemantic3;
-        // Note that modules get their own scope, from scratch.
-        // This is so regardless of where in the syntax a module
-        // gets imported, it is unaffected by context.
-        Scope* sc = Scope.createGlobal(this); // create root scope
-        //printf("Module = %p\n", sc.scopesym);
-        // Pass 3 semantic routines: do initializers and function bodies
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            //printf("Module %s: %s.semantic3()\n", toChars(), s.toChars());
-            s.semantic3(sc);
-
-            runDeferredSemantic2();
-        }
-        if (userAttribDecl)
-        {
-            userAttribDecl.semantic3(sc);
-        }
-        sc = sc.pop();
-        sc.pop();
-        semanticRun = PASSsemantic3done;
-    }
-
     /**********************************
      * Determine if we need to generate an instance of ModuleInfo
      * for this Module.

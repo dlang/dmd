@@ -121,27 +121,6 @@ extern (C++) final class Nspace : ScopeDsymbol
         }
     }
 
-    override void semantic3(Scope* sc)
-    {
-        if (semanticRun >= PASSsemantic3)
-            return;
-        semanticRun = PASSsemantic3;
-        static if (LOG)
-        {
-            printf("Nspace::semantic3('%s')\n", toChars());
-        }
-        if (members)
-        {
-            sc = sc.push(this);
-            sc.linkage = LINKcpp;
-            foreach (s; *members)
-            {
-                s.semantic3(sc);
-            }
-            sc.pop();
-        }
-    }
-
     override bool oneMember(Dsymbol* ps, Identifier ident)
     {
         return Dsymbol.oneMember(ps, ident);

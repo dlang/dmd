@@ -5982,65 +5982,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         }
     }
 
-    override void semantic3(Scope* sc)
-    {
-        static if (LOG)
-        {
-            printf("TemplateInstance.semantic3('%s'), semanticRun = %d\n", toChars(), semanticRun);
-        }
-        //if (toChars()[0] == 'D') *(char*)0=0;
-        if (semanticRun >= PASSsemantic3)
-            return;
-        semanticRun = PASSsemantic3;
-        if (!errors && members)
-        {
-            TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
-            assert(tempdecl);
-
-            sc = tempdecl._scope;
-            sc = sc.push(argsym);
-            sc = sc.push(this);
-            sc.tinst = this;
-            sc.minst = minst;
-
-            int needGagging = (gagged && !global.gag);
-            uint olderrors = global.errors;
-            int oldGaggedErrors = -1; // dead-store to prevent spurious warning
-            /* If this is a gagged instantiation, gag errors.
-             * Future optimisation: If the results are actually needed, errors
-             * would already be gagged, so we don't really need to run semantic
-             * on the members.
-             */
-            if (needGagging)
-                oldGaggedErrors = global.startGagging();
-
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                Dsymbol s = (*members)[i];
-                s.semantic3(sc);
-                if (gagged && global.errors != olderrors)
-                    break;
-            }
-
-            if (global.errors != olderrors)
-            {
-                if (!errors)
-                {
-                    if (!tempdecl.literal)
-                        error(loc, "error instantiating");
-                    if (tinst)
-                        tinst.printInstantiationTrace();
-                }
-                errors = true;
-            }
-            if (needGagging)
-                global.endGagging(oldGaggedErrors);
-
-            sc = sc.pop();
-            sc.pop();
-        }
-    }
-
     // resolve real symbol
     override final Dsymbol toAlias()
     {
@@ -7517,7 +7458,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             fatal();
         }
 
-        semantic3(sc2);
+        semantic3(this, sc2);
 
         --nest;
     }
@@ -7700,29 +7641,6 @@ extern (C++) final class TemplateMixin : TemplateInstance
         static if (LOG)
         {
             printf("-TemplateMixin.semantic2('%s')\n", toChars());
-        }
-    }
-
-    override void semantic3(Scope* sc)
-    {
-        if (semanticRun >= PASSsemantic3)
-            return;
-        semanticRun = PASSsemantic3;
-        static if (LOG)
-        {
-            printf("TemplateMixin.semantic3('%s')\n", toChars());
-        }
-        if (members)
-        {
-            sc = sc.push(argsym);
-            sc = sc.push(this);
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                Dsymbol s = (*members)[i];
-                s.semantic3(sc);
-            }
-            sc = sc.pop();
-            sc.pop();
         }
     }
 

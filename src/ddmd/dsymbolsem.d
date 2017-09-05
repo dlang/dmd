@@ -18,6 +18,7 @@ import ddmd.aliasthis;
 import ddmd.arraytypes;
 import ddmd.astcodegen;
 import ddmd.attrib;
+import ddmd.blockexit;
 import ddmd.clone;
 import ddmd.dcast;
 import ddmd.dclass;
@@ -32,9 +33,11 @@ import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.dversion;
 import ddmd.errors;
+import ddmd.escape;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
+import ddmd.gluelayer;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.init;
@@ -42,6 +45,7 @@ import ddmd.initsem;
 import ddmd.hdrgen;
 import ddmd.mars;
 import ddmd.mtype;
+import ddmd.nogc;
 import ddmd.nspace;
 import ddmd.objc;
 import ddmd.opover;
@@ -61,6 +65,1189 @@ import ddmd.target;
 import ddmd.visitor;
 
 enum LOG = false;
+
+extern(C++) final class Semantic3Visitor : Visitor
+{
+    alias visit = super.visit;
+
+    Scope* sc;
+    this(Scope* sc)
+    {
+        this.sc = sc;
+    }
+
+    override void visit(Dsymbol) {}
+
+    override void visit(TemplateInstance tempinst)
+    {
+        static if (LOG)
+        {
+            printf("TemplateInstance.semantic3('%s'), semanticRun = %d\n", tempinst.toChars(), tempinst.semanticRun);
+        }
+        //if (toChars()[0] == 'D') *(char*)0=0;
+        if (tempinst.semanticRun >= PASSsemantic3)
+            return;
+        tempinst.semanticRun = PASSsemantic3;
+        if (!tempinst.errors && tempinst.members)
+        {
+            TemplateDeclaration tempdecl = tempinst.tempdecl.isTemplateDeclaration();
+            assert(tempdecl);
+
+            sc = tempdecl._scope;
+            sc = sc.push(tempinst.argsym);
+            sc = sc.push(tempinst);
+            sc.tinst = tempinst;
+            sc.minst = tempinst.minst;
+
+            int needGagging = (tempinst.gagged && !global.gag);
+            uint olderrors = global.errors;
+            int oldGaggedErrors = -1; // dead-store to prevent spurious warning
+            /* If this is a gagged instantiation, gag errors.
+             * Future optimisation: If the results are actually needed, errors
+             * would already be gagged, so we don't really need to run semantic
+             * on the members.
+             */
+            if (needGagging)
+                oldGaggedErrors = global.startGagging();
+
+            for (size_t i = 0; i < tempinst.members.dim; i++)
+            {
+                Dsymbol s = (*tempinst.members)[i];
+                s.semantic3(sc);
+                if (tempinst.gagged && global.errors != olderrors)
+                    break;
+            }
+
+            if (global.errors != olderrors)
+            {
+                if (!tempinst.errors)
+                {
+                    if (!tempdecl.literal)
+                        tempinst.error(tempinst.loc, "error instantiating");
+                    if (tempinst.tinst)
+                        tempinst.tinst.printInstantiationTrace();
+                }
+                tempinst.errors = true;
+            }
+            if (needGagging)
+                global.endGagging(oldGaggedErrors);
+
+            sc = sc.pop();
+            sc.pop();
+        }
+    }
+
+    override void visit(TemplateMixin tmix)
+    {
+        if (tmix.semanticRun >= PASSsemantic3)
+            return;
+        tmix.semanticRun = PASSsemantic3;
+        static if (LOG)
+        {
+            printf("TemplateMixin.semantic3('%s')\n", tmix.toChars());
+        }
+        if (tmix.members)
+        {
+            sc = sc.push(tmix.argsym);
+            sc = sc.push(tmix);
+            for (size_t i = 0; i < tmix.members.dim; i++)
+            {
+                Dsymbol s = (*tmix.members)[i];
+                s.semantic3(sc);
+            }
+            sc = sc.pop();
+            sc.pop();
+        }
+    }
+
+    override void visit(Module mod)
+    {
+        //printf("Module::semantic3('%s'): parent = %p\n", toChars(), parent);
+        if (mod.semanticRun != PASSsemantic2done)
+            return;
+        mod.semanticRun = PASSsemantic3;
+        // Note that modules get their own scope, from scratch.
+        // This is so regardless of where in the syntax a module
+        // gets imported, it is unaffected by context.
+        Scope* sc = Scope.createGlobal(mod); // create root scope
+        //printf("Module = %p\n", sc.scopesym);
+        // Pass 3 semantic routines: do initializers and function bodies
+        for (size_t i = 0; i < mod.members.dim; i++)
+        {
+            Dsymbol s = (*mod.members)[i];
+            //printf("Module %s: %s.semantic3()\n", toChars(), s.toChars());
+            s.semantic3(sc);
+
+            mod.runDeferredSemantic2();
+        }
+        if (mod.userAttribDecl)
+        {
+            mod.userAttribDecl.semantic3(sc);
+        }
+        sc = sc.pop();
+        sc.pop();
+        mod.semanticRun = PASSsemantic3done;
+    }
+
+    override void visit(FuncDeclaration funcdecl)
+    {
+        VarDeclaration _arguments = null;
+
+        if (!funcdecl.parent)
+        {
+            if (global.errors)
+                return;
+            //printf("FuncDeclaration::semantic3(%s '%s', sc = %p)\n", kind(), toChars(), sc);
+            assert(0);
+        }
+        if (funcdecl.errors || isError(funcdecl.parent))
+        {
+            funcdecl.errors = true;
+            return;
+        }
+        //printf("FuncDeclaration::semantic3('%s.%s', %p, sc = %p, loc = %s)\n", parent.toChars(), toChars(), this, sc, loc.toChars());
+        //fflush(stdout);
+        //printf("storage class = x%x %x\n", sc.stc, storage_class);
+        //{ static int x; if (++x == 2) *(char*)0=0; }
+        //printf("\tlinkage = %d\n", sc.linkage);
+
+        if (funcdecl.ident == Id.assign && !funcdecl.inuse)
+        {
+            if (funcdecl.storage_class & STCinference)
+            {
+                /* https://issues.dlang.org/show_bug.cgi?id=15044
+                 * For generated opAssign function, any errors
+                 * from its body need to be gagged.
+                 */
+                uint oldErrors = global.startGagging();
+                ++funcdecl.inuse;
+                funcdecl.semantic3(sc);
+                --funcdecl.inuse;
+                if (global.endGagging(oldErrors))   // if errors happened
+                {
+                    // Disable generated opAssign, because some members forbid identity assignment.
+                    funcdecl.storage_class |= STCdisable;
+                    funcdecl.fbody = null;   // remove fbody which contains the error
+                    funcdecl.semantic3Errors = false;
+                }
+                return;
+            }
+        }
+
+        //printf(" sc.incontract = %d\n", (sc.flags & SCOPEcontract));
+        if (funcdecl.semanticRun >= PASSsemantic3)
+            return;
+        funcdecl.semanticRun = PASSsemantic3;
+        funcdecl.semantic3Errors = false;
+
+        if (!funcdecl.type || funcdecl.type.ty != Tfunction)
+            return;
+        TypeFunction f = cast(TypeFunction)funcdecl.type;
+        if (!funcdecl.inferRetType && f.next.ty == Terror)
+            return;
+
+        if (!funcdecl.fbody && funcdecl.inferRetType && !f.next)
+        {
+            funcdecl.error("has no function body with return type inference");
+            return;
+        }
+
+        uint oldErrors = global.errors;
+
+        if (funcdecl.frequire)
+        {
+            for (size_t i = 0; i < funcdecl.foverrides.dim; i++)
+            {
+                FuncDeclaration fdv = funcdecl.foverrides[i];
+                if (fdv.fbody && !fdv.frequire)
+                {
+                    funcdecl.error("cannot have an in contract when overridden function %s does not have an in contract", fdv.toPrettyChars());
+                    break;
+                }
+            }
+        }
+
+        uint fensure_endlin = funcdecl.endloc.linnum;
+        if (funcdecl.fensure)
+            if (auto s = funcdecl.fensure.isScopeStatement())
+                fensure_endlin = s.endloc.linnum;
+
+        funcdecl.frequire = funcdecl.mergeFrequire(funcdecl.frequire);
+        funcdecl.fensure = funcdecl.mergeFensure(funcdecl.fensure, funcdecl.outId);
+        if (funcdecl.fbody || funcdecl.frequire || funcdecl.fensure)
+        {
+            /* Symbol table into which we place parameters and nested functions,
+             * solely to diagnose name collisions.
+             */
+            funcdecl.localsymtab = new DsymbolTable();
+
+            // Establish function scope
+            auto ss = new ScopeDsymbol();
+            // find enclosing scope symbol, might skip symbol-less CTFE and/or FuncExp scopes
+            for (auto scx = sc; ; scx = scx.enclosing)
+            {
+                if (scx.scopesym)
+                {
+                    ss.parent = scx.scopesym;
+                    break;
+                }
+            }
+            ss.loc = funcdecl.loc;
+            ss.endlinnum = funcdecl.endloc.linnum;
+            Scope* sc2 = sc.push(ss);
+            sc2.func = funcdecl;
+            sc2.parent = funcdecl;
+            sc2.callSuper = 0;
+            sc2.sbreak = null;
+            sc2.scontinue = null;
+            sc2.sw = null;
+            sc2.fes = funcdecl.fes;
+            sc2.linkage = LINKd;
+            sc2.stc &= ~(STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STCoverride | STC_TYPECTOR | STCfinal | STCtls | STCgshared | STCref | STCreturn | STCproperty | STCnothrow | STCpure | STCsafe | STCtrusted | STCsystem);
+            sc2.protection = Prot(PROTpublic);
+            sc2.explicitProtection = 0;
+            sc2.aligndecl = null;
+            if (funcdecl.ident != Id.require && funcdecl.ident != Id.ensure)
+                sc2.flags = sc.flags & ~SCOPEcontract;
+            sc2.flags &= ~SCOPEcompile;
+            sc2.tf = null;
+            sc2.os = null;
+            sc2.noctor = 0;
+            sc2.userAttribDecl = null;
+            if (sc2.intypeof == 1)
+                sc2.intypeof = 2;
+            sc2.fieldinit = null;
+            sc2.fieldinit_dim = 0;
+
+            /* Note: When a lambda is defined immediately under aggregate member
+             * scope, it should be contextless due to prevent interior pointers.
+             * e.g.
+             *      // dg points 'this' - it's interior pointer
+             *      class C { int x; void delegate() dg = (){ this.x = 1; }; }
+             *
+             * However, lambdas could be used inside typeof, in order to check
+             * some expressions validity at compile time. For such case the lambda
+             * body can access aggregate instance members.
+             * e.g.
+             *      class C { int x; static assert(is(typeof({ this.x = 1; }))); }
+             *
+             * To properly accept it, mark these lambdas as member functions.
+             */
+            if (auto fld = funcdecl.isFuncLiteralDeclaration())
+            {
+                if (auto ad = funcdecl.isMember2())
+                {
+                    if (!sc.intypeof)
+                    {
+                        if (fld.tok == TOKdelegate)
+                            funcdecl.error("cannot be %s members", ad.kind());
+                        else
+                            fld.tok = TOKfunction;
+                    }
+                    else
+                    {
+                        if (fld.tok != TOKfunction)
+                            fld.tok = TOKdelegate;
+                    }
+                }
+            }
+
+            // Declare 'this'
+            auto ad = funcdecl.isThis();
+            funcdecl.vthis = funcdecl.declareThis(sc2, ad);
+            //printf("[%s] ad = %p vthis = %p\n", loc.toChars(), ad, vthis);
+            //if (vthis) printf("\tvthis.type = %s\n", vthis.type.toChars());
+
+            // Declare hidden variable _arguments[] and _argptr
+            if (f.varargs == 1)
+            {
+                if (f.linkage == LINKd)
+                {
+                    // Declare _arguments[]
+                    funcdecl.v_arguments = new VarDeclaration(Loc(), Type.typeinfotypelist.type, Id._arguments_typeinfo, null);
+                    funcdecl.v_arguments.storage_class |= STCtemp | STCparameter;
+                    funcdecl.v_arguments.semantic(sc2);
+                    sc2.insert(funcdecl.v_arguments);
+                    funcdecl.v_arguments.parent = funcdecl;
+
+                    //Type *t = Type::typeinfo.type.constOf().arrayOf();
+                    Type t = Type.dtypeinfo.type.arrayOf();
+                    _arguments = new VarDeclaration(Loc(), t, Id._arguments, null);
+                    _arguments.storage_class |= STCtemp;
+                    _arguments.semantic(sc2);
+                    sc2.insert(_arguments);
+                    _arguments.parent = funcdecl;
+                }
+                if (f.linkage == LINKd || (f.parameters && Parameter.dim(f.parameters)))
+                {
+                    // Declare _argptr
+                    Type t = Type.tvalist;
+                    // Init is handled in FuncDeclaration_toObjFile
+                    funcdecl.v_argptr = new VarDeclaration(Loc(), t, Id._argptr, new VoidInitializer(funcdecl.loc));
+                    funcdecl.v_argptr.storage_class |= STCtemp;
+                    funcdecl.v_argptr.semantic(sc2);
+                    sc2.insert(funcdecl.v_argptr);
+                    funcdecl.v_argptr.parent = funcdecl;
+                }
+            }
+
+            /* Declare all the function parameters as variables
+             * and install them in parameters[]
+             */
+            size_t nparams = Parameter.dim(f.parameters);
+            if (nparams)
+            {
+                /* parameters[] has all the tuples removed, as the back end
+                 * doesn't know about tuples
+                 */
+                funcdecl.parameters = new VarDeclarations();
+                funcdecl.parameters.reserve(nparams);
+                for (size_t i = 0; i < nparams; i++)
+                {
+                    Parameter fparam = Parameter.getNth(f.parameters, i);
+                    Identifier id = fparam.ident;
+                    StorageClass stc = 0;
+                    if (!id)
+                    {
+                        /* Generate identifier for un-named parameter,
+                         * because we need it later on.
+                         */
+                        fparam.ident = id = Identifier.generateId("_param_", i);
+                        stc |= STCtemp;
+                    }
+                    Type vtype = fparam.type;
+                    auto v = new VarDeclaration(funcdecl.loc, vtype, id, null);
+                    //printf("declaring parameter %s of type %s\n", v.toChars(), v.type.toChars());
+                    stc |= STCparameter;
+                    if (f.varargs == 2 && i + 1 == nparams)
+                        stc |= STCvariadic;
+                    if (funcdecl.flags & FUNCFLAGinferScope && !(fparam.storageClass & STCscope))
+                        stc |= STCmaybescope;
+                    stc |= fparam.storageClass & (STCin | STCout | STCref | STCreturn | STCscope | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
+                    v.storage_class = stc;
+                    v.semantic(sc2);
+                    if (!sc2.insert(v))
+                        funcdecl.error("parameter %s.%s is already defined", funcdecl.toChars(), v.toChars());
+                    else
+                        funcdecl.parameters.push(v);
+                    funcdecl.localsymtab.insert(v);
+                    v.parent = funcdecl;
+                }
+            }
+
+            // Declare the tuple symbols and put them in the symbol table,
+            // but not in parameters[].
+            if (f.parameters)
+            {
+                for (size_t i = 0; i < f.parameters.dim; i++)
+                {
+                    Parameter fparam = (*f.parameters)[i];
+                    if (!fparam.ident)
+                        continue; // never used, so ignore
+                    if (fparam.type.ty == Ttuple)
+                    {
+                        TypeTuple t = cast(TypeTuple)fparam.type;
+                        size_t dim = Parameter.dim(t.arguments);
+                        auto exps = new Objects();
+                        exps.setDim(dim);
+                        for (size_t j = 0; j < dim; j++)
+                        {
+                            Parameter narg = Parameter.getNth(t.arguments, j);
+                            assert(narg.ident);
+                            VarDeclaration v = sc2.search(Loc(), narg.ident, null).isVarDeclaration();
+                            assert(v);
+                            Expression e = new VarExp(v.loc, v);
+                            (*exps)[j] = e;
+                        }
+                        assert(fparam.ident);
+                        auto v = new TupleDeclaration(funcdecl.loc, fparam.ident, exps);
+                        //printf("declaring tuple %s\n", v.toChars());
+                        v.isexp = true;
+                        if (!sc2.insert(v))
+                            funcdecl.error("parameter %s.%s is already defined", funcdecl.toChars(), v.toChars());
+                        funcdecl.localsymtab.insert(v);
+                        v.parent = funcdecl;
+                    }
+                }
+            }
+
+            // Precondition invariant
+            Statement fpreinv = null;
+            if (funcdecl.addPreInvariant())
+            {
+                Expression e = addInvariant(funcdecl.loc, sc, ad, funcdecl.vthis);
+                if (e)
+                    fpreinv = new ExpStatement(Loc(), e);
+            }
+
+            // Postcondition invariant
+            Statement fpostinv = null;
+            if (funcdecl.addPostInvariant())
+            {
+                Expression e = addInvariant(funcdecl.loc, sc, ad, funcdecl.vthis);
+                if (e)
+                    fpostinv = new ExpStatement(Loc(), e);
+            }
+
+            Scope* scout = null;
+            if (funcdecl.fensure || funcdecl.addPostInvariant())
+            {
+                if ((funcdecl.fensure && global.params.useOut) || fpostinv)
+                {
+                    funcdecl.returnLabel = new LabelDsymbol(Id.returnLabel);
+                }
+
+                // scope of out contract (need for vresult.semantic)
+                auto sym = new ScopeDsymbol();
+                sym.parent = sc2.scopesym;
+                sym.loc = funcdecl.loc;
+                sym.endlinnum = fensure_endlin;
+                scout = sc2.push(sym);
+            }
+
+            if (funcdecl.fbody)
+            {
+                auto sym = new ScopeDsymbol();
+                sym.parent = sc2.scopesym;
+                sym.loc = funcdecl.loc;
+                sym.endlinnum = funcdecl.endloc.linnum;
+                sc2 = sc2.push(sym);
+
+                auto ad2 = funcdecl.isMember2();
+
+                /* If this is a class constructor
+                 */
+                if (ad2 && funcdecl.isCtorDeclaration())
+                {
+                    sc2.allocFieldinit(ad2.fields.dim);
+                    foreach (v; ad2.fields)
+                    {
+                        v.ctorinit = 0;
+                    }
+                }
+
+                if (!funcdecl.inferRetType && retStyle(f) != RETstack)
+                    funcdecl.nrvo_can = 0;
+
+                bool inferRef = (f.isref && (funcdecl.storage_class & STCauto));
+
+                funcdecl.fbody = funcdecl.fbody.semantic(sc2);
+                if (!funcdecl.fbody)
+                    funcdecl.fbody = new CompoundStatement(Loc(), new Statements());
+
+                if (funcdecl.naked)
+                {
+                    fpreinv = null;         // can't accommodate with no stack frame
+                    fpostinv = null;
+                }
+
+                assert(funcdecl.type == f || (funcdecl.type.ty == Tfunction && f.purity == PUREimpure && (cast(TypeFunction)funcdecl.type).purity >= PUREfwdref));
+                f = cast(TypeFunction)funcdecl.type;
+
+                if (funcdecl.inferRetType)
+                {
+                    // If no return type inferred yet, then infer a void
+                    if (!f.next)
+                        f.next = Type.tvoid;
+                    if (f.checkRetType(funcdecl.loc))
+                        funcdecl.fbody = new ErrorStatement();
+                }
+                if (global.params.vcomplex && f.next !is null)
+                    f.next.checkComplexTransition(funcdecl.loc);
+
+                if (funcdecl.returns && !funcdecl.fbody.isErrorStatement())
+                {
+                    for (size_t i = 0; i < funcdecl.returns.dim;)
+                    {
+                        Expression exp = (*funcdecl.returns)[i].exp;
+                        if (exp.op == TOKvar && (cast(VarExp)exp).var == funcdecl.vresult)
+                        {
+                            if (f.next.ty == Tvoid && funcdecl.isMain())
+                                exp.type = Type.tint32;
+                            else
+                                exp.type = f.next;
+                            // Remove `return vresult;` from returns
+                            funcdecl.returns.remove(i);
+                            continue;
+                        }
+                        if (inferRef && f.isref && !exp.type.constConv(f.next)) // https://issues.dlang.org/show_bug.cgi?id=13336
+                            f.isref = false;
+                        i++;
+                    }
+                }
+                if (f.isref) // Function returns a reference
+                {
+                    if (funcdecl.storage_class & STCauto)
+                        funcdecl.storage_class &= ~STCauto;
+                }
+                if (retStyle(f) != RETstack)
+                    funcdecl.nrvo_can = 0;
+
+                if (funcdecl.fbody.isErrorStatement())
+                {
+                }
+                else if (funcdecl.isStaticCtorDeclaration())
+                {
+                    /* It's a static constructor. Ensure that all
+                     * ctor consts were initialized.
+                     */
+                    ScopeDsymbol pd = funcdecl.toParent().isScopeDsymbol();
+                    for (size_t i = 0; i < pd.members.dim; i++)
+                    {
+                        Dsymbol s = (*pd.members)[i];
+                        s.checkCtorConstInit();
+                    }
+                }
+                else if (ad2 && funcdecl.isCtorDeclaration())
+                {
+                    ClassDeclaration cd = ad2.isClassDeclaration();
+
+                    // Verify that all the ctorinit fields got initialized
+                    if (!(sc2.callSuper & CSXthis_ctor))
+                    {
+                        foreach (i, v; ad2.fields)
+                        {
+                            if (v.isThisDeclaration())
+                                continue;
+                            if (v.ctorinit == 0)
+                            {
+                                /* Current bugs in the flow analysis:
+                                 * 1. union members should not produce error messages even if
+                                 *    not assigned to
+                                 * 2. structs should recognize delegating opAssign calls as well
+                                 *    as delegating calls to other constructors
+                                 */
+                                if (v.isCtorinit() && !v.type.isMutable() && cd)
+                                    funcdecl.error("missing initializer for %s field %s", MODtoChars(v.type.mod), v.toChars());
+                                else if (v.storage_class & STCnodefaultctor)
+                                    error(funcdecl.loc, "field %s must be initialized in constructor", v.toChars());
+                                else if (v.type.needsNested())
+                                    error(funcdecl.loc, "field %s must be initialized in constructor, because it is nested struct", v.toChars());
+                            }
+                            else
+                            {
+                                bool mustInit = (v.storage_class & STCnodefaultctor || v.type.needsNested());
+                                if (mustInit && !(sc2.fieldinit[i] & CSXthis_ctor))
+                                {
+                                    funcdecl.error("field %s must be initialized but skipped", v.toChars());
+                                }
+                            }
+                        }
+                    }
+                    sc2.freeFieldinit();
+
+                    if (cd && !(sc2.callSuper & CSXany_ctor) && cd.baseClass && cd.baseClass.ctor)
+                    {
+                        sc2.callSuper = 0;
+
+                        // Insert implicit super() at start of fbody
+                        FuncDeclaration fd = resolveFuncCall(Loc(), sc2, cd.baseClass.ctor, null, funcdecl.vthis.type, null, 1);
+                        if (!fd)
+                        {
+                            funcdecl.error("no match for implicit super() call in constructor");
+                        }
+                        else if (fd.storage_class & STCdisable)
+                        {
+                            funcdecl.error("cannot call super() implicitly because it is annotated with @disable");
+                        }
+                        else
+                        {
+                            Expression e1 = new SuperExp(Loc());
+                            Expression e = new CallExp(Loc(), e1);
+                            e = e.semantic(sc2);
+                            Statement s = new ExpStatement(Loc(), e);
+                            funcdecl.fbody = new CompoundStatement(Loc(), s, funcdecl.fbody);
+                        }
+                    }
+                    //printf("callSuper = x%x\n", sc2.callSuper);
+                }
+
+                int blockexit = BEnone;
+                if (!funcdecl.fbody.isErrorStatement())
+                {
+                    // Check for errors related to 'nothrow'.
+                    uint nothrowErrors = global.errors;
+                    blockexit = funcdecl.fbody.blockExit(funcdecl, f.isnothrow);
+                    if (f.isnothrow && (global.errors != nothrowErrors))
+                        error(funcdecl.loc, "nothrow %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
+                    if (funcdecl.flags & FUNCFLAGnothrowInprocess)
+                    {
+                        if (funcdecl.type == f)
+                            f = cast(TypeFunction)f.copy();
+                        f.isnothrow = !(blockexit & BEthrow);
+                    }
+                }
+
+                if (funcdecl.fbody.isErrorStatement())
+                {
+                }
+                else if (ad2 && funcdecl.isCtorDeclaration())
+                {
+                    /* Append:
+                     *  return this;
+                     * to function body
+                     */
+                    if (blockexit & BEfallthru)
+                    {
+                        Statement s = new ReturnStatement(funcdecl.loc, null);
+                        s = s.semantic(sc2);
+                        funcdecl.fbody = new CompoundStatement(funcdecl.loc, funcdecl.fbody, s);
+                        funcdecl.hasReturnExp |= (funcdecl.hasReturnExp & 1 ? 16 : 1);
+                    }
+                }
+                else if (funcdecl.fes)
+                {
+                    // For foreach(){} body, append a return 0;
+                    if (blockexit & BEfallthru)
+                    {
+                        Expression e = new IntegerExp(0);
+                        Statement s = new ReturnStatement(Loc(), e);
+                        funcdecl.fbody = new CompoundStatement(Loc(), funcdecl.fbody, s);
+                        funcdecl.hasReturnExp |= (funcdecl.hasReturnExp & 1 ? 16 : 1);
+                    }
+                    assert(!funcdecl.returnLabel);
+                }
+                else
+                {
+                    const(bool) inlineAsm = (funcdecl.hasReturnExp & 8) != 0;
+                    if ((blockexit & BEfallthru) && f.next.ty != Tvoid && !inlineAsm)
+                    {
+                        Expression e;
+                        if (!funcdecl.hasReturnExp)
+                            funcdecl.error("has no return statement, but is expected to return a value of type %s", f.next.toChars());
+                        else
+                            funcdecl.error("no return exp; or assert(0); at end of function");
+                        if (global.params.useAssert && !global.params.useInline)
+                        {
+                            /* Add an assert(0, msg); where the missing return
+                             * should be.
+                             */
+                            e = new AssertExp(funcdecl.endloc, new IntegerExp(0), new StringExp(funcdecl.loc, cast(char*)"missing return expression"));
+                        }
+                        else
+                            e = new HaltExp(funcdecl.endloc);
+                        e = new CommaExp(Loc(), e, f.next.defaultInit());
+                        e = e.semantic(sc2);
+                        Statement s = new ExpStatement(Loc(), e);
+                        funcdecl.fbody = new CompoundStatement(Loc(), funcdecl.fbody, s);
+                    }
+                }
+
+                if (funcdecl.returns)
+                {
+                    bool implicit0 = (f.next.ty == Tvoid && funcdecl.isMain());
+                    Type tret = implicit0 ? Type.tint32 : f.next;
+                    assert(tret.ty != Tvoid);
+                    if (funcdecl.vresult || funcdecl.returnLabel)
+                        funcdecl.buildResultVar(scout ? scout : sc2, tret);
+
+                    /* Cannot move this loop into NrvoWalker, because
+                     * returns[i] may be in the nested delegate for foreach-body.
+                     */
+                    for (size_t i = 0; i < funcdecl.returns.dim; i++)
+                    {
+                        ReturnStatement rs = (*funcdecl.returns)[i];
+                        Expression exp = rs.exp;
+                        if (exp.op == TOKerror)
+                            continue;
+                        if (tret.ty == Terror)
+                        {
+                            // https://issues.dlang.org/show_bug.cgi?id=13702
+                            exp = checkGC(sc2, exp);
+                            continue;
+                        }
+
+                        if (!exp.implicitConvTo(tret) && funcdecl.parametersIntersect(exp.type))
+                        {
+                            if (exp.type.immutableOf().implicitConvTo(tret))
+                                exp = exp.castTo(sc2, exp.type.immutableOf());
+                            else if (exp.type.wildOf().implicitConvTo(tret))
+                                exp = exp.castTo(sc2, exp.type.wildOf());
+                        }
+                        exp = exp.implicitCastTo(sc2, tret);
+
+                        if (f.isref)
+                        {
+                            // Function returns a reference
+                            exp = exp.toLvalue(sc2, exp);
+                            checkReturnEscapeRef(sc2, exp, false);
+                        }
+                        else
+                        {
+                            exp = exp.optimize(WANTvalue);
+
+                            /* https://issues.dlang.org/show_bug.cgi?id=10789
+                             * If NRVO is not possible, all returned lvalues should call their postblits.
+                             */
+                            if (!funcdecl.nrvo_can)
+                                exp = doCopyOrMove(sc2, exp);
+
+                            if (tret.hasPointers())
+                                checkReturnEscape(sc2, exp, false);
+                        }
+
+                        exp = checkGC(sc2, exp);
+
+                        if (funcdecl.vresult)
+                        {
+                            // Create: return vresult = exp;
+                            exp = new BlitExp(rs.loc, funcdecl.vresult, exp);
+                            exp.type = funcdecl.vresult.type;
+
+                            if (rs.caseDim)
+                                exp = Expression.combine(exp, new IntegerExp(rs.caseDim));
+                        }
+                        else if (funcdecl.tintro && !tret.equals(funcdecl.tintro.nextOf()))
+                        {
+                            exp = exp.implicitCastTo(sc2, funcdecl.tintro.nextOf());
+                        }
+                        rs.exp = exp;
+                    }
+                }
+                if (funcdecl.nrvo_var || funcdecl.returnLabel)
+                {
+                    scope NrvoWalker nw = new NrvoWalker();
+                    nw.fd = funcdecl;
+                    nw.sc = sc2;
+                    nw.visitStmt(funcdecl.fbody);
+                }
+
+                sc2 = sc2.pop();
+            }
+
+            Statement freq = funcdecl.frequire;
+            Statement fens = funcdecl.fensure;
+
+            /* Do the semantic analysis on the [in] preconditions and
+             * [out] postconditions.
+             */
+            if (freq)
+            {
+                /* frequire is composed of the [in] contracts
+                 */
+                auto sym = new ScopeDsymbol();
+                sym.parent = sc2.scopesym;
+                sym.loc = funcdecl.loc;
+                sym.endlinnum = funcdecl.endloc.linnum;
+                sc2 = sc2.push(sym);
+                sc2.flags = (sc2.flags & ~SCOPEcontract) | SCOPErequire;
+
+                // BUG: need to error if accessing out parameters
+                // BUG: need to treat parameters as const
+                // BUG: need to disallow returns and throws
+                // BUG: verify that all in and ref parameters are read
+                freq = freq.semantic(sc2);
+                freq.blockExit(funcdecl, false);
+
+                sc2 = sc2.pop();
+
+                if (!global.params.useIn)
+                    freq = null;
+            }
+            if (fens)
+            {
+                /* fensure is composed of the [out] contracts
+                 */
+                if (f.next.ty == Tvoid && funcdecl.outId)
+                    funcdecl.error("void functions have no result");
+
+                sc2 = scout; //push
+                sc2.flags = (sc2.flags & ~SCOPEcontract) | SCOPEensure;
+
+                // BUG: need to treat parameters as const
+                // BUG: need to disallow returns and throws
+                if (funcdecl.inferRetType && funcdecl.fdensure && funcdecl.fdensure.type.toTypeFunction().parameters)
+                {
+                    // Return type was unknown in the first semantic pass
+                    auto out_params = (cast(TypeFunction)funcdecl.fdensure.type).parameters;
+                    if (out_params.dim > 0)
+                    {
+                        Parameter p = (*out_params)[0];
+                        p.type = f.next;
+                    }
+                }
+
+                if (funcdecl.fensure && f.next.ty != Tvoid)
+                    funcdecl.buildResultVar(scout, f.next);
+
+                fens = fens.semantic(sc2);
+                fens.blockExit(funcdecl, false);
+
+                sc2 = sc2.pop();
+
+                if (!global.params.useOut)
+                    fens = null;
+            }
+            if (funcdecl.fbody && funcdecl.fbody.isErrorStatement())
+            {
+            }
+            else
+            {
+                auto a = new Statements();
+                // Merge in initialization of 'out' parameters
+                if (funcdecl.parameters)
+                {
+                    for (size_t i = 0; i < funcdecl.parameters.dim; i++)
+                    {
+                        VarDeclaration v = (*funcdecl.parameters)[i];
+                        if (v.storage_class & STCout)
+                        {
+                            assert(v._init);
+                            ExpInitializer ie = v._init.isExpInitializer();
+                            assert(ie);
+                            if (ie.exp.op == TOKconstruct)
+                                ie.exp.op = TOKassign; // construction occurred in parameter processing
+                            a.push(new ExpStatement(Loc(), ie.exp));
+                        }
+                    }
+                }
+
+                if (_arguments)
+                {
+                    /* Advance to elements[] member of TypeInfo_Tuple with:
+                     *  _arguments = v_arguments.elements;
+                     */
+                    Expression e = new VarExp(Loc(), funcdecl.v_arguments);
+                    e = new DotIdExp(Loc(), e, Id.elements);
+                    e = new ConstructExp(Loc(), _arguments, e);
+                    e = e.semantic(sc2);
+
+                    _arguments._init = new ExpInitializer(Loc(), e);
+                    auto de = new DeclarationExp(Loc(), _arguments);
+                    a.push(new ExpStatement(Loc(), de));
+                }
+
+                // Merge contracts together with body into one compound statement
+
+                if (freq || fpreinv)
+                {
+                    if (!freq)
+                        freq = fpreinv;
+                    else if (fpreinv)
+                        freq = new CompoundStatement(Loc(), freq, fpreinv);
+
+                    a.push(freq);
+                }
+
+                if (funcdecl.fbody)
+                    a.push(funcdecl.fbody);
+
+                if (fens || fpostinv)
+                {
+                    if (!fens)
+                        fens = fpostinv;
+                    else if (fpostinv)
+                        fens = new CompoundStatement(Loc(), fpostinv, fens);
+
+                    auto ls = new LabelStatement(Loc(), Id.returnLabel, fens);
+                    funcdecl.returnLabel.statement = ls;
+                    a.push(funcdecl.returnLabel.statement);
+
+                    if (f.next.ty != Tvoid && funcdecl.vresult)
+                    {
+                        // Create: return vresult;
+                        Expression e = new VarExp(Loc(), funcdecl.vresult);
+                        if (funcdecl.tintro)
+                        {
+                            e = e.implicitCastTo(sc, funcdecl.tintro.nextOf());
+                            e = e.semantic(sc);
+                        }
+                        auto s = new ReturnStatement(Loc(), e);
+                        a.push(s);
+                    }
+                }
+                if (funcdecl.isMain() && f.next.ty == Tvoid)
+                {
+                    // Add a return 0; statement
+                    Statement s = new ReturnStatement(Loc(), new IntegerExp(0));
+                    a.push(s);
+                }
+
+                Statement sbody = new CompoundStatement(Loc(), a);
+
+                /* Append destructor calls for parameters as finally blocks.
+                 */
+                if (funcdecl.parameters)
+                {
+                    foreach (v; *funcdecl.parameters)
+                    {
+                        if (v.storage_class & (STCref | STCout | STClazy))
+                            continue;
+                        if (v.needsScopeDtor())
+                        {
+                            // same with ExpStatement.scopeCode()
+                            Statement s = new DtorExpStatement(Loc(), v.edtor, v);
+                            v.storage_class |= STCnodtor;
+
+                            s = s.semantic(sc2);
+
+                            bool isnothrow = f.isnothrow & !(funcdecl.flags & FUNCFLAGnothrowInprocess);
+                            int blockexit = s.blockExit(funcdecl, isnothrow);
+                            if (f.isnothrow && isnothrow && blockexit & BEthrow)
+                                error(funcdecl.loc, "nothrow %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
+                            if (funcdecl.flags & FUNCFLAGnothrowInprocess && blockexit & BEthrow)
+                                f.isnothrow = false;
+
+                            if (sbody.blockExit(funcdecl, f.isnothrow) == BEfallthru)
+                                sbody = new CompoundStatement(Loc(), sbody, s);
+                            else
+                                sbody = new TryFinallyStatement(Loc(), sbody, s);
+                        }
+                    }
+                }
+                // from this point on all possible 'throwers' are checked
+                funcdecl.flags &= ~FUNCFLAGnothrowInprocess;
+
+                if (funcdecl.isSynchronized())
+                {
+                    /* Wrap the entire function body in a synchronized statement
+                     */
+                    ClassDeclaration cd = funcdecl.isThis() ? funcdecl.isThis().isClassDeclaration() : funcdecl.parent.isClassDeclaration();
+                    if (cd)
+                    {
+                        if (!global.params.is64bit && global.params.isWindows && !funcdecl.isStatic() && !sbody.usesEH() && !global.params.trace)
+                        {
+                            /* The back end uses the "jmonitor" hack for syncing;
+                             * no need to do the sync at this level.
+                             */
+                        }
+                        else
+                        {
+                            Expression vsync;
+                            if (funcdecl.isStatic())
+                            {
+                                // The monitor is in the ClassInfo
+                                vsync = new DotIdExp(funcdecl.loc, resolve(funcdecl.loc, sc2, cd, false), Id.classinfo);
+                            }
+                            else
+                            {
+                                // 'this' is the monitor
+                                vsync = new VarExp(funcdecl.loc, funcdecl.vthis);
+                            }
+                            sbody = new PeelStatement(sbody); // don't redo semantic()
+                            sbody = new SynchronizedStatement(funcdecl.loc, vsync, sbody);
+                            sbody = sbody.semantic(sc2);
+                        }
+                    }
+                    else
+                    {
+                        funcdecl.error("synchronized function %s must be a member of a class", funcdecl.toChars());
+                    }
+                }
+
+                // If declaration has no body, don't set sbody to prevent incorrect codegen.
+                InterfaceDeclaration id = funcdecl.parent.isInterfaceDeclaration();
+                if (funcdecl.fbody || id && (funcdecl.fdensure || funcdecl.fdrequire) && funcdecl.isVirtual())
+                    funcdecl.fbody = sbody;
+            }
+
+            // Fix up forward-referenced gotos
+            if (funcdecl.gotos)
+            {
+                for (size_t i = 0; i < funcdecl.gotos.dim; ++i)
+                {
+                    (*funcdecl.gotos)[i].checkLabel();
+                }
+            }
+
+            if (funcdecl.naked && (funcdecl.fensure || funcdecl.frequire))
+                funcdecl.error("naked assembly functions with contracts are not supported");
+
+            sc2.callSuper = 0;
+            sc2.pop();
+        }
+
+        if (funcdecl.checkClosure())
+        {
+            // We should be setting errors here instead of relying on the global error count.
+            //errors = true;
+        }
+
+        /* If function survived being marked as impure, then it is pure
+         */
+        if (funcdecl.flags & FUNCFLAGpurityInprocess)
+        {
+            funcdecl.flags &= ~FUNCFLAGpurityInprocess;
+            if (funcdecl.type == f)
+                f = cast(TypeFunction)f.copy();
+            f.purity = PUREfwdref;
+        }
+
+        if (funcdecl.flags & FUNCFLAGsafetyInprocess)
+        {
+            funcdecl.flags &= ~FUNCFLAGsafetyInprocess;
+            if (funcdecl.type == f)
+                f = cast(TypeFunction)f.copy();
+            f.trust = TRUSTsafe;
+        }
+
+        if (funcdecl.flags & FUNCFLAGnogcInprocess)
+        {
+            funcdecl.flags &= ~FUNCFLAGnogcInprocess;
+            if (funcdecl.type == f)
+                f = cast(TypeFunction)f.copy();
+            f.isnogc = true;
+        }
+
+        if (funcdecl.flags & FUNCFLAGreturnInprocess)
+        {
+            funcdecl.flags &= ~FUNCFLAGreturnInprocess;
+            if (funcdecl.storage_class & STCreturn)
+            {
+                if (funcdecl.type == f)
+                    f = cast(TypeFunction)f.copy();
+                f.isreturn = true;
+            }
+        }
+
+        funcdecl.flags &= ~FUNCFLAGinferScope;
+
+        // Infer STCscope
+        if (funcdecl.parameters)
+        {
+            size_t nfparams = Parameter.dim(f.parameters);
+            assert(nfparams == funcdecl.parameters.dim);
+            foreach (u, v; *funcdecl.parameters)
+            {
+                if (v.storage_class & STCmaybescope)
+                {
+                    //printf("Inferring scope for %s\n", v.toChars());
+                    Parameter p = Parameter.getNth(f.parameters, u);
+                    v.storage_class &= ~STCmaybescope;
+                    v.storage_class |= STCscope | STCscopeinferred;
+                    p.storageClass |= STCscope | STCscopeinferred;
+                    assert(!(p.storageClass & STCmaybescope));
+                }
+            }
+        }
+
+        if (funcdecl.vthis && funcdecl.vthis.storage_class & STCmaybescope)
+        {
+            funcdecl.vthis.storage_class &= ~STCmaybescope;
+            funcdecl.vthis.storage_class |= STCscope | STCscopeinferred;
+            f.isscope = true;
+            f.isscopeinferred = true;
+        }
+
+        // reset deco to apply inference result to mangled name
+        if (f != funcdecl.type)
+            f.deco = null;
+
+        // Do semantic type AFTER pure/nothrow inference.
+        if (!f.deco && funcdecl.ident != Id.xopEquals && funcdecl.ident != Id.xopCmp)
+        {
+            sc = sc.push();
+            if (funcdecl.isCtorDeclaration()) // https://issues.dlang.org/show_bug.cgi?id=#15665
+                sc.flags |= SCOPEctor;
+            sc.stc = 0;
+            sc.linkage = funcdecl.linkage; // https://issues.dlang.org/show_bug.cgi?id=8496
+            funcdecl.type = f.semantic(funcdecl.loc, sc);
+            sc = sc.pop();
+        }
+
+        /* If this function had instantiated with gagging, error reproduction will be
+         * done by TemplateInstance::semantic.
+         * Otherwise, error gagging should be temporarily ungagged by functionSemantic3.
+         */
+        funcdecl.semanticRun = PASSsemantic3done;
+        funcdecl.semantic3Errors = (global.errors != oldErrors) || (funcdecl.fbody && funcdecl.fbody.isErrorStatement());
+        if (funcdecl.type.ty == Terror)
+            funcdecl.errors = true;
+        //printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent.toChars(), toChars(), sc, loc.toChars());
+        //fflush(stdout);
+    }
+
+    override void visit(Nspace ns)
+    {
+        if (ns.semanticRun >= PASSsemantic3)
+            return;
+        ns.semanticRun = PASSsemantic3;
+        static if (LOG)
+        {
+            printf("Nspace::semantic3('%s')\n", ns.toChars());
+        }
+        if (ns.members)
+        {
+            sc = sc.push(ns);
+            sc.linkage = LINKcpp;
+            foreach (s; *ns.members)
+            {
+                s.semantic3(sc);
+            }
+            sc.pop();
+        }
+    }
+
+    override void visit(AttribDeclaration ad)
+    {
+        Dsymbols* d = ad.include(sc, null);
+        if (d)
+        {
+            Scope* sc2 = ad.newScope(sc);
+            for (size_t i = 0; i < d.dim; i++)
+            {
+                Dsymbol s = (*d)[i];
+                s.semantic3(sc2);
+            }
+            if (sc2 != sc)
+                sc2.pop();
+        }
+    }
+
+    override void visit(AggregateDeclaration ad)
+    {
+        //printf("AggregateDeclaration::semantic3(sc=%p, %s) type = %s, errors = %d\n", sc, toChars(), type.toChars(), errors);
+        if (!ad.members)
+            return;
+
+        StructDeclaration sd = ad.isStructDeclaration();
+        if (!sc) // from runDeferredSemantic3 for TypeInfo generation
+        {
+            assert(sd);
+            sd.semanticTypeInfoMembers();
+            return;
+        }
+
+        auto sc2 = ad.newScope(sc);
+
+        for (size_t i = 0; i < ad.members.dim; i++)
+        {
+            Dsymbol s = (*ad.members)[i];
+            s.semantic3(sc2);
+        }
+
+        sc2.pop();
+
+        // don't do it for unused deprecated types
+        // or error ypes
+        if (!ad.getRTInfo && Type.rtinfo && (!ad.isDeprecated() || global.params.useDeprecated) && (ad.type && ad.type.ty != Terror))
+        {
+            // Evaluate: RTinfo!type
+            auto tiargs = new Objects();
+            tiargs.push(ad.type);
+            auto ti = new TemplateInstance(ad.loc, Type.rtinfo, tiargs);
+
+            Scope* sc3 = ti.tempdecl._scope.startCTFE();
+            sc3.tinst = sc.tinst;
+            sc3.minst = sc.minst;
+            if (ad.isDeprecated())
+                sc3.stc |= STCdeprecated;
+
+            ti.semantic(sc3);
+            ti.semantic2(sc3);
+            ti.semantic3(sc3);
+            auto e = resolve(Loc(), sc3, ti.toAlias(), false);
+
+            sc3.endCTFE();
+
+            e = e.ctfeInterpret();
+            ad.getRTInfo = e;
+        }
+        if (sd)
+            sd.semanticTypeInfoMembers();
+        ad.semanticRun = PASSsemantic3done;
+    }
+}
 
 extern(C++) final class DsymbolSemanticVisitor : Visitor
 {

@@ -664,14 +664,6 @@ extern (C++) class Dsymbol : RootObject
         // Most Dsymbols have no further semantic analysis needed
     }
 
-    /*************************************
-     * Does semantic analysis on function bodies.
-     */
-    void semantic3(Scope* sc)
-    {
-        // Most Dsymbols have no further semantic analysis needed
-    }
-
     /*********************************************
      * Search for ident as member of s.
      * Params:
