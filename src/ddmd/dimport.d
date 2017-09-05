@@ -222,21 +222,6 @@ extern (C++) final class Import : Dsymbol
         }
     }
 
-    override void semantic2(Scope* sc)
-    {
-        //printf("Import::semantic2('%s')\n", toChars());
-        if (mod)
-        {
-            mod.semantic2(null);
-            if (mod.needmoduleinfo)
-            {
-                //printf("module5 %s because of %s\n", sc.module.toChars(), mod.toChars());
-                if (sc)
-                    sc._module.needmoduleinfo = 1;
-            }
-        }
-    }
-
     override Dsymbol toAlias()
     {
         if (aliasId)

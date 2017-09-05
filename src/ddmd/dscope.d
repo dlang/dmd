@@ -21,6 +21,7 @@ import ddmd.declaration;
 import ddmd.dmodule;
 import ddmd.doc;
 import ddmd.dsymbol;
+import ddmd.dsymbolsem;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.func;
