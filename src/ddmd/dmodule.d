@@ -1053,34 +1053,6 @@ extern (C++) final class Module : Package
         sc.pop(); // 2 pops because Scope::createGlobal() created 2
     }
 
-    // pass 2 semantic analysis
-    override void semantic2(Scope*)
-    {
-        //printf("Module::semantic2('%s'): parent = %p\n", toChars(), parent);
-        if (semanticRun != PASSsemanticdone) // semantic() not completed yet - could be recursive call
-            return;
-        semanticRun = PASSsemantic2;
-        // Note that modules get their own scope, from scratch.
-        // This is so regardless of where in the syntax a module
-        // gets imported, it is unaffected by context.
-        Scope* sc = Scope.createGlobal(this); // create root scope
-        //printf("Module = %p\n", sc.scopesym);
-        // Pass 2 semantic routines: do initializers and function bodies
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            s.semantic2(sc);
-        }
-        if (userAttribDecl)
-        {
-            userAttribDecl.semantic2(sc);
-        }
-        sc = sc.pop();
-        sc.pop();
-        semanticRun = PASSsemantic2done;
-        //printf("-Module::semantic2('%s'): parent = %p\n", toChars(), parent);
-    }
-
     /**********************************
      * Determine if we need to generate an instance of ModuleInfo
      * for this Module.

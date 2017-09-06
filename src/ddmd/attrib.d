@@ -19,8 +19,6 @@ import ddmd.declaration;
 import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dsymbol;
-import ddmd.dtemplate;
-import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
@@ -154,22 +152,6 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
             {
                 Dsymbol s = (*d)[i];
                 s.importAll(sc2);
-            }
-            if (sc2 != sc)
-                sc2.pop();
-        }
-    }
-
-    override void semantic2(Scope* sc)
-    {
-        Dsymbols* d = include(sc, null);
-        if (d)
-        {
-            Scope* sc2 = newScope(sc);
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                s.semantic2(sc2);
             }
             if (sc2 != sc)
                 sc2.pop();
@@ -438,42 +420,6 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
         return AttribDeclaration.setScope(sc);
     }
 
-    /**
-     * Run the DeprecatedDeclaration's semantic2 phase then its members.
-     *
-     * The message set via a `DeprecatedDeclaration` can be either of:
-     * - a string literal
-     * - an enum
-     * - a static immutable
-     * So we need to call ctfe to resolve it.
-     * Afterward forwards to the members' semantic2.
-     */
-    override void semantic2(Scope* sc)
-    {
-        getMessage();
-        super.semantic2(sc);
-    }
-
-    const(char)* getMessage()
-    {
-        if (auto sc = _scope)
-        {
-            _scope = null;
-
-            sc = sc.startCTFE();
-            msg = msg.semantic(sc);
-            msg = resolveProperties(sc, msg);
-            sc = sc.endCTFE();
-            msg = msg.ctfeInterpret();
-
-            if (auto se = msg.toStringExp())
-                msgstr = se.toStringz().ptr;
-            else
-                msg.error("compile time constant expected, not `%s`", msg.toChars());
-        }
-        return msgstr;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -649,7 +595,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
 extern (C++) final class AlignDeclaration : AttribDeclaration
 {
     Expression ealign;
-    private enum structalign_t UNKNOWN = 0;
+    enum structalign_t UNKNOWN = 0;
     static assert(STRUCTALIGN_DEFAULT != UNKNOWN);
     structalign_t salign = UNKNOWN;
 
@@ -670,41 +616,6 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
     override Scope* newScope(Scope* sc)
     {
         return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.protection, sc.explicitProtection, this, sc.inlining);
-    }
-
-    override void semantic2(Scope* sc)
-    {
-        getAlignment(sc);
-        super.semantic2(sc);
-    }
-
-    structalign_t getAlignment(Scope* sc)
-    {
-        if (salign != UNKNOWN)
-            return salign;
-
-        if (!ealign)
-            return salign = STRUCTALIGN_DEFAULT;
-
-        sc = sc.startCTFE();
-        ealign = ealign.semantic(sc);
-        ealign = resolveProperties(sc, ealign);
-        sc = sc.endCTFE();
-        ealign = ealign.ctfeInterpret();
-
-        if (ealign.op == TOKerror)
-            return salign = STRUCTALIGN_DEFAULT;
-
-        Type tb = ealign.type.toBasetype();
-        auto n = ealign.toInteger();
-
-        if (n < 1 || n & (n - 1) || structalign_t.max < n || !tb.isintegral())
-        {
-            .error(loc, "alignment must be an integer positive power of 2, not %s", ealign.toChars());
-            return salign = STRUCTALIGN_DEFAULT;
-        }
-
-        return salign = cast(structalign_t)n;
     }
 
     override void accept(Visitor v)
@@ -1353,34 +1264,6 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         if (decl)
             Dsymbol.setScope(sc); // for forward reference of UDAs
         return AttribDeclaration.setScope(sc);
-    }
-
-    override void semantic2(Scope* sc)
-    {
-        if (decl && atts && atts.dim && _scope)
-        {
-            static void eval(Scope* sc, Expressions* exps)
-            {
-                foreach (ref Expression e; *exps)
-                {
-                    if (e)
-                    {
-                        e = e.semantic(sc);
-                        if (definitelyValueParameter(e))
-                            e = e.ctfeInterpret();
-                        if (e.op == TOKtuple)
-                        {
-                            TupleExp te = cast(TupleExp)e;
-                            eval(sc, te.exps);
-                        }
-                    }
-                }
-            }
-
-            _scope = null;
-            eval(sc, atts);
-        }
-        AttribDeclaration.semantic2(sc);
     }
 
     static Expressions* concat(Expressions* udas1, Expressions* udas2)

@@ -5921,68 +5921,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         return ti;
     }
 
-    override void semantic2(Scope* sc)
-    {
-        if (semanticRun >= PASSsemantic2)
-            return;
-        semanticRun = PASSsemantic2;
-        static if (LOG)
-        {
-            printf("+TemplateInstance.semantic2('%s')\n", toChars());
-        }
-        if (!errors && members)
-        {
-            TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
-            assert(tempdecl);
-
-            sc = tempdecl._scope;
-            assert(sc);
-            sc = sc.push(argsym);
-            sc = sc.push(this);
-            sc.tinst = this;
-            sc.minst = minst;
-
-            int needGagging = (gagged && !global.gag);
-            uint olderrors = global.errors;
-            int oldGaggedErrors = -1; // dead-store to prevent spurious warning
-            if (needGagging)
-                oldGaggedErrors = global.startGagging();
-
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                Dsymbol s = (*members)[i];
-                static if (LOG)
-                {
-                    printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
-                }
-                s.semantic2(sc);
-                if (gagged && global.errors != olderrors)
-                    break;
-            }
-
-            if (global.errors != olderrors)
-            {
-                if (!errors)
-                {
-                    if (!tempdecl.literal)
-                        error(loc, "error instantiating");
-                    if (tinst)
-                        tinst.printInstantiationTrace();
-                }
-                errors = true;
-            }
-            if (needGagging)
-                global.endGagging(oldGaggedErrors);
-
-            sc = sc.pop();
-            sc.pop();
-        }
-        static if (LOG)
-        {
-            printf("-TemplateInstance.semantic2('%s')\n", toChars());
-        }
-    }
-
     // resolve real symbol
     override final Dsymbol toAlias()
     {
@@ -7611,38 +7549,6 @@ extern (C++) final class TemplateMixin : TemplateInstance
     {
         auto tm = new TemplateMixin(loc, ident, cast(TypeQualified)tqual.syntaxCopy(), tiargs);
         return TemplateInstance.syntaxCopy(tm);
-    }
-
-    override void semantic2(Scope* sc)
-    {
-        if (semanticRun >= PASSsemantic2)
-            return;
-        semanticRun = PASSsemantic2;
-        static if (LOG)
-        {
-            printf("+TemplateMixin.semantic2('%s')\n", toChars());
-        }
-        if (members)
-        {
-            assert(sc);
-            sc = sc.push(argsym);
-            sc = sc.push(this);
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                Dsymbol s = (*members)[i];
-                static if (LOG)
-                {
-                    printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
-                }
-                s.semantic2(sc);
-            }
-            sc = sc.pop();
-            sc.pop();
-        }
-        static if (LOG)
-        {
-            printf("-TemplateMixin.semantic2('%s')\n", toChars());
-        }
     }
 
     override const(char)* kind() const

@@ -27,7 +27,7 @@ extern(C++) void semantic(Dsymbol dsym, Scope* sc)
 }
 
 // entrypoint for semantic ExpressionSemanticVisitor
-extern (C++) Expression semantic(Expression e, Scope* sc)
+extern(C++) Expression semantic(Expression e, Scope* sc)
 {
     scope v = new ExpressionSemanticVisitor(sc);
     e.accept(v);
@@ -46,7 +46,7 @@ extern (C++) Expression semantic(Expression e, Scope* sc)
  *      `Initializer` with completed semantic analysis, `ErrorInitializer` if errors
  *      were encountered
  */
-extern (C++) Initializer semantic(Initializer init, Scope* sc, Type t, NeedInterpret needInterpret)
+extern(C++) Initializer semantic(Initializer init, Scope* sc, Type t, NeedInterpret needInterpret)
 {
     scope v = new InitializerSemanticVisitor(sc, t, needInterpret);
     init.accept(v);
@@ -54,7 +54,7 @@ extern (C++) Initializer semantic(Initializer init, Scope* sc, Type t, NeedInter
 }
 
 // Performs semantic analisys in Statement AST nodes
-extern (C++) Statement semantic(Statement s, Scope* sc)
+extern(C++) Statement semantic(Statement s, Scope* sc)
 {
     scope v = new StatementSemanticVisitor(sc);
     s.accept(v);
@@ -71,7 +71,7 @@ extern (C++) Statement semantic(Statement s, Scope* sc)
  *      `Type` with completed semantic analysis, `Terror` if errors
  *      were encountered
  */
-extern (C++) Type semantic(Type t, Loc loc, Scope* sc)
+extern(C++) Type semantic(Type t, Loc loc, Scope* sc)
 {
     scope v = new TypeSemanticVisitor(loc, sc);
     t.accept(v);
@@ -79,7 +79,7 @@ extern (C++) Type semantic(Type t, Loc loc, Scope* sc)
 }
 
 // Performs semantic on TemplateParamter AST nodes
-extern (C++) bool semantic(TemplateParameter tp, Scope* sc, TemplateParameters* parameters)
+extern(C++) bool semantic(TemplateParameter tp, Scope* sc, TemplateParameters* parameters)
 {
     scope v = new TemplateParameterSemanticVisitor(sc, parameters);
     tp.accept(v);
@@ -89,6 +89,15 @@ extern (C++) bool semantic(TemplateParameter tp, Scope* sc, TemplateParameters* 
 void semantic(Catch c, Scope* sc)
 {
     semanticWrapper(c, sc);
+}
+
+/*************************************
+ * Does semantic analysis on initializers and members of aggregates.
+ */
+extern(C++) void semantic2(Dsymbol dsym, Scope* sc)
+{
+    scope v = new Semantic2Visitor(sc);
+    dsym.accept(v);
 }
 
 /*************************************

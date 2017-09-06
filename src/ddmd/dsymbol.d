@@ -29,6 +29,7 @@ import ddmd.dimport;
 import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dstruct;
+import ddmd.dsymbolsem;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
@@ -654,14 +655,6 @@ extern (C++) class Dsymbol : RootObject
 
     void importAll(Scope* sc)
     {
-    }
-
-    /*************************************
-     * Does semantic analysis on initializers and members of aggregates.
-     */
-    void semantic2(Scope* sc)
-    {
-        // Most Dsymbols have no further semantic analysis needed
     }
 
     /*********************************************
