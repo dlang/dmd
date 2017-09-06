@@ -907,6 +907,7 @@ extern (C++) class VarDeclaration : Declaration
         {
             if (!type && !_init)
             {
+                import core.stdc.stdio;
                 printf("VarDeclaration('%s')\n", id.toChars());
                 //*(char*)0=0;
             }

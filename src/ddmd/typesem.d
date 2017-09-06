@@ -1268,6 +1268,7 @@ extern (C++) final class TypeSemanticVisitor : Visitor
                     assert(mtype.cppmangle == sc.cppmangle);
             }
             result = mtype;
+            return;
         }
 
         /* Don't semantic for sym because it should be deferred until
@@ -1382,6 +1383,7 @@ static Type merge(Type type)
             t = cast(Type)sv.ptrvalue;
             debug
             {
+                import core.stdc.stdio;
                 if (!t.deco)
                     printf("t = %s\n", t.toChars());
             }
