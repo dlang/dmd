@@ -129,7 +129,7 @@ Global::Global()
     "\nMSIL back-end (alpha release) by Cristian L. Vlasceanu and associates.";
 #endif
     ;
-    version = "v"
+    version = ""
 #include "verstr.h"
     ;
 

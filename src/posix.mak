@@ -219,21 +219,7 @@ impcnvgen : mtype.h impcnvgen.c
 #########
 
 # Create (or update) the verstr.h file.
-# The file is only updated if the VERSION1 file changes, or, only when RELEASE=1
-# is not used, when the full version string changes (i.e. when the git hash or
-# the working tree dirty states changes).
-# The full version string have the form VERSION-devel-HASH(-dirty).
-# The "-dirty" part is only present when the repository had uncommitted changes
-# at the moment it was compiled (only files already tracked by git are taken
-# into account, untracked files don't affect the dirty state).
-ifeq ($(VERSION),)
-VERSION := $(shell cat ../VERSION1)
-ifneq (1,$(RELEASE))
-VERSION_GIT := $(shell printf "`$(GIT) rev-parse --short HEAD`"; \
-       test -n "`$(GIT) status --porcelain -uno`" && printf -- -dirty)
-VERSION := $(addsuffix -devel$(if $(VERSION_GIT),-$(VERSION_GIT)),$(VERSION))
-endif
-endif
+VERSION := $(shell printf "`$(GIT) describe --dirty --always`")
 $(shell test \"$(VERSION)\" != "`cat verstr.h 2> /dev/null`" \
                && printf \"$(VERSION)\" > verstr.h )
 
