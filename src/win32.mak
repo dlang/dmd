@@ -347,7 +347,7 @@ clean:
 	$(RD) /s /q $(GEN)
 	$(DEL) $D\msgs.h $D\msgs.c
 	$(DEL) optabgen.exe parser_test.exe example_avg.exe
-	$(DEL) $(TARGETEXE) $(DMDFRONTENDEXE) *.map *.obj
+	$(DEL) $(TARGETEXE) $(DMDFRONTENDEXE) *.map *.obj *.exe
 
 install: detab install-copy
 

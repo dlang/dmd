@@ -43,6 +43,7 @@ import ddmd.root.outbuffer;
 import ddmd.root.rootobject;
 import ddmd.semantic;
 import ddmd.tokens;
+import ddmd.typesem;
 import ddmd.visitor;
 
 import ddmd.templateparamsem;

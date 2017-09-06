@@ -30,6 +30,7 @@ import ddmd.mtype;
 import ddmd.opover;
 import ddmd.semantic;
 import ddmd.statement;
+import ddmd.typesem;
 import ddmd.tokens;
 
 /*******************************************

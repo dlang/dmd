@@ -5,6 +5,7 @@ import ddmd.dsymbol;
 import ddmd.dscope;
 import ddmd.dtemplate;
 import ddmd.expression;
+import ddmd.globals;
 import ddmd.init;
 import ddmd.mtype;
 import ddmd.statement;
@@ -14,6 +15,7 @@ import ddmd.dsymbolsem;
 import ddmd.expressionsem;
 import ddmd.statementsem;
 import ddmd.templateparamsem;
+import ddmd.typesem;
 
 /*************************************
  * Does semantic analysis on the public face of declarations.
@@ -57,6 +59,23 @@ extern (C++) Statement semantic(Statement s, Scope* sc)
     scope v = new StatementSemanticVisitor(sc);
     s.accept(v);
     return v.result;
+}
+
+/******************************************
+ * Perform semantic analysis on a type.
+ * Params:
+ *      t = Type AST node
+ *      loc = the location of the type
+ *      sc = context
+ * Returns:
+ *      `Type` with completed semantic analysis, `Terror` if errors
+ *      were encountered
+ */
+extern (C++) Type semantic(Type t, Loc loc, Scope* sc)
+{
+    scope v = new TypeSemanticVisitor(loc, sc);
+    t.accept(v);
+    return  v.result;
 }
 
 // Performs semantic on TemplateParamter AST nodes

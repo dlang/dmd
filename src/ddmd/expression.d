@@ -61,6 +61,7 @@ import ddmd.semantic;
 import ddmd.sideeffect;
 import ddmd.target;
 import ddmd.tokens;
+import ddmd.typesem;
 import ddmd.utf;
 import ddmd.visitor;
 
