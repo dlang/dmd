@@ -110,3 +110,8 @@ enum Numbers
 }
 
 template IncludeConstraint(T) if (T == string) {}
+
+static foreach(enum i; 0..3)
+{
+    mixin("int a" ~ i.stringof ~ " = 1;");
+}
